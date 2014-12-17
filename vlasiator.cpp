@@ -109,13 +109,7 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    
    creal meanVlasovCFL = 0.5*(P::vlasovSolverMaxCFL+ P::vlasovSolverMinCFL);
    creal meanFieldsCFL = 0.5*(P::fieldSolverMaxCFL+ P::fieldSolverMinCFL);
-   
-   // Subcycle if field solver dt < acceleration dt (including CFL)
-   if (meanFieldsCFL*dtMaxGlobal[2] < P::dt && P::propagateField) {
-      P::fieldSolverSubcycles = min(convert<int>(ceil(P::dt / (meanFieldsCFL*dtMaxGlobal[2]))), P::maxFieldSolverSubcycles);
-   } else {
-      P::fieldSolverSubcycles = 1;
-   }
+   Real subcycleDt;
    
    //reduce dt if it is too high for any of the three propagators, or too low for all propagators
    if(( P::dt > dtMaxGlobal[0]*P::vlasovSolverMaxCFL ||
@@ -123,7 +117,7 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
         P::dt > dtMaxGlobal[2]*P::fieldSolverMaxCFL*P::maxFieldSolverSubcycles ) ||
       ( P::dt < dtMaxGlobal[0]*P::vlasovSolverMinCFL && 
         P::dt < dtMaxGlobal[1]*P::vlasovSolverMinCFL &&
-        P::dt < dtMaxGlobal[2]*P::fieldSolverMinCFL*P::maxFieldSolverSubcycles )
+        P::dt < dtMaxGlobal[2]*P::fieldSolverMinCFL )
      ) {
      //new dt computed
      isChanged=true;
@@ -139,11 +133,21 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
        P::vlasovSolverMinCFL <<"-"<<P::vlasovSolverMaxCFL<<
        " or fieldsolver CFL "<< 
        P::fieldSolverMinCFL <<"-"<<P::fieldSolverMaxCFL<<
-       " ) in {r, v, BE, BE subcycles} was " <<
+       " ) in {r, v, BE} was " <<
        dtMaxGlobal[0] << " " <<
        dtMaxGlobal[1] << " " <<
        dtMaxGlobal[2] << " " <<
-       P::fieldSolverSubcycles << endl << writeVerbose;
+       endl << writeVerbose;
+       subcycleDt = newDt;
+   } else {
+      subcycleDt = P::dt;
+   }
+   
+   // Subcycle if field solver dt < global dt (including CFL) (new or old dt hence the hassle with subcycleDt
+   if (meanFieldsCFL*dtMaxGlobal[2] < subcycleDt && P::propagateField) {
+      P::fieldSolverSubcycles = min(convert<int>(ceil(subcycleDt / (meanFieldsCFL*dtMaxGlobal[2]))), P::maxFieldSolverSubcycles);
+   } else {
+      P::fieldSolverSubcycles = 1;
    }
    
    phiprof::stop("compute-timestep");
