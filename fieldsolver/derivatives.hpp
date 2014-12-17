@@ -576,7 +576,7 @@ void calculateDerivativesSimple(
    for(uint i=0;i<cellsWithLocalNeighbours.size();i++){
       const CellID cellID = cellsWithLocalNeighbours[i];
       if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
-      calculateDerivatives(cellID, mpiGrid, sysBoundaries, RKCase, true);
+      calculateDerivatives(cellID, mpiGrid, sysBoundaries, RKCase, doMoments);
    }
    phiprof::stop(timer);
    
@@ -594,7 +594,7 @@ void calculateDerivativesSimple(
    for(uint i=0;i<cellsWithRemoteNeighbours.size();i++){
       const CellID cellID = cellsWithRemoteNeighbours[i];
       if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
-      calculateDerivatives(cellID, mpiGrid, sysBoundaries, RKCase, true);
+      calculateDerivatives(cellID, mpiGrid, sysBoundaries, RKCase, doMoments);
    }
    phiprof::stop(timer);
    
