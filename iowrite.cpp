@@ -179,7 +179,7 @@ bool writeVelocityDistributionData(Writer& vlsvWriter,
 
    // Write the subarrays
    vlsvWriter.endMultiwrite("BLOCKVARIABLE", attribs);
-
+   
    #ifdef DEBUG_AMR
    attribs["name"] = "fx";
    vlsvWriter.startMultiwrite(datatype_avgs,arraySize_avgs,vectorSize_avgs,dataSize_avgs);
@@ -779,7 +779,7 @@ bool checkForSameMembers( const vector<uint64_t> local_cells, const vector<uint6
 \param writeGhosts If true, writes out ghost cells (cells that exist on the process boundary so other process' cells)
 */
 bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-               DataReducer& dataReducer,
+               DataReducer* dataReducer,
                const uint& index,
                const bool writeGhosts ) {
    double allStart = MPI_Wtime();
@@ -850,8 +850,8 @@ bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 
    //Write necessary variables:
    //Determines whether we write in floats or doubles
-   for( uint i = 0; i < dataReducer.size(); ++i ) {
-      if( writeDataReducer( mpiGrid, local_cells, (P::writeAsFloat==1), dataReducer, i, vlsvWriter ) == false ) return false;
+   if (dataReducer != NULL) for( uint i = 0; i < dataReducer->size(); ++i ) {
+      if( writeDataReducer( mpiGrid, local_cells, (P::writeAsFloat==1), *dataReducer, i, vlsvWriter ) == false ) return false;
    }
 
    phiprof::initializeTimer("Barrier","MPI","Barrier");

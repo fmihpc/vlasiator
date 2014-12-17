@@ -329,6 +329,8 @@ bool Parameters::getParameters(){
    // Get parameters related to bailout
    Readparameters::get("bailout.write_restart", P::bailout_write_restart);
    Readparameters::get("bailout.min_dt", P::bailout_min_dt);
+
+   for (size_t s=0; s<P::systemWriteName.size(); ++s) P::systemWrites.push_back(0);
    
    return true;
 }
