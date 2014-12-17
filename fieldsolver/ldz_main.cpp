@@ -222,7 +222,7 @@ bool finalizeFieldPropagator(
  * 
  * \param mpiGrid Grid
  * \param dt Length of the time step
- * \param cycles Number of subcycles to compute.
+ * \param subcycles Number of subcycles to compute.
  * 
  * \sa propagateMagneticFieldSimple calculateDerivativesSimple calculateUpwindedElectricFieldSimple calculateVolumeAveragedFields calculateBVOLDerivativesSimple
  * 
@@ -231,7 +231,7 @@ bool propagateFields(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    SysBoundary& sysBoundaries,
    creal& dt,
-   cint& cycles
+   cint& subcycles
 ) {
    // Reserve memory for derivatives for all cells on this process:
    vector<CellID> localCells = mpiGrid.get_cells();
@@ -240,7 +240,7 @@ bool propagateFields(
       const CellID cellID = localCells[cell];
       mpiGrid[cellID]->parameters[CellParams::MAXFDT]=std::numeric_limits<Real>::max();
    }
-   if(cycles == 1) {
+   if(subcycles == 1) {
 # ifdef FS_1ST_ORDER_TIME
       propagateMagneticFieldSimple(mpiGrid, sysBoundaries, dt, localCells, RK_ORDER1);
       calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1, true);
@@ -264,8 +264,8 @@ bool propagateFields(
       calculateUpwindedElectricFieldSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP2);
 # endif
    } else {
-      for (uint i=0; i<cycles; i++) {
-         propagateMagneticFieldSimple(mpiGrid, sysBoundaries, dt/convert<Real>(cycles), localCells, RK_ORDER1);
+      for (uint i=0; i<subcycles; i++) {
+         propagateMagneticFieldSimple(mpiGrid, sysBoundaries, dt/convert<Real>(subcycles), localCells, RK_ORDER1);
          if(i==0) {
             calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1, true);
          } else {

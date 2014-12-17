@@ -92,7 +92,7 @@ bool propagateFields(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    SysBoundary& sysBoundaries,
    creal& dt,
-   cint& cycles
+   cint& subcycles
 );
 
 /*! \brief Calculate the neighbour number.
