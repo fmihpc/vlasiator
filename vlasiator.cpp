@@ -111,8 +111,8 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    creal meanFieldsCFL = 0.5*(P::fieldSolverMaxCFL+ P::fieldSolverMinCFL);
    
    // Subcycle if field solver dt < acceleration dt (including CFL)
-   if (meanFieldsCFL*dtMaxGlobal[2] < meanVlasovCFL*dtMaxGlobal[1] && P::propagateField) {
-      P::fieldSolverSubcycles = min(convert<int>(ceil(meanVlasovCFL*dtMaxGlobal[1] / (meanFieldsCFL*dtMaxGlobal[2]))), P::maxFieldSolverSubcycles);
+   if (meanFieldsCFL*dtMaxGlobal[2] < P::dt && P::propagateField) {
+      P::fieldSolverSubcycles = min(convert<int>(ceil(P::dt / (meanFieldsCFL*dtMaxGlobal[2]))), P::maxFieldSolverSubcycles);
    } else {
       P::fieldSolverSubcycles = 1;
    }
