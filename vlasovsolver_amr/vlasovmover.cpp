@@ -53,9 +53,11 @@ static void writeVelMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mp
       Parameters::systemWriteDistributionWriteXlineStride.push_back(0);
       Parameters::systemWriteDistributionWriteYlineStride.push_back(0);
       Parameters::systemWriteDistributionWriteZlineStride.push_back(0);
+      Parameters::systemWriteTimeInterval.push_back(-1.0);
       Parameters::systemWrites.push_back(0);
    }
    writeGrid(mpiGrid,NULL,counter,true);
+   ++Parameters::systemWrites[counter];
 }
 
 /*!

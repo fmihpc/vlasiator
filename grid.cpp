@@ -26,13 +26,15 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #include "iowrite.h"
 #include "ioread.h"
 
-#warning DEBUGGING can be removed
-#include <vlsv_writer.h>
-
 #ifdef PAPI_MEM
 #include "papi.h" 
 #endif 
 
+#ifndef NDEBUG
+   #ifdef AMR
+      #define DEBUG_AMR_VALIDATE
+   #endif
+#endif
 
 using namespace std;
 using namespace phiprof;
@@ -42,6 +44,26 @@ extern Logger logFile, diagnostic;
 void initVelocityGridGeometry();
 void initSpatialCellCoordinates(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
+
+#warning This is for testing, can be removed later
+void writeVelMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
+   vector<CellID> cells = mpiGrid.get_cells();
+
+   static int counter = -1;
+   if (counter < 0) {
+      counter = Parameters::systemWrites.size();
+      Parameters::systemWriteDistributionWriteStride.push_back(1);
+      Parameters::systemWriteName.push_back("validate");
+      Parameters::systemWriteDistributionWriteXlineStride.push_back(0);
+      Parameters::systemWriteDistributionWriteYlineStride.push_back(0);
+      Parameters::systemWriteDistributionWriteZlineStride.push_back(0);
+      Parameters::systemWriteTimeInterval.push_back(-1.0);
+      Parameters::systemWrites.push_back(0);      
+      cerr << "P#" << mpiGrid.get_rank() << " validate gets counter " << counter << endl;
+   }
+   writeGrid(mpiGrid,NULL,counter,true);
+   ++Parameters::systemWrites[counter];
+}
 
 void initializeGrid(
    int argn,
@@ -162,8 +184,12 @@ void initializeGrid(
       }      
       phiprof::stop("Apply system boundary conditions state");
       
-      //adjustVelocityBlocks(mpiGrid); // do not initialize mover, mover has not yet been initialized here
       validateMesh(mpiGrid,project);
+      adjustVelocityBlocks(mpiGrid); // do not initialize mover, mover has not yet been initialized here
+      
+      #ifdef DEBUG_AMR_VALIDATE
+         writeVelMesh(mpiGrid);
+      #endif
       shrink_to_fit_grid_data(mpiGrid); //get rid of excess data already here
 
       phiprof::start("Init moments");
@@ -382,14 +408,14 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    for (unsigned int i=0; i<cells.size(); ++i) {
       Real density_pre_adjust=0.0;
       Real density_post_adjust=0.0;
-      uint64_t cell_id=cells[i];
+      CellID cell_id=cells[i];
       SpatialCell* cell = mpiGrid[cell_id];
 
       // gather spatial neighbor list and create vector with pointers to neighbor spatial cells
-      const vector<uint64_t>* neighbors = mpiGrid.get_neighbors_of(cell_id, NEAREST_NEIGHBORHOOD_ID);
+      const vector<CellID>* neighbors = mpiGrid.get_neighbors_of(cell_id, NEAREST_NEIGHBORHOOD_ID);
       vector<SpatialCell*> neighbor_ptrs;
       neighbor_ptrs.reserve(neighbors->size());
-      for (vector<uint64_t>::const_iterator neighbor_id = neighbors->begin(); neighbor_id != neighbors->end(); ++neighbor_id) {
+      for (vector<CellID>::const_iterator neighbor_id = neighbors->begin(); neighbor_id != neighbors->end(); ++neighbor_id) {
          if (*neighbor_id == 0 || *neighbor_id == cell_id) {
             continue;
          }
@@ -761,30 +787,6 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    mpiGrid.add_neighborhood(SHIFT_P_Z_NEIGHBORHOOD_ID, neighborhood);
 }
 
-#warning This is for testing, can be removed later
-void writeVelMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
-   vector<CellID> cells = mpiGrid.get_cells();
-   
-   if (Parameters::systemWriteName.size() != Parameters::systemWrites.size()) {
-      cerr << "P#" << mpiGrid.get_rank() << " error in sizes" << endl; exit(1);
-   }
-   
-   static int counter = -1;
-   if (counter < 0) {
-      counter = Parameters::systemWrites.size();
-      Parameters::systemWriteDistributionWriteStride.push_back(1);
-      Parameters::systemWriteName.push_back("validate");
-      Parameters::systemWriteDistributionWriteXlineStride.push_back(0);
-      Parameters::systemWriteDistributionWriteYlineStride.push_back(0);
-      Parameters::systemWriteDistributionWriteZlineStride.push_back(0);
-      Parameters::systemWrites.push_back(0);
-      
-      cerr << "P#" << mpiGrid.get_rank() << " validate gets counter " << counter << endl;
-   }
-   writeGrid(mpiGrid,NULL,counter,true);
-   ++Parameters::systemWrites[counter];
-}
-
 bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                   Project& project) {
       bool rvalue = true;
@@ -808,10 +810,11 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       int iter=0;
        
       do {
-         cerr << "validate pass " << iter << endl;
+         #ifdef DEBUG_AMR_VALIDATE
          if (iter == 0) {
             writeVelMesh(mpiGrid);
          }
+         #endif
             
          // Update velocity mesh in remote cells
          phiprof::start("MPI");
@@ -851,8 +854,10 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             }
          }
          phiprof::stop("calc refinements");
-            
-         if (iter == 0) writeVelMesh(mpiGrid);
+
+         #ifdef DEBUG_AMR_VALIDATE
+            if (iter == 0) writeVelMesh(mpiGrid);
+         #endif
             
          // Apply refinements
          phiprof::start("refine mesh");
@@ -934,7 +939,9 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          }            
          phiprof::stop("recalculate distrib. functions");
 
-         writeVelMesh(mpiGrid);
+         #ifdef DEBUG_AMR_VALIDATE
+            writeVelMesh(mpiGrid);
+         #endif
          ++iter;
 
          // Exit if all processes are done with mesh refinements
