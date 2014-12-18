@@ -58,6 +58,7 @@ Real P::vlasovSolverMaxCFL = NAN;
 Real P::vlasovSolverMinCFL = NAN;
 Real P::fieldSolverMaxCFL = NAN;
 Real P::fieldSolverMinCFL = NAN;
+int P::fieldSolverSubcycles = NAN;
 
 
 uint P::tstep = 0;
@@ -89,6 +90,7 @@ uint P::maxAccelerationSubsteps=1;
 bool P::dynamicTimestep = true;
 
 Real P::maxWaveVelocity = 0.0;
+int P::maxFieldSolverSubcycles = 0.0;
 Real P::resistivity = NAN;
 bool P::fieldSolverDiffusiveEterms = true;
 uint P::ohmHallTerm = 0;
@@ -174,6 +176,7 @@ bool Parameters::addParameters(){
    
    // Field solver parameters
    Readparameters::add("fieldsolver.maxWaveVelocity", "Maximum wave velocity allowed in the fastest velocity determination in m/s, default unlimited", LARGE_REAL);
+   Readparameters::add("fieldsolver.maxSubcycles", "Maximum allowed field solver subcycles", 1);
    Readparameters::add("fieldsolver.resistivity", "Resistivity for the eta*J term in Ohm's law.", 0.0);
    Readparameters::add("fieldsolver.diffusiveEterms", "Enable diffusive terms in the computation of E",true);
    Readparameters::add("fieldsolver.ohmHallTerm", "Enable/choose spatial order of the Hall term in Ohm's law. 0: off, 1: 1st spatial order, 2: 2nd spatial order", 0);
@@ -295,6 +298,7 @@ bool Parameters::getParameters(){
    
    // Get field solver parameters
    Readparameters::get("fieldsolver.maxWaveVelocity", P::maxWaveVelocity);
+   Readparameters::get("fieldsolver.maxSubcycles", P::maxFieldSolverSubcycles);
    Readparameters::get("fieldsolver.resistivity", P::resistivity);
    Readparameters::get("fieldsolver.diffusiveEterms", P::fieldSolverDiffusiveEterms);
    Readparameters::get("fieldsolver.ohmHallTerm", P::ohmHallTerm);

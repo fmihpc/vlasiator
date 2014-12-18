@@ -51,10 +51,11 @@ struct Parameters {
    static Real t_min;                    /*!< Initial simulation time. */
    static Real t_max;                    /*!< Maximum simulation time. */
    static Real dt;                   /*!< The value of the timestep to use in propagation. If CflLimit defined then it is dynamically updated during simulation*/
-   static Real vlasovSolverMaxCFL;                  /*!< The maximum CFL limit for propagation of distribution function. Used to set timestep if useCFLlimit is true. Also used to set number of acceleration steps if substepAcceleration is true */
-   static Real vlasovSolverMinCFL;                  /*!< The minimum CFL limit for propagation of distribution function. Used to set timestep if useCFLlimit is true. Also used to set number of acceleration steps if substepAcceleration is true */
+   static Real vlasovSolverMaxCFL;   /*!< The maximum CFL limit for propagation of distribution function. Used to set timestep if useCFLlimit is true. */
+   static Real vlasovSolverMinCFL;   /*!< The minimum CFL limit for propagation of distribution function. Used to set timestep if useCFLlimit is true. */
    static Real fieldSolverMinCFL;     /*!< The minimum CFL limit for propagation of fields. Used to set timestep if useCFLlimit is true.*/
    static Real fieldSolverMaxCFL;     /*!< The maximum CFL limit for propagation of fields. Used to set timestep if useCFLlimit is true.*/
+   static int fieldSolverSubcycles;     /*!< The number of field solver subcycles to compute.*/
    
    static uint tstep_min;           /*!< Timestep when simulation starts, needed for restarts.*/
    static uint tstep_max;           /*!< Maximum timestep. */
@@ -87,6 +88,7 @@ struct Parameters {
    static bool periodic_x, periodic_y, periodic_z; /*!< Whether spatial vlasov grid is periodic */
 
    static Real maxWaveVelocity; /*!< Maximum wave velocity allowed in LDZ. */
+   static int maxFieldSolverSubcycles; /*!< Maximum allowed field solver subcycles. */
    static Real resistivity; /*!< Resistivity in Ohm's law eta*J term. */
    static uint ohmHallTerm; /*!< Enable/choos spatial order of Hall term in Ohm's law JXB term. 0: off, 1: 1st spatial order, 2: 2nd spatial order. */
    static bool fieldSolverDiffusiveEterms; /*!< Enable resitive terms in the computation of E*/
