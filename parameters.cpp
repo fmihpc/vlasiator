@@ -61,7 +61,6 @@ Real P::fieldSolverMaxCFL = NAN;
 Real P::fieldSolverMinCFL = NAN;
 int P::fieldSolverSubcycles = NAN;
 
-
 uint P::tstep = 0;
 uint P::tstep_min = 0;
 uint P::tstep_max = 0;
@@ -92,6 +91,7 @@ bool P::dynamicTimestep = true;
 
 Real P::maxWaveVelocity = 0.0;
 int P::maxFieldSolverSubcycles = 0.0;
+int P::maxSlAccelerationSubcycles = 0.0;
 Real P::resistivity = NAN;
 bool P::fieldSolverDiffusiveEterms = true;
 uint P::ohmHallTerm = 0;
@@ -185,7 +185,8 @@ bool Parameters::addParameters(){
    Readparameters::add("fieldsolver.minCFL","The minimum CFL limit for field propagation. Used to set timestep if dynamic_timestep is true.",0.4);
 
    // Vlasov solver parameters
-   Readparameters::add("vlasovsolver.maxSlAccelerationRotation","Maximum rotation angle allowed by the Semi-Lagrangian solver (Do not use too large values, test properly)",10.0);
+   Readparameters::add("vlasovsolver.maxSlAccelerationRotation","Maximum rotation angle (degrees) allowed by the Semi-Lagrangian solver (Use >25 values with care)",25.0);
+   Readparameters::add("vlasovsolver.maxSlAccelerationSubcycles","Maximum number of subcycles for acceleration",1);
    Readparameters::add("vlasovsolver.lorentzHallMinimumRho", "Minimum rho value used for Hall term in Lorentz force. Default is very low and has no effect in practice.",1.0);
    Readparameters::add("vlasovsolver.maxCFL","The maximum CFL limit for vlasov propagation in ordinary space. Used to set timestep if dynamic_timestep is true.",0.99);
    Readparameters::add("vlasovsolver.minCFL","The minimum CFL limit for vlasov propagation in ordinary space. Used to set timestep if dynamic_timestep is true.",0.8);
@@ -204,7 +205,7 @@ bool Parameters::addParameters(){
    Readparameters::add("loadBalance.rebalanceInterval", "Load rebalance interval (steps)", 10);
    
 // Output variable parameters
-   Readparameters::addComposing("variables.output", "List of data reduction operators (DROs) to add to the grid file output. Each variable to be added has to be on a new line output = XXX. Available are (20141218) B BackgroundB PerturbedB E Rho RhoBackstream RhoV RhoVBackstream RhoVNonBackstream PressureBackstream  PTensorBackstreamDiagonal PTensorNonBackstreamDiagonal PTensorBackstreamOffDiagonal PTensorNonBackstreamOffDiagonal PTensorBackstream PTensorNonBackstream RhoNonBackstream RhoLossAdjust RhoLossVelBoundary LBweight MaxVdt MaxRdt MaxFieldsdt MPIrank BoundaryType BoundaryLayer Blocks fSaved VolE HallE BackgroundBedge VolB BackgroundVolB PerturbedVolB Pressure PTensor derivs BVOLderivs.");
+   Readparameters::addComposing("variables.output", "List of data reduction operators (DROs) to add to the grid file output. Each variable to be added has to be on a new line output = XXX. Available are (20141218) B BackgroundB PerturbedB E Rho RhoBackstream RhoV RhoVBackstream RhoVNonBackstream PressureBackstream  PTensorBackstreamDiagonal PTensorNonBackstreamDiagonal PTensorBackstreamOffDiagonal PTensorNonBackstreamOffDiagonal PTensorBackstream PTensorNonBackstream RhoNonBackstream RhoLossAdjust RhoLossVelBoundary LBweight MaxVdt MaxRdt MaxFieldsdt accSubcycles MPIrank BoundaryType BoundaryLayer Blocks fSaved VolE HallE BackgroundBedge VolB BackgroundVolB PerturbedVolB Pressure PTensor derivs BVOLderivs.");
    Readparameters::addComposing("variables.diagnostic", "List of data reduction operators (DROs) to add to the diagnostic runtime output. Each variable to be added has to be on a new line diagnostic = XXX. Available (20141218) are FluxB FluxE Blocks Pressure Rho RhoLossAdjust RhoLossVelBoundary LBweight MaxVdt MaxRdt MaxFieldsdt MaxDistributionFunction MinDistributionFunction BoundaryType BoundaryLayer.");
    Readparameters::add("variables.dr_backstream_vx", "Center coordinate for the maxwellian distribution. Used for calculating the backstream contriution for rho.", -500000.0);
    Readparameters::add("variables.dr_backstream_vy", "Center coordinate for the maxwellian distribution. Used for calculating the backstream contriution for rho.", 0.0);
@@ -307,6 +308,7 @@ bool Parameters::getParameters(){
    Readparameters::get("fieldsolver.minCFL",P::fieldSolverMinCFL);
    // Get Vlasov solver parameters
    Readparameters::get("vlasovsolver.maxSlAccelerationRotation",P::maxSlAccelerationRotation);
+   Readparameters::get("vlasovsolver.maxSlAccelerationSubcycles",P::maxSlAccelerationSubcycles);
    Readparameters::get("vlasovsolver.lorentzHallMinimumRho",P::lorentzHallMinimumRho);
    Readparameters::get("vlasovsolver.maxCFL",P::vlasovSolverMaxCFL);
    Readparameters::get("vlasovsolver.minCFL",P::vlasovSolverMinCFL);

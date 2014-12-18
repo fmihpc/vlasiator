@@ -1673,10 +1673,10 @@ namespace spatial_cell {
    inline void SpatialCell::adjustSingleCellVelocityBlocks() {
       //neighbor_ptrs is empty as we do not have any consistent
       //data in neighbours yet, adjustments done only based on velocity
-      //space. Do not delete blocks, because otherwise we might loose teneous flow in spatial space
+      //space. Do delete empty blocks, that is the main benefit usuaally of calling this function.
       std::vector<SpatialCell*> neighbor_ptrs;
       this->update_velocity_block_content_lists();
-      this->adjust_velocity_blocks(neighbor_ptrs,false);
+      this->adjust_velocity_blocks(neighbor_ptrs, true);
    }
 
    //set block data pointers data and fx for block
