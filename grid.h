@@ -131,6 +131,7 @@ void shrink_to_fit_grid_data(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
  * @param mpiGrid Parallel grid.
  * @return If true, the mesh is valid. Otherwise an error has occurred and the simulation 
  * should be aborted.*/
-bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
+bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                    Project& project);
 
 #endif

@@ -28,6 +28,7 @@
 #include "spatial_cell.hpp"
 #include "../grid.h"
 #include "../definitions.h"
+#include "../iowrite.h"
 
 using namespace std;
 using namespace spatial_cell;
@@ -39,6 +40,23 @@ creal SIXTH   = 1.0/6.0;
 creal ONE     = 1.0;
 creal TWO     = 2.0;
 creal EPSILON = 1.0e-25;
+
+#warning TESTING can be removed later
+static void writeVelMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
+   vector<CellID> cells = mpiGrid.get_cells();
+   
+   static int counter=-1;
+   if (counter < 0) {
+      counter = Parameters::systemWrites.size();
+      Parameters::systemWriteDistributionWriteStride.push_back(1);
+      Parameters::systemWriteName.push_back("velocity-trans");
+      Parameters::systemWriteDistributionWriteXlineStride.push_back(0);
+      Parameters::systemWriteDistributionWriteYlineStride.push_back(0);
+      Parameters::systemWriteDistributionWriteZlineStride.push_back(0);
+      Parameters::systemWrites.push_back(0);
+   }
+   writeGrid(mpiGrid,NULL,counter,true);
+}
 
 /*!
   
@@ -82,8 +100,12 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
 
    // Note: mpiGrid.is_local( cellID ) == true if cell is local
 
-   static int cntr=2;
-
+   static int cntr=0;
+   if (cntr == 0) {
+      writeVelMesh(mpiGrid);
+      cntr=1;
+   }
+   
    int dim=0;
 
    // Generate target mesh
@@ -111,8 +133,8 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    }
    phiprof::stop("mapping");
 
-   --cntr;
-   if (cntr < 0) cntr=2;
+   #warning TESTING can be removed
+   writeVelMesh(mpiGrid);
 
    for (size_t c=0; c<local_cells.size(); ++c) {
       SpatialCell* spatial_cell = mpiGrid[local_cells[c]];

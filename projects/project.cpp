@@ -117,6 +117,47 @@ namespace projects {
       return blocksToInitialize;
    }
    
+   Real Project::setVelocityBlock(SpatialCell* cell,const vmesh::LocalID& blockLID) {
+      // Get spatial cell parameters
+      creal x = cell->parameters[CellParams::XCRD];
+      creal y = cell->parameters[CellParams::YCRD];
+      creal z = cell->parameters[CellParams::ZCRD];
+      creal dx = cell->parameters[CellParams::DX];
+      creal dy = cell->parameters[CellParams::DY];
+      creal dz = cell->parameters[CellParams::DZ];
+      
+      // Get velocity block parameters
+      const Real* parameters = cell->get_block_parameters(blockLID);
+      creal vxBlock = parameters[BlockParams::VXCRD];
+      creal vyBlock = parameters[BlockParams::VYCRD];
+      creal vzBlock = parameters[BlockParams::VZCRD];
+      creal dvxCell = parameters[BlockParams::DVX];
+      creal dvyCell = parameters[BlockParams::DVY];
+      creal dvzCell = parameters[BlockParams::DVZ];
+      
+      Realf* data = cell->get_data(blockLID);
+      
+      // Calculate volume average of distrib. function for each cell in the block.
+      Real sum = 0.0;
+      for (uint kc=0; kc<WID; ++kc) 
+         for (uint jc=0; jc<WID; ++jc) 
+            for (uint ic=0; ic<WID; ++ic) {
+               creal vxCell = vxBlock + ic*dvxCell;
+               creal vyCell = vyBlock + jc*dvyCell;
+               creal vzCell = vzBlock + kc*dvzCell;
+               creal average =
+               this->calcPhaseSpaceDensity(
+                  x, y, z, dx, dy, dz,
+                  vxCell,vyCell,vzCell,
+                  dvxCell,dvyCell,dvzCell);
+
+               if (average > 0.0) data[vblock::index(ic,jc,kc)] = average;
+               else data[vblock::index(ic,jc,kc)] = average;
+               sum += average;
+            }
+      return sum;
+   }
+   
    void Project::setVelocitySpace(SpatialCell* cell) {
       const size_t popID = 0;
       vector<uint> blocksToInitialize = this->findBlocksToInitialize(cell);
@@ -129,41 +170,17 @@ namespace projects {
       creal dy = cell->parameters[CellParams::DY];
       creal dz = cell->parameters[CellParams::DZ];
       
+      vector<vmesh::GlobalID> removeList;
       for (uint i=0; i<blocksToInitialize.size(); ++i) {
          const vmesh::GlobalID blockGID = blocksToInitialize.at(i);
          const vmesh::LocalID blockLID = cell->get_velocity_block_local_id(blockGID);
-         creal vxBlock = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD];
-         creal vyBlock = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD];
-         creal vzBlock = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD];
-         creal dvxCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
-         creal dvyCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
-         creal dvzCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
-
-         // Calculate volume average of distrib. function for each cell in the block.
-         for (uint kc=0; kc<WID; ++kc) 
-            for (uint jc=0; jc<WID; ++jc) 
-               for (uint ic=0; ic<WID; ++ic) {
-                  //FIXME, block/cell index should be handled by spatial cell function (create if it does not exist)
-                  creal vxCell = vxBlock + ic*dvxCell;
-                  creal vyCell = vyBlock + jc*dvyCell;
-                  creal vzCell = vzBlock + kc*dvzCell;
-                  creal average =
-                  this->calcPhaseSpaceDensity(
-                     x, y, z, dx, dy, dz,
-                     vxCell,vyCell,vzCell,
-                     dvxCell,dvyCell,dvzCell);
-
-                  if (average != 0.0){
-                     //FIXME!!! set_value is slow as we again have to convert v -> index
-                     // We should set_value to a specific block index (as we already have it!)
-                     creal vxCellCenter = vxBlock + (ic+convert<Real>(0.5))*dvxCell;
-                     creal vyCellCenter = vyBlock + (jc+convert<Real>(0.5))*dvyCell;
-                     creal vzCellCenter = vzBlock + (kc+convert<Real>(0.5))*dvzCell;
-                     cell->set_value(vxCellCenter,vyCellCenter,vzCellCenter,average);
-                  }
-               }
+         if (setVelocityBlock(cell,blockLID) <= Parameters::sparseMinValue) 
+            removeList.push_back(blockGID);
       }
 
+      // Remove blocks with f below sparse min value
+      for (size_t b=0; b<removeList.size(); ++b) cell->remove_velocity_block(removeList[b]);
+      
       // Get AMR refinement criterion and use it to test which blocks should be refined
       amr_ref_criteria::Base* refCriterion = getObjectWrapper().amrVelRefCriteria.create(Parameters::amrVelRefCriterion);
       if (refCriterion == NULL) return;
@@ -172,10 +189,15 @@ namespace projects {
       // Loop over blocks in the spatial cell until we reach the maximum
       // refinement level, or until there are no more blocks left to refine
       bool refine = true;
-      //refine = false;
+
+      #warning TESTING remove me
+      if (x < 0.9e6) refine = false;
+
       uint currentLevel = 0;
       if (currentLevel == Parameters::amrMaxVelocityRefLevel) refine = false;
       while (refine == true) {
+         removeList.clear();
+         
          // Loop over blocks and add blocks to be refined to vector refineList
          vector<vmesh::GlobalID> refineList;
          const vmesh::LocalID startIndex = 0;
@@ -201,55 +223,23 @@ namespace projects {
          map<vmesh::GlobalID,vmesh::LocalID> insertedBlocks;
          for (size_t b=0; b<refineList.size(); ++b) {
             cell->refine_block(refineList[b],insertedBlocks);
-            //vmesh::LocalID blockLID = cell->get_velocity_block_local_id(refineList[b]);                                                                                   
-            //for (int i=0; i<WID3; ++i) cell->get_fx(blockLID)[i] = 1.0;
          }
 
          // Loop over blocks in map insertedBlocks and recalculate 
          // values of distribution functions
          for (map<vmesh::GlobalID,vmesh::LocalID>::const_iterator it=insertedBlocks.begin(); it!=insertedBlocks.end(); ++it) {
-            const vmesh::GlobalID blockGID = it->first;
-            const vmesh::LocalID blockLID = it->second;
-            parameters = cell->get_block_parameters();
-            creal vxBlock = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD];
-            creal vyBlock = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD];
-            creal vzBlock = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD];
-            creal dvxCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
-            creal dvyCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
-            creal dvzCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
-
-            for (uint kc=0; kc<WID; ++kc) {
-               for (uint jc=0; jc<WID; ++jc) {
-                  for (uint ic=0; ic<WID; ++ic) {
-                     creal vxCell = vxBlock + ic*dvxCell;
-                     creal vyCell = vyBlock + jc*dvyCell;
-                     creal vzCell = vzBlock + kc*dvzCell;
-                     creal average =
-                       calcPhaseSpaceDensity(
-                                             x, y, z, dx, dy, dz,
-                                             vxCell,vyCell,vzCell,
-                                             dvxCell,dvyCell,dvzCell);
-                     cell->get_data(blockLID)[kc*WID2+jc*WID+ic] = average;
-                  }
-               }
-            }
+            if (setVelocityBlock(cell,it->second) <= Parameters::sparseMinValue) 
+               removeList.push_back(it->first);
          }
 
-         //refine = false;
+         // Remove blocks with f below sparse min value
+         for (size_t b=0; b<removeList.size(); ++b) cell->remove_velocity_block(removeList[b]);
+         
          if (refineList.size() == 0) refine = false;
          ++currentLevel;
          if (currentLevel == Parameters::amrMaxVelocityRefLevel) refine = false;
       }
-      /*
-      #ifdef DEBUG_AMR
-      for (vmesh::LocalID blockLID=0; blockLID<cell->get_number_of_velocity_blocks(); ++blockLID) {
-         const vmesh::GlobalID blockGID = cell->get_velocity_block_global_id(blockLID);
-         Realf array[(WID+2)*(WID+2)*(WID+2)];
-         cell->fetch_data<1>(blockGID,cell->get_data(),array);
-         refCriterion->evaluate(array,cell->get_fx(blockLID));
-      }
-      #endif
-      */
+      
       delete refCriterion;
    }
 
