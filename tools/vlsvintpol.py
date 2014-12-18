@@ -1,61 +1,47 @@
 #!/usr/bin/python
-import pylab as pl
 import pytools as pt
 import numpy as np
-from glob import glob
 import sys
 import argparse
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-var', nargs='*')
-parser.add_argument('-ops', nargs='*')
-parser.add_argument('-i', nargs='*')
-parser.add_argument('-re', action='store_true')
+parser.add_argument('-var', nargs='*', help="a list of variable.operator's to output, e.g., v.magnitude rho B.x " )
+parser.add_argument('-i', nargs='*', help="a list of vlsv files")
+parser.add_argument('-c', help="A file with coordinates (can also be give from stdin)")
+parser.add_argument('-re', action='store_true', help="Coordinates in RE, in meters by default")
 args = parser.parse_args()
  
-#print("Variables: {}".format(args.v))
-#print("Input files: {}".format(args.i))
 
-if args.var is None and not args.ops is None or\
-   args.ops is None and not args.var is None:
-    print "Define both variables and operators"
-    sys.exit()
-
-elif args.var is None and args.ops is None:
+if args.var is None:
     #defaults
-
-    variables=["rho","B", "B", "B", "B"]
-    operators=["pass","magnitude","x","y","z"]
+    varnames=["rho","B.magnitude","B.x","B.y","B.z"]
 else:
-    variables=args.var
-    operators=args.ops
+    varnames=args.var
 
-
-if len(variables) != len(operators):
-    print "equal amount of variables and operators needed"
-    sys.exit()
-
-
-varnames=[]
-for i,var in enumerate(variables):
-    if operators[i]=="pass":
-        varnames.append(variables[i])
+#read in variables and their operatorsx
+operators=[]
+variables=[]
+for i,var in enumerate(varnames):
+    varop=var.split(".")
+    variables.append(varop[0])
+    if len(varop)==1:
+        operators.append("pass")
     else:
-        varnames.append(variables[i] + "." + operators[i])
+        operators.append(varop[1])
+
+#read in coordinates
+if args.c is None:
+    coords = np.loadtxt(sys.stdin, dtype=np.float)
+else:
+    coords = np.loadtxt(args.c, dtype=np.float)
 
 
-
-coords = np.loadtxt(sys.stdin, dtype=np.float)
 
 if(args.re):
-    coords = coords * 6371000;
-
-
-
-#print coords[0][:]
-
-print("#t X Y Z CELLID " + " ".join(varnames))
+    print("#t X_RE Y_RE Z_RE CELLID " + " ".join(varnames))
+else:
+    print("#t X Y Z CELLID " + " ".join(varnames))
 
 for filename in args.i:
     try:
@@ -64,7 +50,10 @@ for filename in args.i:
         f=pt.vlsvfile.VlsvReader(filename)
         t=f.read_parameter("t")
         for coord in coords:
-            cellids.append(f.get_cellid(coord))
+            if(args.re):
+                cellids.append(f.get_cellid(coord * 6371000))
+            else:
+                cellids.append(f.get_cellid(coord))
 
         for i,var in enumerate(variables):
             values.append(f.read_variable(variables[i],operator=operators[i],cellids=cellids))
@@ -77,5 +66,6 @@ for filename in args.i:
                 out = out +  " " + str(varval[i])
             print out
     except:
+        print "#Could not read " + filename
         pass
 
