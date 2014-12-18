@@ -117,7 +117,7 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
         P::dt > dtMaxGlobal[2]*P::fieldSolverMaxCFL*P::maxFieldSolverSubcycles ) ||
       ( P::dt < dtMaxGlobal[0]*P::vlasovSolverMinCFL && 
         P::dt < dtMaxGlobal[1]*P::vlasovSolverMinCFL &&
-        P::dt < dtMaxGlobal[2]*P::fieldSolverMinCFL )
+        P::dt < dtMaxGlobal[2]*P::fieldSolverMinCFL*P::maxFieldSolverSubcycles )
      ) {
      //new dt computed
      isChanged=true;
