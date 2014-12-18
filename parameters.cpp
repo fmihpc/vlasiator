@@ -7,6 +7,7 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #include "parameters.h"
 #include "readparameters.h"
 #include <limits>
+#include <set>
 
 #ifndef NAN
 #define NAN 0
@@ -323,7 +324,17 @@ bool Parameters::getParameters(){
    // Get output variable parameters
    Readparameters::get("variables.output", P::outputVariableList);
    Readparameters::get("variables.diagnostic", P::diagnosticVariableList);
+
+   // Filter duplicate variable names
+   set<string> dummy(P::outputVariableList.begin(),P::outputVariableList.end());
+   P::outputVariableList.clear();
+   P::outputVariableList.insert(P::outputVariableList.end(),dummy.begin(),dummy.end());
+   dummy.clear();
    
+   dummy.insert(P::diagnosticVariableList.begin(),P::diagnosticVariableList.end());
+   P::diagnosticVariableList.clear();
+   P::diagnosticVariableList.insert(P::diagnosticVariableList.end(),dummy.begin(),dummy.end());
+
    //Get parameters related to calculating backstream contributions
    Readparameters::get("variables.dr_backstream_radius", P::backstreamradius);
    Readparameters::get("variables.dr_backstream_vx", P::backstreamvx);
