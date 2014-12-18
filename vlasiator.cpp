@@ -310,10 +310,7 @@ int main(int argn,char* args[]) {
       phiprof::start("compute-dt");
       calculateSpatialTranslation(mpiGrid,0.0);
       calculateAcceleration(mpiGrid,0.0);
-      
-      //this is probably not ever needed, as a zero length step
-      //should not require changes
-      adjustVelocityBlocks(mpiGrid);
+
       
       if(P::propagateField) {
          propagateFields(mpiGrid, sysBoundaries, 0.0, 1.0);
@@ -336,8 +333,7 @@ int main(int argn,char* args[]) {
          calculateAcceleration(mpiGrid, 0.0);
       }
       phiprof::stop("propagate-velocity-space-dt/2");
-      adjustVelocityBlocks(mpiGrid);
-      addTimedBarrier("barrier-after-ad just-blocks");
+
    }
    phiprof::stop("Initialization");
 
@@ -532,11 +528,6 @@ int main(int argn,char* args[]) {
                //zero step to set up moments _v
                calculateAcceleration(mpiGrid, 0.0);
             }
-
-
-            
-            //adjust blocks after acceleration
-            adjustVelocityBlocks(mpiGrid);
             
             P::dt=newDt;
             
@@ -595,8 +586,6 @@ int main(int argn,char* args[]) {
          //zero step to set up moments _v
          calculateAcceleration(mpiGrid, 0.0);
       }
-
-      adjustVelocityBlocks(mpiGrid);
 
       phiprof::stop("Velocity-space",computedCells,"Cells");
       addTimedBarrier("barrier-after-acceleration");
