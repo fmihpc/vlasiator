@@ -274,6 +274,7 @@ void calculateAcceleration(
 
    int maxSubcycles=0;
    int globalMaxSubcycles;
+
    for (size_t c=0; c<propagatedCells.size(); ++c) {
       const CellID cellID = propagatedCells[c];
       subcycles.push_back(max(convert<int>(ceil(dt / mpiGrid[cellID]->parameters[CellParams::MAXVDT])),1));
@@ -284,12 +285,15 @@ void calculateAcceleration(
       
    for(uint step = 0;step < globalMaxSubcycles; step ++) {
       //Semilagrangian acceleration
+      vector<bool> doAdjustBlocks(propagatedCells.size(),false);
+      
 #pragma omp parallel for schedule(dynamic,1)
       for (size_t c=0; c<propagatedCells.size(); ++c) {
          const CellID cellID = propagatedCells[c];
          const Real subcyclesDt = dt / subcycles[c];
          if(step < subcycles[c]) {
             //only accelerate if below max limit
+            doAdjustBlocks[c] = true; //cells which are accelerated will be adjusted
             //generate pseudo-random order which is always the same irrespectiive of parallelization, restarts, etc
             char rngStateBuffer[256];
             random_data rngDataBuffer;
@@ -316,7 +320,10 @@ void calculateAcceleration(
       //the spatial dimension to make sure that we do not loose
       //stuff streaming in from other cells, perhaps not connected
       //to the existing distribution function in the cell.
-      adjustVelocityBlocks(mpiGrid);
+      //- All cells update and communicate their lists of content blocks
+      //- Only cells which were accerelated on this step need to be adjusted (blocks removed or added).
+      //- remote cells only need to be updated on the last subcycle (not needed by acceleration)
+      adjustVelocityBlocks(mpiGrid, propagatedCells, doAdjustBlocks, step == (globalMaxSubcycles - 1));
    } 
    phiprof::stop("semilag-acc");   
    

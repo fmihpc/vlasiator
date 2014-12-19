@@ -107,9 +107,26 @@ void deallocateRemoteCellBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
 
 
 
+/*! Adjust sparse velocity space to make it consistent in all 6 dimensions
 
-//subroutine to adjust blocks of local cells; remove/add based on user-defined limits
-bool adjust_local_velocity_blocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
+ 1) Compute which blocks have content
+ 2) Adjust local velocity blocks. That is, make sure blocks exist which have content, or have
+ neighbors with content in all 6-dimensions.
+ 3) Make sure remote cells are up-to-date and ready to receive data.
+
+ Note that block existence does not use vlasov stencil as it is important to also include diagonals to avoid massloss
+
+ \param mpiGrid  Parallel grid with spatial cells
+ \param cells  List of cells that are adjusted, typically mpiGrid.get_cells()
+ \param doAdjustBlocks List of cells which blocks are added or removed. Can be set individuall for each cell.
+ \param doPrepareToReceiveBlocks If true, then remote cells are set up so that velocity space data can be received. Global operation, value has to be the same for all processes.
+ 
+*/
+bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                          const vector<uint64_t>& cells,
+                          const std::vector<bool>& doAdjustBlocks,
+                          bool doPrepareToReceiveBlocks);
+
 
 
 
