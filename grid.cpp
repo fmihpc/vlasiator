@@ -854,10 +854,6 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             }
          }
          phiprof::stop("calc refinements");
-
-         #ifdef DEBUG_AMR_VALIDATE
-            if (iter == 0) writeVelMesh(mpiGrid);
-         #endif
             
          // Apply refinements
          phiprof::start("refine mesh");
@@ -918,9 +914,9 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                }
                #pragma omp barrier
 
-               // Copy global IDs of removed blocsk to the per-cell vector
+               // Copy global IDs of removed blocks to the per-cell vector
                size_t myOffset = 0;
-               for (int t=1; t<tid; ++t) myOffset += counter[t];
+               for (int t=0; t<tid; ++t) myOffset += counter[t];
 
                for (int b=0; b<counter[tid]; ++b) {
                   removedBlocks[c][b+myOffset] = threadRemBlocks[tid][b];
@@ -936,7 +932,7 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             for (size_t b=0; b<removedBlocks[c].size(); ++b) {
                cell->remove_velocity_block(removedBlocks[c][b]);
             }
-         }            
+         }
          phiprof::stop("recalculate distrib. functions");
 
          #ifdef DEBUG_AMR_VALIDATE
