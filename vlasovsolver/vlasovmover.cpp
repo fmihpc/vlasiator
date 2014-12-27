@@ -282,7 +282,7 @@ void calculateAcceleration(
       mpiGrid[cellID]->parameters[CellParams::ACCSUBCYCLES] = subcycles;
       maxSubcycles=maxSubcycles < subcycles ? subcycles:maxSubcycles;
    }
-   MPI_Allreduce(&maxSubcycles, &globalMaxSubcycles, 1, MPI_INT, MPI_MAX, mpiGrid.get_communicator());
+   MPI_Allreduce(&maxSubcycles, &globalMaxSubcycles, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
 
    //substep global max times
    for(uint step = 0;step < globalMaxSubcycles; step ++) {
@@ -290,7 +290,7 @@ void calculateAcceleration(
       //prune list of cells to propagate to only contained those which are now subcycled
       vector<CellID> temp;
       for (size_t c=0; c<propagatedCells.size(); ++c) {
-         if(step <   getAccerelationSubcycles(mpiGrid[propagatedCells[c]], dt)) {
+         if(step < getAccerelationSubcycles(mpiGrid[propagatedCells[c]], dt)) {
             temp.push_back(propagatedCells[c]);
          }
       }
@@ -300,7 +300,22 @@ void calculateAcceleration(
 #pragma omp parallel for schedule(dynamic,1)
       for (size_t c=0; c<propagatedCells.size(); ++c) {
          const CellID cellID = propagatedCells[c];
-         const Real subcyclesDt = dt /  getAccerelationSubcycles(mpiGrid[propagatedCells[c]], dt);
+         const Real maxVdt = mpiGrid[cellID]->parameters[CellParams::MAXVDT]; 
+
+         //compute subcycle dt. The length is maVdt on all steps
+         //except the last one. This is to keep the neighboring
+         //spatial cells in sync, so that two neighboring cells with
+         //different number of subcycles have similar timesteps,
+         //except that one takes an additional short step. This keeps
+         //spatial block neighbors as much in sync as possible for
+         //adjust blocks.
+         Real subcycleDt;
+         if( (step + 1) * maxVdt > dt) {
+            subcycleDt = dt - step * maxVdt;
+         }
+         else{
+            subcycleDt = maxVdt;
+         }
          //generate pseudo-random order which is always the same irrespectiive of parallelization, restarts, etc
          char rngStateBuffer[256];
          random_data rngDataBuffer;
@@ -318,7 +333,7 @@ void calculateAcceleration(
          
          uint map_order=rndInt%3;
          phiprof::start("cell-semilag-acc");
-         cpu_accelerate_cell(mpiGrid[cellID],map_order,subcyclesDt);
+         cpu_accelerate_cell(mpiGrid[cellID],map_order,subcycleDt);
          phiprof::stop("cell-semilag-acc");
       }
       
