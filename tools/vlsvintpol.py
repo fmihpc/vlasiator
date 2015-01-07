@@ -36,7 +36,8 @@ if args.c is None:
 else:
     coords = np.loadtxt(args.c, dtype=np.float)
 
-
+#if just single point make it into array with 1 row
+coords = np.atleast_2d(coords)
 
 if(args.re):
     print("#t X_RE Y_RE Z_RE CELLID " + " ".join(varnames))
