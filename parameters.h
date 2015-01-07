@@ -94,6 +94,7 @@ struct Parameters {
    static bool fieldSolverDiffusiveEterms; /*!< Enable resitive terms in the computation of E*/
    
    static Real maxSlAccelerationRotation; /*!< Maximum rotation in acceleration for semilagrangian solver*/
+   static int maxSlAccelerationSubcycles; /*!< Maximum number of subcycles in acceleration*/
    static Real lorentzHallMinimumRho;  /*!< Minimum rho value used in Hall term in Lorentz force.*/
    static Real sparseMinValue; /*!< Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents */
    static int sparseBlockAddWidthV; /*!< Number of layers of blocks that are kept in velocity space around the blocks with content */
@@ -108,7 +109,6 @@ struct Parameters {
    static std::string restartFileName; /*!< If defined, restart from this file*/
    static bool isRestart; /*!< true if this is a restart, false otherwise */
    static int writeAsFloat; /*!< true if writing into VLSV in floats instead of doubles, false otherwise */
-   static uint maxAccelerationSubsteps; /*!< Maximum number of substeps that is allowed */
    static bool dynamicTimestep; /*!< If true, timestep is set based on  CFL limit */
    
    static std::string projectName; /*!< Project to be used in this run. */

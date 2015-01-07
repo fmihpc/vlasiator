@@ -116,33 +116,36 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    Real subcycleDt;
    
    //reduce dt if it is too high for any of the three propagators, or too low for all propagators
-   if(( P::dt > dtMaxGlobal[0]*P::vlasovSolverMaxCFL ||
-        P::dt > dtMaxGlobal[1]*P::vlasovSolverMaxCFL ||
-        P::dt > dtMaxGlobal[2]*P::fieldSolverMaxCFL*P::maxFieldSolverSubcycles ) ||
-      ( P::dt < dtMaxGlobal[0]*P::vlasovSolverMinCFL && 
-        P::dt < dtMaxGlobal[1]*P::vlasovSolverMinCFL &&
-        P::dt < dtMaxGlobal[2]*P::fieldSolverMinCFL*P::maxFieldSolverSubcycles )
-     ) {
-     //new dt computed
-     isChanged=true;
+   if(( P::dt > dtMaxGlobal[0] * P::vlasovSolverMaxCFL ||
+        P::dt > dtMaxGlobal[1] * P::vlasovSolverMaxCFL * P::maxSlAccelerationSubcycles ||
+        P::dt > dtMaxGlobal[2] * P::fieldSolverMaxCFL * P::maxFieldSolverSubcycles ) ||
+      ( P::dt < dtMaxGlobal[0] * P::vlasovSolverMinCFL && 
+        P::dt < dtMaxGlobal[1] * P::vlasovSolverMinCFL * P::maxSlAccelerationSubcycles &&
+        P::dt < dtMaxGlobal[2] * P::fieldSolverMinCFL * P::maxFieldSolverSubcycles )
+      ) {
+      //new dt computed
+      isChanged=true;
 
-     //set new timestep to the lowest one of all interval-midpoints
-     const Real half = 0.5;
-     newDt = meanVlasovCFL*dtMaxGlobal[0];
-     newDt = min(newDt,meanVlasovCFL*dtMaxGlobal[1]);
-     newDt = min(newDt,meanFieldsCFL*dtMaxGlobal[2]*P::maxFieldSolverSubcycles);
+      //set new timestep to the lowest one of all interval-midpoints
+      const Real half = 0.5;
+      newDt = meanVlasovCFL * dtMaxGlobal[0];
+      newDt = min(newDt,meanVlasovCFL * dtMaxGlobal[1] * P::maxSlAccelerationSubcycles);
+      newDt = min(newDt,meanFieldsCFL * dtMaxGlobal[2] * P::maxFieldSolverSubcycles);
    
-     logFile <<"(TIMESTEP) New dt = " << newDt << " computed on step "<<  P::tstep <<" at " <<P::t << 
-       "s   Maximum possible dt (not including  vlasovsolver CFL "<< 
-       P::vlasovSolverMinCFL <<"-"<<P::vlasovSolverMaxCFL<<
-       " or fieldsolver CFL "<< 
-       P::fieldSolverMinCFL <<"-"<<P::fieldSolverMaxCFL<<
-       " ) in {r, v, BE} was " <<
-       dtMaxGlobal[0] << " " <<
-       dtMaxGlobal[1] << " " <<
-       dtMaxGlobal[2] << " " <<
-       endl << writeVerbose;
-       subcycleDt = newDt;
+      logFile <<"(TIMESTEP) New dt = " << newDt << " computed on step "<<  P::tstep <<" at " <<P::t << 
+         "s   Maximum possible dt (not including  vlasovsolver CFL "<< 
+         P::vlasovSolverMinCFL <<"-"<<P::vlasovSolverMaxCFL<<
+         " or fieldsolver CFL "<< 
+         P::fieldSolverMinCFL <<"-"<<P::fieldSolverMaxCFL<<
+         ") in {r, v, BE} was " <<
+         dtMaxGlobal[0] << " " <<
+         dtMaxGlobal[1] << " " <<
+         dtMaxGlobal[2] << " " <<
+         " Including subcycling { v, BE}  was " <<
+         dtMaxGlobal[1] * P::maxSlAccelerationSubcycles << " " <<
+         dtMaxGlobal[2] * P::maxFieldSolverSubcycles<< " " <<
+         endl << writeVerbose;
+      subcycleDt = newDt;
    } else {
       subcycleDt = P::dt;
    }
@@ -307,10 +310,7 @@ int main(int argn,char* args[]) {
       phiprof::start("compute-dt");
       calculateSpatialTranslation(mpiGrid,0.0);
       calculateAcceleration(mpiGrid,0.0);
-      
-      //this is probably not ever needed, as a zero length step
-      //should not require changes
-      adjustVelocityBlocks(mpiGrid);
+
       
       if(P::propagateField) {
          propagateFields(mpiGrid, sysBoundaries, 0.0, 1.0);
@@ -333,8 +333,7 @@ int main(int argn,char* args[]) {
          calculateAcceleration(mpiGrid, 0.0);
       }
       phiprof::stop("propagate-velocity-space-dt/2");
-      adjustVelocityBlocks(mpiGrid);
-      addTimedBarrier("barrier-after-ad just-blocks");
+
    }
    phiprof::stop("Initialization");
 
@@ -529,11 +528,6 @@ int main(int argn,char* args[]) {
                //zero step to set up moments _v
                calculateAcceleration(mpiGrid, 0.0);
             }
-
-
-            
-            //adjust blocks after acceleration
-            adjustVelocityBlocks(mpiGrid);
             
             P::dt=newDt;
             
@@ -592,8 +586,6 @@ int main(int argn,char* args[]) {
          //zero step to set up moments _v
          calculateAcceleration(mpiGrid, 0.0);
       }
-
-      adjustVelocityBlocks(mpiGrid);
 
       phiprof::stop("Velocity-space",computedCells,"Cells");
       addTimedBarrier("barrier-after-acceleration");
