@@ -727,8 +727,6 @@ namespace spatial_cell {
          vmesh.getBlockCoordinates(it->first,blockParams);
          vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::getCellSize(it->first,blockParams+3);
          
-         Realf* fx = blockContainer.getFx(it->second);
-         for (int i=0; i<WID3; ++i) fx[i] = 0;
       }
 
       insertedBlocks.insert(newInserted.begin(),newInserted.end());

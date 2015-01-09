@@ -180,18 +180,6 @@ bool writeVelocityDistributionData(Writer& vlsvWriter,
    // Write the subarrays
    vlsvWriter.endMultiwrite("BLOCKVARIABLE", attribs);
 
-   #ifdef DEBUG_AMR
-   attribs["name"] = "fx";
-   vlsvWriter.startMultiwrite(datatype_avgs,arraySize_avgs,vectorSize_avgs,dataSize_avgs);
-   for (size_t cell = 0; cell<cells.size(); ++cell) {
-      SpatialCell* SC = mpiGrid[cells[cell]];
-      const uint64_t arrayElements = SC->get_number_of_velocity_blocks();
-      char* arrayToWrite = reinterpret_cast<char*>(SC->get_fx());
-      vlsvWriter.addMultiwriteUnit(arrayToWrite, arrayElements);
-   }
-   if (cells.size() == 0) vlsvWriter.addMultiwriteUnit(NULL, 0);
-   vlsvWriter.endMultiwrite("BLOCKVARIABLE", attribs);
-   #endif
 
    if (globalSuccess(success,"(MAIN) writeGrid: ERROR: Failed to fill temporary velocityBlockData array",MPI_COMM_WORLD) == false) {
       vlsvWriter.close();

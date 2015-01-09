@@ -95,7 +95,7 @@ namespace spatial_cell {
       const uint64_t CELL_P                   = (1<<23);
       const uint64_t CELL_PDT2                = (1<<24);
       
-      //all data, expect for the fx table (never needed on remote cells)
+      //all data
       const uint64_t ALL_DATA =
       CELL_PARAMETERS
       | CELL_DERIVATIVES | CELL_BVOL_DERIVATIVES
@@ -134,8 +134,6 @@ namespace spatial_cell {
       const Realf* get_data() const;
       Realf* get_data(const vmesh::LocalID& blockLID);
       const Realf* get_data(const vmesh::LocalID& blockLID) const;
-      Realf* get_fx();
-      Realf* get_fx(const vmesh::LocalID& blockLID);
       Real* get_block_parameters();
       Real* get_block_parameters(const vmesh::LocalID& blockLID);
       const Real* get_block_parameters(const vmesh::LocalID& blockLID) const;
@@ -233,7 +231,6 @@ namespace spatial_cell {
                                                                                * Separate array because it does not need to be communicated.*/
       Real parameters[CellParams::N_SPATIAL_CELL_PARAMS];                     /**< Bulk variables in this spatial cell.*/
       Realf null_block_data[WID3];
-      Realf null_block_fx[WID3];
 
       uint64_t ioLocalCellId;                                                 /**< Local cell ID used for IO, not needed elsewhere 
                                                                                * and thus not being kept up-to-date.*/
@@ -684,15 +681,6 @@ namespace spatial_cell {
       return blockContainer.getData(blockLID);
    }
 
-   inline Realf* SpatialCell::get_fx() {
-      return blockContainer.getFx();
-   }
-
-   inline Realf* SpatialCell::get_fx(const vmesh::LocalID& blockLID) {
-      if (blockLID == vmesh.invalidLocalID()) return null_block_fx;
-      return blockContainer.getFx(blockLID);
-   }
-   
    inline Real* SpatialCell::get_block_parameters() {
       return blockContainer.getParameters();
    }
@@ -1113,7 +1101,6 @@ namespace spatial_cell {
       this->mpi_number_of_blocks=0;
       this->sysBoundaryLayer=0; /*!< Default value, layer not yet initialized*/
       for (unsigned int i=0; i<WID3; ++i) null_block_data[i] = 0.0;
-      for (unsigned int i=0; i<WID3; ++i) null_block_fx[i] = 0.0;
       
       // reset spatial cell parameters
       for (unsigned int i = 0; i < CellParams::N_SPATIAL_CELL_PARAMS; i++) {
@@ -1161,7 +1148,6 @@ namespace spatial_cell {
       
       //set null block data
       for (unsigned int i=0; i<WID3; ++i) null_block_data[i] = 0.0;
-      for (unsigned int i=0; i<WID3; ++i) null_block_fx[i] = 0.0;
       //         phiprof::stop("SpatialCell copy");
      }
 
@@ -1387,6 +1373,7 @@ namespace spatial_cell {
          
          if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_DATA_TO_FLUXES) != 0) {
             if (receiving) {
+               #warning "fx not fixed here"
                displacements.push_back((uint8_t*) get_fx() - (uint8_t*) this);
             } else {
                displacements.push_back((uint8_t*) get_data() - (uint8_t*) this);

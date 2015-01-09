@@ -84,7 +84,7 @@ inline void load_column_block_data(SpatialCell* spatial_cell,vmesh::GlobalID* bl
    /*copy block data for all blocks*/
    for (vmesh::LocalID block_k=0; block_k<n_blocks; ++block_k) {
       const vmesh::LocalID blockLID = spatial_cell->get_velocity_block_local_id(blocks[block_k]);
-      Realf* __restrict__ fx = spatial_cell->get_fx(blockLID);
+      Realf* __restrict__ data = spatial_cell->get_data(blockLID);
 
       //  Copy volume averages of this block, taking into account the dimension shifting
       for (uint j=0; j<WID; ++j) {
@@ -94,7 +94,7 @@ inline void load_column_block_data(SpatialCell* spatial_cell,vmesh::GlobalID* bl
                   i * cell_indices_to_id[0] +
                   j * cell_indices_to_id[1] +
                   k * cell_indices_to_id[2];
-               values[i_pcolumnv(n_blocks,block_k,j,k)].insert(i,(Real)fx[cell]);
+               values[i_pcolumnv(n_blocks,block_k,j,k)].insert(i,(Real)data[cell]);
             }
          }
       }
@@ -196,20 +196,29 @@ bool map_1d(SpatialCell* spatial_cell,
    
    /*sort blocks according to dimension, and divide them into columns*/
    uint* blocks=new uint[spatial_cell->get_number_of_velocity_blocks()];
-   std::vector<uint> block_column_offsets;
-   std::vector<uint> block_column_lengths;
-   sort_blocklist_by_dimension( spatial_cell, dimension, blocks, block_column_offsets, block_column_lengths);
-
-   /*values array used to store column data*/
-   Vec4 values[(MAX_BLOCKS_PER_DIM + 2) * WID2];
+   std::vector<uint> blockColumnOffsets;
+   std::vector<uint> blockColumnLengths;
+   std::vector<uint> blockColumnSetOffsets;
+   std::vector<uint> blockColumnSetLengths;
+   sortBlocklistByDimension( spatial_cell, dimension, blocks,
+                             blockColumnOffsets, blockColumnLengths,
+                             blockColumnSetOffsets, blockColumnSetLengths);
+   /*
+     values array used to store column data The max size is the worst
+     case scenario with every second block having content, creating up
+     to ( MAX_BLOCKS_PER_DIM / 2 + 1) columns with each needing three
+     blocks (two for padding)
+   */
+   Vec4 values[(3 * ( MAX_BLOCKS_PER_DIM / 2 + 1)) * WID2];
    /*these two temporary variables are used to optimize access to target cells*/
    uint previous_target_block = SpatialCell::invalid_global_id();
    Realf *target_block_data = NULL;
-   
+
+   //TODO, continue here in fx removal
    /*loop over block columns*/
-   for (vmesh::LocalID block_column_i=0; block_column_i<block_column_offsets.size(); ++block_column_i) {
-      const vmesh::LocalID n_cblocks = block_column_lengths[block_column_i];
-      vmesh::GlobalID* cblocks = blocks + block_column_offsets[block_column_i]; /*column blocks*/
+   for (vmesh::LocalID block_column_i=0; block_column_i<blockColumnOffsets.size(); ++block_column_i) {
+      const vmesh::LocalID n_cblocks = blockColumnLengths[block_column_i];
+      vmesh::GlobalID* cblocks = blocks + blockColumnOffsets[block_column_i]; /*column blocks*/
       load_column_block_data(spatial_cell,cblocks,n_cblocks,values,dimension);
       /*compute the common indices for this block column*/
 

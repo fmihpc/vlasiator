@@ -23,15 +23,20 @@ inline bool paircomparator( const pair<uint, uint> & l, const pair<uint, uint> &
 }
 
 /*
-   This function copies the block list from spatial cell to blocks and sorts it
+   This function returns a sorted list of blocks in a cell.
 
-   Note: blocks must be allocated
+   The sorted list is sorted according to the location, along the given dimension.
+   
 */
-static void sort_blocklist_by_dimension( const SpatialCell* spatial_cell, 
-                                         const uint dimension,
-                                         uint* blocks,
-                                         std::vector<uint> & block_column_offsets,
-                                         std::vector<uint> & block_column_lengths ) {
+#warning "unfinished documentation"
+static void sortBlocklistByDimension( const SpatialCell* spatial_cell, 
+                                      const uint dimension,
+                                      uint* blocks,
+                                      std::vector<uint> & blockColumnOffsets,
+                                      std::vector<uint> & blockColumnLengths,
+                                      std::vector<uint> & blockColumnSetOffsets,
+                                      std::vector<uint> & blockColumnSetLengths,
+                                      ) {
    const uint nBlocks = spatial_cell->get_number_of_velocity_blocks(); // Number of blocks
    // Copy block data to vector
    vector<pair<uint, uint> > block_pairs;
@@ -74,12 +79,14 @@ static void sort_blocklist_by_dimension( const SpatialCell* spatial_cell,
    sort( block_pairs.begin(), block_pairs.end(), paircomparator );
    
    // Put in the sorted blocks, and also compute columnoffsets, and column lengths:
-   block_column_offsets.push_back(0); //first offset
+   blockColumnOffsets.push_back(0); //first offset
+   blockColumnSetOffsets.push_back(0); //first offset   
    uint prev_column_id, prev_dimension_id;
+
    for (vmesh::LocalID i = 0; i < nBlocks; ++i ) {
       uint column_id; /* identifies a particlular column*/
       uint dimension_id; /*identifies a particular block in a column (along the dimension)*/
-      blocks[i] = block_pairs[i].second;
+      blocks[i] = block_pairs[i].second; //sorted list
       switch( dimension ) {
          case 0:
             column_id = block_pairs[i].first / SpatialCell::get_velocity_grid_length()[0];
@@ -98,15 +105,27 @@ static void sort_blocklist_by_dimension( const SpatialCell* spatial_cell,
          //encountered new column! For i=0, we already entered the correct offset (0).
          //We also identify it as a new column if there is a break in the column (e.g., gap between two populations)
          /*add offset where the next column will begin*/
-         block_column_offsets.push_back(i); 
+         blockColumnOffsets.push_back(i); 
          /*add length of the current column that now ended*/
-         block_column_lengths.push_back(block_column_offsets[block_column_offsets.size()-1] - block_column_offsets[block_column_offsets.size()-2]);
+         blockColumnLengths.push_back(blockColumnOffsets[blockColumnOffsets.size()-1] - blockColumnOffsets[blockColumnOffsets.size()-2]);
       }
+
+      if ( i > 0 &&  dimension_id != (prev_dimension_id + 1) ){
+         //encountered new set of columns 
+         //We also identify it as a new column if there is a break in the column (e.g., gap between two populations)
+         /*add offset where the next column will begin*/
+         blockColumnSetOffsets.push_back(i); 
+         /*add length of the current column that now ended*/
+         blockColumnSetLengths.push_back(blockColumnSetOffsets[blockColumnSetOffsets.size()-1] - blockColumnSetOffsets[blockColumnSetOffsets.size()-2]);
+      }
+  
       
       prev_column_id = column_id;
       prev_dimension_id = dimension_id;
    }
-   block_column_lengths.push_back(nBlocks - block_column_offsets[block_column_offsets.size()-1]);
+
+   blockColumnLengths.push_back(nBlocks - blockColumnOffsets[blockColumnOffsets.size()-1]);
+   blockColumnSetLengths.push_back(nBlocks - blockColumnSetOffsets[blockColumnOffsets.size()-1]);
    return;
 }
 
