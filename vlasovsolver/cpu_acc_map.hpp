@@ -44,7 +44,7 @@ using namespace spatial_cell;
  * @param blocks Array containing block global IDs.
  * @param n_blocks Number of blocks in array blocks.
 */
-inline void loadColumBlockData(SpatialCell* spatial_cell,vmesh::GlobalID* blocks,vmesh::LocalID n_blocks, Vec4 * __restrict__ values, int dimension){
+inline void loadColumnBlockData(SpatialCell* spatial_cell,vmesh::GlobalID* blocks,vmesh::LocalID n_blocks, Vec4 * __restrict__ values, int dimension){
    uint cell_indices_to_id[3];
    switch (dimension){
        case 0:
@@ -189,17 +189,18 @@ bool map_1d(SpatialCell* spatial_cell,
       break;
    }
    const Real i_dv=1.0/dv;
-   
+
    /*sort blocks according to dimension, and divide them into columns*/
    uint* blocks=new uint[spatial_cell->get_number_of_velocity_blocks()];
-   std::vector<uint> blockColumnOffsets;
-   std::vector<uint> blockColumnLengths;
-   std::vector<uint> blockColumnSetOffsets;
-   std::vector<uint> blockColumnSetLengths;
+   std::vector<uint> columnBlockOffsets;
+   std::vector<uint> columnNumBlocks;
+   std::vector<uint> setColumnOffsets;
+   std::vector<uint> setNumColumns;
    sortBlocklistByDimension(spatial_cell, dimension, blocks,
-                            blockColumnOffsets, blockColumnLengths,
-                            blockColumnSetOffsets, blockColumnSetLengths);
-   /*   
+                            columnBlockOffsets, columnNumBlocks,
+                            setColumnOffsets, setNumColumns);
+
+/*   
         values array used to store column data The max size is the worst
         case scenario with every second block having content, creating up
         to ( MAX_BLOCKS_PER_DIM / 2 + 1) columns with each needing three
@@ -210,30 +211,23 @@ bool map_1d(SpatialCell* spatial_cell,
    uint previous_target_block = SpatialCell::invalid_global_id();
    Realf *target_block_data = NULL;
 
-   uint startOfColumnsInSet = 0;
-   /*loop over block column sets  (all columns along the dimension with the other dimensions being equal )*/
-   for( uint blockColumnSetIndex=0; blockColumnSetIndex<blockColumnSetOffsets.size(); ++blockColumnSetIndex) {
-      uint endOfColumnsInSet = startOfColumnsInSet;
-      //Count number of columns in set and store data in temporary array for all columns in set
-      while( blockColumnOffsets[endOfColumnsInSet] < blockColumnSetOffsets[blockColumnSetIndex]) {
-         endOfColumnsInSet++;
-      }
 
-      
+   /*loop over block column sets  (all columns along the dimension with the other dimensions being equal )*/
+   for( uint setIndex=0; setIndex< setColumnOffsets.size(); ++setIndex) {
       //Load data into values array (this also zeroes the original data)
-      uint valuesColumnOffsets = 0; //offset to values array for data in a column in this set
-      for(uint i = startOfColumnsInSet; i < endOfColumnsInSet ; i ++){
-         const vmesh::LocalID n_cblocks = blockColumnLengths[i];
-         vmesh::GlobalID* cblocks = blocks + blockColumnOffsets[i]; /*column blocks*/
-         loadColumnBlockData(spatial_cell,cblocks,n_cblocks,values + valuesColumnOffsets ,dimension);
+      uint valuesColumnOffset = 0; //offset to values array for data in a column in this set
+      for(uint columnIndex = setColumnOffsets[setIndex]; columnIndex < setColumnOffsets[setIndex] + setNumColumns[setIndex] ; columnIndex ++){
+         const vmesh::LocalID n_cblocks = columnNumBlocks[columnIndex];
+         vmesh::GlobalID* cblocks = blocks + columnBlockOffsets[columnIndex]; /*column blocks*/
+         loadColumnBlockData(spatial_cell,cblocks,n_cblocks,values + valuesColumnOffset ,dimension);
          valuesColumnOffset += (n_cblocks + 2) * WID2 ;
       }
 
       //loop over columns in set and do the mapping
-      valuesColumnOffsets = 0; //offset to values array for data in a column in this set
-      for(uint i = startOfColumnsInSet; i < endOfColumnsInSet ; i ++){
-         const vmesh::LocalID n_cblocks = blockColumnLengths[i];
-         vmesh::GlobalID* cblocks = blocks + blockColumnOffsets[i]; /*column blocks*/
+      valuesColumnOffset = 0; //offset to values array for data in a column in this set
+      for(uint columnIndex = setColumnOffsets[setIndex]; columnIndex < setColumnOffsets[setIndex] + setNumColumns[setIndex] ; columnIndex ++){
+         const vmesh::LocalID n_cblocks = columnNumBlocks[columnIndex];
+         vmesh::GlobalID* cblocks = blocks + columnBlockOffsets[columnIndex]; /*column blocks*/
       
          /*compute the common indices for this block column set */
          velocity_block_indices_t block_indices_begin=SpatialCell::get_velocity_block_indices(cblocks[0]); /*First block in column*/
@@ -297,15 +291,15 @@ bool map_1d(SpatialCell* spatial_cell,
                */
 #ifdef ACC_SEMILAG_PLM
                Vec4 a[2];
-               compute_plm_coeff(values + valuesColumnOffsets + i_pcolumnv(n_cblocks, -1, j, 0), k + WID , a);
+               compute_plm_coeff(values + valuesColumnOffset + i_pcolumnv(n_cblocks, -1, j, 0), k + WID , a);
 #endif
 #ifdef ACC_SEMILAG_PPM
                Vec4 a[3];
-               compute_ppm_coeff(values + valuesColumnOffsets + i_pcolumnv(n_cblocks, -1, j, 0), h4, k + WID, a);
+               compute_ppm_coeff(values + valuesColumnOffset + i_pcolumnv(n_cblocks, -1, j, 0), h4, k + WID, a);
 #endif
 #ifdef ACC_SEMILAG_PQM
                Vec4 a[5];
-               compute_pqm_coeff(values + valuesColumnOffsets + i_pcolumnv(n_cblocks, -1, j, 0), h8, k + WID, a);
+               compute_pqm_coeff(values + valuesColumnOffset + i_pcolumnv(n_cblocks, -1, j, 0), h8, k + WID, a);
 #endif
             
                /*set the initial value for the integrand at the boundary at v = 0 (in reduced cell units), this will be shifted to target_density_1, see below*/
