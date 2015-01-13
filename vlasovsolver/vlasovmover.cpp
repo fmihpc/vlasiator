@@ -120,9 +120,22 @@ void calculateSpatialTranslation(
    const vector<CellID> remote_cells_x = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
    const vector<CellID> remote_cells_y = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);
    const vector<CellID> remote_cells_z = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);
+   vector<CellID> local_propagated_cells;
+   vector<CellID> local_target_cells;
    phiprof::stop("compute_cell_lists");
 
-   createTargetGrid(mpiGrid,local_cells);
+   for (size_t c=0; c<local_cells.size(); ++c) {
+      if(do_translate_cell(mpiGrid[local_cells[c]])){
+         local_propagated_cells.push_back(local_cells[c]);
+      }
+   }
+   for (size_t c=0; c<local_cells.size(); ++c) {
+      if(mpiGrid[local_cells[c]]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+         local_target_cells.push_back(local_cells[c]);
+      }
+   }
+   
+   createTargetGrid(mpiGrid,local_target_cells);
    // ------------- SLICE - map dist function in Z --------------- //
    if(P::zcells_ini > 1 ){
       
@@ -139,9 +152,8 @@ void calculateSpatialTranslation(
 #pragma omp parallel
       {
          phiprof::start("compute-mapping-z");
-         for (size_t c=0; c<local_cells.size(); ++c) {
-            if(do_translate_cell(mpiGrid[local_cells[c]]))
-               trans_map_1d(mpiGrid,local_cells[c], 2, dt); // map along z//
+         for (size_t c=0; c<local_propagated_cells.size(); ++c) {
+            trans_map_1d(mpiGrid,local_propagated_cells[c], 2, dt); // map along z//
          }
          phiprof::stop("compute-mapping-z");
       }
@@ -153,8 +165,8 @@ void calculateSpatialTranslation(
       phiprof::stop("update_remote-z");
 
       clearTargetGrid(mpiGrid,remote_cells_z);
-      swapTargetSourceGrid(mpiGrid, local_cells);
-      zeroTargetGrid(mpiGrid, local_cells);
+      swapTargetSourceGrid(mpiGrid, local_target_cells);
+      zeroTargetGrid(mpiGrid, local_target_cells);
    }
 
 // ------------- SLICE - map dist function in X --------------- //
@@ -170,9 +182,8 @@ void calculateSpatialTranslation(
       #pragma omp parallel
       {
          phiprof::start("compute-mapping-x");
-         for (size_t c=0; c<local_cells.size(); ++c) {
-            if (do_translate_cell(mpiGrid[local_cells[c]]))
-               trans_map_1d(mpiGrid,local_cells[c], 0, dt); // map along x//
+         for (size_t c=0; c<local_propagated_cells.size(); ++c) {
+            trans_map_1d(mpiGrid,local_propagated_cells[c], 0, dt); // map along x//
          }
          phiprof::stop("compute-mapping-x");
       }
@@ -183,8 +194,8 @@ void calculateSpatialTranslation(
       update_remote_mapping_contribution(mpiGrid, 0, -1);
       phiprof::stop("update_remote-x");
       clearTargetGrid(mpiGrid,remote_cells_x);
-      swapTargetSourceGrid(mpiGrid, local_cells);
-      zeroTargetGrid(mpiGrid, local_cells);
+      swapTargetSourceGrid(mpiGrid, local_target_cells);
+      zeroTargetGrid(mpiGrid, local_target_cells);
 
    }
    
@@ -200,9 +211,8 @@ void calculateSpatialTranslation(
 #pragma omp parallel
       {
          phiprof::start("compute-mapping-y");
-         for (size_t c=0; c<local_cells.size(); ++c) {
-            if(do_translate_cell(mpiGrid[local_cells[c]]))
-               trans_map_1d(mpiGrid,local_cells[c], 1, dt); // map along y//
+         for (size_t c=0; c<local_propagated_cells.size(); ++c) {
+            trans_map_1d(mpiGrid,local_propagated_cells[c], 1, dt); // map along y//
          }
          phiprof::stop("compute-mapping-y");
       }
@@ -213,10 +223,11 @@ void calculateSpatialTranslation(
       update_remote_mapping_contribution(mpiGrid, 1, -1);
       phiprof::stop("update_remote-y");
       clearTargetGrid(mpiGrid,remote_cells_y);
-      swapTargetSourceGrid(mpiGrid, local_cells);
+      swapTargetSourceGrid(mpiGrid, local_target_cells);
    }
 
-   clearTargetGrid(mpiGrid,local_cells);
+   
+   clearTargetGrid(mpiGrid,local_target_cells);
 
    
 
