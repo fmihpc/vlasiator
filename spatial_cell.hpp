@@ -74,7 +74,6 @@ namespace spatial_cell {
       const uint64_t VEL_BLOCK_LIST_STAGE1    = (1<<2);
       const uint64_t VEL_BLOCK_LIST_STAGE2    = (1<<3);
       const uint64_t VEL_BLOCK_DATA           = (1<<4);
-      const uint64_t VEL_BLOCK_DATA_TO_FLUXES         = (1<<5);
       const uint64_t VEL_BLOCK_PARAMETERS     = (1<<6);
       const uint64_t VEL_BLOCK_WITH_CONTENT_STAGE1  = (1<<7); 
       const uint64_t VEL_BLOCK_WITH_CONTENT_STAGE2  = (1<<8); 
@@ -1371,15 +1370,6 @@ namespace spatial_cell {
             block_lengths.push_back(sizeof(Realf) * VELOCITY_BLOCK_LENGTH * blockContainer.size());
          }
          
-         if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_DATA_TO_FLUXES) != 0) {
-            if (receiving) {
-               #warning "fx not fixed here"
-               displacements.push_back((uint8_t*) get_fx() - (uint8_t*) this);
-            } else {
-               displacements.push_back((uint8_t*) get_data() - (uint8_t*) this);
-            }
-            block_lengths.push_back(sizeof(Realf) * VELOCITY_BLOCK_LENGTH * blockContainer.size());
-         }
          
          if ((SpatialCell::mpi_transfer_type & Transfer::NEIGHBOR_VEL_BLOCK_FLUXES) != 0) {
             /*We are actually transfering the data of a
@@ -1840,6 +1830,8 @@ namespace spatial_cell {
       this->vmesh.swap(vmesh);
       this->blockContainer.swap(blockContainer);
    }
+
+   
 
    /*!       
     Prepares this spatial cell to receive the velocity grid over MPI.

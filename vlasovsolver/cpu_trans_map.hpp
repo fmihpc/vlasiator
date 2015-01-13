@@ -189,7 +189,7 @@ void compute_spatial_target_neighbors(const dccrg::Dccrg<SpatialCell,dccrg::Cart
 
 }
 
-/* Copy the fx data to the temporary values array, so that the
+/* Copy the data to the temporary values array, so that the
  * dimensions are correctly swapped. Also, copy the same block for
  * then neighboring spatial cells (in the dimension). neighbors
  * generated with compute_spatial_neighbors_wboundcond)*/
@@ -224,18 +224,18 @@ inline void copy_trans_block_data(
    for (int b = -VLASOV_STENCIL_WIDTH; b <= VLASOV_STENCIL_WIDTH; ++b) {
       const CellID srcCell = source_neighbors[b + VLASOV_STENCIL_WIDTH];
 
-      Realf* block_fx;
+      Realf* block_data;
       const vmesh::LocalID blockLID = mpiGrid[srcCell]->get_velocity_block_local_id(blockGID);
       if (blockLID == mpiGrid[srcCell]->invalid_local_id()) {
-         block_fx = mpiGrid[srcCell]->null_block_fx;
+         block_data = mpiGrid[srcCell]->null_block_data;
       } else {
-         block_fx = mpiGrid[srcCell]->get_fx(blockLID);
+         block_data = mpiGrid[srcCell]->get_data(blockLID);
       }
 
-      /* Copy fx table, spatial source_neighbors already taken care of when
+      /* Copy data table, spatial source_neighbors already taken care of when
        *   creating source_neighbors table. If a normal spatial cell does not
        *   simply have the block, its value will be its null_block which
-       *   is fine. This null_block has a value of zero in fx, and that
+       *   is fine. This null_block has a value of zero in data, and that
        *   is thus the velocity space boundary*/
       for (uint k=0; k<WID; ++k) {
          for (uint j=0; j<WID; ++j) {
@@ -244,8 +244,8 @@ inline void copy_trans_block_data(
                   i * cell_indices_to_id[0] +
                   j * cell_indices_to_id[1] +
                   k * cell_indices_to_id[2];
-               /*copy data, when reading data from fx we swap dimensions using cell_indices_to_id*/
-               values[i_trans_pblockv(b,j,k)].insert(i,(Real)block_fx[cell]);
+               /*copy data, when reading data from data we swap dimensions using cell_indices_to_id*/
+               values[i_trans_pblockv(b,j,k)].insert(i,(Real)block_data[cell]);
             }
          }
       }
@@ -318,7 +318,9 @@ inline void store_trans_block_data(
          continue;
       }
 
-      Realf* block_data = spatial_cell->get_data(blockLID);
+      /*get block container for target cells*/
+      vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks_temporary();
+      Realf* block_data = blockContainer.getData(blockLID);
       for (uint k=0; k<WID; ++k) {
          for (uint j=0; j<WID; ++j) {
             for (uint i=0; i<WID; ++i) {
@@ -333,57 +335,6 @@ inline void store_trans_block_data(
       }
    }
 }
-
-/*
-  For local cells that are not boundary cells  block data is copied from data to fx, and data is
-  set to zero, if boundary cell then   we copy from data to fx, but do not
-  touch data. FOr remote cells fx is already up to data as we receive there.
-*/
-bool trans_prepare_block_data(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, const CellID cellID){
-   bool return_value=false;
-   SpatialCell* spatial_cell = mpiGrid[cellID];   
-   /*if we are on boundary then we do not set the data values to zero as these cells should not be updated*/
-   const bool is_boundary = (spatial_cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY);
-   /*if the cell is remote, then we do no copy data to the fx table, it should already have been set there*/
-   const bool is_local = mpiGrid.is_local(cellID);
-
-   if (is_local && !is_boundary) {
-      #pragma omp for nowait
-      for(unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(); cell++) {
-         //copy data to fx for solvers, and set data to zero as we will map new values there
-         spatial_cell->get_fx()[cell] = spatial_cell->get_data()[cell];
-         spatial_cell->get_data()[cell] = 0.0;
-         return_value=true;
-      }
-   } else if(!is_local && !is_boundary) {
-      #pragma omp for nowait
-      for(unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(); cell++) {
-         //fx already up to date as we received to fx. data
-         //needs to be reset as the updates we collect there will
-         //be sent to other processes
-         spatial_cell->get_data()[cell] = 0.0;
-         return_value=true;
-      }
-   } else if(is_local && is_boundary) {
-      #pragma omp for nowait
-      for(unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(); cell++) {
-         //data values are up to date, copy to fx for solvers. Do
-         //not reset data as we will not propagate stuff there
-         spatial_cell->get_fx()[cell] = spatial_cell->get_data()[cell];
-         return_value=true;
-      }
-   } else if(!is_local && is_boundary) {
-      #pragma omp for nowait
-      for(unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(); cell++) {
-         //fx already up to date as we received to fx. We copy to data, even if this is not needed...
-         spatial_cell->get_data()[cell] = spatial_cell->get_fx()[cell];
-         return_value=true;
-      }
-   }
-
-   return return_value;
-}
-
 
 
 
@@ -639,12 +590,13 @@ void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell,dccrg::Cartesia
          !mpiGrid.is_local(p_ngbr) &&
          do_translate_cell(ccell) 
          ) {
-         //Send data in p_ngbr data array that we just
+         //Send data in p_ngbr temporary target array that we just
          //mapped to if 1) it is a valid target,
          //2) is remote cell, 3) if the source cell in center was
          //translated
-         ccell->neighbor_block_data = &(pcell->get_data()[0]);
-         ccell->neighbor_number_of_blocks = pcell->get_number_of_velocity_blocks();
+         vmesh::VelocityBlockContainer<vmesh::LocalID>& pcellBlockContainer = pcell->get_velocity_blocks_temporary();
+         ccell->neighbor_block_data = &(pcellBlockContainer.getData()[0]);
+         ccell->neighbor_number_of_blocks = pcellBlockContainer.size();
          send_cells.push_back(p_ngbr);
       }
       
@@ -653,8 +605,9 @@ void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell,dccrg::Cartesia
          ccell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY 
          ){
          //Receive data that mcell mapped to ccell to this local cell
-         //fx array, if 1) m is a valid source cell, 2) center cell is to be updated (normal cell) 3)  m is remote
-         mcell->neighbor_block_data = &(ccell->get_fx()[0]);
+         //data array, if 1) m is a valid source cell, 2) center cell is to be updated (normal cell) 3)  m is remote
+         //we can reuse the normal data array as we do not anymore need the original distribution function values
+         mcell->neighbor_block_data = &(ccell->get_data()[0]);
          mcell->neighbor_number_of_blocks = ccell->get_number_of_velocity_blocks();
          receive_cells.push_back(local_cells[c]);
       }
@@ -680,13 +633,14 @@ void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell,dccrg::Cartesia
 
 #pragma omp parallel
    {
-      //reduce data: sum received fx to data
+      //reduce data: sum received data in the data array to the target grid in the temporary block contaniner
       for (size_t c=0; c < receive_cells.size(); ++c) {
          SpatialCell *spatial_cell = mpiGrid[receive_cells[c]];      
+         vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks_temporary();
 #pragma omp for nowait
          for(unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(); cell++) {
-            //copy data to fx for solvers, and set data to zero as we will map new values there
-            spatial_cell->get_data()[cell] += spatial_cell->get_fx()[cell];
+            //copy received target data to temporary array where target data is stored.
+            blockContainer.getData()[cell] += spatial_cell->get_data()[cell];
          }
       }
 
@@ -695,10 +649,11 @@ void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell,dccrg::Cartesia
        * one cell is the neighbor on bot + and - side to the same
        * process*/
       for (size_t c=0; c < send_cells.size(); ++c) {
-         SpatialCell *spatial_cell = mpiGrid[send_cells[c]];      
+         SpatialCell *spatial_cell = mpiGrid[send_cells[c]];
+         vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks_temporary();
 #pragma omp for nowait
-         for(unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(); cell++) {
-            spatial_cell->get_data()[cell] = 0.0;
+         for(unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH * blockContainer.size(); cell++) {
+            blockContainer.getData()[cell] = 0.0;
          }
       }
    }
