@@ -124,8 +124,8 @@ namespace spatial_cell {
       SpatialCell(const SpatialCell& other);
 
       // Following functions return velocity grid metadata //
-      template<int PAD> void fetch_data(const vmesh::GlobalID& blockGID,const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
-                                        const Realf* src,Realf* array);
+      template<int PAD> static void fetch_data(const vmesh::GlobalID& blockGID,const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
+                                               const Realf* src,Realf* array);
       template<int PAD>	void fetch_acc_data(const vmesh::GlobalID& blockGID,const int& dim,
 					    vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
 					    const Realf* src,Realf* array,Real cellSizeFractions[2]);
@@ -157,6 +157,7 @@ namespace spatial_cell {
                                                       const int& i_cell,const int& j_cell,const int& k_cell);
       void get_velocity_block_children_local_ids(const vmesh::GlobalID& blockGID,std::vector<vmesh::LocalID>& childrenLIDs);
       static vmesh::GlobalID get_velocity_block_parent(const vmesh::GlobalID& blockGID);
+      static uint8_t get_velocity_block_ref_level(const vmesh::GlobalID& blockGID);
       vmesh::GlobalID get_velocity_block_global_id(const vmesh::LocalID& blockLID) const;
       vmesh::LocalID get_velocity_block_local_id(const vmesh::GlobalID& blockGID) const;
       static void get_velocity_block_size(const vmesh::GlobalID block,Real size[3]);
@@ -232,7 +233,7 @@ namespace spatial_cell {
       Real derivativesBVOL[bvolderivatives::N_BVOL_DERIVATIVES];              /**< Derivatives of BVOL needed by the acceleration. 
                                                                                * Separate array because it does not need to be communicated.*/
       Real parameters[CellParams::N_SPATIAL_CELL_PARAMS];                     /**< Bulk variables in this spatial cell.*/
-      Realf null_block_data[WID3];
+      static Realf null_block_data[WID3];
       Realf null_block_fx[WID3];
 
       uint64_t ioLocalCellId;                                                 /**< Local cell ID used for IO, not needed elsewhere 
@@ -805,6 +806,10 @@ namespace spatial_cell {
 
    inline vmesh::GlobalID SpatialCell::get_velocity_block_parent(const vmesh::GlobalID& blockGID) {
       return vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::getParent(blockGID);
+   }
+
+   inline uint8_t SpatialCell::get_velocity_block_ref_level(const vmesh::GlobalID& blockGID) {
+       return vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::getRefinementLevel(blockGID);
    }
 
    inline vmesh::GlobalID SpatialCell::get_velocity_block_global_id(const vmesh::LocalID& blockLID) const {

@@ -41,6 +41,14 @@ inline Vec4 slope_limiter_sb(const Vec4& l,const Vec4& m, const Vec4& r) {
   Minmod slope limiter
 */
 
+inline Real slope_limiter_vanleer(const Real& l,const Real& m,const Real& r) {
+    const Real ZERO = 0.0;
+    const Real EPS = std::numeric_limits<Real>::min();
+    Real left = m-l;
+    Real rght = r-m;
+    return std::max(rght*left,ZERO) / (EPS + r-l);
+}
+
 inline Vec4 slope_limiter_minmod(const Vec4& l,const Vec4& m, const Vec4& r) {
    Vec4 sign;
    Vec4 a=r-m;

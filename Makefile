@@ -146,7 +146,7 @@ DEPS_VLSVMOVER = ${DEPS_CELL} vlasovsolver/vlasovmover.cpp vlasovsolver/cpu_acc_
 
 DEPS_VLSVMOVER_AMR = ${DEPS_CELL} vlasovsolver_amr/vlasovmover.cpp vlasovsolver_amr/cpu_acc_map.hpp vlasovsolver_amr/cpu_acc_intersections.hpp \
 	vlasovsolver_amr/cpu_acc_intersections.hpp vlasovsolver_amr/cpu_acc_semilag.hpp vlasovsolver_amr/cpu_acc_transform.hpp \
-	vlasovsolver_amr/cpu_moments.h vlasovsolver_amr/cpu_trans_map.hpp
+	vlasovsolver_amr/cpu_moments.h vlasovsolver_amr/cpu_trans_map.hpp velocity_blocks.h
 
 #DEPS_PROJECTS =	projects/project.h projects/project.cpp \
 #		projects/MultiPeak/MultiPeak.h projects/MultiPeak/MultiPeak.cpp ${DEPS_CELL}

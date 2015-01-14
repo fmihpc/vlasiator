@@ -22,7 +22,8 @@ namespace spatial_cell {
    Real SpatialCell::velocity_block_min_value = 0;    
    uint64_t SpatialCell::mpi_transfer_type = 0;
    bool SpatialCell::mpiTransferAtSysBoundaries = false;
-
+   Realf SpatialCell::null_block_data[WID3];
+   
    /** Adds "important" and removes "unimportant" velocity blocks
     * to/from this cell.
     * 

@@ -34,4 +34,8 @@ inline void compute_plm_coeff_amr(const Vec4 * const values, uint k, Vec4 a[2],c
    a[1] = d_cv * 0.5;
 }
 
+inline void reconstruct_plm(const Real& u_lft,const Real& u_cen,const Real& u_rgt,Real& a) {
+    a = slope_limiter_vanleer(u_lft,u_cen,u_rgt);
+}
+
 #endif
