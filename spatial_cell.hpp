@@ -89,7 +89,7 @@ namespace spatial_cell {
       const uint64_t CELL_BVOL_DERIVATIVES    = (1<<18);
       const uint64_t CELL_DIMENSIONS          = (1<<19);
       const uint64_t CELL_IOLOCALCELLID       = (1<<20);
-      const uint64_t NEIGHBOR_VEL_BLOCK_FLUXES = (1<<21);
+      const uint64_t NEIGHBOR_VEL_BLOCK_DATA  = (1<<21);
       const uint64_t CELL_HALL_TERM           = (1<<22);
       const uint64_t CELL_P                   = (1<<23);
       const uint64_t CELL_PDT2                = (1<<24);
@@ -1371,7 +1371,7 @@ namespace spatial_cell {
          }
          
          
-         if ((SpatialCell::mpi_transfer_type & Transfer::NEIGHBOR_VEL_BLOCK_FLUXES) != 0) {
+         if ((SpatialCell::mpi_transfer_type & Transfer::NEIGHBOR_VEL_BLOCK_DATA) != 0) {
             /*We are actually transfering the data of a
             * neighbor. The values of neighbor_block_data
             * and neighbor_number_of_blocks should be set in

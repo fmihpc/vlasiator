@@ -582,11 +582,9 @@ VLASOV_{XYZ}
  xxoxxx
 -----------
 
-VLASOV_SOURCE
+VLASOV_TARGET_{XYZ}
 -----------
-   x
   xox
-   x
 
 -----------
 
@@ -724,7 +722,7 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
         neighborhood.push_back({{d, 0, 0}});
      }
    }
-   mpiGrid.add_neighborhood(VLASOV_SOLVER_SOURCE_X_NEIGHBORHOOD_ID, neighborhood);
+   mpiGrid.add_neighborhood(VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID, neighborhood);
 
    neighborhood.clear();
    for (int d = -1; d <= 1; d++) {
@@ -732,7 +730,7 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
         neighborhood.push_back({{0, d, 0}});
      }
    }
-   mpiGrid.add_neighborhood(VLASOV_SOLVER_SOURCE_Y_NEIGHBORHOOD_ID, neighborhood);
+   mpiGrid.add_neighborhood(VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID, neighborhood);
 
    neighborhood.clear();
    for (int d = -1; d <= 1; d++) {
@@ -740,7 +738,7 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
         neighborhood.push_back({{0, 0, d}});
      }
    }
-   mpiGrid.add_neighborhood(VLASOV_SOLVER_SOURCE_Z_NEIGHBORHOOD_ID, neighborhood);
+   mpiGrid.add_neighborhood(VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID, neighborhood);
 
 
    neighborhood.clear();
