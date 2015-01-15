@@ -999,6 +999,10 @@ bool writeDiagnostic(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    vector<uint64_t> cells = mpiGrid.get_cells();
    cuint nCells = cells.size();
    cuint nOps = dataReducer.size();
+   
+   // Exit if the user does not want any diagnostics output
+   if (nOps == 0) return true;
+
    vector<Real> localMin(nOps), localMax(nOps), localSum(nOps+1), localAvg(nOps),
                globalMin(nOps),globalMax(nOps),globalSum(nOps+1),globalAvg(nOps);
    localSum[0] = 1.0 * nCells;
