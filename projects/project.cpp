@@ -239,16 +239,6 @@ namespace projects {
          ++currentLevel;
          if (currentLevel == Parameters::amrMaxVelocityRefLevel) refine = false;
       }
-      /*
-      #ifdef DEBUG_AMR
-      for (vmesh::LocalID blockLID=0; blockLID<cell->get_number_of_velocity_blocks(); ++blockLID) {
-         const vmesh::GlobalID blockGID = cell->get_velocity_block_global_id(blockLID);
-         Realf array[(WID+2)*(WID+2)*(WID+2)];
-         cell->fetch_data<1>(blockGID,cell->get_data(),array);
-         refCriterion->evaluate(array,cell->get_fx(blockLID));
-      }
-      #endif
-      */
       delete refCriterion;
    }
 

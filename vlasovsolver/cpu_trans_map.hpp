@@ -323,7 +323,7 @@ inline void copy_trans_block_data(
 
 
 /*!
-  Store values to fx array from the new target data we have computed
+  Store values to target grid from the new target data we have computed
   
   For dimension=0  we have rotated data
   i -> k

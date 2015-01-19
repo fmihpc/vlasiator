@@ -259,8 +259,6 @@ namespace spatial_cell {
       bool compute_block_has_content(const vmesh::GlobalID& block) const;
       void merge_values_recursive(vmesh::GlobalID parentGID,vmesh::GlobalID blockGID,uint8_t refLevel,bool recursive,const Realf* data,
 				  std::set<vmesh::GlobalID>& blockRemovalList);
-      void resize_block_data();
-      void set_block_data_pointers(int block_index);
 
       bool initialized;
       bool mpiTransferEnabled;
@@ -1577,37 +1575,6 @@ namespace spatial_cell {
       return true;
    }
 
-         /*!
-     This function will resize (increase) block data if needed, resize happen
-     in steps of block_allocation_chunk. It will always preserve
-     space for one extra block, resize can happen after adding the
-     block. We need up-to-date velocity_block_list as
-     set_block_data_pointers needs it.
-     If there is only free space left for 1 additional block (extra
-     block should not be needed, but there for safety), resize it
-     so that we have free space for block_allocation_chunk blocks.
-
-     This function never decreases memory space. To do that one should
-     call shrink_to_fit(!)
-     
-   */
-   inline void SpatialCell::resize_block_data() {
-      std::cerr << "resize_block_data(): error not implemented" << std::endl;
-      exit(1);
-      /*
-      if ((this->number_of_blocks+1)*VELOCITY_BLOCK_LENGTH >= this->block_data.size()){
-         // Resize so that free space is block_allocation_chunk blocks, and at least two in case of having zero blocks
-         int new_size = 2 + this->number_of_blocks * block_allocation_factor;
-         this->block_data.resize(new_size*VELOCITY_BLOCK_LENGTH);
-         this->block_fx.resize(new_size*VELOCITY_BLOCK_LENGTH);
-         blocks.resize(new_size);
-
-         // Fix block pointers if a reallocation occured
-         for (unsigned int block_index=0; block_index<this->number_of_blocks; ++block_index){
-            set_block_data_pointers(block_index);
-         }
-      }*/
-   }
 
    /*!
     Return the memory consumption in bytes as reported using the size()
@@ -1655,15 +1622,6 @@ namespace spatial_cell {
       this->update_velocity_block_content_lists();
       this->adjust_velocity_blocks(neighbor_ptrs, false);
    }
-
-   //set block data pointers data and fx for block
-   //velocity_block_list[block_index], so that they point to the
-   //same index as in block_list in the block_data and block_fx
-   //which contain all data for all blocks. It just sets the
-   //pointers and does not care about what is there earlier.
-   //velocity_block_list needs to be up-to-date.
-   //We also set block_list_index here to the correct position
-   inline void SpatialCell::set_block_data_pointers(int block_index) { }
       
    /*!
     Adds an empty velocity block into this spatial cell.
