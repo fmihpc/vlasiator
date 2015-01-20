@@ -10,6 +10,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <vector>
+#include <omp.h>
 
 #include "../common.h"
 #include "../logger.h"
@@ -44,15 +45,19 @@ namespace poisson {
 
    Real PoissonSolver::error(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
       phiprof::start("Evaluate Error");
-      
+
       // DEBUG: Make sure values are up to date
       SpatialCell::set_mpi_transfer_type(spatial_cell::Transfer::CELL_RHOQ_TOT,false);
       mpiGrid.update_copies_of_remote_neighbors(POISSON_NEIGHBORHOOD_ID);
       SpatialCell::set_mpi_transfer_type(spatial_cell::Transfer::CELL_PHI,false);
       mpiGrid.update_copies_of_remote_neighbors(POISSON_NEIGHBORHOOD_ID);
-      
-      Real totalError2 = 0;
+
+      Real localError = 0;
       const vector<CellID>& cells = getLocalCells();
+
+      #pragma omp parallel 
+        {
+      #pragma omp for reduction(+:localError)
       for (size_t c=0; c<cells.size(); ++c) {
          CellID cellID = cells[c];
          
@@ -97,17 +102,21 @@ namespace poisson {
          Real rhs = ((phi_011+phi_211)/DX2 + (phi_101+phi_121)/DY2 + (phi_110+phi_112)/DZ2 + rho_q)/factor;
          
          Real cellError = rhs - phi_111;
-         totalError2 += cellError*cellError;
-         
+         localError += cellError*cellError;
          mpiGrid[cellID]->parameters[CellParams::PHI_TMP] = fabs(cellError);
       }
-      
+        }
+
       Real globalError;
-      MPI_Reduce(&totalError2,&globalError,1,MPI_Type<Real>(),MPI_SUM,0,MPI_COMM_WORLD);
-      cerr << Parameters::tstep << '\t' << sqrt(totalError2) << endl;
-      
+      MPI_Allreduce(&localError,&globalError,1,MPI_Type<Real>(),MPI_SUM,MPI_COMM_WORLD);
+
+      if (mpiGrid.get_rank() == 0) {
+         cerr << "reduced value " << Parameters::tstep << '\t' << sqrt(globalError) << endl;
+      }
+
       phiprof::stop("Evaluate Error");
-      return sqrt(totalError2);
+
+      return sqrt(globalError);
    }
 
    // ***** DEFINITIONS OF HIGH-LEVEL DRIVER FUNCTIONS ***** //

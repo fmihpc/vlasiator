@@ -54,6 +54,7 @@ namespace poisson {
       
       const Real weight = 1.5;
 
+      #pragma omp for
       for (size_t c=0; c<cells.size(); ++c) {
          const CellID cellID = cells[c];
          
@@ -116,22 +117,24 @@ namespace poisson {
       mpiGrid.update_copies_of_remote_neighbors(POISSON_NEIGHBORHOOD_ID);
       SpatialCell::set_mpi_transfer_type(Transfer::CELL_PHI,false);
       phiprof::stop("MPI");
-      
+
       do {
-      
-         // Solve red cells first, the black cells
-         if (solve(mpiGrid,RED  ) == false) success = false;
-         if (solve(mpiGrid,BLACK) == false) success = false;
+         #pragma omp parallel
+           {
+              // Solve red cells first, the black cells
+              if (solve(mpiGrid,RED  ) == false) success = false;
+              if (solve(mpiGrid,BLACK) == false) success = false;
+           }
 
          // Evaluate the error in potential solution and reiterate if necessary
          error(mpiGrid);
-         
+
          break;
       } while (true);
 
       return success;
    }
-   
+
    bool PoissonSolverSOR::solve(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                 const int& oddness) {
       bool success = true;
