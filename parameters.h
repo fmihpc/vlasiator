@@ -59,7 +59,11 @@ struct Parameters {
    static uint tstep_min;           /*!< Timestep when simulation starts, needed for restarts.*/
    static uint tstep_max;           /*!< Maximum timestep. */
    static uint tstep;               /*!< The number of the current timestep. 0=initial state. */
-   
+
+   static bool cellListsInvalidated;      /*!< If true, cached cell list(s) have been invalidated due to 
+                                           * load balance, for example.*/
+   static std::vector<CellID> localCells;     /*!< Cached copy of spatial cell IDs on this process.*/
+
    static uint diagnosticInterval;
    static std::vector<std::string> systemWriteName; /*!< Names for the different classes of grid output*/
    static std::vector<Real> systemWriteTimeInterval;/*!< Interval in simusecond for output for each class*/
@@ -82,6 +86,7 @@ struct Parameters {
    static bool recalculateStencils; /*!< If true, MPI stencils should be recalculated because of load balancing.*/
    
    static bool propagateField;      /*!< If true, magnetic field is propagated during the simulation.*/
+   static bool propagatePotential;  /*!< If true, electrostatic potential is solved during the simulation.*/
    static bool propagateVlasovAcceleration;     /*!< If true, distribution function is propagated in velocity space during the simulation.*/
    static bool propagateVlasovTranslation;      /*!< If true, distribution function is propagated in ordinary space during the simulation.*/
    static bool periodic_x, periodic_y, periodic_z; /*!< Whether spatial vlasov grid is periodic */

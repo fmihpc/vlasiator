@@ -217,8 +217,17 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("dPERBZVOLdy",bvolderivatives::dPERBZVOLdy,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("dBGBZVOLdy",bvolderivatives::dBGBZVOLdy,1));
       }
+      if (*it == "Potential") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("poisson/potential",CellParams::PHI,1));
+      }
+      if (*it == "ChargeDensity") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("poisson/rho_q",CellParams::RHOQ_TOT,1));
+      }
+      if (*it == "PotentialError") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("poisson/pot_error",CellParams::PHI_TMP,1));
+      }
    }
-   
+
    for (it = P::diagnosticVariableList.begin();
         it != P::diagnosticVariableList.end();
         it++) {

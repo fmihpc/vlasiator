@@ -1,6 +1,6 @@
 /*
  * This file is part of Vlasiator.
- * Copyright 2013, 2014 Finnish Meteorological Institute
+ * Copyright 2014 Finnish Meteorological Institute
  */
 
 #ifndef OBJECT_FACTORY_H

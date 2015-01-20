@@ -121,7 +121,6 @@ CellID get_spatial_neighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geom
    }
    
    return nbrID; //no AMR
-
 }
 
 /*compute spatial neighbors for source stencil with a size of 2*
@@ -398,9 +397,12 @@ OpenMP region (as long as it does only one dimension per parallel
 refion). It is safe as each thread only computes certain blocks (blockID%tnum_threads = thread_num */
 
 bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const CellID cellID,const uint dimension, const Real dt) {
+   // Return immediately if the cell has no velocity blocks
+   SpatialCell* spatial_cell = mpiGrid[cellID];
+   if (spatial_cell->get_number_of_velocity_blocks() == 0) return true;
+    
    /*values used with an stencil in 1 dimension, initialized to 0. Contains a block, and its spatial neighbours in one dimension */  
    Real dz,z_min, dvz,vz_min;
-   SpatialCell* spatial_cell = mpiGrid[cellID];
    uint block_indices_to_id[3]; /*< used when computing id of target block */
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/   
    uint thread_id = 0;  //thread id. Default value for serial case
@@ -422,7 +424,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    CellID target_neighbors[3];
    compute_spatial_source_neighbors(mpiGrid,cellID,dimension,source_neighbors);
    compute_spatial_target_neighbors(mpiGrid,cellID,dimension,target_neighbors);
-
+   
    /*set cell size in dimension direction*/
    switch (dimension){
        case 0:
@@ -574,14 +576,14 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 /*!
 
   This function communicates the mapping on process boundaries, and then updates the data to their correct values.
-  TODO, this could be inside an openmp region, in which case some m ore barriers and masters should be added
+  TODO, this could be inside an openmp region, in which case some more barriers and masters should be added
 
   \par dimension: 0,1,2 for x,y,z
   \par direction: 1 for + dir, -1 for - dir
 */
   
 void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, const uint dimension, int direction) {
-   const vector<CellID> local_cells = mpiGrid.get_cells();
+   const vector<CellID>& local_cells = getLocalCells();
    const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_NEIGHBORHOOD_ID);
    vector<CellID> receive_cells;
    vector<CellID> send_cells;
@@ -606,7 +608,7 @@ void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell,dccrg::Cartesia
       ccell->neighbor_block_data = &(ccell->get_data()[0]);
       ccell->neighbor_number_of_blocks = 0;
       CellID p_ngbr,m_ngbr;
-      
+
       switch(dimension) {
           case 0:
              p_ngbr=get_spatial_neighbor(mpiGrid, local_cells[c], false,  direction, 0, 0); //p_ngbr is target, if in boundaries then it is not updated
@@ -624,10 +626,10 @@ void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell,dccrg::Cartesia
              cerr << "Dimension wrong at (impossible!) "<< __FILE__ <<":" << __LINE__<<endl;
              exit(1);
       }
-      
+
       if(mpiGrid.is_local(p_ngbr) && mpiGrid.is_local(m_ngbr))
          continue; //internal cell, not much to do
-            
+
       SpatialCell *pcell = NULL;
       if(p_ngbr != INVALID_CELLID)
          pcell = mpiGrid[p_ngbr];
@@ -658,8 +660,8 @@ void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell,dccrg::Cartesia
          mcell->neighbor_number_of_blocks = ccell->get_number_of_velocity_blocks();
          receive_cells.push_back(local_cells[c]);
       }
-
    }
+   
    //Do communication
    SpatialCell::set_mpi_transfer_type(Transfer::NEIGHBOR_VEL_BLOCK_FLUXES);
 

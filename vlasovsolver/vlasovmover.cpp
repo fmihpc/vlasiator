@@ -5,7 +5,6 @@
 
 */
 
-
 #include <cstdlib>
 #include <iostream>
 #include <vector>
@@ -21,8 +20,6 @@
 #include "cpu_moments.h"
 #include "cpu_acc_semilag.hpp"
 #include "cpu_trans_map.hpp"
-
-
 
 #include <stdint.h>
 #include <dccrg.hpp>
@@ -64,7 +61,7 @@ void calculateSpatialTranslation(
    
    phiprof::start("semilag-trans");
    phiprof::start("compute_cell_lists");
-   const vector<CellID> local_cells = mpiGrid.get_cells();
+   const vector<CellID>& local_cells = getLocalCells();
    const vector<CellID> remote_stencil_cells_x = 
       mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
    const vector<CellID> remote_stencil_cells_y = 
@@ -251,7 +248,7 @@ void calculateAcceleration(
    Real dt
 ) {
    typedef Parameters P;
-   const vector<CellID> cells = mpiGrid.get_cells();
+   const vector<CellID>& cells = getLocalCells();
    vector<CellID> propagatedCells;
    // Iterate through all local cells and propagate distribution functions 
    // in velocity space. Ghost cells (spatial cells at the boundary of the simulation 
@@ -358,8 +355,7 @@ void calculateInterpolatedVelocityMoments(
    const int cp_p22,
    const int cp_p33
 ) {
-   vector<CellID> cells;
-   cells=mpiGrid.get_cells();
+   const vector<CellID>& cells = getLocalCells();
    
    //Iterate through all local cells (excl. system boundary cells):
 #pragma omp parallel for
@@ -431,8 +427,8 @@ void calculateCellVelocityMoments(
 }
 
 void calculateInitialVelocityMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
-   vector<CellID> cells;
-   cells=mpiGrid.get_cells();
+   const vector<CellID>& cells = getLocalCells();
+
    phiprof::start("Calculate moments"); 
    // Iterate through all local cells (incl. system boundary cells):
 #pragma omp parallel for

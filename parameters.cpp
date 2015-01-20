@@ -59,12 +59,14 @@ Real P::vlasovSolverMinCFL = NAN;
 Real P::fieldSolverMaxCFL = NAN;
 Real P::fieldSolverMinCFL = NAN;
 
-
 uint P::tstep = 0;
 uint P::tstep_min = 0;
 uint P::tstep_max = 0;
 uint P::diagnosticInterval = numeric_limits<uint>::max();
 bool P::writeInitialState = true;
+
+bool P::cellListsInvalidated = true;
+std::vector<CellID> P::localCells;
 
 std::vector<std::string> P::systemWriteName; 
 std::vector<Real> P::systemWriteTimeInterval;
@@ -84,6 +86,7 @@ bool P::recalculateStencils = true;
 bool P::propagateVlasovAcceleration = true;
 bool P::propagateVlasovTranslation = true;
 bool P::propagateField = true;
+bool P::propagatePotential = false;
 
 uint P::maxAccelerationSubsteps=1;
 bool P::dynamicTimestep = true;
@@ -139,6 +142,7 @@ bool Parameters::addParameters(){
    Readparameters::add("io.write_restart_stripe_factor","Stripe factor for restar writing.", -1);
    Readparameters::add("io.write_as_float","If true, write in floats instead of doubles", false);
    
+   Readparameters::add("propagate_potential","Propagate electrostatic potential during the simulation",false);
    Readparameters::add("propagate_field","Propagate magnetic field during the simulation",true);
    Readparameters::add("propagate_vlasov_acceleration","Propagate distribution functions during the simulation in velocity space. If false, it is propagated with zero length timesteps.",true);
    Readparameters::add("propagate_vlasov_translation","Propagate distribution functions during the simulation in ordinary space. If false, it is propagated with zero length timesteps.",true);
@@ -237,15 +241,16 @@ bool Parameters::getParameters(){
    Readparameters::get("io.write_as_float", P::writeAsFloat);
    
    Readparameters::get("propagate_field",P::propagateField);
+   Readparameters::get("propagate_potential",P::propagatePotential);
    Readparameters::get("propagate_vlasov_acceleration",P::propagateVlasovAcceleration);
    Readparameters::get("propagate_vlasov_translation",P::propagateVlasovTranslation);
    Readparameters::get("max_acceleration_substeps",P::maxAccelerationSubsteps);
    Readparameters::get("dynamic_timestep",P::dynamicTimestep);
    Readparameters::get("restart.filename",P::restartFileName);
    P::isRestart=(P::restartFileName!=string(""));
-   
+
    Readparameters::get("project", projectName);
-   
+ 
    /*get numerical values, let Readparameters handle the conversions*/
    Readparameters::get("gridbuilder.x_min",P::xmin);
    Readparameters::get("gridbuilder.x_max",P::xmax);
