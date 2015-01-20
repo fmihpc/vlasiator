@@ -41,7 +41,9 @@ bool do_translate_cell(SpatialCell* SC){
 
 
 
-
+//Create temporary target grid where we write the mapped values for
+//all cells in cells vector. In this non-AMR version it contains the
+//same blocks as the normal grid.
 void createTargetGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,   const vector<CellID>& cells){
    phiprof::start("create-target-grid");
 #pragma omp  parallel for
@@ -71,7 +73,7 @@ void createTargetGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
    phiprof::stop("create-target-grid");
 }
 
-
+//Clear temporary target grid  for all cells in cells vector.
 void clearTargetGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,   const vector<CellID>& cells){
    phiprof::start("clear-target-grid");
 #pragma omp  parallel for
@@ -85,6 +87,7 @@ void clearTargetGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
          
 }
 
+//Set all values in the temporary target grid to zero (0.0), for all cells in cells vector.   
 void zeroTargetGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,   const vector<CellID>& cells){
    phiprof::start("zero-target-grid");      
 #pragma omp  parallel for
@@ -92,13 +95,14 @@ void zeroTargetGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
       SpatialCell *spatial_cell = mpiGrid[cells[c]];
       vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks_temporary();
       for(unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH * blockContainer.size(); cell++) {
-         blockContainer.getData()[cell] = 0.0;
+         blockContainer.getData()[cell] = 0;
       }
    }
    phiprof::stop("zero-target-grid");
 }
 
 
+//Swap temporary target grid and normal grid. This is cheap as values are not copied.
 void swapTargetSourceGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,   const vector<CellID>& cells){
    phiprof::start("swap-target-grid");
    for (size_t c=0; c<cells.size(); ++c) {
@@ -117,7 +121,7 @@ void swapTargetSourceGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
  * layer is inlcuded (does not return INVALID_CELLID).
  * This does not use dccrg's get_neighbor_of function as it does not support computing neighbors for remote cells
 
- TODO: not needed anymore as we do not need to compute ngbrs for remote cells
+
  */
 
 CellID get_spatial_neighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
