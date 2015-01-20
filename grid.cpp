@@ -448,10 +448,10 @@ void report_grid_memory_consumption(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
    int rank,n_procs;
    MPI_Comm_size(MPI_COMM_WORLD, &n_procs);
    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-   /*compute memory consumption of the block data, double as MPI does
+   /* Compute memory statistics of the memory consumption of the spatial cells.
+    * Internally we use double as MPI does
     * not define proper uint64_t datatypes for MAXLOCNot Real, as we
     * want double here not to loose accuracy.
-    * Computed as number of blocks * data array with block data *  WID3 amount of cells per block *  each cell has a size of Real
     */
 
    /*report data for memory needed by blocks*/

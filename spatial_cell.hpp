@@ -1585,6 +1585,8 @@ namespace spatial_cell {
       uint64_t size = 0;
       size += vmesh.sizeInBytes();
       size += blockContainer.sizeInBytes();
+      size += vmeshTemp.sizeInBytes();
+      size += blockContainerTemp.sizeInBytes();
       size += 2 * WID3 * sizeof(Realf);
       size += mpi_velocity_block_list.size() * sizeof(vmesh::GlobalID);
       size += velocity_block_with_content_list.size() * sizeof(vmesh::GlobalID);
@@ -1604,6 +1606,8 @@ namespace spatial_cell {
       uint64_t capacity = 0;
       capacity += vmesh.capacityInBytes();
       capacity += blockContainer.capacityInBytes();
+      capacity += vmeshTemp.capacityInBytes();
+      capacity += blockContainerTemp.capacityInBytes();
       capacity += 2 * WID3 * sizeof(Realf);
       capacity += mpi_velocity_block_list.capacity()  * sizeof(vmesh::GlobalID);
       capacity += velocity_block_with_content_list.capacity()  * sizeof(vmesh::GlobalID);
