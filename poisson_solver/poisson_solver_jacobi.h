@@ -30,6 +30,8 @@ namespace poisson {
                       const std::vector<CellID>& cells);
         bool iterate(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
     };
+   
+    PoissonSolver* makeJacobi();
     
 } // namespace poisson
 

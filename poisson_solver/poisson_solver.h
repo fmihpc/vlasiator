@@ -18,6 +18,16 @@
 
 namespace poisson {
 
+    struct CellCache2D {
+       Real* parameters[5];
+       Real*& operator[](const int& i) {return parameters[i];}
+    };
+
+    struct CellCache3D {
+       Real* parameters[7];
+       Real*& operator[](const int& i) {return parameters[i];}
+    };
+
     class PoissonSolver {
     public:
         PoissonSolver();

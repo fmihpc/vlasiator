@@ -65,7 +65,8 @@ uint P::tstep_max = 0;
 uint P::diagnosticInterval = numeric_limits<uint>::max();
 bool P::writeInitialState = true;
 
-bool P::cellListsInvalidated = true;
+bool P::meshRepartitioned = true;
+uint P::localCellsCalculated = numeric_limits<uint>::max();
 std::vector<CellID> P::localCells;
 
 std::vector<std::string> P::systemWriteName; 

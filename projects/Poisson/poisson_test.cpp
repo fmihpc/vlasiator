@@ -19,6 +19,8 @@ using namespace std;
 
 namespace projects {
    
+   static Real radius = 0;
+   
    PoissonTest::PoissonTest(): Project() { }
    
    PoissonTest::~PoissonTest() { }
@@ -26,11 +28,13 @@ namespace projects {
    void PoissonTest::addParameters() {
       typedef Readparameters RP;
       RP::add("Poisson.solver","Name of the Poisson solver",string("SOR"));
+      RP::add("Poisson.radius","Radius where charge density is non-zero",(Real)15e3);
    }
    
    void PoissonTest::getParameters() {
       typedef Readparameters RP;
       RP::get("Poisson.solver",poisson::Poisson::solverName);
+      RP::get("Poisson.radius",radius);
    }
 
    bool PoissonTest::initialize() {
@@ -51,7 +55,8 @@ namespace projects {
       Real R = sqrt(x*x + y*y + z*z);
       
       cellParams[CellParams::RHOQ_TOT] = 0;
-      if (R > 50e3) return;
+      
+      if (R > radius) return;
       
       const Real volume = dx*dy*dz;
       cellParams[CellParams::RHOQ_TOT] = physicalconstants::CHARGE

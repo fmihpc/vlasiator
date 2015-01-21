@@ -19,6 +19,8 @@
 #include "../spatial_cell.hpp"       
 
 #include "poisson_solver.h"
+#include "poisson_solver_jacobi.h"
+#include "poisson_solver_sor.h"
 
 using namespace std;
 
@@ -40,7 +42,7 @@ namespace poisson {
    PoissonSolver::~PoissonSolver() { }
    
    bool PoissonSolver::initialize() {return true;}
-   
+
    bool PoissonSolver::finalize() {return true;}
 
    Real PoissonSolver::error(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
@@ -123,7 +125,10 @@ namespace poisson {
 
    bool initialize(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
       bool success = true;
-      
+
+      Poisson::solvers.add("Jacobi",makeJacobi);
+      Poisson::solvers.add("SOR",makeSOR);
+
       // Create and initialize the Poisson solver
       Poisson::solver = Poisson::solvers.create(Poisson::solverName);
       if (Poisson::solver == NULL) {

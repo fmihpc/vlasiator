@@ -27,11 +27,14 @@ namespace poisson {
         
     private:
         void evaluate(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                      const std::vector<CellID>& cells,const int& oddness);
+                      std::vector<poisson::CellCache3D>& cellPointers,const int& cellColor);
+       
         bool solve(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                    const int& oddness);
     };
-    
+
+    PoissonSolver* makeSOR();
+   
 } // namespace poisson
 
 #endif	// POISSON_SOLVER_SOR_H

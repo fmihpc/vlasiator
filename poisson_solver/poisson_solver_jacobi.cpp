@@ -21,19 +21,9 @@ namespace poisson {
    static const int RED   = 0;
    static const int BLACK = 1;
 
-   // Static initializer for the solver that adds it to solver object factory
-   
    PoissonSolver* makeJacobi() {
       return new PoissonSolverJacobi();
    }
-   
-   class InitJacobi {
-   public:
-      InitJacobi() {
-         Poisson::solvers.add("Jacobi",makeJacobi);
-      }
-   };
-   static InitJacobi initSor;
 
    PoissonSolverJacobi::PoissonSolverJacobi(): PoissonSolver() { }
    

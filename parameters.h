@@ -55,14 +55,14 @@ struct Parameters {
    static Real vlasovSolverMinCFL;                  /*!< The minimum CFL limit for propagation of distribution function. Used to set timestep if useCFLlimit is true. Also used to set number of acceleration steps if substepAcceleration is true */
    static Real fieldSolverMinCFL;     /*!< The minimum CFL limit for propagation of fields. Used to set timestep if useCFLlimit is true.*/
    static Real fieldSolverMaxCFL;     /*!< The maximum CFL limit for propagation of fields. Used to set timestep if useCFLlimit is true.*/
-   
+
    static uint tstep_min;           /*!< Timestep when simulation starts, needed for restarts.*/
    static uint tstep_max;           /*!< Maximum timestep. */
    static uint tstep;               /*!< The number of the current timestep. 0=initial state. */
 
-   static bool cellListsInvalidated;      /*!< If true, cached cell list(s) have been invalidated due to 
-                                           * load balance, for example.*/
-   static std::vector<CellID> localCells;     /*!< Cached copy of spatial cell IDs on this process.*/
+   static bool meshRepartitioned;         /*!< If true, mesh was repartitioned on this time step.*/
+   static uint localCellsCalculated;      /*!< Time step when localCells was calculated.*/
+   static std::vector<CellID> localCells; /*!< Cached copy of spatial cell IDs on this process.*/
 
    static uint diagnosticInterval;
    static std::vector<std::string> systemWriteName; /*!< Names for the different classes of grid output*/

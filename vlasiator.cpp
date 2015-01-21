@@ -11,6 +11,7 @@ Copyright 2010, 2011, 2012, 2013, 2014 Finnish Meteorological Institute
 #include <vector>
 #include <sstream>
 #include <ctime>
+#include <omp.h>
 
 #include "vlasovmover.h"
 #include "definitions.h"
@@ -148,13 +149,14 @@ ObjectWrapper& getObjectWrapper() {
 }
 
 const std::vector<CellID>& getLocalCells() {
-   if (Parameters::cellListsInvalidated == true) {
-      {
-         vector<CellID> dummy;
-         dummy.swap(Parameters::localCells);
+   if (Parameters::meshRepartitioned == true) {
+      if (Parameters::localCellsCalculated != Parameters::tstep) {
+	   {
+	      vector<CellID> dummy;
+	      dummy.swap(Parameters::localCells);
+	   }
+	 Parameters::localCells = mpiGrid.get_cells();
       }
-      Parameters::localCells = mpiGrid.get_cells();
-      Parameters::cellListsInvalidated = false;
    }
    return Parameters::localCells;
 }
@@ -223,6 +225,12 @@ int main(int argn,char* args[]) {
    if (logFile.open(MPI_COMM_WORLD,MASTER_RANK,"logfile.txt",P::isRestart) == false) {
       if(myRank == MASTER_RANK) cerr << "(MAIN) ERROR: Logger failed to open logfile!" << endl;
       exit(1);
+   } else {
+      int mpiProcesses;
+      int threads = omp_get_max_threads();
+      MPI_Comm_size(comm,&mpiProcesses);      
+      logFile << "(MAIN) Starting simulation with " << mpiProcesses << " MPI processes and ";
+      logFile << threads << " OpenMP threads per process" << endl << writeVerbose;
    }
    if (P::diagnosticInterval != 0) {
       if (diagnostic.open(MPI_COMM_WORLD,MASTER_RANK,"diagnostic.txt",P::isRestart) == false) {
@@ -363,7 +371,10 @@ int main(int argn,char* args[]) {
          index++;
       P::systemWrites.push_back(index);
    }
-   
+
+   // Invalidate cached cell lists just to be sure (might not be needed)
+   P::meshRepartitioned = true;
+
    unsigned int wallTimeRestartCounter=1;
    
    addTimedBarrier("barrier-end-initialization");
@@ -624,6 +635,7 @@ int main(int argn,char* args[]) {
          bailout(true, message, __FILE__, __LINE__);
       }
       //Move forward in time
+      P::meshRepartitioned = false;
       ++P::tstep;
       P::t += P::dt;
    }

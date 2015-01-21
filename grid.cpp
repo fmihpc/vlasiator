@@ -230,7 +230,7 @@ void initSpatialCellCoordinates(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
 
 void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid){
    // Invalidate cached cell lists
-   Parameters::cellListsInvalidated = true;
+   Parameters::meshRepartitioned = true;
 
    // tell other processes which velocity blocks exist in remote spatial cells
    phiprof::initializeTimer("Balancing load", "Load balance");
