@@ -58,126 +58,176 @@ void calculateSpatialTranslation(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    creal dt
 ) {
+   const size_t popID = 0;
    typedef Parameters P;
    int trans_timer;
    
    
    phiprof::start("semilag-trans");
    phiprof::start("compute_cell_lists");
-   const vector<CellID> local_cells = mpiGrid.get_cells();
-   const vector<CellID> remote_stencil_cells_x = 
-      mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
-   const vector<CellID> remote_stencil_cells_y = 
-      mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);
-   const vector<CellID> remote_stencil_cells_z = 
-      mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);
+   const vector<CellID> localCells = mpiGrid.get_cells();
+   const vector<CellID> remoteTargetCellsx = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID);
+   const vector<CellID> remoteTargetCellsy = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID);
+   const vector<CellID> remoteTargetCellsz = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID);
+
+   vector<CellID> local_propagated_cells;
+   vector<CellID> local_target_cells;
+   for (size_t c=0; c<localCells.size(); ++c) {
+      if(do_translate_cell(mpiGrid[localCells[c]])){
+         local_propagated_cells.push_back(localCells[c]);
+      }
+   }
+   for (size_t c=0; c<localCells.size(); ++c) {
+      if(mpiGrid[localCells[c]]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+         local_target_cells.push_back(localCells[c]);
+      }
+   }
    phiprof::stop("compute_cell_lists");
+   
+   bool localTargetGridGenerated = false;
 
    // ------------- SLICE - map dist function in Z --------------- //
    if(P::zcells_ini > 1 ){
       trans_timer=phiprof::initializeTimer("transfer-stencil-data-z","MPI");
       phiprof::start(trans_timer);
-      //start by doing all transfers in a blocking fashion (communication stage can be optimized separately) //
-      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA_TO_FLUXES);
-      mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);
+      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
+      mpiGrid.start_remote_neighbor_copy_updates(VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);
       phiprof::stop(trans_timer);
+      
+      /*generate target grid in the temporary arrays, same size as
+       *   original one. We only need to create these in target cells*/
+      createTargetGrid(mpiGrid,remoteTargetCellsz);
+
+      if(!localTargetGridGenerated){ 
+         createTargetGrid(mpiGrid,local_target_cells);
+         localTargetGridGenerated=true;
+      }
+      
+      phiprof::start(trans_timer);
+      mpiGrid.wait_remote_neighbor_copy_update_receives(VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);
+      phiprof::stop(trans_timer);
+      
+      phiprof::start("compute-mapping-z");
 #pragma omp parallel
       {
-         phiprof::start("prepare-block-data-z");
-         for (size_t c=0; c<local_cells.size(); ++c)
-            trans_prepare_block_data(mpiGrid,local_cells[c]);
-         for (size_t c=0; c<remote_stencil_cells_z.size(); ++c)
-            trans_prepare_block_data(mpiGrid,remote_stencil_cells_z[c]);
-#pragma omp barrier
-         phiprof::stop("prepare-block-data-z");
-         phiprof::start("compute-mapping-z");
-         for (size_t c=0; c<local_cells.size(); ++c) {
-            if(do_translate_cell(mpiGrid[local_cells[c]]))
-               trans_map_1d(mpiGrid,local_cells[c], 2, dt); // map along z//
+         for (size_t c=0; c<local_propagated_cells.size(); ++c) {
+            trans_map_1d(mpiGrid,local_propagated_cells[c], 2, dt); // map along z//
          }
-         phiprof::stop("compute-mapping-z");
       }
+      phiprof::stop("compute-mapping-z");
+
+      phiprof::start(trans_timer);
+      mpiGrid.wait_remote_neighbor_copy_update_sends();
+      phiprof::stop(trans_timer);
       
       trans_timer=phiprof::initializeTimer("update_remote-z","MPI");
       phiprof::start("update_remote-z");
       update_remote_mapping_contribution(mpiGrid, 2, 1);
       update_remote_mapping_contribution(mpiGrid, 2, -1);
       phiprof::stop("update_remote-z");
-   }   
-   
+
+      clearTargetGrid(mpiGrid,remoteTargetCellsz);
+      swapTargetSourceGrid(mpiGrid, local_target_cells);
+      zeroTargetGrid(mpiGrid, local_target_cells);
+   }
+
 // ------------- SLICE - map dist function in X --------------- //
    if(P::xcells_ini > 1 ){
       trans_timer=phiprof::initializeTimer("transfer-stencil-data-x","MPI");
       phiprof::start(trans_timer);
-      //start by doing all transfers in a blocking fashion (communication stage can be optimized separately) //
-      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA_TO_FLUXES);
-      mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_X_NEIGHBORHOOD_ID);  
+      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
+      mpiGrid.start_remote_neighbor_copy_updates(VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
       phiprof::stop(trans_timer);
       
+      createTargetGrid(mpiGrid,remoteTargetCellsx);
+       if(!localTargetGridGenerated){ 
+         createTargetGrid(mpiGrid,local_target_cells);
+         localTargetGridGenerated=true;
+      }
+       
+      phiprof::start(trans_timer);
+      mpiGrid.wait_remote_neighbor_copy_update_receives(VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
+      phiprof::stop(trans_timer);
+
+      phiprof::start("compute-mapping-x");
       #pragma omp parallel
       {
-         phiprof::start("prepare-block-data-x");
-         for (size_t c=0; c<local_cells.size(); ++c)
-            trans_prepare_block_data(mpiGrid,local_cells[c]);
-         for (size_t c=0; c<remote_stencil_cells_x.size(); ++c)
-            trans_prepare_block_data(mpiGrid,remote_stencil_cells_x[c]);
-         #pragma omp barrier
-         phiprof::stop("prepare-block-data-x");
-
-         phiprof::start("compute-mapping-x");
-         for (size_t c=0; c<local_cells.size(); ++c) {
-            if (do_translate_cell(mpiGrid[local_cells[c]]))
-               trans_map_1d(mpiGrid,local_cells[c], 0, dt); // map along x//
+         for (size_t c=0; c<local_propagated_cells.size(); ++c) {
+            trans_map_1d(mpiGrid,local_propagated_cells[c], 0, dt); // map along x//
          }
-         phiprof::stop("compute-mapping-x");
       }
+      phiprof::stop("compute-mapping-x");
 
+      phiprof::start(trans_timer);
+      mpiGrid.wait_remote_neighbor_copy_update_sends();
+      phiprof::stop(trans_timer);
+      
       trans_timer=phiprof::initializeTimer("update_remote-x","MPI");
       phiprof::start("update_remote-x");
       update_remote_mapping_contribution(mpiGrid, 0, 1);
       update_remote_mapping_contribution(mpiGrid, 0, -1);
       phiprof::stop("update_remote-x");
+      clearTargetGrid(mpiGrid,remoteTargetCellsx);
+      swapTargetSourceGrid(mpiGrid, local_target_cells);
+      zeroTargetGrid(mpiGrid, local_target_cells);
+
    }
    
 // ------------- SLICE - map dist function in Y --------------- //
    if(P::ycells_ini > 1 ){
       trans_timer=phiprof::initializeTimer("transfer-stencil-data-y","MPI");
       phiprof::start(trans_timer);
-      //start by doing all transfers in a blocking fashion (communication stage can be optimized separately) //
-      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA_TO_FLUXES);
-      mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);  
+      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
+      mpiGrid.start_remote_neighbor_copy_updates(VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);
       phiprof::stop(trans_timer);
+      
+      createTargetGrid(mpiGrid,remoteTargetCellsy);
+      if(!localTargetGridGenerated){ 
+         createTargetGrid(mpiGrid,local_target_cells);
+         localTargetGridGenerated=true;
+      }
+      
+      phiprof::start(trans_timer);
+      mpiGrid.wait_remote_neighbor_copy_update_receives(VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);
+      phiprof::stop(trans_timer);
+
+      phiprof::start("compute-mapping-y");
 #pragma omp parallel
       {
-         phiprof::start("prepare-block-data-y");
-         for (size_t c=0; c<local_cells.size(); ++c)
-            trans_prepare_block_data(mpiGrid,local_cells[c]);
-         for (size_t c=0; c<remote_stencil_cells_y.size(); ++c)
-            trans_prepare_block_data(mpiGrid,remote_stencil_cells_y[c]);
-#pragma omp barrier
-         phiprof::stop("prepare-block-data-y");         
-         phiprof::start("compute-mapping-y");
-         for (size_t c=0; c<local_cells.size(); ++c) {
-            if(do_translate_cell(mpiGrid[local_cells[c]]))
-               trans_map_1d(mpiGrid,local_cells[c], 1, dt); // map along y//
+         for (size_t c=0; c<local_propagated_cells.size(); ++c) {
+            trans_map_1d(mpiGrid,local_propagated_cells[c], 1, dt); // map along y//
          }
-         phiprof::stop("compute-mapping-y");
       }
+      
+      phiprof::stop("compute-mapping-y");
+
+      phiprof::start(trans_timer);
+      mpiGrid.wait_remote_neighbor_copy_update_sends();
+      phiprof::stop(trans_timer);
       
       trans_timer=phiprof::initializeTimer("update_remote-y","MPI");
       phiprof::start("update_remote-y");
       update_remote_mapping_contribution(mpiGrid, 1, 1);
       update_remote_mapping_contribution(mpiGrid, 1, -1);
       phiprof::stop("update_remote-y");
-
+      clearTargetGrid(mpiGrid,remoteTargetCellsy);
+      swapTargetSourceGrid(mpiGrid, local_target_cells);
    }
+
+   
+   clearTargetGrid(mpiGrid,local_target_cells);
+
+   
+
+
+
    
    // Mapping complete, update moments //
    phiprof::start("compute-moments-n-maxdt");
    // Note: Parallelization over blocks is not thread-safe
 #pragma omp  parallel for
-   for (size_t c=0; c<local_cells.size(); ++c) {
-      SpatialCell* SC=mpiGrid[local_cells[c]];
+   for (size_t c=0; c<localCells.size(); ++c) {
+      SpatialCell* SC=mpiGrid[localCells[c]];
       
       const Real dx=SC->parameters[CellParams::DX];
       const Real dy=SC->parameters[CellParams::DY];

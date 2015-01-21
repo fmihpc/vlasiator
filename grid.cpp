@@ -448,10 +448,10 @@ void report_grid_memory_consumption(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
    int rank,n_procs;
    MPI_Comm_size(MPI_COMM_WORLD, &n_procs);
    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-   /*compute memory consumption of the block data, double as MPI does
+   /* Compute memory statistics of the memory consumption of the spatial cells.
+    * Internally we use double as MPI does
     * not define proper uint64_t datatypes for MAXLOCNot Real, as we
     * want double here not to loose accuracy.
-    * Computed as number of blocks * 2 arrays with block data (fx, data) *  WID3 amount of cells per block *  each cell has a size of Real
     */
 
    /*report data for memory needed by blocks*/
@@ -582,11 +582,9 @@ VLASOV_{XYZ}
  xxoxxx
 -----------
 
-VLASOV_SOURCE
+VLASOV_TARGET_{XYZ}
 -----------
-   x
   xox
-   x
 
 -----------
 
@@ -724,7 +722,7 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
         neighborhood.push_back({{d, 0, 0}});
      }
    }
-   mpiGrid.add_neighborhood(VLASOV_SOLVER_SOURCE_X_NEIGHBORHOOD_ID, neighborhood);
+   mpiGrid.add_neighborhood(VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID, neighborhood);
 
    neighborhood.clear();
    for (int d = -1; d <= 1; d++) {
@@ -732,7 +730,7 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
         neighborhood.push_back({{0, d, 0}});
      }
    }
-   mpiGrid.add_neighborhood(VLASOV_SOLVER_SOURCE_Y_NEIGHBORHOOD_ID, neighborhood);
+   mpiGrid.add_neighborhood(VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID, neighborhood);
 
    neighborhood.clear();
    for (int d = -1; d <= 1; d++) {
@@ -740,7 +738,7 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
         neighborhood.push_back({{0, 0, d}});
      }
    }
-   mpiGrid.add_neighborhood(VLASOV_SOLVER_SOURCE_Z_NEIGHBORHOOD_ID, neighborhood);
+   mpiGrid.add_neighborhood(VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID, neighborhood);
 
 
    neighborhood.clear();

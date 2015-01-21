@@ -74,7 +74,6 @@ namespace spatial_cell {
       const uint64_t VEL_BLOCK_LIST_STAGE1    = (1<<2);
       const uint64_t VEL_BLOCK_LIST_STAGE2    = (1<<3);
       const uint64_t VEL_BLOCK_DATA           = (1<<4);
-      const uint64_t VEL_BLOCK_DATA_TO_FLUXES         = (1<<5);
       const uint64_t VEL_BLOCK_PARAMETERS     = (1<<6);
       const uint64_t VEL_BLOCK_WITH_CONTENT_STAGE1  = (1<<7); 
       const uint64_t VEL_BLOCK_WITH_CONTENT_STAGE2  = (1<<8); 
@@ -90,12 +89,12 @@ namespace spatial_cell {
       const uint64_t CELL_BVOL_DERIVATIVES    = (1<<18);
       const uint64_t CELL_DIMENSIONS          = (1<<19);
       const uint64_t CELL_IOLOCALCELLID       = (1<<20);
-      const uint64_t NEIGHBOR_VEL_BLOCK_FLUXES = (1<<21);
+      const uint64_t NEIGHBOR_VEL_BLOCK_DATA  = (1<<21);
       const uint64_t CELL_HALL_TERM           = (1<<22);
       const uint64_t CELL_P                   = (1<<23);
       const uint64_t CELL_PDT2                = (1<<24);
       
-      //all data, expect for the fx table (never needed on remote cells)
+      //all data
       const uint64_t ALL_DATA =
       CELL_PARAMETERS
       | CELL_DERIVATIVES | CELL_BVOL_DERIVATIVES
@@ -134,8 +133,6 @@ namespace spatial_cell {
       const Realf* get_data() const;
       Realf* get_data(const vmesh::LocalID& blockLID);
       const Realf* get_data(const vmesh::LocalID& blockLID) const;
-      Realf* get_fx();
-      Realf* get_fx(const vmesh::LocalID& blockLID);
       Real* get_block_parameters();
       Real* get_block_parameters(const vmesh::LocalID& blockLID);
       const Real* get_block_parameters(const vmesh::LocalID& blockLID) const;
@@ -233,7 +230,6 @@ namespace spatial_cell {
                                                                                * Separate array because it does not need to be communicated.*/
       Real parameters[CellParams::N_SPATIAL_CELL_PARAMS];                     /**< Bulk variables in this spatial cell.*/
       Realf null_block_data[WID3];
-      Realf null_block_fx[WID3];
 
       uint64_t ioLocalCellId;                                                 /**< Local cell ID used for IO, not needed elsewhere 
                                                                                * and thus not being kept up-to-date.*/
@@ -263,8 +259,6 @@ namespace spatial_cell {
       bool compute_block_has_content(const vmesh::GlobalID& block) const;
       void merge_values_recursive(vmesh::GlobalID parentGID,vmesh::GlobalID blockGID,uint8_t refLevel,bool recursive,const Realf* data,
 				  std::set<vmesh::GlobalID>& blockRemovalList);
-      void resize_block_data();
-      void set_block_data_pointers(int block_index);
 
       bool initialized;
       bool mpiTransferEnabled;
@@ -684,15 +678,6 @@ namespace spatial_cell {
       return blockContainer.getData(blockLID);
    }
 
-   inline Realf* SpatialCell::get_fx() {
-      return blockContainer.getFx();
-   }
-
-   inline Realf* SpatialCell::get_fx(const vmesh::LocalID& blockLID) {
-      if (blockLID == vmesh.invalidLocalID()) return null_block_fx;
-      return blockContainer.getFx(blockLID);
-   }
-   
    inline Real* SpatialCell::get_block_parameters() {
       return blockContainer.getParameters();
    }
@@ -1113,7 +1098,6 @@ namespace spatial_cell {
       this->mpi_number_of_blocks=0;
       this->sysBoundaryLayer=0; /*!< Default value, layer not yet initialized*/
       for (unsigned int i=0; i<WID3; ++i) null_block_data[i] = 0.0;
-      for (unsigned int i=0; i<WID3; ++i) null_block_fx[i] = 0.0;
       
       // reset spatial cell parameters
       for (unsigned int i = 0; i < CellParams::N_SPATIAL_CELL_PARAMS; i++) {
@@ -1161,7 +1145,6 @@ namespace spatial_cell {
       
       //set null block data
       for (unsigned int i=0; i<WID3; ++i) null_block_data[i] = 0.0;
-      for (unsigned int i=0; i<WID3; ++i) null_block_fx[i] = 0.0;
       //         phiprof::stop("SpatialCell copy");
      }
 
@@ -1385,16 +1368,8 @@ namespace spatial_cell {
             block_lengths.push_back(sizeof(Realf) * VELOCITY_BLOCK_LENGTH * blockContainer.size());
          }
          
-         if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_DATA_TO_FLUXES) != 0) {
-            if (receiving) {
-               displacements.push_back((uint8_t*) get_fx() - (uint8_t*) this);
-            } else {
-               displacements.push_back((uint8_t*) get_data() - (uint8_t*) this);
-            }
-            block_lengths.push_back(sizeof(Realf) * VELOCITY_BLOCK_LENGTH * blockContainer.size());
-         }
          
-         if ((SpatialCell::mpi_transfer_type & Transfer::NEIGHBOR_VEL_BLOCK_FLUXES) != 0) {
+         if ((SpatialCell::mpi_transfer_type & Transfer::NEIGHBOR_VEL_BLOCK_DATA) != 0) {
             /*We are actually transfering the data of a
             * neighbor. The values of neighbor_block_data
             * and neighbor_number_of_blocks should be set in
@@ -1600,37 +1575,6 @@ namespace spatial_cell {
       return true;
    }
 
-         /*!
-     This function will resize (increase) block data if needed, resize happen
-     in steps of block_allocation_chunk. It will always preserve
-     space for one extra block, resize can happen after adding the
-     block. We need up-to-date velocity_block_list as
-     set_block_data_pointers needs it.
-     If there is only free space left for 1 additional block (extra
-     block should not be needed, but there for safety), resize it
-     so that we have free space for block_allocation_chunk blocks.
-
-     This function never decreases memory space. To do that one should
-     call shrink_to_fit(!)
-     
-   */
-   inline void SpatialCell::resize_block_data() {
-      std::cerr << "resize_block_data(): error not implemented" << std::endl;
-      exit(1);
-      /*
-      if ((this->number_of_blocks+1)*VELOCITY_BLOCK_LENGTH >= this->block_data.size()){
-         // Resize so that free space is block_allocation_chunk blocks, and at least two in case of having zero blocks
-         int new_size = 2 + this->number_of_blocks * block_allocation_factor;
-         this->block_data.resize(new_size*VELOCITY_BLOCK_LENGTH);
-         this->block_fx.resize(new_size*VELOCITY_BLOCK_LENGTH);
-         blocks.resize(new_size);
-
-         // Fix block pointers if a reallocation occured
-         for (unsigned int block_index=0; block_index<this->number_of_blocks; ++block_index){
-            set_block_data_pointers(block_index);
-         }
-      }*/
-   }
 
    /*!
     Return the memory consumption in bytes as reported using the size()
@@ -1641,6 +1585,8 @@ namespace spatial_cell {
       uint64_t size = 0;
       size += vmesh.sizeInBytes();
       size += blockContainer.sizeInBytes();
+      size += vmeshTemp.sizeInBytes();
+      size += blockContainerTemp.sizeInBytes();
       size += 2 * WID3 * sizeof(Realf);
       size += mpi_velocity_block_list.size() * sizeof(vmesh::GlobalID);
       size += velocity_block_with_content_list.size() * sizeof(vmesh::GlobalID);
@@ -1660,6 +1606,8 @@ namespace spatial_cell {
       uint64_t capacity = 0;
       capacity += vmesh.capacityInBytes();
       capacity += blockContainer.capacityInBytes();
+      capacity += vmeshTemp.capacityInBytes();
+      capacity += blockContainerTemp.capacityInBytes();
       capacity += 2 * WID3 * sizeof(Realf);
       capacity += mpi_velocity_block_list.capacity()  * sizeof(vmesh::GlobalID);
       capacity += velocity_block_with_content_list.capacity()  * sizeof(vmesh::GlobalID);
@@ -1678,15 +1626,6 @@ namespace spatial_cell {
       this->update_velocity_block_content_lists();
       this->adjust_velocity_blocks(neighbor_ptrs, false);
    }
-
-   //set block data pointers data and fx for block
-   //velocity_block_list[block_index], so that they point to the
-   //same index as in block_list in the block_data and block_fx
-   //which contain all data for all blocks. It just sets the
-   //pointers and does not care about what is there earlier.
-   //velocity_block_list needs to be up-to-date.
-   //We also set block_list_index here to the correct position
-   inline void SpatialCell::set_block_data_pointers(int block_index) { }
       
    /*!
     Adds an empty velocity block into this spatial cell.
@@ -1853,6 +1792,8 @@ namespace spatial_cell {
       this->vmesh.swap(vmesh);
       this->blockContainer.swap(blockContainer);
    }
+
+   
 
    /*!       
     Prepares this spatial cell to receive the velocity grid over MPI.
