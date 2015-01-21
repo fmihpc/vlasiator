@@ -29,12 +29,16 @@ namespace projects {
       typedef Readparameters RP;
       RP::add("Poisson.solver","Name of the Poisson solver",string("SOR"));
       RP::add("Poisson.radius","Radius where charge density is non-zero",(Real)15e3);
+      RP::add("Poisson.max_iterations","Maximum number of iterations",(uint)1000);
+      RP::add("Poisson.min_relative_change","Potential is iterated until it the relative change is less than this value",(Real)1e-5);
    }
-   
+
    void PoissonTest::getParameters() {
       typedef Readparameters RP;
       RP::get("Poisson.solver",poisson::Poisson::solverName);
       RP::get("Poisson.radius",radius);
+      RP::get("Poisson.max_iterations",poisson::Poisson::maxIterations);
+      RP::get("Poisson.min_relative_change",poisson::Poisson::minRelativePotentialChange);
    }
 
    bool PoissonTest::initialize() {

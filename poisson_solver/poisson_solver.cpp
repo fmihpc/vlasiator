@@ -34,6 +34,8 @@ namespace poisson {
    ObjectFactory<PoissonSolver> Poisson::solvers;
    PoissonSolver* Poisson::solver = NULL;
    string Poisson::solverName;
+   uint Poisson::maxIterations;
+   Real Poisson::minRelativePotentialChange;
 
    // ***** DEFINITION OF POISSON SOLVER BASE CLASS ***** //
    
@@ -46,6 +48,52 @@ namespace poisson {
    bool PoissonSolver::finalize() {return true;}
 
    Real PoissonSolver::error(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
+      phiprof::start("Potential Change");
+
+      #warning optimize me in voima
+      
+      const vector<CellID>& cells = getLocalCells();
+      Real* maxError = new Real[omp_get_max_threads()];
+      const Real epsilon = 1e-100;
+
+      #pragma omp parallel
+        {
+           const int tid = omp_get_thread_num();
+           maxError[tid] = 0;
+
+           #pragma omp for
+           for (size_t c=0; c<cells.size(); ++c) {
+              SpatialCell* cell = mpiGrid[cells[c]];
+              Real phi     = cell->parameters[CellParams::PHI];
+              Real phi_old = cell->parameters[CellParams::PHI_TMP];
+
+              Real d_phi     = phi-phi_old;
+              Real d_phi_rel = d_phi / (phi + epsilon);
+              if (fabs(d_phi_rel) > maxError[tid]) maxError[tid] = fabs(d_phi_rel);
+           }
+
+        }
+
+      // Reduce max local error to master thread (index 0)
+      for (int i=1; i<omp_get_max_threads(); ++i) {
+         if (maxError[i] > maxError[0]) maxError[0] = maxError[i];
+      }
+
+      // Reduce max error to all MPI processes
+      Real globalMaxError;
+      MPI_Allreduce(maxError,&globalMaxError,1,MPI_Type<Real>(),MPI_MAX,MPI_COMM_WORLD);
+
+      /*if (mpiGrid.get_rank() == 0) {
+         cerr << Parameters::tstep << '\t' << globalMaxError << endl;
+      }*/
+
+      delete [] maxError; maxError = NULL;
+      phiprof::stop("Potential Change");
+      
+      return globalMaxError;
+   }
+   
+   Real PoissonSolver::error3D(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
       phiprof::start("Evaluate Error");
 
       // DEBUG: Make sure values are up to date
@@ -55,66 +103,81 @@ namespace poisson {
       mpiGrid.update_copies_of_remote_neighbors(POISSON_NEIGHBORHOOD_ID);
 
       Real localError = 0;
+      Real* maxError = new Real[omp_get_max_threads()];
       const vector<CellID>& cells = getLocalCells();
 
       #pragma omp parallel 
         {
-      #pragma omp for reduction(+:localError)
-      for (size_t c=0; c<cells.size(); ++c) {
-         CellID cellID = cells[c];
-         
-         // Skip cells on domain boundaries:
-         if (mpiGrid[cellID]->sysBoundaryFlag != 1) continue;
-         
-         // Fetch data:
-         // Fetch data
-         const Real rho_q = mpiGrid[cellID]->parameters[CellParams::RHOQ_TOT];
-         Real phi_111 = mpiGrid[cellID]->parameters[CellParams::PHI];
-         
-         // Calculate cell i/j/k indices
-         dccrg::Types<3>::indices_t indices = mpiGrid.mapping.get_indices(cellID);
-         CellID nbrID;
+           const int tid = omp_get_thread_num();
+           maxError[tid] = 0;
 
-         // +/- x face neighbor potential
-         indices[0] -= 1; nbrID =  mpiGrid.mapping.get_cell_from_indices(indices,0);
-         Real phi_011 = mpiGrid[nbrID]->parameters[CellParams::PHI];
-         indices[0] += 2; nbrID = mpiGrid.mapping.get_cell_from_indices(indices,0);
-         Real phi_211 = mpiGrid[nbrID]->parameters[CellParams::PHI];
-         indices[0] -= 1;
+           #pragma omp for reduction(+:localError)
+           for (size_t c=0; c<cells.size(); ++c) {
+              CellID cellID = cells[c];
 
-         // +/- y face neighbor potential
-         indices[1] -= 1; nbrID =  mpiGrid.mapping.get_cell_from_indices(indices,0);         
-         Real phi_101 = mpiGrid[nbrID]->parameters[CellParams::PHI];
-         indices[1] += 2; nbrID = mpiGrid.mapping.get_cell_from_indices(indices,0);         
-         Real phi_121 = mpiGrid[nbrID]->parameters[CellParams::PHI];
-         indices[1] -= 1;
+              // Skip cells on domain boundaries:
+              if (mpiGrid[cellID]->sysBoundaryFlag != 1) continue;
 
-         // +/- z face neighbor potential
-         /*indices[2] -= 1; nbrID =  mpiGrid.mapping.get_cell_from_indices(indices,0);         
-         Real phi_110 = mpiGrid[nbrID]->parameters[CellParams::PHI];
-         indices[2] += 2; mpiGrid.mapping.get_cell_from_indices(indices,0);         
-         Real phi_112 = mpiGrid[nbrID]->parameters[CellParams::PHI];
-         indices[2] -= 1;*/
-         Real phi_110 = phi_111; Real phi_112 = phi_111;
+              // Fetch data
+              const Real rho_q = mpiGrid[cellID]->parameters[CellParams::RHOQ_TOT];
+              Real phi_111 = mpiGrid[cellID]->parameters[CellParams::PHI];
 
-         Real DX2 = mpiGrid[cellID]->parameters[CellParams::DX]*mpiGrid[cellID]->parameters[CellParams::DX];
-         Real DY2 = mpiGrid[cellID]->parameters[CellParams::DY]*mpiGrid[cellID]->parameters[CellParams::DY];
-         Real DZ2 = mpiGrid[cellID]->parameters[CellParams::DZ]*mpiGrid[cellID]->parameters[CellParams::DZ];
-         Real factor = 2*(1/DX2 + 1/DY2 + 1/DZ2);
-         Real rhs = ((phi_011+phi_211)/DX2 + (phi_101+phi_121)/DY2 + (phi_110+phi_112)/DZ2 + rho_q)/factor;
-         
-         Real cellError = rhs - phi_111;
-         localError += cellError*cellError;
-         mpiGrid[cellID]->parameters[CellParams::PHI_TMP] = fabs(cellError);
+              // Calculate cell i/j/k indices
+              dccrg::Types<3>::indices_t indices = mpiGrid.mapping.get_indices(cellID);
+              CellID nbrID;
+
+              // +/- x face neighbor potential
+              indices[0] -= 1; nbrID =  mpiGrid.mapping.get_cell_from_indices(indices,0);
+              Real phi_011 = mpiGrid[nbrID]->parameters[CellParams::PHI];
+              indices[0] += 2; nbrID = mpiGrid.mapping.get_cell_from_indices(indices,0);
+              Real phi_211 = mpiGrid[nbrID]->parameters[CellParams::PHI];
+              indices[0] -= 1;
+
+              // +/- y face neighbor potential
+              indices[1] -= 1; nbrID =  mpiGrid.mapping.get_cell_from_indices(indices,0);         
+              Real phi_101 = mpiGrid[nbrID]->parameters[CellParams::PHI];
+              indices[1] += 2; nbrID = mpiGrid.mapping.get_cell_from_indices(indices,0);         
+              Real phi_121 = mpiGrid[nbrID]->parameters[CellParams::PHI];
+              indices[1] -= 1;
+
+              // +/- z face neighbor potential
+              indices[2] -= 1; nbrID =  mpiGrid.mapping.get_cell_from_indices(indices,0);         
+              Real phi_110 = mpiGrid[nbrID]->parameters[CellParams::PHI];
+              indices[2] += 2; mpiGrid.mapping.get_cell_from_indices(indices,0);         
+              Real phi_112 = mpiGrid[nbrID]->parameters[CellParams::PHI];
+              indices[2] -= 1;
+
+              // Evaluate error
+              Real DX2 = mpiGrid[cellID]->parameters[CellParams::DX]*mpiGrid[cellID]->parameters[CellParams::DX];
+              Real DY2 = mpiGrid[cellID]->parameters[CellParams::DY]*mpiGrid[cellID]->parameters[CellParams::DY];
+              Real DZ2 = mpiGrid[cellID]->parameters[CellParams::DZ]*mpiGrid[cellID]->parameters[CellParams::DZ];
+              Real factor = 2*(1/DX2 + 1/DY2 + 1/DZ2);
+              Real rhs = ((phi_011+phi_211)/DX2 + (phi_101+phi_121)/DY2 + (phi_110+phi_112)/DZ2 + rho_q)/factor;
+
+              Real cellError = rhs - phi_111;
+              localError += cellError*cellError;
+              mpiGrid[cellID]->parameters[CellParams::PHI_TMP] = fabs(cellError);
+
+              if (fabs(cellError) > maxError[tid]) maxError[tid] = fabs(cellError);
+           } // for-loop over cells
+
+        } // #pragma omp parallel
+
+      // Compute max error (over threads)
+      for (int i=1; i<omp_get_max_threads(); ++i) {
+         if (maxError[i] > maxError[0]) maxError[0] = maxError[i];
       }
-        }
-
+      
       Real globalError;
+      Real globalMaxError;
       MPI_Allreduce(&localError,&globalError,1,MPI_Type<Real>(),MPI_SUM,MPI_COMM_WORLD);
+      MPI_Allreduce(maxError,&globalMaxError,1,MPI_Type<Real>(),MPI_MAX,MPI_COMM_WORLD);      
 
       if (mpiGrid.get_rank() == 0) {
-         cerr << "reduced value " << Parameters::tstep << '\t' << sqrt(globalError) << endl;
+         cerr << Parameters::tstep << '\t' << sqrt(globalError) << '\t' << globalMaxError << endl;
       }
+
+      delete [] maxError; maxError = NULL;
 
       phiprof::stop("Evaluate Error");
 

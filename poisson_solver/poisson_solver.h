@@ -30,30 +30,38 @@ namespace poisson {
 
     class PoissonSolver {
     public:
-        PoissonSolver();
-        virtual ~PoissonSolver();
+       PoissonSolver();
+       virtual ~PoissonSolver();
 
-        virtual Real error(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
-        virtual bool initialize();
-        virtual bool finalize();
-        virtual bool solve(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) = 0;
+       virtual Real error(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
+       virtual Real error3D(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
+       virtual bool initialize();
+       virtual bool finalize();
+       virtual bool solve(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) = 0;
 
     protected:
         
     };
 
-    struct Poisson {
-        static int RHOQ_TOT;
-        static int PHI;
+   /** Wrapper for all variables needed by Poisson solvers.*/
+   struct Poisson {
+      static int RHOQ_TOT;
+      static int PHI;
 
-        static ObjectFactory<PoissonSolver> solvers;
-        static PoissonSolver* solver;
-        static std::string solverName;
-    };
+      static ObjectFactory<PoissonSolver> solvers; /**< Container for all existing Poisson solvers.*/
+      static PoissonSolver* solver;                /**< Poisson solver used in the simulation.*/
+      static std::string solverName;               /**< Name of the Poisson solver in use.*/
+      
+      static uint maxIterations;                   /**< Maximum number of iterations allowed, only 
+                                                    * has an effect on iterative solvers.*/
+      static Real minRelativePotentialChange;      /**< Iterative solvers keep on iterating the solution 
+                                                    * until the change in potential during successive 
+                                                    * iterations is less than this value.*/
+   };
 
-    bool initialize(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
-    bool finalize();
-    bool solve(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
+   bool initialize(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
+   bool finalize();
+   bool solve(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 
 } // namespace poisson
 
