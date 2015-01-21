@@ -566,22 +566,18 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
           
 #ifdef TRANS_SEMILAG_PLM
             const Vec4 ngbr_target_density =
-               (z_2 - z_1) * a[0] +
-               (z_2 * z_2 - z_1 * z_1) * a[1];
+               z_2 * ( a[0] + z_2 * a[1] ) -
+               z_1 * ( a[0] + z_1 * a[1] );
 #endif
 #ifdef TRANS_SEMILAG_PPM
             const Vec4 ngbr_target_density =
-               (z_2 - z_1) * a[0] +
-               (z_2 * z_2 - z_1 * z_1) * a[1] +
-               (z_2 * z_2 * z_2 - z_1 * z_1 * z_1) * a[2];
+               z_2 * ( a[0] + z_2 * ( a[1] + z_2 * a[2] ) ) -
+               z_1 * ( a[0] + z_1 * ( a[1] + z_1 * a[2] ) );
 #endif
 #ifdef TRANS_SEMILAG_PQM
             const Vec4 ngbr_target_density =
-               (z_2                         - z_1                        ) * a[0] +
-               (z_2 * z_2                   - z_1 * z_1                  ) * a[1] +
-               (z_2 * z_2 * z_2             - z_1 * z_1 * z_1            ) * a[2] +
-               (z_2 * z_2 * z_2 * z_2       - z_1 * z_1 * z_1 * z_1      ) * a[3] +
-               (z_2 * z_2 * z_2 * z_2 * z_2 - z_1 * z_1 * z_1 * z_1 * z_1) * a[4];
+               z_2 * ( a[0] + z_2 * ( a[1] + z_2 * ( a[2] + z_2 * ( a[3] + z_2 * a[4] ) ) ) ) -
+               z_1 * ( a[0] + z_1 * ( a[1] + z_1 * ( a[2] + z_1 * ( a[3] + z_1 * a[4] ) ) ) );
 #endif
             target_values[i_trans_ptblockv(target_scell_index,j,k)] +=  ngbr_target_density; //in the current original cells we will put this density        
             target_values[i_trans_ptblockv(0,j,k)] +=  values[i_trans_pblockv(0,j,k)] - ngbr_target_density; //in the current original cells we will put the rest of the original density

@@ -389,9 +389,11 @@ int main(int argn,char* args[]) {
       if (P::diagnosticInterval != 0 &&
           P::tstep % (P::diagnosticInterval*10) == 0 &&
           P::tstep-P::tstep_min >0) {
+         MPI_Barrier(MPI_COMM_WORLD);
          phiprof::print(MPI_COMM_WORLD,"phiprof_reduced",0.01);
-         phiprof::print(MPI_COMM_WORLD,"phiprof_full");
-         phiprof::printLogProfile(MPI_COMM_WORLD,P::tstep,"phiprof_log"," ",7);
+         // MPI_Barrier(MPI_COMM_WORLD);
+         //phiprof::print(MPI_COMM_WORLD,"phiprof_full");
+         // phiprof::printLogProfile(MPI_COMM_WORLD,P::tstep,"phiprof_log"," ",7);
          
          double currentTime=MPI_Wtime();
          double timePerStep=double(currentTime  - beforeTime) / (P::tstep-beforeStep);
@@ -648,6 +650,7 @@ int main(int argn,char* args[]) {
    
    phiprof::print(MPI_COMM_WORLD,"phiprof_full");
    phiprof::print(MPI_COMM_WORLD,"phiprof_reduced",0.01);
+   phiprof::printLogProfile(MPI_COMM_WORLD,P::tstep,"phiprof_log"," ",7);
    
    if (myRank == MASTER_RANK) logFile << "(MAIN): Exiting." << endl << writeVerbose;
    logFile.close();

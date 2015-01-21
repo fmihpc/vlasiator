@@ -328,9 +328,9 @@ bool map_1d(SpatialCell* spatial_cell,
                   //v_1 and v_2 normalized to be between 0 and 1 in the cell.
                   //For vector elements where gk is already larger than needed (lagrangian_gk_r), v_2=v_1=v_r and thus the value is zero.
 #ifdef DP
-                  const Vec4 v_norm_r = (min(to_double(gk + 1) * intersection_dk + intersection_min,       v_r) - v_l) * i_dv;
+                  const Vec4 v_norm_r = (min(to_double(gk + 1) * intersection_dk + intersection_min, v_r) - v_l) * i_dv;
 #else
-                  const Vec4 v_norm_r = (min(to_float(gk + 1) * intersection_dk + intersection_min,       v_r) - v_l) * i_dv;
+                  const Vec4 v_norm_r = (min(to_float(gk + 1) * intersection_dk + intersection_min, v_r) - v_l) * i_dv;
 #endif
                   /*shift, old right is new left*/
                   const Vec4 target_density_l = target_density_r;
@@ -338,22 +338,16 @@ bool map_1d(SpatialCell* spatial_cell,
                   /*compute right integrand*/
 #ifdef ACC_SEMILAG_PLM
                   target_density_r =
-                     v_norm_r * a[0] +
-                     v_norm_r * v_norm_r * a[1];
+                     v_norm_r * ( a[0] + v_norm_r * a[1] );
 #endif
 #ifdef ACC_SEMILAG_PPM
                   target_density_r =
-                     v_norm_r * a[0] +
-                     v_norm_r * v_norm_r * a[1] +
-                     v_norm_r * v_norm_r * v_norm_r * a[2];
+                     v_norm_r * ( a[0] + v_norm_r * ( a[1] + v_norm_r * a[2] ) );
+
 #endif
 #ifdef ACC_SEMILAG_PQM
                   target_density_r =
-                     v_norm_r * a[0] +
-                     v_norm_r * v_norm_r * a[1] +
-                     v_norm_r * v_norm_r * v_norm_r * a[2] +
-                     v_norm_r * v_norm_r * v_norm_r * v_norm_r * a[3] +
-                     v_norm_r * v_norm_r * v_norm_r * v_norm_r * v_norm_r * a[4];
+                     v_norm_r * ( a[0] + v_norm_r * ( a[1] + v_norm_r * ( a[2] + v_norm_r * ( a[3] + v_norm_r * a[4] ) ) ) );
 #endif
 
                   /*total value of integrand*/
