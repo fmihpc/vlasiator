@@ -51,10 +51,10 @@ inline void filter_pqm_monotonicity(Vec4 *values, uint k, Vec4 &fv_l, Vec4 &fv_r
    //simplify later if statements by setting it to the plm slope
    //sign
    Vec4 root1_slope = select(root1 >= 0.0 && root1 <= 1.0,
-                             c0  + c1 * root1 + c2 * root1 * root1 + c3 * root1 * root1 * root1,
+                             c0  + root1 * ( c1 + root1 * (c2 + root1 * c3 ) ),
                              slope_sign);
    Vec4 root2_slope = select(root2 >= 0.0 && root2 <= 1.0,
-                             c0  + c1 * root2 + c2 * root2 * root2 + c3 * root2 * root2 * root2,
+                             c0  + root2 * ( c1 + root2 * (c2 + root2 * c3 ) ),
                              slope_sign);
    if (horizontal_or (root1_slope * slope_sign < 0.0 || root2_slope * slope_sign < 0.0 )) {
    //serialized the handling of inflexion points, these do not happen for smooth regions

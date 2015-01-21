@@ -84,7 +84,7 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    */
    Real dtMaxLocal[3];
    Real dtMaxGlobal[3];
-  
+   
    dtMaxLocal[0]=std::numeric_limits<Real>::max();
    dtMaxLocal[1]=std::numeric_limits<Real>::max();
    dtMaxLocal[2]=std::numeric_limits<Real>::max();
@@ -105,41 +105,61 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    }
    MPI_Allreduce(&(dtMaxLocal[0]), &(dtMaxGlobal[0]), 3, MPI_Type<Real>(), MPI_MIN, MPI_COMM_WORLD);
    
-   //If any of the solvers are disable there should be no limits in timespace from it
-   if (P::propagateVlasovTranslation == false) 
+   //If any of the solvers are disabled there should be no limits in timespace from it
+   if (P::propagateVlasovTranslation == false)
       dtMaxGlobal[0]=std::numeric_limits<Real>::max();
-   if (P::propagateVlasovAcceleration == false) 
+   if (P::propagateVlasovAcceleration == false)
       dtMaxGlobal[1]=std::numeric_limits<Real>::max();
-   if (P::propagateField == false) 
+   if (P::propagateField == false)
       dtMaxGlobal[2]=std::numeric_limits<Real>::max();
    
-   //reduce dt if it is too high for any of the three propagators, or too low for all propagators
-   if(( P::dt > dtMaxGlobal[0]*P::vlasovSolverMaxCFL ||
-        P::dt > dtMaxGlobal[1]*P::vlasovSolverMaxCFL ||
-        P::dt > dtMaxGlobal[2]*P::fieldSolverMaxCFL ) ||
-      ( P::dt < dtMaxGlobal[0]*P::vlasovSolverMinCFL && 
-        P::dt < dtMaxGlobal[1]*P::vlasovSolverMinCFL &&
-        P::dt < dtMaxGlobal[2]*P::fieldSolverMinCFL )
-      ) {
-     //new dt computed
-     isChanged=true;
-
-     //set new timestep to the lowest one of all interval-midpoints
-     const Real half = 0.5;
-     newDt = half*(P::vlasovSolverMaxCFL+ P::vlasovSolverMinCFL)*dtMaxGlobal[0];
-     newDt = min(newDt,half*(P::vlasovSolverMaxCFL+ P::vlasovSolverMinCFL)*dtMaxGlobal[1]);
-     newDt = min(newDt,half*(P::fieldSolverMaxCFL+ P::fieldSolverMinCFL)*dtMaxGlobal[2]);
    
-     logFile <<"(TIMESTEP) New dt = " << newDt << " computed on step "<<  P::tstep <<" at " <<P::t << 
-       "s   Maximum possible dt (not including  vlasovsolver CFL "<< 
-       P::vlasovSolverMinCFL <<"-"<<P::vlasovSolverMaxCFL<<
-       " or fieldsolver CFL "<< 
-       P::fieldSolverMinCFL <<"-"<<P::fieldSolverMaxCFL<<
-       " ) in {r, v, BE} was " <<
-       dtMaxGlobal[0] << " " <<
-       dtMaxGlobal[1] << " " <<
-       dtMaxGlobal[2] << endl << writeVerbose;
+   creal meanVlasovCFL = 0.5*(P::vlasovSolverMaxCFL+ P::vlasovSolverMinCFL);
+   creal meanFieldsCFL = 0.5*(P::fieldSolverMaxCFL+ P::fieldSolverMinCFL);
+   Real subcycleDt;
+   
+   //reduce dt if it is too high for any of the three propagators, or too low for all propagators
+   if(( P::dt > dtMaxGlobal[0] * P::vlasovSolverMaxCFL ||
+        P::dt > dtMaxGlobal[1] * P::vlasovSolverMaxCFL * P::maxSlAccelerationSubcycles ||
+        P::dt > dtMaxGlobal[2] * P::fieldSolverMaxCFL * P::maxFieldSolverSubcycles ) ||
+      ( P::dt < dtMaxGlobal[0] * P::vlasovSolverMinCFL && 
+        P::dt < dtMaxGlobal[1] * P::vlasovSolverMinCFL * P::maxSlAccelerationSubcycles &&
+        P::dt < dtMaxGlobal[2] * P::fieldSolverMinCFL * P::maxFieldSolverSubcycles )
+      ) {
+      //new dt computed
+      isChanged=true;
+
+      //set new timestep to the lowest one of all interval-midpoints
+      const Real half = 0.5;
+      newDt = meanVlasovCFL * dtMaxGlobal[0];
+      newDt = min(newDt,meanVlasovCFL * dtMaxGlobal[1] * P::maxSlAccelerationSubcycles);
+      newDt = min(newDt,meanFieldsCFL * dtMaxGlobal[2] * P::maxFieldSolverSubcycles);
+   
+      logFile <<"(TIMESTEP) New dt = " << newDt << " computed on step "<<  P::tstep <<" at " <<P::t << 
+         "s   Maximum possible dt (not including  vlasovsolver CFL "<< 
+         P::vlasovSolverMinCFL <<"-"<<P::vlasovSolverMaxCFL<<
+         " or fieldsolver CFL "<< 
+         P::fieldSolverMinCFL <<"-"<<P::fieldSolverMaxCFL<<
+         ") in {r, v, BE} was " <<
+         dtMaxGlobal[0] << " " <<
+         dtMaxGlobal[1] << " " <<
+         dtMaxGlobal[2] << " " <<
+         " Including subcycling { v, BE}  was " <<
+         dtMaxGlobal[1] * P::maxSlAccelerationSubcycles << " " <<
+         dtMaxGlobal[2] * P::maxFieldSolverSubcycles<< " " <<
+         endl << writeVerbose;
+      subcycleDt = newDt;
+   } else {
+      subcycleDt = P::dt;
    }
+   
+   // Subcycle if field solver dt < global dt (including CFL) (new or old dt hence the hassle with subcycleDt
+   if (meanFieldsCFL*dtMaxGlobal[2] < subcycleDt && P::propagateField) {
+      P::fieldSolverSubcycles = min(convert<int>(ceil(subcycleDt / (meanFieldsCFL*dtMaxGlobal[2]))), P::maxFieldSolverSubcycles);
+   } else {
+      P::fieldSolverSubcycles = 1;
+   }
+   
    phiprof::stop("compute-timestep");
    return true;
 }
@@ -318,13 +338,10 @@ int main(int argn,char* args[]) {
       phiprof::start("compute-dt");
       calculateSpatialTranslation(mpiGrid,0.0);
       calculateAcceleration(mpiGrid,0.0);
-      
-      //this is probably not ever needed, as a zero length step
-      //should not require changes
-      adjustVelocityBlocks(mpiGrid);
+
       
       if(P::propagateField) {
-         propagateFields(mpiGrid, sysBoundaries, 0.0);
+         propagateFields(mpiGrid, sysBoundaries, 0.0, 1.0);
       }
       //compute new dt
       computeNewTimeStep(mpiGrid,newDt,dtIsChanged);
@@ -344,8 +361,7 @@ int main(int argn,char* args[]) {
          calculateAcceleration(mpiGrid, 0.0);
       }
       phiprof::stop("propagate-velocity-space-dt/2");
-      adjustVelocityBlocks(mpiGrid);
-      addTimedBarrier("barrier-after-ad just-blocks");
+
    }
    phiprof::stop("Initialization");
 
@@ -400,13 +416,15 @@ int main(int argn,char* args[]) {
       
       //write out phiprof profiles and logs with a lower interval than normal
       //diagnostic (every 10 diagnostic intervals).
-      logFile << "------------------ tstep = " << P::tstep << " t = " << P::t <<" dt = " << P::dt << " ------------------" << endl;
+      logFile << "---------- tstep = " << P::tstep << " t = " << P::t <<" dt = " << P::dt << " FS cycles = " << P::fieldSolverSubcycles << " ----------" << endl;
       if (P::diagnosticInterval != 0 &&
           P::tstep % (P::diagnosticInterval*10) == 0 &&
           P::tstep-P::tstep_min >0) {
+         MPI_Barrier(MPI_COMM_WORLD);
          phiprof::print(MPI_COMM_WORLD,"phiprof_reduced",0.01);
-         phiprof::print(MPI_COMM_WORLD,"phiprof_full");
-         phiprof::printLogProfile(MPI_COMM_WORLD,P::tstep,"phiprof_log"," ",7);
+         // MPI_Barrier(MPI_COMM_WORLD);
+         //phiprof::print(MPI_COMM_WORLD,"phiprof_full");
+         // phiprof::printLogProfile(MPI_COMM_WORLD,P::tstep,"phiprof_log"," ",7);
          
          double currentTime=MPI_Wtime();
          double timePerStep=double(currentTime  - beforeTime) / (P::tstep-beforeStep);
@@ -541,9 +559,6 @@ int main(int argn,char* args[]) {
                calculateAcceleration(mpiGrid, 0.0);
             }
             
-            //adjust blocks after acceleration
-            adjustVelocityBlocks(mpiGrid);
-            
             P::dt=newDt;
             
             logFile <<" dt changed to "<<P::dt <<"s, distribution function was half-stepped to real-time and back"<<endl<<writeVerbose;
@@ -588,7 +603,7 @@ int main(int argn,char* args[]) {
       // moments for t + dt are computed (field uses t and t+0.5dt)
       if (P::propagateField) {
          phiprof::start("Propagate Fields");
-         propagateFields(mpiGrid, sysBoundaries, P::dt);
+         propagateFields(mpiGrid, sysBoundaries, P::dt, P::fieldSolverSubcycles);
          phiprof::stop("Propagate Fields",cells.size(),"SpatialCells");
          addTimedBarrier("barrier-after-field-solver");
       }
@@ -604,11 +619,6 @@ int main(int argn,char* args[]) {
       } else {
          //zero step to set up moments _v
          //calculateAcceleration(mpiGrid, 0.0);
-      }
-
-      // Adjust velocity blocks if Vlasov solver is in use
-      if (P::propagateVlasovTranslation == true || P::propagateVlasovAcceleration == true ) {
-         adjustVelocityBlocks(mpiGrid);
       }
 
       phiprof::stop("Velocity-space",computedCells,"Cells");
@@ -676,6 +686,7 @@ int main(int argn,char* args[]) {
    
    phiprof::print(MPI_COMM_WORLD,"phiprof_full");
    phiprof::print(MPI_COMM_WORLD,"phiprof_reduced",0.01);
+   phiprof::printLogProfile(MPI_COMM_WORLD,P::tstep,"phiprof_log"," ",7);
    
    if (myRank == MASTER_RANK) logFile << "(MAIN): Exiting." << endl << writeVerbose;
    logFile.close();

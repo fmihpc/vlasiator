@@ -203,8 +203,7 @@ namespace projects {
          map<vmesh::GlobalID,vmesh::LocalID> insertedBlocks;
          for (size_t b=0; b<refineList.size(); ++b) {
             cell->refine_block(refineList[b],insertedBlocks);
-            //vmesh::LocalID blockLID = cell->get_velocity_block_local_id(refineList[b]);                                                                                   
-            //for (int i=0; i<WID3; ++i) cell->get_fx(blockLID)[i] = 1.0;
+
          }
 
          // Loop over blocks in map insertedBlocks and recalculate 
@@ -242,16 +241,6 @@ namespace projects {
          ++currentLevel;
          if (currentLevel == Parameters::amrMaxVelocityRefLevel) refine = false;
       }
-      /*
-      #ifdef DEBUG_AMR
-      for (vmesh::LocalID blockLID=0; blockLID<cell->get_number_of_velocity_blocks(); ++blockLID) {
-         const vmesh::GlobalID blockGID = cell->get_velocity_block_global_id(blockLID);
-         Realf array[(WID+2)*(WID+2)*(WID+2)];
-         cell->fetch_data<1>(blockGID,cell->get_data(),array);
-         refCriterion->evaluate(array,cell->get_fx(blockLID));
-      }
-      #endif
-      */
       delete refCriterion;
    }
 

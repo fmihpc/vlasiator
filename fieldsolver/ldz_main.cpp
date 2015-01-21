@@ -5,7 +5,7 @@ Copyright 2010, 2011, 2012, 2013, 2014 Finnish Meteorological Institute
 
 */
 
-/*! \file londrillo_delzanna.cpp
+/*! \file ldz_main.cpp
  * \brief Londrillo -- Del Zanna upwind constrained transport field solver.
  * 
  * On the divergence-free condition in Godunov-type schemes for
@@ -199,7 +199,7 @@ bool initializeFieldPropagator(
    // Calculate derivatives and upwinded edge-E. Exchange derivatives 
    // and edge-E:s between neighbouring processes and calculate 
    // face-averaged E,B fields.
-   calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
+   calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1, true);
    if(P::ohmHallTerm > 0) {
       calculateHallTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
    }
@@ -222,6 +222,7 @@ bool finalizeFieldPropagator(
  * 
  * \param mpiGrid Grid
  * \param dt Length of the time step
+ * \param subcycles Number of subcycles to compute.
  * 
  * \sa propagateMagneticFieldSimple calculateDerivativesSimple calculateUpwindedElectricFieldSimple calculateVolumeAveragedFields calculateBVOLDerivativesSimple
  * 
@@ -229,7 +230,8 @@ bool finalizeFieldPropagator(
 bool propagateFields(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    SysBoundary& sysBoundaries,
-   creal& dt
+   creal& dt,
+   cint& subcycles
 ) {
    // Reserve memory for derivatives for all cells on this process:
    vector<CellID> localCells = mpiGrid.get_cells();
@@ -238,28 +240,40 @@ bool propagateFields(
       const CellID cellID = localCells[cell];
       mpiGrid[cellID]->parameters[CellParams::MAXFDT]=std::numeric_limits<Real>::max();
    }
+   if(subcycles == 1) {
 # ifdef FS_1ST_ORDER_TIME
-   propagateMagneticFieldSimple(mpiGrid, sysBoundaries, dt, localCells, RK_ORDER1);
-   calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
-   if(P::ohmHallTerm > 0) {
-      calculateHallTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
-   }
-   calculateUpwindedElectricFieldSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
+      propagateMagneticFieldSimple(mpiGrid, sysBoundaries, dt, localCells, RK_ORDER1);
+      calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1, true);
+      if(P::ohmHallTerm > 0) {
+         calculateHallTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
+      }
+      calculateUpwindedElectricFieldSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
 # else
-   propagateMagneticFieldSimple(mpiGrid, sysBoundaries, dt, localCells, RK_ORDER2_STEP1);
-   calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP1);
-   if(P::ohmHallTerm > 0) {
-      calculateHallTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP1);
-   }
-   calculateUpwindedElectricFieldSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP1);
-   
-   propagateMagneticFieldSimple(mpiGrid, sysBoundaries, dt, localCells, RK_ORDER2_STEP2);
-   calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP2);
-   if(P::ohmHallTerm > 0) {
-      calculateHallTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP2);
-   }
-   calculateUpwindedElectricFieldSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP2);
+      propagateMagneticFieldSimple(mpiGrid, sysBoundaries, dt, localCells, RK_ORDER2_STEP1);
+      calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP1, true);
+      if(P::ohmHallTerm > 0) {
+         calculateHallTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP1);
+      }
+      calculateUpwindedElectricFieldSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP1);
+      
+      propagateMagneticFieldSimple(mpiGrid, sysBoundaries, dt, localCells, RK_ORDER2_STEP2);
+      calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP2, true);
+      if(P::ohmHallTerm > 0) {
+         calculateHallTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP2);
+      }
+      calculateUpwindedElectricFieldSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP2);
 # endif
+   } else {
+      for (uint i=0; i<subcycles; i++) {
+         propagateMagneticFieldSimple(mpiGrid, sysBoundaries, dt/convert<Real>(subcycles), localCells, RK_ORDER1);
+         // If we are at the first subcycle we need to update the derivatives of the moments, otherwise only B changed and those derivatives need to be updated.
+         calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1, (i==0));
+         if(P::ohmHallTerm > 0) {
+            calculateHallTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
+         }
+         calculateUpwindedElectricFieldSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
+      }
+   }
    
    calculateVolumeAveragedFields(mpiGrid);
    calculateBVOLDerivativesSimple(mpiGrid, sysBoundaries, localCells);

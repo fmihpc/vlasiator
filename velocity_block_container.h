@@ -33,10 +33,6 @@ namespace vmesh {
       const Realf* getData() const;
       Realf* getData(const LID& blockLID);
       const Realf* getData(const LID& blockLID) const;
-      Realf* getFx();
-      const Realf* getFx() const;
-      Realf* getFx(const LID& blockLID);
-      const Realf* getFx(const LID& blockLID) const;
       Real* getParameters();
       const Real* getParameters() const;
       Real* getParameters(const LID& blockLID);      
@@ -61,7 +57,6 @@ namespace vmesh {
       void resize();
       
       std::vector<Realf,aligned_allocator<Realf,WID3> > block_data;
-      std::vector<Realf,aligned_allocator<Realf,WID3> > block_fx;
       LID currentCapacity;
       LID numberOfBlocks;
       std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS> > parameters;
@@ -80,7 +75,7 @@ namespace vmesh {
    
    template<typename LID> inline
    size_t VelocityBlockContainer<LID>::capacityInBytes() const {
-      return (block_data.capacity()+block_fx.capacity())*sizeof(Realf) + parameters.capacity()*sizeof(Real);
+      return (block_data.capacity())*sizeof(Realf) + parameters.capacity()*sizeof(Real);
    }
 
    /** Clears VelocityBlockContainer data and deallocates all memory 
@@ -88,11 +83,9 @@ namespace vmesh {
    template<typename LID> inline
    void VelocityBlockContainer<LID>::clear() {
       std::vector<Realf,aligned_allocator<Realf,WID3> > dummy_data;
-      std::vector<Realf,aligned_allocator<Realf,WID3> > dummy_fx;
       std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS> > dummy_parameters;
       
       block_data.swap(dummy_data);
-      block_fx.swap(dummy_fx);
       parameters.swap(dummy_parameters);
       
       currentCapacity = 0;
@@ -110,15 +103,13 @@ namespace vmesh {
          if (numberOfBlocks >= currentCapacity) ok = false;
          if (source != numberOfBlocks-1) ok = false;
          if (source*WID3+WID3-1 >= block_data.size()) ok = false;
-         if (target*WID3+WID3-1 >= block_fx.size()) ok = false;
-         if (block_data.size() != block_fx.size()) ok = false;
          if (source*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::N_VELOCITY_BLOCK_PARAMS-1 >= parameters.size()) ok = false;
          if (target*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::N_VELOCITY_BLOCK_PARAMS-1 >= parameters.size()) ok = false;
          if (parameters.size()/BlockParams::N_VELOCITY_BLOCK_PARAMS != block_data.size()/WID3) ok = false;
          if (ok == false) {
             std::stringstream ss;
             ss << "VBC ERROR: invalid source LID=" << source << " in copy, target=" << target << " #blocks=" << numberOfBlocks << " capacity=" << currentCapacity << std::endl;
-            ss << "or sizes are wrong, data.size()=" << block_data.size() << " fx.size()=" << block_fx.size() << " parameters.size()=" << parameters.size() << std::endl;
+            ss << "or sizes are wrong, data.size()=" << block_data.size() << " parameters.size()=" << parameters.size() << std::endl;
             std::cerr << ss.str();
             sleep(1);
             exit(1);
@@ -126,7 +117,6 @@ namespace vmesh {
       #endif
 
       for (int i=0; i<WID3; ++i) block_data[target*WID3+i] = block_data[source*WID3+i];
-      for (int i=0; i<WID3; ++i) block_fx[target*WID3+i]   = block_fx[source*WID3+i];
       for (int i=0; i<BlockParams::N_VELOCITY_BLOCK_PARAMS; ++i) {
          parameters[target*BlockParams::N_VELOCITY_BLOCK_PARAMS+i] = parameters[source*BlockParams::N_VELOCITY_BLOCK_PARAMS+i];
       }
@@ -178,33 +168,6 @@ namespace vmesh {
       return block_data.data() + blockLID*WID3;
    }
 
-   template<typename LID> inline
-   Realf* VelocityBlockContainer<LID>::getFx() {
-      return block_fx.data();
-   }
-   
-   template<typename LID> inline
-   const Realf* VelocityBlockContainer<LID>::getFx() const {
-      return block_fx.data();
-   }
-   
-   template<typename LID> inline
-   Realf* VelocityBlockContainer<LID>::getFx(const LID& blockLID) {
-      #ifdef DEBUG_VBC
-         if (blockLID >= numberOfBlocks) exitInvalidLocalID(blockLID,"getFx");
-         if (blockLID >= block_fx.size()/WID3) exitInvalidLocalID(blockLID,"getFx");
-      #endif
-      return block_fx.data() + blockLID*WID3;
-   }
-   
-   template<typename LID> inline
-   const Realf* VelocityBlockContainer<LID>::getFx(const LID& blockLID) const {
-      #ifdef DEBUG_VBC
-         if (blockLID >= numberOfBlocks) exitInvalidLocalID(blockLID,"const getFx const");
-         if (blockLID >= block_fx.size()/WID3) exitInvalidLocalID(blockLID,"getFx");
-      #endif
-      return block_fx.data() + blockLID*WID3;
-   }
    
    template<typename LID> inline
    Real* VelocityBlockContainer<LID>::getParameters() {
@@ -246,10 +209,10 @@ namespace vmesh {
       if (newIndex >= currentCapacity) resize();
 
       #ifdef DEBUG_VBC
-      if (newIndex >= block_data.size()/WID3 || newIndex >= block_fx.size()/WID3 || newIndex >= parameters.size()/BlockParams::N_VELOCITY_BLOCK_PARAMS) {
+      if (newIndex >= block_data.size()/WID3 || newIndex >= parameters.size()/BlockParams::N_VELOCITY_BLOCK_PARAMS) {
          std::stringstream ss;
          ss << "VBC ERROR in push_back, LID=" << newIndex << " for new block is out of bounds" << std::endl;
-         ss << "\t data.size()=" << block_data.size() << " fx.size()=" << block_fx.size() << " parameters.size()=" << parameters.size() << std::endl;
+         ss << "\t data.size()=" << block_data.size()  << " parameters.size()=" << parameters.size() << std::endl;
          std::cerr << ss.str();
          sleep(1);
          exit(1);
@@ -258,7 +221,6 @@ namespace vmesh {
 
       // Clear velocity block data to zero values
       for (size_t i=0; i<WID3; ++i) block_data[newIndex*WID3+i] = 0.0;
-      for (size_t i=0; i<WID3; ++i) block_fx[newIndex*WID3+i] = 0.0;
       for (size_t i=0; i<BlockParams::N_VELOCITY_BLOCK_PARAMS; ++i) 
          parameters[newIndex*BlockParams::N_VELOCITY_BLOCK_PARAMS+i] = 0.0;
 
@@ -274,7 +236,6 @@ namespace vmesh {
       
       // Clear velocity block data to zero values
       for (size_t i=0; i<WID3*N_blocks; ++i) block_data[newIndex*WID3+i] = 0.0;
-      for (size_t i=0; i<WID3*N_blocks; ++i) block_fx[newIndex*WID3+i] = 0.0;
       for (size_t i=0; i<BlockParams::N_VELOCITY_BLOCK_PARAMS*N_blocks; ++i)
 	parameters[newIndex*BlockParams::N_VELOCITY_BLOCK_PARAMS+i] = 0.0;
 
@@ -288,11 +249,6 @@ namespace vmesh {
          std::vector<Realf,aligned_allocator<Realf,WID3> > dummy_data(newCapacity*WID3);
          for (size_t i=0; i<numberOfBlocks*WID3; ++i) dummy_data[i] = block_data[i];
          dummy_data.swap(block_data);
-      }
-      {
-         std::vector<Realf,aligned_allocator<Realf,WID3> > dummy_fx(newCapacity*WID3);
-         for (size_t i=0; i<numberOfBlocks*WID3; ++i) dummy_fx[i] = block_fx[i];
-         dummy_fx.swap(block_fx);
       }
       {
          std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS> > dummy_parameters(newCapacity*BlockParams::N_VELOCITY_BLOCK_PARAMS);
@@ -311,7 +267,6 @@ namespace vmesh {
          // The order of velocity blocks is unaltered.
          currentCapacity = 2 + numberOfBlocks * BLOCK_ALLOCATION_FACTOR;
          block_data.resize(currentCapacity*WID3);
-         block_fx.resize(currentCapacity*WID3);
          parameters.resize(currentCapacity*BlockParams::N_VELOCITY_BLOCK_PARAMS);
       }
    }
@@ -332,13 +287,12 @@ namespace vmesh {
 
    template<typename LID> inline
    size_t VelocityBlockContainer<LID>::sizeInBytes() const {
-      return block_data.size()*sizeof(Realf) + block_fx.size()*sizeof(Realf) + parameters.size()*sizeof(Real);
+      return block_data.size()*sizeof(Realf) + parameters.size()*sizeof(Real);
    }
 
    template<typename LID> inline
    void VelocityBlockContainer<LID>::swap(VelocityBlockContainer& vbc) {
       block_data.swap(vbc.block_data);
-      block_fx.swap(vbc.block_fx);
       parameters.swap(vbc.parameters);
 
       LID dummy = currentCapacity;
