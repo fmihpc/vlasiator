@@ -51,25 +51,42 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell, uint map_order, const Real d
    Transform<Real,3,Affine> bwd_transform= fwd_transform.inverse();
    phiprof::stop("compute-transform");
 
+   // NOTE: This is now in a debugging / testing state. The propagator 
+   // only does one thing each time step. Currently this does
+   // step=0 accel vx
+   //      1 coarsen mesh
+   //      2 accel vy
+   //      3 coarsen mesh
+   //      4 accel vz
+   //      5 coarsen mesh
+   // (repeat)
+   
+   // It is then easy to see the effect of each step in the output vlsv files.
+   
+   // BEGIN TEST
    map_order=0;
    static int dim = map_order;
-
    static int counter=0;
-
    if (counter % 2 == 0) {
+   // END TEST
+
    switch (map_order) {
-    case 0:
+    case 0: // x -> y -> z
+      // BEGIN TEST
       if (dim == 0) map_1d(spatial_cell, fwd_transform, bwd_transform,0,0);
       if (dim == 1) map_1d(spatial_cell, fwd_transform, bwd_transform,1,1);
+      if (dim == 2) map_1d(spatial_cell, fwd_transform, bwd_transform,2,2);      
+      // END TEST
+      //map_1d(spatial_cell, fwd_transform, bwd_transform,0,0);
+      //map_1d(spatial_cell, fwd_transform, bwd_transform,1,1);
       //map_1d(spatial_cell, fwd_transform, bwd_transform,2,2);
       break;
-    case 1:
-      if (dim == 1) map_1d(spatial_cell, fwd_transform, bwd_transform,1,0);
-      //map_1d(spatial_cell, fwd_transform, bwd_transform,2,1);
-      //map_1d(spatial_cell, fwd_transform, bwd_transform,0,2);
-      if (dim == 0) map_1d(spatial_cell, fwd_transform, bwd_transform,0,1);
+    case 1: // y -> z -> x
+      map_1d(spatial_cell, fwd_transform, bwd_transform,1,0);
+      map_1d(spatial_cell, fwd_transform, bwd_transform,2,1);
+      map_1d(spatial_cell, fwd_transform, bwd_transform,0,2);
       break;
-    case 2:
+    case 2: // z -> x -> y
       map_1d(spatial_cell, fwd_transform, bwd_transform,2,0);
       map_1d(spatial_cell, fwd_transform, bwd_transform,0,1);
       map_1d(spatial_cell, fwd_transform, bwd_transform,1,2);
@@ -80,8 +97,13 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell, uint map_order, const Real d
       map_1d(spatial_cell, fwd_transform, bwd_transform,1,2);
       break;
    }
+   // BEGIN TEST
    }
+   // END TEST
 
+   // NOTE: Mesh coarsening might be needed after each acceleration substep 
+   
+   // BEGIN TEST
    if (counter % 2 != 0) {
       phiprof::start("mesh coarsening");
       amr_ref_criteria::Base* refCriterion = getObjectWrapper().amrVelRefCriteria.create(Parameters::amrVelRefCriterion);
@@ -96,7 +118,8 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell, uint map_order, const Real d
       if (dim == 2) dim=0;
    }
    ++counter;
-
+   // END TEST
+   
    double t2=MPI_Wtime();
    spatial_cell->parameters[CellParams::LBWEIGHTCOUNTER] += t2 - t1;
 }

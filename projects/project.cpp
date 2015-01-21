@@ -189,10 +189,6 @@ namespace projects {
       // Loop over blocks in the spatial cell until we reach the maximum
       // refinement level, or until there are no more blocks left to refine
       bool refine = true;
-
-      #warning TESTING remove me
-      if (x < 0.9e6) refine = false;
-
       uint currentLevel = 0;
       if (currentLevel == Parameters::amrMaxVelocityRefLevel) refine = false;
       while (refine == true) {

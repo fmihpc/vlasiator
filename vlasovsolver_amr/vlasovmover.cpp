@@ -98,8 +98,8 @@ Real calculateTotalMass(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 */
 
 void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,Real dt) {
-   //return;
-   
+   return;
+
    typedef Parameters P;
    int trans_timer;
 
@@ -241,7 +241,6 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
   --------------------------------------------------
 */
 void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,Real dt) {
-   return;
 
    typedef Parameters P;
    const vector<CellID> cells = mpiGrid.get_cells();
