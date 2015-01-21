@@ -110,6 +110,7 @@ void calculateSpatialTranslation(
       phiprof::start("compute-mapping-z");
 #pragma omp parallel
       {
+         no_subnormals();
          for (size_t c=0; c<local_propagated_cells.size(); ++c) {
             trans_map_1d(mpiGrid,local_propagated_cells[c], 2, dt); // map along z//
          }
@@ -152,6 +153,7 @@ void calculateSpatialTranslation(
       phiprof::start("compute-mapping-x");
       #pragma omp parallel
       {
+         no_subnormals();
          for (size_t c=0; c<local_propagated_cells.size(); ++c) {
             trans_map_1d(mpiGrid,local_propagated_cells[c], 0, dt); // map along x//
          }
@@ -194,6 +196,7 @@ void calculateSpatialTranslation(
       phiprof::start("compute-mapping-y");
 #pragma omp parallel
       {
+         no_subnormals();
          for (size_t c=0; c<local_propagated_cells.size(); ++c) {
             trans_map_1d(mpiGrid,local_propagated_cells[c], 1, dt); // map along y//
          }
@@ -349,6 +352,7 @@ void calculateAcceleration(
       //Semilagrangian acceleration for those cells which are subcycled
 #pragma omp parallel for schedule(dynamic,1)
       for (size_t c=0; c<propagatedCells.size(); ++c) {
+         no_subnormals();
          const CellID cellID = propagatedCells[c];
          const Real maxVdt = mpiGrid[cellID]->parameters[CellParams::MAXVDT]; 
 
