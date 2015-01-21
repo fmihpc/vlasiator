@@ -239,7 +239,7 @@ namespace projects {
          ++currentLevel;
          if (currentLevel == Parameters::amrMaxVelocityRefLevel) refine = false;
       }
-      
+
       delete refCriterion;
    }
 

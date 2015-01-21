@@ -179,19 +179,6 @@ bool writeVelocityDistributionData(Writer& vlsvWriter,
 
    // Write the subarrays
    vlsvWriter.endMultiwrite("BLOCKVARIABLE", attribs);
-   
-   #ifdef DEBUG_AMR
-   attribs["name"] = "fx";
-   vlsvWriter.startMultiwrite(datatype_avgs,arraySize_avgs,vectorSize_avgs,dataSize_avgs);
-   for (size_t cell = 0; cell<cells.size(); ++cell) {
-      SpatialCell* SC = mpiGrid[cells[cell]];
-      const uint64_t arrayElements = SC->get_number_of_velocity_blocks();
-      char* arrayToWrite = reinterpret_cast<char*>(SC->get_fx());
-      vlsvWriter.addMultiwriteUnit(arrayToWrite, arrayElements);
-   }
-   if (cells.size() == 0) vlsvWriter.addMultiwriteUnit(NULL, 0);
-   vlsvWriter.endMultiwrite("BLOCKVARIABLE", attribs);
-   #endif
 
    if (globalSuccess(success,"(MAIN) writeGrid: ERROR: Failed to fill temporary velocityBlockData array",MPI_COMM_WORLD) == false) {
       vlsvWriter.close();
@@ -338,6 +325,7 @@ bool writeCommonGridData(
    if( vlsvWriter.writeParameter("t", &P::t) == false ) { return false; }
    if( vlsvWriter.writeParameter("dt", &P::dt) == false ) { return false; }
    if( vlsvWriter.writeParameter("tstep", &P::tstep) == false ) { return false; }
+   if( vlsvWriter.writeParameter("fieldSolverSubcycles", &P::fieldSolverSubcycles) == false ) { return false; }
    if( vlsvWriter.writeParameter("fileIndex", &fileIndex) == false ) { return false; }
    if( vlsvWriter.writeParameter("xmin", &P::xmin) == false ) { return false; }
    if( vlsvWriter.writeParameter("xmax", &P::xmax) == false ) { return false; }
@@ -999,6 +987,10 @@ bool writeDiagnostic(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    vector<uint64_t> cells = mpiGrid.get_cells();
    cuint nCells = cells.size();
    cuint nOps = dataReducer.size();
+   
+   // Exit if the user does not want any diagnostics output
+   if (nOps == 0) return true;
+
    vector<Real> localMin(nOps), localMax(nOps), localSum(nOps+1), localAvg(nOps),
                globalMin(nOps),globalMax(nOps),globalSum(nOps+1),globalAvg(nOps);
    localSum[0] = 1.0 * nCells;

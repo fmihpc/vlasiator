@@ -109,19 +109,6 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    //phiprof::start("semilag-trans");
    phiprof::start("compute_cell_lists");
    const vector<CellID> local_cells = mpiGrid.get_cells();
-   const vector<CellID> remote_stencil_cells_x = 
-     mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
-   const vector<CellID> remote_stencil_cells_y = 
-     mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);
-   const vector<CellID> remote_stencil_cells_z = 
-     mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);
-
-   const vector<CellID> source_cells_x =
-     mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_SOURCE_X_NEIGHBORHOOD_ID);
-   const vector<CellID> source_cells_y =
-     mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_SOURCE_Y_NEIGHBORHOOD_ID);
-   const vector<CellID> source_cells_z =
-     mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_SOURCE_Z_NEIGHBORHOOD_ID);
    phiprof::stop("compute_cell_lists");
 
    // Note: mpiGrid.is_local( cellID ) == true if cell is local

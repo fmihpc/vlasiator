@@ -436,15 +436,6 @@ void map_1d(SpatialCell* spatial_cell,PropagParams& params,
             k_cell_src_max_global = std::max(k_cell_src_max_global,k_cell_src_top);
             v_src_bots[j*WID+i] = v_src_bot_l;
             v_src_tops[j*WID+i] = v_src_top_l;
-
-            // DEBUG
-            int trgtCellIndex[3];
-            trgtCellIndex[params.i_mapped] = i;
-            trgtCellIndex[params.j_mapped] = j;
-            trgtCellIndex[params.k_mapped] = k;
-            const int trgtCell = vblock::index(trgtCellIndex[0],trgtCellIndex[1],trgtCellIndex[2]);
-            spatial_cell->get_fx(targetLID)[trgtCell] = v_src_bot;
-            // END DEBUG
          } // for (int j=0; j<WID; ++j) for (int i=0; i<WID; ++i)
 
          // Iterate over the source cell bounding box
