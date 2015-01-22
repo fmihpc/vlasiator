@@ -23,7 +23,10 @@ using namespace spatial_cell;
 // element sin each vector. b_k is the block index in z direction in
 // ordinary space [- VLASOV_STENCIL_WIDTH to VLASOV_STENCIL_WIDTH],
 // i,j,k are the cell ids inside on block (i in vector elements).
-#define i_trans_ps_blockv(j, k, b_k) ( ( (j) * WID + (k) * WID2 + ((b_k) + VLASOV_STENCIL_WIDTH) * WID3) / VECL )
+// Vectors with same i,j,k coordinates, but in different spatial cells, are consequtive
+#define i_trans_ps_blockv(j, k, b_k) ( (b_k + VLASOV_STENCIL_WIDTH ) + ( (((j) * WID + (k) * WID2)/VECL)  * ( 1 + 2 * VLASOV_STENCIL_WIDTH) ) )
+
+
 // indices in padded target block, which is of type Vec with VECL
 // element sin each vector. b_k is the block index in z direction in
 // ordinary space, i,j,k are the cell ids inside on block (i in vector
