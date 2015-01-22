@@ -518,7 +518,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       Vec target_values[3 * WID3 / VECL];
 
       //init target_values
-      for (uint i = 0; i< 3 * WID2 / VECL; ++i) {
+      for (uint i = 0; i< 3 * WID3 / VECL; ++i) {
          target_values[i] = Vec(0.0);
       }
 
