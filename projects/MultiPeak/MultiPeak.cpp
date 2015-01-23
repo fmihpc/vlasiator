@@ -152,7 +152,7 @@ namespace projects {
          
          // Compare the current and accumulated volume averages:
          //ok = true;
-         Real eps = max(numeric_limits<creal>::min(),avg * 1e-6);
+         Real eps = max(numeric_limits<creal>::min(),avg * static_cast<Real>(1e-6));
          Real avgAccum   = avgTotal / (avg + N3_sum);
          Real avgCurrent = avg / (N*N*N);
          if (fabs(avgCurrent-avgAccum)/(avgAccum+eps) < 0.01) ok = true;
