@@ -585,45 +585,13 @@ void getB(Real* B,newVlsv::Reader& vlsvReader,const string& meshName,const uint6
 
    bool B_read = true;
    do {
-      // Attempt to read variable 'B'
-      xmlAttributes.clear();
-      xmlAttributes.push_back(make_pair("mesh",meshName));
-      xmlAttributes.push_back(make_pair("name","B"));
-      if (vlsvReader.read("VARIABLE",xmlAttributes,cellIndex,1,B1_ptr,false) == false) B_read = false;
-      if (B_read == true) {
-         //cout << "found 'B', values" << endl;
-         //cout << '\t' << B1[0] << '\t' << B1[1] << '\t' << B1[2] << endl;
-         break;
-      }
-
-      // Attempt to read 'background_B' + 'perturbed_B'
-      B_read = true;
-      xmlAttributes.clear();
-      xmlAttributes.push_back(make_pair("mesh",meshName));
-      xmlAttributes.push_back(make_pair("name","background_B"));
-      if (vlsvReader.read("VARIABLE",xmlAttributes,cellIndex,1,B1_ptr,false) == false) B_read = false;
-      xmlAttributes.clear();
-      xmlAttributes.push_back(make_pair("mesh",meshName));
-      xmlAttributes.push_back(make_pair("name","perturbed_B"));
-      if (vlsvReader.read("VARIABLE",xmlAttributes,cellIndex,1,B2_ptr,false) == false) B_read = false;
-      if (B_read == true) {
-         //cout << "found 'background_B' + 'perturbed_B', values" << endl;
-         //cout << '\t' << B1[0] << '\t' << B1[1] << '\t' << B1[2] << endl;
-         //cout << '\t' << B2[0] << '\t' << B2[1] << '\t' << B2[2] << endl;
-         break;
-      }
-
       // Attempt to read 'B_vol'
       B_read = true;
       xmlAttributes.clear();
       xmlAttributes.push_back(make_pair("mesh",meshName));
       xmlAttributes.push_back(make_pair("name","B_vol"));
       if (vlsvReader.read("VARIABLE",xmlAttributes,cellIndex,1,B1_ptr,false) == false) B_read = false;
-      if (B_read == true) {
-         //cout << "found 'B_vol', values" << endl;
-         //cout << '\t' << B1[0] << '\t' << B1[1] << '\t' << B1[2] << endl;
-         break;
-      }
+      if (B_read == true) break;
       
       // Attempt to read 'BGB_vol' + 'PERB_vol'
       B_read = true;
@@ -635,13 +603,27 @@ void getB(Real* B,newVlsv::Reader& vlsvReader,const string& meshName,const uint6
       xmlAttributes.push_back(make_pair("mesh",meshName));
       xmlAttributes.push_back(make_pair("name","PERB_vol"));
       if (vlsvReader.read("VARIABLE",xmlAttributes,cellIndex,1,B2_ptr,false) == false) B_read = false;
-      if (B_read == true) {
-         //cout << "found 'BGB_vol' + 'PERB_vol', values" << endl;
-         //cout << '\t' << B1[0] << '\t' << B1[1] << '\t' << B1[2] << endl;
-         //cout << '\t' << B2[0] << '\t' << B2[1] << '\t' << B2[2] << endl;
-         break;
-      }
+      if (B_read == true) break;
+      
+      // Attempt to read variable 'B'
+      xmlAttributes.clear();
+      xmlAttributes.push_back(make_pair("mesh",meshName));
+      xmlAttributes.push_back(make_pair("name","B"));
+      if (vlsvReader.read("VARIABLE",xmlAttributes,cellIndex,1,B1_ptr,false) == false) B_read = false;
+      if (B_read == true) break;
 
+      // Attempt to read 'background_B' + 'perturbed_B'
+      B_read = true;
+      xmlAttributes.clear();
+      xmlAttributes.push_back(make_pair("mesh",meshName));
+      xmlAttributes.push_back(make_pair("name","background_B"));
+      if (vlsvReader.read("VARIABLE",xmlAttributes,cellIndex,1,B1_ptr,false) == false) B_read = false;
+      xmlAttributes.clear();
+      xmlAttributes.push_back(make_pair("mesh",meshName));
+      xmlAttributes.push_back(make_pair("name","perturbed_B"));
+      if (vlsvReader.read("VARIABLE",xmlAttributes,cellIndex,1,B2_ptr,false) == false) B_read = false;
+      if (B_read == true) break;
+      
       break;
    } while (true);
 
