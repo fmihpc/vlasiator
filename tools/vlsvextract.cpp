@@ -490,18 +490,36 @@ bool convertSlicedVelocityMesh(newVlsv::Reader& vlsvReader,const string& fname,c
    return success;
 }
 
-void calculateRotationMatrix(const Real* B,double* transform) {
+void applyTranslation(const double* V_bulk,double* transform) {
+   // Translation matrix, defaults to identity matrix
+   double mat[16];
+   for (int i=0; i<16; ++i) mat[i] = 0;
+   mat[0 ] = 1;
+   mat[5 ] = 1;
+   mat[10] = 1;
+   mat[15] = 1;
+   mat[3 ] = -V_bulk[0];
+   mat[7 ] = -V_bulk[1];
+   mat[11] = -V_bulk[2];
+
+   // Copy of transformation matrix
+   double T[16];
+   for (int i=0; i<16; ++i) T[i] = transform[i];
+
+   // Apply translation to transformation matrix:
+   for (int k=0; k<4; ++k) {
+      for (int i=0; i<4; ++i) {
+         transform[k*4+i] = 0;
+         for (int j=0; j<4; ++j) transform[k*4+i] += mat[k*4+j]*T[j*4+i];
+      }
+   }
+}
+
+void applyRotation(const Real* B,double* transform) {
    // Now we have the B vector, so now the idea is to rotate the v-coordinates so that B always faces z-direction
    // Since we're handling only one spatial cell, B is the same in every v-coordinate.
    const int _size = 3;
 
-   // Rotation matrix defaults to an identity matrix
-   for (int i=0; i<16; ++i) transform[i] = 0;
-   transform[0 ] = 1;
-   transform[5 ] = 1;
-   transform[10] = 1;
-   transform[15] = 1;
-   
    Matrix<Real, _size, 1> _B(B[0], B[1], B[2]);
    Matrix<Real, _size, 1> unit_z(0, 0, 1);                 // Unit vector in z-direction
    Matrix<Real, _size, 1> Bxu = _B.cross( unit_z );        // Cross product of B and unit_z
@@ -514,11 +532,104 @@ void calculateRotationMatrix(const Real* B,double* transform) {
 
       // Determine the angle of rotation: (No need for a check for div/by/zero because of the above check)
       Real rotAngle = -1 * acos(_B[2] / sqrt(_B[0]*_B[0] + _B[1]*_B[1] + _B[2]*_B[2])); //B_z / |B|
-      
+
       // Determine the rotation matrix and copy to output
       Transform<Real, _size, _size> rotationMatrix( AngleAxis<Real>(rotAngle, axisDir) );
-      for (int j=0; j<3; ++j) for (int i=0; i<3; ++i) transform[j*4+i] = rotationMatrix(i,j);
+
+      // Rotation matrix
+      double Rot[16];
+      for (int i=0; i<16; ++i) Rot[i] = 0;
+      Rot[0 ] = 1;
+      Rot[5 ] = 1;
+      Rot[10] = 1;
+      Rot[15] = 1;
+      for (int j=0; j<3; ++j) for (int i=0; i<3; ++i) Rot[j*4+i] = rotationMatrix(i,j);
+
+      // Copy of transformation matrix
+      double T[16];
+      for (int i=0; i<16; ++i) T[i] = transform[i];
+      
+      // Apply rotation to transformation matrix
+      for (int k=0; k<4; ++k) {
+         for (int i=0; i<4; ++i) {
+            transform[k*4+i] = 0;
+            for (int j=0; j<4; ++j) {
+               transform[k*4+i] += Rot[k*4+j]*T[j*4+i];
+            }
+         }
+      }
    }
+}
+
+void getBulkVelocity(Real* V_bulk,newVlsv::Reader& vlsvReader,const string& meshName,const uint64_t& cellID) {
+   //Declarations
+   vlsv::datatype::type cellIdDataType;
+   uint64_t cellIdArraySize, cellIdVectorSize, cellIdDataSize;
+   
+   list<pair<string,string> > xmlAttributes;
+   xmlAttributes.push_back(make_pair("name",meshName));
+   if (vlsvReader.getArrayInfo("MESH", xmlAttributes, cellIdArraySize, cellIdVectorSize, cellIdDataType, cellIdDataSize) == false) {
+      cerr << "Error " << __FILE__ << " " << __LINE__ << endl;
+      exit(1);
+   }
+   
+   // Declare buffers and allocate memory, this is done to read in the cell id location:
+   uint64_t* cellIdBuffer = NULL;
+   
+   // Read the array into cellIdBuffer starting from 0 up until cellIdArraySize 
+   // which was received from getArrayInfo
+   if (vlsvReader.read("MESH",xmlAttributes,0,cellIdArraySize,cellIdBuffer,true) == false) {
+      cerr << "Error: failed to read cell IDs in " << __FILE__ << ":" << __LINE__ << endl;
+      delete [] cellIdBuffer;
+      exit(1);
+   }
+   
+   // Search for the given cellID location, the array in the vlsv file is not ordered depending 
+   // on the cell id so the array might look like this, 
+   // for instance: [CellId1, CellId7, CellId5, ...] and the variables are saved in the same
+   // order: [CellId1_B_FIELD, CellId7_B_FIELD, CellId5_B_FIELD, ...]
+   uint64_t cellIndex = numeric_limits<uint64_t>::max();
+   for (uint64_t cell=0; cell<cellIdArraySize; ++cell) {
+      // the CellID are not sorted in the array, so we'll have to search 
+      // the array -- the CellID is stored in cellId
+      if (cellID-1 == cellIdBuffer[cell]) {
+         //Found the right cell ID, break
+         cellIndex = cell; break;
+      }
+   }
+   delete [] cellIdBuffer; cellIdBuffer = NULL;
+   
+   // Check if the cell id was found:
+   if (cellIndex == numeric_limits<uint64_t>::max()) {
+      cerr << "Spatial cell #" << cellID << " not found in " << __FILE__ << ":" << __LINE__ << endl;
+      exit(1);
+   }
+   
+   // Read number density
+   double numberDensity;
+   double* ptr = &numberDensity;
+   xmlAttributes.clear();
+   xmlAttributes.push_back(make_pair("mesh",meshName));
+   xmlAttributes.push_back(make_pair("name","rho"));
+   if (vlsvReader.read("VARIABLE",xmlAttributes,cellIndex,1,ptr,false) == false) {
+      cerr << "Could not read number density in " << __FILE__ << ":" << __LINE__ << endl;
+      exit(1);
+   }
+   
+   // Read number density times velocity
+   double momentum[3];
+   ptr = momentum;
+   xmlAttributes.clear();
+   xmlAttributes.push_back(make_pair("mesh",meshName));
+   xmlAttributes.push_back(make_pair("name","rho_v"));
+   if (vlsvReader.read("VARIABLE",xmlAttributes,cellIndex,1,ptr,false) == false) {
+      cerr << "Could not read momentum in " << __FILE__ << ":" << __LINE__ << endl;
+      exit(1);
+   }
+
+   V_bulk[0] = momentum[0] / (numberDensity + numeric_limits<double>::min());
+   V_bulk[1] = momentum[1] / (numberDensity + numeric_limits<double>::min());
+   V_bulk[2] = momentum[2] / (numberDensity + numeric_limits<double>::min());
 }
 
 void getB(Real* B,newVlsv::Reader& vlsvReader,const string& meshName,const uint64_t& cellID) {
@@ -532,9 +643,8 @@ void getB(Real* B,newVlsv::Reader& vlsvReader,const string& meshName,const uint6
       cerr << "Error " << __FILE__ << " " << __LINE__ << endl;
       exit(1);
    }
-   
+
    // Declare buffers and allocate memory, this is done to read in the cell id location:
-   //char* cellIdBuffer = new char[cellIdArraySize*cellIdVectorSize*cellIdDataSize];
    uint64_t* cellIdBuffer = NULL;
 
    // Read the array into cellIdBuffer starting from 0 up until cellIdArraySize 
@@ -592,7 +702,7 @@ void getB(Real* B,newVlsv::Reader& vlsvReader,const string& meshName,const uint6
       xmlAttributes.push_back(make_pair("name","B_vol"));
       if (vlsvReader.read("VARIABLE",xmlAttributes,cellIndex,1,B1_ptr,false) == false) B_read = false;
       if (B_read == true) break;
-      
+
       // Attempt to read 'BGB_vol' + 'PERB_vol'
       B_read = true;
       xmlAttributes.clear();
@@ -604,7 +714,7 @@ void getB(Real* B,newVlsv::Reader& vlsvReader,const string& meshName,const uint6
       xmlAttributes.push_back(make_pair("name","PERB_vol"));
       if (vlsvReader.read("VARIABLE",xmlAttributes,cellIndex,1,B2_ptr,false) == false) B_read = false;
       if (B_read == true) break;
-      
+
       // Attempt to read variable 'B'
       xmlAttributes.clear();
       xmlAttributes.push_back(make_pair("mesh",meshName));
@@ -654,19 +764,35 @@ bool convertVelocityBlocks2(
       cerr << "ERROR, failed to open output file with vlsv::Writer at " << __FILE__ << " " << __LINE__ << endl;
       return false;
    }
+   
+   // Transformation (translation + rotation) matrix, defaults 
+   // to identity matrix. Modified if rotate and/or plasmaFrame are true.
+   double transform[16];
+   for (int i=0; i<16; ++i) transform[i] = 0;
+   transform[0 ] = 1;
+   transform[5 ] = 1;
+   transform[10] = 1;
+   transform[15] = 1;
+
+   if (plasmaFrame == true) {
+      double V_bulk[3];
+      getBulkVelocity(V_bulk,vlsvReader,meshName,cellID);
+      applyTranslation(V_bulk,transform);
+   }
 
    // Write transform matrix (if needed)
    if (rotate == true) {
       double B[3];
-      double transform[16];
       //Note: allocates memory and stores the vector value into B_ptr
       getB(B,vlsvReader,meshName,cellID);
-      calculateRotationMatrix(B,transform);
-      
+      applyRotation(B,transform);
+      cerr << "rotated" << endl;
+   }
+
+   if (plasmaFrame == true || rotate == true) {
       map<string,string> attributes;
       attributes["name"] = "transmat";
       if (out.writeArray("TRANSFORM",attributes,16,1,transform) == false) success = false;
-      
    }
 
    // Read velocity block global IDs and write them out
@@ -684,7 +810,7 @@ bool convertVelocityBlocks2(
    ss << (uint32_t)cellStruct.maxVelRefLevel;
    attributes["max_refinement_level"] = ss.str();
    attributes["geometry"] = vlsv::geometry::STRING_CARTESIAN;
-   if (rotate == true) attributes["transform"] = "transmat";
+   if (plasmaFrame == true || rotate == true) attributes["transform"] = "transmat";
 
    if (out.writeArray("MESH",attributes,blockIds.size(),1,&(blockIds[0])) == false) success = false;
    
@@ -830,8 +956,7 @@ bool convertVelocityBlocks2(
    
    vlsvReader.clearCellsWithBlocks();
    out.close();
-   return success;
-   
+   return success;   
 }
 
 //Loads a parameter from a file
