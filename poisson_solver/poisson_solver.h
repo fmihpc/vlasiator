@@ -57,6 +57,12 @@ namespace poisson {
       static Real minRelativePotentialChange;      /**< Iterative solvers keep on iterating the solution 
                                                     * until the change in potential during successive 
                                                     * iterations is less than this value.*/
+      
+      static std::vector<Real*> localCellParams;   /**< Pointers to spatial cell parameters, order 
+						    * is the same as in getLocalCells() vector.*/
+      
+      static void cacheCellParameters(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+				      const std::vector<CellID>& cells);
    };
 
    bool initialize(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);

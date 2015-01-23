@@ -48,8 +48,7 @@ namespace poisson {
       return success;
    }
 
-   void PoissonSolverSOR::evaluate(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-				   std::vector<poisson::CellCache3D>& cellPointers,const int& cellColor) {
+   void PoissonSolverSOR::evaluate(std::vector<poisson::CellCache3D>& cellPointers,const int& cellColor) {
       
       const Real weight = 1.5;
 
@@ -145,32 +144,41 @@ namespace poisson {
          cachePointers(mpiGrid,mpiGrid.get_local_cells_not_on_process_boundary(POISSON_NEIGHBORHOOD_ID),innerCellPointersRED,innerCellPointersBLACK);
          phiprof::stop("Pointer Caching");
       }
-      
+
       // Update charge density
-      phiprof::start("MPI");
+      phiprof::start("MPI (RHOQ)");
       SpatialCell::set_mpi_transfer_type(Transfer::CELL_RHOQ_TOT,false);
       mpiGrid.update_copies_of_remote_neighbors(POISSON_NEIGHBORHOOD_ID);
       SpatialCell::set_mpi_transfer_type(Transfer::CELL_PHI,false);
-      phiprof::stop("MPI");
+      phiprof::stop("MPI (RHOQ)");
 
       do {
          int iterations = 0;
          const int N_iterations = 10;
 
-         // Iterate the potential N_iterations times and then 
-         // check if the error is less than the required value
-         for (int N=0; N<N_iterations; ++N) {
-            if (N == N_iterations-1) {
-               const vector<CellID>& cells = getLocalCells();
-               for (size_t c=0; c<cells.size(); ++c) {
-                  mpiGrid[cells[c]]->parameters[CellParams::PHI_TMP] = mpiGrid[cells[c]]->parameters[CellParams::PHI];
-               }
-            }
+	 #pragma omp parallel
+	   {
+	      const int tid = omp_get_thread_num();
+	      
+	      // Iterate the potential N_iterations times and then
+	      // check if the error is less than the required value
+	      for (int N=0; N<N_iterations; ++N) {
+		 // Make a copy of the potential if we are going 
+		 // to evaluate the solution error
+		 if (N == N_iterations-1) {
+		    if (tid == 0) phiprof::start("Copy Old Potential");
+		    #pragma omp for
+		    for (size_t c=0; c<Poisson::localCellParams.size(); ++c) {
+		       Poisson::localCellParams[c][CellParams::PHI_TMP] = Poisson::localCellParams[c][CellParams::PHI];
+		    }
+		    if (tid == 0) phiprof::stop("Copy Old Potential");
+		 }
 
-            // Solve red cells first, the black cells
-            if (solve(mpiGrid,RED  ) == false) success = false;
-            if (solve(mpiGrid,BLACK) == false) success = false;
-         }
+		 // Solve red cells first, the black cells
+		 if (solve(mpiGrid,RED  ) == false) success = false;
+		 if (solve(mpiGrid,BLACK) == false) success = false;
+	      }
+	   }
 
          // Evaluate the error in potential solution and reiterate if necessary
          iterations += N_iterations;
@@ -184,42 +192,39 @@ namespace poisson {
 
    bool PoissonSolverSOR::solve(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                 const int& oddness) {
-      bool success = true;
+      // NOTE: This function is entered by all threads in OpenMP run,
+      // so everything must be thread-safe!
 
-      // Minimize the overhead of thread creation by starting
-      // the parallel section here
-      #pragma omp parallel
-        {
-           const int tid = omp_get_thread_num();
-           
-           // Compute new potential on process boundary cells
-           if (tid == 0) phiprof::start("Evaluate potential");
-           if (oddness == RED) evaluate(mpiGrid,bndryCellPointersRED,oddness);
-           else                evaluate(mpiGrid,bndryCellPointersBLACK,oddness);
-           if (tid == 0) {
-              phiprof::stop("Evaluate potential");
-              
-              // Exchange new potential values on process boundaries
-              phiprof::start("MPI");
-              mpiGrid.start_remote_neighbor_copy_updates(POISSON_NEIGHBORHOOD_ID);
-              phiprof::stop("MPI");
-              
-              phiprof::start("Evaluate potential");
-           }
-           
-           // Compute new potential on inner cells
-           if (oddness == RED) evaluate(mpiGrid,innerCellPointersRED,oddness);
-           else                evaluate(mpiGrid,innerCellPointersBLACK,oddness);
-           
-           // Wait for MPI transfers to complete
-           if (tid == 0) {
-              phiprof::stop("Evaluate potential");
-              phiprof::start("MPI");
-              mpiGrid.wait_remote_neighbor_copy_updates(POISSON_NEIGHBORHOOD_ID);
-              phiprof::stop("MPI");
-           }
-        }
+      bool success = true;
+      const int tid = omp_get_thread_num();
+
+      // Compute new potential on process boundary cells
+      if (tid == 0) phiprof::start("Evaluate potential");
+      if (oddness == RED) evaluate(bndryCellPointersRED,oddness);
+      else                evaluate(bndryCellPointersBLACK,oddness);
+      if (tid == 0) {
+	 phiprof::stop("Evaluate potential");
+	 
+	 // Exchange new potential values on process boundaries
+	 phiprof::start("MPI (start copy)");
+	 mpiGrid.start_remote_neighbor_copy_updates(POISSON_NEIGHBORHOOD_ID);
+	 phiprof::stop("MPI (start copy)");
+	 
+	 phiprof::start("Evaluate potential");
+      }
+
+      // Compute new potential on inner cells
+      if (oddness == RED) evaluate(innerCellPointersRED,oddness);
+      else                evaluate(innerCellPointersBLACK,oddness);
       
+      // Wait for MPI transfers to complete
+      if (tid == 0) {
+	 phiprof::stop("Evaluate potential");
+	 phiprof::start("MPI (wait copy)");
+	 mpiGrid.wait_remote_neighbor_copy_updates(POISSON_NEIGHBORHOOD_ID);
+	 phiprof::stop("MPI (wait copy)");
+      }
+
       return success;
    }
    
