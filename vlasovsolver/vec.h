@@ -43,6 +43,8 @@ typedef Vec4db Vecb;
 typedef double Realv;
 #define to_realv(v) to_double(v)
 #define VECL 4
+#define VEC_PER_PLANE 4 //vectors per plane in block
+#define VEC_PER_BLOCK 16
 #endif
 
 #ifdef VEC4F_AGNER
@@ -54,6 +56,8 @@ typedef Vec4fb Vecb;
 typedef float Realv;
 #define to_realv(v) to_float(v)
 #define VECL 4
+#define VEC_PER_PLANE 4 //vectors per plane in block
+#define VEC_PER_BLOCK 16
 #endif
 
 #ifdef VEC8F_AGNER
@@ -64,6 +68,8 @@ typedef Vec8fb Vecb;
 typedef float Realv;
 #define to_realv(v) to_float(v)
 #define VECL 8
+#define VEC_PER_PLANE 2 //vectors per plane in block
+#define VEC_PER_BLOCK 8
 #endif
 
 
@@ -77,6 +83,8 @@ typedef Vec4Simple<int> Veci;
 typedef double Realv;
 #define to_realv(v) to_double(v)
 #define VECL 4
+#define VEC_PER_PLANE 4 //vectors per plane in block
+#define VEC_PER_BLOCK 16
 #endif
 
 #ifdef VEC4F_FALLBACK
@@ -88,6 +96,8 @@ typedef Vec4Simple<int> Vec4i;
 typedef float Realv;
 #define to_realv(v) to_float(v)
 #define VECL 4
+#define VEC_PER_PLANE 4 //vectors per plane in block
+#define VEC_PER_BLOCK 16
 #endif
 
 
@@ -102,18 +112,6 @@ const Vec seven_twelfth(7.0/12.0);
 const Vec one_third(1.0/3.0);
 
 
-
-//here we assume WID = 4
-#if VECL == 4
-#define VEC_PER_PLANE 4 //vectors per plane in block
-#define VEC_PER_BLOCK 16
-#elif VECL == 8
-#define VEC_PER_PLANE 2 //vectors per plane in block
-#define VEC_PER_BLOCK 8
-#elif VECL == 16
-#define VEC_PER_PLANE 1 //vectors per plane in block
-#define VEC_PER_BLOCK 4
-#endif
 
 
 

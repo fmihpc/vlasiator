@@ -24,7 +24,7 @@ using namespace spatial_cell;
 // ordinary space [- VLASOV_STENCIL_WIDTH to VLASOV_STENCIL_WIDTH],
 // i,j,k are the cell ids inside on block (i in vector elements).
 // Vectors with same i,j,k coordinates, but in different spatial cells, are consequtive
-#define i_trans_ps_blockv(j, k, b_k) ( (b_k + VLASOV_STENCIL_WIDTH ) + ( (((j) * WID + (k) * WID2)/VECL)  * ( 1 + 2 * VLASOV_STENCIL_WIDTH) ) )
+#define i_trans_ps_blockv(j, k, b_k)  ( (b_k + VLASOV_STENCIL_WIDTH ) + ( (((j) * WID + (k) * WID2)/VECL)  * ( 1 + 2 * VLASOV_STENCIL_WIDTH) ) )
 #define i_trans_ps_blockv_b(planeVectorIndex, planeIndex, blockIndex) ( (blockIndex) + VLASOV_STENCIL_WIDTH  +  ( (planeVectorIndex) + (planeIndex) * VEC_PER_PLANE ) * ( 1 + 2 * VLASOV_STENCIL_WIDTH)  )
 
 
@@ -33,8 +33,7 @@ using namespace spatial_cell;
 // element sin each vector. b_k is the block index in z direction in
 // ordinary space, i,j,k are the cell ids inside on block (i in vector
 // elements).
-#define i_trans_pt_blockv(j, k, b_k)  ( ( (j) * WID + (k) * WID2 + ((b_k) + 1 ) * WID3) / VECL )
-
+#define i_trans_pt_blockv(j, k, b_k) ( ( (j) * WID + (k) * WID2 + ((b_k) + 1 ) * WID3) / VECL )
 #define i_trans_pt_blockv_b(planeVectorIndex, planeIndex, blockIndex)  ( planeVectorIndex + planeIndex * VEC_PER_PLANE + (blockIndex + 1) * VEC_PER_BLOCK)
 
 
@@ -262,8 +261,7 @@ void compute_spatial_target_neighbors(const dccrg::Dccrg<SpatialCell,dccrg::Cart
           case 1:
              neighbors[i + 1] = get_spatial_neighbor(mpiGrid, cellID, false, 0, i, 0);
              break;
-          case 2:
-             neighbors[i + 1] = get_spatial_neighbor(mpiGrid, cellID, false, 0, 0, i);
+          case 2:             neighbors[i + 1] = get_spatial_neighbor(mpiGrid, cellID, false, 0, 0, i);
              break;             
       }             
    }
@@ -283,8 +281,8 @@ inline void copy_trans_block_data(
    Vec* values,
    const uint * const cellid_transpose) {
 
-   
-   // Copy volume averages of this block from all spatial cells:
+   Realv blockValues[WID3];
+   //  Copy volume averages of this block from all spatial cells:
    for (int b = -VLASOV_STENCIL_WIDTH; b <= VLASOV_STENCIL_WIDTH; ++b) {
       const CellID srcCell = source_neighbors[b + VLASOV_STENCIL_WIDTH];
 
@@ -296,18 +294,24 @@ inline void copy_trans_block_data(
          block_data = mpiGrid[srcCell]->get_data(blockLID);
       }
 
-      /* Copy data table, spatial source_neighbors already taken care of when
-       *   creating source_neighbors table. If a normal spatial cell does not
-       *   simply have the block, its value will be its null_block which
-       *   is fine. This null_block has a value of zero in data, and that
-       *   is thus the velocity space boundary*/
-      uint cellid=0;
+
+      /* Copy data to a temporary array and transpose values so that mapping is along k direction.
+       * spatial source_neighbors already taken care of when
+       * creating source_neighbors table. If a normal spatial cell does not
+       * simply have the block, its value will be its null_block which
+       * is fine. This null_block has a value of zero in data, and that
+       * is thus the velocity space boundary*/
+      for (uint i=0; i<WID3; ++i) {
+         blockValues[i] = block_data[cellid_transpose[i]];
+      }
+
+      /*now load values into the actual values table..*/
+      uint offset =0;
       for (uint k=0; k<WID; ++k) {
          for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){
-            for(uint i = 0; i< VECL; i++){
-               /*store data, when reading data from  data we swap dimensions using precomputed plane_index_to_id and cell_indices_to_id*/
-               values[i_trans_ps_blockv_b(planeVector, k, b)].insert(i, static_cast<Realv>(block_data[cellid_transpose[cellid++]]));
-            }
+            /*store data, when reading data from  data we swap dimensions using precomputed plane_index_to_id and cell_indices_to_id*/
+            values[i_trans_ps_blockv_b(planeVector, k, b)].load_a(blockValues + offset);
+            offset += VECL;
          }
       }
    }
@@ -335,8 +339,6 @@ inline void store_trans_block_data(
    const uint * const cellid_transpose
 ) {
    //Store volume averages in target blocks:
-   Realv targetValueArray[VECL];
-   
    for (int b=-1; b<=1; ++b) {
       if (target_neighbors[b + 1] == INVALID_CELLID) {
          continue; //do not store to boundary cells or otherwise invalid cells
@@ -354,13 +356,15 @@ inline void store_trans_block_data(
       /*get block container for target cells*/
       vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks_temporary();
       Realf* block_data = blockContainer.getData(blockLID);
+
+      Realv blockValues[VECL];
       uint cellid=0;
       for (uint k=0; k<WID; ++k) {
          for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){
-            target_values[i_trans_pt_blockv_b(planeVector, k, b)].store(targetValueArray);
+            target_values[i_trans_pt_blockv_b(planeVector, k, b)].store_a(blockValues);
             for(uint i = 0; i< VECL; i++){
                /*store data, when reading data from  data we swap dimensions using precomputed plane_index_to_id and cell_indices_to_id*/
-               block_data[cellid_transpose[cellid++]] += targetValueArray[i];
+               block_data[cellid_transpose[cellid++]] += blockValues[i];
             }
          }
       }
