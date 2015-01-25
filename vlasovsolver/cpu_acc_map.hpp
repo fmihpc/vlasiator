@@ -22,6 +22,7 @@ Copyright 2013, 2014 Finnish Meteorological Institute
 //index in the temporary and padded column data values array. Each
 //column has an empty block in ether end.
 #define i_pcolumnv(j, k, k_block, num_k_blocks) ( ((j) / ( VECL / WID)) * WID * ( num_k_blocks + 2) + (k) + ( k_block + 1 ) * WID )
+#define i_pcolumnv_b(planeVectorIndex, k, k_block, num_k_blocks) ( planeVectorIndex * WID * ( num_k_blocks + 2) + (k) + ( k_block + 1 ) * WID )
 
 
 
@@ -44,37 +45,13 @@ using namespace spatial_cell;
  * @param blocks Array containing block global IDs.
  * @param n_blocks Number of blocks in array blocks.
 */
-inline void loadColumnBlockData(SpatialCell* spatial_cell, vmesh::GlobalID* blocks, vmesh::LocalID n_blocks, Vec* __restrict__ values, int dimension){
-   uint cell_indices_to_id[3];
-   switch (dimension){
-       case 0:
-          /* i and k coordinates have been swapped*/
-          cell_indices_to_id[0]=WID2;
-          cell_indices_to_id[1]=WID;
-          cell_indices_to_id[2]=1;
-          break;
-       case 1:
-          /* i and k coordinates have been swapped*/
-          cell_indices_to_id[0]=1;
-          cell_indices_to_id[1]=WID2;
-          cell_indices_to_id[2]=WID;
-          break;
-       case 2:
-          cell_indices_to_id[0]=1;
-          cell_indices_to_id[1]=WID;
-          cell_indices_to_id[2]=WID2;
-          break;
-       default:
-          //same as for dimension 2, mostly here to get rid of compiler warning
-          cell_indices_to_id[0]=1;
-          cell_indices_to_id[1]=1;
-          cell_indices_to_id[2]=1;
-          cerr << "Dimension argument wrong: " << dimension << " at " << __FILE__ << ":" << __LINE__ << endl;
-          exit(1);
-          break;
-   }
-      
-   
+inline void loadColumnBlockData(SpatialCell* spatial_cell,
+                                vmesh::GlobalID* blocks,
+                                vmesh::LocalID n_blocks,
+                                Vec* __restrict__ values,
+                                const unsigned char * const cellid_transpose) {
+
+   Realv blockValues[WID3];   
    /*first set the 0 values fot the two empty blocks we store above and below the existing blosk*/
 
    for (uint k=0; k<WID; ++k) {
@@ -90,16 +67,20 @@ inline void loadColumnBlockData(SpatialCell* spatial_cell, vmesh::GlobalID* bloc
       Realf* __restrict__ data = spatial_cell->get_data(blockLID);
 
       //  Copy volume averages of this block, taking into account the dimension shifting
+      for (uint i=0; i<WID3; ++i) {
+         blockValues[i] = data[cellid_transpose[i]];
+      }
+      for (uint i=0; i<WID3; ++i) {
+         data[i]=0;
+      }
+
+      /*now load values into the actual values table..*/
+      uint offset =0;
       for (uint k=0; k<WID; ++k) {
-         for (uint j = 0; j < WID; j ++){ 
-            for (uint i = 0; i < WID; i ++){ 
-               const uint cell =
-                  i * cell_indices_to_id[0] +
-                  j * cell_indices_to_id[1] +
-                  k * cell_indices_to_id[2];
-               values[i_pcolumnv(j, k, block_k, n_blocks)].insert( (i + j * WID) % VECL  ,static_cast<Realv>(data[cell]));
-               data[cell] = 0.0; //also zero the data once it is read
-            }
+         for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){
+            /*store data, when reading data from  data we swap dimensions using precomputed plane_index_to_id and cell_indices_to_id*/
+            values[i_pcolumnv_b(planeVector, k, block_k, n_blocks)].load_a(blockValues + offset);
+            offset += VECL;
          }
       }
    }
@@ -126,6 +107,8 @@ bool map_1d(SpatialCell* spatial_cell,
    uint max_v_length;
    uint block_indices_to_id[3]; /*< used when computing id of target block */
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
+   unsigned char cellid_transpose[WID3]; /*< defines the transpose for the solver internal (transposed) id: i + j*WID + k*WID2 to actual one*/
+   
    switch (dimension) {
     case 0:
       /* i and k coordinates have been swapped*/
@@ -188,6 +171,21 @@ bool map_1d(SpatialCell* spatial_cell,
       cell_indices_to_id[2]=WID2;
       break;
    }
+
+   /*init plane_index_to_id*/
+   for (uint k=0; k<WID; ++k) {
+      for (uint j=0; j<WID; ++j) {
+         for (uint i=0; i<WID; ++i) {
+            const uint cell =
+               i * cell_indices_to_id[0] +
+               j * cell_indices_to_id[1] +
+               k * cell_indices_to_id[2];
+            cellid_transpose[ i + j * WID + k * WID2] = cell;
+         }
+      }
+   }
+
+   
    const Realv i_dv=1.0/dv;
 
    /*sort blocks according to dimension, and divide them into columns*/
@@ -219,7 +217,7 @@ bool map_1d(SpatialCell* spatial_cell,
       for(uint columnIndex = setColumnOffsets[setIndex]; columnIndex < setColumnOffsets[setIndex] + setNumColumns[setIndex] ; columnIndex ++){
          const vmesh::LocalID n_cblocks = columnNumBlocks[columnIndex];
          vmesh::GlobalID* cblocks = blocks + columnBlockOffsets[columnIndex]; //column blocks
-         loadColumnBlockData(spatial_cell, cblocks, n_cblocks, values + valuesColumnOffset ,dimension);
+         loadColumnBlockData(spatial_cell, cblocks, n_cblocks, values + valuesColumnOffset, cellid_transpose);
          valuesColumnOffset += (n_cblocks + 2) * (WID3/VECL); // there are WID3/VECL elements of type Vec per block
       }
 
