@@ -24,8 +24,8 @@ using namespace spatial_cell;
 // ordinary space [- VLASOV_STENCIL_WIDTH to VLASOV_STENCIL_WIDTH],
 // i,j,k are the cell ids inside on block (i in vector elements).
 // Vectors with same i,j,k coordinates, but in different spatial cells, are consequtive
-#define i_trans_ps_blockv(j, k, b_k)  ( (b_k + VLASOV_STENCIL_WIDTH ) + ( (((j) * WID + (k) * WID2)/VECL)  * ( 1 + 2 * VLASOV_STENCIL_WIDTH) ) )
-#define i_trans_ps_blockv_b(planeVectorIndex, planeIndex, blockIndex) ( (blockIndex) + VLASOV_STENCIL_WIDTH  +  ( (planeVectorIndex) + (planeIndex) * VEC_PER_PLANE ) * ( 1 + 2 * VLASOV_STENCIL_WIDTH)  )
+//#define i_trans_ps_blockv(j, k, b_k)  ( (b_k + VLASOV_STENCIL_WIDTH ) + ( (((j) * WID + (k) * WID2)/VECL)  * ( 1 + 2 * VLASOV_STENCIL_WIDTH) ) )
+#define i_trans_ps_blockv(planeVectorIndex, planeIndex, blockIndex) ( (blockIndex) + VLASOV_STENCIL_WIDTH  +  ( (planeVectorIndex) + (planeIndex) * VEC_PER_PLANE ) * ( 1 + 2 * VLASOV_STENCIL_WIDTH)  )
 
 
 
@@ -33,8 +33,8 @@ using namespace spatial_cell;
 // element sin each vector. b_k is the block index in z direction in
 // ordinary space, i,j,k are the cell ids inside on block (i in vector
 // elements).
-#define i_trans_pt_blockv(j, k, b_k) ( ( (j) * WID + (k) * WID2 + ((b_k) + 1 ) * WID3) / VECL )
-#define i_trans_pt_blockv_b(planeVectorIndex, planeIndex, blockIndex)  ( planeVectorIndex + planeIndex * VEC_PER_PLANE + (blockIndex + 1) * VEC_PER_BLOCK)
+//#define i_trans_pt_blockv(j, k, b_k) ( ( (j) * WID + (k) * WID2 + ((b_k) + 1 ) * WID3) / VECL )
+#define i_trans_pt_blockv(planeVectorIndex, planeIndex, blockIndex)  ( planeVectorIndex + planeIndex * VEC_PER_PLANE + (blockIndex + 1) * VEC_PER_BLOCK)
 
 
 //Is cell translated? It is not translated if DO_NO_COMPUTE or if it is sysboundary cell and not in first sysboundarylayer
@@ -279,7 +279,7 @@ inline void copy_trans_block_data(
    const CellID* source_neighbors,
    const vmesh::GlobalID blockGID,
    Vec* values,
-   const uint * const cellid_transpose) {
+   const unsigned char * const cellid_transpose) {
 
    Realv blockValues[WID3];
    //  Copy volume averages of this block from all spatial cells:
@@ -310,7 +310,7 @@ inline void copy_trans_block_data(
       for (uint k=0; k<WID; ++k) {
          for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){
             /*store data, when reading data from  data we swap dimensions using precomputed plane_index_to_id and cell_indices_to_id*/
-            values[i_trans_ps_blockv_b(planeVector, k, b)].load_a(blockValues + offset);
+            values[i_trans_ps_blockv(planeVector, k, b)].load_a(blockValues + offset);
             offset += VECL;
          }
       }
@@ -336,7 +336,7 @@ inline void store_trans_block_data(
    const CellID cellID, const CellID *target_neighbors,
    const vmesh::GlobalID blockGID,
    Vec * __restrict__ target_values,
-   const uint * const cellid_transpose
+   const unsigned char * const cellid_transpose
 ) {
    //Store volume averages in target blocks:
    for (int b=-1; b<=1; ++b) {
@@ -361,7 +361,7 @@ inline void store_trans_block_data(
       uint cellid=0;
       for (uint k=0; k<WID; ++k) {
          for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){
-            target_values[i_trans_pt_blockv_b(planeVector, k, b)].store_a(blockValues);
+            target_values[i_trans_pt_blockv(planeVector, k, b)].store_a(blockValues);
             for(uint i = 0; i< VECL; i++){
                /*store data, when reading data from  data we swap dimensions using precomputed plane_index_to_id and cell_indices_to_id*/
                block_data[cellid_transpose[cellid++]] += blockValues[i];
@@ -389,7 +389,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    SpatialCell* spatial_cell = mpiGrid[cellID];
    uint block_indices_to_id[3]; /*< used when computing id of target block */
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
-   uint cellid_transpose[WID3]; /*< defines the transpose for the solver internal (transposed) id: i + j*WID + k*WID2 to actual one*/
+   unsigned char  cellid_transpose[WID3]; /*< defines the transpose for the solver internal (transposed) id: i + j*WID + k*WID2 to actual one*/
    uint thread_id = 0;  //thread id. Default value for serial case
    uint num_threads = 1; //Number of threads. Default value for serial case
    #ifdef _OPENMP
@@ -525,22 +525,21 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             z_1 = 1.0 - z_translation;
             z_2 = 1.0;
          }
-         
-         for (uint j = 0; j < WID; j += VECL/WID){ 
+         for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){         
             //compute reconstruction
 #ifdef TRANS_SEMILAG_PLM
             Vec a[3];
-            compute_plm_coeff(values + i_trans_ps_blockv(j, k, -VLASOV_STENCIL_WIDTH), VLASOV_STENCIL_WIDTH, a);
+            compute_plm_coeff(values + i_trans_ps_blockv(planeVector, k, -VLASOV_STENCIL_WIDTH), VLASOV_STENCIL_WIDTH, a);
 #endif
 #ifdef TRANS_SEMILAG_PPM
             Vec a[3];
             //Check that stencil width VLASOV_STENCIL_WIDTH in grid.h corresponds to order of face estimates  (h4 & h5 =2, H6=3, h8=4)
-            compute_ppm_coeff(values + i_trans_ps_blockv(j, k, -VLASOV_STENCIL_WIDTH), h4, VLASOV_STENCIL_WIDTH, a);
+            compute_ppm_coeff(values + i_trans_ps_blockv(planeVector, k, -VLASOV_STENCIL_WIDTH), h4, VLASOV_STENCIL_WIDTH, a);
 #endif
 #ifdef TRANS_SEMILAG_PQM
             Vec a[5];
             //Check that stencil width VLASOV_STENCIL_WIDTH in grid.h corresponds to order of face estimates (h4 & h5 =2, H6=3, h8=4)
-            compute_pqm_coeff(values + i_trans_ps_blockv(j, k, -VLASOV_STENCIL_WIDTH), h6, VLASOV_STENCIL_WIDTH, a);
+            compute_pqm_coeff(values + i_trans_ps_blockv(planeVector, k, -VLASOV_STENCIL_WIDTH), h6, VLASOV_STENCIL_WIDTH, a);
 #endif
           
 #ifdef TRANS_SEMILAG_PLM
@@ -558,8 +557,8 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
                z_2 * ( a[0] + z_2 * ( a[1] + z_2 * ( a[2] + z_2 * ( a[3] + z_2 * a[4] ) ) ) ) -
                z_1 * ( a[0] + z_1 * ( a[1] + z_1 * ( a[2] + z_1 * ( a[3] + z_1 * a[4] ) ) ) );
 #endif
-            target_values[i_trans_pt_blockv(j, k, target_scell_index)] +=  ngbr_target_density;                     //in the current original cells we will put this density        
-            target_values[i_trans_pt_blockv(j, k, 0)] +=  values[i_trans_ps_blockv(j, k, 0)] - ngbr_target_density; //in the current original cells we will put the rest of the original density
+            target_values[i_trans_pt_blockv(planeVector, k, target_scell_index)] +=  ngbr_target_density;                     //in the current original cells we will put this density        
+            target_values[i_trans_pt_blockv(planeVector, k, 0)] +=  values[i_trans_ps_blockv(planeVector, k, 0)] - ngbr_target_density; //in the current original cells we will put the rest of the original density
          }
       }
       
