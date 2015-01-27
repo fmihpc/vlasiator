@@ -36,13 +36,29 @@ namespace poisson {
    string Poisson::solverName;
    uint Poisson::maxIterations;
    Real Poisson::minRelativePotentialChange;
+   vector<Real*> Poisson::localCellParams;
+
+   void Poisson::cacheCellParameters(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+				     const std::vector<CellID>& cells) {
+      // NOTE: This is surprisingly slow as compared to the 
+      // similar cache-function in poisson_solver_sor.cpp
+      
+      // Clear old cache
+      Poisson::localCellParams.clear();
+      Poisson::localCellParams.resize(cells.size());
+
+      // Fetch pointers
+      for (size_t c=0; c<cells.size(); ++c) {
+	 Poisson::localCellParams[c] = mpiGrid[cells[c]]->parameters;
+      }
+   }
 
    // ***** DEFINITION OF POISSON SOLVER BASE CLASS ***** //
-   
+
    PoissonSolver::PoissonSolver() { }
-   
+
    PoissonSolver::~PoissonSolver() { }
-   
+
    bool PoissonSolver::initialize() {return true;}
 
    bool PoissonSolver::finalize() {return true;}
@@ -50,46 +66,43 @@ namespace poisson {
    Real PoissonSolver::error(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
       phiprof::start("Potential Change");
 
-      #warning optimize me in voima
-      
-      const vector<CellID>& cells = getLocalCells();
       Real* maxError = new Real[omp_get_max_threads()];
       const Real epsilon = 1e-100;
 
       #pragma omp parallel
         {
+	   // Each thread evaluates how much the potential changed as 
+	   // compared to the previous iteration and stores the value in 
+	   // threadMaxError. After all cells have been processed, the 
+	   // per-thread values are stored to array maxError.
            const int tid = omp_get_thread_num();
-           maxError[tid] = 0;
+	   Real threadMaxError = 0;
+	   #pragma omp for
+	   for (size_t c=0; c<Poisson::localCellParams.size(); ++c) {
+	      Real phi     = Poisson::localCellParams[c][CellParams::PHI];
+	      Real phi_old = Poisson::localCellParams[c][CellParams::PHI_TMP];
+	      
+	      Real d_phi     = phi-phi_old;
+	      Real d_phi_rel = d_phi / (phi + epsilon);
+	      if (fabs(d_phi_rel) > threadMaxError) threadMaxError = fabs(d_phi_rel);
+	   }
 
-           #pragma omp for
-           for (size_t c=0; c<cells.size(); ++c) {
-              SpatialCell* cell = mpiGrid[cells[c]];
-              Real phi     = cell->parameters[CellParams::PHI];
-              Real phi_old = cell->parameters[CellParams::PHI_TMP];
-
-              Real d_phi     = phi-phi_old;
-              Real d_phi_rel = d_phi / (phi + epsilon);
-              if (fabs(d_phi_rel) > maxError[tid]) maxError[tid] = fabs(d_phi_rel);
-           }
-
+	   maxError[tid] = threadMaxError;
         }
 
       // Reduce max local error to master thread (index 0)
       for (int i=1; i<omp_get_max_threads(); ++i) {
          if (maxError[i] > maxError[0]) maxError[0] = maxError[i];
       }
+      phiprof::stop("Potential Change");
 
       // Reduce max error to all MPI processes
+      phiprof::start("MPI");
       Real globalMaxError;
       MPI_Allreduce(maxError,&globalMaxError,1,MPI_Type<Real>(),MPI_MAX,MPI_COMM_WORLD);
-
-      /*if (mpiGrid.get_rank() == 0) {
-         cerr << Parameters::tstep << '\t' << globalMaxError << endl;
-      }*/
-
       delete [] maxError; maxError = NULL;
-      phiprof::stop("Potential Change");
-      
+      phiprof::stop("MPI");
+
       return globalMaxError;
    }
    
@@ -167,7 +180,7 @@ namespace poisson {
       for (int i=1; i<omp_get_max_threads(); ++i) {
          if (maxError[i] > maxError[0]) maxError[0] = maxError[i];
       }
-      
+
       Real globalError;
       Real globalMaxError;
       MPI_Allreduce(&localError,&globalError,1,MPI_Type<Real>(),MPI_SUM,MPI_COMM_WORLD);
@@ -222,14 +235,22 @@ namespace poisson {
    }
 
    bool solve(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
-      phiprof::start("Poisson Solver");
+      phiprof::start("Poisson Solver (Total)");
+
+      // If mesh partitioning has changed, recalculate spatial 
+      // cell parameters pointer cache:
+      if (Parameters::meshRepartitioned == true) {
+	 phiprof::start("Cache Cell Parameters");
+	 Poisson::cacheCellParameters(mpiGrid,getLocalCells());
+	 phiprof::stop("Cache Cell Parameters");
+      }
 
       bool success = true;
       if (Poisson::solver != NULL) {
          if (Poisson::solver->solve(mpiGrid) == false) success = false;
       }
       
-      phiprof::stop("Poisson Solver");
+      phiprof::stop("Poisson Solver (Total)");
       return success;
    }
 

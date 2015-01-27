@@ -26,8 +26,7 @@ namespace poisson {
         bool solve(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
         
     private:
-        void evaluate(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                      std::vector<poisson::CellCache3D>& cellPointers,const int& cellColor);
+        void evaluate(std::vector<poisson::CellCache3D>& cellPointers,const int& cellColor);
        
         bool solve(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                    const int& oddness);
