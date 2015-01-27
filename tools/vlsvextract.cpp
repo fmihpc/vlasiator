@@ -682,10 +682,11 @@ void getB(Real* B,newVlsv::Reader& vlsvReader,const string& meshName,const uint6
 
    // Magnetic field can exists in the file in few different variables.
    // Here we go with the following priority:
-   // - B
-   // - background_B + perturbed_B
    // - B_vol
    // - BGB_vol + PERB_vol
+   // - B
+   // - background_B + perturbed_B
+
 
    double B1[3] = {0,0,0};
    double B2[3] = {0,0,0};
