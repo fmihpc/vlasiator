@@ -186,7 +186,7 @@ bool map_1d(SpatialCell* spatial_cell,
    }
 
    
-   const Realv i_dv=1.0/dv;
+   const Realv i_dv=1/dv;
 
    /*sort blocks according to dimension, and divide them into columns*/
    uint* blocks=new uint[spatial_cell->get_number_of_velocity_blocks()];
@@ -322,7 +322,7 @@ bool map_1d(SpatialCell* spatial_cell,
 #endif
             
                /*set the initial value for the integrand at the boundary at v = 0 (in reduced cell units), this will be shifted to target_density_1, see below*/
-               Vec target_density_r(0.0);
+               Vec target_density_r(0);
                /*v_l, v_r are the left and right velocity coordinates of source cell. Left is the old right*/
                Vec v_l = v_r; 
                v_r += dv;

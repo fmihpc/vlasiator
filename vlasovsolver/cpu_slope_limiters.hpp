@@ -12,14 +12,14 @@ Copyright 2013, 2014 Finnish Meteorological Institute
 using namespace std;
 
 inline Vec minmod(const Vec slope1, const Vec slope2){
-   const Vec zero(0.0);
+   const Vec zero(0);
    Vec slope=select(abs(slope1) < abs(slope2), slope1, slope2);
    //check for extrema          
    return select(slope1 * slope2 <= 0, zero, slope);
 }
 
 inline Vec maxmod(const Vec slope1, const Vec slope2){
-   const Vec zero(0.0);
+   const Vec zero(0);
    Vec slope=select(abs(slope1) > abs(slope2), slope1, slope2);
    //check for extrema          
    return select(slope1 * slope2 <= 0, zero, slope);
@@ -57,7 +57,7 @@ inline Vec slope_limiter_mc(const Vec& l,const Vec& m, const Vec& r) {
   Vec a=r-m;
   Vec b=m-l; 
   Vec minval=min(two*abs(a),two*abs(b));
-  minval=min(minval,half*abs(a+b));
+  minval=min(minval,0.5 * abs(a+b));
   
   //check for extrema
   Vec output = select(a*b < 0,zero,minval);
@@ -68,7 +68,7 @@ inline Vec slope_limiter_mc(const Vec& l,const Vec& m, const Vec& r) {
 inline Vec slope_limiter_minmod_amr(const Vec& l,const Vec& m, const Vec& r,const Vec& a,const Vec& b) {
    Vec J = r-l;
    Vec f = (m-l)/J;
-   f = min(1.0,f);
+   f = min(1,f);
    return min(f/(1+a),(1-f)/(1+b))*2*J;
 }
 
@@ -89,7 +89,7 @@ inline Vec slope_limiter_amr(const Vec& l,const Vec& m, const Vec& r,const Vec& 
 inline void slope_limiter(const Vec& l,const Vec& m, const Vec& r, Vec& slope_abs, Vec& slope_sign) {
    const Vec slope=slope_limiter(l,m,r);
    slope_abs=abs(slope);
-   slope_sign=select(slope > 0, 1.0, -1.0);
+   slope_sign=select(slope > 0, 1, -1);
 }
 
 #endif

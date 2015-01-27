@@ -28,10 +28,10 @@ inline void compute_ppm_coeff(const Vec * const values, face_estimate_order orde
    Vec m_face = fv_l;
    Vec p_face = fv_r;
    m_face = select((p_face - m_face) * (values[k] - 0.5 * (m_face + p_face)) >
-                   (p_face - m_face)*(p_face - m_face) * one_sixth,
+                   (p_face - m_face) * (p_face - m_face) / 6,
                    3 * values[k] - 2 * p_face,
                    m_face);
-  p_face = select(-(p_face - m_face) * (p_face - m_face) * one_sixth >
+  p_face = select(-(p_face - m_face) * (p_face - m_face) / 6 >
                    (p_face - m_face) * (values[k] - 0.5 * (m_face + p_face)),
                   3 * values[k] - 2 * m_face,
                   p_face);
@@ -40,8 +40,8 @@ inline void compute_ppm_coeff(const Vec * const values, face_estimate_order orde
    //2008 (PQM article) (note additional integration factors built in,
    //contrary to White (2008) eq. 4
    a[0] = m_face;
-   a[1] = 3.0 * values[k] - 2.0 * m_face - p_face;
-   a[2] = (m_face + p_face - 2.0 * values[k]);
+   a[1] = 3 * values[k] - 2 * m_face - p_face;
+   a[2] = (m_face + p_face - 2 * values[k]);
 }
 
 #endif
