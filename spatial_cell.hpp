@@ -117,6 +117,16 @@ namespace spatial_cell {
                                                                                * Note: these are the (i,j,k) indices of the block.
                                                                                * Valid values are ([0,vx_length[,[0,vy_length[,[0,vz_length[).*/
    
+   /** Wrapper for variables needed for each particle population
+    * in class SpatialCell.*/
+   struct Population {
+
+      vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID> vmesh;    /**< Velocity mesh. Contains all velocity blocks that exist 
+                                                                     * in this spatial cell. Cells are identified by their unique 
+                                                                     * global IDs.*/
+      vmesh::VelocityBlockContainer<vmesh::LocalID> blockContainer; /**< Velocity block data.*/
+   };
+
    class SpatialCell {
    public:
       SpatialCell();
@@ -183,6 +193,8 @@ namespace spatial_cell {
 
       void add_values(const vmesh::GlobalID& targetGID,
 		      std::unordered_map<vmesh::GlobalID,Realf[(WID+2)*(WID+2)*(WID+2)]>& sourceData);
+
+      bool setActivePopulation(const int& popID);
 
       // Following functions adjust velocity blocks stored on the cell //
       bool add_velocity_block(const vmesh::GlobalID& block);
@@ -262,14 +274,17 @@ namespace spatial_cell {
 
       bool initialized;
       bool mpiTransferEnabled;
-      
-      // Velocity mesh, one per population
-      vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID> vmesh;
-      vmesh::VelocityBlockContainer<vmesh::LocalID> blockContainer;
 
-      // Temporary mesh used in acceleration and propagation
+      // Temporary mesh used in acceleration and propagation. 
       vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID> vmeshTemp;
       vmesh::VelocityBlockContainer<vmesh::LocalID> blockContainerTemp;
+      
+      // Current velocity mesh and block container, initialized to point 
+      // to the temporary mesh and temporary block container.
+      vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh    = vmeshTemp;
+      vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = blockContainerTemp;
+
+      std::vector<spatial_cell::Population> populations;                        /**< Particle population variables.*/
    };
 
    /****************************
@@ -1533,6 +1548,7 @@ namespace spatial_cell {
    
    /*!
     Update the two lists containing blocks with content, and blocks without content.
+    * @see adjustVelocityBlocks
     */
    inline void SpatialCell::update_velocity_block_content_lists(void) {
       this->velocity_block_with_content_list.clear();
