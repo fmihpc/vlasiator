@@ -200,7 +200,6 @@ bool convertMesh(newVlsv::Reader& vlsvReader,
    uint64_t meshArraySize, meshVectorSize, meshDataSize;
    uint64_t variableArraySize, variableVectorSize, variableDataSize;
 
-
    //Get local cell ids:
    vector<uint64_t> local_cells;
    if( vlsvReader.getCellIds( local_cells ) == false ) {
@@ -217,7 +216,6 @@ bool convertMesh(newVlsv::Reader& vlsvReader,
       cerr << "ERROR, failed to read variable at " << __FILE__ << " " << __LINE__ << endl;
       return false;
    }
-
 
    //Check for correct output:
    if (local_cells.size() != variableArraySize) {
@@ -239,7 +237,9 @@ bool convertMesh(newVlsv::Reader& vlsvReader,
    if (storeCellOrder == true) {
       cellOrder.clear();
    }
-   
+
+   orderedData->clear();
+
    for (uint64_t i=0; i<local_cells.size(); ++i) {
       const short int amountToReadIn = 1;
       const uint64_t & startingReadIndex = i;
@@ -253,9 +253,8 @@ bool convertMesh(newVlsv::Reader& vlsvReader,
       
       // Get the variable value
       Real extract = NAN;
-      
-      switch (variableDataType)
-      {
+
+      switch (variableDataType) {
          case datatype::type::FLOAT:
             if(variableDataSize == sizeof(float)) extract = (Real)(variablePtrFloat[compToExtract]);
             if(variableDataSize == sizeof(double)) extract = (Real)(variablePtrDouble[compToExtract]);
@@ -286,118 +285,6 @@ bool convertMesh(newVlsv::Reader& vlsvReader,
    return meshSuccess && variableSuccess;
 }
 
-
-/*! Extracts the dataset from the VLSV file opened by convertSILO.
- * \param vlsvReader oldVlsv::Reader class object used to access the VLSV file
- * \param meshName Address of the string containing the name of the mesh to be extracted
- * \param varToExtract Pointer to the char array containing the name of the variable to extract
- * \param compToExtract Unsigned int designating the component to extract (0 for scalars)
- * \param orderedData Pointer to the return argument map which will get the extracted dataset
- */
-bool convertMesh(oldVlsv::Reader & vlsvReader,
-                 const string& meshName,
-                 const char * varToExtract,
-                 const uint compToExtract,
-                 map<uint, Real> * orderedData,
-		 unordered_map<size_t,size_t>& cellOrder,
-		 const bool& storeCellOrder)
-{
-   bool meshSuccess = true;
-   bool variableSuccess = true;
-   
-   datatype::type meshDataType;
-   datatype::type variableDataType;
-   uint64_t meshArraySize, meshVectorSize, meshDataSize;
-   uint64_t variableArraySize, variableVectorSize, variableDataSize;
-   list<pair<string,string>> meshAttributes;
-   meshAttributes.push_back(make_pair("name", meshName));
-   if (vlsvReader.getArrayInfo("MESH", meshAttributes, meshArraySize, meshVectorSize, meshDataType, meshDataSize) == false) return false;
-   list<pair<string,string>> varAttributes;
-   varAttributes.push_back(make_pair("mesh", meshName));
-   varAttributes.push_back(make_pair("name", varToExtract));
-   if (vlsvReader.getArrayInfo("VARIABLE", varAttributes, variableArraySize, variableVectorSize, variableDataType, variableDataSize) == false) return false;
-   if (meshArraySize != variableArraySize) {
-      cerr << "ERROR array size mismatch" << endl;
-   }
-   if (compToExtract + 1 > variableVectorSize) {
-      cerr << "ERROR invalid component, this variable has size " << variableVectorSize << endl;
-      abort();
-   }
-   
-   // Read the mesh array one node (of a spatial cell) at a time 
-   // and create a map which contains each cell's CellID and variable to be extracted
-   char* meshBuffer = new char[meshVectorSize*meshDataSize];
-   uint64_t* meshPtr = reinterpret_cast<uint64_t*>(meshBuffer);
-   char* variableBuffer = new char[variableVectorSize*variableDataSize];
-   float* variablePtrFloat = reinterpret_cast<float*>(variableBuffer);
-   double* variablePtrDouble = reinterpret_cast<double*>(variableBuffer);
-   uint* variablePtrUint = reinterpret_cast<uint*>(variableBuffer);
-   int* variablePtrInt = reinterpret_cast<int*>(variableBuffer);
-
-   if (storeCellOrder == true) cellOrder.clear();
-
-   for (uint64_t i=0; i<meshArraySize; ++i) {
-      if (vlsvReader.readArray("MESH", meshAttributes, i, 1, meshBuffer) == false) {meshSuccess = false; break;}
-      if (vlsvReader.readArray("VARIABLE", varAttributes, i, 1, variableBuffer) == false) {variableSuccess = false; break;}
-      // Get the CellID
-      uint64_t CellID  = meshPtr[0];
-      // Get the variable value
-      Real extract = NAN;
-      
-      switch (variableDataType)
-      {
-         case datatype::type::FLOAT:
-            if(variableDataSize == sizeof(float)) extract = (Real)(variablePtrFloat[compToExtract]);
-            if(variableDataSize == sizeof(double)) extract = (Real)(variablePtrDouble[compToExtract]);
-            break;
-         case datatype::type::UINT:
-            extract = (Real)(variablePtrUint[compToExtract]);
-            break;
-         case datatype::type::INT:
-            extract = (Real)(variablePtrInt[compToExtract]);
-            break;
-         case datatype::type::UNKNOWN:
-            cerr << "BAD DATATYPE AT " << __FILE__ << " " << __LINE__ << endl;
-            return false;
-            break;
-      }
-      // Put those into the map
-      orderedData->insert(pair<uint64_t, Real>(CellID, extract));
-
-      if (storeCellOrder == true) cellOrder[CellID] = i;
-   }
-   
-   if (meshSuccess == false) {
-      cerr << "ERROR reading array MESH" << endl;
-   }
-   if (variableSuccess == false) {
-      cerr << "ERROR reading array VARIABLE " << varToExtract << endl;
-   }
-   return meshSuccess && variableSuccess;
-}
-
-///* Checks if the vlsv file is using the new library or not
-// * Input:
-// * \param vlsvReader -- some vlsv reader with a file open
-// * Output:
-// * Returns true if the vlsv file has been written with the new vlsv library and false if not
-// */
-//int checkVersion( Reader & vlsvReader ) {
-//   string versionTag = "version";
-//   float version;
-//   if( vlsvReader.readParameter( versionTag, version ) == false ) {
-//      return 0;
-//   }
-//   if( version == 1.00 ) {
-//      return 1;
-//   } else {
-//      cerr << "Invalid version!" << endl;
-//      exit(1);
-//      return 0;
-//   }
-//}
-
-
 /*! Opens the VLSV file and extracts the mesh names. Sends for processing to convertMesh.
  * \param fileName String containing the name of the file to be processed
  * \param varToExtract Pointer to the char array containing the name of the variable to extract
@@ -417,9 +304,7 @@ bool convertSILO(const string fileName,
 
    // Open VLSV file for reading:
    T vlsvReader;
-
-   if (vlsvReader.open(fileName) == false)
-   {
+   if (vlsvReader.open(fileName) == false) {
       cerr << "Failed to open '" << fileName << "'" << endl;
       return false;
    }
@@ -430,6 +315,9 @@ bool convertSILO(const string fileName,
       cerr << "Failed to read mesh names" << endl;
       exit(1);
    }
+   
+   // Clear old data
+   orderedData->clear();
 
    for (list<string>::const_iterator it=meshNames.begin(); it!=meshNames.end(); ++it) {
       if (convertMesh(vlsvReader, *it, varToExtract, compToExtract, orderedData, cellOrder, storeCellOrder) == false) {
@@ -514,6 +402,10 @@ bool pDistance(const map<uint, Real>& orderedData1,
                ) {
    #warning shift average not re-implemented
    
+   // Reset old values
+   *absolute = 0.0;
+   *relative = 0.0;
+
    vector<Real> array(orderedData1.size());
    for (size_t i=0; i<array.size(); ++i) array[i] = -1.0;
 
@@ -557,7 +449,7 @@ bool pDistance(const map<uint, Real>& orderedData1,
       cerr << "ERROR failed to write variable '" << varName << "' to output file in " << __FILE__ << ":" << __LINE__ << endl;
       return 1;
    }
-
+   
    return 0;
 }
 
@@ -1385,17 +1277,6 @@ bool process2Files(const string fileName1,
                    const uint compToExtract2 = 0
                   ) {
    //Check whether the file(s) use new or old vlsv library:
-//   Reader vlsvCheck1;
-//   vlsvCheck1.open( fileName1 );
-//   const bool file1UsesNewVlsvLib = (checkVersion( vlsvCheck1 ) == 1.00);
-//   if( file1UsesNewVlsvLib == false )
-//   vlsvCheck1.close();
-
-//   Reader vlsvCheck2;
-//   vlsvCheck2.open( fileName2 );
-//   const bool file2UsesNewVlsvLib = (checkVersion( vlsvCheck2 ) == 1.00);
-//   if( file1UsesNewVlsvLib == false )
-//   vlsvCheck2.close();
    const bool file1UsesNewVlsvLib = (checkVersion( fileName1 ) == 1.00);
    const bool file2UsesNewVlsvLib = (checkVersion( fileName2 ) == 1.00);
 
@@ -1403,8 +1284,7 @@ bool process2Files(const string fileName1,
    map<uint, Real> orderedData2;
    Real absolute, relative, mini, maxi, size, avg, stdev;
 
-
-   // If the user wants to  check avgs, call the avgs check function and return it. Otherwise move on to compare variables:
+   // If the user wants to check avgs, call the avgs check function and return it. Otherwise move on to compare variables:
    if( strcmp(varToExtract, "avgs") == 0 ) {
       vector<uint64_t> cellIds1;
       vector<uint64_t> cellIds2;
@@ -1431,7 +1311,7 @@ bool process2Files(const string fileName1,
       if( file1UsesNewVlsvLib ) {
          success = convertSILO<newVlsv::Reader>(fileName1, varToExtract, compToExtract, &orderedData1, cellOrder, true);
       } else {
-         success = convertSILO<oldVlsv::Reader>(fileName1, varToExtract, compToExtract, &orderedData1, cellOrder, true);
+         //success = convertSILO<oldVlsv::Reader>(fileName1, varToExtract, compToExtract, &orderedData1, cellOrder, true);
       }
       if( success == false ) {
          cerr << "ERROR Data import error with " << fileName1 << endl;
@@ -1441,7 +1321,7 @@ bool process2Files(const string fileName1,
       if( file2UsesNewVlsvLib ) {
          success = convertSILO<newVlsv::Reader>(fileName2, varToExtract, compToExtract, &orderedData2, cellOrder, false);
       } else {
-         success = convertSILO<oldVlsv::Reader>(fileName2, varToExtract, compToExtract, &orderedData2, cellOrder, false);
+         //success = convertSILO<oldVlsv::Reader>(fileName2, varToExtract, compToExtract, &orderedData2, cellOrder, false);
       }
       if( success == false ) {
          cerr << "ERROR Data import error with " << fileName2 << endl;
@@ -1455,9 +1335,7 @@ bool process2Files(const string fileName1,
       }
 
       // Open VLSV file where the diffence in the chosen variable is written
-      //const string prefix = fileName1.substr(0,fileName1.find_first_of('.'));
       const string prefix = fileName1.substr(0,fileName1.find_last_of('.'));
-      //const string suffix = fileName1.substr(fileName1.find_first_of('.'),fileName1.size());
       const string suffix = fileName1.substr(fileName1.find_last_of('.'),fileName1.size());
       const string outputFileName = prefix + ".diff." + varToExtract + suffix;
 
@@ -1477,23 +1355,21 @@ bool process2Files(const string fileName1,
       singleStatistics(&orderedData2, &size, &mini, &maxi, &avg, &stdev);
       outputStats(&size, &mini, &maxi, &avg, &stdev, verboseOutput, false);
 
-      //pDistance(&orderedData1, &orderedData2, 0, &absolute, &relative, false);
       pDistance(orderedData1, orderedData2, 0, &absolute, &relative, false, cellOrder,outputFile,"SpatialGrid","d0_"+varName);
       outputDistance(0, &absolute, &relative, false, verboseOutput, false);
-      //pDistance(&orderedData1, &orderedData2, 0, &absolute, &relative, true);
       pDistance(orderedData1, orderedData2, 0, &absolute, &relative, true, cellOrder,outputFile,"SpatialGrid","d0_sft_"+varName);
       outputDistance(0, &absolute, &relative, true, verboseOutput, false);
-      /*
-      pDistance(&orderedData1, &orderedData2, 1, &absolute, &relative, false);
+
+      pDistance(orderedData1, orderedData2, 1, &absolute, &relative, false, cellOrder,outputFile,"SpatialGrid","d1_"+varName);
       outputDistance(1, &absolute, &relative, false, verboseOutput, false);
-      pDistance(&orderedData1, &orderedData2, 1, &absolute, &relative, true);
+      pDistance(orderedData1, orderedData2, 1, &absolute, &relative, true, cellOrder,outputFile,"SpatialGrid","d1_sft_"+varName);
       outputDistance(1, &absolute, &relative, true, verboseOutput, false);
-      
-      pDistance(&orderedData1, &orderedData2, 2, &absolute, &relative, false);
+
+      pDistance(orderedData1, orderedData2, 2, &absolute, &relative, false, cellOrder,outputFile,"SpatialGrid","d2_"+varName);
       outputDistance(2, &absolute, &relative, false, verboseOutput, false);
-      pDistance(&orderedData1, &orderedData2, 2, &absolute, &relative, true);
+      pDistance(orderedData1, orderedData2, 2, &absolute, &relative, true, cellOrder,outputFile,"SpatialGrid","d2_sft_"+varName);
       outputDistance(2, &absolute, &relative, true, verboseOutput, false);
-       */
+
       outputFile.close();
    }
    
