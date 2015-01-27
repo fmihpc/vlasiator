@@ -168,14 +168,18 @@ ObjectWrapper& getObjectWrapper() {
    return objectWrapper;
 }
 
+/** Get local cell IDs. This function creates a cached copy of the 
+ * cell ID lists to significantly improve performance. The cell ID 
+ * cache is recalculated every time the mesh partitioning changes.
+ * @return Local cell IDs.*/
 const std::vector<CellID>& getLocalCells() {
    if (Parameters::meshRepartitioned == true) {
       if (Parameters::localCellsCalculated != Parameters::tstep) {
-	   {
-	      vector<CellID> dummy;
-	      dummy.swap(Parameters::localCells);
-	   }
-	 Parameters::localCells = mpiGrid.get_cells();
+         {
+            vector<CellID> dummy;
+            dummy.swap(Parameters::localCells);
+         }
+         Parameters::localCells = mpiGrid.get_cells();
       }
    }
    return Parameters::localCells;
@@ -290,6 +294,8 @@ int main(int argn,char* args[]) {
       }
       phiprof::stop("Init field propagator");
    }
+   
+   // Initialize Poisson solver (if used)
    if (P::propagatePotential == true) {
       phiprof::start("Init Poisson solver");
       if (poisson::initialize(mpiGrid) == false) {
@@ -575,7 +581,7 @@ int main(int argn,char* args[]) {
       if( P::propagateVlasovTranslation) {
          calculateSpatialTranslation(mpiGrid,P::dt);
       } else {
-         //calculateSpatialTranslation(mpiGrid,0.0);
+         calculateSpatialTranslation(mpiGrid,0.0);
       }
       phiprof::stop("Spatial-space",computedCells,"Cells");
 
@@ -618,7 +624,7 @@ int main(int argn,char* args[]) {
          addTimedBarrier("barrier-after-ad just-blocks");
       } else {
          //zero step to set up moments _v
-         //calculateAcceleration(mpiGrid, 0.0);
+         calculateAcceleration(mpiGrid, 0.0);
       }
 
       phiprof::stop("Velocity-space",computedCells,"Cells");
