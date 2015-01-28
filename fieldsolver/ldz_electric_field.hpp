@@ -1182,11 +1182,31 @@ void calculateUpwindedElectricFieldSimple(
       SpatialCell::set_mpi_transfer_type(Transfer::CELL_DERIVATIVES);
    }
    
+   timer=phiprof::initializeTimer("Barrier1","MPI");
+   phiprof::start(timer);
+   MPI_Barrier(MPI_COMM_WORLD);
+   phiprof::stop(timer);
+
+   timer=phiprof::initializeTimer("Communication updates","MPI");
+   phiprof::start(timer);
    mpiGrid.update_copies_of_remote_neighbors(FIELD_SOLVER_NEIGHBORHOOD_ID);
+   phiprof::stop(timer);
    
+
+   timer=phiprof::initializeTimer("Barrier2","MPI");
+   phiprof::start(timer);
+   MPI_Barrier(MPI_COMM_WORLD);
+   phiprof::stop(timer);
+
    timer=phiprof::initializeTimer("Start communication in calculateUpwindedElectricFieldSimple","MPI");
    phiprof::start(timer);
    mpiGrid.start_remote_neighbor_copy_updates(FIELD_SOLVER_NEIGHBORHOOD_ID);
+   phiprof::stop(timer);
+
+
+   timer=phiprof::initializeTimer("Barrier3","MPI");
+   phiprof::start(timer);
+   MPI_Barrier(MPI_COMM_WORLD);
    phiprof::stop(timer);
    
    timer=phiprof::initializeTimer("Compute inner cells");
@@ -1234,10 +1254,22 @@ void calculateUpwindedElectricFieldSimple(
       }
    }
    phiprof::stop(timer);
+
+   timer=phiprof::initializeTimer("Barrier4","MPI");
+   phiprof::start(timer);
+   MPI_Barrier(MPI_COMM_WORLD);
+   phiprof::stop(timer);
+
    timer=phiprof::initializeTimer("Wait for receives","MPI","Wait");
    phiprof::start(timer);
    mpiGrid.wait_remote_neighbor_copy_update_receives(FIELD_SOLVER_NEIGHBORHOOD_ID);
    phiprof::stop(timer);
+
+   timer=phiprof::initializeTimer("Barrier5","MPI");
+   phiprof::start(timer);
+   MPI_Barrier(MPI_COMM_WORLD);
+   phiprof::stop(timer);
+
    timer=phiprof::initializeTimer("Compute boundary cells");
    phiprof::start(timer);
    // Calculate upwinded electric field on boundary cells:
@@ -1283,9 +1315,20 @@ void calculateUpwindedElectricFieldSimple(
       }
    }
    phiprof::stop(timer);
+
+   timer=phiprof::initializeTimer("Barrier6","MPI");
+   phiprof::start(timer);
+   MPI_Barrier(MPI_COMM_WORLD);
+   phiprof::stop(timer);
+
    timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
    phiprof::start(timer);
    mpiGrid.wait_remote_neighbor_copy_update_sends();
+   phiprof::stop(timer);
+
+   timer=phiprof::initializeTimer("Barrier7","MPI");
+   phiprof::start(timer);
+   MPI_Barrier(MPI_COMM_WORLD);
    phiprof::stop(timer);
    
    // Exchange electric field with neighbouring processes
@@ -1297,6 +1340,11 @@ void calculateUpwindedElectricFieldSimple(
    timer=phiprof::initializeTimer("Communicate electric fields","MPI","Wait");
    phiprof::start(timer);
    mpiGrid.update_copies_of_remote_neighbors(FIELD_SOLVER_NEIGHBORHOOD_ID);
+   phiprof::stop(timer);
+
+   timer=phiprof::initializeTimer("Barrier8","MPI");
+   phiprof::start(timer);
+   MPI_Barrier(MPI_COMM_WORLD);
    phiprof::stop(timer);
 
    phiprof::stop("Calculate upwinded electric field");
