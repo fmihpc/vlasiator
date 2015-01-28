@@ -120,7 +120,6 @@ namespace spatial_cell {
    /** Wrapper for variables needed for each particle population
     * in class SpatialCell.*/
    struct Population {
-
       vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID> vmesh;    /**< Velocity mesh. Contains all velocity blocks that exist 
                                                                      * in this spatial cell. Cells are identified by their unique 
                                                                      * global IDs.*/
@@ -184,7 +183,7 @@ namespace spatial_cell {
       static Real get_velocity_cell_vz_max(const vmesh::GlobalID velocity_block,const unsigned int velocity_cell);
       static const Real* get_velocity_grid_min_limits();
       static const Real* get_velocity_grid_max_limits();
-      static void initialize_mesh(Real v_limits[6],unsigned int meshSize[3],unsigned int blockSize[3],Real f_min,uint8_t maxRefLevel);
+      static bool initialize_mesh(const int& popID,Real v_limits[6],unsigned int meshSize[3],unsigned int blockSize[3],uint8_t maxRefLevel);
       static unsigned int invalid_block_index();
       static vmesh::GlobalID invalid_global_id();
       static vmesh::LocalID invalid_local_id();
@@ -262,8 +261,8 @@ namespace spatial_cell {
                                                                                * over MPI, so is invalid on remote cells.*/
       static uint64_t mpi_transfer_type;                                      /**< Which data is transferred by the mpi datatype given by spatial cells.*/
       static bool mpiTransferAtSysBoundaries;                                 /**< Do we only transfer data at boundaries (true), or in the whole system (false).*/
-      static Real velocity_block_min_value;                                   /**< Minimum value of distribution function in any phase space cell 
-                                                                               * of a velocity block for the block to be considered to have content.*/
+      //static Real velocity_block_min_value;                                   /**< Minimum value of distribution function in any phase space cell 
+      //                                                                         * of a velocity block for the block to be considered to have content.*/
 
     private:
       SpatialCell& operator=(const SpatialCell&);
@@ -272,6 +271,7 @@ namespace spatial_cell {
       void merge_values_recursive(vmesh::GlobalID parentGID,vmesh::GlobalID blockGID,uint8_t refLevel,bool recursive,const Realf* data,
 				  std::set<vmesh::GlobalID>& blockRemovalList);
 
+      static int activePopID;
       bool initialized;
       bool mpiTransferEnabled;
 
@@ -1089,11 +1089,6 @@ namespace spatial_cell {
       return vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::getMeshMaxLimits();
    }
 
-   inline void SpatialCell::initialize_mesh(Real v_limits[6],unsigned int meshSize[3],unsigned int blockSize[3],Real f_min,uint8_t maxRefLevel) {
-      vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::initialize(v_limits,meshSize,blockSize,maxRefLevel);
-      velocity_block_min_value = f_min;
-   }
-
    inline unsigned int SpatialCell::invalid_block_index() {
       return vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidBlockIndex();
    }
@@ -1534,10 +1529,11 @@ namespace spatial_cell {
       if (blockGID == invalid_global_id() || count(blockGID) == 0) return false;
       
       bool has_content = false;
+      const Real velocity_block_min_value = getObjectWrapper().particleSpecies[activePopID].sparseMinValue;
       const vmesh::LocalID blockLID = get_velocity_block_local_id(blockGID);
       const Realf* block_data = blockContainer.getData(blockLID);
       for (unsigned int i=0; i<VELOCITY_BLOCK_LENGTH; ++i) {
-         if (block_data[i] >= SpatialCell::velocity_block_min_value) {
+         if (block_data[i] >= velocity_block_min_value) {
             has_content = true;
             break;
          }

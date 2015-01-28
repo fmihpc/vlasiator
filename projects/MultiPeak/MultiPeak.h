@@ -1,21 +1,9 @@
 /*
 This file is part of Vlasiator.
 
-Copyright 2011, 2012 Finnish Meteorological Institute
-
-
-
-
-
-
-
-
-
-
-
+Copyright 2011-2015 Finnish Meteorological Institute
 
 */
-
 
 #ifndef MULTIPEAK_H
 #define MULTIPEAK_H
@@ -32,6 +20,7 @@ namespace projects {
          virtual bool initialize(void);
          static void addParameters(void);
          virtual void getParameters(void);
+         virtual void setActivePopulation(const int& popID);
          virtual void setCellBackgroundField(SpatialCell* cell);
       protected:
          Real getDistribValue(
@@ -51,6 +40,7 @@ namespace projects {
             creal z
          );
          
+         int popID;                             /**< Active particle population ID.*/
          int numberOfPopulations;
          vector<Real> rho;
          vector<Real> rhoRnd;

@@ -63,6 +63,7 @@ namespace vmesh {
       static LID invalidBlockIndex();
       static GID invalidGlobalID();
       static LID invalidLocalID();
+      static bool isInitialized();
       void pop();
       bool push_back(const GID& globalID);
       bool push_back(const std::vector<vmesh::GlobalID>& blocks);
@@ -73,6 +74,7 @@ namespace vmesh {
       void swap(VelocityMesh& vm);
 
     private:
+      static bool initialized;                                                  /**< If true, velocity mesh has been successfully initialized.*/
       static LID max_velocity_blocks;                                           /**< Maximum valid block local ID.*/
       static LID blockLength[3];                                                /**< Number of cells in a block per coordinate.*/
       static Real blockSize[3];                                                 /**< Size of a block at base grid level.*/
@@ -94,6 +96,7 @@ namespace vmesh {
    template<typename GID,typename LID> Real VelocityMesh<GID,LID>::cellSize[3] = {NAN,NAN,NAN};
    template<typename GID,typename LID> Real VelocityMesh<GID,LID>::gridSize[3] = {NAN,NAN,NAN};
    template<typename GID,typename LID> LID VelocityMesh<GID,LID>::gridLength[3] = {0,0,0};
+   template<typename GID,typename LID> bool VelocityMesh<GID,LID>::initialized = false;
    template<typename GID,typename LID> Real VelocityMesh<GID,LID>::meshMinLimits[3] = {NAN,NAN,NAN};
    template<typename GID,typename LID> Real VelocityMesh<GID,LID>::meshMaxLimits[3] = {NAN,NAN,NAN};
    
@@ -487,6 +490,9 @@ namespace vmesh {
       
    template<typename GID,typename LID> inline
    bool VelocityMesh<GID,LID>::initialize(Real meshLimits[6],LID gridLength[3],LID blockLength[3],uint8_t refLevelMaxAllowed) {
+       if (isInitialized() == true) return isInitialized();
+       initialized = false;
+       
       meshMinLimits[0] = meshLimits[0];
       meshMinLimits[1] = meshLimits[2];
       meshMinLimits[2] = meshLimits[4];
@@ -516,7 +522,8 @@ namespace vmesh {
       cellSize[2] = blockSize[2] / blockLength[2];
 
       max_velocity_blocks = gridLength[0]*gridLength[1]*gridLength[2];
-      return true;
+      initialized = true;
+      return initialized;
    }
    
    template<typename GID,typename LID> inline
@@ -533,6 +540,9 @@ namespace vmesh {
    LID VelocityMesh<GID,LID>::invalidLocalID() {
       return INVALID_LOCALID;
    }
+   
+   template<typename GID,typename LID> inline
+   bool VelocityMesh<GID,LID>::isInitialized() {return initialized;}
 
    template<typename GID,typename LID> inline
    void VelocityMesh<GID,LID>::pop() {

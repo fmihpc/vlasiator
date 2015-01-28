@@ -69,6 +69,7 @@ namespace vmesh {
       static LID invalidBlockIndex();
       static GID invalidGlobalID();
       static LID invalidLocalID();
+      static bool isInitialized();
       void pop();
       bool push_back(const GID& globalID);
       uint8_t push_back(const std::vector<vmesh::GlobalID>& blocks);
@@ -79,13 +80,13 @@ namespace vmesh {
       void swap(VelocityMesh& vm);
 
     private:
+      static bool initialized;                                                  /**< If true, velocity mesh has been successfully initialized.*/
       static LID max_velocity_blocks;                                           /**< Maximum valid block local ID.*/
       static LID blockLength[3];                                                /**< Number of cells in a block per coordinate.*/
       static Real blockSize[3];                                                 /**< Size of a block at base grid level.*/
       static Real cellSize[3];                                                  /**< Size of a cell in a block at base grid level.*/
       static Real gridSize[3];                                                  /**< Size of the grid.*/
       static LID gridLength[3];                                                 /**< Number of blocks in the grid.*/
-      static bool initialized;
       static Real meshMinLimits[3];                                             /**< Minimum coordinate values of the grid bounding box.*/
       static Real meshMaxLimits[3];                                             /**< Maximum coordinate values of the grid bounding box.*/
       static uint8_t refLevelMaxAllowed;      
@@ -914,6 +915,9 @@ namespace vmesh {
    LID VelocityMesh<GID,LID>::invalidLocalID() {
       return INVALID_LOCALID;
    }
+   
+   template<typename GID,typename LID> inline
+   bool VelocityMesh<GID,LID>::isInitialized() {return initialized;}
    
    template<typename GID,typename LID> inline
    void VelocityMesh<GID,LID>::pop() {

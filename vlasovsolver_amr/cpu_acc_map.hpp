@@ -560,6 +560,7 @@ void map_1d(SpatialCell* spatial_cell,PropagParams& params,
          } // while (k_cell_src <= k_cell_src_max_global)
       } // for (int k=0; k<WID; ++k) 
 
+      #warning DEPRECATED use per-species sparseMinValue
       if (accum < Parameters::sparseMinValue) {
          removeList.push_back(targetGID);
       }

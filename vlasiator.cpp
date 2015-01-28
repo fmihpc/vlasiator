@@ -217,12 +217,19 @@ int main(int argn,char* args[]) {
    sysBoundaries.getParameters();
    phiprof::stop("Read parameters");
    
-   phiprof::start("Init project");
+/*   phiprof::start("Init project");
    if (project->initialize() == false) {
       if(myRank == MASTER_RANK) cerr << "(MAIN): Project did not initialize correctly!" << endl;
       exit(1);
    }
-   phiprof::stop("Init project");
+   if (project->initialized() == false) {
+      if (myRank == MASTER_RANK) {
+         cerr << "(MAIN): Project base class was not initialized!" << endl;
+         cerr << "\t Call Project::initialize() in your project's initialize()-function." << endl;
+         exit(1);
+      }
+   }
+   phiprof::stop("Init project");*/
 
    // Init parallel logger:
    phiprof::start("open logFile & diagnostic");
@@ -239,24 +246,39 @@ int main(int argn,char* args[]) {
    }
    phiprof::stop("open logFile & diagnostic");
    
+   // Init project
+   phiprof::start("Init project");
+   if (project->initialize() == false) {
+      if(myRank == MASTER_RANK) cerr << "(MAIN): Project did not initialize correctly!" << endl;
+      exit(1);
+   }
+   if (project->initialized() == false) {
+      if (myRank == MASTER_RANK) {
+         cerr << "(MAIN): Project base class was not initialized!" << endl;
+         cerr << "\t Call Project::initialize() in your project's initialize()-function." << endl;
+         exit(1);
+      }
+   }
+   phiprof::stop("Init project");
+   
    // Add AMR refinement criterias:
    amr_ref_criteria::addRefinementCriteria();
    
+   // Initialize grid.  After initializeGrid local cells have dist
+   // functions, and B fields set. Cells have also been classified for
+   // the various sys boundary conditions.  All remote cells have been
+   // created. All spatial date computed this far is up to date for
+   // FULL_NEIGHBORHOOD. Block lists up to date for
+   // VLASOV_SOLVER_NEIGHBORHOOD (but dist function has not been communicated)
    phiprof::start("Init grid");
-   /* Initialize grid.  After initializeGrid local cells have dist
-      functions, and B fields set. Cells have also been classified for
-      the various sys boundary conditions.  All remote cells have been
-      created. All spatial date computed this far is up to date for
-      FULL_NEIGHBORHOOD. Block lists up to date for
-      VLASOV_SOLVER_NEIGHBORHOOD (but dist function has not been communicated)
-   */
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> mpiGrid;
    initializeGrid(argn,args,mpiGrid,sysBoundaries,*project);
    isSysBoundaryCondDynamic = sysBoundaries.isDynamic();
    phiprof::stop("Init grid");
-   phiprof::start("Init DROs");
+   
    // Initialize data reduction operators. This should be done elsewhere in order to initialize 
    // user-defined operators:
+   phiprof::start("Init DROs");
    DataReducer outputReducer, diagnosticReducer;
    initializeDataReducers(&outputReducer, &diagnosticReducer);
    phiprof::stop("Init DROs");
@@ -303,6 +325,11 @@ int main(int argn,char* args[]) {
       
       phiprof::stop("write-initial-state");
    }
+   
+   #warning TESTING remove me
+   cout << "init done" << endl;
+   MPI_Finalize();
+   return 1;
 
    if (P::dynamicTimestep && !P::isRestart) {
       //compute vlasovsolver once with zero dt, this is to initialize

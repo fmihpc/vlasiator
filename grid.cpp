@@ -128,7 +128,7 @@ void initializeGrid(
       phiprof::stop("Read restart");
       vector<uint64_t> cells = mpiGrid.get_cells();
       //set background field, FIXME should be read in from restart
-#pragma omp parallel for schedule(dynamic)
+      #pragma omp parallel for schedule(dynamic)
       for (uint i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
          project.setCellBackgroundField(cell);
@@ -138,9 +138,9 @@ void initializeGrid(
       //and other initial values in non-sysboundary cells
       phiprof::start("Apply initial state");
       // Go through every cell on this node and initialize the 
-      //    -Background field on all cells
+      //  -Background field on all cells
       //  -Perturbed fields and ion distribution function in non-sysboundary cells
-      //    Each initialization has to be independent to avoid threading problems 
+      // Each initialization has to be independent to avoid threading problems 
       vector<uint64_t> cells = mpiGrid.get_cells();
       
       #pragma omp parallel for schedule(dynamic)
@@ -160,23 +160,32 @@ void initializeGrid(
          exit(1);
       }      
       phiprof::stop("Apply system boundary conditions state");
-      
-      adjustVelocityBlocks(mpiGrid, cells, true);
-      validateMesh(mpiGrid);
-      shrink_to_fit_grid_data(mpiGrid); //get rid of excess data already here
 
-      phiprof::start("Init moments");
-      //compute moments, and set them  in RHO* and RHO_*_DT2. If restart, they are already read in
-      calculateInitialVelocityMoments(mpiGrid);
-      phiprof::stop("Init moments");
-      
-      /*set initial LB metric based on number of blocks, all others
-       * will be based on time spent in acceleration*/
       for (uint i=0; i<cells.size(); ++i) {
-         mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = mpiGrid[cells[i]]->get_number_of_velocity_blocks();
+         mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = 0;
+      }
+
+      for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
+         // Set active population in all cells before doing anything
+         for (size_t c=0; c<cells.size(); ++c) mpiGrid[cells[c]]->setActivePopulation(p);
+
+         adjustVelocityBlocks(mpiGrid, cells, true);
+         validateMesh(mpiGrid);
+         shrink_to_fit_grid_data(mpiGrid); //get rid of excess data already here
+
+         //compute moments, and set them  in RHO* and RHO_*_DT2. If restart, they are already read in
+         phiprof::start("Init moments");
+         calculateInitialVelocityMoments(mpiGrid);
+         phiprof::stop("Init moments");
+
+         // set initial LB metric based on number of blocks, all others
+         // will be based on time spent in acceleration
+         for (uint i=0; i<cells.size(); ++i) {
+            mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] += mpiGrid[cells[i]]->get_number_of_velocity_blocks();
+         }
       }
    }
-   
+
    //Balance load before we transfer all data below
    balanceLoad(mpiGrid);
    
@@ -209,7 +218,9 @@ void initVelocityGridGeometry(){
    blockLength[1] = block_vy_length;
    blockLength[2] = block_vz_length;
 
-   spatial_cell::SpatialCell::initialize_mesh(meshLimits,gridLength,blockLength,P::sparseMinValue,P::amrMaxVelocityRefLevel);
+   for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
+      spatial_cell::SpatialCell::initialize_mesh(p,meshLimits,gridLength,blockLength,P::amrMaxVelocityRefLevel);
+   }
 }
 
 void initSpatialCellCoordinates(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {

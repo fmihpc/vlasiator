@@ -1,8 +1,11 @@
 #include "project.h"
 #include <cstdlib>
+#include "../common.h"
 #include "../parameters.h"
 #include "../readparameters.h"
 #include "../vlasovmover.h"
+#include "../particle_species.h"
+#include "../logger.h"
 
 #include "Alfven/Alfven.h"
 #include "Diffusion/Diffusion.h"
@@ -30,11 +33,15 @@
 
 using namespace std;
 
+extern Logger logFile;
+
 char projects::Project::rngStateBuffer[256];
 random_data projects::Project::rngDataBuffer;
 
 namespace projects {
-   Project::Project() { }
+   Project::Project() { 
+      baseClassInitialized = false;
+   }
    
    Project::~Project() { }
    
@@ -63,18 +70,91 @@ namespace projects {
       projects::verificationLarmor::addParameters();
       projects::Shocktest::addParameters();
       RP::add("Project_common.seed", "Seed for the RNG", 42);
+      
+      // Add parameters needed to create particle populations
+      RP::addComposing("ParticlePopulation.name","Name of the simulated particle population (string)");
+      RP::addComposing("ParticlePopulation.charge","Particle charge, in units of elementary charges (int)");
+      RP::addComposing("ParticlePopulation.mass_units","Units in which particle mass is given, either 'PROTON' or 'ELECTRON' (string)");
+      RP::addComposing("ParticlePopulation.mass","Particle mass in given units (float)");
+      RP::addComposing("ParticlePopulation.sparse_min_value","Minimum value of distribution function in any cell of a velocity block for the block to be considered to have content");
    }
    
    void Project::getParameters() {
       typedef Readparameters RP;
       RP::get("Project_common.seed", this->seed);
-   }
-   
-   bool Project::initialize() {
-      cerr << "ERROR: Project::initialize called instead of derived class function!" << endl;
-      return false;
+      RP::get("ParticlePopulation.name",popNames);
+      RP::get("ParticlePopulation.charge",popCharges);
+      RP::get("ParticlePopulation.mass_units",popMassUnits);
+      RP::get("ParticlePopulation.mass",popMasses);
+      RP::get("ParticlePopulation.sparse_min_value",popSparseMinValue);
    }
 
+   bool Project::initialize() {
+      // Basic error checking
+      bool success = true;
+      if (popNames.size() != popCharges.size()) success = false;
+      if (popNames.size() != popMassUnits.size()) success = false;
+      if (popNames.size() != popMasses.size()) success = false;
+      if (popNames.size() != popSparseMinValue.size()) success = false;
+      if (success == false) {
+         cerr << "ERROR in configuration file particle population definitions!" << endl;
+         cerr << "\t vector sizes are: " << popNames.size() << ' ' << popMassUnits.size();
+         cerr << ' ' << popMasses.size() << ' ' << popSparseMinValue.size() << endl;
+         return success;
+      }
+      
+      // If particle population(s) have not been defined, add protons as a default population
+      ObjectWrapper& owrapper = getObjectWrapper();
+      if (popNames.size() == 0) {
+         species::Species population;
+         population.name   = "proton";
+         population.charge = physicalconstants::CHARGE;
+         population.mass   = physicalconstants::MASS_PROTON;
+         population.sparseMinValue = Parameters::sparseMinValue;
+         owrapper.particleSpecies.push_back(population);
+         printPopulations();
+         baseClassInitialized = success;
+         return success;
+      }
+      
+      // Parse populations from configuration file parameters:
+      for (size_t p=0; p<popNames.size(); ++p) {       
+         species::Species population;
+         population.name = popNames[p];
+         population.charge = popCharges[p]*physicalconstants::CHARGE;
+         double massUnits = 0;
+         if (popMassUnits[p] == "PROTON") massUnits = physicalconstants::MASS_PROTON;
+         else if (popMassUnits[p] == "ELECTRON") massUnits = physicalconstants::MASS_ELECTRON;
+         else success = false;
+         population.mass = massUnits*popMasses[p];
+         population.sparseMinValue = popSparseMinValue[p];
+         
+         if (success == false) {
+            cerr << "ERROR in population '" << popNames[p] << "' parameters" << endl;
+         }
+         
+         owrapper.particleSpecies.push_back(population);
+      }
+
+      if (success == false) {
+         cerr << "ERROR in configuration file particle population definitions!" << endl;
+      } else {
+         printPopulations();
+      }
+
+      baseClassInitialized = success;
+      return success;
+   }
+   
+   /** Check if base class has been initialized.
+    * @return If true, base class was successfully initialized.*/
+   bool Project::initialized() {return baseClassInitialized;}
+
+   /** Set active particle population. Successive calls to member functions 
+    * should then return values for the selected population.
+    * @param popID Population ID.*/
+   void Project::setActivePopulation(const int& popID) { }
+   
    /*! Base class sets zero background field */
    void Project::setCellBackgroundField(SpatialCell* cell) {
       ConstantField bgField;
@@ -89,7 +169,9 @@ namespace projects {
       cell->parameters[CellParams::RHOLOSSADJUST] = 0.0;
       cell->parameters[CellParams::RHOLOSSVELBOUNDARY] = 0.0;
 
-      this->setVelocitySpace(cell);
+      for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
+         this->setVelocitySpace(p,cell);
+      }
 
       //let's get rid of blocks not fulfilling the criteria here to save memory.
       //cell->adjustSingleCellVelocityBlocks();
@@ -98,8 +180,8 @@ namespace projects {
       calculateCellVelocityMoments(cell, true);
    }
 
-   vector<uint> Project::findBlocksToInitialize(SpatialCell* cell) {
-      vector<uint> blocksToInitialize;
+   vector<vmesh::GlobalID> Project::findBlocksToInitialize(SpatialCell* cell) {
+      vector<vmesh::GlobalID> blocksToInitialize;
 
       for (uint kv=0; kv<P::vzblocks_ini; ++kv) 
          for (uint jv=0; jv<P::vyblocks_ini; ++jv)
@@ -117,8 +199,25 @@ namespace projects {
       return blocksToInitialize;
    }
    
-   void Project::setVelocitySpace(SpatialCell* cell) {
-      const size_t popID = 0;
+   /** Write simulated particle populations to logfile.*/
+   void Project::printPopulations() {
+      logFile << "(PROJECT): Loaded particle populations are:" << endl;
+      
+      for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
+         logFile << "Population #" << p << endl;
+         logFile << "\t name             : '" << getObjectWrapper().particleSpecies[p].name << "'" << endl;
+         logFile << "\t charge           : '" << getObjectWrapper().particleSpecies[p].charge << "'" << endl;
+         logFile << "\t mass             : '" << getObjectWrapper().particleSpecies[p].mass << "'" << endl;
+         logFile << "\t sparse threshold : " << getObjectWrapper().particleSpecies[p].sparseMinValue << "'" << endl;
+         logFile << endl;
+      }
+      logFile << write;
+   }
+   
+   void Project::setVelocitySpace(const int& popID,SpatialCell* cell) {
+      setActivePopulation(popID);
+      cell->setActivePopulation(popID);
+
       vector<uint> blocksToInitialize = this->findBlocksToInitialize(cell);
       Real* parameters = cell->get_block_parameters();
 
@@ -201,7 +300,6 @@ namespace projects {
          map<vmesh::GlobalID,vmesh::LocalID> insertedBlocks;
          for (size_t b=0; b<refineList.size(); ++b) {
             cell->refine_block(refineList[b],insertedBlocks);
-
          }
 
          // Loop over blocks in map insertedBlocks and recalculate 

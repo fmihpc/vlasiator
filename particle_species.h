@@ -15,10 +15,12 @@ namespace species {
     
     /** Variables common to a particle species.*/
     struct Species {
+        std::string name;               /**< Name of the species.*/
         Real charge;                    /**< Particle species charge, in simulation units.*/
         Real mass;                      /**< Particle species mass, in simulation units.*/
+        Real sparseMinValue;            /**< Sparse mesh threshold value for the population.*/
     };
-    
+
 } // namespace species
 
 #endif	// PARTICLE_SPECIES_H

@@ -1,7 +1,7 @@
 /*
 This file is part of Vlasiator.
 
-Copyright 2010, 2011, 2012, 2013, 2014 Finnish Meteorological Institute
+Copyright 2010-2015 Finnish Meteorological Institute
 
 */
 
@@ -334,7 +334,6 @@ RK_ORDER2_STEP1,   /*!< Two-step second order method, first step */
 RK_ORDER2_STEP2    /*!< Two-step second order method, second step */
 };
 
-
 const uint WID = 4;         /*!< Number of cells per coordinate in a velocity block. Only a value of 4 supported by vectorized Leveque solver */
 const uint WID2 = WID*WID;  /*!< Number of cells per 2D slab in a velocity block. */
 const uint WID3 = WID2*WID; /*!< Number of cells in a velocity block. */
@@ -357,11 +356,12 @@ struct globalflags {
 
 // Natural constants
 namespace physicalconstants {
-   const Real MU_0 = 1.25663706e-6;  /*!< Permeability of vacuo, unit: (kg m) / (s^2 A^2).*/
-   const Real K_B = 1.3806503e-23;   /*!< Boltzmann's constant, unit: (kg m^2) / (s^2 K).*/
-   const Real CHARGE = 1.60217653e-19; /*!< Elementary charge, unit: C. */
-   const Real MASS_PROTON = 1.67262158e-27; /*!< Proton rest mass.*/
-   const Real R_E = 6.3712e6; /*!< radius of the Earth. */
+   const Real MU_0 = 1.25663706e-6;  /*!< Permeability of vacuo, units: (kg m) / (s^2 A^2).*/
+   const Real K_B = 1.3806503e-23;   /*!< Boltzmann's constant, units: (kg m^2) / (s^2 K).*/
+   const Real CHARGE = 1.60217653e-19; /*!< Elementary charge, units: C. */
+   const Real MASS_ELECTRON = 9.10938188e-31; /**< Electron rest mass, units: kg.*/
+   const Real MASS_PROTON = 1.67262158e-27; /*!< Proton rest mass, units: kg.*/
+   const Real R_E = 6.3712e6; /*!< radius of the Earth, units: m. */
 }
 
 ObjectWrapper& getObjectWrapper();

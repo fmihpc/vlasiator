@@ -1,7 +1,7 @@
 /*
 This file is part of Vlasiator.
 
-Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
+Copyright 2010-2015 Finnish Meteorological Institute
 */
 
 /*! \file vlsvdiff.cpp
@@ -30,6 +30,10 @@ extern Logger logFile, diagnostic;
 
 typedef Parameters P;
 
+
+bool writeVelocityDistributionData(const int& popID,Writer& vlsvWriter,
+                                   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                   const vector<uint64_t> & cells,MPI_Comm comm);
 
 /*! Updates local ids across MPI to let other processes know in which order this process saves the local cell ids
  \param mpiGrid Vlasiator's MPI grid
@@ -96,16 +100,39 @@ bool globalSuccess(bool success,string errorMessage,MPI_Comm comm){
 bool writeVelocityDistributionData(Writer& vlsvWriter,
                                    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                    const vector<uint64_t> & cells,MPI_Comm comm) {
+   bool success = true;
+   for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
+      if (writeVelocityDistributionData(p,vlsvWriter,mpiGrid,cells,comm) == false) success = false;
+   }
+   return success;
+}
+
+/** Writes the velocity distribution of specified population into the file.
+ @param vlsvWriter Some vlsv writer with a file open.
+ @param mpiGrid Vlasiator's grid.
+ @param cells Vector of local cells within this process (no ghost cells).
+ @param comm The MPI communicator.
+ @return Returns true if operation was successful.*/
+bool writeVelocityDistributionData(const int& popID,Writer& vlsvWriter,
+                                   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                   const vector<uint64_t> & cells,MPI_Comm comm) {
    // Write velocity blocks and related data. 
    // In restart we just write velocity grids for all cells.
    // First write global Ids of those cells which write velocity blocks (here: all cells):
    map<string,string> attribs;
+   attribs["name"] = getObjectWrapper().particleSpecies[popID].name;
    bool success=true;
 
+#warning TEST remove me
+   cerr << "writing population '" << attribs["name"] << "'" << endl;
+   
    // Compute totalBlocks
-   uint64_t totalBlocks = 0;  
-   vector<uint> blocksPerCell;   
+   uint64_t totalBlocks = 0;
+   vector<uint> blocksPerCell;
    for (size_t cell=0; cell<cells.size(); ++cell){
+      // Set active population, must be done to all cells:
+      mpiGrid[cells[cell]]->setActivePopulation(popID);
+
       totalBlocks+=mpiGrid[cells[cell]]->get_number_of_velocity_blocks();
       blocksPerCell.push_back(mpiGrid[cells[cell]]->get_number_of_velocity_blocks());
    }
@@ -150,7 +177,7 @@ bool writeVelocityDistributionData(Writer& vlsvWriter,
    // set everything that is needed for writing in data such as the array's name, size, data type, etc..
    attribs.clear();
    attribs["mesh"] = "SpatialGrid"; // Usually the mesh is SpatialGrid
-   attribs["name"] = "avgs"; // Name of the velocity space distribution is written avgs
+   attribs["name"] = getObjectWrapper().particleSpecies[popID].name; // Name of the particle population
    const string datatype_avgs = "float";
    const uint64_t arraySize_avgs = totalBlocks;
    const uint64_t vectorSize_avgs = WID3; // There are 64 elements in every velocity block

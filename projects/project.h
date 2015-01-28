@@ -13,12 +13,17 @@ namespace projects {
          
          /*! Register parameters that should be read in. */
          static void addParameters();
+
          /*! Get the value that was read in. */
          virtual void getParameters();
+
+         virtual void setActivePopulation(const int& popID);
          
           /*! Initialize project. Can be used, e.g., to read in parameters from the input file. */
          virtual bool initialize();
 
+         bool initialized();
+         
          /*! set background field, should set it for all cells */
          virtual void setCellBackgroundField(SpatialCell* cell);
       
@@ -28,8 +33,6 @@ namespace projects {
          */
          void setCell(SpatialCell* cell);
          
-       
-         
       protected:
          /*! \brief Returns a list of blocks to loop through when initialising.
           * 
@@ -37,7 +40,7 @@ namespace projects {
           * This is very expensive and becomes prohibitive in cases where a large velocity space is needed with only
           * small portions actually containing something. Use with care.
           */
-         virtual std::vector<uint> findBlocksToInitialize(SpatialCell* cell);
+         virtual std::vector<vmesh::GlobalID> findBlocksToInitialize(SpatialCell* cell);
          
          /*! \brief Sets the distribution function in a cell.
           * 
@@ -45,7 +48,7 @@ namespace projects {
           * 
           * \sa findBlocksToInitialize
           */
-         void setVelocitySpace(SpatialCell* cell);
+         void setVelocitySpace(const int& popID,SpatialCell* cell);
          
          /** Calculate parameters for the given spatial cell at the given time.
           * Here you need to set values for the following array indices:
@@ -86,6 +89,9 @@ namespace projects {
         Get random number between 0 and 1.0. One should always first initialize the rng.
       */
          Real getRandomNumber();
+         
+         void printPopulations();
+         
       /*!  Set random seed (thread-safe). Seed is based on the seed read
         in from cfg + the seedModifier parameter
 
@@ -102,10 +108,19 @@ namespace projects {
       void setRandomCellSeed(const Real* const cellParams);
       
       private:
-         uint seed;
-         static char rngStateBuffer[256];
-         static random_data rngDataBuffer;
-#pragma omp threadprivate(rngStateBuffer,rngDataBuffer) 
+        uint seed;
+        static char rngStateBuffer[256];
+        static random_data rngDataBuffer;
+        #pragma omp threadprivate(rngStateBuffer,rngDataBuffer)
+
+        bool baseClassInitialized;                      /**< If true, base class has been initialized.*/
+        std::vector<std::string> popNames;              /**< Name(s) of particle population(s), read from configuration file.*/
+        std::vector<int> popCharges;                    /**< Particle population charge(s), read from configuration file.*/
+        std::vector<std::string> popMassUnits;          /**< Units in which particle population mass(es) were given,
+                                                         * read from configuration file.*/
+        std::vector<double> popMasses;                  /**< Particle population mass(es) in chosen units.
+                                                         * Read from configuration file.*/
+        std::vector<double> popSparseMinValue;          /**< Sparse mesh threshold value for the population.*/
    };
    
    Project* createProject();

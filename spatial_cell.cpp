@@ -15,7 +15,7 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 using namespace std;
 
 namespace spatial_cell {
-   Real SpatialCell::velocity_block_min_value = 0;    
+   int SpatialCell::activePopID = -1;
    uint64_t SpatialCell::mpi_transfer_type = 0;
    bool SpatialCell::mpiTransferAtSysBoundaries = false;
 
@@ -731,5 +731,31 @@ namespace spatial_cell {
 
       insertedBlocks.insert(newInserted.begin(),newInserted.end());
    }
-   
+
+   /** Set the particle species SpatialCell should use in functions that 
+    * use the velocity mesh.
+    * @param popID Population ID.
+    * @return If true, the new species is in use.*/
+   bool SpatialCell::setActivePopulation(const int& popID) {
+      if (popID >= populations.size()) return false;
+      activePopID    = popID;
+      vmesh          = populations[popID].vmesh;
+      blockContainer = populations[popID].blockContainer;
+      return true;
+   }
+
+   /** Initialize the velocity mesh of the chosen particle population.
+    * @param popID Population ID.
+    * @param v_limits Velocity mesh min/max limits.
+    * @param meshSize Number of blocks in each coordinate direction at base grid level.
+    * @param blockSize Number of velocity cells in a block per coordinate direction.
+    * @param f_min Sparse mesh threshold value.
+    * @param maxRefLevel Maximum allowed mesh refinement level.*/
+   bool SpatialCell::initialize_mesh(const int& popID,Real v_limits[6],unsigned int meshSize[3],
+                                     unsigned int blockSize[3],uint8_t maxRefLevel) {
+      bool success = vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::initialize(
+                                             v_limits,meshSize,blockSize,maxRefLevel);
+      return success;
+   }
+
 } // namespace spatial_cell
