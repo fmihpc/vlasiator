@@ -216,20 +216,6 @@ int main(int argn,char* args[]) {
    project->getParameters();
    sysBoundaries.getParameters();
    phiprof::stop("Read parameters");
-   
-/*   phiprof::start("Init project");
-   if (project->initialize() == false) {
-      if(myRank == MASTER_RANK) cerr << "(MAIN): Project did not initialize correctly!" << endl;
-      exit(1);
-   }
-   if (project->initialized() == false) {
-      if (myRank == MASTER_RANK) {
-         cerr << "(MAIN): Project base class was not initialized!" << endl;
-         cerr << "\t Call Project::initialize() in your project's initialize()-function." << endl;
-         exit(1);
-      }
-   }
-   phiprof::stop("Init project");*/
 
    // Init parallel logger:
    phiprof::start("open logFile & diagnostic");
@@ -332,13 +318,12 @@ int main(int argn,char* args[]) {
    return 1;
 
    if (P::dynamicTimestep && !P::isRestart) {
-      //compute vlasovsolver once with zero dt, this is to initialize
-      //per-cell dt limits. In restarts, we read in dt from file
+      // Run Vlasov solver once with zero dt to initialize
+      //per-cell dt limits. In restarts, we read the dt from file.
       phiprof::start("compute-dt");
       calculateSpatialTranslation(mpiGrid,0.0);
       calculateAcceleration(mpiGrid,0.0);
 
-      
       if(P::propagateField) {
          propagateFields(mpiGrid, sysBoundaries, 0.0, 1.0);
       }

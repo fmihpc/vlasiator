@@ -773,18 +773,14 @@ bool convertVelocityBlocks2(
                             const CellStructure& cellStruct,
                             const uint64_t& cellID,
                             const bool rotate,
-                            const bool plasmaFrame
+                            const bool plasmaFrame,
+                            vlsv::Writer& out,
+                            const std::string& popName
                            ) {
    bool success = true;
    
-   string outputMeshName = "VelGrid";
+   string outputMeshName = popName + "/VelGrid";
    int cellsInBlocksPerDirection = 4;
-
-   vlsv::Writer out;
-   if (out.open(fname,MPI_COMM_SELF,0) == false) {
-      cerr << "ERROR, failed to open output file with vlsv::Writer at " << __FILE__ << " " << __LINE__ << endl;
-      return false;
-   }
    
    // Transformation (translation + rotation) matrix, defaults 
    // to identity matrix. Modified if rotate and/or plasmaFrame are true.
@@ -817,7 +813,7 @@ bool convertVelocityBlocks2(
 
    // Read velocity block global IDs and write them out
    vector<uint64_t> blockIds;
-   if (vlsvReader.getBlockIds(cellID,blockIds) == false ) {
+   if (vlsvReader.getBlockIds(cellID,blockIds,popName) == false ) {
       cerr << "ERROR, FAILED TO READ BLOCK IDS AT " << __FILE__ << " " << __LINE__ << endl;
       return false;
    }
@@ -834,7 +830,7 @@ bool convertVelocityBlocks2(
 
    if (out.writeArray("MESH",attributes,blockIds.size(),1,&(blockIds[0])) == false) success = false;
    
-   attributes["name"] = "VelBlocks";
+   attributes["name"] = popName + "/VelBlocks";
    if (out.writeArray("MESH",attributes,blockIds.size(),1,&(blockIds[0])) == false) success = false;
    
    attributes.clear();
@@ -849,7 +845,7 @@ bool convertVelocityBlocks2(
         vector<uint64_t> ().swap(blockIds);
      }
    
-   attributes["mesh"] = "VelBlocks";
+   attributes["mesh"] = popName + "/VelBlocks";
    if (out.writeArray("MESH_DOMAIN_SIZES",attributes,1,2,domainSize) == false) success = false;
 
    // Make bounding box array
@@ -861,7 +857,7 @@ bool convertVelocityBlocks2(
    bbox[3] = 1;
    bbox[4] = 1;
    bbox[5] = 1;
-   attributes["mesh"] = "VelBlocks";
+   attributes["mesh"] = popName + "/VelBlocks";
    if (out.writeArray("MESH_BBOX",attributes,6,1,bbox) == false) success = false;
    
    bbox[3] = cellsInBlocksPerDirection;
@@ -914,7 +910,7 @@ bool convertVelocityBlocks2(
       else if (crd == 1) arrayName = "MESH_NODE_CRDS_Y";
       else if (crd == 2) arrayName = "MESH_NODE_CRDS_Z";
       
-      attributes["mesh"] = "VelBlocks";
+      attributes["mesh"] = popName + "/VelBlocks";
       if (out.writeArray(arrayName,attributes,coords.size(),1,&(coords[0])) == false) success = false;
    }
      {
@@ -927,22 +923,26 @@ bool convertVelocityBlocks2(
    if (out.writeArray("MESH_GHOST_LOCALIDS",attributes,domainSize[1],1,&dummy) == false) success = false;
    if (out.writeArray("MESH_GHOST_DOMAINS",attributes,domainSize[1],1,&dummy) == false) success = false;
    
-   attributes["mesh"] = "VelBlocks";
+   attributes["mesh"] = popName + "/VelBlocks";
    if (out.writeArray("MESH_GHOST_LOCALIDS",attributes,domainSize[1],1,&dummy) == false) success = false;
    if (out.writeArray("MESH_GHOST_DOMAINS",attributes,domainSize[1],1,&dummy) == false) success = false;
 
    // ***** Convert variables ***** //
    
-   //Get the name of variables:
+   // Get the names of velocity mesh variables. NOTE: This will find _all_ particle populations
+   // which are stored in their separate meshes.
    set<string> blockVarNames;
    const string attributeName = "name";
    if (vlsvReader.getUniqueAttributeValues( "BLOCKVARIABLE", attributeName, blockVarNames) == false) {
       cerr << "ERROR, FAILED TO GET UNIQUE ATTRIBUTE VALUES AT " << __FILE__ << " " << __LINE__ << endl;
    }
-   
+
    //Writing VLSV file
    if (success == true) {
       for (set<string>::iterator it = blockVarNames.begin(); it != blockVarNames.end(); ++it) {
+         // Only accept the population that belongs to this mesh
+         if (*it != popName) continue;
+
          list<pair<string, string> > attribs;
          attribs.push_back(make_pair("name", *it));
          attribs.push_back(make_pair("mesh", meshName));
@@ -975,7 +975,6 @@ bool convertVelocityBlocks2(
    }
    
    vlsvReader.clearCellsWithBlocks();
-   out.close();
    return success;   
 }
 
@@ -1106,7 +1105,39 @@ bool createCellIdList( T & vlsvReader, unordered_set<uint64_t> & cellIdList ) {
    return true;
 }
 
-
+bool convertVelocityBlocks2(
+                            newVlsv::Reader& vlsvReader,
+                            const string& fname,
+                            const string& meshName,
+                            const CellStructure& cellStruct,
+                            const uint64_t& cellID,
+                            const bool rotate,
+                            const bool plasmaFrame
+                           ) {
+   
+   set<string> popNames;
+   if (vlsvReader.getUniqueAttributeValues("BLOCKIDS","name",popNames) == false) {
+      cerr << "ERROR could not read population names in " << __FILE__ << ":" << __LINE__ << endl;
+      return false;
+   }
+   
+   vlsv::Writer out;
+   if (out.open(fname,MPI_COMM_SELF,0) == false) {
+      cerr << "ERROR, failed to open output file with vlsv::Writer at " << __FILE__ << " " << __LINE__ << endl;
+      return false;
+   }
+   
+   bool success = true;
+   for (set<string>::iterator it=popNames.begin(); it!=popNames.end(); ++it) {
+      cout << "Population " << *it << endl;
+      if (vlsvReader.setCellsWithBlocks(*it) == false) {success = false; continue;}
+      if (convertVelocityBlocks2(vlsvReader,fname,meshName,cellStruct,cellID,rotate,plasmaFrame,out,*it) == false) success = false;
+   }
+   
+   out.close();
+   
+   return success;
+}
 
 //Calculates the cell coordinates and outputs into *coordinates 
 //NOTE: ASSUMING COORDINATES IS NOT NULL AND IS OF SIZE 3
@@ -1686,12 +1717,13 @@ void extractDistribution( const string & fileName, const UserOptions & mainOptio
    const string tagName = "MESH";
    const string attributeName = "name";
    
+   // Get spatial mesh names
    if (vlsvReader.getMeshNames(meshNames) == false) {
       cout << "\t file '" << fileName << "' not compatible" << endl;
       vlsvReader.close();
       return;
    }
-
+   
    //Sets cell variables (for cell geometry) -- used in getCellIdFromCoords function
    CellStructure cellStruct;
    setCellVariables( vlsvReader, cellStruct );
@@ -1858,7 +1890,6 @@ void extractDistribution( const string & fileName, const UserOptions & mainOptio
             }
          }
       }
-
 
       // If velocity grid was not extracted, delete the file:
       if (velGridExtracted == false) {

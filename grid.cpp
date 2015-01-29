@@ -38,7 +38,7 @@ using namespace phiprof;
 
 extern Logger logFile, diagnostic;
 
-void initVelocityGridGeometry();
+void initVelocityGridGeometry(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 void initSpatialCellCoordinates(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 
@@ -51,9 +51,6 @@ void initializeGrid(
 ) {
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-   
-   // initialize velocity grid of spatial cells before creating cells in dccrg.initialize
-   initVelocityGridGeometry();
 
    // Init Zoltan:
    float zoltanVersion;
@@ -87,6 +84,9 @@ void initializeGrid(
       sysBoundaries.isBoundaryPeriodic(2)
    );
    mpiGrid.set_geometry(geom_params);
+   
+   // Init velocity mesh on all cells
+   initVelocityGridGeometry(mpiGrid);
    
    initializeStencils(mpiGrid);
 
@@ -199,7 +199,8 @@ void initializeGrid(
 }
 
 // initialize velocity grid of spatial cells before creating cells in dccrg.initialize
-void initVelocityGridGeometry(){
+void initVelocityGridGeometry(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid){
+   // Set the same velocity mesh limits for all populations
    Real meshLimits[6];
    meshLimits[0] = P::vxmin;
    meshLimits[1] = P::vxmax;
@@ -218,8 +219,19 @@ void initVelocityGridGeometry(){
    blockLength[1] = block_vy_length;
    blockLength[2] = block_vz_length;
 
-   for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
-      spatial_cell::SpatialCell::initialize_mesh(p,meshLimits,gridLength,blockLength,P::amrMaxVelocityRefLevel);
+   // Create velocity mesh on all local and remote cells on this process
+   vector<CellID> cells = mpiGrid.get_cells();
+   for (size_t c=0; c<cells.size(); ++c) {
+      for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
+         mpiGrid[cells[c]]->initialize_mesh(p,meshLimits,gridLength,blockLength,P::amrMaxVelocityRefLevel);
+      }
+   }
+
+   cells = mpiGrid.get_remote_cells_on_process_boundary();
+   for (size_t c=0; c<cells.size(); ++c) {
+      for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
+         mpiGrid[cells[c]]->initialize_mesh(p,meshLimits,gridLength,blockLength,P::amrMaxVelocityRefLevel);
+      }
    }
 }
 

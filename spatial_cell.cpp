@@ -19,6 +19,32 @@ namespace spatial_cell {
    uint64_t SpatialCell::mpi_transfer_type = 0;
    bool SpatialCell::mpiTransferAtSysBoundaries = false;
 
+   SpatialCell::SpatialCell() {
+      /*
+       Block list and cache always have room for all blocks
+       */
+      this->mpi_number_of_blocks=0;
+      this->sysBoundaryLayer=0; /*!< Default value, layer not yet initialized*/
+      for (unsigned int i=0; i<WID3; ++i) null_block_data[i] = 0.0;
+      
+      // reset spatial cell parameters
+      for (unsigned int i = 0; i < CellParams::N_SPATIAL_CELL_PARAMS; i++) {
+         this->parameters[i]=0.0;
+      }
+      
+      // reset spatial cell derivatives
+      for (unsigned int i = 0; i < fieldsolver::N_SPATIAL_CELL_DERIVATIVES; i++) {
+         this->derivatives[i]=0;
+      }
+      
+      // reset BVOL derivatives
+      for (unsigned int i = 0; i < bvolderivatives::N_BVOL_DERIVATIVES; i++) {
+         this->derivativesBVOL[i]=0;
+      }
+      //is transferred by default
+      this->mpiTransferEnabled=true;
+   }
+   
    /** Adds "important" and removes "unimportant" velocity blocks
     * to/from this cell.
     * 
@@ -737,11 +763,32 @@ namespace spatial_cell {
     * @param popID Population ID.
     * @return If true, the new species is in use.*/
    bool SpatialCell::setActivePopulation(const int& popID) {
-      if (popID >= populations.size()) return false;
+      #warning DEBUG remove me
+      if (popID >= populations.size()) {
+         cerr << "SC ERROR populations.size() incorrect!" << endl; exit(1);
+         return false;
+      }
+
+      if (activePopID >= 0) {
+         vmesh.swap(populations[activePopID].vmesh);
+         blockContainer.swap(populations[activePopID].blockContainer);
+      }
+
       activePopID    = popID;
-      vmesh          = populations[popID].vmesh;
-      blockContainer = populations[popID].blockContainer;
+      vmesh.swap(populations[activePopID].vmesh);
+      blockContainer.swap(populations[activePopID].blockContainer);
+      //printMeshSizes();
+
       return true;
+   }
+   
+   void SpatialCell::printMeshSizes() {
+      cerr << "SC::printMeshSizes:" << endl;
+      for (size_t p=0; p<populations.size(); ++p) {
+         cerr << "\t pop " << p << " " << populations[p].vmesh.size() << ' ' << populations[p].blockContainer.size() << endl;  
+      }
+      cerr << "\t current sizes  " << vmesh.size() << ' ' << blockContainer.size() << endl;
+      cerr << "\t temp sizes are " << vmeshTemp.size() << ' ' << blockContainerTemp.size() << endl;      
    }
 
    /** Initialize the velocity mesh of the chosen particle population.
@@ -755,6 +802,8 @@ namespace spatial_cell {
                                      unsigned int blockSize[3],uint8_t maxRefLevel) {
       bool success = vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::initialize(
                                              v_limits,meshSize,blockSize,maxRefLevel);
+
+      if (popID >= populations.size()) populations.push_back(Population());      
       return success;
    }
 

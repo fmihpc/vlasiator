@@ -122,9 +122,6 @@ bool writeVelocityDistributionData(const int& popID,Writer& vlsvWriter,
    map<string,string> attribs;
    attribs["name"] = getObjectWrapper().particleSpecies[popID].name;
    bool success=true;
-
-#warning TEST remove me
-   cerr << "writing population '" << attribs["name"] << "'" << endl;
    
    // Compute totalBlocks
    uint64_t totalBlocks = 0;
@@ -136,7 +133,7 @@ bool writeVelocityDistributionData(const int& popID,Writer& vlsvWriter,
       totalBlocks+=mpiGrid[cells[cell]]->get_number_of_velocity_blocks();
       blocksPerCell.push_back(mpiGrid[cells[cell]]->get_number_of_velocity_blocks());
    }
-
+   
    // The name of the mesh is "SpatialGrid"
    attribs["mesh"] = "SpatialGrid";
    const unsigned int vectorSize = 1;

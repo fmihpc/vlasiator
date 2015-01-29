@@ -183,7 +183,7 @@ namespace spatial_cell {
       static Real get_velocity_cell_vz_max(const vmesh::GlobalID velocity_block,const unsigned int velocity_cell);
       static const Real* get_velocity_grid_min_limits();
       static const Real* get_velocity_grid_max_limits();
-      static bool initialize_mesh(const int& popID,Real v_limits[6],unsigned int meshSize[3],unsigned int blockSize[3],uint8_t maxRefLevel);
+      bool initialize_mesh(const int& popID,Real v_limits[6],unsigned int meshSize[3],unsigned int blockSize[3],uint8_t maxRefLevel);
       static unsigned int invalid_block_index();
       static vmesh::GlobalID invalid_global_id();
       static vmesh::LocalID invalid_local_id();
@@ -193,6 +193,7 @@ namespace spatial_cell {
       void add_values(const vmesh::GlobalID& targetGID,
 		      std::unordered_map<vmesh::GlobalID,Realf[(WID+2)*(WID+2)*(WID+2)]>& sourceData);
 
+      void printMeshSizes();
       bool setActivePopulation(const int& popID);
 
       // Following functions adjust velocity blocks stored on the cell //
@@ -281,8 +282,8 @@ namespace spatial_cell {
       
       // Current velocity mesh and block container, initialized to point 
       // to the temporary mesh and temporary block container.
-      vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh    = vmeshTemp;
-      vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = blockContainerTemp;
+      vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID> vmesh;
+      vmesh::VelocityBlockContainer<vmesh::LocalID> blockContainer;
 
       std::vector<spatial_cell::Population> populations;                        /**< Particle population variables.*/
    };
@@ -1099,32 +1100,6 @@ namespace spatial_cell {
 
    inline vmesh::GlobalID SpatialCell::invalid_local_id() {
       return vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID();
-   }
-
-   inline SpatialCell::SpatialCell() {
-      /*
-       Block list and cache always have room for all blocks
-       */
-      this->mpi_number_of_blocks=0;
-      this->sysBoundaryLayer=0; /*!< Default value, layer not yet initialized*/
-      for (unsigned int i=0; i<WID3; ++i) null_block_data[i] = 0.0;
-      
-      // reset spatial cell parameters
-      for (unsigned int i = 0; i < CellParams::N_SPATIAL_CELL_PARAMS; i++) {
-         this->parameters[i]=0.0;
-      }
-      
-      // reset spatial cell derivatives
-      for (unsigned int i = 0; i < fieldsolver::N_SPATIAL_CELL_DERIVATIVES; i++) {
-         this->derivatives[i]=0;
-      }
-      
-      // reset BVOL derivatives
-      for (unsigned int i = 0; i < bvolderivatives::N_BVOL_DERIVATIVES; i++) {
-         this->derivativesBVOL[i]=0;
-      }
-      //is transferred by default
-      this->mpiTransferEnabled=true;
    }
    
    inline SpatialCell::SpatialCell(const SpatialCell& other):

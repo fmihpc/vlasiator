@@ -165,12 +165,14 @@ namespace projects {
    void Project::setCell(SpatialCell* cell) {
       // Set up cell parameters:
       this->calcCellParameters(&((*cell).parameters[0]), 0.0);
-      
+
       cell->parameters[CellParams::RHOLOSSADJUST] = 0.0;
       cell->parameters[CellParams::RHOLOSSVELBOUNDARY] = 0.0;
 
       for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
          this->setVelocitySpace(p,cell);
+         //cell->adjustSingleCellVelocityBlocks();
+         //cell->printMeshSizes();
       }
 
       //let's get rid of blocks not fulfilling the criteria here to save memory.
@@ -218,7 +220,7 @@ namespace projects {
       setActivePopulation(popID);
       cell->setActivePopulation(popID);
 
-      vector<uint> blocksToInitialize = this->findBlocksToInitialize(cell);
+      vector<vmesh::GlobalID> blocksToInitialize = this->findBlocksToInitialize(cell);
       Real* parameters = cell->get_block_parameters();
 
       creal x = cell->parameters[CellParams::XCRD];
