@@ -300,7 +300,7 @@ namespace SBC {
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID
    ) {
-      const CellID closestCell = getTheClosestNonsysboundaryCell(mpiGrid, cellID);
+      const CellID closestCell = getTheClosestNonsysboundaryCell(cellID);
       
       if(closestCell == INVALID_CELLID) {
          cerr << __FILE__ << ":" << __LINE__ << ": No closest cell found!" << endl;
@@ -318,7 +318,7 @@ namespace SBC {
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID
    ) {
-      const std::vector<CellID> closestCells = getAllClosestNonsysboundaryCells(mpiGrid, cellID);
+      const std::vector<CellID> closestCells = getAllClosestNonsysboundaryCells(cellID);
       
       if(closestCells[0] == INVALID_CELLID) {
          cerr << __FILE__ << ":" << __LINE__ << ": No closest cell found!" << endl;
@@ -498,7 +498,7 @@ namespace SBC {
       creal& nz
    ) {
       SpatialCell * cell = mpiGrid[cellID];
-      const std::vector<CellID> cellList = this->getAllClosestNonsysboundaryCells(mpiGrid, cellID);
+      const std::vector<CellID> cellList = this->getAllClosestNonsysboundaryCells(cellID);
       cuint numberOfCells = cellList.size();
       creal factor = 1.0 / convert<Real>(numberOfCells);
       
@@ -562,7 +562,7 @@ namespace SBC {
       creal& nz
    ) {
       SpatialCell * cell = mpiGrid[cellID];
-      const std::vector<CellID> cellList = this->getAllClosestNonsysboundaryCells(mpiGrid, cellID);
+      const std::vector<CellID> cellList = this->getAllClosestNonsysboundaryCells(cellID);
       cuint numberOfCells = cellList.size();
       creal factor = 1.0 / convert<Real>(numberOfCells);
       
@@ -610,79 +610,80 @@ namespace SBC {
          }
       }
    }
-   
+
+
+   /*! Updates the system boundary conditions after load balancing. This is called from e.g. the class SysBoundary.
+    * \param mpiGrid          DCCRG grid
+    * \param local_cells      Cells within this process
+    * \retval                 Returns true if the operation is successful
+    */
+   bool SysBoundaryCondition::updateSysBoundaryConditionsAfterLoadBalance(
+      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      const vector<uint64_t> & local_cells
+   ) {
+      // Loop over cellids
+      for( vector<uint64_t>::const_iterator it = local_cells.begin(); it != local_cells.end(); ++it ) {
+         const CellID cellId = *it;
+         std::vector<CellID> & closestCells = allClosestNonsysboundaryCells[cellId];
+         closestCells.clear();
+         uint dist = numeric_limits<uint>::max();
+      
+         // First iteration of search to determine closest distance
+         for(int i=-2; i<3; i++)
+            for(int j=-2; j<3; j++)
+               for(int k=-2; k<3; k++) {
+                  const CellID cell = getNeighbour(mpiGrid,cellId,i,j,k);
+                  if(cell != INVALID_CELLID) {
+                     if(mpiGrid[cell]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+                        cuint d2 = i*i+j*j+k*k;
+                        if(d2 < dist) {
+                           dist = d2;
+                        }
+                     }
+                  }
+               }
+         // Second iteration to record the cellIds of all cells at closest distance
+         for(int i=-2; i<3; i++)
+            for(int j=-2; j<3; j++)
+               for(int k=-2; k<3; k++) {
+                  const CellID cell = getNeighbour(mpiGrid,cellId,i,j,k);
+                  if(cell != INVALID_CELLID) {
+                     if(mpiGrid[cell]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+                        cuint d2 = i*i+j*j+k*k;
+                        if(d2 == dist) {
+                           closestCells.push_back(cell);
+                        }
+                     }
+                  }
+               }
+         if(closestCells.size() == 0) closestCells.push_back(INVALID_CELLID);
+      }
+      return true;
+   }
+
    /*! Get the cellID of the first closest cell of type NOT_SYSBOUNDARY found.
     * \return The cell index of that cell
     * \sa getAllClosestNonsysboundaryCells
     */
-   CellID SysBoundaryCondition::getTheClosestNonsysboundaryCell(
-      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   CellID & SysBoundaryCondition::getTheClosestNonsysboundaryCell(
       const CellID& cellID
    ) {
-      phiprof::start("getTheClosestNonsysboundaryCell");
-      CellID closestCell = INVALID_CELLID;
-      uint dist = numeric_limits<uint>::max();
-      
-      for(int i=-2; i<3; i++)
-         for(int j=-2; j<3; j++)
-            for(int k=-2; k<3; k++) {
-               const CellID cell = getNeighbour(mpiGrid,cellID,i,j,k);
-               if(cell != INVALID_CELLID) {
-                  if(mpiGrid[cell]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-                     cuint d2 =  i*i+j*j+k*k;
-                     if(d2 < dist) {
-                        dist = d2;
-                        closestCell = cell;
-                     }
-                  }
-               }
-            }
-      phiprof::stop("getTheClosestNonsysboundaryCell");
-      return closestCell;
+      cerr << "ug";
+      std::vector<CellID> & closestCells = allClosestNonsysboundaryCells.at(cellID);
+      cerr << "bug" << endl;
+      return closestCells.at(0);
    }
    
    /*! Get the cellIDs of all the closest cells of type NOT_SYSBOUNDARY.
     * \return The vector of cell indices of those cells
     * \sa getTheClosestNonsysboundaryCell
     */
-   std::vector<CellID> SysBoundaryCondition::getAllClosestNonsysboundaryCells(
-      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   std::vector<CellID> & SysBoundaryCondition::getAllClosestNonsysboundaryCells(
       const CellID& cellID
    ) {
-      phiprof::start("getAllClosestNonsysboundaryCells");
-      std::vector<CellID> closestCells;
-      uint dist = numeric_limits<uint>::max();
-      
-      // First iteration of search to determine closest distance
-      for(int i=-2; i<3; i++)
-         for(int j=-2; j<3; j++)
-            for(int k=-2; k<3; k++) {
-               const CellID cell = getNeighbour(mpiGrid,cellID,i,j,k);
-               if(cell != INVALID_CELLID) {
-                  if(mpiGrid[cell]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-                     cuint d2 = i*i+j*j+k*k;
-                     if(d2 < dist) {
-                        dist = d2;
-                     }
-                  }
-               }
-            }
-      // Second iteration to record the cellIDs of all cells at closest distance
-      for(int i=-2; i<3; i++)
-         for(int j=-2; j<3; j++)
-            for(int k=-2; k<3; k++) {
-               const CellID cell = getNeighbour(mpiGrid,cellID,i,j,k);
-               if(cell != INVALID_CELLID) {
-                  if(mpiGrid[cell]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-                     cuint d2 = i*i+j*j+k*k;
-                     if(d2 == dist) {
-                        closestCells.push_back(cell);
-                     }
-                  }
-               }
-            }
-      if(closestCells.size() == 0) closestCells.push_back(INVALID_CELLID);
-      phiprof::stop("getAllClosestNonsysboundaryCells");
+      cerr << "ug";
+      std::vector<CellID> & closestCells = allClosestNonsysboundaryCells.at(cellID);
+      cerr << "bug" << endl;
       return closestCells;
    }
    
