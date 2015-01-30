@@ -36,6 +36,9 @@ fi
 # loop over different test cases
 for run in ${run_tests[*]}
   do
+    echo "--------------------------------------------------------------------------------------------" 
+    echo "${test_name[$run]}  -  Verifying $bin against revision $reference_revision"    
+    echo "--------------------------------------------------------------------------------------------" 
 # directory for test results
   vlsv_dir=${run_dir}/${test_name[$run]}
   cfg_dir=${test_dir}/${test_name[$run]}
@@ -75,24 +78,42 @@ for run in ${run_tests[*]}
       result_dir=${reference_dir}/${reference_revision}/${test_name[$run]}
 
      #print header
-      echo "Verifying $bin against revision $reference_revision"
-      echo "--------------------------------------------------------------------------------------------" 
-      echo "      Test case            |    ref-perf     |   new-perf       |  speedup"
-      echo "--------------------------------------------------------------------------------------------" 
+
+
+      echo "------------------------------------------------------------"
+      echo " ref-perf     |   new-perf       |  speedup                |"
+      echo "------------------------------------------------------------"
       refPerf=$(grep "Propagate   " ${result_dir}/${comparison_phiprof[$run]}  |gawk '{print $12}')
       newPerf=$(grep "Propagate   " ${vlsv_dir}/${comparison_phiprof[$run]}  |gawk '{print $12}')
       speedup=$( echo $refPerf $newPerf |gawk '{print $2/$1}')
-      echo  "${test_name[$run]}       $refPerf        $newPerf         $speedup"
-      echo "--------------------------------------------------------------------------------------------" 
-      echo "      Test case            |     variable     |     absolute diff     |     relative diff | "
-      echo "--------------------------------------------------------------------------------------------" 
+      echo  "$refPerf        $newPerf         $speedup"
+      echo "------------------------------------------------------------"
+      echo "  variable     |     absolute diff     |     relative diff | "
+      echo "------------------------------------------------------------"
       for i in ${!variables_name[*]}
         do
-        relativeValue=$( vlsvdiff_DP ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables_name[$i]} ${variables_components[$i]} |grep "The relative 0-distance between both datasets" |gawk '{print $8}'  )
-        absoluteValue=$( vlsvdiff_DP ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables_name[$i]} ${variables_components[$i]} |grep "The absolute 0-distance between both datasets" |gawk '{print $8}'  )
+          if [ ! "${variables_name[$i]}" == "avgs" ]
+              then
+              relativeValue=$( vlsvdiff_DP ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables_name[$i]} ${variables_components[$i]} |grep "The relative 0-distance between both datasets" |gawk '{print $8}'  )
+              absoluteValue=$( vlsvdiff_DP ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables_name[$i]} ${variables_components[$i]} |grep "The absolute 0-distance between both datasets" |gawk '{print $8}'  )
 #print the results      
-        echo "${test_name[$run]}      ${variables_name[$i]}_${variables_components[$i]}                $absoluteValue                 $relativeValue    "
+              echo "${variables_name[$i]}_${variables_components[$i]}                $absoluteValue                 $relativeValue    "
+        fi
+
       done # loop over variables
+
+
+      for i in ${!variables_name[*]}
+        do
+          if [ "${variables_name[$i]}" == "avgs" ]
+              then
+              echo "--------------------------------------------------------------------------------------------" 
+              echo "   Distribution function diff                                                               "
+              echo "--------------------------------------------------------------------------------------------" 
+              vlsvdiff_DP ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} avgs 0
+          fi 
+      done # loop over variables
+
       echo "--------------------------------------------------------------------------------------------" 
   fi
 done # loop over tests
