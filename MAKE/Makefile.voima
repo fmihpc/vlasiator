@@ -34,7 +34,6 @@ SILO_VERSION = 4.9.1
 
 LIBRARY_PREFIX = /stornext/field/users/honkonen/libraries
 LIBRARY_PREFIX_B = /stornext/field/users/alfthan/libraries
-LIBRARY_PREFIX_C = /stornext/field/users/hannukse/libraries
 
 INC_EIGEN = -I$(LIBRARY_PREFIX_B)/eigen/eigen-eigen-2249f9c22fe8
 
@@ -61,8 +60,7 @@ INC_EIGEN = -I$(LIBRARY_PREFIX_B)/eigen/eigen-eigen-2249f9c22fe8
 #INC_DCCRG = -I$(LIBRARY_PREFIX_B)/dccrg-new
 
 #Official dccrg installation
-#INC_DCCRG = -I$(LIBRARY_PREFIX_B)/dccrg
-INC_DCCRG = -I$(LIBRARY_PREFIX_C)/dccrg
+INC_DCCRG = -I$(LIBRARY_PREFIX_B)/dccrg
 # INC_DCCRG = -Idccrg
 
 
