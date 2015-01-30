@@ -35,36 +35,6 @@ Copyright 2010, 2011, 2012, 2013, 2014 Finnish Meteorological Institute
 #include "fs_common.h"
 #include "derivatives.hpp"
 #include "fs_limiters.h"
-#include <cstdlib>
-
-	/**
-	 * C++ version 0.4 char* style "itoa":
-	 * Written by Lukás Chmela
-	 * Released under GPLv3.
-	 */
-	char* itoa(int value, char* result, int base) {
-		// check that the base if valid
-		if (base < 2 || base > 36) { *result = '\0'; return result; }
-	
-		char* ptr = result, *ptr1 = result, tmp_char;
-		int tmp_value;
-	
-		do {
-			tmp_value = value;
-			value /= base;
-			*ptr++ = "zyxwvutsrqponmlkjihgfedcba9876543210123456789abcdefghijklmnopqrstuvwxyz" [35 + (tmp_value - value * base)];
-		} while ( value );
-	
-		// Apply negative sign
-		if (tmp_value < 0) *ptr++ = '-';
-		*ptr-- = '\0';
-		while(ptr1 < ptr) {
-			tmp_char = *ptr;
-			*ptr--= *ptr1;
-			*ptr1++ = tmp_char;
-		}
-		return result;
-	}
 
 static void calculateSysBoundaryFlags(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
@@ -279,94 +249,29 @@ bool propagateFields(
       }
       calculateUpwindedElectricFieldSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
 # else
-int timer;
-char str[40];
-timer=phiprof::initializeTimer(itoa(__LINE__, str, 10),"MPI");
-phiprof::start(timer);
-MPI_Barrier(MPI_COMM_WORLD);
-phiprof::stop(timer);
-
       propagateMagneticFieldSimple(mpiGrid, sysBoundaries, dt, localCells, RK_ORDER2_STEP1);
-timer=phiprof::initializeTimer(itoa(__LINE__, str, 10),"MPI");
-phiprof::start(timer);
-MPI_Barrier(MPI_COMM_WORLD);
-phiprof::stop(timer);
       calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP1, true);
-timer=phiprof::initializeTimer(itoa(__LINE__, str, 10),"MPI");
-phiprof::start(timer);
-MPI_Barrier(MPI_COMM_WORLD);
-phiprof::stop(timer);
       if(P::ohmHallTerm > 0) {
          calculateHallTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP1);
       }
-timer=phiprof::initializeTimer(itoa(__LINE__, str, 10),"MPI");
-phiprof::start(timer);
-MPI_Barrier(MPI_COMM_WORLD);
-phiprof::stop(timer);
       calculateUpwindedElectricFieldSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP1);
-timer=phiprof::initializeTimer(itoa(__LINE__, str, 10),"MPI");
-phiprof::start(timer);
-MPI_Barrier(MPI_COMM_WORLD);
-phiprof::stop(timer);
       
       propagateMagneticFieldSimple(mpiGrid, sysBoundaries, dt, localCells, RK_ORDER2_STEP2);
-timer=phiprof::initializeTimer(itoa(__LINE__, str, 10),"MPI");
-phiprof::start(timer);
-MPI_Barrier(MPI_COMM_WORLD);
-phiprof::stop(timer);
       calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP2, true);
-timer=phiprof::initializeTimer(itoa(__LINE__, str, 10),"MPI");
-phiprof::start(timer);
-MPI_Barrier(MPI_COMM_WORLD);
-phiprof::stop(timer);
       if(P::ohmHallTerm > 0) {
          calculateHallTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP2);
       }
-timer=phiprof::initializeTimer(itoa(__LINE__, str, 10),"MPI");
-phiprof::start(timer);
-MPI_Barrier(MPI_COMM_WORLD);
-phiprof::stop(timer);
       calculateUpwindedElectricFieldSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP2);
-timer=phiprof::initializeTimer(itoa(__LINE__, str, 10),"MPI");
-phiprof::start(timer);
-MPI_Barrier(MPI_COMM_WORLD);
-phiprof::stop(timer);
 # endif
    } else {
       for (uint i=0; i<subcycles; i++) {
-int timer;
-char str[40];
-timer=phiprof::initializeTimer(itoa(__LINE__, str, 10),"MPI");
-phiprof::start(timer);
-MPI_Barrier(MPI_COMM_WORLD);
-phiprof::stop(timer);
          propagateMagneticFieldSimple(mpiGrid, sysBoundaries, dt/convert<Real>(subcycles), localCells, RK_ORDER1);
-timer=phiprof::initializeTimer(itoa(__LINE__, str, 10),"MPI");
-phiprof::start(timer);
-MPI_Barrier(MPI_COMM_WORLD);
-phiprof::stop(timer);
          // If we are at the first subcycle we need to update the derivatives of the moments, otherwise only B changed and those derivatives need to be updated.
-timer=phiprof::initializeTimer(itoa(__LINE__, str, 10),"MPI");
-phiprof::start(timer);
-MPI_Barrier(MPI_COMM_WORLD);
-phiprof::stop(timer);
          calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1, (i==0));
-timer=phiprof::initializeTimer(itoa(__LINE__, str, 10),"MPI");
-phiprof::start(timer);
-MPI_Barrier(MPI_COMM_WORLD);
-phiprof::stop(timer);
          if(P::ohmHallTerm > 0) {
             calculateHallTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
-timer=phiprof::initializeTimer(itoa(__LINE__, str, 10),"MPI");
-phiprof::start(timer);
-MPI_Barrier(MPI_COMM_WORLD);
-phiprof::stop(timer);
          }
          calculateUpwindedElectricFieldSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
-timer=phiprof::initializeTimer(itoa(__LINE__, str, 10),"MPI");
-phiprof::start(timer);
-MPI_Barrier(MPI_COMM_WORLD);
-phiprof::stop(timer);
       }
    }
    
