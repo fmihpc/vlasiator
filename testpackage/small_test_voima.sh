@@ -37,7 +37,7 @@ create_verification_files=0
 #folder for all reference data 
 reference_dir="/stornext/field/vlasiator/test_package_data"
 #compare agains which revision
-reference_revision="1192488573540c2afbfac4db7545a2f17bec99e6"
+reference_revision="ea681572ddd17ae199e128bc243ac750ee010c8f__DACC_SEMILAG_PQM__DTRANS_SEMILAG_PPM__DDP__DDPF"
 
 # Define test
 source small_test_definitions.sh
