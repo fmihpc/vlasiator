@@ -570,10 +570,6 @@ int main(int argn,char* args[]) {
          addTimedBarrier("barrier-boundary-conditions");
       }
       
-      phiprof::start("Barrier");
-      MPI_Barrier(MPI_COMM_WORLD);
-      phiprof::stop("Barrier");
-
       // Propagate fields forward in time by dt. This needs to be done before the
       // moments for t + dt are computed (field uses t and t+0.5dt)
       if (P::propagateField) {
@@ -583,10 +579,6 @@ int main(int argn,char* args[]) {
          addTimedBarrier("barrier-after-field-solver");
       }
 
-      phiprof::start("Barrier");
-      MPI_Barrier(MPI_COMM_WORLD);
-      phiprof::stop("Barrier");
-      
       phiprof::start("Velocity-space");
       if( P::propagateVlasovAcceleration ) {
          calculateAcceleration(mpiGrid,P::dt);
