@@ -15,15 +15,13 @@ run_dir="run"
 test_dir="tests"
 
 # choose tests to run
-run_tests=( 1 2 )
+run_tests=( 1 )
 
 # test 1
-test_name[1]="Fluctuations_small"
-comparison_vlsv[1]="grid.0000010.vlsv"
-
-# test 2
-test_name[2]="Magnetosphere_small"
-comparison_vlsv[2]="bulk.0000010.vlsv"
+test_name[1]="acctest_1_maxw_500k_30kms_1deg"
+comparison_vlsv[1]="fullf.0000001.vlsv"
+#only one process does anything -> in _1 phiprof here
+comparison_phiprof[1]="phiprof_full_1.txt"
 
 
 # define here the variables you want to be tested
