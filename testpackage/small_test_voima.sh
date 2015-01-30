@@ -30,7 +30,7 @@ base_dir=${PBS_O_WORKDIR:=$(pwd)}
 cd  $base_dir
 
 #If 1, the reference vlsv files are generated
-# if 0 then we check the validity against the reference
+# if 0 then we check the v1
 create_verification_files=0
 
 

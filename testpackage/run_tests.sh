@@ -64,6 +64,12 @@ do
     if [ $create_verification_files == 1 ]
     then
         result_dir=${reference_dir}/${reference_revision}/${test_name[$run]}
+        if [ -e  $result_dir ]
+        then
+            echo "remove old results"
+            rm -rf $result_dir
+        fi
+
         mkdir -p $result_dir
         cp * $result_dir      
     fi
