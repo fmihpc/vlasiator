@@ -668,9 +668,7 @@ namespace SBC {
    CellID & SysBoundaryCondition::getTheClosestNonsysboundaryCell(
       const CellID& cellID
    ) {
-      if( allClosestNonsysboundaryCells.find(cellID) == allClosestNonsysboundaryCells.end() ) { cerr << __LINE__ << endl; exit(0); }
       std::vector<CellID> & closestCells = allClosestNonsysboundaryCells.at(cellID);
-      if( closestCells.size() == 0 ) { cerr << __LINE__ << endl; }
       return closestCells.at(0);
    }
    
@@ -681,7 +679,6 @@ namespace SBC {
    std::vector<CellID> & SysBoundaryCondition::getAllClosestNonsysboundaryCells(
       const CellID& cellID
    ) {
-      if( allClosestNonsysboundaryCells.find(cellID) == allClosestNonsysboundaryCells.end() ) { cerr << __LINE__ << endl; exit(0); }
       phiprof::start("getAllClosestNonsysboundaryCells");
       std::vector<CellID> & closestCells = allClosestNonsysboundaryCells.at(cellID);
       phiprof::stop("getAllClosestNonsysboundaryCells");
