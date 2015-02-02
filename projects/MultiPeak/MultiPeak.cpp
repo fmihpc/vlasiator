@@ -30,6 +30,8 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 
 using namespace std;
 
+vector<Real> projects::MultiPeak::rhoRnd;
+
 namespace projects {
    MultiPeak::MultiPeak(): TriAxisSearch() { }
    MultiPeak::~MultiPeak() { }
@@ -106,10 +108,6 @@ namespace projects {
       RP::get("MultiPeak.lambda", this->lambda);
       RP::get("MultiPeak.nVelocitySamples", this->nVelocitySamples);
       
-      // initialize that vector to avoid segmentation faults
-      for(uint i=0; i<this->numberOfPopulations; i++) {
-         this->rhoRnd.push_back(0.0);
-      }
    }
 
    Real MultiPeak::getDistribValue(creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
@@ -181,9 +179,11 @@ namespace projects {
       cellParams[CellParams::PERBX] += this->magXPertAbsAmp * (0.5 - getRandomNumber());
       cellParams[CellParams::PERBY] += this->magYPertAbsAmp * (0.5 - getRandomNumber());
       cellParams[CellParams::PERBZ] += this->magZPertAbsAmp * (0.5 - getRandomNumber());
-      
+
+
+      rhoRnd.clear();
       for(uint i=0; i<this->numberOfPopulations; i++) {
-         this->rhoRnd[i] = this->rho[i] + this->rhoPertAbsAmp[i] * (0.5 - getRandomNumber());
+         this->rhoRnd.push_back(this->rho[i] + this->rhoPertAbsAmp[i] * (0.5 - getRandomNumber()));
       }
    }
 
