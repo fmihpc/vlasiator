@@ -439,11 +439,13 @@ bool getBoundaryCellList(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometr
   */
 bool SysBoundary::updateSysBoundariesAfterLoadBalance(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
    phiprof::start("getAllClosestNonsysboundaryCells");
-   vector<uint64_t> local_cells_on_process_boundary = mpiGrid.get_local_cells_on_process_boundary();
+   vector<uint64_t> local_cells_on_boundary;
+   getBoundaryCellList(mpiGrid, mpiGrid.get_cells(), local_cells_on_boundary);
    // Loop over sysboundaries:
    for( std::list<SBC::SysBoundaryCondition*>::iterator it = sysBoundaries.begin(); it != sysBoundaries.end(); ++it ) {
-      (*it)->updateSysBoundaryConditionsAfterLoadBalance(mpiGrid, local_cells_on_process_boundary);
+      (*it)->updateSysBoundaryConditionsAfterLoadBalance(mpiGrid, local_cells_on_boundary);
    }
+
    phiprof::stop("getAllClosestNonsysboundaryCells");
    return true;
 }
