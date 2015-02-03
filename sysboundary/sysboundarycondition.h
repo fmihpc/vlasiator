@@ -104,7 +104,11 @@ namespace SBC {
          virtual uint getIndex() const;
          uint getPrecedence() const;
          bool isDynamic() const;
-      
+
+         bool updateSysBoundaryConditionsAfterLoadBalance(
+            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+            const std::vector<CellID> & local_cells_on_boundary
+         );
       protected:
          void determineFace(
             bool* isThisCellOnAFace,
@@ -121,12 +125,10 @@ namespace SBC {
             std::vector<CellID> cellList,
             SpatialCell *to
          );
-         CellID getTheClosestNonsysboundaryCell(
-            const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+         CellID & getTheClosestNonsysboundaryCell(
             const CellID& cellID
          );
-         std::vector<CellID> getAllClosestNonsysboundaryCells(
-            const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+         std::vector<CellID> & getAllClosestNonsysboundaryCells(
             const CellID& cellID
          );
          void vlasovBoundaryCopyFromTheClosestNbr(
@@ -156,6 +158,8 @@ namespace SBC {
          uint precedence;
          /*! Is the boundary condition dynamic in time or not. */
          bool isThisDynamic;
+         /*! Map of closest nonsysboundarycells. Used in getAllClosestNonsysboundaryCells. */
+         std::unordered_map<CellID, std::vector<CellID>> allClosestNonsysboundaryCells;
    };
 } // namespace SBC
 

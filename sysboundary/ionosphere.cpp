@@ -459,7 +459,7 @@ namespace SBC {
       creal& dt,
       cuint& component
    ) {
-      std::vector<CellID> closestCells = getAllClosestNonsysboundaryCells(mpiGrid, cellID);
+      std::vector<CellID> closestCells = getAllClosestNonsysboundaryCells(cellID);
       if (closestCells.size() == 1 && closestCells[0] == INVALID_CELLID) {
          std::cerr << __FILE__ << ":" << __LINE__ << ":" << "No closest cells found!" << std::endl;
          abort();
