@@ -250,7 +250,6 @@ namespace spatial_cell {
       uint64_t ioLocalCellId;                                                 /**< Local cell ID used for IO, not needed elsewhere 
                                                                                * and thus not being kept up-to-date.*/
       vmesh::LocalID mpi_number_of_blocks;                                    /**< Number of blocks in mpi_velocity_block_list.*/
-      std::vector<vmesh::GlobalID>  mpi_velocity_block_list;                  /**< This list is used for communicating a velocity block list over MPI.*/
       Realf* neighbor_block_data;                                             /**< Pointers for translation operator. We can point to neighbor
                                                                                * cell block data. We do not allocate memory for the pointer.*/
       vmesh::LocalID neighbor_number_of_blocks;
@@ -731,7 +730,7 @@ namespace spatial_cell {
             N_blocks += populations[activePopID].blockContainer.size();
         return N_blocks;
     }
-   
+
    inline const unsigned int* SpatialCell::get_velocity_grid_length(const uint8_t& refLevel) {
       return vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::getGridLength(refLevel);
    }
@@ -1326,7 +1325,7 @@ namespace spatial_cell {
         }
         
         // use the swap trick to force c++ to release the memory held by the vectors & maps
-        std::vector<vmesh::GlobalID>().swap(this->mpi_velocity_block_list);
+        //std::vector<vmesh::GlobalID>().swap(this->mpi_velocity_block_list);
    }
 
    /*!
@@ -1339,7 +1338,7 @@ namespace spatial_cell {
       size += vmeshTemp.sizeInBytes();
       size += blockContainerTemp.sizeInBytes();
       size += 2 * WID3 * sizeof(Realf);
-      size += mpi_velocity_block_list.size() * sizeof(vmesh::GlobalID);
+      //size += mpi_velocity_block_list.size() * sizeof(vmesh::GlobalID);
       size += velocity_block_with_content_list.size() * sizeof(vmesh::GlobalID);
       size += velocity_block_with_no_content_list.size() * sizeof(vmesh::GlobalID);
       size += CellParams::N_SPATIAL_CELL_PARAMS * sizeof(Real);
@@ -1365,7 +1364,7 @@ namespace spatial_cell {
       capacity += vmeshTemp.capacityInBytes();
       capacity += blockContainerTemp.capacityInBytes();
       capacity += 2 * WID3 * sizeof(Realf);
-      capacity += mpi_velocity_block_list.capacity()  * sizeof(vmesh::GlobalID);
+      //capacity += mpi_velocity_block_list.capacity()  * sizeof(vmesh::GlobalID);
       capacity += velocity_block_with_content_list.capacity()  * sizeof(vmesh::GlobalID);
       capacity += velocity_block_with_no_content_list.capacity()  * sizeof(vmesh::GlobalID);
       capacity += CellParams::N_SPATIAL_CELL_PARAMS * sizeof(Real);

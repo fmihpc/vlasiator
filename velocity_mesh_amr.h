@@ -47,6 +47,7 @@ namespace vmesh {
       static GID getGlobalID(const uint8_t& refLevel,LID indices[3]);
       static GID getGlobalID(const uint32_t& refLevel,const LID& i,const LID& j,const LID& k);
       static GID getGlobalIndexOffset(const uint8_t& refLevel);
+      std::vector<GID>& getGrid();
       static const LID* getGridLength(const uint8_t& refLevel);
       static void getIndices(const GID& globalID,uint8_t& refLevel,LID& i,LID& j,LID& k);
       LID getLocalID(const GID& globalID) const;
@@ -74,7 +75,9 @@ namespace vmesh {
       bool push_back(const GID& globalID);
       uint8_t push_back(const std::vector<vmesh::GlobalID>& blocks);
       bool refine(const GID& globalID,std::set<GID>& erasedBlocks,std::map<GID,LID>& insertedBlocks);
+      void setGrid();
       bool setGrid(const std::vector<GID>& globalIDs);
+      void setNewSize(const LID& newSize);
       size_t size() const;
       size_t sizeInBytes() const;
       void swap(VelocityMesh& vm);
@@ -517,6 +520,11 @@ namespace vmesh {
    template<typename GID,typename LID> inline
    GID VelocityMesh<GID,LID>::getGlobalIndexOffset(const uint8_t& refLevel) {
       return offsets[refLevel];
+   }
+   
+   template<typename GID,typename LID> inline
+   std::vector<GID>& VelocityMesh<GID,LID>::getGrid() {
+      return localToGlobalMap;
    }
    
    template<typename GID,typename LID> inline
@@ -1052,6 +1060,14 @@ namespace vmesh {
    }
 
    template<typename GID,typename LID> inline
+   void VelocityMesh<GID,LID>::setGrid() {
+      globalToLocalMap.clear();
+      for (size_t i=0; i<localToGlobalMap.size(); ++i) {
+         globalToLocalMap.insert(std::make_pair(localToGlobalMap[i],i));
+      }
+   }
+   
+   template<typename GID,typename LID> inline
    bool VelocityMesh<GID,LID>::setGrid(const std::vector<GID>& globalIDs) {
       globalToLocalMap.clear();
       for (LID i=0; i<globalIDs.size(); ++i) {
@@ -1062,8 +1078,13 @@ namespace vmesh {
    }
    
    template<typename GID,typename LID> inline
+   void VelocityMesh<GID,LID>::setNewSize(const LID& newSize) {
+      localToGlobalMap.resize(newSize);
+   }
+   
+   template<typename GID,typename LID> inline
    size_t VelocityMesh<GID,LID>::size() const {
-      return globalToLocalMap.size();
+      return localToGlobalMap.size();
    }
    
    template<typename GID,typename LID> inline

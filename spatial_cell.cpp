@@ -47,7 +47,6 @@ namespace spatial_cell {
       initialized(other.initialized),
       mpiTransferEnabled(other.mpiTransferEnabled),
       mpi_number_of_blocks(other.mpi_number_of_blocks),
-      mpi_velocity_block_list(other.mpi_velocity_block_list),
       velocity_block_with_content_list(other.velocity_block_with_content_list),
       velocity_block_with_no_content_list(other.velocity_block_with_no_content_list),
       sysBoundaryFlag(other.sysBoundaryFlag),
@@ -329,13 +328,12 @@ namespace spatial_cell {
     * @param neighborhood Neighborhood ID.
     * @return MPI datatype that transfers the requested data.*/
    boost::tuple<void*, int, MPI_Datatype> SpatialCell::get_mpi_datatype(
-      const CellID cellID,
-      const int sender_rank,
-      const int receiver_rank,
-      const bool receiving,
-      const int neighborhood
+                                                                        const CellID cellID,
+                                                                        const int sender_rank,
+                                                                        const int receiver_rank,
+                                                                        const bool receiving,
+                                                                        const int neighborhood
       ) {
-      
       std::vector<MPI_Aint> displacements;
       std::vector<int> block_lengths;
       vmesh::LocalID block_index = 0;
@@ -357,21 +355,15 @@ namespace spatial_cell {
             // STAGE1 should have been done, otherwise we have problems...
             if (receiving) {
                //mpi_number_of_blocks transferred earlier
-               this->mpi_velocity_block_list.resize(this->mpi_number_of_blocks);
+               populations[activePopID].vmesh.setNewSize(this->mpi_number_of_blocks);
             } else {
                 //resize to correct size (it will avoid reallocation if it is big enough, I assume)
-                this->mpi_number_of_blocks = populations[activePopID].vmesh.size();
-                this->mpi_velocity_block_list.resize(populations[activePopID].vmesh.size());
-               
-                //copy values if this is the send operation
-                for (vmesh::LocalID i=0; i<populations[activePopID].vmesh.size(); ++i) {
-                    this->mpi_velocity_block_list[i] = populations[activePopID].vmesh.getGlobalID(i);
-                }
+                this->mpi_number_of_blocks = populations[activePopID].blockContainer.size();
             }
 
             // send velocity block list
-            displacements.push_back((uint8_t*) &(this->mpi_velocity_block_list[0]) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(vmesh::GlobalID) * this->mpi_number_of_blocks);
+            displacements.push_back((uint8_t*) &(populations[activePopID].vmesh.getGrid()[0]) - (uint8_t*) this);
+            block_lengths.push_back(sizeof(vmesh::GlobalID) * populations[activePopID].vmesh.size());
          }
          
          if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_WITH_CONTENT_STAGE1) !=0) {
@@ -956,8 +948,8 @@ namespace spatial_cell {
     * have not been adapted to this new list. Here we re-initialize
     * the cell with empty blocks based on the new list.*/
    void SpatialCell::prepare_to_receive_blocks() {
-      populations[activePopID].vmesh.setGrid(mpi_velocity_block_list);
-      populations[activePopID].blockContainer.setSize(mpi_velocity_block_list.size());
+      populations[activePopID].vmesh.setGrid();
+      populations[activePopID].blockContainer.setSize(populations[activePopID].vmesh.size());
 
       // Set velocity block parameters:
       for (vmesh::LocalID blockLID=0; blockLID<size(); ++blockLID) {
