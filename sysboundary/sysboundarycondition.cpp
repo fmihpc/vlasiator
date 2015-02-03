@@ -619,10 +619,10 @@ namespace SBC {
     */
    bool SysBoundaryCondition::updateSysBoundaryConditionsAfterLoadBalance(
       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const vector<uint64_t> & local_cells_on_process_boundary
+      const vector<CellID> & local_cells_on_boundary
    ) {
       // Loop over cellids
-      for( vector<uint64_t>::const_iterator it = local_cells_on_process_boundary.begin(); it != local_cells_on_process_boundary.end(); ++it ) {
+      for( vector<CellID>::const_iterator it = local_cells_on_boundary.begin(); it != local_cells_on_boundary.end(); ++it ) {
          const CellID cellId = *it;
          std::vector<CellID> & closestCells = allClosestNonsysboundaryCells[cellId];
          closestCells.clear();

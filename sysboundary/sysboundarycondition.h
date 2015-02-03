@@ -107,7 +107,7 @@ namespace SBC {
 
          bool updateSysBoundaryConditionsAfterLoadBalance(
             dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-            const std::vector<uint64_t> & local_cells_on_process_boundary
+            const std::vector<CellID> & local_cells_on_boundary
          );
       protected:
          void determineFace(
