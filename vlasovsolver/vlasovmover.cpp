@@ -1,17 +1,16 @@
 /*
   This file is part of Vlasiator.
 
-  Copyright 2010, 2011, 2012, 2013, 2014 Finnish Meteorological Institute
+  Copyright 2010-2015 Finnish Meteorological Institute
 
 */
-
 
 #include <cstdlib>
 #include <iostream>
 #include <vector>
 
 #ifdef _OPENMP
-#include "omp.h"
+   #include "omp.h"
 #endif
 #include <zoltan.h>
 
@@ -21,8 +20,6 @@
 #include "cpu_moments.h"
 #include "cpu_acc_semilag.hpp"
 #include "cpu_trans_map.hpp"
-
-
 
 #include <stdint.h>
 #include <dccrg.hpp>
@@ -53,39 +50,17 @@ creal EPSILON = 1.0e-25;
   Meteorological Society 138.667 (2012): 1640-1651.
 
 */
-
 void calculateSpatialTranslation(
-   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   creal dt
-) {
-   const size_t popID = 0;
-   typedef Parameters P;
+        dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,creal dt,
+        const std::vector<CellID>& local_propagated_cells,
+        const std::vector<CellID>& local_target_cells,
+        const std::vector<CellID>& remoteTargetCellsx,
+        const std::vector<CellID>& remoteTargetCellsy,
+        const std::vector<CellID>& remoteTargetCellsz) {
+   
    int trans_timer;
-   
-   
-   phiprof::start("semilag-trans");
-   phiprof::start("compute_cell_lists");
-   const vector<CellID> localCells = mpiGrid.get_cells();
-   const vector<CellID> remoteTargetCellsx = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID);
-   const vector<CellID> remoteTargetCellsy = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID);
-   const vector<CellID> remoteTargetCellsz = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID);
-
-   vector<CellID> local_propagated_cells;
-   vector<CellID> local_target_cells;
-   for (size_t c=0; c<localCells.size(); ++c) {
-      if(do_translate_cell(mpiGrid[localCells[c]])){
-         local_propagated_cells.push_back(localCells[c]);
-      }
-   }
-   for (size_t c=0; c<localCells.size(); ++c) {
-      if(mpiGrid[localCells[c]]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-         local_target_cells.push_back(localCells[c]);
-      }
-   }
-   phiprof::stop("compute_cell_lists");
-   
    bool localTargetGridGenerated = false;
-
+   
    // ------------- SLICE - map dist function in Z --------------- //
    if(P::zcells_ini > 1 ){
       trans_timer=phiprof::initializeTimer("transfer-stencil-data-z","MPI");
@@ -108,7 +83,7 @@ void calculateSpatialTranslation(
       phiprof::stop(trans_timer);
       
       phiprof::start("compute-mapping-z");
-#pragma omp parallel
+      #pragma omp parallel
       {
          for (size_t c=0; c<local_propagated_cells.size(); ++c) {
             trans_map_1d(mpiGrid,local_propagated_cells[c], 2, dt); // map along z//
@@ -131,7 +106,7 @@ void calculateSpatialTranslation(
       zeroTargetGrid(mpiGrid, local_target_cells);
    }
 
-// ------------- SLICE - map dist function in X --------------- //
+   // ------------- SLICE - map dist function in X --------------- //
    if(P::xcells_ini > 1 ){
       trans_timer=phiprof::initializeTimer("transfer-stencil-data-x","MPI");
       phiprof::start(trans_timer);
@@ -170,10 +145,9 @@ void calculateSpatialTranslation(
       clearTargetGrid(mpiGrid,remoteTargetCellsx);
       swapTargetSourceGrid(mpiGrid, local_target_cells);
       zeroTargetGrid(mpiGrid, local_target_cells);
-
    }
    
-// ------------- SLICE - map dist function in Y --------------- //
+   // ------------- SLICE - map dist function in Y --------------- //
    if(P::ycells_ini > 1 ){
       trans_timer=phiprof::initializeTimer("transfer-stencil-data-y","MPI");
       phiprof::start(trans_timer);
@@ -192,7 +166,7 @@ void calculateSpatialTranslation(
       phiprof::stop(trans_timer);
 
       phiprof::start("compute-mapping-y");
-#pragma omp parallel
+      #pragma omp parallel
       {
          for (size_t c=0; c<local_propagated_cells.size(); ++c) {
             trans_map_1d(mpiGrid,local_propagated_cells[c], 1, dt); // map along y//
@@ -214,18 +188,51 @@ void calculateSpatialTranslation(
       swapTargetSourceGrid(mpiGrid, local_target_cells);
    }
 
-   
    clearTargetGrid(mpiGrid,local_target_cells);
-
+}
    
+void calculateSpatialTranslation(
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   creal dt
+) {
+   const size_t popID = 0;
+   typedef Parameters P;
 
+   phiprof::start("semilag-trans");
 
+   // Calculate propagated cells, these are the same for all particle populations
+   phiprof::start("compute_cell_lists");
+   const vector<CellID> localCells = mpiGrid.get_cells();
+   const vector<CellID> remoteTargetCellsx = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID);
+   const vector<CellID> remoteTargetCellsy = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID);
+   const vector<CellID> remoteTargetCellsz = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID);
 
-   
+   vector<CellID> local_propagated_cells;
+   vector<CellID> local_target_cells;
+   for (size_t c=0; c<localCells.size(); ++c) {
+      if(do_translate_cell(mpiGrid[localCells[c]])){
+         local_propagated_cells.push_back(localCells[c]);
+      }
+   }
+   for (size_t c=0; c<localCells.size(); ++c) {
+      if(mpiGrid[localCells[c]]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+         local_target_cells.push_back(localCells[c]);
+      }
+   }
+   phiprof::stop("compute_cell_lists");
+
+   // Propagate all particle species
+   for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
+
+      calculateSpatialTranslation(mpiGrid,dt,local_propagated_cells,local_target_cells,
+              remoteTargetCellsx,remoteTargetCellsy,remoteTargetCellsz);
+      
+   }
+
    // Mapping complete, update moments //
    phiprof::start("compute-moments-n-maxdt");
    // Note: Parallelization over blocks is not thread-safe
-#pragma omp  parallel for
+   #pragma omp  parallel for
    for (size_t c=0; c<localCells.size(); ++c) {
       SpatialCell* SC=mpiGrid[localCells[c]];
       

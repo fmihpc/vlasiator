@@ -73,18 +73,16 @@ void createTargetGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
    phiprof::stop("create-target-grid");
 }
 
-//Clear temporary target grid  for all cells in cells vector.
+//Clear temporary target grid for all cells in cells vector.
 void clearTargetGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,   const vector<CellID>& cells){
-   phiprof::start("clear-target-grid");
-#pragma omp  parallel for
-   for (size_t c=0; c<cells.size(); ++c) {
-      SpatialCell *spatial_cell = mpiGrid[cells[c]];
-      spatial_cell->get_velocity_mesh_temporary().clear();
-      spatial_cell->get_velocity_blocks_temporary().clear();
-   }
-   phiprof::stop("clear-target-grid");
-
-         
+    phiprof::start("clear-target-grid");
+    #pragma omp  parallel for
+    for (size_t c=0; c<cells.size(); ++c) {
+        SpatialCell *spatial_cell = mpiGrid[cells[c]];
+        spatial_cell->get_velocity_mesh_temporary().clear();
+        spatial_cell->get_velocity_blocks_temporary().clear();
+    }
+    phiprof::stop("clear-target-grid");
 }
 
 //Set all values in the temporary target grid to zero (0.0), for all cells in cells vector.   
@@ -594,7 +592,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 /*!
 
   This function communicates the mapping on process boundaries, and then updates the data to their correct values.
-  TODO, this could be inside an openmp region, in which case some m ore barriers and masters should be added
+  TODO, this could be inside an openmp region, in which case some more barriers and masters should be added
 
   \par dimension: 0,1,2 for x,y,z
   \par direction: 1 for + dir, -1 for - dir
@@ -700,27 +698,26 @@ void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell,dccrg::Cartesia
           break;
    }
 
-#pragma omp parallel
-   {
-      //reduce data: sum received data in the data array to the target grid in the temporary block contaniner
+    #pragma omp parallel
+    {
+      //reduce data: sum received data in the data array to the target grid in the temporary block container
       for (size_t c=0; c < receive_cells.size(); ++c) {
          SpatialCell *spatial_cell = mpiGrid[receive_cells[c]];      
          vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks_temporary();
-#pragma omp for nowait
-         for(unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(); cell++) {
+         #pragma omp for nowait
+         for (unsigned int cell=0; cell<VELOCITY_BLOCK_LENGTH*spatial_cell->get_number_of_velocity_blocks(); cell++) {
             //copy received target data to temporary array where target data is stored.
             blockContainer.getData()[cell] += spatial_cell->get_data()[cell];
          }
       }
 
-   
       /*send cell data is set to zero. This is to avoid double copy if
-       * one cell is the neighbor on bot + and - side to the same
+       * one cell is the neighbor on both + and - side to the same
        * process*/
       for (size_t c=0; c < send_cells.size(); ++c) {
          SpatialCell *spatial_cell = mpiGrid[send_cells[c]];
          vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks_temporary();
-#pragma omp for nowait
+         #pragma omp for nowait
          for(unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH * blockContainer.size(); cell++) {
             blockContainer.getData()[cell] = 0.0;
          }

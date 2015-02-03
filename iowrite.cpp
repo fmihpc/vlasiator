@@ -126,10 +126,8 @@ bool writeVelocityDistributionData(const int& popID,Writer& vlsvWriter,
    // Compute totalBlocks
    uint64_t totalBlocks = 0;
    vector<uint> blocksPerCell;
+   SpatialCell::setActivePopulation(popID);
    for (size_t cell=0; cell<cells.size(); ++cell){
-      // Set active population, must be done to all cells:
-      mpiGrid[cells[cell]]->setActivePopulation(popID);
-
       totalBlocks+=mpiGrid[cells[cell]]->get_number_of_velocity_blocks();
       blocksPerCell.push_back(mpiGrid[cells[cell]]->get_number_of_velocity_blocks());
    }

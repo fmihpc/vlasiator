@@ -166,8 +166,8 @@ void initializeGrid(
       }
 
       for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
-         // Set active population in all cells before doing anything
-         for (size_t c=0; c<cells.size(); ++c) mpiGrid[cells[c]]->setActivePopulation(p);
+         // Set active population before doing anything
+         SpatialCell::setActivePopulation(p);
 
          adjustVelocityBlocks(mpiGrid, cells, true);
          validateMesh(mpiGrid);
@@ -270,7 +270,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid){
       if (P::propagateVlasovAcceleration) 
          mpiGrid.set_cell_weight(cells[i], mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER]);
       else
-         mpiGrid.set_cell_weight(cells[i], mpiGrid[cells[i]]->get_number_of_velocity_blocks());
+         mpiGrid.set_cell_weight(cells[i], mpiGrid[cells[i]]->get_number_of_all_velocity_blocks());
       //reset counter
       mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = 0.0;
    }
@@ -288,7 +288,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid){
    phiprof::start("Data transfers");
    const uint64_t num_part_transfers=5;
    for (uint64_t transfer_part=0; transfer_part<num_part_transfers; transfer_part++) {
-      //Set transfers on/off for the incming cells in this transfer set and prepare for receive
+      //Set transfers on/off for the incoming cells in this transfer set and prepare for receive
       for (unsigned int i=0;i<incoming_cells_list.size();i++){
          uint64_t cell_id=incoming_cells_list[i];
          SpatialCell* cell = mpiGrid[cell_id];
@@ -401,7 +401,7 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    //Adjusts velocity blocks in local spatial cells, doesn't adjust velocity blocks in remote cells.
 
    phiprof::start("Adjusting blocks");
-#pragma omp parallel for
+   #pragma omp parallel for
    for (unsigned int i=0; i<cellsToAdjust.size(); ++i) {
       Real density_pre_adjust=0.0;
       Real density_post_adjust=0.0;
