@@ -38,12 +38,14 @@ namespace projects {
 
    void test_trans::addParameters(){
       typedef Readparameters RP;
-      RP::add("test_trans.cellPosition", "Position of the centre of the cells initiated (same used in velocity and space).", 1.5);
+      RP::add("test_trans.cellPosition", "Position of the centre of the cells initiated (same used in velocity and space).",(Real)1.5);
+      RP::add("test_trans.peakValue","Value of the distribution function",(Real)1.0);
    }
 
    void test_trans::getParameters(){
       typedef Readparameters RP;
       RP::get("test_trans.cellPosition", this->cellPosition);
+      RP::get("test_trans.peakValue" ,peakValue);
    }
 
 
@@ -100,7 +102,7 @@ namespace projects {
          }
          
          if(!outsideBox) {
-            return 1.0;
+            return peakValue;
          }
       }
       return 0.0;

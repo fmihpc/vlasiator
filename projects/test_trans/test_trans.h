@@ -45,6 +45,7 @@ namespace projects {
          creal& dvx, creal& dvy, creal& dvz
       );
       Real cellPosition;
+      Real peakValue;
    }; // class test_trans
 } // namespace projects
 
