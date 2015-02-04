@@ -87,7 +87,7 @@ inline void loadColumnBlockData(SpatialCell* spatial_cell,vmesh::GlobalID* block
    /*copy block data for all blocks*/
    for (vmesh::LocalID block_k=0; block_k<n_blocks; ++block_k) {
       const vmesh::LocalID blockLID = spatial_cell->get_velocity_block_local_id(blocks[block_k]);
-      Realf* __restrict__ data = spatial_cell->get_data(blockLID);
+      Realf* __restrict__ data = spatial_cell->get_data()+blockLID*SIZE_VELBLOCK;
 
       //  Copy volume averages of this block, taking into account the dimension shifting
       for (uint j=0; j<WID; ++j) {
@@ -377,7 +377,7 @@ bool map_1d(SpatialCell* spatial_cell,
                               phiprof_assert(spatial_cell->count(tblock) != 0);
                            }
 
-                           target_block_data = spatial_cell->get_data( spatial_cell->get_velocity_block_local_id(tblock) );
+                           target_block_data = spatial_cell->get_data() + spatial_cell->get_velocity_block_local_id(tblock)*SIZE_VELBLOCK;
                            // END NOTE
                         }
                      

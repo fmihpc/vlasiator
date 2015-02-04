@@ -300,7 +300,7 @@ inline void copy_trans_block_data(
       if (blockLID == mpiGrid[srcCell]->invalid_local_id()) {
          block_data = mpiGrid[srcCell]->null_block_data;
       } else {
-         block_data = mpiGrid[srcCell]->get_data(blockLID);
+         block_data = mpiGrid[srcCell]->get_data()+blockLID*SIZE_VELBLOCK;
       }
 
       /* Copy data table, spatial source_neighbors already taken care of when

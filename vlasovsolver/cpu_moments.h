@@ -73,7 +73,7 @@ template<typename REAL> void cpu_blockVelocitySecondMoments(
       cellParams[cp_p33] = 0.0;
       return;
    }
-   
+
    REAL averageVX = cellParams[cp_rhovx] / cellParams[cp_rho];
    REAL averageVY = cellParams[cp_rhovy] / cellParams[cp_rho];
    REAL averageVZ = cellParams[cp_rhovz] / cellParams[cp_rho];
@@ -102,16 +102,16 @@ template<typename REAL> void cpu_blockVelocitySecondMoments(
 
 
 template<typename UINT> void cpu_calcVelocityFirstMoments(
-   SpatialCell *cell,
-   const UINT blockLID,
-   const int cp_rho,
-   const int cp_rhovx,
-   const int cp_rhovy,
-   const int cp_rhovz
-) {
-   cpu_blockVelocityFirstMoments(
-      cell->get_data(blockLID),
-      cell->get_block_parameters(blockLID),
+        SpatialCell *cell,
+        const UINT blockLID,
+        const int cp_rho,
+        const int cp_rhovx,
+        const int cp_rhovy,
+        const int cp_rhovz
+    ) {
+    cpu_blockVelocityFirstMoments(
+      cell->get_data()+blockLID*SIZE_VELBLOCK,
+      cell->get_block_parameters()+blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS,
       cell->parameters,cp_rho,cp_rhovx,cp_rhovy,cp_rhovz
    );
 }
@@ -128,8 +128,8 @@ template<typename UINT> void cpu_calcVelocitySecondMoments(
    const int cp_p33
 ) {
    cpu_blockVelocitySecondMoments(
-      cell->get_data(blockLID),
-      cell->get_block_parameters(blockLID),
+      cell->get_data()+blockLID*SIZE_VELBLOCK,
+      cell->get_block_parameters()+blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS,
       cell->parameters,
       cp_rho,cp_rhovx,cp_rhovy,cp_rhovz,cp_p11,cp_p22,cp_p33
    );

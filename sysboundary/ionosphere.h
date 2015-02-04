@@ -96,12 +96,10 @@ namespace SBC {
       void generateTemplateCell(Project &project);
       void setCellFromTemplate(SpatialCell *cell);
       
-      Real shiftedMaxwellianDistribution(
-         creal& vx, creal& vy, creal& vz
-      );
+      Real shiftedMaxwellianDistribution(const int& popID,creal& vx, creal& vy, creal& vz);
       
-      vector<uint> findBlocksToInitialize(
-         SpatialCell& cell
+      vector<vmesh::GlobalID> findBlocksToInitialize(
+         SpatialCell& cell,const int& popID
       );
       
       std::array<Real, 3> fieldSolverGetNormalDirection(

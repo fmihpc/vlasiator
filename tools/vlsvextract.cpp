@@ -1866,9 +1866,6 @@ void extractDistribution( const string & fileName, const UserOptions & mainOptio
 
       // Extract velocity grid from VLSV file, if possible, and write as vlsv file:
       bool velGridExtracted = true;
-      if( typeid(vlsvReader) == typeid(newVlsv::Reader) ) {
-         vlsvReader.setCellsWithBlocks();
-      }
       for (list<string>::const_iterator it2 = meshNames.begin(); it2 != meshNames.end(); ++it2) {
          //slice disabled by default, enable for specific testing. TODO: add command line interface for enabling it
          //convertSlicedVelocityMesh(vlsvReader,outputSliceName,*it2,cellStruct);

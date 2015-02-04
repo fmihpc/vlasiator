@@ -328,7 +328,7 @@ namespace projects {
                                              x, y, z, dx, dy, dz,
                                              vxCell,vyCell,vzCell,
                                              dvxCell,dvyCell,dvzCell);
-                     cell->get_data(blockLID)[kc*WID2+jc*WID+ic] = average;
+                     cell->get_data()[blockLID*SIZE_VELBLOCK + kc*WID2+jc*WID+ic] = average;
                   }
                }
             }

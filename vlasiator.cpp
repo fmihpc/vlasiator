@@ -311,12 +311,12 @@ int main(int argn,char* args[]) {
       
       phiprof::stop("write-initial-state");
    }
-   
+/*
    #warning TESTING remove me
-   cout << "init done" << endl;
+   cout << "init done, exiting" << endl;
    MPI_Finalize();
    return 1;
-
+ */
    if (P::dynamicTimestep && !P::isRestart) {
       // Run Vlasov solver once with zero dt to initialize
       //per-cell dt limits. In restarts, we read the dt from file.
@@ -348,7 +348,6 @@ int main(int argn,char* args[]) {
 
    }
    phiprof::stop("Initialization");
-
 
    // ***********************************
    // ***** INITIALIZATION COMPLETE *****
@@ -503,6 +502,12 @@ int main(int argn,char* args[]) {
          break;
       }
       
+      #warning TESTING remove me
+      cout << "init done, exiting" << endl;
+      MPI_Finalize();
+      return 1;
+
+      
       //Re-loadbalance if needed
       //TODO - add LB measure and do LB if it exceeds threshold
       if( P::tstep%P::rebalanceInterval == 0 && P::tstep> P::tstep_min) {
@@ -575,6 +580,7 @@ int main(int argn,char* args[]) {
          CellParams::P_33_DT2
       );
       
+      // Apply boundary conditions
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
          phiprof::start("Update system boundaries (Vlasov)");
          sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid, P::t+0.5*P::dt); 

@@ -213,7 +213,7 @@ namespace newVlsv {
 
       //Get array info
       if (getArrayInfo("CELLSWITHBLOCKS", attribs, cwb_arraySize, cwb_vectorSize, cwb_dataType, cwb_dataSize) == false) {
-         cerr << "ERROR, COULD NOT FIND ARRAY CELLSWITHBLOCKS AT " << __FILE__ << " " << __LINE__ << endl;
+         cerr << "ERROR, COULD NOT FIND ARRAY CELLSWITHBLOCKS FOR POPULATION '" << popName << "' AT " << __FILE__ << ":" << __LINE__ << endl;
          return false;
       }
 
