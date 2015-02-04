@@ -188,7 +188,7 @@ namespace SBC {
       const CellID& cellID,
       cuint& component
    ) {
-      const CellID closestCell = getTheClosestNonsysboundaryCell(mpiGrid, cellID);
+      const CellID closestCell = getTheClosestNonsysboundaryCell(cellID);
       
       if(closestCell == INVALID_CELLID) {
          cerr << cellID << " " << __FILE__ << ":" << __LINE__ << ": No closest cell found!" << endl;

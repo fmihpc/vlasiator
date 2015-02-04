@@ -186,7 +186,7 @@ void initializeGrid(
    }
 
    //Balance load before we transfer all data below
-   balanceLoad(mpiGrid);
+   balanceLoad(mpiGrid, sysBoundaries);
    
    phiprof::initializeTimer("Fetch Neighbour data","MPI");
    phiprof::start("Fetch Neighbour data");
@@ -237,7 +237,7 @@ void initSpatialCellCoordinates(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
    }
 }
 
-void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid){
+void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, SysBoundary& sysBoundaries){
    // tell other processes which velocity blocks exist in remote spatial cells
    phiprof::initializeTimer("Balancing load", "Load balance");
    phiprof::start("Balancing load");
@@ -355,6 +355,10 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid){
    //new partition, re/initialize blocklists of remote cells.
    updateRemoteVelocityBlockLists(mpiGrid);
    phiprof::stop("update block lists");
+
+   phiprof::start("update sysboundaries");
+   sysBoundaries.updateSysBoundariesAfterLoadBalance( mpiGrid );
+   phiprof::stop("update sysboundaries");
 
    phiprof::start("Init solvers");
    // Initialize field propagator:
