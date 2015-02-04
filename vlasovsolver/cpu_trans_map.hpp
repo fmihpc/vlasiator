@@ -121,16 +121,15 @@ void swapTargetSourceGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
 }
 
 
+
+
 /*
  * return INVALID_CELLID if the spatial neighbor does not exist, or if
  * it is a cell that is not computed. If the
  * include_first_boundary_layer flag is set, then also first boundary
  * layer is inlcuded (does not return INVALID_CELLID).
  * This does not use dccrg's get_neighbor_of function as it does not support computing neighbors for remote cells
-
-
  */
-
 CellID get_spatial_neighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                             const CellID& cellID,
                             const bool include_first_boundary_layer,
@@ -140,14 +139,11 @@ CellID get_spatial_neighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geom
    dccrg::Types<3>::indices_t indices_unsigned = mpiGrid.mapping.get_indices(cellID);
    int64_t indices[3];
    dccrg::Grid_Length::type length = mpiGrid.mapping.length.get();
-   
    //boost::array<double, 3> cell_length = mpiGrid.geometry.get_length(cells[i]);
-   
    //compute raw new indices
    indices[0] = spatial_di + indices_unsigned[0];
    indices[1] = spatial_dj + indices_unsigned[1];
    indices[2] = spatial_dk + indices_unsigned[2];
-   
    //take periodicity into account
    for(uint i = 0; i<3; i++) {
       if(mpiGrid.topology.is_periodic(i)) {
@@ -156,7 +152,6 @@ CellID get_spatial_neighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geom
          while(indices[i] >= length[i] )
             indices[i] -= length[i];
       }
-      
    }
    //return INVALID_CELLID for cells outside system (non-periodic)
    for(uint i = 0; i<3; i++) {
@@ -165,27 +160,22 @@ CellID get_spatial_neighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geom
       if(indices[i]>=length[i])
          return INVALID_CELLID;
    }
-
    //store nbr indices into the correct datatype
    for(uint i = 0; i<3; i++) {
       indices_unsigned[i] = indices[i];
    }
    //get nbrID
-   CellID nbrID =  mpiGrid.mapping.get_cell_from_indices(indices_unsigned,0);
-
+   CellID nbrID = mpiGrid.mapping.get_cell_from_indices(indices_unsigned,0);
    if (nbrID == dccrg::error_cell ) {
       std::cerr << __FILE__ << ":" << __LINE__
                 << " No neighbor for cell?" << cellID
                 << " at offsets " << spatial_di << ", " << spatial_dj << ", " << spatial_dk
                 << std::endl;
-      
       abort();
    }
-
-   // not existing cell or do not compute       
+   // not existing cell or do not compute
    if( mpiGrid[nbrID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE)
-      return INVALID_CELLID; 
-
+      return INVALID_CELLID;
    //cell on boundary, but not first layer and we want to include
    //first layer (e.g. when we compute source cells)
    if( include_first_boundary_layer &&
@@ -199,9 +189,32 @@ CellID get_spatial_neighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geom
        mpiGrid[nbrID]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY){
       return INVALID_CELLID;
    }
-   
    return nbrID; //no AMR
+}
+                                      
 
+/*
+ * return NULL if the spatial neighbor does not exist, or if
+ * it is a cell that is not computed. If the
+ * include_first_boundary_layer flag is set, then also first boundary
+ * layer is inlcuded (does not return INVALID_CELLID).
+ * This does not use dccrg's get_neighbor_of function as it does not support computing neighbors for remote cells
+
+
+ */
+
+SpatialCell* get_spatial_neighbor_pointer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                          const CellID& cellID,
+                                          const bool include_first_boundary_layer,
+                                          const int spatial_di,
+                                          const int spatial_dj,
+                                          const int spatial_dk ) {
+   CellID nbrID=get_spatial_neighbor(mpiGrid, cellID, include_first_boundary_layer, spatial_di, spatial_dj, spatial_dk);
+
+   if(nbrID!=INVALID_CELLID)
+      return mpiGrid[nbrID];
+   else
+      return NULL;
 }
 
 /*compute spatial neighbors for source stencil with a size of 2*
@@ -213,37 +226,37 @@ CellID get_spatial_neighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geom
 void compute_spatial_source_neighbors(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                       const CellID& cellID,
                                       const uint dimension,
-                                      CellID *neighbors){
+                                      SpatialCell **neighbors){
    for(int i = -VLASOV_STENCIL_WIDTH; i <= VLASOV_STENCIL_WIDTH; i++){
       switch (dimension){
           case 0:
-             neighbors[i + VLASOV_STENCIL_WIDTH] = get_spatial_neighbor(mpiGrid, cellID, true, i, 0, 0);
+             neighbors[i + VLASOV_STENCIL_WIDTH] = get_spatial_neighbor_pointer(mpiGrid, cellID, true, i, 0, 0);
              break;
           case 1:
-             neighbors[i + VLASOV_STENCIL_WIDTH] = get_spatial_neighbor(mpiGrid, cellID, true, 0, i, 0);
+             neighbors[i + VLASOV_STENCIL_WIDTH] = get_spatial_neighbor_pointer(mpiGrid, cellID, true, 0, i, 0);
              break;
           case 2:
-             neighbors[i + VLASOV_STENCIL_WIDTH] = get_spatial_neighbor(mpiGrid, cellID, true, 0, 0, i);
+             neighbors[i + VLASOV_STENCIL_WIDTH] = get_spatial_neighbor_pointer(mpiGrid, cellID, true, 0, 0, i);
              break;             
       }             
    }
 
-   CellID last_good_cellID = cellID;
+   SpatialCell* last_good_cell = mpiGrid[cellID];
    /*loop to neative side and replace all invalid cells with the closest good cell*/
    for(int i = -1;i>=-VLASOV_STENCIL_WIDTH;i--){
-      if(neighbors[i + VLASOV_STENCIL_WIDTH] == INVALID_CELLID) 
-         neighbors[i + VLASOV_STENCIL_WIDTH] = last_good_cellID;
+      if(neighbors[i + VLASOV_STENCIL_WIDTH] == NULL) 
+         neighbors[i + VLASOV_STENCIL_WIDTH] = last_good_cell;
       else
-         last_good_cellID = neighbors[i + VLASOV_STENCIL_WIDTH];
+         last_good_cell = neighbors[i + VLASOV_STENCIL_WIDTH];
    }
 
-   last_good_cellID = cellID;
+   last_good_cell = mpiGrid[cellID];
    /*loop to positive side and replace all invalid cells with the closest good cell*/
    for(int i = 1; i <= VLASOV_STENCIL_WIDTH; i++){
-      if(neighbors[i + VLASOV_STENCIL_WIDTH] == INVALID_CELLID) 
-         neighbors[i + VLASOV_STENCIL_WIDTH] = last_good_cellID;
+      if(neighbors[i + VLASOV_STENCIL_WIDTH] == NULL) 
+         neighbors[i + VLASOV_STENCIL_WIDTH] = last_good_cell;
       else
-         last_good_cellID = neighbors[i + VLASOV_STENCIL_WIDTH];
+         last_good_cell = neighbors[i + VLASOV_STENCIL_WIDTH];
    }
 }
 
@@ -251,17 +264,18 @@ void compute_spatial_source_neighbors(const dccrg::Dccrg<SpatialCell,dccrg::Cart
 void compute_spatial_target_neighbors(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                       const CellID& cellID,
                                       const uint dimension,
-                                      CellID *neighbors){
+                                      SpatialCell **neighbors){
 
    for(int i = -1; i <= 1; i++){
       switch (dimension){
           case 0:
-             neighbors[i + 1] = get_spatial_neighbor(mpiGrid, cellID, false, i, 0, 0);
+             neighbors[i + 1] = get_spatial_neighbor_pointer(mpiGrid, cellID, false, i, 0, 0);
              break;
           case 1:
-             neighbors[i + 1] = get_spatial_neighbor(mpiGrid, cellID, false, 0, i, 0);
+             neighbors[i + 1] = get_spatial_neighbor_pointer(mpiGrid, cellID, false, 0, i, 0);
              break;
-          case 2:             neighbors[i + 1] = get_spatial_neighbor(mpiGrid, cellID, false, 0, 0, i);
+          case 2:
+             neighbors[i + 1] = get_spatial_neighbor_pointer(mpiGrid, cellID, false, 0, 0, i);
              break;             
       }             
    }
@@ -274,44 +288,45 @@ void compute_spatial_target_neighbors(const dccrg::Dccrg<SpatialCell,dccrg::Cart
  * generated with compute_spatial_neighbors_wboundcond)*/
 
 inline void copy_trans_block_data(
-   const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   const CellID cellID,
-   const CellID* source_neighbors,
+   SpatialCell** source_neighbors,
    const vmesh::GlobalID blockGID,
    Vec* values,
    const unsigned char * const cellid_transpose) {
 
-   Realv blockValues[WID3];
+
    //  Copy volume averages of this block from all spatial cells:
    for (int b = -VLASOV_STENCIL_WIDTH; b <= VLASOV_STENCIL_WIDTH; ++b) {
-      const CellID srcCell = source_neighbors[b + VLASOV_STENCIL_WIDTH];
+      SpatialCell* srcCell = source_neighbors[b + VLASOV_STENCIL_WIDTH];
+      const vmesh::LocalID blockLID = srcCell->get_velocity_block_local_id(blockGID);
+      if (blockLID != srcCell->invalid_local_id()) {
+         Realv blockValues[WID3];
+         Realf* block_data = srcCell->get_data(blockLID);
+         /* Copy data to a temporary array and transpose values so that mapping is along k direction.
+          * spatial source_neighbors already taken care of when
+          * creating source_neighbors table. If a normal spatial cell does not
+          * simply have the block, its value will be its null_block which
+          * is fine. This null_block has a value of zero in data, and that
+          * is thus the velocity space boundary*/
+         for (uint i=0; i<WID3; ++i) {
+            blockValues[i] = block_data[cellid_transpose[i]];
+         }
 
-      Realf* block_data;
-      const vmesh::LocalID blockLID = mpiGrid[srcCell]->get_velocity_block_local_id(blockGID);
-      if (blockLID == mpiGrid[srcCell]->invalid_local_id()) {
-         block_data = mpiGrid[srcCell]->null_block_data;
-      } else {
-         block_data = mpiGrid[srcCell]->get_data(blockLID);
+         /*now load values into the actual values table..*/
+         uint offset =0;
+         for (uint k=0; k<WID; ++k) {
+            for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){
+               /*store data, when reading data from  data we swap dimensions using precomputed plane_index_to_id and cell_indices_to_id*/
+               values[i_trans_ps_blockv(planeVector, k, b)].load(blockValues + offset);
+               offset += VECL;
+            }
+         }
       }
-
-
-      /* Copy data to a temporary array and transpose values so that mapping is along k direction.
-       * spatial source_neighbors already taken care of when
-       * creating source_neighbors table. If a normal spatial cell does not
-       * simply have the block, its value will be its null_block which
-       * is fine. This null_block has a value of zero in data, and that
-       * is thus the velocity space boundary*/
-      for (uint i=0; i<WID3; ++i) {
-         blockValues[i] = block_data[cellid_transpose[i]];
-      }
-
-      /*now load values into the actual values table..*/
-      uint offset =0;
-      for (uint k=0; k<WID; ++k) {
-         for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){
-            /*store data, when reading data from  data we swap dimensions using precomputed plane_index_to_id and cell_indices_to_id*/
-            values[i_trans_ps_blockv(planeVector, k, b)].load_a(blockValues + offset);
-            offset += VECL;
+      else {
+         uint cellid=0;
+         for (uint k=0; k<WID; ++k) {
+            for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){
+               values[i_trans_ps_blockv(planeVector, k, b)] = Vec(0);
+            }
          }
       }
    }
@@ -332,8 +347,7 @@ inline void copy_trans_block_data(
   
 */
 inline void store_trans_block_data(
-   const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   const CellID cellID, const CellID *target_neighbors,
+   SpatialCell **target_neighbors,
    const vmesh::GlobalID blockGID,
    Vec * __restrict__ target_values,
    const unsigned char * const cellid_transpose
@@ -343,7 +357,7 @@ inline void store_trans_block_data(
       if (target_neighbors[b + 1] == INVALID_CELLID) {
          continue; //do not store to boundary cells or otherwise invalid cells
       }
-      SpatialCell* spatial_cell = mpiGrid[target_neighbors[b + 1]];
+      SpatialCell* spatial_cell = target_neighbors[b + 1];
       const vmesh::LocalID blockLID = spatial_cell->get_velocity_block_local_id(blockGID);
       if (blockLID == spatial_cell->invalid_local_id()) {
          // block does not exist. If so, we do not create it and add stuff to it here.
@@ -361,7 +375,7 @@ inline void store_trans_block_data(
       uint cellid=0;
       for (uint k=0; k<WID; ++k) {
          for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){
-            target_values[i_trans_pt_blockv(planeVector, k, b)].store_a(blockValues);
+            target_values[i_trans_pt_blockv(planeVector, k, b)].store(blockValues);
             for(uint i = 0; i< VECL; i++){
                /*store data, when reading data from  data we swap dimensions using precomputed plane_index_to_id and cell_indices_to_id*/
                block_data[cellid_transpose[cellid++]] += blockValues[i];
@@ -398,15 +412,16 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    num_threads = omp_get_num_threads(); 
    #endif
    //do nothing if it is not a normal cell, or a cell that is in the first boundary layer
-   if (get_spatial_neighbor(mpiGrid, cellID, true, 0, 0, 0) == INVALID_CELLID) return true; 
+   if (get_spatial_neighbor(mpiGrid, cellID, true, 0, 0, 0) == INVALID_CELLID)
+      return true; 
    
    /*compute spatial neighbors, separately for targets and source. In
     * source cells we have a wider stencil and take into account
     * boundaries. For targets we only have actual cells as we do not
     * want to propagate boundary cells (array may contain
     * INVALID_CELLIDs at boundaries)*/
-   CellID source_neighbors[1 + 2 * VLASOV_STENCIL_WIDTH];
-   CellID target_neighbors[3];
+   SpatialCell* source_neighbors[1 + 2 * VLASOV_STENCIL_WIDTH];
+   SpatialCell* target_neighbors[3];
    compute_spatial_source_neighbors(mpiGrid,cellID,dimension,source_neighbors);
    compute_spatial_target_neighbors(mpiGrid,cellID,dimension,target_neighbors);
 
@@ -500,7 +515,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 
       /*buffer where we read in source data. i index vectorized*/
       Vec values[(1 + 2 * VLASOV_STENCIL_WIDTH) * WID3 / VECL];
-      copy_trans_block_data(mpiGrid, cellID, source_neighbors, blockGID, values, cellid_transpose);
+      copy_trans_block_data(source_neighbors, blockGID, values, cellid_transpose);
       velocity_block_indices_t block_indices = SpatialCell::get_velocity_block_indices(blockGID);
       
       //i,j,k are now relative to the order in which we copied data to the values array. 
@@ -563,7 +578,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       }
       
       //store values from target_values array to the actual blocks
-      store_trans_block_data(mpiGrid,cellID,target_neighbors,blockGID,target_values,cellid_transpose);
+      store_trans_block_data(target_neighbors,blockGID,target_values,cellid_transpose);
    }
    
    return true;
@@ -577,26 +592,28 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
   \par dimension: 0,1,2 for x,y,z
   \par direction: 1 for + dir, -1 for - dir
 */
-  
+
+
+
+
+
+
 void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, const uint dimension, int direction) {
    const vector<CellID> local_cells = mpiGrid.get_cells();
    const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_NEIGHBORHOOD_ID);
    vector<CellID> receive_cells;
    vector<CellID> send_cells;
-   
    //normalize
    if(direction > 0)
       direction = 1;
    if(direction < 0)
       direction = -1;
-
    for (size_t c=0; c<remote_cells.size(); ++c) {
       SpatialCell *ccell = mpiGrid[remote_cells[c]];
       //default values, to avoid any extra sends and receives
       ccell->neighbor_block_data = &(ccell->get_data()[0]);
       ccell->neighbor_number_of_blocks = 0;
    }
-   
    //prepare arrays
    for (size_t c=0; c<local_cells.size(); ++c) {
       SpatialCell *ccell = mpiGrid[local_cells[c]];
@@ -604,10 +621,9 @@ void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell,dccrg::Cartesia
       ccell->neighbor_block_data = &(ccell->get_data()[0]);
       ccell->neighbor_number_of_blocks = 0;
       CellID p_ngbr,m_ngbr;
-      
       switch(dimension) {
           case 0:
-             p_ngbr=get_spatial_neighbor(mpiGrid, local_cells[c], false,  direction, 0, 0); //p_ngbr is target, if in boundaries then it is not updated
+             p_ngbr=get_spatial_neighbor(mpiGrid, local_cells[c], false, direction, 0, 0); //p_ngbr is target, if in boundaries then it is not updated
              m_ngbr=get_spatial_neighbor(mpiGrid, local_cells[c], true, -direction, 0, 0); //m_ngbr is source, first boundary layer is propagated so that it flows into system
              break;
           case 1:
@@ -616,26 +632,23 @@ void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell,dccrg::Cartesia
              break;
           case 2:
              p_ngbr=get_spatial_neighbor(mpiGrid, local_cells[c], false, 0, 0, direction); //p_ngbr is target, if in boundaries then it is not update
-             m_ngbr=get_spatial_neighbor(mpiGrid, local_cells[c], true,  0, 0, -direction); //m_ngbr is source, first boundary layer is propagated so that it flows into system
+             m_ngbr=get_spatial_neighbor(mpiGrid, local_cells[c], true, 0, 0, -direction); //m_ngbr is source, first boundary layer is propagated so that it flows into system
              break;
           default:
              cerr << "Dimension wrong at (impossible!) "<< __FILE__ <<":" << __LINE__<<endl;
              exit(1);
       }
-      
       if(mpiGrid.is_local(p_ngbr) && mpiGrid.is_local(m_ngbr))
          continue; //internal cell, not much to do
-            
       SpatialCell *pcell = NULL;
       if(p_ngbr != INVALID_CELLID)
          pcell = mpiGrid[p_ngbr];
       SpatialCell *mcell = NULL;
       if(m_ngbr != INVALID_CELLID)
          mcell = mpiGrid[m_ngbr];
-
       if(p_ngbr != INVALID_CELLID &&
          !mpiGrid.is_local(p_ngbr) &&
-         do_translate_cell(ccell) 
+         do_translate_cell(ccell)
          ) {
          //Send data in p_ngbr temporary target array that we just
          //mapped to if 1) it is a valid target,
@@ -646,64 +659,60 @@ void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell,dccrg::Cartesia
          ccell->neighbor_number_of_blocks = pcellBlockContainer.size();
          send_cells.push_back(p_ngbr);
       }
-      
       if(m_ngbr != INVALID_CELLID &&
          !mpiGrid.is_local(m_ngbr) &&
-         ccell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY 
+         ccell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY
          ){
          //Receive data that mcell mapped to ccell to this local cell
-         //data array, if 1) m is a valid source cell, 2) center cell is to be updated (normal cell) 3)  m is remote
+         //data array, if 1) m is a valid source cell, 2) center cell is to be updated (normal cell) 3) m is remote
          //we can reuse the normal data array as we do not anymore need the original distribution function values
          mcell->neighbor_block_data = &(ccell->get_data()[0]);
          mcell->neighbor_number_of_blocks = ccell->get_number_of_velocity_blocks();
          receive_cells.push_back(local_cells[c]);
       }
-
    }
    //Do communication
    SpatialCell::set_mpi_transfer_type(Transfer::NEIGHBOR_VEL_BLOCK_DATA);
-
    switch(dimension) {
        case 0:
-          if(direction > 0) mpiGrid.update_copies_of_remote_neighbors(SHIFT_P_X_NEIGHBORHOOD_ID);  
-          if(direction < 0) mpiGrid.update_copies_of_remote_neighbors(SHIFT_M_X_NEIGHBORHOOD_ID);  
+          if(direction > 0) mpiGrid.update_copies_of_remote_neighbors(SHIFT_P_X_NEIGHBORHOOD_ID);
+          if(direction < 0) mpiGrid.update_copies_of_remote_neighbors(SHIFT_M_X_NEIGHBORHOOD_ID);
           break;
        case 1:
-          if(direction > 0) mpiGrid.update_copies_of_remote_neighbors(SHIFT_P_Y_NEIGHBORHOOD_ID);  
-          if(direction < 0) mpiGrid.update_copies_of_remote_neighbors(SHIFT_M_Y_NEIGHBORHOOD_ID);  
+          if(direction > 0) mpiGrid.update_copies_of_remote_neighbors(SHIFT_P_Y_NEIGHBORHOOD_ID);
+          if(direction < 0) mpiGrid.update_copies_of_remote_neighbors(SHIFT_M_Y_NEIGHBORHOOD_ID);
           break;
        case 2:
-          if(direction > 0) mpiGrid.update_copies_of_remote_neighbors(SHIFT_P_Z_NEIGHBORHOOD_ID);  
-          if(direction < 0) mpiGrid.update_copies_of_remote_neighbors(SHIFT_M_Z_NEIGHBORHOOD_ID);  
+          if(direction > 0) mpiGrid.update_copies_of_remote_neighbors(SHIFT_P_Z_NEIGHBORHOOD_ID);
+          if(direction < 0) mpiGrid.update_copies_of_remote_neighbors(SHIFT_M_Z_NEIGHBORHOOD_ID);
           break;
    }
-   
-#pragma omp parallel
+   #pragma omp parallel
    {
       //reduce data: sum received data in the data array to the target grid in the temporary block contaniner
       for (size_t c=0; c < receive_cells.size(); ++c) {
-         SpatialCell *spatial_cell = mpiGrid[receive_cells[c]];      
+         SpatialCell *spatial_cell = mpiGrid[receive_cells[c]];
          vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks_temporary();
-#pragma omp for nowait
+         #pragma omp for nowait
          for(unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(); cell++) {
             //copy received target data to temporary array where target data is stored.
             blockContainer.getData()[cell] += spatial_cell->get_data()[cell];
          }
       }
-
-   
       /*send cell data is set to zero. This is to avoid double copy if
        * one cell is the neighbor on bot + and - side to the same
        * process*/
       for (size_t c=0; c < send_cells.size(); ++c) {
          SpatialCell *spatial_cell = mpiGrid[send_cells[c]];
          vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks_temporary();
-#pragma omp for nowait
+         #pragma omp for nowait
          for(unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH * blockContainer.size(); cell++) {
             blockContainer.getData()[cell] = 0;
          }
       }
    }
 }
+
+
 
 #endif
