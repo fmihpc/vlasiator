@@ -4,7 +4,7 @@
 */
 #ifndef CPU_TRANS_MAP_H
 #define CPU_TRANS_MAP_H
-#include "vec4.h"
+#include "vec.h"
 #include "algorithm"
 #include "cmath"
 #include "utility"
@@ -19,15 +19,22 @@ using namespace std;
 using namespace spatial_cell;
 
 
-// indices in padded block. b_k is the block index in z direction in
-// ordinary space (- VLASOV_STENCIL_WIDTH to VLASOV_STENCIL_WIDTH)
-//, i,j,k are the cell ids inside on block.
-#define i_trans_pblockv(b_k, j, k)  ( (b_k + VLASOV_STENCIL_WIDTH ) + ( (j) + (k) * WID ) * ( 1 + 2 * VLASOV_STENCIL_WIDTH) )
+// indices in padded source block, which is of type Vec with VECL
+// element sin each vector. b_k is the block index in z direction in
+// ordinary space [- VLASOV_STENCIL_WIDTH to VLASOV_STENCIL_WIDTH],
+// i,j,k are the cell ids inside on block (i in vector elements).
+// Vectors with same i,j,k coordinates, but in different spatial cells, are consequtive
+//#define i_trans_ps_blockv(j, k, b_k)  ( (b_k + VLASOV_STENCIL_WIDTH ) + ( (((j) * WID + (k) * WID2)/VECL)  * ( 1 + 2 * VLASOV_STENCIL_WIDTH) ) )
+#define i_trans_ps_blockv(planeVectorIndex, planeIndex, blockIndex) ( (blockIndex) + VLASOV_STENCIL_WIDTH  +  ( (planeVectorIndex) + (planeIndex) * VEC_PER_PLANE ) * ( 1 + 2 * VLASOV_STENCIL_WIDTH)  )
 
-// indices in padded target block, which has Vec4 elements. b_k is the
-// block index in z direction in ordinary space, i,j,k are the cell
-// ids inside on block (i in vector elements).
-#define i_trans_ptblockv(b_k,j,k)  ( (j) + (k) * WID +((b_k) + 1 ) * WID2)
+
+
+// indices in padded target block, which is of type Vec with VECL
+// element sin each vector. b_k is the block index in z direction in
+// ordinary space, i,j,k are the cell ids inside on block (i in vector
+// elements).
+//#define i_trans_pt_blockv(j, k, b_k) ( ( (j) * WID + (k) * WID2 + ((b_k) + 1 ) * WID3) / VECL )
+#define i_trans_pt_blockv(planeVectorIndex, planeIndex, blockIndex)  ( planeVectorIndex + planeIndex * VEC_PER_PLANE + (blockIndex + 1) * VEC_PER_BLOCK)
 
 
 //Is cell translated? It is not translated if DO_NO_COMPUTE or if it is sysboundary cell and not in first sysboundarylayer
@@ -254,8 +261,7 @@ void compute_spatial_target_neighbors(const dccrg::Dccrg<SpatialCell,dccrg::Cart
           case 1:
              neighbors[i + 1] = get_spatial_neighbor(mpiGrid, cellID, false, 0, i, 0);
              break;
-          case 2:
-             neighbors[i + 1] = get_spatial_neighbor(mpiGrid, cellID, false, 0, 0, i);
+          case 2:             neighbors[i + 1] = get_spatial_neighbor(mpiGrid, cellID, false, 0, 0, i);
              break;             
       }             
    }
@@ -271,29 +277,12 @@ inline void copy_trans_block_data(
    const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const CellID cellID,
    const CellID* source_neighbors,
-   const vmesh::GlobalID blockGID,Vec4* values,int dimension
-) {
-   uint cell_indices_to_id[3]={};
-   switch (dimension){
-       case 0:
-          /* i and k coordinates have been swapped*/
-          cell_indices_to_id[0]=WID2;
-          cell_indices_to_id[1]=WID;
-          cell_indices_to_id[2]=1;
-          break;
-       case 1:
-          /* j and k coordinates have been swapped*/
-          cell_indices_to_id[0]=1;
-          cell_indices_to_id[1]=WID2;
-          cell_indices_to_id[2]=WID;
-          break;
-       case 2:
-          cell_indices_to_id[0]=1;
-          cell_indices_to_id[1]=WID;
-          cell_indices_to_id[2]=WID2;
-          break;
-   }
-   // Copy volume averages of this block from all spatial cells:
+   const vmesh::GlobalID blockGID,
+   Vec* values,
+   const unsigned char * const cellid_transpose) {
+
+   Realv blockValues[WID3];
+   //  Copy volume averages of this block from all spatial cells:
    for (int b = -VLASOV_STENCIL_WIDTH; b <= VLASOV_STENCIL_WIDTH; ++b) {
       const CellID srcCell = source_neighbors[b + VLASOV_STENCIL_WIDTH];
 
@@ -305,21 +294,24 @@ inline void copy_trans_block_data(
          block_data = mpiGrid[srcCell]->get_data(blockLID);
       }
 
-      /* Copy data table, spatial source_neighbors already taken care of when
-       *   creating source_neighbors table. If a normal spatial cell does not
-       *   simply have the block, its value will be its null_block which
-       *   is fine. This null_block has a value of zero in data, and that
-       *   is thus the velocity space boundary*/
+
+      /* Copy data to a temporary array and transpose values so that mapping is along k direction.
+       * spatial source_neighbors already taken care of when
+       * creating source_neighbors table. If a normal spatial cell does not
+       * simply have the block, its value will be its null_block which
+       * is fine. This null_block has a value of zero in data, and that
+       * is thus the velocity space boundary*/
+      for (uint i=0; i<WID3; ++i) {
+         blockValues[i] = block_data[cellid_transpose[i]];
+      }
+
+      /*now load values into the actual values table..*/
+      uint offset =0;
       for (uint k=0; k<WID; ++k) {
-         for (uint j=0; j<WID; ++j) {
-            for (uint i=0; i<WID; ++i) {
-               const uint cell =
-                  i * cell_indices_to_id[0] +
-                  j * cell_indices_to_id[1] +
-                  k * cell_indices_to_id[2];
-               /*copy data, when reading data from data we swap dimensions using cell_indices_to_id*/
-               values[i_trans_pblockv(b,j,k)].insert(i,(Real)block_data[cell]);
-            }
+         for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){
+            /*store data, when reading data from  data we swap dimensions using precomputed plane_index_to_id and cell_indices_to_id*/
+            values[i_trans_ps_blockv(planeVector, k, b)].load_a(blockValues + offset);
+            offset += VECL;
          }
       }
    }
@@ -343,39 +335,9 @@ inline void store_trans_block_data(
    const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const CellID cellID, const CellID *target_neighbors,
    const vmesh::GlobalID blockGID,
-   Vec4 * __restrict__ target_values,int dimension
+   Vec * __restrict__ target_values,
+   const unsigned char * const cellid_transpose
 ) {
-   uint cell_indices_to_id[3];
-   
-   switch (dimension){
-       case 0:
-          /* i and k coordinates have been swapped*/
-          cell_indices_to_id[0]=WID2;
-          cell_indices_to_id[1]=WID;
-          cell_indices_to_id[2]=1;
-          break;
-       case 1:
-          /* j and k coordinates have been swapped*/
-          cell_indices_to_id[0]=1;
-          cell_indices_to_id[1]=WID2;
-          cell_indices_to_id[2]=WID;
-          break;
-       case 2:
-          cell_indices_to_id[0]=1;
-          cell_indices_to_id[1]=WID;
-          cell_indices_to_id[2]=WID2;
-          break;
-         
-       default:
-          //same as for dimension 2, mostly here to get rid of compiler warning
-          cell_indices_to_id[0]=1;
-          cell_indices_to_id[1]=1;
-          cell_indices_to_id[2]=1;
-          cerr << "Dimension argument wrong: " << dimension << " at " << __FILE__ << ":" << __LINE__ << endl;
-          exit(1);
-          break;
-   }
-
    //Store volume averages in target blocks:
    for (int b=-1; b<=1; ++b) {
       if (target_neighbors[b + 1] == INVALID_CELLID) {
@@ -394,15 +356,15 @@ inline void store_trans_block_data(
       /*get block container for target cells*/
       vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks_temporary();
       Realf* block_data = blockContainer.getData(blockLID);
+
+      Realv blockValues[VECL];
+      uint cellid=0;
       for (uint k=0; k<WID; ++k) {
-         for (uint j=0; j<WID; ++j) {
-            for (uint i=0; i<WID; ++i) {
-               const uint cell =
-                  i * cell_indices_to_id[0] +
-                  j * cell_indices_to_id[1] +
-                  k * cell_indices_to_id[2];
-               /*store data, when reading data from  data we swap dimensions using cell_indices_to_id*/
-               block_data[cell] += target_values[i_trans_ptblockv(b,j,k)][i];
+         for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){
+            target_values[i_trans_pt_blockv(planeVector, k, b)].store_a(blockValues);
+            for(uint i = 0; i< VECL; i++){
+               /*store data, when reading data from  data we swap dimensions using precomputed plane_index_to_id and cell_indices_to_id*/
+               block_data[cellid_transpose[cellid++]] += blockValues[i];
             }
          }
       }
@@ -421,12 +383,13 @@ inline void store_trans_block_data(
 OpenMP region (as long as it does only one dimension per parallel
 refion). It is safe as each thread only computes certain blocks (blockID%tnum_threads = thread_num */
 
-bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const CellID cellID,const uint dimension, const Real dt) {
+bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const CellID cellID,const uint dimension, const Realv dt) {
    /*values used with an stencil in 1 dimension, initialized to 0. Contains a block, and its spatial neighbours in one dimension */  
-   Real dz,z_min, dvz,vz_min;
+   Realv dz,z_min, dvz,vz_min;
    SpatialCell* spatial_cell = mpiGrid[cellID];
    uint block_indices_to_id[3]; /*< used when computing id of target block */
-   uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/   
+   uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
+   unsigned char  cellid_transpose[WID3]; /*< defines the transpose for the solver internal (transposed) id: i + j*WID + k*WID2 to actual one*/
    uint thread_id = 0;  //thread id. Default value for serial case
    uint num_threads = 1; //Number of threads. Default value for serial case
    #ifdef _OPENMP
@@ -503,7 +466,21 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
           abort();
           break;
    }
-   const Real i_dz=1.0/dz;
+
+   /*init plane_index_to_id*/
+   for (uint k=0; k<WID; ++k) {
+      for (uint j=0; j<WID; ++j) {
+         for (uint i=0; i<WID; ++i) {
+         const uint cell =
+            i * cell_indices_to_id[0] +
+            j * cell_indices_to_id[1] +
+            k * cell_indices_to_id[2];
+         cellid_transpose[ i + j * WID + k * WID2] = cell;
+         }
+      }
+   }
+
+   const Realv i_dz=1.0/dz;
 
    /*Loop over blocks in spatial cell. In ordinary space the number of
     * blocks in this spatial cell does not change*/
@@ -514,30 +491,32 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       if (blockGID % num_threads != thread_id) continue;
 
       /*buffer where we write data, initialized to 0*/
-      Vec4 target_values[3 * WID2];
+      Vec target_values[3 * WID3 / VECL];
 
       //init target_values
-      for (uint i = 0; i<3*WID2; ++i) target_values[i] = Vec4(0.0, 0.0, 0.0, 0.0);
+      for (uint i = 0; i< 3 * WID3 / VECL; ++i) {
+         target_values[i] = Vec(0.0);
+      }
 
       /*buffer where we read in source data. i index vectorized*/
-      Vec4 values[(1 + 2 * VLASOV_STENCIL_WIDTH) * WID3];
-      copy_trans_block_data(mpiGrid, cellID, source_neighbors, blockGID, values, dimension);
+      Vec values[(1 + 2 * VLASOV_STENCIL_WIDTH) * WID3 / VECL];
+      copy_trans_block_data(mpiGrid, cellID, source_neighbors, blockGID, values, cellid_transpose);
       velocity_block_indices_t block_indices = SpatialCell::get_velocity_block_indices(blockGID);
-
+      
       //i,j,k are now relative to the order in which we copied data to the values array. 
       //After this point in the k,j,i loops there should be no branches based on dimensions
       //
       //Note that the i dimension is vectorized, and thus there are no loops over i
       for (uint k=0; k<WID; ++k) {
-         const Real cell_vz = (block_indices[dimension] * WID + k + 0.5) * dvz + vz_min; //cell centered velocity
-         const Real z_translation = cell_vz * dt * i_dz; // how much it moved in time dt (reduced units)
+         const Realv cell_vz = (block_indices[dimension] * WID + k + 0.5) * dvz + vz_min; //cell centered velocity
+         const Realv z_translation = cell_vz * dt * i_dz; // how much it moved in time dt (reduced units)
          const int target_scell_index = (z_translation > 0) ? 1: -1; //part of density goes here (cell index change along spatial direcion)
          
          //the coordinates (scaled units from 0 to 1) between which we will
          //integrate to put mass in the target  neighboring cell. 
          //As we are below CFL<1, we know
          //that mass will go to two cells: current and the new one.
-         Real z_1,z_2;
+         Realv z_1,z_2;
          if ( z_translation < 0 ) {
             z_1 = 0;
             z_2 = -z_translation; 
@@ -546,48 +525,47 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             z_1 = 1.0 - z_translation;
             z_2 = 1.0;
          }
-         
-         for (uint j = 0; j < WID; ++j){ 
+         for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){         
             //compute reconstruction
 #ifdef TRANS_SEMILAG_PLM
-            Vec4 a[3];
-            compute_plm_coeff(values + i_trans_pblockv(-VLASOV_STENCIL_WIDTH , j, k), VLASOV_STENCIL_WIDTH, a);
+            Vec a[3];
+            compute_plm_coeff(values + i_trans_ps_blockv(planeVector, k, -VLASOV_STENCIL_WIDTH), VLASOV_STENCIL_WIDTH, a);
 #endif
 #ifdef TRANS_SEMILAG_PPM
-            Vec4 a[3];
+            Vec a[3];
             //Check that stencil width VLASOV_STENCIL_WIDTH in grid.h corresponds to order of face estimates  (h4 & h5 =2, H6=3, h8=4)
-            compute_ppm_coeff(values + i_trans_pblockv(-VLASOV_STENCIL_WIDTH , j, k), h4, VLASOV_STENCIL_WIDTH, a);
+            compute_ppm_coeff(values + i_trans_ps_blockv(planeVector, k, -VLASOV_STENCIL_WIDTH), h4, VLASOV_STENCIL_WIDTH, a);
 #endif
 #ifdef TRANS_SEMILAG_PQM
-            Vec4 a[5];
+            Vec a[5];
             //Check that stencil width VLASOV_STENCIL_WIDTH in grid.h corresponds to order of face estimates (h4 & h5 =2, H6=3, h8=4)
-            compute_pqm_coeff(values + i_trans_pblockv(-VLASOV_STENCIL_WIDTH , j, k), h6, VLASOV_STENCIL_WIDTH, a);
+            compute_pqm_coeff(values + i_trans_ps_blockv(planeVector, k, -VLASOV_STENCIL_WIDTH), h6, VLASOV_STENCIL_WIDTH, a);
 #endif
           
 #ifdef TRANS_SEMILAG_PLM
-            const Vec4 ngbr_target_density =
+            const Vec ngbr_target_density =
                z_2 * ( a[0] + z_2 * a[1] ) -
                z_1 * ( a[0] + z_1 * a[1] );
 #endif
 #ifdef TRANS_SEMILAG_PPM
-            const Vec4 ngbr_target_density =
+            const Vec ngbr_target_density =
                z_2 * ( a[0] + z_2 * ( a[1] + z_2 * a[2] ) ) -
                z_1 * ( a[0] + z_1 * ( a[1] + z_1 * a[2] ) );
 #endif
 #ifdef TRANS_SEMILAG_PQM
-            const Vec4 ngbr_target_density =
+            const Vec ngbr_target_density =
                z_2 * ( a[0] + z_2 * ( a[1] + z_2 * ( a[2] + z_2 * ( a[3] + z_2 * a[4] ) ) ) ) -
                z_1 * ( a[0] + z_1 * ( a[1] + z_1 * ( a[2] + z_1 * ( a[3] + z_1 * a[4] ) ) ) );
 #endif
-            target_values[i_trans_ptblockv(target_scell_index,j,k)] +=  ngbr_target_density; //in the current original cells we will put this density        
-            target_values[i_trans_ptblockv(0,j,k)] +=  values[i_trans_pblockv(0,j,k)] - ngbr_target_density; //in the current original cells we will put the rest of the original density
+            target_values[i_trans_pt_blockv(planeVector, k, target_scell_index)] +=  ngbr_target_density;                     //in the current original cells we will put this density        
+            target_values[i_trans_pt_blockv(planeVector, k, 0)] +=  values[i_trans_ps_blockv(planeVector, k, 0)] - ngbr_target_density; //in the current original cells we will put the rest of the original density
          }
       }
-
+      
       //store values from target_values array to the actual blocks
-      store_trans_block_data(mpiGrid,cellID,target_neighbors,blockGID,target_values,dimension);
+      store_trans_block_data(mpiGrid,cellID,target_neighbors,blockGID,target_values,cellid_transpose);
    }
-
+   
    return true;
 }
 
@@ -699,7 +677,7 @@ void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell,dccrg::Cartesia
           if(direction < 0) mpiGrid.update_copies_of_remote_neighbors(SHIFT_M_Z_NEIGHBORHOOD_ID);  
           break;
    }
-
+   
 #pragma omp parallel
    {
       //reduce data: sum received data in the data array to the target grid in the temporary block contaniner
