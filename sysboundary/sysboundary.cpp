@@ -433,3 +433,24 @@ bool getBoundaryCellList(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometr
    return true;
 }
 
+/*! Updates all NonsysboundaryCells into an internal map. This should be called in loadBalance.
+ * \param mpiGrid The DCCRG grid
+   \retval Returns true if the operation is successful
+  */
+bool SysBoundary::updateSysBoundariesAfterLoadBalance(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
+   phiprof::start("getAllClosestNonsysboundaryCells");
+   vector<uint64_t> local_cells_on_boundary;
+   getBoundaryCellList(mpiGrid, mpiGrid.get_cells(), local_cells_on_boundary);
+   // Loop over sysboundaries:
+   for( std::list<SBC::SysBoundaryCondition*>::iterator it = sysBoundaries.begin(); it != sysBoundaries.end(); ++it ) {
+      (*it)->updateSysBoundaryConditionsAfterLoadBalance(mpiGrid, local_cells_on_boundary);
+   }
+
+   phiprof::stop("getAllClosestNonsysboundaryCells");
+   return true;
+}
+
+
+
+
+

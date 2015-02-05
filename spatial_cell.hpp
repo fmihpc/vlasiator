@@ -234,7 +234,6 @@ namespace spatial_cell {
       uint64_t ioLocalCellId;                                                 /**< Local cell ID used for IO, not needed elsewhere 
                                                                                * and thus not being kept up-to-date.*/
       vmesh::LocalID mpi_number_of_blocks;                                    /**< Number of blocks in mpi_velocity_block_list.*/
-      std::vector<vmesh::GlobalID>  mpi_velocity_block_list;                  /**< This list is used for communicating a velocity block list over MPI.*/
       Realf* neighbor_block_data;                                             /**< Pointers for translation operator. We can point to neighbor
                                                                                * cell block data. We do not allocate memory for the pointer.*/
       vmesh::LocalID neighbor_number_of_blocks;
@@ -699,7 +698,7 @@ namespace spatial_cell {
    }
 
    inline vmesh::LocalID SpatialCell::get_number_of_velocity_blocks() const {
-      return blockContainer.size();
+      return vmesh.size();
    }
 
    inline const unsigned int* SpatialCell::get_velocity_grid_length(const uint8_t& refLevel) {
@@ -1121,7 +1120,7 @@ namespace spatial_cell {
      initialized(other.initialized),
      mpiTransferEnabled(other.mpiTransferEnabled),
      mpi_number_of_blocks(other.mpi_number_of_blocks),
-     mpi_velocity_block_list(other.mpi_velocity_block_list),
+     //mpi_velocity_block_list(other.mpi_velocity_block_list),
      velocity_block_with_content_list(other.velocity_block_with_content_list),
      velocity_block_with_no_content_list(other.velocity_block_with_no_content_list),
      sysBoundaryFlag(other.sysBoundaryFlag),
@@ -1330,23 +1329,17 @@ namespace spatial_cell {
             // STAGE1 should have been done, otherwise we have problems...
             if (receiving) {
                //mpi_number_of_blocks transferred earlier
-               this->mpi_velocity_block_list.resize(this->mpi_number_of_blocks);
+               vmesh.setNewSize(this->mpi_number_of_blocks);
             } else {
                 //resize to correct size (it will avoid reallocation if it is big enough, I assume)
                 this->mpi_number_of_blocks = blockContainer.size();
-                this->mpi_velocity_block_list.resize(blockContainer.size());
-               
-                //copy values if this is the send operation
-                for (vmesh::LocalID i=0; i<blockContainer.size(); ++i) {
-                    this->mpi_velocity_block_list[i] = vmesh.getGlobalID(i);
-                }
             }
 
             // send velocity block list
-            displacements.push_back((uint8_t*) &(this->mpi_velocity_block_list[0]) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(vmesh::GlobalID) * this->mpi_number_of_blocks);
+            displacements.push_back((uint8_t*) &(vmesh.getGrid()[0]) - (uint8_t*) this);
+            block_lengths.push_back(sizeof(vmesh::GlobalID) * vmesh.size());
          }
-         
+
          if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_WITH_CONTENT_STAGE1) !=0) {
             //Communicate size of list so that buffers can be allocated on receiving side
             if (!receiving) this->velocity_block_with_content_list_size = this->velocity_block_with_content_list.size();
@@ -1367,8 +1360,7 @@ namespace spatial_cell {
             displacements.push_back((uint8_t*) get_data() - (uint8_t*) this);
             block_lengths.push_back(sizeof(Realf) * VELOCITY_BLOCK_LENGTH * blockContainer.size());
          }
-         
-         
+
          if ((SpatialCell::mpi_transfer_type & Transfer::NEIGHBOR_VEL_BLOCK_DATA) != 0) {
             /*We are actually transfering the data of a
             * neighbor. The values of neighbor_block_data
@@ -1560,7 +1552,7 @@ namespace spatial_cell {
       blockContainer.clear();
 
       // use the swap trick to force c++ to release the memory held by the vectors & maps
-      std::vector<vmesh::GlobalID>().swap(this->mpi_velocity_block_list);
+      //std::vector<vmesh::GlobalID>().swap(this->mpi_velocity_block_list);
    }
 
    /*!  Purges extra capacity from block vectors. It sets size to
@@ -1588,7 +1580,7 @@ namespace spatial_cell {
       size += vmeshTemp.sizeInBytes();
       size += blockContainerTemp.sizeInBytes();
       size += 2 * WID3 * sizeof(Realf);
-      size += mpi_velocity_block_list.size() * sizeof(vmesh::GlobalID);
+      //size += mpi_velocity_block_list.size() * sizeof(vmesh::GlobalID);
       size += velocity_block_with_content_list.size() * sizeof(vmesh::GlobalID);
       size += velocity_block_with_no_content_list.size() * sizeof(vmesh::GlobalID);
       size += CellParams::N_SPATIAL_CELL_PARAMS * sizeof(Real);
@@ -1609,7 +1601,7 @@ namespace spatial_cell {
       capacity += vmeshTemp.capacityInBytes();
       capacity += blockContainerTemp.capacityInBytes();
       capacity += 2 * WID3 * sizeof(Realf);
-      capacity += mpi_velocity_block_list.capacity()  * sizeof(vmesh::GlobalID);
+      //capacity += mpi_velocity_block_list.capacity()  * sizeof(vmesh::GlobalID);
       capacity += velocity_block_with_content_list.capacity()  * sizeof(vmesh::GlobalID);
       capacity += velocity_block_with_no_content_list.capacity()  * sizeof(vmesh::GlobalID);
       capacity += CellParams::N_SPATIAL_CELL_PARAMS * sizeof(Real);
@@ -1804,8 +1796,8 @@ namespace spatial_cell {
     the cell with empty blocks based on the new list
     */
    inline void SpatialCell::prepare_to_receive_blocks(void) {
-      vmesh.setGrid(mpi_velocity_block_list);
-      blockContainer.setSize(mpi_velocity_block_list.size());
+      vmesh.setGrid();
+      blockContainer.setSize(vmesh.size());
 
       // Set velocity block parameters:
       for (vmesh::LocalID blockLID=0; blockLID<size(); ++blockLID) {

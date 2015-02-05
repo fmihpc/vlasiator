@@ -1182,8 +1182,6 @@ void calculateUpwindedElectricFieldSimple(
       SpatialCell::set_mpi_transfer_type(Transfer::CELL_DERIVATIVES);
    }
    
-   mpiGrid.update_copies_of_remote_neighbors(FIELD_SOLVER_NEIGHBORHOOD_ID);
-   
    timer=phiprof::initializeTimer("Start communication in calculateUpwindedElectricFieldSimple","MPI");
    phiprof::start(timer);
    mpiGrid.start_remote_neighbor_copy_updates(FIELD_SOLVER_NEIGHBORHOOD_ID);
