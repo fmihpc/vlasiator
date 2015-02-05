@@ -78,8 +78,8 @@ inline void loadColumnBlockData(SpatialCell* spatial_cell,
       uint offset =0;
       for (uint k=0; k<WID; ++k) {
          for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){
-            /*store data, when reading data from  data we swap dimensions using precomputed plane_index_to_id and cell_indices_to_id*/
-            values[i_pcolumnv_b(planeVector, k, block_k, n_blocks)].load_a(blockValues + offset);
+            /*load data from blockValues which already has shifted dimensions*/
+            values[i_pcolumnv_b(planeVector, k, block_k, n_blocks)].load(blockValues + offset);
             offset += VECL;
          }
       }
