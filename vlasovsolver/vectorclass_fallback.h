@@ -575,4 +575,5 @@ static inline Vec4Simple<float> to_float(Vec4Simple<T> const & a){
   return Vec4Simple<float>(a.val[0], a.val[1], a.val[2], a.val[3]);
 }
 
+
 #endif

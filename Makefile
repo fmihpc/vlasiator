@@ -8,6 +8,9 @@ FP_PRECISION = DP
 #Set floating point precision for distribution function to SPF (single) or DPF (double)
 DISTRIBUTION_FP_PRECISION = SPF
 
+#Set vector backend type for vlasov solvers, sets precision and length. Options: VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER, VEC4D_FALLBACK, VEC4F_FALLBACK
+CXXFLAGS += -DVEC8F_AGNER
+
 #set a default archive utility, can also be set in Makefile.arch
 AR ?= ar
 
@@ -39,12 +42,9 @@ CXXFLAGS += -DNDEBUG
 #Set order of semilag solver in spatial translation
 #  TRANS_SEMILAG_PLM 	2nd order	
 #  TRANS_SEMILAG_PPM	3rd order (for production use, use unless testing)
-#  TRANS_SEMILAG_PQM	5th order (in testing)
+#  TRANS_SEMILAG_PQM	5th order (significantly slower due to larger stencil)
 CXXFLAGS += -DACC_SEMILAG_PQM -DTRANS_SEMILAG_PPM 
-#define USE_AGNER_VECTORCLASS to use an external vector class that is used in some of the solvers
-#If not defined a slower but portable implementation is used, as the external one only supports 
-#Linux & x86 processors  
-CXXFLAGS += -DUSE_AGNER_VECTORCLASS
+
 #Add -DCATCH_FPE to catch floating point exceptions and stop execution
 #May cause problems
 # CXXFLAGS += -DCATCH_FPE
@@ -316,10 +316,10 @@ spatial_cell.o: ${DEPS_CELL} spatial_cell.cpp
 
 ifeq ($(MESH),AMR)
 vlasovmover.o: ${DEPS_VLSVMOVER_AMR}
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -DMOVER_VLASOV_ORDER=2 -c vlasovsolver_amr/vlasovmover.cpp -I$(CURDIR) ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_PROFILE}  ${INC_VECTORCLASS} ${INC_EIGEN}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS}  -c vlasovsolver_amr/vlasovmover.cpp -I$(CURDIR) ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_PROFILE}  ${INC_VECTORCLASS} ${INC_EIGEN}
 else
 vlasovmover.o: ${DEPS_VLSVMOVER}
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -DMOVER_VLASOV_ORDER=2 -c vlasovsolver/vlasovmover.cpp -I$(CURDIR) ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_PROFILE}  ${INC_VECTORCLASS} ${INC_EIGEN}  
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS}  -c vlasovsolver/vlasovmover.cpp -I$(CURDIR) ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_PROFILE}  ${INC_VECTORCLASS} ${INC_EIGEN}  
 endif
 
 fs_common.o: fieldsolver/fs_common.h fieldsolver/fs_common.cpp

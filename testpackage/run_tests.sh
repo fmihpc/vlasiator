@@ -13,28 +13,30 @@ test_dir=$( readlink -f $test_dir)
 #   do
 #   test_dir[$run]=$( readlink -f runs/${test_name[$run]} )
 #   test_cfg[$run]=$( readlink -f runs/${test_name[$run]}/${test_name[$run]}.cfg )
-# done  
+# done
 
+  
+flags=$(  $run_command $bin  --version |grep CXXFLAGS)
+solveropts=$(echo $flags|sed 's/[-+]//g' | gawk '{for(i = 1;i<=NF;i++) { if( $i=="DDP" || $i=="DFP" || index($i,"PF")|| index($i,"DVEC") || index($i,"SEMILAG") ) printf "__%s", $(i) }}')
+revision=$( $run_command $bin --version |gawk '{if(flag==1) {print $1;flag=0}if ($3=="log") flag=1;}' )
 
 if [ $create_verification_files == 1 ]
 then
     #if we create the references, then lets simply run in the reference dir and turn off tests below. Revision is 
     #automatically obtained from the --version output
-    reference_revision=$( $run_command $bin --version |gawk '{if(flag==1) {print $1;flag=0}if ($3=="log") flag=1;}' )
-    flags=$(  $run_command $bin  --version |grep CXXFLAGS)
-    solveropts=$(echo $flags|sed 's/[-+]//g' | gawk '{for(i = 1;i<=NF;i++) { if( $i=="DDP" || $i=="DFP" || index($i,"PF")|| index($i,"PV") || index($i,"SEMILAG") ) printf "__%s", $(i) }}')
-    reference_revision=${reference_revision}${solveropts}
+    reference_revision=${revision}${solveropts}
     echo "Computing reference results into ${reference_dir}/${reference_revision}"
-
 fi
 
 
 #create main run folder if it doesn not exist
-if [ !  -d $run_dir ]
+
+if [ -d $run_dir ]
 then
-    mkdir -p $run_dir 
+    mv $run_dir ${run_dir}_old_$(date  "+%s")
 fi
 
+mkdir -p $run_dir 
 
 # loop over different test cases
 for run in ${run_tests[*]}
@@ -83,7 +85,7 @@ do
     then
 ##Compare test case with right solutions
         echo "--------------------------------------------------------------------------------------------" 
-        echo "${test_name[$run]}  -  Verifying $bin against revision $reference_revision"    
+        echo "${test_name[$run]}  -  Verifying ${revision}_$solveropts against $reference_revision"    
         echo "--------------------------------------------------------------------------------------------" 
         result_dir=${reference_dir}/${reference_revision}/${test_name[$run]}
 
