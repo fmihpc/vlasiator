@@ -94,7 +94,7 @@ void clearTargetGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
          
 }
 
-//Set all values in the temporary target grid to zero (0.0), for all cells in cells vector.   
+//Set all values in the temporary target grid to zero (0), for all cells in cells vector.   
 void zeroTargetGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,   const vector<CellID>& cells){
    phiprof::start("zero-target-grid");      
 #pragma omp  parallel for
@@ -495,7 +495,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       }
    }
 
-   const Realv i_dz=1.0/dz;
+   const Realv i_dz=1/dz;
 
    /*Loop over blocks in spatial cell. In ordinary space the number of
     * blocks in this spatial cell does not change*/
@@ -510,7 +510,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 
       //init target_values
       for (uint i = 0; i< 3 * WID3 / VECL; ++i) {
-         target_values[i] = Vec(0.0);
+         target_values[i] = Vec(0);
       }
 
       /*buffer where we read in source data. i index vectorized*/
@@ -537,8 +537,8 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             z_2 = -z_translation; 
          }
          else {
-            z_1 = 1.0 - z_translation;
-            z_2 = 1.0;
+            z_1 = 1 - z_translation;
+            z_2 = 1;
          }
          for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){         
             //compute reconstruction
@@ -707,7 +707,7 @@ void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell,dccrg::Cartesia
          vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks_temporary();
          #pragma omp for nowait
          for(unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH * blockContainer.size(); cell++) {
-            blockContainer.getData()[cell] = 0.0;
+            blockContainer.getData()[cell] = 0;
          }
       }
    }
