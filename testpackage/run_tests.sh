@@ -17,7 +17,7 @@ test_dir=$( readlink -f $test_dir)
 
   
 flags=$(  $run_command $bin  --version |grep CXXFLAGS)
-solveropts=$(echo $flags|sed 's/[-+]//g' | gawk '{for(i = 1;i<=NF;i++) { if( $i=="DDP" || $i=="DFP" || index($i,"PF")|| index($i,"PV") || index($i,"SEMILAG") ) printf "__%s", $(i) }}')
+solveropts=$(echo $flags|sed 's/[-+]//g' | gawk '{for(i = 1;i<=NF;i++) { if( $i=="DDP" || $i=="DFP" || index($i,"PF")|| index($i,"DVEC") || index($i,"SEMILAG") ) printf "__%s", $(i) }}')
 revision=$( $run_command $bin --version |gawk '{if(flag==1) {print $1;flag=0}if ($3=="log") flag=1;}' )
 
 if [ $create_verification_files == 1 ]
