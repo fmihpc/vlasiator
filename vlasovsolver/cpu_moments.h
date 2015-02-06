@@ -14,7 +14,8 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 
 #include "../definitions.h"
 #include "../common.h"
-#include "spatial_cell.hpp"
+#include "../spatial_cell.hpp"
+
 using namespace spatial_cell;
 
 template<typename REAL> void cpu_blockVelocityFirstMoments(

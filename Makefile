@@ -140,6 +140,17 @@ DEPS_PROJECTS =	projects/project.h projects/project.cpp \
 		projects/verificationLarmor/verificationLarmor.h projects/verificationLarmor/verificationLarmor.cpp \
 		projects/Shocktest/Shocktest.h projects/Shocktest/Shocktest.cpp ${DEPS_CELL}
 
+DEPS_CPU_ACC_MAP = ${DEPS_COMMON} ${DEPS_CELL} vlasovsolver/vec.h vlasovsolver/cpu_acc_map.hpp vlasovsolver/cpu_acc_map.cpp
+
+DEPS_CPU_ACC_SEMILAG = ${DEPS_COMMON} ${DEPS_CELL} vlasovsolver/cpu_acc_intersections.hpp vlasovsolver/cpu_acc_transform.hpp \
+	vlasovsolver/cpu_acc_map.hpp vlasovsolver/cpu_acc_semilag.hpp vlasovsolver/cpu_acc_semilag.cpp
+
+DEPS_CPU_ACC_SORT_BLOCKS = ${DEPS_COMMON} ${DEPS_CELL} vlasovsolver/cpu_acc_sort_blocks.hpp vlasovsolver/cpu_acc_sort_blocks.cpp
+
+DEPS_CPU_ACC_TRANSFORM = ${DEPS_COMMON} ${DEPS_CELL} vlasovsolver/cpu_moments.h vlasovsolver/cpu_acc_transform.hpp vlasovsolver/cpu_acc_transform.cpp
+
+DEPS_CPU_TRANS_MAP = ${DEPS_COMMON} ${DEPS_CELL} grid.h vlasovsolver/vec.h vlasovsolver/cpu_trans_map.hpp vlasovsolver/cpu_trans_map.cpp
+
 DEPS_VLSVMOVER = ${DEPS_CELL} vlasovsolver/vlasovmover.cpp vlasovsolver/cpu_acc_map.hpp vlasovsolver/cpu_acc_intersections.hpp \
 	vlasovsolver/cpu_acc_intersections.hpp vlasovsolver/cpu_acc_semilag.hpp vlasovsolver/cpu_acc_transform.hpp \
 	vlasovsolver/cpu_moments.h
@@ -163,6 +174,12 @@ OBJS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipo
 	verificationLarmor.o Shocktest.o grid.o ioread.o iowrite.o vlasiator.o logger.o muxml.o \
 	common.o parameters.o readparameters.o spatial_cell.o \
 	vlscommon.o vlsvreader2.o vlasovmover.o $(FIELDSOLVER).o fs_common.o fs_limiters.o
+
+ifeq ($(MESH),AMR)
+
+else
+OBJS += cpu_acc_map.o cpu_acc_sort_blocks.o cpu_acc_semilag.o cpu_acc_transform.o cpu_trans_map.o
+endif
 
 help:
 	@echo ''
@@ -318,8 +335,24 @@ ifeq ($(MESH),AMR)
 vlasovmover.o: ${DEPS_VLSVMOVER_AMR}
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS}  -c vlasovsolver_amr/vlasovmover.cpp -I$(CURDIR) ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_PROFILE}  ${INC_VECTORCLASS} ${INC_EIGEN}
 else
+
+cpu_acc_map.o: ${DEPS_CPU_ACC_MAP}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_map.cpp ${INC_EIGEN} ${INC_DCCRG} ${INC_PROFILE} ${INC_VECTORCLASS}
+
+cpu_acc_semilag.o: ${DEPS_CPU_ACC_SEMILAG}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_semilag.cpp ${INC_EIGEN} ${INC_DCCRG} ${INC_PROFILE} ${INC_VECTORCLASS}
+
+cpu_acc_sort_blocks.o: ${DEPS_CPU_ACC_SORT_BLOCKS}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_sort_blocks.cpp ${INC_EIGEN} ${INC_DCCRG} ${INC_PROFILE}
+
+cpu_acc_transform.o: ${DEPS_CPU_ACC_TRANSFORM}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_transform.cpp ${INC_EIGEN} ${INC_DCCRG} ${INC_PROFILE}
+
+cpu_trans_map.o: ${DEPS_CPU_TRANS_MAP}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_trans_map.cpp ${INC_EIGEN} ${INC_DCCRG} ${INC_PROFILE} ${INC_VECTORCLASS}
+
 vlasovmover.o: ${DEPS_VLSVMOVER}
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS}  -c vlasovsolver/vlasovmover.cpp -I$(CURDIR) ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_PROFILE}  ${INC_VECTORCLASS} ${INC_EIGEN}  
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS}  -c vlasovsolver/vlasovmover.cpp -I$(CURDIR) ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VECTORCLASS} ${INC_EIGEN}  
 endif
 
 fs_common.o: fieldsolver/fs_common.h fieldsolver/fs_common.cpp

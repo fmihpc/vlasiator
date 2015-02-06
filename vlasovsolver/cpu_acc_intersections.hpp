@@ -1,18 +1,20 @@
 #ifndef CPU_ACC_INTERSECTIONS_H
 #define CPU_ACC_INTERSECTIONS_H
 
-#include "algorithm"
-#include "cmath"
-#include "utility"
+#include <algorithm>
+#include <cmath>
+#include <utility>
 
 /*TODO - replace with standard library c++11 functions as soon as possible*/
-#include "boost/array.hpp"
-#include "boost/unordered_map.hpp"
-#include "boost/unordered_set.hpp"
-#include "common.h"
-#include "spatial_cell.hpp"
+#include <boost/array.hpp>
+#include <boost/unordered_map.hpp>
+#include <boost/unordered_set.hpp>
+
 #include <Eigen/Geometry>
 #include <Eigen/Core>
+
+#include "../common.h"
+#include "../spatial_cell.hpp"
 
 using namespace std;
 using namespace spatial_cell;
