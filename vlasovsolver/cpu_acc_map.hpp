@@ -43,8 +43,10 @@ using namespace spatial_cell;
 
  * @param blocks Array containing block global IDs.
  * @param n_blocks Number of blocks in array blocks.
+ * @param popID Particle species ID.
 */
-inline void loadColumnBlockData(SpatialCell* spatial_cell,vmesh::GlobalID* blocks,vmesh::LocalID n_blocks, Vec4 * __restrict__ values, int dimension){
+inline void loadColumnBlockData(SpatialCell* spatial_cell,vmesh::GlobalID* blocks,vmesh::LocalID n_blocks, Vec4 * __restrict__ values, int dimension,
+                                const int& popID){
    uint cell_indices_to_id[3];
    switch (dimension){
        case 0:
@@ -86,8 +88,8 @@ inline void loadColumnBlockData(SpatialCell* spatial_cell,vmesh::GlobalID* block
 
    /*copy block data for all blocks*/
    for (vmesh::LocalID block_k=0; block_k<n_blocks; ++block_k) {
-      const vmesh::LocalID blockLID = spatial_cell->get_velocity_block_local_id(blocks[block_k]);
-      Realf* __restrict__ data = spatial_cell->get_data()+blockLID*SIZE_VELBLOCK;
+      const vmesh::LocalID blockLID = spatial_cell->get_velocity_block_local_id(blocks[block_k],popID);
+      Realf* __restrict__ data = spatial_cell->get_data(popID)+blockLID*SIZE_VELBLOCK;
 
       //  Copy volume averages of this block, taking into account the dimension shifting
       for (uint j=0; j<WID; ++j) {
@@ -118,8 +120,8 @@ inline void loadColumnBlockData(SpatialCell* spatial_cell,vmesh::GlobalID* block
 */
 
 bool map_1d(SpatialCell* spatial_cell,
-                    Real intersection, Real intersection_di, Real intersection_dj,Real intersection_dk,
-                    uint dimension ) {
+            Real intersection, Real intersection_di, Real intersection_dj,Real intersection_dk,
+            uint dimension,const int& popID) {
 
    Real dv,v_min;
    Real is_temp;
@@ -191,14 +193,14 @@ bool map_1d(SpatialCell* spatial_cell,
    const Real i_dv=1.0/dv;
 
    /*sort blocks according to dimension, and divide them into columns*/
-   uint* blocks=new uint[spatial_cell->get_number_of_velocity_blocks()];
+   uint* blocks=new uint[spatial_cell->get_number_of_velocity_blocks(popID)];
    std::vector<uint> columnBlockOffsets;
    std::vector<uint> columnNumBlocks;
    std::vector<uint> setColumnOffsets;
    std::vector<uint> setNumColumns;
    sortBlocklistByDimension(spatial_cell, dimension, blocks,
                             columnBlockOffsets, columnNumBlocks,
-                            setColumnOffsets, setNumColumns);
+                            setColumnOffsets, setNumColumns, popID);
 
 /*   
         values array used to store column data The max size is the worst
@@ -219,7 +221,7 @@ bool map_1d(SpatialCell* spatial_cell,
       for(uint columnIndex = setColumnOffsets[setIndex]; columnIndex < setColumnOffsets[setIndex] + setNumColumns[setIndex] ; columnIndex ++){
          const vmesh::LocalID n_cblocks = columnNumBlocks[columnIndex];
          vmesh::GlobalID* cblocks = blocks + columnBlockOffsets[columnIndex]; /*column blocks*/
-         loadColumnBlockData(spatial_cell,cblocks,n_cblocks,values + valuesColumnOffset ,dimension);
+         loadColumnBlockData(spatial_cell,cblocks,n_cblocks,values + valuesColumnOffset ,dimension, popID);
          valuesColumnOffset += (n_cblocks + 2) * WID2 ;
       }
 
@@ -370,14 +372,13 @@ bool map_1d(SpatialCell* spatial_cell,
 
                            //not the same block as last time, lets create it if we
                            //need to and fetch its data array pointer and store it in target_block_data.
-                           if (spatial_cell->count(tblock) == 0) {
-                              // count is faster here since the same checks in 
-                              // add_velocity_block call are more expensive
-                              spatial_cell->add_velocity_block(tblock);
-                              phiprof_assert(spatial_cell->count(tblock) != 0);
+                           vmesh::LocalID tblockLID = spatial_cell->get_velocity_block_local_id(tblock,popID);
+                           if (tblockLID == SpatialCell::invalid_local_id()) {
+                               spatial_cell->add_velocity_block(tblock,popID);
+                               tblockLID = spatial_cell->get_velocity_block_local_id(tblock,popID);
                            }
 
-                           target_block_data = spatial_cell->get_data() + spatial_cell->get_velocity_block_local_id(tblock)*SIZE_VELBLOCK;
+                           target_block_data = spatial_cell->get_data(popID) + tblockLID*SIZE_VELBLOCK;
                            // END NOTE
                         }
                      

@@ -4,7 +4,7 @@ namespace projects {
    /*!
     * WARNING This assumes that the velocity space is isotropic (same resolution in vx, vy, vz).
     */
-   vector<uint> TriAxisSearch::findBlocksToInitialize(SpatialCell* cell) {
+   vector<uint> TriAxisSearch::findBlocksToInitialize(SpatialCell* cell,const int& popID) {
       set<uint> blocksToInitialize;
       bool search;
       int counter;
@@ -109,8 +109,9 @@ namespace projects {
                   creal vz = P::vzmin + (kv+0.5) * dvzBlock; // vz-
                   
                   if ((vx-it->at(0))*(vx-it->at(0)) + (vy-it->at(1))*(vy-it->at(1)) + (vz-it->at(2))*(vz-it->at(2)) < vRadiusSquared) {
-                     cell->add_velocity_block(cell->get_velocity_block(vx, vy, vz));
-                     blocksToInitialize.insert(cell->get_velocity_block(vx, vy, vz));
+                     const vmesh::GlobalID blockGID = SpatialCell::get_velocity_block(vx, vy, vz);
+                     cell->add_velocity_block(blockGID,popID);
+                     blocksToInitialize.insert(blockGID);
                   }
                }
       }

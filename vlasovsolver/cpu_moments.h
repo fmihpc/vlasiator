@@ -17,6 +17,74 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #include "spatial_cell.hpp"
 using namespace spatial_cell;
 
+template<typename REAL> inline
+void blockVelocityFirstMoments(
+        const Realf* const avgs,
+        const REAL* const blockParams,
+        REAL* array
+    ) {
+    const REAL HALF = 0.5;
+    const REAL DV3 = blockParams[BlockParams::DVX]*blockParams[BlockParams::DVY]*blockParams[BlockParams::DVZ];
+    
+    REAL n_sum = 0.0;
+    REAL nvx_sum = 0.0;
+    REAL nvy_sum = 0.0;
+    REAL nvz_sum = 0.0;
+    for (uint k=0; k<WID; ++k) for (uint j=0; j<WID; ++j) for (uint i=0; i<WID; ++i) {
+        const REAL VX = blockParams[BlockParams::VXCRD] + (i+HALF)*blockParams[BlockParams::DVX];
+        const REAL VY = blockParams[BlockParams::VYCRD] + (j+HALF)*blockParams[BlockParams::DVY];
+        const REAL VZ = blockParams[BlockParams::VZCRD] + (k+HALF)*blockParams[BlockParams::DVZ];
+      
+        n_sum   += avgs[cellIndex(i,j,k)];
+        nvx_sum += avgs[cellIndex(i,j,k)]*VX;
+        nvy_sum += avgs[cellIndex(i,j,k)]*VY;
+        nvz_sum += avgs[cellIndex(i,j,k)]*VZ;        
+    }
+    array[0] += n_sum   * DV3;
+    array[1] += nvx_sum * DV3;
+    array[2] += nvy_sum * DV3;
+    array[3] += nvz_sum * DV3;
+}
+
+template<typename REAL> inline
+void blockVelocitySecondMoments(
+        const Realf* const avgs,
+        const REAL* const blockParams,
+        const REAL* const cellParams,
+        const int cp_rho,
+        const int cp_rhovx,
+        const int cp_rhovy,
+        const int cp_rhovz,
+        REAL* array
+    ) {
+    const REAL HALF = 0.5;
+    
+    const REAL RHO = std::max(cellParams[cp_rho], std::numeric_limits<REAL>::min());
+    const REAL averageVX = cellParams[cp_rhovx] / RHO;
+    const REAL averageVY = cellParams[cp_rhovy] / RHO;
+    const REAL averageVZ = cellParams[cp_rhovz] / RHO;
+    REAL nvx2_sum = 0.0;
+    REAL nvy2_sum = 0.0;
+    REAL nvz2_sum = 0.0;
+    for (uint k=0; k<WID; ++k) for (uint j=0; j<WID; ++j) for (uint i=0; i<WID; ++i) {
+        const REAL VX = blockParams[BlockParams::VXCRD] + (i+HALF)*blockParams[BlockParams::DVX];
+        const REAL VY = blockParams[BlockParams::VYCRD] + (j+HALF)*blockParams[BlockParams::DVY];
+        const REAL VZ = blockParams[BlockParams::VZCRD] + (k+HALF)*blockParams[BlockParams::DVZ];
+      
+        nvx2_sum += avgs[cellIndex(i,j,k)] * (VX - averageVX) * (VX - averageVX);
+        nvy2_sum += avgs[cellIndex(i,j,k)] * (VY - averageVY) * (VY - averageVY);
+        nvz2_sum += avgs[cellIndex(i,j,k)] * (VZ - averageVZ) * (VZ - averageVZ);
+    }
+
+    // Accumulate contributions coming from this velocity block to the
+    // spatial cell velocity moments. If multithreading / OpenMP is used,
+    // these updates need to be atomic:
+    const REAL DV3 = blockParams[BlockParams::DVX]*blockParams[BlockParams::DVY]*blockParams[BlockParams::DVZ];
+    array[0] += nvx2_sum * DV3;
+    array[1] += nvy2_sum * DV3;
+    array[2] += nvz2_sum * DV3;
+}
+
 template<typename REAL> void cpu_blockVelocityFirstMoments(
    const Realf* const avgs,
    const REAL* const blockParams,
@@ -99,37 +167,37 @@ template<typename REAL> void cpu_blockVelocitySecondMoments(
    cellParams[cp_p33] += nvz2_sum * mpDV3;
 }
 
-
-
 template<typename UINT> void cpu_calcVelocityFirstMoments(
         SpatialCell *cell,
         const UINT blockLID,
         const int cp_rho,
         const int cp_rhovx,
         const int cp_rhovy,
-        const int cp_rhovz
+        const int cp_rhovz,
+        const int& popID
     ) {
     cpu_blockVelocityFirstMoments(
-      cell->get_data()+blockLID*SIZE_VELBLOCK,
-      cell->get_block_parameters()+blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS,
+      cell->get_data(popID)+blockLID*SIZE_VELBLOCK,
+      cell->get_block_parameters(popID)+blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS,
       cell->parameters,cp_rho,cp_rhovx,cp_rhovy,cp_rhovz
    );
 }
 
 template<typename UINT> void cpu_calcVelocitySecondMoments(
-   SpatialCell *cell,
-   const UINT blockLID,
-   const int cp_rho,
-   const int cp_rhovx,
-   const int cp_rhovy,
-   const int cp_rhovz,
-   const int cp_p11,
-   const int cp_p22,
-   const int cp_p33
+        SpatialCell *cell,
+        const UINT blockLID,
+        const int cp_rho,
+        const int cp_rhovx,
+        const int cp_rhovy,
+        const int cp_rhovz,
+        const int cp_p11,
+        const int cp_p22,
+        const int cp_p33,
+        const int& popID
 ) {
    cpu_blockVelocitySecondMoments(
-      cell->get_data()+blockLID*SIZE_VELBLOCK,
-      cell->get_block_parameters()+blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS,
+      cell->get_data(popID)+blockLID*SIZE_VELBLOCK,
+      cell->get_block_parameters(popID)+blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS,
       cell->parameters,
       cp_rho,cp_rhovx,cp_rhovy,cp_rhovz,cp_p11,cp_p22,cp_p33
    );

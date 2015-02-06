@@ -40,7 +40,7 @@ namespace projects {
           * This is very expensive and becomes prohibitive in cases where a large velocity space is needed with only
           * small portions actually containing something. Use with care.
           */
-         virtual std::vector<vmesh::GlobalID> findBlocksToInitialize(SpatialCell* cell);
+         virtual std::vector<vmesh::GlobalID> findBlocksToInitialize(SpatialCell* cell,const int& popID);
          
          /*! \brief Sets the distribution function in a cell.
           * 

@@ -126,10 +126,9 @@ bool writeVelocityDistributionData(const int& popID,Writer& vlsvWriter,
    // Compute totalBlocks
    uint64_t totalBlocks = 0;
    vector<uint> blocksPerCell;
-   SpatialCell::setActivePopulation(popID);
    for (size_t cell=0; cell<cells.size(); ++cell){
-      totalBlocks+=mpiGrid[cells[cell]]->get_number_of_velocity_blocks();
-      blocksPerCell.push_back(mpiGrid[cells[cell]]->get_number_of_velocity_blocks());
+      totalBlocks+=mpiGrid[cells[cell]]->get_number_of_velocity_blocks(popID);
+      blocksPerCell.push_back(mpiGrid[cells[cell]]->get_number_of_velocity_blocks(popID));
    }
    
    // The name of the mesh is "SpatialGrid"
@@ -149,8 +148,8 @@ bool writeVelocityDistributionData(const int& popID,Writer& vlsvWriter,
       // gather data for writing
       for (size_t cell=0; cell<cells.size(); ++cell) {
          SpatialCell* SC = mpiGrid[cells[cell]];
-         for (vmesh::LocalID block_i=0; block_i<SC->get_number_of_velocity_blocks(); ++block_i) {
-            vmesh::GlobalID block = SC->get_velocity_block_global_id(block_i);
+         for (vmesh::LocalID block_i=0; block_i<SC->get_number_of_velocity_blocks(popID); ++block_i) {
+            vmesh::GlobalID block = SC->get_velocity_block_global_id(block_i,popID);
             velocityBlockIds.push_back( block );
          }
       }
@@ -189,8 +188,8 @@ bool writeVelocityDistributionData(const int& popID,Writer& vlsvWriter,
       SpatialCell* SC = mpiGrid[cells[cell]];
       
       // Get the number of blocks in this cell
-      const uint64_t arrayElements = SC->get_number_of_velocity_blocks();
-      char* arrayToWrite = reinterpret_cast<char*>(SC->get_data());
+      const uint64_t arrayElements = SC->get_number_of_velocity_blocks(popID);
+      char* arrayToWrite = reinterpret_cast<char*>(SC->get_data(popID));
 
       // Add a subarray to write
       vlsvWriter.addMultiwriteUnit(arrayToWrite, arrayElements); // Note: We told beforehands that the vectorsize = WID3 = 64
@@ -984,7 +983,8 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    vlsvWriter.close();
    //Updated newly adjusted velocity block lists on remote cells, and
    //prepare to receive block data
-   updateRemoteVelocityBlockLists(mpiGrid);
+   for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
+      updateRemoteVelocityBlockLists(mpiGrid,popID);
    
    phiprof::stop("writeGrid-restart");//,1.0e-6*bytesWritten,"MB");
    

@@ -261,6 +261,7 @@ int main(int argn,char* args[]) {
    initializeGrid(argn,args,mpiGrid,sysBoundaries,*project);
    isSysBoundaryCondDynamic = sysBoundaries.isDynamic();
    phiprof::stop("Init grid");
+   cerr << "grid init" << endl;
    
    // Initialize data reduction operators. This should be done elsewhere in order to initialize 
    // user-defined operators:
@@ -281,7 +282,7 @@ int main(int argn,char* args[]) {
 
    // Free up memory:
    readparameters.finalize();
-   
+   cerr << "saving" << endl;
    // Save restart data
    if (P::writeInitialState) {
       phiprof::start("write-initial-state");
@@ -526,7 +527,10 @@ int main(int argn,char* args[]) {
       
       //compute how many spatial cells we solve for this step
       computedCells=0;
-      for(uint i=0;i<cells.size();i++)  computedCells+=mpiGrid[cells[i]]->get_number_of_velocity_blocks()*WID3;
+      for(size_t i=0; i<cells.size(); i++) {
+         for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
+            computedCells += mpiGrid[cells[i]]->get_number_of_velocity_blocks(popID)*WID3;
+      }
       computedTotalCells+=computedCells;
       
       //Check if dt needs to be changed, and propagate V back a half-step to change dt and set up new situation

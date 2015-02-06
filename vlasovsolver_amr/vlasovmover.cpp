@@ -422,40 +422,72 @@ void calculateCellVelocityMoments(SpatialCell* SC,
 	 SC->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY))
        ) return;
 
-   SC->parameters[CellParams::RHO  ] = 0.0;
-   SC->parameters[CellParams::RHOVX] = 0.0;
-   SC->parameters[CellParams::RHOVY] = 0.0;
-   SC->parameters[CellParams::RHOVZ] = 0.0;
-   SC->parameters[CellParams::P_11 ] = 0.0;
-   SC->parameters[CellParams::P_22 ] = 0.0;
-   SC->parameters[CellParams::P_33 ] = 0.0;
+   // Clear old moments
+   Real* cellParams = SC->get_cell_parameters();
+   cellParams[CellParams::RHO  ] = 0.0;
+   cellParams[CellParams::RHOVX] = 0.0;
+   cellParams[CellParams::RHOVY] = 0.0;
+   cellParams[CellParams::RHOVZ] = 0.0;
+   cellParams[CellParams::P_11 ] = 0.0;
+   cellParams[CellParams::P_22 ] = 0.0;
+   cellParams[CellParams::P_33 ] = 0.0;
 
-   // Iterate through all velocity blocks in this spatial cell
-   // and calculate velocity moments:
-   for (vmesh::LocalID block_i=0; block_i<SC->get_number_of_velocity_blocks(); ++block_i) {
-      cpu_calcVelocityFirstMoments(SC,
-				   block_i,
-				   CellParams::RHO,
-				   CellParams::RHOVX,
-				   CellParams::RHOVY,
-				   CellParams::RHOVZ
-				   );
-   }
+   // Calculate first moments
+   for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      // Temporary array for storing this species' contribution
+      Real array[4];
+      for (int i=0; i<4; ++i) array[i] = 0;
+      
+      // Pointers to this species' data
+      const Realf* data = SC->get_data(popID);
+      const Real* blockParams = SC->get_block_parameters(popID);
+      
+      for (vmesh::LocalID blockLID=0; blockLID<SC->get_number_of_velocity_blocks(popID); ++blockLID) {
+         blockVelocityFirstMoments(
+                  data,
+                  blockParams,
+                  array
+         );
+         data += SIZE_VELBLOCK;
+         blockParams += BlockParams::N_VELOCITY_BLOCK_PARAMS;
+      }
+      
+      const Real massRatio = getObjectWrapper().particleSpecies[popID].mass / physicalconstants::MASS_PROTON;
+      cellParams[CellParams::RHO  ] += array[0]*massRatio;
+      cellParams[CellParams::RHOVX] += array[1]*massRatio;
+      cellParams[CellParams::RHOVY] += array[2]*massRatio;
+      cellParams[CellParams::RHOVZ] += array[3]*massRatio;
+   } // for-loop over particle species
 
    // Second iteration needed as rho has to be already computed when computing pressure
-   for (vmesh::LocalID block_i=0; block_i<SC->get_number_of_velocity_blocks(); ++block_i) {
-      cpu_calcVelocitySecondMoments(
-				    SC,
-				    block_i,
-				    CellParams::RHO,
-				    CellParams::RHOVX,
-				    CellParams::RHOVY,
-				    CellParams::RHOVZ,
-				    CellParams::P_11,
-				    CellParams::P_22,
-				    CellParams::P_33
-				   );
-   }
+   for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      // Temporary array for storing this species' contribution
+      Real array[3];
+      for (int i=0; i<3; ++i) array[i] = 0;
+      
+      // Pointers to this species' data
+      const Realf* data = SC->get_data(popID);
+      const Real* blockParams = SC->get_block_parameters(popID);
+      
+      for (vmesh::LocalID blockLID=0; blockLID<SC->get_number_of_velocity_blocks(popID); ++blockLID) {
+         blockVelocitySecondMoments(
+                  data,
+                  blockParams,
+                  cellParams,
+                  CellParams::RHO,
+                  CellParams::RHOVX,
+                  CellParams::RHOVY,
+                  CellParams::RHOVZ,
+                  array
+         );
+         data += SIZE_VELBLOCK;
+         blockParams += BlockParams::N_VELOCITY_BLOCK_PARAMS;
+      }
+      
+      cellParams[CellParams::P_11] += array[0]*getObjectWrapper().particleSpecies[popID].mass;
+      cellParams[CellParams::P_22] += array[1]*getObjectWrapper().particleSpecies[popID].mass;
+      cellParams[CellParams::P_33] += array[2]*getObjectWrapper().particleSpecies[popID].mass;
+   } // for-loop over particle species
 }
 
 void calculateInitialVelocityMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {

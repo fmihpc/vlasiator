@@ -150,11 +150,6 @@ namespace projects {
     * @return If true, base class was successfully initialized.*/
    bool Project::initialized() {return baseClassInitialized;}
 
-   /** Set active particle population. Successive calls to member functions 
-    * should then return values for the selected population.
-    * @param popID Population ID.*/
-   void Project::setActivePopulation(const int& popID) { }
-   
    /*! Base class sets zero background field */
    void Project::setCellBackgroundField(SpatialCell* cell) {
       ConstantField bgField;
@@ -182,7 +177,7 @@ namespace projects {
       calculateCellVelocityMoments(cell, true);
    }
 
-   vector<vmesh::GlobalID> Project::findBlocksToInitialize(SpatialCell* cell) {
+   vector<vmesh::GlobalID> Project::findBlocksToInitialize(SpatialCell* cell,const int& popID) {
       vector<vmesh::GlobalID> blocksToInitialize;
 
       for (uint kv=0; kv<P::vzblocks_ini; ++kv) 
@@ -194,7 +189,7 @@ namespace projects {
 
                //FIXME, add_velocity_blocks should  not be needed as set_value handles it!!
                //FIXME,  We should get_velocity_block based on indices, not v
-               cell->add_velocity_block(cell->get_velocity_block(vx, vy, vz));
+               cell->add_velocity_block(cell->get_velocity_block(vx, vy, vz),popID);
                blocksToInitialize.push_back(cell->get_velocity_block(vx, vy, vz));
       }
 
@@ -217,11 +212,10 @@ namespace projects {
    }
    
    void Project::setVelocitySpace(const int& popID,SpatialCell* cell) {
-      setActivePopulation(popID);
-      cell->setActivePopulation(popID);
+      //cell->setActivePopulation(popID);
 
-      vector<vmesh::GlobalID> blocksToInitialize = this->findBlocksToInitialize(cell);
-      Real* parameters = cell->get_block_parameters();
+      vector<vmesh::GlobalID> blocksToInitialize = this->findBlocksToInitialize(cell,popID);
+      Real* parameters = cell->get_block_parameters(0,popID);
 
       creal x = cell->parameters[CellParams::XCRD];
       creal y = cell->parameters[CellParams::YCRD];
@@ -230,9 +224,12 @@ namespace projects {
       creal dy = cell->parameters[CellParams::DY];
       creal dz = cell->parameters[CellParams::DZ];
       
+      vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = cell->get_velocity_mesh(popID);
+      Realf* data = cell->get_data(0,popID);
+
       for (uint i=0; i<blocksToInitialize.size(); ++i) {
          const vmesh::GlobalID blockGID = blocksToInitialize.at(i);
-         const vmesh::LocalID blockLID = cell->get_velocity_block_local_id(blockGID);
+         const vmesh::LocalID blockLID = vmesh.getLocalID(blockGID);
          creal vxBlock = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD];
          creal vyBlock = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD];
          creal vzBlock = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD];
@@ -260,7 +257,7 @@ namespace projects {
                      creal vxCellCenter = vxBlock + (ic+convert<Real>(0.5))*dvxCell;
                      creal vyCellCenter = vyBlock + (jc+convert<Real>(0.5))*dvyCell;
                      creal vzCellCenter = vzBlock + (kc+convert<Real>(0.5))*dvzCell;
-                     cell->set_value(vxCellCenter,vyCellCenter,vzCellCenter,average);
+                     data[blockLID*SIZE_VELBLOCK+cellIndex(ic,jc,kc)] = average;
                   }
                }
       }
@@ -280,15 +277,15 @@ namespace projects {
          // Loop over blocks and add blocks to be refined to vector refineList
          vector<vmesh::GlobalID> refineList;
          const vmesh::LocalID startIndex = 0;
-         const vmesh::LocalID endIndex   = cell->get_number_of_velocity_blocks();
+         const vmesh::LocalID endIndex   = cell->get_number_of_velocity_blocks(popID);
          for (vmesh::LocalID blockLID=startIndex; blockLID<endIndex; ++blockLID) {
             vector<vmesh::GlobalID> nbrs;
             int32_t refLevelDifference;
-            const vmesh::GlobalID blockGID = cell->get_velocity_block_global_id(blockLID);
+            const vmesh::GlobalID blockGID = vmesh.getGlobalID(blockLID);
 
             // Fetch block data and nearest neighbors
             Realf array[(WID+2)*(WID+2)*(WID+2)];
-            cell->fetch_data<1>(blockGID,cell->get_velocity_mesh(popID),cell->get_data(),array);
+            cell->fetch_data<1>(blockGID,vmesh,cell->get_data(0,popID),array);
 
             // If block should be refined, add it to refine list
             if (refCriterion->evaluate(array) > Parameters::amrRefineLimit) {
@@ -301,7 +298,7 @@ namespace projects {
          // refinement, are added to map insertedBlocks
          map<vmesh::GlobalID,vmesh::LocalID> insertedBlocks;
          for (size_t b=0; b<refineList.size(); ++b) {
-            cell->refine_block(refineList[b],insertedBlocks);
+            cell->refine_block(refineList[b],insertedBlocks,popID);
          }
 
          // Loop over blocks in map insertedBlocks and recalculate 
@@ -309,7 +306,7 @@ namespace projects {
          for (map<vmesh::GlobalID,vmesh::LocalID>::const_iterator it=insertedBlocks.begin(); it!=insertedBlocks.end(); ++it) {
             const vmesh::GlobalID blockGID = it->first;
             const vmesh::LocalID blockLID = it->second;
-            parameters = cell->get_block_parameters();
+            parameters = cell->get_block_parameters(popID);
             creal vxBlock = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD];
             creal vyBlock = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD];
             creal vzBlock = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD];
@@ -328,7 +325,7 @@ namespace projects {
                                              x, y, z, dx, dy, dz,
                                              vxCell,vyCell,vzCell,
                                              dvxCell,dvyCell,dvzCell);
-                     cell->get_data()[blockLID*SIZE_VELBLOCK + kc*WID2+jc*WID+ic] = average;
+                     cell->get_data(popID)[blockLID*SIZE_VELBLOCK + kc*WID2+jc*WID+ic] = average;
                   }
                }
             }

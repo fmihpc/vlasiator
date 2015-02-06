@@ -935,9 +935,10 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       success = readNBlocks(file,nBlocks,MASTER_RANK,MPI_COMM_WORLD);
    }
    //make sure all cells are empty, we will anyway overwrite everything and in that case moving cells is easier...
-   vector<uint64_t> gridCells = mpiGrid.get_cells();
-   for(uint i=0;i<gridCells.size();i++){
-      mpiGrid[gridCells[i]]->clear();
+   vector<CellID> gridCells = mpiGrid.get_cells();
+   for(size_t i=0; i<gridCells.size(); i++) {
+      for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
+      mpiGrid[gridCells[i]]->clear(popID);
    }
 
 

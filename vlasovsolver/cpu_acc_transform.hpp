@@ -13,7 +13,7 @@ using namespace Eigen;
 
 /*Compute transform during on timestep, and update the bulk velocity of the cell*/
 
-Transform<Real,3,Affine> compute_acceleration_transformation( SpatialCell* spatial_cell, const Real dt) {
+Transform<Real,3,Affine> compute_acceleration_transformation( SpatialCell* spatial_cell, const Real dt,const int& popID) {
    /*total field*/
    const Real Bx = spatial_cell->parameters[CellParams::BGBXVOL]+spatial_cell->parameters[CellParams::PERBXVOL];
    const Real By = spatial_cell->parameters[CellParams::BGBYVOL]+spatial_cell->parameters[CellParams::PERBYVOL];
@@ -34,23 +34,28 @@ Transform<Real,3,Affine> compute_acceleration_transformation( SpatialCell* spati
    
    const Eigen::Matrix<Real,3,1> B(Bx,By,Bz);
    const Eigen::Matrix<Real,3,1> unit_B(B.normalized());
-   const Real gyro_period = 2 * M_PI * physicalconstants::MASS_PROTON  / (fabs(physicalconstants::CHARGE) * B.norm());
+   const Real gyro_period = 2 * M_PI * getObjectWrapper().particleSpecies[popID].mass 
+                          / (fabs(getObjectWrapper().particleSpecies[popID].charge) * B.norm());
    
    //Set maximum timestep limit for this cell, based on a  maximum allowed rotation angle
+   #warning FIXME needs to be max of all population values
    spatial_cell->parameters[CellParams::MAXVDT]=gyro_period*(P::maxSlAccelerationRotation/360.0);
    
-  //compute initial moments, based on actual distribution function
+   //compute initial moments, based on actual distribution function
+   #warning ERROR FIXME needs to be done before any populations are propagated
    spatial_cell->parameters[CellParams::RHO_V  ] = 0.0;
    spatial_cell->parameters[CellParams::RHOVX_V] = 0.0;
    spatial_cell->parameters[CellParams::RHOVY_V] = 0.0;
    spatial_cell->parameters[CellParams::RHOVZ_V] = 0.0;
-   
-   for (vmesh::LocalID block_i=0; block_i<spatial_cell->get_number_of_velocity_blocks(); ++block_i) {
-      cpu_calcVelocityFirstMoments(spatial_cell,block_i,CellParams::RHO_V,CellParams::RHOVX_V,CellParams::RHOVY_V,CellParams::RHOVZ_V);
+
+   for (vmesh::LocalID block_i=0; block_i<spatial_cell->get_number_of_velocity_blocks(popID); ++block_i) {
+      cpu_calcVelocityFirstMoments(spatial_cell,block_i,CellParams::RHO_V,CellParams::RHOVX_V,CellParams::RHOVY_V,CellParams::RHOVZ_V,popID);
    }
-   
+
    const Real rho=spatial_cell->parameters[CellParams::RHO_V];
    //scale rho for hall term, if user requests
+   
+    #warning FIXME
    const Real hallRho =  (rho <= Parameters::lorentzHallMinimumRho ) ? Parameters::lorentzHallMinimumRho : rho ;
    const Real hallPrefactor = 1.0 / (physicalconstants::MU_0 * hallRho * physicalconstants::CHARGE );
 

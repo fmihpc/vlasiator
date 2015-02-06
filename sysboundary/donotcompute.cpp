@@ -79,7 +79,8 @@ namespace SBC {
          
          //let's get rid of blocks not fulfilling the criteria here to save
          //memory.
-         cell->adjustSingleCellVelocityBlocks();
+         for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
+            cell->adjustSingleCellVelocityBlocks(popID);
       }
       
       return true;

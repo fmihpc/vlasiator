@@ -17,7 +17,7 @@ namespace projects {
           * 
           * This radius is used to determine all blocks within that radius of V0, create them and return their list for initialisation.
           */
-         virtual vector<uint> findBlocksToInitialize(SpatialCell* cell);
+         virtual vector<uint> findBlocksToInitialize(SpatialCell* cell,const int& popID);
          
          /*! \brief Return a vector containing the velocity coordinate of the centre of each ion population in the distribution.
           * 

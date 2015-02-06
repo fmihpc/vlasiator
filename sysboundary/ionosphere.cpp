@@ -173,8 +173,10 @@ namespace SBC {
       #pragma omp parallel for
       for (uint i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
-         if(cell->sysBoundaryFlag != this->getIndex()) continue;
-         setCellFromTemplate(cell);
+         if (cell->sysBoundaryFlag != this->getIndex()) continue;
+         
+         for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
+            setCellFromTemplate(cell,popID);
       }
       return true;
    }
@@ -556,14 +558,15 @@ namespace SBC {
    
    void Ionosphere::vlasovBoundaryCondition(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID
+      const CellID& cellID,
+      const int& popID
    ) {
 //       phiprof::start("vlasovBoundaryCondition (Ionosphere)");
 //       const SpatialCell * cell = mpiGrid[cellID];
 //       this->vlasovBoundaryCopyFromAllClosestNbrs(mpiGrid, cellID);
 //       phiprof::stop("vlasovBoundaryCondition (Ionosphere)");
    }
-   
+
    /**
     * NOTE: This function must initialize all particle species!
     * @param project
@@ -581,14 +584,11 @@ namespace SBC {
       
       // Loop over particle species
       for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-         // This will also set the active population in templateCell
-         SpatialCell::setActivePopulation(popID);
-         
          const vector<vmesh::GlobalID> blocksToInitialize = findBlocksToInitialize(templateCell,popID);
          
          for (size_t i = 0; i < blocksToInitialize.size(); i++) {
             const vmesh::GlobalID blockGID = blocksToInitialize.at(i);
-            const vmesh::LocalID blockLID = templateCell.get_velocity_block_local_id(blockGID);
+            const vmesh::LocalID blockLID = templateCell.get_velocity_block_local_id(blockGID,popID);
             const Real* block_parameters = templateCell.get_block_parameters(blockLID,popID);
             creal vxBlock = block_parameters[BlockParams::VXCRD];
             creal vyBlock = block_parameters[BlockParams::VYCRD];
@@ -644,7 +644,7 @@ namespace SBC {
          } // for-loop over velocity blocks
 
          // let's get rid of blocks not fulfilling the criteria here to save memory.
-         templateCell.adjustSingleCellVelocityBlocks();
+         templateCell.adjustSingleCellVelocityBlocks(popID);
       } // for-loop over particle species
 
       calculateCellVelocityMoments(&templateCell, true);
@@ -694,22 +694,26 @@ namespace SBC {
                
                if (vx*vx + vy*vy + vz*vz < vRadiusSquared) {
                   // Adds velocity block to active population's velocity mesh
-                  cell.add_velocity_block(cell.get_velocity_block(vx, vy, vz));
-                  blocksToInitialize.push_back(cell.get_velocity_block(vx, vy, vz));
+                  const vmesh::GlobalID newBlockGID = SpatialCell::get_velocity_block(vx,vy,vz);
+                  cell.add_velocity_block(newBlockGID,popID);
+                  blocksToInitialize.push_back(newBlockGID);
                }
             }
             
       return blocksToInitialize;
    }
-   
-   void Ionosphere::setCellFromTemplate(SpatialCell *cell) {
+
+   void Ionosphere::setCellFromTemplate(SpatialCell* cell,const int& popID) {
       // The ionospheric cell has the same state as the initial state of non-system boundary cells so far.
-      cell->parameters[CellParams::RHOLOSSADJUST] = 0.0;
-      cell->parameters[CellParams::RHOLOSSVELBOUNDARY] = 0.0;
+      if (popID == 0) {
+         cell->parameters[CellParams::RHOLOSSADJUST] = 0.0;
+         cell->parameters[CellParams::RHOLOSSVELBOUNDARY] = 0.0;
+      }
+
       //Copy, and allow to change blocks
-      copyCellData(&templateCell, cell,true);
+      copyCellData(&templateCell,cell,true,popID);
    }
-   
+
    std::string Ionosphere::getName() const {return "Ionosphere";}
    
    uint Ionosphere::getIndex() const {return sysboundarytype::IONOSPHERE;}

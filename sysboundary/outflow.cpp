@@ -375,10 +375,11 @@ namespace SBC {
     */
    void Outflow::vlasovBoundaryCondition(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID
+      const CellID& cellID,
+      const int& popID
    ) {
 //      phiprof::start("vlasovBoundaryCondition (Outflow)");
-      vlasovBoundaryCopyFromTheClosestNbr(mpiGrid, cellID);
+      vlasovBoundaryCopyFromTheClosestNbr(mpiGrid,cellID,popID);
 //      phiprof::stop("vlasovBoundaryCondition (Outflow)");
    }
    

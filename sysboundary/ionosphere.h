@@ -86,7 +86,8 @@ namespace SBC {
       );
       virtual void vlasovBoundaryCondition(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-         const CellID& cellID
+         const CellID& cellID,
+         const int& popID
       );
       
       virtual std::string getName() const;
@@ -94,7 +95,7 @@ namespace SBC {
       
    protected:
       void generateTemplateCell(Project &project);
-      void setCellFromTemplate(SpatialCell *cell);
+      void setCellFromTemplate(SpatialCell* cell,const int& popID);
       
       Real shiftedMaxwellianDistribution(const int& popID,creal& vx, creal& vy, creal& vz);
       

@@ -147,10 +147,13 @@ void initializeGrid(
          SpatialCell* cell = mpiGrid[cells[i]];
          project.setCellBackgroundField(cell);         
          if (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+            cerr << "set cell " << cells[i] << endl;
             project.setCell(cell);
+            cerr << "\t DONE" << endl;
          }
       }
-
+      cerr << "set cells done" << endl;
+      
       //initial state for sys-boundary cells
       phiprof::stop("Apply initial state");
       phiprof::start("Apply system boundary conditions state");
@@ -164,12 +167,10 @@ void initializeGrid(
          mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = 0;
       }
 
-      for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
-         // Set active population before doing anything
-         SpatialCell::setActivePopulation(p);
-
-         adjustVelocityBlocks(mpiGrid, cells, true);
-         validateMesh(mpiGrid);
+      cerr << "adjusting" << endl;
+      for (size_t popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         adjustVelocityBlocks(mpiGrid,cells,true,popID);
+         validateMesh(mpiGrid,popID);
          shrink_to_fit_grid_data(mpiGrid); //get rid of excess data already here
 
          //compute moments, and set them  in RHO* and RHO_*_DT2. If restart, they are already read in
@@ -180,9 +181,10 @@ void initializeGrid(
          // set initial LB metric based on number of blocks, all others
          // will be based on time spent in acceleration
          for (uint i=0; i<cells.size(); ++i) {
-            mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] += mpiGrid[cells[i]]->get_number_of_velocity_blocks();
+            mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] += mpiGrid[cells[i]]->get_number_of_velocity_blocks(popID);
          }
       }
+      cerr << "\t DONE" << endl;
    }
 
    //Balance load before we transfer all data below
@@ -298,7 +300,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
 
       for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
          // Set active population
-         SpatialCell::setActivePopulation(p);
+         SpatialCell::setCommunicatedSpecies(p);
 
          //Transfer velocity block list
          SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE1);
@@ -331,7 +333,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
             // Free memory of this cell as it has already been transferred, 
             // it will not be used anymore. NOTE: Only clears memory allocated 
             // to the active population.
-            if (cell_id % num_part_transfers == transfer_part) cell->clear();
+            if (cell_id % num_part_transfers == transfer_part) cell->clear(p);
          }
       } // for-loop over populations
    } // for-loop over transfer parts
@@ -353,7 +355,8 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
 
    phiprof::start("update block lists");
    //new partition, re/initialize blocklists of remote cells.
-   updateRemoteVelocityBlockLists(mpiGrid);
+   for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
+      updateRemoteVelocityBlockLists(mpiGrid,popID);
    phiprof::stop("update block lists");
 
    phiprof::start("update sysboundaries");
@@ -378,14 +381,15 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
 */
 bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                           const vector<uint64_t>& cellsToAdjust,
-                          bool doPrepareToReceiveBlocks) {
+                          bool doPrepareToReceiveBlocks,
+                          const int& popID) {
    phiprof::initializeTimer("re-adjust blocks","Block adjustment");
    phiprof::start("re-adjust blocks");
    const vector<uint64_t> cells = mpiGrid.get_cells();
    phiprof::start("Compute with_content_list");
    #pragma omp parallel for  
    for (uint i=0; i<cells.size(); ++i)
-      mpiGrid[cells[i]]->update_velocity_block_content_lists();
+      mpiGrid[cells[i]]->update_velocity_block_content_lists(popID);
    phiprof::stop("Compute with_content_list");
 
    phiprof::initializeTimer("Transfer with_content_list","MPI");
@@ -417,19 +421,19 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
          neighbor_ptrs.push_back(mpiGrid[*neighbor_id]);
       }
       if (P::sparse_conserve_mass) {
-         for (size_t i=0; i<cell->get_number_of_velocity_blocks()*WID3; ++i) {
-            density_pre_adjust += cell->get_data()[i];
+         for (size_t i=0; i<cell->get_number_of_velocity_blocks(popID)*WID3; ++i) {
+            density_pre_adjust += cell->get_data(popID)[i];
          }
       }
-      cell->adjust_velocity_blocks(neighbor_ptrs);
+      cell->adjust_velocity_blocks(neighbor_ptrs,popID);
 
       if (P::sparse_conserve_mass) {
-         for (size_t i=0; i<cell->get_number_of_velocity_blocks()*WID3; ++i) {
-            density_post_adjust += cell->get_data()[i];
+         for (size_t i=0; i<cell->get_number_of_velocity_blocks(popID)*WID3; ++i) {
+            density_post_adjust += cell->get_data(popID)[i];
          }
          if (density_post_adjust != 0.0) {
-            for (size_t i=0; i<cell->get_number_of_velocity_blocks()*WID3; ++i) {
-               cell->get_data()[i] *= density_pre_adjust/density_post_adjust;
+            for (size_t i=0; i<cell->get_number_of_velocity_blocks(popID)*WID3; ++i) {
+               cell->get_data(popID)[i] *= density_pre_adjust/density_post_adjust;
             }
          }
       }
@@ -438,8 +442,8 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    phiprof::stop("Adjusting blocks");
    //Updated newly adjusted velocity block lists on remote cells, and
    //prepare to receive block data
-   if(doPrepareToReceiveBlocks) {
-      updateRemoteVelocityBlockLists(mpiGrid);
+   if (doPrepareToReceiveBlocks) {
+      updateRemoteVelocityBlockLists(mpiGrid,popID);
    }
    phiprof::stop("re-adjust blocks");
    return true;
@@ -527,7 +531,8 @@ void deallocateRemoteCellBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
       uint64_t cell_id=incoming_cells[i];
       SpatialCell* cell = mpiGrid[cell_id];
       if (cell != NULL) {
-         cell->clear();
+         for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
+            cell->clear(popID);
       }
    }
 
@@ -537,8 +542,11 @@ void deallocateRemoteCellBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
 Updates velocity block lists between remote neighbors and prepares local
 copies of remote neighbors for receiving velocity block data.
 */
-void updateRemoteVelocityBlockLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid)
+void updateRemoteVelocityBlockLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+        const int& popID)
 {
+   SpatialCell::setCommunicatedSpecies(popID);
+   
    // update velocity block lists For small velocity spaces it is
    // faster to do it in one operation, and not by first sending size,
    // then list. For large we do it in two steps
@@ -802,7 +810,7 @@ void writeVelMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) 
    ++counter;
 }
 
-bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
+bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const int& popID) {
       bool rvalue = true;
       #ifndef AMR
          return rvalue;
@@ -840,9 +848,9 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) 
                   // Iterate over all blocks in the spatial neighbor, 
                   // and check that the neighbor block does not have 
                   // existing grandparent in this cell
-                  for (vmesh::LocalID b=0; b<nbr->get_number_of_velocity_blocks(); ++b) {
-                     vmesh::GlobalID blockGID = nbr->get_velocity_block_global_id(b);
-                     vmesh::GlobalID grandParentGID = cell->velocity_block_has_grandparent(blockGID);
+                  for (vmesh::LocalID b=0; b<nbr->get_number_of_velocity_blocks(popID); ++b) {
+                     vmesh::GlobalID blockGID = nbr->get_velocity_block_global_id(b,popID);
+                     vmesh::GlobalID grandParentGID = cell->velocity_block_has_grandparent(blockGID,popID);
                      if (grandParentGID != cell->invalid_global_id()) {
                         //cerr << "spatial nbr block " << blockGID << " has gparent " << grandParentGID << endl;
                         
@@ -858,7 +866,7 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) 
             for (size_t c=0; c<cells.size(); ++c) {
                if (refinements[c].size() > 0) {
                   cerr << "cell " << cells[c] << " needs " << refinements[c].size() << " refinements" << endl;
-                  cerr << "\t current # blocks is " << mpiGrid[cells[c]]->get_number_of_velocity_blocks() << endl;
+                  cerr << "\t current # blocks is " << mpiGrid[cells[c]]->get_number_of_velocity_blocks(popID) << endl;
                   
                   
                   

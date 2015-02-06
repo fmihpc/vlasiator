@@ -35,13 +35,14 @@ static void sortBlocklistByDimension( const SpatialCell* spatial_cell,
                                       std::vector<uint> & columnBlockOffsets,
                                       std::vector<uint> & columnNumBlocks,
                                       std::vector<uint> & setColumnOffsets,
-                                      std::vector<uint> & setNumColumns) {
-   const uint nBlocks = spatial_cell->get_number_of_velocity_blocks(); // Number of blocks
+                                      std::vector<uint> & setNumColumns,
+                                      const int& popID) {
+   const uint nBlocks = spatial_cell->get_number_of_velocity_blocks(popID); // Number of blocks
    // Copy block data to vector
    vector<pair<uint, uint> > block_pairs;
    block_pairs.resize( nBlocks );
    for (vmesh::LocalID i = 0; i < nBlocks; ++i ) {
-      const vmesh::GlobalID block = spatial_cell->get_velocity_block_global_id(i);
+      const vmesh::GlobalID block = spatial_cell->get_velocity_block_global_id(i,popID);
       switch( dimension ) {
        case 0: {
           const vmesh::GlobalID blockId_mapped = block; // Mapping the block id to different coordinate system if dimension is not zero:

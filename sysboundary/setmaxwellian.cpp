@@ -136,8 +136,8 @@ namespace SBC {
                creal vz = P::vzmin + (kv+0.5) * SpatialCell::get_velocity_grid_block_size()[2]; // vz-
 
                if ((vx-VX0)*(vx-VX0) + (vy-VY0)*(vy-VY0) + (vz-VZ0)*(vz-VZ0) < vRadiusSquared) {
-                  cell.add_velocity_block(cell.get_velocity_block(vx, vy, vz));
-                  blocksToInitialize.push_back(cell.get_velocity_block(vx, vy, vz));
+                  cell.add_velocity_block(SpatialCell::get_velocity_block(vx, vy, vz),popID);
+                  blocksToInitialize.push_back(SpatialCell::get_velocity_block(vx, vy, vz));
                }
             }
 
@@ -186,7 +186,7 @@ namespace SBC {
          vector<vmesh::GlobalID> blocksToInitialize = this->findBlocksToInitialize(popID,templateCell, rho, T, Vx, Vy, Vz);
          for(vmesh::GlobalID i = 0; i < blocksToInitialize.size(); i++) {
             const vmesh::GlobalID blockGID = blocksToInitialize.at(i);
-            const vmesh::LocalID blockLID = templateCell.get_velocity_block_local_id(blockGID);
+            const vmesh::LocalID blockLID = templateCell.get_velocity_block_local_id(blockGID,popID);
             const Real* block_parameters = templateCell.get_block_parameters(blockLID,popID);
             creal vxBlock = block_parameters[BlockParams::VXCRD];
             creal vyBlock = block_parameters[BlockParams::VYCRD];
@@ -246,7 +246,7 @@ namespace SBC {
          } // for-loop over velocity blocks
 
          //let's get rid of blocks not fulfilling the criteria here to save memory.
-         templateCell.adjustSingleCellVelocityBlocks();
+         templateCell.adjustSingleCellVelocityBlocks(popID);
       } // for-loop over particle species
 
       calculateCellVelocityMoments(&templateCell, true);

@@ -56,7 +56,8 @@ void calculateSpatialTranslation(
         const std::vector<CellID>& local_target_cells,
         const std::vector<CellID>& remoteTargetCellsx,
         const std::vector<CellID>& remoteTargetCellsy,
-        const std::vector<CellID>& remoteTargetCellsz) {
+        const std::vector<CellID>& remoteTargetCellsz,
+        const int& popID) {
    
    int trans_timer;
    bool localTargetGridGenerated = false;
@@ -86,7 +87,7 @@ void calculateSpatialTranslation(
       #pragma omp parallel
       {
          for (size_t c=0; c<local_propagated_cells.size(); ++c) {
-            trans_map_1d(mpiGrid,local_propagated_cells[c], 2, dt); // map along z//
+            trans_map_1d(mpiGrid,local_propagated_cells[c], 2, dt,popID); // map along z//
          }
       }
       phiprof::stop("compute-mapping-z");
@@ -97,12 +98,12 @@ void calculateSpatialTranslation(
       
       trans_timer=phiprof::initializeTimer("update_remote-z","MPI");
       phiprof::start("update_remote-z");
-      update_remote_mapping_contribution(mpiGrid, 2, 1);
-      update_remote_mapping_contribution(mpiGrid, 2, -1);
+      update_remote_mapping_contribution(mpiGrid, 2,+1,popID);
+      update_remote_mapping_contribution(mpiGrid, 2,-1,popID);
       phiprof::stop("update_remote-z");
 
       clearTargetGrid(mpiGrid,remoteTargetCellsz);
-      swapTargetSourceGrid(mpiGrid, local_target_cells);
+      swapTargetSourceGrid(mpiGrid, local_target_cells,popID);
       zeroTargetGrid(mpiGrid, local_target_cells);
    }
 
@@ -128,7 +129,7 @@ void calculateSpatialTranslation(
       #pragma omp parallel
       {
          for (size_t c=0; c<local_propagated_cells.size(); ++c) {
-            trans_map_1d(mpiGrid,local_propagated_cells[c], 0, dt); // map along x//
+            trans_map_1d(mpiGrid,local_propagated_cells[c], 0, dt,popID); // map along x//
          }
       }
       phiprof::stop("compute-mapping-x");
@@ -139,11 +140,11 @@ void calculateSpatialTranslation(
       
       trans_timer=phiprof::initializeTimer("update_remote-x","MPI");
       phiprof::start("update_remote-x");
-      update_remote_mapping_contribution(mpiGrid, 0, 1);
-      update_remote_mapping_contribution(mpiGrid, 0, -1);
+      update_remote_mapping_contribution(mpiGrid, 0,+1,popID);
+      update_remote_mapping_contribution(mpiGrid, 0,-1,popID);
       phiprof::stop("update_remote-x");
       clearTargetGrid(mpiGrid,remoteTargetCellsx);
-      swapTargetSourceGrid(mpiGrid, local_target_cells);
+      swapTargetSourceGrid(mpiGrid, local_target_cells,popID);
       zeroTargetGrid(mpiGrid, local_target_cells);
    }
    
@@ -169,7 +170,7 @@ void calculateSpatialTranslation(
       #pragma omp parallel
       {
          for (size_t c=0; c<local_propagated_cells.size(); ++c) {
-            trans_map_1d(mpiGrid,local_propagated_cells[c], 1, dt); // map along y//
+            trans_map_1d(mpiGrid,local_propagated_cells[c], 1, dt,popID); // map along y//
          }
       }
       
@@ -181,11 +182,11 @@ void calculateSpatialTranslation(
       
       trans_timer=phiprof::initializeTimer("update_remote-y","MPI");
       phiprof::start("update_remote-y");
-      update_remote_mapping_contribution(mpiGrid, 1, 1);
-      update_remote_mapping_contribution(mpiGrid, 1, -1);
+      update_remote_mapping_contribution(mpiGrid, 1,+1,popID);
+      update_remote_mapping_contribution(mpiGrid, 1,-1,popID);
       phiprof::stop("update_remote-y");
       clearTargetGrid(mpiGrid,remoteTargetCellsy);
-      swapTargetSourceGrid(mpiGrid, local_target_cells);
+      swapTargetSourceGrid(mpiGrid, local_target_cells,popID);
    }
 
    clearTargetGrid(mpiGrid,local_target_cells);
@@ -198,6 +199,7 @@ void calculateSpatialTranslation(
    const size_t popID = 0;
    typedef Parameters P;
 
+   cerr << "spat trans" << endl;
    phiprof::start("semilag-trans");
 
    // Calculate propagated cells, these are the same for all particle populations
@@ -223,22 +225,23 @@ void calculateSpatialTranslation(
 
    // Propagate all particle species
    for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
-
+      SpatialCell::setCommunicatedSpecies(p);
       calculateSpatialTranslation(mpiGrid,dt,local_propagated_cells,local_target_cells,
-              remoteTargetCellsx,remoteTargetCellsy,remoteTargetCellsz);
+              remoteTargetCellsx,remoteTargetCellsy,remoteTargetCellsz,p);
       
    }
 
    // Mapping complete, update moments //
    phiprof::start("compute-moments-n-maxdt");
    
-#warning moment calculation incorrect
-   
+   cerr << "moments" << endl;
    // Note: Parallelization over blocks is not thread-safe
    #pragma omp  parallel for
    for (size_t c=0; c<localCells.size(); ++c) {
       SpatialCell* SC=mpiGrid[localCells[c]];
+      Real* cellParams  = SC->get_cell_parameters();
       
+      // Clear old moments
       const Real dx=SC->parameters[CellParams::DX];
       const Real dy=SC->parameters[CellParams::DY];
       const Real dz=SC->parameters[CellParams::DZ];
@@ -249,54 +252,98 @@ void calculateSpatialTranslation(
       SC->parameters[CellParams::P_11_R ] = 0.0;
       SC->parameters[CellParams::P_22_R ] = 0.0;
       SC->parameters[CellParams::P_33_R ] = 0.0;
+
+      // Reset spatial max DT
+      cellParams[CellParams::MAXRDT]=numeric_limits<Real>::max();
       
-      //Reset spatial max DT
-      SC->parameters[CellParams::MAXRDT]=numeric_limits<Real>::max();
-      const Real* blockParams = SC->get_block_parameters();
-      for (vmesh::LocalID block_i=0; block_i<SC->get_number_of_velocity_blocks(); ++block_i) {
-         //compute maximum dt. Algorithm has a CFL condition, since it
-         //is written only for the case where we have a stencil
-         //supporting max translation of one cell
-         for (unsigned int i=0; i<WID;i+=WID-1) {
-            const Real Vx = blockParams[BlockParams::VXCRD] + (i+HALF)*blockParams[BlockParams::DVX];
-            const Real Vy = blockParams[BlockParams::VYCRD] + (i+HALF)*blockParams[BlockParams::DVY];
-            const Real Vz = blockParams[BlockParams::VZCRD] + (i+HALF)*blockParams[BlockParams::DVZ];
-            
-            if(fabs(Vx)!=ZERO) SC->parameters[CellParams::MAXRDT]=min(dx/fabs(Vx),SC->parameters[CellParams::MAXRDT]);
-            if(fabs(Vy)!=ZERO) SC->parameters[CellParams::MAXRDT]=min(dy/fabs(Vy),SC->parameters[CellParams::MAXRDT]);
-            if(fabs(Vz)!=ZERO) SC->parameters[CellParams::MAXRDT]=min(dz/fabs(Vz),SC->parameters[CellParams::MAXRDT]);
-         }
+      for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         // This prevents get_block_parameters from segfaulting if there're no blocks
+         if (SC->get_number_of_velocity_blocks(popID) == 0) continue;         
          
-         //compute first moments for this block
-         if (SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)
-            cpu_calcVelocityFirstMoments(
-               SC,
-               block_i,
-               CellParams::RHO_R,
-               CellParams::RHOVX_R,
-               CellParams::RHOVY_R,
-               CellParams::RHOVZ_R
-            );   //set first moments after translation
-         blockParams += BlockParams::N_VELOCITY_BLOCK_PARAMS;
-      } // for-loop over velocity blocks
+         // Get pointer to velocity block data (for this species)
+         const Realf* data       = SC->get_data(popID);
+         const Real* blockParams = SC->get_block_parameters(popID);
+         
+         // Array for storing temporary moment values
+         Real array[4]; 
+         for (int i=0; i<4; ++i) array[i] = 0;
+         
+         for (vmesh::LocalID blockLID=0; blockLID<SC->get_number_of_velocity_blocks(popID); ++blockLID) {
+            // Compute maximum dt. Algorithm has a CFL condition, since it
+            // is written only for the case where we have a stencil
+            // supporting max translation of one cell.
+            for (unsigned int i=0; i<WID; i+=(WID-1)) {
+               const Real Vx = blockParams[BlockParams::VXCRD] + (i+HALF)*blockParams[BlockParams::DVX];
+               const Real Vy = blockParams[BlockParams::VYCRD] + (i+HALF)*blockParams[BlockParams::DVY];
+               const Real Vz = blockParams[BlockParams::VZCRD] + (i+HALF)*blockParams[BlockParams::DVZ];
+            
+               if (fabs(Vx) != ZERO) cellParams[CellParams::MAXRDT]=min(dx/fabs(Vx),cellParams[CellParams::MAXRDT]);
+               if (fabs(Vy) != ZERO) cellParams[CellParams::MAXRDT]=min(dy/fabs(Vy),cellParams[CellParams::MAXRDT]);
+               if (fabs(Vz) != ZERO) cellParams[CellParams::MAXRDT]=min(dz/fabs(Vz),cellParams[CellParams::MAXRDT]);
+            }
+            
+            // Compute first moments for this block, 
+            // moments stored to array indices 0-3.
+            if (SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+               blockVelocityFirstMoments(
+                       data,
+                       blockParams,
+                       array
+               );
+            }
+
+            data        += SIZE_VELBLOCK;
+            blockParams += BlockParams::N_VELOCITY_BLOCK_PARAMS;
+         } // for-loop over blocks
+
+         // Accumulate the contribution of this species to velocity 
+         // moments, taking the mass correctly into account.
+         const Real massRatio = getObjectWrapper().particleSpecies[popID].mass / physicalconstants::MASS_PROTON;
+         cellParams[CellParams::RHO_R  ] += array[0]*massRatio;
+         cellParams[CellParams::RHOVX_R] += array[1]*massRatio;
+         cellParams[CellParams::RHOVY_R] += array[2]*massRatio;
+         cellParams[CellParams::RHOVZ_R] += array[3]*massRatio;
+      } // for-loop over particle species
+      cerr << "first moments" << endl;
       
-      // Second iteration needed as rho has to be already computed when computing pressure
-      for (vmesh::LocalID block_i=0; block_i< SC->get_number_of_velocity_blocks(); ++block_i){
-         //compute second moments for this block
-         if (SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)
-            cpu_calcVelocitySecondMoments(
-               SC,
-               block_i,
-               CellParams::RHO_R,
-               CellParams::RHOVX_R,
-               CellParams::RHOVY_R,
-               CellParams::RHOVZ_R,
-               CellParams::P_11_R,
-               CellParams::P_22_R,
-               CellParams::P_33_R
-            );   //set second moments after translation
-      }
-   }
+      // Compute the second velocity moments (pressure) for this cell
+      for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         // This prevents get_block_parameters from segfaulting if there're no blocks
+         if (SC->get_number_of_velocity_blocks(popID) == 0) continue;         
+
+         // Get pointer to velocity block data (for this species)
+         const Realf* data       = SC->get_data(popID);
+         const Real* blockParams = SC->get_block_parameters(popID);
+         
+         // Array for storing temporary moment values
+         Real array[3]; 
+         for (int i=0; i<3; ++i) array[i] = 0;
+         
+         for (vmesh::LocalID blockLID=0; blockLID<SC->get_number_of_velocity_blocks(popID); ++blockLID) {
+            if (SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+               blockVelocitySecondMoments(
+                  data,
+                  blockParams,
+                  cellParams,
+                  CellParams::RHO_R,
+                  CellParams::RHOVX_R,
+                  CellParams::RHOVY_R,
+                  CellParams::RHOVZ_R,
+                  array
+               );
+            }
+         } // for-loop over velocity blocks
+
+         // Accumulate the contribution of this species to velocity 
+         // moments, taking the mass correctly into account.
+         const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+         cellParams[CellParams::P_11_R] += array[0]*mass;
+         cellParams[CellParams::P_22_R] += array[1]*mass;
+         cellParams[CellParams::P_33_R] += array[2]*mass;         
+      } // for-loop over particle species
+      cerr << "second moments" << endl;
+   } // for-loop over spatial cells
+
    phiprof::stop("compute-moments-n-maxdt");
    phiprof::stop("semilag-trans");
 }
@@ -317,7 +364,7 @@ void calculateAcceleration(const int& popID,const int& globalMaxSubcycles,const 
         const Real& dt) {
 
    // Set active population
-   SpatialCell::setActivePopulation(popID);
+   SpatialCell::setCommunicatedSpecies(popID);
 
    //Semilagrangian acceleration for those cells which are subcycled
    #pragma omp parallel for schedule(dynamic,1)
@@ -357,7 +404,7 @@ void calculateAcceleration(const int& popID,const int& globalMaxSubcycles,const 
          
       uint map_order=rndInt%3;
       phiprof::start("cell-semilag-acc");
-      cpu_accelerate_cell(mpiGrid[cellID],map_order,subcycleDt);
+      cpu_accelerate_cell(mpiGrid[cellID],map_order,subcycleDt,popID);
       phiprof::stop("cell-semilag-acc");
    }
       
@@ -369,7 +416,7 @@ void calculateAcceleration(const int& popID,const int& globalMaxSubcycles,const 
    //- All cells update and communicate their lists of content blocks
    //- Only cells which were accerelated on this step need to be adjusted (blocks removed or added).
    //- Not done here on last step (done after loop)
-   if(step < (globalMaxSubcycles - 1)) adjustVelocityBlocks(mpiGrid, propagatedCells, false);
+   if(step < (globalMaxSubcycles - 1)) adjustVelocityBlocks(mpiGrid, propagatedCells, false, popID);
 }
 
 void calculateAcceleration(
@@ -389,8 +436,9 @@ void calculateAcceleration(
       SpatialCell* SC = mpiGrid[cells[c]];
       //disregard boundary cells
       //do not integrate cells with no blocks  (well, do not computes in practice)
+      #warning In principle this is different for different species
       if (SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY &&
-          SC->get_number_of_velocity_blocks() != 0) {
+          SC->get_number_of_all_velocity_blocks() != 0) {
          propagatedCells.push_back(cells[c]);
       }
    }
@@ -423,7 +471,9 @@ void calculateAcceleration(
       }
    }
    //final adjust for all cells, also fixing remote cells.
-   adjustVelocityBlocks(mpiGrid, cells, true);
+   for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      adjustVelocityBlocks(mpiGrid, cells, true, popID);
+   }
    phiprof::stop("semilag-acc");   
 
    // compute moments after acceleration
@@ -432,8 +482,6 @@ void calculateAcceleration(
    // Loop over particle populations, must be done before looping over 
    // spatial cells because setActivePopulation is static
    for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-      SpatialCell::setActivePopulation(popID);
-   
       #pragma omp parallel for
       for (size_t c=0; c<cells.size(); ++c) {
          const CellID cellID = cells[c];
@@ -449,14 +497,15 @@ void calculateAcceleration(
             mpiGrid[cellID]->parameters[CellParams::P_33_V] = 0.0;
          }
       
-         for (vmesh::LocalID block_i=0; block_i<mpiGrid[cellID]->get_number_of_velocity_blocks(); ++block_i) {
+         for (vmesh::LocalID block_i=0; block_i<mpiGrid[cellID]->get_number_of_velocity_blocks(popID); ++block_i) {
             cpu_calcVelocityFirstMoments(
                mpiGrid[cellID],
                block_i,
                CellParams::RHO_V,
                CellParams::RHOVX_V,
                CellParams::RHOVY_V,
-               CellParams::RHOVZ_V
+               CellParams::RHOVZ_V,
+               popID
             );   //set first moments after acceleration
          }
       }
@@ -464,13 +513,11 @@ void calculateAcceleration(
 
    // Second iteration needed as rho has to be already computed when computing pressure
    for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-      SpatialCell::setActivePopulation(popID);
-      
       #pragma omp parallel for
       for (size_t c=0; c<cells.size(); ++c) {
          const CellID cellID = cells[c];
 
-         for (vmesh::LocalID block_i=0; block_i<mpiGrid[cellID]->get_number_of_velocity_blocks(); ++block_i) {
+         for (vmesh::LocalID block_i=0; block_i<mpiGrid[cellID]->get_number_of_velocity_blocks(popID); ++block_i) {
             cpu_calcVelocitySecondMoments(
                mpiGrid[cellID],
                block_i,
@@ -480,7 +527,9 @@ void calculateAcceleration(
                CellParams::RHOVZ_V,
                CellParams::P_11_V,
                CellParams::P_22_V,
-               CellParams::P_33_V);   //set second moments after acceleration
+               CellParams::P_33_V,
+               popID
+            );   //set second moments after acceleration
          }
       } // for-loop over spatial cells
    } // for-loop over species
@@ -561,18 +610,6 @@ void calculateCellVelocityMoments(
    // Second iteration needed as rho has to be already computed when computing pressure
    for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {      
       for (vmesh::LocalID blockLID=0; blockLID<SC->get_number_of_velocity_blocks(popID); ++blockLID) {
-         cpu_calcVelocitySecondMoments(
-            SC,
-            blockLID,
-            CellParams::RHO,
-            CellParams::RHOVX,
-            CellParams::RHOVY,
-            CellParams::RHOVZ,
-            CellParams::P_11,
-            CellParams::P_22,
-            CellParams::P_33
-         );
-
          cpu_blockVelocitySecondMoments(
             SC->get_data(blockLID,popID),
             SC->get_block_parameters(blockLID,popID),

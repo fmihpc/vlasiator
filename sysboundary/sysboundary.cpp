@@ -305,9 +305,8 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
 }
 
 /*!\brief Apply the initial state to all system boundary cells.
- * 
  * Loops through all SysBoundaryConditions and calls the corresponding applyInitialState
- * function.
+ * function. This function must apply the initial state for all existing particle species.
  * \retval success If true, the application of all system boundary states succeeded.
  */
 bool SysBoundary::applyInitialState(
@@ -354,7 +353,7 @@ void SysBoundary::applySysBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell,dccr
    #warning Same sysBoundaryCondition applied to all populations
    // Loop over existing particle species
    for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-      SpatialCell::setActivePopulation(popID);
+      SpatialCell::setCommunicatedSpecies(popID);
 
       // Then the block data in the reduced neighbourhood:
       int timer=phiprof::initializeTimer("Start comm of cell and block data","MPI");
@@ -362,7 +361,7 @@ void SysBoundary::applySysBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell,dccr
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,true);
       mpiGrid.start_remote_neighbor_copy_updates(SYSBOUNDARIES_NEIGHBORHOOD_ID);
       phiprof::stop(timer);
-   
+
       timer=phiprof::initializeTimer("Compute process inner cells");
       phiprof::start(timer);
 
@@ -373,7 +372,7 @@ void SysBoundary::applySysBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell,dccr
       #pragma omp parallel for
       for (uint i=0; i<localCells.size(); i++) {
          cuint sysBoundaryType = mpiGrid[localCells[i]]->sysBoundaryFlag;
-         this->getSysBoundary(sysBoundaryType)->vlasovBoundaryCondition(mpiGrid, localCells[i]);
+         this->getSysBoundary(sysBoundaryType)->vlasovBoundaryCondition(mpiGrid,localCells[i],popID);
       }
       phiprof::stop(timer);
    
@@ -390,7 +389,7 @@ void SysBoundary::applySysBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell,dccr
       #pragma omp parallel for
       for (uint i=0; i<boundaryCells.size(); i++) {
          cuint sysBoundaryType = mpiGrid[boundaryCells[i]]->sysBoundaryFlag;
-         this->getSysBoundary(sysBoundaryType)->vlasovBoundaryCondition(mpiGrid, boundaryCells[i]);
+         this->getSysBoundary(sysBoundaryType)->vlasovBoundaryCondition(mpiGrid, boundaryCells[i],popID);
       }
       phiprof::stop(timer);
 
