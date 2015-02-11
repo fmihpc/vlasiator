@@ -2,7 +2,7 @@ CMP = mpic++
 LNK = mpic++
 
 LIBRARY_PREFIX = $(HOME)/libraries
-FLAGS =
+FLAGS = -Wno-literal-suffix
 
 
 CXXFLAGS = -I$(LIBRARY_PREFIX)/include -O3 -funroll-loops -std=c++0x -fopenmp -fabi-version=0 -mavx
@@ -11,7 +11,7 @@ LDFLAGS = -L$(LIBRARY_PREFIX)/lib
 LIB_MPI = -lgomp 
 
 
-INC_EIGEN = -I/usr/include/eigen3
+INC_EIGEN = -I/usr/local/include/eigen3
 
 INC_BOOST =
 LIB_BOOST = -lboost_program_options
@@ -19,8 +19,8 @@ LIB_BOOST = -lboost_program_options
 
 LIB_ZOLTAN = -lzoltan
 
-INC_VLSV = -I/home/sandroos/Codes/vlsv
-LIB_VLSV = -L/home/sandroos/Codes/vlsv -lvlsv
+INC_VLSV = -I/home/sandroos/codes/vlsv
+LIB_VLSV = -L/home/sandroos/codes/vlsv -lvlsv
 
 INC_SILO = 
 LIB_SILO = -lsilo
@@ -28,10 +28,10 @@ LIB_SILO = -lsilo
 INC_JEMALLOC = 
 LIB_JEMALLOC = -ljemalloc
 
-INC_DCCRG = -I/home/sandroos/Codes/dccrg
+INC_DCCRG = -I/home/sandroos/codes/dccrg-gitorius
 
-LIB_PROFILE = -L/home/sandroos/Codes/phiprof/lib -lphiprof
-INC_PROFILE = -I/home/sandroos/Codes/phiprof/include
+LIB_PROFILE = -L/home/sandroos/codes/phiprof/lib -lphiprof
+INC_PROFILE = -I/home/sandroos/codes/phiprof/include
 
 
-INC_VECTORCLASS = -I/home/sandroos/Codes/vectorclass
+INC_VECTORCLASS = -I/home/sandroos/codes/vectorclass
