@@ -7,7 +7,6 @@
 #include <ctime>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include "boost/array.hpp"
 #include "ioread.h"
 #include "phiprof.hpp"
 #include "parameters.h"
@@ -995,8 +994,8 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 
    //set cell coordinates based on cfg (mpigrid) information
    for(uint i=0;i<gridCells.size();i++){
-      boost::array<double, 3> cell_min = mpiGrid.geometry.get_min(gridCells[i]);
-      boost::array<double, 3> cell_length = mpiGrid.geometry.get_length(gridCells[i]);
+      std::array<double, 3> cell_min = mpiGrid.geometry.get_min(gridCells[i]);
+      std::array<double, 3> cell_length = mpiGrid.geometry.get_length(gridCells[i]);
       
       mpiGrid[gridCells[i]]->parameters[CellParams::XCRD] = cell_min[0];
       mpiGrid[gridCells[i]]->parameters[CellParams::YCRD] = cell_min[1];
