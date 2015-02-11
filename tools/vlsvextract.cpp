@@ -455,9 +455,9 @@ bool convertSlicedVelocityMesh(newVlsv::Reader& vlsvReader,const string& fname,c
    return success;
 }
 
-void applyTranslation(const double* V_bulk,double* transform) {
+void applyTranslation(const Real* V_bulk,Real* transform) {
    // Translation matrix, defaults to identity matrix
-   double mat[16];
+   Real mat[16];
    for (int i=0; i<16; ++i) mat[i] = 0;
    mat[0 ] = 1;
    mat[5 ] = 1;
@@ -468,7 +468,7 @@ void applyTranslation(const double* V_bulk,double* transform) {
    mat[11] = -V_bulk[2];
 
    // Copy of transformation matrix
-   double T[16];
+   Real T[16];
    for (int i=0; i<16; ++i) T[i] = transform[i];
 
    // Apply translation to transformation matrix:
@@ -480,7 +480,7 @@ void applyTranslation(const double* V_bulk,double* transform) {
    }
 }
 
-void applyRotation(const Real* B,double* transform) {
+void applyRotation(const Real* B,Real* transform) {
    // Now we have the B vector, so now the idea is to rotate the v-coordinates so that B always faces z-direction
    // Since we're handling only one spatial cell, B is the same in every v-coordinate.
    const int _size = 3;
@@ -788,7 +788,7 @@ bool convertVelocityBlocks2(
    
    // Transformation (translation + rotation) matrix, defaults 
    // to identity matrix. Modified if rotate and/or plasmaFrame are true.
-   double transform[16];
+   Real transform[16];
    for (int i=0; i<16; ++i) transform[i] = 0;
    transform[0 ] = 1;
    transform[5 ] = 1;
@@ -796,14 +796,14 @@ bool convertVelocityBlocks2(
    transform[15] = 1;
 
    if (plasmaFrame == true) {
-      double V_bulk[3];
+      Real V_bulk[3];
       getBulkVelocity(V_bulk,vlsvReader,meshName,cellID);
       applyTranslation(V_bulk,transform);
    }
 
    // Write transform matrix (if needed)
    if (rotate == true) {
-      double B[3];
+      Real B[3];
       //Note: allocates memory and stores the vector value into B_ptr
       getB(B,vlsvReader,meshName,cellID);
       applyRotation(B,transform);
