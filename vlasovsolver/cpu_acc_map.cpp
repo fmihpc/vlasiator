@@ -23,6 +23,24 @@ using namespace spatial_cell;
 #define i_pcolumnv(j, k, k_block, num_k_blocks) ( ((j) / ( VECL / WID)) * WID * ( num_k_blocks + 2) + (k) + ( k_block + 1 ) * WID )
 #define i_pcolumnv_b(planeVectorIndex, k, k_block, num_k_blocks) ( planeVectorIndex * WID * ( num_k_blocks + 2) + (k) + ( k_block + 1 ) * WID )
 
+vmesh::LocalID addVelocityBlock(const vmesh::GlobalID& blockGID,
+        vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
+        vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer) {
+    // Block insert will fail if the block already exists, or if 
+    // there are too many blocks in the velocity mesh.
+    if (vmesh.push_back(blockGID) == false) 
+        return vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID();
+
+    // Insert velocity block data, this will set values to 0.
+    const vmesh::LocalID newBlockLID = blockContainer.push_back();
+
+    // Set block parameters:
+    Real* parameters = blockContainer.getParameters(newBlockLID);
+    vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::getBlockCoordinates(blockGID,parameters+BlockParams::VXCRD);
+    vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::getCellSize(blockGID,parameters+BlockParams::DVX);
+    return newBlockLID;
+}
+
 void loadColumnBlockData(SpatialCell* spatial_cell,vmesh::GlobalID* blocks,
                          vmesh::LocalID n_blocks,Vec* __restrict__ values,
                          const unsigned char * const cellid_transpose);
@@ -43,14 +61,17 @@ void loadColumnBlockData(SpatialCell* spatial_cell,vmesh::GlobalID* blocks,
  * @param blocks Array containing block global IDs.
  * @param n_blocks Number of blocks in array blocks.
 */
-inline void loadColumnBlockData(SpatialCell* spatial_cell,
-                                vmesh::GlobalID* blocks,
-                                vmesh::LocalID n_blocks,
-                                Vec* __restrict__ values,
-                                const unsigned char * const cellid_transpose) {
+inline void loadColumnBlockData(//SpatialCell* spatial_cell,
+        const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
+        vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer,
+        vmesh::GlobalID* blocks,
+        vmesh::LocalID n_blocks,
+        Vec* __restrict__ values,
+        const unsigned char * const cellid_transpose) {
 
    Realv blockValues[WID3];   
-   /*first set the 0 values fot the two empty blocks we store above and below the existing blosk*/
+   // first set the 0 values for the two empty blocks 
+   // we store above and below the existing blocks
 
    for (uint k=0; k<WID; ++k) {
       for (uint j = 0; j < WID; j += VECL/WID){ 
@@ -59,10 +80,17 @@ inline void loadColumnBlockData(SpatialCell* spatial_cell,
       }
    }
 
-   /*copy block data for all blocks*/
+   // copy block data for all blocks
    for (vmesh::LocalID block_k=0; block_k<n_blocks; ++block_k) {
-      const vmesh::LocalID blockLID = spatial_cell->get_velocity_block_local_id(blocks[block_k]);
-      Realf* __restrict__ data = spatial_cell->get_data(blockLID);
+      //const vmesh::LocalID blockLID = spatial_cell->get_velocity_block_local_id(blocks[block_k]);
+      //const vmesh::LocalID blockLID = vmesh.getLocalID(blocks[block_k]);
+      //Realf* __restrict__ data = spatial_cell->get_data(blockLID);
+#warning DEBUG remove me
+       if (blocks[block_k] == vmesh.invalidLocalID()) {
+           std::cerr << "ERROR invalid local id in " << __FILE__ << ":" << __LINE__ << std::endl;
+           exit(1);
+       }
+      Realf* __restrict__ data = blockContainer.getData(vmesh.getLocalID(blocks[block_k]));
 
       //  Copy volume averages of this block, taking into account the dimension shifting
       for (uint i=0; i<WID3; ++i) {
@@ -72,11 +100,11 @@ inline void loadColumnBlockData(SpatialCell* spatial_cell,
          data[i]=0;
       }
 
-      /*now load values into the actual values table..*/
+      // now load values into the actual values table..
       uint offset =0;
       for (uint k=0; k<WID; ++k) {
          for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){
-            /*load data from blockValues which already has shifted dimensions*/
+            // load data from blockValues which already has shifted dimensions
             values[i_pcolumnv_b(planeVector, k, block_k, n_blocks)].load(blockValues + offset);
             offset += VECL;
          }
@@ -96,36 +124,51 @@ inline void loadColumnBlockData(SpatialCell* spatial_cell,
    
 */
 
+bool map_1d(vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
+            vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer,
+            Realv intersection, Realv intersection_di, Realv intersection_dj,Realv intersection_dk,
+            uint dimension) {
+/*
 bool map_1d(spatial_cell::SpatialCell* spatial_cell,
             Realv intersection, Realv intersection_di, Realv intersection_dj,Realv intersection_dk,
             uint dimension ) {
-
+*/
    Realv dv,v_min;
    Realv is_temp;
    uint max_v_length;
    uint block_indices_to_id[3]; /*< used when computing id of target block */
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
    unsigned char cellid_transpose[WID3]; /*< defines the transpose for the solver internal (transposed) id: i + j*WID + k*WID2 to actual one*/
-   
+
+   // Velocity grid refinement level, has no effect but is 
+   // needed in some vmesh::VelocityMesh function calls.
+   const uint8_t REFLEVEL = 0;
+
+   dv            = vmesh.getCellSize(REFLEVEL)[dimension];
+   v_min         = vmesh.getMeshMinLimits()[dimension];
+   max_v_length  = vmesh.getGridLength(REFLEVEL)[dimension];
+
    switch (dimension) {
     case 0:
       /* i and k coordinates have been swapped*/
       /*set cell size in dimension direction*/
-      dv = SpatialCell::get_velocity_grid_cell_size()[0]; 
-      v_min = SpatialCell::get_velocity_grid_min_limits()[0];
-      max_v_length = SpatialCell::get_velocity_grid_length()[0];
+      //dv = SpatialCell::get_velocity_grid_cell_size()[0]; 
+      //v_min = SpatialCell::get_velocity_grid_min_limits()[0];
+      //max_v_length = SpatialCell::get_velocity_grid_length()[0];      
 
       /*swap intersection i and k coordinates*/
       is_temp=intersection_di;
       intersection_di=intersection_dk;
       intersection_dk=is_temp;
-      
-      /*set values in array that is used to transfer blockindices to id using a dot product*/
-      block_indices_to_id[0]=SpatialCell::get_velocity_grid_length()[0] * SpatialCell::get_velocity_grid_length()[1];
-      block_indices_to_id[1]=SpatialCell::get_velocity_grid_length()[0];
-      block_indices_to_id[2]=1;
-      
-      /*set values in array that is used to transfer blockindices to id using a dot product*/
+
+      /*set values in array that is used to convert block indices to id using a dot product*/
+      //block_indices_to_id[0]=SpatialCell::get_velocity_grid_length()[0] * SpatialCell::get_velocity_grid_length()[1];
+      //block_indices_to_id[1]=SpatialCell::get_velocity_grid_length()[0];
+      block_indices_to_id[0] = vmesh.getGridLength(REFLEVEL)[0]*vmesh.getGridLength(REFLEVEL)[1];
+      block_indices_to_id[1] = vmesh.getGridLength(REFLEVEL)[0];
+      block_indices_to_id[2] = 1;
+
+      /*set values in array that is used to convert block indices to id using a dot product*/
       cell_indices_to_id[0]=WID2;
       cell_indices_to_id[1]=WID;
       cell_indices_to_id[2]=1;
@@ -133,37 +176,41 @@ bool map_1d(spatial_cell::SpatialCell* spatial_cell,
     case 1:
       /* j and k coordinates have been swapped*/
       /*set cell size in dimension direction*/
-      dv=SpatialCell::get_velocity_grid_cell_size()[1];
-      v_min = SpatialCell::get_velocity_grid_min_limits()[1];
-      max_v_length = SpatialCell::get_velocity_grid_length()[1];
-      
+      //dv=SpatialCell::get_velocity_grid_cell_size()[1];
+      //v_min = SpatialCell::get_velocity_grid_min_limits()[1];
+      //max_v_length = SpatialCell::get_velocity_grid_length()[1];
+
       /*swap intersection j and k coordinates*/
       is_temp=intersection_dj;
       intersection_dj=intersection_dk;
       intersection_dk=is_temp;
       
-      /*set values in array that is used to transfer blockindices to id using a dot product*/
+      /*set values in array that is used to convert block indices to id using a dot product*/
       block_indices_to_id[0]=1;
-      block_indices_to_id[1]=SpatialCell::get_velocity_grid_length()[0] * SpatialCell::get_velocity_grid_length()[1];
-      block_indices_to_id[2]=SpatialCell::get_velocity_grid_length()[0];
+      //block_indices_to_id[1]=SpatialCell::get_velocity_grid_length()[0] * SpatialCell::get_velocity_grid_length()[1];
+      //block_indices_to_id[2]=SpatialCell::get_velocity_grid_length()[0];
+      block_indices_to_id[1] = vmesh.getGridLength(REFLEVEL)[0]*vmesh.getGridLength(REFLEVEL)[1];
+      block_indices_to_id[2] = vmesh.getGridLength(REFLEVEL)[0];
       
-      /*set values in array that is used to transfer blockindices to id using a dot product*/
+      /*set values in array that is used to convert block indices to id using a dot product*/
       cell_indices_to_id[0]=1;
       cell_indices_to_id[1]=WID2;
       cell_indices_to_id[2]=WID;
       break;
     case 2:
       /*set cell size in dimension direction*/
-      dv=SpatialCell::get_velocity_grid_cell_size()[2];
-      v_min = SpatialCell::get_velocity_grid_min_limits()[2];
-      max_v_length = SpatialCell::get_velocity_grid_length()[2];
+      //dv=SpatialCell::get_velocity_grid_cell_size()[2];
+      //v_min = SpatialCell::get_velocity_grid_min_limits()[2];
+      //max_v_length = SpatialCell::get_velocity_grid_length()[2];
       
-      /*set values in array that is used to transfer blockindices to id using a dot product*/
+      /*set values in array that is used to convert block indices to id using a dot product*/
       block_indices_to_id[0]=1;
-      block_indices_to_id[1]=SpatialCell::get_velocity_grid_length()[0];
-      block_indices_to_id[2]=SpatialCell::get_velocity_grid_length()[0] * SpatialCell::get_velocity_grid_length()[1];
+      //block_indices_to_id[1]=SpatialCell::get_velocity_grid_length()[0];
+      //block_indices_to_id[2]=SpatialCell::get_velocity_grid_length()[0] * SpatialCell::get_velocity_grid_length()[1];
+      block_indices_to_id[1] = vmesh.getGridLength(REFLEVEL)[0];
+      block_indices_to_id[2] = vmesh.getGridLength(REFLEVEL)[0]*vmesh.getGridLength(REFLEVEL)[1];
       
-      /*set values in array that is used to transfer blockindices to id using a dot product*/
+      /*set values in array that is used to convert block indices to id using a dot product*/
       cell_indices_to_id[0]=1;
       cell_indices_to_id[1]=WID;
       cell_indices_to_id[2]=WID2;
@@ -187,12 +234,12 @@ bool map_1d(spatial_cell::SpatialCell* spatial_cell,
    const Realv i_dv=1.0/dv;
 
    /*sort blocks according to dimension, and divide them into columns*/
-   uint* blocks=new uint[spatial_cell->get_number_of_velocity_blocks()];
+   vmesh::LocalID* blocks = new vmesh::LocalID[vmesh.size()];
    std::vector<uint> columnBlockOffsets;
    std::vector<uint> columnNumBlocks;
    std::vector<uint> setColumnOffsets;
    std::vector<uint> setNumColumns;
-   sortBlocklistByDimension(spatial_cell, dimension, blocks,
+   sortBlocklistByDimension(vmesh, dimension, blocks,
                             columnBlockOffsets, columnNumBlocks,
                             setColumnOffsets, setNumColumns);
 
@@ -204,9 +251,8 @@ bool map_1d(spatial_cell::SpatialCell* spatial_cell,
    */
    Vec values[(3 * ( MAX_BLOCKS_PER_DIM / 2 + 1)) * WID3 / VECL];
    /*these two temporary variables are used to optimize access to target cells*/
-   uint previous_target_block = SpatialCell::invalid_global_id();
+   vmesh::LocalID previous_target_block = vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID();
    Realf *target_block_data = NULL;
-
 
    /*loop over block column sets  (all columns along the dimension with the other dimensions being equal )*/
    for( uint setIndex=0; setIndex< setColumnOffsets.size(); ++setIndex) {
@@ -215,7 +261,7 @@ bool map_1d(spatial_cell::SpatialCell* spatial_cell,
       for(uint columnIndex = setColumnOffsets[setIndex]; columnIndex < setColumnOffsets[setIndex] + setNumColumns[setIndex] ; columnIndex ++){
          const vmesh::LocalID n_cblocks = columnNumBlocks[columnIndex];
          vmesh::GlobalID* cblocks = blocks + columnBlockOffsets[columnIndex]; //column blocks
-         loadColumnBlockData(spatial_cell, cblocks, n_cblocks, values + valuesColumnOffset, cellid_transpose);
+         loadColumnBlockData(vmesh, blockContainer, cblocks, n_cblocks, values + valuesColumnOffset, cellid_transpose);
          valuesColumnOffset += (n_cblocks + 2) * (WID3/VECL); // there are WID3/VECL elements of type Vec per block
       }
 
@@ -225,11 +271,15 @@ bool map_1d(spatial_cell::SpatialCell* spatial_cell,
          const vmesh::LocalID n_cblocks = columnNumBlocks[columnIndex];
          vmesh::GlobalID* cblocks = blocks + columnBlockOffsets[columnIndex]; //column blocks
       
-         /*compute the common indices for this block column set */
-         velocity_block_indices_t block_indices_begin=SpatialCell::get_velocity_block_indices(cblocks[0]); //First block in column
+         // compute the common indices for this block column set
+         //velocity_block_indices_t block_indices_begin=SpatialCell::get_velocity_block_indices(cblocks[0]); //First block in column
+         //First block in column
+         velocity_block_indices_t block_indices_begin;
+         uint8_t refLevel;
+         vmesh.getIndices(cblocks[0],refLevel,block_indices_begin[0],block_indices_begin[1],block_indices_begin[2]);
          uint temp;
-         //Switch block indices according to dimensions, the alogirthm has
-         //  been written for integrating along z.
+         // Switch block indices according to dimensions, the algorithm has
+         // been written for integrating along z.
          switch (dimension){
              case 0:
                 /*i and k coordinates have been swapped*/
@@ -384,17 +434,31 @@ bool map_1d(spatial_cell::SpatialCell* spatial_cell,
 
                            //not the same block as last time, lets create it if we
                            //need to and fetch its data array pointer and store it in target_block_data.
-                           if (spatial_cell->count(tblock) == 0) {
+                           //if (spatial_cell->count(tblock) == 0) {
                               // count is faster here since the same checks in 
                               // add_velocity_block call are more expensive
-                              spatial_cell->add_velocity_block(tblock);
-                              phiprof_assert(spatial_cell->count(tblock) != 0);
+                              //spatial_cell->add_velocity_block(tblock);
+                              //phiprof_assert(spatial_cell->count(tblock) != 0);
+                           //}
+
+                           // Get target block local ID. Attempt to create target
+                           // block if it does not exist.
+                           vmesh::LocalID tblockLID = vmesh.getLocalID(tblock);
+                           if (tblockLID == vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) {
+                               tblockLID = addVelocityBlock(tblock,vmesh,blockContainer);
                            }
                            
-                           target_block_data = spatial_cell->get_data( spatial_cell->get_velocity_block_local_id(tblock) );
+                           // Get pointer to target block data. If target block does 
+                           // not exist, values are added to null_block_data.
+                           if (tblockLID == vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) {
+                               target_block_data = blockContainer.getNullData();
+                           } else {
+                               target_block_data = blockContainer.getData(tblockLID);
+                           }
+                           //target_block_data = spatial_cell->get_data( spatial_cell->get_velocity_block_local_id(tblock) );
                            // END NOTE
                         }
-                     
+
                         // do the conversion from Realv to Realf here, faster than doing it in accumulation
                         const Realf tval = target_density[target_i];
                         const uint tcell = target_cell[target_i];

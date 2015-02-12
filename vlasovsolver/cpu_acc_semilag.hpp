@@ -9,7 +9,11 @@
 #include "../common.h"
 #include "../spatial_cell.hpp"
 
-void cpu_accelerate_cell(spatial_cell::SpatialCell* spatial_cell,uint map_order,const Real dt);
+void cpu_accelerate_cell(
+        spatial_cell::SpatialCell* spatial_cell,
+        const int popID,
+        uint map_order,
+        const Real& dt);
 
 #endif
 

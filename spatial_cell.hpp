@@ -8,23 +8,22 @@ Copyright 2011 Finnish Meteorological Institute
 #ifndef VLASIATOR_SPATIAL_CELL_HPP
 #define VLASIATOR_SPATIAL_CELL_HPP
 
-#include "algorithm"
-#include "boost/array.hpp"
-#include "boost/unordered_map.hpp"
-//#include "boost/unordered_set.hpp"
-#include "boost/lexical_cast.hpp"
-#include "cmath"
-#include "fstream"
-#include "iostream"
-#include "mpi.h"
-#include "limits"
-#include "stdint.h"
-#include "vector"
-#include "set"
+#include <algorithm>
+#include <boost/array.hpp>
+#include <boost/unordered_map.hpp>
+#include <boost/lexical_cast.hpp>
+#include <cmath>
+#include <fstream>
+#include <iostream>
+#include <mpi.h>
+#include <limits>
+#include <stdint.h>
+#include <vector>
+#include <set>
+
+#include <phiprof.hpp>
 
 #include "memoryallocation.h"
-
-#include "phiprof.hpp"
 #include "common.h"
 #include "parameters.h"
 #include "definitions.h"

@@ -308,6 +308,7 @@ void calculateAcceleration(
    Real dt
 ) {
    typedef Parameters P;
+   const int popID = 0; // ID of the accelerated particle species
    const vector<CellID> cells = mpiGrid.get_cells();
 //    if(dt > 0)  // FIXME this has to be deactivated to support regular projects but it breaks test_trans support most likely, with this on dt stays 0
    phiprof::start("semilag-acc");
@@ -387,7 +388,7 @@ void calculateAcceleration(
          
          uint map_order=rndInt%3;
          phiprof::start("cell-semilag-acc");
-         cpu_accelerate_cell(mpiGrid[cellID],map_order,subcycleDt);
+         cpu_accelerate_cell(mpiGrid[cellID],popID,map_order,subcycleDt);
          phiprof::stop("cell-semilag-acc");
       }
       

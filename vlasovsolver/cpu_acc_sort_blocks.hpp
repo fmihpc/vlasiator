@@ -13,7 +13,8 @@ Copyright 2013-2015 Finnish Meteorological Institute
 #include "../common.h"
 #include "../spatial_cell.hpp"
 
-void sortBlocklistByDimension( const spatial_cell::SpatialCell* spatial_cell, 
+void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell, 
+                               const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
                                const uint dimension,
                                uint* blocks,
                                std::vector<uint> & columnBlockOffsets,
