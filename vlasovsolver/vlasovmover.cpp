@@ -9,24 +9,20 @@
 #include <cstdlib>
 #include <iostream>
 #include <vector>
+#include <stdint.h>
 
 #ifdef _OPENMP
-#include "omp.h"
+    #include "omp.h"
 #endif
 #include <zoltan.h>
+#include <dccrg.hpp>
+#include <phiprof.hpp>
 
 #include "../vlasovmover.h"
-#include "phiprof.hpp"
 
 #include "cpu_moments.h"
 #include "cpu_acc_semilag.hpp"
 #include "cpu_trans_map.hpp"
-
-
-
-#include <stdint.h>
-#include <dccrg.hpp>
-
 #include "spatial_cell.hpp"
 #include "../grid.h"
 #include "../definitions.h"
@@ -42,51 +38,21 @@ creal ONE     = 1.0;
 creal TWO     = 2.0;
 creal EPSILON = 1.0e-25;
 
-
-/*!
-  
-  Propagates the distribution function in spatial space. 
-  
-  Based on SLICE-3D algorithm: Zerroukat, M., and T. Allen. "A
-  three‐dimensional monotone and conservative semi‐Lagrangian scheme
-  (SLICE‐3D) for transport problems." Quarterly Journal of the Royal
-  Meteorological Society 138.667 (2012): 1640-1651.
-
-*/
-
 void calculateSpatialTranslation(
-   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   creal dt
-) {
-   const size_t popID = 0;
-   typedef Parameters P;
-   int trans_timer;
-   
-   
-   phiprof::start("semilag-trans");
-   phiprof::start("compute_cell_lists");
-   const vector<CellID> localCells = mpiGrid.get_cells();
-   const vector<CellID> remoteTargetCellsx = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID);
-   const vector<CellID> remoteTargetCellsy = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID);
-   const vector<CellID> remoteTargetCellsz = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID);
-
-   vector<CellID> local_propagated_cells;
-   vector<CellID> local_target_cells;
-   for (size_t c=0; c<localCells.size(); ++c) {
-      if(do_translate_cell(mpiGrid[localCells[c]])){
-         local_propagated_cells.push_back(localCells[c]);
-      }
-   }
-   for (size_t c=0; c<localCells.size(); ++c) {
-      if(mpiGrid[localCells[c]]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-         local_target_cells.push_back(localCells[c]);
-      }
-   }
-   phiprof::stop("compute_cell_lists");
-   
-   bool localTargetGridGenerated = false;
-
-   // ------------- SLICE - map dist function in Z --------------- //
+        dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+        const vector<CellID>& localCells,
+        const vector<CellID>& local_propagated_cells,
+        const vector<CellID>& local_target_cells,
+        const vector<CellID>& remoteTargetCellsx,
+        const vector<CellID>& remoteTargetCellsy,
+        const vector<CellID>& remoteTargetCellsz,
+        creal dt,
+        const int& popID) {
+    
+    int trans_timer;
+    bool localTargetGridGenerated = false;
+    
+    // ------------- SLICE - map dist function in Z --------------- //
    if(P::zcells_ini > 1 ){
       trans_timer=phiprof::initializeTimer("transfer-stencil-data-z","MPI");
       phiprof::start(trans_timer);
@@ -94,12 +60,12 @@ void calculateSpatialTranslation(
       mpiGrid.start_remote_neighbor_copy_updates(VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);
       phiprof::stop(trans_timer);
       
-      /*generate target grid in the temporary arrays, same size as
-       *   original one. We only need to create these in target cells*/
-      createTargetGrid(mpiGrid,remoteTargetCellsz);
+      // generate target grid in the temporary arrays, same size as
+      // original one. We only need to create these in target cells
+      createTargetGrid(mpiGrid,remoteTargetCellsz,popID);
 
       if(!localTargetGridGenerated){ 
-         createTargetGrid(mpiGrid,local_target_cells);
+         createTargetGrid(mpiGrid,local_target_cells,popID);
          localTargetGridGenerated=true;
       }
       
@@ -112,7 +78,7 @@ void calculateSpatialTranslation(
       {
          no_subnormals();
          for (size_t c=0; c<local_propagated_cells.size(); ++c) {
-            trans_map_1d(mpiGrid,local_propagated_cells[c], 2, dt); // map along z//
+            trans_map_1d(mpiGrid,local_propagated_cells[c], 2, dt,popID); // map along z//
          }
       }
       phiprof::stop("compute-mapping-z");
@@ -123,12 +89,12 @@ void calculateSpatialTranslation(
       
       trans_timer=phiprof::initializeTimer("update_remote-z","MPI");
       phiprof::start("update_remote-z");
-      update_remote_mapping_contribution(mpiGrid, 2, 1);
-      update_remote_mapping_contribution(mpiGrid, 2, -1);
+      update_remote_mapping_contribution(mpiGrid, 2, 1,popID);
+      update_remote_mapping_contribution(mpiGrid, 2,-1,popID);
       phiprof::stop("update_remote-z");
 
       clearTargetGrid(mpiGrid,remoteTargetCellsz);
-      swapTargetSourceGrid(mpiGrid, local_target_cells);
+      swapTargetSourceGrid(mpiGrid, local_target_cells,popID);
       zeroTargetGrid(mpiGrid, local_target_cells);
    }
 
@@ -140,9 +106,9 @@ void calculateSpatialTranslation(
       mpiGrid.start_remote_neighbor_copy_updates(VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
       phiprof::stop(trans_timer);
       
-      createTargetGrid(mpiGrid,remoteTargetCellsx);
+      createTargetGrid(mpiGrid,remoteTargetCellsx,popID);
        if(!localTargetGridGenerated){ 
-         createTargetGrid(mpiGrid,local_target_cells);
+         createTargetGrid(mpiGrid,local_target_cells,popID);
          localTargetGridGenerated=true;
       }
        
@@ -155,7 +121,7 @@ void calculateSpatialTranslation(
       {
          no_subnormals();
          for (size_t c=0; c<local_propagated_cells.size(); ++c) {
-            trans_map_1d(mpiGrid,local_propagated_cells[c], 0, dt); // map along x//
+            trans_map_1d(mpiGrid,local_propagated_cells[c],0,dt,popID); // map along x//
          }
       }
       phiprof::stop("compute-mapping-x");
@@ -166,11 +132,11 @@ void calculateSpatialTranslation(
       
       trans_timer=phiprof::initializeTimer("update_remote-x","MPI");
       phiprof::start("update_remote-x");
-      update_remote_mapping_contribution(mpiGrid, 0, 1);
-      update_remote_mapping_contribution(mpiGrid, 0, -1);
+      update_remote_mapping_contribution(mpiGrid, 0, 1,popID);
+      update_remote_mapping_contribution(mpiGrid, 0,-1,popID);
       phiprof::stop("update_remote-x");
       clearTargetGrid(mpiGrid,remoteTargetCellsx);
-      swapTargetSourceGrid(mpiGrid, local_target_cells);
+      swapTargetSourceGrid(mpiGrid, local_target_cells,popID);
       zeroTargetGrid(mpiGrid, local_target_cells);
 
    }
@@ -183,9 +149,9 @@ void calculateSpatialTranslation(
       mpiGrid.start_remote_neighbor_copy_updates(VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);
       phiprof::stop(trans_timer);
       
-      createTargetGrid(mpiGrid,remoteTargetCellsy);
+      createTargetGrid(mpiGrid,remoteTargetCellsy,popID);
       if(!localTargetGridGenerated){ 
-         createTargetGrid(mpiGrid,local_target_cells);
+         createTargetGrid(mpiGrid,local_target_cells,popID);
          localTargetGridGenerated=true;
       }
       
@@ -198,7 +164,7 @@ void calculateSpatialTranslation(
       {
          no_subnormals();
          for (size_t c=0; c<local_propagated_cells.size(); ++c) {
-            trans_map_1d(mpiGrid,local_propagated_cells[c], 1, dt); // map along y//
+            trans_map_1d(mpiGrid,local_propagated_cells[c],1,dt,popID); // map along y//
          }
       }
       
@@ -210,87 +176,70 @@ void calculateSpatialTranslation(
       
       trans_timer=phiprof::initializeTimer("update_remote-y","MPI");
       phiprof::start("update_remote-y");
-      update_remote_mapping_contribution(mpiGrid, 1, 1);
-      update_remote_mapping_contribution(mpiGrid, 1, -1);
+      update_remote_mapping_contribution(mpiGrid, 1,+1,popID);
+      update_remote_mapping_contribution(mpiGrid, 1,-1,popID);
       phiprof::stop("update_remote-y");
       clearTargetGrid(mpiGrid,remoteTargetCellsy);
-      swapTargetSourceGrid(mpiGrid, local_target_cells);
+      swapTargetSourceGrid(mpiGrid, local_target_cells,popID);
    }
 
    
    clearTargetGrid(mpiGrid,local_target_cells);
+}
 
+/*!
+  
+  Propagates the distribution function in spatial space. 
+  
+  Based on SLICE-3D algorithm: Zerroukat, M., and T. Allen. "A
+  three‐dimensional monotone and conservative semi‐Lagrangian scheme
+  (SLICE‐3D) for transport problems." Quarterly Journal of the Royal
+  Meteorological Society 138.667 (2012): 1640-1651.
+
+*/
+void calculateSpatialTranslation(
+        dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+        creal dt) {
+    const size_t popID = 0;
+    typedef Parameters P;
    
+    phiprof::start("semilag-trans");
+    phiprof::start("compute_cell_lists");
+    const vector<CellID> localCells = mpiGrid.get_cells();
+    const vector<CellID> remoteTargetCellsx = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID);
+    const vector<CellID> remoteTargetCellsy = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID);
+    const vector<CellID> remoteTargetCellsz = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID);
 
+    // Figure out which spatial cells are translated, 
+    // same for all particle species.
+    vector<CellID> local_propagated_cells;   
+    for (size_t c=0; c<localCells.size(); ++c) {
+        if(do_translate_cell(mpiGrid[localCells[c]])){
+            local_propagated_cells.push_back(localCells[c]);
+        }
+    }
 
-
+    // Figure out target spatial cells, same for all particle species.
+    vector<CellID> local_target_cells;
+    for (size_t c=0; c<localCells.size(); ++c) {
+        if(mpiGrid[localCells[c]]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+            local_target_cells.push_back(localCells[c]);
+        }
+    }
+    phiprof::stop("compute_cell_lists");
    
-   // Mapping complete, update moments //
-   phiprof::start("compute-moments-n-maxdt");
-   // Note: Parallelization over blocks is not thread-safe
-#pragma omp  parallel for
-   for (size_t c=0; c<localCells.size(); ++c) {
-      SpatialCell* SC=mpiGrid[localCells[c]];
-      
-      const Real dx=SC->parameters[CellParams::DX];
-      const Real dy=SC->parameters[CellParams::DY];
-      const Real dz=SC->parameters[CellParams::DZ];
-      SC->parameters[CellParams::RHO_R  ] = 0.0;
-      SC->parameters[CellParams::RHOVX_R] = 0.0;
-      SC->parameters[CellParams::RHOVY_R] = 0.0;
-      SC->parameters[CellParams::RHOVZ_R] = 0.0;
-      SC->parameters[CellParams::P_11_R ] = 0.0;
-      SC->parameters[CellParams::P_22_R ] = 0.0;
-      SC->parameters[CellParams::P_33_R ] = 0.0;
-      
-      //Reset spatial max DT
-      SC->parameters[CellParams::MAXRDT]=numeric_limits<Real>::max();
-      for (vmesh::LocalID block_i=0; block_i<SC->get_number_of_velocity_blocks(); ++block_i) {
-         const Real* const blockParams = SC->get_block_parameters(block_i);
+    // Translate all particle species
+    //for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+        SpatialCell::setCommunicatedSpecies(popID);
+        calculateSpatialTranslation(mpiGrid,localCells,local_propagated_cells,
+                local_target_cells,remoteTargetCellsx,remoteTargetCellsy,
+                remoteTargetCellsz,dt,popID);
+    //}
 
-         //compute maximum dt. Algorithm has a CFL condition, since it
-         //is written only for the case where we have a stencil
-         //supporting max translation of one cell
-         for (unsigned int i=0; i<WID;i+=WID-1) {
-            const Real Vx = blockParams[BlockParams::VXCRD] + (i+HALF)*blockParams[BlockParams::DVX];
-            const Real Vy = blockParams[BlockParams::VYCRD] + (i+HALF)*blockParams[BlockParams::DVY];
-            const Real Vz = blockParams[BlockParams::VZCRD] + (i+HALF)*blockParams[BlockParams::DVZ];
-            
-            if(fabs(Vx)!=ZERO) SC->parameters[CellParams::MAXRDT]=min(dx/fabs(Vx),SC->parameters[CellParams::MAXRDT]);
-            if(fabs(Vy)!=ZERO) SC->parameters[CellParams::MAXRDT]=min(dy/fabs(Vy),SC->parameters[CellParams::MAXRDT]);
-            if(fabs(Vz)!=ZERO) SC->parameters[CellParams::MAXRDT]=min(dz/fabs(Vz),SC->parameters[CellParams::MAXRDT]);
-         }
-         
-         //compute first moments for this block
-         if (SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)
-            cpu_calcVelocityFirstMoments(
-               SC,
-               block_i,
-               CellParams::RHO_R,
-               CellParams::RHOVX_R,
-               CellParams::RHOVY_R,
-               CellParams::RHOVZ_R
-            );   //set first moments after translation
-      }
-      // Second iteration needed as rho has to be already computed when computing pressure
-      for (vmesh::LocalID block_i=0; block_i< SC->get_number_of_velocity_blocks(); ++block_i){
-         //compute second moments for this block
-         if (SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)
-            cpu_calcVelocitySecondMoments(
-               SC,
-               block_i,
-               CellParams::RHO_R,
-               CellParams::RHOVX_R,
-               CellParams::RHOVY_R,
-               CellParams::RHOVZ_R,
-               CellParams::P_11_R,
-               CellParams::P_22_R,
-               CellParams::P_33_R
-            );   //set second moments after translation
-      }
-   }
-   phiprof::stop("compute-moments-n-maxdt");
-   phiprof::stop("semilag-trans");
+    // Mapping complete, update moments //
+    calculateMoments_R_maxdt(mpiGrid,localCells,true);
+
+    phiprof::stop("semilag-trans");
 }
 
 /*
@@ -439,7 +388,7 @@ void calculateInterpolatedVelocityMoments(
    cells=mpiGrid.get_cells();
    
    //Iterate through all local cells (excl. system boundary cells):
-#pragma omp parallel for
+    #pragma omp parallel for
    for (size_t c=0; c<cells.size(); ++c) {
       const CellID cellID = cells[c];
       SpatialCell* SC = mpiGrid[cellID];
@@ -455,68 +404,18 @@ void calculateInterpolatedVelocityMoments(
    }
 }
 
-
-
-
-void calculateCellVelocityMoments(
-   SpatialCell* SC,
-   bool doNotSkip // default: false
-) {
-   // if doNotSkip == true then the first clause is false and we will never return, i.e. always compute
-   // otherwise we skip DO_NOT_COMPUTE cells
-   // or boundary cells of layer larger than 1
-   if (!doNotSkip &&
-       (SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
-       (SC->sysBoundaryLayer != 1  &&
-       SC->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY))
-      ) return;
-
-   SC->parameters[CellParams::RHO  ] = 0.0;
-   SC->parameters[CellParams::RHOVX] = 0.0;
-   SC->parameters[CellParams::RHOVY] = 0.0;
-   SC->parameters[CellParams::RHOVZ] = 0.0;
-   SC->parameters[CellParams::P_11 ] = 0.0;
-   SC->parameters[CellParams::P_22 ] = 0.0;
-   SC->parameters[CellParams::P_33 ] = 0.0;
-
-   // Iterate through all velocity blocks in this spatial cell
-   // and calculate velocity moments:
-   for (vmesh::LocalID block_i=0; block_i<SC->get_number_of_velocity_blocks(); ++block_i) {
-      cpu_calcVelocityFirstMoments(SC,
-         block_i,
-         CellParams::RHO,
-         CellParams::RHOVX,
-         CellParams::RHOVY,
-         CellParams::RHOVZ
-      );
-   }
-
-   // Second iteration needed as rho has to be already computed when computing pressure
-   for (vmesh::LocalID block_i=0; block_i<SC->get_number_of_velocity_blocks(); ++block_i) {
-      cpu_calcVelocitySecondMoments(
-         SC,
-         block_i,
-         CellParams::RHO,
-         CellParams::RHOVX,
-         CellParams::RHOVY,
-         CellParams::RHOVZ,
-         CellParams::P_11,
-         CellParams::P_22,
-         CellParams::P_33
-      );
-   }
-}
-
 void calculateInitialVelocityMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
    vector<CellID> cells;
    cells=mpiGrid.get_cells();
-   phiprof::start("Calculate moments"); 
-   // Iterate through all local cells (incl. system boundary cells):
-#pragma omp parallel for
-   for (size_t c=0; c<cells.size(); ++c) {
+   phiprof::start("Calculate moments");
+   
+    // Iterate through all local cells (incl. system boundary cells):
+    #pragma omp parallel for
+    for (size_t c=0; c<cells.size(); ++c) {
       const CellID cellID = cells[c];
       SpatialCell* SC = mpiGrid[cellID];
-      calculateCellVelocityMoments(SC);
+      calculateCellMoments(SC,true);
+
       // WARNING the following is sane as this function is only called by initializeGrid.
       // We need initialized _DT2 values for the dt=0 field propagation done in the beginning.
       // Later these will be set properly.

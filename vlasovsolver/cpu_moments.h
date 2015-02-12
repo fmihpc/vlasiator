@@ -36,6 +36,13 @@ template<typename UINT> void cpu_calcVelocitySecondMoments(
         const int cp_rhovy,const int cp_rhovz,const int cp_p11,const int cp_p22,
         const int cp_p33);
 
+
+
+void calculateMoments_R_maxdt(
+        dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+        const std::vector<CellID>& cells,
+        const bool& computeSecond);
+
 void calculateMoments_V(
         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
         const std::vector<CellID>& cells,

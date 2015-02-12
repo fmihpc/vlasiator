@@ -635,7 +635,7 @@ namespace SBC {
       //memory.
       templateCell.adjustSingleCellVelocityBlocks();
       
-      calculateCellVelocityMoments(&templateCell, true);
+      calculateCellMoments(&templateCell, true);
       
       // WARNING Time-independence assumed here. Normal moments computed in setProjectCell
       templateCell.parameters[CellParams::RHO_DT2] = templateCell.parameters[CellParams::RHO];

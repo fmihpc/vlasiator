@@ -128,16 +128,16 @@ namespace spatial_cell {
 					    vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
 					    const Realf* src,Realf* array,Real cellSizeFractions[2]);
       vmesh::GlobalID find_velocity_block(uint8_t& refLevel,vmesh::GlobalID cellIndices[3]);
-      Realf* get_data();
-      const Realf* get_data() const;
-      Realf* get_data(const vmesh::LocalID& blockLID);
-      const Realf* get_data(const vmesh::LocalID& blockLID) const;
-      Real* get_block_parameters();
-      Real* get_block_parameters(const vmesh::LocalID& blockLID);
-      const Real* get_block_parameters(const vmesh::LocalID& blockLID) const;
+      Realf* get_data(const int& popID=0);
+      const Realf* get_data(const int& popID=0) const;
+      Realf* get_data(const vmesh::LocalID& blockLID,const int& popID=0);
+      const Realf* get_data(const vmesh::LocalID& blockLID,const int& popID=0) const;
+      Real* get_block_parameters(const int& popID=0);
+      Real* get_block_parameters(const vmesh::LocalID& blockLID,const int& popID=0);
+      const Real* get_block_parameters(const vmesh::LocalID& blockLID,const int& popID=0) const;
       const Real* get_cell_parameters() const;
       static uint8_t get_maximum_refinement_level();
-      vmesh::LocalID get_number_of_velocity_blocks() const;
+      vmesh::LocalID get_number_of_velocity_blocks(const int& popID=0) const;
       static const unsigned int* get_velocity_grid_length(const uint8_t& refLevel=0);
       static const Real* get_velocity_grid_block_size(const uint8_t& refLevel=0);
       static const Real* get_velocity_grid_cell_size(const uint8_t& refLevel=0);
@@ -153,8 +153,8 @@ namespace spatial_cell {
                                                       const int& i_cell,const int& j_cell,const int& k_cell);
       void get_velocity_block_children_local_ids(const vmesh::GlobalID& blockGID,std::vector<vmesh::LocalID>& childrenLIDs);
       static vmesh::GlobalID get_velocity_block_parent(const vmesh::GlobalID& blockGID);
-      vmesh::GlobalID get_velocity_block_global_id(const vmesh::LocalID& blockLID) const;
-      vmesh::LocalID get_velocity_block_local_id(const vmesh::GlobalID& blockGID) const;
+      vmesh::GlobalID get_velocity_block_global_id(const vmesh::LocalID& blockLID,const int& popID=0) const;
+      vmesh::LocalID get_velocity_block_local_id(const vmesh::GlobalID& blockGID,const int& popID=0) const;
       static void get_velocity_block_size(const vmesh::GlobalID block,Real size[3]);
       static Real get_velocity_block_vx_min(const vmesh::GlobalID block);
       static Real get_velocity_block_vx_max(const vmesh::GlobalID block);
@@ -202,14 +202,15 @@ namespace spatial_cell {
       size_t size(void) const;
       void remove_velocity_block(const vmesh::GlobalID& block);
       void swap(vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
-                vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer);
+                vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer,const int& popID);
       vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& get_velocity_mesh(const size_t& popID);
       vmesh::VelocityBlockContainer<vmesh::LocalID>& get_velocity_blocks(const size_t& popID);
       vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& get_velocity_mesh_temporary();
       vmesh::VelocityBlockContainer<vmesh::LocalID>& get_velocity_blocks_temporary();
       Real get_value(const Real vx, const Real vy, const Real vz) const;
       void increment_value(const Real vx, const Real vy, const Real vz, const Realf value);
-      void increment_value(const vmesh::GlobalID& block,const unsigned int cell, const Real value);      
+      void increment_value(const vmesh::GlobalID& block,const unsigned int cell, const Real value);
+      static void setCommunicatedSpecies(const int& popID);
       void set_value(const Real vx, const Real vy, const Real vz, const Realf value);
       void set_value(const vmesh::GlobalID& block,const unsigned int cell, const Realf value);
       void refine_block(const vmesh::GlobalID& block,std::map<vmesh::GlobalID,vmesh::LocalID>& insertedBlocks);
@@ -658,33 +659,33 @@ namespace spatial_cell {
       return vmesh.findBlock(refLevel,cellIndices);
    }
 
-   inline Realf* SpatialCell::get_data() {
+   inline Realf* SpatialCell::get_data(const int& popID) {
       return blockContainer.getData();
    }
    
-   inline const Realf* SpatialCell::get_data() const {
+   inline const Realf* SpatialCell::get_data(const int& popID) const {
       return blockContainer.getData();
    }
 
-   inline Realf* SpatialCell::get_data(const vmesh::LocalID& blockLID) {
+   inline Realf* SpatialCell::get_data(const vmesh::LocalID& blockLID,const int& popID) {
       if (blockLID == vmesh.invalidLocalID()) return null_block_data;
       return blockContainer.getData(blockLID);
    }
    
-   inline const Realf* SpatialCell::get_data(const vmesh::LocalID& blockLID) const {
+   inline const Realf* SpatialCell::get_data(const vmesh::LocalID& blockLID,const int& popID) const {
       if (blockLID == vmesh.invalidLocalID()) return null_block_data;
       return blockContainer.getData(blockLID);
    }
 
-   inline Real* SpatialCell::get_block_parameters() {
+   inline Real* SpatialCell::get_block_parameters(const int& popID) {
       return blockContainer.getParameters();
    }
    
-   inline Real* SpatialCell::get_block_parameters(const vmesh::LocalID& blockLID) {
+   inline Real* SpatialCell::get_block_parameters(const vmesh::LocalID& blockLID,const int& popID) {
       return blockContainer.getParameters(blockLID);
    }
    
-   inline const Real* SpatialCell::get_block_parameters(const vmesh::LocalID& blockLID) const {
+   inline const Real* SpatialCell::get_block_parameters(const vmesh::LocalID& blockLID,const int& popID) const {
       return blockContainer.getParameters(blockLID);
    }
    
@@ -696,7 +697,7 @@ namespace spatial_cell {
       return vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::getMaxAllowedRefinementLevel();
    }
 
-   inline vmesh::LocalID SpatialCell::get_number_of_velocity_blocks() const {
+   inline vmesh::LocalID SpatialCell::get_number_of_velocity_blocks(const int& popID) const {
       return vmesh.size();
    }
 
@@ -790,11 +791,11 @@ namespace spatial_cell {
       return vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::getParent(blockGID);
    }
 
-   inline vmesh::GlobalID SpatialCell::get_velocity_block_global_id(const vmesh::LocalID& blockLID) const {
+   inline vmesh::GlobalID SpatialCell::get_velocity_block_global_id(const vmesh::LocalID& blockLID,const int& popID) const {
       return vmesh.getGlobalID(blockLID);
    }
    
-   inline vmesh::LocalID SpatialCell::get_velocity_block_local_id(const vmesh::GlobalID& blockGID) const {
+   inline vmesh::LocalID SpatialCell::get_velocity_block_local_id(const vmesh::GlobalID& blockGID,const int& popID) const {
       return vmesh.getLocalID(blockGID);
    }
 
@@ -1159,6 +1160,8 @@ namespace spatial_cell {
    inline size_t SpatialCell::size(void) const {
       return vmesh.size();
    }
+   
+   inline void SpatialCell::setCommunicatedSpecies(const int& popID) { }
    
    /*!
     Sets the given value to a velocity cell at given coordinates.
@@ -1773,7 +1776,8 @@ namespace spatial_cell {
    }
 
    inline void SpatialCell::swap(vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
-                                 vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer) {
+                                 vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer,
+                                 const int& popID) {
       #ifdef DEBUG_SPATIAL_CELL
          if (vmesh.size() != blockContainer.size()) {
             std::cerr << "Error, velocity mesh size and block container size do not agree in " << __FILE__ << ' ' << __LINE__ << std::endl;

@@ -151,7 +151,7 @@ DEPS_CPU_ACC_SORT_BLOCKS = ${DEPS_COMMON} ${DEPS_CELL} vlasovsolver/cpu_acc_sort
 
 DEPS_CPU_ACC_TRANSFORM = ${DEPS_COMMON} ${DEPS_CELL} vlasovsolver/cpu_moments.h vlasovsolver/cpu_acc_transform.hpp vlasovsolver/cpu_acc_transform.cpp
 
-DEPS_CPU_MOMENTS = ${DEPS_COMMON} ${DEPS_CELL} vlasovsolver/cpu_moments.h vlasovsolver/cpu_moments.cpp
+DEPS_CPU_MOMENTS = ${DEPS_COMMON} ${DEPS_CELL} vlasovmover.h vlasovsolver/cpu_moments.h vlasovsolver/cpu_moments.cpp
 
 DEPS_CPU_TRANS_MAP = ${DEPS_COMMON} ${DEPS_CELL} grid.h vlasovsolver/vec.h vlasovsolver/cpu_trans_map.hpp vlasovsolver/cpu_trans_map.cpp
 

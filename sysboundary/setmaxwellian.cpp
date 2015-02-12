@@ -241,7 +241,7 @@ namespace SBC {
       //memory.
       templateCell.adjustSingleCellVelocityBlocks();
       
-      calculateCellVelocityMoments(&templateCell, true);
+      calculateCellMoments(&templateCell, true);
       
       if(!this->isThisDynamic) {
          // WARNING Time-independence assumed here.
