@@ -86,10 +86,10 @@ inline void loadColumnBlockData(//SpatialCell* spatial_cell,
       //const vmesh::LocalID blockLID = vmesh.getLocalID(blocks[block_k]);
       //Realf* __restrict__ data = spatial_cell->get_data(blockLID);
 #warning DEBUG remove me
-       if (blocks[block_k] == vmesh.invalidLocalID()) {
+       /*if (blocks[block_k] == vmesh.invalidLocalID()) {
            std::cerr << "ERROR invalid local id in " << __FILE__ << ":" << __LINE__ << std::endl;
            exit(1);
-       }
+       }*/
       Realf* __restrict__ data = blockContainer.getData(vmesh.getLocalID(blocks[block_k]));
 
       //  Copy volume averages of this block, taking into account the dimension shifting
