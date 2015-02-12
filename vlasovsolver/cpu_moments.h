@@ -1,7 +1,7 @@
 /*
 This file is part of Vlasiator.
 
-Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
+Copyright 2010-2013,2015 Finnish Meteorological Institute
 
 */
 
@@ -11,6 +11,7 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #include <vector>
 #include <limits>
 #include <dccrg.hpp>
+#include <dccrg_cartesian_geometry.hpp>
 
 #include "../definitions.h"
 #include "../common.h"
@@ -18,7 +19,31 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 
 using namespace spatial_cell;
 
+// ***** FUNCTION DECLARATIONS ***** //
+
 template<typename REAL> void cpu_blockVelocityFirstMoments(
+        const Realf* const avgs,const REAL* const blockParams,REAL* const cellParams,
+        const int cp_rho,const int cp_rhovx,const int cp_rhovy,const int cp_rhovz);
+template<typename REAL> void cpu_blockVelocitySecondMoments(
+        const Realf* const avgs,const REAL* const blockParams,REAL* const cellParams,
+        const int cp_rho,const int cp_rhovx,const int cp_rhovy,const int cp_rhovz,
+        const int cp_p11,const int cp_p22,const int cp_p33);
+template<typename UINT> void cpu_calcVelocityFirstMoments(
+        SpatialCell *cell,const UINT blockLID,const int cp_rho,const int cp_rhovx,
+        const int cp_rhovy,const int cp_rhovz);
+template<typename UINT> void cpu_calcVelocitySecondMoments(
+        SpatialCell *cell,const UINT blockLID,const int cp_rho,const int cp_rhovx,
+        const int cp_rhovy,const int cp_rhovz,const int cp_p11,const int cp_p22,
+        const int cp_p33);
+
+void calculateMoments_V(
+        dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+        const std::vector<CellID>& cells,
+        const bool& computeSecond);
+
+// ***** TEMPLATE FUNCTION DEFINITIONS ***** //
+
+template<typename REAL> inline void cpu_blockVelocityFirstMoments(
    const Realf* const avgs,
    const REAL* const blockParams,
    REAL* const cellParams,
@@ -54,7 +79,7 @@ template<typename REAL> void cpu_blockVelocityFirstMoments(
    cellParams[cp_rhovz] += nvz_sum * DV3;
 }
 
-template<typename REAL> void cpu_blockVelocitySecondMoments(
+template<typename REAL> inline void cpu_blockVelocitySecondMoments(
    const Realf* const avgs,
    const REAL* const blockParams,
    REAL* const cellParams,
@@ -100,9 +125,7 @@ template<typename REAL> void cpu_blockVelocitySecondMoments(
    cellParams[cp_p33] += nvz2_sum * mpDV3;
 }
 
-
-
-template<typename UINT> void cpu_calcVelocityFirstMoments(
+template<typename UINT> inline void cpu_calcVelocityFirstMoments(
    SpatialCell *cell,
    const UINT blockLID,
    const int cp_rho,
@@ -117,7 +140,7 @@ template<typename UINT> void cpu_calcVelocityFirstMoments(
    );
 }
 
-template<typename UINT> void cpu_calcVelocitySecondMoments(
+template<typename UINT> inline void cpu_calcVelocitySecondMoments(
    SpatialCell *cell,
    const UINT blockLID,
    const int cp_rho,

@@ -84,7 +84,7 @@ default: vlasiator
 tools: parallel_tools not_parallel_tools
 	touch vlsvreader2.cpp
 
-parallel_tools: vlsv2vtk vlsv2silo vlsv2bzt vlsvextract
+parallel_tools: vlsv2vtk vlsv2bzt vlsvextract
 
 FORCE:
 # On FERMI one has to use the front-end compiler (e.g. g++) to compile this tool.
@@ -151,6 +151,8 @@ DEPS_CPU_ACC_SORT_BLOCKS = ${DEPS_COMMON} ${DEPS_CELL} vlasovsolver/cpu_acc_sort
 
 DEPS_CPU_ACC_TRANSFORM = ${DEPS_COMMON} ${DEPS_CELL} vlasovsolver/cpu_moments.h vlasovsolver/cpu_acc_transform.hpp vlasovsolver/cpu_acc_transform.cpp
 
+DEPS_CPU_MOMENTS = ${DEPS_COMMON} ${DEPS_CELL} vlasovsolver/cpu_moments.h vlasovsolver/cpu_moments.cpp
+
 DEPS_CPU_TRANS_MAP = ${DEPS_COMMON} ${DEPS_CELL} grid.h vlasovsolver/vec.h vlasovsolver/cpu_trans_map.hpp vlasovsolver/cpu_trans_map.cpp
 
 DEPS_VLSVMOVER = ${DEPS_CELL} vlasovsolver/vlasovmover.cpp vlasovsolver/cpu_acc_map.hpp vlasovsolver/cpu_acc_intersections.hpp \
@@ -180,7 +182,8 @@ OBJS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipo
 ifeq ($(MESH),AMR)
 
 else
-OBJS += cpu_acc_intersections.o cpu_acc_map.o cpu_acc_sort_blocks.o cpu_acc_semilag.o cpu_acc_transform.o cpu_trans_map.o
+OBJS += cpu_acc_intersections.o cpu_acc_map.o cpu_acc_sort_blocks.o cpu_acc_semilag.o cpu_acc_transform.o \
+	cpu_moments.o cpu_trans_map.o
 endif
 
 help:
@@ -352,6 +355,9 @@ cpu_acc_sort_blocks.o: ${DEPS_CPU_ACC_SORT_BLOCKS}
 
 cpu_acc_transform.o: ${DEPS_CPU_ACC_TRANSFORM}
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_transform.cpp ${INC_EIGEN} ${INC_DCCRG} ${INC_PROFILE}
+
+cpu_moments.o: ${DEPS_CPU_MOMENTS}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_moments.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_PROFILE}
 
 cpu_trans_map.o: ${DEPS_CPU_TRANS_MAP}
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_trans_map.cpp ${INC_EIGEN} ${INC_DCCRG} ${INC_PROFILE} ${INC_VECTORCLASS}

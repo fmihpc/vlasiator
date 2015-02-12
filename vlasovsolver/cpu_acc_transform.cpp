@@ -14,7 +14,10 @@ using namespace Eigen;
 
 /*Compute transform during on timestep, and update the bulk velocity of the cell*/
 
-Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation( SpatialCell* spatial_cell, const Real dt) {
+Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
+        SpatialCell* spatial_cell,
+        const int& popID,
+        const Real& dt) {
    /*total field*/
    const Real Bx = spatial_cell->parameters[CellParams::BGBXVOL]+spatial_cell->parameters[CellParams::PERBXVOL];
    const Real By = spatial_cell->parameters[CellParams::BGBYVOL]+spatial_cell->parameters[CellParams::PERBYVOL];
@@ -38,17 +41,8 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation( Spat
    const Real gyro_period = 2 * M_PI * physicalconstants::MASS_PROTON  / (fabs(physicalconstants::CHARGE) * B.norm());
    
    //Set maximum timestep limit for this cell, based on a  maximum allowed rotation angle
+    #warning This needs to be stored separately for each species
    spatial_cell->parameters[CellParams::MAXVDT]=gyro_period*(P::maxSlAccelerationRotation/360.0);
-   
-  //compute initial moments, based on actual distribution function
-   spatial_cell->parameters[CellParams::RHO_V  ] = 0.0;
-   spatial_cell->parameters[CellParams::RHOVX_V] = 0.0;
-   spatial_cell->parameters[CellParams::RHOVY_V] = 0.0;
-   spatial_cell->parameters[CellParams::RHOVZ_V] = 0.0;
-   
-   for (vmesh::LocalID block_i=0; block_i<spatial_cell->get_number_of_velocity_blocks(); ++block_i) {
-      cpu_calcVelocityFirstMoments(spatial_cell,block_i,CellParams::RHO_V,CellParams::RHOVX_V,CellParams::RHOVY_V,CellParams::RHOVZ_V);
-   }
    
    const Real rho=spatial_cell->parameters[CellParams::RHO_V];
    //scale rho for hall term, if user requests

@@ -7,10 +7,6 @@
 #include <cmath>
 #include <utility>
 
-/*TODO - replace with standard library c++11 functions*/
-//#include <boost/array.hpp>
-//include <boost/unordered_map.hpp>
-
 #include <Eigen/Geometry>
 #include <Eigen/Core>
 
@@ -46,14 +42,14 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
         const Real& dt) {
    double t1=MPI_Wtime();
 
-   vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = spatial_cell->get_velocity_mesh(popID);
+   vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh    = spatial_cell->get_velocity_mesh(popID);
    vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks(popID);
 
    // compute transform, forward in time and backward in time
    phiprof::start("compute-transform");
 
    //compute the transform performed in this acceleration
-   Transform<Real,3,Affine> fwd_transform= compute_acceleration_transformation(spatial_cell,dt);
+   Transform<Real,3,Affine> fwd_transform= compute_acceleration_transformation(spatial_cell,popID,dt);
    Transform<Real,3,Affine> bwd_transform= fwd_transform.inverse();
    phiprof::stop("compute-transform");
 

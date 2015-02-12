@@ -23,6 +23,14 @@ using namespace spatial_cell;
 #define i_pcolumnv(j, k, k_block, num_k_blocks) ( ((j) / ( VECL / WID)) * WID * ( num_k_blocks + 2) + (k) + ( k_block + 1 ) * WID )
 #define i_pcolumnv_b(planeVectorIndex, k, k_block, num_k_blocks) ( planeVectorIndex * WID * ( num_k_blocks + 2) + (k) + ( k_block + 1 ) * WID )
 
+/** Attempt to add the given velocity block to the given velocity mesh.
+ * If the block was added to the mesh, its data is set to zero values and 
+ * velocity block parameters are calculated.
+ * @param blockGID Global ID of the added velocity block.
+ * @param vmesh Velocity mesh where the block is added.
+ * @param blockContainer Velocity block data container.
+ * @return Local ID of the added block. If the block was not added, the 
+ * local ID of the null velocity block is returned instead.*/
 vmesh::LocalID addVelocityBlock(const vmesh::GlobalID& blockGID,
         vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
         vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer) {
@@ -82,14 +90,6 @@ inline void loadColumnBlockData(//SpatialCell* spatial_cell,
 
    // copy block data for all blocks
    for (vmesh::LocalID block_k=0; block_k<n_blocks; ++block_k) {
-      //const vmesh::LocalID blockLID = spatial_cell->get_velocity_block_local_id(blocks[block_k]);
-      //const vmesh::LocalID blockLID = vmesh.getLocalID(blocks[block_k]);
-      //Realf* __restrict__ data = spatial_cell->get_data(blockLID);
-#warning DEBUG remove me
-       /*if (blocks[block_k] == vmesh.invalidLocalID()) {
-           std::cerr << "ERROR invalid local id in " << __FILE__ << ":" << __LINE__ << std::endl;
-           exit(1);
-       }*/
       Realf* __restrict__ data = blockContainer.getData(vmesh.getLocalID(blocks[block_k]));
 
       //  Copy volume averages of this block, taking into account the dimension shifting
@@ -151,19 +151,13 @@ bool map_1d(spatial_cell::SpatialCell* spatial_cell,
    switch (dimension) {
     case 0:
       /* i and k coordinates have been swapped*/
-      /*set cell size in dimension direction*/
-      //dv = SpatialCell::get_velocity_grid_cell_size()[0]; 
-      //v_min = SpatialCell::get_velocity_grid_min_limits()[0];
-      //max_v_length = SpatialCell::get_velocity_grid_length()[0];      
-
+        
       /*swap intersection i and k coordinates*/
       is_temp=intersection_di;
       intersection_di=intersection_dk;
       intersection_dk=is_temp;
 
       /*set values in array that is used to convert block indices to id using a dot product*/
-      //block_indices_to_id[0]=SpatialCell::get_velocity_grid_length()[0] * SpatialCell::get_velocity_grid_length()[1];
-      //block_indices_to_id[1]=SpatialCell::get_velocity_grid_length()[0];
       block_indices_to_id[0] = vmesh.getGridLength(REFLEVEL)[0]*vmesh.getGridLength(REFLEVEL)[1];
       block_indices_to_id[1] = vmesh.getGridLength(REFLEVEL)[0];
       block_indices_to_id[2] = 1;
@@ -175,11 +169,7 @@ bool map_1d(spatial_cell::SpatialCell* spatial_cell,
       break;
     case 1:
       /* j and k coordinates have been swapped*/
-      /*set cell size in dimension direction*/
-      //dv=SpatialCell::get_velocity_grid_cell_size()[1];
-      //v_min = SpatialCell::get_velocity_grid_min_limits()[1];
-      //max_v_length = SpatialCell::get_velocity_grid_length()[1];
-
+        
       /*swap intersection j and k coordinates*/
       is_temp=intersection_dj;
       intersection_dj=intersection_dk;
@@ -187,8 +177,6 @@ bool map_1d(spatial_cell::SpatialCell* spatial_cell,
       
       /*set values in array that is used to convert block indices to id using a dot product*/
       block_indices_to_id[0]=1;
-      //block_indices_to_id[1]=SpatialCell::get_velocity_grid_length()[0] * SpatialCell::get_velocity_grid_length()[1];
-      //block_indices_to_id[2]=SpatialCell::get_velocity_grid_length()[0];
       block_indices_to_id[1] = vmesh.getGridLength(REFLEVEL)[0]*vmesh.getGridLength(REFLEVEL)[1];
       block_indices_to_id[2] = vmesh.getGridLength(REFLEVEL)[0];
       
@@ -199,14 +187,9 @@ bool map_1d(spatial_cell::SpatialCell* spatial_cell,
       break;
     case 2:
       /*set cell size in dimension direction*/
-      //dv=SpatialCell::get_velocity_grid_cell_size()[2];
-      //v_min = SpatialCell::get_velocity_grid_min_limits()[2];
-      //max_v_length = SpatialCell::get_velocity_grid_length()[2];
       
       /*set values in array that is used to convert block indices to id using a dot product*/
       block_indices_to_id[0]=1;
-      //block_indices_to_id[1]=SpatialCell::get_velocity_grid_length()[0];
-      //block_indices_to_id[2]=SpatialCell::get_velocity_grid_length()[0] * SpatialCell::get_velocity_grid_length()[1];
       block_indices_to_id[1] = vmesh.getGridLength(REFLEVEL)[0];
       block_indices_to_id[2] = vmesh.getGridLength(REFLEVEL)[0]*vmesh.getGridLength(REFLEVEL)[1];
       
@@ -272,7 +255,6 @@ bool map_1d(spatial_cell::SpatialCell* spatial_cell,
          vmesh::GlobalID* cblocks = blocks + columnBlockOffsets[columnIndex]; //column blocks
       
          // compute the common indices for this block column set
-         //velocity_block_indices_t block_indices_begin=SpatialCell::get_velocity_block_indices(cblocks[0]); //First block in column
          //First block in column
          velocity_block_indices_t block_indices_begin;
          uint8_t refLevel;
@@ -431,15 +413,6 @@ bool map_1d(spatial_cell::SpatialCell* spatial_cell,
                            // BEGIN NOTE
                            // The code inside this block is slower with the new AMR-related interface
                            previous_target_block = tblock;
-
-                           //not the same block as last time, lets create it if we
-                           //need to and fetch its data array pointer and store it in target_block_data.
-                           //if (spatial_cell->count(tblock) == 0) {
-                              // count is faster here since the same checks in 
-                              // add_velocity_block call are more expensive
-                              //spatial_cell->add_velocity_block(tblock);
-                              //phiprof_assert(spatial_cell->count(tblock) != 0);
-                           //}
 
                            // Get target block local ID. Attempt to create target
                            // block if it does not exist.

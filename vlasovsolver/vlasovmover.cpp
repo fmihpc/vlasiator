@@ -306,148 +306,120 @@ int getAccerelationSubcycles(SpatialCell* sc, Real dt){
 void calculateAcceleration(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    Real dt
-) {
-   typedef Parameters P;
-   const int popID = 0; // ID of the accelerated particle species
-   const vector<CellID> cells = mpiGrid.get_cells();
-//    if(dt > 0)  // FIXME this has to be deactivated to support regular projects but it breaks test_trans support most likely, with this on dt stays 0
-   phiprof::start("semilag-acc");
+) {    
+    typedef Parameters P;
+    const vector<CellID> cells = mpiGrid.get_cells();
+    
+    phiprof::start("semilag-acc");
+    
+    // Calculate first velocity moments, these are needed to 
+    // calculate the transforms used in the accelerations.
+    // Calculated moments are stored in the "_V" variables.
+    calculateMoments_V(mpiGrid,cells,false);
+    
+    // Accelerate all particle species
+    //for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+        const int popID=0;
+    
+        // Iterate through all local cells and collect cells to propagate.
+        // Ghost cells (spatial cells at the boundary of the simulation 
+        // volume) do not need to be propagated:
+        vector<CellID> propagatedCells;
+        for (size_t c=0; c<cells.size(); ++c) {
+            SpatialCell* SC = mpiGrid[cells[c]];
+            const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = SC->get_velocity_mesh(popID);
+            //disregard boundary cells
+            //do not integrate cells with no blocks (well, do not computes in practice)
+            if (SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY && vmesh.size() != 0) {
+                propagatedCells.push_back(cells[c]);
+            }
+        }
+        
+        // Compute global maximum for number of subcycles (collective operation).
+        #warning Needs to be fixed for multi-species
+        int maxSubcycles=0;
+        int globalMaxSubcycles;
+        for (size_t c=0; c<propagatedCells.size(); ++c) {
+            const CellID cellID = propagatedCells[c];
+            int subcycles = getAccerelationSubcycles(mpiGrid[cellID], dt);
+            mpiGrid[cellID]->parameters[CellParams::ACCSUBCYCLES] = subcycles;
+            maxSubcycles=maxSubcycles < subcycles ? subcycles:maxSubcycles;
+        }
+        MPI_Allreduce(&maxSubcycles, &globalMaxSubcycles, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+        
+        // substep global max times
+        for(uint step=0; step<globalMaxSubcycles; ++step) {
+            // prune list of cells to propagate to only contained those which are now subcycled
+            vector<CellID> temp;
+            for (size_t c=0; c<propagatedCells.size(); ++c) {
+                if(step<getAccerelationSubcycles(mpiGrid[propagatedCells[c]],dt)) {
+                    temp.push_back(propagatedCells[c]);
+                }
+            }
+            propagatedCells.swap(temp);
 
-   // Iterate through all local cells and collect cells to propagate.
-   // Ghost cells (spatial cells at the boundary of the simulation 
-   // volume) do not need to be propagated:
-   vector<CellID> propagatedCells;
-   for (size_t c=0; c<cells.size(); ++c) {
-      SpatialCell* SC = mpiGrid[cells[c]];
-      //disregard boundary cells
-      //do not integrate cells with no blocks  (well, do not computes in practice)
-      if (SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY &&
-          SC->get_number_of_velocity_blocks() != 0) {
-         propagatedCells.push_back(cells[c]);
-      }
-   }
+            // Semi-Lagrangian acceleration for those cells which are subcycled
+            #pragma omp parallel for schedule(dynamic,1)
+            for (size_t c=0; c<propagatedCells.size(); ++c) {
+                no_subnormals();
+                const CellID cellID = propagatedCells[c];
+                const Real maxVdt = mpiGrid[cellID]->parameters[CellParams::MAXVDT]; 
 
-   //Compute global maximum for number of subcycles (collective operation)
-   int maxSubcycles=0;
-   int globalMaxSubcycles;
-   for (size_t c=0; c<propagatedCells.size(); ++c) {
-      const CellID cellID = propagatedCells[c];
-      int subcycles = getAccerelationSubcycles(mpiGrid[cellID], dt);
-      mpiGrid[cellID]->parameters[CellParams::ACCSUBCYCLES] = subcycles;
-      maxSubcycles=maxSubcycles < subcycles ? subcycles:maxSubcycles;
-   }
-   MPI_Allreduce(&maxSubcycles, &globalMaxSubcycles, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
-
-   //substep global max times
-   for(uint step = 0;step < globalMaxSubcycles; step ++) {
-
-      //prune list of cells to propagate to only contained those which are now subcycled
-      vector<CellID> temp;
-      for (size_t c=0; c<propagatedCells.size(); ++c) {
-         if(step < getAccerelationSubcycles(mpiGrid[propagatedCells[c]], dt)) {
-            temp.push_back(propagatedCells[c]);
-         }
-      }
-      propagatedCells.swap(temp);
-
-      //Semilagrangian acceleration for those cells which are subcycled
-#pragma omp parallel for schedule(dynamic,1)
-      for (size_t c=0; c<propagatedCells.size(); ++c) {
-         no_subnormals();
-         const CellID cellID = propagatedCells[c];
-         const Real maxVdt = mpiGrid[cellID]->parameters[CellParams::MAXVDT]; 
-
-         //compute subcycle dt. The length is maVdt on all steps
-         //except the last one. This is to keep the neighboring
-         //spatial cells in sync, so that two neighboring cells with
-         //different number of subcycles have similar timesteps,
-         //except that one takes an additional short step. This keeps
-         //spatial block neighbors as much in sync as possible for
-         //adjust blocks.
-         Real subcycleDt;
-         if( (step + 1) * maxVdt > dt) {
-            subcycleDt = dt - step * maxVdt;
-         }
-         else{
-            subcycleDt = maxVdt;
-         }
-         //generate pseudo-random order which is always the same irrespectiive of parallelization, restarts, etc
-         char rngStateBuffer[256];
-         random_data rngDataBuffer;
-         // set seed, initialise generator and get value
-         memset(&(rngDataBuffer), 0, sizeof(rngDataBuffer));
-#ifdef _AIX
-         initstate_r(P::tstep + cellID, &(rngStateBuffer[0]), 256, NULL, &(rngDataBuffer));
-         int64_t rndInt;
-         random_r(&rndInt, &rngDataBuffer);
-#else
-         initstate_r(P::tstep + cellID, &(rngStateBuffer[0]), 256, &(rngDataBuffer));
-         int32_t rndInt;
-         random_r(&rngDataBuffer, &rndInt);
-#endif
+                //compute subcycle dt. The length is maVdt on all steps
+                //except the last one. This is to keep the neighboring
+                //spatial cells in sync, so that two neighboring cells with
+                //different number of subcycles have similar timesteps,
+                //except that one takes an additional short step. This keeps
+                //spatial block neighbors as much in sync as possible for
+                //adjust blocks.
+                Real subcycleDt;
+                if( (step + 1) * maxVdt > dt) {
+                    subcycleDt = dt - step * maxVdt;
+                } else {
+                    subcycleDt = maxVdt;
+                }
+                // generate pseudo-random order which is always the same irrespective of parallelization, restarts, etc
+                char rngStateBuffer[256];
+                random_data rngDataBuffer;
+                // set seed, initialise generator and get value
+                memset(&(rngDataBuffer), 0, sizeof(rngDataBuffer));
+                #ifdef _AIX
+                    initstate_r(P::tstep + cellID, &(rngStateBuffer[0]), 256, NULL, &(rngDataBuffer));
+                    int64_t rndInt;
+                    random_r(&rndInt, &rngDataBuffer);
+                #else
+                    initstate_r(P::tstep + cellID, &(rngStateBuffer[0]), 256, &(rngDataBuffer));
+                    int32_t rndInt;
+                    random_r(&rngDataBuffer, &rndInt);
+                #endif
          
-         uint map_order=rndInt%3;
-         phiprof::start("cell-semilag-acc");
-         cpu_accelerate_cell(mpiGrid[cellID],popID,map_order,subcycleDt);
-         phiprof::stop("cell-semilag-acc");
-      }
+                uint map_order=rndInt%3;
+                phiprof::start("cell-semilag-acc");
+                cpu_accelerate_cell(mpiGrid[cellID],popID,map_order,subcycleDt);
+                phiprof::stop("cell-semilag-acc");
+            } // for-loop over propagated cells
       
-      //global adjust after each subcycle to keep number of blocks managable. Even the ones not
-      //accelerating anyore participate. It is important to keep
-      //the spatial dimension to make sure that we do not loose
-      //stuff streaming in from other cells, perhaps not connected
-      //to the existing distribution function in the cell.
-      //- All cells update and communicate their lists of content blocks
-      //- Only cells which were accerelated on this step need to be adjusted (blocks removed or added).
-      //- Not done here on last step (done after loop)
-      if(step < (globalMaxSubcycles - 1))
-         adjustVelocityBlocks(mpiGrid, propagatedCells, false);
-   }
-   //final adjust for all cells, also fixing remote cells.
-   adjustVelocityBlocks(mpiGrid, cells, true);
-   phiprof::stop("semilag-acc");   
-   
-   phiprof::start("Compute moments");
-#pragma omp parallel for
-   for (size_t c=0; c<cells.size(); ++c) {
-      const CellID cellID = cells[c];
-      //compute moments after acceleration
-      mpiGrid[cellID]->parameters[CellParams::RHO_V  ] = 0.0;
-      mpiGrid[cellID]->parameters[CellParams::RHOVX_V] = 0.0;
-      mpiGrid[cellID]->parameters[CellParams::RHOVY_V] = 0.0;
-      mpiGrid[cellID]->parameters[CellParams::RHOVZ_V] = 0.0;
-      mpiGrid[cellID]->parameters[CellParams::P_11_V] = 0.0;
-      mpiGrid[cellID]->parameters[CellParams::P_22_V] = 0.0;
-      mpiGrid[cellID]->parameters[CellParams::P_33_V] = 0.0;
-      
-      for (vmesh::LocalID block_i=0; block_i<mpiGrid[cellID]->get_number_of_velocity_blocks(); ++block_i) {
-         cpu_calcVelocityFirstMoments(
-            mpiGrid[cellID],
-            block_i,
-            CellParams::RHO_V,
-            CellParams::RHOVX_V,
-            CellParams::RHOVY_V,
-            CellParams::RHOVZ_V
-                                      );   //set first moments after acceleration
-      }
+            //global adjust after each subcycle to keep number of blocks managable. Even the ones not
+            //accelerating anyore participate. It is important to keep
+            //the spatial dimension to make sure that we do not loose
+            //stuff streaming in from other cells, perhaps not connected
+            //to the existing distribution function in the cell.
+            //- All cells update and communicate their lists of content blocks
+            //- Only cells which were accerelated on this step need to be adjusted (blocks removed or added).
+            //- Not done here on last step (done after loop)
+            if(step < (globalMaxSubcycles - 1))
+                adjustVelocityBlocks(mpiGrid, propagatedCells, false);
+        }
 
-      // Second iteration needed as rho has to be already computed when computing pressure
-      for (vmesh::LocalID block_i=0; block_i<mpiGrid[cellID]->get_number_of_velocity_blocks(); ++block_i) {
-         cpu_calcVelocitySecondMoments(
-            mpiGrid[cellID],
-            block_i,
-            CellParams::RHO_V,
-            CellParams::RHOVX_V,
-            CellParams::RHOVY_V,
-            CellParams::RHOVZ_V,
-            CellParams::P_11_V,
-            CellParams::P_22_V,
-            CellParams::P_33_V);   //set second moments after acceleration
-      }
-   }
-   phiprof::stop("Compute moments");
+        //final adjust for all cells, also fixing remote cells.
+        adjustVelocityBlocks(mpiGrid, cells, true);
+    //} // for-loop over particle species
+        
+    phiprof::stop("semilag-acc");
+    
+    // Recalculate "_V" velocity moments
+    calculateMoments_V(mpiGrid,cells,true);
 }
-
 
 /*--------------------------------------------------
   Functions for computing moments
