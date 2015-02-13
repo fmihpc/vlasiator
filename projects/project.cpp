@@ -94,8 +94,9 @@ namespace projects {
       //let's get rid of blocks not fulfilling the criteria here to save memory.
       //cell->adjustSingleCellVelocityBlocks();
 
-      // Passing true for the doNotSkip argument as we want to calculate the moment no matter what when this function is called.
-      calculateCellMoments(cell, true);
+      // Passing true for the doNotSkip argument as we want to calculate 
+      // the moment no matter what when this function is called.
+      calculateCellMoments(cell,true,true);
    }
 
    vector<uint> Project::findBlocksToInitialize(SpatialCell* cell) {
