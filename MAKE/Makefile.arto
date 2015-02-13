@@ -2,10 +2,9 @@ CMP = mpic++
 LNK = mpic++
 
 LIBRARY_PREFIX = $(HOME)/libraries
-FLAGS = -Wno-literal-suffix
+FLAGS =
 
-
-CXXFLAGS = -I$(LIBRARY_PREFIX)/include -O3 -funroll-loops -std=c++0x -fopenmp -fabi-version=0 -mavx
+CXXFLAGS = -I$(LIBRARY_PREFIX)/include -O3 -funroll-loops -std=c++0x -fopenmp -fabi-version=0 -mavx -Wno-literal-suffix
 MATHFLAGS = -ffast-math
 LDFLAGS = -L$(LIBRARY_PREFIX)/lib
 LIB_MPI = -lgomp 

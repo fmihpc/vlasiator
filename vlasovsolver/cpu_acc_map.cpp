@@ -42,6 +42,19 @@ vmesh::LocalID addVelocityBlock(const vmesh::GlobalID& blockGID,
     // Insert velocity block data, this will set values to 0.
     const vmesh::LocalID newBlockLID = blockContainer.push_back();
 
+    #ifdef DEBUG_ACC
+        bool ok = true;
+        if (vmesh.size() != blockContainer.size()) ok = false;
+        if (vmesh.getLocalID(blockGID) != newBlockLID) ok = false;
+        if (ok == false) {
+            stringstream ss;
+            ss << "ERROR in acc: sizes " << vmesh.size() << ' ' << blockContainer.size() << endl;
+            ss << "\t local IDs " << vmesh.getLocalID(blockGID) << " vs " << newBlockLID << endl;
+            cerr << ss.str();
+            exit(1);
+        }
+    #endif
+    
     // Set block parameters:
     Real* parameters = blockContainer.getParameters(newBlockLID);
     vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::getBlockCoordinates(blockGID,parameters+BlockParams::VXCRD);
