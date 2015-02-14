@@ -335,6 +335,8 @@ bool _readBlockData(
    
    file.readArray("BLOCKCOORDINATES",coordAttribs,localBlockStartOffset,localBlocks,(char*)coordBuffer);
    file.readArray("BLOCKVARIABLE",avgAttribs,localBlockStartOffset,localBlocks,(char*)avgBuffer);
+
+   const int popID=0;
    
    uint64_t bufferBlock=0;
    for(uint i=0;i<localCells;i++){
@@ -354,7 +356,7 @@ bool _readBlockData(
             
             //todo, use faster set_value interface
             #warning DEPRECATED: This function call needs to be replaced with something else in AMR mesh
-            mpiGrid[cell]->set_value(vx_cell_center,vy_cell_center,vz_cell_center,avgBuffer[bufferBlock*avgVectorSize+cellIndex(ic,jc,kc)]);
+            mpiGrid[cell]->set_value(vx_cell_center,vy_cell_center,vz_cell_center,avgBuffer[bufferBlock*avgVectorSize+cellIndex(ic,jc,kc)],popID);
          }
          bufferBlock++; 
       }
@@ -424,6 +426,8 @@ bool _readBlockData(
   list<pair<string,string> > avgAttribs;
   fileReal *avgBuffer;
   bool success=true;
+
+   const int popID=0;
    
   avgAttribs.push_back(make_pair("name","avgs"));
   avgAttribs.push_back(make_pair("mesh","SpatialGrid"));
@@ -500,7 +504,7 @@ bool _readBlockData(
            creal vz_cell_center = blockCoordinates[2] + (kc+convert<Real>(0.5))*dvz_blockCell;
            //TODO: use faster set_value
            #warning DEPRECATED: This function call needs to be replaced with something else in AMR mesh
-           mpiGrid[cell]->set_value(vx_cell_center,vy_cell_center,vz_cell_center,avgBuffer[bufferBlock*avgVectorSize+cellIndex(ic,jc,kc)]);
+           mpiGrid[cell]->set_value(vx_cell_center,vy_cell_center,vz_cell_center,avgBuffer[bufferBlock*avgVectorSize+cellIndex(ic,jc,kc)],popID);
         }
         bufferBlock++; 
      }

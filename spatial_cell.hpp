@@ -151,7 +151,9 @@ namespace spatial_cell {
       static vmesh::GlobalID get_velocity_block(const Real vx,const Real vy,const Real vz,const uint8_t& refLevel=0);
       static vmesh::GlobalID get_velocity_block_child(const vmesh::GlobalID& blockGID,const uint8_t& refLevel,
                                                       const int& i_cell,const int& j_cell,const int& k_cell);
-      void get_velocity_block_children_local_ids(const vmesh::GlobalID& blockGID,std::vector<vmesh::LocalID>& childrenLIDs);
+      void get_velocity_block_children_local_ids(const vmesh::GlobalID& blockGID,
+                                                 std::vector<vmesh::LocalID>& childrenLIDs,
+                                                 const int& popID);
       static vmesh::GlobalID get_velocity_block_parent(const vmesh::GlobalID& blockGID);
       vmesh::GlobalID get_velocity_block_global_id(const vmesh::LocalID& blockLID,const int& popID=0) const;
       vmesh::LocalID get_velocity_block_local_id(const vmesh::GlobalID& blockGID,const int& popID=0) const;
@@ -178,44 +180,48 @@ namespace spatial_cell {
       static vmesh::GlobalID invalid_global_id();
       static vmesh::LocalID invalid_local_id();
 
-      size_t count(const vmesh::GlobalID& block) const;
+      size_t count(const vmesh::GlobalID& block,const int& popID=0) const;
 
       void add_values(const vmesh::GlobalID& targetGID,
-		      std::unordered_map<vmesh::GlobalID,Realf[(WID+2)*(WID+2)*(WID+2)]>& sourceData);
+		      std::unordered_map<vmesh::GlobalID,Realf[(WID+2)*(WID+2)*(WID+2)]>& sourceData,
+                      const int& popID);
 
       // Following functions adjust velocity blocks stored on the cell //
-      bool add_velocity_block(const vmesh::GlobalID& block);
-      void add_velocity_blocks(const std::vector<vmesh::GlobalID>& blocks);
-      bool add_velocity_block_octant(const vmesh::GlobalID& blockGID);
-      void adjustSingleCellVelocityBlocks();
-      void adjust_velocity_blocks(const std::vector<SpatialCell*>& spatial_neighbors, bool doDeleteEmptyBlocks=true);
-      void update_velocity_block_content_lists(void);
-      bool checkMesh();
-      void clear(void);
-      void coarsen_block(const vmesh::GlobalID& parent,const std::vector<vmesh::GlobalID>& children);
-      void coarsen_blocks(amr_ref_criteria::Base* evaluator);
+      bool add_velocity_block(const vmesh::GlobalID& block,const int& popID=0);
+      void add_velocity_blocks(const std::vector<vmesh::GlobalID>& blocks,const int& popID=0);
+      bool add_velocity_block_octant(const vmesh::GlobalID& blockGID,const int& popID=0);
+      void adjustSingleCellVelocityBlocks(const int& popID=0);
+      void adjust_velocity_blocks(const std::vector<SpatialCell*>& spatial_neighbors,
+                                  bool doDeleteEmptyBlocks=true,
+                                  const int& popID=0);
+      void update_velocity_block_content_lists(const int& popID=0);
+      bool checkMesh(const int& popID=0);
+      void clear(const int& popID=0);
+      void coarsen_block(const vmesh::GlobalID& parent,const std::vector<vmesh::GlobalID>& children,const int& popID=0);
+      void coarsen_blocks(amr_ref_criteria::Base* evaluator,const int& popID=0);
       uint64_t get_cell_memory_capacity();
       uint64_t get_cell_memory_size();
-      void merge_values();
+      void merge_values(const int& popID=0);
       void prepare_to_receive_blocks(void);
       bool shrink_to_fit();
-      size_t size(void) const;
-      void remove_velocity_block(const vmesh::GlobalID& block);
+      size_t size(const int& popID=0) const;
+      void remove_velocity_block(const vmesh::GlobalID& block,const int& popID=0);
       void swap(vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
                 vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer,const int& popID);
       vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& get_velocity_mesh(const size_t& popID);
       vmesh::VelocityBlockContainer<vmesh::LocalID>& get_velocity_blocks(const size_t& popID);
       vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& get_velocity_mesh_temporary();
       vmesh::VelocityBlockContainer<vmesh::LocalID>& get_velocity_blocks_temporary();
-      Real get_value(const Real vx, const Real vy, const Real vz) const;
-      void increment_value(const Real vx, const Real vy, const Real vz, const Realf value);
-      void increment_value(const vmesh::GlobalID& block,const unsigned int cell, const Real value);
+      Real get_value(const Real vx, const Real vy, const Real vz,const int& popID=0) const;
+      void increment_value(const Real vx, const Real vy, const Real vz, const Realf value,const int& popID=0);
+      void increment_value(const vmesh::GlobalID& block,const unsigned int cell, const Real value,const int& popID=0);
       static void setCommunicatedSpecies(const int& popID);
-      void set_value(const Real vx, const Real vy, const Real vz, const Realf value);
-      void set_value(const vmesh::GlobalID& block,const unsigned int cell, const Realf value);
-      void refine_block(const vmesh::GlobalID& block,std::map<vmesh::GlobalID,vmesh::LocalID>& insertedBlocks);
-      bool velocity_block_has_children(const vmesh::GlobalID& blockGID) const;
-      vmesh::GlobalID velocity_block_has_grandparent(const vmesh::GlobalID& blockGID) const;
+      void set_value(const Real vx, const Real vy, const Real vz, const Realf value,const int& popID=0);
+      void set_value(const vmesh::GlobalID& block,const unsigned int cell, const Realf value,const int& popID=0);
+      void refine_block(const vmesh::GlobalID& block,std::map<vmesh::GlobalID,vmesh::LocalID>& insertedBlocks,
+                        const int& popID=0);
+      bool velocity_block_has_children(const vmesh::GlobalID& blockGID,const int& popID=0) const;
+      vmesh::GlobalID velocity_block_has_grandparent(const vmesh::GlobalID& blockGID,const int& popID=0) const;
       
       // Following functions are related to MPI //
       boost::tuple<void*, int, MPI_Datatype> get_mpi_datatype(const CellID cellID,const int sender_rank,const int receiver_rank,
@@ -255,7 +261,7 @@ namespace spatial_cell {
     private:
       SpatialCell& operator=(const SpatialCell&);
       
-      bool compute_block_has_content(const vmesh::GlobalID& block) const;
+      bool compute_block_has_content(const vmesh::GlobalID& block,const int& popID=0) const;
       void merge_values_recursive(vmesh::GlobalID parentGID,vmesh::GlobalID blockGID,uint8_t refLevel,bool recursive,const Realf* data,
 				  std::set<vmesh::GlobalID>& blockRemovalList);
 
@@ -780,7 +786,10 @@ namespace spatial_cell {
       return vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidGlobalID();
    }
    
-   inline void SpatialCell::get_velocity_block_children_local_ids(const vmesh::GlobalID& blockGID,std::vector<vmesh::LocalID>& childrenLIDs) {
+   inline void SpatialCell::get_velocity_block_children_local_ids(
+         const vmesh::GlobalID& blockGID,
+         std::vector<vmesh::LocalID>& childrenLIDs,
+         const int& popID) {
       std::vector<vmesh::GlobalID> childrenGIDs;
       vmesh.getChildren(blockGID,childrenGIDs);
       childrenLIDs.resize(childrenGIDs.size());
@@ -1090,74 +1099,17 @@ namespace spatial_cell {
       return vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID();
    }
 
-   inline SpatialCell::SpatialCell() {
-      /*
-       Block list and cache always have room for all blocks
-       */
-      this->mpi_number_of_blocks=0;
-      this->sysBoundaryLayer=0; /*!< Default value, layer not yet initialized*/
-      for (unsigned int i=0; i<WID3; ++i) null_block_data[i] = 0.0;
-      
-      // reset spatial cell parameters
-      for (unsigned int i = 0; i < CellParams::N_SPATIAL_CELL_PARAMS; i++) {
-         this->parameters[i]=0.0;
-      }
-      
-      // reset spatial cell derivatives
-      for (unsigned int i = 0; i < fieldsolver::N_SPATIAL_CELL_DERIVATIVES; i++) {
-         this->derivatives[i]=0;
-      }
-      
-      // reset BVOL derivatives
-      for (unsigned int i = 0; i < bvolderivatives::N_BVOL_DERIVATIVES; i++) {
-         this->derivativesBVOL[i]=0;
-      }
-      //is transferred by default
-      this->mpiTransferEnabled=true;
-   }
-   
-   inline SpatialCell::SpatialCell(const SpatialCell& other):
-     initialized(other.initialized),
-     mpiTransferEnabled(other.mpiTransferEnabled),
-     mpi_number_of_blocks(other.mpi_number_of_blocks),
-     //mpi_velocity_block_list(other.mpi_velocity_block_list),
-     velocity_block_with_content_list(other.velocity_block_with_content_list),
-     velocity_block_with_no_content_list(other.velocity_block_with_no_content_list),
-     sysBoundaryFlag(other.sysBoundaryFlag),
-     sysBoundaryLayer(other.sysBoundaryLayer),
-     vmesh(other.vmesh), blockContainer(other.blockContainer) {
-      //       phiprof::initializeTimer("SpatialCell copy", "SpatialCell copy");
-      //       phiprof::start("SpatialCell copy");
-      // 
-      //copy parameters
-      for(unsigned int i=0;i< CellParams::N_SPATIAL_CELL_PARAMS;i++){
-         parameters[i]=other.parameters[i];
-      }
-      //copy derivatives
-      for(unsigned int i=0;i< fieldsolver::N_SPATIAL_CELL_DERIVATIVES;i++){
-         derivatives[i]=other.derivatives[i];
-      }
-      //copy BVOL derivatives
-      for(unsigned int i=0;i< bvolderivatives::N_BVOL_DERIVATIVES;i++){
-         derivativesBVOL[i]=other.derivativesBVOL[i];
-      }
-      
-      //set null block data
-      for (unsigned int i=0; i<WID3; ++i) null_block_data[i] = 0.0;
-      //         phiprof::stop("SpatialCell copy");
-     }
-
    /*!
     Returns the number of given velocity blocks that exist.
     */
-   inline size_t SpatialCell::count(const vmesh::GlobalID& block) const {
+   inline size_t SpatialCell::count(const vmesh::GlobalID& block,const int& popID) const {
       return vmesh.count(block);
    }
 
    /*!
     Returns the number of existing velocity blocks.
     */
-   inline size_t SpatialCell::size(void) const {
+   inline size_t SpatialCell::size(const int& popID) const {
       return vmesh.size();
    }
    
@@ -1168,7 +1120,8 @@ namespace spatial_cell {
     * 
     Creates the velocity block at given coordinates if it doesn't exist.
     */
-   inline void SpatialCell::set_value(const Real vx, const Real vy, const Real vz, const Realf value) {
+   inline void SpatialCell::set_value(const Real vx,const Real vy,const Real vz,
+                                      const Realf value,const int& popID) {
       const vmesh::GlobalID blockGID = get_velocity_block(vx, vy, vz);
       if (count(blockGID) == 0) {
          if (!this->add_velocity_block(blockGID)) {
@@ -1201,7 +1154,8 @@ namespace spatial_cell {
     \param cell  Cell index (0..WID3-1) of velocity-cell in block
     \param value Value that is set for velocity-cell
     */
-   inline void SpatialCell::set_value(const vmesh::GlobalID& blockGID,const unsigned int cell, const Realf value) {
+   inline void SpatialCell::set_value(const vmesh::GlobalID& blockGID,const unsigned int cell,
+                                      const Realf value,const int& popID) {
       if (count(blockGID) == 0) {
          if (!this->add_velocity_block(blockGID)) {
             std::cerr << "Couldn't add velocity block " << blockGID << std::endl;
@@ -1222,7 +1176,8 @@ namespace spatial_cell {
     * 
     Creates the velocity block at given coordinates if it doesn't exist.
     */
-   inline void SpatialCell::increment_value(const Real vx, const Real vy, const Real vz, const Realf value) {
+   inline void SpatialCell::increment_value(const Real vx,const Real vy,const Real vz,
+                                            const Realf value,const int& popID) {
       const vmesh::GlobalID blockGID = get_velocity_block(vx, vy, vz);
       if (count(blockGID) == 0) {
          if (!this->add_velocity_block(blockGID)) {
@@ -1246,7 +1201,9 @@ namespace spatial_cell {
     * 
     Creates the velocity block if it doesn't exist.
     */
-   inline void SpatialCell::increment_value(const vmesh::GlobalID& blockGID,const unsigned int cell, const Real value) {
+   inline void SpatialCell::increment_value(const vmesh::GlobalID& blockGID,
+                                            const unsigned int cell,
+                                            const Real value,const int& popID) {
       if (count(blockGID) == 0) {
          if (!this->add_velocity_block(blockGID)) {
             std::cerr << "Couldn't add velocity block " << blockGID << std::endl;
@@ -1283,7 +1240,7 @@ namespace spatial_cell {
     * 
     * Returns 0 if it doesn't exist.
     */
-   inline Real SpatialCell::get_value(const Real vx, const Real vy, const Real vz) const {
+   inline Real SpatialCell::get_value(const Real vx, const Real vy, const Real vz,const int& popID) const {
       const vmesh::GlobalID blockGID = get_velocity_block(vx, vy, vz);
       if (count(blockGID) == 0) {
          return 0.0;
@@ -1302,206 +1259,6 @@ namespace spatial_cell {
       const Real value = get_data(blockLID)[cell];
       return value;
    }
-   
-   /*! get mpi datatype for sending the cell data. */
-   inline boost::tuple<void*, int, MPI_Datatype> SpatialCell::get_mpi_datatype(
-      const CellID cellID/*cell_id*/,
-      const int sender_rank/*sender*/,
-      const int receiver_rank/*receiver*/,
-      const bool receiving,
-      const int neighborhood
-   ) {
-       std::vector<MPI_Aint> displacements;
-       std::vector<int> block_lengths;
-       vmesh::LocalID block_index = 0;
-      
-        /*create datatype for actual data if we are in the first two layers around a boundary, or if we send for the whole system*/
-        if (this->mpiTransferEnabled && (SpatialCell::mpiTransferAtSysBoundaries==false || this->sysBoundaryLayer ==1 || this->sysBoundaryLayer ==2 )) {
-         //add data to send/recv to displacement and block length lists
-         if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_LIST_STAGE1) != 0) {
-            //first copy values in case this is the send operation
-            this->mpi_number_of_blocks = blockContainer.size();
-
-            // send velocity block list size
-            displacements.push_back((uint8_t*) &(this->mpi_number_of_blocks) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(vmesh::LocalID));
-         }
-
-         if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_LIST_STAGE2) != 0) {
-            // STAGE1 should have been done, otherwise we have problems...
-            if (receiving) {
-               //mpi_number_of_blocks transferred earlier
-               vmesh.setNewSize(this->mpi_number_of_blocks);
-            } else {
-                //resize to correct size (it will avoid reallocation if it is big enough, I assume)
-                this->mpi_number_of_blocks = blockContainer.size();
-            }
-
-            // send velocity block list
-            displacements.push_back((uint8_t*) &(vmesh.getGrid()[0]) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(vmesh::GlobalID) * vmesh.size());
-         }
-
-         if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_WITH_CONTENT_STAGE1) !=0) {
-            //Communicate size of list so that buffers can be allocated on receiving side
-            if (!receiving) this->velocity_block_with_content_list_size = this->velocity_block_with_content_list.size();
-            displacements.push_back((uint8_t*) &(this->velocity_block_with_content_list_size) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(vmesh::LocalID));
-         }
-         if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_WITH_CONTENT_STAGE2) !=0) {
-            if (receiving) {
-               this->velocity_block_with_content_list.resize(this->velocity_block_with_content_list_size);
-            }
-            
-            //velocity_block_with_content_list_size should first be updated, before this can be done (STAGE1)
-            displacements.push_back((uint8_t*) &(this->velocity_block_with_content_list[0]) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(vmesh::GlobalID)*this->velocity_block_with_content_list_size);
-         }
-         
-         if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_DATA) !=0) {
-            displacements.push_back((uint8_t*) get_data() - (uint8_t*) this);
-            block_lengths.push_back(sizeof(Realf) * VELOCITY_BLOCK_LENGTH * blockContainer.size());
-         }
-
-         if ((SpatialCell::mpi_transfer_type & Transfer::NEIGHBOR_VEL_BLOCK_DATA) != 0) {
-            /*We are actually transfering the data of a
-            * neighbor. The values of neighbor_block_data
-            * and neighbor_number_of_blocks should be set in
-            * solver.*/               
-            displacements.push_back((uint8_t*) this->neighbor_block_data - (uint8_t*) this);               
-            block_lengths.push_back(sizeof(Realf) * VELOCITY_BLOCK_LENGTH* this->neighbor_number_of_blocks);
-         }
-         
-         // send  spatial cell parameters
-         if ((SpatialCell::mpi_transfer_type & Transfer::CELL_PARAMETERS)!=0){
-            displacements.push_back((uint8_t*) &(this->parameters[0]) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(Real) * CellParams::N_SPATIAL_CELL_PARAMS);
-         }
-         
-         // send  spatial cell dimensions
-         if ((SpatialCell::mpi_transfer_type & Transfer::CELL_DIMENSIONS)!=0){
-            displacements.push_back((uint8_t*) &(this->parameters[CellParams::DX]) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(Real) * 3);
-         }
-         
-         // send  BGBX BGBY BGBZ and all edge-averaged BGBs
-         if ((SpatialCell::mpi_transfer_type & Transfer::CELL_BGB)!=0){
-            displacements.push_back((uint8_t*) &(this->parameters[CellParams::BGBX]) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(Real) * 3);
-            displacements.push_back((uint8_t*) &(this->parameters[CellParams::BGBX_000_010]) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(Real) * 24);
-         }
-         
-         // send  BGBXVOL BGBYVOL BGBZVOL PERBXVOL PERBYVOL PERBZVOL
-         if ((SpatialCell::mpi_transfer_type & Transfer::CELL_BVOL)!=0){
-            displacements.push_back((uint8_t*) &(this->parameters[CellParams::BGBXVOL]) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(Real) * 6);
-         }
-         
-         // send  EX, EY EZ
-         if ((SpatialCell::mpi_transfer_type & Transfer::CELL_E)!=0){
-            displacements.push_back((uint8_t*) &(this->parameters[CellParams::EX]) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(Real) * 3);
-         }
-         
-         // send  EX_DT2, EY_DT2, EZ_DT2
-         if ((SpatialCell::mpi_transfer_type & Transfer::CELL_EDT2)!=0){
-            displacements.push_back((uint8_t*) &(this->parameters[CellParams::EX_DT2]) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(Real) * 3);
-         }
-         
-         // send  PERBX, PERBY, PERBZ
-         if ((SpatialCell::mpi_transfer_type & Transfer::CELL_PERB)!=0){
-            displacements.push_back((uint8_t*) &(this->parameters[CellParams::PERBX]) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(Real) * 3);
-         }
-         
-         // send  PERBX_DT2, PERBY_DT2, PERBZ_DT2
-         if ((SpatialCell::mpi_transfer_type & Transfer::CELL_PERBDT2)!=0){
-            displacements.push_back((uint8_t*) &(this->parameters[CellParams::PERBX_DT2]) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(Real) * 3);
-         }
-         
-         // send RHO, RHOVX, RHOVY, RHOVZ
-         if ((SpatialCell::mpi_transfer_type & Transfer::CELL_RHO_RHOV)!=0){
-            displacements.push_back((uint8_t*) &(this->parameters[CellParams::RHO]) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(Real) * 4);
-         }
-         
-         // send RHO_DT2, RHOVX_DT2, RHOVY_DT2, RHOVZ_DT2
-         if ((SpatialCell::mpi_transfer_type & Transfer::CELL_RHODT2_RHOVDT2)!=0){
-            displacements.push_back((uint8_t*) &(this->parameters[CellParams::RHO_DT2]) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(Real) * 4);
-         }
-         
-         // send  spatial cell derivatives
-         if ((SpatialCell::mpi_transfer_type & Transfer::CELL_DERIVATIVES)!=0){
-            displacements.push_back((uint8_t*) &(this->derivatives[0]) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(Real) * fieldsolver::N_SPATIAL_CELL_DERIVATIVES);
-         }
-         
-         // send  spatial cell BVOL derivatives
-         if ((SpatialCell::mpi_transfer_type & Transfer::CELL_BVOL_DERIVATIVES)!=0){
-            displacements.push_back((uint8_t*) &(this->derivativesBVOL[0]) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(Real) * bvolderivatives::N_BVOL_DERIVATIVES);
-         }
-         
-         if ((SpatialCell::mpi_transfer_type & Transfer::CELL_IOLOCALCELLID)!=0){
-            displacements.push_back((uint8_t*) &(this->ioLocalCellId) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(uint64_t));
-         }
-         
-         // send Hall term components
-         if ((SpatialCell::mpi_transfer_type & Transfer::CELL_HALL_TERM)!=0){
-            displacements.push_back((uint8_t*) &(this->parameters[CellParams::EXHALL_000_100]) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(Real) * 12);
-         }
-         
-         // send P tensor diagonal components
-         if ((SpatialCell::mpi_transfer_type & Transfer::CELL_P)!=0){
-            displacements.push_back((uint8_t*) &(this->parameters[CellParams::P_11]) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(Real) * 3);
-         }
-         
-         if ((SpatialCell::mpi_transfer_type & Transfer::CELL_PDT2)!=0){
-            displacements.push_back((uint8_t*) &(this->parameters[CellParams::P_11_DT2]) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(Real) * 3);
-         }
-         
-         // send  sysBoundaryFlag
-         if ((SpatialCell::mpi_transfer_type & Transfer::CELL_SYSBOUNDARYFLAG)!=0){
-            displacements.push_back((uint8_t*) &(this->sysBoundaryFlag) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(uint));
-            displacements.push_back((uint8_t*) &(this->sysBoundaryLayer) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(uint));
-         }
-         
-         if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_PARAMETERS) !=0) {
-            displacements.push_back((uint8_t*) get_block_parameters() - (uint8_t*) this);
-            block_lengths.push_back(sizeof(Real) * size() * BlockParams::N_VELOCITY_BLOCK_PARAMS);
-         }
-      }
-      
-      void* address = this;
-      int count;
-      MPI_Datatype datatype;
-      
-      if (displacements.size() > 0) {
-         count = 1;
-         MPI_Type_create_hindexed(
-            displacements.size(),
-            &block_lengths[0],
-            &displacements[0],
-            MPI_BYTE,
-            &datatype
-         );
-      } else {
-         count = 0;
-         datatype = MPI_BYTE;
-      }
-
-      return boost::make_tuple(address,count,datatype);
-   }
 
    /*!
     Returns true if given velocity block has enough of a distribution function.
@@ -1509,7 +1266,7 @@ namespace spatial_cell {
     sense in given block.
     Also returns false if given block doesn't exist or is an error block.
     */
-   inline bool SpatialCell::compute_block_has_content(const vmesh::GlobalID& blockGID) const {
+   inline bool SpatialCell::compute_block_has_content(const vmesh::GlobalID& blockGID,const int& popID) const {
       if (blockGID == invalid_global_id() || count(blockGID) == 0) return false;
       
       bool has_content = false;
@@ -1524,51 +1281,21 @@ namespace spatial_cell {
 
       return has_content;
    }
-   
-   /*!
-    Update the two lists containing blocks with content, and blocks without content.
-    */
-   inline void SpatialCell::update_velocity_block_content_lists(void) {
-      this->velocity_block_with_content_list.clear();
-      this->velocity_block_with_no_content_list.clear();
-      
-      for (vmesh::LocalID block_index=0; block_index<vmesh.size(); ++block_index) {
-         const vmesh::GlobalID globalID = vmesh.getGlobalID(block_index);
-         if (this->compute_block_has_content(globalID)){
-            this->velocity_block_with_content_list.push_back(globalID);
-         } else {
-            this->velocity_block_with_no_content_list.push_back(globalID);
-         }
-      }
-   }
 
-   inline bool SpatialCell::checkMesh() {
+   inline bool SpatialCell::checkMesh(const int& popID) {
       return vmesh.check();
    }
 
    /*!
     Removes all velocity blocks from this spatial cell and frees memory in the cell
     */
-   inline void SpatialCell::clear(void) {
+   inline void SpatialCell::clear(const int& popID) {
       vmesh.clear();
       blockContainer.clear();
 
       // use the swap trick to force c++ to release the memory held by the vectors & maps
       //std::vector<vmesh::GlobalID>().swap(this->mpi_velocity_block_list);
    }
-
-   /*!  Purges extra capacity from block vectors. It sets size to
-    num_blocks * block_allocation_factor  (if capacity greater than this), and also forces capacity to this new smaller value.
-    \return True on success
-    */
-   inline bool SpatialCell::shrink_to_fit() {
-      const size_t amount = 2 + blockContainer.size() * blockContainer.getBlockAllocationFactor();
-
-      // Allow capacity to be a bit large than needed by number of blocks, shrink otherwise
-      if (blockContainer.capacity() > amount * VELOCITY_BLOCK_LENGTH) return blockContainer.recapacitate(amount);
-      return true;
-   }
-
 
    /*!
     Return the memory consumption in bytes as reported using the size()
@@ -1611,15 +1338,6 @@ namespace spatial_cell {
       capacity += bvolderivatives::N_BVOL_DERIVATIVES * sizeof(Real);
       return capacity;
    }
-
-   inline void SpatialCell::adjustSingleCellVelocityBlocks() {
-      //neighbor_ptrs is empty as we do not have any consistent
-      //data in neighbours yet, adjustments done only based on velocity
-      //space. TODO: should this delete blocks or not? Now not
-      std::vector<SpatialCell*> neighbor_ptrs;
-      this->update_velocity_block_content_lists();
-      this->adjust_velocity_blocks(neighbor_ptrs, false);
-   }
       
    /*!
     Adds an empty velocity block into this spatial cell.
@@ -1627,7 +1345,7 @@ namespace spatial_cell {
     Returns false if given block is invalid or would be outside
     of the velocity grid.
     */
-   inline bool SpatialCell::add_velocity_block(const vmesh::GlobalID& block) {
+   inline bool SpatialCell::add_velocity_block(const vmesh::GlobalID& block,const int& popID) {
       // Block insert will fail, if the block already exists, or if 
       // there are too many blocks in the spatial cell
       bool success = true;
@@ -1654,7 +1372,8 @@ namespace spatial_cell {
       return success;
    }
    
-   inline void SpatialCell::add_velocity_blocks(const std::vector<vmesh::GlobalID>& blocks) {
+   inline void SpatialCell::add_velocity_blocks(const std::vector<vmesh::GlobalID>& blocks,
+                                                const int& popID) {
       // Add blocks to mesh
       const uint8_t adds = vmesh.push_back(blocks);
       if (adds == 0) {
@@ -1689,7 +1408,8 @@ namespace spatial_cell {
       }
    }
 
-   inline bool SpatialCell::add_velocity_block_octant(const vmesh::GlobalID& blockGID) {
+   inline bool SpatialCell::add_velocity_block_octant(const vmesh::GlobalID& blockGID,
+                                                      const int& popID) {
       // Return immediately if the block already exists or if an 
       // invalid block is attempted to be created:
       const vmesh::LocalID invalid = vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID();
@@ -1754,7 +1474,7 @@ namespace spatial_cell {
     Removes given block from the velocity grid.
     Does nothing if given block doesn't exist.
     */
-   inline void SpatialCell::remove_velocity_block(const vmesh::GlobalID& block) {
+   inline void SpatialCell::remove_velocity_block(const vmesh::GlobalID& block,const int& popID) {
       if (block == invalid_global_id()) {
          //std::cerr << "not removing, block " << block << " is invalid" << std::endl;
          return;
@@ -1788,30 +1508,6 @@ namespace spatial_cell {
       this->blockContainer.swap(blockContainer);
    }
 
-   
-
-   /*!       
-    Prepares this spatial cell to receive the velocity grid over MPI.
-    * 
-    At this stage we have received a new blocklist over MPI into
-    mpi_velocity_block_list, but the rest of the cell structures
-    have not been adapted to this new list. Here we re-initialize
-    the cell with empty blocks based on the new list
-    */
-   inline void SpatialCell::prepare_to_receive_blocks(void) {
-      vmesh.setGrid();
-      blockContainer.setSize(vmesh.size());
-
-      // Set velocity block parameters:
-      for (vmesh::LocalID blockLID=0; blockLID<size(); ++blockLID) {
-         const vmesh::GlobalID blockGID = get_velocity_block_global_id(blockLID);
-         get_block_parameters(blockLID)[BlockParams::VXCRD] = get_velocity_block_vx_min(blockGID);
-         get_block_parameters(blockLID)[BlockParams::VYCRD] = get_velocity_block_vy_min(blockGID);
-         get_block_parameters(blockLID)[BlockParams::VZCRD] = get_velocity_block_vz_min(blockGID);
-         vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::getCellSize(blockGID,&(get_block_parameters(blockLID)[BlockParams::DVX]));
-      }
-   }
-
    /*!
     Sets the type of data to transfer by mpi_datatype.
     */
@@ -1834,11 +1530,11 @@ namespace spatial_cell {
       this->mpiTransferEnabled=transferEnabled;
    }
    
-   inline bool SpatialCell::velocity_block_has_children(const vmesh::GlobalID& blockGID) const {
+   inline bool SpatialCell::velocity_block_has_children(const vmesh::GlobalID& blockGID,const int& popID) const {
       return vmesh.hasChildren(blockGID);
    }
 
-   inline vmesh::GlobalID SpatialCell::velocity_block_has_grandparent(const vmesh::GlobalID& blockGID) const {
+   inline vmesh::GlobalID SpatialCell::velocity_block_has_grandparent(const vmesh::GlobalID& blockGID,const int& popID) const {
       return vmesh.hasGrandParent(blockGID);
    }
    
