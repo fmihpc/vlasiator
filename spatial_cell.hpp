@@ -115,7 +115,17 @@ namespace spatial_cell {
                                                                                * Indices start from 0 and the first value is the index in x direction.
                                                                                * Note: these are the (i,j,k) indices of the block.
                                                                                * Valid values are ([0,vx_length[,[0,vy_length[,[0,vz_length[).*/
-   
+
+   /** Wrapper for variables needed for each particle species.*/
+   struct Population {
+      vmesh::LocalID N_blocks;                                       /**< Number of velocity blocks, used when receiving velocity 
+                                                                      * mesh from remote neighbors using MPI.*/
+      vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID> vmesh;     /**< Velocity mesh. Contains all velocity blocks that exist 
+                                                                      * in this spatial cell. Cells are identified by their unique 
+                                                                      * global IDs.*/
+      vmesh::VelocityBlockContainer<vmesh::LocalID> blockContainer;  /**< Velocity block data.*/
+    };
+
    class SpatialCell {
    public:
       SpatialCell();
