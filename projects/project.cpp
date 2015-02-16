@@ -250,7 +250,7 @@ namespace projects {
                   this->calcPhaseSpaceDensity(
                      x, y, z, dx, dy, dz,
                      vxCell,vyCell,vzCell,
-                     dvxCell,dvyCell,dvzCell);
+                     dvxCell,dvyCell,dvzCell,popID);
 
                   if (average != 0.0){
                      //FIXME!!! set_value is slow as we again have to convert v -> index
@@ -325,7 +325,7 @@ namespace projects {
                        calcPhaseSpaceDensity(
                                              x, y, z, dx, dy, dz,
                                              vxCell,vyCell,vzCell,
-                                             dvxCell,dvyCell,dvzCell);
+                                             dvxCell,dvyCell,dvzCell,popID);
                      cell->get_data(popID)[blockLID*SIZE_VELBLOCK + kc*WID2+jc*WID+ic] = average;
                   }
                }
@@ -347,7 +347,8 @@ namespace projects {
       creal& x, creal& y, creal& z,
       creal& dx, creal& dy, creal& dz,
       creal& vx, creal& vy, creal& vz,
-      creal& dvx, creal& dvy, creal& dvz) {
+      creal& dvx, creal& dvy, creal& dvz,
+      const int& popID) {
       cerr << "ERROR: Project::calcPhaseSpaceDensity called instead of derived class function!" << endl;
       return -1.0;
    }

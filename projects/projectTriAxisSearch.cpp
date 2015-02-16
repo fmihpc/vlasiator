@@ -37,7 +37,7 @@ namespace projects {
                                       dy,
                                       dz,
                                       it->at(0) + counter*dvxBlock, it->at(1), it->at(2),
-                                      dvxCell, dvyCell, dvzCell
+                                      dvxCell, dvyCell, dvzCell, popID
                                      )
                ) {
                search = false;
@@ -61,7 +61,7 @@ namespace projects {
                                      dy,
                                      dz,
                                      it->at(0), it->at(1) + counter*dvyBlock, it->at(2),
-                                     dvxCell, dvyCell, dvzCell
+                                     dvxCell, dvyCell, dvzCell, popID
                                     )
                ||
                counter > P::vxblocks_ini
@@ -87,7 +87,7 @@ namespace projects {
                                      dy,
                                      dz,
                                      it->at(0), it->at(1), it->at(2) + counter*dvzBlock,
-                                     dvxCell, dvyCell, dvzCell
+                                     dvxCell, dvyCell, dvzCell, popID
                                     )
                ||
                counter > P::vxblocks_ini
