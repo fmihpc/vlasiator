@@ -21,7 +21,8 @@ FIELDSOLVER ?= londrillo_delzanna
 # CXXFLAGS += -DFS_1ST_ORDER_TIME
 
 #also use papi to report memory consumption?
-CXXFLAGS += -DPAPI_MEM
+PAPI_FLAG ?= -DPAPI_MEM
+CXXFLAGS +=${PAPI_FLAG}
 
 #Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
 #Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
