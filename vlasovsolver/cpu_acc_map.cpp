@@ -141,11 +141,6 @@ bool map_1d(vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
             vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer,
             Realv intersection, Realv intersection_di, Realv intersection_dj,Realv intersection_dk,
             uint dimension) {
-/*
-bool map_1d(spatial_cell::SpatialCell* spatial_cell,
-            Realv intersection, Realv intersection_di, Realv intersection_dj,Realv intersection_dk,
-            uint dimension ) {
-*/
    Realv dv,v_min;
    Realv is_temp;
    uint max_v_length;
@@ -199,8 +194,6 @@ bool map_1d(spatial_cell::SpatialCell* spatial_cell,
       cell_indices_to_id[2]=WID;
       break;
     case 2:
-      /*set cell size in dimension direction*/
-      
       /*set values in array that is used to convert block indices to id using a dot product*/
       block_indices_to_id[0]=1;
       block_indices_to_id[1] = vmesh.getGridLength(REFLEVEL)[0];

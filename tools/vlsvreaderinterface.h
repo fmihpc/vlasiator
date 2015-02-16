@@ -30,14 +30,14 @@ namespace newVlsv {
       bool getCellIds( std::vector<uint64_t> & cellIds );
       //Reads in a variable:
       template <typename T, size_t N>
-      bool getVariable( const std::string & variableName, const uint64_t & cellId, std::array<T, N> & variable );
-      bool getBlockIds( const uint64_t & cellId, std::vector<uint64_t> & blockIds );
+      bool getVariable(const std::string & variableName, const uint64_t & cellId, std::array<T, N> & variable );
+      bool getBlockIds(const uint64_t & cellId, std::vector<uint64_t> & blockIds,const std::string& popName="avgs");
       bool setCellIds();
       inline void clearCellIds() {
          cellIdLocations.clear();
          cellIdsSet = false;
       }
-      bool setCellsWithBlocks();
+      bool setCellsWithBlocks(const std::string& popName="avgs");
       inline void clearCellsWithBlocks() {
          cellsWithBlocksLocations.clear();
          cellsWithBlocksSet = false;

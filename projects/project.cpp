@@ -1,8 +1,11 @@
 #include "project.h"
 #include <cstdlib>
+#include "../common.h"
 #include "../parameters.h"
 #include "../readparameters.h"
 #include "../vlasovmover.h"
+#include "../particle_species.h"
+#include "../logger.h"
 
 #include "Alfven/Alfven.h"
 #include "Diffusion/Diffusion.h"
@@ -30,11 +33,15 @@
 
 using namespace std;
 
+extern Logger logFile;
+
 char projects::Project::rngStateBuffer[256];
 random_data projects::Project::rngDataBuffer;
 
 namespace projects {
-   Project::Project() { }
+   Project::Project() { 
+      baseClassInitialized = false;
+   }
    
    Project::~Project() { }
    
@@ -63,17 +70,85 @@ namespace projects {
       projects::verificationLarmor::addParameters();
       projects::Shocktest::addParameters();
       RP::add("Project_common.seed", "Seed for the RNG", 42);
+      
+      // Add parameters needed to create particle populations
+      RP::addComposing("ParticlePopulation.name","Name of the simulated particle population (string)");
+      RP::addComposing("ParticlePopulation.charge","Particle charge, in units of elementary charges (int)");
+      RP::addComposing("ParticlePopulation.mass_units","Units in which particle mass is given, either 'PROTON' or 'ELECTRON' (string)");
+      RP::addComposing("ParticlePopulation.mass","Particle mass in given units (float)");
+      RP::addComposing("ParticlePopulation.sparse_min_value","Minimum value of distribution function in any cell of a velocity block for the block to be considered to have content");
    }
    
    void Project::getParameters() {
       typedef Readparameters RP;
       RP::get("Project_common.seed", this->seed);
+      RP::get("ParticlePopulation.name",popNames);
+      RP::get("ParticlePopulation.charge",popCharges);
+      RP::get("ParticlePopulation.mass_units",popMassUnits);
+      RP::get("ParticlePopulation.mass",popMasses);
+      RP::get("ParticlePopulation.sparse_min_value",popSparseMinValue);
+   }
+
+   bool Project::initialize() {
+      // Basic error checking
+      bool success = true;
+      if (popNames.size() != popCharges.size()) success = false;
+      if (popNames.size() != popMassUnits.size()) success = false;
+      if (popNames.size() != popMasses.size()) success = false;
+      if (popNames.size() != popSparseMinValue.size()) success = false;
+      if (success == false) {
+         cerr << "ERROR in configuration file particle population definitions!" << endl;
+         cerr << "\t vector sizes are: " << popNames.size() << ' ' << popMassUnits.size();
+         cerr << ' ' << popMasses.size() << ' ' << popSparseMinValue.size() << endl;
+         return success;
+      }
+      
+      // If particle population(s) have not been defined, add protons as a default population
+      ObjectWrapper& owrapper = getObjectWrapper();
+      if (popNames.size() == 0) {
+         species::Species population;
+         population.name   = "proton";
+         population.charge = physicalconstants::CHARGE;
+         population.mass   = physicalconstants::MASS_PROTON;
+         population.sparseMinValue = Parameters::sparseMinValue;
+         owrapper.particleSpecies.push_back(population);
+         printPopulations();
+         baseClassInitialized = success;
+         return success;
+      }
+      
+      // Parse populations from configuration file parameters:
+      for (size_t p=0; p<popNames.size(); ++p) {       
+         species::Species population;
+         population.name = popNames[p];
+         population.charge = popCharges[p]*physicalconstants::CHARGE;
+         double massUnits = 0;
+         if (popMassUnits[p] == "PROTON") massUnits = physicalconstants::MASS_PROTON;
+         else if (popMassUnits[p] == "ELECTRON") massUnits = physicalconstants::MASS_ELECTRON;
+         else success = false;
+         population.mass = massUnits*popMasses[p];
+         population.sparseMinValue = popSparseMinValue[p];
+         
+         if (success == false) {
+            cerr << "ERROR in population '" << popNames[p] << "' parameters" << endl;
+         }
+         
+         owrapper.particleSpecies.push_back(population);
+      }
+
+      if (success == false) {
+         cerr << "ERROR in configuration file particle population definitions!" << endl;
+      } else {
+         printPopulations();
+      }
+
+      baseClassInitialized = success;
+      return success;
    }
    
-   bool Project::initialize() {
-      cerr << "ERROR: Project::initialize called instead of derived class function!" << endl;
-      return false;
-   }
+   /** Check if base class has been initialized.
+    * @return If true, base class was successfully initialized.*/
+   bool Project::initialized() {return baseClassInitialized;}
 
    /*! Base class sets zero background field */
    void Project::setCellBackgroundField(SpatialCell* cell) {
@@ -85,11 +160,15 @@ namespace projects {
    void Project::setCell(SpatialCell* cell) {
       // Set up cell parameters:
       this->calcCellParameters(&((*cell).parameters[0]), 0.0);
-      
+
       cell->parameters[CellParams::RHOLOSSADJUST] = 0.0;
       cell->parameters[CellParams::RHOLOSSVELBOUNDARY] = 0.0;
 
-      this->setVelocitySpace(cell);
+      for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
+         this->setVelocitySpace(p,cell);
+         //cell->adjustSingleCellVelocityBlocks();
+         //cell->printMeshSizes();
+      }
 
       //let's get rid of blocks not fulfilling the criteria here to save memory.
       //cell->adjustSingleCellVelocityBlocks();
@@ -99,8 +178,8 @@ namespace projects {
       calculateCellMoments(cell,true,true);
    }
 
-   vector<uint> Project::findBlocksToInitialize(SpatialCell* cell) {
-      vector<uint> blocksToInitialize;
+   vector<vmesh::GlobalID> Project::findBlocksToInitialize(SpatialCell* cell,const int& popID) {
+      vector<vmesh::GlobalID> blocksToInitialize;
 
       for (uint kv=0; kv<P::vzblocks_ini; ++kv) 
          for (uint jv=0; jv<P::vyblocks_ini; ++jv)
@@ -111,17 +190,33 @@ namespace projects {
 
                //FIXME, add_velocity_blocks should  not be needed as set_value handles it!!
                //FIXME,  We should get_velocity_block based on indices, not v
-               cell->add_velocity_block(cell->get_velocity_block(vx, vy, vz));
+               cell->add_velocity_block(cell->get_velocity_block(vx, vy, vz),popID);
                blocksToInitialize.push_back(cell->get_velocity_block(vx, vy, vz));
       }
 
       return blocksToInitialize;
    }
    
-   void Project::setVelocitySpace(SpatialCell* cell) {
-      const size_t popID = 0;
-      vector<uint> blocksToInitialize = this->findBlocksToInitialize(cell);
-      Real* parameters = cell->get_block_parameters();
+   /** Write simulated particle populations to logfile.*/
+   void Project::printPopulations() {
+      logFile << "(PROJECT): Loaded particle populations are:" << endl;
+      
+      for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
+         logFile << "Population #" << p << endl;
+         logFile << "\t name             : '" << getObjectWrapper().particleSpecies[p].name << "'" << endl;
+         logFile << "\t charge           : '" << getObjectWrapper().particleSpecies[p].charge << "'" << endl;
+         logFile << "\t mass             : '" << getObjectWrapper().particleSpecies[p].mass << "'" << endl;
+         logFile << "\t sparse threshold : " << getObjectWrapper().particleSpecies[p].sparseMinValue << "'" << endl;
+         logFile << endl;
+      }
+      logFile << write;
+   }
+   
+   void Project::setVelocitySpace(const int& popID,SpatialCell* cell) {
+      //cell->setActivePopulation(popID);
+
+      vector<vmesh::GlobalID> blocksToInitialize = this->findBlocksToInitialize(cell,popID);
+      Real* parameters = cell->get_block_parameters(0,popID);
 
       creal x = cell->parameters[CellParams::XCRD];
       creal y = cell->parameters[CellParams::YCRD];
@@ -130,9 +225,12 @@ namespace projects {
       creal dy = cell->parameters[CellParams::DY];
       creal dz = cell->parameters[CellParams::DZ];
       
+      vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = cell->get_velocity_mesh(popID);
+      Realf* data = cell->get_data(0,popID);
+
       for (uint i=0; i<blocksToInitialize.size(); ++i) {
          const vmesh::GlobalID blockGID = blocksToInitialize.at(i);
-         const vmesh::LocalID blockLID = cell->get_velocity_block_local_id(blockGID);
+         const vmesh::LocalID blockLID = vmesh.getLocalID(blockGID);
          creal vxBlock = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD];
          creal vyBlock = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD];
          creal vzBlock = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD];
@@ -160,7 +258,7 @@ namespace projects {
                      creal vxCellCenter = vxBlock + (ic+convert<Real>(0.5))*dvxCell;
                      creal vyCellCenter = vyBlock + (jc+convert<Real>(0.5))*dvyCell;
                      creal vzCellCenter = vzBlock + (kc+convert<Real>(0.5))*dvzCell;
-                     cell->set_value(vxCellCenter,vyCellCenter,vzCellCenter,average);
+                     data[blockLID*SIZE_VELBLOCK+cellIndex(ic,jc,kc)] = average;
                   }
                }
       }
@@ -180,15 +278,15 @@ namespace projects {
          // Loop over blocks and add blocks to be refined to vector refineList
          vector<vmesh::GlobalID> refineList;
          const vmesh::LocalID startIndex = 0;
-         const vmesh::LocalID endIndex   = cell->get_number_of_velocity_blocks();
+         const vmesh::LocalID endIndex   = cell->get_number_of_velocity_blocks(popID);
          for (vmesh::LocalID blockLID=startIndex; blockLID<endIndex; ++blockLID) {
             vector<vmesh::GlobalID> nbrs;
             int32_t refLevelDifference;
-            const vmesh::GlobalID blockGID = cell->get_velocity_block_global_id(blockLID);
+            const vmesh::GlobalID blockGID = vmesh.getGlobalID(blockLID);
 
             // Fetch block data and nearest neighbors
             Realf array[(WID+2)*(WID+2)*(WID+2)];
-            cell->fetch_data<1>(blockGID,cell->get_velocity_mesh(popID),cell->get_data(),array);
+            cell->fetch_data<1>(blockGID,vmesh,cell->get_data(0,popID),array);
 
             // If block should be refined, add it to refine list
             if (refCriterion->evaluate(array) > Parameters::amrRefineLimit) {
@@ -201,8 +299,7 @@ namespace projects {
          // refinement, are added to map insertedBlocks
          map<vmesh::GlobalID,vmesh::LocalID> insertedBlocks;
          for (size_t b=0; b<refineList.size(); ++b) {
-            cell->refine_block(refineList[b],insertedBlocks);
-
+            cell->refine_block(refineList[b],insertedBlocks,popID);
          }
 
          // Loop over blocks in map insertedBlocks and recalculate 
@@ -210,7 +307,7 @@ namespace projects {
          for (map<vmesh::GlobalID,vmesh::LocalID>::const_iterator it=insertedBlocks.begin(); it!=insertedBlocks.end(); ++it) {
             const vmesh::GlobalID blockGID = it->first;
             const vmesh::LocalID blockLID = it->second;
-            parameters = cell->get_block_parameters();
+            parameters = cell->get_block_parameters(popID);
             creal vxBlock = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD];
             creal vyBlock = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD];
             creal vzBlock = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD];
@@ -229,7 +326,7 @@ namespace projects {
                                              x, y, z, dx, dy, dz,
                                              vxCell,vyCell,vzCell,
                                              dvxCell,dvyCell,dvzCell);
-                     cell->get_data(blockLID)[kc*WID2+jc*WID+ic] = average;
+                     cell->get_data(popID)[blockLID*SIZE_VELBLOCK + kc*WID2+jc*WID+ic] = average;
                   }
                }
             }

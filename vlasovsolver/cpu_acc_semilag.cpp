@@ -37,9 +37,9 @@ using namespace Eigen;
  * @param dt Time step.*/
 
 void cpu_accelerate_cell(SpatialCell* spatial_cell,
-        const int popID,     
-        const uint map_order,
-        const Real& dt) {
+                         const int popID,     
+                         const uint map_order,
+                         const Real& dt) {
    double t1=MPI_Wtime();
 
    vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh    = spatial_cell->get_velocity_mesh(popID);

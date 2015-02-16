@@ -102,7 +102,9 @@ namespace SBC {
    ) {
       bool success;
       
-      success = setCellsFromTemplate(mpiGrid);
+      for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         if (setCellsFromTemplate(mpiGrid,popID) == false) success = false;
+      }
       
       return true;
    }
@@ -200,15 +202,16 @@ namespace SBC {
    
    void SetByUser::vlasovBoundaryCondition(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID
+      const CellID& cellID,
+      const int& popID
    ) {
       // No need to do anything in this function, as the propagators do not touch the distribution function   
    }
    
-   bool SetByUser::setCellsFromTemplate(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
-      vector<uint64_t> cells = mpiGrid.get_cells();
-#pragma omp parallel for
-      for (uint i=0; i<cells.size(); i++) {
+   bool SetByUser::setCellsFromTemplate(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const int& popID) {
+      vector<CellID> cells = mpiGrid.get_cells();
+      #pragma omp parallel for
+      for (size_t i=0; i<cells.size(); i++) {
          SpatialCell* cell = mpiGrid[cells[i]];
          if(cell->sysBoundaryFlag != this->getIndex()) continue;
          
@@ -224,14 +227,16 @@ namespace SBC {
          
          for(uint i=0; i<6; i++) {
             if(facesToProcess[i] && isThisCellOnAFace[i]) {
-               cell->parameters[CellParams::PERBX] = templateCells[i].parameters[CellParams::PERBX];
-               cell->parameters[CellParams::PERBY] = templateCells[i].parameters[CellParams::PERBY];
-               cell->parameters[CellParams::PERBZ] = templateCells[i].parameters[CellParams::PERBZ];
+               if (popID == 0) {
+                  cell->parameters[CellParams::PERBX] = templateCells[i].parameters[CellParams::PERBX];
+                  cell->parameters[CellParams::PERBY] = templateCells[i].parameters[CellParams::PERBY];
+                  cell->parameters[CellParams::PERBZ] = templateCells[i].parameters[CellParams::PERBZ];
                
-               cell->parameters[CellParams::RHOLOSSADJUST] = 0.0;
-               cell->parameters[CellParams::RHOLOSSVELBOUNDARY] = 0.0;
-               
-               copyCellData(&templateCells[i], cell,true);
+                  cell->parameters[CellParams::RHOLOSSADJUST] = 0.0;
+                  cell->parameters[CellParams::RHOLOSSVELBOUNDARY] = 0.0;
+               }
+
+               copyCellData(&templateCells[i], cell,true,popID);
                break; // This effectively sets the precedence of faces through the order of faces.
             }
          }

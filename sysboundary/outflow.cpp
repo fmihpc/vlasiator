@@ -109,7 +109,7 @@ namespace SBC {
       Project &project
    ) {
       vector<uint64_t> cells = mpiGrid.get_cells();
-#pragma omp parallel for
+      #pragma omp parallel for
       for (uint i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
          if(cell->sysBoundaryFlag != this->getIndex()) continue;
@@ -368,12 +368,18 @@ namespace SBC {
       this->setCellBVOLDerivativesToZero(mpiGrid, cellID, component);
    }
    
+   /**
+    * NOTE that this is called once for each particle species!
+    * @param mpiGrid
+    * @param cellID
+    */
    void Outflow::vlasovBoundaryCondition(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID
+      const CellID& cellID,
+      const int& popID
    ) {
 //      phiprof::start("vlasovBoundaryCondition (Outflow)");
-      vlasovBoundaryCopyFromTheClosestNbr(mpiGrid, cellID);
+      vlasovBoundaryCopyFromTheClosestNbr(mpiGrid,cellID,popID);
 //      phiprof::stop("vlasovBoundaryCondition (Outflow)");
    }
    

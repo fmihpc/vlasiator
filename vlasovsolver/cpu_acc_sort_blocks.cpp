@@ -118,20 +118,6 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
       
        //sorted list
        blocks[i] = block_pairs[i].second;
-      /*switch( dimension ) {
-         case 0:
-            column_id = block_pairs[i].first / SpatialCell::get_velocity_grid_length()[0];
-            dimension_id = block_pairs[i].first % SpatialCell::get_velocity_grid_length()[0];
-            break;
-         case 1:
-            column_id = block_pairs[i].first / SpatialCell::SpatialCell::get_velocity_grid_length()[1];
-            dimension_id = block_pairs[i].first % SpatialCell::SpatialCell::get_velocity_grid_length()[1];
-            break;
-         case 2:
-            column_id = block_pairs[i].first / SpatialCell::SpatialCell::get_velocity_grid_length()[2];
-            dimension_id = block_pairs[i].first % SpatialCell::SpatialCell::get_velocity_grid_length()[2];            
-            break;
-      }*/
 
       if ( i > 0 &&  ( column_id != prev_column_id || dimension_id != (prev_dimension_id + 1) )){
          //encountered new column! For i=0, we already entered the correct offset (0).

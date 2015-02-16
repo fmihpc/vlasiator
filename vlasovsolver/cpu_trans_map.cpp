@@ -329,7 +329,7 @@ inline void copy_trans_block_data(
     //  Copy volume averages of this block from all spatial cells:
     for (int b = -VLASOV_STENCIL_WIDTH; b <= VLASOV_STENCIL_WIDTH; ++b) {
         SpatialCell* srcCell = source_neighbors[b + VLASOV_STENCIL_WIDTH];
-        const vmesh::LocalID blockLID = srcCell->get_velocity_block_local_id(blockGID);
+        const vmesh::LocalID blockLID = srcCell->get_velocity_block_local_id(blockGID,popID);
         if (blockLID != srcCell->invalid_local_id()) {
             Realv blockValues[WID3];
             const Realf* block_data = srcCell->get_data(blockLID,popID);

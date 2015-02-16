@@ -1,18 +1,7 @@
 /*
 This file is part of Vlasiator.
 
-Copyright 2011, 2012 Finnish Meteorological Institute
-
-
-
-
-
-
-
-
-
-
-
+Copyright 2011-2015 Finnish Meteorological Institute
 
 */
 
@@ -36,8 +25,9 @@ namespace projects {
    MultiPeak::MultiPeak(): TriAxisSearch() { }
    MultiPeak::~MultiPeak() { }
 
-
-   bool MultiPeak::initialize(void) {return true;}
+   bool MultiPeak::initialize(void) {
+      return Project::initialize();
+   }
 
    void MultiPeak::addParameters(){
       typedef Readparameters RP;
@@ -111,14 +101,30 @@ namespace projects {
    }
 
    Real MultiPeak::getDistribValue(creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
-      creal mass = physicalconstants::MASS_PROTON;
+      creal mass = getObjectWrapper().particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
 
-      Real value = 0.0;
-      for(uint i=0; i<this->numberOfPopulations; i++) {
-         value += this->rhoRnd[i] * pow(mass / (2.0 * M_PI * kb ), 1.5) * 1.0 / sqrt(this->Tx[i]*this->Ty[i]*this->Tz[i]) *
-      exp(- mass * (pow(vx - this->Vx[i], 2.0) / (2.0 * kb * this->Tx[i]) + pow(vy - this->Vy[i], 2.0) / (2.0 * kb * this->Ty[i]) + pow(vz - this->Vz[i], 2.0) / (2.0 * kb * this->Tz[i])));
+      #warning TESTING remove me
+      if (this->numberOfPopulations != getObjectWrapper().particleSpecies.size()) {
+         cerr << "error number of peaks and populations do not match" << endl;
+         exit(1);
       }
+      
+      Real value = 0.0;
+      /*for (uint i=0; i<this->numberOfPopulations; i++) {
+         value += 
+                 this->rhoRnd[i] 
+                 * pow(mass / (2.0 * M_PI * kb ), 1.5) 
+                 * 1.0 / sqrt(this->Tx[i]*this->Ty[i]*this->Tz[i]) 
+                 * exp(- mass * (pow(vx - this->Vx[i], 2.0) / (2.0 * kb * this->Tx[i]) + pow(vy - this->Vy[i], 2.0) / (2.0 * kb * this->Ty[i]) + pow(vz - this->Vz[i], 2.0) / (2.0 * kb * this->Tz[i])));
+      }*/
+      
+      value += 
+              this->rhoRnd[popID]
+              * pow(mass / (2.0 * M_PI * kb ), 1.5)
+              * 1.0 / sqrt(this->Tx[popID]*this->Ty[popID]*this->Tz[popID])
+              * exp(- mass * (pow(vx - this->Vx[popID], 2.0) / (2.0 * kb * this->Tx[popID]) + pow(vy - this->Vy[popID], 2.0) / (2.0 * kb * this->Ty[popID]) + pow(vz - this->Vz[popID], 2.0) / (2.0 * kb * this->Tz[popID])));
+              
       return value;
    }
 
@@ -187,6 +193,10 @@ namespace projects {
       }
    }
 
+   void MultiPeak::setActivePopulation(const int& popID) {
+      this->popID = popID;
+   }
+   
    void MultiPeak::setCellBackgroundField(SpatialCell* cell) {
       ConstantField bgField;
       bgField.initialize(this->Bx,
