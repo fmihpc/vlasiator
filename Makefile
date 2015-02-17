@@ -21,7 +21,8 @@ FIELDSOLVER ?= londrillo_delzanna
 # CXXFLAGS += -DFS_1ST_ORDER_TIME
 
 #also use papi to report memory consumption?
-CXXFLAGS += -DPAPI_MEM
+PAPI_FLAG ?= -DPAPI_MEM
+CXXFLAGS +=${PAPI_FLAG}
 
 #Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
 #Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
@@ -84,7 +85,7 @@ default: vlasiator
 tools: parallel_tools not_parallel_tools
 	touch vlsvreader2.cpp
 
-parallel_tools: vlsv2vtk vlsv2silo vlsv2bzt vlsvextract
+parallel_tools: vlsv2vtk vlsv2bzt vlsvextract
 
 FORCE:
 # On FERMI one has to use the front-end compiler (e.g. g++) to compile this tool.
