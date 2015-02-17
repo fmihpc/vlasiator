@@ -269,7 +269,7 @@ void calculateAcceleration(const int& popID,const int& globalMaxSubcycles,const 
    for (size_t c=0; c<propagatedCells.size(); ++c) {
       const CellID cellID = propagatedCells[c];
       const Real maxVdt = mpiGrid[cellID]->get_max_v_dt(popID);
-
+      
       //compute subcycle dt. The length is maVdt on all steps
       //except the last one. This is to keep the neighboring
       //spatial cells in sync, so that two neighboring cells with
@@ -331,7 +331,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
     calculateMoments_V(mpiGrid,cells,false);
     
     // Accelerate all particle species
-    for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+    for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {       
        // Iterate through all local cells and collect cells to propagate.
        // Ghost cells (spatial cells at the boundary of the simulation 
        // volume) do not need to be propagated:
@@ -374,8 +374,8 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
           for (size_t c=0; c<propagatedCells.size(); ++c) {
              no_subnormals();
              const CellID cellID = propagatedCells[c];
-             const Real maxVdt = mpiGrid[cellID]->parameters[CellParams::MAXVDT]; 
-
+             const Real maxVdt = mpiGrid[cellID]->get_max_v_dt(popID);
+             
              //compute subcycle dt. The length is maVdt on all steps
              //except the last one. This is to keep the neighboring
              //spatial cells in sync, so that two neighboring cells with
@@ -389,6 +389,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
              } else {
                 subcycleDt = maxVdt;
              }
+             
              // generate pseudo-random order which is always the same irrespective of parallelization, restarts, etc
              char rngStateBuffer[256];
              random_data rngDataBuffer;

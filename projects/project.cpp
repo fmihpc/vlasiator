@@ -255,9 +255,6 @@ namespace projects {
                   if (average != 0.0){
                      //FIXME!!! set_value is slow as we again have to convert v -> index
                      // We should set_value to a specific block index (as we already have it!)
-                     creal vxCellCenter = vxBlock + (ic+convert<Real>(0.5))*dvxCell;
-                     creal vyCellCenter = vyBlock + (jc+convert<Real>(0.5))*dvyCell;
-                     creal vzCellCenter = vzBlock + (kc+convert<Real>(0.5))*dvzCell;
                      data[blockLID*SIZE_VELBLOCK+cellIndex(ic,jc,kc)] = average;
                   }
                }

@@ -312,26 +312,31 @@ int main(int argn,char* args[]) {
       
       phiprof::stop("write-initial-state");
    }
-
+/*
    #warning TESTING remove me
    cout << "init done, exiting" << endl;
    MPI_Finalize();
    return 1;
- 
-   if (P::dynamicTimestep && !P::isRestart) {
+ */
+   if (P::isRestart == false) {
+      cerr << "init dt limits" << endl;
+
       // Run Vlasov solver once with zero dt to initialize
       //per-cell dt limits. In restarts, we read the dt from file.
       phiprof::start("compute-dt");
       calculateSpatialTranslation(mpiGrid,0.0);
       calculateAcceleration(mpiGrid,0.0);
 
-      if(P::propagateField) {
+      if (P::propagateField == true) {
          propagateFields(mpiGrid, sysBoundaries, 0.0, 1.0);
       }
+      phiprof::stop("compute-dt");
+   }
+   if (P::dynamicTimestep == true && P::isRestart == false) {
       //compute new dt
+      phiprof::start("compute-dt");
       computeNewTimeStep(mpiGrid,newDt,dtIsChanged);
-      if(dtIsChanged)
-         P::dt=newDt;
+      if (dtIsChanged == true) P::dt=newDt;
       phiprof::stop("compute-dt");
    }
 
@@ -385,6 +390,8 @@ int main(int argn,char* args[]) {
    while(P::tstep <=P::tstep_max  &&
          P::t-P::dt <= P::t_max+DT_EPSILON &&
          wallTimeRestartCounter <= P::exitAfterRestarts) {
+      
+      cerr << "step " << P::tstep << endl;
       
       addTimedBarrier("barrier-loop-start");
       
@@ -502,12 +509,12 @@ int main(int argn,char* args[]) {
          doBailout > 0) {
          break;
       }
-      
+/*      
       #warning TESTING remove me
-      cout << "init done, exiting" << endl;
+      cout << "data written, exiting" << endl;
       MPI_Finalize();
       return 1;
-
+*/
       
       //Re-loadbalance if needed
       //TODO - add LB measure and do LB if it exceeds threshold

@@ -779,7 +779,7 @@ bool convertVelocityBlocks2(
                            ) {
    bool success = true;
    
-   string outputMeshName = popName + "/VelGrid";
+   string outputMeshName = "VelGrid_" + popName;
    int cellsInBlocksPerDirection = 4;
    
    // Transformation (translation + rotation) matrix, defaults 
@@ -830,7 +830,7 @@ bool convertVelocityBlocks2(
 
    if (out.writeArray("MESH",attributes,blockIds.size(),1,&(blockIds[0])) == false) success = false;
    
-   attributes["name"] = popName + "/VelBlocks";
+   attributes["name"] = "VelBlocks_" + popName;
    if (out.writeArray("MESH",attributes,blockIds.size(),1,&(blockIds[0])) == false) success = false;
    
    attributes.clear();
@@ -845,7 +845,7 @@ bool convertVelocityBlocks2(
         vector<uint64_t> ().swap(blockIds);
      }
    
-   attributes["mesh"] = popName + "/VelBlocks";
+   attributes["mesh"] = "VelBlocks_" + popName;
    if (out.writeArray("MESH_DOMAIN_SIZES",attributes,1,2,domainSize) == false) success = false;
 
    // Make bounding box array
@@ -857,7 +857,7 @@ bool convertVelocityBlocks2(
    bbox[3] = 1;
    bbox[4] = 1;
    bbox[5] = 1;
-   attributes["mesh"] = popName + "/VelBlocks";
+   attributes["mesh"] = "VelBlocks_" + popName;
    if (out.writeArray("MESH_BBOX",attributes,6,1,bbox) == false) success = false;
    
    bbox[3] = cellsInBlocksPerDirection;
@@ -910,7 +910,7 @@ bool convertVelocityBlocks2(
       else if (crd == 1) arrayName = "MESH_NODE_CRDS_Y";
       else if (crd == 2) arrayName = "MESH_NODE_CRDS_Z";
       
-      attributes["mesh"] = popName + "/VelBlocks";
+      attributes["mesh"] = "VelBlocks_" + popName;
       if (out.writeArray(arrayName,attributes,coords.size(),1,&(coords[0])) == false) success = false;
    }
      {
@@ -923,7 +923,7 @@ bool convertVelocityBlocks2(
    if (out.writeArray("MESH_GHOST_LOCALIDS",attributes,domainSize[1],1,&dummy) == false) success = false;
    if (out.writeArray("MESH_GHOST_DOMAINS",attributes,domainSize[1],1,&dummy) == false) success = false;
    
-   attributes["mesh"] = popName + "/VelBlocks";
+   attributes["mesh"] = "VelBlocks_" + popName;
    if (out.writeArray("MESH_GHOST_LOCALIDS",attributes,domainSize[1],1,&dummy) == false) success = false;
    if (out.writeArray("MESH_GHOST_DOMAINS",attributes,domainSize[1],1,&dummy) == false) success = false;
 
