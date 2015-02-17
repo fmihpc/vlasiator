@@ -27,6 +27,7 @@
 #include "../backgroundfield/backgroundfield.h"
 #include "../backgroundfield/constantfield.hpp"
 #include "Shocktest/Shocktest.h"
+#include "Poisson/poisson_test.h"
 
 using namespace std;
 
@@ -62,6 +63,7 @@ namespace projects {
       projects::test_trans::addParameters();
       projects::verificationLarmor::addParameters();
       projects::Shocktest::addParameters();
+      projects::PoissonTest::addParameters();
       RP::add("Project_common.seed", "Seed for the RNG", 42);
    }
    
@@ -128,7 +130,7 @@ namespace projects {
       creal dx = cell->parameters[CellParams::DX];
       creal dy = cell->parameters[CellParams::DY];
       creal dz = cell->parameters[CellParams::DZ];
-      
+
       for (uint i=0; i<blocksToInitialize.size(); ++i) {
          const vmesh::GlobalID blockGID = blocksToInitialize.at(i);
          const vmesh::LocalID blockLID = cell->get_velocity_block_local_id(blockGID);
@@ -372,6 +374,9 @@ Project* createProject() {
    }
    if(Parameters::projectName == "Shocktest") {
       return new projects::Shocktest;
+   }
+   if (Parameters::projectName == "PoissonTest") {
+      return new projects::PoissonTest;
    }
    cerr << "Unknown project name!" << endl;
    abort();

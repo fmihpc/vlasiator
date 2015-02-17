@@ -75,7 +75,7 @@ bool initializeFieldPropagatorAfterRebalance(
    // but are assumed to be ok after each load balance as that
    // communicates all spatial data
    
-   vector<uint64_t> localCells = mpiGrid.get_cells();
+   const vector<uint64_t>& localCells = getLocalCells();
    calculateSysBoundaryFlags(mpiGrid,localCells);
    return true;
 }

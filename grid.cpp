@@ -228,7 +228,11 @@ void initSpatialCellCoordinates(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
    }
 }
 
+
 void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, SysBoundary& sysBoundaries){
+   // Invalidate cached cell lists
+   Parameters::meshRepartitioned = true;
+
    // tell other processes which velocity blocks exist in remote spatial cells
    phiprof::initializeTimer("Balancing load", "Load balance");
    phiprof::start("Balancing load");
@@ -344,12 +348,14 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    phiprof::stop("update sysboundaries");
 
    phiprof::start("Init solvers");
-   // Initialize field propagator:
-   if (initializeFieldPropagatorAfterRebalance(mpiGrid) == false) {
-       logFile << "(MAIN): Field propagator did not initialize correctly!" << endl << writeVerbose;
-       exit(1);
+   // Initialize field propagator (only if in use):
+   if (Parameters::propagateField == true) {
+      if (initializeFieldPropagatorAfterRebalance(mpiGrid) == false) {
+         logFile << "(MAIN): Field propagator did not initialize correctly!" << endl << writeVerbose;
+         exit(1);
+      }
    }
-   
+
    phiprof::stop("Init solvers");   
    phiprof::stop("Balancing load");
 }
@@ -364,7 +370,8 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
                           bool doPrepareToReceiveBlocks) {
    phiprof::initializeTimer("re-adjust blocks","Block adjustment");
    phiprof::start("re-adjust blocks");
-   const vector<uint64_t> cells = mpiGrid.get_cells();
+   const vector<CellID>& cells = getLocalCells();
+
    phiprof::start("Compute with_content_list");
    #pragma omp parallel for  
    for (uint i=0; i<cells.size(); ++i)
@@ -432,13 +439,16 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
  * \param mpiGrid Spatial grid
  */
 void shrink_to_fit_grid_data(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
-   std::vector<CellID> cells = mpiGrid.get_cells();
-   const std::vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(DIST_FUNC_NEIGHBORHOOD_ID);
-      // append remote cells to cells
-   cells.insert(cells.end(),remote_cells.begin(),remote_cells.end());
+   const std::vector<CellID>& cells = getLocalCells();
    #pragma omp parallel for
    for(size_t i=0; i<cells.size(); ++i) {
       mpiGrid[cells[i]]->shrink_to_fit();
+   }
+
+   const std::vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(DIST_FUNC_NEIGHBORHOOD_ID);
+   #pragma omp parallel for
+   for(size_t i=0; i<remote_cells.size(); ++i) {
+      mpiGrid[remote_cells[i]]->shrink_to_fit();
    }
 }
 
@@ -447,7 +457,7 @@ void shrink_to_fit_grid_data(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
  */
 void report_grid_memory_consumption(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
    /*now report memory consumption into logfile*/
-   const vector<uint64_t> cells = mpiGrid.get_cells();
+   const vector<CellID>& cells = getLocalCells();
    const std::vector<uint64_t> remote_cells = mpiGrid.get_remote_cells_on_process_boundary();   
    int rank,n_procs;
    MPI_Comm_size(MPI_COMM_WORLD, &n_procs);
@@ -763,12 +773,22 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    neighborhood.clear();
    neighborhood.push_back({{0, 0, -1}});
    mpiGrid.add_neighborhood(SHIFT_P_Z_NEIGHBORHOOD_ID, neighborhood);
+   
+   // Add face neighbors, needed for Poisson solver
+   neighborhood.clear();
+   neighborhood.push_back({{-1, 0, 0}});
+   neighborhood.push_back({{+1, 0, 0}});
+   neighborhood.push_back({{ 0,-1, 0}});
+   neighborhood.push_back({{ 0,+1, 0}});
+   neighborhood.push_back({{ 0, 0,-1}});
+   neighborhood.push_back({{ 0, 0,+1}});
+   mpiGrid.add_neighborhood(POISSON_NEIGHBORHOOD_ID, neighborhood);
 }
 
 #warning This is for testing, can be removed later
 void writeVelMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
-   vector<CellID> cells = mpiGrid.get_cells();
-   
+   const vector<CellID>& cells = getLocalCells();
+
    static int counter=0;
    
    stringstream fname;
@@ -801,7 +821,7 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) 
       // with respect to velocity neighbors, i.e., we only validate the mesh 
       // with respect to spatial neighbors here.
       if (internallyValid == false) {
-         vector<CellID> cells = mpiGrid.get_cells();
+         const vector<CellID>& cells = getLocalCells();
          int iter=0;
          
          do {

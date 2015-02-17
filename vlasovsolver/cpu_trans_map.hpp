@@ -191,7 +191,7 @@ CellID get_spatial_neighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geom
    }
    return nbrID; //no AMR
 }
-                                      
+
 
 /*
  * return NULL if the spatial neighbor does not exist, or if
@@ -397,10 +397,13 @@ inline void store_trans_block_data(
 OpenMP region (as long as it does only one dimension per parallel
 refion). It is safe as each thread only computes certain blocks (blockID%tnum_threads = thread_num */
 
+
 bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const CellID cellID,const uint dimension, const Realv dt) {
    /*values used with an stencil in 1 dimension, initialized to 0. Contains a block, and its spatial neighbours in one dimension */  
    Realv dz,z_min, dvz,vz_min;
    SpatialCell* spatial_cell = mpiGrid[cellID];
+   if (spatial_cell->get_number_of_velocity_blocks() == 0) return true;
+   
    uint block_indices_to_id[3]; /*< used when computing id of target block */
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
    unsigned char  cellid_transpose[WID3]; /*< defines the transpose for the solver internal (transposed) id: i + j*WID + k*WID2 to actual one*/
@@ -424,7 +427,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    SpatialCell* target_neighbors[3];
    compute_spatial_source_neighbors(mpiGrid,cellID,dimension,source_neighbors);
    compute_spatial_target_neighbors(mpiGrid,cellID,dimension,target_neighbors);
-
+   
    /*set cell size in dimension direction*/
    switch (dimension){
        case 0:
@@ -587,7 +590,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 /*!
 
   This function communicates the mapping on process boundaries, and then updates the data to their correct values.
-  TODO, this could be inside an openmp region, in which case some m ore barriers and masters should be added
+  TODO, this could be inside an openmp region, in which case some more barriers and masters should be added
 
   \par dimension: 0,1,2 for x,y,z
   \par direction: 1 for + dir, -1 for - dir
@@ -599,7 +602,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 
 
 void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, const uint dimension, int direction) {
-   const vector<CellID> local_cells = mpiGrid.get_cells();
+   const vector<CellID>& local_cells = getLocalCells();
    const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_NEIGHBORHOOD_ID);
    vector<CellID> receive_cells;
    vector<CellID> send_cells;
@@ -671,6 +674,7 @@ void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell,dccrg::Cartesia
          receive_cells.push_back(local_cells[c]);
       }
    }
+   
    //Do communication
    SpatialCell::set_mpi_transfer_type(Transfer::NEIGHBOR_VEL_BLOCK_DATA);
    switch(dimension) {

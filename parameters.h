@@ -56,11 +56,15 @@ struct Parameters {
    static Real fieldSolverMinCFL;     /*!< The minimum CFL limit for propagation of fields. Used to set timestep if useCFLlimit is true.*/
    static Real fieldSolverMaxCFL;     /*!< The maximum CFL limit for propagation of fields. Used to set timestep if useCFLlimit is true.*/
    static int fieldSolverSubcycles;     /*!< The number of field solver subcycles to compute.*/
-   
+
    static uint tstep_min;           /*!< Timestep when simulation starts, needed for restarts.*/
    static uint tstep_max;           /*!< Maximum timestep. */
    static uint tstep;               /*!< The number of the current timestep. 0=initial state. */
-   
+
+   static bool meshRepartitioned;         /*!< If true, mesh was repartitioned on this time step.*/
+   static uint localCellsCalculated;      /*!< Time step when localCells was calculated.*/
+   static std::vector<CellID> localCells; /*!< Cached copy of spatial cell IDs on this process.*/
+
    static uint diagnosticInterval;
    static std::vector<std::string> systemWriteName; /*!< Names for the different classes of grid output*/
    static std::vector<Real> systemWriteTimeInterval;/*!< Interval in simusecond for output for each class*/
@@ -83,6 +87,7 @@ struct Parameters {
    static bool recalculateStencils; /*!< If true, MPI stencils should be recalculated because of load balancing.*/
    
    static bool propagateField;      /*!< If true, magnetic field is propagated during the simulation.*/
+   static bool propagatePotential;  /*!< If true, electrostatic potential is solved during the simulation.*/
    static bool propagateVlasovAcceleration;     /*!< If true, distribution function is propagated in velocity space during the simulation.*/
    static bool propagateVlasovTranslation;      /*!< If true, distribution function is propagated in ordinary space during the simulation.*/
    static bool periodic_x, periodic_y, periodic_z; /*!< Whether spatial vlasov grid is periodic */

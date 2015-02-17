@@ -11,6 +11,7 @@ Copyright 2010, 2011, 2012, 2013, 2014 Finnish Meteorological Institute
 #include <vector>
 #include <sstream>
 #include <ctime>
+#include <omp.h>
 
 #include "vlasovmover.h"
 #include "definitions.h"
@@ -23,6 +24,7 @@ Copyright 2010, 2011, 2012, 2013, 2014 Finnish Meteorological Institute
 #include "sysboundary/sysboundary.h"
 
 #include "fieldsolver/fs_common.h"
+#include "poisson_solver/poisson_solver.h"
 #include "projects/project.h"
 #include "grid.h"
 #include "iowrite.h"
@@ -46,6 +48,7 @@ void fpehandler(int sig_num)
 #include "phiprof.hpp"
 
 Logger logFile, diagnostic;
+static dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> mpiGrid;
 
 using namespace std;
 using namespace phiprof;
@@ -165,6 +168,23 @@ ObjectWrapper& getObjectWrapper() {
    return objectWrapper;
 }
 
+/** Get local cell IDs. This function creates a cached copy of the 
+ * cell ID lists to significantly improve performance. The cell ID 
+ * cache is recalculated every time the mesh partitioning changes.
+ * @return Local cell IDs.*/
+const std::vector<CellID>& getLocalCells() {
+   if (Parameters::meshRepartitioned == true) {
+      if (Parameters::localCellsCalculated != Parameters::tstep) {
+         {
+            vector<CellID> dummy;
+            dummy.swap(Parameters::localCells);
+         }
+         Parameters::localCells = mpiGrid.get_cells();
+      }
+   }
+   return Parameters::localCells;
+}
+
 int main(int argn,char* args[]) {
    bool success = true;
    int myRank, doBailout;
@@ -190,8 +210,7 @@ int main(int argn,char* args[]) {
    MPI_Comm_rank(comm,&myRank);
    SysBoundary sysBoundaries;
    bool isSysBoundaryCondDynamic;
-   vector<uint64_t> cells;
-   
+
    #ifdef CATCH_FPE
    // WARNING FE_INEXACT is too sensitive to be used. See man fenv.
    //feenableexcept(FE_DIVBYZERO|FE_INVALID|FE_OVERFLOW|FE_UNDERFLOW);
@@ -199,7 +218,7 @@ int main(int argn,char* args[]) {
    //feenableexcept(FE_DIVBYZERO|FE_INVALID);
    signal(SIGFPE, fpehandler);
    #endif
-   
+
    phiprof::start("main");
    phiprof::start("Initialization");
    phiprof::start("Read parameters");
@@ -230,6 +249,12 @@ int main(int argn,char* args[]) {
    if (logFile.open(MPI_COMM_WORLD,MASTER_RANK,"logfile.txt",P::isRestart) == false) {
       if(myRank == MASTER_RANK) cerr << "(MAIN) ERROR: Logger failed to open logfile!" << endl;
       exit(1);
+   } else {
+      int mpiProcesses;
+      int threads = omp_get_max_threads();
+      MPI_Comm_size(comm,&mpiProcesses);      
+      logFile << "(MAIN) Starting simulation with " << mpiProcesses << " MPI processes and ";
+      logFile << threads << " OpenMP threads per process" << endl << writeVerbose;
    }
    if (P::diagnosticInterval != 0) {
       if (diagnostic.open(MPI_COMM_WORLD,MASTER_RANK,"diagnostic.txt",P::isRestart) == false) {
@@ -250,7 +275,6 @@ int main(int argn,char* args[]) {
       FULL_NEIGHBORHOOD. Block lists up to date for
       VLASOV_SOLVER_NEIGHBORHOOD (but dist function has not been communicated)
    */
-   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> mpiGrid;
    initializeGrid(argn,args,mpiGrid,sysBoundaries,*project);
    isSysBoundaryCondDynamic = sysBoundaries.isDynamic();
    phiprof::stop("Init grid");
@@ -269,6 +293,16 @@ int main(int argn,char* args[]) {
          exit(1);
       }
       phiprof::stop("Init field propagator");
+   }
+   
+   // Initialize Poisson solver (if used)
+   if (P::propagatePotential == true) {
+      phiprof::start("Init Poisson solver");
+      if (poisson::initialize(mpiGrid) == false) {
+         logFile << "(MAIN): Poisson solver did not initialize correctly!" << endl << writeVerbose;
+         exit(1);
+      }
+      phiprof::stop("Init Poisson solver");
    }
 
    // Free up memory:
@@ -344,7 +378,7 @@ int main(int argn,char* args[]) {
    
    // Main simulation loop:
    if (myRank == MASTER_RANK) logFile << "(MAIN): Starting main simulation loop." << endl << writeVerbose;
-   
+
    unsigned int computedCells=0;
    unsigned int computedTotalCells=0;
   //Compute here based on time what the file intervals are
@@ -359,7 +393,10 @@ int main(int argn,char* args[]) {
          index++;
       P::systemWrites.push_back(index);
    }
-   
+
+   // Invalidate cached cell lists just to be sure (might not be needed)
+   P::meshRepartitioned = true;
+
    unsigned int wallTimeRestartCounter=1;
    
    addTimedBarrier("barrier-end-initialization");
@@ -411,8 +448,7 @@ int main(int argn,char* args[]) {
          //report_grid_memory_consumption(mpiGrid);
          report_process_memory_consumption();
       }
-      logFile << writeVerbose;
-      
+      logFile << writeVerbose;      
       
       // Check whether diagnostic output has to be produced
       if (P::diagnosticInterval != 0 && P::tstep % P::diagnosticInterval == 0) {
@@ -481,8 +517,6 @@ int main(int argn,char* args[]) {
       phiprof::stop("IO");
       addTimedBarrier("barrier-end-io");
       
-      
-      
       //no need to propagate if we are on the final step, we just
       //wanted to make sure all IO is done even for final step
       if(P::tstep ==P::tstep_max ||
@@ -505,8 +539,8 @@ int main(int argn,char* args[]) {
       }
       
       //get local cells
-      cells = mpiGrid.get_cells();
-      
+      const vector<CellID>& cells = getLocalCells();
+
       //compute how many spatial cells we solve for this step
       computedCells=0;
       for(uint i=0;i<cells.size();i++)  computedCells+=mpiGrid[cells[i]]->get_number_of_velocity_blocks()*WID3;
@@ -540,18 +574,18 @@ int main(int argn,char* args[]) {
          }
       }
       
-      
-      
       phiprof::start("Propagate");
       //Propagate the state of simulation forward in time by dt:
       
       phiprof::start("Spatial-space");
-      if( P::propagateVlasovTranslation)
+      if( P::propagateVlasovTranslation) {
          calculateSpatialTranslation(mpiGrid,P::dt);
-      else
+      } else {
          calculateSpatialTranslation(mpiGrid,0.0);
+      }
       phiprof::stop("Spatial-space",computedCells,"Cells");
-      
+
+      phiprof::start("Compute interp moments");
       calculateInterpolatedVelocityMoments(
          mpiGrid,
          CellParams::RHO_DT2,
@@ -562,6 +596,7 @@ int main(int argn,char* args[]) {
          CellParams::P_22_DT2,
          CellParams::P_33_DT2
       );
+      phiprof::stop("Compute interp moments");
       
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
          phiprof::start("Update system boundaries (Vlasov)");
@@ -579,19 +614,22 @@ int main(int argn,char* args[]) {
          addTimedBarrier("barrier-after-field-solver");
       }
 
+      if (P::propagatePotential == true) {
+         poisson::solve(mpiGrid);
+      }
+
       phiprof::start("Velocity-space");
-      if( P::propagateVlasovAcceleration ) {
+      if ( P::propagateVlasovAcceleration ) {
          calculateAcceleration(mpiGrid,P::dt);
          addTimedBarrier("barrier-after-ad just-blocks");
-      }
-      else {
+      } else {
          //zero step to set up moments _v
          calculateAcceleration(mpiGrid, 0.0);
       }
 
       phiprof::stop("Velocity-space",computedCells,"Cells");
       addTimedBarrier("barrier-after-acceleration");
-      
+
       // *here we compute rho and rho_v for timestep t + dt, so next
       // timestep * //
       calculateInterpolatedVelocityMoments(
@@ -604,7 +642,7 @@ int main(int argn,char* args[]) {
          CellParams::P_22,
          CellParams::P_33
       );
-      
+
       phiprof::stop("Propagate",computedCells,"Cells");
       
       // Check timestep
@@ -613,6 +651,7 @@ int main(int argn,char* args[]) {
          bailout(true, message, __FILE__, __LINE__);
       }
       //Move forward in time
+      P::meshRepartitioned = false;
       ++P::tstep;
       P::t += P::dt;
    }
@@ -623,6 +662,9 @@ int main(int argn,char* args[]) {
    phiprof::start("Finalization");
    if (P::propagateField ) { 
       finalizeFieldPropagator(mpiGrid);
+   }
+   if (P::propagatePotential == true) {
+      poisson::finalize();
    }
    if (myRank == MASTER_RANK) {
       if(doBailout > 0) {

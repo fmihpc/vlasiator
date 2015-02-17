@@ -5,7 +5,6 @@
 
 */
 
-
 #include <cstdlib>
 #include <iostream>
 #include <vector>
@@ -21,8 +20,6 @@
 #include "cpu_moments.h"
 #include "cpu_acc_semilag.hpp"
 #include "cpu_trans_map.hpp"
-
-
 
 #include <stdint.h>
 #include <dccrg.hpp>
@@ -65,7 +62,7 @@ void calculateSpatialTranslation(
    
    phiprof::start("semilag-trans");
    phiprof::start("compute_cell_lists");
-   const vector<CellID> localCells = mpiGrid.get_cells();
+   const vector<CellID>& localCells = getLocalCells();
    const vector<CellID> remoteTargetCellsx = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID);
    const vector<CellID> remoteTargetCellsy = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID);
    const vector<CellID> remoteTargetCellsz = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID);
@@ -308,7 +305,7 @@ void calculateAcceleration(
    Real dt
 ) {
    typedef Parameters P;
-   const vector<CellID> cells = mpiGrid.get_cells();
+   const vector<CellID> cells = getLocalCells();
 //    if(dt > 0)  // FIXME this has to be deactivated to support regular projects but it breaks test_trans support most likely, with this on dt stays 0
    phiprof::start("semilag-acc");
 
@@ -462,8 +459,7 @@ void calculateInterpolatedVelocityMoments(
    const int cp_p22,
    const int cp_p33
 ) {
-   vector<CellID> cells;
-   cells=mpiGrid.get_cells();
+   const vector<CellID>& cells = getLocalCells();
    
    //Iterate through all local cells (excl. system boundary cells):
 #pragma omp parallel for
@@ -535,8 +531,8 @@ void calculateCellVelocityMoments(
 }
 
 void calculateInitialVelocityMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
-   vector<CellID> cells;
-   cells=mpiGrid.get_cells();
+   const vector<CellID>& cells = getLocalCells();
+
    phiprof::start("Calculate moments"); 
    // Iterate through all local cells (incl. system boundary cells):
 #pragma omp parallel for

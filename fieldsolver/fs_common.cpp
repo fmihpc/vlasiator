@@ -44,7 +44,9 @@ CellID getNeighbourID(
       abort();
    }
    
+   // NOTE: The following dccrg call is really slow..
    const std::vector<CellID> neighbors = mpiGrid.get_neighbors_of_at_offset(cellID, int(i) - 2, int(j) - 2, int(k) - 2);
+
    if (neighbors.size() == 0) {
       cerr << __FILE__ << ":" << __LINE__
       << " No neighbor for cell " << cellID
