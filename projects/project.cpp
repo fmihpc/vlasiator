@@ -347,6 +347,7 @@ namespace projects {
       creal& dvx, creal& dvy, creal& dvz,
       const int& popID) {
       cerr << "ERROR: Project::calcPhaseSpaceDensity called instead of derived class function!" << endl;
+      exit(1);
       return -1.0;
    }
    /*!

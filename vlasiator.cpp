@@ -230,6 +230,17 @@ int main(int argn,char* args[]) {
          exit(1);
       }
    }
+   {
+      int mpiProcs;
+      MPI_Comm_size(MPI_COMM_WORLD,&mpiProcs);
+      logFile << "(MAIN) Starting simulation with " << mpiProcs << " MPI processes ";
+      #ifdef _OPENMP
+         logFile << "and " << omp_get_max_threads();
+      #else
+         logFile << "and 0";
+      #endif
+      logFile << " OpenMP threads per process" << endl << writeVerbose;      
+   }
    phiprof::stop("open logFile & diagnostic");
    
    // Init project

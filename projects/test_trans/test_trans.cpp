@@ -34,7 +34,9 @@ namespace projects {
       
   // Real this->cellPosition = 0;
 
-   bool test_trans::initialize(void) {return true;}
+   bool test_trans::initialize(void) {
+      return Project::initialize();
+   }
 
    void test_trans::addParameters(){
       typedef Readparameters RP;
@@ -50,7 +52,8 @@ namespace projects {
 
 
    Real test_trans::calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,
-                                          creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz) {      
+                                          creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz,
+                                          const int& popID) {      
       //Please use even number of cells in velocity and real space
       Real xyz[3];
       Real vxyz[3];
