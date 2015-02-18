@@ -48,12 +48,12 @@ void blockVelocityFirstMoments(
         const Real* blockParams,
         const Real& massRatio,REAL* array) {
 
-    const REAL HALF = 0.5;
+    const Real HALF = 0.5;
 
-   REAL n_sum = 0.0;
-   REAL nvx_sum = 0.0;
-   REAL nvy_sum = 0.0;
-   REAL nvz_sum = 0.0;
+   Real n_sum = 0.0;
+   Real nvx_sum = 0.0;
+   Real nvy_sum = 0.0;
+   Real nvz_sum = 0.0;
    for (uint k=0; k<WID; ++k) for (uint j=0; j<WID; ++j) for (uint i=0; i<WID; ++i) {
       const REAL VX = blockParams[BlockParams::VXCRD] + (i+HALF)*blockParams[BlockParams::DVX];
       const REAL VY = blockParams[BlockParams::VYCRD] + (j+HALF)*blockParams[BlockParams::DVY];
@@ -65,7 +65,7 @@ void blockVelocityFirstMoments(
       nvz_sum += avgs[cellIndex(i,j,k)]*VZ;        
    }
    
-   const REAL mrDV3 = massRatio * blockParams[BlockParams::DVX]*blockParams[BlockParams::DVY]*blockParams[BlockParams::DVZ];
+   const Real mrDV3 = massRatio * blockParams[BlockParams::DVX]*blockParams[BlockParams::DVY]*blockParams[BlockParams::DVZ];
    array[0] += n_sum   * mrDV3;
    array[1] += nvx_sum * mrDV3;
    array[2] += nvy_sum * mrDV3;
@@ -83,26 +83,26 @@ void blockVelocitySecondMoments(
         const int cp_rhovz,
         REAL* array) {
 
-   const REAL HALF = 0.5;
+   const Real HALF = 0.5;
 
-   const REAL RHO = std::max(cellParams[cp_rho], std::numeric_limits<REAL>::min());
-   const REAL averageVX = cellParams[cp_rhovx] / RHO;
-   const REAL averageVY = cellParams[cp_rhovy] / RHO;
-   const REAL averageVZ = cellParams[cp_rhovz] / RHO;
-   REAL nvx2_sum = 0.0;
-   REAL nvy2_sum = 0.0;
-   REAL nvz2_sum = 0.0;
+   const Real RHO = std::max(cellParams[cp_rho], std::numeric_limits<REAL>::min());
+   const Real averageVX = cellParams[cp_rhovx] / RHO;
+   const Real averageVY = cellParams[cp_rhovy] / RHO;
+   const Real averageVZ = cellParams[cp_rhovz] / RHO;
+   Real nvx2_sum = 0.0;
+   Real nvy2_sum = 0.0;
+   Real nvz2_sum = 0.0;
    for (uint k=0; k<WID; ++k) for (uint j=0; j<WID; ++j) for (uint i=0; i<WID; ++i) {
-      const REAL VX = blockParams[BlockParams::VXCRD] + (i+HALF)*blockParams[BlockParams::DVX];
-      const REAL VY = blockParams[BlockParams::VYCRD] + (j+HALF)*blockParams[BlockParams::DVY];
-      const REAL VZ = blockParams[BlockParams::VZCRD] + (k+HALF)*blockParams[BlockParams::DVZ];
+      const Real VX = blockParams[BlockParams::VXCRD] + (i+HALF)*blockParams[BlockParams::DVX];
+      const Real VY = blockParams[BlockParams::VYCRD] + (j+HALF)*blockParams[BlockParams::DVY];
+      const Real VZ = blockParams[BlockParams::VZCRD] + (k+HALF)*blockParams[BlockParams::DVZ];
       
       nvx2_sum += avgs[cellIndex(i,j,k)] * (VX - averageVX) * (VX - averageVX);
       nvy2_sum += avgs[cellIndex(i,j,k)] * (VY - averageVY) * (VY - averageVY);
       nvz2_sum += avgs[cellIndex(i,j,k)] * (VZ - averageVZ) * (VZ - averageVZ);
    }
    
-   const REAL DV3 = blockParams[BlockParams::DVX]*blockParams[BlockParams::DVY]*blockParams[BlockParams::DVZ];
+   const Real DV3 = blockParams[BlockParams::DVX]*blockParams[BlockParams::DVY]*blockParams[BlockParams::DVZ];
    array[0] += nvx2_sum * DV3;
    array[1] += nvy2_sum * DV3;
    array[2] += nvz2_sum * DV3;

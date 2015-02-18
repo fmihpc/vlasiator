@@ -51,6 +51,7 @@ namespace projects {
       RP::addComposing("MultiPeak.rhoPertAbsAmp", "Absolute amplitude of the density perturbation");
       RP::add("MultiPeak.lambda", "B cosine perturbation wavelength (m)", 1.0);
       RP::add("MultiPeak.nVelocitySamples", "Number of sampling points per velocity dimension", 2);
+      RP::add("MultiPeak.useMultipleSpecies","Is each peak a separate particle species",false);
    }
 
    void MultiPeak::getParameters(){
@@ -97,34 +98,34 @@ namespace projects {
       RP::get("MultiPeak.dBz", this->dBz);
       RP::get("MultiPeak.lambda", this->lambda);
       RP::get("MultiPeak.nVelocitySamples", this->nVelocitySamples);
-      
+      RP::get("MultiPeak.useMultipleSpecies", useMultipleSpecies);   
    }
 
    Real MultiPeak::getDistribValue(creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
       creal mass = getObjectWrapper().particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
 
-      #warning TESTING remove me
-      if (this->numberOfPopulations != getObjectWrapper().particleSpecies.size()) {
-         cerr << "error number of peaks and populations do not match" << endl;
-         exit(1);
-      }
-      
       Real value = 0.0;
-      /*for (uint i=0; i<this->numberOfPopulations; i++) {
-         value += 
-                 this->rhoRnd[i] 
-                 * pow(mass / (2.0 * M_PI * kb ), 1.5) 
-                 * 1.0 / sqrt(this->Tx[i]*this->Ty[i]*this->Tz[i]) 
-                 * exp(- mass * (pow(vx - this->Vx[i], 2.0) / (2.0 * kb * this->Tx[i]) + pow(vy - this->Vy[i], 2.0) / (2.0 * kb * this->Ty[i]) + pow(vz - this->Vz[i], 2.0) / (2.0 * kb * this->Tz[i])));
-      }*/
-      
-      value += 
-              this->rhoRnd[popID]
-              * pow(mass / (2.0 * M_PI * kb ), 1.5)
-              * 1.0 / sqrt(this->Tx[popID]*this->Ty[popID]*this->Tz[popID])
-              * exp(- mass * (pow(vx - this->Vx[popID], 2.0) / (2.0 * kb * this->Tx[popID]) + pow(vy - this->Vy[popID], 2.0) / (2.0 * kb * this->Ty[popID]) + pow(vz - this->Vz[popID], 2.0) / (2.0 * kb * this->Tz[popID])));
-              
+      if (useMultipleSpecies == false) { // one species, multiple peaks
+         if (popID != 0) return 0.0;
+         
+         for (uint i=0; i<this->numberOfPopulations; i++) {
+            value += this->rhoRnd[i] 
+                  * pow(mass / (2.0 * M_PI * kb ), 1.5) 
+                  * 1.0 / sqrt(this->Tx[i]*this->Ty[i]*this->Tz[i]) 
+                  * exp(- mass * (pow(vx - this->Vx[i], 2.0) / (2.0 * kb * this->Tx[i]) + pow(vy - this->Vy[i], 2.0) / (2.0 * kb * this->Ty[i]) + pow(vz - this->Vz[i], 2.0) / (2.0 * kb * this->Tz[i])));
+         }
+      } else { // multiple species, one peak each
+         if (this->numberOfPopulations != getObjectWrapper().particleSpecies.size()) {
+            cerr << "error number of peaks and populations do not match" << endl;
+            exit(1);
+         }
+
+         value += this->rhoRnd[popID]
+               * pow(mass / (2.0 * M_PI * kb ), 1.5)
+               * 1.0 / sqrt(this->Tx[popID]*this->Ty[popID]*this->Tz[popID])
+               * exp(- mass * (pow(vx - this->Vx[popID], 2.0) / (2.0 * kb * this->Tx[popID]) + pow(vy - this->Vy[popID], 2.0) / (2.0 * kb * this->Ty[popID]) + pow(vz - this->Vz[popID], 2.0) / (2.0 * kb * this->Tz[popID])));
+      }
       return value;
    }
 

@@ -64,6 +64,8 @@ namespace projects {
       vector<Real> rhoPertAbsAmp;
       Real lambda;
       uint nVelocitySamples;
+      bool useMultipleSpecies;      /**< If true, then each peak is a separate particle species.
+                                     * Defaults to false.*/
    }; // class MultiPeak
 } //  namespace projects
 
