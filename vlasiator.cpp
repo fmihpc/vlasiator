@@ -1,7 +1,7 @@
 /*
 This file is part of Vlasiator.
 
-Copyright 2010, 2011, 2012, 2013, 2014 Finnish Meteorological Institute
+Copyright 2010-2015 Finnish Meteorological Institute
 
 */
 
@@ -11,6 +11,10 @@ Copyright 2010, 2011, 2012, 2013, 2014 Finnish Meteorological Institute
 #include <vector>
 #include <sstream>
 #include <ctime>
+
+#ifdef _OPENMP
+   #include <omp.h>
+#endif
 
 #include "vlasovmover.h"
 #include "definitions.h"
@@ -272,7 +276,6 @@ int main(int argn,char* args[]) {
    initializeGrid(argn,args,mpiGrid,sysBoundaries,*project);
    isSysBoundaryCondDynamic = sysBoundaries.isDynamic();
    phiprof::stop("Init grid");
-   cerr << "grid init" << endl;
    
    // Initialize data reduction operators. This should be done elsewhere in order to initialize 
    // user-defined operators:
@@ -293,7 +296,7 @@ int main(int argn,char* args[]) {
 
    // Free up memory:
    readparameters.finalize();
-   cerr << "saving" << endl;
+
    // Save restart data
    if (P::writeInitialState) {
       phiprof::start("write-initial-state");
@@ -330,8 +333,6 @@ int main(int argn,char* args[]) {
    return 1;
  */
    if (P::isRestart == false) {
-      cerr << "init dt limits" << endl;
-
       // Run Vlasov solver once with zero dt to initialize
       //per-cell dt limits. In restarts, we read the dt from file.
       phiprof::start("compute-dt");
@@ -401,8 +402,6 @@ int main(int argn,char* args[]) {
    while(P::tstep <=P::tstep_max  &&
          P::t-P::dt <= P::t_max+DT_EPSILON &&
          wallTimeRestartCounter <= P::exitAfterRestarts) {
-      
-      cerr << "step " << P::tstep << endl;
       
       addTimedBarrier("barrier-loop-start");
       

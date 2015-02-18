@@ -147,12 +147,9 @@ void initializeGrid(
          SpatialCell* cell = mpiGrid[cells[i]];
          project.setCellBackgroundField(cell);         
          if (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-            cerr << "set cell " << cells[i] << endl;
             project.setCell(cell);
-            cerr << "\t DONE" << endl;
          }
       }
-      cerr << "set cells done" << endl;
       
       //initial state for sys-boundary cells
       phiprof::stop("Apply initial state");
@@ -167,7 +164,6 @@ void initializeGrid(
          mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = 0;
       }
 
-      cerr << "adjusting" << endl;
       for (size_t popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          adjustVelocityBlocks(mpiGrid,cells,true,popID);
          validateMesh(mpiGrid,popID);
@@ -184,7 +180,6 @@ void initializeGrid(
             mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] += mpiGrid[cells[i]]->get_number_of_velocity_blocks(popID);
          }
       }
-      cerr << "\t DONE" << endl;
    }
 
    //Balance load before we transfer all data below
