@@ -67,7 +67,7 @@ void initializeGrid(
    MPI_Comm comm = MPI_COMM_WORLD;
    int neighborhood_size = max(FS_STENCIL_WIDTH, VLASOV_STENCIL_WIDTH); 
 
-   const boost::array<uint64_t, 3> grid_length = {{P::xcells_ini, P::ycells_ini, P::zcells_ini}};
+   const std::array<uint64_t, 3> grid_length = {{P::xcells_ini, P::ycells_ini, P::zcells_ini}};
    dccrg::Cartesian_Geometry::Parameters geom_params;
    geom_params.start[0] = P::xmin;
    geom_params.start[1] = P::ymin;
@@ -216,8 +216,8 @@ void initSpatialCellCoordinates(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
    vector<uint64_t> cells = mpiGrid.get_cells();
    #pragma omp parallel for
    for (uint i=0; i<cells.size(); ++i) {
-      boost::array<double, 3> cell_min = mpiGrid.geometry.get_min(cells[i]);
-      boost::array<double, 3> cell_length = mpiGrid.geometry.get_length(cells[i]);
+      std::array<double, 3> cell_min = mpiGrid.geometry.get_min(cells[i]);
+      std::array<double, 3> cell_length = mpiGrid.geometry.get_length(cells[i]);
       
       mpiGrid[cells[i]]->parameters[CellParams::XCRD] = cell_min[0];
       mpiGrid[cells[i]]->parameters[CellParams::YCRD] = cell_min[1];
@@ -259,10 +259,10 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    mpiGrid.initialize_balance_load(true);
    phiprof::stop("dccrg.initialize_balance_load");
    
-   const boost::unordered_set<uint64_t>& incoming_cells = mpiGrid.get_cells_added_by_balance_load();
+   const std::unordered_set<uint64_t>& incoming_cells = mpiGrid.get_cells_added_by_balance_load();
    std::vector<uint64_t> incoming_cells_list (incoming_cells.begin(),incoming_cells.end()); 
 
-   const boost::unordered_set<uint64_t>& outgoing_cells = mpiGrid.get_cells_removed_by_balance_load();
+   const std::unordered_set<uint64_t>& outgoing_cells = mpiGrid.get_cells_removed_by_balance_load();
    std::vector<uint64_t> outgoing_cells_list (outgoing_cells.begin(),outgoing_cells.end()); 
    
    /*transfer cells in parts to preserve memory*/

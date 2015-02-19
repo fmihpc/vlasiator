@@ -8,19 +8,19 @@ Copyright 2011 Finnish Meteorological Institute
 #ifndef VLASIATOR_SPATIAL_CELL_HPP
 #define VLASIATOR_SPATIAL_CELL_HPP
 
-#include "algorithm"
-#include "boost/array.hpp"
-#include "boost/unordered_map.hpp"
-//#include "boost/unordered_set.hpp"
-#include "boost/lexical_cast.hpp"
-#include "cmath"
-#include "fstream"
-#include "iostream"
-#include "mpi.h"
-#include "limits"
-#include "stdint.h"
-#include "vector"
-#include "set"
+#include <algorithm>
+#include <boost/array.hpp>
+#include <boost/unordered_map.hpp>
+#include <boost/lexical_cast.hpp>
+#include <cmath>
+#include <fstream>
+#include <iostream>
+#include <mpi.h>
+#include <limits>
+#include <stdint.h>
+#include <vector>
+#include <set>
+#include <tuple>
 
 #include "memoryallocation.h"
 
@@ -220,7 +220,7 @@ namespace spatial_cell {
       vmesh::GlobalID velocity_block_has_grandparent(const vmesh::GlobalID& blockGID) const;
       
       // Following functions are related to MPI //
-      boost::tuple<void*, int, MPI_Datatype> get_mpi_datatype(const CellID cellID,const int sender_rank,const int receiver_rank,
+      std::tuple<void*, int, MPI_Datatype> get_mpi_datatype(const CellID cellID,const int sender_rank,const int receiver_rank,
                                                               const bool receiving,const int neighborhood);
       static uint64_t get_mpi_transfer_type(void);
       static void set_mpi_transfer_type(const uint64_t type,bool atSysBoundaries=false);
@@ -1304,7 +1304,7 @@ namespace spatial_cell {
    }
    
    /*! get mpi datatype for sending the cell data. */
-   inline boost::tuple<void*, int, MPI_Datatype> SpatialCell::get_mpi_datatype(
+   inline std::tuple<void*, int, MPI_Datatype> SpatialCell::get_mpi_datatype(
       const CellID cellID/*cell_id*/,
       const int sender_rank/*sender*/,
       const int receiver_rank/*receiver*/,
@@ -1512,7 +1512,7 @@ namespace spatial_cell {
          datatype = MPI_BYTE;
       }
 
-      return boost::make_tuple(address,count,datatype);
+      return std::make_tuple(address,count,datatype);
    }
 
    /*!
