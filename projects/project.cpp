@@ -206,17 +206,17 @@ namespace projects {
          logFile << "\t name             : '" << getObjectWrapper().particleSpecies[p].name << "'" << endl;
          logFile << "\t charge           : '" << getObjectWrapper().particleSpecies[p].charge << "'" << endl;
          logFile << "\t mass             : '" << getObjectWrapper().particleSpecies[p].mass << "'" << endl;
-         logFile << "\t sparse threshold : " << getObjectWrapper().particleSpecies[p].sparseMinValue << "'" << endl;
+         logFile << "\t sparse threshold : '" << getObjectWrapper().particleSpecies[p].sparseMinValue << "'" << endl;
          logFile << endl;
       }
       logFile << write;
    }
    
    void Project::setVelocitySpace(const int& popID,SpatialCell* cell) {
-      //cell->setActivePopulation(popID);
+      vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = cell->get_velocity_mesh(popID);
 
       vector<vmesh::GlobalID> blocksToInitialize = this->findBlocksToInitialize(cell,popID);
-      Real* parameters = cell->get_block_parameters(0,popID);
+      Real* parameters = cell->get_block_parameters(popID);
 
       creal x = cell->parameters[CellParams::XCRD];
       creal y = cell->parameters[CellParams::YCRD];
@@ -224,13 +224,17 @@ namespace projects {
       creal dx = cell->parameters[CellParams::DX];
       creal dy = cell->parameters[CellParams::DY];
       creal dz = cell->parameters[CellParams::DZ];
-      
-      vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = cell->get_velocity_mesh(popID);
-      Realf* data = cell->get_data(0,popID);
+
+      Realf* data = cell->get_data(popID);
 
       for (uint i=0; i<blocksToInitialize.size(); ++i) {
-         const vmesh::GlobalID blockGID = blocksToInitialize.at(i);
+         const vmesh::GlobalID blockGID = blocksToInitialize[i];
          const vmesh::LocalID blockLID = vmesh.getLocalID(blockGID);
+         if (blockLID == vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) {
+            cerr << "ERROR, invalid local ID in " << __FILE__ << ":" << __LINE__ << endl;
+            exit(1);
+         }
+         
          creal vxBlock = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD];
          creal vyBlock = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD];
          creal vzBlock = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD];

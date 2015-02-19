@@ -182,10 +182,11 @@ namespace SBC {
       
       // Init all particle species
       for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-      
          vector<vmesh::GlobalID> blocksToInitialize = this->findBlocksToInitialize(popID,templateCell, rho, T, Vx, Vy, Vz);
-         for(vmesh::GlobalID i = 0; i < blocksToInitialize.size(); i++) {
-            const vmesh::GlobalID blockGID = blocksToInitialize.at(i);
+         Realf* data = templateCell.get_data(popID);
+
+         for(vmesh::GlobalID i=0; i<blocksToInitialize.size(); ++i) {
+            const vmesh::GlobalID blockGID = blocksToInitialize[i];
             const vmesh::LocalID blockLID = templateCell.get_velocity_block_local_id(blockGID,popID);
             const Real* block_parameters = templateCell.get_block_parameters(blockLID,popID);
             creal vxBlock = block_parameters[BlockParams::VXCRD];
@@ -236,14 +237,12 @@ namespace SBC {
                                                     );
                }
                
-               if(average!=0.0){
-                  creal vxCellCenter = vxBlock + (ic+convert<Real>(0.5))*dvxCell;
-                  creal vyCellCenter = vyBlock + (jc+convert<Real>(0.5))*dvyCell;
-                  creal vzCellCenter = vzBlock + (kc+convert<Real>(0.5))*dvzCell;
-                  templateCell.set_value(vxCellCenter,vyCellCenter,vzCellCenter,average);
-               } // for-loop over cells in velocity block
-            } // for-loop over velocity blocks
-         }
+               if (average != 0.0) {
+                  data[blockLID*WID3+cellIndex(ic,jc,kc)] = average;
+               } 
+            } // for-loop over cells in velocity block
+         } // for-loop over velocity blocks
+         
          //let's get rid of blocks not fulfilling the criteria here to save
          //memory.
          templateCell.adjustSingleCellVelocityBlocks(popID);

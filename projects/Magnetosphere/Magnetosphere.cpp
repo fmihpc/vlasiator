@@ -163,10 +163,12 @@ namespace projects {
    }
    
    bool Magnetosphere::initialize() {
-      return true;
+      return Project::initialize();
    }
 
-   Real Magnetosphere::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
+   Real Magnetosphere::calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,
+                                             creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,
+                                             creal& dvz,const int& popID) {
       if((this->nSpaceSamples > 1) && (this->nVelocitySamples > 1)) {
          creal d_x = dx / (this->nSpaceSamples-1);
          creal d_y = dy / (this->nSpaceSamples-1);
@@ -184,13 +186,13 @@ namespace projects {
                   for (uint vi=0; vi<this->nVelocitySamples; ++vi)
                      for (uint vj=0; vj<this->nVelocitySamples; ++vj)
                         for (uint vk=0; vk<this->nVelocitySamples; ++vk) {
-                           avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz);
+                           avg += getDistribValue(x+i*d_x,y+j*d_y,z+k*d_z,vx+vi*d_vx,vy+vj*d_vy,vz+vk*d_vz,dvx,dvy,dvz);
                         }
                         return avg /
                         (this->nSpaceSamples*this->nSpaceSamples*this->nSpaceSamples) /
                         (this->nVelocitySamples*this->nVelocitySamples*this->nVelocitySamples);
       } else {
-         return getDistribValue(x+0.5*dx, y+0.5*dy, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, dvx, dvy, dvz);
+         return getDistribValue(x+0.5*dx,y+0.5*dy,z+0.5*dz,vx+0.5*dvx,vy+0.5*dvy,vz+0.5*dvz,dvx,dvy,dvz);
       }
       
    }

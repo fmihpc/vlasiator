@@ -1,23 +1,13 @@
 /*
  * This file is part of Vlasiator.
  * 
- * Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
+ * Copyright 2010-2013,2015 Finnish Meteorological Institute
  * 
  */
 
 /*!\file setbyuser.cpp
- * \brief Implementation of the class SysBoundaryCondition::SetByUser. This serves as the base class for further classes like SysBoundaryCondition::SetMaxwellian.
+ * \brief Implementation of the class SysBoundaryCondition::SetByUser. 
+ * This serves as the base class for further classes like SysBoundaryCondition::SetMaxwellian.
  */
 
 #include <cstdlib>
@@ -55,9 +45,7 @@ namespace SBC {
       this->getParameters();
       
       vector<string>::const_iterator it;
-      for (it = faceList.begin();
-           it != faceList.end();
-      it++) {
+      for (it = faceList.begin(); it != faceList.end(); ++it) {
          if(*it == "x+") facesToProcess[0] = true;
          if(*it == "x-") facesToProcess[1] = true;
          if(*it == "y+") facesToProcess[2] = true;
@@ -361,7 +349,7 @@ namespace SBC {
     * \sa generateTemplateCell
     */
    bool SetByUser::generateTemplateCells(creal& t) {
-# pragma omp parallel for
+      #pragma omp parallel for
       for(uint i=0; i<6; i++) {
          int index;
          if(facesToProcess[i]) {

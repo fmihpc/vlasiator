@@ -41,10 +41,12 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
     // Loop over all particle species
     if (skipMoments == false) {
        for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-          vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer    = cell->get_velocity_blocks(popID);
+          vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
+          if (blockContainer.size() == 0) continue;
+          
           const Realf* data       = blockContainer.getData();
           const Real* blockParams = blockContainer.getParameters();
-
+          
           // Temporary array for storing moments
           Real array[4];
           for (int i=0; i<4; ++i) array[i] = 0.0;
@@ -70,7 +72,9 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
             
     // Loop over all particle species
     for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-       vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer    = cell->get_velocity_blocks(popID);
+       vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
+       if (blockContainer.size() == 0) continue;
+       
        const Realf* data       = blockContainer.getData();
        const Real* blockParams = blockContainer.getParameters();
        
@@ -131,6 +135,7 @@ void calculateMoments_R_maxdt(
           if (popID == 0) cell->parameters[CellParams::MAXRDT] = numeric_limits<Real>::max();
 
           vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
+          if (blockContainer.size() == 0) continue;
           const Realf* data       = blockContainer.getData();
           const Real* blockParams = blockContainer.getParameters();
 
@@ -203,6 +208,7 @@ void calculateMoments_R_maxdt(
          SpatialCell* cell = mpiGrid[cells[c]];
        
          vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
+         if (blockContainer.size() == 0) continue;
          const Realf* data       = blockContainer.getData();
          const Real* blockParams = blockContainer.getParameters();
 
@@ -259,6 +265,7 @@ void calculateMoments_V(
          }
 
          vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
+         if (blockContainer.size() == 0) continue;
          const Realf* data       = blockContainer.getData();
          const Real* blockParams = blockContainer.getParameters();
 
@@ -296,6 +303,7 @@ void calculateMoments_V(
          SpatialCell* cell = mpiGrid[cells[c]];
 
          vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
+         if (blockContainer.size() == 0) continue;
          const Realf* data       = blockContainer.getData();
          const Real* blockParams = blockContainer.getParameters();
 

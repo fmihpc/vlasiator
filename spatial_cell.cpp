@@ -95,6 +95,14 @@ namespace spatial_cell {
     * remove some blocks that should not be removed.*/
    void SpatialCell::adjust_velocity_blocks(const std::vector<SpatialCell*>& spatial_neighbors,
                                             const int& popID,bool doDeleteEmptyBlocks) {
+      #ifdef DEBUG_SPATIAL_CELL
+      if (popID >= populations.size()) {
+         std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
+         std::cerr << __FILE__ << ":" << __LINE__ << std::endl;             
+         exit(1);
+      }
+      #endif
+      
       #ifdef AMR
 //         return;
       #endif
@@ -151,15 +159,19 @@ namespace spatial_cell {
       // end are removed first, and we may avoid copying extra data.
       if (doDeleteEmptyBlocks) {
          for (int block_index= this->velocity_block_with_no_content_list.size()-1; block_index>=0; --block_index) {
-            const vmesh::GlobalID blockGID = this->velocity_block_with_no_content_list[block_index];
+            const vmesh::GlobalID blockGID = velocity_block_with_no_content_list[block_index];
             #ifdef DEBUG_SPATIAL_CELL
-               if (blockGID == invalid_global_id())
-                  cerr << "Got invalid block at " << __FILE__ << ' ' << __LINE__ << endl; exit(1);               
+            if (blockGID == invalid_global_id()) {
+               cerr << "Got invalid block at " << __FILE__ << ' ' << __LINE__ << endl; 
+               exit(1);
+            }             
             #endif
-            const vmesh::LocalID blockLID = get_velocity_block_local_id(blockGID,popID);
+            const vmesh::LocalID blockLID = get_velocity_block_local_id(blockGID,popID);            
             #ifdef DEBUG_SPATIAL_CELL
-               if (blockLID == invalid_local_id())
-                  cerr << "Could not find block in " << __FILE__ << ' ' << __LINE__ << endl; exit(1);               
+            if (blockLID == invalid_local_id()) {
+               cerr << "Could not find block in " << __FILE__ << ' ' << __LINE__ << endl; 
+               exit(1);
+            }
             #endif
             
             bool removeBlock = false;
@@ -185,7 +197,7 @@ namespace spatial_cell {
             std::unordered_set<vmesh::GlobalID>::iterator it = neighbors_have_content.find(blockGID);
             if (it == neighbors_have_content.end()) removeBlock = true;
             #endif
-
+            
             if (removeBlock == true) {
                //No content, and also no neighbor have content -> remove
                //and increment rho loss counters
@@ -214,6 +226,14 @@ namespace spatial_cell {
    }
 
    void SpatialCell::adjustSingleCellVelocityBlocks(const int& popID) {
+      #ifdef DEBUG_SPATIAL_CELL
+      if (popID >= populations.size()) {
+         std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
+         std::cerr << __FILE__ << ":" << __LINE__ << std::endl;             
+         exit(1);
+      }
+      #endif
+      
       //neighbor_ptrs is empty as we do not have any consistent
       //data in neighbours yet, adjustments done only based on velocity
       //space. TODO: should this delete blocks or not? Now not
@@ -223,6 +243,14 @@ namespace spatial_cell {
    }
 
    void SpatialCell::coarsen_block(const vmesh::GlobalID& parent,const std::vector<vmesh::GlobalID>& children,const int& popID) {
+      #ifdef DEBUG_SPATIAL_CELL
+      if (popID >= populations.size()) {
+         std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
+         std::cerr << __FILE__ << ":" << __LINE__ << std::endl;             
+         exit(1);
+      }
+      #endif
+      
       // First create the parent (coarse) block and grab pointer to its data.
       // add_velocity_block initializes data to zero values.
       if (add_velocity_block(parent,popID) == false) return;
@@ -264,6 +292,14 @@ namespace spatial_cell {
    }
 
    void SpatialCell::coarsen_blocks(amr_ref_criteria::Base* refCriterion,const int& popID) {
+      #ifdef DEBUG_SPATIAL_CELL
+      if (popID >= populations.size()) {
+         std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
+         std::cerr << __FILE__ << ":" << __LINE__ << std::endl;             
+         exit(1);
+      }
+      #endif
+      
       // Sort blocks according to their refinement levels
       vector<vector<vmesh::GlobalID> > blocks(populations[popID].vmesh.getMaxAllowedRefinementLevel()+1);
 
@@ -333,6 +369,14 @@ namespace spatial_cell {
    }
    
    const Real& SpatialCell::get_max_v_dt(const int& popID) const {
+      #ifdef DEBUG_SPATIAL_CELL
+      if (popID >= populations.size()) {
+         std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
+         std::cerr << __FILE__ << ":" << __LINE__ << std::endl;             
+         exit(1);
+      }
+      #endif
+      
       return populations[popID].MAXVDT;
    }
 
@@ -350,6 +394,7 @@ namespace spatial_cell {
                                                                         const bool receiving,
                                                                         const int neighborhood
       ) {
+
       std::vector<MPI_Aint> displacements;
       std::vector<int> block_lengths;
       vmesh::LocalID block_index = 0;
@@ -629,6 +674,14 @@ namespace spatial_cell {
    }
 
    void SpatialCell::merge_values(const int& popID) {
+      #ifdef DEBUG_SPATIAL_CELL
+      if (popID >= populations.size()) {
+         std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
+         std::cerr << __FILE__ << ":" << __LINE__ << std::endl;             
+         exit(1);
+      }
+      #endif
+      
       const uint8_t maxRefLevel = vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::getMaxAllowedRefinementLevel();
 
       for (int i=0; i<WID3; ++i) null_block_data[i] = 0;
@@ -668,6 +721,14 @@ namespace spatial_cell {
    void SpatialCell::add_values(const vmesh::GlobalID& targetGID,
                                 std::unordered_map<vmesh::GlobalID,Realf[(WID+2)*(WID+2)*(WID+2)]>& sourceData,
                                 const int& popID) {
+      #ifdef DEBUG_SPATIAL_CELL
+      if (popID >= populations.size()) {
+         std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
+         std::cerr << __FILE__ << ":" << __LINE__ << std::endl;             
+         exit(1);
+      }
+      #endif
+      
       vmesh::LocalID targetLID = get_velocity_block_local_id(targetGID,popID);
       if (targetLID == SpatialCell::invalid_local_id()) {
          std::cerr << "error has occurred" << std::endl;
@@ -1032,11 +1093,27 @@ namespace spatial_cell {
     * @param popID Population ID.
     * @return If true, the new species is in use.*/
    bool SpatialCell::setCommunicatedSpecies(const int& popID) {
+      #ifdef DEBUG_SPATIAL_CELL
+      if (popID >= getObjectWrapper().particleSpecies.size()) {
+         std::cerr << "ERROR, popID " << popID << " exceeds species.size() " << getObjectWrapper().particleSpecies.size() << " in ";
+         std::cerr << __FILE__ << ":" << __LINE__ << std::endl;             
+         exit(1);
+      }
+      #endif
+      
       activePopID = popID;
       return true;
    }
    
    void SpatialCell::set_max_v_dt(const int& popID,const Real& value) {
+      #ifdef DEBUG_SPATIAL_CELL
+      if (popID >= populations.size()) {
+         std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
+         std::cerr << __FILE__ << ":" << __LINE__ << std::endl;             
+         exit(1);
+      }
+      #endif
+      
       populations[popID].MAXVDT = value;;
    }
 
@@ -1061,6 +1138,14 @@ namespace spatial_cell {
    /** Update the two lists containing blocks with content, and blocks without content.
     * @see adjustVelocityBlocks */
    void SpatialCell::update_velocity_block_content_lists(const int& popID) {
+      #ifdef DEBUG_SPATIAL_CELL
+      if (popID >= populations.size()) {
+         std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
+         std::cerr << __FILE__ << ":" << __LINE__ << std::endl;             
+         exit(1);
+      }
+      #endif
+      
       velocity_block_with_content_list.clear();
       velocity_block_with_no_content_list.clear();
       

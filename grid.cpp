@@ -143,7 +143,7 @@ void initializeGrid(
       vector<uint64_t> cells = mpiGrid.get_cells();
       
       #pragma omp parallel for schedule(dynamic)
-      for (uint i=0; i<cells.size(); ++i) {
+      for (uint i=0; i<cells.size(); ++i) {         
          SpatialCell* cell = mpiGrid[cells[i]];
          project.setCellBackgroundField(cell);         
          if (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
@@ -157,7 +157,7 @@ void initializeGrid(
       if (sysBoundaries.applyInitialState(mpiGrid, project) == false) {
          cerr << " (MAIN) ERROR: System boundary conditions initial state was not applied correctly." << endl;
          exit(1);
-      }      
+      }
       phiprof::stop("Apply system boundary conditions state");
 
       for (uint i=0; i<cells.size(); ++i) {
@@ -169,17 +169,17 @@ void initializeGrid(
          validateMesh(mpiGrid,popID);
          shrink_to_fit_grid_data(mpiGrid); //get rid of excess data already here
 
-         //compute moments, and set them  in RHO* and RHO_*_DT2. If restart, they are already read in
-         phiprof::start("Init moments");
-         calculateInitialVelocityMoments(mpiGrid);
-         phiprof::stop("Init moments");
-
          // set initial LB metric based on number of blocks, all others
          // will be based on time spent in acceleration
          for (uint i=0; i<cells.size(); ++i) {
             mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] += mpiGrid[cells[i]]->get_number_of_velocity_blocks(popID);
          }
       }
+
+      //compute moments, and set them  in RHO* and RHO_*_DT2. If restart, they are already read in
+      phiprof::start("Init moments");
+      calculateInitialVelocityMoments(mpiGrid);
+      phiprof::stop("Init moments");
    }
 
    //Balance load before we transfer all data below
@@ -386,7 +386,7 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    for (uint i=0; i<cells.size(); ++i)
       mpiGrid[cells[i]]->update_velocity_block_content_lists(popID);
    phiprof::stop("Compute with_content_list");
-
+   
    phiprof::initializeTimer("Transfer with_content_list","MPI");
    phiprof::start("Transfer with_content_list");
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_WITH_CONTENT_STAGE1 );
@@ -402,14 +402,14 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    for (unsigned int i=0; i<cellsToAdjust.size(); ++i) {
       Real density_pre_adjust=0.0;
       Real density_post_adjust=0.0;
-      uint64_t cell_id=cellsToAdjust[i];
+      CellID cell_id=cellsToAdjust[i];
       SpatialCell* cell = mpiGrid[cell_id];
       
       // gather spatial neighbor list and create vector with pointers to neighbor spatial cells
-      const vector<uint64_t>* neighbors = mpiGrid.get_neighbors_of(cell_id, NEAREST_NEIGHBORHOOD_ID);
+      const vector<CellID>* neighbors = mpiGrid.get_neighbors_of(cell_id, NEAREST_NEIGHBORHOOD_ID);
       vector<SpatialCell*> neighbor_ptrs;
       neighbor_ptrs.reserve(neighbors->size());
-      for (vector<uint64_t>::const_iterator neighbor_id = neighbors->begin(); neighbor_id != neighbors->end(); ++neighbor_id) {
+      for (vector<CellID>::const_iterator neighbor_id = neighbors->begin(); neighbor_id != neighbors->end(); ++neighbor_id) {
          if (*neighbor_id == 0 || *neighbor_id == cell_id) {
             continue;
          }
@@ -421,7 +421,7 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
          }
       }
       cell->adjust_velocity_blocks(neighbor_ptrs,popID);
-
+      
       if (P::sparse_conserve_mass) {
          for (size_t i=0; i<cell->get_number_of_velocity_blocks(popID)*WID3; ++i) {
             density_post_adjust += cell->get_data(popID)[i];
@@ -433,8 +433,8 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
          }
       }
    }
-   
    phiprof::stop("Adjusting blocks");
+
    //Updated newly adjusted velocity block lists on remote cells, and
    //prepare to receive block data
    if (doPrepareToReceiveBlocks) {

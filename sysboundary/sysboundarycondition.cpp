@@ -342,7 +342,7 @@ namespace SBC {
             SpatialCell* to,
             bool allowBlockAdjustment,
            const int& popID
-   ) {      
+   ) {
       // WARNING Time-independence assumed here. _R and _V not copied, 
       // as boundary conditions cells should not set/use them.
       if (popID == 0) {
@@ -386,17 +386,21 @@ namespace SBC {
 
          // add blocks
          const Realf* fromBlock_data = from->get_data(popID);
-         Realf* toBlock_data = to->get_data(popID);
          for (vmesh::LocalID block_i=0; block_i<from->get_number_of_velocity_blocks(popID); ++block_i) {
             const vmesh::GlobalID blockGID = from->get_velocity_block_global_id(block_i,popID);
-            to->add_velocity_block(blockGID,popID);
-            const vmesh::LocalID toBlockLID = to->get_velocity_block_local_id(blockGID,popID);
             
+            // Ensure that target block exists in 'to' cell. 
+            // We must get a new pointer to the 'to' data array here 
+            // because add_velocity_block may reallocate it.
+            to->add_velocity_block(blockGID,popID);
+            Realf* toBlock_data = to->get_data(popID);
+            const vmesh::LocalID toBlockLID = to->get_velocity_block_local_id(blockGID,popID);
+
             for (unsigned int i = 0; i < SIZE_VELBLOCK; i++) {
                toBlock_data[toBlockLID*SIZE_VELBLOCK+i] = fromBlock_data[block_i*SIZE_VELBLOCK+i];
             }
          }
-      } else {
+      } else {         
          //just copy data to existing blocks, no modification of to blocks allowed
          const Realf* fromBlock_data = from->get_data(popID);
          Realf* toBlock_data = to->get_data(popID);
