@@ -338,18 +338,22 @@ int main(int argn,char* args[]) {
       phiprof::stop("write-initial-state");
    }
 
-   if (P::dynamicTimestep && !P::isRestart) {
+   if (P::isRestart == false) {
       //compute vlasovsolver once with zero dt, this is to initialize
       //per-cell dt limits. In restarts, we read in dt from file
       phiprof::start("compute-dt");
       calculateSpatialTranslation(mpiGrid,0.0);
       calculateAcceleration(mpiGrid,0.0);
 
-      
-      if(P::propagateField) {
+      if (P::propagateField) {
          propagateFields(mpiGrid, sysBoundaries, 0.0, 1.0);
       }
+      phiprof::stop("compute-dt");
+   }
+    
+   if (P::dynamicTimestep && !P::isRestart) {
       //compute new dt
+      phiprof::start("compute-dt");
       computeNewTimeStep(mpiGrid,newDt,dtIsChanged);
       if(dtIsChanged)
          P::dt=newDt;
