@@ -27,7 +27,7 @@ LIB_SILO = -lsilo
 INC_JEMALLOC = 
 LIB_JEMALLOC = -ljemalloc
 
-INC_DCCRG = -I/home/sandroos/codes/dccrg-gitorius
+INC_DCCRG = -I/home/sandroos/codes/dccrg
 
 LIB_PROFILE = -L/home/sandroos/codes/phiprof/lib -lphiprof
 INC_PROFILE = -I/home/sandroos/codes/phiprof/include

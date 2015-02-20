@@ -199,14 +199,14 @@ bool map_1d(vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
       block_indices_to_id[1] = vmesh.getGridLength(REFLEVEL)[0];
       block_indices_to_id[2] = vmesh.getGridLength(REFLEVEL)[0]*vmesh.getGridLength(REFLEVEL)[1];
       
-      /*set values in array that is used to convert block indices to id using a dot product*/
+      // set values in array that is used to convert block indices to id using a dot product.
       cell_indices_to_id[0]=1;
       cell_indices_to_id[1]=WID;
       cell_indices_to_id[2]=WID2;
       break;
    }
 
-   /*init plane_index_to_id*/
+   // init plane_index_to_id.
    for (uint k=0; k<WID; ++k) {
       for (uint j=0; j<WID; ++j) {
          for (uint i=0; i<WID; ++i) {
@@ -218,11 +218,10 @@ bool map_1d(vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
          }
       }
    }
-
    
    const Realv i_dv=1.0/dv;
 
-   /*sort blocks according to dimension, and divide them into columns*/
+   // sort blocks according to dimension, and divide them into columns
    vmesh::LocalID* blocks = new vmesh::LocalID[vmesh.size()];
    std::vector<uint> columnBlockOffsets;
    std::vector<uint> columnNumBlocks;
@@ -231,7 +230,7 @@ bool map_1d(vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
    sortBlocklistByDimension(vmesh, dimension, blocks,
                             columnBlockOffsets, columnNumBlocks,
                             setColumnOffsets, setNumColumns);
-
+   
 /*   
         values array used to store column data The max size is the worst
         case scenario with every second block having content, creating up
@@ -239,12 +238,13 @@ bool map_1d(vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
         blocks (two for padding)
    */
    Vec values[(3 * ( MAX_BLOCKS_PER_DIM / 2 + 1)) * WID3 / VECL];
-   /*these two temporary variables are used to optimize access to target cells*/
+   // these two temporary variables are used to optimize access to target cells
    vmesh::LocalID previous_target_block = vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID();
    Realf *target_block_data = NULL;
 
-   /*loop over block column sets  (all columns along the dimension with the other dimensions being equal )*/
+   // loop over block column sets  (all columns along the dimension with the other dimensions being equal )
    for( uint setIndex=0; setIndex< setColumnOffsets.size(); ++setIndex) {
+
       //Load data into values array (this also zeroes the original data)
       uint valuesColumnOffset = 0; //offset to values array for data in a column in this set
       for(uint columnIndex = setColumnOffsets[setIndex]; columnIndex < setColumnOffsets[setIndex] + setNumColumns[setIndex] ; columnIndex ++){
@@ -254,7 +254,7 @@ bool map_1d(vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
          valuesColumnOffset += (n_cblocks + 2) * (WID3/VECL); // there are WID3/VECL elements of type Vec per block
       }
 
-      //loop over columns in set and do the mapping
+      // loop over columns in set and do the mapping
       valuesColumnOffset = 0; //offset to values array for data in a column in this set
       for(uint columnIndex = setColumnOffsets[setIndex]; columnIndex < setColumnOffsets[setIndex] + setNumColumns[setIndex] ; columnIndex ++){
          const vmesh::LocalID n_cblocks = columnNumBlocks[columnIndex];
@@ -291,17 +291,16 @@ bool map_1d(vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
              Note that the i dimension is vectorized, and thus there are no loops over i
          */
          for (uint j = 0; j < WID; j += VECL/WID){ 
-            /*create vectors with the i and j indices in the vector position on the plane*/
-#if VECL == 4       
+            // create vectors with the i and j indices in the vector position on the plane.
+            #if VECL == 4       
             const Veci i_indices = Veci(0, 1, 2, 3);
             const Veci j_indices = Veci(j, j, j, j);
-#elif VECL == 8
+            #elif VECL == 8
             const Veci i_indices = Veci(0, 1, 2, 3,
                                         0, 1, 2, 3);
             const Veci j_indices = Veci(j, j, j, j,
                                         j + 1, j + 1, j + 1, j + 1);
-
-#elif VECL == 16
+            #elif VECL == 16
             const Veci i_indices = Veci(0, 1, 2, 3,
                                         0, 1, 2, 3,
                                         0, 1, 2, 3,
@@ -310,7 +309,7 @@ bool map_1d(vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
                                         j + 1, j + 1, j + 1, j + 1,
                                         j + 2, j + 2, j + 2, j + 2,
                                         j + 3, j + 3, j + 3, j + 3);
-#endif
+            #endif
 
             const Veci  target_cell_index_common =
                i_indices * cell_indices_to_id[0] +
@@ -334,36 +333,36 @@ bool map_1d(vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
             /*compute some initial values, that are used to set up the
              * shifting of values as we go through all blocks in
              * order. See comments where they are shifted for
-             * explanations of their meening*/
+             * explanations of their meaning*/
             Vec v_r((WID * block_indices_begin[2]) * dv + v_min);
             Veci lagrangian_gk_r=truncate_to_int((v_r-intersection_min)/intersection_dk);
          
-            /*loop through all blocks in column and compute the mapping as integrals*/
+            // loop through all blocks in column and compute the mapping as integrals.
             for (uint k=0; k < WID * n_cblocks; ++k ){
-               /*Compute reconstructions 
-                 values + i_pcolumnv(n_cblocks, -1, j, 0) is the starting point of the column data for fixed j
-                 k + WID is the index where we have stored k index, WID amount of padding
-               */
-#ifdef ACC_SEMILAG_PLM
+               // Compute reconstructions 
+               // values + i_pcolumnv(n_cblocks, -1, j, 0) is the starting point of the column data for fixed j
+               // k + WID is the index where we have stored k index, WID amount of padding.
+               #ifdef ACC_SEMILAG_PLM
                Vec a[2];
                compute_plm_coeff(values + valuesColumnOffset + i_pcolumnv(j, 0, -1, n_cblocks), k + WID , a);
-#endif
-#ifdef ACC_SEMILAG_PPM
+               #endif
+               #ifdef ACC_SEMILAG_PPM
                Vec a[3];
                compute_ppm_coeff(values + valuesColumnOffset + i_pcolumnv(j, 0, -1, n_cblocks), h4, k + WID, a);
-#endif
-#ifdef ACC_SEMILAG_PQM
+               #endif
+               #ifdef ACC_SEMILAG_PQM
                Vec a[5];
                compute_pqm_coeff(values + valuesColumnOffset + i_pcolumnv(j, 0, -1, n_cblocks), h8, k + WID, a);
-#endif
+               #endif
             
-               /*set the initial value for the integrand at the boundary at v = 0 (in reduced cell units), this will be shifted to target_density_1, see below*/
+               // set the initial value for the integrand at the boundary at v = 0 
+               // (in reduced cell units), this will be shifted to target_density_1, see below.
                Vec target_density_r(0.0);
-               /*v_l, v_r are the left and right velocity coordinates of source cell. Left is the old right*/
+               // v_l, v_r are the left and right velocity coordinates of source cell. Left is the old right.
                Vec v_l = v_r; 
                v_r += dv;
-               /*left(l) and right(r) k values (global index) in the target
-                 lagrangian grid, the intersecting cells. Again old right is new left*/
+               // left(l) and right(r) k values (global index) in the target
+               // Lagrangian grid, the intersecting cells. Again old right is new left.
                const Veci lagrangian_gk_l = lagrangian_gk_r;
                lagrangian_gk_r = truncate_to_int((v_r-intersection_min)/intersection_dk);
             
@@ -371,7 +370,7 @@ bool map_1d(vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
                while (horizontal_or(gk <= lagrangian_gk_r)){
                   const Veci gk_div_WID = gk/WID;
                   const Veci gk_mod_WID = (gk - gk_div_WID * WID);
-                  //the block of the lagrangian cell to which we map
+                  //the block of the Lagrangian cell to which we map
                   const Veci target_block(target_block_index_common + gk_div_WID * block_indices_to_id[2]);
 
                   //cell index in the target block 
@@ -387,36 +386,34 @@ bool map_1d(vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
                   /*shift, old right is new left*/
                   const Vec target_density_l = target_density_r;
 
-                  /*compute right integrand*/
-#ifdef ACC_SEMILAG_PLM
+                  // compute right integrand
+                  #ifdef ACC_SEMILAG_PLM
                   target_density_r =
                      v_norm_r * ( a[0] + v_norm_r * a[1] );
-#endif
-#ifdef ACC_SEMILAG_PPM
+                  #endif
+                  #ifdef ACC_SEMILAG_PPM
                   target_density_r =
                      v_norm_r * ( a[0] + v_norm_r * ( a[1] + v_norm_r * a[2] ) );
 
-#endif
-#ifdef ACC_SEMILAG_PQM
+                  #endif
+                  #ifdef ACC_SEMILAG_PQM
                   target_density_r =
                      v_norm_r * ( a[0] + v_norm_r * ( a[1] + v_norm_r * ( a[2] + v_norm_r * ( a[3] + v_norm_r * a[4] ) ) ) );
-#endif
+                  #endif
 
-                  /*total value of integrand*/
+                  // total value of integrand
                   const Vec target_density = target_density_r - target_density_l;
 
                   //store values, one element at a time
                   for (int target_i=0; target_i < VECL; ++target_i) {
                      const vmesh::GlobalID tblock = target_block[target_i];
 
-                     /*check that we are within sane limits. If gk is negative,
-                      * or above blocks_per_dim * blockcells_per_dim then we
-                      * are outside of the (possible) target grid.*/
-                     /*TODO, count losses if these are not fulfilled*/
+                     // check that we are within sane limits. If gk is negative,
+                     // or above blocks_per_dim * blockcells_per_dim then we
+                     // are outside of the (possible) target grid.
+                     // TODO, count losses if these are not fulfilled.
                      if (gk[target_i] >=0 && gk[target_i] < max_v_length * WID) {
                         if (previous_target_block != tblock) {
-
-                           // BEGIN NOTE
                            // The code inside this block is slower with the new AMR-related interface
                            previous_target_block = tblock;
 
@@ -426,7 +423,7 @@ bool map_1d(vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
                            if (tblockLID == vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) {
                                tblockLID = addVelocityBlock(tblock,vmesh,blockContainer);
                            }
-                           
+
                            // Get pointer to target block data. If target block does 
                            // not exist, values are added to null_block_data.
                            if (tblockLID == vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) {
@@ -434,8 +431,6 @@ bool map_1d(vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
                            } else {
                                target_block_data = blockContainer.getData(tblockLID);
                            }
-                           //target_block_data = spatial_cell->get_data( spatial_cell->get_velocity_block_local_id(tblock) );
-                           // END NOTE
                         }
 
                         // do the conversion from Realv to Realf here, faster than doing it in accumulation
@@ -443,10 +438,10 @@ bool map_1d(vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
                         const uint tcell = target_cell[target_i];
                         target_block_data[tcell] += tval;
                      }
-                  }
+                  } // for-loop over vector elements
                   gk++; //next iteration in while loop
                }
-            }
+            } // for-loop over blocks
          }
          valuesColumnOffset += (n_cblocks + 2) * (WID3/VECL) ;// there are WID3/VECL elements of type Vec per block    
       }

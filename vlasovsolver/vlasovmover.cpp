@@ -331,7 +331,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
     calculateMoments_V(mpiGrid,cells,false);
     
     // Accelerate all particle species
-    for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {       
+    for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
        // Iterate through all local cells and collect cells to propagate.
        // Ghost cells (spatial cells at the boundary of the simulation 
        // volume) do not need to be propagated:
@@ -421,8 +421,8 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
             //- Not done here on last step (done after loop)
           if (step < (globalMaxSubcycles - 1))
             adjustVelocityBlocks(mpiGrid, propagatedCells, false, popID);
-       }
-
+       } // for-loop over acceleration substeps
+       
        // final adjust for all cells, also fixing remote cells.
        adjustVelocityBlocks(mpiGrid, cells, true, popID);
     } // for-loop over particle species

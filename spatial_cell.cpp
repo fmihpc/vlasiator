@@ -387,12 +387,12 @@ namespace spatial_cell {
     * @param receiving If true, this process is receiving data.
     * @param neighborhood Neighborhood ID.
     * @return MPI datatype that transfers the requested data.*/
-   boost::tuple<void*, int, MPI_Datatype> SpatialCell::get_mpi_datatype(
-                                                                        const CellID cellID,
-                                                                        const int sender_rank,
-                                                                        const int receiver_rank,
-                                                                        const bool receiving,
-                                                                        const int neighborhood
+   std::tuple<void*, int, MPI_Datatype> SpatialCell::get_mpi_datatype(
+                                                                      const CellID cellID,
+                                                                      const int sender_rank,
+                                                                      const int receiver_rank,
+                                                                      const bool receiving,
+                                                                      const int neighborhood
       ) {
 
       std::vector<MPI_Aint> displacements;
@@ -585,7 +585,7 @@ namespace spatial_cell {
          datatype = MPI_BYTE;
       }
 
-      return boost::make_tuple(address,count,datatype);
+      return std::make_tuple(address,count,datatype);
    }
    
    void SpatialCell::merge_values_recursive(vmesh::GlobalID parentGID,vmesh::GlobalID blockGID,uint8_t refLevel,bool recursive,const Realf* data,

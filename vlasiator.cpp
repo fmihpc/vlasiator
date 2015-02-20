@@ -590,6 +590,7 @@ int main(int argn,char* args[]) {
          calculateSpatialTranslation(mpiGrid,0.0);
       phiprof::stop("Spatial-space",computedCells,"Cells");
       
+      phiprof::start("Compute interp moments");
       calculateInterpolatedVelocityMoments(
          mpiGrid,
          CellParams::RHO_DT2,
@@ -600,6 +601,7 @@ int main(int argn,char* args[]) {
          CellParams::P_22_DT2,
          CellParams::P_33_DT2
       );
+      phiprof::stop("Compute interp moments");
       
       // Apply boundary conditions
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {

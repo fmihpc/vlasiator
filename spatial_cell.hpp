@@ -249,8 +249,8 @@ namespace spatial_cell {
       vmesh::GlobalID velocity_block_has_grandparent(const vmesh::GlobalID& blockGID,const int& popID) const;
 
       // Following functions are related to MPI //
-      boost::tuple<void*, int, MPI_Datatype> get_mpi_datatype(const CellID cellID,const int sender_rank,const int receiver_rank,
-                                                              const bool receiving,const int neighborhood);
+      std::tuple<void*, int, MPI_Datatype> get_mpi_datatype(const CellID cellID,const int sender_rank,const int receiver_rank,
+                                                            const bool receiving,const int neighborhood);
       static uint64_t get_mpi_transfer_type(void);
       static void set_mpi_transfer_type(const uint64_t type,bool atSysBoundaries=false);
       void set_mpi_transfer_enabled(bool transferEnabled);

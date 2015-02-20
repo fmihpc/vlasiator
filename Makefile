@@ -239,100 +239,100 @@ integratefunction.o: ${DEPS_COMMON} backgroundfield/integratefunction.cpp backgr
 	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/integratefunction.cpp 
 
 datareducer.o: ${DEPS_COMMON} spatial_cell.hpp datareduction/datareducer.h datareduction/datareductionoperator.h datareduction/datareducer.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c datareduction/datareducer.cpp ${INC_MPI} ${INC_BOOST} ${INC_EIGEN}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c datareduction/datareducer.cpp ${INC_MPI} ${INC_BOOST} ${INC_EIGEN}
 
 datareductionoperator.o:  ${DEPS_COMMON} ${DEPS_CELL} parameters.h datareduction/datareductionoperator.h datareduction/datareductionoperator.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c datareduction/datareductionoperator.cpp ${INC_MPI} ${INC_BOOST} ${INC_EIGEN}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c datareduction/datareductionoperator.cpp ${INC_MPI} ${INC_BOOST} ${INC_EIGEN}
 
 donotcompute.o: ${DEPS_COMMON} sysboundary/donotcompute.h sysboundary/donotcompute.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c sysboundary/donotcompute.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c sysboundary/donotcompute.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
 ionosphere.o: ${DEPS_COMMON} sysboundary/ionosphere.h sysboundary/ionosphere.cpp backgroundfield/backgroundfield.cpp backgroundfield/backgroundfield.h projects/project.h projects/project.cpp fieldsolver/fs_limiters.h
-	${CMP} ${CXXFLAGS} ${FLAGS} -c sysboundary/ionosphere.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c sysboundary/ionosphere.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
 outflow.o: ${DEPS_COMMON} sysboundary/outflow.h sysboundary/outflow.cpp projects/project.h projects/project.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c sysboundary/outflow.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c sysboundary/outflow.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
 setmaxwellian.o: ${DEPS_COMMON} sysboundary/setmaxwellian.h sysboundary/setmaxwellian.cpp sysboundary/setbyuser.h sysboundary/setbyuser.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c sysboundary/setmaxwellian.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c sysboundary/setmaxwellian.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
 setbyuser.o: ${DEPS_COMMON} sysboundary/setbyuser.h sysboundary/setbyuser.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c sysboundary/setbyuser.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c sysboundary/setbyuser.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
 sysboundary.o: ${DEPS_COMMON} sysboundary/sysboundary.h sysboundary/sysboundary.cpp sysboundary/sysboundarycondition.h sysboundary/sysboundarycondition.cpp sysboundary/donotcompute.h sysboundary/donotcompute.cpp sysboundary/ionosphere.h sysboundary/ionosphere.cpp sysboundary/outflow.h sysboundary/outflow.cpp sysboundary/setmaxwellian.h sysboundary/setmaxwellian.cpp sysboundary/setbyuser.h sysboundary/setbyuser.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c sysboundary/sysboundary.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c sysboundary/sysboundary.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
 sysboundarycondition.o: ${DEPS_COMMON} sysboundary/sysboundarycondition.h sysboundary/sysboundarycondition.cpp sysboundary/donotcompute.h sysboundary/donotcompute.cpp sysboundary/ionosphere.h sysboundary/ionosphere.cpp sysboundary/outflow.h sysboundary/outflow.cpp sysboundary/setmaxwellian.h sysboundary/setmaxwellian.cpp sysboundary/setbyuser.h sysboundary/setbyuser.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c sysboundary/sysboundarycondition.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c sysboundary/sysboundarycondition.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
 Alfven.o: ${DEPS_COMMON} projects/Alfven/Alfven.h projects/Alfven/Alfven.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/Alfven/Alfven.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/Alfven/Alfven.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
 Diffusion.o: ${DEPS_COMMON} projects/Diffusion/Diffusion.h projects/Diffusion/Diffusion.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/Diffusion/Diffusion.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/Diffusion/Diffusion.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
 Dispersion.o: ${DEPS_COMMON} projects/Dispersion/Dispersion.h projects/Dispersion/Dispersion.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/Dispersion/Dispersion.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/Dispersion/Dispersion.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
 Distributions.o: ${DEPS_COMMON} projects/Distributions/Distributions.h projects/Distributions/Distributions.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/Distributions/Distributions.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/Distributions/Distributions.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
 Firehose.o: ${DEPS_COMMON} projects/Firehose/Firehose.h projects/Firehose/Firehose.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/Firehose/Firehose.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/Firehose/Firehose.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
 Flowthrough.o: ${DEPS_COMMON} projects/Flowthrough/Flowthrough.h projects/Flowthrough/Flowthrough.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/Flowthrough/Flowthrough.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/Flowthrough/Flowthrough.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
 Fluctuations.o: ${DEPS_COMMON} projects/Fluctuations/Fluctuations.h projects/Fluctuations/Fluctuations.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/Fluctuations/Fluctuations.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/Fluctuations/Fluctuations.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
 Harris.o: ${DEPS_COMMON} projects/Harris/Harris.h projects/Harris/Harris.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/Harris/Harris.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/Harris/Harris.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
 KHB.o: ${DEPS_COMMON} projects/KHB/KHB.h projects/KHB/KHB.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/KHB/KHB.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/KHB/KHB.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
 Larmor.o: ${DEPS_COMMON} projects/Larmor/Larmor.h projects/Larmor/Larmor.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/Larmor/Larmor.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/Larmor/Larmor.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
 Magnetosphere.o: ${DEPS_COMMON} projects/Magnetosphere/Magnetosphere.h projects/Magnetosphere/Magnetosphere.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/Magnetosphere/Magnetosphere.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/Magnetosphere/Magnetosphere.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
 MultiPeak.o: ${DEPS_COMMON} projects/MultiPeak/MultiPeak.h projects/MultiPeak/MultiPeak.cpp projects/projectTriAxisSearch.h projects/projectTriAxisSearch.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/MultiPeak/MultiPeak.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/MultiPeak/MultiPeak.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
 VelocityBox.o: ${DEPS_COMMON} projects/VelocityBox/VelocityBox.h projects/VelocityBox/VelocityBox.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/VelocityBox/VelocityBox.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/VelocityBox/VelocityBox.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
 Riemann1.o: ${DEPS_COMMON} projects/Riemann1/Riemann1.h projects/Riemann1/Riemann1.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/Riemann1/Riemann1.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/Riemann1/Riemann1.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
 Shock.o: ${DEPS_COMMON} projects/Shock/Shock.h projects/Shock/Shock.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/Shock/Shock.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/Shock/Shock.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
 Template.o: ${DEPS_COMMON} projects/Template/Template.h projects/Template/Template.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/Template/Template.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/Template/Template.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
 test_fp.o: ${DEPS_COMMON} projects/test_fp/test_fp.h projects/test_fp/test_fp.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/test_fp/test_fp.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
 testHall.o: ${DEPS_COMMON} projects/testHall/testHall.h projects/testHall/testHall.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/testHall/testHall.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/testHall/testHall.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
 test_trans.o: ${DEPS_COMMON} projects/test_trans/test_trans.h projects/test_trans/test_trans.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/test_trans/test_trans.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/test_trans/test_trans.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
 verificationLarmor.o: ${DEPS_COMMON} projects/verificationLarmor/verificationLarmor.h projects/verificationLarmor/verificationLarmor.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/verificationLarmor/verificationLarmor.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/verificationLarmor/verificationLarmor.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
 Shocktest.o: ${DEPS_COMMON} projects/Shocktest/Shocktest.h projects/Shocktest/Shocktest.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/Shocktest/Shocktest.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/Shocktest/Shocktest.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
 project.o: ${DEPS_COMMON} $(DEPS_PROJECTS)
-	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/project.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/project.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
 projectTriAxisSearch.o: ${DEPS_COMMON} $(DEPS_PROJECTS) projects/projectTriAxisSearch.h projects/projectTriAxisSearch.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/projectTriAxisSearch.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/projectTriAxisSearch.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
 spatial_cell.o: ${DEPS_CELL} spatial_cell.cpp
 	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -std=c++0x -c spatial_cell.cpp $(INC_BOOST) ${INC_EIGEN} ${INC_VECTORCLASS}

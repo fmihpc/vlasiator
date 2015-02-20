@@ -244,7 +244,7 @@ void calculateMoments_V(
         const std::vector<CellID>& cells,
         const bool& computeSecond) {
  
-   phiprof::start("Compute moments");
+   phiprof::start("Compute _V moments");
 
    // Loop over all particle species
    for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
@@ -292,7 +292,7 @@ void calculateMoments_V(
 
    // Compute second moments only if requested
    if (computeSecond == false) {
-      phiprof::stop("Compute moments");
+      phiprof::stop("Compute _V moments");
       return;
    }
 
@@ -332,5 +332,5 @@ void calculateMoments_V(
       } // for-loop over spatial cells
    } // for-loop over particle species
 
-   phiprof::stop("Compute moments");
+   phiprof::stop("Compute _V moments");
 }
