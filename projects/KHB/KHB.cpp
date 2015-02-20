@@ -31,7 +31,7 @@ namespace projects {
    KHB::KHB(): Project() { }
    KHB::~KHB() { }
    
-   bool KHB::initialize(void) {return true;}
+   bool KHB::initialize(void) {return Project::initialize();}
    
    void KHB::addParameters() {
       typedef Readparameters RP;
@@ -60,6 +60,7 @@ namespace projects {
    }
 
    void KHB::getParameters() {
+      Project::getParameters();
       typedef Readparameters RP;
       RP::get("KHB.rho1", this->rho[this->TOP]);
       RP::get("KHB.rho2", this->rho[this->BOTTOM]);
@@ -112,7 +113,7 @@ namespace projects {
       exp(- mass * (pow(vx - Vx, 2.0) + pow(vy - Vy, 2.0) + pow(vz - Vz, 2.0)) / (2.0 * kb * T));
    }
 
-   Real KHB::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {   
+   Real KHB::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const int& popID) {   
       creal d_x = dx / (this->nSpaceSamples-1);
       creal d_z = dz / (this->nSpaceSamples-1);
       creal d_vx = dvx / (this->nVelocitySamples-1);
@@ -122,7 +123,7 @@ namespace projects {
       uint samples=0;
 
       Real middleValue=getDistribValue(x+0.5*dx, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz);
-      if(middleValue<0.000001*Parameters::sparseMinValue){
+      if (middleValue < 0.000001*getObjectWrapper().particleSpecies[popID].sparseMinValue) {
          return middleValue; //abort, this will not be accepted anyway
       }
       

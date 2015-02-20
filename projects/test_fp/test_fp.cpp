@@ -45,6 +45,7 @@ namespace projects {
    */
 
    bool test_fp::initialize(void) {
+      Project::initialize();
       this->ALPHA *= M_PI / 4.0;
       return true;
    }
@@ -61,6 +62,7 @@ namespace projects {
    }
 
    void test_fp::getParameters(void){
+      Project::getParameters();
       typedef Readparameters RP;
       RP::get("test_fp.B0", this->B0);
       RP::get("test_fp.V0", this->V0);
@@ -78,7 +80,7 @@ namespace projects {
    }
 
 
-   Real test_fp::calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz) {
+   Real test_fp::calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz,const int& popID) {
       
       vector<std::array<Real, 3>> V = this->getV0(x,y,z,dx,dy,dz);
       

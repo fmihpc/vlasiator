@@ -33,7 +33,7 @@ namespace projects {
    Riemann1::Riemann1(): Project() { }
    Riemann1::~Riemann1() { }
 
-   bool Riemann1::initialize(void) {return true;}
+   bool Riemann1::initialize(void) {return Project::initialize();}
 
    void Riemann1::addParameters(){
       typedef Readparameters RP;
@@ -58,6 +58,7 @@ namespace projects {
    }
 
    void Riemann1::getParameters(){
+      Project::getParameters();
       typedef Readparameters RP;
       RP::get("Riemann.rho1", this->rho[this->LEFT]);
       RP::get("Riemann.rho2", this->rho[this->RIGHT]);
@@ -87,7 +88,7 @@ namespace projects {
    }
 
 
-   Real Riemann1::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {   
+   Real Riemann1::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const int& popID) {   
       creal d_x = dx / (this->nSpaceSamples-1);
       creal d_y = dy / (this->nSpaceSamples-1);
       creal d_z = dz / (this->nSpaceSamples-1);

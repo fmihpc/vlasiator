@@ -59,7 +59,7 @@ namespace projects {
    Dispersion::Dispersion(): Project() { }
    Dispersion::~Dispersion() { }
    
-   bool Dispersion::initialize(void) {return true;}
+   bool Dispersion::initialize(void) {return Project::initialize();}
    
    void Dispersion::addParameters() {
       typedef Readparameters RP;
@@ -82,6 +82,7 @@ namespace projects {
    }
    
    void Dispersion::getParameters() {
+      Project::getParameters();
       typedef Readparameters RP;
       Project::getParameters();
       RP::get("Dispersion.B0", this->B0);
@@ -108,7 +109,7 @@ namespace projects {
       return exp(- mass * ((vx-this->VX0)*(vx-this->VX0) + (vy-this->VY0)*(vy-this->VY0) + (vz-this->VZ0)*(vz-this->VZ0)) / (2.0 * kb * this->TEMPERATURE));
    }
    
-   Real Dispersion::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
+   Real Dispersion::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const int& popID) {
       if(vx < Parameters::vxmin + 0.5 * dvx ||
          vy < Parameters::vymin + 0.5 * dvy ||
          vz < Parameters::vzmin + 0.5 * dvz ||

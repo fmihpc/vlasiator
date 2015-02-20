@@ -661,7 +661,7 @@ namespace SBC {
       
       #warning All species have the same VX0,VY0,VZ0,T
       const Real MASS = getObjectWrapper().particleSpecies[popID].mass;
-      
+
       return this->rho * pow(MASS /
       (2.0 * M_PI * physicalconstants::K_B * this->T), 1.5) *
       exp(-MASS * ((vx-this->VX0)*(vx-this->VX0) + (vy-this->VY0)*(vy-this->VY0) + (vz-this->VZ0)*(vz-this->VZ0)) /
@@ -674,7 +674,7 @@ namespace SBC {
       uint counter = 0;
 
       while (search) {
-         if (0.1 * P::sparseMinValue >
+         if (0.1 * getObjectWrapper().particleSpecies[popID].sparseMinValue > 
             shiftedMaxwellianDistribution(popID,counter*SpatialCell::get_velocity_grid_block_size()[0], 0.0, 0.0) || counter > P::vxblocks_ini) {
             search = false;
          }

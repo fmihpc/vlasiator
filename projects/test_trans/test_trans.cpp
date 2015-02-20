@@ -44,7 +44,9 @@ namespace projects {
       RP::add("test_trans.peakValue","Value of the distribution function",(Real)1.0);
    }
 
-   void test_trans::getParameters(){
+   void test_trans::getParameters() {
+      Project::getParameters();
+      
       typedef Readparameters RP;
       RP::get("test_trans.cellPosition", this->cellPosition);
       RP::get("test_trans.peakValue" ,peakValue);
@@ -104,7 +106,7 @@ namespace projects {
             }
          }
          
-         if(!outsideBox) {
+         if (!outsideBox) {
             return peakValue;
          }
       }

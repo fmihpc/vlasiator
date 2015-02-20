@@ -32,8 +32,8 @@ namespace projects {
    Flowthrough::Flowthrough(): TriAxisSearch() { }
    Flowthrough::~Flowthrough() { }
    
-   bool Flowthrough::initialize(void) {return true;}
-   
+   bool Flowthrough::initialize(void) {return Project::initialize();}
+
    void Flowthrough::addParameters(){
       typedef Readparameters RP;
       RP::add("Flowthrough.rho", "Number density (m^-3)", 0.0);
@@ -49,6 +49,7 @@ namespace projects {
    }
    
    void Flowthrough::getParameters(){
+      Project::getParameters();
       int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
       typedef Readparameters RP;
@@ -99,7 +100,7 @@ namespace projects {
       exp(- physicalconstants::MASS_PROTON * ((vx-this->V0[0])*(vx-this->V0[0]) + (vy-this->V0[1])*(vy-this->V0[1]) + (vz-this->V0[2])*(vz-this->V0[2])) / (2.0 * physicalconstants::K_B * this->T));
    }
 
-   Real Flowthrough::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
+   Real Flowthrough::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const int& popID) {
       creal d_x = dx / (this->nSpaceSamples-1);
       creal d_y = dy / (this->nSpaceSamples-1);
       creal d_z = dz / (this->nSpaceSamples-1);

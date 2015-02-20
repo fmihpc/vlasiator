@@ -32,7 +32,7 @@ namespace projects {
    Harris::Harris(): Project() { }
    Harris::~Harris() { }
    
-   bool Harris::initialize(void) {return true;}
+   bool Harris::initialize(void) {return Project::initialize();}
    
    void Harris::addParameters(){
       typedef Readparameters RP;
@@ -45,6 +45,7 @@ namespace projects {
    }
    
    void Harris::getParameters(){
+      Project::getParameters();
       typedef Readparameters RP;
       RP::get("Harris.Scale_size", this->SCA_LAMBDA);
       RP::get("Harris.BX0", this->BX0);
@@ -58,7 +59,7 @@ namespace projects {
       creal& x,creal& y,creal& z,
       creal& dx,creal& dy,creal& dz,
       creal& vx,creal& vy,creal& vz,
-      creal& dvx,creal& dvy,creal& dvz
+      creal& dvx,creal& dvy,creal& dvz,const int& popID
    ) {
       creal mass = physicalconstants::MASS_PROTON;
       creal kb = physicalconstants::K_B;

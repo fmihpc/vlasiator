@@ -26,7 +26,7 @@ namespace projects {
    Shocktest::~Shocktest() {} // Destructor
 
    
-   bool Shocktest::initialize(void) { return true; }
+   bool Shocktest::initialize(void) { return Project::initialize(); }
    
    void Shocktest::addParameters(){
       typedef Readparameters RP;
@@ -51,6 +51,7 @@ namespace projects {
    }
    
    void Shocktest::getParameters(){
+      Project::getParameters();
       this->rho[this->LEFT] = {NAN};
       this->T[this->LEFT] = {NAN};
       this->Vx[this->LEFT] = {NAN};
@@ -139,7 +140,7 @@ namespace projects {
     * @return The volume average of the distribution function in the given phase space cell.
     * The physical unit of this quantity is 1 / (m^3 (m/s)^3).
     */
-   Real Shocktest::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {   
+   Real Shocktest::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const int& popID) {   
       creal d_x = dx / (this->nSpaceSamples-1);
       creal d_y = dy / (this->nSpaceSamples-1);
       creal d_z = dz / (this->nSpaceSamples-1);

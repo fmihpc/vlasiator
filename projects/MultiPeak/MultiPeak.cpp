@@ -163,7 +163,7 @@ namespace projects {
          Real avgAccum   = avgTotal / (avg + N3_sum);
          Real avgCurrent = avg / (N*N*N);
          if (fabs(avgCurrent-avgAccum)/(avgAccum+eps) < 0.01) ok = true;
-         else if (avg < Parameters::sparseMinValue*0.01) ok = true;
+         else if (avg < getObjectWrapper().particleSpecies[popID].sparseMinValue*0.01) ok = true;
          else if (N > 10) {
             ok = true;
          }

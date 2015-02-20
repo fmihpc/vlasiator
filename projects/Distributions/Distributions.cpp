@@ -35,7 +35,7 @@ namespace projects {
    Distributions::~Distributions() { }
 
 
-   bool Distributions::initialize(void) {return true;}
+   bool Distributions::initialize(void) {return Project::initialize();}
 
    void Distributions::addParameters(){
       typedef Readparameters RP;
@@ -74,6 +74,7 @@ namespace projects {
    }
 
    void Distributions::getParameters(){
+      Project::getParameters();
       typedef Readparameters RP;
       Project::getParameters();
       RP::get("Distributions.rho1", this->rho[0]);
@@ -131,7 +132,7 @@ namespace projects {
       return value;
    }
 
-   Real Distributions::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {   
+   Real Distributions::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const int& popID) {   
       return getDistribValue(x+0.5*dx, y+0.5*dy,z+0.5*dz,vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz);
    }
 

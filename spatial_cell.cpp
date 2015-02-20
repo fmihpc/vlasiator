@@ -324,7 +324,7 @@ namespace spatial_cell {
          for (size_t b=0; b<blocks[r].size(); ++b) {
             const vmesh::GlobalID blockGID = blocks[r][b];
             fetch_data<1>(blockGID,populations[popID].vmesh,get_data(popID),array);
-            if (refCriterion->evaluate(array) < Parameters::amrCoarsenLimit) coarsenList.insert(blockGID);
+            if (refCriterion->evaluate(array,popID) < Parameters::amrCoarsenLimit) coarsenList.insert(blockGID);
          }
 
          // List of blocks created and removed during the coarsening. The first element (=key) 

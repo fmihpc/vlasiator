@@ -33,7 +33,7 @@ namespace projects {
 
 
 
-   bool Shock::initialize(void) {return true;}
+   bool Shock::initialize(void) {return Project::initialize();}
 
    void Shock::addParameters() {
       typedef Readparameters RP;
@@ -58,6 +58,7 @@ namespace projects {
    }
 
    void Shock::getParameters() {
+      Project::getParameters();
       typedef Readparameters RP;
       RP::get("Shock.BX0", this->BX0);
       RP::get("Shock.BY0", this->BY0);
@@ -87,7 +88,7 @@ namespace projects {
    }
 
 
-   Real Shock::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
+   Real Shock::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const int& popID) {
       if(vx < Parameters::vxmin + 0.5 * dvx ||
          vy < Parameters::vymin + 0.5 * dvy ||
          vz < Parameters::vzmin + 0.5 * dvz ||

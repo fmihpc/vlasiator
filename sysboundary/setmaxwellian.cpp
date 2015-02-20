@@ -110,7 +110,7 @@ namespace SBC {
       bool search = true;
       uint counter = 0;
       while (search) {
-         if (0.1 * P::sparseMinValue >
+         if (0.1 * getObjectWrapper().particleSpecies[popID].sparseMinValue > 
              maxwellianDistribution(
                                     popID,
                                     rho,

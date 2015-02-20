@@ -31,7 +31,9 @@ namespace projects {
    Diffusion::Diffusion(): Project() { }
    Diffusion::~Diffusion() { }
    
-   bool Diffusion::initialize(void) {return true;}
+   bool Diffusion::initialize(void) {
+      return Project::initialize();
+   }
    
    void Diffusion::addParameters() {
       typedef Readparameters RP;
@@ -45,6 +47,8 @@ namespace projects {
    }
 
    void Diffusion::getParameters() {
+      Project::getParameters();
+
       typedef Readparameters RP;
       RP::get("Diffusion.B0", this->B0);
       RP::get("Diffusion.rho", this->DENSITY);
@@ -69,7 +73,7 @@ namespace projects {
          exp(- mass * (pow(vx, 2.0) + pow(vy, 2.0) + pow(vz, 2.0)) / (2.0 * kb * this->TEMPERATURE)));
    }
    
-   Real Diffusion::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
+   Real Diffusion::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const int& popID) {
       creal d_x = dx / (this->nSpaceSamples-1);
       creal d_y = dy / (this->nSpaceSamples-1);
       creal d_z = dz / (this->nSpaceSamples-1);

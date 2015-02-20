@@ -30,7 +30,7 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 namespace projects {
    verificationLarmor::verificationLarmor(): Project() { }
    verificationLarmor::~verificationLarmor() { }
-   bool verificationLarmor::initialize(void) {return true;}
+   bool verificationLarmor::initialize(void) {return Project::initialize();}
 
    void verificationLarmor::addParameters() {
       typedef Readparameters RP;
@@ -47,6 +47,7 @@ namespace projects {
    }
 
    void verificationLarmor::getParameters() {
+      Project::getParameters();
       typedef Readparameters RP;
       RP::get("VerificationLarmor.BX0", this->BX0);
       RP::get("VerificationLarmor.BY0", this->BY0);
@@ -60,7 +61,7 @@ namespace projects {
       RP::get("VerificationLarmor.rho", this->DENSITY);
    }
 
-   Real verificationLarmor::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
+   Real verificationLarmor::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const int& popID) {
 
       static bool isSet=false;
       //static variables should be threadprivate

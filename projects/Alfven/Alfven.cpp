@@ -33,13 +33,15 @@ namespace projects {
    Alfven::~Alfven() { }
    
    bool Alfven::initialize(void) {
+      bool success = Project::initialize();
+
       Real norm = sqrt(this->Bx_guiding*this->Bx_guiding + this->By_guiding*this->By_guiding + this->Bz_guiding*this->Bz_guiding);
       this->Bx_guiding /= norm;
       this->By_guiding /= norm;
       this->By_guiding /= norm;
       this->ALPHA = atan(this->By_guiding/this->Bx_guiding);
       
-      return true;
+      return success;
    } 
 
    void Alfven::addParameters() {
@@ -58,6 +60,8 @@ namespace projects {
    }
 
    void Alfven::getParameters(){
+      Project::getParameters();
+      
       typedef Readparameters RP;
       RP::get("Alfven.B0", this->B0);
       RP::get("Alfven.Bx_guiding", this->Bx_guiding);
@@ -74,8 +78,8 @@ namespace projects {
 
    /*Real calcPhaseSpaceDensity(creal& z,creal& x,creal& y,creal& dz,creal& dx,creal& dy,
                creal& vz,creal& vx,creal& vy,creal& dvz,creal& dvx,creal& dvy) {*/
-   Real Alfven::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
-      creal mass = physicalconstants::MASS_PROTON;
+   Real Alfven::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const int& popID) {
+      creal mass = getObjectWrapper().particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
       creal mu0 = physicalconstants::MU_0;
       creal ALFVEN_VEL = this->B0 / sqrt(mu0 * this->DENSITY * mass);
@@ -90,7 +94,7 @@ namespace projects {
    return den;
    }
    
-   Real Alfven::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
+   Real Alfven::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const int& popID) {
       creal d_x = dx / (this->nSpaceSamples-1);
       creal d_y = dy / (this->nSpaceSamples-1);
       creal d_z = dz / (this->nSpaceSamples-1);
@@ -105,7 +109,7 @@ namespace projects {
             for (uint vj=0; vj<this->nVelocitySamples; ++vj)
          for (uint vk=0; vk<this->nVelocitySamples; ++vk)
          {
-            avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz);
+            avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz,popID);
          }
       return avg / pow(this->nSpaceSamples, 3.0) / pow(this->nVelocitySamples, 3.0);
    }

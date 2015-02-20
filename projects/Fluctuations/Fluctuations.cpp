@@ -35,7 +35,7 @@ Real projects::Fluctuations::rndRho, projects::Fluctuations::rndVel[3];
 namespace projects {
    Fluctuations::Fluctuations(): Project() { }
    Fluctuations::~Fluctuations() { }
-   bool Fluctuations::initialize(void) {return true;}
+   bool Fluctuations::initialize(void) {return Project::initialize();}
    
    void Fluctuations::addParameters() {
       typedef Readparameters RP;
@@ -55,6 +55,7 @@ namespace projects {
    }
 
    void Fluctuations::getParameters() {
+      Project::getParameters();
       typedef Readparameters RP;
       Project::getParameters();
       RP::get("Fluctuations.BX0", this->BX0);
@@ -82,7 +83,7 @@ namespace projects {
       creal& x, creal& y, creal& z,
       creal& dx, creal& dy, creal& dz,
       creal& vx, creal& vy, creal& vz,
-      creal& dvx, creal& dvy, creal& dvz
+      creal& dvx, creal& dvy, creal& dvz,const int& popID
    ) {
       if(vx < Parameters::vxmin + 0.5 * dvx ||
          vy < Parameters::vymin + 0.5 * dvy ||

@@ -102,7 +102,7 @@ namespace projects {
          cerr << ' ' << popMasses.size() << ' ' << popSparseMinValue.size() << endl;
          return success;
       }
-      
+
       // If particle population(s) have not been defined, add protons as a default population
       ObjectWrapper& owrapper = getObjectWrapper();
       if (popNames.size() == 0) {
@@ -110,13 +110,14 @@ namespace projects {
          population.name   = "proton";
          population.charge = physicalconstants::CHARGE;
          population.mass   = physicalconstants::MASS_PROTON;
+
          population.sparseMinValue = Parameters::sparseMinValue;
          owrapper.particleSpecies.push_back(population);
          printPopulations();
          baseClassInitialized = success;
          return success;
       }
-      
+
       // Parse populations from configuration file parameters:
       for (size_t p=0; p<popNames.size(); ++p) {       
          species::Species population;
@@ -290,7 +291,7 @@ namespace projects {
             cell->fetch_data<1>(blockGID,vmesh,cell->get_data(0,popID),array);
 
             // If block should be refined, add it to refine list
-            if (refCriterion->evaluate(array) > Parameters::amrRefineLimit) {
+            if (refCriterion->evaluate(array,popID) > Parameters::amrRefineLimit) {
                refineList.push_back(blockGID);
             }
          }

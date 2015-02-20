@@ -24,7 +24,7 @@ namespace amr_ref_criteria {
    Base* relDiffMaker() {return new RelativeDifference;}
 
    
-   void Base::evaluate(const Realf* velBlost,Realf* result) {
+   void Base::evaluate(const Realf* velBlost,Realf* result,const int& popID) {
       for (int i=0; i<WID3; ++i) result[i] = 0.0;
    }
 
@@ -34,7 +34,7 @@ namespace amr_ref_criteria {
    RelativeDifference::~RelativeDifference() { }
 
 
-   Realf RelativeDifference::evaluate(const Realf* array) {
+   Realf RelativeDifference::evaluate(const Realf* array,const int& popID) {
       // How many neighbor data points (per coordinate) the given block includes?
       const int PAD=1;
       Realf maxvalue = 0.0;
@@ -42,8 +42,7 @@ namespace amr_ref_criteria {
       for (int kc=0; kc<WID; ++kc) for (int jc=0; jc<WID; ++jc) for (int ic=0; ic<WID; ++ic) {
          Realf f_cen = array[vblock::padIndex<PAD>(ic+1,jc+1,kc+1)];
          
-         #warning This does not work for multi-population plasma
-         if (fabs(f_cen) < Parameters::sparseMinValue) continue;
+         if (fabs(f_cen) < getObjectWrapper().particleSpecies[popID].sparseMinValue) continue;
 
          Realf f_lft = array[vblock::padIndex<PAD>(ic  ,jc+1,kc+1)];
          Realf f_rgt = array[vblock::padIndex<PAD>(ic+2,jc+1,kc+1)];
@@ -65,12 +64,11 @@ namespace amr_ref_criteria {
       return maxvalue;
    }
 
-
-   void RelativeDifference::evaluate(const Realf* array,Realf* result) {
+   void RelativeDifference::evaluate(const Realf* array,Realf* result,const int& popID) {
       const int PAD=1;
       for (int kc=0; kc<WID; ++kc) for (int jc=0; jc<WID; ++jc) for (int ic=0; ic<WID; ++ic) {
          Realf f_cen = array[vblock::padIndex<PAD>(ic+1,jc+1,kc+1)];
-         if (fabs(f_cen) < Parameters::sparseMinValue) {
+         if (fabs(f_cen) < getObjectWrapper().particleSpecies[popID].sparseMinValue) {
             result[vblock::index(ic,jc,kc)] = 0;
             continue;
          }

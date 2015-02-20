@@ -1,18 +1,7 @@
 /*
 This file is part of Vlasiator.
 
-Copyright 2011, 2012 Finnish Meteorological Institute
-
-
-
-
-
-
-
-
-
-
-
+Copyright 2011-2012,2015 Finnish Meteorological Institute
 
 */
 
@@ -26,11 +15,11 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 
 namespace projects {
    class test_trans: public Project {
-   public:
+    public:
       test_trans();
       virtual ~test_trans();
 
-            virtual bool initialize(void);
+      virtual bool initialize(void);
       static void addParameters(void);
       virtual void getParameters(void);
       void setCellBackgroundField(SpatialCell* cell);

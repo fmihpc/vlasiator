@@ -3,18 +3,7 @@ This file is part of Vlasiator.
 
 Copyright 2011, 2012 Finnish Meteorological Institute
 
-
-
-
-
-
-
-
-
-
-
-
-*/
+ */
 
 #ifndef FIREHOSE_H
 #define FIREHOSE_H
@@ -44,7 +33,7 @@ namespace projects {
             creal& x, creal& y, creal& z,
             creal& dx, creal& dy, creal& dz,
             creal& vx, creal& vy, creal& vz,
-            creal& dvx, creal& dvy, creal& dvz
+            creal& dvx, creal& dvy, creal& dvz,const int& popID
          );
          
          Real rho[2];

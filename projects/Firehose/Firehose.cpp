@@ -32,7 +32,7 @@ namespace projects {
    Firehose::Firehose(): Project() { }
    Firehose::~Firehose() { }
    
-   bool Firehose::initialize(void) {return true;}
+   bool Firehose::initialize(void) {return Project::initialize();}
 
    void Firehose::addParameters(){
       typedef Readparameters RP;
@@ -60,6 +60,7 @@ namespace projects {
    }
 
    void Firehose::getParameters(){
+      Project::getParameters();
       typedef Readparameters RP;
       RP::get("Firehose.rho1", this->rho[1]);
       RP::get("Firehose.rho2", this->rho[2]);
@@ -108,7 +109,7 @@ namespace projects {
    //           pow(vz - this->Vz[2], 2.0) / (2.0 * kb * this->Tz[2]))); 
    }
 
-   Real Firehose::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
+   Real Firehose::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const int& popID) {
       creal d_x = dx / (this->nSpaceSamples-1);
       creal d_y = dy / (this->nSpaceSamples-1);
       creal d_vx = dvx / (this->nVelocitySamples-1);

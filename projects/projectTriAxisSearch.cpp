@@ -29,7 +29,7 @@ namespace projects {
          search = true;
          counter = 0;
          while (search) {
-            if (0.1 * P::sparseMinValue >
+            if (0.1 * getObjectWrapper().particleSpecies[popID].sparseMinValue >
                 calcPhaseSpaceDensity(x,
                                       y,
                                       z,
@@ -52,7 +52,7 @@ namespace projects {
          search = true;
          counter = 0;
          while(search) {
-            if(0.1 * P::sparseMinValue >
+            if (0.1 * getObjectWrapper().particleSpecies[popID].sparseMinValue >
                calcPhaseSpaceDensity(
                                      x,
                                      y,
@@ -78,7 +78,7 @@ namespace projects {
          search = true;
          counter = 0;
          while(search) {
-            if(0.1 * P::sparseMinValue >
+            if (0.1 * getObjectWrapper().particleSpecies[popID].sparseMinValue >
                calcPhaseSpaceDensity(
                                      x,
                                      y,
