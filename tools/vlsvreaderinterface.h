@@ -27,7 +27,7 @@ namespace newVlsv {
       bool getMeshNames( std::set<std::string> & meshNames );
       bool getVariableNames( const std::string&, std::list<std::string> & meshNames );
       bool getVariableNames( std::set<std::string> & meshNames );
-      bool getCellIds( std::vector<uint64_t> & cellIds );
+      bool getCellIds( std::vector<uint64_t> & cellIds,const std::string& meshName="SpatialGrid");
       //Reads in a variable:
       template <typename T, size_t N>
       bool getVariable( const std::string & variableName, const uint64_t & cellId, std::array<T, N> & variable );

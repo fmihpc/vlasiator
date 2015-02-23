@@ -598,10 +598,6 @@ bool convertVelocityBlocks2(
    domainSize[1] = 0;
    attributes["mesh"] = outputMeshName;
    if (out.writeArray("MESH_DOMAIN_SIZES",attributes,1,2,domainSize) == false) success = false;
-     {
-        vector<uint64_t> ().swap(blockIds);
-     }
-   
    attributes["mesh"] = "VelBlocks";
    if (out.writeArray("MESH_DOMAIN_SIZES",attributes,1,2,domainSize) == false) success = false;
 
@@ -725,6 +721,17 @@ bool convertVelocityBlocks2(
          
          delete [] buffer; buffer = NULL;
       }
+      
+      // Write velocity cell IDs:
+      vector<uint64_t> cellIDs(blockIds.size()*64);
+      for (size_t b=0; b<blockIds.size(); ++b) {
+         for (size_t c=0; c<64; ++c) {
+            cellIDs[b*64+c] = blockIds[b]*64 + c;
+         }
+      }
+      
+      attributes["name"] = "CellID";
+      if (out.writeArray("VARIABLE",attributes,cellIDs.size(),1,&(cellIDs[0])) == false) success = false;
    }
    
    vlsvReader.clearCellsWithBlocks();
@@ -1440,7 +1447,7 @@ void extractDistribution( const string & fileName, const UserOptions & mainOptio
       vlsvReader.close();
       return;
    }
-
+   
    //Sets cell variables (for cell geometry) -- used in getCellIdFromCoords function
    CellStructure cellStruct;
    setCellVariables( vlsvReader, cellStruct );

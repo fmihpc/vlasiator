@@ -84,7 +84,7 @@ default: vlasiator
 tools: parallel_tools not_parallel_tools
 	touch vlsvreader2.cpp
 
-parallel_tools: vlsv2vtk vlsv2silo vlsv2bzt vlsvextract
+parallel_tools: vlsv2vtk vlsv2bzt vlsvextract
 
 FORCE:
 # On FERMI one has to use the front-end compiler (e.g. g++) to compile this tool.

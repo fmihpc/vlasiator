@@ -51,6 +51,8 @@ static uint64_t convUInt(const char* ptr, const vlsv::datatype::type & dataType,
 
 
 float checkVersion( const string & fname ) {
+   return 1.0;
+   /*
    vlsv::Reader vlsvReader;
    vlsvReader.open(fname);
    string versionTag = "version";
@@ -67,7 +69,7 @@ float checkVersion( const string & fname ) {
       cerr << "Invalid version!" << endl;
       exit(1);
       return 0;
-   }
+   }*/
 }
 
 namespace newVlsv {
@@ -122,14 +124,14 @@ namespace newVlsv {
       return true;
    }
 
-   bool Reader::getCellIds( vector<uint64_t> & cellIds ) {
+   bool Reader::getCellIds( vector<uint64_t> & cellIds,const string& meshName) {
       uint64_t vectorSize, byteSize;
       uint64_t amountToReadIn;
       vlsv::datatype::type dataType;
       const string variableName = "CellID";
       std::list< pair<std::string, std::string> > xmlAttributes;
       xmlAttributes.push_back( make_pair( "name", variableName ) );
-      xmlAttributes.push_back( make_pair( "mesh", "SpatialGrid" ) );
+      xmlAttributes.push_back( make_pair( "mesh", meshName ) );
       if( getArrayInfo( "VARIABLE", xmlAttributes, amountToReadIn, vectorSize, dataType, byteSize ) == false ) return false;
       if( dataType != vlsv::datatype::type::UINT ) {
          cerr << "ERROR, BAD DATATYPE AT " << __FILE__ << " " << __LINE__ << endl;
