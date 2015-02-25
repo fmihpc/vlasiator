@@ -457,12 +457,15 @@ bool pDistance(const map<uint, Real>& orderedData1,
       *relative = -1;
    }
 
-   map<string,string> attributes;
-   attributes["mesh"] = meshName;
-   attributes["name"] = varName;
-   if (outputFile.writeArray("VARIABLE",attributes,array.size(),1,&(array[0])) == false) {
-      cerr << "ERROR failed to write variable '" << varName << "' to output file in " << __FILE__ << ":" << __LINE__ << endl;
-      return 1;
+   // Write out the difference (if requested):
+   if (attributes.find("--diff") != attributes.end()) {
+      map<string,string> attributes;
+      attributes["mesh"] = meshName;
+      attributes["name"] = varName;
+      if (outputFile.writeArray("VARIABLE",attributes,array.size(),1,&(array[0])) == false) {
+         cerr << "ERROR failed to write variable '" << varName << "' to output file in " << __FILE__ << ":" << __LINE__ << endl;
+         return 1;
+      }
    }
 
    return 0;
@@ -1354,17 +1357,18 @@ bool process2Files(const string fileName1,
       const string prefix = fileName1.substr(0,fileName1.find_last_of('.'));
       const string suffix = fileName1.substr(fileName1.find_last_of('.'),fileName1.size());
       const string outputFileName = prefix + ".diff." + varToExtract + suffix;
-
-      vlsv::Writer outputFile;
-      if (outputFile.open(outputFileName,MPI_COMM_SELF,0) == false) {
-         cerr << "ERROR failed to open output file '" << outputFileName << "' in " << __FILE__ << ":" << __LINE__ << endl;
-         return false;
-      }
-
-      // Clone mesh from input file to diff file
-      map<string,string>::const_iterator it = attributes.find("--meshname");
-      if (cloneMesh(fileName1,outputFile,it->second) == false) return false;
       const string varName = varToExtract;
+      vlsv::Writer outputFile;
+      if (attributes.find("--diff") != attributes.end()) {
+         if (outputFile.open(outputFileName,MPI_COMM_SELF,0) == false) {
+            cerr << "ERROR failed to open output file '" << outputFileName << "' in " << __FILE__ << ":" << __LINE__ << endl;
+            return false;
+         }
+
+         // Clone mesh from input file to diff file
+         map<string,string>::const_iterator it = attributes.find("--meshname");
+         if (cloneMesh(fileName1,outputFile,it->second) == false) return false;
+      }
 
       singleStatistics(&orderedData1, &size, &mini, &maxi, &avg, &stdev); //CONTINUE
       outputStats(&size, &mini, &maxi, &avg, &stdev, verboseOutput, false);
@@ -1433,8 +1437,19 @@ int main(int argn,char* args[]) {
    MPI_Init(&argn,&args);
 
    // Create default attributes
-   attributes.insert(make_pair("--meshname","SpatialGrid"));
-   attributes.insert(make_pair("--filemask","fullf"));
+   map<string,string> defAttribs;
+   defAttribs.insert(make_pair("--meshname","SpatialGrid"));
+   defAttribs.insert(make_pair("--filemask","fullf"));
+   defAttribs.insert(make_pair("--help",""));
+   defAttribs.insert(make_pair("--no-distrib",""));
+   defAttribs.insert(make_pair("--diff",""));
+
+   // Create default attributes
+   for (map<string,string>::const_iterator it=defAttribs.begin(); it!=defAttribs.end(); ++it) {
+      if (it->second.size() == 0) continue;
+      attributes.insert(make_pair(it->first,it->second));
+   }
+   
    vector<string> argsVector;
 
    // Parse attributes,value pairs from command line
@@ -1472,6 +1487,21 @@ int main(int argn,char* args[]) {
       ++i;
    }
    
+   if (attributes.find("--help") != attributes.end()) {
+      cout << endl;
+      cout << "VLSVDIFF command line attributes are given as option=value pairs, value can be empty." << endl;
+      cout << "If the default value is 'unset', then giving the option in the command line turns it on." << endl;
+      cout << "For example, \"vlsvdiff --help\" displays this message and the option '--help' does not have a value." << endl;
+      cout << "Known attributes and default values are:" << endl;
+      for (map<string,string>::const_iterator it=defAttribs.begin(); it!=defAttribs.end(); ++it) {
+         cout << "\t" << it->first;
+         if (it->second.size() > 0) cout << "=" << it->second << endl;
+         else cout << " (unset)" << endl;
+      }
+      cout << endl;      
+      return 0;
+   }
+
    if (argsVector.size() < 5) {
       cout << endl;
       cout << "USAGE 1: ./vlsvdiff <file1> <file2> <Variable> <component>" << endl;
@@ -1481,6 +1511,8 @@ int main(int argn,char* args[]) {
       cout << "USAGE 3: ./vlsvdiff <file1> <folder2> <Variable> <component>" << endl;
       cout << "         ./vlsvdiff <folder1> <file2> <Variable> <component>" << endl;
       cout << "Gives single-file statistics and distances between a file, and files grid*.vlsv taken in alphanumeric order in the given folder, for the variable and component given" << endl;
+      cout << endl;
+      cout << "Type ./vlsvdiff --help for more info" << endl;
       cout << endl;
       return 1;
    }
