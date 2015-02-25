@@ -45,6 +45,8 @@ namespace projects {
    }
    
    void Magnetosphere::getParameters(){
+      Project::getParameters();
+      
       int myRank;
       Real dummy;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
