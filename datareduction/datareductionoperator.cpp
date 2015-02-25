@@ -368,15 +368,16 @@ namespace DRO {
    bool VariablePressure::reduceData(const SpatialCell* cell,char* buffer) {
       const Real HALF = 0.5;
       const Real THIRD = 1.0/3.0;
-      # pragma omp parallel
+      
+      Real nvx2_sum = 0.0;
+      Real nvy2_sum = 0.0;
+      Real nvz2_sum = 0.0;
+
+      # pragma omp parallel reduction(+:thread_nvx2_sum,thread_nvy2_sum,thread_nvz2_sum)
       {
-         Real thread_nvx2_sum = 0.0;
-         Real thread_nvy2_sum = 0.0;
-         Real thread_nvz2_sum = 0.0;
-         
          for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-            // Get velocity block parameters and distrib. func. of active population
-            const Real* parameters = cell->get_block_parameters(popID);
+            // Get velocity block parameters and distribution function of active population
+            const Real*  parameters = cell->get_block_parameters(popID);
             const Realf* block_data = cell->get_data(popID);
 
             Real pop_nvx2_sum = 0.0;
@@ -388,32 +389,31 @@ namespace DRO {
                for (uint k=0; k<WID; ++k)
                   for (uint j=0; j<WID; ++j)
                      for (uint i=0; i<WID; ++i) {
-                        const Real VX = parameters[BlockParams::VXCRD] + (i+HALF) * parameters[BlockParams::DVX];
-                        const Real VY = parameters[BlockParams::VYCRD] + (j+HALF) * parameters[BlockParams::DVY];
-                        const Real VZ = parameters[BlockParams::VZCRD] + (k+HALF) * parameters[BlockParams::DVZ];
-
-                        const Real DV3 = parameters[BlockParams::DVX] * parameters[BlockParams::DVY] * parameters[BlockParams::DVZ];                   
-                        pop_nvx2_sum += block_data[cellIndex(i,j,k)] * (VX - averageVX) * (VX - averageVX) * DV3;
-                        pop_nvy2_sum += block_data[cellIndex(i,j,k)] * (VY - averageVY) * (VY - averageVY) * DV3;
-                        pop_nvz2_sum += block_data[cellIndex(i,j,k)] * (VZ - averageVZ) * (VZ - averageVZ) * DV3;
+                        const Real VX 
+                           =          parameters[n*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::VXCRD] 
+                           + (i+HALF)*parameters[n*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::DVX];
+                        const Real VY 
+                           =          parameters[n*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::VYCRD] 
+                           + (j+HALF)*parameters[n*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::DVY];
+                        const Real VZ 
+                           =          parameters[n*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::VZCRD] 
+                           + (k+HALF)*parameters[n*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::DVZ];
+                        const Real DV3 
+                           = parameters[n*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::DVX]
+                           * parameters[n*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::DVY] 
+                           * parameters[n*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::DVZ];                   
+                        pop_nvx2_sum += block_data[n*WID3+cellIndex(i,j,k)] * (VX - averageVX) * (VX - averageVX) * DV3;
+                        pop_nvy2_sum += block_data[n*WID3+cellIndex(i,j,k)] * (VY - averageVY) * (VY - averageVY) * DV3;
+                        pop_nvz2_sum += block_data[n*WID3+cellIndex(i,j,k)] * (VZ - averageVZ) * (VZ - averageVZ) * DV3;
                }
-               
-               parameters += BlockParams::N_VELOCITY_BLOCK_PARAMS;
-               block_data += SIZE_VELBLOCK;
             }
-            thread_nvx2_sum += pop_nvx2_sum*getObjectWrapper().particleSpecies[popID].mass;
-            thread_nvy2_sum += pop_nvy2_sum*getObjectWrapper().particleSpecies[popID].mass;
-            thread_nvz2_sum += pop_nvz2_sum*getObjectWrapper().particleSpecies[popID].mass;
-         }
-         
-         // Accumulate contributions coming from this velocity block to the 
-         // spatial cell velocity moments. If multithreading / OpenMP is used, 
-         // these updates need to be atomic:
-         # pragma omp critical
-         {
-            Pressure += THIRD * (thread_nvx2_sum + thread_nvy2_sum + thread_nvz2_sum);
+            const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+            thread_nvx2_sum += mass*pop_nvx2_sum;
+            thread_nvy2_sum += mass*pop_nvy2_sum;
+            thread_nvz2_sum += mass*pop_nvz2_sum;
          }
       }
+      Pressure = THIRD*(thread_nvx2_sum + thread_nvy2_sum + thread_nvz2_sum);
       const char* ptr = reinterpret_cast<const char*>(&Pressure);
       for (uint i=0; i<sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
@@ -437,7 +437,6 @@ namespace DRO {
       Pressure = 0.0;
       return true;
    }
-   
    
    // Scalar pressure from the solvers
    VariablePressureSolver::VariablePressureSolver(): DataReductionOperator() { }
