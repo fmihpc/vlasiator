@@ -9,7 +9,7 @@ FP_PRECISION = DP
 DISTRIBUTION_FP_PRECISION = SPF
 
 #Set vector backend type for vlasov solvers, sets precision and length. Options: VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER, VEC4D_FALLBACK, VEC4F_FALLBACK
-CXXFLAGS += -DVEC8F_AGNER
+VECTORCLASS = VEC8F_AGNER
 
 #set a default archive utility, can also be set in Makefile.arch
 AR ?= ar
@@ -17,22 +17,31 @@ AR ?= ar
 #londrillo_delzanna (no other options)
 FIELDSOLVER ?= londrillo_delzanna
 #Add -DFS_1ST_ORDER_SPACE or -DFS_1ST_ORDER_TIME to make the field solver first-order in space or time
-# CXXFLAGS += -DFS_1ST_ORDER_SPACE
-# CXXFLAGS += -DFS_1ST_ORDER_TIME
+# COMPFLAGS += -DFS_1ST_ORDER_SPACE
+# COMPFLAGS += -DFS_1ST_ORDER_TIME
+
+#override flags if we are building testpackage:
+ifeq ($(MAKECMDGOALS),testpackage)
+MATHFLAGS =
+FP_PRECISION = DP
+DISTRIBUTION_FP_PRECISION = DPF
+VECTORCLASS = VEC4D_AGNER
+CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++0x -fabi-version=0 -mavx
+endif
 
 #also use papi to report memory consumption?
 PAPI_FLAG ?= -DPAPI_MEM
-CXXFLAGS +=${PAPI_FLAG}
+COMPFLAGS +=${PAPI_FLAG}
 
 #Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
 #Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
-CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+COMPFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
 #is profiling on?
-CXXFLAGS += -DPROFILE
+COMPFLAGS += -DPROFILE
 
 #Add -DNDEBUG to turn debugging off. If debugging is enabled performance will degrade significantly
-CXXFLAGS += -DNDEBUG
+COMPFLAGS += -DNDEBUG
 # CXXFLAGS += -DDEBUG_SOLVERS
 # CXXFLAGS += -DDEBUG_IONOSPHERE
 
@@ -44,41 +53,46 @@ CXXFLAGS += -DNDEBUG
 #  TRANS_SEMILAG_PLM 	2nd order	
 #  TRANS_SEMILAG_PPM	3rd order (for production use, use unless testing)
 #  TRANS_SEMILAG_PQM	5th order (significantly slower due to larger stencil)
-CXXFLAGS += -DACC_SEMILAG_PQM -DTRANS_SEMILAG_PPM 
+COMPFLAGS += -DACC_SEMILAG_PQM -DTRANS_SEMILAG_PPM 
 
 #Add -DCATCH_FPE to catch floating point exceptions and stop execution
 #May cause problems
-# CXXFLAGS += -DCATCH_FPE
+# COMPFLAGS += -DCATCH_FPE
 
 #Define MESH=AMR if you want to use adaptive mesh refinement in velocity space
 #MESH = AMR
 
 #Add -DFS_1ST_ORDER_SPACE or -DFS_1ST_ORDER_TIME to make the field solver first-order in space or time
-# CXXFLAGS += -DFS_1ST_ORDER_SPACE
-# CXXFLAGS += -DFS_1ST_ORDER_TIME
+# COMPFLAGS += -DFS_1ST_ORDER_SPACE
+# COMPFLAGS += -DFS_1ST_ORDER_TIME
 
 #//////////////////////////////////////////////////////
 # The rest of this file users shouldn't need to change
 #//////////////////////////////////////////////////////
 
 #will need profiler in most places..
-CXXFLAGS += ${INC_PROFILE} 
+COMPFLAGS += ${INC_PROFILE} 
 
 #use jemalloc
-CXXFLAGS += ${INC_JEMALLOC} 
+COMPFLAGS += ${INC_JEMALLOC} 
 
 #define precision
-CXXFLAGS += -D${FP_PRECISION} 
+COMPFLAGS += -D${FP_PRECISION} 
 
 #define precision for the distribution function
-CXXFLAGS += -D${DISTRIBUTION_FP_PRECISION}
+COMPFLAGS += -D${DISTRIBUTION_FP_PRECISION}
 
-CXXEXTRAFLAGS = ${CXXFLAGS} -DTOOL_NOT_PARALLEL
+#set vector class
+COMPFLAGS += -D${VECTORCLASS}
 
 # If adaptive mesh refinement is used, add a precompiler flag
 ifeq ($(MESH),AMR)
-CXXFLAGS += -DAMR
+COMPFLAGS += -DAMR
 endif
+
+# Set compiler flags
+CXXFLAGS += ${COMPFLAGS}
+CXXEXTRAFLAGS = ${CXXFLAGS} -DTOOL_NOT_PARALLEL
 
 default: vlasiator
 
@@ -86,6 +100,8 @@ tools: parallel_tools not_parallel_tools
 	touch vlsvreader2.cpp
 
 parallel_tools: vlsv2vtk vlsv2bzt vlsvextract
+
+testpackage: vlasiator
 
 FORCE:
 # On FERMI one has to use the front-end compiler (e.g. g++) to compile this tool.
@@ -101,7 +117,6 @@ INSTALL = $(CURDIR)
 
 # Executable:
 EXE = vlasiator
-
 
 # Collect libraries into single variable:
 LIBS = ${LIB_BOOST}
