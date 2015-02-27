@@ -369,9 +369,9 @@ namespace DRO {
       const Real HALF = 0.5;
       const Real THIRD = 1.0/3.0;
       
-      Real nvx2_sum = 0.0;
-      Real nvy2_sum = 0.0;
-      Real nvz2_sum = 0.0;
+      Real thread_nvx2_sum = 0.0;
+      Real thread_nvy2_sum = 0.0;
+      Real thread_nvz2_sum = 0.0;
 
       # pragma omp parallel reduction(+:thread_nvx2_sum,thread_nvy2_sum,thread_nvz2_sum)
       {
