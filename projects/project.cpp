@@ -30,6 +30,7 @@
 #include "../backgroundfield/backgroundfield.h"
 #include "../backgroundfield/constantfield.hpp"
 #include "Shocktest/Shocktest.h"
+#include "Poisson/poisson_test.h"
 
 using namespace std;
 
@@ -69,6 +70,7 @@ namespace projects {
       projects::test_trans::addParameters();
       projects::verificationLarmor::addParameters();
       projects::Shocktest::addParameters();
+      projects::PoissonTest::addParameters();
       RP::add("Project_common.seed", "Seed for the RNG", 42);
       
       // Add parameters needed to create particle populations
@@ -227,7 +229,6 @@ namespace projects {
       creal dz = cell->parameters[CellParams::DZ];
 
       Realf* data = cell->get_data(popID);
-
       for (uint i=0; i<blocksToInitialize.size(); ++i) {
          const vmesh::GlobalID blockGID = blocksToInitialize[i];
          const vmesh::LocalID blockLID = vmesh.getLocalID(blockGID);
@@ -474,6 +475,9 @@ Project* createProject() {
    }
    if(Parameters::projectName == "Shocktest") {
       return new projects::Shocktest;
+   }
+   if (Parameters::projectName == "PoissonTest") {
+      return new projects::PoissonTest;
    }
    cerr << "Unknown project name!" << endl;
    abort();

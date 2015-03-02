@@ -7,7 +7,6 @@
 #include <ctime>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include "boost/array.hpp"
 #include "ioread.h"
 #include "phiprof.hpp"
 #include "parameters.h"
@@ -928,7 +927,7 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 
    //check that the cellID lists are identical in file and grid
    if(myRank==0){
-      vector<uint64_t> allGridCells=mpiGrid.get_all_cells();
+      vector<CellID> allGridCells=mpiGrid.get_all_cells();
       if(fileCells.size() != allGridCells.size()){
          success=false;
       }
@@ -939,13 +938,14 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       success = readNBlocks(file,nBlocks,MASTER_RANK,MPI_COMM_WORLD);
    }
    //make sure all cells are empty, we will anyway overwrite everything and in that case moving cells is easier...
-   vector<CellID> gridCells = mpiGrid.get_cells();
-   for(size_t i=0; i<gridCells.size(); i++) {
-      for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
-      mpiGrid[gridCells[i]]->clear(popID);
-   }
-
-
+     {
+        const vector<CellID>& gridCells = getLocalCells();
+        for (size_t i=0; i<gridCells.size(); i++) {
+           for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
+             mpiGrid[gridCells[i]]->clear(popID);
+        }
+     }
+   
    uint64_t totalNumberOfBlocks=0;
    unsigned int numberOfBlocksPerProcess;
 
@@ -978,7 +978,7 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
    mpiGrid.balance_load(false);
    //get new list of local gridcells
-   gridCells = mpiGrid.get_cells();
+   const vector<CellID>& gridCells = getLocalCells();
    //unpin cells, otherwise we will never change this initial bad balance
    for(uint i=0;i<gridCells.size();i++){
       mpiGrid.unpin(gridCells[i]);

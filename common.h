@@ -10,6 +10,7 @@ Copyright 2010-2015 Finnish Meteorological Institute
 
 #include <limits>
 #include <string>
+#include <vector>
 #include "definitions.h"
 #include "object_wrapper.h"
 
@@ -219,6 +220,9 @@ namespace CellParams {
       LBWEIGHTCOUNTER,    /*!< Counter for storing compute time weights needed by the load balancing**/
       ACCSUBCYCLES,        /*!< number of subcyles for each cell*/
       ISCELLSAVINGF,      /*!< Value telling whether a cell is saving its distribution function when partial f data is written out. */
+      PHI,      /*!< Electrostatic potential.*/
+      PHI_TMP,  /*!< Temporary electrostatic potential.*/
+      RHOQ_TOT, /*!< Total charge density, summed over all particle populations.*/
       N_SPATIAL_CELL_PARAMS
    };
 }
@@ -356,6 +360,7 @@ struct globalflags {
 
 // Natural constants
 namespace physicalconstants {
+   const Real EPS_0 = 8.85418782e-12; /*!< Permittivity of value, unit: C / (V m).*/
    const Real MU_0 = 1.25663706e-6;  /*!< Permeability of vacuo, units: (kg m) / (s^2 A^2).*/
    const Real K_B = 1.3806503e-23;   /*!< Boltzmann's constant, units: (kg m^2) / (s^2 K).*/
    const Real CHARGE = 1.60217653e-19; /*!< Elementary charge, units: C. */
@@ -363,6 +368,8 @@ namespace physicalconstants {
    const Real MASS_PROTON = 1.67262158e-27; /*!< Proton rest mass, units: kg.*/
    const Real R_E = 6.3712e6; /*!< radius of the Earth, units: m. */
 }
+
+const std::vector<CellID>& getLocalCells();
 
 ObjectWrapper& getObjectWrapper();
 

@@ -324,7 +324,7 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
 bool writeCommonGridData(
    Writer& vlsvWriter,
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   vector<uint64_t> & local_cells,
+   const vector<uint64_t>& local_cells,
    const uint& fileIndex,
    MPI_Comm comm
 ) {
@@ -813,10 +813,10 @@ bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    vlsvWriter.open( fname.str(), MPI_COMM_WORLD, masterProcessId, MPIinfo );
 
    // Get all local cell Ids 
-   vector<uint64_t> local_cells = mpiGrid.get_cells();
-
+   const vector<CellID>& local_cells = getLocalCells();
+   
    //Declare ghost cells:
-   vector<uint64_t> ghost_cells;
+   vector<CellID> ghost_cells;
    if( writeGhosts ) {
       // Writing ghost cells:
       // Get all ghost cell Ids (NOTE: this works slightly differently depending on whether the grid is periodic or not)
@@ -863,17 +863,15 @@ bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    for( uint i = 0; i < dataReducer.size(); ++i ) {
       if( writeDataReducer( mpiGrid, local_cells, (P::writeAsFloat==1), dataReducer, i, vlsvWriter ) == false ) return false;
    }
-
+   
    phiprof::initializeTimer("Barrier","MPI","Barrier");
    phiprof::start("Barrier");
    MPI_Barrier(MPI_COMM_WORLD);
    phiprof::stop("Barrier");
    vlsvWriter.close();
    phiprof::stop("writeGrid-reduced");
-
    return success;
 }
-
 
 /*!
 
@@ -923,12 +921,12 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    vlsvWriter.open( fname.str(), MPI_COMM_WORLD, masterProcessId, MPIinfo );
    
    // Get all local cell Ids 
-   vector<uint64_t> local_cells = mpiGrid.get_cells();
+   vector<CellID> local_cells = getLocalCells();
    //no order assumed so let's order cells here
    std::sort(local_cells.begin(), local_cells.end());
    
    //Note: No need to write ghost zones for write restart
-   const vector<uint64_t> ghost_cells;
+   const vector<CellID> ghost_cells;
    
    //The mesh name is "SpatialGrid"
    const string meshName = "SpatialGrid";
@@ -1007,7 +1005,7 @@ bool writeDiagnostic(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    
    string dataType;
    uint dataSize, vectorSize;
-   vector<uint64_t> cells = mpiGrid.get_cells();
+   const vector<CellID>& cells = getLocalCells();
    cuint nCells = cells.size();
    cuint nOps = dataReducer.size();
    

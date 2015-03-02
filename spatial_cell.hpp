@@ -20,8 +20,8 @@ Copyright 2011-2015 Finnish Meteorological Institute
 #include <stdint.h>
 #include <vector>
 #include <set>
-
 #include <phiprof.hpp>
+#include <tuple>
 
 #include "memoryallocation.h"
 #include "common.h"
@@ -92,6 +92,8 @@ namespace spatial_cell {
       const uint64_t CELL_HALL_TERM           = (1<<22);
       const uint64_t CELL_P                   = (1<<23);
       const uint64_t CELL_PDT2                = (1<<24);
+      const uint64_t CELL_RHOQ_TOT            = (1<<25);
+      const uint64_t CELL_PHI                 = (1<<26);
       
       // All data
       const uint64_t ALL_DATA =

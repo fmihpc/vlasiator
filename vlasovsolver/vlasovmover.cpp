@@ -208,7 +208,7 @@ void calculateSpatialTranslation(
    
     phiprof::start("semilag-trans");
     phiprof::start("compute_cell_lists");
-    const vector<CellID> localCells = mpiGrid.get_cells();
+    const vector<CellID>& localCells = getLocalCells();
     const vector<CellID> remoteTargetCellsx = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID);
     const vector<CellID> remoteTargetCellsy = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID);
     const vector<CellID> remoteTargetCellsz = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID);
