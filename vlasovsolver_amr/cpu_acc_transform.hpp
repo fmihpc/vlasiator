@@ -51,7 +51,7 @@ Transform<Real,3,Affine> compute_acceleration_transformation( SpatialCell* spati
    
    const Real rho=spatial_cell->parameters[CellParams::RHO_V];
    //scale rho for hall term, if user requests
-   const Real hallRho =  (rho <= Parameters::lorentzHallMinimumRho ) ? Parameters::lorentzHallMinimumRho : rho ;
+   const Real hallRho =  (rho <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : rho ;
    const Real hallPrefactor = 1.0 / (physicalconstants::MU_0 * hallRho * physicalconstants::CHARGE );
 
    
@@ -74,7 +74,7 @@ Transform<Real,3,Affine> compute_acceleration_transformation( SpatialCell* spati
       /*first add bulk velocity (using the total transform computed this far*/
       Eigen::Matrix<Real,3,1> rotation_pivot(total_transform*bulk_velocity);
       
-      //inlude lorentzHallTerm (we should include, always)      
+      //inlude lorentzHallTerm (we should include, always)
       rotation_pivot[0]-=hallPrefactor*(dBZdy - dBYdz);
       rotation_pivot[1]-=hallPrefactor*(dBXdz - dBZdx);
       rotation_pivot[2]-=hallPrefactor*(dBYdx - dBXdy);
