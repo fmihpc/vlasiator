@@ -11,6 +11,7 @@
 #include "Diffusion/Diffusion.h"
 #include "Dispersion/Dispersion.h"
 #include "Distributions/Distributions.h"
+#include "ElectricSail/electric_sail.h"
 #include "Firehose/Firehose.h"
 #include "Flowthrough/Flowthrough.h"
 #include "Fluctuations/Fluctuations.h"
@@ -53,6 +54,7 @@ namespace projects {
       projects::Diffusion::addParameters();
       projects::Dispersion::addParameters();
       projects::Distributions::addParameters();
+      projects::ElectricSail::addParameters();
       projects::Firehose::addParameters();
       projects::Flowthrough::addParameters();
       projects::Fluctuations::addParameters();
@@ -243,7 +245,7 @@ namespace projects {
          creal dvxCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
          creal dvyCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
          creal dvzCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
-
+         
          // Calculate volume average of distrib. function for each cell in the block.
          for (uint kc=0; kc<WID; ++kc) 
             for (uint jc=0; jc<WID; ++jc) 
@@ -263,9 +265,9 @@ namespace projects {
                      // We should set_value to a specific block index (as we already have it!)
                      data[blockLID*SIZE_VELBLOCK+cellIndex(ic,jc,kc)] = average;
                   }
-               }
+         }
       }
-
+      
       // Get AMR refinement criterion and use it to test which blocks should be refined
       amr_ref_criteria::Base* refCriterion = getObjectWrapper().amrVelRefCriteria.create(Parameters::amrVelRefCriterion);
       if (refCriterion == NULL) return;
@@ -422,6 +424,9 @@ Project* createProject() {
    }
    if(Parameters::projectName == "Distributions") {
       return new projects::Distributions;
+   }
+   if (Parameters::projectName == "ElectricSail") {
+      return new projects::ElectricSail;
    }
    if(Parameters::projectName == "Firehose") {
       return new projects::Firehose;

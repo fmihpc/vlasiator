@@ -150,15 +150,14 @@ namespace projects {
             for (uint vj=0; vj<N; ++vj) {
                for (uint vk=0; vk<N; ++vk) {
                   creal VX = vx + 0.5*DVX + vi*DVX;
-                  creal VY = vy + 0.5*DVY + vj*DVX;
-                  creal VZ = vz + 0.5*DVZ + vk*DVX;
+                  creal VY = vy + 0.5*DVY + vj*DVY;
+                  creal VZ = vz + 0.5*DVZ + vk*DVZ;
                   avg += getDistribValue(VX,VY,VZ,DVX,DVY,DVZ);
                }
             }
          }
          
          // Compare the current and accumulated volume averages:
-         //ok = true;
          Real eps = max(numeric_limits<creal>::min(),avg * static_cast<Real>(1e-6));
          Real avgAccum   = avgTotal / (avg + N3_sum);
          Real avgCurrent = avg / (N*N*N);

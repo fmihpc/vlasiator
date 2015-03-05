@@ -1,7 +1,7 @@
 /* This file is part of Vlasiator.
  * Copyright 2015 Finnish Meteorological Institute.
  * 
- * File:   poisson_solver.h
+ * File:   poisson_solver.cpp
  * Author: sandroos
  *
  * Created on January 14, 2015, 1:42 PM
@@ -33,6 +33,7 @@ namespace poisson {
    int Poisson::PHI = CellParams::PHI;
    ObjectFactory<PoissonSolver> Poisson::solvers;
    PoissonSolver* Poisson::solver = NULL;
+   bool Poisson::is2D = false;
    string Poisson::solverName;
    uint Poisson::maxIterations;
    Real Poisson::minRelativePotentialChange;
@@ -63,6 +64,99 @@ namespace poisson {
 
    bool PoissonSolver::finalize() {return true;}
 
+   /** Calculate total charge density on given spatial cells.
+    * @param mpiGrid Parallel grid library.
+    * @param cells List of spatial cells.
+    * @return If true, charge densities were successfully calculated.*/
+   bool PoissonSolver::calculateChargeDensity(spatial_cell::SpatialCell* cell) {
+      phiprof::start("Charge Density");
+      bool success = true;
+      
+      Real rho_q = 0.0;
+      #pragma omp parallel reduction (+:rho_q)
+      {
+         // Iterate all particle species
+         for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+            vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
+            if (blockContainer.size() == 0) continue;
+
+            const Real charge       = getObjectWrapper().particleSpecies[popID].charge;
+            const Realf* data       = blockContainer.getData();
+            const Real* blockParams = blockContainer.getParameters();
+
+            // Sum charge density over all phase-space cells
+            #pragma omp for
+            for (vmesh::LocalID blockLID=0; blockLID<blockContainer.size(); ++blockLID) {
+               Real sum = 0.0;
+               for (int i=0; i<WID3; ++i) sum += data[blockLID*WID3+i];
+
+               const Real DV3 
+                  = blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::DVX]
+                  * blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::DVY]
+                  * blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::DVZ];
+               rho_q += charge*sum/DV3;
+            }
+         }
+      }
+      cell->parameters[CellParams::RHOQ_TOT] = rho_q;
+
+      phiprof::stop("Charge Density");
+      return success;
+   }
+
+   bool PoissonSolver::calculateElectrostaticField2D(const std::vector<poisson::CellCache3D>& cells) {
+      phiprof::start("Electrostatic E");
+      
+      #pragma omp parallel for
+      for (size_t c=0; c<cells.size(); ++c) {
+         const Real DX = 2*cells[c].parameters[0][CellParams::DX];
+         const Real DY = 2*cells[c].parameters[0][CellParams::DY];
+
+         const Real phi_01 = cells[c].parameters[1][CellParams::PHI]; // -x neighbor
+         const Real phi_21 = cells[c].parameters[2][CellParams::PHI]; // +x neighbor
+         const Real phi_10 = cells[c].parameters[3][CellParams::PHI]; // -y neighbor
+         const Real phi_12 = cells[c].parameters[4][CellParams::PHI]; // +y neighbor
+
+         cells[c].parameters[0][CellParams::EXVOL] -= (phi_21-phi_01)/DX;
+         cells[c].parameters[0][CellParams::EYVOL] -= (phi_12-phi_10)/DY;
+      }
+
+      phiprof::stop("Electrostatic E");
+      return true;
+   }
+   
+   bool PoissonSolver::calculateElectrostaticField3D(const std::vector<poisson::CellCache3D>& cells) {
+      phiprof::start("Electrostatic E");
+
+      #pragma omp parallel for
+      for (size_t c=0; c<cells.size(); ++c) {
+         const Real DX = 2*cells[c].parameters[0][CellParams::DX];
+         const Real DY = 2*cells[c].parameters[0][CellParams::DY];
+         const Real DZ = 2*cells[c].parameters[0][CellParams::DZ];
+
+         const Real phi_011 = cells[c].parameters[1][CellParams::PHI]; // -x neighbor
+         const Real phi_211 = cells[c].parameters[2][CellParams::PHI]; // +x neighbor
+         const Real phi_101 = cells[c].parameters[3][CellParams::PHI]; // -y neighbor
+         const Real phi_121 = cells[c].parameters[4][CellParams::PHI]; // +y neighbor
+         const Real phi_110 = cells[c].parameters[5][CellParams::PHI]; // -z neighbor
+         const Real phi_112 = cells[c].parameters[6][CellParams::PHI]; // +z neighbor
+
+         cells[c].parameters[0][CellParams::EXVOL] -= (phi_211-phi_011)/DX;
+         cells[c].parameters[0][CellParams::EYVOL] -= (phi_121-phi_101)/DY;
+         cells[c].parameters[0][CellParams::EZVOL] -= (phi_112-phi_110)/DZ;
+      }
+
+      phiprof::stop("Electrostatic E");
+      return true;
+   }
+
+   /** Estimate the error in the numerical solution of the electrostatic potential.
+    * The error is calculated as the difference of new and old potential, divided 
+    * by the new potential value. This function works for both 2D and 3D solver.
+    * This function must be called simultaneously by all MPI processes.
+    * @param mpiGrid Parallel grid.
+    * @return The relative error in Poisson equation solution. The return value is 
+    * the same at all MPI processes.*/
    Real PoissonSolver::error(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
       phiprof::start("Potential Change");
 
@@ -215,10 +309,16 @@ namespace poisson {
       }
 
       // Set up the initial state unless the simulation was restarted
-      vector<CellID> local_cells = mpiGrid.get_cells();
+      if (Parameters::isRestart == true) return success;
+
+      const vector<CellID>& local_cells = getLocalCells();
       for (size_t c=0; c<local_cells.size(); ++c) {
          spatial_cell::SpatialCell* cell = mpiGrid[local_cells[c]];
          cell->parameters[CellParams::PHI] = 0;
+         cell->parameters[CellParams::PHI_TMP] = 0;
+         cell->parameters[CellParams::EXVOL] = cell->parameters[CellParams::BGEXVOL];
+         cell->parameters[CellParams::EYVOL] = cell->parameters[CellParams::BGEYVOL];
+         cell->parameters[CellParams::EZVOL] = cell->parameters[CellParams::BGEZVOL];
       }
 
       return success;
@@ -236,7 +336,8 @@ namespace poisson {
 
    bool solve(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
       phiprof::start("Poisson Solver (Total)");
-
+      bool success = true;
+      
       // If mesh partitioning has changed, recalculate spatial 
       // cell parameters pointer cache:
       if (Parameters::meshRepartitioned == true) {
@@ -245,9 +346,14 @@ namespace poisson {
 	 phiprof::stop("Cache Cell Parameters");
       }
 
-      bool success = true;
-      if (Poisson::solver != NULL) {
+      // Solve Poisson equation
+      if (success == true) if (Poisson::solver != NULL) {
          if (Poisson::solver->solve(mpiGrid) == false) success = false;
+      }
+
+      // Add electrostatic electric field to volume-averaged E
+      if (success == true) if (Poisson::solver != NULL) {
+         if (Poisson::solver->calculateElectrostaticField(mpiGrid) == false) success = false;
       }
       
       phiprof::stop("Poisson Solver (Total)");

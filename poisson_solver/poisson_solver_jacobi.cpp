@@ -39,6 +39,11 @@ namespace poisson {
       return success;
    }
    
+   bool PoissonSolverJacobi::calculateElectrostaticField(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
+      #warning Jacobi solver does not calculate electric field
+      return false;
+   }
+   
    void PoissonSolverJacobi::evaluate(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                    const std::vector<CellID>& cells) {      
       for (size_t c=0; c<cells.size(); ++c) {

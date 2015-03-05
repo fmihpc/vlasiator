@@ -1,18 +1,7 @@
 /*
 This file is part of Vlasiator.
 
-Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
-
-
-
-
-
-
-
-
-
-
-
+Copyright 2010-2013,2015 Finnish Meteorological Institute
 
 */
 
@@ -221,6 +210,9 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       }
       if (*it == "Potential") {
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("poisson/potential",CellParams::PHI,1));
+      }
+      if (*it == "BackgroundVolE") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("poisson/BGE_vol",CellParams::BGEXVOL,3));
       }
       if (*it == "ChargeDensity") {
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("poisson/rho_q",CellParams::RHOQ_TOT,1));

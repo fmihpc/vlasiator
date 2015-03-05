@@ -184,6 +184,7 @@ const std::vector<CellID>& getLocalCells() {
             dummy.swap(Parameters::localCells);
          }
          Parameters::localCells = mpiGrid.get_cells();
+         Parameters::localCellsCalculated = Parameters::tstep;
       }
    }
    return Parameters::localCells;
@@ -233,9 +234,9 @@ int main(int argn,char* args[]) {
    sysBoundaries.addParameters();
    readparameters.parse();
    P::getParameters();
-   
+
    Project* project = projects::createProject();
-   
+
    project->getParameters();
    sysBoundaries.getParameters();
    phiprof::stop("Read parameters");
@@ -246,12 +247,6 @@ int main(int argn,char* args[]) {
    if (logFile.open(MPI_COMM_WORLD,MASTER_RANK,"logfile.txt",P::isRestart) == false) {
       if(myRank == MASTER_RANK) cerr << "(MAIN) ERROR: Logger failed to open logfile!" << endl;
       exit(1);
-   } else {
-      int mpiProcesses;
-      int threads = omp_get_max_threads();
-      MPI_Comm_size(comm,&mpiProcesses);      
-      logFile << "(MAIN) Starting simulation with " << mpiProcesses << " MPI processes and ";
-      logFile << threads << " OpenMP threads per process" << endl << writeVerbose;
    }
    if (P::diagnosticInterval != 0) {
       if (diagnostic.open(MPI_COMM_WORLD,MASTER_RANK,"diagnostic.txt",P::isRestart) == false) {
@@ -297,7 +292,7 @@ int main(int argn,char* args[]) {
    // FULL_NEIGHBORHOOD. Block lists up to date for
    // VLASOV_SOLVER_NEIGHBORHOOD (but dist function has not been communicated)
    phiprof::start("Init grid");
-   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> mpiGrid;
+   //dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> mpiGrid;
    initializeGrid(argn,args,mpiGrid,sysBoundaries,*project);
    isSysBoundaryCondDynamic = sysBoundaries.isDynamic();
    phiprof::stop("Init grid");
@@ -318,7 +313,7 @@ int main(int argn,char* args[]) {
       }
       phiprof::stop("Init field propagator");
    }
-   
+
    // Initialize Poisson solver (if used)
    if (P::propagatePotential == true) {
       phiprof::start("Init Poisson solver");

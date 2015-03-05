@@ -220,9 +220,12 @@ namespace CellParams {
       LBWEIGHTCOUNTER,    /*!< Counter for storing compute time weights needed by the load balancing**/
       ACCSUBCYCLES,        /*!< number of subcyles for each cell*/
       ISCELLSAVINGF,      /*!< Value telling whether a cell is saving its distribution function when partial f data is written out. */
-      PHI,      /*!< Electrostatic potential.*/
-      PHI_TMP,  /*!< Temporary electrostatic potential.*/
-      RHOQ_TOT, /*!< Total charge density, summed over all particle populations.*/
+      PHI,        /*!< Electrostatic potential.*/
+      PHI_TMP,    /*!< Temporary electrostatic potential.*/
+      RHOQ_TOT,   /*!< Total charge density, summed over all particle populations.*/
+      BGEXVOL,    /*!< Background electric field averaged over spatial cell, x-component.*/
+      BGEYVOL,    /*!< Background electric field averaged over spatial cell, y-component.*/
+      BGEZVOL,    /*!< Background electric field averaged over spatial cell, z-component.*/
       N_SPATIAL_CELL_PARAMS
    };
 }

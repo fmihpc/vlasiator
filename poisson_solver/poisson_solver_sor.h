@@ -21,18 +21,24 @@ namespace poisson {
         PoissonSolverSOR();
         ~PoissonSolverSOR();
         
+        bool calculateElectrostaticField(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
         bool initialize();
         bool finalize();
         bool solve(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
         
     private:
-        void evaluate(std::vector<poisson::CellCache3D>& cellPointers,const int& cellColor);
        
+        void evaluate2D(std::vector<poisson::CellCache3D>& cellPointers,const int& cellColor);
+        void evaluate3D(std::vector<poisson::CellCache3D>& cellPointers,const int& cellColor);
+       
+        void (*evaluator)(std::vector<poisson::CellCache3D>& cellPointers,const int& cellColor);
+        
         bool solve(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                    const int& oddness);
     };
 
     PoissonSolver* makeSOR();
+    
    
 } // namespace poisson
 
