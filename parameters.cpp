@@ -59,7 +59,7 @@ Real P::vlasovSolverMaxCFL = NAN;
 Real P::vlasovSolverMinCFL = NAN;
 Real P::fieldSolverMaxCFL = NAN;
 Real P::fieldSolverMinCFL = NAN;
-int P::fieldSolverSubcycles = NAN;
+int P::fieldSolverSubcycles = 1;
 
 uint P::tstep = 0;
 uint P::tstep_min = 0;
