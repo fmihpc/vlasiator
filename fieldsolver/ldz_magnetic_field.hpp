@@ -239,20 +239,23 @@ static void propagateMagneticFieldSimple(
    phiprof::start("Propagate magnetic field");
    int timer=phiprof::initializeTimer("Compute system inner cells");
    phiprof::start(timer);
+
    // Propagate B on all local cells:
-#pragma omp parallel for
+   phiprof::start("propagate not sysbound");
+   #pragma omp parallel for
    for (size_t cell=0; cell<localCells.size(); ++cell) {
       const CellID cellID = localCells[cell];
       if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
          mpiGrid[cellID]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) continue;
       propagateMagneticField(cellID, mpiGrid, dt, RKCase);
    }
+   phiprof::stop("propagate not sysbound",localCells.size(),"Spatial Cells");
    phiprof::stop(timer);
-
 
    //This communication is needed for boundary conditions, in practice almost all
    //of the communication is going to be redone in calculateDerivativesSimple
    //TODO: do not transfer if there are no field boundaryconditions
+   phiprof::start("MPI");
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       // Exchange PERBX,PERBY,PERBZ with neighbours
       SpatialCell::set_mpi_transfer_type(Transfer::CELL_PERB,true);
@@ -262,9 +265,10 @@ static void propagateMagneticFieldSimple(
       SpatialCell::set_mpi_transfer_type(Transfer::CELL_PERBDT2,true);
 //       SpatialCell::set_mpi_transfer_type(Transfer::CELL_PARAMETERS|Transfer::CELL_DERIVATIVES);
    }
-   
+
    mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
-   
+   phiprof::stop("MPI");
+
 //    timer=phiprof::initializeTimer("Start comm of B","MPI");
 //    phiprof::start(timer);
 //    mpiGrid.start_remote_neighbor_copy_updates(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
@@ -273,15 +277,20 @@ static void propagateMagneticFieldSimple(
    timer=phiprof::initializeTimer("Compute system boundary/process inner cells");
    phiprof::start(timer);
    // Propagate B on system boundary/process inner cells
+   phiprof::start("get boundary cell local nbr");
    vector<uint64_t> boundaryCellsWithLocalNeighbours;
    getBoundaryCellList(mpiGrid,
                        mpiGrid.get_local_cells_not_on_process_boundary(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID),
                        boundaryCellsWithLocalNeighbours);
-#pragma omp parallel for
+   phiprof::stop("get boundary cell local nbr");
+
+   phiprof::start("propagate sys bound");
+   #pragma omp parallel for
    for (size_t cell=0; cell<boundaryCellsWithLocalNeighbours.size(); ++cell) {
       const CellID cellID = boundaryCellsWithLocalNeighbours[cell];
       propagateSysBoundaryMagneticField(mpiGrid, cellID, sysBoundaries, dt, RKCase);
    }
+   phiprof::stop("propagate sys bound",boundaryCellsWithLocalNeighbours.size(),"Spatial Cells");
    phiprof::stop(timer);
    
 //    timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
@@ -293,23 +302,27 @@ static void propagateMagneticFieldSimple(
    timer=phiprof::initializeTimer("Compute system boundary/process boundary cells");
    phiprof::start(timer);
    
-
+   phiprof::start("get boundary cell remote nbr");
    vector<uint64_t> boundaryCellsWithRemoteNeighbours;
    getBoundaryCellList(mpiGrid,
                        mpiGrid.get_local_cells_on_process_boundary(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID),
                        boundaryCellsWithRemoteNeighbours);
-#pragma omp parallel for
+   phiprof::stop("get boundary cell remote nbr");
+
+   phiprof::start("propagate sys bound");
+   #pragma omp parallel for
    for (size_t cell=0; cell<boundaryCellsWithRemoteNeighbours.size(); ++cell) {
       const CellID cellID = boundaryCellsWithRemoteNeighbours[cell];
       propagateSysBoundaryMagneticField(mpiGrid, cellID, sysBoundaries, dt, RKCase);
    }
+   phiprof::stop("propagate sys bound",boundaryCellsWithRemoteNeighbours.size(),"Spatial Cells");
    phiprof::stop(timer);
    
 //    timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
 //    phiprof::start(timer);
 //    mpiGrid.wait_remote_neighbor_copy_update_sends();
 //    phiprof::stop(timer);
-   
+
    phiprof::stop("Propagate magnetic field");
 }
 
