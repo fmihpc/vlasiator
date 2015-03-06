@@ -66,14 +66,16 @@ cat $cfg |  /bin/grep -v "^[ ]*#" |gawk '{if ( $1 ~ /\[/) {prefix=substr($1,2,le
 $mpirun_cmd $vlasiator --help | /bin/grep "\-\-" | sed 's/--//g'  > .vlasiator_variables
 
 cat .vlasiator_variables | gawk '{print $1}'|sort -u >.vlasiator_variable_names
+cat .vlasiator_variables | gawk '{if( substr($3,1,2)=="(=") { print $1,$3}  else{ print $1}}'|sort -u >.vlasiator_variable_names_default_val
 cat .cfg_variables | gawk '{print $1}'|sort -u >.cfg_variable_names
 
 
 echo "------------------------------------------------------------------------------------------------------------"
 echo "Available unused options"
 echo "------------------------------------------------------------------------------------------------------------"
-comm -23 .vlasiator_variable_names .cfg_variable_names | /bin/grep -v "\."
-comm -23 .vlasiator_variable_names .cfg_variable_names | /bin/grep -f .allowed_prefixes
+comm -23 .vlasiator_variable_names .cfg_variable_names | /bin/grep -v "\." > .unused_variables
+comm -23 .vlasiator_variable_names .cfg_variable_names | /bin/grep -f .allowed_prefixes  >> .unused_variables
+grep -f .unused_variables .vlasiator_variable_names_default_val
 echo "------------------------------------------------------------------------------------------------------------"
 
 output=$( comm -13 .vlasiator_variable_names .cfg_variable_names )
@@ -88,4 +90,4 @@ else
 fi
 
 
-rm .cfg_variables .cfg_variable_names .vlasiator_variables .vlasiator_variable_names .allowed_prefixes
+rm .cfg_variables .cfg_variable_names .vlasiator_variables .vlasiator_variable_names .allowed_prefixes .unused_variables  .vlasiator_variable_names_default_val 
