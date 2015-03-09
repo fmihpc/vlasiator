@@ -1,3 +1,13 @@
+#Intel compile on sisu, Cray XC40
+#List of required module loads & swaps  
+#module swap PrgEnv-cray PrgEnv-intel
+#module swap intel intel/15.0.2.164
+#module load cray-trilinos
+#module load papi
+#module load gcc/4.9.2
+
+
+
 CMP = CC
 LNK = CC
 
@@ -19,7 +29,13 @@ FLAGS =
 #GNU flags:
 CC_BRAND = intel
 CC_BRAND_VERSION = 14.0.3
-CXXFLAGS += -O2 -std=c++11 -openmp   -ansi-alias
+#With intel 15 these options are a few % faster than gnu 4.9
+CXXFLAGS += -Ofast  -inline-level=2 -no-inline-min-size -std=c++11 -openmp -ansi-alias
+
+#CXXFLAGS += -O2 -std=c++11 -openmp   -ansi-alias
+
+
+
 
 MATHFLAGS = 
 LDFLAGS = -openmp 
