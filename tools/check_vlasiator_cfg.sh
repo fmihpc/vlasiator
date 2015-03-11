@@ -33,7 +33,7 @@ fi
 
 
 # Extract the project name to filter out these options below
-project=$( cat Magnetosphere.cfg | grep "project" | cut --delimiter="=" -f 2 | tr -d " " )
+project=$( cat $cfg | grep "project" | cut --delimiter="=" -f 2 | tr -d " " )
 
 # Extract the loaded system boundaries to filter out these options below
 boundaries=""
