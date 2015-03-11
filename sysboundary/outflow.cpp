@@ -127,19 +127,19 @@ namespace SBC {
    }
    
    Real Outflow::fieldSolverBoundaryCondMagneticField(
-      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID,
-      creal& dt,
-      cuint& component
+                                                      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                                      const CellID& cellID,
+                                                      creal& dt,
+                                                      cuint& component
    ) {
-      if(dt == 0.0) {
+      if (dt == 0.0) {
          return fieldBoundaryCopyFromExistingFaceNbrMagneticField(mpiGrid, cellID, component);
       } else { // Return PERB[XYZ]_DT2
          cint offset = CellParams::PERBX_DT2 - CellParams::PERBX;
          return fieldBoundaryCopyFromExistingFaceNbrMagneticField(mpiGrid, cellID, component+offset);
       }
    }
-   
+
    void Outflow::fieldSolverBoundaryCondElectricField(
       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
@@ -154,29 +154,31 @@ namespace SBC {
    }
    
    void Outflow::fieldSolverBoundaryCondHallElectricField(
-      dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID,
-      cuint RKCase,
-      cuint component
-   ) {
-      switch(component) {
+                                                          fs_cache::CellCache& cache,
+                                                          cuint RKCase,
+                                                          cuint component
+                                                         ) {
+
+      Real* cp = cache.cells[fs_cache::calculateNbrID(1,1,1)]->parameters;      
+      
+      switch (component) {
          case 0:
-            mpiGrid[cellID]->parameters[CellParams::EXHALL_000_100] = 0.0;
-            mpiGrid[cellID]->parameters[CellParams::EXHALL_010_110] = 0.0;
-            mpiGrid[cellID]->parameters[CellParams::EXHALL_001_101] = 0.0;
-            mpiGrid[cellID]->parameters[CellParams::EXHALL_011_111] = 0.0;
+            cp[CellParams::EXHALL_000_100] = 0.0;
+            cp[CellParams::EXHALL_010_110] = 0.0;
+            cp[CellParams::EXHALL_001_101] = 0.0;
+            cp[CellParams::EXHALL_011_111] = 0.0;
             break;
          case 1:
-            mpiGrid[cellID]->parameters[CellParams::EYHALL_000_010] = 0.0;
-            mpiGrid[cellID]->parameters[CellParams::EYHALL_100_110] = 0.0;
-            mpiGrid[cellID]->parameters[CellParams::EYHALL_001_011] = 0.0;
-            mpiGrid[cellID]->parameters[CellParams::EYHALL_101_111] = 0.0;
+            cp[CellParams::EYHALL_000_010] = 0.0;
+            cp[CellParams::EYHALL_100_110] = 0.0;
+            cp[CellParams::EYHALL_001_011] = 0.0;
+            cp[CellParams::EYHALL_101_111] = 0.0;
             break;
          case 2:
-            mpiGrid[cellID]->parameters[CellParams::EZHALL_000_001] = 0.0;
-            mpiGrid[cellID]->parameters[CellParams::EZHALL_100_101] = 0.0;
-            mpiGrid[cellID]->parameters[CellParams::EZHALL_010_011] = 0.0;
-            mpiGrid[cellID]->parameters[CellParams::EZHALL_110_111] = 0.0;
+            cp[CellParams::EZHALL_000_001] = 0.0;
+            cp[CellParams::EZHALL_100_101] = 0.0;
+            cp[CellParams::EZHALL_010_011] = 0.0;
+            cp[CellParams::EZHALL_110_111] = 0.0;
             break;
          default:
             cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
@@ -184,10 +186,10 @@ namespace SBC {
    }
    
    Real Outflow::fieldBoundaryCopyFromExistingFaceNbrMagneticField(
-      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID,
-      cuint& component
-   ) {
+                                                                   const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                                                   const CellID& cellID,
+                                                                   cuint& component
+                                                                  ) {
       const CellID closestCell = getTheClosestNonsysboundaryCell(cellID);
       
       if(closestCell == INVALID_CELLID) {
@@ -197,7 +199,7 @@ namespace SBC {
       
       return mpiGrid[closestCell]->parameters[CellParams::PERBX+component];
       
-/*
+      /*
  // get_neighbors                                                *
  // if all neighbors are of the same size then they are in z order, e.g. with a neighborhood size of 2 the first neighbor is at offset (-2, -2, -2) from the given cell, the second one is at (-1, -2, -2), etc, in size units of the given cell.
  

@@ -310,8 +310,8 @@ void calculateAcceleration(
    vector<CellID> propagatedCells;
    int maxSubcycles=0;
    int globalMaxSubcycles;
-   
-   if (dt == 0.0) goto momentCalculation;
+
+   if (dt == 0.0 && P::tstep > 0) goto momentCalculation;
    
 //    if(dt > 0)  // FIXME this has to be deactivated to support regular projects but it breaks test_trans support most likely, with this on dt stays 0
    phiprof::start("semilag-acc");
