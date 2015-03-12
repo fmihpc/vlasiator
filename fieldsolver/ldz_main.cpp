@@ -286,7 +286,8 @@ bool propagateFields(
    } else {
       for (uint i=0; i<subcycles; i++) {
          propagateMagneticFieldSimple(mpiGrid, sysBoundaries, dt/convert<Real>(subcycles), localCells, RK_ORDER1);
-         // If we are at the first subcycle we need to update the derivatives of the moments, otherwise only B changed and those derivatives need to be updated.
+         // If we are at the first subcycle we need to update the derivatives of the moments, 
+         // otherwise only B changed and those derivatives need to be updated.
          calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1, (i==0));
          if(P::ohmHallTerm > 0) {
             calculateHallTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);

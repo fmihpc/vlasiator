@@ -32,7 +32,10 @@
 #include "../common.h"
 
 #ifndef NDEBUG
-  #define DEBUG_IONOSPHERE
+   #define DEBUG_IONOSPHERE
+#endif
+#ifdef DEBUG_SYSBOUNDARY
+   #define DEBUG_IONOSPHERE
 #endif
 
 namespace SBC {
@@ -162,13 +165,13 @@ namespace SBC {
       }
       return true;
    }
-   
+
    bool Ionosphere::applyInitialState(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       Project &project
    ) {
       vector<uint64_t> cells = mpiGrid.get_cells();
-#pragma omp parallel for
+      #pragma omp parallel for
       for (uint i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
          if(cell->sysBoundaryFlag != this->getIndex()) continue;
@@ -176,7 +179,7 @@ namespace SBC {
       }
       return true;
    }
-   
+
    std::array<Real, 3> Ionosphere::fieldSolverGetNormalDirection(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID
@@ -441,7 +444,7 @@ namespace SBC {
       // Uncomment one of the following line for debugging output to evaluate the correctness of the results. Best used with a single process and single thread.
 //       if (mpiGrid[cellID]->sysBoundaryLayer == 1) std::cerr << x << " " << y << " " << z << " " << normalDirection[0] << " " << normalDirection[1] << " " << normalDirection[2] << std::endl;
 //       if (mpiGrid[cellID]->sysBoundaryLayer == 2) std::cerr << x << " " << y << " " << z << " " << normalDirection[0] << " " << normalDirection[1] << " " << normalDirection[2] << std::endl;
-      std::cerr << x << " " << y << " " << z << " " << normalDirection[0] << " " << normalDirection[1] << " " << normalDirection[2] << std::endl;
+//      std::cerr << x << " " << y << " " << z << " " << normalDirection[0] << " " << normalDirection[1] << " " << normalDirection[2] << std::endl;
 #endif
       phiprof::stop("Ionosphere::fieldSolverGetNormalDirection");
       return normalDirection;
@@ -454,17 +457,17 @@ namespace SBC {
     * -- Retain only the normal components of perturbed face B
     */
    Real Ionosphere::fieldSolverBoundaryCondMagneticField(
-      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID,
-      creal& dt,
-      cuint& component
-   ) {
+                                                         const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                                         const CellID& cellID,
+                                                         creal& dt,
+                                                         cuint& component
+                                                        ) {
       std::vector<CellID> closestCells = getAllClosestNonsysboundaryCells(cellID);
       if (closestCells.size() == 1 && closestCells[0] == INVALID_CELLID) {
          std::cerr << __FILE__ << ":" << __LINE__ << ":" << "No closest cells found!" << std::endl;
          abort();
       }
-      
+
       // Sum perturbed B component over all nearest NOT_SYSBOUNDARY neighbours
       std::array<Real, 3> averageB = {{ 0.0 }};
       int offset;
@@ -473,22 +476,31 @@ namespace SBC {
       } else {
          offset = CellParams::PERBX_DT2 - CellParams::PERBX;
       }
-      for(uint i=0; i<closestCells.size(); i++) {
+      for (uint i=0; i<closestCells.size(); i++) {
+         #ifdef DEBUG_IONOSPHERE
+         if (mpiGrid[closestCells[i]]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+            stringstream ss;
+            ss << "ERROR, ionosphere cell " << cellID << " uses value from sysboundary nbr " << closestCells[i];
+            ss << " in " << __FILE__ << ":" << __LINE__ << endl;
+            cerr << ss.str();
+            exit(1);
+         }
+         #endif
          averageB[0] += mpiGrid[closestCells[i]]->parameters[CellParams::PERBX+offset];
          averageB[1] += mpiGrid[closestCells[i]]->parameters[CellParams::PERBY+offset];
          averageB[2] += mpiGrid[closestCells[i]]->parameters[CellParams::PERBZ+offset];
       }
-      
+
       // Average and project to normal direction
       std::array<Real, 3> normalDirection = fieldSolverGetNormalDirection(mpiGrid, cellID);
       for(uint i=0; i<3; i++) {
          averageB[i] *= normalDirection[i] / closestCells.size();
       }
-      
+
       // Return (B.n)*normalVector[component]
       return (averageB[0]+averageB[1]+averageB[2])*normalDirection[component];
    }
-   
+
    void Ionosphere::fieldSolverBoundaryCondElectricField(
       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,

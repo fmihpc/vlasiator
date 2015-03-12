@@ -27,6 +27,13 @@
 #include "../projects/projects_common.h"
 #include "../fieldsolver/fs_common.h"
 
+#ifndef NDEBUG
+   #define DEBUG_OUTFLOW
+#endif
+#ifdef DEBUG_SYSBOUNDARY
+   #define DEBUG_OUTFLOW
+#endif
+
 using namespace std;
 
 namespace SBC {
@@ -192,10 +199,20 @@ namespace SBC {
                                                                   ) {
       const CellID closestCell = getTheClosestNonsysboundaryCell(cellID);
       
-      if(closestCell == INVALID_CELLID) {
+      #ifdef DEBUG_OUTFLOW
+      if (mpiGrid[closestCell]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+         stringstream ss;
+         ss << "ERROR, outflow cell " << cellID << " uses value from sysboundary nbr " << closestCell;
+         ss << " in " << __FILE__ << ":" << __LINE__ << endl;
+         cerr << ss.str();
+         exit(1);
+      }
+      
+      if (closestCell == INVALID_CELLID) {
          cerr << cellID << " " << __FILE__ << ":" << __LINE__ << ": No closest cell found!" << endl;
          abort();
       }
+      #endif
       
       return mpiGrid[closestCell]->parameters[CellParams::PERBX+component];
       

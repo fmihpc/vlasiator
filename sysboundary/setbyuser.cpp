@@ -27,6 +27,13 @@
 #include "../vlasovmover.h"
 #include "../fieldsolver/fs_common.h"
 
+#ifndef NDEBUG
+   #define DEBUG_SETBYUSER
+#endif
+#ifdef DEBUG_SYSBOUNDARY
+   #define DEBUG_SETBYUSER
+#endif
+
 using namespace std;
 
 namespace SBC {
@@ -108,11 +115,11 @@ namespace SBC {
    }
    
    Real SetByUser::fieldSolverBoundaryCondMagneticField(
-      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID,
-      creal& dt,
-      cuint& component
-   ) {
+                                                        const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                                        const CellID& cellID,
+                                                        creal& dt,
+                                                        cuint& component
+                                                       ) {
       Real result = 0.0;
       const SpatialCell* cell = mpiGrid[cellID];
       creal dx = cell->parameters[CellParams::DX];
@@ -124,10 +131,10 @@ namespace SBC {
       
       bool isThisCellOnAFace[6];
       determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz);
-      
-      for(uint i=0; i<6; i++) {
-         if(isThisCellOnAFace[i]) {
-            if(dt == 0.0) {
+
+      for (uint i=0; i<6; i++) {
+         if (isThisCellOnAFace[i]) {
+            if (dt == 0.0) {
                result = templateCells[i].parameters[CellParams::PERBX + component];
             } else {
                result = templateCells[i].parameters[CellParams::PERBX_DT2 + component];
@@ -137,20 +144,20 @@ namespace SBC {
       }
       return result;
    }
-   
+
    void SetByUser::fieldSolverBoundaryCondElectricField(
-      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID,
-      cuint RKCase,
-      cuint component
-   ) {
+                                                        dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                                        const CellID& cellID,
+                                                        cuint RKCase,
+                                                        cuint component
+                                                       ) {
       if((RKCase == RK_ORDER1) || (RKCase == RK_ORDER2_STEP2)) {
          mpiGrid[cellID]->parameters[CellParams::EX+component] = 0.0;
       } else {// RKCase == RK_ORDER2_STEP1
          mpiGrid[cellID]->parameters[CellParams::EX_DT2+component] = 0.0;
       }
    }
-   
+
    void SetByUser::fieldSolverBoundaryCondHallElectricField(
                                                             fs_cache::CellCache& cache,
                                                             cuint RKCase,
@@ -184,22 +191,22 @@ namespace SBC {
    }
    
    void SetByUser::fieldSolverBoundaryCondDerivatives(
-      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID,
-      cuint& RKCase,
-      cuint& component
-   ) {
+                                                      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                                      const CellID& cellID,
+                                                      cuint& RKCase,
+                                                      cuint& component
+                                                     ) {
       this->setCellDerivativesToZero(mpiGrid, cellID, component);
    }
-   
+
    void SetByUser::fieldSolverBoundaryCondBVOLDerivatives(
-      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID,
-      cuint& component
-   ) {
+                                                          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                                          const CellID& cellID,
+                                                          cuint& component
+                                                         ) {
       this->setCellBVOLDerivativesToZero(mpiGrid, cellID, component);
    }
-   
+
    void SetByUser::vlasovBoundaryCondition(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID
