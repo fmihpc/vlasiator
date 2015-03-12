@@ -16,6 +16,7 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #include "../definitions.h"
 #include "../spatial_cell.hpp"
 #include "../projects/project.h"
+#include "../fieldsolver/fs_cache.h"
 
 using namespace spatial_cell;
 using namespace projects;
@@ -67,11 +68,10 @@ namespace SBC {
             cuint component
          );
          virtual void fieldSolverBoundaryCondHallElectricField(
-            dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-            const CellID& cellID,
-            cuint RKCase,
-            cuint component
-         );
+                                                               fs_cache::CellCache& cache,
+                                                               cuint RKCase,
+                                                               cuint component
+                                                              );
          virtual void fieldSolverBoundaryCondDerivatives(
             dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const CellID& cellID,

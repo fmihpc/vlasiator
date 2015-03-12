@@ -53,10 +53,10 @@ namespace SBC {
 //          creal& t
 //       );
       virtual Real fieldSolverBoundaryCondMagneticField(
-         const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-         const CellID& cellID,
-         creal& dt,
-         cuint& component
+                                                        const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                                        const CellID& cellID,
+                                                        creal& dt,
+                                                        cuint& component
       );
       virtual void fieldSolverBoundaryCondElectricField(
          dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
@@ -65,11 +65,10 @@ namespace SBC {
          cuint component
       );
       virtual void fieldSolverBoundaryCondHallElectricField(
-         dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-         const CellID& cellID,
-         cuint RKCase,
-         cuint component
-      );
+                                                            fs_cache::CellCache& cache,
+                                                            cuint RKCase,
+                                                            cuint component
+                                                           );
       virtual void fieldSolverBoundaryCondDerivatives(
          dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const CellID& cellID,

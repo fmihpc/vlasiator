@@ -68,8 +68,7 @@ namespace SBC {
          cuint component
       );
       virtual void fieldSolverBoundaryCondHallElectricField(
-         dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-         const CellID& cellID,
+                                                            fs_cache::CellCache& cache,
          cuint RKCase,
          cuint component
       );

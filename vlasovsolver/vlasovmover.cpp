@@ -207,15 +207,25 @@ void calculateSpatialTranslation(
     typedef Parameters P;
    
     phiprof::start("semilag-trans");
+
+   const vector<CellID>& localCells = getLocalCells();
+   vector<CellID> remoteTargetCellsx;
+   vector<CellID> remoteTargetCellsy;
+   vector<CellID> remoteTargetCellsz;
+   vector<CellID> local_propagated_cells;
+   vector<CellID> local_target_cells;
+   
+   // If dt=0 we are either initializing or distribution functions are not propagated. 
+   // In both cases go to the end of this function and calculate the moments.
+   if (dt == 0.0) goto momentCalculation;
+   
     phiprof::start("compute_cell_lists");
-    const vector<CellID>& localCells = getLocalCells();
-    const vector<CellID> remoteTargetCellsx = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID);
-    const vector<CellID> remoteTargetCellsy = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID);
-    const vector<CellID> remoteTargetCellsz = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID);
+    remoteTargetCellsx = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID);
+    remoteTargetCellsy = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID);
+    remoteTargetCellsz = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID);
 
     // Figure out which spatial cells are translated, 
     // result independent of particle species.
-    vector<CellID> local_propagated_cells;   
     for (size_t c=0; c<localCells.size(); ++c) {
        if (do_translate_cell(mpiGrid[localCells[c]])) {
           local_propagated_cells.push_back(localCells[c]);
@@ -224,7 +234,6 @@ void calculateSpatialTranslation(
 
    // Figure out target spatial cells, result
    // independent of particle species.
-   vector<CellID> local_target_cells;
    for (size_t c=0; c<localCells.size(); ++c) {
       if (mpiGrid[localCells[c]]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
          local_target_cells.push_back(localCells[c]);
@@ -241,6 +250,7 @@ void calculateSpatialTranslation(
    }
 
    // Mapping complete, update moments //
+momentCalculation:
    calculateMoments_R_maxdt(mpiGrid,localCells,true);
 
    phiprof::stop("semilag-trans");
@@ -323,6 +333,8 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    typedef Parameters P;
    const vector<CellID> cells = mpiGrid.get_cells();
 
+   if (dt == 0.0 && P::tstep > 0) goto momentCalculation;
+   
     phiprof::start("semilag-acc");
     
     // Calculate first velocity moments, these are needed to 
@@ -430,6 +442,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
     phiprof::stop("semilag-acc");
 
    // Recalculate "_V" velocity moments
+momentCalculation:
    calculateMoments_V(mpiGrid,cells,true);
    
    // Set CellParams::MAXVDT to be the max of all per-species values
