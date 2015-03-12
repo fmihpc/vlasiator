@@ -40,6 +40,8 @@ namespace poisson {
 
    bool PoissonSolverSOR::initialize() {
       bool success = true;
+      bndryCellParams[CellParams::PHI] = 0;
+      bndryCellParams[CellParams::PHI_TMP] = 0;
       return success;
    }
 
@@ -125,9 +127,11 @@ namespace poisson {
       }      
    }
 
-   void cachePointers2D(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                        const std::vector<CellID>& cells,std::vector<poisson::CellCache3D>& redCache,
-                        std::vector<poisson::CellCache3D>& blackCache) {
+   void PoissonSolverSOR::cachePointers2D(
+               dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+               const std::vector<CellID>& cells,
+               std::vector<poisson::CellCache3D>& redCache,
+               std::vector<poisson::CellCache3D>& blackCache) {
       redCache.clear();
       blackCache.clear();
 
@@ -135,27 +139,50 @@ namespace poisson {
          // Calculate cell i/j/k indices
          dccrg::Types<3>::indices_t indices = mpiGrid.mapping.get_indices(cells[c]);
 
-         if ((indices[0] + indices[1]%2 + indices[2]%2) % 2 == RED) {
+         //if ((indices[0] + indices[1]%2 + indices[2]%2) % 2 == RED) {
             CellCache3D cache;
-
-            // Cells on domain boundaries are not iterated
-            if (mpiGrid[cells[c]]->sysBoundaryFlag != 1) continue;
-
-            // Fetch pointers to this cell's (cell) parameters array, 
-            // and pointers to +/- xyz face neighbors' arrays
             cache.cell = mpiGrid[cells[c]];
             cache[0] = mpiGrid[cells[c]]->parameters;
-            
-            indices[0] -= 1; cache[1] = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ]->parameters;
-            indices[0] += 2; cache[2] = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ]->parameters;
-            indices[0] -= 1;
-            
-            indices[1] -= 1; cache[3] = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ]->parameters;
-            indices[1] += 2; cache[4] = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ]->parameters;
-            indices[1] -= 1;
 
-            redCache.push_back(cache);
-         } else {
+            // Cells on domain boundaries are not iterated
+            if (mpiGrid[cells[c]]->sysBoundaryFlag != 1) {
+               indices[0] -= 1;
+               spatial_cell::SpatialCell* dummy = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
+               if (dummy == NULL) cache[1] = bndryCellParams;
+               else               cache[1] = dummy->parameters;
+               indices[0] += 2;
+               dummy = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
+               if (dummy == NULL) cache[2] = bndryCellParams;
+               else               cache[2] = dummy->parameters;
+               indices[0] -= 1;
+
+               indices[1] -= 1; 
+               dummy = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
+               if (dummy == NULL) {
+                  //cache[3] = bndryCellParams;
+                  indices[1] += 2;
+                  dummy = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
+                  cache[3] = dummy->parameters;
+                  indices[1] -= 2;
+               } else               cache[3] = dummy->parameters;
+               indices[1] += 2;
+               dummy = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
+               if (dummy == NULL) cache[4] = bndryCellParams;
+               else               cache[4] = dummy->parameters;
+               indices[1] -= 1;
+            } else {
+               // Fetch pointers to this cell's (cell) parameters array, 
+               // and pointers to +/- xyz face neighbors' arrays
+               indices[0] -= 1; cache[1] = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ]->parameters;
+               indices[0] += 2; cache[2] = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ]->parameters;
+               indices[0] -= 1;
+
+               indices[1] -= 1; cache[3] = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ]->parameters;
+               indices[1] += 2; cache[4] = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ]->parameters;
+               indices[1] -= 1;
+            }
+//            redCache.push_back(cache);
+/*         } else {
             CellCache3D cache;
             
             // Cells on domain boundaries are not iterated
@@ -176,12 +203,16 @@ namespace poisson {
 
             blackCache.push_back(cache);
          }
-      }
+*/         
+         if ((indices[0] + indices[1]%2 + indices[2]%2) % 2 == RED) redCache.push_back(cache);
+         else blackCache.push_back(cache);
+      } // for-loop over spatial cells
    }
    
-   void cachePointers3D(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                        const std::vector<CellID>& cells,std::vector<poisson::CellCache3D>& redCache,
-                        std::vector<poisson::CellCache3D>& blackCache) {
+   void PoissonSolverSOR::cachePointers3D(
+            dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+            const std::vector<CellID>& cells,std::vector<poisson::CellCache3D>& redCache,
+            std::vector<poisson::CellCache3D>& blackCache) {
       redCache.clear();
       blackCache.clear();
       
@@ -298,7 +329,7 @@ namespace poisson {
 		    for (size_t c=0; c<Poisson::localCellParams.size(); ++c) {
 		       Poisson::localCellParams[c][CellParams::PHI_TMP] = Poisson::localCellParams[c][CellParams::PHI];
 		    }
-		    if (tid == 0) phiprof::stop("Copy Old Potential");
+		    if (tid == 0) phiprof::stop("Copy Old Potential",Poisson::localCellParams.size(),"Spatial Cells");
 		 }
 
 		 // Solve red cells first, the black cells
@@ -334,7 +365,8 @@ namespace poisson {
       if (oddness == RED) evaluate2D(bndryCellPointersRED,oddness);
       else                evaluate2D(bndryCellPointersBLACK,oddness);      
       if (tid == 0) {
-	 phiprof::stop("Evaluate potential");
+         size_t cells = bndryCellPointersRED.size() + bndryCellPointersBLACK.size();
+	 phiprof::stop("Evaluate potential",cells,"Spatial Cells");
 	 
 	 // Exchange new potential values on process boundaries
 	 phiprof::start("MPI (start copy)");
@@ -350,7 +382,8 @@ namespace poisson {
       
       // Wait for MPI transfers to complete
       if (tid == 0) {
-	 phiprof::stop("Evaluate potential");
+         size_t cells = innerCellPointersRED.size() + innerCellPointersBLACK.size();
+	 phiprof::stop("Evaluate potential",cells,"Spatial Cells");
 	 phiprof::start("MPI (wait copy)");
 	 mpiGrid.wait_remote_neighbor_copy_updates(POISSON_NEIGHBORHOOD_ID);
 	 phiprof::stop("MPI (wait copy)");
@@ -358,5 +391,5 @@ namespace poisson {
 
       return success;
    }
-   
+
 } // namespace poisson

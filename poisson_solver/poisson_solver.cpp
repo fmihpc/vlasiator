@@ -64,6 +64,24 @@ namespace poisson {
 
    bool PoissonSolver::finalize() {return true;}
 
+   bool PoissonSolver::calculateBackgroundField(
+            dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+            const std::vector<CellID>& cells) {
+
+      phiprof::start("Background Field");
+      #pragma omp parallel for
+      for (size_t c=0; c<cells.size(); ++c) {
+         spatial_cell::SpatialCell* cell = mpiGrid[cells[c]];
+         cell->parameters[CellParams::PHI] = 0;
+         cell->parameters[CellParams::PHI_TMP] = 0;
+         cell->parameters[CellParams::EXVOL] = cell->parameters[CellParams::BGEXVOL];
+         cell->parameters[CellParams::EYVOL] = cell->parameters[CellParams::BGEYVOL];
+         cell->parameters[CellParams::EZVOL] = cell->parameters[CellParams::BGEZVOL];
+      }
+      phiprof::stop("Background Field",cells.size(),"Spatial Cells");
+      return true;
+   }
+   
    /** Calculate total charge density on given spatial cells.
     * @param mpiGrid Parallel grid library.
     * @param cells List of spatial cells.
@@ -94,13 +112,18 @@ namespace poisson {
                   = blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::DVX]
                   * blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::DVY]
                   * blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::DVZ];
-               rho_q += charge*sum/DV3;
+               rho_q += charge*sum*DV3;
             }
          }
       }
-      cell->parameters[CellParams::RHOQ_TOT] = rho_q;
+      cell->parameters[CellParams::RHOQ_TOT] = rho_q/physicalconstants::EPS_0;
+      //cell->parameters[CellParams::RHOQ_TOT] = 0;
 
-      phiprof::stop("Charge Density");
+      size_t phaseSpaceCells=0;
+      for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
+         phaseSpaceCells += cell->get_velocity_blocks(popID).size()*WID3;
+
+      phiprof::stop("Charge Density",phaseSpaceCells,"Phase-space cells");
       return success;
    }
 
@@ -121,7 +144,7 @@ namespace poisson {
          cells[c].parameters[0][CellParams::EYVOL] -= (phi_12-phi_10)/DY;
       }
 
-      phiprof::stop("Electrostatic E");
+      phiprof::stop("Electrostatic E",cells.size(),"Spatial Cells");
       return true;
    }
    
@@ -146,7 +169,7 @@ namespace poisson {
          cells[c].parameters[0][CellParams::EZVOL] -= (phi_112-phi_110)/DZ;
       }
 
-      phiprof::stop("Electrostatic E");
+      phiprof::stop("Electrostatic E",cells.size(),"Spatial Cells");
       return true;
    }
 
@@ -188,7 +211,7 @@ namespace poisson {
       for (int i=1; i<omp_get_max_threads(); ++i) {
          if (maxError[i] > maxError[0]) maxError[0] = maxError[i];
       }
-      phiprof::stop("Potential Change");
+      phiprof::stop("Potential Change",Poisson::localCellParams.size(),"Spatial Cells");
 
       // Reduce max error to all MPI processes
       phiprof::start("MPI");
@@ -286,7 +309,7 @@ namespace poisson {
 
       delete [] maxError; maxError = NULL;
 
-      phiprof::stop("Evaluate Error");
+      phiprof::stop("Evaluate Error",cells.size(),"Spatial Cells");
 
       return sqrt(globalError);
    }
@@ -311,16 +334,15 @@ namespace poisson {
       // Set up the initial state unless the simulation was restarted
       if (Parameters::isRestart == true) return success;
 
-      const vector<CellID>& local_cells = getLocalCells();
-      for (size_t c=0; c<local_cells.size(); ++c) {
-         spatial_cell::SpatialCell* cell = mpiGrid[local_cells[c]];
-         cell->parameters[CellParams::PHI] = 0;
-         cell->parameters[CellParams::PHI_TMP] = 0;
-         cell->parameters[CellParams::EXVOL] = cell->parameters[CellParams::BGEXVOL];
-         cell->parameters[CellParams::EYVOL] = cell->parameters[CellParams::BGEYVOL];
-         cell->parameters[CellParams::EZVOL] = cell->parameters[CellParams::BGEZVOL];
+      #pragma omp parallel for
+      for (size_t c=0; c<getLocalCells().size(); ++c) {
+         spatial_cell::SpatialCell* cell = mpiGrid[getLocalCells()[c]];
+         if (Poisson::solver->calculateChargeDensity(cell) == false) success = false;
       }
 
+      if (Poisson::solver->calculateBackgroundField(mpiGrid,getLocalCells()) == false) success = false;
+      if (solve(mpiGrid) == false) success = false;
+      
       return success;
    }
 

@@ -274,6 +274,10 @@ namespace projects {
          ++N;
       } while (ok == false);
 
+      #warning TESTING remove me
+      Real rad = sqrt(x*x + (y-1e5)*(y-1e5) + z*z);
+      if (rad < 2e4) avgTotal *= 2;
+      
       return avgTotal / N3_sum;
    }
 

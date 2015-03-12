@@ -55,6 +55,18 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
                                          spatial_cell->parameters[CellParams::RHOVY_V]/rho,
                                          spatial_cell->parameters[CellParams::RHOVZ_V]/rho);
 
+   cerr << "bulk_velocity was " << bulk_velocity(0,0) << '\t' << bulk_velocity(1,0) << '\t' << bulk_velocity(2,0) << endl;
+   if (Parameters::propagatePotential == true) {
+      const Real Const 
+        = getObjectWrapper().particleSpecies[popID].charge 
+        / getObjectWrapper().particleSpecies[popID].mass
+        * dt;
+      bulk_velocity(0,0) = Const * spatial_cell->parameters[CellParams::EXVOL];
+      bulk_velocity(1,0) = Const * spatial_cell->parameters[CellParams::EYVOL];
+      bulk_velocity(2,0) = Const * spatial_cell->parameters[CellParams::EZVOL];
+   }
+   cerr << "\t bulk_velocity is now " << bulk_velocity(0,0) << '\t' << bulk_velocity(1,0) << '\t' << bulk_velocity(2,0) << endl;
+
    // compute total transformation
    Transform<Real,3,Affine> total_transform(Matrix<Real, 4, 4>::Identity()); //CONTINUE
 
@@ -65,7 +77,6 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
    // note, we assume q is positive (pretty good assumption though)
    const Real substeps_radians = -(2.0*M_PI*dt/fabs(gyro_period))/bulk_velocity_substeps; // how many radians each substep is.
    for (uint i=0; i<bulk_velocity_substeps; ++i) {
-
       // rotation origin is the point through which we place our rotation axis (direction of which is unitB).
       // first add bulk velocity (using the total transform computed this far.
       Eigen::Matrix<Real,3,1> rotation_pivot(total_transform*bulk_velocity);
@@ -83,5 +94,11 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       total_transform = Translation<Real,3>(rotation_pivot)*total_transform;
    }
 
+   cerr << "Total transform is" << endl;
+   for (int row=0; row<4; ++row) {
+      for (int col=0; col<4; ++col) cerr << total_transform(col,row) << '\t';
+      cerr << endl;
+   }
+   
    return total_transform;
 }

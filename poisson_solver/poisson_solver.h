@@ -37,6 +37,8 @@ namespace poisson {
 
        // ***** DECLARATIONS OF VIRTUAL MEMBER FUNCTIONS ***** //
 
+       virtual bool calculateBackgroundField(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                             const std::vector<CellID>& cells);
        virtual bool calculateChargeDensity(spatial_cell::SpatialCell* cell);
        virtual bool calculateElectrostaticField2D(const std::vector<poisson::CellCache3D>& cells);
        virtual bool calculateElectrostaticField3D(const std::vector<poisson::CellCache3D>& cells);
