@@ -100,7 +100,7 @@ struct Parameters {
    
    static Real maxSlAccelerationRotation; /*!< Maximum rotation in acceleration for semilagrangian solver*/
    static int maxSlAccelerationSubcycles; /*!< Maximum number of subcycles in acceleration*/
-   static Real lorentzHallMinimumRho;  /*!< Minimum rho value used in Hall term in Lorentz force.*/
+   static Real hallMinimumRho;  /*!< Minimum rho value used in Hall term in Lorentz force and field solver.*/
    static Real sparseMinValue; /*!< Minimum value of distribution function in any cell of a velocity 
                                 * block for the block to be considered to have content.
                                 * This value is only used for default particle species.*/
