@@ -126,6 +126,8 @@ namespace projects {
          populations.push_back(projects::Population(rho[i],Tx[i],Ty[i],Tz[i],Vx[i],Vy[i],Vz[i]));
       }
 
+      tether_y = 2*Parameters::dy_ini;
+      
 #warning TESTING FIXME
       tetherUnitCharge = 1.602e-19;
    }
@@ -233,6 +235,12 @@ namespace projects {
             creal& vx, creal& vy, creal& vz,
             creal& dvx, creal& dvy, creal& dvz,const int& popID) {
       this->popID = popID;
+      
+#warning TESTING remove me
+      if (y < Parameters::dy_ini) return 0.0;
+      if (y > 2*Parameters::dy_ini) return 0.0;
+      if (x < -2e5) return 0.0;
+      if (x+dx > 2e5) return 0.0;
       
       // Iterative sampling of the distribution function. Keep track of the 
       // accumulated volume average over the iterations. When the next 

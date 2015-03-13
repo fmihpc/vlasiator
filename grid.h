@@ -103,7 +103,7 @@ void deallocateRemoteCellBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
  
 */
 bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                          const vector<uint64_t>& cellsToAdjust,
+                          const std::vector<uint64_t>& cellsToAdjust,
                           bool doPrepareToReceiveBlocks,
                             const int& popID);
 

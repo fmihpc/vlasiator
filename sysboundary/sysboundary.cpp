@@ -1,7 +1,7 @@
 /*
 This file is part of Vlasiator.
 
-Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
+Copyright 2010-2013,2015 Finnish Meteorological Institute
 
 
 */
@@ -14,7 +14,13 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #include <iostream>
 
 #include "sysboundary.h"
-# include "../grid.h"
+#include "../grid.h"
+
+#include "donotcompute.h"
+#include "ionosphere.h"
+#include "outflow.h"
+#include "setmaxwellian.h"
+#include "antisymmetric.h"
 
 using namespace std;
 
@@ -64,6 +70,7 @@ void SysBoundary::addParameters() {
    SBC::Ionosphere::addParameters();
    SBC::Outflow::addParameters();
    SBC::SetMaxwellian::addParameters();
+   SBC::Antisymmetric::addParameters();
 }
 
 /*!\brief Get this class' parameters.
@@ -110,20 +117,21 @@ bool SysBoundary::addSysBoundary(
    Project &project,
    creal& t
 ) {
-   sysBoundaries.push_back(bc);
-   if(sysBoundaries.size() > 1) {
-      sysBoundaries.sort(precedenceSort);
-   }
-   
    // Initialize the boundary condition
    bool success = true;
    if (bc->initSysBoundary(t, project) == false) {
-      success = false;
+      cerr << "Failed to initialize system boundary condition '" << bc->getName() << "'" << endl;
+      return false;
+   }
+
+   sysBoundaries.push_back(bc);
+   if (sysBoundaries.size() > 1) {
+      sysBoundaries.sort(precedenceSort);
    }
 
    // This assumes that only one instance of each type is created.
    indexToSysBoundary[bc->getIndex()] = bc;
-   
+
    return success;
 }
 
@@ -208,6 +216,33 @@ bool SysBoundary::initSysBoundaries(
          }
          if((faces[4] || faces[5]) && isPeriodic[2]) {
             if(myRank == MASTER_RANK) cerr << "You set boundaries.periodic_z = yes and load Maxwellian system boundary conditions on the z+ or z- face, are you sure this is correct?" << endl;
+         }
+      }
+      if (*it == "Antisymmetric") {
+         if (addSysBoundary(new SBC::Antisymmetric,project,t) == false) {
+            if (myRank == MASTER_RANK) cerr << "Error in adding Antisymmetric boundary condition." << endl;
+            success = false;
+         }
+         isThisDynamic = isThisDynamic | getSysBoundary(sysboundarytype::ANTISYMMETRIC)->isDynamic();
+         bool faces[6];
+         getSysBoundary(sysboundarytype::ANTISYMMETRIC)->getFaces(&faces[0]);
+         if ((faces[0] || faces[1]) && isPeriodic[0]) {
+            if (myRank == MASTER_RANK) {
+               cerr << "You set boundaries.periodic_x = yes and load Outflow system boundary";
+               cerr << "conditions on the x+ or x- face, are you sure this is correct?" << endl;
+            }
+         }
+         if ((faces[2] || faces[3]) && isPeriodic[1]) {
+            if (myRank == MASTER_RANK) {
+               cerr << "You set boundaries.periodic_y = yes and load Outflow system boundary";
+               cerr << "conditions on the y+ or y- face, are you sure this is correct?" << endl;
+            }
+         }
+         if ((faces[4] || faces[5]) && isPeriodic[2]) {
+            if (myRank == MASTER_RANK) {
+               cerr << "You set boundaries.periodic_z = yes and load Outflow system boundary";
+               cerr << "conditions on the z+ or z- face, are you sure this is correct?" << endl;
+            }
          }
       }
    }

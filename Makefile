@@ -131,6 +131,9 @@ LIBS += ${LIB_PAPI}
 DEPS_COMMON = common.h common.cpp definitions.h mpiconversion.h logger.h
 DEPS_CELL   = spatial_cell.hpp velocity_mesh_old.h velocity_mesh_amr.h velocity_block_container.h
 
+# Define common system boundary condition dependencies
+DEPS_SYSBOUND = ${DEPS_COMMON} ${DEPS_CELL} sysboundary/sysboundarycondition.h sysboundary/sysboundarycondition.cpp
+
 # Define common field solver dependencies
 DEPS_FSOLVER = ${DEPS_COMMON} ${DEPS_CELL} fieldsolver/fs_common.h fieldsolver/fs_common.cpp fieldsolver/fs_cache.h
 
@@ -190,7 +193,7 @@ DEPS_VLSVMOVER_AMR = ${DEPS_CELL} vlasovsolver_amr/vlasovmover.cpp vlasovsolver_
 
 OBJS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipole.o constantfield.o integratefunction.o \
 	datareducer.o datareductionoperator.o amr_refinement_criteria.o\
-	donotcompute.o ionosphere.o outflow.o setbyuser.o setmaxwellian.o \
+	donotcompute.o ionosphere.o outflow.o setbyuser.o setmaxwellian.o antisymmetric.o\
 	sysboundary.o sysboundarycondition.o \
 	project.o projectTriAxisSearch.o \
 	Alfven.o Diffusion.o Dispersion.o Distributions.o electric_sail.o Firehose.o Flowthrough.o Fluctuations.o Harris.o KHB.o Larmor.o \
@@ -270,19 +273,22 @@ datareducer.o: ${DEPS_COMMON} spatial_cell.hpp datareduction/datareducer.h datar
 datareductionoperator.o:  ${DEPS_COMMON} ${DEPS_CELL} parameters.h datareduction/datareductionoperator.h datareduction/datareductionoperator.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c datareduction/datareductionoperator.cpp ${INC_MPI} ${INC_BOOST} ${INC_EIGEN}
 
-donotcompute.o: ${DEPS_COMMON} sysboundary/donotcompute.h sysboundary/donotcompute.cpp
+antisymmetric.o: ${DEPS_SYSBOUND} sysboundary/antisymmetric.h sysboundary/antisymmetric.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c sysboundary/antisymmetric.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
+
+donotcompute.o: ${DEPS_SYSBOUND} sysboundary/donotcompute.h sysboundary/donotcompute.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c sysboundary/donotcompute.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
-ionosphere.o: ${DEPS_COMMON} sysboundary/ionosphere.h sysboundary/ionosphere.cpp backgroundfield/backgroundfield.cpp backgroundfield/backgroundfield.h projects/project.h projects/project.cpp fieldsolver/fs_limiters.h
+ionosphere.o: ${DEPS_SYSBOUND} sysboundary/ionosphere.h sysboundary/ionosphere.cpp backgroundfield/backgroundfield.cpp backgroundfield/backgroundfield.h projects/project.h projects/project.cpp fieldsolver/fs_limiters.h
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c sysboundary/ionosphere.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
-outflow.o: ${DEPS_COMMON} sysboundary/outflow.h sysboundary/outflow.cpp projects/project.h projects/project.cpp
+outflow.o: ${DEPS_SYSBOUND} sysboundary/outflow.h sysboundary/outflow.cpp projects/project.h projects/project.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c sysboundary/outflow.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
-setmaxwellian.o: ${DEPS_COMMON} sysboundary/setmaxwellian.h sysboundary/setmaxwellian.cpp sysboundary/setbyuser.h sysboundary/setbyuser.cpp
+setmaxwellian.o: ${DEPS_SYSBOUND} sysboundary/setmaxwellian.h sysboundary/setmaxwellian.cpp sysboundary/setbyuser.h sysboundary/setbyuser.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c sysboundary/setmaxwellian.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
-setbyuser.o: ${DEPS_COMMON} sysboundary/setbyuser.h sysboundary/setbyuser.cpp
+setbyuser.o: ${DEPS_SYSBOUND} sysboundary/setbyuser.h sysboundary/setbyuser.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c sysboundary/setbyuser.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
 sysboundary.o: ${DEPS_COMMON} sysboundary/sysboundary.h sysboundary/sysboundary.cpp sysboundary/sysboundarycondition.h sysboundary/sysboundarycondition.cpp sysboundary/donotcompute.h sysboundary/donotcompute.cpp sysboundary/ionosphere.h sysboundary/ionosphere.cpp sysboundary/outflow.h sysboundary/outflow.cpp sysboundary/setmaxwellian.h sysboundary/setmaxwellian.cpp sysboundary/setbyuser.h sysboundary/setbyuser.cpp

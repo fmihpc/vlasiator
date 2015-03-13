@@ -25,6 +25,8 @@ namespace poisson {
     };
 
     struct CellCache3D {
+#warning TEMP remove
+       CellID cellID;
        spatial_cell::SpatialCell* cell;
        Real* parameters[7];
        Real*& operator[](const int& i) {return parameters[i];}

@@ -48,7 +48,7 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
 
    // scale rho for hall term, if user requests
    const Real rho = spatial_cell->parameters[CellParams::RHO_V];
-   const Real hallRho =  (rho <= Parameters::lorentzHallMinimumRho ) ? Parameters::lorentzHallMinimumRho : rho ;
+   const Real hallRho =  (rho <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : rho ;
    const Real hallPrefactor = 1.0 / (physicalconstants::MU_0 * hallRho * physicalconstants::CHARGE );
 
    Eigen::Matrix<Real,3,1> bulk_velocity(spatial_cell->parameters[CellParams::RHOVX_V]/rho,

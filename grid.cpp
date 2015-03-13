@@ -175,11 +175,15 @@ void initializeGrid(
             mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] += mpiGrid[cells[i]]->get_number_of_velocity_blocks(popID);
          }
       }
-
+/*
+      // Apply boundary conditions so that we get correct initial moments
+      sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid,Parameters::t);
+      
       //compute moments, and set them  in RHO* and RHO_*_DT2. If restart, they are already read in
       phiprof::start("Init moments");
       calculateInitialVelocityMoments(mpiGrid);
       phiprof::stop("Init moments");
+ */
    }
 
    //Balance load before we transfer all data below
@@ -187,10 +191,21 @@ void initializeGrid(
    
    phiprof::initializeTimer("Fetch Neighbour data","MPI");
    phiprof::start("Fetch Neighbour data");
-   // update complet cell spatial data for full stencil (
+   // update complete cell spatial data for full stencil (
    SpatialCell::set_mpi_transfer_type(Transfer::ALL_SPATIAL_DATA);
    mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
    phiprof::stop("Fetch Neighbour data");
+
+   if (P::isRestart == false) {
+      // Apply boundary conditions so that we get correct initial moments
+      sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid,Parameters::t);
+      
+      //compute moments, and set them  in RHO* and RHO_*_DT2. If restart, they are already read in
+      phiprof::start("Init moments");
+      calculateInitialVelocityMoments(mpiGrid);
+      phiprof::stop("Init moments");
+   }
+
    phiprof::stop("Set initial state");
 }
 
