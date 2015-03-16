@@ -110,19 +110,20 @@ bool SysBoundary::addSysBoundary(
    Project &project,
    creal& t
 ) {
+   bool success = true;
+   if (bc->initSysBoundary(t, project) == false) {
+      cerr << "Failed to initialize system boundary condition '" << bc->getName() << "'" << endl;
+      return false;
+   }
+
    sysBoundaries.push_back(bc);
    if(sysBoundaries.size() > 1) {
       sysBoundaries.sort(precedenceSort);
    }
-   
-   bool success = true;
-   if(bc->initSysBoundary(t, project) == false) {
-      success = false;
-   }
-   
+
    // This assumes that only one instance of each type is created.
    indexToSysBoundary[bc->getIndex()] = bc;
-   
+
    return success;
 }
 
