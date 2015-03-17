@@ -24,11 +24,11 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
    const Real Bz = spatial_cell->parameters[CellParams::BGBZVOL]+spatial_cell->parameters[CellParams::PERBZVOL];
 
    // perturbed field
-   const Real perBx = spatial_cell->parameters[CellParams::PERBXVOL];
-   const Real perBy = spatial_cell->parameters[CellParams::PERBYVOL];
-   const Real perBz = spatial_cell->parameters[CellParams::PERBZVOL];   
+   //const Real perBx = spatial_cell->parameters[CellParams::PERBXVOL];
+   //const Real perBy = spatial_cell->parameters[CellParams::PERBYVOL];
+   //const Real perBz = spatial_cell->parameters[CellParams::PERBZVOL];   
 
-   // read in derivatives need for curl of B (only pertrubed, curl of background field is always 0!)
+   // read in derivatives need for curl of B (only perturbed, curl of background field is always 0!)
    const Real dBXdy = spatial_cell->derivativesBVOL[bvolderivatives::dPERBXVOLdy]/spatial_cell->parameters[CellParams::DY];
    const Real dBXdz = spatial_cell->derivativesBVOL[bvolderivatives::dPERBXVOLdz]/spatial_cell->parameters[CellParams::DZ];
    const Real dBYdx = spatial_cell->derivativesBVOL[bvolderivatives::dPERBYVOLdx]/spatial_cell->parameters[CellParams::DX];
@@ -38,16 +38,23 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
    const Real dBZdy = spatial_cell->derivativesBVOL[bvolderivatives::dPERBZVOLdy]/spatial_cell->parameters[CellParams::DY];
 
    const Eigen::Matrix<Real,3,1> B(Bx,By,Bz);
+   const Real B2 = Bx*Bx + By*By + Bz*Bz;
    const Eigen::Matrix<Real,3,1> unit_B(B.normalized());
    const Real gyro_period 
      = 2 * M_PI * getObjectWrapper().particleSpecies[popID].mass
      / (getObjectWrapper().particleSpecies[popID].charge * B.norm());
 
    // Set maximum timestep limit for this cell, based on a  maximum allowed rotation angle
-   spatial_cell->set_max_v_dt(popID,gyro_period*(P::maxSlAccelerationRotation/360.0));
+   if (B2 > 0) {
+      spatial_cell->set_max_v_dt(popID,gyro_period*(P::maxSlAccelerationRotation/360.0));
+   } else {
+      cerr << "setting max_v_dt to " << Parameters::dt << endl;
+      spatial_cell->set_max_v_dt(popID,Parameters::dt);
+   }
 
    // scale rho for hall term, if user requests
-   const Real rho = spatial_cell->parameters[CellParams::RHO_V];
+   const Real EPSILON = 1e10 * numeric_limits<Real>::min();
+   const Real rho = spatial_cell->parameters[CellParams::RHO_V] + EPSILON;
    const Real hallRho =  (rho <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : rho ;
    const Real hallPrefactor = 1.0 / (physicalconstants::MU_0 * hallRho * physicalconstants::CHARGE );
 
@@ -55,21 +62,45 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
                                          spatial_cell->parameters[CellParams::RHOVY_V]/rho,
                                          spatial_cell->parameters[CellParams::RHOVZ_V]/rho);
 
-   cerr << "bulk_velocity was " << bulk_velocity(0,0) << '\t' << bulk_velocity(1,0) << '\t' << bulk_velocity(2,0) << endl;
-   if (Parameters::propagatePotential == true) {
-      const Real Const 
-        = getObjectWrapper().particleSpecies[popID].charge 
-        / getObjectWrapper().particleSpecies[popID].mass
-        * dt;
-      bulk_velocity(0,0) = Const * spatial_cell->parameters[CellParams::EXVOL];
-      bulk_velocity(1,0) = Const * spatial_cell->parameters[CellParams::EYVOL];
-      bulk_velocity(2,0) = Const * spatial_cell->parameters[CellParams::EZVOL];
-   }
-   cerr << "\t bulk_velocity is now " << bulk_velocity(0,0) << '\t' << bulk_velocity(1,0) << '\t' << bulk_velocity(2,0) << endl;
-
    // compute total transformation
    Transform<Real,3,Affine> total_transform(Matrix<Real, 4, 4>::Identity()); //CONTINUE
 
+   // testing
+   //Real* E = &(spatial_cell->parameters[CellParams::EXVOL]);
+   Real E[3] = {0,0,0};
+   Real dv = 2e5;
+
+   if (dt > 0) {
+      E[0] = dv/dt 
+           * getObjectWrapper().particleSpecies[popID].mass 
+           / getObjectWrapper().particleSpecies[popID].charge;
+   }
+
+   const Real CONST = getObjectWrapper().particleSpecies[popID].charge 
+                    / getObjectWrapper().particleSpecies[popID].mass
+                    * dt;
+   total_transform(0,3) = CONST * E[0];
+   total_transform(1,3) = CONST * E[1];
+   total_transform(2,3) = CONST * E[2];
+   // end testing
+
+   if (B2 == 0) {
+      stringstream ss;
+      ss << "total transform is " << dt << endl;
+      for (int j=0; j<4; ++j) {
+         for (int i=0; i<4; ++i) {
+            ss << total_transform(i,j) << '\t';
+         }
+         ss << endl;
+      }
+      cerr << ss.str();
+      
+      cerr << endl << "print again" << endl;
+      cerr << total_transform.matrix();
+      
+      return total_transform;
+   }
+   
    unsigned int bulk_velocity_substeps; // in this many substeps we iterate forward bulk velocity when the complete transformation is computed (0.1 deg per substep).
    bulk_velocity_substeps = fabs(dt) / (gyro_period*(0.1/360.0)); 
    if (bulk_velocity_substeps < 1) bulk_velocity_substeps=1;
@@ -80,25 +111,19 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       // rotation origin is the point through which we place our rotation axis (direction of which is unitB).
       // first add bulk velocity (using the total transform computed this far.
       Eigen::Matrix<Real,3,1> rotation_pivot(total_transform*bulk_velocity);
-
-      //inlude lorentzHallTerm (we should include, always)      
-      rotation_pivot[0]-=hallPrefactor*(dBZdy - dBYdz);
-      rotation_pivot[1]-=hallPrefactor*(dBXdz - dBZdx);
-      rotation_pivot[2]-=hallPrefactor*(dBYdx - dBXdy);
+      
+      //include lorentzHallTerm (we should include, always)      
+      rotation_pivot[0]-= hallPrefactor*(dBZdy - dBYdz);
+      rotation_pivot[1]-= hallPrefactor*(dBXdz - dBZdx);
+      rotation_pivot[2]-= hallPrefactor*(dBYdx - dBXdy);
 
       // add to transform matrix the small rotation around  pivot
-      // when added like thism, and not using *= operator, the transformations
+      // when added like this, and not using *= operator, the transformations
       // are in the correct order
       total_transform = Translation<Real,3>(-rotation_pivot)*total_transform;
       total_transform = AngleAxis<Real>(substeps_radians,unit_B)*total_transform;
       total_transform = Translation<Real,3>(rotation_pivot)*total_transform;
    }
 
-   cerr << "Total transform is" << endl;
-   for (int row=0; row<4; ++row) {
-      for (int col=0; col<4; ++col) cerr << total_transform(col,row) << '\t';
-      cerr << endl;
-   }
-   
    return total_transform;
 }

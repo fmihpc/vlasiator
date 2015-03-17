@@ -240,7 +240,7 @@ namespace SBC {
       const CellID& cellID,
       const int& popID
    ) {
-      cerr << "AS vlasovBoundaryCondition cell " << cellID << " called " << endl;
+      //cerr << "AS vlasovBoundaryCondition cell " << cellID << " called " << endl;
       
 //      phiprof::start("vlasovBoundaryCondition (Antisymmetric)");
 //      vlasovBoundaryCopyFromTheClosestNbr(mpiGrid,cellID,popID);
@@ -269,7 +269,8 @@ namespace SBC {
       //cerr << "BOUNDARY CELL " << cellID << " HAS " << vmesh.size() << " BLOCKS BEFORE COPY NBR " << nbrID << " HAS ";
       //cerr << nbrVmesh.size() << endl;
       
-      // vx,vz components are untouched, vy is mirrored
+      // vx,vz components are untouched, vy is both mirrored (vy -> -vy)
+      // and copied (vy -> vy).
       for (vmesh::LocalID srcLID=0; srcLID<nbrVmesh.size(); ++srcLID) {
          Real V[3];
          const vmesh::GlobalID srcGID = nbrVmesh.getGlobalID(srcLID);
@@ -281,65 +282,66 @@ namespace SBC {
 
          // Pointer to source data
          const Realf* srcData = nbrBlockContainer.getData(srcLID);
-         
-         Real V_trgt[3];         
+
+         Real V_trgt[3];
          for (int k=0; k<WID; ++k) for (int j=0; j<WID; ++j) for (int i=0; i<WID; ++i) {
-            V_trgt[0] =  V[0] + (i+0.5)*dV[0];
-            V_trgt[1] = (V[1] + (j+0.5)*dV[1]) * (-1);
-            V_trgt[2] =  V[2] + (k+0.5)*dV[2];
+            if (V[1] + (j+0.5)*dV[1] > 0) continue;
 
-            //cerr << "\t V_src " << V[0]+(i+0.5)*dV[0] << '\t' << V[1]+(j+0.5)*dV[1] << '\t' << V[2]+(k+0.5)*dV[2] << "\t V_trgt ";
-            //cerr << V_trgt[0] << '\t' << V_trgt[1] << '\t' << V_trgt[2] << std::endl;
+            for (int dir=-1; dir<2; dir+=2) {
+               V_trgt[0] =  V[0] + (i+0.5)*dV[0];
+               V_trgt[1] = (V[1] + (j+0.5)*dV[1]) * dir;
+               V_trgt[2] =  V[2] + (k+0.5)*dV[2];
             
-            const vmesh::GlobalID trgtGID = vmesh.getGlobalID(0,V_trgt);
+               const vmesh::GlobalID trgtGID = vmesh.getGlobalID(0,V_trgt);
             
-            Real V_trgt_block[3];
-            Real dV_trgt_block[3];
-            vmesh.getBlockCoordinates(trgtGID,V_trgt_block);
-            vmesh.getBlockSize(trgtGID,dV_trgt_block);
-            for (int t=0; t<3; ++t) dV_trgt_block[t] /= WID;
+               Real V_trgt_block[3];
+               Real dV_trgt_block[3];
+               vmesh.getBlockCoordinates(trgtGID,V_trgt_block);
+               vmesh.getBlockSize(trgtGID,dV_trgt_block);
+               for (int t=0; t<3; ++t) dV_trgt_block[t] /= WID;
 
-            // Make sure target block exists
-            if (vmesh.getLocalID(trgtGID) == vmesh::INVALID_LOCALID) {
-               mpiGrid[cellID]->add_velocity_block(trgtGID,popID);
+               // Make sure target block exists
+               if (vmesh.getLocalID(trgtGID) == vmesh::INVALID_LOCALID) {
+                  mpiGrid[cellID]->add_velocity_block(trgtGID,popID);
+               }
+            
+               // Get target block local ID
+               const vmesh::LocalID trgtLID = vmesh.getLocalID(trgtGID);
+               if (trgtLID == vmesh::INVALID_LOCALID) {
+                  cerr << "ERROR, got invalid local ID in antisymmetric" << endl;
+                  continue;
+               }
+
+               // Calculate target cell indices
+               const int ii = static_cast<int>((V_trgt[0] - V_trgt_block[0]) / dV_trgt_block[0]);
+               const int jj = static_cast<int>((V_trgt[1] - V_trgt_block[1]) / dV_trgt_block[1]);
+               const int kk = static_cast<int>((V_trgt[2] - V_trgt_block[2]) / dV_trgt_block[2]);
+            
+               /*bool ok = true;
+               if (ii < 0 || ii >= WID) ok = false;
+               if (jj < 0 || jj >= WID) ok = false;
+               if (kk < 0 || kk >= WID) ok = false;
+               if (ok == false) {
+                  cerr << "ERROR " << ii << ' ' << jj << ' ' << kk << endl;
+                  exit(1);               
+               }*/
+
+               /*uint8_t ref=0;
+               vmesh::LocalID i_srcBlock[3];
+               nbrVmesh.getIndices(srcGID,ref,i_srcBlock[0],i_srcBlock[1],i_srcBlock[2]);
+            
+               vmesh::LocalID i_trgtBlock[3];
+               vmesh.getIndices(trgtGID,ref,i_trgtBlock[0],i_trgtBlock[1],i_trgtBlock[2]);
+            
+               cerr << "\t src indices: " << i_srcBlock[0] << ' ' << i_srcBlock[1] << ' ' << i_srcBlock[2] << " (";
+               cerr << i << ' ' << j << ' ' << k << ") trgt ";
+               cerr << i_trgtBlock[0] << ' ' << i_trgtBlock[1] << ' ' << i_trgtBlock[2] << " (";
+               cerr << ii << ' ' << jj << ' ' << kk << ")" << endl;
+               */
+               Realf* data = blockContainer.getData(trgtLID);
+               data[cellIndex(ii,jj,kk)] += srcData[cellIndex(i,j,k)];
             }
-            
-            // Get target block local ID
-            const vmesh::LocalID trgtLID = vmesh.getLocalID(trgtGID);
-            if (trgtLID == vmesh::INVALID_LOCALID) {
-               cerr << "ERROR, got invalid local ID in antisymmetric" << endl;
-               continue;
-            }
-
-            // Calculate target cell indices
-            const int ii = static_cast<int>((V_trgt[0] - V_trgt_block[0]) / dV_trgt_block[0]);
-            const int jj = static_cast<int>((V_trgt[1] - V_trgt_block[1]) / dV_trgt_block[1]);
-            const int kk = static_cast<int>((V_trgt[2] - V_trgt_block[2]) / dV_trgt_block[2]);
-            
-            /*bool ok = true;
-            if (ii < 0 || ii >= WID) ok = false;
-            if (jj < 0 || jj >= WID) ok = false;
-            if (kk < 0 || kk >= WID) ok = false;
-            if (ok == false) {
-               cerr << "ERROR " << ii << ' ' << jj << ' ' << kk << endl;
-               exit(1);               
-            }*/
-
-            /*uint8_t ref=0;
-            vmesh::LocalID i_srcBlock[3];
-            nbrVmesh.getIndices(srcGID,ref,i_srcBlock[0],i_srcBlock[1],i_srcBlock[2]);
-            
-            vmesh::LocalID i_trgtBlock[3];
-            vmesh.getIndices(trgtGID,ref,i_trgtBlock[0],i_trgtBlock[1],i_trgtBlock[2]);
-            
-            cerr << "\t src indices: " << i_srcBlock[0] << ' ' << i_srcBlock[1] << ' ' << i_srcBlock[2] << " (";
-            cerr << i << ' ' << j << ' ' << k << ") trgt ";
-            cerr << i_trgtBlock[0] << ' ' << i_trgtBlock[1] << ' ' << i_trgtBlock[2] << " (";
-            cerr << ii << ' ' << jj << ' ' << kk << ")" << endl;
-            */
-            Realf* data = blockContainer.getData(trgtLID);
-            data[cellIndex(ii,jj,kk)] += srcData[cellIndex(i,j,k)];
-         }
+         } // for-loops over phase-space cells in source block
       } // for-loop over velocity blocks in neighbor cell
       
       //cerr << "BOUNDARY CELL HAS " << vmesh.size() << " velocity blocks" << endl;
