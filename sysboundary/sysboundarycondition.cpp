@@ -29,6 +29,7 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #include "../parameters.h"
 #include "../vlasovmover.h"
 #include "sysboundarycondition.h"
+#include "../projects/projects_common.h"
 
 using namespace std;
 

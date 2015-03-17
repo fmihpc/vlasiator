@@ -28,6 +28,7 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 
 #include "Fluctuations.h"
 
+using namespace spatial_cell;
 
 Real projects::Fluctuations::rndRho, projects::Fluctuations::rndVel[3];
 

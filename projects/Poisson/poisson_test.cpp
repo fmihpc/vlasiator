@@ -16,6 +16,7 @@
 #include "poisson_test.h"
 
 using namespace std;
+using namespace spatial_cell;
 
 namespace projects {
    

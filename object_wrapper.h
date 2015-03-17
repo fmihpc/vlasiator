@@ -10,14 +10,19 @@
 #include "item_storage.h"
 #include "object_factory.h"
 #include "amr_refinement_criteria.h"
+#include "projects/project.h"
 
 struct ObjectWrapper {
    ObjectWrapper() { }
    ObjectFactory<amr_ref_criteria::Base> amrVelRefCriteria;
+   ObjectFactory<projects::Project>      projects;
    
  private:
    ObjectWrapper(const ObjectWrapper& ow);
    ObjectWrapper& operator=(const ObjectWrapper& ow);
 };
+
+// Currently defined in vlasiator.cpp
+ObjectWrapper& getObjectWrapper();
 
 #endif

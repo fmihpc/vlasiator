@@ -55,6 +55,9 @@
 
 Real projects::Dispersion::rndRho, projects::Dispersion::rndVel[3];
 
+using namespace std;
+using namespace spatial_cell;
+
 namespace projects {
    Dispersion::Dispersion(): Project() { }
    Dispersion::~Dispersion() { }

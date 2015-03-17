@@ -18,6 +18,7 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 #include "Magnetosphere.h"
 
 using namespace std;
+using namespace spatial_cell;
 
 namespace projects {
    Magnetosphere::Magnetosphere(): TriAxisSearch() { }

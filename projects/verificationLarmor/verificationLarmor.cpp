@@ -27,6 +27,9 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 #include "../../backgroundfield/constantfield.hpp"
 #include "verificationLarmor.h"
 
+using namespace std;
+using namespace spatial_cell;
+
 namespace projects {
    verificationLarmor::verificationLarmor(): Project() { }
    verificationLarmor::~verificationLarmor() { }

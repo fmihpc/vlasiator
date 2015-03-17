@@ -12,7 +12,6 @@ Copyright 2010, 2011, 2012, 2013, 2014 Finnish Meteorological Institute
 #include <string>
 #include <vector>
 #include "definitions.h"
-#include "object_wrapper.h"
 
 #ifdef DEBUG_SOLVERS
 #define CHECK_FLOAT(x) \
@@ -39,25 +38,6 @@ void bailout(
    const char * const file,
    const int line
 );
-
-namespace vmesh {
-   #ifndef AMR
-   typedef uint32_t GlobalID;              /**< Datatype used for velocity block global IDs.*/
-   typedef uint32_t LocalID;               /**< Datatype used for velocity block local IDs.*/
-   #else
-   typedef uint32_t GlobalID;
-   typedef uint32_t LocalID;
-   #endif
-
-   /** Global ID of a non-existing or otherwise erroneous velocity block.*/
-   static const GlobalID INVALID_GLOBALID = std::numeric_limits<GlobalID>::max();
-   
-   /** Local ID of a non-existing or otherwise erroneous velocity block.*/
-   static const LocalID INVALID_LOCALID  = std::numeric_limits<LocalID>::max();
-   
-   /** Block index of a non-existing or erroneous velocity block.*/
-   static const LocalID INVALID_VEL_BLOCK_INDEX = INVALID_LOCALID;
-}
 
 #define sqr(x) ((x)*(x))
 #define pow2(x) sqr(x)
@@ -371,8 +351,4 @@ namespace physicalconstants {
 
 const std::vector<CellID>& getLocalCells();
 
-ObjectWrapper& getObjectWrapper();
-
 #endif
-
-

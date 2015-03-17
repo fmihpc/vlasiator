@@ -3,6 +3,7 @@
 #include "../parameters.h"
 #include "../readparameters.h"
 #include "../vlasovmover.h"
+#include "../object_wrapper.h"
 
 #include "Alfven/Alfven.h"
 #include "Diffusion/Diffusion.h"

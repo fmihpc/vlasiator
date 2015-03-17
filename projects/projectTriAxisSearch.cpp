@@ -1,5 +1,8 @@
 #include "projectTriAxisSearch.h"
 
+using namespace std;
+using namespace spatial_cell;
+
 namespace projects {
    /*!
     * WARNING This assumes that the velocity space is isotropic (same resolution in vx, vy, vz).
