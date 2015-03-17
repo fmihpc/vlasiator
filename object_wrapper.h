@@ -15,8 +15,8 @@
 struct ObjectWrapper {
    ObjectWrapper() { }
    ObjectFactory<amr_ref_criteria::Base> amrVelRefCriteria;
-   ObjectFactory<projects::Project>      projects;
-   
+   projects::Project*                    project;           /**< Simulated project.*/
+
  private:
    ObjectWrapper(const ObjectWrapper& ow);
    ObjectWrapper& operator=(const ObjectWrapper& ow);
