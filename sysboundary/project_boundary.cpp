@@ -20,8 +20,12 @@
 using namespace std;
 
 namespace SBC {
-   ProjectBoundary::ProjectBoundary(): SysBoundaryCondition() { }
-   ProjectBoundary::~ProjectBoundary() { }
+   ProjectBoundary::ProjectBoundary(): SysBoundaryCondition() { 
+      project = NULL;
+   }
+   ProjectBoundary::~ProjectBoundary() { 
+      project = NULL;
+   }
    
    void ProjectBoundary::addParameters() {
       return;
@@ -31,10 +35,9 @@ namespace SBC {
       return;
    }
    
-   bool ProjectBoundary::initSysBoundary(
-      creal& t,
-      Project &project
-   ) {
+   bool ProjectBoundary::initSysBoundary(creal& t,Project& project) {
+      this->project = &project;
+      
       /* The array of bool describes which of the x+, x-, y+, y-, z+, z- faces are to have user-set system boundary conditions.
        * A true indicates the corresponding face will have user-set system boundary conditions.
        * The 6 elements correspond to x+, x-, y+, y-, z+, z- respectively.
@@ -55,10 +58,8 @@ namespace SBC {
          if(*it == "z+") facesToProcess[4] = true;
          if(*it == "z-") facesToProcess[5] = true;
       }
-      
-      success = loadInputData();
-      success = success & generateTemplateCells(t);
-      
+
+      success = success & generateTemplateCell();
       return success;
    }
    
@@ -87,193 +88,154 @@ namespace SBC {
    }
    
    bool ProjectBoundary::applyInitialState(
-      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      Project &project
-   ) {
-      bool success;
-      
-      success = setCellsFromTemplate(mpiGrid);
-      
-      return true;
+                                           const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                           Project &project
+                                          ) {
+      bool success = true;
+      const vector<CellID>& cells = getLocalCells();
+
+      for (size_t c=0; c<cells.size(); ++c) {
+         SpatialCell* cell = mpiGrid[cells[c]];
+         if (cell->sysBoundaryFlag != getIndex()) continue;
+         this->project->setCell(cell);
+      }
+
+      return success;
    }
    
    Real ProjectBoundary::fieldSolverBoundaryCondMagneticField(
-      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID,
-      creal& dt,
-      cuint& component
-   ) {
-      Real result = 0.0;
-      const SpatialCell* cell = mpiGrid[cellID];
+                                                              const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                                              const CellID& cellID,
+                                                              creal& dt,
+                                                              cuint& component
+                                                             ) {
+      return 0.0;
+   }
+
+   void ProjectBoundary::fieldSolverBoundaryCondElectricField(
+                                                              dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                                              const CellID& cellID,
+                                                              cuint RKCase,
+                                                              cuint component
+                                                             ) {
+      dccrg::Types<3>::indices_t indices = mpiGrid.mapping.get_indices(cellID);
+      SpatialCell* nbr = NULL;
+      SpatialCell* cell = mpiGrid[cellID];
+      
+      int offset=0;
+      if ((RKCase == RK_ORDER1) || (RKCase == RK_ORDER2_STEP2)) offset = CellParams::EX;
+      else offset = CellParams::EX_DT2;
+
       creal dx = cell->parameters[CellParams::DX];
       creal dy = cell->parameters[CellParams::DY];
       creal dz = cell->parameters[CellParams::DZ];
       creal x = cell->parameters[CellParams::XCRD] + 0.5*dx;
       creal y = cell->parameters[CellParams::YCRD] + 0.5*dy;
       creal z = cell->parameters[CellParams::ZCRD] + 0.5*dz;
-      
       bool isThisCellOnAFace[6];
       determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz);
       
-      for(uint i=0; i<6; i++) {
-         if(isThisCellOnAFace[i]) {
-            if(dt == 0.0) {
-               result = templateCells[i].parameters[CellParams::PERBX + component];
-            } else {
-               result = templateCells[i].parameters[CellParams::PERBX_DT2 + component];
-            }
-            break; // This effectively sets the precedence of faces through the order of faces.
-         }
+      for (uint i=0; i<6; i++) if (facesToProcess[i] && isThisCellOnAFace[i]) {
+         switch (i) {
+          case 0:
+            --indices[0];
+            nbr = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
+            cell->parameters[offset+component] = 0;
+            break;
+          case 1:
+            ++indices[0];
+            nbr = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
+            cell->parameters[offset+component] = 0;
+            break;
+          case 2:
+            --indices[1];
+            nbr = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
+            cell->parameters[offset+component] = 0;
+            break;
+          case 3:
+            ++indices[1];
+            nbr = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
+            cell->parameters[offset+component] = 0;
+            break;
+          case 4:
+            --indices[2];
+            nbr = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
+            cell->parameters[offset+component] = 0;
+            break;
+          case 5:
+            ++indices[2];
+            nbr = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
+            cell->parameters[offset+component] = 0;
+            break;
+         }         
       }
-      return result;
    }
-   
-   void ProjectBoundary::fieldSolverBoundaryCondElectricField(
-      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID,
-      cuint RKCase,
-      cuint component
-   ) {
-      if((RKCase == RK_ORDER1) || (RKCase == RK_ORDER2_STEP2)) {
-         mpiGrid[cellID]->parameters[CellParams::EX+component] = 0.0;
-      } else {// RKCase == RK_ORDER2_STEP1
-         mpiGrid[cellID]->parameters[CellParams::EX_DT2+component] = 0.0;
-      }
-   }
-   
+
    void ProjectBoundary::fieldSolverBoundaryCondHallElectricField(
-      dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID,
-      cuint RKCase,
-      cuint component
-   ) {
-      switch(component) {
-         case 0:
-            mpiGrid[cellID]->parameters[CellParams::EXHALL_000_100] = 0.0;
-            mpiGrid[cellID]->parameters[CellParams::EXHALL_010_110] = 0.0;
-            mpiGrid[cellID]->parameters[CellParams::EXHALL_001_101] = 0.0;
-            mpiGrid[cellID]->parameters[CellParams::EXHALL_011_111] = 0.0;
-            break;
-         case 1:
-            mpiGrid[cellID]->parameters[CellParams::EYHALL_000_010] = 0.0;
-            mpiGrid[cellID]->parameters[CellParams::EYHALL_100_110] = 0.0;
-            mpiGrid[cellID]->parameters[CellParams::EYHALL_001_011] = 0.0;
-            mpiGrid[cellID]->parameters[CellParams::EYHALL_101_111] = 0.0;
-            break;
-         case 2:
-            mpiGrid[cellID]->parameters[CellParams::EZHALL_000_001] = 0.0;
-            mpiGrid[cellID]->parameters[CellParams::EZHALL_100_101] = 0.0;
-            mpiGrid[cellID]->parameters[CellParams::EZHALL_010_011] = 0.0;
-            mpiGrid[cellID]->parameters[CellParams::EZHALL_110_111] = 0.0;
-            break;
-         default:
-            cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
+                                                                  dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+                                                                  const CellID& cellID,
+                                                                  cuint RKCase,
+                                                                  cuint component
+                                                                 ) {
+      switch (component) {
+       case 0:
+         mpiGrid[cellID]->parameters[CellParams::EXHALL_000_100] = 0.0;
+         mpiGrid[cellID]->parameters[CellParams::EXHALL_010_110] = 0.0;
+         mpiGrid[cellID]->parameters[CellParams::EXHALL_001_101] = 0.0;
+         mpiGrid[cellID]->parameters[CellParams::EXHALL_011_111] = 0.0;
+         break;
+       case 1:
+         mpiGrid[cellID]->parameters[CellParams::EYHALL_000_010] = 0.0;
+         mpiGrid[cellID]->parameters[CellParams::EYHALL_100_110] = 0.0;
+         mpiGrid[cellID]->parameters[CellParams::EYHALL_001_011] = 0.0;
+         mpiGrid[cellID]->parameters[CellParams::EYHALL_101_111] = 0.0;
+         break;
+       case 2:
+         mpiGrid[cellID]->parameters[CellParams::EZHALL_000_001] = 0.0;
+         mpiGrid[cellID]->parameters[CellParams::EZHALL_100_101] = 0.0;
+         mpiGrid[cellID]->parameters[CellParams::EZHALL_010_011] = 0.0;
+         mpiGrid[cellID]->parameters[CellParams::EZHALL_110_111] = 0.0;
+         break;
+       default:
+         cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
       }
    }
    
    void ProjectBoundary::fieldSolverBoundaryCondDerivatives(
-      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID,
-      cuint& RKCase,
-      cuint& component
-   ) {
+                                                            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                                            const CellID& cellID,
+                                                            cuint& RKCase,
+                                                            cuint& component
+                                                           ) {
       this->setCellDerivativesToZero(mpiGrid, cellID, component);
    }
    
    void ProjectBoundary::fieldSolverBoundaryCondBVOLDerivatives(
-      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID,
-      cuint& component
-   ) {
+                                                                const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                                                const CellID& cellID,
+                                                                cuint& component
+                                                               ) {
       this->setCellBVOLDerivativesToZero(mpiGrid, cellID, component);
    }
    
    void ProjectBoundary::vlasovBoundaryCondition(
-         const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-         const CellID& cellID
-      ) {
+                                                 const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                                 const CellID& cellID
+                                                ) {
+      const int popID = 0;
       SpatialCell* cell = mpiGrid[cellID];
-      
-      for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-         cell->get_velocity_mesh(popID) = templateCell->get_velocity_mesh(popID);
-         cell->get_velocity_blocks(popID) = templateCell->get_velocity_blocks(popID);
-      }
+      cell->get_velocity_mesh(popID)   = templateCell.get_velocity_mesh(popID);
+      cell->get_velocity_blocks(popID) = templateCell.get_velocity_blocks(popID);
    }
 
-   bool ProjectBoundary::setCellsFromTemplate(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
-      vector<uint64_t> cells = mpiGrid.get_cells();
-#pragma omp parallel for
-      for (uint i=0; i<cells.size(); i++) {
-         SpatialCell* cell = mpiGrid[cells[i]];
-         if(cell->sysBoundaryFlag != this->getIndex()) continue;
-         
-         creal dx = cell->parameters[CellParams::DX];
-         creal dy = cell->parameters[CellParams::DY];
-         creal dz = cell->parameters[CellParams::DZ];
-         creal x = cell->parameters[CellParams::XCRD] + 0.5*dx;
-         creal y = cell->parameters[CellParams::YCRD] + 0.5*dy;
-         creal z = cell->parameters[CellParams::ZCRD] + 0.5*dz;
-         
-         bool isThisCellOnAFace[6];
-         determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz);
-         
-         for(uint i=0; i<6; i++) {
-            if(facesToProcess[i] && isThisCellOnAFace[i]) {
-               cell->parameters[CellParams::PERBX] = templateCells[i].parameters[CellParams::PERBX];
-               cell->parameters[CellParams::PERBY] = templateCells[i].parameters[CellParams::PERBY];
-               cell->parameters[CellParams::PERBZ] = templateCells[i].parameters[CellParams::PERBZ];
-               
-               cell->parameters[CellParams::RHOLOSSADJUST] = 0.0;
-               cell->parameters[CellParams::RHOLOSSVELBOUNDARY] = 0.0;
-               
-               copyCellData(&templateCells[i], cell,true);
-               break; // This effectively sets the precedence of faces through the order of faces.
-            }
-         }
-      }
-      return true;
-   }
-   
    void ProjectBoundary::getFaces(bool* faces) {
       for(uint i=0; i<6; i++) faces[i] = facesToProcess[i];
    }
    
-   bool ProjectBoundary::loadInputData() {
-      for(uint i=0; i<6; i++) {
-         if(facesToProcess[i]) {
-            inputData[i] = loadFile(&(files[i][0]));
-         } else {
-            vector<Real> tmp1;
-            vector<vector<Real> > tmp2;
-            for(uint j=0; j<nParams; j++) {
-               tmp1.push_back(-1.0);
-            }
-            tmp2.push_back(tmp1);
-            inputData[i] = tmp2;
-         }
-      }
+   bool ProjectBoundary::generateTemplateCell() {
+      if (project == NULL) return false;
+      project->setCell(&templateCell);
       return true;
-   }
-   
-   /*! Loops through the array of template cells and generates the ones needed. The function
-    * generateTemplateCell is defined in the inheriting class such as to have the specific
-    * condition needed.
-    * \param t Simulation time.
-    * \sa generateTemplateCell
-    */
-   bool ProjectBoundary::generateTemplateCells(creal& t) {
-# pragma omp parallel for
-      for(uint i=0; i<6; i++) {
-         int index;
-         if(facesToProcess[i]) {
-            generateTemplateCell(templateCells[i], i, t);
-         }
-      }
-      return true;
-   }
-
-   void ProjectBoundary::generateTemplateCell(spatial_cell::SpatialCell& templateCell, int inputDataIndex, creal& t) {
-      cerr << "Base class ProjectBoundary::generateTemplateCell() called instead of derived class function!" << endl;
    }
    
    string ProjectBoundary::getName() const {

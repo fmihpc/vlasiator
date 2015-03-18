@@ -86,23 +86,17 @@ namespace SBC {
       virtual uint getIndex() const;
       
    protected:
-      
-      bool generateTemplateCells(creal& t);
-      virtual void generateTemplateCell(spatial_cell::SpatialCell& templateCell, int inputDataIndex, creal& t);
-      bool setCellsFromTemplate(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
-      
+
+      bool generateTemplateCell();
+
       /*! Array of bool telling which faces are going to be processed by the system boundary condition.*/
       bool facesToProcess[6];
-      /*! Vector containing a vector for each face which has the current boundary condition. Each of these vectors has one line per input data line (time point). The length of the lines is nParams.*/
-      std::vector<std::vector<Real> > inputData[6];
-      /*! Array of template spatial cells replicated over the corresponding simulation volume face. Only the template for an active face is actually being touched at all by the code. */
-      spatial_cell::SpatialCell templateCells[6];
+
+      Project* project;
+      spatial_cell::SpatialCell templateCell;
+
       /*! List of faces on which user-set boundary conditions are to be applied ([xyz][+-]). */
       std::vector<std::string> faceList;
-      /*! Input files for the user-set boundary conditions. */
-      std::string files[6];
-      /*! Number of parameters per input file line. */
-      uint nParams;
    };
 }
 
