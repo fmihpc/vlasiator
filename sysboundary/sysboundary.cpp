@@ -64,6 +64,7 @@ void SysBoundary::addParameters() {
    SBC::Ionosphere::addParameters();
    SBC::Outflow::addParameters();
    SBC::SetMaxwellian::addParameters();
+   SBC::ProjectBoundary::addParameters();
 }
 
 /*!\brief Get this class' parameters.
@@ -208,6 +209,25 @@ bool SysBoundary::initSysBoundaries(
          }
          if((faces[4] || faces[5]) && isPeriodic[2]) {
             if(myRank == MASTER_RANK) cerr << "You set boundaries.periodic_z = yes and load Maxwellian system boundary conditions on the z+ or z- face, are you sure this is correct?" << endl;
+         }
+      }
+      if(*it == "ProjectBoundary") {
+         if (this->addSysBoundary(new SBC::ProjectBoundary, project, t) == false) {
+            if(myRank == MASTER_RANK) cerr << "Error in adding ProjectBoundary boundary." << endl;
+            success = false;
+         }
+         isThisDynamic = isThisDynamic|
+         this->getSysBoundary(sysboundarytype::PROJECT)->isDynamic();
+         bool faces[6];
+         this->getSysBoundary(sysboundarytype::PROJECT)->getFaces(&faces[0]);
+         if((faces[0] || faces[1]) && isPeriodic[0]) {
+            if(myRank == MASTER_RANK) cerr << "You set boundaries.periodic_x = yes and load ProjectBoundary system boundary conditions on the x+ or x- face, are you sure this is correct?" << endl;
+         }
+         if((faces[2] || faces[3]) && isPeriodic[1]) {
+            if(myRank == MASTER_RANK) cerr << "You set boundaries.periodic_y = yes and load ProjectBoundary system boundary conditions on the y+ or y- face, are you sure this is correct?" << endl;
+         }
+         if((faces[4] || faces[5]) && isPeriodic[2]) {
+            if(myRank == MASTER_RANK) cerr << "You set boundaries.periodic_z = yes and load ProjectBoundary system boundary conditions on the z+ or z- face, are you sure this is correct?" << endl;
          }
       }
    }

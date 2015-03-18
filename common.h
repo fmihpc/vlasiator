@@ -303,11 +303,13 @@ namespace bvolderivatives {
  */
 namespace sysboundarytype {
    enum {
-      DO_NOT_COMPUTE, /*!< E.g. cells within the ionospheric outer radius should not be computed at all. */
+      DO_NOT_COMPUTE,  /*!< E.g. cells within the ionospheric outer radius should not be computed at all. */
       NOT_SYSBOUNDARY, /*!< Cells within the simulation domain are not boundary cells. */
-      IONOSPHERE, /*!< Initially a perfectly conducting sphere. */
-      OUTFLOW, /*!< No fixed conditions on the fields and distribution function. */
-      SET_MAXWELLIAN, /*!< Set Maxwellian boundary condition, i.e. set fields and distribution function. */
+      IONOSPHERE,      /*!< Initially a perfectly conducting sphere. */
+      OUTFLOW,         /*!< No fixed conditions on the fields and distribution function. */
+      SET_MAXWELLIAN,  /*!< Set Maxwellian boundary condition, i.e. set fields and distribution function. */
+      PROJECT,         /*!< Simulated project's setCell and setCellBackgroundField functions are used 
+                        * to set the boundary conditions.*/
       N_SYSBOUNDARY_CONDITIONS
    };
 }

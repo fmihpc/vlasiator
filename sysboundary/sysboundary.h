@@ -24,6 +24,7 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #include "ionosphere.h"
 #include "outflow.h"
 #include "setmaxwellian.h"
+#include "project_boundary.h"
 
 
 /*! \brief SysBoundary contains the SysBoundaryConditions used in the simulation.
