@@ -21,7 +21,6 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 
 #include "sysboundarycondition.h"
 
-
 /*! \brief SysBoundary contains the SysBoundaryConditions used in the simulation.
  * 
  * The purpose of SysBoundary is to contain SBC::SysBoundaryConditions, and apply 
@@ -38,33 +37,33 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
  * are loaded when the simulation initializes.
  */
 class SysBoundary {
-   public:
-      SysBoundary();
-      ~SysBoundary();
+ public:
+   SysBoundary();
+   ~SysBoundary();
       
-      void addParameters();
-      void getParameters();
+   void addParameters();
+   void getParameters();
       
-      bool addSysBoundary(
-         SBC::SysBoundaryCondition* sbc,
-         Project& project,
-         creal& t
-      );
-      bool initSysBoundaries(
-         Project& project,
-         creal& t
-      );
-      bool classifyCells(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
-      bool applyInitialState(
-         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-         Project& project
-      );
-      void applySysBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, creal& t);
-      unsigned int size() const;
-      SBC::SysBoundaryCondition* getSysBoundary(cuint sysBoundaryType) const;
-      bool isDynamic() const;
-      bool isBoundaryPeriodic(uint direction) const;
-      bool updateSysBoundariesAfterLoadBalance(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
+   bool addSysBoundary(
+                       SBC::SysBoundaryCondition* sbc,
+                       Project& project,
+                       creal& t
+                      );
+   bool initSysBoundaries(
+                          Project& project,
+                          creal& t
+                         );
+   bool classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
+   bool applyInitialState(
+                          dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                          Project& project
+                         );
+   void applySysBoundaryVlasovConditions(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, creal& t);
+   unsigned int size() const;
+   SBC::SysBoundaryCondition* getSysBoundary(cuint sysBoundaryType) const;
+   bool isDynamic() const;
+   bool isBoundaryPeriodic(uint direction) const;
+   bool updateSysBoundariesAfterLoadBalance(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 
    private:
       /*! Private copy-constructor to prevent copying the class. */
@@ -93,9 +92,9 @@ bool precedenceSort(const SBC::SysBoundaryCondition* first,
 /*
    Input a vector of cellIDs (cellList) and compute a new vector with only those cells which are on a sysboundary and are to be computed
 */
-bool getBoundaryCellList(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                         const std::vector<uint64_t>& cellList,
-                         std::vector<uint64_t>& boundaryCellList);
+bool getBoundaryCellList(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                         const std::vector<CellID>& cellList,
+                         std::vector<CellID>& boundaryCellList);
 
 
 

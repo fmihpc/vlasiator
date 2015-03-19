@@ -5,6 +5,7 @@
  * 
  */
 
+#include "../object_wrapper.h"
 #include "cpu_moments.h"
 #include "cpu_acc_transform.hpp"
 

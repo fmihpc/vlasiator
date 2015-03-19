@@ -23,6 +23,7 @@
 #include <cstdlib>
 #include <iostream>
 
+#include "../object_wrapper.h"
 #include "outflow.h"
 #include "../projects/projects_common.h"
 #include "../fieldsolver/fs_common.h"

@@ -1,4 +1,8 @@
 #include "projectTriAxisSearch.h"
+#include "../object_wrapper.h"
+
+using namespace std;
+using namespace spatial_cell;
 
 namespace projects {
    /*!

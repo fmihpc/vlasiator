@@ -23,6 +23,7 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 #include "../../common.h"
 #include "../../readparameters.h"
 #include "../../backgroundfield/backgroundfield.h"
+#include "../../object_wrapper.h"
 
 #include "Alfven.h"
 

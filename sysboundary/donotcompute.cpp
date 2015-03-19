@@ -24,6 +24,7 @@
 #include <iostream>
 
 #include "donotcompute.h"
+#include "../object_wrapper.h"
 
 using namespace std;
 

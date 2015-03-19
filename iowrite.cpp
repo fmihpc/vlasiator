@@ -21,6 +21,7 @@ Copyright 2010-2015 Finnish Meteorological Institute
 #include "parameters.h"
 #include "logger.h"
 #include "vlasovmover.h"
+#include "object_wrapper.h"
 
 using namespace std;
 using namespace phiprof;

@@ -14,6 +14,7 @@
 #include "vlsvreader2.h"
 #include "vlsv_reader_parallel.h"
 #include "vlasovmover.h"
+#include "object_wrapper.h"
 
 using namespace std;
 using namespace phiprof;

@@ -60,7 +60,9 @@ do
     export OMP_NUM_THREADS=$t
     export MPICH_MAX_THREAD_SAFETY=funneled
 
+    $run_command $bin --version  > VERSION.txt
     $run_command $bin --run_config=${test_name[$run]}.cfg
+
 
   ###copy new reference data to correct folder
     if [ $create_verification_files == 1 ]
@@ -93,11 +95,11 @@ do
 
 
         echo "------------------------------------------------------------"
-        echo " ref-perf     |   new-perf       |  speedup                |"
+        echo " ref-time     |   new-time       |  speedup                |"
         echo "------------------------------------------------------------"
-        refPerf=$(grep "Propagate   " ${result_dir}/${comparison_phiprof[$run]}  |gawk '{print $12}')
-        newPerf=$(grep "Propagate   " ${vlsv_dir}/${comparison_phiprof[$run]}  |gawk '{print $12}')
-        speedup=$( echo $refPerf $newPerf |gawk '{print $2/$1}')
+        refPerf=$(grep "Propagate   " ${result_dir}/${comparison_phiprof[$run]}  |gawk '{print $4}')
+        newPerf=$(grep "Propagate   " ${vlsv_dir}/${comparison_phiprof[$run]}  |gawk '{print $4}')
+        speedup=$( echo $refPerf $newPerf |gawk '{print $1/$2}')
         echo  "$refPerf        $newPerf         $speedup"
         echo "------------------------------------------------------------"
         echo "  variable     |     absolute diff     |     relative diff | "

@@ -23,7 +23,7 @@
 #include <array>
 #include "datareductionoperator.h"
 #include "../vlscommon.h"
-//#include "../parameters.h"
+#include "../object_wrapper.h"
 
 using namespace std;
 

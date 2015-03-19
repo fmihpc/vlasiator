@@ -21,6 +21,7 @@
 #include "../vlasovmover.h"
 #include "../grid.h"
 #include "../definitions.h"
+#include "../object_wrapper.h"
 
 #include "cpu_moments.h"
 #include "cpu_acc_semilag.hpp"

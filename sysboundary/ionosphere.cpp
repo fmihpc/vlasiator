@@ -30,6 +30,7 @@
 #include "../fieldsolver/fs_common.h"
 #include "../fieldsolver/fs_limiters.h"
 #include "../common.h"
+#include "../object_wrapper.h"
 
 #ifndef NDEBUG
    #define DEBUG_IONOSPHERE

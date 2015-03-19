@@ -6,10 +6,10 @@
 #include <cstdlib>
 #include <cmath>
 
-#include "common.h"
 #include "parameters.h"
 #include "amr_refinement_criteria.h"
 #include "velocity_blocks.h"
+#include "object_wrapper.h"
 
 using namespace std;
 

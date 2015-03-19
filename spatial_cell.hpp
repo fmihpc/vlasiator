@@ -1479,38 +1479,6 @@ namespace spatial_cell {
       return value;
    }
 
-   /*!
-    Returns true if given velocity block has enough of a distribution function.
-    Returns false if the value of the distribution function is too low in every
-    sense in given block.
-    Also returns false if given block doesn't exist or is an error block.
-    */
-   inline bool SpatialCell::compute_block_has_content(const vmesh::GlobalID& blockGID,const int& popID) const {
-      #ifdef DEBUG_SPATIAL_CELL
-      if (popID >= populations.size()) {
-         std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
-         std::cerr << __FILE__ << ":" << __LINE__ << std::endl;             
-         exit(1);
-      }
-      #endif
-      
-      if (blockGID == invalid_global_id()) return false;
-      const vmesh::LocalID blockLID = get_velocity_block_local_id(blockGID,popID);
-      if (blockLID == invalid_local_id()) return false;
-
-      bool has_content = false;
-      const Real velocity_block_min_value = getObjectWrapper().particleSpecies[popID].sparseMinValue;
-      const Realf* block_data = populations[popID].blockContainer.getData(blockLID);
-      for (unsigned int i=0; i<VELOCITY_BLOCK_LENGTH; ++i) {
-         if (block_data[i] >= velocity_block_min_value) {
-            has_content = true;
-            break;
-         }
-      }
-
-      return has_content;
-   }
-   
    inline bool SpatialCell::checkMesh(const int& popID) {
       #ifdef DEBUG_SPATIAL_CELL
       if (popID >= populations.size()) {

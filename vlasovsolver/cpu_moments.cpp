@@ -8,6 +8,7 @@ Copyright 2015 Finnish Meteorological Institute
 #include <phiprof.hpp>
 #include "cpu_moments.h"
 #include "../vlasovmover.h"
+#include "../object_wrapper.h"
 
 using namespace std;
 

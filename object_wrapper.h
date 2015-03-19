@@ -13,16 +13,21 @@
 #include "object_factory.h"
 #include "amr_refinement_criteria.h"
 #include "particle_species.h"
+#include "projects/project.h"
 
 struct ObjectWrapper {
    ObjectWrapper() { }
 
    ObjectFactory<amr_ref_criteria::Base> amrVelRefCriteria; /**< Factory for all known AMR refinement criteria.*/
    std::vector<species::Species> particleSpecies;           /**< Parameters for all particle species.*/
+   projects::Project*                    project;           /**< Simulated project.*/
 
  private:
    ObjectWrapper(const ObjectWrapper& ow);
    ObjectWrapper& operator=(const ObjectWrapper& ow);
 };
+
+// Currently defined in vlasiator.cpp
+ObjectWrapper& getObjectWrapper();
 
 #endif

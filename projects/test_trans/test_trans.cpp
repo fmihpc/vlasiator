@@ -10,15 +10,6 @@ Copyright 2011, 2012, 2014 Finnish Meteorological Institute
 #include <iomanip>
 #include <cmath>
 
-/*
-#include "spatial_cell.hpp"
-#include "common.h"
-#include "project.h"
-#include "parameters.h"
-#include "readparameters.h"
-#include "vlasovmover.h"
-*/
-
 #include "../../common.h"
 #include "../../readparameters.h"
 #include "../../backgroundfield/backgroundfield.h"
@@ -27,6 +18,7 @@ Copyright 2011, 2012, 2014 Finnish Meteorological Institute
 #include "test_trans.h"
 
 using namespace std;
+using namespace spatial_cell;
 
 namespace projects {
    test_trans::test_trans(): Project() { }

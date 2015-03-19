@@ -28,6 +28,9 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 
 #include "Larmor.h"
 
+using namespace std;
+using namespace spatial_cell;
+
 namespace projects {
     Larmor::Larmor(): Project() { }
     Larmor::~Larmor() { }

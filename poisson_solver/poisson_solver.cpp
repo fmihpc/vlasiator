@@ -17,6 +17,7 @@
 #include "../mpiconversion.h"
 #include "../grid.h"
 #include "../spatial_cell.hpp"       
+#include "../object_wrapper.h"
 
 #include "poisson_solver.h"
 #include "poisson_solver_jacobi.h"

@@ -14,10 +14,12 @@ Copyright 2011-2015 Finnish Meteorological Institute
 #include "../../readparameters.h"
 #include "../../backgroundfield/backgroundfield.h"
 #include "../../backgroundfield/constantfield.hpp"
+#include "../../object_wrapper.h"
 
 #include "MultiPeak.h"
 
 using namespace std;
+using namespace spatial_cell;
 
 vector<Real> projects::MultiPeak::rhoRnd;
 

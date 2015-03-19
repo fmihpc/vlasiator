@@ -8,6 +8,8 @@ Copyright 2011-2015 Finnish Meteorological Institute
 #ifndef MULTIPEAK_H
 #define MULTIPEAK_H
 
+#include <vector>
+
 #include "../../definitions.h"
 #include "../projectTriAxisSearch.h"
 
@@ -21,37 +23,35 @@ namespace projects {
       static void addParameters(void);
       virtual void getParameters(void);
       virtual void setActivePopulation(const int& popID);
-      virtual void setCellBackgroundField(SpatialCell* cell);
+      virtual void setCellBackgroundField(spatial_cell::SpatialCell* cell);
     protected:
       Real getDistribValue(
                            creal& x,creal& y, creal& z,
                            creal& vx, creal& vy, creal& vz
                           );
-         virtual void calcCellParameters(Real* cellParams,creal& t);
+      virtual void calcCellParameters(Real* cellParams,creal& t);
       virtual Real calcPhaseSpaceDensity(
                                          creal& x, creal& y, creal& z,
                                          creal& dx, creal& dy, creal& dz,
                                          creal& vx, creal& vy, creal& vz,
                                          creal& dvx, creal& dvy, creal& dvz,
-                                        const int& popID);
+                                         const int& popID);
       virtual vector<std::array<Real, 3>> getV0(
                                                 creal x,
                                                 creal y,
                                                 creal z
-                                               );
-      
-      int popID;                             /**< Active particle population ID.*/
-      
+                                                );
+      int popID;
       int numberOfPopulations;
       vector<Real> rho;
       static vector<Real> rhoRnd; //static as it has to be threadprivate
-#pragma omp threadprivate(rhoRnd)       
-      vector<Real> Tx;
-      vector<Real> Ty;
-      vector<Real> Tz;
-      vector<Real> Vx;
-      vector<Real> Vy;
-      vector<Real> Vz;
+      #pragma omp threadprivate(rhoRnd)       
+      std::vector<Real> Tx;
+      std::vector<Real> Ty;
+      std::vector<Real> Tz;
+      std::vector<Real> Vx;
+      std::vector<Real> Vy;
+      std::vector<Real> Vz;
       Real Bx;
       Real By;
       Real Bz;
@@ -61,15 +61,13 @@ namespace projects {
       Real magXPertAbsAmp;
       Real magYPertAbsAmp;
       Real magZPertAbsAmp;
-      vector<Real> rhoPertAbsAmp;
+      std::vector<Real> rhoPertAbsAmp;
       Real lambda;
       uint nVelocitySamples;
       bool useMultipleSpecies;      /**< If true, then each peak is a separate particle species.
                                      * Defaults to false.*/
    }; // class MultiPeak
 } //  namespace projects
-
-
 
 #endif
 

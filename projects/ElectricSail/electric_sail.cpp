@@ -12,11 +12,13 @@
 
 #include "../../readparameters.h"
 #include "../../logger.h"
+#include "../../object_wrapper.h"
 
 #include "../../poisson_solver/poisson_solver.h"
 #include "electric_sail.h"
 
 using namespace std;
+using namespace spatial_cell;
 
 extern Logger logFile;
 

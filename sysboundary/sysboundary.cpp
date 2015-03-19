@@ -13,16 +13,19 @@ Copyright 2010-2013,2015 Finnish Meteorological Institute
 #include <cstdlib>
 #include <iostream>
 
-#include "sysboundary.h"
 #include "../grid.h"
+#include "../object_wrapper.h"
 
+#include "sysboundary.h"
 #include "donotcompute.h"
 #include "ionosphere.h"
 #include "outflow.h"
 #include "setmaxwellian.h"
 #include "antisymmetric.h"
+#include "project_boundary.h"
 
 using namespace std;
+using namespace spatial_cell;
 
 bool precedenceSort(const SBC::SysBoundaryCondition* first,
                     const SBC::SysBoundaryCondition* second) {
@@ -71,6 +74,7 @@ void SysBoundary::addParameters() {
    SBC::Outflow::addParameters();
    SBC::SetMaxwellian::addParameters();
    SBC::Antisymmetric::addParameters();
+   SBC::ProjectBoundary::addParameters();
 }
 
 /*!\brief Get this class' parameters.
@@ -146,15 +150,15 @@ bool SysBoundary::addSysBoundary(
  * \sa addSysBoundary
  */
 bool SysBoundary::initSysBoundaries(
-   Project& project,
-   creal& t
-) {
+                                    Project& project,
+                                    creal& t
+                                   ) {
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    bool success = true;
    vector<string>::const_iterator it;
    
-   if(sysBoundaryCondList.size() == 0) {
+   if (sysBoundaryCondList.size() == 0) {
       if(!isPeriodic[0]) {
          if(myRank == MASTER_RANK) cerr << "You set boundaries.periodic_x = no but you didn't load any system boundary condition using the option boundaries.boundary, are you sure this is correct?" << endl;
       }
@@ -245,6 +249,25 @@ bool SysBoundary::initSysBoundaries(
             }
          }
       }
+      if(*it == "ProjectBoundary") {
+         if (this->addSysBoundary(new SBC::ProjectBoundary, project, t) == false) {
+            if(myRank == MASTER_RANK) cerr << "Error in adding ProjectBoundary boundary." << endl;
+            success = false;
+         }
+         isThisDynamic = isThisDynamic|
+         this->getSysBoundary(sysboundarytype::PROJECT)->isDynamic();
+         bool faces[6];
+         this->getSysBoundary(sysboundarytype::PROJECT)->getFaces(&faces[0]);
+         if((faces[0] || faces[1]) && isPeriodic[0]) {
+            if(myRank == MASTER_RANK) cerr << "You set boundaries.periodic_x = yes and load ProjectBoundary system boundary conditions on the x+ or x- face, are you sure this is correct?" << endl;
+         }
+         if((faces[2] || faces[3]) && isPeriodic[1]) {
+            if(myRank == MASTER_RANK) cerr << "You set boundaries.periodic_y = yes and load ProjectBoundary system boundary conditions on the y+ or y- face, are you sure this is correct?" << endl;
+         }
+         if((faces[4] || faces[5]) && isPeriodic[2]) {
+            if(myRank == MASTER_RANK) cerr << "You set boundaries.periodic_z = yes and load ProjectBoundary system boundary conditions on the z+ or z- face, are you sure this is correct?" << endl;
+         }
+      }
    }
    
    return success;
@@ -255,7 +278,7 @@ bool SysBoundary::initSysBoundaries(
  * Loops through all cells and and for each assigns the correct sysBoundaryFlag depending on
  * the return value of each SysBoundaryCondition's assignSysBoundary.
  */
-bool SysBoundary::classifyCells(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
+bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
    bool success = true;
    vector<CellID> cells = mpiGrid.get_cells();
 
@@ -493,8 +516,4 @@ bool SysBoundary::updateSysBoundariesAfterLoadBalance(dccrg::Dccrg<SpatialCell,d
    phiprof::stop("getAllClosestNonsysboundaryCells");
    return true;
 }
-
-
-
-
 

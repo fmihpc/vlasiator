@@ -29,6 +29,7 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 #include "Distributions.h"
 
 using namespace std;
+using namespace spatial_cell;
 
 namespace projects {
    Distributions::Distributions(): TriAxisSearch() { }

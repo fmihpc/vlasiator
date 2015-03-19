@@ -6,6 +6,7 @@
 #include "../vlasovmover.h"
 #include "../particle_species.h"
 #include "../logger.h"
+#include "../object_wrapper.h"
 
 #include "Alfven/Alfven.h"
 #include "Diffusion/Diffusion.h"
@@ -413,79 +414,82 @@ namespace projects {
 
    
 Project* createProject() {
+   Project* rvalue = NULL;
    if(Parameters::projectName == "Alfven") {
-      return new projects::Alfven;
+      rvalue = new projects::Alfven;
    }
    if(Parameters::projectName == "Diffusion") {
-      return new projects::Diffusion;
+      rvalue = new projects::Diffusion;
    }
    if(Parameters::projectName == "Dispersion") {
-      return new projects::Dispersion;
+      rvalue = new projects::Dispersion;
    }
    if(Parameters::projectName == "Distributions") {
-      return new projects::Distributions;
+      rvalue = new projects::Distributions;
    }
    if (Parameters::projectName == "ElectricSail") {
       return new projects::ElectricSail;
    }
    if(Parameters::projectName == "Firehose") {
-      return new projects::Firehose;
+      rvalue = new projects::Firehose;
    }
    if(Parameters::projectName == "Flowthrough") {
-      return new projects::Flowthrough;
+      rvalue = new projects::Flowthrough;
    }
    if(Parameters::projectName == "Fluctuations") {
-         return new projects::Fluctuations;
+      rvalue = new projects::Fluctuations;
    }
-
    if(Parameters::projectName == "Harris") {
-      return new projects::Harris;
+      rvalue = new projects::Harris;
    }
-
    if(Parameters::projectName == "KHB") {
-      return new projects::KHB;
+      rvalue = new projects::KHB;
    }
    if(Parameters::projectName == "Larmor") {
-      return new projects::Larmor;
+      rvalue = new projects::Larmor;
    }
    if(Parameters::projectName == "Magnetosphere") {
-      return new projects::Magnetosphere;
+      rvalue = new projects::Magnetosphere;
    }
    if(Parameters::projectName == "MultiPeak") {
-      return new projects::MultiPeak;
+      rvalue = new projects::MultiPeak;
    } 
    if(Parameters::projectName == "VelocityBox") {
-      return new projects::VelocityBox;
+      rvalue = new projects::VelocityBox;
    } 
    if(Parameters::projectName == "Riemann1") {
-      return new projects::Riemann1;
+      rvalue = new projects::Riemann1;
    }
    if(Parameters::projectName == "Shock") {
-      return new projects::Shock;
+      rvalue = new projects::Shock;
    }
    if(Parameters::projectName == "Template") {
-      return new projects::Template;
+      rvalue = new projects::Template;
    }
    if(Parameters::projectName == "test_fp") {
-      return new projects::test_fp;
+      rvalue = new projects::test_fp;
    }
    if(Parameters::projectName == "testHall") {
-      return new projects::TestHall;
+      rvalue = new projects::TestHall;
    }
    if(Parameters::projectName == "test_trans") {
-      return new projects::test_trans;
+      rvalue = new projects::test_trans;
    }
    if(Parameters::projectName == "verificationLarmor") {
-      return new projects::verificationLarmor;
+      rvalue = new projects::verificationLarmor;
    }
    if(Parameters::projectName == "Shocktest") {
-      return new projects::Shocktest;
+      rvalue = new projects::Shocktest;
    }
    if (Parameters::projectName == "PoissonTest") {
-      return new projects::PoissonTest;
+      rvalue = new projects::PoissonTest;
    }
-   cerr << "Unknown project name!" << endl;
-   abort();
+   if (rvalue == NULL) {
+      cerr << "Unknown project name!" << endl;
+      abort();
+   }
+   getObjectWrapper().project = rvalue;
+   return rvalue;
 }
 
 } // namespace projects

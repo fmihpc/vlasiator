@@ -13,6 +13,7 @@
 
 #include "setmaxwellian.h"
 #include "../vlasovmover.h"
+#include "../object_wrapper.h"
 
 namespace SBC {
    SetMaxwellian::SetMaxwellian(): SetByUser() {

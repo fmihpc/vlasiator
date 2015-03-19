@@ -33,7 +33,7 @@ namespace projects {
       static void addParameters();
       virtual void getParameters();
       virtual bool initialize();
-      virtual void setCellBackgroundField(SpatialCell* cell);
+      virtual void setCellBackgroundField(spatial_cell::SpatialCell* cell);
                 
    protected:
       int popID;
