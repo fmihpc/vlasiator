@@ -1,18 +1,7 @@
 /*
  * This file is part of Vlasiator.
  * 
- * Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
+ * Copyright 2010-2013, 2015 Finnish Meteorological Institute
  * 
  */
 
@@ -64,6 +53,13 @@ namespace DRO {
       return string("");
    }
    
+   /** Check if this DataReductionOperator wants to take care of writing the 
+    * data to the output file instead of letting it be handled in iowrite.cpp, 
+    * i.e., one should call the writeData function.
+    * @return If true, then this DRO wants to write the data to file.
+    * @see DataReductionOperator::writeData.*/
+   bool DataReductionOperator::handlesWriting() const {return false;}
+   
    // TODO update this documentation snippet.
    /** Reduce the data and write the data vector to the given buffer.
     * @param N_blocks Number of velocity blocks in array avgs.
@@ -105,7 +101,19 @@ namespace DRO {
       return false;
    }
    
-   
+   /** Request the DataReductionOperator to write all its data to the output file.
+    * This function should only be called if handlesWriting function returned true.
+    * @param mpiGrid Parallel grid.
+    * @param cells List of spatial cells (ordered).
+    * @param meshName Name of the spatial mesh.
+    * @param vlsvWriter Output file writer.
+    * @return If true, then output data was written successfully.*/
+   bool DataReductionOperator::writeData(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                             const std::vector<CellID>& cells,const std::string& meshName,
+                             vlsv::Writer& vlsvWriter) {
+      cerr << "ERROR: DataReductionOperator::writeData called instead of derived class function!" << endl;
+      return false;
+   }
    
    
    

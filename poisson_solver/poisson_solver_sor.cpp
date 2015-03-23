@@ -208,44 +208,42 @@ namespace poisson {
                break;
                
             case sysboundarytype::ANTISYMMETRIC:
-               if (indices[1] == 1 || indices[1] == Parameters::ycells_ini-2) {
-                  // Get +/- x-neighbor pointers
-                  indices[0] -= 1;
-                  dummy = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
-                  if (dummy == NULL) cache[1] = bndryCellParams;
-                  else               cache[1] = dummy->parameters;
-                  indices[0] += 2;
-                  dummy = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
-                  if (dummy == NULL) cache[2] = bndryCellParams;
-                  else               cache[2] = dummy->parameters;
-                  indices[0] -= 1;
+               // Get +/- x-neighbor pointers
+               indices[0] -= 1;
+               dummy = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
+               if (dummy == NULL) cache[1] = bndryCellParams;
+               else               cache[1] = dummy->parameters;
+               indices[0] += 2;
+               dummy = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
+               if (dummy == NULL) cache[2] = bndryCellParams;
+               else               cache[2] = dummy->parameters;
+               indices[0] -= 1;
 
-                  // Set +/- y-neighbors both point to +y neighbor 
-                  // if we are at the lower y-boundary, otherwise set both 
-                  // y-neighbors point to -y neighbor.
-                  if (indices[1] == 1) {
-                     indices[1] += 1;
-                     dummy = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
-                     if (dummy == NULL) {
-                        cache[3] = bndryCellParams;
-                        cache[4] = bndryCellParams;
-                     } else {
-                        cache[3] = dummy->parameters;
-                        cache[4] = dummy->parameters;
-                     }
-                     indices[1] -= 1;
+               // Set +/- y-neighbors both point to +y neighbor 
+               // if we are at the lower y-boundary, otherwise set both 
+               // y-neighbors point to -y neighbor.
+               if (indices[1] == 1) {
+                  indices[1] += 1;
+                  dummy = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
+                  if (dummy == NULL) {
+                     cache[3] = bndryCellParams;
+                     cache[4] = bndryCellParams;
                   } else {
-                     indices[1] -= 1;
-                     dummy = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
-                     if (dummy == NULL) {
-                        cache[3] = bndryCellParams;
-                        cache[4] = bndryCellParams;
-                     } else {
-                        cache[3] = dummy->parameters;
-                        cache[4] = dummy->parameters;
-                     }
-                     indices[1] += 1;
+                     cache[3] = dummy->parameters;
+                     cache[4] = dummy->parameters;
                   }
+                  indices[1] -= 1;
+               } else {
+                  indices[1] -= 1;
+                  dummy = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
+                  if (dummy == NULL) {
+                     cache[3] = bndryCellParams;
+                     cache[4] = bndryCellParams;
+                  } else {
+                     cache[3] = dummy->parameters;
+                     cache[4] = dummy->parameters;
+                  }
+                  indices[1] += 1;
                }
                break;
 
@@ -377,12 +375,13 @@ namespace poisson {
       //mpiGrid.wait_remote_neighbor_copy_updates(POISSON_NEIGHBORHOOD_ID);
       mpiGrid.wait_remote_neighbor_copy_updates(POISSON_NEIGHBORHOOD_ID);
       phiprof::stop("MPI (RHOQ)");
-
-      #warning RED/BLACK pointers do not include boundary cells
       
+      #warning RED/BLACK pointers do not include boundary cells
+
       SpatialCell::set_mpi_transfer_type(Transfer::CELL_PHI,false);
+      int iterations = 0;
+      Real relPotentialChange = 0;
       do {
-         int iterations = 0;
          const int N_iterations = 10;
 
 	 #pragma omp parallel
@@ -411,11 +410,12 @@ namespace poisson {
 
          // Evaluate the error in potential solution and reiterate if necessary
          iterations += N_iterations;
-         const Real relPotentialChange = error(mpiGrid);
+         relPotentialChange = error(mpiGrid);
          if (relPotentialChange <= Poisson::minRelativePotentialChange) break;
          if (iterations >= Poisson::maxIterations) break;
       } while (true);
 
+      cerr << "SOR solved using " << iterations << " iterations, rel change " << relPotentialChange << endl;
       return success;
    }
 

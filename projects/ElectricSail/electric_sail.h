@@ -31,9 +31,10 @@ namespace projects {
       virtual ~ElectricSail();
         
       static void addParameters();
+      Real getCorrectNumberDensity(const int& popID) const;
       virtual void getParameters();
       virtual bool initialize();
-      virtual void setCellBackgroundField(spatial_cell::SpatialCell* cell);
+      virtual void setCellBackgroundField(spatial_cell::SpatialCell* cell) const;
                 
    protected:
       int popID;
@@ -44,7 +45,7 @@ namespace projects {
       Real tetherUnitCharge;  /**< Unit charge per meter of the tether in Coulombs.*/
       Real tetherVoltage;     /**< Electric sail tether voltage.*/
 
-      void tetherElectricField(Real* x,Real* E);
+      void tetherElectricField(Real* x,Real* E) const;
 
       virtual void calcCellParameters(Real* cellParams,creal& t);
 
@@ -52,10 +53,10 @@ namespace projects {
             creal& x, creal& y, creal& z,
             creal& dx, creal& dy, creal& dz,
             creal& vx, creal& vy, creal& vz,
-            creal& dvx, creal& dvy, creal& dvz,const int& popID);
+            creal& dvx, creal& dvy, creal& dvz,const int& popID) const;
       
       Real getDistribValue(creal& vx,creal& vy, creal& vz,
-                           creal& dvx, creal& dvy, creal& dvz);
+                           creal& dvx, creal& dvy, creal& dvz,const int& popID) const;
 
       vector<std::array<Real,3>> getV0(creal x,creal y,creal z);
 

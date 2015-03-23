@@ -6,10 +6,10 @@ include MAKE/Makefile.${ARCH}
 FP_PRECISION = DP
 
 #Set floating point precision for distribution function to SPF (single) or DPF (double)
-DISTRIBUTION_FP_PRECISION = SPF
+DISTRIBUTION_FP_PRECISION = DPF
 
 #Set vector backend type for vlasov solvers, sets precision and length. Options: VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER, VEC4D_FALLBACK, VEC4F_FALLBACK
-VECTORCLASS = VEC8F_AGNER
+VECTORCLASS = VEC4D_AGNER
 
 #set a default archive utility, can also be set in Makefile.arch
 AR ?= ar
@@ -192,10 +192,10 @@ DEPS_VLSVMOVER_AMR = ${DEPS_CELL} vlasovsolver_amr/vlasovmover.cpp vlasovsolver_
 #all objects for vlasiator
 
 OBJS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipole.o constantfield.o integratefunction.o \
-	datareducer.o datareductionoperator.o amr_refinement_criteria.o\
+	datareducer.o datareductionoperator.o dro_species_moments.o amr_refinement_criteria.o\
 	donotcompute.o ionosphere.o outflow.o setbyuser.o setmaxwellian.o antisymmetric.o\
 	sysboundary.o sysboundarycondition.o project_boundary.o\
-	project.o projectTriAxisSearch.o \
+	project.o projectTriAxisSearch.o read_gaussian_population.o\
 	Alfven.o Diffusion.o Dispersion.o Distributions.o electric_sail.o Firehose.o Flowthrough.o Fluctuations.o Harris.o KHB.o Larmor.o \
 	Magnetosphere.o MultiPeak.o VelocityBox.o Riemann1.o Shock.o Template.o test_fp.o testHall.o test_trans.o \
 	verificationLarmor.o Shocktest.o grid.o ioread.o iowrite.o vlasiator.o logger.o muxml.o \
@@ -268,10 +268,13 @@ integratefunction.o: ${DEPS_COMMON} backgroundfield/integratefunction.cpp backgr
 	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/integratefunction.cpp 
 
 datareducer.o: ${DEPS_COMMON} spatial_cell.hpp datareduction/datareducer.h datareduction/datareductionoperator.h datareduction/datareducer.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c datareduction/datareducer.cpp ${INC_MPI} ${INC_BOOST} ${INC_EIGEN}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c datareduction/datareducer.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_MPI} ${INC_BOOST} ${INC_EIGEN} ${INC_VLSV}
 
-datareductionoperator.o:  ${DEPS_COMMON} ${DEPS_CELL} parameters.h datareduction/datareductionoperator.h datareduction/datareductionoperator.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c datareduction/datareductionoperator.cpp ${INC_MPI} ${INC_BOOST} ${INC_EIGEN}
+datareductionoperator.o: ${DEPS_COMMON} ${DEPS_CELL} parameters.h datareduction/datareductionoperator.h datareduction/datareductionoperator.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c datareduction/datareductionoperator.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_MPI} ${INC_BOOST} ${INC_EIGEN} ${INC_VLSV}
+
+dro_species_moments.o: ${DEPS_COMMON} ${DEPS_CELL} parameters.h datareduction/datareductionoperator.h datareduction/datareductionoperator.cpp datareduction/dro_species_moments.h datareduction/dro_species_moments.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c datareduction/dro_species_moments.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_MPI} ${INC_BOOST} ${INC_EIGEN} ${INC_VLSV}
 
 antisymmetric.o: ${DEPS_SYSBOUND} sysboundary/antisymmetric.h sysboundary/antisymmetric.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c sysboundary/antisymmetric.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
@@ -300,6 +303,9 @@ sysboundary.o: ${DEPS_COMMON} sysboundary/sysboundary.h sysboundary/sysboundary.
 sysboundarycondition.o: ${DEPS_COMMON} sysboundary/sysboundarycondition.h sysboundary/sysboundarycondition.cpp sysboundary/donotcompute.h sysboundary/donotcompute.cpp sysboundary/ionosphere.h sysboundary/ionosphere.cpp sysboundary/outflow.h sysboundary/outflow.cpp sysboundary/setmaxwellian.h sysboundary/setmaxwellian.cpp sysboundary/setbyuser.h sysboundary/setbyuser.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c sysboundary/sysboundarycondition.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
+read_gaussian_population.o: definitions.h readparameters.h projects/read_gaussian_population.h projects/read_gaussian_population.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/read_gaussian_population.cpp
+
 Alfven.o: ${DEPS_COMMON} projects/Alfven/Alfven.h projects/Alfven/Alfven.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/Alfven/Alfven.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
@@ -312,7 +318,7 @@ Dispersion.o: ${DEPS_COMMON} projects/Dispersion/Dispersion.h projects/Dispersio
 Distributions.o: ${DEPS_COMMON} projects/Distributions/Distributions.h projects/Distributions/Distributions.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/Distributions/Distributions.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
-electric_sail.o: ${DEPS_COMMON} projects/ElectricSail/electric_sail.h projects/ElectricSail/electric_sail.cpp
+electric_sail.o: ${DEPS_COMMON} projects/read_gaussian_population.h projects/ElectricSail/electric_sail.h projects/ElectricSail/electric_sail.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/ElectricSail/electric_sail.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
 Firehose.o: ${DEPS_COMMON} projects/Firehose/Firehose.h projects/Firehose/Firehose.cpp
@@ -373,7 +379,7 @@ projectTriAxisSearch.o: ${DEPS_COMMON} $(DEPS_PROJECTS) projects/projectTriAxisS
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/projectTriAxisSearch.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
 poisson_solver.o: ${DEPS_COMMON} ${DEPS_CELL} poisson_solver/poisson_solver.h poisson_solver/poisson_solver.cpp
-	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -std=c++0x -c poisson_solver/poisson_solver.cpp ${INC_DCCRG} ${INC_ZOLTAN}
+	$(CMP) $(CXXFLAGS) $(FLAGS) ${MATHFLAGS} -std=c++0x -c poisson_solver/poisson_solver.cpp ${INC_DCCRG} ${INC_ZOLTAN}
 
 poisson_solver_jacobi.o: ${DEPS_COMMON} ${DEPS_CELL} poisson_solver/poisson_solver.h poisson_solver/poisson_solver_jacobi.h poisson_solver/poisson_solver_jacobi.cpp
 	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -std=c++0x -c poisson_solver/poisson_solver_jacobi.cpp ${INC_DCCRG} ${INC_ZOLTAN}

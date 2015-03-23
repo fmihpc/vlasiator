@@ -49,7 +49,6 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
    if (B2 > 0) {
       spatial_cell->set_max_v_dt(popID,gyro_period*(P::maxSlAccelerationRotation/360.0));
    } else {
-      cerr << "setting max_v_dt to " << Parameters::dt << endl;
       spatial_cell->set_max_v_dt(popID,Parameters::dt);
    }
 
@@ -66,41 +65,25 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
    // compute total transformation
    Transform<Real,3,Affine> total_transform(Matrix<Real, 4, 4>::Identity()); //CONTINUE
 
-   // testing
+   //if (popID == 0) return total_transform;
+   //return total_transform;
+   
+#warning Electric acceleration works for Poisson only atm
    //Real* E = &(spatial_cell->parameters[CellParams::EXVOL]);
-   Real E[3] = {0,0,0};
-   Real dv = 2e5;
-
-   if (dt > 0) {
-      E[0] = dv/dt 
-           * getObjectWrapper().particleSpecies[popID].mass 
-           / getObjectWrapper().particleSpecies[popID].charge;
-   }
-
+#warning DEBUG remove me
+   Real* E = &(spatial_cell->parameters[CellParams::BGEXVOL]);
+   
    const Real CONST = getObjectWrapper().particleSpecies[popID].charge 
                     / getObjectWrapper().particleSpecies[popID].mass
                     * dt;
    total_transform(0,3) = CONST * E[0];
    total_transform(1,3) = CONST * E[1];
    total_transform(2,3) = CONST * E[2];
-   // end testing
 
    if (B2 == 0) {
-      stringstream ss;
-      ss << "total transform is " << dt << endl;
-      for (int j=0; j<4; ++j) {
-         for (int i=0; i<4; ++i) {
-            ss << total_transform(i,j) << '\t';
-         }
-         ss << endl;
-      }
-      cerr << ss.str();
-      
-      cerr << endl << "print again" << endl;
-      cerr << total_transform.matrix();
-      
       return total_transform;
    }
+   // end testing
    
    unsigned int bulk_velocity_substeps; // in this many substeps we iterate forward bulk velocity when the complete transformation is computed (0.1 deg per substep).
    bulk_velocity_substeps = fabs(dt) / (gyro_period*(0.1/360.0)); 

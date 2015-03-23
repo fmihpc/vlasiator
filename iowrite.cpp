@@ -233,17 +233,22 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    string variableName,dataType;
    bool success=true;
 
+   const string meshName = "SpatialGrid";
+   
+   if (dataReducer.handlesWriting(dataReducerIndex) == true) {
+      return dataReducer.writeData(dataReducerIndex,mpiGrid,cells,meshName,vlsvWriter);
+   }
+
    //Get basic data on a variable:
    uint dataSize,vectorSize;
-   attribs["mesh"] = "SpatialGrid";
+   attribs["mesh"] = meshName;
    variableName = dataReducer.getName(dataReducerIndex);
    attribs["name"] = variableName;
    if (dataReducer.getDataVectorInfo(dataReducerIndex,dataType,dataSize,vectorSize) == false) {
       cerr << "ERROR when requesting info from DRO " << dataReducerIndex << endl;
       return false;
    }
-  
-   
+
    const uint64_t varBufferArraySize = cells.size()*vectorSize*dataSize;
    
    //Request DataReductionOperator to calculate the reduced data for all local cells:

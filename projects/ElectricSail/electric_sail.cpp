@@ -13,8 +13,9 @@
 #include "../../readparameters.h"
 #include "../../logger.h"
 #include "../../object_wrapper.h"
-
 #include "../../poisson_solver/poisson_solver.h"
+#include "../read_gaussian_population.h"
+
 #include "electric_sail.h"
 
 using namespace std;
@@ -47,21 +48,28 @@ namespace projects {
       RP::add("ElectricSail.radius","Radius where charge density is non-zero",(Real)15e3);
       RP::add("ElectricSail.max_iterations","Maximum number of iterations",(uint)1000);
       RP::add("ElectricSail.min_relative_change","Potential is iterated until it the relative change is less than this value",(Real)1e-5);
+      RP::add("ElectricSail.clear_potential","Clear potential each timestep before solving Poisson?",true);
       RP::add("ElectricSail.is_2D","If true then system is two-dimensional in xy-plane",true);
       RP::add("ElectricSail.tether_x","Electric sail tether x-position",(Real)0.0);
       RP::add("ElectricSail.tether_y","Electric sail tether y-position",(Real)0.0);
       RP::add("ElectricSail.tether_voltage","Electric sail tether voltage",(Real)-10000.0);
       
-      RP::addComposing("ElectricSail.rho", "Number density (m^-3)");
-      RP::addComposing("ElectricSail.Tx", "Temperature (K)");
-      RP::addComposing("ElectricSail.Ty", "Temperature");
-      RP::addComposing("ElectricSail.Tz", "Temperature");
-      RP::addComposing("ElectricSail.Vx", "Bulk velocity x component (m/s)");
-      RP::addComposing("ElectricSail.Vy", "Bulk velocity y component (m/s)");
-      RP::addComposing("ElectricSail.Vz", "Bulk velocity z component (m/s)");
+      //RP::addComposing("ElectricSail.rho", "Number density (m^-3)");
+      //RP::addComposing("ElectricSail.Tx", "Temperature (K)");
+      //RP::addComposing("ElectricSail.Ty", "Temperature");
+      //RP::addComposing("ElectricSail.Tz", "Temperature");
+      //RP::addComposing("ElectricSail.Vx", "Bulk velocity x component (m/s)");
+      //RP::addComposing("ElectricSail.Vz", "Bulk velocity z component (m/s)");
+      
+      projects::ReadGaussianPopulation rgp;
+      rgp.addParameters("ElectricSail");
+   }
+
+   Real ElectricSail::getCorrectNumberDensity(const int& popID) const {
+      return populations[popID].rho;
    }
    
-   Real ElectricSail::getDistribValue(creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz) {
+   Real ElectricSail::getDistribValue(creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz,const int& popID) const {
       creal mass = getObjectWrapper().particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
       const Population& pop = populations[popID];
@@ -89,11 +97,13 @@ namespace projects {
       RP::get("ElectricSail.max_iterations",poisson::Poisson::maxIterations);
       RP::get("ElectricSail.min_relative_change",poisson::Poisson::minRelativePotentialChange);
       RP::get("ElectricSail.is_2D",poisson::Poisson::is2D);
+      RP::get("ElectricSail.clear_potential",poisson::Poisson::clearPotential);
       RP::get("ElectricSail.tether_x",tether_x);
       RP::get("ElectricSail.tether_y",tether_y);
       RP::get("ElectricSail.tether_voltage",tetherVoltage);
       
       // Get parameters for each population
+      /*
       vector<Real> rho;
       vector<Real> Tx;
       vector<Real> Ty;
@@ -115,6 +125,11 @@ namespace projects {
       if (Vx.size() != rho.size()) success = false;
       if (Vy.size() != rho.size()) success = false;
       if (Vz.size() != rho.size()) success = false;
+      */
+      
+      projects::ReadGaussianPopulation rgp;
+      projects::GaussianPopulation gaussPops;
+      if (rgp.getParameters("ElectricSail",gaussPops) == false) success = false;
       
       if (success == false) {
          stringstream ss;
@@ -124,19 +139,29 @@ namespace projects {
          exit(1);
       }
 
-      for (size_t i=0; i<rho.size(); ++i) {
-         populations.push_back(projects::Population(rho[i],Tx[i],Ty[i],Tz[i],Vx[i],Vy[i],Vz[i]));
-      }
+      //for (size_t i=0; i<rho.size(); ++i) {
+      //   populations.push_back(projects::Population(rho[i],Tx[i],Ty[i],Tz[i],Vx[i],Vy[i],Vz[i]));
+      //}
 
+      for (size_t i=0; i<gaussPops.rho.size(); ++i) {
+         populations.push_back(projects::Population(gaussPops.rho[i],gaussPops.Tx[i],gaussPops.Ty[i],
+                                                    gaussPops.Tz[i],gaussPops.Vx[i],gaussPops.Vy[i],gaussPops.Vz[i]));
+      }
+      
       tether_y = 2*Parameters::dy_ini;
       
 #warning TESTING FIXME
-      tetherUnitCharge = 1.602e-19;
+      tetherUnitCharge = 100e9 * 1.602e-19;
+      //tetherUnitCharge = 0.0;
    }
 
    bool ElectricSail::initialize() {
       bool success = Project::initialize();
-      if (populations.size() != getObjectWrapper().particleSpecies.size()) success = false;
+      if (populations.size() < getObjectWrapper().particleSpecies.size()) {
+         cerr << "(ElectricSail) ERROR: you have not defined parameters for all populations in ";
+         cerr << __FILE__ << ":" << __LINE__ << endl;
+         success = false;
+      }
       
       logFile << "(ElectricSail) Population parameters are:" << endl;
       for (size_t i=0; i<populations.size(); ++i) {
@@ -155,7 +180,7 @@ namespace projects {
     * NOTE: This is only called in grid.cpp:initializeGrid.
     * NOTE: This function must be thread-safe.
     */
-   void ElectricSail::setCellBackgroundField(SpatialCell* cell) {
+   void ElectricSail::setCellBackgroundField(SpatialCell* cell) const {
       Real X  = cell->parameters[CellParams::XCRD];
       Real Y  = cell->parameters[CellParams::YCRD];
       Real Z  = cell->parameters[CellParams::ZCRD];
@@ -235,14 +260,14 @@ namespace projects {
             creal& x, creal& y, creal& z,
             creal& dx, creal& dy, creal& dz,
             creal& vx, creal& vy, creal& vz,
-            creal& dvx, creal& dvy, creal& dvz,const int& popID) {
-      this->popID = popID;
+            creal& dvx, creal& dvy, creal& dvz,const int& popID) const {
+      //this->popID = popID;
       
-#warning TESTING remove me
-      if (y < Parameters::dy_ini) return 0.0;
-      if (y > 2*Parameters::dy_ini) return 0.0;
-      if (x < -2e5) return 0.0;
-      if (x+dx > 2e5) return 0.0;
+// #warning TESTING remove me
+//      if (y < Parameters::dy_ini) return 0.0;
+//      if (y > 2*Parameters::dy_ini) return 0.0;
+//      if (x < -2e5) return 0.0;
+//      if (x+dx > 2e5) return 0.0;
       
       // Iterative sampling of the distribution function. Keep track of the 
       // accumulated volume average over the iterations. When the next 
@@ -264,7 +289,7 @@ namespace projects {
                   creal VX = vx + 0.5*DVX + vi*DVX;
                   creal VY = vy + 0.5*DVY + vj*DVY;
                   creal VZ = vz + 0.5*DVZ + vk*DVZ;
-                  avg += getDistribValue(VX,VY,VZ,DVX,DVY,DVZ);
+                  avg += getDistribValue(VX,VY,VZ,DVX,DVY,DVZ,popID);
                }
             }
          }
@@ -300,7 +325,7 @@ namespace projects {
       return centerPoints;
    }
 
-   void ElectricSail::tetherElectricField(Real* x,Real* E) {
+   void ElectricSail::tetherElectricField(Real* x,Real* E) const {
       const Real constant = tetherUnitCharge / (2*M_PI*physicalconstants::EPS_0);
       E[0] = constant * (x[0] - tether_x);
       E[1] = constant * (x[1] - tether_y);

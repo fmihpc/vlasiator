@@ -10,6 +10,11 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #define DATAREDUCTIONOPERATOR_H
 
 #include <vector>
+
+#include <vlsv_writer.h>
+#include <dccrg.hpp>
+#include <dccrg_cartesian_geometry.hpp>
+
 #include "../definitions.h"
 #include "../spatial_cell.hpp"
 #include "../parameters.h"
@@ -38,9 +43,13 @@ namespace DRO {
       
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
       virtual std::string getName() const;
+      virtual bool handlesWriting() const;
       virtual bool reduceData(const SpatialCell* cell,char* buffer);
       virtual bool reduceData(const SpatialCell* cell,Real * result);
       virtual bool setSpatialCell(const SpatialCell* cell);
+      virtual bool writeData(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                             const std::vector<CellID>& cells,const std::string& meshName,
+                             vlsv::Writer& vlsvWriter);
       
    protected:
    

@@ -34,6 +34,7 @@ namespace poisson {
    int Poisson::PHI = CellParams::PHI;
    ObjectFactory<PoissonSolver> Poisson::solvers;
    PoissonSolver* Poisson::solver = NULL;
+   bool Poisson::clearPotential = true;
    bool Poisson::is2D = false;
    string Poisson::solverName;
    uint Poisson::maxIterations;
@@ -70,14 +71,25 @@ namespace poisson {
             const std::vector<CellID>& cells) {
 
       phiprof::start("Background Field");
-      #pragma omp parallel for
-      for (size_t c=0; c<cells.size(); ++c) {
-         spatial_cell::SpatialCell* cell = mpiGrid[cells[c]];
-         cell->parameters[CellParams::PHI] = 0;
-         cell->parameters[CellParams::PHI_TMP] = 0;
-         cell->parameters[CellParams::EXVOL] = cell->parameters[CellParams::BGEXVOL];
-         cell->parameters[CellParams::EYVOL] = cell->parameters[CellParams::BGEYVOL];
-         cell->parameters[CellParams::EZVOL] = cell->parameters[CellParams::BGEZVOL];
+      
+      if (Poisson::clearPotential == true) {
+         #pragma omp parallel for
+         for (size_t c=0; c<cells.size(); ++c) {
+            spatial_cell::SpatialCell* cell = mpiGrid[cells[c]];
+            cell->parameters[CellParams::PHI] = 0;
+            cell->parameters[CellParams::PHI_TMP] = 0;
+            cell->parameters[CellParams::EXVOL] = cell->parameters[CellParams::BGEXVOL];
+            cell->parameters[CellParams::EYVOL] = cell->parameters[CellParams::BGEYVOL];
+            cell->parameters[CellParams::EZVOL] = cell->parameters[CellParams::BGEZVOL];
+         }
+      } else {
+         #pragma omp parallel for
+         for (size_t c=0; c<cells.size(); ++c) {
+            spatial_cell::SpatialCell* cell = mpiGrid[cells[c]];
+            cell->parameters[CellParams::EXVOL] = cell->parameters[CellParams::BGEXVOL];
+            cell->parameters[CellParams::EYVOL] = cell->parameters[CellParams::BGEYVOL];
+            cell->parameters[CellParams::EZVOL] = cell->parameters[CellParams::BGEZVOL];
+         }
       }
       phiprof::stop("Background Field",cells.size(),"Spatial Cells");
       return true;
@@ -96,6 +108,7 @@ namespace poisson {
       {
          // Iterate all particle species
          for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+            Real rho_q_spec=0;
             vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
             if (blockContainer.size() == 0) continue;
 
@@ -113,12 +126,12 @@ namespace poisson {
                   = blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::DVX]
                   * blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::DVY]
                   * blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::DVZ];
-               rho_q += charge*sum*DV3;
+               rho_q_spec += sum*DV3;
             }
-         }
+            rho_q += charge*rho_q_spec;
+         } // for-loop over particle species
       }
       cell->parameters[CellParams::RHOQ_TOT] = rho_q/physicalconstants::EPS_0;
-      //cell->parameters[CellParams::RHOQ_TOT] = 0;
 
       size_t phaseSpaceCells=0;
       for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
@@ -335,7 +348,7 @@ namespace poisson {
       // Set up the initial state unless the simulation was restarted
       if (Parameters::isRestart == true) return success;
 
-      #pragma omp parallel for
+      //#pragma omp parallel for
       for (size_t c=0; c<getLocalCells().size(); ++c) {
          spatial_cell::SpatialCell* cell = mpiGrid[getLocalCells()[c]];
          if (Poisson::solver->calculateChargeDensity(cell) == false) success = false;
@@ -371,6 +384,7 @@ namespace poisson {
 
       // Solve Poisson equation
       if (success == true) if (Poisson::solver != NULL) {
+         if (Poisson::solver->calculateBackgroundField(mpiGrid,getLocalCells()) == false) success = false;
          if (Poisson::solver->solve(mpiGrid) == false) success = false;
       }
 

@@ -10,6 +10,7 @@ Copyright 2010-2013,2015 Finnish Meteorological Institute
 
 #include "datareducer.h"
 #include "../common.h"
+#include "dro_species_moments.h"
 using namespace std;
 
 void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosticReducer)
@@ -220,6 +221,9 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if (*it == "PotentialError") {
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("poisson/pot_error",CellParams::PHI_TMP,1));
       }
+      if (*it == "SpeciesMoments") {
+         outputReducer->addOperator(new DRO::SpeciesMoments);
+      }
    }
 
    for (it = P::diagnosticVariableList.begin();
@@ -310,6 +314,15 @@ bool DataReducer::getDataVectorInfo(const unsigned int& operatorID,std::string& 
    return operators[operatorID]->getDataVectorInfo(dataType,dataSize,vectorSize);
 }
 
+/** Ask a DataReductionOperator if it wants to take care of writing the data 
+ * to output file instead of letting be handled in iowrite.cpp. 
+ * @param operatorID ID number of the DataReductionOperator.
+ * @return If true, then VLSVWriter should be passed to the DataReductionOperator.*/
+bool DataReducer::handlesWriting(const unsigned int& operatorID) const {
+   if (operatorID >= operators.size()) return false;
+   return operators[operatorID]->handlesWriting();
+}
+
 /** Request a DataReductionOperator to calculate its output data and to write it to the given buffer.
  * @param cell Pointer to spatial cell whose data is to be reduced.
  * @param operatorID ID number of the applied DataReductionOperator.
@@ -345,3 +358,11 @@ bool DataReducer::reduceData(const SpatialCell* cell,const unsigned int& operato
  */
 unsigned int DataReducer::size() const {return operators.size();}
 
+bool DataReducer::writeData(const unsigned int& operatorID,
+                  const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                  const std::vector<CellID>& cells,const std::string& meshName,
+                  vlsv::Writer& vlsvWriter) {
+   if (operatorID >= operators.size()) return false;
+   if (operators[operatorID]->handlesWriting() == false) return false;
+   return operators[operatorID]->writeData(mpiGrid,cells,meshName,vlsvWriter);
+}

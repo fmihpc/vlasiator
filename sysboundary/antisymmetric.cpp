@@ -285,9 +285,10 @@ namespace SBC {
 
          Real V_trgt[3];
          for (int k=0; k<WID; ++k) for (int j=0; j<WID; ++j) for (int i=0; i<WID; ++i) {
-            if (V[1] + (j+0.5)*dV[1] > 0) continue;
+//            if (V[1] + (j+0.5)*dV[1] > 0) continue;
 
-            for (int dir=-1; dir<2; dir+=2) {
+            for (int dir=-1; dir<0; dir+=2) {
+//            for (int dir=-1; dir<2; dir+=2) {
                V_trgt[0] =  V[0] + (i+0.5)*dV[0];
                V_trgt[1] = (V[1] + (j+0.5)*dV[1]) * dir;
                V_trgt[2] =  V[2] + (k+0.5)*dV[2];

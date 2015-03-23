@@ -157,13 +157,13 @@ namespace projects {
    bool Project::initialized() {return baseClassInitialized;}
 
    /*! Base class sets zero background field */
-   void Project::setCellBackgroundField(SpatialCell* cell) {
+   void Project::setCellBackgroundField(SpatialCell* cell) const {
       ConstantField bgField;
       bgField.initialize(0,0,0); //bg bx, by,bz
       setBackgroundField(bgField,cell->parameters, cell->derivatives,cell->derivativesBVOL);
    }
    
-   void Project::setCell(SpatialCell* cell) {
+   void Project::setCell(SpatialCell* cell) const {
       // Set up cell parameters:
       this->calcCellParameters(&((*cell).parameters[0]), 0.0);
 
@@ -184,7 +184,7 @@ namespace projects {
       calculateCellMoments(cell,true,true);
    }
 
-   vector<vmesh::GlobalID> Project::findBlocksToInitialize(SpatialCell* cell,const int& popID) {
+   vector<vmesh::GlobalID> Project::findBlocksToInitialize(SpatialCell* cell,const int& popID) const {
       vector<vmesh::GlobalID> blocksToInitialize;
 
       for (uint kv=0; kv<P::vzblocks_ini; ++kv) 
@@ -218,7 +218,7 @@ namespace projects {
       logFile << write;
    }
    
-   void Project::setVelocitySpace(const int& popID,SpatialCell* cell) {
+   void Project::setVelocitySpace(const int& popID,SpatialCell* cell) const {
       vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = cell->get_velocity_mesh(popID);
 
       vector<vmesh::GlobalID> blocksToInitialize = this->findBlocksToInitialize(cell,popID);
@@ -232,6 +232,7 @@ namespace projects {
       creal dz = cell->parameters[CellParams::DZ];
 
       Realf* data = cell->get_data(popID);
+
       for (uint i=0; i<blocksToInitialize.size(); ++i) {
          const vmesh::GlobalID blockGID = blocksToInitialize[i];
          const vmesh::LocalID blockLID = vmesh.getLocalID(blockGID);
@@ -271,7 +272,10 @@ namespace projects {
       
       // Get AMR refinement criterion and use it to test which blocks should be refined
       amr_ref_criteria::Base* refCriterion = getObjectWrapper().amrVelRefCriteria.create(Parameters::amrVelRefCriterion);
-      if (refCriterion == NULL) return;
+      if (refCriterion == NULL) {
+         rescaleDensity(cell,popID);
+         return;
+      }
       refCriterion->initialize("");
 
       // Loop over blocks in the spatial cell until we reach the maximum
@@ -344,17 +348,40 @@ namespace projects {
          if (currentLevel == Parameters::amrMaxVelocityRefLevel) refine = false;
       }
       delete refCriterion;
+      
+      rescaleDensity(cell,popID);
    }
 
+   void Project::rescaleDensity(spatial_cell::SpatialCell* cell,const int& popID) const {
+      // Re-scale densities
+      Real sum = 0.0;
+      Realf* data = cell->get_data(popID);
+      const Real* blockParams = cell->get_block_parameters(popID);
+      for (vmesh::LocalID blockLID=0; blockLID<cell->get_number_of_velocity_blocks(popID); ++blockLID) {
+         Real tmp = 0.0;
+         for (int i=0; i<WID3; ++i) tmp += data[blockLID*WID3+i];
+         const Real DV3 = blockParams[BlockParams::DVX]*blockParams[BlockParams::DVY]*blockParams[BlockParams::DVZ];
+         sum += tmp*DV3;
+         blockParams += BlockParams::N_VELOCITY_BLOCK_PARAMS;
+      }
+      
+      const Real correctSum = getCorrectNumberDensity(popID);
+      const Real ratio = correctSum / sum;
+
+      for (size_t i=0; i<cell->get_number_of_velocity_blocks(popID)*WID3; ++i) {
+         data[i] *= ratio;
+      }
+   }
+   
    /*default one does not compute any parameters*/
-   void Project::calcCellParameters(Real* cellParams,creal& t) { }
+   void Project::calcCellParameters(Real* cellParams,creal& t) const { }
    
    Real Project::calcPhaseSpaceDensity(
       creal& x, creal& y, creal& z,
       creal& dx, creal& dy, creal& dz,
       creal& vx, creal& vy, creal& vz,
       creal& dvx, creal& dvy, creal& dvz,
-      const int& popID) {
+      const int& popID) const {
       cerr << "ERROR: Project::calcPhaseSpaceDensity called instead of derived class function!" << endl;
       exit(1);
       return -1.0;
@@ -362,6 +389,12 @@ namespace projects {
    /*!
      Get random number between 0 and 1.0. One should always first initialize the rng.
    */
+   
+   Real Project::getCorrectNumberDensity(const int& popID) const {
+      cerr << "ERROR: Project::getCorrectNumberDensity called instead of derived class function!" << endl;
+      exit(1);
+      return 0.0;
+   }
    
    Real Project::getRandomNumber() {
 #ifdef _AIX

@@ -892,7 +892,10 @@ bool convertVelocityBlocks2(
       }
 
       attributes["mesh"] = outputMeshName;
-      if (out.writeArray(arrayName,attributes,coords.size(),1,&(coords[0])) == false) success = false;
+      if (out.writeArray(arrayName,attributes,coords.size(),1,&(coords[0])) == false) {
+         cerr << "ERROR, failed to write velocity grid coordinates in " << __FILE__ << ":" << __LINE__ << endl;
+         success = false;
+      }
    }
      {
         vector<float> ().swap(coords);
@@ -911,7 +914,10 @@ bool convertVelocityBlocks2(
       else if (crd == 2) arrayName = "MESH_NODE_CRDS_Z";
       
       attributes["mesh"] = "VelBlocks_" + popName;
-      if (out.writeArray(arrayName,attributes,coords.size(),1,&(coords[0])) == false) success = false;
+      if (out.writeArray(arrayName,attributes,coords.size(),1,&(coords[0])) == false) {
+         cerr << "ERROR, failed to write velocity block coordinates in " << __FILE__ << ":" << __LINE__ << endl;
+         success = false;
+      }
    }
      {
         vector<float> ().swap(coords);
@@ -920,12 +926,24 @@ bool convertVelocityBlocks2(
    // Write dummy ghost zone data (not applicable here):
    uint64_t dummy;
    attributes["mesh"] = outputMeshName;
-   if (out.writeArray("MESH_GHOST_LOCALIDS",attributes,domainSize[1],1,&dummy) == false) success = false;
-   if (out.writeArray("MESH_GHOST_DOMAINS",attributes,domainSize[1],1,&dummy) == false) success = false;
+   if (out.writeArray("MESH_GHOST_LOCALIDS",attributes,domainSize[1],1,&dummy) == false) {
+      cerr << "ERROR, failed to write ghost cell local IDs in " << __FILE__ << ":" << __LINE__ << endl;
+      success = false;
+   }
+   if (out.writeArray("MESH_GHOST_DOMAINS",attributes,domainSize[1],1,&dummy) == false) {
+      cerr << "ERROR, failed to write ghost cell domains in " << __FILE__ << ":" << __LINE__ << endl;
+      success = false;
+   }
    
    attributes["mesh"] = "VelBlocks_" + popName;
-   if (out.writeArray("MESH_GHOST_LOCALIDS",attributes,domainSize[1],1,&dummy) == false) success = false;
-   if (out.writeArray("MESH_GHOST_DOMAINS",attributes,domainSize[1],1,&dummy) == false) success = false;
+   if (out.writeArray("MESH_GHOST_LOCALIDS",attributes,domainSize[1],1,&dummy) == false) {
+      cerr << "ERROR, failed to write ghost cell local IDs in " << __FILE__ << ":" << __LINE__ << endl;
+      success = false;
+   }
+   if (out.writeArray("MESH_GHOST_DOMAINS",attributes,domainSize[1],1,&dummy) == false) {
+      cerr << "ERROR, failed to write ghost cell domains in " << __FILE__ << ":" << __LINE__ << endl;
+      success = false;
+   }
 
    // ***** Convert variables ***** //
    
@@ -949,13 +967,13 @@ bool convertVelocityBlocks2(
          datatype::type dataType;
          uint64_t arraySize, vectorSize, dataSize;
          if (vlsvReader.getArrayInfo("BLOCKVARIABLE", attribs, arraySize, vectorSize, dataType, dataSize) == false) {
-            cerr << "Could not read BLOCKVARIABLE array info" << endl;
+            cerr << "Could not read BLOCKVARIABLE array info in " << __FILE__ << ":" << __LINE__ << endl;
             return false;
          }
 	 
          char* buffer = new char[N_blocks * vectorSize * dataSize];
          if (vlsvReader.readArray("BLOCKVARIABLE", attribs, vlsvReader.getBlockOffset(cellID), N_blocks, buffer) == false) {
-            cerr << "ERROR could not read block variable" << endl;
+            cerr << "ERROR could not read block variable in " << __FILE__ << ":" << __LINE__ << endl;
             delete[] buffer;
             return success;
          }

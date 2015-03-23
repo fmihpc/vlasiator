@@ -12,6 +12,8 @@ namespace projects {
       /*! Register parameters that should be read in. */
       static void addParameters();
       
+      virtual Real getCorrectNumberDensity(const int& popID) const;
+      
       /*! Get the value that was read in. */
       virtual void getParameters();
       
@@ -22,14 +24,16 @@ namespace projects {
       
       /*! set background field, should set it for all cells.
        * Currently this function is only called during the initialization.
+       * NOTE: This function is called inside parallel region so it must be declared as const.
        * @param cell Pointer to the spatial cell.*/
-      virtual void setCellBackgroundField(spatial_cell::SpatialCell* cell);
+      virtual void setCellBackgroundField(spatial_cell::SpatialCell* cell) const;
       
       /*!\brief Set the perturbed fields and distribution of a cell according to the default simulation settings.
        * This is used for the NOT_SYSBOUNDARY cells and some other system boundary conditions (e.g. Outflow).
+       * NOTE: This function is called inside parallel region so it must be declared as const.
        * \param cell Pointer to the cell to set.
        */
-      void setCell(spatial_cell::SpatialCell* cell);
+      void setCell(spatial_cell::SpatialCell* cell) const;
          
       protected:
       /*! \brief Returns a list of blocks to loop through when initialising.
@@ -37,16 +41,18 @@ namespace projects {
        * The base class version just returns all blocks, which amounts to looping through the whole velocity space.
        * This is very expensive and becomes prohibitive in cases where a large velocity space is needed with only
        * small portions actually containing something. Use with care.
+       * NOTE: This function is called inside parallel region so it must be declared as const.
        */
-      virtual std::vector<vmesh::GlobalID> findBlocksToInitialize(spatial_cell::SpatialCell* cell,const int& popID);
+      virtual std::vector<vmesh::GlobalID> findBlocksToInitialize(spatial_cell::SpatialCell* cell,const int& popID) const;
       
       /*! \brief Sets the distribution function in a cell.
        * 
        * Uses the function findBlocksToInitialize and loops through the list returned by it to initialize the cells' velocity space.
+       * NOTE: This function is called inside parallel region so it must be declared as const.
        * 
        * \sa findBlocksToInitialize
        */
-      void setVelocitySpace(const int& popID,spatial_cell::SpatialCell* cell);
+      void setVelocitySpace(const int& popID,spatial_cell::SpatialCell* cell) const;
          
       /** Calculate parameters for the given spatial cell at the given time.
        * Here you need to set values for the following array indices:
@@ -60,10 +66,12 @@ namespace projects {
        * @param cellParams Array containing cell parameters.
        * @param t The current value of time. This is passed as a convenience. If you need more detailed information 
        * of the state of the simulation, you can read it from Parameters.
+       * NOTE: This function is called inside parallel region so it must be declared as const.
        */
-      virtual void calcCellParameters(Real* cellParams,creal& t);
+      virtual void calcCellParameters(Real* cellParams,creal& t) const;
       
       /** Integrate the distribution function over the given six-dimensional phase-space cell.
+       * NOTE: This function is called inside parallel region so it must be declared as const.
        * @param x Starting value of the x-coordinate of the cell.
        * @param y Starting value of the y-coordinate of the cell.
        * @param z Starting value of the z-coordinate of the cell.
@@ -85,7 +93,7 @@ namespace projects {
                                          creal& dx, creal& dy, creal& dz,
                                          creal& vx, creal& vy, creal& vz,
                                          creal& dvx, creal& dvy, creal& dvz,
-                                         const int& popID);
+                                         const int& popID) const;
       
       /*!
        Get random number between 0 and 1.0. One should always first initialize the rng.
@@ -93,6 +101,8 @@ namespace projects {
       Real getRandomNumber();
          
       void printPopulations();
+      
+      void rescaleDensity(spatial_cell::SpatialCell* cell,const int& popID) const;
       
       /*!  Set random seed (thread-safe). Seed is based on the seed read
        in from cfg + the seedModifier parameter

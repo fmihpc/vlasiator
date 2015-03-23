@@ -28,10 +28,22 @@ namespace SBC {
    }
    
    void ProjectBoundary::addParameters() {
+      Readparameters::addComposing("projectboundary.face", "List of faces on which outflow boundary conditions are to be applied ([xyz][+-]).");
+      Readparameters::add("projectboundary.precedence", "Precedence value of the outflow system boundary condition (integer), the higher the stronger.", 4);
       return;
    }
    
    void ProjectBoundary::getParameters() {
+      int myRank;
+      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+      if (!Readparameters::get("projectboundary.face", faceList)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if (!Readparameters::get("projectboundary.precedence", precedence)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
       return;
    }
    
@@ -220,9 +232,9 @@ namespace SBC {
    
    void ProjectBoundary::vlasovBoundaryCondition(
                                                  const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                                 const CellID& cellID
+                                                 const CellID& cellID,
+                                                 const int& popID
                                                 ) {
-      const int popID = 0;
       SpatialCell* cell = mpiGrid[cellID];
       cell->get_velocity_mesh(popID)   = templateCell.get_velocity_mesh(popID);
       cell->get_velocity_blocks(popID) = templateCell.get_velocity_blocks(popID);
@@ -234,6 +246,7 @@ namespace SBC {
    
    bool ProjectBoundary::generateTemplateCell() {
       if (project == NULL) return false;
+      cerr << "generating template cell" << endl;
       project->setCell(&templateCell);
       return true;
    }

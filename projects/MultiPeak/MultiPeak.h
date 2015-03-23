@@ -43,8 +43,8 @@ namespace projects {
                                                 );
       int popID;
       int numberOfPopulations;
-      vector<Real> rho;
-      static vector<Real> rhoRnd; //static as it has to be threadprivate
+      std::vector<Real> rho;
+      static std::vector<Real> rhoRnd; //static as it has to be threadprivate
       #pragma omp threadprivate(rhoRnd)       
       std::vector<Real> Tx;
       std::vector<Real> Ty;

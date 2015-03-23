@@ -357,12 +357,6 @@ int main(int argn,char* args[]) {
       phiprof::stop("write-initial-state");
    }
 
-/*
-   #warning TESTING remove me
-   cout << "init done, exiting" << endl;
-   MPI_Finalize();
-   return 1;
- */
    if (P::isRestart == false) {
       // Run Vlasov solver once with zero dt to initialize
       //per-cell dt limits. In restarts, we read the dt from file.
@@ -551,12 +545,6 @@ int main(int argn,char* args[]) {
          doBailout > 0) {
          break;
       }
-/*      
-      #warning TESTING remove me
-      cout << "data written, exiting" << endl;
-      MPI_Finalize();
-      return 1;
-*/
       
       //Re-loadbalance if needed
       //TODO - add LB measure and do LB if it exceeds threshold

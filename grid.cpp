@@ -146,7 +146,7 @@ void initializeGrid(
       #pragma omp parallel for schedule(dynamic)
       for (uint i=0; i<cells.size(); ++i) {         
          SpatialCell* cell = mpiGrid[cells[i]];
-         project.setCellBackgroundField(cell);         
+         project.setCellBackgroundField(cell);
          if (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
             project.setCell(cell);
          }
@@ -402,6 +402,7 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
                           const int& popID) {
    phiprof::initializeTimer("re-adjust blocks","Block adjustment");
    phiprof::start("re-adjust blocks");
+   SpatialCell::setCommunicatedSpecies(popID);
    const vector<CellID>& cells = getLocalCells();
 
    phiprof::start("Compute with_content_list");

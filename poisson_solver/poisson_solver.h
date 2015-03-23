@@ -73,7 +73,10 @@ namespace poisson {
       static ObjectFactory<PoissonSolver> solvers; /**< Container for all existing Poisson solvers.*/
       static PoissonSolver* solver;                /**< Poisson solver used in the simulation.*/
       static std::string solverName;               /**< Name of the Poisson solver in use.*/
-      
+
+      static bool clearPotential;                  /**< If true, then potential is cleared each timestep 
+                                                    * before solving Poisson's equation. Otherwise the old 
+                                                    * potential is used as an initial guess.*/
       static bool is2D;                            /**< If true, then system is two-dimensional, i.e., 
                                                     * electrostatic potential and electric field is solved 
                                                     * in xy-plane.*/
