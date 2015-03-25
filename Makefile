@@ -26,7 +26,7 @@ MATHFLAGS =
 FP_PRECISION = DP
 DISTRIBUTION_FP_PRECISION = DPF
 VECTORCLASS = VEC4D_AGNER
-CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++0x -fabi-version=0 -mavx
+CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++0x -fabi-version=0 
 endif
 
 #also use papi to report memory consumption?
