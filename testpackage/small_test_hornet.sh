@@ -37,8 +37,9 @@ create_verification_files=0
 
 #folder for all reference data 
 reference_dir="/zhome/academic/HLRS/pri/iprsealf/test_package_references"
-#compare agains which revision
-reference_revision="voima_0a8be8ac087c2da56556e4f56fcb3e5826aa6f38__DVEC4D_AGNER__DACC_SEMILAG_PQM__DTRANS_SEMILAG_PPM__DDP__DDPF"
+#compare against which revision
+reference_revision="7068850fa49b4e3e098c575297960a1e753cd6c3__DACC_SEMILAG_PQM__DTRANS_SEMILAG_PPM__DDP__DDPF__DVEC4D_AGNER"
+#reference_revision="voima_0a8be8ac087c2da56556e4f56fcb3e5826aa6f38__DVEC4D_AGNER__DACC_SEMILAG_PQM__DTRANS_SEMILAG_PPM__DDP__DDPF"
 
 
 # Define test
