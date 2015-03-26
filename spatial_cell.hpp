@@ -1,4 +1,3 @@
-
 /*!
 Spatial cell class for Vlasiator that supports a variable number of velocity blocks.
 
@@ -38,6 +37,9 @@ Copyright 2011 Finnish Meteorological Institute
 #include "amr_refinement_criteria.h"
 #include "velocity_blocks.h"
 #include "velocity_block_container.h"
+
+#include "logger.h"
+extern Logger logFile;
 
 #ifndef NDEBUG
    #define DEBUG_SPATIAL_CELL
@@ -1528,7 +1530,7 @@ namespace spatial_cell {
       const vmesh::LocalID blockLID = get_velocity_block_local_id(blockGID);
       const Realf* block_data = blockContainer.getData(blockLID);
       for (unsigned int i=0; i<VELOCITY_BLOCK_LENGTH; ++i) {
-         if (block_data[i] >= SpatialCell::velocity_block_min_value) {
+         if (block_data[i] >= SpatialCell::velocity_block_min_value || get_number_of_velocity_blocks() < 3000 ) {
             has_content = true;
             break;
          }
