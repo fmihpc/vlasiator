@@ -416,6 +416,19 @@ namespace poisson {
       } while (true);
 
       cerr << "SOR solved using " << iterations << " iterations, rel change " << relPotentialChange << endl;
+
+      if (calculateElectrostaticField(mpiGrid) == false) success = false;
+
+      Real efieldFlux  = 0;
+      Real totalCharge = 0;
+      checkGaussLaw(mpiGrid,innerCellPointersRED,efieldFlux,totalCharge);
+      checkGaussLaw(mpiGrid,innerCellPointersBLACK,efieldFlux,totalCharge);
+      checkGaussLaw(mpiGrid,bndryCellPointersRED,efieldFlux,totalCharge);
+      checkGaussLaw(mpiGrid,bndryCellPointersBLACK,efieldFlux,totalCharge);
+
+      cerr << "\t E flux = " << efieldFlux << " total charge " << totalCharge << " difference " << efieldFlux-totalCharge;
+      cerr << " rel diff " << 2*(efieldFlux-totalCharge)/(efieldFlux+totalCharge) << endl;
+
       return success;
    }
 

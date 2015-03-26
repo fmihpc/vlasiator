@@ -230,8 +230,23 @@ namespace projects {
       creal dx = cell->parameters[CellParams::DX];
       creal dy = cell->parameters[CellParams::DY];
       creal dz = cell->parameters[CellParams::DZ];
-
       Realf* data = cell->get_data(popID);
+
+      // If simulation doesn't use one or more velocity coordinates, 
+      // only calculate the distribution function for one layer of cells.
+      uint WID_VX = WID;
+      uint WID_VY = WID;
+      uint WID_VZ = WID;
+      switch (Parameters::geometry) {
+         case geometry::XY4D:
+            WID_VZ=1;
+            break;
+         case geometry::XZ4D:
+            WID_VY=1;
+            break;
+         default:
+            break;
+      }
 
       for (uint i=0; i<blocksToInitialize.size(); ++i) {
          const vmesh::GlobalID blockGID = blocksToInitialize[i];
@@ -240,33 +255,29 @@ namespace projects {
             cerr << "ERROR, invalid local ID in " << __FILE__ << ":" << __LINE__ << endl;
             exit(1);
          }
-         
+
          creal vxBlock = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD];
          creal vyBlock = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD];
          creal vzBlock = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD];
          creal dvxCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
          creal dvyCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
          creal dvzCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
-         
-         // Calculate volume average of distrib. function for each cell in the block.
-         for (uint kc=0; kc<WID; ++kc) 
-            for (uint jc=0; jc<WID; ++jc) 
-               for (uint ic=0; ic<WID; ++ic) {
-                  //FIXME, block/cell index should be handled by spatial cell function (create if it does not exist)
-                  creal vxCell = vxBlock + ic*dvxCell;
-                  creal vyCell = vyBlock + jc*dvyCell;
-                  creal vzCell = vzBlock + kc*dvzCell;
-                  creal average =
-                  this->calcPhaseSpaceDensity(
-                     x, y, z, dx, dy, dz,
-                     vxCell,vyCell,vzCell,
-                     dvxCell,dvyCell,dvzCell,popID);
 
-                  if (average != 0.0){
-                     //FIXME!!! set_value is slow as we again have to convert v -> index
-                     // We should set_value to a specific block index (as we already have it!)
-                     data[blockLID*SIZE_VELBLOCK+cellIndex(ic,jc,kc)] = average;
-                  }
+         // Calculate volume average of distrib. function for each cell in the block.
+         for (uint kc=0; kc<WID_VZ; ++kc) for (uint jc=0; jc<WID_VY; ++jc) for (uint ic=0; ic<WID_VX; ++ic) {
+            //FIXME, block/cell index should be handled by spatial cell function (create if it does not exist)
+            creal vxCell = vxBlock + ic*dvxCell;
+            creal vyCell = vyBlock + jc*dvyCell;
+            creal vzCell = vzBlock + kc*dvzCell;
+            creal average =
+               calcPhaseSpaceDensity(
+                  x, y, z, dx, dy, dz,
+                  vxCell,vyCell,vzCell,
+                  dvxCell,dvyCell,dvzCell,popID);
+
+            if (average != 0.0) {
+               data[blockLID*SIZE_VELBLOCK+cellIndex(ic,jc,kc)] = average;
+            }
          }
       }
       
@@ -348,7 +359,7 @@ namespace projects {
          if (currentLevel == Parameters::amrMaxVelocityRefLevel) refine = false;
       }
       delete refCriterion;
-      
+
       rescaleDensity(cell,popID);
    }
 
@@ -367,7 +378,7 @@ namespace projects {
       
       const Real correctSum = getCorrectNumberDensity(popID);
       const Real ratio = correctSum / sum;
-
+      
       for (size_t i=0; i<cell->get_number_of_velocity_blocks(popID)*WID3; ++i) {
          data[i] *= ratio;
       }

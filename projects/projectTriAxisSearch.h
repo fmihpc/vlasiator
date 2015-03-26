@@ -17,7 +17,7 @@ namespace projects {
          * 
          * This radius is used to determine all blocks within that radius of V0, create them and return their list for initialisation.
          */
-        virtual vector<uint> findBlocksToInitialize(spatial_cell::SpatialCell* cell,const int& popID);
+        virtual std::vector<uint> findBlocksToInitialize(spatial_cell::SpatialCell* cell,const int& popID) const;
       
       /*! \brief Return a vector containing the velocity coordinate of the centre of each ion population in the distribution.
        * 
@@ -30,7 +30,7 @@ namespace projects {
                                                 creal x,
                                                 creal y,
                                                 creal z
-                                               );
+                                               ) const;
    }; // class TriAxisSearch
 } // namespace
 

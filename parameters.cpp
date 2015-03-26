@@ -22,6 +22,7 @@ typedef Parameters P;
 
 const Real LARGE_REAL=1e20;
 // Define static members:
+int P::geometry = geometry::XYZ6D;
 Real P::xmin = NAN;
 Real P::xmax = NAN;
 Real P::ymin = NAN;
@@ -156,6 +157,7 @@ bool Parameters::addParameters(){
 
    Readparameters::add("restart.filename","Restart from this vlsv file. No restart if empty file.",string(""));     
    
+   Readparameters::add("gridbuilder.geometry","Simulation geometry XY4D,XZ4D,XY5D,XZ5D,XYZ6D",string("XYZ6D"));
    Readparameters::add("gridbuilder.x_min","Minimum value of the x-coordinate.","");
    Readparameters::add("gridbuilder.x_max","Minimum value of the x-coordinate.","");
    Readparameters::add("gridbuilder.y_min","Minimum value of the y-coordinate.","");
@@ -254,6 +256,8 @@ bool Parameters::getParameters(){
    Readparameters::get("project", projectName);
  
    /*get numerical values, let Readparameters handle the conversions*/
+   string geometryString;
+   Readparameters::get("gridbuilder.geometry",geometryString);
    Readparameters::get("gridbuilder.x_min",P::xmin);
    Readparameters::get("gridbuilder.x_max",P::xmax);
    Readparameters::get("gridbuilder.y_min",P::ymin);
@@ -276,6 +280,16 @@ bool Parameters::getParameters(){
    Readparameters::get("AMR.vel_refinement_criterion",P::amrVelRefCriterion);
    Readparameters::get("AMR.refine_limit",P::amrRefineLimit);
    Readparameters::get("AMR.coarsen_limit",P::amrCoarsenLimit);
+   
+   if (geometryString == "XY4D") P::geometry = geometry::XY4D;
+   else if (geometryString == "XZ4D") P::geometry = geometry::XZ4D;
+   else if (geometryString == "XY5D") P::geometry = geometry::XY5D;
+   else if (geometryString == "XZ5D") P::geometry = geometry::XZ5D;
+   else if (geometryString == "XYZ6D") P::geometry = geometry::XYZ6D;
+   else {
+      cerr << "Unknown simulation geometry in " << __FILE__ << ":" << __LINE__ << endl;
+      return false;
+   }
    
    if (P::amrCoarsenLimit >= P::amrRefineLimit) return false;
    if (P::xmax < P::xmin || (P::ymax < P::ymin || P::zmax < P::zmin)) return false;

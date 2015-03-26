@@ -69,9 +69,9 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
    //return total_transform;
    
 #warning Electric acceleration works for Poisson only atm
-   //Real* E = &(spatial_cell->parameters[CellParams::EXVOL]);
-#warning DEBUG remove me
-   Real* E = &(spatial_cell->parameters[CellParams::BGEXVOL]);
+   Real* E = &(spatial_cell->parameters[CellParams::EXVOL]);
+//#warning DEBUG remove me
+   //Real* E = &(spatial_cell->parameters[CellParams::BGEXVOL]);
    
    const Real CONST = getObjectWrapper().particleSpecies[popID].charge 
                     / getObjectWrapper().particleSpecies[popID].mass

@@ -8,7 +8,7 @@ namespace projects {
    /*!
     * WARNING This assumes that the velocity space is isotropic (same resolution in vx, vy, vz).
     */
-   vector<uint> TriAxisSearch::findBlocksToInitialize(SpatialCell* cell,const int& popID) {
+   std::vector<uint> TriAxisSearch::findBlocksToInitialize(SpatialCell* cell,const int& popID) const {
       set<uint> blocksToInitialize;
       bool search;
       int counter;
@@ -132,7 +132,7 @@ namespace projects {
       creal x,
       creal y,
       creal z
-   ) {
+   ) const {
       cerr << "ERROR: TriAxisSearch::getV0 called instead of derived class function!" << endl;
       abort();
       vector<std::array<Real, 3>> dummy;

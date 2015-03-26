@@ -39,6 +39,18 @@ typedef uint64_t CellID;
 
 template<typename T> T convert(const T& number) {return number;}
 
+/** Definition of simulation geometry, used to speed up 
+ * computations in cases where all velocity coordinates are not used.*/
+namespace geometry {
+   enum Setup {
+      XY4D,            /**< Simulation is 2D, only x,y,vx,vy are used.*/
+      XZ4D,            /**< Simulation is 2D, only x,z,vx,vz are used.*/
+      XY5D,            /**< Simulation is 5D, only x,y,vx,vy,vz are used.*/
+      XZ5D,            /**< Simulation is 5D, only x,z,vx,vy,vz are used.*/
+      XYZ6D            /**< Simulation is 6D (default).*/
+   };
+}
+
 namespace vmesh {
    #ifndef AMR
    typedef uint32_t GlobalID;              /**< Datatype used for velocity block global IDs.*/

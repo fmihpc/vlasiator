@@ -58,7 +58,7 @@ namespace projects {
       Real getDistribValue(creal& vx,creal& vy, creal& vz,
                            creal& dvx, creal& dvy, creal& dvz,const int& popID) const;
 
-      vector<std::array<Real,3>> getV0(creal x,creal y,creal z);
+      std::vector<std::array<Real,3>> getV0(creal x,creal y,creal z) const;
 
     }; // class PoissonTest
 

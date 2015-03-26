@@ -85,10 +85,14 @@ namespace poisson {
       } else {
          #pragma omp parallel for
          for (size_t c=0; c<cells.size(); ++c) {
+#warning DEBUG remove me
             spatial_cell::SpatialCell* cell = mpiGrid[cells[c]];
             cell->parameters[CellParams::EXVOL] = cell->parameters[CellParams::BGEXVOL];
             cell->parameters[CellParams::EYVOL] = cell->parameters[CellParams::BGEYVOL];
             cell->parameters[CellParams::EZVOL] = cell->parameters[CellParams::BGEZVOL];
+            //cell->parameters[CellParams::EXVOL] = 0;
+            //cell->parameters[CellParams::EYVOL] = 0;
+            //cell->parameters[CellParams::EZVOL] = 0;
          }
       }
       phiprof::stop("Background Field",cells.size(),"Spatial Cells");
@@ -107,7 +111,7 @@ namespace poisson {
       #pragma omp parallel reduction (+:rho_q)
       {
          // Iterate all particle species
-         for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {            
             Real rho_q_spec=0;
             vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
             if (blockContainer.size() == 0) continue;
@@ -127,7 +131,7 @@ namespace poisson {
                   * blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::DVY]
                   * blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::DVZ];
                rho_q_spec += sum*DV3;
-            }
+            }            
             rho_q += charge*rho_q_spec;
          } // for-loop over particle species
       }
@@ -185,6 +189,95 @@ namespace poisson {
 
       phiprof::stop("Electrostatic E",cells.size(),"Spatial Cells");
       return true;
+   }
+
+   bool PoissonSolver::checkGaussLaw(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                     const std::vector<poisson::CellCache3D>& cells,
+                                     Real& efieldFlux,Real& totalCharge) {
+      bool success = true;
+      Real chargeSum = 0;
+      Real eFluxSum  = 0;
+      
+      #pragma omp parallel for reduction(+:chargeSum,eFluxSum)
+      for (size_t c=0; c<cells.size(); ++c) {
+         if (cells[c].cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) continue;
+         
+         const Real D3 
+            = cells[c][0][CellParams::DX]
+            * cells[c][0][CellParams::DY]
+            * cells[c][0][CellParams::DZ];
+         chargeSum += cells[c][0][CellParams::RHOQ_TOT]*D3;
+
+         spatial_cell::SpatialCell* nbr;
+         dccrg::Types<3>::indices_t indices = mpiGrid.mapping.get_indices(cells[c].cellID);
+         
+         // -x neighbor
+         indices[0] -= 1;
+         nbr = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
+         if (nbr != NULL) if (nbr->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+            const Real area   = cells[c][0][CellParams::DY]*cells[c][0][CellParams::DZ];
+            const Real Ex     = cells[c][0][CellParams::EXVOL] - cells[c][0][CellParams::BGEXVOL];
+            const Real Ex_nbr = nbr->parameters[CellParams::EXVOL] - nbr->parameters[CellParams::BGEXVOL];
+
+            eFluxSum -= 0.5*(Ex+Ex_nbr)*area;
+         }
+         // +x neighbor
+         indices[0] += 2;
+         nbr = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
+         if (nbr != NULL) if (nbr->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+            const Real area = cells[c][0][CellParams::DY]*cells[c][0][CellParams::DZ];
+            const Real Ex   = cells[c][0][CellParams::EXVOL] - cells[c][0][CellParams::BGEXVOL];
+            const Real Ex_nbr = nbr->parameters[CellParams::EXVOL] - nbr->parameters[CellParams::BGEXVOL];
+
+            eFluxSum += 0.5*(Ex+Ex_nbr)*area;
+         }
+         indices[0] -= 1;
+
+         // -y neighbor
+         indices[1] -= 1;
+         nbr = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
+         if (nbr != NULL) if (nbr->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+            const Real area = cells[c][0][CellParams::DX]*cells[c][0][CellParams::DZ];
+            const Real Ey   = cells[c][0][CellParams::EYVOL] - cells[c][0][CellParams::BGEYVOL];
+            const Real Ey_nbr = nbr->parameters[CellParams::EYVOL] - nbr->parameters[CellParams::BGEYVOL];
+
+            eFluxSum -= 0.5*(Ey+Ey_nbr)*area;
+         }
+         // +y neighbor
+         indices[1] += 2;
+         nbr = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
+         if (nbr != NULL) if (nbr->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+            const Real area = cells[c][0][CellParams::DX]*cells[c][0][CellParams::DZ];
+            const Real Ey   = cells[c][0][CellParams::EYVOL] - cells[c][0][CellParams::BGEYVOL];
+            const Real Ey_nbr = nbr->parameters[CellParams::EYVOL] - nbr->parameters[CellParams::BGEYVOL];
+
+            eFluxSum += 0.5*(Ey+Ey_nbr)*area;
+         }
+         indices[1] -= 1;
+         
+         // -z neighbor
+         indices[2] -= 1;
+         nbr = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
+         if (nbr != NULL) if (nbr->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+            const Real area = cells[c][0][CellParams::DX]*cells[c][0][CellParams::DY];
+            const Real Ez   = cells[c][0][CellParams::EZVOL] - cells[c][0][CellParams::BGEZVOL];
+            eFluxSum -= Ez*area;
+         }
+         // +z neighbor
+         indices[2] += 2;
+         nbr = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
+         if (nbr != NULL) if (nbr->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+            const Real area = cells[c][0][CellParams::DX]*cells[c][0][CellParams::DY];
+            const Real Ez   = cells[c][0][CellParams::EZVOL] - cells[c][0][CellParams::BGEZVOL];
+            eFluxSum += Ez*area;
+         }
+         indices[2] -= 1;
+      }
+
+      efieldFlux  += eFluxSum;
+      totalCharge += chargeSum;
+
+      return success;
    }
 
    /** Estimate the error in the numerical solution of the electrostatic potential.
@@ -389,9 +482,9 @@ namespace poisson {
       }
 
       // Add electrostatic electric field to volume-averaged E
-      if (success == true) if (Poisson::solver != NULL) {
-         if (Poisson::solver->calculateElectrostaticField(mpiGrid) == false) success = false;
-      }
+      //if (success == true) if (Poisson::solver != NULL) {
+      //   if (Poisson::solver->calculateElectrostaticField(mpiGrid) == false) success = false;
+      //}
       
       phiprof::stop("Poisson Solver (Total)");
       return success;

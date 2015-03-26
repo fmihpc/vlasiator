@@ -874,6 +874,25 @@ bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    phiprof::start("Barrier");
    MPI_Barrier(MPI_COMM_WORLD);
    phiprof::stop("Barrier");
+   
+   const uint64_t bytesWritten = vlsvWriter.getBytesWritten();
+   const double writeTime = vlsvWriter.getWriteTime();
+   logFile << "(writeGrid) Wrote ";
+
+   if (bytesWritten > 1.0e9) logFile << bytesWritten/1.0e9 << " GB in ";
+   else if (bytesWritten > 1e6) logFile << bytesWritten/1.0e6 << " MB in ";
+   else if (bytesWritten > 1e3) logFile << bytesWritten/1.0e3 << " kB in ";
+   else logFile << bytesWritten << " B in ";
+
+   logFile << bytesWritten << " bytes in " << writeTime << " seconds, ";
+   logFile << "approximate data rate is ";
+
+   if (bytesWritten/writeTime > 1e9) logFile << bytesWritten/writeTime/1e9 << " GB/s";
+   else if (bytesWritten/writeTime > 1e6) logFile << bytesWritten/writeTime/1e6 << " MB/s";
+   else if (bytesWritten/writeTime > 1e3) logFile << bytesWritten/writeTime/1e3 << " kB/s";
+   else logFile << bytesWritten/writeTime << " B/s";
+   logFile << endl;
+
    vlsvWriter.close();
    phiprof::stop("writeGrid-reduced");
    return success;

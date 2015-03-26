@@ -30,6 +30,7 @@ namespace poisson {
        spatial_cell::SpatialCell* cell;
        Real* parameters[7];
        Real*& operator[](const int& i) {return parameters[i];}
+       Real* const& operator[](const int& i) const {return parameters[i];}
     };
 
     class PoissonSolver {
@@ -44,6 +45,9 @@ namespace poisson {
        virtual bool calculateChargeDensity(spatial_cell::SpatialCell* cell);
        virtual bool calculateElectrostaticField2D(const std::vector<poisson::CellCache3D>& cells);
        virtual bool calculateElectrostaticField3D(const std::vector<poisson::CellCache3D>& cells);
+       virtual bool checkGaussLaw(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                  const std::vector<poisson::CellCache3D>& cells,
+                                  Real& efieldFlux,Real& totalCharge);
        virtual Real error(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
        virtual Real error3D(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
        virtual bool initialize();

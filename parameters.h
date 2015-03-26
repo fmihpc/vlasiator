@@ -17,6 +17,8 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 const uint64_t INVALID_CELLID = 0;
 
 struct Parameters {
+   static int geometry; /**< Simulation geometry, one of the values defined in 
+                         * geometry::Setup. Defaults to geometry::XYZ6D.*/
    static Real xmin;  /*!< X-coordinate of the lower left corner of the spatial grid. */
    static Real xmax;  /*!< X-coordinate of the upper right corner of the spatial grid. */
    static Real ymin;  /*!< Y-coordinate of the lower left corner of the spatial grid. */
@@ -45,7 +47,6 @@ struct Parameters {
    static Real backstreamvx; /*!< X coordinate of the origin of the maxwellian distribution. Used for calculating rho of the backstream population. */
    static Real backstreamvy; /*!< Y coordinate of the origin of the maxwellian distribution. Used for calculating rho of the backstream population. */
    static Real backstreamvz; /*!< Z coordinate of the origin of the maxwellian distribution. Used for calculating rho of the backstream population. */
-   
    
    static Real t;                    /*!< Current simulation time. */
    static Real t_min;                    /*!< Initial simulation time. */
