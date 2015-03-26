@@ -1530,7 +1530,7 @@ namespace spatial_cell {
       const vmesh::LocalID blockLID = get_velocity_block_local_id(blockGID);
       const Realf* block_data = blockContainer.getData(blockLID);
       for (unsigned int i=0; i<VELOCITY_BLOCK_LENGTH; ++i) {
-         if (block_data[i] >= SpatialCell::velocity_block_min_value || get_number_of_velocity_blocks() < 3000 ) {
+         if (block_data[i] >= SpatialCell::velocity_block_min_value || this->get_number_of_velocity_blocks() < P::sparseMinBlocks ) {
             has_content = true;
             break;
          }

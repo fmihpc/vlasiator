@@ -102,6 +102,7 @@ struct Parameters {
    static int maxSlAccelerationSubcycles; /*!< Maximum number of subcycles in acceleration*/
    static Real hallMinimumRho;  /*!< Minimum rho value used in Hall term in Lorentz force and field solver.*/
    static Real sparseMinValue; /*!< Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents */
+   static Real sparseMinBlocks; /*!< Minimum value of blocks in distribution function in any cell of a velocity block for the block to be considered to have contents */
    static int sparseBlockAddWidthV; /*!< Number of layers of blocks that are kept in velocity space around the blocks with content */
    static bool sparse_conserve_mass; /*!< If true, density is scaled to conserve mass when removing blocks*/
    static std::string loadBalanceAlgorithm; /*!< Algorithm to be used for load balance.*/

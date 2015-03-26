@@ -101,6 +101,7 @@ bool P::fieldSolverDiffusiveEterms = true;
 uint P::ohmHallTerm = 0;
 
 Real P::sparseMinValue = NAN;
+Real P::sparseMinBlocks = 0;
 int P::sparseBlockAddWidthV = 1;
 bool P::sparse_conserve_mass = false;
 
@@ -200,6 +201,7 @@ bool Parameters::addParameters(){
    
    // Grid sparsity parameters
    Readparameters::add("sparse.minValue", "Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents", 0);
+   Readparameters::add("sparse.minBlocks", "Minimum number of blocks in a distribution function in any cell of a velocity block for the block to be considered to have contents", 0);
    Readparameters::add("sparse.blockAddWidthV", "Number of layers of blocks that are kept in velocity space around the blocks with content",1);
    Readparameters::add("sparse.conserve_mass", "If true, then mass is conserved by scaling the dist. func. in the remaining blocks", false);
 
@@ -319,6 +321,7 @@ bool Parameters::getParameters(){
    
    // Get sparsity parameters
    Readparameters::get("sparse.minValue", P::sparseMinValue);
+   Readparameters::get("sparse.minBlocks", P::sparseMinBlocks);
    Readparameters::get("sparse.blockAddWidthV", P::sparseBlockAddWidthV); 
    Readparameters::get("sparse.conserve_mass", P::sparse_conserve_mass);
    
