@@ -282,8 +282,6 @@ namespace spatial_cell {
                                                                                * over MPI, so is invalid on remote cells.*/
       static uint64_t mpi_transfer_type;                                      /**< Which data is transferred by the mpi datatype given by spatial cells.*/
       static bool mpiTransferAtSysBoundaries;                                 /**< Do we only transfer data at boundaries (true), or in the whole system (false).*/
-      //static Real velocity_block_min_value;                                   /**< Minimum value of distribution function in any phase space cell 
-      //                                                                         * of a velocity block for the block to be considered to have content.*/
 
     private:
       SpatialCell& operator=(const SpatialCell&);
@@ -842,7 +840,7 @@ namespace spatial_cell {
     inline vmesh::LocalID SpatialCell::get_number_of_all_velocity_blocks() const {
         vmesh::LocalID N_blocks = 0;
         for (size_t p=0; p<populations.size(); ++p)
-            N_blocks += populations[activePopID].blockContainer.size();
+            N_blocks += populations[p].blockContainer.size();
         return N_blocks;
     }
     
@@ -1318,7 +1316,7 @@ namespace spatial_cell {
       }
 
       const unsigned int cell = get_velocity_cell(blockGID, vx, vy, vz);
-      get_data(blockLID,activePopID)[cell] = value;
+      get_data(blockLID,popID)[cell] = value;
    }
 
 //TODO - thread safe set/increment functions which do not create blocks automatically
@@ -1353,7 +1351,7 @@ namespace spatial_cell {
          blockLID = populations[popID].vmesh.getLocalID(blockGID);
       }
 
-      get_data(blockLID,activePopID)[cell] = value;
+      get_data(blockLID,popID)[cell] = value;
    }
 
    /*!
