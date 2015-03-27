@@ -1529,8 +1529,12 @@ namespace spatial_cell {
       bool has_content = false;
       const vmesh::LocalID blockLID = get_velocity_block_local_id(blockGID);
       const Realf* block_data = blockContainer.getData(blockLID);
+      
+      // Easy criterion:
+      if( this->get_number_of_velocity_blocks() < P::sparseMinBlocks ) { velocity_block_min_value = 0.001 * P::sparseMinValue; } else { velocity_block_min_value = P::sparseMinValue; }
+      
       for (unsigned int i=0; i<VELOCITY_BLOCK_LENGTH; ++i) {
-         if (block_data[i] >= SpatialCell::velocity_block_min_value || this->get_number_of_velocity_blocks() < P::sparseMinBlocks ) {
+         if (block_data[i] >= P::sparseMinValue || block_data[i] >= velocity_block_min_value ) {
             has_content = true;
             break;
          }

@@ -561,7 +561,7 @@ void map_1d(SpatialCell* spatial_cell,PropagParams& params,
          } // while (k_cell_src <= k_cell_src_max_global)
       } // for (int k=0; k<WID; ++k) 
 
-      if (accum < Parameters::sparseMinValue) {
+      if (accum < spatial_cell->velocity_block_min_value) {
          removeList.push_back(targetGID);
       }
    } // for-loop over velocity blocks
@@ -571,3 +571,4 @@ void map_1d(SpatialCell* spatial_cell,PropagParams& params,
 }
 
 #endif   
+
