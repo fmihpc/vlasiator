@@ -327,7 +327,7 @@ bool DataReducer::getDataVectorInfo(const unsigned int& operatorID,std::string& 
  * @param buffer Buffer in which DataReductionOperator should write its data.
  * @return If true, DataReductionOperator calculated and wrote data successfully.
  */
-bool DataReducer::reduceData(const SpatialCell* cell,const unsigned int& operatorID,char* buffer) {p
+bool DataReducer::reduceData(const SpatialCell* cell,const unsigned int& operatorID,char* buffer) {
    // Tell the chosen operator which spatial cell we are counting:
    if (operatorID >= operators.size()) return false;
    if (operators[operatorID]->setSpatialCell(cell) == false) return false;
