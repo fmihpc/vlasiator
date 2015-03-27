@@ -101,10 +101,11 @@ bool P::fieldSolverDiffusiveEterms = true;
 uint P::ohmHallTerm = 0;
 
 Real P::sparseMinValue = NAN;
-Real P::sparseMinBlocks = 0;
-int  P::sparseDynamicThreshold = 0;
+Real P::sparseDynamicMaxBlocks = 99999999;
+int  P::sparseDynamicAlgorithm = 0;
 Real P::sparseDynamicMinValue = 0;
-Real P::sparseDynamicValue = 0;
+Real P::sparseDynamicMaxValue = 0;
+Real P::sparseDynamicMinThreshold = 0;
 
 int P::sparseBlockAddWidthV = 1;
 bool P::sparse_conserve_mass = false;
@@ -208,10 +209,14 @@ bool Parameters::addParameters(){
    Readparameters::add("sparse.minBlocks", "Minimum number of blocks in a distribution function in any cell of a velocity block for the block to be considered to have contents, note: sparse.dynamicThreshold=2 must be set", 0);
    Readparameters::add("sparse.blockAddWidthV", "Number of layers of blocks that are kept in velocity space around the blocks with content",1);
    Readparameters::add("sparse.conserve_mass", "If true, then mass is conserved by scaling the dist. func. in the remaining blocks", false);
-   Readparameters::add("sparse.dynamicThreshold", "Algorithm for dynamic threshold, 0 = no algorithm, 1 = Linear algorithm based on rho value, 2 = Linear algorithm based on blocks value", 0);
-   Readparameters::add("sparse.dynamicMinValue", "Absolute minimum threshold value for the velocity space cell when using dynamicThreshold = (1 or 2)", 0);
-   Readparameters::add("sparse.dynamicValue", "Minimum value for the linear algorithm based on x value (x = either rho or blocks, depending on if sparse.dynamicThreshold=1 or 2 respectively) (Example threshold: threshold = rho / sparse.dynamicValue * sparse.minValue)", 0);
+   Readparameters::add("sparse.dynamicAlgorithm", "Type of algorithm used for calculating the dynamic threshold; 0 = none, 1 = linear algorithm based on threshold and rho, 2 = linear algorithm based on threshold and Blocks, (Example linear algorithm: threshold = rho / sparse.dynamicValue * sparse.minValue)", 0);
+   Readparameters::add("sparse.dynamicMaxBlocks", "Max blocks in velocity cells where dynamic threshold algorithm will be applied e.g. if cells.numberOfBlocks < sparse.dynamicMaxBlocks -> apply dynamic algorithm, else do nothing", 99999999);
+   Readparameters::add("sparse.dynamicMinThreshold", "The absolute minimum threshold for the velocity distribution", 0);
+   Readparameters::add("sparse.dynamicMinValue", "Minimum value for the dynamic algorithm range, so for example if dynamicAlgorithm=1 then for sparse.dynamicMinValue = 1e3, sparse.dynamicMaxValue=1e5, we apply the algorithm to cells for which 1e3<cell.rho<1e5", 0);
+   Readparameters::add("sparse.dynamicMaxValue", "Maximum value for the dynamic algorithm range, so for example if dynamicAlgorithm=1 then for sparse.dynamicMinValue = 1e3, sparse.dynamicMaxValue=1e5, we apply the algorithm to cells for which 1e3<cell.rho<1e5", 0);
 
+   
+   
 
    // Load balancing parameters
    Readparameters::add("loadBalance.algorithm", "Load balancing algorithm to be used", std::string("RCB"));
@@ -329,12 +334,13 @@ bool Parameters::getParameters(){
    
    // Get sparsity parameters
    Readparameters::get("sparse.minValue", P::sparseMinValue);
-   Readparameters::get("sparse.minBlocks", P::sparseMinBlocks);
    Readparameters::get("sparse.blockAddWidthV", P::sparseBlockAddWidthV); 
    Readparameters::get("sparse.conserve_mass", P::sparse_conserve_mass);
-   Readparameters::get("sparse.dynamicThreshold", P::sparseDynamicThreshold);
+   Readparameters::get("sparse.dynamicMaxBlocks", P::sparseDynamicMaxBlocks);
+   Readparameters::get("sparse.dynamicAlgorithm", P::sparseDynamicAlgorithm);
+   Readparameters::get("sparse.dynamicMaxValue", P::sparseDynamicMaxValue);
+   Readparameters::get("sparse.dynamicMinThreshold", P::sparseDynamicMinThreshold);
    Readparameters::get("sparse.dynamicMinValue", P::sparseDynamicMinValue);
-   Readparameters::get("sparse.dynamicValue", P::sparseDynamicValue);
 
    
    // Get load balance parameters
