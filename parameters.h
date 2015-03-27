@@ -105,6 +105,9 @@ struct Parameters {
    static Real sparseMinBlocks; /*!< Minimum value of blocks in distribution function in any cell of a velocity block for the block to be considered to have contents */
    static int sparseBlockAddWidthV; /*!< Number of layers of blocks that are kept in velocity space around the blocks with content */
    static bool sparse_conserve_mass; /*!< If true, density is scaled to conserve mass when removing blocks*/
+   static int sparseDynamicThreshold; /*!< Algorithm for determining the dynamic threshold algorithm, see parameters.cpp for more info */
+   static Real sparseDynamicMinValue; /*!< Sparse dynamic threshold minimum value e.g. if sparseDynamicThreshold=1 then this will set up the absolute minimum value for the dynamic threshold */
+   static Real sparseDynamicValue; /*!< Sparse dynamic threshold value used in the sparseDynamicThreshold decision for algorithm. For example, if sparseDynamicThreshold = 1, then this will be the biggest rho value where the algorithm will be applied (rho values below this will not be resolved) */
    static std::string loadBalanceAlgorithm; /*!< Algorithm to be used for load balance.*/
    static std::string loadBalanceTolerance; /*!< Load imbalance tolerance. */ 
    static uint rebalanceInterval; /*!< Load rebalance interval (steps). */

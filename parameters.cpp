@@ -102,6 +102,10 @@ uint P::ohmHallTerm = 0;
 
 Real P::sparseMinValue = NAN;
 Real P::sparseMinBlocks = 0;
+int  P::sparseDynamicThreshold = 0;
+Real P::sparseDynamicMinValue = 0;
+Real P::sparseDynamicValue = 0;
+
 int P::sparseBlockAddWidthV = 1;
 bool P::sparse_conserve_mass = false;
 
@@ -201,9 +205,13 @@ bool Parameters::addParameters(){
    
    // Grid sparsity parameters
    Readparameters::add("sparse.minValue", "Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents", 0);
-   Readparameters::add("sparse.minBlocks", "Minimum number of blocks in a distribution function in any cell of a velocity block for the block to be considered to have contents", 0);
+   Readparameters::add("sparse.minBlocks", "Minimum number of blocks in a distribution function in any cell of a velocity block for the block to be considered to have contents, note: sparse.dynamicThreshold=2 must be set", 0);
    Readparameters::add("sparse.blockAddWidthV", "Number of layers of blocks that are kept in velocity space around the blocks with content",1);
    Readparameters::add("sparse.conserve_mass", "If true, then mass is conserved by scaling the dist. func. in the remaining blocks", false);
+   Readparameters::add("sparse.dynamicThreshold", "Algorithm for dynamic threshold, 0 = no algorithm, 1 = Linear algorithm based on rho value, 2 = Linear algorithm based on blocks value", 0);
+   Readparameters::add("sparse.dynamicMinValue", "Absolute minimum threshold value for the velocity space cell when using dynamicThreshold = (1 or 2)", 0);
+   Readparameters::add("sparse.dynamicValue", "Minimum value for the linear algorithm based on x value (x = either rho or blocks, depending on if sparse.dynamicThreshold=1 or 2 respectively) (Example threshold: threshold = rho / sparse.dynamicValue * sparse.minValue)", 0);
+
 
    // Load balancing parameters
    Readparameters::add("loadBalance.algorithm", "Load balancing algorithm to be used", std::string("RCB"));
@@ -324,6 +332,10 @@ bool Parameters::getParameters(){
    Readparameters::get("sparse.minBlocks", P::sparseMinBlocks);
    Readparameters::get("sparse.blockAddWidthV", P::sparseBlockAddWidthV); 
    Readparameters::get("sparse.conserve_mass", P::sparse_conserve_mass);
+   Readparameters::get("sparse.dynamicThreshold", P::sparseDynamicThreshold);
+   Readparameters::get("sparse.dynamicMinValue", P::sparseDynamicMinValue);
+   Readparameters::get("sparse.dynamicValue", P::sparseDynamicValue);
+
    
    // Get load balance parameters
    Readparameters::get("loadBalance.algorithm", P::loadBalanceAlgorithm);

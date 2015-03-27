@@ -227,6 +227,7 @@ namespace spatial_cell {
       static uint64_t get_mpi_transfer_type(void);
       static void set_mpi_transfer_type(const uint64_t type,bool atSysBoundaries=false);
       void set_mpi_transfer_enabled(bool transferEnabled);
+      void update_sparse_threshold();                             /*!< Updates threshold based on algorithm value from parameters see parameters.cpp >*/
       Real velocity_block_threshold() const;                                   /**< Minimum value of distribution function in any phase space cell 
                                                                                * of a velocity block for the block to be considered to have content.*/
       
@@ -255,7 +256,7 @@ namespace spatial_cell {
                                                                                * over MPI, so is invalid on remote cells.*/
       static uint64_t mpi_transfer_type;                                      /**< Which data is transferred by the mpi datatype given by spatial cells.*/
       static bool mpiTransferAtSysBoundaries;                                 /**< Do we only transfer data at boundaries (true), or in the whole system (false).*/
-      Real velocity_block_min_value;                                   /**< Helper value for velocity_block_threshold*/
+      Real velocity_block_min_value;                                          /**< Helper value for velocity_block_threshold*/
 
     private:
       SpatialCell& operator=(const SpatialCell&);
@@ -1079,7 +1080,7 @@ namespace spatial_cell {
 
    inline void SpatialCell::initialize_mesh(Real v_limits[6],unsigned int meshSize[3],unsigned int blockSize[3],Real f_min,uint8_t maxRefLevel) {
       vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::initialize(v_limits,meshSize,blockSize,maxRefLevel);
-      //velocity_block_min_value = f_min;
+
    }
 
    inline unsigned int SpatialCell::invalid_block_index() {
@@ -1118,6 +1119,7 @@ namespace spatial_cell {
       }
       //is transferred by default
       this->mpiTransferEnabled=true;
+      this->velocity_block_min_value = P::sparseMinValue;
    }
    
    inline SpatialCell::SpatialCell(const SpatialCell& other):
@@ -1129,6 +1131,7 @@ namespace spatial_cell {
      velocity_block_with_no_content_list(other.velocity_block_with_no_content_list),
      sysBoundaryFlag(other.sysBoundaryFlag),
      sysBoundaryLayer(other.sysBoundaryLayer),
+     velocity_block_min_value(other.velocity_block_min_value),
      vmesh(other.vmesh), blockContainer(other.blockContainer) {
       //       phiprof::initializeTimer("SpatialCell copy", "SpatialCell copy");
       //       phiprof::start("SpatialCell copy");
@@ -1146,11 +1149,11 @@ namespace spatial_cell {
          derivativesBVOL[i]=other.derivativesBVOL[i];
       }
       
+      
       //set null block data
       for (unsigned int i=0; i<WID3; ++i) null_block_data[i] = 0.0;
       //         phiprof::stop("SpatialCell copy");
      }
-
    /*!
     Returns the number of given velocity blocks that exist.
     */
@@ -1517,13 +1520,38 @@ namespace spatial_cell {
       return std::make_tuple(address,count,datatype);
    }
    
-   inline Real SpatialCell::velocity_block_threshold() const {
-     const Real threshold = (Real)get_number_of_velocity_blocks() / (Real)P::sparseMinBlocks * (Real)P::sparseMinValue;
-     if( threshold < P::sparseMinValue ) {
-       return threshold;
+   inline void SpatialCell::update_sparse_threshold() {
+     if( P::sparseDynamicThreshold == 1 ) {
+       // Linear algorithm based on rho for the threshold:
+       const Real threshold = this->parameters[CellParams::RHO] / P::sparseDynamicValue * P::sparseMinValue;
+       if( threshold < P::sparseDynamicMinValue ) {
+	 velocity_block_min_value = P::sparseDynamicMinValue;
+       } else if( threshold > P::sparseMinValue ) {
+	 velocity_block_min_value = P::sparseMinValue;
+       } else {
+	 velocity_block_min_value = threshold;
+       }
+       return;
+     } else if( P::sparseDynamicThreshold == 2 ) {
+       // Linear algorithm based on block for the threshold
+       const Real threshold = this->get_number_of_velocity_blocks() / P::sparseDynamicValue * P::sparseMinValue;
+       if( threshold < P::sparseDynamicMinValue ) {
+	 velocity_block_min_value = P::sparseDynamicMinValue;
+       } else if( threshold > P::sparseMinValue ) {
+	 velocity_block_min_value = P::sparseMinValue;
+       } else {
+	 velocity_block_min_value = threshold;
+       }
+       return;
      } else {
-       return P::sparseMinValue;
+       velocity_block_min_value = P::sparseMinValue;
+       return;
      }
+     return;
+   }
+   
+   inline Real SpatialCell::velocity_block_threshold() const {
+     return velocity_block_min_value;
    }
 
 

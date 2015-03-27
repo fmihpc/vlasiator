@@ -76,6 +76,9 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::VariablePTensorNonBackstreamDiagonal);
          outputReducer->addOperator(new DRO::VariablePTensorNonBackstreamOffDiagonal);
       }
+      if(*it == "Threshold") {
+         outputReducer->addOperator(new DRO::VariableThreshold);
+      }
       if(*it == "RhoNonBackstream")
          outputReducer->addOperator(new DRO::VariableRhoNonBackstream);
       if(*it == "RhoLossAdjust")
@@ -324,7 +327,7 @@ bool DataReducer::getDataVectorInfo(const unsigned int& operatorID,std::string& 
  * @param buffer Buffer in which DataReductionOperator should write its data.
  * @return If true, DataReductionOperator calculated and wrote data successfully.
  */
-bool DataReducer::reduceData(const SpatialCell* cell,const unsigned int& operatorID,char* buffer) {
+bool DataReducer::reduceData(const SpatialCell* cell,const unsigned int& operatorID,char* buffer) {p
    // Tell the chosen operator which spatial cell we are counting:
    if (operatorID >= operators.size()) return false;
    if (operators[operatorID]->setSpatialCell(cell) == false) return false;
