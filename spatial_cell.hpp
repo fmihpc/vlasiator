@@ -1531,7 +1531,7 @@ namespace spatial_cell {
       const Realf* block_data = blockContainer.getData(blockLID);
       
       // Easy criterion:
-      velocity_block_min_value = (Real)this->get_number_of_velocity_blocks() / (Real)sparseMinBlocks * P::sparseMinValue;
+      velocity_block_min_value = (Real)this->get_number_of_velocity_blocks() / (Real)P::sparseMinBlocks * P::sparseMinValue;
       
       for (unsigned int i=0; i<VELOCITY_BLOCK_LENGTH; ++i) {
          if (block_data[i] >= P::sparseMinValue || block_data[i] >= velocity_block_min_value ) {
