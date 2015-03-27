@@ -227,6 +227,8 @@ namespace spatial_cell {
       static uint64_t get_mpi_transfer_type(void);
       static void set_mpi_transfer_type(const uint64_t type,bool atSysBoundaries=false);
       void set_mpi_transfer_enabled(bool transferEnabled);
+      Real velocity_block_threshold() const;                                   /**< Minimum value of distribution function in any phase space cell 
+                                                                               * of a velocity block for the block to be considered to have content.*/
       
       // Member variables //
       Real derivatives[fieldsolver::N_SPATIAL_CELL_DERIVATIVES];              /**< Derivatives of bulk variables in this spatial cell.*/
@@ -253,8 +255,7 @@ namespace spatial_cell {
                                                                                * over MPI, so is invalid on remote cells.*/
       static uint64_t mpi_transfer_type;                                      /**< Which data is transferred by the mpi datatype given by spatial cells.*/
       static bool mpiTransferAtSysBoundaries;                                 /**< Do we only transfer data at boundaries (true), or in the whole system (false).*/
-      static Real velocity_block_min_value;                                   /**< Minimum value of distribution function in any phase space cell 
-                                                                               * of a velocity block for the block to be considered to have content.*/
+      Real velocity_block_min_value;                                   /**< Helper value for velocity_block_threshold*/
 
     private:
       SpatialCell& operator=(const SpatialCell&);
@@ -264,8 +265,7 @@ namespace spatial_cell {
 				  std::set<vmesh::GlobalID>& blockRemovalList);
 
       bool initialized;
-      bool mpiTransferEnabled;
-      
+      bool mpiTransferEnabled;      
       // Velocity mesh, one per population
       vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID> vmesh;
       vmesh::VelocityBlockContainer<vmesh::LocalID> blockContainer;
@@ -1079,7 +1079,7 @@ namespace spatial_cell {
 
    inline void SpatialCell::initialize_mesh(Real v_limits[6],unsigned int meshSize[3],unsigned int blockSize[3],Real f_min,uint8_t maxRefLevel) {
       vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::initialize(v_limits,meshSize,blockSize,maxRefLevel);
-      velocity_block_min_value = f_min;
+      //velocity_block_min_value = f_min;
    }
 
    inline unsigned int SpatialCell::invalid_block_index() {
@@ -1516,6 +1516,16 @@ namespace spatial_cell {
 
       return std::make_tuple(address,count,datatype);
    }
+   
+   inline Real SpatialCell::velocity_block_threshold() const {
+     const Real threshold = (Real)get_number_of_velocity_blocks() / (Real)P::sparseMinBlocks * (Real)P::sparseMinValue;
+     if( threshold < P::sparseMinValue ) {
+       return threshold;
+     } else {
+       return P::sparseMinValue;
+     }
+   }
+
 
    /*!
     Returns true if given velocity block has enough of a distribution function.
@@ -1530,11 +1540,8 @@ namespace spatial_cell {
       const vmesh::LocalID blockLID = get_velocity_block_local_id(blockGID);
       const Realf* block_data = blockContainer.getData(blockLID);
       
-      // Easy criterion:
-      velocity_block_min_value = (Real)this->get_number_of_velocity_blocks() / (Real)P::sparseMinBlocks * P::sparseMinValue;
-      
       for (unsigned int i=0; i<VELOCITY_BLOCK_LENGTH; ++i) {
-         if (block_data[i] >= P::sparseMinValue || block_data[i] >= velocity_block_min_value ) {
+         if ( block_data[i] >= velocity_block_threshold() ) {
             has_content = true;
             break;
          }
