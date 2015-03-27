@@ -1526,11 +1526,15 @@ namespace spatial_cell {
        const Real k = (P::sparseMinValue - P::sparseDynamicMinThreshold) / (P::sparseDynamicMaxValue - P::sparseDynamicMinValue);
        const Real b = P::sparseDynamicMinThreshold - k * P::sparseDynamicMinValue;
        Real x;
-       if( P::sparseDynamicAlgorithm == 1 ) { x = this->parameters[CellParams::RHO]; } else { this->get_number_of_velocity_blocks(); } // Determine the variable
+       if( P::sparseDynamicAlgorithm == 1 ) { 
+         x = this->parameters[CellParams::RHO]; 
+       } else { 
+         x = this->get_number_of_velocity_blocks(); 
+       }
        const Real threshold = k*x+b;
-       if( threshold < P::sparseDynamicMinValue ) { // Compare against absolute minimum value
+       if( threshold < P::sparseDynamicMinThreshold ) { // Compare against absolute minimum value
          velocity_block_min_value = P::sparseDynamicMinValue;
-       } else if( threshold > P::sparseMinValue ) { // Compare against the normal threshold value
+       } else if( threshold > P::sparseMinValue ) { // Compare against the max threshold value
          velocity_block_min_value = P::sparseMinValue;
        } else {
          velocity_block_min_value = threshold;
