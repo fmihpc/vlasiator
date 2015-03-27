@@ -131,6 +131,9 @@ LIBS += ${LIB_PAPI}
 DEPS_COMMON = common.h common.cpp definitions.h mpiconversion.h logger.h
 DEPS_CELL   = spatial_cell.hpp velocity_mesh_old.h velocity_mesh_amr.h velocity_block_container.h
 
+# Define common field solver dependencies
+DEPS_FSOLVER = ${DEPS_COMMON} ${DEPS_CELL} fieldsolver/fs_common.h fieldsolver/fs_common.cpp fieldsolver/fs_cache.h
+
 # Define dependencies on all project files
 DEPS_PROJECTS =	projects/project.h projects/project.cpp \
 		projects/projectTriAxisSearch.h projects/projectTriAxisSearch.cpp \
@@ -179,6 +182,8 @@ OBJS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipo
 	verificationLarmor.o Shocktest.o grid.o ioread.o iowrite.o vlasiator.o logger.o muxml.o \
 	common.o parameters.o readparameters.o spatial_cell.o \
 	vlscommon.o vlsvreader2.o vlasovmover.o $(FIELDSOLVER).o fs_common.o fs_limiters.o
+
+OBJS_FSOLVER = 	ldz_magnetic_field.o ldz_volume.o derivatives.o ldz_electric_field.o ldz_hall.o fs_cache.o
 
 OBJS_POISSON = poisson_solver.o poisson_test.o poisson_solver_jacobi.o poisson_solver_sor.o
 
@@ -352,14 +357,32 @@ vlasovmover.o: ${DEPS_VLSVMOVER}
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS}  -c vlasovsolver/vlasovmover.cpp -I$(CURDIR) ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_PROFILE}  ${INC_VECTORCLASS} ${INC_EIGEN}  
 endif
 
-fs_common.o: fieldsolver/fs_common.h fieldsolver/fs_common.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c fieldsolver/fs_common.cpp -I$(CURDIR)  ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG}  ${INC_PROFILE}  ${INC_ZOLTAN}
+derivatives.o: ${DEPS_FSOLVER} fieldsolver/fs_limiters.h fieldsolver/fs_limiters.cpp fieldsolver/derivatives.hpp fieldsolver/derivatives.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c fieldsolver/derivatives.cpp -I$(CURDIR)  ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_PROFILE} ${INC_ZOLTAN}
 
-fs_limiters.o: fieldsolver/fs_limiters.h fieldsolver/fs_limiters.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c fieldsolver/fs_limiters.cpp -I$(CURDIR)  ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG}  ${INC_PROFILE}  ${INC_ZOLTAN}
+fs_cache.o: ${DEPS_COMMON} ${DEPS_CELL} fieldsolver/fs_cache.h fieldsolver/fs_cache.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c fieldsolver/fs_cache.cpp -I$(CURDIR)  ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_PROFILE} ${INC_ZOLTAN}
 
-londrillo_delzanna.o: ${DEPS_CELL} parameters.h common.h fieldsolver/fs_common.h fieldsolver/fs_common.cpp fieldsolver/derivatives.hpp fieldsolver/ldz_electric_field.hpp fieldsolver/ldz_hall.hpp fieldsolver/ldz_magnetic_field.hpp fieldsolver/ldz_main.cpp fieldsolver/ldz_volume.hpp fieldsolver/ldz_volume.hpp
-	 ${CMP} ${CXXFLAGS} ${FLAGS} -c fieldsolver/ldz_main.cpp -o londrillo_delzanna.o -I$(CURDIR)  ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG}  ${INC_PROFILE}  ${INC_ZOLTAN}
+fs_common.o: ${DEPS_FSOLVER} fieldsolver/fs_limiters.h fieldsolver/fs_limiters.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c fieldsolver/fs_common.cpp -I$(CURDIR)  ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_PROFILE} ${INC_ZOLTAN}
+
+fs_limiters.o: ${DEPS_FSOLVER} fieldsolver/fs_limiters.h fieldsolver/fs_limiters.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c fieldsolver/fs_limiters.cpp -I$(CURDIR)  ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_PROFILE} ${INC_ZOLTAN}
+
+londrillo_delzanna.o:  ${DEPS_FSOLVER} parameters.h common.h fieldsolver/fs_common.h fieldsolver/fs_common.cpp fieldsolver/derivatives.hpp fieldsolver/ldz_electric_field.hpp fieldsolver/ldz_hall.hpp fieldsolver/ldz_magnetic_field.hpp fieldsolver/ldz_main.cpp fieldsolver/ldz_volume.hpp fieldsolver/ldz_volume.hpp
+	 ${CMP} ${CXXFLAGS} ${FLAGS} -c fieldsolver/ldz_main.cpp -o londrillo_delzanna.o -I$(CURDIR)  ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_PROFILE} ${INC_ZOLTAN}
+
+ldz_electric_field.o: ${DEPS_FSOLVER} fieldsolver/ldz_electric_field.hpp fieldsolver/ldz_electric_field.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c fieldsolver/ldz_electric_field.cpp ${INC_BOOST} ${INC_DCCRG} ${INC_PROFILE} ${INC_ZOLTAN}
+
+ldz_hall.o: ${DEPS_FSOLVER} fieldsolver/ldz_hall.hpp fieldsolver/ldz_hall.cpp
+	${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAGS} -c fieldsolver/ldz_hall.cpp ${INC_BOOST} ${INC_DCCRG} ${INC_PROFILE} ${INC_ZOLTAN}
+
+ldz_magnetic_field.o: ${DEPS_FSOLVER} fieldsolver/ldz_magnetic_field.hpp fieldsolver/ldz_magnetic_field.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c fieldsolver/ldz_magnetic_field.cpp ${INC_BOOST} ${INC_DCCRG} ${INC_PROFILE} ${INC_ZOLTAN}
+
+ldz_volume.o: ${DEPS_FSOLVER} fieldsolver/ldz_volume.hpp fieldsolver/ldz_volume.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c fieldsolver/ldz_volume.cpp ${INC_BOOST} ${INC_DCCRG} ${INC_PROFILE} ${INC_ZOLTAN}
 
 vlasiator.o: ${DEPS_COMMON} readparameters.h parameters.h ${DEPS_PROJECTS} grid.h vlasovmover.h ${DEPS_CELL} vlasiator.cpp iowrite.h
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c vlasiator.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV}
@@ -400,8 +423,8 @@ vlsvreader2extra.o:  muxml.h muxml.cpp vlscommon.h vlsvreader2.h vlsvreader2.cpp
 
 
 # Make executable
-vlasiator: $(OBJS) $(OBJS_POISSON)
-	$(LNK) ${LDFLAGS} -o ${EXE} $(OBJS) $(LIBS) $(OBJS_POISSON)
+vlasiator: $(OBJS) $(OBJS_POISSON) $(OBJS_FSOLVER)
+	$(LNK) ${LDFLAGS} -o ${EXE} $(OBJS) $(LIBS) $(OBJS_POISSON) $(OBJS_FSOLVER)
 
 
 #/// TOOLS section/////
