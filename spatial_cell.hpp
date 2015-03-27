@@ -282,8 +282,6 @@ namespace spatial_cell {
                                                                                * over MPI, so is invalid on remote cells.*/
       static uint64_t mpi_transfer_type;                                      /**< Which data is transferred by the mpi datatype given by spatial cells.*/
       static bool mpiTransferAtSysBoundaries;                                 /**< Do we only transfer data at boundaries (true), or in the whole system (false).*/
-      //static Real velocity_block_min_value;                                   /**< Minimum value of distribution function in any phase space cell 
-      //                                                                         * of a velocity block for the block to be considered to have content.*/
 
     private:
       SpatialCell& operator=(const SpatialCell&);
