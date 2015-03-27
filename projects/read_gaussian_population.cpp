@@ -8,6 +8,8 @@
  * Copyright 2015 Finnish Meteorological Institute
  */
 
+#include <cstdlib>
+#include <iostream>
 #include "../readparameters.h"
 
 #include "read_gaussian_population.h"

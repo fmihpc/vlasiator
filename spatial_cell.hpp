@@ -228,7 +228,7 @@ namespace spatial_cell {
       uint64_t get_cell_memory_capacity();
       uint64_t get_cell_memory_size();
       void merge_values(const int& popID);
-      void prepare_to_receive_blocks();
+      void prepare_to_receive_blocks(const int& popID);
       bool shrink_to_fit();
       size_t size(const int& popID) const;
       void remove_velocity_block(const vmesh::GlobalID& block,const int& popID);
@@ -842,7 +842,7 @@ namespace spatial_cell {
     inline vmesh::LocalID SpatialCell::get_number_of_all_velocity_blocks() const {
         vmesh::LocalID N_blocks = 0;
         for (size_t p=0; p<populations.size(); ++p)
-            N_blocks += populations[activePopID].blockContainer.size();
+            N_blocks += populations[p].blockContainer.size();
         return N_blocks;
     }
     
@@ -1318,7 +1318,7 @@ namespace spatial_cell {
       }
 
       const unsigned int cell = get_velocity_cell(blockGID, vx, vy, vz);
-      get_data(blockLID,activePopID)[cell] = value;
+      get_data(blockLID,popID)[cell] = value;
    }
 
 //TODO - thread safe set/increment functions which do not create blocks automatically
@@ -1353,7 +1353,7 @@ namespace spatial_cell {
          blockLID = populations[popID].vmesh.getLocalID(blockGID);
       }
 
-      get_data(blockLID,activePopID)[cell] = value;
+      get_data(blockLID,popID)[cell] = value;
    }
 
    /*!

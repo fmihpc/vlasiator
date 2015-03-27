@@ -1,18 +1,19 @@
 /*
 This file is part of Vlasiator.
 
-Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
+Copyright 2010-2015 Finnish Meteorological Institute
 */
 
+#include <cstdlib>
+#include <iostream>
 #include "parameters.h"
 #include "readparameters.h"
 #include <limits>
 #include <set>
 
 #ifndef NAN
-#define NAN 0
+   #define NAN 0
 #endif
-
 
 using namespace std;
 

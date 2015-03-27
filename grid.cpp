@@ -329,7 +329,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
             if (cell_id % num_part_transfers == transfer_part) {
                phiprof::start("Preparing receives");
                // reserve space for velocity block data in arriving remote cells
-               cell->prepare_to_receive_blocks();
+               cell->prepare_to_receive_blocks(p);
                phiprof::stop("Preparing receives", incoming_cells_list.size(), "Spatial cells");
             }
          }
@@ -594,7 +594,7 @@ void updateRemoteVelocityBlockLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
               << endl;
          abort();
       }      
-      cell->prepare_to_receive_blocks();
+      cell->prepare_to_receive_blocks(popID);
    }
    phiprof::stop("Preparing receives", incoming_cells.size(), "SpatialCells");
 }

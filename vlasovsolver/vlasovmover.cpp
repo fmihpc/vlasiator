@@ -334,9 +334,15 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    typedef Parameters P;
    const vector<CellID> cells = mpiGrid.get_cells();
 
-   if (dt == 0.0 && P::tstep > 0) goto momentCalculation;
-   
-    phiprof::start("semilag-acc");
+   if (dt == 0.0 && P::tstep > 0) {
+      // Even if acceleration is turned off we need to adjust velocity blocks 
+      // because the boundary conditions may have altered the velocity space, 
+      // and to update changes in no-content blocks during translation.
+      for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
+        adjustVelocityBlocks(mpiGrid, cells, true, popID);
+      goto momentCalculation;
+   }
+   phiprof::start("semilag-acc");
     
     // Calculate first velocity moments, these are needed to 
     // calculate the transforms used in the accelerations.

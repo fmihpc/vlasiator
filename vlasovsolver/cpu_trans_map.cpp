@@ -692,23 +692,23 @@ void update_remote_mapping_contribution(
             //2) is remote cell, 3) if the source cell in center was
             //translated
             vmesh::VelocityBlockContainer<vmesh::LocalID>& pcellBlockContainer = pcell->get_velocity_blocks_temporary();
-            ccell->neighbor_block_data = pcellBlockContainer.getData(popID);
+            ccell->neighbor_block_data = pcellBlockContainer.getData();
             ccell->neighbor_number_of_blocks = pcellBlockContainer.size();
             send_cells.push_back(p_ngbr);
         }
         if (m_ngbr != INVALID_CELLID &&
             !mpiGrid.is_local(m_ngbr) &&
             ccell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-            //Receive data that mcell mapped to ccell to this local cell
-            //data array, if 1) m is a valid source cell, 2) center cell is to be updated (normal cell) 3) m is remote
-            //we can reuse the normal data array as we do not anymore need the original distribution function values
-            mcell->neighbor_block_data = ccell->get_data(popID);
-            mcell->neighbor_number_of_blocks = ccell->get_number_of_velocity_blocks(popID);
-            receive_cells.push_back(local_cells[c]);
+           //Receive data that mcell mapped to ccell to this local cell
+           //data array, if 1) m is a valid source cell, 2) center cell is to be updated (normal cell) 3) m is remote
+           //we can reuse the normal data array as we do not anymore need the original distribution function values
+           mcell->neighbor_block_data = ccell->get_data(popID);
+           mcell->neighbor_number_of_blocks = ccell->get_number_of_velocity_blocks(popID);
+           receive_cells.push_back(local_cells[c]);
         }
     }
     // Do communication
-    SpatialCell::setCommunicatedSpecies(popID);
+   SpatialCell::setCommunicatedSpecies(popID);
     SpatialCell::set_mpi_transfer_type(Transfer::NEIGHBOR_VEL_BLOCK_DATA);
     switch(dimension) {
        case 0:
@@ -724,6 +724,7 @@ void update_remote_mapping_contribution(
           if(direction < 0) mpiGrid.update_copies_of_remote_neighbors(SHIFT_M_Z_NEIGHBORHOOD_ID);
           break;
     }
+   
     #pragma omp parallel
     {
         //reduce data: sum received data in the data array to 
@@ -731,10 +732,11 @@ void update_remote_mapping_contribution(
         for (size_t c=0; c < receive_cells.size(); ++c) {
             SpatialCell* spatial_cell = mpiGrid[receive_cells[c]];
             vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks_temporary();
+
             #pragma omp for nowait
             for(unsigned int cell=0; cell<VELOCITY_BLOCK_LENGTH*spatial_cell->get_number_of_velocity_blocks(popID); ++cell) {
-                // copy received target data to temporary array where target data is stored.
-                blockContainer.getData()[cell] += spatial_cell->get_data(popID)[cell];
+               // copy received target data to temporary array where target data is stored.
+               blockContainer.getData()[cell] += spatial_cell->get_data(popID)[cell];
             }
         }
         // send cell data is set to zero. This is to avoid double copy if

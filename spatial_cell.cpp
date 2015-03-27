@@ -633,6 +633,8 @@ namespace spatial_cell {
       vector<vmesh::GlobalID> childrenGIDs;
       vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::getChildren(blockGID,childrenGIDs);
 
+      #warning FIXME activePopID is not correct here
+      
       // Check if any of block's children exist:
       bool hasChildren = false;
       for (size_t c=0; c<childrenGIDs.size(); ++c) {
@@ -1058,15 +1060,15 @@ namespace spatial_cell {
     * mpi_velocity_block_list, but the rest of the cell structures
     * have not been adapted to this new list. Here we re-initialize
     * the cell with empty blocks based on the new list.*/
-   void SpatialCell::prepare_to_receive_blocks() {
-      populations[activePopID].vmesh.setGrid();
-      populations[activePopID].blockContainer.setSize(populations[activePopID].vmesh.size());
+   void SpatialCell::prepare_to_receive_blocks(const int& popID) {
+      populations[popID].vmesh.setGrid();
+      populations[popID].blockContainer.setSize(populations[popID].vmesh.size());
 
-      Real* parameters = get_block_parameters(activePopID);
+      Real* parameters = get_block_parameters(popID);
       
       // Set velocity block parameters:
-      for (vmesh::LocalID blockLID=0; blockLID<size(activePopID); ++blockLID) {
-         const vmesh::GlobalID blockGID = get_velocity_block_global_id(blockLID,activePopID);
+      for (vmesh::LocalID blockLID=0; blockLID<size(popID); ++blockLID) {
+         const vmesh::GlobalID blockGID = get_velocity_block_global_id(blockLID,popID);
          parameters[BlockParams::VXCRD] = get_velocity_block_vx_min(blockGID);
          parameters[BlockParams::VYCRD] = get_velocity_block_vy_min(blockGID);
          parameters[BlockParams::VZCRD] = get_velocity_block_vz_min(blockGID);

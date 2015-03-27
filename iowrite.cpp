@@ -884,8 +884,7 @@ bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    else if (bytesWritten > 1e3) logFile << bytesWritten/1.0e3 << " kB in ";
    else logFile << bytesWritten << " B in ";
 
-   logFile << bytesWritten << " bytes in " << writeTime << " seconds, ";
-   logFile << "approximate data rate is ";
+   logFile << writeTime << " seconds, approximate data rate is ";
 
    if (bytesWritten/writeTime > 1e9) logFile << bytesWritten/writeTime/1e9 << " GB/s";
    else if (bytesWritten/writeTime > 1e6) logFile << bytesWritten/writeTime/1e6 << " MB/s";

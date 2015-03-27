@@ -59,7 +59,8 @@ namespace DRO {
       bool success = true;
       
       Real* bufferRho   = new Real[cells.size()];
-      Real* bufferRhoV  = new Real[cells.size()*3];      
+      Real* bufferRhoV  = new Real[cells.size()*3];
+      uint* blocks      = new uint[cells.size()];
       size_t N_cells = 0;
       size_t thread_N_cells = 0;
 
@@ -85,6 +86,8 @@ namespace DRO {
             bufferRhoV[c*3+1] = array[2];
             bufferRhoV[c*3+2] = array[3];
             thread_N_cells += blockContainer.size()*WID3;
+            
+            blocks[c] = blockContainer.size();
          } // for-loop over spatial cells
 
          N_cells += thread_N_cells;
@@ -96,10 +99,14 @@ namespace DRO {
             
          attribs["name"] = getObjectWrapper().particleSpecies[popID].name + "/" + "nV";
          if (vlsvWriter.writeArray("VARIABLE",attribs,cells.size(),3,bufferRhoV) == false) success = false;
+         
+         attribs["name"] = getObjectWrapper().particleSpecies[popID].name + "/" + "blocks";
+         if (vlsvWriter.writeArray("VARIABLE",attribs,cells.size(),1,blocks) == false) success = false;
       } // for-loop over particle species
 
       delete [] bufferRho ; bufferRho  = NULL;
       delete [] bufferRhoV; bufferRhoV = NULL;
+      delete [] blocks; blocks = NULL;
 
       phiprof::stop("SpeciesMoments",N_cells,"Phase-Space Cells");
       return success;
