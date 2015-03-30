@@ -63,14 +63,14 @@ function vlasiator_setup_next {
    cd $next_job
    
    # Create a unique cfg file
-   cp Magnetosphere.cfg Magnetosphere.$BATCH_JOBID.cfg
+   cp Magnetosphere.cfg Magnetosphere.$PBS_JOBID.cfg
    
    # Set up restart interval and number of restarts
    # Subtract extra time for restart io
    RESTART_WALLTIME_INTERVAL=$( echo "scale=2; ($WALLTIME * 3600.0 - $RESTART_IO_EXTRA_TIME) / $NUMBER_OF_RESTARTS" | bc )
    
-   sed -i'' -e 's/RESTART_WALLTIME_INTERVAL/'${RESTART_WALLTIME_INTERVAL}'/' Magnetosphere.$BATCH_JOBID.cfg
-   sed -i'' -e 's/NUMBER_OF_RESTARTS/'${NUMBER_OF_RESTARTS}'/' Magnetosphere.$BATCH_JOBID.cfg
+   sed -i'' -e 's/RESTART_WALLTIME_INTERVAL/'${RESTART_WALLTIME_INTERVAL}'/' Magnetosphere.$PBS_JOBID.cfg
+   sed -i'' -e 's/NUMBER_OF_RESTARTS/'${NUMBER_OF_RESTARTS}'/' Magnetosphere.$PBS_JOBID.cfg
    
    # Set up the correct restart file
    last_restart=$( ls restart.*.vlsv | tail -1 )
@@ -82,9 +82,9 @@ function vlasiator_setup_next {
    else
       if [ $has_not_run_yet -eq 0 ]
       then
-         echo " " >> Magnetosphere.$BATCH_JOBID.cfg
-         echo "[restart]" >> Magnetosphere.$BATCH_JOBID.cfg
-         echo "filename = $last_restart" >> Magnetosphere.$BATCH_JOBID.cfg
+         echo " " >> Magnetosphere.$PBS_JOBID.cfg
+         echo "[restart]" >> Magnetosphere.$PBS_JOBID.cfg
+         echo "filename = $last_restart" >> Magnetosphere.$PBS_JOBID.cfg
       fi
    fi
    cd ..
@@ -92,9 +92,12 @@ function vlasiator_setup_next {
 
 function vlasiator_run {
    cd $next_job
+   
    # Launch the OpenMP job to the allocated compute node
-   aprun -n $NUM_PROCESSES -N $((32/$OMP_NUM_THREADS)) -d $OMP_NUM_THREADS ./vlasiator --run_config=Magnetosphere.$BATCH_JOBID.cfg
-   cd $PBS_O_WORKDIR
+   echo "Running $exec on $tasks mpi tasks, with $t threads per task on $nodes nodes ($ht threads per physical core)"
+   aprun -n1 $exec --version
+   aprun -n $NUM_PROCESSES -N $tasks_per_node -d $OMP_NUM_THREADS -j $ht ./vlasiator --run_config=Magnetosphere.$PBS_JOBID.cfg
+   cd $PBS_O_WRKDIR
 }
 
 ####################
@@ -113,7 +116,9 @@ do
    
    if [ "$job_to_check_in_list" -gt "$( cat $JOBLIST | wc -l )" ]
    then
-      echo "($(date) $(($NUM_PROCESSES*$OMP_NUM_THREADS)) cores) Nothing can be run, exiting. Stop wasting queuing time!"
+      export message="($(date) $(($NUM_PROCESSES*$OMP_NUM_THREADS)) cores) Nothing can be run, exiting. Stop wasting queuing time!"
+      echo $message
+      echo $message | mailx -s "Job ended @Hornet" vlasiator@fmihpc.flowdock.com
       exit
    fi
    
@@ -128,14 +133,18 @@ do
    then
       echo "($(date) $(($NUM_PROCESSES*$OMP_NUM_THREADS)) cores) Tried $next_job, not doing this one (see above)."
    else
-      echo "($(date) $(($NUM_PROCESSES*$OMP_NUM_THREADS)) cores) Running $next_job."
+      export message="($(date) $(($NUM_PROCESSES*$OMP_NUM_THREADS)) cores) Running $next_job."
+      echo $message
       
       vlasiator_setup_next
       if [ $do_run = 1 ]
       then
          vlasiator_run
+         echo $message | mailx -s "New job running @Hornet" vlasiator@fmihpc.flowdock.com
          doing_something=1
-         echo "($(date) $(($NUM_PROCESSES*$OMP_NUM_THREADS)) cores) Done $next_job."
+         export message="($(date) $(($NUM_PROCESSES*$OMP_NUM_THREADS)) cores) Done $next_job."
+         echo $message
+         echo $message | mailx -s "Job ended @Hornet" vlasiator@fmihpc.flowdock.com
       else
          doing_something=0
       fi
