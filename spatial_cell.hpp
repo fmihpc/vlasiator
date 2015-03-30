@@ -1523,8 +1523,8 @@ namespace spatial_cell {
    inline void SpatialCell::update_sparse_threshold() {
      if( P::sparseDynamicAlgorithm == 1 || P::sparseDynamicAlgorithm == 2 ) {
        // Linear algorithm for the threshold: y=kx+b
-       const Real k = (P::sparseMinValue - P::sparseDynamicMinThreshold) / (P::sparseDynamicMaxValue - P::sparseDynamicMinValue);
-       const Real b = P::sparseDynamicMinThreshold - k * P::sparseDynamicMinValue;
+       const Real k = (P::sparseDynamicMinValue2 - P::sparseDynamicMinValue1) / (P::sparseDynamicBulkValue2 - P::sparseDynamicBulkValue1);
+       const Real b = P::sparseDynamicMinValue1 - k * P::sparseDynamicBulkValue1;
        Real x;
        if( P::sparseDynamicAlgorithm == 1 ) { 
          x = this->parameters[CellParams::RHO]; 
@@ -1532,10 +1532,10 @@ namespace spatial_cell {
          x = this->get_number_of_velocity_blocks(); 
        }
        const Real threshold = k*x+b;
-       if( threshold < P::sparseDynamicMinThreshold ) { // Compare against absolute minimum value
-         velocity_block_min_value = P::sparseDynamicMinValue;
-       } else if( threshold > P::sparseMinValue ) { // Compare against the max threshold value
-         velocity_block_min_value = P::sparseMinValue;
+       if( threshold < P::sparseDynamicMinValue1 ) { // Compare against absolute minimum value
+         velocity_block_min_value = P::sparseDynamicMinValue1;
+       } else if( threshold > P::sparseDynamicMinValue2 ) { // Compare against the max threshold value
+         velocity_block_min_value = P::sparseDynamicMinValue2;
        } else {
          velocity_block_min_value = threshold;
        }
