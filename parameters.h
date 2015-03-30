@@ -63,7 +63,6 @@ struct Parameters {
    static uint tstep;               /*!< The number of the current timestep. 0=initial state. */
 
    static bool meshRepartitioned;         /*!< If true, mesh was repartitioned on this time step.*/
-   static uint localCellsCalculated;      /*!< Time step when localCells was calculated.*/
    static std::vector<CellID> localCells; /*!< Cached copy of spatial cell IDs on this process.*/
 
    static uint diagnosticInterval;

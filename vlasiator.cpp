@@ -178,14 +178,12 @@ ObjectWrapper& getObjectWrapper() {
  * @return Local cell IDs.*/
 const std::vector<CellID>& getLocalCells() {
    if (Parameters::meshRepartitioned == true) {
-      if (Parameters::localCellsCalculated != Parameters::tstep) {
-         {
-            vector<CellID> dummy;
-            dummy.swap(Parameters::localCells);
-         }
-         Parameters::localCells = mpiGrid.get_cells();
-         Parameters::localCellsCalculated = Parameters::tstep;
-      }
+        {
+           vector<CellID> dummy;
+           dummy.swap(Parameters::localCells);
+        }
+      Parameters::localCells = mpiGrid.get_cells();
+      Parameters::meshRepartitioned = false;
    }
    return Parameters::localCells;
 }
