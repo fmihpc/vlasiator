@@ -206,14 +206,13 @@ bool Parameters::addParameters(){
 
    
    // Grid sparsity parameters
-   Readparameters::add("sparse.minValue", "Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents", 0);
-   Readparameters::add("sparse.minBlocks", "Minimum number of blocks in a distribution function in any cell of a velocity block for the block to be considered to have contents, note: sparse.dynamicThreshold=2 must be set", 0);
+   Readparameters::add("sparse.minValue", "Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents", 1);
    Readparameters::add("sparse.blockAddWidthV", "Number of layers of blocks that are kept in velocity space around the blocks with content",1);
    Readparameters::add("sparse.conserve_mass", "If true, then mass is conserved by scaling the dist. func. in the remaining blocks", false);
-   Readparameters::add("sparse.dynamicAlgorithm", "Type of algorithm used for calculating the dynamic threshold; 0 = none, 1 = linear algorithm based on threshold and rho, 2 = linear algorithm based on threshold and Blocks, (Example linear algorithm: y = kx+b, where dynamicMinValue1=k*dynamicBulkValue1 + b, and dynamicMinValue2 = k*dynamicBulkValue2 + b", 0);
-   Readparameters::add("sparse.dynamicMaxBlocks", "Max blocks in velocity cells where dynamic threshold algorithm will be applied e.g. if cells.numberOfBlocks < sparse.dynamicMaxBlocks -> apply dynamic algorithm, else do nothing", 99999999);
-   Readparameters::add("sparse.dynamicMinValue1", "The minimum value for the dynamic threshold", 1);
-   Readparameters::add("sparse.dynamicMinValue2", "The maximum value (value 2) for the dynamic threshold", 1);
+   Readparameters::add("sparse.dynamicAlgorithm", "Type of algorithm used for calculating the dynamic minValue; 0 = none, 1 = linear algorithm based on rho, 2 = linear algorithm based on Blocks, (Example linear algorithm: y = kx+b, where dynamicMinValue1=k*dynamicBulkValue1 + b, and dynamicMinValue2 = k*dynamicBulkValue2 + b", 0);
+   Readparameters::add("sparse.dynamicMaxBlocks", "Max blocks in velocity cells where dynamic minValue algorithm will be applied e.g. if cells.numberOfBlocks < sparse.dynamicMaxBlocks -> apply dynamic algorithm, else do nothing", 99999999);
+   Readparameters::add("sparse.dynamicMinValue1", "The minimum value for the dynamic minValue", 1);
+   Readparameters::add("sparse.dynamicMinValue2", "The maximum value (value 2) for the dynamic minValue", 1);
    Readparameters::add("sparse.dynamicBulkValue1", "Minimum value for the dynamic algorithm range, so for example if dynamicAlgorithm=1 then for sparse.dynamicBulkValue1 = 1e3, sparse.dynamicBulkValue2=1e5, we apply the algorithm to cells for which 1e3<cell.rho<1e5", 0);
    Readparameters::add("sparse.dynamicBulkValue2", "Maximum value for the dynamic algorithm range, so for example if dynamicAlgorithm=1 then for sparse.dynamicBulkValue1 = 1e3, sparse.dynamicBulkValue2=1e5, we apply the algorithm to cells for which 1e3<cell.rho<1e5", 0);
 

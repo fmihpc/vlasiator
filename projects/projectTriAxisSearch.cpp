@@ -28,7 +28,7 @@ namespace projects {
          // VX search
          search = true;
          counter = 0;
-         #warning TODO: add SpatialCell::velocity_block_threshold() in place of sparseMinValue
+         #warning TODO: add SpatialCell::getVelocityBlockMinValue() in place of sparseMinValue
          while (search) {
             if (0.1 * P::sparseMinValue >
                 calcPhaseSpaceDensity(x,
