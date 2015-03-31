@@ -356,5 +356,6 @@ namespace physicalconstants {
 }
 
 const std::vector<CellID>& getLocalCells();
+void recalculateLocalCellsCache();
 
 #endif

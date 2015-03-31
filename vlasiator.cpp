@@ -177,15 +177,23 @@ ObjectWrapper& getObjectWrapper() {
  * cache is recalculated every time the mesh partitioning changes.
  * @return Local cell IDs.*/
 const std::vector<CellID>& getLocalCells() {
-   if (Parameters::meshRepartitioned == true) {
+   /*if (Parameters::meshRepartitioned == true) {
         {
            vector<CellID> dummy;
            dummy.swap(Parameters::localCells);
         }
       Parameters::localCells = mpiGrid.get_cells();
       Parameters::meshRepartitioned = false;
-   }
+   }*/
    return Parameters::localCells;
+}
+
+void recalculateLocalCellsCache() {
+     {
+        vector<CellID> dummy;
+        dummy.swap(Parameters::localCells);
+     }
+   Parameters::localCells = mpiGrid.get_cells();
 }
 
 int main(int argn,char* args[]) {

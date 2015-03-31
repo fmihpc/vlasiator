@@ -246,7 +246,6 @@ namespace SBC {
    
    bool ProjectBoundary::generateTemplateCell() {
       if (project == NULL) return false;
-      cerr << "generating template cell" << endl;
       templateCell.parameters[CellParams::XCRD] = NAN;
       templateCell.parameters[CellParams::YCRD] = NAN;
       templateCell.parameters[CellParams::ZCRD] = NAN;

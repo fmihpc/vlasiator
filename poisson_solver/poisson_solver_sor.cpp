@@ -68,7 +68,7 @@ namespace poisson {
          if (calculateElectrostaticField3D(innerCellPointersRED) == false) success = false;
          if (calculateElectrostaticField3D(innerCellPointersBLACK) == false) success = false;
       }
-      
+
       mpiGrid.wait_remote_neighbor_copy_updates(POISSON_NEIGHBORHOOD_ID);
       
       // Calculate electric field on boundary cells
@@ -415,19 +415,18 @@ namespace poisson {
          if (iterations >= Poisson::maxIterations) break;
       } while (true);
 
-      cerr << "SOR solved using " << iterations << " iterations, rel change " << relPotentialChange << endl;
+      //cerr << "SOR solved using " << iterations << " iterations, rel change " << relPotentialChange << endl;
 
       if (calculateElectrostaticField(mpiGrid) == false) success = false;
 
-      Real efieldFlux  = 0;
-      Real totalCharge = 0;
-      checkGaussLaw(mpiGrid,innerCellPointersRED,efieldFlux,totalCharge);
-      checkGaussLaw(mpiGrid,innerCellPointersBLACK,efieldFlux,totalCharge);
-      checkGaussLaw(mpiGrid,bndryCellPointersRED,efieldFlux,totalCharge);
-      checkGaussLaw(mpiGrid,bndryCellPointersBLACK,efieldFlux,totalCharge);
-
-      cerr << "\t E flux = " << efieldFlux << " total charge " << totalCharge << " difference " << efieldFlux-totalCharge;
-      cerr << " rel diff " << 2*(efieldFlux-totalCharge)/(efieldFlux+totalCharge) << endl;
+      //Real efieldFlux  = 0;
+      //Real totalCharge = 0;
+      //checkGaussLaw(mpiGrid,innerCellPointersRED,efieldFlux,totalCharge);
+      //checkGaussLaw(mpiGrid,innerCellPointersBLACK,efieldFlux,totalCharge);
+      //checkGaussLaw(mpiGrid,bndryCellPointersRED,efieldFlux,totalCharge);
+      //checkGaussLaw(mpiGrid,bndryCellPointersBLACK,efieldFlux,totalCharge);
+      //cerr << "\t E flux = " << efieldFlux << " total charge " << totalCharge << " difference " << efieldFlux-totalCharge;
+      //cerr << " rel diff " << 2*(efieldFlux-totalCharge)/(efieldFlux+totalCharge) << endl;
 
       return success;
    }
@@ -449,15 +448,15 @@ namespace poisson {
       if (oddness == RED) evaluate2D(bndryCellPointersRED,oddness);
       else                evaluate2D(bndryCellPointersBLACK,oddness);      
       if (tid == 0) {
-         size_t cells = bndryCellPointersRED.size() + bndryCellPointersBLACK.size();
-	 phiprof::stop("Evaluate potential",cells,"Spatial Cells");
+//         size_t cells = bndryCellPointersRED.size() + bndryCellPointersBLACK.size();
+//         phiprof::stop("Evaluate potential",cells,"Spatial Cells");
 
-	 // Exchange new potential values on process boundaries
-	 phiprof::start("MPI (start copy)");
-	 mpiGrid.start_remote_neighbor_copy_updates(POISSON_NEIGHBORHOOD_ID);
-	 phiprof::stop("MPI (start copy)");
+         // Exchange new potential values on process boundaries
+//         phiprof::start("MPI (start copy)");
+         mpiGrid.start_remote_neighbor_copy_updates(POISSON_NEIGHBORHOOD_ID);
+//         phiprof::stop("MPI (start copy)");
 
-	 phiprof::start("Evaluate potential");
+//         phiprof::start("Evaluate potential");
       }
 
       // Compute new potential on inner cells
@@ -467,10 +466,14 @@ namespace poisson {
       // Wait for MPI transfers to complete
       if (tid == 0) {
          size_t cells = innerCellPointersRED.size() + innerCellPointersBLACK.size();
-	 phiprof::stop("Evaluate potential",cells,"Spatial Cells");
-	 phiprof::start("MPI (wait copy)");
-	 mpiGrid.wait_remote_neighbor_copy_updates(POISSON_NEIGHBORHOOD_ID);
-	 phiprof::stop("MPI (wait copy)");
+         cells += bndryCellPointersRED.size() + bndryCellPointersBLACK.size();
+//         phiprof::stop("Evaluate potential",cells,"Spatial Cells");
+//         phiprof::start("MPI (wait copy)");
+         mpiGrid.wait_remote_neighbor_copy_updates(POISSON_NEIGHBORHOOD_ID);
+//         phiprof::stop("MPI (wait copy)");
+
+         
+         phiprof::stop("Evaluate potential",cells,"Spatial Cells");
       }
 
       return success;

@@ -470,9 +470,9 @@ namespace poisson {
       // If mesh partitioning has changed, recalculate spatial 
       // cell parameters pointer cache:
       if (Parameters::meshRepartitioned == true) {
-	 phiprof::start("Cache Cell Parameters");
-	 Poisson::cacheCellParameters(mpiGrid,getLocalCells());
-	 phiprof::stop("Cache Cell Parameters");
+         phiprof::start("Cache Cell Parameters");
+         Poisson::cacheCellParameters(mpiGrid,getLocalCells());
+         phiprof::stop("Cache Cell Parameters");
       }
 
       // Solve Poisson equation

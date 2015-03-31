@@ -586,6 +586,16 @@ namespace spatial_cell {
             block_lengths.push_back(sizeof(Real) * 3);
          }
          
+         if ((SpatialCell::mpi_transfer_type & Transfer::CELL_RHOQ_TOT) != 0) {
+            displacements.push_back((uint8_t*) &(this->parameters[CellParams::RHOQ_TOT]) - (uint8_t*) this);
+            block_lengths.push_back(sizeof(Real));
+         }
+
+         if ((SpatialCell::mpi_transfer_type & Transfer::CELL_PHI) != 0) {
+            displacements.push_back((uint8_t*) &(this->parameters[CellParams::PHI]) - (uint8_t*) this);
+            block_lengths.push_back(sizeof(Real)*2);
+         }
+         
          // send  sysBoundaryFlag
          if ((SpatialCell::mpi_transfer_type & Transfer::CELL_SYSBOUNDARYFLAG)!=0){
             displacements.push_back((uint8_t*) &(this->sysBoundaryFlag) - (uint8_t*) this);
