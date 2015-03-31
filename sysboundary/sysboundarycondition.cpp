@@ -111,10 +111,10 @@ namespace SBC {
     * \return The requested component value.
     */
    Real SysBoundaryCondition::fieldSolverBoundaryCondMagneticField(
-                                                                   const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                                                   const CellID& cellID,
-                                                                   creal& dt,
-                                                                   cuint& component
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      const CellID& cellID,
+      creal& dt,
+      cuint& component
    ) {
       cerr << "ERROR: SysBoundaryCondition::fieldSolverBoundaryCondMagneticField called instead of derived class function!" << endl;
       exit(1);
@@ -147,10 +147,11 @@ namespace SBC {
     * \param component 0: x-component, 1: y-component, 2: z-component.
     */
    void SysBoundaryCondition::fieldSolverBoundaryCondHallElectricField(
-                                                                       fs_cache::CellCache& cache,
-                                                                       cuint RKCase,
-                                                                       cuint component
-                                                                      ) {
+      dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+      const CellID& cellID,
+      cuint RKCase,
+      cuint component
+   ) {
       cerr << "ERROR: SysBoundaryCondition::fieldSolverBoundaryCondHallElectricField called instead of derived class function!" << endl;
       exit(1);
    }
@@ -665,12 +666,12 @@ namespace SBC {
     * \sa getAllClosestNonsysboundaryCells
     */
    CellID & SysBoundaryCondition::getTheClosestNonsysboundaryCell(
-                                                                  const CellID& cellID
-                                                                 ) {
+      const CellID& cellID
+   ) {
       std::vector<CellID> & closestCells = allClosestNonsysboundaryCells.at(cellID);
       return closestCells.at(0);
    }
-
+   
    /*! Get the cellIDs of all the closest cells of type NOT_SYSBOUNDARY.
     * \return The vector of cell indices of those cells
     * \sa getTheClosestNonsysboundaryCell

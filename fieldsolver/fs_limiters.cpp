@@ -7,7 +7,6 @@ Copyright 2010, 2011, 2012, 2013, 2014 Finnish Meteorological Institute
 
 #include "fs_limiters.h"
 
-/*
 Real limiter(creal& left,creal& cent,creal& rght) {
    //const Real limited = minmod(left,cent,rght);
    //const Real limited = MClimiter(left,cent,rght);
@@ -26,5 +25,3 @@ Real limiter(creal& left,creal& cent,creal& rght) {
    
    return limited;
 }
-*/
-

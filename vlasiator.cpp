@@ -648,12 +648,11 @@ int main(int argn,char* args[]) {
       );
 
       phiprof::stop("Propagate",computedCells,"Cells");
-
+      
       // Check timestep
-      if (P::dt < P::bailout_min_dt) {
-         stringstream s;
-         s << "The timestep dt=" << P::dt << " went below bailout.bailout_min_dt (" << to_string(P::bailout_min_dt) << ")." << endl;
-         bailout(true, s.str(), __FILE__, __LINE__);
+      if(P::dt < P::bailout_min_dt) {
+         string message = "The timestep went below bailout.bailout_min_dt (" + to_string(P::bailout_min_dt) + ").";
+         bailout(true, message, __FILE__, __LINE__);
       }
       //Move forward in time
       P::meshRepartitioned = false;

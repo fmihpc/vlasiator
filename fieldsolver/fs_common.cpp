@@ -1,14 +1,11 @@
 /*
 This file is part of Vlasiator.
 
-Copyright 2010-2015 Finnish Meteorological Institute
+Copyright 2010, 2011, 2012, 2013, 2014 Finnish Meteorological Institute
 
 */
 
 #include "fs_common.h"
-#include "fs_cache.h"
-
-map<CellID,uint> existingCellsFlags;
 
 CellID getNeighbourID(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
@@ -51,12 +48,10 @@ CellID getNeighbourID(
    const std::vector<CellID> neighbors = mpiGrid.get_neighbors_of_at_offset(cellID, int(i) - 2, int(j) - 2, int(k) - 2);
 
    if (neighbors.size() == 0) {
-      stringstream ss;
-      ss << __FILE__ << ":" << __LINE__
+      cerr << __FILE__ << ":" << __LINE__
       << " No neighbor for cell " << cellID
       << " at offsets " << int(i) - 2 << ", " << int(j) - 2 << ", " << int(k) - 2
       << endl;
-      cerr << ss.str();
       abort();
    }
    // TODO support spatial refinement
@@ -71,53 +66,64 @@ Real divideIfNonZero(creal rhoV, creal rho) {
    }
 }
 
-/*! \brief Low-level helper function.
- * 
- * Computes the reconstruction coefficients used for field component reconstruction.
- * Only implemented for 2nd and 3rd order.
- * 
- * \param reconstructionOrder Reconstruction order of the fields after Balsara 2009, 2 used for BVOL, 3 used for 2nd-order Hall term calculations.
- */
-void reconstructionCoefficients(fs_cache::CellCache& cell,
-                                Real* perturbedResult,
-                                creal& reconstructionOrder,
-                                cint& RKCase
-                                ) {
+void reconstructionCoefficients(
+   const CellID& cellID,
+   const CellID& nbr_i2j1k1,
+   const CellID& nbr_i1j2k1,
+   const CellID& nbr_i1j1k2,
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   Real* perturbedResult,
+   creal& reconstructionOrder,
+   cint& RKCase
+) {
+   // Do not calculate values for non-existing cells:
+   if (cellID == INVALID_CELLID) {
+      for (int i=0; i<Rec::N_REC_COEFFICIENTS; ++i) {
+         perturbedResult[i] = 0.0;
+      }
+      return;
+   }
    
    namespace fs = fieldsolver;
    namespace cp = CellParams;
-
-   Real*  const cep_i1j1k1 = cell.cells[fs_cache::calculateNbrID(1  ,1  ,1  )]->parameters;
-   creal* const der_i1j1k1 = cell.cells[fs_cache::calculateNbrID(1  ,1  ,1  )]->derivatives;
-
+   
+   Real* const cep_i1j1k1 = mpiGrid[cellID]->parameters;
+   
    // Create a dummy array for containing zero values for cellParams on non-existing cells:
    Real dummyCellParams[CellParams::N_SPATIAL_CELL_PARAMS];
    for (uint i=0; i<CellParams::N_SPATIAL_CELL_PARAMS; ++i) dummyCellParams[i] = 0.0;
-
-   creal* cep_i2j1k1 = dummyCellParams;
-   creal* cep_i1j2k1 = dummyCellParams;
-   creal* cep_i1j1k2 = dummyCellParams;
-   if (cell.cells[fs_cache::calculateNbrID(1+1,1  ,1  )] != NULL) cep_i2j1k1 = cell.cells[fs_cache::calculateNbrID(1+1,1  ,1  )]->parameters;
-   if (cell.cells[fs_cache::calculateNbrID(1  ,1+1,1  )] != NULL) cep_i1j2k1 = cell.cells[fs_cache::calculateNbrID(1  ,1+1,1  )]->parameters;
-   if (cell.cells[fs_cache::calculateNbrID(1  ,1  ,1+1)] != NULL) cep_i1j1k2 = cell.cells[fs_cache::calculateNbrID(1  ,1  ,1+1)]->parameters;
-
+   
+   Real* cep_i2j1k1 = NULL;
+   Real* cep_i1j2k1 = NULL;
+   Real* cep_i1j1k2 = NULL;
+   if (nbr_i2j1k1 == INVALID_CELLID) cep_i2j1k1 = dummyCellParams;
+   else cep_i2j1k1 = mpiGrid[nbr_i2j1k1]->parameters;
+   if (nbr_i1j2k1 == INVALID_CELLID) cep_i1j2k1 = dummyCellParams;
+   else cep_i1j2k1 = mpiGrid[nbr_i1j2k1]->parameters;
+   if (nbr_i1j1k2 == INVALID_CELLID) cep_i1j1k2 = dummyCellParams;
+   else cep_i1j1k2 = mpiGrid[nbr_i1j1k2]->parameters;
+   
    #ifndef FS_1ST_ORDER_SPACE
-
+   creal* const der_i1j1k1 = mpiGrid[cellID]->derivatives;
+   
    // Create a dummy array for containing zero values for derivatives on non-existing cells:
    Real dummyDerivatives[N_SPATIAL_CELL_DERIVATIVES];
    for (uint i=0; i<N_SPATIAL_CELL_DERIVATIVES; ++i) dummyDerivatives[i] = 0.0;
-
+   
    // Fetch neighbour cell derivatives, or in case the neighbour does not 
    // exist, use dummyDerivatives array:
-   creal* der_i2j1k1 = dummyDerivatives;
-   creal* der_i1j2k1 = dummyDerivatives;
-   creal* der_i1j1k2 = dummyDerivatives;
-   if (cell.cells[fs_cache::calculateNbrID(1+1,1  ,1  )] != NULL) der_i2j1k1 = cell.cells[fs_cache::calculateNbrID(1+1,1  ,1  )]->derivatives;
-   if (cell.cells[fs_cache::calculateNbrID(1  ,1+1,1  )] != NULL) der_i1j2k1 = cell.cells[fs_cache::calculateNbrID(1  ,1+1,1  )]->derivatives;
-   if (cell.cells[fs_cache::calculateNbrID(1  ,1  ,1+1)] != NULL) der_i1j1k2 = cell.cells[fs_cache::calculateNbrID(1  ,1  ,1+1)]->derivatives;
-
+   Real* der_i2j1k1 = NULL;
+   Real* der_i1j2k1 = NULL;
+   Real* der_i1j1k2 = NULL;
+   if (nbr_i2j1k1 == INVALID_CELLID) der_i2j1k1 = dummyDerivatives;
+   else der_i2j1k1 = mpiGrid[nbr_i2j1k1]->derivatives;
+   if (nbr_i1j2k1 == INVALID_CELLID) der_i1j2k1 = dummyDerivatives;
+   else der_i1j2k1 = mpiGrid[nbr_i1j2k1]->derivatives;
+   if (nbr_i1j1k2 == INVALID_CELLID) der_i1j1k2 = dummyDerivatives;
+   else der_i1j1k2 = mpiGrid[nbr_i1j1k2]->derivatives;
+   
    // Calculate 3rd order reconstruction coefficients:
-   if (reconstructionOrder == 2) {
+   if(reconstructionOrder == 2) {
       perturbedResult[Rec::a_yy] = 0.0;
       perturbedResult[Rec::a_zz] = 0.0;
       perturbedResult[Rec::a_yz] = 0.0;
@@ -145,7 +151,7 @@ void reconstructionCoefficients(fs_cache::CellCache& cell,
       perturbedResult[Rec::c_yyz] = 0.0;
       perturbedResult[Rec::c_yzz] = 0.0;
       perturbedResult[Rec::c_zzz] = 0.0;
-   } else if (reconstructionOrder == 3) {
+   } else if(reconstructionOrder == 3) {
       perturbedResult[Rec::a_yy] = HALF * (der_i2j1k1[fs::dPERBxdyy] + der_i1j1k1[fs::dPERBxdyy]);
       perturbedResult[Rec::a_zz] = HALF * (der_i2j1k1[fs::dPERBxdzz] + der_i1j1k1[fs::dPERBxdzz]);
       perturbedResult[Rec::a_yz] = HALF * (der_i2j1k1[fs::dPERBxdyz] + der_i1j1k1[fs::dPERBxdyz]);
@@ -202,34 +208,36 @@ void reconstructionCoefficients(fs_cache::CellCache& cell,
    perturbedResult[Rec::a_xx] = -HALF*(perturbedResult[Rec::b_xy] + perturbedResult[Rec::c_xz]);
    perturbedResult[Rec::b_yy] = -HALF*(perturbedResult[Rec::a_xy] + perturbedResult[Rec::c_yz]);
    perturbedResult[Rec::c_zz] = -HALF*(perturbedResult[Rec::a_xz] + perturbedResult[Rec::b_yz]);
-         
-   if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+   
+   if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       perturbedResult[Rec::a_x ] = cep_i2j1k1[cp::PERBX] - cep_i1j1k1[cp::PERBX] - TENTH*perturbedResult[Rec::a_xxx];
       perturbedResult[Rec::b_y ] = cep_i1j2k1[cp::PERBY] - cep_i1j1k1[cp::PERBY] - TENTH*perturbedResult[Rec::b_yyy];
       perturbedResult[Rec::c_z ] = cep_i1j1k2[cp::PERBZ] - cep_i1j1k1[cp::PERBZ] - TENTH*perturbedResult[Rec::c_zzz];
    }
-   if (RKCase == RK_ORDER2_STEP1) {
+   if(RKCase == RK_ORDER2_STEP1) {
       perturbedResult[Rec::a_x ] = cep_i2j1k1[cp::PERBX_DT2] - cep_i1j1k1[cp::PERBX_DT2] - TENTH*perturbedResult[Rec::a_xxx];
       perturbedResult[Rec::b_y ] = cep_i1j2k1[cp::PERBY_DT2] - cep_i1j1k1[cp::PERBY_DT2] - TENTH*perturbedResult[Rec::b_yyy];
       perturbedResult[Rec::c_z ] = cep_i1j1k2[cp::PERBZ_DT2] - cep_i1j1k1[cp::PERBZ_DT2] - TENTH*perturbedResult[Rec::c_zzz];
    }
-
+   
    #else
    for (int i=0; i<Rec::N_REC_COEFFICIENTS; ++i) {
       perturbedResult[i] = 0.0;
    }
    #endif
-
+   
    // Calculate 1st order reconstruction coefficients:
-   if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+   if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       perturbedResult[Rec::a_0 ] = HALF*(cep_i2j1k1[cp::PERBX] + cep_i1j1k1[cp::PERBX]) - SIXTH*perturbedResult[Rec::a_xx];
       perturbedResult[Rec::b_0 ] = HALF*(cep_i1j2k1[cp::PERBY] + cep_i1j1k1[cp::PERBY]) - SIXTH*perturbedResult[Rec::b_yy];
       perturbedResult[Rec::c_0 ] = HALF*(cep_i1j1k2[cp::PERBZ] + cep_i1j1k1[cp::PERBZ]) - SIXTH*perturbedResult[Rec::c_zz];
    }
-   if (RKCase == RK_ORDER2_STEP1) {
+   if(RKCase == RK_ORDER2_STEP1) {
       perturbedResult[Rec::a_0 ] = HALF*(cep_i2j1k1[cp::PERBX_DT2] + cep_i1j1k1[cp::PERBX_DT2]) - SIXTH*perturbedResult[Rec::a_xx];
       perturbedResult[Rec::b_0 ] = HALF*(cep_i1j2k1[cp::PERBY_DT2] + cep_i1j1k1[cp::PERBY_DT2]) - SIXTH*perturbedResult[Rec::b_yy];
       perturbedResult[Rec::c_0 ] = HALF*(cep_i1j1k2[cp::PERBZ_DT2] + cep_i1j1k1[cp::PERBZ_DT2]) - SIXTH*perturbedResult[Rec::c_zz];
    }
 }
-                                
+
+
+
