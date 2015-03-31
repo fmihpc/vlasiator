@@ -106,7 +106,6 @@ namespace SBC {
       bool search = true;
       uint counter = 0;
       while (search) {
-         #warning TODO: add SpatialCell::velocity_block_threshold() in place of sparseMinValue?
          if (0.1 * P::sparseMinValue >
              maxwellianDistribution(
                                     rho,

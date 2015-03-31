@@ -104,14 +104,6 @@ struct Parameters {
    static Real sparseMinValue; /*!< Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents */
    static int sparseBlockAddWidthV; /*!< Number of layers of blocks that are kept in velocity space around the blocks with content */
    static bool sparse_conserve_mass; /*!< If true, density is scaled to conserve mass when removing blocks*/
-   static Real sparseDynamicMaxBlocks; /*!< Max blocks in velocity cells where dynamic threshold algorithm will be applied e.g. if cells.numberOfBlocks < sparse.dynamicMaxBlocks -> apply dynamic algorithm, else do nothing*/
-   static int  sparseDynamicAlgorithm; /*!< Type of algorithm used for calculating the dynamic threshold; 0 = none, 1 = linear algorithm based on threshold and rho, 2 = linear algorithm based on threshold and Blocks, (Example linear algorithm: threshold = rho / sparse.dynamicValue * sparse.minValue)*/
-   static Real sparseDynamicMinValue; /*!< Minimum value for the dynamic algorithm range, so for example if dynamicAlgorithm=1 then for sparse.dynamicMinValue = 1e3, sparse.dynamicMaxValue=1e5, we apply the algorithm to cells for which 1e3<cell.rho<1e5*/
-   static Real sparseDynamicMaxValue; /*!< Maximum value for the dynamic algorithm range, so for example if dynamicAlgorithm=1 then for sparse.dynamicMinValue = 1e3, sparse.dynamicMaxValue=1e5, we apply the algorithm to cells for which 1e3<cell.rho<1e5*/
-   static Real sparseDynamicMinThreshold; /*!< The absolute minimum threshold for the velocity distribution*/
-
-
-   
    static std::string loadBalanceAlgorithm; /*!< Algorithm to be used for load balance.*/
    static std::string loadBalanceTolerance; /*!< Load imbalance tolerance. */ 
    static uint rebalanceInterval; /*!< Load rebalance interval (steps). */

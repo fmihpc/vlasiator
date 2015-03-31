@@ -446,20 +446,6 @@ namespace DRO {
       Real PTensor[3];
    };
    
-   class VariableThreshold: public DataReductionOperator {
-   public:
-      VariableThreshold();
-      virtual ~VariableThreshold();
-
-      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
-      virtual std::string getName() const;
-      virtual bool reduceData(const SpatialCell* cell,char* buffer);
-      virtual bool setSpatialCell(const SpatialCell* cell);
-
-   protected:
-      
-   };
-   
 } // namespace DRO
 
 #endif
