@@ -179,7 +179,6 @@ const std::vector<CellID>& getLocalCells() {
            dummy.swap(Parameters::localCells);
         }
       Parameters::localCells = mpiGrid.get_cells();
-      Parameters::meshRepartitioned = false;
    }
    return Parameters::localCells;
 }
