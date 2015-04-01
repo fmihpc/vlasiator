@@ -317,8 +317,17 @@ void compute_spatial_target_neighbors(const dccrg::Dccrg<SpatialCell,dccrg::Cart
 /* Copy the data to the temporary values array, so that the
  * dimensions are correctly swapped. Also, copy the same block for
  * then neighboring spatial cells (in the dimension). neighbors
- * generated with compute_spatial_neighbors_wboundcond)*/
-
+ * generated with compute_spatial_neighbors_wboundcond).
+ * 
+ * This function must be thread-safe.
+ *
+ * @param source_neighbors Array containing the VLASOV_STENCIL_WIDTH closest 
+ * spatial neighbors of this cell in the propagated dimension.
+ * @param blockGID Global ID of the velocity block.
+ * @param values Vector where loaded data is stored.
+ * @param cellid_transpose
+ * @param popID ID of the particle species.
+ */
 inline void copy_trans_block_data(
         SpatialCell** source_neighbors,
         const vmesh::GlobalID blockGID,
