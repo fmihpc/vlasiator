@@ -246,9 +246,12 @@ namespace SBC {
    
    bool ProjectBoundary::generateTemplateCell() {
       if (project == NULL) return false;
-      templateCell.parameters[CellParams::XCRD] = NAN;
-      templateCell.parameters[CellParams::YCRD] = NAN;
-      templateCell.parameters[CellParams::ZCRD] = NAN;
+      templateCell.parameters[CellParams::XCRD] = -2*Parameters::xmin;
+      templateCell.parameters[CellParams::YCRD] = -2*Parameters::ymin;
+      templateCell.parameters[CellParams::ZCRD] = -2*Parameters::zmin;
+      templateCell.parameters[CellParams::DX] = -2*Parameters::dx_ini;
+      templateCell.parameters[CellParams::DY] = -2*Parameters::dy_ini;
+      templateCell.parameters[CellParams::DZ] = -2*Parameters::dz_ini;
       project->setCell(&templateCell);
       return true;
    }

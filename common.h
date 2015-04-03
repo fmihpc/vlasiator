@@ -203,6 +203,7 @@ namespace CellParams {
       PHI,        /*!< Electrostatic potential.*/
       PHI_TMP,    /*!< Temporary electrostatic potential.*/
       RHOQ_TOT,   /*!< Total charge density, summed over all particle populations.*/
+      RHOQ_EXT,   /*<! External charge density.*/
       BGEXVOL,    /*!< Background electric field averaged over spatial cell, x-component.*/
       BGEYVOL,    /*!< Background electric field averaged over spatial cell, y-component.*/
       BGEZVOL,    /*!< Background electric field averaged over spatial cell, z-component.*/

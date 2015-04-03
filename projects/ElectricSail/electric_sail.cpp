@@ -53,37 +53,38 @@ namespace projects {
       RP::add("ElectricSail.tether_x","Electric sail tether x-position",(Real)0.0);
       RP::add("ElectricSail.tether_y","Electric sail tether y-position",(Real)0.0);
       RP::add("ElectricSail.tether_voltage","Electric sail tether voltage",(Real)-10000.0);
-      
-      //RP::addComposing("ElectricSail.rho", "Number density (m^-3)");
-      //RP::addComposing("ElectricSail.Tx", "Temperature (K)");
-      //RP::addComposing("ElectricSail.Ty", "Temperature");
-      //RP::addComposing("ElectricSail.Tz", "Temperature");
-      //RP::addComposing("ElectricSail.Vx", "Bulk velocity x component (m/s)");
-      //RP::addComposing("ElectricSail.Vz", "Bulk velocity z component (m/s)");
-      
+
       projects::ReadGaussianPopulation rgp;
       rgp.addParameters("ElectricSail");
    }
 
-   Real ElectricSail::getCorrectNumberDensity(const int& popID) const {
-      return populations[popID].rho;
+   Real ElectricSail::getCorrectNumberDensity(spatial_cell::SpatialCell* cell,const int& popID) const {
+      if (getObjectWrapper().particleSpecies[popID].name == "Electron") return populations[popID].rho;
+
+      const Real* parameters = cell->get_cell_parameters();
+      
+      Real pos[3];
+      pos[0] = parameters[CellParams::XCRD] + 0.5*parameters[CellParams::DX];
+      pos[1] = parameters[CellParams::YCRD] + 0.5*parameters[CellParams::DY];
+      pos[2] = parameters[CellParams::ZCRD] + 0.5*parameters[CellParams::DZ];
+      Real radius2 = pos[0]*pos[0] + pos[1]*pos[1] + pos[2]*pos[2];
+      
+      if (radius2 > ionCloudRadius*ionCloudRadius) return populations[popID].rho;
+
+      const Real charge = getObjectWrapper().particleSpecies[popID].charge;
+      const Real DZ = parameters[CellParams::DZ];
+      Real cloudDens = -tetherUnitCharge / (2*M_PI*ionCloudRadius*ionCloudRadius*charge);
+
+      //cerr << "ion cloud dens is " << cloudDens << endl;
+      
+      return populations[popID].rho + 2*cloudDens;
    }
-   
+
    Real ElectricSail::getDistribValue(creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz,const int& popID) const {
       creal mass = getObjectWrapper().particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
       const Population& pop = populations[popID];
-/*
-      Real value 
-         = pop.rho
-         * pow(mass / (2.0 * M_PI * kb ), 1.5)
-         * 1.0 / sqrt(pop.T[0]*pop.T[1]*pop.T[2])
-         * exp(-mass * (  pow(vx-pop.V[0],2.0) / (2.0*kb*pop.T[0]) 
-                        + pow(vy-pop.V[1],2.0) / (2.0*kb*pop.T[1]) 
-                        + pow(vz-pop.V[2],2.0) / (2.0*kb*pop.T[2])
-                       )
-              );
-*/      
+
       Real value 
          = pop.rho
          * mass / (2.0 * M_PI * kb )
@@ -129,8 +130,10 @@ namespace projects {
       
       //tether_y = 2*Parameters::dy_ini;
       
+      ionCloudRadius = 50.0;
+      
 #warning TESTING FIXME
-      tetherUnitCharge = -10e9 * 1.602e-19;
+      tetherUnitCharge = -100e9 * 1.602e-19;
       //tetherUnitCharge = 0.0;
    }
 
@@ -166,6 +169,16 @@ namespace projects {
       Real DX = cell->parameters[CellParams::DX];
       Real DY = cell->parameters[CellParams::DY];
       Real DZ = cell->parameters[CellParams::DZ];
+
+      cell->parameters[CellParams::RHOQ_EXT] = 0;
+      Real pos[3];
+      pos[0] = cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX];
+      pos[1] = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];
+      pos[2] = cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ];
+
+      Real rad = sqrt(pos[0]*pos[0]+pos[1]*pos[1]+pos[2]*pos[2]);
+      Real D3 = cell->parameters[CellParams::DX]*cell->parameters[CellParams::DY];
+      if (rad <= 5) cell->parameters[CellParams::RHOQ_EXT] = 0.25*tetherUnitCharge/D3/physicalconstants::EPS_0;
 
       const Real EPSILON = 1e-30;
       int N = 1;
@@ -284,14 +297,7 @@ namespace projects {
          N3_sum += N*N;
          ++N;
       } while (ok == false);
-/*
-      #warning TESTING remove me
-      Real R = sqrt(x*x + y*y);
-      if (R <= 100 && popID == 1) {
-         //cerr << "amp from " << avgTotal/N3_sum << " to " << 2*avgTotal/N3_sum << endl;
-         return 2*avgTotal / N3_sum;
-      }
-*/
+
       return avgTotal / N3_sum;
    }
 
@@ -305,22 +311,16 @@ namespace projects {
    }
 
    void ElectricSail::tetherElectricField(Real* x,Real* E) const {
+      E[0] = 0;
+      E[1] = 0;
+      E[2] = 0;
+      return;
+      
       const Real constant = tetherUnitCharge / (2*M_PI*physicalconstants::EPS_0);
       E[0] = constant * (x[0] - tether_x);
       E[1] = constant * (x[1] - tether_y);
 
       Real radius2 = (x[0]-tether_x)*(x[0]-tether_x) + (x[1]-tether_y)*(x[1]-tether_y);
-
-#warning DEBUG remove
-      if (sqrt(radius2) > 250) {
-         E[0] = 0; E[1] = 0; E[2] = 0; return;
-      } else {
-         E[0] = 0.025;
-         E[1] = 0;
-         E[2] = 0;
-         return;
-      }
-      
       radius2 = max(1e-12,radius2);
       E[0] /= radius2;
       E[1] /= radius2;

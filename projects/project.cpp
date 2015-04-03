@@ -376,7 +376,7 @@ namespace projects {
          blockParams += BlockParams::N_VELOCITY_BLOCK_PARAMS;
       }
       
-      const Real correctSum = getCorrectNumberDensity(popID);
+      const Real correctSum = getCorrectNumberDensity(cell,popID);
       const Real ratio = correctSum / sum;
       
       for (size_t i=0; i<cell->get_number_of_velocity_blocks(popID)*WID3; ++i) {
@@ -401,7 +401,7 @@ namespace projects {
      Get random number between 0 and 1.0. One should always first initialize the rng.
    */
    
-   Real Project::getCorrectNumberDensity(const int& popID) const {
+   Real Project::getCorrectNumberDensity(spatial_cell::SpatialCell* cell,const int& popID) const {
       cerr << "ERROR: Project::getCorrectNumberDensity called instead of derived class function!" << endl;
       exit(1);
       return 0.0;

@@ -23,6 +23,10 @@
 #include "poisson_solver_jacobi.h"
 #include "poisson_solver_sor.h"
 
+#ifndef NDEBUG
+   #define DEBUG_POISSON
+#endif
+
 using namespace std;
 
 extern Logger logFile;
@@ -72,7 +76,7 @@ namespace poisson {
 
       phiprof::start("Background Field");
       
-      if (Poisson::clearPotential == true) {
+      if (Poisson::clearPotential == true || Parameters::tstep == 0) {
          #pragma omp parallel for
          for (size_t c=0; c<cells.size(); ++c) {
             spatial_cell::SpatialCell* cell = mpiGrid[cells[c]];
@@ -85,14 +89,10 @@ namespace poisson {
       } else {
          #pragma omp parallel for
          for (size_t c=0; c<cells.size(); ++c) {
-#warning DEBUG remove me
             spatial_cell::SpatialCell* cell = mpiGrid[cells[c]];
             cell->parameters[CellParams::EXVOL] = cell->parameters[CellParams::BGEXVOL];
             cell->parameters[CellParams::EYVOL] = cell->parameters[CellParams::BGEYVOL];
             cell->parameters[CellParams::EZVOL] = cell->parameters[CellParams::BGEZVOL];
-            //cell->parameters[CellParams::EXVOL] = 0;
-            //cell->parameters[CellParams::EYVOL] = 0;
-            //cell->parameters[CellParams::EZVOL] = 0;
          }
       }
       phiprof::stop("Background Field",cells.size(),"Spatial Cells");
@@ -104,6 +104,7 @@ namespace poisson {
     * @param cells List of spatial cells.
     * @return If true, charge densities were successfully calculated.*/
    bool PoissonSolver::calculateChargeDensity(spatial_cell::SpatialCell* cell) {
+      
       phiprof::start("Charge Density");
       bool success = true;
       
@@ -131,12 +132,39 @@ namespace poisson {
                   * blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::DVY]
                   * blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::DVZ];
                rho_q_spec += sum*DV3;
-            }            
+            }
+            
+            #ifdef DEBUG_POISSON
+            bool ok = true;
+            if (rho_q_spec != rho_q_spec) ok = false;
+            if (rho_q != rho_q) ok = false;
+            if (charge != charge) ok = false;
+            if (ok == false) {
+               stringstream ss;
+               ss << "(POISSON SOLVER) NAN detected, rho_q: " << rho_q_spec << '\t' << rho_q << '\t';
+               ss << "pop " << popID << " charge: " << charge << '\t';
+               ss << endl;
+               cerr << ss.str();
+               exit(1);
+            }
+            #endif
+            
             rho_q += charge*rho_q_spec;
          } // for-loop over particle species
       }
-      cell->parameters[CellParams::RHOQ_TOT] = rho_q/physicalconstants::EPS_0;
+      cell->parameters[CellParams::RHOQ_TOT] = cell->parameters[CellParams::RHOQ_EXT] + rho_q/physicalconstants::EPS_0;
 
+      #ifdef DEBUG_POISSON
+      bool ok = true;
+      if (rho_q != rho_q) ok = false;
+      if (ok == false) {
+         stringstream ss;
+         ss << "(POISSON SOLVER) NAN detected, rho_q " << rho_q << '\t';
+         ss << endl;
+         cerr << ss.str(); exit(1);
+      }
+      #endif
+      
       size_t phaseSpaceCells=0;
       for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
          phaseSpaceCells += cell->get_velocity_blocks(popID).size()*WID3;

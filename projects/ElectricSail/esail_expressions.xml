@@ -1,0 +1,135 @@
+<?xml version="1.0"?>
+<Object name="ExpressionList">
+    <Object name="Expression">
+        <Field name="name" type="string">Electron/n_diff</Field>
+        <Field name="definition" type="string">\<Electron/n\>-7e6</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">ScalarMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">Proton/n_diff</Field>
+        <Field name="definition" type="string">\<Proton/n\>-7e6</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">ScalarMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">E_selfcons</Field>
+        <Field name="definition" type="string">E_vol-\<poisson/BGE_vol\></Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">VectorMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">E_vol_x</Field>
+        <Field name="definition" type="string">E_vol[0]</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">ScalarMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">E_vol_y</Field>
+        <Field name="definition" type="string">E_vol[1]</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">ScalarMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">E_vol_z</Field>
+        <Field name="definition" type="string">E_vol[2]</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">ScalarMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">Electron/Vx</Field>
+        <Field name="definition" type="string">"\<Electron/nV\>[0] / (1e-10 + \<Electron/n\>) - 4e5"</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">ScalarMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">Electron/Vy</Field>
+        <Field name="definition" type="string">"\<Electron/nV\>[1] / (1e-10 + \<Electron/n\>)"</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">ScalarMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">Proton/Vx</Field>
+        <Field name="definition" type="string">"\<Proton/nV\>[0] / (\<Proton/n\>+1e-10) - 4e5"</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">ScalarMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">poisson/charges</Field>
+        <Field name="definition" type="string">\<poisson/rho_q\>*8.854e-12/1.602e-19</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">ScalarMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">E_selfcons_x</Field>
+        <Field name="definition" type="string">"E_vol[0] - \<poisson/BGE_vol\>[0]"</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">ScalarMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+</Object>

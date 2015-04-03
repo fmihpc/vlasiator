@@ -31,7 +31,7 @@ namespace projects {
       virtual ~ElectricSail();
         
       static void addParameters();
-      Real getCorrectNumberDensity(const int& popID) const;
+      Real getCorrectNumberDensity(spatial_cell::SpatialCell* cell,const int& popID) const;
       virtual void getParameters();
       virtual bool initialize();
       virtual void setCellBackgroundField(spatial_cell::SpatialCell* cell) const;
@@ -40,6 +40,8 @@ namespace projects {
       int popID;
       std::vector<Population> populations;
 
+      Real ionCloudRadius;
+      
       Real tether_x;          /**< Electric sail tether x-position.*/
       Real tether_y;          /**< Electric sail tether y-position.*/
       Real tetherUnitCharge;  /**< Unit charge per meter of the tether in Coulombs.*/

@@ -116,6 +116,24 @@ namespace poisson {
          Real rhs = ((phi_011+phi_211)/DX2 + (phi_101+phi_121)/DY2 + rho_q)/factor;
          Real correction = rhs - phi_111;
          cellPointers[c][0][CellParams::PHI] = phi_111 + weight*correction;
+         
+         #ifdef DEBUG_POISSON_SOR
+         ok = true;
+         if (factor != factor) ok = false;
+         if (rhs != rhs) ok = false;
+         if (correction != correction) ok = false;
+         if (ok == false) {
+            stringstream ss;
+            ss << "(SOR) NAN detected in cell " << cellPointers[c].cellID << ' ';
+            ss << "factor: " << factor << " phi: ";
+            ss << phi_011 << '\t' << phi_111 << '\t' << phi_211 << '\t' << phi_101 << '\t' << phi_121 << '\t';
+            ss << "rho_q: " << rho_q << '\t';
+            ss << "rhs: " << rhs << '\t';
+            ss << endl;
+            cerr << ss.str();
+            exit(1);
+         }
+         #endif
       }      
    }
    
@@ -168,7 +186,7 @@ namespace poisson {
                std::vector<poisson::CellCache3D>& blackCache) {
       redCache.clear();
       blackCache.clear();
-
+      
       for (size_t c=0; c<cells.size(); ++c) {
          // DO_NOT_COMPUTE cells are skipped
          if (mpiGrid[cells[c]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
@@ -293,7 +311,7 @@ namespace poisson {
             CellCache3D cache;
 
             // Cells on domain boundaries are not iterated
-            if (mpiGrid[cells[c]]->sysBoundaryFlag != 1) continue;
+            if (mpiGrid[cells[c]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
             
             // Fetch pointers to this cell's (cell) parameters array, 
             // and pointers to +/- xyz face neighbors' arrays
@@ -375,8 +393,6 @@ namespace poisson {
       //mpiGrid.wait_remote_neighbor_copy_updates(POISSON_NEIGHBORHOOD_ID);
       mpiGrid.wait_remote_neighbor_copy_updates(POISSON_NEIGHBORHOOD_ID);
       phiprof::stop("MPI (RHOQ)");
-      
-      #warning RED/BLACK pointers do not include boundary cells
 
       SpatialCell::set_mpi_transfer_type(Transfer::CELL_PHI,false);
       int iterations = 0;
@@ -415,7 +431,7 @@ namespace poisson {
          if (iterations >= Poisson::maxIterations) break;
       } while (true);
 
-      //cerr << "SOR solved using " << iterations << " iterations, rel change " << relPotentialChange << endl;
+      cerr << "SOR solved using " << iterations << " iterations, rel change " << relPotentialChange << endl;
 
       if (calculateElectrostaticField(mpiGrid) == false) success = false;
 
