@@ -58,17 +58,25 @@ void calculateSpatialTranslation(
    const size_t popID = 0;
    typedef Parameters P;
    int trans_timer;
-   
-   
-   phiprof::start("semilag-trans");
-   phiprof::start("compute_cell_lists");
+   bool localTargetGridGenerated = false;
    const vector<CellID>& localCells = getLocalCells();
-   const vector<CellID> remoteTargetCellsx = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID);
-   const vector<CellID> remoteTargetCellsy = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID);
-   const vector<CellID> remoteTargetCellsz = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID);
-
+   vector<CellID> remoteTargetCellsx;
+   vector<CellID> remoteTargetCellsy;
+   vector<CellID> remoteTargetCellsz;
    vector<CellID> local_propagated_cells;
    vector<CellID> local_target_cells;
+
+   phiprof::start("semilag-trans");
+
+   // If dt=0 we are either initializing or distribution functions are not propagated. 
+   // In both cases go to the end of this function and calculate the moments.
+   if (dt == 0.0) goto momentCalculation;
+
+   phiprof::start("compute_cell_lists");
+   remoteTargetCellsx = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID);
+   remoteTargetCellsy = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID);
+   remoteTargetCellsz = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID);
+
    for (size_t c=0; c<localCells.size(); ++c) {
       if(do_translate_cell(mpiGrid[localCells[c]])){
          local_propagated_cells.push_back(localCells[c]);
@@ -80,8 +88,6 @@ void calculateSpatialTranslation(
       }
    }
    phiprof::stop("compute_cell_lists");
-   
-   bool localTargetGridGenerated = false;
 
    // ------------- SLICE - map dist function in Z --------------- //
    if(P::zcells_ini > 1 ){
@@ -105,7 +111,7 @@ void calculateSpatialTranslation(
       phiprof::stop(trans_timer);
       
       phiprof::start("compute-mapping-z");
-#pragma omp parallel
+      #pragma omp parallel
       {
          no_subnormals();
          for (size_t c=0; c<local_propagated_cells.size(); ++c) {
@@ -129,7 +135,7 @@ void calculateSpatialTranslation(
       zeroTargetGrid(mpiGrid, local_target_cells);
    }
 
-// ------------- SLICE - map dist function in X --------------- //
+   // ------------- SLICE - map dist function in X --------------- //
    if(P::xcells_ini > 1 ){
       trans_timer=phiprof::initializeTimer("transfer-stencil-data-x","MPI");
       phiprof::start(trans_timer);
@@ -172,7 +178,7 @@ void calculateSpatialTranslation(
 
    }
    
-// ------------- SLICE - map dist function in Y --------------- //
+   // ------------- SLICE - map dist function in Y --------------- //
    if(P::ycells_ini > 1 ){
       trans_timer=phiprof::initializeTimer("transfer-stencil-data-y","MPI");
       phiprof::start(trans_timer);
@@ -191,14 +197,13 @@ void calculateSpatialTranslation(
       phiprof::stop(trans_timer);
 
       phiprof::start("compute-mapping-y");
-#pragma omp parallel
+      #pragma omp parallel
       {
          no_subnormals();
          for (size_t c=0; c<local_propagated_cells.size(); ++c) {
             trans_map_1d(mpiGrid,local_propagated_cells[c], 1, dt); // map along y//
          }
       }
-      
       phiprof::stop("compute-mapping-y");
 
       phiprof::start(trans_timer);
@@ -213,22 +218,18 @@ void calculateSpatialTranslation(
       clearTargetGrid(mpiGrid,remoteTargetCellsy);
       swapTargetSourceGrid(mpiGrid, local_target_cells);
    }
-
    
    clearTargetGrid(mpiGrid,local_target_cells);
 
-   
-
-
-
+momentCalculation:
    
    // Mapping complete, update moments //
    phiprof::start("compute-moments-n-maxdt");
    // Note: Parallelization over blocks is not thread-safe
-#pragma omp  parallel for
+   #pragma omp parallel for
    for (size_t c=0; c<localCells.size(); ++c) {
       SpatialCell* SC=mpiGrid[localCells[c]];
-      
+
       const Real dx=SC->parameters[CellParams::DX];
       const Real dy=SC->parameters[CellParams::DY];
       const Real dz=SC->parameters[CellParams::DZ];
@@ -239,7 +240,7 @@ void calculateSpatialTranslation(
       SC->parameters[CellParams::P_11_R ] = 0.0;
       SC->parameters[CellParams::P_22_R ] = 0.0;
       SC->parameters[CellParams::P_33_R ] = 0.0;
-      
+
       //Reset spatial max DT
       SC->parameters[CellParams::MAXRDT]=numeric_limits<Real>::max();
       for (vmesh::LocalID block_i=0; block_i<SC->get_number_of_velocity_blocks(); ++block_i) {
@@ -306,13 +307,18 @@ void calculateAcceleration(
 ) {
    typedef Parameters P;
    const vector<CellID> cells = getLocalCells();
+   vector<CellID> propagatedCells;
+   int maxSubcycles=0;
+   int globalMaxSubcycles;
+
+   if (dt == 0.0 && P::tstep > 0) goto momentCalculation;
+   
 //    if(dt > 0)  // FIXME this has to be deactivated to support regular projects but it breaks test_trans support most likely, with this on dt stays 0
    phiprof::start("semilag-acc");
 
    // Iterate through all local cells and collect cells to propagate.
    // Ghost cells (spatial cells at the boundary of the simulation 
    // volume) do not need to be propagated:
-   vector<CellID> propagatedCells;
    for (size_t c=0; c<cells.size(); ++c) {
       SpatialCell* SC = mpiGrid[cells[c]];
       //disregard boundary cells
@@ -324,8 +330,6 @@ void calculateAcceleration(
    }
 
    //Compute global maximum for number of subcycles (collective operation)
-   int maxSubcycles=0;
-   int globalMaxSubcycles;
    for (size_t c=0; c<propagatedCells.size(); ++c) {
       const CellID cellID = propagatedCells[c];
       int subcycles = getAccerelationSubcycles(mpiGrid[cellID], dt);
@@ -402,9 +406,11 @@ void calculateAcceleration(
    //final adjust for all cells, also fixing remote cells.
    adjustVelocityBlocks(mpiGrid, cells, true);
    phiprof::stop("semilag-acc");   
-   
+
+momentCalculation:
+
    phiprof::start("Compute moments");
-#pragma omp parallel for
+   #pragma omp parallel for
    for (size_t c=0; c<cells.size(); ++c) {
       const CellID cellID = cells[c];
       //compute moments after acceleration
