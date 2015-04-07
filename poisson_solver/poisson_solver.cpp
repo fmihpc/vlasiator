@@ -76,7 +76,7 @@ namespace poisson {
 
       phiprof::start("Background Field");
       
-      if (Poisson::clearPotential == true || Parameters::tstep == 0) {
+      if (Poisson::clearPotential == true || Parameters::tstep == 0 || Parameters::meshRepartitioned == true) {
          #pragma omp parallel for
          for (size_t c=0; c<cells.size(); ++c) {
             spatial_cell::SpatialCell* cell = mpiGrid[cells[c]];
@@ -104,10 +104,9 @@ namespace poisson {
     * @param cells List of spatial cells.
     * @return If true, charge densities were successfully calculated.*/
    bool PoissonSolver::calculateChargeDensity(spatial_cell::SpatialCell* cell) {
-      
       phiprof::start("Charge Density");
       bool success = true;
-      
+
       Real rho_q = 0.0;
       #pragma omp parallel reduction (+:rho_q)
       {
@@ -463,7 +462,13 @@ namespace poisson {
          logFile << "Failed to create Poisson solver '" << Poisson::solverName << "'" << endl << write;
          return false;
       } else {
-         logFile << "Successfully initialized Poisson solver '" << Poisson::solverName << "'" << endl << write;
+         if (Poisson::solver->initialize() == false) success = false;
+         if (success == true) 
+           logFile << "Successfully initialized Poisson solver '" << Poisson::solverName << "'" << endl << write;
+         else {
+            logFile << "Failed to initialize Poisson solver '" << Poisson::solverName << "'" << endl << write;
+            return success;
+         }
       }
 
       // Set up the initial state unless the simulation was restarted
@@ -477,7 +482,7 @@ namespace poisson {
 
       if (Poisson::solver->calculateBackgroundField(mpiGrid,getLocalCells()) == false) success = false;
       if (solve(mpiGrid) == false) success = false;
-      
+
       return success;
    }
 
@@ -505,7 +510,11 @@ namespace poisson {
 
       // Solve Poisson equation
       if (success == true) if (Poisson::solver != NULL) {
+
          if (Poisson::solver->calculateBackgroundField(mpiGrid,getLocalCells()) == false) success = false;
+         SpatialCell::set_mpi_transfer_type(Transfer::CELL_PHI,false);
+         mpiGrid.update_copies_of_remote_neighbors(POISSON_NEIGHBORHOOD_ID);
+
          if (Poisson::solver->solve(mpiGrid) == false) success = false;
       }
 
