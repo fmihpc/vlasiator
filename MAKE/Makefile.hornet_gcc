@@ -1,5 +1,6 @@
 CMP = CC
-LNK = CC -Wl,--allow-multiple-definition
+LNK = CC 
+#-Wl,--allow-multiple-definition
 
 #-DNO_WRITE_AT_ALL:  Define to disable write at all to 
 #                    avoid memleak (much slower IO)
