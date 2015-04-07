@@ -215,7 +215,7 @@ bool initializeFieldPropagator(
       calculateHallTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
    }
    calculateUpwindedElectricFieldSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
-   calculateVolumeAveragedFields(mpiGrid,fs_cache::getCache().localCellsCache,fs_cache::getCache().local_NOT_SYSBOUND_DO_NOT_COMPUTE);
+   calculateVolumeAveragedFields(mpiGrid,fs_cache::getCache().localCellsCache,fs_cache::getCache().local_NOT_DO_NOT_COMPUTE);
    calculateBVOLDerivativesSimple(mpiGrid, sysBoundaries, localCells);
    
    return true;
@@ -296,7 +296,7 @@ bool propagateFields(
       }
    }
    
-   calculateVolumeAveragedFields(mpiGrid,fs_cache::getCache().localCellsCache,fs_cache::getCache().local_NOT_SYSBOUND_DO_NOT_COMPUTE);
+   calculateVolumeAveragedFields(mpiGrid,fs_cache::getCache().localCellsCache,fs_cache::getCache().local_NOT_DO_NOT_COMPUTE);
    calculateBVOLDerivativesSimple(mpiGrid, sysBoundaries, localCells);
    return true;
 }

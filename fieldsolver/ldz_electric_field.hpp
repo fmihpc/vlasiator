@@ -27,20 +27,20 @@ Real calculateWaveSpeedYZ(
 );
 
 Real calculateWaveSpeedXZ(
-                          const Real* cp,
-                          const Real* derivs,
-                          const Real* nbr_cp,
-                          const Real* nbr_derivs,
-                          const Real& Bx,
-                          const Real& Bz,
-                          const Real& dBxdy,
-                          const Real& dBxdz,
-                          const Real& dBzdx,
-                          const Real& dBzdy,
-                          const Real& xdir,
-                          const Real& zdir,
-                          cint& RKCase
-                         );
+   const Real* cp,
+   const Real* derivs,
+   const Real* nbr_cp,
+   const Real* nbr_derivs,
+   const Real& Bx,
+   const Real& Bz,
+   const Real& dBxdy,
+   const Real& dBxdz,
+   const Real& dBzdx,
+   const Real& dBzdy,
+   const Real& xdir,
+   const Real& zdir,
+   cint& RKCase
+);
 
 Real calculateWaveSpeedXY(
    const Real* cp,
@@ -58,29 +58,11 @@ Real calculateWaveSpeedXY(
    cint& RKCase
 );
 
-void calculateEdgeElectricFieldX(
-                                 dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                 const CellID& cellID,
-                                 cint& RKCase
-);
-
-void calculateEdgeElectricFieldY(
-   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   const CellID& cellID,
-   cint& RKCase
-);
-
-void calculateEdgeElectricFieldZ(
-   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   const CellID& cellID,
-   cint& RKCase
-);
-
 void calculateUpwindedElectricFieldSimple(
-                                          dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                          SysBoundary& sysBoundaries,
-                                          const vector<CellID>& localCells,
-                                          cint& RKCase
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   SysBoundary& sysBoundaries,
+   const vector<CellID>& localCells,
+   cint& RKCase
 );
 
 #endif

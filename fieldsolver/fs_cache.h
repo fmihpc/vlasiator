@@ -67,7 +67,8 @@ namespace fs_cache {
       static std::vector<uint16_t> cellsWithRemoteNeighbours;         /**< Local IDs of get_local_cells_on_process_boundary(FIELD_SOLVER_NEIGHBORHOOD_ID) cells.
                                                                        * Cells with sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE are not included.
                                                                        * Stored values are used to index CacheContainer::localCellsCache.*/
-      static std::vector<uint16_t> local_NOT_SYSBOUND_DO_NOT_COMPUTE;
+      static std::vector<uint16_t> local_NOT_DO_NOT_COMPUTE;          /**< Exclude DO_NOT_COMPUTE cells.*/
+      static std::vector<uint16_t> local_NOT_SYSBOUND_DO_NOT_COMPUTE; /**< Exclude DO_NOT_COMPUTE and system boundary cells.*/
       
       static void clear();
    };

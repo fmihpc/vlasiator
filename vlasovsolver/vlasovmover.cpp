@@ -270,6 +270,9 @@ momentCalculation:
                CellParams::RHOVZ_R
             );   //set first moments after translation
       }
+      
+      SC->parameters[CellParams::RHO_R  ] = std::max(1e-30,SC->parameters[CellParams::RHO_R  ]);
+
       // Second iteration needed as rho has to be already computed when computing pressure
       for (vmesh::LocalID block_i=0; block_i< SC->get_number_of_velocity_blocks(); ++block_i){
          //compute second moments for this block
@@ -433,6 +436,8 @@ momentCalculation:
                                       );   //set first moments after acceleration
       }
 
+      mpiGrid[cellID]->parameters[CellParams::RHO_V  ] = std::max(1e-30,mpiGrid[cellID]->parameters[CellParams::RHO_V  ]);
+      
       // Second iteration needed as rho has to be already computed when computing pressure
       for (vmesh::LocalID block_i=0; block_i<mpiGrid[cellID]->get_number_of_velocity_blocks(); ++block_i) {
          cpu_calcVelocitySecondMoments(
@@ -484,9 +489,6 @@ void calculateInterpolatedVelocityMoments(
    }
 }
 
-
-
-
 void calculateCellVelocityMoments(
    SpatialCell* SC,
    bool doNotSkip // default: false
@@ -520,6 +522,8 @@ void calculateCellVelocityMoments(
       );
    }
 
+   SC->parameters[CellParams::RHO  ] = std::max(1e-30,SC->parameters[CellParams::RHO  ]);
+
    // Second iteration needed as rho has to be already computed when computing pressure
    for (vmesh::LocalID block_i=0; block_i<SC->get_number_of_velocity_blocks(); ++block_i) {
       cpu_calcVelocitySecondMoments(
@@ -538,14 +542,15 @@ void calculateCellVelocityMoments(
 
 void calculateInitialVelocityMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
    const vector<CellID>& cells = getLocalCells();
-
+   
    phiprof::start("Calculate moments"); 
    // Iterate through all local cells (incl. system boundary cells):
-#pragma omp parallel for
+   #pragma omp parallel for
    for (size_t c=0; c<cells.size(); ++c) {
       const CellID cellID = cells[c];
       SpatialCell* SC = mpiGrid[cellID];
       calculateCellVelocityMoments(SC);
+
       // WARNING the following is sane as this function is only called by initializeGrid.
       // We need initialized _DT2 values for the dt=0 field propagation done in the beginning.
       // Later these will be set properly.

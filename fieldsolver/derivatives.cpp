@@ -502,10 +502,10 @@ void calculateBVOLDerivatives(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry
          array[der::dPERBZVOLdx] = limiter(left[cp::PERBZVOL],cent[cp::PERBZVOL],rght[cp::PERBZVOL]);
       } else {
          if (cache[localID].sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-            SBC::SysBoundaryCondition::setCellBVOLDerivativesToZero(mpiGrid, cache[localID].cellID, 1);
+            SBC::SysBoundaryCondition::setCellBVOLDerivativesToZero(mpiGrid, cache[localID].cellID, 0);
          } else {
             sysBoundaries.getSysBoundary(cache[localID].sysBoundaryFlag)
-              ->fieldSolverBoundaryCondBVOLDerivatives(mpiGrid, cache[localID].cellID, 1);
+              ->fieldSolverBoundaryCondBVOLDerivatives(mpiGrid, cache[localID].cellID, 0);
          }
       }
       
