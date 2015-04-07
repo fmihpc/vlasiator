@@ -122,6 +122,7 @@ namespace projects {
       uint samples=0;
 
       Real middleValue=getDistribValue(x+0.5*dx, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz);
+      #warning TODO: add SpatialCell::velocity_block_threshold()
       if(middleValue<0.000001*Parameters::sparseMinValue){
          return middleValue; //abort, this will not be accepted anyway
       }

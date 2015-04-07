@@ -76,6 +76,9 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::VariablePTensorNonBackstreamDiagonal);
          outputReducer->addOperator(new DRO::VariablePTensorNonBackstreamOffDiagonal);
       }
+      if(*it == "Threshold") {
+         outputReducer->addOperator(new DRO::VariableThreshold);
+      }
       if(*it == "RhoNonBackstream")
          outputReducer->addOperator(new DRO::VariableRhoNonBackstream);
       if(*it == "RhoLossAdjust")

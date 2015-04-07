@@ -153,6 +153,7 @@ namespace projects {
          Real eps = max(numeric_limits<creal>::min(),avg * static_cast<Real>(1e-6));
          Real avgAccum   = avgTotal / (avg + N3_sum);
          Real avgCurrent = avg / (N*N*N);
+         #warning TODO: Replace Parameters::sparseMinValue with SpatialCell::velocity_block_threshold()
          if (fabs(avgCurrent-avgAccum)/(avgAccum+eps) < 0.01) ok = true;
          else if (avg < Parameters::sparseMinValue*0.01) ok = true;
          else if (N > 10) {

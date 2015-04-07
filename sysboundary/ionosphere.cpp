@@ -659,6 +659,7 @@ namespace SBC {
       uint counter = 0;
       
       while (search) {
+      #warning TODO: add SpatialCell::velocity_block_threshold() in place of sparseMinValue ? (if applicable)
          if (0.1 * P::sparseMinValue >
              shiftedMaxwellianDistribution(counter*SpatialCell::get_velocity_grid_block_size()[0], 0.0, 0.0) || counter > P::vxblocks_ini) {
             search = false;
