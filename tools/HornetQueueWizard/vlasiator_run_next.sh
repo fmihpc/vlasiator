@@ -118,7 +118,7 @@ do
    then
       export message="($(date) $(($NUM_PROCESSES*$OMP_NUM_THREADS)) cores) Nothing can be run, exiting. Stop wasting queuing time!"
       echo $message
-      echo $message | mailx -s "Job ended @Hornet" vlasiator@fmihpc.flowdock.com
+      echo $message | mailx -s "Job ended @Hornet" hornet-runs@fmihpc.flowdock.com
       exit
    fi
    
@@ -140,11 +140,11 @@ do
       if [ $do_run = 1 ]
       then
          vlasiator_run
-         echo $message | mailx -s "New job running @Hornet" vlasiator@fmihpc.flowdock.com
+         echo $message | mailx -s "New job running @Hornet" hornet-runs@fmihpc.flowdock.com
          doing_something=1
          export message="($(date) $(($NUM_PROCESSES*$OMP_NUM_THREADS)) cores) Done $next_job."
          echo $message
-         echo $message | mailx -s "Job ended @Hornet" vlasiator@fmihpc.flowdock.com
+         echo $message | mailx -s "Job ended @Hornet" hornet-runs@fmihpc.flowdock.com
       else
          doing_something=0
       fi
