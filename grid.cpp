@@ -375,7 +375,7 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    phiprof::start("Compute with_content_list");
    #pragma omp parallel for  
    for (uint i=0; i<cells.size(); ++i) {
-      mpiGrid[cells[i]]->update_sparse_threshold();
+      mpiGrid[cells[i]]->updateSparseMinValue();
       mpiGrid[cells[i]]->update_velocity_block_content_lists();
    }
    phiprof::stop("Compute with_content_list");

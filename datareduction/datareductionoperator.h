@@ -446,10 +446,10 @@ namespace DRO {
       Real PTensor[3];
    };
    
-   class VariableThreshold: public DataReductionOperator {
+   class VariableMinValue: public DataReductionOperator {
    public:
-      VariableThreshold();
-      virtual ~VariableThreshold();
+      VariableMinValue();
+      virtual ~VariableMinValue();
 
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
       virtual std::string getName() const;

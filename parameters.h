@@ -103,11 +103,11 @@ struct Parameters {
    static Real sparseMinValue; /*!< Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents */
    static int sparseBlockAddWidthV; /*!< Number of layers of blocks that are kept in velocity space around the blocks with content */
    static bool sparse_conserve_mass; /*!< If true, density is scaled to conserve mass when removing blocks*/
-   static Real sparseDynamicMaxBlocks; /*!< Max blocks in velocity cells where dynamic threshold algorithm will be applied e.g. if cells.numberOfBlocks < sparse.dynamicMaxBlocks -> apply dynamic algorithm, else do nothing*/
-   static int  sparseDynamicAlgorithm; /*!< Type of algorithm used for calculating the dynamic threshold; 0 = none, 1 = linear algorithm based on threshold and rho, 2 = linear algorithm based on threshold and Blocks, (Example linear algorithm: threshold = rho / sparse.dynamicValue * sparse.minValue)*/
-   static Real sparseDynamicMinValue; /*!< Minimum value for the dynamic algorithm range, so for example if dynamicAlgorithm=1 then for sparse.dynamicMinValue = 1e3, sparse.dynamicMaxValue=1e5, we apply the algorithm to cells for which 1e3<cell.rho<1e5*/
-   static Real sparseDynamicMaxValue; /*!< Maximum value for the dynamic algorithm range, so for example if dynamicAlgorithm=1 then for sparse.dynamicMinValue = 1e3, sparse.dynamicMaxValue=1e5, we apply the algorithm to cells for which 1e3<cell.rho<1e5*/
-   static Real sparseDynamicMinThreshold; /*!< The absolute minimum threshold for the velocity distribution*/
+   static int  sparseDynamicAlgorithm; /*!< Type of algorithm used for calculating the dynamic minValue; 0 = none, 1 = linear algorithm based on minValue and rho, 2 = linear algorithm based on minValue and Blocks, (Example linear algorithm: minValue = rho / sparse.dynamicValue * sparse.minValue)*/
+   static Real sparseDynamicBulkValue1; /*!< Minimum value for the dynamic algorithm range, so for example if dynamicAlgorithm=1 then for sparse.dynamicMinValue = 1e3, sparse.dynamicMaxValue=1e5, we apply the algorithm to cells for which 1e3<cell.rho<1e5*/
+   static Real sparseDynamicBulkValue2; /*!< Maximum value for the dynamic algorithm range, so for example if dynamicAlgorithm=1 then for sparse.dynamicMinValue = 1e3, sparse.dynamicMaxValue=1e5, we apply the algorithm to cells for which 1e3<cell.rho<1e5*/
+   static Real sparseDynamicMinValue1; /*!< The minimum value for the minValue*/
+   static Real sparseDynamicMinValue2; /*!< The maximum value for the minValue*/
 
 
    
