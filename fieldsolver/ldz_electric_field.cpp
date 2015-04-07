@@ -461,8 +461,8 @@ void calculateEdgeElectricFieldX(fs_cache::CellCache& cache,cint& RKCase) {
       Ex_NE += -HALF*((Bz_E + HALF*dBzdy_E)*(+derivs_NE[fs::dVydy] + derivs_NE[fs::dVydz]) + dBzdy_E*Vy0 + SIXTH*dBzdx_E*derivs_NE[fs::dVydx]);
    #endif
    
-   creal* const nbr_cp_NE     = cache.cells[fs_cache::calculateNbrID(1+1,1  ,1  )]->parameters;
-   creal* const nbr_derivs_NE = cache.cells[fs_cache::calculateNbrID(1+1,1  ,1  )]->derivatives;
+   creal* const nbr_cp_NE     = cache.cells[fs_cache::calculateNbrID(1+1,1-1,1-1)]->parameters;
+   creal* const nbr_derivs_NE = cache.cells[fs_cache::calculateNbrID(1+1,1-1,1-1)]->derivatives;
 
    c_y = calculateWaveSpeedYZ(cp_NE, derivs_NE, nbr_cp_NE, nbr_derivs_NE, By_N, Bz_E, dBydx_N, dBydz_N, dBzdx_E, dBzdy_E, PLUS, PLUS, RKCase);
    c_z = c_y;
@@ -552,12 +552,12 @@ void calculateEdgeElectricFieldY(fs_cache::CellCache& cache,cint& RKCase) {
    // Get read-only pointers to NE,NW,SE,SW states (SW is rw, result is written there):
    Real* const  cp_SW = cache.cells[fs_cache::calculateNbrID(1  ,1  ,1  )]->parameters;
    creal* const cp_SE = cache.cells[fs_cache::calculateNbrID(1  ,1  ,1-1)]->parameters;
-   creal* const cp_NE = cache.cells[fs_cache::calculateNbrID(1-1,1  ,1  )]->parameters;
-   creal* const cp_NW = cache.cells[fs_cache::calculateNbrID(1-1,1  ,1-1)]->parameters;
+   creal* const cp_NW = cache.cells[fs_cache::calculateNbrID(1-1,1  ,1  )]->parameters;
+   creal* const cp_NE = cache.cells[fs_cache::calculateNbrID(1-1,1  ,1-1)]->parameters;
    creal* const derivs_SW = cache.cells[fs_cache::calculateNbrID(1  ,1  ,1  )]->derivatives;
    creal* const derivs_SE = cache.cells[fs_cache::calculateNbrID(1  ,1  ,1-1)]->derivatives;
-   creal* const derivs_NE = cache.cells[fs_cache::calculateNbrID(1-1,1  ,1  )]->derivatives;
-   creal* const derivs_NW = cache.cells[fs_cache::calculateNbrID(1-1,1  ,1-1)]->derivatives;
+   creal* const derivs_NW = cache.cells[fs_cache::calculateNbrID(1-1,1  ,1  )]->derivatives;
+   creal* const derivs_NE = cache.cells[fs_cache::calculateNbrID(1-1,1  ,1-1)]->derivatives;
 
    // Fetch required plasma parameters:
    Real Bz_S, Bx_W, Bx_E, Bz_N, perBz_S, perBx_W, perBx_E, perBz_N;

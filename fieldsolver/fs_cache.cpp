@@ -25,6 +25,7 @@ vector<uint16_t> fs_cache::CacheContainer::boundaryCellsWithLocalNeighbours;
 vector<uint16_t> fs_cache::CacheContainer::boundaryCellsWithRemoteNeighbours;
 vector<uint16_t> fs_cache::CacheContainer::cellsWithLocalNeighbours;
 vector<uint16_t> fs_cache::CacheContainer::cellsWithRemoteNeighbours;
+vector<uint16_t> fs_cache::CacheContainer::local_NOT_DO_NOT_COMPUTE;
 vector<uint16_t> fs_cache::CacheContainer::local_NOT_SYSBOUND_DO_NOT_COMPUTE;
 
 namespace fs_cache {
@@ -45,10 +46,11 @@ namespace fs_cache {
          globalToLocalMap[cellID] = c;
          spatial_cell::SpatialCell* cell = mpiGrid[cellID];
 
-         if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
-             cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
-         } else {
+         if (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
             cacheContainer.local_NOT_SYSBOUND_DO_NOT_COMPUTE.push_back(c);
+            cacheContainer.local_NOT_DO_NOT_COMPUTE.push_back(c);
+         } else if (cell->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE) {
+            cacheContainer.local_NOT_DO_NOT_COMPUTE.push_back(c);
          }
 
          CellCache cellCache;
@@ -119,6 +121,7 @@ namespace fs_cache {
    
    void CacheContainer::clear() {
       vector<fs_cache::CellCache>().swap(localCellsCache);
+      vector<uint16_t>().swap(local_NOT_DO_NOT_COMPUTE);
       vector<uint16_t>().swap(local_NOT_SYSBOUND_DO_NOT_COMPUTE);
       vector<uint16_t>().swap(boundaryCellsWithLocalNeighbours);
       vector<uint16_t>().swap(boundaryCellsWithRemoteNeighbours);
