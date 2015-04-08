@@ -608,6 +608,12 @@ namespace spatial_cell {
             displacements.push_back((uint8_t*) get_block_parameters(activePopID) - (uint8_t*) this);
             block_lengths.push_back(sizeof(Real) * size(activePopID) * BlockParams::N_VELOCITY_BLOCK_PARAMS);
          }
+         if ((SpatialCell::mpi_transfer_type & Transfer::POP_METADATA) != 0) {
+            for (int popID=0; popID<populations.size(); ++popID) {
+               displacements.push_back((uint8_t*) &(populations[popID].MAXVDT) - (uint8_t*)this);
+               block_lengths.push_back(sizeof(Real));
+            }
+         }
       }
       
       void* address = this;

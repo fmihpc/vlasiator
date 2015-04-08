@@ -94,19 +94,22 @@ namespace spatial_cell {
       const uint64_t CELL_PDT2                = (1<<24);
       const uint64_t CELL_RHOQ_TOT            = (1<<25);
       const uint64_t CELL_PHI                 = (1<<26);
+      const uint64_t POP_METADATA             = (1<<27);
       
       // All data
       const uint64_t ALL_DATA =
       CELL_PARAMETERS
       | CELL_DERIVATIVES | CELL_BVOL_DERIVATIVES
       | VEL_BLOCK_DATA
-      | CELL_SYSBOUNDARYFLAG;
+      | CELL_SYSBOUNDARYFLAG
+      | POP_METADATA;
 
       //all data, except the distribution function
       const uint64_t ALL_SPATIAL_DATA =
       CELL_PARAMETERS
       | CELL_DERIVATIVES | CELL_BVOL_DERIVATIVES
-      | CELL_SYSBOUNDARYFLAG;
+      | CELL_SYSBOUNDARYFLAG
+      | POP_METADATA;
    }
 
    typedef boost::array<unsigned int, 3> velocity_cell_indices_t;             /**< Defines the indices of a velocity cell in a velocity block.

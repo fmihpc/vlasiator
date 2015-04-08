@@ -85,8 +85,8 @@ namespace poisson {
 
    void PoissonSolverSOR::evaluate2D(std::vector<poisson::CellCache3D>& cellPointers,const int& cellColor) {
       const Real weight = 1.5;
-      
-      #pragma omp for
+
+      #pragma omp parallel for
       for (size_t c=0; c<cellPointers.size(); ++c) {
          #ifdef DEBUG_POISSON_SOR
          bool ok = true;
@@ -116,7 +116,7 @@ namespace poisson {
          Real rhs = ((phi_011+phi_211)/DX2 + (phi_101+phi_121)/DY2 + rho_q)/factor;
          Real correction = rhs - phi_111;
          cellPointers[c][0][CellParams::PHI] = phi_111 + weight*correction;
-         
+
          #ifdef DEBUG_POISSON_SOR
          ok = true;
          if (factor != factor) ok = false;
@@ -186,7 +186,7 @@ namespace poisson {
                std::vector<poisson::CellCache3D>& blackCache) {
       redCache.clear();
       blackCache.clear();
-      
+
       for (size_t c=0; c<cells.size(); ++c) {
          // DO_NOT_COMPUTE cells are skipped
          if (mpiGrid[cells[c]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
@@ -400,29 +400,29 @@ namespace poisson {
       do {
          const int N_iterations = 10;
 
-	 #pragma omp parallel
-	   {
-	      const int tid = omp_get_thread_num();
-	      
-	      // Iterate the potential N_iterations times and then
-	      // check if the error is less than the required value
-	      for (int N=0; N<N_iterations; ++N) {
-		 // Make a copy of the potential if we are going 
-		 // to evaluate the solution error
-		 if (N == N_iterations-1) {
-		    if (tid == 0) phiprof::start("Copy Old Potential");
-		    #pragma omp for
-		    for (size_t c=0; c<Poisson::localCellParams.size(); ++c) {
-		       Poisson::localCellParams[c][CellParams::PHI_TMP] = Poisson::localCellParams[c][CellParams::PHI];
-		    }
-		    if (tid == 0) phiprof::stop("Copy Old Potential",Poisson::localCellParams.size(),"Spatial Cells");
-		 }
+//         #pragma omp parallel
+//           {
+              const int tid = omp_get_thread_num();
 
-		 // Solve red cells first, the black cells
-		 if (solve(mpiGrid,RED  ) == false) success = false;
-		 if (solve(mpiGrid,BLACK) == false) success = false;
-	      }
-	   } // #pragma omp parallel
+              // Iterate the potential N_iterations times and then
+              // check if the error is less than the required value
+              for (int N=0; N<N_iterations; ++N) {
+                 // Make a copy of the potential if we are going 
+                 // to evaluate the solution error
+                 if (N == N_iterations-1) {
+                    if (tid == 0) phiprof::start("Copy Old Potential");
+                    #pragma omp parallel for
+                    for (size_t c=0; c<Poisson::localCellParams.size(); ++c) {
+                       Poisson::localCellParams[c][CellParams::PHI_TMP] = Poisson::localCellParams[c][CellParams::PHI];
+                    }
+                    if (tid == 0) phiprof::stop("Copy Old Potential",Poisson::localCellParams.size(),"Spatial Cells");
+                 }
+
+                 // Solve red cells first, the black cells
+                 if (solve(mpiGrid,RED  ) == false) success = false;
+                 if (solve(mpiGrid,BLACK) == false) success = false;
+              }
+//           } // #pragma omp parallel
 
          // Evaluate the error in potential solution and reiterate if necessary
          iterations += N_iterations;
@@ -431,7 +431,7 @@ namespace poisson {
          if (iterations >= Poisson::maxIterations) break;
       } while (true);
 
-      cerr << "SOR solved using " << iterations << " iterations, rel change " << relPotentialChange << endl;
+//      cerr << "SOR solved using " << iterations << " iterations, rel change " << relPotentialChange << endl;
 
       if (calculateElectrostaticField(mpiGrid) == false) success = false;
 
@@ -491,7 +491,8 @@ namespace poisson {
          
          phiprof::stop("Evaluate potential",cells,"Spatial Cells");
       }
-
+//      #pragma omp barrier
+      
       return success;
    }
 

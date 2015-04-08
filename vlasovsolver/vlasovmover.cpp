@@ -271,7 +271,6 @@ void calculateAcceleration(const int& popID,const int& globalMaxSubcycles,const 
                            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                            const std::vector<CellID>& propagatedCells,
                            const Real& dt) {
-
    // Set active population
    SpatialCell::setCommunicatedSpecies(popID);
 
@@ -280,7 +279,7 @@ void calculateAcceleration(const int& popID,const int& globalMaxSubcycles,const 
    for (size_t c=0; c<propagatedCells.size(); ++c) {
       const CellID cellID = propagatedCells[c];
       const Real maxVdt = mpiGrid[cellID]->get_max_v_dt(popID);
-      
+
       //compute subcycle dt. The length is maVdt on all steps
       //except the last one. This is to keep the neighboring
       //spatial cells in sync, so that two neighboring cells with
@@ -313,7 +312,7 @@ void calculateAcceleration(const int& popID,const int& globalMaxSubcycles,const 
          
       uint map_order=rndInt%3;
       phiprof::start("cell-semilag-acc");
-      cpu_accelerate_cell(mpiGrid[cellID],map_order,subcycleDt,popID);
+      cpu_accelerate_cell(mpiGrid[cellID],popID,map_order,subcycleDt);
       phiprof::stop("cell-semilag-acc");
    }
 
@@ -325,7 +324,7 @@ void calculateAcceleration(const int& popID,const int& globalMaxSubcycles,const 
    //- All cells update and communicate their lists of content blocks
    //- Only cells which were accerelated on this step need to be adjusted (blocks removed or added).
    //- Not done here on last step (done after loop)
-   //if(step < (globalMaxSubcycles - 1)) adjustVelocityBlocks(mpiGrid, propagatedCells, false, popID);
+   if(step < (globalMaxSubcycles - 1)) adjustVelocityBlocks(mpiGrid, propagatedCells, false, popID);
 }
 
 void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
@@ -351,6 +350,9 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
     
     // Accelerate all particle species
     for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+       // Set active population
+       SpatialCell::setCommunicatedSpecies(popID);
+
        // Iterate through all local cells and collect cells to propagate.
        // Ghost cells (spatial cells at the boundary of the simulation 
        // volume) do not need to be propagated:
@@ -387,59 +389,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
              }
           }
           propagatedCells.swap(temp);
-          
-          // Semi-Lagrangian acceleration for those cells which are subcycled
-          #pragma omp parallel for schedule(dynamic,1)
-          for (size_t c=0; c<propagatedCells.size(); ++c) {
-             no_subnormals();
-             const CellID cellID = propagatedCells[c];
-             const Real maxVdt = mpiGrid[cellID]->get_max_v_dt(popID);
-             
-             //compute subcycle dt. The length is maVdt on all steps
-             //except the last one. This is to keep the neighboring
-             //spatial cells in sync, so that two neighboring cells with
-             //different number of subcycles have similar timesteps,
-             //except that one takes an additional short step. This keeps
-             //spatial block neighbors as much in sync as possible for
-             //adjust blocks.
-             Real subcycleDt;
-             if( (step + 1) * maxVdt > dt) {
-                subcycleDt = dt - step * maxVdt;
-             } else {
-                subcycleDt = maxVdt;
-             }
-             
-             // generate pseudo-random order which is always the same irrespective of parallelization, restarts, etc
-             char rngStateBuffer[256];
-             random_data rngDataBuffer;
-             // set seed, initialise generator and get value
-             memset(&(rngDataBuffer), 0, sizeof(rngDataBuffer));
-             #ifdef _AIX
-                initstate_r(P::tstep + cellID, &(rngStateBuffer[0]), 256, NULL, &(rngDataBuffer));
-                int64_t rndInt;
-                random_r(&rndInt, &rngDataBuffer);
-             #else
-                initstate_r(P::tstep + cellID, &(rngStateBuffer[0]), 256, &(rngDataBuffer));
-                int32_t rndInt;
-                random_r(&rngDataBuffer, &rndInt);
-             #endif
-
-             uint map_order=rndInt % 3;
-             phiprof::start("cell-semilag-acc");
-             cpu_accelerate_cell(mpiGrid[cellID],popID,map_order,subcycleDt);
-             phiprof::stop("cell-semilag-acc");
-          } // for-loop over propagated cells
-      
-          //global adjust after each subcycle to keep number of blocks managable. Even the ones not
-          //accelerating anyore participate. It is important to keep
-          //the spatial dimension to make sure that we do not loose
-          //stuff streaming in from other cells, perhaps not connected
-          //to the existing distribution function in the cell.
-          //- All cells update and communicate their lists of content blocks
-          //- Only cells which were accerelated on this step need to be adjusted (blocks removed or added).
-            //- Not done here on last step (done after loop)
-          if (step < (globalMaxSubcycles - 1))
-            adjustVelocityBlocks(mpiGrid, propagatedCells, false, popID);
+          calculateAcceleration(popID,globalMaxSubcycles,step,mpiGrid,propagatedCells,dt);
        } // for-loop over acceleration substeps
        
        // final adjust for all cells, also fixing remote cells.
