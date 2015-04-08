@@ -429,7 +429,7 @@ namespace DRO {
    VariablePressureSolver::VariablePressureSolver(): DataReductionOperator() { }
    VariablePressureSolver::~VariablePressureSolver() { }
    
-   std::string VariablePressureSolver::getName() const {return "Pressure_from_solver";}
+   std::string VariablePressureSolver::getName() const {return "Pressure";}
    
    bool VariablePressureSolver::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";

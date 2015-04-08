@@ -155,7 +155,6 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(*it == "PerturbedVolB")
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("PERB_vol",CellParams::PERBXVOL,3));
       if(*it == "Pressure") {
-         outputReducer->addOperator(new DRO::VariablePressure);
          outputReducer->addOperator(new DRO::VariablePressureSolver);
       }
       if(*it == "PTensor") {
