@@ -485,12 +485,11 @@ int main(int argn,char* args[]) {
       int writeRestartNow;
       
       if (myRank == MASTER_RANK) {
-         if (P::saveRestartWalltimeInterval >=0.0 && (
-               P::saveRestartWalltimeInterval*wallTimeRestartCounter <=  MPI_Wtime()-initialWtime ||
-               P::tstep ==P::tstep_max ||
-               P::t >= P::t_max ||
-               (doBailout > 0 && P::bailout_write_restart)
-            )
+         if (  (P::saveRestartWalltimeInterval >=0.0
+            && (P::saveRestartWalltimeInterval*wallTimeRestartCounter <=  MPI_Wtime()-initialWtime
+               || P::tstep ==P::tstep_max
+               || P::t >= P::t_max))
+            || (doBailout > 0 && P::bailout_write_restart)
          ) {
             writeRestartNow = 1;
          }
