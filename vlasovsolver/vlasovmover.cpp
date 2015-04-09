@@ -244,13 +244,16 @@ void calculateSpatialTranslation(
 
    // Translate all particle species
    for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      string profName = "translate "+getObjectWrapper().particleSpecies[popID].name;
+      phiprof::start(profName);
       SpatialCell::setCommunicatedSpecies(popID);
       calculateSpatialTranslation(mpiGrid,localCells,local_propagated_cells,
                                   local_target_cells,remoteTargetCellsx,remoteTargetCellsy,
                                   remoteTargetCellsz,dt,popID);
+      phiprof::stop(profName);
    }
 
-   // Mapping complete, update moments //
+   // Mapping complete, update moments and maximum dt limits //
 momentCalculation:
    calculateMoments_R_maxdt(mpiGrid,localCells,true);
 
@@ -401,14 +404,15 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    // Recalculate "_V" velocity moments
 momentCalculation:
    calculateMoments_V(mpiGrid,cells,true);
-   
-   // Set CellParams::MAXVDT to be the max of all per-species values
+
+   // Set CellParams::MAXVDT to be the minimum dt of all per-species values
+   #pragma omp parallel for
    for (size_t c=0; c<cells.size(); ++c) {
       SpatialCell* cell = mpiGrid[cells[c]];
-      cell->parameters[CellParams::MAXVDT] = -numeric_limits<Real>::max();
+      cell->parameters[CellParams::MAXVDT] = numeric_limits<Real>::max();
       for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          cell->parameters[CellParams::MAXVDT]
-           = max(cell->get_max_v_dt(popID), cell->parameters[CellParams::MAXVDT]);
+           = min(cell->get_max_v_dt(popID), cell->parameters[CellParams::MAXVDT]);
       }
    }
 }

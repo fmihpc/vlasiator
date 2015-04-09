@@ -124,7 +124,7 @@ namespace spatial_cell {
 
    /** Wrapper for variables needed for each particle species.*/
    struct Population {
-      Real MAXVDT;                                                   /**< Maximum timestep allowed in velocity space for this species in this cell.*/
+      Real max_dt[2];                                                /**< Element[0] is max_r_dt, element[1] max_v_dt.*/
       vmesh::LocalID N_blocks;                                       /**< Number of velocity blocks, used when receiving velocity 
                                                                       * mesh from remote neighbors using MPI.*/
       vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID> vmesh;     /**< Velocity mesh. Contains all velocity blocks that exist 
@@ -162,6 +162,7 @@ namespace spatial_cell {
       int get_number_of_populations() const;
 
       static uint8_t get_maximum_refinement_level();
+      const Real& get_max_r_dt(const int& popID) const;
       const Real& get_max_v_dt(const int& popID) const;
 
       static const unsigned int* get_velocity_grid_length(const uint8_t& refLevel=0);
@@ -245,6 +246,7 @@ namespace spatial_cell {
       Real get_value(const Real vx,const Real vy,const Real vz,const int& popID) const;
       void increment_value(const Real vx,const Real vy,const Real vz,const Realf value,const int& popID);
       void increment_value(const vmesh::GlobalID& block,const unsigned int cell,const Real value,const int& popID);
+      void set_max_r_dt(const int& popID,const Real& value);
       void set_max_v_dt(const int& popID,const Real& value);
       void set_value(const Real vx, const Real vy, const Real vz, const Realf value,const int& popID);
       void set_value(const vmesh::GlobalID& block,const unsigned int cell, const Realf value,const int& popID);

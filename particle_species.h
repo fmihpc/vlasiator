@@ -13,6 +13,13 @@
 
 namespace species {
     
+   // Aliases for the maximum dt values stored in spatial_cell::Population::max_dt array.
+   enum Dt_Elements {
+      MAXRDT,                           /**< Maximum spatial translation dt.*/
+      MAXVDT,                           /**< Maximum acceleration dt.*/
+      SIZE_DT_ELEMENTS                  /**< Number of elements in array.*/
+   };
+   
     /** Variables common to a particle species.*/
     struct Species {
         std::string name;               /**< Name of the species.*/

@@ -45,13 +45,6 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
      = 2 * M_PI * getObjectWrapper().particleSpecies[popID].mass
      / (getObjectWrapper().particleSpecies[popID].charge * B.norm());
 
-   // Set maximum timestep limit for this cell, based on a  maximum allowed rotation angle
-   if (B2 > 0) {
-      spatial_cell->set_max_v_dt(popID,gyro_period*(P::maxSlAccelerationRotation/360.0));
-   } else {
-      spatial_cell->set_max_v_dt(popID,Parameters::dt);
-   }
-
    // scale rho for hall term, if user requests
    const Real EPSILON = 1e10 * numeric_limits<Real>::min();
    const Real rho = spatial_cell->parameters[CellParams::RHO_V] + EPSILON;
@@ -70,19 +63,43 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
    
 #warning Electric acceleration works for Poisson only atm
    Real* E = &(spatial_cell->parameters[CellParams::EXVOL]);
-   
-   const Real CONST = getObjectWrapper().particleSpecies[popID].charge 
-                    / getObjectWrapper().particleSpecies[popID].mass
-                    * dt;
+
+   const Real q_per_m = getObjectWrapper().particleSpecies[popID].charge 
+                      / getObjectWrapper().particleSpecies[popID].mass;
+   const Real CONST = q_per_m * dt;
    total_transform(0,3) = CONST * E[0];
    total_transform(1,3) = CONST * E[1];
    total_transform(2,3) = CONST * E[2];
 
-   if (B2 == 0) {
+   // Set maximum timestep limit for this cell, based on a maximum allowed rotation angle
+   if (B2 > 0) {
+      spatial_cell->set_max_v_dt(popID,gyro_period*(P::maxSlAccelerationRotation/360.0));
+   } else {
+      // Evaluate max dt for acceleration due to electric field.
+      // The criteria is that CFL condition due to spatial translations 
+      // must not be broken.
+      
+      // Compute how much we can increase the dt for this species until
+      // spatial CFL breaks
+      Real dt_max_transl = spatial_cell->get_max_r_dt(popID);
+      Real CFL_transl = Parameters::dt / dt_max_transl;
+      CFL_transl = min(1.0,1-CFL_transl);
+
+      // For simplicity just take the max value of electric field
+      Real E_max = max(fabs(E[0]),max(fabs(E[1]),fabs(E[2])));
+      E_max = max(E_max,1e-20);
+
+      // ... and the minimum cell size
+      Real dx_min = min(spatial_cell->parameters[CellParams::DX],spatial_cell->parameters[CellParams::DY]);
+      dx_min = min(dx_min,spatial_cell->parameters[CellParams::DZ]);
+
+      // Compute max dt due to electric acceleration
+      Real dt_max_acc = sqrt(CFL_transl*dx_min/(fabs(q_per_m)*E_max));
+      spatial_cell->set_max_v_dt(popID,dt_max_acc);
+      //spatial_cell->set_max_v_dt(popID,Parameters::dt);
       return total_transform;
    }
-   // end testing
-   
+
    unsigned int bulk_velocity_substeps; // in this many substeps we iterate forward bulk velocity when the complete transformation is computed (0.1 deg per substep).
    bulk_velocity_substeps = fabs(dt) / (gyro_period*(0.1/360.0)); 
    if (bulk_velocity_substeps < 1) bulk_velocity_substeps=1;

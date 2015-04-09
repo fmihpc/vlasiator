@@ -401,6 +401,24 @@ namespace spatial_cell {
       return has_content;
    }
    
+   /** Get maximum translation timestep for the given species.
+    * @param popID ID of the particle species.
+    * @return Maximum timestep calculated by the Vlasov translation.*/
+   const Real& SpatialCell::get_max_r_dt(const int& popID) const {
+      #ifdef DEBUG_SPATIAL_CELL
+      if (popID >= populations.size()) {
+         std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
+         std::cerr << __FILE__ << ":" << __LINE__ << std::endl;             
+         exit(1);
+      }
+      #endif
+      
+      return populations[popID].max_dt[species::MAXRDT];
+   }
+   
+   /** Get maximum acceleration timestep for the given species.
+    * @param popID ID of the particle species.
+    * @return Maximum timestep calculated by Vlasov acceleration.*/
    const Real& SpatialCell::get_max_v_dt(const int& popID) const {
       #ifdef DEBUG_SPATIAL_CELL
       if (popID >= populations.size()) {
@@ -410,7 +428,7 @@ namespace spatial_cell {
       }
       #endif
       
-      return populations[popID].MAXVDT;
+      return populations[popID].max_dt[species::MAXVDT];
    }
 
    /** Get MPI datatype for sending the cell data.
@@ -610,8 +628,8 @@ namespace spatial_cell {
          }
          if ((SpatialCell::mpi_transfer_type & Transfer::POP_METADATA) != 0) {
             for (int popID=0; popID<populations.size(); ++popID) {
-               displacements.push_back((uint8_t*) &(populations[popID].MAXVDT) - (uint8_t*)this);
-               block_lengths.push_back(sizeof(Real));
+               displacements.push_back((uint8_t*) &(populations[popID].max_dt) - (uint8_t*)this);
+               block_lengths.push_back(species::SIZE_DT_ELEMENTS*sizeof(Real));
             }
          }
       }
@@ -1156,6 +1174,26 @@ namespace spatial_cell {
       return true;
    }
    
+   /** Set maximum translation timestep for a particle species.
+    * This function is called during Vlasov translation.
+    * @param popID ID of the particle species.
+    * @param value New maximum timestep.*/
+   void SpatialCell::set_max_r_dt(const int& popID,const Real& value) {
+      #ifdef DEBUG_SPATIAL_CELL
+      if (popID >= populations.size()) {
+         std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
+         std::cerr << __FILE__ << ":" << __LINE__ << std::endl;             
+         exit(1);
+      }
+      #endif
+      
+      populations[popID].max_dt[species::MAXRDT] = value;
+   }
+
+   /** Set maximum acceleration timestep for a particle species.
+    * This function is called during Vlasov acceleration.
+    * @param popID ID of the particle species.
+    * @param value New maximum timestep.*/
    void SpatialCell::set_max_v_dt(const int& popID,const Real& value) {
       #ifdef DEBUG_SPATIAL_CELL
       if (popID >= populations.size()) {
@@ -1165,7 +1203,7 @@ namespace spatial_cell {
       }
       #endif
       
-      populations[popID].MAXVDT = value;;
+      populations[popID].max_dt[species::MAXVDT] = value;
    }
 
    /**  Purges extra capacity from block vectors. It sets size to

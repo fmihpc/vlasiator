@@ -194,8 +194,10 @@ namespace CellParams {
       P_33_V,   /*!< P_zz component after propagation in velocity space */
       RHOLOSSADJUST,      /*!< Counter for massloss from the destroying blocks in blockadjustment*/
       RHOLOSSVELBOUNDARY, /*!< Counter for massloss through outflow boundaries in velocity space*/
-      MAXVDT,             /*!< maximum timestep allowed in velocity space for this cell**/
-      MAXRDT,             /*!< maximum timestep allowed in ordinary space for this cell **/
+      MAXVDT,             /*!< maximum timestep allowed in velocity space for this cell, 
+                           * this is the max allowed timestep over all particle species.*/
+      MAXRDT,             /*!< maximum timestep allowed in ordinary space for this cell,
+                           * this is the max allowed timestep over all particle species.*/
       MAXFDT,             /*!< maximum timestep allowed in ordinary space by fieldsolver for this cell**/
       LBWEIGHTCOUNTER,    /*!< Counter for storing compute time weights needed by the load balancing**/
       ACCSUBCYCLES,        /*!< number of subcyles for each cell*/

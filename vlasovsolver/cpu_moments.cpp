@@ -134,6 +134,7 @@ void calculateMoments_R_maxdt(
 
           // Reset spatial max DT
           if (popID == 0) cell->parameters[CellParams::MAXRDT] = numeric_limits<Real>::max();
+          cell->set_max_r_dt(popID,numeric_limits<Real>::max());
 
           vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
           if (blockContainer.size() == 0) continue;
@@ -180,6 +181,7 @@ void calculateMoments_R_maxdt(
 
                 const Real dt_max_cell = min(dx/fabs(Vx),min(dy/fabs(Vy),dz/fabs(Vz)));
                 cell->parameters[CellParams::MAXRDT] = min(dt_max_cell,cell->parameters[CellParams::MAXRDT]);
+                cell->set_max_r_dt(popID,min(dt_max_cell,cell->get_max_r_dt(popID)));
              }
 
              const Real massRatio = getObjectWrapper().particleSpecies[popID].mass / physicalconstants::MASS_PROTON;

@@ -80,7 +80,7 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 
    isChanged=false;
 
-   vector<uint64_t> cells = mpiGrid.get_cells();
+   const vector<CellID>& cells = getLocalCells();
    /* Arrays for storing local (per process) and global max dt
       0th position stores ordinary space propagation dt
       1st position stores velocity space propagation dt
@@ -93,7 +93,7 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    dtMaxLocal[1]=std::numeric_limits<Real>::max();
    dtMaxLocal[2]=std::numeric_limits<Real>::max();
 
-   for (std::vector<uint64_t>::const_iterator cell_id = cells.begin(); cell_id != cells.end(); ++cell_id) {
+   for (std::vector<CellID>::const_iterator cell_id=cells.begin(); cell_id!=cells.end(); ++cell_id) {
       SpatialCell* cell = mpiGrid[*cell_id];
       if ( cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
            (cell->sysBoundaryLayer == 1 && cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY )) {
