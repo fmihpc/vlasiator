@@ -53,7 +53,7 @@ bool do_translate_cell(SpatialCell* SC){
 //same blocks as the normal grid.
 void createTargetGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,   const vector<CellID>& cells){
    phiprof::start("create-target-grid");
-#pragma omp  parallel for
+#pragma omp  parallel for schedule(dynamic)
    for (size_t c=0; c<cells.size(); ++c) {
       SpatialCell *spatial_cell = mpiGrid[cells[c]];
       /*get target mesh & blocks (in temporary arrays)*/
@@ -227,6 +227,7 @@ void compute_spatial_source_neighbors(const dccrg::Dccrg<SpatialCell,dccrg::Cart
                                       const CellID& cellID,
                                       const uint dimension,
                                       SpatialCell **neighbors){
+#pragma omp for
    for(int i = -VLASOV_STENCIL_WIDTH; i <= VLASOV_STENCIL_WIDTH; i++){
       switch (dimension){
           case 0:
@@ -265,7 +266,7 @@ void compute_spatial_target_neighbors(const dccrg::Dccrg<SpatialCell,dccrg::Cart
                                       const CellID& cellID,
                                       const uint dimension,
                                       SpatialCell **neighbors){
-
+#pragma omp for
    for(int i = -1; i <= 1; i++){
       switch (dimension){
           case 0:
@@ -485,7 +486,9 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
           break;
    }
 
+
    /*init plane_index_to_id*/
+#pragma omp for collapse(2)
    for (uint k=0; k<WID; ++k) {
       for (uint j=0; j<WID; ++j) {
          for (uint i=0; i<WID; ++i) {
@@ -502,11 +505,10 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 
    /*Loop over blocks in spatial cell. In ordinary space the number of
     * blocks in this spatial cell does not change*/
+#pragma omp for
    for (vmesh::LocalID block_i=0; block_i<spatial_cell->get_number_of_velocity_blocks(); ++block_i) {
       const vmesh::GlobalID blockGID = spatial_cell->get_velocity_block_global_id(block_i);
 
-      //Each thread only computes a certain non-overlapping subset of blocks
-      if (blockGID % num_threads != thread_id) continue;
 
       /*buffer where we write data, initialized to 0*/
       Vec target_values[3 * WID3 / VECL];
