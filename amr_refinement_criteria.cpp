@@ -41,6 +41,7 @@ namespace amr_ref_criteria {
 
       for (int kc=0; kc<WID; ++kc) for (int jc=0; jc<WID; ++jc) for (int ic=0; ic<WID; ++ic) {
          Realf f_cen = array[vblock::padIndex<PAD>(ic+1,jc+1,kc+1)];
+         #warning In here should we use SpatialCell::getVeloctyBlockMinValue()?
          if (fabs(f_cen) < Parameters::sparseMinValue) continue;
 
          Realf f_lft = array[vblock::padIndex<PAD>(ic  ,jc+1,kc+1)];

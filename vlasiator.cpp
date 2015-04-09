@@ -173,14 +173,15 @@ ObjectWrapper& getObjectWrapper() {
  * cache is recalculated every time the mesh partitioning changes.
  * @return Local cell IDs.*/
 const std::vector<CellID>& getLocalCells() {
-   if (Parameters::meshRepartitioned == true) {
-        {
-           vector<CellID> dummy;
-           dummy.swap(Parameters::localCells);
-        }
-      Parameters::localCells = mpiGrid.get_cells();
-   }
    return Parameters::localCells;
+}
+
+void recalculateLocalCellsCache() {
+     {
+        vector<CellID> dummy;
+        dummy.swap(Parameters::localCells);
+     }
+   Parameters::localCells = mpiGrid.get_cells();
 }
 
 int main(int argn,char* args[]) {
@@ -503,12 +504,11 @@ int main(int argn,char* args[]) {
       phiprof::start("compute-is-restart-written");      
       int writeRestartNow;
       if (myRank == MASTER_RANK) {
-         if (P::saveRestartWalltimeInterval >=0.0 && (
-               P::saveRestartWalltimeInterval*wallTimeRestartCounter <=  MPI_Wtime()-initialWtime ||
-               P::tstep ==P::tstep_max ||
-               P::t >= P::t_max ||
-               (doBailout > 0 && P::bailout_write_restart)
-            )
+         if (  (P::saveRestartWalltimeInterval >=0.0
+            && (P::saveRestartWalltimeInterval*wallTimeRestartCounter <=  MPI_Wtime()-initialWtime
+               || P::tstep ==P::tstep_max
+               || P::t >= P::t_max))
+            || (doBailout > 0 && P::bailout_write_restart)
          ) {
             writeRestartNow = 1;
          }
@@ -665,11 +665,12 @@ int main(int argn,char* args[]) {
       );
 
       phiprof::stop("Propagate",computedCells,"Cells");
-      
+
       // Check timestep
-      if(P::dt < P::bailout_min_dt) {
-         string message = "The timestep went below bailout.bailout_min_dt (" + to_string(P::bailout_min_dt) + ").";
-         bailout(true, message, __FILE__, __LINE__);
+      if (P::dt < P::bailout_min_dt) {
+         stringstream s;
+         s << "The timestep dt=" << P::dt << " went below bailout.bailout_min_dt (" << to_string(P::bailout_min_dt) << ")." << endl;
+         bailout(true, s.str(), __FILE__, __LINE__);
       }
       //Move forward in time
       P::meshRepartitioned = false;

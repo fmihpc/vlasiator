@@ -774,6 +774,11 @@ bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    double allStart = MPI_Wtime();
    bool success = true;
    int myRank;
+   phiprof::initializeTimer("Barrier-entering-writegrid","MPI","Barrier");
+   phiprof::start("Barrier-entering-writegrid");
+   MPI_Barrier(MPI_COMM_WORLD);
+   phiprof::stop("Barrier-entering-writegrid");
+
 
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    phiprof::start("writeGrid-reduced");
@@ -789,7 +794,12 @@ bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    Writer vlsvWriter;
    const int masterProcessId = 0;
    MPI_Info MPIinfo = MPI_INFO_NULL;
+
+   phiprof::start("open");
    vlsvWriter.open( fname.str(), MPI_COMM_WORLD, masterProcessId, MPIinfo );
+   phiprof::stop("open");
+
+   phiprof::start("metadataIO");
 
    // Get all local cell Ids 
    const vector<CellID>& local_cells = getLocalCells();
@@ -835,20 +845,24 @@ bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 
    //Write ghost zone domain and local id numbers ( VisIt plugin needs this for MPI )
    if( writeGhostZoneDomainAndLocalIdNumbers( mpiGrid, vlsvWriter, meshName, ghost_cells ) == false ) return false;
+   phiprof::stop("metadataIO");
+   phiprof::start("velocityspaceIO");
    if( writeVelocitySpace( mpiGrid, vlsvWriter, index, local_cells ) == false ) return false;
+   phiprof::stop("velocityspaceIO");
 
+   phiprof::start("reduceddataIO");
    //Write necessary variables:
    //Determines whether we write in floats or doubles
    for( uint i = 0; i < dataReducer.size(); ++i ) {
       if( writeDataReducer( mpiGrid, local_cells, (P::writeAsFloat==1), dataReducer, i, vlsvWriter ) == false ) return false;
    }
-   
-   phiprof::initializeTimer("Barrier","MPI","Barrier");
-   phiprof::start("Barrier");
-   MPI_Barrier(MPI_COMM_WORLD);
-   phiprof::stop("Barrier");
+   phiprof::stop("reduceddataIO");
+
+   phiprof::start("close");
    vlsvWriter.close();
-   phiprof::stop("writeGrid-reduced");
+   phiprof::stop("close");
+   const uint64_t bytesWritten = vlsvWriter.getBytesWritten();
+   phiprof::stop("writeGrid-reduced",bytesWritten*1e-9,"GB");
    return success;
 }
 
@@ -872,17 +886,25 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    int myRank;
    
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-   phiprof::start("writeGrid-restart");
-   
+   phiprof::initializeTimer("BarrierEnteringWriteRestart","MPI","Barrier");
+   phiprof::start("BarrierEnteringWriteRestart");
+   MPI_Barrier(MPI_COMM_WORLD);
+   phiprof::stop("BarrierEnteringWriteRestart");
+
+
+   phiprof::start("writeRestart");
+   phiprof::start("DeallocateRemoteBlocks");
    //deallocate blocks in remote cells to decrease memory load
    deallocateRemoteCellBlocks(mpiGrid);
+   phiprof::stop("DeallocateRemoteBlocks");
    // Create a name for the output file and open it with VLSVWriter:
    stringstream fname;
    fname << name <<".";
    fname.width(7);
    fname.fill('0');
    fname << fileIndex << ".vlsv";
-   
+
+   phiprof::start("open");
    //Open the file with vlsvWriter:
    Writer vlsvWriter;
    const int masterProcessId = 0;
@@ -898,6 +920,10 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       MPI_Info_set(MPIinfo, factor, stripeChar);
    }
    vlsvWriter.open( fname.str(), MPI_COMM_WORLD, masterProcessId, MPIinfo );
+
+   phiprof::stop("open");
+
+   phiprof::start("metadataIO");
    
    // Get all local cell Ids 
    vector<CellID> local_cells = getLocalCells();
@@ -922,7 +948,8 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    
    //Write zone global id numbers:
    if( writeZoneGlobalIdNumbers( mpiGrid, vlsvWriter, meshName, local_cells, ghost_cells ) == false ) return false;
-   
+   phiprof::stop("metadataIO");
+   phiprof::start("reduceddataIO");   
    //write out DROs we need for restarts
    DataReducer restartReducer;
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("background_B",CellParams::BGBX,3));
@@ -951,18 +978,26 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    for (uint i=0; i<restartReducer.size(); ++i) {
       writeDataReducer(mpiGrid, local_cells, writeAsFloat, restartReducer, i, vlsvWriter);
    }
-   
+   phiprof::stop("reduceddataIO");   
    //write the velocity distribution data -- note: it's expecting a vector of pointers:
    // Note: restart should always write double values to ensure the accuracy of the restart runs. 
-   // In case of distribution data it is not as important as they are mainly used for visualization purposes
+   // In case of distribution data it is not as important as they are mainly used for visualization purpose
+   phiprof::start("velocityspaceIO");
    writeVelocityDistributionData(vlsvWriter, mpiGrid, local_cells, MPI_COMM_WORLD);
+   phiprof::stop("velocityspaceIO");
 
+   phiprof::start("close");
    vlsvWriter.close();
+   phiprof::stop("close");
+
+   phiprof::start("updateRemoteBlocks");
    //Updated newly adjusted velocity block lists on remote cells, and
    //prepare to receive block data
    updateRemoteVelocityBlockLists(mpiGrid);
-   
-   phiprof::stop("writeGrid-restart");//,1.0e-6*bytesWritten,"MB");
+   phiprof::stop("updateRemoteBlocks");
+
+   const uint64_t bytesWritten = vlsvWriter.getBytesWritten();
+   phiprof::stop("writeRestart",bytesWritten*1e-9,"GB");
    
    return success;
 }

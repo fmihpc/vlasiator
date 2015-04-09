@@ -59,7 +59,7 @@ Real P::vlasovSolverMaxCFL = NAN;
 Real P::vlasovSolverMinCFL = NAN;
 Real P::fieldSolverMaxCFL = NAN;
 Real P::fieldSolverMinCFL = NAN;
-int P::fieldSolverSubcycles = NAN;
+int P::fieldSolverSubcycles = 1;
 
 uint P::tstep = 0;
 uint P::tstep_min = 0;
@@ -100,6 +100,12 @@ bool P::fieldSolverDiffusiveEterms = true;
 uint P::ohmHallTerm = 0;
 
 Real P::sparseMinValue = NAN;
+int  P::sparseDynamicAlgorithm = 0;
+Real P::sparseDynamicBulkValue1 = 1;
+Real P::sparseDynamicBulkValue2 = 1;
+Real P::sparseDynamicMinValue1 = 1;
+Real P::sparseDynamicMinValue2 = 1;
+
 int P::sparseBlockAddWidthV = 1;
 bool P::sparse_conserve_mass = false;
 
@@ -198,9 +204,17 @@ bool Parameters::addParameters(){
 
    
    // Grid sparsity parameters
-   Readparameters::add("sparse.minValue", "Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents", 0);
+   Readparameters::add("sparse.minValue", "Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents", 1);
    Readparameters::add("sparse.blockAddWidthV", "Number of layers of blocks that are kept in velocity space around the blocks with content",1);
    Readparameters::add("sparse.conserve_mass", "If true, then mass is conserved by scaling the dist. func. in the remaining blocks", false);
+   Readparameters::add("sparse.dynamicAlgorithm", "Type of algorithm used for calculating the dynamic minValue; 0 = none, 1 = linear algorithm based on rho, 2 = linear algorithm based on Blocks, (Example linear algorithm: y = kx+b, where dynamicMinValue1=k*dynamicBulkValue1 + b, and dynamicMinValue2 = k*dynamicBulkValue2 + b", 0);
+   Readparameters::add("sparse.dynamicMinValue1", "The minimum value for the dynamic minValue", 1);
+   Readparameters::add("sparse.dynamicMinValue2", "The maximum value (value 2) for the dynamic minValue", 1);
+   Readparameters::add("sparse.dynamicBulkValue1", "Minimum value for the dynamic algorithm range, so for example if dynamicAlgorithm=1 then for sparse.dynamicBulkValue1 = 1e3, sparse.dynamicBulkValue2=1e5, we apply the algorithm to cells for which 1e3<cell.rho<1e5", 0);
+   Readparameters::add("sparse.dynamicBulkValue2", "Maximum value for the dynamic algorithm range, so for example if dynamicAlgorithm=1 then for sparse.dynamicBulkValue1 = 1e3, sparse.dynamicBulkValue2=1e5, we apply the algorithm to cells for which 1e3<cell.rho<1e5", 0);
+
+   
+   
 
    // Load balancing parameters
    Readparameters::add("loadBalance.algorithm", "Load balancing algorithm to be used", std::string("RCB"));
@@ -320,6 +334,12 @@ bool Parameters::getParameters(){
    Readparameters::get("sparse.minValue", P::sparseMinValue);
    Readparameters::get("sparse.blockAddWidthV", P::sparseBlockAddWidthV); 
    Readparameters::get("sparse.conserve_mass", P::sparse_conserve_mass);
+   Readparameters::get("sparse.dynamicAlgorithm", P::sparseDynamicAlgorithm);
+   Readparameters::get("sparse.dynamicBulkValue1", P::sparseDynamicBulkValue1);
+   Readparameters::get("sparse.dynamicBulkValue2", P::sparseDynamicBulkValue2);
+   Readparameters::get("sparse.dynamicMinValue1", P::sparseDynamicMinValue1);
+   Readparameters::get("sparse.dynamicMinValue2", P::sparseDynamicMinValue2);
+
    
    // Get load balance parameters
    Readparameters::get("loadBalance.algorithm", P::loadBalanceAlgorithm);

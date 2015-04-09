@@ -94,6 +94,7 @@ void initializeGrid(
    phiprof::start("Initial load-balancing");
    if (myRank == MASTER_RANK) logFile << "(INIT): Starting initial load balance." << endl << writeVerbose;
    mpiGrid.balance_load();
+   recalculateLocalCellsCache();
    phiprof::stop("Initial load-balancing");
    
    if (myRank == MASTER_RANK) logFile << "(INIT): Set initial state." << endl << writeVerbose;
@@ -330,6 +331,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    phiprof::stop("dccrg.finish_balance_load");
 
    //Make sure transfers are enabled for all cells
+   recalculateLocalCellsCache();
    cells = mpiGrid.get_cells();
    for (uint i=0; i<cells.size(); ++i) mpiGrid[cells[i]]->set_mpi_transfer_enabled(true);
 
@@ -374,8 +376,10 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
 
    phiprof::start("Compute with_content_list");
    #pragma omp parallel for  
-   for (uint i=0; i<cells.size(); ++i)
+   for (uint i=0; i<cells.size(); ++i) {
+      mpiGrid[cells[i]]->updateSparseMinValue();
       mpiGrid[cells[i]]->update_velocity_block_content_lists();
+   }
    phiprof::stop("Compute with_content_list");
 
    phiprof::initializeTimer("Transfer with_content_list","MPI");

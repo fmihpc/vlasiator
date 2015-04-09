@@ -1,4 +1,3 @@
-
 /*!
 Spatial cell class for Vlasiator that supports a variable number of velocity blocks.
 
@@ -38,6 +37,9 @@ Copyright 2011 Finnish Meteorological Institute
 #include "amr_refinement_criteria.h"
 #include "velocity_blocks.h"
 #include "velocity_block_container.h"
+
+#include "logger.h"
+extern Logger logFile;
 
 #ifndef NDEBUG
    #define DEBUG_SPATIAL_CELL
@@ -225,6 +227,9 @@ namespace spatial_cell {
       static uint64_t get_mpi_transfer_type(void);
       static void set_mpi_transfer_type(const uint64_t type,bool atSysBoundaries=false);
       void set_mpi_transfer_enabled(bool transferEnabled);
+      void updateSparseMinValue();                             /*!< Updates minValue based on algorithm value from parameters see parameters.cpp >*/
+      Real getVelocityBlockMinValue() const;                                   /**< Minimum value of distribution function in any phase space cell 
+                                                                               * of a velocity block for the block to be considered to have content.*/
       
       // Member variables //
       Real derivatives[fieldsolver::N_SPATIAL_CELL_DERIVATIVES];              /**< Derivatives of bulk variables in this spatial cell.*/
@@ -251,19 +256,16 @@ namespace spatial_cell {
                                                                                * over MPI, so is invalid on remote cells.*/
       static uint64_t mpi_transfer_type;                                      /**< Which data is transferred by the mpi datatype given by spatial cells.*/
       static bool mpiTransferAtSysBoundaries;                                 /**< Do we only transfer data at boundaries (true), or in the whole system (false).*/
-      static Real velocity_block_min_value;                                   /**< Minimum value of distribution function in any phase space cell 
-                                                                               * of a velocity block for the block to be considered to have content.*/
 
     private:
       SpatialCell& operator=(const SpatialCell&);
-      
       bool compute_block_has_content(const vmesh::GlobalID& block) const;
       void merge_values_recursive(vmesh::GlobalID parentGID,vmesh::GlobalID blockGID,uint8_t refLevel,bool recursive,const Realf* data,
 				  std::set<vmesh::GlobalID>& blockRemovalList);
 
+      Real velocityBlockMinValue;                                          /**< Helper value for getVelocityBlockMinValue*/
       bool initialized;
-      bool mpiTransferEnabled;
-      
+      bool mpiTransferEnabled;      
       // Velocity mesh, one per population
       vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID> vmesh;
       vmesh::VelocityBlockContainer<vmesh::LocalID> blockContainer;
@@ -1077,7 +1079,7 @@ namespace spatial_cell {
 
    inline void SpatialCell::initialize_mesh(Real v_limits[6],unsigned int meshSize[3],unsigned int blockSize[3],Real f_min,uint8_t maxRefLevel) {
       vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::initialize(v_limits,meshSize,blockSize,maxRefLevel);
-      velocity_block_min_value = f_min;
+
    }
 
    inline unsigned int SpatialCell::invalid_block_index() {
@@ -1116,6 +1118,7 @@ namespace spatial_cell {
       }
       //is transferred by default
       this->mpiTransferEnabled=true;
+      this->velocityBlockMinValue = P::sparseMinValue;
    }
    
    inline SpatialCell::SpatialCell(const SpatialCell& other):
@@ -1127,6 +1130,7 @@ namespace spatial_cell {
      velocity_block_with_no_content_list(other.velocity_block_with_no_content_list),
      sysBoundaryFlag(other.sysBoundaryFlag),
      sysBoundaryLayer(other.sysBoundaryLayer),
+     velocityBlockMinValue(other.velocityBlockMinValue),
      vmesh(other.vmesh), blockContainer(other.blockContainer) {
       //       phiprof::initializeTimer("SpatialCell copy", "SpatialCell copy");
       //       phiprof::start("SpatialCell copy");
@@ -1144,11 +1148,11 @@ namespace spatial_cell {
          derivativesBVOL[i]=other.derivativesBVOL[i];
       }
       
+      
       //set null block data
       for (unsigned int i=0; i<WID3; ++i) null_block_data[i] = 0.0;
       //         phiprof::stop("SpatialCell copy");
      }
-
    /*!
     Returns the number of given velocity blocks that exist.
     */
@@ -1514,6 +1518,38 @@ namespace spatial_cell {
 
       return std::make_tuple(address,count,datatype);
    }
+   
+   inline void SpatialCell::updateSparseMinValue() {
+      if( P::sparseDynamicAlgorithm == 1 || P::sparseDynamicAlgorithm == 2 ) {
+         // Linear algorithm for the minValue: y=kx+b
+         const Real k = (P::sparseDynamicMinValue2 - P::sparseDynamicMinValue1) / (P::sparseDynamicBulkValue2 - P::sparseDynamicBulkValue1);
+         const Real b = P::sparseDynamicMinValue1 - k * P::sparseDynamicBulkValue1;
+         Real x;
+         if( P::sparseDynamicAlgorithm == 1 ) { 
+            x = this->parameters[CellParams::RHO]; 
+         } else { 
+            x = this->get_number_of_velocity_blocks(); 
+         }
+         const Real newMinValue = k*x+b;
+         if( newMinValue < P::sparseDynamicMinValue1 ) { // Compare against the min minValue
+            velocityBlockMinValue = P::sparseDynamicMinValue1;
+         } else if( newMinValue > P::sparseDynamicMinValue2 ) { // Compare against the max minValue
+            velocityBlockMinValue = P::sparseDynamicMinValue2;
+         } else {
+            velocityBlockMinValue = newMinValue;
+         }
+         return;
+      } else {
+         velocityBlockMinValue = P::sparseMinValue;
+         return;
+      }
+      return;
+   }
+   
+   inline Real SpatialCell::getVelocityBlockMinValue() const {
+      return velocityBlockMinValue;
+   }
+
 
    /*!
     Returns true if given velocity block has enough of a distribution function.
@@ -1527,8 +1563,9 @@ namespace spatial_cell {
       bool has_content = false;
       const vmesh::LocalID blockLID = get_velocity_block_local_id(blockGID);
       const Realf* block_data = blockContainer.getData(blockLID);
+      
       for (unsigned int i=0; i<VELOCITY_BLOCK_LENGTH; ++i) {
-         if (block_data[i] >= SpatialCell::velocity_block_min_value) {
+         if ( block_data[i] >= getVelocityBlockMinValue() ) {
             has_content = true;
             break;
          }
