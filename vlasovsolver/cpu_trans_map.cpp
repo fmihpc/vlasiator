@@ -72,9 +72,12 @@ void createTargetGrid(
         const int& popID) {
 
    phiprof::start("create-target-grid");
-    #pragma omp  parallel for
+    #pragma omp parallel for
     for (size_t c=0; c<cells.size(); ++c) {
-      SpatialCell *spatial_cell = mpiGrid[cells[c]];
+      Real t_start = 0.0;
+      if (Parameters::prepareForRebalance == true) t_start = MPI_Wtime();
+      
+      SpatialCell* spatial_cell = mpiGrid[cells[c]];
       
       // get target mesh & blocks (in temporary arrays)
       vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh    = spatial_cell->get_velocity_mesh_temporary();
@@ -96,6 +99,9 @@ void createTargetGrid(
          blockParams[BlockParams::VZCRD] = spatial_cell->get_velocity_block_vz_min(blockGID);
          vmesh.getCellSize(blockGID,&(blockParams[BlockParams::DVX]));
       }
+      
+      if (Parameters::prepareForRebalance == true) 
+         spatial_cell->get_cell_parameters()[CellParams::LBWEIGHTCOUNTER] += (MPI_Wtime()-t_start);
    }
    phiprof::stop("create-target-grid");
 }

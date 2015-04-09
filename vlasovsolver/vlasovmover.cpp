@@ -84,9 +84,18 @@ void calculateSpatialTranslation(
       phiprof::start("compute-mapping-z");
       #pragma omp parallel
       {
+         const int tid = omp_get_thread_num();
          no_subnormals();
          for (size_t c=0; c<local_propagated_cells.size(); ++c) {
+            Real t_start = 0;
+            if (tid == 0) if (Parameters::prepareForRebalance == true) t_start = MPI_Wtime();
+
             trans_map_1d(mpiGrid,local_propagated_cells[c], 2, dt,popID); // map along z//
+
+            if (tid == 0) if (Parameters::prepareForRebalance == true) {
+               mpiGrid[local_propagated_cells[c]]->get_cell_parameters()[CellParams::LBWEIGHTCOUNTER] 
+                       += (MPI_Wtime()-t_start);
+            }
          }
       }
       phiprof::stop("compute-mapping-z");
@@ -127,9 +136,18 @@ void calculateSpatialTranslation(
       phiprof::start("compute-mapping-x");
       #pragma omp parallel
       {
+         const int tid = omp_get_thread_num();
          no_subnormals();
          for (size_t c=0; c<local_propagated_cells.size(); ++c) {
+            Real t_start = 0;
+            if (tid == 0) if (Parameters::prepareForRebalance == true) t_start = MPI_Wtime();
+            
             trans_map_1d(mpiGrid,local_propagated_cells[c],0,dt,popID); // map along x//
+            
+            if (tid == 0) if (Parameters::prepareForRebalance == true) {
+               mpiGrid[local_propagated_cells[c]]->get_cell_parameters()[CellParams::LBWEIGHTCOUNTER] 
+                       += (MPI_Wtime()-t_start);
+            }
          }
       }
       phiprof::stop("compute-mapping-x");
@@ -169,9 +187,18 @@ void calculateSpatialTranslation(
       phiprof::start("compute-mapping-y");
       #pragma omp parallel
       {
+         const int tid = omp_get_thread_num();
          no_subnormals();
          for (size_t c=0; c<local_propagated_cells.size(); ++c) {
+            Real t_start = 0;
+            if (tid == 0) if (Parameters::prepareForRebalance == true) t_start = MPI_Wtime();
+            
             trans_map_1d(mpiGrid,local_propagated_cells[c],1,dt,popID); // map along y//
+            
+            if (tid == 0) if (Parameters::prepareForRebalance == true) {
+               mpiGrid[local_propagated_cells[c]]->get_cell_parameters()[CellParams::LBWEIGHTCOUNTER] 
+                       += (MPI_Wtime()-t_start);
+            }
          }
       }
       phiprof::stop("compute-mapping-y");

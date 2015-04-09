@@ -271,17 +271,17 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
       //Set weight. If acceleration is enabled then we use the weight
       //counter which is updated in acceleration, otherwise we just
       //use the number of blocks.
-      if (P::propagateVlasovAcceleration) 
-         mpiGrid.set_cell_weight(cells[i], mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER]);
-      else
-         mpiGrid.set_cell_weight(cells[i], mpiGrid[cells[i]]->get_number_of_all_velocity_blocks());
+//      if (P::propagateVlasovAcceleration) 
+      mpiGrid.set_cell_weight(cells[i], mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER]);
+//      else
+//         mpiGrid.set_cell_weight(cells[i], mpiGrid[cells[i]]->get_number_of_all_velocity_blocks());
       //reset counter
-      mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = 0.0;
+      //mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = 0.0;
    }
    phiprof::start("dccrg.initialize_balance_load");
    mpiGrid.initialize_balance_load(true);
    phiprof::stop("dccrg.initialize_balance_load");
-   
+
    const std::unordered_set<uint64_t>& incoming_cells = mpiGrid.get_cells_added_by_balance_load();
    std::vector<uint64_t> incoming_cells_list (incoming_cells.begin(),incoming_cells.end()); 
 

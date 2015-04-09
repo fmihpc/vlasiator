@@ -86,6 +86,9 @@ namespace poisson {
    void PoissonSolverSOR::evaluate2D(std::vector<poisson::CellCache3D>& cellPointers,const int& cellColor) {
       const Real weight = 1.5;
 
+      Real t_start = 0;
+      if (Parameters::prepareForRebalance == true) t_start = MPI_Wtime();
+
       #pragma omp parallel for
       for (size_t c=0; c<cellPointers.size(); ++c) {
          #ifdef DEBUG_POISSON_SOR
@@ -134,13 +137,26 @@ namespace poisson {
             exit(1);
          }
          #endif
-      }      
+      } // for-loop over cells
+      
+      if (Parameters::prepareForRebalance == true) {
+         const size_t N = max((size_t)1,cellPointers.size());
+         Real t_average = (MPI_Wtime() - t_start) / N;
+         
+         #pragma omp parallel for
+         for (size_t c=0; c<cellPointers.size(); ++c) {
+            cellPointers[c][0][CellParams::LBWEIGHTCOUNTER] += t_average;
+         }
+      }
    }
    
    void PoissonSolverSOR::evaluate3D(std::vector<poisson::CellCache3D>& cellPointers,const int& cellColor) {
       
       const Real weight = 1.5;
 
+      Real t_start = 0;
+      if (Parameters::prepareForRebalance == true) t_start = MPI_Wtime();
+      
       #pragma omp for
       for (size_t c=0; c<cellPointers.size(); ++c) {
          bool ok = true;
@@ -176,7 +192,17 @@ namespace poisson {
          Real rhs = ((phi_011+phi_211)/DX2 + (phi_101+phi_121)/DY2 + (phi_110+phi_112)/DZ2 + rho_q)/factor;
          Real correction = rhs - phi_111;
          cellPointers[c][0][CellParams::PHI] = phi_111 + weight*correction;
-      }      
+      }
+      
+      if (Parameters::prepareForRebalance == true) {
+         const size_t N = max((size_t)1,cellPointers.size());
+         Real t_average = (MPI_Wtime() - t_start) / N;
+
+         #pragma omp parallel for
+         for (size_t c=0; c<cellPointers.size(); ++c) {
+            cellPointers[c][0][CellParams::LBWEIGHTCOUNTER] += t_average;
+         }
+      }
    }
 
    void PoissonSolverSOR::cachePointers2D(
@@ -432,7 +458,7 @@ namespace poisson {
       } while (true);
 
 //      cerr << "SOR solved using " << iterations << " iterations, rel change " << relPotentialChange << endl;
-
+      
       if (calculateElectrostaticField(mpiGrid) == false) success = false;
 
       //Real efieldFlux  = 0;

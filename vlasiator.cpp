@@ -543,10 +543,10 @@ int main(int argn,char* args[]) {
          doBailout > 0) {
          break;
       }
-      
+
       //Re-loadbalance if needed
       //TODO - add LB measure and do LB if it exceeds threshold
-      if( P::tstep%P::rebalanceInterval == 0 && P::tstep> P::tstep_min) {
+      if(P::tstep % P::rebalanceInterval == 0 && P::tstep > P::tstep_min) {
          logFile << "(LB): Start load balance, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
          balanceLoad(mpiGrid, sysBoundaries);
          addTimedBarrier("barrier-end-load-balance");
@@ -555,8 +555,9 @@ int main(int argn,char* args[]) {
          shrink_to_fit_grid_data(mpiGrid);
          phiprof::stop("Shrink_to_fit");
          logFile << "(LB): ... done!"  << endl << writeVerbose;
+         P::prepareForRebalance = false;
       }
-      
+
       //get local cells
       const vector<CellID>& cells = getLocalCells();
 
@@ -596,6 +597,17 @@ int main(int argn,char* args[]) {
          }
       }
       
+      if (P::tstep % P::rebalanceInterval == P::rebalanceInterval-1) {
+         P::prepareForRebalance = true;
+#warning DEBUG remove me
+         logFile << "(MAIN) Preparing for rebalance at step " << P::tstep << endl << writeVerbose;
+
+         #pragma omp parallel for
+         for (size_t c=0; c<cells.size(); ++c) {
+            mpiGrid[cells[c]]->get_cell_parameters()[CellParams::LBWEIGHTCOUNTER] = 0;
+         }
+      }
+
       phiprof::start("Propagate");
       //Propagate the state of simulation forward in time by dt:
       

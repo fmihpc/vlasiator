@@ -109,6 +109,8 @@ struct Parameters {
    static std::string loadBalanceAlgorithm; /*!< Algorithm to be used for load balance.*/
    static std::string loadBalanceTolerance; /*!< Load imbalance tolerance. */ 
    static uint rebalanceInterval; /*!< Load rebalance interval (steps). */
+   static bool prepareForRebalance; /**< If true, propagators should measure their time consumption in preparation
+                                     * for mesh repartitioning.*/
    
    static std::vector<std::string> outputVariableList; /*!< List of data reduction operators (DROs) to add to the grid file output.*/
    static std::vector<std::string> diagnosticVariableList; /*!< List of data reduction operators (DROs) to add to the diagnostic runtime output.*/

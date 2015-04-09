@@ -70,6 +70,7 @@ uint P::diagnosticInterval = numeric_limits<uint>::max();
 bool P::writeInitialState = true;
 
 bool P::meshRepartitioned = true;
+bool P::prepareForRebalance = false;
 std::vector<CellID> P::localCells;
 
 std::vector<std::string> P::systemWriteName; 
