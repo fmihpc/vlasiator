@@ -5,7 +5,8 @@
 
 ## add absolute paths to folder names, filenames
 reference_dir=$( readlink -f $reference_dir )
-run_dir=$( readlink -f $run_dir )
+run_dir=$( readlink -f $run_dir )_$( date +%Y.%m.%d_%H:%M:%S)
+
 bin=$( readlink -f $bin )
 test_dir=$( readlink -f $test_dir)
 
@@ -29,13 +30,11 @@ then
 fi
 
 
-#create main run folder if it doesn not exist
-
 if [ -d $run_dir ]
 then
-    mv $run_dir ${run_dir}_old_$(date  "+%s")
+    echo $run_dir exists?
+    exit
 fi
-
 mkdir -p $run_dir 
 
 # loop over different test cases
