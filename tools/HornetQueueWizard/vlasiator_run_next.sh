@@ -16,7 +16,7 @@ function test_job {
    if [ -e logfile.txt ]
    then
       has_not_run_yet=0
-      if [ -e *.OU ]
+      if [ -e I_AM_RUNNING ]
       then
          # Job running in another slot
          is_running=1
@@ -87,7 +87,7 @@ function vlasiator_setup_next {
          echo "filename = $last_restart" >> Magnetosphere.$PBS_JOBID.cfg
       fi
    fi
-   cd ..
+   cd $PBS_O_WRKDIR
 }
 
 function vlasiator_run {
