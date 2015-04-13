@@ -54,7 +54,7 @@ namespace projects {
    
    void Template::setCellBackgroundField(SpatialCell *cell){
       Dipole bgField;
-      bgField.initialize(8e15,0.0); //set dipole moment
+      bgField.initialize(8e15, 0.0, 0.0, 0.0, 0.0); //set dipole moment and location
       if(cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
          setBackgroundFieldToZero(cell->parameters, cell->derivatives,cell->derivativesBVOL);
       } else {

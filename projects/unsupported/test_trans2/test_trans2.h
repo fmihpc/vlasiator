@@ -41,13 +41,13 @@ void calcAccFaceX(
    const REAL VX = blockParams[BlockParams::VXCRD] + I*blockParams[BlockParams::DVX];
    const REAL VY = blockParams[BlockParams::VYCRD] + (J+HALF)*blockParams[BlockParams::DVY];
    const REAL VZ = blockParams[BlockParams::VZCRD] + (K+HALF)*blockParams[BlockParams::DVZ];
-   ax = Parameters::q_per_m * (cellParams[CellParams::EX] +
+   ax = physicalconstants::CHARGE/physicalconstants::MASS_PROTON * (cellParams[CellParams::EX] +
    VY*(cellParams[CellParams::PERBZ]+cellParams[CellParams::BGBZ]) -
    VZ*(cellParams[CellParams::PERBY]+cellParams[CellParams::BGBY]));
-   ay = Parameters::q_per_m * (cellParams[CellParams::EY] +
+   ay = physicalconstants::CHARGE/physicalconstants::MASS_PROTON * (cellParams[CellParams::EY] +
    VZ*(cellParams[CellParams::PERBX]+cellParams[CellParams::BGBX]) -
    VX*(cellParams[CellParams::PERBZ]+cellParams[CellParams::BGBZ]));
-   az = Parameters::q_per_m * (cellParams[CellParams::EZ] +
+   az = physicalconstants::CHARGE/physicalconstants::MASS_PROTON * (cellParams[CellParams::EZ] +
    VX*(cellParams[CellParams::PERBY]+cellParams[CellParams::BGBY]) -
    VY*(cellParams[CellParams::PERBX]+cellParams[CellParams::BGBX]));
 }
@@ -64,13 +64,13 @@ void calcAccFaceY(
    const REAL VX = blockParams[BlockParams::VXCRD] + (I+HALF)*blockParams[BlockParams::DVX];
    const REAL VY = blockParams[BlockParams::VYCRD] + J*blockParams[BlockParams::DVY];
    const REAL VZ = blockParams[BlockParams::VZCRD] + (K+HALF)*blockParams[BlockParams::DVZ];
-   ax = Parameters::q_per_m * (cellParams[CellParams::EX] +
+   ax = physicalconstants::CHARGE/physicalconstants::MASS_PROTON * (cellParams[CellParams::EX] +
    VY*(cellParams[CellParams::PERBZ]+cellParams[CellParams::BGBZ]) -
    VZ*(cellParams[CellParams::PERBY]+cellParams[CellParams::BGBY]));
-   ay = Parameters::q_per_m * (cellParams[CellParams::EY] +
+   ay = physicalconstants::CHARGE/physicalconstants::MASS_PROTON * (cellParams[CellParams::EY] +
    VZ*(cellParams[CellParams::PERBX]+cellParams[CellParams::BGBX]) -
    VX*(cellParams[CellParams::PERBZ]+cellParams[CellParams::BGBZ]));
-   az = Parameters::q_per_m * (cellParams[CellParams::EZ] +
+   az = physicalconstants::CHARGE/physicalconstants::MASS_PROTON * (cellParams[CellParams::EZ] +
    VX*(cellParams[CellParams::PERBY]+cellParams[CellParams::BGBY]) -
    VY*(cellParams[CellParams::PERBX]+cellParams[CellParams::BGBX]));
 }
@@ -87,13 +87,13 @@ void calcAccFaceZ(
    const REAL VX = blockParams[BlockParams::VXCRD] + (I+HALF)*blockParams[BlockParams::DVX];
    const REAL VY = blockParams[BlockParams::VYCRD] + (J+HALF)*blockParams[BlockParams::DVY];
    const REAL VZ = blockParams[BlockParams::VZCRD] + K*blockParams[BlockParams::DVZ];
-   ax = Parameters::q_per_m * (cellParams[CellParams::EX] +
+   ax = physicalconstants::CHARGE/physicalconstants::MASS_PROTON * (cellParams[CellParams::EX] +
    VY*(cellParams[CellParams::PERBZ]+cellParams[CellParams::BGBZ]) -
    VZ*(cellParams[CellParams::PERBY]+cellParams[CellParams::BGBY]));
-   ay = Parameters::q_per_m * (cellParams[CellParams::EY] +
+   ay = physicalconstants::CHARGE/physicalconstants::MASS_PROTON * (cellParams[CellParams::EY] +
    VZ*(cellParams[CellParams::PERBX]+cellParams[CellParams::BGBX]) -
    VX*(cellParams[CellParams::PERBZ]+cellParams[CellParams::BGBZ]));
-   az = Parameters::q_per_m * (cellParams[CellParams::EZ] +
+   az = physicalconstants::CHARGE/physicalconstants::MASS_PROTON * (cellParams[CellParams::EZ] +
    VX*(cellParams[CellParams::PERBY]+cellParams[CellParams::BGBY]) -
    VY*(cellParams[CellParams::PERBX]+cellParams[CellParams::BGBX]));
 }

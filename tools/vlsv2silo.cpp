@@ -359,7 +359,7 @@ bool convertMeshVariable(T & vlsvReader,const string& meshName,const string& var
    for (uint64_t i=0; i<vectorSize; ++i) {
       components[i] = new char[arraySize*dataSize];
       for (uint64_t j=0; j<arraySize; ++j) for (uint64_t k=0; k<dataSize; ++k) 
-	components[i][j*dataSize+k] = buffer[j*vectorSize*dataSize + i*dataSize + k];
+         components[i][j*dataSize+k] = buffer[j*vectorSize*dataSize + i*dataSize + k];
    }
 
    // SILO requires one variable name per (vector) component, but we only have one. 
@@ -375,8 +375,7 @@ bool convertMeshVariable(T & vlsvReader,const string& meshName,const string& var
    }
    
    // Write the unstructured mesh variable to SILO.
-   if (DBPutUcdvar(fileptr,varName.c_str(),meshName.c_str(),vectorSize,&(varNamePtrs[0]),components,arraySize,NULL,0,
-		   SiloType(dataType,dataSize),DB_ZONECENT,NULL) < 0) success = false;
+   if (DBPutUcdvar(fileptr,varName.c_str(),meshName.c_str(),vectorSize,&(varNamePtrs[0]),components,arraySize,NULL,0,SiloType(dataType,dataSize),DB_ZONECENT,NULL) < 0) success = false;
 
    for (uint64_t i=0; i<vectorSize; ++i) {
       delete [] components[i];
@@ -471,9 +470,9 @@ bool convertMesh(oldVlsv::Reader & vlsvReader,const string& meshName) {
       // Read the bottom lower left corner coordinates of a cell and its sizes. Note 
       // that zones will end up in SILO file in the same order as they are in VLSV file.
       if (vlsvReader.readArray("COORDS",meshName,i,1,coordsBuffer) == false) {
-	 cerr << "Failed to read array coords" << endl;
-	 success = false; 
-	 break;
+         cerr << "Failed to read array coords" << endl;
+         success = false; 
+         break;
       }
       creal x  = ptr[0];
       creal y  = ptr[1];
@@ -743,7 +742,7 @@ bool convertMesh(newVlsv::Reader & vlsvReader,const string& meshName) {
       if (convertMeshVariable(vlsvReader,meshName,*it) == false) success = false;
    }
    return success;
-  
+   
 }
 
 
@@ -778,8 +777,8 @@ bool convertSILO(const string& fname) {
    }
    for (list<string>::const_iterator it=meshNames.begin(); it!=meshNames.end(); ++it) {
       if (convertMesh(vlsvReader,*it) == false) {
-	 DBClose(fileptr);
-	 return false;
+         DBClose(fileptr);
+         return false;
       }
    }
    vlsvReader.close();
@@ -823,20 +822,18 @@ int main(int argn,char* args[]) {
       
       struct dirent* entry = readdir(dir);
       while (entry != NULL) {
-	 const string entryName = entry->d_name;
-	 // Compare entry name against given mask and file suffix ".vlsv":
-	 if (entryName.find(maskName) == string::npos || entryName.find(suffix) == string::npos) {
-            
+         const string entryName = entry->d_name;
+         // Compare entry name against given mask and file suffix ".vlsv":
+         if (entryName.find(maskName) == string::npos || entryName.find(suffix) == string::npos) {
             entry = readdir(dir);
-	    continue;
-            
-	 }
+            continue;
+         }
          
          fileList.push_back(directory);
          fileList.back().append("/");
-	 fileList.back().append(entryName);
-	 filesFound++;
-	 entry = readdir(dir);
+         fileList.back().append(entryName);
+         filesFound++;
+         entry = readdir(dir);
       }
       closedir(dir);
       if (rank == 0 && filesFound == 0) cout << "\t no matches found" << endl;
@@ -851,7 +848,7 @@ int main(int argn,char* args[]) {
          } else {
             convertSILO<oldVlsv::Reader>(fileList[entryName]);
          }
-	 filesConverted++;
+         filesConverted++;
       }
    }
    

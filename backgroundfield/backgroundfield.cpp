@@ -18,6 +18,7 @@
 
 #include "../common.h"
 #include "../definitions.h"
+#include "../parameters.h"
 #include "cmath"
 #include "backgroundfield.h"
 #include "fieldfunction.hpp"
@@ -28,8 +29,8 @@ void setBackgroundField(
    FieldFunction& bgFunction,
    Real* cellParams,
    Real* faceDerivatives,
-   Real* volumeDerivatives
-) {
+   Real* volumeDerivatives,
+   bool append) {
    using namespace CellParams;
    using namespace fieldsolver;
    using namespace bvolderivatives;
@@ -64,22 +65,34 @@ void setBackgroundField(
    faceCoord2[1]=2;
    faceCoord1[2]=0;
    faceCoord2[2]=1;
+
+   /*if we do not add a new background to the existing one we first put everything to zero*/
+   if(append==false) {
+      setBackgroundFieldToZero(cellParams, faceDerivatives, volumeDerivatives);
+   }
    
    //Face averages
    for(unsigned int fComponent=0;fComponent<3;fComponent++){
       bgFunction.setDerivative(0);
       bgFunction.setComponent((coordinate)fComponent);
-      cellParams[CellParams::BGBX+fComponent] =surfaceAverage(bgFunction,(coordinate)fComponent,accuracy,
-                                                              start,dx[faceCoord1[fComponent]],dx[faceCoord2[fComponent]]);
+      cellParams[CellParams::BGBX+fComponent] += 
+      surfaceAverage(
+         bgFunction,
+         (coordinate)fComponent,
+         accuracy,
+         start,
+         dx[faceCoord1[fComponent]],
+         dx[faceCoord2[fComponent]]
+      );
       
       //Compute derivatives. Note that we scale by dx[] as the arrays are assumed to contain differences, not true derivatives!
       bgFunction.setDerivative(1);
-      bgFunction.setDerivComponent((coordinate)faceCoord1[fComponent]);      
-      faceDerivatives[fieldsolver::dBGBxdy+2*fComponent] =
+      bgFunction.setDerivComponent((coordinate)faceCoord1[fComponent]);
+      faceDerivatives[fieldsolver::dBGBxdy+2*fComponent] +=
          dx[faceCoord1[fComponent]]*
          surfaceAverage(bgFunction,(coordinate)fComponent,accuracy,start,dx[faceCoord1[fComponent]],dx[faceCoord2[fComponent]]);
-      bgFunction.setDerivComponent((coordinate)faceCoord2[fComponent]);      
-      faceDerivatives[fieldsolver::dBGBxdy+1+2*fComponent] =
+      bgFunction.setDerivComponent((coordinate)faceCoord2[fComponent]);
+      faceDerivatives[fieldsolver::dBGBxdy+1+2*fComponent] +=
          dx[faceCoord2[fComponent]]*
          surfaceAverage(bgFunction,(coordinate)fComponent,accuracy,start,dx[faceCoord1[fComponent]],dx[faceCoord2[fComponent]]);
    }
@@ -87,15 +100,299 @@ void setBackgroundField(
    //Volume averages
    for(unsigned int fComponent=0;fComponent<3;fComponent++){
       bgFunction.setDerivative(0);
-      bgFunction.setComponent((coordinate)fComponent);      
-      cellParams[CellParams::BGBXVOL+fComponent] = volumeAverage(bgFunction,accuracy,start,end);
+      bgFunction.setComponent((coordinate)fComponent);
+      cellParams[CellParams::BGBXVOL+fComponent] += volumeAverage(bgFunction,accuracy,start,end);
 
       //Compute derivatives. Note that we scale by dx[] as the arrays are assumed to contain differences, not true derivatives!      
       bgFunction.setDerivative(1);
-      bgFunction.setDerivComponent((coordinate)faceCoord1[fComponent]);      
-      volumeDerivatives[bvolderivatives::dBGBXVOLdy+2*fComponent] =  dx[faceCoord1[fComponent]]*volumeAverage(bgFunction,accuracy,start,end);
+      bgFunction.setDerivComponent((coordinate)faceCoord1[fComponent]);
+      volumeDerivatives[bvolderivatives::dBGBXVOLdy+2*fComponent] +=  dx[faceCoord1[fComponent]]*volumeAverage(bgFunction,accuracy,start,end);
       bgFunction.setDerivComponent((coordinate)faceCoord2[fComponent]);
-      volumeDerivatives[bvolderivatives::dBGBXVOLdy+1+2*fComponent] = dx[faceCoord2[fComponent]]*volumeAverage(bgFunction,accuracy,start,end);
+      volumeDerivatives[bvolderivatives::dBGBXVOLdy+1+2*fComponent] += dx[faceCoord2[fComponent]]*volumeAverage(bgFunction,accuracy,start,end);
+   }
+   
+   // Edge averages
+   // As of 20131115, these components are only needed in the Hall term calculations.
+   bgFunction.setDerivative(0);
+   if(Parameters::ohmHallTerm > 0) {
+      start[0] = cellParams[CellParams::XCRD];
+      start[1] = cellParams[CellParams::YCRD];
+      start[2] = cellParams[CellParams::ZCRD];
+      bgFunction.setComponent(X);
+      cellParams[CellParams::BGBX_000_010] +=
+         lineAverage(
+            bgFunction,
+            Y,
+            accuracy,
+            start,
+            dx[1]
+         );
+      cellParams[CellParams::BGBX_000_001] +=
+         lineAverage(
+            bgFunction,
+            Z,
+            accuracy,
+            start,
+            dx[2]
+         );
+      
+      bgFunction.setComponent(Y);
+      cellParams[CellParams::BGBY_000_100] +=
+         lineAverage(
+            bgFunction,
+            X,
+            accuracy,
+            start,
+            dx[0]
+         );
+      cellParams[CellParams::BGBY_000_001] +=
+         lineAverage(
+            bgFunction,
+            Z,
+            accuracy,
+            start,
+            dx[2]
+         );
+      
+      bgFunction.setComponent(Z);
+      cellParams[CellParams::BGBZ_000_100] +=
+         lineAverage(
+            bgFunction,
+            X,
+            accuracy,
+            start,
+            dx[0]
+         );
+      cellParams[CellParams::BGBZ_000_010] +=
+         lineAverage(
+            bgFunction,
+            Y,
+            accuracy,
+            start,
+            dx[1]
+         );
+      
+      start[0] = cellParams[CellParams::XCRD] + cellParams[CellParams::DX];
+      start[1] = cellParams[CellParams::YCRD];
+      start[2] = cellParams[CellParams::ZCRD];
+      bgFunction.setComponent(X);
+      cellParams[CellParams::BGBX_100_110] +=
+         lineAverage(
+            bgFunction,
+            Y,
+            accuracy,
+            start,
+            dx[1]
+         );
+      cellParams[CellParams::BGBX_100_101] +=
+         lineAverage(
+            bgFunction,
+            Z,
+            accuracy,
+            start,
+            dx[2]
+         );
+      
+      bgFunction.setComponent(Y);
+      cellParams[CellParams::BGBY_100_101] +=
+         lineAverage(
+            bgFunction,
+            Z,
+            accuracy,
+            start,
+            dx[2]
+         );
+      
+      bgFunction.setComponent(Z);
+      cellParams[CellParams::BGBZ_100_110] +=
+         lineAverage(
+            bgFunction,
+            Y,
+            accuracy,
+            start,
+            dx[1]
+         );
+      
+      start[0] = cellParams[CellParams::XCRD];
+      start[1] = cellParams[CellParams::YCRD];
+      start[2] = cellParams[CellParams::ZCRD] + cellParams[CellParams::DZ];
+      bgFunction.setComponent(X);
+      cellParams[CellParams::BGBX_001_011] +=
+         lineAverage(
+            bgFunction,
+            Y,
+            accuracy,
+            start,
+            dx[1]
+         );
+      
+      bgFunction.setComponent(Y);
+      cellParams[CellParams::BGBY_001_101] +=
+         lineAverage(
+            bgFunction,
+            X,
+            accuracy,
+            start,
+            dx[0]
+         );
+      
+      bgFunction.setComponent(Z);
+      cellParams[CellParams::BGBZ_001_011] +=
+         lineAverage(
+            bgFunction,
+            Y,
+            accuracy,
+            start,
+            dx[1]
+         );
+      
+      start[0] = cellParams[CellParams::XCRD] + cellParams[CellParams::DX];
+      start[1] = cellParams[CellParams::YCRD];
+      start[2] = cellParams[CellParams::ZCRD] + cellParams[CellParams::DZ];
+      bgFunction.setComponent(X);
+      cellParams[CellParams::BGBX_101_111] +=
+         lineAverage(
+            bgFunction,
+            Y,
+            accuracy,
+            start,
+            dx[1]
+         );
+      
+      bgFunction.setComponent(Z);
+      cellParams[CellParams::BGBZ_101_111] +=
+         lineAverage(
+            bgFunction,
+            Y,
+            accuracy,
+            start,
+            dx[1]
+         );
+      
+      start[0] = cellParams[CellParams::XCRD];
+      start[1] = cellParams[CellParams::YCRD] + cellParams[CellParams::DY];
+      start[2] = cellParams[CellParams::ZCRD];
+      bgFunction.setComponent(X);
+      cellParams[CellParams::BGBX_010_011] +=
+         lineAverage(
+            bgFunction,
+            Z,
+            accuracy,
+            start,
+            dx[2]
+         );
+      
+      bgFunction.setComponent(Y);
+      cellParams[CellParams::BGBY_010_110] +=
+         lineAverage(
+            bgFunction,
+            X,
+            accuracy,
+            start,
+            dx[0]
+         );
+      cellParams[CellParams::BGBY_010_011] +=
+         lineAverage(
+            bgFunction,
+            Z,
+            accuracy,
+            start,
+            dx[2]
+         );
+      
+      bgFunction.setComponent(Z);
+      cellParams[CellParams::BGBZ_010_110] +=
+         lineAverage(
+            bgFunction,
+            X,
+            accuracy,
+            start,
+            dx[0]
+         );
+      
+      start[0] = cellParams[CellParams::XCRD] + cellParams[CellParams::DX];
+      start[1] = cellParams[CellParams::YCRD] + cellParams[CellParams::DY];
+      start[2] = cellParams[CellParams::ZCRD];
+      bgFunction.setComponent(X);
+      cellParams[CellParams::BGBX_110_111] +=
+         lineAverage(
+            bgFunction,
+            Z,
+            accuracy,
+            start,
+            dx[2]
+         );
+      
+      bgFunction.setComponent(Y);
+      cellParams[CellParams::BGBY_110_111] +=
+         lineAverage(
+            bgFunction,
+            Z,
+            accuracy,
+            start,
+            dx[2]
+         );
+      
+      start[0] = cellParams[CellParams::XCRD];
+      start[1] = cellParams[CellParams::YCRD] + cellParams[CellParams::DY];
+      start[2] = cellParams[CellParams::ZCRD] + cellParams[CellParams::DZ];
+      bgFunction.setComponent(Y);
+      cellParams[CellParams::BGBY_011_111] +=
+         lineAverage(
+            bgFunction,
+            X,
+            accuracy,
+            start,
+            dx[0]
+         );
+      
+      bgFunction.setComponent(Z);
+      cellParams[CellParams::BGBZ_011_111] +=
+         lineAverage(
+            bgFunction,
+            X,
+            accuracy,
+            start,
+            dx[0]
+         );
+      
+      start[0] = cellParams[CellParams::XCRD];
+      start[1] = cellParams[CellParams::YCRD];
+      start[2] = cellParams[CellParams::ZCRD] + cellParams[CellParams::DZ];
+      bgFunction.setComponent(Z);
+      cellParams[CellParams::BGBZ_001_101] +=
+         lineAverage(
+            bgFunction,
+            X,
+            accuracy,
+            start,
+            dx[0]
+         );
+   } else {
+      cellParams[CellParams::BGBX_000_010] += 0.0;
+      cellParams[CellParams::BGBX_100_110] += 0.0;
+      cellParams[CellParams::BGBX_001_011] += 0.0;
+      cellParams[CellParams::BGBX_101_111] += 0.0;
+      cellParams[CellParams::BGBX_000_001] += 0.0;
+      cellParams[CellParams::BGBX_100_101] += 0.0;
+      cellParams[CellParams::BGBX_010_011] += 0.0;
+      cellParams[CellParams::BGBX_110_111] += 0.0;
+      cellParams[CellParams::BGBY_000_100] += 0.0;
+      cellParams[CellParams::BGBY_010_110] += 0.0;
+      cellParams[CellParams::BGBY_001_101] += 0.0;
+      cellParams[CellParams::BGBY_011_111] += 0.0;
+      cellParams[CellParams::BGBY_000_001] += 0.0;
+      cellParams[CellParams::BGBY_100_101] += 0.0;
+      cellParams[CellParams::BGBY_010_011] += 0.0;
+      cellParams[CellParams::BGBY_110_111] += 0.0;
+      cellParams[CellParams::BGBZ_000_100] += 0.0;
+      cellParams[CellParams::BGBZ_010_110] += 0.0;
+      cellParams[CellParams::BGBZ_001_101] += 0.0;
+      cellParams[CellParams::BGBZ_011_111] += 0.0;
+      cellParams[CellParams::BGBZ_000_010] += 0.0;
+      cellParams[CellParams::BGBZ_100_110] += 0.0;
+      cellParams[CellParams::BGBZ_001_011] += 0.0;
+      cellParams[CellParams::BGBZ_101_111] += 0.0;
    }
 
    //TODO
@@ -124,4 +421,31 @@ void setBackgroundFieldToZero(
       volumeDerivatives[bvolderivatives::dBGBXVOLdy+2*fComponent] = 0.0;
       volumeDerivatives[bvolderivatives::dBGBXVOLdy+1+2*fComponent] =0.0;
    }
+   
+   //Terms needed for hall term
+   cellParams[CellParams::BGBX_000_010] = 0.0;
+   cellParams[CellParams::BGBX_100_110] = 0.0;
+   cellParams[CellParams::BGBX_001_011] = 0.0;
+   cellParams[CellParams::BGBX_101_111] = 0.0;
+   cellParams[CellParams::BGBX_000_001] = 0.0;
+   cellParams[CellParams::BGBX_100_101] = 0.0;
+   cellParams[CellParams::BGBX_010_011] = 0.0;
+   cellParams[CellParams::BGBX_110_111] = 0.0;
+   cellParams[CellParams::BGBY_000_100] = 0.0;
+   cellParams[CellParams::BGBY_010_110] = 0.0;
+   cellParams[CellParams::BGBY_001_101] = 0.0;
+   cellParams[CellParams::BGBY_011_111] = 0.0;
+   cellParams[CellParams::BGBY_000_001] = 0.0;
+   cellParams[CellParams::BGBY_100_101] = 0.0;
+   cellParams[CellParams::BGBY_010_011] = 0.0;
+   cellParams[CellParams::BGBY_110_111] = 0.0;
+   cellParams[CellParams::BGBZ_000_100] = 0.0;
+   cellParams[CellParams::BGBZ_010_110] = 0.0;
+   cellParams[CellParams::BGBZ_001_101] = 0.0;
+   cellParams[CellParams::BGBZ_011_111] = 0.0;
+   cellParams[CellParams::BGBZ_000_010] = 0.0;
+   cellParams[CellParams::BGBZ_100_110] = 0.0;
+   cellParams[CellParams::BGBZ_001_011] = 0.0;
+   cellParams[CellParams::BGBZ_101_111] = 0.0;
+
 }

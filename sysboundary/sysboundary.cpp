@@ -110,19 +110,20 @@ bool SysBoundary::addSysBoundary(
    Project &project,
    creal& t
 ) {
+   bool success = true;
+   if (bc->initSysBoundary(t, project) == false) {
+      cerr << "Failed to initialize system boundary condition '" << bc->getName() << "'" << endl;
+      return false;
+   }
+
    sysBoundaries.push_back(bc);
    if(sysBoundaries.size() > 1) {
       sysBoundaries.sort(precedenceSort);
    }
-   
-   bool success = true;
-   if(bc->initSysBoundary(t, project) == false) {
-      success = false;
-   }
-   
+
    // This assumes that only one instance of each type is created.
    indexToSysBoundary[bc->getIndex()] = bc;
-   
+
    return success;
 }
 
@@ -265,7 +266,7 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
    mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
    
    /*Compute distances*/
-   uint maxLayers=max(max(P::xcells_ini, P::ycells_ini), P::zcells_ini);
+   uint maxLayers=3;//max(max(P::xcells_ini, P::ycells_ini), P::zcells_ini);
    for(uint layer=1;layer<maxLayers;layer++){
       for(uint i=0; i<cells.size(); i++) {
          if(mpiGrid[cells[i]]->sysBoundaryLayer==0){
@@ -332,8 +333,9 @@ bool SysBoundary::applyInitialState(
 
 /*!\brief Apply the Vlasov system boundary conditions to all system boundary cells at time t.
  *
- * Loops through all SysBoundaryConditions and calls the corresponding vlasovBoundaryCondition()
- * function.
+ * Loops through all SysBoundaryConditions and calls the corresponding vlasovBoundaryCondition() function.
+ * 
+ * WARNING (see end of the function) Blocks are changed but lists not updated now, if you need to use/communicate them before the next update is done, add an update at the end of this function.
  */
 void SysBoundary::applySysBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, creal& t) {
    if(sysBoundaries.size()==0) {
@@ -355,7 +357,7 @@ void SysBoundary::applySysBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell,dccr
    
    timer=phiprof::initializeTimer("Compute process inner cells");
    phiprof::start(timer);
-   // Compute Vlasov boundary condition on system boundary/on process inner cells
+   // Compute Vlasov boundary condition on system boundary/process inner cells
    vector<CellID> localCells;
    getBoundaryCellList(mpiGrid,mpiGrid.get_local_cells_not_on_process_boundary(SYSBOUNDARIES_NEIGHBORHOOD_ID),localCells);
    
@@ -388,13 +390,10 @@ void SysBoundary::applySysBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell,dccr
    mpiGrid.wait_remote_neighbor_copy_update_sends();
    phiprof::stop(timer);
 
-//  No need to adjust, vlasovBoundaryCondition not allowed to modify block structure!!!   
-/*
-  updateRemoteVelocityBlockLists(mpiGrid);
-  adjustVelocityBlocks(mpiGrid);
-*/
+   // WARNING Blocks are changed but lists not updated now, if you need to use/communicate them before the next update is done, add an update here.
 
-}   
+
+}
 
 /*! Get a pointer to the SysBoundaryCondition of given index.
  * \retval ptr Pointer to the instance of the SysBoundaryCondition.
@@ -434,4 +433,25 @@ bool getBoundaryCellList(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometr
    }
    return true;
 }
+
+/*! Updates all NonsysboundaryCells into an internal map. This should be called in loadBalance.
+ * \param mpiGrid The DCCRG grid
+   \retval Returns true if the operation is successful
+  */
+bool SysBoundary::updateSysBoundariesAfterLoadBalance(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
+   phiprof::start("getAllClosestNonsysboundaryCells");
+   vector<uint64_t> local_cells_on_boundary;
+   getBoundaryCellList(mpiGrid, mpiGrid.get_cells(), local_cells_on_boundary);
+   // Loop over sysboundaries:
+   for( std::list<SBC::SysBoundaryCondition*>::iterator it = sysBoundaries.begin(); it != sysBoundaries.end(); ++it ) {
+      (*it)->updateSysBoundaryConditionsAfterLoadBalance(mpiGrid, local_cells_on_boundary);
+   }
+
+   phiprof::stop("getAllClosestNonsysboundaryCells");
+   return true;
+}
+
+
+
+
 

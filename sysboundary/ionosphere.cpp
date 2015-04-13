@@ -27,9 +27,16 @@
 #include "../projects/project.h"
 #include "../projects/projects_common.h"
 #include "../vlasovmover.h"
-#include "../fieldsolver.h"
-#include "../fieldsolver/limiters.h"
+#include "../fieldsolver/fs_common.h"
+#include "../fieldsolver/fs_limiters.h"
 #include "../common.h"
+
+#ifndef NDEBUG
+   #define DEBUG_IONOSPHERE
+#endif
+#ifdef DEBUG_SYSBOUNDARY
+   #define DEBUG_IONOSPHERE
+#endif
 
 namespace SBC {
    Ionosphere::Ionosphere(): SysBoundaryCondition() { }
@@ -41,6 +48,7 @@ namespace SBC {
       Readparameters::add("ionosphere.centerY", "Y coordinate of ionosphere center (m)", 0.0);
       Readparameters::add("ionosphere.centerZ", "Z coordinate of ionosphere center (m)", 0.0);
       Readparameters::add("ionosphere.radius", "Radius of ionosphere (m).", 1.0e7);
+      Readparameters::add("ionosphere.geometry", "Select the geometry of the ionosphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm (circle, DEFAULT)", 2);
       Readparameters::add("ionosphere.rho", "Number density of the ionosphere (m^-3)", 1.0e6);
       Readparameters::add("ionosphere.VX0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", 0.0);
       Readparameters::add("ionosphere.VY0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", 0.0);
@@ -65,6 +73,10 @@ namespace SBC {
          exit(1);
       }
       if(!Readparameters::get("ionosphere.radius", this->radius)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("ionosphere.geometry", this->geometry)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
@@ -127,21 +139,39 @@ namespace SBC {
          creal x = cellParams[CellParams::XCRD] + 0.5*dx;
          creal y = cellParams[CellParams::YCRD] + 0.5*dy;
          creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
-         creal r = sqrt((x-center[0])*(x-center[0]) + (y-center[1])*(y-center[1]) + (z-center[2])*(z-center[2]));
+         Real r;
          
-         if(r < radius) {
+         switch(this->geometry) {
+            case 0:
+               // infinity-norm, result is a diamond/square with diagonals aligned on the axes in 2D
+               r = fabs(x-center[0]) + fabs(y-center[1]) + fabs(z-center[2]);
+               break;
+            case 1:
+               // 1-norm, result is is a grid-aligned square in 2D
+               r = max(max(fabs(x-center[0]), fabs(y-center[1])), fabs(z-center[2]));
+               break;
+            case 2:
+               // 2-norm (Cartesian), result is a circle in 2D
+               r = sqrt((x-center[0])*(x-center[0]) + (y-center[1])*(y-center[1]) + (z-center[2])*(z-center[2]));
+               break;
+            default:
+               std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1 or 2." << std::endl;
+               abort();
+         }
+         
+         if(r < this->radius) {
             mpiGrid[cells[i]]->sysBoundaryFlag = this->getIndex();
          }
       }
       return true;
    }
-   
+
    bool Ionosphere::applyInitialState(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       Project &project
    ) {
       vector<uint64_t> cells = mpiGrid.get_cells();
-#pragma omp parallel for
+      #pragma omp parallel for
       for (uint i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
          if(cell->sysBoundaryFlag != this->getIndex()) continue;
@@ -149,24 +179,328 @@ namespace SBC {
       }
       return true;
    }
-   
-//    bool Ionosphere::applySysBoundaryCondition(
-//       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-//       creal& t
-//    ) {
-//       return true;
-//    }
-   
-   Real Ionosphere::fieldSolverBoundaryCondMagneticField(
+
+   std::array<Real, 3> Ionosphere::fieldSolverGetNormalDirection(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID,
-      creal& dt,
-      cuint& component
+      const CellID& cellID
    ) {
-      // The perturbed magnetic field is reset to 0.0, the dipole field is in the background component.
-      return 0.0;
+      phiprof::start("Ionosphere::fieldSolverGetNormalDirection");
+      std::array<Real, 3> normalDirection{{ 0.0, 0.0, 0.0 }};
+      
+      static creal DIAG2 = 1.0 / sqrt(2.0);
+      static creal DIAG3 = 1.0 / sqrt(3.0);
+      
+      creal dx = mpiGrid[cellID]->parameters[CellParams::DX];
+      creal dy = mpiGrid[cellID]->parameters[CellParams::DY];
+      creal dz = mpiGrid[cellID]->parameters[CellParams::DZ];
+      creal x = mpiGrid[cellID]->parameters[CellParams::XCRD] + 0.5*dx;
+      creal y = mpiGrid[cellID]->parameters[CellParams::YCRD] + 0.5*dy;
+      creal z = mpiGrid[cellID]->parameters[CellParams::ZCRD] + 0.5*dz;
+      creal xsign = divideIfNonZero(x, fabs(x));
+      creal ysign = divideIfNonZero(y, fabs(y));
+      creal zsign = divideIfNonZero(z, fabs(z));
+      
+      Real length = 0.0;
+      
+      if (Parameters::xcells_ini == 1) {
+         if (Parameters::ycells_ini == 1) {
+            if (Parameters::zcells_ini == 1) {
+               // X,Y,Z
+               std::cerr << __FILE__ << ":" << __LINE__ << ":" << "What do you expect to do with a single-cell simulation of ionosphere boundary type? Stop kidding." << std::endl;
+               abort();
+               // end of X,Y,Z
+            } else {
+               // X,Y
+               normalDirection[2] = zsign;
+               // end of X,Y
+            }
+         } else if (Parameters::zcells_ini == 1) {
+            // X,Z
+            normalDirection[1] = ysign;
+            // end of X,Z
+         } else {
+            // X
+            switch(this->geometry) {
+               case 0:
+                  normalDirection[1] = DIAG2*ysign;
+                  normalDirection[2] = DIAG2*zsign;
+                  break;
+               case 1:
+                  if(fabs(y) == fabs(z)) {
+                     normalDirection[1] = ysign*DIAG2;
+                     normalDirection[2] = zsign*DIAG2;
+                     break;
+                  }
+                  if(fabs(y) > (this->radius - dy)) {
+                     normalDirection[1] = ysign;
+                     break;
+                  }
+                  if(fabs(z) > (this->radius - dz)) {
+                     normalDirection[2] = zsign;
+                     break;
+                  }
+                  if(fabs(y) > (this->radius - 2.0*dy)) {
+                     normalDirection[1] = ysign;
+                     break;
+                  }
+                  if(fabs(z) > (this->radius - 2.0*dz)) {
+                     normalDirection[2] = zsign;
+                     break;
+                  }
+                  break;
+               case 2:
+                  length = sqrt(y*y + z*z);
+                  normalDirection[1] = y / length;
+                  normalDirection[2] = z / length;
+                  break;
+               default:
+                  std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1 or 2." << std::endl;
+                  abort();
+            }
+            // end of X
+         }
+      } else if (Parameters::ycells_ini == 1) {
+         if (Parameters::zcells_ini == 1) {
+            // Y,Z
+            normalDirection[0] = xsign;
+            // end of Y,Z
+         } else {
+            // Y
+            switch(this->geometry) {
+               case 0:
+                  normalDirection[0] = DIAG2*xsign;
+                  normalDirection[2] = DIAG2*zsign;
+                  break;
+               case 1:
+                  if(fabs(x) == fabs(z)) {
+                     normalDirection[0] = xsign*DIAG2;
+                     normalDirection[2] = zsign*DIAG2;
+                     break;
+                  }
+                  if(fabs(x) > (this->radius - dx)) {
+                     normalDirection[0] = xsign;
+                     break;
+                  }
+                  if(fabs(z) > (this->radius - dz)) {
+                     normalDirection[2] = zsign;
+                     break;
+                  }
+                  if(fabs(x) > (this->radius - 2.0*dx)) {
+                     normalDirection[0] = xsign;
+                     break;
+                  }
+                  if(fabs(z) > (this->radius - 2.0*dz)) {
+                     normalDirection[2] = zsign;
+                     break;
+                  }
+                  break;
+               case 2:
+                  length = sqrt(x*x + z*z);
+                  normalDirection[0] = x / length;
+                  normalDirection[2] = z / length;
+                  break;
+               default:
+                  std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1 or 2." << std::endl;
+                  abort();
+            }
+            // end of Y
+         }
+      } else if (Parameters::zcells_ini == 1) {
+         // Z
+         switch(this->geometry) {
+            case 0:
+               normalDirection[0] = DIAG2*xsign;
+               normalDirection[1] = DIAG2*ysign;
+               break;
+            case 1:
+               if(fabs(x) == fabs(y)) {
+                  normalDirection[0] = xsign*DIAG2;
+                  normalDirection[1] = ysign*DIAG2;
+                  break;
+               }
+               if(fabs(x) > (this->radius - dx)) {
+                  normalDirection[0] = xsign;
+                  break;
+               }
+               if(fabs(y) > (this->radius - dy)) {
+                  normalDirection[1] = ysign;
+                  break;
+               }
+               if(fabs(x) > (this->radius - 2.0*dx)) {
+                  normalDirection[0] = xsign;
+                  break;
+               }
+               if(fabs(y) > (this->radius - 2.0*dy)) {
+                  normalDirection[1] = ysign;
+                  break;
+               }
+               break;
+            case 2:
+               length = sqrt(x*x + y*y);
+               normalDirection[0] = x / length;
+               normalDirection[1] = y / length;
+               break;
+            default:
+               std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1 or 2." << std::endl;
+               abort();
+         }
+         // end of Z
+      } else {
+         // 3D
+         switch(this->geometry) {
+            case 0:
+               normalDirection[0] = DIAG3*xsign;
+               normalDirection[1] = DIAG3*ysign;
+               normalDirection[2] = DIAG3*zsign;
+               break;
+            case 1:
+               if(fabs(x) == fabs(y) && fabs(x) == fabs(z) && fabs(x) > this->radius - dx) {
+                  normalDirection[0] = xsign*DIAG3;
+                  normalDirection[1] = ysign*DIAG3;
+                  normalDirection[2] = zsign*DIAG3;
+                  break;
+               }
+               if(fabs(x) == fabs(y) && fabs(x) == fabs(z) && fabs(x) > this->radius - 2.0*dx) {
+                  normalDirection[0] = xsign*DIAG3;
+                  normalDirection[1] = ysign*DIAG3;
+                  normalDirection[2] = zsign*DIAG3;
+                  break;
+               }
+               if(fabs(x) == fabs(y) && fabs(x) > this->radius - dx && fabs(z) < this->radius - dz) {
+                  normalDirection[0] = xsign*DIAG2;
+                  normalDirection[1] = ysign*DIAG2;
+                  normalDirection[2] = 0.0;
+                  break;
+               }
+               if(fabs(y) == fabs(z) && fabs(y) > this->radius - dy && fabs(x) < this->radius - dx) {
+                  normalDirection[0] = 0.0;
+                  normalDirection[1] = ysign*DIAG2;
+                  normalDirection[2] = zsign*DIAG2;
+                  break;
+               }
+               if(fabs(x) == fabs(z) && fabs(x) > this->radius - dx && fabs(y) < this->radius - dy) {
+                  normalDirection[0] = xsign*DIAG2;
+                  normalDirection[1] = 0.0;
+                  normalDirection[2] = zsign*DIAG2;
+                  break;
+               }
+               if(fabs(x) == fabs(y) && fabs(x) > this->radius - 2.0*dx && fabs(z) < this->radius - 2.0*dz) {
+                  normalDirection[0] = xsign*DIAG2;
+                  normalDirection[1] = ysign*DIAG2;
+                  normalDirection[2] = 0.0;
+                  break;
+               }
+               if(fabs(y) == fabs(z) && fabs(y) > this->radius - 2.0*dy && fabs(x) < this->radius - 2.0*dx) {
+                  normalDirection[0] = 0.0;
+                  normalDirection[1] = ysign*DIAG2;
+                  normalDirection[2] = zsign*DIAG2;
+                  break;
+               }
+               if(fabs(x) == fabs(z) && fabs(x) > this->radius - 2.0*dx && fabs(y) < this->radius - 2.0*dy) {
+                  normalDirection[0] = xsign*DIAG2;
+                  normalDirection[1] = 0.0;
+                  normalDirection[2] = zsign*DIAG2;
+                  break;
+               }
+               if(fabs(x) > (this->radius - dx)) {
+                  normalDirection[0] = xsign;
+                  break;
+               }
+               if(fabs(y) > (this->radius - dy)) {
+                  normalDirection[1] = ysign;
+                  break;
+               }
+               if(fabs(z) > (this->radius - dz)) {
+                  normalDirection[2] = zsign;
+                  break;
+               }
+               if(fabs(x) > (this->radius - 2.0*dx)) {
+                  normalDirection[0] = xsign;
+                  break;
+               }
+               if(fabs(y) > (this->radius - 2.0*dy)) {
+                  normalDirection[1] = ysign;
+                  break;
+               }
+               if(fabs(z) > (this->radius - 2.0*dz)) {
+                  normalDirection[2] = zsign;
+                  break;
+               }
+               break;
+            case 2:
+               length = sqrt(x*x + y*y + z*z);
+               normalDirection[0] = x / length;
+               normalDirection[1] = y / length;
+               normalDirection[2] = z / length;
+               break;
+            default:
+               std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1 or 2." << std::endl;
+               abort();
+         }
+         // end of 3D
+      }
+      
+#ifdef DEBUG_IONOSPHERE
+      // Uncomment one of the following line for debugging output to evaluate the correctness of the results. Best used with a single process and single thread.
+//       if (mpiGrid[cellID]->sysBoundaryLayer == 1) std::cerr << x << " " << y << " " << z << " " << normalDirection[0] << " " << normalDirection[1] << " " << normalDirection[2] << std::endl;
+//       if (mpiGrid[cellID]->sysBoundaryLayer == 2) std::cerr << x << " " << y << " " << z << " " << normalDirection[0] << " " << normalDirection[1] << " " << normalDirection[2] << std::endl;
+//      std::cerr << x << " " << y << " " << z << " " << normalDirection[0] << " " << normalDirection[1] << " " << normalDirection[2] << std::endl;
+#endif
+      phiprof::stop("Ionosphere::fieldSolverGetNormalDirection");
+      return normalDirection;
    }
    
+   /*! We want here to
+    * 
+    * -- Average perturbed face B from the nearest neighbours
+    * 
+    * -- Retain only the normal components of perturbed face B
+    */
+   Real Ionosphere::fieldSolverBoundaryCondMagneticField(
+                                                         const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                                         const CellID& cellID,
+                                                         creal& dt,
+                                                         cuint& component
+                                                        ) {
+      std::vector<CellID> closestCells = getAllClosestNonsysboundaryCells(cellID);
+      if (closestCells.size() == 1 && closestCells[0] == INVALID_CELLID) {
+         std::cerr << __FILE__ << ":" << __LINE__ << ":" << "No closest cells found!" << std::endl;
+         abort();
+      }
+
+      // Sum perturbed B component over all nearest NOT_SYSBOUNDARY neighbours
+      std::array<Real, 3> averageB = {{ 0.0 }};
+      int offset;
+      if (dt == 0.0) {
+         offset = 0;
+      } else {
+         offset = CellParams::PERBX_DT2 - CellParams::PERBX;
+      }
+      for (uint i=0; i<closestCells.size(); i++) {
+         #ifdef DEBUG_IONOSPHERE
+         if (mpiGrid[closestCells[i]]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+            stringstream ss;
+            ss << "ERROR, ionosphere cell " << cellID << " uses value from sysboundary nbr " << closestCells[i];
+            ss << " in " << __FILE__ << ":" << __LINE__ << endl;
+            cerr << ss.str();
+            exit(1);
+         }
+         #endif
+         averageB[0] += mpiGrid[closestCells[i]]->parameters[CellParams::PERBX+offset];
+         averageB[1] += mpiGrid[closestCells[i]]->parameters[CellParams::PERBY+offset];
+         averageB[2] += mpiGrid[closestCells[i]]->parameters[CellParams::PERBZ+offset];
+      }
+
+      // Average and project to normal direction
+      std::array<Real, 3> normalDirection = fieldSolverGetNormalDirection(mpiGrid, cellID);
+      for(uint i=0; i<3; i++) {
+         averageB[i] *= normalDirection[i] / closestCells.size();
+      }
+
+      // Return (B.n)*normalVector[component]
+      return (averageB[0]+averageB[1]+averageB[2])*normalDirection[component];
+   }
+
    void Ionosphere::fieldSolverBoundaryCondElectricField(
       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
@@ -181,172 +515,45 @@ namespace SBC {
       return;
    }
    
+   void Ionosphere::fieldSolverBoundaryCondHallElectricField(
+                                                             fs_cache::CellCache& cache,
+      cuint RKCase,
+      cuint component
+   ) {
+      Real* cp = cache.cells[fs_cache::calculateNbrID(1,1,1)]->parameters;
+      
+      switch(component) {
+         case 0:
+         cp[CellParams::EXHALL_000_100] = 0.0;
+         cp[CellParams::EXHALL_010_110] = 0.0;
+         cp[CellParams::EXHALL_001_101] = 0.0;
+         cp[CellParams::EXHALL_011_111] = 0.0;
+         break;
+       case 1:
+         cp[CellParams::EYHALL_000_010] = 0.0;
+         cp[CellParams::EYHALL_100_110] = 0.0;
+         cp[CellParams::EYHALL_001_011] = 0.0;
+         cp[CellParams::EYHALL_101_111] = 0.0;
+         break;
+       case 2:
+         cp[CellParams::EZHALL_000_001] = 0.0;
+         cp[CellParams::EZHALL_100_101] = 0.0;
+         cp[CellParams::EZHALL_010_011] = 0.0;
+         cp[CellParams::EZHALL_110_111] = 0.0;
+         break;
+       default:
+         cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
+      }
+   }
+   
    void Ionosphere::fieldSolverBoundaryCondDerivatives(
       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
       cuint& RKCase,
       cuint& component
    ) {
-      // For B: use background B + perturbed B in normal cells, only background B in the ionosphere and DO_NOT_COMPUTE cells
-      // For RHO and V: use self. One could also use the DO_NOT_COMPUTE cells and give them the ionospheric values too but that means more code changes than just here.
-      // this->setCellDerivativesToZero(mpiGrid, cellID, component);
-      Real* const array       = mpiGrid[cellID]->derivatives;
-      CellID leftNbrID,rghtNbrID;
-      creal* rhovLeft = NULL;
-      creal* left = NULL;
-      creal* cent = mpiGrid[cellID]->parameters;
-      creal* rhovRght = NULL;
-      creal* rght = NULL;
-      switch(component) {
-         namespace cp = CellParams;
-         namespace fs = fieldsolver;
-         case 0:
-            leftNbrID = getNeighbourID(mpiGrid,cellID,2-1,2  ,2  );
-            rghtNbrID = getNeighbourID(mpiGrid,cellID,2+1,2  ,2  );
-            left = mpiGrid[leftNbrID]->parameters;
-            rght = mpiGrid[rghtNbrID]->parameters;
-            if(mpiGrid[leftNbrID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
-               rhovLeft = mpiGrid[cellID]->parameters;
-            } else{
-               rhovLeft = mpiGrid[leftNbrID]->parameters;
-            }
-            if(mpiGrid[rghtNbrID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
-               rhovRght = mpiGrid[cellID]->parameters;
-            } else{
-               rhovRght = mpiGrid[rghtNbrID]->parameters;
-            }
-            if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-               array[fs::drhodx] = limiter(rhovLeft[cp::RHO],cent[cp::RHO],rhovRght[cp::RHO]);
-               array[fs::dVxdx]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVX], rhovLeft[cp::RHO]),
-                                           divideIfNonZero(    cent[cp::RHOVX],     cent[cp::RHO]),
-                                           divideIfNonZero(rhovRght[cp::RHOVX], rhovRght[cp::RHO]));
-               array[fs::dVydx]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVY], rhovLeft[cp::RHO]),
-                                           divideIfNonZero(    cent[cp::RHOVY],     cent[cp::RHO]),
-                                           divideIfNonZero(rhovRght[cp::RHOVY], rhovRght[cp::RHO]));
-               array[fs::dVzdx]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVZ], rhovLeft[cp::RHO]),
-                                           divideIfNonZero(    cent[cp::RHOVZ],     cent[cp::RHO]),
-                                           divideIfNonZero(rhovRght[cp::RHOVZ], rhovRght[cp::RHO]));
-               array[fs::dPERBydx]  = limiter(left[cp::PERBY],cent[cp::PERBY],rght[cp::PERBY]);
-               array[fs::dBGBydx]  = limiter(left[cp::BGBY],cent[cp::BGBY],rght[cp::BGBY]);
-               array[fs::dPERBzdx]  = limiter(left[cp::PERBZ],cent[cp::PERBZ],rght[cp::PERBZ]);
-               array[fs::dBGBzdx]  = limiter(left[cp::BGBZ],cent[cp::BGBZ],rght[cp::BGBZ]);
-            }
-            if (RKCase == RK_ORDER2_STEP1) {
-               array[fs::drhodx] = limiter(rhovLeft[cp::RHO_DT2],cent[cp::RHO_DT2],rhovRght[cp::RHO_DT2]);
-               array[fs::dVxdx]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVX_DT2], rhovLeft[cp::RHO_DT2]),
-                                           divideIfNonZero(    cent[cp::RHOVX_DT2],     cent[cp::RHO_DT2]),
-                                           divideIfNonZero(rhovRght[cp::RHOVX_DT2], rhovRght[cp::RHO_DT2]));
-               array[fs::dVydx]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVY_DT2], rhovLeft[cp::RHO_DT2]),
-                                           divideIfNonZero(    cent[cp::RHOVY_DT2],     cent[cp::RHO_DT2]),
-                                           divideIfNonZero(rhovRght[cp::RHOVY_DT2], rhovRght[cp::RHO_DT2]));
-               array[fs::dVzdx]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVZ_DT2], rhovLeft[cp::RHO_DT2]),
-                                           divideIfNonZero(    cent[cp::RHOVZ_DT2],     cent[cp::RHO_DT2]),
-                                           divideIfNonZero(rhovRght[cp::RHOVZ_DT2], rhovRght[cp::RHO_DT2]));
-               array[fs::dPERBydx]  = limiter(left[cp::PERBY_DT2],cent[cp::PERBY_DT2],rght[cp::PERBY_DT2]);
-               array[fs::dBGBydx]  = limiter(left[cp::BGBY],cent[cp::BGBY],rght[cp::BGBY]);
-               array[fs::dPERBzdx]  = limiter(left[cp::PERBZ_DT2],cent[cp::PERBZ_DT2],rght[cp::PERBZ_DT2]);
-               array[fs::dBGBzdx]  = limiter(left[cp::BGBZ],cent[cp::BGBZ],rght[cp::BGBZ]);
-            }
-            break;
-         case 1:
-            leftNbrID = getNeighbourID(mpiGrid,cellID,2  ,2-1,2  );
-            rghtNbrID = getNeighbourID(mpiGrid,cellID,2  ,2+1,2  );
-            left = mpiGrid[leftNbrID]->parameters;
-            rght = mpiGrid[rghtNbrID]->parameters;
-            if(mpiGrid[leftNbrID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
-               rhovLeft = mpiGrid[cellID]->parameters;
-            } else{
-               rhovLeft = mpiGrid[leftNbrID]->parameters;
-            }
-            if(mpiGrid[rghtNbrID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
-               rhovRght = mpiGrid[cellID]->parameters;
-            } else{
-               rhovRght = mpiGrid[rghtNbrID]->parameters;
-            }
-            if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-               array[fs::drhody] = limiter(rhovLeft[cp::RHO],cent[cp::RHO],rhovRght[cp::RHO]);
-               array[fs::dVxdy]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVX], rhovLeft[cp::RHO]),
-                                           divideIfNonZero(    cent[cp::RHOVX],     cent[cp::RHO]),
-                                           divideIfNonZero(rhovRght[cp::RHOVX], rhovRght[cp::RHO]));
-               array[fs::dVydy]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVY], rhovLeft[cp::RHO]),
-                                           divideIfNonZero(    cent[cp::RHOVY],     cent[cp::RHO]),
-                                           divideIfNonZero(rhovRght[cp::RHOVY], rhovRght[cp::RHO]));
-               array[fs::dVzdy]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVZ], rhovLeft[cp::RHO]),
-                                           divideIfNonZero(    cent[cp::RHOVZ],     cent[cp::RHO]),
-                                           divideIfNonZero(rhovRght[cp::RHOVZ], rhovRght[cp::RHO]));
-               array[fs::dPERBxdy]  = limiter(left[cp::PERBX],cent[cp::PERBX],rght[cp::PERBX]);
-               array[fs::dBGBxdy]  = limiter(left[cp::BGBX],cent[cp::BGBX],rght[cp::BGBX]);
-               array[fs::dPERBzdy]  = limiter(left[cp::PERBZ],cent[cp::PERBZ],rght[cp::PERBZ]);
-               array[fs::dBGBzdy]  = limiter(left[cp::BGBZ],cent[cp::BGBZ],rght[cp::BGBZ]);
-            }
-            if (RKCase == RK_ORDER2_STEP1) {
-               array[fs::drhody] = limiter(rhovLeft[cp::RHO_DT2],cent[cp::RHO_DT2],rhovRght[cp::RHO_DT2]);
-               array[fs::dVxdy]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVX_DT2], rhovLeft[cp::RHO_DT2]),
-                                           divideIfNonZero(    cent[cp::RHOVX_DT2],     cent[cp::RHO_DT2]),
-                                           divideIfNonZero(rhovRght[cp::RHOVX_DT2], rhovRght[cp::RHO_DT2]));
-               array[fs::dVydy]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVY_DT2], rhovLeft[cp::RHO_DT2]),
-                                           divideIfNonZero(    cent[cp::RHOVY_DT2],     cent[cp::RHO_DT2]),
-                                           divideIfNonZero(rhovRght[cp::RHOVY_DT2], rhovRght[cp::RHO_DT2]));
-               array[fs::dVzdy]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVZ_DT2], rhovLeft[cp::RHO_DT2]),
-                                           divideIfNonZero(    cent[cp::RHOVZ_DT2],     cent[cp::RHO_DT2]),
-                                           divideIfNonZero(rhovRght[cp::RHOVZ_DT2], rhovRght[cp::RHO_DT2]));
-               array[fs::dPERBxdy]  = limiter(left[cp::PERBX_DT2],cent[cp::PERBX_DT2],rght[cp::PERBX_DT2]);
-               array[fs::dBGBxdy]  = limiter(left[cp::BGBX],cent[cp::BGBX],rght[cp::BGBX]);
-               array[fs::dPERBzdy]  = limiter(left[cp::PERBZ_DT2],cent[cp::PERBZ_DT2],rght[cp::PERBZ_DT2]);
-               array[fs::dBGBzdy]  = limiter(left[cp::BGBZ],cent[cp::BGBZ],rght[cp::BGBZ]);
-            }
-            break;
-         case 2:
-            leftNbrID = getNeighbourID(mpiGrid,cellID,2  ,2  ,2-1);
-            rghtNbrID = getNeighbourID(mpiGrid,cellID,2  ,2  ,2+1);
-            left = mpiGrid[leftNbrID]->parameters;
-            rght = mpiGrid[rghtNbrID]->parameters;
-            if(mpiGrid[leftNbrID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
-               rhovLeft = mpiGrid[cellID]->parameters;
-            } else{
-               rhovLeft = mpiGrid[leftNbrID]->parameters;
-            }
-            if(mpiGrid[rghtNbrID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
-               rhovRght = mpiGrid[cellID]->parameters;
-            } else{
-               rhovRght = mpiGrid[rghtNbrID]->parameters;
-            }
-            if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-               array[fs::drhodz] = limiter(rhovLeft[cp::RHO],cent[cp::RHO],rhovRght[cp::RHO]);
-               array[fs::dVxdz]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVX], rhovLeft[cp::RHO]),
-                                           divideIfNonZero(    cent[cp::RHOVX],     cent[cp::RHO]),
-                                           divideIfNonZero(rhovRght[cp::RHOVX], rhovRght[cp::RHO]));
-               array[fs::dVydz]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVY], rhovLeft[cp::RHO]),
-                                           divideIfNonZero(    cent[cp::RHOVY],     cent[cp::RHO]),
-                                           divideIfNonZero(rhovRght[cp::RHOVY], rhovRght[cp::RHO]));
-               array[fs::dVzdz]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVZ], rhovLeft[cp::RHO]),
-                                           divideIfNonZero(    cent[cp::RHOVZ],     cent[cp::RHO]),
-                                           divideIfNonZero(rhovRght[cp::RHOVZ], rhovRght[cp::RHO]));
-               array[fs::dPERBxdz]  = limiter(left[cp::PERBX],cent[cp::PERBX],rght[cp::PERBX]);
-               array[fs::dBGBxdz]  = limiter(left[cp::BGBX],cent[cp::BGBX],rght[cp::BGBX]);
-               array[fs::dPERBydz]  = limiter(left[cp::PERBY],cent[cp::PERBY],rght[cp::PERBY]);
-               array[fs::dBGBydz]  = limiter(left[cp::BGBY],cent[cp::BGBY],rght[cp::BGBY]);
-            }
-            if (RKCase == RK_ORDER2_STEP1) {
-               array[fs::drhodz] = limiter(rhovLeft[cp::RHO_DT2],cent[cp::RHO_DT2],rhovRght[cp::RHO_DT2]);
-               array[fs::dVxdz]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVX_DT2], rhovLeft[cp::RHO_DT2]),
-                                           divideIfNonZero(    cent[cp::RHOVX_DT2],     cent[cp::RHO_DT2]),
-                                           divideIfNonZero(rhovRght[cp::RHOVX_DT2], rhovRght[cp::RHO_DT2]));
-               array[fs::dVydz]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVY_DT2], rhovLeft[cp::RHO_DT2]),
-                                           divideIfNonZero(    cent[cp::RHOVY_DT2],     cent[cp::RHO_DT2]),
-                                           divideIfNonZero(rhovRght[cp::RHOVY_DT2], rhovRght[cp::RHO_DT2]));
-               array[fs::dVzdz]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVZ_DT2], rhovLeft[cp::RHO_DT2]),
-                                           divideIfNonZero(    cent[cp::RHOVZ_DT2],     cent[cp::RHO_DT2]),
-                                           divideIfNonZero(rhovRght[cp::RHOVZ_DT2], rhovRght[cp::RHO_DT2]));
-               array[fs::dPERBxdz]  = limiter(left[cp::PERBX_DT2],cent[cp::PERBX_DT2],rght[cp::PERBX_DT2]);
-               array[fs::dBGBxdz]  = limiter(left[cp::BGBX],cent[cp::BGBX],rght[cp::BGBX]);
-               array[fs::dPERBydz]  = limiter(left[cp::PERBY_DT2],cent[cp::PERBY_DT2],rght[cp::PERBY_DT2]);
-               array[fs::dBGBydz]  = limiter(left[cp::BGBY],cent[cp::BGBY],rght[cp::BGBY]);
-            }
-            break;
-         default:
-            cerr << "Invalid component" << endl;
-      }
+      this->setCellDerivativesToZero(mpiGrid, cellID, component);
+      return;
    }
    
    void Ionosphere::fieldSolverBoundaryCondBVOLDerivatives(
@@ -362,10 +569,10 @@ namespace SBC {
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID
    ) {
-      //phiprof::start("vlasovBoundaryCondition (Ionosphere)");
-      //No need to copy distribution function, will be constant throughout simulation
-      //copyCellData(&templateCell, mpiGrid[cellID],false);
-      //phiprof::stop("vlasovBoundaryCondition (Ionosphere)");
+//       phiprof::start("vlasovBoundaryCondition (Ionosphere)");
+//       const SpatialCell * cell = mpiGrid[cellID];
+//       this->vlasovBoundaryCopyFromAllClosestNbrs(mpiGrid, cellID);
+//       phiprof::stop("vlasovBoundaryCondition (Ionosphere)");
    }
    
    void Ionosphere::generateTemplateCell(Project &project) {
@@ -381,15 +588,17 @@ namespace SBC {
       
       vector<uint> blocksToInitialize = this->findBlocksToInitialize(templateCell);
       
-      for(uint i = 0; i < blocksToInitialize.size(); i++) {
-         Velocity_Block* blockPtr = templateCell.at(blocksToInitialize.at(i));
-         creal vxBlock = blockPtr->parameters[BlockParams::VXCRD];
-         creal vyBlock = blockPtr->parameters[BlockParams::VYCRD];
-         creal vzBlock = blockPtr->parameters[BlockParams::VZCRD];
-         creal dvxCell = SpatialCell::cell_dvx; // Size of one cell in a block in vx-direction
-         creal dvyCell = SpatialCell::cell_dvy; //                                vy
-         creal dvzCell = SpatialCell::cell_dvz; //                                vz
-         
+      for (uint i = 0; i < blocksToInitialize.size(); i++) {
+         const vmesh::GlobalID blockGID = blocksToInitialize.at(i);
+         const vmesh::LocalID blockLID = templateCell.get_velocity_block_local_id(blockGID);
+         const Real* block_parameters = templateCell.get_block_parameters(blockLID);
+         creal vxBlock = block_parameters[BlockParams::VXCRD];
+         creal vyBlock = block_parameters[BlockParams::VYCRD];
+         creal vzBlock = block_parameters[BlockParams::VZCRD];
+         creal dvxCell = block_parameters[BlockParams::DVX];
+         creal dvyCell = block_parameters[BlockParams::DVY];
+         creal dvzCell = block_parameters[BlockParams::DVZ];
+
          creal x = templateCell.parameters[CellParams::XCRD];
          creal y = templateCell.parameters[CellParams::YCRD];
          creal z = templateCell.parameters[CellParams::ZCRD];
@@ -441,7 +650,7 @@ namespace SBC {
       
       calculateCellVelocityMoments(&templateCell, true);
       
-      // WARNING Time-independence assumed here. Normal momentes computed in setProjectCell
+      // WARNING Time-independence assumed here. Normal moments computed in setProjectCell
       templateCell.parameters[CellParams::RHO_DT2] = templateCell.parameters[CellParams::RHO];
       templateCell.parameters[CellParams::RHOVX_DT2] = templateCell.parameters[CellParams::RHOVX];
       templateCell.parameters[CellParams::RHOVY_DT2] = templateCell.parameters[CellParams::RHOVY];
@@ -457,38 +666,37 @@ namespace SBC {
       (2.0 * physicalconstants::K_B * this->T));
    }
    
-   vector<uint> Ionosphere::findBlocksToInitialize(
-      SpatialCell& cell
-   ) {
+   vector<uint> Ionosphere::findBlocksToInitialize(SpatialCell& cell) {
       vector<uint> blocksToInitialize;
       bool search = true;
-      int counter = 0;
+      uint counter = 0;
       
-      while(search) {
-         if(0.1 * P::sparseMinValue >
-            shiftedMaxwellianDistribution(counter*SpatialCell::block_dvx, 0.0, 0.0)
-         ) {
+      while (search) {
+      #warning TODO: add SpatialCell::getVelocityBlockMinValue() in place of sparseMinValue ? (if applicable)
+         if (0.1 * P::sparseMinValue >
+             shiftedMaxwellianDistribution(counter*SpatialCell::get_velocity_grid_block_size()[0], 0.0, 0.0) || counter > P::vxblocks_ini) {
             search = false;
          }
-         counter++;
+         ++counter;
       }
       counter+=2;
-      Real vRadiusSquared = (Real)counter*(Real)counter*SpatialCell::block_dvx*SpatialCell::block_dvx;
-      
+      Real vRadiusSquared = (Real)counter*(Real)counter*SpatialCell::get_velocity_grid_block_size()[0]*SpatialCell::get_velocity_grid_block_size()[0];
+
+      #warning FIXME this should loop over blocks in base grid      
       for (uint kv=0; kv<P::vzblocks_ini; ++kv) 
          for (uint jv=0; jv<P::vyblocks_ini; ++jv)
             for (uint iv=0; iv<P::vxblocks_ini; ++iv) {
-               creal vx = P::vxmin + (iv+0.5) * SpatialCell::block_dvx; // vx-coordinate of the centre
-               creal vy = P::vymin + (jv+0.5) * SpatialCell::block_dvy; // vy-
-               creal vz = P::vzmin + (kv+0.5) * SpatialCell::block_dvz; // vz-
+               creal vx = P::vxmin + (iv+0.5) * SpatialCell::get_velocity_grid_block_size()[0]; // vx-coordinate of the centre
+               creal vy = P::vymin + (jv+0.5) * SpatialCell::get_velocity_grid_block_size()[1]; // vy-
+               creal vz = P::vzmin + (kv+0.5) * SpatialCell::get_velocity_grid_block_size()[2]; // vz-
                
-               if(vx*vx + vy*vy + vz*vz < vRadiusSquared) {
+               if (vx*vx + vy*vy + vz*vz < vRadiusSquared) {
                   cell.add_velocity_block(cell.get_velocity_block(vx, vy, vz));
                   blocksToInitialize.push_back(cell.get_velocity_block(vx, vy, vz));
                }
             }
             
-            return blocksToInitialize;
+      return blocksToInitialize;
    }
    
    void Ionosphere::setCellFromTemplate(SpatialCell *cell) {

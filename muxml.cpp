@@ -67,18 +67,18 @@ XMLNode* MuXML::find(const std::string& nodeName,const std::list<std::pair<std::
       bool matchFound = true;
       
       if (it->first != nodeName) {
-	 matchFound = false;
+         matchFound = false;
       }
       // Tag name matches, check that attributes match:
       if (matchFound == true) {
-	 for (jt = attribs.begin(); jt!=attribs.end(); ++jt) {
-	    map<string,string>::const_iterator tmp = it->second->attributes.find((*jt).first);
-	    if (tmp == it->second->attributes.end()) {matchFound = false; break;} // attribute name was not found
-	    if (tmp->second != (*jt).second) {matchFound = false; break;} // attribute value did not match
-	 }
-	 if (matchFound == true) {
-	    return it->second;
-	 }
+         for (jt = attribs.begin(); jt!=attribs.end(); ++jt) {
+            map<string,string>::const_iterator tmp = it->second->attributes.find((*jt).first);
+            if (tmp == it->second->attributes.end()) {matchFound = false; break;} // attribute name was not found
+            if (tmp->second != (*jt).second) {matchFound = false; break;} // attribute value did not match
+         }
+         if (matchFound == true) {
+            return it->second;
+         }
       }
       // Recursively check children's nodes:
       XMLNode* tmp = find(nodeName,attribs,it->second);
@@ -116,7 +116,7 @@ void MuXML::print(std::ostream& out,const int& level,const XMLNode* node) const 
       // Write child's name and its attributes:
       out << '<' << it->first;
       for (map<string,string>::const_iterator jt=it->second->attributes.begin(); jt!=it->second->attributes.end(); ++jt) {
-	 out << ' ' << jt->first << "=\"" << jt->second << "\"";
+         out << ' ' << jt->first << "=\"" << jt->second << "\"";
       }
       
       // Write child's value:
@@ -124,9 +124,9 @@ void MuXML::print(std::ostream& out,const int& level,const XMLNode* node) const 
       
       // Call print for the child:
       if (it->second->children.size() > 0) {
-	 out << endl;
-	 print(out,level+tab,it->second);
-	 for (int i=0; i<level; ++i) out << ' ';
+         out << endl;
+         print(out,level+tab,it->second);
+         for (int i=0; i<level; ++i) out << ' ';
       }
       
       // Write child's end tag:
@@ -148,92 +148,85 @@ bool MuXML::read(std::istream& in,XMLNode* parent,const int& level,const char& c
       
       // Start to read tag name and its attributes:
       if (c == '<') {
-	 in >> c;
-	 while ((c == ' ' || c == '\t' || c == '\n') && in.good() == true) in >> c;
-	 
-	 // Read end tag and return:
-	 if (c == '/') {
-	    while (in.eof() == false && c != '>') in >> c;
-	    in >> c;
-	    if (in.good() == false) success = false;
-	    return success;
-	 }
-	 
-	 index = 0;
-	 while (c != ' ' && c != '>') {
-	    buffer[index] = c;
-	    ++index;
-	    in >> c;
-	    if (in.good() == false) {success = false; break;}
-	 }
-	 buffer[index] = '\0';
-	 XMLNode* node = addNode(parent,buffer,"");
-	 
-	 // Remove empty spaces
-	 while ((c == ' ' || c == '\t' || c == '\n') && in.good() == true) in >> c;
-	 if (in.eof() == true) {success = false; break;}
-	 
-	 // If next char is '>' the tag ends. Otherwise read attribute values:
-	 if (c != '>') {
-	    while (c != '>') {
-	       while ((c == ' ' || c == '\t' || c == '\n') && in.good() == true) in >> c;
-	       
-	       index = 0;
-	       while (c != '=' && in.good() == true) {
-		  buffer[index] = c;
-		  ++index;
-		  in >> c;
-	       }
-	       buffer[index] = '\0';
-	       string attribName = buffer;
-	       in >> c; // Forward from '='
-	       in >> c; // Forward from '"'
-	       index = 0;
-	       while (c != '"' && in.good() == true) {
-		  buffer[index] = c;
-		  ++index;
-		  in >> c;
-	       }
-	       in >> c;
-	       if (in.good() == false) {success = false; break;}
-	       buffer[index] = '\0';
-	       string attribValue = buffer;
-	       addAttribute(node,attribName,attribValue);
-	    }
-	    in >> c;
-	 } else {
-	    in >> c;
-	 }
-	 while ((c == ' ' || c == '\t' || c == '\n') && in.good() == true) in >> c;
-	 
-	 // Read tag's value:
-	 index = 0;
-	 while ((c != ' ' && c != '\t' && c != '\n' && c != '<') && in.good() == true) {
-	    buffer[index] = c;
-	    ++index;
-	    in >> c;
-	 }
-	 if (in.good() == false) {success = false; break;}
-	 while ((c == ' ' || c == '\t' || c == '\n') && in.good() == true) in >> c;
-	 
-	 buffer[index] = '\0';
-	 changeValue(node,buffer);
-
-	 if (c == '<') {
-	    read(in,node,level+1,c);
-	    in >> c;
-	 }
-	 while ((c == ' ' || c == '\t' || c == '\n') && in.good() == true) in >> c;
+         in >> c;
+         while ((c == ' ' || c == '\t' || c == '\n') && in.good() == true) in >> c;
+         
+         // Read end tag and return:
+         if (c == '/') {
+            while (in.eof() == false && c != '>') in >> c;
+            in >> c;
+            if (in.good() == false) success = false;
+            return success;
+         }
+         
+         index = 0;
+         while (c != ' ' && c != '>') {
+            buffer[index] = c;
+            ++index;
+            in >> c;
+            if (in.good() == false) {success = false; break;}
+         }
+         buffer[index] = '\0';
+         XMLNode* node = addNode(parent,buffer,"");
+         
+         // Remove empty spaces
+         while ((c == ' ' || c == '\t' || c == '\n') && in.good() == true) in >> c;
+         if (in.eof() == true) {success = false; break;}
+         
+         // If next char is '>' the tag ends. Otherwise read attribute values:
+         if (c != '>') {
+            while (c != '>') {
+               while ((c == ' ' || c == '\t' || c == '\n') && in.good() == true) in >> c;
+               
+               index = 0;
+               while (c != '=' && in.good() == true) {
+                  buffer[index] = c;
+                  ++index;
+                  in >> c;
+               }
+               buffer[index] = '\0';
+               string attribName = buffer;
+               in >> c; // Forward from '='
+               in >> c; // Forward from '"'
+               index = 0;
+               while (c != '"' && in.good() == true) {
+                  buffer[index] = c;
+                  ++index;
+                  in >> c;
+               }
+               in >> c;
+               if (in.good() == false) {success = false; break;}
+               buffer[index] = '\0';
+               string attribValue = buffer;
+               addAttribute(node,attribName,attribValue);
+            }
+            in >> c;
+         } else {
+            in >> c;
+         }
+         while ((c == ' ' || c == '\t' || c == '\n') && in.good() == true) in >> c;
+         
+         // Read tag's value:
+         index = 0;
+         while ((c != ' ' && c != '\t' && c != '\n' && c != '<') && in.good() == true) {
+            buffer[index] = c;
+            ++index;
+            in >> c;
+         }
+         if (in.good() == false) {success = false; break;}
+         while ((c == ' ' || c == '\t' || c == '\n') && in.good() == true) in >> c;
+         
+         buffer[index] = '\0';
+         changeValue(node,buffer);
+         
+         if (c == '<') {
+            read(in,node,level+1,c);
+            in >> c;
+         }
+         while ((c == ' ' || c == '\t' || c == '\n') && in.good() == true) in >> c;
       }
       
       if (in.good() == false) return false;
    } while (success == true);
    return true;
 }
-
-
-
-
-
-
-

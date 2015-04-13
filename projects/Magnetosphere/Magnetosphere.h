@@ -52,9 +52,11 @@ namespace projects {
          Real ionosphereRho;
          Real ionosphereRadius;
          Real ionosphereTaperRadius;
+         uint ionosphereGeometry;
+         Real center[3];
          Real dipoleScalingFactor;
-         Real dipoleTilt;
-         bool useLineDipole;
+         Real dipoleMirrorLocationX;
+         uint dipoleType;
          uint nSpaceSamples;
          uint nVelocitySamples;
    }; // class Magnetosphere

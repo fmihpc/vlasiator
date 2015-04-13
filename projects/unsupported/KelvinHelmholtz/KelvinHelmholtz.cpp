@@ -100,19 +100,16 @@ namespace projects {
    }
    
    Real KelvinHelmholtz::getDistribValue(creal& x, creal& z, creal& vx, creal& vy, creal& vz){
-      creal mass = 1.67262171e-27; // m_p in kg
-      creal k = 1.3806505e-23; // Boltzmann     
-      //  creal mu0 = 1.25663706144e-6; // mu_0 
-      //  creal q = 1.60217653e-19; // q_i      
-      //  creal gamma = 5./3.;
+      creal mass = physicalconstants::MASS_PROTON;
+      creal kb = physicalconstants::K_B;
       Real rho = profile(this->rho[this->BOTTOM], this->rho[this->TOP], x, z);
       Real T = profile(this->T[this->BOTTOM], this->T[this->TOP], x, z);
       Real Vx = profile(this->Vx[this->BOTTOM], this->Vx[this->TOP], x, z);
       Real Vy = profile(this->Vy[this->BOTTOM], this->Vy[this->TOP], x, z);
       Real Vz = profile(this->Vz[this->BOTTOM], this->Vz[this->TOP], x, z);
       
-      return rho * pow(mass / (2.0 * M_PI * k * T), 1.5) *
-      exp(- mass * (pow(vx - Vx, 2.0) + pow(vy - Vy, 2.0) + pow(vz - Vz, 2.0)) / (2.0 * k * T));
+      return rho * pow(mass / (2.0 * M_PI * kb * T), 1.5) *
+      exp(- mass * (pow(vx - Vx, 2.0) + pow(vy - Vy, 2.0) + pow(vz - Vz, 2.0)) / (2.0 * kb * T));
    }
 
    Real KelvinHelmholtz::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {   
@@ -125,6 +122,7 @@ namespace projects {
       uint samples=0;
 
       Real middleValue=getDistribValue(x+0.5*dx, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz);
+      #warning TODO: add SpatialCell::velocity_block_threshold() in place of sparseMinValue
       if(middleValue<0.000001*Parameters::sparseMinValue){
          return middleValue; //abort, this will not be accepted anyway
       }

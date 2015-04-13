@@ -92,23 +92,20 @@ namespace projects {
       creal& x, creal& y,
       creal& vx, creal& vy, creal& vz,
       creal& dvx, creal& dvy, creal& dvz) {
-      creal mass = 1.67262171e-27; // m_p in kg
-      creal k = 1.3806505e-23; // Boltzmann
-      //  creal mu0 = 1.25663706144e-6; // mu_0
-      //  creal q = 1.60217653e-19; // q_i
-      //  creal gamma = 5./3.;
+      creal mass = physicalconstants::MASS_PROTON;
+      creal kb = physicalconstants::K_B;
       
       Real Vx = profile(this->Vx[1],this->Vx[1], x);
       
       return
-      this->rho[1] * pow(mass / (2.0 * M_PI * k * this->Tx[1]), 1.5) *
-      exp(- mass * (pow(vx - Vx, 2.0) / (2.0 * k * this->Tx[1]) + 
-                  pow(vy - this->Vy[1], 2.0) / (2.0 * k * this->Ty[1]) + 
-               pow(vz - this->Vz[1], 2.0) / (2.0 * k * this->Tz[1]))); 
-   //   this->rho[2] * pow(mass / (2.0 * M_PI * k * this->Tx[2]), 1.5) *
-   //   exp(- mass * (pow(vx - this->Vx[2], 2.0) / (2.0 * k * this->Tx[2]) + 
-   //                 pow(vy - this->Vy[2], 2.0) / (2.0 * k * this->Ty[2]) + 
-   //           pow(vz - this->Vz[2], 2.0) / (2.0 * k * this->Tz[2]))); 
+      this->rho[1] * pow(mass / (2.0 * M_PI * kb * this->Tx[1]), 1.5) *
+      exp(- mass * (pow(vx - Vx, 2.0) / (2.0 * kb * this->Tx[1]) +
+                  pow(vy - this->Vy[1], 2.0) / (2.0 * kb * this->Ty[1]) +
+               pow(vz - this->Vz[1], 2.0) / (2.0 * kb * this->Tz[1])));
+   //   this->rho[2] * pow(mass / (2.0 * M_PI * kb * this->Tx[2]), 1.5) *
+   //   exp(- mass * (pow(vx - this->Vx[2], 2.0) / (2.0 * kb * this->Tx[2]) + 
+   //                 pow(vy - this->Vy[2], 2.0) / (2.0 * kb * this->Ty[2]) + 
+   //           pow(vz - this->Vz[2], 2.0) / (2.0 * kb * this->Tz[2]))); 
    }
 
    Real Firehose::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {

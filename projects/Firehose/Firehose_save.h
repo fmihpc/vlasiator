@@ -103,7 +103,7 @@ void calcSimParameters(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiG
  * The physical unit of this quantity is 1 / (m^3 (m/s)^3).
  */
 Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,
-			   creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz);
+                           creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz);
 
 /*!\brief Set the fields and distribution of a cell according to the default simulation settings.
  * This is used for the NOT_SYSBOUNDARY cells and some other system boundary conditions (e.g. Outflow).
@@ -146,7 +146,7 @@ void setProjectCell(SpatialCell* cell);
  */
 template<typename T>
 T calcBoundVolAvg(cuint& iv,cuint& jv,cuint& kv,const T* const cellParams,
-		  const T* const blockParams,const T& avg,const int& crd,const bool& negSide) {
+                  const T* const blockParams,const T& avg,const int& crd,const bool& negSide) {
    return avg;
 }
 
@@ -171,7 +171,7 @@ template<typename T> T velocityFluxX(const T& j,const T& k,const T& avg_neg,cons
    const T EX = cellParams[CellParams::EX];
    const T BY = cellParams[CellParams::BY];
    const T BZ = cellParams[CellParams::BZ];
-   const T AX = Parameters::q_per_m*(EX + VY*BZ - VZ*BY);
+   const T AX = physicalconstants::CHARGE/physicalconstants::MASS_PROTON*(EX + VY*BZ - VZ*BY);
    return convert<T>(0.5)*AX*(avg_neg + avg_pos) - convert<T>(0.5)*fabs(AX)*(avg_pos-avg_neg);
 }
                                                                         
@@ -181,7 +181,7 @@ template<typename T> T velocityFluxY(const T& i,const T& k,const T& avg_neg,cons
    const T EY = cellParams[CellParams::EY];
    const T BX = cellParams[CellParams::BX];
    const T BZ = cellParams[CellParams::BZ];
-   const T AY = Parameters::q_per_m*(EY + VZ*BX - VX*BZ);
+   const T AY = physicalconstants::CHARGE/physicalconstants::MASS_PROTON*(EY + VZ*BX - VX*BZ);
    return convert<T>(0.5)*AY*(avg_neg + avg_pos) - convert<T>(0.5)*fabs(AY)*(avg_pos-avg_neg);
 }
 
@@ -191,7 +191,7 @@ template<typename T> T velocityFluxZ(const T& i,const T& j,const T& avg_neg,cons
    const T EZ = cellParams[CellParams::EZ];
    const T BX = cellParams[CellParams::BX];
    const T BY = cellParams[CellParams::BY];
-   const T AZ = Parameters::q_per_m*(EZ + VX*BY - VY*BX);
+   const T AZ = physicalconstants::CHARGE/physicalconstants::MASS_PROTON*(EZ + VX*BY - VY*BX);
    return convert<T>(0.5)*AZ*(avg_neg + avg_pos) - convert<T>(0.5)*fabs(AZ)*(avg_pos-avg_neg);
 }
 

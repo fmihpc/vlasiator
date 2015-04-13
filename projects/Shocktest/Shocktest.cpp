@@ -92,19 +92,16 @@ namespace projects {
    }
    
    Real Shocktest::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
-      creal mass = 1.67262171e-27; // m_p in kg
-      creal k = 1.3806505e-23; // Boltzmann
-      //  creal mu0 = 1.25663706144e-6; // mu_0
-      //  creal q = 1.60217653e-19; // q_i
-      //  creal gamma = 5./3.;
+      creal mass = physicalconstants::MASS_PROTON;
+      creal kb = physicalconstants::K_B;
       
       cint side = (x < 0.0) ? this->LEFT : this->RIGHT;
 
       // Disable compiler warnings: (unused variables but the function is inherited)
       (void)y; (void)z; (void)dvx; (void)dvy; (void)dvz;
       
-      return this->rho[side] * pow(mass / (2.0 * M_PI * k * this->T[side]), 1.5) *
-      exp(- mass * (pow(vx - this->Vx[side], 2.0) + pow(vy - this->Vy[side], 2.0) + pow(vz - this->Vz[side], 2.0)) / (2.0 * k * this->T[side]));
+      return this->rho[side] * pow(mass / (2.0 * M_PI * kb * this->T[side]), 1.5) *
+      exp(- mass * (pow(vx - this->Vx[side], 2.0) + pow(vy - this->Vy[side], 2.0) + pow(vz - this->Vz[side], 2.0)) / (2.0 * kb * this->T[side]));
    }
 
 
@@ -152,13 +149,13 @@ namespace projects {
       Real avg = 0.0;
       for (uint i=0; i<this->nSpaceSamples; ++i)
          for (uint j=0; j<this->nSpaceSamples; ++j)
-   	 for (uint k=0; k<this->nSpaceSamples; ++k)
-   	    for (uint vi=0; vi<this->nVelocitySamples; ++vi)
-   	       for (uint vj=0; vj<this->nVelocitySamples; ++vj)
-   		  for (uint vk=0; vk<this->nVelocitySamples; ++vk)
-   		     {
-   			avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz);
-   		     }
+            for (uint k=0; k<this->nSpaceSamples; ++k)
+               for (uint vi=0; vi<this->nVelocitySamples; ++vi)
+                  for (uint vj=0; vj<this->nVelocitySamples; ++vj)
+                     for (uint vk=0; vk<this->nVelocitySamples; ++vk)
+                     {
+                        avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz);
+                     }
       return avg / pow(this->nSpaceSamples, 3.0) / pow(this->nVelocitySamples, 3.0);
    }
    
@@ -183,11 +180,11 @@ namespace projects {
       
       for (uint i=0; i<this->nSpaceSamples; ++i)
          for (uint j=0; j<this->nSpaceSamples; ++j)
-   	 for (uint k=0; k<this->nSpaceSamples; ++k) {
-   	    Bxavg += ((x + i * d_x) < 0.0) ? this->Bx[this->LEFT] : this->Bx[this->RIGHT];
-   	    Byavg += ((x + i * d_x) < 0.0) ? this->By[this->LEFT] : this->By[this->RIGHT];
-   	    Bzavg += ((x + i * d_x) < 0.0) ? this->Bz[this->LEFT] : this->Bz[this->RIGHT];
-   	 }
+            for (uint k=0; k<this->nSpaceSamples; ++k) {
+               Bxavg += ((x + i * d_x) < 0.0) ? this->Bx[this->LEFT] : this->Bx[this->RIGHT];
+               Byavg += ((x + i * d_x) < 0.0) ? this->By[this->LEFT] : this->By[this->RIGHT];
+               Bzavg += ((x + i * d_x) < 0.0) ? this->Bz[this->LEFT] : this->Bz[this->RIGHT];
+      }
       cuint nPts = pow(this->nSpaceSamples, 3.0);
       
       cellParams[CellParams::EX   ] = 0.0;

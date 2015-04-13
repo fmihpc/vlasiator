@@ -40,29 +40,29 @@ struct Parameters {
    static uint vxblocks_ini; /*!< Initial number of velocity grid blocks in vx-direction. */
    static uint vyblocks_ini; /*!< Initial number of velocity grid blocks in vy-direction. */
    static uint vzblocks_ini; /*!< Initial number of velocity grid blocks in vz-direction. */
-
+   
    static Real backstreamradius; /*!< Radius of the maxwellian distribution. Used for calculating rho of the backstream population. */
    static Real backstreamvx; /*!< X coordinate of the origin of the maxwellian distribution. Used for calculating rho of the backstream population. */
    static Real backstreamvy; /*!< Y coordinate of the origin of the maxwellian distribution. Used for calculating rho of the backstream population. */
    static Real backstreamvz; /*!< Z coordinate of the origin of the maxwellian distribution. Used for calculating rho of the backstream population. */
-
-
-   static Real q;                    /*!< Charge of simulated particle species.*/
-   static Real m;                    /*!< Mass of simulated particle species.*/
-   static Real q_per_m;              /*!< Charge-to-mass ratio of simulated particle species,
-                                      *   calculated from Parameters::q and Parameters::m.*/
+   
+   
    static Real t;                    /*!< Current simulation time. */
    static Real t_min;                    /*!< Initial simulation time. */
    static Real t_max;                    /*!< Maximum simulation time. */
    static Real dt;                   /*!< The value of the timestep to use in propagation. If CflLimit defined then it is dynamically updated during simulation*/
-   static Real vlasovSolverMaxCFL;                  /*!< The maximum CFL limit for propagation of distribution function. Used to set timestep if useCFLlimit is true. Also used to set number of acceleration steps if substepAcceleration is true */
-   static Real vlasovSolverMinCFL;                  /*!< The minimum CFL limit for propagation of distribution function. Used to set timestep if useCFLlimit is true. Also used to set number of acceleration steps if substepAcceleration is true */
+   static Real vlasovSolverMaxCFL;   /*!< The maximum CFL limit for propagation of distribution function. Used to set timestep if useCFLlimit is true. */
+   static Real vlasovSolverMinCFL;   /*!< The minimum CFL limit for propagation of distribution function. Used to set timestep if useCFLlimit is true. */
    static Real fieldSolverMinCFL;     /*!< The minimum CFL limit for propagation of fields. Used to set timestep if useCFLlimit is true.*/
    static Real fieldSolverMaxCFL;     /*!< The maximum CFL limit for propagation of fields. Used to set timestep if useCFLlimit is true.*/
+   static int fieldSolverSubcycles;     /*!< The number of field solver subcycles to compute.*/
 
    static uint tstep_min;           /*!< Timestep when simulation starts, needed for restarts.*/
    static uint tstep_max;           /*!< Maximum timestep. */
    static uint tstep;               /*!< The number of the current timestep. 0=initial state. */
+
+   static bool meshRepartitioned;         /*!< If true, mesh was repartitioned on this time step.*/
+   static std::vector<CellID> localCells; /*!< Cached copy of spatial cell IDs on this process.*/
 
    static uint diagnosticInterval;
    static std::vector<std::string> systemWriteName; /*!< Names for the different classes of grid output*/
@@ -72,7 +72,7 @@ struct Parameters {
    static std::vector<int> systemWriteDistributionWriteYlineStride; /*!< Every this many lines of cells along the y direction write out their velocity space in each class. */
    static std::vector<int> systemWriteDistributionWriteZlineStride; /*!< Every this many lines of cells along the z direction write out their velocity space in each class. */
    static std::vector<int> systemWrites; /*!< How many files have been written of each class*/
-
+   
    static bool writeInitialState;           /*!< If true, initial state is written. This is useful for debugging as the restarts are always written out after propagation of 0.5dt in real space.*/
    static Real saveRestartWalltimeInterval; /*!< Interval in walltime seconds for restart data*/
    static uint exitAfterRestarts;           /*!< Exit after this many restarts*/
@@ -82,24 +82,35 @@ struct Parameters {
    /*!< Indicates the data that needs to be transmitted to remote nodes.
     * This is created with bitwise or from the values defined in 
     * namespace Transmit.*/
-
+   
    static bool recalculateStencils; /*!< If true, MPI stencils should be recalculated because of load balancing.*/
    
    static bool propagateField;      /*!< If true, magnetic field is propagated during the simulation.*/
+   static bool propagatePotential;  /*!< If true, electrostatic potential is solved during the simulation.*/
    static bool propagateVlasovAcceleration;     /*!< If true, distribution function is propagated in velocity space during the simulation.*/
    static bool propagateVlasovTranslation;      /*!< If true, distribution function is propagated in ordinary space during the simulation.*/
    static bool periodic_x, periodic_y, periodic_z; /*!< Whether spatial vlasov grid is periodic */
-   
-   static Real maxAlfvenVelocity; /*!< Maximum Alfven velocity allowed in fastMS computation in LDZ. */
-   static Real resistivity; /*!< Resistivity in Ohm's law eta*J term. */
-   static bool ohmHallTerm; /*!< Hall term in Ohm's law JXB term. */
-   static bool fieldSolverDiffusiveEterms; /*!< Enable resitive terms in the computation of E*/
 
+   static Real maxWaveVelocity; /*!< Maximum wave velocity allowed in LDZ. */
+   static int maxFieldSolverSubcycles; /*!< Maximum allowed field solver subcycles. */
+   static Real resistivity; /*!< Resistivity in Ohm's law eta*J term. */
+   static uint ohmHallTerm; /*!< Enable/choos spatial order of Hall term in Ohm's law JXB term. 0: off, 1: 1st spatial order, 2: 2nd spatial order. */
+   static bool fieldSolverDiffusiveEterms; /*!< Enable resitive terms in the computation of E*/
+   
    static Real maxSlAccelerationRotation; /*!< Maximum rotation in acceleration for semilagrangian solver*/
-   static Real lorentzHallMinimumRho;  /*!< Minimum rho value used in Hall term in Lorentz force.*/
+   static int maxSlAccelerationSubcycles; /*!< Maximum number of subcycles in acceleration*/
+   static Real hallMinimumRho;  /*!< Minimum rho value used in Hall term in Lorentz force and field solver.*/
    static Real sparseMinValue; /*!< Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents */
    static int sparseBlockAddWidthV; /*!< Number of layers of blocks that are kept in velocity space around the blocks with content */
-  static bool sparse_conserve_mass; /*!< If true, density is scaled to conserve mass when removing blocks*/
+   static bool sparse_conserve_mass; /*!< If true, density is scaled to conserve mass when removing blocks*/
+   static int  sparseDynamicAlgorithm; /*!< Type of algorithm used for calculating the dynamic minValue; 0 = none, 1 = linear algorithm based on minValue and rho, 2 = linear algorithm based on minValue and Blocks, (Example linear algorithm: minValue = rho / sparse.dynamicValue * sparse.minValue)*/
+   static Real sparseDynamicBulkValue1; /*!< Minimum value for the dynamic algorithm range, so for example if dynamicAlgorithm=1 then for sparse.dynamicMinValue = 1e3, sparse.dynamicMaxValue=1e5, we apply the algorithm to cells for which 1e3<cell.rho<1e5*/
+   static Real sparseDynamicBulkValue2; /*!< Maximum value for the dynamic algorithm range, so for example if dynamicAlgorithm=1 then for sparse.dynamicMinValue = 1e3, sparse.dynamicMaxValue=1e5, we apply the algorithm to cells for which 1e3<cell.rho<1e5*/
+   static Real sparseDynamicMinValue1; /*!< The minimum value for the minValue*/
+   static Real sparseDynamicMinValue2; /*!< The maximum value for the minValue*/
+
+
+   
    static std::string loadBalanceAlgorithm; /*!< Algorithm to be used for load balance.*/
    static std::string loadBalanceTolerance; /*!< Load imbalance tolerance. */ 
    static uint rebalanceInterval; /*!< Load rebalance interval (steps). */
@@ -116,9 +127,18 @@ struct Parameters {
    static uint maxAccelerationSubsteps; /*!< Maximum number of substeps that is allowed */
    static bool dynamicTimestep; /*!< If true, timestep is set based on  CFL limit */
    
-   
    static std::string projectName; /*!< Project to be used in this run. */
    
+   static bool bailout_write_restart; /*!< If true, write a restart file on bailout. Gets reset when sending a STOP (true) or a KILL (false). */
+   static Real bailout_min_dt; /*!< Minimum time step below which bailout occurs (s). */
+
+   static uint amrMaxVelocityRefLevel;    /**< Maximum velocity mesh refinement level, defaults to 0.*/
+   static Realf amrCoarsenLimit;          /**< If the value of refinement criterion is below this value, block can be coarsened.
+                                           * The value must be smaller than amrRefineLimit.*/
+   static Realf amrRefineLimit;           /**< If the value of refinement criterion is larger than this value, block should be refined.
+                                           * The value must be larger than amrCoarsenLimit.*/
+   static std::string amrVelRefCriterion; /**< Name of the velocity block refinement criterion function.*/
+
    /*! \brief Add the global parameters.
     * 
     * This function adds all the parameters that are loaded at a global level.

@@ -7,6 +7,7 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #include "parameters.h"
 #include "readparameters.h"
 #include <limits>
+#include <set>
 
 #ifndef NAN
 #define NAN 0
@@ -50,9 +51,6 @@ uint P::vxblocks_ini = numeric_limits<uint>::max();
 uint P::vyblocks_ini = numeric_limits<uint>::max();
 uint P::vzblocks_ini = numeric_limits<uint>::max();
 
-Real P::q = NAN;
-Real P::m = NAN;
-Real P::q_per_m = NAN;
 Real P::t = 0;
 Real P::t_min = 0;
 Real P::t_max = LARGE_REAL;
@@ -61,13 +59,16 @@ Real P::vlasovSolverMaxCFL = NAN;
 Real P::vlasovSolverMinCFL = NAN;
 Real P::fieldSolverMaxCFL = NAN;
 Real P::fieldSolverMinCFL = NAN;
-
+int P::fieldSolverSubcycles = 1;
 
 uint P::tstep = 0;
 uint P::tstep_min = 0;
 uint P::tstep_max = 0;
 uint P::diagnosticInterval = numeric_limits<uint>::max();
 bool P::writeInitialState = true;
+
+bool P::meshRepartitioned = true;
+std::vector<CellID> P::localCells;
 
 std::vector<std::string> P::systemWriteName; 
 std::vector<Real> P::systemWriteTimeInterval;
@@ -76,7 +77,6 @@ std::vector<int> P::systemWriteDistributionWriteXlineStride;
 std::vector<int> P::systemWriteDistributionWriteYlineStride;
 std::vector<int> P::systemWriteDistributionWriteZlineStride;
 std::vector<int> P::systemWrites;
-   
 
 Real P::saveRestartWalltimeInterval = -1.0;
 uint P::exitAfterRestarts = numeric_limits<uint>::max();
@@ -88,20 +88,28 @@ bool P::recalculateStencils = true;
 bool P::propagateVlasovAcceleration = true;
 bool P::propagateVlasovTranslation = true;
 bool P::propagateField = true;
+bool P::propagatePotential = false;
 
-uint P::maxAccelerationSubsteps=1;
 bool P::dynamicTimestep = true;
 
-Real P::maxAlfvenVelocity = 0.0;
+Real P::maxWaveVelocity = 0.0;
+int P::maxFieldSolverSubcycles = 0.0;
+int P::maxSlAccelerationSubcycles = 0.0;
 Real P::resistivity = NAN;
 bool P::fieldSolverDiffusiveEterms = true;
-bool P::ohmHallTerm = false;
+uint P::ohmHallTerm = 0;
 
 Real P::sparseMinValue = NAN;
+int  P::sparseDynamicAlgorithm = 0;
+Real P::sparseDynamicBulkValue1 = 1;
+Real P::sparseDynamicBulkValue2 = 1;
+Real P::sparseDynamicMinValue1 = 1;
+Real P::sparseDynamicMinValue2 = 1;
+
 int P::sparseBlockAddWidthV = 1;
 bool P::sparse_conserve_mass = false;
 
-string P::restartFileName = string("");                
+string P::restartFileName = string("");
 bool P::isRestart=false;
 int P::writeAsFloat = false;
 int P::writePopulationDistribution = false;
@@ -117,7 +125,15 @@ vector<string> P::diagnosticVariableList;
 string P::projectName = string("");
 
 Real P::maxSlAccelerationRotation=10.0;
-Real P::lorentzHallMinimumRho=1.0;
+Real P::hallMinimumRho=1.0;
+
+bool P::bailout_write_restart = false;
+Real P::bailout_min_dt = NAN;
+
+uint P::amrMaxVelocityRefLevel = 0;
+Realf P::amrRefineLimit = 1.0;
+Realf P::amrCoarsenLimit = 0.5;
+string P::amrVelRefCriterion = "";
 
 bool Parameters::addParameters(){
    //the other default parameters we read through the add/get interface
@@ -141,11 +157,12 @@ bool Parameters::addParameters(){
    Readparameters::add("io.write_population_variables", "true if writing variables for different populations, false otherwise", false);
    Readparameters::add("io.write_population_amount", " True if writing the number of populations in each cell, false otherwise", false);
    
+   Readparameters::add("propagate_potential","Propagate electrostatic potential during the simulation",false);
    Readparameters::add("propagate_field","Propagate magnetic field during the simulation",true);
    Readparameters::add("propagate_vlasov_acceleration","Propagate distribution functions during the simulation in velocity space. If false, it is propagated with zero length timesteps.",true);
    Readparameters::add("propagate_vlasov_translation","Propagate distribution functions during the simulation in ordinary space. If false, it is propagated with zero length timesteps.",true);
-   Readparameters::add("max_acceleration_substeps","Maximum number of  acceleration substeps that are allowed to be taken in acceleration. The default number of 1 disables substepping and the acceleration is always done in one step. A value of 0 has a special meaning, it activates unlimited substepping",1);
    Readparameters::add("dynamic_timestep","If true,  timestep is set based on  CFL limits (default on)",true);
+   Readparameters::add("hallMinimumRho", "Minimum rho value used for Hall term in Lorentz force and in field solver. Default is very low and has no effect in practice.", 1.0);
    Readparameters::add("project", "Specify the name of the project to use. Supported to date (20121112): Alfven Diffusion Dispersion Firehose Flowthrough Fluctuations harm1D KelvinHelmholtz Magnetosphere", "Fluctuations");
 
    Readparameters::add("restart.filename","Restart from this vlsv file. No restart if empty file.",string(""));     
@@ -169,24 +186,23 @@ bool Parameters::addParameters(){
    Readparameters::add("gridbuilder.vy_length","Initial number of velocity blocks in vy-direction.","");
    Readparameters::add("gridbuilder.vz_length","Initial number of velocity blocks in vz-direction.","");
    
-   Readparameters::add("gridbuilder.q","Charge of simulated particle species, in Coulombs.",1.60217653e-19);
-   Readparameters::add("gridbuilder.m","Mass of simulated particle species, in kilograms.",1.67262171e-27);
    Readparameters::add("gridbuilder.dt","Initial timestep in seconds.",0.0);
 
    Readparameters::add("gridbuilder.t_max","Maximum simulation time, in seconds. If timestep_max limit is hit first this time will never be reached",LARGE_REAL);
    Readparameters::add("gridbuilder.timestep_max","Max. value for timesteps. If t_max limit is hit first, this step will never be reached",numeric_limits<uint>::max());
    
    // Field solver parameters
-   Readparameters::add("fieldsolver.maxAlfvenVelocity", "Maximum Alfven velocity allowed in the fast MS velocity determination in m/s, default unlimited", LARGE_REAL);
+   Readparameters::add("fieldsolver.maxWaveVelocity", "Maximum wave velocity allowed in the fastest velocity determination in m/s, default unlimited", LARGE_REAL);
+   Readparameters::add("fieldsolver.maxSubcycles", "Maximum allowed field solver subcycles", 1);
    Readparameters::add("fieldsolver.resistivity", "Resistivity for the eta*J term in Ohm's law.", 0.0);
    Readparameters::add("fieldsolver.diffusiveEterms", "Enable diffusive terms in the computation of E",true);
-   Readparameters::add("fieldsolver.ohmHallTerm", "Enable the Hall term in Ohm's law", false);
+   Readparameters::add("fieldsolver.ohmHallTerm", "Enable/choose spatial order of the Hall term in Ohm's law. 0: off, 1: 1st spatial order, 2: 2nd spatial order", 0);
    Readparameters::add("fieldsolver.maxCFL","The maximum CFL limit for field propagation. Used to set timestep if dynamic_timestep is true.",0.5);
    Readparameters::add("fieldsolver.minCFL","The minimum CFL limit for field propagation. Used to set timestep if dynamic_timestep is true.",0.4);
 
    // Vlasov solver parameters
-   Readparameters::add("vlasovsolver.maxSlAccelerationRotation","Maximum rotation angle allowed by the Semi-Lagrangian solver (Do not use too large values, test properly)",10.0);
-   Readparameters::add("vlasovsolver.lorentzHallMinimumRho", "Minimum rho value used for Hall term in Lorentz force. Default is very low and has no effect in practice.",1.0);
+   Readparameters::add("vlasovsolver.maxSlAccelerationRotation","Maximum rotation angle (degrees) allowed by the Semi-Lagrangian solver (Use >25 values with care)",25.0);
+   Readparameters::add("vlasovsolver.maxSlAccelerationSubcycles","Maximum number of subcycles for acceleration",1);
    Readparameters::add("vlasovsolver.maxCFL","The maximum CFL limit for vlasov propagation in ordinary space. Used to set timestep if dynamic_timestep is true.",0.99);
    Readparameters::add("vlasovsolver.minCFL","The minimum CFL limit for vlasov propagation in ordinary space. Used to set timestep if dynamic_timestep is true.",0.8);
 
@@ -194,9 +210,17 @@ bool Parameters::addParameters(){
 
    
    // Grid sparsity parameters
-   Readparameters::add("sparse.minValue", "Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents", 0);
+   Readparameters::add("sparse.minValue", "Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents", 1);
    Readparameters::add("sparse.blockAddWidthV", "Number of layers of blocks that are kept in velocity space around the blocks with content",1);
    Readparameters::add("sparse.conserve_mass", "If true, then mass is conserved by scaling the dist. func. in the remaining blocks", false);
+   Readparameters::add("sparse.dynamicAlgorithm", "Type of algorithm used for calculating the dynamic minValue; 0 = none, 1 = linear algorithm based on rho, 2 = linear algorithm based on Blocks, (Example linear algorithm: y = kx+b, where dynamicMinValue1=k*dynamicBulkValue1 + b, and dynamicMinValue2 = k*dynamicBulkValue2 + b", 0);
+   Readparameters::add("sparse.dynamicMinValue1", "The minimum value for the dynamic minValue", 1);
+   Readparameters::add("sparse.dynamicMinValue2", "The maximum value (value 2) for the dynamic minValue", 1);
+   Readparameters::add("sparse.dynamicBulkValue1", "Minimum value for the dynamic algorithm range, so for example if dynamicAlgorithm=1 then for sparse.dynamicBulkValue1 = 1e3, sparse.dynamicBulkValue2=1e5, we apply the algorithm to cells for which 1e3<cell.rho<1e5", 0);
+   Readparameters::add("sparse.dynamicBulkValue2", "Maximum value for the dynamic algorithm range, so for example if dynamicAlgorithm=1 then for sparse.dynamicBulkValue1 = 1e3, sparse.dynamicBulkValue2=1e5, we apply the algorithm to cells for which 1e3<cell.rho<1e5", 0);
+
+   
+   
 
    // Load balancing parameters
    Readparameters::add("loadBalance.algorithm", "Load balancing algorithm to be used", std::string("RCB"));
@@ -204,13 +228,22 @@ bool Parameters::addParameters(){
    Readparameters::add("loadBalance.rebalanceInterval", "Load rebalance interval (steps)", 10);
    
 // Output variable parameters
-   Readparameters::addComposing("variables.output", "List of data reduction operators (DROs) to add to the grid file output. Each variable to be added has to be on a new line output = XXX. Available are B BackgroundB PerturbedB E Rho RhoV RhoLossAdjust RhoLossVelBoundary MPIrank Blocks BoundaryType BoundaryLayer VolE VolB Pressure PTensor derivs BVOLderivs MaxVdt MaxRdt MaxFieldsdt LBweight VelocitySubSteps.");
-   Readparameters::addComposing("variables.diagnostic", "List of data reduction operators (DROs) to add to the diagnostic runtime output. Each variable to be added has to be on a new line diagnostic = XXX. Available (20121005) are Blocks FluxB FluxE Rho RhoLossAdjust RhoLossVelBoundary  MaxDistributionFunction MinDistributionFunction  BoundaryType BoundaryLayer  MaxVdt MaxRdt MaxFieldsdt LBweight.");
+   Readparameters::addComposing("variables.output", "List of data reduction operators (DROs) to add to the grid file output. Each variable to be added has to be on a new line output = XXX. Available are (20141218) B BackgroundB PerturbedB E Rho RhoBackstream RhoV RhoVBackstream RhoVNonBackstream PressureBackstream  PTensorBackstreamDiagonal PTensorNonBackstreamDiagonal PTensorBackstreamOffDiagonal PTensorNonBackstreamOffDiagonal PTensorBackstream PTensorNonBackstream RhoNonBackstream RhoLossAdjust RhoLossVelBoundary LBweight MaxVdt MaxRdt MaxFieldsdt accSubcycles MPIrank BoundaryType BoundaryLayer Blocks fSaved VolE HallE BackgroundBedge VolB BackgroundVolB PerturbedVolB Pressure PTensor derivs BVOLderivs.");
+   Readparameters::addComposing("variables.diagnostic", "List of data reduction operators (DROs) to add to the diagnostic runtime output. Each variable to be added has to be on a new line diagnostic = XXX. Available (20141218) are FluxB FluxE Blocks Pressure Rho RhoLossAdjust RhoLossVelBoundary LBweight MaxVdt MaxRdt MaxFieldsdt MaxDistributionFunction MinDistributionFunction BoundaryType BoundaryLayer.");
    Readparameters::add("variables.dr_backstream_vx", "Center coordinate for the maxwellian distribution. Used for calculating the backstream contriution for rho.", -500000.0);
    Readparameters::add("variables.dr_backstream_vy", "Center coordinate for the maxwellian distribution. Used for calculating the backstream contriution for rho.", 0.0);
    Readparameters::add("variables.dr_backstream_vz", "Center coordinate for the maxwellian distribution. Used for calculating the backstream contriution for rho.", 0.0);
-   Readparameters::add("variables.dr_backstream_radius", "Radius of the maxwellian distribution. Used for calculating the backstream contriution for rho", 468621.0);
+   Readparameters::add("variables.dr_backstream_radius", "Radius of the maxwellian distribution. Used for calculating the backstream contribution for rho", 468621.0);
 
+   // bailout parameters
+   Readparameters::add("bailout.write_restart", "If 1, write a restart file on bailout. Gets reset when sending a STOP (1) or a KILL (0).", true);
+   Readparameters::add("bailout.min_dt", "Minimum time step below which bailout occurs (s).", 1e-6);
+
+   // Refinement parameters
+   Readparameters::add("AMR.vel_refinement_criterion","Name of the velocity refinement criterion",string(""));
+   Readparameters::add("AMR.max_velocity_level","Maximum velocity mesh refinement level",(uint)0);
+   Readparameters::add("AMR.refine_limit","If the refinement criterion function returns a larger value than this, block is refined",(Realf)1.0);
+   Readparameters::add("AMR.coarsen_limit","If the refinement criterion function returns a smaller value than this, block can be coarsened",(Realf)0.5);
    return true;
 }
 
@@ -222,8 +255,8 @@ bool Parameters::getParameters(){
    Readparameters::get("io.system_write_file_name", P::systemWriteName);
    Readparameters::get("io.system_write_distribution_stride", P::systemWriteDistributionWriteStride);
    Readparameters::get("io.system_write_distribution_xline_stride", P::systemWriteDistributionWriteXlineStride);
-   Readparameters::get("io.system_write_distribution_xline_stride", P::systemWriteDistributionWriteYlineStride);
-   Readparameters::get("io.system_write_distribution_xline_stride", P::systemWriteDistributionWriteZlineStride);
+   Readparameters::get("io.system_write_distribution_yline_stride", P::systemWriteDistributionWriteYlineStride);
+   Readparameters::get("io.system_write_distribution_zline_stride", P::systemWriteDistributionWriteZlineStride);
    //TODO, check that the systemWrite vectors are of equal length
    Readparameters::get("io.write_initial_state", P::writeInitialState);
    Readparameters::get("io.restart_walltime_interval", P::saveRestartWalltimeInterval);
@@ -235,15 +268,16 @@ bool Parameters::getParameters(){
    Readparameters::get("io.write_population_amount", P::writePopulationNumber);
    
    Readparameters::get("propagate_field",P::propagateField);
+   Readparameters::get("propagate_potential",P::propagatePotential);
    Readparameters::get("propagate_vlasov_acceleration",P::propagateVlasovAcceleration);
    Readparameters::get("propagate_vlasov_translation",P::propagateVlasovTranslation);
-   Readparameters::get("max_acceleration_substeps",P::maxAccelerationSubsteps);
    Readparameters::get("dynamic_timestep",P::dynamicTimestep);
+   Readparameters::get("hallMinimumRho",P::hallMinimumRho);
    Readparameters::get("restart.filename",P::restartFileName);
    P::isRestart=(P::restartFileName!=string(""));
-   
+
    Readparameters::get("project", projectName);
-   
+ 
    /*get numerical values, let Readparameters handle the conversions*/
    Readparameters::get("gridbuilder.x_min",P::xmin);
    Readparameters::get("gridbuilder.x_max",P::xmax);
@@ -263,7 +297,12 @@ bool Parameters::getParameters(){
    Readparameters::get("gridbuilder.vx_length",P::vxblocks_ini);
    Readparameters::get("gridbuilder.vy_length",P::vyblocks_ini);
    Readparameters::get("gridbuilder.vz_length",P::vzblocks_ini);
+   Readparameters::get("AMR.max_velocity_level",P::amrMaxVelocityRefLevel);
+   Readparameters::get("AMR.vel_refinement_criterion",P::amrVelRefCriterion);
+   Readparameters::get("AMR.refine_limit",P::amrRefineLimit);
+   Readparameters::get("AMR.coarsen_limit",P::amrCoarsenLimit);
    
+   if (P::amrCoarsenLimit >= P::amrRefineLimit) return false;
    if (P::xmax < P::xmin || (P::ymax < P::ymin || P::zmax < P::zmin)) return false;
    if (P::vxmax < P::vxmin || (P::vymax < P::vymin || P::vzmax < P::vzmin)) return false;
    
@@ -272,24 +311,23 @@ bool Parameters::getParameters(){
    P::dy_ini = (P::ymax-P::ymin)/P::ycells_ini;
    P::dz_ini = (P::zmax-P::zmin)/P::zcells_ini;
    
-   Readparameters::get("gridbuilder.q",P::q);
-   Readparameters::get("gridbuilder.m",P::m);
    Readparameters::get("gridbuilder.dt",P::dt);
-
+   
    Readparameters::get("gridbuilder.t_max",P::t_max);
    Readparameters::get("gridbuilder.timestep_max",P::tstep_max);
-
+   
    if(P::dynamicTimestep)
       P::dt=0.0; //if dynamic timestep then first dt is always 0 
-   P::q_per_m = P::q/P::m;
+   
    //if we are restarting, t,t_min, tstep, tstep_min will be overwritten in readGrid
-   P::t_min=0;          
+   P::t_min=0;
    P::t = P::t_min;
    P::tstep_min=0;
    P::tstep = P::tstep_min;
    
    // Get field solver parameters
-   Readparameters::get("fieldsolver.maxAlfvenVelocity", P::maxAlfvenVelocity);
+   Readparameters::get("fieldsolver.maxWaveVelocity", P::maxWaveVelocity);
+   Readparameters::get("fieldsolver.maxSubcycles", P::maxFieldSolverSubcycles);
    Readparameters::get("fieldsolver.resistivity", P::resistivity);
    Readparameters::get("fieldsolver.diffusiveEterms", P::fieldSolverDiffusiveEterms);
    Readparameters::get("fieldsolver.ohmHallTerm", P::ohmHallTerm);
@@ -297,30 +335,49 @@ bool Parameters::getParameters(){
    Readparameters::get("fieldsolver.minCFL",P::fieldSolverMinCFL);
    // Get Vlasov solver parameters
    Readparameters::get("vlasovsolver.maxSlAccelerationRotation",P::maxSlAccelerationRotation);
-   Readparameters::get("vlasovsolver.lorentzHallMinimumRho",P::lorentzHallMinimumRho);
+   Readparameters::get("vlasovsolver.maxSlAccelerationSubcycles",P::maxSlAccelerationSubcycles);
    Readparameters::get("vlasovsolver.maxCFL",P::vlasovSolverMaxCFL);
    Readparameters::get("vlasovsolver.minCFL",P::vlasovSolverMinCFL);
-
+   
    // Get sparsity parameters
    Readparameters::get("sparse.minValue", P::sparseMinValue);
    Readparameters::get("sparse.blockAddWidthV", P::sparseBlockAddWidthV); 
    Readparameters::get("sparse.conserve_mass", P::sparse_conserve_mass);
+   Readparameters::get("sparse.dynamicAlgorithm", P::sparseDynamicAlgorithm);
+   Readparameters::get("sparse.dynamicBulkValue1", P::sparseDynamicBulkValue1);
+   Readparameters::get("sparse.dynamicBulkValue2", P::sparseDynamicBulkValue2);
+   Readparameters::get("sparse.dynamicMinValue1", P::sparseDynamicMinValue1);
+   Readparameters::get("sparse.dynamicMinValue2", P::sparseDynamicMinValue2);
 
+   
    // Get load balance parameters
    Readparameters::get("loadBalance.algorithm", P::loadBalanceAlgorithm);
    Readparameters::get("loadBalance.tolerance", P::loadBalanceTolerance);
    Readparameters::get("loadBalance.rebalanceInterval", P::rebalanceInterval);
-
+   
    // Get output variable parameters
    Readparameters::get("variables.output", P::outputVariableList);
    Readparameters::get("variables.diagnostic", P::diagnosticVariableList);
+
+   // Filter duplicate variable names
+   set<string> dummy(P::outputVariableList.begin(),P::outputVariableList.end());
+   P::outputVariableList.clear();
+   P::outputVariableList.insert(P::outputVariableList.end(),dummy.begin(),dummy.end());
+   dummy.clear();
+   
+   dummy.insert(P::diagnosticVariableList.begin(),P::diagnosticVariableList.end());
+   P::diagnosticVariableList.clear();
+   P::diagnosticVariableList.insert(P::diagnosticVariableList.end(),dummy.begin(),dummy.end());
 
    //Get parameters related to calculating backstream contributions
    Readparameters::get("variables.dr_backstream_radius", P::backstreamradius);
    Readparameters::get("variables.dr_backstream_vx", P::backstreamvx);
    Readparameters::get("variables.dr_backstream_vy", P::backstreamvy);
    Readparameters::get("variables.dr_backstream_vz", P::backstreamvz);
-
+   
+   // Get parameters related to bailout
+   Readparameters::get("bailout.write_restart", P::bailout_write_restart);
+   Readparameters::get("bailout.min_dt", P::bailout_min_dt);
    
    return true;
 }

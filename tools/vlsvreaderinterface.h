@@ -42,7 +42,8 @@ namespace newVlsv {
          cellsWithBlocksLocations.clear();
          cellsWithBlocksSet = false;
       }
-      bool getVelocityBlockVariables( const std::string & variableName, const uint64_t & cellId, char * buffer, bool allocateMemory = true );
+      bool getVelocityBlockVariables( const std::string & variableName, const uint64_t & cellId, char*& buffer, bool allocateMemory = true );
+      
       inline uint64_t getBlockOffset( const uint64_t & cellId ) {
          //Check if the cell id can be found:
          std::unordered_map<uint64_t, std::pair<uint64_t, uint32_t>>::const_iterator it = cellsWithBlocksLocations.find( cellId );
@@ -92,10 +93,10 @@ namespace newVlsv {
          std::cerr << "ERROR, BAD VECTORSIZE AT " << __FILE__ << " " << __LINE__ << std::endl;
          return false;
       }
-      const uint16_t amountToReadIn = 1;
+      const uint64_t amountToReadIn = 1;
       char * buffer = new char[vectorSize * amountToReadIn * byteSize];
       //Read in variable to the buffer:
-      const uint16_t begin = findCell->first;
+      const uint64_t begin = findCell->second;
       if( readArray( "VARIABLE", xmlAttributes, begin, amountToReadIn, buffer ) == false ) return false;
       float * buffer_float = reinterpret_cast<float*>(buffer);
       double * buffer_double = reinterpret_cast<double*>(buffer);

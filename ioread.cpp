@@ -5,7 +5,8 @@
 #include <vector>
 #include <sstream>
 #include <ctime>
-#include "boost/array.hpp"
+#include <sys/types.h>
+#include <sys/stat.h>
 #include "ioread.h"
 #include "phiprof.hpp"
 #include "parameters.h"
@@ -21,6 +22,39 @@ using namespace vlsv;
 extern Logger logFile, diagnostic;
 
 typedef Parameters P;
+
+/*!
+ * \brief Checks for command files written to the local directory.
+ * If a file STOP was written and is readable, then a bailout with restart writing is initiated.
+ * If a file KILL was written and is readable, then a bailout without a restart is initiated.
+ * To avoid bailing out upfront on a new run the files are renamed with the date to keep a trace.
+ * The function should only be called by MASTER_RANK. This ensures that resetting P::bailout_write_restart works.
+ */
+void checkExternalCommands() {
+   struct stat tempStat;
+   if (stat("STOP", &tempStat) == 0) {
+      bailout(true, "Received an external STOP command. Setting bailout.write_restart to true.");
+      P::bailout_write_restart = true;
+      char newName[80];
+      // Get the current time.
+      const time_t rawTime = time(NULL);
+      const struct tm * timeInfo = localtime(&rawTime);
+      strftime(newName, 80, "STOP_%F_%H-%M-%S", timeInfo);
+      rename("STOP", newName);
+      return;
+   }
+   if(stat("KILL", &tempStat) == 0) {
+      bailout(true, "Received an external KILL command. Setting bailout.write_restart to false.");
+      P::bailout_write_restart = false;
+      char newName[80];
+      // Get the current time.
+      const time_t rawTime = time(NULL);
+      const struct tm * timeInfo = localtime(&rawTime);
+      strftime(newName, 80, "KILL_%F_%H-%M-%S", timeInfo);
+      rename("KILL", newName);
+      return;
+   }
+}
 
 /*!
   \brief Collective exit on error functions
@@ -60,7 +94,6 @@ bool exitOnError(bool success,string message,MPI_Comm comm) {
  \param masterRank The simulation's master rank id (Vlasiator uses 0, which should be the default)
  \param comm MPI comm (MPI_COMM_WORLD should be the default)
 */
-
 bool readCellIds(VLSVParReader & file,
                  vector<uint64_t>& fileCells, int masterRank,MPI_Comm comm){
    // Get info on array containing cell Ids:
@@ -251,7 +284,6 @@ bool readNBlocks( T & file,
  \param mpiGrid Vlasiator's grid
  \sa exec_readGrid
 */
-
 template <typename fileReal>
 bool _readBlockData(
    VLSVParReader & file,
@@ -305,27 +337,28 @@ bool _readBlockData(
    
    uint64_t bufferBlock=0;
    for(uint i=0;i<localCells;i++){
-     uint cell=fileCells[localCellStartOffset+i];
-     for (uint blockIndex=0;blockIndex<nBlocks[localCellStartOffset+i];blockIndex++){
-        creal vx_block = coordBuffer[bufferBlock*coordVectorSize+BlockParams::VXCRD];
-        creal vy_block = coordBuffer[bufferBlock*coordVectorSize+BlockParams::VYCRD];
-        creal vz_block = coordBuffer[bufferBlock*coordVectorSize+BlockParams::VZCRD];
-        creal dvx_blockCell = coordBuffer[bufferBlock*coordVectorSize+BlockParams::DVX];
-        creal dvy_blockCell = coordBuffer[bufferBlock*coordVectorSize+BlockParams::DVY];
-        creal dvz_blockCell = coordBuffer[bufferBlock*coordVectorSize+BlockParams::DVZ];
-        // set    volume average of distrib. function for each cell in the block.
-        for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
-           creal vx_cell_center = vx_block + (ic+convert<Real>(0.5))*dvx_blockCell;
-           creal vy_cell_center = vy_block + (jc+convert<Real>(0.5))*dvy_blockCell;
-           creal vz_cell_center = vz_block + (kc+convert<Real>(0.5))*dvz_blockCell;
-           //todo, use faster set_value interface
-           mpiGrid[cell]->set_value(vx_cell_center,vy_cell_center,vz_cell_center,avgBuffer[bufferBlock*avgVectorSize+cellIndex(ic,jc,kc)]);
-        }
-        bufferBlock++; 
-     }
+      uint cell=fileCells[localCellStartOffset+i];
+      for (uint blockIndex=0;blockIndex<nBlocks[localCellStartOffset+i];blockIndex++){
+         creal vx_block = coordBuffer[bufferBlock*coordVectorSize+BlockParams::VXCRD];
+         creal vy_block = coordBuffer[bufferBlock*coordVectorSize+BlockParams::VYCRD];
+         creal vz_block = coordBuffer[bufferBlock*coordVectorSize+BlockParams::VZCRD];
+         creal dvx_blockCell = coordBuffer[bufferBlock*coordVectorSize+BlockParams::DVX];
+         creal dvy_blockCell = coordBuffer[bufferBlock*coordVectorSize+BlockParams::DVY];
+         creal dvz_blockCell = coordBuffer[bufferBlock*coordVectorSize+BlockParams::DVZ];
+         // set    volume average of distrib. function for each cell in the block.
+         for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
+            creal vx_cell_center = vx_block + (ic+convert<Real>(0.5))*dvx_blockCell;
+            creal vy_cell_center = vy_block + (jc+convert<Real>(0.5))*dvy_blockCell;
+            creal vz_cell_center = vz_block + (kc+convert<Real>(0.5))*dvz_blockCell;
+            
+            //todo, use faster set_value interface
+            #warning DEPRECATED: This function call needs to be replaced with something else in AMR mesh
+            mpiGrid[cell]->set_value(vx_cell_center,vy_cell_center,vz_cell_center,avgBuffer[bufferBlock*avgVectorSize+cellIndex(ic,jc,kc)]);
+         }
+         bufferBlock++; 
+      }
    }
-
-
+   
    delete(avgBuffer);
    delete(coordBuffer);
    return success;
@@ -465,12 +498,12 @@ bool _readBlockData(
            creal vy_cell_center = blockCoordinates[1] + (jc+convert<Real>(0.5))*dvy_blockCell;
            creal vz_cell_center = blockCoordinates[2] + (kc+convert<Real>(0.5))*dvz_blockCell;
            //TODO: use faster set_value
+           #warning DEPRECATED: This function call needs to be replaced with something else in AMR mesh
            mpiGrid[cell]->set_value(vx_cell_center,vy_cell_center,vz_cell_center,avgBuffer[bufferBlock*avgVectorSize+cellIndex(ic,jc,kc)]);
         }
         bufferBlock++; 
      }
    }
-
 
    delete(avgBuffer);
    delete[] blockIdBuffer_char;
@@ -553,14 +586,16 @@ bool readBlockData(
  \return Returns true if the operation is successful
  */
 template <typename fileReal, class U>
-static bool _readCellParamsVariable(U & file,
-			    const vector<uint64_t>& fileCells,
-                            const uint64_t localCellStartOffset,
-			    const uint64_t localCells,
-			    const string& variableName,
-                            const size_t cellParamsIndex,
-                            const size_t expectedVectorSize,
-                            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid){
+static bool _readCellParamsVariable(
+   U & file,
+   const vector<uint64_t>& fileCells,
+   const uint64_t localCellStartOffset,
+   const uint64_t localCells,
+   const string& variableName,
+   const size_t cellParamsIndex,
+   const size_t expectedVectorSize,
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
+) {
    uint64_t arraySize;
    uint64_t vectorSize;
    datatype::type dataType;
@@ -611,14 +646,16 @@ static bool _readCellParamsVariable(U & file,
  \return Returns true if the operation is successful
  */
 template <class U>
-bool readCellParamsVariable(U & file,
-			    const vector<uint64_t>& fileCells,
-                            const uint64_t localCellStartOffset,
-			    const uint64_t localCells,
-			    const string& variableName,
-                            const size_t cellParamsIndex,
-                            const size_t expectedVectorSize,
-                            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid){
+bool readCellParamsVariable(
+   U & file,
+   const vector<uint64_t>& fileCells,
+   const uint64_t localCellStartOffset,
+   const uint64_t localCells,
+   const string& variableName,
+   const size_t cellParamsIndex,
+   const size_t expectedVectorSize,
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
+) {
    uint64_t arraySize;
    uint64_t vectorSize;
    datatype::type dataType;
@@ -780,14 +817,14 @@ bool checkScalarParameter(U & file, const string & name, T correctValue, int mas
    readScalarParameter(file,name,value,masterRank,comm);
    if(value!=correctValue){
       std::ostringstream s;
-      s << "(RESTART) Parameter " << name << " has missmatching value.";
+      s << "(RESTART) Parameter " << name << " has mismatching value.";
       s << " CFG value = " << correctValue;
       s << " Restart file value = " << value;
-      exitOnError(false,s.str(),MPI_COMM_WORLD);      
+      exitOnError(false,s.str(),MPI_COMM_WORLD);
       return false;
    }
    else{
-      exitOnError(true,"",MPI_COMM_WORLD);      
+      exitOnError(true,"",MPI_COMM_WORLD);
       return true;
    }
 }
@@ -836,51 +873,57 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    T file;
    MPI_Info mpiInfo = MPI_INFO_NULL;
 
-   const short int masterRank = 0;
-   if (file.open(name,MPI_COMM_WORLD,masterRank,mpiInfo) == false) {
+   if (file.open(name,MPI_COMM_WORLD,MASTER_RANK,mpiInfo) == false) {
       success=false;
    }
    exitOnError(success,"(RESTART) Could not open file",MPI_COMM_WORLD);
 
-   if(readScalarParameter(file,"t",P::t,0,MPI_COMM_WORLD) ==false) success=false;//CONT
+   if(readScalarParameter(file,"t",P::t,MASTER_RANK,MPI_COMM_WORLD) ==false) success=false;//CONT
    //if( file.readParameter( "t", P::t ) == false ) success = false;
    P::t_min=P::t;
 
    //FIXME: If we use the dt we read in then the restarted simulation
    //has much greater deviation from original trajectory-> do we have
    //a latent bug, is there something we do not read in?
-   //         if(readScalarParameter(file,"dt",P::dt,0,MPI_COMM_WORLD) ==false) success=false;
+   //         if(readScalarParameter(file,"dt",P::dt,MASTER_RANK,MPI_COMM_WORLD) ==false) success=false;
    
-   if( readScalarParameter(file,"tstep",P::tstep,0,MPI_COMM_WORLD) ==false) success=false;
+   if( readScalarParameter(file,"tstep",P::tstep,MASTER_RANK,MPI_COMM_WORLD) ==false) success=false;
    //if( file.readParameter( "tstep", P::tstep ) == false ) success = false;
    P::tstep_min=P::tstep;
-   if(readScalarParameter(file,"dt",P::dt,0,MPI_COMM_WORLD) ==false) success=false;
+   if(readScalarParameter(file,"dt",P::dt,MASTER_RANK,MPI_COMM_WORLD) ==false) success=false;
    //if( file.readParameter( "dt", P::dt ) == false ) success = false;
-   checkScalarParameter(file,"xmin",P::xmin,masterRank,MPI_COMM_WORLD);
-   checkScalarParameter(file,"ymin",P::ymin,masterRank,MPI_COMM_WORLD);
-   checkScalarParameter(file,"zmin",P::zmin,masterRank,MPI_COMM_WORLD);
-   checkScalarParameter(file,"xmax",P::xmax,masterRank,MPI_COMM_WORLD);
-   checkScalarParameter(file,"ymax",P::ymax,masterRank,MPI_COMM_WORLD);
-   checkScalarParameter(file,"zmax",P::zmax,masterRank,MPI_COMM_WORLD);
-   checkScalarParameter(file,"xcells_ini",P::xcells_ini,masterRank,MPI_COMM_WORLD);
-   checkScalarParameter(file,"ycells_ini",P::ycells_ini,masterRank,MPI_COMM_WORLD);
-   checkScalarParameter(file,"zcells_ini",P::zcells_ini,masterRank,MPI_COMM_WORLD);
-   checkScalarParameter(file,"vxmin",P::vxmin,masterRank,MPI_COMM_WORLD);
-   checkScalarParameter(file,"vymin",P::vymin,masterRank,MPI_COMM_WORLD);
-   checkScalarParameter(file,"vzmin",P::vzmin,masterRank,MPI_COMM_WORLD);
-   checkScalarParameter(file,"vxmax",P::vxmax,masterRank,MPI_COMM_WORLD);
-   checkScalarParameter(file,"vymax",P::vymax,masterRank,MPI_COMM_WORLD);
-   checkScalarParameter(file,"vzmax",P::vzmax,masterRank,MPI_COMM_WORLD);
-   checkScalarParameter(file,"vxblocks_ini",P::vxblocks_ini,masterRank,MPI_COMM_WORLD);
-   checkScalarParameter(file,"vyblocks_ini",P::vyblocks_ini,masterRank,MPI_COMM_WORLD);
-   checkScalarParameter(file,"vzblocks_ini",P::vzblocks_ini,masterRank,MPI_COMM_WORLD);
+   if(readScalarParameter(file,"fieldSolverSubcycles",P::fieldSolverSubcycles,MASTER_RANK,MPI_COMM_WORLD) ==false) {
+      // Legacy restarts do not have this field, it "should" be safe for one or two steps...
+      P::fieldSolverSubcycles = 1.0;
+      std::cout << " No P::fieldSolverSubcycles found in restart, setting 1." << std::endl;
+   }
+   MPI_Bcast(&(P::fieldSolverSubcycles),1,MPI_Type<Real>(),MASTER_RANK,MPI_COMM_WORLD);
+   
+   checkScalarParameter(file,"xmin",P::xmin,MASTER_RANK,MPI_COMM_WORLD);
+   checkScalarParameter(file,"ymin",P::ymin,MASTER_RANK,MPI_COMM_WORLD);
+   checkScalarParameter(file,"zmin",P::zmin,MASTER_RANK,MPI_COMM_WORLD);
+   checkScalarParameter(file,"xmax",P::xmax,MASTER_RANK,MPI_COMM_WORLD);
+   checkScalarParameter(file,"ymax",P::ymax,MASTER_RANK,MPI_COMM_WORLD);
+   checkScalarParameter(file,"zmax",P::zmax,MASTER_RANK,MPI_COMM_WORLD);
+   checkScalarParameter(file,"xcells_ini",P::xcells_ini,MASTER_RANK,MPI_COMM_WORLD);
+   checkScalarParameter(file,"ycells_ini",P::ycells_ini,MASTER_RANK,MPI_COMM_WORLD);
+   checkScalarParameter(file,"zcells_ini",P::zcells_ini,MASTER_RANK,MPI_COMM_WORLD);
+   checkScalarParameter(file,"vxmin",P::vxmin,MASTER_RANK,MPI_COMM_WORLD);
+   checkScalarParameter(file,"vymin",P::vymin,MASTER_RANK,MPI_COMM_WORLD);
+   checkScalarParameter(file,"vzmin",P::vzmin,MASTER_RANK,MPI_COMM_WORLD);
+   checkScalarParameter(file,"vxmax",P::vxmax,MASTER_RANK,MPI_COMM_WORLD);
+   checkScalarParameter(file,"vymax",P::vymax,MASTER_RANK,MPI_COMM_WORLD);
+   checkScalarParameter(file,"vzmax",P::vzmax,MASTER_RANK,MPI_COMM_WORLD);
+   checkScalarParameter(file,"vxblocks_ini",P::vxblocks_ini,MASTER_RANK,MPI_COMM_WORLD);
+   checkScalarParameter(file,"vyblocks_ini",P::vyblocks_ini,MASTER_RANK,MPI_COMM_WORLD);
+   checkScalarParameter(file,"vzblocks_ini",P::vzblocks_ini,MASTER_RANK,MPI_COMM_WORLD);
 
    phiprof::start("readDatalayout");
-   if(success) { success=readCellIds(file,fileCells,masterRank,MPI_COMM_WORLD); }
+   if(success) { success=readCellIds(file,fileCells,MASTER_RANK,MPI_COMM_WORLD); }
 
    //check that the cellID lists are identical in file and grid
    if(myRank==0){
-      vector<uint64_t> allGridCells=mpiGrid.get_all_cells();
+      vector<CellID> allGridCells=mpiGrid.get_all_cells();
       if(fileCells.size() != allGridCells.size()){
          success=false;
       }
@@ -888,21 +931,22 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    
    exitOnError(success,"(RESTART) Wrong number of cells in restartfile",MPI_COMM_WORLD);
    if(success) {
-      success = readNBlocks(file,nBlocks,masterRank,MPI_COMM_WORLD);
+      success = readNBlocks(file,nBlocks,MASTER_RANK,MPI_COMM_WORLD);
    }
    //make sure all cells are empty, we will anyway overwrite everything and in that case moving cells is easier...
-   vector<uint64_t> gridCells = mpiGrid.get_cells();
-   for(uint i=0;i<gridCells.size();i++){
-      mpiGrid[gridCells[i]]->clear();
+   {
+      const vector<CellID>& gridCells = getLocalCells();
+      for(uint i=0;i<gridCells.size();i++){
+         mpiGrid[gridCells[i]]->clear();
+      }
    }
-
-
+   
    uint64_t totalNumberOfBlocks=0;
    unsigned int numberOfBlocksPerProcess;
 
    for(uint i=0;i<nBlocks.size();i++){
       totalNumberOfBlocks+=nBlocks[i];
-   }   
+   }
    numberOfBlocksPerProcess=1+totalNumberOfBlocks/processes;
 
 
@@ -928,8 +972,10 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    
    SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
    mpiGrid.balance_load(false);
+   //update list of local gridcells
+   recalculateLocalCellsCache();
    //get new list of local gridcells
-   gridCells = mpiGrid.get_cells();
+   const vector<CellID>& gridCells = getLocalCells();
    //unpin cells, otherwise we will never change this initial bad balance
    for(uint i=0;i<gridCells.size();i++){
       mpiGrid.unpin(gridCells[i]);
@@ -951,8 +997,8 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 
    //set cell coordinates based on cfg (mpigrid) information
    for(uint i=0;i<gridCells.size();i++){
-      boost::array<double, 3> cell_min = mpiGrid.geometry.get_min(gridCells[i]);
-      boost::array<double, 3> cell_length = mpiGrid.geometry.get_length(gridCells[i]);
+      std::array<double, 3> cell_min = mpiGrid.geometry.get_min(gridCells[i]);
+      std::array<double, 3> cell_length = mpiGrid.geometry.get_length(gridCells[i]);
       
       mpiGrid[gridCells[i]]->parameters[CellParams::XCRD] = cell_min[0];
       mpiGrid[gridCells[i]]->parameters[CellParams::YCRD] = cell_min[1];
@@ -977,13 +1023,17 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 
 
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"perturbed_B",CellParams::PERBX,3,mpiGrid); }
-// This has to be set anyway, there are also the derivatives tahat should be written/read if we want to only read in bancground field
+// This has to be set anyway, there are also the derivatives that should be written/read if we want to only read in background field
 //   if(success)
 //     success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"background_B",CellParams::BGBX,3,mpiGrid);
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"moments",CellParams::RHO,4,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"moments_dt2",CellParams::RHO_DT2,4,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"moments_r",CellParams::RHO_R,4,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"moments_v",CellParams::RHO_V,4,mpiGrid); }
+   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"pressure",CellParams::P_11,3,mpiGrid); }
+   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"pressure_dt2",CellParams::P_11_DT2,3,mpiGrid); }
+   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"pressure_r",CellParams::P_11_R,3,mpiGrid); }
+   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"pressure_v",CellParams::P_11_V,3,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"LB_weight",CellParams::LBWEIGHTCOUNTER,1,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"max_v_dt",CellParams::MAXVDT,1,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"max_r_dt",CellParams::MAXRDT,1,mpiGrid); }

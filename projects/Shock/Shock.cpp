@@ -80,9 +80,9 @@ namespace projects {
    }
 
    Real Shock::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz) {
-      creal k = 1.3806505e-23; // Boltzmann
-      creal mass = 1.67262171e-27; // m_p in kg
-      return exp(- mass * ((vx-this->VX0)*(vx-this->VX0) + (vy-this->VY0)*(vy-this->VY0)+ (vz-this->VZ0)*(vz-this->VZ0)) / (2.0 * k * this->TEMPERATURE));
+      creal kb = physicalconstants::K_B;
+      creal mass = physicalconstants::MASS_PROTON;
+      return exp(- mass * ((vx-this->VX0)*(vx-this->VX0) + (vy-this->VY0)*(vy-this->VY0)+ (vz-this->VZ0)*(vz-this->VZ0)) / (2.0 * kb * this->TEMPERATURE));
       //*exp(-pow(x-Parameters::xmax/2.0, 2.0)/pow(this->SCA_X, 2.0))*exp(-pow(y-Parameters::ymax/4.0, 2.0)/pow(this->SCA_Y, 2.0));
    }
 
@@ -96,11 +96,9 @@ namespace projects {
          vz > Parameters::vzmax - 1.5 * dvz
       ) return 0.0;
       
-      creal mass = Parameters::m;
-      creal q = Parameters::q;
-      creal k = 1.3806505e-23; // Boltzmann
-      creal mu0 = 1.25663706144e-6; // mu_0
-
+      creal mass = physicalconstants::MASS_PROTON;
+      creal kb = physicalconstants::K_B;
+      
       creal d_x = dx / (this->nSpaceSamples-1);
       creal d_y = dy / (this->nSpaceSamples-1);
       creal d_z = dz / (this->nSpaceSamples-1);
@@ -119,9 +117,9 @@ namespace projects {
          avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz);
          }
       
-      creal result = avg *this->DENSITY * pow(mass / (2.0 * M_PI * k * this->TEMPERATURE), 1.5) /
+      creal result = avg *this->DENSITY * pow(mass / (2.0 * M_PI * kb * this->TEMPERATURE), 1.5) /
                      (this->nSpaceSamples*this->nSpaceSamples*this->nSpaceSamples) / 
-   //   	            (Parameters::vzmax - Parameters::vzmin) / 
+   //                (Parameters::vzmax - Parameters::vzmin) / 
                      (this->nVelocitySamples*this->nVelocitySamples*this->nVelocitySamples);
                
                

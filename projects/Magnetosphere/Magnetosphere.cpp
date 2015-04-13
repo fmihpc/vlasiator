@@ -39,8 +39,9 @@ namespace projects {
       RP::add("Magnetosphere.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
       RP::add("Magnetosphere.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
       RP::add("Magnetosphere.dipoleScalingFactor","Scales the field strength of the magnetic dipole compared to Earths.", 1.0);
-      RP::add("Magnetosphere.dipoleTilt","The tilt of Earth's dipole in the X-Z plane, against the z-axis. In radians.", 0.0);
-      RP::add("Magnetosphere.useLineDipole","Use the line dipole, valid only on polar plane", 0.0);
+      RP::add("Magnetosphere.dipoleType","0: Normal 3D dipole, 1: line-dipole for 2D polar simulations, 2: line-dipole with mirror, 3: 3D dipole with mirror", 0);
+      RP::add("Magnetosphere.dipoleMirrorLocationX","x-coordinate of dipole Mirror", -1.0);
+
    }
    
    void Magnetosphere::getParameters(){
@@ -93,6 +94,7 @@ namespace projects {
          exit(1);
       }
       this->noDipoleInSW = dummy == 1 ? true:false;
+
       if(!RP::get("Magnetosphere.nSpaceSamples", this->nSpaceSamples)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
@@ -106,16 +108,15 @@ namespace projects {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
-      //ok default
-      RP::get("Magnetosphere.dipoleTilt",this->dipoleTilt);
-      
-      if(!RP::get("Magnetosphere.useLineDipole", dummy)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+
+      if(!RP::get("Magnetosphere.dipoleMirrorLocationX", this->dipoleMirrorLocationX)) {
+           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
-      this->useLineDipole = dummy == 1 ? true:false;
-      if(P::ycells_ini!=1 && this->useLineDipole) {
-         if(myRank == MASTER_RANK) cout << " WARNING: You set Magnetosphere.useLineDipole = 1, and you have more than 1 cell in y direction. Are you sure this is correct?" << endl;
+
+      if(!RP::get("Magnetosphere.dipoleType", this->dipoleType)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);       
       }
       
       if(!RP::get("ionosphere.rho", this->ionosphereRho)) {
@@ -127,6 +128,22 @@ namespace projects {
          exit(1);
       }
       if(!RP::get("ionosphere.taperRadius", this->ionosphereTaperRadius)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!RP::get("ionosphere.centerX", this->center[0])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!RP::get("ionosphere.centerY", this->center[1])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!RP::get("ionosphere.centerZ", this->center[2])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("ionosphere.geometry", this->ionosphereGeometry)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
@@ -180,20 +197,40 @@ namespace projects {
 
    /* set 0-centered dipole */
    void Magnetosphere::setCellBackgroundField(SpatialCell *cell){
-      Dipole bgFieldDipole;
-      LineDipole bgFieldLineDipole;
-      if(this->useLineDipole) {
-         bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor,this->dipoleTilt );//set dipole moment
-      } else { 
-         bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor,this->dipoleTilt );//set dipole moment
-      }
       if(cell->sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN && this->noDipoleInSW) {
          setBackgroundFieldToZero(cell->parameters, cell->derivatives,cell->derivativesBVOL);
-      } else {
-         if(this->useLineDipole) {
-            setBackgroundField(bgFieldLineDipole,cell->parameters, cell->derivatives,cell->derivativesBVOL);
-         } else {
-            setBackgroundField(bgFieldDipole,cell->parameters, cell->derivatives,cell->derivativesBVOL);
+      }
+      else {
+         Dipole bgFieldDipole;
+         LineDipole bgFieldLineDipole;
+
+         switch(this->dipoleType) {
+             case 0:
+                bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );//set dipole moment
+                setBackgroundField(bgFieldDipole,cell->parameters, cell->derivatives,cell->derivativesBVOL);
+                break;
+             case 1:
+                bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor, 0.0, 0.0, 0.0 );//set dipole moment     
+                setBackgroundField(bgFieldLineDipole,cell->parameters, cell->derivatives,cell->derivativesBVOL);
+                break;
+             case 2:
+                bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor, 0.0, 0.0, 0.0 );//set dipole moment     
+                setBackgroundField(bgFieldLineDipole,cell->parameters, cell->derivatives,cell->derivativesBVOL);
+                //Append mirror dipole
+                bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor, this->dipoleMirrorLocationX, 0.0, 0.0 );
+                setBackgroundField(bgFieldLineDipole,cell->parameters, cell->derivatives,cell->derivativesBVOL, true);
+                break;
+             case 3:
+                bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );//set dipole moment
+                setBackgroundField(bgFieldDipole,cell->parameters, cell->derivatives,cell->derivativesBVOL);
+                //Append mirror dipole                
+                bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, this->dipoleMirrorLocationX, 0.0, 0.0, 0.0 );//mirror
+                setBackgroundField(bgFieldDipole,cell->parameters, cell->derivatives,cell->derivativesBVOL, true);
+                break;
+                
+             default:
+                setBackgroundFieldToZero(cell->parameters, cell->derivatives,cell->derivativesBVOL);
+                
          }
       }
       
@@ -245,6 +282,22 @@ namespace projects {
             cell->parameters[CellParams::BGBXVOL+component] += this->constBgB[component];
          }
       }
+      
+//       // FIXME TESTING HACK to be used when one wants to get the "zero" Hall field from the dipole
+//       cell->parameters[CellParams::PERBX] = cell->parameters[CellParams::BGBX];
+//       cell->parameters[CellParams::PERBXVOL] = cell->parameters[CellParams::BGBXVOL];
+//       cell->parameters[CellParams::BGBX] = 0.0;
+//       cell->parameters[CellParams::BGBXVOL] = 0.0;
+//       cell->parameters[CellParams::PERBY] = cell->parameters[CellParams::BGBY];
+//       cell->parameters[CellParams::PERBYVOL] = cell->parameters[CellParams::BGBYVOL];
+//       cell->parameters[CellParams::BGBY] = 0.0;
+//       cell->parameters[CellParams::BGBYVOL] = 0.0;
+//       cell->parameters[CellParams::PERBZ] = cell->parameters[CellParams::BGBY];
+//       cell->parameters[CellParams::PERBZVOL] = cell->parameters[CellParams::BGBZVOL];
+//       cell->parameters[CellParams::BGBZ] = 0.0;
+//       cell->parameters[CellParams::BGBZVOL] = 0.0;
+//       // END OF TESTING HACK
+      
    }
       
       
@@ -252,7 +305,26 @@ namespace projects {
       Real initRho = this->tailRho;
       std::array<Real, 3> initV0 = this->getV0(x, y, z)[0];
       
-      creal radius = sqrt(x*x + y*y + z*z);
+      Real radius;
+      
+      switch(this->ionosphereGeometry) {
+         case 0:
+            // infinity-norm, result is a diamond/square with diagonals aligned on the axes in 2D
+            radius = fabs(x-center[0]) + fabs(y-center[1]) + fabs(z-center[2]);
+            break;
+         case 1:
+            // 1-norm, result is is a grid-aligned square in 2D
+            radius = max(max(fabs(x-center[0]), fabs(y-center[1])), fabs(z-center[2]));
+            break;
+         case 2:
+            // 2-norm (Cartesian), result is a circle in 2D
+            radius = sqrt((x-center[0])*(x-center[0]) + (y-center[1])*(y-center[1]) + (z-center[2])*(z-center[2]));
+            break;
+         default:
+            std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1 or 2." << std::endl;
+            abort();
+      }
+      
       if(radius < this->ionosphereTaperRadius) {
          // linear tapering
          //initRho = this->ionosphereRho - (ionosphereRho-tailRho)*(radius-this->ionosphereRadius) / (this->ionosphereTaperRadius-this->ionosphereRadius);
@@ -280,7 +352,26 @@ namespace projects {
       std::array<Real, 3> V0 {{this->V0[0], this->V0[1], this->V0[2]}};
       std::array<Real, 3> ionosphereV0 = {{this->ionosphereV0[0], this->ionosphereV0[1], this->ionosphereV0[2]}};
       
-      creal radius = sqrt(x*x + y*y + z*z);
+      Real radius;
+      
+      switch(this->ionosphereGeometry) {
+         case 0:
+            // infinity-norm, result is a diamond/square with diagonals aligned on the axes in 2D
+            radius = fabs(x-center[0]) + fabs(y-center[1]) + fabs(z-center[2]);
+            break;
+         case 1:
+            // 1-norm, result is is a grid-aligned square in 2D
+            radius = max(max(fabs(x-center[0]), fabs(y-center[1])), fabs(z-center[2]));
+            break;
+         case 2:
+            // 2-norm (Cartesian), result is a circle in 2D
+            radius = sqrt((x-center[0])*(x-center[0]) + (y-center[1])*(y-center[1]) + (z-center[2])*(z-center[2]));
+            break;
+         default:
+            std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1 or 2." << std::endl;
+            abort();
+      }
+      
       if(radius < this->ionosphereTaperRadius) {
          // linear tapering
          //initV0[i] *= (radius-this->ionosphereRadius) / (this->ionosphereTaperRadius-this->ionosphereRadius);

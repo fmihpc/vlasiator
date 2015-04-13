@@ -25,7 +25,14 @@
 
 #include "outflow.h"
 #include "../projects/projects_common.h"
-#include "../fieldsolver.h"
+#include "../fieldsolver/fs_common.h"
+
+#ifndef NDEBUG
+   #define DEBUG_OUTFLOW
+#endif
+#ifdef DEBUG_SYSBOUNDARY
+   #define DEBUG_OUTFLOW
+#endif
 
 using namespace std;
 
@@ -127,56 +134,89 @@ namespace SBC {
    }
    
    Real Outflow::fieldSolverBoundaryCondMagneticField(
-      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID,
-      creal& dt,
-      cuint& component
+                                                      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                                      const CellID& cellID,
+                                                      creal& dt,
+                                                      cuint& component
    ) {
-      if(dt == 0.0) {
+      if (dt == 0.0) {
          return fieldBoundaryCopyFromExistingFaceNbrMagneticField(mpiGrid, cellID, component);
       } else { // Return PERB[XYZ]_DT2
          cint offset = CellParams::PERBX_DT2 - CellParams::PERBX;
          return fieldBoundaryCopyFromExistingFaceNbrMagneticField(mpiGrid, cellID, component+offset);
       }
    }
-   
+
    void Outflow::fieldSolverBoundaryCondElectricField(
       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
       cuint RKCase,
       cuint component
    ) {
-      switch(component) {
+      if((RKCase == RK_ORDER1) || (RKCase == RK_ORDER2_STEP2)) {
+         mpiGrid[cellID]->parameters[CellParams::EX+component] = 0.0;
+      } else {// RKCase == RK_ORDER2_STEP1
+         mpiGrid[cellID]->parameters[CellParams::EX_DT2+component] = 0.0;
+      }
+   }
+   
+   void Outflow::fieldSolverBoundaryCondHallElectricField(
+                                                          fs_cache::CellCache& cache,
+                                                          cuint RKCase,
+                                                          cuint component
+                                                         ) {
+
+      Real* cp = cache.cells[fs_cache::calculateNbrID(1,1,1)]->parameters;      
+      
+      switch (component) {
          case 0:
-            calculateEdgeElectricFieldX(mpiGrid, cellID, RKCase);
+            cp[CellParams::EXHALL_000_100] = 0.0;
+            cp[CellParams::EXHALL_010_110] = 0.0;
+            cp[CellParams::EXHALL_001_101] = 0.0;
+            cp[CellParams::EXHALL_011_111] = 0.0;
             break;
          case 1:
-            calculateEdgeElectricFieldY(mpiGrid, cellID, RKCase);
+            cp[CellParams::EYHALL_000_010] = 0.0;
+            cp[CellParams::EYHALL_100_110] = 0.0;
+            cp[CellParams::EYHALL_001_011] = 0.0;
+            cp[CellParams::EYHALL_101_111] = 0.0;
             break;
          case 2:
-            calculateEdgeElectricFieldZ(mpiGrid, cellID, RKCase);
+            cp[CellParams::EZHALL_000_001] = 0.0;
+            cp[CellParams::EZHALL_100_101] = 0.0;
+            cp[CellParams::EZHALL_010_011] = 0.0;
+            cp[CellParams::EZHALL_110_111] = 0.0;
             break;
          default:
-            cerr << "ERROR: Reached end of switch in Outflow::fieldSolverBoundaryCondElectricField." << endl;
-            abort();
+            cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
       }
    }
    
    Real Outflow::fieldBoundaryCopyFromExistingFaceNbrMagneticField(
-      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID,
-      cuint& component
-   ) {
-      const CellID closestCell = getClosestNonsysboundaryCell(mpiGrid, cellID);
+                                                                   const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                                                   const CellID& cellID,
+                                                                   cuint& component
+                                                                  ) {
+      const CellID closestCell = getTheClosestNonsysboundaryCell(cellID);
       
-      if(closestCell == INVALID_CELLID) {
+      #ifdef DEBUG_OUTFLOW
+      if (mpiGrid[closestCell]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+         stringstream ss;
+         ss << "ERROR, outflow cell " << cellID << " uses value from sysboundary nbr " << closestCell;
+         ss << " in " << __FILE__ << ":" << __LINE__ << endl;
+         cerr << ss.str();
+         exit(1);
+      }
+      
+      if (closestCell == INVALID_CELLID) {
          cerr << cellID << " " << __FILE__ << ":" << __LINE__ << ": No closest cell found!" << endl;
          abort();
       }
+      #endif
       
       return mpiGrid[closestCell]->parameters[CellParams::PERBX+component];
       
-/*
+      /*
  // get_neighbors                                                *
  // if all neighbors are of the same size then they are in z order, e.g. with a neighborhood size of 2 the first neighbor is at offset (-2, -2, -2) from the given cell, the second one is at (-1, -2, -2), etc, in size units of the given cell.
  
@@ -352,22 +392,8 @@ namespace SBC {
       const CellID& cellID
    ) {
 //      phiprof::start("vlasovBoundaryCondition (Outflow)");
-      vlasovBoundaryCopyFromExistingFaceNbr(mpiGrid, cellID);
+      vlasovBoundaryCopyFromTheClosestNbr(mpiGrid, cellID);
 //      phiprof::stop("vlasovBoundaryCondition (Outflow)");
-   }
-   
-   void Outflow::vlasovBoundaryCopyFromExistingFaceNbr(
-      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID
-   ) {
-      const CellID closestCell = getClosestNonsysboundaryCell(mpiGrid, cellID);
-      
-      if(closestCell == INVALID_CELLID) {
-         cerr << __FILE__ << ":" << __LINE__ << ": No closest cell found!" << endl;
-         abort();
-      }
-      //Do not allow block adjustment, the block structure when calling vlasovBoundaryCondition should be static
-      copyCellData(mpiGrid[closestCell], mpiGrid[cellID],false);
    }
    
    void Outflow::getFaces(bool* faces) {

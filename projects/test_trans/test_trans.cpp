@@ -22,6 +22,7 @@ Copyright 2011, 2012, 2014 Finnish Meteorological Institute
 #include "../../common.h"
 #include "../../readparameters.h"
 #include "../../backgroundfield/backgroundfield.h"
+#include "../../backgroundfield/constantfield.hpp"
 
 #include "test_trans.h"
 
@@ -37,12 +38,14 @@ namespace projects {
 
    void test_trans::addParameters(){
       typedef Readparameters RP;
-      RP::add("test_trans.cellPosition", "Position of the centre of the cells initiated (same used in velocity and space).", 1.5);
+      RP::add("test_trans.cellPosition", "Position of the centre of the cells initiated (same used in velocity and space).",(Real)1.5);
+      RP::add("test_trans.peakValue","Value of the distribution function",(Real)1.0);
    }
 
    void test_trans::getParameters(){
       typedef Readparameters RP;
       RP::get("test_trans.cellPosition", this->cellPosition);
+      RP::get("test_trans.peakValue" ,peakValue);
    }
 
 
@@ -99,7 +102,7 @@ namespace projects {
          }
          
          if(!outsideBox) {
-            return 1.0;
+            return peakValue;
          }
       }
       return 0.0;
@@ -112,6 +115,12 @@ namespace projects {
       cellParams[CellParams::PERBX   ] = 0.0;
       cellParams[CellParams::PERBY   ] = 0.0;
       cellParams[CellParams::PERBZ   ] = 0.0;
+   }
+   
+   void test_trans::setCellBackgroundField(SpatialCell* cell) {
+      ConstantField bgField;
+      bgField.initialize(0.0,0.0,1e-9);
+      setBackgroundField(bgField,cell->parameters, cell->derivatives,cell->derivativesBVOL);
    }
 
 }// namespace projects

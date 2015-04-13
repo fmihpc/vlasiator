@@ -29,7 +29,7 @@ double ConstantField::call( double , double , double ) const
       //all derivatives are zero
       return 0.0;
    }
-   return 0;	// dummy, but prevents gcc from yelling
+   return 0; // dummy, but prevents gcc from yelling
 }
 
 

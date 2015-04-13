@@ -26,13 +26,16 @@ using namespace std;
 void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosticReducer)
 {
    typedef Parameters P;
-   outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("X",CellParams::XCRD,1));
-   outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("Y",CellParams::YCRD,1));
-   outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("Z",CellParams::ZCRD,1));
-   outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("DX",CellParams::DX,1));
-   outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("DY",CellParams::DY,1));
-   outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("DZ",CellParams::DZ,1));
-   
+   /*
+     //TODO - make these optional in cfg
+     outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("X",CellParams::XCRD,1));
+     outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("Y",CellParams::YCRD,1));
+     outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("Z",CellParams::ZCRD,1));
+     outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("DX",CellParams::DX,1));
+     outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("DY",CellParams::DY,1));
+     outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("DZ",CellParams::DZ,1));
+   */
+
    vector<string>::const_iterator it;
    for (it = P::outputVariableList.begin();
         it != P::outputVariableList.end();
@@ -73,6 +76,9 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::VariablePTensorNonBackstreamDiagonal);
          outputReducer->addOperator(new DRO::VariablePTensorNonBackstreamOffDiagonal);
       }
+      if(*it == "MinValue") {
+         outputReducer->addOperator(new DRO::VariableMinValue);
+      }
       if(*it == "RhoNonBackstream")
          outputReducer->addOperator(new DRO::VariableRhoNonBackstream);
       if(*it == "RhoLossAdjust")
@@ -97,16 +103,60 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::Blocks);
       if(*it == "fSaved")
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("fSaved",CellParams::ISCELLSAVINGF,1));
+      if(*it == "accSubcycles")
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("acc_subcycles",CellParams::ACCSUBCYCLES,1));
       if(*it == "VolE")
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("E_vol",CellParams::EXVOL,3));
+      if(*it == "HallE") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EXHALL_000_100",CellParams::EXHALL_000_100,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EXHALL_001_101",CellParams::EXHALL_001_101,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EXHALL_010_110",CellParams::EXHALL_010_110,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EXHALL_011_111",CellParams::EXHALL_011_111,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EYHALL_000_010",CellParams::EYHALL_000_010,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EYHALL_001_011",CellParams::EYHALL_001_011,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EYHALL_100_110",CellParams::EYHALL_100_110,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EYHALL_101_111",CellParams::EYHALL_101_111,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EZHALL_000_001",CellParams::EZHALL_000_001,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EZHALL_010_011",CellParams::EZHALL_010_011,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EZHALL_100_101",CellParams::EZHALL_100_101,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EZHALL_110_111",CellParams::EZHALL_110_111,1));
+      }
+      if(*it == "BackgroundBedge") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBX_000_010",CellParams::BGBX_000_010,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBX_100_110",CellParams::BGBX_100_110,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBX_001_011",CellParams::BGBX_001_011,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBX_101_111",CellParams::BGBX_101_111,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBX_000_001",CellParams::BGBX_000_001,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBX_100_101",CellParams::BGBX_100_101,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBX_010_011",CellParams::BGBX_010_011,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBX_110_111",CellParams::BGBX_110_111,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBY_000_100",CellParams::BGBY_000_100,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBY_010_110",CellParams::BGBY_010_110,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBY_001_101",CellParams::BGBY_001_101,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBY_011_111",CellParams::BGBY_011_111,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBY_000_001",CellParams::BGBY_000_001,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBY_100_101",CellParams::BGBY_100_101,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBY_010_011",CellParams::BGBY_010_011,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBY_110_111",CellParams::BGBY_110_111,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBZ_000_100",CellParams::BGBZ_000_100,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBZ_010_110",CellParams::BGBZ_010_110,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBZ_001_101",CellParams::BGBZ_001_101,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBZ_011_111",CellParams::BGBZ_011_111,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBZ_000_010",CellParams::BGBZ_000_010,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBZ_100_110",CellParams::BGBZ_100_110,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBZ_001_011",CellParams::BGBZ_001_011,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBZ_101_111",CellParams::BGBZ_101_111,1));
+         
+      }
       if(*it == "VolB")
          outputReducer->addOperator(new DRO::VariableBVol);
       if(*it == "BackgroundVolB")
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGB_vol",CellParams::BGBXVOL,3));
       if(*it == "PerturbedVolB")
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("PERB_vol",CellParams::PERBXVOL,3));
-      if(*it == "Pressure")
-         outputReducer->addOperator(new DRO::VariablePressure);
+      if(*it == "Pressure") {
+         outputReducer->addOperator(new DRO::VariablePressureSolver);
+      }
       if(*it == "PTensor") {
          outputReducer->addOperator(new DRO::VariablePTensorDiagonal);
          outputReducer->addOperator(new DRO::VariablePTensorOffDiagonal);
@@ -115,6 +165,15 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("drhodx",fieldsolver::drhodx,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("drhody",fieldsolver::drhody,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("drhodz",fieldsolver::drhodz,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dp11dx",fieldsolver::dp11dx,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dp22dx",fieldsolver::dp22dx,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dp33dx",fieldsolver::dp33dx,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dp11dy",fieldsolver::dp11dy,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dp22dy",fieldsolver::dp22dy,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dp33dy",fieldsolver::dp33dy,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dp11dz",fieldsolver::dp11dz,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dp22dz",fieldsolver::dp22dz,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dp33dz",fieldsolver::dp33dz,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dPERBxdy",fieldsolver::dPERBxdy,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dBGBxdy",fieldsolver::dBGBxdy,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dPERBxdz",fieldsolver::dPERBxdz,1));
@@ -127,6 +186,17 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dBGBzdx",fieldsolver::dBGBzdx,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dPERBzdy",fieldsolver::dPERBzdy,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dBGBzdy",fieldsolver::dBGBzdy,1));
+         if(Parameters::ohmHallTerm == 2) {
+            outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dPERBxdyy",fieldsolver::dPERBxdyy,1));
+            outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dPERBxdzz",fieldsolver::dPERBxdzz,1));
+            outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dPERBydxx",fieldsolver::dPERBydxx,1));
+            outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dPERBydzz",fieldsolver::dPERBydzz,1));
+            outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dPERBzdxx",fieldsolver::dPERBzdxx,1));
+            outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dPERBzdyy",fieldsolver::dPERBzdyy,1));
+            outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dPERBxdyz",fieldsolver::dPERBxdyz,1));
+            outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dPERBydxz",fieldsolver::dPERBydxz,1));
+            outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dPERBzdxy",fieldsolver::dPERBzdxy,1));
+         }
          outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dVxdx",fieldsolver::dVxdx,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dVxdy",fieldsolver::dVxdy,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dVxdz",fieldsolver::dVxdz,1));
@@ -154,8 +224,17 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 //      if(*it == "numberOfPopulations" )
 //         outputReducer->addOperator(new DRO::Populations);
 
+      if (*it == "Potential") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("poisson/potential",CellParams::PHI,1));
+      }
+      if (*it == "ChargeDensity") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("poisson/rho_q",CellParams::RHOQ_TOT,1));
+      }
+      if (*it == "PotentialError") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("poisson/pot_error",CellParams::PHI_TMP,1));
+      }
    }
-   
+
    for (it = P::diagnosticVariableList.begin();
         it != P::diagnosticVariableList.end();
         it++) {
@@ -165,6 +244,8 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          diagnosticReducer->addOperator(new DRO::DiagnosticFluxE);
       if(*it == "Blocks")
          diagnosticReducer->addOperator(new DRO::Blocks);
+      if(*it == "Pressure")
+         diagnosticReducer->addOperator(new DRO::VariablePressure);
       if(*it == "Rho")
          diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("rho",CellParams::RHO,1));
       if(*it == "RhoLossAdjust")

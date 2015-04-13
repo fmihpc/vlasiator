@@ -17,9 +17,9 @@
 #define VLASOV_SOLVER_X_NEIGHBORHOOD_ID 3 //up to third(PPM) neighbor in x face directions
 #define VLASOV_SOLVER_Y_NEIGHBORHOOD_ID 4 //up to third(PPM) neighbor in y face directions
 #define VLASOV_SOLVER_Z_NEIGHBORHOOD_ID 5 //up to third(PPM) neighbor in z face directions
-#define VLASOV_SOLVER_SOURCE_X_NEIGHBORHOOD_ID 6 //nearest neighbor in X face direction, f() can propagate to local cells in X dir
-#define VLASOV_SOLVER_SOURCE_Y_NEIGHBORHOOD_ID 7 //nearest neighbor in Y face direction, f() can propagate to local cells in Y dir
-#define VLASOV_SOLVER_SOURCE_Z_NEIGHBORHOOD_ID 8 //nearest neighbor in Z face direction, f() can propagate to local cells in Z dir
+#define VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID 6 //nearest neighbor in X face direction, f() can propagate to local cells in X dir, and are target for local cells
+#define VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID 7 //nearest neighbor in Y face direction, f() can propagate to local cells in Y dir, and are target for local cells
+#define VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID 8 //nearest neighbor in Z face direction, f() can propagate to local cells in Z dir, and are target for local cells
 #define SYSBOUNDARIES_NEIGHBORHOOD_ID 9 // When classifying sysboundaries, all 26 nearest neighbors are included,
 #define SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID 10 //Up to second nearest neighbors in all directions (also diagonals)
 #define NEAREST_NEIGHBORHOOD_ID 11  //nearest neighbors
@@ -31,7 +31,21 @@
 #define SHIFT_M_X_NEIGHBORHOOD_ID 17 //Shift in -x direction
 #define SHIFT_M_Y_NEIGHBORHOOD_ID 18 //Shift in -y direction
 #define SHIFT_M_Z_NEIGHBORHOOD_ID 19 //Shift in -z direction
+#define POISSON_NEIGHBORHOOD_ID 20   // Nearest face neighbors 
 
+//fieldsolver stencil.
+#define FS_STENCIL_WIDTH 2
+//Vlasov propagator stencils in ordinary space, velocity space may be
+//higher. Assume H4 (or H5) for PPM, H6 for PQM
+#ifdef TRANS_SEMILAG_PLM
+#define  VLASOV_STENCIL_WIDTH 1
+#endif
+#ifdef TRANS_SEMILAG_PPM
+#define  VLASOV_STENCIL_WIDTH 2
+#endif
+#ifdef TRANS_SEMILAG_PQM
+#define  VLASOV_STENCIL_WIDTH 3
+#endif
 
 /*!
   \brief Initialize parallel grid
@@ -49,29 +63,8 @@ void initializeGrid(
 
     \param[in,out] mpiGrid The DCCRG grid with spatial cells
 */
-void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
+void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, SysBoundary& sysBoundaries);
 
-
-/*!
-  \brief Adjust which blocks are existing based on the current state.
-
-  Before calling this function it is assumed that remote cells have
-  the correct velocity block lists. If one has done local changes to
-  these lists, then they should be updated using
-  updateRemoteVelocityBlockLists() before calling this function.
-
-  This function will update the global view of the block-structure so that it is consistent and up-to-date on all processes:  
-  - Computes which blocks have contents according to threshold
-  - Adds/keeps blocks if they have content, or if their neighbors in spatial or velocity space have contents
-  - Removes blocks which do not fulfill above mentioned criteria
-  - Updates velocity block lists of remote cells using updateRemoteVelocityBlockLists(). Note that data in blocks is not transferred!
-  - Updates movers so that their block-dependent internal datastructures are up-to-date, if reInitMover is true.
-
-  
-  \param[in,out] mpiGrid The DCCRG grid with spatial cells
-  
-*/
-bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 
 
 /*!
@@ -94,10 +87,23 @@ void deallocateRemoteCellBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
 
 
 
+/*! Adjust sparse velocity space to make it consistent in all 6 dimensions
 
-//subroutine to adjust blocks of local cells; remove/add based on user-defined limits
-bool adjust_local_velocity_blocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
+ 1) Compute which blocks have content (done for all cells in mpiGrid)
+ 2) Adjust local velocity blocks. That is, make sure blocks exist which have content, or have
+ neighbors with content in all 6-dimensions. This is done for cells in cellsToAdjust list.
+ 3) Make sure remote cells are up-to-date and ready to receive data, if doPrepareToReceiveBlocks is true.
 
+ Note that block existence does not use vlasov stencil as it is important to also include diagonals to avoid massloss
+
+ \param mpiGrid  Parallel grid with spatial cells
+ \param cellsToAdjust  List of cells that are adjusted, that is cells which blocks are added or removed. 
+ \param doPrepareToReceiveBlocks If true, then remote cells are set up so that velocity space data can be received. Global operation, value has to be the same for all processes.
+ 
+*/
+bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                          const vector<uint64_t>& cellsToAdjust,
+                          bool doPrepareToReceiveBlocks);
 
 
 
@@ -111,6 +117,13 @@ void report_grid_memory_consumption(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
  */
 void shrink_to_fit_grid_data(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 
-
+/** Validate the velocity mesh structure. This function is only relevant for 
+ * the AMR mesh. It makes sure that the mesh structure is valid for all spatial cells, 
+ * i.e., that each velocity block has at most one refinement level difference to 
+ * its neighbors (in spatial and velocity space).
+ * @param mpiGrid Parallel grid.
+ * @return If true, the mesh is valid. Otherwise an error has occurred and the simulation 
+ * should be aborted.*/
+bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 
 #endif
