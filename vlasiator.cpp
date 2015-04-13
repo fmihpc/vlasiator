@@ -417,22 +417,25 @@ int main(int argn,char* args[]) {
       addTimedBarrier("barrier-loop-start");
       
       phiprof::start("IO");
-      
+
+      phiprof::start("checkExternalCommands");
       if(myRank ==  MASTER_RANK) {
          // check whether STOP or KILL has been passed, should be done by MASTER_RANK only as it can reset P::bailout_write_restart
          checkExternalCommands();
       }
+      phiprof::stop("checkExternalCommands");
       
       //write out phiprof profiles and logs with a lower interval than normal
       //diagnostic (every 10 diagnostic intervals).
+      phiprof::start("logfile-io");
       logFile << "---------- tstep = " << P::tstep << " t = " << P::t <<" dt = " << P::dt << " FS cycles = " << P::fieldSolverSubcycles << " ----------" << endl;
       if (P::diagnosticInterval != 0 &&
           P::tstep % (P::diagnosticInterval*10) == 0 &&
           P::tstep-P::tstep_min >0) {
-         MPI_Barrier(MPI_COMM_WORLD);
+
          phiprof::print(MPI_COMM_WORLD,"phiprof_reduced",0.01);
          // MPI_Barrier(MPI_COMM_WORLD);
-         //phiprof::print(MPI_COMM_WORLD,"phiprof_full");
+         phiprof::print(MPI_COMM_WORLD,"phiprof_full");
          // phiprof::printLogProfile(MPI_COMM_WORLD,P::tstep,"phiprof_log"," ",7);
          
          double currentTime=MPI_Wtime();
@@ -452,15 +455,29 @@ int main(int argn,char* args[]) {
          report_process_memory_consumption();
       }
       logFile << writeVerbose;      
+      phiprof::stop("logfile-io");
+
+
+      if (P::diagnosticInterval != 0 &&
+          P::tstep % (P::diagnosticInterval*10) == 0 &&
+          P::tstep-P::tstep_min >0) {
+         phiprof::start("phiprof-io");
+         phiprof::print(MPI_COMM_WORLD,"phiprof_reduced",0.01);
+         // MPI_Barrier(MPI_COMM_WORLD);
+         //phiprof::print(MPI_COMM_WORLD,"phiprof_full");
+         // phiprof::printLogProfile(MPI_COMM_WORLD,P::tstep,"phiprof_log"," ",7);
+         phiprof::stop("phiprof-io");
+      }
+
       
-      // Check whether diagnostic output has to be produced
+// Check whether diagnostic output has to be produced
       if (P::diagnosticInterval != 0 && P::tstep % P::diagnosticInterval == 0) {
-         phiprof::start("Diagnostic");
+         phiprof::start("diagnostic-io");
          if (writeDiagnostic(mpiGrid, diagnosticReducer) == false) {
             if(myRank == MASTER_RANK)  cerr << "ERROR with diagnostic computation" << endl;
             
          }
-         phiprof::stop("Diagnostic");
+         phiprof::stop("diagnostic-io");
       }
       // write system, loop through write classes
       for (uint i = 0; i < P::systemWriteTimeInterval.size(); i++) {
@@ -478,13 +495,14 @@ int main(int argn,char* args[]) {
             phiprof::stop("write-system");
          }
       }
-      
+      phiprof::start("Bailout-allreduce");      
       // Reduce globalflags::bailingOut from all processes
       MPI_Allreduce(&(globalflags::bailingOut), &(doBailout), 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-      
+      phiprof::stop("Bailout-allreduce");            
+
       // Write restart data if needed
+      phiprof::start("compute-is-restart-written");      
       int writeRestartNow;
-      
       if (myRank == MASTER_RANK) {
          if (  (P::saveRestartWalltimeInterval >=0.0
             && (P::saveRestartWalltimeInterval*wallTimeRestartCounter <=  MPI_Wtime()-initialWtime
@@ -499,7 +517,8 @@ int main(int argn,char* args[]) {
          }
       }
       MPI_Bcast( &writeRestartNow, 1 , MPI_INT , MASTER_RANK ,MPI_COMM_WORLD);
-      
+      phiprof::stop("compute-is-restart-written");      
+
       if (writeRestartNow == 1){
          phiprof::start("write-restart");
          wallTimeRestartCounter++;

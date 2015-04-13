@@ -502,11 +502,12 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 
    /*Loop over blocks in spatial cell. In ordinary space the number of
     * blocks in this spatial cell does not change*/
+#pragma omp for
    for (vmesh::LocalID block_i=0; block_i<spatial_cell->get_number_of_velocity_blocks(); ++block_i) {
       const vmesh::GlobalID blockGID = spatial_cell->get_velocity_block_global_id(block_i);
 
       //Each thread only computes a certain non-overlapping subset of blocks
-      if (blockGID % num_threads != thread_id) continue;
+      //      if (blockGID % num_threads != thread_id) continue;
 
       /*buffer where we write data, initialized to 0*/
       Vec target_values[3 * WID3 / VECL];

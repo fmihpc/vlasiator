@@ -393,7 +393,7 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    //Adjusts velocity blocks in local spatial cells, doesn't adjust velocity blocks in remote cells.
 
    phiprof::start("Adjusting blocks");
-#pragma omp parallel for
+#pragma omp parallel for schedule(dynamic)
    for (unsigned int i=0; i<cellsToAdjust.size(); ++i) {
       Real density_pre_adjust=0.0;
       Real density_post_adjust=0.0;

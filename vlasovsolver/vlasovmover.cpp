@@ -226,7 +226,8 @@ momentCalculation:
    // Mapping complete, update moments //
    phiprof::start("compute-moments-n-maxdt");
    // Note: Parallelization over blocks is not thread-safe
-   #pragma omp parallel for
+
+#pragma omp  parallel for schedule(dynamic)
    for (size_t c=0; c<localCells.size(); ++c) {
       SpatialCell* SC=mpiGrid[localCells[c]];
 
@@ -354,7 +355,7 @@ void calculateAcceleration(
       propagatedCells.swap(temp);
 
       //Semilagrangian acceleration for those cells which are subcycled
-#pragma omp parallel for schedule(dynamic,1)
+#pragma omp parallel for schedule(dynamic,1) 
       for (size_t c=0; c<propagatedCells.size(); ++c) {
          no_subnormals();
          const CellID cellID = propagatedCells[c];
