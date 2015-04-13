@@ -139,8 +139,10 @@ do
       vlasiator_setup_next
       if [ $do_run = 1 ]
       then
-         vlasiator_run
          echo $message | mailx -s "New job running @Hornet" vlasiator-runs@fmihpc.flowdock.com
+         touch I_AM_RUNNING
+         vlasiator_run
+         rm I_AM_RUNNING
          doing_something=1
          export message="($(date) $(($NUM_PROCESSES*$OMP_NUM_THREADS)) cores) Done $next_job."
          echo $message
