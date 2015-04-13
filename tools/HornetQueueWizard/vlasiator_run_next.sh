@@ -93,10 +93,13 @@ function vlasiator_setup_next {
 function vlasiator_run {
    cd $next_job
    
+   touch I_AM_RUNNING
    # Launch the OpenMP job to the allocated compute node
    echo "Running $exec on $tasks mpi tasks, with $t threads per task on $nodes nodes ($ht threads per physical core)"
    aprun -n1 $exec --version
    aprun -n $NUM_PROCESSES -N $tasks_per_node -d $OMP_NUM_THREADS -j $ht ./vlasiator --run_config=Magnetosphere.$PBS_JOBID.cfg
+   rm I_AM_RUNNING
+
    cd $PBS_O_WRKDIR
 }
 
@@ -140,9 +143,7 @@ do
       if [ $do_run = 1 ]
       then
          echo $message | mailx -s "New job running @Hornet" vlasiator-runs@fmihpc.flowdock.com
-         touch I_AM_RUNNING
          vlasiator_run
-         rm I_AM_RUNNING
          doing_something=1
          export message="($(date) $(($NUM_PROCESSES*$OMP_NUM_THREADS)) cores) Done $next_job."
          echo $message
