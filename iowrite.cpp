@@ -994,21 +994,15 @@ bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 //   phiprof::stop("population-reducer-slow");
 
 
-   if( P::writeAsFloat == 1 ) {
-      if( writeVelocitySpace<float>( mpiGrid, vlsvWriter, index, local_cells ) == false ) return false;
-   } else {
-      if( writeVelocitySpace<Realf>( mpiGrid, vlsvWriter, index, local_cells ) == false ) return false;
-   }
-
-   // Write out everything population-related
-   {
-      const bool writeDistribution = (P::writePopulationDistribution != 0);
-      const bool writeVariables = (P::writePopulationVariables != 0);
-      const bool writePopulations = (P::writePopulationNumber != 0);
-      if( writePopulation( mpiGrid, local_cells, index, writeDistribution, writeVariables, writePopulations, vlsvWriter ) == false ) {
-         return false;
-      }
-   }
+//   // Write out everything population-related
+//   {
+//      const bool writeDistribution = (P::writePopulationDistribution != 0);
+//      const bool writeVariables = (P::writePopulationVariables != 0);
+//      const bool writePopulations = (P::writePopulationNumber != 0);
+//      if( writePopulation( mpiGrid, local_cells, index, writeDistribution, writeVariables, writePopulations, vlsvWriter ) == false ) {
+//         return false;
+//      }
+//   }
 
    phiprof::start("reduceddataIO");
    //Write necessary variables:
