@@ -56,7 +56,7 @@ function test_job {
       do_run=0
    fi
    
-   cd $PBS_O_WORKDIR
+   cd $PBS_O_WRKDIR
 }
 
 function vlasiator_setup_next {
