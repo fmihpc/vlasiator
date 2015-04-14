@@ -17,16 +17,9 @@
 // "mode" that the particle pusher operates in
 enum pusher_mode {
    single = 0,    // Single particle trajectory tracking
-   distribution  // Particle distribution created at a given point
+   distribution,  // Particle distribution created at a given point
+   analysator     // Particle distribution input as ascii, positions written to stdout as ascii.
 };
-
-void help_message() {
-   std::cerr << "Usage: particle_post_pusher <filename> <mode> [args]" << std::endl;
-   std::cerr << "Where <filename> is a .vlsv file providing field input and <mode> is one of:" << std::endl;
-   std::cerr << std::endl;
-   std::cerr  << "  single <x> <y> <z> <vx> <vy> <vz>" << std::endl;
-   std::cerr  << "  distribution <x> <y> <z> <temperature> <num_particles>" << std::endl;
-}
 
 int main(int argc, char** argv) {
 
@@ -88,6 +81,21 @@ int main(int argc, char** argv) {
       }
 
       delete velocity_distribution;
+   } else if(ParticleParameters::mode == "analysator") {
+
+     mode = analysator;
+
+     std::cerr << "Reading initial particle data from stdin" << std::endl
+        << "(format: x y z vx vy vz)" << std::endl;
+
+     while(std::cin) {
+        double x0,x1,x2,v0,v1,v2;
+        std::cin >> x0 >> x1 >> x2 >> v0 >> v1 >> v2;
+        if(std::cin) {
+           particles.push_back(Particle(PhysicalConstantsSI::mp, PhysicalConstantsSI::e, Vec3d(x0,x1,x2), Vec3d(v0,v1,v2)));
+        }
+     }
+
    } else {
       std::cerr << "Config option particles.mode not set correctly!" << std::endl;
       return 1;
@@ -115,7 +123,7 @@ int main(int argc, char** argv) {
       Interpolated_Field cur_E(E[0],E[1],step*dt);
       Interpolated_Field cur_B(B[0],B[1],step*dt);
 
-      #pragma omp parallel for
+      //#pragma omp parallel for
       for(unsigned int i=0; i< particles.size(); i++) {
          /* Get E- and B-Field at their position */
          Vec3d Eval,Bval;
@@ -128,9 +136,15 @@ int main(int argc, char** argv) {
       }
 
       /* Write output */
-      if(newfile) {
+      if(mode == distribution && newfile) {
          snprintf(filename_buffer,256, ParticleParameters::output_filename_pattern.c_str(),input_file_counter-1);
          write_particles(particles, filename_buffer);
+      } else if(mode == analysator && newfile) {
+        for(unsigned int i=0; i< particles.size(); i++) {
+           Vec3d& x = particles[i].x;
+           Vec3d& v = particles[i].v;
+          std::cout << i << " " << step*dt << "\t" <<  x[0] << " " << x[1] << " " << x[2] << "\t" << v[0] << " " << v[1] << " " << v[2] << std::endl;
+        }
       }
 
       /* Draw progress bar */
