@@ -23,6 +23,7 @@ CC_BRAND_VERSION = 4.8.1
 CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++0x -fabi-version=0 -mavx 
 
 
+
 MATHFLAGS = -ffast-math
 LDFLAGS = 
 LIB_MPI = -lgomp

@@ -173,7 +173,7 @@ DEPS_VLSVMOVER_AMR = ${DEPS_CELL} vlasovsolver_amr/vlasovmover.cpp vlasovsolver_
 #all objects for vlasiator
 
 OBJS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipole.o constantfield.o integratefunction.o \
-	datareducer.o datareductionoperator.o amr_refinement_criteria.o\
+	datareducer.o datareductionoperator.o amr_refinement_criteria.o reducepopulation.o\
 	donotcompute.o ionosphere.o outflow.o setbyuser.o setmaxwellian.o \
 	sysboundary.o sysboundarycondition.o \
 	project.o projectTriAxisSearch.o \
@@ -243,6 +243,9 @@ datareducer.o: ${DEPS_COMMON} spatial_cell.hpp datareduction/datareducer.h datar
 
 datareductionoperator.o:  ${DEPS_COMMON} ${DEPS_CELL} parameters.h datareduction/datareductionoperator.h datareduction/datareductionoperator.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c datareduction/datareductionoperator.cpp ${INC_MPI} ${INC_BOOST} ${INC_EIGEN}
+
+reducepopulation.o: ${DEPS_COMMON} spatial_cell.hpp datareduction/reducepopulation.h datareduction/reducepopulation.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c datareduction/reducepopulation.cpp  ${INC_MPI} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VLSV} ${INC_DCCRG}
 
 donotcompute.o: ${DEPS_COMMON} sysboundary/donotcompute.h sysboundary/donotcompute.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c sysboundary/donotcompute.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}

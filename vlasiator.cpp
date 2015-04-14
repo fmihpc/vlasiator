@@ -328,6 +328,7 @@ int main(int argn,char* args[]) {
          cerr << "FAILED TO WRITE GRID AT" << __FILE__ << " " << __LINE__ << endl;
       }
       
+      
       P::systemWriteDistributionWriteStride.pop_back();
       P::systemWriteName.pop_back();
       P::systemWriteDistributionWriteXlineStride.pop_back();
@@ -396,10 +397,8 @@ int main(int argn,char* args[]) {
          index++;
       P::systemWrites.push_back(index);
    }
-
    // Invalidate cached cell lists just to be sure (might not be needed)
    P::meshRepartitioned = true;
-
    unsigned int wallTimeRestartCounter=1;
    
    addTimedBarrier("barrier-end-initialization");
@@ -518,7 +517,6 @@ int main(int argn,char* args[]) {
       }
       MPI_Bcast( &writeRestartNow, 1 , MPI_INT , MASTER_RANK ,MPI_COMM_WORLD);
       phiprof::stop("compute-is-restart-written");      
-
       if (writeRestartNow == 1){
          phiprof::start("write-restart");
          wallTimeRestartCounter++;
@@ -677,6 +675,7 @@ int main(int argn,char* args[]) {
       ++P::tstep;
       P::t += P::dt;
    }
+   
 
    double after = MPI_Wtime();
    

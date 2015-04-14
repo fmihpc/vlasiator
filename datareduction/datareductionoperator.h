@@ -149,6 +149,22 @@ namespace DRO {
    protected:
       int nBlocks;
    };
+
+//   class Populations: public DataReductionOperator {
+//    public:
+//      Populations();
+//      virtual ~Populations();
+//      
+//      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+//      virtual std::string getName() const;
+//      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+//      virtual bool reduceData(const SpatialCell* cell,Real* buffer);
+//      virtual bool setSpatialCell(const SpatialCell* cell);
+//      
+//    protected:
+//      int nPopulations;
+//   };
+
    
    class VariableB: public DataReductionOperator {
    public:

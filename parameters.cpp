@@ -112,6 +112,9 @@ bool P::sparse_conserve_mass = false;
 string P::restartFileName = string("");
 bool P::isRestart=false;
 int P::writeAsFloat = false;
+int P::writePopulationDistribution = false;
+int P::writePopulationVariables = false;
+int P::writePopulationNumber = false;
 string P::loadBalanceAlgorithm = string("");
 string P::loadBalanceTolerance = string("");
 uint P::rebalanceInterval = numeric_limits<uint>::max();
@@ -150,6 +153,9 @@ bool Parameters::addParameters(){
    Readparameters::add("io.number_of_restarts","Exit the simulation after certain number of walltime-based restarts.",numeric_limits<uint>::max());
    Readparameters::add("io.write_restart_stripe_factor","Stripe factor for restar writing.", -1);
    Readparameters::add("io.write_as_float","If true, write in floats instead of doubles", false);
+   Readparameters::add("io.write_population_distribution", "true if writing distribution function of populations, false otherwise", false);
+   Readparameters::add("io.write_population_variables", "true if writing variables for different populations, false otherwise", false);
+   Readparameters::add("io.write_population_amount", " True if writing the number of populations in each cell, false otherwise", false);
    
    Readparameters::add("propagate_potential","Propagate electrostatic potential during the simulation",false);
    Readparameters::add("propagate_field","Propagate magnetic field during the simulation",true);
@@ -257,6 +263,9 @@ bool Parameters::getParameters(){
    Readparameters::get("io.number_of_restarts", P::exitAfterRestarts);
    Readparameters::get("io.write_restart_stripe_factor", P::restartStripeFactor);
    Readparameters::get("io.write_as_float", P::writeAsFloat);
+   Readparameters::get("io.write_population_distribution", P::writePopulationDistribution);
+   Readparameters::get("io.write_population_variables", P::writePopulationVariables);
+   Readparameters::get("io.write_population_amount", P::writePopulationNumber);
    
    Readparameters::get("propagate_field",P::propagateField);
    Readparameters::get("propagate_potential",P::propagatePotential);

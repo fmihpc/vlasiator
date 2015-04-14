@@ -121,6 +121,10 @@ struct Parameters {
    static std::string restartFileName; /*!< If defined, restart from this file*/
    static bool isRestart; /*!< true if this is a restart, false otherwise */
    static int writeAsFloat; /*!< true if writing into VLSV in floats instead of doubles, false otherwise */
+   static int writePopulationDistribution; /*!< true if writing distribution function of populations, false otherwise */
+   static int writePopulationVariables; /*!< true if writing variables for different populations, false otherwise */
+   static int writePopulationNumber; /*!< True if writing the number of populations in each cell, false otherwise */
+   static uint maxAccelerationSubsteps; /*!< Maximum number of substeps that is allowed */
    static bool dynamicTimestep; /*!< If true, timestep is set based on  CFL limit */
    
    static std::string projectName; /*!< Project to be used in this run. */

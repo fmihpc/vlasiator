@@ -15,6 +15,7 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #include <sstream>
 #include <ctime>
 #include <array>
+#include "datareduction/reducepopulation.h"
 #include "iowrite.h"
 #include "grid.h"
 #include "phiprof.hpp"
@@ -29,6 +30,7 @@ using namespace vlsv;
 extern Logger logFile, diagnostic;
 
 typedef Parameters P;
+
 
 
 /*! Updates local ids across MPI to let other processes know in which order this process saves the local cell ids
@@ -721,6 +723,7 @@ bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          }
       }
 
+      //write out velocity space data, if there are cells with this data
       uint64_t numVelSpaceCells;
       uint64_t localNumVelSpaceCells;
       localNumVelSpaceCells=velSpaceCells.size();
@@ -733,11 +736,131 @@ bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       return true;
 }
 
+/*! This function writes the different population-related things into the vlsv file. The user can specify which things to write. Please note that the algorithm for calculating the populations is quite heavy.
+ \param mpiGrid                   The DCCRG grid with spatial cells
+ \param local_cells               List of local cells within this process
+ \param writeDistribution         Specify whether to write distribution function for different populations or not
+ \param writeRho                  Specify whether to write rho for different populations or not
+ \param writePopulations          Specify whether to write number of populations for each cell or not.
+ \param vlsvWriter                The VLSV writer class for writing VLSV files, note that the file must have been opened already
+ */
+bool writePopulation( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, 
+                      const vector<uint64_t> & local_cells,
+                      const int index,
+                      const bool writeDistribution,
+                      const bool writeVariables,
+                      const bool writePopulations,
+                      Writer & vlsvWriter ) {
+
+int myrank;
+MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
+
+
+
+   // Don't do anything if nothing is written
+   if( writeDistribution == false && writeVariables == false && writePopulations == false ) { return true; }
+   phiprof::start("write-population");
+   array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> local_vcell_neighbors;
+   array< vector< pair<int16_t, vector<uint16_t> > >, VELOCITY_BLOCK_LENGTH> remote_vcell_neighbors;
+
+   set_local_and_remote_velocity_cell_neighbors( local_vcell_neighbors, remote_vcell_neighbors );
+
+//   // For writing out velocity space cells: Note: If we only write out distribution then population_algorithm should only be calculated for velocity space cells which we write out (for example in some distribution.vlsv files we might want to write out every 15th cell's distribution function
+//   vector<uint64_t> velSpaceCells;
+//   if( writeDistribution == true ) {
+//      // Calculate which velocity space cells write out the velocity space
+//      compute_velocity_space_cells( mpiGrid, local_cells, index, velSpaceCells );
+//   }
+
+MPI_Barrier(MPI_COMM_WORLD);
+cerr << __FILE__ << " " << __LINE__ << endl;
+MPI_Barrier(MPI_COMM_WORLD);
+
+   // Calculate the populations, note that the populations are currently saved in the block_fx
+   phiprof::start("calculate-population");
+   {
+      // Get which cells' populations need to be calculated: (This variable will only be used in the population_algorithm function
+      const vector<uint64_t> * population_cells;
+      if( writeDistribution == true && writeVariables == false && writePopulations == false ) {
+         // If we only write out  distribution function and not variables or population, it means that the populations should be calculated only for the cells which we write the distribution function for
+         //population_cells = &velSpaceCells;
+      } else {
+         // We calculate the population for all local cells:
+         population_cells = &local_cells;
+      }
+   
+      #pragma omp parallel for schedule(dynamic,1)
+      for( unsigned int i = 0; i < (*population_cells).size(); ++i ) {
+         const uint64_t cellId = (*population_cells)[i];
+         SpatialCell * cell = mpiGrid[cellId];
+         population_algorithm( cell, local_vcell_neighbors, remote_vcell_neighbors );
+      }
+   }
+   phiprof::stop("calculate-population");
+
+MPI_Barrier(MPI_COMM_WORLD);
+cerr << __FILE__ << " " << __LINE__ << endl;
+MPI_Barrier(MPI_COMM_WORLD);
+
+   bool success = true;
+
+
+   // Write out the distribution function:
+   if( writeDistribution ) {
+      phiprof::start("write-distribution-population");
+//      write_population_distribution( mpiGrid, velSpaceCells, vlsvWriter );
+      phiprof::stop("write-distribution-population");
+   }
+
+   // Write out the population variables:
+   if( writeVariables ) {
+      phiprof::start("write-population-variables");
+//      if( success == true && write_population_variables( mpiGrid, vlsvWriter )  == false) {
+//         success = false;
+//      }
+      phiprof::stop("write-population-variables");
+   }
+   // Write out the number of populations:
+   if( writePopulations ) {
+      phiprof::start("write-numberofpopulations");
+
+//      vector<uint32_t> populations;
+//      populations.resize( local_cells.size() );
+//
+//      // Fetch different populations:
+//      for( unsigned int i = 0; i < local_cells.size(); ++i ) {
+//         const uint64_t cellId = local_cells[i];
+//         SpatialCell * cell = mpiGrid[cellId];
+//         const uint32_t number_of_populations = cell->number_of_populations;
+//         populations[i] = number_of_populations;
+//      }
+//
+//      // Write the data out, we need arraySizze, vectorSize and name to do this
+//      const uint64_t arraySize = local_cells.size();
+//      const uint64_t vectorSize = 1; // Population is uint32_t, so a scalar (vector size 1)
+//      const string name = "Populations";
+//
+//      map<string, string> xmlAttributes;
+//      xmlAttributes["name"] = name;
+//      xmlAttributes["mesh"] = "SpatialGrid";
+//
+//      // Write the array and return false if the writing fails
+//
+//      if( success == true && vlsvWriter.writeArray( "VARIABLE", xmlAttributes, arraySize, vectorSize, populations.data() ) == false ) {
+//         success = false;
+//      }
+      phiprof::stop("write-numberofpopulations");
+   }
+
+   phiprof::stop("write-population");
+   return success;
+}
+
 /*! This function makes sure that local cells and ghost cells do not have any identical members (used for error checking)
  \param local_cells List of local cells within this process
  \param ghost_cells List of ghost cells within this process (cells on the process boundary)
  */
-bool checkForSameMembers( const vector<uint64_t> local_cells, const vector<uint64_t> ghost_cells ) {
+bool checkForSameMembers( const vector<uint64_t> & local_cells, const vector<uint64_t> & ghost_cells ) {
    //NOTE: VECTORS MUST BE SORTED
    //Make sure ghost cells and local cells don't have same members in them:
    vector<uint64_t>::const_iterator i = local_cells.begin();
@@ -849,6 +972,37 @@ bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    phiprof::start("velocityspaceIO");
    if( writeVelocitySpace( mpiGrid, vlsvWriter, index, local_cells ) == false ) return false;
    phiprof::stop("velocityspaceIO");
+
+//   phiprof::start("population-reducer-parallel");
+//   for( vector<uint64_t>::const_iterator it = local_cells.begin(); it != local_cells.end(); ++it ) {
+//      const uint64_t cellId = *it;
+//      SpatialCell * cell = mpiGrid[cellId];
+//      cerr << evaluate_speed_parallel( cell, local_vcell_neighbors, remote_vcell_neighbors ) << endl;
+//   }
+//   phiprof::stop("population-reducer-parallel");
+//
+
+
+//   phiprof::start("population-reducer-slow");
+//   for( unsigned int i = 0; i < local_cells.size(); ++i ) {
+//      const uint64_t cellId = local_cells[i];
+//      SpatialCell * cell = mpiGrid[cellId];
+//      Real xi = evaluate_speed( cell, local_vcell_neighbors, remote_vcell_neighbors );
+//      cerr << xi << endl;
+//      //cerr << evaluate_speed( cell, local_vcell_neighbors, remote_vcell_neighbors ) << endl;
+//   }
+//   phiprof::stop("population-reducer-slow");
+
+
+//   // Write out everything population-related
+//   {
+//      const bool writeDistribution = (P::writePopulationDistribution != 0);
+//      const bool writeVariables = (P::writePopulationVariables != 0);
+//      const bool writePopulations = (P::writePopulationNumber != 0);
+//      if( writePopulation( mpiGrid, local_cells, index, writeDistribution, writeVariables, writePopulations, vlsvWriter ) == false ) {
+//         return false;
+//      }
+//   }
 
    phiprof::start("reduceddataIO");
    //Write necessary variables:

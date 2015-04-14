@@ -221,6 +221,9 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("dPERBZVOLdy",bvolderivatives::dPERBZVOLdy,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("dBGBZVOLdy",bvolderivatives::dBGBZVOLdy,1));
       }
+//      if(*it == "numberOfPopulations" )
+//         outputReducer->addOperator(new DRO::Populations);
+
       if (*it == "Potential") {
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("poisson/potential",CellParams::PHI,1));
       }
