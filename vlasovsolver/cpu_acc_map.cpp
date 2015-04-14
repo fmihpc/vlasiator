@@ -57,8 +57,8 @@ vmesh::LocalID addVelocityBlock(const vmesh::GlobalID& blockGID,
     
     // Set block parameters:
     Real* parameters = blockContainer.getParameters(newBlockLID);
-    vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::getBlockCoordinates(blockGID,parameters+BlockParams::VXCRD);
-    vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::getCellSize(blockGID,parameters+BlockParams::DVX);
+    vmesh.getBlockCoordinates(blockGID,parameters+BlockParams::VXCRD);
+    vmesh.getCellSize(blockGID,parameters+BlockParams::DVX);
     return newBlockLID;
 }
 

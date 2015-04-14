@@ -94,9 +94,9 @@ void createTargetGrid(
       for (size_t b=0; b<vmesh.size(); ++b) {
          vmesh::GlobalID blockGID = vmesh.getGlobalID(b);
          Real* blockParams = blockContainer.getParameters(b);
-         blockParams[BlockParams::VXCRD] = spatial_cell->get_velocity_block_vx_min(blockGID);
-         blockParams[BlockParams::VYCRD] = spatial_cell->get_velocity_block_vy_min(blockGID);
-         blockParams[BlockParams::VZCRD] = spatial_cell->get_velocity_block_vz_min(blockGID);
+         blockParams[BlockParams::VXCRD] = spatial_cell->get_velocity_block_vx_min(popID,blockGID);
+         blockParams[BlockParams::VYCRD] = spatial_cell->get_velocity_block_vy_min(popID,blockGID);
+         blockParams[BlockParams::VZCRD] = spatial_cell->get_velocity_block_vz_min(popID,blockGID);
          vmesh.getCellSize(blockGID,&(blockParams[BlockParams::DVX]));
       }
       

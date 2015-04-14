@@ -34,13 +34,6 @@ Real P::dx_ini = NAN;
 Real P::dy_ini = NAN;
 Real P::dz_ini = NAN;
 
-Real P::vxmin = NAN;
-Real P::vxmax = NAN;
-Real P::vymin = NAN;
-Real P::vymax = NAN;
-Real P::vzmin = NAN;
-Real P::vzmax = NAN;
-
 Real P::backstreamradius = NAN;
 Real P::backstreamvx = NAN;
 Real P::backstreamvy = NAN;
@@ -49,9 +42,6 @@ Real P::backstreamvz = NAN;
 uint P::xcells_ini = numeric_limits<uint>::max();
 uint P::ycells_ini = numeric_limits<uint>::max();
 uint P::zcells_ini = numeric_limits<uint>::max();
-uint P::vxblocks_ini = numeric_limits<uint>::max();
-uint P::vyblocks_ini = numeric_limits<uint>::max();
-uint P::vzblocks_ini = numeric_limits<uint>::max();
 
 Real P::t = 0;
 Real P::t_min = 0;
@@ -168,15 +158,6 @@ bool Parameters::addParameters(){
    Readparameters::add("gridbuilder.x_length","Number of cells in x-direction in initial grid.","");
    Readparameters::add("gridbuilder.y_length","Number of cells in y-direction in initial grid.","");
    Readparameters::add("gridbuilder.z_length","Number of cells in z-direction in initial grid.","");
-   Readparameters::add("gridbuilder.vx_min","Minimum value for velocity block vx-coordinates.","");
-   Readparameters::add("gridbuilder.vx_max","Maximum value for velocity block vx-coordinates.","");
-   Readparameters::add("gridbuilder.vy_min","Minimum value for velocity block vy-coordinates.","");
-   Readparameters::add("gridbuilder.vy_max","Maximum value for velocity block vy-coordinates.","");
-   Readparameters::add("gridbuilder.vz_min","Minimum value for velocity block vz-coordinates.","");
-   Readparameters::add("gridbuilder.vz_max","Maximum value for velocity block vz-coordinates.","");
-   Readparameters::add("gridbuilder.vx_length","Initial number of velocity blocks in vx-direction.","");
-   Readparameters::add("gridbuilder.vy_length","Initial number of velocity blocks in vy-direction.","");
-   Readparameters::add("gridbuilder.vz_length","Initial number of velocity blocks in vz-direction.","");
    
    Readparameters::add("gridbuilder.dt","Initial timestep in seconds.",0.0);
 
@@ -268,15 +249,6 @@ bool Parameters::getParameters(){
    Readparameters::get("gridbuilder.x_length",P::xcells_ini);
    Readparameters::get("gridbuilder.y_length",P::ycells_ini);
    Readparameters::get("gridbuilder.z_length",P::zcells_ini);
-   Readparameters::get("gridbuilder.vx_min",P::vxmin);
-   Readparameters::get("gridbuilder.vx_max",P::vxmax);
-   Readparameters::get("gridbuilder.vy_min",P::vymin);
-   Readparameters::get("gridbuilder.vy_max",P::vymax);
-   Readparameters::get("gridbuilder.vz_min",P::vzmin);
-   Readparameters::get("gridbuilder.vz_max",P::vzmax);
-   Readparameters::get("gridbuilder.vx_length",P::vxblocks_ini);
-   Readparameters::get("gridbuilder.vy_length",P::vyblocks_ini);
-   Readparameters::get("gridbuilder.vz_length",P::vzblocks_ini);
    Readparameters::get("AMR.max_velocity_level",P::amrMaxVelocityRefLevel);
    Readparameters::get("AMR.vel_refinement_criterion",P::amrVelRefCriterion);
    Readparameters::get("AMR.refine_limit",P::amrRefineLimit);
@@ -294,7 +266,6 @@ bool Parameters::getParameters(){
    
    if (P::amrCoarsenLimit >= P::amrRefineLimit) return false;
    if (P::xmax < P::xmin || (P::ymax < P::ymin || P::zmax < P::zmin)) return false;
-   if (P::vxmax < P::vxmin || (P::vymax < P::vymin || P::vzmax < P::vzmin)) return false;
    
    // Set some parameter values. 
    P::dx_ini = (P::xmax-P::xmin)/P::xcells_ini;

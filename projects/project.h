@@ -132,6 +132,7 @@ namespace projects {
                                                        * read from configuration file.*/
       std::vector<double> popMasses;                  /**< Particle population mass(es) in chosen units.
                                                        * Read from configuration file.*/
+      std::vector<std::string> popMeshNames;          /**< Name of the velocity mesh each species should use.*/
       std::vector<double> popSparseMinValue;          /**< Sparse mesh threshold value for the population.*/
    };
    

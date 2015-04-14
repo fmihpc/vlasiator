@@ -213,35 +213,19 @@ void initializeGrid(
 
 // initialize velocity grid of spatial cells before creating cells in dccrg.initialize
 void initVelocityGridGeometry(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid){
-   // Set the same velocity mesh limits for all populations
-   Real meshLimits[6];
-   meshLimits[0] = P::vxmin;
-   meshLimits[1] = P::vxmax;
-   meshLimits[2] = P::vymin;
-   meshLimits[3] = P::vymax;
-   meshLimits[4] = P::vzmin;
-   meshLimits[5] = P::vzmax;
-   
-   unsigned int gridLength[3];
-   gridLength[0] = P::vxblocks_ini;
-   gridLength[1] = P::vyblocks_ini;
-   gridLength[2] = P::vzblocks_ini;
-   
-   unsigned int blockLength[3];
-   blockLength[0] = block_vx_length;
-   blockLength[1] = block_vy_length;
-   blockLength[2] = block_vz_length;
-
-   SpatialCell::initialize_mesh(meshLimits,gridLength,blockLength,P::amrMaxVelocityRefLevel);
+   // Velocity mesh(es) are created in parameters.cpp, here we just 
+   // trigger the initialization of static variables in vmesh::VelocityMesh class.
+   SpatialCell dummy;
+   dummy.initialize_mesh();
 }
 
 void initSpatialCellCoordinates(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
-   vector<uint64_t> cells = mpiGrid.get_cells();
+   vector<CellID> cells = mpiGrid.get_cells();
    #pragma omp parallel for
-   for (uint i=0; i<cells.size(); ++i) {
+   for (size_t i=0; i<cells.size(); ++i) {
       std::array<double, 3> cell_min = mpiGrid.geometry.get_min(cells[i]);
       std::array<double, 3> cell_length = mpiGrid.geometry.get_length(cells[i]);
-      
+
       mpiGrid[cells[i]]->parameters[CellParams::XCRD] = cell_min[0];
       mpiGrid[cells[i]]->parameters[CellParams::YCRD] = cell_min[1];
       mpiGrid[cells[i]]->parameters[CellParams::ZCRD] = cell_min[2];
@@ -888,7 +872,7 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,c
                      if (grandParentGID != cell->invalid_global_id()) {
                         //cerr << "spatial nbr block " << blockGID << " has gparent " << grandParentGID << endl;
                         
-                        refinements[c].insert(cell->get_velocity_block_parent(blockGID));
+                        refinements[c].insert(cell->get_velocity_block_parent(popID,blockGID));
                      }
                   }                  
                }

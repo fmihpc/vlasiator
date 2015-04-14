@@ -98,9 +98,9 @@ namespace SBC {
       (2.0 * physicalconstants::K_B * T));
    }
    
-   vector<vmesh::GlobalID> SetMaxwellian::findBlocksToInitialize(
+   std::vector<vmesh::GlobalID> SetMaxwellian::findBlocksToInitialize(
                                                       const int& popID,
-                                                      SpatialCell& cell,
+                                                      spatial_cell::SpatialCell& cell,
                                                       creal& rho,
                                                       creal& T,
                                                       creal& VX0,
@@ -110,16 +110,20 @@ namespace SBC {
       vector<vmesh::GlobalID> blocksToInitialize;
       bool search = true;
       uint counter = 0;
+      const uint8_t refLevel = 0;
+      
+      const vmesh::LocalID* vblocks_ini = cell.get_velocity_grid_length(popID,refLevel);
+
       while (search) {
          if (0.1 * getObjectWrapper().particleSpecies[popID].sparseMinValue > 
              maxwellianDistribution(
                                     popID,
                                     rho,
                                     T,
-                                    counter*SpatialCell::get_velocity_grid_block_size()[0], 0.0, 0.0
+                                    counter*cell.get_velocity_grid_block_size(popID,refLevel)[0], 0.0, 0.0
                                    )
              ||
-             counter > P::vxblocks_ini
+             counter > vblocks_ini[0]
             ) {
             search = false;
          }
@@ -127,18 +131,34 @@ namespace SBC {
       }
       counter+=2;
 
-      Real vRadiusSquared = (Real)counter*(Real)counter*SpatialCell::get_velocity_grid_block_size()[0]*SpatialCell::get_velocity_grid_block_size()[0];
+      Real vRadiusSquared 
+              = (Real)counter*(Real)counter
+              * cell.get_velocity_grid_block_size(popID,refLevel)[0]
+              * cell.get_velocity_grid_block_size(popID,refLevel)[0];
       
-      for (uint kv=0; kv<P::vzblocks_ini; ++kv) 
-         for (uint jv=0; jv<P::vyblocks_ini; ++jv)
-            for (uint iv=0; iv<P::vxblocks_ini; ++iv) {
-               creal vx = P::vxmin + (iv+0.5) * SpatialCell::get_velocity_grid_block_size()[0]; // vx-coordinate of the centre
-               creal vy = P::vymin + (jv+0.5) * SpatialCell::get_velocity_grid_block_size()[1]; // vy-
-               creal vz = P::vzmin + (kv+0.5) * SpatialCell::get_velocity_grid_block_size()[2]; // vz-
+      for (uint kv=0; kv<vblocks_ini[2]; ++kv) 
+         for (uint jv=0; jv<vblocks_ini[1]; ++jv)
+            for (uint iv=0; iv<vblocks_ini[0]; ++iv) {
+               vmesh::GlobalID blockIndices[3];
+               blockIndices[0] = iv;
+               blockIndices[1] = jv;
+               blockIndices[2] = kv;
+               const vmesh::GlobalID blockGID = cell.get_velocity_block(popID,blockIndices,refLevel);
+               
+               Real V_crds[3];
+               cell.get_velocity_block_coordinates(popID,blockGID,V_crds);
+               Real dV[3];
+               cell.get_velocity_block_size(popID,blockGID,dV);
+               V_crds[0] += 0.5*dV[0];
+               V_crds[1] += 0.5*dV[1];
+               V_crds[2] += 0.5*dV[2];
+               Real R2 = ((V_crds[0]-VX0)*(V_crds[0]-VX0)
+                       +  (V_crds[1]-VY0)*(V_crds[1]-VY0)
+                       +  (V_crds[2]-VZ0)*(V_crds[2]-VZ0));
 
-               if ((vx-VX0)*(vx-VX0) + (vy-VY0)*(vy-VY0) + (vz-VZ0)*(vz-VZ0) < vRadiusSquared) {
-                  cell.add_velocity_block(SpatialCell::get_velocity_block(vx, vy, vz),popID);
-                  blocksToInitialize.push_back(SpatialCell::get_velocity_block(vx, vy, vz));
+               if (R2 < vRadiusSquared) {
+                  cell.add_velocity_block(blockGID,popID);
+                  blocksToInitialize.push_back(blockGID);
                }
             }
 

@@ -599,9 +599,6 @@ int main(int argn,char* args[]) {
       
       if (P::tstep % P::rebalanceInterval == P::rebalanceInterval-1) {
          P::prepareForRebalance = true;
-#warning DEBUG remove me
-         logFile << "(MAIN) Preparing for rebalance at step " << P::tstep << endl << writeVerbose;
-
          #pragma omp parallel for
          for (size_t c=0; c<cells.size(); ++c) {
             mpiGrid[cells[c]]->get_cell_parameters()[CellParams::LBWEIGHTCOUNTER] = 0;

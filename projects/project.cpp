@@ -41,6 +41,34 @@ extern Logger logFile;
 char projects::Project::rngStateBuffer[256];
 random_data projects::Project::rngDataBuffer;
 
+struct VelocityMeshParams {
+   vector<string> name;
+   vector<double> vx_min;
+   vector<double> vy_min;
+   vector<double> vz_min;
+   vector<double> vx_max;
+   vector<double> vy_max;
+   vector<double> vz_max;
+   vector<double> vx_length;
+   vector<double> vy_length;
+   vector<double> vz_length;
+   
+   void resize(const size_t& size) {
+      name.resize(1);
+      vx_min.resize(1);
+      vy_min.resize(1);
+      vz_min.resize(1);
+      vx_max.resize(1);
+      vy_max.resize(1);
+      vz_max.resize(1);
+      vx_length.resize(1);
+      vy_length.resize(1);
+      vz_length.resize(1);
+   }
+};
+
+static VelocityMeshParams* velMeshParams = NULL;
+
 namespace projects {
    Project::Project() { 
       baseClassInitialized = false;
@@ -82,8 +110,34 @@ namespace projects {
       RP::addComposing("ParticlePopulation.mass_units","Units in which particle mass is given, either 'PROTON' or 'ELECTRON' (string)");
       RP::addComposing("ParticlePopulation.mass","Particle mass in given units (float)");
       RP::addComposing("ParticlePopulation.sparse_min_value","Minimum value of distribution function in any cell of a velocity block for the block to be considered to have content");
+      RP::addComposing("ParticlePopulation.mesh","Name of the velocity mesh the species should use (string)");
+      
+      // Add parameters needed to create velocity meshes
+      RP::addComposing("velocitymesh.name","Name of the mesh (unique,string)");
+      RP::addComposing("velocitymesh.vx_min","Minimum value for velocity mesh vx-coordinates.");
+      RP::addComposing("velocitymesh.vx_max","Maximum value for velocity mesh vx-coordinates.");
+      RP::addComposing("velocitymesh.vy_min","Minimum value for velocity mesh vy-coordinates.");
+      RP::addComposing("velocitymesh.vy_max","Maximum value for velocity mesh vx-coordinates.");
+      RP::addComposing("velocitymesh.vz_min","Minimum value for velocity mesh vz-coordinates.");
+      RP::addComposing("velocitymesh.vz_max","Maximum value for velocity mesh vx-coordinates.");
+      RP::addComposing("velocitymesh.vx_length","Initial number of velocity blocks in vx-direction.");
+      RP::addComposing("velocitymesh.vy_length","Initial number of velocity blocks in vy-direction.");
+      RP::addComposing("velocitymesh.vz_length","Initial number of velocity blocks in vz-direction.");
+
+      // These parameters are only read if the 'velocitymesh.' parameters are not defined 
+      // in order to support older configuration files.
+      Real defValue = numeric_limits<Real>::infinity();
+      Readparameters::add("gridbuilder.vx_min","Minimum value for velocity mesh vx-coordinates.",defValue);
+      Readparameters::add("gridbuilder.vx_max","Maximum value for velocity mesh vx-coordinates.",defValue);
+      Readparameters::add("gridbuilder.vy_min","Minimum value for velocity mesh vy-coordinates.",defValue);
+      Readparameters::add("gridbuilder.vy_max","Maximum value for velocity mesh vy-coordinates.",defValue);
+      Readparameters::add("gridbuilder.vz_min","Minimum value for velocity mesh vz-coordinates.",defValue);
+      Readparameters::add("gridbuilder.vz_max","Maximum value for velocity mesh vz-coordinates.",defValue);
+      Readparameters::add("gridbuilder.vx_length","Initial number of velocity blocks in vx-direction.",(vmesh::LocalID)0);
+      Readparameters::add("gridbuilder.vy_length","Initial number of velocity blocks in vy-direction.",(vmesh::LocalID)0);
+      Readparameters::add("gridbuilder.vz_length","Initial number of velocity blocks in vz-direction.",(vmesh::LocalID)0);
    }
-   
+
    void Project::getParameters() {
       typedef Readparameters RP;
       RP::get("Project_common.seed", this->seed);
@@ -92,31 +146,140 @@ namespace projects {
       RP::get("ParticlePopulation.mass_units",popMassUnits);
       RP::get("ParticlePopulation.mass",popMasses);
       RP::get("ParticlePopulation.sparse_min_value",popSparseMinValue);
+      RP::get("ParticlePopulation.mesh",popMeshNames);
+
+      if (velMeshParams == NULL) velMeshParams = new VelocityMeshParams();
+      RP::get("velocitymesh.name",velMeshParams->name);
+      RP::get("velocitymesh.vx_min",velMeshParams->vx_min);
+      RP::get("velocitymesh.vy_min",velMeshParams->vy_min);
+      RP::get("velocitymesh.vz_min",velMeshParams->vz_min);
+      RP::get("velocitymesh.vx_max",velMeshParams->vx_max);
+      RP::get("velocitymesh.vy_max",velMeshParams->vy_max);
+      RP::get("velocitymesh.vz_max",velMeshParams->vz_max);
+      RP::get("velocitymesh.vx_length",velMeshParams->vx_length);
+      RP::get("velocitymesh.vy_length",velMeshParams->vy_length);
+      RP::get("velocitymesh.vz_length",velMeshParams->vz_length);
    }
 
    bool Project::initialize() {
+      typedef Readparameters RP;
+      
       // Basic error checking
       bool success = true;
       if (popNames.size() != popCharges.size()) success = false;
       if (popNames.size() != popMassUnits.size()) success = false;
       if (popNames.size() != popMasses.size()) success = false;
       if (popNames.size() != popSparseMinValue.size()) success = false;
+      if (popNames.size() != popMeshNames.size()) success = false;
       if (success == false) {
-         cerr << "ERROR in configuration file particle population definitions!" << endl;
-         cerr << "\t vector sizes are: " << popNames.size() << ' ' << popMassUnits.size();
-         cerr << ' ' << popMasses.size() << ' ' << popSparseMinValue.size() << endl;
-         return success;
+         stringstream ss;
+         ss << "(PROJECT) ERROR in configuration file particle population definitions at ";
+         ss << __FILE__ << ":" << __LINE__ << endl;
+         ss << "\t vector sizes are: " << popNames.size() << ' ' << popMassUnits.size();
+         ss << ' ' << popMasses.size() << ' ' << popSparseMinValue.size() << ' ';
+         ss << popMeshNames.size() << endl;
+         cerr << ss.str(); return success;
       }
 
-      // If particle population(s) have not been defined, add protons as a default population
+      if (velMeshParams->vx_min.size() != velMeshParams->name.size()) success = false;
+      if (velMeshParams->vy_min.size() != velMeshParams->name.size()) success = false;
+      if (velMeshParams->vz_min.size() != velMeshParams->name.size()) success = false;
+      if (velMeshParams->vx_max.size() != velMeshParams->name.size()) success = false;
+      if (velMeshParams->vy_max.size() != velMeshParams->name.size()) success = false;
+      if (velMeshParams->vz_max.size() != velMeshParams->name.size()) success = false;
+      if (velMeshParams->vx_length.size() != velMeshParams->name.size()) success = false;
+      if (velMeshParams->vy_length.size() != velMeshParams->name.size()) success = false;
+      if (velMeshParams->vz_length.size() != velMeshParams->name.size()) success = false;
+      if (success == false) {
+         stringstream ss;
+         ss << "(PROJECT) ERROR in configuration file velocity mesh definitions at ";
+         ss << __FILE__ << ":" << __LINE__ << endl;
+         cerr << ss.str(); return success;
+      }
+
       ObjectWrapper& owrapper = getObjectWrapper();
+      
+      // ********** VELOCITY MESHES  ********** //
+      
+      // If velocity meshes were not defined under 'velocitymesh' config file region, 
+      // read the parameters from 'gridbuilder'
+      if (velMeshParams->name.size() == 0) {
+         velMeshParams->resize(1);
+         velMeshParams->name[0] = "gridbuilder";
+         RP::get("gridbuilder.vx_min",velMeshParams->vx_min[0]);
+         RP::get("gridbuilder.vy_min",velMeshParams->vy_min[0]);
+         RP::get("gridbuilder.vz_min",velMeshParams->vz_min[0]);
+         RP::get("gridbuilder.vx_max",velMeshParams->vx_max[0]);
+         RP::get("gridbuilder.vy_max",velMeshParams->vy_max[0]);
+         RP::get("gridbuilder.vz_max",velMeshParams->vz_max[0]);
+         RP::get("gridbuilder.vx_length",velMeshParams->vx_length[0]);
+         RP::get("gridbuilder.vy_length",velMeshParams->vy_length[0]);
+         RP::get("gridbuilder.vz_length",velMeshParams->vz_length[0]);
+      }
+
+      // Store velocity mesh parameters
+      for (size_t m=0; m<velMeshParams->name.size(); ++m) {         
+         // Check that a mesh with the same name doesn't already exists:
+         bool addMesh = true;         
+         for (size_t i=0; i<owrapper.velocityMeshes.size(); ++i) {
+            if (velMeshParams->name[m] == owrapper.velocityMeshes[i].name) {
+               addMesh = false;
+               break;
+            }
+         }
+         if (addMesh == false) {
+            stringstream ss;
+            ss << "(PROJECT) ERROR: Velocity mesh called '" << velMeshParams->name[m] << "' already exists in ";
+            ss << __FILE__ << ":" << __LINE__ << endl;
+            cerr << ss.str(); success = false;
+            continue;
+         }
+
+         vmesh::MeshParameters meshParams;
+         meshParams.name = velMeshParams->name[m];
+         meshParams.meshLimits[0] = velMeshParams->vx_min[m];
+         meshParams.meshLimits[1] = velMeshParams->vx_max[m];
+         meshParams.meshLimits[2] = velMeshParams->vy_min[m];
+         meshParams.meshLimits[3] = velMeshParams->vy_max[m];
+         meshParams.meshLimits[4] = velMeshParams->vz_min[m];
+         meshParams.meshLimits[5] = velMeshParams->vz_max[m];
+         meshParams.gridLength[0] = velMeshParams->vx_length[m];
+         meshParams.gridLength[1] = velMeshParams->vy_length[m];
+         meshParams.gridLength[2] = velMeshParams->vz_length[m];
+         meshParams.blockLength[0] = WID;
+         meshParams.blockLength[1] = WID;
+         meshParams.blockLength[2] = WID;
+         owrapper.velocityMeshes.push_back(meshParams);
+      }
+
+      delete velMeshParams; velMeshParams = NULL;
+      
+      // ********** PARTICLE SPECIES ********** //
+
+      // If particle population(s) have not been defined, add protons as a default population
+      // and assume that the velocity mesh is called 'gridbuilder'
       if (popNames.size() == 0) {
          species::Species population;
          population.name   = "proton";
          population.charge = physicalconstants::CHARGE;
          population.mass   = physicalconstants::MASS_PROTON;
-
          population.sparseMinValue = Parameters::sparseMinValue;
+         
+         size_t index=owrapper.velocityMeshes.size();
+         for (size_t m=0; m<owrapper.velocityMeshes.size(); ++m) {
+            if (owrapper.velocityMeshes[m].name == "gridbuilder") {
+               index = m; break;
+            }
+         }
+         if (index >= owrapper.velocityMeshes.size()) {
+            stringstream ss;
+            ss << "(PROJECT) ERROR: Could not associate default particle population with a velocity ";
+            ss << "mesh in " << __FILE__ << ":" << __LINE__ << endl;
+            cerr << ss.str(); success = false;
+            return success;
+         }
+         population.velocityMesh = index;
+
          owrapper.particleSpecies.push_back(population);
          printPopulations();
          baseClassInitialized = success;
@@ -124,26 +287,47 @@ namespace projects {
       }
 
       // Parse populations from configuration file parameters:
-      for (size_t p=0; p<popNames.size(); ++p) {       
+      for (size_t p=0; p<popNames.size(); ++p) {
          species::Species population;
          population.name = popNames[p];
          population.charge = popCharges[p]*physicalconstants::CHARGE;
          double massUnits = 0;
          if (popMassUnits[p] == "PROTON") massUnits = physicalconstants::MASS_PROTON;
          else if (popMassUnits[p] == "ELECTRON") massUnits = physicalconstants::MASS_ELECTRON;
-         else success = false;
+         else {
+            stringstream ss;
+            ss << "(PROJECT) ERROR: Could not determine species '" << popNames[p] << "' mass units in ";
+            ss << __FILE__ << ":" << __LINE__ << endl;
+            cerr << ss.str(); success = false;
+         }
          population.mass = massUnits*popMasses[p];
          population.sparseMinValue = popSparseMinValue[p];
          
+         bool meshFound = false;
+         for (size_t m=0; m<owrapper.velocityMeshes.size(); ++m) {
+            if (owrapper.velocityMeshes[m].name == popMeshNames[p]) {
+               population.velocityMesh = m;
+               meshFound = true; break;
+            }
+         }
+         if (meshFound == false) {
+            stringstream ss;
+            ss << "(PROJECT) ERROR: Could not associate population '" << popNames[p] << "' with a velocity mesh in ";
+            ss << __FILE__ << ":" << __LINE__ << endl; 
+            cerr << ss.str(); success = false;
+         }
+
          if (success == false) {
-            cerr << "ERROR in population '" << popNames[p] << "' parameters" << endl;
+            stringstream ss;
+            ss << "ERROR in population '" << popNames[p] << "' parameters" << endl;
+            cerr << ss.str(); continue;
          }
          
          owrapper.particleSpecies.push_back(population);
       }
 
       if (success == false) {
-         cerr << "ERROR in configuration file particle population definitions!" << endl;
+         logFile << "ERROR in configuration file particle population definitions!" << endl << writeVerbose;
       } else {
          printPopulations();
       }
@@ -184,20 +368,23 @@ namespace projects {
       calculateCellMoments(cell,true,true);
    }
 
-   vector<vmesh::GlobalID> Project::findBlocksToInitialize(SpatialCell* cell,const int& popID) const {
+   std::vector<vmesh::GlobalID> Project::findBlocksToInitialize(spatial_cell::SpatialCell* cell,const int& popID) const {
       vector<vmesh::GlobalID> blocksToInitialize;
+      const uint8_t refLevel = 0;
 
-      for (uint kv=0; kv<P::vzblocks_ini; ++kv) 
-         for (uint jv=0; jv<P::vyblocks_ini; ++jv)
-            for (uint iv=0; iv<P::vxblocks_ini; ++iv) {
-               creal vx = P::vxmin + (iv+0.5) * SpatialCell::get_velocity_grid_block_size()[0]; // vx-coordinate of the centre
-               creal vy = P::vymin + (jv+0.5) * SpatialCell::get_velocity_grid_block_size()[1]; // vy-
-               creal vz = P::vzmin + (kv+0.5) * SpatialCell::get_velocity_grid_block_size()[2];
+      const vmesh::LocalID* vblocks_ini = cell->get_velocity_grid_length(popID,refLevel);
+      
+      for (uint kv=0; kv<vblocks_ini[2]; ++kv) 
+         for (uint jv=0; jv<vblocks_ini[1]; ++jv)
+            for (uint iv=0; iv<vblocks_ini[0]; ++iv) {
+               vmesh::LocalID blockIndices[3];
+               blockIndices[0] = iv;
+               blockIndices[1] = jv;
+               blockIndices[2] = kv;
+               const vmesh::GlobalID blockGID = cell->get_velocity_block(popID,blockIndices,refLevel);
 
-               //FIXME, add_velocity_blocks should  not be needed as set_value handles it!!
-               //FIXME,  We should get_velocity_block based on indices, not v
-               cell->add_velocity_block(cell->get_velocity_block(vx, vy, vz),popID);
-               blocksToInitialize.push_back(cell->get_velocity_block(vx, vy, vz));
+               cell->add_velocity_block(blockGID,popID);
+               blocksToInitialize.push_back(blockGID);
       }
 
       return blocksToInitialize;
@@ -208,11 +395,13 @@ namespace projects {
       logFile << "(PROJECT): Loaded particle populations are:" << endl;
       
       for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
+         const species::Species& spec = getObjectWrapper().particleSpecies[p];
          logFile << "Population #" << p << endl;
-         logFile << "\t name             : '" << getObjectWrapper().particleSpecies[p].name << "'" << endl;
-         logFile << "\t charge           : '" << getObjectWrapper().particleSpecies[p].charge << "'" << endl;
-         logFile << "\t mass             : '" << getObjectWrapper().particleSpecies[p].mass << "'" << endl;
-         logFile << "\t sparse threshold : '" << getObjectWrapper().particleSpecies[p].sparseMinValue << "'" << endl;
+         logFile << "\t name             : '" << spec.name << "'" << endl;
+         logFile << "\t charge           : '" << spec.charge << "'" << endl;
+         logFile << "\t mass             : '" << spec.mass << "'" << endl;
+         logFile << "\t sparse threshold : '" << spec.sparseMinValue << "'" << endl;
+         logFile << "\t velocity mesh    : '" << getObjectWrapper().velocityMeshes[spec.velocityMesh].name << "'" << endl;
          logFile << endl;
       }
       logFile << write;

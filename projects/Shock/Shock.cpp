@@ -1,18 +1,7 @@
 /*
 This file is part of Vlasiator.
 
-Copyright 2011, 2012 Finnish Meteorological Institute
-
-
-
-
-
-
-
-
-
-
-
+Copyright 2011, 2012, 2015 Finnish Meteorological Institute
 
 */
 
@@ -23,6 +12,7 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 
 #include "../../common.h"
 #include "../../readparameters.h"
+#include "../../object_wrapper.h"
 #include "../../backgroundfield/backgroundfield.h"
 
 #include "Shock.h"
@@ -30,8 +20,6 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 namespace projects {
    Shock::Shock(): Project() { }
    Shock::~Shock() { }
-
-
 
    bool Shock::initialize(void) {return Project::initialize();}
 
@@ -88,14 +76,18 @@ namespace projects {
    }
 
 
-   Real Shock::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const int& popID) {
-      if(vx < Parameters::vxmin + 0.5 * dvx ||
-         vy < Parameters::vymin + 0.5 * dvy ||
-         vz < Parameters::vzmin + 0.5 * dvz ||
-         vx > Parameters::vxmax - 1.5 * dvx ||
-         vy > Parameters::vymax - 1.5 * dvy ||
-         vz > Parameters::vzmax - 1.5 * dvz
-      ) return 0.0;
+   Real Shock::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz,
+           creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const int& popID) {
+      const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
+      vmesh::MeshParameters& meshParams = getObjectWrapper().velocityMeshes[meshID];
+      if (vx < meshParams.meshMinLimits[0] + 0.5*dvx ||
+          vy < meshParams.meshMinLimits[1] + 0.5*dvy ||
+          vz < meshParams.meshMinLimits[2] + 0.5*dvz ||
+          vx > meshParams.meshMaxLimits[0] - 1.5*dvx ||
+          vy > meshParams.meshMaxLimits[1] - 1.5*dvy ||
+          vz > meshParams.meshMaxLimits[2] - 1.5*dvz) {
+         return 0.0;
+      }
       
       creal mass = physicalconstants::MASS_PROTON;
       creal kb = physicalconstants::K_B;

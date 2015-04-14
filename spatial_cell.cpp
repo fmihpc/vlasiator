@@ -1,7 +1,7 @@
 /*!
 Space for static variables of spatial cell class for Vlasiator.
 
-Copyright 2011, 2012 Finnish Meteorological Institute
+Copyright 2011-2015 Finnish Meteorological Institute
 
 
 */
@@ -44,16 +44,22 @@ namespace spatial_cell {
       
       // Set correct number of populations
       populations.resize(getObjectWrapper().particleSpecies.size());
+      
+      // Set velocity meshes
+      for (int popID=0; popID<populations.size(); ++popID) {
+         const species::Species& spec = getObjectWrapper().particleSpecies[popID];
+         populations[popID].vmesh.initialize(spec.velocityMesh);
+      }
    }
-   
+
    SpatialCell::SpatialCell(const SpatialCell& other):
-     initialized(other.initialized),
-     mpiTransferEnabled(other.mpiTransferEnabled),
-     velocity_block_with_content_list(other.velocity_block_with_content_list),
-     velocity_block_with_no_content_list(other.velocity_block_with_no_content_list),
-     sysBoundaryFlag(other.sysBoundaryFlag),
-     sysBoundaryLayer(other.sysBoundaryLayer),
-     populations(other.populations) {
+      initialized(other.initialized),
+      mpiTransferEnabled(other.mpiTransferEnabled),
+      velocity_block_with_content_list(other.velocity_block_with_content_list),
+      velocity_block_with_no_content_list(other.velocity_block_with_no_content_list),
+      sysBoundaryFlag(other.sysBoundaryFlag),
+      sysBoundaryLayer(other.sysBoundaryLayer),
+      populations(other.populations) {
 
         //copy parameters
         for(unsigned int i=0;i< CellParams::N_SPATIAL_CELL_PARAMS;i++){
@@ -129,14 +135,16 @@ namespace spatial_cell {
       //itself, and for all its neighbors
       for (vmesh::LocalID block_index=0; block_index<velocity_block_with_content_list.size(); ++block_index) {
          vmesh::GlobalID block = velocity_block_with_content_list[block_index];
-	 
-         const velocity_block_indices_t indices = SpatialCell::get_velocity_block_indices(block);
+
+         const uint8_t refLevel=0;
+         const velocity_block_indices_t indices = SpatialCell::get_velocity_block_indices(popID,block);
          neighbors_have_content.insert(block); //also add the cell itself
          
          for (int offset_vx=-P::sparseBlockAddWidthV;offset_vx<=P::sparseBlockAddWidthV;offset_vx++) {
             for (int offset_vy=-P::sparseBlockAddWidthV;offset_vy<=P::sparseBlockAddWidthV;offset_vy++) {
                for (int offset_vz=-P::sparseBlockAddWidthV;offset_vz<=P::sparseBlockAddWidthV;offset_vz++) {
-                  const vmesh::GlobalID neighbor_block = get_velocity_block({{indices[0] + offset_vx, indices[1] + offset_vy, indices[2] + offset_vz}});
+                  const vmesh::GlobalID neighbor_block 
+                     = get_velocity_block(popID,{{indices[0]+offset_vx,indices[1]+offset_vy,indices[2]+offset_vz}},refLevel);
                   neighbors_have_content.insert(neighbor_block); //add all potential ngbrs of this block with content
                }
             }
@@ -655,7 +663,8 @@ namespace spatial_cell {
       return std::make_tuple(address,count,datatype);
    }
    
-   void SpatialCell::merge_values_recursive(vmesh::GlobalID parentGID,vmesh::GlobalID blockGID,uint8_t refLevel,bool recursive,const Realf* data,
+   void SpatialCell::merge_values_recursive(const int& popID,vmesh::GlobalID parentGID,vmesh::GlobalID blockGID,
+                                            uint8_t refLevel,bool recursive,const Realf* data,
 					    std::set<vmesh::GlobalID>& blockRemovalList) {
       #ifdef DEBUG_SPATIAL_CELL
       if (blockGID == invalid_global_id()) {
@@ -665,7 +674,7 @@ namespace spatial_cell {
 
       // Get all possible children:
       vector<vmesh::GlobalID> childrenGIDs;
-      vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::getChildren(blockGID,childrenGIDs);
+      populations[popID].vmesh.getChildren(blockGID,childrenGIDs);
 
       #warning FIXME activePopID is not correct here
       
@@ -735,7 +744,7 @@ namespace spatial_cell {
          
          // Send the data to the child:
          const int octant = k_oct*4 + j_oct*2 + i_oct;
-         merge_values_recursive(blockGID,childrenGIDs[octant],refLevel+1,true,array,blockRemovalList);
+         merge_values_recursive(popID,blockGID,childrenGIDs[octant],refLevel+1,true,array,blockRemovalList);
       }
 
       // Data merged to children, block can be removed
@@ -751,7 +760,7 @@ namespace spatial_cell {
       }
       #endif
       
-      const uint8_t maxRefLevel = vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::getMaxAllowedRefinementLevel();
+      const uint8_t maxRefLevel = populations[popID].vmesh.getMaxAllowedRefinementLevel();
 
       for (int i=0; i<WID3; ++i) null_block_data[i] = 0;
       
@@ -765,7 +774,7 @@ namespace spatial_cell {
             continue;
          }
 
-         uint8_t refLevel = vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::getRefinementLevel(blockGID);
+         uint8_t refLevel = populations[popID].vmesh.getRefinementLevel(blockGID);
          blocks[refLevel].push_back(blockGID);
       }
       
@@ -777,7 +786,7 @@ namespace spatial_cell {
             if (blockLID == invalid_local_id()) continue;
             
             const Realf* data = populations[popID].blockContainer.getData(blockLID);
-            merge_values_recursive(blockGID,blockGID,refLevel,true,data,blockRemovalList);
+            merge_values_recursive(popID,blockGID,blockGID,refLevel,true,data,blockRemovalList);
          }
       }
       
@@ -808,7 +817,7 @@ namespace spatial_cell {
 
       // Add data from all same level blocks
       vector<vmesh::GlobalID> neighborIDs;
-      vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::getNeighborsAtSameLevel(targetGID,neighborIDs);
+      populations[popID].vmesh.getNeighborsAtSameLevel(targetGID,neighborIDs);
 
       std::unordered_map<vmesh::GlobalID,Realf[(WID+2)*(WID+2)*(WID+2)]>::iterator it;
 
@@ -921,10 +930,10 @@ namespace spatial_cell {
       }
       
       // Exit if the block is at base grid level
-      if (vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::getRefinementLevel(targetGID) == 0) {
+      if (populations[popID].vmesh.getRefinementLevel(targetGID) == 0) {
          return;
       }
-      const int octant = vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::getOctant(targetGID);
+      const int octant = populations[popID].vmesh.getOctant(targetGID);
       
       int parentIndex[3];
       parentIndex[2] = 1 + 2*(octant / 4);
@@ -936,7 +945,7 @@ namespace spatial_cell {
       const Realf edge_mul = 4.0;
       const Realf corn_mul = 8.0;
 
-      const vmesh::GlobalID targetParentGID = vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::getParent( neighborIDs[vblock::nbrIndex( 0, 0, 0)] );
+      const vmesh::GlobalID targetParentGID = populations[popID].vmesh.getParent( neighborIDs[vblock::nbrIndex( 0, 0, 0)] );
       vmesh::GlobalID parentGID = targetParentGID;
       
       it = sourceData.find(parentGID);
@@ -951,7 +960,7 @@ namespace spatial_cell {
       
       // ***** face neighbors ***** //
       for (int i_off=-1; i_off<2; i_off+=2) {
-         parentGID = vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::getParent( neighborIDs[vblock::nbrIndex(i_off,0,0)] );
+         parentGID = populations[popID].vmesh.getParent( neighborIDs[vblock::nbrIndex(i_off,0,0)] );
          if (parentGID == targetParentGID) continue;
          it = sourceData.find(parentGID);
          if (it == sourceData.end()) continue;
@@ -966,7 +975,7 @@ namespace spatial_cell {
       }
 
       for (int j_off=-1; j_off<2; j_off+=2) {
-         parentGID = vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::getParent( neighborIDs[vblock::nbrIndex(0,j_off,0)] );
+         parentGID = populations[popID].vmesh.getParent( neighborIDs[vblock::nbrIndex(0,j_off,0)] );
          if (parentGID == targetParentGID) continue;
          it = sourceData.find(parentGID);
          if (it == sourceData.end()) continue;
@@ -981,7 +990,7 @@ namespace spatial_cell {
       }
       
       for (int k_off=-1; k_off<2; k_off+=2) {
-         parentGID = vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::getParent( neighborIDs[vblock::nbrIndex(0,0,k_off)] );
+         parentGID = populations[popID].vmesh.getParent( neighborIDs[vblock::nbrIndex(0,0,k_off)] );
          if (parentGID == targetParentGID) continue;
          it = sourceData.find(parentGID);
          if (it == sourceData.end()) continue;
@@ -1004,7 +1013,7 @@ namespace spatial_cell {
       if (octant == 2 || octant == 6) {i_off=-1; j_off=+1;}
       if (octant == 3 || octant == 7) {i_off=+1; j_off=+1;}
       Realf* source = NULL;
-      parentGID = vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::getParent( neighborIDs[vblock::nbrIndex(i_off,j_off,0)] );
+      parentGID = populations[popID].vmesh.getParent( neighborIDs[vblock::nbrIndex(i_off,j_off,0)] );
       if (parentGID != targetParentGID) {
          it = sourceData.find(parentGID);
          if (it != sourceData.end()) {
@@ -1024,7 +1033,7 @@ namespace spatial_cell {
       if (octant == 4 || octant == 6) {i_off=-1; k_off=+1;}
       if (octant == 5 || octant == 7) {i_off=+1; k_off=+1;}
       source = NULL;
-      parentGID = vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::getParent( neighborIDs[vblock::nbrIndex(i_off,0,k_off)] );
+      parentGID = populations[popID].vmesh.getParent( neighborIDs[vblock::nbrIndex(i_off,0,k_off)] );
       if (parentGID != targetParentGID) {
          it = sourceData.find(parentGID);
          if (it != sourceData.end()) {
@@ -1044,7 +1053,7 @@ namespace spatial_cell {
       if (octant == 4 || octant == 5) {j_off=-1; k_off=+1;}
       if (octant == 6 || octant == 7) {j_off=+1; k_off=+1;}
       source = NULL;
-      parentGID = vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::getParent( neighborIDs[vblock::nbrIndex(0,j_off,k_off)] );
+      parentGID = populations[popID].vmesh.getParent( neighborIDs[vblock::nbrIndex(0,j_off,k_off)] );
       if (parentGID != targetParentGID) {
          it = sourceData.find(parentGID);
          if (it != sourceData.end()) {
@@ -1073,7 +1082,7 @@ namespace spatial_cell {
        case 7: i_off=+1; j_off=+1; k_off=+1; break;
       }
       source = NULL;
-      parentGID = vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::getParent( neighborIDs[vblock::nbrIndex(i_off,j_off,k_off)] );
+      parentGID = populations[popID].vmesh.getParent( neighborIDs[vblock::nbrIndex(i_off,j_off,k_off)] );
       if (parentGID != targetParentGID) {
          it = sourceData.find(parentGID);
          if (it != sourceData.end()) {
@@ -1103,10 +1112,10 @@ namespace spatial_cell {
       // Set velocity block parameters:
       for (vmesh::LocalID blockLID=0; blockLID<size(popID); ++blockLID) {
          const vmesh::GlobalID blockGID = get_velocity_block_global_id(blockLID,popID);
-         parameters[BlockParams::VXCRD] = get_velocity_block_vx_min(blockGID);
-         parameters[BlockParams::VYCRD] = get_velocity_block_vy_min(blockGID);
-         parameters[BlockParams::VZCRD] = get_velocity_block_vz_min(blockGID);
-         vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::getCellSize(blockGID,&(parameters[BlockParams::DVX]));
+         parameters[BlockParams::VXCRD] = get_velocity_block_vx_min(popID,blockGID);
+         parameters[BlockParams::VYCRD] = get_velocity_block_vy_min(popID,blockGID);
+         parameters[BlockParams::VZCRD] = get_velocity_block_vz_min(popID,blockGID);
+         populations[popID].vmesh.getCellSize(blockGID,&(parameters[BlockParams::DVX]));
          parameters += BlockParams::N_VELOCITY_BLOCK_PARAMS;
       }
    }
@@ -1140,7 +1149,7 @@ namespace spatial_cell {
             // Set refined block parameters
             Real* blockParams = populations[popID].blockContainer.getParameters(ins->second);
             populations[popID].vmesh.getBlockCoordinates(ins->first,blockParams);
-            vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::getCellSize(ins->first,blockParams+3);
+            populations[popID].vmesh.getCellSize(ins->first,blockParams+3);
             
             ++ins;
          }
@@ -1150,7 +1159,7 @@ namespace spatial_cell {
          // Set refined block parameters
          Real* blockParams = populations[popID].blockContainer.getParameters(it->second);
          populations[popID].vmesh.getBlockCoordinates(it->first,blockParams);
-         vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::getCellSize(it->first,blockParams+3);
+         populations[popID].vmesh.getCellSize(it->first,blockParams+3);
          
       }
 
@@ -1263,10 +1272,15 @@ namespace spatial_cell {
     * @param blockSize Number of velocity cells in a block per coordinate direction.
     * @param f_min Sparse mesh threshold value.
     * @param maxRefLevel Maximum allowed mesh refinement level.*/
-   bool SpatialCell::initialize_mesh(Real v_limits[6],unsigned int meshSize[3],
-                                     unsigned int blockSize[3],uint8_t maxRefLevel) {
-      bool success = vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::initialize(
-                                             v_limits,meshSize,blockSize,maxRefLevel);
+   bool SpatialCell::initialize_mesh() {
+      bool success = true;
+      for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         const species::Species& spec = getObjectWrapper().particleSpecies[popID];
+         if (populations[popID].vmesh.initialize(spec.velocityMesh,getObjectWrapper().velocityMeshes) == false) {
+            success = false;
+         }
+      }
+      
       return success;
    }
 

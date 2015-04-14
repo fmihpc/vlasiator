@@ -3,17 +3,6 @@
  * 
  * Copyright 2010-2015 Finnish Meteorological Institute
  * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
  */
 
 /*!\file ionosphere.cpp
@@ -682,36 +671,56 @@ namespace SBC {
       (2.0 * physicalconstants::K_B * this->T));
    }
 
-   vector<vmesh::GlobalID> Ionosphere::findBlocksToInitialize(SpatialCell& cell,const int& popID) {
+   std::vector<vmesh::GlobalID> Ionosphere::findBlocksToInitialize(spatial_cell::SpatialCell& cell,const int& popID) {
       vector<vmesh::GlobalID> blocksToInitialize;
       bool search = true;
       uint counter = 0;
+      const uint8_t refLevel = 0;
+
+      const vmesh::LocalID* vblocks_ini = cell.get_velocity_grid_length(popID,refLevel);
 
       while (search) {
          if (0.1 * getObjectWrapper().particleSpecies[popID].sparseMinValue > 
-            shiftedMaxwellianDistribution(popID,counter*SpatialCell::get_velocity_grid_block_size()[0], 0.0, 0.0) || counter > P::vxblocks_ini) {
+            shiftedMaxwellianDistribution(popID,counter*cell.get_velocity_grid_block_size(popID,refLevel)[0], 0.0, 0.0)
+            || counter > vblocks_ini[0]) {
             search = false;
          }
          ++counter;
       }
       counter+=2;
-      Real vRadiusSquared = (Real)counter*(Real)counter*SpatialCell::get_velocity_grid_block_size()[0]*SpatialCell::get_velocity_grid_block_size()[0];
+      Real vRadiusSquared 
+              = (Real)counter*(Real)counter
+              * cell.get_velocity_grid_block_size(popID,refLevel)[0]
+              * cell.get_velocity_grid_block_size(popID,refLevel)[0];
 
-      for (uint kv=0; kv<P::vzblocks_ini; ++kv) 
-         for (uint jv=0; jv<P::vyblocks_ini; ++jv)
-            for (uint iv=0; iv<P::vxblocks_ini; ++iv) {
-               creal vx = P::vxmin + (iv+0.5) * SpatialCell::get_velocity_grid_block_size()[0]; // vx-coordinate of the centre
-               creal vy = P::vymin + (jv+0.5) * SpatialCell::get_velocity_grid_block_size()[1]; // vy-
-               creal vz = P::vzmin + (kv+0.5) * SpatialCell::get_velocity_grid_block_size()[2]; // vz-
+      for (uint kv=0; kv<vblocks_ini[2]; ++kv) 
+         for (uint jv=0; jv<vblocks_ini[1]; ++jv)
+            for (uint iv=0; iv<vblocks_ini[0]; ++iv) {
+               vmesh::LocalID blockIndices[3];
+               blockIndices[0] = iv;
+               blockIndices[1] = jv;
+               blockIndices[2] = kv;
+               const vmesh::GlobalID blockGID = cell.get_velocity_block(popID,blockIndices,refLevel);
+               Real blockCoords[3];
+               cell.get_velocity_block_coordinates(popID,blockGID,blockCoords);
+               Real blockSize[3];
+               cell.get_velocity_block_size(popID,blockGID,blockSize);
+               blockCoords[0] += 0.5*blockSize[0];
+               blockCoords[1] += 0.5*blockSize[1];
+               blockCoords[2] += 0.5*blockSize[2];
+               //creal vx = P::vxmin + (iv+0.5) * cell.get_velocity_grid_block_size(popID)[0]; // vx-coordinate of the centre
+               //creal vy = P::vymin + (jv+0.5) * cell.get_velocity_grid_block_size(popID)[1]; // vy-
+               //creal vz = P::vzmin + (kv+0.5) * cell.get_velocity_grid_block_size(popID)[2]; // vz-
                
-               if (vx*vx + vy*vy + vz*vz < vRadiusSquared) {
+               if (blockCoords[0]*blockCoords[0] + blockCoords[1]*blockCoords[1] + blockCoords[2]*blockCoords[2] < vRadiusSquared) {
+               //if (vx*vx + vy*vy + vz*vz < vRadiusSquared) {
                   // Adds velocity block to active population's velocity mesh
-                  const vmesh::GlobalID newBlockGID = SpatialCell::get_velocity_block(vx,vy,vz);
-                  cell.add_velocity_block(newBlockGID,popID);
-                  blocksToInitialize.push_back(newBlockGID);
+                  //const vmesh::GlobalID newBlockGID = cell.get_velocity_block(popID,vx,vy,vz);
+                  cell.add_velocity_block(blockGID,popID);
+                  blocksToInitialize.push_back(blockGID);
                }
             }
-            
+
       return blocksToInitialize;
    }
 

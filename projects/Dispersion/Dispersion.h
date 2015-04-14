@@ -2,18 +2,7 @@
 /*
 This file is part of Vlasiator.
 
-Copyright 2011, 2012 Finnish Meteorological Institute
-
-
-
-
-
-
-
-
-
-
-
+Copyright 2011,2012,2015 Finnish Meteorological Institute
 
 */
 

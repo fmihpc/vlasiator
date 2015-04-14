@@ -59,25 +59,27 @@ namespace projects {
    }
 
    Real ElectricSail::getCorrectNumberDensity(spatial_cell::SpatialCell* cell,const int& popID) const {
-      if (getObjectWrapper().particleSpecies[popID].name == "Electron") return populations[popID].rho;
+      if (getObjectWrapper().particleSpecies[popID].name != "Electron") return populations[popID].rho;
+
+      if (tetherUnitCharge < 0) {
+         cerr << "negative tether not implemented in " << __FILE__ << ":" << __LINE__ << endl;
+         exit(1);
+      }
 
       const Real* parameters = cell->get_cell_parameters();
-      
+
       Real pos[3];
       pos[0] = parameters[CellParams::XCRD] + 0.5*parameters[CellParams::DX];
       pos[1] = parameters[CellParams::YCRD] + 0.5*parameters[CellParams::DY];
       pos[2] = parameters[CellParams::ZCRD] + 0.5*parameters[CellParams::DZ];
       Real radius2 = pos[0]*pos[0] + pos[1]*pos[1] + pos[2]*pos[2];
-      
+
       if (radius2 > ionCloudRadius*ionCloudRadius) return populations[popID].rho;
 
       const Real charge = getObjectWrapper().particleSpecies[popID].charge;
       const Real DZ = parameters[CellParams::DZ];
-      Real cloudDens = -tetherUnitCharge / (2*M_PI*ionCloudRadius*ionCloudRadius*charge);
-
-      //cerr << "ion cloud dens is " << cloudDens << endl;
-      
-      return populations[popID].rho + 2*cloudDens;
+      Real cloudDens = -tetherUnitCharge / (M_PI*ionCloudRadius*ionCloudRadius*charge);      
+      return populations[popID].rho + cloudDens;
    }
 
    Real ElectricSail::getDistribValue(creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz,const int& popID) const {
@@ -133,7 +135,7 @@ namespace projects {
       ionCloudRadius = 50.0;
       
 #warning TESTING FIXME
-      tetherUnitCharge = -100e9 * 1.602e-19;
+      tetherUnitCharge = 100e9 * physicalconstants::CHARGE;
       //tetherUnitCharge = 0.0;
    }
 

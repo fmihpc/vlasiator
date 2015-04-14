@@ -2,11 +2,9 @@
 /*
 This file is part of Vlasiator.
 
-Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
+Copyright 2010-2015 Finnish Meteorological Institute
  */
 
-
-#include <cstdlib>
 #include <iostream>
 
 #include <limits>
@@ -17,22 +15,19 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #include <dirent.h>
 #include <stdio.h>
 
-#include "definitions.h"
-#include "vlsv_reader.h"
-#include "vlsv_writer.h"
-#include "vlsvreaderinterface.h"
-#include <vlsv_amr.h>
+#include <unordered_set>
 
-#include <array> //std::array is from here
-#include <unordered_set> //std::unordered_set from here
+#include <vlsv_reader.h>
+#include <vlsv_writer.h>
+#include <vlsv_amr.h>
 #include <boost/program_options.hpp>
 #include <Eigen/Dense>
+#include <phiprof.hpp>
 
-#include "phiprof.hpp"
-
+#include "vlsvreaderinterface.h"
+#include "vlsvextract.h"
 
 using namespace std;
-
 using namespace Eigen;
 using namespace vlsv;
 namespace po = boost::program_options;
@@ -40,113 +35,35 @@ namespace po = boost::program_options;
 // If set to true, vlsvextract writes some debugging info to stderr
 static bool runDebug = false;
 
-template<typename REAL> struct NodeCrd {
-   static REAL EPS;
-   REAL x;
-   REAL y;
-   REAL z;
+bool NodeComp::operator()(const NodeCrd<double>& a, const NodeCrd<double>& b) const {
+   double EPS = 0.5e-3 * (fabs(a.z) + fabs(b.z));
+   if (a.z > b.z + EPS) return false;
+   if (a.z < b.z - EPS) return true;
 
-   NodeCrd(const REAL& x, const REAL& y, const REAL& z) : x(x), y(y), z(z) {
-   }
+   EPS = 0.5e-3 * (fabs(a.y) + fabs(b.y));
+   if (a.y > b.y + EPS) return false;
+   if (a.y < b.y - EPS) return true;
 
-   bool comp(const NodeCrd<REAL>& n) const {
-      REAL EPS1, EPS2, EPS;
-      EPS1 = 1.0e-6 * fabs(x);
-      EPS2 = 1.0e-6 * fabs(n.x);
-      if (x == 0.0) EPS1 = 1.0e-7;
-      if (n.x == 0.0) EPS2 = 1.0e-7;
-      EPS = max(EPS1, EPS2);
-      if (fabs(x - n.x) > EPS) return false;
+   EPS = 0.5e-3 * (fabs(a.x) + fabs(b.x));
+   if (a.x > b.x + EPS) return false;
+   if (a.x < b.x - EPS) return true;
+   return false;
+}
 
-      EPS1 = 1.0e-6 * fabs(y);
-      EPS2 = 1.0e-6 * fabs(n.y);
-      if (y == 0.0) EPS1 = 1.0e-7;
-      if (n.y == 0.0) EPS2 = 1.0e-7;
-      EPS = max(EPS1, EPS2);
-      if (fabs(y - n.y) > EPS) return false;
+bool NodeComp::operator()(const NodeCrd<float>& a,const NodeCrd<float>& b) const {
+   float EPS = 0.5e-3 * (fabs(a.z) + fabs(b.z));
+   if (a.z > b.z + EPS) return false;
+   if (a.z < b.z - EPS) return true;
 
-      EPS1 = 1.0e-6 * fabs(z);
-      EPS2 = 1.0e-6 * fabs(n.z);
-      if (z == 0.0) EPS1 = 1.0e-7;
-      if (n.z == 0.0) EPS2 = 1.0e-7;
-      EPS = max(EPS1, EPS2);
-      if (fabs(z - n.z) > EPS) return false;
-      return true;
-   }
-};
+   EPS = 0.5e-3 * (fabs(a.y) + fabs(b.y));
+   if (a.y > b.y + EPS) return false;
+   if (a.y < b.y - EPS) return true;
 
-struct NodeComp {
-
-   bool operator()(const NodeCrd<double>& a, const NodeCrd<double>& b) const {
-      double EPS = 0.5e-3 * (fabs(a.z) + fabs(b.z));
-      if (a.z > b.z + EPS) return false;
-      if (a.z < b.z - EPS) return true;
-
-      EPS = 0.5e-3 * (fabs(a.y) + fabs(b.y));
-      if (a.y > b.y + EPS) return false;
-      if (a.y < b.y - EPS) return true;
-
-      EPS = 0.5e-3 * (fabs(a.x) + fabs(b.x));
-      if (a.x > b.x + EPS) return false;
-      if (a.x < b.x - EPS) return true;
-      return false;
-   }
-
-   bool operator()(const NodeCrd<float>& a, const NodeCrd<float>& b) const {
-      float EPS = 0.5e-3 * (fabs(a.z) + fabs(b.z));
-      if (a.z > b.z + EPS) return false;
-      if (a.z < b.z - EPS) return true;
-
-      EPS = 0.5e-3 * (fabs(a.y) + fabs(b.y));
-      if (a.y > b.y + EPS) return false;
-      if (a.y < b.y - EPS) return true;
-
-      EPS = 0.5e-3 * (fabs(a.x) + fabs(b.x));
-      if (a.x > b.x + EPS) return false;
-      if (a.x < b.x - EPS) return true;
-      return false;
-   }
-};
-
-
-//A struct for holding info on cell structure (the grid)
-struct CellStructure {
-   uint64_t cell_bounds[3];     /**< The number of cells in x, y, z direction (initialized somewhere in read parameters).*/
-   Real cell_length[3];         /**< Length of a cell in x, y, z direction. */
-   Real min_coordinates[3];     /**< x_min, y_min, z_min are stored here.*/
-   uint64_t vcell_bounds[3];    /**< The number of cells in x, y, z direction (initialized somewhere in read parameters).*/
-   Real vblock_length[3];       /**< Size (dvx,dvy,dvz) of a velocity block in vx, vy, vz directions.*/
-   Real min_vcoordinates[3];    /**< vx_min, vy_min, vz_min are stored here.*/
-   uint32_t maxVelRefLevel;     /**< Maximum refinement level of velocity meshes.*/
-
-   int slicedCoords[3];
-   Real slicedCoordValues[3];
-};
-
-//A class for holding user options
-class UserOptions {
-public:
-   bool getCellIdFromLine;
-   bool getCellIdFromInput;
-   bool getCellIdFromCoordinates;
-   bool rotateVectors;
-   bool plasmaFrame;
-   uint64_t cellId;
-   uint32_t numberOfCoordinatesInALine;
-   vector<string> outputDirectoryPath;
-   array<Real, 3> coordinates;
-   array<Real, 3> point1;
-   array<Real, 3> point2;
-   UserOptions() {
-      getCellIdFromLine = false;
-      getCellIdFromInput = false;
-      getCellIdFromCoordinates = false;
-      rotateVectors = false;
-      cellId = numeric_limits<uint64_t>::max();
-      numberOfCoordinatesInALine = 0;
-   }
-   ~UserOptions() {}
-};
+   EPS = 0.5e-3 * (fabs(a.x) + fabs(b.x));
+   if (a.x > b.x + EPS) return false;
+   if (a.x < b.x - EPS) return true;
+   return false;
+}
 
 uint64_t convUInt(const char* ptr, const VLSV::datatype& dataType, const uint64_t& dataSize) {
    if (dataType != VLSV::UINT) {
@@ -192,25 +109,6 @@ uint64_t convUInt(const char* ptr, const datatype::type & dataType, const uint64
          break;
    }
    return 0;
-}
-
-//Outputs the velocity block indices of some given block into indices
-//Input:
-//[0] cellStruct -- some cell structure that has been constructed properly
-//[1] block -- some velocity block id
-//Output:
-//[0] indices -- the array where to store the indices
-void getVelocityBlockCoordinates(const CellStructure & cellStruct, const uint64_t block, array<Real, 3> & coordinates ) {
-   //First get indices:
-   array<uint64_t, 3> blockIndices;
-   blockIndices[0] = block % cellStruct.vcell_bounds[0];
-   blockIndices[1] = (block / cellStruct.vcell_bounds[0]) % cellStruct.vcell_bounds[1];
-   blockIndices[2] = block / (cellStruct.vcell_bounds[0] * cellStruct.vcell_bounds[1]);
-   //Store the coordinates:
-   for( int i = 0; i < 3; ++i ) {
-      coordinates[i] = cellStruct.min_vcoordinates[i] + cellStruct.vblock_length[i] * blockIndices[i];
-   }
-   return;
 }
 
 bool convertSlicedVelocityMesh(newVlsv::Reader& vlsvReader,const string& fname,const string& meshName,
@@ -770,7 +668,7 @@ bool convertVelocityBlocks2(
                             newVlsv::Reader& vlsvReader,
                             const string& fname,
                             const string& meshName,
-                            const CellStructure& cellStruct,
+                            CellStructure& cellStruct,
                             const uint64_t& cellID,
                             const bool rotate,
                             const bool plasmaFrame,
@@ -779,6 +677,13 @@ bool convertVelocityBlocks2(
                            ) {
    bool success = true;
    
+   // Read velocity mesh metadata for this population
+   if (setVelocityMeshVariables(vlsvReader,cellStruct,popName) == false) {
+      cerr << "ERROR, failed to read velocity mesh metadata for species '";
+      cerr << popName << "'" << endl;
+      return false;
+   }
+
    string outputMeshName = "VelGrid_" + popName;
    int cellsInBlocksPerDirection = 4;
    
@@ -1127,7 +1032,7 @@ bool convertVelocityBlocks2(
                             newVlsv::Reader& vlsvReader,
                             const string& fname,
                             const string& meshName,
-                            const CellStructure& cellStruct,
+                            CellStructure& cellStruct,
                             const uint64_t& cellID,
                             const bool rotate,
                             const bool plasmaFrame
@@ -1279,18 +1184,98 @@ uint64_t searchForBestCellId( const CellStructure & cellStruct,
           ) );
 }
 
+bool setVelocityMeshVariables(vlsv::Reader& vlsvReader,CellStructure& cellStruct,
+        const std::string& popName) {
+   bool success = true;
 
+   Real vx_min,vx_max,vy_min,vy_max,vz_min,vz_max;
 
-//Initalizes cellStruct
-//Input:
-//[0] vlsv::Reader vlsvReader -- some reader with a file open (used for loading parameters)
-//Output:
-//[0] CellStructure cellStruct -- Holds info on cellStruct. The members are given the correct values here (Note: CellStructure could be made into a class
-//instead of a struct with this as the constructor but since a geometry class has already been coded before, it would be a waste)
-void setCellVariables( Reader & vlsvReader, CellStructure & cellStruct ) {
-   //Get x_min, x_max, y_min, y_max, etc so that we know where the given cell id is in (loadParameter returns char*, hence the cast)
-   //Note: Not actually sure if these are Real valued or not
-   Real x_min, x_max, y_min, y_max, z_min, z_max, vx_min, vx_max, vy_min, vy_max, vz_min, vz_max;
+   // Read node coordinate arrays to figure out mesh extents
+   for (int crd=0; crd<3; ++crd) {
+      list<pair<string,string> > attribsIn;
+      attribsIn.push_back(make_pair("mesh",popName));
+      
+      string tagName;
+      if (crd == 0) tagName = "MESH_NODE_CRDS_X";
+      if (crd == 1) tagName = "MESH_NODE_CRDS_Y";
+      if (crd == 2) tagName = "MESH_NODE_CRDS_Z";
+
+      // Read node coordinate array info
+      map<string,string> attribsOut;
+      if (vlsvReader.getArrayAttributes(tagName,attribsIn,attribsOut) == false) {
+         success = false; continue;
+      }
+      
+      // Figure out the number of nodes in this coordinate direction
+      uint64_t N_nodes = 0;
+      map<string,string>::const_iterator it = attribsOut.find("arraysize");
+      if (it != attribsOut.end()) N_nodes = atol(it->second.c_str());      
+      
+      // Read node coordinates
+      Real* crds = NULL;
+      if (vlsvReader.read(tagName,attribsIn,0,N_nodes,crds,true) == false) success = false;
+      
+      if (crd == 0) { vx_min = crds[0]; vx_max = crds[N_nodes-1]; }
+      if (crd == 1) { vy_min = crds[0]; vy_max = crds[N_nodes-1]; }
+      if (crd == 2) { vz_min = crds[0]; vz_max = crds[N_nodes-1]; }
+      delete [] crds; crds = NULL;
+   }
+
+   // Read the velocity mesh bounding box
+   list<pair<string,string> > attribs;
+   attribs.push_back(make_pair("mesh",popName));
+   uint64_t velMeshBbox[6];
+   uint64_t* velMeshBbox_ptr = velMeshBbox;
+   if (vlsvReader.read("MESH_BBOX",attribs,0,6,velMeshBbox_ptr,false) == false) {
+      cerr << "Failed to read velocity mesh BBOX in " << __FILE__ << ":" << __LINE__ << endl;
+   }
+
+   //Set the cell structure properly:
+   for(int i = 0; i<3; ++i) {
+      cellStruct.vcell_bounds[i] = velMeshBbox[i];
+   }
+
+   //Calculate the velocity block physical size (in m/s)
+   Real vx_length = vx_max - vx_min;
+   Real vy_length = vy_max - vy_min;
+   Real vz_length = vz_max - vz_min;
+   cellStruct.vblock_length[0] = ( vx_length / (Real)(velMeshBbox[0]) );
+   cellStruct.vblock_length[1] = ( vy_length / (Real)(velMeshBbox[1]) );
+   cellStruct.vblock_length[2] = ( vz_length / (Real)(velMeshBbox[2]) );
+
+   //Calculate the minimum coordinates for velocity cells
+   cellStruct.min_vcoordinates[0] = vx_min;
+   cellStruct.min_vcoordinates[1] = vy_min;
+   cellStruct.min_vcoordinates[2] = vz_min;
+
+   cerr << "Pop '" << popName << " mesh limits: ";
+   cerr << vx_min << '\t' << vx_max << '\t' << vy_min << '\t' << vy_max << '\t' << vz_min << '\t' << vz_max << endl;
+   cerr << "\t mesh bbox size: " << velMeshBbox[0] << ' ' << velMeshBbox[1] << ' ' << velMeshBbox[2] << endl;
+   
+   // By default set an unrefined velocity mesh. Then check if the max refinement level 
+   // was actually given as a parameter.
+   uint32_t dummyUInt;
+   cellStruct.maxVelRefLevel = 0;
+   if (vlsvReader.readParameter("max_velocity_ref_level",dummyUInt) == true) {
+      cellStruct.maxVelRefLevel = dummyUInt;
+   }
+
+   return true;
+}
+
+/** Set correct spatial mesh variables to cellStruct. This function leaves the 
+ * velocity mesh-related variables untouched.
+ * @param vlsvReader VLSV file reader with input file open.
+ * @param cellStruct Struct where spatial mesh variables are written.
+ * @return If true, spatial mesh variables were read successfully.*/
+bool setSpatialCellVariables(Reader& vlsvReader,CellStructure& cellStruct) {
+   bool success = true;
+   
+   // Get x_min, x_max, y_min, y_max, etc so that we know where the given cell 
+   // id is in (loadParameter returns char*, hence the cast)
+   // Note: Not actually sure if these are Real valued or not
+   Real x_min,x_max,y_min,y_max,z_min,z_max;
+
    //Read in the parameter:
    if( vlsvReader.readParameter( "xmin", x_min ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
    if( vlsvReader.readParameter( "xmax", x_max ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
@@ -1298,27 +1283,13 @@ void setCellVariables( Reader & vlsvReader, CellStructure & cellStruct ) {
    if( vlsvReader.readParameter( "ymax", y_max ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
    if( vlsvReader.readParameter( "zmin", z_min ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
    if( vlsvReader.readParameter( "zmax", z_max ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
-
-   if( vlsvReader.readParameter( "vxmin", vx_min ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
-   if( vlsvReader.readParameter( "vxmax", vx_max ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
-   if( vlsvReader.readParameter( "vymin", vy_min ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
-   if( vlsvReader.readParameter( "vymax", vy_max ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
-   if( vlsvReader.readParameter( "vzmin", vz_min ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
-   if( vlsvReader.readParameter( "vzmax", vz_max ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
-
+   
    //Number of cells in x, y, z directions (used later for calculating where in the cell coordinates the given
    //coordinates are) (Done in getCellCoordinates)
    //There's x, y and z coordinates so the number of different coordinates is 3:
    const short int NumberOfCoordinates = 3;
    uint64_t cell_bounds[NumberOfCoordinates];
-   uint64_t vcell_bounds[NumberOfCoordinates];
-   //Get the number of velocity blocks in x,y,z direction from the file:
-   //x-direction
-   if( vlsvReader.readParameter( "vxblocks_ini", vcell_bounds[0] ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
-   //y-direction
-   if( vlsvReader.readParameter( "vyblocks_ini", vcell_bounds[1] ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
-   //z-direction
-   if( vlsvReader.readParameter( "vzblocks_ini", vcell_bounds[2] ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
+
    //Get the number of spatial cells in x,y,z direction from the file:
    //x-direction
    if( vlsvReader.readParameter( "xcells_ini", cell_bounds[0] ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
@@ -1333,49 +1304,28 @@ void setCellVariables( Reader & vlsvReader, CellStructure & cellStruct ) {
    Real y_length = y_max - y_min;
    Real z_length = z_max - z_min;
 
-   Real vx_length = vx_max - vx_min;
-   Real vy_length = vy_max - vy_min;
-   Real vz_length = vz_max - vz_min;
    //Set the cell structure properly:
    for( int i = 0; i < NumberOfCoordinates; ++i ) {
       cellStruct.cell_bounds[i] = cell_bounds[i];
-      cellStruct.vcell_bounds[i] = vcell_bounds[i];
    }
-   //Calculate the cell length
+   //Calculate the spatial cell physical size (in m)
    cellStruct.cell_length[0] = ( x_length / (Real)(cell_bounds[0]) );
    cellStruct.cell_length[1] = ( y_length / (Real)(cell_bounds[1]) );
    cellStruct.cell_length[2] = ( z_length / (Real)(cell_bounds[2]) );
 
-   //Calculate the velocity cell length
-   cellStruct.vblock_length[0] = ( vx_length / (Real)(vcell_bounds[0]) );
-   cellStruct.vblock_length[1] = ( vy_length / (Real)(vcell_bounds[1]) );
-   cellStruct.vblock_length[2] = ( vz_length / (Real)(vcell_bounds[2]) );
    //Calculate the minimum coordinates
    cellStruct.min_coordinates[0] = x_min;
    cellStruct.min_coordinates[1] = y_min;
    cellStruct.min_coordinates[2] = z_min;
-   //Calculate the minimum coordinates for velocity cells
-   cellStruct.min_vcoordinates[0] = vx_min;
-   cellStruct.min_vcoordinates[1] = vy_min;
-   cellStruct.min_vcoordinates[2] = vz_min;
-
 
    for( int i = 0; i < 3; ++i ) {
-      if( cellStruct.cell_length[i] == 0 || cellStruct.cell_bounds[i] == 0 || cellStruct.vblock_length[i] == 0 || cellStruct.vcell_bounds[i] == 0 ) {
+      if( cellStruct.cell_length[i] == 0 || cellStruct.cell_bounds[i] == 0) {
          cerr << "ERROR, ZERO CELL LENGTH OR CELL_BOUNDS AT " << __FILE__ << " " << __LINE__ << endl;
          exit(1);
       }
    }
    
-   // By default set an unrefined velocity mesh. Then check if the max refinement level 
-   // was actually given as a parameter.
-   uint32_t dummyUInt;
-   cellStruct.maxVelRefLevel = 0;
-   if (vlsvReader.readParameter("max_velocity_ref_level",dummyUInt) == true) {
-      cellStruct.maxVelRefLevel = dummyUInt;
-   }
-   
-   return;
+   return success;
 }
 
 
@@ -1744,7 +1694,7 @@ void extractDistribution( const string & fileName, const UserOptions & mainOptio
    
    //Sets cell variables (for cell geometry) -- used in getCellIdFromCoords function
    CellStructure cellStruct;
-   setCellVariables( vlsvReader, cellStruct );
+   setSpatialCellVariables( vlsvReader, cellStruct );
 
    //Declare a vector for holding multiple cell ids (Note: Used only if we want to calculate the cell id along a line)
    vector<uint64_t> cellIdList;
