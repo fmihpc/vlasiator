@@ -155,6 +155,20 @@ namespace SBC {
       exit(1);
    }
    
+   /*! Function used to compute the system boundary condition cell's electron pressure gradient electric field components and save them into the cell parameters.
+    * \param cache Field solver cell cache.
+    * \param RKCase The step in Runge-Kutta (use values from enum defined in common.h).
+    * \param component 0: x-component, 1: y-component, 2: z-component.
+    */
+   void SysBoundaryCondition::fieldSolverBoundaryCondGradPeElectricField(
+      fs_cache::CellCache& cache,
+      cuint RKCase,
+      cuint component
+   ) {
+      cerr << "ERROR: SysBoundaryCondition::fieldSolverBoundaryCondGradPeElectricField called instead of derived class function!" << endl;
+      exit(1);
+   }
+   
    /*! Function used to compute the system boundary condition cell's derivatives and save them into the cell derivatives.
     * \param mpiGrid The grid.
     * \param cellID The cell's ID.

@@ -316,6 +316,11 @@ void calculateEdgeElectricFieldX(fs_cache::CellCache& cache,cint& RKCase) {
    if(Parameters::ohmHallTerm > 0) {
       Ex_SW += cp_SW[CellParams::EXHALL_000_100];
    }
+   
+   // Electron pressure gradient term
+   if(Parameters::ohmGradPeTerm > 0) {
+      Ex_SW += cp_SW[CellParams::EXGRADPE];
+   }
 
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
@@ -363,6 +368,12 @@ void calculateEdgeElectricFieldX(fs_cache::CellCache& cache,cint& RKCase) {
    if(Parameters::ohmHallTerm > 0) {
       Ex_SE += cp_SE[CellParams::EXHALL_010_110];
    }
+   
+   // Electron pressure gradient term
+   if(Parameters::ohmGradPeTerm > 0) {
+      Ex_SE += cp_SE[CellParams::EXGRADPE];
+   }
+   
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ex_SE += +HALF*((By_S - HALF*dBydz_S)*(+derivs_SE[fs::dVzdy] - derivs_SE[fs::dVzdz]) - dBydz_S*Vz0 + SIXTH*dBydx_S*derivs_SE[fs::dVzdx]);
@@ -409,6 +420,12 @@ void calculateEdgeElectricFieldX(fs_cache::CellCache& cache,cint& RKCase) {
    if(Parameters::ohmHallTerm > 0) {
       Ex_NW += cp_NW[CellParams::EXHALL_001_101];
    }
+   
+   // Electron pressure gradient term
+   if(Parameters::ohmGradPeTerm > 0) {
+      Ex_NW += cp_NW[CellParams::EXGRADPE];
+   }
+   
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ex_NW += +HALF*((By_N + HALF*dBydz_N)*(-derivs_NW[fs::dVzdy] + derivs_NW[fs::dVzdz]) + dBydz_N*Vz0 + SIXTH*dBydx_N*derivs_NW[fs::dVzdx]);
@@ -455,6 +472,12 @@ void calculateEdgeElectricFieldX(fs_cache::CellCache& cache,cint& RKCase) {
    if(Parameters::ohmHallTerm > 0) {
       Ex_NE += cp_NE[CellParams::EXHALL_011_111];
    }
+   
+   // Electron pressure gradient term
+   if(Parameters::ohmGradPeTerm > 0) {
+      Ex_NE += cp_NE[CellParams::EXGRADPE];
+   }
+   
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ex_NE += +HALF*((By_N + HALF*dBydz_N)*(+derivs_NE[fs::dVzdy] + derivs_NE[fs::dVzdz]) + dBydz_N*Vz0 + SIXTH*dBydx_N*derivs_NE[fs::dVzdx]);
@@ -620,6 +643,12 @@ void calculateEdgeElectricFieldY(fs_cache::CellCache& cache,cint& RKCase) {
    if (Parameters::ohmHallTerm > 0) {
       Ey_SW += cp_SW[CellParams::EYHALL_000_010];
    }
+   
+   // Electron pressure gradient term
+   if(Parameters::ohmGradPeTerm > 0) {
+      Ey_SW += cp_SW[CellParams::EYGRADPE];
+   }
+   
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms
       Ey_SW += +HALF*((Bz_S - HALF*dBzdx_S)*(-derivs_SW[fs::dVxdx] - derivs_SW[fs::dVxdz]) - dBzdx_S*Vx0 + SIXTH*dBzdy_S*derivs_SW[fs::dVxdy]);
@@ -666,6 +695,12 @@ void calculateEdgeElectricFieldY(fs_cache::CellCache& cache,cint& RKCase) {
    if (Parameters::ohmHallTerm > 0) {
       Ey_SE += cp_SE[CellParams::EYHALL_001_011];
    }
+   
+   // Electron pressure gradient term
+   if(Parameters::ohmGradPeTerm > 0) {
+      Ey_SE += cp_SE[CellParams::EYGRADPE];
+   }
+   
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ey_SE += +HALF*((Bz_S - HALF*dBzdx_S)*(-derivs_SE[fs::dVxdx] + derivs_SE[fs::dVxdz]) - dBzdx_S*Vx0 + SIXTH*dBzdy_S*derivs_SE[fs::dVxdy]);
@@ -711,6 +746,12 @@ void calculateEdgeElectricFieldY(fs_cache::CellCache& cache,cint& RKCase) {
    if(Parameters::ohmHallTerm > 0) {
       Ey_NW += cp_NW[CellParams::EYHALL_100_110];
    }
+   
+   // Electron pressure gradient term
+   if(Parameters::ohmGradPeTerm > 0) {
+      Ey_NW += cp_NW[CellParams::EYGRADPE];
+   }
+   
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ey_NW += +HALF*((Bz_N + HALF*dBzdx_N)*(+derivs_NW[fs::dVxdx] - derivs_NW[fs::dVxdz]) + dBzdx_N*Vx0 + SIXTH*dBzdy_N*derivs_NW[fs::dVxdy]);
@@ -756,6 +797,12 @@ void calculateEdgeElectricFieldY(fs_cache::CellCache& cache,cint& RKCase) {
    if(Parameters::ohmHallTerm > 0) {
       Ey_NE += cp_NE[CellParams::EYHALL_101_111];
    }
+   
+   // Electron pressure gradient term
+   if(Parameters::ohmGradPeTerm > 0) {
+      Ey_NE += cp_NE[CellParams::EYGRADPE];
+   }
+   
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ey_NE += +HALF*((Bz_N + HALF*dBzdx_N)*(+derivs_NE[fs::dVxdx] + derivs_NE[fs::dVxdz]) + dBzdx_N*Vx0 + SIXTH*dBzdy_N*derivs_NE[fs::dVxdy]);
@@ -918,6 +965,12 @@ void calculateEdgeElectricFieldZ(fs_cache::CellCache& cache,cint& RKCase) {
    if (Parameters::ohmHallTerm > 0) {
       Ez_SW += cp_SW[CellParams::EZHALL_000_001];
    }
+   
+   // Electron pressure gradient term
+   if(Parameters::ohmGradPeTerm > 0) {
+      Ez_SW += cp_SW[CellParams::EZGRADPE];
+   }
+   
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ez_SW  += +HALF*((Bx_S - HALF*dBxdy_S)*(-derivs_SW[fs::dVydx] - derivs_SW[fs::dVydy]) - dBxdy_S*Vy0 + SIXTH*dBxdz_S*derivs_SW[fs::dVydz]);
@@ -964,6 +1017,12 @@ void calculateEdgeElectricFieldZ(fs_cache::CellCache& cache,cint& RKCase) {
    if (Parameters::ohmHallTerm > 0) {
       Ez_SE += cp_SE[CellParams::EZHALL_100_101];
    }
+   
+   // Electron pressure gradient term
+   if(Parameters::ohmGradPeTerm > 0) {
+      Ez_SE += cp_SE[CellParams::EZGRADPE];
+   }
+   
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ez_SE  += +HALF*((Bx_S - HALF*dBxdy_S)*(+derivs_SE[fs::dVydx] - derivs_SE[fs::dVydy]) - dBxdy_S*Vy0 + SIXTH*dBxdz_S*derivs_SE[fs::dVydz]);
@@ -1009,6 +1068,12 @@ void calculateEdgeElectricFieldZ(fs_cache::CellCache& cache,cint& RKCase) {
    if(Parameters::ohmHallTerm > 0) {
       Ez_NW += cp_NW[CellParams::EZHALL_010_011];
    }
+   
+   // Electron pressure gradient term
+   if(Parameters::ohmGradPeTerm > 0) {
+      Ez_NW += cp_NW[CellParams::EZGRADPE];
+   }
+   
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ez_NW  += +HALF*((Bx_N + HALF*dBxdy_N)*(-derivs_NW[fs::dVydx] + derivs_NW[fs::dVydy]) + dBxdy_N*Vy0 + SIXTH*dBxdz_N*derivs_NW[fs::dVydz]);
@@ -1054,6 +1119,12 @@ void calculateEdgeElectricFieldZ(fs_cache::CellCache& cache,cint& RKCase) {
    if(Parameters::ohmHallTerm > 0) {
       Ez_NE += cp_NE[CellParams::EZHALL_110_111];
    }
+   
+   // Electron pressure gradient term
+   if(Parameters::ohmGradPeTerm > 0) {
+      Ez_NE += cp_NE[CellParams::EZGRADPE];
+   }
+   
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ez_NE  += +HALF*((Bx_N + HALF*dBxdy_N)*(+derivs_NE[fs::dVydx] + derivs_NE[fs::dVydy]) + dBxdy_N*Vy0 + SIXTH*dBxdz_N*derivs_NE[fs::dVydz]);
@@ -1184,11 +1255,17 @@ void calculateUpwindedElectricFieldSimple(
    namespace fs = fieldsolver;
    int timer;
    phiprof::start("Calculate upwinded electric field");
+   uint64_t transferMask = 0;
    if(P::ohmHallTerm > 0) {
-      SpatialCell::set_mpi_transfer_type(Transfer::CELL_HALL_TERM);
-   } else {
-      SpatialCell::set_mpi_transfer_type(Transfer::CELL_DERIVATIVES);
+      transferMask = transferMask | Transfer::CELL_HALL_TERM;
    }
+   if(P::ohmGradPeTerm > 0) {
+      transferMask = transferMask | Transfer::CELL_GRADPE_TERM;
+   }
+   if(P::ohmHallTerm == 0 && P::ohmGradPeTerm == 0) {
+      transferMask = Transfer::CELL_DERIVATIVES;
+   }
+   SpatialCell::set_mpi_transfer_type(transferMask);
    
    timer=phiprof::initializeTimer("Start communication in calculateUpwindedElectricFieldSimple","MPI");
    phiprof::start(timer);

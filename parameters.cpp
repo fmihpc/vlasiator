@@ -98,6 +98,8 @@ int P::maxSlAccelerationSubcycles = 0.0;
 Real P::resistivity = NAN;
 bool P::fieldSolverDiffusiveEterms = true;
 uint P::ohmHallTerm = 0;
+uint P::ohmGradPeTerm = 0;
+Real P::electronTemperature = 0.0;
 
 Real P::sparseMinValue = NAN;
 int  P::sparseDynamicAlgorithm = 0;
@@ -156,7 +158,7 @@ bool Parameters::addParameters(){
    Readparameters::add("propagate_vlasov_acceleration","Propagate distribution functions during the simulation in velocity space. If false, it is propagated with zero length timesteps.",true);
    Readparameters::add("propagate_vlasov_translation","Propagate distribution functions during the simulation in ordinary space. If false, it is propagated with zero length timesteps.",true);
    Readparameters::add("dynamic_timestep","If true,  timestep is set based on  CFL limits (default on)",true);
-   Readparameters::add("hallMinimumRho", "Minimum rho value used for Hall term in Lorentz force and in field solver. Default is very low and has no effect in practice.", 1.0);
+   Readparameters::add("hallMinimumRho", "Minimum rho value used for the Hall and electron pressure gradient terms in the Lorentz force and in the field solver. Default is very low and has no effect in practice.", 1.0);
    Readparameters::add("project", "Specify the name of the project to use. Supported to date (20121112): Alfven Diffusion Dispersion Firehose Flowthrough Fluctuations harm1D KelvinHelmholtz Magnetosphere", "Fluctuations");
 
    Readparameters::add("restart.filename","Restart from this vlsv file. No restart if empty file.",string(""));     
@@ -191,6 +193,8 @@ bool Parameters::addParameters(){
    Readparameters::add("fieldsolver.resistivity", "Resistivity for the eta*J term in Ohm's law.", 0.0);
    Readparameters::add("fieldsolver.diffusiveEterms", "Enable diffusive terms in the computation of E",true);
    Readparameters::add("fieldsolver.ohmHallTerm", "Enable/choose spatial order of the Hall term in Ohm's law. 0: off, 1: 1st spatial order, 2: 2nd spatial order", 0);
+   Readparameters::add("fieldsolver.ohmGradPeTerm", "Enable/choose spatial order of the electron pressure gradient term in Ohm's law. 0: off, 1: 1st spatial order.", 0);
+   Readparameters::add("fieldsolver.electronTemperature", "Constant electron temperature to be used for the electron pressure gradient term (K).", 0.0);
    Readparameters::add("fieldsolver.maxCFL","The maximum CFL limit for field propagation. Used to set timestep if dynamic_timestep is true.",0.5);
    Readparameters::add("fieldsolver.minCFL","The minimum CFL limit for field propagation. Used to set timestep if dynamic_timestep is true.",0.4);
 
@@ -322,6 +326,8 @@ bool Parameters::getParameters(){
    Readparameters::get("fieldsolver.resistivity", P::resistivity);
    Readparameters::get("fieldsolver.diffusiveEterms", P::fieldSolverDiffusiveEterms);
    Readparameters::get("fieldsolver.ohmHallTerm", P::ohmHallTerm);
+   Readparameters::get("fieldsolver.ohmGradPeTerm", P::ohmGradPeTerm);
+   Readparameters::get("fieldsolver.electronTemperature", P::electronTemperature);
    Readparameters::get("fieldsolver.maxCFL",P::fieldSolverMaxCFL);
    Readparameters::get("fieldsolver.minCFL",P::fieldSolverMinCFL);
    // Get Vlasov solver parameters

@@ -192,6 +192,9 @@ namespace CellParams {
       EYHALL_001_011,   /*!< Hall term y averaged along y on -x/+z edge of spatial cell.*/
       EYHALL_101_111,   /*!< Hall term y averaged along y on +x/+z edge of spatial cell.*/
       EXHALL_011_111,   /*!< Hall term x averaged along x on +y/+z edge of spatial cell.*/
+      EXGRADPE,         /*!< Electron pressure gradient term x.*/
+      EYGRADPE,         /*!< Electron pressure gradient term y.*/
+      EZGRADPE,         /*!< Electron pressure gradient term z.*/
       RHO_R,     /*!< RHO after propagation in ordinary space*/
       RHOVX_R,   /*!< RHOVX after propagation in ordinary space*/
       RHOVY_R,   /*!< RHOVX after propagation in ordinary space*/
