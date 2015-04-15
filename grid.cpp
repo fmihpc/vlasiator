@@ -118,17 +118,18 @@ void initializeGrid(
       exit(1);
    }
    phiprof::stop("Classify cells (sys boundary conditions)");
-   
-   if (P::isRestart){
+
+   if (P::isRestart) {
       logFile << "Restart from "<< P::restartFileName << std::endl << writeVerbose;
       phiprof::start("Read restart");
-      if ( readGrid(mpiGrid,P::restartFileName)== false ){
-         logFile << "(MAIN) ERROR: restarting failed"<<endl;
+      if (readGrid(mpiGrid,P::restartFileName) == false) {
+         logFile << "(MAIN) ERROR: restarting failed" << endl;
          exit(1);
       }
       phiprof::stop("Read restart");
-      vector<uint64_t> cells = mpiGrid.get_cells();
-      //set background field, FIXME should be read in from restart
+      const vector<uint64_t>& cells = getLocalCells();
+      
+      // Set background field, FIXME should be read in from restart
       #pragma omp parallel for schedule(dynamic)
       for (uint i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
@@ -142,10 +143,10 @@ void initializeGrid(
       //  -Background field on all cells
       //  -Perturbed fields and ion distribution function in non-sysboundary cells
       // Each initialization has to be independent to avoid threading problems 
-      vector<CellID> cells = mpiGrid.get_cells();
-      
+      const vector<CellID>& cells = getLocalCells();
+
       #pragma omp parallel for schedule(dynamic)
-      for (uint i=0; i<cells.size(); ++i) {         
+      for (size_t i=0; i<cells.size(); ++i) {         
          SpatialCell* cell = mpiGrid[cells[i]];
          project.setCellBackgroundField(cell);
          if (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
@@ -153,7 +154,7 @@ void initializeGrid(
          }
       }
 
-      //initial state for sys-boundary cells
+      // Initial state for sys-boundary cells
       phiprof::stop("Apply initial state");
       phiprof::start("Apply system boundary conditions state");
       if (sysBoundaries.applyInitialState(mpiGrid, project) == false) {
@@ -162,11 +163,11 @@ void initializeGrid(
       }
       phiprof::stop("Apply system boundary conditions state");
 
-      for (uint i=0; i<cells.size(); ++i) {
+      for (size_t i=0; i<cells.size(); ++i) {
          mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = 0;
       }
 
-      for (size_t popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          adjustVelocityBlocks(mpiGrid,cells,true,popID);
          validateMesh(mpiGrid,popID);
          shrink_to_fit_grid_data(mpiGrid); //get rid of excess data already here
@@ -190,7 +191,7 @@ void initializeGrid(
 
    //Balance load before we transfer all data below
    balanceLoad(mpiGrid, sysBoundaries);
-   
+
    phiprof::initializeTimer("Fetch Neighbour data","MPI");
    phiprof::start("Fetch Neighbour data");
    // update complete cell spatial data for full stencil (
@@ -885,9 +886,6 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,c
                if (refinements[c].size() > 0) {
                   cerr << "cell " << cells[c] << " needs " << refinements[c].size() << " refinements" << endl;
                   cerr << "\t current # blocks is " << mpiGrid[cells[c]]->get_number_of_velocity_blocks(popID) << endl;
-                  
-                  
-                  
                }
             }
             
@@ -899,7 +897,6 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,c
             break;
          } while (true);
       }
-      //exit(1);
          
       do {
          // Update remote neighbor velocity meshes. After the transfers complete,

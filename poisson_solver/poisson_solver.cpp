@@ -472,16 +472,20 @@ namespace poisson {
       }
 
       // Set up the initial state unless the simulation was restarted
-      if (Parameters::isRestart == true) return success;
+      //if (Parameters::isRestart == true) return success;
 
-      //#pragma omp parallel for
       for (size_t c=0; c<getLocalCells().size(); ++c) {
          spatial_cell::SpatialCell* cell = mpiGrid[getLocalCells()[c]];
          if (Poisson::solver->calculateChargeDensity(cell) == false) success = false;
       }
 
+      // Force calculateBackgroundField to reset potential arrays to zero values.
+      // This may not otherwise happen if the simulation was restarted.
+      const bool oldValue = Poisson::clearPotential;
+      Poisson::clearPotential = true;
       if (Poisson::solver->calculateBackgroundField(mpiGrid,getLocalCells()) == false) success = false;
       if (solve(mpiGrid) == false) success = false;
+      Poisson::clearPotential = oldValue;
 
       return success;
    }
@@ -510,8 +514,10 @@ namespace poisson {
 
       // Solve Poisson equation
       if (success == true) if (Poisson::solver != NULL) {
-
+         // Force potential arrays to be cleared to zero values. If the simulation 
+         // was restarted, then calculateBackgroundField may not clear the arrays.
          if (Poisson::solver->calculateBackgroundField(mpiGrid,getLocalCells()) == false) success = false;
+
          SpatialCell::set_mpi_transfer_type(Transfer::CELL_PHI,false);
          mpiGrid.update_copies_of_remote_neighbors(POISSON_NEIGHBORHOOD_ID);
 
