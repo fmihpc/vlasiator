@@ -23,8 +23,12 @@ void calculateEdgeHallTermZComponents(Real* cp,Real* derivs,
 void calculateHallTerm(SysBoundary& sysBoundaries,std::vector<fs_cache::CellCache>& cache,
                        const std::vector<uint16_t>& cells,cint& RKCase);
 
-void calculateHallTermSimple(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                             SysBoundary& sysBoundaries,const vector<CellID>& localCells,
-                             cint& RKCase);
+void calculateHallTermSimple(
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   SysBoundary& sysBoundaries,
+   const vector<CellID>& localCells,
+   cint& RKCase,
+   const bool communicateDerivatives
+);
 
 #endif

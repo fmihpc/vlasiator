@@ -97,6 +97,7 @@ namespace spatial_cell {
       const uint64_t CELL_PDT2                = (1<<24);
       const uint64_t CELL_RHOQ_TOT            = (1<<25);
       const uint64_t CELL_PHI                 = (1<<26);
+      const uint64_t CELL_GRADPE_TERM         = (1<<27);
       
       //all data
       const uint64_t ALL_DATA =
@@ -1459,6 +1460,12 @@ namespace spatial_cell {
          if ((SpatialCell::mpi_transfer_type & Transfer::CELL_HALL_TERM)!=0){
             displacements.push_back((uint8_t*) &(this->parameters[CellParams::EXHALL_000_100]) - (uint8_t*) this);
             block_lengths.push_back(sizeof(Real) * 12);
+         }
+         
+         // send electron pressure gradient term components
+         if ((SpatialCell::mpi_transfer_type & Transfer::CELL_GRADPE_TERM)!=0){
+            displacements.push_back((uint8_t*) &(this->parameters[CellParams::EXGRADPE]) - (uint8_t*) this);
+            block_lengths.push_back(sizeof(Real) * 3);
          }
          
          // send P tensor diagonal components
