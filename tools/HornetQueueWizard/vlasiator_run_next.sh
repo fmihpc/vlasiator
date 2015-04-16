@@ -30,7 +30,7 @@ function test_job {
             echo "($(date) $(($NUM_PROCESSES*$OMP_NUM_THREADS)) cores)   $next_job has exited cleanly before."
             # Has it reached the maximum time wished for in the cfg file?
             simulated=$( grep "dt =" logfile.txt | tail -n 1 | cut -d "=" -f 3 | cut -d " " -f 2 )
-            wanted=$( grep "t_max" Magnetosphere.cfg | cut -d "=" -f 2 )
+            wanted=$( grep "^t_max" Magnetosphere.cfg | cut -d "=" -f 2 )
             has_completed=$( echo $simulated $wanted | gawk '{if($1>$2) print 1; else print 0}' )
             if [ $has_completed -eq 1 ]
             then
