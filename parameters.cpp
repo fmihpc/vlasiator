@@ -8,6 +8,7 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #include "readparameters.h"
 #include <limits>
 #include <set>
+#include <unistd.h>
 
 #ifndef NAN
 #define NAN 0
@@ -68,15 +69,16 @@ uint P::diagnosticInterval = numeric_limits<uint>::max();
 bool P::writeInitialState = true;
 
 bool P::meshRepartitioned = true;
-std::vector<CellID> P::localCells;
+vector<CellID> P::localCells;
 
-std::vector<std::string> P::systemWriteName; 
-std::vector<Real> P::systemWriteTimeInterval;
-std::vector<int> P::systemWriteDistributionWriteStride;
-std::vector<int> P::systemWriteDistributionWriteXlineStride;
-std::vector<int> P::systemWriteDistributionWriteYlineStride;
-std::vector<int> P::systemWriteDistributionWriteZlineStride;
-std::vector<int> P::systemWrites;
+vector<string> P::systemWriteName;
+vector<string> P::systemWritePath;
+vector<Real> P::systemWriteTimeInterval;
+vector<int> P::systemWriteDistributionWriteStride;
+vector<int> P::systemWriteDistributionWriteXlineStride;
+vector<int> P::systemWriteDistributionWriteYlineStride;
+vector<int> P::systemWriteDistributionWriteZlineStride;
+vector<int> P::systemWrites;
 
 Real P::saveRestartWalltimeInterval = -1.0;
 uint P::exitAfterRestarts = numeric_limits<uint>::max();
@@ -140,6 +142,7 @@ bool Parameters::addParameters(){
 
    Readparameters::addComposing("io.system_write_t_interval", "Save the simulation every arg simulated seconds. Negative values disable writes.");
    Readparameters::addComposing("io.system_write_file_name", "Save the simulation to this filename series");
+   Readparameters::addComposing("io.system_write_path", "Save this series in this location. Default is ./");
    Readparameters::addComposing("io.system_write_distribution_stride", "Every this many cells write out their velocity space. 0 is none.");
    Readparameters::addComposing("io.system_write_distribution_xline_stride", "Every this many lines of cells along the x direction write out their velocity space. 0 is none.");
    Readparameters::addComposing("io.system_write_distribution_yline_stride", "Every this many lines of cells along the y direction write out their velocity space. 0 is none.");
@@ -245,21 +248,95 @@ bool Parameters::addParameters(){
 
 bool Parameters::getParameters(){
    //get numerical values of the parameters
-
    Readparameters::get("io.diagnostic_write_interval", P::diagnosticInterval);
    Readparameters::get("io.system_write_t_interval", P::systemWriteTimeInterval);
    Readparameters::get("io.system_write_file_name", P::systemWriteName);
+   Readparameters::get("io.system_write_path", P::systemWritePath);
    Readparameters::get("io.system_write_distribution_stride", P::systemWriteDistributionWriteStride);
    Readparameters::get("io.system_write_distribution_xline_stride", P::systemWriteDistributionWriteXlineStride);
    Readparameters::get("io.system_write_distribution_yline_stride", P::systemWriteDistributionWriteYlineStride);
    Readparameters::get("io.system_write_distribution_zline_stride", P::systemWriteDistributionWriteZlineStride);
-   //TODO, check that the systemWrite vectors are of equal length
    Readparameters::get("io.write_initial_state", P::writeInitialState);
    Readparameters::get("io.restart_walltime_interval", P::saveRestartWalltimeInterval);
    Readparameters::get("io.number_of_restarts", P::exitAfterRestarts);
    Readparameters::get("io.write_restart_stripe_factor", P::restartStripeFactor);
    Readparameters::get("io.restart_write_path", P::restartWritePath);
    Readparameters::get("io.write_as_float", P::writeAsFloat);
+   
+   // Checks for validity of io and restart parameters
+   int myRank;
+   MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+   const string prefix = string("./");
+   if (access(&(P::restartWritePath[0]), W_OK) != 0) {
+      if(myRank == MASTER_RANK) {
+         cerr << "ERROR restart write path " << P::restartWritePath << " not writeable, defaulting to local directory." << endl;
+      }
+      P::restartWritePath = prefix;
+   }
+   size_t maxSize = 0;
+   maxSize = max(maxSize, P::systemWriteTimeInterval.size());
+   maxSize = max(maxSize, P::systemWriteName.size());
+   maxSize = max(maxSize, P::systemWritePath.size());
+   maxSize = max(maxSize, P::systemWriteDistributionWriteStride.size());
+   maxSize = max(maxSize, P::systemWriteDistributionWriteXlineStride.size());
+   maxSize = max(maxSize, P::systemWriteDistributionWriteYlineStride.size());
+   maxSize = max(maxSize, P::systemWriteDistributionWriteZlineStride.size());
+   if ( P::systemWriteTimeInterval.size() != maxSize) {
+      if(myRank == MASTER_RANK) {
+         cerr << "ERROR io.system_write_t_interval should be defined for all file types." << endl;
+      }
+      return false;
+   }
+   if ( P::systemWriteName.size() != maxSize) {
+      if(myRank == MASTER_RANK) {
+      cerr << "ERROR io.system_write_file_name should be defined for all file types." << endl;
+      }
+      return false;
+   }
+   if ( P::systemWritePath.size() != maxSize && P::systemWritePath.size() != 0) {
+      if(myRank == MASTER_RANK) {
+         cerr << "ERROR io.system_write_path should be defined for all file types or none at all." << endl;
+      }
+      return false;
+   }
+   if ( P::systemWriteDistributionWriteStride.size() != maxSize) {
+      if(myRank == MASTER_RANK) {
+         cerr << "ERROR io.system_write_distribution_stride should be defined for all file types." << endl;
+      }
+      return false;
+   }
+   if ( P::systemWriteDistributionWriteXlineStride.size() != maxSize) {
+      if(myRank == MASTER_RANK) {
+         cerr << "ERROR io.system_write_distribution_xline_stride should be defined for all file types." << endl;
+      }
+      return false;
+   }
+   if ( P::systemWriteDistributionWriteYlineStride.size() != maxSize) {
+      if(myRank == MASTER_RANK) {
+         cerr << "ERROR io.system_write_distribution_yline_stride should be defined for all file types." << endl;
+      }
+      return false;
+   }
+   if ( P::systemWriteDistributionWriteZlineStride.size() != maxSize) {
+      if(myRank == MASTER_RANK) {
+         cerr << "ERROR io.system_write_distribution_zline_stride should be defined for all file types." << endl;
+      }
+      return false;
+   }
+   if ( P::systemWritePath.size() == 0 ) {
+      for (uint i = 0; i < P::systemWriteName.size(); i++) {
+         P::systemWritePath.push_back(string("./"));
+      }
+   } else {
+      for (uint i = 0; i < P::systemWritePath.size(); i++) {
+         if (access(&(P::systemWritePath.at(i)[0]), W_OK) != 0) {
+            if(myRank == MASTER_RANK) {
+               cerr << "ERROR " << P::systemWriteName.at(i) << " write path " << P::systemWritePath.at(i) << " not writeable, defaulting to local directory." << endl;
+            }
+            P::systemWritePath.at(i) = prefix;
+         }
+      }
+   }
    
    Readparameters::get("propagate_field",P::propagateField);
    Readparameters::get("propagate_potential",P::propagatePotential);
@@ -270,7 +347,7 @@ bool Parameters::getParameters(){
    Readparameters::get("restart.filename",P::restartFileName);
    P::isRestart=(P::restartFileName!=string(""));
 
-   Readparameters::get("project", projectName);
+   Readparameters::get("project", P::projectName);
  
    /*get numerical values, let Readparameters handle the conversions*/
    Readparameters::get("gridbuilder.x_min",P::xmin);

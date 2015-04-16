@@ -66,6 +66,7 @@ struct Parameters {
 
    static uint diagnosticInterval;
    static std::vector<std::string> systemWriteName; /*!< Names for the different classes of grid output*/
+   static std::vector<std::string> systemWritePath; /*!< Save this series in this location. Default is ./ */
    static std::vector<Real> systemWriteTimeInterval;/*!< Interval in simusecond for output for each class*/
    static std::vector<int> systemWriteDistributionWriteStride; /*!< Every this many cells write out their velocity space in each class. */
    static std::vector<int> systemWriteDistributionWriteXlineStride; /*!< Every this many lines of cells along the x direction write out their velocity space in each class. */
