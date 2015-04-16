@@ -81,6 +81,7 @@ std::vector<int> P::systemWrites;
 Real P::saveRestartWalltimeInterval = -1.0;
 uint P::exitAfterRestarts = numeric_limits<uint>::max();
 int P::restartStripeFactor = -1;
+string P::restartWritePath = string("");
 
 uint P::transmit = 0;
 
@@ -148,8 +149,9 @@ bool Parameters::addParameters(){
 
    Readparameters::add("io.restart_walltime_interval","Save the complete simulation in given walltime intervals. Negative values disable writes.",-1.0);
    Readparameters::add("io.number_of_restarts","Exit the simulation after certain number of walltime-based restarts.",numeric_limits<uint>::max());
-   Readparameters::add("io.write_restart_stripe_factor","Stripe factor for restar writing.", -1);
+   Readparameters::add("io.write_restart_stripe_factor","Stripe factor for restart writing.", -1);
    Readparameters::add("io.write_as_float","If true, write in floats instead of doubles", false);
+   Readparameters::add("io.restart_write_path", "Path to the location where restart files should be written. Defaults to the local directory, also if the specified destination is not writeable.", string("./"));
    
    Readparameters::add("propagate_potential","Propagate electrostatic potential during the simulation",false);
    Readparameters::add("propagate_field","Propagate magnetic field during the simulation",true);
@@ -157,9 +159,9 @@ bool Parameters::addParameters(){
    Readparameters::add("propagate_vlasov_translation","Propagate distribution functions during the simulation in ordinary space. If false, it is propagated with zero length timesteps.",true);
    Readparameters::add("dynamic_timestep","If true,  timestep is set based on  CFL limits (default on)",true);
    Readparameters::add("hallMinimumRho", "Minimum rho value used for Hall term in Lorentz force and in field solver. Default is very low and has no effect in practice.", 1.0);
-   Readparameters::add("project", "Specify the name of the project to use. Supported to date (20121112): Alfven Diffusion Dispersion Firehose Flowthrough Fluctuations harm1D KelvinHelmholtz Magnetosphere", "Fluctuations");
+   Readparameters::add("project", "Specify the name of the project to use. Supported to date (20121112): Alfven Diffusion Dispersion Firehose Flowthrough Fluctuations harm1D KelvinHelmholtz Magnetosphere", string("Fluctuations"));
 
-   Readparameters::add("restart.filename","Restart from this vlsv file. No restart if empty file.",string(""));     
+   Readparameters::add("restart.filename","Restart from this vlsv file. No restart if empty file.",string(""));
    
    Readparameters::add("gridbuilder.x_min","Minimum value of the x-coordinate.","");
    Readparameters::add("gridbuilder.x_max","Minimum value of the x-coordinate.","");
@@ -217,8 +219,8 @@ bool Parameters::addParameters(){
    
 
    // Load balancing parameters
-   Readparameters::add("loadBalance.algorithm", "Load balancing algorithm to be used", std::string("RCB"));
-   Readparameters::add("loadBalance.tolerance", "Load imbalance tolerance", std::string("1.05"));
+   Readparameters::add("loadBalance.algorithm", "Load balancing algorithm to be used", string("RCB"));
+   Readparameters::add("loadBalance.tolerance", "Load imbalance tolerance", string("1.05"));
    Readparameters::add("loadBalance.rebalanceInterval", "Load rebalance interval (steps)", 10);
    
 // Output variable parameters
@@ -256,6 +258,7 @@ bool Parameters::getParameters(){
    Readparameters::get("io.restart_walltime_interval", P::saveRestartWalltimeInterval);
    Readparameters::get("io.number_of_restarts", P::exitAfterRestarts);
    Readparameters::get("io.write_restart_stripe_factor", P::restartStripeFactor);
+   Readparameters::get("io.restart_write_path", P::restartWritePath);
    Readparameters::get("io.write_as_float", P::writeAsFloat);
    
    Readparameters::get("propagate_field",P::propagateField);

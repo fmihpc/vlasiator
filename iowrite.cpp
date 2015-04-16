@@ -15,6 +15,7 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #include <sstream>
 #include <ctime>
 #include <array>
+#include <unistd.h>
 #include "iowrite.h"
 #include "grid.h"
 #include "phiprof.hpp"
@@ -897,9 +898,19 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    //deallocate blocks in remote cells to decrease memory load
    deallocateRemoteCellBlocks(mpiGrid);
    phiprof::stop("DeallocateRemoteBlocks");
+   // Test whether the provided destination is writeable
+   std::string prefix = string("./");
+   if (access(&(P::restartWritePath[0]), W_OK) == 0) {
+      prefix = P::restartWritePath;
+   } else {
+      if(myRank == MASTER_RANK) {
+         std::cerr << "ERROR restart write path " << P::restartWritePath << " not writeable, defaulting to local directory." << std::endl;
+      }
+   }
+   
    // Create a name for the output file and open it with VLSVWriter:
    stringstream fname;
-   fname << name <<".";
+   fname << prefix << "/" << name << ".";
    fname.width(7);
    fname.fill('0');
    fname << fileIndex << ".vlsv";
