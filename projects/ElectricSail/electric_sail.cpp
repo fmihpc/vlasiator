@@ -158,11 +158,11 @@ namespace projects {
 
       return success;
    }
-   
-   bool ElectricSail::rescalesDensity() const {
+
+   bool ElectricSail::rescalesDensity(const int& popID) const {
       return true;
    }
-   
+
    /**
     * 
     * NOTE: This is only called in grid.cpp:initializeGrid.

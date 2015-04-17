@@ -58,23 +58,17 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
    // compute total transformation
    Transform<Real,3,Affine> total_transform(Matrix<Real, 4, 4>::Identity()); //CONTINUE
 
-   //if (popID == 0) return total_transform;
-   //return total_transform;
-   
-#warning Electric acceleration works for Poisson only atm
-   Real* E = &(spatial_cell->parameters[CellParams::EXVOL]);
+   if (Parameters::propagatePotential == true) {
+   #warning Electric acceleration works for Poisson only atm
+      Real* E = &(spatial_cell->parameters[CellParams::EXVOL]);
 
-   const Real q_per_m = getObjectWrapper().particleSpecies[popID].charge 
-                      / getObjectWrapper().particleSpecies[popID].mass;
-   const Real CONST = q_per_m * dt;
-   total_transform(0,3) = CONST * E[0];
-   total_transform(1,3) = CONST * E[1];
-   total_transform(2,3) = CONST * E[2];
+      const Real q_per_m = getObjectWrapper().particleSpecies[popID].charge 
+                         / getObjectWrapper().particleSpecies[popID].mass;
+      const Real CONST = q_per_m * dt;
+      total_transform(0,3) = CONST * E[0];
+      total_transform(1,3) = CONST * E[1];
+      total_transform(2,3) = CONST * E[2];
 
-   // Set maximum timestep limit for this cell, based on a maximum allowed rotation angle
-   if (B2 > 0) {
-      spatial_cell->set_max_v_dt(popID,gyro_period*(P::maxSlAccelerationRotation/360.0));
-   } else {
       // Evaluate max dt for acceleration due to electric field.
       // The criteria is that CFL condition due to spatial translations 
       // must not be broken.
@@ -98,7 +92,10 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       spatial_cell->set_max_v_dt(popID,dt_max_acc);
       //spatial_cell->set_max_v_dt(popID,Parameters::dt);
       return total_transform;
-   }
+   } // if (Parameters::propagatePotential == true) 
+
+   // Set maximum timestep limit for this cell, based on a maximum allowed rotation angle
+   spatial_cell->set_max_v_dt(popID,gyro_period*(P::maxSlAccelerationRotation/360.0));
 
    unsigned int bulk_velocity_substeps; // in this many substeps we iterate forward bulk velocity when the complete transformation is computed (0.1 deg per substep).
    bulk_velocity_substeps = fabs(dt) / (gyro_period*(0.1/360.0)); 

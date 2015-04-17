@@ -62,8 +62,8 @@ namespace projects {
 
       std::vector<std::array<Real,3>> getV0(creal x,creal y,creal z) const;
 
-      virtual bool rescalesDensity() const;
-      
+      virtual bool rescalesDensity(const int& popID) const;
+
     }; // class PoissonTest
 
 } // namespace projects
