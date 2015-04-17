@@ -89,7 +89,8 @@ namespace projects {
 
 
   
-   void VelocityBox::calcCellParameters(Real* cellParams,creal& t) {
+   void VelocityBox::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
+      Real* cellParams = cell->get_cell_parameters();
       cellParams[CellParams::EX   ] = 0.0;
       cellParams[CellParams::EY   ] = 0.0;
       cellParams[CellParams::EZ   ] = 0.0;

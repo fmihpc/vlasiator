@@ -96,7 +96,8 @@ namespace projects {
       return avg / (this->nSpaceSamples*this->nSpaceSamples*this->nSpaceSamples) / (this->nVelocitySamples*this->nVelocitySamples*this->nVelocitySamples);
    }
    
-   void Diffusion::calcCellParameters(Real* cellParams,creal& t) {
+   void Diffusion::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
+      Real* cellParams = cell->get_cell_parameters();
       creal x = cellParams[CellParams::XCRD];
       creal dx = cellParams[CellParams::DX];
       

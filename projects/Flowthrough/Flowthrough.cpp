@@ -129,7 +129,8 @@ namespace projects {
    //    exp(- physicalconstants::MASS_PROTON * (vx*vx + vy*vy + vz*vz) / (2.0 * physicalconstants::K_B * this->T));
    }
 
-   void Flowthrough::calcCellParameters(Real* cellParams,creal& t) {
+   void Flowthrough::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
+      Real* cellParams = cell->get_cell_parameters();
       cellParams[CellParams::PERBX] = this->Bx;
       cellParams[CellParams::PERBY] = this->By;
       cellParams[CellParams::PERBZ] = this->Bz;

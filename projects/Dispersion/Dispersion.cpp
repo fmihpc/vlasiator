@@ -155,8 +155,9 @@ namespace projects {
                return result;
             }
    }
-   
-   void Dispersion::calcCellParameters(Real* cellParams,creal& t) {
+
+   void Dispersion::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
+      Real* cellParams = cell->get_cell_parameters();
       creal x = cellParams[CellParams::XCRD];
       creal dx = cellParams[CellParams::DX];
       creal y = cellParams[CellParams::YCRD];
@@ -167,23 +168,23 @@ namespace projects {
       CellID cellID = (int) ((x - Parameters::xmin) / dx) +
          (int) ((y - Parameters::ymin) / dy) * Parameters::xcells_ini +
          (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
-      
-      setRandomSeed(cellID);
-      
+
+      setRandomSeed(cell,cellID);
+
       cellParams[CellParams::EX   ] = 0.0;
       cellParams[CellParams::EY   ] = 0.0;
       cellParams[CellParams::EZ   ] = 0.0;
       
-      this->rndRho=getRandomNumber();
+      this->rndRho=getRandomNumber(cell);
       
-      this->rndVel[0]=getRandomNumber();
-      this->rndVel[1]=getRandomNumber();
-      this->rndVel[2]=getRandomNumber();
-      
+      this->rndVel[0]=getRandomNumber(cell);
+      this->rndVel[1]=getRandomNumber(cell);
+      this->rndVel[2]=getRandomNumber(cell);
+
       Real rndBuffer[3];
-      rndBuffer[0]=getRandomNumber();
-      rndBuffer[1]=getRandomNumber();
-      rndBuffer[2]=getRandomNumber();
+      rndBuffer[0]=getRandomNumber(cell);
+      rndBuffer[1]=getRandomNumber(cell);
+      rndBuffer[2]=getRandomNumber(cell);
 
       cellParams[CellParams::PERBX] = this->magXPertAbsAmp * (0.5 - rndBuffer[0]);
       cellParams[CellParams::PERBY] = this->magYPertAbsAmp * (0.5 - rndBuffer[1]);

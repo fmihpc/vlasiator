@@ -115,7 +115,8 @@ namespace projects {
       return avg / pow(this->nSpaceSamples, 3.0) / pow(this->nVelocitySamples, 3.0);
    }
    
-   void Alfven::calcCellParameters(Real* cellParams,creal& t) {
+   void Alfven::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
+      Real* cellParams = cell->get_cell_parameters();
       creal x = cellParams[CellParams::XCRD];
       creal dx = cellParams[CellParams::DX];
       creal y = cellParams[CellParams::YCRD];

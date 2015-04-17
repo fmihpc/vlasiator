@@ -103,19 +103,21 @@ namespace projects {
       RP::get("MultiPeak.useMultipleSpecies", useMultipleSpecies);   
    }
 
-   Real MultiPeak::getDistribValue(creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
+   Real MultiPeak::getDistribValue(creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const int& popID) const {
       creal mass = getObjectWrapper().particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
 
       Real value = 0.0;
       if (useMultipleSpecies == false) { // one species, multiple peaks
          if (popID != 0) return 0.0;
-         
-         for (uint i=0; i<this->numberOfPopulations; i++) {
-            value += this->rhoRnd[i] 
+
+         for (uint i=0; i<this->numberOfPopulations; ++i) {
+            value += this->rhoRnd[i]
                   * pow(mass / (2.0 * M_PI * kb ), 1.5) 
-                  * 1.0 / sqrt(this->Tx[i]*this->Ty[i]*this->Tz[i]) 
-                  * exp(- mass * (pow(vx - this->Vx[i], 2.0) / (2.0 * kb * this->Tx[i]) + pow(vy - this->Vy[i], 2.0) / (2.0 * kb * this->Ty[i]) + pow(vz - this->Vz[i], 2.0) / (2.0 * kb * this->Tz[i])));
+                  * 1.0 / sqrt(Tx[i]*Ty[i]*Tz[i]) 
+                  * exp(- mass * (pow(vx - Vx[i], 2.0) / (2.0 * kb * Tx[i]) 
+                                + pow(vy - Vy[i], 2.0) / (2.0 * kb * Ty[i]) 
+                                + pow(vz - Vz[i], 2.0) / (2.0 * kb * Tz[i])));
          }
       } else { // multiple species, one peak each
          if (this->numberOfPopulations != getObjectWrapper().particleSpecies.size()) {
@@ -131,9 +133,9 @@ namespace projects {
       return value;
    }
 
-   Real MultiPeak::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const int& popID) {
-      this->popID = popID;
-
+   Real MultiPeak::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, 
+                                         creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,
+                                         const int& popID) const {
       // Iterative sampling of the distribution function. Keep track of the 
       // accumulated volume average over the iterations. When the next 
       // iteration improves the average by less than 1%, return the value.
@@ -141,6 +143,9 @@ namespace projects {
       bool ok = false;
       int N = nVelocitySamples; // Start by using nVelocitySamples
       int N3_sum = 0;           // Sum of sampling points used so far
+                                            
+      #warning TODO: Replace getObjectWrapper().particleSpecies[popID].sparseMinValue with SpatialCell::velocity_block_threshold(?)
+      const Real avgLimit = 0.01*getObjectWrapper().particleSpecies[popID].sparseMinValue;
       do {
          Real avg = 0.0;        // Volume average obtained during this sampling
          creal DVX = dvx / N; 
@@ -154,7 +159,7 @@ namespace projects {
                   creal VX = vx + 0.5*DVX + vi*DVX;
                   creal VY = vy + 0.5*DVY + vj*DVY;
                   creal VZ = vz + 0.5*DVZ + vk*DVZ;
-                  avg += getDistribValue(VX,VY,VZ,DVX,DVY,DVZ);
+                  avg += getDistribValue(VX,VY,VZ,DVX,DVY,DVZ,popID);
                }
             }
          }
@@ -164,7 +169,7 @@ namespace projects {
          Real avgAccum   = avgTotal / (avg + N3_sum);
          Real avgCurrent = avg / (N*N*N);
          if (fabs(avgCurrent-avgAccum)/(avgAccum+eps) < 0.01) ok = true;
-         else if (avg < getObjectWrapper().particleSpecies[popID].sparseMinValue*0.01) ok = true;
+         else if (avg < avgLimit) ok = true;
          else if (N > 10) {
             ok = true;
          }
@@ -177,31 +182,31 @@ namespace projects {
       return avgTotal / N3_sum;
    }
 
-   void MultiPeak::calcCellParameters(Real* cellParams,creal& t) {
-      setRandomCellSeed(cellParams);
+   void MultiPeak::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
+      Real* cellParams = cell->get_cell_parameters();
+      setRandomCellSeed(cell,cellParams);
 
       if (this->lambda != 0.0) {
          cellParams[CellParams::PERBX] = this->dBx*cos(2.0 * M_PI * cellParams[CellParams::XCRD] / this->lambda);
          cellParams[CellParams::PERBY] = this->dBy*sin(2.0 * M_PI * cellParams[CellParams::XCRD] / this->lambda);
          cellParams[CellParams::PERBZ] = this->dBz*cos(2.0 * M_PI * cellParams[CellParams::XCRD] / this->lambda);
       }
-      
-      cellParams[CellParams::PERBX] += this->magXPertAbsAmp * (0.5 - getRandomNumber());
-      cellParams[CellParams::PERBY] += this->magYPertAbsAmp * (0.5 - getRandomNumber());
-      cellParams[CellParams::PERBZ] += this->magZPertAbsAmp * (0.5 - getRandomNumber());
 
+      cellParams[CellParams::PERBX] += this->magXPertAbsAmp * (0.5 - getRandomNumber(cell));
+      cellParams[CellParams::PERBY] += this->magYPertAbsAmp * (0.5 - getRandomNumber(cell));
+      cellParams[CellParams::PERBZ] += this->magZPertAbsAmp * (0.5 - getRandomNumber(cell));
 
       rhoRnd.clear();
-      for(uint i=0; i<this->numberOfPopulations; i++) {
-         this->rhoRnd.push_back(this->rho[i] + this->rhoPertAbsAmp[i] * (0.5 - getRandomNumber()));
+      for (uint i=0; i<numberOfPopulations; ++i) {
+         rhoRnd.push_back(rho[i] + rhoPertAbsAmp[i] * (0.5 - getRandomNumber(cell)));
       }
    }
 
    void MultiPeak::setActivePopulation(const int& popID) {
       this->popID = popID;
    }
-   
-   void MultiPeak::setCellBackgroundField(SpatialCell* cell) {
+
+   void MultiPeak::setCellBackgroundField(SpatialCell* cell) const {
       ConstantField bgField;
       bgField.initialize(this->Bx,
                          this->By,
@@ -214,7 +219,7 @@ namespace projects {
                                                 creal x,
                                                 creal y,
                                                 creal z
-                                               ) {
+                                               ) const {
       vector<std::array<Real, 3>> centerPoints;
       for(uint i=0; i<this->numberOfPopulations; i++) {
          std::array<Real, 3> point {{this->Vx[i], this->Vy[i], this->Vz[i]}};

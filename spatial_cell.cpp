@@ -49,6 +49,7 @@ namespace spatial_cell {
       for (int popID=0; popID<populations.size(); ++popID) {
          const species::Species& spec = getObjectWrapper().particleSpecies[popID];
          populations[popID].vmesh.initialize(spec.velocityMesh);
+         populations[popID].velocityBlockMinValue = spec.sparseMinValue;
       }
    }
 
@@ -397,7 +398,7 @@ namespace spatial_cell {
       if (blockLID == invalid_local_id()) return false;
             
       bool has_content = false;
-      const Real velocity_block_min_value = getObjectWrapper().particleSpecies[popID].sparseMinValue;
+      const Real velocity_block_min_value = getVelocityBlockMinValue(popID);
       const Realf* block_data = populations[popID].blockContainer.getData(blockLID);
       for (unsigned int i=0; i<VELOCITY_BLOCK_LENGTH; ++i) {
          if (block_data[i] >= velocity_block_min_value) {
@@ -634,14 +635,22 @@ namespace spatial_cell {
             displacements.push_back((uint8_t*) get_block_parameters(activePopID) - (uint8_t*) this);
             block_lengths.push_back(sizeof(Real) * size(activePopID) * BlockParams::N_VELOCITY_BLOCK_PARAMS);
          }
+         // Copy particle species metadata
          if ((SpatialCell::mpi_transfer_type & Transfer::POP_METADATA) != 0) {
             for (int popID=0; popID<populations.size(); ++popID) {
                displacements.push_back((uint8_t*) &(populations[popID].max_dt) - (uint8_t*)this);
                block_lengths.push_back(species::SIZE_DT_ELEMENTS*sizeof(Real));
             }
          }
+         // Copy random number generator state variables
+         if ((SpatialCell::mpi_transfer_type & Transfer::RANDOMGEN) != 0) {
+            displacements.push_back((uint8_t*)get_rng_state_buffer() - (uint8_t*)this);
+            block_lengths.push_back(256/8);
+            displacements.push_back((uint8_t*)get_rng_data_buffer() - (uint8_t*)this);
+            block_lengths.push_back(sizeof(random_data));
+         }
       }
-      
+
       void* address = this;
       int count;
       MPI_Datatype datatype;
@@ -663,6 +672,26 @@ namespace spatial_cell {
       return std::make_tuple(address,count,datatype);
    }
    
+   /** Get random number generator data buffer.
+    * @return Random number generator data buffer.*/
+   random_data* SpatialCell::get_rng_data_buffer() {
+      return &rngDataBuffer;
+   }
+
+   /** Get random number generator state buffer.
+    * @return Random number generator state buffer.*/
+   char* SpatialCell::get_rng_state_buffer() {
+      return rngStateBuffer;
+   }
+
+   /**< Minimum value of distribution function in any phase space cell 
+    * of a velocity block for the block to be considered to have content.
+    * @param popID ID of the particle species.
+    * @return Sparse min value for this species.*/
+   Real SpatialCell::getVelocityBlockMinValue(const int& popID) const {
+      return populations[popID].velocityBlockMinValue;
+   }
+
    void SpatialCell::merge_values_recursive(const int& popID,vmesh::GlobalID parentGID,vmesh::GlobalID blockGID,
                                             uint8_t refLevel,bool recursive,const Realf* data,
 					    std::set<vmesh::GlobalID>& blockRemovalList) {
@@ -1282,6 +1311,35 @@ namespace spatial_cell {
       }
       
       return success;
+   }
+   
+   /** Updates minValue based on algorithm value from parameters (see parameters.cpp).
+    * @param popID ID of the particle species.*/
+   void SpatialCell::updateSparseMinValue(const int& popID) {
+      if ( P::sparseDynamicAlgorithm == 1 || P::sparseDynamicAlgorithm == 2 ) {
+         // Linear algorithm for the minValue: y=kx+b
+         const Real k = (P::sparseDynamicMinValue2 - P::sparseDynamicMinValue1) / (P::sparseDynamicBulkValue2 - P::sparseDynamicBulkValue1);
+         const Real b = P::sparseDynamicMinValue1 - k * P::sparseDynamicBulkValue1;
+         Real x;
+         if ( P::sparseDynamicAlgorithm == 1 ) {
+            x = this->parameters[CellParams::RHO];
+         } else {
+            x = this->get_number_of_velocity_blocks(popID);
+         }
+         const Real newMinValue = k*x+b;
+         if( newMinValue < P::sparseDynamicMinValue1 ) { // Compare against the min minValue
+            populations[popID].velocityBlockMinValue = P::sparseDynamicMinValue1;
+         } else if( newMinValue > P::sparseDynamicMinValue2 ) { // Compare against the max minValue
+            populations[popID].velocityBlockMinValue = P::sparseDynamicMinValue2;
+         } else {
+            populations[popID].velocityBlockMinValue = newMinValue;
+         }
+         return;
+      } else {
+         populations[popID].velocityBlockMinValue = getObjectWrapper().particleSpecies[popID].sparseMinValue;
+         return;
+      }
+      return;
    }
 
 } // namespace spatial_cell

@@ -33,9 +33,9 @@ namespace projects {
        * NOTE: This function is called inside parallel region so it must be declared as const.
        * \param cell Pointer to the cell to set.
        */
-      void setCell(spatial_cell::SpatialCell* cell) const;
+      void setCell(spatial_cell::SpatialCell* cell);
          
-      protected:
+    protected:
       /*! \brief Returns a list of blocks to loop through when initialising.
        * 
        * The base class version just returns all blocks, which amounts to looping through the whole velocity space.
@@ -66,10 +66,9 @@ namespace projects {
        * @param cellParams Array containing cell parameters.
        * @param t The current value of time. This is passed as a convenience. If you need more detailed information 
        * of the state of the simulation, you can read it from Parameters.
-       * NOTE: This function is called inside parallel region so it must be declared as const.
        */
-      virtual void calcCellParameters(Real* cellParams,creal& t) const;
-      
+      virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
+
       /** Integrate the distribution function over the given six-dimensional phase-space cell.
        * NOTE: This function is called inside parallel region so it must be declared as const.
        * @param x Starting value of the x-coordinate of the cell.
@@ -98,10 +97,11 @@ namespace projects {
       /*!
        Get random number between 0 and 1.0. One should always first initialize the rng.
        */
-      Real getRandomNumber();
+      Real getRandomNumber(spatial_cell::SpatialCell* cell) const;
          
       void printPopulations();
       
+      virtual bool rescalesDensity(const int& popID) const;
       void rescaleDensity(spatial_cell::SpatialCell* cell,const int& popID) const;
       
       /*!  Set random seed (thread-safe). Seed is based on the seed read
@@ -109,7 +109,7 @@ namespace projects {
        * 
        \param seedModified d. Seed is based on the seed read in from cfg + the seedModifier parameter                                   
        */
-      void setRandomSeed(uint64_t seedModifier);
+      void setRandomSeed(spatial_cell::SpatialCell* cell,uint64_t seedModifier) const;
       /*!
        Set random seed (thread-safe) that is always the same for
        this particular cellID. Can be used to make reproducible
@@ -117,13 +117,13 @@ namespace projects {
        * 
        \param  cellParams The cell parameters list in each spatial cell
        */
-      void setRandomCellSeed(const Real* const cellParams);
+      void setRandomCellSeed(spatial_cell::SpatialCell* cell,const Real* const cellParams) const;
       
     private:
       uint seed;
-      static char rngStateBuffer[256];
-      static random_data rngDataBuffer;
-      #pragma omp threadprivate(rngStateBuffer,rngDataBuffer)
+      //static char rngStateBuffer[256];
+      //static random_data rngDataBuffer;
+      //#pragma omp threadprivate(rngStateBuffer,rngDataBuffer)
 
       bool baseClassInitialized;                      /**< If true, base class has been initialized.*/
       std::vector<std::string> popNames;              /**< Name(s) of particle population(s), read from configuration file.*/

@@ -91,11 +91,17 @@ struct Parameters {
    static Real maxSlAccelerationRotation; /*!< Maximum rotation in acceleration for semilagrangian solver*/
    static int maxSlAccelerationSubcycles; /*!< Maximum number of subcycles in acceleration*/
    static Real hallMinimumRho;  /*!< Minimum rho value used in Hall term in Lorentz force and field solver.*/
-   static Real sparseMinValue; /*!< Minimum value of distribution function in any cell of a velocity 
+   static Real sparseMinValue; /*!< (DEPRECATED) Minimum value of distribution function in any cell of a velocity 
                                 * block for the block to be considered to have content.
                                 * This value is only used for default particle species.*/
    static int sparseBlockAddWidthV; /*!< Number of layers of blocks that are kept in velocity space around the blocks with content */
    static bool sparse_conserve_mass; /*!< If true, density is scaled to conserve mass when removing blocks*/
+   static int  sparseDynamicAlgorithm; /*!< Type of algorithm used for calculating the dynamic minValue; 0 = none, 1 = linear algorithm based on minValue and rho, 2 = linear algorithm based on minValue and Blocks, (Example linear algorithm: minValue = rho / sparse.dynamicValue * sparse.minValue)*/
+   static Real sparseDynamicBulkValue1; /*!< Minimum value for the dynamic algorithm range, so for example if dynamicAlgorithm=1 then for sparse.dynamicMinValue = 1e3, sparse.dynamicMaxValue=1e5, we apply the algorithm to cells for which 1e3<cell.rho<1e5*/
+   static Real sparseDynamicBulkValue2; /*!< Maximum value for the dynamic algorithm range, so for example if dynamicAlgorithm=1 then for sparse.dynamicMinValue = 1e3, sparse.dynamicMaxValue=1e5, we apply the algorithm to cells for which 1e3<cell.rho<1e5*/
+   static Real sparseDynamicMinValue1; /*!< The minimum value for the minValue*/
+   static Real sparseDynamicMinValue2; /*!< The maximum value for the minValue*/
+   
    static std::string loadBalanceAlgorithm; /*!< Algorithm to be used for load balance.*/
    static std::string loadBalanceTolerance; /*!< Load imbalance tolerance. */ 
    static uint rebalanceInterval; /*!< Load rebalance interval (steps). */

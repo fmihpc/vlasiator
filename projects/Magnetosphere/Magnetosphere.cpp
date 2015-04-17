@@ -171,7 +171,7 @@ namespace projects {
 
    Real Magnetosphere::calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,
                                              creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,
-                                             creal& dvz,const int& popID) {
+                                             creal& dvz,const int& popID) const {
       if((this->nSpaceSamples > 1) && (this->nVelocitySamples > 1)) {
          creal d_x = dx / (this->nSpaceSamples-1);
          creal d_y = dy / (this->nSpaceSamples-1);
@@ -201,7 +201,7 @@ namespace projects {
    }
 
    /* set 0-centered dipole */
-   void Magnetosphere::setCellBackgroundField(SpatialCell *cell){
+   void Magnetosphere::setCellBackgroundField(SpatialCell *cell) const {
       if(cell->sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN && this->noDipoleInSW) {
          setBackgroundFieldToZero(cell->parameters, cell->derivatives,cell->derivativesBVOL);
       }
@@ -306,7 +306,7 @@ namespace projects {
    }
       
       
-   Real Magnetosphere::getDistribValue(creal& x,creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
+   Real Magnetosphere::getDistribValue(creal& x,creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) const {
       Real initRho = this->tailRho;
       std::array<Real, 3> initV0 = this->getV0(x, y, z)[0];
       
@@ -352,7 +352,7 @@ namespace projects {
       creal x,
       creal y,
       creal z
-   ) {
+   ) const {
       vector<std::array<Real, 3>> centerPoints;
       std::array<Real, 3> V0 {{this->V0[0], this->V0[1], this->V0[2]}};
       std::array<Real, 3> ionosphereV0 = {{this->ionosphereV0[0], this->ionosphereV0[1], this->ionosphereV0[2]}};

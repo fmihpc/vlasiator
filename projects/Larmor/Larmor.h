@@ -40,7 +40,7 @@ namespace projects {
                            creal& x,creal& y, creal& z,
                            creal& vx, creal& vy, creal& vz
                           );
-      virtual void calcCellParameters(Real* cellParams,creal& t);
+      virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
       virtual Real calcPhaseSpaceDensity(
                                          creal& x, creal& y, creal& z,
                                          creal& dx, creal& dy, creal& dz,

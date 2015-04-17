@@ -560,6 +560,7 @@ void map_1d(SpatialCell* spatial_cell,PropagParams& params,
             } // while (k_cell_src <= k_cell_src_max)
          } // while (k_cell_src <= k_cell_src_max_global)
       } // for (int k=0; k<WID; ++k) 
+      #warning TODO: add SpatialCell::velocity_block_threshold() in place of sparseMinValue (if applicable)
 
       #warning DEPRECATED use per-species sparseMinValue
       if (accum < Parameters::sparseMinValue) {
@@ -572,3 +573,4 @@ void map_1d(SpatialCell* spatial_cell,PropagParams& params,
 }
 
 #endif   
+

@@ -49,7 +49,7 @@ namespace projects {
 
       void tetherElectricField(Real* x,Real* E) const;
 
-      virtual void calcCellParameters(Real* cellParams,creal& t);
+      virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
 
       virtual Real calcPhaseSpaceDensity(
             creal& x, creal& y, creal& z,
@@ -62,6 +62,8 @@ namespace projects {
 
       std::vector<std::array<Real,3>> getV0(creal x,creal y,creal z) const;
 
+      virtual bool rescalesDensity() const;
+      
     }; // class PoissonTest
 
 } // namespace projects

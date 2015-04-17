@@ -136,11 +136,12 @@ inline void loadColumnBlockData(//SpatialCell* spatial_cell,
    spatial cells), and would not need synchronization.
    
 */
-
 bool map_1d(vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
             vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer,
             Realv intersection, Realv intersection_di, Realv intersection_dj,Realv intersection_dk,
             uint dimension) {
+   no_subnormals();
+
    Realv dv,v_min;
    Realv is_temp;
    uint max_v_length;
@@ -282,7 +283,7 @@ bool map_1d(vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
                 block_indices_begin[1]=temp;
                 break;
              case 2:
-                break;
+            break;
          }
 
          /*  i,j,k are now relative to the order in which we copied data to the values array. 
@@ -354,7 +355,7 @@ bool map_1d(vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
                Vec a[5];
                compute_pqm_coeff(values + valuesColumnOffset + i_pcolumnv(j, 0, -1, n_cblocks), h8, k + WID, a);
                #endif
-            
+               
                // set the initial value for the integrand at the boundary at v = 0 
                // (in reduced cell units), this will be shifted to target_density_1, see below.
                Vec target_density_r(0.0);
@@ -421,7 +422,7 @@ bool map_1d(vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
                            // block if it does not exist.
                            vmesh::LocalID tblockLID = vmesh.getLocalID(tblock);
                            if (tblockLID == vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) {
-                               tblockLID = addVelocityBlock(tblock,vmesh,blockContainer);
+                              tblockLID = addVelocityBlock(tblock,vmesh,blockContainer);
                            }
 
                            // Get pointer to target block data. If target block does 

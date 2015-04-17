@@ -72,7 +72,8 @@ namespace projects {
          exp(- mass * (pow(vx + 0.5 * dvx, 2.0) + pow(vy + 0.5 * dvy, 2.0) + pow(vz + 0.5 * dvz, 2.0)) / (2.0 * kb * this->TEMPERATURE)));
    }
    
-   void Harris::calcCellParameters(Real* cellParams,creal& t) {
+   void Harris::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
+      Real* cellParams = cell->get_cell_parameters();
       creal x = cellParams[CellParams::XCRD];
       creal dx = cellParams[CellParams::DX];
       creal y = cellParams[CellParams::YCRD];

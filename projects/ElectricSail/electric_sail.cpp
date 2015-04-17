@@ -159,6 +159,10 @@ namespace projects {
       return success;
    }
    
+   bool ElectricSail::rescalesDensity() const {
+      return true;
+   }
+   
    /**
     * 
     * NOTE: This is only called in grid.cpp:initializeGrid.
@@ -229,7 +233,8 @@ namespace projects {
       cell->parameters[CellParams::BGEZVOL] = E_vol[2] / N3_sum;
    }
 
-   void ElectricSail::calcCellParameters(Real* cellParams,creal& t) {
+   void ElectricSail::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
+      Real* cellParams = cell->get_cell_parameters();
       Real dx = cellParams[CellParams::DX];
       Real dy = cellParams[CellParams::DY];
       Real dz = cellParams[CellParams::DZ];

@@ -6,10 +6,10 @@ include MAKE/Makefile.${ARCH}
 FP_PRECISION = DP
 
 #Set floating point precision for distribution function to SPF (single) or DPF (double)
-DISTRIBUTION_FP_PRECISION = DPF
+DISTRIBUTION_FP_PRECISION = SPF
 
 #Set vector backend type for vlasov solvers, sets precision and length. Options: VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER, VEC4D_FALLBACK, VEC4F_FALLBACK
-VECTORCLASS = VEC4D_AGNER
+VECTORCLASS = VEC8F_AGNER
 
 #set a default archive utility, can also be set in Makefile.arch
 AR ?= ar
@@ -26,7 +26,7 @@ MATHFLAGS =
 FP_PRECISION = DP
 DISTRIBUTION_FP_PRECISION = DPF
 VECTORCLASS = VEC4D_AGNER
-CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++0x -fabi-version=0 -mavx
+CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++0x -fabi-version=0 
 endif
 
 #also use papi to report memory consumption?

@@ -1,4 +1,3 @@
-
 /*!
 Spatial cell class for Vlasiator that supports a variable number of velocity blocks.
 
@@ -37,6 +36,9 @@ Copyright 2011-2015 Finnish Meteorological Institute
 #include "amr_refinement_criteria.h"
 #include "velocity_blocks.h"
 #include "velocity_block_container.h"
+
+#include "logger.h"
+extern Logger logFile;
 
 #ifndef NDEBUG
    #define DEBUG_SPATIAL_CELL
@@ -95,21 +97,22 @@ namespace spatial_cell {
       const uint64_t CELL_RHOQ_TOT            = (1<<25);
       const uint64_t CELL_PHI                 = (1<<26);
       const uint64_t POP_METADATA             = (1<<27);
-      
+      const uint64_t RANDOMGEN                = (1<<28);
+
       // All data
       const uint64_t ALL_DATA =
       CELL_PARAMETERS
       | CELL_DERIVATIVES | CELL_BVOL_DERIVATIVES
       | VEL_BLOCK_DATA
       | CELL_SYSBOUNDARYFLAG
-      | POP_METADATA;
+      | POP_METADATA | RANDOMGEN;
 
       //all data, except the distribution function
       const uint64_t ALL_SPATIAL_DATA =
       CELL_PARAMETERS
       | CELL_DERIVATIVES | CELL_BVOL_DERIVATIVES
       | CELL_SYSBOUNDARYFLAG
-      | POP_METADATA;
+      | POP_METADATA | RANDOMGEN;
    }
 
    typedef boost::array<unsigned int, 3> velocity_cell_indices_t;             /**< Defines the indices of a velocity cell in a velocity block.
@@ -127,6 +130,7 @@ namespace spatial_cell {
       Real max_dt[2];                                                /**< Element[0] is max_r_dt, element[1] max_v_dt.*/
       vmesh::LocalID N_blocks;                                       /**< Number of velocity blocks, used when receiving velocity 
                                                                       * mesh from remote neighbors using MPI.*/
+      Real velocityBlockMinValue;
       vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID> vmesh;     /**< Velocity mesh. Contains all velocity blocks that exist 
                                                                       * in this spatial cell. Cells are identified by their unique 
                                                                       * global IDs.*/
@@ -260,7 +264,13 @@ namespace spatial_cell {
       static uint64_t get_mpi_transfer_type(void);
       static void set_mpi_transfer_type(const uint64_t type,bool atSysBoundaries=false);
       void set_mpi_transfer_enabled(bool transferEnabled);
-      
+      void updateSparseMinValue(const int& popID);
+      Real getVelocityBlockMinValue(const int& popID) const;
+
+      // Random number generator functions
+      char* get_rng_state_buffer();
+      random_data* get_rng_data_buffer();
+
       // Member variables //
       Real derivatives[fieldsolver::N_SPATIAL_CELL_DERIVATIVES];              /**< Derivatives of bulk variables in this spatial cell.*/
       Real derivativesBVOL[bvolderivatives::N_BVOL_DERIVATIVES];              /**< Derivatives of BVOL needed by the acceleration. 
@@ -298,15 +308,14 @@ namespace spatial_cell {
       bool initialized;
       bool mpiTransferEnabled;
 
+      // Random number generator state variables, used for running reproducible 
+      // simulations that do not depend on the number of threads of MPI processes used.
+      char rngStateBuffer[256];                                                 /**< Random number generator state buffer.*/
+      random_data rngDataBuffer;                                                /**< Random number generator data buffer.*/
+
       // Temporary mesh used in acceleration and propagation. 
       vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID> vmeshTemp;
       vmesh::VelocityBlockContainer<vmesh::LocalID> blockContainerTemp;
-      
-      // Current velocity mesh and block container, initialized to point 
-      // to the temporary mesh and temporary block container.
-      //vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID> vmesh;
-      //vmesh::VelocityBlockContainer<vmesh::LocalID> blockContainer;
-
       std::vector<spatial_cell::Population> populations;                        /**< Particle population variables.*/
    };
 
@@ -1475,7 +1484,7 @@ namespace spatial_cell {
       const Real value = get_data(blockLID,popID)[cell];
       return value;
    }
-
+   
    inline bool SpatialCell::checkMesh(const int& popID) {
       #ifdef DEBUG_SPATIAL_CELL
       if (popID >= populations.size()) {

@@ -34,7 +34,7 @@ namespace projects {
                                                 creal x,
                                                 creal y,
                                                 creal z
-                                               );
+                                               ) const;
       
       Real param;
    }; // class Template

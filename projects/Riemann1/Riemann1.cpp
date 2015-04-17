@@ -109,7 +109,8 @@ namespace projects {
          }
 
 
-   void Riemann1::calcCellParameters(Real* cellParams,creal& t) {
+   void Riemann1::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
+      Real* cellParams = cell->get_cell_parameters();
       creal x = cellParams[CellParams::XCRD];
       creal dx = cellParams[CellParams::DX];
       

@@ -38,8 +38,8 @@ using namespace std;
 
 extern Logger logFile;
 
-char projects::Project::rngStateBuffer[256];
-random_data projects::Project::rngDataBuffer;
+//char projects::Project::rngStateBuffer[256];
+//random_data projects::Project::rngDataBuffer;
 
 struct VelocityMeshParams {
    vector<string> name;
@@ -345,19 +345,27 @@ namespace projects {
       ConstantField bgField;
       bgField.initialize(0,0,0); //bg bx, by,bz
       setBackgroundField(bgField,cell->parameters, cell->derivatives,cell->derivativesBVOL);
+      
+      static int printed = false;
+      if (printed == false) {
+         int rank;
+         MPI_Comm_rank(MPI_COMM_WORLD,&rank);
+         if (rank == 0) {
+            cerr << "(Project.cpp) WARNING: Base class 'setCellBackgroundField' called, make sure this is intentional" << endl;
+            printed = true;
+         }
+      }
    }
-   
-   void Project::setCell(SpatialCell* cell) const {
+
+   void Project::setCell(SpatialCell* cell) {
       // Set up cell parameters:
-      this->calcCellParameters(&((*cell).parameters[0]), 0.0);
+      calcCellParameters(cell,0.0);
 
       cell->parameters[CellParams::RHOLOSSADJUST] = 0.0;
       cell->parameters[CellParams::RHOLOSSVELBOUNDARY] = 0.0;
 
       for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
          this->setVelocitySpace(p,cell);
-         //cell->adjustSingleCellVelocityBlocks();
-         //cell->printMeshSizes();
       }
 
       //let's get rid of blocks not fulfilling the criteria here to save memory.
@@ -473,7 +481,7 @@ namespace projects {
       // Get AMR refinement criterion and use it to test which blocks should be refined
       amr_ref_criteria::Base* refCriterion = getObjectWrapper().amrVelRefCriteria.create(Parameters::amrVelRefCriterion);
       if (refCriterion == NULL) {
-         rescaleDensity(cell,popID);
+         if (rescalesDensity(popID) == true) rescaleDensity(cell,popID);
          return;
       }
       refCriterion->initialize("");
@@ -549,9 +557,20 @@ namespace projects {
       }
       delete refCriterion;
 
-      rescaleDensity(cell,popID);
+      if (rescalesDensity(popID) == true) rescaleDensity(cell,popID);
    }
 
+   /** Check if the project wants to rescale densities.
+    * @param popID ID of the particle species.
+    * @return If true, rescaleDensity is called for this species.*/
+   bool Project::rescalesDensity(const int& popID) const {
+      return false;
+   }
+
+   /** Rescale the distribution function of the given particle species so that 
+    * the number density corresponds to the value returned by getCorrectNumberDensity.
+    * @param cell Spatial cell.
+    * @param popID ID of the particle species.*/
    void Project::rescaleDensity(spatial_cell::SpatialCell* cell,const int& popID) const {
       // Re-scale densities
       Real sum = 0.0;
@@ -574,8 +593,18 @@ namespace projects {
    }
    
    /*default one does not compute any parameters*/
-   void Project::calcCellParameters(Real* cellParams,creal& t) const { }
-   
+   void Project::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
+      static int printed = false;
+      if (printed == false) {
+         int rank;
+         MPI_Comm_rank(MPI_COMM_WORLD,&rank);
+         if (rank == 0) {
+            cerr << "(Project.cpp) WARNING: Base class 'calcCellParameters' called, make sure this is intentional" << endl;
+            printed = true;
+         }
+      }
+   }
+
    Real Project::calcPhaseSpaceDensity(
       creal& x, creal& y, creal& z,
       creal& dx, creal& dy, creal& dz,
@@ -595,14 +624,19 @@ namespace projects {
       exit(1);
       return 0.0;
    }
-   
-   Real Project::getRandomNumber() {
+
+   /** Get random number between 0 and 1.0. One should always first initialize the rng.
+    * @param cell Spatial cell.
+    * @return Uniformly distributed random number between 0 and 1.*/
+   Real Project::getRandomNumber(spatial_cell::SpatialCell* cell) const {
 #ifdef _AIX
       int64_t rndInt;
-      random_r(&rndInt, &rngDataBuffer);
+      random_r(&rndInt, cell->get_rng_data_buffer());
+      //random_r(&rndInt, &rngDataBuffer);
 #else
       int32_t rndInt;
-      random_r(&rngDataBuffer, &rndInt);
+      //random_r(&rngDataBuffer, &rndInt);
+      random_r(cell->get_rng_data_buffer(), &rndInt);
 #endif
       Real rnd = (Real) rndInt / RAND_MAX;
       return rnd;
@@ -613,13 +647,15 @@ namespace projects {
 
      \param seedModifier d. Seed is based on the seed read in from cfg + the seedModifier parameter
    */
-   
-   void Project::setRandomSeed(CellID seedModifier) {
-      memset(&(this->rngDataBuffer), 0, sizeof(this->rngDataBuffer));
+
+   void Project::setRandomSeed(spatial_cell::SpatialCell* cell,CellID seedModifier) const {
+      memset(cell->get_rng_data_buffer(),0,sizeof(random_data));
 #ifdef _AIX
-      initstate_r(this->seed+seedModifier, &(this->rngStateBuffer[0]), 256, NULL, &(this->rngDataBuffer));
+      initstate_r(seed+seedModifier,cell->get_rng_state_buffer(),256,NULL,cell->get_rng_data_buffer());
+      //initstate_r(this->seed+seedModifier, &(this->rngStateBuffer[0]), 256, NULL, &(this->rngDataBuffer));
 #else
-      initstate_r(this->seed+seedModifier, &(this->rngStateBuffer[0]), 256, &(this->rngDataBuffer));
+      initstate_r(seed+seedModifier,cell->get_rng_state_buffer(),256,cell->get_rng_data_buffer());
+      //initstate_r(this->seed+seedModifier, &(this->rngStateBuffer[0]), 256, &(this->rngDataBuffer));
 #endif
    }
 
@@ -630,7 +666,7 @@ namespace projects {
 
      \param  cellParams The cell parameters list in each spatial cell
    */
-   void Project::setRandomCellSeed(const Real* const cellParams) {
+   void Project::setRandomCellSeed(spatial_cell::SpatialCell* cell,const Real* const cellParams) const {
       const creal x = cellParams[CellParams::XCRD];
       const creal y = cellParams[CellParams::YCRD];
       const creal z = cellParams[CellParams::ZCRD];
@@ -641,7 +677,7 @@ namespace projects {
       const CellID cellID = (int) ((x - Parameters::xmin) / dx) +
          (int) ((y - Parameters::ymin) / dy) * Parameters::xcells_ini +
          (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
-      setRandomSeed(cellID);
+      setRandomSeed(cell,cellID);
    }
 
 

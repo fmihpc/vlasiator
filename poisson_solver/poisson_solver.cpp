@@ -514,8 +514,6 @@ namespace poisson {
 
       // Solve Poisson equation
       if (success == true) if (Poisson::solver != NULL) {
-         // Force potential arrays to be cleared to zero values. If the simulation 
-         // was restarted, then calculateBackgroundField may not clear the arrays.
          if (Poisson::solver->calculateBackgroundField(mpiGrid,getLocalCells()) == false) success = false;
 
          SpatialCell::set_mpi_transfer_type(Transfer::CELL_PHI,false);

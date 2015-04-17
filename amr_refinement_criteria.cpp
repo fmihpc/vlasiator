@@ -17,22 +17,17 @@ namespace amr_ref_criteria {
    
    Base::Base() { }   
    
-   
    Base::~Base() { }
    
-   
    Base* relDiffMaker() {return new RelativeDifference;}
-
    
    void Base::evaluate(const Realf* velBlost,Realf* result,const int& popID) {
       for (int i=0; i<WID3; ++i) result[i] = 0.0;
    }
 
    RelativeDifference::RelativeDifference() { }
-
    
    RelativeDifference::~RelativeDifference() { }
-
 
    Realf RelativeDifference::evaluate(const Realf* array,const int& popID) {
       // How many neighbor data points (per coordinate) the given block includes?

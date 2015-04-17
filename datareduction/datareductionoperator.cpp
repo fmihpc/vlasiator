@@ -450,7 +450,7 @@ namespace DRO {
    VariablePressureSolver::VariablePressureSolver(): DataReductionOperator() { }
    VariablePressureSolver::~VariablePressureSolver() { }
    
-   std::string VariablePressureSolver::getName() const {return "Pressure_from_solver";}
+   std::string VariablePressureSolver::getName() const {return "Pressure";}
    
    bool VariablePressureSolver::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
@@ -1637,5 +1637,60 @@ namespace DRO {
       return true;
    }
 
+   // Adding pressure calculations for backstream population to Vlasiator.
+   // p_ij = m/3 * integral((v - <V>)_i(v - <V>)_j * f(r,v) dV)
+   
+   // Pressure tensor 6 Xcomponents (11, 22, 33, 23, 13, 12) added by YK
+   // Split into VariablePTensorBackstreamDiagonal (11, 22, 33)
+   // and VariablePTensorOffDiagonal (23, 13, 12)
+
+   VariableMinValue::VariableMinValue(): DataReductionOperator() { }
+   VariableMinValue::~VariableMinValue() { }
+
+   bool VariableMinValue::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize =  sizeof(Real);
+      vectorSize = 1;
+      return true;
+   }
+
+   std::string VariableMinValue::getName() const {return "MinValue";}
+   
+   bool VariableMinValue::handlesWriting() {return true;}
+
+   bool VariableMinValue::reduceData(const spatial_cell::SpatialCell* cell,char* buffer) {
+      return false;
+   }
+
+   bool VariableMinValue::reduceData(const spatial_cell::SpatialCell* cell,Real* result) {
+      return false;
+   }
+
+   bool VariableMinValue::setSpatialCell(const spatial_cell::SpatialCell* cell) {
+      return true;
+   }
+
+   bool VariableMinValue::writeData(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                    const std::vector<CellID>& cells,
+                                    const std::string& meshName,
+                                    vlsv::Writer& vlsvWriter) {
+      bool success = true;
+      Real* buffer = new Real[cells.size()];
+      
+      for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         #pragma omp parallel for
+         for (size_t c=0; c<cells.size(); ++c) {
+            buffer[c] = mpiGrid[cells[c]]->getVelocityBlockMinValue(popID);
+         }
+         
+         map<string,string> attribs;
+         attribs["mesh"] = meshName;
+         attribs["name"] = getObjectWrapper().particleSpecies[popID].name + "/" + "MinValue";
+         if (vlsvWriter.writeArray("VARIABLE",attribs,cells.size(),1,buffer) == false) success = false;
+      }
+
+      delete [] buffer; buffer = NULL;
+      return success;
+   }
 
 } // namespace DRO

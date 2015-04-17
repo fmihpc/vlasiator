@@ -173,7 +173,8 @@ namespace projects {
     * @param t The current value of time. This is passed as a convenience. If you need more detailed information 
     * of the state of the simulation, you can read it from Parameters.
     */
-   void Shocktest::calcCellParameters(Real* cellParams,creal& t) {
+   void Shocktest::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
+      Real* cellParams = cell->get_cell_parameters();
       creal x = cellParams[CellParams::XCRD];
       creal dx = cellParams[CellParams::DX];
       

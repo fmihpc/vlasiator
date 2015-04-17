@@ -52,7 +52,8 @@ namespace projects {
 
    }
    
-   void PoissonTest::calcCellParameters(Real* cellParams,creal& t) {
+   void PoissonTest::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
+      Real* cellParams = cell->get_cell_parameters();
       Real dx = cellParams[CellParams::DX];
       Real dy = cellParams[CellParams::DY];
       Real dz = cellParams[CellParams::DZ];

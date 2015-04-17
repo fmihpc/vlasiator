@@ -1,19 +1,8 @@
 /*
 This file is part of Vlasiator.
 
-Copyright 2011, 2012 Finnish Meteorological Institute
-
-
-
-
-
-
-
-
-
-
-
-
+Copyright 2011, 2012, 2015 Finnish Meteorological Institute
+ * 
 */
 
 #include <cstdlib>
@@ -141,7 +130,8 @@ namespace projects {
    }
    
 
-   void KHB::calcCellParameters(Real* cellParams,creal& t) {
+   void KHB::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
+      Real* cellParams = cell->get_cell_parameters();
       cellParams[CellParams::EX   ] = 0.0;
       cellParams[CellParams::EY   ] = 0.0;
       cellParams[CellParams::EZ   ] = 0.0;

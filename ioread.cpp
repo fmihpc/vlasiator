@@ -728,8 +728,9 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
    mpiGrid.balance_load(false);
 
-   //get new list of local cell IDs
+   //update list of local gridcells
    recalculateLocalCellsCache();
+   //get new list of local gridcells
    const vector<CellID>& gridCells = getLocalCells();
 
    // Unpin cells, otherwise we will never change this initial bad balance

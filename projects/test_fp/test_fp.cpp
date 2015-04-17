@@ -73,9 +73,8 @@ namespace projects {
       RP::get("test_fp.shear", this->shear);
    }
 
-   Real test_fp::sign(creal value)
-   {
-      if(abs(value) < 1e-5) return 0.0;
+   Real test_fp::sign(creal value) const {
+      if (abs(value) < 1e-5) return 0.0;
       else return value / abs(value);
    }
 
@@ -96,7 +95,8 @@ namespace projects {
       return result;
    }
 
-   void test_fp::calcCellParameters(Real* cellParams,creal& t) {
+   void test_fp::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
+      Real* cellParams = cell->get_cell_parameters();
       cellParams[CellParams::EX   ] = 0.0;
       cellParams[CellParams::EY   ] = 0.0;
       cellParams[CellParams::EZ   ] = 0.0;
@@ -146,7 +146,7 @@ namespace projects {
       creal dx,
       creal dy,
       creal dz
-   ) {
+   ) const {
       vector<std::array<Real, 3>> centerPoints;
       
       Real VX,VY,VZ;
@@ -218,7 +218,7 @@ namespace projects {
       creal x,
       creal y,
       creal z
-   ) {
+   ) const {
       vector<std::array<Real, 3>> centerPoints;
       
       creal dx = 0.0;

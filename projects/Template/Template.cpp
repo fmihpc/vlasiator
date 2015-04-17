@@ -69,7 +69,7 @@ namespace projects {
       creal x,
       creal y,
       creal z
-   ) {
+   ) const {
       vector<std::array<Real, 3>> centerPoints;
       std::array<Real, 3> point {{0.0, 0.0, 0.0}};
       if(x < 0.0) point[1] = 1.0;

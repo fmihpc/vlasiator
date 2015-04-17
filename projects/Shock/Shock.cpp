@@ -123,7 +123,8 @@ namespace projects {
       }
    }
 
-   void Shock::calcCellParameters(Real* cellParams,creal& t) {
+   void Shock::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
+      Real* cellParams = cell->get_cell_parameters();
       creal x = cellParams[CellParams::XCRD];
       creal dx = cellParams[CellParams::DX];
       creal y = cellParams[CellParams::YCRD];

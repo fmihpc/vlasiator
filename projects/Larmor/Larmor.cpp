@@ -117,7 +117,8 @@ namespace projects {
    }
 
 
-    void Larmor::calcCellParameters(Real* cellParams,creal& t) {
+   void Larmor::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
+      Real* cellParams = cell->get_cell_parameters();
       creal x = cellParams[CellParams::XCRD];
       creal dx = cellParams[CellParams::DX];
       creal y = cellParams[CellParams::YCRD];

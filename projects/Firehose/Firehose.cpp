@@ -128,7 +128,8 @@ namespace projects {
       return avg / pow(this->nSpaceSamples, 2.0) /  pow(this->nVelocitySamples, 3.0);
    }
 
-   void Firehose::calcCellParameters(Real* cellParams,creal& t) {
+   void Firehose::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
+      Real* cellParams = cell->get_cell_parameters();
       cellParams[CellParams::PERBX   ] = this->Bx;
       cellParams[CellParams::PERBY   ] = this->By;
       cellParams[CellParams::PERBZ   ] = this->Bz;

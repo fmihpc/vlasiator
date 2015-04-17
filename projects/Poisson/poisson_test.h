@@ -26,7 +26,7 @@ namespace projects {
        virtual void setCellBackgroundField(spatial_cell::SpatialCell* cell);
 
      protected:
-       virtual void calcCellParameters(Real* cellParams,creal& t);
+       virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
        
        virtual Real calcPhaseSpaceDensity(
                                           creal& x, creal& y, creal& z,
