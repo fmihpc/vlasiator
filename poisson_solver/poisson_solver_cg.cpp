@@ -411,7 +411,7 @@ namespace poisson {
       
       #pragma omp parallel for
       for (size_t c=0; c<cells.size(); ++c) {
-         // Convert charge density to charge density times cell size squares / epsilon0:
+         // Convert charge density to charge density times cell size squared / epsilon0:
          const Real DX2 = cells[c].parameters[0][CellParams::DX]*cells[c].parameters[0][CellParams::DX];
          cells[c].variables[cgvar::B] = -cells[c].parameters[0][CellParams::RHOQ_TOT]*DX2;
 

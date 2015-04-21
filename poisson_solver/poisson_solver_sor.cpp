@@ -455,7 +455,7 @@ namespace poisson {
          curError = error<SOR_VARS>(bndryCellPointersRED  ); if (curError > maxError) maxError = curError;
          curError = error<SOR_VARS>(bndryCellPointersBLACK); if (curError > maxError) maxError = curError;
 
-         cerr << iterations << "\t" << maxError << endl;
+         //cerr << iterations << "\t" << maxError << endl;
 
          if (maxError < Poisson::maxAbsoluteError) break;
          //if (relPotentialChange <= Poisson::minRelativePotentialChange) break;

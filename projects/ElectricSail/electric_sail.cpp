@@ -53,7 +53,8 @@ namespace projects {
       RP::add("ElectricSail.tether_x","Electric sail tether x-position",(Real)0.0);
       RP::add("ElectricSail.tether_y","Electric sail tether y-position",(Real)0.0);
       RP::add("ElectricSail.tether_voltage","Electric sail tether voltage",(Real)-10000.0);
-
+      RP::add("ElectricSail.max_absolute_error","Maximum absolute error allowed in Poisson solution",(Real)1e-4);
+      
       projects::ReadGaussianPopulation rgp;
       rgp.addParameters("ElectricSail");
    }
@@ -112,6 +113,7 @@ namespace projects {
       RP::get("ElectricSail.tether_x",tether_x);
       RP::get("ElectricSail.tether_y",tether_y);
       RP::get("ElectricSail.tether_voltage",tetherVoltage);
+      RP::get("ElectricSail.max_absolute_error",poisson::Poisson::maxAbsoluteError);
          
       projects::ReadGaussianPopulation rgp;
       projects::GaussianPopulation gaussPops;
@@ -135,7 +137,7 @@ namespace projects {
       ionCloudRadius = 50.0;
       
 #warning TESTING FIXME
-      tetherUnitCharge = 100e9 * physicalconstants::CHARGE;
+      tetherUnitCharge = 1000e9 * physicalconstants::CHARGE;
       //tetherUnitCharge = 0.0;
    }
 

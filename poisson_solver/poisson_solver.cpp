@@ -153,7 +153,13 @@ namespace poisson {
             rho_q += charge*rho_q_spec;
          } // for-loop over particle species
       }
-      cell->parameters[CellParams::RHOQ_TOT] = cell->parameters[CellParams::RHOQ_EXT] + rho_q/physicalconstants::EPS_0;
+      
+#warning This works for esail only
+      Real t_max = 5e-3;
+      Real factor = std::max((Real)0.0,(Real)1.0 + (Parameters::t - t_max));
+      factor = std::min((Real)1.0,factor);
+      
+      cell->parameters[CellParams::RHOQ_TOT] = factor*cell->parameters[CellParams::RHOQ_EXT] + rho_q/physicalconstants::EPS_0;
 
       #ifdef DEBUG_POISSON
       bool ok = true;
