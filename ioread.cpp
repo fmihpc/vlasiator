@@ -11,7 +11,6 @@
 #include "phiprof.hpp"
 #include "parameters.h"
 #include "logger.h"
-// #include "vlsvreader2.h"
 #include "vlsv_reader_parallel.h"
 #include "vlasovmover.h"
 
