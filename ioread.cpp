@@ -111,20 +111,20 @@ bool readCellIds(ParallelReader & file,
       attribs.push_back(make_pair("name","CellID"));
       attribs.push_back(make_pair("mesh","SpatialGrid"));
       if (file.getArrayInfoMaster("VARIABLE",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
-         logFile << "(RESTARTBUILDER) ERROR: Failed to read cell ID array info!" << endl << write;
+         logFile << "(RESTART) ERROR: Failed to read cell ID array info!" << endl << write;
          return false;
       }
 
       //Make a routine error check:
       if( vectorSize != 1 ) {
-         logFile << "(RESTARTBUILDER) ERROR: Bad vectorsize at " << __FILE__ << " " << __LINE__ << endl << write;
+         logFile << "(RESTART) ERROR: Bad vectorsize at " << __FILE__ << " " << __LINE__ << endl << write;
          return false;
       }
       
       //   Read cell Ids:
       char* IDbuffer = new char[arraySize*vectorSize*byteSize];
       if (file.readArrayMaster("VARIABLE",attribs,readFromFirstIndex,arraySize,IDbuffer) == false) {
-         logFile << "(RESTARTBUILDER) ERROR: Failed to read cell Ids!" << endl << write;
+         logFile << "(RESTART) ERROR: Failed to read cell Ids!" << endl << write;
          success = false;
       }
    
@@ -145,7 +145,7 @@ bool readCellIds(ParallelReader & file,
             fileCells[i] = cellID;
          }
       } else {
-         logFile << "(RESTARTBUILDER) ERROR: ParallelReader returned an unsupported datatype for cell Ids!" << endl << write;
+         logFile << "(RESTART) ERROR: ParallelReader returned an unsupported datatype for cell Ids!" << endl << write;
          success = false;
       }
       delete[] IDbuffer;
@@ -186,19 +186,19 @@ bool readNBlocks( T & file,
       if( typeid(T) == typeid(ParallelReader) ) {
          attribs.push_back(make_pair("mesh","SpatialGrid"));
       } else {
-         cout << "(RESTARTBUILDER) ERROR: BAD TYPEID IN READNBLOCKS AT " << __FILE__ << " " << __LINE__ << endl;
-         logFile << "(RESTARTBUILDER) ERROR: BAD TYPEID IN READNBLOCKS AT " << __FILE__ << " " << __LINE__ << endl << write;
+         cout << "(RESTART) ERROR: BAD TYPEID IN READNBLOCKS AT " << __FILE__ << " " << __LINE__ << endl;
+         logFile << "(RESTART) ERROR: BAD TYPEID IN READNBLOCKS AT " << __FILE__ << " " << __LINE__ << endl << write;
          return false;
       }
       if (file.getArrayInfoMaster("BLOCKSPERCELL",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
-         logFile << "(RESTARTBUILDER) ERROR: Failed to read number of blocks" << endl << write;
+         logFile << "(RESTART) ERROR: Failed to read number of blocks" << endl << write;
          success= false;
       }
 
       const short int readFileFromBeginning = 0;
       nBlocks.resize(vectorSize*arraySize);
       if (file.readArrayMaster("BLOCKSPERCELL",attribs,readFileFromBeginning,arraySize,(char*)&(nBlocks[0])) == false) {
-         logFile << "(RESTARTBUILDER) ERROR: Failed to read number of blocks!" << endl << write;
+         logFile << "(RESTART) ERROR: Failed to read number of blocks!" << endl << write;
          success = false;
       }
    }
@@ -282,22 +282,22 @@ bool _readBlockData(
   datatype::type blockIdDataType;
   blockIdAttribs.push_back( make_pair("mesh", "SpatialGrid") );
   if (file.getArrayInfo("BLOCKIDS",blockIdAttribs,arraySize,blockIdVectorSize,blockIdDataType,blockIdByteSize) == false ){
-    logFile << "(RESTARTBUILDER) ERROR: Failed to read BLOCKCOORDINATES array info " << endl << write;
+    logFile << "(RESTART) ERROR: Failed to read BLOCKCOORDINATES array info " << endl << write;
     return false;
   }
 
   if(file.getArrayInfo("BLOCKVARIABLE",avgAttribs,arraySize,avgVectorSize,dataType,byteSize) == false ){
-    logFile << "(RESTARTBUILDER) ERROR: Failed to read BLOCKVARIABLE array info " << endl << write;
+    logFile << "(RESTART) ERROR: Failed to read BLOCKVARIABLE array info " << endl << write;
     return false;
   }
 
    //Some routine error checks:
    if( avgVectorSize!=WID3 ){
-      logFile << "(RESTARTBUILDER) ERROR: Blocksize does not match in restart file " << endl << write;
+      logFile << "(RESTART) ERROR: Blocksize does not match in restart file " << endl << write;
       return false;
    }
    if( byteSize != sizeof(fileReal) ) {
-      logFile << "(RESTARTBUILDER) ERROR: Bad avgs bytesize at " << __FILE__ << " " << __LINE__ << endl << write;
+      logFile << "(RESTART) ERROR: Bad avgs bytesize at " << __FILE__ << " " << __LINE__ << endl << write;
       return false;
    }
       
@@ -379,7 +379,7 @@ bool readBlockData(
 
 
    if (file.getArrayInfo("BLOCKVARIABLE",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
-      logFile << "(RESTARTBUILDER)  ERROR: Failed to read BLOCKVARIABLE INFO" << endl << write;
+      logFile << "(RESTART)  ERROR: Failed to read BLOCKVARIABLE INFO" << endl << write;
       return false;
    }
 
@@ -413,7 +413,7 @@ bool readBlockData(
             break;
       }
    } else {
-      logFile << "(RESTARTBUILDER)  ERROR: Failed to read data type at readCellParamsVariable" << endl << write;
+      logFile << "(RESTART)  ERROR: Failed to read data type at readCellParamsVariable" << endl << write;
       return false;
    }
 }
@@ -456,18 +456,18 @@ static bool _readCellParamsVariable(
    
    
    if (file.getArrayInfo("VARIABLE",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
-      logFile << "(RESTARTBUILDER)  ERROR: Failed to read " << endl << write;
+      logFile << "(RESTART)  ERROR: Failed to read " << endl << write;
       return false;
    }
 
    if(vectorSize!=expectedVectorSize){
-      logFile << "(RESTARTBUILDER)  vectorsize wrong " << endl << write;
+      logFile << "(RESTART)  vectorsize wrong " << endl << write;
       return false;
    }
    
    buffer=new fileReal[vectorSize*localCells];
    if(file.readArray("VARIABLE",attribs,localCellStartOffset,localCells,(char *)buffer) == false ) {
-      logFile << "(RESTARTBUILDER)  ERROR: Failed to read " << variableName << endl << write;
+      logFile << "(RESTART)  ERROR: Failed to read " << variableName << endl << write;
       return false;
    }
    
@@ -514,7 +514,7 @@ bool readCellParamsVariable(
    
    
    if (file.getArrayInfo("VARIABLE",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
-      logFile << "(RESTARTBUILDER)  ERROR: Failed to read " << endl << write;
+      logFile << "(RESTART)  ERROR: Failed to read " << endl << write;
       return false;
    }
 
@@ -548,7 +548,7 @@ bool readCellParamsVariable(
             break;
       }
    } else {
-      logFile << "(RESTARTBUILDER)  ERROR: Failed to read data type at readCellParamsVariable" << endl << write;
+      logFile << "(RESTART)  ERROR: Failed to read data type at readCellParamsVariable" << endl << write;
       return false;
    }
 }
