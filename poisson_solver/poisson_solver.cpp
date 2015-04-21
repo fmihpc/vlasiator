@@ -22,6 +22,7 @@
 #include "poisson_solver.h"
 #include "poisson_solver_jacobi.h"
 #include "poisson_solver_sor.h"
+#include "poisson_solver_cg.h"
 
 #ifndef NDEBUG
    #define DEBUG_POISSON
@@ -41,6 +42,7 @@ namespace poisson {
    bool Poisson::clearPotential = true;
    bool Poisson::is2D = false;
    string Poisson::solverName;
+   Real Poisson::maxAbsoluteError = 1e-4;
    uint Poisson::maxIterations;
    Real Poisson::minRelativePotentialChange;
    vector<Real*> Poisson::localCellParams;
@@ -172,7 +174,7 @@ namespace poisson {
       return success;
    }
 
-   bool PoissonSolver::calculateElectrostaticField2D(const std::vector<poisson::CellCache3D>& cells) {
+   /*bool PoissonSolver::calculateElectrostaticField2D(const std::vector<poisson::CellCache3D>& cells) {
       phiprof::start("Electrostatic E");
       
       #pragma omp parallel for
@@ -191,9 +193,9 @@ namespace poisson {
 
       phiprof::stop("Electrostatic E",cells.size(),"Spatial Cells");
       return true;
-   }
+   }*/
    
-   bool PoissonSolver::calculateElectrostaticField3D(const std::vector<poisson::CellCache3D>& cells) {
+   /*bool PoissonSolver::calculateElectrostaticField3D(const std::vector<poisson::CellCache3D>& cells) {
       phiprof::start("Electrostatic E");
 
       #pragma omp parallel for
@@ -216,9 +218,9 @@ namespace poisson {
 
       phiprof::stop("Electrostatic E",cells.size(),"Spatial Cells");
       return true;
-   }
+   }*/
 
-   bool PoissonSolver::checkGaussLaw(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   /*bool PoissonSolver::checkGaussLaw(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                      const std::vector<poisson::CellCache3D>& cells,
                                      Real& efieldFlux,Real& totalCharge) {
       bool success = true;
@@ -305,7 +307,7 @@ namespace poisson {
       totalCharge += chargeSum;
 
       return success;
-   }
+   }*/
 
    /** Estimate the error in the numerical solution of the electrostatic potential.
     * The error is calculated as the difference of new and old potential, divided 
@@ -314,7 +316,7 @@ namespace poisson {
     * @param mpiGrid Parallel grid.
     * @return The relative error in Poisson equation solution. The return value is 
     * the same at all MPI processes.*/
-   Real PoissonSolver::error(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
+   /*Real PoissonSolver::error(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
       phiprof::start("Potential Change");
 
       Real* maxError = new Real[omp_get_max_threads()];
@@ -350,14 +352,14 @@ namespace poisson {
       // Reduce max error to all MPI processes
       phiprof::start("MPI");
       Real globalMaxError;
-      MPI_Allreduce(maxError,&globalMaxError,1,MPI_Type<Real>(),MPI_MAX,MPI_COMM_WORLD);
+      MPI_Allreduce(&maxError,&globalMaxError,1,MPI_Type<Real>(),MPI_MAX,MPI_COMM_WORLD);
       delete [] maxError; maxError = NULL;
       phiprof::stop("MPI");
 
       return globalMaxError;
-   }
+   }*/
    
-   Real PoissonSolver::error3D(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
+   Real PoissonSolver::maxError2D(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
       phiprof::start("Evaluate Error");
 
       // DEBUG: Make sure values are up to date
@@ -366,7 +368,7 @@ namespace poisson {
       SpatialCell::set_mpi_transfer_type(spatial_cell::Transfer::CELL_PHI,false);
       mpiGrid.update_copies_of_remote_neighbors(POISSON_NEIGHBORHOOD_ID);
 
-      Real localError = 0;
+      //Real localError = 0;
       Real* maxError = new Real[omp_get_max_threads()];
       const vector<CellID>& cells = getLocalCells();
 
@@ -375,12 +377,15 @@ namespace poisson {
            const int tid = omp_get_thread_num();
            maxError[tid] = 0;
 
-           #pragma omp for reduction(+:localError)
+           #pragma omp for
            for (size_t c=0; c<cells.size(); ++c) {
               CellID cellID = cells[c];
 
               // Skip cells on domain boundaries:
-              if (mpiGrid[cellID]->sysBoundaryFlag != 1) continue;
+              if (mpiGrid[cellID]->sysBoundaryFlag != 1) {
+                 mpiGrid[cellID]->parameters[CellParams::PHI_TMP] = 0;
+                 continue;
+              }
 
               // Fetch data
               const Real rho_q = mpiGrid[cellID]->parameters[CellParams::RHOQ_TOT];
@@ -404,24 +409,12 @@ namespace poisson {
               Real phi_121 = mpiGrid[nbrID]->parameters[CellParams::PHI];
               indices[1] -= 1;
 
-              // +/- z face neighbor potential
-              indices[2] -= 1; nbrID =  mpiGrid.mapping.get_cell_from_indices(indices,0);         
-              Real phi_110 = mpiGrid[nbrID]->parameters[CellParams::PHI];
-              indices[2] += 2; mpiGrid.mapping.get_cell_from_indices(indices,0);         
-              Real phi_112 = mpiGrid[nbrID]->parameters[CellParams::PHI];
-              indices[2] -= 1;
-
               // Evaluate error
               Real DX2 = mpiGrid[cellID]->parameters[CellParams::DX]*mpiGrid[cellID]->parameters[CellParams::DX];
-              Real DY2 = mpiGrid[cellID]->parameters[CellParams::DY]*mpiGrid[cellID]->parameters[CellParams::DY];
-              Real DZ2 = mpiGrid[cellID]->parameters[CellParams::DZ]*mpiGrid[cellID]->parameters[CellParams::DZ];
-              Real factor = 2*(1/DX2 + 1/DY2 + 1/DZ2);
-              Real rhs = ((phi_011+phi_211)/DX2 + (phi_101+phi_121)/DY2 + (phi_110+phi_112)/DZ2 + rho_q)/factor;
 
-              Real cellError = rhs - phi_111;
-              localError += cellError*cellError;
-              mpiGrid[cellID]->parameters[CellParams::PHI_TMP] = fabs(cellError);
-
+              Real RHS = phi_011+phi_211+phi_101+phi_121-4*phi_111;
+              Real cellError = fabs(-rho_q*DX2 - RHS);
+              mpiGrid[cellID]->parameters[CellParams::PHI_TMP] = cellError;
               if (fabs(cellError) > maxError[tid]) maxError[tid] = fabs(cellError);
            } // for-loop over cells
 
@@ -432,20 +425,14 @@ namespace poisson {
          if (maxError[i] > maxError[0]) maxError[0] = maxError[i];
       }
 
-      Real globalError;
       Real globalMaxError;
-      MPI_Allreduce(&localError,&globalError,1,MPI_Type<Real>(),MPI_SUM,MPI_COMM_WORLD);
       MPI_Allreduce(maxError,&globalMaxError,1,MPI_Type<Real>(),MPI_MAX,MPI_COMM_WORLD);      
-
-      if (mpiGrid.get_rank() == 0) {
-         cerr << Parameters::tstep << '\t' << sqrt(globalError) << '\t' << globalMaxError << endl;
-      }
 
       delete [] maxError; maxError = NULL;
 
       phiprof::stop("Evaluate Error",cells.size(),"Spatial Cells");
 
-      return sqrt(globalError);
+      return globalMaxError;
    }
 
    // ***** DEFINITIONS OF HIGH-LEVEL DRIVER FUNCTIONS ***** //
@@ -455,18 +442,19 @@ namespace poisson {
 
       Poisson::solvers.add("Jacobi",makeJacobi);
       Poisson::solvers.add("SOR",makeSOR);
+      Poisson::solvers.add("CG",makeCG);
 
       // Create and initialize the Poisson solver
       Poisson::solver = Poisson::solvers.create(Poisson::solverName);
       if (Poisson::solver == NULL) {
-         logFile << "Failed to create Poisson solver '" << Poisson::solverName << "'" << endl << write;
+         logFile << "(POISSON SOLVER) ERROR: Failed to create Poisson solver '" << Poisson::solverName << "'" << endl << write;
          return false;
       } else {
          if (Poisson::solver->initialize() == false) success = false;
          if (success == true) 
-           logFile << "Successfully initialized Poisson solver '" << Poisson::solverName << "'" << endl << write;
+           logFile << "(POISSON SOLVER) Successfully initialized Poisson solver '" << Poisson::solverName << "'" << endl << write;
          else {
-            logFile << "Failed to initialize Poisson solver '" << Poisson::solverName << "'" << endl << write;
+            logFile << "(POISSON SOLVER) ERROR: Failed to initialize Poisson solver '" << Poisson::solverName << "'" << endl << write;
             return success;
          }
       }
@@ -476,15 +464,24 @@ namespace poisson {
 
       for (size_t c=0; c<getLocalCells().size(); ++c) {
          spatial_cell::SpatialCell* cell = mpiGrid[getLocalCells()[c]];
-         if (Poisson::solver->calculateChargeDensity(cell) == false) success = false;
+         if (Poisson::solver->calculateChargeDensity(cell) == false) {
+            logFile << "(POISSON SOLVER) ERROR: Failed to calculate charge density in " << __FILE__ << ":" << __LINE__ << endl << write;
+            success = false;
+         }
       }
 
       // Force calculateBackgroundField to reset potential arrays to zero values.
       // This may not otherwise happen if the simulation was restarted.
       const bool oldValue = Poisson::clearPotential;
       Poisson::clearPotential = true;
-      if (Poisson::solver->calculateBackgroundField(mpiGrid,getLocalCells()) == false) success = false;
-      if (solve(mpiGrid) == false) success = false;
+      if (Poisson::solver->calculateBackgroundField(mpiGrid,getLocalCells()) == false) {
+         logFile << "(POISSON SOLVER) ERROR: Failed to calculate background field in " << __FILE__ << ":" << __LINE__ << endl << write;
+         success = false;
+      }
+      if (solve(mpiGrid) == false) {
+         logFile << "(POISSON SOLVER) ERROR: Failed to solve potential in " << __FILE__ << ":" << __LINE__ << endl << write;
+         success = false;
+      }
       Poisson::clearPotential = oldValue;
 
       return success;

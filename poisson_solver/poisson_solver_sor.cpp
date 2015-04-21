@@ -28,11 +28,11 @@ namespace poisson {
 
    static const int RED   = 0;
    static const int BLACK = 1;
-
-   vector<CellCache3D> innerCellPointersRED;
-   vector<CellCache3D> bndryCellPointersRED;
-   vector<CellCache3D> innerCellPointersBLACK;
-   vector<CellCache3D> bndryCellPointersBLACK;
+   
+   vector<CellCache3D<SOR_VARS> > innerCellPointersRED;
+   vector<CellCache3D<SOR_VARS> > bndryCellPointersRED;
+   vector<CellCache3D<SOR_VARS> > innerCellPointersBLACK;
+   vector<CellCache3D<SOR_VARS> > bndryCellPointersBLACK;
 
    PoissonSolver* makeSOR() {
       return new PoissonSolverSOR();
@@ -83,7 +83,7 @@ namespace poisson {
       return success;
    }
 
-   void PoissonSolverSOR::evaluate2D(std::vector<poisson::CellCache3D>& cellPointers,const int& cellColor) {
+   void PoissonSolverSOR::evaluate2D(std::vector<poisson::CellCache3D<SOR_VARS> >& cellPointers,const int& cellColor) {
       const Real weight = 1.5;
 
       Real t_start = 0;
@@ -150,7 +150,7 @@ namespace poisson {
       }
    }
    
-   void PoissonSolverSOR::evaluate3D(std::vector<poisson::CellCache3D>& cellPointers,const int& cellColor) {
+   void PoissonSolverSOR::evaluate3D(std::vector<poisson::CellCache3D<SOR_VARS> >& cellPointers,const int& cellColor) {
       
       const Real weight = 1.5;
 
@@ -208,8 +208,8 @@ namespace poisson {
    void PoissonSolverSOR::cachePointers2D(
                dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                const std::vector<CellID>& cells,
-               std::vector<poisson::CellCache3D>& redCache,
-               std::vector<poisson::CellCache3D>& blackCache) {
+               std::vector<poisson::CellCache3D<SOR_VARS> >& redCache,
+               std::vector<poisson::CellCache3D<SOR_VARS> >& blackCache) {
       redCache.clear();
       blackCache.clear();
 
@@ -220,7 +220,7 @@ namespace poisson {
          // Calculate cell i/j/k indices
          dccrg::Types<3>::indices_t indices = mpiGrid.mapping.get_indices(cells[c]);
 
-         CellCache3D cache;
+         CellCache3D<SOR_VARS> cache;
          cache.cellID = cells[c];
          cache.cell = mpiGrid[cells[c]];
          cache[0]   = mpiGrid[cells[c]]->parameters;
@@ -324,18 +324,17 @@ namespace poisson {
 
    void PoissonSolverSOR::cachePointers3D(
             dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-            const std::vector<CellID>& cells,std::vector<poisson::CellCache3D>& redCache,
-            std::vector<poisson::CellCache3D>& blackCache) {
+            const std::vector<CellID>& cells,std::vector<poisson::CellCache3D<SOR_VARS> >& redCache,
+            std::vector<poisson::CellCache3D<SOR_VARS> >& blackCache) {
       redCache.clear();
       blackCache.clear();
       
       for (size_t c=0; c<cells.size(); ++c) {
          // Calculate cell i/j/k indices
          dccrg::Types<3>::indices_t indices = mpiGrid.mapping.get_indices(cells[c]);
+         CellCache3D<SOR_VARS> cache;
 
          if ((indices[0] + indices[1]%2 + indices[2]%2) % 2 == RED) {
-            CellCache3D cache;
-
             // Cells on domain boundaries are not iterated
             if (mpiGrid[cells[c]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
             
@@ -358,11 +357,9 @@ namespace poisson {
             
             redCache.push_back(cache);
          } else {
-            CellCache3D cache;
-            
             // Cells on domain boundaries are not iterated
-            if (mpiGrid[cells[c]]->sysBoundaryFlag != 1) continue;
-            
+            if (mpiGrid[cells[c]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
+
             // Fetch pointers to this cell's (cell) parameters array,
             // and pointers to +/- xyz face neighbors' arrays
             cache.cell = mpiGrid[cells[c]];
@@ -423,53 +420,49 @@ namespace poisson {
       SpatialCell::set_mpi_transfer_type(Transfer::CELL_PHI,false);
       int iterations = 0;
       Real relPotentialChange = 0;
+      Real maxError = 0;
       do {
          const int N_iterations = 10;
+         const int tid = omp_get_thread_num();
 
-//         #pragma omp parallel
-//           {
-              const int tid = omp_get_thread_num();
+         // Iterate the potential N_iterations times and then
+         // check if the error is less than the required value
+         for (int N=0; N<N_iterations; ++N) {
+            // Make a copy of the potential if we are going 
+            // to evaluate the solution error
+            if (N == N_iterations-1) {
+               if (tid == 0) phiprof::start("Copy Old Potential");
+               #pragma omp parallel for
+               for (size_t c=0; c<Poisson::localCellParams.size(); ++c) {
+                  Poisson::localCellParams[c][CellParams::PHI_TMP] = Poisson::localCellParams[c][CellParams::PHI];
+               }
+               if (tid == 0) phiprof::stop("Copy Old Potential",Poisson::localCellParams.size(),"Spatial Cells");
+            }
 
-              // Iterate the potential N_iterations times and then
-              // check if the error is less than the required value
-              for (int N=0; N<N_iterations; ++N) {
-                 // Make a copy of the potential if we are going 
-                 // to evaluate the solution error
-                 if (N == N_iterations-1) {
-                    if (tid == 0) phiprof::start("Copy Old Potential");
-                    #pragma omp parallel for
-                    for (size_t c=0; c<Poisson::localCellParams.size(); ++c) {
-                       Poisson::localCellParams[c][CellParams::PHI_TMP] = Poisson::localCellParams[c][CellParams::PHI];
-                    }
-                    if (tid == 0) phiprof::stop("Copy Old Potential",Poisson::localCellParams.size(),"Spatial Cells");
-                 }
-
-                 // Solve red cells first, the black cells
-                 if (solve(mpiGrid,RED  ) == false) success = false;
-                 if (solve(mpiGrid,BLACK) == false) success = false;
-              }
-//           } // #pragma omp parallel
+            // Solve red cells first, the black cells
+            if (solve(mpiGrid,RED  ) == false) success = false;
+            if (solve(mpiGrid,BLACK) == false) success = false;
+         }
 
          // Evaluate the error in potential solution and reiterate if necessary
          iterations += N_iterations;
-         relPotentialChange = error(mpiGrid);
-         if (relPotentialChange <= Poisson::minRelativePotentialChange) break;
+         //relPotentialChange = error<SOR_VARS>(mpiGrid);
+         
+         maxError = 0;
+         Real curError;
+         curError = error<SOR_VARS>(innerCellPointersRED  ); if (curError > maxError) maxError = curError;
+         curError = error<SOR_VARS>(innerCellPointersBLACK); if (curError > maxError) maxError = curError;
+         curError = error<SOR_VARS>(bndryCellPointersRED  ); if (curError > maxError) maxError = curError;
+         curError = error<SOR_VARS>(bndryCellPointersBLACK); if (curError > maxError) maxError = curError;
+
+         cerr << iterations << "\t" << maxError << endl;
+
+         if (maxError < Poisson::maxAbsoluteError) break;
+         //if (relPotentialChange <= Poisson::minRelativePotentialChange) break;
          if (iterations >= Poisson::maxIterations) break;
       } while (true);
 
-//      cerr << "SOR solved using " << iterations << " iterations, rel change " << relPotentialChange << endl;
-      
       if (calculateElectrostaticField(mpiGrid) == false) success = false;
-
-      //Real efieldFlux  = 0;
-      //Real totalCharge = 0;
-      //checkGaussLaw(mpiGrid,innerCellPointersRED,efieldFlux,totalCharge);
-      //checkGaussLaw(mpiGrid,innerCellPointersBLACK,efieldFlux,totalCharge);
-      //checkGaussLaw(mpiGrid,bndryCellPointersRED,efieldFlux,totalCharge);
-      //checkGaussLaw(mpiGrid,bndryCellPointersBLACK,efieldFlux,totalCharge);
-      //cerr << "\t E flux = " << efieldFlux << " total charge " << totalCharge << " difference " << efieldFlux-totalCharge;
-      //cerr << " rel diff " << 2*(efieldFlux-totalCharge)/(efieldFlux+totalCharge) << endl;
-
       return success;
    }
 

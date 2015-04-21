@@ -16,6 +16,8 @@
 
 namespace poisson {
 
+   const unsigned int SOR_VARS = 0;
+   
     class PoissonSolverSOR: public PoissonSolver {
     public:
         PoissonSolverSOR();
@@ -31,22 +33,22 @@ namespace poisson {
         Real bndryCellParams[CellParams::N_SPATIAL_CELL_PARAMS];
 
         void cachePointers2D(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                             const std::vector<CellID>& cells,std::vector<poisson::CellCache3D>& redCache,
-                             std::vector<poisson::CellCache3D>& blackCache);
+                             const std::vector<CellID>& cells,std::vector<poisson::CellCache3D<SOR_VARS> >& redCache,
+                             std::vector<poisson::CellCache3D<SOR_VARS> >& blackCache);
         void cachePointers3D(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                             const std::vector<CellID>& cells,std::vector<poisson::CellCache3D>& redCache,
-                             std::vector<poisson::CellCache3D>& blackCache);
-        void evaluate2D(std::vector<poisson::CellCache3D>& cellPointers,const int& cellColor);
-        void evaluate3D(std::vector<poisson::CellCache3D>& cellPointers,const int& cellColor);
-       
-        void (*evaluator)(std::vector<poisson::CellCache3D>& cellPointers,const int& cellColor);
-        
+                             const std::vector<CellID>& cells,std::vector<poisson::CellCache3D<SOR_VARS> >& redCache,
+                             std::vector<poisson::CellCache3D<SOR_VARS> >& blackCache);
+        void evaluate2D(std::vector<poisson::CellCache3D<SOR_VARS> >& cellPointers,const int& cellColor);
+        void evaluate3D(std::vector<poisson::CellCache3D<SOR_VARS> >& cellPointers,const int& cellColor);
+
+        void (*evaluator)(std::vector<poisson::CellCache3D<SOR_VARS> >& cellPointers,const int& cellColor);
+
         bool solve(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                    const int& oddness);
+
     };
 
     PoissonSolver* makeSOR();
-    
    
 } // namespace poisson
 

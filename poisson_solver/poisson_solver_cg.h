@@ -16,8 +16,29 @@
 
 namespace poisson {
 
-    class PoissonSolverCG: public PoissonSolver {
-    public:
+   namespace cgvar {
+      enum Variable {
+         PHI,
+         B,          /**< Charge density multiplied by dx2/epsilon0.*/
+         R,
+         A_TIMES_P,  /**< Matrix A times P.*/
+         SIZE
+      };
+   }
+   
+   namespace cgglobal {
+      enum Variable {
+         ALPHA,
+         R_T_R,
+         P_T_A_P,
+         BETA,
+         R_MAX,
+         SIZE
+      };
+   }
+
+   class PoissonSolverCG: public PoissonSolver {
+   public:
         PoissonSolverCG();
         ~PoissonSolverCG();
         
@@ -26,28 +47,28 @@ namespace poisson {
         bool finalize();
         bool solve(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
         
-    private:
+   private:
 
         Real bndryCellParams[CellParams::N_SPATIAL_CELL_PARAMS];
 
         void cachePointers2D(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                             const std::vector<CellID>& cells,
+                             std::vector<poisson::CellCache3D<cgvar::SIZE> >& cellCache);
+        /*void cachePointers3D(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                              const std::vector<CellID>& cells,std::vector<poisson::CellCache3D>& redCache,
-                             std::vector<poisson::CellCache3D>& blackCache);
-        void cachePointers3D(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                             const std::vector<CellID>& cells,std::vector<poisson::CellCache3D>& redCache,
-                             std::vector<poisson::CellCache3D>& blackCache);
-        void evaluate2D(std::vector<poisson::CellCache3D>& cellPointers,const int& cellColor);
-        void evaluate3D(std::vector<poisson::CellCache3D>& cellPointers,const int& cellColor);
-       
-        void (*evaluator)(std::vector<poisson::CellCache3D>& cellPointers,const int& cellColor);
-        
-        bool solve(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                   const int& oddness);
-    };
+                             std::vector<poisson::CellCache3D>& blackCache);*/
 
-    PoissonSolver* makeSOR();
-    
-   
+        bool calculateAlpha();
+        bool startIteration(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
+        bool startIteration(std::vector<CellCache3D<cgvar::SIZE> >& cells);
+        bool update_p(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
+        bool update_x_r();
+
+        Real globalVariables[cgglobal::SIZE];
+   };
+
+   PoissonSolver* makeCG();
+
 } // namespace poisson
 
 #endif	// POISSON_SOLVER_CG_H

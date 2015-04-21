@@ -98,7 +98,7 @@
     </Object>
     <Object name="Expression">
         <Field name="name" type="string">Proton/Vx</Field>
-        <Field name="definition" type="string">"\<Proton/nV\>[0] / (\<Proton/n\>+1e-10) - 4e5"</Field>
+        <Field name="definition" type="string">"\<Proton/nV\>[0] / (\<Proton/n\>+1e-10)"</Field>
         <Field name="hidden" type="bool">false</Field>
         <Field name="type" type="string">ScalarMeshVar</Field>
         <Field name="fromDB" type="bool">false</Field>
