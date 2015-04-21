@@ -87,7 +87,7 @@ bool exitOnError(bool success,string message,MPI_Comm comm) {
 
 /*!
  \brief Read cell ID's
- Read in cell ID's from file. Note: Uses the newer version of vlsv parallel reader
+ Read in cell ID's from file.
  \param file Some vlsv reader with a file open
  \param fileCells Vector in whic to store the cell ids
  \param masterRank The simulation's master rank id (Vlasiator uses 0, which should be the default)
