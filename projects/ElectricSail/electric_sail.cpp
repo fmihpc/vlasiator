@@ -140,7 +140,7 @@ namespace projects {
       }
       
       particleCloudRadius = 50.0;
-      tetherUnitCharge *= physicalconstants::CHARGE / Parameters::dz_ini;
+      tetherUnitCharge *= physicalconstants::CHARGE*Parameters::dz_ini;
    }
 
    bool ElectricSail::initialize() {
