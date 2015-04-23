@@ -59,6 +59,7 @@ namespace poisson {
                              std::vector<poisson::CellCache3D>& blackCache);*/
 
         bool calculateAlpha();
+        void calculateAlpha(CellCache3D<cgvar::SIZE>& cell,Real& mySum0,Real& mySum1);
         bool startIteration(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
         bool startIteration(std::vector<CellCache3D<cgvar::SIZE> >& cells);
         bool update_p(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);

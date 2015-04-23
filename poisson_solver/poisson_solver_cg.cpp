@@ -52,6 +52,20 @@ namespace poisson {
       return success;
    }
    
+   inline void PoissonSolverCG::calculateAlpha(CellCache3D<cgvar::SIZE>& cell,Real& mySum0,Real& mySum1) {
+      // Calculate r(transpose) * r
+      mySum0 += cell.variables[cgvar::R]*cell.variables[cgvar::R];
+
+      // Calculate p(transpose) * A * p
+      Real A_p = -4*cell.parameters[0][CellParams::PHI_TMP]
+        + cell.parameters[1][CellParams::PHI_TMP]
+        + cell.parameters[2][CellParams::PHI_TMP]
+        + cell.parameters[3][CellParams::PHI_TMP]
+        + cell.parameters[4][CellParams::PHI_TMP];
+      cell.variables[cgvar::A_TIMES_P] = A_p;
+      mySum1 += cell.parameters[0][CellParams::PHI_TMP]*A_p;
+   }
+   
    /** Calculate the value of alpha parameter.
     * @return If true, all processes have the same value of alpha in PoissonSolverCG::alphaGlobal.*/
    bool PoissonSolverCG::calculateAlpha() {
@@ -60,50 +74,23 @@ namespace poisson {
       Real sums[2];
       Real mySum0 = 0;
       Real mySum1 = 0;
-      
+
       // Calculate P(transpose)*A*P and R(transpose)*R for all local cells:
-      #pragma omp parallel reduction(+:mySum0,mySum1)
-      {
-         #pragma omp for
-         for (size_t c=0; c<bndryCellPointers.size(); ++c) {
-            CellCache3D<cgvar::SIZE>& cell = bndryCellPointers[c];
+      const size_t offset = bndryCellPointers.size();
+      const size_t N_cells = bndryCellPointers.size()+innerCellPointers.size();
 
-            // Calculate r(transpose) * r
-            mySum0 += cell.variables[cgvar::R]*cell.variables[cgvar::R];
-
-            // Calculate p(transpose) * A * p
-            Real A_p = -4*cell.parameters[0][CellParams::PHI_TMP]
-                     + cell.parameters[1][CellParams::PHI_TMP] 
-                     + cell.parameters[2][CellParams::PHI_TMP]
-                     + cell.parameters[3][CellParams::PHI_TMP] 
-                     + cell.parameters[4][CellParams::PHI_TMP];
-            cell.variables[cgvar::A_TIMES_P] = A_p;
-            mySum1 += cell.parameters[0][CellParams::PHI_TMP]*A_p;
-         }
-         #pragma omp for
-         for (size_t c=0; c<innerCellPointers.size(); ++c) {
-            CellCache3D<cgvar::SIZE>& cell = innerCellPointers[c];
-
-            // Calculate r(transpose) * r
-            mySum0 += cell.variables[cgvar::R]*cell.variables[cgvar::R];
-
-            // Calculate p(transpose) * A * p
-            Real A_p = -4*cell.parameters[0][CellParams::PHI_TMP]
-                     + cell.parameters[1][CellParams::PHI_TMP] 
-                     + cell.parameters[2][CellParams::PHI_TMP]
-                     + cell.parameters[3][CellParams::PHI_TMP] 
-                     + cell.parameters[4][CellParams::PHI_TMP];
-            cell.variables[cgvar::A_TIMES_P] = A_p;
-            mySum1 += cell.parameters[0][CellParams::PHI_TMP]*A_p;
-         }
+      #pragma omp parallel for reduction(+:mySum0,mySum1)
+      for (size_t c=0; c<N_cells; ++c) {
+         if (c >= offset) calculateAlpha(innerCellPointers[c-offset],mySum0,mySum1);
+         else             calculateAlpha(bndryCellPointers[c       ],mySum0,mySum1);
       }
 
       sums[0] = mySum0;
       sums[1] = mySum1;
       phiprof::stop("calculate alpha",bndryCellPointers.size()+innerCellPointers.size(),"Spatial Cells");
-      
+
       // Reduce sums to master process:
-      phiprof::start("MPI");
+      phiprof::start("MPI (Alpha)");
       MPI_Reduce(sums,&(globalVariables[cgglobal::R_T_R]),2,MPI_Type<Real>(),MPI_SUM,0,MPI_COMM_WORLD);
 
       // Calculate alpha and broadcast to all processes:
@@ -111,7 +98,7 @@ namespace poisson {
               = globalVariables[cgglobal::R_T_R] 
               /(globalVariables[cgglobal::P_T_A_P] + 100*numeric_limits<Real>::min());
       MPI_Bcast(globalVariables,3,MPI_Type<Real>(),0,MPI_COMM_WORLD);
-      phiprof::stop("MPI");      
+      phiprof::stop("MPI (Alpha)");
       return true;
    }
 
@@ -343,7 +330,7 @@ namespace poisson {
       {
          const int tid = omp_get_thread_num();
 
-         #pragma omp for
+         #pragma omp for nowait
          for (size_t c=0; c<bndryCellPointers.size(); ++c) {
             calculateChargeDensitySingle(bndryCellPointers[c].cell);
          }
@@ -352,13 +339,13 @@ namespace poisson {
             mpiGrid.start_remote_neighbor_copy_updates(POISSON_NEIGHBORHOOD_ID);
          }
          
-         #pragma omp for
+         #pragma omp for nowait
          for (size_t c=0; c<innerCellPointers.size(); ++c) {
             calculateChargeDensitySingle(innerCellPointers[c].cell);
          }
       }
       phiprof::stop("Charge Density");
-      
+
       phiprof::start("MPI (RHOQ)");
       mpiGrid.wait_remote_neighbor_copy_updates(POISSON_NEIGHBORHOOD_ID);
       phiprof::stop("MPI (RHOQ)");
@@ -368,7 +355,7 @@ namespace poisson {
          cerr << "(POISSON CG) ERROR has occurred in startIteration in " << __FILE__ << ":" << __LINE__ << endl;
          exit(1);
       }
-      
+
       int iterations = 0;
       Real relPotentialChange = 0;
       do {
@@ -474,50 +461,50 @@ namespace poisson {
             R_T_R += cell.variables[cgvar::R]*cell.variables[cgvar::R];
          }
       }
-
-      size_t N_cells = bndryCellPointers.size()+innerCellPointers.size();
+      const size_t N_cells = bndryCellPointers.size()+innerCellPointers.size();
       phiprof::stop("R transpose * R",N_cells,"Spatial Cells");
 
       // Reduce value to master, calculate beta parameter and broadcast it to all processes:
-      phiprof::start("MPI");
+      phiprof::start("MPI (R transp R)");
       Real global_R_T_R;
       MPI_Reduce(&R_T_R,&global_R_T_R,1,MPI_Type<Real>(),MPI_SUM,0,MPI_COMM_WORLD);
       globalVariables[cgglobal::BETA] = global_R_T_R / (globalVariables[cgglobal::R_T_R] + 100*numeric_limits<Real>::min());
       globalVariables[cgglobal::R_T_R] = global_R_T_R;
       MPI_Bcast(globalVariables,cgglobal::SIZE,MPI_Type<Real>(),0,MPI_COMM_WORLD);
-      phiprof::stop("MPI");
-
-      // Calculate new value of p, store to CellParams::PHI_TMP, and sync to all processes:
-      phiprof::start("update P");
-      #pragma omp parallel for
-      for (size_t c=0; c<bndryCellPointers.size(); ++c) {
-         CellCache3D<cgvar::SIZE>& cell = bndryCellPointers[c];
-         cell.parameters[0][CellParams::PHI_TMP] 
-                 = cell.variables[cgvar::R] 
-                 + globalVariables[cgglobal::BETA]*cell.parameters[0][CellParams::PHI_TMP];
-      }
-      phiprof::stop("update P",bndryCellPointers.size(),"Spatial Cells");
-
-      // Send new P values to neighbor processes:
-      phiprof::start("MPI");
-      SpatialCell::set_mpi_transfer_type(Transfer::CELL_PHI,false);
-      mpiGrid.start_remote_neighbor_copy_updates(POISSON_NEIGHBORHOOD_ID);
-      phiprof::stop("MPI");
+      phiprof::stop("MPI (R transp R)");
 
       phiprof::start("update P");
-      #pragma omp parallel for
-      for (size_t c=0; c<innerCellPointers.size(); ++c) {
-         CellCache3D<cgvar::SIZE>& cell = innerCellPointers[c];
-         cell.parameters[0][CellParams::PHI_TMP] 
-                 = cell.variables[cgvar::R] 
-                 + globalVariables[cgglobal::BETA]*cell.parameters[0][CellParams::PHI_TMP];
+      #pragma omp parallel
+      {
+         const int tid = omp_get_thread_num();
+         #pragma omp for nowait
+         for (size_t c=0; c<bndryCellPointers.size(); ++c) {
+            CellCache3D<cgvar::SIZE>& cell = bndryCellPointers[c];
+            cell.parameters[0][CellParams::PHI_TMP]
+              = cell.variables[cgvar::R]
+              + globalVariables[cgglobal::BETA]*cell.parameters[0][CellParams::PHI_TMP];
+         }
+
+         // Send new P values to neighbor processes:
+         if (tid == 0) {
+            SpatialCell::set_mpi_transfer_type(Transfer::CELL_PHI,false);
+            mpiGrid.start_remote_neighbor_copy_updates(POISSON_NEIGHBORHOOD_ID);
+         }
+
+         #pragma omp for nowait
+         for (size_t c=0; c<innerCellPointers.size(); ++c) {
+            CellCache3D<cgvar::SIZE>& cell = innerCellPointers[c];
+            cell.parameters[0][CellParams::PHI_TMP]
+              = cell.variables[cgvar::R]
+              + globalVariables[cgglobal::BETA]*cell.parameters[0][CellParams::PHI_TMP];
+         }
       }
-      phiprof::stop("update P",innerCellPointers.size(),"Spatial Cells");
+      phiprof::stop("update P",innerCellPointers.size()+bndryCellPointers.size(),"Spatial Cells");
 
       // Wait for MPI to complete:
-      phiprof::start("MPI");
+      phiprof::start("MPI (update P)");
       mpiGrid.wait_remote_neighbor_copy_updates(POISSON_NEIGHBORHOOD_ID);
-      phiprof::stop("MPI");
+      phiprof::stop("MPI (update P)");
 
       return true;
    }
@@ -561,9 +548,9 @@ namespace poisson {
       size_t N_cells = bndryCellPointers.size() + innerCellPointers.size();
       phiprof::stop("update x and r",N_cells,"Spatial Cells");
 
-      phiprof::start("MPI");
+      phiprof::start("MPI (x and r)");
       MPI_Allreduce(&R_max,&(globalVariables[cgglobal::R_MAX]),1,MPI_Type<Real>(),MPI_MAX,MPI_COMM_WORLD);
-      phiprof::stop("MPI");
+      phiprof::stop("MPI (x and r)");
 
       return true;
    }
