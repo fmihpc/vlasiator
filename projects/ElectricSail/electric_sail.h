@@ -40,12 +40,15 @@ namespace projects {
       int popID;
       std::vector<Population> populations;
 
-      Real ionCloudRadius;
+      bool addParticleCloud;     /**< If true, a charge-neutralising particle cloud is added around the tether.*/
+      Real particleCloudRadius;  /**< Radius of the particle cloud.*/
       
-      Real tether_x;          /**< Electric sail tether x-position.*/
-      Real tether_y;          /**< Electric sail tether y-position.*/
-      Real tetherUnitCharge;  /**< Unit charge per meter of the tether in Coulombs.*/
-      Real tetherVoltage;     /**< Electric sail tether voltage.*/
+      Real tether_x;             /**< Electric sail tether x-position.*/
+      Real tether_y;             /**< Electric sail tether y-position.*/
+      Real tetherChargeRiseTime; /**< Time when tether charge reaches its maximum value.
+                                  * Only has an effect if ElectricSail::timeDependentCharge is true.*/
+      Real tetherUnitCharge;     /**< Unit charge per meter of the tether in Coulombs.*/
+      bool timeDependentCharge;  /**< If true, tether charge is time-dependent.*/
 
       void tetherElectricField(Real* x,Real* E) const;
 

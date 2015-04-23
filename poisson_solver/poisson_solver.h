@@ -103,9 +103,10 @@ namespace poisson {
       static Real minRelativePotentialChange;      /**< Iterative solvers keep on iterating the solution 
                                                     * until the change in potential during successive 
                                                     * iterations is less than this value.*/
-      
       static std::vector<Real*> localCellParams;   /**< Pointers to spatial cell parameters, order 
 						    * is the same as in getLocalCells() vector.*/
+      static bool timeDependentBackground;         /**< If true, the background field / charge density is 
+                                                    * time-dependent and must be recalculated each time step.*/
       
       static void cacheCellParameters(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 				      const std::vector<CellID>& cells);
@@ -166,6 +167,13 @@ namespace poisson {
       return true;
    }
 
+   /** Estimate the error in the numerical solution of the electrostatic potential.
+    * The error is calculated as the maximum deviation of nabla^2 (phi) + rho_q/epsilon_0 
+    * from zero value. This function only works for a 2D (xy) solver.
+    * This function must be called simultaneously by all MPI processes.
+    * @param mpiGrid Parallel grid.
+    * @return The error in Poisson equation solution. The return value is 
+    * the same at all MPI processes.*/
    template<unsigned int VARS> inline
    Real PoissonSolver::error(std::vector<poisson::CellCache3D<VARS> >& cells) {
       phiprof::start("error evaluation");
@@ -195,15 +203,18 @@ namespace poisson {
          threadMaxError[tid] = myError;
       }
 
+      // Calculate the maximum error over all per-thread values to variable maxError
       for (int i=1; i<omp_get_max_threads(); ++i) {
          if (threadMaxError[i] > threadMaxError[0]) threadMaxError[0] = threadMaxError[i];
       }
       maxError = threadMaxError[0];
       delete [] threadMaxError; threadMaxError = NULL;
       
+      // Reduce the maximum error to all processes
       Real globalMaxError;
       MPI_Allreduce(&maxError,&globalMaxError,1,MPI_Type<Real>(),MPI_MAX,MPI_COMM_WORLD);
       phiprof::stop("error evaluation",cells.size(),"Spatial Cells");
+
       return globalMaxError;
    }
 

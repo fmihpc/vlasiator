@@ -52,16 +52,19 @@ namespace projects {
       RP::add("ElectricSail.is_2D","If true then system is two-dimensional in xy-plane",true);
       RP::add("ElectricSail.tether_x","Electric sail tether x-position",(Real)0.0);
       RP::add("ElectricSail.tether_y","Electric sail tether y-position",(Real)0.0);
-      RP::add("ElectricSail.tether_voltage","Electric sail tether voltage",(Real)-10000.0);
       RP::add("ElectricSail.max_absolute_error","Maximum absolute error allowed in Poisson solution",(Real)1e-4);
-      
+      RP::add("ElectricSail.add_particle_cloud","If true, add charge neutralizing particle cloud around tethet (bool)",false);
+      RP::add("ElectricSail.tetherCharge","Tether charge per meter in elementary charges",(Real)200e9);
+      RP::add("ElectricSail.timeDependentCharge","If true, tether charge is time dependent (bool)",false);
+      RP::add("ElectricSail.tetherChargeRiseTime","Time when tether charge reaches its maximum value",0.0);
+
       projects::ReadGaussianPopulation rgp;
       rgp.addParameters("ElectricSail");
    }
 
    Real ElectricSail::getCorrectNumberDensity(spatial_cell::SpatialCell* cell,const int& popID) const {
-      return populations[popID].rho;
-      //if (getObjectWrapper().particleSpecies[popID].name != "Electron") return populations[popID].rho;
+      if (addParticleCloud == false) return populations[popID].rho;
+      if (getObjectWrapper().particleSpecies[popID].name != "Electron") return populations[popID].rho;
 
       if (tetherUnitCharge < 0) {
          cerr << "negative tether not implemented in " << __FILE__ << ":" << __LINE__ << endl;
@@ -76,11 +79,11 @@ namespace projects {
       pos[2] = parameters[CellParams::ZCRD] + 0.5*parameters[CellParams::DZ];
       Real radius2 = pos[0]*pos[0] + pos[1]*pos[1] + pos[2]*pos[2];
 
-      if (radius2 > ionCloudRadius*ionCloudRadius) return populations[popID].rho;
+      if (radius2 > particleCloudRadius*particleCloudRadius) return populations[popID].rho;
 
       const Real charge = getObjectWrapper().particleSpecies[popID].charge;
       const Real DZ = parameters[CellParams::DZ];
-      Real cloudDens = -tetherUnitCharge / (M_PI*ionCloudRadius*ionCloudRadius*charge);      
+      Real cloudDens = -tetherUnitCharge / (M_PI*particleCloudRadius*particleCloudRadius*charge);
       return populations[popID].rho + cloudDens;
    }
 
@@ -113,9 +116,12 @@ namespace projects {
       RP::get("ElectricSail.clear_potential",poisson::Poisson::clearPotential);
       RP::get("ElectricSail.tether_x",tether_x);
       RP::get("ElectricSail.tether_y",tether_y);
-      RP::get("ElectricSail.tether_voltage",tetherVoltage);
       RP::get("ElectricSail.max_absolute_error",poisson::Poisson::maxAbsoluteError);
-         
+      RP::get("ElectricSail.add_particle_could",addParticleCloud);
+      RP::get("ElectricSail.tetherCharge",tetherUnitCharge);
+      RP::get("ElectricSail.timeDependentCharge",timeDependentCharge);
+      RP::get("ElectricSail.tetherChargeRiseTime",tetherChargeRiseTime);
+      
       projects::ReadGaussianPopulation rgp;
       projects::GaussianPopulation gaussPops;
       if (rgp.getParameters("ElectricSail",gaussPops) == false) success = false;
@@ -133,13 +139,8 @@ namespace projects {
                                                     gaussPops.Tz[i],gaussPops.Vx[i],gaussPops.Vy[i],gaussPops.Vz[i]));
       }
       
-      //tether_y = 2*Parameters::dy_ini;
-      
-      ionCloudRadius = 50.0;
-      
-#warning TESTING FIXME
-      tetherUnitCharge = 1000e9 * physicalconstants::CHARGE;
-      //tetherUnitCharge = 0.0;
+      particleCloudRadius = 50.0;
+      tetherUnitCharge *= physicalconstants::CHARGE / Parameters::dz_ini;
    }
 
    bool ElectricSail::initialize() {
@@ -157,7 +158,17 @@ namespace projects {
          logFile << "\t T         : " << populations[i].T[0] << '\t' << populations[i].T[1] << '\t' << populations[i].T[2] << endl;
          logFile << "\t V         : " << populations[i].V[0] << '\t' << populations[i].V[1] << '\t' << populations[i].V[2] << endl;
       }
-      logFile << endl << writeVerbose;
+      logFile << endl;
+      
+      logFile << "(ElectricSail) Tether parameters are:" << endl;
+      logFile << "\t charge per meter: " << tetherUnitCharge/Parameters::dz_ini << endl;
+      logFile << "\t charge (total)  : " << tetherUnitCharge << endl;
+      logFile << "\t charge time-dep?: ";
+      if (timeDependentCharge == true) {
+         logFile << "Yes" << endl;
+         logFile << "\t charge rise time: " << tetherChargeRiseTime << endl;
+      } else logFile << "No" << endl;
+      logFile << writeVerbose;
 
       return success;
    }
@@ -185,10 +196,17 @@ namespace projects {
       pos[1] = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];
       pos[2] = cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ];
 
+      Real factor = 1.0;
+      if (timeDependentCharge == true) {
+         factor = max((Real)0.0,(Parameters::t-tetherChargeRiseTime)/tetherChargeRiseTime);
+         factor = min((Real)1.0,factor);
+      }
+
       Real rad = sqrt(pos[0]*pos[0]+pos[1]*pos[1]+pos[2]*pos[2]);
       Real D3 = cell->parameters[CellParams::DX]*cell->parameters[CellParams::DY];
-      if (rad <= 5) cell->parameters[CellParams::RHOQ_EXT] = 0.25*tetherUnitCharge/D3/physicalconstants::EPS_0;
+      if (rad <= 5) cell->parameters[CellParams::RHOQ_EXT] = 0.25*factor*tetherUnitCharge/D3/physicalconstants::EPS_0;
 
+      /*
       const Real EPSILON = 1e-30;
       int N = 1;
       int N3_sum = 0;
@@ -234,6 +252,7 @@ namespace projects {
       cell->parameters[CellParams::BGEXVOL] = E_vol[0] / N3_sum;
       cell->parameters[CellParams::BGEYVOL] = E_vol[1] / N3_sum;
       cell->parameters[CellParams::BGEZVOL] = E_vol[2] / N3_sum;
+       */
    }
 
    void ElectricSail::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {

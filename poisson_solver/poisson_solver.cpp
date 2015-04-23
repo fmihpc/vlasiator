@@ -46,6 +46,7 @@ namespace poisson {
    uint Poisson::maxIterations;
    Real Poisson::minRelativePotentialChange;
    vector<Real*> Poisson::localCellParams;
+   bool Poisson::timeDependentBackground = false;
 
    void Poisson::cacheCellParameters(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 				     const std::vector<CellID>& cells) {
@@ -77,11 +78,16 @@ namespace poisson {
             const std::vector<CellID>& cells) {
 
       phiprof::start("Background Field");
-      
+
       if (Poisson::clearPotential == true || Parameters::tstep == 0 || Parameters::meshRepartitioned == true) {
          #pragma omp parallel for
          for (size_t c=0; c<cells.size(); ++c) {
             spatial_cell::SpatialCell* cell = mpiGrid[cells[c]];
+
+            if (Poisson::timeDependentBackground == true) {
+               getObjectWrapper().project->setCellBackgroundField(cell);
+            }
+
             cell->parameters[CellParams::PHI] = 0;
             cell->parameters[CellParams::PHI_TMP] = 0;
             cell->parameters[CellParams::EXVOL] = cell->parameters[CellParams::BGEXVOL];
@@ -92,6 +98,11 @@ namespace poisson {
          #pragma omp parallel for
          for (size_t c=0; c<cells.size(); ++c) {
             spatial_cell::SpatialCell* cell = mpiGrid[cells[c]];
+
+            if (Poisson::timeDependentBackground == true) {
+               getObjectWrapper().project->setCellBackgroundField(cell);
+            }
+
             cell->parameters[CellParams::EXVOL] = cell->parameters[CellParams::BGEXVOL];
             cell->parameters[CellParams::EYVOL] = cell->parameters[CellParams::BGEYVOL];
             cell->parameters[CellParams::EZVOL] = cell->parameters[CellParams::BGEZVOL];
@@ -153,13 +164,8 @@ namespace poisson {
             rho_q += charge*rho_q_spec;
          } // for-loop over particle species
       }
-      
-#warning This works for esail only
-      Real t_max = 5e-3;
-      Real factor = std::max((Real)0.0,(Real)1.0 + (Parameters::t - t_max)/t_max);
-      factor = std::min((Real)1.0,factor);
-      
-      cell->parameters[CellParams::RHOQ_TOT] = factor*cell->parameters[CellParams::RHOQ_EXT] + rho_q/physicalconstants::EPS_0;
+
+      cell->parameters[CellParams::RHOQ_TOT] = cell->parameters[CellParams::RHOQ_EXT] + rho_q/physicalconstants::EPS_0;
 
       #ifdef DEBUG_POISSON
       bool ok = true;
@@ -179,52 +185,6 @@ namespace poisson {
       phiprof::stop("Charge Density",phaseSpaceCells,"Phase-space cells");
       return success;
    }
-
-   /*bool PoissonSolver::calculateElectrostaticField2D(const std::vector<poisson::CellCache3D>& cells) {
-      phiprof::start("Electrostatic E");
-      
-      #pragma omp parallel for
-      for (size_t c=0; c<cells.size(); ++c) {
-         const Real DX = 2*cells[c].parameters[0][CellParams::DX];
-         const Real DY = 2*cells[c].parameters[0][CellParams::DY];
-
-         const Real phi_01 = cells[c].parameters[1][CellParams::PHI]; // -x neighbor
-         const Real phi_21 = cells[c].parameters[2][CellParams::PHI]; // +x neighbor
-         const Real phi_10 = cells[c].parameters[3][CellParams::PHI]; // -y neighbor
-         const Real phi_12 = cells[c].parameters[4][CellParams::PHI]; // +y neighbor
-
-         cells[c].parameters[0][CellParams::EXVOL] -= (phi_21-phi_01)/DX;
-         cells[c].parameters[0][CellParams::EYVOL] -= (phi_12-phi_10)/DY;
-      }
-
-      phiprof::stop("Electrostatic E",cells.size(),"Spatial Cells");
-      return true;
-   }*/
-   
-   /*bool PoissonSolver::calculateElectrostaticField3D(const std::vector<poisson::CellCache3D>& cells) {
-      phiprof::start("Electrostatic E");
-
-      #pragma omp parallel for
-      for (size_t c=0; c<cells.size(); ++c) {
-         const Real DX = 2*cells[c].parameters[0][CellParams::DX];
-         const Real DY = 2*cells[c].parameters[0][CellParams::DY];
-         const Real DZ = 2*cells[c].parameters[0][CellParams::DZ];
-
-         const Real phi_011 = cells[c].parameters[1][CellParams::PHI]; // -x neighbor
-         const Real phi_211 = cells[c].parameters[2][CellParams::PHI]; // +x neighbor
-         const Real phi_101 = cells[c].parameters[3][CellParams::PHI]; // -y neighbor
-         const Real phi_121 = cells[c].parameters[4][CellParams::PHI]; // +y neighbor
-         const Real phi_110 = cells[c].parameters[5][CellParams::PHI]; // -z neighbor
-         const Real phi_112 = cells[c].parameters[6][CellParams::PHI]; // +z neighbor
-
-         cells[c].parameters[0][CellParams::EXVOL] -= (phi_211-phi_011)/DX;
-         cells[c].parameters[0][CellParams::EYVOL] -= (phi_121-phi_101)/DY;
-         cells[c].parameters[0][CellParams::EZVOL] -= (phi_112-phi_110)/DZ;
-      }
-
-      phiprof::stop("Electrostatic E",cells.size(),"Spatial Cells");
-      return true;
-   }*/
 
    /*bool PoissonSolver::checkGaussLaw(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                      const std::vector<poisson::CellCache3D>& cells,
@@ -313,56 +273,6 @@ namespace poisson {
       totalCharge += chargeSum;
 
       return success;
-   }*/
-
-   /** Estimate the error in the numerical solution of the electrostatic potential.
-    * The error is calculated as the difference of new and old potential, divided 
-    * by the new potential value. This function works for both 2D and 3D solver.
-    * This function must be called simultaneously by all MPI processes.
-    * @param mpiGrid Parallel grid.
-    * @return The relative error in Poisson equation solution. The return value is 
-    * the same at all MPI processes.*/
-   /*Real PoissonSolver::error(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
-      phiprof::start("Potential Change");
-
-      Real* maxError = new Real[omp_get_max_threads()];
-      const Real epsilon = 1e-100;
-
-      #pragma omp parallel
-        {
-	   // Each thread evaluates how much the potential changed as 
-	   // compared to the previous iteration and stores the value in 
-	   // threadMaxError. After all cells have been processed, the 
-	   // per-thread values are stored to array maxError.
-           const int tid = omp_get_thread_num();
-	   Real threadMaxError = 0;
-	   #pragma omp for
-	   for (size_t c=0; c<Poisson::localCellParams.size(); ++c) {
-	      Real phi     = Poisson::localCellParams[c][CellParams::PHI];
-	      Real phi_old = Poisson::localCellParams[c][CellParams::PHI_TMP];
-	      
-	      Real d_phi     = phi-phi_old;
-	      Real d_phi_rel = d_phi / (phi + epsilon);
-	      if (fabs(d_phi_rel) > threadMaxError) threadMaxError = fabs(d_phi_rel);
-	   }
-
-	   maxError[tid] = threadMaxError;
-        }
-
-      // Reduce max local error to master thread (index 0)
-      for (int i=1; i<omp_get_max_threads(); ++i) {
-         if (maxError[i] > maxError[0]) maxError[0] = maxError[i];
-      }
-      phiprof::stop("Potential Change",Poisson::localCellParams.size(),"Spatial Cells");
-
-      // Reduce max error to all MPI processes
-      phiprof::start("MPI");
-      Real globalMaxError;
-      MPI_Allreduce(&maxError,&globalMaxError,1,MPI_Type<Real>(),MPI_MAX,MPI_COMM_WORLD);
-      delete [] maxError; maxError = NULL;
-      phiprof::stop("MPI");
-
-      return globalMaxError;
    }*/
    
    Real PoissonSolver::maxError2D(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
@@ -484,11 +394,11 @@ namespace poisson {
          logFile << "(POISSON SOLVER) ERROR: Failed to calculate background field in " << __FILE__ << ":" << __LINE__ << endl << write;
          success = false;
       }
+      Poisson::clearPotential = oldValue;
       if (solve(mpiGrid) == false) {
          logFile << "(POISSON SOLVER) ERROR: Failed to solve potential in " << __FILE__ << ":" << __LINE__ << endl << write;
          success = false;
       }
-      Poisson::clearPotential = oldValue;
 
       return success;
    }
