@@ -60,7 +60,8 @@ namespace projects {
    }
 
    Real ElectricSail::getCorrectNumberDensity(spatial_cell::SpatialCell* cell,const int& popID) const {
-      if (getObjectWrapper().particleSpecies[popID].name != "Electron") return populations[popID].rho;
+      return populations[popID].rho;
+      //if (getObjectWrapper().particleSpecies[popID].name != "Electron") return populations[popID].rho;
 
       if (tetherUnitCharge < 0) {
          cerr << "negative tether not implemented in " << __FILE__ << ":" << __LINE__ << endl;

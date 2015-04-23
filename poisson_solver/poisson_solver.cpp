@@ -156,7 +156,7 @@ namespace poisson {
       
 #warning This works for esail only
       Real t_max = 5e-3;
-      Real factor = std::max((Real)0.0,(Real)1.0 + (Parameters::t - t_max));
+      Real factor = std::max((Real)0.0,(Real)1.0 + (Parameters::t - t_max)/t_max);
       factor = std::min((Real)1.0,factor);
       
       cell->parameters[CellParams::RHOQ_TOT] = factor*cell->parameters[CellParams::RHOQ_EXT] + rho_q/physicalconstants::EPS_0;
