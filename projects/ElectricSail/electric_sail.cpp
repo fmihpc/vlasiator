@@ -117,7 +117,7 @@ namespace projects {
       RP::get("ElectricSail.tether_x",tether_x);
       RP::get("ElectricSail.tether_y",tether_y);
       RP::get("ElectricSail.max_absolute_error",poisson::Poisson::maxAbsoluteError);
-      RP::get("ElectricSail.add_particle_could",addParticleCloud);
+      RP::get("ElectricSail.add_particle_cloud",addParticleCloud);
       RP::get("ElectricSail.tetherCharge",tetherUnitCharge);
       RP::get("ElectricSail.timeDependentCharge",timeDependentCharge);
       RP::get("ElectricSail.tetherChargeRiseTime",tetherChargeRiseTime);
@@ -161,6 +161,9 @@ namespace projects {
       logFile << endl;
       
       logFile << "(ElectricSail) Tether parameters are:" << endl;
+      logFile << "\t add prtcl cloud?: ";
+      if (addParticleCloud == true) logFile << "Yes" << endl;
+      else logFile << "No" << endl;
       logFile << "\t charge per meter: " << tetherUnitCharge/Parameters::dz_ini << endl;
       logFile << "\t charge (total)  : " << tetherUnitCharge << endl;
       logFile << "\t charge time-dep?: ";
