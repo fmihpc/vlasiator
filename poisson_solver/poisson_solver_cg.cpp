@@ -333,9 +333,32 @@ namespace poisson {
 
       // Calculate charge density and sync
       SpatialCell::set_mpi_transfer_type(Transfer::CELL_RHOQ_TOT,false);
-      for (size_t c=0; c<bndryCellPointers.size(); ++c) calculateChargeDensity(bndryCellPointers[c].cell);
-      mpiGrid.start_remote_neighbor_copy_updates(POISSON_NEIGHBORHOOD_ID);
-      for (size_t c=0; c<innerCellPointers.size(); ++c) calculateChargeDensity(innerCellPointers[c].cell);
+
+      //for (size_t c=0; c<bndryCellPointers.size(); ++c) calculateChargeDensity(bndryCellPointers[c].cell);
+      //mpiGrid.start_remote_neighbor_copy_updates(POISSON_NEIGHBORHOOD_ID);
+      //for (size_t c=0; c<innerCellPointers.size(); ++c) calculateChargeDensity(innerCellPointers[c].cell);
+      
+      phiprof::start("Charge Density");
+      #pragma omp parallel
+      {
+         const int tid = omp_get_thread_num();
+
+         #pragma omp for
+         for (size_t c=0; c<bndryCellPointers.size(); ++c) {
+            calculateChargeDensitySingle(bndryCellPointers[c].cell);
+         }
+         
+         if (tid == 0) {
+            mpiGrid.start_remote_neighbor_copy_updates(POISSON_NEIGHBORHOOD_ID);
+         }
+         
+         #pragma omp for
+         for (size_t c=0; c<innerCellPointers.size(); ++c) {
+            calculateChargeDensitySingle(innerCellPointers[c].cell);
+         }
+      }
+      phiprof::stop("Charge Density");
+      
       phiprof::start("MPI (RHOQ)");
       mpiGrid.wait_remote_neighbor_copy_updates(POISSON_NEIGHBORHOOD_ID);
       phiprof::stop("MPI (RHOQ)");
@@ -369,9 +392,9 @@ namespace poisson {
          
          iterations += N_iterations;
          
-         if (mpiGrid.get_rank() == 0) {
-            cerr << iterations << "\t" << globalVariables[cgglobal::R_MAX] << endl;
-         }
+         //if (mpiGrid.get_rank() == 0) {
+         //   cerr << iterations << "\t" << globalVariables[cgglobal::R_MAX] << endl;
+         //}
          
          if (iterations >= Poisson::maxIterations) break;
          if (globalVariables[cgglobal::R_MAX] < Poisson::maxAbsoluteError) break;

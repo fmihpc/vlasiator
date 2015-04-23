@@ -51,6 +51,7 @@ namespace poisson {
        virtual bool calculateBackgroundField(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                              const std::vector<CellID>& cells);
        virtual bool calculateChargeDensity(spatial_cell::SpatialCell* cell);
+       virtual void calculateChargeDensitySingle(spatial_cell::SpatialCell* cell);
        template<unsigned int VARS>
        bool calculateElectrostaticField2D(const std::vector<poisson::CellCache3D<VARS> >& cells);
        template<unsigned int VARS>

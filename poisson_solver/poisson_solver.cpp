@@ -111,6 +111,36 @@ namespace poisson {
       phiprof::stop("Background Field",cells.size(),"Spatial Cells");
       return true;
    }
+
+   void PoissonSolver::calculateChargeDensitySingle(spatial_cell::SpatialCell* cell) {
+      Real rho_q = 0.0;
+      // Iterate all particle species
+      for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         Real rho_q_spec=0;
+         vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
+         if (blockContainer.size() == 0) continue;
+
+         const Real charge       = getObjectWrapper().particleSpecies[popID].charge;
+         const Realf* data       = blockContainer.getData();
+         const Real* blockParams = blockContainer.getParameters();
+
+         // Sum charge density over all phase-space cells
+         for (vmesh::LocalID blockLID=0; blockLID<blockContainer.size(); ++blockLID) {
+            Real sum = 0.0;
+            for (int i=0; i<WID3; ++i) sum += data[blockLID*WID3+i];
+
+            const Real DV3 
+               = blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::DVX]
+               * blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::DVY]
+               * blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::DVZ];
+            rho_q_spec += sum*DV3;
+         }
+         
+         rho_q += charge*rho_q_spec;
+      } // for-loop over particle species
+
+      cell->parameters[CellParams::RHOQ_TOT] = cell->parameters[CellParams::RHOQ_EXT] + rho_q/physicalconstants::EPS_0;
+   }
    
    /** Calculate total charge density on given spatial cells.
     * @param mpiGrid Parallel grid library.
@@ -124,7 +154,7 @@ namespace poisson {
       #pragma omp parallel reduction (+:rho_q)
       {
          // Iterate all particle species
-         for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {            
+         for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
             Real rho_q_spec=0;
             vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
             if (blockContainer.size() == 0) continue;
@@ -145,7 +175,7 @@ namespace poisson {
                   * blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::DVZ];
                rho_q_spec += sum*DV3;
             }
-            
+
             #ifdef DEBUG_POISSON
             bool ok = true;
             if (rho_q_spec != rho_q_spec) ok = false;
