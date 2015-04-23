@@ -367,9 +367,22 @@ namespace poisson {
          return false;
       } else {
          if (Poisson::solver->initialize() == false) success = false;
-         if (success == true) 
-           logFile << "(POISSON SOLVER) Successfully initialized Poisson solver '" << Poisson::solverName << "'" << endl << write;
-         else {
+         if (success == true) {
+           logFile << "(POISSON SOLVER) Successfully initialized Poisson solver '" << Poisson::solverName << "'" << endl;
+           logFile << "Parameters are:" << endl;
+           logFile << "\t max absolute error: " << Poisson::maxAbsoluteError << endl;
+           logFile << "\t max iterations    : " << Poisson::maxIterations << endl;
+           logFile << "\t time dep bground  : ";
+           if (Poisson::timeDependentBackground == true) logFile << "Yes" << endl;
+           else logFile << "No" << endl;
+           logFile << "\t clear potential?  : ";
+           if (Poisson::clearPotential == true) logFile << "Yes" << endl;
+           else logFile << "No" << endl;
+           logFile << "\t is 2D?            : ";
+           if (Poisson::is2D == true) logFile << "Yes" << endl;
+           else logFile << "No" << endl;
+           logFile << write;
+         } else {
             logFile << "(POISSON SOLVER) ERROR: Failed to initialize Poisson solver '" << Poisson::solverName << "'" << endl << write;
             return success;
          }

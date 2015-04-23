@@ -107,9 +107,11 @@ namespace poisson {
       MPI_Reduce(sums,&(globalVariables[cgglobal::R_T_R]),2,MPI_Type<Real>(),MPI_SUM,0,MPI_COMM_WORLD);
 
       // Calculate alpha and broadcast to all processes:
-      globalVariables[cgglobal::ALPHA] = sums[0]/(sums[1] + 100*numeric_limits<Real>::min());
+      globalVariables[cgglobal::ALPHA]
+              = globalVariables[cgglobal::R_T_R] 
+              /(globalVariables[cgglobal::P_T_A_P] + 100*numeric_limits<Real>::min());
       MPI_Bcast(globalVariables,3,MPI_Type<Real>(),0,MPI_COMM_WORLD);
-      phiprof::stop("MPI");
+      phiprof::stop("MPI");      
       return true;
    }
 
