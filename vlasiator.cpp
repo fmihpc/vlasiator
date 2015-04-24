@@ -234,7 +234,8 @@ int main(int argn,char* args[]) {
    P::getParameters();
 
    Project* project = projects::createProject();
-
+   getObjectWrapper().project = project;
+   
    project->getParameters();
    sysBoundaries.getParameters();
    phiprof::stop("Read parameters");
