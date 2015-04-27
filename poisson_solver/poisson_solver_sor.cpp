@@ -149,7 +149,7 @@ namespace poisson {
          }
       }
    }
-   
+
    void PoissonSolverSOR::evaluate3D(std::vector<poisson::CellCache3D<SOR_VARS> >& cellPointers,const int& cellColor) {
       
       const Real weight = 1.5;
