@@ -31,6 +31,7 @@
 #define SHIFT_M_X_NEIGHBORHOOD_ID 17 //Shift in -x direction
 #define SHIFT_M_Y_NEIGHBORHOOD_ID 18 //Shift in -y direction
 #define SHIFT_M_Z_NEIGHBORHOOD_ID 19 //Shift in -z direction
+#define POISSON_NEIGHBORHOOD_ID 20   // Nearest face neighbors 
 
 //fieldsolver stencil.
 #define FS_STENCIL_WIDTH 2
@@ -62,7 +63,7 @@ void initializeGrid(
 
     \param[in,out] mpiGrid The DCCRG grid with spatial cells
 */
-void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
+void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, SysBoundary& sysBoundaries);
 
 
 

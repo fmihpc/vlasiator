@@ -33,8 +33,16 @@ Transform<Real,3,Affine> compute_acceleration_transformation( SpatialCell* spati
 
    
    const Eigen::Matrix<Real,3,1> B(Bx,By,Bz);
-   const Eigen::Matrix<Real,3,1> unit_B(B.normalized());
-   const Real gyro_period = 2 * M_PI * physicalconstants::MASS_PROTON  / (fabs(physicalconstants::CHARGE) * B.norm());
+   Eigen::Matrix<Real,3,1> unit_B(B.normalized());
+   
+   // If B equals zero then gyro_period and unit_B are NAN.
+   // Guard against that by adding epsilons:
+   const Real B_mag = B.norm() + 1e-30;
+   if (B_mag < 1e-28) {
+      unit_B(0,0) = 0; unit_B(1,0) = 0; unit_B(2,0) = 1;
+   }
+   
+   const Real gyro_period = 2 * M_PI * physicalconstants::MASS_PROTON  / (fabs(physicalconstants::CHARGE) * B_mag);
    
    //Set maximum timestep limit for this cell, based on a  maximum allowed rotation angle
    spatial_cell->parameters[CellParams::MAXVDT]=gyro_period*(P::maxSlAccelerationRotation/360.0);
@@ -49,15 +57,16 @@ Transform<Real,3,Affine> compute_acceleration_transformation( SpatialCell* spati
       cpu_calcVelocityFirstMoments(spatial_cell,block_i,CellParams::RHO_V,CellParams::RHOVX_V,CellParams::RHOVY_V,CellParams::RHOVZ_V);
    }
    
-   const Real rho=spatial_cell->parameters[CellParams::RHO_V];
+   const Real rho=spatial_cell->parameters[CellParams::RHO_V] + 1e-30;
    //scale rho for hall term, if user requests
-   const Real hallRho =  (rho <= Parameters::lorentzHallMinimumRho ) ? Parameters::lorentzHallMinimumRho : rho ;
+   const Real hallRho =  (rho <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : rho ;
    const Real hallPrefactor = 1.0 / (physicalconstants::MU_0 * hallRho * physicalconstants::CHARGE );
 
    
    Eigen::Matrix<Real,3,1> bulk_velocity(spatial_cell->parameters[CellParams::RHOVX_V]/rho,
                                  spatial_cell->parameters[CellParams::RHOVY_V]/rho,
                                  spatial_cell->parameters[CellParams::RHOVZ_V]/rho);   
+   
    /*compute total transformation*/
    Transform<Real,3,Affine> total_transform(Matrix<Real, 4, 4>::Identity()); //CONTINUE
 
@@ -74,7 +83,7 @@ Transform<Real,3,Affine> compute_acceleration_transformation( SpatialCell* spati
       /*first add bulk velocity (using the total transform computed this far*/
       Eigen::Matrix<Real,3,1> rotation_pivot(total_transform*bulk_velocity);
       
-      //inlude lorentzHallTerm (we should include, always)      
+      //inlude lorentzHallTerm (we should include, always)
       rotation_pivot[0]-=hallPrefactor*(dBZdy - dBYdz);
       rotation_pivot[1]-=hallPrefactor*(dBXdz - dBZdx);
       rotation_pivot[2]-=hallPrefactor*(dBYdx - dBXdy);

@@ -429,7 +429,7 @@ namespace DRO {
    VariablePressureSolver::VariablePressureSolver(): DataReductionOperator() { }
    VariablePressureSolver::~VariablePressureSolver() { }
    
-   std::string VariablePressureSolver::getName() const {return "Pressure_from_solver";}
+   std::string VariablePressureSolver::getName() const {return "Pressure";}
    
    bool VariablePressureSolver::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
@@ -1526,5 +1526,35 @@ namespace DRO {
       return true;
    }
 
-
+   // Adding pressure calculations for backstream population to Vlasiator.
+   // p_ij = m/3 * integral((v - <V>)_i(v - <V>)_j * f(r,v) dV)
+   
+   // Pressure tensor 6 Xcomponents (11, 22, 33, 23, 13, 12) added by YK
+   // Split into VariablePTensorBackstreamDiagonal (11, 22, 33)
+   // and VariablePTensorOffDiagonal (23, 13, 12)
+   VariableMinValue::VariableMinValue(): DataReductionOperator() { }
+   VariableMinValue::~VariableMinValue() { }
+   
+   std::string VariableMinValue::getName() const {return "MinValue";}
+   
+   bool VariableMinValue::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize =  sizeof(Real);
+      vectorSize = 1;
+      return true;
+   }
+   
+   bool VariableMinValue::reduceData(const SpatialCell* cell,char* buffer) {
+      const uint vectorSize = 1;
+      const Real minValue = cell->getVelocityBlockMinValue();
+      //Save the data into buffer:
+      const char* ptr = reinterpret_cast<const char*>(&minValue);
+      for (uint i=0; i<vectorSize*sizeof(Real); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+   
+   bool VariableMinValue::setSpatialCell(const SpatialCell* cell) {
+      return true;
+   }
+   
 } // namespace DRO

@@ -9,7 +9,7 @@
    #define DEBUG_VLASOV_SOLVER
 #endif
 
-#include "vec4.h"
+#include "vec.h"
 #include "algorithm"
 #include "cmath"
 #include "utility"
@@ -681,20 +681,20 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
               Real f_lft = tempSource[vblock::padIndex<PAD>(i  ,j+1,k+1)];
               Real f_cen = tempSource[vblock::padIndex<PAD>(i+1,j+1,k+1)];
               Real f_rgt = tempSource[vblock::padIndex<PAD>(i+2,j+1,k+1)];
-              reconstruct_plm(f_lft,f_cen,f_rgt,a);
+              //reconstruct_plm(f_lft,f_cen,f_rgt,a);
               a=0;
 
               Real b;
               f_lft = tempSource[vblock::padIndex<PAD>(i+1,j  ,k+1)];
               f_rgt = tempSource[vblock::padIndex<PAD>(i+1,j+2,k+1)];
-              reconstruct_plm(f_lft,f_cen,f_rgt,b);
+              //reconstruct_plm(f_lft,f_cen,f_rgt,b);
               b=0;
 
               Real c;
               f_lft = tempSource[vblock::padIndex<PAD>(i+1,j+1,k  )];
               f_rgt = tempSource[vblock::padIndex<PAD>(i+1,j+1,k+2)];
-              reconstruct_plm(f_lft,f_cen,f_rgt,c);
-              //c=0;
+              //reconstruct_plm(f_lft,f_cen,f_rgt,c);
+              c=0;
 
               // Reconstructed values in each cell octant
               Real avgsRec[8];

@@ -1,0 +1,36 @@
+CMP = mpic++
+LNK = mpic++
+
+PAPI_FLAG =
+
+FLAGS =
+#CXXFLAGS = -I $(HOME)/include  -L $(HOME)/lib -g  -funroll-loops -std=c++0x -fopenmp -W -Wall -pedantic -Wno-unused -fabi-version=0 -mavx
+CXXFLAGS = -I $(HOME)/include  -L $(HOME)/lib -O3  -funroll-loops -std=c++0x -fopenmp -W -Wall -pedantic -Wno-unused -fabi-version=0 -mavx
+MATHFLAGS = -ffast-math
+LDFLAGS = -L $(HOME)/lib
+LIB_MPI = -lgomp 
+
+LIBRARY_PREFIX = $(HOME)
+
+INC_BOOST = -I$(LIBRARY_PREFIX)/include
+LIB_BOOST = -L$(LIBRARY_PREFIX)/lib -lboost_program_options
+
+INC_ZOLTAN = -I$(LIBRARY_PREFIX)/include
+LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/lib -lzoltan
+
+INC_VLSV = -I$(LIBRARY_PREFIX)/Codes/vlsv
+LIB_VLSV = -L$(LIBRARY_PREFIX)/Codes/vlsv -lvlsv
+
+INC_SILO = -I$(LIBRARY_PREFIX)/include
+LIB_SILO = -L$(LIBRARY_PREFIX)/lib -lsilo
+
+INC_DCCRG = -I$(LIBRARY_PREFIX)/include
+
+INC_JEMALLOC = 
+LIB_JEMALLOC = -ljemalloc
+
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof
+INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include
+INC_TOPO =
+
+INC_EIGEN = -I$(LIBRARY_PREFIX)/Codes/eigen-eigen-2249f9c22fe8
