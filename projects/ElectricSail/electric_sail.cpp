@@ -141,6 +141,7 @@ namespace projects {
       
       particleCloudRadius = 50.0;
       tetherUnitCharge *= physicalconstants::CHARGE*Parameters::dz_ini;
+      if (timeDependentCharge == true) poisson::Poisson::timeDependentBackground = true;
    }
 
    bool ElectricSail::initialize() {
@@ -201,7 +202,7 @@ namespace projects {
 
       Real factor = 1.0;
       if (timeDependentCharge == true) {
-         factor = max((Real)0.0,(Parameters::t-tetherChargeRiseTime)/tetherChargeRiseTime);
+         factor = max((Real)0.0,1.0+(Parameters::t-tetherChargeRiseTime)/tetherChargeRiseTime);
          factor = min((Real)1.0,factor);
       }
 
