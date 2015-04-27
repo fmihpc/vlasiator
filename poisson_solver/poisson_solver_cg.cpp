@@ -70,6 +70,8 @@ namespace poisson {
     * @return If true, all processes have the same value of alpha in PoissonSolverCG::alphaGlobal.*/
    bool PoissonSolverCG::calculateAlpha() {
       phiprof::start("calculate alpha");
+      Real t_start = 0;
+      if (Parameters::prepareForRebalance == true) t_start = MPI_Wtime();
       
       Real sums[2];
       Real mySum0 = 0;
@@ -87,9 +89,31 @@ namespace poisson {
 
       sums[0] = mySum0;
       sums[1] = mySum1;
+      
+      // Measure computation time (if needed)
+      if (Parameters::prepareForRebalance == true) {
+         const size_t N = max((size_t)1,innerCellPointers.size()+bndryCellPointers.size());
+         Real t_average = (MPI_Wtime() - t_start) / N;
+
+         #pragma omp parallel
+         {
+            #pragma omp for nowait
+            for (size_t c=0; c<bndryCellPointers.size(); ++c) {
+               CellCache3D<cgvar::SIZE>& cell = bndryCellPointers[c];
+               cell.parameters[0][CellParams::LBWEIGHTCOUNTER] += t_average;
+            }
+            #pragma omp for nowait
+            for (size_t c=0; c<innerCellPointers.size(); ++c) {
+               CellCache3D<cgvar::SIZE>& cell = innerCellPointers[c];
+               cell.parameters[0][CellParams::LBWEIGHTCOUNTER] += t_average;
+            }            
+         }
+      }
+
       phiprof::stop("calculate alpha",bndryCellPointers.size()+innerCellPointers.size(),"Spatial Cells");
 
       // Reduce sums to master process:
+      #warning TEST if Allreduce is faster here
       phiprof::start("MPI (Alpha)");
       MPI_Reduce(sums,&(globalVariables[cgglobal::R_T_R]),2,MPI_Type<Real>(),MPI_SUM,0,MPI_COMM_WORLD);
 
@@ -446,6 +470,9 @@ namespace poisson {
       phiprof::start("R transpose * R");
       
       Real R_T_R = 0;
+      Real t_start = 0;
+      Real t_total = 0;
+      if (Parameters::prepareForRebalance == true) t_start = MPI_Wtime();
 
       #pragma omp parallel reduction(+:R_T_R)
       {
@@ -462,6 +489,8 @@ namespace poisson {
          }
       }
       const size_t N_cells = bndryCellPointers.size()+innerCellPointers.size();
+
+      if (Parameters::prepareForRebalance == true) t_total = (MPI_Wtime() - t_start);
       phiprof::stop("R transpose * R",N_cells,"Spatial Cells");
 
       // Reduce value to master, calculate beta parameter and broadcast it to all processes:
@@ -474,6 +503,9 @@ namespace poisson {
       phiprof::stop("MPI (R transp R)");
 
       phiprof::start("update P");
+      t_start = 0;
+      if (Parameters::prepareForRebalance == true) t_start = MPI_Wtime();
+
       #pragma omp parallel
       {
          const int tid = omp_get_thread_num();
@@ -499,6 +531,27 @@ namespace poisson {
               + globalVariables[cgglobal::BETA]*cell.parameters[0][CellParams::PHI_TMP];
          }
       }
+      
+      // Measure computation time if needed
+      if (Parameters::prepareForRebalance == true) {
+         const size_t N = max((size_t)1,bndryCellPointers.size()+innerCellPointers.size());
+         t_total += (MPI_Wtime() - t_start);
+         const Real t_average = t_total / N;
+
+         #pragma omp parallel
+         {
+            #pragma omp for nowait
+            for (size_t c=0; c<bndryCellPointers.size(); ++c) {
+               CellCache3D<cgvar::SIZE>& cell = bndryCellPointers[c];
+               cell.parameters[0][CellParams::LBWEIGHTCOUNTER] += t_average;
+            }
+            #pragma omp for nowait
+            for (size_t c=0; c<innerCellPointers.size(); ++c) {
+               CellCache3D<cgvar::SIZE>& cell = innerCellPointers[c];
+               cell.parameters[0][CellParams::LBWEIGHTCOUNTER] += t_average;
+            }            
+         }
+      }
       phiprof::stop("update P",innerCellPointers.size()+bndryCellPointers.size(),"Spatial Cells");
 
       // Wait for MPI to complete:
@@ -515,6 +568,8 @@ namespace poisson {
    bool PoissonSolverCG::update_x_r() {
       phiprof::start("update x and r");
       
+      Real t_start = 0;
+      if (Parameters::prepareForRebalance == true) t_start = MPI_Wtime();
       Real R_max = -numeric_limits<Real>::max();
       Real* thread_R_max = new Real[omp_get_max_threads()];
       
@@ -546,6 +601,26 @@ namespace poisson {
       delete [] thread_R_max; thread_R_max = NULL;
 
       size_t N_cells = bndryCellPointers.size() + innerCellPointers.size();
+
+      // Measure computation time if needed
+      if (Parameters::prepareForRebalance == true) {
+         const Real t_average = (MPI_Wtime() - t_start) / max((size_t)1,N_cells);
+
+         #pragma omp parallel
+         {
+            #pragma omp for nowait
+            for (size_t c=0; c<bndryCellPointers.size(); ++c) {
+               CellCache3D<cgvar::SIZE>& cell = bndryCellPointers[c];
+               cell.parameters[0][CellParams::LBWEIGHTCOUNTER] += t_average;
+            }
+            #pragma omp for nowait
+            for (size_t c=0; c<innerCellPointers.size(); ++c) {
+               CellCache3D<cgvar::SIZE>& cell = innerCellPointers[c];
+               cell.parameters[0][CellParams::LBWEIGHTCOUNTER] += t_average;
+            }            
+         }
+      }
+      
       phiprof::stop("update x and r",N_cells,"Spatial Cells");
 
       phiprof::start("MPI (x and r)");
