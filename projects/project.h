@@ -35,6 +35,8 @@ namespace projects {
        */
       void setCell(spatial_cell::SpatialCell* cell);
          
+      Real setVelocityBlock(spatial_cell::SpatialCell* cell,const vmesh::LocalID& blockLID);
+
     protected:
       /*! \brief Returns a list of blocks to loop through when initialising.
        * 

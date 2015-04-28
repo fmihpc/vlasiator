@@ -231,7 +231,12 @@ int main(int argn,char* args[]) {
    projects::Project::addParameters();
    sysBoundaries.addParameters();
    readparameters.parse();
-   P::getParameters();
+   if (P::getParameters() == false) {
+      if (myRank == MASTER_RANK) {
+         cerr << "(MAIN) ERROR: getParameters failed!" << endl;
+      }
+      exit(1);
+   }
 
    Project* project = projects::createProject();
    getObjectWrapper().project = project;
@@ -337,22 +342,19 @@ int main(int argn,char* args[]) {
       P::systemWriteDistributionWriteXlineStride.push_back(0);
       P::systemWriteDistributionWriteYlineStride.push_back(0);
       P::systemWriteDistributionWriteZlineStride.push_back(0);
-      
-      for(uint si=0; si<P::systemWriteName.size(); si++) {
-         P::systemWrites.push_back(0);
-      }
+      P::systemWrites.push_back(0);
       
       const bool writeGhosts = true;
-      if( writeGrid(mpiGrid,outputReducer,P::systemWriteName.size()-1, writeGhosts) == false ) {
-         cerr << "FAILED TO WRITE GRID AT" << __FILE__ << " " << __LINE__ << endl;
+      if( writeGrid(mpiGrid,&outputReducer,P::systemWriteName.size()-1, writeGhosts) == false ) {
+         cerr << "FAILED TO WRITE GRID AT " << __FILE__ << " " << __LINE__ << endl;
       }
-      
+
       P::systemWriteDistributionWriteStride.pop_back();
       P::systemWriteName.pop_back();
       P::systemWriteDistributionWriteXlineStride.pop_back();
       P::systemWriteDistributionWriteYlineStride.pop_back();
       P::systemWriteDistributionWriteZlineStride.pop_back();
-      
+      P::systemWrites.pop_back();
       phiprof::stop("write-initial-state");
    }
 
@@ -504,7 +506,7 @@ int main(int argn,char* args[]) {
             phiprof::start("write-system");
             logFile << "(IO): Writing spatial cell and reduced system data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
             const bool writeGhosts = true;
-            if( writeGrid(mpiGrid,outputReducer, i, writeGhosts) == false ) {
+            if( writeGrid(mpiGrid,&outputReducer, i, writeGhosts) == false ) {
                cerr << "FAILED TO WRITE GRID AT" << __FILE__ << " " << __LINE__ << endl;
             }
             P::systemWrites[i]++;

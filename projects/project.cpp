@@ -445,6 +445,7 @@ namespace projects {
             break;
       }
 
+      vector<vmesh::GlobalID> removeList;
       for (uint i=0; i<blocksToInitialize.size(); ++i) {
          const vmesh::GlobalID blockGID = blocksToInitialize[i];
          const vmesh::LocalID blockLID = vmesh.getLocalID(blockGID);
@@ -461,6 +462,7 @@ namespace projects {
          creal dvzCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
 
          // Calculate volume average of distrib. function for each cell in the block.
+         Real sum = 0.0;
          for (uint kc=0; kc<WID_VZ; ++kc) for (uint jc=0; jc<WID_VY; ++jc) for (uint ic=0; ic<WID_VX; ++ic) {
             //FIXME, block/cell index should be handled by spatial cell function (create if it does not exist)
             creal vxCell = vxBlock + ic*dvxCell;
@@ -475,9 +477,12 @@ namespace projects {
             if (average != 0.0) {
                data[blockLID*SIZE_VELBLOCK+cellIndex(ic,jc,kc)] = average;
             }
+            sum += average;
          }
+
+         if (sum <= getObjectWrapper().particleSpecies[popID].sparseMinValue) removeList.push_back(blockGID);
       }
-      
+
       // Get AMR refinement criterion and use it to test which blocks should be refined
       amr_ref_criteria::Base* refCriterion = getObjectWrapper().amrVelRefCriteria.create(Parameters::amrVelRefCriterion);
       if (refCriterion == NULL) {
@@ -486,13 +491,17 @@ namespace projects {
       }
       refCriterion->initialize("");
 
+      // Remove blocks with f below sparse min value
+      for (size_t b=0; b<removeList.size(); ++b) cell->remove_velocity_block(removeList[b],popID);
+      
       // Loop over blocks in the spatial cell until we reach the maximum
       // refinement level, or until there are no more blocks left to refine
       bool refine = true;
-      //refine = false;
       uint currentLevel = 0;
       if (currentLevel == Parameters::amrMaxVelocityRefLevel) refine = false;
       while (refine == true) {
+         removeList.clear();
+         
          // Loop over blocks and add blocks to be refined to vector refineList
          vector<vmesh::GlobalID> refineList;
          const vmesh::LocalID startIndex = 0;
@@ -533,6 +542,7 @@ namespace projects {
             creal dvyCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
             creal dvzCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
 
+            Real sum = 0.0;
             for (uint kc=0; kc<WID; ++kc) {
                for (uint jc=0; jc<WID; ++jc) {
                   for (uint ic=0; ic<WID; ++ic) {
@@ -545,16 +555,23 @@ namespace projects {
                                              vxCell,vyCell,vzCell,
                                              dvxCell,dvyCell,dvzCell,popID);
                      cell->get_data(popID)[blockLID*SIZE_VELBLOCK + kc*WID2+jc*WID+ic] = average;
+                     sum += average;
                   }
                }
             }
+
+            if (sum <= getObjectWrapper().particleSpecies[popID].sparseMinValue) 
+              removeList.push_back(it->first);
          }
 
-         //refine = false;
+         // Remove blocks with f below sparse min value
+         for (size_t b=0; b<removeList.size(); ++b) cell->remove_velocity_block(removeList[b],popID);
+
          if (refineList.size() == 0) refine = false;
          ++currentLevel;
          if (currentLevel == Parameters::amrMaxVelocityRefLevel) refine = false;
       }
+
       delete refCriterion;
 
       if (rescalesDensity(popID) == true) rescaleDensity(cell,popID);
@@ -757,6 +774,7 @@ Project* createProject() {
       cerr << "Unknown project name!" << endl;
       abort();
    }
+
    getObjectWrapper().project = rvalue;
    return rvalue;
 }

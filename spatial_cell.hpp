@@ -161,6 +161,7 @@ namespace spatial_cell {
 
       Real* get_cell_parameters();
       const Real* get_cell_parameters() const;
+
       vmesh::LocalID get_number_of_velocity_blocks(const int& popID) const;
       vmesh::LocalID get_number_of_all_velocity_blocks() const;
       int get_number_of_populations() const;
@@ -206,6 +207,7 @@ namespace spatial_cell {
       const Real* get_velocity_grid_min_limits(const int& popID);
       const Real* get_velocity_grid_max_limits(const int& popID);
       bool initialize_mesh();
+
       static unsigned int invalid_block_index();
       static vmesh::GlobalID invalid_global_id();
       static vmesh::LocalID invalid_local_id();

@@ -846,7 +846,7 @@ bool checkForSameMembers( const vector<uint64_t> local_cells, const vector<uint6
 \param writeGhosts If true, writes out ghost cells (cells that exist on the process boundary so other process' cells)
 */
 bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-               DataReducer& dataReducer,
+               DataReducer* dataReducer,
                const uint& index,
                const bool writeGhosts ) {
    double allStart = MPI_Wtime();
@@ -862,10 +862,10 @@ bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    phiprof::start("writeGrid-reduced");
    // Create a name for the output file and open it with VLSVWriter:
    stringstream fname;
-   fname << P::systemWriteName[index] <<".";
+   fname << P::systemWritePath.at(index) << "/" << P::systemWriteName.at(index) << ".";
    fname.width(7);
    fname.fill('0');
-   fname << P::systemWrites[index] << ".vlsv";
+   fname << P::systemWrites.at(index) << ".vlsv";
 
 
    //Open the file with vlsvWriter:
@@ -931,8 +931,8 @@ bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    phiprof::start("reduceddataIO");
    //Write necessary variables:
    //Determines whether we write in floats or doubles
-   for( uint i = 0; i < dataReducer.size(); ++i ) {
-      if( writeDataReducer( mpiGrid, local_cells, (P::writeAsFloat==1), dataReducer, i, vlsvWriter ) == false ) return false;
+   if (dataReducer != NULL) for( uint i = 0; i < dataReducer->size(); ++i ) {
+      if( writeDataReducer( mpiGrid, local_cells, (P::writeAsFloat==1), *dataReducer, i, vlsvWriter ) == false ) return false;
    }
    
    phiprof::initializeTimer("Barrier","MPI","Barrier");
@@ -997,9 +997,10 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    //deallocate blocks in remote cells to decrease memory load
    deallocateRemoteCellBlocks(mpiGrid);
    phiprof::stop("DeallocateRemoteBlocks");
+   
    // Create a name for the output file and open it with VLSVWriter:
    stringstream fname;
-   fname << name <<".";
+   fname << P::restartWritePath << "/" << name << ".";
    fname.width(7);
    fname.fill('0');
    fname << fileIndex << ".vlsv";

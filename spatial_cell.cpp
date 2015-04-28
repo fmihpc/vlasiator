@@ -13,6 +13,10 @@ Copyright 2011-2015 Finnish Meteorological Institute
 #include "velocity_blocks.h"
 #include "object_wrapper.h"
 
+#ifndef NDEBUG
+   #define DEBUG_SPATIAL_CELL
+#endif
+
 using namespace std;
 
 namespace spatial_cell {
@@ -54,13 +58,13 @@ namespace spatial_cell {
    }
 
    SpatialCell::SpatialCell(const SpatialCell& other):
-      initialized(other.initialized),
-      mpiTransferEnabled(other.mpiTransferEnabled),
-      velocity_block_with_content_list(other.velocity_block_with_content_list),
-      velocity_block_with_no_content_list(other.velocity_block_with_no_content_list),
-      sysBoundaryFlag(other.sysBoundaryFlag),
-      sysBoundaryLayer(other.sysBoundaryLayer),
-      populations(other.populations) {
+     initialized(other.initialized),
+     mpiTransferEnabled(other.mpiTransferEnabled),
+     velocity_block_with_content_list(other.velocity_block_with_content_list),
+     velocity_block_with_no_content_list(other.velocity_block_with_no_content_list),
+     sysBoundaryFlag(other.sysBoundaryFlag),
+     sysBoundaryLayer(other.sysBoundaryLayer),
+     populations(other.populations) {
 
         //copy parameters
         for(unsigned int i=0;i< CellParams::N_SPATIAL_CELL_PARAMS;i++){
@@ -74,10 +78,11 @@ namespace spatial_cell {
         for(unsigned int i=0;i< bvolderivatives::N_BVOL_DERIVATIVES;i++){
            derivativesBVOL[i]=other.derivativesBVOL[i];
         }
-
+        
         //set null block data
         for (unsigned int i=0; i<WID3; ++i) null_block_data[i] = 0.0;
-     }
+   }
+
 
    /** Adds "important" and removes "unimportant" velocity blocks
     * to/from this cell.
@@ -101,6 +106,7 @@ namespace spatial_cell {
     * 
     * NOTE: The AMR mesh must be valid, otherwise this function will
     * remove some blocks that should not be removed.*/
+   #ifndef AMR
    void SpatialCell::adjust_velocity_blocks(const std::vector<SpatialCell*>& spatial_neighbors,
                                             const int& popID,bool doDeleteEmptyBlocks) {
       #ifdef DEBUG_SPATIAL_CELL
@@ -111,10 +117,6 @@ namespace spatial_cell {
       }
       #endif
       
-      #ifdef AMR
-//         return;
-      #endif
-
       //  This set contains all those cellids which have neighbors in any
       //  of the 6-dimensions Actually, we would only need to add
       //  local blocks with no content here, as blocks with content
@@ -122,15 +124,6 @@ namespace spatial_cell {
       //  we only check for removal for blocks with no content
       std::unordered_set<vmesh::GlobalID> neighbors_have_content;
 
-      #ifdef AMR
-      for (vmesh::LocalID block_index=0; block_index<velocity_block_with_content_list.size(); ++block_index) {
-         vmesh::GlobalID blockGID = velocity_block_with_content_list[block_index];
-         vector<vmesh::GlobalID> neighborGIDs;
-         vmesh.getNeighborsExistingAtSameLevel(blockGID,neighborGIDs);
-         neighbors_have_content.insert(neighborGIDs.begin(),neighborGIDs.end());
-         neighbors_have_content.insert(blockGID);
-      }
-      #else
       //add neighbor content info for velocity space neighbors to map. We loop over blocks
       //with content and raise the neighbors_have_content for
       //itself, and for all its neighbors
@@ -151,7 +144,6 @@ namespace spatial_cell {
             }
          }
       }
-      #endif
 
       //add neighbor content info for spatial space neighbors to map. We loop over
       //neighbor cell lists with existing blocks, and raise the
@@ -185,7 +177,81 @@ namespace spatial_cell {
             #endif
             
             bool removeBlock = false;
-            #ifdef AMR
+            std::unordered_set<vmesh::GlobalID>::iterator it = neighbors_have_content.find(blockGID);
+            if (it == neighbors_have_content.end()) removeBlock = true;
+
+            if (removeBlock == true) {
+               //No content, and also no neighbor have content -> remove
+               //and increment rho loss counters
+               const Real* block_parameters = get_block_parameters(popID)+blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
+               const Real DV3 = block_parameters[BlockParams::DVX]
+                 * block_parameters[BlockParams::DVY]
+                 * block_parameters[BlockParams::DVZ];
+               Real sum=0;
+               for (unsigned int i=0; i<WID3; ++i) sum += get_data(popID)[blockLID*SIZE_VELBLOCK+i];
+               this->parameters[CellParams::RHOLOSSADJUST] += DV3*sum;
+	       
+               // and finally remove block
+               this->remove_velocity_block(blockGID,popID);
+            }
+         }
+      }
+
+      // ADD all blocks with neighbors in spatial or velocity space (if it exists then the block is unchanged)
+      for (std::unordered_set<vmesh::GlobalID>::iterator it=neighbors_have_content.begin(); it != neighbors_have_content.end(); ++it) {
+         this->add_velocity_block(*it,popID);
+      }
+   }
+
+   #else       // AMR version
+
+   void SpatialCell::adjust_velocity_blocks(const std::vector<SpatialCell*>& spatial_neighbors,
+                                            const int& popID,bool doDeleteEmptyBlocks) {
+      //  This set contains all those cell ids which have neighbors in any
+      //  of the 6-dimensions Actually, we would only need to add
+      //  local blocks with no content here, as blocks with content
+      //  do not need to be created and also will not be removed as
+      //  we only check for removal for blocks with no content
+      std::unordered_set<vmesh::GlobalID> neighbors_have_content;
+
+      for (vmesh::LocalID block_index=0; block_index<velocity_block_with_content_list.size(); ++block_index) {
+         vmesh::GlobalID blockGID = velocity_block_with_content_list[block_index];
+         vector<vmesh::GlobalID> neighborGIDs;
+         vmesh.getNeighborsExistingAtSameLevel(blockGID,neighborGIDs);
+         neighbors_have_content.insert(neighborGIDs.begin(),neighborGIDs.end());
+         neighbors_have_content.insert(blockGID);
+      }
+
+      //add neighbor content info for spatial space neighbors to map. We loop over
+      //neighbor cell lists with existing blocks, and raise the
+      //flag for the local block with same block id
+      unordered_set<vmesh::GlobalID> spat_nbr_has_content;
+      for (std::vector<SpatialCell*>::const_iterator neighbor=spatial_neighbors.begin();
+           neighbor != spatial_neighbors.end(); ++neighbor) {
+         for (vmesh::LocalID block_index=0; block_index<(*neighbor)->velocity_block_with_content_list.size(); ++block_index) {
+            vmesh::GlobalID block = (*neighbor)->velocity_block_with_content_list[block_index];
+            spat_nbr_has_content.insert(block);
+         }
+      }      
+
+      // REMOVE all blocks in this cell without content + without neighbors with content
+      // better to do it in the reverse order, as then blocks at the
+      // end are removed first, and we may avoid copying extra data.
+      if (doDeleteEmptyBlocks) {
+         for (int block_index= this->velocity_block_with_no_content_list.size()-1; block_index>=0; --block_index) {
+            const vmesh::GlobalID blockGID = this->velocity_block_with_no_content_list[block_index];
+            #ifdef DEBUG_SPATIAL_CELL
+               if (blockGID == invalid_global_id())
+                  cerr << "Got invalid block at " << __FILE__ << ' ' << __LINE__ << endl; exit(1);               
+            #endif
+            const vmesh::LocalID blockLID = get_velocity_block_local_id(blockGID);
+            #ifdef DEBUG_SPATIAL_CELL
+               if (blockLID == invalid_local_id())
+                  cerr << "Could not find block in " << __FILE__ << ' ' << __LINE__ << endl; exit(1);               
+            #endif
+            
+            bool removeBlock = false;
+
             // Check this block in the neighbor cells
             if (neighbors_have_content.find(blockGID) != neighbors_have_content.end()) continue;
             
@@ -203,11 +269,7 @@ namespace spatial_cell {
             
             // It is safe to remove this block
             removeBlock = true;
-            #else
-            std::unordered_set<vmesh::GlobalID>::iterator it = neighbors_have_content.find(blockGID);
-            if (it == neighbors_have_content.end()) removeBlock = true;
-            #endif
-            
+
             if (removeBlock == true) {
                //No content, and also no neighbor have content -> remove
                //and increment rho loss counters
@@ -224,16 +286,77 @@ namespace spatial_cell {
             }
          }
       }
-    
-      #ifdef AMR
 
-      #else
-      // ADD all blocks with neighbors in spatial or velocity space (if it exists then the block is unchanged)
-      for (std::unordered_set<vmesh::GlobalID>::iterator it=neighbors_have_content.begin(); it != neighbors_have_content.end(); ++it) {
-         this->add_velocity_block(*it,popID);
+      // Filter the spat_nbr_has_content list so that it doesn't
+      // contain overlapping blocks
+      unordered_set<vmesh::GlobalID> ghostBlockList;
+      vector<vector<vmesh::GlobalID> > sorted(vmesh.getMaxAllowedRefinementLevel()+1);
+
+      // First sort the list according to refinement levels. This allows
+      // us to skip checking the existence of children and grandchildren below.
+      for (unordered_set<vmesh::GlobalID>::const_iterator it=spat_nbr_has_content.begin(); 
+           it!=spat_nbr_has_content.end(); ++it) {
+         sorted[vmesh.getRefinementLevel(*it)].push_back(*it);         
       }
-      #endif
+
+      // Iterate through the sorted block list, and determine the no-content
+      // blocks and their correct refinement levels that must exist
+      for (int r=sorted.size()-1; r >= 0; --r) {
+         for (size_t b=0; b<sorted[r].size(); ++b) {
+            // If parent exists, all siblings must exist
+            if (r > 0) {
+               if (spat_nbr_has_content.find(vmesh.getParent(sorted[r][b])) != spat_nbr_has_content.end()) {
+                  vector<vmesh::GlobalID> siblings;
+                  vmesh.getSiblings(sorted[r][b],siblings);
+                  ghostBlockList.insert(siblings.begin(),siblings.end());
+                  continue;
+               }
+            }
+
+            // If grandparent exists, parent octant must exist
+            if (r > 1) {
+               vmesh::GlobalID grandParentGID = vmesh.getParent(vmesh.getParent(sorted[r][b]));
+               if (spat_nbr_has_content.find(grandParentGID) != spat_nbr_has_content.end()) {
+                  vector<vmesh::GlobalID> siblings;
+                  vmesh.getSiblings(vmesh.getParent(sorted[r][b]),siblings);
+                  ghostBlockList.insert(siblings.begin(),siblings.end());
+                  continue;
+               }
+            }
+
+            // Parent or grandparent does not exist, add this block
+            ghostBlockList.insert(sorted[r][b]);
+         }         
+      }
+
+      // Add missing no-content blocks
+      for (unordered_set<vmesh::GlobalID>::const_iterator it=ghostBlockList.begin();
+           it != ghostBlockList.end(); ++it) {
+         // Parent already exists
+         if (vmesh.getLocalID(vmesh.getParent(*it)) != vmesh.invalidLocalID()) continue;
+
+         // If any children exist, make sure they all exist
+         std::vector<vmesh::GlobalID> children;
+         vmesh.getChildren(*it,children);
+         bool childrensExist = false;
+         for (size_t c=0; c<children.size(); ++c) {
+            if (vmesh.getLocalID(children[c]) != vmesh.invalidLocalID()) {
+               childrensExist = true;
+               break;
+            }  
+         }
+         if (childrensExist == true) {
+            // Attempt to add all children, only succeeds if the 
+            // children does not exist
+            for (size_t c=0; c<children.size(); ++c) add_velocity_block(children[c]);
+            continue;
+         }
+
+         add_velocity_block(*it);
+      }
    }
+
+   #endif
 
    void SpatialCell::adjustSingleCellVelocityBlocks(const int& popID) {
       #ifdef DEBUG_SPATIAL_CELL
@@ -260,7 +383,7 @@ namespace spatial_cell {
          exit(1);
       }
       #endif
-      
+
       // First create the parent (coarse) block and grab pointer to its data.
       // add_velocity_block initializes data to zero values.
       if (add_velocity_block(parent,popID) == false) return;
@@ -1150,10 +1273,12 @@ namespace spatial_cell {
    }
 
    void SpatialCell::refine_block(const vmesh::GlobalID& blockGID,std::map<vmesh::GlobalID,vmesh::LocalID>& insertedBlocks,const int& popID) {
+      #ifdef DEBUG_SPATIAL_CELL
       if (blockGID == invalid_global_id()) {
          std::cerr << "invalid global ID, skip refinement" << std::endl;
          return;
       }
+      #endif
 
       // Tell mesh to refine the given block. In return we get the erased 
       // and inserted blocks. Note that multiple blocks can be removed 

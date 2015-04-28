@@ -12,6 +12,7 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #include <vector>
 #include <sstream>
 #include <ctime>
+#include <omp.h>
 #include "grid.h"
 #include "vlasovmover.h"
 #include "definitions.h"
@@ -26,13 +27,15 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #include "ioread.h"
 #include "object_wrapper.h"
 
-#warning DEBUGGING can be removed
-#include <vlsv_writer.h>
-
 #ifdef PAPI_MEM
 #include "papi.h" 
 #endif 
 
+#ifndef NDEBUG
+   #ifdef AMR
+      #define DEBUG_AMR_VALIDATE
+   #endif
+#endif
 
 using namespace std;
 using namespace phiprof;
@@ -42,6 +45,26 @@ extern Logger logFile, diagnostic;
 void initVelocityGridGeometry(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 void initSpatialCellCoordinates(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
+
+#warning This is for testing, can be removed later
+void writeVelMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
+   const vector<CellID>& cells = getLocalCells();
+   
+   static int counter=0;
+   
+      stringstream fname;
+   fname << "VelMesh.";
+   fname.width(3);
+   fname.fill(0);
+   fname << counter << ".vlsv";
+   
+   vlsv::Writer vlsvWriter;
+   vlsvWriter.open(fname.str(),MPI_COMM_WORLD,0,MPI_INFO_NULL);
+   writeVelocityDistributionData(vlsvWriter,mpiGrid,cells,MPI_COMM_WORLD);
+   vlsvWriter.close();
+   
+   ++counter;
+}
 
 void initializeGrid(
    int argn,
@@ -169,6 +192,11 @@ void initializeGrid(
 
       for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          adjustVelocityBlocks(mpiGrid,cells,true,popID);
+         
+         #ifdef DEBUG_AMR_VALIDATE
+            writeVelMesh(mpiGrid);
+         #endif
+         
          validateMesh(mpiGrid,popID);
          shrink_to_fit_grid_data(mpiGrid); //get rid of excess data already here
 
@@ -812,113 +840,167 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    mpiGrid.add_neighborhood(POISSON_NEIGHBORHOOD_ID, neighborhood);
 }
 
-#warning This is for testing, can be removed later
-void writeVelMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
-   const vector<CellID>& cells = getLocalCells();
-
-   static int counter=0;
-   
-   stringstream fname;
-   fname << "VelMesh.";
-   fname.width(3);
-   fname.fill(0);
-   fname << counter << ".vlsv";
-   
-   vlsv::Writer vlsvWriter;
-   vlsvWriter.open(fname.str(),MPI_COMM_WORLD,0,MPI_INFO_NULL);
-   writeVelocityDistributionData(vlsvWriter,mpiGrid,cells,MPI_COMM_WORLD);   
-   vlsvWriter.close();
-   
-   ++counter;
-}
-
 bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const int& popID) {
-      bool rvalue = true;
-      #ifndef AMR
-         return rvalue;
+   bool rvalue = true;
+   #ifndef AMR
+      return rvalue;
+   #endif
+
+   phiprof::start("mesh validation (init)");
+         
+   bool internallyValid = false;
+      
+   // First make sure that all cells local to this process have a valid mesh.
+   // After the mesh is internally valid, we will update mesh structures 
+   // with remote neighbors for as many times as needed.
+   //
+   // Note that we still assume that each spatial cell has a valid mesh 
+   // with respect to velocity neighbors, i.e., we only validate the mesh 
+   // with respect to spatial neighbors here.
+   const vector<CellID>& cells = getLocalCells();
+   int iter=0;
+       
+   do {
+      #ifdef DEBUG_AMR_VALIDATE
+      if (iter == 0) {
+         writeVelMesh(mpiGrid);
+      }
       #endif
 
-      bool internallyValid = false;
-      
-      // First make sure that all cells local to this process have a valid mesh.
-      // After the mesh is internally valid, we will update mesh structures 
-      // with remote neighbors for as many times as needed.
-      //
-      // Note that we still assume that each spatial cell has a valid mesh 
-      // with respect to velocity neighbors, i.e., we only validate the mesh 
-      // with respect to spatial neighbors here.
-      if (internallyValid == false) {
-         const vector<CellID>& cells = getLocalCells();
-         int iter=0;
-         
-         do {
-            // Iterate over all local spatial cells and calculate 
-            // the necessary velocity block refinements
-            vector<set<vmesh::GlobalID> > refinements(cells.size());
+      // Update velocity mesh in remote cells
+      phiprof::start("MPI");
+      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE1);
+      mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
+      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE2);
+      mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
+      phiprof::stop("MPI");
             
-            for (size_t c=0; c<cells.size(); ++c) {
-               SpatialCell* cell = mpiGrid[cells[c]];
+      // Iterate over all local spatial cells and calculate 
+      // the necessary velocity block refinements
+      phiprof::start("calc refinements");
+      vector<set<vmesh::GlobalID> > refinements(cells.size());
+            
+      #pragma omp parallel for
+      for (size_t c=0; c<cells.size(); ++c) {
+         SpatialCell* cell = mpiGrid[cells[c]];
+            
+         // Get all spatial neighbors
+         const vector<CellID>* neighbors = mpiGrid.get_neighbors_of(cells[c],NEAREST_NEIGHBORHOOD_ID);
                
-               // Get all spatial neighbors
-               const vector<CellID>* neighbors = mpiGrid.get_neighbors_of(cells[c],NEAREST_NEIGHBORHOOD_ID);
-               
-               // Iterate over all spatial neighbors
-               for (size_t n=0; n<neighbors->size(); ++n) {
-                  CellID nbrCellID = (*neighbors)[n];
-                  const SpatialCell* nbr = mpiGrid[nbrCellID];
+         // Iterate over all spatial neighbors
+         for (size_t n=0; n<neighbors->size(); ++n) {
+            CellID nbrCellID = (*neighbors)[n];
+            const SpatialCell* nbr = mpiGrid[nbrCellID];
                   
-                  // Iterate over all blocks in the spatial neighbor, 
-                  // and check that the neighbor block does not have 
-                  // existing grandparent in this cell
-                  for (vmesh::LocalID b=0; b<nbr->get_number_of_velocity_blocks(popID); ++b) {
-                     vmesh::GlobalID blockGID = nbr->get_velocity_block_global_id(b,popID);
-                     vmesh::GlobalID grandParentGID = cell->velocity_block_has_grandparent(blockGID,popID);
-                     if (grandParentGID != cell->invalid_global_id()) {
-                        //cerr << "spatial nbr block " << blockGID << " has gparent " << grandParentGID << endl;
-                        
-                        refinements[c].insert(cell->get_velocity_block_parent(popID,blockGID));
-                     }
-                  }                  
+            // Iterate over all blocks in the spatial neighbor, 
+            // and check that the neighbor block does not have 
+            // existing grandparent in this cell
+            for (vmesh::LocalID b=0; b<nbr->get_number_of_velocity_blocks(popID); ++b) {
+               vmesh::GlobalID blockGID = nbr->get_velocity_block_global_id(b,popID);
+               vmesh::GlobalID grandParentGID = cell->velocity_block_has_grandparent(blockGID,popID);
+               if (grandParentGID != cell->invalid_global_id()) {
+                  //cerr << "spatial nbr block " << blockGID << " has gparent " << grandParentGID << endl;
+                  
+                  refinements[c].insert(cell->get_velocity_block_parent(popID,blockGID));
                }
             }
-            
-            if (iter == 0) writeVelMesh(mpiGrid);
-            
-            // Apply refinements
-            for (size_t c=0; c<cells.size(); ++c) {
-               if (refinements[c].size() > 0) {
-                  cerr << "cell " << cells[c] << " needs " << refinements[c].size() << " refinements" << endl;
-                  cerr << "\t current # blocks is " << mpiGrid[cells[c]]->get_number_of_velocity_blocks(popID) << endl;
-               }
-            }
-            
-            writeVelMesh(mpiGrid);
-            ++iter;
-            
-            // Exit if none of the spatial cells needs to refine its mesh
-            if (refinements.size() == 0) break;
-            break;
-         } while (true);
+         }
       }
-         
-      do {
-         // Update remote neighbor velocity meshes. After the transfers complete,
-         // mpi_number_of_blocks and mpi_velocity_block_list are valid. The mesh 
-         // classes (vmesh) have not been updated yet, though.
-         phiprof::start("Velocity block list update");
-         SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE1);
-         mpiGrid.update_copies_of_remote_neighbors(DIST_FUNC_NEIGHBORHOOD_ID);
-         SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE2);
-         mpiGrid.update_copies_of_remote_neighbors(DIST_FUNC_NEIGHBORHOOD_ID);
-         phiprof::stop("Velocity block list update");
+      phiprof::stop("calc refinements");
+            
+      // Apply refinements
+      phiprof::start("refine mesh");
+      bool needAnotherPass=false;
+      vector<vector<pair<vmesh::GlobalID,vmesh::LocalID> > > newBlocks(cells.size());
+            
+      #pragma omp parallel for
+      for (size_t c=0; c<cells.size(); ++c) {
+         // Refine blocks (touches mesh structure, cannot be threaded)
+         if (refinements[c].size() > 0) needAnotherPass = true;
+         SpatialCell* cell = mpiGrid[cells[c]];
+         map<vmesh::GlobalID,vmesh::LocalID> insertedBlocks;
+         for (set<vmesh::GlobalID>::const_iterator b=refinements[c].begin(); b!=refinements[c].end(); ++b) {
+            cell->refine_block(*b,insertedBlocks,popID);
+         }
 
-         int16_t meshChanged=0;
-         
-         // Figure out if we need to continue mesh updates.
-         int16_t globalSuccess=0;
-         MPI_Allreduce(&meshChanged,&globalSuccess,1,MPI_Type<int16_t>(),MPI_MAX,MPI_COMM_WORLD);
-         if (globalSuccess == 0) break;
-      } while (true);
-      
-      return rvalue;
-   }
+         // Store all new block local IDs
+         for (map<vmesh::GlobalID,vmesh::LocalID>::const_iterator it=insertedBlocks.begin(); it!=insertedBlocks.end(); ++it) {
+            vmesh::LocalID newLocalID = cell->get_velocity_block_local_id(it->first,popID);
+            if (newLocalID != cell->invalid_local_id()) {
+               newBlocks[c].push_back(make_pair(it->first,newLocalID));
+            }
+         }
+      }
+      phiprof::stop("refine mesh");
+
+      // Recalculate distribution function values on all blocks that were refined
+      phiprof::start("recalculate distrib. functions");
+      vector<vector<vmesh::GlobalID> > removedBlocks(cells.size());
+
+      #warning Chance for false sharing, counters may be on same cache line
+      int counter[omp_get_max_threads()];
+      vector<vector<vmesh::GlobalID> > threadRemBlocks(omp_get_max_threads());
+
+      #pragma omp parallel
+      {
+         const int tid = omp_get_thread_num();
+         for (size_t c=0; c<newBlocks.size(); ++c) {
+            SpatialCell* cell = mpiGrid[cells[c]];
+            counter[tid] = 0;
+            
+            // Recalculate distribution function and if f is below the sparse 
+            // min value, add the block to remove list
+            #pragma omp for
+            for (size_t b=0; b<newBlocks[c].size(); ++b) {
+               if (getObjectWrapper().project->setVelocityBlock(cell,newBlocks[c][b].second) <= Parameters::sparseMinValue) {
+                  threadRemBlocks[tid].push_back(newBlocks[c][b].first);
+                  ++counter[tid];
+               }
+            }
+
+            // Sum up the number of removed blocks to master thread
+            // and resize the per-cell vector to correct size
+            if (tid == 0) {
+               size_t sum = 0;
+               for (int t=0; t<omp_get_max_threads(); ++t) sum += counter[t];
+               removedBlocks[c].resize(sum);
+            }
+            #pragma omp barrier
+            
+            // Copy global IDs of removed blocks to the per-cell vector
+            size_t myOffset = 0;
+            for (int t=0; t<tid; ++t) myOffset += counter[t];
+            
+            for (int b=0; b<counter[tid]; ++b) {
+               removedBlocks[c][b+myOffset] = threadRemBlocks[tid][b];
+            }
+         }
+      }
+
+      // Remove blocks with f below sparse min value
+      #pragma omp parallel for
+      for (size_t c=0; c<removedBlocks.size(); ++c) {
+         SpatialCell* cell = mpiGrid[cells[c]];
+         // We touch mesh structure here, cannot be threaded
+         for (size_t b=0; b<removedBlocks[c].size(); ++b) {
+            cell->remove_velocity_block(removedBlocks[c][b],popID);
+         }
+      }
+      phiprof::stop("recalculate distrib. functions");
+       
+      #ifdef DEBUG_AMR_VALIDATE
+         writeVelMesh(mpiGrid);
+      #endif
+      ++iter;
+       
+      // Exit if all processes are done with mesh refinements
+      int16_t globalSuccess = 0;
+      int16_t localSuccess = 0;
+      if (needAnotherPass == true) localSuccess=1;
+      MPI_Allreduce(&localSuccess,&globalSuccess,1,MPI_Type<int16_t>(),MPI_MAX,MPI_COMM_WORLD);
+      if (globalSuccess == 0) break;
+   } while (true);
+   
+   phiprof::stop("mesh validation (init)");
+   return rvalue;
+}
