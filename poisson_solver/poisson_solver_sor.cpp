@@ -267,25 +267,23 @@ namespace poisson {
                // if we are at the lower y-boundary, otherwise set both 
                // y-neighbors point to -y neighbor.
                if (indices[1] == 1) {
+                  cache[3] = cache[0];
                   indices[1] += 1;
                   dummy = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
                   if (dummy == NULL) {
-                     cache[3] = bndryCellParams;
                      cache[4] = bndryCellParams;
                   } else {
-                     cache[3] = dummy->parameters;
                      cache[4] = dummy->parameters;
                   }
                   indices[1] -= 1;
                } else {
+                  cache[4] = cache[0];
                   indices[1] -= 1;
                   dummy = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
                   if (dummy == NULL) {
                      cache[3] = bndryCellParams;
-                     cache[4] = bndryCellParams;
                   } else {
                      cache[3] = dummy->parameters;
-                     cache[4] = dummy->parameters;
                   }
                   indices[1] += 1;
                }

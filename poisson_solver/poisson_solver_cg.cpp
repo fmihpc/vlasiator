@@ -63,7 +63,7 @@ namespace poisson {
         + cell.parameters[3][CellParams::PHI_TMP]
         + cell.parameters[4][CellParams::PHI_TMP];
       cell.variables[cgvar::A_TIMES_P] = A_p;
-      mySum1 += cell.parameters[0][CellParams::PHI_TMP]*A_p;
+      mySum1 += cell.parameters[0][CellParams::PHI_TMP]*A_p;      
    }
    
    /** Calculate the value of alpha parameter.
@@ -211,25 +211,23 @@ namespace poisson {
                // if we are at the lower y-boundary, otherwise set both 
                // y-neighbors point to -y neighbor.
                if (indices[1] == 1) {
+                  cache[3] = cache[0];
                   indices[1] += 1;
                   dummy = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
                   if (dummy == NULL) {
-                     cache[3] = bndryCellParams;
                      cache[4] = bndryCellParams;
                   } else {
-                     cache[3] = dummy->parameters;
                      cache[4] = dummy->parameters;
                   }
                   indices[1] -= 1;
                } else {
+                  cache[4] = cache[0];
                   indices[1] -= 1;
                   dummy = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
                   if (dummy == NULL) {
                      cache[3] = bndryCellParams;
-                     cache[4] = bndryCellParams;
                   } else {
                      cache[3] = dummy->parameters;
-                     cache[4] = dummy->parameters;
                   }
                   indices[1] += 1;
                }
@@ -328,7 +326,7 @@ namespace poisson {
 
    bool PoissonSolverCG::solve(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
       bool success = true;
-
+      
       // If mesh partitioning has changed, recalculate pointer caches
       if (Parameters::meshRepartitioned == true) {
          phiprof::start("Pointer Caching");
@@ -380,7 +378,7 @@ namespace poisson {
          exit(1);
       }
 
-      int iterations = 0;
+      iterations = 0;
       Real relPotentialChange = 0;
       do {
          const int N_iterations = 1;
@@ -433,18 +431,18 @@ namespace poisson {
       if (startIteration(bndryCellPointers) == false) success = false;
       SpatialCell::set_mpi_transfer_type(Transfer::CELL_PHI,false);
       mpiGrid.start_remote_neighbor_copy_updates(POISSON_NEIGHBORHOOD_ID);
-      
+
       if (startIteration(innerCellPointers) == false) success = false;
       mpiGrid.wait_remote_neighbor_copy_updates(POISSON_NEIGHBORHOOD_ID);
 
       return success;
    }
-   
+
    /** Calculate the value of alpha for this iteration.
     * @return If true, CG solver is ready to iterate.*/
    bool PoissonSolverCG::startIteration(std::vector<CellCache3D<cgvar::SIZE> >& cells) {
       phiprof::start("start iteration");
-      
+
       #pragma omp parallel for
       for (size_t c=0; c<cells.size(); ++c) {
          // Convert charge density to charge density times cell size squared / epsilon0:
