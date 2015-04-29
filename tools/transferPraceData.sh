@@ -307,7 +307,7 @@ function transferFileListRsync {
                 then
                     echo "$(date) ${file}: WARNING file with the same name already exists on ${localTapePath} - file not moved from staging at $(pwd)"
                 else
-                    mv ${file} ${localTapePath}/
+                    mv ${file} ${localTapePath}/ 2>> errlog
                     echo "$(date) ${file}: Moved from staging at $( pwd ) to ${localTapePath}"
                 fi
                 retval=1
@@ -338,7 +338,7 @@ transferPraceData userserver path transfer_file local_storage_path
     Please run grid_proxy_init first when using the gridFTP backend.
    
     user             Username, option not used for gridftp or local-dd transfers (put arbitrary name)
-    server           One of: Hermit (gridftp), Abel (gridftp), Sisu-g (gridftp) Sisu-r (rsync) Sisu-ds (dd|ssh) localhost-dd (local-dd)
+    server           One of: Hermit (gridftp), Hornet-r (rsync), Abel (gridftp), Sisu-g (gridftp) Sisu-r (rsync) Sisu-ds (dd|ssh) localhost-dd (local-dd)
     path             is a path on remote machine (e.g. /univ_1/ws1/ws/iprsalft-paper1-runs-0/2D/ecliptic/AAE)"
     transfer_file    is a file in the path on the remote machine created using ls -la *myfiles_to_transfer* > transfer_list.txt"       
     local_storage_path  is the folder where the files are ultimately copied after transfer, e.g., a tape drive. During transfer they go to the current folder. "." is also allowed.
@@ -361,6 +361,10 @@ elif [ $machine == "Hermit" ]
 then
     server=gsiftp://gridftp-fr1.hww.de:2812
     method=gridftp
+elif [ $machine == "Hornet-r" ]
+then
+    server=hornet.hww.de
+    method=rsync
 elif [ $machine == "Sisu-g" ]
 then
     server=gsiftp://gridftp.csc.fi:2811
@@ -378,7 +382,7 @@ then
     server=localhost
     method=ddssh
 else
-    echo "Allowed server values are Hermit, Abel, Sisu-g, Sisu-r, Sisu-ds, localhost-dd"
+    echo "Allowed server values are Hermit, Hornet-r, Abel, Sisu-g, Sisu-r, Sisu-ds, localhost-dd"
     exit 1
 fi
 
