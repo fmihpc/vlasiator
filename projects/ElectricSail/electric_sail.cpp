@@ -57,6 +57,7 @@ namespace projects {
       RP::add("ElectricSail.tetherCharge","Tether charge per meter in elementary charges",(Real)200e9);
       RP::add("ElectricSail.timeDependentCharge","If true, tether charge is time dependent (bool)",false);
       RP::add("ElectricSail.tetherChargeRiseTime","Time when tether charge reaches its maximum value",0.0);
+      RP::add("ElectricSail.useBackgroundField","Use background field instead of external charge density?",false);
 
       projects::ReadGaussianPopulation rgp;
       rgp.addParameters("ElectricSail");
@@ -121,6 +122,7 @@ namespace projects {
       RP::get("ElectricSail.tetherCharge",tetherUnitCharge);
       RP::get("ElectricSail.timeDependentCharge",timeDependentCharge);
       RP::get("ElectricSail.tetherChargeRiseTime",tetherChargeRiseTime);
+      RP::get("ElectricSail.usebackgroundField",useBackgroundField);
       
       projects::ReadGaussianPopulation rgp;
       projects::GaussianPopulation gaussPops;
@@ -206,11 +208,19 @@ namespace projects {
          factor = min((Real)1.0,factor);
       }
 
-      Real rad = sqrt(pos[0]*pos[0]+pos[1]*pos[1]+pos[2]*pos[2]);
-      Real D3 = cell->parameters[CellParams::DX]*cell->parameters[CellParams::DY];
-      if (rad <= 5) cell->parameters[CellParams::RHOQ_EXT] = 0.25*factor*tetherUnitCharge/D3/physicalconstants::EPS_0;
+      if (useBackgroundField == false) {
+         Real rad = sqrt(pos[0]*pos[0]+pos[1]*pos[1]+pos[2]*pos[2]);
+         Real D3 = cell->parameters[CellParams::DX]*cell->parameters[CellParams::DY];
+         if (rad <= 5) cell->parameters[CellParams::RHOQ_EXT] = 0.25*factor*tetherUnitCharge/D3/physicalconstants::EPS_0;
+         
+         cell->parameters[CellParams::BGEXVOL] = 0;
+         cell->parameters[CellParams::BGEYVOL] = 0;
+         cell->parameters[CellParams::BGEZVOL] = 0;
+         return;
+      }
+       
+      cell->parameters[CellParams::RHOQ_EXT] = 0;
 
-      /*
       const Real EPSILON = 1e-30;
       int N = 1;
       int N3_sum = 0;
@@ -237,7 +247,7 @@ namespace projects {
             E_current[1] += E_dummy[1];
             E_current[1] += E_dummy[2];
          }
-         
+
          // Check if the current estimate of volume-averaged E is good enough
          Real delta = 0;
          delta = max(delta,(E_current[0]-E_vol[0])/(E_current[0]+EPSILON));
@@ -256,7 +266,7 @@ namespace projects {
       cell->parameters[CellParams::BGEXVOL] = E_vol[0] / N3_sum;
       cell->parameters[CellParams::BGEYVOL] = E_vol[1] / N3_sum;
       cell->parameters[CellParams::BGEZVOL] = E_vol[2] / N3_sum;
-       */
+
    }
 
    void ElectricSail::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
@@ -344,17 +354,18 @@ namespace projects {
    }
 
    void ElectricSail::tetherElectricField(Real* x,Real* E) const {
-      E[0] = 0;
-      E[1] = 0;
-      E[2] = 0;
-      return;
-      
-      const Real constant = tetherUnitCharge / (2*M_PI*physicalconstants::EPS_0);
+      const Real minRadius2 = 5.0*5.0;
+      Real constant = tetherUnitCharge / (2*M_PI*physicalconstants::EPS_0);
+      if (timeDependentCharge == true) {
+         Real factor = max((Real)0.0,1.0+(Parameters::t-tetherChargeRiseTime)/tetherChargeRiseTime);
+         factor = min((Real)1.0,factor);
+         constant *= factor;
+      }
+
       E[0] = constant * (x[0] - tether_x);
       E[1] = constant * (x[1] - tether_y);
-
       Real radius2 = (x[0]-tether_x)*(x[0]-tether_x) + (x[1]-tether_y)*(x[1]-tether_y);
-      radius2 = max(1e-12,radius2);
+      radius2 = max(minRadius2,radius2);
       E[0] /= radius2;
       E[1] /= radius2;
    }

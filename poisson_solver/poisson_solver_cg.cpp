@@ -63,7 +63,7 @@ namespace poisson {
         + cell.parameters[3][CellParams::PHI_TMP]
         + cell.parameters[4][CellParams::PHI_TMP];
       cell.variables[cgvar::A_TIMES_P] = A_p;
-      mySum1 += cell.parameters[0][CellParams::PHI_TMP]*A_p;      
+      mySum1 += cell.parameters[0][CellParams::PHI_TMP]*A_p;
    }
    
    /** Calculate the value of alpha parameter.
@@ -160,6 +160,7 @@ namespace poisson {
       for (size_t c=0; c<cells.size(); ++c) {
          // DO_NOT_COMPUTE cells are skipped
          if (mpiGrid[cells[c]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
+         if (mpiGrid[cells[c]]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) continue;
 
          // Calculate cell i/j/k indices
          dccrg::Types<3>::indices_t indices = mpiGrid.mapping.get_indices(cells[c]);
@@ -185,17 +186,30 @@ namespace poisson {
                break;
             case sysboundarytype::NOT_SYSBOUNDARY:
                // Fetch pointers to this cell's (cell) parameters array, 
-               // and pointers to +/- xyz face neighbors' arrays
+               // and pointers to +/- xyz face neighbors' arrays               
                indices[0] -= 1; cache[1] = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ]->parameters;
                indices[0] += 2; cache[2] = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ]->parameters;
                indices[0] -= 1;
             
-               indices[1] -= 1; cache[3] = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ]->parameters;
+               if (indices[1] == 2) {
+                  indices[1] -= 1;
+                  dummy = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
+                  if (dummy->sysBoundaryFlag == sysboundarytype::ANTISYMMETRIC) {
+                     cache[3] = cache[0];
+                  } else {
+                     cache[3] = dummy->get_cell_parameters();
+                  }
+               } else {
+                  indices[1] -= 1; cache[3] = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ]->parameters;
+               }
+
                indices[1] += 2; cache[4] = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ]->parameters;
                indices[1] -= 1;
                break;
-               
+
             case sysboundarytype::ANTISYMMETRIC:
+               continue;
+               
                // Get +/- x-neighbor pointers
                indices[0] -= 1;
                dummy = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
@@ -326,7 +340,7 @@ namespace poisson {
 
    bool PoissonSolverCG::solve(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
       bool success = true;
-      
+
       // If mesh partitioning has changed, recalculate pointer caches
       if (Parameters::meshRepartitioned == true) {
          phiprof::start("Pointer Caching");

@@ -49,6 +49,9 @@ namespace projects {
                                   * Only has an effect if ElectricSail::timeDependentCharge is true.*/
       Real tetherUnitCharge;     /**< Unit charge per meter of the tether in Coulombs.*/
       bool timeDependentCharge;  /**< If true, tether charge is time-dependent.*/
+      bool useBackgroundField;   /**< If true, then tether electric field is calculated as a constant 
+                                  * background field. If false, a charge placed near the tether position
+                                  * is used instead.*/
 
       void tetherElectricField(Real* x,Real* E) const;
 
