@@ -122,7 +122,7 @@ namespace projects {
       RP::get("ElectricSail.tetherCharge",tetherUnitCharge);
       RP::get("ElectricSail.timeDependentCharge",timeDependentCharge);
       RP::get("ElectricSail.tetherChargeRiseTime",tetherChargeRiseTime);
-      RP::get("ElectricSail.usebackgroundField",useBackgroundField);
+      RP::get("ElectricSail.useBackgroundField",useBackgroundField);
       
       projects::ReadGaussianPopulation rgp;
       projects::GaussianPopulation gaussPops;
