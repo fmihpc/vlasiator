@@ -378,7 +378,7 @@ Project* createProject() {
    if (Parameters::projectName == "PoissonTest") {
       return new projects::PoissonTest;
    }
-   cerr << "Unknown project name!" << endl;
+   cerr << "Unknown project name " << Parameters::projectName << "!" << endl;
    abort();
 }
 

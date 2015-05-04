@@ -75,7 +75,7 @@ void getCellCoordinates( const CellStructure & cellStruct, const uint64_t _cellI
 //Output:
 //[0] CellStructure cellStruct -- Holds info on cellStruct. The members are given the correct values here (Note: CellStructure could be made into a class
 //instead of a struct with this as the constructor but since a geometry class has already been coded before, it would be a waste)
-void setCellVariables( newVlsv::Reader & vlsvReader, CellStructure & cellStruct ) {
+void setCellVariables( vlsvinterface::Reader & vlsvReader, CellStructure & cellStruct ) {
    //Get x_min, x_max, y_min, y_max, etc so that we know where the given cell id is in (loadParameter returns char*, hence the cast)
    //O: Note: Not actually sure if these are Real valued or not
    Real x_min, x_max, y_min, y_max, z_min, z_max, vx_min, vx_max, vy_min, vy_max, vz_min, vz_max;
@@ -159,13 +159,6 @@ void setCellVariables( newVlsv::Reader & vlsvReader, CellStructure & cellStruct 
 
 static DBfile* fileptr = NULL; // Pointer to file opened by SILO
 
-bool isDataTypeUint( VLSV::datatype& dataType ) {
-   if( dataType == VLSV::UINT ) {
-      return true;
-   } else {
-      return false;
-   }
-}
 
 bool isDataTypeUint( vlsv::datatype::type& dataType ) {
    if( dataType == vlsv::datatype::type::UINT ) {
@@ -199,32 +192,6 @@ uint64_t convUInt(const char* ptr,const T& dataType,const uint64_t& dataSize) {
    return 0;
 }
 
-
-int SiloType(const VLSV::datatype& dataType,const uint64_t& dataSize) {
-   switch (dataType) {
-    case VLSV::INT:
-      if (dataSize == 2) return DB_SHORT;
-      else if (dataSize == 4) return DB_INT;
-      else if (dataSize == 8) return DB_LONG;
-      else return -1;
-      break;
-    case VLSV::UINT:
-      if (dataSize == 2) return DB_SHORT;
-      else if (dataSize == 4) return DB_INT;
-      else if (dataSize == 8) return DB_LONG;
-      else return -1;
-      break;
-    case VLSV::FLOAT:
-      if (dataSize == 4) return DB_FLOAT;
-      else if (dataSize == 8) return DB_DOUBLE;
-      else return -1;
-      break;
-    case VLSV::UNKNOWN:
-      cout << "BAD DATATYPE AT " << __FILE__ << " " << __LINE__ << endl;
-      break;
-   }
-   return -1;
-}
 
 int SiloType(const datatype::type & dataType, const uint64_t & dataSize) {
    switch (dataType) {
@@ -386,188 +353,9 @@ bool convertMeshVariable(T & vlsvReader,const string& meshName,const string& var
 }
 
 
-bool convertMesh(oldVlsv::Reader & vlsvReader,const string& meshName) {
-   bool success = true;
-   const float EPS = 1.0e-7;
-   
-   // First task is to push all unique node coordinates into a map.
-   // This is not too difficult for unrefined grids, since each spatial cell stores
-   // its bottom lower left corner coordinate and size. For refined grid the situation
-   // is more complex, as there are more unique nodes than the lower left corners:
-   map<NodeCrd<Real>,uint64_t,NodeComp> nodes;
-   
-   vlsv::datatype::type dataType;
-   uint64_t arraySize,vectorSize,dataSize;
-   list< pair<string, string> > xmlAttributes;
-   xmlAttributes.push_back( make_pair("name", meshName) );
-   if (vlsvReader.getArrayInfo("COORDS",xmlAttributes,arraySize,vectorSize,dataType,dataSize) == false) return false;
-   
-   // Read the coordinate array one node (of a spatial cell) at a time 
-   // and create a map which only contains each existing node once.
-   char* coordsBuffer = new char[vectorSize*dataSize];
-   Real* ptr = reinterpret_cast<Real*>(coordsBuffer);
-   for (uint64_t i=0; i<arraySize; ++i) {
-      if (vlsvReader.readArray("COORDS",meshName,i,1,coordsBuffer) == false) {success = false; break;}
-      
-      // Insert all eight nodes of a cell into map nodes.
-      // NOTE: map is a unique associative container - given a suitable comparator, map 
-      // will filter out duplicate nodes.
-      creal x  = ptr[0];
-      creal y  = ptr[1];
-      creal z  = ptr[2];
-      creal dx = ptr[3];
-      creal dy = ptr[4];
-      creal dz = ptr[5];
 
-      Real X0 = x;
-      Real X1 = x+dx;
-      Real Y0 = y;
-      Real Y1 = y+dy;
-      Real Z0 = z;
-      Real Z1 = z+dz;
-      
-      // Flush very small coordinate values to zero:
-      if (fabs(X0) < EPS) X0 = 0.0;
-      if (fabs(X1) < EPS) X1 = 0.0;
-      if (fabs(Y0) < EPS) Y0 = 0.0;
-      if (fabs(Y1) < EPS) Y1 = 0.0;
-      if (fabs(Z0) < EPS) Z0 = 0.0;
-      if (fabs(Z1) < EPS) Z1 = 0.0;
 
-      nodes.insert(make_pair(NodeCrd<Real>(X0,Y0,Z0),0));
-      nodes.insert(make_pair(NodeCrd<Real>(X1,Y0,Z0),0));
-      nodes.insert(make_pair(NodeCrd<Real>(X1,Y1,Z0),0));
-      nodes.insert(make_pair(NodeCrd<Real>(X0,Y1,Z0),0));
-      nodes.insert(make_pair(NodeCrd<Real>(X0,Y0,Z1),0));
-      nodes.insert(make_pair(NodeCrd<Real>(X1,Y0,Z1),0));
-      nodes.insert(make_pair(NodeCrd<Real>(X1,Y1,Z1),0));
-      nodes.insert(make_pair(NodeCrd<Real>(X0,Y1,Z1),0));
-   }
-   if (success == false) {
-      cerr << "ERROR reading array COORDS" << endl;
-   }
-
-   // Copy unique node x,y,z coordinates into separate arrays, 
-   // which will be passed to silo writer:
-   uint64_t counter = 0;
-   Real* xcrds = new Real[nodes.size()];
-   Real* ycrds = new Real[nodes.size()];
-   Real* zcrds = new Real[nodes.size()];
-   for (map<NodeCrd<Real>,uint64_t>::iterator it=nodes.begin(); it!=nodes.end(); ++it) {
-      it->second = counter;
-      xcrds[counter] = it->first.x;
-      ycrds[counter] = it->first.y;
-      zcrds[counter] = it->first.z;
-      ++counter;
-   }
-
-   // Read through the coordinate array again and create a node list. Each 3D spatial cell is 
-   // associated with 8 nodes, and most of these nodes are shared with neighbouring cells. In 
-   // order to get VisIt display the data correctly, the duplicate nodes should not be used. 
-   // Here we create a list of indices into xcrds,ycrds,zcrds arrays, with eight entries per cell:
-   int* nodelist = new int[8*arraySize];
-   for (uint64_t i=0; i<arraySize; ++i) {
-      // Read the bottom lower left corner coordinates of a cell and its sizes. Note 
-      // that zones will end up in SILO file in the same order as they are in VLSV file.
-      if (vlsvReader.readArray("COORDS",meshName,i,1,coordsBuffer) == false) {
-         cerr << "Failed to read array coords" << endl;
-         success = false; 
-         break;
-      }
-      creal x  = ptr[0];
-      creal y  = ptr[1];
-      creal z  = ptr[2];
-      creal dx = ptr[3];
-      creal dy = ptr[4];
-      creal dz = ptr[5];
-
-      // Calculate x,y,z coordinates of the eight nodes of the cell:
-      Real X0 = x;
-      Real X1 = x+dx;
-      Real Y0 = y;
-      Real Y1 = y+dy;
-      Real Z0 = z;
-      Real Z1 = z+dz;
-      
-      // Flush very small coordinate values to zero:
-      if (fabs(X0) < EPS) X0 = 0.0;
-      if (fabs(X1) < EPS) X1 = 0.0;
-      if (fabs(Y0) < EPS) Y0 = 0.0;
-      if (fabs(Y1) < EPS) Y1 = 0.0;
-      if (fabs(Z0) < EPS) Z0 = 0.0;
-      if (fabs(Z1) < EPS) Z1 = 0.0;
-      
-      // Search the cell's nodes from the map created above. For each node in nodelist 
-      // store an index into an array which only contains the unique nodes:
-      map<NodeCrd<Real>,uint64_t,NodeComp>::const_iterator it;
-      it = nodes.find(NodeCrd<Real>(X0,Y0,Z0)); if (it == nodes.end()) success = false; nodelist[i*8+0] = it->second;
-      it = nodes.find(NodeCrd<Real>(X1,Y0,Z0)); if (it == nodes.end()) success = false; nodelist[i*8+1] = it->second;
-      it = nodes.find(NodeCrd<Real>(X1,Y1,Z0)); if (it == nodes.end()) success = false; nodelist[i*8+2] = it->second;
-      it = nodes.find(NodeCrd<Real>(X0,Y1,Z0)); if (it == nodes.end()) success = false; nodelist[i*8+3] = it->second;
-      it = nodes.find(NodeCrd<Real>(X0,Y0,Z1)); if (it == nodes.end()) success = false; nodelist[i*8+4] = it->second;
-      it = nodes.find(NodeCrd<Real>(X1,Y0,Z1)); if (it == nodes.end()) success = false; nodelist[i*8+5] = it->second;
-      it = nodes.find(NodeCrd<Real>(X1,Y1,Z1)); if (it == nodes.end()) success = false; nodelist[i*8+6] = it->second;
-      it = nodes.find(NodeCrd<Real>(X0,Y1,Z1)); if (it == nodes.end()) success = false; nodelist[i*8+7] = it->second;
-   }
-   delete coordsBuffer;
-   if (success == false) {
-      cerr << "Failed to find node(s)" << endl;
-   }
-   
-   // Write the unstructured mesh to SILO file:
-   const int N_dims  = 3;                      // Number of dimensions
-   const int N_nodes = nodes.size();           // Total number of nodes
-   const int N_zones = arraySize;              // Total number of zones (=spatial cells)
-   int shapeTypes[] = {DB_ZONETYPE_HEX};       // Hexahedrons only
-   int shapeSizes[] = {8};                     // Each hexahedron has 8 nodes
-   int shapeCnt[] = {N_zones};                 // Only 1 shape type (hexahedron)
-   const int N_shapes = 1;                     //  -- "" --
-   
-   void* coords[3];                            // Pointers to coordinate arrays
-   coords[0] = xcrds;
-   coords[1] = ycrds;
-   coords[2] = zcrds;
-   
-   // Write zone list into silo file:
-   const string zoneListName = meshName + "Zones";
-   if (DBPutZonelist2(fileptr,zoneListName.c_str(),N_zones,N_dims,nodelist,8*arraySize,0,0,0,shapeTypes,shapeSizes,shapeCnt,N_shapes,NULL) < 0) success = false;
-   
-   // Write grid into silo file:
-   if (DBPutUcdmesh(fileptr,meshName.c_str(),N_dims,NULL,coords,N_nodes,N_zones,zoneListName.c_str(),NULL,SiloType(dataType,dataSize),NULL) < 0) success = false;
-
-   nodes.clear();
-   delete nodelist;
-   delete xcrds;
-   delete ycrds;
-   delete zcrds;
-
-   // Write the cell IDs as a variable:
-   xmlAttributes.clear();
-   xmlAttributes.push_back( make_pair("name", meshName) );
-   if (vlsvReader.getArrayInfo("MESH",xmlAttributes,arraySize,vectorSize,dataType,dataSize) == false) {
-      cerr << "ERROR, failed to read mesh at " << __FILE__ << " " << __LINE__ << endl;
-      return false;
-   }
-   char* buffer = new char[arraySize*vectorSize*dataSize];
-   if (vlsvReader.readArray("MESH",meshName,0,arraySize,buffer) == false) success = false;
-   string cellIDlabel = "Cell ID";
-   DBoptlist* optList = DBMakeOptlist(1);   
-   DBAddOption(optList,DBOPT_LABEL,const_cast<char*>(cellIDlabel.c_str()));   
-   if (DBPutUcdvar1(fileptr,"CellID",meshName.c_str(),buffer,arraySize,NULL,0,SiloType(dataType,dataSize),DB_ZONECENT,NULL) < 0) success = false;
-   delete buffer;
-   DBFreeOptlist(optList);
-   
-   // Write all variables of this mesh into silo file:
-   list<string> variables;
-   vlsvReader.getVariableNames(meshName,variables);
-   for (list<string>::const_iterator it=variables.begin(); it!=variables.end(); ++it) {
-      if (convertMeshVariable(vlsvReader,meshName,*it) == false) success = false;
-   }
-   return success;
-  
-}
-
-bool convertMesh(newVlsv::Reader & vlsvReader,const string& meshName) {
+bool convertMesh(vlsvinterface::Reader & vlsvReader,const string& meshName) {
    bool success = true;
    const float EPS = 1.0e-7;
    
@@ -842,12 +630,7 @@ int main(int argn,char* args[]) {
    for(size_t entryName = 0; entryName < fileList.size(); entryName++) {
       if(entryName%ntasks == (uint)rank) {
          cout << "\tProc " << rank << " converting '" << fileList[entryName] << "'" << endl;
-         //Check the vlsv library version:
-         if( checkVersion(fileList[entryName]) == 1.00 ) {
-            convertSILO<newVlsv::Reader>(fileList[entryName]);
-         } else {
-            convertSILO<oldVlsv::Reader>(fileList[entryName]);
-         }
+         convertSILO<vlsvinterface::Reader>(fileList[entryName]);
          filesConverted++;
       }
    }

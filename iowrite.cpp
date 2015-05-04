@@ -784,10 +784,10 @@ bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    phiprof::start("writeGrid-reduced");
    // Create a name for the output file and open it with VLSVWriter:
    stringstream fname;
-   fname << P::systemWriteName[index] <<".";
+   fname << P::systemWritePath.at(index) << "/" << P::systemWriteName.at(index) << ".";
    fname.width(7);
    fname.fill('0');
-   fname << P::systemWrites[index] << ".vlsv";
+   fname << P::systemWrites.at(index) << ".vlsv";
 
 
    //Open the file with vlsvWriter:
@@ -897,9 +897,10 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    //deallocate blocks in remote cells to decrease memory load
    deallocateRemoteCellBlocks(mpiGrid);
    phiprof::stop("DeallocateRemoteBlocks");
+   
    // Create a name for the output file and open it with VLSVWriter:
    stringstream fname;
-   fname << name <<".";
+   fname << P::restartWritePath << "/" << name << ".";
    fname.width(7);
    fname.fill('0');
    fname << fileIndex << ".vlsv";
