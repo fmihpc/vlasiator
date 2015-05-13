@@ -27,8 +27,8 @@ extern Logger logFile;
 
 namespace poisson {
 
-   std::vector<CellCache3D<cgvar::SIZE> > innerCellPointers;
-   std::vector<CellCache3D<cgvar::SIZE> > bndryCellPointers;
+   static std::vector<CellCache3D<cgvar::SIZE> > innerCellPointers;
+   static std::vector<CellCache3D<cgvar::SIZE> > bndryCellPointers;
 
    PoissonSolver* makeCG() {
       return new PoissonSolverCG();
@@ -160,7 +160,7 @@ namespace poisson {
       for (size_t c=0; c<cells.size(); ++c) {
          // DO_NOT_COMPUTE cells are skipped
          if (mpiGrid[cells[c]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
-         if (mpiGrid[cells[c]]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) continue;
+         //if (mpiGrid[cells[c]]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) continue;
 
          // Calculate cell i/j/k indices
          dccrg::Types<3>::indices_t indices = mpiGrid.mapping.get_indices(cells[c]);
@@ -250,21 +250,25 @@ namespace poisson {
             default:
                indices[0] -= 1;
                dummy = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
-               if (dummy == NULL) cache[1] = bndryCellParams;
+               //if (dummy == NULL) cache[1] = bndryCellParams;
+               if (dummy == NULL) continue;
                else               cache[1] = dummy->parameters;
                indices[0] += 2;
                dummy = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
-               if (dummy == NULL) cache[2] = bndryCellParams;
+               //if (dummy == NULL) cache[2] = bndryCellParams;
+               if (dummy == NULL) continue;
                else               cache[2] = dummy->parameters;
                indices[0] -= 1;
 
                indices[1] -= 1; 
                dummy = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
-               if (dummy == NULL) cache[3] = bndryCellParams;
+               //if (dummy == NULL) cache[3] = bndryCellParams;
+               if (dummy == NULL) continue;
                else               cache[3] = dummy->parameters;
                indices[1] += 2;
                dummy = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
-               if (dummy == NULL) cache[4] = bndryCellParams;
+               //if (dummy == NULL) cache[4] = bndryCellParams;
+               if (dummy == NULL) continue;
                else               cache[4] = dummy->parameters;
                indices[1] -= 1;
                break;
@@ -338,6 +342,35 @@ namespace poisson {
    }
  */
 
+   void PoissonSolverCG::bvalue(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                std::vector<CellCache3D<cgvar::SIZE> >& cells) {
+      #pragma omp parallel for
+      for (size_t c=0; c<cells.size(); ++c) {
+         dccrg::Types<3>::indices_t indices = mpiGrid.mapping.get_indices(cells[c].cellID);
+         CellCache3D<cgvar::SIZE>& cell = cells[c];
+         
+         if (indices[0] < 2 && (indices[1] > 1 && indices[1] < Parameters::ycells_ini-2)) {
+            Real RHS = -2*cell.parameters[0][CellParams::PHI]
+                       + cell.parameters[3][CellParams::PHI] + cell.parameters[4][CellParams::PHI];
+            cell.variables[cgvar::R] = cell.variables[cgvar::B] - RHS;
+            continue;
+         }
+
+         if ((indices[1] < 2 || indices[1] > Parameters::ycells_ini-3) 
+          && (indices[0] > 1 && indices[0] < Parameters::xcells_ini-2)) {
+            Real RHS = -2*cell.parameters[0][CellParams::PHI]
+                       + cell.parameters[1][CellParams::PHI] + cell.parameters[2][CellParams::PHI];
+            cell.variables[cgvar::R] = cell.variables[cgvar::B] - RHS;
+            continue;
+         }
+
+         if (indices[0] == 1 && (indices[1] == 1 || indices[1] == Parameters::ycells_ini-2)) {
+            cell.variables[cgvar::R] = 0;
+            continue;
+         }
+      }
+   }
+   
    bool PoissonSolverCG::solve(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
       bool success = true;
 
@@ -396,7 +429,12 @@ namespace poisson {
       Real relPotentialChange = 0;
       do {
          const int N_iterations = 1;
-         
+
+         SpatialCell::set_mpi_transfer_type(Transfer::CELL_RHOQ_TOT,false);
+         mpiGrid.update_copies_of_remote_neighbors(POISSON_NEIGHBORHOOD_ID);
+         bvalue(mpiGrid,innerCellPointers);
+         bvalue(mpiGrid,bndryCellPointers);
+
          if (calculateAlpha() == false) {
             logFile << "(POISSON SOLVER CG) ERROR: Failed to calculate 'alpha' in ";
             logFile << __FILE__ << ":" << __LINE__ << endl << write;
@@ -415,6 +453,7 @@ namespace poisson {
          
          iterations += N_iterations;
          
+         //cerr << iterations << '\t' << globalVariables[cgglobal::R_MAX] << endl;
          //if (mpiGrid.get_rank() == 0) {
          //   cerr << iterations << "\t" << globalVariables[cgglobal::R_MAX] << endl;
          //}
