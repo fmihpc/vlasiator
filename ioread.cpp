@@ -11,7 +11,6 @@
 #include "phiprof.hpp"
 #include "parameters.h"
 #include "logger.h"
-#include "vlsvreader2.h"
 #include "vlsv_reader_parallel.h"
 #include "vlasovmover.h"
 
@@ -88,64 +87,8 @@ bool exitOnError(bool success,string message,MPI_Comm comm) {
 
 /*!
  \brief Read cell ID's
- Read in cell ID's from file. Note: Uses the older version of vlsv parallel reader
- \param file Some vlsv reader with a file open
- \param fileCells Vector in whic to store the cell ids
- \param masterRank The simulation's master rank id (Vlasiator uses 0, which should be the default)
- \param comm MPI comm (MPI_COMM_WORLD should be the default)
-*/
-bool readCellIds(VLSVParReader & file,
-                 vector<uint64_t>& fileCells, int masterRank,MPI_Comm comm){
-   // Get info on array containing cell Ids:
-   uint64_t arraySize;
-   uint64_t vectorSize;
-   VLSV::datatype dataType;
-   uint64_t byteSize;
-   list<pair<string,string> > attribs;
-   bool success=true;
-   int rank;
-   MPI_Comm_rank(comm,&rank);
-   if(rank==masterRank){
-      //let's let master read cellId's, we anyway have at max ~1e6 cells
-      attribs.push_back(make_pair("name","SpatialGrid"));
-      if (file.getArrayInfoMaster("MESH",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
-         logFile << "(RESTARTBUILDER) ERROR: Failed to read cell ID array info!" << endl << write;
-         return false;
-      }
-      
-      //   Read cell Ids:
-      char* IDbuffer = new char[arraySize*vectorSize*byteSize];
-      if (file.readArrayMaster("MESH",attribs,0,arraySize,IDbuffer) == false) {
-         logFile << "(RESTARTBUILDER) ERROR: Failed to read cell Ids!" << endl << write;
-         success = false;
-      }
-   
-   // Convert global Ids into our local DCCRG 64 bit uints
-      fileCells.resize(arraySize);
-      int N_cells = arraySize;
-      if (dataType == VLSV::UINT && byteSize == 4) {
-         uint32_t* ptr = reinterpret_cast<uint32_t*>(IDbuffer);
-         for (uint64_t i=0; i<arraySize; ++i) fileCells[i] = ptr[i];
-      } else if (dataType == VLSV::UINT && byteSize == 8) {
-         uint64_t* ptr = reinterpret_cast<uint64_t*>(IDbuffer);
-         for (uint64_t i=0; i<arraySize; ++i) fileCells[i] = ptr[i];
-      } else {
-         logFile << "(RESTARTBUILDER) ERROR: VLSVParReader returned an unsupported datatype for cell Ids!" << endl << write;
-         success = false;
-      }
-   }
-   //broadcast cellId's to everybody
-   MPI_Bcast(&arraySize,1,MPI_UINT64_T,masterRank,comm);   
-   fileCells.resize(arraySize);
-   MPI_Bcast(&(fileCells[0]),arraySize,MPI_UINT64_T,masterRank,comm);
-   
-   return success;
-}
-
-/*!
- \brief Read cell ID's
- Read in cell ID's from file. Note: Uses the newer version of vlsv parallel reader
- \param file Some vlsv reader with a file open
+ Read in cell ID's from file.
+ \param file Vlsv reader with a file open
  \param fileCells Vector in whic to store the cell ids
  \param masterRank The simulation's master rank id (Vlasiator uses 0, which should be the default)
  \param comm MPI comm (MPI_COMM_WORLD should be the default)
@@ -168,20 +111,20 @@ bool readCellIds(ParallelReader & file,
       attribs.push_back(make_pair("name","CellID"));
       attribs.push_back(make_pair("mesh","SpatialGrid"));
       if (file.getArrayInfoMaster("VARIABLE",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
-         logFile << "(RESTARTBUILDER) ERROR: Failed to read cell ID array info!" << endl << write;
+         logFile << "(RESTART) ERROR: Failed to read cell ID array info!" << endl << write;
          return false;
       }
 
       //Make a routine error check:
       if( vectorSize != 1 ) {
-         logFile << "(RESTARTBUILDER) ERROR: Bad vectorsize at " << __FILE__ << " " << __LINE__ << endl << write;
+         logFile << "(RESTART) ERROR: Bad vectorsize at " << __FILE__ << " " << __LINE__ << endl << write;
          return false;
       }
       
       //   Read cell Ids:
       char* IDbuffer = new char[arraySize*vectorSize*byteSize];
       if (file.readArrayMaster("VARIABLE",attribs,readFromFirstIndex,arraySize,IDbuffer) == false) {
-         logFile << "(RESTARTBUILDER) ERROR: Failed to read cell Ids!" << endl << write;
+         logFile << "(RESTART) ERROR: Failed to read cell Ids!" << endl << write;
          success = false;
       }
    
@@ -202,7 +145,7 @@ bool readCellIds(ParallelReader & file,
             fileCells[i] = cellID;
          }
       } else {
-         logFile << "(RESTARTBUILDER) ERROR: VLSVParReader returned an unsupported datatype for cell Ids!" << endl << write;
+         logFile << "(RESTART) ERROR: ParallelReader returned an unsupported datatype for cell Ids!" << endl << write;
          success = false;
       }
       delete[] IDbuffer;
@@ -219,15 +162,14 @@ bool readCellIds(ParallelReader & file,
 
 /*!
  \brief Read number of blocks per cell
- \param file Some vlsv reader with a file open (can be old or new vlsv reader)
+ \param file Vlsv reader with a file open 
  \param nBlocks Vector for holding information on cells and the number of blocks in them -- this function saves data here
  \param masterRank The master rank of this process (Vlasiator uses masterRank = 0 and so it should be the default)
  \param comm MPI comm
  \return Returns true if the operation was successful
- \sa exec_readGrid
+ \sa readGrid
 */
-template <class T>
-bool readNBlocks( T & file,
+bool readNBlocks( ParallelReader & file,
                  vector<unsigned int>& nBlocks, int masterRank,MPI_Comm comm){
    // Get info on array containing cell Ids:
    uint64_t arraySize;
@@ -240,24 +182,16 @@ bool readNBlocks( T & file,
    MPI_Comm_rank(comm,&rank);
    if(rank==masterRank){
       //master reads data
-      if( typeid(T) == typeid(ParallelReader) ) {
-         attribs.push_back(make_pair("mesh","SpatialGrid"));
-      } else if( typeid(T) == typeid(VLSVParReader) ) {
-         attribs.push_back(make_pair("name","SpatialGrid"));
-      } else {
-         cout << "(RESTARTBUILDER) ERROR: BAD TYPEID IN READNBLOCKS AT " << __FILE__ << " " << __LINE__ << endl;
-         logFile << "(RESTARTBUILDER) ERROR: BAD TYPEID IN READNBLOCKS AT " << __FILE__ << " " << __LINE__ << endl << write;
-         return false;
-      }
+      attribs.push_back(make_pair("mesh","SpatialGrid"));
       if (file.getArrayInfoMaster("BLOCKSPERCELL",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
-         logFile << "(RESTARTBUILDER) ERROR: Failed to read number of blocks" << endl << write;
+         logFile << "(RESTART) ERROR: Failed to read number of blocks" << endl << write;
          success= false;
       }
 
       const short int readFileFromBeginning = 0;
       nBlocks.resize(vectorSize*arraySize);
       if (file.readArrayMaster("BLOCKSPERCELL",attribs,readFileFromBeginning,arraySize,(char*)&(nBlocks[0])) == false) {
-         logFile << "(RESTARTBUILDER) ERROR: Failed to read number of blocks!" << endl << write;
+         logFile << "(RESTART) ERROR: Failed to read number of blocks!" << endl << write;
          success = false;
       }
    }
@@ -267,100 +201,6 @@ bool readNBlocks( T & file,
    MPI_Bcast(&vectorSize,1,MPI_UINT64_T,masterRank,comm);
    nBlocks.resize(vectorSize*arraySize);
    MPI_Bcast(&(nBlocks[0]),vectorSize*arraySize,MPI_UNSIGNED,masterRank,comm);
-   return success;
-}
-
-/*! This reads in data one cell at a time. It is not the most efficient way but has the following benefits
- - For large datasets (distribution function), we avoid any problem with having to store all distribution functions twice in memory
- - Machinery in readvlsv does not at the moment support setting fileviews, this should be improved.
- The template stands for the file type so if one is reading doubles, fileReal should be double
- TODO: Get rid of fileReal (Was done once in a branch but it caused problems)
- \param file Some vlsv reader with a file open
- \param fileCells List of all cell ids
- \param localCellStartOffset The offset from which to start reading cells ( This should be balanced so that every process has roughly the same amount of blocks to read )
- \param localCells How many cells after the offset to read ( This should be balanced so that every process has roughly the same amount of blocks to read )
- \param localBlockStartOffset localCellStartOffset's corresponding block offset in this process ( Calculated from nBlocks and localCellStartOffset )
- \param localCells localCellStartOffset's corresponding block block amount in this process ( Calculated from nBlocks and localCellStartOffset and localCellStartOffset )
- \param mpiGrid Vlasiator's grid
- \sa exec_readGrid
-*/
-template <typename fileReal>
-bool _readBlockData(
-   VLSVParReader & file,
-   const vector<uint64_t>& fileCells,
-   const uint64_t localCellStartOffset,
-   const uint64_t localCells,
-   const vector<uint>& nBlocks,
-   const uint64_t localBlockStartOffset,
-   const uint64_t localBlocks,
-   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
-) {
-  uint64_t arraySize;
-  uint64_t avgVectorSize;
-  uint64_t coordVectorSize;
-  uint64_t cellParamsVectorSize;
-  VLSV::datatype dataType;
-  uint64_t byteSize;
-  list<pair<string,string> > avgAttribs;
-  list<pair<string,string> > coordAttribs;
-  fileReal *coordBuffer;
-  fileReal *avgBuffer;
-  bool success=true;
-   
-  coordAttribs.push_back(make_pair("name","SpatialGrid"));
-  avgAttribs.push_back(make_pair("name","avgs"));
-  avgAttribs.push_back(make_pair("mesh","SpatialGrid"));
-  
-
-  //Get array info for cell parameters 
-  if (file.getArrayInfo("BLOCKCOORDINATES",coordAttribs,arraySize,coordVectorSize,dataType,byteSize) == false ){
-    logFile << "(RESTARTBUILDER) ERROR: Failed to read BLOCKCOORDINATES array info " << endl << write;
-    return false;
-  }
-
-  if(file.getArrayInfo("BLOCKVARIABLE",avgAttribs,arraySize,avgVectorSize,dataType,byteSize) == false ){
-    logFile << "(RESTARTBUILDER) ERROR: Failed to read BLOCKVARIABLE array info " << endl << write;
-    return false;
-  }
-
-  //todo: more errorchecks!!  
-   if(avgVectorSize!=WID3){
-      logFile << "(RESTARTBUILDER) ERROR: Blocksize does not match in restart file " << endl << write;
-      return false;
-   }
-      
-   coordBuffer=new fileReal[coordVectorSize*localBlocks];
-   avgBuffer=new fileReal[avgVectorSize*localBlocks];
-   
-   file.readArray("BLOCKCOORDINATES",coordAttribs,localBlockStartOffset,localBlocks,(char*)coordBuffer);
-   file.readArray("BLOCKVARIABLE",avgAttribs,localBlockStartOffset,localBlocks,(char*)avgBuffer);
-   
-   uint64_t bufferBlock=0;
-   for(uint i=0;i<localCells;i++){
-      uint cell=fileCells[localCellStartOffset+i];
-      for (uint blockIndex=0;blockIndex<nBlocks[localCellStartOffset+i];blockIndex++){
-         creal vx_block = coordBuffer[bufferBlock*coordVectorSize+BlockParams::VXCRD];
-         creal vy_block = coordBuffer[bufferBlock*coordVectorSize+BlockParams::VYCRD];
-         creal vz_block = coordBuffer[bufferBlock*coordVectorSize+BlockParams::VZCRD];
-         creal dvx_blockCell = coordBuffer[bufferBlock*coordVectorSize+BlockParams::DVX];
-         creal dvy_blockCell = coordBuffer[bufferBlock*coordVectorSize+BlockParams::DVY];
-         creal dvz_blockCell = coordBuffer[bufferBlock*coordVectorSize+BlockParams::DVZ];
-         // set    volume average of distrib. function for each cell in the block.
-         for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
-            creal vx_cell_center = vx_block + (ic+convert<Real>(0.5))*dvx_blockCell;
-            creal vy_cell_center = vy_block + (jc+convert<Real>(0.5))*dvy_blockCell;
-            creal vz_cell_center = vz_block + (kc+convert<Real>(0.5))*dvz_blockCell;
-            
-            //todo, use faster set_value interface
-            #warning DEPRECATED: This function call needs to be replaced with something else in AMR mesh
-            mpiGrid[cell]->set_value(vx_cell_center,vy_cell_center,vz_cell_center,avgBuffer[bufferBlock*avgVectorSize+cellIndex(ic,jc,kc)]);
-         }
-         bufferBlock++; 
-      }
-   }
-   
-   delete(avgBuffer);
-   delete(coordBuffer);
    return success;
 }
 
@@ -395,14 +235,14 @@ void getVelocityBlockCoordinates( const uint64_t & block, boost::array<Real, 3> 
  - Machinery in readvlsv does not at the moment support setting fileviews, this should be improved.
  The template stands for the file type so if one is reading doubles, fileReal should be double
  TODO: Get rid of fileReal (Was done once in a branch but it caused problems)
- \param file Some vlsv reader with a file open
+ \param file Vlsv reader with a file open
  \param fileCells List of all cell ids
  \param localCellStartOffset The offset from which to start reading cells ( This should be balanced so that every process has roughly the same amount of blocks to read )
  \param localCells How many cells after the offset to read ( This should be balanced so that every process has roughly the same amount of blocks to read )
  \param localBlockStartOffset localCellStartOffset's corresponding block offset in this process ( Calculated from nBlocks and localCellStartOffset )
  \param localCells localCellStartOffset's corresponding block block amount in this process ( Calculated from nBlocks and localCellStartOffset and localCellStartOffset )
  \param mpiGrid Vlasiator's grid
- \sa exec_readGrid
+ \sa readGrid
 */
 template <typename fileReal>
 bool _readBlockData(
@@ -435,22 +275,22 @@ bool _readBlockData(
   datatype::type blockIdDataType;
   blockIdAttribs.push_back( make_pair("mesh", "SpatialGrid") );
   if (file.getArrayInfo("BLOCKIDS",blockIdAttribs,arraySize,blockIdVectorSize,blockIdDataType,blockIdByteSize) == false ){
-    logFile << "(RESTARTBUILDER) ERROR: Failed to read BLOCKCOORDINATES array info " << endl << write;
+    logFile << "(RESTART) ERROR: Failed to read BLOCKCOORDINATES array info " << endl << write;
     return false;
   }
 
   if(file.getArrayInfo("BLOCKVARIABLE",avgAttribs,arraySize,avgVectorSize,dataType,byteSize) == false ){
-    logFile << "(RESTARTBUILDER) ERROR: Failed to read BLOCKVARIABLE array info " << endl << write;
+    logFile << "(RESTART) ERROR: Failed to read BLOCKVARIABLE array info " << endl << write;
     return false;
   }
 
    //Some routine error checks:
    if( avgVectorSize!=WID3 ){
-      logFile << "(RESTARTBUILDER) ERROR: Blocksize does not match in restart file " << endl << write;
+      logFile << "(RESTART) ERROR: Blocksize does not match in restart file " << endl << write;
       return false;
    }
    if( byteSize != sizeof(fileReal) ) {
-      logFile << "(RESTARTBUILDER) ERROR: Bad avgs bytesize at " << __FILE__ << " " << __LINE__ << endl << write;
+      logFile << "(RESTART) ERROR: Bad avgs bytesize at " << __FILE__ << " " << __LINE__ << endl << write;
       return false;
    }
       
@@ -510,9 +350,8 @@ bool _readBlockData(
    return success;
 }
 
-template <class T>
 bool readBlockData(
-   T & file,
+   ParallelReader & file,
    const vector<uint64_t>& fileCells,
    const uint64_t localCellStartOffset,
    const uint64_t localCells,
@@ -532,7 +371,7 @@ bool readBlockData(
 
 
    if (file.getArrayInfo("BLOCKVARIABLE",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
-      logFile << "(RESTARTBUILDER)  ERROR: Failed to read BLOCKVARIABLE INFO" << endl << write;
+      logFile << "(RESTART)  ERROR: Failed to read BLOCKVARIABLE INFO" << endl << write;
       return false;
    }
 
@@ -566,7 +405,7 @@ bool readBlockData(
             break;
       }
    } else {
-      logFile << "(RESTARTBUILDER)  ERROR: Failed to read data type at readCellParamsVariable" << endl << write;
+      logFile << "(RESTART)  ERROR: Failed to read data type at readCellParamsVariable" << endl << write;
       return false;
    }
 }
@@ -585,9 +424,9 @@ bool readBlockData(
  \param mpiGrid Vlasiator's grid (the parameters are saved here)
  \return Returns true if the operation is successful
  */
-template <typename fileReal, class U>
+template <typename fileReal>
 static bool _readCellParamsVariable(
-   U & file,
+   ParallelReader & file,
    const vector<uint64_t>& fileCells,
    const uint64_t localCellStartOffset,
    const uint64_t localCells,
@@ -609,18 +448,18 @@ static bool _readCellParamsVariable(
    
    
    if (file.getArrayInfo("VARIABLE",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
-      logFile << "(RESTARTBUILDER)  ERROR: Failed to read " << endl << write;
+      logFile << "(RESTART)  ERROR: Failed to read " << endl << write;
       return false;
    }
 
    if(vectorSize!=expectedVectorSize){
-      logFile << "(RESTARTBUILDER)  vectorsize wrong " << endl << write;
+      logFile << "(RESTART)  vectorsize wrong " << endl << write;
       return false;
    }
    
    buffer=new fileReal[vectorSize*localCells];
    if(file.readArray("VARIABLE",attribs,localCellStartOffset,localCells,(char *)buffer) == false ) {
-      logFile << "(RESTARTBUILDER)  ERROR: Failed to read " << variableName << endl << write;
+      logFile << "(RESTART)  ERROR: Failed to read " << variableName << endl << write;
       return false;
    }
    
@@ -645,9 +484,8 @@ static bool _readCellParamsVariable(
  \param mpiGrid Vlasiator's grid (the parameters are saved here)
  \return Returns true if the operation is successful
  */
-template <class U>
 bool readCellParamsVariable(
-   U & file,
+   ParallelReader & file,
    const vector<uint64_t>& fileCells,
    const uint64_t localCellStartOffset,
    const uint64_t localCells,
@@ -667,7 +505,7 @@ bool readCellParamsVariable(
    
    
    if (file.getArrayInfo("VARIABLE",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
-      logFile << "(RESTARTBUILDER)  ERROR: Failed to read " << endl << write;
+      logFile << "(RESTART)  ERROR: Failed to read " << endl << write;
       return false;
    }
 
@@ -701,97 +539,14 @@ bool readCellParamsVariable(
             break;
       }
    } else {
-      logFile << "(RESTARTBUILDER)  ERROR: Failed to read data type at readCellParamsVariable" << endl << write;
+      logFile << "(RESTART)  ERROR: Failed to read data type at readCellParamsVariable" << endl << write;
       return false;
    }
 }
 
 
 /*! A function for reading parameters e.g. 'timestep'
- \param file Some vlsv parallel reader with a file open
- \param name Name of the parameter
- \param value Variable in which to store the scalar variable (double, float, int .. )
- \param masterRank The master process' id (Vlasiator uses 0 so this should equal 0 by default)
- \param comm MPI comm (MPI_COMM_WORLD should be the default)
- \return Returns true if the operation is successful
- */
-template <typename T>
-bool readScalarParameter(VLSVParReader & file, string name,T& value, int masterRank,MPI_Comm comm){
-   bool success=true;
-   int myRank;
-   uint64_t arraySize;
-   uint64_t vectorSize;
-   VLSV::datatype dataType;
-   uint64_t byteSize;
-   MPI_Comm_rank(comm,&myRank);
-   if(myRank==masterRank){
-      list<pair<string,string> > attribs;
-      attribs.push_back(make_pair("name",name));
-
-      if (file.getArrayInfoMaster("PARAMETERS",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
-         logFile << "(RESTART)  ERROR: Failed to read info for parameter"<< name << endl << write;
-         success=false;
-      }
-      
-      if(vectorSize!=1 || arraySize!=1){
-         logFile << "(RESTART) Parameter not scalar" << endl << write;
-         success=false;
-      }
-      
-      if(dataType == VLSV::INT && byteSize == 4) {
-         int32_t buffer;         
-         if(file.readArrayMaster("PARAMETERS",attribs,0,1,(char *)&buffer) == false ) {
-            logFile << "(RESTART)  ERROR: Failed to read value for parameter"<< name << endl << write;
-            success=false;
-         }
-         value=buffer;
-      }
-
-      else if(dataType == VLSV::UINT && byteSize == 4) {
-         uint32_t buffer;         
-         if(file.readArrayMaster("PARAMETERS",attribs,0,1,(char *)&buffer) == false ) {
-            logFile << "(RESTART)  ERROR: Failed to read value for parameter"<< name << endl << write;
-            success=false;
-         }
-         value=buffer;
-      }
-      else if(dataType == VLSV::UINT && byteSize == 8) {
-         uint64_t buffer;         
-         if(file.readArrayMaster("PARAMETERS",attribs,0,1,(char *)&buffer) == false ) {
-            logFile << "(RESTART)  ERROR: Failed to read value for parameter"<< name << endl << write;
-            success=false;
-         }
-         value=buffer;
-      }
-      else  if(dataType == VLSV::FLOAT && byteSize == 4) {
-         float buffer;         
-         if(file.readArrayMaster("PARAMETERS",attribs,0,1,(char *)&buffer) == false ) {
-            logFile << "(RESTART)  ERROR: Failed to read value for parameter"<< name << endl << write;
-            success=false;
-         }
-         value=buffer;
-      }
-      else  if(dataType == VLSV::FLOAT && byteSize == 8) {
-         double buffer;         
-         if(file.readArrayMaster("PARAMETERS",attribs,0,1,(char *)&buffer) == false ) {
-            logFile << "(RESTART)  ERROR: Failed to read value for parameter"<< name << endl << write;
-            success=false;
-         }
-         value=buffer;
-      }
-      else {
-         logFile << "(RESTART) Unsupported parameter type"<< name << endl << write;
-         success=false;
-      }
-   }
-   
-   
-   MPI_Bcast(&value,sizeof(T),MPI_BYTE,masterRank,comm);
-   return success;
-}
-
-/*! A function for reading parameters e.g. 'timestep'
- \param file Some vlsv parallel reader with a file open
+ \param file Vlsv parallel reader with a file open
  \param name Name of the parameter
  \param value Variable in which to store the scalar variable (double, float, int .. )
  \param masterRank The master process' id (Vlasiator uses 0 so this should equal 0 by default)
@@ -811,8 +566,8 @@ bool readScalarParameter(ParallelReader & file, const string & name,T& value, in
  \param comm MPI comm (Default should be MPI_COMM_WORLD)
  \return Returns true if the operation is successful
  */
-template <class U, typename T>
-bool checkScalarParameter(U & file, const string & name, T correctValue, int masterRank,MPI_Comm comm){
+template <typename T>
+bool checkScalarParameter(ParallelReader & file, const string & name, T correctValue, int masterRank,MPI_Comm comm){
    T value;
    readScalarParameter(file,name,value,masterRank,comm);
    if(value!=correctValue){
@@ -829,34 +584,17 @@ bool checkScalarParameter(U & file, const string & name, T correctValue, int mas
    }
 }
 
-/*! A function for checking the version of the file
- \param vlsvReader Some vlsv reader with a file open
- \return Returns the version number
- */
-float checkVersion( Reader & vlsvReader ) {
-   string versionTag = "version";
-   float version;
-   if( vlsvReader.readParameter( versionTag, version ) == false ) {
-      return 0;
-   }
-   if( version == 1.00 ) {
-      return version;
-   } else {
-      cerr << "Invalid version!" << endl;
-      exit(1);
-      return 0;
-   }
-}
 
-/*! This function is used to read the restart file. The template class T can be ParallelReader or VLSVParReader
- \param mpiGrid Vlasiator's grid
- \param name Name of restart file
+
+/*!
+\brief Read in state from a vlsv file in order to restart simulations
+\param mpiGrid Vlasiator's grid
+\param name Name of the restart file e.g. "restart.00052.vlsv"
  \return Returns true if the operation was successful
- \sa readGrid
- */
-template <class T>
-bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                   const std::string& name) {
+*/
+bool readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+              const std::string& name){
+
    vector<uint64_t> fileCells; /*< CellIds for all cells in file*/
    vector<uint> nBlocks;/*< Number of blocks for all cells in file*/
    bool success=true;
@@ -870,7 +608,7 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    
    phiprof::start("readGrid");
 
-   T file;
+   ParallelReader file;
    MPI_Info mpiInfo = MPI_INFO_NULL;
 
    if (file.open(name,MPI_COMM_WORLD,MASTER_RANK,mpiInfo) == false) {
@@ -878,8 +616,9 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    }
    exitOnError(success,"(RESTART) Could not open file",MPI_COMM_WORLD);
 
-   if(readScalarParameter(file,"t",P::t,MASTER_RANK,MPI_COMM_WORLD) ==false) success=false;//CONT
-   //if( file.readParameter( "t", P::t ) == false ) success = false;
+   if(readScalarParameter(file,"t",P::t,MASTER_RANK,MPI_COMM_WORLD) ==false)
+      success=false;//CONT
+   //i  f( file.readParameter( "t", P::t ) == false ) success = false;
    P::t_min=P::t;
 
    //FIXME: If we use the dt we read in then the restarted simulation
@@ -1038,11 +777,11 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"max_v_dt",CellParams::MAXVDT,1,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"max_r_dt",CellParams::MAXRDT,1,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"max_fields_dt",CellParams::MAXFDT,1,mpiGrid); }
-   if( typeid(T) == typeid(ParallelReader) ) {
-      // Read rho losses Note: vector size = 1 (In the older versions the rho loss wasn't recorded)
-      if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"rho_loss_adjust",CellParams::RHOLOSSADJUST,1,mpiGrid); }
-      if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"rho_loss_velocity_boundary",CellParams::RHOLOSSVELBOUNDARY,1,mpiGrid); }
-   }
+   // Read rho losses Note: vector size = 1 (In the older versions the rho loss wasn't recorded)
+   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"rho_loss_adjust",CellParams::RHOLOSSADJUST,1,mpiGrid); }
+   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"rho_loss_velocity_boundary",CellParams::RHOLOSSVELBOUNDARY,1,mpiGrid); }
+
+
    
    phiprof::stop("readCellParameters");
    phiprof::start("readBlockData");
@@ -1053,27 +792,7 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 
    exitOnError(success,"(RESTART) Other failure",MPI_COMM_WORLD);
    return success;
-}
 
-//FIXME, readGrid has no support for checking or converting endianness
-/*!
-\brief Read in state from a vlsv file in order to restart simulations
-\param mpiGrid Vlasiator's grid
-\param name Name of the restart file e.g. "restart.00052.vlsv"
-*/
-bool readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-              const std::string& name){
-   Reader vlsvCheck;
-   vlsvCheck.open( name );
-   //Check the vlsv version from the file:
-   const bool newLib = (checkVersion( vlsvCheck ) == 1.00);
-   vlsvCheck.close();
-   if( newLib ) {
-      return exec_readGrid<ParallelReader>(mpiGrid, name);
-   } else {
-      return exec_readGrid<VLSVParReader>(mpiGrid, name);
-   }
-   return false;
 }
 
 
