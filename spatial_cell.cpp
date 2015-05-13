@@ -570,7 +570,7 @@ namespace spatial_cell {
     * @param receiving If true, this process is receiving data.
     * @param neighborhood Neighborhood ID.
     * @return MPI datatype that transfers the requested data.*/
-/*   std::tuple<void*, int, MPI_Datatype> SpatialCell::get_mpi_datatype(
+   std::tuple<void*, int, MPI_Datatype> SpatialCell::get_mpi_datatype(
                                                                       const CellID cellID,
                                                                       const int sender_rank,
                                                                       const int receiver_rank,
@@ -793,7 +793,7 @@ namespace spatial_cell {
       }
 
       return std::make_tuple(address,count,datatype);
-   }*/
+   }
    
    /** Get random number generator data buffer.
     * @return Random number generator data buffer.*/
