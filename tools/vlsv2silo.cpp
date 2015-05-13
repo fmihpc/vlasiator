@@ -16,7 +16,6 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #include <array> //std::array from here
 //#include <typeinfo>
 
-#include "vlsvreader2.h"
 #include "vlsv_reader.h"
 #include "definitions.h"
 #include "vlsvreaderinterface.h"
