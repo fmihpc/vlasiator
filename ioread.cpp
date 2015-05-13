@@ -616,21 +616,20 @@ bool readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    }
    exitOnError(success,"(RESTART) Could not open file",MPI_COMM_WORLD);
 
-   if(readScalarParameter(file,"t",P::t,MASTER_RANK,MPI_COMM_WORLD) ==false)
-      success=false;//CONT
-   //i  f( file.readParameter( "t", P::t ) == false ) success = false;
+   //Around May 2015 time was renamed from "t" to "time", we try to read both, new way is read first
+   if(readScalarParameter(file,"time",P::t,MASTER_RANK,MPI_COMM_WORLD) == false)
+      if(readScalarParameter(file,"t",P::t,MASTER_RANK,MPI_COMM_WORLD) == false)
+         success=false;
    P::t_min=P::t;
 
-   //FIXME: If we use the dt we read in then the restarted simulation
-   //has much greater deviation from original trajectory-> do we have
-   //a latent bug, is there something we do not read in?
-   //         if(readScalarParameter(file,"dt",P::dt,MASTER_RANK,MPI_COMM_WORLD) ==false) success=false;
-   
-   if( readScalarParameter(file,"tstep",P::tstep,MASTER_RANK,MPI_COMM_WORLD) ==false) success=false;
-   //if( file.readParameter( "tstep", P::tstep ) == false ) success = false;
+   //Around May 2015 timestep was renamed from "tstep" to "timestep", we try to read both, new way is read first   
+   if(readScalarParameter(file,"timestep",P::tstep,MASTER_RANK,MPI_COMM_WORLD) == false)
+      if(readScalarParameter(file,"tstep",P::tstep,MASTER_RANK,MPI_COMM_WORLD) == false)
+         success=false;
    P::tstep_min=P::tstep;
+
    if(readScalarParameter(file,"dt",P::dt,MASTER_RANK,MPI_COMM_WORLD) ==false) success=false;
-   //if( file.readParameter( "dt", P::dt ) == false ) success = false;
+
    if(readScalarParameter(file,"fieldSolverSubcycles",P::fieldSolverSubcycles,MASTER_RANK,MPI_COMM_WORLD) ==false) {
       // Legacy restarts do not have this field, it "should" be safe for one or two steps...
       P::fieldSolverSubcycles = 1.0;
