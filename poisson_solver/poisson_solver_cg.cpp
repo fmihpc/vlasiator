@@ -350,7 +350,7 @@ namespace poisson {
          CellCache3D<cgvar::SIZE>& cell = cells[c];
          
          if (indices[0] < 2 && (indices[1] > 1 && indices[1] < Parameters::ycells_ini-2)) {
-            Real RHS = -2*cell.parameters[0][CellParams::PHI]
+            Real RHS = -3*cell.parameters[0][CellParams::PHI]
                        + cell.parameters[3][CellParams::PHI] + cell.parameters[4][CellParams::PHI];
             cell.variables[cgvar::R] = cell.variables[cgvar::B] - RHS;
             continue;
@@ -358,7 +358,7 @@ namespace poisson {
 
          if ((indices[1] < 2 || indices[1] > Parameters::ycells_ini-3) 
           && (indices[0] > 1 && indices[0] < Parameters::xcells_ini-2)) {
-            Real RHS = -2*cell.parameters[0][CellParams::PHI]
+            Real RHS = -3*cell.parameters[0][CellParams::PHI]
                        + cell.parameters[1][CellParams::PHI] + cell.parameters[2][CellParams::PHI];
             cell.variables[cgvar::R] = cell.variables[cgvar::B] - RHS;
             continue;
