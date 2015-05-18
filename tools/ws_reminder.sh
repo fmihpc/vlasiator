@@ -3,7 +3,8 @@
 if [ $# -ne 1 ]; then
     echo "ERROR: USAGE: $0   your_Email-address"
     echo "  This little script may help you to take care of your work space"
-    echo "  It will send a reminder to the email address, please call this from crontab"
+    echo "  It will send a reminder to the email address, please add to crontab with crontab -e"
+    echo "  */5 * * * * vlasiator/tools/ws_reminder.sh vlasiator-runs@fmihpc.flowdock.com"
     exit 2
 fi
 
@@ -47,8 +48,7 @@ do
 
 	${MAILER}  ${EMAIL_ADR}  -s "WS DELETE WARNING: $WS_NAME in $DURATION (owned by $USER) "  <<EOF_2
    $USER workspace ${WS_NAME} on host ${HOST}
-   will be deleted on:
-      $USER ${WS_NAME}   ${END_STR}
+   will be deleted on: ${END_STR}
 EOF_2
     fi
 
