@@ -45,6 +45,22 @@ std::vector<uint64_t> readCellIds(vlsvinterface::Reader& r) {
    return cellIds;
 }
 
+// Check if a given floating point parameter exists
+bool checkForDoubleParameter(vlsvinterface::Reader& r, const char* name) {
+   uint64_t arraySize=0;
+   uint64_t vectorSize=0;
+   uint64_t byteSize=0;
+   vlsv::datatype::type dataType;
+   std::list<std::pair<std::string,std::string> > attribs;
+   attribs.push_back(std::pair<std::string,std::string>("name",name));
+   if( r.getArrayInfo("PARAMETER",attribs, arraySize,vectorSize,dataType,byteSize) == false ) {
+		 return false;
+   } else {
+		return true;
+	 }
+}
+
+
 // Read a single-valued floating point parameter
 double readDoubleParameter(vlsvinterface::Reader& r, const char* name) {
    uint64_t arraySize=0;

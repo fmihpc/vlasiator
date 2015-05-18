@@ -1,6 +1,5 @@
 #pragma once
 
-#include "vlsvreader2.h"
 #include "vlsv_reader.h"
 #include "vlsvreaderinterface.h"
 #include "field.h"
@@ -77,6 +76,7 @@ std::vector<double> readFieldData(Reader& r, std::string& name, unsigned int num
    return buffer;
 }
 
+bool checkForDoubleParameter(vlsvinterface::Reader& r, const char* name);
 double readDoubleParameter(vlsvinterface::Reader& r, const char* name);
 
 /* Read a single-valued integer parameter */
@@ -103,7 +103,12 @@ bool read_next_timestep(const std::string& filename_pattern, double t, int step,
       /* Open next file */
       Reader r;
       r.open(filename_buffer);
-      double t = readDoubleParameter(r,"t");
+      double t;
+      if(checkForDoubleParameter(r, "time")) {
+        t = readDoubleParameter(r,"time");
+      } else {
+        t = readDoubleParameter(r,"t");
+      }
       E1.time = t;
       B1.time = t;
 
@@ -151,8 +156,8 @@ static bool read_next_timestep(const std::string& filename_pattern, double t, in
    char filename_buffer[256];
    snprintf(filename_buffer,256,filename_pattern.c_str(),input_file_counter);
 
-	 return read_next_timestep<vlsvinterface::Reader>(filename_pattern, t,
-			 step,E0,E1,B0,B1,input_file_counter);
+   return read_next_timestep<vlsvinterface::Reader>(filename_pattern, t,
+       step,E0,E1,B0,B1,input_file_counter);
 }
 
 /* Read E- and B-Fields as well as velocity field from a vlsv file */
@@ -268,7 +273,7 @@ void readfields(const char* filename, Field& E, Field& B, Field& V) {
 
 /* Non-template version, autodetecting the reader type */
 static void readfields(const char* filename, Field& E, Field& B, Field& V) {
-	readfields<vlsvinterface::Reader>(filename,E,B,V);
+  readfields<vlsvinterface::Reader>(filename,E,B,V);
 }
 
 /* For debugging purposes - dump a field into a png file */
