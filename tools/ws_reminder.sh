@@ -1,0 +1,56 @@
+#!/bin/bash
+
+if [ $# -ne 1 ]; then
+    echo "ERROR: USAGE: $0   your_Email-address"
+    echo "  This little script may help you to take care of your work space"
+    echo "  It will send a reminder to the email address, please call this from crontab"
+    exit 2
+fi
+
+EMAIL_ADR=$1
+MACHINE="Hornet"
+CURDIR=$(pwd)
+HOUR=3600
+DAY=86400
+WEEK=604800
+MAILER=mail
+
+
+cd $HOME
+if [ ! -d .ws_remind ]
+then
+    mkdir .ws_remind
+fi
+cd .ws_remind
+
+for WS_NAME in $(ws_list -s)
+do
+    L=`ws_list | grep ^${WS_NAME}`
+    DURATION=`echo $L | awk '{printf ( "%d %s %d %s", $(NF - 3), $(NF - 2),  $(NF - 1), $NF) }'`
+    END_STR=`date --date="${DURATION}"  +%c`
+    SECONDS_LEFT=$(($(date --date="$DURATION" +%s) - $(date +%s)))
+
+    if [ -e ${WS_NAME}_last_email ]
+    then
+	SECONDS_SINCE_WARNING=$(($(date +%s) - $(cat ${WS_NAME}_last_email)))
+    else
+        #more than 30 days of seconds
+	SECONDS_SINCE_WARNING=3000000
+    fi
+
+
+    if ((  ( $SECONDS_LEFT > $WEEK && $SECONDS_SINCE_WARNING > $WEEK ) || 
+	   ( $SECONDS_LEFT < $WEEK && $SECONDS_LEFT > $DAY  && $SECONDS_SINCE_WARNING > $DAY ) ||
+	   ( $SECONDS_LEFT < $DAY  && $SECONDS_SINCE_WARNING > $HOUR )))
+    then
+	echo $(date +%s ) >  ${WS_NAME}_last_email
+
+	${MAILER}  ${EMAIL_ADR}  -s "WS DELETE WARNING: $WS_NAME in $DURATION (owned by $USER) "  <<EOF_2
+   $USER workspace ${WS_NAME} on host ${HOST}
+   will be deleted on:
+      $USER ${WS_NAME}   ${END_STR}
+EOF_2
+    fi
+
+done
+cd $CURDIR
