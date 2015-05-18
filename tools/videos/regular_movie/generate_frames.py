@@ -1,17 +1,23 @@
+# In order to use this script, you need to at least edit the lines with the following comment:
+# EDIT
+
+# For more information on the usage of this script:
+# https://github.com/fmihpc/vlasiator/wiki/Basic-movie-making-script-documentation,-using-VisIt-on-voima
+
 import sys
 
-fileName = "BCB_rho_"
-outputLocation = "/home/kempf/Servers/stornext_vlasiator/visualizations/BCB/movies/rho/"
+fileName = "BCB_rho_" # EDIT
+outputLocation = "/home/kempf/Servers/stornext_vlasiator/visualizations/BCB/movies/rho/" # EDIT
 
 
 frameList = range(int(sys.argv[1]),int(sys.argv[2])+1)
 
 for entry in frameList:
    number=str(entry).rjust(7, '0')
-   fileLocation="voima.fmi.fi:/lustre/tmp/alfthan/2D/BCB/bulk."+number+".vlsv"
+   fileLocation="voima.fmi.fi:/lustre/tmp/alfthan/2D/BCB/bulk."+number+".vlsv" # EDIT
    OpenDatabase(fileLocation)
    
-   AddPlot("Pseudocolor", "rho", 0, 1)
+   AddPlot("Pseudocolor", "rho", 0, 1) # EDIT
    AddOperator("Slice")
    AddOperator("Threshold")
    PseudocolorAtts = PseudocolorAttributes()
@@ -19,9 +25,9 @@ for entry in frameList:
    PseudocolorAtts.skewFactor = 1
    PseudocolorAtts.limitsMode = PseudocolorAtts.CurrentPlot  # OriginalData, CurrentPlot
    PseudocolorAtts.minFlag = 1
-   PseudocolorAtts.min = 100000
+   PseudocolorAtts.min = 100000 # EDIT
    PseudocolorAtts.maxFlag = 1
-   PseudocolorAtts.max = 1e+07
+   PseudocolorAtts.max = 1e+07 # EDIT
    PseudocolorAtts.centering = PseudocolorAtts.Natural  # Natural, Nodal, Zonal
    PseudocolorAtts.colorTableName = "hot_desaturated"
    PseudocolorAtts.invertColorTable = 0
