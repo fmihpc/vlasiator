@@ -42,6 +42,10 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 using namespace std;
 using namespace vlsv;
 
+// Command line option,value pairs are parsed and stored to map attributes.
+// The key is the option name, and the value is the value. For example, 
+// "vlsvdiff --meshname=plaa" would cause 'attributes["meshname"]' to be 
+// equal to 'plaa'.
 static map<string,string> attributes;
 
 static uint64_t convUInt(const char* ptr, const vlsv::datatype::type & dataType, const uint64_t& dataSize) {
@@ -313,10 +317,10 @@ bool convertSILO(const string fileName,
  * \param orderedData2 Pointer to the data to be shifted
  * \param shiftedData2 Pointer to where the shifted data of the second file will be put
  */
-bool shiftAverage(const map<uint, Real> * const orderedData1,
-                  const map<uint, Real> * const orderedData2,
-                  map<uint, Real> * shiftedData2
-                  ) {
+bool shiftAverage(const map<uint, Real>* const orderedData1,
+                  const map<uint, Real>* const orderedData2,
+                  map<uint,Real>* shiftedData2
+                 ) {
    map<uint, Real>::const_iterator it1, it2;
    Real avg1 = 0.0;
    Real avg2 = 0.0;
@@ -380,7 +384,13 @@ bool pDistance(const map<uint, Real>& orderedData1,
                const std::string& meshName,
                const std::string& varName
               ) {
-   #warning shift average not re-implemented
+
+   map<uint,Real> shiftedData2;
+   map<uint,Real>* data2 = const_cast< map<uint,Real>* >(&orderedData2);
+   if (doShiftAverage == true) {
+      shiftAverage(&orderedData1,&orderedData2,&shiftedData2);
+      data2 = &shiftedData2;
+   }
 
    // Reset old values
    *absolute = 0.0;
@@ -392,9 +402,9 @@ bool pDistance(const map<uint, Real>& orderedData1,
    Real length = 0.0;
    if (p == 0) {
       for (map<uint,Real>::const_iterator it1=orderedData1.begin(); it1!=orderedData1.end(); ++it1) {
-         map<uint,Real>::const_iterator it2 = orderedData2.find(it1->first);
+         map<uint,Real>::const_iterator it2 = data2->find(it1->first);
          Real value = 0.0;
-         if (it2 != orderedData2.end()) {
+         if (it2 != data2->end()) {
             value = abs(it1->second - it2->second);
             *absolute = max(*absolute, value);
             length    = max(length, abs(it1->second));
@@ -403,9 +413,9 @@ bool pDistance(const map<uint, Real>& orderedData1,
       }
    } else if (p == 1) {
       for (map<uint,Real>::const_iterator it1=orderedData1.begin(); it1!=orderedData1.end(); ++it1) {
-         map<uint,Real>::const_iterator it2 = orderedData2.find(it1->first);
+         map<uint,Real>::const_iterator it2 = data2->find(it1->first);
          Real value = 0.0;
-         if (it2 != orderedData2.end()) {
+         if (it2 != data2->end()) {
             value = abs(it1->second - it2->second);
             *absolute += value;
             length    += abs(it1->second);
@@ -414,9 +424,9 @@ bool pDistance(const map<uint, Real>& orderedData1,
       }
    } else {
       for (map<uint,Real>::const_iterator it1=orderedData1.begin(); it1!=orderedData1.end(); ++it1) {
-         map<uint,Real>::const_iterator it2 = orderedData2.find(it1->first);
+         map<uint,Real>::const_iterator it2 = data2->find(it1->first);
          Real value = 0.0;
-         if (it2 != orderedData2.end()) {
+         if (it2 != data2->end()) {
             value = pow(abs(it1->second - it2->second), p);
             *absolute += value;
             length    += pow(abs(it1->second), p);
