@@ -35,8 +35,7 @@ int main(int argc, char** argv) {
    std::string filename_pattern = ParticleParameters::input_filename_pattern;
    char filename_buffer[256];
 
-   /* TODO: This assumes that output is written every second. Beware. */
-   int input_file_counter=floor(ParticleParameters::start_time);
+   int input_file_counter=floor(ParticleParameters::start_time / ParticleParameters::input_dt);
    Field E[2],B[2],V;
    snprintf(filename_buffer,256,filename_pattern.c_str(),input_file_counter-1);
    readfields(filename_buffer,E[1],B[1],V);
