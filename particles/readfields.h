@@ -76,7 +76,6 @@ std::vector<double> readFieldData(Reader& r, std::string& name, unsigned int num
    return buffer;
 }
 
-bool checkForDoubleParameter(vlsvinterface::Reader& r, const char* name);
 double readDoubleParameter(vlsvinterface::Reader& r, const char* name);
 
 /* Read a single-valued integer parameter */
@@ -104,11 +103,13 @@ bool read_next_timestep(const std::string& filename_pattern, double t, int step,
       Reader r;
       r.open(filename_buffer);
       double t;
-      if(checkForDoubleParameter(r, "time")) {
-        t = readDoubleParameter(r,"time");
-      } else {
-        t = readDoubleParameter(r,"t");
+      if(!r.readParameter("time",t)) {
+        if(!r.readParameter("t",t)) {
+          std::cerr << "Time parameter in file " << filename_buffer << " is neither 't' nor 'time'. Bad file format?" << std::endl;
+          exit(1);
+        }
       }
+
       E1.time = t;
       B1.time = t;
 
