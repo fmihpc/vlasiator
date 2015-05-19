@@ -19,7 +19,9 @@ namespace projects {
           /*! Initialize project. Can be used, e.g., to read in parameters from the input file. */
          virtual bool initialize();
 
-         /*! set background field, should set it for all cells */
+         /*! set background field, should set it for all cells.
+          * Currently this function is only called during the initialization.
+          * @param cell Pointer to the spatial cell.*/
          virtual void setCellBackgroundField(SpatialCell* cell);
       
          /*!\brief Set the perturbed fields and distribution of a cell according to the default simulation settings.
@@ -27,8 +29,6 @@ namespace projects {
          * \param cell Pointer to the cell to set.
          */
          void setCell(SpatialCell* cell);
-         
-       
          
       protected:
          /*! \brief Returns a list of blocks to loop through when initialising.
@@ -50,6 +50,8 @@ namespace projects {
          /** Calculate parameters for the given spatial cell at the given time.
           * Here you need to set values for the following array indices:
           * CellParams::EX, CellParams::EY, CellParams::EZ, CellParams::BX, CellParams::BY, and CellParams::BZ.
+          * 
+          * Currently this function is only called during initialization.
           * 
           * The following array indices contain the coordinates of the "lower left corner" of the cell: 
           * CellParams::XCRD, CellParams::YCRD, and CellParams::ZCRD.

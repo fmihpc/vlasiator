@@ -110,19 +110,20 @@ bool SysBoundary::addSysBoundary(
    Project &project,
    creal& t
 ) {
+   bool success = true;
+   if (bc->initSysBoundary(t, project) == false) {
+      cerr << "Failed to initialize system boundary condition '" << bc->getName() << "'" << endl;
+      return false;
+   }
+
    sysBoundaries.push_back(bc);
    if(sysBoundaries.size() > 1) {
       sysBoundaries.sort(precedenceSort);
    }
-   
-   bool success = true;
-   if(bc->initSysBoundary(t, project) == false) {
-      success = false;
-   }
-   
+
    // This assumes that only one instance of each type is created.
    indexToSysBoundary[bc->getIndex()] = bc;
-   
+
    return success;
 }
 
@@ -265,7 +266,7 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
    mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
    
    /*Compute distances*/
-   uint maxLayers=max(max(P::xcells_ini, P::ycells_ini), P::zcells_ini);
+   uint maxLayers=3;//max(max(P::xcells_ini, P::ycells_ini), P::zcells_ini);
    for(uint layer=1;layer<maxLayers;layer++){
       for(uint i=0; i<cells.size(); i++) {
          if(mpiGrid[cells[i]]->sysBoundaryLayer==0){
@@ -432,4 +433,25 @@ bool getBoundaryCellList(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometr
    }
    return true;
 }
+
+/*! Updates all NonsysboundaryCells into an internal map. This should be called in loadBalance.
+ * \param mpiGrid The DCCRG grid
+   \retval Returns true if the operation is successful
+  */
+bool SysBoundary::updateSysBoundariesAfterLoadBalance(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
+   phiprof::start("getAllClosestNonsysboundaryCells");
+   vector<uint64_t> local_cells_on_boundary;
+   getBoundaryCellList(mpiGrid, mpiGrid.get_cells(), local_cells_on_boundary);
+   // Loop over sysboundaries:
+   for( std::list<SBC::SysBoundaryCondition*>::iterator it = sysBoundaries.begin(); it != sysBoundaries.end(); ++it ) {
+      (*it)->updateSysBoundaryConditionsAfterLoadBalance(mpiGrid, local_cells_on_boundary);
+   }
+
+   phiprof::stop("getAllClosestNonsysboundaryCells");
+   return true;
+}
+
+
+
+
 

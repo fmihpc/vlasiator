@@ -34,7 +34,6 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #include <algorithm>
 #include <cstring>
 
-#include "vlsvreader2.h"
 #include "definitions.h"
 #include "vlsv_reader.h"
 #include "vlsvreaderinterface.h"
@@ -44,29 +43,6 @@ using namespace std;
 using namespace vlsv;
 
 static map<string,string> attributes;
-
-static uint64_t convUInt(const char* ptr, const VLSV::datatype& dataType, const uint64_t& dataSize) {
-   if (dataType != VLSV::UINT) {
-      cerr << "Erroneous datatype given to convUInt" << endl;
-      exit(1);
-   }
-
-   switch (dataSize) {
-      case 1:
-         return *reinterpret_cast<const unsigned char*> (ptr);
-         break;
-      case 2:
-         return *reinterpret_cast<const unsigned short int*> (ptr);
-         break;
-      case 4:
-         return *reinterpret_cast<const unsigned int*> (ptr);
-         break;
-      case 8:
-         return *reinterpret_cast<const unsigned long int*> (ptr);
-         break;
-   }
-   return 0;
-}
 
 static uint64_t convUInt(const char* ptr, const vlsv::datatype::type & dataType, const uint64_t& dataSize) {
    if (dataType != vlsv::datatype::type::UINT) {
@@ -176,13 +152,13 @@ bool cloneMesh(const string& inputFileName,vlsv::Writer& output,const string& me
 }
 
 /*! Extracts the dataset from the VLSV file opened by convertSILO.
- * \param vlsvReader oldVlsv::Reader class object used to access the VLSV file
+ * \param vlsvReader vlsvinterface::Reader class object used to access the VLSV file
  * \param meshName Address of the string containing the name of the mesh to be extracted
  * \param varToExtract Pointer to the char array containing the name of the variable to extract
  * \param compToExtract Unsigned int designating the component to extract (0 for scalars)
  * \param orderedData Pointer to the return argument map which will get the extracted dataset
  */
-bool convertMesh(newVlsv::Reader& vlsvReader,
+bool convertMesh(vlsvinterface::Reader& vlsvReader,
                  const string& meshName,
                  const char * varToExtract,
                  const uint compToExtract,
@@ -274,7 +250,7 @@ bool convertMesh(newVlsv::Reader& vlsvReader,
       // Put those into the map
       orderedData->insert(pair<uint64_t, Real>(CellID, extract));
       if (storeCellOrder == true) {
-	 cellOrder[CellID] = i;
+         cellOrder[CellID] = i;
       }
    }
 
@@ -658,10 +634,10 @@ bool printNonVerboseData()
    return 0;
 }
 
-bool getBlockIds( newVlsv::Reader & vlsvReader,
-                  const unordered_map<uint64_t, pair<uint64_t, uint32_t>> & cellsWithBlocksLocations,
-                  const uint64_t & cellId,
-                  vector<uint32_t> & blockIds ) {
+bool getBlockIds(vlsvinterface::Reader& vlsvReader,
+                 const unordered_map<uint64_t, pair<uint64_t, uint32_t>> & cellsWithBlocksLocations,
+                 const uint64_t & cellId,
+                 vector<uint32_t> & blockIds ) {
    // Read the block ids:
    //Check if the cell id can be found:
    unordered_map<uint64_t, pair<uint64_t, uint32_t>>::const_iterator it = cellsWithBlocksLocations.find( cellId );
@@ -732,148 +708,6 @@ uint32_t getBlockId( const double vx,
 
     return blockId;
 }
-
-
-
-//Loads a parameter from a file
-//usage: Real x = loadParameter( vlsvReader, nameOfParameter );
-//Note: this is used in getCellIdFromCoords
-//Input:
-//[0] vlsvReader -- some VLSVReader which has a file opened
-//[1] name -- name of the parameter, e.g. "xmin"
-//Output:
-//[0] Parameter -- Saves the parameter into the parameter variable
-template <typename T>
-bool loadParameter( VLSVReader& vlsvReader, const string& name, T & parameter ) {
-   //Declare dataType, arraySize, vectorSize, dataSize so we know how much data we want to store
-   VLSV::datatype dataType;
-   uint64_t arraySize, vectorSize, dataSize; //vectorSize should be 1
-   //Write into dataType, arraySize, etc with getArrayInfo -- if fails to read, give error message
-   if( vlsvReader.getArrayInfo( "PARAMETERS", name, arraySize, vectorSize, dataType, dataSize ) == false ) {
-      cerr << "Error, could not read parameter '" << name << "' at: " << __FILE__ << " " << __LINE__; //FIX
-      return false;
-   }
-   //Declare a buffer to write the parameter's data in (arraySize, etc was received from getArrayInfo)
-   char * buffer = new char[arraySize * vectorSize * dataSize];
-  
-   //Read data into the buffer and return error if something went wrong
-   if( vlsvReader.readArray( "PARAMETERS", name, 0, vectorSize, buffer ) == false ) {
-      cerr << "Error, could not read parameter '" << name << "' at: " << __FILE__ << " " << __LINE__; //FIX
-      return false;
-   }
-   //SHOULD be a vector of size 1 and since I am going to want to assume that, making a check here
-   if( vectorSize != 1 ) {
-      cerr << "Error, could not read parameter '" << name << "' at: " << __FILE__ << " " << __LINE__; //FIX
-      return false;
-   }
-   //Input the parameter
-   if( typeid(T) == typeid(double) ) {
-      if( dataSize == 8 ) {
-         parameter = *reinterpret_cast<double*>(buffer);
-      } else if( dataSize == 4 ) {
-         parameter = *reinterpret_cast<float*>(buffer);
-      } else {
-         cerr << "Error, bad datasize while reading parameters at " << __FILE__ << " " << __LINE__ << endl;
-         return false;
-      }
-   } else if( typeid(T) == typeid(uint64_t) ) {
-      if( dataSize == 8 ) {
-         parameter = *reinterpret_cast<uint64_t*>(buffer);
-      } else if( dataSize == 4 ) {
-         parameter = *reinterpret_cast<uint32_t*>(buffer);
-      } else {
-         cerr << "Error, bad datasize while reading parameters at " << __FILE__ << " " << __LINE__ << endl;
-         return false;
-      }
-   } else {
-      cerr << "Error, could not read parameter '" << name << "' at: " << __FILE__ << " " << __LINE__; //FIX
-      cerr << " Error message: invalid type in loadParameters" << endl;
-      return false;
-   }
-   return true;
-}
-
-
-
-bool getBlockIds( oldVlsv::Reader & vlsvReader,
-                  const unordered_map<uint64_t, pair<uint64_t, uint32_t>> & cellsWithBlocksLocations,
-                  const uint64_t & cellId,
-                  vector<uint32_t> & blockIds ) {
-   // Read the block ids:
-   //Check if the cell id can be found:
-   unordered_map<uint64_t, pair<uint64_t, uint32_t>>::const_iterator it = cellsWithBlocksLocations.find( cellId );
-   if( it == cellsWithBlocksLocations.end() ) {
-      cerr << "COULDNT FIND CELL ID " << cellId << " AT " << __FILE__ << " " << __LINE__ << endl;
-      return false;
-   }
-   //Get offset and number of blocks:
-   pair<uint64_t, uint32_t> offsetAndBlocks = it->second;
-   const uint64_t blockOffset = get<0>(offsetAndBlocks);
-   const uint32_t N_blocks = get<1>(offsetAndBlocks);
-
-   // Get some required info from VLSV file:
-   list<pair<string, string> > attribs;
-   attribs.push_back(make_pair("name", attributes["--meshname"]));
-
-   //READ BLOCK COORDINATES:
-   uint64_t blockCoordinates_arraySize, blockCoordinates_vectorSize, blockCoordinates_dataSize;
-   vlsv::datatype::type blockCoordinates_dataType;
-   //Input blockCoordinates_arraySize, blockCoordinates_vectorSize, blockCoordinates_dataSize blockCoordinates_dataType: (Returns false if fails)
-   if (vlsvReader.getArrayInfo("BLOCKCOORDINATES", attribs, blockCoordinates_arraySize, blockCoordinates_vectorSize, blockCoordinates_dataType, blockCoordinates_dataSize) == false) {
-      cerr << "ERROR, COULD NOT FIND BLOCKCOORDINATES AT " << __FILE__ << " " << __LINE__ << endl;
-      return false;
-   }
-   //Make sure blockid's datatype is correct:
-   if( blockCoordinates_dataType != vlsv::datatype::type::FLOAT ) {
-      cerr << "ERROR, bad datatype at " << __FILE__ << " " << __LINE__ << endl;
-      return false;
-   }
-   //Create buffer for reading in data:  (Note: arraySize, vectorSize, etc were fetched from getArrayInfo)
-   char * blockCoordinates_buffer = new char[N_blocks*blockCoordinates_vectorSize*blockCoordinates_dataSize];
-   //Read the data into the buffer:
-   if( vlsvReader.readArray( "BLOCKCOORDINATES", attribs, blockOffset, N_blocks, blockCoordinates_buffer ) == false ) {
-      cerr << "ERROR, FAILED TO READ BLOCKCOORDINATES AT " << __FILE__ << " " << __LINE__ << endl;
-      delete[] blockCoordinates_buffer;
-      return false;
-   }
-   //Input the block ids:
-   // First read in vxmin, vymin, vzmin etc
-   double vx_min, vy_min, vz_min;
-   uint64_t vx_length, vy_length, vz_length;
-   loadParameter( vlsvReader, "vxmin", vx_min );
-   loadParameter( vlsvReader, "vymin", vy_min );
-   loadParameter( vlsvReader, "vzmin", vz_min );
-   loadParameter( vlsvReader, "vxblocks_ini", vx_length );
-   loadParameter( vlsvReader, "vyblocks_ini", vy_length );
-   loadParameter( vlsvReader, "vzblocks_ini", vz_length );
-
-   double vx, vy, vz, dvx, dvy, dvz;
-
-   blockIds.reserve(N_blocks);
-   for (uint64_t b = 0; b < N_blocks; ++b) {
-      if (blockCoordinates_dataSize == 4) {
-         vx = *reinterpret_cast<float*> (blockCoordinates_buffer + b * blockCoordinates_vectorSize * blockCoordinates_dataSize + 0 * blockCoordinates_dataSize);
-         vy = *reinterpret_cast<float*> (blockCoordinates_buffer + b * blockCoordinates_vectorSize * blockCoordinates_dataSize + 1 * blockCoordinates_dataSize);
-         vz = *reinterpret_cast<float*> (blockCoordinates_buffer + b * blockCoordinates_vectorSize * blockCoordinates_dataSize + 2 * blockCoordinates_dataSize);
-         dvx = *reinterpret_cast<float*> (blockCoordinates_buffer + b * blockCoordinates_vectorSize * blockCoordinates_dataSize + 3 * blockCoordinates_dataSize);
-         dvy = *reinterpret_cast<float*> (blockCoordinates_buffer + b * blockCoordinates_vectorSize * blockCoordinates_dataSize + 4 * blockCoordinates_dataSize);
-         dvz = *reinterpret_cast<float*> (blockCoordinates_buffer + b * blockCoordinates_vectorSize * blockCoordinates_dataSize + 5 * blockCoordinates_dataSize);
-      } else {
-         vx = *reinterpret_cast<double*> (blockCoordinates_buffer + b * blockCoordinates_vectorSize * blockCoordinates_dataSize + 0 * blockCoordinates_dataSize);
-         vy = *reinterpret_cast<double*> (blockCoordinates_buffer + b * blockCoordinates_vectorSize * blockCoordinates_dataSize + 1 * blockCoordinates_dataSize);
-         vz = *reinterpret_cast<double*> (blockCoordinates_buffer + b * blockCoordinates_vectorSize * blockCoordinates_dataSize + 2 * blockCoordinates_dataSize);
-         dvx = *reinterpret_cast<double*> (blockCoordinates_buffer + b * blockCoordinates_vectorSize * blockCoordinates_dataSize + 3 * blockCoordinates_dataSize);
-         dvy = *reinterpret_cast<double*> (blockCoordinates_buffer + b * blockCoordinates_vectorSize * blockCoordinates_dataSize + 4 * blockCoordinates_dataSize);
-         dvz = *reinterpret_cast<double*> (blockCoordinates_buffer + b * blockCoordinates_vectorSize * blockCoordinates_dataSize + 5 * blockCoordinates_dataSize);
-      }
-      const uint32_t blockId = getBlockId( vx, vy, vz, dvx, dvy, dvz, vx_min, vy_min, vz_min, vx_length, vy_length, vz_length);
-      blockIds.push_back( (uint32_t)(blockId) );
-   }
-   delete[] blockCoordinates_buffer;
-   return true;
-
-}
-
 
 // Reads avgs values of some given cell id
 // Input:
@@ -971,11 +805,7 @@ bool getCellsWithBlocksLocations( T & vlsvReader,
    list<pair<string, string> > attribs;
 
    //Get the mesh name for reading in data from the correct place
-   if( typeid(vlsvReader) == typeid(oldVlsv::Reader) ) {
-      attribs.push_back( make_pair("name", meshName) );
-   } else {
-      attribs.push_back( make_pair("mesh", meshName) );
-   }
+   attribs.push_back( make_pair("mesh", meshName) );
 
    //Get array info
    if (vlsvReader.getArrayInfo("CELLSWITHBLOCKS", attribs, cwb_arraySize, cwb_vectorSize, cwb_dataType, cwb_dataSize) == false) {
@@ -1294,10 +1124,6 @@ bool process2Files(const string fileName1,
                    const bool verboseOutput,
                    const uint compToExtract2 = 0
                   ) {
-   //Check whether the file(s) use new or old vlsv library:
-   const bool file1UsesNewVlsvLib = (checkVersion( fileName1 ) == 1.00);
-   const bool file2UsesNewVlsvLib = (checkVersion( fileName2 ) == 1.00);
-
    map<uint, Real> orderedData1;
    map<uint, Real> orderedData2;
    Real absolute, relative, mini, maxi, size, avg, stdev;
@@ -1311,37 +1137,20 @@ bool process2Files(const string fileName1,
       cellIds1.push_back(compToExtract);
       cellIds2.push_back(compToExtract2);
       // Compare files:
-      if( file1UsesNewVlsvLib && file2UsesNewVlsvLib ) {
-         if( compareAvgs<newVlsv::Reader, newVlsv::Reader>(fileName1, fileName2, verboseOutput, cellIds1, cellIds2) == false ) { return false; }
-      } else if( file1UsesNewVlsvLib && !file2UsesNewVlsvLib ) {
-         if( compareAvgs<newVlsv::Reader, oldVlsv::Reader>(fileName1, fileName2, verboseOutput, cellIds1, cellIds2) == false ) { return false; }
-      } else if( !file1UsesNewVlsvLib && file2UsesNewVlsvLib ) {
-         if( compareAvgs<oldVlsv::Reader, newVlsv::Reader>(fileName1, fileName2, verboseOutput, cellIds1, cellIds2) == false ) { return false; }
-      } else {
-         // Both are old vlsv format
-         if( compareAvgs<oldVlsv::Reader, oldVlsv::Reader>(fileName1, fileName2, verboseOutput, cellIds1, cellIds2) == false ) { return false; }
-      }
+      if( compareAvgs<vlsvinterface::Reader, vlsvinterface::Reader>(fileName1, fileName2, verboseOutput, cellIds1, cellIds2) == false ) { return false; }
    } else {
       unordered_map<size_t,size_t> cellOrder;
 
       bool success = true;
-      if( file1UsesNewVlsvLib ) {
-         success = convertSILO<newVlsv::Reader>(fileName1, varToExtract, compToExtract, &orderedData1, cellOrder, true);
-      } else {
-         cout << "old1 SILO format?" << endl;
-         //success = convertSILO<oldVlsv::Reader>(fileName1, varToExtract, compToExtract, &orderedData1, cellOrder, true);
-      }
+      success = convertSILO<vlsvinterface::Reader>(fileName1, varToExtract, compToExtract, &orderedData1, cellOrder, true);
+
       if( success == false ) {
          cerr << "ERROR Data import error with " << fileName1 << endl;
          return 1;
       }
-   
-      if( file2UsesNewVlsvLib ) {
-         success = convertSILO<newVlsv::Reader>(fileName2, varToExtract, compToExtract, &orderedData2, cellOrder, false);
-      } else {
-         cout << "old2 SILO format?" << endl;
-         //success = convertSILO<oldVlsv::Reader>(fileName2, varToExtract, compToExtract, &orderedData2, cellOrder, false);
-      }
+
+      success = convertSILO<vlsvinterface::Reader>(fileName2, varToExtract, compToExtract, &orderedData2, cellOrder, false);
+
       if( success == false ) {
          cerr << "ERROR Data import error with " << fileName2 << endl;
          return 1;

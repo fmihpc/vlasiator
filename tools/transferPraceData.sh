@@ -66,7 +66,7 @@ function transferFileList {
         
         echo "$(date) ${file}: Starting download of chunk $((i+1))/$totalChunks at $offset " 
             localStartSize=$offset
-        startTime=$( date +"%s" )
+        startTime=$( date +"%s.%N" )
         globus-url-copy  -rst -len $chunkSize  -off $offset  ${server}/${path}/${file} ./
         rc=$?
         if [[ $rc != 0 ]] ; then
@@ -74,7 +74,7 @@ function transferFileList {
         exit $rc
         fi
         localEndSize=$( ls -la  $file | gawk '{print $5}' )
-        endTime=$( date +"%s" )
+        endTime=$( date +"%s.%N" )
         echo $startTime $endTime $localStartSize $localEndSize $file $((i+1)) "$(date)" | 
         gawk '{
              dataMb=($4-$3)/(1024*1024);
@@ -180,9 +180,15 @@ function transferFileListDdSsh {
             transferSize=$(echo $i $chunkSize $size|gawk '{if(($1+1)*$2 > $3) print $3-$1*$2; else print $2;}')
             echo transferSize $transferSize
             echo "$(date) ${file}: Starting download of chunk $((i+1))/$totalChunks " 
-            startTime=$( date +"%s" )
-            ssh -o Compression=no ${user}@${server} "dd iflag=fullblock bs=${chunkSize} skip=$i count=1 if=${path}/${file}" > ${file}.partial 2>> dd.err
-            endTime=$( date +"%s" )
+            startTime=$( date +"%s.%N" )
+	    if [ $server == "localhost" ]
+	    then
+		dd iflag=fullblock bs=${chunkSize} skip=$i count=1 if=${path}/${file} > ${file}.partial 2>> dd.err
+	    else
+		ssh -o Compression=no ${user}@${server} "dd iflag=fullblock bs=${chunkSize} skip=$i count=1 if=${path}/${file}" > ${file}.partial 2>> dd.err
+	    fi
+	    endTime=$( date +"%s.%N" )
+		
             localPartialSize=$( ls -la  ${file}.partial | gawk '{print $5}' )
             echo localPartialSize $localPartialSize
             echo $startTime $endTime $localPartialSize $file $((i+1)) "$(date)" | 
@@ -204,7 +210,7 @@ function transferFileListDdSsh {
                     retval=2
                 fi
             else
-                #chunk downloaded, lets chug it intop the actual file
+                #chunk downloaded, lets chug it into the actual file
                 i=$(( i+1 ))
                 retryIndex=0
                 cat ${file}.partial >> ${file}
@@ -270,7 +276,7 @@ function transferFileListRsync {
                 touch $file
             fi
             
-            startTime=$( date +"%s" )
+            startTime=$( date +"%s.%N" )
             localStartSize=$( ls -la  $file | gawk '{print $5}' ) 
             if [ $localStartSize -ne $size ] 
             then
@@ -281,7 +287,7 @@ function transferFileListRsync {
                     echo "Failed:    rsync --inplace --partial   ${user}@${server}:${path}/${file} ./"
                 fi
                 localEndSize=$( ls -la  $file | gawk '{print $5}' )
-                endTime=$( date +"%s" )
+                endTime=$( date +"%s.%N" )
                 echo $startTime $endTime $localStartSize $localEndSize $file "$(date)" | 
                 gawk '{
                      dataMb=($4-$3)/(1024*1024);
@@ -301,7 +307,7 @@ function transferFileListRsync {
                 then
                     echo "$(date) ${file}: WARNING file with the same name already exists on ${localTapePath} - file not moved from staging at $(pwd)"
                 else
-                    mv ${file} ${localTapePath}/
+                    mv ${file} ${localTapePath}/ 2>> errlog
                     echo "$(date) ${file}: Moved from staging at $( pwd ) to ${localTapePath}"
                 fi
                 retval=1
@@ -331,8 +337,8 @@ transferPraceData userserver path transfer_file local_storage_path
     Script for transferring data using gridFTP or rsync (depends on machine). 
     Please run grid_proxy_init first when using the gridFTP backend.
    
-    user             Username, option not used for gridftp transfers (put arbitrary name)
-    server           One of: Hermit (gridftp), Abel (gridftp), Sisu-g (gridftp) Sisu-r (rsync) Sisu-ds (dd|ssh) 
+    user             Username, option not used for gridftp or local-dd transfers (put arbitrary name)
+    server           One of: Hermit (gridftp), Hornet-r (rsync), Abel (gridftp), Sisu-g (gridftp) Sisu-r (rsync) Sisu-ds (dd|ssh) localhost-dd (local-dd)
     path             is a path on remote machine (e.g. /univ_1/ws1/ws/iprsalft-paper1-runs-0/2D/ecliptic/AAE)"
     transfer_file    is a file in the path on the remote machine created using ls -la *myfiles_to_transfer* > transfer_list.txt"       
     local_storage_path  is the folder where the files are ultimately copied after transfer, e.g., a tape drive. During transfer they go to the current folder. "." is also allowed.
@@ -355,6 +361,10 @@ elif [ $machine == "Hermit" ]
 then
     server=gsiftp://gridftp-fr1.hww.de:2812
     method=gridftp
+elif [ $machine == "Hornet-r" ]
+then
+    server=hornet.hww.de
+    method=rsync
 elif [ $machine == "Sisu-g" ]
 then
     server=gsiftp://gridftp.csc.fi:2811
@@ -367,8 +377,12 @@ elif [ $machine == "Sisu-ds" ]
 then
     server=sisu.csc.fi
     method=ddssh
+elif [ $machine == "localhost-dd" ]
+then
+    server=localhost
+    method=ddssh
 else
-    echo "Allowed server values are Hermit, Abel, Sisu-g, Sisu-r, Sisu-ds"
+    echo "Allowed server values are Hermit, Hornet-r, Abel, Sisu-g, Sisu-r, Sisu-ds, localhost-dd"
     exit 1
 fi
 
@@ -410,11 +424,16 @@ then
     fi
 elif [ $method == "ddssh" ]
 then
-    rsync -P --inplace  ${user}@${server}:${path}/$inputfile ./$inputfile
-    rc=$?
+    if [ $server == "localhost" ]
+    then
+	cp ${path}/$inputfile ./$inputfile
+	rc=$?
+    else
+	rsync -P --inplace  ${user}@${server}:${path}/$inputfile ./$inputfile
+	rc=$?
+    fi
     if [[ $rc != 0 ]] ; then
-        echo "Failed:     rsync -P --inplace  ${user}@${server}:${path}/$inputfile ./$inputfile"
-        echo "Could not download list of files"
+        echo "Failed: Could not download list of files"
         exit $rc
     fi
 else

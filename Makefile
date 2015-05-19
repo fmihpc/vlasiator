@@ -8,27 +8,40 @@ FP_PRECISION = DP
 #Set floating point precision for distribution function to SPF (single) or DPF (double)
 DISTRIBUTION_FP_PRECISION = SPF
 
+#Set vector backend type for vlasov solvers, sets precision and length. Options: VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER, VEC4D_FALLBACK, VEC4F_FALLBACK
+VECTORCLASS = VEC8F_AGNER
+
 #set a default archive utility, can also be set in Makefile.arch
 AR ?= ar
 
 #londrillo_delzanna (no other options)
 FIELDSOLVER ?= londrillo_delzanna
 #Add -DFS_1ST_ORDER_SPACE or -DFS_1ST_ORDER_TIME to make the field solver first-order in space or time
-# CXXFLAGS += -DFS_1ST_ORDER_SPACE
-# CXXFLAGS += -DFS_1ST_ORDER_TIME
+# COMPFLAGS += -DFS_1ST_ORDER_SPACE
+# COMPFLAGS += -DFS_1ST_ORDER_TIME
+
+#override flags if we are building testpackage:
+ifeq ($(MAKECMDGOALS),testpackage)
+MATHFLAGS =
+FP_PRECISION = DP
+DISTRIBUTION_FP_PRECISION = DPF
+VECTORCLASS = VEC4D_AGNER
+CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++0x -fabi-version=0 
+endif
 
 #also use papi to report memory consumption?
-CXXFLAGS += -DPAPI_MEM
+PAPI_FLAG ?= -DPAPI_MEM
+COMPFLAGS +=${PAPI_FLAG}
 
 #Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
 #Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
-CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+COMPFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
 #is profiling on?
-CXXFLAGS += -DPROFILE
+COMPFLAGS += -DPROFILE
 
 #Add -DNDEBUG to turn debugging off. If debugging is enabled performance will degrade significantly
-CXXFLAGS += -DNDEBUG
+COMPFLAGS += -DNDEBUG
 # CXXFLAGS += -DDEBUG_SOLVERS
 # CXXFLAGS += -DDEBUG_IONOSPHERE
 
@@ -39,52 +52,55 @@ CXXFLAGS += -DNDEBUG
 #Set order of semilag solver in spatial translation
 #  TRANS_SEMILAG_PLM 	2nd order	
 #  TRANS_SEMILAG_PPM	3rd order (for production use, use unless testing)
-#  TRANS_SEMILAG_PQM	5th order (in testing)
-CXXFLAGS += -DACC_SEMILAG_PQM -DTRANS_SEMILAG_PPM 
-#define USE_AGNER_VECTORCLASS to use an external vector class that is used in some of the solvers
-#If not defined a slower but portable implementation is used, as the external one only supports 
-#Linux & x86 processors  
-CXXFLAGS += -DUSE_AGNER_VECTORCLASS
+#  TRANS_SEMILAG_PQM	5th order (significantly slower due to larger stencil)
+COMPFLAGS += -DACC_SEMILAG_PQM -DTRANS_SEMILAG_PPM 
+
 #Add -DCATCH_FPE to catch floating point exceptions and stop execution
 #May cause problems
-# CXXFLAGS += -DCATCH_FPE
+# COMPFLAGS += -DCATCH_FPE
 
 #Define MESH=AMR if you want to use adaptive mesh refinement in velocity space
 #MESH = AMR
 
 #Add -DFS_1ST_ORDER_SPACE or -DFS_1ST_ORDER_TIME to make the field solver first-order in space or time
-# CXXFLAGS += -DFS_1ST_ORDER_SPACE
-# CXXFLAGS += -DFS_1ST_ORDER_TIME
+# COMPFLAGS += -DFS_1ST_ORDER_SPACE
+# COMPFLAGS += -DFS_1ST_ORDER_TIME
 
 #//////////////////////////////////////////////////////
 # The rest of this file users shouldn't need to change
 #//////////////////////////////////////////////////////
 
 #will need profiler in most places..
-CXXFLAGS += ${INC_PROFILE} 
+COMPFLAGS += ${INC_PROFILE} 
 
 #use jemalloc
-CXXFLAGS += ${INC_JEMALLOC} 
+COMPFLAGS += ${INC_JEMALLOC} 
 
 #define precision
-CXXFLAGS += -D${FP_PRECISION} 
+COMPFLAGS += -D${FP_PRECISION} 
 
 #define precision for the distribution function
-CXXFLAGS += -D${DISTRIBUTION_FP_PRECISION}
+COMPFLAGS += -D${DISTRIBUTION_FP_PRECISION}
 
-CXXEXTRAFLAGS = ${CXXFLAGS} -DTOOL_NOT_PARALLEL
+#set vector class
+COMPFLAGS += -D${VECTORCLASS}
 
 # If adaptive mesh refinement is used, add a precompiler flag
 ifeq ($(MESH),AMR)
-CXXFLAGS += -DAMR
+COMPFLAGS += -DAMR
 endif
+
+# Set compiler flags
+CXXFLAGS += ${COMPFLAGS}
+CXXEXTRAFLAGS = ${CXXFLAGS} -DTOOL_NOT_PARALLEL
 
 default: vlasiator
 
 tools: parallel_tools not_parallel_tools
-	touch vlsvreader2.cpp
 
-parallel_tools: vlsv2vtk vlsv2bzt vlsvextract
+parallel_tools: vlsvextract
+
+testpackage: vlasiator
 
 FORCE:
 # On FERMI one has to use the front-end compiler (e.g. g++) to compile this tool.
@@ -101,7 +117,6 @@ INSTALL = $(CURDIR)
 # Executable:
 EXE = vlasiator
 
-
 # Collect libraries into single variable:
 LIBS = ${LIB_BOOST}
 LIBS += ${LIB_ZOLTAN}
@@ -114,6 +129,9 @@ LIBS += ${LIB_PAPI}
 # Define common dependencies
 DEPS_COMMON = common.h common.cpp definitions.h mpiconversion.h logger.h
 DEPS_CELL   = spatial_cell.hpp velocity_mesh_old.h velocity_mesh_amr.h velocity_block_container.h
+
+# Define common field solver dependencies
+DEPS_FSOLVER = ${DEPS_COMMON} ${DEPS_CELL} fieldsolver/fs_common.h fieldsolver/fs_common.cpp fieldsolver/fs_cache.h
 
 # Define dependencies on all project files
 DEPS_PROJECTS =	projects/project.h projects/project.cpp \
@@ -142,7 +160,7 @@ DEPS_PROJECTS =	projects/project.h projects/project.cpp \
 
 DEPS_VLSVMOVER = ${DEPS_CELL} vlasovsolver/vlasovmover.cpp vlasovsolver/cpu_acc_map.hpp vlasovsolver/cpu_acc_intersections.hpp \
 	vlasovsolver/cpu_acc_intersections.hpp vlasovsolver/cpu_acc_semilag.hpp vlasovsolver/cpu_acc_transform.hpp \
-	vlasovsolver/cpu_moments.h
+	vlasovsolver/cpu_moments.h vlasovsolver/cpu_trans_map.hpp
 
 DEPS_VLSVMOVER_AMR = ${DEPS_CELL} vlasovsolver_amr/vlasovmover.cpp vlasovsolver_amr/cpu_acc_map.hpp vlasovsolver_amr/cpu_acc_intersections.hpp \
 	vlasovsolver_amr/cpu_acc_intersections.hpp vlasovsolver_amr/cpu_acc_semilag.hpp vlasovsolver_amr/cpu_acc_transform.hpp \
@@ -160,9 +178,13 @@ OBJS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipo
 	project.o projectTriAxisSearch.o \
 	Alfven.o Diffusion.o Dispersion.o Distributions.o Firehose.o Flowthrough.o Fluctuations.o Harris.o KHB.o Larmor.o \
 	Magnetosphere.o MultiPeak.o VelocityBox.o Riemann1.o Shock.o Template.o test_fp.o testHall.o test_trans.o \
-	verificationLarmor.o Shocktest.o grid.o ioread.o iowrite.o vlasiator.o logger.o muxml.o \
+	verificationLarmor.o Shocktest.o grid.o ioread.o iowrite.o vlasiator.o logger.o \
 	common.o parameters.o readparameters.o spatial_cell.o \
-	vlscommon.o vlsvreader2.o vlasovmover.o $(FIELDSOLVER).o fs_common.o fs_limiters.o
+	vlasovmover.o $(FIELDSOLVER).o fs_common.o fs_limiters.o
+
+OBJS_FSOLVER = 	ldz_magnetic_field.o ldz_volume.o derivatives.o ldz_electric_field.o ldz_hall.o fs_cache.o
+
+OBJS_POISSON = poisson_solver.o poisson_test.o poisson_solver_jacobi.o poisson_solver_sor.o
 
 help:
 	@echo ''
@@ -181,7 +203,7 @@ c: clean
 clean: data
 	rm -rf *.o *~ */*~ */*/*~ ${EXE} particle_post_pusher check_projects_compil_logs/ check_projects_cfg_logs/ particles/*.o
 cleantools:
-	rm vlsv2silo_${FP_PRECISION} vlsvextract_${FP_PRECISION} vlsv2vtk_${FP_PRECISION} vlsvdiff_${FP_PRECISION} vlsv2bzt_${FP_PRECISION} 
+	rm -rf vlsv2silo_${FP_PRECISION} vlsvextract_${FP_PRECISION}  vlsvdiff_${FP_PRECISION} 
 
 # Rules for making each object file needed by the executable
 
@@ -311,25 +333,55 @@ project.o: ${DEPS_COMMON} $(DEPS_PROJECTS)
 projectTriAxisSearch.o: ${DEPS_COMMON} $(DEPS_PROJECTS) projects/projectTriAxisSearch.h projects/projectTriAxisSearch.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/projectTriAxisSearch.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
+poisson_solver.o: ${DEPS_COMMON} ${DEPS_CELL} poisson_solver/poisson_solver.h poisson_solver/poisson_solver.cpp
+	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -std=c++0x -c poisson_solver/poisson_solver.cpp ${INC_DCCRG} ${INC_ZOLTAN}
+
+poisson_solver_jacobi.o: ${DEPS_COMMON} ${DEPS_CELL} poisson_solver/poisson_solver.h poisson_solver/poisson_solver_jacobi.h poisson_solver/poisson_solver_jacobi.cpp
+	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -std=c++0x -c poisson_solver/poisson_solver_jacobi.cpp ${INC_DCCRG} ${INC_ZOLTAN}
+
+poisson_solver_sor.o: ${DEPS_COMMON} ${DEPS_CELL} poisson_solver/poisson_solver.h poisson_solver/poisson_solver_sor.h poisson_solver/poisson_solver_sor.cpp
+	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -std=c++0x -c poisson_solver/poisson_solver_sor.cpp ${INC_DCCRG} ${INC_ZOLTAN}
+
+poisson_test.o: ${DEPS_COMMON} ${DEPS_CELL} projects/project.h projects/project.cpp projects/Poisson/poisson_test.h projects/Poisson/poisson_test.cpp
+	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -std=c++0x -c projects/Poisson/poisson_test.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
+
 spatial_cell.o: ${DEPS_CELL} spatial_cell.cpp
 	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -std=c++0x -c spatial_cell.cpp $(INC_BOOST) ${INC_EIGEN} ${INC_VECTORCLASS}
 
 ifeq ($(MESH),AMR)
 vlasovmover.o: ${DEPS_VLSVMOVER_AMR}
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -DMOVER_VLASOV_ORDER=2 -c vlasovsolver_amr/vlasovmover.cpp -I$(CURDIR) ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_PROFILE}  ${INC_VECTORCLASS} ${INC_EIGEN}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS}  -c vlasovsolver_amr/vlasovmover.cpp -I$(CURDIR) ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_PROFILE}  ${INC_VECTORCLASS} ${INC_EIGEN}
 else
 vlasovmover.o: ${DEPS_VLSVMOVER}
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -DMOVER_VLASOV_ORDER=2 -c vlasovsolver/vlasovmover.cpp -I$(CURDIR) ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_PROFILE}  ${INC_VECTORCLASS} ${INC_EIGEN}  
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS}  -c vlasovsolver/vlasovmover.cpp -I$(CURDIR) ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_PROFILE}  ${INC_VECTORCLASS} ${INC_EIGEN}  
 endif
 
-fs_common.o: fieldsolver/fs_common.h fieldsolver/fs_common.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c fieldsolver/fs_common.cpp -I$(CURDIR)  ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG}  ${INC_PROFILE}  ${INC_ZOLTAN}
+derivatives.o: ${DEPS_FSOLVER} fieldsolver/fs_limiters.h fieldsolver/fs_limiters.cpp fieldsolver/derivatives.hpp fieldsolver/derivatives.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c fieldsolver/derivatives.cpp -I$(CURDIR)  ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_PROFILE} ${INC_ZOLTAN}
 
-fs_limiters.o: fieldsolver/fs_limiters.h fieldsolver/fs_limiters.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c fieldsolver/fs_limiters.cpp -I$(CURDIR)  ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG}  ${INC_PROFILE}  ${INC_ZOLTAN}
+fs_cache.o: ${DEPS_COMMON} ${DEPS_CELL} fieldsolver/fs_cache.h fieldsolver/fs_cache.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c fieldsolver/fs_cache.cpp -I$(CURDIR)  ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_PROFILE} ${INC_ZOLTAN}
 
-londrillo_delzanna.o: ${DEPS_CELL} parameters.h common.h fieldsolver/fs_common.h fieldsolver/fs_common.cpp fieldsolver/derivatives.hpp fieldsolver/ldz_electric_field.hpp fieldsolver/ldz_hall.hpp fieldsolver/ldz_magnetic_field.hpp fieldsolver/ldz_main.cpp fieldsolver/ldz_volume.hpp fieldsolver/ldz_volume.hpp
-	 ${CMP} ${CXXFLAGS} ${FLAGS} -c fieldsolver/ldz_main.cpp -o londrillo_delzanna.o -I$(CURDIR)  ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG}  ${INC_PROFILE}  ${INC_ZOLTAN}
+fs_common.o: ${DEPS_FSOLVER} fieldsolver/fs_limiters.h fieldsolver/fs_limiters.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c fieldsolver/fs_common.cpp -I$(CURDIR)  ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_PROFILE} ${INC_ZOLTAN}
+
+fs_limiters.o: ${DEPS_FSOLVER} fieldsolver/fs_limiters.h fieldsolver/fs_limiters.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c fieldsolver/fs_limiters.cpp -I$(CURDIR)  ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_PROFILE} ${INC_ZOLTAN}
+
+londrillo_delzanna.o:  ${DEPS_FSOLVER} parameters.h common.h fieldsolver/fs_common.h fieldsolver/fs_common.cpp fieldsolver/derivatives.hpp fieldsolver/ldz_electric_field.hpp fieldsolver/ldz_hall.hpp fieldsolver/ldz_magnetic_field.hpp fieldsolver/ldz_main.cpp fieldsolver/ldz_volume.hpp fieldsolver/ldz_volume.hpp
+	 ${CMP} ${CXXFLAGS} ${FLAGS} -c fieldsolver/ldz_main.cpp -o londrillo_delzanna.o -I$(CURDIR)  ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_PROFILE} ${INC_ZOLTAN}
+
+ldz_electric_field.o: ${DEPS_FSOLVER} fieldsolver/ldz_electric_field.hpp fieldsolver/ldz_electric_field.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c fieldsolver/ldz_electric_field.cpp ${INC_BOOST} ${INC_DCCRG} ${INC_PROFILE} ${INC_ZOLTAN}
+
+ldz_hall.o: ${DEPS_FSOLVER} fieldsolver/ldz_hall.hpp fieldsolver/ldz_hall.cpp
+	${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAGS} -c fieldsolver/ldz_hall.cpp ${INC_BOOST} ${INC_DCCRG} ${INC_PROFILE} ${INC_ZOLTAN}
+
+ldz_magnetic_field.o: ${DEPS_FSOLVER} fieldsolver/ldz_magnetic_field.hpp fieldsolver/ldz_magnetic_field.cpp
+	${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAGS} -c fieldsolver/ldz_magnetic_field.cpp ${INC_BOOST} ${INC_DCCRG} ${INC_PROFILE} ${INC_ZOLTAN}
+
+ldz_volume.o: ${DEPS_FSOLVER} fieldsolver/ldz_volume.hpp fieldsolver/ldz_volume.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c fieldsolver/ldz_volume.cpp ${INC_BOOST} ${INC_DCCRG} ${INC_PROFILE} ${INC_ZOLTAN}
 
 vlasiator.o: ${DEPS_COMMON} readparameters.h parameters.h ${DEPS_PROJECTS} grid.h vlasovmover.h ${DEPS_CELL} vlasiator.cpp iowrite.h
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c vlasiator.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV}
@@ -337,7 +389,7 @@ vlasiator.o: ${DEPS_COMMON} readparameters.h parameters.h ${DEPS_PROJECTS} grid.
 grid.o:  ${DEPS_COMMON} parameters.h ${DEPS_PROJECTS} ${DEPS_CELL} grid.cpp grid.h  sysboundary/sysboundary.h
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c grid.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV}
 
-ioread.o:  ${DEPS_COMMON} parameters.h  ${DEPS_CELL} ioread.cpp ioread.h  vlsvreader2.cpp
+ioread.o:  ${DEPS_COMMON} parameters.h  ${DEPS_CELL} ioread.cpp ioread.h 
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c ioread.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV}
 
 iowrite.o:  ${DEPS_COMMON} parameters.h ${DEPS_CELL} iowrite.cpp iowrite.h  
@@ -345,9 +397,6 @@ iowrite.o:  ${DEPS_COMMON} parameters.h ${DEPS_CELL} iowrite.cpp iowrite.h
 
 logger.o: logger.h logger.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c logger.cpp ${INC_MPI}
-
-muxml.o: muxml.h muxml.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c muxml.cpp
 
 common.o: common.h common.cpp
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c common.cpp
@@ -362,71 +411,51 @@ vlscommon.o:  $(DEPS_COMMON)  vlscommon.h vlscommon.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c vlscommon.cpp
 
 
-vlsvreader2.o:  muxml.h muxml.cpp vlscommon.h vlsvreader2.h vlsvreader2.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsvreader2.cpp ${INC_VLSV}
-
-vlsvreader2extra.o:  muxml.h muxml.cpp vlscommon.h vlsvreader2.h vlsvreader2.cpp
-	${CMP} ${CXXEXTRAFLAGS} ${FLAGS} -c vlsvreader2.cpp ${INC_VLSV}
-
-
 # Make executable
-vlasiator: $(OBJS)
-	$(LNK) ${LDFLAGS} -o ${EXE} $(OBJS) $(LIBS)
+vlasiator: $(OBJS) $(OBJS_POISSON) $(OBJS_FSOLVER)
+	$(LNK) ${LDFLAGS} -o ${EXE} $(OBJS) $(LIBS) $(OBJS_POISSON) $(OBJS_FSOLVER)
 
 
 #/// TOOLS section/////
 
 #common reader filter
-DEPS_VLSVREADER = muxml.h muxml.cpp vlscommon.h vlsvreader2.h vlsvreader2.cpp
 DEPS_VLSVREADERINTERFACE = tools/vlsvreaderinterface.h tools/vlsvreaderinterface.cpp
-
-#common reader objects for tools
-OBJS_VLSVREADER = muxml.o vlscommon.o vlsvreader2.o
 OBJS_VLSVREADERINTERFACE = vlsvreaderinterface.o
-OBJS_VLSVREADEREXTRA = muxml.o vlscommon.o vlsvreader2extra.o
 
 #particle pusher tool
 DEPS_PARTICLES = particles/particles.h particles/particles.cpp particles/field.h particles/readfields.h particles/relativistic_math.h particles/particleparameters.h particles/distribution.h\
 	readparameters.h version.h
 OBJS_PARTICLES = particles/physconst.o particles/particles.o particles/readfields.o particles/particleparameters.o particles/distribution.o readparameters.o version.o
 
-vlsvextract: ${DEPS_VLSVREADER} ${DEPS_VLSVREADERINTERFACE} tools/vlsvextract.cpp ${OBJS_VLSVREADER} ${OBJS_VLSVREADERINTERFACE}
+vlsvextract:  ${DEPS_VLSVREADERINTERFACE} tools/vlsvextract.cpp  ${OBJS_VLSVREADERINTERFACE}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c tools/vlsvextract.cpp ${INC_BOOST} ${INC_DCCRG} ${INC_EIGEN} ${INC_VLSV} -I$(CURDIR) 
-	${LNK} -o vlsvextract_${FP_PRECISION} vlsvextract.o ${OBJS_VLSVREADER} ${OBJS_VLSVREADERINTERFACE} ${LIB_BOOST} ${LIB_DCCRG}  ${LIB_VLSV} ${LDFLAGS}
+	${LNK} -o vlsvextract_${FP_PRECISION} vlsvextract.o  ${OBJS_VLSVREADERINTERFACE} ${LIB_BOOST} ${LIB_DCCRG}  ${LIB_VLSV} ${LDFLAGS}
 
-vlsv2vtk: ${DEPS_VLSVREADER} ${OBJS_VLSVREADER} tools/vlsv2vtk.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c tools/vlsv2vtk.cpp ${INC_BOOST} ${INC_VLSV} -I$(CURDIR) 
-	${LNK} -o vlsv2vtk_${FP_PRECISION} vlsv2vtk.o ${OBJS_VLSVREADER} ${INC_BOOST} ${LIB_VLSV} ${LDFLAGS}
-
-vlsv2silo: ${DEPS_VLSVREADER} ${DEPS_VLSVREADERINTERFACE} tools/vlsv2silo.cpp ${OBJS_VLSVREADER} ${OBJS_VLSVREADERINTERFACE}
+vlsv2silo:  ${DEPS_VLSVREADERINTERFACE} tools/vlsv2silo.cpp  ${OBJS_VLSVREADERINTERFACE}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c tools/vlsv2silo.cpp ${INC_SILO} ${INC_VLSV} -I$(CURDIR) 
-	${LNK} -o vlsv2silo_${FP_PRECISION} vlsv2silo.o ${OBJS_VLSVREADER} ${OBJS_VLSVREADERINTERFACE} ${LIB_SILO} ${LIB_VLSV} ${LDFLAGS}
+	${LNK} -o vlsv2silo_${FP_PRECISION} vlsv2silo.o  ${OBJS_VLSVREADERINTERFACE} ${LIB_SILO} ${LIB_VLSV} ${LDFLAGS}
 
-vlsv2bzt: ${DEPS_VLSVREADER} ${OBJS_VLSVREADER} tools/vlsv2bzt.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c tools/vlsv2bzt.cpp ${INC_VLSV} -I$(CURDIR) 
-	${LNK} -o vlsv2bzt_${FP_PRECISION} vlsv2bzt.o ${OBJS_VLSVREADER} ${LIB_VLSV} ${LDFLAGS}
-
-vlsvdiff: ${DEPS_VLSVREADER} ${DEPS_VLSVREADERINTERFACE} tools/vlsvdiff.cpp ${OBJS_VLSVREADEREXTRA} ${OBJS_VLSVREADERINTERFACE}
+vlsvdiff:  ${DEPS_VLSVREADERINTERFACE} tools/vlsvdiff.cpp ${OBJS_VLSVREADEREXTRA} ${OBJS_VLSVREADERINTERFACE}
 	${CMP} ${CXXEXTRAFLAGS} ${FLAGS} -c tools/vlsvdiff.cpp ${INC_VLSV} -I$(CURDIR)
-	${LNK} -o vlsvdiff_${FP_PRECISION} vlsvdiff.o ${OBJS_VLSVREADER} ${OBJS_VLSVREADERINTERFACE} ${LIB_VLSV} ${LDFLAGS}
+	${LNK} -o vlsvdiff_${FP_PRECISION} vlsvdiff.o  ${OBJS_VLSVREADERINTERFACE} ${LIB_VLSV} ${LDFLAGS}
 
-vlsvreaderinterface.o: ${DEPS_VLSVREADER} tools/vlsvreaderinterface.h tools/vlsvreaderinterface.cpp ${OBJS_VLSVREADER}
+vlsvreaderinterface.o:  tools/vlsvreaderinterface.h tools/vlsvreaderinterface.cpp 
 	${CMP} ${CXXFLAGS} ${FLAGS} -c tools/vlsvreaderinterface.cpp ${INC_VLSV} -I$(CURDIR) 
 
-particles/particleparameters.o: ${DEPS_PARTICLES} ${DEPS_VLSVREADER} ${OBJS_VLSVREADERINTERFACE} particles/particleparameters.cpp
+particles/particleparameters.o: ${DEPS_PARTICLES}  ${OBJS_VLSVREADERINTERFACE} particles/particleparameters.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c particles/particleparameters.cpp ${INC_VLSV} ${INC_VECTORCLASS} -I$(CURDIR) -Itools -o $@
 
-particles/readfields.o: ${DEPS_PARTICLES} ${DEPS_VLSVREADER} ${OBJS_VLSVREADERINTERFACE} particles/readfields.cpp
+particles/readfields.o: ${DEPS_PARTICLES}  ${OBJS_VLSVREADERINTERFACE} particles/readfields.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c particles/readfields.cpp ${INC_VLSV} ${INC_VECTORCLASS} -I$(CURDIR) -Itools -o $@
 
-particles/particles.o: ${DEPS_PARTICLES} ${DEPS_VLSVREADER} ${OBJS_VLSVREADERINTERFACE} particles/particles.cpp
+particles/particles.o: ${DEPS_PARTICLES}  ${OBJS_VLSVREADERINTERFACE} particles/particles.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c particles/particles.cpp ${INC_VLSV} ${INC_VECTORCLASS} -I$(CURDIR) -Itools -o $@
 
-particles/distribution.o: ${DEPS_PARTICLES} ${DEPS_VLSVREADER} ${OBJS_VLSVREADERINTERFACE} particles/distribution.cpp
+particles/distribution.o: ${DEPS_PARTICLES}  ${OBJS_VLSVREADERINTERFACE} particles/distribution.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c particles/distribution.cpp ${INC_VLSV} ${INC_VECTORCLASS} -I$(CURDIR) -Itools -o $@
 
-particle_post_pusher: ${OBJS_PARTICLES} ${DEPS_PARTICLES} ${DEPS_VLSVREADER} ${OBJS_VLSVREADERINTERFACE} particles/particle_post_pusher.cpp
+particle_post_pusher: ${OBJS_PARTICLES} ${DEPS_PARTICLES}  ${OBJS_VLSVREADERINTERFACE} particles/particle_post_pusher.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c particles/particle_post_pusher.cpp ${INC_VLSV} ${INC_VECTORCLASS} -I$(CURDIR) -Itools
-	${LNK} -o $@ particle_post_pusher.o ${OBJS_PARTICLES} ${OBJS_VLSVREADER} ${OBJS_VLSVREADERINTERFACE} ${LIBS} ${LDFLAGS}
+	${LNK} -o $@ particle_post_pusher.o ${OBJS_PARTICLES}  ${OBJS_VLSVREADERINTERFACE} ${LIBS} ${LDFLAGS}
 
 # DO NOT DELETE

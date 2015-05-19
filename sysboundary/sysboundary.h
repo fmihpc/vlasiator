@@ -12,7 +12,7 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #include <map>
 #include <list>
 #include <vector>
-#include "mpi.h"
+#include <mpi.h>
 #include <dccrg.hpp>
 #include <dccrg_cartesian_geometry.hpp>
 #include "../parameters.h"
@@ -24,6 +24,7 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #include "ionosphere.h"
 #include "outflow.h"
 #include "setmaxwellian.h"
+
 
 /*! \brief SysBoundary contains the SysBoundaryConditions used in the simulation.
  * 
@@ -67,7 +68,8 @@ class SysBoundary {
       SBC::SysBoundaryCondition* getSysBoundary(cuint sysBoundaryType) const;
       bool isDynamic() const;
       bool isBoundaryPeriodic(uint direction) const;
-   
+      bool updateSysBoundariesAfterLoadBalance(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
+
    private:
       /*! Private copy-constructor to prevent copying the class. */
       SysBoundary(const SysBoundary& bc);
@@ -80,7 +82,6 @@ class SysBoundary {
       std::vector<std::string> sysBoundaryCondList;
       /*! bool telling whether any system boundary condition is dynamic in time (and thus needs updating). */
       bool isThisDynamic;
-         
    
       /*! Array of bool telling whether the system is periodic in any direction. */
       bool isPeriodic[3];

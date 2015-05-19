@@ -30,4 +30,4 @@ LIB_PROFILE = -L${HOME}/phiprof/lib -lphiprof
 INC_PROFILE = -I${HOME}/phiprof/include
 INC_TOPO =
 
-INC_EIGEN = -I/home/kempf/Codes/eigen-eigen-2249f9c22fe8
+INC_EIGEN = -I${HOME}/include

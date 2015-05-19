@@ -3,85 +3,61 @@
 
 using namespace std;
 
-static uint64_t convUInt(const char* ptr, const VLSV::datatype& dataType, const uint64_t& dataSize) {
-   if (dataType != VLSV::UINT) {
-      cerr << "Erroneous datatype given to convUInt" << endl;
-      exit(1);
+namespace vlsvinterface {
+
+   static uint64_t convUInt(const char* ptr, const vlsv::datatype::type & dataType, const uint64_t& dataSize) {
+      if (dataType != vlsv::datatype::type::UINT) {
+         cerr << "Erroneous datatype given to convUInt" << endl;
+         exit(1);
+      }
+   
+      switch (dataSize) {
+         case 1:
+            return *reinterpret_cast<const unsigned char*> (ptr);
+            break;
+         case 2:
+            return *reinterpret_cast<const unsigned short int*> (ptr);
+            break;
+         case 4:
+            return *reinterpret_cast<const unsigned int*> (ptr);
+            break;
+         case 8:
+            return *reinterpret_cast<const unsigned long int*> (ptr);
+            break;
+      }
+      return 0;
    }
-
-   switch (dataSize) {
-      case 1:
-         return *reinterpret_cast<const unsigned char*> (ptr);
-         break;
-      case 2:
-         return *reinterpret_cast<const unsigned short int*> (ptr);
-         break;
-      case 4:
-         return *reinterpret_cast<const unsigned int*> (ptr);
-         break;
-      case 8:
-         return *reinterpret_cast<const unsigned long int*> (ptr);
-         break;
-   }
-   return 0;
-}
-
-static uint64_t convUInt(const char* ptr, const vlsv::datatype::type & dataType, const uint64_t& dataSize) {
-   if (dataType != vlsv::datatype::type::UINT) {
-      cerr << "Erroneous datatype given to convUInt" << endl;
-      exit(1);
-   }
-
-   switch (dataSize) {
-      case 1:
-         return *reinterpret_cast<const unsigned char*> (ptr);
-         break;
-      case 2:
-         return *reinterpret_cast<const unsigned short int*> (ptr);
-         break;
-      case 4:
-         return *reinterpret_cast<const unsigned int*> (ptr);
-         break;
-      case 8:
-         return *reinterpret_cast<const unsigned long int*> (ptr);
-         break;
-   }
-   return 0;
-}
-
-
-float checkVersion( const string & fname ) {
-   return 1.0;
-   /*
-   vlsv::Reader vlsvReader;
-   vlsvReader.open(fname);
-   string versionTag = "version";
-   float version;
-   if( vlsvReader.readParameter( versionTag, version ) == false ) {
-      //No version mark -- return 0
+   
+   
+   float checkVersion( const string & fname ) {
+      vlsv::Reader vlsvReader;
+      vlsvReader.open(fname);
+      string versionTag = "version";
+      float version;
+      if( vlsvReader.readParameter( versionTag, version ) == false ) {
+         //No version mark -- return 0
+         vlsvReader.close();
+         return 0;
+      }
       vlsvReader.close();
-      return 0;
+      if( version == 1.00 ) {
+         return version;
+      } else {
+         cerr << "Invalid version!" << endl;
+         exit(1);
+         return 0;
+      }
    }
-   vlsvReader.close();
-   if( version == 1.00 ) {
-      return version;
-   } else {
-      cerr << "Invalid version!" << endl;
-      exit(1);
-      return 0;
-   }*/
-}
-
-namespace newVlsv {
+   
    Reader::Reader() : vlsv::Reader() {
       cellIdsSet = false;
       cellsWithBlocksSet = false;
    }
-
+   
    Reader::~Reader() {
-
+   
    }
-
+   
    bool Reader::getMeshNames( list<string> & meshNames ) {
       set<string> meshNames_set;
       if (getUniqueAttributeValues("MESH", "name", meshNames_set) == false) {
@@ -94,7 +70,7 @@ namespace newVlsv {
       }
       return true;
    }
-
+   
    bool Reader::getMeshNames( set<string> & meshNames ) {
       if (getUniqueAttributeValues("MESH", "name", meshNames) == false) {
          cerr << "Failed to read mesh names" << endl;
@@ -102,7 +78,7 @@ namespace newVlsv {
       }
       return true;
    }
-
+   
    bool Reader::getVariableNames( const string&, list<string> & meshNames ) {
       set<string> meshNames_set;
       if (getUniqueAttributeValues("VARIABLE", "name", meshNames_set) == false) {
@@ -115,7 +91,7 @@ namespace newVlsv {
       }
       return true;
    }
-
+   
    bool Reader::getVariableNames( set<string> & meshNames ) {
       if (getUniqueAttributeValues("VARIABLE", "name", meshNames) == false) {
          cerr << "Failed to read mesh names" << endl;
@@ -158,7 +134,7 @@ namespace newVlsv {
       delete[] cellIds_buffer;
       return true;
    }
-
+   
    bool Reader::setCellIds() {
       if( cellIdLocations.empty() == false ) {
          //Clear the cell ids
@@ -199,7 +175,7 @@ namespace newVlsv {
       cellIdsSet = true;
       return true;
    }
-
+   
    bool Reader:: setCellsWithBlocks() {
       if(cellsWithBlocksLocations.empty() == false) {
          cellsWithBlocksLocations.clear();
@@ -208,16 +184,16 @@ namespace newVlsv {
       vlsv::datatype::type cwb_dataType;
       uint64_t cwb_arraySize, cwb_vectorSize, cwb_dataSize;
       list<pair<string, string> > attribs;
-
+   
       //Get the mesh name for reading in data from the correct place
       attribs.push_back(make_pair("mesh", meshName));
-
+   
       //Get array info
       if (getArrayInfo("CELLSWITHBLOCKS", attribs, cwb_arraySize, cwb_vectorSize, cwb_dataType, cwb_dataSize) == false) {
          cerr << "ERROR, COULD NOT FIND ARRAY CELLSWITHBLOCKS AT " << __FILE__ << " " << __LINE__ << endl;
          return false;
       }
-
+   
       //Make sure the data format is correct:
       if( cwb_vectorSize != 1 ) {
          cerr << "ERROR, BAD VECTORSIZE AT " << __FILE__ << " " << __LINE__ << endl;
@@ -231,7 +207,7 @@ namespace newVlsv {
          cerr << "ERROR, BAD DATASIZE AT " << __FILE__ << " " << __LINE__ << endl;
          return false;
       }
-
+   
       // Create buffer and read data:
       const uint64_t cwb_amountToReadIn = cwb_arraySize * cwb_vectorSize * cwb_dataSize;
       const uint16_t cwb_startingPoint = 0;
@@ -241,7 +217,7 @@ namespace newVlsv {
          delete[] cwb_buffer;
          return false;
       }
-
+   
       vlsv::datatype::type nb_dataType;
       uint64_t nb_arraySize, nb_vectorSize, nb_dataSize;  
    
@@ -251,7 +227,7 @@ namespace newVlsv {
          cerr << "ERROR, COULD NOT FIND ARRAY BLOCKSPERCELL AT " << __FILE__ << " " << __LINE__ << endl;
          return false;
       }
-
+   
       // Create buffers for  number of blocks (nb) and read data:
       const short int startingPoint = 0; //Read the array from 0 (the beginning)
       char* nb_buffer = new char[nb_arraySize * nb_vectorSize * nb_dataSize];
@@ -273,13 +249,13 @@ namespace newVlsv {
          cellsWithBlocksLocations.insert( make_pair(readCellID, input) );
          blockOffset += N_blocks;
       }
-
+   
       delete[] cwb_buffer;
       delete[] nb_buffer;
       cellsWithBlocksSet = true;
       return true;
    }
-
+   
    bool Reader::getBlockIds( const uint64_t & cellId, std::vector<uint64_t> & blockIds ) {
       if( cellsWithBlocksSet == false ) {
          cerr << "ERROR, setCellsWithBlocks() NOT CALLED AT (CALL setCellsWithBlocks()) BEFORE CALLING getBlockIds " << __FILE__ << " " << __LINE__ << endl;
@@ -329,20 +305,20 @@ namespace newVlsv {
       delete[] blockIds_buffer;
       return true;
    }
-
+   
    bool Reader::getVelocityBlockVariables(const string & variableName,const uint64_t & cellId,char*& buffer,bool allocateMemory ) {
       if( cellsWithBlocksSet == false ) {
          cerr << "ERROR, CELLS WITH BLOCKS NOT SET AT " << __FILE__ << " " << __LINE__ << endl;
          return false;
       }
-
+   
       //Check if the cell id can be found:
       unordered_map<uint64_t, pair<uint64_t, uint32_t>>::const_iterator it = cellsWithBlocksLocations.find( cellId );
       if( it == cellsWithBlocksLocations.end() ) {
          cerr << "COULDNT FIND CELL ID " << cellId << " AT " << __FILE__ << " " << __LINE__ << endl;
          return false;
       }
-
+   
       bool success = true;
       list<pair<string, string> > attribs;
       attribs.push_back(make_pair("name", variableName));
@@ -354,7 +330,7 @@ namespace newVlsv {
          cerr << "Could not read BLOCKVARIABLE array info" << endl;
          return false;
       }
-
+   
       //Get offset and number of blocks
       const uint64_t offset = get<0>(it->second);
       const uint32_t amountToReadIn = get<1>(it->second);
@@ -362,7 +338,7 @@ namespace newVlsv {
       if( allocateMemory == true ) {
          buffer = new char[amountToReadIn * vectorSize * dataSize];
       }
-
+   
       //Read the variables (Note: usually vectorSize = 64)
       if (readArray("BLOCKVARIABLE", attribs, offset, amountToReadIn, buffer) == false) {
          cerr << "ERROR could not read block variable" << endl;
@@ -373,69 +349,6 @@ namespace newVlsv {
       }
       return true;
    }
-}
-
-//Returns self
-inline
-static vlsv::datatype::type& transferVLSVDatatypeToOld( vlsv::datatype::type& dataType, const vlsv::Reader& ) {
-   return dataType;
-}
-//Returns self
-inline
-static vlsv::datatype::type& transferVLSVDatatypeToOld( vlsv::datatype::type& dataType, const newVlsv::Reader& ) {
-   return dataType;
-}
-
-//Functions for converting data types: (Just returns the new data type format in new data type)
-inline
-static vlsv::datatype::type transferVLSVDatatypeToOld( VLSV::datatype& dataType ) {
-   switch( dataType ) {
-      case VLSV::FLOAT:
-         return vlsv::datatype::type::FLOAT;
-         break;
-      case VLSV::UINT:
-         return vlsv::datatype::type::UINT;
-         break;
-      case VLSV::INT:
-         return vlsv::datatype::type::INT;
-         break;
-      case VLSV::UNKNOWN:
-         cout << "BAD DATATYPE AT " << __FILE__ << " " << __LINE__ << endl;
-         break;
-   }
-   return vlsv::datatype::type::INT;
-}
 
 
-namespace oldVlsv {
-   bool Reader::getArrayInfo(const string& tagName,const list<pair<string,string> >& attribs,
-                             uint64_t& arraySize,uint64_t& vectorSize,vlsv::datatype::type& _dataType,uint64_t& dataSize) const {
-      VLSV::datatype dataType;
-      if (fileOpen == false) {
-         cerr << __FILE__ << ":" << __LINE__ << " File is not open" << endl;
-         return false;
-      }
-      XMLNode* node = xmlReader.find(tagName,attribs);
-      if (node == NULL) {
-         cerr << __FILE__ << ":" << __LINE__ << " node == NULL tag = " << tagName;
-         for (list<pair<string,string> >::const_iterator it=attribs.begin(); it!=attribs.end(); ++it) {
-            cerr << " " << it->first <<" = "<<it->second;
-         }
-         cerr <<endl;
-         return false;
-      }
-      
-      arraySize = stoull(node->attributes["arraysize"]);
-      vectorSize = stoull(node->attributes["vectorsize"]);
-      dataSize = stoull(node->attributes["datasize"]);
-      if (node->attributes["datatype"] == "int") dataType = VLSV::INT;
-      else if (node->attributes["datatype"] == "uint") dataType = VLSV::UINT;
-      else if (node->attributes["datatype"] == "float") dataType = VLSV::FLOAT;
-      else {
-         cerr << "VLSVReader ERROR: Unknown datatype in tag!" << endl;
-         return false;
-      }
-      _dataType = transferVLSVDatatypeToOld( dataType );
-      return true;
-   }
 }

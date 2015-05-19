@@ -49,11 +49,11 @@ namespace projects {
             creal x,
             creal y,
             creal z
-         );
-         
+         );         
          int numberOfPopulations;
          vector<Real> rho;
-         vector<Real> rhoRnd;
+         static vector<Real> rhoRnd; //static as it has to be threadprivate
+#pragma omp threadprivate(rhoRnd)       
          vector<Real> Tx;
          vector<Real> Ty;
          vector<Real> Tz;

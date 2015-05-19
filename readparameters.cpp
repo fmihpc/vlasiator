@@ -67,16 +67,16 @@ Readparameters::Readparameters(int argc, char* argv[],MPI_Comm mpicomm) {
     MPI_Comm_rank(Readparameters::comm,&(Readparameters::rank));
 
     if (Readparameters::rank==MASTER_RANK){
-        if (initialized == false) {
-            descriptions = new PO::options_description("Usage: main [options (options given on the command line override options given everywhere else)], where options are:");
-            variables = new PO::variables_map;
-            initialized = true;
-            addDefaultParameters();
-        }
+       if (initialized == false) {
+          descriptions = new PO::options_description("Usage: main [options (options given on the command line override options given everywhere else)], where options are:", 160);
+          variables = new PO::variables_map;
+          initialized = true;
+          addDefaultParameters();
+       }
     }
     else{
-        descriptions = NULL;
-        variables = NULL;
+       descriptions = NULL;
+       variables = NULL;
     }
     //send as Int as MPI_BOOL is only in C++ bindings
     int init_int=initialized;

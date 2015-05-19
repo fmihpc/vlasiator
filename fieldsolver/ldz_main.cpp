@@ -28,6 +28,7 @@ Copyright 2010, 2011, 2012, 2013, 2014 Finnish Meteorological Institute
  * *****      IN THE ABOVEMENTIONED PUBLICATION(S)           *****
  */
 
+#include "fs_cache.h"
 #include "ldz_electric_field.hpp"
 #include "ldz_magnetic_field.hpp"
 #include "ldz_hall.hpp"
@@ -36,18 +37,21 @@ Copyright 2010, 2011, 2012, 2013, 2014 Finnish Meteorological Institute
 #include "derivatives.hpp"
 #include "fs_limiters.h"
 
-static void calculateSysBoundaryFlags(
-   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   const vector<CellID>& localCells
+extern map<CellID,uint> existingCellsFlags; /**< Defined in fs_common.cpp */
+
+void calculateExistingCellsFlags(
+                                 dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                 const vector<CellID>& localCells
 ) {
-   sysBoundaryFlags.clear();
+   
+   existingCellsFlags.clear();
    for (size_t cell=0; cell<localCells.size(); ++cell) {
       const CellID cellID = localCells[cell];
       if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
       
       // Raise the bit for each existing cell within a 3x3 cube of 
       // spatial cells. This cell sits at the center of the cube.
-      uint sysBoundaryFlag = (1 << calcNbrNumber(1,1,1)); // The cell itself exists (bit 13 set to 1)
+      uint existingCellsFlag = (1 << calcNbrNumber(1,1,1)); // The cell itself exists (bit 13 set to 1)
       
       for (int k=-1; k<2; ++k)
          for (int j=-1; j<2; ++j)
@@ -58,9 +62,9 @@ static void calculateSysBoundaryFlags(
                   continue;
                if (mpiGrid[nbr]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE)
                   continue;
-               sysBoundaryFlag = sysBoundaryFlag | (1 << calcNbrNumber(1+i,1+j,1+k));
+               existingCellsFlag = existingCellsFlag | (1 << calcNbrNumber(1+i,1+j,1+k));
             }
-      sysBoundaryFlags[cellID] = sysBoundaryFlag;
+      existingCellsFlags[cellID] = existingCellsFlag;
    }
 }
 
@@ -75,8 +79,9 @@ bool initializeFieldPropagatorAfterRebalance(
    // but are assumed to be ok after each load balance as that
    // communicates all spatial data
    
-   vector<uint64_t> localCells = mpiGrid.get_cells();
-   calculateSysBoundaryFlags(mpiGrid,localCells);
+   const vector<uint64_t>& localCells = getLocalCells();
+   //calculateSysBoundaryFlags(mpiGrid,localCells);
+   calculateExistingCellsFlags(mpiGrid,localCells);
    return true;
 }
 
@@ -86,17 +91,23 @@ bool initializeFieldPropagator(
         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
         SysBoundary& sysBoundaries
 ) {
+   const vector<uint64_t>& localCells = getLocalCells();
+   
+   // Force recalculate of cell caches
+   phiprof::start("Calculate Caches");
+   fs_cache::calculateCache(mpiGrid,localCells);
+   phiprof::stop("Calculate Caches",localCells.size(),"Spatial Cells");
+
    // Checking that spatial cells are cubic, otherwise field solver is incorrect (cf. derivatives in E, Hall term)
    if((abs((P::dx_ini-P::dy_ini)/P::dx_ini) > 0.001) ||
       (abs((P::dx_ini-P::dz_ini)/P::dx_ini) > 0.001) ||
       (abs((P::dy_ini-P::dz_ini)/P::dy_ini) > 0.001)) {
       std::cerr << "WARNING: Your spatial cells seem not to be cubic. However the field solver is assuming them to be. Use at your own risk and responsibility!" << std::endl;
    }
-   
-   vector<uint64_t> localCells = mpiGrid.get_cells();
-   
-   calculateSysBoundaryFlags(mpiGrid,localCells);
-   
+
+   //calculateSysBoundaryFlags(mpiGrid,localCells);
+   calculateExistingCellsFlags(mpiGrid,localCells);
+
    // Calculate bit masks used for if-statements by field propagator. 
    // These are used to test whether or not certain combination of 
    // neighbours exists for a cell. These can be replaced by honest 
@@ -204,7 +215,7 @@ bool initializeFieldPropagator(
       calculateHallTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
    }
    calculateUpwindedElectricFieldSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
-   calculateVolumeAveragedFields(mpiGrid);
+   calculateVolumeAveragedFields(mpiGrid,fs_cache::getCache().localCellsCache,fs_cache::getCache().local_NOT_DO_NOT_COMPUTE);
    calculateBVOLDerivativesSimple(mpiGrid, sysBoundaries, localCells);
    
    return true;
@@ -233,22 +244,31 @@ bool propagateFields(
    creal& dt,
    cint& subcycles
 ) {
+
    // Reserve memory for derivatives for all cells on this process:
-   vector<CellID> localCells = mpiGrid.get_cells();
-   
+   const vector<CellID>& localCells = getLocalCells();
+
+   if (Parameters::meshRepartitioned == true) {
+      phiprof::start("Calculate Caches");
+      fs_cache::calculateCache(mpiGrid,localCells);
+      phiprof::stop("Calculate Caches");
+   }
+
    for (size_t cell=0; cell<localCells.size(); ++cell) {
       const CellID cellID = localCells[cell];
       mpiGrid[cellID]->parameters[CellParams::MAXFDT]=std::numeric_limits<Real>::max();
    }
-   if(subcycles == 1) {
-# ifdef FS_1ST_ORDER_TIME
+
+
+   if (subcycles == 1) {
+      #ifdef FS_1ST_ORDER_TIME
       propagateMagneticFieldSimple(mpiGrid, sysBoundaries, dt, localCells, RK_ORDER1);
       calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1, true);
       if(P::ohmHallTerm > 0) {
          calculateHallTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
       }
       calculateUpwindedElectricFieldSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
-# else
+      #else
       propagateMagneticFieldSimple(mpiGrid, sysBoundaries, dt, localCells, RK_ORDER2_STEP1);
       calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP1, true);
       if(P::ohmHallTerm > 0) {
@@ -262,11 +282,12 @@ bool propagateFields(
          calculateHallTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP2);
       }
       calculateUpwindedElectricFieldSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP2);
-# endif
+      #endif
    } else {
       for (uint i=0; i<subcycles; i++) {
          propagateMagneticFieldSimple(mpiGrid, sysBoundaries, dt/convert<Real>(subcycles), localCells, RK_ORDER1);
-         // If we are at the first subcycle we need to update the derivatives of the moments, otherwise only B changed and those derivatives need to be updated.
+         // If we are at the first subcycle we need to update the derivatives of the moments, 
+         // otherwise only B changed and those derivatives need to be updated.
          calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1, (i==0));
          if(P::ohmHallTerm > 0) {
             calculateHallTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
@@ -275,7 +296,7 @@ bool propagateFields(
       }
    }
    
-   calculateVolumeAveragedFields(mpiGrid);
+   calculateVolumeAveragedFields(mpiGrid,fs_cache::getCache().localCellsCache,fs_cache::getCache().local_NOT_DO_NOT_COMPUTE);
    calculateBVOLDerivativesSimple(mpiGrid, sysBoundaries, localCells);
    return true;
 }

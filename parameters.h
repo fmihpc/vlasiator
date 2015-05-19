@@ -56,13 +56,17 @@ struct Parameters {
    static Real fieldSolverMinCFL;     /*!< The minimum CFL limit for propagation of fields. Used to set timestep if useCFLlimit is true.*/
    static Real fieldSolverMaxCFL;     /*!< The maximum CFL limit for propagation of fields. Used to set timestep if useCFLlimit is true.*/
    static int fieldSolverSubcycles;     /*!< The number of field solver subcycles to compute.*/
-   
+
    static uint tstep_min;           /*!< Timestep when simulation starts, needed for restarts.*/
    static uint tstep_max;           /*!< Maximum timestep. */
    static uint tstep;               /*!< The number of the current timestep. 0=initial state. */
-   
+
+   static bool meshRepartitioned;         /*!< If true, mesh was repartitioned on this time step.*/
+   static std::vector<CellID> localCells; /*!< Cached copy of spatial cell IDs on this process.*/
+
    static uint diagnosticInterval;
    static std::vector<std::string> systemWriteName; /*!< Names for the different classes of grid output*/
+   static std::vector<std::string> systemWritePath; /*!< Save this series in this location. Default is ./ */
    static std::vector<Real> systemWriteTimeInterval;/*!< Interval in simusecond for output for each class*/
    static std::vector<int> systemWriteDistributionWriteStride; /*!< Every this many cells write out their velocity space in each class. */
    static std::vector<int> systemWriteDistributionWriteXlineStride; /*!< Every this many lines of cells along the x direction write out their velocity space in each class. */
@@ -73,7 +77,8 @@ struct Parameters {
    static bool writeInitialState;           /*!< If true, initial state is written. This is useful for debugging as the restarts are always written out after propagation of 0.5dt in real space.*/
    static Real saveRestartWalltimeInterval; /*!< Interval in walltime seconds for restart data*/
    static uint exitAfterRestarts;           /*!< Exit after this many restarts*/
-   static int restartStripeFactor;           /*!< stripe_factor for restart writing*/
+   static int restartStripeFactor;          /*!< stripe_factor for restart writing*/
+   static std::string restartWritePath;          /*!< Path to the location where restart files should be written. Defaults to the local directory, also if the specified destination is not writeable. */
    
    static uint transmit;
    /*!< Indicates the data that needs to be transmitted to remote nodes.
@@ -83,6 +88,7 @@ struct Parameters {
    static bool recalculateStencils; /*!< If true, MPI stencils should be recalculated because of load balancing.*/
    
    static bool propagateField;      /*!< If true, magnetic field is propagated during the simulation.*/
+   static bool propagatePotential;  /*!< If true, electrostatic potential is solved during the simulation.*/
    static bool propagateVlasovAcceleration;     /*!< If true, distribution function is propagated in velocity space during the simulation.*/
    static bool propagateVlasovTranslation;      /*!< If true, distribution function is propagated in ordinary space during the simulation.*/
    static bool periodic_x, periodic_y, periodic_z; /*!< Whether spatial vlasov grid is periodic */
@@ -95,10 +101,18 @@ struct Parameters {
    
    static Real maxSlAccelerationRotation; /*!< Maximum rotation in acceleration for semilagrangian solver*/
    static int maxSlAccelerationSubcycles; /*!< Maximum number of subcycles in acceleration*/
-   static Real lorentzHallMinimumRho;  /*!< Minimum rho value used in Hall term in Lorentz force.*/
+   static Real hallMinimumRho;  /*!< Minimum rho value used in Hall term in Lorentz force and field solver.*/
    static Real sparseMinValue; /*!< Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents */
    static int sparseBlockAddWidthV; /*!< Number of layers of blocks that are kept in velocity space around the blocks with content */
    static bool sparse_conserve_mass; /*!< If true, density is scaled to conserve mass when removing blocks*/
+   static int  sparseDynamicAlgorithm; /*!< Type of algorithm used for calculating the dynamic minValue; 0 = none, 1 = linear algorithm based on minValue and rho, 2 = linear algorithm based on minValue and Blocks, (Example linear algorithm: minValue = rho / sparse.dynamicValue * sparse.minValue)*/
+   static Real sparseDynamicBulkValue1; /*!< Minimum value for the dynamic algorithm range, so for example if dynamicAlgorithm=1 then for sparse.dynamicMinValue = 1e3, sparse.dynamicMaxValue=1e5, we apply the algorithm to cells for which 1e3<cell.rho<1e5*/
+   static Real sparseDynamicBulkValue2; /*!< Maximum value for the dynamic algorithm range, so for example if dynamicAlgorithm=1 then for sparse.dynamicMinValue = 1e3, sparse.dynamicMaxValue=1e5, we apply the algorithm to cells for which 1e3<cell.rho<1e5*/
+   static Real sparseDynamicMinValue1; /*!< The minimum value for the minValue*/
+   static Real sparseDynamicMinValue2; /*!< The maximum value for the minValue*/
+
+
+   
    static std::string loadBalanceAlgorithm; /*!< Algorithm to be used for load balance.*/
    static std::string loadBalanceTolerance; /*!< Load imbalance tolerance. */ 
    static uint rebalanceInterval; /*!< Load rebalance interval (steps). */

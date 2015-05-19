@@ -26,7 +26,7 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 
 #include "test_fp.h"
 
-enum cases {BXCASE,BYCASE,BZCASE};
+enum cases {BXCASE,BYCASE,BZCASE,BALLCASE};
 
 using namespace std;
 
@@ -56,7 +56,7 @@ namespace projects {
       RP::add("test_fp.rho", "Number density (m^-3)", 1.0e7);
       RP::add("test_fp.Temperature", "Temperature (K)", 1.0e-6);
       RP::add("test_fp.angle", "Orientation of the propagation expressed in pi/4", 0.0);
-      RP::add("test_fp.Bdirection", "Direction of the magnetic field (0:x, 1:y, 2:z)", 0);
+      RP::add("test_fp.Bdirection", "Direction of the magnetic field (0:x, 1:y, 2:z, 3:all)", 0);
       RP::add("test_fp.shear", "Add a shear (if false, V=0.5 everywhere).", true);
    }
 
@@ -110,18 +110,29 @@ namespace projects {
       switch (this->CASE) {
       case BXCASE:
          if (y >= -0.2 && y <= 0.2)
-      if (z >= -0.2 && z <= 0.2)
-         cellParams[CellParams::PERBX] = this->B0;
+           if (z >= -0.2 && z <= 0.2)
+             cellParams[CellParams::PERBX] = this->B0;
          break;
       case BYCASE:
          if (x >= -0.2 && x <= 0.2)
-      if (z >= -0.2 && z <= 0.2)
-         cellParams[CellParams::PERBY] = this->B0;
+           if (z >= -0.2 && z <= 0.2)
+             cellParams[CellParams::PERBY] = this->B0;
          break;
       case BZCASE:
          if (x >= -0.2 && x <= 0.2)
-      if (y >= -0.2 && y <= 0.2)
-         cellParams[CellParams::PERBZ] = this->B0;
+           if (y >= -0.2 && y <= 0.2)
+             cellParams[CellParams::PERBZ] = this->B0;
+         break;
+       case BALLCASE:
+         if (y >= -0.2 && y <= 0.2)
+           if (z >= -0.2 && z <= 0.2)
+             cellParams[CellParams::PERBX] = this->B0;
+         if (x >= -0.2 && x <= 0.2)
+           if (z >= -0.2 && z <= 0.2)
+             cellParams[CellParams::PERBY] = this->B0;
+         if (x >= -0.2 && x <= 0.2)
+           if (y >= -0.2 && y <= 0.2)
+             cellParams[CellParams::PERBZ] = this->B0;
          break;
       }
    }
@@ -161,25 +172,34 @@ namespace projects {
                VX = sign(cos(this->ALPHA)) * 0.5 + 0.1*cos(this->ALPHA) * sin(2.0 * M_PI * eta);
                VY = sign(sin(this->ALPHA)) * 0.5 + 0.1*sin(this->ALPHA) * sin(2.0 * M_PI * eta);
                VZ = 0.0;
-               break;
+            break;
+          case BALLCASE:
+            std::cerr << "not implemented in " << __FILE__ << ":" << __LINE__ << std::endl;
+            exit(1);
+            break;
          }
       } else {
          switch (this->CASE) {
-            case BXCASE:
-               VX = 0.0;
-               VY = cos(this->ALPHA) * 0.5;
-               VZ = sin(this->ALPHA) * 0.5; 
-               break;
-            case BYCASE:
-               VX = sin(this->ALPHA) * 0.5;
-               VY = 0.0;
-               VZ = cos(this->ALPHA) * 0.5;
-               break;
-            case BZCASE:
-               VX = cos(this->ALPHA) * 0.5;
-               VY = sin(this->ALPHA) * 0.5;
-               VZ = 0.0;
-               break;
+          case BXCASE:
+            VX = 0.0;
+            VY = cos(this->ALPHA) * 0.5;
+            VZ = sin(this->ALPHA) * 0.5; 
+            break;
+          case BYCASE:
+            VX = sin(this->ALPHA) * 0.5;
+            VY = 0.0;
+            VZ = cos(this->ALPHA) * 0.5;
+            break;
+          case BZCASE:
+            VX = cos(this->ALPHA) * 0.5;
+            VY = sin(this->ALPHA) * 0.5;
+            VZ = 0.0;
+            break;
+          case BALLCASE:
+            VX = 0.5 / sqrt(3.0);
+            VY = 0.5 / sqrt(3.0);
+            VZ = 0.5 / sqrt(3.0);
+            break;
          }
       }
       
