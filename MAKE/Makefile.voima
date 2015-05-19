@@ -23,7 +23,7 @@ CC_BRAND = gcc
 CC_BRAND_VERSION = 4.8.1
 #CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++0x -W -Wall -Wno-unused -fabi-version=0 -mavx 
 CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++0x -fabi-version=0 -mavx 
-testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++0x -fabi-version=0
+testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++0x -fabi-version=0 ${COMPFLAGS}
 
 
 MATHFLAGS = -ffast-math
