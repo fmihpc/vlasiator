@@ -1,5 +1,7 @@
 CMP = CC
 LNK = CC
+not_parallel_tools: CMP = g++
+not_parallel_tools: LNK = g++
 
 #-DNO_WRITE_AT_ALL:  Define to disable write at all to 
 #                    avoid memleak (much slower IO)
@@ -21,6 +23,7 @@ CC_BRAND = gcc
 CC_BRAND_VERSION = 4.8.2
 #CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++0x -W -Wall -Wno-unused -fabi-version=0 -mavx 
 CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++0x -fabi-version=0 -mavx 
+testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++0x  -fabi-version=0  -mavx
 
 
 MATHFLAGS = -ffast-math

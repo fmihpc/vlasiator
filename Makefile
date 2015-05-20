@@ -21,13 +21,10 @@ FIELDSOLVER ?= londrillo_delzanna
 # COMPFLAGS += -DFS_1ST_ORDER_TIME
 
 #override flags if we are building testpackage:
-ifeq ($(MAKECMDGOALS),testpackage)
-MATHFLAGS =
-FP_PRECISION = DP
-DISTRIBUTION_FP_PRECISION = DPF
-VECTORCLASS = VEC4D_AGNER
-CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++0x -fabi-version=0 
-endif
+testpackage: MATHFLAGS =
+testpackage: FP_PRECISION = DP
+testpackage: DISTRIBUTION_FP_PRECISION = DPF
+testpackage: VECTORCLASS = VEC4D_AGNER
 
 #also use papi to report memory consumption?
 PAPI_FLAG ?= -DPAPI_MEM
@@ -92,6 +89,8 @@ endif
 
 # Set compiler flags
 CXXFLAGS += ${COMPFLAGS}
+#also for testpackage (due to makefile order this needs to be done also separately for targets)
+testpackage: CXXFLAGS += ${COMPFLAGS}
 CXXEXTRAFLAGS = ${CXXFLAGS} -DTOOL_NOT_PARALLEL
 
 default: vlasiator
