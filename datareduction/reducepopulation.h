@@ -13,6 +13,7 @@
 
  */
 void set_local_and_remote_velocity_cell_neighbors(
+       vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID> & vmesh,
        std::array<std::vector<uint16_t>, VELOCITY_BLOCK_LENGTH> & local_vcell_neighbors,
        std::array< std::vector< std::pair<int16_t, std::vector<uint16_t> > >, VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors
                                                  );
@@ -33,7 +34,7 @@ void population_algorithm(
  \param mpiGrid                 The DCCRG grid with spatial cells
  \param vlsvWriter              The VLSV writer class for writing VLSV files, note that the file must have been opened already
  */
-bool write_population_variables( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, vlsv::Writer & vlsvWriter );
+//bool write_population_variables( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, vlsv::Writer & vlsvWriter );
 
 /*! Writes the distribution function for different populations. Note that population_algorithm must have been called before this!
 
@@ -41,4 +42,4 @@ bool write_population_variables( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian
  \param vlsvWriter              The VLSV writer class for writing VLSV files, note that the file must have been opened already
  \param local_cells             The cells for which we write out the velocity space
  */
-bool write_population_distribution( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, const vector<uint64_t> & local_cells, vlsv::Writer & vlsvWriter );
+//bool write_population_distribution( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, const vector<uint64_t> & local_cells, vlsv::Writer & vlsvWriter );

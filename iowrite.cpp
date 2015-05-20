@@ -760,10 +760,6 @@ MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
    // Don't do anything if nothing is written
    if( writeDistribution == false && writeVariables == false && writePopulations == false ) { return true; }
    phiprof::start("write-population");
-   array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> local_vcell_neighbors;
-   array< vector< pair<int16_t, vector<uint16_t> > >, VELOCITY_BLOCK_LENGTH> remote_vcell_neighbors;
-
-   set_local_and_remote_velocity_cell_neighbors( local_vcell_neighbors, remote_vcell_neighbors );
 
 //   // For writing out velocity space cells: Note: If we only write out distribution then population_algorithm should only be calculated for velocity space cells which we write out (for example in some distribution.vlsv files we might want to write out every 15th cell's distribution function
 //   vector<uint64_t> velSpaceCells;
@@ -793,7 +789,7 @@ MPI_Barrier(MPI_COMM_WORLD);
       for( unsigned int i = 0; i < (*population_cells).size(); ++i ) {
          const uint64_t cellId = (*population_cells)[i];
          SpatialCell * cell = mpiGrid[cellId];
-         population_algorithm( cell, local_vcell_neighbors, remote_vcell_neighbors );
+         population_algorithm( cell );
       }
    }
    phiprof::stop("calculate-population");
@@ -823,32 +819,31 @@ MPI_Barrier(MPI_COMM_WORLD);
    // Write out the number of populations:
    if( writePopulations ) {
       phiprof::start("write-numberofpopulations");
+      vector<uint32_t> populations;
+      populations.resize( local_cells.size() );
 
-//      vector<uint32_t> populations;
-//      populations.resize( local_cells.size() );
-//
-//      // Fetch different populations:
-//      for( unsigned int i = 0; i < local_cells.size(); ++i ) {
-//         const uint64_t cellId = local_cells[i];
-//         SpatialCell * cell = mpiGrid[cellId];
-//         const uint32_t number_of_populations = cell->number_of_populations;
-//         populations[i] = number_of_populations;
-//      }
-//
-//      // Write the data out, we need arraySizze, vectorSize and name to do this
-//      const uint64_t arraySize = local_cells.size();
-//      const uint64_t vectorSize = 1; // Population is uint32_t, so a scalar (vector size 1)
-//      const string name = "Populations";
-//
-//      map<string, string> xmlAttributes;
-//      xmlAttributes["name"] = name;
-//      xmlAttributes["mesh"] = "SpatialGrid";
-//
-//      // Write the array and return false if the writing fails
-//
-//      if( success == true && vlsvWriter.writeArray( "VARIABLE", xmlAttributes, arraySize, vectorSize, populations.data() ) == false ) {
-//         success = false;
-//      }
+      // Fetch different populations:
+      for( unsigned int i = 0; i < local_cells.size(); ++i ) {
+         const uint64_t cellId = local_cells[i];
+         SpatialCell * cell = mpiGrid[cellId];
+         const uint32_t number_of_populations = cell->number_of_populations;
+         populations[i] = number_of_populations;
+      }
+
+      // Write the data out, we need arraySizze, vectorSize and name to do this
+      const uint64_t arraySize = local_cells.size();
+      const uint64_t vectorSize = 1; // Population is uint32_t, so a scalar (vector size 1)
+      const string name = "Populations";
+
+      map<string, string> xmlAttributes;
+      xmlAttributes["name"] = name;
+      xmlAttributes["mesh"] = "SpatialGrid";
+
+      // Write the array and return false if the writing fails
+
+      if( success == true && vlsvWriter.writeArray( "VARIABLE", xmlAttributes, arraySize, vectorSize, populations.data() ) == false ) {
+         success = false;
+      }
       phiprof::stop("write-numberofpopulations");
    }
 
