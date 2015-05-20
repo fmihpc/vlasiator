@@ -256,6 +256,7 @@ namespace spatial_cell {
                                                                                * over MPI, so is invalid on remote cells.*/
       static uint64_t mpi_transfer_type;                                      /**< Which data is transferred by the mpi datatype given by spatial cells.*/
       static bool mpiTransferAtSysBoundaries;                                 /**< Do we only transfer data at boundaries (true), or in the whole system (false).*/
+      uint64_t number_of_populations;                                         /**< Number of separate populations (see population algorithm) */
 
     private:
       SpatialCell& operator=(const SpatialCell&);
