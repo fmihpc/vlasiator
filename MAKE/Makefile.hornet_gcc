@@ -26,7 +26,7 @@ CC_BRAND_VERSION = 4.9.2
 CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++0x -W -Wall -Wno-unused -fabi-version=0 -mavx2 
 #CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++0x -W -Wall -Wno-unused -fabi-version=0 -mavx
 not_parallel_tools: CXXFLAGS += -march=native -mno-avx2 -mavx 
-testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++0x -fabi-version=0 ${COMPFLAGS}
+testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++0x -fabi-version=0 
 not_parallel_tools: CC_BRAND_VERSION = 4.9.2-noavx2
 
 MATHFLAGS = -ffast-math

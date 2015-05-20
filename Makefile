@@ -89,6 +89,8 @@ endif
 
 # Set compiler flags
 CXXFLAGS += ${COMPFLAGS}
+#also for testpackage (due to makefile order this needs to be done also separately for targets)
+testpackage: CXXFLAGS += ${COMPFLAGS}
 CXXEXTRAFLAGS = ${CXXFLAGS} -DTOOL_NOT_PARALLEL
 
 default: vlasiator
