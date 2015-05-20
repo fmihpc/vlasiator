@@ -107,7 +107,7 @@ namespace BlockParams {
       DVX,     /*!< Grid separation in vx-coordinate for the block.*/
       DVY,     /*!< Grid separation in vy-coordinate for the block.*/
       DVZ,     /*!< Grid separation in vz-coordinate for the block.*/
-      N_VELOCITY_BLOCK_PARAMS
+      N_VELOCITY_BLOCK_PARAMS /*!< Number of velocity block parameters*/
    };
 }
 
