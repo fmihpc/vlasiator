@@ -323,9 +323,9 @@ bool writeCommonGridData(
    }
 
    //Write parameters:
-   if( vlsvWriter.writeParameter("t", &P::t) == false ) { return false; }
+   if( vlsvWriter.writeParameter("time", &P::t) == false ) { return false; }
    if( vlsvWriter.writeParameter("dt", &P::dt) == false ) { return false; }
-   if( vlsvWriter.writeParameter("tstep", &P::tstep) == false ) { return false; }
+   if( vlsvWriter.writeParameter("timestep", &P::tstep) == false ) { return false; }
    if( vlsvWriter.writeParameter("fieldSolverSubcycles", &P::fieldSolverSubcycles) == false ) { return false; }
    if( vlsvWriter.writeParameter("fileIndex", &fileIndex) == false ) { return false; }
    if( vlsvWriter.writeParameter("xmin", &P::xmin) == false ) { return false; }
@@ -784,10 +784,10 @@ bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    phiprof::start("writeGrid-reduced");
    // Create a name for the output file and open it with VLSVWriter:
    stringstream fname;
-   fname << P::systemWriteName[index] <<".";
+   fname << P::systemWritePath.at(index) << "/" << P::systemWriteName.at(index) << ".";
    fname.width(7);
    fname.fill('0');
-   fname << P::systemWrites[index] << ".vlsv";
+   fname << P::systemWrites.at(index) << ".vlsv";
 
 
    //Open the file with vlsvWriter:
@@ -897,9 +897,10 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    //deallocate blocks in remote cells to decrease memory load
    deallocateRemoteCellBlocks(mpiGrid);
    phiprof::stop("DeallocateRemoteBlocks");
+   
    // Create a name for the output file and open it with VLSVWriter:
    stringstream fname;
-   fname << name <<".";
+   fname << P::restartWritePath << "/" << name << ".";
    fname.width(7);
    fname.fill('0');
    fname << fileIndex << ".vlsv";

@@ -227,7 +227,12 @@ int main(int argn,char* args[]) {
    projects::Project::addParameters();
    sysBoundaries.addParameters();
    readparameters.parse();
-   P::getParameters();
+   if (P::getParameters() == false) {
+      if (myRank == MASTER_RANK) {
+         cerr << "(MAIN) ERROR: getParameters failed!" << endl;
+      }
+      exit(1);
+   }
    
    Project* project = projects::createProject();
    

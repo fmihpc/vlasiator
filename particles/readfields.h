@@ -1,6 +1,5 @@
 #pragma once
 
-#include "vlsvreader2.h"
 #include "vlsv_reader.h"
 #include "vlsvreaderinterface.h"
 #include "field.h"
@@ -9,12 +8,13 @@
 #include <string>
 #include <set>
 
+#define DEBUG
+
 extern std::string B_field_name;
 extern std::string E_field_name;
 
 /* Read the cellIDs into an array */
-std::vector<uint64_t> readCellIds(oldVlsv::Reader& r);
-std::vector<uint64_t> readCellIds(newVlsv::Reader& r);
+std::vector<uint64_t> readCellIds(vlsvinterface::Reader& r);
 
 template <class Reader>
 void detect_field_names(Reader& r) {
@@ -76,12 +76,10 @@ std::vector<double> readFieldData(Reader& r, std::string& name, unsigned int num
    return buffer;
 }
 
-double readDoubleParameter(newVlsv::Reader& r, const char* name);
-double readDoubleParameter(oldVlsv::Reader& r, const char* name);
+double readDoubleParameter(vlsvinterface::Reader& r, const char* name);
 
 /* Read a single-valued integer parameter */
-uint32_t readUintParameter(newVlsv::Reader& r, const char* name);
-uint32_t readUintParameter(oldVlsv::Reader& r, const char* name);
+uint32_t readUintParameter(vlsvinterface::Reader& r, const char* name);
 
 /* Read the next logical input file. Depending on sign of dt,
  * this may be a numerically larger or smaller file.
@@ -104,7 +102,14 @@ bool read_next_timestep(const std::string& filename_pattern, double t, int step,
       /* Open next file */
       Reader r;
       r.open(filename_buffer);
-      double t = readDoubleParameter(r,"t");
+      double t;
+      if(!r.readParameter("time",t)) {
+        if(!r.readParameter("t",t)) {
+          std::cerr << "Time parameter in file " << filename_buffer << " is neither 't' nor 'time'. Bad file format?" << std::endl;
+          exit(1);
+        }
+      }
+
       E1.time = t;
       B1.time = t;
 
@@ -152,13 +157,8 @@ static bool read_next_timestep(const std::string& filename_pattern, double t, in
    char filename_buffer[256];
    snprintf(filename_buffer,256,filename_pattern.c_str(),input_file_counter);
 
-   if(checkVersion(filename_buffer)) {
-      return read_next_timestep<newVlsv::Reader>(filename_pattern, t,
-         step,E0,E1,B0,B1,input_file_counter);
-   } else {
-      return read_next_timestep<oldVlsv::Reader>(filename_pattern, t,
-         step,E0,E1,B0,B1,input_file_counter);
-   }
+   return read_next_timestep<vlsvinterface::Reader>(filename_pattern, t,
+       step,E0,E1,B0,B1,input_file_counter);
 }
 
 /* Read E- and B-Fields as well as velocity field from a vlsv file */
@@ -274,11 +274,7 @@ void readfields(const char* filename, Field& E, Field& B, Field& V) {
 
 /* Non-template version, autodetecting the reader type */
 static void readfields(const char* filename, Field& E, Field& B, Field& V) {
-   if(checkVersion(filename)) {
-      readfields<newVlsv::Reader>(filename,E,B,V);
-   } else {
-      readfields<oldVlsv::Reader>(filename,E,B,V);
-   }
+  readfields<vlsvinterface::Reader>(filename,E,B,V);
 }
 
 /* For debugging purposes - dump a field into a png file */

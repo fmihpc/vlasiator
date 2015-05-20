@@ -20,6 +20,7 @@ struct ParticleParameters {
    static Real dt; /*!< Particle pusher timestep */
    static Real start_time; /*!< Simulation time at which the particles are injected */
    static Real end_time;  /*!< Simulation time at which the particle-simulation should be stopped */
+   static Real input_dt; /*!< Time interval between input files */
 
    static uint64_t num_particles; /*!< Number of particles to generate */
 

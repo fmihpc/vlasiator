@@ -1,33 +1,65 @@
-README file for vlasiator test package
+\documentclass[a4paper,10pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{url}
+\usepackage{float}
 
-#NOTE:
-# Before using the testpackage, compile vlasiator with:
-make testpackage
+%opening
+\title{Testpackage documentation}
 
-####################################################
-####################################################
-# Running tests (on Voima):
-# To run the test package:
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+
+\newpage
+
+\section{Before starting}
+
+Compile vlasiator with the testpackage flags:
+
+\begin{verbatim}
+make -j 8 testpackage
+\end{verbatim}
+
+\section{Using testpackage on Voima} \label{sec:voima}
+
+To run the test package:
+
+\begin{verbatim}
 cd /lustre/my_folder/
 cp -r ~/vlasiator/test_package .
 cd test_package
 ln -s ~/vlasiator/vlasiator_executable .
 ./small_test_voima.sh
+\end{verbatim}
 
 
-####################################################
-####################################################
-# Running tests (on a new machine)
+\section{Running testpackage on a local machine}
 
-# Set up the test package
+Set up the test package:
+
+\begin{verbatim}
 cp small_test_voima.sh small_test_new.sh
-# Configure the sh files:
-#(change the my_test_directory to something else!):
-sed -i 's/reference_dir=.*/reference_dir="\/my_test_directory\/small_tests"/g' small_test_new.sh
-#(Change the revision number to the current revision number! (optional))
-sed -i 's/reference_revision=.*/reference_revision="0a8be8ac087c2da56556e4f56fcb3e5826aa6f38"/g' small_test_new.sh
+\end{verbatim}
 
-# Run the test package once (To create verification files for future use):
+Configure the sh files change the my\_test\_directory to something else:
+
+\begin{verbatim}
+sed -i 's/reference_dir=.*/reference_dir="\/my_test_directory\/small_tests"/g' small_test_new.sh
+\end{verbatim}
+
+(Change the revision number to the current revision number (optional))
+
+\begin{verbatim}
+sed -i 's/reference_revision=.*/reference_revision="0a8be8ac087c2da56556e4f56fcb3e5826aa6f38"/g' small_test_new.sh
+\end{verbatim}
+
+
+Run the test package once to create verification files which can be used to compare 
+different branches with the current master version:
+
+\begin{verbatim}
 cd /lustre/my_folder/
 cp -r ~/vlasiator/test_package .
 cd test_package
@@ -35,20 +67,26 @@ ln -s ~/vlasiator/vlasiator_executable .
 sed -i 's/create_verification_files=0/create_verification_files=1/g' small_test_new.sh
 ./small_test_new.sh
 sed -i 's/create_verification_files=1/create_verification_files=0/g' small_test_new.sh
+\end{verbatim}
 
+\subsection{Running the testpackage on local machine}
 
-# To run the test package:
+Finally, similarly as in Section \ref{sec:voima}:
+
+\begin{verbatim}
 cd /lustre/my_folder/
 cp -r ~/vlasiator/test_package .
 cd test_package
 ln -s ~/vlasiator/vlasiator_executable .
 ./small_test_new.sh
-####################################################
-####################################################
+\end{verbatim}
 
-# Below is a more in-depth explanation:
-README file for vlasiator test package
 
+\section{For more detailed information on the test package}
+
+Directly from the README:
+
+\begin{verbatim}
 Test package consists of three parts:
    1. settings for different computers
    2. settings for different tests
@@ -78,4 +116,7 @@ for the first two parts the scripts for short and medium test are separate.
 
 3. Running tests
    - writes the results of the comparison in test.o file
+\end{verbatim}
 
+
+\end{document}
