@@ -24,6 +24,7 @@ then
 fi
 cd .ws_remind
 
+printf "=========== Workspace status ===========\n"
 for WS_NAME in $(ws_list -s)
 do
     L=`ws_list | grep ^${WS_NAME}`
@@ -39,7 +40,12 @@ do
 	SECONDS_SINCE_WARNING=3000000
     fi
 
+    if (( $SECONDS_LEFT < $WEEK ))
+    then
+	printf "WARNING: "
+    fi
 
+    printf "$WS_NAME expires in $DURATION "
     if ((  ( $SECONDS_LEFT > $WEEK && $SECONDS_SINCE_WARNING > $WEEK ) || 
 	   ( $SECONDS_LEFT < $WEEK && $SECONDS_LEFT > $DAY  && $SECONDS_SINCE_WARNING > $DAY ) ||
 	   ( $SECONDS_LEFT < $DAY  && $SECONDS_SINCE_WARNING > $HOUR )))
@@ -50,7 +56,10 @@ do
    $USER workspace ${WS_NAME} on host ${HOST}
    will be deleted on: ${END_STR}
 EOF_2
+	printf "(reminder sent to $EMAIL_ADR)"
     fi
 
+    printf "\n"
 done
+printf "===========================================\n"
 cd $CURDIR
