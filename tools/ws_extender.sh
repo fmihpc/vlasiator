@@ -16,7 +16,7 @@ WEEK=604800
 MAILER=mail
 
 
-printf "=========== Workspace extension ===========\n"
+
 for WS_NAME in $(ws_list -s)
 do
     L=`ws_list | grep ^${WS_NAME}`
@@ -32,10 +32,10 @@ do
    $USER workspace ${WS_NAME} on host ${HOST}
    $msg
 EOF_2
-	printf "$WS_NAME is expiring in less than one week. Tried to extend work space\n"
+	printf "$WS_NAME is expiring in $DURATION. Tried to extend work space\n"
 	printf "$msg \n"
     fi
     
 done
-printf "===========================================\n"
+
 cd $CURDIR

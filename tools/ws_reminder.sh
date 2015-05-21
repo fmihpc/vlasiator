@@ -21,10 +21,27 @@ cd $HOME
 if [ ! -d .ws_remind ]
 then
     mkdir .ws_remind
+    
 fi
 cd .ws_remind
 
-printf "=========== Workspace status ===========\n"
+if [ -e last_check ]
+then
+    SECONDS_SINCE_LAST_CHECK=$(($(date +%s) - $(cat last_check)))
+else
+    SECONDS_SINCE_LAST_CHECK=$(date +%s)
+fi
+
+if (( $SECONDS_SINCE_LAST_CHECK < 30 ))
+then
+    #avoid repeated tests when, e.g., bashrc is called multiple times
+    exit
+fi
+#store when this check was done
+date +%s > last_check
+
+
+printf "Workspace status:\n"
 for WS_NAME in $(ws_list -s)
 do
     L=`ws_list | grep ^${WS_NAME}`
@@ -42,7 +59,9 @@ do
 
     if (( $SECONDS_LEFT < $WEEK ))
     then
-	printf "WARNING: "
+	printf "    WARNING: "
+    else
+	printf "             "
     fi
 
     printf "$WS_NAME expires in $DURATION "
@@ -61,5 +80,7 @@ EOF_2
 
     printf "\n"
 done
-printf "===========================================\n"
+
+
 cd $CURDIR
+
