@@ -32,7 +32,7 @@ else
     SECONDS_SINCE_LAST_CHECK=$(date +%s)
 fi
 
-if (( $SECONDS_SINCE_LAST_CHECK < 30 ))
+if (( $SECONDS_SINCE_LAST_CHECK < 3 ))
 then
     #avoid repeated tests when, e.g., bashrc is called multiple times
     exit

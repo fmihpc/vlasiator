@@ -32,7 +32,7 @@ do
    $USER workspace ${WS_NAME} on host ${HOST}
    $msg
 EOF_2
-	printf "$WS_NAME is expiring in $DURATION. Tried to extend work space\n"
+	printf "             $WS_NAME is expiring in $DURATION. Tried to extend work space\n"
 	printf "$msg \n"
     fi
     
