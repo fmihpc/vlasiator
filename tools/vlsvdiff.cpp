@@ -1175,10 +1175,17 @@ bool process2Files(const string fileName1,
       // Open VLSV file where the diffence in the chosen variable is written
       const string prefix = fileName1.substr(0,fileName1.find_last_of('.'));
       const string suffix = fileName1.substr(fileName1.find_last_of('.'),fileName1.size());
-      const string outputFileName = prefix + ".diff." + varToExtract + suffix;
+      string outputFileName = prefix + ".diff." + varToExtract + suffix;
       const string varName = varToExtract;
       vlsv::Writer outputFile;
       if (attributes.find("--diff") != attributes.end()) {
+         if (outputFileName[0] == '.' && outputFileName[1] == '/') {
+            outputFileName = outputFileName.substr(2,string::npos);
+         }
+
+         for (size_t s=0; s<outputFileName.size(); ++s)
+           if (outputFileName[s] == '/') outputFileName[s] = '_';
+
          if (outputFile.open(outputFileName,MPI_COMM_SELF,0) == false) {
             cerr << "ERROR failed to open output file '" << outputFileName << "' in " << __FILE__ << ":" << __LINE__ << endl;
             return false;
@@ -1248,6 +1255,74 @@ bool processDirectory(DIR* dir, set<string>* fileList) {
    return 0;
 }
 
+void printHelp(const map<string,string>& defAttribs,const map<string,string>& descriptions) {
+   cout << endl;
+   cout << "VLSVDIFF command line attributes are given as option=value pairs, value can be empty." << endl;
+   cout << "If the default value is 'unset', then giving the option in the command line turns it on." << endl;
+   cout << "For example, \"vlsvdiff --help\" displays this message and the option '--help' does not have a value." << endl << endl;
+   
+   cout << "Known attributes and default values are:" << endl;
+   for (map<string,string>::const_iterator it=defAttribs.begin(); it!=defAttribs.end(); ++it) {
+      cout << endl;
+      const size_t optionWidth   = 30;
+      const size_t descrMaxWidth = 120;
+      
+      // Print the option,value pair so that the field width is always 30 characters
+      string option = it->first;
+      if (it->second.size() > 0) option = option + "=" + it->second;
+      else option = option + " (unset)";
+      
+      if (option.size() < optionWidth) {
+         size_t padding = optionWidth-option.size();
+         for (size_t i=0; i<padding; ++i) option = option + ' ';
+      }
+      cout << option;
+      
+      // Print the description, possibly on multiple lines.
+      map<string,string>::const_iterator descr = descriptions.find(it->first);
+      if (descr == descriptions.end()) {
+         cout << "(no description given)" << endl;
+         continue;
+      }
+      
+      // If the description fits in the first line, print it and continue
+      if (descr->second.size() <= descrMaxWidth-optionWidth) {
+         cout << descr->second << endl;
+         continue;
+      }
+
+      // Print the description on multiple lines. First parse the description 
+      // string and store each word to a vector.
+      vector<string> text;
+      size_t i=0;
+      while (i < descr->second.size()) {
+         size_t i_space = descr->second.find_first_of(' ',i);
+         if (i_space == string::npos) i_space = descr->second.size();
+         text.push_back(descr->second.substr(i,i_space-i));
+         i = i_space+1;
+      }
+
+      // Write out the words in vector 'text' so that the length of any line 
+      // does not exceed descrMaxWidth characters.
+      i = optionWidth;
+      for (size_t s=0; s<text.size(); ++s) {
+         if (i+text[s].size() <= descrMaxWidth) {
+            cout << text[s] << ' ';
+            i += text[s].size()+1;
+         } else {
+            cout << endl;
+            for (int j=0; j<optionWidth; ++j) cout << ' ';
+            i = optionWidth;
+            
+            cout << text[s] << ' ';
+            i += text[s].size()+1;
+         }
+      }
+      cout << endl;
+   }
+   cout << endl;
+}
+
 /*! Main function, detects which calling pattern is used and sends to the corresponding processing functions.
  * 
  * \sa process2Files processDirectory
@@ -1257,18 +1332,25 @@ int main(int argn,char* args[]) {
 
    // Create default attributes
    map<string,string> defAttribs;
+   map<string,string> descriptions;
    defAttribs.insert(make_pair("--meshname","SpatialGrid"));
    defAttribs.insert(make_pair("--filemask","fullf"));
    defAttribs.insert(make_pair("--help",""));
    defAttribs.insert(make_pair("--no-distrib",""));
    defAttribs.insert(make_pair("--diff",""));
 
+   descriptions["--meshname"] = "Name of the spatial mesh that is used in diff.";
+   descriptions["--filemask"] = "File mask used in directory comparison mode. For example, if you want to compare files starting with 'fullf', set '--filemask=fullf'.";
+   descriptions["--help"]     = "Print this help message.";
+   descriptions["--diff"]     = "If set, difference file(s) are written.";
+   descriptions["--no-distrib"] = "If set, velocity block data are not compared even if the given variable corresponds to velocity block data.";
+
    // Create default attributes
    for (map<string,string>::const_iterator it=defAttribs.begin(); it!=defAttribs.end(); ++it) {
       if (it->second.size() == 0) continue;
       attributes.insert(make_pair(it->first,it->second));
    }
-   
+
    vector<string> argsVector;
 
    // Parse attributes,value pairs from command line
@@ -1307,17 +1389,7 @@ int main(int argn,char* args[]) {
    }
    
    if (attributes.find("--help") != attributes.end()) {
-      cout << endl;
-      cout << "VLSVDIFF command line attributes are given as option=value pairs, value can be empty." << endl;
-      cout << "If the default value is 'unset', then giving the option in the command line turns it on." << endl;
-      cout << "For example, \"vlsvdiff --help\" displays this message and the option '--help' does not have a value." << endl;
-      cout << "Known attributes and default values are:" << endl;
-      for (map<string,string>::const_iterator it=defAttribs.begin(); it!=defAttribs.end(); ++it) {
-         cout << "\t" << it->first;
-         if (it->second.size() > 0) cout << "=" << it->second << endl;
-         else cout << " (unset)" << endl;
-      }
-      cout << endl;      
+      printHelp(defAttribs,descriptions);
       return 0;
    }
 
