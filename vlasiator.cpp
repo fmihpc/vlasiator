@@ -336,14 +336,14 @@ int main(int argn,char* args[]) {
       phiprof::start("write-initial-state");
       if (myRank == MASTER_RANK)
          logFile << "(IO): Writing initial state to disk, tstep = "  << endl << writeVerbose;
-//    P::systemWriteDistributionWriteStride[i], P::systemWriteName[i], P::systemWrites[i]
       P::systemWriteDistributionWriteStride.push_back(1);
       P::systemWriteName.push_back("initial-grid");
       P::systemWriteDistributionWriteXlineStride.push_back(0);
       P::systemWriteDistributionWriteYlineStride.push_back(0);
       P::systemWriteDistributionWriteZlineStride.push_back(0);
+      P::systemWritePath.push_back("./");
       P::systemWrites.push_back(0);
-      
+
       const bool writeGhosts = true;
       if( writeGrid(mpiGrid,&outputReducer,P::systemWriteName.size()-1, writeGhosts) == false ) {
          cerr << "FAILED TO WRITE GRID AT " << __FILE__ << " " << __LINE__ << endl;
@@ -354,6 +354,7 @@ int main(int argn,char* args[]) {
       P::systemWriteDistributionWriteXlineStride.pop_back();
       P::systemWriteDistributionWriteYlineStride.pop_back();
       P::systemWriteDistributionWriteZlineStride.pop_back();
+      P::systemWritePath.pop_back();
       P::systemWrites.pop_back();
       phiprof::stop("write-initial-state");
    }
