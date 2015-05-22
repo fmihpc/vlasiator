@@ -555,11 +555,12 @@ bool trans_map_1d(
 
     // Loop over blocks in spatial cell. In ordinary space the number of
     // blocks in this spatial cell does not change.
+    #pragma omp for
     for (vmesh::LocalID block_i=0; block_i<vmesh.size(); ++block_i) {
         const vmesh::GlobalID blockGID = vmesh.getGlobalID(block_i);
 
         // Each thread only computes a certain non-overlapping subset of blocks
-        if (blockGID % num_threads != thread_id) continue;
+        //if (blockGID % num_threads != thread_id) continue;
 
         // buffer where we write data, initialized to 0*/
         Vec target_values[3 * WID3 / VECL];
