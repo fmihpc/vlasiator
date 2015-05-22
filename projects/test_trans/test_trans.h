@@ -22,7 +22,7 @@ namespace projects {
       virtual bool initialize(void);
       static void addParameters(void);
       virtual void getParameters(void);
-      void setCellBackgroundField(spatial_cell::SpatialCell* cell);
+      void setCellBackgroundField(spatial_cell::SpatialCell* cell) const;
 
    protected:
       Real getDistribValue(creal& vx, creal& vy, creal& vz);
@@ -33,7 +33,7 @@ namespace projects {
          creal& vx, creal& vy, creal& vz,
          creal& dvx, creal& dvy, creal& dvz,
          const int& popID
-      );
+      ) const;
       Real cellPosition;
       Real peakValue;
    }; // class test_trans

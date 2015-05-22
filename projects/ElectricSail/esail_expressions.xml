@@ -25,18 +25,6 @@
         <Field name="autoExpression" type="bool">false</Field>
     </Object>
     <Object name="Expression">
-        <Field name="name" type="string">E_selfcons</Field>
-        <Field name="definition" type="string">E_vol-\<poisson/BGE_vol\></Field>
-        <Field name="hidden" type="bool">false</Field>
-        <Field name="type" type="string">VectorMeshVar</Field>
-        <Field name="fromDB" type="bool">false</Field>
-        <Field name="fromOperator" type="bool">false</Field>
-        <Field name="operatorName" type="string">__none__</Field>
-        <Field name="meshName" type="string"></Field>
-        <Field name="dbName" type="string">__none__</Field>
-        <Field name="autoExpression" type="bool">false</Field>
-    </Object>
-    <Object name="Expression">
         <Field name="name" type="string">E_vol_x</Field>
         <Field name="definition" type="string">E_vol[0]</Field>
         <Field name="hidden" type="bool">false</Field>
@@ -159,6 +147,30 @@
     <Object name="Expression">
         <Field name="name" type="string">Proton/V_mag</Field>
         <Field name="definition" type="string">magnitude(\<Proton/V\>)</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">ScalarMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">poisson/E_scons</Field>
+        <Field name="definition" type="string">"E_vol - \<poisson/BGE_vol\>"</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">VectorMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">poisson/E_scons_magnitude</Field>
+        <Field name="definition" type="string">magnitude(\<poisson/E_scons\>)</Field>
         <Field name="hidden" type="bool">false</Field>
         <Field name="type" type="string">ScalarMeshVar</Field>
         <Field name="fromDB" type="bool">false</Field>

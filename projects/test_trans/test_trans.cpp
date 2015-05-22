@@ -47,7 +47,7 @@ namespace projects {
 
    Real test_trans::calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,
                                           creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz,
-                                          const int& popID) {      
+                                          const int& popID) const {
       //Please use even number of cells in velocity and real space
       Real xyz[3];
       Real vxyz[3];
@@ -115,7 +115,7 @@ namespace projects {
       cellParams[CellParams::PERBZ   ] = 0.0;
    }
    
-   void test_trans::setCellBackgroundField(SpatialCell* cell) {
+   void test_trans::setCellBackgroundField(SpatialCell* cell) const {
       ConstantField bgField;
       bgField.initialize(0.0,0.0,1e-9);
       setBackgroundField(bgField,cell->parameters, cell->derivatives,cell->derivativesBVOL);

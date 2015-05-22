@@ -38,6 +38,7 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
    const Real dBZdx = spatial_cell->derivativesBVOL[bvolderivatives::dPERBZVOLdx]/spatial_cell->parameters[CellParams::DX];
    const Real dBZdy = spatial_cell->derivativesBVOL[bvolderivatives::dPERBZVOLdy]/spatial_cell->parameters[CellParams::DY];
 
+   #warning Copy the NAN fix here
    const Eigen::Matrix<Real,3,1> B(Bx,By,Bz);
    const Real B2 = Bx*Bx + By*By + Bz*Bz;
    const Eigen::Matrix<Real,3,1> unit_B(B.normalized());
@@ -49,6 +50,8 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
    const Real EPSILON = 1e10 * numeric_limits<Real>::min();
    const Real rho = spatial_cell->parameters[CellParams::RHO_V] + EPSILON;
    const Real hallRho =  (rho <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : rho ;
+   
+   #warning This should be electron charge density!
    const Real hallPrefactor = 1.0 / (physicalconstants::MU_0 * hallRho * physicalconstants::CHARGE );
 
    Eigen::Matrix<Real,3,1> bulk_velocity(spatial_cell->parameters[CellParams::RHOVX_V]/rho,
