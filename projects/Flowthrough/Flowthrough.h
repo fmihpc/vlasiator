@@ -1,20 +1,9 @@
 /*
 This file is part of Vlasiator.
 
-Copyright 2011, 2012 Finnish Meteorological Institute
+Copyright 2011, 2012, 2015 Finnish Meteorological Institute
 
-
-
-
-
-
-
-
-
-
-
-
-*/
+ */
 
 #ifndef FLOWTHROUGH_H
 #define FLOWTHROUGH_H
@@ -26,13 +15,13 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 namespace projects {
    class Flowthrough: public TriAxisSearch {
       public:
-         Flowthrough();
-         virtual ~Flowthrough();
-         
-         virtual bool initialize(void);
-         static void addParameters(void);
-         virtual void getParameters(void);
-         
+      Flowthrough();
+      virtual ~Flowthrough();
+      
+      virtual bool initialize(void);
+      static void addParameters(void);
+      virtual void getParameters(void);
+      void setCellBackgroundField(spatial_cell::SpatialCell* cell);
          
       protected:
          Real getDistribValue(

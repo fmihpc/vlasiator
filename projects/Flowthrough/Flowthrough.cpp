@@ -1,18 +1,7 @@
 /*
 This file is part of Vlasiator.
 
-Copyright 2011, 2012 Finnish Meteorological Institute
-
-
-
-
-
-
-
-
-
-
-
+Copyright 2011, 2012, 2015 Finnish Meteorological Institute
 
 */
 
@@ -23,6 +12,7 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 #include "../../common.h"
 #include "../../readparameters.h"
 #include "../../backgroundfield/backgroundfield.h"
+#include "../../backgroundfield/constantfield.hpp"
 
 #include "Flowthrough.h"
 
@@ -132,6 +122,18 @@ namespace projects {
       cellParams[CellParams::PERBX] = this->Bx;
       cellParams[CellParams::PERBY] = this->By;
       cellParams[CellParams::PERBZ] = this->Bz;
+   }
+   
+   void Flowthrough::setCellBackgroundField(spatial_cell::SpatialCell* cell) {
+      if (Parameters::propagateField == true) {
+         ConstantField bgField;
+         bgField.initialize(0,0,0); //bg bx, by,bz
+         setBackgroundField(bgField,cell->parameters, cell->derivatives,cell->derivativesBVOL);
+      } else {
+         ConstantField bgField;
+         bgField.initialize(Bx,By,Bz); //bg bx, by,bz
+         setBackgroundField(bgField,cell->parameters, cell->derivatives,cell->derivativesBVOL);
+      }
    }
    
    vector<std::array<Real, 3>> Flowthrough::getV0(
