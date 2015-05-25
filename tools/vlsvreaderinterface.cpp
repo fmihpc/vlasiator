@@ -49,7 +49,6 @@ namespace vlsvinterface {
       }
    }
    
-   
    Reader::Reader() : vlsv::Reader() {
       cellIdsSet = false;
       cellsWithBlocksSet = false;
@@ -100,15 +99,15 @@ namespace vlsvinterface {
       }
       return true;
    }
-   
-   bool Reader::getCellIds( vector<uint64_t> & cellIds ) {
+
+   bool Reader::getCellIds( vector<uint64_t> & cellIds,const string& meshName) {
       uint64_t vectorSize, byteSize;
       uint64_t amountToReadIn;
       vlsv::datatype::type dataType;
       const string variableName = "CellID";
       std::list< pair<std::string, std::string> > xmlAttributes;
       xmlAttributes.push_back( make_pair( "name", variableName ) );
-      xmlAttributes.push_back( make_pair( "mesh", "SpatialGrid" ) );
+      xmlAttributes.push_back( make_pair( "mesh", meshName ) );
       if( getArrayInfo( "VARIABLE", xmlAttributes, amountToReadIn, vectorSize, dataType, byteSize ) == false ) return false;
       if( dataType != vlsv::datatype::type::UINT ) {
          cerr << "ERROR, BAD DATATYPE AT " << __FILE__ << " " << __LINE__ << endl;
