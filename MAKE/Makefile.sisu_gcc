@@ -18,7 +18,7 @@ FLAGS =
 
 #GNU flags:
 CC_BRAND = gcc
-CC_BRAND_VERSION = 4.9.0
+CC_BRAND_VERSION = 4.9.2
 CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++0x -W -Wall -Wno-unused -fabi-version=0 -mavx2 
 #CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++0x -W -Wall -Wno-unused -fabi-version=0 -mavx
 
@@ -27,7 +27,7 @@ LDFLAGS =
 LIB_MPI = -lgomp
 
 BOOST_VERSION = 1.55.0
-MPT_VERSION = 7.0.0
+MPT_VERSION = 7.2.1
 ZOLTAN_VERSION = 3.8
 SILO_VERSION = 4.9.1
 JEMALLOC_VERSION = 3.6.0
@@ -35,12 +35,11 @@ LIBRARY_PREFIX = /homeappl/home/alfthan/libraries
 
 
 #compiled libraries
+INC_BOOST = -I$(CRAY_TRILINOS_PREFIX_DIR)/include/boost
+INC_BOOST = -L$(CRAY_TRILINOS_PREFIX_DIR)/lib -lboost_program_options
 
-INC_BOOST = -I$(LIBRARY_PREFIX)/mpich2/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/boost/$(BOOST_VERSION)/include
-LIB_BOOST = -L$(LIBRARY_PREFIX)/mpich2/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/boost/$(BOOST_VERSION)/lib -lboost_program_options
-
-INC_ZOLTAN = -I$(LIBRARY_PREFIX)/mpich2/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/zoltan/$(ZOLTAN_VERSION)/include
-LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/mpich2/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/zoltan/$(ZOLTAN_VERSION)/lib -lzoltan
+INC_ZOLTAN = -I$(CRAY_TRILINOS_PREFIX_DIR)/include
+LIB_ZOLTAN = -I$(CRAY_TRILINOS_PREFIX_DIR)/lib -lzoltan
 
 INC_SILO = -I$(LIBRARY_PREFIX)/mpich2/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/silo/$(SILO_VERSION)/include
 LIB_SILO = -L$(LIBRARY_PREFIX)/mpich2/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/silo/$(SILO_VERSION)/lib -lsilo
@@ -50,7 +49,6 @@ LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/mpich2/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_
 
 INC_VLSV = -I$(LIBRARY_PREFIX)/mpich2/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/vlsv
 LIB_VLSV = -L$(LIBRARY_PREFIX)/mpich2/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/vlsv -lvlsv
-
 
 LIB_PROFILE = -L$(LIBRARY_PREFIX)/mpich2/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof/lib -lphiprof
 INC_PROFILE = -I$(LIBRARY_PREFIX)/mpich2/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof/include
