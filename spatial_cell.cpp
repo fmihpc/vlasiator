@@ -101,13 +101,15 @@ namespace spatial_cell {
             const vmesh::GlobalID blockGID = this->velocity_block_with_no_content_list[block_index];
             #ifdef DEBUG_SPATIAL_CELL
                if (blockGID == invalid_global_id()) {
-                  cerr << "Got invalid block at " << __FILE__ << ' ' << __LINE__ << endl; exit(1); 
+                  cerr << "Got invalid block at " << __FILE__ << ' ' << __LINE__ << endl; 
+                  exit(1); 
                }
             #endif
             const vmesh::LocalID blockLID = get_velocity_block_local_id(blockGID);
             #ifdef DEBUG_SPATIAL_CELL
                if (blockLID == invalid_local_id()) {
-                  cerr << "Could not find block in " << __FILE__ << ' ' << __LINE__ << endl; exit(1);               
+                  cerr << "Could not find block in " << __FILE__ << ' ' << __LINE__ << endl;
+                  exit(1);
                }
             #endif
             
