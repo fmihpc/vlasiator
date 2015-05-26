@@ -21,6 +21,7 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #include "parameters.h"
 #include "logger.h"
 #include "vlasovmover.h"
+#include "datareduction/reducepopulation.h"
 
 using namespace std;
 using namespace phiprof;
@@ -757,6 +758,20 @@ bool checkForSameMembers( const vector<uint64_t> local_cells, const vector<uint6
    return false;
 }
 
+bool writePopulations(
+                 const vector<CellID>& local_cells,
+                 dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, 
+                 Writer & vlsvWriter  ) {
+   // Calculate the populatons for every cell:
+   for( int i = 0; i < local_cells.size(); ++i ) {
+      const CellID cellId = local_cells[i];
+      SpatialCell * spatialCell = mpiGrid[cellId];
+      // Calculate the population:
+      //populationAlgorithm(spatialCell);
+   }
+   return true;
+}
+
 
 /*!
 
@@ -823,6 +838,11 @@ bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 
    //The mesh name is "SpatialGrid" (This is used for writing in data)
    const string meshName = "SpatialGrid";
+   
+   // Calculate populations, if needed:
+   {
+      writePopulations( local_cells, mpiGrid, vlsvWriter );
+   }
 
    //Write mesh boundaries: NOTE: master process only
    //Visit plugin needs to know the boundaries of the mesh so the number of cells in x, y, z direction
