@@ -13,6 +13,11 @@ using namespace spatial_cell;
 using namespace vlsv;
 
 
+#define phiprof_assert2(a,b) phiprof::phiprofAssert( a, b, __FILE__, __LINE__ )
+#define phiprof_assert1(a) phiprof::phiprofAssert( a, #a, __FILE__, __LINE__ )
+#define GET_MACRO(_1,_2,NAME,...) NAME
+#define phiprof_assert(...) GET_MACRO(__VA_ARGS__, phiprof_assert2, phiprof_assert1)(__VA_ARGS__)
+
 // Note: This is done to save memory (hopefully)
 class Velocity_Cell {
    private:
@@ -895,50 +900,50 @@ namespace test {
  \param resolution_threshold                A value for determining how large at minimum we want our populations to be. 0.006 seems ok unless there's a reason to believe otherwise.
 
  */
-void population_algorithm( 
+void populationAlgorithm( 
                 SpatialCell * cell,
                 const Real resolution_threshold
                    ) {
-//  cout << __LINE__ << endl;
-//   // Get velocity mesh:
-//#warning vmesh: popId not set in get_velocity_mesh
-//   const size_t notSet = 0;
-//   vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID> & vmesh = cell->get_velocity_mesh(notSet);
-//   vmesh::VelocityBlockContainer<vmesh::LocalID> & blockContainer = cell->get_velocity_blocks(notSet);
-//
-//   
-//   // Vector for holding velocity cells:
-//   vector<Velocity_Cell> velocityCells;
-//   // Initialize avgs values vector:
-//   velocityCells.resize( cell->get_number_of_velocity_blocks() * VELOCITY_BLOCK_LENGTH );
-//
-//   // Input data
-//   for( vmesh::LocalID i = 0; i < cell->get_number_of_velocity_blocks(); ++i ) {
-//      // Create a new velocity cell
-//      Velocity_Cell input_cell;
-//      const vmesh::GlobalID blockId = cell->get_velocity_block_global_id(i);
-//      for( uint16_t vCellId = 0; vCellId < VELOCITY_BLOCK_LENGTH; ++vCellId ) {
-//         // Input the block data
-//         input_cell.set_data( vmesh, blockContainer, blockId, vCellId);
-//         // Input the velocity cell into the vector
-//         velocityCells[i * VELOCITY_BLOCK_LENGTH + vCellId] = input_cell;
-//      }
-//   }
-//
-//   phiprof::start("sort_velocity_space");
-//   // Sort the list:
-//   sort(velocityCells.begin(), velocityCells.end());
-//   phiprof::stop("sort_velocity_space");
-//
-//   // Retrieve populations and save into block_fx array inside spatial cell:
-//   //cluster_advanced( velocityCells, cell, resolution_threshold );
-//   //test_neighbor_speed( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell, resolution_threshold );
-//   
-//   // Check the functionality of the different algorithm components:
-//   //test::test_hash(velocityCells, cell, resolution_threshold);
-//   //test::test_neighbor(velocityCells, cell, resolution_threshold);
-//   //test::test_cluster(velocityCells, cell, resolution_threshold);
-//   cout << __LINE__ << endl;
+  cout << __LINE__ << endl;
+   // Get velocity mesh:
+#warning vmesh: popId not set in get_velocity_mesh
+   const size_t notSet = 0;
+   vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID> & vmesh = cell->get_velocity_mesh(notSet);
+   vmesh::VelocityBlockContainer<vmesh::LocalID> & blockContainer = cell->get_velocity_blocks(notSet);
+
+   
+   // Vector for holding velocity cells:
+   vector<Velocity_Cell> velocityCells;
+   // Initialize avgs values vector:
+   velocityCells.resize( cell->get_number_of_velocity_blocks() * VELOCITY_BLOCK_LENGTH );
+
+   // Input data
+   for( vmesh::LocalID i = 0; i < cell->get_number_of_velocity_blocks(); ++i ) {
+      // Create a new velocity cell
+      Velocity_Cell input_cell;
+      const vmesh::GlobalID blockId = cell->get_velocity_block_global_id(i);
+      for( uint16_t vCellId = 0; vCellId < VELOCITY_BLOCK_LENGTH; ++vCellId ) {
+         // Input the block data
+         input_cell.set_data( vmesh, blockContainer, blockId, vCellId);
+         // Input the velocity cell into the vector
+         velocityCells[i * VELOCITY_BLOCK_LENGTH + vCellId] = input_cell;
+      }
+   }
+
+   phiprof::start("sort_velocity_space");
+   // Sort the list:
+   sort(velocityCells.begin(), velocityCells.end());
+   phiprof::stop("sort_velocity_space");
+
+   // Retrieve populations and save into block_fx array inside spatial cell:
+   //cluster_advanced( velocityCells, cell, resolution_threshold );
+   //test_neighbor_speed( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell, resolution_threshold );
+   
+   // Check the functionality of the different algorithm components:
+   test::test_hash(velocityCells, cell, resolution_threshold);
+   test::test_neighbor(velocityCells, cell, resolution_threshold);
+   test::test_cluster(velocityCells, cell, resolution_threshold);
+   cout << __LINE__ << endl;
    return;
 }
 

@@ -12,7 +12,7 @@
  \param resolution_threshold                A value for determining how large at minimum we want our populations to be. 0.006 seems ok unless there's a reason to believe otherwise.
 
  */
-void population_algorithm(
+void populationAlgorithm(
                       spatial_cell::SpatialCell * cell,
                       const Real resolution_threshold=0.006
                          );
