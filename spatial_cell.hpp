@@ -257,6 +257,8 @@ namespace spatial_cell {
       static uint64_t mpi_transfer_type;                                      /**< Which data is transferred by the mpi datatype given by spatial cells.*/
       static bool mpiTransferAtSysBoundaries;                                 /**< Do we only transfer data at boundaries (true), or in the whole system (false).*/
 
+      uint number_of_populations;                                             /**< Number of populations in the velocity space of this spatial cell */
+      
     private:
       SpatialCell& operator=(const SpatialCell&);
       bool compute_block_has_content(const vmesh::GlobalID& block) const;
@@ -1119,6 +1121,9 @@ namespace spatial_cell {
       //is transferred by default
       this->mpiTransferEnabled=true;
       this->velocityBlockMinValue = P::sparseMinValue;
+      
+      // Set number of populations to 0:
+      number_of_populations = 0;
    }
    
    inline SpatialCell::SpatialCell(const SpatialCell& other):
