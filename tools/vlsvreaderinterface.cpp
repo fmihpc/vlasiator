@@ -108,7 +108,11 @@ namespace vlsvinterface {
       std::list< pair<std::string, std::string> > xmlAttributes;
       xmlAttributes.push_back( make_pair( "name", variableName ) );
       xmlAttributes.push_back( make_pair( "mesh", meshName ) );
-      if( getArrayInfo( "VARIABLE", xmlAttributes, amountToReadIn, vectorSize, dataType, byteSize ) == false ) return false;
+      if( getArrayInfo("VARIABLE", xmlAttributes, amountToReadIn, vectorSize, dataType, byteSize ) == false ) {
+         cerr << "ERROR, failed to read array info for variable '" << variableName << "' ";
+         cerr << "in mesh '" << meshName << "' at " << __FILE__ << ":" << __LINE__ << endl;
+         return false;
+      }
       if( dataType != vlsv::datatype::type::UINT ) {
          cerr << "ERROR, BAD DATATYPE AT " << __FILE__ << " " << __LINE__ << endl;
          return false;
@@ -125,7 +129,10 @@ namespace vlsvinterface {
       //Read in cell ids to the buffer:
       const uint16_t begin = 0;
       const bool allocateMemory = false;
-      if( read( "VARIABLE", xmlAttributes, begin, amountToReadIn, cellIds_buffer, allocateMemory ) == false ) return false;
+      if( read( "VARIABLE", xmlAttributes, begin, amountToReadIn, cellIds_buffer, allocateMemory ) == false ) {
+         cerr << "ERROR, Failed to read variable data at " << __FILE__ << ":" << __LINE__ << endl;
+         return false;
+      }
       //Input cell ids:
       cellIds.reserve( amountToReadIn * vectorSize );
       for( uint64_t i = 0; i < amountToReadIn * vectorSize; ++i ) {

@@ -65,29 +65,6 @@ bool NodeComp::operator()(const NodeCrd<float>& a,const NodeCrd<float>& b) const
    return false;
 }
 
-/*uint64_t convUInt(const char* ptr, const VLSV::datatype& dataType, const uint64_t& dataSize) {
-   if (dataType != VLSV::UINT) {
-      cerr << "Erroneous datatype given to convUInt" << endl;
-      exit(1);
-   }
-
-   switch (dataSize) {
-      case 1:
-         return *reinterpret_cast<const unsigned char*> (ptr);
-         break;
-      case 2:
-         return *reinterpret_cast<const unsigned short int*> (ptr);
-         break;
-      case 4:
-         return *reinterpret_cast<const unsigned int*> (ptr);
-         break;
-      case 8:
-         return *reinterpret_cast<const unsigned long int*> (ptr);
-         break;
-   }
-   return 0;
-}*/
-
 uint64_t convUInt(const char* ptr, const datatype::type & dataType, const uint64_t& dataSize) {
    if (dataType != datatype::type::UINT) {
       cerr << "Erroneous datatype given to convUInt" << endl;
@@ -738,6 +715,17 @@ bool convertVelocityBlocks2(
    
    attributes.clear();
 
+   // Create array of phase-space mesh cell IDs, this is needed to make 
+   // vlsvdiff work with extracted velocity meshes
+   vector<uint64_t> cellIDs(blockIds.size()*64);
+   for (size_t b=0; b<blockIds.size(); ++b) {
+      for (int c=0; c<64; ++c) cellIDs[b*64+c] = blockIds[b]*64+c;
+   }
+   attributes["mesh"] = outputMeshName;
+   attributes["name"] = "CellID";
+   if (out.writeArray("VARIABLE",attributes,cellIDs.size(),1,&(cellIDs[0])) == false) success = false;
+   attributes.clear();
+
    // Make domain size array
    uint64_t domainSize[2];
    domainSize[0] = blockIds.size();
@@ -1037,13 +1025,14 @@ bool convertVelocityBlocks2(
                             const bool rotate,
                             const bool plasmaFrame
                            ) {
-   
+   // Read names of all existing particle species
    set<string> popNames;
    if (vlsvReader.getUniqueAttributeValues("BLOCKIDS","name",popNames) == false) {
       cerr << "ERROR could not read population names in " << __FILE__ << ":" << __LINE__ << endl;
       return false;
    }
    
+   // Open output file
    vlsv::Writer out;
    if (out.open(fname,MPI_COMM_SELF,0) == false) {
       cerr << "ERROR, failed to open output file with vlsv::Writer at " << __FILE__ << " " << __LINE__ << endl;
