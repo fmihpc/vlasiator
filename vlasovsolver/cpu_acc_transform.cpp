@@ -38,13 +38,19 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
    const Real dBZdx = spatial_cell->derivativesBVOL[bvolderivatives::dPERBZVOLdx]/spatial_cell->parameters[CellParams::DX];
    const Real dBZdy = spatial_cell->derivativesBVOL[bvolderivatives::dPERBZVOLdy]/spatial_cell->parameters[CellParams::DY];
 
-   #warning Copy the NAN fix here
    const Eigen::Matrix<Real,3,1> B(Bx,By,Bz);
-   const Real B2 = Bx*Bx + By*By + Bz*Bz;
-   const Eigen::Matrix<Real,3,1> unit_B(B.normalized());
+   Eigen::Matrix<Real,3,1> unit_B(B.normalized());
+
+   // If B equals zero then gyro_period and unit_B are NAN.
+   // Guard against that by adding epsilons:
+   const Real B_mag = B.norm() + 1e-30;
+   if (B_mag < 1e-28) {
+      unit_B(0,0) = 0; unit_B(1,0) = 0; unit_B(2,0) = 1;
+   }
+
    const Real gyro_period 
      = 2 * M_PI * getObjectWrapper().particleSpecies[popID].mass
-     / (getObjectWrapper().particleSpecies[popID].charge * B.norm());
+     / (getObjectWrapper().particleSpecies[popID].charge * B_mag);
 
    // scale rho for hall term, if user requests
    const Real EPSILON = 1e10 * numeric_limits<Real>::min();

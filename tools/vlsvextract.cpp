@@ -65,7 +65,7 @@ bool NodeComp::operator()(const NodeCrd<float>& a,const NodeCrd<float>& b) const
    return false;
 }
 
-uint64_t convUInt(const char* ptr, const VLSV::datatype& dataType, const uint64_t& dataSize) {
+/*uint64_t convUInt(const char* ptr, const VLSV::datatype& dataType, const uint64_t& dataSize) {
    if (dataType != VLSV::UINT) {
       cerr << "Erroneous datatype given to convUInt" << endl;
       exit(1);
@@ -86,7 +86,7 @@ uint64_t convUInt(const char* ptr, const VLSV::datatype& dataType, const uint64_
          break;
    }
    return 0;
-}
+}*/
 
 uint64_t convUInt(const char* ptr, const datatype::type & dataType, const uint64_t& dataSize) {
    if (dataType != datatype::type::UINT) {
@@ -111,7 +111,7 @@ uint64_t convUInt(const char* ptr, const datatype::type & dataType, const uint64
    return 0;
 }
 
-bool convertSlicedVelocityMesh(newVlsv::Reader& vlsvReader,const string& fname,const string& meshName,
+bool convertSlicedVelocityMesh(vlsvinterface::Reader& vlsvReader,const string& fname,const string& meshName,
                                CellStructure& cellStruct) {
    bool success = true;
 
@@ -454,7 +454,7 @@ void applyRotation(const Real* B,Real* transform) {
    }
 }
 
-void getBulkVelocity(Real* V_bulk,newVlsv::Reader& vlsvReader,const string& meshName,const uint64_t& cellID) {
+void getBulkVelocity(Real* V_bulk,vlsvinterface::Reader& vlsvReader,const string& meshName,const uint64_t& cellID) {
    //Declarations
    vlsv::datatype::type cellIdDataType;
    uint64_t cellIdArraySize, cellIdVectorSize, cellIdDataSize;
@@ -526,7 +526,7 @@ void getBulkVelocity(Real* V_bulk,newVlsv::Reader& vlsvReader,const string& mesh
    V_bulk[2] = momentum[2] / (numberDensity + numeric_limits<double>::min());
 }
 
-void getB(Real* B,newVlsv::Reader& vlsvReader,const string& meshName,const uint64_t& cellID) {
+void getB(Real* B,vlsvinterface::Reader& vlsvReader,const string& meshName,const uint64_t& cellID) {
    //Declarations
    vlsv::datatype::type cellIdDataType;
    uint64_t cellIdArraySize, cellIdVectorSize, cellIdDataSize;
@@ -663,7 +663,7 @@ void getB(Real* B,newVlsv::Reader& vlsvReader,const string& meshName,const uint6
 }
 
 bool convertVelocityBlocks2(
-                            newVlsv::Reader& vlsvReader,
+                            vlsvinterface::Reader& vlsvReader,
                             const string& fname,
                             const string& meshName,
                             CellStructure& cellStruct,
@@ -908,12 +908,14 @@ bool convertVelocityBlocks2(
 //Output:
 //[0] Parameter -- Saves the parameter into the parameter variable
 template <typename T>
-bool loadParameter( VLSVReader& vlsvReader, const string& name, T & parameter ) {
+bool loadParameter(vlsv::Reader& vlsvReader, const string& name, T & parameter ) {
    //Declare dataType, arraySize, vectorSize, dataSize so we know how much data we want to store
-   VLSV::datatype dataType;
+   vlsv::datatype::type dataType;
    uint64_t arraySize, vectorSize, dataSize; //vectorSize should be 1
    //Write into dataType, arraySize, etc with getArrayInfo -- if fails to read, give error message
-   if( vlsvReader.getArrayInfo( "PARAMETERS", name, arraySize, vectorSize, dataType, dataSize ) == false ) {
+   list<pair<string,string> > attribs;
+   attribs.push_back(make_pair("name",name));
+   if (vlsvReader.getArrayInfo( "PARAMETERS", attribs, arraySize, vectorSize, dataType, dataSize ) == false ) {
       cerr << "Error, could not read parameter '" << name << "' at: " << __FILE__ << " " << __LINE__; //FIX
       MPI_Finalize();
       exit(1); //Terminate
@@ -923,7 +925,7 @@ bool loadParameter( VLSVReader& vlsvReader, const string& name, T & parameter ) 
    char * buffer = new char[arraySize * vectorSize * dataSize];
 
    //Read data into the buffer and return error if something went wrong
-   if( vlsvReader.readArray( "PARAMETERS", name, 0, vectorSize, buffer ) == false ) {
+   if( vlsvReader.readArray( "PARAMETERS", attribs, 0, vectorSize, buffer ) == false ) {
       cerr << "Error, could not read parameter '" << name << "' at: " << __FILE__ << " " << __LINE__; //FIX
       MPI_Finalize();
       exit(1);
@@ -1027,7 +1029,7 @@ bool createCellIdList( T & vlsvReader, unordered_set<uint64_t> & cellIdList ) {
 }
 
 bool convertVelocityBlocks2(
-                            newVlsv::Reader& vlsvReader,
+                            vlsvinterface::Reader& vlsvReader,
                             const string& fname,
                             const string& meshName,
                             CellStructure& cellStruct,
@@ -1051,7 +1053,7 @@ bool convertVelocityBlocks2(
    bool success = true;
    for (set<string>::iterator it=popNames.begin(); it!=popNames.end(); ++it) {
       cout << "Population " << *it << endl;
-      if (vlsvReader.setCellsWithBlocks(*it) == false) {success = false; continue;}
+      if (vlsvReader.setCellsWithBlocks(meshName,*it) == false) {success = false; continue;}
       if (convertVelocityBlocks2(vlsvReader,fname,meshName,cellStruct,cellID,rotate,plasmaFrame,out,*it) == false) success = false;
    }
    
@@ -1921,14 +1923,7 @@ int main(int argn, char* args[]) {
       if (entryCounter++ % ntasks == rank) {
          //Get the file name
          const string & fileName = fileList[entryName];
-         //Check vlsv library version
-         if( checkVersion(fileName) == 1.00 ) {
-            //Using new vlsv library
-            extractDistribution<newVlsv::Reader>( fileName, mainOptions );
-         }
-         else {
-            std::cerr << "VLSV format not supported, try older version of vlsvextract"<<std::endl;
-         }
+         extractDistribution<vlsvinterface::Reader>( fileName, mainOptions );
       }
    }
    MPI_Finalize();

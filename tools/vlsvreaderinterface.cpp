@@ -3,74 +3,52 @@
 
 using namespace std;
 
-static uint64_t convUInt(const char* ptr, const VLSV::datatype& dataType, const uint64_t& dataSize) {
-   if (dataType != VLSV::UINT) {
-      cerr << "Erroneous datatype given to convUInt" << endl;
-      exit(1);
-   }
+namespace vlsvinterface {
 
-   switch (dataSize) {
-      case 1:
+   static uint64_t convUInt(const char* ptr, const vlsv::datatype::type & dataType, const uint64_t& dataSize) {
+      if (dataType != vlsv::datatype::type::UINT) {
+         cerr << "Erroneous datatype given to convUInt" << endl;
+         exit(1);
+      }
+      
+      switch (dataSize) {
+       case 1:
          return *reinterpret_cast<const unsigned char*> (ptr);
          break;
-      case 2:
+       case 2:
          return *reinterpret_cast<const unsigned short int*> (ptr);
          break;
-      case 4:
+       case 4:
          return *reinterpret_cast<const unsigned int*> (ptr);
          break;
-      case 8:
+       case 8:
          return *reinterpret_cast<const unsigned long int*> (ptr);
          break;
+      }
+      return 0;
    }
-   return 0;
-}
+   
 
-static uint64_t convUInt(const char* ptr, const vlsv::datatype::type & dataType, const uint64_t& dataSize) {
-   if (dataType != vlsv::datatype::type::UINT) {
-      cerr << "Erroneous datatype given to convUInt" << endl;
-      exit(1);
-   }
-
-   switch (dataSize) {
-      case 1:
-         return *reinterpret_cast<const unsigned char*> (ptr);
-         break;
-      case 2:
-         return *reinterpret_cast<const unsigned short int*> (ptr);
-         break;
-      case 4:
-         return *reinterpret_cast<const unsigned int*> (ptr);
-         break;
-      case 8:
-         return *reinterpret_cast<const unsigned long int*> (ptr);
-         break;
-   }
-   return 0;
-}
-
-
-float checkVersion( const string & fname ) {
-   vlsv::Reader vlsvReader;
-   vlsvReader.open(fname);
-   string versionTag = "version";
-   float version;
-   if( vlsvReader.readParameter( versionTag, version ) == false ) {
-      //No version mark -- return 0
+   float checkVersion( const string & fname ) {
+      vlsv::Reader vlsvReader;
+      vlsvReader.open(fname);
+      string versionTag = "version";
+      float version;
+      if( vlsvReader.readParameter( versionTag, version ) == false ) {
+         //No version mark -- return 0
+         vlsvReader.close();
+         return 0;
+      }
       vlsvReader.close();
-      return 0;
+      if( version == 1.00 ) {
+         return version;
+      } else {
+         cerr << "Invalid version!" << endl;
+         exit(1);
+         return 0;
+      }
    }
-   vlsvReader.close();
-   if( version == 1.00 ) {
-      return version;
-   } else {
-      cerr << "Invalid version!" << endl;
-      exit(1);
-      return 0;
-   }
-}
 
-namespace newVlsv {
    Reader::Reader() : vlsv::Reader() {
       cellIdsSet = false;
       cellsWithBlocksSet = false;
@@ -122,14 +100,14 @@ namespace newVlsv {
       return true;
    }
 
-   bool Reader::getCellIds( vector<uint64_t> & cellIds ) {
+   bool Reader::getCellIds( vector<uint64_t> & cellIds,const string& meshName) {
       uint64_t vectorSize, byteSize;
       uint64_t amountToReadIn;
       vlsv::datatype::type dataType;
       const string variableName = "CellID";
       std::list< pair<std::string, std::string> > xmlAttributes;
       xmlAttributes.push_back( make_pair( "name", variableName ) );
-      xmlAttributes.push_back( make_pair( "mesh", "SpatialGrid" ) );
+      xmlAttributes.push_back( make_pair( "mesh", meshName ) );
       if( getArrayInfo( "VARIABLE", xmlAttributes, amountToReadIn, vectorSize, dataType, byteSize ) == false ) return false;
       if( dataType != vlsv::datatype::type::UINT ) {
          cerr << "ERROR, BAD DATATYPE AT " << __FILE__ << " " << __LINE__ << endl;
@@ -198,11 +176,10 @@ namespace newVlsv {
       return true;
    }
 
-   bool Reader:: setCellsWithBlocks(const std::string& popName) {
+   bool Reader::setCellsWithBlocks(const std::string& meshName,const std::string& popName) {
       if(cellsWithBlocksLocations.empty() == false) {
          cellsWithBlocksLocations.clear();
       }
-      const string meshName = "SpatialGrid";
       vlsv::datatype::type cwb_dataType;
       uint64_t cwb_arraySize, cwb_vectorSize, cwb_dataSize;
       list<pair<string, string> > attribs;
@@ -279,7 +256,7 @@ namespace newVlsv {
       return true;
    }
 
-   bool Reader::getBlockIds(const uint64_t & cellId,std::vector<uint64_t> & blockIds,const std::string& popName) {
+   bool Reader::getBlockIds(const uint64_t& cellId,std::vector<uint64_t>& blockIds,const std::string& popName) {
       if( cellsWithBlocksSet == false ) {
          cerr << "ERROR, setCellsWithBlocks() NOT CALLED AT (CALL setCellsWithBlocks()) BEFORE CALLING getBlockIds " << __FILE__ << " " << __LINE__ << endl;
          return false;
@@ -373,69 +350,5 @@ namespace newVlsv {
       }
       return true;
    }
-}
 
-//Returns self
-inline
-static vlsv::datatype::type& transferVLSVDatatypeToOld( vlsv::datatype::type& dataType, const vlsv::Reader& ) {
-   return dataType;
-}
-//Returns self
-inline
-static vlsv::datatype::type& transferVLSVDatatypeToOld( vlsv::datatype::type& dataType, const newVlsv::Reader& ) {
-   return dataType;
-}
-
-//Functions for converting data types: (Just returns the new data type format in new data type)
-inline
-static vlsv::datatype::type transferVLSVDatatypeToOld( VLSV::datatype& dataType ) {
-   switch( dataType ) {
-      case VLSV::FLOAT:
-         return vlsv::datatype::type::FLOAT;
-         break;
-      case VLSV::UINT:
-         return vlsv::datatype::type::UINT;
-         break;
-      case VLSV::INT:
-         return vlsv::datatype::type::INT;
-         break;
-      case VLSV::UNKNOWN:
-         cout << "BAD DATATYPE AT " << __FILE__ << " " << __LINE__ << endl;
-         break;
-   }
-   return vlsv::datatype::type::INT;
-}
-
-
-namespace oldVlsv {
-   bool Reader::getArrayInfo(const string& tagName,const list<pair<string,string> >& attribs,
-                             uint64_t& arraySize,uint64_t& vectorSize,vlsv::datatype::type& _dataType,uint64_t& dataSize) const {
-      VLSV::datatype dataType;
-      if (fileOpen == false) {
-         cerr << __FILE__ << ":" << __LINE__ << " File is not open" << endl;
-         return false;
-      }
-      XMLNode* node = xmlReader.find(tagName,attribs);
-      if (node == NULL) {
-         cerr << __FILE__ << ":" << __LINE__ << " node == NULL tag = " << tagName;
-         for (list<pair<string,string> >::const_iterator it=attribs.begin(); it!=attribs.end(); ++it) {
-            cerr << " " << it->first <<" = "<<it->second;
-         }
-         cerr <<endl;
-         return false;
-      }
-      
-      arraySize = stoull(node->attributes["arraysize"]);
-      vectorSize = stoull(node->attributes["vectorsize"]);
-      dataSize = stoull(node->attributes["datasize"]);
-      if (node->attributes["datatype"] == "int") dataType = VLSV::INT;
-      else if (node->attributes["datatype"] == "uint") dataType = VLSV::UINT;
-      else if (node->attributes["datatype"] == "float") dataType = VLSV::FLOAT;
-      else {
-         cerr << "VLSVReader ERROR: Unknown datatype in tag!" << endl;
-         return false;
-      }
-      _dataType = transferVLSVDatatypeToOld( dataType );
-      return true;
-   }
-}
+} // namespace vlsvinterface

@@ -1,7 +1,7 @@
 /*
 This file is part of Vlasiator.
 
-Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
+Copyright 2010-2015 Finnish Meteorological Institute
 */
 
 /*! \file vlsvdiff.cpp
@@ -34,39 +34,21 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #include <algorithm>
 #include <cstring>
 
-#include "vlsvreader2.h"
 #include "definitions.h"
-#include "vlsv_reader.h"
+#include <vlsv_reader.h>
 #include "vlsvreaderinterface.h"
-
+#include <vlsv_writer.h>
 
 using namespace std;
 using namespace vlsv;
 
-static uint64_t convUInt(const char* ptr, const VLSV::datatype& dataType, const uint64_t& dataSize) {
-   if (dataType != VLSV::UINT) {
-      cerr << "Erroneous datatype given to convUInt" << endl;
-      exit(1);
-   }
+// Command line option,value pairs are parsed and stored to map attributes.
+// The key is the option name, and the value is the value. For example, 
+// "vlsvdiff --meshname=plaa" would cause 'attributes["meshname"]' to be 
+// equal to 'plaa'.
+static map<string,string> attributes;
 
-   switch (dataSize) {
-      case 1:
-         return *reinterpret_cast<const unsigned char*> (ptr);
-         break;
-      case 2:
-         return *reinterpret_cast<const unsigned short int*> (ptr);
-         break;
-      case 4:
-         return *reinterpret_cast<const unsigned int*> (ptr);
-         break;
-      case 8:
-         return *reinterpret_cast<const unsigned long int*> (ptr);
-         break;
-   }
-   return 0;
-}
-
-static uint64_t convUInt(const char* ptr, const vlsv::datatype::type & dataType, const uint64_t& dataSize) {
+static uint64_t convUInt(const char* ptr, const vlsv::datatype::type& dataType, const uint64_t& dataSize) {
    if (dataType != vlsv::datatype::type::UINT) {
       cerr << "Erroneous datatype given to convUInt" << endl;
       exit(1);
@@ -89,19 +71,104 @@ static uint64_t convUInt(const char* ptr, const vlsv::datatype::type & dataType,
    return 0;
 }
 
+/** Read given array data from input file, and byte-copy it to the output file.
+ * @param input Input file reader.
+ * @param output Output file reader.
+ * @param tagName Name of the copied array.
+ * @param inputAttributes XML attributes for the copied array.
+ * @return If true, the array was copied successfully.*/
+bool copyArray(vlsv::Reader& input,vlsv::Writer& output,
+               const std::string& tagName,
+               const list<pair<string,string> >& inputAttribs) {
+   bool success = true;
+   
+   // Read input array attributes
+   map<string,string> outputAttribs;
+   if (input.getArrayAttributes(tagName,inputAttribs,outputAttribs) == false) {
+      cerr << "ERROR: Failed to read array '" << tagName << "' attributes in " << __FILE__ << ":" << __LINE__ << endl;
+      cerr << "Input attributes are:" << endl;
+      for (list<pair<string,string> >::const_iterator it=inputAttribs.begin(); it!=inputAttribs.end(); ++it) {
+         cerr << "\t '" << it->first << "' = '" << it->second << "'" << endl;
+      }
+      return false;
+   }
+                 
+   // Figure out arraysize, vectorsize, datasize, and datatype of the copied array
+   map<string,string>::const_iterator it;
+   it = outputAttribs.find("arraysize"); if (it == outputAttribs.end()) return false;
+   const uint64_t arraysize = atol(it->second.c_str());
+   it = outputAttribs.find("vectorsize"); if (it == outputAttribs.end()) return false;
+   const uint64_t vectorsize = atol(it->second.c_str());
+   it = outputAttribs.find("datasize"); if (it == outputAttribs.end()) return false;
+   const uint64_t datasize = atol(it->second.c_str());
+   it = outputAttribs.find("datatype"); if (it == outputAttribs.end()) return false;
+   const string datatype = it->second;
+   
+   const size_t bytes = arraysize*vectorsize*datasize;
+   
+   // Read values from input file
+   char* ptr = new char[bytes];
+   if (input.readArray(tagName,inputAttribs,0,arraysize,ptr) == false) {
+      cerr << "ERROR: Failed to clone array '" << tagName << "' in " << __FILE__ << ":" << __LINE__ << endl;
+      delete [] ptr; return false;
+   }
+   
+   // Write array to output file
+   if (output.writeArray(tagName,outputAttribs,datatype,arraysize,vectorsize,datasize,ptr) == false) {
+      cerr << "ERROR: Failed to write array '" << tagName << "' in " << __FILE__ << ":" << __LINE__ << endl;
+      success = false;
+   }
+   
+   delete [] ptr; ptr = NULL;
+   return success;
+}
+
+/** Copy the spatial mesh from input to output.
+ * @param inputFileName Name of the input file where the mesh is copied from.
+ * @param output VLSV reader for the file where the cloned mesh is written.
+ * @param meshName Name of the mesh.
+ * @return If true, the mesh was successfully cloned.*/
+bool cloneMesh(const string& inputFileName,vlsv::Writer& output,const string& meshName) {
+   bool success = true;
+            
+   vlsv::Reader input;
+   if (input.open(inputFileName) == false) {
+      cerr << "ERROR failed to open input file '" << inputFileName << "' in " << __FILE__ << ":" << __LINE__ << endl;
+      return false;
+   }
+   
+   list<pair<string,string> > inputAttribs;
+   inputAttribs.push_back(make_pair("name",meshName));
+   if (copyArray(input,output,"MESH",inputAttribs) == false) success = false;
+   
+   inputAttribs.clear();
+   inputAttribs.push_back(make_pair("mesh",meshName));
+   if (copyArray(input,output,"MESH_BBOX",inputAttribs) == false) success = false;
+   if (copyArray(input,output,"MESH_DOMAIN_SIZES",inputAttribs) == false) success = false;
+   if (copyArray(input,output,"MESH_NODE_CRDS_X",inputAttribs) == false) success = false;
+   if (copyArray(input,output,"MESH_NODE_CRDS_Y",inputAttribs) == false) success = false;
+   if (copyArray(input,output,"MESH_NODE_CRDS_Z",inputAttribs) == false) success = false;
+   if (copyArray(input,output,"MESH_GHOST_LOCALIDS",inputAttribs) == false) success = false;
+   if (copyArray(input,output,"MESH_GHOST_DOMAINS",inputAttribs) == false) success = false;
+   
+   input.close();
+   return success;
+}
 
 /*! Extracts the dataset from the VLSV file opened by convertSILO.
- * \param vlsvReader oldVlsv::Reader class object used to access the VLSV file
+ * \param vlsvReader vlsvinterface::Reader class object used to access the VLSV file
  * \param meshName Address of the string containing the name of the mesh to be extracted
  * \param varToExtract Pointer to the char array containing the name of the variable to extract
  * \param compToExtract Unsigned int designating the component to extract (0 for scalars)
  * \param orderedData Pointer to the return argument map which will get the extracted dataset
  */
-bool convertMesh(newVlsv::Reader& vlsvReader,
+bool convertMesh(vlsvinterface::Reader& vlsvReader,
                  const string& meshName,
                  const char * varToExtract,
                  const uint compToExtract,
-                 map<uint, Real> * orderedData) {
+                 map<uint, Real> * orderedData,
+                 unordered_map<size_t,size_t>& cellOrder,
+                 const bool& storeCellOrder) {
    //Check for null pointer:
    if( !varToExtract || !orderedData ) {
       cerr << "ERROR, PASSED A NULL POINTER AT " << __FILE__ << " " << __LINE__ << endl;
@@ -115,14 +182,6 @@ bool convertMesh(newVlsv::Reader& vlsvReader,
    uint64_t meshArraySize, meshVectorSize, meshDataSize;
    uint64_t variableArraySize, variableVectorSize, variableDataSize;
 
-
-   //Get local cell ids:
-   vector<uint64_t> local_cells;
-   if( vlsvReader.getCellIds( local_cells ) == false ) {
-      cerr << "Failed to read cell ids at "  << __FILE__ << " " << __LINE__ << endl;
-      return false;
-   }
-
    list<pair<string, string> > variableAttributes;
    const string _varToExtract( varToExtract );
    variableAttributes.push_back( make_pair("mesh", meshName) );
@@ -133,6 +192,12 @@ bool convertMesh(newVlsv::Reader& vlsvReader,
       return false;
    }
 
+   //Get local cell ids:
+   vector<uint64_t> local_cells;
+   if ( vlsvReader.getCellIds( local_cells, meshName) == false ) {
+      cerr << "Failed to read cell ids at "  << __FILE__ << " " << __LINE__ << endl;
+      return false;
+   }
 
    //Check for correct output:
    if (local_cells.size() != variableArraySize) {
@@ -150,6 +215,12 @@ bool convertMesh(newVlsv::Reader& vlsvReader,
    double* variablePtrDouble = reinterpret_cast<double*>(variableBuffer);
    uint* variablePtrUint = reinterpret_cast<uint*>(variableBuffer);
    int* variablePtrInt = reinterpret_cast<int*>(variableBuffer);
+
+   if (storeCellOrder == true) {
+      cellOrder.clear();
+   }
+   
+   orderedData->clear();
    
    for (uint64_t i=0; i<local_cells.size(); ++i) {
       const short int amountToReadIn = 1;
@@ -161,11 +232,11 @@ bool convertMesh(newVlsv::Reader& vlsvReader,
       }
       // Get the CellID
       uint64_t & CellID = local_cells[i];
+      
       // Get the variable value
       Real extract = NAN;
       
-      switch (variableDataType)
-      {
+      switch (variableDataType) {
          case datatype::type::FLOAT:
             if(variableDataSize == sizeof(float)) extract = (Real)(variablePtrFloat[compToExtract]);
             if(variableDataSize == sizeof(double)) extract = (Real)(variablePtrDouble[compToExtract]);
@@ -182,90 +253,9 @@ bool convertMesh(newVlsv::Reader& vlsvReader,
       }
       // Put those into the map
       orderedData->insert(pair<uint64_t, Real>(CellID, extract));
-   }
-   
-   if (meshSuccess == false) {
-      cerr << "ERROR reading array MESH" << endl;
-   }
-   if (variableSuccess == false) {
-      cerr << "ERROR reading array VARIABLE " << varToExtract << endl;
-   }
-   return meshSuccess && variableSuccess;
-}
-
-
-/*! Extracts the dataset from the VLSV file opened by convertSILO.
- * \param vlsvReader oldVlsv::Reader class object used to access the VLSV file
- * \param meshName Address of the string containing the name of the mesh to be extracted
- * \param varToExtract Pointer to the char array containing the name of the variable to extract
- * \param compToExtract Unsigned int designating the component to extract (0 for scalars)
- * \param orderedData Pointer to the return argument map which will get the extracted dataset
- */
-bool convertMesh(oldVlsv::Reader & vlsvReader,
-                 const string& meshName,
-                 const char * varToExtract,
-                 const uint compToExtract,
-                 map<uint, Real> * orderedData)
-{
-   bool meshSuccess = true;
-   bool variableSuccess = true;
-   
-   datatype::type meshDataType;
-   datatype::type variableDataType;
-   uint64_t meshArraySize, meshVectorSize, meshDataSize;
-   uint64_t variableArraySize, variableVectorSize, variableDataSize;
-   list<pair<string,string>> meshAttributes;
-   meshAttributes.push_back(make_pair("name", meshName));
-   if (vlsvReader.getArrayInfo("MESH", meshAttributes, meshArraySize, meshVectorSize, meshDataType, meshDataSize) == false) return false;
-   list<pair<string,string>> varAttributes;
-   varAttributes.push_back(make_pair("mesh", meshName));
-   varAttributes.push_back(make_pair("name", varToExtract));
-   if (vlsvReader.getArrayInfo("VARIABLE", varAttributes, variableArraySize, variableVectorSize, variableDataType, variableDataSize) == false) return false;
-   if (meshArraySize != variableArraySize) {
-      cerr << "ERROR array size mismatch" << endl;
-   }
-   if (compToExtract + 1 > variableVectorSize) {
-      cerr << "ERROR invalid component, this variable has size " << variableVectorSize << endl;
-      abort();
-   }
-   
-   // Read the mesh array one node (of a spatial cell) at a time 
-   // and create a map which contains each cell's CellID and variable to be extracted
-   char* meshBuffer = new char[meshVectorSize*meshDataSize];
-   uint64_t* meshPtr = reinterpret_cast<uint64_t*>(meshBuffer);
-   char* variableBuffer = new char[variableVectorSize*variableDataSize];
-   float* variablePtrFloat = reinterpret_cast<float*>(variableBuffer);
-   double* variablePtrDouble = reinterpret_cast<double*>(variableBuffer);
-   uint* variablePtrUint = reinterpret_cast<uint*>(variableBuffer);
-   int* variablePtrInt = reinterpret_cast<int*>(variableBuffer);
-   
-   for (uint64_t i=0; i<meshArraySize; ++i) {
-      if (vlsvReader.readArray("MESH", meshAttributes, i, 1, meshBuffer) == false) {meshSuccess = false; break;}
-      if (vlsvReader.readArray("VARIABLE", varAttributes, i, 1, variableBuffer) == false) {variableSuccess = false; break;}
-      // Get the CellID
-      uint64_t CellID  = meshPtr[0];
-      // Get the variable value
-      Real extract = NAN;
-      
-      switch (variableDataType)
-      {
-         case datatype::type::FLOAT:
-            if(variableDataSize == sizeof(float)) extract = (Real)(variablePtrFloat[compToExtract]);
-            if(variableDataSize == sizeof(double)) extract = (Real)(variablePtrDouble[compToExtract]);
-            break;
-         case datatype::type::UINT:
-            extract = (Real)(variablePtrUint[compToExtract]);
-            break;
-         case datatype::type::INT:
-            extract = (Real)(variablePtrInt[compToExtract]);
-            break;
-         case datatype::type::UNKNOWN:
-            cerr << "BAD DATATYPE AT " << __FILE__ << " " << __LINE__ << endl;
-            return false;
-            break;
+      if (storeCellOrder == true) {
+         cellOrder[CellID] = i;
       }
-      // Put those into the map
-      orderedData->insert(pair<uint64_t, Real>(CellID, extract));
    }
    
    if (meshSuccess == false) {
@@ -276,28 +266,6 @@ bool convertMesh(oldVlsv::Reader & vlsvReader,
    }
    return meshSuccess && variableSuccess;
 }
-
-///* Checks if the vlsv file is using the new library or not
-// * Input:
-// * \param vlsvReader -- some vlsv reader with a file open
-// * Output:
-// * Returns true if the vlsv file has been written with the new vlsv library and false if not
-// */
-//int checkVersion( Reader & vlsvReader ) {
-//   string versionTag = "version";
-//   float version;
-//   if( vlsvReader.readParameter( versionTag, version ) == false ) {
-//      return 0;
-//   }
-//   if( version == 1.00 ) {
-//      return 1;
-//   } else {
-//      cerr << "Invalid version!" << endl;
-//      exit(1);
-//      return 0;
-//   }
-//}
-
 
 /*! Opens the VLSV file and extracts the mesh names. Sends for processing to convertMesh.
  * \param fileName String containing the name of the file to be processed
@@ -310,15 +278,15 @@ template <class T>
 bool convertSILO(const string fileName,
                  const char * varToExtract,
                  const uint compToExtract,
-                 map<uint, Real> * orderedData)
-{
+                 map<uint, Real> * orderedData,
+                 unordered_map<size_t,size_t>& cellOrder,
+                 const bool& storeCellOrder=false) {
+   
    bool success = true;
    
    // Open VLSV file for reading:
-   T vlsvReader;
-   
-   if (vlsvReader.open(fileName) == false)
-   {
+   T vlsvReader;   
+   if (vlsvReader.open(fileName) == false) {
       cerr << "Failed to open '" << fileName << "'" << endl;
       return false;
    }
@@ -330,14 +298,15 @@ bool convertSILO(const string fileName,
       exit(1);
    }
 
+   // Clear old data
+   orderedData->clear();
    
-   for (list<string>::const_iterator it=meshNames.begin(); it!=meshNames.end(); ++it)
-   {
-      if (convertMesh(vlsvReader, *it, varToExtract, compToExtract, orderedData) == false)
-      {
+   for (list<string>::const_iterator it=meshNames.begin(); it!=meshNames.end(); ++it) {
+      if (*it != attributes["--meshname"]) continue;
+
+      if (convertMesh(vlsvReader, *it, varToExtract, compToExtract, orderedData, cellOrder, storeCellOrder) == false) {
          return false;
-      }
-      
+      }      
    }
    vlsvReader.close();
    return success;
@@ -348,10 +317,10 @@ bool convertSILO(const string fileName,
  * \param orderedData2 Pointer to the data to be shifted
  * \param shiftedData2 Pointer to where the shifted data of the second file will be put
  */
-bool shiftAverage(const map<uint, Real> * const orderedData1,
-                  const map<uint, Real> * const orderedData2,
-                  map<uint, Real> * shiftedData2
-                  ) {
+bool shiftAverage(const map<uint, Real>* const orderedData1,
+                  const map<uint, Real>* const orderedData2,
+                  map<uint,Real>* shiftedData2
+                 ) {
    map<uint, Real>::const_iterator it1, it2;
    Real avg1 = 0.0;
    Real avg2 = 0.0;
@@ -404,54 +373,87 @@ bool shiftAverage(const map<uint, Real> * const orderedData1,
  * \param doShiftAverage Boolean argument to determine whether to shift the second file's data
  * \sa shiftAverage
  */
-bool pDistance(map<uint, Real> * const orderedData1,
-               map<uint, Real> * const orderedData2,
+bool pDistance(const map<uint, Real>& orderedData1,
+               const map<uint, Real>& orderedData2,
                creal p,
                Real * absolute,
                Real * relative,
-               const bool doShiftAverage
-               ) {
-   map<uint, Real> shiftedData2;
-   map<uint, Real> * data2 = orderedData2;
+               const bool doShiftAverage,
+               const unordered_map<size_t,size_t>& cellOrder,
+               vlsv::Writer& outputFile,
+               const std::string& meshName,
+               const std::string& varName
+              ) {
    
-   if(doShiftAverage == true)
-   {
-      shiftAverage(orderedData1, orderedData2, &shiftedData2);
+   map<uint,Real> shiftedData2;
+   map<uint,Real>* data2 = const_cast< map<uint,Real>* >(&orderedData2);   
+   if (doShiftAverage == true) {
+      shiftAverage(&orderedData1,&orderedData2,&shiftedData2);
       data2 = &shiftedData2;
    }
    
+   // Reset old values
    *absolute = 0.0;
-   Real length = 0.0;
    *relative = 0.0;
-   map<uint, Real>::const_iterator it;
-   if(p != 0.0)
-   {
-      for(it=orderedData1->begin(); it != orderedData1->end() ; it++)
-      {
-         *absolute += pow(abs(orderedData1->at(it->first) - data2->at(it->first)), p);
-         length += pow(abs(orderedData1->at(it->first)), p);
+
+   vector<Real> array(orderedData1.size());
+   for (size_t i=0; i<array.size(); ++i) array[i] = -1.0;
+   
+   Real length = 0.0;
+   if (p == 0) {
+      for (map<uint,Real>::const_iterator it1=orderedData1.begin(); it1!=orderedData1.end(); ++it1) {
+         map<uint,Real>::const_iterator it2 = data2->find(it1->first);
+         Real value = 0.0;
+         if (it2 != data2->end()) {
+            value = abs(it1->second - it2->second);
+            *absolute = max(*absolute, value);
+            length    = max(length, abs(it1->second));
+         }
+         array[cellOrder.at(it1->first)] = value;
+      }
+   } else if (p == 1) {
+      for (map<uint,Real>::const_iterator it1=orderedData1.begin(); it1!=orderedData1.end(); ++it1) {
+         map<uint,Real>::const_iterator it2 = data2->find(it1->first);
+         Real value = 0.0;
+         if (it2 != data2->end()) {
+            value = abs(it1->second - it2->second);
+            *absolute += value;
+            length    += abs(it1->second);
+         }
+         array[cellOrder.at(it1->first)] = value;
+      }
+   } else {
+      for (map<uint,Real>::const_iterator it1=orderedData1.begin(); it1!=orderedData1.end(); ++it1) {
+         map<uint,Real>::const_iterator it2 = data2->find(it1->first);
+         Real value = 0.0;
+         if (it2 != data2->end()) {
+            value = pow(abs(it1->second - it2->second), p);
+            *absolute += value;
+            length    += pow(abs(it1->second), p);
+         }
+         array[cellOrder.at(it1->first)] = pow(value,1.0/p);
       }
       *absolute = pow(*absolute, 1.0 / p);
       length = pow(length, 1.0 / p);
    }
-   else
-   {
-      for(it=orderedData1->begin(); it != orderedData1->end() ; it++)
-      {
-         *absolute = max(*absolute, abs(orderedData1->at(it->first) - data2->at(it->first)));
-         length = max(length, abs(orderedData1->at(it->first)));
-      }
-   }
    
-   if(length != 0.0)
-   {
-      *relative = *absolute / length;
-   }
-   else
-   {
+   if (length != 0.0) *relative = *absolute / length;
+   else {
       cout << "WARNING (pDistance) : length of reference is 0.0, cannot divide to give relative distance." << endl;
       *relative = -1;
    }
+   
+   // Write out the difference (if requested):
+   if (attributes.find("--diff") != attributes.end()) {
+      map<string,string> attributes;
+      attributes["mesh"] = meshName;
+      attributes["name"] = varName;
+      if (outputFile.writeArray("VARIABLE",attributes,array.size(),1,&(array[0])) == false) {
+         cerr << "ERROR failed to write variable '" << varName << "' to output file in " << __FILE__ << ":" << __LINE__ << endl;
+         return 1;
+      }
+   }
+   
    return 0;
 }
 
@@ -642,10 +644,10 @@ bool printNonVerboseData()
    return 0;
 }
 
-bool getBlockIds( newVlsv::Reader & vlsvReader,
-                  const unordered_map<uint64_t, pair<uint64_t, uint32_t>> & cellsWithBlocksLocations,
-                  const uint64_t & cellId,
-                  vector<uint32_t> & blockIds ) {
+bool getBlockIds(vlsvinterface::Reader& vlsvReader,
+                 const unordered_map<uint64_t, pair<uint64_t, uint32_t>> & cellsWithBlocksLocations,
+                 const uint64_t & cellId,
+                 vector<uint32_t> & blockIds ) {
    // Read the block ids:
    //Check if the cell id can be found:
    unordered_map<uint64_t, pair<uint64_t, uint32_t>>::const_iterator it = cellsWithBlocksLocations.find( cellId );
@@ -660,7 +662,7 @@ bool getBlockIds( newVlsv::Reader & vlsvReader,
 
    // Get some required info from VLSV file:
    list<pair<string, string> > attribs;
-   attribs.push_back(make_pair("mesh", "SpatialGrid"));
+   attribs.push_back(make_pair("mesh", attributes["--meshname"]));
 
    //READ BLOCK IDS:
    uint64_t blockIds_arraySize, blockIds_vectorSize, blockIds_dataSize;
@@ -717,148 +719,6 @@ uint32_t getBlockId( const double vx,
     return blockId;
 }
 
-
-
-//Loads a parameter from a file
-//usage: Real x = loadParameter( vlsvReader, nameOfParameter );
-//Note: this is used in getCellIdFromCoords
-//Input:
-//[0] vlsvReader -- some VLSVReader which has a file opened
-//[1] name -- name of the parameter, e.g. "xmin"
-//Output:
-//[0] Parameter -- Saves the parameter into the parameter variable
-template <typename T>
-bool loadParameter( VLSVReader& vlsvReader, const string& name, T & parameter ) {
-   //Declare dataType, arraySize, vectorSize, dataSize so we know how much data we want to store
-   VLSV::datatype dataType;
-   uint64_t arraySize, vectorSize, dataSize; //vectorSize should be 1
-   //Write into dataType, arraySize, etc with getArrayInfo -- if fails to read, give error message
-   if( vlsvReader.getArrayInfo( "PARAMETERS", name, arraySize, vectorSize, dataType, dataSize ) == false ) {
-      cerr << "Error, could not read parameter '" << name << "' at: " << __FILE__ << " " << __LINE__; //FIX
-      return false;
-   }
-   //Declare a buffer to write the parameter's data in (arraySize, etc was received from getArrayInfo)
-   char * buffer = new char[arraySize * vectorSize * dataSize];
-  
-   //Read data into the buffer and return error if something went wrong
-   if( vlsvReader.readArray( "PARAMETERS", name, 0, vectorSize, buffer ) == false ) {
-      cerr << "Error, could not read parameter '" << name << "' at: " << __FILE__ << " " << __LINE__; //FIX
-      return false;
-   }
-   //SHOULD be a vector of size 1 and since I am going to want to assume that, making a check here
-   if( vectorSize != 1 ) {
-      cerr << "Error, could not read parameter '" << name << "' at: " << __FILE__ << " " << __LINE__; //FIX
-      return false;
-   }
-   //Input the parameter
-   if( typeid(T) == typeid(double) ) {
-      if( dataSize == 8 ) {
-         parameter = *reinterpret_cast<double*>(buffer);
-      } else if( dataSize == 4 ) {
-         parameter = *reinterpret_cast<float*>(buffer);
-      } else {
-         cerr << "Error, bad datasize while reading parameters at " << __FILE__ << " " << __LINE__ << endl;
-         return false;
-      }
-   } else if( typeid(T) == typeid(uint64_t) ) {
-      if( dataSize == 8 ) {
-         parameter = *reinterpret_cast<uint64_t*>(buffer);
-      } else if( dataSize == 4 ) {
-         parameter = *reinterpret_cast<uint32_t*>(buffer);
-      } else {
-         cerr << "Error, bad datasize while reading parameters at " << __FILE__ << " " << __LINE__ << endl;
-         return false;
-      }
-   } else {
-      cerr << "Error, could not read parameter '" << name << "' at: " << __FILE__ << " " << __LINE__; //FIX
-      cerr << " Error message: invalid type in loadParameters" << endl;
-      return false;
-   }
-   return true;
-}
-
-
-
-bool getBlockIds( oldVlsv::Reader & vlsvReader,
-                  const unordered_map<uint64_t, pair<uint64_t, uint32_t>> & cellsWithBlocksLocations,
-                  const uint64_t & cellId,
-                  vector<uint32_t> & blockIds ) {
-   // Read the block ids:
-   //Check if the cell id can be found:
-   unordered_map<uint64_t, pair<uint64_t, uint32_t>>::const_iterator it = cellsWithBlocksLocations.find( cellId );
-   if( it == cellsWithBlocksLocations.end() ) {
-      cerr << "COULDNT FIND CELL ID " << cellId << " AT " << __FILE__ << " " << __LINE__ << endl;
-      return false;
-   }
-   //Get offset and number of blocks:
-   pair<uint64_t, uint32_t> offsetAndBlocks = it->second;
-   const uint64_t blockOffset = get<0>(offsetAndBlocks);
-   const uint32_t N_blocks = get<1>(offsetAndBlocks);
-
-   // Get some required info from VLSV file:
-   list<pair<string, string> > attribs;
-   attribs.push_back(make_pair("name", "SpatialGrid"));
-
-   //READ BLOCK COORDINATES:
-   uint64_t blockCoordinates_arraySize, blockCoordinates_vectorSize, blockCoordinates_dataSize;
-   vlsv::datatype::type blockCoordinates_dataType;
-   //Input blockCoordinates_arraySize, blockCoordinates_vectorSize, blockCoordinates_dataSize blockCoordinates_dataType: (Returns false if fails)
-   if (vlsvReader.getArrayInfo("BLOCKCOORDINATES", attribs, blockCoordinates_arraySize, blockCoordinates_vectorSize, blockCoordinates_dataType, blockCoordinates_dataSize) == false) {
-      cerr << "ERROR, COULD NOT FIND BLOCKCOORDINATES AT " << __FILE__ << " " << __LINE__ << endl;
-      return false;
-   }
-   //Make sure blockid's datatype is correct:
-   if( blockCoordinates_dataType != vlsv::datatype::type::FLOAT ) {
-      cerr << "ERROR, bad datatype at " << __FILE__ << " " << __LINE__ << endl;
-      return false;
-   }
-   //Create buffer for reading in data:  (Note: arraySize, vectorSize, etc were fetched from getArrayInfo)
-   char * blockCoordinates_buffer = new char[N_blocks*blockCoordinates_vectorSize*blockCoordinates_dataSize];
-   //Read the data into the buffer:
-   if( vlsvReader.readArray( "BLOCKCOORDINATES", attribs, blockOffset, N_blocks, blockCoordinates_buffer ) == false ) {
-      cerr << "ERROR, FAILED TO READ BLOCKCOORDINATES AT " << __FILE__ << " " << __LINE__ << endl;
-      delete[] blockCoordinates_buffer;
-      return false;
-   }
-   //Input the block ids:
-   // First read in vxmin, vymin, vzmin etc
-   double vx_min, vy_min, vz_min;
-   uint64_t vx_length, vy_length, vz_length;
-   loadParameter( vlsvReader, "vxmin", vx_min );
-   loadParameter( vlsvReader, "vymin", vy_min );
-   loadParameter( vlsvReader, "vzmin", vz_min );
-   loadParameter( vlsvReader, "vxblocks_ini", vx_length );
-   loadParameter( vlsvReader, "vyblocks_ini", vy_length );
-   loadParameter( vlsvReader, "vzblocks_ini", vz_length );
-
-   double vx, vy, vz, dvx, dvy, dvz;
-
-   blockIds.reserve(N_blocks);
-   for (uint64_t b = 0; b < N_blocks; ++b) {
-      if (blockCoordinates_dataSize == 4) {
-         vx = *reinterpret_cast<float*> (blockCoordinates_buffer + b * blockCoordinates_vectorSize * blockCoordinates_dataSize + 0 * blockCoordinates_dataSize);
-         vy = *reinterpret_cast<float*> (blockCoordinates_buffer + b * blockCoordinates_vectorSize * blockCoordinates_dataSize + 1 * blockCoordinates_dataSize);
-         vz = *reinterpret_cast<float*> (blockCoordinates_buffer + b * blockCoordinates_vectorSize * blockCoordinates_dataSize + 2 * blockCoordinates_dataSize);
-         dvx = *reinterpret_cast<float*> (blockCoordinates_buffer + b * blockCoordinates_vectorSize * blockCoordinates_dataSize + 3 * blockCoordinates_dataSize);
-         dvy = *reinterpret_cast<float*> (blockCoordinates_buffer + b * blockCoordinates_vectorSize * blockCoordinates_dataSize + 4 * blockCoordinates_dataSize);
-         dvz = *reinterpret_cast<float*> (blockCoordinates_buffer + b * blockCoordinates_vectorSize * blockCoordinates_dataSize + 5 * blockCoordinates_dataSize);
-      } else {
-         vx = *reinterpret_cast<double*> (blockCoordinates_buffer + b * blockCoordinates_vectorSize * blockCoordinates_dataSize + 0 * blockCoordinates_dataSize);
-         vy = *reinterpret_cast<double*> (blockCoordinates_buffer + b * blockCoordinates_vectorSize * blockCoordinates_dataSize + 1 * blockCoordinates_dataSize);
-         vz = *reinterpret_cast<double*> (blockCoordinates_buffer + b * blockCoordinates_vectorSize * blockCoordinates_dataSize + 2 * blockCoordinates_dataSize);
-         dvx = *reinterpret_cast<double*> (blockCoordinates_buffer + b * blockCoordinates_vectorSize * blockCoordinates_dataSize + 3 * blockCoordinates_dataSize);
-         dvy = *reinterpret_cast<double*> (blockCoordinates_buffer + b * blockCoordinates_vectorSize * blockCoordinates_dataSize + 4 * blockCoordinates_dataSize);
-         dvz = *reinterpret_cast<double*> (blockCoordinates_buffer + b * blockCoordinates_vectorSize * blockCoordinates_dataSize + 5 * blockCoordinates_dataSize);
-      }
-      const uint32_t blockId = getBlockId( vx, vy, vz, dvx, dvy, dvz, vx_min, vy_min, vz_min, vx_length, vy_length, vz_length);
-      blockIds.push_back( (uint32_t)(blockId) );
-   }
-   delete[] blockCoordinates_buffer;
-   return true;
-
-}
-
-
 // Reads avgs values of some given cell id
 // Input:
 // [0] vlsvReader -- Some vlsv reader with a file open
@@ -877,7 +737,7 @@ bool readAvgs( T & vlsvReader,
    // Read avgs:
    list<pair<string, string> > attribs;
    attribs.push_back(make_pair("name", "avgs"));
-   attribs.push_back(make_pair("mesh", "SpatialGrid"));
+   attribs.push_back(make_pair("mesh", attributes["--meshname"]));
 
    datatype::type dataType;
    uint64_t arraySize, vectorSize, dataSize;
@@ -949,17 +809,13 @@ bool getCellsWithBlocksLocations( T & vlsvReader,
    if(cellsWithBlocksLocations.empty() == false) {
       cellsWithBlocksLocations.clear();
    }
-   const string meshName = "SpatialGrid";
+   const string meshName = attributes["--meshname"];
    vlsv::datatype::type cwb_dataType;
    uint64_t cwb_arraySize, cwb_vectorSize, cwb_dataSize;
    list<pair<string, string> > attribs;
 
    //Get the mesh name for reading in data from the correct place
-   if( typeid(vlsvReader) == typeid(oldVlsv::Reader) ) {
-      attribs.push_back( make_pair("name", meshName) );
-   } else {
-      attribs.push_back( make_pair("mesh", meshName) );
-   }
+   attribs.push_back( make_pair("mesh", meshName) );
 
    //Get array info
    if (vlsvReader.getArrayInfo("CELLSWITHBLOCKS", attribs, cwb_arraySize, cwb_vectorSize, cwb_dataType, cwb_dataSize) == false) {
@@ -1278,28 +1134,12 @@ bool process2Files(const string fileName1,
                    const bool verboseOutput,
                    const uint compToExtract2 = 0
                   ) {
-   //Check whether the file(s) use new or old vlsv library:
-//   Reader vlsvCheck1;
-//   vlsvCheck1.open( fileName1 );
-//   const bool file1UsesNewVlsvLib = (checkVersion( vlsvCheck1 ) == 1.00);
-//   if( file1UsesNewVlsvLib == false )
-//   vlsvCheck1.close();
-
-//   Reader vlsvCheck2;
-//   vlsvCheck2.open( fileName2 );
-//   const bool file2UsesNewVlsvLib = (checkVersion( vlsvCheck2 ) == 1.00);
-//   if( file1UsesNewVlsvLib == false )
-//   vlsvCheck2.close();
-   const bool file1UsesNewVlsvLib = (checkVersion( fileName1 ) == 1.00);
-   const bool file2UsesNewVlsvLib = (checkVersion( fileName2 ) == 1.00);
-
    map<uint, Real> orderedData1;
    map<uint, Real> orderedData2;
    Real absolute, relative, mini, maxi, size, avg, stdev;
 
-
-   // If the user wants to  check avgs, call the avgs check function and return it. Otherwise move on to compare variables:
-   if( strcmp(varToExtract, "avgs") == 0 ) {
+   // If the user wants to check avgs, call the avgs check function and return it. Otherwise move on to compare variables:
+   if( strcmp(varToExtract, "avgs") == 0 && attributes.find("--no-distrib") == attributes.end()) {
       vector<uint64_t> cellIds1;
       vector<uint64_t> cellIds2;
       cellIds1.reserve(1);
@@ -1307,39 +1147,24 @@ bool process2Files(const string fileName1,
       cellIds1.push_back(compToExtract);
       cellIds2.push_back(compToExtract2);
       // Compare files:
-      if( file1UsesNewVlsvLib && file2UsesNewVlsvLib ) {
-         if( compareAvgs<newVlsv::Reader, newVlsv::Reader>(fileName1, fileName2, verboseOutput, cellIds1, cellIds2) == false ) { return false; }
-      } else if( file1UsesNewVlsvLib && !file2UsesNewVlsvLib ) {
-         if( compareAvgs<newVlsv::Reader, oldVlsv::Reader>(fileName1, fileName2, verboseOutput, cellIds1, cellIds2) == false ) { return false; }
-      } else if( !file1UsesNewVlsvLib && file2UsesNewVlsvLib ) {
-         if( compareAvgs<oldVlsv::Reader, newVlsv::Reader>(fileName1, fileName2, verboseOutput, cellIds1, cellIds2) == false ) { return false; }
-      } else {
-         // Both are old vlsv format
-         if( compareAvgs<oldVlsv::Reader, oldVlsv::Reader>(fileName1, fileName2, verboseOutput, cellIds1, cellIds2) == false ) { return false; }
-      }
+      if( compareAvgs<vlsvinterface::Reader, vlsvinterface::Reader>(fileName1, fileName2, verboseOutput, cellIds1, cellIds2) == false ) { return false; }
    } else {
+      unordered_map<size_t,size_t> cellOrder;
    
       bool success = true;
-      if( file1UsesNewVlsvLib ) {
-         success = convertSILO<newVlsv::Reader>(fileName1, varToExtract, compToExtract, &orderedData1);
-      } else {
-         success = convertSILO<oldVlsv::Reader>(fileName1, varToExtract, compToExtract, &orderedData1);
-      }
+      success = convertSILO<vlsvinterface::Reader>(fileName1, varToExtract, compToExtract, &orderedData1, cellOrder, true);
+      
       if( success == false ) {
          cerr << "ERROR Data import error with " << fileName1 << endl;
          return 1;
       }
-   
-      if( file2UsesNewVlsvLib ) {
-         success = convertSILO<newVlsv::Reader>(fileName2, varToExtract, compToExtract, &orderedData2);
-      } else {
-         success = convertSILO<oldVlsv::Reader>(fileName2, varToExtract, compToExtract, &orderedData2);
-      }
+      
+      success = convertSILO<vlsvinterface::Reader>(fileName2, varToExtract, compToExtract, &orderedData2, cellOrder, false);
+
       if( success == false ) {
          cerr << "ERROR Data import error with " << fileName2 << endl;
          return 1;
-      }
-   
+      }   
    
       // Basic consistency check
       if(orderedData1.size() != orderedData2.size()) {
@@ -1347,26 +1172,52 @@ bool process2Files(const string fileName1,
          return 1;
       }
       
+      // Open VLSV file where the diffence in the chosen variable is written
+      const string prefix = fileName1.substr(0,fileName1.find_last_of('.'));
+      const string suffix = fileName1.substr(fileName1.find_last_of('.'),fileName1.size());
+      string outputFileName = prefix + ".diff." + varToExtract + suffix;
+      const string varName = varToExtract;
+      vlsv::Writer outputFile;
+      if (attributes.find("--diff") != attributes.end()) {
+         if (outputFileName[0] == '.' && outputFileName[1] == '/') {
+            outputFileName = outputFileName.substr(2,string::npos);
+         }
+         
+         for (size_t s=0; s<outputFileName.size(); ++s)
+           if (outputFileName[s] == '/') outputFileName[s] = '_';
+         
+         if (outputFile.open(outputFileName,MPI_COMM_SELF,0) == false) {
+            cerr << "ERROR failed to open output file '" << outputFileName << "' in " << __FILE__ << ":" << __LINE__ << endl;
+            return false;
+         }
+         
+         // Clone mesh from input file to diff file
+         map<string,string>::const_iterator it = attributes.find("--meshname");
+         if (cloneMesh(fileName1,outputFile,it->second) == false) return false;
+      }
+         
       singleStatistics(&orderedData1, &size, &mini, &maxi, &avg, &stdev); //CONTINUE
       outputStats(&size, &mini, &maxi, &avg, &stdev, verboseOutput, false);
       
       singleStatistics(&orderedData2, &size, &mini, &maxi, &avg, &stdev);
       outputStats(&size, &mini, &maxi, &avg, &stdev, verboseOutput, false);
       
-      pDistance(&orderedData1, &orderedData2, 0, &absolute, &relative, false);
+      pDistance(orderedData1, orderedData2, 0, &absolute, &relative, false, cellOrder,outputFile,attributes["--meshname"],"d0_"+varName);
       outputDistance(0, &absolute, &relative, false, verboseOutput, false);
-      pDistance(&orderedData1, &orderedData2, 0, &absolute, &relative, true);
+      pDistance(orderedData1, orderedData2, 0, &absolute, &relative, true, cellOrder,outputFile,attributes["--meshname"],"d0_sft_"+varName);
       outputDistance(0, &absolute, &relative, true, verboseOutput, false);
       
-      pDistance(&orderedData1, &orderedData2, 1, &absolute, &relative, false);
+      pDistance(orderedData1, orderedData2, 1, &absolute, &relative, false, cellOrder,outputFile,attributes["--meshname"],"d1_"+varName);
       outputDistance(1, &absolute, &relative, false, verboseOutput, false);
-      pDistance(&orderedData1, &orderedData2, 1, &absolute, &relative, true);
+      pDistance(orderedData1, orderedData2, 1, &absolute, &relative, true, cellOrder,outputFile,attributes["--meshname"],"d1_sft_"+varName);
       outputDistance(1, &absolute, &relative, true, verboseOutput, false);
       
-      pDistance(&orderedData1, &orderedData2, 2, &absolute, &relative, false);
+      pDistance(orderedData1, orderedData2, 2, &absolute, &relative, false, cellOrder,outputFile,attributes["--meshname"],"d2_"+varName);
       outputDistance(2, &absolute, &relative, false, verboseOutput, false);
-      pDistance(&orderedData1, &orderedData2, 2, &absolute, &relative, true);
+      pDistance(orderedData1, orderedData2, 2, &absolute, &relative, true, cellOrder,outputFile,attributes["--meshname"],"d2_sft_"+varName);
       outputDistance(2, &absolute, &relative, true, verboseOutput, false);
+      
+      outputFile.close();
    }
    
    if(verboseOutput == false)
@@ -1382,10 +1233,10 @@ bool process2Files(const string fileName1,
  * \param dir DIR type pointer to the directory entry to process
  * \param fileList Pointer to a set of strings, return argument for the produced file list
  */
-bool processDirectory(DIR* dir, set<string> * fileList) {
+bool processDirectory(DIR* dir, set<string>* fileList) {
    int filesFound = 0, entryCounter = 0;
    
-   const string mask = "grid";
+   const string mask = attributes["--filemask"];
    const string suffix = ".vlsv";
    
    struct dirent* entry = readdir(dir);
@@ -1404,14 +1255,145 @@ bool processDirectory(DIR* dir, set<string> * fileList) {
    return 0;
 }
 
+void printHelp(const map<string,string>& defAttribs,const map<string,string>& descriptions) {
+   cout << endl;
+   cout << "VLSVDIFF command line attributes are given as option=value pairs, value can be empty." << endl;
+   cout << "If the default value is 'unset', then giving the option in the command line turns it on." << endl;
+   cout << "For example, \"vlsvdiff --help\" displays this message and the option '--help' does not have a value." << endl << endl;
+   
+   cout << "Known attributes and default values are:" << endl;
+   for (map<string,string>::const_iterator it=defAttribs.begin(); it!=defAttribs.end(); ++it) {
+      cout << endl;
+      const size_t optionWidth   = 30;
+      const size_t descrMaxWidth = 120;
+      
+      // Print the option,value pair so that the field width is always 30 characters
+      string option = it->first;
+      if (it->second.size() > 0) option = option + "=" + it->second;
+      else option = option + " (unset)";
+      
+      if (option.size() < optionWidth) {
+         size_t padding = optionWidth-option.size();
+         for (size_t i=0; i<padding; ++i) option = option + ' ';
+      }
+      cout << option;
+      
+      // Print the description, possibly on multiple lines.
+      map<string,string>::const_iterator descr = descriptions.find(it->first);
+      if (descr == descriptions.end()) {
+         cout << "(no description given)" << endl;
+         continue;
+      }
+      
+      // If the description fits in the first line, print it and continue
+      if (descr->second.size() <= descrMaxWidth-optionWidth) {
+         cout << descr->second << endl;
+         continue;
+      }
+      
+      // Print the description on multiple lines. First parse the description 
+      // string and store each word to a vector.
+      vector<string> text;
+      size_t i=0;
+      while (i < descr->second.size()) {
+         size_t i_space = descr->second.find_first_of(' ',i);
+         if (i_space == string::npos) i_space = descr->second.size();
+         text.push_back(descr->second.substr(i,i_space-i));
+         i = i_space+1;
+      }
+      
+      // Write out the words in vector 'text' so that the length of any line 
+      // does not exceed descrMaxWidth characters.
+      i = optionWidth;
+      for (size_t s=0; s<text.size(); ++s) {
+         if (i+text[s].size() <= descrMaxWidth) {
+            cout << text[s] << ' ';
+            i += text[s].size()+1;
+         } else {
+            cout << endl;
+            for (int j=0; j<optionWidth; ++j) cout << ' ';
+            i = optionWidth;
+            
+            cout << text[s] << ' ';
+            i += text[s].size()+1;
+         }
+      }
+      cout << endl;
+   }
+   cout << endl;
+}
+      
 /*! Main function, detects which calling pattern is used and sends to the corresponding processing functions.
  * 
  * \sa process2Files processDirectory
  */
-int main(int argn,char* args[])
-{
-   if (argn < 5)
-   {
+int main(int argn,char* args[]) {
+   MPI_Init(&argn,&args);
+
+   // Create default attributes
+   map<string,string> defAttribs;
+   map<string,string> descriptions;
+   defAttribs.insert(make_pair("--meshname","SpatialGrid"));
+   defAttribs.insert(make_pair("--filemask","fullf"));
+   defAttribs.insert(make_pair("--help",""));
+   defAttribs.insert(make_pair("--no-distrib",""));
+   defAttribs.insert(make_pair("--diff",""));
+   
+   descriptions["--meshname"] = "Name of the spatial mesh that is used in diff.";
+   descriptions["--filemask"] = "File mask used in directory comparison mode. For example, if you want to compare files starting with 'fullf', set '--filemask=fullf'.";
+   descriptions["--help"]     = "Print this help message.";
+   descriptions["--diff"]     = "If set, difference file(s) are written.";
+   descriptions["--no-distrib"] = "If set, velocity block data are not compared even if the given variable corresponds to velocity block data.";
+
+   // Create default attributes
+   for (map<string,string>::const_iterator it=defAttribs.begin(); it!=defAttribs.end(); ++it) {
+      if (it->second.size() == 0) continue;
+      attributes.insert(make_pair(it->first,it->second));
+   }
+
+   vector<string> argsVector;
+
+   // Parse attributes,value pairs from command line
+   int i=0;
+   while (i < argn) {
+      if (args[i][1] == '\0') {argsVector.push_back(args[i]); ++i; continue;}
+      if (args[i][0] == '-' && args[i][1] == '-') {
+         string s = args[i];
+         if (argn > i) {
+            if (s.find("=") == string::npos) {
+               attributes.insert(make_pair(string(args[i]),""));
+            } else {
+               size_t pos = s.find("=");
+               string arg = s.substr(0,s.find('='));
+               string val = s.substr(s.find('=')+1,string::npos);
+               attributes[arg] = val;
+            }
+            ++i;
+            continue;
+         } else {
+            if (s.find("=") == string::npos) {
+               attributes.insert(make_pair(string(args[i]),""));
+            } else {
+               size_t pos = s.find("=");
+               string arg = s.substr(0,s.find('='));
+               string val = s.substr(s.find('=')+1,string::npos);
+               attributes[arg] = val;
+            }
+            ++i;
+            break;
+         }
+      } else {
+         argsVector.push_back(args[i]);
+      }
+      ++i;
+   }
+
+   if (attributes.find("--help") != attributes.end()) {
+      printHelp(defAttribs,descriptions);
+      return 0;
+   }
+   
+   if (argsVector.size() < 5) {
       cout << endl;
       cout << "USAGE 1: ./vlsvdiff <file1> <file2> <Variable> <component>" << endl;
       cout << "Gives single-file statistics and distances between the two files given, for the variable and component given" << endl;
@@ -1421,21 +1403,23 @@ int main(int argn,char* args[])
       cout << "         ./vlsvdiff <folder1> <file2> <Variable> <component>" << endl;
       cout << "Gives single-file statistics and distances between a file, and files grid*.vlsv taken in alphanumeric order in the given folder, for the variable and component given" << endl;
       cout << endl;
+      cout << "Type ./vlsvdiff --help for more info" << endl;
+      cout << endl;
       return 1;
    }
-   
+
    // 1st arg is file1 name
-   const string fileName1 = args[1];
+   const string fileName1 = argsVector[1];
    // 2nd arg is file2 name
-   const string fileName2 = args[2];
+   const string fileName2 = argsVector[2];
    // 3rd arg is variable name
-   char * varToExtract = args[3];
+   const char* varToExtract = argsVector[3].c_str();
    // 4th arg is its component, 0 for scalars, 2 for z component etc
-   uint compToExtract = atoi(args[4]);
+   uint compToExtract = atoi(argsVector[4].c_str());
    // 5h arg if there is one:
    uint compToExtract2;
-   if( argn > 5 ) {
-      compToExtract2 = atoi(args[5]);
+   if(argsVector.size() > 5 ) {
+      compToExtract2 = atoi(argsVector[5].c_str());
    } else {
       compToExtract2 = compToExtract;
    }
@@ -1512,6 +1496,7 @@ int main(int argn,char* args[])
       closedir(dir1);
       closedir(dir2);
    }
-   
+
+   MPI_Finalize();
    return 0;
 }

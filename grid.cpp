@@ -412,7 +412,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
   Further documentation in grid.h
 */
 bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                          const vector<uint64_t>& cellsToAdjust,
+                          const vector<CellID>& cellsToAdjust,
                           bool doPrepareToReceiveBlocks,
                           const int& popID) {
    phiprof::initializeTimer("re-adjust blocks","Block adjustment");
@@ -440,8 +440,8 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    //Adjusts velocity blocks in local spatial cells, doesn't adjust velocity blocks in remote cells.
 
    phiprof::start("Adjusting blocks");
-#pragma omp parallel for schedule(dynamic)
-   for (unsigned int i=0; i<cellsToAdjust.size(); ++i) {
+   #pragma omp parallel for schedule(dynamic)
+   for (size_t i=0; i<cellsToAdjust.size(); ++i) {
       Real density_pre_adjust=0.0;
       Real density_post_adjust=0.0;
       CellID cell_id=cellsToAdjust[i];
@@ -463,7 +463,7 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
          }
       }
       cell->adjust_velocity_blocks(neighbor_ptrs,popID);
-      
+
       if (P::sparse_conserve_mass) {
          for (size_t i=0; i<cell->get_number_of_velocity_blocks(popID)*WID3; ++i) {
             density_post_adjust += cell->get_data(popID)[i];

@@ -76,7 +76,7 @@ void calculateSpatialTranslation(
          createTargetGrid(mpiGrid,local_target_cells,popID);
          localTargetGridGenerated=true;
       }
-      
+
       phiprof::start(trans_timer);
       mpiGrid.wait_remote_neighbor_copy_update_receives(VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);
       phiprof::stop(trans_timer);
@@ -103,7 +103,7 @@ void calculateSpatialTranslation(
       phiprof::start(trans_timer);
       mpiGrid.wait_remote_neighbor_copy_update_sends();
       phiprof::stop(trans_timer);
-      
+
       trans_timer=phiprof::initializeTimer("update_remote-z","MPI");
       phiprof::start("update_remote-z");
       update_remote_mapping_contribution(mpiGrid, 2,+1,popID);
@@ -128,7 +128,7 @@ void calculateSpatialTranslation(
          createTargetGrid(mpiGrid,local_target_cells,popID);
          localTargetGridGenerated=true;
       }
-       
+
       phiprof::start(trans_timer);
       mpiGrid.wait_remote_neighbor_copy_update_receives(VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
       phiprof::stop(trans_timer);
@@ -141,9 +141,9 @@ void calculateSpatialTranslation(
          for (size_t c=0; c<local_propagated_cells.size(); ++c) {
             Real t_start = 0;
             if (tid == 0) if (Parameters::prepareForRebalance == true) t_start = MPI_Wtime();
-            
+
             trans_map_1d(mpiGrid,local_propagated_cells[c],0,dt,popID); // map along x//
-            
+
             if (tid == 0) if (Parameters::prepareForRebalance == true) {
                mpiGrid[local_propagated_cells[c]]->get_cell_parameters()[CellParams::LBWEIGHTCOUNTER] 
                        += (MPI_Wtime()-t_start);
@@ -155,7 +155,7 @@ void calculateSpatialTranslation(
       phiprof::start(trans_timer);
       mpiGrid.wait_remote_neighbor_copy_update_sends();
       phiprof::stop(trans_timer);
-      
+
       trans_timer=phiprof::initializeTimer("update_remote-x","MPI");
       phiprof::start("update_remote-x");
       update_remote_mapping_contribution(mpiGrid, 0,+1,popID);
