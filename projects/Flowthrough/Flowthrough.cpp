@@ -26,6 +26,7 @@ namespace projects {
    
    void Flowthrough::addParameters(){
       typedef Readparameters RP;
+      RP::add("Flowthrough.emptyBox","Is the simulation domain empty initially?",false);
       RP::add("Flowthrough.rho", "Number density (m^-3)", 0.0);
       RP::add("Flowthrough.T", "Temperature (K)", 0.0);
       RP::add("Flowthrough.Bx", "Magnetic field x component (T)", 0.0);
@@ -42,6 +43,10 @@ namespace projects {
       int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
       typedef Readparameters RP;
+      if (!RP::get("Flowthrough.emptyBox",emptyBox)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
       if(!RP::get("Flowthrough.rho", this->rho)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
@@ -90,6 +95,8 @@ namespace projects {
    }
 
    Real Flowthrough::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
+      if (emptyBox == true) return 0.0;
+      
       creal d_x = dx / (this->nSpaceSamples-1);
       creal d_y = dy / (this->nSpaceSamples-1);
       creal d_z = dz / (this->nSpaceSamples-1);

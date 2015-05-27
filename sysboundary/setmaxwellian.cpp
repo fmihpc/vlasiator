@@ -102,7 +102,7 @@ namespace SBC {
                                                       creal& VY0,
                                                       creal& VZ0
                                                      ) {
-      vector<uint> blocksToInitialize;
+      vector<vmesh::GlobalID> blocksToInitialize;
       bool search = true;
       uint counter = 0;
       while (search) {

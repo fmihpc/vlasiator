@@ -41,15 +41,17 @@ namespace projects {
             creal y,
             creal z
          );
-         
-         Real rho;
-         Real T;
-         Real V0[3];
-         Real Bx;
-         Real By;
-         Real Bz;
-         uint nSpaceSamples;
-         uint nVelocitySamples;
+
+      bool emptyBox;              /**< If true, then the simulation domain is empty initially 
+                                   * and matter will flow in only through the boundaries.*/
+      Real rho;
+      Real T;
+      Real V0[3];
+      Real Bx;
+      Real By;
+      Real Bz;
+      uint nSpaceSamples;
+      uint nVelocitySamples;
    }; // class Flowthrough
 } // namespace projects
 
