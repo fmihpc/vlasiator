@@ -310,6 +310,10 @@ namespace projects {
 
    
 Project* createProject() {
+   if(Parameters::projectName == "") {
+      cerr << "No project specified! Please set 'project' parameter!" << endl;
+      abort();
+   }
    if(Parameters::projectName == "Alfven") {
       return new projects::Alfven;
    }
