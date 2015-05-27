@@ -51,7 +51,7 @@ create_verification_files=0
 #folder for all reference data 
 reference_dir="/proj/vlasiato/testpackage/"
 #compare agains which revision
-reference_revision="/2dc2882f37c61a25bb4c84bee6a908e219651da6__DACC_SEMILAG_PQM__DTRANS_SEMILAG_PPM__DDP__DSPF__DVEC8F_AGNER"
+reference_revision="c36241b84ce8179f7491ebf2a94c377d7279e8c9__DACC_SEMILAG_PQM__DTRANS_SEMILAG_PPM__DDP__DDPF__DVEC4D_AGNER"
 
 
 
