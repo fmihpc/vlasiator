@@ -97,7 +97,7 @@ default: vlasiator
 
 tools: parallel_tools not_parallel_tools
 
-parallel_tools: vlsvextract
+parallel_tools: vlsvextract vlsvdiff
 
 testpackage: vlasiator
 
@@ -106,7 +106,7 @@ FORCE:
 # This target here defines a flag which removes the mpi headers from the code with 
 # #ifdef pragmas such that one can compile this tool to be used on the login nodes.
 # To ensure this works one also needs to change the compiler at the top of Makefile.fermi*.
-not_parallel_tools: vlsvdiff
+not_parallel_tools:
 
 all: vlasiator tools
 
