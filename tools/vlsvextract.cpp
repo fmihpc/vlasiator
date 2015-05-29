@@ -887,74 +887,6 @@ bool convertVelocityBlocks2(
    return success;   
 }
 
-//Loads a parameter from a file
-//usage: Real x = loadParameter( vlsvReader, nameOfParameter );
-//Note: this is used in getCellIdFromCoords
-//Input:
-//[0] vlsvReader -- some VLSVReader which has a file opened
-//[1] name -- name of the parameter, e.g. "xmin"
-//Output:
-//[0] Parameter -- Saves the parameter into the parameter variable
-template <typename T>
-bool loadParameter(vlsv::Reader& vlsvReader, const string& name, T & parameter ) {
-   //Declare dataType, arraySize, vectorSize, dataSize so we know how much data we want to store
-   vlsv::datatype::type dataType;
-   uint64_t arraySize, vectorSize, dataSize; //vectorSize should be 1
-   //Write into dataType, arraySize, etc with getArrayInfo -- if fails to read, give error message
-   list<pair<string,string> > attribs;
-   attribs.push_back(make_pair("name",name));
-   if (vlsvReader.getArrayInfo( "PARAMETERS", attribs, arraySize, vectorSize, dataType, dataSize ) == false ) {
-      cerr << "Error, could not read parameter '" << name << "' at: " << __FILE__ << " " << __LINE__; //FIX
-      MPI_Finalize();
-      exit(1); //Terminate
-      return false;
-   }
-   //Declare a buffer to write the parameter's data in (arraySize, etc was received from getArrayInfo)
-   char * buffer = new char[arraySize * vectorSize * dataSize];
-
-   //Read data into the buffer and return error if something went wrong
-   if( vlsvReader.readArray( "PARAMETERS", attribs, 0, vectorSize, buffer ) == false ) {
-      cerr << "Error, could not read parameter '" << name << "' at: " << __FILE__ << " " << __LINE__; //FIX
-      MPI_Finalize();
-      exit(1);
-      return false;
-   }
-   //SHOULD be a vector of size 1 and since I am going to want to assume that, making a check here
-   if( vectorSize != 1 ) {
-      cerr << "Error, could not read parameter '" << name << "' at: " << __FILE__ << " " << __LINE__; //FIX
-      MPI_Finalize();
-      exit(1);
-      return false;
-   }
-   //Input the parameter
-   if( typeid(T) == typeid(double) ) {
-      if( dataSize == 8 ) {
-         parameter = *reinterpret_cast<double*>(buffer);
-      } else if( dataSize == 4 ) {
-         parameter = *reinterpret_cast<float*>(buffer);
-      } else {
-         cerr << "Error, bad datasize while reading parameters at " << __FILE__ << " " << __LINE__ << endl;
-         return false;
-      }
-   } else if( typeid(T) == typeid(uint64_t) ) {
-      if( dataSize == 8 ) {
-         parameter = *reinterpret_cast<uint64_t*>(buffer);
-      } else if( dataSize == 4 ) {
-         parameter = *reinterpret_cast<uint32_t*>(buffer);
-      } else {
-         cerr << "Error, bad datasize while reading parameters at " << __FILE__ << " " << __LINE__ << endl;
-         return false;
-      }
-   } else {
-      cerr << "Error, could not read parameter '" << name << "' at: " << __FILE__ << " " << __LINE__; //FIX
-      cerr << " Error message: invalid type in loadParameters" << endl;
-      MPI_Finalize();
-      exit(1);
-      return false;
-   }
-   return true;
-}
-
 //Creates a cell id list of type std::unordered set and saves it in the input parameters
 //Input:
 //[0] vlsvReader -- some vlsv reader with a file open
@@ -1016,6 +948,18 @@ bool createCellIdList( T & vlsvReader, unordered_set<uint64_t> & cellIdList ) {
    return true;
 }
 
+/** Driver function for convertVelocityBlocks. Reads the names of 
+ * existing particle species and calls convertVelocityBlocks2 for 
+ * each of them.
+ * @param vlsvReader VLSV file reader that has input file open.
+ * @param fname Name of the input file.
+ * @param meshName Name of the spatial mesh.
+ * @param cellStruct Struct containing mesh metadata.
+ * @param cellID ID of the spatial cell whose distribution function(s) are to be extracted.
+ * @param rotate If true, distribution function(s) are rotated so that the magnetic field points 
+ * along +vz axis.
+ * @param plasmaFrame If true, distribution function(s) are translated to local plasma rest frame.
+ * @return If true, all distributions were extracted successfully.*/
 bool convertVelocityBlocks2(
                             vlsvinterface::Reader& vlsvReader,
                             const string& fname,
@@ -1041,13 +985,12 @@ bool convertVelocityBlocks2(
    
    bool success = true;
    for (set<string>::iterator it=popNames.begin(); it!=popNames.end(); ++it) {
-      cout << "Population " << *it << endl;
+      if (runDebug == true) cerr << "Population '" << *it << "'" << endl;
       if (vlsvReader.setCellsWithBlocks(meshName,*it) == false) {success = false; continue;}
       if (convertVelocityBlocks2(vlsvReader,fname,meshName,cellStruct,cellID,rotate,plasmaFrame,out,*it) == false) success = false;
    }
-   
+
    out.close();
-   
    return success;
 }
 
@@ -1237,10 +1180,12 @@ bool setVelocityMeshVariables(vlsv::Reader& vlsvReader,CellStructure& cellStruct
    cellStruct.min_vcoordinates[1] = vy_min;
    cellStruct.min_vcoordinates[2] = vz_min;
 
-   cerr << "Pop '" << popName << " mesh limits: ";
-   cerr << vx_min << '\t' << vx_max << '\t' << vy_min << '\t' << vy_max << '\t' << vz_min << '\t' << vz_max << endl;
-   cerr << "\t mesh bbox size: " << velMeshBbox[0] << ' ' << velMeshBbox[1] << ' ' << velMeshBbox[2] << endl;
-   
+   if (runDebug == true) {
+      cerr << "Pop '" << popName << " mesh limits: ";
+      cerr << vx_min << '\t' << vx_max << '\t' << vy_min << '\t' << vy_max << '\t' << vz_min << '\t' << vz_max << endl;
+      cerr << "\t mesh bbox size: " << velMeshBbox[0] << ' ' << velMeshBbox[1] << ' ' << velMeshBbox[2] << endl;
+   }
+
    // By default set an unrefined velocity mesh. Then check if the max refinement level 
    // was actually given as a parameter.
    uint32_t dummyUInt;
@@ -1316,9 +1261,6 @@ bool setSpatialCellVariables(Reader& vlsvReader,CellStructure& cellStruct) {
    
    return success;
 }
-
-
-
 
 //Returns a cell id based on some given coordinates
 //Returns numeric_limits<uint64_t>::max(), if the distance from the coordinates to cell id is larger than max_distance
