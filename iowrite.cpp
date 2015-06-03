@@ -767,7 +767,7 @@ bool writePopulations(
       const CellID cellId = local_cells[i];
       SpatialCell * spatialCell = mpiGrid[cellId];
       // Calculate the population:
-      //populationAlgorithm(spatialCell);
+      populationAlgorithm(spatialCell);
    }
    return true;
 }
