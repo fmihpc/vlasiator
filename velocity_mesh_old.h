@@ -7,9 +7,11 @@
 #ifndef VELOCITY_MESH_OLD_H
 #define VELOCITY_MESH_OLD_H
 
+#include <iostream>
 #include <stdint.h>
 #include <vector>
 #include <unordered_map>
+#include <set>
 #include <cmath>
 
 #include "velocity_mesh_parameters.h"
@@ -72,7 +74,7 @@ namespace vmesh {
       bool isInitialized() const;
       void pop();
       bool push_back(const GID& globalID);
-      bool push_back(const std::vector<vmesh::GlobalID>& blocks);
+      bool push_back(const std::vector<GID>& blocks);
       bool refine(const GID& globalID,std::set<GID>& erasedBlocks,std::map<GID,LID>& insertedBlocks);
       void setGrid();
       bool setGrid(const std::vector<GID>& globalIDs);
@@ -83,16 +85,6 @@ namespace vmesh {
 
     private:
       static std::vector<vmesh::MeshParameters> meshParameters;
-
-      //static bool initialized;                                                  /**< If true, velocity mesh has been successfully initialized.*/
-      //static LID max_velocity_blocks;                                           /**< Maximum valid block local ID.*/
-      //static LID blockLength[3];                                                /**< Number of cells in a block per coordinate.*/
-      //static Real blockSize[3];                                                 /**< Size of a block at base grid level.*/
-      //static Real cellSize[3];                                                  /**< Size of a cell in a block at base grid level.*/
-      //static Real gridSize[3];                                                  /**< Size of the grid.*/
-      //static LID gridLength[3];                                                 /**< Number of blocks in the grid.*/
-      //static Real meshMinLimits[3];                                             /**< Minimum coordinate values of the grid bounding box.*/
-      //static Real meshMaxLimits[3];                                             /**< Maximum coordinate values of the grid bounding box.*/
       size_t meshID;
 
       std::vector<GID> localToGlobalMap;
@@ -564,8 +556,8 @@ namespace vmesh {
    void VelocityMesh<GID,LID>::pop() {
       if (size() == 0) return;
 
-      const vmesh::LocalID lastLID = size()-1;
-      const vmesh::GlobalID lastGID = localToGlobalMap[lastLID];
+      const LID lastLID = size()-1;
+      const GID lastGID = localToGlobalMap[lastLID];
       typename std::unordered_map<GID,LID>::iterator last = globalToLocalMap.find(lastGID);
 
       globalToLocalMap.erase(last);
@@ -588,7 +580,7 @@ namespace vmesh {
    }
 
    template<typename GID,typename LID> inline
-   bool VelocityMesh<GID,LID>::push_back(const std::vector<vmesh::GlobalID>& blocks) {
+   bool VelocityMesh<GID,LID>::push_back(const std::vector<GID>& blocks) {
       if (size()+blocks.size() >= meshParameters[meshID].max_velocity_blocks) {
          std::cerr << "vmesh: too many blocks, current size is " << size();
          std::cerr << " max " << meshParameters[meshID].max_velocity_blocks << std::endl;

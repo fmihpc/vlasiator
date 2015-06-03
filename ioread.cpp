@@ -732,6 +732,8 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 
    //update list of local gridcells
    recalculateLocalCellsCache();
+   getObjectWrapper().meshData.reallocate();
+   
    //get new list of local gridcells
    const vector<CellID>& gridCells = getLocalCells();
 

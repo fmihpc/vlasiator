@@ -188,6 +188,11 @@ namespace poisson {
 
          #pragma omp for
          for (size_t c=0; c<cells.size(); ++c) {
+            if (cells[c].cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+               cells[c].parameters[0][CellParams::PHI_TMP] = 0;
+               continue;
+            }
+            
             const Real DX2 = cells[c].parameters[0][CellParams::DX]*cells[c].parameters[0][CellParams::DX];
             const Real rho_q   = cells[c].parameters[0][CellParams::RHOQ_TOT];
             const Real phi_111 = cells[c].parameters[0][CellParams::PHI];

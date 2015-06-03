@@ -23,6 +23,7 @@
 #include "poisson_solver_jacobi.h"
 #include "poisson_solver_sor.h"
 #include "poisson_solver_cg.h"
+//#include "poisson_solver_cg2.h"
 
 #ifndef NDEBUG
    #define DEBUG_POISSON
@@ -83,7 +84,7 @@ namespace poisson {
          #pragma omp parallel for
          for (size_t c=0; c<cells.size(); ++c) {
             spatial_cell::SpatialCell* cell = mpiGrid[cells[c]];
-
+            
             if (Poisson::timeDependentBackground == true) {
                getObjectWrapper().project->setCellBackgroundField(cell);
             }
@@ -389,6 +390,7 @@ namespace poisson {
       Poisson::solvers.add("Jacobi",makeJacobi);
       Poisson::solvers.add("SOR",makeSOR);
       Poisson::solvers.add("CG",makeCG);
+      //Poisson::solvers.add("CG2",makeCG2);
 
       // Create and initialize the Poisson solver
       Poisson::solver = Poisson::solvers.create(Poisson::solverName);

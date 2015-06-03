@@ -87,8 +87,10 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::MPIrank);
       if(*it == "BoundaryType")
          outputReducer->addOperator(new DRO::BoundaryType);
-      if(*it == "BoundaryLayer")
+      if(*it == "BoundaryLayer") {
          outputReducer->addOperator(new DRO::BoundaryLayer);
+         outputReducer->addOperator(new DRO::BoundaryLayerNew);
+      }
       if(*it == "Blocks")
          outputReducer->addOperator(new DRO::Blocks);
       if(*it == "fSaved")
@@ -225,6 +227,9 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       }
       if (*it == "SpeciesMoments") {
          outputReducer->addOperator(new DRO::SpeciesMoments);
+      }
+      if (*it == "MeshData") {
+         outputReducer->addOperator(new DRO::VariableMeshData);
       }
    }
 

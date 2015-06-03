@@ -32,6 +32,10 @@ namespace poisson {
 
         Real bndryCellParams[CellParams::N_SPATIAL_CELL_PARAMS];
 
+        bool boundaryConds(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
+        void boundaryConds(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                        std::vector<poisson::CellCache3D<SOR_VARS> >& cells);
+        
         void cachePointers2D(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                              const std::vector<CellID>& cells,std::vector<poisson::CellCache3D<SOR_VARS> >& redCache,
                              std::vector<poisson::CellCache3D<SOR_VARS> >& blackCache);

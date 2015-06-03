@@ -26,6 +26,14 @@ extern Logger logFile;
 
 namespace poisson {
 
+   enum Face {
+      INNER,
+      XNEG,
+      XPOS,
+      YNEG,
+      YPOS
+   };
+   
    static const int RED   = 0;
    static const int BLACK = 1;
    
@@ -54,6 +62,68 @@ namespace poisson {
       return success;
    }
    
+   void PoissonSolverSOR::boundaryConds(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                        std::vector<poisson::CellCache3D<SOR_VARS> >& cells) {
+      if (Parameters::geometry != geometry::XY4D) return;
+
+      #pragma omp parallel for
+      for (size_t c=0; c<cells.size(); ++c) {
+         dccrg::Types<3>::indices_t indices = mpiGrid.mapping.get_indices(cells[c].cellID);
+
+         Face cellFace = INNER;
+
+         if (indices[0] == 1) {
+            if (indices[1] >= 2 && indices[1] <= Parameters::ycells_ini-3) cellFace = XNEG;
+         } else if (indices[0] == Parameters::xcells_ini-2) {
+            if (indices[1] >= 2 && indices[1] <= Parameters::ycells_ini-3) cellFace = XPOS;
+         }
+         if (indices[1] == 1) {
+            if (indices[0] >= 2 && indices[0] <= Parameters::xcells_ini-3) cellFace = YNEG;
+         } else if (indices[1] == Parameters::ycells_ini-2) {
+            if (indices[0] >= 2 && indices[0] <= Parameters::xcells_ini-3) cellFace = YPOS;
+         }
+
+         switch (cellFace) {
+            case INNER:
+               break;
+            case XNEG:
+               // Copy value from +x neighbor, sets derivative to zero at interface
+               //cells[c].parameters[0][CellParams::PHI] = cells[c].parameters[2][CellParams::PHI];
+               cells[c].parameters[0][CellParams::PHI] = 0;
+               break;
+            case XPOS:
+               cells[c].parameters[0][CellParams::PHI] = 0;
+               //cells[c].parameters[0][CellParams::PHI] = cells[c].parameters[1][CellParams::PHI];
+               break;
+            case YNEG:
+               cells[c].parameters[0][CellParams::PHI] = 0;
+               //cells[c].parameters[0][CellParams::PHI] = cells[c].parameters[4][CellParams::PHI];
+               break;
+            case YPOS:
+               cells[c].parameters[0][CellParams::PHI] = 0;
+               //cells[c].parameters[0][CellParams::PHI] = cells[c].parameters[3][CellParams::PHI];
+               break;
+            default:
+               break;
+         }
+      }
+   }
+
+   bool PoissonSolverSOR::boundaryConds(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
+      SpatialCell::set_mpi_transfer_type(spatial_cell::Transfer::CELL_PHI);
+      mpiGrid.start_remote_neighbor_copy_updates(POISSON_NEIGHBORHOOD_ID);
+
+      boundaryConds(mpiGrid,innerCellPointersRED);
+      boundaryConds(mpiGrid,innerCellPointersBLACK);
+
+      mpiGrid.wait_remote_neighbor_copy_updates(POISSON_NEIGHBORHOOD_ID);
+
+      boundaryConds(mpiGrid,bndryCellPointersRED);
+      boundaryConds(mpiGrid,bndryCellPointersBLACK);
+      
+      return true;
+   }
+
    bool PoissonSolverSOR::calculateElectrostaticField(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
       bool success = true;
       SpatialCell::set_mpi_transfer_type(Transfer::CELL_PHI,false);
@@ -91,6 +161,8 @@ namespace poisson {
 
       #pragma omp parallel for
       for (size_t c=0; c<cellPointers.size(); ++c) {
+         if (cellPointers[c].cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) continue;
+         
          #ifdef DEBUG_POISSON_SOR
          bool ok = true;
          if (cellPointers[c][0] == NULL) ok = false;
@@ -440,6 +512,9 @@ namespace poisson {
             // Solve red cells first, the black cells
             if (solve(mpiGrid,RED  ) == false) success = false;
             if (solve(mpiGrid,BLACK) == false) success = false;
+            
+            // Set boundary conditions (if necessary))
+            if (boundaryConds(mpiGrid) == false) success = false;
          }
 
          // Evaluate the error in potential solution and reiterate if necessary

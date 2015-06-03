@@ -42,7 +42,6 @@ namespace projects {
       RP::add("Magnetosphere.dipoleScalingFactor","Scales the field strength of the magnetic dipole compared to Earths.", 1.0);
       RP::add("Magnetosphere.dipoleType","0: Normal 3D dipole, 1: line-dipole for 2D polar simulations, 2: line-dipole with mirror, 3: 3D dipole with mirror", 0);
       RP::add("Magnetosphere.dipoleMirrorLocationX","x-coordinate of dipole Mirror", -1.0);
-
    }
    
    void Magnetosphere::getParameters(){
@@ -197,7 +196,6 @@ namespace projects {
       } else {
          return getDistribValue(x+0.5*dx,y+0.5*dy,z+0.5*dz,vx+0.5*dvx,vy+0.5*dvy,vz+0.5*dvz,dvx,dvy,dvz);
       }
-      
    }
 
    /* set 0-centered dipole */
@@ -306,7 +304,11 @@ namespace projects {
    }
       
       
-   Real Magnetosphere::getDistribValue(creal& x,creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) const {
+   Real Magnetosphere::getDistribValue(
+           creal& x,creal& y,creal& z,
+           creal& vx,creal& vy,creal& vz,
+           creal& dvx,creal& dvy,creal& dvz) const 
+   {
       Real initRho = this->tailRho;
       std::array<Real, 3> initV0 = this->getV0(x, y, z)[0];
       
@@ -337,15 +339,17 @@ namespace projects {
          // sine tapering
          initRho = this->tailRho - (this->tailRho-this->ionosphereRho)*0.5*(1.0+sin(M_PI*(radius-this->ionosphereRadius)/(this->ionosphereTaperRadius-this->ionosphereRadius)+0.5*M_PI));
          if(radius < this->ionosphereRadius) {
-            // Just to be safe, there are observed cases where tis failed.
+            // Just to be safe, there are observed cases where this failed.
             initRho = this->ionosphereRho;
          }
       }
       
       initRho *= 1.0 + 9.0 * 0.5 * (1.0 + tanh((x-this->rhoTransitionCenter) / this->rhoTransitionWidth));
       
-      return initRho * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B * this->T), 1.5) *
-      exp(- physicalconstants::MASS_PROTON * ((vx-initV0[0])*(vx-initV0[0]) + (vy-initV0[1])*(vy-initV0[1]) + (vz-initV0[2])*(vz-initV0[2])) / (2.0 * physicalconstants::K_B * this->T));
+      return initRho 
+              * pow( physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B * this->T), 1.5) 
+              * exp(-physicalconstants::MASS_PROTON * ((vx-initV0[0])*(vx-initV0[0])+(vy-initV0[1])*(vy-initV0[1])+(vz-initV0[2])*(vz-initV0[2])) 
+                                                       / (2.0 * physicalconstants::K_B * this->T));
    }
    
    vector<std::array<Real, 3>> Magnetosphere::getV0(

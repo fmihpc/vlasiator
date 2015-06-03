@@ -329,6 +329,29 @@ namespace DRO {
       return true;
    }
    
+   BoundaryLayerNew::BoundaryLayerNew(): DataReductionOperator() { }
+   BoundaryLayerNew::~BoundaryLayerNew() { }
+   
+   bool BoundaryLayerNew::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "int";
+      dataSize = sizeof(int);
+      vectorSize = 1;
+      return true;
+   }
+   
+   std::string BoundaryLayerNew::getName() const {return "Boundary_layer_new";}
+   
+   bool BoundaryLayerNew::reduceData(const SpatialCell* cell,char* buffer) {
+      const char* ptr = reinterpret_cast<const char*>(&boundaryLayer);
+      for (uint i=0; i<sizeof(int); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+   
+   bool BoundaryLayerNew::setSpatialCell(const SpatialCell* cell) {
+      boundaryLayer = cell->sysBoundaryLayerNew;
+      return true;
+   }
+
    // Blocks
    Blocks::Blocks(): DataReductionOperator() { }
    Blocks::~Blocks() { }
@@ -1234,6 +1257,49 @@ namespace DRO {
       }
    }
 
+   VariableMeshData::VariableMeshData(): DataReductionOperator() { }
+   VariableMeshData::~VariableMeshData() { }
+   
+   std::string VariableMeshData::getName() const {return "MeshData";}
+   
+   bool VariableMeshData::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      return true;
+   }
+   
+   bool VariableMeshData::handlesWriting() const {return true;}
+   
+   bool VariableMeshData::setSpatialCell(const SpatialCell* cell) {return true;}
+   
+   bool VariableMeshData::writeData(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                    const std::vector<CellID>& cells,const std::string& meshName,
+                                    vlsv::Writer& vlsvWriter) {
+      bool success = true;
+      for (size_t i=0; i<getObjectWrapper().meshData.size(); ++i) {
+         const string dataName = getObjectWrapper().meshData.getName(i);
+         
+         // If dataName equals "" then something is wrong, skip array
+         if (dataName.size() == 0) continue;
+         
+         size_t dataSize = getObjectWrapper().meshData.getDataSize(i);
+         const std::string dataType = getObjectWrapper().meshData.getDataType(i);
+         size_t vectorSize = getObjectWrapper().meshData.getVectorSize(i);
+         size_t arraySize = getObjectWrapper().meshData.getMeshSize();
+         char* pointer = getObjectWrapper().meshData.getData<char>(i);
+
+         if (vectorSize == 0 || vectorSize > 3) continue;
+         
+         map<string,string> attribs;
+         attribs["mesh"] = meshName;
+         attribs["name"] = dataName;
+         
+         if (vlsvWriter.writeArray("VARIABLE",attribs,dataType,arraySize,vectorSize,dataSize,pointer) == false) {
+            cerr << "write failed!" << endl;
+            success = false;
+         }
+      }
+      return success;
+   }
+   
    // Rho backstream:
    VariableRhoBackstream::VariableRhoBackstream(): DataReductionOperator() { }
    VariableRhoBackstream::~VariableRhoBackstream() { }

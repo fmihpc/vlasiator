@@ -194,12 +194,12 @@ DEPS_VLSVMOVER_AMR = ${DEPS_CELL} vlasovsolver_amr/vlasovmover.cpp vlasovsolver_
 OBJS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipole.o constantfield.o integratefunction.o \
 	datareducer.o datareductionoperator.o dro_species_moments.o amr_refinement_criteria.o\
 	donotcompute.o ionosphere.o outflow.o setbyuser.o setmaxwellian.o antisymmetric.o\
-	sysboundary.o sysboundarycondition.o project_boundary.o\
+	sysboundary.o sysboundarycondition.o project_boundary.o particle_species.o\
 	project.o projectTriAxisSearch.o read_gaussian_population.o\
 	Alfven.o Diffusion.o Dispersion.o Distributions.o electric_sail.o Firehose.o Flowthrough.o Fluctuations.o Harris.o KHB.o Larmor.o \
 	Magnetosphere.o MultiPeak.o VelocityBox.o Riemann1.o Shock.o Template.o test_fp.o testHall.o test_trans.o \
 	verificationLarmor.o Shocktest.o grid.o ioread.o iowrite.o vlasiator.o logger.o muxml.o \
-	common.o parameters.o readparameters.o spatial_cell.o \
+	common.o parameters.o readparameters.o spatial_cell.o mesh_data_container.o\
 	vlscommon.o vlsvreader2.o vlasovmover.o $(FIELDSOLVER).o fs_common.o fs_limiters.o
 
 # Add Vlasov solver objects (depend on mesh: AMR or non-AMR)
@@ -284,6 +284,9 @@ donotcompute.o: ${DEPS_SYSBOUND} sysboundary/donotcompute.h sysboundary/donotcom
 
 ionosphere.o: ${DEPS_SYSBOUND} sysboundary/ionosphere.h sysboundary/ionosphere.cpp backgroundfield/backgroundfield.cpp backgroundfield/backgroundfield.h projects/project.h projects/project.cpp fieldsolver/fs_limiters.h
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c sysboundary/ionosphere.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
+
+mesh_data_container.o: ${DEPS_COMMON} mesh_data_container.h mesh_data.h
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c mesh_data_container.cpp ${INC_VLSV}
 
 project_boundary.o: ${DEPS_SYSBOUND} sysboundary/project_boundary.h sysboundary/project_boundary.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c sysboundary/project_boundary.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
@@ -420,10 +423,10 @@ cpu_moments.o: ${DEPS_CPU_MOMENTS}
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_moments.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_PROFILE}
 
 cpu_trans_map.o: ${DEPS_CPU_TRANS_MAP}
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_trans_map.cpp ${INC_EIGEN} ${INC_DCCRG} ${INC_PROFILE} ${INC_VECTORCLASS} ${INC_ZOLTAN}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_trans_map.cpp ${INC_EIGEN} ${INC_DCCRG} ${INC_PROFILE} ${INC_VECTORCLASS} ${INC_ZOLTAN} ${INC_VLSV}
 
 vlasovmover.o: ${DEPS_VLSVMOVER}
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/vlasovmover.cpp -I$(CURDIR) ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VECTORCLASS} ${INC_EIGEN}  
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/vlasovmover.cpp -I$(CURDIR) ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VECTORCLASS} ${INC_EIGEN} ${INC_VLSV}
 endif
 
 derivatives.o: ${DEPS_FSOLVER} fieldsolver/fs_limiters.h fieldsolver/fs_limiters.cpp fieldsolver/derivatives.hpp fieldsolver/derivatives.cpp
@@ -479,6 +482,9 @@ parameters.o: parameters.h parameters.cpp readparameters.h
 
 readparameters.o: readparameters.h readparameters.cpp version.h version.cpp
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c readparameters.cpp ${INC_BOOST} ${INC_EIGEN}
+
+particle_species.o: particle_species.h ${DEPS_COMMON}
+	$(CMP) $(CXXFLAGS) $(FLAGS) -c particle_species.cpp
 
 vlscommon.o:  $(DEPS_COMMON)  vlscommon.h vlscommon.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c vlscommon.cpp

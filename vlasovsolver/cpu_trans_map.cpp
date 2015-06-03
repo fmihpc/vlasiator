@@ -12,6 +12,7 @@
 #endif
 
 #include "../grid.h"
+#include "../object_wrapper.h"
 #include "vec.h"
 #include "cpu_1d_plm.hpp"
 #include "cpu_1d_ppm.hpp"
@@ -20,6 +21,10 @@
 
 using namespace std;
 using namespace spatial_cell;
+
+static long int tstepLast = -1;
+static size_t inflowDataID = numeric_limits<size_t>::max();
+static size_t outflowDataID = numeric_limits<size_t>::max();
 
 void compute_spatial_source_neighbors(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                       const CellID& cellID,const uint dimension,SpatialCell **neighbors);
@@ -177,11 +182,12 @@ CellID get_spatial_neighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geom
    dccrg::Types<3>::indices_t indices_unsigned = mpiGrid.mapping.get_indices(cellID);
    int64_t indices[3];
    dccrg::Grid_Length::type length = mpiGrid.mapping.length.get();
-   //boost::array<double, 3> cell_length = mpiGrid.geometry.get_length(cells[i]);
+
    //compute raw new indices
    indices[0] = spatial_di + indices_unsigned[0];
    indices[1] = spatial_dj + indices_unsigned[1];
    indices[2] = spatial_dk + indices_unsigned[2];
+
    //take periodicity into account
    for(uint i = 0; i<3; i++) {
       if(mpiGrid.topology.is_periodic(i)) {
@@ -211,9 +217,11 @@ CellID get_spatial_neighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geom
                 << std::endl;
       abort();
    }
+   
    // not existing cell or do not compute
    if( mpiGrid[nbrID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE)
       return INVALID_CELLID;
+
    //cell on boundary, but not first layer and we want to include
    //first layer (e.g. when we compute source cells)
    if( include_first_boundary_layer &&
@@ -221,12 +229,20 @@ CellID get_spatial_neighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geom
        mpiGrid[nbrID]->sysBoundaryLayer != 1 ) {
       return INVALID_CELLID;
    }
+
    //cell on boundary, and we want none of the layers,
    //invalid.(e.g. when we compute targets)
+   //if( !include_first_boundary_layer &&
+   //    mpiGrid[nbrID]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY){
+   //   return INVALID_CELLID;
+   //}
+
    if( !include_first_boundary_layer &&
-       mpiGrid[nbrID]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY){
+       mpiGrid[nbrID]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY &&
+       mpiGrid[nbrID]->sysBoundaryLayer != 1 ) {
       return INVALID_CELLID;
    }
+
    return nbrID; //no AMR
 }
                                       
@@ -435,6 +451,186 @@ inline void store_trans_block_data(
     }
 }
 
+inline void store_trans_block_data_esail(
+        const CellID& cellGID,
+        SpatialCell** target_neighbors,
+        const vmesh::GlobalID blockGID,
+        Vec* __restrict__ target_values,
+        const unsigned char* const cellid_transpose,
+        const int& dimension,
+        const int& popID) {
+   
+   if (inflowDataID == numeric_limits<size_t>::max()) {
+      inflowDataID = getObjectWrapper().meshData.addData<Real>("inflow",1);
+      if (inflowDataID == numeric_limits<size_t>::max()) {
+         cerr << "Error, failed to create inflow data array in " << __FILE__ << ":" << __LINE__ << endl;
+         exit(1);
+      }
+   }
+   if (outflowDataID == numeric_limits<size_t>::max()) {
+      outflowDataID = getObjectWrapper().meshData.addData<Real>("outflow",1);
+      if (outflowDataID == numeric_limits<size_t>::max()) {
+         cerr << "Error, failed to create outflow data array in " << __FILE__ << ":" << __LINE__ << endl;
+         exit(1);
+      }
+   }
+
+   Real* inflowArray = getObjectWrapper().meshData.getData<Real>(inflowDataID);
+   Real* outflowArray = getObjectWrapper().meshData.getData<Real>(outflowDataID);
+   const unsigned int cellLID = getObjectWrapper().meshData.getLocalID(cellGID);
+   if (tstepLast != Parameters::tstep) {
+      for (size_t i=0; i<getLocalCells().size(); ++i) inflowArray[i] = 0;
+      for (size_t i=0; i<getLocalCells().size(); ++i) outflowArray[i] = 0;
+      tstepLast = Parameters::tstep;
+   }
+
+    //Store volume averages to target blocks:
+    for (int b=-1; b<=1; ++b) {
+        if (target_neighbors[b + 1] == INVALID_CELLID) {
+            continue; //do not store to boundary cells or otherwise invalid cells
+        }
+        SpatialCell* spatial_cell = target_neighbors[b + 1];
+        const vmesh::LocalID blockLID = spatial_cell->get_velocity_block_local_id(blockGID,popID);
+        if (blockLID == vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) {
+            // block does not exist. If so, we do not create it and add stuff to it here.
+            // We have already created blocks around blocks with content in
+            // spatial sense, so we have no need to create even more blocks here
+            // TODO add loss counter
+            continue;
+        }
+
+        // Write data to temporary array because we may
+        // want to calculate statistics on it
+        Realf targetData[WID3];
+        for (int i=0; i<WID3; ++i) targetData[i] = 0;
+
+        Realv blockValues[VECL];
+        uint cellid=0;
+        for (uint k=0; k<WID; ++k) {
+            for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){
+                target_values[i_trans_pt_blockv(planeVector, k, b)].store(blockValues);
+                for(uint i = 0; i< VECL; i++){
+                    // store data, when reading data from data we swap dimensions 
+                    // using precomputed plane_index_to_id and cell_indices_to_id
+                    //block_data[cellid_transpose[cellid++]] += blockValues[i];
+                    targetData[cellid_transpose[cellid++]] += blockValues[i];
+                }
+            }
+        }
+
+        SpatialCell* srcCell  = target_neighbors[1];
+        SpatialCell* trgtCell = target_neighbors[b+1];
+        
+        Real p_counters[3] = {0,0,0};
+        if (srcCell->sysBoundaryLayerNew == -1) {
+           if (trgtCell->sysBoundaryLayerNew == +1) {
+              Real V_block[3];
+              const uint8_t refLevel = 0;
+              srcCell->get_velocity_block_coordinates(popID,blockGID,V_block);
+              const Real* dV = srcCell->get_velocity_grid_cell_size(popID,refLevel);
+
+              for (int kv=0; kv<WID; ++kv) for (int jv=0; jv<WID; ++jv) for (int iv=0; iv<WID; ++iv) {
+                 Real V[3];
+                 V[0] = V_block[0] + (iv+0.5)*dV[0];
+                 V[1] = V_block[1] + (jv+0.5)*dV[1];
+                 V[2] = V_block[2] + (kv+0.5)*dV[2];
+
+                 switch (dimension) {
+                    case 0:
+                       p_counters[0] += targetData[cellIndex(iv,jv,kv)] * fabs(V[0]);
+                       p_counters[1] += targetData[cellIndex(iv,jv,kv)] * V[1];
+                       p_counters[2] += targetData[cellIndex(iv,jv,kv)] * V[2];
+                       break;
+                    case 1:
+                       p_counters[0] += targetData[cellIndex(iv,jv,kv)] * V[0];
+                       p_counters[1] += targetData[cellIndex(iv,jv,kv)] * fabs(V[1]);
+                       p_counters[2] += targetData[cellIndex(iv,jv,kv)] * V[2];
+                       break;
+                    case 2:
+                       p_counters[0] += targetData[cellIndex(iv,jv,kv)] * V[0];
+                       p_counters[1] += targetData[cellIndex(iv,jv,kv)] * V[1];
+                       p_counters[2] += targetData[cellIndex(iv,jv,kv)] * fabs(V[2]);
+                       break;
+                 }
+              }
+
+              const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+              const Real dX3 = srcCell->parameters[CellParams::DX]
+                             * srcCell->parameters[CellParams::DY]
+                             * srcCell->parameters[CellParams::DZ];
+              const Real dV3 = dV[0]*dV[1]*dV[2];
+              p_counters[0] *= mass*dX3*dV3;
+              p_counters[1] *= mass*dX3*dV3;
+              p_counters[2] *= mass*dX3*dV3;
+
+              const int tid = omp_get_thread_num();
+              getObjectWrapper().particleSpecies[popID].inflowCounters[3*tid+0] += p_counters[0];
+              getObjectWrapper().particleSpecies[popID].inflowCounters[3*tid+1] += p_counters[1];
+              getObjectWrapper().particleSpecies[popID].inflowCounters[3*tid+2] += p_counters[2];
+
+              inflowArray[cellLID] += (fabs(p_counters[0])+fabs(p_counters[1])+fabs(p_counters[2]));
+           }
+        } else if (srcCell->sysBoundaryLayerNew == +1) {
+           if (trgtCell->sysBoundaryLayerNew == -1) {
+
+              Real V_block[3];
+              const uint8_t refLevel = 0;
+              srcCell->get_velocity_block_coordinates(popID,blockGID,V_block);
+              const Real* dV = srcCell->get_velocity_grid_cell_size(popID,refLevel);
+
+              for (int kv=0; kv<WID; ++kv) for (int jv=0; jv<WID; ++jv) for (int iv=0; iv<WID; ++iv) {
+                 Real V[3];
+                 V[0] = V_block[0] + (iv+0.5)*dV[0];
+                 V[1] = V_block[1] + (jv+0.5)*dV[1];
+                 V[2] = V_block[2] + (kv+0.5)*dV[2];
+
+                 switch (dimension) {
+                    case 0:
+                       p_counters[0] -= targetData[cellIndex(iv,jv,kv)] * fabs(V[0]);
+                       p_counters[1] -= targetData[cellIndex(iv,jv,kv)] * V[1];
+                       p_counters[2] -= targetData[cellIndex(iv,jv,kv)] * V[2];
+                       break;
+                    case 1:
+                       p_counters[0] -= targetData[cellIndex(iv,jv,kv)] * V[0];
+                       p_counters[1] -= targetData[cellIndex(iv,jv,kv)] * fabs(V[1]);
+                       p_counters[2] -= targetData[cellIndex(iv,jv,kv)] * V[2];
+                       break;
+                    case 2:
+                       p_counters[0] -= targetData[cellIndex(iv,jv,kv)] * V[0];
+                       p_counters[1] -= targetData[cellIndex(iv,jv,kv)] * V[1];
+                       p_counters[2] -= targetData[cellIndex(iv,jv,kv)] * fabs(V[2]);
+                       break;
+                 }
+              }
+
+              const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+              const Real dX3 = srcCell->parameters[CellParams::DX]
+                             * srcCell->parameters[CellParams::DY]
+                             * srcCell->parameters[CellParams::DZ];
+              const Real dV3 = dV[0]*dV[1]*dV[2];
+              p_counters[0] *= mass*dX3*dV3;
+              p_counters[1] *= mass*dX3*dV3;
+              p_counters[2] *= mass*dX3*dV3;
+
+              const int tid = omp_get_thread_num();
+              getObjectWrapper().particleSpecies[popID].outflowCounters[3*tid+0] += p_counters[0];
+              getObjectWrapper().particleSpecies[popID].outflowCounters[3*tid+1] += p_counters[1];
+              getObjectWrapper().particleSpecies[popID].outflowCounters[3*tid+2] += p_counters[2];
+ 
+              outflowArray[cellLID] -= (fabs(p_counters[0])+fabs(p_counters[1])+fabs(p_counters[2]));
+           }
+        }
+
+        // get block container for target cells
+        // and copy data to main memory
+        if (trgtCell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) continue;
+        
+        vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks_temporary();
+        Realf* block_data = blockContainer.getData(blockLID);
+        for (int i=0; i<WID3; ++i) block_data[i] += targetData[i];
+    }
+}
+
 /* 
    Here we map from the current time step grid, to a target grid which
    is the lagrangian departure grid (so th grid at timestep +dt,
@@ -477,7 +673,7 @@ bool trans_map_1d(
     SpatialCell* target_neighbors[3];
     compute_spatial_source_neighbors(mpiGrid,cellID,dimension,source_neighbors);
     compute_spatial_target_neighbors(mpiGrid,cellID,dimension,target_neighbors);
-
+    
     // Velocity mesh refinement level, has no effect here but it 
     // is needed in some vmesh::VelocityMesh function calls.
     const uint8_t REFLEVEL=0;
@@ -636,9 +832,10 @@ bool trans_map_1d(
         }
       
         //store values from target_values array to the actual blocks
-        store_trans_block_data(target_neighbors,blockGID,target_values,cellid_transpose,popID);
+        //store_trans_block_data(target_neighbors,blockGID,target_values,cellid_transpose,popID);
+        store_trans_block_data_esail(cellID,target_neighbors,blockGID,target_values,cellid_transpose,dimension,popID);
     }
-   
+
     return true;
 }
 
@@ -655,7 +852,7 @@ void update_remote_mapping_contribution(
         const uint dimension,
         int direction,
         const int& popID) {
-    
+   
     const vector<CellID> local_cells = mpiGrid.get_cells();
     const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_NEIGHBORHOOD_ID);
     vector<CellID> receive_cells;
@@ -702,7 +899,9 @@ void update_remote_mapping_contribution(
         if (p_ngbr != INVALID_CELLID) pcell = mpiGrid[p_ngbr];
         SpatialCell *mcell = NULL;
         if (m_ngbr != INVALID_CELLID) mcell = mpiGrid[m_ngbr];
-        if (p_ngbr != INVALID_CELLID && !mpiGrid.is_local(p_ngbr) && do_translate_cell(ccell)) {
+        if (p_ngbr != INVALID_CELLID && pcell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) 
+           if (!mpiGrid.is_local(p_ngbr) && do_translate_cell(ccell)) {
+        //if (p_ngbr != INVALID_CELLID && !mpiGrid.is_local(p_ngbr) && do_translate_cell(ccell)) {
             //Send data in p_ngbr temporary target array that we just
             //mapped to if 1) it is a valid target,
             //2) is remote cell, 3) if the source cell in center was
@@ -723,6 +922,7 @@ void update_remote_mapping_contribution(
            receive_cells.push_back(local_cells[c]);
         }
     }
+    
     // Do communication
    SpatialCell::setCommunicatedSpecies(popID);
     SpatialCell::set_mpi_transfer_type(Transfer::NEIGHBOR_VEL_BLOCK_DATA);

@@ -462,9 +462,8 @@ namespace projects {
          creal dvzCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
 
          // Calculate volume average of distrib. function for each cell in the block.
-         Real sum = 0.0;
+         Real maxValue = 0.0;
          for (uint kc=0; kc<WID_VZ; ++kc) for (uint jc=0; jc<WID_VY; ++jc) for (uint ic=0; ic<WID_VX; ++ic) {
-            //FIXME, block/cell index should be handled by spatial cell function (create if it does not exist)
             creal vxCell = vxBlock + ic*dvxCell;
             creal vyCell = vyBlock + jc*dvyCell;
             creal vzCell = vzBlock + kc*dvzCell;
@@ -476,11 +475,11 @@ namespace projects {
 
             if (average != 0.0) {
                data[blockLID*SIZE_VELBLOCK+cellIndex(ic,jc,kc)] = average;
+               maxValue = max(maxValue,average);
             }
-            sum += average;
          }
 
-         if (sum <= getObjectWrapper().particleSpecies[popID].sparseMinValue) removeList.push_back(blockGID);
+         if (maxValue < getObjectWrapper().particleSpecies[popID].sparseMinValue) removeList.push_back(blockGID);
       }
 
       // Get AMR refinement criterion and use it to test which blocks should be refined
@@ -542,7 +541,7 @@ namespace projects {
             creal dvyCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
             creal dvzCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
 
-            Real sum = 0.0;
+            Real maxValue = 0.0;
             for (uint kc=0; kc<WID; ++kc) {
                for (uint jc=0; jc<WID; ++jc) {
                   for (uint ic=0; ic<WID; ++ic) {
@@ -555,12 +554,12 @@ namespace projects {
                                              vxCell,vyCell,vzCell,
                                              dvxCell,dvyCell,dvzCell,popID);
                      cell->get_data(popID)[blockLID*SIZE_VELBLOCK + kc*WID2+jc*WID+ic] = average;
-                     sum += average;
+                     maxValue = max(maxValue,average);
                   }
                }
             }
 
-            if (sum <= getObjectWrapper().particleSpecies[popID].sparseMinValue) 
+            if (maxValue <= getObjectWrapper().particleSpecies[popID].sparseMinValue) 
               removeList.push_back(it->first);
          }
 

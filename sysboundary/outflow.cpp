@@ -2,18 +2,6 @@
  * This file is part of Vlasiator.
  * 
  * Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
  */
 
 /*!\file outflow.cpp
@@ -116,13 +104,14 @@ namespace SBC {
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       Project &project
    ) {
-      vector<uint64_t> cells = mpiGrid.get_cells();
+      const vector<CellID>& cells = getLocalCells();
       #pragma omp parallel for
       for (uint i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
-         if(cell->sysBoundaryFlag != this->getIndex()) continue;
+         if (cell->sysBoundaryFlag != this->getIndex()) continue;
          
-         // Defined in project.cpp, used here as the outflow cell has the same state as the initial state of non-system boundary cells.
+         // Defined in project.cpp, used here as the outflow cell has the same state 
+         // as the initial state of non-system boundary cells.
          project.setCell(cell);
          // WARNING Time-independence assumed here.
          cell->parameters[CellParams::RHO_DT2] = cell->parameters[CellParams::RHO];
@@ -130,7 +119,7 @@ namespace SBC {
          cell->parameters[CellParams::RHOVY_DT2] = cell->parameters[CellParams::RHOVY];
          cell->parameters[CellParams::RHOVZ_DT2] = cell->parameters[CellParams::RHOVZ];
       }
-      
+
       return true;
    }
    

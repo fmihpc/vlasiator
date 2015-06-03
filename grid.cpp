@@ -217,6 +217,12 @@ void initializeGrid(
  */
    }
 
+   // Init mesh data container
+   if (getObjectWrapper().meshData.initialize() == false) {
+      cerr << "(Grid) Failed to initialize mesh data container in " << __FILE__ << ":" << __LINE__ << endl;
+      exit(1);
+   }
+   
    //Balance load before we transfer all data below
    balanceLoad(mpiGrid, sysBoundaries);
 
@@ -375,6 +381,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
 
    //Make sure transfers are enabled for all cells
    recalculateLocalCellsCache();
+   getObjectWrapper().meshData.reallocate();
    cells = mpiGrid.get_cells();
    for (uint i=0; i<cells.size(); ++i) mpiGrid[cells[i]]->set_mpi_transfer_enabled(true);
 

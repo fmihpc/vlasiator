@@ -297,11 +297,36 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
       success = success && (*it)->assignSysBoundary(mpiGrid);
    }
 
-   /*communicate boundary assignments (sysBoundaryFlag and
-    * sysBoundaryLayer communicated)*/
+   // communicate boundary assignments (sysBoundaryFlag and
+   // sysBoundaryLayer communicated)
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
    mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
-
+   
+   // Compute distances to system boundaries according to the new classification
+   for (size_t c=0; c<cells.size(); ++c) {
+      //dccrg::Types<3>::indices_t indices = mpiGrid.mapping.get_indices(cells[c]);
+      bool hasNormalNbrs = false;
+      bool hasBndryNbrs  = false;
+      const vector<CellID>* nbrs = mpiGrid.get_neighbors_of(cells[c],SYSBOUNDARIES_NEIGHBORHOOD_ID);
+      for (size_t n=0; n<nbrs->size(); ++n) {
+         if ((*nbrs)[n] == 0) continue;
+         if (mpiGrid[(*nbrs)[n]]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) hasNormalNbrs = true;
+         if (mpiGrid[(*nbrs)[n]]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) hasBndryNbrs  = true;
+      }
+      
+      if (mpiGrid[cells[c]]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+         // Cell inside system boundary, if it touches the interface it gets value -1.
+         // Otherwise it gets value -2.
+         if (hasNormalNbrs == true) mpiGrid[cells[c]]->sysBoundaryLayerNew = -1;
+         else mpiGrid[cells[c]]->sysBoundaryLayerNew = -2;
+      } else {
+         // Cell inside simulation domain, if it touches the interface it gets value +2.
+         // Otherwise it gets value +2.
+         if (hasBndryNbrs == true) mpiGrid[cells[c]]->sysBoundaryLayerNew = 1;
+         else mpiGrid[cells[c]]->sysBoundaryLayerNew = 2;
+      }
+   }
+   
    /*set distance 1 cells to boundary cells, that have neighbors which are normal cells */
    for(uint i=0; i<cells.size(); i++) {
       mpiGrid[cells[i]]->sysBoundaryLayer=0; /*Initial value*/

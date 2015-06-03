@@ -25,7 +25,7 @@ namespace DRO {
       virtual std::string getName() const;
       virtual bool handlesWriting() const;
       virtual bool reduceData(const spatial_cell::SpatialCell* cell,char* buffer);
-      virtual bool reduceData(const spatial_cell::SpatialCell* cell,Real * result);
+      virtual bool reduceData(const spatial_cell::SpatialCell* cell,Real* result);
       virtual bool setSpatialCell(const spatial_cell::SpatialCell* cell);
       virtual bool writeData(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                              const std::vector<CellID>& cells,const std::string& meshName,

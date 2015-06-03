@@ -22,6 +22,7 @@
 #include "../grid.h"
 #include "../definitions.h"
 #include "../object_wrapper.h"
+#include "../mpiconversion.h"
 
 #include "cpu_moments.h"
 #include "cpu_acc_semilag.hpp"
@@ -232,9 +233,14 @@ void calculateSpatialTranslation(
 void calculateSpatialTranslation(
         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
         creal dt) {
-    typedef Parameters P;
+   typedef Parameters P;
    
-    phiprof::start("semilag-trans");
+   phiprof::start("semilag-trans");
+
+   for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      for (int i=0; i<3*omp_get_max_threads(); ++i) getObjectWrapper().particleSpecies[popID].inflowCounters[i] = 0;
+      for (int i=0; i<3*omp_get_max_threads(); ++i) getObjectWrapper().particleSpecies[popID].outflowCounters[i] = 0;
+   }
 
    const vector<CellID>& localCells = getLocalCells();
    vector<CellID> remoteTargetCellsx;
@@ -243,7 +249,7 @@ void calculateSpatialTranslation(
    vector<CellID> local_propagated_cells;
    vector<CellID> local_target_cells;
    
-   // If dt=0 we are either initializing or distribution functions are not propagated. 
+   // If dt=0 we are either initializing or distribution functions are not translated. 
    // In both cases go to the end of this function and calculate the moments.
    if (dt == 0.0) goto momentCalculation;
    
@@ -284,7 +290,43 @@ void calculateSpatialTranslation(
 momentCalculation:
    calculateMoments_R_maxdt(mpiGrid,localCells,true);
 
+   Real minDT = 1e300;
+   for (size_t c=0; c<localCells.size(); ++c) {
+      if (mpiGrid[localCells[c]]->parameters[CellParams::MAXRDT] < minDT) 
+         minDT = mpiGrid[localCells[c]]->parameters[CellParams::MAXRDT];
+   }
    phiprof::stop("semilag-trans");
+
+   #warning Momentum counters here are Esail specific
+   if (Parameters::tstep % 100 != 0) return;
+   
+   stringstream ss;
+   ss << Parameters::tstep << '\t' << Parameters::t << '\t';
+   
+   for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      for (int tid=1; tid<omp_get_max_threads(); ++tid) for (int i=0; i<3; ++i) {
+         getObjectWrapper().particleSpecies[popID].inflowCounters[i] 
+                 += getObjectWrapper().particleSpecies[popID].inflowCounters[3*tid+i];
+      }
+      for (int tid=1; tid<omp_get_max_threads(); ++tid) for (int i=0; i<3; ++i) {
+         getObjectWrapper().particleSpecies[popID].outflowCounters[i]
+                 += getObjectWrapper().particleSpecies[popID].outflowCounters[3*tid+i];
+      }
+      
+      Real globalInflowValues[3];
+      Real globalOutflowValues[3];
+      MPI_Reduce(getObjectWrapper().particleSpecies[popID].inflowCounters ,globalInflowValues ,3,MPI_Type<Real>(),MPI_SUM,0,MPI_COMM_WORLD);
+      MPI_Reduce(getObjectWrapper().particleSpecies[popID].outflowCounters,globalOutflowValues,3,MPI_Type<Real>(),MPI_SUM,0,MPI_COMM_WORLD);
+      
+      ss << popID << '\t';
+      for (int i=0; i<3; ++i) ss << globalInflowValues[i]/dt << '\t';
+      for (int i=0; i<3; ++i) ss << globalOutflowValues[i]/dt << '\t';
+      ss << endl;
+   }
+      
+   if (mpiGrid.get_rank() == 0) {
+      cerr << ss.str();      
+   }   
 }
 
 /*

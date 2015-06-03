@@ -9,6 +9,7 @@
 #ifndef PARTICLE_SPECIES_H
 #define	PARTICLE_SPECIES_H
 
+#include <omp.h>
 #include "definitions.h"
 
 namespace species {
@@ -22,11 +23,19 @@ namespace species {
    
     /** Variables common to a particle species.*/
     struct Species {
-        std::string name;               /**< Name of the species.*/
-        Real charge;                    /**< Particle species charge, in simulation units.*/
-        Real mass;                      /**< Particle species mass, in simulation units.*/
-        Real sparseMinValue;            /**< Sparse mesh threshold value for the population.*/
-        size_t velocityMesh;            /**< ID of the velocity mesh (parameters) this species uses.*/
+       std::string name;               /**< Name of the species.*/
+       Real charge;                    /**< Particle species charge, in simulation units.*/
+       Real mass;                      /**< Particle species mass, in simulation units.*/
+       Real sparseMinValue;            /**< Sparse mesh threshold value for the population.*/
+       size_t velocityMesh;            /**< ID of the velocity mesh (parameters) this species uses.*/
+       
+       #warning These are specific to Esail simulations
+       Real* inflowCounters;           /**< Inflow counters for this species, three counters per OpenMP thread.*/
+       Real* outflowCounters;          /**< Outflow counters for this species, three counters per OpenMP thread.*/
+       
+       Species();
+       Species(const Species& other);
+       ~Species();
     };
 
 } // namespace species
