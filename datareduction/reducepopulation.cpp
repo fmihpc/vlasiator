@@ -13,13 +13,8 @@ using namespace spatial_cell;
 using namespace vlsv;
 
 
-#define phiprof_assert2(a,b) phiprof::phiprofAssert( a, b, __FILE__, __LINE__ )
-#define phiprof_assert1(a) phiprof::phiprofAssert( a, #a, __FILE__, __LINE__ )
-#define GET_MACRO(_1,_2,NAME,...) NAME
-#define phiprof_assert(...) GET_MACRO(__VA_ARGS__, phiprof_assert2, phiprof_assert1)(__VA_ARGS__)
-
 // Note: This is done to save memory (hopefully)
-class Velocity_Cell {
+class VelocityCell {
    private:
       //const SpatialCell * cell;
    public:
@@ -42,22 +37,23 @@ class Velocity_Cell {
       }
 
       // Compare values
-      bool operator<( const Velocity_Cell & other ) const {
+      bool operator<( const VelocityCell & other ) const {
          return get_avgs() < other.get_avgs();
       }
 
       // Compare equality
-      bool operator==(  const Velocity_Cell & other ) const {
+      bool operator==(  const VelocityCell & other ) const {
          // Compare memory addresses of blocks and velocity cell id
          return (block == other.block) && (vCellId == other.vCellId);
       }
 
       // Function for returning hash values for the velocity cell
-      inline size_t hash( const size_t starting_point ) const {
+      inline size_t hash() const {
+         const size_t startingPoint = (size_t)(blockContainer->getData());
          // Return the address of block's data in size_t form plus the vCellId
          vmesh::LocalID blockLocalId = vmesh->getLocalID(block);
          blockContainer->getData(blockLocalId);
-         return ((size_t)(blockContainer->getData(blockLocalId)) - starting_point)/sizeof(Realf) + (size_t)(vCellId);
+         return ((size_t)(blockContainer->getData(blockLocalId)) - startingPoint)/sizeof(Realf) + (size_t)(vCellId);
       }
 
       // Function for getting the avgs value
@@ -74,6 +70,7 @@ class Cluster {
       unordered_set<uint32_t> * neighbor_clusters; // Neighbor cluster indexes
       uint32_t * members; // Number of members in this cluster
       uint32_t * clusterId; // This cluster's cluster id
+      bool set_data_called = false;
 
       // Constructor
       Cluster() {
@@ -105,6 +102,8 @@ class Cluster {
          // Input cluster id:
          *clusterId = __clusterId;
          neighbor_clusters->insert( __clusterId );
+	 
+	 set_data_called = true;
       }
 
       // Pseudo-Destructor:
@@ -138,6 +137,11 @@ class Cluster {
          phiprof_assert( neighbor_clusters );
          return neighbor_clusters->find( __clusterId ) == neighbor_clusters->end();
       }
+      
+      inline bool isNeighbor( const uint32_t __clusterId ) {
+         phiprof_assert( neighbor_clusters );
+	 return neighbor_clusters->find(__clusterId) != neighbor_clusters->end();
+      }
 
       inline void merge( 
                   Cluster & cluster_neighbor,
@@ -145,6 +149,7 @@ class Cluster {
                             ) {
 
          // Make sure this class has no null pointers:
+         phiprof_assert( neighbor_clusters != cluster_neighbor.neighbor_clusters );
          phiprof_assert( neighbor_clusters && members && clusterId );
 
          phiprof_assert( cluster_neighbor.neighbor_clusters && cluster_neighbor.members && cluster_neighbor.clusterId );
@@ -170,11 +175,12 @@ class Cluster {
          //*****************
          // Create new cluster neighbors:
          unordered_set<uint32_t> * new_neighbor_clusters = neighbor_clusters;
+         phiprof_assert( new_neighbor_clusters );
 
          // Append values
          new_neighbor_clusters->insert( cluster_neighbor.neighbor_clusters->begin(), cluster_neighbor.neighbor_clusters->end() );
 
-         // Create new cluster id:
+         // Create new cluster id ( choose minimum of the two):
          uint32_t * new_cluster_id = clusterId;
          *new_cluster_id = min( *clusterId, *cluster_neighbor.clusterId );
 
@@ -191,9 +197,6 @@ class Cluster {
          uint32_t * old_cluster_id_neighbor = cluster_neighbor.clusterId;
          uint32_t * old_members_neighbor = cluster_neighbor.members;
          //*****************
-
-
-
 
 
          // Update the cluster neighbors for every cluster:
@@ -221,6 +224,8 @@ class Cluster {
          old_cluster_id_neighbor = NULL;
          delete old_members_neighbor;
          old_members_neighbor = NULL;
+         
+         // Just to make sure, put the neighbor_clusters to equal each other:
       }
 
       inline void append( const int32_t numberOfMembersToAppend ) {
@@ -242,22 +247,43 @@ namespace std {
 
 namespace std {
    template <>
-   struct hash<Velocity_Cell> {
-      inline size_t operator() (const Velocity_Cell & vcell) const {
+   struct hash<VelocityCell> {
+      inline size_t operator() (const VelocityCell & vcell) const {
          std::hash<size_t> size_t_hasher;
          return size_t_hasher( (size_t)(vcell.block)/sizeof(Realf)+vcell.vCellId );
       }
    };
 }
 
-inline vmesh::LocalID get_blockid( const uint32_t global_velocity_cell_indices[3], vmesh::VelocityMesh< vmesh::GlobalID, vmesh::LocalID > & vmesh ) {
-  uint32_t block_indices[3] = {global_velocity_cell_indices[0]/4, global_velocity_cell_indices[1]/4, global_velocity_cell_indices[2]/4};
-  uint8_t refinement_level = 0;
-  return vmesh.getGlobalID(refinement_level, block_indices);
+inline uint16_t getVelocityCellid( const vmesh::LocalID globalVelocityCellIndices[3] ) {
+  return (uint16_t)(globalVelocityCellIndices[0] % WID + (globalVelocityCellIndices[1] % WID) * WID + (globalVelocityCellIndices[2] % WID) * WID2);
 }
 
-inline uint16_t get_velocity_cellid( const uint32_t global_velocity_cell_indices[3] ) {
-  return global_velocity_cell_indices[0] % 4 + (global_velocity_cell_indices[0] % 4) * WID + (global_velocity_cell_indices[0] % 4) * WID2;
+inline void getLocalVelocityCellIndices( const uint16_t velocityCellid, vmesh::LocalID localVelocityCellIndices[3] ) {
+   localVelocityCellIndices[0] = velocityCellid % WID;
+   localVelocityCellIndices[1] = (velocityCellid / WID) % WID;
+   localVelocityCellIndices[2] = (velocityCellid / (WID*WID) );
+   phiprof_assert( velocityCellid == localVelocityCellIndices[0] + localVelocityCellIndices[1] * WID + localVelocityCellIndices[2] * WID * WID );
+}
+
+inline void getGlobalVelocityCellIndices( vmesh::VelocityMesh< vmesh::GlobalID, vmesh::LocalID > & vmesh, const VelocityCell & vCell, vmesh::LocalID globalVelocityCellIndices[3] ) {
+   uint8_t refinement = 0;
+   // Get blockid:
+   const vmesh::GlobalID blockid = vCell.block;
+   const uint16_t velocityCellid = vCell.vCellId;
+   // Get block indices:
+   vmesh::LocalID blockIndices[3], velocityCellIndices[3];
+   vmesh.getIndices( blockid, refinement, blockIndices[0], blockIndices[1], blockIndices[2] );
+   // Get velocity cell indices:
+   getLocalVelocityCellIndices( velocityCellid, velocityCellIndices );
+   // Input global indices:
+   for( int direction = 0; direction < 3; ++direction ) {
+      globalVelocityCellIndices[direction] = blockIndices[direction] * WID + velocityCellIndices[direction];
+   }
+
+   // Debugging:
+   phiprof_assert( getVelocityCellid(globalVelocityCellIndices) == velocityCellid );
+   phiprof_assert( vmesh.findBlockDown(refinement, globalVelocityCellIndices) );
 }
 
 /*! A function for retrieving the velocity cell neighbors of a given velocity cell.
@@ -269,116 +295,56 @@ inline uint16_t get_velocity_cellid( const uint32_t global_velocity_cell_indices
  \param                      cell
 
  */
-static inline void get_neighbors(
-                vector<Velocity_Cell> & neighbors,
-                const Velocity_Cell & vCell,
+static inline void getNeighbors(
+                vector<VelocityCell> & neighbors,
+                const VelocityCell & vCell,
                 SpatialCell * cell
                                 ) {
+   uint8_t refinement = 0;
+   neighbors.clear();
    // Get the vmesh:
 #warning no AMR
-   const size_t popID = 0;
-   vmesh::VelocityMesh< vmesh::GlobalID, vmesh::LocalID > & vmesh = cell->get_velocity_mesh(popID);
-   vmesh::VelocityBlockContainer<vmesh::LocalID> & blockContainer = cell->get_velocity_blocks(popID);
-   
-   // Get velocity cell neighbors:
-   // Get local velocity cell neighbors:
-   phiprof_assert( vCell.vCellId >= 0 && vCell.vCellId < WID3 );
-   const vmesh::GlobalID blockid = vCell.block;
-   const uint16_t local_velocity_cell_indices[3] = {(uint16_t)(vCell.vCellId%WID), (uint16_t)((vCell.vCellId/WID)%WID), (uint16_t)(vCell.vCellId/WID2) };
-   vmesh::LocalID block_indices[3]; uint8_t refinement = 0; vmesh.getIndices( blockid, refinement, block_indices[0], block_indices[1], block_indices[2] ); 
-   
-   const uint32_t global_velocity_cell_indices[3] = {block_indices[0] * 4 + local_velocity_cell_indices[0],
-                                                     block_indices[1] * 4 + local_velocity_cell_indices[1],
-                                                     block_indices[2] * 4 + local_velocity_cell_indices[2]};
-   
-   for( int k = -1; k <= 1; ++k ) for( int j = -1; j <= 1; ++j ) for( int i = -1; i <= 1; ++i ) {
-     if( k + j + i == 0 ) { continue; }
-     const uint32_t neighbor_global_velocity_cell_indices[3] = {
-                                                        global_velocity_cell_indices[0] + i,
-                                                        global_velocity_cell_indices[1] + j,
-                                                        global_velocity_cell_indices[2] + k
-                                                        };
-     // out-of-bounds checking:
-     bool skip = false;
-     for( int dir = 0; dir < 3; ++dir ) {
-       const vmesh::LocalID * gridLengths = vmesh.getGridLength(0);
-       if( neighbor_global_velocity_cell_indices[dir] < 0 || neighbor_global_velocity_cell_indices[dir] > gridLengths[dir] ) { skip = true; continue; }
-     }
-     if( skip == true ) { continue; }
-     
-     // Input new velocity cell:
-     Velocity_Cell neighbor_vCell;
-     neighbor_vCell.set_data(vmesh,
-                             blockContainer,
-                             get_blockid(neighbor_global_velocity_cell_indices, vmesh),
-                             get_velocity_cellid(neighbor_global_velocity_cell_indices));
-     
+   const size_t notSet = 0;
+   vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID> & vmesh = cell->get_velocity_mesh(notSet);
+   vmesh::VelocityBlockContainer<vmesh::LocalID> & blockContainer = cell->get_velocity_blocks(notSet);
+
+   vmesh::LocalID globalVelocityCellIndices[3];
+   getGlobalVelocityCellIndices( vmesh, vCell, globalVelocityCellIndices );
+   int offsets[3];
+   for( offsets[0] = -1; offsets[0] <= 1; ++offsets[0] ) for( offsets[1] = -1; offsets[1] <= 1; ++offsets[1] ) for( offsets[2] = -1; offsets[2] <= 1; ++offsets[2] ) {
+      if( offsets[0] == 0 && offsets[1] == 0 && offsets[2] == 0 ) { continue; }
+      // Out of bounds checking:
+      bool outOfBounds = false;
+      for( int direction = 0; direction < 3; ++direction ) {
+         const vmesh::LocalID * gridLength = vmesh.getGridLength(0);
+         if( (int)globalVelocityCellIndices[direction] + offsets[direction] < 0 ) { 
+            outOfBounds = true; continue;
+         }
+         if( (int)globalVelocityCellIndices[direction] + offsets[direction] > gridLength[direction]*WID ) {
+            outOfBounds = true; continue;
+         }
+      }
+      if( outOfBounds ) { continue; }
+
+      vmesh::LocalID neighborGlobalVelocityCellIndices[3];
+      // Get the neighbor indices:
+      for( int direction = 0; direction < 3; ++direction ) {
+         neighborGlobalVelocityCellIndices[direction] = globalVelocityCellIndices[direction] + offsets[direction];
+      }
+
+      // Get neighbor data:
+      const uint16_t neighborVelocityCellid = getVelocityCellid(neighborGlobalVelocityCellIndices);
+      const vmesh::LocalID neighborBlock = vmesh.findBlockDown(refinement, neighborGlobalVelocityCellIndices);
+      if( neighborBlock == vmesh.invalidGlobalID() ) { continue; }
+
+      // Add the neighbor:
+      VelocityCell newNeighbor;
+      newNeighbor.set_data( vmesh, blockContainer, neighborBlock, neighborVelocityCellid );
+      neighbors.push_back( newNeighbor );
    }
-   
-   return;
 }
 
 
-//// Debugging function for comparing speed of algorithms
-//static inline void test_neighbor_speed( 
-//                                const vector<Velocity_Cell> & velocityCells,
-//                                const array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> & local_vcell_neighbors,
-//                                const array< vector< pair<int16_t, vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors,
-//                                SpatialCell * cell,
-//                                const Real resolution_threshold
-//                                  ) {
-//   if( velocityCells.size() == 0 ) { return; }
-//   const uint numberOfVCells = velocityCells.size();
-//   // Reserve a table for clusters:
-//   //uint32_t * clusterIds = new uint32_t[numberOfVCells];
-//   vector<Realf,aligned_allocator<Realf,64> > & clusterIds = cell->block_fx;
-//
-//   // Initialize to be part of no clusters:
-//   const uint32_t noCluster = 0;
-//   for( uint i = 0; i < velocityCells.size(); ++i ) {
-//      clusterIds[i] = noCluster;
-//   }
-//
-//   // Id for separating clusterIds
-//   uint32_t clusterId = noCluster + 1;
-//
-//   // Set the first velocity cell to cluster one
-//   uint32_t last_vCell = velocityCells.size()-1;
-//   clusterIds[last_vCell] = clusterId;
-//
-//   // Start getting velocity neighbors
-//   vector<Velocity_Cell> neighbors;
-//   neighbors.reserve( numberOfVCellNeighbors );
-//
-//   const size_t startingPoint = (size_t)(cell->block_data.data());
-//
-//   uint32_t merges = 0;
-//
-//   Realf resolve = 0;
-//
-//   for( int i = velocityCells.size()-1; i >= 0; --i ) {
-//      const Velocity_Cell & vCell = velocityCells[i];
-//      // Get the neighbors:
-//      get_neighbors( neighbors, vCell,cell );
-//      // Get the id of the velocity cell
-//      //const uint32_t id = vCell.hash( startingPoint );
-//
-//      const uint32_t id = vCell.hash( startingPoint );
-//      resolve += id;
-//
-//      // Keep track of the highest avgs of the neighbor:
-//      for( vector<Velocity_Cell>::const_iterator it = neighbors.begin(); it != neighbors.end(); ++it ) {
-//         const uint32_t neighbor_id = it->hash( startingPoint );
-//         resolve += neighbor_id;
-//      }
-//   }
-//
-//   for( uint i = 0; i < velocityCells.size(); ++i ) {
-//      cell->block_fx[i] = resolve;
-//   }
-//   cell->number_of_populations = (uint)(resolve);
-//   return;
-//}
 
 
 /*! A function that clusters velocity cells into separate populations. This algorithm uses the class Cluster to save different clusters and then writes them out into a spatial cell's block_fx values. It should be noted that this function changes spatial cell's block_fx value, so one should be careful when using this function. The algorithm starts from the highest-valued velocity cell, moves to the second-highest and puts the second highest into the same cluster as its neighbor, if its neighbor is part of a cluster.
@@ -394,7 +360,7 @@ cluster_advanced()
   populations=[]
   // Go through each velocity cell starting from highest avgs value, second highest, third highest, etc..
   for velocity_cell in velocity_cells
-    neighbors = get_neighbors(velocity_cell) // Gets all of velocity cell's neighbors, in total 6 neighbors from each face
+    neighbors = getNeighbors(velocity_cell) // Gets all of velocity cell's neighbors, in total 6 neighbors from each face
     for neighbor in neighbors // Go through every neighbor
       if neighbor in populations // Check if the neighbor has been put into some population
         if velocity_cell in populations // Check if the velocity cell is a part of a population
@@ -426,7 +392,7 @@ cluster_advanced()
 
  */
 static inline void cluster_advanced( 
-                                const vector<Velocity_Cell> & velocityCells,
+                                const vector<VelocityCell> & velocityCells,
                                 SpatialCell * cell,
                                 const Real resolution_threshold
                                   ) {
@@ -452,7 +418,7 @@ static inline void cluster_advanced(
    clusterIds[last_vCell] = clusterId;
 
    // Start getting velocity neighbors
-   vector<Velocity_Cell> neighbors;
+   vector<VelocityCell> neighbors;
    const size_t numberOfVCellNeighbors = 27;
    neighbors.reserve( numberOfVCellNeighbors );
 
@@ -474,8 +440,8 @@ static inline void cluster_advanced(
       Cluster first_cluster;
       first_cluster.set_data( clusterId );
       clusters.push_back( first_cluster );
-      const Velocity_Cell & vCell = velocityCells[velocityCells.size()-1];
-      const uint32_t id = vCell.hash( startingPoint );
+      const VelocityCell & vCell = velocityCells[velocityCells.size()-1];
+      const uint32_t id = vCell.hash(  );
       // Add the highest valued velocity cell to the first cluster:
       clusterIds[id] = clusterId;
    }
@@ -484,11 +450,11 @@ static inline void cluster_advanced(
    const uint resolution = P::vxblocks_ini * P::vyblocks_ini * P::vzblocks_ini;
 
    for( int i = velocityCells.size()-1; i >= 0; --i ) {
-      const Velocity_Cell & vCell = velocityCells[i];
+      const VelocityCell & vCell = velocityCells[i];
       // Get the neighbors:
-      get_neighbors( neighbors, vCell, cell );
+      getNeighbors( neighbors, vCell, cell );
       // Get the id of the velocity cell
-      const uint32_t id = vCell.hash( startingPoint );
+      const uint32_t id = vCell.hash(  );
 
       phiprof_assert( id < velocityCells.size() );
 
@@ -496,9 +462,9 @@ static inline void cluster_advanced(
       //TODO: Remove highest avgs neighbor
       Realf highest_avgs_neighbor = 0;
 
-      for( vector<Velocity_Cell>::const_iterator it = neighbors.begin(); it != neighbors.end(); ++it ) {
+      for( vector<VelocityCell>::const_iterator it = neighbors.begin(); it != neighbors.end(); ++it ) {
          // Get the id of the neighbor:
-         const uint32_t neighbor_id = it->hash( startingPoint );
+         const uint32_t neighbor_id = it->hash(  );
 
          phiprof_assert( neighbor_id < velocityCells.size() );
 
@@ -683,63 +649,19 @@ phiprof_assert( num_noclusters == 1 );
    return;
 }
 
-//// Function for debugging the validity of cell neighbors function
-//static void test_neighbor(
-//                SpatialCell * cell,
-//                const array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> & local_vcell_neighbors,
-//                const array< vector< pair<int16_t, vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors
-//                  ) {
-//   cerr << "TESTING NEIGHBOR" << endl;
-//   // Print out velocity cell neighbors:
-//   for( uint i = 0; i < local_vcell_neighbors.size(); ++i ) {
-//      // Velocity cell:
-//      cerr << "Velocity cell: " << i << " - ";
-//      cerr << "LOCALS: " << endl;
-//      // Its indices:
-//      velocity_cell_indices_t indices = cell->get_velocity_cell_indices( i );
-//      for( uint j = 0; j < 3; ++j ) {
-//         cerr << indices[j] << " ";
-//      }
-//      cerr << endl;
-//      for( vector<uint16_t>::const_iterator it = local_vcell_neighbors[i].begin(); it != local_vcell_neighbors[i].end(); ++it ) {
-//         cerr << "Neighbor: " << *it << " - ";
-//         velocity_cell_indices_t indices2 = cell->get_velocity_cell_indices( *it );
-//         for( uint j = 0; j < 3; ++j ) {
-//            cerr << indices2[j] << " ";
-//         }
-//
-//         cerr << endl;
-//      }
-//      cerr << "REMOTES: " << endl;
-//
-//      for( vector< pair<int16_t, vector<uint16_t> > >::const_iterator it = remote_vcell_neighbors[i].begin();
-//      it != remote_vcell_neighbors[i].end(); ++it ) {
-//         for( vector<uint16_t>::const_iterator jt = get<1>(*it).begin(); jt != get<1>(*it).end(); ++jt ) {
-//            cerr << "Neighbor2: " << *jt << " - ";
-//            velocity_cell_indices_t indices2 = cell->get_velocity_cell_indices( *jt );
-//            for( uint j = 0; j < 3; ++j ) {
-//               cerr << indices2[j] << " ";
-//            }
-//            cerr << endl;
-//         }
-//      }
-//
-//      
-//   }
-//
-//}
 
 namespace test {
-   // A function for testing if Velocity_Cell class is functioning properly
-   void test_velocity_cells( SpatialCell * cell ) {
+   // A function for testing if VelocityCell class is functioning properly
+   void testVelocityCells( SpatialCell * cell ) {
       size_t notSet = 0;
       vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID> & vmesh = cell->get_velocity_mesh(notSet);
       vmesh::VelocityBlockContainer<vmesh::LocalID> & blockContainer = cell->get_velocity_blocks(notSet);
      
-      vector<Velocity_Cell> velocityCells;
+      vector<VelocityCell> velocityCells;
       velocityCells.resize(cell->get_number_of_velocity_blocks()*WID3);
       
       // Input data
+      phiprof_assert( velocityCells.size() == cell->get_number_of_velocity_blocks() * VELOCITY_BLOCK_LENGTH );
       for( vmesh::LocalID i = 0; i < cell->get_number_of_velocity_blocks(); ++i ) {
          const vmesh::GlobalID blockId = cell->get_velocity_block_global_id(i);
          for( uint16_t vCellId = 0; vCellId < VELOCITY_BLOCK_LENGTH; ++vCellId ) {
@@ -747,21 +669,23 @@ namespace test {
             velocityCells[i * VELOCITY_BLOCK_LENGTH + vCellId].set_data(vmesh, blockContainer, blockId, vCellId);
          }
       }
+      
+      
       Realf * data = blockContainer.getData();
+      phiprof_assert( velocityCells.size() == blockContainer.size()*VELOCITY_BLOCK_LENGTH );
       for( int i = 0; i < cell->get_number_of_velocity_blocks(); ++i ) {
          for( uint16_t vCellId = 0; vCellId < VELOCITY_BLOCK_LENGTH; ++vCellId ) {
-           Velocity_Cell & velocityCell = velocityCells[i*WID3 + vCellId];
+           VelocityCell & velocityCell = velocityCells[i*WID3 + vCellId];
            phiprof_assert(velocityCell.get_avgs() == data[i*WID3 + vCellId] );
          }
       }
    }
    
    // Function for testing that the hash works properly
-   void test_hash(  vector<Velocity_Cell> velocityCells,
+   void testHash(  vector<VelocityCell> velocityCells,
                     SpatialCell * cell,
                     const Real resolution_threshold) {
      vmesh::VelocityBlockContainer< vmesh::LocalID > & blockContainer = cell->get_velocity_blocks(0);
-     const size_t startingPoint = (size_t)(blockContainer.getData());
      const int numberOfVCells = velocityCells.size();
      vector<Realf,aligned_allocator<Realf,64> > clusterIds; clusterIds.resize(numberOfVCells);
      for( int i = 0; i < numberOfVCells; ++i ) {
@@ -769,8 +693,8 @@ namespace test {
      }
      // Test hashing e.g. every id is unique:
      for( int i = 0; i < numberOfVCells; ++i ) {
-       Velocity_Cell & vCell = velocityCells[i];
-       const int id = vCell.hash(startingPoint);
+       VelocityCell & vCell = velocityCells[i];
+       const int id = vCell.hash();
        phiprof_assert( id >= 0 );
        phiprof_assert( id < numberOfVCells );
        phiprof_assert( clusterIds[id] == 0 );
@@ -779,9 +703,9 @@ namespace test {
      return;
    }
    
-   void get_velocity_cell_indices(
-                                 uint32_t vCell_indices[3],
-                                 Velocity_Cell & vCell,
+   void getVelocityCellIndices(
+                                 vmesh::LocalID vCell_indices[3],
+                                 VelocityCell & vCell,
                                  SpatialCell * cell
                                  ) {
      // Get the velocity mesh:
@@ -794,7 +718,7 @@ namespace test {
    
      // Get the local velocity cell indices:
      const uint16_t local_vCell_id = vCell.vCellId;
-     const uint16_t local_vCell_indices[3] = { local_vCell_id%WID, (local_vCell_id / WID)%WID, local_vCell_id / WID2 };
+     const uint16_t local_vCell_indices[3] = { (uint16_t)(local_vCell_id%WID), (uint16_t)((local_vCell_id / WID)%WID), (uint16_t)(local_vCell_id / WID2) };
      
      // Input global velocity cell indices (unique indice for every velocity cell)
      for( int i = 0; i < 3; ++i ) {
@@ -802,12 +726,12 @@ namespace test {
      }
    }
    
-   uint64_t unique_id( const vmesh::LocalID blockid, const uint16_t vCellid ) {
-     return blockid * 64 + vCellid;
+   uint64_t uniqueId( const vmesh::LocalID blockid, const uint16_t vCellid ) {
+     return blockid * WID3 + vCellid;
    }
    
    // Function for testing that the fetching of neighbors works properly
-   void test_neighbor( vector<Velocity_Cell> velocityCells,
+   void testNeighbor( vector<VelocityCell> velocityCells,
                        SpatialCell * cell,
                        const Real resolution_threshold) {
      // the test should make sure that every velocity cell neighbor is
@@ -816,33 +740,36 @@ namespace test {
      // c) Within the grid lengths
      const int numberOfVCells = velocityCells.size();
      for( int i = 0; i < numberOfVCells; ++i ) {
-       Velocity_Cell & vCell = velocityCells[i];
+       VelocityCell & vCell = velocityCells[i];
        // Get the neighbors:
-       vector<Velocity_Cell> neighbors; neighbors.reserve(30);
-       get_neighbors(neighbors, vCell, cell); // Fetches neighbors
+       vector<VelocityCell> neighbors; neighbors.reserve(30);
+       getNeighbors(neighbors, vCell, cell); // Fetches neighbors
+       phiprof_assert(neighbors.size() != 0 );
        
        // Loop through neighbors
        unordered_set<uint64_t> neighbor_duplicates_check;
        neighbor_duplicates_check.clear();
        for( int j = 0; j < neighbors.size(); ++j ) {
-         Velocity_Cell & neighbor_vCell = neighbors[i];
-         uint32_t vCell_indices[3], neighbor_vCell_indices[3];
-         get_velocity_cell_indices( vCell_indices, vCell, cell );
-         get_velocity_cell_indices( neighbor_vCell_indices, neighbor_vCell, cell );
-         
+         VelocityCell & neighbor_vCell = neighbors[j];
+         vmesh::LocalID vCell_indices[3], neighbor_vCell_indices[3];
+         getVelocityCellIndices( vCell_indices, vCell, cell );
+         getVelocityCellIndices( neighbor_vCell_indices, neighbor_vCell, cell );
+ 
          // Make sure the dist is one:
-         uint32_t sum = 0;
+         int sum = 0;
          for( int dir = 0; dir < 3; ++dir ) {
-           phiprof_assert( abs(vCell_indices[dir] - neighbor_vCell_indices[dir]) <= 1 );
-           sum += abs(vCell_indices[dir] - neighbor_vCell_indices[dir]);
+           phiprof_assert( abs((int)vCell_indices[dir] - (int)neighbor_vCell_indices[dir]) <= 1 );
+           sum += abs((int)vCell_indices[dir] - (int)neighbor_vCell_indices[dir]);
          }
          phiprof_assert( sum != 0 );
          
          // Make sure every neighbor is unique:
-         phiprof_assert( 
-           neighbor_duplicates_check.find( unique_id(neighbor_vCell.block, neighbor_vCell.vCellId) ) == neighbor_duplicates_check.end() 
-         );
-         neighbor_duplicates_check.insert( unique_id(neighbor_vCell.block, neighbor_vCell.vCellId) );
+         //cout << "UNIQUE ID: " << uniqueId(neighbor_vCell.block, neighbor_vCell.vCellId) << endl;
+         //for( unordered_set<uint64_t>::iterator it = neighbor_duplicates_check.begin(); it != neighbor_duplicates_check.end(); ++it ) {
+         //   cout << "ALREADY HERE " <<  *it << endl;
+         //}
+         phiprof_assert( neighbor_duplicates_check.find( uniqueId(neighbor_vCell.block, neighbor_vCell.vCellId) ) == neighbor_duplicates_check.end() );
+         neighbor_duplicates_check.insert( uniqueId(neighbor_vCell.block, neighbor_vCell.vCellId) );
        }
        
      
@@ -850,48 +777,136 @@ namespace test {
      return;
    }
    
-   void test_cluster( vector<Velocity_Cell> velocityCells,
+   void testCluster( vector<VelocityCell> velocityCells,
                       SpatialCell * cell,
                       const Real resolution_threshold ) {
-     cout << __LINE__ << endl;
      vector<Cluster> clusters;
-     clusters.resize(3);
+     clusters.resize(4);
      // Create three clusters:
-     uint32_t clusterId = 0;
-   
-     clusters[0].set_data( clusterId );
-     clusterId = 1;
-     clusters[1].set_data( clusterId );
-     clusterId = 2;
-     clusters[2].set_data( clusterId );
-     cout << __LINE__ << endl;
-     // Merge cluster 0 and 1
-     clusters[0].merge(clusters[1], clusters);
-     cout << __LINE__ << endl;
-     // Check if cluster 0 and 1 are merged:
-     phiprof_assert( 1 == 0 );
-     phiprof_assert( clusters[0].find(*clusters[1].clusterId) );
-     phiprof_assert( clusters[1].find(*clusters[0].clusterId) );
-     cout << __LINE__ << endl;
-     // Make sure that cluster 1 and cluster 2 are not merged:
-     phiprof_assert( !clusters[1].find(*clusters[2].clusterId) );
-     cout << __LINE__ << endl;
+     uint32_t nullCluster = 0;
+     uint32_t clusterId = nullCluster;
+     clusters[clusterId].set_data( clusterId );
+     clusterId++;
+     clusters[clusterId].set_data( clusterId );
+     clusterId++;
+     clusters[clusterId].set_data( clusterId );
+     clusterId++;
+     clusters[clusterId].set_data( clusterId );
+     // Make sure clusters 1 and 2 are not merged:
+     phiprof_assert( !clusters[1].isNeighbor(*clusters[2].clusterId) );
+     phiprof_assert( !clusters[2].isNeighbor(*clusters[1].clusterId) );
      // Merge cluster 1 and 2
      clusters[1].merge(clusters[2], clusters);
-     cout << __LINE__ << endl;
+     //clusters[1].merge(clusters[0], clusters);
+     // Check if cluster 1 and 2 are merged:
+     phiprof_assert( clusters[1].isNeighbor(*clusters[2].clusterId) );
+     phiprof_assert( clusters[2].isNeighbor(*clusters[1].clusterId) );
+     // Make sure that cluster 1 and cluster 2 are not merged:
+     phiprof_assert( !clusters[1].find(*clusters[2].clusterId) );
+     // Merge cluster 2 and 3
+     clusters[2].merge(clusters[3], clusters);
      // Now all 3 should be merged so check to make sure
-     phiprof_assert(clusters[0].find(*clusters[2].clusterId));
-     phiprof_assert(clusters[1].find(*clusters[2].clusterId));
-     phiprof_assert(clusters[2].find(*clusters[0].clusterId));
-     cout << __LINE__ << endl;
+     phiprof_assert(clusters[1].isNeighbor(*clusters[2].clusterId));
+     phiprof_assert(clusters[1].isNeighbor(*clusters[3].clusterId));
+     phiprof_assert(clusters[2].isNeighbor(*clusters[3].clusterId));
      // Deallocate data:
      clusters[0].remove_data(clusters);
      clusters[1].remove_data(clusters);
      clusters[2].remove_data(clusters);
      
-     cout << __LINE__ << endl;
      return;
    }
+}
+
+// Returns the total number of clusters:
+int numberOfClusters( vector<Cluster> & clusters ) {
+   if( clusters.size() == 0 ) { return 0; }
+   unordered_set<uint32_t> uniqueClusterIds;
+   for( int i = 1; i < clusters.size(); ++i ) {
+      uniqueClusterIds.insert( *clusters[i].clusterId );
+   }
+   return uniqueClusterIds.size();
+}
+
+void simpleCluster( vector<VelocityCell> & velocityCells, SpatialCell * cell, const Real resolution_threshold ) {
+   phiprof_assert( velocityCells.size() > 0 );
+   phiprof_assert( cell );
+
+   // For statistics:
+   int merges = 0;
+
+   // Create clusters:
+   vector<Cluster> clusters;
+   clusters.reserve(200);
+   uint32_t nullCluster = 0;
+   {
+      // Create a null cluster
+      Cluster newCluster;
+      newCluster.set_data(nullCluster);
+      clusters.push_back( newCluster );
+   }
+   uint32_t maxClusterIndex = nullCluster;
+
+   // Create cluster ids for every velocity cell:
+   vector<uint32_t> velocityCellClusterId;
+   velocityCellClusterId.resize( velocityCells.size() );
+   for( int i = 0; i < velocityCellClusterId.size(); ++i ) {
+      velocityCellClusterId[i] = nullCluster;
+   }
+
+   // go through every velocity cell:
+   for( int i = 0; i < velocityCells.size(); ++i ) {
+      VelocityCell & velocityCell = velocityCells[i];
+      const size_t id = velocityCell.hash();
+      // Get the neighbors of the velocity cell:
+      vector<VelocityCell> neighbors;
+      neighbors.reserve(27);
+      VelocityCell & vCell = velocityCells[i];
+      getNeighbors(
+                   neighbors,
+                   vCell,
+                   cell
+                   );
+      phiprof_assert( neighbors.size() != 0 );
+      // go through the neighbors, check if any neighbor is not nullCluster:
+      for( int k = 0; k < neighbors.size(); ++k ) {
+         VelocityCell & velocityCellNeighbor = neighbors[k];
+         const size_t neighborId = velocityCellNeighbor.hash();
+         const uint32_t neighborClusterIndex = velocityCellClusterId[neighborId];
+         // Check if the neighbor belongs to any cluster
+         if( neighborClusterIndex != nullCluster ) {
+            uint32_t & clusterIndex = velocityCellClusterId[id];
+            // If the velocity cell is not already a part of a cluster, put it in the neighbor:
+            if( clusterIndex == nullCluster ) {
+               clusterIndex = neighborClusterIndex;
+               phiprof_assert( clusters.size() > clusterIndex );
+               clusters[clusterIndex].append(1); // Increase number of members by one
+            }
+            // If the velocity cell is already a part of a cluster (and they are not the same cluster), merge the cluster and the neighbor cluster:
+            else if (clusterIndex != nullCluster && clusters[clusterIndex].clusterId != clusters[neighborClusterIndex].clusterId ) {
+               phiprof_assert( clusters.size() > clusterIndex && clusters.size() > neighborClusterIndex );
+               if( min(*clusters[clusterIndex].members, *clusters[neighborClusterIndex].members) < resolution_threshold*velocityCells.size() ) {
+                 clusters[clusterIndex].merge( clusters[neighborClusterIndex], clusters );
+                 ++merges;
+               }
+            }
+         }
+      }
+
+      // If this velocity cell was not put into any cluster, then create a new cluster for it:
+      uint32_t & clusterIndex = velocityCellClusterId[id];
+      if( clusterIndex == nullCluster ) {
+         maxClusterIndex++;
+         clusterIndex = maxClusterIndex;
+         Cluster newCluster;
+         newCluster.set_data( maxClusterIndex );
+         clusters.push_back( newCluster );
+      }
+   }
+   // Print the number of clusters:
+   //cout << "Number of merges: " << merges << endl;
+   //cout << "Number of clusters: " << numberOfClusters( clusters ) << endl;
+   cell->number_of_populations = numberOfClusters( clusters );
 }
 
 /*! Function for calculating the different populations in distribution for a given spatial cell. Note that the results are currently saved in block_fx array within the SpatialCell.
@@ -904,7 +919,6 @@ void populationAlgorithm(
                 SpatialCell * cell,
                 const Real resolution_threshold
                    ) {
-  cout << __LINE__ << endl;
    // Get velocity mesh:
 #warning vmesh: popId not set in get_velocity_mesh
    const size_t notSet = 0;
@@ -913,14 +927,14 @@ void populationAlgorithm(
 
    
    // Vector for holding velocity cells:
-   vector<Velocity_Cell> velocityCells;
+   vector<VelocityCell> velocityCells;
    // Initialize avgs values vector:
    velocityCells.resize( cell->get_number_of_velocity_blocks() * VELOCITY_BLOCK_LENGTH );
 
    // Input data
    for( vmesh::LocalID i = 0; i < cell->get_number_of_velocity_blocks(); ++i ) {
       // Create a new velocity cell
-      Velocity_Cell input_cell;
+      VelocityCell input_cell;
       const vmesh::GlobalID blockId = cell->get_velocity_block_global_id(i);
       for( uint16_t vCellId = 0; vCellId < VELOCITY_BLOCK_LENGTH; ++vCellId ) {
          // Input the block data
@@ -937,13 +951,20 @@ void populationAlgorithm(
 
    // Retrieve populations and save into block_fx array inside spatial cell:
    //cluster_advanced( velocityCells, cell, resolution_threshold );
-   //test_neighbor_speed( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell, resolution_threshold );
-   
+   //testNeighbor_speed( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell, resolution_threshold );
+
+#ifndef NDEBUG
    // Check the functionality of the different algorithm components:
-   test::test_hash(velocityCells, cell, resolution_threshold);
-   test::test_neighbor(velocityCells, cell, resolution_threshold);
-   test::test_cluster(velocityCells, cell, resolution_threshold);
-   cout << __LINE__ << endl;
+   test::testHash(velocityCells, cell, resolution_threshold);
+   test::testNeighbor(velocityCells, cell, resolution_threshold);
+   test::testCluster(velocityCells, cell, resolution_threshold);
+   test::testVelocityCells(cell);
+#endif
+   
+   // Do clustering:
+   simpleCluster( velocityCells, cell, resolution_threshold );
+
+
    return;
 }
 

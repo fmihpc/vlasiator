@@ -14,7 +14,7 @@
  */
 void populationAlgorithm(
                       spatial_cell::SpatialCell * cell,
-                      const Real resolution_threshold=0.006
+                      const Real resolution_threshold=0.08
                          );
 
 
