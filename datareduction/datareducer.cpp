@@ -107,6 +107,8 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("acc_subcycles",CellParams::ACCSUBCYCLES,1));
       if(*it == "VolE")
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("E_vol",CellParams::EXVOL,3));
+      if(*it == "NumberOfPopulations")
+         outputReducer->addOperator(new DRO::VariableNumberOfPopulations);
       if(*it == "HallE") {
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EXHALL_000_100",CellParams::EXHALL_000_100,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EXHALL_001_101",CellParams::EXHALL_001_101,1));

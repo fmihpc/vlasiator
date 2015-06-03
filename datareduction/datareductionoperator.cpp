@@ -1556,4 +1556,31 @@ namespace DRO {
       return true;
    }
    
+   
+
+   VariableNumberOfPopulations::VariableNumberOfPopulations(): DataReductionOperator() { }
+   VariableNumberOfPopulations::~VariableNumberOfPopulations() { }
+   
+   std::string VariableNumberOfPopulations::getName() const {return "NumberOfPopulations";}
+   
+   bool VariableNumberOfPopulations::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "uint";
+      dataSize =  sizeof(uint);
+      vectorSize = 1;
+      return true;
+   }
+   
+   // Adding rho non backstream calculations to Vlasiator.
+   bool VariableNumberOfPopulations::reduceData(const SpatialCell* cell,char* buffer) {
+      const char* ptr = reinterpret_cast<const char*>(&cell->number_of_populations);
+      for (uint i=0; i<sizeof(cell->number_of_populations); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+   
+   bool VariableNumberOfPopulations::setSpatialCell(const SpatialCell* cell) {
+      return true;
+   }
+
+   
+   
 } // namespace DRO
