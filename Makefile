@@ -38,7 +38,7 @@ COMPFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 COMPFLAGS += -DPROFILE
 
 #Add -DNDEBUG to turn debugging off. If debugging is enabled performance will degrade significantly
-#COMPFLAGS += -DNDEBUG
+COMPFLAGS += -DNDEBUG
 # CXXFLAGS += -DDEBUG_SOLVERS
 # CXXFLAGS += -DDEBUG_IONOSPHERE
 
