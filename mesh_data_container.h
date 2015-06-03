@@ -1,0 +1,95 @@
+/* This file is part of Vlasiator.
+ * 
+ * File:   mesh_data_container.h
+ * Author: sandroos
+ *
+ * Created on June 2, 2015, 11:18 AM
+ * 
+ * Copyright 2015 Finnish Meteorological Institute
+ */
+
+#ifndef MESH_DATA_CONTAINER_H
+#define	MESH_DATA_CONTAINER_H
+
+#include <cstdlib>
+#include <map>
+#include <vector>
+
+#include "mesh_data.h"
+#include "velocity_mesh_old.h"
+
+namespace mesh {
+
+   class MeshDataContainer {
+      public:
+         MeshDataContainer();
+         
+         template<typename T> size_t addData(const std::string& name,const size_t& vectorSize);
+         template<typename T> T* getData(const size_t& dataID);
+         template<typename T> T* getData(const std::string& name);
+         size_t getDataSize(const size_t& dataID) const {return meshData[dataID].getDataSize();}
+         const std::string& getDataType(const size_t& dataID) const {return meshData[dataID].getDataType();}
+         size_t getMeshSize() const {return mesh.size();}
+         size_t getVectorSize(const size_t& dataID) const {return meshData[dataID].getVectorSize();}
+         std::string getName(const size_t& dataID) const {
+            for (std::map<std::string,size_t>::const_iterator it=meshDataNames.begin(); it!=meshDataNames.end(); ++it) {
+               if (it->second == dataID) return it->first;
+            }
+            return "";
+         }
+         unsigned int getLocalID(const CellID& cellID) const {return mesh.getLocalID(cellID);}
+         bool initialize();
+         void reallocate();
+         size_t size() const {return meshData.size();}
+
+      private:
+
+         bool initialized;
+         vmesh::VelocityMesh<CellID,unsigned int> mesh;
+         std::vector<mesh::MeshData> meshData;
+         std::map<std::string,size_t> meshDataNames;
+         size_t meshID;
+   };
+   
+   template<typename T> inline
+   size_t MeshDataContainer::addData(const std::string& name,const size_t& vectorSize) {
+      // Return with an invalid data ID if class has not been initialized
+      if (initialized == false) return std::numeric_limits<size_t>::max();
+      
+      // Check that data doesn't already exist
+      std::map<std::string,size_t>::const_iterator it = meshDataNames.find(name);
+      if (it != meshDataNames.end()) return it->second;
+
+      size_t rvalue = meshData.size();
+      meshDataNames[name] = rvalue;
+      meshData.push_back(mesh::MeshData());
+      meshData[rvalue].setMeshSize(mesh.size());
+      meshData[rvalue].setDataSize<T>(vectorSize);
+      return rvalue;
+   }
+   
+   template<typename T> inline
+   T* MeshDataContainer::getData(const size_t& dataID) {
+      // Return with a NULL pointer if class has not been initialized
+      if (initialized == false) return NULL;
+
+      // Return pointer to the data
+      return meshData[dataID].getData<T>();
+   }
+   
+   template<typename T> inline
+   T* MeshDataContainer::getData(const std::string& name) {
+      // Return with a NULL pointer if class has not been initialized
+      if (initialized == false) return NULL;
+      
+      // If data doesn't exist return a NULL pointer.
+      std::map<std::string,size_t>::const_iterator it = meshDataNames.find(name);
+      if (it == meshDataNames.end()) return NULL;
+      
+      // Return pointer to the data
+      return meshData[it->second].getData<T>();      
+   }
+   
+} // namespace mesh
+#endif
+
