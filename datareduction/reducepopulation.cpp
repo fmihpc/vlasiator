@@ -842,7 +842,7 @@ namespace test {
      }
      cell->number_of_populations = testValue;
    }
-}
+} // Namespace test
 
 // Returns the total number of clusters:
 int numberOfClusters( vector<Cluster> & clusters ) {
@@ -865,12 +865,12 @@ void deallocateClusters( vector<Cluster> clusters ) {
    }
 }
 
-void simpleCluster( vector<VelocityCell> & velocityCells, SpatialCell * cell, const Real resolution_threshold ) {
+void simpleCluster( vector<VelocityCell> & velocityCells, SpatialCell * cell, const Real totalVolumeThreshold, const Real minAvgs ) {
    phiprof_assert( velocityCells.size() > 0 );
    phiprof_assert( cell );
    
 #warning no AMR
-   const uint resolution = velocityCells.size();
+   const uint totalVolume = velocityCells.size();
 
    // For statistics:
    int merges = 0;
@@ -925,7 +925,7 @@ void simpleCluster( vector<VelocityCell> & velocityCells, SpatialCell * cell, co
             // If the velocity cell is already a part of a cluster (and they are not the same cluster), merge the cluster and the neighbor cluster:
             else if (clusterIndex != nullCluster && clusters[clusterIndex].clusterId != clusters[neighborClusterIndex].clusterId ) {
                phiprof_assert( clusters.size() > clusterIndex && clusters.size() > neighborClusterIndex );
-               if( mergeClusters(clusters[clusterIndex], clusters[neighborClusterIndex], resolution_threshold, resolution) ) {
+               if( mergeClusters(clusters[clusterIndex], clusters[neighborClusterIndex], totalVolumeThreshold, totalVolume) ) {
                  clusters[clusterIndex].merge( clusters[neighborClusterIndex], clusters );
                  ++merges;
                }
@@ -951,168 +951,163 @@ void simpleCluster( vector<VelocityCell> & velocityCells, SpatialCell * cell, co
    deallocateClusters(clusters);
 }
 
-bool checkMerge( const uint32_t dontMerge[2], Cluster & clusterA, Cluster & clusterB ) {
-   if( clusterA.isNeighbor(dontMerge[0]) && clusterB.isNeighbor(dontMerge[1]) ) return false;
-   if( clusterA.isNeighbor(dontMerge[1]) && clusterB.isNeighbor(dontMerge[0]) ) return false;
-   return true;
-}
 
-inline
-void mergeConnections( vector<pair<uint32_t, uint32_t> > & clusterConnectivity, vector<Cluster> & clusters, const uint totalVelocityCells ) {
-   uint32_t dontMerge[2];
-   int dontMergeIndex = -1;
-
-
-   for( int i = clusterConnectivity.size() - 1; i >= 0; --i ) {
-     uint32_t clusterA = get<0>(clusterConnectivity[i] );
-     uint32_t clusterB = get<1>(clusterConnectivity[i] );
-     if( *clusters[clusterA].members > 0.01*totalVelocityCells && *clusters[clusterB].members > 0.01*totalVelocityCells ) {
-       dontMerge[0] = clusterA;
-       dontMerge[1] = clusterB;
-       dontMergeIndex = i;
-       continue;
-     }
+namespace connectivityTesting {
+   bool checkMerge( const uint32_t dontMerge[2], Cluster & clusterA, Cluster & clusterB ) {
+      if( clusterA.isNeighbor(dontMerge[0]) && clusterB.isNeighbor(dontMerge[1]) ) return false;
+      else if( clusterA.isNeighbor(dontMerge[1]) && clusterB.isNeighbor(dontMerge[0]) ) return false;
+      return true;
    }
    
-   phiprof_assert( dontMergeIndex != -1 );
+   inline
+   void mergeConnections( vector<pair<uint32_t, uint32_t> > & clusterConnectivity, vector<Cluster> & clusters, const uint totalVelocityCells ) {
+      uint32_t dontMerge[2];
    
-   uint minMembers = 1e10;
-   
-   for( int i = 0; i < clusterConnectivity.size(); ++i ) {
-      uint32_t clusterA = get<0>(clusterConnectivity[i] );
-      uint32_t clusterB = get<1>(clusterConnectivity[i] );
-      if( i < dontMergeIndex ) {
-         clusters[clusterA].merge( clusters[clusterB], clusters );
-      } else if( i == dontMergeIndex ) {
-         continue;
-      } else if( checkMerge( dontMerge, clusters[clusterA], clusters[clusterB]) ) {
-         clusters[clusterA].merge( clusters[clusterB], clusters );
+      for( int i = clusterConnectivity.size() - 1; i >= 0; --i ) {
+        uint32_t clusterA = get<0>(clusterConnectivity[i] );
+        uint32_t clusterB = get<1>(clusterConnectivity[i] );
+        if( *clusters[clusterA].members > 0.01*totalVelocityCells && *clusters[clusterB].members > 0.01*totalVelocityCells ) {
+          dontMerge[0] = clusterA;
+          dontMerge[1] = clusterB;
+          continue;
+        }
       }
-   }
-}
-
-void saveClusterData( SpatialCell * cell, const vector<uint32_t> & velocityCellClusterId, const vector<Cluster> & clusters ) {
-   vmesh::VelocityBlockContainer< vmesh::LocalID > & tmpBlockContainer = cell->get_velocity_blocks_temporary();
-   tmpBlockContainer.clear();
-   tmpBlockContainer.setSize(cell->get_number_of_velocity_blocks());
-   Realf * tmpData = tmpBlockContainer.getData();
    
-   for( int i = 0; i < velocityCellClusterId.size(); ++i ) {
-      const Cluster & cluster = clusters[velocityCellClusterId[i]];
+      phiprof_assert( dontMergeIndex != -1 );
       
-      tmpData[i] = (Realf)(*cluster.clusterId);
-   }
-}
-
-inline 
-void createConnection( vector<pair<uint32_t, uint32_t> > & clusterConnectivity, const uint32_t clusterIndex, const uint32_t neighborClusterIndex ) {
-   //phiprof_assert( clusterIndex != neighborClusterIndex );
-   if( clusterIndex == neighborClusterIndex ) return;
-   
-   for( int i = 0; i < clusterConnectivity.size(); ++i ) {
-     if( get<0>(clusterConnectivity[i]) == clusterIndex && get<1>(clusterConnectivity[i]) == neighborClusterIndex ) return;
-     if( get<1>(clusterConnectivity[i]) == clusterIndex && get<0>(clusterConnectivity[i]) == neighborClusterIndex ) return;
-   }
-
-   clusterConnectivity.push_back( make_pair(clusterIndex, neighborClusterIndex) );
-}
-
-
-void connectivityCluster( vector<VelocityCell> & velocityCells, SpatialCell * cell, const Real resolution_threshold ) {
-   phiprof_assert( velocityCells.size() > 0 );
-   phiprof_assert( cell );
-   
-#warning no AMR
-   const uint resolution = velocityCells.size();
-
-   // For statistics:
-   int merges = 0;
-   int totalClusters = 0;
-
-   // Create clusters:
-   vector<Cluster> clusters;
-   clusters.reserve(200);
-   {
-      // Create a null cluster
-      Cluster newCluster;
-      newCluster.set_data(nullCluster);
-      clusters.push_back( newCluster );
-   }
-   uint32_t maxClusterIndex = nullCluster;
-
-   // Create cluster ids for every velocity cell:
-   vector<uint32_t> velocityCellClusterId;
-   velocityCellClusterId.resize( velocityCells.size() );
-   for( int i = 0; i < velocityCellClusterId.size(); ++i ) {
-      velocityCellClusterId[i] = nullCluster;
-   }
-   
-   // Create connectivity for every cluster:
-   vector<pair<uint32_t, uint32_t> > clusterConnectivity;
-   clusterConnectivity.reserve(200);
-
-   // go through every velocity cell:
-   for( int i = velocityCells.size()-1; i >= 0; --i ) {
-      VelocityCell & velocityCell = velocityCells[i];
-      const size_t id = velocityCell.hash();
-      // Get the neighbors of the velocity cell:
-      vector<VelocityCell> neighbors;
-      neighbors.reserve(27);
-      VelocityCell & vCell = velocityCells[i];
-      getNeighbors(
-                   neighbors,
-                   vCell,
-                   cell
-                   );
-      phiprof_assert( neighbors.size() != 0 );
-      // go through the neighbors, check if any neighbor is not nullCluster:
-      for( int k = 0; k < neighbors.size(); ++k ) {
-         VelocityCell & velocityCellNeighbor = neighbors[k];
-         const size_t neighborId = velocityCellNeighbor.hash();
-         const uint32_t neighborClusterIndex = velocityCellClusterId[neighborId];
-         // Check if the neighbor belongs to any cluster
-         if( neighborClusterIndex != nullCluster ) {
-            uint32_t & clusterIndex = velocityCellClusterId[id];
-            // If the velocity cell is not already a part of a cluster, put it in the neighbor:
-            if( clusterIndex == nullCluster ) {
-               clusterIndex = neighborClusterIndex;
-               phiprof_assert( clusters.size() > clusterIndex );
-               clusters[clusterIndex].append(1); // Increase number of members by one
-            }
-            // If the velocity cell is already a part of a cluster (and they are not the same cluster), merge the cluster and the neighbor cluster:
-            else if (clusterIndex != nullCluster && clusters[clusterIndex].clusterId != clusters[neighborClusterIndex].clusterId ) {
-               phiprof_assert( clusters.size() > clusterIndex && clusters.size() > neighborClusterIndex );
-               createConnection( clusterConnectivity, clusterIndex, neighborClusterIndex );
-               merges++;
-           }
+      uint minMembers = 1e10;
+      
+      for( int i = 0; i < clusterConnectivity.size(); ++i ) {
+         uint32_t clusterA = get<0>(clusterConnectivity[i] );
+         uint32_t clusterB = get<1>(clusterConnectivity[i] ); 
+         if( checkMerge( dontMerge, clusters[clusterA], clusters[clusterB]) ) {
+            clusters[clusterA].merge( clusters[clusterB], clusters );
          }
       }
-
-      // If this velocity cell was not put into any cluster, then create a new cluster for it:
-      uint32_t & clusterIndex = velocityCellClusterId[id];
-      if( clusterIndex == nullCluster ) {
-         maxClusterIndex++;
-         clusterIndex = maxClusterIndex;
-         Cluster newCluster;
-         newCluster.set_data( maxClusterIndex );
-         clusters.push_back( newCluster );
+   }
+   
+   void saveClusterData( SpatialCell * cell, const vector<uint32_t> & velocityCellClusterId, const vector<Cluster> & clusters ) {
+      vmesh::VelocityBlockContainer< vmesh::LocalID > & tmpBlockContainer = cell->get_velocity_blocks_temporary();
+      tmpBlockContainer.clear();
+      tmpBlockContainer.setSize(cell->get_number_of_velocity_blocks());
+      Realf * tmpData = tmpBlockContainer.getData();
+   
+      for( int i = 0; i < velocityCellClusterId.size(); ++i ) {
+         const Cluster & cluster = clusters[velocityCellClusterId[i]];
+   
+         tmpData[i] = (Realf)(*cluster.clusterId);
       }
    }
-
    
-   // Now merge:
-   mergeConnections( clusterConnectivity, clusters, velocityCells.size() );
+   inline 
+   void createConnection( vector<pair<uint32_t, uint32_t> > & clusterConnectivity, const uint32_t clusterIndex, const uint32_t neighborClusterIndex ) {
+      //phiprof_assert( clusterIndex != neighborClusterIndex );
+      if( clusterIndex == neighborClusterIndex ) return;
    
-   cell->number_of_populations = numberOfClusters( clusters );
+      for( int i = 0; i < clusterConnectivity.size(); ++i ) {
+        if( get<0>(clusterConnectivity[i]) == clusterIndex && get<1>(clusterConnectivity[i]) == neighborClusterIndex ) return;
+        if( get<1>(clusterConnectivity[i]) == clusterIndex && get<0>(clusterConnectivity[i]) == neighborClusterIndex ) return;
+      }
    
-   // Save the cell's velocity space cluster data into a temporary array:
-   saveClusterData( cell, velocityCellClusterId, clusters );
+      clusterConnectivity.push_back( make_pair(clusterIndex, neighborClusterIndex) );
+   
+   }
    
    
+   void connectivityCluster( vector<VelocityCell> & velocityCells, SpatialCell * cell, const Real resolution_threshold ) {
+      phiprof_assert( velocityCells.size() > 0 );
+      phiprof_assert( cell );
+      
+   #warning no AMR
+      const uint resolution = velocityCells.size();
    
-   deallocateClusters(clusters);
-
-}
+      // For statistics:
+      int merges = 0;
+      int totalClusters = 0;
+   
+      // Create clusters:
+      vector<Cluster> clusters;
+      clusters.reserve(200);
+      {
+         // Create a null cluster
+         Cluster newCluster;
+         newCluster.set_data(nullCluster);
+         clusters.push_back( newCluster );
+      }
+      uint32_t maxClusterIndex = nullCluster;
+   
+      // Create cluster ids for every velocity cell:
+      vector<uint32_t> velocityCellClusterId;
+      velocityCellClusterId.resize( velocityCells.size() );
+      for( int i = 0; i < velocityCellClusterId.size(); ++i ) {
+         velocityCellClusterId[i] = nullCluster;
+      }
+      
+      // Create connectivity for every cluster:
+      vector<pair<uint32_t, uint32_t> > clusterConnectivity;
+      clusterConnectivity.reserve(200);
+   
+      // go through every velocity cell:
+      for( int i = velocityCells.size()-1; i >= 0; --i ) {
+         VelocityCell & velocityCell = velocityCells[i];
+         const size_t id = velocityCell.hash();
+         // Get the neighbors of the velocity cell:
+         vector<VelocityCell> neighbors;
+         neighbors.reserve(27);
+         VelocityCell & vCell = velocityCells[i];
+         getNeighbors(
+                      neighbors,
+                      vCell,
+                      cell
+                      );
+         phiprof_assert( neighbors.size() != 0 );
+         // go through the neighbors, check if any neighbor is not nullCluster:
+         for( int k = 0; k < neighbors.size(); ++k ) {
+            VelocityCell & velocityCellNeighbor = neighbors[k];
+            const size_t neighborId = velocityCellNeighbor.hash();
+            const uint32_t neighborClusterIndex = velocityCellClusterId[neighborId];
+            // Check if the neighbor belongs to any cluster
+            if( neighborClusterIndex != nullCluster ) {
+               uint32_t & clusterIndex = velocityCellClusterId[id];
+               // If the velocity cell is not already a part of a cluster, put it in the neighbor:
+               if( clusterIndex == nullCluster ) {
+                  clusterIndex = neighborClusterIndex;
+                  phiprof_assert( clusters.size() > clusterIndex );
+                  clusters[clusterIndex].append(1); // Increase number of members by one
+               }
+               // If the velocity cell is already a part of a cluster (and they are not the same cluster), merge the cluster and the neighbor cluster:
+               else if (clusterIndex != nullCluster && clusters[clusterIndex].clusterId != clusters[neighborClusterIndex].clusterId ) {
+                  phiprof_assert( clusters.size() > clusterIndex && clusters.size() > neighborClusterIndex );
+                  createConnection( clusterConnectivity, clusterIndex, neighborClusterIndex );
+                  merges++;
+              }
+            }
+         }
+   
+         // If this velocity cell was not put into any cluster, then create a new cluster for it:
+         uint32_t & clusterIndex = velocityCellClusterId[id];
+         if( clusterIndex == nullCluster ) {
+            maxClusterIndex++;
+            clusterIndex = maxClusterIndex;
+            Cluster newCluster;
+            newCluster.set_data( maxClusterIndex );
+            clusters.push_back( newCluster );
+         }
+      }
+   
+      
+      // Now merge:
+      mergeConnections( clusterConnectivity, clusters, velocityCells.size() );
+      
+      cell->number_of_populations = numberOfClusters( clusters );
+      
+      // Save the cell's velocity space cluster data into a temporary array:
+      saveClusterData( cell, velocityCellClusterId, clusters );
+      
+      deallocateClusters(clusters);
+   
+   }
+} // Namespace connectivityTesting
 
 /*! Function for calculating the different populations in distribution for a given spatial cell. Note that the results are currently saved in block_fx array within the SpatialCell.
 
@@ -1172,8 +1167,8 @@ void populationAlgorithm(
    phiprof::stop("getNeighbors");
    
    // Do clustering:
-   //simpleCluster( velocityCells, cell, resolution_threshold );
-   connectivityCluster(velocityCells, cell, resolution_threshold);
+   simpleCluster( velocityCells, cell, resolution_threshold );
+   //connectivityCluster(velocityCells, cell, resolution_threshold);
 
 
    return;
