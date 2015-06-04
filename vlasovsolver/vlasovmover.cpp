@@ -301,8 +301,10 @@ momentCalculation:
    if (Parameters::tstep % 100 != 0) return;
    
    stringstream ss;
+   
    ss << Parameters::tstep << '\t' << Parameters::t << '\t';
    
+   Real netFluxes[3] = {0,0,0};
    for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       for (int tid=1; tid<omp_get_max_threads(); ++tid) for (int i=0; i<3; ++i) {
          getObjectWrapper().particleSpecies[popID].inflowCounters[i] 
@@ -318,12 +320,17 @@ momentCalculation:
       MPI_Reduce(getObjectWrapper().particleSpecies[popID].inflowCounters ,globalInflowValues ,3,MPI_Type<Real>(),MPI_SUM,0,MPI_COMM_WORLD);
       MPI_Reduce(getObjectWrapper().particleSpecies[popID].outflowCounters,globalOutflowValues,3,MPI_Type<Real>(),MPI_SUM,0,MPI_COMM_WORLD);
       
+      // Outflow is already negative
+      for (int i=0; i<3; ++i) netFluxes[i] += (globalInflowValues[i]+globalOutflowValues[i]);
+      
       ss << popID << '\t';
       for (int i=0; i<3; ++i) ss << globalInflowValues[i]/dt << '\t';
       for (int i=0; i<3; ++i) ss << globalOutflowValues[i]/dt << '\t';
-      ss << endl;
+      ss << '\t';
    }
-      
+   for (int i=0; i<3; ++i) ss << netFluxes[i] << '\t';
+   ss << endl;
+   
    if (mpiGrid.get_rank() == 0) {
       cerr << ss.str();      
    }   
