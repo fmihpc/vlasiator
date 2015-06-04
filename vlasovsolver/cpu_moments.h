@@ -42,6 +42,16 @@ void calculateMoments_V(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 
 // ***** TEMPLATE FUNCTION DEFINITIONS ***** //
 
+/** Calculate the zeroth and first velocity moments for the given 
+ * velocity block and add results to 'array', which must have at 
+ * least size four. After this function returns, the contents of 
+ * 'array' are as follows: array[0]=n; array[1]=n*Vx; array[2]=nVy;
+ * array[3]=nVz; Here n is the scaled number density, i.e., number density 
+ * times population mass / proton mass. This function is AMR safe.
+ * @param avgs Distribution function.
+ * @param blockParams Parameters for the given velocity block.
+ * @param massRatio Population mass / proton mass.
+ * @param array Array of at least size four where the calculated moments are added.*/
 template<typename REAL> inline
 void blockVelocityFirstMoments(
         const Realf* avgs,
@@ -72,6 +82,19 @@ void blockVelocityFirstMoments(
    array[3] += nvz_sum * mrDV3;
 }
 
+/** Calculate the second velocity moments for the given velocity block, and add 
+ * results to 'array', which must have at least size three. After this function 
+ * returns, the contents of 'array' are as follows: array[0]=n(Vx-Vx0); 
+ * array[1]=n(Vy-Vy0); array[2]=n(Vz-Vz0); Here Vx0,Vy0,Vz0 are the components 
+ * of the bulk velocity (calculated over all species). This function is AMR safe.
+ * @param avgs Distribution function.
+ * @param blockParams Parameters for the given velocity block.
+ * @param cellParams Parameters for the spatial cell containing the given velocity block.
+ * @param rho Index into cellParams, used to read bulk number density.
+ * @param rhovx Index into cellParams, used to read bulk Vx times number density.
+ * @param rhovy Index into cellParams, used to read bulk Vy times number density.
+ * @param rhovz Index into cellParams, used to read bulk Vz times number density.
+ * @param array Array where the calculated moments are added.*/
 template<typename REAL> inline
 void blockVelocitySecondMoments(
         const Realf* avgs,
