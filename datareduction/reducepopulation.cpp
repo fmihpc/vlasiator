@@ -855,13 +855,26 @@ int numberOfClusters( vector<Cluster> & clusters ) {
 }
 
 inline 
-bool mergeClusters( Cluster & a, Cluster & b, const Real resolution_threshold, const Real resolution ) {
+bool mergeClusters( Cluster & a, Cluster & b, const Real resolution_threshold, const Real resolution, const Real minAvgs ) {
   return min(*a.members, *b.members) < resolution_threshold*resolution;
 }
 
 void deallocateClusters( vector<Cluster> clusters ) {
    for( int i = 0; i < clusters.size(); ++i ) {
      clusters[i].remove_data( clusters );
+   }
+}
+
+void saveClusterData( SpatialCell * cell, const vector<uint32_t> & velocityCellClusterId, const vector<Cluster> & clusters ) {
+   vmesh::VelocityBlockContainer< vmesh::LocalID > & tmpBlockContainer = cell->get_velocity_blocks_temporary();
+   tmpBlockContainer.clear();
+   tmpBlockContainer.setSize(cell->get_number_of_velocity_blocks());
+   Realf * tmpData = tmpBlockContainer.getData();
+
+   for( int i = 0; i < velocityCellClusterId.size(); ++i ) {
+      const Cluster & cluster = clusters[velocityCellClusterId[i]];
+
+      tmpData[i] = (Realf)(*cluster.clusterId);
    }
 }
 
@@ -925,7 +938,7 @@ void simpleCluster( vector<VelocityCell> & velocityCells, SpatialCell * cell, co
             // If the velocity cell is already a part of a cluster (and they are not the same cluster), merge the cluster and the neighbor cluster:
             else if (clusterIndex != nullCluster && clusters[clusterIndex].clusterId != clusters[neighborClusterIndex].clusterId ) {
                phiprof_assert( clusters.size() > clusterIndex && clusters.size() > neighborClusterIndex );
-               if( mergeClusters(clusters[clusterIndex], clusters[neighborClusterIndex], totalVolumeThreshold, totalVolume) ) {
+               if( mergeClusters(clusters[clusterIndex], clusters[neighborClusterIndex], totalVolumeThreshold, totalVolume, minAvgs) ) {
                  clusters[clusterIndex].merge( clusters[neighborClusterIndex], clusters );
                  ++merges;
                }
@@ -986,18 +999,7 @@ namespace connectivityTesting {
       }
    }
    
-   void saveClusterData( SpatialCell * cell, const vector<uint32_t> & velocityCellClusterId, const vector<Cluster> & clusters ) {
-      vmesh::VelocityBlockContainer< vmesh::LocalID > & tmpBlockContainer = cell->get_velocity_blocks_temporary();
-      tmpBlockContainer.clear();
-      tmpBlockContainer.setSize(cell->get_number_of_velocity_blocks());
-      Realf * tmpData = tmpBlockContainer.getData();
-   
-      for( int i = 0; i < velocityCellClusterId.size(); ++i ) {
-         const Cluster & cluster = clusters[velocityCellClusterId[i]];
-   
-         tmpData[i] = (Realf)(*cluster.clusterId);
-      }
-   }
+
    
    inline 
    void createConnection( vector<pair<uint32_t, uint32_t> > & clusterConnectivity, const uint32_t clusterIndex, const uint32_t neighborClusterIndex ) {
@@ -1167,7 +1169,8 @@ void populationAlgorithm(
    phiprof::stop("getNeighbors");
    
    // Do clustering:
-   simpleCluster( velocityCells, cell, resolution_threshold );
+   const Real minAvgs = 1.0e-10;
+   simpleCluster( velocityCells, cell, resolution_threshold, minAvgs );
    //connectivityCluster(velocityCells, cell, resolution_threshold);
 
 
