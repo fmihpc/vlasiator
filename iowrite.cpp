@@ -180,6 +180,35 @@ bool writeVelocityDistributionData(Writer& vlsvWriter,
 
    // Write the subarrays
    vlsvWriter.endMultiwrite("BLOCKVARIABLE", attribs);
+   
+   // Write the velocity space data
+   // set everything that is needed for writing in data such as the array's name, size, data type, etc..
+   attribs.clear();
+   attribs["mesh"] = "SpatialGrid"; // Usually the mesh is SpatialGrid
+   attribs["name"] = "tmpavgs"; // Name of the velocity space distribution is written avgs
+
+
+   // Start multi write
+   vlsvWriter.startMultiwrite(datatype_avgs,arraySize_avgs,vectorSize_avgs,dataSize_avgs);
+
+   // Loop over cells
+   for (size_t cell = 0; cell<cells.size(); ++cell) {
+      // Get the spatial cell
+      SpatialCell* SC = mpiGrid[cells[cell]];
+      
+      // Get the number of blocks in this cell
+      const uint64_t arrayElements = SC->get_number_of_velocity_blocks();
+      char* arrayToWrite = reinterpret_cast<char*>(SC->get_velocity_blocks_temporary().getData());
+
+      // Add a subarray to write
+      vlsvWriter.addMultiwriteUnit(arrayToWrite, arrayElements); // Note: We told beforehands that the vectorsize = WID3 = 64
+   }
+   if (cells.size() == 0) {
+      vlsvWriter.addMultiwriteUnit(NULL, 0); //Dummy write to avoid hang in end multiwrite
+   }
+
+   // Write the subarrays
+   vlsvWriter.endMultiwrite("TMPBLOCKVARIABLE", attribs);
 
 
    if (globalSuccess(success,"(MAIN) writeGrid: ERROR: Failed to fill temporary velocityBlockData array",MPI_COMM_WORLD) == false) {
@@ -763,6 +792,7 @@ bool writePopulations(
                  dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, 
                  Writer & vlsvWriter  ) {
    // Calculate the populatons for every cell:
+#pragma omp parallel for schedule(dynamic,1)
    for( int i = 0; i < local_cells.size(); ++i ) {
       const CellID cellId = local_cells[i];
       SpatialCell * spatialCell = mpiGrid[cellId];
@@ -841,7 +871,9 @@ bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    
    // Calculate populations, if needed:
    {
+      phiprof::start("populationReducer");
       writePopulations( local_cells, mpiGrid, vlsvWriter );
+      phiprof::stop("populationReducer");
    }
 
    //Write mesh boundaries: NOTE: master process only
