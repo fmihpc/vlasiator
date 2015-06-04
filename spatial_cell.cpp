@@ -218,7 +218,7 @@ namespace spatial_cell {
       for (vmesh::LocalID block_index=0; block_index<velocity_block_with_content_list.size(); ++block_index) {
          vmesh::GlobalID blockGID = velocity_block_with_content_list[block_index];
          vector<vmesh::GlobalID> neighborGIDs;
-         vmesh.getNeighborsExistingAtSameLevel(blockGID,neighborGIDs);
+         populations[popID].vmesh.getNeighborsExistingAtSameLevel(blockGID,neighborGIDs);
          neighbors_have_content.insert(neighborGIDs.begin(),neighborGIDs.end());
          neighbors_have_content.insert(blockGID);
       }
@@ -245,7 +245,7 @@ namespace spatial_cell {
                if (blockGID == invalid_global_id())
                   cerr << "Got invalid block at " << __FILE__ << ' ' << __LINE__ << endl; exit(1);               
             #endif
-            const vmesh::LocalID blockLID = get_velocity_block_local_id(blockGID);
+            const vmesh::LocalID blockLID = get_velocity_block_local_id(blockGID,popID);
             #ifdef DEBUG_SPATIAL_CELL
                if (blockLID == invalid_local_id())
                   cerr << "Could not find block in " << __FILE__ << ' ' << __LINE__ << endl; exit(1);               
@@ -257,11 +257,11 @@ namespace spatial_cell {
             if (neighbors_have_content.find(blockGID) != neighbors_have_content.end()) continue;
             
             // Check the parent of this block in the neighbor cells
-            if (neighbors_have_content.find(vmesh.getParent(blockGID)) != neighbors_have_content.end()) continue;
+            if (neighbors_have_content.find(populations[popID].vmesh.getParent(blockGID)) != neighbors_have_content.end()) continue;
             
             // Check all the children of this block in the neighbor cells
             std::vector<vmesh::GlobalID> children;
-            vmesh.getChildren(blockGID,children);
+            populations[popID].vmesh.getChildren(blockGID,children);
             int counter = 0;
             for (size_t c=0; c<children.size(); ++c) {
                if (neighbors_have_content.find(children[c]) != neighbors_have_content.end()) ++counter;
@@ -291,13 +291,13 @@ namespace spatial_cell {
       // Filter the spat_nbr_has_content list so that it doesn't
       // contain overlapping blocks
       unordered_set<vmesh::GlobalID> ghostBlockList;
-      vector<vector<vmesh::GlobalID> > sorted(vmesh.getMaxAllowedRefinementLevel()+1);
+      vector<vector<vmesh::GlobalID> > sorted(populations[popID].vmesh.getMaxAllowedRefinementLevel()+1);
 
       // First sort the list according to refinement levels. This allows
       // us to skip checking the existence of children and grandchildren below.
       for (unordered_set<vmesh::GlobalID>::const_iterator it=spat_nbr_has_content.begin(); 
            it!=spat_nbr_has_content.end(); ++it) {
-         sorted[vmesh.getRefinementLevel(*it)].push_back(*it);         
+         sorted[populations[popID].vmesh.getRefinementLevel(*it)].push_back(*it);         
       }
 
       // Iterate through the sorted block list, and determine the no-content
@@ -306,9 +306,9 @@ namespace spatial_cell {
          for (size_t b=0; b<sorted[r].size(); ++b) {
             // If parent exists, all siblings must exist
             if (r > 0) {
-               if (spat_nbr_has_content.find(vmesh.getParent(sorted[r][b])) != spat_nbr_has_content.end()) {
+               if (spat_nbr_has_content.find(populations[popID].vmesh.getParent(sorted[r][b])) != spat_nbr_has_content.end()) {
                   vector<vmesh::GlobalID> siblings;
-                  vmesh.getSiblings(sorted[r][b],siblings);
+                  populations[popID].vmesh.getSiblings(sorted[r][b],siblings);
                   ghostBlockList.insert(siblings.begin(),siblings.end());
                   continue;
                }
@@ -316,10 +316,10 @@ namespace spatial_cell {
 
             // If grandparent exists, parent octant must exist
             if (r > 1) {
-               vmesh::GlobalID grandParentGID = vmesh.getParent(vmesh.getParent(sorted[r][b]));
+               vmesh::GlobalID grandParentGID = populations[popID].vmesh.getParent(populations[popID].vmesh.getParent(sorted[r][b]));
                if (spat_nbr_has_content.find(grandParentGID) != spat_nbr_has_content.end()) {
                   vector<vmesh::GlobalID> siblings;
-                  vmesh.getSiblings(vmesh.getParent(sorted[r][b]),siblings);
+                  populations[popID].vmesh.getSiblings(populations[popID].vmesh.getParent(sorted[r][b]),siblings);
                   ghostBlockList.insert(siblings.begin(),siblings.end());
                   continue;
                }
@@ -334,14 +334,14 @@ namespace spatial_cell {
       for (unordered_set<vmesh::GlobalID>::const_iterator it=ghostBlockList.begin();
            it != ghostBlockList.end(); ++it) {
          // Parent already exists
-         if (vmesh.getLocalID(vmesh.getParent(*it)) != vmesh.invalidLocalID()) continue;
+         if (populations[popID].vmesh.getLocalID(populations[popID].vmesh.getParent(*it)) != vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) continue;
 
          // If any children exist, make sure they all exist
          std::vector<vmesh::GlobalID> children;
-         vmesh.getChildren(*it,children);
+         populations[popID].vmesh.getChildren(*it,children);
          bool childrensExist = false;
          for (size_t c=0; c<children.size(); ++c) {
-            if (vmesh.getLocalID(children[c]) != vmesh.invalidLocalID()) {
+            if (populations[popID].vmesh.getLocalID(children[c]) != vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) {
                childrensExist = true;
                break;
             }  
@@ -349,11 +349,11 @@ namespace spatial_cell {
          if (childrensExist == true) {
             // Attempt to add all children, only succeeds if the 
             // children does not exist
-            for (size_t c=0; c<children.size(); ++c) add_velocity_block(children[c]);
+            for (size_t c=0; c<children.size(); ++c) add_velocity_block(children[c],popID);
             continue;
          }
 
-         add_velocity_block(*it);
+         add_velocity_block(*it,popID);
       }
    }
 

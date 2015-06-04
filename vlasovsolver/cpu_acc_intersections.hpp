@@ -4,7 +4,7 @@
 #include <Eigen/Core>
 
 #include "../definitions.h"
-#include "../velocity_mesh_old.h"
+#include "../spatial_cell.hpp"
 
 Eigen::Matrix<Real,3,1> line_plane_intersection(const Eigen::Matrix<Real,3,1>& l_point,
                                                 const Eigen::Matrix<Real,3,1>& l_direction,

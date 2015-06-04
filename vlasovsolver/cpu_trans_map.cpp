@@ -461,14 +461,14 @@ inline void store_trans_block_data_esail(
         const int& popID) {
    
    if (inflowDataID == numeric_limits<size_t>::max()) {
-      inflowDataID = getObjectWrapper().meshData.addData<Real>("inflow",1);
+      inflowDataID = getObjectWrapper().meshData.addData<Real>("inflow",1,"float");
       if (inflowDataID == numeric_limits<size_t>::max()) {
          cerr << "Error, failed to create inflow data array in " << __FILE__ << ":" << __LINE__ << endl;
          exit(1);
       }
    }
    if (outflowDataID == numeric_limits<size_t>::max()) {
-      outflowDataID = getObjectWrapper().meshData.addData<Real>("outflow",1);
+      outflowDataID = getObjectWrapper().meshData.addData<Real>("outflow",1,"float");
       if (outflowDataID == numeric_limits<size_t>::max()) {
          cerr << "Error, failed to create outflow data array in " << __FILE__ << ":" << __LINE__ << endl;
          exit(1);

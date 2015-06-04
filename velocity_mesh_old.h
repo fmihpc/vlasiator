@@ -1,7 +1,7 @@
 /*
  * This file is part of Vlasiator.
  * 
- * Copyright 2014 Finnish Meteorological Institute
+ * Copyright 2014,2015 Finnish Meteorological Institute
  */
 
 #ifndef VELOCITY_MESH_OLD_H
@@ -65,7 +65,6 @@ namespace vmesh {
       void getSiblings(const GID& globalID,std::vector<GID>& siblings) const;
       bool hasChildren(const GID& globalID) const;
       GID hasGrandParent(const GID& globalID) const;
-      //static bool initialize(const Real meshLimits[6],const LID gridLength[3],const LID blockLength[3],uint8_t refLevelMaxAllowed=0);
       bool initialize(const size_t& meshID,std::vector<vmesh::MeshParameters>& meshParameters);
       bool initialize(const size_t& meshID);
       static LID invalidBlockIndex();

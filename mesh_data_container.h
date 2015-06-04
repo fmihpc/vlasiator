@@ -16,7 +16,12 @@
 #include <vector>
 
 #include "mesh_data.h"
-#include "velocity_mesh_old.h"
+
+#ifndef AMR
+   #include "velocity_mesh_old.h"
+#else
+   #include "velocity_mesh_amr.h"
+#endif
 
 namespace mesh {
 
@@ -24,7 +29,7 @@ namespace mesh {
       public:
          MeshDataContainer();
          
-         template<typename T> size_t addData(const std::string& name,const size_t& vectorSize);
+         template<typename T> size_t addData(const std::string& name,const size_t& vectorSize,const std::string& datatype);
          template<typename T> T* getData(const size_t& dataID);
          template<typename T> T* getData(const std::string& name);
          size_t getDataSize(const size_t& dataID) const {return meshData[dataID].getDataSize();}
@@ -52,7 +57,7 @@ namespace mesh {
    };
    
    template<typename T> inline
-   size_t MeshDataContainer::addData(const std::string& name,const size_t& vectorSize) {
+   size_t MeshDataContainer::addData(const std::string& name,const size_t& vectorSize,const std::string& datatype) {
       // Return with an invalid data ID if class has not been initialized
       if (initialized == false) return std::numeric_limits<size_t>::max();
       
@@ -64,7 +69,7 @@ namespace mesh {
       meshDataNames[name] = rvalue;
       meshData.push_back(mesh::MeshData());
       meshData[rvalue].setMeshSize(mesh.size());
-      meshData[rvalue].setDataSize<T>(vectorSize);
+      meshData[rvalue].setDataSize<T>(vectorSize,datatype);
       return rvalue;
    }
    

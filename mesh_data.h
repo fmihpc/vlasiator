@@ -9,7 +9,7 @@
  */
 
 #ifndef MESH_DATA_H
-#define	MESH_DATA_H
+#define MESH_DATA_H
 
 #include <cstdlib>
 
@@ -33,7 +33,7 @@ namespace mesh {
          delete [] dataPointer;
          dataPointer = new char[meshSize*vectorSize*byteSize];
       }
-      template<typename T> bool setDataSize(const size_t& vectorSize);
+      template<typename T> bool setDataSize(const size_t& vectorSize,const std::string& datatype);
       
       /** Set the number of cells in the mesh.
        * @param meshSize Number of cells in the mesh.
@@ -62,14 +62,13 @@ namespace mesh {
     * @param vectorSize Size of the data vector stored in each cell.
     * @return If true, memory for the data was allocated successfully.*/
    template<typename T> inline
-   bool MeshData::setDataSize(const size_t& vectorSize) {
+   bool MeshData::setDataSize(const size_t& vectorSize,const std::string& datatype) {
       delete [] dataPointer;
       byteSize = sizeof(T);
       this->vectorSize = vectorSize;
       dataPointer = new char[meshSize*vectorSize*byteSize];
-      
-#warning FIXME
-      dataType = "float";
+
+      this->dataType = datatype;
       return true;
    }
 
