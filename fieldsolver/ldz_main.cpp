@@ -52,6 +52,7 @@
 #include "fs_common.h"
 #include "derivatives.hpp"
 #include "fs_limiters.h"
+#include "mpiconversion.h"
 
 extern map<CellID,uint> existingCellsFlags; /**< Defined in fs_common.cpp */
 
@@ -323,11 +324,19 @@ bool propagateFields(
       calculateUpwindedElectricFieldSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP2);
       #endif
    } else {
-      for (uint i=0; i<subcycles; i++) {
-         propagateMagneticFieldSimple(mpiGrid, sysBoundaries, dt/convert<Real>(subcycles), localCells, RK_ORDER1);
+      const vector<CellID> cells = mpiGrid.get_cells();
+      Real subcycleDt = dt/convert<Real>(subcycles);
+      Real subcycleT = P::t;
+      creal targetT = P::t + P::dt;
+      uint subcycleCount = 0;
+      int myRank;
+      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+      
+      while (true) {
+         propagateMagneticFieldSimple(mpiGrid, sysBoundaries, subcycleDt, localCells, RK_ORDER1);
          // If we are at the first subcycle we need to update the derivatives of the moments, 
          // otherwise only B changed and those derivatives need to be updated.
-         calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1, (i==0));
+         calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1, (subcycleCount==0));
          if(P::ohmGradPeTerm > 0 && i==0) {
             calculateGradPeTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
             hallTermCommunicateDerivatives = false;
@@ -336,6 +345,58 @@ bool propagateFields(
             calculateHallTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1, hallTermCommunicateDerivatives);
          }
          calculateUpwindedElectricFieldSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
+         
+         phiprof::start("FS subcycle stuff");
+         subcycleCount++;
+         subcycleT += subcycleDt;
+         
+         if( subcycleT >= targetT ) {
+            if( subcycleT > targetT ) {
+               std::cerr << "subcycleT > subcycleDt, should not happen! (values: " << subcycleT << " > " << subcycleDt << ")" << std::endl;
+            }
+            phiprof::stop("FS subcycle stuff");
+            break;
+         }
+         
+         // Reassess subcycle dt
+         Real dtMaxLocal;
+         Real dtMaxGlobal;
+         
+         dtMaxLocal=std::numeric_limits<Real>::max();
+         
+         for (std::vector<uint64_t>::const_iterator cell_id = cells.begin(); cell_id != cells.end(); ++cell_id) {
+            SpatialCell* cell = mpiGrid[*cell_id];
+            if ( cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
+               (cell->sysBoundaryLayer == 1 && cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY )) {
+               dtMaxLocal=min(dtMaxLocal, cell->parameters[CellParams::MAXFDT]);
+            }
+         }
+         phiprof::start("MPI_Allreduce");
+         MPI_Allreduce(&(dtMaxLocal), &(dtMaxGlobal), 1, MPI_Type<Real>(), MPI_MIN, MPI_COMM_WORLD);
+         phiprof::stop("MPI_Allreduce");
+         
+         //reduce dt if it is too high for any of the three propagators, or too low for all propagators
+         if(( subcycleDt > dtMaxGlobal * P::fieldSolverMaxCFL ) ||
+            ( subcycleDt < dtMaxGlobal * P::fieldSolverMinCFL )
+         ) {
+            creal meanFieldsCFL = 0.5*(P::fieldSolverMaxCFL+ P::fieldSolverMinCFL);
+            //set new timestep to the lowest one of all interval-midpoints
+            subcycleDt = meanFieldsCFL * dtMaxGlobal;
+# warning TODO this should be in logfile.
+            if ( myRank == MASTER_RANK ) {
+               std::cout << "(TIMESTEP) New subcycle dt = " << subcycleDt << " computed on step "<<  P::tstep << " and substep " << subcycleCount << " at " <<P::t << "s" << std::endl;
+            }
+         }
+         
+         if( subcycleT + subcycleDt > targetT ) {
+            subcycleDt = targetT - subcycleT;
+         }
+         phiprof::stop("FS subcycle stuff");
+      }
+      
+      if( P::fieldSolverSubcycles != subcycleCount && myRank == MASTER_RANK) {
+# warning TODO this should be in logfile.
+         std::cout << "Effective field solver subcycles were " << subcycleCount << " instead of " << P::fieldSolverSubcycles << std::endl;
       }
    }
    
