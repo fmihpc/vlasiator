@@ -16,7 +16,7 @@ run_dir="run"
 test_dir="tests"
 
 # choose tests to run
-run_tests=( 1 2 3 4)
+run_tests=( 1 2 3 4 5)
 
 # acceleration test
 test_name[1]="acctest_2_maxw_500k_100k_20kms_10deg"
@@ -30,15 +30,11 @@ comparison_vlsv[2]="fullf.0000001.vlsv"
 #only one process does anything -> in _1 phiprof here
 comparison_phiprof[2]="phiprof_full_0.txt"
 
-
-
 #very small magnetosphere, tests all at once
 test_name[3]="Magnetosphere_small"
 comparison_vlsv[3]="bulk.0000001.vlsv"
 #only one process does anything -> in _1 phiprof here
 comparison_phiprof[3]="phiprof_full_0.txt"
-
-
 
 #Acceleration of 1 maxwellian, corresponds to SW
 test_name[4]="acctest_1_maxw_500k_30kms_1deg"
@@ -46,8 +42,10 @@ comparison_vlsv[4]="fullf.0000001.vlsv"
 #only one process does anything -> in _1 phiprof here
 comparison_phiprof[4]="phiprof_full_1.txt"
 
-
-
+# Field solver test
+test_name[5]="test_fp_fsolver_only_3D"
+comparison_vlsv[5]="fullf.0000001.vlsv"
+comparison_phiprof[5]="phiprof_full_0.txt"
 
 # define here the variables you want to be tested
 variables_name=( "rho" "rho_v" "rho_v" "rho_v" "B" "B" "B" "E" "E" "E" "avgs" )
