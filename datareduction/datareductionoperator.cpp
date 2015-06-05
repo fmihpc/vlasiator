@@ -11,7 +11,6 @@
 #include <limits>
 #include <array>
 #include "datareductionoperator.h"
-#include "../vlscommon.h"
 #include "../object_wrapper.h"
 
 using namespace std;

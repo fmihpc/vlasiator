@@ -20,8 +20,9 @@ namespace projects {
       virtual bool initialize(void);
       static void addParameters(void);
       virtual void getParameters(void);
+
       void setCellBackgroundField(spatial_cell::SpatialCell* cell) const;
-      
+
     protected:
       Real getDistribValue(
                            creal& x,creal& y, creal& z,
@@ -43,6 +44,7 @@ namespace projects {
 
       bool emptyBox;               /**< If true, then the simulation domain is empty initially 
                                     * and matter will flow in only through the boundaries.*/
+
       Real rho;
       Real T;
       Real V0[3];

@@ -1,5 +1,9 @@
 README file for vlasiator test package
 
+#NOTE:
+# Before using the testpackage, compile vlasiator with:
+make testpackage
+
 ####################################################
 ####################################################
 # Running tests (on Voima):
@@ -11,7 +15,8 @@ ln -s ~/vlasiator/vlasiator_executable .
 ./small_test_voima.sh
 
 
-
+####################################################
+####################################################
 # Running tests (on a new machine)
 
 # Set up the test package

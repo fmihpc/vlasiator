@@ -2,6 +2,9 @@ CMP = CC
 LNK = CC 
 #-Wl,--allow-multiple-definition
 
+not_parallel_tools: CMP = g++
+not_parallel_tools: LNK = g++
+
 #-DNO_WRITE_AT_ALL:  Define to disable write at all to 
 #                    avoid memleak (much slower IO)
 #-DMPICH_IGNORE_CXX_SEEK: Ignores some multiple definition 
@@ -22,6 +25,9 @@ CC_BRAND = gcc
 CC_BRAND_VERSION = 4.9.2
 CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++0x -W -Wall -Wno-unused -fabi-version=0 -mavx2 
 #CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++0x -W -Wall -Wno-unused -fabi-version=0 -mavx
+not_parallel_tools: CXXFLAGS += -march=native -mno-avx2 -mavx 
+testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++0x -fabi-version=0 
+not_parallel_tools: CC_BRAND_VERSION = 4.9.2-noavx2
 
 MATHFLAGS = -ffast-math
 LDFLAGS =

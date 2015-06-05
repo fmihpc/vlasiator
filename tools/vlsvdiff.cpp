@@ -81,7 +81,7 @@ bool copyArray(vlsv::Reader& input,vlsv::Writer& output,
                const std::string& tagName,
                const list<pair<string,string> >& inputAttribs) {
    bool success = true;
-   
+
    // Read input array attributes
    map<string,string> outputAttribs;
    if (input.getArrayAttributes(tagName,inputAttribs,outputAttribs) == false) {
@@ -92,7 +92,7 @@ bool copyArray(vlsv::Reader& input,vlsv::Writer& output,
       }
       return false;
    }
-                 
+
    // Figure out arraysize, vectorsize, datasize, and datatype of the copied array
    map<string,string>::const_iterator it;
    it = outputAttribs.find("arraysize"); if (it == outputAttribs.end()) return false;
@@ -105,14 +105,14 @@ bool copyArray(vlsv::Reader& input,vlsv::Writer& output,
    const string datatype = it->second;
    
    const size_t bytes = arraysize*vectorsize*datasize;
-   
+
    // Read values from input file
    char* ptr = new char[bytes];
    if (input.readArray(tagName,inputAttribs,0,arraysize,ptr) == false) {
       cerr << "ERROR: Failed to clone array '" << tagName << "' in " << __FILE__ << ":" << __LINE__ << endl;
       delete [] ptr; return false;
    }
-   
+
    // Write array to output file
    if (output.writeArray(tagName,outputAttribs,datatype,arraysize,vectorsize,datasize,ptr) == false) {
       cerr << "ERROR: Failed to write array '" << tagName << "' in " << __FILE__ << ":" << __LINE__ << endl;
@@ -140,7 +140,7 @@ bool cloneMesh(const string& inputFileName,vlsv::Writer& output,const string& me
    list<pair<string,string> > inputAttribs;
    inputAttribs.push_back(make_pair("name",meshName));
    if (copyArray(input,output,"MESH",inputAttribs) == false) success = false;
-   
+
    inputAttribs.clear();
    inputAttribs.push_back(make_pair("mesh",meshName));
    if (copyArray(input,output,"MESH_BBOX",inputAttribs) == false) success = false;
@@ -150,7 +150,7 @@ bool cloneMesh(const string& inputFileName,vlsv::Writer& output,const string& me
    if (copyArray(input,output,"MESH_NODE_CRDS_Z",inputAttribs) == false) success = false;
    if (copyArray(input,output,"MESH_GHOST_LOCALIDS",inputAttribs) == false) success = false;
    if (copyArray(input,output,"MESH_GHOST_DOMAINS",inputAttribs) == false) success = false;
-   
+
    input.close();
    return success;
 }
@@ -169,6 +169,7 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader,
                  map<uint, Real> * orderedData,
                  unordered_map<size_t,size_t>& cellOrder,
                  const bool& storeCellOrder) {
+
    //Check for null pointer:
    if( !varToExtract || !orderedData ) {
       cerr << "ERROR, PASSED A NULL POINTER AT " << __FILE__ << " " << __LINE__ << endl;
@@ -221,7 +222,7 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader,
    }
    
    orderedData->clear();
-   
+
    for (uint64_t i=0; i<local_cells.size(); ++i) {
       const short int amountToReadIn = 1;
       const uint64_t & startingReadIndex = i;
@@ -235,7 +236,7 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader,
       
       // Get the variable value
       Real extract = NAN;
-      
+
       switch (variableDataType) {
          case datatype::type::FLOAT:
             if(variableDataSize == sizeof(float)) extract = (Real)(variablePtrFloat[compToExtract]);
@@ -257,7 +258,7 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader,
          cellOrder[CellID] = i;
       }
    }
-   
+
    if (meshSuccess == false) {
       cerr << "ERROR reading array MESH" << endl;
    }
@@ -281,16 +282,16 @@ bool convertSILO(const string fileName,
                  map<uint, Real> * orderedData,
                  unordered_map<size_t,size_t>& cellOrder,
                  const bool& storeCellOrder=false) {
-   
    bool success = true;
-   
+
    // Open VLSV file for reading:
    T vlsvReader;   
+
    if (vlsvReader.open(fileName) == false) {
       cerr << "Failed to open '" << fileName << "'" << endl;
       return false;
    }
-   
+
    // Get the names of all meshes in vlsv file
    list<string> meshNames;
    if (vlsvReader.getMeshNames(meshNames) == false) {
@@ -300,7 +301,7 @@ bool convertSILO(const string fileName,
 
    // Clear old data
    orderedData->clear();
-   
+
    for (list<string>::const_iterator it=meshNames.begin(); it!=meshNames.end(); ++it) {
       if (*it != attributes["--meshname"]) continue;
 
@@ -384,21 +385,21 @@ bool pDistance(const map<uint, Real>& orderedData1,
                const std::string& meshName,
                const std::string& varName
               ) {
-   
    map<uint,Real> shiftedData2;
    map<uint,Real>* data2 = const_cast< map<uint,Real>* >(&orderedData2);   
+
    if (doShiftAverage == true) {
       shiftAverage(&orderedData1,&orderedData2,&shiftedData2);
       data2 = &shiftedData2;
    }
-   
+
    // Reset old values
    *absolute = 0.0;
    *relative = 0.0;
 
    vector<Real> array(orderedData1.size());
    for (size_t i=0; i<array.size(); ++i) array[i] = -1.0;
-   
+
    Real length = 0.0;
    if (p == 0) {
       for (map<uint,Real>::const_iterator it1=orderedData1.begin(); it1!=orderedData1.end(); ++it1) {
@@ -436,13 +437,13 @@ bool pDistance(const map<uint, Real>& orderedData1,
       *absolute = pow(*absolute, 1.0 / p);
       length = pow(length, 1.0 / p);
    }
-   
+
    if (length != 0.0) *relative = *absolute / length;
    else {
       cout << "WARNING (pDistance) : length of reference is 0.0, cannot divide to give relative distance." << endl;
       *relative = -1;
    }
-   
+
    // Write out the difference (if requested):
    if (attributes.find("--diff") != attributes.end()) {
       map<string,string> attributes;
@@ -453,7 +454,7 @@ bool pDistance(const map<uint, Real>& orderedData1,
          return 1;
       }
    }
-   
+
    return 0;
 }
 
@@ -1153,25 +1154,25 @@ bool process2Files(const string fileName1,
    
       bool success = true;
       success = convertSILO<vlsvinterface::Reader>(fileName1, varToExtract, compToExtract, &orderedData1, cellOrder, true);
-      
+
       if( success == false ) {
          cerr << "ERROR Data import error with " << fileName1 << endl;
          return 1;
       }
-      
+
       success = convertSILO<vlsvinterface::Reader>(fileName2, varToExtract, compToExtract, &orderedData2, cellOrder, false);
 
       if( success == false ) {
          cerr << "ERROR Data import error with " << fileName2 << endl;
          return 1;
       }   
-   
+
       // Basic consistency check
       if(orderedData1.size() != orderedData2.size()) {
          cerr << "ERROR Datasets have different size." << endl;
          return 1;
       }
-      
+
       // Open VLSV file where the diffence in the chosen variable is written
       const string prefix = fileName1.substr(0,fileName1.find_last_of('.'));
       const string suffix = fileName1.substr(fileName1.find_last_of('.'),fileName1.size());
@@ -1185,38 +1186,38 @@ bool process2Files(const string fileName1,
          
          for (size_t s=0; s<outputFileName.size(); ++s)
            if (outputFileName[s] == '/') outputFileName[s] = '_';
-         
+
          if (outputFile.open(outputFileName,MPI_COMM_SELF,0) == false) {
             cerr << "ERROR failed to open output file '" << outputFileName << "' in " << __FILE__ << ":" << __LINE__ << endl;
             return false;
          }
-         
+
          // Clone mesh from input file to diff file
          map<string,string>::const_iterator it = attributes.find("--meshname");
          if (cloneMesh(fileName1,outputFile,it->second) == false) return false;
       }
-         
+
       singleStatistics(&orderedData1, &size, &mini, &maxi, &avg, &stdev); //CONTINUE
       outputStats(&size, &mini, &maxi, &avg, &stdev, verboseOutput, false);
-      
+
       singleStatistics(&orderedData2, &size, &mini, &maxi, &avg, &stdev);
       outputStats(&size, &mini, &maxi, &avg, &stdev, verboseOutput, false);
-      
+
       pDistance(orderedData1, orderedData2, 0, &absolute, &relative, false, cellOrder,outputFile,attributes["--meshname"],"d0_"+varName);
       outputDistance(0, &absolute, &relative, false, verboseOutput, false);
       pDistance(orderedData1, orderedData2, 0, &absolute, &relative, true, cellOrder,outputFile,attributes["--meshname"],"d0_sft_"+varName);
       outputDistance(0, &absolute, &relative, true, verboseOutput, false);
-      
+
       pDistance(orderedData1, orderedData2, 1, &absolute, &relative, false, cellOrder,outputFile,attributes["--meshname"],"d1_"+varName);
       outputDistance(1, &absolute, &relative, false, verboseOutput, false);
       pDistance(orderedData1, orderedData2, 1, &absolute, &relative, true, cellOrder,outputFile,attributes["--meshname"],"d1_sft_"+varName);
       outputDistance(1, &absolute, &relative, true, verboseOutput, false);
-      
+
       pDistance(orderedData1, orderedData2, 2, &absolute, &relative, false, cellOrder,outputFile,attributes["--meshname"],"d2_"+varName);
       outputDistance(2, &absolute, &relative, false, verboseOutput, false);
       pDistance(orderedData1, orderedData2, 2, &absolute, &relative, true, cellOrder,outputFile,attributes["--meshname"],"d2_sft_"+varName);
       outputDistance(2, &absolute, &relative, true, verboseOutput, false);
-      
+
       outputFile.close();
    }
    
@@ -1238,7 +1239,7 @@ bool processDirectory(DIR* dir, set<string>* fileList) {
    
    const string mask = attributes["--filemask"];
    const string suffix = ".vlsv";
-   
+
    struct dirent* entry = readdir(dir);
    while (entry != NULL) {
       const string entryName = entry->d_name;
@@ -1290,7 +1291,7 @@ void printHelp(const map<string,string>& defAttribs,const map<string,string>& de
          cout << descr->second << endl;
          continue;
       }
-      
+
       // Print the description on multiple lines. First parse the description 
       // string and store each word to a vector.
       vector<string> text;
@@ -1301,7 +1302,7 @@ void printHelp(const map<string,string>& defAttribs,const map<string,string>& de
          text.push_back(descr->second.substr(i,i_space-i));
          i = i_space+1;
       }
-      
+
       // Write out the words in vector 'text' so that the length of any line 
       // does not exceed descrMaxWidth characters.
       i = optionWidth;
@@ -1322,7 +1323,7 @@ void printHelp(const map<string,string>& defAttribs,const map<string,string>& de
    }
    cout << endl;
 }
-      
+
 /*! Main function, detects which calling pattern is used and sends to the corresponding processing functions.
  * 
  * \sa process2Files processDirectory
@@ -1338,7 +1339,7 @@ int main(int argn,char* args[]) {
    defAttribs.insert(make_pair("--help",""));
    defAttribs.insert(make_pair("--no-distrib",""));
    defAttribs.insert(make_pair("--diff",""));
-   
+
    descriptions["--meshname"] = "Name of the spatial mesh that is used in diff.";
    descriptions["--filemask"] = "File mask used in directory comparison mode. For example, if you want to compare files starting with 'fullf', set '--filemask=fullf'.";
    descriptions["--help"]     = "Print this help message.";
@@ -1392,7 +1393,7 @@ int main(int argn,char* args[]) {
       printHelp(defAttribs,descriptions);
       return 0;
    }
-   
+
    if (argsVector.size() < 5) {
       cout << endl;
       cout << "USAGE 1: ./vlsvdiff <file1> <file2> <Variable> <component>" << endl;
@@ -1414,6 +1415,7 @@ int main(int argn,char* args[]) {
    const string fileName2 = argsVector[2];
    // 3rd arg is variable name
    const char* varToExtract = argsVector[3].c_str();
+
    // 4th arg is its component, 0 for scalars, 2 for z component etc
    uint compToExtract = atoi(argsVector[4].c_str());
    // 5h arg if there is one:
@@ -1426,7 +1428,7 @@ int main(int argn,char* args[]) {
    
    DIR* dir1 = opendir(fileName1.c_str());
    DIR* dir2 = opendir(fileName2.c_str());
-   
+
    if (dir1 == NULL && dir2 == NULL) {
       cout << "INFO Reading in two files." << endl;
       

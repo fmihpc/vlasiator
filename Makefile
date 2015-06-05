@@ -21,13 +21,10 @@ FIELDSOLVER ?= londrillo_delzanna
 # COMPFLAGS += -DFS_1ST_ORDER_TIME
 
 #override flags if we are building testpackage:
-ifeq ($(MAKECMDGOALS),testpackage)
-MATHFLAGS =
-FP_PRECISION = DP
-DISTRIBUTION_FP_PRECISION = DPF
-VECTORCLASS = VEC4D_AGNER
-CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++0x -fabi-version=0 
-endif
+testpackage: MATHFLAGS =
+testpackage: FP_PRECISION = DP
+testpackage: DISTRIBUTION_FP_PRECISION = DPF
+testpackage: VECTORCLASS = VEC4D_AGNER
 
 #also use papi to report memory consumption?
 PAPI_FLAG ?= -DPAPI_MEM
@@ -92,14 +89,15 @@ endif
 
 # Set compiler flags
 CXXFLAGS += ${COMPFLAGS}
+#also for testpackage (due to makefile order this needs to be done also separately for targets)
+testpackage: CXXFLAGS += ${COMPFLAGS}
 CXXEXTRAFLAGS = ${CXXFLAGS} -DTOOL_NOT_PARALLEL
 
 default: vlasiator
 
 tools: parallel_tools not_parallel_tools
-	touch vlsvreader2.cpp
 
-parallel_tools: vlsv2vtk vlsv2bzt vlsvextract
+parallel_tools: vlsvextract vlsvdiff
 
 testpackage: vlasiator
 
@@ -108,7 +106,7 @@ FORCE:
 # This target here defines a flag which removes the mpi headers from the code with 
 # #ifdef pragmas such that one can compile this tool to be used on the login nodes.
 # To ensure this works one also needs to change the compiler at the top of Makefile.fermi*.
-not_parallel_tools: vlsvdiff
+not_parallel_tools:
 
 all: vlasiator tools
 
@@ -198,9 +196,9 @@ OBJS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipo
 	project.o projectTriAxisSearch.o read_gaussian_population.o\
 	Alfven.o Diffusion.o Dispersion.o Distributions.o electric_sail.o Firehose.o Flowthrough.o Fluctuations.o Harris.o KHB.o Larmor.o \
 	Magnetosphere.o MultiPeak.o VelocityBox.o Riemann1.o Shock.o Template.o test_fp.o testHall.o test_trans.o \
-	verificationLarmor.o Shocktest.o grid.o ioread.o iowrite.o vlasiator.o logger.o muxml.o \
+	verificationLarmor.o Shocktest.o grid.o ioread.o iowrite.o vlasiator.o logger.o\
 	common.o parameters.o readparameters.o spatial_cell.o mesh_data_container.o\
-	vlscommon.o vlsvreader2.o vlasovmover.o $(FIELDSOLVER).o fs_common.o fs_limiters.o
+	vlasovmover.o $(FIELDSOLVER).o fs_common.o fs_limiters.o
 
 # Add Vlasov solver objects (depend on mesh: AMR or non-AMR)
 ifeq ($(MESH),AMR)
@@ -233,7 +231,7 @@ c: clean
 clean: data
 	rm -rf *.o *~ */*~ */*/*~ ${EXE} particle_post_pusher check_projects_compil_logs/ check_projects_cfg_logs/ particles/*.o
 cleantools:
-	rm -rf vlsv2silo_${FP_PRECISION} vlsvextract_${FP_PRECISION} vlsv2vtk_${FP_PRECISION} vlsvdiff_${FP_PRECISION} vlsv2bzt_${FP_PRECISION} 
+	rm -rf vlsv2silo_${FP_PRECISION} vlsvextract_${FP_PRECISION}  vlsvdiff_${FP_PRECISION} 
 
 # Rules for making each object file needed by the executable
 
@@ -462,7 +460,7 @@ vlasiator.o: ${DEPS_COMMON} readparameters.h parameters.h ${DEPS_PROJECTS} grid.
 grid.o:  ${DEPS_COMMON} parameters.h ${DEPS_PROJECTS} ${DEPS_CELL} grid.cpp grid.h  sysboundary/sysboundary.h
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c grid.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV}
 
-ioread.o:  ${DEPS_COMMON} parameters.h  ${DEPS_CELL} ioread.cpp ioread.h  vlsvreader2.cpp
+ioread.o:  ${DEPS_COMMON} parameters.h  ${DEPS_CELL} ioread.cpp ioread.h 
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c ioread.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV}
 
 iowrite.o:  ${DEPS_COMMON} parameters.h ${DEPS_CELL} iowrite.cpp iowrite.h  
@@ -470,9 +468,6 @@ iowrite.o:  ${DEPS_COMMON} parameters.h ${DEPS_CELL} iowrite.cpp iowrite.h
 
 logger.o: logger.h logger.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c logger.cpp ${INC_MPI}
-
-muxml.o: muxml.h muxml.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c muxml.cpp
 
 common.o: common.h common.cpp
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c common.cpp
@@ -490,13 +485,6 @@ vlscommon.o:  $(DEPS_COMMON)  vlscommon.h vlscommon.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c vlscommon.cpp
 
 
-vlsvreader2.o:  muxml.h muxml.cpp vlscommon.h vlsvreader2.h vlsvreader2.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsvreader2.cpp ${INC_VLSV}
-
-vlsvreader2extra.o:  muxml.h muxml.cpp vlscommon.h vlsvreader2.h vlsvreader2.cpp
-	${CMP} ${CXXEXTRAFLAGS} ${FLAGS} -c vlsvreader2.cpp ${INC_VLSV}
-
-
 # Make executable
 vlasiator: $(OBJS) $(OBJS_POISSON) $(OBJS_FSOLVER)
 	$(LNK) ${LDFLAGS} -o ${EXE} $(OBJS) $(LIBS) $(OBJS_POISSON) $(OBJS_FSOLVER)
@@ -505,13 +493,8 @@ vlasiator: $(OBJS) $(OBJS_POISSON) $(OBJS_FSOLVER)
 #/// TOOLS section/////
 
 #common reader filter
-DEPS_VLSVREADER = muxml.h muxml.cpp vlscommon.h vlsvreader2.h vlsvreader2.cpp
 DEPS_VLSVREADERINTERFACE = tools/vlsvreaderinterface.h tools/vlsvreaderinterface.cpp
-
-#common reader objects for tools
-OBJS_VLSVREADER = muxml.o vlscommon.o vlsvreader2.o
 OBJS_VLSVREADERINTERFACE = vlsvreaderinterface.o
-OBJS_VLSVREADEREXTRA = muxml.o vlscommon.o vlsvreader2extra.o
 
 #particle pusher tool
 DEPS_PARTICLES = particles/particles.h particles/particles.cpp particles/field.h particles/readfields.h particles/relativistic_math.h particles/particleparameters.h particles/distribution.h\
@@ -520,41 +503,33 @@ OBJS_PARTICLES = particles/physconst.o particles/particles.o particles/readfield
 
 vlsvextract: ${DEPS_VLSVREADER} ${DEPS_VLSVREADERINTERFACE} tools/vlsvextract.h tools/vlsvextract.cpp ${OBJS_VLSVREADER} ${OBJS_VLSVREADERINTERFACE}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c tools/vlsvextract.cpp ${INC_BOOST} ${INC_DCCRG} ${INC_EIGEN} ${INC_VLSV} -I$(CURDIR) 
-	${LNK} -o vlsvextract_${FP_PRECISION} vlsvextract.o ${OBJS_VLSVREADER} ${OBJS_VLSVREADERINTERFACE} ${LIB_BOOST} ${LIB_DCCRG}  ${LIB_VLSV} ${LDFLAGS}
+	${LNK} -o vlsvextract_${FP_PRECISION} vlsvextract.o  ${OBJS_VLSVREADERINTERFACE} ${LIB_BOOST} ${LIB_DCCRG}  ${LIB_VLSV} ${LDFLAGS}
 
-vlsv2vtk: ${DEPS_VLSVREADER} ${OBJS_VLSVREADER} tools/vlsv2vtk.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c tools/vlsv2vtk.cpp ${INC_BOOST} ${INC_VLSV} -I$(CURDIR) 
-	${LNK} -o vlsv2vtk_${FP_PRECISION} vlsv2vtk.o ${OBJS_VLSVREADER} ${INC_BOOST} ${LIB_VLSV} ${LDFLAGS}
-
-vlsv2silo: ${DEPS_VLSVREADER} ${DEPS_VLSVREADERINTERFACE} tools/vlsv2silo.cpp ${OBJS_VLSVREADER} ${OBJS_VLSVREADERINTERFACE}
+vlsv2silo:  ${DEPS_VLSVREADERINTERFACE} tools/vlsv2silo.cpp  ${OBJS_VLSVREADERINTERFACE}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c tools/vlsv2silo.cpp ${INC_SILO} ${INC_VLSV} -I$(CURDIR) 
-	${LNK} -o vlsv2silo_${FP_PRECISION} vlsv2silo.o ${OBJS_VLSVREADER} ${OBJS_VLSVREADERINTERFACE} ${LIB_SILO} ${LIB_VLSV} ${LDFLAGS}
+	${LNK} -o vlsv2silo_${FP_PRECISION} vlsv2silo.o  ${OBJS_VLSVREADERINTERFACE} ${LIB_SILO} ${LIB_VLSV} ${LDFLAGS}
 
-vlsv2bzt: ${DEPS_VLSVREADER} ${OBJS_VLSVREADER} tools/vlsv2bzt.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c tools/vlsv2bzt.cpp ${INC_VLSV} -I$(CURDIR) 
-	${LNK} -o vlsv2bzt_${FP_PRECISION} vlsv2bzt.o ${OBJS_VLSVREADER} ${LIB_VLSV} ${LDFLAGS}
-
-vlsvdiff: ${DEPS_VLSVREADER} ${DEPS_VLSVREADERINTERFACE} tools/vlsvdiff.cpp ${OBJS_VLSVREADEREXTRA} ${OBJS_VLSVREADERINTERFACE}
+vlsvdiff:  ${DEPS_VLSVREADERINTERFACE} tools/vlsvdiff.cpp ${OBJS_VLSVREADEREXTRA} ${OBJS_VLSVREADERINTERFACE}
 	${CMP} ${CXXEXTRAFLAGS} ${FLAGS} -c tools/vlsvdiff.cpp ${INC_VLSV} -I$(CURDIR)
-	${LNK} -o vlsvdiff_${FP_PRECISION} vlsvdiff.o ${OBJS_VLSVREADER} ${OBJS_VLSVREADERINTERFACE} ${LIB_VLSV} ${LDFLAGS}
+	${LNK} -o vlsvdiff_${FP_PRECISION} vlsvdiff.o  ${OBJS_VLSVREADERINTERFACE} ${LIB_VLSV} ${LDFLAGS}
 
-vlsvreaderinterface.o: ${DEPS_VLSVREADER} tools/vlsvreaderinterface.h tools/vlsvreaderinterface.cpp ${OBJS_VLSVREADER}
+vlsvreaderinterface.o:  tools/vlsvreaderinterface.h tools/vlsvreaderinterface.cpp 
 	${CMP} ${CXXFLAGS} ${FLAGS} -c tools/vlsvreaderinterface.cpp ${INC_VLSV} -I$(CURDIR) 
 
-particles/particleparameters.o: ${DEPS_PARTICLES} ${DEPS_VLSVREADER} ${OBJS_VLSVREADERINTERFACE} particles/particleparameters.cpp
+particles/particleparameters.o: ${DEPS_PARTICLES}  ${OBJS_VLSVREADERINTERFACE} particles/particleparameters.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c particles/particleparameters.cpp ${INC_VLSV} ${INC_VECTORCLASS} -I$(CURDIR) -Itools -o $@
 
-particles/readfields.o: ${DEPS_PARTICLES} ${DEPS_VLSVREADER} ${OBJS_VLSVREADERINTERFACE} particles/readfields.cpp
+particles/readfields.o: ${DEPS_PARTICLES}  ${OBJS_VLSVREADERINTERFACE} particles/readfields.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c particles/readfields.cpp ${INC_VLSV} ${INC_VECTORCLASS} -I$(CURDIR) -Itools -o $@
 
-particles/particles.o: ${DEPS_PARTICLES} ${DEPS_VLSVREADER} ${OBJS_VLSVREADERINTERFACE} particles/particles.cpp
+particles/particles.o: ${DEPS_PARTICLES}  ${OBJS_VLSVREADERINTERFACE} particles/particles.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c particles/particles.cpp ${INC_VLSV} ${INC_VECTORCLASS} -I$(CURDIR) -Itools -o $@
 
-particles/distribution.o: ${DEPS_PARTICLES} ${DEPS_VLSVREADER} ${OBJS_VLSVREADERINTERFACE} particles/distribution.cpp
+particles/distribution.o: ${DEPS_PARTICLES}  ${OBJS_VLSVREADERINTERFACE} particles/distribution.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c particles/distribution.cpp ${INC_VLSV} ${INC_VECTORCLASS} -I$(CURDIR) -Itools -o $@
 
-particle_post_pusher: ${OBJS_PARTICLES} ${DEPS_PARTICLES} ${DEPS_VLSVREADER} ${OBJS_VLSVREADERINTERFACE} particles/particle_post_pusher.cpp
+particle_post_pusher: ${OBJS_PARTICLES} ${DEPS_PARTICLES}  ${OBJS_VLSVREADERINTERFACE} particles/particle_post_pusher.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c particles/particle_post_pusher.cpp ${INC_VLSV} ${INC_VECTORCLASS} -I$(CURDIR) -Itools
-	${LNK} -o $@ particle_post_pusher.o ${OBJS_PARTICLES} ${OBJS_VLSVREADER} ${OBJS_VLSVREADERINTERFACE} ${LIBS} ${LDFLAGS}
+	${LNK} -o $@ particle_post_pusher.o ${OBJS_PARTICLES}  ${OBJS_VLSVREADERINTERFACE} ${LIBS} ${LDFLAGS}
 
 # DO NOT DELETE

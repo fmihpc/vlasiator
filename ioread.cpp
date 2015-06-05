@@ -114,20 +114,20 @@ bool readCellIds(vlsv::ParallelReader & file,
       attribs.push_back(make_pair("name","CellID"));
       attribs.push_back(make_pair("mesh","SpatialGrid"));
       if (file.getArrayInfoMaster("VARIABLE",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
-         logFile << "(RESTARTBUILDER) ERROR: Failed to read cell ID array info!" << endl << write;
+         logFile << "(RESTART) ERROR: Failed to read cell ID array info!" << endl << write;
          return false;
       }
 
       //Make a routine error check:
       if( vectorSize != 1 ) {
-         logFile << "(RESTARTBUILDER) ERROR: Bad vectorsize at " << __FILE__ << " " << __LINE__ << endl << write;
+         logFile << "(RESTART) ERROR: Bad vectorsize at " << __FILE__ << " " << __LINE__ << endl << write;
          return false;
       }
       
       //   Read cell Ids:
       char* IDbuffer = new char[arraySize*vectorSize*byteSize];
       if (file.readArrayMaster("VARIABLE",attribs,readFromFirstIndex,arraySize,IDbuffer) == false) {
-         logFile << "(RESTARTBUILDER) ERROR: Failed to read cell Ids!" << endl << write;
+         logFile << "(RESTART) ERROR: Failed to read cell Ids!" << endl << write;
          success = false;
       }
    
@@ -148,7 +148,7 @@ bool readCellIds(vlsv::ParallelReader & file,
             fileCells[i] = cellID;
          }
       } else {
-         logFile << "(RESTARTBUILDER) ERROR: VLSVParReader returned an unsupported datatype for cell Ids!" << endl << write;
+         logFile << "(RESTART) ERROR: ParallelReader returned an unsupported datatype for cell Ids!" << endl << write;
          success = false;
       }
       delete[] IDbuffer;
@@ -358,8 +358,6 @@ bool readBlockData(
         const vector<CellID>& fileCells,
         const uint64_t localCellStartOffset,
         const uint64_t localCells,
-//        const vector<uint>& nBlocks,
-//        const uint64_t localBlocks,
         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
    ) {
    bool success = true;
@@ -423,17 +421,17 @@ bool readBlockData(
  \param mpiGrid Vlasiator's grid (the parameters are saved here)
  \return Returns true if the operation is successful
  */
-template <typename fileReal, class U>
+template <typename fileReal>
 static bool _readCellParamsVariable(
-   U & file,
-   const vector<uint64_t>& fileCells,
-   const uint64_t localCellStartOffset,
-   const uint64_t localCells,
-   const string& variableName,
-   const size_t cellParamsIndex,
-   const size_t expectedVectorSize,
-   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
-) {
+                                    vlsv::ParallelReader& file,
+                                    const vector<uint64_t>& fileCells,
+                                    const uint64_t localCellStartOffset,
+                                    const uint64_t localCells,
+                                    const string& variableName,
+                                    const size_t cellParamsIndex,
+                                    const size_t expectedVectorSize,
+                                    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
+                                   ) {
    uint64_t arraySize;
    uint64_t vectorSize;
    vlsv::datatype::type dataType;
@@ -446,18 +444,18 @@ static bool _readCellParamsVariable(
    attribs.push_back(make_pair("mesh","SpatialGrid"));
    
    if (file.getArrayInfo("VARIABLE",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
-      logFile << "(RESTARTBUILDER)  ERROR: Failed to read " << endl << write;
+      logFile << "(RESTART)  ERROR: Failed to read " << endl << write;
       return false;
    }
 
    if(vectorSize!=expectedVectorSize){
-      logFile << "(RESTARTBUILDER)  vectorsize wrong " << endl << write;
+      logFile << "(RESTART)  vectorsize wrong " << endl << write;
       return false;
    }
    
    buffer=new fileReal[vectorSize*localCells];
    if(file.readArray("VARIABLE",attribs,localCellStartOffset,localCells,(char *)buffer) == false ) {
-      logFile << "(RESTARTBUILDER)  ERROR: Failed to read " << variableName << endl << write;
+      logFile << "(RESTART)  ERROR: Failed to read " << variableName << endl << write;
       return false;
    }
    
@@ -502,7 +500,7 @@ bool readCellParamsVariable(
    attribs.push_back(make_pair("mesh","SpatialGrid"));
    
    if (file.getArrayInfo("VARIABLE",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
-      logFile << "(RESTARTBUILDER)  ERROR: Failed to read " << endl << write;
+      logFile << "(RESTART)  ERROR: Failed to read " << endl << write;
       return false;
    }
 
@@ -536,7 +534,7 @@ bool readCellParamsVariable(
             break;
       }
    } else {
-      logFile << "(RESTARTBUILDER)  ERROR: Failed to read data type at readCellParamsVariable" << endl << write;
+      logFile << "(RESTART)  ERROR: Failed to read data type at readCellParamsVariable" << endl << write;
       return false;
    }
 }
@@ -584,28 +582,10 @@ bool checkScalarParameter(vlsv::ParallelReader& file,const string& name,T correc
    }
 }
 
-/*! A function for checking the version of the file
- \param vlsvReader Some vlsv reader with a file open
- \return Returns the version number
- */
-float checkVersion(vlsv::ParallelReader& vlsvReader ) {
-   string versionTag = "version";
-   float version;
-   if( vlsvReader.readParameter( versionTag, version ) == false ) {
-      return 0;
-   }
-   if( version == 1.00 ) {
-      return version;
-   } else {
-      cerr << "Invalid version!" << endl;
-      exit(1);
-      return 0;
-   }
-}
-
-/*! This function is used to read the restart file. The template class T can be ParallelReader or VLSVParReader
- \param mpiGrid Vlasiator's grid
- \param name Name of restart file
+/*!
+\brief Read in state from a vlsv file in order to restart simulations
+\param mpiGrid Vlasiator's grid
+\param name Name of the restart file e.g. "restart.00052.vlsv"
  \return Returns true if the operation was successful
  \sa readGrid
  */
@@ -636,14 +616,14 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    // Around May 2015 time was renamed from "t" to "time", we try to read both, 
    // new way is read first
    if (readScalarParameter(file,"time",P::t,MASTER_RANK,MPI_COMM_WORLD) == false)
-     if (readScalarParameter(file,"t",P::t,MASTER_RANK,MPI_COMM_WORLD) ==false) 
+     if (readScalarParameter(file,"t", P::t,MASTER_RANK,MPI_COMM_WORLD) == false) 
        success=false;
    P::t_min=P::t;
 
    // Around May 2015 timestep was renamed from "tstep" to "timestep", we to read
    // both, new way is read first
-   if (readScalarParameter(file,"timestep",P::t,MASTER_RANK,MPI_COMM_WORLD) == false)
-     if (readScalarParameter(file,"tstep",P::tstep,MASTER_RANK,MPI_COMM_WORLD) ==false) 
+   if (readScalarParameter(file,"timestep",P::tstep,MASTER_RANK,MPI_COMM_WORLD) == false)
+     if (readScalarParameter(file,"tstep", P::tstep,MASTER_RANK,MPI_COMM_WORLD) ==false) 
        success = false;
    P::tstep_min=P::tstep;
 
@@ -665,7 +645,7 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    checkScalarParameter(file,"xcells_ini",P::xcells_ini,MASTER_RANK,MPI_COMM_WORLD);
    checkScalarParameter(file,"ycells_ini",P::ycells_ini,MASTER_RANK,MPI_COMM_WORLD);
    checkScalarParameter(file,"zcells_ini",P::zcells_ini,MASTER_RANK,MPI_COMM_WORLD);
-#warning Vel Mesh Parameters no checked anymore
+#warning Vel Mesh Parameters not checked anymore
    //checkScalarParameter(file,"vxmin",P::vxmin,MASTER_RANK,MPI_COMM_WORLD);
    //checkScalarParameter(file,"vymin",P::vymin,MASTER_RANK,MPI_COMM_WORLD);
    //checkScalarParameter(file,"vzmin",P::vzmin,MASTER_RANK,MPI_COMM_WORLD);

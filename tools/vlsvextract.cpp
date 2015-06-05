@@ -881,6 +881,17 @@ bool convertVelocityBlocks2(
          
          delete [] buffer; buffer = NULL;
       }
+      
+      // Write velocity cell IDs:
+      vector<uint64_t> cellIDs(blockIds.size()*64);
+      for (size_t b=0; b<blockIds.size(); ++b) {
+         for (size_t c=0; c<64; ++c) {
+            cellIDs[b*64+c] = blockIds[b]*64 + c;
+         }
+      }
+      
+      attributes["name"] = "CellID";
+      if (out.writeArray("VARIABLE",attributes,cellIDs.size(),1,&(cellIDs[0])) == false) success = false;
    }
    
    vlsvReader.clearCellsWithBlocks();

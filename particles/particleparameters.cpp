@@ -15,6 +15,7 @@ Real P::init_y = 0;
 Real P::init_z = 0;
 
 Real P::dt = 0;
+Real P::input_dt = 1;
 Real P::start_time = 0;
 Real P::end_time = 0;
 uint64_t P::num_particles = 0;
@@ -36,6 +37,7 @@ bool ParticleParameters::addParameters() {
    Readparameters::add("particles.init_z", "Particle starting point, z-coordinate (meters).", 0);
 
    Readparameters::add("particles.dt", "Particle pusher timestep",0);
+   Readparameters::add("particles.input_dt", "Time spacing (seconds) of input files",1.);
    Readparameters::add("particles.start_time", "Simulation time (seconds) for particle start.",0);
    Readparameters::add("particles.end_time", "Simulation time (seconds) at which particle simulation stops.",0);
    Readparameters::add("particles.num_particles", "Number of particles to simulate.",10000);
@@ -59,6 +61,7 @@ bool ParticleParameters::getParameters() {
    Readparameters::get("particles.init_z",P::init_z);
 
    Readparameters::get("particles.dt",P::dt);
+	 Readparameters::get("particles.input_dt", P::input_dt);
    Readparameters::get("particles.start_time",P::start_time);
    Readparameters::get("particles.end_time",P::end_time);
    Readparameters::get("particles.num_particles",P::num_particles);

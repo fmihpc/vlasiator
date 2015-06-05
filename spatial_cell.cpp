@@ -242,13 +242,17 @@ namespace spatial_cell {
          for (int block_index= this->velocity_block_with_no_content_list.size()-1; block_index>=0; --block_index) {
             const vmesh::GlobalID blockGID = this->velocity_block_with_no_content_list[block_index];
             #ifdef DEBUG_SPATIAL_CELL
-               if (blockGID == invalid_global_id())
-                  cerr << "Got invalid block at " << __FILE__ << ' ' << __LINE__ << endl; exit(1);               
+               if (blockGID == invalid_global_id()) {
+                  cerr << "Got invalid block at " << __FILE__ << ' ' << __LINE__ << endl;
+                  exit(1); 
+               }
             #endif
             const vmesh::LocalID blockLID = get_velocity_block_local_id(blockGID,popID);
             #ifdef DEBUG_SPATIAL_CELL
-               if (blockLID == invalid_local_id())
-                  cerr << "Could not find block in " << __FILE__ << ' ' << __LINE__ << endl; exit(1);               
+               if (blockLID == invalid_local_id()) {
+                  cerr << "Could not find block in " << __FILE__ << ' ' << __LINE__ << endl;
+                  exit(1);
+               }
             #endif
             
             bool removeBlock = false;

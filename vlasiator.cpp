@@ -342,7 +342,10 @@ int main(int argn,char* args[]) {
       P::systemWriteDistributionWriteYlineStride.push_back(0);
       P::systemWriteDistributionWriteZlineStride.push_back(0);
       P::systemWritePath.push_back("./");
-      P::systemWrites.push_back(0);
+
+      for(uint si=0; si<P::systemWriteName.size(); si++) {
+         P::systemWrites.push_back(0);
+      }
 
       const bool writeGhosts = true;
       if( writeGrid(mpiGrid,&outputReducer,P::systemWriteName.size()-1, writeGhosts) == false ) {
@@ -355,7 +358,7 @@ int main(int argn,char* args[]) {
       P::systemWriteDistributionWriteYlineStride.pop_back();
       P::systemWriteDistributionWriteZlineStride.pop_back();
       P::systemWritePath.pop_back();
-      P::systemWrites.pop_back();
+
       phiprof::stop("write-initial-state");
    }
 
