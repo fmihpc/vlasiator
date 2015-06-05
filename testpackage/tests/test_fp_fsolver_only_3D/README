@@ -13,3 +13,6 @@ This test case does not test errors in
 - vlasov translation
 - boundary conditions (field or vlasov)
 
+You should compare either the magnetic field or electric field values to 
+the reference values. Since E and B depend on each others it does not make 
+sense to compare both.
