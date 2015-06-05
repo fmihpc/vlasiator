@@ -1,34 +1,32 @@
 /*
   This file is part of Vlasiator.
 
-  Copyright 2010, 2011, 2012, 2013, 2014 Finnish Meteorological Institute
+  Copyright 2014-2015 Finnish Meteorological Institute
 
 */
-
 
 #include <cstdlib>
 #include <iostream>
 #include <vector>
+#include <stdint.h>
 
 #ifdef _OPENMP
-#include "omp.h"
+   #include <omp.h>
 #endif
 #include <zoltan.h>
-
-#include "../vlasovmover.h"
-#include "phiprof.hpp"
-
-#include "cpu_moments.h"
-#include "cpu_acc_semilag.hpp"
-#include "cpu_trans_map.hpp"
-
-#include <stdint.h>
+#include <phiprof.hpp>
 #include <dccrg.hpp>
 
-#include "spatial_cell.hpp"
+#include "../vlasovmover.h"
+#include "../spatial_cell.hpp"
 #include "../grid.h"
 #include "../definitions.h"
 #include "../iowrite.h"
+#include "../object_wrapper.h"
+
+#include "../vlasovsolver/cpu_moments.h"
+//#include "cpu_acc_semilag.hpp"
+//#include "cpu_trans_map.hpp"
 
 using namespace std;
 using namespace spatial_cell;
@@ -43,8 +41,8 @@ creal EPSILON = 1.0e-25;
 
 #warning TESTING can be removed later
 static void writeVelMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
-   vector<CellID> cells = mpiGrid.get_cells();
-   
+   const vector<CellID>& cells = getLocalCells();
+
    static int counter=-1;
    if (counter < 0) {
       counter = Parameters::systemWrites.size();
@@ -60,14 +58,14 @@ static void writeVelMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mp
    ++Parameters::systemWrites[counter];
 }
 
-Real calculateTotalMass(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
-   const vector<CellID> local_cells = mpiGrid.get_cells();
+Real calculateTotalMass(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const int& popID) {
+   const vector<CellID>& local_cells = getLocalCells();
    Real sum=0.0;
    for (size_t c=0; c<local_cells.size(); ++c) {
       const CellID cellID = local_cells[c];
       SpatialCell* cell = mpiGrid[cellID];
       
-      for (vmesh::LocalID blockLID=0; blockLID<cell->get_number_of_velocity_blocks(); ++blockLID) {
+      for (vmesh::LocalID blockLID=0; blockLID<cell->get_number_of_velocity_blocks(popID); ++blockLID) {
          const Real* parameters = cell->get_block_parameters(blockLID);
          const Realf* data = cell->get_data(blockLID);
          Real blockMass = 0.0;
@@ -100,6 +98,7 @@ Real calculateTotalMass(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,Real dt) {
    return;
 
+   /*
    typedef Parameters P;
    int trans_timer;
 
@@ -233,6 +232,7 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    }
    phiprof::stop("compute-moments-n-maxdt");
    //phiprof::stop("semilag-trans");
+    */
 }
 
 /*
@@ -241,7 +241,8 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
   --------------------------------------------------
 */
 void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,Real dt) {
-
+   return;
+   /*
    typedef Parameters P;
    const vector<CellID> cells = mpiGrid.get_cells();
    vector<CellID> propagatedCells;
@@ -318,6 +319,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
       }
    }
    phiprof::stop("Compute moments");
+    */
 }
 
 
@@ -357,6 +359,7 @@ void calculateInterpolatedVelocityMoments(
 void calculateCellVelocityMoments(SpatialCell* SC,
                                   bool doNotSkip // default: false
                                  ) {
+   /*
    // if doNotSkip == true then the first clause is false and we will never return, i.e. always compute
    // otherwise we skip DO_NOT_COMPUTE cells
    // or boundary cells of layer larger than 1
@@ -432,10 +435,11 @@ void calculateCellVelocityMoments(SpatialCell* SC,
       cellParams[CellParams::P_22] += array[1]*getObjectWrapper().particleSpecies[popID].mass;
       cellParams[CellParams::P_33] += array[2]*getObjectWrapper().particleSpecies[popID].mass;
    } // for-loop over particle species
+    */
 }
 
 void calculateInitialVelocityMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
-   vector<CellID> cells;
+   /*vector<CellID> cells;
    cells=mpiGrid.get_cells();
    phiprof::start("Calculate moments"); 
    // Iterate through all local cells (incl. system boundary cells):
@@ -457,5 +461,5 @@ void calculateInitialVelocityMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_G
 
    }
    phiprof::stop("Calculate moments"); 
-
+   */
 }

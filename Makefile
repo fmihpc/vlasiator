@@ -184,7 +184,7 @@ DEPS_VLSVMOVER = ${DEPS_CELL} vlasovsolver/vlasovmover.cpp vlasovsolver/cpu_acc_
 
 DEPS_VLSVMOVER_AMR = ${DEPS_CELL} vlasovsolver_amr/vlasovmover.cpp vlasovsolver_amr/cpu_acc_map.hpp vlasovsolver_amr/cpu_acc_intersections.hpp \
 	vlasovsolver_amr/cpu_acc_intersections.hpp vlasovsolver_amr/cpu_acc_semilag.hpp vlasovsolver_amr/cpu_acc_transform.hpp \
-	vlasovsolver_amr/cpu_moments.h vlasovsolver_amr/cpu_trans_map.hpp velocity_blocks.h
+	vlasovsolver/cpu_moments.h vlasovsolver_amr/cpu_trans_map.hpp velocity_blocks.h
 
 #DEPS_PROJECTS =	projects/project.h projects/project.cpp \
 #		projects/MultiPeak/MultiPeak.h projects/MultiPeak/MultiPeak.cpp ${DEPS_CELL}
@@ -204,7 +204,7 @@ OBJS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipo
 
 # Add Vlasov solver objects (depend on mesh: AMR or non-AMR)
 ifeq ($(MESH),AMR)
-
+OBJS += cpu_moments.o
 else
 OBJS += cpu_acc_intersections.o cpu_acc_map.o cpu_acc_sort_blocks.o cpu_acc_semilag.o cpu_acc_transform.o \
 	cpu_moments.o cpu_trans_map.o
@@ -419,15 +419,15 @@ cpu_acc_sort_blocks.o: ${DEPS_CPU_ACC_SORT_BLOCKS}
 cpu_acc_transform.o: ${DEPS_CPU_ACC_TRANSFORM}
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_transform.cpp ${INC_EIGEN} ${INC_DCCRG} ${INC_PROFILE} ${INC_ZOLTAN}
 
-cpu_moments.o: ${DEPS_CPU_MOMENTS}
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_moments.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_PROFILE}
-
 cpu_trans_map.o: ${DEPS_CPU_TRANS_MAP}
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_trans_map.cpp ${INC_EIGEN} ${INC_DCCRG} ${INC_PROFILE} ${INC_VECTORCLASS} ${INC_ZOLTAN} ${INC_VLSV}
 
 vlasovmover.o: ${DEPS_VLSVMOVER}
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/vlasovmover.cpp -I$(CURDIR) ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VECTORCLASS} ${INC_EIGEN} ${INC_VLSV}
 endif
+
+cpu_moments.o: ${DEPS_CPU_MOMENTS}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_moments.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_PROFILE}
 
 derivatives.o: ${DEPS_FSOLVER} fieldsolver/fs_limiters.h fieldsolver/fs_limiters.cpp fieldsolver/derivatives.hpp fieldsolver/derivatives.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c fieldsolver/derivatives.cpp -I$(CURDIR)  ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_PROFILE} ${INC_ZOLTAN}

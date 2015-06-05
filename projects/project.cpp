@@ -52,6 +52,7 @@ struct VelocityMeshParams {
    vector<double> vx_length;
    vector<double> vy_length;
    vector<double> vz_length;
+   vector<unsigned int> maxRefLevels;
    
    void resize(const size_t& size) {
       name.resize(1);
@@ -64,6 +65,7 @@ struct VelocityMeshParams {
       vx_length.resize(1);
       vy_length.resize(1);
       vz_length.resize(1);
+      maxRefLevels.resize(1);
    }
 };
 
@@ -123,6 +125,7 @@ namespace projects {
       RP::addComposing("velocitymesh.vx_length","Initial number of velocity blocks in vx-direction.");
       RP::addComposing("velocitymesh.vy_length","Initial number of velocity blocks in vy-direction.");
       RP::addComposing("velocitymesh.vz_length","Initial number of velocity blocks in vz-direction.");
+      RP::addComposing("velocitymesh.max_refinement_level","Maximum allowed mesh refinement level.");
 
       // These parameters are only read if the 'velocitymesh.' parameters are not defined 
       // in order to support older configuration files.
@@ -159,6 +162,7 @@ namespace projects {
       RP::get("velocitymesh.vx_length",velMeshParams->vx_length);
       RP::get("velocitymesh.vy_length",velMeshParams->vy_length);
       RP::get("velocitymesh.vz_length",velMeshParams->vz_length);
+      RP::get("velocitymesh.max_refinement_level",velMeshParams->maxRefLevels);
    }
 
    bool Project::initialize() {
@@ -190,6 +194,7 @@ namespace projects {
       if (velMeshParams->vx_length.size() != velMeshParams->name.size()) success = false;
       if (velMeshParams->vy_length.size() != velMeshParams->name.size()) success = false;
       if (velMeshParams->vz_length.size() != velMeshParams->name.size()) success = false;
+      if (velMeshParams->maxRefLevels.size() != velMeshParams->name.size()) success = false;
       if (success == false) {
          stringstream ss;
          ss << "(PROJECT) ERROR in configuration file velocity mesh definitions at ";
@@ -215,6 +220,7 @@ namespace projects {
          RP::get("gridbuilder.vx_length",velMeshParams->vx_length[0]);
          RP::get("gridbuilder.vy_length",velMeshParams->vy_length[0]);
          RP::get("gridbuilder.vz_length",velMeshParams->vz_length[0]);
+         velMeshParams->maxRefLevels[0] = 0;
       }
 
       // Store velocity mesh parameters
@@ -249,6 +255,7 @@ namespace projects {
          meshParams.blockLength[0] = WID;
          meshParams.blockLength[1] = WID;
          meshParams.blockLength[2] = WID;
+         meshParams.refLevelMaxAllowed = velMeshParams->maxRefLevels[m];
          owrapper.velocityMeshes.push_back(meshParams);
       }
 
@@ -415,26 +422,23 @@ namespace projects {
       logFile << write;
    }
    
-   void Project::setVelocitySpace(const int& popID,SpatialCell* cell) const {
-      vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = cell->get_velocity_mesh(popID);
-
-      vector<vmesh::GlobalID> blocksToInitialize = this->findBlocksToInitialize(cell,popID);
-      Real* parameters = cell->get_block_parameters(popID);
-
-      creal x = cell->parameters[CellParams::XCRD];
-      creal y = cell->parameters[CellParams::YCRD];
-      creal z = cell->parameters[CellParams::ZCRD];
-      creal dx = cell->parameters[CellParams::DX];
-      creal dy = cell->parameters[CellParams::DY];
-      creal dz = cell->parameters[CellParams::DZ];
-      Realf* data = cell->get_data(popID);
-
+   /** Calculate the volume averages of distribution function for the 
+    * given particle population in the given spatial cell. The velocity block 
+    * is defined by its local ID. The function returns the maximum value of the 
+    * distribution function within the velocity block. If it is below the sparse 
+    * min value for the population, this block should be removed or marked 
+    * as a no-content block.
+    * @param cell Spatial cell.
+    * @param blockLID Velocity block local ID within the spatial cell.
+    * @param popID Population ID.
+    * @return Maximum value of the calculated distribution function.*/
+   Real Project::setVelocityBlock(spatial_cell::SpatialCell* cell,const vmesh::LocalID& blockLID,const int& popID) const {
       // If simulation doesn't use one or more velocity coordinates, 
       // only calculate the distribution function for one layer of cells.
       uint WID_VX = WID;
       uint WID_VY = WID;
       uint WID_VZ = WID;
-      switch (Parameters::geometry) {
+      switch (Parameters::geometry) {         
          case geometry::XY4D:
             WID_VZ=1;
             break;
@@ -445,6 +449,48 @@ namespace projects {
             break;
       }
 
+      // Fetch spatial cell coordinates and size
+      creal x  = cell->parameters[CellParams::XCRD];
+      creal y  = cell->parameters[CellParams::YCRD];
+      creal z  = cell->parameters[CellParams::ZCRD];
+      creal dx = cell->parameters[CellParams::DX];
+      creal dy = cell->parameters[CellParams::DY];
+      creal dz = cell->parameters[CellParams::DZ];
+
+      const Real* parameters = cell->get_block_parameters(popID);
+      Realf* data = cell->get_data(popID);
+      
+      creal vxBlock = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD];
+      creal vyBlock = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD];
+      creal vzBlock = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD];
+      creal dvxCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
+      creal dvyCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
+      creal dvzCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+      
+      // Calculate volume average of distribution function for each phase-space cell in the block.
+      Real maxValue = 0.0;
+      for (uint kc=0; kc<WID_VZ; ++kc) for (uint jc=0; jc<WID_VY; ++jc) for (uint ic=0; ic<WID_VX; ++ic) {
+         creal vxCell = vxBlock + ic*dvxCell;
+         creal vyCell = vyBlock + jc*dvyCell;
+         creal vzCell = vzBlock + kc*dvzCell;
+         creal average =
+            calcPhaseSpaceDensity(
+               x, y, z, dx, dy, dz,
+               vxCell,vyCell,vzCell,
+               dvxCell,dvyCell,dvzCell,popID);
+         if (average != 0.0) {
+            data[blockLID*SIZE_VELBLOCK+cellIndex(ic,jc,kc)] = average;
+            maxValue = max(maxValue,average);
+         }
+      }
+      
+      return maxValue;
+   }
+   
+   void Project::setVelocitySpace(const int& popID,SpatialCell* cell) const {
+      vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = cell->get_velocity_mesh(popID);
+
+      vector<vmesh::GlobalID> blocksToInitialize = this->findBlocksToInitialize(cell,popID);
       vector<vmesh::GlobalID> removeList;
       for (uint i=0; i<blocksToInitialize.size(); ++i) {
          const vmesh::GlobalID blockGID = blocksToInitialize[i];
@@ -454,31 +500,7 @@ namespace projects {
             exit(1);
          }
 
-         creal vxBlock = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD];
-         creal vyBlock = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD];
-         creal vzBlock = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD];
-         creal dvxCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
-         creal dvyCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
-         creal dvzCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
-
-         // Calculate volume average of distrib. function for each cell in the block.
-         Real maxValue = 0.0;
-         for (uint kc=0; kc<WID_VZ; ++kc) for (uint jc=0; jc<WID_VY; ++jc) for (uint ic=0; ic<WID_VX; ++ic) {
-            creal vxCell = vxBlock + ic*dvxCell;
-            creal vyCell = vyBlock + jc*dvyCell;
-            creal vzCell = vzBlock + kc*dvzCell;
-            creal average =
-               calcPhaseSpaceDensity(
-                  x, y, z, dx, dy, dz,
-                  vxCell,vyCell,vzCell,
-                  dvxCell,dvyCell,dvzCell,popID);
-
-            if (average != 0.0) {
-               data[blockLID*SIZE_VELBLOCK+cellIndex(ic,jc,kc)] = average;
-               maxValue = max(maxValue,average);
-            }
-         }
-
+         const Real maxValue = setVelocityBlock(cell,blockLID,popID);
          if (maxValue < getObjectWrapper().particleSpecies[popID].sparseMinValue) removeList.push_back(blockGID);
       }
 
@@ -533,32 +555,7 @@ namespace projects {
          for (map<vmesh::GlobalID,vmesh::LocalID>::const_iterator it=insertedBlocks.begin(); it!=insertedBlocks.end(); ++it) {
             const vmesh::GlobalID blockGID = it->first;
             const vmesh::LocalID blockLID = it->second;
-            parameters = cell->get_block_parameters(popID);
-            creal vxBlock = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD];
-            creal vyBlock = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD];
-            creal vzBlock = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD];
-            creal dvxCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
-            creal dvyCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
-            creal dvzCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
-
-            Real maxValue = 0.0;
-            for (uint kc=0; kc<WID; ++kc) {
-               for (uint jc=0; jc<WID; ++jc) {
-                  for (uint ic=0; ic<WID; ++ic) {
-                     creal vxCell = vxBlock + ic*dvxCell;
-                     creal vyCell = vyBlock + jc*dvyCell;
-                     creal vzCell = vzBlock + kc*dvzCell;
-                     creal average =
-                       calcPhaseSpaceDensity(
-                                             x, y, z, dx, dy, dz,
-                                             vxCell,vyCell,vzCell,
-                                             dvxCell,dvyCell,dvzCell,popID);
-                     cell->get_data(popID)[blockLID*SIZE_VELBLOCK + kc*WID2+jc*WID+ic] = average;
-                     maxValue = max(maxValue,average);
-                  }
-               }
-            }
-
+            const Real maxValue = setVelocityBlock(cell,blockLID,popID);
             if (maxValue <= getObjectWrapper().particleSpecies[popID].sparseMinValue) 
               removeList.push_back(it->first);
          }

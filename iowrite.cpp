@@ -157,6 +157,12 @@ bool writeVelocityDistributionData(const int& popID,Writer& vlsvWriter,
    attribs.clear();
    attribs["mesh"] = getObjectWrapper().particleSpecies[popID].name;
    attribs["type"] = vlsv::mesh::STRING_UCD_AMR;
+
+   // stringstream is necessary here to correctly convert refLevelMaxAllowed into a string 
+   stringstream ss;
+   ss << static_cast<unsigned int>(getObjectWrapper().velocityMeshes[meshID].refLevelMaxAllowed);
+   attribs["max_velocity_ref_level"] = ss.str();
+   
    if (mpiGrid.get_rank() == MASTER_RANK) {
       if (vlsvWriter.writeArray("MESH_BBOX",attribs,6,1,bbox) == false) success = false;
 
@@ -426,7 +432,7 @@ bool writeCommonGridData(
    //if( vlsvWriter.writeParameter("vyblocks_ini", &P::vyblocks_ini) == false ) { return false; }
    //if( vlsvWriter.writeParameter("vzblocks_ini", &P::vzblocks_ini) == false ) { return false; }
    //if( vlsvWriter.writeParameter("max_velocity_ref_level", &P::amrMaxVelocityRefLevel) == false) {return false;}
-   
+
    //Mark the new version:
    float version = 1.00;
    if( vlsvWriter.writeParameter( "version", &version ) == false ) { return false; }

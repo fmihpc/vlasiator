@@ -1190,8 +1190,10 @@ bool setVelocityMeshVariables(vlsv::Reader& vlsvReader,CellStructure& cellStruct
    // was actually given as a parameter.
    uint32_t dummyUInt;
    cellStruct.maxVelRefLevel = 0;
-   if (vlsvReader.readParameter("max_velocity_ref_level",dummyUInt) == true) {
-      cellStruct.maxVelRefLevel = dummyUInt;
+   map<string,string> attribsOut;
+   vlsvReader.getArrayAttributes("MESH_BBOX",attribs,attribsOut);
+   if (attribsOut.find("max_velocity_ref_level") != attribsOut.end()) {
+      cellStruct.maxVelRefLevel = atoi(attribsOut["max_velocity_ref_level"].c_str());
    }
 
    return true;

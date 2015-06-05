@@ -315,6 +315,30 @@ bool Readparameters::get(const std::string& name,std::vector<int>& value) {
     return ret;
 }
 
+/** Get the value of the given parameter added with addComposing(). This may be called after having called Parse, and it may be called
+ * by any process, in any order.
+ * @param name The name of the parameter.
+ * @param value A variable where the value of the parameter is written.
+ * @return If true, the given parameter was found and its value was written to value.
+ */
+bool Readparameters::get(const std::string& name,std::vector<unsigned int>& value) {
+   vector<string> stringValue;
+   bool ret;
+   using boost::lexical_cast;
+   ret=Readparameters::get(name,stringValue);
+   if (ret) {
+      for (vector<string>::iterator i = stringValue.begin(); i!=stringValue.end(); ++i) {
+         try {
+            value.push_back(lexical_cast<unsigned int>(*i));
+         }
+         catch (...){
+            if(Readparameters::rank==0) cerr << "Problems casting value to unsigned int " << name <<" = " << *i <<endl;
+            return false;
+         }
+      }
+   }   
+   return ret;
+}
 
 
 /** Get the value of the given parameter added with addComposing(). This may be called after having called Parse, and it may be called

@@ -11,6 +11,7 @@
 #ifndef VELOCITY_MESH_PARAMETERS_H
 #define	VELOCITY_MESH_PARAMETERS_H
 
+#include <vector>
 #include "definitions.h"
 
 namespace vmesh {
@@ -31,11 +32,23 @@ namespace vmesh {
       Real cellSize[3];                   /**< Size of a cell in a block at base grid level.*/
       Real gridSize[3];                   /**< Physical size of the grid bounding box.*/
 
+      // ***** DERIVED PARAMETERS SPECIFIC TO AMR ***** //
+      std::vector<vmesh::GlobalID> offsets;    /**< Block global ID offsets for each refinement level.*/
+      std::vector<Real> blockSizes;            /**< Velocity block sizes (dvx,dvy,dvz) for each refinement level.
+                                                * This vector is initialized to size 3*(refLevelMaxAllowed+1)
+                                                * in VelocityMesh::initialize (AMR mesh).*/
+      std::vector<Real> cellSizes;             /**< Velocity block phase-space cell sizes (dvx,dvy,dvz) for each 
+                                                * refinement level. This vector is initialized to size 
+                                                * 3*(refLevelMaxAllowed+1) in VelocityMesh::initialize (AMR mesh).*/
+      std::vector<vmesh::LocalID> gridLengths; /**< Velocity grid lengths for each refinement level.
+                                                * This vector is initialized to size 3*(refLevelMaxAllowed+1) 
+                                                * in VelocityMesh::initialize (AMR mesh).*/
+
       MeshParameters() {
          initialized = false;
       }
    };
-   
+
 } // namespace vmesh
 
 #endif	/* VELOCITY_MESH_PARAMETERS_H */

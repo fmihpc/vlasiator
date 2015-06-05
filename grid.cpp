@@ -959,7 +959,7 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,c
             // min value, add the block to remove list
             #pragma omp for
             for (size_t b=0; b<newBlocks[c].size(); ++b) {
-               if (getObjectWrapper().project->setVelocityBlock(cell,newBlocks[c][b].second) <= Parameters::sparseMinValue) {
+               if (getObjectWrapper().project->setVelocityBlock(cell,newBlocks[c][b].second,popID) <= Parameters::sparseMinValue) {
                   threadRemBlocks[tid].push_back(newBlocks[c][b].first);
                   ++counter[tid];
                }
