@@ -8,6 +8,12 @@ FP_PRECISION = DP
 #Set floating point precision for distribution function to SPF (single) or DPF (double)
 DISTRIBUTION_FP_PRECISION = DPF
 
+#Set vector backend type for vlasov solvers, sets precision and length. 
+#This mini-app only supports length 4(!)
+VECTORCLASS = VEC4D_AGNER
+#set vector class
+
+
 #is profiling on?
 CXXFLAGS += -DPROFILE
 
@@ -34,7 +40,7 @@ CXXFLAGS += -DUSE_AGNER_VECTORCLASS
 CXXFLAGS += ${INC_PROFILE} 
 
 #define precision
-CXXFLAGS += -D${FP_PRECISION} -D${DISTRIBUTION_FP_PRECISION}
+CXXFLAGS += -D${FP_PRECISION} -D${DISTRIBUTION_FP_PRECISION} -D${VECTORCLASS}
 
 
 default: map_test
