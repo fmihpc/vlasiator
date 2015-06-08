@@ -312,8 +312,6 @@ bool propagateFields(
          calculateUpwindedElectricFieldSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
          
          
-         MPI_Barrier(MPI_COMM_WORLD);
-         
          phiprof::start("FS subcycle stuff");
          subcycleCount++;
          
