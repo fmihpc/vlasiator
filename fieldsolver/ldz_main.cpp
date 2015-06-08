@@ -294,6 +294,14 @@ bool propagateFields(
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
       
       while (true) {
+         if( subcycleT >= targetT ) {
+            if( subcycleT > targetT ) {
+               std::cerr << "subcycleT > subcycleDt, should not happen! (values: " << subcycleT << " > " << subcycleDt << ")" << std::endl;
+            }
+            break;
+         }
+         
+         
          propagateMagneticFieldSimple(mpiGrid, sysBoundaries, subcycleDt, localCells, RK_ORDER1);
          // If we are at the first subcycle we need to update the derivatives of the moments, 
          // otherwise only B changed and those derivatives need to be updated.
@@ -303,17 +311,11 @@ bool propagateFields(
          }
          calculateUpwindedElectricFieldSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
          
+         
+         MPI_Barrier(MPI_COMM_WORLD);
+         
          phiprof::start("FS subcycle stuff");
          subcycleCount++;
-         subcycleT += subcycleDt;
-         
-         if( subcycleT >= targetT ) {
-            if( subcycleT > targetT ) {
-               std::cerr << "subcycleT > subcycleDt, should not happen! (values: " << subcycleT << " > " << subcycleDt << ")" << std::endl;
-            }
-            phiprof::stop("FS subcycle stuff");
-            break;
-         }
          
          // Reassess subcycle dt
          Real dtMaxLocal;
@@ -341,19 +343,25 @@ bool propagateFields(
             subcycleDt = meanFieldsCFL * dtMaxGlobal;
 # warning TODO this should be in logfile.
             if ( myRank == MASTER_RANK ) {
-               std::cout << "(TIMESTEP) New subcycle dt = " << subcycleDt << " computed on step "<<  P::tstep << " and substep " << subcycleCount << " at " <<P::t << "s" << std::endl;
+               std::cout << "(TIMESTEP) New subcycle dt = " << subcycleDt << " computed on step " <<  P::tstep << " and substep " << subcycleCount << " at " << P::t << "s" << std::endl;
             }
          }
          
-         if( subcycleT + subcycleDt > targetT ) {
+         if( subcycleT + subcycleDt + 0.1*P::bailout_min_dt > targetT ) {
             subcycleDt = targetT - subcycleT;
+            if ( myRank == MASTER_RANK ) {
+# warning TODO this will always trigger, do not keep in final version.
+               std::cout << "(TIMESTEP) Last subcycle dt = " << subcycleDt << " computed on step " <<  P::tstep << std::endl;
+            }
          }
+         
+         subcycleT += subcycleDt;
          phiprof::stop("FS subcycle stuff");
       }
       
       if( P::fieldSolverSubcycles != subcycleCount && myRank == MASTER_RANK) {
 # warning TODO this should be in logfile.
-         std::cout << "Effective field solver subcycles were " << subcycleCount << " instead of " << P::fieldSolverSubcycles << std::endl;
+         std::cout << "Effective field solver subcycles were " << subcycleCount << " instead of " << P::fieldSolverSubcycles << " on step " <<  P::tstep << std::endl;
       }
    }
    
