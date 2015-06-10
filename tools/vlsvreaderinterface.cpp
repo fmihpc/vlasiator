@@ -176,21 +176,21 @@ namespace vlsvinterface {
       return true;
    }
    
-   bool Reader:: setCellsWithBlocks() {
+   bool Reader::setCellsWithBlocks(const std::string& meshName,const std::string& popName) {
       if(cellsWithBlocksLocations.empty() == false) {
          cellsWithBlocksLocations.clear();
       }
-      const string meshName = "SpatialGrid";
       vlsv::datatype::type cwb_dataType;
       uint64_t cwb_arraySize, cwb_vectorSize, cwb_dataSize;
       list<pair<string, string> > attribs;
    
       //Get the mesh name for reading in data from the correct place
       attribs.push_back(make_pair("mesh", meshName));
+      attribs.push_back(make_pair("name", popName));
    
       //Get array info
       if (getArrayInfo("CELLSWITHBLOCKS", attribs, cwb_arraySize, cwb_vectorSize, cwb_dataType, cwb_dataSize) == false) {
-         cerr << "ERROR, COULD NOT FIND ARRAY CELLSWITHBLOCKS AT " << __FILE__ << " " << __LINE__ << endl;
+         cerr << "ERROR, COULD NOT FIND ARRAY CELLSWITHBLOCKS FOR POPULATION '" << popName << "' AT " << __FILE__ << ":" << __LINE__ << endl;
          return false;
       }
    
@@ -256,7 +256,7 @@ namespace vlsvinterface {
       return true;
    }
    
-   bool Reader::getBlockIds( const uint64_t & cellId, std::vector<uint64_t> & blockIds ) {
+   bool Reader::getBlockIds(const uint64_t& cellId,std::vector<uint64_t>& blockIds,const std::string& popName) {
       if( cellsWithBlocksSet == false ) {
          cerr << "ERROR, setCellsWithBlocks() NOT CALLED AT (CALL setCellsWithBlocks()) BEFORE CALLING getBlockIds " << __FILE__ << " " << __LINE__ << endl;
          return false;
@@ -274,13 +274,14 @@ namespace vlsvinterface {
    
       // Get some required info from VLSV file:
       list<pair<string, string> > attribs;
-   
+      attribs.push_back(make_pair("name",popName));
+      
       //READ BLOCK IDS:
       uint64_t blockIds_arraySize, blockIds_vectorSize, blockIds_dataSize;
       vlsv::datatype::type blockIds_dataType;
       //Input blockIds_arraySize, blockIds_vectorSize, blockIds_dataSize blockIds_dataType: (Returns false if fails)
       if (getArrayInfo("BLOCKIDS", attribs, blockIds_arraySize, blockIds_vectorSize, blockIds_dataType, blockIds_dataSize) == false) {
-         cerr << "ERROR, COULD NOT FIND BLOCKIDS AT " << __FILE__ << " " << __LINE__ << endl;
+         cerr << "ERROR, COULD NOT FIND BLOCKIDS FOR '" << popName << "' AT " << __FILE__ << " " << __LINE__ << endl;
          return false;
       }
       //Make sure blockid's datatype is correct:
@@ -350,5 +351,4 @@ namespace vlsvinterface {
       return true;
    }
 
-
-}
+} // namespace vlsvinterface

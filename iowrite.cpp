@@ -100,6 +100,9 @@ bool writeVelocityDistributionData(Writer& vlsvWriter,
    // In restart we just write velocity grids for all cells.
    // First write global Ids of those cells which write velocity blocks (here: all cells):
    map<string,string> attribs;
+   const string popName      = "avgs";
+   const string spatMeshName = "SpatialGrid";
+   attribs["name"] = popName;
    bool success=true;
 
    // Compute totalBlocks
@@ -111,7 +114,7 @@ bool writeVelocityDistributionData(Writer& vlsvWriter,
    }
 
    // The name of the mesh is "SpatialGrid"
-   attribs["mesh"] = "SpatialGrid";
+   attribs["mesh"] = spatMeshName;
    const unsigned int vectorSize = 1;
    // Write the array:
    if (vlsvWriter.writeArray("CELLSWITHBLOCKS",attribs,cells.size(),vectorSize,cells.data()) == false) success = false;
@@ -120,8 +123,52 @@ bool writeVelocityDistributionData(Writer& vlsvWriter,
    if(vlsvWriter.writeArray("BLOCKSPERCELL",attribs,blocksPerCell.size(),vectorSize,blocksPerCell.data()) == false) success = false;
    if (success == false) logFile << "(MAIN) writeGrid: ERROR failed to write CELLSWITHBLOCKS to file!" << endl << writeVerbose;
 
+   // Write (partial) velocity mesh data
+   const uint8_t refLevel = 0; // Mesh refinement level, 0 here since velocity mesh is unrefined
+   uint64_t bbox[6];
+   bbox[0] = vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::getGridLength(refLevel)[0];
+   bbox[1] = vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::getGridLength(refLevel)[1];
+   bbox[2] = vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::getGridLength(refLevel)[2];
+   bbox[3] = WID;
+   bbox[4] = WID;
+   bbox[5] = WID;
+
+   attribs.clear();
+   attribs["mesh"] = popName;
+   attribs["type"] = vlsv::mesh::STRING_UCD_AMR;
+   if (mpiGrid.get_rank() == MASTER_RANK) {
+      if (vlsvWriter.writeArray("MESH_BBOX",attribs,6,1,bbox) == false) success = false;
+      
+      for (int crd=0; crd<3; ++crd) {
+         const size_t N_nodes = bbox[crd]*bbox[crd+3]+1;
+         Real* crds = new Real[N_nodes];
+         const Real dV = vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::getCellSize(refLevel)[crd];
+
+         for (size_t i=0; i<N_nodes; ++i) {
+            crds[i] = vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::getMeshMinLimits()[crd] + i*dV;
+         }
+         
+         if (crd == 0) {
+            if (vlsvWriter.writeArray("MESH_NODE_CRDS_X",attribs,N_nodes,1,crds) == false) success = false;
+         }
+         if (crd == 1) {
+            if (vlsvWriter.writeArray("MESH_NODE_CRDS_Y",attribs,N_nodes,1,crds) == false) success = false;
+         }
+         if (crd == 2) {
+            if (vlsvWriter.writeArray("MESH_NODE_CRDS_Z",attribs,N_nodes,1,crds) == false) success = false;
+         }
+         delete [] crds; crds = NULL;
+      }
+   } else {
+      if (vlsvWriter.writeArray("MESH_BBOX",attribs,0,1,bbox) == false) success = false;
+      Real* crds = NULL;
+      if (vlsvWriter.writeArray("MESH_NODE_CRDS_X",attribs,0,1,crds) == false) success = false;
+      if (vlsvWriter.writeArray("MESH_NODE_CRDS_Y",attribs,0,1,crds) == false) success = false;
+      if (vlsvWriter.writeArray("MESH_NODE_CRDS_Z",attribs,0,1,crds) == false) success = false;
+   }
+   
    // Write velocity block ids
-   vector<unsigned int> velocityBlockIds;
+   vector<vmesh::GlobalID> velocityBlockIds;
    try {
       velocityBlockIds.reserve( totalBlocks );
       // gather data for writing
@@ -142,15 +189,20 @@ bool writeVelocityDistributionData(Writer& vlsvWriter,
       return false;
    }
 
+   attribs.clear();
+   attribs["mesh"] = spatMeshName;
+   attribs["name"] = popName;
    if (vlsvWriter.writeArray("BLOCKIDS", attribs, totalBlocks, vectorSize, velocityBlockIds.data()) == false) success = false;
    if (success == false) logFile << "(MAIN) writeGrid: ERROR failed to write BLOCKIDS to file!" << endl << writeVerbose;
-   velocityBlockIds.clear();
+   {
+      vector<vmesh::GlobalID>().swap(velocityBlockIds);
+   }
 
    // Write the velocity space data
    // set everything that is needed for writing in data such as the array's name, size, data type, etc..
    attribs.clear();
-   attribs["mesh"] = "SpatialGrid"; // Usually the mesh is SpatialGrid
-   attribs["name"] = "avgs"; // Name of the velocity space distribution is written avgs
+   attribs["mesh"] = spatMeshName; // Name of the spatial mesh
+   attribs["name"] = popName;      // Name of the velocity space distribution is written avgs
    const string datatype_avgs = "float";
    const uint64_t arraySize_avgs = totalBlocks;
    const uint64_t vectorSize_avgs = WID3; // There are 64 elements in every velocity block
@@ -179,7 +231,6 @@ bool writeVelocityDistributionData(Writer& vlsvWriter,
 
    // Write the subarrays
    vlsvWriter.endMultiwrite("BLOCKVARIABLE", attribs);
-
 
    if (globalSuccess(success,"(MAIN) writeGrid: ERROR: Failed to fill temporary velocityBlockData array",MPI_COMM_WORLD) == false) {
       vlsvWriter.close();
