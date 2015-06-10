@@ -50,7 +50,7 @@ git status | sed 's/\"/\\"/g' | sed 's/\\\"/\\"/g'  |gawk '{printf("%s\"%s\"%s\n
 echo "    cout << endl << \"----------- git diff ---------- \"<<endl;" >>version.cpp
 
 echo "    const char diff_data[] = {" >> version.cpp
-git diff `git status -s |grep -v generate_version.sh |cut -b4-` | xxd -i >> version.cpp
+git diff `git diff --name-only |grep -v generate_version.sh` | xxd -i >> version.cpp
 echo "    , 0 };" >> version.cpp
 echo "    cout << diff_data << endl;" >> version.cpp
 
