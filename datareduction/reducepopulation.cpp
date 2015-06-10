@@ -684,6 +684,7 @@ namespace test {
    }
    
    void testIfSorted( vector<VelocityCell> velocityCells ) {
+     if( velocityCells.size() == 0 ) {return;}
      phiprof_assert( velocityCells.size() != 0 );
      Realf last_value = -1e10;
      for( int i = 0; i < velocityCells.size(); ++i ) {
@@ -879,6 +880,7 @@ void saveClusterData( SpatialCell * cell, const vector<uint32_t> & velocityCellC
 }
 
 void simpleCluster( vector<VelocityCell> & velocityCells, SpatialCell * cell, const Real totalVolumeThreshold, const Real minAvgs ) {
+   if( velocityCells.size() == 0 ) { return; }
    phiprof_assert( velocityCells.size() > 0 );
    phiprof_assert( cell );
    
@@ -938,7 +940,7 @@ void simpleCluster( vector<VelocityCell> & velocityCells, SpatialCell * cell, co
             // If the velocity cell is already a part of a cluster (and they are not the same cluster), merge the cluster and the neighbor cluster:
             else if (clusterIndex != nullCluster && clusters[clusterIndex].clusterId != clusters[neighborClusterIndex].clusterId ) {
                phiprof_assert( clusters.size() > clusterIndex && clusters.size() > neighborClusterIndex );
-               if( mergeClusters(clusters[clusterIndex], clusters[neighborClusterIndex], totalVolumeThreshold, totalVolume, minAvgs) ) {
+               if( mergeClusters(clusters[clusterIndex], clusters[neighborClusterIndex], totalVolumeThreshold, totalVolume, minAvgs) || velocityCell.get_avgs() > minAvgs ) {
                  clusters[clusterIndex].merge( clusters[neighborClusterIndex], clusters );
                  ++merges;
                }
@@ -974,7 +976,7 @@ namespace connectivityTesting {
    
    inline
    void mergeConnections( vector<pair<uint32_t, uint32_t> > & clusterConnectivity, vector<Cluster> & clusters, const uint totalVelocityCells ) {
-      uint32_t dontMerge[2];
+      uint32_t dontMerge[2] = {0};
    
       for( int i = clusterConnectivity.size() - 1; i >= 0; --i ) {
         uint32_t clusterA = get<0>(clusterConnectivity[i] );
@@ -985,8 +987,7 @@ namespace connectivityTesting {
           continue;
         }
       }
-   
-      phiprof_assert( dontMergeIndex != -1 );
+
       
       uint minMembers = 1e10;
       
