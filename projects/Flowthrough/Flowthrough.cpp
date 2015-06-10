@@ -18,6 +18,13 @@ Copyright 2011, 2012, 2015 Finnish Meteorological Institute
 
 using namespace std;
 
+enum DensityModel {
+   Maxwellian,
+   SheetMaxwellian
+};
+    
+static DensityModel densityModel;
+
 namespace projects {
    Flowthrough::Flowthrough(): TriAxisSearch() { }
    Flowthrough::~Flowthrough() { }
@@ -39,6 +46,7 @@ namespace projects {
       RP::add("Flowthrough.VZ0", "Initial bulk velocity in z-direction", 0.0);
       RP::add("Flowthrough.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
       RP::add("Flowthrough.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
+      RP::add("Flowthrough.densityModel","Plasma density model, 'Maxwellian' or 'SheetMaxwellian'",string("Maxwellian"));
    }
    
    void Flowthrough::getParameters(){
@@ -90,19 +98,50 @@ namespace projects {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
+      string densityModelString;
+      if (!RP::get("Flowthrough.densityModel",densityModelString)) {
+         if (myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if (densityModelString == "Maxwellian") densityModel = Maxwellian;
+      else if (densityModelString == "SheetMaxwellian") densityModel = SheetMaxwellian;
+      else {
+         if (myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: Unknown option value!" << endl;
+         exit(1);
+      }
    }
 
    Real Flowthrough::getDistribValue(creal& x,creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) const {
-      return this->rho * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B * this->T), 1.5) *
-      exp(- physicalconstants::MASS_PROTON * ((vx-this->V0[0])*(vx-this->V0[0]) + (vy-this->V0[1])*(vy-this->V0[1]) + (vz-this->V0[2])*(vz-this->V0[2])) / (2.0 * physicalconstants::K_B * this->T));
+      Real rvalue = 0;
+      switch (densityModel) {
+       case Maxwellian:
+         rvalue = rho * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B * this->T), 1.5)
+           * exp(- physicalconstants::MASS_PROTON * (  (vx-this->V0[0])*(vx-this->V0[0])
+                                                       + (vy-this->V0[1])*(vy-this->V0[1])
+                                                       + (vz-this->V0[2])*(vz-this->V0[2])
+                                                    ) / (2.0 * physicalconstants::K_B * this->T));
+         break;
+       case SheetMaxwellian:
+         rvalue = sqrt(x*x + y*y + z*z);
+         if (rvalue <= +3e7) {
+            rvalue = 4*rho * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B * this->T), 1.5)
+              * exp(- physicalconstants::MASS_PROTON * ((  vx-this->V0[0])*(vx-this->V0[0]) + (vy-this->V0[1])*(vy-this->V0[1])
+                                                        + (vz-this->V0[2])*(vz-this->V0[2])) / (2.0 * physicalconstants::K_B * this->T));
+         } else {
+            rvalue = 0;
+         }
+         break;
+      }
+      
+      return rvalue;
    }
 
    Real Flowthrough::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const int& popID) const {
       if (emptyBox == true) return 0.0;
 
-      creal d_x = dx / (nSpaceSamples-1);
-      creal d_y = dy / (nSpaceSamples-1);
-      creal d_z = dz / (nSpaceSamples-1);
+      creal d_x = dx / nSpaceSamples;
+      creal d_y = dy / nSpaceSamples;
+      creal d_z = dz / nSpaceSamples;
       creal d_vx = dvx / (nVelocitySamples-1);
       creal d_vy = dvy / (nVelocitySamples-1);
       creal d_vz = dvz / (nVelocitySamples-1);
@@ -110,7 +149,7 @@ namespace projects {
       Real avg = 0.0;
       for (uint i=0; i<nSpaceSamples; ++i) for (uint j=0; j<nSpaceSamples; ++j) for (uint k=0; k<nSpaceSamples; ++k) {
          for (uint vi=0; vi<nVelocitySamples; ++vi) for (uint vj=0; vj<nVelocitySamples; ++vj) for (uint vk=0; vk<nVelocitySamples; ++vk) {
-            avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz);
+            avg += getDistribValue(x+(i+0.5)*d_x, y+(j+0.5)*d_y, z+(k+0.5)*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz);
          }
       }
       return avg / (nSpaceSamples*nSpaceSamples*nSpaceSamples*nVelocitySamples*nVelocitySamples*nVelocitySamples);

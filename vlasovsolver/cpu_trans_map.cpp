@@ -22,6 +22,7 @@
 using namespace std;
 using namespace spatial_cell;
 
+#warning Following variables are Esail specific
 static long int tstepLast = -1;
 static size_t inflowDataID = numeric_limits<size_t>::max();
 static size_t outflowDataID = numeric_limits<size_t>::max();
@@ -460,6 +461,8 @@ inline void store_trans_block_data_esail(
         const int& dimension,
         const int& popID) {
    
+#pragma omp critical (init1)
+           {
    if (inflowDataID == numeric_limits<size_t>::max()) {
       inflowDataID = getObjectWrapper().meshData.addData<Real>("inflow",1,"float");
       if (inflowDataID == numeric_limits<size_t>::max()) {
@@ -474,14 +477,19 @@ inline void store_trans_block_data_esail(
          exit(1);
       }
    }
+           }
 
-   Real* inflowArray = getObjectWrapper().meshData.getData<Real>(inflowDataID);
+   Real* inflowArray  = getObjectWrapper().meshData.getData<Real>(inflowDataID);
    Real* outflowArray = getObjectWrapper().meshData.getData<Real>(outflowDataID);
    const unsigned int cellLID = getObjectWrapper().meshData.getLocalID(cellGID);
+   
+#pragma omp critical (init2)
+   {
    if (tstepLast != Parameters::tstep) {
       for (size_t i=0; i<getLocalCells().size(); ++i) inflowArray[i] = 0;
       for (size_t i=0; i<getLocalCells().size(); ++i) outflowArray[i] = 0;
       tstepLast = Parameters::tstep;
+   }
    }
 
     //Store volume averages to target blocks:
