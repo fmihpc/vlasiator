@@ -90,9 +90,9 @@ typedef double Realv;
 #ifdef VEC4F_FALLBACK
 //user portable vectorclass
 #include "vectorclass_fallback.h"
-typedef Vec4Simple<float> Vec4;
-typedef Vec4Simple<bool> Vec4b;
-typedef Vec4Simple<int> Vec4i;
+typedef Vec4Simple<float> Vec;
+typedef Vec4Simple<bool> Vecb;
+typedef Vec4Simple<int> Veci;
 typedef float Realv;
 #define to_realv(v) to_float(v)
 #define VECL 4
