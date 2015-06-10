@@ -39,6 +39,9 @@ creal ONE     = 1.0;
 creal TWO     = 2.0;
 creal EPSILON = 1.0e-25;
 
+#warning Following variables are specific to Esail simulations
+fstream outfile;
+
 /** Propagates the distribution function in spatial space. 
     
     Based on SLICE-3D algorithm: Zerroukat, M., and T. Allen. "A
@@ -298,7 +301,7 @@ momentCalculation:
    phiprof::stop("semilag-trans");
 
    #warning Momentum counters here are Esail specific
-   if (Parameters::tstep % 100 != 0) return;
+   if (Parameters::tstep % 10 != 0) return;
    
    stringstream ss;
    
@@ -321,8 +324,8 @@ momentCalculation:
       MPI_Reduce(getObjectWrapper().particleSpecies[popID].outflowCounters,globalOutflowValues,3,MPI_Type<Real>(),MPI_SUM,0,MPI_COMM_WORLD);
       
       // Outflow is already negative
-      for (int i=0; i<3; ++i) netFluxes[i] += (globalInflowValues[i]+globalOutflowValues[i]);
-      
+      for (int i=0; i<3; ++i) netFluxes[i] += (globalInflowValues[i]+globalOutflowValues[i])/dt;
+
       ss << popID << '\t';
       for (int i=0; i<3; ++i) ss << globalInflowValues[i]/dt << '\t';
       for (int i=0; i<3; ++i) ss << globalOutflowValues[i]/dt << '\t';
@@ -330,9 +333,11 @@ momentCalculation:
    }
    for (int i=0; i<3; ++i) ss << netFluxes[i] << '\t';
    ss << endl;
-   
+
    if (mpiGrid.get_rank() == 0) {
-      cerr << ss.str();      
+      outfile.open("counters.txt",fstream::out | fstream::app);
+      outfile << ss.str();
+      outfile.close();
    }   
 }
 
@@ -346,6 +351,14 @@ int getAccerelationSubcycles(SpatialCell* sc,Real dt,const int& popID) {
    return max( convert<int>(ceil(dt / sc->get_max_v_dt(popID))), 1);
 }
 
+/** Accelerate the given population to new time t+dt.
+ * This function is AMR safe.
+ * @param popID Particle population ID.
+ * @param globalMaxSubcycles Number of times acceleration is subcycled.
+ * @param step The current subcycle step.
+ * @param mpiGrid Parallel grid library.
+ * @param propagatedCells List of cells in which the population is accelerated.
+ * @param dt Timestep.*/
 void calculateAcceleration(const int& popID,const int& globalMaxSubcycles,const uint& step,
                            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                            const std::vector<CellID>& propagatedCells,
@@ -353,13 +366,13 @@ void calculateAcceleration(const int& popID,const int& globalMaxSubcycles,const 
    // Set active population
    SpatialCell::setCommunicatedSpecies(popID);
 
-   // Semilagrangian acceleration for those cells which are subcycled
+   // Semi-Lagrangian acceleration for those cells which are subcycled
    #pragma omp parallel for schedule(dynamic,1)
    for (size_t c=0; c<propagatedCells.size(); ++c) {
       const CellID cellID = propagatedCells[c];
       const Real maxVdt = mpiGrid[cellID]->get_max_v_dt(popID);
 
-      //compute subcycle dt. The length is maVdt on all steps
+      //compute subcycle dt. The length is maxVdt on all steps
       //except the last one. This is to keep the neighboring
       //spatial cells in sync, so that two neighboring cells with
       //different number of subcycles have similar timesteps,
@@ -406,11 +419,15 @@ void calculateAcceleration(const int& popID,const int& globalMaxSubcycles,const 
    if(step < (globalMaxSubcycles - 1)) adjustVelocityBlocks(mpiGrid, propagatedCells, false, popID);
 }
 
+/** Accelerate all particle populations to new time t+dt. 
+ * This function is AMR safe.
+ * @param mpiGrid Parallel grid library.
+ * @param dt Time step.*/
 void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                            Real dt
                           ) {    
    typedef Parameters P;
-   const vector<CellID> cells = mpiGrid.get_cells();
+   const vector<CellID>& cells = getLocalCells();
 
    if (dt == 0.0 && P::tstep > 0) {
       // Even if acceleration is turned off we need to adjust velocity blocks 
@@ -447,7 +464,6 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
        }
 
        // Compute global maximum for number of subcycles (collective operation).
-       #warning Needs to be fixed for multi-species
        int maxSubcycles=0;
        int globalMaxSubcycles;
        for (size_t c=0; c<propagatedCells.size(); ++c) {
@@ -507,8 +523,7 @@ void calculateInterpolatedVelocityMoments(
    const int cp_p22,
    const int cp_p33
 ) {
-   vector<CellID> cells;
-   cells=mpiGrid.get_cells();
+   const vector<CellID>& cells = getLocalCells();
    
    //Iterate through all local cells (excl. system boundary cells):
     #pragma omp parallel for
@@ -528,8 +543,7 @@ void calculateInterpolatedVelocityMoments(
 }
 
 void calculateInitialVelocityMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
-   vector<CellID> cells;
-   cells=mpiGrid.get_cells();
+   const vector<CellID>& cells = getLocalCells();
    phiprof::start("Calculate moments");
 
    // Iterate through all local cells (incl. system boundary cells):

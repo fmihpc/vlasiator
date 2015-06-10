@@ -102,7 +102,7 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          dtMaxLocal[2]=min(dtMaxLocal[2], cell->parameters[CellParams::MAXFDT]);
       }
       
-      if (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+      if (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY && cell->parameters[CellParams::MAXVDT] != 0) {
          //Acceleration only done on non sysboundary cells
          dtMaxLocal[1]=min(dtMaxLocal[1], cell->parameters[CellParams::MAXVDT]);
       }
@@ -116,7 +116,6 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       dtMaxGlobal[1]=std::numeric_limits<Real>::max();
    if (P::propagateField == false)
       dtMaxGlobal[2]=std::numeric_limits<Real>::max();
-   
    
    creal meanVlasovCFL = 0.5*(P::vlasovSolverMaxCFL+ P::vlasovSolverMinCFL);
    creal meanFieldsCFL = 0.5*(P::fieldSolverMaxCFL+ P::fieldSolverMinCFL);
