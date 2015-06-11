@@ -15,7 +15,7 @@ void compute_intersections_1st(
         const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
         const Eigen::Transform<Real,3,Eigen::Affine>& bwd_transform,
         const Eigen::Transform<Real,3,Eigen::Affine>& fwd_transform,
-        uint dimension,
+        uint dimension,const uint8_t& refLevel,
         Real& intersection,Real& intersection_di,
         Real& intersection_dj,Real& intersection_dk);
 
@@ -23,7 +23,7 @@ void compute_intersections_2nd(
         const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
         const Eigen::Transform<Real,3,Eigen::Affine>& bwd_transform,
         const Eigen::Transform<Real,3,Eigen::Affine>& fwd_transform,
-        uint dimension,
+        uint dimension,const uint8_t& refLevel,
         Real& intersection,Real& intersection_di,
         Real& intersection_dj,Real& intersection_dk);
 
@@ -31,7 +31,7 @@ void compute_intersections_3rd(
         const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
         const Eigen::Transform<Real,3,Eigen::Affine>& bwd_transform,
         const Eigen::Transform<Real,3,Eigen::Affine>& fwd_transform,
-        uint dimension,
+        uint dimension,const uint8_t& refLevel,
         Real& intersection,Real& intersection_di,
         Real& intersection_dj,Real& intersection_dk);
 

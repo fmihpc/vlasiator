@@ -49,6 +49,7 @@ namespace vmesh {
       const LID* getGridLength(const uint8_t& refLevel) const;
 //      void     getNeighbors(const GlobalID& globalID,std::vector<GlobalID>& neighborIDs);
       void getIndices(const GID& globalID,uint8_t& refLevel,LID& i,LID& j,LID& k) const;
+      size_t getMesh() const;
       LID getLocalID(const GID& globalID) const;
       uint8_t getMaxAllowedRefinementLevel() const;
       GID getMaxVelocityBlocks() const;
@@ -77,6 +78,7 @@ namespace vmesh {
       bool refine(const GID& globalID,std::set<GID>& erasedBlocks,std::map<GID,LID>& insertedBlocks);
       void setGrid();
       bool setGrid(const std::vector<GID>& globalIDs);
+      bool setMesh(const size_t& meshID);
       void setNewSize(const LID& newSize);
       size_t size() const;
       size_t sizeInBytes() const;
@@ -373,6 +375,11 @@ namespace vmesh {
    }
    
    template<typename GID,typename LID> inline
+   size_t VelocityMesh<GID,LID>::getMesh() const {
+      return meshID;
+   }
+   
+   template<typename GID,typename LID> inline
    const Real* VelocityMesh<GID,LID>::getMeshMaxLimits() const {
       return meshParameters[meshID].meshMaxLimits;
    }
@@ -617,6 +624,13 @@ namespace vmesh {
       return true;
    }
 
+   template<typename GID,typename LID> inline
+   bool VelocityMesh<GID,LID>::setMesh(const size_t& meshID) {
+      if (meshID >= meshParameters.size()) return false;
+      this->meshID = meshID;
+      return true;
+   }
+   
    template<typename GID,typename LID> inline
    void VelocityMesh<GID,LID>::setNewSize(const LID& newSize) {
       localToGlobalMap.resize(newSize);

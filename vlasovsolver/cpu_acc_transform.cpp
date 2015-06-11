@@ -82,6 +82,7 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       // The criteria is that CFL condition due to spatial translations 
       // must not be broken.
       
+      /*
       // Compute how much we can increase the dt for this species until
       // spatial CFL breaks
       Real dt_max_transl = spatial_cell->get_max_r_dt(popID);
@@ -99,7 +100,9 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       // Compute max dt due to electric acceleration
       Real dt_max_acc = sqrt(CFL_transl*dx_min/(fabs(q_per_m)*E_max));
       spatial_cell->set_max_v_dt(popID,dt_max_acc);
-      //spatial_cell->set_max_v_dt(popID,Parameters::dt);
+      //spatial_cell->set_max_v_dt(popID,Parameters::dt);*/
+      spatial_cell->set_max_v_dt(popID,numeric_limits<Real>::max());
+
       return total_transform;
    } // if (Parameters::propagatePotential == true) 
 

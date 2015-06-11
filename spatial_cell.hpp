@@ -317,7 +317,9 @@ namespace spatial_cell {
       random_data rngDataBuffer;                                                /**< Random number generator data buffer.*/
 
       // Temporary mesh used in acceleration and propagation. 
-      vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID> vmeshTemp;
+      vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID> vmeshTemp;            /**< Temporary velocity mesh that is used in Vlasov solver.
+                                                                                 * NOTE: Do not call the get-functions using this mesh as object
+                                                                                 * before you have set the correct meshID using setMesh function.*/
       vmesh::VelocityBlockContainer<vmesh::LocalID> blockContainerTemp;
       std::vector<spatial_cell::Population> populations;                        /**< Particle population variables.*/
    };
