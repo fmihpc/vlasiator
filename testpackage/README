@@ -1,81 +1,10 @@
 README file for vlasiator test package
 
-#NOTE:
-# Before using the testpackage, compile vlasiator with:
-make testpackage
 
-####################################################
-####################################################
-# Running tests (on Voima):
-# To run the test package:
-cd /lustre/my_folder/
-cp -r ~/vlasiator/test_package .
-cd test_package
-ln -s ~/vlasiator/vlasiator_executable .
-./small_test_voima.sh
+The test package can be used to compare Vlasiator to reference runs,
+in order to see if results have changed. It does not look at physical
+quantities, it is purely a tool for tracking changes in results.
 
 
-####################################################
-####################################################
-# Running tests (on a new machine)
-
-# Set up the test package
-cp small_test_voima.sh small_test_new.sh
-# Configure the sh files:
-#(change the my_test_directory to something else!):
-sed -i 's/reference_dir=.*/reference_dir="\/my_test_directory\/small_tests"/g' small_test_new.sh
-#(Change the revision number to the current revision number! (optional))
-sed -i 's/reference_revision=.*/reference_revision="0a8be8ac087c2da56556e4f56fcb3e5826aa6f38"/g' small_test_new.sh
-
-# Run the test package once (To create verification files for future use):
-cd /lustre/my_folder/
-cp -r ~/vlasiator/test_package .
-cd test_package
-ln -s ~/vlasiator/vlasiator_executable .
-sed -i 's/create_verification_files=0/create_verification_files=1/g' small_test_new.sh
-./small_test_new.sh
-sed -i 's/create_verification_files=1/create_verification_files=0/g' small_test_new.sh
-
-
-# To run the test package:
-cd /lustre/my_folder/
-cp -r ~/vlasiator/test_package .
-cd test_package
-ln -s ~/vlasiator/vlasiator_executable .
-./small_test_new.sh
-####################################################
-####################################################
-
-# Below is a more in-depth explanation:
-README file for vlasiator test package
-
-Test package consists of three parts:
-   1. settings for different computers
-   2. settings for different tests
-   3. running the tests
-for the first two parts the scripts for short and medium test are separate.
-
-1. Computer settings
-   - files are named: short/medium_test_hermit.sh, this is the file that is submitted
-   - in these files user can define settings for running the program
-   - define location for reference data directory
-   - with variable create_verification_files you can define if you want to use the existing reference data or if you want first run the data for reference.
-   - NOTE that if you choose to run the reference data first, the reference data directory must be somewhere from where you can submit runs
-
-2. Test settings
-   - files are named short/medium_test_definitions.sh
-   - User can choose which tests are run. At the moment options are Fluctuations and Magnetosphere
-   - Define the vlsv file for comparison
-   - In arrays variables_name and variables_component use defines which parameters are compared.
-   - variables_name has the name of the variable and variables_component have the number of the component that is compared
-   - variables_name and variables_component must have same number of elements
-   - For example:
-      variables_name=( "rho" "rho_v" "rho_v" "rho_v" "B" "B" "B" "E" "E" "E" )
-      variables_components=( 0 0 1 2 0 1 2 0 1 2 )
-      -> e.g. 1st variable for comparison is variables_name[1] variables_component[1] = rho 0,
-              4th is  variables_name[4] variables_component[4] = rho_v 4
-
-
-3. Running tests
-   - writes the results of the comparison in test.o file
+Please read https://github.com/fmihpc/vlasiator/wiki/Test-package for further instructions.
 
