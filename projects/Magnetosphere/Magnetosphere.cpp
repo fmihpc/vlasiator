@@ -320,8 +320,12 @@ namespace projects {
             // 2-norm (Cartesian), result is a circle in 2D
             radius = sqrt((x-center[0])*(x-center[0]) + (y-center[1])*(y-center[1]) + (z-center[2])*(z-center[2]));
             break;
+         case 3:
+            // cylinder aligned with y-axis, use with polar plane/line dipole
+            radius = sqrt((x-center[0])*(x-center[0]) + (z-center[2])*(z-center[2]));
+            break;
          default:
-            std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1 or 2." << std::endl;
+            std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1, 2 or 3." << std::endl;
             abort();
       }
       
@@ -367,8 +371,12 @@ namespace projects {
             // 2-norm (Cartesian), result is a circle in 2D
             radius = sqrt((x-center[0])*(x-center[0]) + (y-center[1])*(y-center[1]) + (z-center[2])*(z-center[2]));
             break;
+         case 3:
+            // cylinder aligned with y-axis, use with polar plane/line dipole
+            radius = sqrt((x-center[0])*(x-center[0]) + (z-center[2])*(z-center[2]));
+            break;
          default:
-            std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1 or 2." << std::endl;
+            std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1, 2 or 3." << std::endl;
             abort();
       }
       
