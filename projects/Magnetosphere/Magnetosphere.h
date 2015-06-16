@@ -47,8 +47,6 @@ namespace projects {
          Real ionosphereV0[3];
          Real constBgB[3];
          bool noDipoleInSW;
-         Real rhoTransitionCenter;
-         Real rhoTransitionWidth;
          Real ionosphereRho;
          Real ionosphereRadius;
          Real ionosphereTaperRadius;
