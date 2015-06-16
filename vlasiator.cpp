@@ -513,7 +513,10 @@ int main(int argn,char* args[]) {
             || globalflags::writeRestart
          ) {
             writeRestartNow = 1;
-            globalflags::writeRestart = false; // This flag is only used by MASTER_RANK here and it needs to be reset after a restart write has been issued.
+            if (globalflags::writeRestart == true) {
+               writeRestartNow = 2; // Setting to 2 so as to not increment the restart count below.
+               globalflags::writeRestart = false; // This flag is only used by MASTER_RANK here and it needs to be reset after a restart write has been issued.
+            }
          }
          else {
             writeRestartNow = 0;
@@ -522,9 +525,11 @@ int main(int argn,char* args[]) {
       MPI_Bcast( &writeRestartNow, 1 , MPI_INT , MASTER_RANK ,MPI_COMM_WORLD);
       phiprof::stop("compute-is-restart-written");
 
-      if (writeRestartNow == 1){
+      if (writeRestartNow >= 1){
          phiprof::start("write-restart");
-         wallTimeRestartCounter++;
+         if (writeRestartNow == 1) {
+            wallTimeRestartCounter++;
+         }
          
          if (myRank == MASTER_RANK)
             logFile << "(IO): Writing restart data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
