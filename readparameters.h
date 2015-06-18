@@ -55,7 +55,7 @@ struct Readparameters {
     static bool helpMessage();
     static bool versionMessage();
     static bool isInitialized();
-    static bool parse();
+    static bool parse(bool needsRunConfig=true);
    
 private:
     static int argc;                  /**< How many entries argv contains.*/
