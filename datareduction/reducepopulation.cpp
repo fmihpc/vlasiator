@@ -942,8 +942,9 @@ void simpleCluster( vector<VelocityCell> & velocityCells, SpatialCell * cell, co
             // If the velocity cell is already a part of a cluster (and they are not the same cluster), merge the cluster and the neighbor cluster:
             else if (clusterIndex != nullCluster && clusters[clusterIndex].clusterId != clusters[neighborClusterIndex].clusterId ) {
                phiprof_assert( clusters.size() > clusterIndex && clusters.size() > neighborClusterIndex );
-               const Real avgsThreshold = 1.0e-15;
-               const Real minVolume = 3000*cell->parameters[BlockParams::DVX]*cell->parameters[BlockParams::DVY]*cell->parameters[BlockParams::DVZ];
+               // TODO: Add avgs threshold from parameters
+               const Real avgsThreshold = Parameters::populationMergerAvgsThreshold;
+               const Real minVolume = Parameters::populationMergerMinVolume;
                if( mergeClusters(clusters[clusterIndex], clusters[neighborClusterIndex], velocityCell, velocityCellNeighbor, cell, minVolume, avgsThreshold) ) {
                  clusters[clusterIndex].merge( clusters[neighborClusterIndex], clusters );
                  ++merges;
@@ -1034,7 +1035,6 @@ void populationAlgorithm(
    // Do clustering:
    const Real minAvgs = 1.0e-10;
    simpleCluster( velocityCells, cell, resolution_threshold, minAvgs );
-   //connectivityCluster(velocityCells, cell, resolution_threshold);
 
 
    return;
