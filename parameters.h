@@ -48,7 +48,7 @@ struct Parameters {
    
    static Real populationMergerMinVolume; /*!< Population merger minimum volume of a population, see datareduction/reducepopulation.cpp*/
    static Real populationMergerAvgsThreshold; /*!< Population merger avgs threshold of a population, see datareduction/reducepopulation.cpp*/
-   static Real populationMergerMaxNPopulations; /*!< Population mermger maximum number of populations*/ 
+   static int populationMergerMaxNPopulations; /*!< Population mermger maximum number of populations*/
  
    static Real t;                    /*!< Current simulation time. */
    static Real t_min;                    /*!< Initial simulation time. */

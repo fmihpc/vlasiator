@@ -47,7 +47,7 @@ Real P::backstreamvz = NAN;
 
 Real P::populationMergerMinVolume = 0;
 Real P::populationMergerAvgsThreshold = numeric_limits<Real>::max();
-Real P::populationMergerMaxNPopulations = 0;
+int P::populationMergerMaxNPopulations = 0;
 
 uint P::xcells_ini = numeric_limits<uint>::max();
 uint P::ycells_ini = numeric_limits<uint>::max();
@@ -161,7 +161,7 @@ bool Parameters::addParameters(){
    Readparameters::add("io.restart_write_path", "Path to the location where restart files should be written. Defaults to the local directory, also if the specified destination is not writeable.", string("./"));
    
    Readparameters::add("propagate_potential","Propagate electrostatic potential during the simulation",false);
-   Readparameters::add("propagate_field","Propagate magnetic field during the simulation",true);
+   Readparameters::add("propagate_field","Propagate magnetic field during the simulation",true);Real
    Readparameters::add("propagate_vlasov_acceleration","Propagate distribution functions during the simulation in velocity space. If false, it is propagated with zero length timesteps.",true);
    Readparameters::add("propagate_vlasov_translation","Propagate distribution functions during the simulation in ordinary space. If false, it is propagated with zero length timesteps.",true);
    Readparameters::add("dynamic_timestep","If true,  timestep is set based on  CFL limits (default on)",true);
