@@ -870,7 +870,7 @@ bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const string meshName = "SpatialGrid";
    
    // Calculate populations, if needed:
-   {
+   if(Parameters::populationMergerMaxNPopulations > 0) {
       phiprof::start("populationReducer");
       writePopulations( local_cells, mpiGrid, vlsvWriter );
       phiprof::stop("populationReducer");
