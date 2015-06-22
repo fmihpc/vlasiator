@@ -77,6 +77,13 @@ Transform<Real,3,Affine> compute_acceleration_transformation( SpatialCell* spati
    
    /*note, we assume q is positive (pretty good assumption though)*/
    const Real substeps_radians=-(2.0*M_PI*dt/gyro_period)/bulk_velocity_substeps; /*!< how many radians each substep is*/
+   const Real substeps_dt=dt/bulk_velocity_substeps; /*!< how many s each substep is*/
+   Eigen::Matrix<Real,3,1> EgradPe(
+      spatial_cell->parameters[CellParams::EXGRADPE],
+      spatial_cell->parameters[CellParams::EYGRADPE],
+      spatial_cell->parameters[CellParams::EZGRADPE]);   
+
+
    for(uint i=0;i<bulk_velocity_substeps;i++){
    
       /*rotation origin is the point through which we place our rotation axis (direction of which is unitB)*/
@@ -89,12 +96,17 @@ Transform<Real,3,Affine> compute_acceleration_transformation( SpatialCell* spati
       rotation_pivot[2]-=hallPrefactor*(dBYdx - dBXdy);
 
       /*add to transform matrix the small rotation around  pivot
-        when added like thism, and not using *= operator, the transformations
+        when added like this, and not using *= operator, the transformations
         are in the correct order
        */
       total_transform=Translation<Real,3>(-rotation_pivot)*total_transform;
       total_transform=AngleAxis<Real>(substeps_radians,unit_B)*total_transform;
       total_transform=Translation<Real,3>(rotation_pivot)*total_transform;
+
+      // Electron pressure gradient term
+      if(Parameters::ohmGradPeTerm > 0) {
+         total_transform=Translation<Real,3>( (fabs(physicalconstants::CHARGE)/physicalconstants::MASS_PROTON) * EgradPe * substeps_dt) * total_transform;
+      }
    }
 
    return total_transform;
