@@ -45,6 +45,10 @@ Real P::backstreamvx = NAN;
 Real P::backstreamvy = NAN;
 Real P::backstreamvz = NAN;
 
+Real P::populationMergerMinVolume = 0;
+Real P::populationMergerAvgsThreshold = numeric_limits<Real>::max();
+Real P::populationMergerMaxNPopulations = 0;
+
 uint P::xcells_ini = numeric_limits<uint>::max();
 uint P::ycells_ini = numeric_limits<uint>::max();
 uint P::zcells_ini = numeric_limits<uint>::max();
@@ -233,6 +237,10 @@ bool Parameters::addParameters(){
    Readparameters::add("variables.dr_backstream_vy", "Center coordinate for the maxwellian distribution. Used for calculating the backstream contriution for rho.", 0.0);
    Readparameters::add("variables.dr_backstream_vz", "Center coordinate for the maxwellian distribution. Used for calculating the backstream contriution for rho.", 0.0);
    Readparameters::add("variables.dr_backstream_radius", "Radius of the maxwellian distribution. Used for calculating the backstream contribution for rho", 468621.0);
+   
+   Readparameters::add("populationMerger.AvgsThreshold", "Decides the threshold when two populations should be merged", numeric_limits<Real>::max() );
+   Readparameters::add("populationMerger.MinVolume", "Decides the minimum value of a population's volume", 0);
+   Readparameters::add("populationMerger.MaxNPopulations", "Decides how many populations we're interested in and we want to write", 0);
 
    // bailout parameters
    Readparameters::add("bailout.write_restart", "If 1, write a restart file on bailout. Gets reset when sending a STOP (1) or a KILL (0).", true);
@@ -445,6 +453,12 @@ bool Parameters::getParameters(){
    Readparameters::get("variables.dr_backstream_vx", P::backstreamvx);
    Readparameters::get("variables.dr_backstream_vy", P::backstreamvy);
    Readparameters::get("variables.dr_backstream_vz", P::backstreamvz);
+   
+   // Get parameters related to population merger / reducer (see datareduction/reducepopulation.cpp)
+   Readparameters::get("populationMerger.AvgsThreshold", P::populationMergerAvgsThreshold);
+   Readparameters::get("populationMerger.MinVolume", P::populationMergerMinVolume);
+   Readparameters::get("populationMerger.MaxNPopulations", P::populationMergerMaxNPopulations);
+
    
    // Get parameters related to bailout
    Readparameters::get("bailout.write_restart", P::bailout_write_restart);

@@ -46,7 +46,10 @@ struct Parameters {
    static Real backstreamvy; /*!< Y coordinate of the origin of the maxwellian distribution. Used for calculating rho of the backstream population. */
    static Real backstreamvz; /*!< Z coordinate of the origin of the maxwellian distribution. Used for calculating rho of the backstream population. */
    
-   
+   static Real populationMergerMinVolume; /*!< Population merger minimum volume of a population, see datareduction/reducepopulation.cpp*/
+   static Real populationMergerAvgsThreshold; /*!< Population merger avgs threshold of a population, see datareduction/reducepopulation.cpp*/
+   static Real populationMergerMaxNPopulations; /*!< Population mermger maximum number of populations*/ 
+ 
    static Real t;                    /*!< Current simulation time. */
    static Real t_min;                    /*!< Initial simulation time. */
    static Real t_max;                    /*!< Maximum simulation time. */
