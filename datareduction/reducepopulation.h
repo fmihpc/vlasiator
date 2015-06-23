@@ -18,17 +18,15 @@ void populationAlgorithm(
                          );
 
 
-/*! Writes the population variables, so variables for different populations. Note that population_algorithm must have been called before this!
-
- \param mpiGrid                 The DCCRG grid with spatial cells
- \param vlsvWriter              The VLSV writer class for writing VLSV files, note that the file must have been opened already
- */
-//bool write_population_variables( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, vlsv::Writer & vlsvWriter );
-
-/*! Writes the distribution function for different populations. Note that population_algorithm must have been called before this!
-
- \param mpiGrid                 The DCCRG grid with spatial cells
- \param vlsvWriter              The VLSV writer class for writing VLSV files, note that the file must have been opened already
- \param local_cells             The cells for which we write out the velocity space
- */
-//bool write_population_distribution( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, const vector<uint64_t> & local_cells, vlsv::Writer & vlsvWriter );
+/*! Function for writing a data reducer for population merger (writes variables for each population)
+ \param local_cells                        Vector of cell ids in the local process domain
+ \param mpiGrid                            DCCRG grid which contains pointers to cell data
+ \param vlsvWriter                         a VLSV file with a file opan
+ * */
+/*
+bool writePopulationDataReducer(
+                               const vector<CellID>& local_cells,
+                               dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, 
+                               Writer & vlsvWriter
+                               );
+*/

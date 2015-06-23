@@ -47,7 +47,8 @@ Real P::backstreamvz = NAN;
 
 Real P::populationMergerMinVolume = 0;
 Real P::populationMergerAvgsThreshold = numeric_limits<Real>::max();
-int P::populationMergerMaxNPopulations = 0;
+int P::populationMergerMaxNPopulations = 1;
+vector<string> P::populationMergerVariableList;
 
 uint P::xcells_ini = numeric_limits<uint>::max();
 uint P::ycells_ini = numeric_limits<uint>::max();
@@ -161,7 +162,7 @@ bool Parameters::addParameters(){
    Readparameters::add("io.restart_write_path", "Path to the location where restart files should be written. Defaults to the local directory, also if the specified destination is not writeable.", string("./"));
    
    Readparameters::add("propagate_potential","Propagate electrostatic potential during the simulation",false);
-   Readparameters::add("propagate_field","Propagate magnetic field during the simulation",true);Real
+   Readparameters::add("propagate_field","Propagate magnetic field during the simulation",true);
    Readparameters::add("propagate_vlasov_acceleration","Propagate distribution functions during the simulation in velocity space. If false, it is propagated with zero length timesteps.",true);
    Readparameters::add("propagate_vlasov_translation","Propagate distribution functions during the simulation in ordinary space. If false, it is propagated with zero length timesteps.",true);
    Readparameters::add("dynamic_timestep","If true,  timestep is set based on  CFL limits (default on)",true);
@@ -238,9 +239,10 @@ bool Parameters::addParameters(){
    Readparameters::add("variables.dr_backstream_vz", "Center coordinate for the maxwellian distribution. Used for calculating the backstream contriution for rho.", 0.0);
    Readparameters::add("variables.dr_backstream_radius", "Radius of the maxwellian distribution. Used for calculating the backstream contribution for rho", 468621.0);
    
+   Readparameters::addComposing("populationMerger.populationMergerVariableList", "List of data reduction operators to add to the grid file output for population merger. Each variable has to be added on a new line output. The variables will be saved as \"variablename_i\", where i is the population number. Available variables are: Rho");
    Readparameters::add("populationMerger.AvgsThreshold", "Decides the threshold when two populations should be merged", numeric_limits<Real>::max() );
    Readparameters::add("populationMerger.MinVolume", "Decides the minimum value of a population's volume", 0);
-   Readparameters::add("populationMerger.MaxNPopulations", "Decides how many populations we're interested in and we want to write", 0);
+   Readparameters::add("populationMerger.MaxNPopulations", "Decides how many populations we're interested in and we want to write", 1);
 
    // bailout parameters
    Readparameters::add("bailout.write_restart", "If 1, write a restart file on bailout. Gets reset when sending a STOP (1) or a KILL (0).", true);
@@ -459,6 +461,14 @@ bool Parameters::getParameters(){
    Readparameters::get("populationMerger.MinVolume", P::populationMergerMinVolume);
    Readparameters::get("populationMerger.MaxNPopulations", P::populationMergerMaxNPopulations);
 
+   // Get output variable parameters
+   Readparameters::get("populationMerger.output", P::populationMergerVariableList);
+
+   // Filter duplicate variable names
+   set<string> mergerDummy(P::populationMergerVariableList.begin(),P::populationMergerVariableList.end());
+   P::populationMergerVariableList.clear();
+   P::populationMergerVariableList.insert(P::populationMergerVariableList.end(),dummy.begin(),dummy.end());
+   dummy.clear();
    
    // Get parameters related to bailout
    Readparameters::get("bailout.write_restart", P::bailout_write_restart);

@@ -39,8 +39,10 @@ class DataReducer {
    bool addOperator(DRO::DataReductionOperator* op);
    bool getDataVectorInfo(const unsigned int& operatorID,std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
    std::string getName(const unsigned int& operatorID) const;
+   std::string getName(const unsigned int& operatorID, const int population) const;
    bool reduceData(const SpatialCell* cell,const unsigned int& operatorID,char* buffer);
    bool reduceData(const SpatialCell* cell,const unsigned int& operatorID,Real * result);
+   bool reduceData(const SpatialCell* cell,const unsigned int& operatorID,const int population, char* buffer);
    unsigned int size() const;
    
  private:
@@ -52,6 +54,6 @@ class DataReducer {
    /**< A container for all DRO::DataReductionOperators stored in DataReducer.*/
 };
 
-void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosticReducer);
+void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosticReducer, DataReducer * PopulationReducer);
 
 #endif

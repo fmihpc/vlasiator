@@ -23,7 +23,7 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #include "../common.h"
 using namespace std;
 
-void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosticReducer)
+void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosticReducer, DataReducer * populationReducer)
 {
    typedef Parameters P;
    /*
@@ -268,6 +268,13 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(*it == "BoundaryLayer")
          diagnosticReducer->addOperator(new DRO::BoundaryLayer);
    }
+   
+   for( it = P::populationMergerVariableList.begin();
+        it != P::populationMergerVariableList.end();
+        ++it ) {
+      if( *it == "Rho" )
+        populationReducer->addOperator(new DRO::VariablePopulationRho);
+   }
 }
 
 // ************************************************************
@@ -307,6 +314,17 @@ std::string DataReducer::getName(const unsigned int& operatorID) const {
    return operators[operatorID]->getName();
 }
 
+/** Get the name of a DataReductionOperator.
+ * @param operatorID ID number of the operator whose name is requested.
+ * @param population Population ID for population reducer
+ * @return Name of the operator.
+ */
+std::string DataReducer::getName(const unsigned int& operatorID, const int population) const {
+   if (operatorID >= operators.size()) return "";
+   return operators[operatorID]->getName(population);
+}
+
+
 /** Get info on the type of data calculated by the given DataReductionOperator.
  * A DataReductionOperator writes an array on disk. Each element of the array is a vector with n elements. Finally, each
  * vector element has a byte size, as given by the sizeof function.
@@ -334,6 +352,22 @@ bool DataReducer::reduceData(const SpatialCell* cell,const unsigned int& operato
    if (operators[operatorID]->setSpatialCell(cell) == false) return false;
 
    if (operators[operatorID]->reduceData(cell,buffer) == false) return false;
+   return true;
+}
+
+/** Request a DataReductionOperator to calculate its output data and to write it to the given buffer.
+ * @param cell Pointer to spatial cell whose data is to be reduced.
+ * @param operatorID ID number of the applied DataReductionOperator.
+ * @param population Population ID for population reducer
+ * @param buffer Buffer in which DataReductionOperator should write its data.
+ * @return If true, DataReductionOperator calculated and wrote data successfully.
+ */
+bool DataReducer::reduceData(const SpatialCell* cell,const unsigned int& operatorID, const int population, char* buffer) {
+   // Tell the chosen operator which spatial cell we are counting:
+   if (operatorID >= operators.size()) return false;
+   if (operators[operatorID]->setSpatialCell(cell) == false) return false;
+
+   if (operators[operatorID]->reduceData(cell,population,buffer) == false) return false;
    return true;
 }
 

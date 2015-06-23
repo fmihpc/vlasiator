@@ -63,6 +63,16 @@ namespace DRO {
       return string("");
    }
    
+   /** Get the name of the reduced data variable. The name is written to the disk as-is 
+    * and is used in visualization.
+    * @param population ID of the population
+    * @return The name of the data. The base class function returns an empty string.
+    */
+   std::string DataReductionOperator::getName(const int population) const {
+      cerr << "ERROR: DataReductionOperator::getName called instead of derived class function!" << endl;
+      return string("");
+   }
+   
    // TODO update this documentation snippet.
    /** Reduce the data and write the data vector to the given buffer.
     * @param N_blocks Number of velocity blocks in array avgs.
@@ -85,6 +95,18 @@ namespace DRO {
     * @return If true, DataReductionOperator reduced data successfully.
     */
    bool DataReductionOperator::reduceData(const SpatialCell* cell,Real* result) {
+      cerr << "ERROR: DataReductionOperator::reduceData called instead of derived class function!" << endl;
+      return false;
+   }
+   
+   // TODO update this documentation snippet.
+   /** Reduce the data and write the data vector to the given buffer.
+    * @param cell Spatial cell
+    * @param population Population ID (see reducepopulation.cpp)
+    * @param buffer Buffer where to save the results
+    * @return If true, DataReductionOperator reduced data successfully.
+    */
+   bool DataReductionOperator::reduceData(const SpatialCell* cell, const int population, char* buffer) {
       cerr << "ERROR: DataReductionOperator::reduceData called instead of derived class function!" << endl;
       return false;
    }
@@ -1581,6 +1603,33 @@ namespace DRO {
       return true;
    }
 
+   VariablePopulationRho::VariablePopulationRho(): DataReductionOperator() { }
+   VariablePopulationRho::~VariablePopulationRho() { }
    
+   std::string VariablePopulationRho::getName( const int population ) const {
+     stringstream ss(stringstream::in | stringstream::out );
+     ss << "Rho";
+     ss << population;
+     return ss.str();
+   }
    
+   bool VariablePopulationRho::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize =  sizeof(Real);
+      vectorSize = 1;
+      return true;
+   }
+
+   // Adding rho non backstream calculations to Vlasiator.
+   bool VariablePopulationRho::reduceData(const SpatialCell* cell, const int population, char* buffer) {
+      const char* ptr = reinterpret_cast<const char*>(&cell->populationParameters[PopulationParams::POPULATION_RHO][population]);
+      for (uint i=0; i<sizeof(cell->populationParameters[PopulationParams::POPULATION_RHO][population]); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+
+   bool VariablePopulationRho::setSpatialCell(const SpatialCell* cell) {
+      return true;
+   }
+
+  
 } // namespace DRO

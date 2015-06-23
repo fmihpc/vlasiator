@@ -846,7 +846,7 @@ namespace test {
 } // Namespace test
 
 // Returns the total number of clusters:
-int numberOfClusters( vector<Cluster> & clusters ) {
+int numberOfClusters( const vector<Cluster> & clusters ) {
    if( clusters.size() == 0 ) { return 0; }
    unordered_set<uint32_t> uniqueClusterIds;
    for( int i = 1; i < clusters.size(); ++i ) {
@@ -868,18 +868,94 @@ void deallocateClusters( vector<Cluster> clusters ) {
    }
 }
 
-void saveClusterData( SpatialCell * cell, const vector<uint32_t> & velocityCellClusterId, const vector<Cluster> & clusters ) {
-   vmesh::VelocityBlockContainer< vmesh::LocalID > & tmpBlockContainer = cell->get_velocity_blocks_temporary();
-   tmpBlockContainer.clear();
-   tmpBlockContainer.setSize(cell->get_number_of_velocity_blocks());
-   Realf * tmpData = tmpBlockContainer.getData();
 
-   for( int i = 0; i < velocityCellClusterId.size(); ++i ) {
-      const Cluster & cluster = clusters[velocityCellClusterId[i]];
 
-      tmpData[i] = (Realf)(*cluster.clusterId);
+namespace saveData {
+   void allocatePopulationParameters( vector<Real> * populationParameters ) {
+      for( int i = 0; i < PopulationParams::N_POPULATION_PARAMS; ++i ) {
+        populationParameters[i].clear();
+        populationParameters[i].resize(Parameters::populationMergerMaxNPopulations);
+        for( int j = 0; j < populationParameters[i].size(); ++j ) { populationParameters[i][j] = 0; }
+      }
    }
-}
+   
+   void calculateClusterRho( const SpatialCell * cell, const vector<Cluster> & clusters, const vector<uint32_t> & velocityCellClusterId, Realf * velocityCellData, vector<Real> & rho ) {
+      rho.clear(); rho.resize( numberOfClusters(clusters) );
+      
+      const Real HALF = 0.5;
+      
+      for( int i = 0; i < rho.size(); ++i ) { rho[i] = 0; }
+      
+      const Real DV3 = cell->parameters[BlockParams::DVX] * cell->parameters[BlockParams::DVY] * cell->parameters[BlockParams::DVZ]; // Get the volume of a velocity cell
+      for( int i = 0; i < velocityCellClusterId.size(); ++i ) {
+         const Cluster & cluster = clusters[velocityCellClusterId[i]];
+         const uint32_t clusterId = *cluster.clusterId;
+         rho[clusterId] += velocityCellData[i] * DV3;
+      }
+   }
+   
+
+
+//   void calculateClusterRhoV( const SpatialCell * cell, const vector<Cluster> & clusters, const vector<uint32_t> & velocityCellClusterId, Realf * velocityCellData, vector<array<Real, 3> > & rho_v ) {
+//      rho_v.clear(); rho_v.resize( numberOfClusters(clusters) );
+//     
+//     #warning no AMR
+//     vmesh::VelocityMesh<vmesh::GlobalID, vmesh::LocalID> & velocityMesh = cell->get_velocity_mesh(0);
+//      
+//      for( int i = 0; i < rho_v.size(); ++i ) for( int j = 0; j < 3; ++j ) { rho_v[i][j] = 0; }
+//      
+//      const Real DV3 = cell->parameters[BlockParams::DVX] * cell->parameters[BlockParams::DVY] * cell->parameters[BlockParams::DVZ]; // Get the volume of a velocity cell
+//      for( int i = 0; i < velocityCellClusterId.size(); ++i ) {
+//         const Cluster & cluster = clusters[velocityCellClusterId[i]];
+//         const uint32_t clusterId = *cluster.clusterId;
+//         
+//         const Real v[3] = { 0 };
+//         for( int j = 0; j < 3; ++j ) {
+//            rho_v[clusterId][j] += velocityCellData[i];
+//         }
+//      }
+//   }
+   
+   void inputPopulationParameters( vector<Real> * populationParameters, vector<Real> & rho ) {
+
+      allocatePopulationParameters(populationParameters);
+      // Sort rho from biggest value to smallest:
+      sort( rho.rbegin(), rho.rend() );
+      // Copy:
+      copy( rho.begin(), rho.begin()+Parameters::populationMergerMaxNPopulations, 
+            populationParameters[PopulationParams::POPULATION_RHO].begin() );
+   }
+   
+   void saveClusterData( SpatialCell * cell, const vector<uint32_t> & velocityCellClusterId, const vector<Cluster> & clusters ) {
+      vmesh::VelocityBlockContainer< vmesh::LocalID > & tmpBlockContainer = cell->get_velocity_blocks_temporary();
+      tmpBlockContainer.clear();
+      tmpBlockContainer.setSize(cell->get_number_of_velocity_blocks());
+      Realf * tmpData = tmpBlockContainer.getData();
+   
+      for( int i = 0; i < velocityCellClusterId.size(); ++i ) {
+         const Cluster & cluster = clusters[velocityCellClusterId[i]];
+         
+         tmpData[i] = (Realf)(*cluster.clusterId);
+      }
+      
+      #warning no AMR here
+      const size_t noAMR = 0;
+      vmesh::VelocityBlockContainer< vmesh::LocalID > & blockContainer = cell->get_velocity_blocks(noAMR);
+      Realf * velocityCellData = blockContainer.getData();
+      
+      // Calculate rho for each cluster:
+      vector<Real> rho;
+      calculateClusterRho( cell, clusters, velocityCellClusterId, velocityCellData, rho );
+      
+//      // Calculate rho_v for each cluster:
+//      vector<array<Real, 3> > rho_v;
+//      calculateClusterRhoV( cell, clusters, velocityCellClusterId, velocityCellData, rho );
+      
+      // Save parameters for each cluster:
+      vector<Real> * populationParameters = cell->populationParameters;
+      inputPopulationParameters( populationParameters, rho );
+   }
+} // end namespace saveData
 
 void simpleCluster( vector<VelocityCell> & velocityCells, SpatialCell * cell, const Real totalVolumeThreshold, const Real minAvgs ) {
    if( velocityCells.size() == 0 ) { return; }
@@ -968,7 +1044,7 @@ void simpleCluster( vector<VelocityCell> & velocityCells, SpatialCell * cell, co
    cout << "Number of clusters: " << numberOfClusters( clusters ) << endl;
    cell->number_of_populations = numberOfClusters( clusters );
    
-   saveClusterData(cell, velocityCellClusterId, clusters);
+   saveData::saveClusterData(cell, velocityCellClusterId, clusters);
    
    deallocateClusters(clusters);
 }
@@ -1039,3 +1115,45 @@ void populationAlgorithm(
 
    return;
 }
+
+
+/*
+bool writePopulationDataReducer(
+                               const vector<CellID>& local_cells,
+                               dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, 
+                               Writer & vlsvWriter
+                               ) {
+   // Get all variables to write:
+   for( int i = 0; i < P::populationMergerVariableList.size(); ++i ) {
+     const string & variableName = P::populationMergerVariableList[i];
+     // Write the variable for each population:
+     for( int population = 0; population < Parameters::populationMergerMaxNPopulations; ++population ) {
+        // get the variable data:
+        vector<Real> variableData;
+        fetchPopulationVariableData( local_cells, mpiGrid, variableName, population );
+     }
+   }
+}
+*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
