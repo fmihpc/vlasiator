@@ -111,6 +111,15 @@ namespace spatial_cell {
       | CELL_SYSBOUNDARYFLAG;
    }
 
+   namespace PopulationParams {
+     enum {
+        POPULATION_RHO_V, /*!< Rho v in population */
+        POPULATION_RHO, /*!< Rho in population*/
+        NUMBER_OF_POPULATIONS, /*!< Number of populations*/
+        N_POPULATION_PARAMS /*!< Number of population parameters*/
+     };
+   }
+   
    typedef boost::array<unsigned int, 3> velocity_cell_indices_t;             /**< Defines the indices of a velocity cell in a velocity block.
                                                                                * Indices start from 0 and the first value is the index in x direction.
                                                                                * Note: these are the (i,j,k) indices of the cell within the block.
@@ -257,8 +266,9 @@ namespace spatial_cell {
       static uint64_t mpi_transfer_type;                                      /**< Which data is transferred by the mpi datatype given by spatial cells.*/
       static bool mpiTransferAtSysBoundaries;                                 /**< Do we only transfer data at boundaries (true), or in the whole system (false).*/
 
-      uint number_of_populations;                                             /**< Number of populations in the velocity space of this spatial cell */
-      
+      std::vector<Real> populationParameters[PopulationParams::N_POPULATION_PARAMS]; /*!< Population parameters e.g. rho, rho_v for each population*/
+#warning TODO: remove number_of_populations
+      uint number_of_populations;
     private:
       SpatialCell& operator=(const SpatialCell&);
       bool compute_block_has_content(const vmesh::GlobalID& block) const;
