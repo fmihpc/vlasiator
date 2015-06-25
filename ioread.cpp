@@ -232,13 +232,13 @@ void getVelocityBlockCoordinates( const uint64_t & block, boost::array<Real, 3> 
 
 /*!
   This reads in velocity space data
-  \param file Vlsv reader with a file open
-  \param fileCells List of all cell ids
-  \param localCellStartOffset The offset from which to start reading cells ( This should be balanced so that every process has roughly the same amount of blocks to read )
-  \param localCells How many cells after the offset to read ( This should be balanced so that every process has roughly the same amount of blocks to read )
-  \param localBlockStartOffset localCellStartOffset's corresponding block offset in this process ( Calculated from nBlocks and localCellStartOffset )
-  \param localCells localCellStartOffset's corresponding block block amount in this process ( Calculated from nBlocks and localCellStartOffset and localCellStartOffset )
-  \param mpiGrid Vlasiator's grid
+  \param file                  Vlsv reader with a file open
+  \param fileCells             List of all cell ids
+  \param localCellStartOffset  The offset from which to start reading cells ( This should be balanced so that every process has roughly the same amount of blocks to read )
+  \param localCells            How many cells after the offset to read ( This should be balanced so that every process has roughly the same amount of blocks to read )
+  \param localBlockStartOffset The offset from which to start reading block data for thisp process ( Calculated from nBlocks and localCellStartOffset )
+  \param localBlocks           Total number of blocks forthis process ( Calculated from nBlocks and localCellStartOffset and localCellStartOffset )
+  \param mpiGrid               Vlasiator's grid
  \sa readGrid
 */
 template <typename fileReal>
@@ -295,12 +295,12 @@ bool _readBlockData(
       return false;
 
    }      
-   fileReal *avgBuffer=new fileReal[avgVectorSize*localBlocks]; //avgs data for all cells
+   fileReal *avgBuffer=new fileReal[avgVectorSize * localBlocks]; //avgs data for all cells
    vmesh::GlobalID * blockIdBuffer = new vmesh::GlobalID[blockIdVectorSize * localBlocks]; //blockids of all cells
    
    //Read block ids and data
    file.readArray("BLOCKIDS", blockIdAttribs, localBlockStartOffset, localBlocks, (char*)blockIdBuffer );
-   file.readArray("BLOCKVARIABLE",avgAttribs,localBlockStartOffset,localBlocks,(char*)avgBuffer);
+   file.readArray("BLOCKVARIABLE", avgAttribs, localBlockStartOffset, localBlocks, (char*)avgBuffer);
    
    uint64_t blockBufferOffset=0;
    //Go through all spatial cells     
