@@ -116,7 +116,7 @@ class Cluster {
             uint32_t * members_to_delete = members;
             uint32_t * clusterId_to_delete = clusterId;
             unordered_set<uint32_t> * neighbor_clusters_to_delete = neighbor_clusters;
-   
+
             // Go through every member:
             for( unordered_set<uint32_t>::const_iterator it = neighbor_clusters->begin(); it != neighbor_clusters->end(); ++it ) {
                const uint index = *it;
@@ -131,6 +131,9 @@ class Cluster {
             delete members_to_delete;
             delete clusterId_to_delete;
             delete neighbor_clusters_to_delete;
+            members = NULL;
+            clusterId = NULL;
+            neighbor_clusters = NULL;
          }
       }
 
