@@ -28,7 +28,7 @@ int main(int argc, char** argv) {
    /* Parse commandline and config*/
    Readparameters parameters(argc, argv, MPI_COMM_WORLD);
    ParticleParameters::addParameters();
-   parameters.parse();
+   parameters.parse(false);  // Parse parameters and don't require run_config
    ParticleParameters::getParameters();
 
    /* Read starting fields from specified input file */

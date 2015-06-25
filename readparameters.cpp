@@ -589,9 +589,10 @@ bool Readparameters::isInitialized() {return initialized;}
 /** Request Parameters to reparse input file(s). This function needs 
  * to be called after new options have been added via Parameters:add functions.
  * Otherwise the values of the new options are not read. This is a collective function, all processes have to all it.
+ * @param needsRunConfig Whether or not this program can run without a runconfig file (esm: vlasiator can't, but particle pusher can)
  * @return If true, input file(s) were parsed successfully.
  */
-bool Readparameters::parse() {
+bool Readparameters::parse(bool needsRunConfig) {
     if (initialized == false) return false;
     // Tell Boost to allow undescribed options (throws exception otherwise)
    
@@ -663,7 +664,7 @@ bool Readparameters::parse() {
     //If no arguments are given the program (currently r155) would crash later on with nasty error messages
     bool hasRunConfigFile=(run_config_file_name.size() > 0);
     MPI_Bcast(&hasRunConfigFile,sizeof(bool),MPI_BYTE,0,MPI_COMM_WORLD);    
-    if(!hasRunConfigFile){
+    if(needsRunConfig && !hasRunConfigFile){
         if(Readparameters::rank==MASTER_RANK){
             cout << "Run config file required. Use --help to list all options" <<endl;
         }
