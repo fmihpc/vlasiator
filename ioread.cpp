@@ -26,6 +26,7 @@ typedef Parameters P;
  * \brief Checks for command files written to the local directory.
  * If a file STOP was written and is readable, then a bailout with restart writing is initiated.
  * If a file KILL was written and is readable, then a bailout without a restart is initiated.
+ * If a file SAVE was written and is readable, then restart writing without a bailout is initiated.
  * To avoid bailing out upfront on a new run the files are renamed with the date to keep a trace.
  * The function should only be called by MASTER_RANK. This ensures that resetting P::bailout_write_restart works.
  */
@@ -51,6 +52,17 @@ void checkExternalCommands() {
       const struct tm * timeInfo = localtime(&rawTime);
       strftime(newName, 80, "KILL_%F_%H-%M-%S", timeInfo);
       rename("KILL", newName);
+      return;
+   }
+   if(stat("SAVE", &tempStat) == 0) {
+      cerr << "Received an external SAVE command. Writing a restart file." << endl;
+      globalflags::writeRestart = true;
+      char newName[80];
+      // Get the current time.
+      const time_t rawTime = time(NULL);
+      const struct tm * timeInfo = localtime(&rawTime);
+      strftime(newName, 80, "SAVE_%F_%H-%M-%S", timeInfo);
+      rename("SAVE", newName);
       return;
    }
 }

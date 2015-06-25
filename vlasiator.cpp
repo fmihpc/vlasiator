@@ -54,6 +54,7 @@ using namespace std;
 using namespace phiprof;
 
 int globalflags::bailingOut = 0;
+bool globalflags::writeRestart = 0;
 
 ObjectWrapper objectWrapper;
 
@@ -427,7 +428,7 @@ int main(int argn,char* args[]) {
 
       phiprof::start("checkExternalCommands");
       if(myRank ==  MASTER_RANK) {
-         // check whether STOP or KILL has been passed, should be done by MASTER_RANK only as it can reset P::bailout_write_restart
+         // check whether STOP or KILL or SAVE has been passed, should be done by MASTER_RANK only as it can reset P::bailout_write_restart
          checkExternalCommands();
       }
       phiprof::stop("checkExternalCommands");
@@ -461,7 +462,7 @@ int main(int argn,char* args[]) {
          //report_grid_memory_consumption(mpiGrid);
          report_process_memory_consumption();
       }
-      logFile << writeVerbose;      
+      logFile << writeVerbose;
       phiprof::stop("logfile-io");
 
 
@@ -502,33 +503,40 @@ int main(int argn,char* args[]) {
             phiprof::stop("write-system");
          }
       }
-      phiprof::start("Bailout-allreduce");      
+      phiprof::start("Bailout-allreduce");
       // Reduce globalflags::bailingOut from all processes
       MPI_Allreduce(&(globalflags::bailingOut), &(doBailout), 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-      phiprof::stop("Bailout-allreduce");            
+      phiprof::stop("Bailout-allreduce");
 
       // Write restart data if needed
-      phiprof::start("compute-is-restart-written");      
+      phiprof::start("compute-is-restart-written");
       int writeRestartNow;
       if (myRank == MASTER_RANK) {
-         if (  (P::saveRestartWalltimeInterval >=0.0
+         if (  (P::saveRestartWalltimeInterval >= 0.0
             && (P::saveRestartWalltimeInterval*wallTimeRestartCounter <=  MPI_Wtime()-initialWtime
-               || P::tstep ==P::tstep_max
+               || P::tstep == P::tstep_max
                || P::t >= P::t_max))
             || (doBailout > 0 && P::bailout_write_restart)
+            || globalflags::writeRestart
          ) {
             writeRestartNow = 1;
+            if (globalflags::writeRestart == true) {
+               writeRestartNow = 2; // Setting to 2 so as to not increment the restart count below.
+               globalflags::writeRestart = false; // This flag is only used by MASTER_RANK here and it needs to be reset after a restart write has been issued.
+            }
          }
          else {
             writeRestartNow = 0;
          }
       }
       MPI_Bcast( &writeRestartNow, 1 , MPI_INT , MASTER_RANK ,MPI_COMM_WORLD);
-      phiprof::stop("compute-is-restart-written");      
+      phiprof::stop("compute-is-restart-written");
 
-      if (writeRestartNow == 1){
+      if (writeRestartNow >= 1){
          phiprof::start("write-restart");
-         wallTimeRestartCounter++;
+         if (writeRestartNow == 1) {
+            wallTimeRestartCounter++;
+         }
          
          if (myRank == MASTER_RANK)
             logFile << "(IO): Writing restart data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
