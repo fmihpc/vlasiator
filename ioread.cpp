@@ -241,8 +241,9 @@ void getVelocityBlockCoordinates( const uint64_t & block, boost::array<Real, 3> 
   \param mpiGrid               Vlasiator's grid
  \sa readGrid
 */
-template <typename fileReal>
-bool _readBlockData(
+
+   
+bool readBlockData(
    ParallelReader & file,
    const vector<uint64_t>& fileCells,
    const uint64_t localCellStartOffset,
@@ -271,21 +272,20 @@ bool _readBlockData(
   datatype::type blockIdDataType;
   blockIdAttribs.push_back( make_pair("mesh", "SpatialGrid") );
   if (file.getArrayInfo("BLOCKIDS",blockIdAttribs,arraySize,blockIdVectorSize,blockIdDataType,blockIdByteSize) == false ){
-    logFile << "(RESTART) ERROR: Failed to read BLOCKCOORDINATES array info " << endl << write;
-    return false;
+     logFile << "(RESTART) ERROR: Failed to read BLOCKIDS array info " << endl << write;
+     return false;
   }
-
-  if(file.getArrayInfo("BLOCKVARIABLE",avgAttribs,arraySize,avgVectorSize,dataType,byteSize) == false ){
+  if(file.getArrayInfo("BLOCKVARIABLE", avgAttribs, arraySize, avgVectorSize, dataType, byteSize) == false ){
     logFile << "(RESTART) ERROR: Failed to read BLOCKVARIABLE array info " << endl << write;
     return false;
   }
 
-   //Some routine error checks:
+  //Some routine error checks:
    if( avgVectorSize!=WID3 ){
       logFile << "(RESTART) ERROR: Blocksize does not match in restart file " << endl << write;
       return false;
    }
-   if( byteSize != sizeof(fileReal) ) {
+   if( sizeof(Realf) != byteSize ) {
       logFile << "(RESTART) ERROR: Bad avgs bytesize at " << __FILE__ << " " << __LINE__ << endl << write;
       return false;
    }
@@ -294,13 +294,14 @@ bool _readBlockData(
       logFile << "(RESTART) ERROR: BlockID data size does not match " << __FILE__ << " " << __LINE__ << endl << write;
       return false;
 
-   }      
-   fileReal *avgBuffer=new fileReal[avgVectorSize * localBlocks]; //avgs data for all cells
+   }
+   
    vmesh::GlobalID * blockIdBuffer = new vmesh::GlobalID[blockIdVectorSize * localBlocks]; //blockids of all cells
    
    //Read block ids and data
    file.readArray("BLOCKIDS", blockIdAttribs, localBlockStartOffset, localBlocks, (char*)blockIdBuffer );
-   file.readArray("BLOCKVARIABLE", avgAttribs, localBlockStartOffset, localBlocks, (char*)avgBuffer);
+   file.multiReadStart("BLOCKVARIABLE", avgAttribs);
+
    
    uint64_t blockBufferOffset=0;
    //Go through all spatial cells     
@@ -309,82 +310,18 @@ bool _readBlockData(
       CellID cell = fileCells[localCellStartOffset + i]; //spatial cell id 
       uint nBlocksInCell = nBlocks[localCellStartOffset + i];
       //copy blocks in this cell to vector blockIdsInCell, size of read in data has been checked earlier
-      blockIdsInCell.reserve(nBlocksInCell);
-      blockIdsInCell.assign(blockIdBuffer + blockBufferOffset, blockIdBuffer + blockBufferOffset + nBlocksInCell);
+      blockIdsInCell.assign(blockIdBuffer + blockBufferOffset,
+                            blockIdBuffer + blockBufferOffset + nBlocksInCell);
       mpiGrid[cell]->add_velocity_blocks(blockIdsInCell); //allocate space for all blocks and create them
-      //copy avgs data, here a conversion may happen between float and double
-      Realf *cellBlockData=mpiGrid[cell]->get_data();
-      for(uint64_t i = 0; i< WID3 * nBlocksInCell ; i++){
-         cellBlockData[i] =  avgBuffer[blockBufferOffset*WID3 + i];
-      }
+      //register read
+      file.multiReadAddUnit(localBlocks, (char*)(mpiGrid[cell]->get_data()));
       blockBufferOffset += nBlocksInCell; //jump to location of next local cell
    }
+   file.multiReadEnd(localBlockStartOffset);
 
-   delete[] avgBuffer;
    delete[] blockIdBuffer;
    return success;
 }
-
-bool readBlockData(
-   ParallelReader & file,
-   const vector<uint64_t>& fileCells,
-   const uint64_t localCellStartOffset,
-   const uint64_t localCells,
-   const vector<uint>& nBlocks,
-   const uint64_t localBlockStartOffset,
-   const uint64_t localBlocks,
-   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
-) {
-   uint64_t arraySize;
-   uint64_t vectorSize;
-   datatype::type dataType;
-   uint64_t byteSize;
-   list<pair<string,string> > attribs;
-
-   attribs.push_back(make_pair("name","avgs"));
-   attribs.push_back(make_pair("mesh","SpatialGrid"));
-
-
-   if (file.getArrayInfo("BLOCKVARIABLE",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
-      logFile << "(RESTART)  ERROR: Failed to read BLOCKVARIABLE INFO" << endl << write;
-      return false;
-   }
-
-
-   // Call _readBlockData
-   if( dataType == datatype::type::FLOAT ) {
-      switch (byteSize) {
-         case sizeof(double):
-            return _readBlockData<double>( file, fileCells, localCellStartOffset, localCells, nBlocks, localBlockStartOffset, localBlocks, mpiGrid );
-            break;
-         case sizeof(float):
-            return _readBlockData<float>( file, fileCells, localCellStartOffset, localCells, nBlocks, localBlockStartOffset, localBlocks, mpiGrid );
-            break;
-      }
-   } else if( dataType == datatype::type::UINT ) {
-      switch (byteSize) {
-         case sizeof(uint32_t):
-            return _readBlockData<uint32_t>( file, fileCells, localCellStartOffset, localCells, nBlocks, localBlockStartOffset, localBlocks, mpiGrid );
-            break;
-         case sizeof(uint64_t):
-            return _readBlockData<uint64_t>( file, fileCells, localCellStartOffset, localCells, nBlocks, localBlockStartOffset, localBlocks, mpiGrid );
-            break;
-      }
-   } else if( dataType == datatype::type::INT ) {
-      switch (byteSize) {
-         case sizeof(int32_t):
-            return _readBlockData<int32_t>( file, fileCells, localCellStartOffset, localCells, nBlocks, localBlockStartOffset, localBlocks, mpiGrid );
-            break;
-         case sizeof(int64_t):
-            return _readBlockData<int64_t>( file, fileCells, localCellStartOffset, localCells, nBlocks, localBlockStartOffset, localBlocks, mpiGrid );
-            break;
-      }
-   } else {
-      logFile << "(RESTART)  ERROR: Failed to read data type at readCellParamsVariable" << endl << write;
-      return false;
-   }
-}
-
 
 
 
