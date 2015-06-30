@@ -264,8 +264,6 @@ bool readBlockData(
   avgAttribs.push_back(make_pair("name","avgs"));
   avgAttribs.push_back(make_pair("mesh","SpatialGrid"));
   
-
-
   //Get block id array info and store them into blockIdAttribs, lockIdByteSize, blockIdDataType, blockIdVectorSize
   list<pair<string,string> > blockIdAttribs;
   uint64_t blockIdVectorSize, blockIdByteSize;
@@ -280,7 +278,7 @@ bool readBlockData(
     return false;
   }
 
-  //Some routine error checks:
+   //Some routine error checks:
    if( avgVectorSize!=WID3 ){
       logFile << "(RESTART) ERROR: Blocksize does not match in restart file " << endl << write;
       return false;
@@ -293,7 +291,6 @@ bool readBlockData(
    if( blockIdByteSize  != sizeof(vmesh::GlobalID)) {
       logFile << "(RESTART) ERROR: BlockID data size does not match " << __FILE__ << " " << __LINE__ << endl << write;
       return false;
-
    }
    
    vmesh::GlobalID * blockIdBuffer = new vmesh::GlobalID[blockIdVectorSize * localBlocks]; //blockids of all cells
@@ -301,8 +298,6 @@ bool readBlockData(
    //Read block ids and data
    file.readArray("BLOCKIDS", blockIdAttribs, localBlockStartOffset, localBlocks, (char*)blockIdBuffer );
    file.multiReadStart("BLOCKVARIABLE", avgAttribs);
-
-   
    uint64_t blockBufferOffset=0;
    //Go through all spatial cells     
    std::vector<vmesh::GlobalID> blockIdsInCell; //blockIds in a particular cell, temporary usage
@@ -314,9 +309,10 @@ bool readBlockData(
                             blockIdBuffer + blockBufferOffset + nBlocksInCell);
       mpiGrid[cell]->add_velocity_blocks(blockIdsInCell); //allocate space for all blocks and create them
       //register read
-      file.multiReadAddUnit(localBlocks, (char*)(mpiGrid[cell]->get_data()));
+      file.multiReadAddUnit(nBlocksInCell, (char*)(mpiGrid[cell]->get_data()));
       blockBufferOffset += nBlocksInCell; //jump to location of next local cell
    }
+   
    file.multiReadEnd(localBlockStartOffset);
 
    delete[] blockIdBuffer;
