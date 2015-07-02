@@ -297,7 +297,7 @@ bool readBlockData(
    
    //Read block ids and data
    file.readArray("BLOCKIDS", blockIdAttribs, localBlockStartOffset, localBlocks, (char*)blockIdBuffer );
-   file.multiReadStart("BLOCKVARIABLE", avgAttribs);
+   file.startMultiread("BLOCKVARIABLE", avgAttribs);
    uint64_t blockBufferOffset=0;
    //Go through all spatial cells     
    std::vector<vmesh::GlobalID> blockIdsInCell; //blockIds in a particular cell, temporary usage
@@ -309,11 +309,11 @@ bool readBlockData(
                             blockIdBuffer + blockBufferOffset + nBlocksInCell);
       mpiGrid[cell]->add_velocity_blocks(blockIdsInCell); //allocate space for all blocks and create them
       //register read
-      file.multiReadAddUnit(nBlocksInCell, (char*)(mpiGrid[cell]->get_data()));
+      file.addMultireadUnit((char*)(mpiGrid[cell]->get_data()), nBlocksInCell);
       blockBufferOffset += nBlocksInCell; //jump to location of next local cell
    }
    
-   file.multiReadEnd(localBlockStartOffset);
+   file.endMultiread(localBlockStartOffset);
 
    delete[] blockIdBuffer;
    return success;
