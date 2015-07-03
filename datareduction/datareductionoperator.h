@@ -38,8 +38,10 @@ namespace DRO {
       
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
       virtual std::string getName() const;
+      virtual std::string getName(const int population) const;
       virtual bool reduceData(const SpatialCell* cell,char* buffer);
       virtual bool reduceData(const SpatialCell* cell,Real * result);
+      virtual bool reduceData(const SpatialCell* cell, const int population, char* buffer);
       virtual bool setSpatialCell(const SpatialCell* cell);
       
    protected:
@@ -444,6 +446,32 @@ namespace DRO {
    protected:
       Real averageVX, averageVY, averageVZ;
       Real PTensor[3];
+   };
+   
+   class VariableNumberOfPopulations: public DataReductionOperator {
+   public:
+      VariableNumberOfPopulations();
+      virtual ~VariableNumberOfPopulations();
+
+      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual std::string getName() const;
+      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool setSpatialCell(const SpatialCell* cell);
+
+   protected:
+   };
+   
+   class VariablePopulationRho: public DataReductionOperator {
+   public:
+      VariablePopulationRho();
+      virtual ~VariablePopulationRho();
+
+      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual std::string getName(const int population) const;
+      virtual bool reduceData(const SpatialCell* cell, const int population, char* buffer);
+      virtual bool setSpatialCell(const SpatialCell* cell);
+
+   protected:
    };
    
    class VariableMinValue: public DataReductionOperator {

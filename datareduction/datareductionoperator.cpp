@@ -63,6 +63,16 @@ namespace DRO {
       return string("");
    }
    
+   /** Get the name of the reduced data variable. The name is written to the disk as-is 
+    * and is used in visualization.
+    * @param population ID of the population
+    * @return The name of the data. The base class function returns an empty string.
+    */
+   std::string DataReductionOperator::getName(const int population) const {
+      cerr << "ERROR: DataReductionOperator::getName called instead of derived class function!" << endl;
+      return string("");
+   }
+   
    // TODO update this documentation snippet.
    /** Reduce the data and write the data vector to the given buffer.
     * @param N_blocks Number of velocity blocks in array avgs.
@@ -85,6 +95,18 @@ namespace DRO {
     * @return If true, DataReductionOperator reduced data successfully.
     */
    bool DataReductionOperator::reduceData(const SpatialCell* cell,Real* result) {
+      cerr << "ERROR: DataReductionOperator::reduceData called instead of derived class function!" << endl;
+      return false;
+   }
+   
+   // TODO update this documentation snippet.
+   /** Reduce the data and write the data vector to the given buffer.
+    * @param cell Spatial cell
+    * @param population Population ID (see reducepopulation.cpp)
+    * @param buffer Buffer where to save the results
+    * @return If true, DataReductionOperator reduced data successfully.
+    */
+   bool DataReductionOperator::reduceData(const SpatialCell* cell, const int population, char* buffer) {
       cerr << "ERROR: DataReductionOperator::reduceData called instead of derived class function!" << endl;
       return false;
    }
@@ -1556,4 +1578,67 @@ namespace DRO {
       return true;
    }
    
+   
+
+   VariableNumberOfPopulations::VariableNumberOfPopulations(): DataReductionOperator() { }
+   VariableNumberOfPopulations::~VariableNumberOfPopulations() { }
+   
+   std::string VariableNumberOfPopulations::getName() const {return "NumberOfPopulations";}
+   
+   bool VariableNumberOfPopulations::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "uint";
+      dataSize =  sizeof(uint);
+      vectorSize = 1;
+      return true;
+   }
+   
+   // Adding rho non backstream calculations to Vlasiator.
+   bool VariableNumberOfPopulations::reduceData(const SpatialCell* cell,char* buffer) {
+      const char* ptr = reinterpret_cast<const char*>(&cell->number_of_populations);
+      for (uint i=0; i<sizeof(cell->number_of_populations); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+   
+   bool VariableNumberOfPopulations::setSpatialCell(const SpatialCell* cell) {
+      return true;
+   }
+
+   VariablePopulationRho::VariablePopulationRho(): DataReductionOperator() { }
+   VariablePopulationRho::~VariablePopulationRho() { }
+   
+   std::string VariablePopulationRho::getName( const int population ) const {
+     stringstream ss(stringstream::in | stringstream::out );
+     ss << "populations/";
+     ss << population;
+     ss << "/rho";
+     return ss.str();
+   }
+   
+   bool VariablePopulationRho::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize =  sizeof(Real);
+      vectorSize = 1;
+      return true;
+   }
+
+   // Adding rho non backstream calculations to Vlasiator.
+   bool VariablePopulationRho::reduceData(const SpatialCell* cell, const int population, char* buffer) {
+      const char* ptr = reinterpret_cast<const char*>(&cell->populationParameters[PopulationParams::POPULATION_RHO][population]);
+      if( PopulationParams::POPULATION_RHO >= PopulationParams::N_POPULATION_PARAMS ) {
+         cerr << "BAD POP PARAMS " << PopulationParams::POPULATION_RHO << " " << PopulationParams::N_POPULATION_PARAMS << endl;
+      }
+      if( population >= cell->populationParameters[PopulationParams::POPULATION_RHO].size() ) { 
+         cerr << "BAD POPULATION: " << cell->populationParameters[PopulationParams::POPULATION_RHO].size() << " " << population << " " << cell->number_of_populations << " " << cell->get_number_of_velocity_blocks() << endl; 
+      }
+      for (uint i=0; i<sizeof(cell->populationParameters[PopulationParams::POPULATION_RHO][population]); ++i) {
+         buffer[i] = ptr[i];
+      }
+      return true;
+   }
+
+   bool VariablePopulationRho::setSpatialCell(const SpatialCell* cell) {
+      return true;
+   }
+
+  
 } // namespace DRO

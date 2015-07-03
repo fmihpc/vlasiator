@@ -286,8 +286,8 @@ int main(int argn,char* args[]) {
    phiprof::start("Init DROs");
    // Initialize data reduction operators. This should be done elsewhere in order to initialize 
    // user-defined operators:
-   DataReducer outputReducer, diagnosticReducer;
-   initializeDataReducers(&outputReducer, &diagnosticReducer);
+   DataReducer outputReducer, diagnosticReducer, populationReducer;
+   initializeDataReducers(&outputReducer, &diagnosticReducer, &populationReducer);
    phiprof::stop("Init DROs");
 
    // Initialize field propagator:
@@ -331,7 +331,7 @@ int main(int argn,char* args[]) {
       }
       
       const bool writeGhosts = true;
-      if( writeGrid(mpiGrid,outputReducer,P::systemWriteName.size()-1, writeGhosts) == false ) {
+      if( writeGrid(mpiGrid,outputReducer,populationReducer,P::systemWriteName.size()-1, writeGhosts) == false ) {
          cerr << "FAILED TO WRITE GRID AT" << __FILE__ << " " << __LINE__ << endl;
       }
       
@@ -495,7 +495,7 @@ int main(int argn,char* args[]) {
             phiprof::start("write-system");
             logFile << "(IO): Writing spatial cell and reduced system data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
             const bool writeGhosts = true;
-            if( writeGrid(mpiGrid,outputReducer, i, writeGhosts) == false ) {
+            if( writeGrid(mpiGrid,outputReducer,populationReducer, i, writeGhosts) == false ) {
                cerr << "FAILED TO WRITE GRID AT" << __FILE__ << " " << __LINE__ << endl;
             }
             P::systemWrites[i]++;

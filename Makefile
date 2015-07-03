@@ -177,7 +177,7 @@ OBJS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipo
 	project.o projectTriAxisSearch.o \
 	Alfven.o Diffusion.o Dispersion.o Distributions.o Firehose.o Flowthrough.o Fluctuations.o Harris.o KHB.o Larmor.o \
 	Magnetosphere.o MultiPeak.o VelocityBox.o Riemann1.o Shock.o Template.o test_fp.o testHall.o test_trans.o \
-	verificationLarmor.o Shocktest.o grid.o ioread.o iowrite.o vlasiator.o logger.o \
+	verificationLarmor.o Shocktest.o grid.o ioread.o reducepopulation.o iowrite.o vlasiator.o logger.o \
 	common.o parameters.o readparameters.o spatial_cell.o \
 	vlasovmover.o $(FIELDSOLVER).o fs_common.o fs_limiters.o
 
@@ -391,7 +391,10 @@ grid.o:  ${DEPS_COMMON} parameters.h ${DEPS_PROJECTS} ${DEPS_CELL} grid.cpp grid
 ioread.o:  ${DEPS_COMMON} parameters.h  ${DEPS_CELL} ioread.cpp ioread.h 
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c ioread.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV}
 
-iowrite.o:  ${DEPS_COMMON} parameters.h ${DEPS_CELL} iowrite.cpp iowrite.h  
+reducepopulation.o:  ${DEPS_COMMON} parameters.h ${DEPS_CELL} datareduction/reducepopulation.cpp datareduction/reducepopulation.h
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c datareduction/reducepopulation.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV}
+
+iowrite.o:  ${DEPS_COMMON} datareduction/reducepopulation.cpp datareduction/reducepopulation.h parameters.h ${DEPS_CELL} iowrite.cpp iowrite.h  
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c iowrite.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV}
 
 logger.o: logger.h logger.cpp

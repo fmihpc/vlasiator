@@ -21,6 +21,7 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #include "parameters.h"
 #include "logger.h"
 #include "vlasovmover.h"
+#include "datareduction/reducepopulation.h"
 
 using namespace std;
 using namespace phiprof;
@@ -231,6 +232,37 @@ bool writeVelocityDistributionData(Writer& vlsvWriter,
 
    // Write the subarrays
    vlsvWriter.endMultiwrite("BLOCKVARIABLE", attribs);
+   
+   // Write the velocity space data
+   // set everything that is needed for writing in data such as the array's name, size, data type, etc..
+   attribs.clear();
+   attribs["mesh"] = "SpatialGrid"; // Usually the mesh is SpatialGrid
+   attribs["name"] = "tmpavgs"; // Name of the velocity space distribution is written avgs
+
+   const bool usePopulationMerger = (Parameters::populationMergerMaxNPopulations > 1);
+   if( usePopulationMerger ) {
+      // Start multi write
+      vlsvWriter.startMultiwrite(datatype_avgs,arraySize_avgs,vectorSize_avgs,dataSize_avgs);
+   
+      // Loop over cells
+      for (size_t cell = 0; cell<cells.size(); ++cell) {
+         // Get the spatial cell
+         SpatialCell* SC = mpiGrid[cells[cell]];
+         
+         // Get the number of blocks in this cell
+         const uint64_t arrayElements = SC->get_number_of_velocity_blocks();
+         char* arrayToWrite = reinterpret_cast<char*>(SC->get_velocity_blocks_temporary().getData());
+   
+         // Add a subarray to write
+         vlsvWriter.addMultiwriteUnit(arrayToWrite, arrayElements); // Note: We told beforehands that the vectorsize = WID3 = 64
+      }
+      if (cells.size() == 0) {
+         vlsvWriter.addMultiwriteUnit(NULL, 0); //Dummy write to avoid hang in end multiwrite
+      }
+   
+      // Write the subarrays
+      vlsvWriter.endMultiwrite("TMPBLOCKVARIABLE", attribs);
+   }
 
    if (globalSuccess(success,"(MAIN) writeGrid: ERROR: Failed to fill temporary velocityBlockData array",MPI_COMM_WORLD) == false) {
       vlsvWriter.close();
@@ -340,6 +372,103 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    return success;
 }
 
+/*! Writes info received from data reducer. This function writes out the variable arrays into the file
+ \param mpiGrid The Vlasiator's grid
+ \param cells List of local cells (no ghost cells included)
+ \param writeAsFloat If true, the data reducer writes variable arrays as float instead of double
+ \param populationReducer The data reducer which contains the necessary functions for calculating variables
+ \param dataReducerIndex Index in the data reducer (determines which variable to read) Note: size of the data reducer can be retrieved with dataReducer.size()
+ \param vlsvWriter Some vlsv writer with a file open
+ \return Returns true if operation was successful
+ */
+bool writePopulationReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                      const vector<uint64_t>& cells,
+                      const bool writeAsFloat,
+                      DataReducer& populationReducer,
+                      const int population,
+                      int dataReducerIndex,
+                      Writer& vlsvWriter){
+   map<string,string> attribs;                      
+   string variableName,dataType;
+   bool success=true;
+
+   //Get basic data on a variable:
+   uint dataSize,vectorSize;
+   attribs["mesh"] = "SpatialGrid";
+   variableName = populationReducer.getName(dataReducerIndex, population);
+   attribs["name"] = variableName;
+   if (populationReducer.getDataVectorInfo(dataReducerIndex,dataType,dataSize,vectorSize) == false) {
+      cerr << "ERROR when requesting info from DRO " << dataReducerIndex << endl;
+      return false;
+   }
+  
+   
+   const uint64_t varBufferArraySize = cells.size()*vectorSize*dataSize;
+   
+   //Request DataReductionOperator to calculate the reduced data for all local cells:
+   char* varBuffer = NULL;
+   try {
+      varBuffer = new char[varBufferArraySize];
+   } catch( bad_alloc& ) {
+      cerr << "ERROR, FAILED TO ALLOCATE MEMORY AT: " << __FILE__ << " " << __LINE__ << endl;
+      logFile << "(MAIN) writeGrid: ERROR FAILED TO ALLOCATE MEMORY AT: " << __FILE__ << " " << __LINE__ << endl << writeVerbose;
+      return false;
+   }
+
+
+   for (uint64_t cell=0; cell<cells.size(); ++cell) {
+      //Reduce data ( return false if the operation fails )
+      if (populationReducer.reduceData(mpiGrid[cells[cell]],dataReducerIndex, population, varBuffer + cell*vectorSize*dataSize) == false){
+         success = false;
+         logFile << "(MAIN) writeGrid: ERROR datareductionoperator '" << populationReducer.getName(dataReducerIndex, population) <<
+            "' returned false!" << endl << writeVerbose;
+      }
+   }
+   if( success ) {
+      if( (writeAsFloat == true && dataType.compare("float") == 0) && dataSize == sizeof(double) ) {
+         double * varBuffer_double = reinterpret_cast<double*>(varBuffer);
+         //Declare smaller varbuffer:
+         const uint64_t arraySize_smaller = cells.size();
+         const uint32_t vectorSize_smaller = vectorSize;
+         const uint32_t dataSize_smaller = sizeof(float);
+         const string dataType_smaller = dataType;
+         float * varBuffer_smaller = NULL;
+         try {
+            varBuffer_smaller = new float[arraySize_smaller * vectorSize_smaller];
+         } catch( bad_alloc& ) {
+            cerr << "ERROR, FAILED TO ALLOCATE MEMORY AT: " << __FILE__ << " " << __LINE__ << endl;
+            logFile << "(MAIN) writeGrid: ERROR FAILED TO ALLOCATE MEMORY AT: " << __FILE__ << " " << __LINE__ << endl << writeVerbose;
+            delete[] varBuffer;
+            varBuffer = NULL;
+            return false;
+         }
+         //Input varBuffer_double into varBuffer_smaller:
+         for( uint64_t i = 0; i < arraySize_smaller * vectorSize_smaller; ++i ) {
+            const double value = varBuffer_double[i];
+            varBuffer_smaller[i] = (float)(value);
+         }
+         //Cast the varBuffer to char:
+         char * varBuffer_smaller_char = reinterpret_cast<char*>(varBuffer_smaller);
+         //Write the array:
+         if (vlsvWriter.writeArray("VARIABLE", attribs, dataType_smaller, arraySize_smaller, vectorSize_smaller, dataSize_smaller, varBuffer_smaller_char) == false) {
+            success = false;
+            logFile << "(MAIN) writeGrid: ERROR failed to write datareductionoperator data to file!" << endl << writeVerbose;
+         }
+         delete[] varBuffer_smaller;
+         varBuffer_smaller = NULL;
+      } else {
+         // Write  reduced data to file if DROP was successful:
+         if (vlsvWriter.writeArray("VARIABLE",attribs, dataType, cells.size(), vectorSize, dataSize, varBuffer) == false) {
+            success = false;
+            logFile << "(MAIN) writeGrid: ERROR failed to write datareductionoperator data to file!" << endl << writeVerbose;
+         }
+      }
+   }
+
+   delete[] varBuffer;
+   varBuffer = NULL;
+   return success;
+}
 
 
 
@@ -808,6 +937,21 @@ bool checkForSameMembers( const vector<uint64_t> local_cells, const vector<uint6
    return false;
 }
 
+bool writePopulations(
+                 const vector<CellID>& local_cells,
+                 dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, 
+                 Writer & vlsvWriter  ) {
+   // Calculate the populatons for every cell:
+#pragma omp parallel for schedule(dynamic,1)
+   for( int i = 0; i < local_cells.size(); ++i ) {
+      const CellID cellId = local_cells[i];
+      SpatialCell * spatialCell = mpiGrid[cellId];
+      // Calculate the population:
+      populationAlgorithm(spatialCell);
+   }
+   return true;
+}
+
 
 /*!
 
@@ -820,6 +964,7 @@ bool checkForSameMembers( const vector<uint64_t> local_cells, const vector<uint6
 */
 bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                DataReducer& dataReducer,
+               DataReducer& populationReducer,
                const uint& index,
                const bool writeGhosts ) {
    double allStart = MPI_Wtime();
@@ -874,6 +1019,14 @@ bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 
    //The mesh name is "SpatialGrid" (This is used for writing in data)
    const string meshName = "SpatialGrid";
+   
+   // Calculate populations, if needed:
+   const bool usePopulationMerger = (Parameters::populationMergerMaxNPopulations > 1);
+   if( usePopulationMerger ) {
+      phiprof::start("populationReducer");
+      writePopulations( local_cells, mpiGrid, vlsvWriter );
+      phiprof::stop("populationReducer");
+   }
 
    //Write mesh boundaries: NOTE: master process only
    //Visit plugin needs to know the boundaries of the mesh so the number of cells in x, y, z direction
@@ -907,6 +1060,15 @@ bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    for( uint i = 0; i < dataReducer.size(); ++i ) {
       if( writeDataReducer( mpiGrid, local_cells, (P::writeAsFloat==1), dataReducer, i, vlsvWriter ) == false ) return false;
    }
+   // Write population variables too:
+   if( usePopulationMerger ) {
+      for( uint i = 0; i < populationReducer.size(); ++i ) {
+         for( int population = 0; population < Parameters::populationMergerMaxNPopulations; ++population ) {
+            if( writePopulationReducer( mpiGrid, local_cells, (P::writeAsFloat==1), populationReducer, population, i, vlsvWriter ) == false) return false;
+         }
+      }
+   }
+   
    phiprof::stop("reduceddataIO");
 
    phiprof::start("close");
