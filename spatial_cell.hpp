@@ -147,6 +147,7 @@ namespace spatial_cell {
       Realf* get_data(const vmesh::LocalID& blockLID);
       const Realf* get_data(const vmesh::LocalID& blockLID) const;
       Real* get_block_parameters();
+      const Real* get_block_parameters() const;
       Real* get_block_parameters(const vmesh::LocalID& blockLID);
       const Real* get_block_parameters(const vmesh::LocalID& blockLID) const;
       const Real* get_cell_parameters() const;
@@ -695,6 +696,10 @@ namespace spatial_cell {
 
    inline Real* SpatialCell::get_block_parameters() {
       return blockContainer.getParameters();
+   }
+   
+   inline const Real* SpatialCell::get_block_parameters() const {
+     return blockContainer.getParameters();
    }
    
    inline Real* SpatialCell::get_block_parameters(const vmesh::LocalID& blockLID) {
