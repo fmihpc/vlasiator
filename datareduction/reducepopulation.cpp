@@ -396,263 +396,7 @@ cluster_advanced()
  \param resolution_threshold                A value for determining how large at minimum we want our populations to be. 0.006 seems ok unless there's a reason to believe otherwise.
 
  */
-static inline void cluster_advanced( 
-                                const vector<VelocityCell> & velocityCells,
-                                SpatialCell * cell,
-                                const Real resolution_threshold
-                                  ) {
-   
-   cout << "Clustering.." << endl;
-   if( velocityCells.size() == 0 ) { return; }
-   const uint numberOfVCells = velocityCells.size();
-   // Reserve a table for clusters:
-   //uint32_t * clusterIds = new uint32_t[numberOfVCells];
-   vector<Realf,aligned_allocator<Realf,64> > clusterIds; clusterIds.resize(numberOfVCells);
 
-   // Initialize to be part of no clusters:
-   const uint32_t noCluster = 0;
-   for( uint i = 0; i < velocityCells.size(); ++i ) {
-      clusterIds[i] = noCluster;
-   }
-
-   // Id for separating clusterIds
-   uint32_t clusterId = noCluster + 1;
-
-   // Set the first velocity cell to cluster one
-   uint32_t last_vCell = velocityCells.size()-1;
-   clusterIds[last_vCell] = clusterId;
-
-   // Start getting velocity neighbors
-   vector<VelocityCell> neighbors;
-   const size_t numberOfVCellNeighbors = 27;
-   neighbors.reserve( numberOfVCellNeighbors );
-
-   const size_t startingPoint = (size_t)(cell->get_data());
-
-   uint32_t merges = 0;
-
-   //----------------------------------------------
-   // Create clusters
-   vector<Cluster> clusters;
-   const uint estimated_clusters = 200;
-   clusters.reserve( estimated_clusters );
-   {
-      // Create the no-cluster
-      Cluster no_cluster;
-      no_cluster.set_data( noCluster );
-      clusters.push_back( no_cluster );
-      // Create the first cluster:
-      Cluster first_cluster;
-      first_cluster.set_data( clusterId );
-      clusters.push_back( first_cluster );
-      const VelocityCell & vCell = velocityCells[velocityCells.size()-1];
-      const uint32_t id = vCell.hash(  );
-      // Add the highest valued velocity cell to the first cluster:
-      clusterIds[id] = clusterId;
-   }
-   //----------------------------------------------
-
-   const uint resolution = P::vxblocks_ini * P::vyblocks_ini * P::vzblocks_ini;
-
-   for( int i = velocityCells.size()-1; i >= 0; --i ) {
-      const VelocityCell & vCell = velocityCells[i];
-      // Get the neighbors:
-      getNeighbors( neighbors, vCell, cell );
-      // Get the id of the velocity cell
-      const uint32_t id = vCell.hash(  );
-
-      phiprof_assert( id < velocityCells.size() );
-
-      // Keep track of the highest avgs of the neighbor:
-      //TODO: Remove highest avgs neighbor
-      Realf highest_avgs_neighbor = 0;
-
-      for( vector<VelocityCell>::const_iterator it = neighbors.begin(); it != neighbors.end(); ++it ) {
-         // Get the id of the neighbor:
-         const uint32_t neighbor_id = it->hash(  );
-
-         phiprof_assert( neighbor_id < velocityCells.size() );
-
-         phiprof_assert( clusterIds[id] < clusters.size() && clusterIds[neighbor_id] < clusters.size() );
-
-
-         // Set the id to equal the same as neighbors' if the neighbor is part of a cluster
-         if( clusterIds[neighbor_id] != noCluster ) {
-
-            const uint index = clusterIds[id];
-            const uint index_neighbor = clusterIds[neighbor_id];
-
-            phiprof_assert( index < clusters.size() && index_neighbor < clusters.size() );
-            phiprof_assert( clusters[index].neighbor_clusters );
-
-
-            // If the cluster id has not been set yet, set it now:
-            if( index == noCluster ) {
-
-               // Cluster id has not been set yet
-               clusterIds[id] = clusterIds[neighbor_id];
-
-               //--------------------------------------------------------------
-               // Increase the amount of members in the cluster by one:
-               clusters[index_neighbor].append(1);
-               //--------------------------------------------------------------
-
-               // Update the highest avgs value counter:
-               if( it->get_avgs() > highest_avgs_neighbor) {highest_avgs_neighbor = it->get_avgs();}
-
-
-            } else if( clusters[index].find( index_neighbor ) ) {
-
-               phiprof_assert( index_neighbor != 0 );
-               phiprof_assert( index != 0 );
-
-               // Clusters are separate clusters
-
-               // Merge the clusters:
-
-               //Set clusters to be the same (Merge them)
-               //----------------------------------------------------
-               Cluster & cluster_neighbor = clusters[index_neighbor];
-               Cluster & cluster = clusters[index];
-
-               phiprof_assert( *cluster_neighbor.clusterId != 0 );
-               phiprof_assert( *cluster.clusterId != 0 );
-
-               // Merge clusters if the clusters are ok:
-               const uint32_t clusterMembers = *cluster.members;
-               const uint32_t neighborClusterMembers = *cluster_neighbor.members;
-               // Check if the clusters should be merged: (If not, then check if the velocity cell should belong to the other cluster instead)
-               if( clusterMembers < resolution*resolution_threshold || neighborClusterMembers < resolution*resolution_threshold ) {
-                  cout << "Merge clusters!" << endl;
-                  // The other cluster is small enough, so merge the clusters:
-                  cluster_neighbor.merge( cluster, clusters );
-                  ++merges;
-                  break;
-               } else if( highest_avgs_neighbor < it->get_avgs() ) {
-                  cout << "Dont merge" << endl;
-                  // The velocity cell should belong to the other cluster, because the other cluster has a highest avgs value:
-                  // Remove it from the previous cluster
-                  clusters[index].append(-1);
-                  // Set to be the same clusters:
-                  clusterIds[id] = clusterIds[neighbor_id];
-                  // Increase the amount of members in the cluster by one
-                  clusters[index_neighbor].append(1);
-
-                  // Update the highest avgs value counter:
-                  highest_avgs_neighbor = it->get_avgs();
-               }
-            }
-         }
-      }
-
-      // If the cell does not have any neighbors that are part of a cluster then this is a new cluster:
-      if( clusterIds[id] == noCluster ) {
-         ++clusterId;
-
-         phiprof_assert(clusterId != 0);
-
-         // Create a new cluster
-         //------------------------------------------------
-         Cluster new_cluster;
-         new_cluster.set_data( clusterId );
-         clusters.push_back( new_cluster );
-         //------------------------------------------------
-
-         clusterIds[id] = clusterId;
-      }
-
-      neighbors.clear();
-   }
-
-   
-#ifndef NDEBUG
-int num_noclusters = 0;
-for( vector<Cluster>::const_iterator it = clusters.begin(); it != clusters.end(); ++it ) {
-   if( *(it->clusterId) == 0 ) { num_noclusters++; }
-}
-phiprof_assert( num_noclusters == 1 );
-#endif
-
-   // Fix cluster ids so that they start from 0 and move up: now the cluster list (cluster ids) can look like this: [0 1 5 7 3 6 8 8 3]
-   // Afterwards, it should look like this:                                                                         [0 1 3 5 2 4 6 6 2]
-   {
-      unordered_map<uint32_t, uint32_t> ids; // (id, rank)
-      {
-         // get sorted cluster ids:
-         vector<uint32_t> tmp_clusterIds; tmp_clusterIds.reserve(clusters.size());
-         {
-            // Used to make sure we don't re-insert any cluster ids twice: So after this tmp_clusterids should look like this: [0 1 5 7 3 6 8]
-            unordered_set<uint32_t> tmp_clusterIds_set;
-            
-            for( uint i = 0; i < clusters.size(); ++i ) {
-               const uint32_t id = *clusters[i].clusterId;
-               //if( id == 0) {continue;}
-               if( tmp_clusterIds_set.find( id ) == tmp_clusterIds_set.end() ) { tmp_clusterIds_set.insert(id); tmp_clusterIds.push_back(id); }
-            }
-         }
-         // Sort:
-         sort( tmp_clusterIds.begin(), tmp_clusterIds.end() ); //tmp_clusterids should look like this: [0 1 3 5 6 7 8]
-         // Map the ids: after this, the ids should look like this: {0: 0, 1:1; 3:2, 5:3, 6:4, 7:5, 8:6}
-         for( uint i = 0; i < tmp_clusterIds.size(); ++i ) {
-            // Get id, and insert
-            const uint32_t id = tmp_clusterIds[i];
-            // Map the id:
-            ids.insert( make_pair( id, i ) );
-         }
-      }
-
-      // Make a temp copy of clusterids; clusterids_copy looks like [0 1 5 7 3 6 8 8 3]
-      vector<uint32_t> clusterids_copy; clusterids_copy.resize(clusters.size());
-
-      for( uint i = 0; i < clusters.size(); ++i ) {
-         clusterids_copy[i] = *clusters[i].clusterId;
-      }
-
-      // Fix the clusterids according to the mapped values; afterwards clusters should look like this: [0 1 3 5 2 4 6 6 2]
-      for( uint i = 0; i < clusters.size(); ++i ) {
-         const uint32_t id = clusterids_copy[i];
-         //if( id == 0) {continue;}
-         *clusters[i].clusterId = ids.at(id);
-      }
-
-      // Input number of populations:
-      cell->number_of_populations = ids.size();
-   }
-
-#ifndef NDEBUG
-num_noclusters = 0;
-for( vector<Cluster>::const_iterator it = clusters.begin(); it != clusters.end(); ++it ) {
-   if( *(it->clusterId) == 0 ) { num_noclusters++; }
-}
-phiprof_assert( num_noclusters == 1 );
-#endif
-
-
-   // Set values of clusters and calculate number of clusters
-   size_t notSet = 0;
-   vmesh::VelocityBlockContainer<vmesh::LocalID> & blockContainer = cell->get_velocity_blocks(notSet);
-   phiprof_assert( cell->get_number_of_velocity_blocks() * WID3 == velocityCells.size() );
-   for( uint i = 0; i < velocityCells.size(); ++i ) {
-      phiprof_assert( clusterIds[i] != 0 );
-      const Realf value = *clusters[clusterIds[i]].clusterId;
-      //cell->block_fx[i] = value-1;
-   }
-
-
-   // Print out the number of clusterIds:
-   cout << "Clusters: " << clusterId << endl;
-   cout << "Merges: " << merges << endl;
-   cout << "Sizeof: " << sizeof(Realf) << endl;
-
-
-   //delete[] clusterIds;
-   //clusterIds = NULL;
-   // Free memory from clusters:
-   for( uint i = 0; i < clusters.size(); ++i ) {
-      clusters[i].remove_data( clusters );
-   }
-   return;
-}
 
 
 namespace test {
@@ -882,19 +626,31 @@ namespace saveData {
       }
    }
    
-   void calculateClusterRho( const SpatialCell * cell, const vector<Cluster> & clusters, const vector<uint32_t> & velocityCellClusterId, Realf * velocityCellData, vector<Real> & rho ) {
-      rho.clear(); rho.resize( numberOfClusters(clusters) );
+   void calculateClusterRho( const SpatialCell * cell, const vector<Cluster> & clusters, const vector<uint32_t> & velocityCellClusterIds, const Realf * velocityCellData, vector<Real> & rho ) {
+      rho.clear(); rho.resize( numberOfClusters(clusters)+1 );
       
       const Real HALF = 0.5;
       
-      for( int i = 0; i < rho.size(); ++i ) { rho[i] = 0; }
+      for( int i = 0; i < rho.size(); ++i ) { 
+         rho[i] = 0;
+      }
       
-      const Real DV3 = cell->parameters[BlockParams::DVX] * cell->parameters[BlockParams::DVY] * cell->parameters[BlockParams::DVZ]; // Get the volume of a velocity cell
-      for( int i = 0; i < velocityCellClusterId.size(); ++i ) {
-         const Cluster & cluster = clusters[velocityCellClusterId[i]];
+      //const Real DV3 = 1.0/4.0*cell->parameters[BlockParams::DVX] * cell->parameters[BlockParams::DVY] * cell->parameters[BlockParams::DVZ]; // Get the volume of a velocity cell
+      //const Real DV3 = 8.0e12;
+      const Real * blockParams = cell->get_block_parameters();
+      const Real DV3 = blockParams[BlockParams::DVX] * blockParams[BlockParams::DVY] * blockParams[BlockParams::DVZ];
+      for( int i = 0; i < velocityCellClusterIds.size(); ++i ) {
+         const Cluster & cluster = clusters[velocityCellClusterIds[i]];
          const uint32_t clusterId = *cluster.clusterId;
+         phiprof_assert( clusterId < rho.size() );
          rho[clusterId] += velocityCellData[i] * DV3;
       }
+      // Compare rho[0] with the rho in the spatialcell
+      //if( cell->parameters[CellParams::RHO] < rho[0] ) {
+      cerr << "WEIRD RHO: " << cell->parameters[CellParams::RHO] << " " << DV3;
+      for( int i = 0; i < rho.size(); ++i ) { cerr << " " << rho[i]; }
+      cerr << endl;
+      //}
    }
    
 
@@ -918,7 +674,8 @@ namespace saveData {
 //         }
 //      }
 //   }
-   
+//  
+
    void inputPopulationParameters( vector<Real> * populationParameters, vector<Real> & rho ) {
 
       allocatePopulationParameters(populationParameters);
@@ -960,8 +717,46 @@ namespace saveData {
    }
 } // end namespace saveData
 
+
+void sortClusterIds( vector<Cluster> & clusters ) {
+   // Sort:
+   //sort( clusters.begin(), clusters.end() );
+   vector<uint32_t> sortedClusterIds;
+   sortedClusterIds.resize(clusters.size());
+   
+   unordered_map<uint32_t, uint32_t> sortedMapping;
+   
+   uint32_t newClusterId = 0;
+   for( int i = 0; i < clusters.size(); ++i ) {
+      Cluster & cluster = clusters[i];
+      if( sortedMapping.find( *cluster.clusterId ) == sortedMapping.end() ) {
+         sortedMapping.insert(make_pair( *cluster.clusterId, newClusterId ));
+         newClusterId++;
+      }
+   }
+   
+   for( int i = 0; i < clusters.size(); ++i ) {
+      Cluster & cluster = clusters[i];
+      sortedClusterIds[i] = sortedMapping[*cluster.clusterId];
+   }
+   for( int i = 0; i < clusters.size(); ++i ) {
+      Cluster & cluster = clusters[i];
+      *cluster.clusterId = sortedClusterIds[i];
+   }
+   
+
+}
+
+
 void simpleCluster( vector<VelocityCell> & velocityCells, SpatialCell * cell, const Real totalVolumeThreshold, const Real minAvgs ) {
-   if( velocityCells.size() == 0 ) { return; }
+   if( velocityCells.size() == 0 ) { 
+     // Input cluster data:
+     cell->number_of_populations = 0;
+     vector<uint32_t> velocityCellClusterId; velocityCellClusterId.clear();
+     vector<Cluster> clusters; clusters.clear();
+     saveData::saveClusterData( cell, velocityCellClusterId, clusters );
+     return;
+  }
    phiprof_assert( velocityCells.size() > 0 );
    phiprof_assert( cell );
    
@@ -1042,14 +837,23 @@ void simpleCluster( vector<VelocityCell> & velocityCells, SpatialCell * cell, co
          clusters.push_back( newCluster );
       }
    }
+   
+   // Sort the cluster ids so they are ordered 0..N
+   sortClusterIds( clusters );
+   
    // Print the number of clusters:
    cout << "Number of merges: " << merges << endl;
    cout << "Number of clusters: " << numberOfClusters( clusters ) << endl;
    cell->number_of_populations = numberOfClusters( clusters );
    
+   
    saveData::saveClusterData(cell, velocityCellClusterId, clusters);
    
+   
    deallocateClusters(clusters);
+   
+   
+
 }
 
 
@@ -1111,9 +915,11 @@ void populationAlgorithm(
    test::testNeighborSpeed( velocityCells, cell, resolution_threshold);
    phiprof::stop("getNeighbors");
    
+
    // Do clustering:
    const Real minAvgs = 1.0e-10;
    simpleCluster( velocityCells, cell, resolution_threshold, minAvgs );
+   
 
 
    return;

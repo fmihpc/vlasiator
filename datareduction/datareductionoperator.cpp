@@ -1608,8 +1608,9 @@ namespace DRO {
    
    std::string VariablePopulationRho::getName( const int population ) const {
      stringstream ss(stringstream::in | stringstream::out );
-     ss << "Rho";
+     ss << "populations/";
      ss << population;
+     ss << "/rho";
      return ss.str();
    }
    
@@ -1623,7 +1624,15 @@ namespace DRO {
    // Adding rho non backstream calculations to Vlasiator.
    bool VariablePopulationRho::reduceData(const SpatialCell* cell, const int population, char* buffer) {
       const char* ptr = reinterpret_cast<const char*>(&cell->populationParameters[PopulationParams::POPULATION_RHO][population]);
-      for (uint i=0; i<sizeof(cell->populationParameters[PopulationParams::POPULATION_RHO][population]); ++i) buffer[i] = ptr[i];
+      if( PopulationParams::POPULATION_RHO >= PopulationParams::N_POPULATION_PARAMS ) {
+         cerr << "BAD POP PARAMS " << PopulationParams::POPULATION_RHO << " " << PopulationParams::N_POPULATION_PARAMS << endl;
+      }
+      if( population >= cell->populationParameters[PopulationParams::POPULATION_RHO].size() ) { 
+         cerr << "BAD POPULATION: " << cell->populationParameters[PopulationParams::POPULATION_RHO].size() << " " << population << " " << cell->number_of_populations << " " << cell->get_number_of_velocity_blocks() << endl; 
+      }
+      for (uint i=0; i<sizeof(cell->populationParameters[PopulationParams::POPULATION_RHO][population]); ++i) {
+         buffer[i] = ptr[i];
+      }
       return true;
    }
 
