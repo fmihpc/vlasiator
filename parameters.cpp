@@ -239,7 +239,7 @@ bool Parameters::addParameters(){
    Readparameters::add("variables.dr_backstream_vz", "Center coordinate for the maxwellian distribution. Used for calculating the backstream contriution for rho.", 0.0);
    Readparameters::add("variables.dr_backstream_radius", "Radius of the maxwellian distribution. Used for calculating the backstream contribution for rho", 468621.0);
    
-   Readparameters::addComposing("populationMerger.populationMergerVariableList", "List of data reduction operators to add to the grid file output for population merger. Each variable has to be added on a new line output. The variables will be saved as \"variablename_i\", where i is the population number. Available variables are: Rho");
+   Readparameters::addComposing("populationMerger.output", "List of data reduction operators to add to the grid file output for population merger. Each variable has to be added on a new line output. The variables will be saved as \"variablename_i\", where i is the population number. Available variables are: Rho");
    Readparameters::add("populationMerger.AvgsThreshold", "Decides the threshold when two populations should be merged", numeric_limits<Real>::max() );
    Readparameters::add("populationMerger.MinVolume", "Decides the minimum value of a population's volume", 0);
    Readparameters::add("populationMerger.MaxNPopulations", "Decides how many populations we're interested in and we want to write", 1);
@@ -463,12 +463,13 @@ bool Parameters::getParameters(){
 
    // Get output variable parameters
    Readparameters::get("populationMerger.output", P::populationMergerVariableList);
+   
 
    // Filter duplicate variable names
    set<string> mergerDummy(P::populationMergerVariableList.begin(),P::populationMergerVariableList.end());
    P::populationMergerVariableList.clear();
-   P::populationMergerVariableList.insert(P::populationMergerVariableList.end(),dummy.begin(),dummy.end());
-   dummy.clear();
+   P::populationMergerVariableList.insert(P::populationMergerVariableList.end(),mergerDummy.begin(),mergerDummy.end());
+   mergerDummy.clear();
    
    // Get parameters related to bailout
    Readparameters::get("bailout.write_restart", P::bailout_write_restart);
