@@ -24,6 +24,7 @@ Copyright 2010-2015 Finnish Meteorological Institute
 #include <Eigen/Dense>
 #include <phiprof.hpp>
 
+#include "vlsv_util.h"
 #include "vlsvreaderinterface.h"
 #include "vlsvextract.h"
 
@@ -1902,7 +1903,6 @@ void extractDistribution( const string & fileName, const UserOptions & mainOptio
    }
 
    vlsvReader.close();
-
 }
 
 int main(int argn, char* args[]) {
@@ -1912,32 +1912,8 @@ int main(int argn, char* args[]) {
    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
    //Get the file name
-   const string mask = args[1];  
-
-   const string directory = ".";
-   const string suffix = ".vlsv";
-   DIR* dir = opendir(directory.c_str());
-   if (dir == NULL) {
-      cerr << "ERROR in reading directory contents!" << endl;
-      closedir(dir);
-      return 1;
-   }
-
-   int filesFound = 0, entryCounter = 0;
-   vector<string> fileList;
-   struct dirent* entry = readdir(dir);
-   while (entry != NULL) {
-      const string entryName = entry->d_name;
-      if (entryName.find(mask) == string::npos || entryName.find(suffix) == string::npos) {
-         entry = readdir(dir);
-         continue;
-      }
-      fileList.push_back(entryName);
-      filesFound++;
-      entry = readdir(dir);
-   }
-   if (filesFound == 0) cout << "\t no file found, check name and read and write rights, vlsvextract currently supports only extracting from the folder where the vlsv file resides (you can get past this by linking the vlsv file" << endl;
-   closedir(dir);
+   const string mask = args[1];
+   vector<string> fileList = toolutil::getFiles(mask);
 
    //Retrieve options variables:
    UserOptions mainOptions;
@@ -1955,6 +1931,7 @@ int main(int argn, char* args[]) {
    }
 
    //Convert files
+   int entryCounter = 0;
    for (size_t entryName = 0; entryName < fileList.size(); entryName++) {
       if (entryCounter++ % ntasks == rank) {
          //Get the file name
@@ -1965,5 +1942,3 @@ int main(int argn, char* args[]) {
    MPI_Finalize();
    return 0;
 }
-
-
