@@ -6,7 +6,7 @@ include MAKE/Makefile.${ARCH}
 FP_PRECISION = DP
 
 #Set floating point precision for distribution function to SPF (single) or DPF (double)
-DISTRIBUTION_FP_PRECISION = DPF
+DISTRIBUTION_FP_PRECISION = SPF
 
 #Set vector backend type for vlasov solvers, sets precision and length. Options: VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER, VEC4D_FALLBACK, VEC4F_FALLBACK
 VECTORCLASS = VEC8F_AGNER
