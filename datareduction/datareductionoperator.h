@@ -461,6 +461,7 @@ namespace DRO {
    protected:
    };
    
+   // TODO: Add rho_v  similar to this one
    class VariablePopulationRho: public DataReductionOperator {
    public:
       VariablePopulationRho();

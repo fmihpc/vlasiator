@@ -233,36 +233,38 @@ bool writeVelocityDistributionData(Writer& vlsvWriter,
    // Write the subarrays
    vlsvWriter.endMultiwrite("BLOCKVARIABLE", attribs);
    
-   // Write the velocity space data
-   // set everything that is needed for writing in data such as the array's name, size, data type, etc..
-   attribs.clear();
-   attribs["mesh"] = "SpatialGrid"; // Usually the mesh is SpatialGrid
-   attribs["name"] = "tmpavgs"; // Name of the velocity space distribution is written avgs
-
-   const bool usePopulationMerger = (Parameters::populationMergerMaxNPopulations > 1);
-   if( usePopulationMerger ) {
-      // Start multi write
-      vlsvWriter.startMultiwrite(datatype_avgs,arraySize_avgs,vectorSize_avgs,dataSize_avgs);
-   
-      // Loop over cells
-      for (size_t cell = 0; cell<cells.size(); ++cell) {
-         // Get the spatial cell
-         SpatialCell* SC = mpiGrid[cells[cell]];
-         
-         // Get the number of blocks in this cell
-         const uint64_t arrayElements = SC->get_number_of_velocity_blocks();
-         char* arrayToWrite = reinterpret_cast<char*>(SC->get_velocity_blocks_temporary().getData());
-   
-         // Add a subarray to write
-         vlsvWriter.addMultiwriteUnit(arrayToWrite, arrayElements); // Note: We told beforehands that the vectorsize = WID3 = 64
+   #ifdef DEBUG_POPULATION_VELOCITY_SPACE
+      // Write the velocity space data
+      // set everything that is needed for writing in data such as the array's name, size, data type, etc..
+      attribs.clear();
+      attribs["mesh"] = "SpatialGrid"; // Usually the mesh is SpatialGrid
+      attribs["name"] = "tmpavgs"; // Name of the velocity space distribution is written avgs
+     
+      const bool usePopulationMerger = (Parameters::populationMergerMaxNPopulations > 1);
+      if( usePopulationMerger ) {
+         // Start multi write
+         vlsvWriter.startMultiwrite(datatype_avgs,arraySize_avgs,vectorSize_avgs,dataSize_avgs);
+      
+         // Loop over cells
+         for (size_t cell = 0; cell<cells.size(); ++cell) {
+            // Get the spatial cell
+            SpatialCell* SC = mpiGrid[cells[cell]];
+            
+            // Get the number of blocks in this cell
+            const uint64_t arrayElements = SC->get_number_of_velocity_blocks();
+            char* arrayToWrite = reinterpret_cast<char*>(SC->get_velocity_blocks_temporary().getData());
+      
+            // Add a subarray to write
+            vlsvWriter.addMultiwriteUnit(arrayToWrite, arrayElements); // Note: We told beforehands that the vectorsize = WID3 = 64
+         }
+         if (cells.size() == 0) {
+            vlsvWriter.addMultiwriteUnit(NULL, 0); //Dummy write to avoid hang in end multiwrite
+         }
+      
+         // Write the subarrays
+         vlsvWriter.endMultiwrite("TMPBLOCKVARIABLE", attribs);
       }
-      if (cells.size() == 0) {
-         vlsvWriter.addMultiwriteUnit(NULL, 0); //Dummy write to avoid hang in end multiwrite
-      }
-   
-      // Write the subarrays
-      vlsvWriter.endMultiwrite("TMPBLOCKVARIABLE", attribs);
-   }
+   #endif
 
    if (globalSuccess(success,"(MAIN) writeGrid: ERROR: Failed to fill temporary velocityBlockData array",MPI_COMM_WORLD) == false) {
       vlsvWriter.close();
