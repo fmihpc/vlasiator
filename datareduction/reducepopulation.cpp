@@ -526,10 +526,7 @@ namespace test {
          phiprof_assert( sum != 0 );
          
          // Make sure every neighbor is unique:
-         //cout << "UNIQUE ID: " << uniqueId(neighbor_vCell.block, neighbor_vCell.vCellId) << endl;
-         //for( unordered_set<uint64_t>::iterator it = neighbor_duplicates_check.begin(); it != neighbor_duplicates_check.end(); ++it ) {
-         //   cout << "ALREADY HERE " <<  *it << endl;
-         //}
+
          phiprof_assert( neighbor_duplicates_check.find( uniqueId(neighbor_vCell.block, neighbor_vCell.vCellId) ) == neighbor_duplicates_check.end() );
          neighbor_duplicates_check.insert( uniqueId(neighbor_vCell.block, neighbor_vCell.vCellId) );
        }
