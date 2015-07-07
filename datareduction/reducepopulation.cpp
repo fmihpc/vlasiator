@@ -9,6 +9,9 @@
 #include "phiprof.hpp"
 #include "reducepopulation.h"
 
+
+//NOTE: For optimizations, refer to the TODOs in the code.
+
 using namespace std;
 using namespace spatial_cell;
 using namespace vlsv;
@@ -18,10 +21,7 @@ const static uint32_t nullCluster = 0;
 
 class VelocityCell {
    private:
-      //const SpatialCell * cell;
    public:
-      //uintVELOCITY_BLOCK_LENGTH_t index; //Index could be uint32_t is enough
-      //uint32_t blockId;
       vmesh::GlobalID block;
       uint16_t vCellId;
       vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID> * vmesh;
@@ -59,6 +59,7 @@ class VelocityCell {
       }
 
       // Function for getting the avgs value
+      // TODO: getData is slow, improve this
       inline Realf get_avgs() const {
          vmesh::LocalID blockLocalId = vmesh->getLocalID(block);
          Realf * array = blockContainer->getData(blockLocalId);
@@ -314,6 +315,7 @@ static inline void getNeighbors(
    vmesh::VelocityBlockContainer<vmesh::LocalID> & blockContainer = cell->get_velocity_blocks(notSet);
 
    vmesh::LocalID globalVelocityCellIndices[3];
+   // TODO: This can be done beforehands; one can construct a vector for one block which calculates all the neighbors for one block of velocity cells and then use that to fetch global velocity cell indices, instead of calculating it each time.
    getGlobalVelocityCellIndices( vmesh, vCell, globalVelocityCellIndices );
    int offsets[3];
    for( offsets[0] = -1; offsets[0] <= 1; ++offsets[0] ) for( offsets[1] = -1; offsets[1] <= 1; ++offsets[1] ) for( offsets[2] = -1; offsets[2] <= 1; ++offsets[2] ) {
@@ -529,7 +531,7 @@ namespace test {
          //   cout << "ALREADY HERE " <<  *it << endl;
          //}
          phiprof_assert( neighbor_duplicates_check.find( uniqueId(neighbor_vCell.block, neighbor_vCell.vCellId) ) == neighbor_duplicates_check.end() );
-         neighbor_duplicates_check.insert( uniqueId(neighbor_vCell.block, neighbor_vCell.vCellId) );
+         neighbor_duplicates_check.insert( uniqueId(neighbor_vCell.rho_v[clusterId][dir] += velocityCellData[i] * DV3;block, neighbor_vCell.vCellId) );
        }
        
      
@@ -635,46 +637,40 @@ namespace saveData {
          rho[i] = 0;
       }
       
-      //const Real DV3 = 1.0/4.0*cell->parameters[BlockParams::DVX] * cell->parameters[BlockParams::DVY] * cell->parameters[BlockParams::DVZ]; // Get the volume of a velocity cell
-      //const Real DV3 = 8.0e12;
       const Real * blockParams = cell->get_block_parameters();
       const Real DV3 = blockParams[BlockParams::DVX] * blockParams[BlockParams::DVY] * blockParams[BlockParams::DVZ];
       for( int i = 0; i < velocityCellClusterIds.size(); ++i ) {
          const Cluster & cluster = clusters[velocityCellClusterIds[i]];
          const uint32_t clusterId = *cluster.clusterId;
          phiprof_assert( clusterId < rho.size() );
+         bailout(clusterId >= rho.size(), "ClusterId larger than rho size");
          rho[clusterId] += velocityCellData[i] * DV3;
       }
-      // Compare rho[0] with the rho in the spatialcell
-      //if( cell->parameters[CellParams::RHO] < rho[0] ) {
-      cerr << "WEIRD RHO: " << cell->parameters[CellParams::RHO] << " " << DV3;
-      for( int i = 0; i < rho.size(); ++i ) { cerr << " " << rho[i]; }
-      cerr << endl;
-      //}
    }
    
-
-
-//   void calculateClusterRhoV( const SpatialCell * cell, const vector<Cluster> & clusters, const vector<uint32_t> & velocityCellClusterId, Realf * velocityCellData, vector<array<Real, 3> > & rho_v ) {
-//      rho_v.clear(); rho_v.resize( numberOfClusters(clusters) );
-//     
-//     #warning no AMR
-//     vmesh::VelocityMesh<vmesh::GlobalID, vmesh::LocalID> & velocityMesh = cell->get_velocity_mesh(0);
+   
+//   void calculateClusterRhoV( const SpatialCell * cell, const vector<Cluster> & clusters, const vector<uint32_t> & velocityCellClusterIds, const Realf * velocityCellData, vector<array<Real, 3> > & rho_v ) {
+//      rho_v.clear(); rho_v.resize( numberOfClusters(clusters)+1 );
 //      
-//      for( int i = 0; i < rho_v.size(); ++i ) for( int j = 0; j < 3; ++j ) { rho_v[i][j] = 0; }
+//#warning no AMR
+//      const Real HALF = 0.5;
 //      
-//      const Real DV3 = cell->parameters[BlockParams::DVX] * cell->parameters[BlockParams::DVY] * cell->parameters[BlockParams::DVZ]; // Get the volume of a velocity cell
-//      for( int i = 0; i < velocityCellClusterId.size(); ++i ) {
-//         const Cluster & cluster = clusters[velocityCellClusterId[i]];
+//      for( int i = 0; i < rho_v.size(); ++i ) { 
+//         rho_v[i] = 0;
+//      }
+//      
+//      const Real * blockParams = cell->get_block_parameters();
+//      const Real DV3 = blockParams[BlockParams::DVX] * blockParams[BlockParams::DVY] * blockParams[BlockParams::DVZ];
+//      for( int i = 0; i < velocityCellClusterIds.size(); ++i ) {
+//         const Cluster & cluster = clusters[velocityCellClusterIds[i]];
 //         const uint32_t clusterId = *cluster.clusterId;
-//         
-//         const Real v[3] = { 0 };
-//         for( int j = 0; j < 3; ++j ) {
-//            rho_v[clusterId][j] += velocityCellData[i];
+//         bailout(clusterId < rho_v.size(), "clusterId is larger than rho_v size");
+//         for( int dir = 0; dir < 3; ++dir ) {
+//            //TODO: Fix this, rho_v should be: rho_v[clusterId][dir] += velocityCellData[i] * DV3 * v_coordinate[i][dir];
+//            rho_v[clusterId][dir] += velocityCellData[i] * DV3;
 //         }
 //      }
 //   }
-//  
 
    void inputPopulationParameters( vector<Real> * populationParameters, vector<Real> & rho ) {
 
@@ -687,17 +683,20 @@ namespace saveData {
    }
    
    void saveClusterData( SpatialCell * cell, const vector<uint32_t> & velocityCellClusterId, const vector<Cluster> & clusters ) {
-      vmesh::VelocityBlockContainer< vmesh::LocalID > & tmpBlockContainer = cell->get_velocity_blocks_temporary();
-      tmpBlockContainer.clear();
-      tmpBlockContainer.setSize(cell->get_number_of_velocity_blocks());
-      Realf * tmpData = tmpBlockContainer.getData();
-   
-      for( int i = 0; i < velocityCellClusterId.size(); ++i ) {
-         const Cluster & cluster = clusters[velocityCellClusterId[i]];
+      // Save the population branches; also see iowrite.cpp
+      #ifdef DEBUG_POPULATION_VELOCITY_SPACE
+         vmesh::VelocityBlockContainer< vmesh::LocalID > & tmpBlockContainer = cell->get_velocity_blocks_temporary();
+         tmpBlockContainer.clear();
+         tmpBlockContainer.setSize(cell->get_number_of_velocity_blocks());
+         Realf * tmpData = tmpBlockContainer.getData();
          
-         tmpData[i] = (Realf)(*cluster.clusterId);
-      }
-      
+         for( int i = 0; i < velocityCellClusterId.size(); ++i ) {
+            bailout(velocityCellClusterId[i] >= clusters.size(), "Clusters size smaller than velocitycell cluster id");
+            const Cluster & cluster = clusters[velocityCellClusterId[i]];
+            tmpData[i] = (Realf)(*cluster.clusterId);
+         }
+      #endif
+
       #warning no AMR here
       const size_t noAMR = 0;
       vmesh::VelocityBlockContainer< vmesh::LocalID > & blockContainer = cell->get_velocity_blocks(noAMR);
@@ -707,6 +706,7 @@ namespace saveData {
       vector<Real> rho;
       calculateClusterRho( cell, clusters, velocityCellClusterId, velocityCellData, rho );
       
+      //TODO: Fix rho_v calculation
 //      // Calculate rho_v for each cluster:
 //      vector<array<Real, 3> > rho_v;
 //      calculateClusterRhoV( cell, clusters, velocityCellClusterId, velocityCellData, rho );
@@ -748,6 +748,13 @@ void sortClusterIds( vector<Cluster> & clusters ) {
 }
 
 
+/*! Clustering algorithm; documentation can be found in the Vlasiator wiki
+
+ \param                      velocityCells                       Vector of velocity cells in the spatial cell
+ \param                      cell                                Spatial cell
+ \param                      totalVolumeThreshold                Volume threshold for velocity cell populations; a population is only considered a population if its volume is bigger than this
+ \param                      minAvgs                             Two populations will always be merged if their common avgs is larger than this value; 
+ */
 void simpleCluster( vector<VelocityCell> & velocityCells, SpatialCell * cell, const Real totalVolumeThreshold, const Real minAvgs ) {
    if( velocityCells.size() == 0 ) { 
      // Input cluster data:
@@ -816,7 +823,7 @@ void simpleCluster( vector<VelocityCell> & velocityCells, SpatialCell * cell, co
             // If the velocity cell is already a part of a cluster (and they are not the same cluster), merge the cluster and the neighbor cluster:
             else if (clusterIndex != nullCluster && clusters[clusterIndex].clusterId != clusters[neighborClusterIndex].clusterId ) {
                phiprof_assert( clusters.size() > clusterIndex && clusters.size() > neighborClusterIndex );
-               // TODO: Add avgs threshold from parameters
+               // TODO: Add avgs threshold from parameterI'll do the s
                const Real avgsThreshold = Parameters::populationMergerAvgsThreshold;
                const Real minVolume = Parameters::populationMergerMinVolume;
                if( mergeClusters(clusters[clusterIndex], clusters[neighborClusterIndex], velocityCell, velocityCellNeighbor, cell, minVolume, avgsThreshold) ) {
@@ -841,9 +848,9 @@ void simpleCluster( vector<VelocityCell> & velocityCells, SpatialCell * cell, co
    // Sort the cluster ids so they are ordered 0..N
    sortClusterIds( clusters );
    
-   // Print the number of clusters:
-   cout << "Number of merges: " << merges << endl;
-   cout << "Number of clusters: " << numberOfClusters( clusters ) << endl;
+   //// Print the number of clusters:
+   //cout << "Number of merges: " << merges << endl;
+   //cout << "Number of clusters: " << numberOfClusters( clusters ) << endl;
    cell->number_of_populations = numberOfClusters( clusters );
    
    
@@ -851,8 +858,6 @@ void simpleCluster( vector<VelocityCell> & velocityCells, SpatialCell * cell, co
    
    
    deallocateClusters(clusters);
-   
-   
 
 }
 
@@ -909,46 +914,17 @@ void populationAlgorithm(
    test::testCluster(velocityCells, cell, resolution_threshold);
    test::testVelocityCells(cell);
    test::testIfSorted(velocityCells);
-#endif
-
    phiprof::start("getNeighbors");
    test::testNeighborSpeed( velocityCells, cell, resolution_threshold);
    phiprof::stop("getNeighbors");
-   
+#endif
 
    // Do clustering:
    const Real minAvgs = 1.0e-10;
    simpleCluster( velocityCells, cell, resolution_threshold, minAvgs );
-   
-
 
    return;
 }
-
-
-/*
-bool writePopulationDataReducer(
-                               const vector<CellID>& local_cells,
-                               dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, 
-                               Writer & vlsvWriter
-                               ) {
-   // Get all variables to write:
-   for( int i = 0; i < P::populationMergerVariableList.size(); ++i ) {
-     const string & variableName = P::populationMergerVariableList[i];
-     // Write the variable for each population:
-     for( int population = 0; population < Parameters::populationMergerMaxNPopulations; ++population ) {
-        // get the variable data:
-        vector<Real> variableData;
-        fetchPopulationVariableData( local_cells, mpiGrid, variableName, population );
-     }
-   }
-}
-*/
-
-
-
-
-
 
 
 

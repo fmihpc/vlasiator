@@ -17,16 +17,3 @@ void populationAlgorithm(
                       const Real resolution_threshold=0.1
                          );
 
-
-/*! Function for writing a data reducer for population merger (writes variables for each population)
- \param local_cells                        Vector of cell ids in the local process domain
- \param mpiGrid                            DCCRG grid which contains pointers to cell data
- \param vlsvWriter                         a VLSV file with a file opan
- * */
-/*
-bool writePopulationDataReducer(
-                               const vector<CellID>& local_cells,
-                               dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, 
-                               Writer & vlsvWriter
-                               );
-*/
