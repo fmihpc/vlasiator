@@ -531,7 +531,7 @@ namespace test {
          //   cout << "ALREADY HERE " <<  *it << endl;
          //}
          phiprof_assert( neighbor_duplicates_check.find( uniqueId(neighbor_vCell.block, neighbor_vCell.vCellId) ) == neighbor_duplicates_check.end() );
-         neighbor_duplicates_check.insert( uniqueId(neighbor_vCell.rho_v[clusterId][dir] += velocityCellData[i] * DV3;block, neighbor_vCell.vCellId) );
+         neighbor_duplicates_check.insert( uniqueId(neighbor_vCell.block, neighbor_vCell.vCellId) );
        }
        
      
