@@ -530,12 +530,10 @@ namespace test {
          phiprof_assert( neighbor_duplicates_check.find( uniqueId(neighbor_vCell.block, neighbor_vCell.vCellId) ) == neighbor_duplicates_check.end() );
          neighbor_duplicates_check.insert( uniqueId(neighbor_vCell.block, neighbor_vCell.vCellId) );
        }
-       
-     
      }
      return;
    }
-   
+
    void testCluster( vector<VelocityCell> velocityCells,
                       SpatialCell * cell,
                       const Real resolution_threshold ) {
@@ -625,15 +623,23 @@ namespace saveData {
       }
    }
    
-   void calculateClusterRho( const SpatialCell * cell, const vector<Cluster> & clusters, const vector<uint32_t> & velocityCellClusterIds, const Realf * velocityCellData, vector<Real> & rho ) {
+   void calculateClusterRho( SpatialCell * cell, const vector<Cluster> & clusters, const vector<uint32_t> & velocityCellClusterIds, const Realf * velocityCellData, vector<Real> & rho ) {
       rho.clear(); rho.resize( numberOfClusters(clusters)+1 );
-      
+ 
+      // Check to make sure there are no null cells:
+      if( cell->get_number_of_velocity_blocks() == 0 ) {
+         for( int i = 0; i < rho.size(); ++i ) {
+            rho[i] = 0;
+         }
+         return;
+      }
+ 
       const Real HALF = 0.5;
       
       for( int i = 0; i < rho.size(); ++i ) { 
          rho[i] = 0;
       }
-      
+
       const Real * blockParams = cell->get_block_parameters();
       const Real DV3 = blockParams[BlockParams::DVX] * blockParams[BlockParams::DVY] * blockParams[BlockParams::DVZ];
       for( int i = 0; i < velocityCellClusterIds.size(); ++i ) {
