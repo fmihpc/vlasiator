@@ -242,18 +242,15 @@ void getVelocityBlockCoordinates( const uint64_t & block, boost::array<Real, 3> 
 }
 
 
-/*! This reads in data one cell at a time. It is not the most efficient way but has the following benefits
- - For large datasets (distribution function), we avoid any problem with having to store all distribution functions twice in memory
- - Machinery in readvlsv does not at the moment support setting fileviews, this should be improved.
- The template stands for the file type so if one is reading doubles, fileReal should be double
- TODO: Get rid of fileReal (Was done once in a branch but it caused problems)
- \param file Vlsv reader with a file open
- \param fileCells List of all cell ids
- \param localCellStartOffset The offset from which to start reading cells ( This should be balanced so that every process has roughly the same amount of blocks to read )
- \param localCells How many cells after the offset to read ( This should be balanced so that every process has roughly the same amount of blocks to read )
- \param localBlockStartOffset localCellStartOffset's corresponding block offset in this process ( Calculated from nBlocks and localCellStartOffset )
- \param localCells localCellStartOffset's corresponding block block amount in this process ( Calculated from nBlocks and localCellStartOffset and localCellStartOffset )
- \param mpiGrid Vlasiator's grid
+/*!
+  This reads in velocity space data
+  \param file                  Vlsv reader with a file open
+  \param fileCells             List of all cell ids
+  \param localCellStartOffset  The offset from which to start reading cells ( This should be balanced so that every process has roughly the same amount of blocks to read )
+  \param localCells            How many cells after the offset to read ( This should be balanced so that every process has roughly the same amount of blocks to read )
+  \param localBlockStartOffset The offset from which to start reading block data for thisp process ( Calculated from nBlocks and localCellStartOffset )
+  \param localBlocks           Total number of blocks forthis process ( Calculated from nBlocks and localCellStartOffset and localCellStartOffset )
+  \param mpiGrid               Vlasiator's grid
  \sa readGrid
 */
 template <typename fileReal>
@@ -273,7 +270,6 @@ bool _readBlockData(
   datatype::type dataType;
   uint64_t byteSize;
   list<pair<string,string> > avgAttribs;
-  fileReal *avgBuffer;
   bool success=true;
    
   avgAttribs.push_back(make_pair("name","avgs"));
@@ -305,60 +301,39 @@ bool _readBlockData(
       logFile << "(RESTART) ERROR: Bad avgs bytesize at " << __FILE__ << " " << __LINE__ << endl << write;
       return false;
    }
-      
-   avgBuffer=new fileReal[avgVectorSize*localBlocks];
+   
+   if( blockIdByteSize  != sizeof(vmesh::GlobalID)) {
+      logFile << "(RESTART) ERROR: BlockID data size does not match " << __FILE__ << " " << __LINE__ << endl << write;
+      return false;
 
-   //Create a buffer for writing in block ids
-   char * blockIdBuffer_char = new char[blockIdVectorSize * localBlocks * blockIdByteSize / sizeof(char)];
-  
-   //Read block ids into blockIdBuffer_char
-   file.readArray( "BLOCKIDS", blockIdAttribs, localBlockStartOffset, localBlocks, blockIdBuffer_char );
-
-   file.readArray("BLOCKVARIABLE",avgAttribs,localBlockStartOffset,localBlocks,(char*)avgBuffer);
-
-   //Get velocity cell lengths for iteration:
-   const unsigned short int numberOfCellsInBlocksPerDirection = 4;
-   const creal dvx_blockCell = ((P::vxmax - P::vxmin) / P::vxblocks_ini) / (creal)(numberOfCellsInBlocksPerDirection);
-   const creal dvy_blockCell = ((P::vymax - P::vymin) / P::vyblocks_ini) / (creal)(numberOfCellsInBlocksPerDirection);
-   const creal dvz_blockCell = ((P::vzmax - P::vzmin) / P::vzblocks_ini) / (creal)(numberOfCellsInBlocksPerDirection);
-
-   //Iterate through blocks:
-   uint64_t bufferBlock=0;
+   }      
+   fileReal *avgBuffer=new fileReal[avgVectorSize * localBlocks]; //avgs data for all cells
+   vmesh::GlobalID * blockIdBuffer = new vmesh::GlobalID[blockIdVectorSize * localBlocks]; //blockids of all cells
+   
+   //Read block ids and data
+   file.readArray("BLOCKIDS", blockIdAttribs, localBlockStartOffset, localBlocks, (char*)blockIdBuffer );
+   file.readArray("BLOCKVARIABLE", avgAttribs, localBlockStartOffset, localBlocks, (char*)avgBuffer);
+   
+   uint64_t blockBufferOffset=0;
+   //Go through all spatial cells     
+   std::vector<vmesh::GlobalID> blockIdsInCell; //blockIds in a particular cell, temporary usage
    for(uint i=0;i<localCells;i++){
-     //Go through all spatial cells
-     uint cell=fileCells[localCellStartOffset+i];
-     for (uint blockIndex=0;blockIndex<nBlocks[localCellStartOffset+i];blockIndex++){
-        //Get the block id:
-        uint64_t blockId;
-        //Note: blockid's datatype is uint
-        const short unsigned int cellsInBlocksPerDirection = 4;
-        if( blockIdByteSize == sizeof(unsigned int) ) {
-           unsigned int * blockIds = reinterpret_cast<unsigned int*>(blockIdBuffer_char);
-           blockId = blockIds[bufferBlock];
-        } else {
-           //blockIds_dataSize == sizeof(uint64_t)
-           uint64_t * blockIds = reinterpret_cast<uint64_t*>(blockIdBuffer_char);
-           blockId = blockIds[bufferBlock];
-        }
-        //Get the block's coordinates (min coordinates)
-        boost::array<Real, 3> blockCoordinates;
-        getVelocityBlockCoordinates( blockId, blockCoordinates );
-
-        // set    volume average of distrib. function for each cell in the block.
-        for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
-           creal vx_cell_center = blockCoordinates[0] + (ic+convert<Real>(0.5))*dvx_blockCell;
-           creal vy_cell_center = blockCoordinates[1] + (jc+convert<Real>(0.5))*dvy_blockCell;
-           creal vz_cell_center = blockCoordinates[2] + (kc+convert<Real>(0.5))*dvz_blockCell;
-           //TODO: use faster set_value
-           #warning DEPRECATED: This function call needs to be replaced with something else in AMR mesh
-           mpiGrid[cell]->set_value(vx_cell_center,vy_cell_center,vz_cell_center,avgBuffer[bufferBlock*avgVectorSize+cellIndex(ic,jc,kc)]);
-        }
-        bufferBlock++; 
-     }
+      CellID cell = fileCells[localCellStartOffset + i]; //spatial cell id 
+      uint nBlocksInCell = nBlocks[localCellStartOffset + i];
+      //copy blocks in this cell to vector blockIdsInCell, size of read in data has been checked earlier
+      blockIdsInCell.reserve(nBlocksInCell);
+      blockIdsInCell.assign(blockIdBuffer + blockBufferOffset, blockIdBuffer + blockBufferOffset + nBlocksInCell);
+      mpiGrid[cell]->add_velocity_blocks(blockIdsInCell); //allocate space for all blocks and create them
+      //copy avgs data, here a conversion may happen between float and double
+      Realf *cellBlockData=mpiGrid[cell]->get_data();
+      for(uint64_t i = 0; i< WID3 * nBlocksInCell ; i++){
+         cellBlockData[i] =  avgBuffer[blockBufferOffset*WID3 + i];
+      }
+      blockBufferOffset += nBlocksInCell; //jump to location of next local cell
    }
 
-   delete(avgBuffer);
-   delete[] blockIdBuffer_char;
+   delete[] avgBuffer;
+   delete[] blockIdBuffer;
    return success;
 }
 
