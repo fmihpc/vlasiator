@@ -135,12 +135,10 @@ int main(int argc, char** argv) {
 			if(mode == precipitation && newfile) {
 				// Create particles along the negative x-axis, from inner boundary
 	      // up to outer one
-	      double start_x = ParticleParameters::precip_start_x;
-	      double stop_x = ParticleParameters::precip_stop_x;
 	      for(unsigned int i=0; i< ParticleParameters::num_particles; i++) {
 
 					// TODO: Somehow track the current sheet.
-	        double pos = start_x + ((double)i)/ParticleParameters::num_particles * (stop_x - start_x);
+					double pos = ParticleParameters::precip_start_x + ((double)i)/ParticleParameters::num_particles * (ParticleParameters::precip_stop_x - ParticleParameters::precip_start_x);
 	        particles.push_back(Particle(PhysicalConstantsSI::mp, PhysicalConstantsSI::e, Vec3d(pos,0,0), Vec3d(0,0,0)));
       }
 
@@ -170,7 +168,7 @@ int main(int argc, char** argv) {
          if(mode == precipitation) {
             // Check if the particle hit a boundary. If yes, mark it as disabled.
             // Original starting x of this particle
-            double start_pos = ParticleParameters::precip_start_x + ((double)i)/ParticleParameters::num_particles * (ParticleParameters::precip_stop_x - ParticleParameters::precip_start_x);
+            double start_pos = ParticleParameters::precip_start_x + ((double)(i%ParticleParameters::num_particles))/ParticleParameters::num_particles * (ParticleParameters::precip_stop_x - ParticleParameters::precip_start_x);
 						int start_timestep = i / ParticleParameters::num_particles;
             if(vector_length(particles[i].x) <= ParticleParameters::precip_inner_boundary) {
 
