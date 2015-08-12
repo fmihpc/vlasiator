@@ -27,6 +27,10 @@ Real P::particle_vel = 0;
 Real P::mass = PhysicalConstantsSI::mp;
 Real P::charge = PhysicalConstantsSI::e;
 
+Real P::precip_inner_boundary;
+Real P::precip_start_x;
+Real P::precip_stop_x;
+
 bool ParticleParameters::addParameters() {
    Readparameters::add("particles.input_filename_pattern","Printf() like pattern giving the field input filenames.", std::string("bulk.%07i.vlsv"));
    Readparameters::add("particles.output_filename_pattern","Printf() like pattern giving the particle output filenames.", std::string("particles.%07i.vlsv"));
@@ -47,6 +51,12 @@ bool ParticleParameters::addParameters() {
    Readparameters::add("particles.particle_vel", "Initial velocity of the particles (in the plasma rest frame)",0);
    Readparameters::add("particles.mass", "Mass of the test particles",PhysicalConstantsSI::mp);
    Readparameters::add("particles.charge", "Charge of the test particles",PhysicalConstantsSI::e);
+
+	 // Parameters for the precipitation mode
+	 Readparameters::add("particles.inner_boundary", "Distance of the inner boundary from the coordinate centre (meters)", 5e10);
+	 Readparameters::add("particles.precipitation_start_x", "X-Coordinate at which precipitation injection starts (meters)", -100e10);
+	 Readparameters::add("particles.precipitation_stop_x", "X-Coordinate at which precipitation injection stops (meters)", -5e10);
+
    return true;
 }
 
@@ -90,5 +100,10 @@ bool ParticleParameters::getParameters() {
 
    Readparameters::get("particles.temperature",P::temperature);
    Readparameters::get("particles.particle_vel",P::particle_vel);
+
+   Readparameters::get("particles.inner_boundary", P::precip_inner_boundary);
+	 Readparameters::get("particles.precipitation_start_x", P::precip_start_x);
+	 Readparameters::get("particles.precipitation_stop_x", P::precip_stop_x);
+
    return true;
 }

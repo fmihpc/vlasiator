@@ -18,6 +18,7 @@
 enum pusher_mode {
    single = 0,    // Single particle trajectory tracking
    distribution,  // Particle distribution created at a given point
+   precipitation, // Particles created on negative X-Axis, positions of precipitation recorded.
    analysator     // Particle distribution input as ascii, positions written to stdout as ascii.
 };
 
@@ -37,6 +38,7 @@ int main(int argc, char** argv) {
 
    int input_file_counter=floor(ParticleParameters::start_time / ParticleParameters::input_dt);
    Field E[2],B[2],V;
+   std::cerr << "Loading first file with index " << ParticleParameters::start_time / ParticleParameters::input_dt << std::endl;
    snprintf(filename_buffer,256,filename_pattern.c_str(),input_file_counter-1);
    readfields(filename_buffer,E[1],B[1],V);
    E[0]=E[1]; B[0]=B[1];
@@ -49,6 +51,9 @@ int main(int argc, char** argv) {
    double maxtime=ParticleParameters::end_time - ParticleParameters::start_time;
    int maxsteps = maxtime/dt;
 
+
+   // Set up initial conditions, depending on the selected pusher mode.
+   // (TODO: This should probably be moved into it's own source file)
    if(ParticleParameters::mode == "single") {
 
       Vec3d vpos(ParticleParameters::init_x, ParticleParameters::init_y, ParticleParameters::init_z);
@@ -80,6 +85,21 @@ int main(int argc, char** argv) {
       }
 
       delete velocity_distribution;
+   } else if(ParticleParameters::mode == "precipitation") {
+
+     mode = precipitation;
+
+      // Create particles along the negative x-axis, from inner boundary
+      // up to outer one
+      double start_x = ParticleParameters::precip_start_x;
+      double stop_x = ParticleParameters::precip_stop_x;
+      for(unsigned int i=0; i< ParticleParameters::num_particles; i++) {
+
+        // TODO: Somehow track the current sheet.
+        double pos = start_x + ((double)i)/ParticleParameters::num_particles * (stop_x - start_x);
+        particles.push_back(Particle(PhysicalConstantsSI::mp, PhysicalConstantsSI::e, Vec3d(pos,0,0), Vec3d(0,0,0)));
+      }
+
    } else if(ParticleParameters::mode == "analysator") {
 
      mode = analysator;
@@ -124,6 +144,12 @@ int main(int argc, char** argv) {
 
       //#pragma omp parallel for
       for(unsigned int i=0; i< particles.size(); i++) {
+
+          if(mode == precipitation && vector_length(particles[i].x) == 0) {
+            // Skip disabled particles.
+            continue;
+          }
+
          /* Get E- and B-Field at their position */
          Vec3d Eval,Bval;
 
@@ -132,6 +158,27 @@ int main(int argc, char** argv) {
 
          /* Push them around */
          particles[i].push(Bval,Eval,dt);
+
+         if(mode == precipitation) {
+            // Check if the particle hit a boundary. If yes, mark it as disabled.
+            // Original starting x of this particle
+            double start_pos = ParticleParameters::precip_start_x + ((double)i)/ParticleParameters::num_particles * (ParticleParameters::precip_stop_x - ParticleParameters::precip_start_x);
+            if(vector_length(particles[i].x) <= ParticleParameters::precip_inner_boundary) {
+              // Record latitude and energy
+              double latitude = atan2(particles[i].x[2],particles[i].x[0]);
+              printf("%u %lf %lf %lf\n",i, start_pos, latitude, .5*particles[i].m * dot_product(particles[i].v,particles[i].v));
+
+              // Disable by setting position and velocity to 0
+              particles[i].x = Vec3d(0,0,0);
+              particles[i].v = Vec3d(0,0,0);
+            } else if (particles[i].x[0] <= ParticleParameters::precip_start_x) {
+              // Record marker value
+              printf("%u %lf -1. -1.\n", i, start_pos);
+              // Disable by setting position and velocity to 0
+              particles[i].x = Vec3d(0,0,0);
+              particles[i].v = Vec3d(0,0,0);
+            }
+         }
       }
 
       /* Write output */

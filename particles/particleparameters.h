@@ -22,6 +22,9 @@ struct ParticleParameters {
    static Real end_time;  /*!< Simulation time at which the particle-simulation should be stopped */
    static Real input_dt; /*!< Time interval between input files */
 
+   static Real precip_inner_boundary; /*!< Distance of the inner boundary from the coordinate centre (meters) */
+   static Real precip_start_x; /*!< X-Coordinate at which precipitation injection starts (meters) */
+   static Real precip_stop_x; /*!< X-Coordinate at which precipitation injection stops (meters) */
    static uint64_t num_particles; /*!< Number of particles to generate */
 
    static std::default_random_engine::result_type random_seed; /*!< Random seed for particle creation */
