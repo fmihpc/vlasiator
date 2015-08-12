@@ -126,9 +126,9 @@ int main(int argc, char** argv) {
       bool newfile;
       /* Load newer fields, if neccessary */
       if(step >= 0) {
-         newfile = read_next_timestep(filename_pattern, ParticleParameters::start_time + step*dt, 1,E[0], E[1], B[0], B[1], input_file_counter);
+         newfile = read_next_timestep(filename_pattern, ParticleParameters::start_time + step*dt, 1,E[0], E[1], B[0], B[1], V, mode==precipitation, input_file_counter);
       } else {
-         newfile = read_next_timestep(filename_pattern, ParticleParameters::start_time + step*dt, -1,E[1], E[0], B[1], B[0], input_file_counter);
+         newfile = read_next_timestep(filename_pattern, ParticleParameters::start_time + step*dt, -1,E[1], E[0], B[1], B[0], V, mode==precipitation, input_file_counter);
       }
 
 			// If a new timestep has been opened, add a new bunch of particles
@@ -138,8 +138,11 @@ int main(int argc, char** argv) {
 	      for(unsigned int i=0; i< ParticleParameters::num_particles; i++) {
 
 					// TODO: Somehow track the current sheet.
-					double pos = ParticleParameters::precip_start_x + ((double)i)/ParticleParameters::num_particles * (ParticleParameters::precip_stop_x - ParticleParameters::precip_start_x);
-	        particles.push_back(Particle(PhysicalConstantsSI::mp, PhysicalConstantsSI::e, Vec3d(pos,0,0), Vec3d(0,0,0)));
+					double start_x = ParticleParameters::precip_start_x + ((double)i)/ParticleParameters::num_particles * (ParticleParameters::precip_stop_x - ParticleParameters::precip_start_x);
+					Vec3d pos(start_x,0,0);
+
+					// Add a particle at this location, with bulk velocity at its starting point
+	        particles.push_back(Particle(PhysicalConstantsSI::mp, PhysicalConstantsSI::e, pos, V(pos)));
       }
 
 
