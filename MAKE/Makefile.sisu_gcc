@@ -37,7 +37,7 @@ LIBRARY_PREFIX = /homeappl/home/alfthan/libraries
 
 #compiled libraries
 INC_BOOST = -I$(CRAY_TRILINOS_PREFIX_DIR)/include/boost
-INC_BOOST = -L$(CRAY_TRILINOS_PREFIX_DIR)/lib -lboost_program_options
+LIB_BOOST = -L$(CRAY_TRILINOS_PREFIX_DIR)/lib -lboost_program_options
 
 INC_ZOLTAN = -I$(CRAY_TRILINOS_PREFIX_DIR)/include
 LIB_ZOLTAN = -I$(CRAY_TRILINOS_PREFIX_DIR)/lib -lzoltan
