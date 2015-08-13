@@ -183,11 +183,13 @@ namespace vlsvinterface {
       vlsv::datatype::type cwb_dataType;
       uint64_t cwb_arraySize, cwb_vectorSize, cwb_dataSize;
       list<pair<string, string> > attribs;
-   
-      //Get the mesh name for reading in data from the correct place
+
+      // Get the mesh name for reading in data from the correct place. Older Vlasiator VLSV
+      // files did not add particle population name to arrays, so for those files we do 
+      // not require the popName to be present.
       attribs.push_back(make_pair("mesh", meshName));
-      attribs.push_back(make_pair("name", popName));
-   
+      if (popName.size() > 0) attribs.push_back(make_pair("name", popName));
+
       //Get array info
       if (getArrayInfo("CELLSWITHBLOCKS", attribs, cwb_arraySize, cwb_vectorSize, cwb_dataType, cwb_dataSize) == false) {
          cerr << "ERROR, COULD NOT FIND ARRAY CELLSWITHBLOCKS FOR POPULATION '" << popName << "' AT " << __FILE__ << ":" << __LINE__ << endl;
@@ -274,7 +276,7 @@ namespace vlsvinterface {
    
       // Get some required info from VLSV file:
       list<pair<string, string> > attribs;
-      attribs.push_back(make_pair("name",popName));
+      if (popName.size() > 0) attribs.push_back(make_pair("name",popName));
       
       //READ BLOCK IDS:
       uint64_t blockIds_arraySize, blockIds_vectorSize, blockIds_dataSize;

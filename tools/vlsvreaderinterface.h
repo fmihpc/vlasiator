@@ -1,8 +1,14 @@
+/* This file is part of Vlasiator.
+ * 
+ * Copyright 2010-2015 Finnish Meteorological Institute 
+ */
+
 #ifndef VLSVREADER_INTERFACE_H
 #define VLSVREADER_INTERFACE_H
 
 #define TOOL_NOT_PARALLEL
 
+#include <map>
 #include <vector>
 #include <unordered_map>
 #include <array>
@@ -42,7 +48,7 @@ namespace vlsvinterface {
          cellsWithBlocksSet = false;
       }
       bool getVelocityBlockVariables( const std::string & variableName, const uint64_t & cellId, char*& buffer, bool allocateMemory = true );
-      
+
       inline uint64_t getBlockOffset( const uint64_t & cellId ) {
          //Check if the cell id can be found:
          std::unordered_map<uint64_t, std::pair<uint64_t, uint32_t>>::const_iterator it = cellsWithBlocksLocations.find( cellId );
@@ -64,7 +70,7 @@ namespace vlsvinterface {
          return std::get<1>(it->second);
       }
    };
-   
+
    template <typename T, size_t N> inline
    bool Reader::getVariable( const std::string & variableName, const uint64_t & cellId, std::array<T, N> & variable ) {
       if( cellIdsSet == false ) {
@@ -113,6 +119,7 @@ namespace vlsvinterface {
             }
          } else {
             std::cerr << "BAD BYTESIZE AT " << __FILE__ << " " << __LINE__ << std::endl;
+            delete [] buffer;
             return false;
          }
       } else if( dataType == vlsv::datatype::type::UINT ) {
@@ -128,6 +135,7 @@ namespace vlsvinterface {
             }
          } else {
             std::cerr << "BAD BYTESIZE AT " << __FILE__ << " " << __LINE__ << std::endl;
+            delete [] buffer;
             return false;
          }
       } else if( dataType == vlsv::datatype::type::INT ) {
@@ -143,15 +151,17 @@ namespace vlsvinterface {
             }
          } else {
             std::cerr << "BAD BYTESIZE AT " << __FILE__ << " " << __LINE__ << std::endl;
+            delete [] buffer;
             return false;
          }
       } else {
          std::cerr << "BAD DATATYPE AT " << __FILE__ << " " << __LINE__ << std::endl;
+         delete [] buffer;
          return false;
       }
+      delete [] buffer;
       return true;
    }
 }
-
 
 #endif
