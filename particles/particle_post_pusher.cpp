@@ -177,7 +177,7 @@ int main(int argc, char** argv) {
 
               // Record latitude and energy
               double latitude = atan2(particles[i].x[2],particles[i].x[0]);
-              printf("%u %i %lf %lf %lf\n",i, start_timestep, start_pos, latitude, .5*particles[i].m * dot_product(particles[i].v,particles[i].v)/PhysicalConstantsSI::e);
+              printf("%u %i %lf %lf %lf\n",i, ParticleParameters::start_time + start_timestep*dt, start_pos, latitude, .5*particles[i].m * dot_product(particles[i].v,particles[i].v)/PhysicalConstantsSI::e);
 
               // Disable by setting position and velocity to 0
               particles[i].x = Vec3d(0,0,0);
@@ -185,7 +185,7 @@ int main(int argc, char** argv) {
             } else if (particles[i].x[0] <= ParticleParameters::precip_start_x) {
 
               // Record marker value for lost particle
-              printf("%u %i %lf -5. -1.\n", i, start_timestep, start_pos);
+              printf("%u %i %lf -5. -1.\n", i, ParticleParameters::start_time + start_timestep*dt, start_pos);
               // Disable by setting position and velocity to 0
               particles[i].x = Vec3d(0,0,0);
               particles[i].v = Vec3d(0,0,0);
