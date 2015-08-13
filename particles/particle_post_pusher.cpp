@@ -131,15 +131,29 @@ int main(int argc, char** argv) {
          newfile = read_next_timestep(filename_pattern, ParticleParameters::start_time + step*dt, -1,E[1], E[0], B[1], B[0], V, mode==precipitation, input_file_counter);
       }
 
+      Interpolated_Field cur_E(E[0],E[1],step*dt);
+      Interpolated_Field cur_B(B[0],B[1],step*dt);
+
 			// If a new timestep has been opened, add a new bunch of particles
 			if(mode == precipitation && newfile) {
 				// Create particles along the negative x-axis, from inner boundary
 	      // up to outer one
 	      for(unsigned int i=0; i< ParticleParameters::num_particles; i++) {
 
-					// TODO: Somehow track the current sheet.
+					// Choose x coordinate
 					double start_x = ParticleParameters::precip_start_x + ((double)i)/ParticleParameters::num_particles * (ParticleParameters::precip_stop_x - ParticleParameters::precip_start_x);
 					Vec3d pos(start_x,0,0);
+
+					// Find cell with minimum B value in this plane
+					double min_B = 99999999999.;
+					for(double z=-1e7; z<1e7; z+=1e5) {
+							Vec3d candidate_pos(start_x,0,z);
+							double B_here = vector_length(cur_B(candidate_pos));
+							if(B_here < min_B) {
+								pos = candidate_pos;
+								min_B = B_here;
+							}
+					}
 
 					// Add a particle at this location, with bulk velocity at its starting point
 	        particles.push_back(Particle(PhysicalConstantsSI::mp, PhysicalConstantsSI::e, pos, V(pos)));
@@ -147,9 +161,6 @@ int main(int argc, char** argv) {
 
 
 			}
-
-      Interpolated_Field cur_E(E[0],E[1],step*dt);
-      Interpolated_Field cur_B(B[0],B[1],step*dt);
 
       //#pragma omp parallel for
       for(unsigned int i=0; i< particles.size(); i++) {
@@ -177,7 +188,7 @@ int main(int argc, char** argv) {
 
               // Record latitude and energy
               double latitude = atan2(particles[i].x[2],particles[i].x[0]);
-              printf("%u %i %lf %lf %lf\n",i, ParticleParameters::start_time + start_timestep*dt, start_pos, latitude, .5*particles[i].m * dot_product(particles[i].v,particles[i].v)/PhysicalConstantsSI::e);
+              printf("%u %i %lf %lf %lf\n",i, start_timestep, start_pos, latitude, .5*particles[i].m * dot_product(particles[i].v,particles[i].v)/PhysicalConstantsSI::e);
 
               // Disable by setting position and velocity to 0
               particles[i].x = Vec3d(0,0,0);
@@ -185,7 +196,7 @@ int main(int argc, char** argv) {
             } else if (particles[i].x[0] <= ParticleParameters::precip_start_x) {
 
               // Record marker value for lost particle
-              printf("%u %i %lf -5. -1.\n", i, ParticleParameters::start_time + start_timestep*dt, start_pos);
+              printf("%u %i %lf -5. -1.\n", i, start_timestep, start_pos);
               // Disable by setting position and velocity to 0
               particles[i].x = Vec3d(0,0,0);
               particles[i].v = Vec3d(0,0,0);
