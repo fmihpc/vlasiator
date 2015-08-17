@@ -514,7 +514,7 @@ namespace projects {
 
       // Remove blocks with f below sparse min value
       for (size_t b=0; b<removeList.size(); ++b) cell->remove_velocity_block(removeList[b],popID);
-      
+
       // Loop over blocks in the spatial cell until we reach the maximum
       // refinement level, or until there are no more blocks left to refine
       bool refine = true;
@@ -584,7 +584,7 @@ namespace projects {
     * the number density corresponds to the value returned by getCorrectNumberDensity.
     * @param cell Spatial cell.
     * @param popID ID of the particle species.*/
-   void Project::rescaleDensity(spatial_cell::SpatialCell* cell,const int& popID) const {
+   void Project::rescaleDensity(spatial_cell::SpatialCell* cell,const int& popID) const {      
       // Re-scale densities
       Real sum = 0.0;
       Realf* data = cell->get_data(popID);
@@ -692,11 +692,13 @@ namespace projects {
          (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
       setRandomSeed(cell,cellID);
    }
-
-
    
 Project* createProject() {
    Project* rvalue = NULL;
+   if(Parameters::projectName == "") {
+      cerr << "No project specified! Please set 'project' parameter!" << endl;
+      abort();
+   }
    if(Parameters::projectName == "Alfven") {
       rvalue = new projects::Alfven;
    }

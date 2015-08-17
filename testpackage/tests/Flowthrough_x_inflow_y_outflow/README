@@ -1,0 +1,21 @@
+This is a test case for Vlasov translation operator.
+
+The distribution is translated with a constant 
+speed to +x,+y direction for roughly one period (dynamic
+timestepping). Initially the box is empty, and plasma is flowing in
+from -x and -y boundaries. Outflow conditions are used for +x,+y
+boundaries, and in z-direction the box is periodic.
+
+This test case tests for errors
+- Vlasov translation
+- dynamic timestepping
+- sparse velocity machinery
+- Maxwell and outflow boundary conditions
+
+This test case does not test errors in
+- vlasov acceleration
+- field propagators
+
+You can compare the density 'rho' or the velocity block data 'avgs'
+against the reference values.
+

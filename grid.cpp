@@ -285,8 +285,8 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
 
    phiprof::stop("deallocate boundary data");
    //set weights based on each cells LB weight counter
-   vector<uint64_t> cells = mpiGrid.get_cells();
-   for (uint i=0; i<cells.size(); ++i){
+   vector<CellID> cells = mpiGrid.get_cells();
+   for (size_t i=0; i<cells.size(); ++i){
       //Set weight. If acceleration is enabled then we use the weight
       //counter which is updated in acceleration, otherwise we just
       //use the number of blocks.

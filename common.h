@@ -344,7 +344,8 @@ const uint SIZE_VELBLOCK    = WID3; /*!< Number of cells in a velocity block. */
  * Name space for flags needed globally, such as the bailout flag.
  */
 struct globalflags {
-   static int bailingOut; /*!< Global flag raised to true if a run bailout (write restart and stop the simulation peacefully) is needed. */
+   static int bailingOut; /*!< Global flag raised to true if a run bailout (write restart if requested/set and stop the simulation peacefully) is needed. */
+   static bool writeRestart; /*!< Global flag raised to true if a restart writing is needed (without bailout). NOTE: used only by MASTER_RANK in vlasiator.cpp. */
 };
 
 // Natural constants

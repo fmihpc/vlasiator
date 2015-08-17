@@ -47,6 +47,18 @@ module list 2>&1 | gawk '{printf("%s\"%s\"%s\n","    cout << ",$0," << endl;")}'
 echo "    cout << endl << \"----------- git status --------- \"<<endl;" >>version.cpp
 git status | sed 's/\"/\\"/g' | sed 's/\\\"/\\"/g'  |gawk '{printf("%s\"%s\"%s\n","    cout << ",$0," << endl;")}' >> version.cpp
 
+echo "    cout << endl << \"----------- git diff ---------- \"<<endl;" >>version.cpp
+
+echo "    const char diff_data[] = {" >> version.cpp
+DIFF=$(git diff `git diff --name-only |grep -v generate_version.sh` | xxd -i)
+if [[ -n $DIFF ]]; then
+   echo -n $DIFF >> version.cpp
+   echo "    ,0 };" >> version.cpp
+else
+   echo "    0 };" >> version.cpp
+fi
+echo "    cout << diff_data << endl;" >> version.cpp
+
 cat >> version.cpp <<EOF
   }
   return true;

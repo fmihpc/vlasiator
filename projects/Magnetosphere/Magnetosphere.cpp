@@ -7,6 +7,7 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 #include <cstdlib>
 #include <iostream>
 #include <cmath>
+#include <array>
 
 #include "../../common.h"
 #include "../../readparameters.h"
@@ -35,8 +36,6 @@ namespace projects {
       RP::add("Magnetosphere.constBgBY", "Constant flat By component in the whole simulation box. Default is none.", 0.0);
       RP::add("Magnetosphere.constBgBZ", "Constant flat Bz component in the whole simulation box. Default is none.", 0.0);
       RP::add("Magnetosphere.noDipoleInSW", "If set to 1, the dipole magnetic field is not set in the solar wind inflow cells. Default 0.", 0.0);
-      RP::add("Magnetosphere.rhoTransitionCenter", "Abscissa in GSE around which the background magnetospheric density transitions to a 10 times higher value (m)", 0.0);
-      RP::add("Magnetosphere.rhoTransitionWidth", "Width of the magnetospheric background density (m)", 0.0);
       RP::add("Magnetosphere.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
       RP::add("Magnetosphere.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
       RP::add("Magnetosphere.dipoleScalingFactor","Scales the field strength of the magnetic dipole compared to Earths.", 1.0);
@@ -52,14 +51,6 @@ namespace projects {
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
       typedef Readparameters RP;
       if(!RP::get("Magnetosphere.rho", this->tailRho)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!RP::get("Magnetosphere.rhoTransitionCenter", this->rhoTransitionCenter)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!RP::get("Magnetosphere.rhoTransitionWidth", this->rhoTransitionWidth)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
@@ -344,20 +335,16 @@ namespace projects {
          }
       }
       
-      initRho *= 1.0 + 9.0 * 0.5 * (1.0 + tanh((x-this->rhoTransitionCenter) / this->rhoTransitionWidth));
-      
-      return initRho 
-              * pow( physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B * this->T), 1.5) 
-              * exp(-physicalconstants::MASS_PROTON * ((vx-initV0[0])*(vx-initV0[0])+(vy-initV0[1])*(vy-initV0[1])+(vz-initV0[2])*(vz-initV0[2])) 
-                                                       / (2.0 * physicalconstants::K_B * this->T));
+      return initRho * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B * this->T), 1.5) *
+      exp(- physicalconstants::MASS_PROTON * ((vx-initV0[0])*(vx-initV0[0]) + (vy-initV0[1])*(vy-initV0[1]) + (vz-initV0[2])*(vz-initV0[2])) / (2.0 * physicalconstants::K_B * this->T));
    }
    
-   vector<std::array<Real, 3>> Magnetosphere::getV0(
+   vector<std::array<Real, 3> > Magnetosphere::getV0(
       creal x,
       creal y,
       creal z
    ) const {
-      vector<std::array<Real, 3>> centerPoints;
+      vector<std::array<Real, 3> > centerPoints;
       std::array<Real, 3> V0 {{this->V0[0], this->V0[1], this->V0[2]}};
       std::array<Real, 3> ionosphereV0 = {{this->ionosphereV0[0], this->ionosphereV0[1], this->ionosphereV0[2]}};
       

@@ -1,18 +1,7 @@
 /*
 This file is part of Vlasiator.
 
-Copyright 2011, 2012 Finnish Meteorological Institute
-
-
-
-
-
-
-
-
-
-
-
+Copyright 2011, 2012, 2015 Finnish Meteorological Institute
 
 */
 
@@ -78,10 +67,10 @@ namespace projects {
       else return value / abs(value);
    }
 
-
-   Real test_fp::calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz,const int& popID) {
-      
-      vector<std::array<Real, 3>> V = this->getV0(x,y,z,dx,dy,dz);
+   Real test_fp::calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,
+                                       creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz,
+                                       const int& popID) const {      
+      vector<std::array<Real, 3> > V = this->getV0(x,y,z,dx,dy,dz);
       
       creal VX2 = (vx+0.5*dvx-V[0][0])*(vx+0.5*dvx-V[0][0]);
       creal VY2 = (vy+0.5*dvy-V[0][1])*(vy+0.5*dvy-V[0][1]);

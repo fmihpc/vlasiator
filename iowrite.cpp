@@ -15,6 +15,9 @@ Copyright 2010-2015 Finnish Meteorological Institute
 #include <sstream>
 #include <ctime>
 #include <array>
+#include <algorithm>
+#include <limits>
+
 #include "iowrite.h"
 #include "grid.h"
 #include "phiprof.hpp"
@@ -120,7 +123,9 @@ bool writeVelocityDistributionData(const int& popID,Writer& vlsvWriter,
    // In restart we just write velocity grids for all cells.
    // First write global Ids of those cells which write velocity blocks (here: all cells):
    map<string,string> attribs;
-   attribs["name"] = getObjectWrapper().particleSpecies[popID].name;
+   const string popName      = getObjectWrapper().particleSpecies[popID].name;
+   const string spatMeshName = "SpatialGrid";
+   attribs["name"] = popName;
    bool success=true;
 
    // Compute totalBlocks
@@ -130,10 +135,8 @@ bool writeVelocityDistributionData(const int& popID,Writer& vlsvWriter,
       totalBlocks+=mpiGrid[cells[cell]]->get_number_of_velocity_blocks(popID);
       blocksPerCell.push_back(mpiGrid[cells[cell]]->get_number_of_velocity_blocks(popID));
    }
-   
-   // The name of the spatial mesh is "SpatialGrid"
-#warning Spatial mesh name hard-coded here
-   const string spatMeshName = "SpatialGrid";
+
+   // The name of the mesh is "SpatialGrid"
    attribs["mesh"] = spatMeshName;
 
    const unsigned int vectorSize = 1;
@@ -218,7 +221,7 @@ bool writeVelocityDistributionData(const int& popID,Writer& vlsvWriter,
 
    attribs.clear();
    attribs["mesh"] = spatMeshName;
-   attribs["name"] = getObjectWrapper().particleSpecies[popID].name;
+   attribs["name"] = popName;
    if (vlsvWriter.writeArray("BLOCKIDS", attribs, totalBlocks, vectorSize, velocityBlockIds.data()) == false) success = false;
    if (success == false) logFile << "(MAIN) writeGrid: ERROR failed to write BLOCKIDS to file!" << endl << writeVerbose;
    {
@@ -228,8 +231,8 @@ bool writeVelocityDistributionData(const int& popID,Writer& vlsvWriter,
    // Write the velocity space data
    // set everything that is needed for writing in data such as the array name, size, datatype, etc..
    attribs.clear();
-   attribs["mesh"] = "SpatialGrid"; // Usually the mesh is SpatialGrid
-   attribs["name"] = getObjectWrapper().particleSpecies[popID].name; // Name of the particle population
+   attribs["mesh"] = spatMeshName; // Name of the spatial mesh
+   attribs["name"] = popName;      // Name of the velocity space distribution is written avgs
    const string datatype_avgs = "float";
    const uint64_t arraySize_avgs = totalBlocks;
    const uint64_t vectorSize_avgs = WID3; // There are 64 elements in every velocity block

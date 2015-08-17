@@ -68,8 +68,8 @@ inline Vec slope_limiter_mc(const Vec& l,const Vec& m, const Vec& r) {
 inline Vec slope_limiter_minmod_amr(const Vec& l,const Vec& m, const Vec& r,const Vec& a,const Vec& b) {
    Vec J = r-l;
    Vec f = (m-l)/J;
-   f = min(1.0,f);
-   return min(f/(1+a),(1-f)/(1+b))*2*J;
+   f = min(Vec(1.0),f);
+   return min(f/(1+a),(Vec(1.)-f)/(1+b))*2*J;
 }
 
 inline Vec slope_limiter(const Vec& l,const Vec& m, const Vec& r) {
@@ -89,7 +89,7 @@ inline Vec slope_limiter_amr(const Vec& l,const Vec& m, const Vec& r,const Vec& 
 inline void slope_limiter(const Vec& l,const Vec& m, const Vec& r, Vec& slope_abs, Vec& slope_sign) {
    const Vec slope=slope_limiter(l,m,r);
    slope_abs=abs(slope);
-   slope_sign=select(slope > 0, 1.0, -1.0);
+   slope_sign=select(slope > 0, Vec(1.0), Vec(-1.0));
 }
 
 #endif
