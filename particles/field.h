@@ -67,7 +67,7 @@ struct Field {
       return fract[0]*(fract[1]*interp[3]+(1.-fract[1])*interp[1])
       + (1.-fract[0])*(fract[1]*interp[2]+(1.-fract[1])*interp[0]);
    }
-   Vec3d operator()(double x, double y, double z) {
+   virtual Vec3d operator()(double x, double y, double z) {
       Vec3d v(x,y,z);
       return operator()(v);
    }
@@ -75,7 +75,7 @@ struct Field {
 };
 
 /* Linear Temporal interpolation between two input fields */
-struct Interpolated_Field {
+struct Interpolated_Field : Field{
    Field& a,b;
    double t;
 
