@@ -143,7 +143,7 @@ namespace projects {
       }
    }
    
-   vector<std::array<Real, 3>> Flowthrough::getV0(
+   std::vector<std::array<Real, 3> > Flowthrough::getV0(
       creal x,
       creal y,
       creal z

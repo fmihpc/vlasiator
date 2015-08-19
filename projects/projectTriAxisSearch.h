@@ -3,8 +3,6 @@
 
 #include "project.h"
 
-using namespace std;
-
 namespace projects {
    class TriAxisSearch: public Project {
       public:
@@ -17,7 +15,7 @@ namespace projects {
           * 
           * This radius is used to determine all blocks within that radius of V0, create them and return their list for initialisation.
           */
-         virtual vector<uint> findBlocksToInitialize(SpatialCell* cell);
+         virtual std::vector<uint> findBlocksToInitialize(spatial_cell::SpatialCell* cell);
          
          /*! \brief Return a vector containing the velocity coordinate of the centre of each ion population in the distribution.
           * 
@@ -26,7 +24,7 @@ namespace projects {
           * 
           * \sa findBlocksToInitialize
           */
-         virtual vector<std::array<Real, 3>> getV0(
+         virtual std::vector<std::array<Real, 3> > getV0(
             creal x,
             creal y,
             creal z

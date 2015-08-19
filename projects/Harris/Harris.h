@@ -5,15 +5,6 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 
 
 
-
-
-
-
-
-
-
-
-
 */
 
 #ifndef HARRIS_H
