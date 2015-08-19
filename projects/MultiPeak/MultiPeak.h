@@ -66,6 +66,12 @@ namespace projects {
       uint nVelocitySamples;
       bool useMultipleSpecies;      /**< If true, then each peak is a separate particle species.
                                      * Defaults to false.*/
+      
+      enum densitymodel {
+         Uniform,
+         TestCase
+      } densityModel;
+
    }; // class MultiPeak
 } //  namespace projects
 

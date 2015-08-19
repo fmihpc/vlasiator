@@ -54,6 +54,7 @@ namespace projects {
       RP::add("MultiPeak.lambda", "B cosine perturbation wavelength (m)", 1.0);
       RP::add("MultiPeak.nVelocitySamples", "Number of sampling points per velocity dimension", 2);
       RP::add("MultiPeak.useMultipleSpecies","Is each peak a separate particle species",false);
+      RP::add("MultiPeak.densityModel","Which spatial density model is used?",string("uniform"));
    }
 
    void MultiPeak::getParameters(){
@@ -100,7 +101,13 @@ namespace projects {
       RP::get("MultiPeak.dBz", this->dBz);
       RP::get("MultiPeak.lambda", this->lambda);
       RP::get("MultiPeak.nVelocitySamples", this->nVelocitySamples);
-      RP::get("MultiPeak.useMultipleSpecies", useMultipleSpecies);   
+      RP::get("MultiPeak.useMultipleSpecies", useMultipleSpecies);
+      
+      string densModelString;
+      RP::get("MultiPeak.densityModel",densModelString);
+      
+      if (densModelString == "uniform") densityModel = Uniform;
+      else if (densModelString == "testcase") densityModel = TestCase;
    }
 
    Real MultiPeak::getDistribValue(creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const int& popID) const {
@@ -152,6 +159,22 @@ namespace projects {
          creal DVY = dvy / N;
          creal DVZ = dvz / N;
 
+         Real rhoFactor = 1.0;
+         switch (densityModel) {
+            case Uniform:
+               rhoFactor = 1.0;
+               break;
+            case TestCase:
+               rhoFactor = 1.0;
+               if ((x >= 3.9e5 && x <= 6.1e5) && (y >= 3.9e5 && y <= 6.1e5)) {
+                  rhoFactor = 1.5;
+               }
+               break;
+            default:
+               rhoFactor = 1.0;
+               break;
+         }
+         
          // Sample the distribution using N*N*N points
          for (uint vi=0; vi<N; ++vi) {
             for (uint vj=0; vj<N; ++vj) {
@@ -163,6 +186,7 @@ namespace projects {
                }
             }
          }
+         avg *= rhoFactor;
          
          // Compare the current and accumulated volume averages:
          Real eps = max(numeric_limits<creal>::min(),avg * static_cast<Real>(1e-6));

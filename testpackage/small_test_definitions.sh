@@ -16,7 +16,7 @@ run_dir="run"
 test_dir="tests"
 
 # choose tests to run
-run_tests=( 1 2 3 4 5 6 7 8)
+run_tests=( 1 2 3 4 5 6 7 8 9)
 
 # acceleration test
 test_name[1]="acctest_2_maxw_500k_100k_20kms_10deg"
@@ -59,6 +59,11 @@ comparison_phiprof[7]="phiprof_full_0.txt"
 test_name[8]="Flowthrough_x_inflow_y_outflow_acc"
 comparison_vlsv[8]="bulk.0000001.vlsv"
 comparison_phiprof[8]="phiprof_full_0.txt"
+
+# Self-consistent wave generation test
+test_name[9]="Selfgen_Waves_Periodic"
+comparison_vlsv[9]="bulk.0000001.vlsv"
+comparison_phiprof[9]="phiprof_full_0.txt"
 
 # define here the variables you want to be tested
 variables_name=( "rho" "rho_v" "rho_v" "rho_v" "B" "B" "B" "E" "E" "E" "avgs" )
