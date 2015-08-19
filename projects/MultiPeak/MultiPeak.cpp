@@ -104,8 +104,6 @@ namespace projects {
       
       if (densModelString == "uniform") densityModel = Uniform;
       else if (densModelString == "testcase") densityModel = TestCase;
-      
-      cerr << "Using density model '" << densModelString << "'" << endl;
    }
 
    Real MultiPeak::getDistribValue(creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
