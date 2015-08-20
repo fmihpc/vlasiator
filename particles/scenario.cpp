@@ -203,7 +203,7 @@ void shockReflectivityScenario::after_push(int step, double time, std::vector<Pa
 
     // Boundaries are somewhat left or right of it
     double boundary_left = x - ParticleParameters::reflect_downstream_boundary;
-    double boundary_right = x - ParticleParameters::reflect_upstream_boundary;
+    double boundary_right = x + ParticleParameters::reflect_upstream_boundary;
 
     // Check if the particle hit a boundary. If yes, mark it as disabled.
     // Original starting x of this particle
