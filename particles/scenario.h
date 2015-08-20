@@ -4,6 +4,7 @@
 #include "particles.h"
 #include "particleparameters.h"
 #include "field.h"
+#include "histogram.h"
 
 // A "Scenario" describes one possible class of simulation setup, and
 // Output quantities we are interested in.
@@ -72,7 +73,22 @@ struct analysatorScenario : Scenario {
   analysatorScenario() {needV = false;};
 };
 
+// Analyzation of shock reflectivity in radial IMF runs
+struct shockReflectivityScenario : Scenario {
 
+  LinearHistogram2D transmitted;
+  LinearHistogram2D reflected;
+
+  void new_timestep(int input_file_counter, int step, double time, std::vector<Particle>& particles, Field& E, Field& B, Field& V);
+  void after_push(int step, double time, std::vector<Particle>& particles, Field& E, Field& B, Field& V);
+  void finalize(std::vector<Particle>& particles, Field& E, Field& B, Field& V);
+
+  shockReflectivityScenario() :
+      transmitted(400,1000, Vec2d(0,0), Vec2d(400,1000)),
+      reflected(400,1000, Vec2d(0,0), Vec2d(400,1000)) {
+        needV= true;
+      }
+};
 
 template<typename T> Scenario* create_scenario() {
   return new T;

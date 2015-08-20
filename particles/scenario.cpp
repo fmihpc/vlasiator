@@ -156,12 +156,91 @@ void analysatorScenario::new_timestep(int input_file_counter, int step, double t
   }
 }
 
+void shockReflectivityScenario::new_timestep(int input_file_counter, int step, double time, std::vector<Particle>& particles, Field& E, Field& B, Field& V) {
+
+  // Create particles along a parabola, in front of the shock
+  for(unsigned int i=0; i< ParticleParameters::num_particles; i++) {
+
+    // Choose y coordinate
+    double start_y = ParticleParameters::reflect_start_y + ((double)i)/ParticleParameters::num_particles * (ParticleParameters::reflect_stop_y - ParticleParameters::reflect_start_y);
+
+    // Calc x-coordinate from it
+    double x = start_y / ParticleParameters::reflect_start_y;
+    x*=-x;
+    x *= ParticleParameters::reflect_y_scale;
+    x += ParticleParameters::reflect_x_offset;
+
+    Vec3d pos(x,start_y,0);
+    // Add a particle at this location, with bulk velocity at its starting point
+    // TODO: Multiple
+    particles.push_back(Particle(PhysicalConstantsSI::mp, PhysicalConstantsSI::e, pos, V(pos)));
+  }
+
+  // Write out the state
+  char filename_buffer[256];
+
+  snprintf(filename_buffer,256, ParticleParameters::output_filename_pattern.c_str(),input_file_counter-1);
+  write_particles(particles, filename_buffer);
+}
+
+void shockReflectivityScenario::after_push(int step, double time, std::vector<Particle>& particles, Field& E, Field& B, Field& V) {
+
+  for(unsigned int i=0; i<particles.size(); i++) {
+
+    if(vector_length(particles[i].x) == 0) {
+      // skip disabled particles
+      continue;
+    }
+
+    //Get particle's y-coordinate
+    double y = particles[i].x[1];
+
+    // Get x for it's shock boundary (approx)
+    double x = y / ParticleParameters::reflect_start_y;
+    x*=-x;
+    x *= ParticleParameters::reflect_y_scale;
+    x += ParticleParameters::reflect_x_offset;
+
+    // Boundaries are somewhat left or right of it
+    double boundary_left = x - ParticleParameters::reflect_downstream_boundary;
+    double boundary_right = x - ParticleParameters::reflect_upstream_boundary;
+
+    // Check if the particle hit a boundary. If yes, mark it as disabled.
+    // Original starting x of this particle
+    int start_timestep = i / ParticleParameters::num_particles;
+    if(particles[i].x[0] < boundary_left) {
+      // Record it is transmitted.
+      transmitted.addValue(Vec2d(x,start_timestep));
+
+      // Disable by setting position and velocity to 0
+      particles[i].x = Vec3d(0,0,0);
+      particles[i].v = Vec3d(0,0,0);
+    } else if (particles[i].x[0] > boundary_right) {
+
+      //Record it as reflected
+      reflected.addValue(Vec2d(x,start_timestep));
+
+      // Disable by setting position and velocity to 0
+      particles[i].x = Vec3d(0,0,0);
+      particles[i].v = Vec3d(0,0,0);
+    }
+  }
+}
+
+void shockReflectivityScenario::finalize(std::vector<Particle>& particles, Field& E, Field& B, Field& V) {
+  transmitted.save("transmitted.dat");
+  transmitted.writeBovAscii("transmitted.dat.bov",0,"transmitted.dat");
+  reflected.save("reflected.dat");
+  reflected.writeBovAscii("reflected.dat.bov",0,"reflected.dat");
+}
+
 Scenario* create_scenario(std::string name) {
   std::map<std::string, Scenario*(*)()> scenario_lookup;
   scenario_lookup["single"]=&create_scenario<singleParticleScenario>;
   scenario_lookup["distribution"]=&create_scenario<distributionScenario>;
   scenario_lookup["precipitation"]=&create_scenario<precipitationScenario>;
   scenario_lookup["analysator"]=&create_scenario<analysatorScenario>;
+  scenario_lookup["reflectivity"]=&create_scenario<shockReflectivityScenario>;
 
   if(scenario_lookup.find(name) == scenario_lookup.end()) {
     std::cerr << "Error: can't find particle pusher mode \"" << name << "\". Aborting." << std::endl;

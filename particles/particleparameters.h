@@ -22,10 +22,18 @@ struct ParticleParameters {
    static Real end_time;  /*!< Simulation time at which the particle-simulation should be stopped */
    static Real input_dt; /*!< Time interval between input files */
 
+   static uint64_t num_particles; /*!< Number of particles to generate */
+
    static Real precip_inner_boundary; /*!< Distance of the inner boundary from the coordinate centre (meters) */
    static Real precip_start_x; /*!< X-Coordinate at which precipitation injection starts (meters) */
    static Real precip_stop_x; /*!< X-Coordinate at which precipitation injection stops (meters) */
-   static uint64_t num_particles; /*!< Number of particles to generate */
+
+   static Real reflect_start_y; /*!< Y-Coordinate of the bottom end of the parabola, at which shock reflection scenario particles are injected */
+   static Real reflect_stop_y; /*!< Y-Coordinate of the top end of the parabola, at which shock reflection scenario particles are injected */
+   static Real reflect_y_scale; /*!< Curvature scale of the injection parabola for the reflection scenario */
+   static Real reflect_x_offset; /*!< X-Coordinate of the tip of the injection parabola for the reflection scenario */
+   static Real reflect_upstream_boundary; /*!< Distance from particle injection point at which particles are to be counted as 'reflected' */
+   static Real reflect_downstream_boundary; /*!< Distance from particle injection point at which particles are to be counted as 'transmitted' */
 
    static std::default_random_engine::result_type random_seed; /*!< Random seed for particle creation */
    static Distribution* (*distribution)(std::default_random_engine&); /*!< Type of distribution from which to sample the particles */
