@@ -158,23 +158,44 @@ void analysatorScenario::new_timestep(int input_file_counter, int step, double t
 
 void shockReflectivityScenario::new_timestep(int input_file_counter, int step, double time, std::vector<Particle>& particles, Field& E, Field& B, Field& V) {
 
+  const int num_points = 200;
+
+  std::default_random_engine generator(ParticleParameters::random_seed+step);
+  Distribution* velocity_distribution=ParticleParameters::distribution(generator);
+
   // Create particles along a parabola, in front of the shock
-  for(unsigned int i=0; i< ParticleParameters::num_particles; i++) {
+  for(unsigned int i=0; i< num_points; i++) {
 
     // Choose y coordinate
-    double start_y = ParticleParameters::reflect_start_y + ((double)i)/ParticleParameters::num_particles * (ParticleParameters::reflect_stop_y - ParticleParameters::reflect_start_y);
+    double start_y = ParticleParameters::reflect_start_y + ((double)i)/num_points * (ParticleParameters::reflect_stop_y - ParticleParameters::reflect_start_y);
 
     // Calc x-coordinate from it
     double x = start_y / ParticleParameters::reflect_start_y;
     x*=-x;
-    x *= ParticleParameters::reflect_y_scale;
-    x += ParticleParameters::reflect_x_offset;
+    x *= ParticleParameters::reflect_y_scale - 10e6*(time-250.)/435.;
+    x += ParticleParameters::reflect_x_offset + 10e6*(time-250.)/435.;
 
     Vec3d pos(x,start_y,0);
     // Add a particle at this location, with bulk velocity at its starting point
     // TODO: Multiple
-    particles.push_back(Particle(PhysicalConstantsSI::mp, PhysicalConstantsSI::e, pos, V(pos)));
+    //particles.push_back(Particle(PhysicalConstantsSI::mp, PhysicalConstantsSI::e, pos, V(pos)));
+
+    /* Look up builk velocity in the V-field */
+    Vec3d bulk_vel = V(pos);
+
+    for(unsigned int i=0; i< ParticleParameters::num_particles; i++) {
+      /* Create a particle with velocity drawn from the given distribution ... */
+      Particle p = velocity_distribution->next_particle();
+      /* Shift it by the bulk velocity ... */
+      p.v += bulk_vel;
+      /* And put it in place. */
+      p.x=pos;
+      particles.push_back(p);
+    }
+
   }
+
+  delete velocity_distribution;
 
   // Write out the state
   char filename_buffer[256];
@@ -198,8 +219,8 @@ void shockReflectivityScenario::after_push(int step, double time, std::vector<Pa
     // Get x for it's shock boundary (approx)
     double x = y / ParticleParameters::reflect_start_y;
     x*=-x;
-    x *= ParticleParameters::reflect_y_scale;
-    x += ParticleParameters::reflect_x_offset;
+    x *= ParticleParameters::reflect_y_scale - 10e6*(time-250.)/435.;
+    x += ParticleParameters::reflect_x_offset + 10e6*(time-250.)/435.;
 
     // Boundaries are somewhat left or right of it
     double boundary_left = x - ParticleParameters::reflect_downstream_boundary;
@@ -207,7 +228,7 @@ void shockReflectivityScenario::after_push(int step, double time, std::vector<Pa
 
     // Check if the particle hit a boundary. If yes, mark it as disabled.
     // Original starting x of this particle
-    int start_timestep = i / ParticleParameters::num_particles;
+    int start_timestep = i / 200 / ParticleParameters::num_particles;
     if(particles[i].x[0] < boundary_left) {
       // Record it is transmitted.
       transmitted.addValue(Vec2d(x,start_timestep));
