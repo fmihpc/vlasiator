@@ -175,7 +175,7 @@ void LinearHistogram2D::writeBovAscii(const char* filename, int index, const cha
 	fprintf(f, "TIME: %i\n", index);
 	fprintf(f, "DATA_FILE: %s\n", datafilename);
 	fprintf(f, "DATA_SIZE: %lu %lu 1\n", num_bins[0], num_bins[1]);
-	fprintf(f, "DATA_FORMAT: FLOAT\nVARIABLE: f\nDATA_ENDIAN: LITTLE\nCENTERING: zonal\n");
+	fprintf(f, "DATA_FORMAT: DOUBLE\nVARIABLE: f\nDATA_ENDIAN: LITTLE\nCENTERING: zonal\n");
 	fprintf(f, "BRICK_ORIGIN: %lf %lf 0\n", low[0], low[1]);
 	fprintf(f, "BRICK_SIZE: %lf %lf 1\n", high[0]-low[0], high[1]-low[1]);
 	fprintf(f, "DATA_COMPONENTS: 1\n");

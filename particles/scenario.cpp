@@ -229,9 +229,10 @@ void shockReflectivityScenario::after_push(int step, double time, std::vector<Pa
     // Check if the particle hit a boundary. If yes, mark it as disabled.
     // Original starting x of this particle
     int start_timestep = i / 200 / ParticleParameters::num_particles;
+    double start_time = start_timestep * ParticleParameters::input_dt;
     if(particles[i].x[0] < boundary_left) {
       // Record it is transmitted.
-      transmitted.addValue(Vec2d(x,start_timestep));
+      transmitted.addValue(Vec2d(y,start_time));
 
       // Disable by setting position and velocity to 0
       particles[i].x = Vec3d(0,0,0);
@@ -239,7 +240,7 @@ void shockReflectivityScenario::after_push(int step, double time, std::vector<Pa
     } else if (particles[i].x[0] > boundary_right) {
 
       //Record it as reflected
-      reflected.addValue(Vec2d(x,start_timestep));
+      reflected.addValue(Vec2d(y,start_time));
 
       // Disable by setting position and velocity to 0
       particles[i].x = Vec3d(0,0,0);

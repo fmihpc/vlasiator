@@ -84,8 +84,8 @@ struct shockReflectivityScenario : Scenario {
   void finalize(std::vector<Particle>& particles, Field& E, Field& B, Field& V);
 
   shockReflectivityScenario() :
-      transmitted(400,1000, Vec2d(0,0), Vec2d(400,1000)),
-      reflected(400,1000, Vec2d(0,0), Vec2d(400,1000)) {
+      transmitted(200,300, Vec2d(ParticleParameters::reflect_start_y,ParticleParameters::start_time), Vec2d(ParticleParameters::reflect_stop_y,ParticleParameters::end_time)),
+      reflected(200,300, Vec2d(ParticleParameters::reflect_start_y,ParticleParameters::start_time), Vec2d(ParticleParameters::reflect_stop_y,ParticleParameters::end_time)) {
         needV= true;
       }
 };
