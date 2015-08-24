@@ -7,14 +7,14 @@
 import sys
 
 fileName = "BCB_rho_" # EDIT
-outputLocation = "/home/kempf/Servers/stornext_vlasiator/visualizations/BCB/movies/rho/" # EDIT
+outputLocation = "/lustre/tmp/alfthan/2D/BCB/visualizations/movies/rho/" # EDIT
 
 
-frameList = range(int(sys.argv[1]),int(sys.argv[2])+1)
+frameList = range(int(sys.argv[2]),int(sys.argv[3])+1)
 
 for entry in frameList:
    number=str(entry).rjust(7, '0')
-   fileLocation="voima.fmi.fi:/lustre/tmp/alfthan/2D/BCB/bulk."+number+".vlsv" # EDIT
+   fileLocation="/lustre/tmp/alfthan/2D/BCB/bulk."+number+".vlsv" # EDIT
    OpenDatabase(fileLocation)
    
    AddPlot("Pseudocolor", "rho", 0, 1) # EDIT
