@@ -21,6 +21,7 @@ Copyright 2011, 2012, 2015 Finnish Meteorological Institute
 using namespace std;
 
 vector<Real> projects::MultiPeak::rhoRnd;
+Real projects::MultiPeak::rhoFactor;
 
 namespace projects {
    MultiPeak::MultiPeak(): TriAxisSearch() { }
@@ -137,7 +138,8 @@ namespace projects {
          creal DVX = dvx / N; 
          creal DVY = dvy / N;
          creal DVZ = dvz / N;
-         
+
+         rhoFactor = 1.0;
          switch (densityModel) {
             case Uniform:
                rhoFactor = 1.0;
@@ -197,7 +199,6 @@ namespace projects {
       cellParams[CellParams::PERBX] += this->magXPertAbsAmp * (0.5 - getRandomNumber());
       cellParams[CellParams::PERBY] += this->magYPertAbsAmp * (0.5 - getRandomNumber());
       cellParams[CellParams::PERBZ] += this->magZPertAbsAmp * (0.5 - getRandomNumber());
-
 
       rhoRnd.clear();
       for(uint i=0; i<this->numberOfPopulations; i++) {

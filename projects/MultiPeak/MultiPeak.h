@@ -68,8 +68,10 @@ namespace projects {
             Uniform,
             TestCase
          } densityModel;
-         Real rhoFactor;
-         
+
+         static Real rhoFactor;
+         #pragma omp threadprivate(rhoFactor)
+
    }; // class MultiPeak
 } //  namespace projects
 
