@@ -461,35 +461,35 @@ inline void store_trans_block_data_esail(
         const int& dimension,
         const int& popID) {
    
-#pragma omp critical (init1)
-           {
-   if (inflowDataID == numeric_limits<size_t>::max()) {
-      inflowDataID = getObjectWrapper().meshData.addData<Real>("inflow",1,"float");
+   #pragma omp critical (init1)
+   {
       if (inflowDataID == numeric_limits<size_t>::max()) {
-         cerr << "Error, failed to create inflow data array in " << __FILE__ << ":" << __LINE__ << endl;
-         exit(1);
+         inflowDataID = getObjectWrapper().meshData.addData<Real>("inflow",1,"float");
+         if (inflowDataID == numeric_limits<size_t>::max()) {
+            cerr << "Error, failed to create inflow data array in " << __FILE__ << ":" << __LINE__ << endl;
+            exit(1);
+         }
       }
-   }
-   if (outflowDataID == numeric_limits<size_t>::max()) {
-      outflowDataID = getObjectWrapper().meshData.addData<Real>("outflow",1,"float");
       if (outflowDataID == numeric_limits<size_t>::max()) {
-         cerr << "Error, failed to create outflow data array in " << __FILE__ << ":" << __LINE__ << endl;
-         exit(1);
+         outflowDataID = getObjectWrapper().meshData.addData<Real>("outflow",1,"float");
+         if (outflowDataID == numeric_limits<size_t>::max()) {
+            cerr << "Error, failed to create outflow data array in " << __FILE__ << ":" << __LINE__ << endl;
+            exit(1);
+         }
       }
    }
-           }
 
    Real* inflowArray  = getObjectWrapper().meshData.getData<Real>(inflowDataID);
    Real* outflowArray = getObjectWrapper().meshData.getData<Real>(outflowDataID);
    const unsigned int cellLID = getObjectWrapper().meshData.getLocalID(cellGID);
    
-#pragma omp critical (init2)
+   #pragma omp critical (init2)
    {
-   if (tstepLast != Parameters::tstep) {
-      for (size_t i=0; i<getLocalCells().size(); ++i) inflowArray[i] = 0;
-      for (size_t i=0; i<getLocalCells().size(); ++i) outflowArray[i] = 0;
-      tstepLast = Parameters::tstep;
-   }
+      if (tstepLast != Parameters::tstep) {
+         for (size_t i=0; i<getLocalCells().size(); ++i) inflowArray[i] = 0;
+         for (size_t i=0; i<getLocalCells().size(); ++i) outflowArray[i] = 0;
+         tstepLast = Parameters::tstep;
+      }
    }
 
     //Store volume averages to target blocks:
@@ -526,90 +526,91 @@ inline void store_trans_block_data_esail(
             }
         }
 
-        SpatialCell* srcCell  = target_neighbors[1];
-        SpatialCell* trgtCell = target_neighbors[b+1];
+      // ***** START E-SAIL SPECIFIC MOMENTUM COUNTERS ***** //
+      SpatialCell* srcCell  = target_neighbors[1];
+      SpatialCell* trgtCell = target_neighbors[b+1];
         
-        Real p_counters[3] = {0,0,0};
-        if (srcCell->sysBoundaryLayerNew == -1) {
-           if (trgtCell->sysBoundaryLayerNew == +1) {
-              Real V_block[3];
-              const uint8_t refLevel = 0;
-              srcCell->get_velocity_block_coordinates(popID,blockGID,V_block);
-              const Real* dV = srcCell->get_velocity_grid_cell_size(popID,refLevel);
+      Real p_counters[3] = {0,0,0};
+      if (srcCell->sysBoundaryLayerNew == -1) {
+         if (trgtCell->sysBoundaryLayerNew == +1) {
+            Real V_block[3];
+            const uint8_t refLevel = 0;
+            srcCell->get_velocity_block_coordinates(popID,blockGID,V_block);
+            const Real* dV = srcCell->get_velocity_grid_cell_size(popID,refLevel);
 
-              for (int kv=0; kv<WID; ++kv) for (int jv=0; jv<WID; ++jv) for (int iv=0; iv<WID; ++iv) {
-                 Real V[3];
-                 V[0] = V_block[0] + (iv+0.5)*dV[0];
-                 V[1] = V_block[1] + (jv+0.5)*dV[1];
-                 V[2] = V_block[2] + (kv+0.5)*dV[2];
+            for (int kv=0; kv<WID; ++kv) for (int jv=0; jv<WID; ++jv) for (int iv=0; iv<WID; ++iv) {
+               Real V[3];
+               V[0] = V_block[0] + (iv+0.5)*dV[0];
+               V[1] = V_block[1] + (jv+0.5)*dV[1];
+               V[2] = V_block[2] + (kv+0.5)*dV[2];
 
-                 switch (dimension) {
-                    case 0:
-                       p_counters[0] += targetData[cellIndex(iv,jv,kv)] * fabs(V[0]);
-                       p_counters[1] += targetData[cellIndex(iv,jv,kv)] * V[1];
-                       p_counters[2] += targetData[cellIndex(iv,jv,kv)] * V[2];
-                       break;
-                    case 1:
-                       p_counters[0] += targetData[cellIndex(iv,jv,kv)] * V[0];
-                       p_counters[1] += targetData[cellIndex(iv,jv,kv)] * fabs(V[1]);
-                       p_counters[2] += targetData[cellIndex(iv,jv,kv)] * V[2];
-                       break;
-                    case 2:
-                       p_counters[0] += targetData[cellIndex(iv,jv,kv)] * V[0];
-                       p_counters[1] += targetData[cellIndex(iv,jv,kv)] * V[1];
-                       p_counters[2] += targetData[cellIndex(iv,jv,kv)] * fabs(V[2]);
-                       break;
-                 }
-              }
+               switch (dimension) {
+                  case 0:
+                     p_counters[0] += targetData[cellIndex(iv,jv,kv)] * fabs(V[0]);
+                     p_counters[1] += targetData[cellIndex(iv,jv,kv)] * V[1];
+                     p_counters[2] += targetData[cellIndex(iv,jv,kv)] * V[2];
+                     break;
+                  case 1:
+                     p_counters[0] += targetData[cellIndex(iv,jv,kv)] * V[0];
+                     p_counters[1] += targetData[cellIndex(iv,jv,kv)] * fabs(V[1]);
+                     p_counters[2] += targetData[cellIndex(iv,jv,kv)] * V[2];
+                     break;
+                  case 2:
+                     p_counters[0] += targetData[cellIndex(iv,jv,kv)] * V[0];
+                     p_counters[1] += targetData[cellIndex(iv,jv,kv)] * V[1];
+                     p_counters[2] += targetData[cellIndex(iv,jv,kv)] * fabs(V[2]);
+                     break;
+               }
+            }
 
-              const Real mass = getObjectWrapper().particleSpecies[popID].mass;
-              const Real dX3 = srcCell->parameters[CellParams::DX]
-                             * srcCell->parameters[CellParams::DY]
-                             * srcCell->parameters[CellParams::DZ];
-              const Real dV3 = dV[0]*dV[1]*dV[2];
-              p_counters[0] *= mass*dX3*dV3;
-              p_counters[1] *= mass*dX3*dV3;
-              p_counters[2] *= mass*dX3*dV3;
+            const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+            const Real dX3 = srcCell->parameters[CellParams::DX]
+                           * srcCell->parameters[CellParams::DY]
+                           * srcCell->parameters[CellParams::DZ];
+            const Real dV3 = dV[0]*dV[1]*dV[2];
+            p_counters[0] *= mass*dX3*dV3;
+            p_counters[1] *= mass*dX3*dV3;
+            p_counters[2] *= mass*dX3*dV3;
 
-              const int tid = omp_get_thread_num();
-              getObjectWrapper().particleSpecies[popID].inflowCounters[3*tid+0] += p_counters[0];
-              getObjectWrapper().particleSpecies[popID].inflowCounters[3*tid+1] += p_counters[1];
-              getObjectWrapper().particleSpecies[popID].inflowCounters[3*tid+2] += p_counters[2];
+            const int tid = omp_get_thread_num();
+            getObjectWrapper().particleSpecies[popID].inflowCounters[3*tid+0] += p_counters[0];
+            getObjectWrapper().particleSpecies[popID].inflowCounters[3*tid+1] += p_counters[1];
+            getObjectWrapper().particleSpecies[popID].inflowCounters[3*tid+2] += p_counters[2];
 
-              inflowArray[cellLID] += (fabs(p_counters[0])+fabs(p_counters[1])+fabs(p_counters[2]));
-           }
-        } else if (srcCell->sysBoundaryLayerNew == +1) {
-           if (trgtCell->sysBoundaryLayerNew == -1) {
+            inflowArray[cellLID] += (fabs(p_counters[0])+fabs(p_counters[1])+fabs(p_counters[2]));
+         }
+      } else if (srcCell->sysBoundaryLayerNew == +1) {
+         if (trgtCell->sysBoundaryLayerNew == -1) {
 
-              Real V_block[3];
-              const uint8_t refLevel = 0;
-              srcCell->get_velocity_block_coordinates(popID,blockGID,V_block);
-              const Real* dV = srcCell->get_velocity_grid_cell_size(popID,refLevel);
+            Real V_block[3];
+            const uint8_t refLevel = 0;
+            srcCell->get_velocity_block_coordinates(popID,blockGID,V_block);
+            const Real* dV = srcCell->get_velocity_grid_cell_size(popID,refLevel);
 
-              for (int kv=0; kv<WID; ++kv) for (int jv=0; jv<WID; ++jv) for (int iv=0; iv<WID; ++iv) {
-                 Real V[3];
-                 V[0] = V_block[0] + (iv+0.5)*dV[0];
-                 V[1] = V_block[1] + (jv+0.5)*dV[1];
-                 V[2] = V_block[2] + (kv+0.5)*dV[2];
+            for (int kv=0; kv<WID; ++kv) for (int jv=0; jv<WID; ++jv) for (int iv=0; iv<WID; ++iv) {
+               Real V[3];
+               V[0] = V_block[0] + (iv+0.5)*dV[0];
+               V[1] = V_block[1] + (jv+0.5)*dV[1];
+               V[2] = V_block[2] + (kv+0.5)*dV[2];
 
-                 switch (dimension) {
-                    case 0:
-                       p_counters[0] -= targetData[cellIndex(iv,jv,kv)] * fabs(V[0]);
-                       p_counters[1] -= targetData[cellIndex(iv,jv,kv)] * V[1];
-                       p_counters[2] -= targetData[cellIndex(iv,jv,kv)] * V[2];
-                       break;
-                    case 1:
-                       p_counters[0] -= targetData[cellIndex(iv,jv,kv)] * V[0];
-                       p_counters[1] -= targetData[cellIndex(iv,jv,kv)] * fabs(V[1]);
-                       p_counters[2] -= targetData[cellIndex(iv,jv,kv)] * V[2];
-                       break;
-                    case 2:
-                       p_counters[0] -= targetData[cellIndex(iv,jv,kv)] * V[0];
-                       p_counters[1] -= targetData[cellIndex(iv,jv,kv)] * V[1];
-                       p_counters[2] -= targetData[cellIndex(iv,jv,kv)] * fabs(V[2]);
-                       break;
-                 }
-              }
+               switch (dimension) {
+                  case 0:
+                     p_counters[0] -= targetData[cellIndex(iv,jv,kv)] * fabs(V[0]);
+                     p_counters[1] -= targetData[cellIndex(iv,jv,kv)] * V[1];
+                     p_counters[2] -= targetData[cellIndex(iv,jv,kv)] * V[2];
+                     break;
+                  case 1:
+                     p_counters[0] -= targetData[cellIndex(iv,jv,kv)] * V[0];
+                     p_counters[1] -= targetData[cellIndex(iv,jv,kv)] * fabs(V[1]);
+                     p_counters[2] -= targetData[cellIndex(iv,jv,kv)] * V[2];
+                     break;
+                  case 2:
+                     p_counters[0] -= targetData[cellIndex(iv,jv,kv)] * V[0];
+                     p_counters[1] -= targetData[cellIndex(iv,jv,kv)] * V[1];
+                     p_counters[2] -= targetData[cellIndex(iv,jv,kv)] * fabs(V[2]);
+                     break;
+               }
+            }
 
               const Real mass = getObjectWrapper().particleSpecies[popID].mass;
               const Real dX3 = srcCell->parameters[CellParams::DX]
@@ -627,7 +628,8 @@ inline void store_trans_block_data_esail(
  
               outflowArray[cellLID] -= (fabs(p_counters[0])+fabs(p_counters[1])+fabs(p_counters[2]));
            }
-        }
+      }
+      // ***** END E-SAIL SPECIFIC MOMENTUM COUNTERS ***** //
 
         // get block container for target cells
         // and copy data to main memory

@@ -107,10 +107,10 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
    } // if (Parameters::propagatePotential == true) 
 
    // Set maximum timestep limit for this cell, based on a maximum allowed rotation angle
-   spatial_cell->set_max_v_dt(popID,gyro_period*(P::maxSlAccelerationRotation/360.0));
+   spatial_cell->set_max_v_dt(popID,fabs(gyro_period)*(P::maxSlAccelerationRotation/360.0));
 
    unsigned int bulk_velocity_substeps; // in this many substeps we iterate forward bulk velocity when the complete transformation is computed (0.1 deg per substep).
-   bulk_velocity_substeps = fabs(dt) / (gyro_period*(0.1/360.0)); 
+   bulk_velocity_substeps = fabs(dt) / (fabs(gyro_period)*(0.1/360.0)); 
    if (bulk_velocity_substeps < 1) bulk_velocity_substeps=1;
 
    // note, we assume q is positive (pretty good assumption though)
@@ -125,6 +125,8 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       rotation_pivot[1]-= hallPrefactor*(dBXdz - dBZdx);
       rotation_pivot[2]-= hallPrefactor*(dBYdx - dBXdy);
 
+#warning Is particle charge sign taken correctly into account here?
+      
       // add to transform matrix the small rotation around  pivot
       // when added like this, and not using *= operator, the transformations
       // are in the correct order

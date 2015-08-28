@@ -301,10 +301,9 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
    // sysBoundaryLayer communicated)
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
    mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
-   
+
    // Compute distances to system boundaries according to the new classification
    for (size_t c=0; c<cells.size(); ++c) {
-      //dccrg::Types<3>::indices_t indices = mpiGrid.mapping.get_indices(cells[c]);
       bool hasNormalNbrs = false;
       bool hasBndryNbrs  = false;
       const vector<CellID>* nbrs = mpiGrid.get_neighbors_of(cells[c],SYSBOUNDARIES_NEIGHBORHOOD_ID);
@@ -313,7 +312,7 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
          if (mpiGrid[(*nbrs)[n]]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) hasNormalNbrs = true;
          if (mpiGrid[(*nbrs)[n]]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) hasBndryNbrs  = true;
       }
-      
+
       if (mpiGrid[cells[c]]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
          // Cell inside system boundary, if it touches the interface it gets value -1.
          // Otherwise it gets value -2.
@@ -326,8 +325,8 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
          else mpiGrid[cells[c]]->sysBoundaryLayerNew = 2;
       }
    }
-   
-   /*set distance 1 cells to boundary cells, that have neighbors which are normal cells */
+
+   // set distance 1 cells to boundary cells, that have neighbors which are normal cells
    for(uint i=0; i<cells.size(); i++) {
       mpiGrid[cells[i]]->sysBoundaryLayer=0; /*Initial value*/
       if(mpiGrid[cells[i]]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY ) {
@@ -346,7 +345,7 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
     * and sysBoundaryLayer communicated)*/
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
    mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
-   
+
    /*Compute distances*/
    uint maxLayers=3;//max(max(P::xcells_ini, P::ycells_ini), P::zcells_ini);
    for(uint layer=1;layer<maxLayers;layer++){
