@@ -432,8 +432,8 @@ namespace poisson {
 
          SpatialCell::set_mpi_transfer_type(Transfer::CELL_RHOQ_TOT,false);
          mpiGrid.update_copies_of_remote_neighbors(POISSON_NEIGHBORHOOD_ID);
-         bvalue(mpiGrid,innerCellPointers);
-         bvalue(mpiGrid,bndryCellPointers);
+         //bvalue(mpiGrid,innerCellPointers);
+         //bvalue(mpiGrid,bndryCellPointers);
 
          if (calculateAlpha() == false) {
             logFile << "(POISSON SOLVER CG) ERROR: Failed to calculate 'alpha' in ";
