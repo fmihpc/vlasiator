@@ -39,9 +39,6 @@ creal ONE     = 1.0;
 creal TWO     = 2.0;
 creal EPSILON = 1.0e-25;
 
-#warning Following variables are specific to Esail simulations
-fstream outfile;
-
 /** Propagates the distribution function in spatial space. 
     
     Based on SLICE-3D algorithm: Zerroukat, M., and T. Allen. "A
@@ -240,11 +237,6 @@ void calculateSpatialTranslation(
    
    phiprof::start("semilag-trans");
 
-   for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-      for (int i=0; i<3*omp_get_max_threads(); ++i) getObjectWrapper().particleSpecies[popID].inflowCounters[i] = 0;
-      for (int i=0; i<3*omp_get_max_threads(); ++i) getObjectWrapper().particleSpecies[popID].outflowCounters[i] = 0;
-   }
-
    const vector<CellID>& localCells = getLocalCells();
    vector<CellID> remoteTargetCellsx;
    vector<CellID> remoteTargetCellsy;
@@ -299,46 +291,6 @@ momentCalculation:
          minDT = mpiGrid[localCells[c]]->parameters[CellParams::MAXRDT];
    }
    phiprof::stop("semilag-trans");
-
-   #warning Momentum counters here are Esail specific
-   if (Parameters::tstep % 10 != 0) return;
-   
-   stringstream ss;
-   
-   ss << Parameters::tstep << '\t' << Parameters::t << '\t';
-   
-   Real netFluxes[3] = {0,0,0};
-   for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-      for (int tid=1; tid<omp_get_max_threads(); ++tid) for (int i=0; i<3; ++i) {
-         getObjectWrapper().particleSpecies[popID].inflowCounters[i] 
-                 += getObjectWrapper().particleSpecies[popID].inflowCounters[3*tid+i];
-      }
-      for (int tid=1; tid<omp_get_max_threads(); ++tid) for (int i=0; i<3; ++i) {
-         getObjectWrapper().particleSpecies[popID].outflowCounters[i]
-                 += getObjectWrapper().particleSpecies[popID].outflowCounters[3*tid+i];
-      }
-      
-      Real globalInflowValues[3];
-      Real globalOutflowValues[3];
-      MPI_Reduce(getObjectWrapper().particleSpecies[popID].inflowCounters ,globalInflowValues ,3,MPI_Type<Real>(),MPI_SUM,0,MPI_COMM_WORLD);
-      MPI_Reduce(getObjectWrapper().particleSpecies[popID].outflowCounters,globalOutflowValues,3,MPI_Type<Real>(),MPI_SUM,0,MPI_COMM_WORLD);
-      
-      // Outflow is already negative
-      for (int i=0; i<3; ++i) netFluxes[i] += (globalInflowValues[i]+globalOutflowValues[i])/dt;
-
-      ss << popID << '\t';
-      for (int i=0; i<3; ++i) ss << globalInflowValues[i]/dt << '\t';
-      for (int i=0; i<3; ++i) ss << globalOutflowValues[i]/dt << '\t';
-      ss << '\t';
-   }
-   for (int i=0; i<3; ++i) ss << netFluxes[i] << '\t';
-   ss << endl;
-
-   if (mpiGrid.get_rank() == 0) {
-      outfile.open("counters.txt",fstream::out | fstream::app);
-      outfile << ss.str();
-      outfile.close();
-   }   
 }
 
 /*

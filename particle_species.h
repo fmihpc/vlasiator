@@ -29,10 +29,6 @@ namespace species {
        Real sparseMinValue;            /**< Sparse mesh threshold value for the population.*/
        size_t velocityMesh;            /**< ID of the velocity mesh (parameters) this species uses.*/
        
-       #warning These are specific to Esail simulations
-       Real* inflowCounters;           /**< Inflow counters for this species, three counters per OpenMP thread.*/
-       Real* outflowCounters;          /**< Outflow counters for this species, three counters per OpenMP thread.*/
-       
        Species();
        Species(const Species& other);
        ~Species();
