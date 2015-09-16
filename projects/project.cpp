@@ -48,6 +48,9 @@ extern Logger logFile;
 char projects::Project::rngStateBuffer[256];
 random_data projects::Project::rngDataBuffer;
 
+/** Struct for creating a new velocity mesh.
+ * The values are read from the configuration file and 
+ * copied to ObjectWrapper::velocityMeshes.*/
 struct VelocityMeshParams {
    vector<string> name;
    vector<double> vx_min;
@@ -172,6 +175,11 @@ namespace projects {
       RP::get("velocitymesh.max_refinement_level",velMeshParams->maxRefLevels);
    }
 
+   /** Initialize the Project. Velocity mesh and particle population 
+    * parameters are read from the configuration file, and corresponding internal 
+    * variables are created here.
+    * NOTE: Each project must call this function!
+    * @return If true, particle species and velocity meshes were created successfully.*/
    bool Project::initialize() {
       typedef Readparameters RP;
       
@@ -360,6 +368,8 @@ namespace projects {
       bgField.initialize(0,0,0); //bg bx, by,bz
       setBackgroundField(bgField,cell->parameters, cell->derivatives,cell->derivativesBVOL);
       
+      // Print a warning message to stderr so that the user knows to check 
+      // that it is still correct to call the base class setCellBackgroundField function.
       static int printed = false;
       if (printed == false) {
          int rank;

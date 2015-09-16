@@ -1,7 +1,7 @@
 /*
 This file is part of Vlasiator.
 
-Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
+Copyright 2010-2015 Finnish Meteorological Institute
 */
 
 #include <boost/assign/list_of.hpp>
@@ -150,11 +150,11 @@ void initializeGrid(
          exit(1);
       }
       phiprof::stop("Read restart");
-      const vector<uint64_t>& cells = getLocalCells();
+      const vector<CellID>& cells = getLocalCells();
       
       // Set background field, FIXME should be read in from restart
       #pragma omp parallel for schedule(dynamic)
-      for (uint i=0; i<cells.size(); ++i) {
+      for (size_t i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
          project.setCellBackgroundField(cell);
       }
@@ -202,7 +202,7 @@ void initializeGrid(
 
          // set initial LB metric based on number of blocks, all others
          // will be based on time spent in acceleration
-         for (uint i=0; i<cells.size(); ++i) {
+         for (size_t i=0; i<cells.size(); ++i) {
             mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] += mpiGrid[cells[i]]->get_number_of_velocity_blocks(popID);
          }
       }

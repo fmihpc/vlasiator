@@ -37,6 +37,7 @@ namespace amr_ref_criteria {
       for (int kc=0; kc<WID; ++kc) for (int jc=0; jc<WID; ++jc) for (int ic=0; ic<WID; ++ic) {
          Realf f_cen = array[vblock::padIndex<PAD>(ic+1,jc+1,kc+1)];
          
+         #warning In here should we use SpatialCell::getVeloctyBlockMinValue()?
          if (fabs(f_cen) < getObjectWrapper().particleSpecies[popID].sparseMinValue) continue;
 
          Realf f_lft = array[vblock::padIndex<PAD>(ic  ,jc+1,kc+1)];
@@ -63,6 +64,7 @@ namespace amr_ref_criteria {
       const int PAD=1;
       for (int kc=0; kc<WID; ++kc) for (int jc=0; jc<WID; ++jc) for (int ic=0; ic<WID; ++ic) {
          Realf f_cen = array[vblock::padIndex<PAD>(ic+1,jc+1,kc+1)];
+         #warning In here should we use SpatialCell::getVeloctyBlockMinValue()?
          if (fabs(f_cen) < getObjectWrapper().particleSpecies[popID].sparseMinValue) {
             result[vblock::index(ic,jc,kc)] = 0;
             continue;
@@ -87,14 +89,6 @@ namespace amr_ref_criteria {
    Realf RelativeDifference::evaluate(const Realf& f_lft,const Realf& f_cen,const Realf& f_rgt) {
       Realf df = max(fabs(f_rgt-f_cen),fabs(f_cen-f_lft));
       df = df / ((f_cen + 1e-30)*df_max);
-
-      /*if (df == numeric_limits<Realf>::infinity()) {
-         cerr << "df is " << df << " df_max " << df_max << endl;
-         cerr << "\t values are " << f_lft << '\t' << f_cen << '\t' << f_rgt << endl;
-         cerr << "\t " << fabs(f_rgt-f_cen) << '\t' << fabs(f_cen-f_lft) << '\t' << max(fabs(f_rgt-f_cen),fabs(f_cen-f_lft)) << endl;
-         cerr << "\t " << max(fabs(f_rgt-f_cen),fabs(f_cen-f_lft)) / ((f_cen + 1e-30)*df_max) << endl;
-         exit(1);
-      }*/
 
       return df;
    }

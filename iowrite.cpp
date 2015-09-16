@@ -36,7 +36,7 @@ typedef Parameters P;
 
 bool writeVelocityDistributionData(const int& popID,Writer& vlsvWriter,
                                    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                   const vector<uint64_t> & cells,MPI_Comm comm);
+                                   const std::vector<CellID>& cells,MPI_Comm comm);
 
 /*! Updates local ids across MPI to let other processes know in which order this process saves the local cell ids
  \param mpiGrid Vlasiator's MPI grid
@@ -102,7 +102,7 @@ bool globalSuccess(bool success,string errorMessage,MPI_Comm comm){
  @return Returns true if operation was successful.*/
 bool writeVelocityDistributionData(Writer& vlsvWriter,
                                    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                   const vector<uint64_t> & cells,MPI_Comm comm) {
+                                   const vector<CellID>& cells,MPI_Comm comm) {
    bool success = true;
    for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
       if (writeVelocityDistributionData(p,vlsvWriter,mpiGrid,cells,comm) == false) success = false;
@@ -118,7 +118,7 @@ bool writeVelocityDistributionData(Writer& vlsvWriter,
  @return Returns true if operation was successful.*/
 bool writeVelocityDistributionData(const int& popID,Writer& vlsvWriter,
                                    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                   const vector<CellID> & cells,MPI_Comm comm) {
+                                   const std::vector<CellID>& cells,MPI_Comm comm) {
    // Write velocity blocks and related data. 
    // In restart we just write velocity grids for all cells.
    // First write global Ids of those cells which write velocity blocks (here: all cells):
@@ -283,17 +283,19 @@ bool writeVelocityDistributionData(const int& popID,Writer& vlsvWriter,
  \return Returns true if operation was successful
  */
 bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                      const vector<uint64_t>& cells,
+                      const std::vector<CellID>& cells,
                       const bool writeAsFloat,
                       DataReducer& dataReducer,
                       int dataReducerIndex,
                       Writer& vlsvWriter){
-   map<string,string> attribs;                      
+   map<string,string> attribs;
    string variableName,dataType;
    bool success=true;
 
    const string meshName = "SpatialGrid";
-   
+
+   // If the DataReducer can write its data directly to the output file, do it here.
+   // Otherwise the output data is buffered and written below.
    if (dataReducer.handlesWriting(dataReducerIndex) == true) {
       return dataReducer.writeData(dataReducerIndex,mpiGrid,cells,meshName,vlsvWriter);
    }
@@ -320,8 +322,7 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       return false;
    }
 
-
-   for (uint64_t cell=0; cell<cells.size(); ++cell) {
+   for (size_t cell=0; cell<cells.size(); ++cell) {
       //Reduce data ( return false if the operation fails )
       if (dataReducer.reduceData(mpiGrid[cells[cell]],dataReducerIndex,varBuffer + cell*vectorSize*dataSize) == false){
          success = false;

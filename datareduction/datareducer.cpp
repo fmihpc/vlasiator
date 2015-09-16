@@ -365,6 +365,13 @@ bool DataReducer::reduceData(const SpatialCell* cell,const unsigned int& operato
  */
 unsigned int DataReducer::size() const {return operators.size();}
 
+/** Write all data from given DataReductionOperator to the output file.
+ * @param operatorID ID number of the selected DataReductionOperator.
+ * @param mpiGrid Parallel grid library.
+ * @param cells Vector containing spatial cell IDs.
+ * @param meshName Name of the spatial mesh in the output file.
+ * @param vlsvWriter VLSV file writer that has output file open.
+ * @return If true, DataReductionOperator wrote its data successfully.*/
 bool DataReducer::writeData(const unsigned int& operatorID,
                   const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                   const std::vector<CellID>& cells,const std::string& meshName,

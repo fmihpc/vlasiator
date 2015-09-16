@@ -52,9 +52,9 @@ namespace SBC {
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       Project&
    ) {
-      vector<uint64_t> cells = mpiGrid.get_cells();
+      vector<CellID> cells = mpiGrid.get_cells();
 #pragma omp parallel for
-      for (uint i=0; i<cells.size(); ++i) {
+      for (size_t i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
          if(cell->sysBoundaryFlag != this->getIndex()) continue;
          
