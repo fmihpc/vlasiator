@@ -270,8 +270,8 @@ namespace spatial_cell {
       Real getVelocityBlockMinValue(const int& popID) const;
 
       // Random number generator functions
-      char* get_rng_state_buffer();
-      random_data* get_rng_data_buffer();
+      //char* get_rng_state_buffer();
+      //random_data* get_rng_data_buffer();
 
       // Member variables //
       Real derivatives[fieldsolver::N_SPATIAL_CELL_DERIVATIVES];              /**< Derivatives of bulk variables in this spatial cell.*/
@@ -313,8 +313,8 @@ namespace spatial_cell {
 
       // Random number generator state variables, used for running reproducible 
       // simulations that do not depend on the number of threads of MPI processes used.
-      char rngStateBuffer[256];                                                 /**< Random number generator state buffer.*/
-      random_data rngDataBuffer;                                                /**< Random number generator data buffer.*/
+      //char rngStateBuffer[256];                                                 /**< Random number generator state buffer.*/
+      //random_data rngDataBuffer;                                                /**< Random number generator data buffer.*/
 
       // Temporary mesh used in acceleration and propagation. 
       vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID> vmeshTemp;            /**< Temporary velocity mesh that is used in Vlasov solver.

@@ -22,7 +22,6 @@ using namespace std;
 using namespace spatial_cell;
 
 vector<Real> projects::MultiPeak::rhoRnd;
-Real projects::MultiPeak::rhoFactor;
 
 namespace projects {
    MultiPeak::MultiPeak(): TriAxisSearch() { }

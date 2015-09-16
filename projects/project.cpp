@@ -1,3 +1,10 @@
+/*
+ * This file is part of Vlasiator.
+ * 
+ * Copyright 2011-2015 Finnish Meteorological Institute
+ * 
+ */
+
 #include "project.h"
 #include <cstdlib>
 #include "../common.h"
@@ -38,8 +45,8 @@ using namespace std;
 
 extern Logger logFile;
 
-//char projects::Project::rngStateBuffer[256];
-//random_data projects::Project::rngDataBuffer;
+char projects::Project::rngStateBuffer[256];
+random_data projects::Project::rngDataBuffer;
 
 struct VelocityMeshParams {
    vector<string> name;
@@ -644,12 +651,10 @@ namespace projects {
    Real Project::getRandomNumber(spatial_cell::SpatialCell* cell) const {
 #ifdef _AIX
       int64_t rndInt;
-      random_r(&rndInt, cell->get_rng_data_buffer());
-      //random_r(&rndInt, &rngDataBuffer);
+      random_r(&rndInt, &rngDataBuffer);
 #else
       int32_t rndInt;
-      //random_r(&rngDataBuffer, &rndInt);
-      random_r(cell->get_rng_data_buffer(), &rndInt);
+      random_r(&rngDataBuffer, &rndInt);
 #endif
       Real rnd = (Real) rndInt / RAND_MAX;
       return rnd;
@@ -662,13 +667,11 @@ namespace projects {
    */
 
    void Project::setRandomSeed(spatial_cell::SpatialCell* cell,CellID seedModifier) const {
-      memset(cell->get_rng_data_buffer(),0,sizeof(random_data));
+      memset(&(this->rngDataBuffer), 0, sizeof(this->rngDataBuffer));
 #ifdef _AIX
-      initstate_r(seed+seedModifier,cell->get_rng_state_buffer(),256,NULL,cell->get_rng_data_buffer());
-      //initstate_r(this->seed+seedModifier, &(this->rngStateBuffer[0]), 256, NULL, &(this->rngDataBuffer));
+      initstate_r(this->seed+seedModifier, &(this->rngStateBuffer[0]), 256, NULL, &(this->rngDataBuffer));
 #else
-      initstate_r(seed+seedModifier,cell->get_rng_state_buffer(),256,cell->get_rng_data_buffer());
-      //initstate_r(this->seed+seedModifier, &(this->rngStateBuffer[0]), 256, &(this->rngDataBuffer));
+      initstate_r(this->seed+seedModifier, &(this->rngStateBuffer[0]), 256, &(this->rngDataBuffer));
 #endif
    }
 

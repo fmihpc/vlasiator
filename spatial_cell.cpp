@@ -773,12 +773,12 @@ namespace spatial_cell {
             }
          }
          // Copy random number generator state variables
-         if ((SpatialCell::mpi_transfer_type & Transfer::RANDOMGEN) != 0) {
-            displacements.push_back((uint8_t*)get_rng_state_buffer() - (uint8_t*)this);
-            block_lengths.push_back(256/8);
-            displacements.push_back((uint8_t*)get_rng_data_buffer() - (uint8_t*)this);
-            block_lengths.push_back(sizeof(random_data));
-         }
+         //if ((SpatialCell::mpi_transfer_type & Transfer::RANDOMGEN) != 0) {
+         //   displacements.push_back((uint8_t*)get_rng_state_buffer() - (uint8_t*)this);
+         //   block_lengths.push_back(256/8);
+         //   displacements.push_back((uint8_t*)get_rng_data_buffer() - (uint8_t*)this);
+         //   block_lengths.push_back(sizeof(random_data));
+         //}
       }
 
       void* address = this;
@@ -804,15 +804,15 @@ namespace spatial_cell {
    
    /** Get random number generator data buffer.
     * @return Random number generator data buffer.*/
-   random_data* SpatialCell::get_rng_data_buffer() {
-      return &rngDataBuffer;
-   }
+   //random_data* SpatialCell::get_rng_data_buffer() {
+   //   return &rngDataBuffer;
+   //}
 
    /** Get random number generator state buffer.
     * @return Random number generator state buffer.*/
-   char* SpatialCell::get_rng_state_buffer() {
-      return rngStateBuffer;
-   }
+   //char* SpatialCell::get_rng_state_buffer() {
+   //   return rngStateBuffer;
+   //}
 
    /**< Minimum value of distribution function in any phase space cell 
     * of a velocity block for the block to be considered to have content.
