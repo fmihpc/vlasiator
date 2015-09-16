@@ -986,6 +986,7 @@ bool convertVelocityBlocks2(
       cerr << "ERROR could not read population names in " << __FILE__ << ":" << __LINE__ << endl;
       return false;
    }
+
    if (runDebug == true) {
       cerr << "Found " << popNames.size() << " particle populations" << endl;
    }
@@ -1410,9 +1411,6 @@ uint64_t getCellIdFromCoords( const CellStructure & cellStruct,
    return cellId;
 }
 
-
-
-
 //Prints out the usage message
 void printUsageMessage() {
    cout << endl;
@@ -1421,7 +1419,6 @@ void printUsageMessage() {
    cout << "To get a list of options use --help" << endl;
    cout << endl;
 }
-
 
 //Used in main() to retrieve options (returns false if something goes wrong)
 //Input:

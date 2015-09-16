@@ -10,15 +10,6 @@ Copyright 2011, 2012, 2014 Finnish Meteorological Institute
 #include <iomanip>
 #include <cmath>
 
-/*
-#include "spatial_cell.hpp"
-#include "common.h"
-#include "project.h"
-#include "parameters.h"
-#include "readparameters.h"
-#include "vlasovmover.h"
-*/
-
 #include "../../common.h"
 #include "../../readparameters.h"
 #include "../../backgroundfield/backgroundfield.h"
@@ -27,6 +18,7 @@ Copyright 2011, 2012, 2014 Finnish Meteorological Institute
 #include "test_trans.h"
 
 using namespace std;
+using namespace spatial_cell;
 
 namespace projects {
    test_trans::test_trans(): Project() { }
@@ -34,7 +26,9 @@ namespace projects {
       
   // Real this->cellPosition = 0;
 
-   bool test_trans::initialize(void) {return true;}
+   bool test_trans::initialize(void) {
+      return Project::initialize();
+   }
 
    void test_trans::addParameters(){
       typedef Readparameters RP;
@@ -42,7 +36,9 @@ namespace projects {
       RP::add("test_trans.peakValue","Value of the distribution function",(Real)1.0);
    }
 
-   void test_trans::getParameters(){
+   void test_trans::getParameters() {
+      Project::getParameters();
+      
       typedef Readparameters RP;
       RP::get("test_trans.cellPosition", this->cellPosition);
       RP::get("test_trans.peakValue" ,peakValue);
@@ -50,7 +46,8 @@ namespace projects {
 
 
    Real test_trans::calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,
-                                          creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz) {      
+                                          creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz,
+                                          const int& popID) const {
       //Please use even number of cells in velocity and real space
       Real xyz[3];
       Real vxyz[3];
@@ -101,14 +98,15 @@ namespace projects {
             }
          }
          
-         if(!outsideBox) {
+         if (!outsideBox) {
             return peakValue;
          }
       }
       return 0.0;
    }
 
-   void test_trans::calcCellParameters(Real* cellParams,creal& t) {
+   void test_trans::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
+      Real* cellParams = cell->get_cell_parameters();
       cellParams[CellParams::EX   ] = 0.0;
       cellParams[CellParams::EY   ] = 0.0;
       cellParams[CellParams::EZ   ] = 0.0;
@@ -117,7 +115,7 @@ namespace projects {
       cellParams[CellParams::PERBZ   ] = 0.0;
    }
    
-   void test_trans::setCellBackgroundField(SpatialCell* cell) {
+   void test_trans::setCellBackgroundField(SpatialCell* cell) const {
       ConstantField bgField;
       bgField.initialize(0.0,0.0,1e-9);
       setBackgroundField(bgField,cell->parameters, cell->derivatives,cell->derivativesBVOL);

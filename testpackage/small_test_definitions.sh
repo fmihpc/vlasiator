@@ -60,7 +60,7 @@ test_name[8]="Flowthrough_x_inflow_y_outflow_acc"
 comparison_vlsv[8]="bulk.0000001.vlsv"
 comparison_phiprof[8]="phiprof_full_0.txt"
 
-# Self-generated wave test
+# Self-consistent wave generation test
 test_name[9]="Selfgen_Waves_Periodic"
 comparison_vlsv[9]="fullf.0000001.vlsv"
 comparison_phiprof[9]="phiprof_full_0.txt"

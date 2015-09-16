@@ -7,6 +7,7 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 #include <cstdlib>
 #include <iostream>
 #include <cmath>
+#include <array>
 
 #include "../../common.h"
 #include "../../readparameters.h"
@@ -18,6 +19,7 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 #include "Magnetosphere.h"
 
 using namespace std;
+using namespace spatial_cell;
 
 namespace projects {
    Magnetosphere::Magnetosphere(): TriAxisSearch() { }
@@ -39,10 +41,11 @@ namespace projects {
       RP::add("Magnetosphere.dipoleScalingFactor","Scales the field strength of the magnetic dipole compared to Earths.", 1.0);
       RP::add("Magnetosphere.dipoleType","0: Normal 3D dipole, 1: line-dipole for 2D polar simulations, 2: line-dipole with mirror, 3: 3D dipole with mirror", 0);
       RP::add("Magnetosphere.dipoleMirrorLocationX","x-coordinate of dipole Mirror", -1.0);
-
    }
    
    void Magnetosphere::getParameters(){
+      Project::getParameters();
+      
       int myRank;
       Real dummy;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
@@ -153,10 +156,12 @@ namespace projects {
    }
    
    bool Magnetosphere::initialize() {
-      return true;
+      return Project::initialize();
    }
 
-   Real Magnetosphere::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
+   Real Magnetosphere::calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,
+                                             creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,
+                                             creal& dvz,const int& popID) const {
       if((this->nSpaceSamples > 1) && (this->nVelocitySamples > 1)) {
          creal d_x = dx / (this->nSpaceSamples-1);
          creal d_y = dy / (this->nSpaceSamples-1);
@@ -174,19 +179,18 @@ namespace projects {
                   for (uint vi=0; vi<this->nVelocitySamples; ++vi)
                      for (uint vj=0; vj<this->nVelocitySamples; ++vj)
                         for (uint vk=0; vk<this->nVelocitySamples; ++vk) {
-                           avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz);
+                           avg += getDistribValue(x+i*d_x,y+j*d_y,z+k*d_z,vx+vi*d_vx,vy+vj*d_vy,vz+vk*d_vz,dvx,dvy,dvz);
                         }
                         return avg /
                         (this->nSpaceSamples*this->nSpaceSamples*this->nSpaceSamples) /
                         (this->nVelocitySamples*this->nVelocitySamples*this->nVelocitySamples);
       } else {
-         return getDistribValue(x+0.5*dx, y+0.5*dy, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, dvx, dvy, dvz);
+         return getDistribValue(x+0.5*dx,y+0.5*dy,z+0.5*dz,vx+0.5*dvx,vy+0.5*dvy,vz+0.5*dvz,dvx,dvy,dvz);
       }
-      
    }
 
    /* set 0-centered dipole */
-   void Magnetosphere::setCellBackgroundField(SpatialCell *cell){
+   void Magnetosphere::setCellBackgroundField(SpatialCell *cell) const {
       if(cell->sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN && this->noDipoleInSW) {
          setBackgroundFieldToZero(cell->parameters, cell->derivatives,cell->derivativesBVOL);
       }
@@ -291,7 +295,11 @@ namespace projects {
    }
       
       
-   Real Magnetosphere::getDistribValue(creal& x,creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
+   Real Magnetosphere::getDistribValue(
+           creal& x,creal& y,creal& z,
+           creal& vx,creal& vy,creal& vz,
+           creal& dvx,creal& dvy,creal& dvz) const 
+   {
       Real initRho = this->tailRho;
       std::array<Real, 3> initV0 = this->getV0(x, y, z)[0];
       
@@ -322,7 +330,7 @@ namespace projects {
          // sine tapering
          initRho = this->tailRho - (this->tailRho-this->ionosphereRho)*0.5*(1.0+sin(M_PI*(radius-this->ionosphereRadius)/(this->ionosphereTaperRadius-this->ionosphereRadius)+0.5*M_PI));
          if(radius < this->ionosphereRadius) {
-            // Just to be safe, there are observed cases where tis failed.
+            // Just to be safe, there are observed cases where this failed.
             initRho = this->ionosphereRho;
          }
       }
@@ -331,12 +339,12 @@ namespace projects {
       exp(- physicalconstants::MASS_PROTON * ((vx-initV0[0])*(vx-initV0[0]) + (vy-initV0[1])*(vy-initV0[1]) + (vz-initV0[2])*(vz-initV0[2])) / (2.0 * physicalconstants::K_B * this->T));
    }
    
-   vector<std::array<Real, 3>> Magnetosphere::getV0(
+   vector<std::array<Real, 3> > Magnetosphere::getV0(
       creal x,
       creal y,
       creal z
-   ) {
-      vector<std::array<Real, 3>> centerPoints;
+   ) const {
+      vector<std::array<Real, 3> > centerPoints;
       std::array<Real, 3> V0 {{this->V0[0], this->V0[1], this->V0[2]}};
       std::array<Real, 3> ionosphereV0 = {{this->ionosphereV0[0], this->ionosphereV0[1], this->ionosphereV0[2]}};
       

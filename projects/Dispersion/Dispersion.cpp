@@ -1,7 +1,7 @@
 /*
  * This file is part of Vlasiator.
  * 
- * Copyright 2011, 2012, 2013, 2014 Finnish Meteorological Institute
+ * Copyright 2011-2015 Finnish Meteorological Institute
  * 
  */
 
@@ -48,6 +48,7 @@
 
 #include "../../common.h"
 #include "../../readparameters.h"
+#include "../../object_wrapper.h"
 #include "../../backgroundfield/backgroundfield.h"
 #include "../../backgroundfield/constantfield.hpp"
 
@@ -55,11 +56,14 @@
 
 Real projects::Dispersion::rndRho, projects::Dispersion::rndVel[3];
 
+using namespace std;
+using namespace spatial_cell;
+
 namespace projects {
    Dispersion::Dispersion(): Project() { }
    Dispersion::~Dispersion() { }
    
-   bool Dispersion::initialize(void) {return true;}
+   bool Dispersion::initialize(void) {return Project::initialize();}
    
    void Dispersion::addParameters() {
       typedef Readparameters RP;
@@ -82,6 +86,7 @@ namespace projects {
    }
    
    void Dispersion::getParameters() {
+      Project::getParameters();
       typedef Readparameters RP;
       Project::getParameters();
       RP::get("Dispersion.B0", this->B0);
@@ -108,15 +113,18 @@ namespace projects {
       return exp(- mass * ((vx-this->VX0)*(vx-this->VX0) + (vy-this->VY0)*(vy-this->VY0) + (vz-this->VZ0)*(vz-this->VZ0)) / (2.0 * kb * this->TEMPERATURE));
    }
    
-   Real Dispersion::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
-      if(vx < Parameters::vxmin + 0.5 * dvx ||
-         vy < Parameters::vymin + 0.5 * dvy ||
-         vz < Parameters::vzmin + 0.5 * dvz ||
-         vx > Parameters::vxmax - 1.5 * dvx ||
-         vy > Parameters::vymax - 1.5 * dvy ||
-         vz > Parameters::vzmax - 1.5 * dvz
-      ) return 0.0;
-      
+   Real Dispersion::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const int& popID) {
+      const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
+      const vmesh::MeshParameters& meshParams = getObjectWrapper().velocityMeshes[meshID];
+      if (vx < meshParams.meshMinLimits[0] + 0.5*dvx ||
+          vy < meshParams.meshMinLimits[1] + 0.5*dvy ||
+          vz < meshParams.meshMinLimits[2] + 0.5*dvz ||
+          vx > meshParams.meshMaxLimits[0] - 1.5*dvx ||
+          vy > meshParams.meshMaxLimits[1] - 1.5*dvy ||
+          vz > meshParams.meshMaxLimits[2] - 1.5*dvz) {
+         return 0.0;
+      }
+
       creal mass = physicalconstants::MASS_PROTON;
       creal kb = physicalconstants::K_B;
       
@@ -147,8 +155,9 @@ namespace projects {
                return result;
             }
    }
-   
-   void Dispersion::calcCellParameters(Real* cellParams,creal& t) {
+
+   void Dispersion::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
+      Real* cellParams = cell->get_cell_parameters();
       creal x = cellParams[CellParams::XCRD];
       creal dx = cellParams[CellParams::DX];
       creal y = cellParams[CellParams::YCRD];
@@ -159,23 +168,23 @@ namespace projects {
       CellID cellID = (int) ((x - Parameters::xmin) / dx) +
          (int) ((y - Parameters::ymin) / dy) * Parameters::xcells_ini +
          (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
-      
-      setRandomSeed(cellID);
-      
+
+      setRandomSeed(cell,cellID);
+
       cellParams[CellParams::EX   ] = 0.0;
       cellParams[CellParams::EY   ] = 0.0;
       cellParams[CellParams::EZ   ] = 0.0;
       
-      this->rndRho=getRandomNumber();
+      this->rndRho=getRandomNumber(cell);
       
-      this->rndVel[0]=getRandomNumber();
-      this->rndVel[1]=getRandomNumber();
-      this->rndVel[2]=getRandomNumber();
-      
+      this->rndVel[0]=getRandomNumber(cell);
+      this->rndVel[1]=getRandomNumber(cell);
+      this->rndVel[2]=getRandomNumber(cell);
+
       Real rndBuffer[3];
-      rndBuffer[0]=getRandomNumber();
-      rndBuffer[1]=getRandomNumber();
-      rndBuffer[2]=getRandomNumber();
+      rndBuffer[0]=getRandomNumber(cell);
+      rndBuffer[1]=getRandomNumber(cell);
+      rndBuffer[2]=getRandomNumber(cell);
 
       cellParams[CellParams::PERBX] = this->magXPertAbsAmp * (0.5 - rndBuffer[0]);
       cellParams[CellParams::PERBY] = this->magYPertAbsAmp * (0.5 - rndBuffer[1]);

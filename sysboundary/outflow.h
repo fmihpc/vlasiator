@@ -82,7 +82,8 @@ namespace SBC {
       );
       virtual void vlasovBoundaryCondition(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-         const CellID& cellID
+         const CellID& cellID,
+         const int& popID
       );
       
       virtual void getFaces(bool* faces);

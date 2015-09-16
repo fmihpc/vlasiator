@@ -20,13 +20,15 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 #include "../../vlasovmover.h"
 
 using namespace std;
+using namespace spatial_cell;
+
 namespace projects {
 
    Shocktest::Shocktest() : TriAxisSearch() {} // Constructor
    Shocktest::~Shocktest() {} // Destructor
 
    
-   bool Shocktest::initialize(void) { return true; }
+   bool Shocktest::initialize(void) { return Project::initialize(); }
    
    void Shocktest::addParameters(){
       typedef Readparameters RP;
@@ -51,6 +53,7 @@ namespace projects {
    }
    
    void Shocktest::getParameters(){
+      Project::getParameters();
       this->rho[this->LEFT] = {NAN};
       this->T[this->LEFT] = {NAN};
       this->Vx[this->LEFT] = {NAN};
@@ -139,7 +142,7 @@ namespace projects {
     * @return The volume average of the distribution function in the given phase space cell.
     * The physical unit of this quantity is 1 / (m^3 (m/s)^3).
     */
-   Real Shocktest::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {   
+   Real Shocktest::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const int& popID) {   
       creal d_x = dx / (this->nSpaceSamples-1);
       creal d_y = dy / (this->nSpaceSamples-1);
       creal d_z = dz / (this->nSpaceSamples-1);
@@ -170,7 +173,8 @@ namespace projects {
     * @param t The current value of time. This is passed as a convenience. If you need more detailed information 
     * of the state of the simulation, you can read it from Parameters.
     */
-   void Shocktest::calcCellParameters(Real* cellParams,creal& t) {
+   void Shocktest::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
+      Real* cellParams = cell->get_cell_parameters();
       creal x = cellParams[CellParams::XCRD];
       creal dx = cellParams[CellParams::DX];
       

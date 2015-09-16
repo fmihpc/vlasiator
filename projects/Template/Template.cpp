@@ -16,6 +16,7 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 #include "Template.h"
 
 using namespace std;
+using namespace spatial_cell;
 
 namespace projects {
    Template::Template(): TriAxisSearch() { }
@@ -27,6 +28,8 @@ namespace projects {
    }
    
    void Template::getParameters(){
+      Parameters::getParameters();
+
       typedef Readparameters RP;
       int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
@@ -38,10 +41,10 @@ namespace projects {
    
    bool Template::initialize() {
       this->param += 1.0;
-      return true;
+      return Project::initialize();
    }
 
-   Real Template::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
+   Real Template::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const int& popID) {
       creal rho = 1.0;
       creal T = 1.0;
       const std::array<Real, 3> V0 = this->getV0(x, y, z)[0];
@@ -66,7 +69,7 @@ namespace projects {
       creal x,
       creal y,
       creal z
-   ) {
+   ) const {
       vector<std::array<Real, 3>> centerPoints;
       std::array<Real, 3> point {{0.0, 0.0, 0.0}};
       if(x < 0.0) point[1] = 1.0;
