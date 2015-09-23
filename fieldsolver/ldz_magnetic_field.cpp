@@ -208,6 +208,6 @@ void propagateSysBoundaryMagneticField(
       }
       cp0[CellParams::PERBX + offset + component] =
         sysBoundaries.getSysBoundary(sysBoundaryFlag)->
-        fieldSolverBoundaryCondMagneticField(mpiGrid, cellCache, localID, dt, offset, component);
+        fieldSolverBoundaryCondMagneticField(mpiGrid, cellCache, localID, dt, RKCase, offset, component);
    }
 }

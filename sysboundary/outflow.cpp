@@ -26,6 +26,7 @@
 #include "outflow.h"
 #include "../projects/projects_common.h"
 #include "../fieldsolver/fs_common.h"
+#include "../fieldsolver/ldz_magnetic_field.hpp"
 
 #ifndef NDEBUG
    #define DEBUG_OUTFLOW
@@ -138,11 +139,43 @@ namespace SBC {
       const std::vector<fs_cache::CellCache>& cellCache,
       const uint16_t& localID,
       creal& dt,
+      cuint& RKCase,
       cint& offset,
       cuint& component
    ) {
       const CellID cellID = cellCache[localID].cellID;
-      return fieldBoundaryCopyFromExistingFaceNbrMagneticField(mpiGrid, cellID, component + offset);
+      Real fieldValue = -1.0;
+      
+      creal* const cellParams = cellCache[localID].cells[fs_cache::calculateNbrID(1  ,1  ,1  )]->parameters;
+      creal dx = cellParams[CellParams::DX];
+      creal dy = cellParams[CellParams::DY];
+      creal dz = cellParams[CellParams::DZ];
+      creal x = cellParams[CellParams::XCRD] + 0.5*dx;
+      creal y = cellParams[CellParams::YCRD] + 0.5*dy;
+      creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
+      
+      bool isThisCellOnAFace[6];
+      determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz);
+      
+      cuint sysBoundaryLayer = cellCache[localID].cells[fs_cache::calculateNbrID(1  ,1  ,1  )]->sysBoundaryLayer;
+      
+      if (sysBoundaryLayer == 1 && isThisCellOnAFace[0] && component == 0) {
+         const vector<uint16_t> cellVector = {{localID}};
+         propagateMagneticField(cellCache, cellVector, dt, RKCase, true, false, false);
+         fieldValue = cellCache[localID].cells[fs_cache::calculateNbrID(1  ,1  ,1  )]->parameters[CellParams::PERBX + component + offset];
+      } else if (sysBoundaryLayer == 1 && isThisCellOnAFace[2] && component == 1) {
+         const vector<uint16_t> cellVector = {{localID}};
+         propagateMagneticField(cellCache, cellVector, dt, RKCase, false, true, false);
+         fieldValue = cellCache[localID].cells[fs_cache::calculateNbrID(1  ,1  ,1  )]->parameters[CellParams::PERBX + component + offset];
+      } else if (sysBoundaryLayer == 1 && isThisCellOnAFace[4] && component == 2) {
+         const vector<uint16_t> cellVector = {{localID}};
+         propagateMagneticField(cellCache, cellVector, dt, RKCase, false, false, true);
+         fieldValue = cellCache[localID].cells[fs_cache::calculateNbrID(1  ,1  ,1  )]->parameters[CellParams::PERBX + component + offset];
+      } else {
+         fieldValue = fieldBoundaryCopyFromExistingFaceNbrMagneticField(mpiGrid, cellID, component + offset);
+      }
+      
+      return fieldValue;
    }
 
    void Outflow::fieldSolverBoundaryCondElectricField(

@@ -64,6 +64,7 @@ namespace SBC {
          const std::vector<fs_cache::CellCache>& cellCache,
          const uint16_t& localID,
          creal& dt,
+         cuint& RKCase,
          cint& offset,
          cuint& component
       );
