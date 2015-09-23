@@ -21,12 +21,21 @@ using namespace std;
  * of accuracy it is done in one stage or in two stages using the
  * intermediate E1 components for the first stage of the second-order
  * Runge-Kutta method and E for the other cases.
- * \param cellID Index of the cell to process
- * \param mpiGrid Grid
+ * \param dt time step
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
+ * \param doX If true, compute the x component (default true).
+ * \param doY If true, compute the y component (default true).
+ * \param doZ If true, compute the z component (default true).
  */
-void propagateMagneticField(const std::vector<fs_cache::CellCache>& cellCache,
-                            const std::vector<uint16_t>& cells,creal& dt,cint& RKCase) {
+void propagateMagneticField(
+   const std::vector<fs_cache::CellCache>& cellCache,
+   const std::vector<uint16_t>& cells,
+   creal& dt,
+   cint& RKCase,
+   const bool doX=true,
+   const bool doY=true,
+   const bool doZ = true
+) {
 
    #pragma omp parallel for
    for (size_t c=0; c<cells.size(); ++c) {
@@ -38,7 +47,7 @@ void propagateMagneticField(const std::vector<fs_cache::CellCache>& cellCache,
       creal dy = cp0[CellParams::DY];
       creal dz = cp0[CellParams::DZ];
 
-      if ((existingCellsFlag & PROPAGATE_BX) == PROPAGATE_BX) {
+      if ((existingCellsFlag & PROPAGATE_BX) == PROPAGATE_BX && doX == true) {
          const Real* cp1 = cellCache[localID].cells[fs_cache::calculateNbrID(1  ,1+1,1  )]->parameters;
          const Real* cp2 = cellCache[localID].cells[fs_cache::calculateNbrID(1  ,1  ,1+1)]->parameters;
          switch (RKCase) {
@@ -60,7 +69,7 @@ void propagateMagneticField(const std::vector<fs_cache::CellCache>& cellCache,
          }
       }
 
-      if ((existingCellsFlag & PROPAGATE_BY) == PROPAGATE_BY) {
+      if ((existingCellsFlag & PROPAGATE_BY) == PROPAGATE_BY && doY == true) {
          const Real* cp1 = cellCache[localID].cells[fs_cache::calculateNbrID(1  ,1  ,1+1)]->parameters;
          const Real* cp2 = cellCache[localID].cells[fs_cache::calculateNbrID(1+1,1  ,1  )]->parameters;
 
@@ -83,7 +92,7 @@ void propagateMagneticField(const std::vector<fs_cache::CellCache>& cellCache,
          }
       }
 
-      if ((existingCellsFlag & PROPAGATE_BZ) == PROPAGATE_BZ) {
+      if ((existingCellsFlag & PROPAGATE_BZ) == PROPAGATE_BZ && doZ == true) {
          const Real* cp1 = cellCache[localID].cells[fs_cache::calculateNbrID(1+1,1  ,1  )]->parameters;
          const Real* cp2 = cellCache[localID].cells[fs_cache::calculateNbrID(1  ,1+1,1  )]->parameters;
 
