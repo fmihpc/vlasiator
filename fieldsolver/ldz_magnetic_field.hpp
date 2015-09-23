@@ -30,8 +30,10 @@ void propagateMagneticField(
 );
 
 void propagateSysBoundaryMagneticField(
-   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   const CellID& cellID,SysBoundary& sysBoundaries,
+   const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   const std::vector<fs_cache::CellCache>& cellCache,
+   const uint16_t& localID,
+   SysBoundary& sysBoundaries,
    creal& dt,
    cint& RKCase
 );

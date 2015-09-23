@@ -34,7 +34,7 @@ void propagateMagneticField(
    cint& RKCase,
    const bool doX=true,
    const bool doY=true,
-   const bool doZ = true
+   const bool doZ=true
 ) {
 
    #pragma omp parallel for
@@ -170,8 +170,7 @@ void propagateMagneticFieldSimple(
    #pragma omp parallel for
    for (size_t c=0; c<cacheContainer.boundaryCellsWithLocalNeighbours.size(); ++c) {
       const uint16_t localID = cacheContainer.boundaryCellsWithLocalNeighbours[c];
-      const CellID cellID = cacheContainer.localCellsCache[localID].cellID;
-      propagateSysBoundaryMagneticField(mpiGrid, cellID, sysBoundaries, dt, RKCase);
+      propagateSysBoundaryMagneticField(mpiGrid, cacheContainer.localCellsCache, localID, sysBoundaries, dt, RKCase);
    }
    phiprof::stop(timer,cacheContainer.boundaryCellsWithLocalNeighbours.size(),"Spatial Cells");
 
@@ -181,8 +180,7 @@ void propagateMagneticFieldSimple(
    #pragma omp parallel for
    for (size_t c=0; c<cacheContainer.boundaryCellsWithRemoteNeighbours.size(); ++c) {
       const uint16_t localID = cacheContainer.boundaryCellsWithRemoteNeighbours[c];
-      const CellID cellID = cacheContainer.localCellsCache[localID].cellID;
-      propagateSysBoundaryMagneticField(mpiGrid, cellID, sysBoundaries, dt, RKCase);
+      propagateSysBoundaryMagneticField(mpiGrid, cacheContainer.localCellsCache, localID, sysBoundaries, dt, RKCase);
    }
    phiprof::stop(timer,cacheContainer.boundaryCellsWithRemoteNeighbours.size(),"Spatial Cells");
 
@@ -194,21 +192,22 @@ void propagateMagneticFieldSimple(
 }
 
 void propagateSysBoundaryMagneticField(
-                                       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                       const CellID& cellID,
-                                       SysBoundary& sysBoundaries,
-                                       creal& dt,
-                                       cint& RKCase
-                                      ) {
+   const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   const std::vector<fs_cache::CellCache>& cellCache,
+   const uint16_t& localID,
+   SysBoundary& sysBoundaries,
+   creal& dt,
+   cint& RKCase
+) {
+   Real* cp0 = cellCache[localID].cells[fs_cache::calculateNbrID(1  ,1  ,1  )]->parameters;
+   cuint sysBoundaryFlag = cellCache[localID].cells[fs_cache::calculateNbrID(1  ,1  ,1  )]->sysBoundaryFlag;
+   int offset = 0;
    for (uint component = 0; component < 3; component++) {
-      if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-         mpiGrid[cellID]->parameters[CellParams::PERBX + component] =
-           sysBoundaries.getSysBoundary(mpiGrid[cellID]->sysBoundaryFlag)->
-           fieldSolverBoundaryCondMagneticField(mpiGrid, cellID, 0.0, component);
-      } else { // RKCase == RK_ORDER2_STEP1
-         mpiGrid[cellID]->parameters[CellParams::PERBX_DT2 + component] =
-           sysBoundaries.getSysBoundary(mpiGrid[cellID]->sysBoundaryFlag)->
-           fieldSolverBoundaryCondMagneticField(mpiGrid, cellID, dt, component);
+      if (RKCase == RK_ORDER2_STEP1) {
+         offset = CellParams::PERBX_DT2 - CellParams::PERBX;
       }
+      cp0[CellParams::PERBX + offset + component] =
+        sysBoundaries.getSysBoundary(sysBoundaryFlag)->
+        fieldSolverBoundaryCondMagneticField(mpiGrid, cellCache, localID, dt, offset, component);
    }
 }

@@ -111,10 +111,12 @@ namespace SBC {
     * \return The requested component value.
     */
    Real SysBoundaryCondition::fieldSolverBoundaryCondMagneticField(
-                                                                   const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                                                   const CellID& cellID,
-                                                                   creal& dt,
-                                                                   cuint& component
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      const std::vector<fs_cache::CellCache>& cellCache,
+      const uint16_t& localID,
+      creal& dt,
+      cint& offset,
+      cuint& component
    ) {
       cerr << "ERROR: SysBoundaryCondition::fieldSolverBoundaryCondMagneticField called instead of derived class function!" << endl;
       exit(1);

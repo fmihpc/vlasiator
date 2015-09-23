@@ -57,8 +57,10 @@ namespace SBC {
 //       );
       virtual Real fieldSolverBoundaryCondMagneticField(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-         const CellID& cellID,
+         const std::vector<fs_cache::CellCache>& cellCache,
+         const uint16_t& localID,
          creal& dt,
+         cint& offset,
          cuint& component
       );
       virtual void fieldSolverBoundaryCondElectricField(

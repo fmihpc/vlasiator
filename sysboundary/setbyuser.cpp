@@ -115,30 +115,28 @@ namespace SBC {
    }
    
    Real SetByUser::fieldSolverBoundaryCondMagneticField(
-                                                        const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                                        const CellID& cellID,
-                                                        creal& dt,
-                                                        cuint& component
-                                                       ) {
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      const std::vector<fs_cache::CellCache>& cellCache,
+      const uint16_t& localID,
+      creal& dt,
+      cint& offset,
+      cuint& component
+   ) {
       Real result = 0.0;
-      const SpatialCell* cell = mpiGrid[cellID];
-      creal dx = cell->parameters[CellParams::DX];
-      creal dy = cell->parameters[CellParams::DY];
-      creal dz = cell->parameters[CellParams::DZ];
-      creal x = cell->parameters[CellParams::XCRD] + 0.5*dx;
-      creal y = cell->parameters[CellParams::YCRD] + 0.5*dy;
-      creal z = cell->parameters[CellParams::ZCRD] + 0.5*dz;
+      creal* cp0 = cellCache[localID].cells[fs_cache::calculateNbrID(1  ,1  ,1  )]->parameters;
+      creal dx = cp0[CellParams::DX];
+      creal dy = cp0[CellParams::DY];
+      creal dz = cp0[CellParams::DZ];
+      creal x = cp0[CellParams::XCRD] + 0.5*dx;
+      creal y = cp0[CellParams::YCRD] + 0.5*dy;
+      creal z = cp0[CellParams::ZCRD] + 0.5*dz;
       
       bool isThisCellOnAFace[6];
       determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz);
 
       for (uint i=0; i<6; i++) {
          if (isThisCellOnAFace[i]) {
-            if (dt == 0.0) {
-               result = templateCells[i].parameters[CellParams::PERBX + component];
-            } else {
-               result = templateCells[i].parameters[CellParams::PERBX_DT2 + component];
-            }
+            result = templateCells[i].parameters[CellParams::PERBX + offset + component];
             break; // This effectively sets the precedence of faces through the order of faces.
          }
       }

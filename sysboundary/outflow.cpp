@@ -134,17 +134,15 @@ namespace SBC {
    }
    
    Real Outflow::fieldSolverBoundaryCondMagneticField(
-                                                      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                                      const CellID& cellID,
-                                                      creal& dt,
-                                                      cuint& component
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      const std::vector<fs_cache::CellCache>& cellCache,
+      const uint16_t& localID,
+      creal& dt,
+      cint& offset,
+      cuint& component
    ) {
-      if (dt == 0.0) {
-         return fieldBoundaryCopyFromExistingFaceNbrMagneticField(mpiGrid, cellID, component);
-      } else { // Return PERB[XYZ]_DT2
-         cint offset = CellParams::PERBX_DT2 - CellParams::PERBX;
-         return fieldBoundaryCopyFromExistingFaceNbrMagneticField(mpiGrid, cellID, component+offset);
-      }
+      const CellID cellID = cellCache[localID].cellID;
+      return fieldBoundaryCopyFromExistingFaceNbrMagneticField(mpiGrid, cellID, component + offset);
    }
 
    void Outflow::fieldSolverBoundaryCondElectricField(
@@ -161,12 +159,12 @@ namespace SBC {
    }
    
    void Outflow::fieldSolverBoundaryCondHallElectricField(
-                                                          fs_cache::CellCache& cache,
-                                                          cuint RKCase,
-                                                          cuint component
-                                                         ) {
+      fs_cache::CellCache& cache,
+      cuint RKCase,
+      cuint component
+   ) {
 
-      Real* cp = cache.cells[fs_cache::calculateNbrID(1,1,1)]->parameters;      
+      Real* cp = cache.cells[fs_cache::calculateNbrID(1,1,1)]->parameters;
       
       switch (component) {
          case 0:
