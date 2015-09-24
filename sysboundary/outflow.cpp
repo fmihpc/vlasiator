@@ -155,19 +155,34 @@ namespace SBC {
       creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
       
       bool isThisCellOnAFace[6];
-      determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz);
+      determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, true);
       
       cuint sysBoundaryLayer = cellCache[localID].cells[fs_cache::calculateNbrID(1  ,1  ,1  )]->sysBoundaryLayer;
       
-      if (sysBoundaryLayer == 1 && isThisCellOnAFace[0] && component == 0) {
+      if (sysBoundaryLayer == 1
+         && isThisCellOnAFace[0]                            // we are on the face
+         && this->facesToProcess[0]                         // we are supposed to do this face
+         && component == 0                                  // we do the component normal to this face
+         && !(isThisCellOnAFace[2] || isThisCellOnAFace[3] || isThisCellOnAFace[4] || isThisCellOnAFace[5]) // we are not in a corner
+      ) {
          const vector<uint16_t> cellVector = {{localID}};
          propagateMagneticField(cellCache, cellVector, dt, RKCase, true, false, false);
          fieldValue = cellCache[localID].cells[fs_cache::calculateNbrID(1  ,1  ,1  )]->parameters[CellParams::PERBX + component + offset];
-      } else if (sysBoundaryLayer == 1 && isThisCellOnAFace[2] && component == 1) {
+      } else if (sysBoundaryLayer == 1
+         && isThisCellOnAFace[2]                            // we are on the face
+         && this->facesToProcess[2]                         // we are supposed to do this face
+         && component == 1                                  // we do the component normal to this face
+         && !(isThisCellOnAFace[0] || isThisCellOnAFace[1] || isThisCellOnAFace[4] || isThisCellOnAFace[5]) // we are not in a corner
+      ) {
          const vector<uint16_t> cellVector = {{localID}};
          propagateMagneticField(cellCache, cellVector, dt, RKCase, false, true, false);
          fieldValue = cellCache[localID].cells[fs_cache::calculateNbrID(1  ,1  ,1  )]->parameters[CellParams::PERBX + component + offset];
-      } else if (sysBoundaryLayer == 1 && isThisCellOnAFace[4] && component == 2) {
+      } else if (sysBoundaryLayer == 1
+         && isThisCellOnAFace[4]                            // we are on the face
+         && this->facesToProcess[4]                         // we are supposed to do this face
+         && component == 2                                  // we do the component normal to this face
+         && !(isThisCellOnAFace[0] || isThisCellOnAFace[1] || isThisCellOnAFace[2] || isThisCellOnAFace[3]) // we are not in a corner
+      ) {
          const vector<uint16_t> cellVector = {{localID}};
          propagateMagneticField(cellCache, cellVector, dt, RKCase, false, false, true);
          fieldValue = cellCache[localID].cells[fs_cache::calculateNbrID(1  ,1  ,1  )]->parameters[CellParams::PERBX + component + offset];

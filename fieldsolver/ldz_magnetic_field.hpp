@@ -24,9 +24,9 @@ void propagateMagneticField(
    const std::vector<uint16_t>& cells,
    creal& dt,
    cint& RKCase,
-   const bool doX,
-   const bool doY,
-   const bool doZ
+   const bool doX=true,
+   const bool doY=true,
+   const bool doZ=true
 );
 
 void propagateSysBoundaryMagneticField(

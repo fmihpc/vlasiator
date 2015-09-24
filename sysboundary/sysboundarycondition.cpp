@@ -42,21 +42,50 @@ namespace SBC {
     * This function is used by some of the classes inheriting from this base class.
     * 
     * Depth is hard-coded to be 2 as other parts of the code (field solver especially) rely on that.
+    * 
+    * \param doIgnoreSlices If true, do not consider a cell to be part of the face if that face has a depth of 1 only (single-cell thick slices/columns).
     */
    void SysBoundaryCondition::determineFace(
       bool* isThisCellOnAFace,
       creal x, creal y, creal z,
-      creal dx, creal dy, creal dz
+      creal dx, creal dy, creal dz,
+      const bool excludeSlices //=false (default)
    ) {
       for(uint i=0; i<6; i++) {
          isThisCellOnAFace[i] = false;
       }
-      if(x > Parameters::xmax - 2.0*dx) isThisCellOnAFace[0] = true;
-      if(x < Parameters::xmin + 2.0*dx) isThisCellOnAFace[1] = true;
-      if(y > Parameters::ymax - 2.0*dy) isThisCellOnAFace[2] = true;
-      if(y < Parameters::ymin + 2.0*dy) isThisCellOnAFace[3] = true;
-      if(z > Parameters::zmax - 2.0*dz) isThisCellOnAFace[4] = true;
-      if(z < Parameters::zmin + 2.0*dz) isThisCellOnAFace[5] = true;
+      if(x > Parameters::xmax - 2.0*dx) {
+         isThisCellOnAFace[0] = true;
+      }
+      if(x < Parameters::xmin + 2.0*dx) {
+         isThisCellOnAFace[1] = true;
+      }
+      if(y > Parameters::ymax - 2.0*dy) {
+         isThisCellOnAFace[2] = true;
+      }
+      if(y < Parameters::ymin + 2.0*dy) {
+         isThisCellOnAFace[3] = true;
+      }
+      if(z > Parameters::zmax - 2.0*dz) {
+         isThisCellOnAFace[4] = true;
+      }
+      if(z < Parameters::zmin + 2.0*dz) {
+         isThisCellOnAFace[5] = true;
+      }
+      if(excludeSlices == true) {
+         if(Parameters::xcells_ini == 1) {
+            isThisCellOnAFace[0] = false;
+            isThisCellOnAFace[1] = false;
+         }
+         if(Parameters::ycells_ini == 1) {
+            isThisCellOnAFace[2] = false;
+            isThisCellOnAFace[3] = false;
+         }
+         if(Parameters::zcells_ini == 1) {
+            isThisCellOnAFace[4] = false;
+            isThisCellOnAFace[5] = false;
+         }
+      }
    }
    
    /*! SysBoundaryCondition base class constructor. The constructor is empty.*/

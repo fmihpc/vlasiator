@@ -32,9 +32,9 @@ void propagateMagneticField(
    const std::vector<uint16_t>& cells,
    creal& dt,
    cint& RKCase,
-   const bool doX=true,
-   const bool doY=true,
-   const bool doZ=true
+   const bool doX, //=true (default)
+   const bool doY, //=true (default)
+   const bool doZ  //=true (default)
 ) {
 
    #pragma omp parallel for
