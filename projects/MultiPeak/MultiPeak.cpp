@@ -23,6 +23,7 @@ using namespace spatial_cell;
 
 vector<Real> projects::MultiPeak::rhoRnd;
 
+
 namespace projects {
    MultiPeak::MultiPeak(): TriAxisSearch() { }
    
@@ -121,8 +122,8 @@ namespace projects {
 
          for (uint i=0; i<this->numberOfPopulations; ++i) {
             value += this->rhoRnd[i]
-                  * pow(mass / (2.0 * M_PI * kb ), 1.5) 
-                  * 1.0 / sqrt(Tx[i]*Ty[i]*Tz[i]) 
+                  * pow(mass / (2.0 * M_PI * kb ), 1.5) * 1.0
+                  / sqrt(Tx[i]*Ty[i]*Tz[i]) 
                   * exp(- mass * (pow(vx - Vx[i], 2.0) / (2.0 * kb * Tx[i]) 
                                 + pow(vy - Vy[i], 2.0) / (2.0 * kb * Ty[i]) 
                                 + pow(vz - Vz[i], 2.0) / (2.0 * kb * Tz[i])));
