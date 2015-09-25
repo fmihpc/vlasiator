@@ -3,7 +3,6 @@ This file is part of Vlasiator.
 
 Copyright 2011, 2012, 2015 Finnish Meteorological Institute
 
-
 */
 
 #include <cstdlib>
@@ -16,19 +15,22 @@ Copyright 2011, 2012, 2015 Finnish Meteorological Institute
 #include "../../backgroundfield/backgroundfield.h"
 #include "../../backgroundfield/constantfield.hpp"
 
+
 #include "MultiPeak.h"
 
 using namespace std;
 
+
 vector<Real> projects::MultiPeak::rhoRnd;
-Real projects::MultiPeak::rhoFactor;
 
 namespace projects {
    MultiPeak::MultiPeak(): TriAxisSearch() { }
    
    MultiPeak::~MultiPeak() { }
 
-   bool MultiPeak::initialize(void) {return true;}
+   bool MultiPeak::initialize(void) {
+      return true;
+   }
 
    void MultiPeak::addParameters(){
       typedef Readparameters RP;
@@ -52,6 +54,7 @@ namespace projects {
       RP::addComposing("MultiPeak.rhoPertAbsAmp", "Absolute amplitude of the density perturbation");
       RP::add("MultiPeak.lambda", "B cosine perturbation wavelength (m)", 1.0);
       RP::add("MultiPeak.nVelocitySamples", "Number of sampling points per velocity dimension", 2);
+      
       RP::add("MultiPeak.densityModel","Which spatial density model is used?",string("uniform"));
    }
 
@@ -99,6 +102,7 @@ namespace projects {
       RP::get("MultiPeak.dBz", this->dBz);
       RP::get("MultiPeak.lambda", this->lambda);
       RP::get("MultiPeak.nVelocitySamples", this->nVelocitySamples);
+
       
       string densModelString;
       RP::get("MultiPeak.densityModel",densModelString);
@@ -113,8 +117,7 @@ namespace projects {
 
       Real value = 0.0;
       for (uint i=0; i<this->numberOfPopulations; i++) {
-         Real rhoValue = this->rhoRnd[i] * rhoFactor;
-         value += rhoValue 
+         value += this->rhoRnd[i]
                 * pow(mass / (2.0 * M_PI * kb ), 1.5) * 1.0 
                 / sqrt(this->Tx[i]*this->Ty[i]*this->Tz[i]) 
                 * exp(-mass * (pow(vx - this->Vx[i], 2.0) / (2.0 * kb * this->Tx[i]) 
@@ -139,7 +142,7 @@ namespace projects {
          creal DVY = dvy / N;
          creal DVZ = dvz / N;
 
-         rhoFactor = 1.0;
+         Real rhoFactor = 1.0;
          switch (densityModel) {
             case Uniform:
                rhoFactor = 1.0;
@@ -166,9 +169,9 @@ namespace projects {
                }
             }
          }
+         avg *= rhoFactor;
          
          // Compare the current and accumulated volume averages:
-         //ok = true;
          Real eps = max(numeric_limits<creal>::min(),avg * static_cast<Real>(1e-6));
          Real avgAccum   = avgTotal / (avg + N3_sum);
          Real avgCurrent = avg / (N*N*N);
