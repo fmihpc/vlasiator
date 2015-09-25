@@ -228,14 +228,8 @@ CellID get_spatial_neighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geom
 
    //cell on boundary, and we want none of the layers,
    //invalid.(e.g. when we compute targets)
-   //if( !include_first_boundary_layer &&
-   //    mpiGrid[nbrID]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY){
-   //   return INVALID_CELLID;
-   //}
-
    if( !include_first_boundary_layer &&
-       mpiGrid[nbrID]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY &&
-       mpiGrid[nbrID]->sysBoundaryLayer != 1 ) {
+       mpiGrid[nbrID]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY){
       return INVALID_CELLID;
    }
 
