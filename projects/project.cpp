@@ -375,7 +375,8 @@ namespace projects {
          int rank;
          MPI_Comm_rank(MPI_COMM_WORLD,&rank);
          if (rank == 0) {
-            cerr << "(Project.cpp) WARNING: Base class 'setCellBackgroundField' called, make sure this is intentional" << endl;
+            cerr << "(Project.cpp) WARNING: Base class 'setCellBackgroundField' in " << __FILE__ << ":" << __LINE__;
+            cerr << " called, make sure this is intentional" << endl;
             printed = true;
          }
       }
@@ -629,7 +630,8 @@ namespace projects {
          int rank;
          MPI_Comm_rank(MPI_COMM_WORLD,&rank);
          if (rank == 0) {
-            cerr << "(Project.cpp) WARNING: Base class 'calcCellParameters' called, make sure this is intentional" << endl;
+            cerr << "(Project.cpp) WARNING: Base class 'calcCellParameters' in " << __FILE__ << ":" << __LINE__;
+            cerr << " called, make sure this is intentional" << endl;
             printed = true;
          }
       }
