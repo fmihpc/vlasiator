@@ -16,15 +16,29 @@ Copyright 2015 Finnish Meteorological Institute
 using namespace std;
 
 // X
+/*! \brief Low-level Hall component computation
+ * 
+ * Hall term computation following Balsara reconstruction, edge-averaged.
+ * 
+ * \param pC Reconstruction coefficients
+ * \param BGBY Background By
+ * \param BGBZ Background Bz
+ * \param dx Cell dx
+ * \param dy Cell dy
+ * \param dz Cell dz
+ * 
+ * \sa calculateEdgeHallTermXComponents
+ * 
+ */
 template<typename REAL> inline
 REAL JXBX_000_100(
-                  const REAL* const pC,
-                  creal BGBY,
-                  creal BGBZ,
-                  creal dx,
-                  creal dy,
-                  creal dz
-                 ) {
+   const REAL* const pC,
+   creal BGBY,
+   creal BGBZ,
+   creal dx,
+   creal dy,
+   creal dz
+) {
    using namespace Rec;
    return -(pC[a_zz]*BGBZ)/dz+(pC[a_z]*BGBZ)/dz-(pC[a_yz]*BGBZ)/(2*dz)-(pC[c_xzz]*BGBZ)/(6*dx)+(pC[c_xz]*BGBZ)/(2*dx)-(pC[c_xyz]*BGBZ)/(4*dx)+(pC[c_xy]*BGBZ)/(2*dx)-(pC[c_x]*BGBZ)/dx-(pC[a_yz]*BGBY)/(2*dy)-(pC[a_yy]*BGBY)/dy+(pC[a_y]*BGBY)/dy+(pC[b_xz]*BGBY)/(2*dx)-(pC[b_xyz]*BGBY)/(4*dx)-(pC[b_xyy]*BGBY)/(6*dx)+(pC[b_xy]*BGBY)/(2*dx)-(pC[b_x]*BGBY)/dx-(pC[a_zz]*pC[c_zz])/(6*dz)+(pC[a_z]*pC[c_zz])/(6*dz)-
      (pC[a_yz]*pC[c_zz])/(12*dz)+(pC[a_zz]*pC[c_z])/(2*dz)-(pC[a_z]*pC[c_z])/(2*dz)+(pC[a_yz]*pC[c_z])/(4*dz)-(pC[a_zz]*pC[c_yz])/(4*dz)+(pC[a_z]*pC[c_yz])/(4*dz)-(pC[a_yz]*pC[c_yz])/(8*dz)+(pC[a_zz]*pC[c_y])/(2*dz)-(pC[a_z]*pC[c_y])/(2*dz)+(pC[a_yz]*pC[c_y])/(4*dz)+(pC[a_xzz]*pC[c_xz])/(24*dz)-(pC[a_xz]*pC[c_xz])/(24*dz)+(pC[a_xyz]*pC[c_xz])/(48*dz)-(pC[a_xzz]*pC[c_x])/(12*dz)+(pC[a_xz]*pC[c_x])/(12*dz)-(pC[a_xyz]*pC[c_x])/(24*dz)-(pC[a_zz]*pC[c_0])/dz+(pC[a_z]*pC[c_0])/dz-(pC[a_yz]*pC[c_0])/(2*dz)+(pC[a_yz]*pC[b_z])/(4*dy)+
@@ -34,15 +48,29 @@ REAL JXBX_000_100(
      (pC[b_xyz]*pC[b_yy])/(24*dx)-(pC[b_xyy]*pC[b_yy])/(36*dx)+(pC[b_xy]*pC[b_yy])/(12*dx)-(pC[b_x]*pC[b_yy])/(6*dx)-(pC[b_xz]*pC[b_y])/(4*dx)+(pC[b_xyz]*pC[b_y])/(8*dx)+(pC[b_xyy]*pC[b_y])/(12*dx)-(pC[b_xy]*pC[b_y])/(4*dx)+(pC[b_x]*pC[b_y])/(2*dx)+(pC[b_0]*pC[b_xz])/(2*dx)-(pC[b_0]*pC[b_xyz])/(4*dx)-(pC[b_0]*pC[b_xyy])/(6*dx)-(pC[b_xxy]*pC[b_xy])/(24*dx)+(pC[b_xx]*pC[b_xy])/(12*dx)+(pC[b_0]*pC[b_xy])/(2*dx)+(pC[b_x]*pC[b_xxy])/(12*dx)-(pC[b_x]*pC[b_xx])/(6*dx)-(pC[b_0]*pC[b_x])/dx;
 }
 
+/*! \brief Low-level Hall component computation
+ * 
+ * Hall term computation following Balsara reconstruction, edge-averaged.
+ * 
+ * \param pC Reconstruction coefficients
+ * \param BGBY Background By
+ * \param BGBZ Background Bz
+ * \param dx Cell dx
+ * \param dy Cell dy
+ * \param dz Cell dz
+ * 
+ * \sa calculateEdgeHallTermXComponents
+ * 
+ */
 template<typename REAL> inline
 REAL JXBX_010_110(
-                  const REAL* const pC,
-                  creal BGBY,
-                  creal BGBZ,
-                  creal dx,
-                  creal dy,
-                  creal dz
-                 ) {
+   const REAL* const pC,
+   creal BGBY,
+   creal BGBZ,
+   creal dx,
+   creal dy,
+   creal dz
+) {
    using namespace Rec;
    return -(pC[a_zz]*BGBZ)/dz+(pC[a_z]*BGBZ)/dz+(pC[a_yz]*BGBZ)/(2*dz)-(pC[c_xzz]*BGBZ)/(6*dx)+(pC[c_xz]*BGBZ)/(2*dx)+(pC[c_xyz]*BGBZ)/(4*dx)-(pC[c_xy]*BGBZ)/(2*dx)-(pC[c_x]*BGBZ)/dx-(pC[a_yz]*BGBY)/(2*dy)+(pC[a_yy]*BGBY)/dy+(pC[a_y]*BGBY)/dy+(pC[b_xz]*BGBY)/(2*dx)+(pC[b_xyz]*BGBY)/(4*dx)-(pC[b_xyy]*BGBY)/(6*dx)-(pC[b_xy]*BGBY)/(2*dx)-(pC[b_x]*BGBY)/dx-(pC[a_zz]*pC[c_zz])/(6*dz)+(pC[a_z]*pC[c_zz])/(6*dz)+
    (pC[a_yz]*pC[c_zz])/(12*dz)+(pC[a_zz]*pC[c_z])/(2*dz)-(pC[a_z]*pC[c_z])/(2*dz)-(pC[a_yz]*pC[c_z])/(4*dz)+(pC[a_zz]*pC[c_yz])/(4*dz)-(pC[a_z]*pC[c_yz])/(4*dz)-(pC[a_yz]*pC[c_yz])/(8*dz)-(pC[a_zz]*pC[c_y])/(2*dz)+(pC[a_z]*pC[c_y])/(2*dz)+(pC[a_yz]*pC[c_y])/(4*dz)+(pC[a_xzz]*pC[c_xz])/(24*dz)-(pC[a_xz]*pC[c_xz])/(24*dz)-(pC[a_xyz]*pC[c_xz])/(48*dz)-(pC[a_xzz]*pC[c_x])/(12*dz)+(pC[a_xz]*pC[c_x])/(12*dz)+(pC[a_xyz]*pC[c_x])/(24*dz)-(pC[a_zz]*pC[c_0])/dz+(pC[a_z]*pC[c_0])/dz+(pC[a_yz]*pC[c_0])/(2*dz)+(pC[a_yz]*pC[b_z])/(4*dy)-
@@ -52,14 +80,28 @@ REAL JXBX_010_110(
    (pC[b_xyz]*pC[b_yy])/(24*dx)-(pC[b_xyy]*pC[b_yy])/(36*dx)-(pC[b_xy]*pC[b_yy])/(12*dx)-(pC[b_x]*pC[b_yy])/(6*dx)+(pC[b_xz]*pC[b_y])/(4*dx)+(pC[b_xyz]*pC[b_y])/(8*dx)-(pC[b_xyy]*pC[b_y])/(12*dx)-(pC[b_xy]*pC[b_y])/(4*dx)-(pC[b_x]*pC[b_y])/(2*dx)+(pC[b_0]*pC[b_xz])/(2*dx)+(pC[b_0]*pC[b_xyz])/(4*dx)-(pC[b_0]*pC[b_xyy])/(6*dx)-(pC[b_xxy]*pC[b_xy])/(24*dx)-(pC[b_xx]*pC[b_xy])/(12*dx)-(pC[b_0]*pC[b_xy])/(2*dx)-(pC[b_x]*pC[b_xxy])/(12*dx)-(pC[b_x]*pC[b_xx])/(6*dx)-(pC[b_0]*pC[b_x])/dx;
 }
 
+/*! \brief Low-level Hall component computation
+ * 
+ * Hall term computation following Balsara reconstruction, edge-averaged.
+ * 
+ * \param pC Reconstruction coefficients
+ * \param BGBY Background By
+ * \param BGBZ Background Bz
+ * \param dx Cell dx
+ * \param dy Cell dy
+ * \param dz Cell dz
+ * 
+ * \sa calculateEdgeHallTermXComponents
+ * 
+ */
 template<typename REAL> inline
 REAL JXBX_001_101(
-                  const REAL* const pC,
-                  creal BGBY,
-                  creal BGBZ,
-                  creal dx,
-                  creal dy,
-                  creal dz
+   const REAL* const pC,
+   creal BGBY,
+   creal BGBZ,
+   creal dx,
+   creal dy,
+   creal dz
 ) {
    using namespace Rec;
    return(pC[a_zz]*BGBZ)/dz+(pC[a_z]*BGBZ)/dz-(pC[a_yz]*BGBZ)/(2*dz)-(pC[c_xzz]*BGBZ)/(6*dx)-(pC[c_xz]*BGBZ)/(2*dx)+(pC[c_xyz]*BGBZ)/(4*dx)+(pC[c_xy]*BGBZ)/(2*dx)-(pC[c_x]*BGBZ)/dx+(pC[a_yz]*BGBY)/(2*dy)-(pC[a_yy]*BGBY)/dy+(pC[a_y]*BGBY)/dy-(pC[b_xz]*BGBY)/(2*dx)+(pC[b_xyz]*BGBY)/(4*dx)-(pC[b_xyy]*BGBY)/(6*dx)+(pC[b_xy]*BGBY)/(2*dx)-(pC[b_x]*BGBY)/dx+(pC[a_zz]*pC[c_zz])/(6*dz)+(pC[a_z]*pC[c_zz])/(6*dz)-
@@ -70,15 +112,29 @@ REAL JXBX_001_101(
    (pC[b_xyz]*pC[b_yy])/(24*dx)-(pC[b_xyy]*pC[b_yy])/(36*dx)+(pC[b_xy]*pC[b_yy])/(12*dx)-(pC[b_x]*pC[b_yy])/(6*dx)+(pC[b_xz]*pC[b_y])/(4*dx)-(pC[b_xyz]*pC[b_y])/(8*dx)+(pC[b_xyy]*pC[b_y])/(12*dx)-(pC[b_xy]*pC[b_y])/(4*dx)+(pC[b_x]*pC[b_y])/(2*dx)-(pC[b_0]*pC[b_xz])/(2*dx)+(pC[b_0]*pC[b_xyz])/(4*dx)-(pC[b_0]*pC[b_xyy])/(6*dx)-(pC[b_xxy]*pC[b_xy])/(24*dx)+(pC[b_xx]*pC[b_xy])/(12*dx)+(pC[b_0]*pC[b_xy])/(2*dx)+(pC[b_x]*pC[b_xxy])/(12*dx)-(pC[b_x]*pC[b_xx])/(6*dx)-(pC[b_0]*pC[b_x])/dx ;
 }
 
+/*! \brief Low-level Hall component computation
+ * 
+ * Hall term computation following Balsara reconstruction, edge-averaged.
+ * 
+ * \param pC Reconstruction coefficients
+ * \param BGBY Background By
+ * \param BGBZ Background Bz
+ * \param dx Cell dx
+ * \param dy Cell dy
+ * \param dz Cell dz
+ * 
+ * \sa calculateEdgeHallTermXComponents
+ * 
+ */
 template<typename REAL> inline
 REAL JXBX_011_111(
-                  const REAL* const pC,
-                  creal BGBY,
-                  creal BGBZ,
-                  creal dx,
-                  creal dy,
-                  creal dz
-                 ) {
+   const REAL* const pC,
+   creal BGBY,
+   creal BGBZ,
+   creal dx,
+   creal dy,
+   creal dz
+) {
    using namespace Rec;
    return (pC[a_zz]*BGBZ)/dz+(pC[a_z]*BGBZ)/dz+(pC[a_yz]*BGBZ)/(2*dz)-(pC[c_xzz]*BGBZ)/(6*dx)-(pC[c_xz]*BGBZ)/(2*dx)-(pC[c_xyz]*BGBZ)/(4*dx)-(pC[c_xy]*BGBZ)/(2*dx)-(pC[c_x]*BGBZ)/dx+(pC[a_yz]*BGBY)/(2*dy)+(pC[a_yy]*BGBY)/dy+(pC[a_y]*BGBY)/dy-(pC[b_xz]*BGBY)/(2*dx)-(pC[b_xyz]*BGBY)/(4*dx)-(pC[b_xyy]*BGBY)/(6*dx)-(pC[b_xy]*BGBY)/(2*dx)-(pC[b_x]*BGBY)/dx+(pC[a_zz]*pC[c_zz])/(6*dz)+(pC[a_z]*pC[c_zz])/(6*dz)+
    (pC[a_yz]*pC[c_zz])/(12*dz)+(pC[a_zz]*pC[c_z])/(2*dz)+(pC[a_z]*pC[c_z])/(2*dz)+(pC[a_yz]*pC[c_z])/(4*dz)+(pC[a_zz]*pC[c_yz])/(4*dz)+(pC[a_z]*pC[c_yz])/(4*dz)+(pC[a_yz]*pC[c_yz])/(8*dz)+(pC[a_zz]*pC[c_y])/(2*dz)+(pC[a_z]*pC[c_y])/(2*dz)+(pC[a_yz]*pC[c_y])/(4*dz)+(pC[a_xzz]*pC[c_xz])/(24*dz)+(pC[a_xz]*pC[c_xz])/(24*dz)+(pC[a_xyz]*pC[c_xz])/(48*dz)+(pC[a_xzz]*pC[c_x])/(12*dz)+(pC[a_xz]*pC[c_x])/(12*dz)+(pC[a_xyz]*pC[c_x])/(24*dz)+(pC[a_zz]*pC[c_0])/dz+(pC[a_z]*pC[c_0])/dz+(pC[a_yz]*pC[c_0])/(2*dz)+(pC[a_yz]*pC[b_z])/(4*dy)+
@@ -89,15 +145,29 @@ REAL JXBX_011_111(
 }
 
 // Y
+/*! \brief Low-level Hall component computation
+ * 
+ * Hall term computation following Balsara reconstruction, edge-averaged.
+ * 
+ * \param pC Reconstruction coefficients
+ * \param BGBX Background Bx
+ * \param BGBZ Background Bz
+ * \param dx Cell dx
+ * \param dy Cell dy
+ * \param dz Cell dz
+ * 
+ * \sa calculateEdgeHallTermYComponents
+ * 
+ */
 template<typename REAL> inline
 REAL JXBY_000_010(
-                  const REAL* const pC,
-                  creal BGBX,
-                  creal BGBZ,
-                  creal dx,
-                  creal dy,
-                  creal dz
-                 ) {
+   const REAL* const pC,
+   creal BGBX,
+   creal BGBZ,
+   creal dx,
+   creal dy,
+   creal dz
+) {
    using namespace Rec;
    return -(pC[b_zz]*BGBZ)/dz+(pC[b_z]*BGBZ)/dz-(pC[b_xz]*BGBZ)/(2*dz)-(pC[c_yzz]*BGBZ)/(6*dy)+(pC[c_yz]*BGBZ)/(2*dy)-(pC[c_y]*BGBZ)/dy-(pC[c_xyz]*BGBZ)/(4*dy)+(pC[c_xy]*BGBZ)/(2*dy)+(pC[a_yz]*BGBX)/(2*dy)-(pC[a_y]*BGBX)/dy-(pC[a_xyz]*BGBX)/(4*dy)+(pC[a_xy]*BGBX)/(2*dy)-(pC[a_xxy]*BGBX)/(6*dy)-(pC[b_xz]*BGBX)/(2*dx)-(pC[b_xx]*BGBX)/dx+(pC[b_x]*BGBX)/dx-(pC[b_zz]*pC[c_zz])/(6*dz)+(pC[b_z]*pC[c_zz])/(6*dz)-
      (pC[b_xz]*pC[c_zz])/(12*dz)+(pC[b_zz]*pC[c_z])/(2*dz)-(pC[b_z]*pC[c_z])/(2*dz)+(pC[b_xz]*pC[c_z])/(4*dz)+(pC[b_yzz]*pC[c_yz])/(24*dz)-(pC[b_yz]*pC[c_yz])/(24*dz)+(pC[b_xyz]*pC[c_yz])/(48*dz)-(pC[b_yzz]*pC[c_y])/(12*dz)+(pC[b_yz]*pC[c_y])/(12*dz)-(pC[b_xyz]*pC[c_y])/(24*dz)-(pC[b_zz]*pC[c_xz])/(4*dz)+(pC[b_z]*pC[c_xz])/(4*dz)-(pC[b_xz]*pC[c_xz])/(8*dz)+(pC[b_zz]*pC[c_x])/(2*dz)-(pC[b_z]*pC[c_x])/(2*dz)+(pC[b_xz]*pC[c_x])/(4*dz)-(pC[b_zz]*pC[c_0])/dz+(pC[b_z]*pC[c_0])/dz-(pC[b_xz]*pC[c_0])/(2*dz)-(pC[c_yzz]*pC[c_zz])/(36*dy)+
@@ -107,15 +177,29 @@ REAL JXBY_000_010(
      (pC[a_xx]*pC[b_xz])/(12*dx)+(pC[a_x]*pC[b_xz])/(4*dx)-(pC[a_0]*pC[b_xz])/(2*dx)-(pC[a_y]*pC[b_xyz])/(24*dx)+(pC[a_xy]*pC[b_xyz])/(48*dx)+(pC[a_y]*pC[b_xy])/(12*dx)-(pC[a_xy]*pC[b_xy])/(24*dx)-(pC[a_y]*pC[b_xxy])/(12*dx)+(pC[a_xy]*pC[b_xxy])/(24*dx)+(pC[a_z]*pC[b_xx])/(2*dx)-(pC[a_xz]*pC[b_xx])/(4*dx)-(pC[a_xx]*pC[b_xx])/(6*dx)+(pC[a_x]*pC[b_xx])/(2*dx)-(pC[a_0]*pC[b_xx])/dx-(pC[a_z]*pC[b_x])/(2*dx)+(pC[a_xz]*pC[b_x])/(4*dx)+(pC[a_xx]*pC[b_x])/(6*dx)-(pC[a_x]*pC[b_x])/(2*dx)+(pC[a_0]*pC[b_x])/dx;
 }
 
+/*! \brief Low-level Hall component computation
+ * 
+ * Hall term computation following Balsara reconstruction, edge-averaged.
+ * 
+ * \param pC Reconstruction coefficients
+ * \param BGBX Background Bx
+ * \param BGBZ Background Bz
+ * \param dx Cell dx
+ * \param dy Cell dy
+ * \param dz Cell dz
+ * 
+ * \sa calculateEdgeHallTermYComponents
+ * 
+ */
 template<typename REAL> inline
 REAL JXBY_100_110(
-                  const REAL* const pC,
-                  creal BGBX,
-                  creal BGBZ,
-                  creal dx,
-                  creal dy,
-                  creal dz
-                 ) {
+   const REAL* const pC,
+   creal BGBX,
+   creal BGBZ,
+   creal dx,
+   creal dy,
+   creal dz
+) {
    using namespace Rec;
    return -(pC[b_zz]*BGBZ)/dz+(pC[b_z]*BGBZ)/dz+(pC[b_xz]*BGBZ)/(2*dz)-(pC[c_yzz]*BGBZ)/(6*dy)+(pC[c_yz]*BGBZ)/(2*dy)-(pC[c_y]*BGBZ)/dy+(pC[c_xyz]*BGBZ)/(4*dy)-(pC[c_xy]*BGBZ)/(2*dy)+(pC[a_yz]*BGBX)/(2*dy)-(pC[a_y]*BGBX)/dy+(pC[a_xyz]*BGBX)/(4*dy)-(pC[a_xy]*BGBX)/(2*dy)-(pC[a_xxy]*BGBX)/(6*dy)-(pC[b_xz]*BGBX)/(2*dx)+(pC[b_xx]*BGBX)/dx+(pC[b_x]*BGBX)/dx-(pC[b_zz]*pC[c_zz])/(6*dz)+(pC[b_z]*pC[c_zz])/(6*dz)+
      (pC[b_xz]*pC[c_zz])/(12*dz)+(pC[b_zz]*pC[c_z])/(2*dz)-(pC[b_z]*pC[c_z])/(2*dz)-(pC[b_xz]*pC[c_z])/(4*dz)+(pC[b_yzz]*pC[c_yz])/(24*dz)-(pC[b_yz]*pC[c_yz])/(24*dz)-(pC[b_xyz]*pC[c_yz])/(48*dz)-(pC[b_yzz]*pC[c_y])/(12*dz)+(pC[b_yz]*pC[c_y])/(12*dz)+(pC[b_xyz]*pC[c_y])/(24*dz)+(pC[b_zz]*pC[c_xz])/(4*dz)-(pC[b_z]*pC[c_xz])/(4*dz)-(pC[b_xz]*pC[c_xz])/(8*dz)-(pC[b_zz]*pC[c_x])/(2*dz)+(pC[b_z]*pC[c_x])/(2*dz)+(pC[b_xz]*pC[c_x])/(4*dz)-(pC[b_zz]*pC[c_0])/dz+(pC[b_z]*pC[c_0])/dz+(pC[b_xz]*pC[c_0])/(2*dz)-(pC[c_yzz]*pC[c_zz])/(36*dy)+
@@ -125,15 +209,29 @@ REAL JXBY_100_110(
      (pC[a_xx]*pC[b_xz])/(12*dx)-(pC[a_x]*pC[b_xz])/(4*dx)-(pC[a_0]*pC[b_xz])/(2*dx)-(pC[a_y]*pC[b_xyz])/(24*dx)-(pC[a_xy]*pC[b_xyz])/(48*dx)+(pC[a_y]*pC[b_xy])/(12*dx)+(pC[a_xy]*pC[b_xy])/(24*dx)+(pC[a_y]*pC[b_xxy])/(12*dx)+(pC[a_xy]*pC[b_xxy])/(24*dx)-(pC[a_z]*pC[b_xx])/(2*dx)-(pC[a_xz]*pC[b_xx])/(4*dx)+(pC[a_xx]*pC[b_xx])/(6*dx)+(pC[a_x]*pC[b_xx])/(2*dx)+(pC[a_0]*pC[b_xx])/dx-(pC[a_z]*pC[b_x])/(2*dx)-(pC[a_xz]*pC[b_x])/(4*dx)+(pC[a_xx]*pC[b_x])/(6*dx)+(pC[a_x]*pC[b_x])/(2*dx)+(pC[a_0]*pC[b_x])/dx;
 }
 
+/*! \brief Low-level Hall component computation
+ * 
+ * Hall term computation following Balsara reconstruction, edge-averaged.
+ * 
+ * \param pC Reconstruction coefficients
+ * \param BGBX Background Bx
+ * \param BGBZ Background Bz
+ * \param dx Cell dx
+ * \param dy Cell dy
+ * \param dz Cell dz
+ * 
+ * \sa calculateEdgeHallTermYComponents
+ * 
+ */
 template<typename REAL> inline
 REAL JXBY_001_011(
-                  const REAL* const pC,
-                  creal BGBX,
-                  creal BGBZ,
-                  creal dx,
-                  creal dy,
-                  creal dz
-                 ) {
+   const REAL* const pC,
+   creal BGBX,
+   creal BGBZ,
+   creal dx,
+   creal dy,
+   creal dz
+) {
    using namespace Rec;
    return (pC[b_zz]*BGBZ)/dz+(pC[b_z]*BGBZ)/dz-(pC[b_xz]*BGBZ)/(2*dz)-(pC[c_yzz]*BGBZ)/(6*dy)-(pC[c_yz]*BGBZ)/(2*dy)-(pC[c_y]*BGBZ)/dy+(pC[c_xyz]*BGBZ)/(4*dy)+(pC[c_xy]*BGBZ)/(2*dy)-(pC[a_yz]*BGBX)/(2*dy)-(pC[a_y]*BGBX)/dy+(pC[a_xyz]*BGBX)/(4*dy)+(pC[a_xy]*BGBX)/(2*dy)-(pC[a_xxy]*BGBX)/(6*dy)+(pC[b_xz]*BGBX)/(2*dx)-(pC[b_xx]*BGBX)/dx+(pC[b_x]*BGBX)/dx+(pC[b_zz]*pC[c_zz])/(6*dz)+(pC[b_z]*pC[c_zz])/(6*dz)-
      (pC[b_xz]*pC[c_zz])/(12*dz)+(pC[b_zz]*pC[c_z])/(2*dz)+(pC[b_z]*pC[c_z])/(2*dz)-(pC[b_xz]*pC[c_z])/(4*dz)+(pC[b_yzz]*pC[c_yz])/(24*dz)+(pC[b_yz]*pC[c_yz])/(24*dz)-(pC[b_xyz]*pC[c_yz])/(48*dz)+(pC[b_yzz]*pC[c_y])/(12*dz)+(pC[b_yz]*pC[c_y])/(12*dz)-(pC[b_xyz]*pC[c_y])/(24*dz)-(pC[b_zz]*pC[c_xz])/(4*dz)-(pC[b_z]*pC[c_xz])/(4*dz)+(pC[b_xz]*pC[c_xz])/(8*dz)-(pC[b_zz]*pC[c_x])/(2*dz)-(pC[b_z]*pC[c_x])/(2*dz)+(pC[b_xz]*pC[c_x])/(4*dz)+(pC[b_zz]*pC[c_0])/dz+(pC[b_z]*pC[c_0])/dz-(pC[b_xz]*pC[c_0])/(2*dz)-(pC[c_yzz]*pC[c_zz])/(36*dy)-
@@ -143,15 +241,29 @@ REAL JXBY_001_011(
      (pC[a_xx]*pC[b_xz])/(12*dx)-(pC[a_x]*pC[b_xz])/(4*dx)+(pC[a_0]*pC[b_xz])/(2*dx)+(pC[a_y]*pC[b_xyz])/(24*dx)-(pC[a_xy]*pC[b_xyz])/(48*dx)+(pC[a_y]*pC[b_xy])/(12*dx)-(pC[a_xy]*pC[b_xy])/(24*dx)-(pC[a_y]*pC[b_xxy])/(12*dx)+(pC[a_xy]*pC[b_xxy])/(24*dx)-(pC[a_z]*pC[b_xx])/(2*dx)+(pC[a_xz]*pC[b_xx])/(4*dx)-(pC[a_xx]*pC[b_xx])/(6*dx)+(pC[a_x]*pC[b_xx])/(2*dx)-(pC[a_0]*pC[b_xx])/dx+(pC[a_z]*pC[b_x])/(2*dx)-(pC[a_xz]*pC[b_x])/(4*dx)+(pC[a_xx]*pC[b_x])/(6*dx)-(pC[a_x]*pC[b_x])/(2*dx)+(pC[a_0]*pC[b_x])/dx;
 }
 
+/*! \brief Low-level Hall component computation
+ * 
+ * Hall term computation following Balsara reconstruction, edge-averaged.
+ * 
+ * \param pC Reconstruction coefficients
+ * \param BGBX Background Bx
+ * \param BGBZ Background Bz
+ * \param dx Cell dx
+ * \param dy Cell dy
+ * \param dz Cell dz
+ * 
+ * \sa calculateEdgeHallTermYComponents
+ * 
+ */
 template<typename REAL> inline
 REAL JXBY_101_111(
-                  const REAL* const pC,
-                  creal BGBX,
-                  creal BGBZ,
-                  creal dx,
-                  creal dy,
-                  creal dz
-                 ) {
+   const REAL* const pC,
+   creal BGBX,
+   creal BGBZ,
+   creal dx,
+   creal dy,
+   creal dz
+) {
    using namespace Rec;
    return (pC[b_zz]*BGBZ)/dz+(pC[b_z]*BGBZ)/dz+(pC[b_xz]*BGBZ)/(2*dz)-(pC[c_yzz]*BGBZ)/(6*dy)-(pC[c_yz]*BGBZ)/(2*dy)-(pC[c_y]*BGBZ)/dy-(pC[c_xyz]*BGBZ)/(4*dy)-(pC[c_xy]*BGBZ)/(2*dy)-(pC[a_yz]*BGBX)/(2*dy)-(pC[a_y]*BGBX)/dy-(pC[a_xyz]*BGBX)/(4*dy)-(pC[a_xy]*BGBX)/(2*dy)-(pC[a_xxy]*BGBX)/(6*dy)+(pC[b_xz]*BGBX)/(2*dx)+(pC[b_xx]*BGBX)/dx+(pC[b_x]*BGBX)/dx+(pC[b_zz]*pC[c_zz])/(6*dz)+(pC[b_z]*pC[c_zz])/(6*dz)+
      (pC[b_xz]*pC[c_zz])/(12*dz)+(pC[b_zz]*pC[c_z])/(2*dz)+(pC[b_z]*pC[c_z])/(2*dz)+(pC[b_xz]*pC[c_z])/(4*dz)+(pC[b_yzz]*pC[c_yz])/(24*dz)+(pC[b_yz]*pC[c_yz])/(24*dz)+(pC[b_xyz]*pC[c_yz])/(48*dz)+(pC[b_yzz]*pC[c_y])/(12*dz)+(pC[b_yz]*pC[c_y])/(12*dz)+(pC[b_xyz]*pC[c_y])/(24*dz)+(pC[b_zz]*pC[c_xz])/(4*dz)+(pC[b_z]*pC[c_xz])/(4*dz)+(pC[b_xz]*pC[c_xz])/(8*dz)+(pC[b_zz]*pC[c_x])/(2*dz)+(pC[b_z]*pC[c_x])/(2*dz)+(pC[b_xz]*pC[c_x])/(4*dz)+(pC[b_zz]*pC[c_0])/dz+(pC[b_z]*pC[c_0])/dz+(pC[b_xz]*pC[c_0])/(2*dz)-(pC[c_yzz]*pC[c_zz])/(36*dy)-
@@ -162,15 +274,29 @@ REAL JXBY_101_111(
 }
 
 // Z
+/*! \brief Low-level Hall component computation
+ * 
+ * Hall term computation following Balsara reconstruction, edge-averaged.
+ * 
+ * \param pC Reconstruction coefficients
+ * \param BGBX Background Bx
+ * \param BGBY Background By
+ * \param dx Cell dx
+ * \param dy Cell dy
+ * \param dz Cell dz
+ * 
+ * \sa calculateEdgeHallTermZComponents
+ * 
+ */
 template<typename REAL> inline
 REAL JXBZ_000_001(
-                  const REAL* const pC,
-                  creal BGBX,
-                  creal BGBY,
-                  creal dx,
-                  creal dy,
-                  creal dz
-                 ) {
+   const REAL* const pC,
+   creal BGBX,
+   creal BGBY,
+   creal dx,
+   creal dy,
+   creal dz
+) {
    using namespace Rec;
    return -(pC[b_z]*BGBY)/dz+(pC[b_yz]*BGBY)/(2*dz)-(pC[b_yyz]*BGBY)/(6*dz)+(pC[b_xz]*BGBY)/(2*dz)-(pC[b_xyz]*BGBY)/(4*dz)-(pC[c_yy]*BGBY)/dy+(pC[c_y]*BGBY)/dy-(pC[c_xy]*BGBY)/(2*dy)-(pC[a_z]*BGBX)/dz+(pC[a_yz]*BGBX)/(2*dz)+(pC[a_xz]*BGBX)/(2*dz)-(pC[a_xyz]*BGBX)/(4*dz)-(pC[a_xxz]*BGBX)/(6*dz)-(pC[c_xy]*BGBX)/(2*dx)-(pC[c_xx]*BGBX)/dx+(pC[c_x]*BGBX)/dx-(pC[b_z]*pC[b_zz])/(6*dz)+(pC[b_yz]*pC[b_zz])/(12*dz)+
      (pC[b_yzz]*pC[b_z])/(12*dz)-(pC[b_yy]*pC[b_z])/(6*dz)+(pC[b_y]*pC[b_z])/(2*dz)-(pC[b_xy]*pC[b_z])/(4*dz)+(pC[b_x]*pC[b_z])/(2*dz)-(pC[b_0]*pC[b_z])/dz-(pC[b_yz]*pC[b_yzz])/(24*dz)+(pC[b_yy]*pC[b_yz])/(12*dz)-(pC[b_y]*pC[b_yz])/(4*dz)+(pC[b_xy]*pC[b_yz])/(8*dz)-(pC[b_x]*pC[b_yz])/(4*dz)+(pC[b_0]*pC[b_yz])/(2*dz)-(pC[b_yy]*pC[b_yyz])/(36*dz)+(pC[b_y]*pC[b_yyz])/(12*dz)-(pC[b_xy]*pC[b_yyz])/(24*dz)+(pC[b_x]*pC[b_yyz])/(12*dz)-(pC[b_0]*pC[b_yyz])/(6*dz)+(pC[b_xz]*pC[b_yy])/(12*dz)-(pC[b_xyz]*pC[b_yy])/(24*dz)-(pC[b_xz]*pC[b_y])/(4*dz)+
@@ -180,14 +306,28 @@ REAL JXBZ_000_001(
      (pC[a_z]*pC[c_xyz])/(24*dx)+(pC[a_xz]*pC[c_xyz])/(48*dx)+(pC[a_y]*pC[c_xy])/(4*dx)-(pC[a_xy]*pC[c_xy])/(8*dx)-(pC[a_xx]*pC[c_xy])/(12*dx)+(pC[a_x]*pC[c_xy])/(4*dx)-(pC[a_0]*pC[c_xy])/(2*dx)-(pC[a_z]*pC[c_xxz])/(12*dx)+(pC[a_xz]*pC[c_xxz])/(24*dx)+(pC[a_y]*pC[c_xx])/(2*dx)-(pC[a_xy]*pC[c_xx])/(4*dx)-(pC[a_xx]*pC[c_xx])/(6*dx)+(pC[a_x]*pC[c_xx])/(2*dx)-(pC[a_0]*pC[c_xx])/dx-(pC[a_y]*pC[c_x])/(2*dx)+(pC[a_xy]*pC[c_x])/(4*dx)+(pC[a_xx]*pC[c_x])/(6*dx)-(pC[a_x]*pC[c_x])/(2*dx)+(pC[a_0]*pC[c_x])/dx;
 }
 
+/*! \brief Low-level Hall component computation
+ * 
+ * Hall term computation following Balsara reconstruction, edge-averaged.
+ * 
+ * \param pC Reconstruction coefficients
+ * \param BGBX Background Bx
+ * \param BGBY Background By
+ * \param dx Cell dx
+ * \param dy Cell dy
+ * \param dz Cell dz
+ * 
+ * \sa calculateEdgeHallTermZComponents
+ * 
+ */
 template<typename REAL> inline
 REAL JXBZ_100_101(
-                  const REAL* const pC,
-                  creal BGBX,
-                  creal BGBY,
-                  creal dx,
-                  creal dy,
-                  creal dz
+   const REAL* const pC,
+   creal BGBX,
+   creal BGBY,
+   creal dx,
+   creal dy,
+   creal dz
 ) {
    using namespace Rec;
    return -(pC[b_z]*BGBY)/dz+(pC[b_yz]*BGBY)/(2*dz)-(pC[b_yyz]*BGBY)/(6*dz)-(pC[b_xz]*BGBY)/(2*dz)+(pC[b_xyz]*BGBY)/(4*dz)-(pC[c_yy]*BGBY)/dy+(pC[c_y]*BGBY)/dy+(pC[c_xy]*BGBY)/(2*dy)-(pC[a_z]*BGBX)/dz+(pC[a_yz]*BGBX)/(2*dz)-(pC[a_xz]*BGBX)/(2*dz)+(pC[a_xyz]*BGBX)/(4*dz)-(pC[a_xxz]*BGBX)/(6*dz)-(pC[c_xy]*BGBX)/(2*dx)+(pC[c_xx]*BGBX)/dx+(pC[c_x]*BGBX)/dx-(pC[b_z]*pC[b_zz])/(6*dz)+(pC[b_yz]*pC[b_zz])/(12*dz)+
@@ -198,15 +338,29 @@ REAL JXBZ_100_101(
      (pC[a_xz]*pC[c_xyz])/(48*dx)+(pC[a_y]*pC[c_xy])/(4*dx)+(pC[a_xy]*pC[c_xy])/(8*dx)-(pC[a_xx]*pC[c_xy])/(12*dx)-(pC[a_x]*pC[c_xy])/(4*dx)-(pC[a_0]*pC[c_xy])/(2*dx)+(pC[a_z]*pC[c_xxz])/(12*dx)+(pC[a_xz]*pC[c_xxz])/(24*dx)-(pC[a_y]*pC[c_xx])/(2*dx)-(pC[a_xy]*pC[c_xx])/(4*dx)+(pC[a_xx]*pC[c_xx])/(6*dx)+(pC[a_x]*pC[c_xx])/(2*dx)+(pC[a_0]*pC[c_xx])/dx-(pC[a_y]*pC[c_x])/(2*dx)-(pC[a_xy]*pC[c_x])/(4*dx)+(pC[a_xx]*pC[c_x])/(6*dx)+(pC[a_x]*pC[c_x])/(2*dx)+(pC[a_0]*pC[c_x])/dx;
 }
 
+/*! \brief Low-level Hall component computation
+ * 
+ * Hall term computation following Balsara reconstruction, edge-averaged.
+ * 
+ * \param pC Reconstruction coefficients
+ * \param BGBX Background Bx
+ * \param BGBY Background By
+ * \param dx Cell dx
+ * \param dy Cell dy
+ * \param dz Cell dz
+ * 
+ * \sa calculateEdgeHallTermZComponents
+ * 
+ */
 template<typename REAL> inline
 REAL JXBZ_010_011(
-                  const REAL* const pC,
-                  creal BGBX,
-                  creal BGBY,
-                  creal dx,
-                  creal dy,
-                  creal dz
-                 ) {
+   const REAL* const pC,
+   creal BGBX,
+   creal BGBY,
+   creal dx,
+   creal dy,
+   creal dz
+) {
    using namespace Rec;
    return -(pC[b_z]*BGBY)/dz-(pC[b_yz]*BGBY)/(2*dz)-(pC[b_yyz]*BGBY)/(6*dz)+(pC[b_xz]*BGBY)/(2*dz)+(pC[b_xyz]*BGBY)/(4*dz)+(pC[c_yy]*BGBY)/dy+(pC[c_y]*BGBY)/dy-(pC[c_xy]*BGBY)/(2*dy)-(pC[a_z]*BGBX)/dz-(pC[a_yz]*BGBX)/(2*dz)+(pC[a_xz]*BGBX)/(2*dz)+(pC[a_xyz]*BGBX)/(4*dz)-(pC[a_xxz]*BGBX)/(6*dz)+(pC[c_xy]*BGBX)/(2*dx)-(pC[c_xx]*BGBX)/dx+(pC[c_x]*BGBX)/dx-(pC[b_z]*pC[b_zz])/(6*dz)-(pC[b_yz]*pC[b_zz])/(12*dz)-
      (pC[b_yzz]*pC[b_z])/(12*dz)-(pC[b_yy]*pC[b_z])/(6*dz)-(pC[b_y]*pC[b_z])/(2*dz)+(pC[b_xy]*pC[b_z])/(4*dz)+(pC[b_x]*pC[b_z])/(2*dz)-(pC[b_0]*pC[b_z])/dz-(pC[b_yz]*pC[b_yzz])/(24*dz)-(pC[b_yy]*pC[b_yz])/(12*dz)-(pC[b_y]*pC[b_yz])/(4*dz)+(pC[b_xy]*pC[b_yz])/(8*dz)+(pC[b_x]*pC[b_yz])/(4*dz)-(pC[b_0]*pC[b_yz])/(2*dz)-(pC[b_yy]*pC[b_yyz])/(36*dz)-(pC[b_y]*pC[b_yyz])/(12*dz)+(pC[b_xy]*pC[b_yyz])/(24*dz)+(pC[b_x]*pC[b_yyz])/(12*dz)-(pC[b_0]*pC[b_yyz])/(6*dz)+(pC[b_xz]*pC[b_yy])/(12*dz)+(pC[b_xyz]*pC[b_yy])/(24*dz)+(pC[b_xz]*pC[b_y])/(4*dz)+
@@ -216,14 +370,28 @@ REAL JXBZ_010_011(
      (pC[a_xz]*pC[c_xyz])/(48*dx)+(pC[a_y]*pC[c_xy])/(4*dx)-(pC[a_xy]*pC[c_xy])/(8*dx)+(pC[a_xx]*pC[c_xy])/(12*dx)-(pC[a_x]*pC[c_xy])/(4*dx)+(pC[a_0]*pC[c_xy])/(2*dx)-(pC[a_z]*pC[c_xxz])/(12*dx)+(pC[a_xz]*pC[c_xxz])/(24*dx)-(pC[a_y]*pC[c_xx])/(2*dx)+(pC[a_xy]*pC[c_xx])/(4*dx)-(pC[a_xx]*pC[c_xx])/(6*dx)+(pC[a_x]*pC[c_xx])/(2*dx)-(pC[a_0]*pC[c_xx])/dx+(pC[a_y]*pC[c_x])/(2*dx)-(pC[a_xy]*pC[c_x])/(4*dx)+(pC[a_xx]*pC[c_x])/(6*dx)-(pC[a_x]*pC[c_x])/(2*dx)+(pC[a_0]*pC[c_x])/dx;
 }
 
+/*! \brief Low-level Hall component computation
+ * 
+ * Hall term computation following Balsara reconstruction, edge-averaged.
+ * 
+ * \param pC Reconstruction coefficients
+ * \param BGBX Background Bx
+ * \param BGBY Background By
+ * \param dx Cell dx
+ * \param dy Cell dy
+ * \param dz Cell dz
+ * 
+ * \sa calculateEdgeHallTermZComponents
+ * 
+ */
 template<typename REAL> inline
 REAL JXBZ_110_111(
-                  const REAL* const pC,
-                  creal BGBX,
-                  creal BGBY,
-                  creal dx,
-                  creal dy,
-                  creal dz
+   const REAL* const pC,
+   creal BGBX,
+   creal BGBY,
+   creal dx,
+   creal dy,
+   creal dz
 ) {
    using namespace Rec;
    return -(pC[b_z]*BGBY)/dz-(pC[b_yz]*BGBY)/(2*dz)-(pC[b_yyz]*BGBY)/(6*dz)-(pC[b_xz]*BGBY)/(2*dz)-(pC[b_xyz]*BGBY)/(4*dz)+(pC[c_yy]*BGBY)/dy+(pC[c_y]*BGBY)/dy+(pC[c_xy]*BGBY)/(2*dy)-(pC[a_z]*BGBX)/dz-(pC[a_yz]*BGBX)/(2*dz)-(pC[a_xz]*BGBX)/(2*dz)-(pC[a_xyz]*BGBX)/(4*dz)-(pC[a_xxz]*BGBX)/(6*dz)+(pC[c_xy]*BGBX)/(2*dx)+(pC[c_xx]*BGBX)/dx+(pC[c_x]*BGBX)/dx-(pC[b_z]*pC[b_zz])/(6*dz)-(pC[b_yz]*pC[b_zz])/(12*dz)-
@@ -234,7 +402,24 @@ REAL JXBZ_110_111(
      (pC[a_xz]*pC[c_xyz])/(48*dx)+(pC[a_y]*pC[c_xy])/(4*dx)+(pC[a_xy]*pC[c_xy])/(8*dx)+(pC[a_xx]*pC[c_xy])/(12*dx)+(pC[a_x]*pC[c_xy])/(4*dx)+(pC[a_0]*pC[c_xy])/(2*dx)+(pC[a_z]*pC[c_xxz])/(12*dx)+(pC[a_xz]*pC[c_xxz])/(24*dx)+(pC[a_y]*pC[c_xx])/(2*dx)+(pC[a_xy]*pC[c_xx])/(4*dx)+(pC[a_xx]*pC[c_xx])/(6*dx)+(pC[a_x]*pC[c_xx])/(2*dx)+(pC[a_0]*pC[c_xx])/dx+(pC[a_y]*pC[c_x])/(2*dx)+(pC[a_xy]*pC[c_x])/(4*dx)+(pC[a_xx]*pC[c_x])/(6*dx)+(pC[a_x]*pC[c_x])/(2*dx)+(pC[a_0]*pC[c_x])/dx;
 }
 
-void calculateEdgeHallTermXComponents(Real* cp,Real* derivs,const Real* const perturbedCoefficients,cint& RKCase) {
+/*! \brief Low-level function computing the Hall term x components.
+ * 
+ * Calls the lower-level inline templates and scales the components properly.
+ * 
+ * \param cp Cell parameters
+ * \param derivs Cell derivatives
+ * \param perturbedCoefficients Reconstruction coefficients
+ * \param RKCase Element in the enum defining the Runge-Kutta method steps
+ * 
+ * \sa calculateHallTerm JXBX_000_100 JXBX_001_101 JXBX_010_110 JXBX_011_111
+ * 
+ */
+void calculateEdgeHallTermXComponents(
+   Real* cp,
+   Real* derivs,
+   const Real* const perturbedCoefficients,
+   cint& RKCase
+) {
    #warning Particles (charge) assumed to be protons here
 
    Real hallRho;
@@ -311,7 +496,24 @@ void calculateEdgeHallTermXComponents(Real* cp,Real* derivs,const Real* const pe
    }
 }
 
-void calculateEdgeHallTermYComponents(Real* cp,Real* derivs,const Real* const perturbedCoefficients,cint& RKCase) {
+/*! \brief Low-level function computing the Hall term y components.
+ * 
+ * Calls the lower-level inline templates and scales the components properly.
+ * 
+ * \param cp Cell parameters
+ * \param derivs Cell derivatives
+ * \param perturbedCoefficients Reconstruction coefficients
+ * \param RKCase Element in the enum defining the Runge-Kutta method steps
+ * 
+ * \sa calculateHallTerm JXBY_000_010 JXBY_001_011 JXBY_100_110 JXBY_101_111
+ * 
+ */
+void calculateEdgeHallTermYComponents(
+   Real* cp,
+   Real* derivs,
+   const Real* const perturbedCoefficients,
+   cint& RKCase
+) {
    #warning Particles (charge) assumed to be protons here
 
    Real hallRho;
@@ -354,32 +556,32 @@ void calculateEdgeHallTermYComponents(Real* cp,Real* derivs,const Real* const pe
       if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
          hallRho =  (cp[CellParams::RHO] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO] ;
          cp[CellParams::EYHALL_000_010] = JXBY_000_010(perturbedCoefficients, cp[CellParams::BGBX], cp[CellParams::BGBZ], 
-						       cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]) 
-	                                / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
+                         cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]) 
+                                   / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
          cp[CellParams::EYHALL_100_110] = JXBY_100_110(perturbedCoefficients, cp[CellParams::BGBX], cp[CellParams::BGBZ], 
-						       cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]) 
-	                                / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
+                         cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]) 
+                                   / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
          cp[CellParams::EYHALL_001_011] = JXBY_001_011(perturbedCoefficients, cp[CellParams::BGBX], cp[CellParams::BGBZ], 
-						       cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]) 
-	   / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
+                         cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]) 
+      / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
          cp[CellParams::EYHALL_101_111] = JXBY_101_111(perturbedCoefficients, cp[CellParams::BGBX], cp[CellParams::BGBZ], 
-						       cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]) 
-	   / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
+                         cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]) 
+      / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
       }
       if (RKCase == RK_ORDER2_STEP1) {
          hallRho =  (cp[CellParams::RHO_DT2] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO_DT2] ;
          cp[CellParams::EYHALL_000_010] = JXBY_000_010(perturbedCoefficients, cp[CellParams::BGBX], cp[CellParams::BGBZ], 
-						       cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]) 
-	   / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
+                         cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]) 
+      / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
          cp[CellParams::EYHALL_100_110] = JXBY_100_110(perturbedCoefficients, cp[CellParams::BGBX], cp[CellParams::BGBZ], 
-						       cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]) 
-	   / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
+                         cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]) 
+      / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
          cp[CellParams::EYHALL_001_011] = JXBY_001_011(perturbedCoefficients, cp[CellParams::BGBX], cp[CellParams::BGBZ], 
-						       cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]) 
-	   / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
+                         cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]) 
+      / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
          cp[CellParams::EYHALL_101_111] = JXBY_101_111(perturbedCoefficients, cp[CellParams::BGBX], cp[CellParams::BGBZ], 
-						       cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]) 
-	   / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
+                         cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]) 
+      / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
       }
       break;
 
@@ -389,7 +591,24 @@ void calculateEdgeHallTermYComponents(Real* cp,Real* derivs,const Real* const pe
    }
 }
 
-void calculateEdgeHallTermZComponents(Real* cp,Real* derivs,const Real* const perturbedCoefficients,cint& RKCase) {
+/*! \brief Low-level function computing the Hall term z components.
+ * 
+ * Calls the lower-level inline templates and scales the components properly.
+ * 
+ * \param cp Cell parameters
+ * \param derivs Cell derivatives
+ * \param perturbedCoefficients Reconstruction coefficients
+ * \param RKCase Element in the enum defining the Runge-Kutta method steps
+ * 
+ * \sa calculateHallTerm JXBZ_000_001 JXBZ_010_011 JXBZ_100_101 JXBZ_110_111
+ * 
+ */
+void calculateEdgeHallTermZComponents(
+   Real* cp,
+   Real* derivs,
+   const Real* const perturbedCoefficients,
+   cint& RKCase
+) {
   #warning Particles (charge) assumed to be protons here
 
    Real hallRho;
@@ -467,14 +686,20 @@ void calculateEdgeHallTermZComponents(Real* cp,Real* derivs,const Real* const pe
    }
 }
 
-/** Calculate the Hall term on all given cells.
- * @param sysBoundaries System boundary condition functions.
- * @param cache Cache for local cells.
- * @param cells Local IDs of calculated cells, one of the vectors in fs_cache::CacheContainer.
- * @param RKCase
+/** \brief Calculate the Hall term on all given cells.
+ * \param sysBoundaries System boundary condition functions.
+ * \param cache Cache for local cells.
+ * \param cells Local IDs of calculated cells, one of the vectors in fs_cache::CacheContainer.
+ * \param RKCase Element in the enum defining the Runge-Kutta method steps
+ * 
+ * \sa calculateHallTermSimple calculateEdgeHallTermXComponents calculateEdgeHallTermYComponents calculateEdgeHallTermZComponents
  */
-void calculateHallTerm(SysBoundary& sysBoundaries,std::vector<fs_cache::CellCache>& cache,
-                       const std::vector<uint16_t>& cells,cint& RKCase) {
+void calculateHallTerm(
+   SysBoundary& sysBoundaries,
+   std::vector<fs_cache::CellCache>& cache,
+   const std::vector<uint16_t>& cells,
+   cint& RKCase
+) {
 
    #pragma omp parallel for
    for (size_t c=0; c<cells.size(); ++c) { // DO_NOT_COMPUTE cells already removed
@@ -544,12 +769,23 @@ void calculateHallTerm(SysBoundary& sysBoundaries,std::vector<fs_cache::CellCach
    }
 }
 
+/*! \brief High-level function computing the Hall term.
+ * 
+ * Performs the communication before and after the computation as well as the computation of all Hall term components.
+ * 
+ * \param mpiGrid Grid
+ * \param sysBoundaries System boundary condition functions.
+ * \param localCells Vector of local cells
+ * \param RKCase Element in the enum defining the Runge-Kutta method steps
+ * 
+ * \sa calculateHallTerm
+ */
 void calculateHallTermSimple(
-                             dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                             SysBoundary& sysBoundaries,
-                             const vector<CellID>& localCells,
-                             cint& RKCase
-                            ) {
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   SysBoundary& sysBoundaries,
+   const vector<CellID>& localCells,
+   cint& RKCase
+) {
 
    namespace fs = fieldsolver;
    int timer;
