@@ -36,7 +36,7 @@ namespace SBC {
     * from file as well as the assignment of the state from the template cells.
     * 
     * The daughter classes have then to handle parameters and generate the template cells as
-    * wished from the data returned. 
+    * wished from the data returned.
     */
    class SetByUser: public SysBoundaryCondition {
    public:
@@ -55,10 +55,6 @@ namespace SBC {
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          Project &project
       );
-//       virtual bool applySysBoundaryCondition(
-//          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-//          creal& t
-//       );
       virtual Real fieldSolverBoundaryCondMagneticField(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const std::vector<fs_cache::CellCache>& cellCache,
@@ -75,10 +71,10 @@ namespace SBC {
          cuint component
       );
       virtual void fieldSolverBoundaryCondHallElectricField(
-                                                            fs_cache::CellCache& cache,
-                                                            cuint RKCase,
-                                                            cuint component
-                                                           );
+         fs_cache::CellCache& cache,
+         cuint RKCase,
+         cuint component
+      );
       virtual void fieldSolverBoundaryCondDerivatives(
          dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const CellID& cellID,

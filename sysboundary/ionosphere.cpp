@@ -514,7 +514,7 @@ namespace SBC {
    }
    
    void Ionosphere::fieldSolverBoundaryCondHallElectricField(
-                                                             fs_cache::CellCache& cache,
+      fs_cache::CellCache& cache,
       cuint RKCase,
       cuint component
    ) {
