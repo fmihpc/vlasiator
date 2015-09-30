@@ -252,7 +252,7 @@ bool readNBlocks(vlsv::ParallelReader& file,const std::string& meshName,
  \sa readBlockData
  */
 void getVelocityBlockCoordinates(const vmesh::GlobalID& block, boost::array<Real, 3>& blockCoordinates ) {
-#warning FIXME restart
+#warning DEPRECATED
    cerr << "restart disabled" << endl;
    exit(1);
    /*
@@ -293,7 +293,7 @@ bool _readBlockData(
    const uint64_t localBlocks,
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const int& popID
-) {
+) {   
    uint64_t arraySize;
    uint64_t avgVectorSize;
    uint64_t cellParamsVectorSize;
@@ -311,12 +311,12 @@ bool _readBlockData(
   list<pair<string,string> > blockIdAttribs;
   uint64_t blockIdVectorSize, blockIdByteSize;
   vlsv::datatype::type blockIdDataType;
-  blockIdAttribs.push_back( make_pair("mesh", "SpatialGrid") );
+  blockIdAttribs.push_back( make_pair("mesh", spatMeshName));
+  blockIdAttribs.push_back( make_pair("name", popName));
   if (file.getArrayInfo("BLOCKIDS",blockIdAttribs,arraySize,blockIdVectorSize,blockIdDataType,blockIdByteSize) == false ){
     logFile << "(RESTART) ERROR: Failed to read BLOCKCOORDINATES array info " << endl << write;
     return false;
   }
-
   if(file.getArrayInfo("BLOCKVARIABLE",avgAttribs,arraySize,avgVectorSize,dataType,byteSize) == false ){
     logFile << "(RESTART) ERROR: Failed to read BLOCKVARIABLE array info " << endl << write;
     return false;
@@ -332,24 +332,30 @@ bool _readBlockData(
       return false;
    }
    
-   if( blockIdByteSize  != sizeof(vmesh::GlobalID)) {
+   if( blockIdByteSize != sizeof(vmesh::GlobalID)) {
       logFile << "(RESTART) ERROR: BlockID data size does not match " << __FILE__ << " " << __LINE__ << endl << write;
       return false;
+   }
 
-   }      
-   fileReal *avgBuffer=new fileReal[avgVectorSize * localBlocks]; //avgs data for all cells
+   fileReal* avgBuffer = new fileReal[avgVectorSize * localBlocks]; //avgs data for all cells
    vmesh::GlobalID * blockIdBuffer = new vmesh::GlobalID[blockIdVectorSize * localBlocks]; //blockids of all cells
-   
+
    //Read block ids and data
-   file.readArray("BLOCKIDS", blockIdAttribs, localBlockStartOffset, localBlocks, (char*)blockIdBuffer );
-   file.readArray("BLOCKVARIABLE", avgAttribs, localBlockStartOffset, localBlocks, (char*)avgBuffer);
+   if (file.readArray("BLOCKIDS", blockIdAttribs, localBlockStartOffset, localBlocks, (char*)blockIdBuffer ) == false) {
+      cerr << "ERROR, failed to read BLOCKIDS in " << __FILE__ << ":" << __LINE__ << endl;
+      success = false;
+   }
+   if (file.readArray("BLOCKVARIABLE", avgAttribs, localBlockStartOffset, localBlocks, (char*)avgBuffer) == false) {
+      cerr << "ERROR, failed to read BLOCKVARIABLE in " << __FILE__ << ":" << __LINE__ << endl;
+      success = false;
+   }
    
    uint64_t blockBufferOffset=0;
    //Go through all spatial cells     
    vector<vmesh::GlobalID> blockIdsInCell; //blockIds in a particular cell, temporary usage
-   for(uint i=0;i<localCells;i++){
+   for(uint64_t i=0; i<localCells; i++) {
       CellID cell = fileCells[localCellStartOffset + i]; //spatial cell id 
-      uint nBlocksInCell = nBlocks[localCellStartOffset + i];
+      vmesh::LocalID nBlocksInCell = nBlocks[localCellStartOffset + i];
       //copy blocks in this cell to vector blockIdsInCell, size of read in data has been checked earlier
       blockIdsInCell.reserve(nBlocksInCell);
       blockIdsInCell.assign(blockIdBuffer + blockBufferOffset, blockIdBuffer + blockBufferOffset + nBlocksInCell);
@@ -414,7 +420,7 @@ bool readBlockData(
       // Count how many velocity blocks this process gets
       uint64_t blockSum = 0;
       for (uint64_t i=0; i<localCells; ++i) blockSum += blocksPerCell[i];
-
+      
       // Gather all block sums to master process who will them broadcast 
       // the values to everyone
       MPI_Gather(&blockSum,1,MPI_Type<uint64_t>(),offsetArray,1,MPI_Type<uint64_t>(),0,MPI_COMM_WORLD);      
@@ -713,7 +719,8 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    checkScalarParameter(file,"xcells_ini",P::xcells_ini,MASTER_RANK,MPI_COMM_WORLD);
    checkScalarParameter(file,"ycells_ini",P::ycells_ini,MASTER_RANK,MPI_COMM_WORLD);
    checkScalarParameter(file,"zcells_ini",P::zcells_ini,MASTER_RANK,MPI_COMM_WORLD);
-#warning Vel Mesh Parameters not checked anymore
+
+   #warning Vel Mesh Parameters not checked anymore
    //checkScalarParameter(file,"vxmin",P::vxmin,MASTER_RANK,MPI_COMM_WORLD);
    //checkScalarParameter(file,"vymin",P::vymin,MASTER_RANK,MPI_COMM_WORLD);
    //checkScalarParameter(file,"vzmin",P::vzmin,MASTER_RANK,MPI_COMM_WORLD);
@@ -736,9 +743,13 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    }
    
    exitOnError(success,"(RESTART) Wrong number of cells in restart file",MPI_COMM_WORLD);
+
+   // Read the total number of velocity blocks in each spatial cell.
+   // Note that this is a sum over all existing particle species.
    if (success == true) {
       success = readNBlocks(file,meshName,nBlocks,MASTER_RANK,MPI_COMM_WORLD);
    }
+
    //make sure all cells are empty, we will anyway overwrite everything and 
    // in that case moving cells is easier...
      {
@@ -780,8 +791,8 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 
    //update list of local gridcells
    recalculateLocalCellsCache();
-   getObjectWrapper().meshData.reallocate();
-   
+   //getObjectWrapper().meshData.reallocate();
+
    //get new list of local gridcells
    const vector<CellID>& gridCells = getLocalCells();
 
@@ -816,10 +827,10 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    }
 
    // Where local data start in the blocklists
-   uint64_t localBlocks=0;
-   for(uint64_t i=localCellStartOffset; i<localCellStartOffset+localCells; ++i) {
-     localBlocks += nBlocks[i];
-   }
+   //uint64_t localBlocks=0;
+   //for(uint64_t i=localCellStartOffset; i<localCellStartOffset+localCells; ++i) {
+   //  localBlocks += nBlocks[i];
+   //}
    phiprof::stop("readDatalayout");
 
    //todo, check file datatype, and do not just use double

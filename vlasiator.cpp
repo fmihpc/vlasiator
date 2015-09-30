@@ -393,7 +393,7 @@ int main(int argn,char* args[]) {
       phiprof::stop("write-initial-state");
    }
 
-   if (P::isRestart == false) {
+   if (P::isRestart == false) {      
       // Run Vlasov solver once with zero dt to initialize
       //per-cell dt limits. In restarts, we read the dt from file.
       phiprof::start("compute-dt");
@@ -414,7 +414,7 @@ int main(int argn,char* args[]) {
       phiprof::stop("compute-dt");
    }
 
-   if (!P::isRestart) {
+   if (!P::isRestart) {      
       //go forward by dt/2 in V, initializes leapfrog split. In restarts the
       //the distribution function is already propagated forward in time by dt/2
       phiprof::start("propagate-velocity-space-dt/2");
@@ -464,7 +464,7 @@ int main(int argn,char* args[]) {
    double beforeSimulationTime=P::t_min;
    double beforeStep=P::tstep_min;
    
-   while(P::tstep <=P::tstep_max  &&
+   while(P::tstep <= P::tstep_max  &&
          P::t-P::dt <= P::t_max+DT_EPSILON &&
          wallTimeRestartCounter <= P::exitAfterRestarts) {
       
@@ -549,11 +549,12 @@ int main(int argn,char* args[]) {
             phiprof::stop("write-system");
          }
       }
-      phiprof::start("Bailout-allreduce");
+      
       // Reduce globalflags::bailingOut from all processes
+      phiprof::start("Bailout-allreduce");
       MPI_Allreduce(&(globalflags::bailingOut), &(doBailout), 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
       phiprof::stop("Bailout-allreduce");
-
+      
       // Write restart data if needed
       phiprof::start("compute-is-restart-written");
       int writeRestartNow;
@@ -601,12 +602,12 @@ int main(int argn,char* args[]) {
       
       //no need to propagate if we are on the final step, we just
       //wanted to make sure all IO is done even for final step
-      if(P::tstep ==P::tstep_max ||
+      if(P::tstep == P::tstep_max ||
          P::t >= P::t_max ||
          doBailout > 0) {
          break;
       }
-
+      
       //Re-loadbalance if needed
       //TODO - add LB measure and do LB if it exceeds threshold
       if(P::tstep % P::rebalanceInterval == 0 && P::tstep > P::tstep_min) {
@@ -636,7 +637,7 @@ int main(int argn,char* args[]) {
       //do not compute new dt on first step (in restarts dt comes from file, otherwise it was initialized before we entered
       //simulation loop
       // FIXME what if dt changes at a restart??
-      if(P::dynamicTimestep  && P::tstep> P::tstep_min) {
+      if(P::dynamicTimestep  && P::tstep > P::tstep_min) {
          computeNewTimeStep(mpiGrid,newDt,dtIsChanged);
          addTimedBarrier("barrier-check-dt");
          if(dtIsChanged) {
@@ -763,12 +764,12 @@ int main(int argn,char* args[]) {
       poisson::finalize();
    }
    if (myRank == MASTER_RANK) {
-      if(doBailout > 0) {
+      if (doBailout > 0) {
          logFile << "(BAILOUT): Bailing out, see error log for details." << endl;
       }
       
       double timePerStep;
-      if(P::tstep == P::tstep_min) {
+      if (P::tstep == P::tstep_min) {
          timePerStep=0.0;
       } else {
          timePerStep=double(after  - startTime) / (P::tstep-P::tstep_min);

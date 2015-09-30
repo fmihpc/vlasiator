@@ -1628,10 +1628,10 @@ namespace spatial_cell {
       }
       
       #ifdef DEBUG_SPATIAL_CELL
-         if (adds != 8) {
-            std::cerr << "add_velocity_blocks failed to add 8 blocks!" << std::endl;
-            exit(1);
-         }
+         //if (adds != 8) {
+         //   std::cerr << "add_velocity_blocks failed to add 8 blocks!" << std::endl;
+         //   exit(1);
+         //}
       #endif
 
       // Add blocks to block container
