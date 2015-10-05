@@ -21,7 +21,10 @@ using namespace std;
  * of accuracy it is done in one stage or in two stages using the
  * intermediate E1 components for the first stage of the second-order
  * Runge-Kutta method and E for the other cases.
- * \param dt time step
+ * 
+ * \param cellCache Field solver cell cache
+ * \param cells Vector of cells to process
+ * \param dt Length of the time step
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  * \param doX If true, compute the x component (default true).
  * \param doY If true, compute the y component (default true).
@@ -122,19 +125,20 @@ void propagateMagneticField(
  * Propagates the magnetic field and applies the field boundary conditions defined in project.h where needed.
  * 
  * \param mpiGrid Grid
+ * \param sysBoundaries System boundary conditions existing
  * \param dt Length of the time step
  * \param localCells Vector of local cells to process
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  * 
- * \sa propagateMagneticField
+ * \sa propagateMagneticField propagateSysBoundaryMagneticField
  */
 void propagateMagneticFieldSimple(
-                                  dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                  SysBoundary& sysBoundaries,
-                                  creal& dt,
-                                  const std::vector<CellID>& localCells,
-                                  cint& RKCase
-                                 ) {
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   SysBoundary& sysBoundaries,
+   creal& dt,
+   const std::vector<CellID>& localCells,
+   cint& RKCase
+) {
 
    phiprof::start("Propagate magnetic field");
    
@@ -191,6 +195,19 @@ void propagateMagneticFieldSimple(
    phiprof::stop("Propagate magnetic field",N_cells,"Spatial Cells");
 }
 
+/*! \brief Low-level magnetic field propagation function.
+ * 
+ * Propagates the magnetic field according to the system boundary conditions.
+ * 
+ * \param mpiGrid Grid
+ * \param cellCache Field solver cell cache
+ * \param localID Field solver cache local cell ID
+ * \param sysBoundaries System boundary conditions existing
+ * \param dt Length of the time step
+ * \param RKCase Element in the enum defining the Runge-Kutta method steps
+ * 
+ * \sa propagateMagneticFieldSimple propagateMagneticField
+ */
 void propagateSysBoundaryMagneticField(
    const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const std::vector<fs_cache::CellCache>& cellCache,

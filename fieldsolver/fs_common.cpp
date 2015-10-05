@@ -10,6 +10,17 @@ Copyright 2010-2015 Finnish Meteorological Institute
 
 map<CellID,uint> existingCellsFlags;
 
+
+/*! \brief Helper function
+ * 
+ * Uses mpiGrid/dccrg to retrieve the cellID of a neighbour, taking its offset. Does not use the field solver cache, so it is not recommended to use it in intensive code sections.
+ * 
+ * \param mpiGrid Grid
+ * \param cellID ID of the current cell
+ * \param i Offset in x, 2 is current cell.
+ * \param j Offset in y, 2 is current cell.
+ * \param k Offset in z, 2 is current cell.
+ */
 CellID getNeighbourID(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const CellID& cellID,
@@ -63,11 +74,21 @@ CellID getNeighbourID(
    return neighbors[0];
 }
 
-Real divideIfNonZero(creal rhoV, creal rho) {
-   if(rho <= 0.0) {
+/*! \brief Helper function
+ * 
+ * Divides the first value by the second or returns zero if the denominator is zero.
+ * 
+ * \param numerator Numerator
+ * \param denominator Denominator
+ */
+Real divideIfNonZero(
+   creal numerator,
+   creal denominator
+) {
+   if(numerator <= 0.0) {
       return 0.0;
    } else {
-      return rhoV / rho;
+      return numerator / denominator;
    }
 }
 
@@ -76,13 +97,17 @@ Real divideIfNonZero(creal rhoV, creal rho) {
  * Computes the reconstruction coefficients used for field component reconstruction.
  * Only implemented for 2nd and 3rd order.
  * 
+ * \param cell Field solver cell cache
+ * \param perturbedResult Array in which to store the coefficients.
  * \param reconstructionOrder Reconstruction order of the fields after Balsara 2009, 2 used for BVOL, 3 used for 2nd-order Hall term calculations.
+ * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
-void reconstructionCoefficients(fs_cache::CellCache& cell,
-                                Real* perturbedResult,
-                                creal& reconstructionOrder,
-                                cint& RKCase
-                                ) {
+void reconstructionCoefficients(
+   fs_cache::CellCache& cell,
+   Real* perturbedResult,
+   creal& reconstructionOrder,
+   cint& RKCase
+) {
    
    namespace fs = fieldsolver;
    namespace cp = CellParams;
@@ -232,4 +257,4 @@ void reconstructionCoefficients(fs_cache::CellCache& cell,
       perturbedResult[Rec::c_0 ] = HALF*(cep_i1j1k2[cp::PERBZ_DT2] + cep_i1j1k1[cp::PERBZ_DT2]) - SIXTH*perturbedResult[Rec::c_zz];
    }
 }
-                                
+

@@ -16,17 +16,20 @@ extern map<CellID,uint> existingCellsFlags; /**< Defined in fs_common.cpp */
 /*! \brief Low-level spatial derivatives calculation.
  * 
  * For the cell with ID cellID calculate the spatial derivatives or apply the derivative boundary conditions defined in project.h. Uses RHO, RHOV[XYZ] and B[XYZ] in the first-order time accuracy method and in the second step of the second-order method, and RHO_DT2, RHOV[XYZ]1 and B[XYZ]1 in the first step of the second-order method.
- * \param cellID Index of the cell to process
  * \param mpiGrid Grid
+ * \param cellCache Field solver cell cache
+ * \param sysBoundaries System boundary conditions existing
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  * \param doMoments If true, the derivatives of moments (rho, V, P) are computed.
+ * 
+ * \sa calculateDerivativesSimple calculateBVOLDerivativesSimple calculateBVOLDerivatives
  */
 void calculateDerivatives(
-                          dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                          fs_cache::CellCache& cellCache,
-                          SysBoundary& sysBoundaries,
-                          cint& RKCase,
-                          const bool& doMoments
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   fs_cache::CellCache& cellCache,
+   SysBoundary& sysBoundaries,
+   cint& RKCase,
+   const bool& doMoments
 ) {
 
    namespace cp = CellParams;
@@ -371,18 +374,19 @@ void calculateDerivatives(
  * Then the derivatives are calculated.
  * 
  * \param mpiGrid Grid
+ * \param sysBoundaries System boundary conditions existing
  * \param localCells Vector of local cells to process
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  * \param doMoments If true, the derivatives of moments (rho, V, P) are computed.
  
- * \sa calculateDerivatives
+ * \sa calculateDerivatives calculateBVOLDerivativesSimple calculateBVOLDerivatives
  */
 void calculateDerivativesSimple(
-       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-       SysBoundary& sysBoundaries,
-       const vector<CellID>& localCells,
-       cint& RKCase,
-       const bool& doMoments
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   SysBoundary& sysBoundaries,
+   const vector<CellID>& localCells,
+   cint& RKCase,
+   const bool& doMoments
 ) {
    int timer;
    namespace fs = fieldsolver;
@@ -464,13 +468,18 @@ void calculateDerivativesSimple(
 /*! \brief Low-level spatial derivatives calculation.
  * 
  * For the cell with ID cellID calculate the spatial derivatives of BVOL or apply the derivative boundary conditions defined in project.h.
- * \param cellID Index of the cell to process
  * \param mpiGrid Grid
+ * \param cache Field solver cell cache
+ * \param cells Vector of local cells to process
+ * 
+ * \sa calculateDerivatives calculateBVOLDerivativesSimple calculateDerivativesSimple
  */
-void calculateBVOLDerivatives(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                              std::vector<fs_cache::CellCache>& cache,
-                              const std::vector<uint16_t>& cells,
-                              SysBoundary& sysBoundaries) {
+void calculateBVOLDerivatives(
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   std::vector<fs_cache::CellCache>& cache,
+   const std::vector<uint16_t>& cells,
+   SysBoundary& sysBoundaries
+) {
    #warning This function still contains mpiGrid!
 
    namespace cp = CellParams;
@@ -556,7 +565,7 @@ void calculateBVOLDerivatives(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry
  * \param sysBoundaries System boundary conditions existing
  * \param localCells Vector of local cells to process
  * 
- * \sa calculateDerivatives
+ * \sa calculateDerivatives calculateBVOLDerivatives calculateDerivativesSimple
  */
 void calculateBVOLDerivativesSimple(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,

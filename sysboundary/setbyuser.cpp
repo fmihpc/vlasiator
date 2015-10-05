@@ -145,11 +145,11 @@ namespace SBC {
    }
 
    void SetByUser::fieldSolverBoundaryCondElectricField(
-                                                        dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                                        const CellID& cellID,
-                                                        cuint RKCase,
-                                                        cuint component
-                                                       ) {
+      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      const CellID& cellID,
+      cuint RKCase,
+      cuint component
+   ) {
       if((RKCase == RK_ORDER1) || (RKCase == RK_ORDER2_STEP2)) {
          mpiGrid[cellID]->parameters[CellParams::EX+component] = 0.0;
       } else {// RKCase == RK_ORDER2_STEP1
@@ -158,10 +158,10 @@ namespace SBC {
    }
 
    void SetByUser::fieldSolverBoundaryCondHallElectricField(
-                                                            fs_cache::CellCache& cache,
-                                                            cuint RKCase,
-                                                            cuint component
-                                                           ) {
+      fs_cache::CellCache& cache,
+      cuint RKCase,
+      cuint component
+   ) {
 
       Real* cp = cache.cells[fs_cache::calculateNbrID(1,1,1)]->parameters;
       
@@ -190,19 +190,19 @@ namespace SBC {
    }
    
    void SetByUser::fieldSolverBoundaryCondDerivatives(
-                                                      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                                      const CellID& cellID,
-                                                      cuint& RKCase,
-                                                      cuint& component
-                                                     ) {
+      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      const CellID& cellID,
+      cuint& RKCase,
+      cuint& component
+   ) {
       this->setCellDerivativesToZero(mpiGrid, cellID, component);
    }
 
    void SetByUser::fieldSolverBoundaryCondBVOLDerivatives(
-                                                          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                                          const CellID& cellID,
-                                                          cuint& component
-                                                         ) {
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      const CellID& cellID,
+      cuint& component
+   ) {
       this->setCellBVOLDerivativesToZero(mpiGrid, cellID, component);
    }
 
@@ -276,8 +276,7 @@ namespace SBC {
     * Function adapted from GUMICS-5.
     * 
     * \param fn Name of the file to be opened.
-    * \retval dataset Vector of Real vectors. Each line of length nParams is put into
-    * a vector. Each of these is then put into the vector returned here.
+    * \retval dataset Vector of Real vectors. Each line of length nParams is put into a vector. Each of these is then put into the vector returned here.
     */
    vector<vector<Real> > SetByUser::loadFile(const char *fn) {
       vector<vector<Real> > dataset;
@@ -380,7 +379,11 @@ namespace SBC {
     * \param t Current simulation time.
     * \param outputData Pointer to the location where to write the result. Make sure from the calling side that nParams Real values can be written there!
     */
-   void SetByUser::interpolate(const int inputDataIndex, creal t, Real* outputData) {
+   void SetByUser::interpolate(
+      const int inputDataIndex,
+      creal t,
+      Real* outputData
+   ) {
       // Find first data[0] value which is >= t
       int i1=0,i2=0;
       bool found = false;
@@ -422,7 +425,11 @@ namespace SBC {
       }
    }
 
-   void SetByUser::generateTemplateCell(spatial_cell::SpatialCell& templateCell, int inputDataIndex, creal& t) {
+   void SetByUser::generateTemplateCell(
+      spatial_cell::SpatialCell& templateCell,
+      int inputDataIndex,
+      creal& t
+   ) {
       cerr << "Base class SetByUser::generateTemplateCell() called instead of derived class function!" << endl;
    }
    
