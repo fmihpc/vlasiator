@@ -85,7 +85,7 @@ Real divideIfNonZero(
    creal numerator,
    creal denominator
 ) {
-   if(numerator <= 0.0) {
+   if(denominator <= 0.0) {
       return 0.0;
    } else {
       return numerator / denominator;
