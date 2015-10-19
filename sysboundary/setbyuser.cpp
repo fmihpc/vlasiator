@@ -239,7 +239,7 @@ namespace SBC {
                cell->parameters[CellParams::RHOLOSSADJUST] = 0.0;
                cell->parameters[CellParams::RHOLOSSVELBOUNDARY] = 0.0;
                
-               copyCellData(&templateCells[i], cell,true);
+               copyCellData(&templateCells[i], cell,true,false);
                break; // This effectively sets the precedence of faces through the order of faces.
             }
          }

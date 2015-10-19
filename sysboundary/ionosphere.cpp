@@ -702,7 +702,7 @@ namespace SBC {
       cell->parameters[CellParams::RHOLOSSADJUST] = 0.0;
       cell->parameters[CellParams::RHOLOSSVELBOUNDARY] = 0.0;
       //Copy, and allow to change blocks
-      copyCellData(&templateCell, cell,true);
+      copyCellData(&templateCell, cell,true,false);
    }
    
    std::string Ionosphere::getName() const {return "Ionosphere";}

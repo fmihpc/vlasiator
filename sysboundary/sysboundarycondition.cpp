@@ -339,10 +339,12 @@ namespace SBC {
    /*! Function used to copy the distribution and moments from (one of) the closest sysboundarytype::NOT_SYSBOUNDARY cell.
     * \param mpiGrid Grid
     * \param cellID The cell's ID.
+    * \param copyMomentsOnly If true, do not touch velocity space.
     */
    void SysBoundaryCondition::vlasovBoundaryCopyFromTheClosestNbr(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID
+      const CellID& cellID,
+      const bool& copyMomentsOnly
    ) {
       const CellID closestCell = getTheClosestNonsysboundaryCell(cellID);
       
@@ -351,7 +353,7 @@ namespace SBC {
          abort();
       }
       //Do not allow block adjustment, the block structure when calling vlasovBoundaryCondition should be static
-      copyCellData(mpiGrid[closestCell], mpiGrid[cellID],false);
+      copyCellData(mpiGrid[closestCell], mpiGrid[cellID],false, copyMomentsOnly);
    }
    
    /*! Function used to average and copy the distribution and moments from all the closest sysboundarytype::NOT_SYSBOUNDARY cells.
@@ -379,9 +381,10 @@ namespace SBC {
    void SysBoundaryCondition::copyCellData(
       SpatialCell *from,
       SpatialCell *to,
-      bool allowBlockAdjustment
+      const bool& allowBlockAdjustment,
+      const bool& copyMomentsOnly 
    ) {
-      if(to->sysBoundaryLayer == 1) { // Do this only for the first layer, the other layers do not need this.
+      if(to->sysBoundaryLayer == 1 && !copyMomentsOnly) { // Do this only for the first layer, the other layers do not need this. Do only if copyMomentsOnly is false.
 
          if (allowBlockAdjustment) {
          // prepare list of blocks to remove. It is not safe to loop over velocity_block_list while adding/removing blocks
@@ -460,7 +463,7 @@ namespace SBC {
    ) {
       cuint numberOfCells = cellList.size();
       if(numberOfCells == 1) {
-         copyCellData(mpiGrid[cellList[0]], to, true);
+         copyCellData(mpiGrid[cellList[0]], to, true, false);
       } else {
          creal factor = 1.0 / convert<Real>(numberOfCells);
          
@@ -597,13 +600,15 @@ namespace SBC {
     * \param nx Unit vector x component normal to the absorption plane.
     * \param ny Unit vector y component normal to the absorption plane.
     * \param nz Unit vector z component normal to the absorption plane.
+    * \param quenchingFactor Multiplicative factor by which to scale the distribution function values. 0: absorb. ]0;1[: quench.
     */
    void SysBoundaryCondition::vlasovBoundaryAbsorb(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
       creal& nx,
       creal& ny,
-      creal& nz
+      creal& nz,
+      creal& quenchingFactor
    ) {
       SpatialCell * cell = mpiGrid[cellID];
       const std::vector<CellID> cellList = this->getAllClosestNonsysboundaryCells(cellID);
@@ -647,7 +652,7 @@ namespace SBC {
                            vxCellCenter,
                            vyCellCenter,
                            vzCellCenter,
-                           0.0
+                           factor*quenchingFactor*incomingCell->get_value(vxCellCenter, vyCellCenter, vzCellCenter)
                         );
                      }
             }

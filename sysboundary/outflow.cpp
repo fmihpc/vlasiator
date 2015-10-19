@@ -290,10 +290,9 @@ namespace SBC {
       
       SpatialCell* cell = mpiGrid[cellID];
       
-      if( cell->sysBoundaryLayer == 2) {
-         // This being layer 2, it will not touch blocks.
-         vlasovBoundaryCopyFromTheClosestNbr(mpiGrid, cellID);
-      } else {
+
+         vlasovBoundaryCopyFromTheClosestNbr(mpiGrid, cellID, true); // copyMomentsOnly is true, velocity space is not touched. Do this anyway for all cells!
+         if (cell->sysBoundaryLayer == 2) {
          creal dx = cell->parameters[CellParams::DX];
          creal dy = cell->parameters[CellParams::DY];
          creal dz = cell->parameters[CellParams::DZ];
@@ -536,12 +535,14 @@ namespace SBC {
          #endif
 //          phiprof::stop("Outflow::getNormalDirection");
          
-         vlasovBoundaryAbsorb(mpiGrid, cellID, nx, ny, nz);
-         calculateCellVelocityMoments(mpiGrid[cellID], true);
-         cell->parameters[CellParams::RHO_DT2] = cell->parameters[CellParams::RHO];
-         cell->parameters[CellParams::RHOVX_DT2] = cell->parameters[CellParams::RHOVX];
-         cell->parameters[CellParams::RHOVY_DT2] = cell->parameters[CellParams::RHOVY];
-         cell->parameters[CellParams::RHOVZ_DT2] = cell->parameters[CellParams::RHOVZ];
+         vlasovBoundaryAbsorb(mpiGrid, cellID, nx, ny, nz, 0.9);
+         // Do not recompute at the moment, might be better.
+//          calculateCellVelocityMoments(mpiGrid[cellID], true);
+//          cell->parameters[CellParams::RHO_DT2] = cell->parameters[CellParams::RHO];
+//          cell->parameters[CellParams::RHOVX_DT2] = cell->parameters[CellParams::RHOVX];
+//          cell->parameters[CellParams::RHOVY_DT2] = cell->parameters[CellParams::RHOVY];
+//          cell->parameters[CellParams::RHOVZ_DT2] = cell->parameters[CellParams::RHOVZ];
+         
       }
 //      phiprof::stop("vlasovBoundaryCondition (Outflow)");
    }

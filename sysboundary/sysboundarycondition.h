@@ -120,10 +120,11 @@ namespace SBC {
                          const bool excludeSlices=false
                         );
       void copyCellData(
-                        SpatialCell *from,
-                        SpatialCell *to,
-                        bool allowBlockAdjustment
-                       );
+         SpatialCell *from,
+         SpatialCell *to,
+         const bool& allowBlockAdjustment,
+         const bool& copyMomentsOnly
+      );
       void averageCellData(
                            const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                            std::vector<CellID> cellList,
@@ -136,9 +137,10 @@ namespace SBC {
                                                              const CellID& cellID
                                                             );
       void vlasovBoundaryCopyFromTheClosestNbr(
-                                               const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                               const CellID& cellID
-                                              );
+         const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+         const CellID& cellID,
+         const bool& copyMomentsOnly
+      );
       void vlasovBoundaryCopyFromAllClosestNbrs(
                                                 const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                                 const CellID& cellID
@@ -155,7 +157,8 @@ namespace SBC {
                                 const CellID& cellID,
                                 creal& nx,
                                 creal& ny,
-                                creal& nz
+                                creal& nz,
+                                creal& quenchingFactor
                                );
       
       /*! Precedence value of the system boundary condition. */
