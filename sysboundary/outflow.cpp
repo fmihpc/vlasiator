@@ -285,266 +285,267 @@ namespace SBC {
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID
    ) {
-//      phiprof::start("vlasovBoundaryCondition (Outflow)");
-      //vlasovBoundaryCopyFromTheClosestNbr(mpiGrid, cellID);
-      
-      SpatialCell* cell = mpiGrid[cellID];
-      
-
-         vlasovBoundaryCopyFromTheClosestNbr(mpiGrid, cellID, true); // copyMomentsOnly is true, velocity space is not touched. Do this anyway for all cells!
-         if (cell->sysBoundaryLayer == 2) {
-         creal dx = cell->parameters[CellParams::DX];
-         creal dy = cell->parameters[CellParams::DY];
-         creal dz = cell->parameters[CellParams::DZ];
-         creal x = cell->parameters[CellParams::XCRD] + 0.5*dx;
-         creal y = cell->parameters[CellParams::YCRD] + 0.5*dy;
-         creal z = cell->parameters[CellParams::ZCRD] + 0.5*dz;
-         
-         Real nx = 0.0;
-         Real ny = 0.0;
-         Real nz = 0.0;
-         
-         bool isThisCellOnAFace[6];
-         determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, true);
-         
-         
-//          phiprof::start("Outflow::getNormalDirection");
-         // Figure out the system face normal pointing outward
-         static creal DIAG2 = 1.0 / sqrt(2.0);
-         static creal DIAG3 = 1.0 / sqrt(3.0);
-         
-         if (Parameters::xcells_ini == 1) {
-            if (Parameters::ycells_ini == 1) {
-               if (Parameters::zcells_ini == 1) {
-                  // X,Y,Z
-                  std::cerr << __FILE__ << ":" << __LINE__ << ":" << "What do you expect to do with a single-cell simulation of outflow boundary type? Stop kidding." << std::endl;
-                  abort();
-                  // end of X,Y,Z
-               } else {
-                  // X,Y
-                  if (isThisCellOnAFace[4]) {
-                     nz = 1.0;
-                  } else if (isThisCellOnAFace[5]) {
-                     nz = -1.0;
-                  } else {
-                     cerr << __FILE__ << ":" << __LINE__ << ": You should not land here!" << endl;
-                     abort();
-                  }
-                  // end of X,Y
-               }
-            } else if (Parameters::zcells_ini == 1) {
-               // X,Z
-               if (isThisCellOnAFace[2]) {
-                  ny = 1.0;
-               } else if (isThisCellOnAFace[3]) {
-                  ny = -1.0;
-               } else {
-                  cerr << __FILE__ << ":" << __LINE__ << ": You should not land here!" << endl;
-                  abort();
-               }
-               // end of X,Z
-            } else {
-               // X
-               if (isThisCellOnAFace[2] && isThisCellOnAFace[4]) {
-                  ny = DIAG2;
-                  nz = DIAG2;
-               } else if (isThisCellOnAFace[2] && isThisCellOnAFace[5]) {
-                  ny = DIAG2;
-                  nz = -DIAG2;
-               } else if (isThisCellOnAFace[3] && isThisCellOnAFace[4]) {
-                  ny = -DIAG2;
-                  nz = DIAG2;
-               } else if (isThisCellOnAFace[3] && isThisCellOnAFace[5]) {
-                  ny = -DIAG2;
-                  nz = -DIAG2;
-               } else if (isThisCellOnAFace[2]) {
-                  ny = 1.0;
-               } else if (isThisCellOnAFace[3]) {
-                  ny = -1.0;
-               } else if (isThisCellOnAFace[4]) {
-                  nz = 1.0;
-               } else if (isThisCellOnAFace[5]) {
-                  nz = -1.0;
-               } else {
-                  cerr << __FILE__ << ":" << __LINE__ << ": You should not land here!" << endl;
-                  abort();
-               }
-               // end of X
-            }
-         } else if (Parameters::ycells_ini == 1) {
-            if (Parameters::zcells_ini == 1) {
-               // Y,Z
-               if (isThisCellOnAFace[0]) {
-                  nx = 1.0;
-               } else if (isThisCellOnAFace[1]) {
-                  nx = -1.0;
-               } else {
-                  cerr << __FILE__ << ":" << __LINE__ << ": You should not land here!" << endl;
-                  abort();
-               }
-               // end of Y,Z
-            } else {
-               // Y
-               if (isThisCellOnAFace[0] && isThisCellOnAFace[4]) {
-                  nx = DIAG2;
-                  nz = DIAG2;
-               } else if (isThisCellOnAFace[0] && isThisCellOnAFace[5]) {
-                  nx = DIAG2;
-                  nz = -DIAG2;
-               } else if (isThisCellOnAFace[1] && isThisCellOnAFace[4]) {
-                  nx = -DIAG2;
-                  nz = DIAG2;
-               } else if (isThisCellOnAFace[1] && isThisCellOnAFace[5]) {
-                  nx = -DIAG2;
-                  nz = -DIAG2;
-               } else if (isThisCellOnAFace[0]) {
-                  nx = 1.0;
-               } else if (isThisCellOnAFace[1]) {
-                  nx = -1.0;
-               } else if (isThisCellOnAFace[4]) {
-                  nz = 1.0;
-               } else if (isThisCellOnAFace[5]) {
-                  nz = -1.0;
-               } else {
-                  cerr << __FILE__ << ":" << __LINE__ << ": You should not land here!" << endl;
-                  abort();
-               }
-               // end of Y
-            }
-         } else if (Parameters::zcells_ini == 1) {
-            // Z
-            if (isThisCellOnAFace[0] && isThisCellOnAFace[2]) {
-               nx = DIAG2;
-               ny = DIAG2;
-            } else if (isThisCellOnAFace[0] && isThisCellOnAFace[3]) {
-               nx = DIAG2;
-               ny = -DIAG2;
-            } else if (isThisCellOnAFace[1] && isThisCellOnAFace[2]) {
-               nx = -DIAG2;
-               ny = DIAG2;
-            } else if (isThisCellOnAFace[1] && isThisCellOnAFace[3]) {
-               nx = -DIAG2;
-               ny = -DIAG2;
-            } else if (isThisCellOnAFace[0]) {
-               nx = 1.0;
-            } else if (isThisCellOnAFace[1]) {
-               nx = -1.0;
-            } else if (isThisCellOnAFace[2]) {
-               ny = 1.0;
-            } else if (isThisCellOnAFace[3]) {
-               ny = -1.0;
-            } else {
-               cerr << __FILE__ << ":" << __LINE__ << ": You should not land here!" << endl;
-               abort();
-            }
-            // end of Z
-         } else {
-            // 3D
-            if (isThisCellOnAFace[0] && isThisCellOnAFace[2] && isThisCellOnAFace[4]) {
-               nx = DIAG3;
-               ny = DIAG3;
-               nz = DIAG3;
-            } else if (isThisCellOnAFace[0] && isThisCellOnAFace[2] && isThisCellOnAFace[5]) {
-               nx = DIAG3;
-               ny = DIAG3;
-               nz = -DIAG3;
-            } else if (isThisCellOnAFace[0] && isThisCellOnAFace[3] && isThisCellOnAFace[4]) {
-               nx = DIAG3;
-               ny = -DIAG3;
-               nz = DIAG3;
-            } else if (isThisCellOnAFace[0] && isThisCellOnAFace[3] && isThisCellOnAFace[5]) {
-               nx = DIAG3;
-               ny = -DIAG3;
-               nz = -DIAG3;
-            } else if (isThisCellOnAFace[1] && isThisCellOnAFace[2] && isThisCellOnAFace[4]) {
-               nx = -DIAG3;
-               ny = DIAG3;
-               nz = DIAG3;
-            } else if (isThisCellOnAFace[1] && isThisCellOnAFace[2] && isThisCellOnAFace[5]) {
-               nx = -DIAG3;
-               ny = DIAG3;
-               nz = -DIAG3;
-            } else if (isThisCellOnAFace[1] && isThisCellOnAFace[3] && isThisCellOnAFace[4]) {
-               nx = -DIAG3;
-               ny = -DIAG3;
-               nz = DIAG3;
-            } else if (isThisCellOnAFace[1] && isThisCellOnAFace[3] && isThisCellOnAFace[5]) {
-               nx = -DIAG3;
-               ny = -DIAG3;
-               nz = -DIAG3;
-            } else if (isThisCellOnAFace[0] && isThisCellOnAFace[2]) {
-               nx = DIAG2;
-               ny = DIAG2;
-            } else if (isThisCellOnAFace[0] && isThisCellOnAFace[3]) {
-               nx = DIAG2;
-               ny = -DIAG2;
-            } else if (isThisCellOnAFace[1] && isThisCellOnAFace[2]) {
-               nx = -DIAG2;
-               ny = DIAG2;
-            } else if (isThisCellOnAFace[1] && isThisCellOnAFace[3]) {
-               nx = -DIAG2;
-               ny = -DIAG2;
-            } else if (isThisCellOnAFace[0] && isThisCellOnAFace[4]) {
-               nx = DIAG2;
-               nz = DIAG2;
-            } else if (isThisCellOnAFace[0] && isThisCellOnAFace[5]) {
-               nx = DIAG2;
-               nz = -DIAG2;
-            } else if (isThisCellOnAFace[1] && isThisCellOnAFace[4]) {
-               nx = -DIAG2;
-               nz = DIAG2;
-            } else if (isThisCellOnAFace[1] && isThisCellOnAFace[5]) {
-               nx = -DIAG2;
-               nz = -DIAG2;
-            } else if (isThisCellOnAFace[2] && isThisCellOnAFace[4]) {
-               ny = DIAG2;
-               nz = DIAG2;
-            } else if (isThisCellOnAFace[2] && isThisCellOnAFace[5]) {
-               ny = DIAG2;
-               nz = -DIAG2;
-            } else if (isThisCellOnAFace[3] && isThisCellOnAFace[4]) {
-               ny = -DIAG2;
-               nz = DIAG2;
-            } else if (isThisCellOnAFace[3] && isThisCellOnAFace[5]) {
-               ny = -DIAG2;
-               nz = -DIAG2;
-            } else if (isThisCellOnAFace[0]) {
-               nx = 1.0;
-            } else if (isThisCellOnAFace[1]) {
-               nx = -1.0;
-            } else if (isThisCellOnAFace[2]) {
-               ny = 1.0;
-            } else if (isThisCellOnAFace[3]) {
-               ny = -1.0;
-            } else if (isThisCellOnAFace[4]) {
-               nz = 1.0;
-            } else if (isThisCellOnAFace[5]) {
-               nz = -1.0;
-            } else {
-               cerr << __FILE__ << ":" << __LINE__ << ": You should not land here!" << endl;
-               abort();
-            }
-            // end of 3D
-         }
-         
-         #ifdef DEBUG_OUTFLOW
-         // Uncomment one of the following line for debugging output to evaluate the correctness of the results. Best used with a single process and single thread.
-         //       if (mpiGrid[cellID]->sysBoundaryLayer == 1) std::cerr << x << " " << y << " " << z << " " << normalDirection[0] << " " << normalDirection[1] << " " << normalDirection[2] << std::endl;
-         //       if (mpiGrid[cellID]->sysBoundaryLayer == 2) std::cerr << x << " " << y << " " << z << " " << normalDirection[0] << " " << normalDirection[1] << " " << normalDirection[2] << std::endl;
-         //      std::cerr << x << " " << y << " " << z << " " << normalDirection[0] << " " << normalDirection[1] << " " << normalDirection[2] << std::endl;
-         #endif
-//          phiprof::stop("Outflow::getNormalDirection");
-         
-         vlasovBoundaryAbsorb(mpiGrid, cellID, nx, ny, nz, 0.9);
-         // Do not recompute at the moment, might be better.
-//          calculateCellVelocityMoments(mpiGrid[cellID], true);
-//          cell->parameters[CellParams::RHO_DT2] = cell->parameters[CellParams::RHO];
-//          cell->parameters[CellParams::RHOVX_DT2] = cell->parameters[CellParams::RHOVX];
-//          cell->parameters[CellParams::RHOVY_DT2] = cell->parameters[CellParams::RHOVY];
-//          cell->parameters[CellParams::RHOVZ_DT2] = cell->parameters[CellParams::RHOVZ];
-         
-      }
-//      phiprof::stop("vlasovBoundaryCondition (Outflow)");
+      // Do nothing at all
+// //      phiprof::start("vlasovBoundaryCondition (Outflow)");
+//       //vlasovBoundaryCopyFromTheClosestNbr(mpiGrid, cellID);
+//       
+//       SpatialCell* cell = mpiGrid[cellID];
+//       
+// 
+//          vlasovBoundaryCopyFromTheClosestNbr(mpiGrid, cellID, true); // copyMomentsOnly is true, velocity space is not touched. Do this anyway for all cells!
+//          if (cell->sysBoundaryLayer == 2) {
+//          creal dx = cell->parameters[CellParams::DX];
+//          creal dy = cell->parameters[CellParams::DY];
+//          creal dz = cell->parameters[CellParams::DZ];
+//          creal x = cell->parameters[CellParams::XCRD] + 0.5*dx;
+//          creal y = cell->parameters[CellParams::YCRD] + 0.5*dy;
+//          creal z = cell->parameters[CellParams::ZCRD] + 0.5*dz;
+//          
+//          Real nx = 0.0;
+//          Real ny = 0.0;
+//          Real nz = 0.0;
+//          
+//          bool isThisCellOnAFace[6];
+//          determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, true);
+//          
+//          
+// //          phiprof::start("Outflow::getNormalDirection");
+//          // Figure out the system face normal pointing outward
+//          static creal DIAG2 = 1.0 / sqrt(2.0);
+//          static creal DIAG3 = 1.0 / sqrt(3.0);
+//          
+//          if (Parameters::xcells_ini == 1) {
+//             if (Parameters::ycells_ini == 1) {
+//                if (Parameters::zcells_ini == 1) {
+//                   // X,Y,Z
+//                   std::cerr << __FILE__ << ":" << __LINE__ << ":" << "What do you expect to do with a single-cell simulation of outflow boundary type? Stop kidding." << std::endl;
+//                   abort();
+//                   // end of X,Y,Z
+//                } else {
+//                   // X,Y
+//                   if (isThisCellOnAFace[4]) {
+//                      nz = 1.0;
+//                   } else if (isThisCellOnAFace[5]) {
+//                      nz = -1.0;
+//                   } else {
+//                      cerr << __FILE__ << ":" << __LINE__ << ": You should not land here!" << endl;
+//                      abort();
+//                   }
+//                   // end of X,Y
+//                }
+//             } else if (Parameters::zcells_ini == 1) {
+//                // X,Z
+//                if (isThisCellOnAFace[2]) {
+//                   ny = 1.0;
+//                } else if (isThisCellOnAFace[3]) {
+//                   ny = -1.0;
+//                } else {
+//                   cerr << __FILE__ << ":" << __LINE__ << ": You should not land here!" << endl;
+//                   abort();
+//                }
+//                // end of X,Z
+//             } else {
+//                // X
+//                if (isThisCellOnAFace[2] && isThisCellOnAFace[4]) {
+//                   ny = DIAG2;
+//                   nz = DIAG2;
+//                } else if (isThisCellOnAFace[2] && isThisCellOnAFace[5]) {
+//                   ny = DIAG2;
+//                   nz = -DIAG2;
+//                } else if (isThisCellOnAFace[3] && isThisCellOnAFace[4]) {
+//                   ny = -DIAG2;
+//                   nz = DIAG2;
+//                } else if (isThisCellOnAFace[3] && isThisCellOnAFace[5]) {
+//                   ny = -DIAG2;
+//                   nz = -DIAG2;
+//                } else if (isThisCellOnAFace[2]) {
+//                   ny = 1.0;
+//                } else if (isThisCellOnAFace[3]) {
+//                   ny = -1.0;
+//                } else if (isThisCellOnAFace[4]) {
+//                   nz = 1.0;
+//                } else if (isThisCellOnAFace[5]) {
+//                   nz = -1.0;
+//                } else {
+//                   cerr << __FILE__ << ":" << __LINE__ << ": You should not land here!" << endl;
+//                   abort();
+//                }
+//                // end of X
+//             }
+//          } else if (Parameters::ycells_ini == 1) {
+//             if (Parameters::zcells_ini == 1) {
+//                // Y,Z
+//                if (isThisCellOnAFace[0]) {
+//                   nx = 1.0;
+//                } else if (isThisCellOnAFace[1]) {
+//                   nx = -1.0;
+//                } else {
+//                   cerr << __FILE__ << ":" << __LINE__ << ": You should not land here!" << endl;
+//                   abort();
+//                }
+//                // end of Y,Z
+//             } else {
+//                // Y
+//                if (isThisCellOnAFace[0] && isThisCellOnAFace[4]) {
+//                   nx = DIAG2;
+//                   nz = DIAG2;
+//                } else if (isThisCellOnAFace[0] && isThisCellOnAFace[5]) {
+//                   nx = DIAG2;
+//                   nz = -DIAG2;
+//                } else if (isThisCellOnAFace[1] && isThisCellOnAFace[4]) {
+//                   nx = -DIAG2;
+//                   nz = DIAG2;
+//                } else if (isThisCellOnAFace[1] && isThisCellOnAFace[5]) {
+//                   nx = -DIAG2;
+//                   nz = -DIAG2;
+//                } else if (isThisCellOnAFace[0]) {
+//                   nx = 1.0;
+//                } else if (isThisCellOnAFace[1]) {
+//                   nx = -1.0;
+//                } else if (isThisCellOnAFace[4]) {
+//                   nz = 1.0;
+//                } else if (isThisCellOnAFace[5]) {
+//                   nz = -1.0;
+//                } else {
+//                   cerr << __FILE__ << ":" << __LINE__ << ": You should not land here!" << endl;
+//                   abort();
+//                }
+//                // end of Y
+//             }
+//          } else if (Parameters::zcells_ini == 1) {
+//             // Z
+//             if (isThisCellOnAFace[0] && isThisCellOnAFace[2]) {
+//                nx = DIAG2;
+//                ny = DIAG2;
+//             } else if (isThisCellOnAFace[0] && isThisCellOnAFace[3]) {
+//                nx = DIAG2;
+//                ny = -DIAG2;
+//             } else if (isThisCellOnAFace[1] && isThisCellOnAFace[2]) {
+//                nx = -DIAG2;
+//                ny = DIAG2;
+//             } else if (isThisCellOnAFace[1] && isThisCellOnAFace[3]) {
+//                nx = -DIAG2;
+//                ny = -DIAG2;
+//             } else if (isThisCellOnAFace[0]) {
+//                nx = 1.0;
+//             } else if (isThisCellOnAFace[1]) {
+//                nx = -1.0;
+//             } else if (isThisCellOnAFace[2]) {
+//                ny = 1.0;
+//             } else if (isThisCellOnAFace[3]) {
+//                ny = -1.0;
+//             } else {
+//                cerr << __FILE__ << ":" << __LINE__ << ": You should not land here!" << endl;
+//                abort();
+//             }
+//             // end of Z
+//          } else {
+//             // 3D
+//             if (isThisCellOnAFace[0] && isThisCellOnAFace[2] && isThisCellOnAFace[4]) {
+//                nx = DIAG3;
+//                ny = DIAG3;
+//                nz = DIAG3;
+//             } else if (isThisCellOnAFace[0] && isThisCellOnAFace[2] && isThisCellOnAFace[5]) {
+//                nx = DIAG3;
+//                ny = DIAG3;
+//                nz = -DIAG3;
+//             } else if (isThisCellOnAFace[0] && isThisCellOnAFace[3] && isThisCellOnAFace[4]) {
+//                nx = DIAG3;
+//                ny = -DIAG3;
+//                nz = DIAG3;
+//             } else if (isThisCellOnAFace[0] && isThisCellOnAFace[3] && isThisCellOnAFace[5]) {
+//                nx = DIAG3;
+//                ny = -DIAG3;
+//                nz = -DIAG3;
+//             } else if (isThisCellOnAFace[1] && isThisCellOnAFace[2] && isThisCellOnAFace[4]) {
+//                nx = -DIAG3;
+//                ny = DIAG3;
+//                nz = DIAG3;
+//             } else if (isThisCellOnAFace[1] && isThisCellOnAFace[2] && isThisCellOnAFace[5]) {
+//                nx = -DIAG3;
+//                ny = DIAG3;
+//                nz = -DIAG3;
+//             } else if (isThisCellOnAFace[1] && isThisCellOnAFace[3] && isThisCellOnAFace[4]) {
+//                nx = -DIAG3;
+//                ny = -DIAG3;
+//                nz = DIAG3;
+//             } else if (isThisCellOnAFace[1] && isThisCellOnAFace[3] && isThisCellOnAFace[5]) {
+//                nx = -DIAG3;
+//                ny = -DIAG3;
+//                nz = -DIAG3;
+//             } else if (isThisCellOnAFace[0] && isThisCellOnAFace[2]) {
+//                nx = DIAG2;
+//                ny = DIAG2;
+//             } else if (isThisCellOnAFace[0] && isThisCellOnAFace[3]) {
+//                nx = DIAG2;
+//                ny = -DIAG2;
+//             } else if (isThisCellOnAFace[1] && isThisCellOnAFace[2]) {
+//                nx = -DIAG2;
+//                ny = DIAG2;
+//             } else if (isThisCellOnAFace[1] && isThisCellOnAFace[3]) {
+//                nx = -DIAG2;
+//                ny = -DIAG2;
+//             } else if (isThisCellOnAFace[0] && isThisCellOnAFace[4]) {
+//                nx = DIAG2;
+//                nz = DIAG2;
+//             } else if (isThisCellOnAFace[0] && isThisCellOnAFace[5]) {
+//                nx = DIAG2;
+//                nz = -DIAG2;
+//             } else if (isThisCellOnAFace[1] && isThisCellOnAFace[4]) {
+//                nx = -DIAG2;
+//                nz = DIAG2;
+//             } else if (isThisCellOnAFace[1] && isThisCellOnAFace[5]) {
+//                nx = -DIAG2;
+//                nz = -DIAG2;
+//             } else if (isThisCellOnAFace[2] && isThisCellOnAFace[4]) {
+//                ny = DIAG2;
+//                nz = DIAG2;
+//             } else if (isThisCellOnAFace[2] && isThisCellOnAFace[5]) {
+//                ny = DIAG2;
+//                nz = -DIAG2;
+//             } else if (isThisCellOnAFace[3] && isThisCellOnAFace[4]) {
+//                ny = -DIAG2;
+//                nz = DIAG2;
+//             } else if (isThisCellOnAFace[3] && isThisCellOnAFace[5]) {
+//                ny = -DIAG2;
+//                nz = -DIAG2;
+//             } else if (isThisCellOnAFace[0]) {
+//                nx = 1.0;
+//             } else if (isThisCellOnAFace[1]) {
+//                nx = -1.0;
+//             } else if (isThisCellOnAFace[2]) {
+//                ny = 1.0;
+//             } else if (isThisCellOnAFace[3]) {
+//                ny = -1.0;
+//             } else if (isThisCellOnAFace[4]) {
+//                nz = 1.0;
+//             } else if (isThisCellOnAFace[5]) {
+//                nz = -1.0;
+//             } else {
+//                cerr << __FILE__ << ":" << __LINE__ << ": You should not land here!" << endl;
+//                abort();
+//             }
+//             // end of 3D
+//          }
+//          
+//          #ifdef DEBUG_OUTFLOW
+//          // Uncomment one of the following line for debugging output to evaluate the correctness of the results. Best used with a single process and single thread.
+//          //       if (mpiGrid[cellID]->sysBoundaryLayer == 1) std::cerr << x << " " << y << " " << z << " " << normalDirection[0] << " " << normalDirection[1] << " " << normalDirection[2] << std::endl;
+//          //       if (mpiGrid[cellID]->sysBoundaryLayer == 2) std::cerr << x << " " << y << " " << z << " " << normalDirection[0] << " " << normalDirection[1] << " " << normalDirection[2] << std::endl;
+//          //      std::cerr << x << " " << y << " " << z << " " << normalDirection[0] << " " << normalDirection[1] << " " << normalDirection[2] << std::endl;
+//          #endif
+// //          phiprof::stop("Outflow::getNormalDirection");
+//          
+//          vlasovBoundaryAbsorb(mpiGrid, cellID, nx, ny, nz, 0.9);
+//          // Do not recompute at the moment, might be better.
+// //          calculateCellVelocityMoments(mpiGrid[cellID], true);
+// //          cell->parameters[CellParams::RHO_DT2] = cell->parameters[CellParams::RHO];
+// //          cell->parameters[CellParams::RHOVX_DT2] = cell->parameters[CellParams::RHOVX];
+// //          cell->parameters[CellParams::RHOVY_DT2] = cell->parameters[CellParams::RHOVY];
+// //          cell->parameters[CellParams::RHOVZ_DT2] = cell->parameters[CellParams::RHOVZ];
+//          
+//       }
+// //      phiprof::stop("vlasovBoundaryCondition (Outflow)");
    }
    
    void Outflow::getFaces(bool* faces) {
