@@ -64,6 +64,7 @@ class SysBoundary {
    bool isDynamic() const;
    bool isBoundaryPeriodic(uint direction) const;
    bool updateSysBoundariesAfterLoadBalance(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
+   bool doApplyUponRestart() const;
 
    private:
       /*! Private copy-constructor to prevent copying the class. */
@@ -82,6 +83,9 @@ class SysBoundary {
 
       /*! Array of bool telling whether the system is periodic in any direction. */
       bool isPeriodic[3];
+      
+      /*! bool telling whether to call again applyInitialState upon restarting the simulation. */
+      bool reapplyUponRestart;
 };
 
 bool precedenceSort(const SBC::SysBoundaryCondition* first, 
