@@ -41,10 +41,10 @@ int main(int argc, char** argv) {
 	double tmp_flux=0.;
 
 	// First, fill the z=3 cells
-	for(int x=1; x< B.cells[0]; x++) {
+	for(int x=B.cells[0]-2; x>0; x--) {
 		Vec3d bval = B.getCell(x,0,3);
 		
-		tmp_flux += bval[2] * B.dx[0];
+		tmp_flux -= bval[2] * B.dx[0];
 
 		flux[B.cells[0] * B.cells[1] * 3 + x] = tmp_flux;
 	}
