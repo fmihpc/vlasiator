@@ -457,4 +457,10 @@ particle_post_pusher: ${OBJS_PARTICLES} ${DEPS_PARTICLES}  ${OBJS_VLSVREADERINTE
 	${CMP} ${CXXFLAGS} ${FLAGS} -c particles/particle_post_pusher.cpp ${INC_VLSV} ${INC_VECTORCLASS} -I$(CURDIR) -Itools
 	${LNK} -o $@ particle_post_pusher.o ${OBJS_PARTICLES}  ${OBJS_VLSVREADERINTERFACE} ${LIBS} ${LDFLAGS}
 
+fluxfunction.o:  tools/fluxfunction.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c tools/fluxfunction.cpp ${INC_VLSV} ${INC_VECTORCLASS} -I$(CURDIR)  -Itools -o $@
+
+fluxfunction: fluxfunction.o ${OBJS_VLSVREADERINTERFACE} particles/readfields.o
+	${LNK} -o $@ fluxfunction.o particles/readfields.o ${OBJS_VLSVREADERINTERFACE} ${LIBS} ${LDFLAGS}
+
 # DO NOT DELETE
