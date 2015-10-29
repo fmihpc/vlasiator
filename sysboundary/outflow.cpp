@@ -45,6 +45,7 @@ namespace SBC {
    void Outflow::addParameters() {
       Readparameters::addComposing("outflow.face", "List of faces on which outflow boundary conditions are to be applied ([xyz][+-]).");
       Readparameters::add("outflow.precedence", "Precedence value of the outflow system boundary condition (integer), the higher the stronger.", 4);
+      Readparameters::add("outflow.quench", "Factor by which to quench the inflowing parts of the velocity distribution function.", 1.0);
    }
    
    void Outflow::getParameters() {
@@ -55,6 +56,10 @@ namespace SBC {
          exit(1);
       }
       if(!Readparameters::get("outflow.precedence", precedence)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("outflow.quench", this->quenchFactor)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
@@ -535,7 +540,7 @@ namespace SBC {
          #endif
 //          phiprof::stop("Outflow::getNormalDirection");
          
-         vlasovBoundaryAbsorb(mpiGrid, cellID, nx, ny, nz, 0.9);
+         vlasovBoundaryAbsorb(mpiGrid, cellID, nx, ny, nz, this->quenchFactor);
          // Do not recompute at the moment, might be better.
 //          calculateCellVelocityMoments(mpiGrid[cellID], true);
 //          cell->parameters[CellParams::RHO_DT2] = cell->parameters[CellParams::RHO];

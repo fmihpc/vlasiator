@@ -101,6 +101,8 @@ namespace SBC {
          const CellID& cellID,
          cuint& component
       );
+      /*! Factor by which to quench the inflowing parts of the velocity distribution function.*/
+      Real quenchFactor;
    }; // class Outflow
 } // namespace SBC
 
