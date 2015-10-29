@@ -58,6 +58,7 @@ void SysBoundary::addParameters() {
    Readparameters::add("boundaries.periodic_x","If 'yes' the grid is periodic in x-direction. Defaults to 'no'.","no");
    Readparameters::add("boundaries.periodic_y","If 'yes' the grid is periodic in y-direction. Defaults to 'no'.","no");
    Readparameters::add("boundaries.periodic_z","If 'yes' the grid is periodic in z-direction. Defaults to 'no'.","no");
+   Readparameters::add("boundaries.reapplyUponRestart", "If 0 (default), keep going with the state existing in the restart file. If 1, calls again applyInitialState. Can be used to change boundary conditiion behaviour during a run.", 0);
    
    //call static addParameter functions in all bc's
    SBC::DoNotCompute::addParameters();
@@ -99,6 +100,15 @@ void SysBoundary::getParameters() {
    if (periodic_x == "yes") isPeriodic[0] = true;
    if (periodic_y == "yes") isPeriodic[1] = true;
    if (periodic_z == "yes") isPeriodic[2] = true;
+   uint reapply;
+   if(!Readparameters::get("boundaries.reapplyUponRestart",reapply)) {
+      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      exit(1);
+   };
+   this->reapplyUponRestart = false;
+   if(reapply == 1) {
+      this->reapplyUponRestart = true;
+   }
 }
 
 /*! Add a new SBC::SysBoundaryCondition which has been created with new sysBoundary. 
@@ -343,7 +353,6 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
  * function.
  * 
  * \param mpiGrid Grid
- * \param t Current time
  * \retval success If true, the application of all system boundary states succeeded.
  */
 bool SysBoundary::applyInitialState(
@@ -459,6 +468,9 @@ bool SysBoundary::isDynamic() const {return isThisDynamic;}
  * \retval isPeriodic Is the system periodic in the queried direction.
  */
 bool SysBoundary::isBoundaryPeriodic(uint direction) const {return isPeriodic[direction];}
+
+/*! Get a bool telling  whether to call again applyInitialState upon restarting the simulation. */
+bool SysBoundary::doApplyUponRestart() const {return this->reapplyUponRestart;}
 
 
 
