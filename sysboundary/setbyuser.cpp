@@ -111,7 +111,7 @@ namespace SBC {
       
       success = setCellsFromTemplate(mpiGrid);
       
-      return true;
+      return success;
    }
    
    Real SetByUser::fieldSolverBoundaryCondMagneticField(
