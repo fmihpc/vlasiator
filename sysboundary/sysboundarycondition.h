@@ -182,6 +182,8 @@ namespace SBC {
          bool isThisDynamic;
          /*! Map of closest nonsysboundarycells. Used in getAllClosestNonsysboundaryCells. */
          std::unordered_map<CellID, std::vector<CellID>> allClosestNonsysboundaryCells;
+         /*! bool telling whether to call again applyInitialState upon restarting the simulation. */
+         bool applyUponRestart;
    };
 } // namespace SBC
 
