@@ -44,7 +44,7 @@ fi
 
 if [[ $( grep "boundary" $cfg | grep Maxwellian | wc -l ) -eq 1 ]]
 then
-   boundaries=$boundaries" ionosphere"
+   boundaries=$boundaries" maxwellian"
 fi
 
 if [[ $( grep "boundary" $cfg | grep Outflow | wc -l ) -eq 1 ]]
