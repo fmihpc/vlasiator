@@ -55,6 +55,7 @@ namespace SBC {
       Readparameters::add("ionosphere.VZ0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", 0.0);
       Readparameters::add("ionosphere.taperRadius", "Width of the zone with a density tapering from the ionospheric value to the background (m)", 0.0);
       Readparameters::add("ionosphere.precedence", "Precedence value of the ionosphere system boundary condition (integer), the higher the stronger.", 2);
+      Readparameters::add("ionosphere.reapplyUponRestart", "If 0 (default), keep going with the state existing in the restart file. If 1, calls again applyInitialState. Can be used to change boundary condition behaviour during a run.", 0);
    }
    
    void Ionosphere::getParameters() {
@@ -111,6 +112,15 @@ namespace SBC {
       if(!Readparameters::get("Magnetosphere.nVelocitySamples", this->nVelocitySamples)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
+      }
+      uint reapply;
+      if(!Readparameters::get("ionosphere.reapplyUponRestart",reapply)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      };
+      this->applyUponRestart = false;
+      if(reapply == 1) {
+         this->applyUponRestart = true;
       }
    }
    
