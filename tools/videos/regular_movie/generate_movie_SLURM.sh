@@ -1,25 +1,36 @@
 #!/bin/bash
 
-#SBATCH -t 00:30:00
+
+frameStart=0
+frameEnd=2875
+jobNumber=20
+increment=$(( ($frameEnd - $frameStart) / $jobNumber ))
+
+submit() {
+
+sbatch << EOF
+#!/bin/bash
+#SBATCH -t 01:00:00
 #SBATCH -J movie
-#SBATCH -p parallel
-#SBATCH -n 64
-#SBATCH -N 4
+#SBATCH -p serial
+#SBATCH -n 16
+#SBATCH -N 1
 #SBATCH --no-requeue
 
-frameStart=2150
-frameEnd=2200
-jobNumber=4
-increment=$(( ($frameEnd - $frameStart) / $jobNumber ))
+~/visit_taito/bin/visit -lb-random -cli -nowin -l srun -nn 1 -np 16 -la "--mpi=pmi2"  -s generate_frames.py $1 $2
+
+EOF
+
+}
+
+
 
 for i in $( seq 0 $(( $jobNumber - 2 )) )
 do
    start=$(( $frameStart + $i * $increment ))
    end=$(( $start + $increment ))
-   ~/visit_taito/bin/visit -lb-random -cli -nowin -l srun -nn 1 -np 16 -s generate_frames.py $start $end &
-   sleep 5
+   submit $start $end &
 done
 
-~/visit_taito/bin/visit -lb-random -cli -nowin -l srun -nn 1 -np 16 -s generate_frames.py $end $frameEnd
+submit $end $frameEnd &
 
-wait
