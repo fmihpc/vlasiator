@@ -412,14 +412,13 @@ namespace SBC {
             creal dvyCell = blockParameters[BlockParams::DVY];
             creal dvzCell = blockParameters[BlockParams::DVZ];
             
-            Realf value = std::numeric_limits<Realf>::max();
-            
             for (uint kc=0; kc<WID; ++kc)
                for (uint jc=0; jc<WID; ++jc)
                   for (uint ic=0; ic<WID; ++ic) {
                      creal vxCellCenter = vxBlock + (ic+convert<Real>(0.5))*dvxCell;
                      creal vyCellCenter = vyBlock + (jc+convert<Real>(0.5))*dvyCell;
                      creal vzCellCenter = vzBlock + (kc+convert<Real>(0.5))*dvzCell;
+                     Realf value = to->get_value(vxCellCenter, vyCellCenter, vzCellCenter);
                      if(vxCellCenter <= 0.0) {
                         value = min(value,
                                 min(mpiGrid[flowtoCells.at(0)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
