@@ -212,9 +212,9 @@ namespace spatial_cell {
       vmesh::VelocityBlockContainer<vmesh::LocalID>& get_velocity_blocks(const size_t& popID);
       vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& get_velocity_mesh_temporary();
       vmesh::VelocityBlockContainer<vmesh::LocalID>& get_velocity_blocks_temporary();
-      Real get_value(const Real vx, const Real vy, const Real vz) const;
+      Realf get_value(const Real vx, const Real vy, const Real vz) const;
       void increment_value(const Real vx, const Real vy, const Real vz, const Realf value);
-      void increment_value(const vmesh::GlobalID& block,const unsigned int cell, const Real value);      
+      void increment_value(const vmesh::GlobalID& block,const unsigned int cell, const Realf value);
       void set_value(const Real vx, const Real vy, const Real vz, const Realf value);
       void set_value(const vmesh::GlobalID& block,const unsigned int cell, const Realf value);
       void refine_block(const vmesh::GlobalID& block,std::map<vmesh::GlobalID,vmesh::LocalID>& insertedBlocks);
@@ -1250,7 +1250,7 @@ namespace spatial_cell {
     * 
     Creates the velocity block if it doesn't exist.
     */
-   inline void SpatialCell::increment_value(const vmesh::GlobalID& blockGID,const unsigned int cell, const Real value) {
+   inline void SpatialCell::increment_value(const vmesh::GlobalID& blockGID,const unsigned int cell, const Realf value) {
       if (count(blockGID) == 0) {
          if (!this->add_velocity_block(blockGID)) {
             std::cerr << "Couldn't add velocity block " << blockGID << std::endl;
@@ -1287,7 +1287,7 @@ namespace spatial_cell {
     * 
     * Returns 0 if it doesn't exist.
     */
-   inline Real SpatialCell::get_value(const Real vx, const Real vy, const Real vz) const {
+   inline Realf SpatialCell::get_value(const Real vx, const Real vy, const Real vz) const {
       const vmesh::GlobalID blockGID = get_velocity_block(vx, vy, vz);
       if (count(blockGID) == 0) {
          return 0.0;
@@ -1302,9 +1302,8 @@ namespace spatial_cell {
       }
 
       const unsigned int cell = get_velocity_cell(blockGID, vx, vy, vz);
-      // Cast to real: Note block_ptr->data[cell] is Realf type
-      const Real value = get_data(blockLID)[cell];
-      return value;
+      
+      return get_data(blockLID)[cell];
    }
    
    /*! get mpi datatype for sending the cell data. */
