@@ -137,10 +137,17 @@ namespace SBC {
       std::vector<CellID> & getAllClosestNonsysboundaryCells(
                                                              const CellID& cellID
                                                             );
+      std::array<CellID,27> & getFlowtoCells(
+         const CellID& cellID
+      );
       void vlasovBoundaryCopyFromTheClosestNbr(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const CellID& cellID,
          const bool& copyMomentsOnly
+      );
+      void vlasovBoundaryCopyFromTheClosestNbrAndLimit(
+         const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+         const CellID& cellID
       );
       void vlasovBoundaryCopyFromAllClosestNbrs(
                                                 const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
@@ -168,6 +175,8 @@ namespace SBC {
       bool isThisDynamic;
       /*! Map of closest nonsysboundarycells. Used in getAllClosestNonsysboundaryCells. */
       std::unordered_map<CellID, std::vector<CellID>> allClosestNonsysboundaryCells;
+      /*! Array of cells into which the distribution function can flow. Used in getAllFlowtoCells. Cells into which one cannot flow are set to INVALID_CELLID. */
+      std::unordered_map<CellID, std::array<CellID, 27>> allFlowtoCells;
       /*! bool telling whether to call again applyInitialState upon restarting the simulation. */
       bool applyUponRestart;
    };

@@ -373,6 +373,131 @@ namespace SBC {
       averageCellData(mpiGrid, closestCells, mpiGrid[cellID]);
    }
    
+   /*! Function used to copy the distribution from (one of) the closest sysboundarytype::NOT_SYSBOUNDARY cell but limiting to values no higher than where it can flow into. Moments are recomputed.
+    * \param mpiGrid Grid
+    * \param cellID The cell's ID.
+    */
+   void SysBoundaryCondition::vlasovBoundaryCopyFromTheClosestNbrAndLimit(
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      const CellID& cellID
+   ) {
+      const CellID closestCell = getTheClosestNonsysboundaryCell(cellID);
+      SpatialCell * from = mpiGrid[closestCell];
+      SpatialCell * to = mpiGrid[cellID];
+      
+      if(closestCell == INVALID_CELLID) {
+         cerr << __FILE__ << ":" << __LINE__ << ": No closest cell found!" << endl;
+         abort();
+      }
+      
+      const std::array<CellID,27> flowtoCells = getFlowtoCells(cellID);
+      
+      //Do not allow block adjustment, the block structure when calling vlasovBoundaryCondition should be static
+      //just copy data to existing blocks, no modification of to blocks allowed
+      for (vmesh::LocalID blockLID=0; blockLID<to->get_number_of_velocity_blocks(); ++blockLID) {
+         const vmesh::GlobalID blockGID = to->get_velocity_block_global_id(blockLID);
+         const Realf* fromBlock_data = from->get_data( from->get_velocity_block_local_id(blockGID) );
+         Realf* toBlock_data = to->get_data(blockLID);
+         if (from->get_velocity_block_local_id(blockGID) == from->invalid_local_id()) {
+            for (unsigned int i = 0; i < VELOCITY_BLOCK_LENGTH; i++) {
+               toBlock_data[i] = 0.0; //block did not exist in from cell, fill with zeros.
+            }
+         } else {
+            const Real* blockParameters = to->get_block_parameters(blockLID);
+            // check where cells are
+            creal vxBlock = blockParameters[BlockParams::VXCRD];
+            creal vyBlock = blockParameters[BlockParams::VYCRD];
+            creal vzBlock = blockParameters[BlockParams::VZCRD];
+            creal dvxCell = blockParameters[BlockParams::DVX];
+            creal dvyCell = blockParameters[BlockParams::DVY];
+            creal dvzCell = blockParameters[BlockParams::DVZ];
+            
+            Realf value = std::numeric_limits<Realf>::max();
+            
+            for (uint kc=0; kc<WID; ++kc)
+               for (uint jc=0; jc<WID; ++jc)
+                  for (uint ic=0; ic<WID; ++ic) {
+                     creal vxCellCenter = vxBlock + (ic+convert<Real>(0.5))*dvxCell;
+                     creal vyCellCenter = vyBlock + (jc+convert<Real>(0.5))*dvyCell;
+                     creal vzCellCenter = vzBlock + (kc+convert<Real>(0.5))*dvzCell;
+                     if(vxCellCenter <= 0.0) {
+                        value = min(value,
+                                min(mpiGrid[flowtoCells.at(0)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(mpiGrid[flowtoCells.at(3)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(mpiGrid[flowtoCells.at(6)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(mpiGrid[flowtoCells.at(9)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(mpiGrid[flowtoCells.at(12)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(mpiGrid[flowtoCells.at(15)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(mpiGrid[flowtoCells.at(18)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(mpiGrid[flowtoCells.at(21)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                    mpiGrid[flowtoCells.at(24)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter))))))))));
+                     } else {
+                        value = min(value,
+                                min(mpiGrid[flowtoCells.at(2)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(mpiGrid[flowtoCells.at(5)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(mpiGrid[flowtoCells.at(8)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(mpiGrid[flowtoCells.at(11)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(mpiGrid[flowtoCells.at(14)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(mpiGrid[flowtoCells.at(17)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(mpiGrid[flowtoCells.at(20)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(mpiGrid[flowtoCells.at(23)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                    mpiGrid[flowtoCells.at(26)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter))))))))));
+                     }
+                     
+                     if(vyCellCenter <= 0.0) {
+                        value = min(value,
+                                min(mpiGrid[flowtoCells.at(0)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(mpiGrid[flowtoCells.at(1)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(mpiGrid[flowtoCells.at(2)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(mpiGrid[flowtoCells.at(9)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(mpiGrid[flowtoCells.at(10)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(mpiGrid[flowtoCells.at(11)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(mpiGrid[flowtoCells.at(18)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(mpiGrid[flowtoCells.at(19)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                    mpiGrid[flowtoCells.at(20)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter))))))))));
+                     } else {
+                        value = min(value,
+                                min(mpiGrid[flowtoCells.at(6)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(mpiGrid[flowtoCells.at(7)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(mpiGrid[flowtoCells.at(8)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(mpiGrid[flowtoCells.at(15)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(mpiGrid[flowtoCells.at(16)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(mpiGrid[flowtoCells.at(17)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(mpiGrid[flowtoCells.at(24)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(mpiGrid[flowtoCells.at(25)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                    mpiGrid[flowtoCells.at(26)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter))))))))));
+                     }
+                     
+                     if(vzCellCenter <= 0.0) {
+                        value = min(value,
+                                min(mpiGrid[flowtoCells.at(0)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(mpiGrid[flowtoCells.at(1)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(mpiGrid[flowtoCells.at(2)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(mpiGrid[flowtoCells.at(3)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(mpiGrid[flowtoCells.at(4)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(mpiGrid[flowtoCells.at(5)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(mpiGrid[flowtoCells.at(6)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(mpiGrid[flowtoCells.at(7)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                    mpiGrid[flowtoCells.at(8)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter))))))))));
+                     } else {
+                        value = min(value,
+                                min(mpiGrid[flowtoCells.at(18)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(mpiGrid[flowtoCells.at(19)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(mpiGrid[flowtoCells.at(20)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(mpiGrid[flowtoCells.at(21)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(mpiGrid[flowtoCells.at(22)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(mpiGrid[flowtoCells.at(23)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(mpiGrid[flowtoCells.at(24)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(mpiGrid[flowtoCells.at(25)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                    mpiGrid[flowtoCells.at(26)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter))))))))));
+                     }
+                     to->set_value(vxCellCenter, vyCellCenter, vzCellCenter, value);
+                  }
+         }
+      }
+      calculateCellVelocityMoments(to);
+   }
+   
    /*! Function used to copy the distribution and moments from one cell to another. In layer 2, copy only the moments.
     * \param from Pointer to parent cell to copy from.
     * \param to Pointer to destination cell.
@@ -664,7 +789,7 @@ namespace SBC {
    /*! Updates the system boundary conditions after load balancing. This is called from e.g. the class SysBoundary.
     * \param mpiGrid Grid
     * \param local_cells_on_boundary Cells within this process
-    * \retval                 Returns true if the operation is successful
+    * \retval success Returns true if the operation is successful
     */
    bool SysBoundaryCondition::updateSysBoundaryConditionsAfterLoadBalance(
       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
@@ -675,6 +800,8 @@ namespace SBC {
          const CellID cellId = *it;
          std::vector<CellID> & closestCells = allClosestNonsysboundaryCells[cellId];
          closestCells.clear();
+         std::array<CellID,27> & flowtoCells = allFlowtoCells[cellId];
+         flowtoCells.fill(cellId);
          uint dist = numeric_limits<uint>::max();
       
          // First iteration of search to determine closest distance
@@ -687,6 +814,9 @@ namespace SBC {
                         cuint d2 = i*i+j*j+k*k;
                         if(d2 < dist) {
                            dist = d2;
+                        }
+                        if(d2 < 4) { // flowto neighbours have distances of 1, 2 or 3 at a distance of 1 layer, 4, 5 or 6 at a distance of 2 layers
+                           flowtoCells.at(i + 3*j + 9*k + 26) = cell;
                         }
                      }
                   }
@@ -734,6 +864,19 @@ namespace SBC {
       std::vector<CellID> & closestCells = allClosestNonsysboundaryCells.at(cellID);
       phiprof::stop("getAllClosestNonsysboundaryCells");
       return closestCells;
+   }
+   
+   /*! Get the cellIDs of all flowto cells (cells into which the velocity distribution can flow and which is of type NOT_SYSBOUNDARY).
+    * \param cellID ID of the cell to start look from.
+    * \return The vector of cell indices of those cells
+    */
+   std::array<CellID,27> & SysBoundaryCondition::getFlowtoCells(
+      const CellID& cellID
+   ) {
+      phiprof::start("getFlowtoCells");
+      std::array<CellID,27> & flowtoCells = allFlowtoCells.at(cellID);
+      phiprof::stop("getFlowtoCells");
+      return flowtoCells;
    }
    
    /*! Function used in some cases to know which faces the system boundary condition is being applied to.
