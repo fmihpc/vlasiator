@@ -418,7 +418,7 @@ namespace SBC {
                      creal vxCellCenter = vxBlock + (ic+convert<Real>(0.5))*dvxCell;
                      creal vyCellCenter = vyBlock + (jc+convert<Real>(0.5))*dvyCell;
                      creal vzCellCenter = vzBlock + (kc+convert<Real>(0.5))*dvzCell;
-                     Realf value = to->get_value(vxCellCenter, vyCellCenter, vzCellCenter);
+                     Realf value = from->get_value(vxCellCenter, vyCellCenter, vzCellCenter);
                      if(vxCellCenter <= 0.0) {
                         value = min(value,
                                 min(mpiGrid[flowtoCells.at(0)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
@@ -815,7 +815,7 @@ namespace SBC {
                            dist = d2;
                         }
                         if(d2 < 4) { // flowto neighbours have distances of 1, 2 or 3 at a distance of 1 layer, 4, 5 or 6 at a distance of 2 layers
-                           flowtoCells.at(i + 3*j + 9*k + 26) = cell;
+                           flowtoCells.at(i + 3*j + 9*k + 13) = cell;
                         }
                      }
                   }
