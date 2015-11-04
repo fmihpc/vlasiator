@@ -390,7 +390,7 @@ namespace SBC {
          abort();
       }
       
-      const std::array<CellID,27> flowtoCells = getFlowtoCells(cellID);
+      const std::array<SpatialCell*,27> flowtoCells = getFlowtoCells(cellID);
       
       //Do not allow block adjustment, the block structure when calling vlasovBoundaryCondition should be static
       //just copy data to existing blocks, no modification of to blocks allowed
@@ -421,74 +421,74 @@ namespace SBC {
                      Realf value = from->get_value(vxCellCenter, vyCellCenter, vzCellCenter);
                      if(vxCellCenter <= 0.0) {
                         value = min(value,
-                                min(mpiGrid[flowtoCells.at(0)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(mpiGrid[flowtoCells.at(3)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(mpiGrid[flowtoCells.at(6)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(mpiGrid[flowtoCells.at(9)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(mpiGrid[flowtoCells.at(12)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(mpiGrid[flowtoCells.at(15)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(mpiGrid[flowtoCells.at(18)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(mpiGrid[flowtoCells.at(21)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                    mpiGrid[flowtoCells.at(24)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter))))))))));
+                                min(flowtoCells.at(0)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(flowtoCells.at(3)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(flowtoCells.at(6)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(flowtoCells.at(9)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(flowtoCells.at(12)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(flowtoCells.at(15)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(flowtoCells.at(18)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(flowtoCells.at(21)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                    flowtoCells.at(24)->get_value(vxCellCenter, vyCellCenter, vzCellCenter))))))))));
                      } else {
                         value = min(value,
-                                min(mpiGrid[flowtoCells.at(2)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(mpiGrid[flowtoCells.at(5)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(mpiGrid[flowtoCells.at(8)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(mpiGrid[flowtoCells.at(11)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(mpiGrid[flowtoCells.at(14)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(mpiGrid[flowtoCells.at(17)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(mpiGrid[flowtoCells.at(20)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(mpiGrid[flowtoCells.at(23)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                    mpiGrid[flowtoCells.at(26)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter))))))))));
+                                min(flowtoCells.at(2)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(flowtoCells.at(5)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(flowtoCells.at(8)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(flowtoCells.at(11)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(flowtoCells.at(14)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(flowtoCells.at(17)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(flowtoCells.at(20)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(flowtoCells.at(23)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                    flowtoCells.at(26)->get_value(vxCellCenter, vyCellCenter, vzCellCenter))))))))));
                      }
                      
                      if(vyCellCenter <= 0.0) {
                         value = min(value,
-                                min(mpiGrid[flowtoCells.at(0)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(mpiGrid[flowtoCells.at(1)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(mpiGrid[flowtoCells.at(2)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(mpiGrid[flowtoCells.at(9)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(mpiGrid[flowtoCells.at(10)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(mpiGrid[flowtoCells.at(11)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(mpiGrid[flowtoCells.at(18)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(mpiGrid[flowtoCells.at(19)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                    mpiGrid[flowtoCells.at(20)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter))))))))));
+                                min(flowtoCells.at(0)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(flowtoCells.at(1)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(flowtoCells.at(2)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(flowtoCells.at(9)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(flowtoCells.at(10)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(flowtoCells.at(11)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(flowtoCells.at(18)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(flowtoCells.at(19)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                    flowtoCells.at(20)->get_value(vxCellCenter, vyCellCenter, vzCellCenter))))))))));
                      } else {
                         value = min(value,
-                                min(mpiGrid[flowtoCells.at(6)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(mpiGrid[flowtoCells.at(7)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(mpiGrid[flowtoCells.at(8)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(mpiGrid[flowtoCells.at(15)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(mpiGrid[flowtoCells.at(16)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(mpiGrid[flowtoCells.at(17)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(mpiGrid[flowtoCells.at(24)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(mpiGrid[flowtoCells.at(25)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                    mpiGrid[flowtoCells.at(26)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter))))))))));
+                                min(flowtoCells.at(6)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(flowtoCells.at(7)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(flowtoCells.at(8)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(flowtoCells.at(15)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(flowtoCells.at(16)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(flowtoCells.at(17)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(flowtoCells.at(24)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(flowtoCells.at(25)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                    flowtoCells.at(26)->get_value(vxCellCenter, vyCellCenter, vzCellCenter))))))))));
                      }
                      
                      if(vzCellCenter <= 0.0) {
                         value = min(value,
-                                min(mpiGrid[flowtoCells.at(0)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(mpiGrid[flowtoCells.at(1)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(mpiGrid[flowtoCells.at(2)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(mpiGrid[flowtoCells.at(3)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(mpiGrid[flowtoCells.at(4)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(mpiGrid[flowtoCells.at(5)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(mpiGrid[flowtoCells.at(6)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(mpiGrid[flowtoCells.at(7)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                    mpiGrid[flowtoCells.at(8)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter))))))))));
+                                min(flowtoCells.at(0)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(flowtoCells.at(1)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(flowtoCells.at(2)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(flowtoCells.at(3)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(flowtoCells.at(4)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(flowtoCells.at(5)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(flowtoCells.at(6)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(flowtoCells.at(7)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                    flowtoCells.at(8)->get_value(vxCellCenter, vyCellCenter, vzCellCenter))))))))));
                      } else {
                         value = min(value,
-                                min(mpiGrid[flowtoCells.at(18)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(mpiGrid[flowtoCells.at(19)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(mpiGrid[flowtoCells.at(20)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(mpiGrid[flowtoCells.at(21)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(mpiGrid[flowtoCells.at(22)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(mpiGrid[flowtoCells.at(23)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(mpiGrid[flowtoCells.at(24)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(mpiGrid[flowtoCells.at(25)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                    mpiGrid[flowtoCells.at(26)]->get_value(vxCellCenter, vyCellCenter, vzCellCenter))))))))));
+                                min(flowtoCells.at(18)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(flowtoCells.at(19)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(flowtoCells.at(20)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(flowtoCells.at(21)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(flowtoCells.at(22)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(flowtoCells.at(23)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(flowtoCells.at(24)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                min(flowtoCells.at(25)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
+                                    flowtoCells.at(26)->get_value(vxCellCenter, vyCellCenter, vzCellCenter))))))))));
                      }
                      to->set_value(vxCellCenter, vyCellCenter, vzCellCenter, value);
                   }
@@ -799,8 +799,8 @@ namespace SBC {
          const CellID cellId = *it;
          std::vector<CellID> & closestCells = allClosestNonsysboundaryCells[cellId];
          closestCells.clear();
-         std::array<CellID,27> & flowtoCells = allFlowtoCells[cellId];
-         flowtoCells.fill(cellId);
+         std::array<SpatialCell*,27> & flowtoCells = allFlowtoCells[cellId];
+         flowtoCells.fill(mpiGrid[cellId]);
          uint dist = numeric_limits<uint>::max();
       
          // First iteration of search to determine closest distance
@@ -815,7 +815,7 @@ namespace SBC {
                            dist = d2;
                         }
                         if(d2 < 4) { // flowto neighbours have distances of 1, 2 or 3 at a distance of 1 layer, 4, 5 or 6 at a distance of 2 layers
-                           flowtoCells.at(i + 3*j + 9*k + 13) = cell;
+                           flowtoCells.at(i + 3*j + 9*k + 13) = mpiGrid[cell];
                         }
                      }
                   }
@@ -869,11 +869,11 @@ namespace SBC {
     * \param cellID ID of the cell to start look from.
     * \return The vector of cell indices of those cells
     */
-   std::array<CellID,27> & SysBoundaryCondition::getFlowtoCells(
+   std::array<SpatialCell*,27> & SysBoundaryCondition::getFlowtoCells(
       const CellID& cellID
    ) {
       phiprof::start("getFlowtoCells");
-      std::array<CellID,27> & flowtoCells = allFlowtoCells.at(cellID);
+      std::array<SpatialCell*,27> & flowtoCells = allFlowtoCells.at(cellID);
       phiprof::stop("getFlowtoCells");
       return flowtoCells;
    }
