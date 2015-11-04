@@ -420,76 +420,121 @@ namespace SBC {
                      creal vzCellCenter = vzBlock + (kc+convert<Real>(0.5))*dvzCell;
                      Realf value = from->get_value(vxCellCenter, vyCellCenter, vzCellCenter);
                      if(vxCellCenter <= 0.0) {
-                        value = min(value,
-                                min(flowtoCells.at(0)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(flowtoCells.at(3)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(flowtoCells.at(6)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(flowtoCells.at(9)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(flowtoCells.at(12)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(flowtoCells.at(15)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(flowtoCells.at(18)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(flowtoCells.at(21)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                    flowtoCells.at(24)->get_value(vxCellCenter, vyCellCenter, vzCellCenter))))))))));
-                     } else {
-                        value = min(value,
-                                min(flowtoCells.at(2)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(flowtoCells.at(5)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(flowtoCells.at(8)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(flowtoCells.at(11)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(flowtoCells.at(14)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(flowtoCells.at(17)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(flowtoCells.at(20)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(flowtoCells.at(23)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                    flowtoCells.at(26)->get_value(vxCellCenter, vyCellCenter, vzCellCenter))))))))));
+                        if(vyCellCenter <= 0.0) {
+                           if(flowtoCells.at(9))
+                              value = min(value, flowtoCells.at(9)->get_value(vxCellCenter, vyCellCenter, vzCellCenter));
+                           if(flowtoCells.at(10))
+                              value = min(value, flowtoCells.at(10)->get_value(vxCellCenter, vyCellCenter, vzCellCenter));
+                           if(flowtoCells.at(12))
+                              value = min(value, flowtoCells.at(12)->get_value(vxCellCenter, vyCellCenter, vzCellCenter));
+                           
+                           if(vzCellCenter <= 0.0) {
+                              if(flowtoCells.at(0))
+                                 value = min(value, flowtoCells.at(0)->get_value(vxCellCenter, vyCellCenter, vzCellCenter));
+                              if(flowtoCells.at(1))
+                                 value = min(value, flowtoCells.at(1)->get_value(vxCellCenter, vyCellCenter, vzCellCenter));
+                              if(flowtoCells.at(3))
+                                 value = min(value, flowtoCells.at(3)->get_value(vxCellCenter, vyCellCenter, vzCellCenter));
+                              if(flowtoCells.at(4))
+                                 value = min(value, flowtoCells.at(4)->get_value(vxCellCenter, vyCellCenter, vzCellCenter));
+                           } else { // vzCellCenter > 0.0
+                              if(flowtoCells.at(18))
+                                 value = min(value, flowtoCells.at(18)->get_value(vxCellCenter, vyCellCenter, vzCellCenter));
+                              if(flowtoCells.at(19))
+                                 value = min(value, flowtoCells.at(19)->get_value(vxCellCenter, vyCellCenter, vzCellCenter));
+                              if(flowtoCells.at(21))
+                                 value = min(value, flowtoCells.at(21)->get_value(vxCellCenter, vyCellCenter, vzCellCenter));
+                              if(flowtoCells.at(22))
+                                 value = min(value, flowtoCells.at(22)->get_value(vxCellCenter, vyCellCenter, vzCellCenter));
+                           }
+                        } else { // vyCellCenter > 0.0
+                           if(flowtoCells.at(12))
+                              value = min(value, flowtoCells.at(12)->get_value(vxCellCenter, vyCellCenter, vzCellCenter));
+                           if(flowtoCells.at(15))
+                              value = min(value, flowtoCells.at(15)->get_value(vxCellCenter, vyCellCenter, vzCellCenter));
+                           if(flowtoCells.at(16))
+                              value = min(value, flowtoCells.at(16)->get_value(vxCellCenter, vyCellCenter, vzCellCenter));
+                           
+                           if(vzCellCenter <= 0.0) {
+                              if(flowtoCells.at(3))
+                                 value = min(value, flowtoCells.at(3)->get_value(vxCellCenter, vyCellCenter, vzCellCenter));
+                              if(flowtoCells.at(4))
+                                 value = min(value, flowtoCells.at(4)->get_value(vxCellCenter, vyCellCenter, vzCellCenter));
+                              if(flowtoCells.at(6))
+                                 value = min(value, flowtoCells.at(6)->get_value(vxCellCenter, vyCellCenter, vzCellCenter));
+                              if(flowtoCells.at(7))
+                                 value = min(value, flowtoCells.at(7)->get_value(vxCellCenter, vyCellCenter, vzCellCenter));
+                           } else { // vzCellCenter > 0.0
+                              if(flowtoCells.at(21))
+                                 value = min(value, flowtoCells.at(21)->get_value(vxCellCenter, vyCellCenter, vzCellCenter));
+                              if(flowtoCells.at(22))
+                                 value = min(value, flowtoCells.at(22)->get_value(vxCellCenter, vyCellCenter, vzCellCenter));
+                              if(flowtoCells.at(24))
+                                 value = min(value, flowtoCells.at(24)->get_value(vxCellCenter, vyCellCenter, vzCellCenter));
+                              if(flowtoCells.at(25))
+                                 value = min(value, flowtoCells.at(25)->get_value(vxCellCenter, vyCellCenter, vzCellCenter));
+                           }
+                        }
+                     } else { // vxCellCenter > 0.0
+                        if(vyCellCenter <= 0.0) {
+                           if(flowtoCells.at(10))
+                              value = min(value, flowtoCells.at(10)->get_value(vxCellCenter, vyCellCenter, vzCellCenter));
+                           if(flowtoCells.at(11))
+                              value = min(value, flowtoCells.at(11)->get_value(vxCellCenter, vyCellCenter, vzCellCenter));
+                           if(flowtoCells.at(14))
+                              value = min(value, flowtoCells.at(14)->get_value(vxCellCenter, vyCellCenter, vzCellCenter));
+                           
+                           if(vzCellCenter <= 0.0) {
+                              if(flowtoCells.at(1))
+                                 value = min(value, flowtoCells.at(1)->get_value(vxCellCenter, vyCellCenter, vzCellCenter));
+                              if(flowtoCells.at(2))
+                                 value = min(value, flowtoCells.at(2)->get_value(vxCellCenter, vyCellCenter, vzCellCenter));
+                              if(flowtoCells.at(4))
+                                 value = min(value, flowtoCells.at(4)->get_value(vxCellCenter, vyCellCenter, vzCellCenter));
+                              if(flowtoCells.at(5))
+                                 value = min(value, flowtoCells.at(5)->get_value(vxCellCenter, vyCellCenter, vzCellCenter));
+                           } else { // vzCellCenter > 0.0
+                              if(flowtoCells.at(19))
+                                 value = min(value, flowtoCells.at(19)->get_value(vxCellCenter, vyCellCenter, vzCellCenter));
+                              if(flowtoCells.at(20))
+                                 value = min(value, flowtoCells.at(20)->get_value(vxCellCenter, vyCellCenter, vzCellCenter));
+                              if(flowtoCells.at(22))
+                                 value = min(value, flowtoCells.at(22)->get_value(vxCellCenter, vyCellCenter, vzCellCenter));
+                              if(flowtoCells.at(23))
+                                 value = min(value, flowtoCells.at(23)->get_value(vxCellCenter, vyCellCenter, vzCellCenter));
+                           }
+                        } else { // vyCellCenter > 0.0
+                           if(flowtoCells.at(14))
+                              value = min(value, flowtoCells.at(14)->get_value(vxCellCenter, vyCellCenter, vzCellCenter));
+                           if(flowtoCells.at(16))
+                              value = min(value, flowtoCells.at(16)->get_value(vxCellCenter, vyCellCenter, vzCellCenter));
+                           if(flowtoCells.at(17))
+                              value = min(value, flowtoCells.at(17)->get_value(vxCellCenter, vyCellCenter, vzCellCenter));
+                           
+                           if(vzCellCenter <= 0.0) {
+                              if(flowtoCells.at(4))
+                                 value = min(value, flowtoCells.at(4)->get_value(vxCellCenter, vyCellCenter, vzCellCenter));
+                              if(flowtoCells.at(5))
+                                 value = min(value, flowtoCells.at(5)->get_value(vxCellCenter, vyCellCenter, vzCellCenter));
+                              if(flowtoCells.at(7))
+                                 value = min(value, flowtoCells.at(7)->get_value(vxCellCenter, vyCellCenter, vzCellCenter));
+                              if(flowtoCells.at(8))
+                                 value = min(value, flowtoCells.at(8)->get_value(vxCellCenter, vyCellCenter, vzCellCenter));
+                           } else { // vzCellCenter > 0.0
+                              if(flowtoCells.at(22))
+                                 value = min(value, flowtoCells.at(22)->get_value(vxCellCenter, vyCellCenter, vzCellCenter));
+                              if(flowtoCells.at(23))
+                                 value = min(value, flowtoCells.at(23)->get_value(vxCellCenter, vyCellCenter, vzCellCenter));
+                              if(flowtoCells.at(25))
+                                 value = min(value, flowtoCells.at(25)->get_value(vxCellCenter, vyCellCenter, vzCellCenter));
+                              if(flowtoCells.at(26))
+                                 value = min(value, flowtoCells.at(26)->get_value(vxCellCenter, vyCellCenter, vzCellCenter));
+                           }
+                        }
                      }
-                     
-                     if(vyCellCenter <= 0.0) {
-                        value = min(value,
-                                min(flowtoCells.at(0)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(flowtoCells.at(1)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(flowtoCells.at(2)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(flowtoCells.at(9)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(flowtoCells.at(10)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(flowtoCells.at(11)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(flowtoCells.at(18)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(flowtoCells.at(19)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                    flowtoCells.at(20)->get_value(vxCellCenter, vyCellCenter, vzCellCenter))))))))));
-                     } else {
-                        value = min(value,
-                                min(flowtoCells.at(6)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(flowtoCells.at(7)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(flowtoCells.at(8)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(flowtoCells.at(15)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(flowtoCells.at(16)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(flowtoCells.at(17)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(flowtoCells.at(24)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(flowtoCells.at(25)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                    flowtoCells.at(26)->get_value(vxCellCenter, vyCellCenter, vzCellCenter))))))))));
-                     }
-                     
-                     if(vzCellCenter <= 0.0) {
-                        value = min(value,
-                                min(flowtoCells.at(0)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(flowtoCells.at(1)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(flowtoCells.at(2)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(flowtoCells.at(3)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(flowtoCells.at(4)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(flowtoCells.at(5)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(flowtoCells.at(6)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(flowtoCells.at(7)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                    flowtoCells.at(8)->get_value(vxCellCenter, vyCellCenter, vzCellCenter))))))))));
-                     } else {
-                        value = min(value,
-                                min(flowtoCells.at(18)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(flowtoCells.at(19)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(flowtoCells.at(20)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(flowtoCells.at(21)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(flowtoCells.at(22)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(flowtoCells.at(23)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(flowtoCells.at(24)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                min(flowtoCells.at(25)->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
-                                    flowtoCells.at(26)->get_value(vxCellCenter, vyCellCenter, vzCellCenter))))))))));
-                     }
+//                      if(cellID == 2) {
+//                         cout << mpiGrid[2]->get_value(vxCellCenter, vyCellCenter, vzCellCenter) << " " << mpiGrid[3]->get_value(vxCellCenter, vyCellCenter, vzCellCenter) << " " << value << endl;
+//                      }
                      to->set_value(vxCellCenter, vyCellCenter, vzCellCenter, value);
                   }
          }
@@ -800,7 +845,7 @@ namespace SBC {
          std::vector<CellID> & closestCells = allClosestNonsysboundaryCells[cellId];
          closestCells.clear();
          std::array<SpatialCell*,27> & flowtoCells = allFlowtoCells[cellId];
-         flowtoCells.fill(mpiGrid[cellId]);
+         flowtoCells.fill(NULL);
          uint dist = numeric_limits<uint>::max();
       
          // First iteration of search to determine closest distance
@@ -814,7 +859,9 @@ namespace SBC {
                         if(d2 < dist) {
                            dist = d2;
                         }
-                        if(d2 < 4) { // flowto neighbours have distances of 1, 2 or 3 at a distance of 1 layer, 4, 5 or 6 at a distance of 2 layers
+                        // Flowto neighbours have distances of 1, 2 or 3 at a distance of 1 layer, 4, 5 or 6 at a distance of 2 layers.
+                        // Furthermore one does not want to have the cell itself in this list.
+                        if(d2 < 4 && i != 0 && j != 0 && k != 0) {
                            flowtoCells.at(i + 3*j + 9*k + 13) = mpiGrid[cell];
                         }
                      }

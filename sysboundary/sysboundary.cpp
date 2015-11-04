@@ -434,7 +434,7 @@ void SysBoundary::applySysBoundaryVlasovConditions(
    phiprof::stop(timer);
 
    // WARNING Blocks are changed but lists not updated now, if you need to use/communicate them before the next update is done, add an update here.
-
+   updateRemoteVelocityBlockLists(mpiGrid);
 
 }
 
