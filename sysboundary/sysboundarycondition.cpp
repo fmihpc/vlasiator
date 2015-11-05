@@ -425,9 +425,9 @@ namespace SBC {
 		     const int vzCellSign = vzCellCenter < 0 ? -1 : 1;
                      Realf value = from->get_value(blockGID, cell);
 		     //loop over spatial cells in quadrant of influence
-		     for(int dvx = 0 ; dvx < 1; dvx++) {
-		        for(int dvy = 0 ; dvy < 1; dvy++) {
-			   for(int dvz = 0 ; dvz < 1; dvz++) {
+		     for(int dvx = 0 ; dvx <= 1; dvx++) {
+		        for(int dvy = 0 ; dvy <= 1; dvy++) {
+			   for(int dvz = 0 ; dvz <= 1; dvz++) {
 			      const int flowToId = nbrID(dvx * vxCellSign, dvy * vyCellSign, dvz * vzCellSign);
 			      if(flowtoCells.at(flowToId)){
                                  value = min(value, flowtoCells.at(flowToId)->get_value(blockGID, cell));
