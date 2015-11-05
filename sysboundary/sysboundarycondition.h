@@ -140,7 +140,13 @@ namespace SBC {
       std::array<SpatialCell*,27> & getFlowtoCells(
          const CellID& cellID
       );
-
+      
+      /*! Helper function to get the index of a neighboring cell in the arrays in allFlowtoCells.
+       * \param i Offset in x direction (-1, 0 or 1)
+       * \param j Offset in y direction (-1, 0 or 1)
+       * \param k Offset in z direction (-1, 0 or 1)
+       * \retval int Index in the flowto cell array (0 to 26, indexed from - to + x, y, z.
+       */
       inline int nbrID(const int i, const int j, const int k){
          return (k+1)*9 + (j+1)*3 + i + 1;
       }
