@@ -140,6 +140,12 @@ namespace SBC {
       std::array<SpatialCell*,27> & getFlowtoCells(
          const CellID& cellID
       );
+
+      inline int nbrID(const int i, const int j, const int k){
+	return k*9 + j*3 + i;
+      }
+      
+
       void vlasovBoundaryCopyFromTheClosestNbr(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const CellID& cellID,
@@ -180,6 +186,9 @@ namespace SBC {
       /*! bool telling whether to call again applyInitialState upon restarting the simulation. */
       bool applyUponRestart;
    };
+   
+
+
 } // namespace SBC
 
 #endif
