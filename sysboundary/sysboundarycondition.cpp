@@ -380,7 +380,7 @@ namespace SBC {
    void SysBoundaryCondition::vlasovBoundaryCopyFromTheClosestNbrAndLimit(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID
-   ) {
+      ) {
       const CellID closestCell = getTheClosestNonsysboundaryCell(cellID);
       SpatialCell * from = mpiGrid[closestCell];
       SpatialCell * to = mpiGrid[cellID];
