@@ -213,6 +213,7 @@ namespace spatial_cell {
       vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& get_velocity_mesh_temporary();
       vmesh::VelocityBlockContainer<vmesh::LocalID>& get_velocity_blocks_temporary();
       Realf get_value(const Real vx, const Real vy, const Real vz) const;
+      Realf get_value(const vmesh::GlobalID& blockGID, const unsigned int cell) const;
       void increment_value(const Real vx, const Real vy, const Real vz, const Realf value);
       void increment_value(const vmesh::GlobalID& block,const unsigned int cell, const Realf value);
       void set_value(const Real vx, const Real vy, const Real vz, const Realf value);
@@ -1305,6 +1306,22 @@ namespace spatial_cell {
       
       return get_data(blockLID)[cell];
    }
+
+   inline Realf SpatialCell::get_value(const vmesh::GlobalID& blockGID, const unsigned int cell) const {
+      if (count(blockGID) == 0) {
+         return 0.0;
+      }
+      const vmesh::LocalID blockLID = get_velocity_block_local_id(blockGID);
+      //const Velocity_Block block_ptr = at(block);
+      if (blockLID == invalid_local_id()) {
+      //if (block_ptr.is_null() == true) {
+         std::cerr << __FILE__ << ":" << __LINE__
+            << " block_ptr == NULL" << std::endl; 
+         abort();
+      }
+      return get_data(blockLID)[cell];
+   }
+
    
    /*! get mpi datatype for sending the cell data. */
    inline std::tuple<void*, int, MPI_Datatype> SpatialCell::get_mpi_datatype(
