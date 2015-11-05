@@ -391,7 +391,6 @@ namespace SBC {
       }
       
       const std::array<SpatialCell*,27> flowtoCells = getFlowtoCells(cellID);
-      
       //Do not allow block adjustment, the block structure when calling vlasovBoundaryCondition should be static
       //just copy data to existing blocks, no modification of to blocks allowed
       for (vmesh::LocalID blockLID=0; blockLID<to->get_number_of_velocity_blocks(); ++blockLID) {
@@ -412,133 +411,33 @@ namespace SBC {
             creal dvyCell = blockParameters[BlockParams::DVY];
             creal dvzCell = blockParameters[BlockParams::DVZ];
             
-            for (uint kc=0; kc<WID; ++kc)
-               for (uint jc=0; jc<WID; ++jc)
+            for (uint kc=0; kc<WID; ++kc) {
+  	       for (uint jc=0; jc<WID; ++jc) {
                   for (uint ic=0; ic<WID; ++ic) {
 		     velocity_cell_indices_t indices(ic, jc, kc);
 		     const uint cell = get_velocity_cell(indices);
                      creal vxCellCenter = vxBlock + (ic+convert<Real>(0.5))*dvxCell;
                      creal vyCellCenter = vyBlock + (jc+convert<Real>(0.5))*dvyCell;
                      creal vzCellCenter = vzBlock + (kc+convert<Real>(0.5))*dvzCell;
+		     const int vxCellSign = vxCellCenter < 0 ? -1 : 1;
+		     const int vyCellSign = vyCellCenter < 0 ? -1 : 1;
+		     const int vzCellSign = vzCellCenter < 0 ? -1 : 1;
                      Realf value = from->get_value(blockGID, cell);
-                     if(vxCellCenter <= 0.0) {
-                        if(vyCellCenter <= 0.0) {
-                           if(flowtoCells.at(9))
-                              value = min(value, flowtoCells.at(9)->get_value(blockGID, cell));
-                           if(flowtoCells.at(10))
-                              value = min(value, flowtoCells.at(10)->get_value(blockGID, cell));
-                           if(flowtoCells.at(12))
-                              value = min(value, flowtoCells.at(12)->get_value(blockGID, cell));
-                           
-                           if(vzCellCenter <= 0.0) {
-                              if(flowtoCells.at(0))
-                                 value = min(value, flowtoCells.at(0)->get_value(blockGID, cell));
-                              if(flowtoCells.at(1))
-                                 value = min(value, flowtoCells.at(1)->get_value(blockGID, cell));
-                              if(flowtoCells.at(3))
-                                 value = min(value, flowtoCells.at(3)->get_value(blockGID, cell));
-                              if(flowtoCells.at(4))
-                                 value = min(value, flowtoCells.at(4)->get_value(blockGID, cell));
-                           } else { // vzCellCenter > 0.0
-                              if(flowtoCells.at(18))
-                                 value = min(value, flowtoCells.at(18)->get_value(blockGID, cell));
-                              if(flowtoCells.at(19))
-                                 value = min(value, flowtoCells.at(19)->get_value(blockGID, cell));
-                              if(flowtoCells.at(21))
-                                 value = min(value, flowtoCells.at(21)->get_value(blockGID, cell));
-                              if(flowtoCells.at(22))
-                                 value = min(value, flowtoCells.at(22)->get_value(blockGID, cell));
-                           }
-                        } else { // vyCellCenter > 0.0
-                           if(flowtoCells.at(12))
-                              value = min(value, flowtoCells.at(12)->get_value(blockGID, cell));
-                           if(flowtoCells.at(15))
-                              value = min(value, flowtoCells.at(15)->get_value(blockGID, cell));
-                           if(flowtoCells.at(16))
-                              value = min(value, flowtoCells.at(16)->get_value(blockGID, cell));
-                           
-                           if(vzCellCenter <= 0.0) {
-                              if(flowtoCells.at(3))
-                                 value = min(value, flowtoCells.at(3)->get_value(blockGID, cell));
-                              if(flowtoCells.at(4))
-                                 value = min(value, flowtoCells.at(4)->get_value(blockGID, cell));
-                              if(flowtoCells.at(6))
-                                 value = min(value, flowtoCells.at(6)->get_value(blockGID, cell));
-                              if(flowtoCells.at(7))
-                                 value = min(value, flowtoCells.at(7)->get_value(blockGID, cell));
-                           } else { // vzCellCenter > 0.0
-                              if(flowtoCells.at(21))
-                                 value = min(value, flowtoCells.at(21)->get_value(blockGID, cell));
-                              if(flowtoCells.at(22))
-                                 value = min(value, flowtoCells.at(22)->get_value(blockGID, cell));
-                              if(flowtoCells.at(24))
-                                 value = min(value, flowtoCells.at(24)->get_value(blockGID, cell));
-                              if(flowtoCells.at(25))
-                                 value = min(value, flowtoCells.at(25)->get_value(blockGID, cell));
-                           }
-                        }
-                     } else { // vxCellCenter > 0.0
-                        if(vyCellCenter <= 0.0) {
-                           if(flowtoCells.at(10))
-                              value = min(value, flowtoCells.at(10)->get_value(blockGID, cell));
-                           if(flowtoCells.at(11))
-                              value = min(value, flowtoCells.at(11)->get_value(blockGID, cell));
-                           if(flowtoCells.at(14))
-                              value = min(value, flowtoCells.at(14)->get_value(blockGID, cell));
-                           
-                           if(vzCellCenter <= 0.0) {
-                              if(flowtoCells.at(1))
-                                 value = min(value, flowtoCells.at(1)->get_value(blockGID, cell));
-                              if(flowtoCells.at(2))
-                                 value = min(value, flowtoCells.at(2)->get_value(blockGID, cell));
-                              if(flowtoCells.at(4))
-                                 value = min(value, flowtoCells.at(4)->get_value(blockGID, cell));
-                              if(flowtoCells.at(5))
-                                 value = min(value, flowtoCells.at(5)->get_value(blockGID, cell));
-                           } else { // vzCellCenter > 0.0
-                              if(flowtoCells.at(19))
-                                 value = min(value, flowtoCells.at(19)->get_value(blockGID, cell));
-                              if(flowtoCells.at(20))
-                                 value = min(value, flowtoCells.at(20)->get_value(blockGID, cell));
-                              if(flowtoCells.at(22))
-                                 value = min(value, flowtoCells.at(22)->get_value(blockGID, cell));
-                              if(flowtoCells.at(23))
-                                 value = min(value, flowtoCells.at(23)->get_value(blockGID, cell));
-                           }
-                        } else { // vyCellCenter > 0.0
-                           if(flowtoCells.at(14))
-                              value = min(value, flowtoCells.at(14)->get_value(blockGID, cell));
-                           if(flowtoCells.at(16))
-                              value = min(value, flowtoCells.at(16)->get_value(blockGID, cell));
-                           if(flowtoCells.at(17))
-                              value = min(value, flowtoCells.at(17)->get_value(blockGID, cell));
-                           
-                           if(vzCellCenter <= 0.0) {
-                              if(flowtoCells.at(4))
-                                 value = min(value, flowtoCells.at(4)->get_value(blockGID, cell));
-                              if(flowtoCells.at(5))
-                                 value = min(value, flowtoCells.at(5)->get_value(blockGID, cell));
-                              if(flowtoCells.at(7))
-                                 value = min(value, flowtoCells.at(7)->get_value(blockGID, cell));
-                              if(flowtoCells.at(8))
-                                 value = min(value, flowtoCells.at(8)->get_value(blockGID, cell));
-                           } else { // vzCellCenter > 0.0
-                              if(flowtoCells.at(22))
-                                 value = min(value, flowtoCells.at(22)->get_value(blockGID, cell));
-                              if(flowtoCells.at(23))
-                                 value = min(value, flowtoCells.at(23)->get_value(blockGID, cell));
-                              if(flowtoCells.at(25))
-                                 value = min(value, flowtoCells.at(25)->get_value(blockGID, cell));
-                              if(flowtoCells.at(26))
-                                 value = min(value, flowtoCells.at(26)->get_value(blockGID, cell));
-                           }
-                        }
-                     }
-//                      if(cellID == 2) {
-//                         cout << mpiGrid[2]->get_value(blockGID, cell) << " " << mpiGrid[3]->get_value(blockGID, cell) << " " << value << endl;
-//                      }
-                     to->set_value(vxCellCenter, vyCellCenter, vzCellCenter, value);
+		     //loop over spatial cells in quadrant of influence
+		     for(int dvx = 0 ; dvx < 1; dvx++) {
+		        for(int dvy = 0 ; dvy < 1; dvy++) {
+			   for(int dvz = 0 ; dvz < 1; dvz++) {
+			      const int flowToId = nbrID(dvx * vxCellSign, dvy * vyCellSign, dvz * vzCellSign);
+			      if(flowtoCells.at(flowToId)){
+                                 value = min(value, flowtoCells.at(flowToId)->get_value(blockGID, cell));
+			      }
+		           }
+	 	        }
+		     }
+                     to->set_value(blockGID, cell,  value);
                   }
+	       }
+	    }
          }
       }
       calculateCellVelocityMoments(to);
