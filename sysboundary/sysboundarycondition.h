@@ -142,7 +142,7 @@ namespace SBC {
       );
 
       inline int nbrID(const int i, const int j, const int k){
-	return k*9 + j*3 + i;
+         return (k+1)*9 + (j+1)*3 + i + 1;
       }
       
 
