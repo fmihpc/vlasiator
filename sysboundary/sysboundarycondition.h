@@ -141,6 +141,11 @@ namespace SBC {
          const CellID& cellID
       );
       
+      std::array<Realf*,27> getFlowtoCellsBlock(
+         const std::array<SpatialCell*,27> flowtoCells,
+         const vmesh::GlobalID blockGID
+      );
+      
       /*! Helper function to get the index of a neighboring cell in the arrays in allFlowtoCells.
        * \param i Offset in x direction (-1, 0 or 1)
        * \param j Offset in y direction (-1, 0 or 1)

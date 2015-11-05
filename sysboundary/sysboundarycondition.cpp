@@ -395,7 +395,7 @@ namespace SBC {
       //just copy data to existing blocks, no modification of to blocks allowed
       for (vmesh::LocalID blockLID=0; blockLID<to->get_number_of_velocity_blocks(); ++blockLID) {
          const vmesh::GlobalID blockGID = to->get_velocity_block_global_id(blockLID);
-         const Realf* fromBlock_data = from->get_data(from->get_velocity_block_local_id(blockGID) );
+//          const Realf* fromBlock_data = from->get_data(from->get_velocity_block_local_id(blockGID) );
          Realf* toBlock_data = to->get_data(blockLID);
          if (from->get_velocity_block_local_id(blockGID) == from->invalid_local_id()) {
             for (unsigned int i = 0; i < VELOCITY_BLOCK_LENGTH; i++) {
@@ -410,6 +410,8 @@ namespace SBC {
             creal dvxCell = blockParameters[BlockParams::DVX];
             creal dvyCell = blockParameters[BlockParams::DVY];
             creal dvzCell = blockParameters[BlockParams::DVZ];
+            
+            std::array<Realf*,27> flowtoCellsBlockCache = getFlowtoCellsBlock(flowtoCells, blockGID);
             
             for (uint kc=0; kc<WID; ++kc) {
                for (uint jc=0; jc<WID; ++jc) {
@@ -430,7 +432,7 @@ namespace SBC {
                            for(int dvz = 0 ; dvz <= 1; dvz++) {
                               const int flowToId = nbrID(dvx * vxCellSign, dvy * vyCellSign, dvz * vzCellSign);
                               if(flowtoCells.at(flowToId)){
-                                 value = min(value, flowtoCells.at(flowToId)->get_value(blockGID, cell));
+                                 value = min(value, flowtoCellsBlockCache.at(flowToId)[cell]);
                               }
                            }
                         }
@@ -825,6 +827,22 @@ namespace SBC {
       std::array<SpatialCell*,27> & flowtoCells = allFlowtoCells.at(cellID);
       phiprof::stop("getFlowtoCells");
       return flowtoCells;
+   }
+   
+   std::array<Realf*,27> SysBoundaryCondition::getFlowtoCellsBlock(
+      const std::array<SpatialCell*,27> flowtoCells,
+      const vmesh::GlobalID blockGID
+   ) {
+      phiprof::start("getFlowtoCellsBlock");
+      std::array<Realf*,27> flowtoCellsBlock;
+      flowtoCellsBlock.fill(NULL);
+      for (uint i=0; i<27; i++) {
+         if(flowtoCells.at(i)) {
+            flowtoCellsBlock.at(i) = flowtoCells.at(i)->get_data(flowtoCells.at(i)->get_velocity_block_local_id(blockGID));
+         }
+      }
+      phiprof::stop("getFlowtoCellsBlock");
+      return flowtoCellsBlock;
    }
    
    /*! Function used in some cases to know which faces the system boundary condition is being applied to.
