@@ -412,33 +412,33 @@ namespace SBC {
             creal dvzCell = blockParameters[BlockParams::DVZ];
             
             for (uint kc=0; kc<WID; ++kc) {
-  	       for (uint jc=0; jc<WID; ++jc) {
+               for (uint jc=0; jc<WID; ++jc) {
                   for (uint ic=0; ic<WID; ++ic) {
-		     velocity_cell_indices_t indices = {ic, jc, kc};
+                     velocity_cell_indices_t indices = {ic, jc, kc};
                      const uint cell = from->get_velocity_cell(indices);
                      
                      creal vxCellCenter = vxBlock + (ic+convert<Real>(0.5))*dvxCell;
                      creal vyCellCenter = vyBlock + (jc+convert<Real>(0.5))*dvyCell;
                      creal vzCellCenter = vzBlock + (kc+convert<Real>(0.5))*dvzCell;
-		     const int vxCellSign = vxCellCenter < 0 ? -1 : 1;
-		     const int vyCellSign = vyCellCenter < 0 ? -1 : 1;
-		     const int vzCellSign = vzCellCenter < 0 ? -1 : 1;
+                     const int vxCellSign = vxCellCenter < 0 ? -1 : 1;
+                     const int vyCellSign = vyCellCenter < 0 ? -1 : 1;
+                     const int vzCellSign = vzCellCenter < 0 ? -1 : 1;
                      Realf value = from->get_value(blockGID, cell);
-		     //loop over spatial cells in quadrant of influence
-		     for(int dvx = 0 ; dvx <= 1; dvx++) {
-		        for(int dvy = 0 ; dvy <= 1; dvy++) {
-			   for(int dvz = 0 ; dvz <= 1; dvz++) {
-			      const int flowToId = nbrID(dvx * vxCellSign, dvy * vyCellSign, dvz * vzCellSign);
-			      if(flowtoCells.at(flowToId)){
+                     //loop over spatial cells in quadrant of influence
+                     for(int dvx = 0 ; dvx <= 1; dvx++) {
+                        for(int dvy = 0 ; dvy <= 1; dvy++) {
+                           for(int dvz = 0 ; dvz <= 1; dvz++) {
+                              const int flowToId = nbrID(dvx * vxCellSign, dvy * vyCellSign, dvz * vzCellSign);
+                              if(flowtoCells.at(flowToId)){
                                  value = min(value, flowtoCells.at(flowToId)->get_value(blockGID, cell));
-			      }
-		           }
-	 	        }
-		     }
+                              }
+                           }
+                        }
+                     }
                      to->set_value(blockGID, cell,  value);
                   }
-	       }
-	    }
+               }
+            }
          }
       }
       calculateCellVelocityMoments(to);
