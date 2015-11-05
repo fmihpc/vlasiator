@@ -414,8 +414,9 @@ namespace SBC {
             for (uint kc=0; kc<WID; ++kc) {
   	       for (uint jc=0; jc<WID; ++jc) {
                   for (uint ic=0; ic<WID; ++ic) {
-		     velocity_cell_indices_t indices(ic, jc, kc);
-		     const uint cell = get_velocity_cell(indices);
+		     velocity_cell_indices_t indices = {ic, jc, kc};
+                     const uint cell = from->get_velocity_cell(indices);
+                     
                      creal vxCellCenter = vxBlock + (ic+convert<Real>(0.5))*dvxCell;
                      creal vyCellCenter = vyBlock + (jc+convert<Real>(0.5))*dvyCell;
                      creal vzCellCenter = vzBlock + (kc+convert<Real>(0.5))*dvzCell;
