@@ -130,8 +130,8 @@ namespace spatial_cell {
       template<int PAD> void fetch_data(const vmesh::GlobalID& blockGID,const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
                                         const Realf* src,Realf* array);
       template<int PAD>	void fetch_acc_data(const vmesh::GlobalID& blockGID,const int& dim,
-					    vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
-					    const Realf* src,Realf* array,Real cellSizeFractions[2]);
+                                            vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
+                                            const Realf* src,Realf* array,Real cellSizeFractions[2]);
       vmesh::GlobalID find_velocity_block(uint8_t& refLevel,vmesh::GlobalID cellIndices[3]);
       Realf* get_data();
       const Realf* get_data() const;
