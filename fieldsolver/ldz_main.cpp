@@ -244,7 +244,12 @@ bool propagateFields(
    creal& dt,
    cint& subcycles
 ) {
-
+   
+   if(subcycles == 0) {
+      cerr << "Field solver subcycles cannot be 0." << endl;
+      exit(1);
+   }
+   
    // Reserve memory for derivatives for all cells on this process:
    const vector<CellID>& localCells = getLocalCells();
 
