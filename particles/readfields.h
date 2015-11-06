@@ -76,11 +76,6 @@ std::vector<double> readFieldData(Reader& r, std::string& name, unsigned int num
    return buffer;
 }
 
-double readDoubleParameter(vlsvinterface::Reader& r, const char* name);
-
-/* Read a single-valued integer parameter */
-uint32_t readUintParameter(vlsvinterface::Reader& r, const char* name);
-
 /* Read the next logical input file. Depending on sign of dt,
  * this may be a numerically larger or smaller file.
  * Return value: true if a new file was read, otherwise false.
@@ -114,9 +109,9 @@ bool read_next_timestep(const std::string& filename_pattern, double t, int step,
       B1.time = t;
 
       uint64_t cells[3];
-      cells[0] = readUintParameter(r,"xcells_ini");
-      cells[1] = readUintParameter(r,"ycells_ini");
-      cells[2] = readUintParameter(r,"zcells_ini");
+      r.readParameter("xcells_ini",cells[0]);
+      r.readParameter("ycells_ini",cells[1]);
+      r.readParameter("zcells_ini",cells[2]);
 
       /* Read CellIDs and Field data */
       std::vector<uint64_t> cellIds = readCellIds(r);
@@ -213,16 +208,18 @@ void readfields(const char* filename, Field& E, Field& B, Field& V) {
    /* Coordinate Boundaries */
    double min[3], max[3], time;
    uint64_t cells[3];
-   min[0] = readDoubleParameter(r,"xmin");
-   min[1] = readDoubleParameter(r,"ymin");
-   min[2] = readDoubleParameter(r,"zmin");
-   max[0] = readDoubleParameter(r,"xmax");
-   max[1] = readDoubleParameter(r,"ymax");
-   max[2] = readDoubleParameter(r,"zmax");
-   cells[0] = readUintParameter(r,"xcells_ini");
-   cells[1] = readUintParameter(r,"ycells_ini");
-   cells[2] = readUintParameter(r,"zcells_ini");
-   time = readDoubleParameter(r,"t");
+   r.readParameter("xmin",min[0]);
+   r.readParameter("ymin",min[1]);
+   r.readParameter("zmin",min[2]);
+   r.readParameter("xmax",max[0]);
+   r.readParameter("ymax",max[1]);
+   r.readParameter("zmax",max[2]);
+   r.readParameter("xcells_ini",cells[0]);
+   r.readParameter("ycells_ini",cells[1]);
+   r.readParameter("zcells_ini",cells[2]);
+   if(!r.readParameter("t",time)) {
+     r.readParameter("time",time);
+   }
 
    //std::cerr << "Grid is " << cells[0] << " x " << cells[1] << " x " << cells[2] << " Cells, " << std::endl
    //          << " with dx = " << ((max[0]-min[0])/cells[0]) << ", dy = " << ((max[1]-min[1])/cells[1])
