@@ -49,7 +49,13 @@ for filename in args.i:
         cellids=[]
         values=[]
         f=pt.vlsvfile.VlsvReader(filename)
-        t=f.read_parameter("t")
+        try:
+            t=f.read_parameter("time")
+        except:
+            try:
+                t=f.read_parameter("t")
+            except:
+                print "Unknown time format in file"
         for coord in coords:
             if(args.re):
                 cellids.append(f.get_cellid(coord * 6371000))
