@@ -87,7 +87,7 @@ uint32_t readUintParameter(vlsvinterface::Reader& r, const char* name);
  */
 template <class Reader>
 bool read_next_timestep(const std::string& filename_pattern, double t, int step, Field& E0, Field& E1,
-   Field& B0, Field& B1, int& input_file_counter) {
+   Field& B0, Field& B1, Field& V, bool doV, int& input_file_counter) {
 
    char filename_buffer[256];
    bool retval = false;
@@ -124,6 +124,18 @@ bool read_next_timestep(const std::string& filename_pattern, double t, int step,
       std::vector<double> Bbuffer = readFieldData(r,name,3u);
       name = E_field_name;
       std::vector<double> Ebuffer = readFieldData(r,name,3u);
+			std::vector<double> Vbuffer;
+			if(doV) {
+				name = "rho_v";
+				std::vector<double> rho_v_buffer = readFieldData(r,name,3u);
+				name = "rho";
+				std::vector<double> rho_buffer = readFieldData(r,name,1u);
+				for(int i=0; i<rho_buffer.size(); i++) {
+					Vbuffer.push_back(rho_v_buffer[3*i] / rho_buffer[i]);
+					Vbuffer.push_back(rho_v_buffer[3*i+1] / rho_buffer[i]);
+					Vbuffer.push_back(rho_v_buffer[3*i+2] / rho_buffer[i]);
+				}
+			}
 
       /* Assign them, without sanity checking */
       /* TODO: Is this actually a good idea? */
@@ -141,6 +153,13 @@ bool read_next_timestep(const std::string& filename_pattern, double t, int step,
          Btgt[0] = Bbuffer[3*i];
          Btgt[1] = Bbuffer[3*i+1];
          Btgt[2] = Bbuffer[3*i+2];
+
+				 if(doV) {
+				   double* Vtgt = V.getCellRef(x,y,z);
+					 Vtgt[0] = Vbuffer[3*i];
+					 Vtgt[1] = Vbuffer[3*i+1];
+					 Vtgt[2] = Vbuffer[3*i+2];
+				 }
       }
 
       r.close();
@@ -152,13 +171,13 @@ bool read_next_timestep(const std::string& filename_pattern, double t, int step,
 
 /* Non-template version, autodetecting the reader type */
 static bool read_next_timestep(const std::string& filename_pattern, double t, int step, Field& E0, Field& E1,
-   Field& B0, Field& B1, int& input_file_counter) {
+   Field& B0, Field& B1, Field& V, bool doV, int& input_file_counter) {
 
    char filename_buffer[256];
    snprintf(filename_buffer,256,filename_pattern.c_str(),input_file_counter);
 
    return read_next_timestep<vlsvinterface::Reader>(filename_pattern, t,
-       step,E0,E1,B0,B1,input_file_counter);
+       step,E0,E1,B0,B1,V,doV,input_file_counter);
 }
 
 /* Read E- and B-Fields as well as velocity field from a vlsv file */

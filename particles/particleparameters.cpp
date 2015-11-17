@@ -27,6 +27,17 @@ Real P::particle_vel = 0;
 Real P::mass = PhysicalConstantsSI::mp;
 Real P::charge = PhysicalConstantsSI::e;
 
+Real P::precip_inner_boundary;
+Real P::precip_start_x;
+Real P::precip_stop_x;
+
+Real P::reflect_start_y;
+Real P::reflect_stop_y;
+Real P::reflect_y_scale;
+Real P::reflect_x_offset;
+Real P::reflect_upstream_boundary;
+Real P::reflect_downstream_boundary;
+
 bool ParticleParameters::addParameters() {
    Readparameters::add("particles.input_filename_pattern","Printf() like pattern giving the field input filenames.", std::string("bulk.%07i.vlsv"));
    Readparameters::add("particles.output_filename_pattern","Printf() like pattern giving the particle output filenames.", std::string("particles.%07i.vlsv"));
@@ -47,6 +58,20 @@ bool ParticleParameters::addParameters() {
    Readparameters::add("particles.particle_vel", "Initial velocity of the particles (in the plasma rest frame)",0);
    Readparameters::add("particles.mass", "Mass of the test particles",PhysicalConstantsSI::mp);
    Readparameters::add("particles.charge", "Charge of the test particles",PhysicalConstantsSI::e);
+
+   // Parameters for the precipitation mode
+   Readparameters::add("particles.inner_boundary", "Distance of the inner boundary from the coordinate centre (meters)", 30e6);
+   Readparameters::add("particles.precipitation_start_x", "X-Coordinate at which precipitation injection starts (meters)", -200e6);
+   Readparameters::add("particles.precipitation_stop_x", "X-Coordinate at which precipitation injection stops (meters)", -50e6);
+
+   // Parameters for shock reflection mode
+   Readparameters::add("particles.reflect_start_y", "Y-Coordinate of the bottom end of the parabola, at which shock reflection scenario particles are injected", 60e6);
+   Readparameters::add("particles.reflect_stop_y", "Y-Coordinate of the bottom end of the parabola, at which shock reflection scenario particles are injected", 60e6);
+   Readparameters::add("particles.reflect_y_scale", "Curvature scale of the injection parabola for the reflection scenario", 60e6);
+   Readparameters::add("particles.reflect_x_offset", "X-Coordinate of the tip of the injection parabola for the reflection scenario", 40e6);
+   Readparameters::add("particles.reflect_upstream_boundary", "Distance from particle injection point at which particles are to be counted as 'reflected'", 10e6);
+   Readparameters::add("particles.reflect_downstream_boundary", "Distance from particle injection point at which particles are to be counted as 'transmitted'", 10e6);
+
    return true;
 }
 
@@ -61,7 +86,7 @@ bool ParticleParameters::getParameters() {
    Readparameters::get("particles.init_z",P::init_z);
 
    Readparameters::get("particles.dt",P::dt);
-	 Readparameters::get("particles.input_dt", P::input_dt);
+   Readparameters::get("particles.input_dt", P::input_dt);
    Readparameters::get("particles.start_time",P::start_time);
    Readparameters::get("particles.end_time",P::end_time);
    Readparameters::get("particles.num_particles",P::num_particles);
@@ -90,5 +115,17 @@ bool ParticleParameters::getParameters() {
 
    Readparameters::get("particles.temperature",P::temperature);
    Readparameters::get("particles.particle_vel",P::particle_vel);
+
+   Readparameters::get("particles.inner_boundary", P::precip_inner_boundary);
+   Readparameters::get("particles.precipitation_start_x", P::precip_start_x);
+   Readparameters::get("particles.precipitation_stop_x", P::precip_stop_x);
+
+   Readparameters::get("particles.reflect_start_y", P::reflect_start_y);
+   Readparameters::get("particles.reflect_stop_y", P::reflect_stop_y);
+   Readparameters::get("particles.reflect_y_scale", P::reflect_y_scale);
+   Readparameters::get("particles.reflect_x_offset", P::reflect_x_offset);
+   Readparameters::get("particles.reflect_upstream_boundary", P::reflect_upstream_boundary);
+   Readparameters::get("particles.reflect_downstream_boundary", P::reflect_downstream_boundary);
+
    return true;
 }
