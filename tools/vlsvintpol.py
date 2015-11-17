@@ -49,6 +49,7 @@ for filename in args.i:
         cellids=[]
         values=[]
         f=pt.vlsvfile.VlsvReader(filename)
+        f.optimize_open_file()
         try:
             t=f.read_parameter("time")
         except:
@@ -67,12 +68,13 @@ for filename in args.i:
             
 
         for i,id in enumerate(cellids):
-            
             out = str(t) + " " +  ' '.join(map(str, coords[i])) + " " + str(id)
             for j,varval in enumerate(values):
                 out = out +  " " + str(varval[i])
             print out
+        f.optimize_close_file()    
     except:
         print "#Could not read " + filename
+        f.optimize_close_file()    
         pass
 
