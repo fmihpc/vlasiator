@@ -135,9 +135,9 @@ int main(int argc, char** argv) {
   string inFile(argv[1]);
   string outFile(argv[2]);
 
-  // TODO: Don't uselessly read E and V, we really only care about B.
+  // TODO: Don't uselessly read E, we really only care about B.
   Field E,B,V;
-  readfields(inFile.c_str(),E,B,V);
+  readfields(inFile.c_str(),E,B,V,false);
 
   cerr << "File read, calculating flux function..." << endl;
 
