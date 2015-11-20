@@ -53,7 +53,15 @@ std::vector<double> computeFluxDown(Field& B) {
 
   long double tmp_flux=0.;
 
-  // First, fill the z=max - 4 cells
+  // Calculate flux-difference between bottom and top edge
+  // of +x boundary (so that values are consistent with computeFluxUp)
+  for(int z=3; z<B.cells[2]-4; z++) {
+    Vec3d bval = B.getCell(B.cells[0]-2,0,z);
+
+    tmp_flux -= bval[0]*B.dx[2];
+  }
+
+  // From there, fill the z=max - 4 cells
   for(int x=B.cells[0]-2; x>0; x--) {
     Vec3d bval = B.getCell(x,0,B.cells[2]-4);
 
@@ -84,13 +92,18 @@ std::vector<double> computeFluxLeft(Field& B) {
   std::vector<double> flux(B.cells[0] * B.cells[1] * B.cells[2]);
 
   long double tmp_flux=0.;
+  long double bottom_right_flux=0.;
 
+  // First calculate flux difference to bottom right corner
   // Now, for each row, integrate in -z-direction.
   for(int z=0; z < B.cells[2]; z++) {
-    tmp_flux = 0;
+    Vec3d bval = B.getCell(B.cells[0]-1,0,z);
+    bottom_right_flux -= bval[0] * B.dx[2];
+
+    tmp_flux = bottom_right_flux;
     for(int x=B.cells[0]-1; x>0; x--) {
 
-      Vec3d bval = B.getCell(x,0,z);
+      bval = B.getCell(x,0,z);
 
       tmp_flux -= bval[2] * B.dx[0];
       flux[B.cells[0] * B.cells[1] * z  +  x] = tmp_flux;
