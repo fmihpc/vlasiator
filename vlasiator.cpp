@@ -391,7 +391,6 @@ int main(int argn,char* args[]) {
    if (myRank == MASTER_RANK) logFile << "(MAIN): Starting main simulation loop." << endl << writeVerbose;
    
    report_process_memory_consumption();
-   logFile << writeVerbose;
    
    unsigned int computedCells=0;
    unsigned int computedTotalCells=0;
