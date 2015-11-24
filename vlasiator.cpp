@@ -389,7 +389,9 @@ int main(int argn,char* args[]) {
    
    // Main simulation loop:
    if (myRank == MASTER_RANK) logFile << "(MAIN): Starting main simulation loop." << endl << writeVerbose;
-
+   
+   report_process_memory_consumption();
+   
    unsigned int computedCells=0;
    unsigned int computedTotalCells=0;
   //Compute here based on time what the file intervals are
