@@ -597,6 +597,7 @@ void getB(Real* B,vlsvinterface::Reader& vlsvReader,const string& meshName,const
       }
       
       // Attempt to read variable 'B'
+      B_read = true;
       xmlAttributes.clear();
       xmlAttributes.push_back(make_pair("mesh",meshName));
       xmlAttributes.push_back(make_pair("name","B"));
