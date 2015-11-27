@@ -89,6 +89,27 @@ int main(int argc, char** argv) {
 
       }
 
+			// Remove all particles that have left the simulation box after this step
+			// (unfortunately, this can not be done in parallel, so it better be fast!)
+			double inner_boundary_min[3]; // Inner boundary: minimum + 2*dx
+			inner_boundary_min[0] = B[0].min[0] + 2.*B[0].dx[0];
+			inner_boundary_min[1] = B[0].min[1] + 2.*B[0].dx[1];
+			inner_boundary_min[2] = B[0].min[2] + 2.*B[0].dx[2];
+			double inner_boundary_max[3]; // Inner boundary maximum - 2*dx
+			inner_boundary_max[0] = B[0].max[0] - 2.*B[0].dx[0];
+			inner_boundary_max[1] = B[0].max[1] - 2.*B[0].dx[1];
+			inner_boundary_max[2] = B[0].max[2] - 2.*B[0].dx[2];
+			for(std::vector<Particle>::iterator i = particles.begin(); i != particles.end(); ) {
+				Vec3d x =i->x;
+				if( (B[0].cells[0] > 1 && (x[0] <= inner_boundary_min[0] || x[0] >= inner_boundary_max[0])) ||
+						(B[0].cells[1] > 1 && (x[1] <= inner_boundary_min[1] || x[1] >= inner_boundary_max[1])) ||
+						(B[0].cells[2] > 1 && (x[2] <= inner_boundary_min[2] || x[2] >= inner_boundary_max[2])) ) {
+					particles.erase(i);
+				} else {
+					i++;
+				}
+			}
+
       scenario->after_push(step, step*dt, particles, cur_E, cur_B, V);
 
       /* Draw progress bar */
