@@ -57,15 +57,48 @@ struct Field {
 
       /* TODO: Boundary behaviour? */
 
-      /* TODO: 3d? */
-      Vec3d interp[4];
-      interp[0] = getCell(index[0],index[1],index[2]);
-      interp[1] = getCell(index[0]+1,index[1],index[2]);
-      interp[2] = getCell(index[0],index[1]+1,index[2]);
-      interp[3] = getCell(index[0]+1,index[1]+1,index[2]);
+      if(cells[2] <= 1) {
+        // Equatorial plane
+        Vec3d interp[4];
+        interp[0] = getCell(index[0],index[1],index[2]);
+        interp[1] = getCell(index[0]+1,index[1],index[2]);
+        interp[2] = getCell(index[0],index[1]+1,index[2]);
+        interp[3] = getCell(index[0]+1,index[1]+1,index[2]);
 
-      return fract[0]*(fract[1]*interp[3]+(1.-fract[1])*interp[1])
-      + (1.-fract[0])*(fract[1]*interp[2]+(1.-fract[1])*interp[0]);
+        return fract[0]*(fract[1]*interp[3]+(1.-fract[1])*interp[1])
+        + (1.-fract[0])*(fract[1]*interp[2]+(1.-fract[1])*interp[0]);
+      } else if (cells[1] <= 1) {
+        // Polar plane
+        Vec3d interp[4];
+
+        interp[0] = getCell(index[0],index[1],index[2]);
+        interp[1] = getCell(index[0]+1,index[1],index[2]);
+        interp[2] = getCell(index[0],index[1],index[2]+1);
+        interp[3] = getCell(index[0]+1,index[1],index[2]+1);
+
+        return fract[0]*(fract[2]*interp[3]+(1.-fract[2])*interp[1])
+        + (1.-fract[0])*(fract[2]*interp[2]+(1.-fract[2])*interp[0]);
+      } else {
+        // Proper 3D
+        Vec3d interp[8];
+
+        interp[0] = getCell(index[0],index[1],index[2]);
+        interp[1] = getCell(index[0]+1,index[1],index[2]);
+        interp[2] = getCell(index[0],index[1]+1,index[2]);
+        interp[3] = getCell(index[0]+1,index[1]+1,index[2]);
+        interp[4] = getCell(index[0],index[1],index[2]+1);
+        interp[5] = getCell(index[0]+1,index[1],index[2]+1);
+        interp[6] = getCell(index[0],index[1]+1,index[2]+1);
+        interp[7] = getCell(index[0]+1,index[1]+1,index[2]+1);
+
+        return fract[2] * (
+              fract[0]*(fract[1]*interp[3]+(1.-fract[1])*interp[1])
+        + (1.-fract[0])*(fract[1]*interp[2]+(1.-fract[1])*interp[0]))
+             + (1.-fract[2]) * (
+              fract[0]*(fract[1]*interp[7]+(1.-fract[1])*interp[5])
+        + (1.-fract[0])*(fract[1]*interp[6]+(1.-fract[1])*interp[4]));
+      }
+
    }
    virtual Vec3d operator()(double x, double y, double z) {
       Vec3d v(x,y,z);
