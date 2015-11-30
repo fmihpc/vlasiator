@@ -100,10 +100,64 @@ int main(int argc, char** argv) {
 			inner_boundary_max[1] = B[0].max[1] - 2.*B[0].dx[1];
 			inner_boundary_max[2] = B[0].max[2] - 2.*B[0].dx[2];
 			for(std::vector<Particle>::iterator i = particles.begin(); i != particles.end(); ) {
+				bool do_delete=false;
 				Vec3d x =i->x;
-				if( (B[0].cells[0] > 1 && (x[0] <= inner_boundary_min[0] || x[0] >= inner_boundary_max[0])) ||
-						(B[0].cells[1] > 1 && (x[1] <= inner_boundary_min[1] || x[1] >= inner_boundary_max[1])) ||
-						(B[0].cells[2] > 1 && (x[2] <= inner_boundary_min[2] || x[2] >= inner_boundary_max[2])) ) {
+				if(B[0].cells[0] > 1 && ( x[0] <= inner_boundary_min[0] || x[0] >= inner_boundary_max[0])) {
+					switch(ParticleParameters::boundary_behaviour_x) {
+						case DELETE:
+							// mark for deletion
+							do_delete=true;
+							break;
+						case REFLECT:
+							i->v *= Vec3d(-1.,1.,1.);
+							break;
+						case PERIODIC:
+							if(i->x[0] <= inner_boundary_min[0]) {
+								i->x += Vec3d(inner_boundary_max[0]-inner_boundary_min[0],0,0);
+							} else if(i->x[0] >= inner_boundary_max[0]) {
+								i->x -= Vec3d(inner_boundary_max[0]-inner_boundary_min[0],0,0);
+							}
+							break;
+					}
+				}
+				if(B[0].cells[1] > 1 && (x[1] <= inner_boundary_min[1] || x[1] >= inner_boundary_max[1])) {
+					switch(ParticleParameters::boundary_behaviour_y) {
+						case DELETE:
+							// mark for deletion
+							do_delete=true;
+							break;
+						case REFLECT:
+							i->v *= Vec3d(1.,-1.,1.);
+							break;
+						case PERIODIC:
+							if(i->x[1] <= inner_boundary_min[1]) {
+								i->x += Vec3d(0,inner_boundary_max[1]-inner_boundary_min[1],0);
+							} else if(i->x[1] >= inner_boundary_max[1]) {
+								i->x -= Vec3d(0,inner_boundary_max[1]-inner_boundary_min[1],0);
+							}
+							break;
+					}
+				}
+			  if(B[0].cells[2] > 1 && (x[2] <= inner_boundary_min[2] || x[2] >= inner_boundary_max[2])) {
+					switch(ParticleParameters::boundary_behaviour_y) {
+						case DELETE:
+							// mark for deletion
+							do_delete=true;
+							break;
+						case REFLECT:
+							i->v *= Vec3d(1.,1.,-1.);
+							break;
+						case PERIODIC:
+							if(i->x[2] <= inner_boundary_min[2]) {
+								i->x += Vec3d(0,0,inner_boundary_max[2]-inner_boundary_min[2]);
+							} else if(i->x[2] >= inner_boundary_max[2]) {
+								i->x -= Vec3d(0,0,inner_boundary_max[2]-inner_boundary_min[2]);
+							}
+							break;
+					}
+				}
+
+				if(do_delete) {
 					particles.erase(i);
 				} else {
 					i++;

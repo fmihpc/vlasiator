@@ -27,6 +27,10 @@ Real P::particle_vel = 0;
 Real P::mass = PhysicalConstantsSI::mp;
 Real P::charge = PhysicalConstantsSI::e;
 
+ParticleBoundaryBehaviour P::boundary_behaviour_x = DELETE;
+ParticleBoundaryBehaviour P::boundary_behaviour_y = PERIODIC;
+ParticleBoundaryBehaviour P::boundary_behaviour_z = PERIODIC;
+
 Real P::precip_inner_boundary;
 Real P::precip_start_x;
 Real P::precip_stop_x;
@@ -58,6 +62,10 @@ bool ParticleParameters::addParameters() {
    Readparameters::add("particles.particle_vel", "Initial velocity of the particles (in the plasma rest frame)",0);
    Readparameters::add("particles.mass", "Mass of the test particles",PhysicalConstantsSI::mp);
    Readparameters::add("particles.charge", "Charge of the test particles",PhysicalConstantsSI::e);
+
+   Readparameters::add("particles.boundary_behaviour_x", "What to do with particles that reach the x boundaries (DELETE/REFLECT/PERIODIC)",std::string("DELETE"));
+   Readparameters::add("particles.boundary_behaviour_y", "What to do with particles that reach the y boundaries (DELETE/REFLECT/PERIODIC)",std::string("PERIODIC"));
+   Readparameters::add("particles.boundary_behaviour_z", "What to do with particles that reach the z boundaries (DELETE/REFLECT/PERIODIC)",std::string("PERIODIC"));
 
    // Parameters for the precipitation mode
    Readparameters::add("particles.inner_boundary", "Distance of the inner boundary from the coordinate centre (meters)", 30e6);
@@ -115,6 +123,34 @@ bool ParticleParameters::getParameters() {
 
    Readparameters::get("particles.temperature",P::temperature);
    Readparameters::get("particles.particle_vel",P::particle_vel);
+
+   // Boundaries
+   std::map<std::string, ParticleBoundaryBehaviour> boundary_lookup;
+   boundary_lookup["DELETE"] = DELETE;
+   boundary_lookup["REFLECT"] = REFLECT;
+   boundary_lookup["PERIODIC"] = PERIODIC;
+   std::string tempstring;
+   Readparameters::get("particles.boundary_behaviour_x",tempstring);
+   if(boundary_lookup.find(tempstring) == boundary_lookup.end()) {
+      std::cerr << "Error: invalid boundary condition \"" << tempstring << "\" in x-direction" << std::endl;
+      exit(0);
+   } else {
+      P::boundary_behaviour_x = boundary_lookup[tempstring];
+   }
+   Readparameters::get("particles.boundary_behaviour_y",tempstring);
+   if(boundary_lookup.find(tempstring) == boundary_lookup.end()) {
+      std::cerr << "Error: invalid boundary condition \"" << tempstring << "\" in y-direction" << std::endl;
+      exit(0);
+   } else {
+      P::boundary_behaviour_y = boundary_lookup[tempstring];
+   }
+   Readparameters::get("particles.boundary_behaviour_z",tempstring);
+   if(boundary_lookup.find(tempstring) == boundary_lookup.end()) {
+      std::cerr << "Error: invalid boundary condition \"" << tempstring << "\" in z-direction" << std::endl;
+      exit(0);
+   } else {
+      P::boundary_behaviour_z = boundary_lookup[tempstring];
+   }
 
    Readparameters::get("particles.inner_boundary", P::precip_inner_boundary);
    Readparameters::get("particles.precipitation_start_x", P::precip_start_x);
