@@ -121,7 +121,7 @@ struct Interpolated_Field : Field{
 
    Vec3d operator()(Vec3d v) {
       Vec3d aval=a(v);
-      Vec3d bval=a(v);
+      Vec3d bval=b(v);
 
       double fract = (t - a.time)/(b.time-a.time);
       return fract*bval + (1.-fract)*aval;
