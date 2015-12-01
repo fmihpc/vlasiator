@@ -2,6 +2,8 @@
 #include <vector>
 #include "vectorclass.h"
 #include "vector3d.h"
+#include "boundaries.h"
+#include "particleparameters.h"
 
 /* A 3D cartesian vector field with suitable interpolation properties for
  * particle pushing */
@@ -35,8 +37,14 @@ struct Field {
    }
 
    Vec3d getCell(int x, int y, int z) {
-      double* cell = getCellRef(x,y,z);
-      Vec3d retval;
+
+			// Map these cell coordinates using the boundaries
+			x = ParticleParameters::boundary_behaviour_x->cell_coordinate(x);
+			y = ParticleParameters::boundary_behaviour_x->cell_coordinate(y);
+			z = ParticleParameters::boundary_behaviour_x->cell_coordinate(z);
+
+			double* cell = getCellRef(x,y,z);
+			Vec3d retval;
       retval.load_partial(3,cell);
       return retval;
    }
@@ -52,10 +60,8 @@ struct Field {
 
       int index[3];
       double fract[3];
-      round_to_int(v).store(index);
-      fraction(v).store(fract);
-
-      /* TODO: Boundary behaviour? */
+      truncate_to_int(v).store(index);
+      (v-truncate(v)).store(fract);
 
       if(cells[2] <= 1) {
         // Equatorial plane

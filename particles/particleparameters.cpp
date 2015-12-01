@@ -27,9 +27,9 @@ Real P::particle_vel = 0;
 Real P::mass = PhysicalConstantsSI::mp;
 Real P::charge = PhysicalConstantsSI::e;
 
-ParticleBoundaryBehaviour P::boundary_behaviour_x = DELETE;
-ParticleBoundaryBehaviour P::boundary_behaviour_y = PERIODIC;
-ParticleBoundaryBehaviour P::boundary_behaviour_z = PERIODIC;
+Boundary* P::boundary_behaviour_x = NULL;
+Boundary* P::boundary_behaviour_y = NULL;
+Boundary* P::boundary_behaviour_z = NULL;
 
 Real P::precip_inner_boundary;
 Real P::precip_start_x;
@@ -125,31 +125,31 @@ bool ParticleParameters::getParameters() {
    Readparameters::get("particles.particle_vel",P::particle_vel);
 
    // Boundaries
-   std::map<std::string, ParticleBoundaryBehaviour> boundary_lookup;
-   boundary_lookup["DELETE"] = DELETE;
-   boundary_lookup["REFLECT"] = REFLECT;
-   boundary_lookup["PERIODIC"] = PERIODIC;
+   std::map<std::string, Boundary*(*)(int)> boundary_lookup;
+   boundary_lookup["DELETE"] = &create_boundary<OpenBoundary>;
+   boundary_lookup["REFLECT"] = &create_boundary<ReflectBoundary>;
+   boundary_lookup["PERIODIC"] = &create_boundary<PeriodicBoundary>;
    std::string tempstring;
    Readparameters::get("particles.boundary_behaviour_x",tempstring);
    if(boundary_lookup.find(tempstring) == boundary_lookup.end()) {
       std::cerr << "Error: invalid boundary condition \"" << tempstring << "\" in x-direction" << std::endl;
       exit(0);
    } else {
-      P::boundary_behaviour_x = boundary_lookup[tempstring];
+      P::boundary_behaviour_x = boundary_lookup[tempstring](0);
    }
    Readparameters::get("particles.boundary_behaviour_y",tempstring);
    if(boundary_lookup.find(tempstring) == boundary_lookup.end()) {
       std::cerr << "Error: invalid boundary condition \"" << tempstring << "\" in y-direction" << std::endl;
       exit(0);
    } else {
-      P::boundary_behaviour_y = boundary_lookup[tempstring];
+      P::boundary_behaviour_y = boundary_lookup[tempstring](1);
    }
    Readparameters::get("particles.boundary_behaviour_z",tempstring);
    if(boundary_lookup.find(tempstring) == boundary_lookup.end()) {
       std::cerr << "Error: invalid boundary condition \"" << tempstring << "\" in z-direction" << std::endl;
       exit(0);
    } else {
-      P::boundary_behaviour_z = boundary_lookup[tempstring];
+      P::boundary_behaviour_z = boundary_lookup[tempstring](2);
    }
 
    Readparameters::get("particles.inner_boundary", P::precip_inner_boundary);

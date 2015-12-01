@@ -5,14 +5,9 @@
 
 #include "distribution.h"
 #include "../definitions.h"
+#include "boundaries.h"
 
 class Distribution; //forward declaration
-
-enum ParticleBoundaryBehaviour {
-	DELETE=0,
-	REFLECT,
-	PERIODIC
-};
 
 struct ParticleParameters {
    static std::string input_filename_pattern; /*!< printf() - like pattern giving the input filenames */
@@ -30,9 +25,9 @@ struct ParticleParameters {
 
    static uint64_t num_particles; /*!< Number of particles to generate */
 
-   static ParticleBoundaryBehaviour boundary_behaviour_x; /*!< What to do with particles that reach the x boundary */
-   static ParticleBoundaryBehaviour boundary_behaviour_y; /*!< What to do with particles that reach the y boundary */
-   static ParticleBoundaryBehaviour boundary_behaviour_z; /*!< What to do with particles that reach the z boundary */
+   static Boundary* boundary_behaviour_x; /*!< What to do with particles that reach the x boundary */
+   static Boundary* boundary_behaviour_y; /*!< What to do with particles that reach the y boundary */
+   static Boundary* boundary_behaviour_z; /*!< What to do with particles that reach the z boundary */
 
    static Real precip_inner_boundary; /*!< Distance of the inner boundary from the coordinate centre (meters) */
    static Real precip_start_x; /*!< X-Coordinate at which precipitation injection starts (meters) */

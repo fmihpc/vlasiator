@@ -15,6 +15,7 @@
 #include "particleparameters.h"
 #include "../readparameters.h"
 #include "scenario.h"
+#include "boundaries.h"
 
 int main(int argc, char** argv) {
 
@@ -37,8 +38,24 @@ int main(int argc, char** argv) {
    readfields(filename_buffer,E[1],B[1],V);
    E[0]=E[1]; B[0]=B[1];
 
-   /* Init particles */
+   // Set boundary conditions based on sizes
+   if(B[0].cells[0] <= 1) {
+     delete ParticleParameters::boundary_behaviour_x;
+     ParticleParameters::boundary_behaviour_x = create_boundary<CompactSpatialDimension>(0);
+   }
+   if(B[0].cells[1] <= 1) {
+     delete ParticleParameters::boundary_behaviour_y;
+     ParticleParameters::boundary_behaviour_y = create_boundary<CompactSpatialDimension>(1);
+   }
+   if(B[0].cells[2] <= 1) {
+     delete ParticleParameters::boundary_behaviour_z;
+     ParticleParameters::boundary_behaviour_z = create_boundary<CompactSpatialDimension>(2);
+   }
+   ParticleParameters::boundary_behaviour_x->set_extent(B[0].min[0], B[0].max[0], B[0].cells[0]);
+   ParticleParameters::boundary_behaviour_y->set_extent(B[0].min[1], B[0].max[1], B[0].cells[1]);
+   ParticleParameters::boundary_behaviour_z->set_extent(B[0].min[2], B[0].max[2], B[0].cells[2]);
 
+   /* Init particles */
    double dt=ParticleParameters::dt;
    double maxtime=ParticleParameters::end_time - ParticleParameters::start_time;
    int maxsteps = maxtime/dt;
@@ -60,8 +77,8 @@ int main(int argc, char** argv) {
          newfile = read_next_timestep(filename_pattern, ParticleParameters::start_time + step*dt, -1,E[1], E[0], B[1], B[0], V, scenario->needV, input_file_counter);
       }
 
-      Interpolated_Field cur_E(E[0],E[1],step*dt);
-      Interpolated_Field cur_B(B[0],B[1],step*dt);
+      Interpolated_Field cur_E(E[0],E[1],ParticleParameters::start_time + step*dt);
+      Interpolated_Field cur_B(B[0],B[1],ParticleParameters::start_time + step*dt);
 
       // If a new timestep has been opened, add a new bunch of particles
       if(newfile) {
@@ -89,80 +106,20 @@ int main(int argc, char** argv) {
 
       }
 
-			// Remove all particles that have left the simulation box after this step
-			// (unfortunately, this can not be done in parallel, so it better be fast!)
-			double inner_boundary_min[3]; // Inner boundary: minimum + 2*dx
-			inner_boundary_min[0] = B[0].min[0] + 2.*B[0].dx[0];
-			inner_boundary_min[1] = B[0].min[1] + 2.*B[0].dx[1];
-			inner_boundary_min[2] = B[0].min[2] + 2.*B[0].dx[2];
-			double inner_boundary_max[3]; // Inner boundary maximum - 2*dx
-			inner_boundary_max[0] = B[0].max[0] - 2.*B[0].dx[0];
-			inner_boundary_max[1] = B[0].max[1] - 2.*B[0].dx[1];
-			inner_boundary_max[2] = B[0].max[2] - 2.*B[0].dx[2];
-			for(std::vector<Particle>::iterator i = particles.begin(); i != particles.end(); ) {
-				bool do_delete=false;
-				Vec3d x =i->x;
-				if(B[0].cells[0] > 1 && ( x[0] <= inner_boundary_min[0] || x[0] >= inner_boundary_max[0])) {
-					switch(ParticleParameters::boundary_behaviour_x) {
-						case DELETE:
-							// mark for deletion
-							do_delete=true;
-							break;
-						case REFLECT:
-							i->v *= Vec3d(-1.,1.,1.);
-							break;
-						case PERIODIC:
-							if(i->x[0] <= inner_boundary_min[0]) {
-								i->x += Vec3d(inner_boundary_max[0]-inner_boundary_min[0],0,0);
-							} else if(i->x[0] >= inner_boundary_max[0]) {
-								i->x -= Vec3d(inner_boundary_max[0]-inner_boundary_min[0],0,0);
-							}
-							break;
-					}
-				}
-				if(B[0].cells[1] > 1 && (x[1] <= inner_boundary_min[1] || x[1] >= inner_boundary_max[1])) {
-					switch(ParticleParameters::boundary_behaviour_y) {
-						case DELETE:
-							// mark for deletion
-							do_delete=true;
-							break;
-						case REFLECT:
-							i->v *= Vec3d(1.,-1.,1.);
-							break;
-						case PERIODIC:
-							if(i->x[1] <= inner_boundary_min[1]) {
-								i->x += Vec3d(0,inner_boundary_max[1]-inner_boundary_min[1],0);
-							} else if(i->x[1] >= inner_boundary_max[1]) {
-								i->x -= Vec3d(0,inner_boundary_max[1]-inner_boundary_min[1],0);
-							}
-							break;
-					}
-				}
-			  if(B[0].cells[2] > 1 && (x[2] <= inner_boundary_min[2] || x[2] >= inner_boundary_max[2])) {
-					switch(ParticleParameters::boundary_behaviour_y) {
-						case DELETE:
-							// mark for deletion
-							do_delete=true;
-							break;
-						case REFLECT:
-							i->v *= Vec3d(1.,1.,-1.);
-							break;
-						case PERIODIC:
-							if(i->x[2] <= inner_boundary_min[2]) {
-								i->x += Vec3d(0,0,inner_boundary_max[2]-inner_boundary_min[2]);
-							} else if(i->x[2] >= inner_boundary_max[2]) {
-								i->x -= Vec3d(0,0,inner_boundary_max[2]-inner_boundary_min[2]);
-							}
-							break;
-					}
-				}
+      // Remove all particles that have left the simulation box after this step
+      // (unfortunately, this can not be done in parallel, so it better be fast!)
+      for(std::vector<Particle>::iterator i = particles.begin(); i != particles.end(); ) {
 
-				if(do_delete) {
-					particles.erase(i);
-				} else {
-					i++;
-				}
-			}
+        // Boundaries are allowed to mangle the particles here.
+        // If they return false, particles are deleted.
+        if(!ParticleParameters::boundary_behaviour_x->handle_particle(*i) 
+            || !ParticleParameters::boundary_behaviour_y->handle_particle(*i) 
+            || !ParticleParameters::boundary_behaviour_z->handle_particle(*i)) {
+          particles.erase(i);
+        } else {
+          i++;
+        }
+      }
 
       scenario->after_push(step, step*dt, particles, cur_E, cur_B, V);
 
