@@ -148,6 +148,12 @@ class PeriodicBoundary : public Boundary {
 
    // Constructor
    PeriodicBoundary(int _dimension) : Boundary(_dimension) {
+   }
+   virtual void set_extent(double _min, double _max, int _cells) {
+      min=_min;
+      max=_max;
+      cells=_cells;
+
       double offset[3] = {0.,0.,0.};
       offset[dimension] = max-min;
       offset_p.load(offset);
