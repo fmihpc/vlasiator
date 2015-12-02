@@ -134,7 +134,7 @@ class PeriodicBoundary : public Boundary {
 
    public:
    virtual bool handle_particle(Particle& p) {
-      if(p.x[dimension] <= min) {
+      if(p.x[dimension] < min) {
          p.x += offset_p;
       } else if(p.x[dimension] >= max) {
          p.x -= offset_p;

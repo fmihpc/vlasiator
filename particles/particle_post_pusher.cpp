@@ -112,9 +112,17 @@ int main(int argc, char** argv) {
 
         // Boundaries are allowed to mangle the particles here.
         // If they return false, particles are deleted.
-        if(!ParticleParameters::boundary_behaviour_x->handle_particle(*i) 
-            || !ParticleParameters::boundary_behaviour_y->handle_particle(*i) 
-            || !ParticleParameters::boundary_behaviour_z->handle_particle(*i)) {
+        bool do_erase = false;
+        if(!ParticleParameters::boundary_behaviour_x->handle_particle(*i)) {
+          do_erase = true;
+        }
+        if(!ParticleParameters::boundary_behaviour_y->handle_particle(*i)) {
+          do_erase = true;
+        }
+        if(!ParticleParameters::boundary_behaviour_z->handle_particle(*i)) {
+           do_erase = true;
+        }
+        if(do_erase) {
           particles.erase(i);
         } else {
           i++;

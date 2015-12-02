@@ -40,8 +40,8 @@ struct Field {
 
 			// Map these cell coordinates using the boundaries
 			x = ParticleParameters::boundary_behaviour_x->cell_coordinate(x);
-			y = ParticleParameters::boundary_behaviour_x->cell_coordinate(y);
-			z = ParticleParameters::boundary_behaviour_x->cell_coordinate(z);
+			y = ParticleParameters::boundary_behaviour_y->cell_coordinate(y);
+			z = ParticleParameters::boundary_behaviour_z->cell_coordinate(z);
 
 			double* cell = getCellRef(x,y,z);
 			Vec3d retval;
