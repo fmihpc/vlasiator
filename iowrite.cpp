@@ -949,12 +949,18 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    deallocateRemoteCellBlocks(mpiGrid);
    phiprof::stop("DeallocateRemoteBlocks");
    
+   // Get the current time.
+   char currentdate[80];
+   const time_t rawTime = time(NULL);
+   const struct tm * timeInfo = localtime(&rawTime);
+   strftime(currentdate, 80, "%F_%H-%M-%S", timeInfo);
+   
    // Create a name for the output file and open it with VLSVWriter:
    stringstream fname;
    fname << P::restartWritePath << "/" << name << ".";
    fname.width(7);
    fname.fill('0');
-   fname << fileIndex << ".vlsv";
+   fname << fileIndex << "." << currentdate << ".vlsv";
 
    phiprof::start("open");
    //Open the file with vlsvWriter:
