@@ -92,13 +92,19 @@ function vlasiator_setup_next {
 
 function vlasiator_run {
    cd $next_job
-   
-   touch I_AM_RUNNING
-   # Launch the OpenMP job to the allocated compute node
-   echo "Running $exec on $tasks mpi tasks, with $t threads per task on $nodes nodes ($ht threads per physical core)"
-   aprun -n1 $exec --version
-   aprun -n $NUM_PROCESSES -N $tasks_per_node -d $OMP_NUM_THREADS -j $ht ./vlasiator --run_config=Magnetosphere.$PBS_JOBID.cfg
-   rm I_AM_RUNNING
+
+   if [[ $DRY_RUN -eq 1 ]]
+   then
+      echo "Dry run: I would be running $exec on $tasks mpi tasks, with $t threads per task on $nodes nodes ($ht threads per physical core)."
+   else
+      touch I_AM_RUNNING
+      # Launch the OpenMP job to the allocated compute node
+      echo "Running $exec on $tasks mpi tasks, with $t threads per task on $nodes nodes ($ht threads per physical core)"
+      aprun -n1 $exec --version
+      aprun -n $NUM_PROCESSES -N $tasks_per_node -d $OMP_NUM_THREADS -j $ht ./vlasiator --run_config=Magnetosphere.$PBS_JOBID.cfg
+      aprun -n $NUM_PROCESSES -N 1 /zhome/academic/HLRS/pri/ipryakem/vlasiator/tools/HornetQueueWizard/test.sh
+      rm I_AM_RUNNING
+   fi
 
    cd $PBS_O_WRKDIR
 }
@@ -117,7 +123,7 @@ do
    let job_to_check_in_list=$job_to_check_in_list+1
    get_next_job
    
-   if [ "$job_to_check_in_list" -gt "$( cat $JOBLIST | wc -l )" ]
+   if [ "$job_to_check_in_list" -gt "$( cat $JOBLIST | wc -l )" -a $DRY_RUN -ne 1 ]
    then
       export message="($(date) $(($NUM_PROCESSES*$OMP_NUM_THREADS)) cores) Nothing can be run, exiting. Stop wasting queuing time!"
       echo $message
@@ -142,12 +148,18 @@ do
       vlasiator_setup_next
       if [ $do_run = 1 ]
       then
-         echo $message | mailx -s "New job running @Hornet" vlasiator-runs@fmihpc.flowdock.com
+         if [ $DRY_RUN -ne 1 ]
+         then
+            echo $message | mailx -s "New job running @Hornet" vlasiator-runs@fmihpc.flowdock.com
+         fi
          vlasiator_run
          doing_something=1
          export message="($(date) $(($NUM_PROCESSES*$OMP_NUM_THREADS)) cores) Done $next_job."
          echo $message
-         echo $message | mailx -s "Job ended @Hornet" vlasiator-runs@fmihpc.flowdock.com
+         if [ $DRY_RUN -ne 1 ]
+         then
+            echo $message | mailx -s "Job ended @Hornet" vlasiator-runs@fmihpc.flowdock.com
+         fi
       else
          doing_something=0
       fi
