@@ -18,21 +18,20 @@ FLAGS =
 
 #GNU flags:
 CC_BRAND = gcc
-CC_BRAND_VERSION = 4.9.2
+CC_BRAND_VERSION = 5.1.0
 CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++0x -W -Wall -Wno-unused -fabi-version=0 -mavx2 
-#CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++0x -W -Wall -Wno-unused -fabi-version=0 -mavx
 testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++0x -fabi-version=0  -mavx
 
 MATHFLAGS = -ffast-math
 LDFLAGS =
 LIB_MPI = -lgomp
 
-BOOST_VERSION = 1.55.0
-MPT_VERSION = 7.2.1
-ZOLTAN_VERSION = 3.8
-SILO_VERSION = 4.9.1
-JEMALLOC_VERSION = 3.6.0
-LIBRARY_PREFIX = /homeappl/home/alfthan/libraries
+# BOOST_VERSION = current trilinos version
+# ZOLTAN_VERSION = current trilinos verson
+
+MPT_VERSION = 7.2.6
+JEMALLOC_VERSION = 4.0.4
+LIBRARY_PREFIX = /proj/vlasiato/libraries/
 
 
 #compiled libraries
@@ -41,9 +40,6 @@ LIB_BOOST = -L$(CRAY_TRILINOS_PREFIX_DIR)/lib -lboost_program_options
 
 INC_ZOLTAN = -I$(CRAY_TRILINOS_PREFIX_DIR)/include
 LIB_ZOLTAN = -I$(CRAY_TRILINOS_PREFIX_DIR)/lib -lzoltan
-
-INC_SILO = -I$(LIBRARY_PREFIX)/mpich2/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/silo/$(SILO_VERSION)/include
-LIB_SILO = -L$(LIBRARY_PREFIX)/mpich2/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/silo/$(SILO_VERSION)/lib -lsilo
 
 INC_JEMALLOC = -I$(LIBRARY_PREFIX)/mpich2/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/jemalloc/$(JEMALLOC_VERSION)/include
 LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/mpich2/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/jemalloc/$(JEMALLOC_VERSION)/lib -ljemalloc
