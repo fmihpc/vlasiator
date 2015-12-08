@@ -67,7 +67,7 @@ void precipitationScenario::after_push(int step, double time, std::vector<Partic
 
   for(unsigned int i=0; i<particles.size(); i++) {
 
-    if(vector_length(particles[i].x) == 0) {
+    if(isnan(vector_length(particles[i].x))) {
       // skip disabled particles
       continue;
     }
@@ -82,15 +82,15 @@ void precipitationScenario::after_push(int step, double time, std::vector<Partic
       double latitude = atan2(particles[i].x[2],particles[i].x[0]);
       printf("%u %i %lf %lf %lf\n",i, start_timestep, start_pos, latitude, .5*particles[i].m * dot_product(particles[i].v,particles[i].v)/PhysicalConstantsSI::e);
 
-      // Disable by setting position and velocity to 0
-      particles[i].x = Vec3d(0,0,0);
+      // Disable by setting position to NaN and velocity to 0
+      particles[i].x = Vec3d(std::numeric_limits<double>::quiet_NaN(),0.,0.);
       particles[i].v = Vec3d(0,0,0);
     } else if (particles[i].x[0] <= ParticleParameters::precip_start_x) {
 
       // Record marker value for lost particle
       printf("%u %i %lf -5. -1.\n", i, start_timestep, start_pos);
-      // Disable by setting position and velocity to 0
-      particles[i].x = Vec3d(0,0,0);
+      // Disable by setting position to NaN and velocity to 0
+      particles[i].x = Vec3d(std::numeric_limits<double>::quiet_NaN(),0.,0.);
       particles[i].v = Vec3d(0,0,0);
     }
   }
@@ -208,7 +208,7 @@ void shockReflectivityScenario::after_push(int step, double time, std::vector<Pa
 
   for(unsigned int i=0; i<particles.size(); i++) {
 
-    if(vector_length(particles[i].x) == 0) {
+    if(isnan(vector_length(particles[i].x))) {
       // skip disabled particles
       continue;
     }
@@ -234,17 +234,17 @@ void shockReflectivityScenario::after_push(int step, double time, std::vector<Pa
       // Record it is transmitted.
       transmitted.addValue(Vec2d(y,start_time));
 
-      // Disable by setting position and velocity to 0
-      particles[i].x = Vec3d(0,0,0);
+      // Disable by setting position to NaN and velocity to 0
+      particles[i].x = Vec3d(std::numeric_limits<double>::quiet_NaN(),0.,0.);
       particles[i].v = Vec3d(0,0,0);
     } else if (particles[i].x[0] > boundary_right) {
 
       //Record it as reflected
       reflected.addValue(Vec2d(y,start_time));
 
-      // Disable by setting position and velocity to 0
-      particles[i].x = Vec3d(0,0,0);
-      particles[i].v = Vec3d(0,0,0);
+      // Disable by setting position to NaN and velocity to 0
+      particles[i].x = Vec3d(std::numeric_limits<double>::quiet_NaN(),0.,0.);
+      particles[i].v = Vec3d(0.,0.,0.);
     }
   }
 }
