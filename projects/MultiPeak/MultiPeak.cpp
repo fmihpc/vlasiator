@@ -1,6 +1,7 @@
 /*
 This file is part of Vlasiator.
 
+
 Copyright 2011-2015 Finnish Meteorological Institute
 
 */
@@ -16,13 +17,14 @@ Copyright 2011-2015 Finnish Meteorological Institute
 #include "../../backgroundfield/constantfield.hpp"
 #include "../../object_wrapper.h"
 
+
 #include "MultiPeak.h"
 
 using namespace std;
 using namespace spatial_cell;
 
-vector<Real> projects::MultiPeak::rhoRnd;
 
+vector<Real> projects::MultiPeak::rhoRnd;
 
 namespace projects {
    MultiPeak::MultiPeak(): TriAxisSearch() { }
@@ -104,6 +106,7 @@ namespace projects {
       RP::get("MultiPeak.lambda", this->lambda);
       RP::get("MultiPeak.nVelocitySamples", this->nVelocitySamples);
       RP::get("MultiPeak.useMultipleSpecies", useMultipleSpecies);
+
       
       string densModelString;
       RP::get("MultiPeak.densityModel",densModelString);
@@ -117,6 +120,7 @@ namespace projects {
       creal kb = physicalconstants::K_B;
 
       Real value = 0.0;
+
       if (useMultipleSpecies == false) { // one species, multiple peaks
          if (popID != 0) return 0.0;
 
