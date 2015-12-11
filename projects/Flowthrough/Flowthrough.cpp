@@ -116,11 +116,7 @@ namespace projects {
       }
    }
 
-<<<<<<< HEAD
    Real Flowthrough::getDistribValue(creal& x,creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) const {
-=======
-   Real Flowthrough::getDistribValue(creal& x,creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
->>>>>>> sandroos/master
       Real rvalue = 0;
       switch (densityModel) {
        case Maxwellian:
@@ -147,8 +143,6 @@ namespace projects {
 
    Real Flowthrough::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const int& popID) const {
       if (emptyBox == true) return 0.0;
-<<<<<<< HEAD
-
       creal d_x = dx / nSpaceSamples;
       creal d_y = dy / nSpaceSamples;
       creal d_z = dz / nSpaceSamples;
@@ -163,32 +157,6 @@ namespace projects {
          }
       }
       return avg / (nSpaceSamples*nSpaceSamples*nSpaceSamples*nVelocitySamples*nVelocitySamples*nVelocitySamples);
-=======
-      
-      creal d_x = dx / nSpaceSamples;
-      creal d_y = dy / nSpaceSamples;
-      creal d_z = dz / nSpaceSamples;
-      creal d_vx = dvx / (this->nVelocitySamples-1);
-      creal d_vy = dvy / (this->nVelocitySamples-1);
-      creal d_vz = dvz / (this->nVelocitySamples-1);
-
-      Real avg = 0.0;
-      // #pragma omp parallel for collapse(6) reduction(+:avg)
-      // WARNING No threading here if calling functions are already threaded
-      for (uint i=0; i<this->nSpaceSamples; ++i) for (uint j=0; j<this->nSpaceSamples; ++j) for (uint k=0; k<this->nSpaceSamples; ++k) {
-         for (uint vi=0; vi<this->nVelocitySamples; ++vi) for (uint vj=0; vj<this->nVelocitySamples; ++vj) for (uint vk=0; vk<this->nVelocitySamples; ++vk) {
-                avg += getDistribValue(x+(i+0.5)*d_x, y+(j+0.5)*d_y, z+(k+0.5)*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz);
-             }
-      }
-      return avg / (this->nSpaceSamples*this->nSpaceSamples*this->nSpaceSamples*this->nVelocitySamples*this->nVelocitySamples*this->nVelocitySamples);
-
-   //    CellID cellID = 1 + round((x - Parameters::xmin) / dx + 
-   //    (y - Parameters::ymin) / dy * Parameters::xcells_ini +
-   //    (z - Parameters::zmin) / dz * Parameters::ycells_ini * Parameters::xcells_ini);
-      
-   //    return cellID * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B * this->T), 1.5) *
-   //    exp(- physicalconstants::MASS_PROTON * (vx*vx + vy*vy + vz*vz) / (2.0 * physicalconstants::K_B * this->T));
->>>>>>> sandroos/master
    }
 
    void Flowthrough::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
