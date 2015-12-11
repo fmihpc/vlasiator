@@ -5,15 +5,6 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 
 
 
-
-
-
-
-
-
-
-
-
 */
 
 #include <cstdlib>
@@ -32,7 +23,7 @@ namespace projects {
    Harris::Harris(): Project() { }
    Harris::~Harris() { }
    
-   bool Harris::initialize(void) {return true;}
+   bool Harris::initialize(void) {return Project::initialize();}
    
    void Harris::addParameters(){
       typedef Readparameters RP;
@@ -45,6 +36,7 @@ namespace projects {
    }
    
    void Harris::getParameters(){
+      Project::getParameters();
       typedef Readparameters RP;
       RP::get("Harris.Scale_size", this->SCA_LAMBDA);
       RP::get("Harris.BX0", this->BX0);
@@ -58,7 +50,7 @@ namespace projects {
       creal& x,creal& y,creal& z,
       creal& dx,creal& dy,creal& dz,
       creal& vx,creal& vy,creal& vz,
-      creal& dvx,creal& dvy,creal& dvz
+      creal& dvx,creal& dvy,creal& dvz,const int& popID
    ) {
       creal mass = physicalconstants::MASS_PROTON;
       creal kb = physicalconstants::K_B;
@@ -71,7 +63,8 @@ namespace projects {
          exp(- mass * (pow(vx + 0.5 * dvx, 2.0) + pow(vy + 0.5 * dvy, 2.0) + pow(vz + 0.5 * dvz, 2.0)) / (2.0 * kb * this->TEMPERATURE)));
    }
    
-   void Harris::calcCellParameters(Real* cellParams,creal& t) {
+   void Harris::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
+      Real* cellParams = cell->get_cell_parameters();
       creal x = cellParams[CellParams::XCRD];
       creal dx = cellParams[CellParams::DX];
       creal y = cellParams[CellParams::YCRD];

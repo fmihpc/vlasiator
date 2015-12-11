@@ -32,7 +32,7 @@ namespace projects {
    Firehose::Firehose(): Project() { }
    Firehose::~Firehose() { }
    
-   bool Firehose::initialize(void) {return true;}
+   bool Firehose::initialize(void) {return Project::initialize();}
 
    void Firehose::addParameters(){
       typedef Readparameters RP;
@@ -60,6 +60,7 @@ namespace projects {
    }
 
    void Firehose::getParameters(){
+      Project::getParameters();
       typedef Readparameters RP;
       RP::get("Firehose.rho1", this->rho[1]);
       RP::get("Firehose.rho2", this->rho[2]);
@@ -108,7 +109,7 @@ namespace projects {
    //           pow(vz - this->Vz[2], 2.0) / (2.0 * kb * this->Tz[2]))); 
    }
 
-   Real Firehose::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
+   Real Firehose::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const int& popID) {
       creal d_x = dx / (this->nSpaceSamples-1);
       creal d_y = dy / (this->nSpaceSamples-1);
       creal d_vx = dvx / (this->nVelocitySamples-1);
@@ -127,7 +128,8 @@ namespace projects {
       return avg / pow(this->nSpaceSamples, 2.0) /  pow(this->nVelocitySamples, 3.0);
    }
 
-   void Firehose::calcCellParameters(Real* cellParams,creal& t) {
+   void Firehose::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
+      Real* cellParams = cell->get_cell_parameters();
       cellParams[CellParams::PERBX   ] = this->Bx;
       cellParams[CellParams::PERBY   ] = this->By;
       cellParams[CellParams::PERBZ   ] = this->Bz;

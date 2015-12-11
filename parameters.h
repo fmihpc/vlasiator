@@ -17,6 +17,8 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 const uint64_t INVALID_CELLID = 0;
 
 struct Parameters {
+   static int geometry; /**< Simulation geometry, one of the values defined in 
+                         * geometry::Setup. Defaults to geometry::XYZ6D.*/
    static Real xmin;  /*!< X-coordinate of the lower left corner of the spatial grid. */
    static Real xmax;  /*!< X-coordinate of the upper right corner of the spatial grid. */
    static Real ymin;  /*!< Y-coordinate of the lower left corner of the spatial grid. */
@@ -26,26 +28,15 @@ struct Parameters {
    static Real dx_ini; /*!< Initial size of spatial cell in x-direction. */
    static Real dy_ini; /*!< Initial size of spatial cell in y-direction. */
    static Real dz_ini; /*!< Initial size of spatial cell in z-direction. */
-   
-   static Real vxmin; /*!< VX-coordinate of the lower left corner of velocity grid. */
-   static Real vxmax; /*!< VY-coordinate of the lower left corner of velocity grid. */
-   static Real vymin; /*!< VZ-coordinate of the lower left corner of velocity grid. */
-   static Real vymax; /*!< VX-coordinate of the upper right corner of velocity grid. */
-   static Real vzmin; /*!< VY-coordinate of the upper right corner of velocity grid. */
-   static Real vzmax; /*!< VZ-coordinate of the upper right corner of velocity grid. */
-   
+
    static uint xcells_ini; /*!< Initial number of spatial cells in x-direction. */
    static uint ycells_ini; /*!< Initial number of spatial cells in y-direction. */
    static uint zcells_ini; /*!< Initial number of spatial cells in z-direction. */
-   static uint vxblocks_ini; /*!< Initial number of velocity grid blocks in vx-direction. */
-   static uint vyblocks_ini; /*!< Initial number of velocity grid blocks in vy-direction. */
-   static uint vzblocks_ini; /*!< Initial number of velocity grid blocks in vz-direction. */
-   
+
    static Real backstreamradius; /*!< Radius of the maxwellian distribution. Used for calculating rho of the backstream population. */
    static Real backstreamvx; /*!< X coordinate of the origin of the maxwellian distribution. Used for calculating rho of the backstream population. */
    static Real backstreamvy; /*!< Y coordinate of the origin of the maxwellian distribution. Used for calculating rho of the backstream population. */
    static Real backstreamvz; /*!< Z coordinate of the origin of the maxwellian distribution. Used for calculating rho of the backstream population. */
-   
    
    static Real t;                    /*!< Current simulation time. */
    static Real t_min;                    /*!< Initial simulation time. */
@@ -102,7 +93,9 @@ struct Parameters {
    static Real maxSlAccelerationRotation; /*!< Maximum rotation in acceleration for semilagrangian solver*/
    static int maxSlAccelerationSubcycles; /*!< Maximum number of subcycles in acceleration*/
    static Real hallMinimumRho;  /*!< Minimum rho value used in Hall term in Lorentz force and field solver.*/
-   static Real sparseMinValue; /*!< Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents */
+   static Real sparseMinValue; /*!< (DEPRECATED) Minimum value of distribution function in any cell of a velocity 
+                                * block for the block to be considered to have content.
+                                * This value is only used for default particle species.*/
    static int sparseBlockAddWidthV; /*!< Number of layers of blocks that are kept in velocity space around the blocks with content */
    static bool sparse_conserve_mass; /*!< If true, density is scaled to conserve mass when removing blocks*/
    static int  sparseDynamicAlgorithm; /*!< Type of algorithm used for calculating the dynamic minValue; 0 = none, 1 = linear algorithm based on minValue and rho, 2 = linear algorithm based on minValue and Blocks, (Example linear algorithm: minValue = rho / sparse.dynamicValue * sparse.minValue)*/
@@ -110,12 +103,12 @@ struct Parameters {
    static Real sparseDynamicBulkValue2; /*!< Maximum value for the dynamic algorithm range, so for example if dynamicAlgorithm=1 then for sparse.dynamicMinValue = 1e3, sparse.dynamicMaxValue=1e5, we apply the algorithm to cells for which 1e3<cell.rho<1e5*/
    static Real sparseDynamicMinValue1; /*!< The minimum value for the minValue*/
    static Real sparseDynamicMinValue2; /*!< The maximum value for the minValue*/
-
-
    
    static std::string loadBalanceAlgorithm; /*!< Algorithm to be used for load balance.*/
    static std::string loadBalanceTolerance; /*!< Load imbalance tolerance. */ 
    static uint rebalanceInterval; /*!< Load rebalance interval (steps). */
+   static bool prepareForRebalance; /**< If true, propagators should measure their time consumption in preparation
+                                     * for mesh repartitioning.*/
    
    static std::vector<std::string> outputVariableList; /*!< List of data reduction operators (DROs) to add to the grid file output.*/
    static std::vector<std::string> diagnosticVariableList; /*!< List of data reduction operators (DROs) to add to the diagnostic runtime output.*/

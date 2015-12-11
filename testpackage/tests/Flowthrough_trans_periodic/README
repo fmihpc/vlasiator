@@ -1,0 +1,20 @@
+This is a test case for Vlasov translation operator.
+
+It initializes a spherical distribution in spatial space near the
+origin in a periodic box. The distribution is translated with constant 
+speed to +x,+y,+z direction for roughly one period (dynamic
+timestepping).
+
+This test case tests for errors
+- Vlasov translation
+- dynamic timestepping
+- sparse velocity machinery
+
+This test case does not test errors in
+- vlasov acceleration
+- boundary conditions
+- field propagators
+
+You can compare the density 'rho' or the velocity block data 'avgs'
+against the reference values.
+
