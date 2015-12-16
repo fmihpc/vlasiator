@@ -123,7 +123,7 @@ namespace SBC {
 
       return true;
    }
-   
+
    Real Outflow::fieldSolverBoundaryCondMagneticField(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const std::vector<fs_cache::CellCache>& cellCache,

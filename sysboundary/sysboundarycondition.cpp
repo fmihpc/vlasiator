@@ -158,6 +158,7 @@ namespace SBC {
     * 
     * \return The requested component value.
     */
+
    Real SysBoundaryCondition::fieldSolverBoundaryCondMagneticField(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const std::vector<fs_cache::CellCache>& cellCache,
