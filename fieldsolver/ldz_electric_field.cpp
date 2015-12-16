@@ -29,25 +29,39 @@ extern map<CellID,uint> existingCellsFlags;
  * 
  * If fields are not propagated, returns 0.0 as there is no information propagating.
  * 
+ * \param cp Curent cell's parameters
+ * \param derivs Curent cell's derivatives
+ * \param nbr_cp Neighbor cell's parameters
+ * \param nbr_derivs Neighbor cell's derivatives
+ * \param By Current cell's By
+ * \param Bz Current cell's Bz
+ * \param dBydx dBydx derivative
+ * \param dBydz dBydz derivative
+ * \param dBzdx dBzdx derivative
+ * \param dBzdy dBzdy derivative
+ * \param ydir +1 or -1 depending on the interpolation direction in y
+ * \param zdir +1 or -1 depending on the interpolation direction in z
+ * \param minRho Minimum density allowed from the neighborhood
+ * \param maxRho Maximum density allowed from the neighborhood
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
 Real calculateWaveSpeedYZ(
-                          const Real* cp,
-                          const Real* derivs,
-                          const Real* nbr_cp,
-                          const Real* nbr_derivs,
-                          const Real& By,
-                          const Real& Bz,
-                          const Real& dBydx,
-                          const Real& dBydz,
-                          const Real& dBzdx,
-                          const Real& dBzdy,
-                          const Real& ydir,
-                          const Real& zdir,
-                          const Real& minRho,
-                          const Real& maxRho,
-                          cint& RKCase
-                         ) {
+   const Real* cp,
+   const Real* derivs,
+   const Real* nbr_cp,
+   const Real* nbr_derivs,
+   const Real& By,
+   const Real& Bz,
+   const Real& dBydx,
+   const Real& dBydz,
+   const Real& dBzdx,
+   const Real& dBzdy,
+   const Real& ydir,
+   const Real& zdir,
+   const Real& minRho,
+   const Real& maxRho,
+   cint& RKCase
+) {
    if (Parameters::propagateField == false) return 0.0;
 
    Real A_0, A_X, rhom, p11, p22, p33;
@@ -103,25 +117,39 @@ Real calculateWaveSpeedYZ(
  * 
  * If fields are not propagated, returns 0.0 as there is no information propagating.
  * 
+ * \param cp Curent cell's parameters
+ * \param derivs Curent cell's derivatives
+ * \param nbr_cp Neighbor cell's parameters
+ * \param nbr_derivs Neighbor cell's derivatives
+ * \param Bx Current cell's Bx
+ * \param Bz Current cell's Bz
+ * \param dBxdy dBxdy derivative
+ * \param dBxdz dBxdz derivative
+ * \param dBzdx dBzdx derivative
+ * \param dBzdy dBzdy derivative
+ * \param xdir +1 or -1 depending on the interpolation direction in x
+ * \param zdir +1 or -1 depending on the interpolation direction in z
+ * \param minRho Minimum density allowed from the neighborhood
+ * \param maxRho Maximum density allowed from the neighborhood
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
 Real calculateWaveSpeedXZ(
-                          const Real* cp,
-                          const Real* derivs,
-                          const Real* nbr_cp,
-                          const Real* nbr_derivs,
-                          const Real& Bx,
-                          const Real& Bz,
-                          const Real& dBxdy,
-                          const Real& dBxdz,
-                          const Real& dBzdx,
-                          const Real& dBzdy,
-                          const Real& xdir,
-                          const Real& zdir,
-                          const Real& minRho,
-                          const Real& maxRho,
-                          cint& RKCase
-                         ) {
+   const Real* cp,
+   const Real* derivs,
+   const Real* nbr_cp,
+   const Real* nbr_derivs,
+   const Real& Bx,
+   const Real& Bz,
+   const Real& dBxdy,
+   const Real& dBxdz,
+   const Real& dBzdx,
+   const Real& dBzdy,
+   const Real& xdir,
+   const Real& zdir,
+   const Real& minRho,
+   const Real& maxRho,
+   cint& RKCase
+) {
    if (Parameters::propagateField == false) return 0.0;
 
    Real B_0, B_Y, rhom, p11, p22, p33;
@@ -176,25 +204,39 @@ Real calculateWaveSpeedXZ(
  * 
  * If fields are not propagated, returns 0.0 as there is no information propagating.
  * 
+ * \param cp Curent cell's parameters
+ * \param derivs Curent cell's derivatives
+ * \param nbr_cp Neighbor cell's parameters
+ * \param nbr_derivs Neighbor cell's derivatives
+ * \param Bx Current cell's Bx
+ * \param By Current cell's By
+ * \param dBxdy dBxdy derivative
+ * \param dBxdz dBxdz derivative
+ * \param dBydx dBydx derivative
+ * \param dBydz dBydz derivative
+ * \param xdir +1 or -1 depending on the interpolation direction in x
+ * \param ydir +1 or -1 depending on the interpolation direction in y
+ * \param minRho Minimum density allowed from the neighborhood
+ * \param maxRho Maximum density allowed from the neighborhood
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
 Real calculateWaveSpeedXY(
-                          const Real* cp,
-                          const Real* derivs,
-                          const Real* nbr_cp,
-                          const Real* nbr_derivs,
-                          const Real& Bx,
-                          const Real& By,
-                          const Real& dBxdy,
-                          const Real& dBxdz,
-                          const Real& dBydx,
-                          const Real& dBydz,
-                          const Real& xdir,
-                          const Real& ydir,
-                          const Real& minRho,
-                          const Real& maxRho,
-                          cint& RKCase
-                         ) {
+   const Real* cp,
+   const Real* derivs,
+   const Real* nbr_cp,
+   const Real* nbr_derivs,
+   const Real& Bx,
+   const Real& By,
+   const Real& dBxdy,
+   const Real& dBxdz,
+   const Real& dBydx,
+   const Real& dBydz,
+   const Real& xdir,
+   const Real& ydir,
+   const Real& minRho,
+   const Real& maxRho,
+   cint& RKCase
+) {
    if (Parameters::propagateField == false) return 0.0;
 
    Real C_0, C_Z, rhom, p11, p22, p33;
@@ -249,11 +291,13 @@ Real calculateWaveSpeedXY(
  * 
  * Note that the background B field is excluded from the diffusive term calculations because they are equivalent to a current term and the background field is curl-free.
  * 
- * \param cellID Index of the cell to process
- * \param mpiGrid Grid
+ * \param cache Field solver cell cache
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
-void calculateEdgeElectricFieldX(fs_cache::CellCache& cache,cint& RKCase) {
+void calculateEdgeElectricFieldX(
+   fs_cache::CellCache& cache,
+   cint& RKCase
+) {
    #ifdef DEBUG_FSOLVER
    bool ok = true;
    if (cache.cells[fs_cache::calculateNbrID(1  ,1  ,1  )] == NULL) ok = false;
@@ -586,11 +630,13 @@ void calculateEdgeElectricFieldX(fs_cache::CellCache& cache,cint& RKCase) {
  * 
  * Note that the background B field is excluded from the diffusive term calculations because they are equivalent to a current term and the background field is curl-free.
  * 
- * \param cellID Index of the cell to process
- * \param mpiGrid Grid
+ * \param cache Field solver cell cache
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
-void calculateEdgeElectricFieldY(fs_cache::CellCache& cache,cint& RKCase) {
+void calculateEdgeElectricFieldY(
+   fs_cache::CellCache& cache,
+   cint& RKCase
+) {
    #ifdef DEBUG_FSOLVER
    bool ok = true;
    if (cache.cells[fs_cache::calculateNbrID(1  ,1  ,1  )] == NULL) ok = false;
@@ -917,11 +963,13 @@ void calculateEdgeElectricFieldY(fs_cache::CellCache& cache,cint& RKCase) {
  * 
  * Note that the background B field is excluded from the diffusive term calculations because they are equivalent to a current term and the background field is curl-free.
  * 
- * \param cellID Index of the cell to process
- * \param mpiGrid Grid
+ * \param cache Field solver cell cache
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
-void calculateEdgeElectricFieldZ(fs_cache::CellCache& cache,cint& RKCase) {
+void calculateEdgeElectricFieldZ(
+   fs_cache::CellCache& cache,
+   cint& RKCase
+) {
    #ifdef DEBUG_FSOLVER
    bool ok = true;
    if (cache.cells[fs_cache::calculateNbrID(1  ,1  ,1  )] == NULL) ok = false;
@@ -1242,11 +1290,26 @@ void calculateEdgeElectricFieldZ(fs_cache::CellCache& cache,cint& RKCase) {
    }
 }
 
-void calculateElectricField(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                            std::vector<fs_cache::CellCache>& cellCache,
-                            const std::vector<uint16_t>& cells,
-                            SysBoundary& sysBoundaries,
-                            cint& RKCase) {
+/*! \brief Electric field propagation function.
+ * 
+ * Calls the general or the system boundary electric field propagation functions.
+ * 
+ * \param mpiGrid Grid
+ * \param cellCache Field solver cell cache
+ * \param cells Vector of cells to process
+ * \param sysBoundaries System boundary conditions existing
+ * \param RKCase Element in the enum defining the Runge-Kutta method steps
+ * 
+ * \sa calculateUpwindedElectricFieldSimple calculateEdgeElectricFieldX calculateEdgeElectricFieldY calculateEdgeElectricFieldZ
+ * 
+ */
+void calculateElectricField(
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   std::vector<fs_cache::CellCache>& cellCache,
+   const std::vector<uint16_t>& cells,
+   SysBoundary& sysBoundaries,
+   cint& RKCase
+) {
    #pragma omp parallel for
    for (size_t c=0; c<cells.size(); ++c) {
       const uint16_t localID = cells[c];
@@ -1299,10 +1362,11 @@ void calculateElectricField(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
  * Transfers the derivatives, calculates the edge electric fields and transfers the new electric fields.
  * 
  * \param mpiGrid Grid
+ * \param sysBoundaries System boundary conditions existing
  * \param localCells Vector of local cells to process
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  * 
- * \sa calculateEdgeElectricFieldX calculateEdgeElectricFieldY calculateEdgeElectricFieldZ
+ * \sa calculateElectricField calculateEdgeElectricFieldX calculateEdgeElectricFieldY calculateEdgeElectricFieldZ
  */
 void calculateUpwindedElectricFieldSimple(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,

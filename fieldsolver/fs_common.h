@@ -120,11 +120,6 @@ CellID getNeighbourID(
    const uchar& k
 );
 
-/*! \brief Low-level helper function.
- * 
- * Avoid crashes on zero density by returning V = rhoV = 0.0 if rho = 0.0.
- * 
- */
 Real divideIfNonZero(creal rhoV, creal rho);
 
 /*! Namespace encompassing the enum defining the list of reconstruction coefficients used in field component reconstructions.*/
@@ -138,7 +133,11 @@ namespace Rec {
    };
 }
 
-void reconstructionCoefficients(fs_cache::CellCache& cell,Real* perturbedResult,
-                                creal& reconstructionOrder,cint& RKCase);
+void reconstructionCoefficients(
+   fs_cache::CellCache& cell,
+   Real* perturbedResult,
+   creal& reconstructionOrder,
+   cint& RKCase
+);
 
 #endif

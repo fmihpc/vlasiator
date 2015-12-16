@@ -99,14 +99,13 @@ namespace SBC {
    }
    
    std::vector<vmesh::GlobalID> SetMaxwellian::findBlocksToInitialize(
-                                                      const int& popID,
-                                                      spatial_cell::SpatialCell& cell,
-                                                      creal& rho,
-                                                      creal& T,
-                                                      creal& VX0,
-                                                      creal& VY0,
-                                                      creal& VZ0
-                                                     ) {
+      const int& popID,
+      spatial_cell::SpatialCell& cell,
+      creal& rho,
+      creal& T,
+      creal& VX0,
+      creal& VY0,
+      creal& VZ0) {
       vector<vmesh::GlobalID> blocksToInitialize;
       bool search = true;
       uint counter = 0;
@@ -169,11 +168,15 @@ namespace SBC {
    /*!\brief Generate the template cell for the face corresponding to the index passed.
     * This function generates a spatial cell which is to be used as a template for the
     * system boundary condition.
-    * \param templateCell Addressof the template cell to be generated.
+    * \param templateCell Address of the template cell to be generated.
     * \param inputDataIndex Index used for the location of the input data.
     * \param t Current simulation time.
     */
-   void SetMaxwellian::generateTemplateCell(spatial_cell::SpatialCell& templateCell, int inputDataIndex, creal& t) {
+   void SetMaxwellian::generateTemplateCell(
+      spatial_cell::SpatialCell& templateCell,
+      int inputDataIndex,
+      creal& t
+   ) {
       Real rho, T, Vx, Vy, Vz, Bx, By, Bz, buffer[8];
       
       interpolate(inputDataIndex, t, &buffer[0]);

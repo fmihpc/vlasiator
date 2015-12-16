@@ -59,6 +59,8 @@ namespace SBC {
             const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const CellID& cellID,
             creal& dt,
+            cuint& RKCase,
+            cint& offset,
             cuint& component
          );
          virtual void fieldSolverBoundaryCondElectricField(
@@ -120,7 +122,8 @@ namespace SBC {
          void determineFace(
             bool* isThisCellOnAFace,
             creal x, creal y, creal z,
-            creal dx, creal dy, creal dz
+            creal dx, creal dy, creal dz,
+            const bool excludeSlices = false
          );
          void copyCellData(
             SpatialCell *from,

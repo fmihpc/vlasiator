@@ -106,30 +106,29 @@ namespace SBC {
    }
    
    Real SetByUser::fieldSolverBoundaryCondMagneticField(
-                                                        const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                                        const CellID& cellID,
-                                                        creal& dt,
-                                                        cuint& component
-                                                       ) {
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      const std::vector<fs_cache::CellCache>& cellCache,
+      const uint16_t& localID,
+      creal& dt,
+      cuint& RKCase,
+      cint& offset,
+      cuint& component
+   ) {
       Real result = 0.0;
-      const SpatialCell* cell = mpiGrid[cellID];
-      creal dx = cell->parameters[CellParams::DX];
-      creal dy = cell->parameters[CellParams::DY];
-      creal dz = cell->parameters[CellParams::DZ];
-      creal x = cell->parameters[CellParams::XCRD] + 0.5*dx;
-      creal y = cell->parameters[CellParams::YCRD] + 0.5*dy;
-      creal z = cell->parameters[CellParams::ZCRD] + 0.5*dz;
+      creal* cp0 = cellCache[localID].cells[fs_cache::calculateNbrID(1  ,1  ,1  )]->parameters;
+      creal dx = cp0[CellParams::DX];
+      creal dy = cp0[CellParams::DY];
+      creal dz = cp0[CellParams::DZ];
+      creal x = cp0[CellParams::XCRD] + 0.5*dx;
+      creal y = cp0[CellParams::YCRD] + 0.5*dy;
+      creal z = cp0[CellParams::ZCRD] + 0.5*dz;
       
       bool isThisCellOnAFace[6];
       determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz);
 
       for (uint i=0; i<6; i++) {
          if (isThisCellOnAFace[i]) {
-            if (dt == 0.0) {
-               result = templateCells[i].parameters[CellParams::PERBX + component];
-            } else {
-               result = templateCells[i].parameters[CellParams::PERBX_DT2 + component];
-            }
+            result = templateCells[i].parameters[CellParams::PERBX + offset + component];
             break; // This effectively sets the precedence of faces through the order of faces.
          }
       }
@@ -137,11 +136,11 @@ namespace SBC {
    }
 
    void SetByUser::fieldSolverBoundaryCondElectricField(
-                                                        dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                                        const CellID& cellID,
-                                                        cuint RKCase,
-                                                        cuint component
-                                                       ) {
+      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      const CellID& cellID,
+      cuint RKCase,
+      cuint component
+   ) {
       if((RKCase == RK_ORDER1) || (RKCase == RK_ORDER2_STEP2)) {
          mpiGrid[cellID]->parameters[CellParams::EX+component] = 0.0;
       } else {// RKCase == RK_ORDER2_STEP1
@@ -150,10 +149,10 @@ namespace SBC {
    }
 
    void SetByUser::fieldSolverBoundaryCondHallElectricField(
-                                                            fs_cache::CellCache& cache,
-                                                            cuint RKCase,
-                                                            cuint component
-                                                           ) {
+      fs_cache::CellCache& cache,
+      cuint RKCase,
+      cuint component
+   ) {
 
       Real* cp = cache.cells[fs_cache::calculateNbrID(1,1,1)]->parameters;
       
@@ -182,19 +181,19 @@ namespace SBC {
    }
    
    void SetByUser::fieldSolverBoundaryCondDerivatives(
-                                                      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                                      const CellID& cellID,
-                                                      cuint& RKCase,
-                                                      cuint& component
-                                                     ) {
+      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      const CellID& cellID,
+      cuint& RKCase,
+      cuint& component
+   ) {
       this->setCellDerivativesToZero(mpiGrid, cellID, component);
    }
 
    void SetByUser::fieldSolverBoundaryCondBVOLDerivatives(
-                                                          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                                          const CellID& cellID,
-                                                          cuint& component
-                                                         ) {
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      const CellID& cellID,
+      cuint& component
+   ) {
       this->setCellBVOLDerivativesToZero(mpiGrid, cellID, component);
    }
 
@@ -271,8 +270,7 @@ namespace SBC {
     * Function adapted from GUMICS-5.
     * 
     * \param fn Name of the file to be opened.
-    * \retval dataset Vector of Real vectors. Each line of length nParams is put into
-    * a vector. Each of these is then put into the vector returned here.
+    * \retval dataset Vector of Real vectors. Each line of length nParams is put into a vector. Each of these is then put into the vector returned here.
     */
    vector<vector<Real> > SetByUser::loadFile(const char *fn) {
       vector<vector<Real> > dataset;
@@ -375,7 +373,11 @@ namespace SBC {
     * \param t Current simulation time.
     * \param outputData Pointer to the location where to write the result. Make sure from the calling side that nParams Real values can be written there!
     */
-   void SetByUser::interpolate(const int inputDataIndex, creal t, Real* outputData) {
+   void SetByUser::interpolate(
+      const int inputDataIndex,
+      creal t,
+      Real* outputData
+   ) {
       // Find first data[0] value which is >= t
       int i1=0,i2=0;
       bool found = false;
@@ -417,7 +419,11 @@ namespace SBC {
       }
    }
 
-   void SetByUser::generateTemplateCell(spatial_cell::SpatialCell& templateCell, int inputDataIndex, creal& t) {
+   void SetByUser::generateTemplateCell(
+      spatial_cell::SpatialCell& templateCell,
+      int inputDataIndex,
+      creal& t
+   ) {
       cerr << "Base class SetByUser::generateTemplateCell() called instead of derived class function!" << endl;
    }
    

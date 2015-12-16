@@ -114,6 +114,10 @@ void SysBoundary::getParameters() {
 
 /*! Add a new SBC::SysBoundaryCondition which has been created with new sysBoundary. 
  * SysBoundary will take care of deleting it.
+ * 
+ * \param bc SysBoundaryCondition object
+ * \param project Project object
+ * \param t Current time
  * \retval success If true, the given SBC::SysBoundaryCondition was added successfully.
  */
 bool SysBoundary::addSysBoundary(
@@ -146,6 +150,8 @@ bool SysBoundary::addSysBoundary(
  * corresponding instance and updates the member isThisDynamic to determine whether any
  * SysBoundaryCondition is dynamic in time.
  * 
+ * \param project Project object
+ * \param t Current time
  * \retval success If true, the initialisation of all system boundaries succeeded.
  * \sa addSysBoundary
  */
@@ -190,6 +196,18 @@ bool SysBoundary::initSysBoundaries(
          if((faces[4] || faces[5]) && isPeriodic[2]) {
             if(myRank == MASTER_RANK) cerr << "You set boundaries.periodic_z = yes and load Outflow system boundary conditions on the z+ or z- face, are you sure this is correct?" << endl;
          }
+         if((faces[0] || faces[1]) && P::xcells_ini < 5) {
+            if(myRank == MASTER_RANK) cerr << "You load Outflow system boundary conditions on the x+ or x- face but there is not enough cells in that direction to make sense." << endl;
+            exit(1);
+         }
+         if((faces[2] || faces[3]) && P::ycells_ini < 5) {
+            if(myRank == MASTER_RANK) cerr << "You load Outflow system boundary conditions on the y+ or y- face but there is not enough cells in that direction to make sense." << endl;
+            exit(1);
+         }
+         if((faces[4] || faces[5]) && P::zcells_ini < 5) {
+            if(myRank == MASTER_RANK) cerr << "You load Outflow system boundary conditions on the z+ or z- face but there is not enough cells in that direction to make sense." << endl;
+            exit(1);
+         }
       }
       if(*it == "Ionosphere") {
          if(this->addSysBoundary(new SBC::Ionosphere, project, t) == false) {
@@ -220,6 +238,18 @@ bool SysBoundary::initSysBoundaries(
          }
          if((faces[4] || faces[5]) && isPeriodic[2]) {
             if(myRank == MASTER_RANK) cerr << "You set boundaries.periodic_z = yes and load Maxwellian system boundary conditions on the z+ or z- face, are you sure this is correct?" << endl;
+         }
+         if((faces[0] || faces[1]) && P::xcells_ini < 5) {
+            if(myRank == MASTER_RANK) cerr << "You load Maxwellian system boundary conditions on the x+ or x- face but there is not enough cells in that direction to make sense." << endl;
+            exit(1);
+         }
+         if((faces[2] || faces[3]) && P::ycells_ini < 5) {
+            if(myRank == MASTER_RANK) cerr << "You load Maxwellian system boundary conditions on the y+ or y- face but there is not enough cells in that direction to make sense." << endl;
+            exit(1);
+         }
+         if((faces[4] || faces[5]) && P::zcells_ini < 5) {
+            if(myRank == MASTER_RANK) cerr << "You load Maxwellian system boundary conditions on the z+ or z- face but there is not enough cells in that direction to make sense." << endl;
+            exit(1);
          }
       }
       if (*it == "Antisymmetric") {
@@ -277,6 +307,8 @@ bool SysBoundary::initSysBoundaries(
  * 
  * Loops through all cells and and for each assigns the correct sysBoundaryFlag depending on
  * the return value of each SysBoundaryCondition's assignSysBoundary.
+ * 
+ * \param mpiGrid Grid
  */
 bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
    bool success = true;
@@ -432,6 +464,8 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
 /*!\brief Apply the initial state to all system boundary cells.
  * Loops through all SysBoundaryConditions and calls the corresponding applyInitialState
  * function. This function must apply the initial state for all existing particle species.
+ * 
+ * \param mpiGrid Grid
  * \retval success If true, the application of all system boundary states succeeded.
  */
 bool SysBoundary::applyInitialState(
@@ -462,8 +496,14 @@ bool SysBoundary::applyInitialState(
  * WARNING (see end of the function) Blocks are changed but lists not updated now, 
  * if you need to use/communicate them before the next update is done, add an 
  * update at the end of this function.
+ * 
+ * \param mpiGrid Grid
+ * \param t Current time
  */
-void SysBoundary::applySysBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, creal& t) {
+void SysBoundary::applySysBoundaryVlasovConditions(
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   creal& t
+) {
    if(sysBoundaries.size()==0) {
       return; //no system boundaries
    }
@@ -529,7 +569,8 @@ void SysBoundary::applySysBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell,dccr
 }
 
 /*! Get a pointer to the SysBoundaryCondition of given index.
- * \retval ptr Pointer to the instance of the SysBoundaryCondition.
+ * \param sysBoundaryType Type of the system boundary condition to return
+ * \return Pointer to the instance of the SysBoundaryCondition.
  */
 SBC::SysBoundaryCondition* SysBoundary::getSysBoundary(cuint sysBoundaryType) const {
    return indexToSysBoundary.find(sysBoundaryType)->second;
@@ -553,10 +594,18 @@ bool SysBoundary::isBoundaryPeriodic(uint direction) const {return isPeriodic[di
 
 
 
-
-bool getBoundaryCellList(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                         const vector<uint64_t>& cellList,
-                         vector<uint64_t>& boundaryCellList){
+/*! Get a vector containing the cellID of all cells which are not DO_NOT_COMPUTE or NOT_SYSBOUNDARY in the vector of cellIDs passed to the function.
+ * 
+ * \param mpiGrid Grid
+ * \param cellList Vector of cellIDs in which to look for boundary cells
+ * \param boundaryCellList Vector of boundary the cells' cellIDs
+ * \retval Returns true if the operation is successful
+ */
+bool getBoundaryCellList(
+   const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   const vector<uint64_t>& cellList,
+   vector<uint64_t>& boundaryCellList
+){
    boundaryCellList.clear();
    for (size_t cell=0; cell<cellList.size(); ++cell) {
       const CellID cellID = cellList[cell];
@@ -569,8 +618,8 @@ bool getBoundaryCellList(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometr
 
 /*! Updates all NonsysboundaryCells into an internal map. This should be called in loadBalance.
  * \param mpiGrid The DCCRG grid
-   \retval Returns true if the operation is successful
-  */
+ * \retval Returns true if the operation is successful
+ */
 bool SysBoundary::updateSysBoundariesAfterLoadBalance(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
    phiprof::start("getAllClosestNonsysboundaryCells");
    vector<uint64_t> local_cells_on_boundary;

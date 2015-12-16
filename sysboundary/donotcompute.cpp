@@ -87,10 +87,6 @@ namespace SBC {
       return true;
    }
    
-   //    bool DoNotCompute::applySysBoundaryCondition(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, creal& t) {
-//       return true;
-//    }
-   
    std::string DoNotCompute::getName() const {return "DoNotCompute";}
    
    uint DoNotCompute::getIndex() const {return sysboundarytype::DO_NOT_COMPUTE;}

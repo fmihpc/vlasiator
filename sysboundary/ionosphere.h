@@ -31,8 +31,12 @@ using namespace std;
 namespace SBC {
    /*!\brief Ionosphere is a class applying ionospheric boundary conditions.
     * 
-    * Ionosphere is a class handling cells tagged as sysboundarytype::IONOSPHERE by this
-    * system boundary condition. It applies ionospheric boundary conditions.
+    * Ionosphere is a class handling cells tagged as sysboundarytype::IONOSPHERE by this system boundary condition. It applies ionospheric boundary conditions.
+    * 
+    * These consist in:
+    * - Do nothing for the distribution (keep the initial state constant in time);
+    * - Keep only the normal perturbed B component and null out the other perturbed components (perfect conductor behavior);
+    * - Null out the electric fields.
     */
    class Ionosphere: public SysBoundaryCondition {
    public:
@@ -51,14 +55,13 @@ namespace SBC {
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          Project &project
       );
-//       virtual bool applySysBoundaryCondition(
-//          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-//          creal& t
-//       );
       virtual Real fieldSolverBoundaryCondMagneticField(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-         const CellID& cellID,
+         const std::vector<fs_cache::CellCache>& cellCache,
+         const uint16_t& localID,
          creal& dt,
+         cuint& RKCase,
+         cint& offset,
          cuint& component
       );
       virtual void fieldSolverBoundaryCondElectricField(

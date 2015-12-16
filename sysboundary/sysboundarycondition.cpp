@@ -43,21 +43,57 @@ namespace SBC {
     * This function is used by some of the classes inheriting from this base class.
     * 
     * Depth is hard-coded to be 2 as other parts of the code (field solver especially) rely on that.
+    * 
+    * \param isThisCellOnAFace Pointer to an array of 6 bool returning of each face whether the cell is on that face. Order: 0 x+; 1 x-; 2 y+; 3 y-; 4 z+; 5 z-
+    * \param x Cell x coordinate
+    * \param y Cell y coordinate
+    * \param z Cell z coordinate
+    * \param dx Cell dx size
+    * \param dy Cell dy size
+    * \param dz Cell dz size
+    * \param doIgnoreSlices If true, do not consider a cell to be part of the face if that face has a depth of 1 only (single-cell thick slices/columns).
     */
    void SysBoundaryCondition::determineFace(
       bool* isThisCellOnAFace,
       creal x, creal y, creal z,
-      creal dx, creal dy, creal dz
+      creal dx, creal dy, creal dz,
+      const bool excludeSlices //=false (default)
    ) {
       for(uint i=0; i<6; i++) {
          isThisCellOnAFace[i] = false;
       }
-      if(x > Parameters::xmax - 2.0*dx) isThisCellOnAFace[0] = true;
-      if(x < Parameters::xmin + 2.0*dx) isThisCellOnAFace[1] = true;
-      if(y > Parameters::ymax - 2.0*dy) isThisCellOnAFace[2] = true;
-      if(y < Parameters::ymin + 2.0*dy) isThisCellOnAFace[3] = true;
-      if(z > Parameters::zmax - 2.0*dz) isThisCellOnAFace[4] = true;
-      if(z < Parameters::zmin + 2.0*dz) isThisCellOnAFace[5] = true;
+      if(x > Parameters::xmax - 2.0*dx) {
+         isThisCellOnAFace[0] = true;
+      }
+      if(x < Parameters::xmin + 2.0*dx) {
+         isThisCellOnAFace[1] = true;
+      }
+      if(y > Parameters::ymax - 2.0*dy) {
+         isThisCellOnAFace[2] = true;
+      }
+      if(y < Parameters::ymin + 2.0*dy) {
+         isThisCellOnAFace[3] = true;
+      }
+      if(z > Parameters::zmax - 2.0*dz) {
+         isThisCellOnAFace[4] = true;
+      }
+      if(z < Parameters::zmin + 2.0*dz) {
+         isThisCellOnAFace[5] = true;
+      }
+      if(excludeSlices == true) {
+         if(Parameters::xcells_ini == 1) {
+            isThisCellOnAFace[0] = false;
+            isThisCellOnAFace[1] = false;
+         }
+         if(Parameters::ycells_ini == 1) {
+            isThisCellOnAFace[2] = false;
+            isThisCellOnAFace[3] = false;
+         }
+         if(Parameters::zcells_ini == 1) {
+            isThisCellOnAFace[4] = false;
+            isThisCellOnAFace[5] = false;
+         }
+      }
    }
    
    /*! SysBoundaryCondition base class constructor. The constructor is empty.*/
@@ -66,10 +102,12 @@ namespace SBC {
    /*! SysBoundaryCondition base class virtual destructor. The destructor is empty.*/
    SysBoundaryCondition::~SysBoundaryCondition() { }
    
+   /*! SysBoundaryCondition base class instance of the addParameters function. Should not be used, each derived class should have its own.*/
    void SysBoundaryCondition::addParameters() {
       cerr << "ERROR: SysBoundaryCondition::addParameters called instead of derived class function!" << endl;
    }
    
+   /*! SysBoundaryCondition base class instance of the getParameters function. Should not be used, each derived class should have its own.*/
    void SysBoundaryCondition::getParameters() {
       cerr << "ERROR: SysBoundaryCondition::getParameters called instead of derived class function!" << endl;
    }
@@ -77,6 +115,7 @@ namespace SBC {
    /*! Function called during initialisation to set the system boundary condition's parameters.
     * This function must initialize the boundary condition function for all particle species,
     * i.e., its behavior is not allowed to depend on SysBoundaryCondition::activePopID.
+    * Base version should not be used, each derived class should have its own.
     */
    bool SysBoundaryCondition::initSysBoundary(
       creal& t,
@@ -87,6 +126,7 @@ namespace SBC {
    }
 
    /*! Function used to assign the system boundary condition type to a cell.
+    * \param mpiGrid Grid
     * \return The system boundary condition type's index
     */
    bool SysBoundaryCondition::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
@@ -94,7 +134,9 @@ namespace SBC {
       return false;
    }
    
-   /*! Function used to apply the system boundary condition initial state to a cell. 
+   /*! Function used to apply the system boundary condition initial state to a cell.
+    * \param mpiGrid Grid
+    * \param project Project object
     * \return Boolean true on success, false on failure.
     */
    bool SysBoundaryCondition::applyInitialState(
@@ -106,25 +148,31 @@ namespace SBC {
    }
    
    /*! Function used to return the system boundary condition cell's magnetic field component.
-    * \param mpiGrid The grid.
-    * \param cellID The cell's ID.
-    * \param dt 0 when at the beginning of a time step, non-zero for the _DT2 (Runge-Kutta stepping) value.
+    * \param mpiGrid Grid
+    * \param cellCache Field solver cell cache
+    * \param localID Field solver cache local cell ID
+    * \param dt Time step length
+    * \param RKCase The step in Runge-Kutta (use values from enum defined in common.h).
+    * \param offset Offset of 0-index to the PERBX component, usually 0 or CellParams::PERBX_DT2 - CellParams::PERBX
     * \param component 0: x-component, 1: y-component, 2: z-component.
     * 
     * \return The requested component value.
     */
    Real SysBoundaryCondition::fieldSolverBoundaryCondMagneticField(
-                                                                   const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                                                   const CellID& cellID,
-                                                                   creal& dt,
-                                                                   cuint& component
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      const std::vector<fs_cache::CellCache>& cellCache,
+      const uint16_t& localID,
+      creal& dt,
+      cuint& RKCase,
+      cint& offset,
+      cuint& component
    ) {
       cerr << "ERROR: SysBoundaryCondition::fieldSolverBoundaryCondMagneticField called instead of derived class function!" << endl;
       exit(1);
    }
    
    /*! Function used to return the system boundary condition cell's main electric field component (without Hall term).
-    * \param mpiGrid The grid.
+    * \param mpiGrid Grid
     * \param cellID The cell's ID.
     * \param RKCase The step in Runge-Kutta (use values from enum defined in common.h).
     * \param component 0: x-component, 1: y-component, 2: z-component.
@@ -144,22 +192,21 @@ namespace SBC {
    }
    
    /*! Function used to compute the system boundary condition cell's Hall electric field components and save them into the cell parameters.
-    * \param mpiGrid The grid.
-    * \param cellID The cell's ID.
+    * \param cache Field solver cell cache
     * \param RKCase The step in Runge-Kutta (use values from enum defined in common.h).
     * \param component 0: x-component, 1: y-component, 2: z-component.
     */
    void SysBoundaryCondition::fieldSolverBoundaryCondHallElectricField(
-                                                                       fs_cache::CellCache& cache,
-                                                                       cuint RKCase,
-                                                                       cuint component
-                                                                      ) {
+      fs_cache::CellCache& cache,
+      cuint RKCase,
+      cuint component
+   ) {
       cerr << "ERROR: SysBoundaryCondition::fieldSolverBoundaryCondHallElectricField called instead of derived class function!" << endl;
       exit(1);
    }
    
    /*! Function used to compute the system boundary condition cell's derivatives and save them into the cell derivatives.
-    * \param mpiGrid The grid.
+    * \param mpiGrid Grid
     * \param cellID The cell's ID.
     * \param RKCase The step in Runge-Kutta (use values from enum defined in common.h).
     * \param component 0: x-derivatives, 1: y-derivatives, 2: z-derivatives, 3: xy-derivatives, 4: xz-derivatives, 5: yz-derivatives.
@@ -175,7 +222,7 @@ namespace SBC {
    }
    
    /*! Function used to compute the system boundary condition cell's BVOL derivatives and save them into the cell derivatives.
-    * \param mpiGrid The grid.
+    * \param mpiGrid Grid
     * \param cellID The cell's ID.
     * \param component 0: x-derivatives, 1: y-derivatives, 2: z-derivatives.
     */
@@ -189,7 +236,7 @@ namespace SBC {
    }
    
    /*! Function used to set the system boundary condition cell's derivatives to 0.
-    * \param mpiGrid The grid.
+    * \param mpiGrid Grid
     * \param cellID The cell's ID.
     * \param component 0: x-derivatives, 1: y-derivatives, 2: z-derivatives, 3: xy-derivatives, 4: xz-derivatives, 5: yz-derivatives.
     */
@@ -254,7 +301,7 @@ namespace SBC {
    }
    
    /*! Function used to set the system boundary condition cell's BVOL derivatives to 0.
-    * \param mpiGrid The grid.
+    * \param mpiGrid Grid
     * \param cellID The cell's ID.
     * \param component 0: x-derivatives, 1: y-derivatives, 2: z-derivatives.
     */
@@ -282,6 +329,7 @@ namespace SBC {
       }
    }
    
+
    /*! Function used to compute the system boundary condition for 
     * the distribution function and moments in the given spatial cell.
     * @param mpiGrid The grid.
@@ -297,7 +345,7 @@ namespace SBC {
    }
    
    /*! Function used to copy the distribution and moments from (one of) the closest sysboundarytype::NOT_SYSBOUNDARY cell.
-    * \param mpiGrid The grid.
+    * \param mpiGrid Grid
     * \param cellID The cell's ID.
     */
    void SysBoundaryCondition::vlasovBoundaryCopyFromTheClosestNbr(
@@ -316,7 +364,7 @@ namespace SBC {
    }
    
    /*! Function used to average and copy the distribution and moments from all the closest sysboundarytype::NOT_SYSBOUNDARY cells.
-    * \param mpiGrid The grid.
+    * \param mpiGrid Grid
     * \param cellID The cell's ID.
     */
    void SysBoundaryCondition::vlasovBoundaryCopyFromAllClosestNbrs(
@@ -424,8 +472,8 @@ namespace SBC {
     *  For layer 1 the whole distribution function is copied.
     *  For layer >1, only moments are copied
     * \param mpiGrid Grid
-    * \param cellList List of cells to copy from.
-    * \param to Cell in which to set the averaged distribution.
+    * \param cellList Vector of cells to copy from.
+    * \param to Pointer to cell in which to set the averaged distribution.
     */
    void SysBoundaryCondition::averageCellData(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
@@ -586,9 +634,9 @@ namespace SBC {
    /*! Take neighboring distribution and absorb all parts going in the direction opposite to the normal vector given in.
     * \param mpiGrid Grid
     * \param cellID Cell in which to set the distribution where incoming velocity cells have been kept or swallowed.
-    * \param nx Unit vector x component normal to the bounce/reflection plane.
-    * \param ny Unit vector y component normal to the bounce/reflection plane.
-    * \param nz Unit vector z component normal to the bounce/reflection plane.
+    * \param nx Unit vector x component normal to the absorption plane.
+    * \param ny Unit vector y component normal to the absorption plane.
+    * \param nz Unit vector z component normal to the absorption plane.
     */
    void SysBoundaryCondition::vlasovBoundaryAbsorb(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
@@ -652,8 +700,8 @@ namespace SBC {
 
 
    /*! Updates the system boundary conditions after load balancing. This is called from e.g. the class SysBoundary.
-    * \param mpiGrid          DCCRG grid
-    * \param local_cells      Cells within this process
+    * \param mpiGrid Grid
+    * \param local_cells_on_boundary Cells within this process
     * \retval                 Returns true if the operation is successful
     */
    bool SysBoundaryCondition::updateSysBoundaryConditionsAfterLoadBalance(
@@ -701,17 +749,19 @@ namespace SBC {
    }
 
    /*! Get the cellID of the first closest cell of type NOT_SYSBOUNDARY found.
+    * \param cellID ID of the cell to start look from.
     * \return The cell index of that cell
     * \sa getAllClosestNonsysboundaryCells
     */
    CellID & SysBoundaryCondition::getTheClosestNonsysboundaryCell(
-                                                                  const CellID& cellID
-                                                                 ) {
+      const CellID& cellID
+   ) {
       std::vector<CellID> & closestCells = allClosestNonsysboundaryCells.at(cellID);
       return closestCells.at(0);
    }
 
    /*! Get the cellIDs of all the closest cells of type NOT_SYSBOUNDARY.
+    * \param cellID ID of the cell to start look from.
     * \return The vector of cell indices of those cells
     * \sa getTheClosestNonsysboundaryCell
     */
@@ -724,7 +774,9 @@ namespace SBC {
       return closestCells;
    }
    
-   /*! Function used in some cases to know which faces the system boundary condition is being applied to.*/
+   /*! Function used in some cases to know which faces the system boundary condition is being applied to.
+    * \param faces Pointer to array of 6 bool in which the values are returned whether the corresponding face is of that type. Order: 0 x+; 1 x-; 2 y+; 3 y-; 4 z+; 5 z-
+    */
    void SysBoundaryCondition::getFaces(bool* faces) {
       cerr << "ERROR: SysBoundaryCondition::getFaces called instead of derived class function!" << endl;
    }

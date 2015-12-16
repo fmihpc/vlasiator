@@ -451,11 +451,15 @@ namespace SBC {
     * -- Retain only the normal components of perturbed face B
     */
    Real Ionosphere::fieldSolverBoundaryCondMagneticField(
-                                                         const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                                         const CellID& cellID,
-                                                         creal& dt,
-                                                         cuint& component
-                                                        ) {
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      const std::vector<fs_cache::CellCache>& cellCache,
+      const uint16_t& localID,
+      creal& dt,
+      cuint& RKCase,
+      cint& offset,
+      cuint& component
+   ) {
+      const CellID cellID = cellCache[localID].cellID;
       std::vector<CellID> closestCells = getAllClosestNonsysboundaryCells(cellID);
       if (closestCells.size() == 1 && closestCells[0] == INVALID_CELLID) {
          std::cerr << __FILE__ << ":" << __LINE__ << ":" << "No closest cells found!" << std::endl;
@@ -464,12 +468,6 @@ namespace SBC {
 
       // Sum perturbed B component over all nearest NOT_SYSBOUNDARY neighbours
       std::array<Real, 3> averageB = {{ 0.0 }};
-      int offset;
-      if (dt == 0.0) {
-         offset = 0;
-      } else {
-         offset = CellParams::PERBX_DT2 - CellParams::PERBX;
-      }
       for (uint i=0; i<closestCells.size(); i++) {
          #ifdef DEBUG_IONOSPHERE
          if (mpiGrid[closestCells[i]]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
@@ -510,7 +508,7 @@ namespace SBC {
    }
    
    void Ionosphere::fieldSolverBoundaryCondHallElectricField(
-                                                             fs_cache::CellCache& cache,
+      fs_cache::CellCache& cache,
       cuint RKCase,
       cuint component
    ) {

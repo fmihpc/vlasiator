@@ -16,27 +16,28 @@ Copyright 2010, 2011, 2012, 2013, 2014 Finnish Meteorological Institute
 #include "fs_limiters.h"
 
 void calculateDerivatives(
-                          const CellID& cellID,
-                          dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                          SysBoundary& sysBoundaries,
-                          cint& RKCase,
-                          const bool& doMoments);
+   const CellID& cellID,
+   dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   SysBoundary& sysBoundaries,
+   cint& RKCase,
+   const bool& doMoments);
 
 void calculateDerivativesSimple(
-                                dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                SysBoundary& sysBoundaries,
-                                const std::vector<CellID>& localCells,
-                                cint& RKCase,
-                                const bool& doMoments);
+   dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   SysBoundary& sysBoundaries,
+   const std::vector<CellID>& localCells,
+   cint& RKCase,
+   const bool& doMoments);
 
 void calculateBVOLDerivatives(
-                              const CellID& cellID,
-                              dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                              SysBoundary& sysBoundaries);
+   const CellID& cellID,
+   dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   SysBoundary& sysBoundaries);
 
 void calculateBVOLDerivativesSimple(
-                                    dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                    SysBoundary& sysBoundaries,
-                                    const std::vector<CellID>& localCells);
+   dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   SysBoundary& sysBoundaries,
+   const std::vector<CellID>& localCells);
+
 
 #endif
