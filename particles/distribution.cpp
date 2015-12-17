@@ -40,7 +40,8 @@ double Kappa::find_v_for_r(double rand) {
 
    /* Special case for the upper bound: Extrapolate the last bin */
    if(a+1 > lookup_size-1) {
-      return maxw0/lookup_size*(lookup_size-1 + (rand-lookup[lookup_size-2])/(lookup[lookup_size-1]-lookup[lookup_size-1]));
+      return maxw0/lookup_size*
+         (lookup_size-1 + (rand-lookup[lookup_size-2])/(lookup[lookup_size-1]-lookup[lookup_size-1]));
    }
    /* Linear interpolate between the two neighbouring entries */
    return maxw0/lookup_size*(a + (rand-lookup[a])/(lookup[a+1]-lookup[a]));

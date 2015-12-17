@@ -17,7 +17,7 @@ extern std::string E_field_name;
 std::vector<uint64_t> readCellIds(vlsvinterface::Reader& r);
 
 template <class Reader>
-void detect_field_names(Reader& r) {
+static void detect_field_names(Reader& r) {
 
 #ifdef DEBUG
    std::cerr << "Checking for volume-averaged fields... ";
@@ -67,7 +67,7 @@ std::vector<double> readFieldData(Reader& r, std::string& name, unsigned int num
 
    /* Allocate memory for the data */
    std::vector<double> buffer(arraySize*vectorSize);
-   
+
    if( r.readArray("VARIABLE",attribs,0,arraySize,(char*) buffer.data()) == false) {
       std::cerr << "readArray faied when trying to read VARIABLE \"" << name << "\"." << std::endl;
       exit(1);
@@ -81,8 +81,8 @@ std::vector<double> readFieldData(Reader& r, std::string& name, unsigned int num
  * Return value: true if a new file was read, otherwise false.
  */
 template <class Reader>
-bool read_next_timestep(const std::string& filename_pattern, double t, int step, Field& E0, Field& E1,
-   Field& B0, Field& B1, Field& V, bool doV, int& input_file_counter) {
+bool readNextTimestep(const std::string& filename_pattern, double t, int step, Field& E0, Field& E1,
+      Field& B0, Field& B1, Field& V, bool doV, int& input_file_counter) {
 
    char filename_buffer[256];
    bool retval = false;
@@ -99,10 +99,11 @@ bool read_next_timestep(const std::string& filename_pattern, double t, int step,
       r.open(filename_buffer);
       double t;
       if(!r.readParameter("time",t)) {
-        if(!r.readParameter("t",t)) {
-          std::cerr << "Time parameter in file " << filename_buffer << " is neither 't' nor 'time'. Bad file format?" << std::endl;
-          exit(1);
-        }
+         if(!r.readParameter("t",t)) {
+            std::cerr << "Time parameter in file " << filename_buffer << " is neither 't' nor 'time'. Bad file format?"
+               << std::endl;
+            exit(1);
+         }
       }
 
       E1.time = t;
@@ -119,18 +120,18 @@ bool read_next_timestep(const std::string& filename_pattern, double t, int step,
       std::vector<double> Bbuffer = readFieldData(r,name,3u);
       name = E_field_name;
       std::vector<double> Ebuffer = readFieldData(r,name,3u);
-			std::vector<double> Vbuffer;
-			if(doV) {
-				name = "rho_v";
-				std::vector<double> rho_v_buffer = readFieldData(r,name,3u);
-				name = "rho";
-				std::vector<double> rho_buffer = readFieldData(r,name,1u);
-				for(int i=0; i<rho_buffer.size(); i++) {
-					Vbuffer.push_back(rho_v_buffer[3*i] / rho_buffer[i]);
-					Vbuffer.push_back(rho_v_buffer[3*i+1] / rho_buffer[i]);
-					Vbuffer.push_back(rho_v_buffer[3*i+2] / rho_buffer[i]);
-				}
-			}
+      std::vector<double> Vbuffer;
+      if(doV) {
+         name = "rho_v";
+         std::vector<double> rho_v_buffer = readFieldData(r,name,3u);
+         name = "rho";
+         std::vector<double> rho_buffer = readFieldData(r,name,1u);
+         for(int i=0; i<rho_buffer.size(); i++) {
+            Vbuffer.push_back(rho_v_buffer[3*i] / rho_buffer[i]);
+            Vbuffer.push_back(rho_v_buffer[3*i+1] / rho_buffer[i]);
+            Vbuffer.push_back(rho_v_buffer[3*i+2] / rho_buffer[i]);
+         }
+      }
 
       /* Assign them, without sanity checking */
       /* TODO: Is this actually a good idea? */
@@ -149,12 +150,12 @@ bool read_next_timestep(const std::string& filename_pattern, double t, int step,
          Btgt[1] = Bbuffer[3*i+1];
          Btgt[2] = Bbuffer[3*i+2];
 
-				 if(doV) {
-				   double* Vtgt = V.getCellRef(x,y,z);
-					 Vtgt[0] = Vbuffer[3*i];
-					 Vtgt[1] = Vbuffer[3*i+1];
-					 Vtgt[2] = Vbuffer[3*i+2];
-				 }
+         if(doV) {
+            double* Vtgt = V.getCellRef(x,y,z);
+            Vtgt[0] = Vbuffer[3*i];
+            Vtgt[1] = Vbuffer[3*i+1];
+            Vtgt[2] = Vbuffer[3*i+2];
+         }
       }
 
       r.close();
@@ -165,14 +166,14 @@ bool read_next_timestep(const std::string& filename_pattern, double t, int step,
 }
 
 /* Non-template version, autodetecting the reader type */
-static bool read_next_timestep(const std::string& filename_pattern, double t, int step, Field& E0, Field& E1,
-   Field& B0, Field& B1, Field& V, bool doV, int& input_file_counter) {
+static bool readNextTimestep(const std::string& filename_pattern, double t, int step, Field& E0, Field& E1,
+      Field& B0, Field& B1, Field& V, bool doV, int& input_file_counter) {
 
    char filename_buffer[256];
    snprintf(filename_buffer,256,filename_pattern.c_str(),input_file_counter);
 
-   return read_next_timestep<vlsvinterface::Reader>(filename_pattern, t,
-       step,E0,E1,B0,B1,V,doV,input_file_counter);
+   return readNextTimestep<vlsvinterface::Reader>(filename_pattern, t,
+         step,E0,E1,B0,B1,V,doV,input_file_counter);
 }
 
 /* Read E- and B-Fields as well as velocity field from a vlsv file */
@@ -218,7 +219,7 @@ void readfields(const char* filename, Field& E, Field& B, Field& V) {
    r.readParameter("ycells_ini",cells[1]);
    r.readParameter("zcells_ini",cells[2]);
    if(!r.readParameter("t",time)) {
-     r.readParameter("time",time);
+      r.readParameter("time",time);
    }
 
    //std::cerr << "Grid is " << cells[0] << " x " << cells[1] << " x " << cells[2] << " Cells, " << std::endl
@@ -290,7 +291,7 @@ void readfields(const char* filename, Field& E, Field& B, Field& V) {
 
 /* Non-template version, autodetecting the reader type */
 static void readfields(const char* filename, Field& E, Field& B, Field& V) {
-  readfields<vlsvinterface::Reader>(filename,E,B,V);
+   readfields<vlsvinterface::Reader>(filename,E,B,V);
 }
 
 /* For debugging purposes - dump a field into a png file */

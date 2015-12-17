@@ -43,8 +43,10 @@ Real P::reflect_upstream_boundary;
 Real P::reflect_downstream_boundary;
 
 bool ParticleParameters::addParameters() {
-   Readparameters::add("particles.input_filename_pattern","Printf() like pattern giving the field input filenames.", std::string("bulk.%07i.vlsv"));
-   Readparameters::add("particles.output_filename_pattern","Printf() like pattern giving the particle output filenames.", std::string("particles.%07i.vlsv"));
+   Readparameters::add("particles.input_filename_pattern","Printf() like pattern giving the field input filenames.",
+         std::string("bulk.%07i.vlsv"));
+   Readparameters::add("particles.output_filename_pattern","Printf() like pattern giving the particle output filenames.",
+         std::string("particles.%07i.vlsv"));
    Readparameters::add("particles.mode","Mode to run the particle pusher in.",std::string("distribution"));
 
    Readparameters::add("particles.init_x", "Particle starting point, x-coordinate (meters).", 0);
@@ -57,28 +59,41 @@ bool ParticleParameters::addParameters() {
    Readparameters::add("particles.end_time", "Simulation time (seconds) at which particle simulation stops.",0);
    Readparameters::add("particles.num_particles", "Number of particles to simulate.",10000);
    Readparameters::add("particles.random_seed", "Random seed for particle creation.",1);
-   Readparameters::add("particles.distribution", "Type of distribution function to sample particles from.",std::string("maxwell"));
+   Readparameters::add("particles.distribution", "Type of distribution function to sample particles from.",
+         std::string("maxwell"));
    Readparameters::add("particles.temperature", "Temperature of the particle distribution",1e6);
    Readparameters::add("particles.particle_vel", "Initial velocity of the particles (in the plasma rest frame)",0);
    Readparameters::add("particles.mass", "Mass of the test particles",PhysicalConstantsSI::mp);
    Readparameters::add("particles.charge", "Charge of the test particles",PhysicalConstantsSI::e);
 
-   Readparameters::add("particles.boundary_behaviour_x", "What to do with particles that reach the x boundaries (DELETE/REFLECT/PERIODIC)",std::string("DELETE"));
-   Readparameters::add("particles.boundary_behaviour_y", "What to do with particles that reach the y boundaries (DELETE/REFLECT/PERIODIC)",std::string("PERIODIC"));
-   Readparameters::add("particles.boundary_behaviour_z", "What to do with particles that reach the z boundaries (DELETE/REFLECT/PERIODIC)",std::string("PERIODIC"));
+   Readparameters::add("particles.boundary_behaviour_x",
+         "What to do with particles that reach the x boundaries (DELETE/REFLECT/PERIODIC)",std::string("DELETE"));
+   Readparameters::add("particles.boundary_behaviour_y",
+         "What to do with particles that reach the y boundaries (DELETE/REFLECT/PERIODIC)",std::string("PERIODIC"));
+   Readparameters::add("particles.boundary_behaviour_z",
+         "What to do with particles that reach the z boundaries (DELETE/REFLECT/PERIODIC)",std::string("PERIODIC"));
 
    // Parameters for the precipitation mode
-   Readparameters::add("particles.inner_boundary", "Distance of the inner boundary from the coordinate centre (meters)", 30e6);
-   Readparameters::add("particles.precipitation_start_x", "X-Coordinate at which precipitation injection starts (meters)", -200e6);
-   Readparameters::add("particles.precipitation_stop_x", "X-Coordinate at which precipitation injection stops (meters)", -50e6);
+   Readparameters::add("particles.inner_boundary", "Distance of the inner boundary from the coordinate centre (meters)",
+         30e6);
+   Readparameters::add("particles.precipitation_start_x", "X-Coordinate at which precipitation injection starts (meters)",
+         -200e6);
+   Readparameters::add("particles.precipitation_stop_x", "X-Coordinate at which precipitation injection stops (meters)",
+         -50e6);
 
    // Parameters for shock reflection mode
-   Readparameters::add("particles.reflect_start_y", "Y-Coordinate of the bottom end of the parabola, at which shock reflection scenario particles are injected", 60e6);
-   Readparameters::add("particles.reflect_stop_y", "Y-Coordinate of the bottom end of the parabola, at which shock reflection scenario particles are injected", 60e6);
-   Readparameters::add("particles.reflect_y_scale", "Curvature scale of the injection parabola for the reflection scenario", 60e6);
-   Readparameters::add("particles.reflect_x_offset", "X-Coordinate of the tip of the injection parabola for the reflection scenario", 40e6);
-   Readparameters::add("particles.reflect_upstream_boundary", "Distance from particle injection point at which particles are to be counted as 'reflected'", 10e6);
-   Readparameters::add("particles.reflect_downstream_boundary", "Distance from particle injection point at which particles are to be counted as 'transmitted'", 10e6);
+   Readparameters::add("particles.reflect_start_y",
+         "Y-Coordinate of the bottom end of the parabola, at which shock reflection scenario particles are injected", 60e6);
+   Readparameters::add("particles.reflect_stop_y",
+         "Y-Coordinate of the bottom end of the parabola, at which shock reflection scenario particles are injected", 60e6);
+   Readparameters::add("particles.reflect_y_scale",
+         "Curvature scale of the injection parabola for the reflection scenario", 60e6);
+   Readparameters::add("particles.reflect_x_offset",
+         "X-Coordinate of the tip of the injection parabola for the reflection scenario", 40e6);
+   Readparameters::add("particles.reflect_upstream_boundary",
+         "Distance from particle injection point at which particles are to be counted as 'reflected'", 10e6);
+   Readparameters::add("particles.reflect_downstream_boundary",
+         "Distance from particle injection point at which particles are to be counted as 'transmitted'", 10e6);
 
    return true;
 }
@@ -109,13 +124,14 @@ bool ParticleParameters::getParameters() {
    Readparameters::get("particles.distribution",distribution_name);
 
    std::map<std::string, Distribution*(*)(std::default_random_engine&)> distribution_lookup;
-   distribution_lookup["maxwell"]=&create_distribution<Maxwell_Boltzmann>;
-   distribution_lookup["monoenergetic"]=&create_distribution<Monoenergetic>;
-   distribution_lookup["kappa2"]=&create_distribution<Kappa2>;
-   distribution_lookup["kappa6"]=&create_distribution<Kappa6>;
+   distribution_lookup["maxwell"]=&createDistribution<Maxwell_Boltzmann>;
+   distribution_lookup["monoenergetic"]=&createDistribution<Monoenergetic>;
+   distribution_lookup["kappa2"]=&createDistribution<Kappa2>;
+   distribution_lookup["kappa6"]=&createDistribution<Kappa6>;
 
    if(distribution_lookup.find(distribution_name) == distribution_lookup.end()) {
-      std::cerr << "Error: particles.distribution value \"" << distribution_name << "\" does not specify a valid distribution!" << std::endl;
+      std::cerr << "Error: particles.distribution value \"" << distribution_name
+         << "\" does not specify a valid distribution!" << std::endl;
       return false;
    } else {
       P::distribution = distribution_lookup[distribution_name];
@@ -125,31 +141,31 @@ bool ParticleParameters::getParameters() {
    Readparameters::get("particles.particle_vel",P::particle_vel);
 
    // Boundaries
-   std::map<std::string, Boundary*(*)(int)> boundary_lookup;
-   boundary_lookup["DELETE"] = &create_boundary<OpenBoundary>;
-   boundary_lookup["REFLECT"] = &create_boundary<ReflectBoundary>;
-   boundary_lookup["PERIODIC"] = &create_boundary<PeriodicBoundary>;
+   std::map<std::string, Boundary*(*)(int)> boundaryLookup;
+   boundaryLookup["DELETE"] = &createBoundary<OpenBoundary>;
+   boundaryLookup["REFLECT"] = &createBoundary<ReflectBoundary>;
+   boundaryLookup["PERIODIC"] = &createBoundary<PeriodicBoundary>;
    std::string tempstring;
    Readparameters::get("particles.boundary_behaviour_x",tempstring);
-   if(boundary_lookup.find(tempstring) == boundary_lookup.end()) {
+   if(boundaryLookup.find(tempstring) == boundaryLookup.end()) {
       std::cerr << "Error: invalid boundary condition \"" << tempstring << "\" in x-direction" << std::endl;
       exit(0);
    } else {
-      P::boundary_behaviour_x = boundary_lookup[tempstring](0);
+      P::boundary_behaviour_x = boundaryLookup[tempstring](0);
    }
    Readparameters::get("particles.boundary_behaviour_y",tempstring);
-   if(boundary_lookup.find(tempstring) == boundary_lookup.end()) {
+   if(boundaryLookup.find(tempstring) == boundaryLookup.end()) {
       std::cerr << "Error: invalid boundary condition \"" << tempstring << "\" in y-direction" << std::endl;
       exit(0);
    } else {
-      P::boundary_behaviour_y = boundary_lookup[tempstring](1);
+      P::boundary_behaviour_y = boundaryLookup[tempstring](1);
    }
    Readparameters::get("particles.boundary_behaviour_z",tempstring);
-   if(boundary_lookup.find(tempstring) == boundary_lookup.end()) {
+   if(boundaryLookup.find(tempstring) == boundaryLookup.end()) {
       std::cerr << "Error: invalid boundary condition \"" << tempstring << "\" in z-direction" << std::endl;
       exit(0);
    } else {
-      P::boundary_behaviour_z = boundary_lookup[tempstring](2);
+      P::boundary_behaviour_z = boundaryLookup[tempstring](2);
    }
 
    Readparameters::get("particles.inner_boundary", P::precip_inner_boundary);
