@@ -69,6 +69,7 @@ public:
       getCellIdFromInput = false;
       getCellIdFromCoordinates = false;
       rotateVectors = false;
+      plasmaFrame =false;
       cellId = std::numeric_limits<uint64_t>::max();
       numberOfCoordinatesInALine = 0;
    }
