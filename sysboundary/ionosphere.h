@@ -71,7 +71,12 @@ namespace SBC {
          cuint component
       );
       virtual void fieldSolverBoundaryCondHallElectricField(
-                                                            fs_cache::CellCache& cache,
+         fs_cache::CellCache& cache,
+         cuint RKCase,
+         cuint component
+      );
+      virtual void fieldSolverBoundaryCondGradPeElectricField(
+         fs_cache::CellCache& cache,
          cuint RKCase,
          cuint component
       );

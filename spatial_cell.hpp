@@ -98,8 +98,8 @@ namespace spatial_cell {
       const uint64_t CELL_PHI                 = (1<<26);
       const uint64_t POP_METADATA             = (1<<27);
       const uint64_t RANDOMGEN                = (1<<28);
-
-      // All data
+      const uint64_t CELL_GRADPE_TERM         = (1<<29);
+      //all data
       const uint64_t ALL_DATA =
       CELL_PARAMETERS
       | CELL_DERIVATIVES | CELL_BVOL_DERIVATIVES

@@ -5,44 +5,42 @@ Copyright 2010, 2011, 2012, 2013, 2014 Finnish Meteorological Institute
 
 */
 
-#ifndef LDZ_HALL_HPP
-#define LDZ_HALL_HPP
+#ifndef LDZ_GRADPE_HPP
+#define LDZ_GRADPE_HPP
 
+void calculateEdgeGradPeTermXComponents(
+   Real* cp,Real* derivs,
+   const Real* const perturbedCoefficients,
+   cint& RKCase
+);
 
-void calculateEdgeHallTermXComponents(
+void calculateEdgeGradPeTermYComponents(
    Real* cp,
    Real* derivs,
    const Real* const perturbedCoefficients,
    cint& RKCase
 );
 
-void calculateEdgeHallTermYComponents(
+void calculateEdgeGradPeTermZComponents(
    Real* cp,
    Real* derivs,
    const Real* const perturbedCoefficients,
    cint& RKCase
 );
 
-void calculateEdgeHallTermZComponents(
-   Real* cp,
-   Real* derivs,
-   const Real* const perturbedCoefficients,
-   cint& RKCase
-);
-
-void calculateHallTerm(
+void calculateGradPeTerm(
    SysBoundary& sysBoundaries,
    std::vector<fs_cache::CellCache>& cache,
    const std::vector<uint16_t>& cells,
    cint& RKCase
 );
 
-void calculateHallTermSimple(
-   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+void calculateGradPeTermSimple(
+   dccrg::Dccrg<SpatialCell,
+   dccrg::Cartesian_Geometry>& mpiGrid,
    SysBoundary& sysBoundaries,
    const vector<CellID>& localCells,
-   cint& RKCase,
-   const bool communicateDerivatives
+   cint& RKCase
 );
 
 #endif

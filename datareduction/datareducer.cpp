@@ -113,6 +113,9 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EZHALL_100_101",CellParams::EZHALL_100_101,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EZHALL_110_111",CellParams::EZHALL_110_111,1));
       }
+      if(*it =="GradPeE") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EGRADPE",CellParams::EXGRADPE,3));
+      }
       if(*it == "BackgroundBedge") {
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBX_000_010",CellParams::BGBX_000_010,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBX_100_110",CellParams::BGBX_100_110,1));

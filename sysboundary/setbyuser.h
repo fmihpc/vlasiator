@@ -2,18 +2,6 @@
  This file is part of Vlasiator.
  
  Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
  */
 
 #ifndef SETBYUSER_H
@@ -75,6 +63,13 @@ namespace SBC {
          cuint RKCase,
          cuint component
       );
+
+      virtual void fieldSolverBoundaryCondGradPeElectricField(
+         fs_cache::CellCache& cache,
+         cuint RKCase,
+         cuint component
+      );
+
       virtual void fieldSolverBoundaryCondDerivatives(
          dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const CellID& cellID,

@@ -59,6 +59,13 @@ namespace SBC {
          cuint RKCase,
          cuint component
       );
+
+      virtual void fieldSolverBoundaryCondGradPeElectricField(
+         fs_cache::CellCache& cache,
+         cuint RKCase,
+         cuint component
+      );
+
       virtual void fieldSolverBoundaryCondDerivatives(
          dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const CellID& cellID,

@@ -108,6 +108,11 @@ namespace SBC {
             const CellID& cellID,
             const int& popID
         );
+        virtual void fieldSolverBoundaryCondGradPeElectricField(
+           fs_cache::CellCache& cache,
+           cuint RKCase,
+           cuint component
+           );
 
          virtual void getFaces(bool* faces);
          virtual std::string getName() const;

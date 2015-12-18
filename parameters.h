@@ -87,12 +87,15 @@ struct Parameters {
    static Real maxWaveVelocity; /*!< Maximum wave velocity allowed in LDZ. */
    static int maxFieldSolverSubcycles; /*!< Maximum allowed field solver subcycles. */
    static Real resistivity; /*!< Resistivity in Ohm's law eta*J term. */
-   static uint ohmHallTerm; /*!< Enable/choos spatial order of Hall term in Ohm's law JXB term. 0: off, 1: 1st spatial order, 2: 2nd spatial order. */
-   static bool fieldSolverDiffusiveEterms; /*!< Enable resitive terms in the computation of E*/
+   static uint ohmHallTerm; /*!< Enable/choose spatial order of Hall term in Ohm's law JXB term. 0: off, 1: 1st spatial order, 2: 2nd spatial order. */
+   static uint ohmGradPeTerm; /*!< Enable/choose spatial order of the electron pressure gradient term in Ohm's law. 0: off, 1: 1st spatial order. */
+   static Real electronTemperature; /*!< Constant electron temperature to be used for the electron pressure gradient term (K). */
+   static bool fieldSolverDiffusiveEterms; /*!< Enable resistive terms in the computation of E*/
    
    static Real maxSlAccelerationRotation; /*!< Maximum rotation in acceleration for semilagrangian solver*/
    static int maxSlAccelerationSubcycles; /*!< Maximum number of subcycles in acceleration*/
-   static Real hallMinimumRho;  /*!< Minimum rho value used in Hall term in Lorentz force and field solver.*/
+
+   static Real hallMinimumRho;  /*!< Minimum rho value used for the Hall and electron pressure gradient terms in the Lorentz force and in the field solver.*/
    static Real sparseMinValue; /*!< (DEPRECATED) Minimum value of distribution function in any cell of a velocity 
                                 * block for the block to be considered to have content.
                                 * This value is only used for default particle species.*/

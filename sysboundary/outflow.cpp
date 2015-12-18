@@ -228,6 +228,41 @@ namespace SBC {
       }
    }
    
+   void Outflow::fieldSolverBoundaryCondGradPeElectricField(
+      fs_cache::CellCache& cache,
+      cuint RKCase,
+      cuint component
+   ) {
+      
+      Real* cp = cache.cells[fs_cache::calculateNbrID(1,1,1)]->parameters;
+      
+      switch (component) {
+         case 0:
+            //             cp[CellParams::EXGRADPE_000_100] = 0.0;
+            //             cp[CellParams::EXGRADPE_010_110] = 0.0;
+            //             cp[CellParams::EXGRADPE_001_101] = 0.0;
+            //             cp[CellParams::EXGRADPE_011_111] = 0.0;
+            cp[CellParams::EXGRADPE] = 0.0;
+            break;
+         case 1:
+            //             cp[CellParams::EYGRADPE_000_010] = 0.0;
+            //             cp[CellParams::EYGRADPE_100_110] = 0.0;
+            //             cp[CellParams::EYGRADPE_001_011] = 0.0;
+            //             cp[CellParams::EYGRADPE_101_111] = 0.0;
+            cp[CellParams::EYGRADPE] = 0.0;
+            break;
+         case 2:
+            //             cp[CellParams::EZGRADPE_000_001] = 0.0;
+            //             cp[CellParams::EZGRADPE_100_101] = 0.0;
+            //             cp[CellParams::EZGRADPE_010_011] = 0.0;
+            //             cp[CellParams::EZGRADPE_110_111] = 0.0;
+            cp[CellParams::EZGRADPE] = 0.0;
+            break;
+         default:
+            cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
+      }
+   }
+   
    Real Outflow::fieldBoundaryCopyFromExistingFaceNbrMagneticField(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
