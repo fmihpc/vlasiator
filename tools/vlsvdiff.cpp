@@ -729,6 +729,7 @@ uint32_t getBlockId( const double vx,
 // return false or true depending on whether the operation was successful
 template <class T>
 bool readAvgs( T & vlsvReader,
+               string name,
                const unordered_map<uint64_t, pair<uint64_t, uint32_t>> & cellsWithBlocksLocations,
                const uint64_t & cellId, 
                unordered_map<uint32_t, array<double, 64> > & avgs ) {
@@ -737,13 +738,14 @@ bool readAvgs( T & vlsvReader,
    if( getBlockIds( vlsvReader, cellsWithBlocksLocations, cellId, blockIds ) == false ) { return false; }
    // Read avgs:
    list<pair<string, string> > attribs;
-   attribs.push_back(make_pair("name", "avgs"));
+   attribs.push_back(make_pair("name", name));
    attribs.push_back(make_pair("mesh", attributes["--meshname"]));
 
    datatype::type dataType;
    uint64_t arraySize, vectorSize, dataSize;
    if (vlsvReader.getArrayInfo("BLOCKVARIABLE", attribs, arraySize, vectorSize, dataType, dataSize) == false) {
-      cerr << "ERROR READING BLOCKVARIABLE AT " << __FILE__ << " " << __LINE__ << endl;
+      //no 
+//      cerr << "ERROR READING BLOCKVARIABLE AT " << __FILE__ << " " << __LINE__ << endl;
       return false;
    }
 
@@ -960,13 +962,18 @@ bool compareAvgs( const string fileName1,
       unordered_map<uint32_t, array<double, velocityCellsPerBlock> > avgs1;
       unordered_map<uint32_t, array<double, velocityCellsPerBlock> > avgs2;
       // Store the avgs in avgs1 and 2:
-      if( readAvgs( vlsvReader1, cellsWithBlocksLocations1, cellId1, avgs1 ) == false ) {
-         cerr << "ERROR, FAILED TO READ AVGS AT " << __FILE__ << " " << __LINE__ << endl;
-         return false;
+      if( readAvgs( vlsvReader1, "proton", cellsWithBlocksLocations1, cellId1, avgs1 ) == false ) {
+         if( readAvgs( vlsvReader1, "avgs", cellsWithBlocksLocations1, cellId1, avgs1 ) == false ) {
+            cerr << "ERROR, FAILED TO READ AVGS AT " << __FILE__ << " " << __LINE__ << endl;
+            return false;
+         }
       }
-      if( readAvgs( vlsvReader2, cellsWithBlocksLocations2, cellId2, avgs2 ) == false ) {
-         cerr << "ERROR, FAILED TO READ AVGS AT " << __FILE__ << " " << __LINE__ << endl;
-         return false;
+      
+      if( readAvgs( vlsvReader2, "proton", cellsWithBlocksLocations2, cellId2, avgs2 ) == false ) {
+         if( readAvgs( vlsvReader2, "avgs", cellsWithBlocksLocations2, cellId2, avgs2 ) == false ) {
+            cerr << "ERROR, FAILED TO READ AVGS AT " << __FILE__ << " " << __LINE__ << endl;
+            return false;
+         }
       }
    
       //Compare the avgs values:
@@ -1140,7 +1147,7 @@ bool process2Files(const string fileName1,
    Real absolute, relative, mini, maxi, size, avg, stdev;
 
    // If the user wants to check avgs, call the avgs check function and return it. Otherwise move on to compare variables:
-   if( strcmp(varToExtract, "avgs") == 0 && attributes.find("--no-distrib") == attributes.end()) {
+   if( strcmp(varToExtract, "proton") == 0 && attributes.find("--no-distrib") == attributes.end()) {
       vector<uint64_t> cellIds1;
       vector<uint64_t> cellIds2;
       cellIds1.reserve(1);
@@ -1335,7 +1342,7 @@ int main(int argn,char* args[]) {
    map<string,string> defAttribs;
    map<string,string> descriptions;
    defAttribs.insert(make_pair("--meshname","SpatialGrid"));
-   defAttribs.insert(make_pair("--filemask","fullf"));
+   defAttribs.insert(make_pair("--filemask","bulk"));
    defAttribs.insert(make_pair("--help",""));
    defAttribs.insert(make_pair("--no-distrib",""));
    defAttribs.insert(make_pair("--diff",""));
