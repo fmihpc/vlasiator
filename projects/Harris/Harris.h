@@ -22,7 +22,7 @@ namespace projects {
          virtual bool initialize(void);
          static void addParameters(void);
          virtual void getParameters(void);
-         virtual void calcCellParameters(Real* cellParams,creal& t);
+         virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
          virtual Real calcPhaseSpaceDensity(
             creal& x, creal& y, creal& z,
             creal& dx, creal& dy, creal& dz,
@@ -37,7 +37,7 @@ namespace projects {
             creal& dvx, creal& dvy, creal& dvz
          );
          
-         virtual vector<std::array<Real, 3>> getV0(
+         virtual std::vector<std::array<Real, 3>> getV0(
             creal x,
             creal y,
             creal z
