@@ -494,7 +494,7 @@ namespace DRO {
 
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
       virtual std::string getName() const;
-      virtual bool handlesWriting();
+      virtual bool handlesWriting() const;
       virtual bool reduceData(const SpatialCell* cell,char* buffer);
       virtual bool reduceData(const spatial_cell::SpatialCell* cell,Real* result);
       virtual bool setSpatialCell(const SpatialCell* cell);

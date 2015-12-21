@@ -1721,7 +1721,7 @@ namespace DRO {
 
    std::string VariableMinValue::getName() const {return "MinValue";}
    
-   bool VariableMinValue::handlesWriting() {return true;}
+   bool VariableMinValue::handlesWriting() const {return true;}
 
    bool VariableMinValue::reduceData(const spatial_cell::SpatialCell* cell,char* buffer) {
       return false;
