@@ -140,15 +140,15 @@ namespace projects {
       // These parameters are only read if the 'velocitymesh.' parameters are not defined 
       // in order to support older configuration files.
       Real defValue = numeric_limits<Real>::infinity();
-      Readparameters::add("gridbuilder.vx_min","Minimum value for velocity mesh vx-coordinates.",defValue);
-      Readparameters::add("gridbuilder.vx_max","Maximum value for velocity mesh vx-coordinates.",defValue);
-      Readparameters::add("gridbuilder.vy_min","Minimum value for velocity mesh vy-coordinates.",defValue);
-      Readparameters::add("gridbuilder.vy_max","Maximum value for velocity mesh vy-coordinates.",defValue);
-      Readparameters::add("gridbuilder.vz_min","Minimum value for velocity mesh vz-coordinates.",defValue);
-      Readparameters::add("gridbuilder.vz_max","Maximum value for velocity mesh vz-coordinates.",defValue);
-      Readparameters::add("gridbuilder.vx_length","Initial number of velocity blocks in vx-direction.",(vmesh::LocalID)0);
-      Readparameters::add("gridbuilder.vy_length","Initial number of velocity blocks in vy-direction.",(vmesh::LocalID)0);
-      Readparameters::add("gridbuilder.vz_length","Initial number of velocity blocks in vz-direction.",(vmesh::LocalID)0);
+      Readparameters::add("gridbuilder.vx_min","(DEPRACETED) Minimum value for velocity mesh vx-coordinates.",defValue);
+      Readparameters::add("gridbuilder.vx_max","(DEPRACETED) Maximum value for velocity mesh vx-coordinates.",defValue);
+      Readparameters::add("gridbuilder.vy_min","(DEPRACETED) Minimum value for velocity mesh vy-coordinates.",defValue);
+      Readparameters::add("gridbuilder.vy_max","(DEPRACETED) Maximum value for velocity mesh vy-coordinates.",defValue);
+      Readparameters::add("gridbuilder.vz_min","(DEPRACETED) Minimum value for velocity mesh vz-coordinates.",defValue);
+      Readparameters::add("gridbuilder.vz_max","(DEPRACETED) Maximum value for velocity mesh vz-coordinates.",defValue);
+      Readparameters::add("gridbuilder.vx_length","(DEPRACETED) Initial number of velocity blocks in vx-direction.",(vmesh::LocalID)0);
+      Readparameters::add("gridbuilder.vy_length","(DEPRACETED) Initial number of velocity blocks in vy-direction.",(vmesh::LocalID)0);
+      Readparameters::add("gridbuilder.vz_length","(DEPRACETED) Initial number of velocity blocks in vz-direction.",(vmesh::LocalID)0);
    }
 
    void Project::getParameters() {
@@ -314,11 +314,15 @@ namespace projects {
          population.name = popNames[p];
          population.charge = popCharges[p]*physicalconstants::CHARGE;
          double massUnits = 0;
-         if (popMassUnits[p] == "PROTON") massUnits = physicalconstants::MASS_PROTON;
-         else if (popMassUnits[p] == "ELECTRON") massUnits = physicalconstants::MASS_ELECTRON;
+         if (popMassUnits[p] == "PROTON") {
+            massUnits = physicalconstants::MASS_PROTON;
+         }
+         else if (popMassUnits[p] == "ELECTRON") {
+            massUnits = physicalconstants::MASS_ELECTRON;
+         }
          else {
             stringstream ss;
-            ss << "(PROJECT) ERROR: Could not determine species '" << popNames[p] << "' mass units in ";
+            ss << "(PROJECT) ERROR: Could not determine species '" << popNames[p] << " mass units set to " << popMassUnits[p]  << " (not PROTON or ELECTRON) in ";
             ss << __FILE__ << ":" << __LINE__ << endl;
             cerr << ss.str(); success = false;
          }

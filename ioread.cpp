@@ -710,6 +710,9 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    }
    MPI_Bcast(&(P::fieldSolverSubcycles),1,MPI_Type<Real>(),MASTER_RANK,MPI_COMM_WORLD);
    
+
+
+
    checkScalarParameter(file,"xmin",P::xmin,MASTER_RANK,MPI_COMM_WORLD);
    checkScalarParameter(file,"ymin",P::ymin,MASTER_RANK,MPI_COMM_WORLD);
    checkScalarParameter(file,"zmin",P::zmin,MASTER_RANK,MPI_COMM_WORLD);
@@ -719,17 +722,6 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    checkScalarParameter(file,"xcells_ini",P::xcells_ini,MASTER_RANK,MPI_COMM_WORLD);
    checkScalarParameter(file,"ycells_ini",P::ycells_ini,MASTER_RANK,MPI_COMM_WORLD);
    checkScalarParameter(file,"zcells_ini",P::zcells_ini,MASTER_RANK,MPI_COMM_WORLD);
-
-   #warning Vel Mesh Parameters not checked anymore
-   //checkScalarParameter(file,"vxmin",P::vxmin,MASTER_RANK,MPI_COMM_WORLD);
-   //checkScalarParameter(file,"vymin",P::vymin,MASTER_RANK,MPI_COMM_WORLD);
-   //checkScalarParameter(file,"vzmin",P::vzmin,MASTER_RANK,MPI_COMM_WORLD);
-   //checkScalarParameter(file,"vxmax",P::vxmax,MASTER_RANK,MPI_COMM_WORLD);
-   //checkScalarParameter(file,"vymax",P::vymax,MASTER_RANK,MPI_COMM_WORLD);
-   //checkScalarParameter(file,"vzmax",P::vzmax,MASTER_RANK,MPI_COMM_WORLD);
-   //checkScalarParameter(file,"vxblocks_ini",P::vxblocks_ini,MASTER_RANK,MPI_COMM_WORLD);
-   //checkScalarParameter(file,"vyblocks_ini",P::vyblocks_ini,MASTER_RANK,MPI_COMM_WORLD);
-   //checkScalarParameter(file,"vzblocks_ini",P::vzblocks_ini,MASTER_RANK,MPI_COMM_WORLD);
 
    phiprof::start("readDatalayout");
    if (success == true) success = readCellIds(file,fileCells,MASTER_RANK,MPI_COMM_WORLD);
@@ -782,11 +774,13 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          ++localCells;
       }
       if (mpiGrid.is_local(fileCells[i])) {
-          mpiGrid.pin(fileCells[i],newCellProcess);
+         mpiGrid.pin(fileCells[i],newCellProcess);
       }
    }
-
-   SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
+   
+   //Do initial load balance based on pins. No need to transfer data now since
+   //we have not yet loaded any actual data.
+   SpatialCell::set_mpi_transfer_type(Transfer::NONE);
    mpiGrid.balance_load(false);
 
    //update list of local gridcells

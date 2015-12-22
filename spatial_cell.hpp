@@ -1623,16 +1623,9 @@ namespace spatial_cell {
       // Add blocks to mesh
       const uint8_t adds = populations[popID].vmesh.push_back(blocks);
       if (adds == 0) {
-         std::cerr << "skip octant creation" << std::endl;
+         std::cerr << "Failed to add blocks" << std::endl;
          return;
       }
-      
-      #ifdef DEBUG_SPATIAL_CELL
-         //if (adds != 8) {
-         //   std::cerr << "add_velocity_blocks failed to add 8 blocks!" << std::endl;
-         //   exit(1);
-         //}
-      #endif
 
       // Add blocks to block container
       vmesh::LocalID startLID = populations[popID].blockContainer.push_back(blocks.size());

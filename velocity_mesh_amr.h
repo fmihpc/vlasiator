@@ -939,7 +939,7 @@ namespace vmesh {
    bool VelocityMesh<GID,LID>::push_back(const GID& globalID) {
       if (globalID == invalidGlobalID()) return false;
       if (size() >= meshParameters[meshID].max_velocity_blocks) {
-         std::cerr << "vmesh: too many blocks, current size is " << size() << " max " << meshParameters[meshID].max_velocity_blocks << std::endl;
+         std::cerr << "vmesh-amr: too many blocks, current size is " << size() << " max " << meshParameters[meshID].max_velocity_blocks << std::endl;
          return false;
       }
 
@@ -956,7 +956,7 @@ namespace vmesh {
    template<typename GID,typename LID> inline
    uint8_t VelocityMesh<GID,LID>::push_back(const std::vector<GID>& blocks) {
       if (size()+blocks.size() >= meshParameters[meshID].max_velocity_blocks) {
-         std::cerr << "vmesh: too many blocks, current size is " << size() << " max " << meshParameters[meshID].max_velocity_blocks << std::endl;
+         std::cerr << "vmesh-amr: too many blocks, current size is " << size() << " max " << meshParameters[meshID].max_velocity_blocks << std::endl;
          return 0;
       }
 
