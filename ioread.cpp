@@ -288,7 +288,7 @@ bool _readBlockData(
    const std::vector<uint64_t>& fileCells,
    const uint64_t localCellStartOffset,
    const uint64_t localCells,
-   const vmesh::LocalID* nBlocks,
+   const vmesh::LocalID* blocksPerCell,
    const uint64_t localBlockStartOffset,
    const uint64_t localBlocks,
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
@@ -355,7 +355,7 @@ bool _readBlockData(
    vector<vmesh::GlobalID> blockIdsInCell; //blockIds in a particular cell, temporary usage
    for(uint64_t i=0; i<localCells; i++) {
       CellID cell = fileCells[localCellStartOffset + i]; //spatial cell id 
-      vmesh::LocalID nBlocksInCell = nBlocks[localCellStartOffset + i];
+      vmesh::LocalID nBlocksInCell = blocksPerCell[i];
       //copy blocks in this cell to vector blockIdsInCell, size of read in data has been checked earlier
       blockIdsInCell.reserve(nBlocksInCell);
       blockIdsInCell.assign(blockIdBuffer + blockBufferOffset, blockIdBuffer + blockBufferOffset + nBlocksInCell);
@@ -412,6 +412,7 @@ bool readBlockData(
       // In restart files each spatial cell has an entry in CELLSWITHBLOCKS. 
       // Each process calculates how many velocity blocks it has for this species.
       vmesh::LocalID* blocksPerCell = NULL;
+      
       if (file.read("BLOCKSPERCELL",attribs,localCellStartOffset,localCells,blocksPerCell,true) == false) {
          logFile << "(RESTART) ERROR: Failed to read BLOCKSPERCELL at " << __FILE__ << ":" << __LINE__ << endl << write;
          success = false;
@@ -419,12 +420,13 @@ bool readBlockData(
 
       // Count how many velocity blocks this process gets
       uint64_t blockSum = 0;
-      for (uint64_t i=0; i<localCells; ++i) blockSum += blocksPerCell[i];
+      for (uint64_t i=0; i<localCells; ++i){
+         blockSum += blocksPerCell[i];
+      }
       
       // Gather all block sums to master process who will them broadcast 
       // the values to everyone
-      MPI_Gather(&blockSum,1,MPI_Type<uint64_t>(),offsetArray,1,MPI_Type<uint64_t>(),0,MPI_COMM_WORLD);      
-      MPI_Bcast(offsetArray,N_processes,MPI_Type<uint64_t>(),0,MPI_COMM_WORLD);      
+      MPI_Allgather(&blockSum,1,MPI_Type<uint64_t>(),offsetArray,1,MPI_Type<uint64_t>(),MPI_COMM_WORLD);      
       
       // Calculate the offset from which this process starts reading block data
       uint64_t myOffset = 0;
