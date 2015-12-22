@@ -570,10 +570,17 @@ void SysBoundary::applySysBoundaryVlasovConditions(
 
 /*! Get a pointer to the SysBoundaryCondition of given index.
  * \param sysBoundaryType Type of the system boundary condition to return
- * \return Pointer to the instance of the SysBoundaryCondition.
+ * \return Pointer to the instance of the SysBoundaryCondition. NULL if sysBoundaryType is invalid.
  */
 SBC::SysBoundaryCondition* SysBoundary::getSysBoundary(cuint sysBoundaryType) const {
-   return indexToSysBoundary.find(sysBoundaryType)->second;
+   auto it = indexToSysBoundary.find(sysBoundaryType);
+   if(it != indexToSysBoundary.end()){
+      return it->second;
+   }
+   else{
+      std::cerr << "System boundary "<< sysBoundaryType << " is invalid  " << __FILE__ << ":" << __LINE__ << std::endl;
+      return NULL;
+   }
 }
 
 /*! Get the number of SysBoundaryConditions stored in SysBoundary.
