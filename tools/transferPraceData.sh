@@ -1,6 +1,7 @@
 #!/bin/bash
 # Sebastian von Alfthan sebastian.von.alfthan@fmi.fi
 # Yann Kempf yann.kempf@fmi.fi
+# Urs Ganse urs.ganse@helsinki.fi
 
 # FUNCTIONS ##################################
 
@@ -197,16 +198,16 @@ function transferFileListDdSsh {
 
             #localPartialSize=$( ls -la  ${file}.partial | gawk '{print $5}' )
             #echo localPartialSize $localPartialSize
-            #echo $startTime $endTime $localPartialSize $file $((i+1)) "$(date)" |
-            #gawk '{
-            #    dataMb=($3)/(1024*1024);
-            #    times=($2-$1);
-            #    print $6,$4,": chunk ",$5," downloaded at", dataMb," MB in ",times " s : ", dataMb/times, "MB/s"
-            #}'
+            echo $startTime $endTime $chunkSize $file $((i+1)) "$(date)" |
+            gawk '{
+                dataMb=($3)/(1024*1024);
+                times=($2-$1);
+                print $6,$4,": chunk ",$5," downloaded at", dataMb," MB in ",times " s : ", dataMb/times, "MB/s"
+            }'
             
             #Test if file is complete
             # Check checksums
-            targetChecksum=`dd iflag=fullblock bs=${chunkSize} skip=$i count=1 if=${file} | md5sum`
+            targetChecksum=`dd iflag=fullblock bs=${chunkSize} skip=$i count=1 if=${file} 2>>/dev/null | md5sum`
             if [[ $sourceChecksum == $targetChecksum ]]; then
                echo "Chunk $i transferred successfully"
                i=$(( i+1 ))
