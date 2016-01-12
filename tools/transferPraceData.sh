@@ -181,41 +181,63 @@ function transferFileListDdSsh {
             echo transferSize $transferSize
             echo "$(date) ${file}: Starting download of chunk $((i+1))/$totalChunks " 
             startTime=$( date +"%s.%N" )
-	    if [ $server == "localhost" ]
-	    then
-		dd iflag=fullblock bs=${chunkSize} skip=$i count=1 if=${path}/${file} > ${file}.partial 2>> dd.err
-	    else
-		ssh -o Compression=no ${user}@${server} "dd iflag=fullblock bs=${chunkSize} skip=$i count=1 if=${path}/${file}" > ${file}.partial 2>> dd.err
-	    fi
-	    endTime=$( date +"%s.%N" )
-		
-            localPartialSize=$( ls -la  ${file}.partial | gawk '{print $5}' )
-            echo localPartialSize $localPartialSize
-            echo $startTime $endTime $localPartialSize $file $((i+1)) "$(date)" | 
-            gawk '{
-                dataMb=($3)/(1024*1024);
-                times=($2-$1); 
-                print $6,$4,": chunk ",$5," downloaded at", dataMb," MB in ",times " s : ", dataMb/times, "MB/s"
-            }'
+       if [ $server == "localhost" ]
+       then
+            dd iflag=fullblock bs=${chunkSize} skip=$i count=1 if=${path}/${file} seek=$i 2>> dd_read.err | tee >(md5sum > .chksum.txt) |\
+               dd iflag=fullblock bs=${chunkSize} seek=$i count=1 of=${file} 2>> dd_write.err
+            sourceChecksum=`cat .chksum.txt`
+       else
+            ssh -o Compression=no ${user}@${server} "dd iflag=fullblock bs=${chunkSize} skip=$i count=1 if=${path}/${file} | tee >(md5sum > ${path}/.chksum_vlsvTransfer.txt)" 2>> dd_read.err |\
+               dd iflag=fullblock bs=${chunkSize} seek=$i count=1 of=${file} 2>> dd_write.err
+            sourceChecksum=`ssh ${user}@${server} "cat ${path}/.chksum_vlsvTransfer.txt"`
+       fi
+
+
+       endTime=$( date +"%s.%N" )
+
+            #localPartialSize=$( ls -la  ${file}.partial | gawk '{print $5}' )
+            #echo localPartialSize $localPartialSize
+            #echo $startTime $endTime $localPartialSize $file $((i+1)) "$(date)" |
+            #gawk '{
+            #    dataMb=($3)/(1024*1024);
+            #    times=($2-$1);
+            #    print $6,$4,": chunk ",$5," downloaded at", dataMb," MB in ",times " s : ", dataMb/times, "MB/s"
+            #}'
             
             #Test if file is complete
-            if [ $localPartialSize -lt $transferSize ]
-            then
-                #we failed to download the whole chunk
-                retryIndex=$(( retryIndex+1 ))
-                echo "$(date) ${file}: Chunk transfer failed, retry number $retryIndex "
-                if [ $retryIndex -gt 10 ]
-                then
-                    echo "$(date) ${file}: Too many retries, abort. Failed on reading to offset $offset"
-                    retval=2
-                fi
+            # Check checksums
+            targetChecksum=`dd iflag=fullblock bs=${chunkSize} skip=$i count=1 if=${file} | md5sum`
+            if [[ $sourceChecksum == $targetChecksum ]]; then
+               echo "Chunk $i transferred successfully"
+               i=$(( i+1 ))
+               retryIndex=0
             else
-                #chunk downloaded, lets chug it into the actual file
-                i=$(( i+1 ))
-                retryIndex=0
-                cat ${file}.partial >> ${file}
-                rm ${file}.partial
+               retryIndex=$(( retryIndex+1 ))
+               echo "$(date) ${file}: Chunk $i checksum inconsistent, retry number $retryIndex "
+               if [ $retryIndex -gt 10 ]
+               then
+                   echo "$(date) ${file}: Too many retries, abort. Failed on reading to offset $offset"
+                   retval=2
+               fi
             fi
+
+            #if [ $localPartialSize -lt $transferSize ]
+            #then
+            #    #we failed to download the whole chunk
+            #    retryIndex=$(( retryIndex+1 ))
+            #    echo "$(date) ${file}: Chunk transfer failed, retry number $retryIndex "
+            #    if [ $retryIndex -gt 10 ]
+            #    then
+            #        echo "$(date) ${file}: Too many retries, abort. Failed on reading to offset $offset"
+            #        retval=2
+            #    fi
+            #else
+            #    #chunk downloaded, lets chug it into the actual file
+            #    i=$(( i+1 ))
+            #    retryIndex=0
+            #    cat ${file}.partial >> ${file}
+            #    rm ${file}.partial
+            #fi
             
             # Initially it breaks if there is no file.
             touch $file
@@ -338,7 +360,7 @@ transferPraceData userserver path transfer_file local_storage_path
     Please run grid_proxy_init first when using the gridFTP backend.
    
     user             Username, option not used for gridftp or local-dd transfers (put arbitrary name)
-    server           One of: Hermit (gridftp), Hazelhen-r (rsync), Abel (gridftp), Sisu-g (gridftp) Sisu-r (rsync) Sisu-ds (dd|ssh) localhost-dd (local-dd)
+    server           One of: Hermit (gridftp), Hazelhen-r (rsync), Hazelhen-ds (dd|ssh), Abel (gridftp), Sisu-g (gridftp) Sisu-r (rsync) Sisu-ds (dd|ssh) localhost-dd (local-dd)
     path             is a path on remote machine (e.g. /univ_1/ws1/ws/iprsalft-paper1-runs-0/2D/ecliptic/AAE)"
     transfer_file    is a file in the path on the remote machine created using ls -la *myfiles_to_transfer* > transfer_list.txt"       
     local_storage_path  is the folder where the files are ultimately copied after transfer, e.g., a tape drive. During transfer they go to the current folder. "." is also allowed.
@@ -365,6 +387,10 @@ elif [ $machine == "Hazelhen-r" ]
 then
     server=hazelhen.hww.de
     method=rsync
+elif [ $machine == "Hazelhen-ds" ]
+then
+    server=hazelhen.hww.de
+    method=ddssh
 elif [ $machine == "Sisu-g" ]
 then
     server=gsiftp://gridftp.csc.fi:2811
@@ -382,7 +408,7 @@ then
     server=localhost
     method=ddssh
 else
-    echo "Allowed server values are Hermit, Hazelhen-r, Abel, Sisu-g, Sisu-r, Sisu-ds, localhost-dd"
+    echo "Allowed server values are Hermit, Hazelhen-r, Hazelhen-ds, Abel, Sisu-g, Sisu-r, Sisu-ds, localhost-dd"
     exit 1
 fi
 
@@ -426,11 +452,11 @@ elif [ $method == "ddssh" ]
 then
     if [ $server == "localhost" ]
     then
-	cp ${path}/$inputfile ./$inputfile
-	rc=$?
+   cp ${path}/$inputfile ./$inputfile
+   rc=$?
     else
-	rsync -P --inplace  ${user}@${server}:${path}/$inputfile ./$inputfile
-	rc=$?
+   rsync -P --inplace  ${user}@${server}:${path}/$inputfile ./$inputfile
+   rc=$?
     fi
     if [[ $rc != 0 ]] ; then
         echo "Failed: Could not download list of files"
