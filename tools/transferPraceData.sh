@@ -1,7 +1,7 @@
 #!/bin/bash
-# Sebastian von Alfthan sebastian.von.alfthan@fmi.fi
+# Sebastian von Alfthan sebastian.von.alfthan@csc.fi
 # Yann Kempf yann.kempf@fmi.fi
-# Urs Ganse urs.ganse@helsinki.fi
+# Urs Ganse urs.ganse@utu.fi
 
 # FUNCTIONS ##################################
 
@@ -184,20 +184,18 @@ function transferFileListDdSsh {
             startTime=$( date +"%s.%N" )
        if [ $server == "localhost" ]
        then
-            dd iflag=fullblock bs=${chunkSize} skip=$i count=1 if=${path}/${file} seek=$i 2>> dd_read.err | tee >(md5sum > .chksum.txt) |\
+            dd iflag=fullblock bs=${chunkSize} skip=$i count=1 if=${path}/${file} seek=$i 2>> dd_read.err | tee >(md5sum > .transfer_${file}_chunk_${i}_checksum.txt) |\
                dd iflag=fullblock bs=${chunkSize} seek=$i count=1 of=${file} 2>> dd_write.err
-            sourceChecksum=`cat .chksum.txt`
+            sourceChecksum=`cat .transfer_${file}_chunk_${i}_checksum.txt`
        else
-            ssh -o Compression=no ${user}@${server} "dd iflag=fullblock bs=${chunkSize} skip=$i count=1 if=${path}/${file} | tee >(md5sum > ${path}/.chksum_vlsvTransfer.txt)" 2>> dd_read.err |\
+            ssh -o Compression=no ${user}@${server} "dd iflag=fullblock bs=${chunkSize} skip=$i count=1 if=${path}/${file} | tee >(md5sum > ${path}/.transfer_${file}_chunk_${i}_checksum.txt)" 2>> dd_read.err |\
                dd iflag=fullblock bs=${chunkSize} seek=$i count=1 of=${file} 2>> dd_write.err
-            sourceChecksum=`ssh ${user}@${server} "cat ${path}/.chksum_vlsvTransfer.txt"`
+            sourceChecksum=`ssh ${user}@${server} "cat ${path}/.transfer_${file}_chunk_${i}_checksum.txt"`
        fi
 
 
        endTime=$( date +"%s.%N" )
 
-            #localPartialSize=$( ls -la  ${file}.partial | gawk '{print $5}' )
-            #echo localPartialSize $localPartialSize
             echo $startTime $endTime $chunkSize $file $((i+1)) "$(date)" |
             gawk '{
                 dataMb=($3)/(1024*1024);
@@ -222,24 +220,6 @@ function transferFileListDdSsh {
                fi
             fi
 
-            #if [ $localPartialSize -lt $transferSize ]
-            #then
-            #    #we failed to download the whole chunk
-            #    retryIndex=$(( retryIndex+1 ))
-            #    echo "$(date) ${file}: Chunk transfer failed, retry number $retryIndex "
-            #    if [ $retryIndex -gt 10 ]
-            #    then
-            #        echo "$(date) ${file}: Too many retries, abort. Failed on reading to offset $offset"
-            #        retval=2
-            #    fi
-            #else
-            #    #chunk downloaded, lets chug it into the actual file
-            #    i=$(( i+1 ))
-            #    retryIndex=0
-            #    cat ${file}.partial >> ${file}
-            #    rm ${file}.partial
-            #fi
-            
             # Initially it breaks if there is no file.
             touch $file
             localSize=$( ls -la  $file | gawk '{print $5}' )
