@@ -184,7 +184,7 @@ function transferFileListDdSsh {
             startTime=$( date +"%s.%N" )
        if [ $server == "localhost" ]
        then
-            dd iflag=fullblock bs=${chunkSize} skip=$i count=1 if=${path}/${file} seek=$i 2>> dd_read.err | tee >(md5sum > .transfer_${file}_chunk_${i}_checksum.txt) |\
+            dd iflag=fullblock bs=${chunkSize} skip=$i count=1 if=${path}/${file} 2>> dd_read.err | tee >(md5sum > .transfer_${file}_chunk_${i}_checksum.txt) |\
                dd iflag=fullblock bs=${chunkSize} seek=$i count=1 of=${file} 2>> dd_write.err
             sourceChecksum=`cat .transfer_${file}_chunk_${i}_checksum.txt`
        else
