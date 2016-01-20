@@ -942,7 +942,6 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    MPI_Barrier(MPI_COMM_WORLD);
    phiprof::stop("BarrierEnteringWriteRestart");
 
-
    phiprof::start("writeRestart");
    phiprof::start("DeallocateRemoteBlocks");
    //deallocate blocks in remote cells to decrease memory load
@@ -950,17 +949,21 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    phiprof::stop("DeallocateRemoteBlocks");
    
    // Get the current time.
-   char currentdate[80];
-   const time_t rawTime = time(NULL);
-   const struct tm * timeInfo = localtime(&rawTime);
-   strftime(currentdate, 80, "%F_%H-%M-%S", timeInfo);
+   // Avoid different times on different processes!
+   char currentDate[80];
+   if(myRank == MASTER_RANK) {
+      const time_t rawTime = time(NULL);
+      const struct tm * timeInfo = localtime(&rawTime);
+      strftime(currentDate, 80, "%F_%H-%M-%S", timeInfo);
+   }
+   MPI_Bcast(&currentDate,80,MPI_CHAR,MASTER_RANK,MPI_COMM_WORLD);
    
    // Create a name for the output file and open it with VLSVWriter:
    stringstream fname;
    fname << P::restartWritePath << "/" << name << ".";
    fname.width(7);
    fname.fill('0');
-   fname << fileIndex << "." << currentdate << ".vlsv";
+   fname << fileIndex << "." << currentDate << ".vlsv";
 
    phiprof::start("open");
    //Open the file with vlsvWriter:
@@ -977,7 +980,8 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       char factor[] = "striping_factor";
       MPI_Info_set(MPIinfo, factor, stripeChar);
    }
-   vlsvWriter.open( fname.str(), MPI_COMM_WORLD, masterProcessId, MPIinfo );
+   
+   if( vlsvWriter.open( fname.str(), MPI_COMM_WORLD, masterProcessId, MPIinfo ) == false) return false;
 
    phiprof::stop("open");
 
