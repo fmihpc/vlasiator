@@ -5,15 +5,6 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 
 
 
-
-
-
-
-
-
-
-
-
 */
 
 
@@ -45,7 +36,7 @@ namespace projects {
             creal& vx, creal& vy, creal& vz,
             creal& dvx, creal& dvy, creal& dvz
          );
-         virtual vector<std::array<Real, 3>> getV0(
+         virtual std::vector<std::array<Real, 3> > getV0(
             creal x,
             creal y,
             creal z

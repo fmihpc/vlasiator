@@ -76,6 +76,7 @@ public:
    ~UserOptions() {}
 };
 
+bool setVelocityMeshVariables(vlsv::Reader& vlsvReader,CellStructure& cellStruct);
 bool setVelocityMeshVariables(vlsv::Reader& vlsvReader,CellStructure& cellStruct,
                               const std::string& popName);
 

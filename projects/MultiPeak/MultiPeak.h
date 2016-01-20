@@ -5,15 +5,6 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 
 
 
-
-
-
-
-
-
-
-
-
 */
 
 
@@ -45,21 +36,21 @@ namespace projects {
             creal& vx, creal& vy, creal& vz,
             creal& dvx, creal& dvy, creal& dvz
          );
-         virtual vector<std::array<Real, 3>> getV0(
+         virtual std::vector<std::array<Real, 3> > getV0(
             creal x,
             creal y,
             creal z
          );         
          int numberOfPopulations;
-         vector<Real> rho;
-         static vector<Real> rhoRnd; //static as it has to be threadprivate
+         std::vector<Real> rho;
+         static std::vector<Real> rhoRnd; //static as it has to be threadprivate
 #pragma omp threadprivate(rhoRnd)       
-         vector<Real> Tx;
-         vector<Real> Ty;
-         vector<Real> Tz;
-         vector<Real> Vx;
-         vector<Real> Vy;
-         vector<Real> Vz;
+         std::vector<Real> Tx;
+         std::vector<Real> Ty;
+         std::vector<Real> Tz;
+         std::vector<Real> Vx;
+         std::vector<Real> Vy;
+         std::vector<Real> Vz;
          Real Bx;
          Real By;
          Real Bz;
@@ -69,9 +60,18 @@ namespace projects {
          Real magXPertAbsAmp;
          Real magYPertAbsAmp;
          Real magZPertAbsAmp;
-         vector<Real> rhoPertAbsAmp;
+         std::vector<Real> rhoPertAbsAmp;
          Real lambda;
          uint nVelocitySamples;
+         
+         enum densitymodel {
+            Uniform,
+            TestCase
+         } densityModel;
+
+         static Real rhoFactor;
+         #pragma omp threadprivate(rhoFactor)
+
    }; // class MultiPeak
 } //  namespace projects
 

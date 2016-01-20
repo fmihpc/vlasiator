@@ -16,10 +16,9 @@ Copyright 2010-2015 Finnish Meteorological Institute
 #ifndef FS_LIMITERS_H
 #define FS_LIMITERS_H
 
-#include <cmath>
-
-#include "fs_common.h"
-
+#include <cstdlib>
+#include <algorithm>
+#include <limits>
 
 template<typename T> inline int sign(const T& value) {
    const T ZERO = 0.0;
@@ -67,7 +66,7 @@ template<typename T> inline T superbee(const T& left,const T& cent,const T& righ
 template<typename T> inline T vanLeer(const T& left,const T& cent,const T& right) {
    const T EPSILON = std::numeric_limits<T>::min();
    const T ZERO    = 0.0;
-   const T TWO = convert<T>(2.0);
+   const T TWO     = 2.0;
 
    const T numerator = std::max((right-cent)*(cent-left),ZERO);
    const T denumerator = (right-left)+EPSILON;

@@ -1,18 +1,7 @@
 /*
 This file is part of Vlasiator.
 
-Copyright 2011, 2012 Finnish Meteorological Institute
-
-
-
-
-
-
-
-
-
-
-
+Copyright 2011, 2012, 2015 Finnish Meteorological Institute
 
 */
 
@@ -26,18 +15,22 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 #include "../../backgroundfield/backgroundfield.h"
 #include "../../backgroundfield/constantfield.hpp"
 
+
 #include "MultiPeak.h"
 
 using namespace std;
+
 
 vector<Real> projects::MultiPeak::rhoRnd;
 
 namespace projects {
    MultiPeak::MultiPeak(): TriAxisSearch() { }
+   
    MultiPeak::~MultiPeak() { }
 
-
-   bool MultiPeak::initialize(void) {return true;}
+   bool MultiPeak::initialize(void) {
+      return true;
+   }
 
    void MultiPeak::addParameters(){
       typedef Readparameters RP;
@@ -61,6 +54,8 @@ namespace projects {
       RP::addComposing("MultiPeak.rhoPertAbsAmp", "Absolute amplitude of the density perturbation");
       RP::add("MultiPeak.lambda", "B cosine perturbation wavelength (m)", 1.0);
       RP::add("MultiPeak.nVelocitySamples", "Number of sampling points per velocity dimension", 2);
+      
+      RP::add("MultiPeak.densityModel","Which spatial density model is used?",string("uniform"));
    }
 
    void MultiPeak::getParameters(){
@@ -68,7 +63,7 @@ namespace projects {
       Project::getParameters();
       RP::get("MultiPeak.n", this->numberOfPopulations);
       if(this->numberOfPopulations < 1) {
-         std::cerr << "You should set MultiPeak.n to more than 0 populations." << std::endl;
+         cerr << "You should set MultiPeak.n to more than 0 populations." << endl;
          abort();
       }
       RP::get("MultiPeak.rho", this->rho);
@@ -91,11 +86,11 @@ namespace projects {
          this->Vz.size() == this->rhoPertAbsAmp.size() &&
          this->rhoPertAbsAmp.size() == this->rho.size()
       )) {
-         std::cerr << "You should define all parameters (MultiPeak.rho, MultiPeak.Tx, MultiPeak.Ty, MultiPeak.Tz, MultiPeak.Vx, MultiPeak.Vy, MultiPeak.Vz, MultiPeak.rhoPertAbsAmp) for each of the populations." << std::endl;
+         cerr << "You should define all parameters (MultiPeak.rho, MultiPeak.Tx, MultiPeak.Ty, MultiPeak.Tz, MultiPeak.Vx, MultiPeak.Vy, MultiPeak.Vz, MultiPeak.rhoPertAbsAmp) for each of the populations." << endl;
          abort();
       }
       if(this->numberOfPopulations > this->rho.size()) {
-         std::cerr << "You are requesting more populations than are currently defined. Change MultiPeak.n or define more populations." << std::endl;
+         cerr << "You are requesting more populations than are currently defined. Change MultiPeak.n or define more populations." << endl;
          abort();
       }
       
@@ -107,7 +102,13 @@ namespace projects {
       RP::get("MultiPeak.dBz", this->dBz);
       RP::get("MultiPeak.lambda", this->lambda);
       RP::get("MultiPeak.nVelocitySamples", this->nVelocitySamples);
+
       
+      string densModelString;
+      RP::get("MultiPeak.densityModel",densModelString);
+      
+      if (densModelString == "uniform") densityModel = Uniform;
+      else if (densModelString == "testcase") densityModel = TestCase;
    }
 
    Real MultiPeak::getDistribValue(creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
@@ -115,9 +116,14 @@ namespace projects {
       creal kb = physicalconstants::K_B;
 
       Real value = 0.0;
-      for(uint i=0; i<this->numberOfPopulations; i++) {
-         value += this->rhoRnd[i] * pow(mass / (2.0 * M_PI * kb ), 1.5) * 1.0 / sqrt(this->Tx[i]*this->Ty[i]*this->Tz[i]) *
-      exp(- mass * (pow(vx - this->Vx[i], 2.0) / (2.0 * kb * this->Tx[i]) + pow(vy - this->Vy[i], 2.0) / (2.0 * kb * this->Ty[i]) + pow(vz - this->Vz[i], 2.0) / (2.0 * kb * this->Tz[i])));
+      for (uint i=0; i<this->numberOfPopulations; i++) {
+         value += this->rhoRnd[i]
+                * pow(mass / (2.0 * M_PI * kb ), 1.5) * 1.0 
+                / sqrt(this->Tx[i]*this->Ty[i]*this->Tz[i]) 
+                * exp(-mass * (pow(vx - this->Vx[i], 2.0) / (2.0 * kb * this->Tx[i]) 
+                             + pow(vy - this->Vy[i], 2.0) / (2.0 * kb * this->Ty[i]) 
+                             + pow(vz - this->Vz[i], 2.0) / (2.0 * kb * this->Tz[i]))
+                     );
       }
       return value;
    }
@@ -136,6 +142,22 @@ namespace projects {
          creal DVY = dvy / N;
          creal DVZ = dvz / N;
 
+         Real rhoFactor = 1.0;
+         switch (densityModel) {
+            case Uniform:
+               rhoFactor = 1.0;
+               break;
+            case TestCase:
+               rhoFactor = 1.0;
+               if ((x >= 3.9e5 && x <= 6.1e5) && (y >= 3.9e5 && y <= 6.1e5)) {
+                  rhoFactor = 1.5;
+               }
+               break;
+            default:
+               rhoFactor = 1.0;
+               break;
+         }
+         
          // Sample the distribution using N*N*N points
          for (uint vi=0; vi<N; ++vi) {
             for (uint vj=0; vj<N; ++vj) {
@@ -147,9 +169,9 @@ namespace projects {
                }
             }
          }
+         avg *= rhoFactor;
          
          // Compare the current and accumulated volume averages:
-         //ok = true;
          Real eps = max(numeric_limits<creal>::min(),avg * static_cast<Real>(1e-6));
          Real avgAccum   = avgTotal / (avg + N3_sum);
          Real avgCurrent = avg / (N*N*N);
@@ -181,7 +203,6 @@ namespace projects {
       cellParams[CellParams::PERBY] += this->magYPertAbsAmp * (0.5 - getRandomNumber());
       cellParams[CellParams::PERBZ] += this->magZPertAbsAmp * (0.5 - getRandomNumber());
 
-
       rhoRnd.clear();
       for(uint i=0; i<this->numberOfPopulations; i++) {
          this->rhoRnd.push_back(this->rho[i] + this->rhoPertAbsAmp[i] * (0.5 - getRandomNumber()));
@@ -197,14 +218,14 @@ namespace projects {
       setBackgroundField(bgField,cell->parameters, cell->derivatives,cell->derivativesBVOL);
    }
    
-   vector<std::array<Real, 3>> MultiPeak::getV0(
+   std::vector<std::array<Real, 3> > MultiPeak::getV0(
                                                 creal x,
                                                 creal y,
                                                 creal z
                                                ) {
-      vector<std::array<Real, 3>> centerPoints;
+      vector<array<Real, 3> > centerPoints;
       for(uint i=0; i<this->numberOfPopulations; i++) {
-         std::array<Real, 3> point {{this->Vx[i], this->Vy[i], this->Vz[i]}};
+         array<Real, 3> point {{this->Vx[i], this->Vy[i], this->Vz[i]}};
          centerPoints.push_back(point);
       }
       return centerPoints;

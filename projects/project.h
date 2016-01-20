@@ -22,13 +22,13 @@ namespace projects {
          /*! set background field, should set it for all cells.
           * Currently this function is only called during the initialization.
           * @param cell Pointer to the spatial cell.*/
-         virtual void setCellBackgroundField(SpatialCell* cell);
+         virtual void setCellBackgroundField(spatial_cell::SpatialCell* cell);
       
          /*!\brief Set the perturbed fields and distribution of a cell according to the default simulation settings.
          * This is used for the NOT_SYSBOUNDARY cells and some other system boundary conditions (e.g. Outflow).
          * \param cell Pointer to the cell to set.
          */
-         void setCell(SpatialCell* cell);
+         void setCell(spatial_cell::SpatialCell* cell);
          
       protected:
          /*! \brief Returns a list of blocks to loop through when initialising.
@@ -37,7 +37,7 @@ namespace projects {
           * This is very expensive and becomes prohibitive in cases where a large velocity space is needed with only
           * small portions actually containing something. Use with care.
           */
-         virtual std::vector<uint> findBlocksToInitialize(SpatialCell* cell);
+         virtual std::vector<uint> findBlocksToInitialize(spatial_cell::SpatialCell* cell);
          
          /*! \brief Sets the distribution function in a cell.
           * 
@@ -45,7 +45,7 @@ namespace projects {
           * 
           * \sa findBlocksToInitialize
           */
-         void setVelocitySpace(SpatialCell* cell);
+         void setVelocitySpace(spatial_cell::SpatialCell* cell);
          
          /** Calculate parameters for the given spatial cell at the given time.
           * Here you need to set values for the following array indices:

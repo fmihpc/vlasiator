@@ -8,9 +8,11 @@ Copyright 2011, 2012, 2015 Finnish Meteorological Institute
 #ifndef FLOWTHROUGH_H
 #define FLOWTHROUGH_H
 
+#include <array>
+#include <vector>
+
 #include "../../definitions.h"
 #include "../projectTriAxisSearch.h"
-
 
 namespace projects {
    class Flowthrough: public TriAxisSearch {
@@ -36,7 +38,7 @@ namespace projects {
             creal& vx, creal& vy, creal& vz,
             creal& dvx, creal& dvy, creal& dvz
          );
-         virtual vector<std::array<Real, 3>> getV0(
+         virtual std::vector<std::array<Real, 3> > getV0(
             creal x,
             creal y,
             creal z
