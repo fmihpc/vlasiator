@@ -1,18 +1,7 @@
 /*
 This file is part of Vlasiator.
 
-Copyright 2011, 2012 Finnish Meteorological Institute
-
-
-
-
-
-
-
-
-
-
-
+Copyright 2011, 2012, 2015 Finnish Meteorological Institute
 
 */
 
@@ -45,6 +34,7 @@ namespace projects {
    */
 
    bool test_fp::initialize(void) {
+      Project::initialize();
       this->ALPHA *= M_PI / 4.0;
       return true;
    }
@@ -61,6 +51,7 @@ namespace projects {
    }
 
    void test_fp::getParameters(void){
+      Project::getParameters();
       typedef Readparameters RP;
       RP::get("test_fp.B0", this->B0);
       RP::get("test_fp.V0", this->V0);
@@ -71,16 +62,15 @@ namespace projects {
       RP::get("test_fp.shear", this->shear);
    }
 
-   Real test_fp::sign(creal value)
-   {
-      if(abs(value) < 1e-5) return 0.0;
+   Real test_fp::sign(creal value) const {
+      if (abs(value) < 1e-5) return 0.0;
       else return value / abs(value);
    }
 
-
-   Real test_fp::calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz) {
-      
-      vector<std::array<Real, 3>> V = this->getV0(x,y,z,dx,dy,dz);
+   Real test_fp::calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,
+                                       creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz,
+                                       const int& popID) const {      
+      vector<std::array<Real, 3> > V = this->getV0(x,y,z,dx,dy,dz);
       
       creal VX2 = (vx+0.5*dvx-V[0][0])*(vx+0.5*dvx-V[0][0]);
       creal VY2 = (vy+0.5*dvy-V[0][1])*(vy+0.5*dvy-V[0][1]);
@@ -94,7 +84,8 @@ namespace projects {
       return result;
    }
 
-   void test_fp::calcCellParameters(Real* cellParams,creal& t) {
+   void test_fp::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
+      Real* cellParams = cell->get_cell_parameters();
       cellParams[CellParams::EX   ] = 0.0;
       cellParams[CellParams::EY   ] = 0.0;
       cellParams[CellParams::EZ   ] = 0.0;
@@ -144,7 +135,7 @@ namespace projects {
       creal dx,
       creal dy,
       creal dz
-   ) {
+   ) const {
       vector<std::array<Real, 3>> centerPoints;
       
       Real VX,VY,VZ;
@@ -216,7 +207,7 @@ namespace projects {
       creal x,
       creal y,
       creal z
-   ) {
+   ) const {
       vector<std::array<Real, 3>> centerPoints;
       
       creal dx = 0.0;

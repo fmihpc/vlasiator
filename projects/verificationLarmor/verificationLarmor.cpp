@@ -1,18 +1,7 @@
 /*
 This file is part of Vlasiator.
 
-Copyright 2011, 2012 Finnish Meteorological Institute
-
-
-
-
-
-
-
-
-
-
-
+Copyright 2011, 2012, 2015 Finnish Meteorological Institute
 
 */
 
@@ -23,14 +12,18 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 
 #include "../../common.h"
 #include "../../readparameters.h"
+#include "../../object_wrapper.h"
 #include "../../backgroundfield/backgroundfield.h"
 #include "../../backgroundfield/constantfield.hpp"
 #include "verificationLarmor.h"
 
+using namespace std;
+using namespace spatial_cell;
+
 namespace projects {
    verificationLarmor::verificationLarmor(): Project() { }
    verificationLarmor::~verificationLarmor() { }
-   bool verificationLarmor::initialize(void) {return true;}
+   bool verificationLarmor::initialize(void) {return Project::initialize();}
 
    void verificationLarmor::addParameters() {
       typedef Readparameters RP;
@@ -47,6 +40,7 @@ namespace projects {
    }
 
    void verificationLarmor::getParameters() {
+      Project::getParameters();
       typedef Readparameters RP;
       RP::get("VerificationLarmor.BX0", this->BX0);
       RP::get("VerificationLarmor.BY0", this->BY0);
@@ -60,19 +54,23 @@ namespace projects {
       RP::get("VerificationLarmor.rho", this->DENSITY);
    }
 
-   Real verificationLarmor::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
+   Real verificationLarmor::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz,
+           creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const int& popID) {
 
       static bool isSet=false;
       //static variables should be threadprivate
    #pragma omp threadprivate(isSet)
 
-      if(vx < Parameters::vxmin + 0.5 * dvx ||
-         vy < Parameters::vymin + 0.5 * dvy ||
-         vz < Parameters::vzmin + 0.5 * dvz ||
-         vx > Parameters::vxmax - 1.5 * dvx ||
-         vy > Parameters::vymax - 1.5 * dvy ||
-         vz > Parameters::vzmax - 1.5 * dvz
-      ) return 0.0;
+      const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
+      const vmesh::MeshParameters& meshParams = getObjectWrapper().velocityMeshes[meshID];
+      if (vx < meshParams.meshMinLimits[0] + 0.5*dvx ||
+          vy < meshParams.meshMinLimits[1] + 0.5*dvy ||
+          vz < meshParams.meshMinLimits[2] + 0.5*dvz ||
+          vx > meshParams.meshMaxLimits[0] - 1.5*dvx ||
+          vy > meshParams.meshMaxLimits[1] - 1.5*dvy ||
+          vz > meshParams.meshMaxLimits[2] - 1.5*dvz) {
+         return 0.0;
+      }
 
       if(isSet)
          return 0.0; //exactly one value to be set
@@ -92,7 +90,8 @@ namespace projects {
    }
 
 
-   void verificationLarmor::calcCellParameters(Real* cellParams,creal& t) {
+   void verificationLarmor::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
+      Real* cellParams = cell->get_cell_parameters();
       creal x = cellParams[CellParams::XCRD];
       creal dx = cellParams[CellParams::DX];
       creal y = cellParams[CellParams::YCRD];

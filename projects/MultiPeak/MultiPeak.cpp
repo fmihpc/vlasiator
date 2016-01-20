@@ -1,18 +1,7 @@
 /*
 This file is part of Vlasiator.
 
-Copyright 2011, 2012 Finnish Meteorological Institute
-
-
-
-
-
-
-
-
-
-
-
+Copyright 2011-2015 Finnish Meteorological Institute
 
 */
 
@@ -25,19 +14,24 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 #include "../../readparameters.h"
 #include "../../backgroundfield/backgroundfield.h"
 #include "../../backgroundfield/constantfield.hpp"
+#include "../../object_wrapper.h"
 
 #include "MultiPeak.h"
 
 using namespace std;
+using namespace spatial_cell;
 
 vector<Real> projects::MultiPeak::rhoRnd;
 
+
 namespace projects {
    MultiPeak::MultiPeak(): TriAxisSearch() { }
+   
    MultiPeak::~MultiPeak() { }
 
-
-   bool MultiPeak::initialize(void) {return true;}
+   bool MultiPeak::initialize(void) {
+      return Project::initialize();
+   }
 
    void MultiPeak::addParameters(){
       typedef Readparameters RP;
@@ -61,6 +55,8 @@ namespace projects {
       RP::addComposing("MultiPeak.rhoPertAbsAmp", "Absolute amplitude of the density perturbation");
       RP::add("MultiPeak.lambda", "B cosine perturbation wavelength (m)", 1.0);
       RP::add("MultiPeak.nVelocitySamples", "Number of sampling points per velocity dimension", 2);
+      RP::add("MultiPeak.useMultipleSpecies","Is each peak a separate particle species",false);
+      RP::add("MultiPeak.densityModel","Which spatial density model is used?",string("uniform"));
    }
 
    void MultiPeak::getParameters(){
@@ -68,7 +64,7 @@ namespace projects {
       Project::getParameters();
       RP::get("MultiPeak.n", this->numberOfPopulations);
       if(this->numberOfPopulations < 1) {
-         std::cerr << "You should set MultiPeak.n to more than 0 populations." << std::endl;
+         cerr << "You should set MultiPeak.n to more than 0 populations." << endl;
          abort();
       }
       RP::get("MultiPeak.rho", this->rho);
@@ -91,11 +87,11 @@ namespace projects {
          this->Vz.size() == this->rhoPertAbsAmp.size() &&
          this->rhoPertAbsAmp.size() == this->rho.size()
       )) {
-         std::cerr << "You should define all parameters (MultiPeak.rho, MultiPeak.Tx, MultiPeak.Ty, MultiPeak.Tz, MultiPeak.Vx, MultiPeak.Vy, MultiPeak.Vz, MultiPeak.rhoPertAbsAmp) for each of the populations." << std::endl;
+         cerr << "You should define all parameters (MultiPeak.rho, MultiPeak.Tx, MultiPeak.Ty, MultiPeak.Tz, MultiPeak.Vx, MultiPeak.Vy, MultiPeak.Vz, MultiPeak.rhoPertAbsAmp) for each of the populations." << endl;
          abort();
       }
       if(this->numberOfPopulations > this->rho.size()) {
-         std::cerr << "You are requesting more populations than are currently defined. Change MultiPeak.n or define more populations." << std::endl;
+         cerr << "You are requesting more populations than are currently defined. Change MultiPeak.n or define more populations." << endl;
          abort();
       }
       
@@ -107,22 +103,48 @@ namespace projects {
       RP::get("MultiPeak.dBz", this->dBz);
       RP::get("MultiPeak.lambda", this->lambda);
       RP::get("MultiPeak.nVelocitySamples", this->nVelocitySamples);
+      RP::get("MultiPeak.useMultipleSpecies", useMultipleSpecies);
       
+      string densModelString;
+      RP::get("MultiPeak.densityModel",densModelString);
+      
+      if (densModelString == "uniform") densityModel = Uniform;
+      else if (densModelString == "testcase") densityModel = TestCase;
    }
 
-   Real MultiPeak::getDistribValue(creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
-      creal mass = physicalconstants::MASS_PROTON;
+   Real MultiPeak::getDistribValue(creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const int& popID) const {
+      creal mass = getObjectWrapper().particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
 
       Real value = 0.0;
-      for(uint i=0; i<this->numberOfPopulations; i++) {
-         value += this->rhoRnd[i] * pow(mass / (2.0 * M_PI * kb ), 1.5) * 1.0 / sqrt(this->Tx[i]*this->Ty[i]*this->Tz[i]) *
-      exp(- mass * (pow(vx - this->Vx[i], 2.0) / (2.0 * kb * this->Tx[i]) + pow(vy - this->Vy[i], 2.0) / (2.0 * kb * this->Ty[i]) + pow(vz - this->Vz[i], 2.0) / (2.0 * kb * this->Tz[i])));
+      if (useMultipleSpecies == false) { // one species, multiple peaks
+         if (popID != 0) return 0.0;
+
+         for (uint i=0; i<this->numberOfPopulations; ++i) {
+            value += this->rhoRnd[i]
+                  * pow(mass / (2.0 * M_PI * kb ), 1.5) * 1.0
+                  / sqrt(Tx[i]*Ty[i]*Tz[i]) 
+                  * exp(- mass * (pow(vx - Vx[i], 2.0) / (2.0 * kb * Tx[i]) 
+                                + pow(vy - Vy[i], 2.0) / (2.0 * kb * Ty[i]) 
+                                + pow(vz - Vz[i], 2.0) / (2.0 * kb * Tz[i])));
+         }
+      } else { // multiple species, one peak each
+         if (this->numberOfPopulations != getObjectWrapper().particleSpecies.size()) {
+            cerr << "error number of peaks and populations do not match" << endl;
+            exit(1);
+         }
+
+         value += this->rhoRnd[popID]
+               * pow(mass / (2.0 * M_PI * kb ), 1.5)
+               * 1.0 / sqrt(this->Tx[popID]*this->Ty[popID]*this->Tz[popID])
+               * exp(- mass * (pow(vx - this->Vx[popID], 2.0) / (2.0 * kb * this->Tx[popID]) + pow(vy - this->Vy[popID], 2.0) / (2.0 * kb * this->Ty[popID]) + pow(vz - this->Vz[popID], 2.0) / (2.0 * kb * this->Tz[popID])));
       }
       return value;
    }
 
-   Real MultiPeak::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
+   Real MultiPeak::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, 
+                                         creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,
+                                         const int& popID) const {
       // Iterative sampling of the distribution function. Keep track of the 
       // accumulated volume average over the iterations. When the next 
       // iteration improves the average by less than 1%, return the value.
@@ -130,32 +152,50 @@ namespace projects {
       bool ok = false;
       int N = nVelocitySamples; // Start by using nVelocitySamples
       int N3_sum = 0;           // Sum of sampling points used so far
+                                            
+      #warning TODO: Replace getObjectWrapper().particleSpecies[popID].sparseMinValue with SpatialCell::velocity_block_threshold(?)
+      const Real avgLimit = 0.01*getObjectWrapper().particleSpecies[popID].sparseMinValue;
       do {
          Real avg = 0.0;        // Volume average obtained during this sampling
          creal DVX = dvx / N; 
          creal DVY = dvy / N;
          creal DVZ = dvz / N;
 
+         Real rhoFactor = 1.0;
+         switch (densityModel) {
+            case Uniform:
+               rhoFactor = 1.0;
+               break;
+            case TestCase:
+               rhoFactor = 1.0;
+               if ((x >= 3.9e5 && x <= 6.1e5) && (y >= 3.9e5 && y <= 6.1e5)) {
+                  rhoFactor = 1.5;
+               }
+               break;
+            default:
+               rhoFactor = 1.0;
+               break;
+         }
+         
          // Sample the distribution using N*N*N points
          for (uint vi=0; vi<N; ++vi) {
             for (uint vj=0; vj<N; ++vj) {
                for (uint vk=0; vk<N; ++vk) {
                   creal VX = vx + 0.5*DVX + vi*DVX;
-                  creal VY = vy + 0.5*DVY + vj*DVX;
-                  creal VZ = vz + 0.5*DVZ + vk*DVX;
-                  avg += getDistribValue(VX,VY,VZ,DVX,DVY,DVZ);
+                  creal VY = vy + 0.5*DVY + vj*DVY;
+                  creal VZ = vz + 0.5*DVZ + vk*DVZ;
+                  avg += getDistribValue(VX,VY,VZ,DVX,DVY,DVZ,popID);
                }
             }
          }
+         avg *= rhoFactor;
          
          // Compare the current and accumulated volume averages:
-         //ok = true;
          Real eps = max(numeric_limits<creal>::min(),avg * static_cast<Real>(1e-6));
          Real avgAccum   = avgTotal / (avg + N3_sum);
          Real avgCurrent = avg / (N*N*N);
-         #warning TODO: Replace Parameters::sparseMinValue with SpatialCell::velocity_block_threshold()
          if (fabs(avgCurrent-avgAccum)/(avgAccum+eps) < 0.01) ok = true;
-         else if (avg < Parameters::sparseMinValue*0.01) ok = true;
+         else if (avg < avgLimit) ok = true;
          else if (N > 10) {
             ok = true;
          }
@@ -168,27 +208,31 @@ namespace projects {
       return avgTotal / N3_sum;
    }
 
-   void MultiPeak::calcCellParameters(Real* cellParams,creal& t) {
-      setRandomCellSeed(cellParams);
+   void MultiPeak::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
+      Real* cellParams = cell->get_cell_parameters();
+      setRandomCellSeed(cell,cellParams);
 
       if (this->lambda != 0.0) {
          cellParams[CellParams::PERBX] = this->dBx*cos(2.0 * M_PI * cellParams[CellParams::XCRD] / this->lambda);
          cellParams[CellParams::PERBY] = this->dBy*sin(2.0 * M_PI * cellParams[CellParams::XCRD] / this->lambda);
          cellParams[CellParams::PERBZ] = this->dBz*cos(2.0 * M_PI * cellParams[CellParams::XCRD] / this->lambda);
       }
-      
-      cellParams[CellParams::PERBX] += this->magXPertAbsAmp * (0.5 - getRandomNumber());
-      cellParams[CellParams::PERBY] += this->magYPertAbsAmp * (0.5 - getRandomNumber());
-      cellParams[CellParams::PERBZ] += this->magZPertAbsAmp * (0.5 - getRandomNumber());
 
+      cellParams[CellParams::PERBX] += this->magXPertAbsAmp * (0.5 - getRandomNumber(cell));
+      cellParams[CellParams::PERBY] += this->magYPertAbsAmp * (0.5 - getRandomNumber(cell));
+      cellParams[CellParams::PERBZ] += this->magZPertAbsAmp * (0.5 - getRandomNumber(cell));
 
       rhoRnd.clear();
-      for(uint i=0; i<this->numberOfPopulations; i++) {
-         this->rhoRnd.push_back(this->rho[i] + this->rhoPertAbsAmp[i] * (0.5 - getRandomNumber()));
+      for (uint i=0; i<numberOfPopulations; ++i) {
+         rhoRnd.push_back(rho[i] + rhoPertAbsAmp[i] * (0.5 - getRandomNumber(cell)));
       }
    }
 
-   void MultiPeak::setCellBackgroundField(SpatialCell* cell) {
+   void MultiPeak::setActivePopulation(const int& popID) {
+      this->popID = popID;
+   }
+
+   void MultiPeak::setCellBackgroundField(SpatialCell* cell) const {
       ConstantField bgField;
       bgField.initialize(this->Bx,
                          this->By,
@@ -197,14 +241,14 @@ namespace projects {
       setBackgroundField(bgField,cell->parameters, cell->derivatives,cell->derivativesBVOL);
    }
    
-   vector<std::array<Real, 3>> MultiPeak::getV0(
+   std::vector<std::array<Real, 3> > MultiPeak::getV0(
                                                 creal x,
                                                 creal y,
                                                 creal z
-                                               ) {
-      vector<std::array<Real, 3>> centerPoints;
+                                               ) const {
+      vector<std::array<Real, 3> > centerPoints;
       for(uint i=0; i<this->numberOfPopulations; i++) {
-         std::array<Real, 3> point {{this->Vx[i], this->Vy[i], this->Vz[i]}};
+         array<Real, 3> point {{this->Vx[i], this->Vy[i], this->Vz[i]}};
          centerPoints.push_back(point);
       }
       return centerPoints;
