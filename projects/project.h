@@ -65,7 +65,10 @@ namespace projects {
          
       /** Calculate parameters for the given spatial cell at the given time.
        * Here you need to set values for the following array indices:
-       * CellParams::EX, CellParams::EY, CellParams::EZ, CellParams::BX, CellParams::BY, and CellParams::BZ.
+       * CellParams::PERBX, CellParams::PERBY, and CellParams::PERBZ
+       * Set the following only if the field solver is not turned on and not initialising
+       * (if it is turned off, by default it will still compute the self-consistent values from RHO, RHO_V, B):
+       * CellParams::EX, CellParams::EY, CellParams::EZ
        * 
        * Currently this function is only called during initialization.
        * 
