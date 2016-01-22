@@ -368,9 +368,7 @@ namespace projects {
 
    /*! Base class sets zero background field */
    void Project::setCellBackgroundField(SpatialCell* cell) const {
-      ConstantField bgField;
-      bgField.initialize(0,0,0); //bg bx, by,bz
-      setBackgroundField(bgField,cell->parameters, cell->derivatives,cell->derivativesBVOL);
+      setBackgroundFieldToZero(cell->parameters, cell->derivatives,cell->derivativesBVOL);
       
       // Print a warning message to stderr so that the user knows to check 
       // that it is still correct to call the base class setCellBackgroundField function.
