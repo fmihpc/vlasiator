@@ -18,6 +18,7 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 #include "Harris.h"
 
 using namespace std;
+using namespace spatial_cell;
 
 namespace projects {
    Harris::Harris(): TriAxisSearch() { }
@@ -50,7 +51,11 @@ namespace projects {
       RP::get("Harris.nVelocitySamples", this->nVelocitySamples);
    }
    
-   Real Harris::getDistribValue(creal& x,creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
+   Real Harris::getDistribValue(
+      creal& x,creal& y, creal& z,
+      creal& vx, creal& vy, creal& vz,
+      creal& dvx, creal& dvy, creal& dvz
+   ) const {
       return this->DENSITY * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B * this->TEMPERATURE), 1.5) * (
          5.0 / pow(cosh(x / (this->SCA_LAMBDA)), 2.0) * exp(- physicalconstants::MASS_PROTON * (pow(vx, 2.0) + pow(vy, 2.0) + pow(vz, 2.0)) / (2.0 * physicalconstants::K_B * this->TEMPERATURE))
          +
@@ -62,7 +67,7 @@ namespace projects {
       creal& dx,creal& dy,creal& dz,
       creal& vx,creal& vy,creal& vz,
       creal& dvx,creal& dvy,creal& dvz,const int& popID
-   ) {
+   ) const {
       if((this->nSpaceSamples > 1) && (this->nVelocitySamples > 1)) {
          creal d_x = dx / (this->nSpaceSamples-1);
          creal d_y = dy / (this->nSpaceSamples-1);
@@ -117,10 +122,15 @@ namespace projects {
       creal x,
       creal y,
       creal z
-   ) {
+   ) const {
       vector<std::array<Real, 3>> V0;
       std::array<Real, 3> v = {{0.0, 0.0, 0.0 }};
       V0.push_back(v);
       return V0;
    }
+
+   void Harris::setCellBackgroundField(SpatialCell *cell) const {
+      setBackgroundFieldToZero(cell->parameters, cell->derivatives,cell->derivativesBVOL);
+   }
+
 } // namespace projects
