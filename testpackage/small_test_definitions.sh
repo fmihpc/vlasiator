@@ -66,7 +66,7 @@ comparison_vlsv[9]="fullf.0000001.vlsv"
 comparison_phiprof[9]="phiprof_full_0.txt"
 
 # define here the variables you want to be tested
-variables_name=( "rho" "rho_v" "rho_v" "rho_v" "B" "B" "B" "E" "E" "E" "avgs" )
+variables_name=( "rho" "rho_v" "rho_v" "rho_v" "B" "B" "B" "E" "E" "E" "proton" )
 # and the corresponding components to variables, 
 variables_components=( 0 0 1 2 0 1 2 0 1 2 0)
 #arrays variables_name and variables_components should have same number of elements, e.g., 4th variable is variables_name[4] variables_components[4]=  
