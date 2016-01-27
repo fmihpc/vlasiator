@@ -35,7 +35,7 @@ namespace projects {
                            creal& vx, creal& vy, creal& vz,
                            creal& dvx, creal& dvy, creal& dvz
                           ) const;
-
+      virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
       virtual std::vector<std::array<Real, 3> > getV0(
                                                       creal x,
                                                       creal y,

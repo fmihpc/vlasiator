@@ -366,23 +366,16 @@ namespace projects {
     * @return If true, base class was successfully initialized.*/
    bool Project::initialized() {return baseClassInitialized;}
 
-   /*! Base class sets zero background field */
+   /*! Print a warning message to stderr and abort, one should not use the base class functions. */
    void Project::setCellBackgroundField(SpatialCell* cell) const {
-      setBackgroundFieldToZero(cell->parameters, cell->derivatives,cell->derivativesBVOL);
-      
-      // Print a warning message to stderr so that the user knows to check 
-      // that it is still correct to call the base class setCellBackgroundField function.
-      static int printed = false;
-      if (printed == false) {
-         int rank;
-         MPI_Comm_rank(MPI_COMM_WORLD,&rank);
-         if (rank == 0) {
-            cerr << "(Project.cpp) WARNING: Base class 'setCellBackgroundField' in " << __FILE__ << ":" << __LINE__;
-            cerr << " called, make sure this is intentional" << endl;
-            printed = true;
-         }
+      int rank;
+      MPI_Comm_rank(MPI_COMM_WORLD,&rank);
+      if (rank == MASTER_RANK) {
+         cerr << "(Project.cpp) WARNING: Base class 'setCellBackgroundField' in " << __FILE__ << ":" << __LINE__ << " called." << endl;
       }
+      exit(1);
    }
+   
 
    void Project::setCell(SpatialCell* cell) {
       // Set up cell parameters:
@@ -624,21 +617,17 @@ namespace projects {
          data[i] *= ratio;
       }
    }
-   
-   /*default one does not compute any parameters*/
-   void Project::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
-      static int printed = false;
-      if (printed == false) {
-         int rank;
-         MPI_Comm_rank(MPI_COMM_WORLD,&rank);
-         if (rank == 0) {
-            cerr << "(Project.cpp) WARNING: Base class 'calcCellParameters' in " << __FILE__ << ":" << __LINE__;
-            cerr << " called, make sure this is intentional" << endl;
-            printed = true;
-         }
-      }
-   }
 
+   /*! Print a warning message to stderr and abort, one should not use the base class functions. */
+   void Project::calcCellParameters(SpatialCell* cell, creal& t) {
+      int rank;
+      MPI_Comm_rank(MPI_COMM_WORLD,&rank);
+      if (rank == MASTER_RANK) {
+         cerr << "(Project.cpp) WARNING: Base class 'calcCellParameters' in " << __FILE__ << ":" << __LINE__ << " called." << endl;
+      }
+      exit(1);
+   }
+   
    Real Project::calcPhaseSpaceDensity(
       creal& x, creal& y, creal& z,
       creal& dx, creal& dy, creal& dz,
@@ -649,10 +638,10 @@ namespace projects {
       exit(1);
       return -1.0;
    }
+
    /*!
      Get random number between 0 and 1.0. One should always first initialize the rng.
    */
-   
    Real Project::getCorrectNumberDensity(spatial_cell::SpatialCell* cell,const int& popID) const {
       cerr << "ERROR: Project::getCorrectNumberDensity called instead of derived class function!" << endl;
       exit(1);
