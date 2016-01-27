@@ -188,6 +188,14 @@ namespace projects {
          return getDistribValue(x+0.5*dx,y+0.5*dy,z+0.5*dz,vx+0.5*dvx,vy+0.5*dvy,vz+0.5*dvz,dvx,dvy,dvz);
       }
    }
+   
+   /*! Magnetosphere does not set any extra perturbed B. */
+   void Magnetosphere::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
+      Real* cellParams = cell->get_cell_parameters();
+      cellParams[CellParams::PERBX] = 0.0;
+      cellParams[CellParams::PERBY] = 0.0;
+      cellParams[CellParams::PERBZ] = 0.0;
+   }
 
    /* set 0-centered dipole */
    void Magnetosphere::setCellBackgroundField(SpatialCell *cell) const {
