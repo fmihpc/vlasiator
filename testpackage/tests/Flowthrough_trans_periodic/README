@@ -15,6 +15,6 @@ This test case does not test errors in
 - boundary conditions
 - field propagators
 
-You can compare the density 'rho' or the velocity block data 'avgs'
+You can compare the density 'rho' or the velocity block data 'proton'
 against the reference values.
 
