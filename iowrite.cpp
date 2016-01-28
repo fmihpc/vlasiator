@@ -438,7 +438,7 @@ bool writeCommonGridData(
    //if( vlsvWriter.writeParameter("max_velocity_ref_level", &P::amrMaxVelocityRefLevel) == false) {return false;}
 
    //Mark the new version:
-   float version = 1.00;
+   float version = 3.00;
    if( vlsvWriter.writeParameter( "version", &version ) == false ) { return false; }
    return true; 
 }
