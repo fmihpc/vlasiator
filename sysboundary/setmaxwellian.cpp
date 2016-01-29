@@ -1,7 +1,7 @@
 /*
  * This file is part of Vlasiator.
  * 
- * Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
+ * Copyright 2010-2013,2015 Finnish Meteorological Institute
  */
 
 /*!\file setmaxwellian.cpp
@@ -13,6 +13,7 @@
 
 #include "setmaxwellian.h"
 #include "../vlasovmover.h"
+#include "../object_wrapper.h"
 
 namespace SBC {
    SetMaxwellian::SetMaxwellian(): SetByUser() {
@@ -84,37 +85,45 @@ namespace SBC {
    }
    
    Real SetMaxwellian::maxwellianDistribution(
-      creal& rho,
-      creal& T,
-      creal& vx, creal& vy, creal& vz
+            const int& popID,
+            creal& rho,
+            creal& T,
+            creal& vx, creal& vy, creal& vz
    ) {
-      return rho * pow(physicalconstants::MASS_PROTON /
+      #warning All populations assumed to have the same T
+      const Real MASS = getObjectWrapper().particleSpecies[popID].mass;
+      return rho * pow(MASS /
       (2.0 * M_PI * physicalconstants::K_B * T), 1.5) *
-      exp(-physicalconstants::MASS_PROTON * (vx*vx + vy*vy + vz*vz) /
+      exp(-MASS * (vx*vx + vy*vy + vz*vz) /
       (2.0 * physicalconstants::K_B * T));
    }
    
-   vector<uint> SetMaxwellian::findBlocksToInitialize(
-                                                      SpatialCell& cell,
-                                                      creal& rho,
-                                                      creal& T,
-                                                      creal& VX0,
-                                                      creal& VY0,
-                                                      creal& VZ0
-                                                     ) {
+   std::vector<vmesh::GlobalID> SetMaxwellian::findBlocksToInitialize(
+      const int& popID,
+      spatial_cell::SpatialCell& cell,
+      creal& rho,
+      creal& T,
+      creal& VX0,
+      creal& VY0,
+      creal& VZ0) {
       vector<vmesh::GlobalID> blocksToInitialize;
       bool search = true;
       uint counter = 0;
+      const uint8_t refLevel = 0;
+      
+      const vmesh::LocalID* vblocks_ini = cell.get_velocity_grid_length(popID,refLevel);
+
       while (search) {
          #warning TODO: add SpatialCell::getVelocityBlockMinValue() in place of sparseMinValue?
-         if (0.1 * P::sparseMinValue >
+         if (0.1 * getObjectWrapper().particleSpecies[popID].sparseMinValue > 
              maxwellianDistribution(
+                                    popID,
                                     rho,
                                     T,
-                                    counter*SpatialCell::get_velocity_grid_block_size()[0], 0.0, 0.0
+                                    counter*cell.get_velocity_grid_block_size(popID,refLevel)[0], 0.0, 0.0
                                    )
              ||
-             counter > P::vxblocks_ini
+             counter > vblocks_ini[0]
             ) {
             search = false;
          }
@@ -122,18 +131,34 @@ namespace SBC {
       }
       counter+=2;
 
-      Real vRadiusSquared = (Real)counter*(Real)counter*SpatialCell::get_velocity_grid_block_size()[0]*SpatialCell::get_velocity_grid_block_size()[0];
+      Real vRadiusSquared 
+              = (Real)counter*(Real)counter
+              * cell.get_velocity_grid_block_size(popID,refLevel)[0]
+              * cell.get_velocity_grid_block_size(popID,refLevel)[0];
       
-      for (uint kv=0; kv<P::vzblocks_ini; ++kv) 
-         for (uint jv=0; jv<P::vyblocks_ini; ++jv)
-            for (uint iv=0; iv<P::vxblocks_ini; ++iv) {
-               creal vx = P::vxmin + (iv+0.5) * SpatialCell::get_velocity_grid_block_size()[0]; // vx-coordinate of the centre
-               creal vy = P::vymin + (jv+0.5) * SpatialCell::get_velocity_grid_block_size()[1]; // vy-
-               creal vz = P::vzmin + (kv+0.5) * SpatialCell::get_velocity_grid_block_size()[2]; // vz-
+      for (uint kv=0; kv<vblocks_ini[2]; ++kv) 
+         for (uint jv=0; jv<vblocks_ini[1]; ++jv)
+            for (uint iv=0; iv<vblocks_ini[0]; ++iv) {
+               vmesh::GlobalID blockIndices[3];
+               blockIndices[0] = iv;
+               blockIndices[1] = jv;
+               blockIndices[2] = kv;
+               const vmesh::GlobalID blockGID = cell.get_velocity_block(popID,blockIndices,refLevel);
+               
+               Real V_crds[3];
+               cell.get_velocity_block_coordinates(popID,blockGID,V_crds);
+               Real dV[3];
+               cell.get_velocity_block_size(popID,blockGID,dV);
+               V_crds[0] += 0.5*dV[0];
+               V_crds[1] += 0.5*dV[1];
+               V_crds[2] += 0.5*dV[2];
+               Real R2 = ((V_crds[0]-VX0)*(V_crds[0]-VX0)
+                       +  (V_crds[1]-VY0)*(V_crds[1]-VY0)
+                       +  (V_crds[2]-VZ0)*(V_crds[2]-VZ0));
 
-               if ((vx-VX0)*(vx-VX0) + (vy-VY0)*(vy-VY0) + (vz-VZ0)*(vz-VZ0) < vRadiusSquared) {
-                  cell.add_velocity_block(cell.get_velocity_block(vx, vy, vz));
-                  blocksToInitialize.push_back(cell.get_velocity_block(vx, vy, vz));
+               if (R2 < vRadiusSquared) {
+                  cell.add_velocity_block(blockGID,popID);
+                  blocksToInitialize.push_back(blockGID);
                }
             }
 
@@ -143,11 +168,15 @@ namespace SBC {
    /*!\brief Generate the template cell for the face corresponding to the index passed.
     * This function generates a spatial cell which is to be used as a template for the
     * system boundary condition.
-    * \param templateCell Addressof the template cell to be generated.
+    * \param templateCell Address of the template cell to be generated.
     * \param inputDataIndex Index used for the location of the input data.
     * \param t Current simulation time.
     */
-   void SetMaxwellian::generateTemplateCell(spatial_cell::SpatialCell& templateCell, int inputDataIndex, creal& t) {
+   void SetMaxwellian::generateTemplateCell(
+      spatial_cell::SpatialCell& templateCell,
+      int inputDataIndex,
+      creal& t
+   ) {
       Real rho, T, Vx, Vy, Vz, Bx, By, Bz, buffer[8];
       
       interpolate(inputDataIndex, t, &buffer[0]);
@@ -176,73 +205,75 @@ namespace SBC {
       templateCell.parameters[CellParams::RHOLOSSADJUST] = 0.0;
       templateCell.parameters[CellParams::RHOLOSSVELBOUNDARY] = 0.0;
       
-      vector<uint> blocksToInitialize = this->findBlocksToInitialize(templateCell, rho, T, Vx, Vy, Vz);
-      
-      for(uint i = 0; i < blocksToInitialize.size(); i++) {
-         const vmesh::GlobalID blockGID = blocksToInitialize.at(i);
-         const vmesh::LocalID blockLID = templateCell.get_velocity_block_local_id(blockGID);
-         const Real* block_parameters = templateCell.get_block_parameters(blockLID);
-         creal vxBlock = block_parameters[BlockParams::VXCRD];
-         creal vyBlock = block_parameters[BlockParams::VYCRD];
-         creal vzBlock = block_parameters[BlockParams::VZCRD];
-         creal dvxCell = block_parameters[BlockParams::DVX];
-         creal dvyCell = block_parameters[BlockParams::DVY];
-         creal dvzCell = block_parameters[BlockParams::DVZ];
+      // Init all particle species
+      for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         vector<vmesh::GlobalID> blocksToInitialize = this->findBlocksToInitialize(popID,templateCell, rho, T, Vx, Vy, Vz);
+         Realf* data = templateCell.get_data(popID);
+
+         for(vmesh::GlobalID i=0; i<blocksToInitialize.size(); ++i) {
+            const vmesh::GlobalID blockGID = blocksToInitialize[i];
+            const vmesh::LocalID blockLID = templateCell.get_velocity_block_local_id(blockGID,popID);
+            const Real* block_parameters = templateCell.get_block_parameters(blockLID,popID);
+            creal vxBlock = block_parameters[BlockParams::VXCRD];
+            creal vyBlock = block_parameters[BlockParams::VYCRD];
+            creal vzBlock = block_parameters[BlockParams::VZCRD];
+            creal dvxCell = block_parameters[BlockParams::DVX];
+            creal dvyCell = block_parameters[BlockParams::DVY];
+            creal dvzCell = block_parameters[BlockParams::DVZ];
          
-         creal x = templateCell.parameters[CellParams::XCRD];
-         creal y = templateCell.parameters[CellParams::YCRD];
-         creal z = templateCell.parameters[CellParams::ZCRD];
-         creal dx = templateCell.parameters[CellParams::DX];
-         creal dy = templateCell.parameters[CellParams::DY];
-         creal dz = templateCell.parameters[CellParams::DZ];
+            creal x = templateCell.parameters[CellParams::XCRD];
+            creal y = templateCell.parameters[CellParams::YCRD];
+            creal z = templateCell.parameters[CellParams::ZCRD];
+            creal dx = templateCell.parameters[CellParams::DX];
+            creal dy = templateCell.parameters[CellParams::DY];
+            creal dz = templateCell.parameters[CellParams::DZ];
          
-         // Calculate volume average of distrib. function for each cell in the block.
-         for (uint kc=0; kc<WID; ++kc) 
-            for (uint jc=0; jc<WID; ++jc) 
-               for (uint ic=0; ic<WID; ++ic) {
-                  creal vxCell = vxBlock + ic*dvxCell;
-                  creal vyCell = vyBlock + jc*dvyCell;
-                  creal vzCell = vzBlock + kc*dvzCell;
-                  Real average = 0.0;
-                  if(this->nVelocitySamples > 1) {
-                     creal d_vx = dvxCell / (nVelocitySamples-1);
-                     creal d_vy = dvyCell / (nVelocitySamples-1);
-                     creal d_vz = dvzCell / (nVelocitySamples-1);
-                     for (uint vi=0; vi<nVelocitySamples; ++vi)
-                        for (uint vj=0; vj<nVelocitySamples; ++vj)
-                           for (uint vk=0; vk<nVelocitySamples; ++vk) {
-                              average += maxwellianDistribution(
-                                 rho,
-                                 T,
-                                 vxCell + vi*d_vx - Vx,
-                                 vyCell + vj*d_vy - Vy,
-                                 vzCell + vk*d_vz - Vz
-                              );
-                     }
-                     average /= this->nVelocitySamples * this->nVelocitySamples * this->nVelocitySamples;
-                  } else {
-                     average = maxwellianDistribution(
-                        rho,
-                        T,
-                        vxCell + 0.5*dvxCell,
-                        vyCell + 0.5*dvyCell,
-                        vzCell + 0.5*dvzCell
-                     );
-                  }
-                  
-                  if(average!=0.0){
-                     creal vxCellCenter = vxBlock + (ic+convert<Real>(0.5))*dvxCell;
-                     creal vyCellCenter = vyBlock + (jc+convert<Real>(0.5))*dvyCell;
-                     creal vzCellCenter = vzBlock + (kc+convert<Real>(0.5))*dvzCell;
-                     templateCell.set_value(vxCellCenter,vyCellCenter,vzCellCenter,average);
-                  }
-         }
-      }
-      //let's get rid of blocks not fulfilling the criteria here to save
-      //memory.
-      templateCell.adjustSingleCellVelocityBlocks();
+            // Calculate volume average of distrib. function for each cell in the block.
+            for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
+               creal vxCell = vxBlock + ic*dvxCell;
+               creal vyCell = vyBlock + jc*dvyCell;
+               creal vzCell = vzBlock + kc*dvzCell;
+               Real average = 0.0;
+               if(this->nVelocitySamples > 1) {
+                  creal d_vx = dvxCell / (nVelocitySamples-1);
+                  creal d_vy = dvyCell / (nVelocitySamples-1);
+                  creal d_vz = dvzCell / (nVelocitySamples-1);
+                  for (uint vi=0; vi<nVelocitySamples; ++vi)
+                    for (uint vj=0; vj<nVelocitySamples; ++vj)
+                      for (uint vk=0; vk<nVelocitySamples; ++vk) {
+                         average +=  maxwellianDistribution(
+                                                            popID,
+                                                            rho,
+                                                            T,
+                                                            vxCell + vi*d_vx - Vx,
+                                                            vyCell + vj*d_vy - Vy,
+                                                            vzCell + vk*d_vz - Vz
+                                                           );
+                      }
+                  average /= this->nVelocitySamples * this->nVelocitySamples * this->nVelocitySamples;
+               } else {
+                  average =   maxwellianDistribution(
+                                                     popID,
+                                                     rho,
+                                                     T,
+                                                     vxCell + 0.5*dvxCell,
+                                                     vyCell + 0.5*dvyCell,
+                                                     vzCell + 0.5*dvzCell
+                                                    );
+               }
+               
+               if (average != 0.0) {
+                  data[blockLID*WID3+cellIndex(ic,jc,kc)] = average;
+               } 
+            } // for-loop over cells in velocity block
+         } // for-loop over velocity blocks
+         
+         //let's get rid of blocks not fulfilling the criteria here to save
+         //memory.
+         templateCell.adjustSingleCellVelocityBlocks(popID);
+      } // for-loop over particle species
       
-      calculateCellVelocityMoments(&templateCell, true);
+      calculateCellMoments(&templateCell,true,true);
       
       if(!this->isThisDynamic) {
          // WARNING Time-independence assumed here.
@@ -261,4 +292,5 @@ namespace SBC {
    
    string SetMaxwellian::getName() const {return "SetMaxwellian";}
    uint SetMaxwellian::getIndex() const {return sysboundarytype::SET_MAXWELLIAN;}
-}
+   
+} // namespace SBC

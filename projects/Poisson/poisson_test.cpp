@@ -16,6 +16,7 @@
 #include "poisson_test.h"
 
 using namespace std;
+using namespace spatial_cell;
 
 namespace projects {
    
@@ -31,6 +32,7 @@ namespace projects {
       RP::add("Poisson.radius","Radius where charge density is non-zero",(Real)15e3);
       RP::add("Poisson.max_iterations","Maximum number of iterations",(uint)1000);
       RP::add("Poisson.min_relative_change","Potential is iterated until it the relative change is less than this value",(Real)1e-5);
+      RP::add("Poisson.is_2D","If true then system is two-dimensional in xy-plane",true);
    }
 
    void PoissonTest::getParameters() {
@@ -39,6 +41,7 @@ namespace projects {
       RP::get("Poisson.radius",radius);
       RP::get("Poisson.max_iterations",poisson::Poisson::maxIterations);
       RP::get("Poisson.min_relative_change",poisson::Poisson::minRelativePotentialChange);
+      RP::get("Poisson.is_2D",poisson::Poisson::is2D);
    }
 
    bool PoissonTest::initialize() {
@@ -49,7 +52,8 @@ namespace projects {
 
    }
    
-   void PoissonTest::calcCellParameters(Real* cellParams,creal& t) {
+   void PoissonTest::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
+      Real* cellParams = cell->get_cell_parameters();
       Real dx = cellParams[CellParams::DX];
       Real dy = cellParams[CellParams::DY];
       Real dz = cellParams[CellParams::DZ];

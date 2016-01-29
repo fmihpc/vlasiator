@@ -26,6 +26,12 @@ void calculateSpatialTranslation(
                                  dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                  Real dt);
 
+/** Calculate velocity moments for the given spatial cell.
+ * This function is defined in cpu_moments.cpp file.*/
+void calculateCellMoments(
+        spatial_cell::SpatialCell* cell,
+        const bool& computeSecond,const bool& doNotSkip=false);
+
 /*!
   \brief Compute real-time 1st order accurate moments from the moments after propagation in velocity and spatial space
 */
@@ -40,17 +46,6 @@ void calculateInterpolatedVelocityMoments(
    const int cp_p22,
    const int cp_p33
 );
-
-/*!
-   \brief Compute 0th, 1st and 2nd velocity moments (RHO,RHOVX,RHOVY,RHOVZ,P_11,P_22,P_33) for a cell directly from distribution function. The simulation should be at a true time-step!
-   \param SC pointer to the spatial cell
-   \param doNotSkip Used to override the checks about system boundaries which in some cases cause the moments not to be calculated as they have been e.g. copied. Default value: false, in order to preserve all the calls using the checks.
-*/
-void calculateCellVelocityMoments(
-   SpatialCell* SC,
-   bool doNotSkip=false
-);
-
 
 /*!
   \brief Compute 0th, 1st and 2nd velocity moments (RHO,RHOVX,RHOVY,RHOVZ,P_11,P_22,P_33 and *_DT2) for all cells in the grid directly from distribution function. The simulation should be at a true time-step! This is at the moment only called at initialisation.

@@ -1,18 +1,7 @@
 /*
 This file is part of Vlasiator.
 
-Copyright 2011, 2012 Finnish Meteorological Institute
-
-
-
-
-
-
-
-
-
-
-
+Copyright 2011,2012,2015 Finnish Meteorological Institute
 
 */
 
@@ -23,11 +12,13 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 
 #include "../../common.h"
 #include "../../readparameters.h"
+#include "../../object_wrapper.h"
 #include "../../backgroundfield/backgroundfield.h"
 #include "../../backgroundfield/constantfield.hpp"
 
 #include "Fluctuations.h"
 
+using namespace spatial_cell;
 
 Real projects::Fluctuations::rndRho, projects::Fluctuations::rndVel[3];
 
@@ -35,7 +26,7 @@ Real projects::Fluctuations::rndRho, projects::Fluctuations::rndVel[3];
 namespace projects {
    Fluctuations::Fluctuations(): Project() { }
    Fluctuations::~Fluctuations() { }
-   bool Fluctuations::initialize(void) {return true;}
+   bool Fluctuations::initialize(void) {return Project::initialize();}
    
    void Fluctuations::addParameters() {
       typedef Readparameters RP;
@@ -55,6 +46,7 @@ namespace projects {
    }
 
    void Fluctuations::getParameters() {
+      Project::getParameters();
       typedef Readparameters RP;
       Project::getParameters();
       RP::get("Fluctuations.BX0", this->BX0);
@@ -82,15 +74,18 @@ namespace projects {
       creal& x, creal& y, creal& z,
       creal& dx, creal& dy, creal& dz,
       creal& vx, creal& vy, creal& vz,
-      creal& dvx, creal& dvy, creal& dvz
+      creal& dvx, creal& dvy, creal& dvz,const int& popID
    ) {
-      if(vx < Parameters::vxmin + 0.5 * dvx ||
-         vy < Parameters::vymin + 0.5 * dvy ||
-         vz < Parameters::vzmin + 0.5 * dvz ||
-         vx > Parameters::vxmax - 1.5 * dvx ||
-         vy > Parameters::vymax - 1.5 * dvy ||
-         vz > Parameters::vzmax - 1.5 * dvz
-      ) return 0.0;
+      const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
+      vmesh::MeshParameters& meshParams = getObjectWrapper().velocityMeshes[meshID];
+      if (vx < meshParams.meshMinLimits[0] + 0.5*dvx ||
+          vy < meshParams.meshMinLimits[1] + 0.5*dvy ||
+          vz < meshParams.meshMinLimits[2] + 0.5*dvz ||
+          vx > meshParams.meshMaxLimits[0] - 1.5*dvx ||
+          vy > meshParams.meshMaxLimits[1] - 1.5*dvy ||
+          vz > meshParams.meshMaxLimits[2] - 1.5*dvz) {
+         return 0.0;
+      }
       
       creal mass = physicalconstants::MASS_PROTON;
       creal kb = physicalconstants::K_B;
@@ -122,7 +117,8 @@ namespace projects {
       }
    }
    
-   void Fluctuations::calcCellParameters(Real* cellParams,creal& t) {
+   void Fluctuations::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
+      Real* cellParams = cell->get_cell_parameters();
       creal x = cellParams[CellParams::XCRD];
       creal dx = cellParams[CellParams::DX];
       creal y = cellParams[CellParams::YCRD];
@@ -134,20 +130,20 @@ namespace projects {
          (int) ((y - Parameters::ymin) / dy) * Parameters::xcells_ini +
          (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
       
-      setRandomSeed(cellID);
-      
+      setRandomSeed(cell,cellID);
+
       cellParams[CellParams::EX   ] = 0.0;
       cellParams[CellParams::EY   ] = 0.0;
       cellParams[CellParams::EZ   ] = 0.0;
       
-      this->rndRho=getRandomNumber();
-      this->rndVel[0]=getRandomNumber();
-      this->rndVel[1]=getRandomNumber();
-      this->rndVel[2]=getRandomNumber();
+      this->rndRho=getRandomNumber(cell);
+      this->rndVel[0]=getRandomNumber(cell);
+      this->rndVel[1]=getRandomNumber(cell);
+      this->rndVel[2]=getRandomNumber(cell);
       
-      cellParams[CellParams::PERBX] = this->magXPertAbsAmp * (0.5 - getRandomNumber());
-      cellParams[CellParams::PERBY] = this->magYPertAbsAmp * (0.5 - getRandomNumber());
-      cellParams[CellParams::PERBZ] = this->magZPertAbsAmp * (0.5 - getRandomNumber());
+      cellParams[CellParams::PERBX] = this->magXPertAbsAmp * (0.5 - getRandomNumber(cell));
+      cellParams[CellParams::PERBY] = this->magYPertAbsAmp * (0.5 - getRandomNumber(cell));
+      cellParams[CellParams::PERBZ] = this->magZPertAbsAmp * (0.5 - getRandomNumber(cell));
    }
 
    void Fluctuations::setCellBackgroundField(SpatialCell* cell) {

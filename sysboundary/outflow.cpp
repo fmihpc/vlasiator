@@ -2,18 +2,6 @@
  * This file is part of Vlasiator.
  * 
  * Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
  */
 
 /*!\file outflow.cpp
@@ -23,9 +11,11 @@
 #include <cstdlib>
 #include <iostream>
 
+#include "../object_wrapper.h"
 #include "outflow.h"
 #include "../projects/projects_common.h"
 #include "../fieldsolver/fs_common.h"
+#include "../fieldsolver/ldz_magnetic_field.hpp"
 
 #ifndef NDEBUG
    #define DEBUG_OUTFLOW
@@ -115,13 +105,14 @@ namespace SBC {
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       Project &project
    ) {
-      vector<uint64_t> cells = mpiGrid.get_cells();
-#pragma omp parallel for
+      const vector<CellID>& cells = getLocalCells();
+      #pragma omp parallel for
       for (uint i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
-         if(cell->sysBoundaryFlag != this->getIndex()) continue;
+         if (cell->sysBoundaryFlag != this->getIndex()) continue;
          
-         // Defined in project.cpp, used here as the outflow cell has the same state as the initial state of non-system boundary cells.
+         // Defined in project.cpp, used here as the outflow cell has the same state 
+         // as the initial state of non-system boundary cells.
          project.setCell(cell);
          // WARNING Time-independence assumed here.
          cell->parameters[CellParams::RHO_DT2] = cell->parameters[CellParams::RHO];
@@ -129,22 +120,67 @@ namespace SBC {
          cell->parameters[CellParams::RHOVY_DT2] = cell->parameters[CellParams::RHOVY];
          cell->parameters[CellParams::RHOVZ_DT2] = cell->parameters[CellParams::RHOVZ];
       }
-      
+
       return true;
    }
-   
+
    Real Outflow::fieldSolverBoundaryCondMagneticField(
-                                                      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                                      const CellID& cellID,
-                                                      creal& dt,
-                                                      cuint& component
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      const std::vector<fs_cache::CellCache>& cellCache,
+      const uint16_t& localID,
+      creal& dt,
+      cuint& RKCase,
+      cint& offset,
+      cuint& component
    ) {
-      if (dt == 0.0) {
-         return fieldBoundaryCopyFromExistingFaceNbrMagneticField(mpiGrid, cellID, component);
-      } else { // Return PERB[XYZ]_DT2
-         cint offset = CellParams::PERBX_DT2 - CellParams::PERBX;
-         return fieldBoundaryCopyFromExistingFaceNbrMagneticField(mpiGrid, cellID, component+offset);
+      const CellID cellID = cellCache[localID].cellID;
+      Real fieldValue = -1.0;
+      
+      creal* const cellParams = cellCache[localID].cells[fs_cache::calculateNbrID(1  ,1  ,1  )]->parameters;
+      creal dx = cellParams[CellParams::DX];
+      creal dy = cellParams[CellParams::DY];
+      creal dz = cellParams[CellParams::DZ];
+      creal x = cellParams[CellParams::XCRD] + 0.5*dx;
+      creal y = cellParams[CellParams::YCRD] + 0.5*dy;
+      creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
+      
+      bool isThisCellOnAFace[6];
+      determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, true);
+      
+      cuint sysBoundaryLayer = cellCache[localID].cells[fs_cache::calculateNbrID(1  ,1  ,1  )]->sysBoundaryLayer;
+      
+      if (sysBoundaryLayer == 1
+         && isThisCellOnAFace[0]                            // we are on the face
+         && this->facesToProcess[0]                         // we are supposed to do this face
+         && component == 0                                  // we do the component normal to this face
+         && !(isThisCellOnAFace[2] || isThisCellOnAFace[3] || isThisCellOnAFace[4] || isThisCellOnAFace[5]) // we are not in a corner
+      ) {
+         const vector<uint16_t> cellVector = {{localID}};
+         propagateMagneticField(cellCache, cellVector, dt, RKCase, true, false, false);
+         fieldValue = cellCache[localID].cells[fs_cache::calculateNbrID(1  ,1  ,1  )]->parameters[CellParams::PERBX + component + offset];
+      } else if (sysBoundaryLayer == 1
+         && isThisCellOnAFace[2]                            // we are on the face
+         && this->facesToProcess[2]                         // we are supposed to do this face
+         && component == 1                                  // we do the component normal to this face
+         && !(isThisCellOnAFace[0] || isThisCellOnAFace[1] || isThisCellOnAFace[4] || isThisCellOnAFace[5]) // we are not in a corner
+      ) {
+         const vector<uint16_t> cellVector = {{localID}};
+         propagateMagneticField(cellCache, cellVector, dt, RKCase, false, true, false);
+         fieldValue = cellCache[localID].cells[fs_cache::calculateNbrID(1  ,1  ,1  )]->parameters[CellParams::PERBX + component + offset];
+      } else if (sysBoundaryLayer == 1
+         && isThisCellOnAFace[4]                            // we are on the face
+         && this->facesToProcess[4]                         // we are supposed to do this face
+         && component == 2                                  // we do the component normal to this face
+         && !(isThisCellOnAFace[0] || isThisCellOnAFace[1] || isThisCellOnAFace[2] || isThisCellOnAFace[3]) // we are not in a corner
+      ) {
+         const vector<uint16_t> cellVector = {{localID}};
+         propagateMagneticField(cellCache, cellVector, dt, RKCase, false, false, true);
+         fieldValue = cellCache[localID].cells[fs_cache::calculateNbrID(1  ,1  ,1  )]->parameters[CellParams::PERBX + component + offset];
+      } else {
+         fieldValue = fieldBoundaryCopyFromExistingFaceNbrMagneticField(mpiGrid, cellID, component + offset);
       }
+      
+      return fieldValue;
    }
 
    void Outflow::fieldSolverBoundaryCondElectricField(
@@ -161,12 +197,12 @@ namespace SBC {
    }
    
    void Outflow::fieldSolverBoundaryCondHallElectricField(
-                                                          fs_cache::CellCache& cache,
-                                                          cuint RKCase,
-                                                          cuint component
-                                                         ) {
+      fs_cache::CellCache& cache,
+      cuint RKCase,
+      cuint component
+   ) {
 
-      Real* cp = cache.cells[fs_cache::calculateNbrID(1,1,1)]->parameters;      
+      Real* cp = cache.cells[fs_cache::calculateNbrID(1,1,1)]->parameters;
       
       switch (component) {
          case 0:
@@ -192,11 +228,46 @@ namespace SBC {
       }
    }
    
+   void Outflow::fieldSolverBoundaryCondGradPeElectricField(
+      fs_cache::CellCache& cache,
+      cuint RKCase,
+      cuint component
+   ) {
+      
+      Real* cp = cache.cells[fs_cache::calculateNbrID(1,1,1)]->parameters;
+      
+      switch (component) {
+         case 0:
+            //             cp[CellParams::EXGRADPE_000_100] = 0.0;
+            //             cp[CellParams::EXGRADPE_010_110] = 0.0;
+            //             cp[CellParams::EXGRADPE_001_101] = 0.0;
+            //             cp[CellParams::EXGRADPE_011_111] = 0.0;
+            cp[CellParams::EXGRADPE] = 0.0;
+            break;
+         case 1:
+            //             cp[CellParams::EYGRADPE_000_010] = 0.0;
+            //             cp[CellParams::EYGRADPE_100_110] = 0.0;
+            //             cp[CellParams::EYGRADPE_001_011] = 0.0;
+            //             cp[CellParams::EYGRADPE_101_111] = 0.0;
+            cp[CellParams::EYGRADPE] = 0.0;
+            break;
+         case 2:
+            //             cp[CellParams::EZGRADPE_000_001] = 0.0;
+            //             cp[CellParams::EZGRADPE_100_101] = 0.0;
+            //             cp[CellParams::EZGRADPE_010_011] = 0.0;
+            //             cp[CellParams::EZGRADPE_110_111] = 0.0;
+            cp[CellParams::EZGRADPE] = 0.0;
+            break;
+         default:
+            cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
+      }
+   }
+   
    Real Outflow::fieldBoundaryCopyFromExistingFaceNbrMagneticField(
-                                                                   const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                                                   const CellID& cellID,
-                                                                   cuint& component
-                                                                  ) {
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      const CellID& cellID,
+      cuint& component
+   ) {
       const CellID closestCell = getTheClosestNonsysboundaryCell(cellID);
       
       #ifdef DEBUG_OUTFLOW
@@ -215,159 +286,6 @@ namespace SBC {
       #endif
       
       return mpiGrid[closestCell]->parameters[CellParams::PERBX+component];
-      
-      /*
- // get_neighbors                                                *
- // if all neighbors are of the same size then they are in z order, e.g. with a neighborhood size of 2 the first neighbor is at offset (-2, -2, -2) from the given cell, the second one is at (-1, -2, -2), etc, in size units of the given cell.
- 
- const vector<CellID>* neighbors = mpiGrid.get_neighbors_of(cellID);
-
-      // CORRECT
-      // -1  0  0 62
-      //  0 -1  0 58
-      //  0  0 -1 38
-      //  1  0  0 63
-      //  0  1  0 67
-      //  0  0  1 87
-      // WARNING minus one, C++ array!!
-      
-      // If -x/-y/-z neighbours are missing, copy from +x/+y/+z
-      if(((*neighbors)[61] == dccrg::error_cell) &&
-         ((*neighbors)[57] == dccrg::error_cell) &&
-         ((*neighbors)[37] == dccrg::error_cell)) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,+1,+1,+1)]->parameters[CellParams::PERBX+component];
-      }
-      // If -x/-y/+z neighbours are missing, copy from +x/+y/-z
-      if(((*neighbors)[61] == dccrg::error_cell) &&
-         ((*neighbors)[57] == dccrg::error_cell) &&
-         ((*neighbors)[86] == dccrg::error_cell)) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,+1,+1,-1)]->parameters[CellParams::PERBX+component];
-      }
-      // If -x/+y/-z neighbours are missing, copy from +x/-y/+z
-      if(((*neighbors)[61] == dccrg::error_cell) &&
-         ((*neighbors)[66] == dccrg::error_cell) &&
-         ((*neighbors)[37] == dccrg::error_cell)) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,+1,-1,+1)]->parameters[CellParams::PERBX+component];
-      }
-      // If +x/-y/-z neighbours are missing, copy from -x/+y/+z
-      if(((*neighbors)[62] == dccrg::error_cell) &&
-         ((*neighbors)[57] == dccrg::error_cell) &&
-         ((*neighbors)[37] == dccrg::error_cell)) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,-1,+1,+1)]->parameters[CellParams::PERBX+component];
-      }
-      // If -x/+y/+z neighbours are missing, copy from +x/-y/-z
-      if(((*neighbors)[61] == dccrg::error_cell) &&
-         ((*neighbors)[66] == dccrg::error_cell) &&
-         ((*neighbors)[86] == dccrg::error_cell)) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,+1,-1,-1)]->parameters[CellParams::PERBX+component];
-      }
-      // If +x/-y/+z neighbours are missing, copy from -x/+y/-z
-      if(((*neighbors)[62] == dccrg::error_cell) &&
-         ((*neighbors)[57] == dccrg::error_cell) &&
-         ((*neighbors)[86] == dccrg::error_cell)) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,-1,+1,-1)]->parameters[CellParams::PERBX+component];
-      }
-      // If +x/+y/-z neighbours are missing, copy from -x/-y/+z
-      if(((*neighbors)[62] == dccrg::error_cell) &&
-         ((*neighbors)[66] == dccrg::error_cell) &&
-         ((*neighbors)[37] == dccrg::error_cell)) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,-1,-1,+1)]->parameters[CellParams::PERBX+component];
-      }
-      // If +x/+y/+z neighbours are missing, copy from -x/-y/-z
-      if(((*neighbors)[62] == dccrg::error_cell) &&
-         ((*neighbors)[66] == dccrg::error_cell) &&
-         ((*neighbors)[86] == dccrg::error_cell)) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,-1,-1,-1)]->parameters[CellParams::PERBX+component];
-      }
-      
-      // If -z/-y neighbours are missing, copy from +z/+y
-      if(((*neighbors)[37] == dccrg::error_cell) &&
-         ((*neighbors)[57] == dccrg::error_cell)) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,0,+1,+1)]->parameters[CellParams::PERBX+component];
-      }
-      // If -z/-x neighbours are missing, copy from +z/+x
-      if(((*neighbors)[37] == dccrg::error_cell) &&
-         ((*neighbors)[61] == dccrg::error_cell)) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,+1,0,+1)]->parameters[CellParams::PERBX+component];
-      }
-      // If -z/+y neighbours are missing, copy from +z/-y
-      if(((*neighbors)[37] == dccrg::error_cell) &&
-         ((*neighbors)[66] == dccrg::error_cell)) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,0,-1,+1)]->parameters[CellParams::PERBX+component];
-      }
-      // If -z/+x neighbours are missing, copy from +z/-x
-      if(((*neighbors)[37] == dccrg::error_cell) &&
-         ((*neighbors)[62] == dccrg::error_cell)) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,-1,0,+1)]->parameters[CellParams::PERBX+component];
-      }
-      // If +z/-y neighbours are missing, copy from -z/+y
-      if(((*neighbors)[86] == dccrg::error_cell) &&
-         ((*neighbors)[57] == dccrg::error_cell)) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,0,+1,-1)]->parameters[CellParams::PERBX+component];
-      }
-      // If +z/+x neighbours are missing, copy from -z/-x
-      if(((*neighbors)[62] == dccrg::error_cell) &&
-         ((*neighbors)[86] == dccrg::error_cell)) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,-1,0,-1)]->parameters[CellParams::PERBX+component];
-      }
-      // If +z/+y neighbours are missing, copy from -z/-y
-      if(((*neighbors)[86] == dccrg::error_cell) &&
-         ((*neighbors)[66] == dccrg::error_cell)) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,0,-1,-1)]->parameters[CellParams::PERBX+component];
-      }
-      // If +z/-x neighbours are missing, copy from -z/+x
-      if(((*neighbors)[61] == dccrg::error_cell) &&
-         ((*neighbors)[86] == dccrg::error_cell)) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,+1,0,-1)]->parameters[CellParams::PERBX+component];
-      }
-      // If -x/-y neighbours are missing, copy from +x/+y
-      if(((*neighbors)[61] == dccrg::error_cell) &&
-         ((*neighbors)[57] == dccrg::error_cell)) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,+1,+1,0)]->parameters[CellParams::PERBX+component];
-      }
-      // If -x/+y neighbours are missing, copy from +x/-y
-      if(((*neighbors)[61] == dccrg::error_cell) &&
-         ((*neighbors)[66] == dccrg::error_cell)) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,+1,-1,0)]->parameters[CellParams::PERBX+component];
-      }
-      // If +x/-y neighbours are missing, copy from -x/+y
-      if(((*neighbors)[62] == dccrg::error_cell) &&
-         ((*neighbors)[57] == dccrg::error_cell)) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,-1,+1,0)]->parameters[CellParams::PERBX+component];
-      }
-      // If +x/+y neighbours are missing, copy from -x/-y
-      if(((*neighbors)[62] == dccrg::error_cell) &&
-         ((*neighbors)[66] == dccrg::error_cell)) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,-1,-1,0)]->parameters[CellParams::PERBX+component];
-      }
-      // If -z neighbour is missing, copy from +z
-      if((*neighbors)[37] == dccrg::error_cell) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,0,0,+1)]->parameters[CellParams::PERBX+component];
-      }
-      // If -y neighbour is missing, copy from +y
-      if((*neighbors)[57] == dccrg::error_cell) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,0,+1,0)]->parameters[CellParams::PERBX+component];
-      }
-      // If -x neighbour is missing, copy from +x
-      if((*neighbors)[61] == dccrg::error_cell) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,+1,0,0)]->parameters[CellParams::PERBX+component];
-      }
-      // If +z neighbour is missing, copy from -z
-      if((*neighbors)[86] == dccrg::error_cell) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,0,0,-1)]->parameters[CellParams::PERBX+component];
-      }
-      // If +y neighbour is missing, copy from -y
-      if((*neighbors)[66] == dccrg::error_cell) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,0,-1,0)]->parameters[CellParams::PERBX+component];
-      }
-      // If +x neighbour is missing, copy from -x
-      if((*neighbors)[62] == dccrg::error_cell) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,-1,0,0)]->parameters[CellParams::PERBX+component];
-      }
-      cerr << cellID << " " << __FILE__  << ":" << __LINE__
-           << ": Got to the end of fieldBoundaryCopyFromExistingFaceNbrMagneticField(), this should not happen!"
-           << endl;
-      return 0;*/
    }
    
    void Outflow::fieldSolverBoundaryCondDerivatives(
@@ -387,12 +305,18 @@ namespace SBC {
       this->setCellBVOLDerivativesToZero(mpiGrid, cellID, component);
    }
    
+   /**
+    * NOTE that this is called once for each particle species!
+    * @param mpiGrid
+    * @param cellID
+    */
    void Outflow::vlasovBoundaryCondition(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID
+      const CellID& cellID,
+      const int& popID
    ) {
 //      phiprof::start("vlasovBoundaryCondition (Outflow)");
-      vlasovBoundaryCopyFromTheClosestNbr(mpiGrid, cellID);
+      vlasovBoundaryCopyFromTheClosestNbr(mpiGrid,cellID,popID);
 //      phiprof::stop("vlasovBoundaryCondition (Outflow)");
    }
    

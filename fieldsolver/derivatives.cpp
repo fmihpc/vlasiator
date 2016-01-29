@@ -7,6 +7,7 @@ Copyright 2015 Finnish Meteorological Institute
 
 #include <cstdlib>
 
+#include "fs_common.h"
 #include "derivatives.hpp"
 #include "fs_limiters.h"
 #include "fs_cache.h"
@@ -16,17 +17,20 @@ extern map<CellID,uint> existingCellsFlags; /**< Defined in fs_common.cpp */
 /*! \brief Low-level spatial derivatives calculation.
  * 
  * For the cell with ID cellID calculate the spatial derivatives or apply the derivative boundary conditions defined in project.h. Uses RHO, RHOV[XYZ] and B[XYZ] in the first-order time accuracy method and in the second step of the second-order method, and RHO_DT2, RHOV[XYZ]1 and B[XYZ]1 in the first step of the second-order method.
- * \param cellID Index of the cell to process
  * \param mpiGrid Grid
+ * \param cellCache Field solver cell cache
+ * \param sysBoundaries System boundary conditions existing
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  * \param doMoments If true, the derivatives of moments (rho, V, P) are computed.
+ * 
+ * \sa calculateDerivativesSimple calculateBVOLDerivativesSimple calculateBVOLDerivatives
  */
 void calculateDerivatives(
-                          dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                          fs_cache::CellCache& cellCache,
-                          SysBoundary& sysBoundaries,
-                          cint& RKCase,
-                          const bool& doMoments
+   dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   fs_cache::CellCache& cellCache,
+   SysBoundary& sysBoundaries,
+   cint& RKCase,
+   const bool& doMoments
 ) {
 
    namespace cp = CellParams;
@@ -371,19 +375,19 @@ void calculateDerivatives(
  * Then the derivatives are calculated.
  * 
  * \param mpiGrid Grid
+ * \param sysBoundaries System boundary conditions existing
  * \param localCells Vector of local cells to process
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  * \param doMoments If true, the derivatives of moments (rho, V, P) are computed.
  
- * \sa calculateDerivatives
+ * \sa calculateDerivatives calculateBVOLDerivativesSimple calculateBVOLDerivatives
  */
 void calculateDerivativesSimple(
-       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-       SysBoundary& sysBoundaries,
-       const vector<CellID>& localCells,
-       cint& RKCase,
-       const bool& doMoments
-) {
+   dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   SysBoundary& sysBoundaries,
+   const vector<CellID>& localCells,
+   cint& RKCase,
+   const bool& doMoments) {
    int timer;
    namespace fs = fieldsolver;
 
@@ -397,19 +401,19 @@ void calculateDerivativesSimple(
       // standard case Exchange PERB* with neighbours
       // The update of PERB[XYZ] is needed after the system
       // boundary update of propagateMagneticFieldSimple.
-      SpatialCell::set_mpi_transfer_type(Transfer::CELL_PERB | Transfer::CELL_RHO_RHOV | Transfer::CELL_P);
+      spatial_cell::SpatialCell::set_mpi_transfer_type(Transfer::CELL_PERB | Transfer::CELL_RHO_RHOV | Transfer::CELL_P);
       break;
     case RK_ORDER2_STEP1:
       // Exchange PERB*_DT2,RHO_DT2,RHOV*_DT2 with neighbours The
       // update of PERB[XYZ]_DT2 is needed after the system
       // boundary update of propagateMagneticFieldSimple.
-      SpatialCell::set_mpi_transfer_type(Transfer::CELL_PERBDT2 | Transfer::CELL_RHODT2_RHOVDT2 | Transfer::CELL_PDT2);
+      spatial_cell::SpatialCell::set_mpi_transfer_type(Transfer::CELL_PERBDT2 | Transfer::CELL_RHODT2_RHOVDT2 | Transfer::CELL_PDT2);
       break;
     case RK_ORDER2_STEP2:
       // Exchange PERB*,RHO,RHOV* with neighbours The update of B
       // is needed after the system boundary update of
       // propagateMagneticFieldSimple.
-      SpatialCell::set_mpi_transfer_type(Transfer::CELL_PERB | Transfer::CELL_RHO_RHOV | Transfer::CELL_P);
+      spatial_cell::SpatialCell::set_mpi_transfer_type(Transfer::CELL_PERB | Transfer::CELL_RHO_RHOV | Transfer::CELL_P);
       break;
     default:
       cerr << __FILE__ << ":" << __LINE__ << " Went through switch, this should not happen." << endl;
@@ -464,10 +468,14 @@ void calculateDerivativesSimple(
 /*! \brief Low-level spatial derivatives calculation.
  * 
  * For the cell with ID cellID calculate the spatial derivatives of BVOL or apply the derivative boundary conditions defined in project.h.
- * \param cellID Index of the cell to process
  * \param mpiGrid Grid
+ * \param cache Field solver cell cache
+ * \param cells Vector of local cells to process
+ * 
+ * \sa calculateDerivatives calculateBVOLDerivativesSimple calculateDerivativesSimple
  */
-void calculateBVOLDerivatives(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+
+void calculateBVOLDerivatives(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                               std::vector<fs_cache::CellCache>& cache,
                               const std::vector<uint16_t>& cells,
                               SysBoundary& sysBoundaries) {
@@ -556,10 +564,10 @@ void calculateBVOLDerivatives(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry
  * \param sysBoundaries System boundary conditions existing
  * \param localCells Vector of local cells to process
  * 
- * \sa calculateDerivatives
+ * \sa calculateDerivatives calculateBVOLDerivatives calculateDerivativesSimple
  */
 void calculateBVOLDerivativesSimple(
-   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    SysBoundary& sysBoundaries,
    const vector<CellID>& localCells
 ) {
@@ -568,7 +576,7 @@ void calculateBVOLDerivativesSimple(
    
    phiprof::start("Calculate volume derivatives");
    
-   SpatialCell::set_mpi_transfer_type(Transfer::CELL_BVOL);
+   spatial_cell::SpatialCell::set_mpi_transfer_type(Transfer::CELL_BVOL);
    mpiGrid.update_copies_of_remote_neighbors(FIELD_SOLVER_NEIGHBORHOOD_ID);
    
    timer=phiprof::initializeTimer("Start comm","MPI");

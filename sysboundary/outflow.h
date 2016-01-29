@@ -2,18 +2,6 @@
  This file is part of Vlasiator.
  
  Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
  */
 
 #ifndef OUTFLOW_H
@@ -26,10 +14,13 @@
 #include "sysboundarycondition.h"
 
 namespace SBC {
-   /*!\brief Outflow is a class applying outflow boundary conditions.
+   /*!\brief Outflow is a class applying copy/outflow boundary conditions.
     * 
-    * Outflow is a class handling cells tagged as sysboundarytype::OUTFLOW by this system
-    * boundary condition. It applies outflow boundary conditions.
+    * Outflow is a class handling cells tagged as sysboundarytype::OUTFLOW by this system boundary condition. It applies copy/outflow boundary conditions.
+    * 
+    * These consist in:
+    * - Copy the distribution and moments from the nearest NOT_SYSBOUNDARY cell;
+    * - Copy the perturbed B components from the nearest NOT_SYSBOUNDARY cell. EXCEPTION: the face components adjacent to the simulation domain at the +x/+y/+z faces are propagated still.
     */
    class Outflow: public SysBoundaryCondition {
    public:
@@ -48,15 +39,14 @@ namespace SBC {
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          Project &project
       );
-//       virtual bool applySysBoundaryCondition(
-//          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-//          creal& t
-//       );
       virtual Real fieldSolverBoundaryCondMagneticField(
-                                                        const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                                        const CellID& cellID,
-                                                        creal& dt,
-                                                        cuint& component
+         const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+         const std::vector<fs_cache::CellCache>& cellCache,
+         const uint16_t& localID,
+         creal& dt,
+         cuint& RKCase,
+         cint& offset,
+         cuint& component
       );
       virtual void fieldSolverBoundaryCondElectricField(
          dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
@@ -65,10 +55,17 @@ namespace SBC {
          cuint component
       );
       virtual void fieldSolverBoundaryCondHallElectricField(
-                                                            fs_cache::CellCache& cache,
-                                                            cuint RKCase,
-                                                            cuint component
-                                                           );
+         fs_cache::CellCache& cache,
+         cuint RKCase,
+         cuint component
+      );
+
+      virtual void fieldSolverBoundaryCondGradPeElectricField(
+         fs_cache::CellCache& cache,
+         cuint RKCase,
+         cuint component
+      );
+
       virtual void fieldSolverBoundaryCondDerivatives(
          dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const CellID& cellID,
@@ -82,7 +79,8 @@ namespace SBC {
       );
       virtual void vlasovBoundaryCondition(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-         const CellID& cellID
+         const CellID& cellID,
+         const int& popID
       );
       
       virtual void getFaces(bool* faces);

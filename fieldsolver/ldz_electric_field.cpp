@@ -29,25 +29,39 @@ extern map<CellID,uint> existingCellsFlags;
  * 
  * If fields are not propagated, returns 0.0 as there is no information propagating.
  * 
+ * \param cp Curent cell's parameters
+ * \param derivs Curent cell's derivatives
+ * \param nbr_cp Neighbor cell's parameters
+ * \param nbr_derivs Neighbor cell's derivatives
+ * \param By Current cell's By
+ * \param Bz Current cell's Bz
+ * \param dBydx dBydx derivative
+ * \param dBydz dBydz derivative
+ * \param dBzdx dBzdx derivative
+ * \param dBzdy dBzdy derivative
+ * \param ydir +1 or -1 depending on the interpolation direction in y
+ * \param zdir +1 or -1 depending on the interpolation direction in z
+ * \param minRho Minimum density allowed from the neighborhood
+ * \param maxRho Maximum density allowed from the neighborhood
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
 Real calculateWaveSpeedYZ(
-                          const Real* cp,
-                          const Real* derivs,
-                          const Real* nbr_cp,
-                          const Real* nbr_derivs,
-                          const Real& By,
-                          const Real& Bz,
-                          const Real& dBydx,
-                          const Real& dBydz,
-                          const Real& dBzdx,
-                          const Real& dBzdy,
-                          const Real& ydir,
-                          const Real& zdir,
-                          const Real& minRho,
-                          const Real& maxRho,
-                          cint& RKCase
-                         ) {
+   const Real* cp,
+   const Real* derivs,
+   const Real* nbr_cp,
+   const Real* nbr_derivs,
+   const Real& By,
+   const Real& Bz,
+   const Real& dBydx,
+   const Real& dBydz,
+   const Real& dBzdx,
+   const Real& dBzdy,
+   const Real& ydir,
+   const Real& zdir,
+   const Real& minRho,
+   const Real& maxRho,
+   cint& RKCase
+) {
    if (Parameters::propagateField == false) return 0.0;
 
    Real A_0, A_X, rhom, p11, p22, p33;
@@ -103,25 +117,39 @@ Real calculateWaveSpeedYZ(
  * 
  * If fields are not propagated, returns 0.0 as there is no information propagating.
  * 
+ * \param cp Curent cell's parameters
+ * \param derivs Curent cell's derivatives
+ * \param nbr_cp Neighbor cell's parameters
+ * \param nbr_derivs Neighbor cell's derivatives
+ * \param Bx Current cell's Bx
+ * \param Bz Current cell's Bz
+ * \param dBxdy dBxdy derivative
+ * \param dBxdz dBxdz derivative
+ * \param dBzdx dBzdx derivative
+ * \param dBzdy dBzdy derivative
+ * \param xdir +1 or -1 depending on the interpolation direction in x
+ * \param zdir +1 or -1 depending on the interpolation direction in z
+ * \param minRho Minimum density allowed from the neighborhood
+ * \param maxRho Maximum density allowed from the neighborhood
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
 Real calculateWaveSpeedXZ(
-                          const Real* cp,
-                          const Real* derivs,
-                          const Real* nbr_cp,
-                          const Real* nbr_derivs,
-                          const Real& Bx,
-                          const Real& Bz,
-                          const Real& dBxdy,
-                          const Real& dBxdz,
-                          const Real& dBzdx,
-                          const Real& dBzdy,
-                          const Real& xdir,
-                          const Real& zdir,
-                          const Real& minRho,
-                          const Real& maxRho,
-                          cint& RKCase
-                         ) {
+   const Real* cp,
+   const Real* derivs,
+   const Real* nbr_cp,
+   const Real* nbr_derivs,
+   const Real& Bx,
+   const Real& Bz,
+   const Real& dBxdy,
+   const Real& dBxdz,
+   const Real& dBzdx,
+   const Real& dBzdy,
+   const Real& xdir,
+   const Real& zdir,
+   const Real& minRho,
+   const Real& maxRho,
+   cint& RKCase
+) {
    if (Parameters::propagateField == false) return 0.0;
 
    Real B_0, B_Y, rhom, p11, p22, p33;
@@ -176,25 +204,39 @@ Real calculateWaveSpeedXZ(
  * 
  * If fields are not propagated, returns 0.0 as there is no information propagating.
  * 
+ * \param cp Curent cell's parameters
+ * \param derivs Curent cell's derivatives
+ * \param nbr_cp Neighbor cell's parameters
+ * \param nbr_derivs Neighbor cell's derivatives
+ * \param Bx Current cell's Bx
+ * \param By Current cell's By
+ * \param dBxdy dBxdy derivative
+ * \param dBxdz dBxdz derivative
+ * \param dBydx dBydx derivative
+ * \param dBydz dBydz derivative
+ * \param xdir +1 or -1 depending on the interpolation direction in x
+ * \param ydir +1 or -1 depending on the interpolation direction in y
+ * \param minRho Minimum density allowed from the neighborhood
+ * \param maxRho Maximum density allowed from the neighborhood
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
 Real calculateWaveSpeedXY(
-                          const Real* cp,
-                          const Real* derivs,
-                          const Real* nbr_cp,
-                          const Real* nbr_derivs,
-                          const Real& Bx,
-                          const Real& By,
-                          const Real& dBxdy,
-                          const Real& dBxdz,
-                          const Real& dBydx,
-                          const Real& dBydz,
-                          const Real& xdir,
-                          const Real& ydir,
-                          const Real& minRho,
-                          const Real& maxRho,
-                          cint& RKCase
-                         ) {
+   const Real* cp,
+   const Real* derivs,
+   const Real* nbr_cp,
+   const Real* nbr_derivs,
+   const Real& Bx,
+   const Real& By,
+   const Real& dBxdy,
+   const Real& dBxdz,
+   const Real& dBydx,
+   const Real& dBydz,
+   const Real& xdir,
+   const Real& ydir,
+   const Real& minRho,
+   const Real& maxRho,
+   cint& RKCase
+) {
    if (Parameters::propagateField == false) return 0.0;
 
    Real C_0, C_Z, rhom, p11, p22, p33;
@@ -249,11 +291,13 @@ Real calculateWaveSpeedXY(
  * 
  * Note that the background B field is excluded from the diffusive term calculations because they are equivalent to a current term and the background field is curl-free.
  * 
- * \param cellID Index of the cell to process
- * \param mpiGrid Grid
+ * \param cache Field solver cell cache
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
-void calculateEdgeElectricFieldX(fs_cache::CellCache& cache,cint& RKCase) {
+void calculateEdgeElectricFieldX(
+   fs_cache::CellCache& cache,
+   cint& RKCase
+) {
    #ifdef DEBUG_FSOLVER
    bool ok = true;
    if (cache.cells[fs_cache::calculateNbrID(1  ,1  ,1  )] == NULL) ok = false;
@@ -377,6 +421,11 @@ void calculateEdgeElectricFieldX(fs_cache::CellCache& cache,cint& RKCase) {
    if(Parameters::ohmHallTerm > 0) {
       Ex_SW += cp_SW[CellParams::EXHALL_000_100];
    }
+   
+   // Electron pressure gradient term
+   if(Parameters::ohmGradPeTerm > 0) {
+      Ex_SW += cp_SW[CellParams::EXGRADPE];
+   }
 
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
@@ -424,6 +473,12 @@ void calculateEdgeElectricFieldX(fs_cache::CellCache& cache,cint& RKCase) {
    if(Parameters::ohmHallTerm > 0) {
       Ex_SE += cp_SE[CellParams::EXHALL_010_110];
    }
+   
+   // Electron pressure gradient term
+   if(Parameters::ohmGradPeTerm > 0) {
+      Ex_SE += cp_SE[CellParams::EXGRADPE];
+   }
+   
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ex_SE += +HALF*((By_S - HALF*dBydz_S)*(+derivs_SE[fs::dVzdy] - derivs_SE[fs::dVzdz]) - dBydz_S*Vz0 + SIXTH*dBydx_S*derivs_SE[fs::dVzdx]);
@@ -470,6 +525,12 @@ void calculateEdgeElectricFieldX(fs_cache::CellCache& cache,cint& RKCase) {
    if(Parameters::ohmHallTerm > 0) {
       Ex_NW += cp_NW[CellParams::EXHALL_001_101];
    }
+   
+   // Electron pressure gradient term
+   if(Parameters::ohmGradPeTerm > 0) {
+      Ex_NW += cp_NW[CellParams::EXGRADPE];
+   }
+   
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ex_NW += +HALF*((By_N + HALF*dBydz_N)*(-derivs_NW[fs::dVzdy] + derivs_NW[fs::dVzdz]) + dBydz_N*Vz0 + SIXTH*dBydx_N*derivs_NW[fs::dVzdx]);
@@ -516,6 +577,12 @@ void calculateEdgeElectricFieldX(fs_cache::CellCache& cache,cint& RKCase) {
    if(Parameters::ohmHallTerm > 0) {
       Ex_NE += cp_NE[CellParams::EXHALL_011_111];
    }
+   
+   // Electron pressure gradient term
+   if(Parameters::ohmGradPeTerm > 0) {
+      Ex_NE += cp_NE[CellParams::EXGRADPE];
+   }
+   
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ex_NE += +HALF*((By_N + HALF*dBydz_N)*(+derivs_NE[fs::dVzdy] + derivs_NE[fs::dVzdz]) + dBydz_N*Vz0 + SIXTH*dBydx_N*derivs_NE[fs::dVzdx]);
@@ -586,11 +653,13 @@ void calculateEdgeElectricFieldX(fs_cache::CellCache& cache,cint& RKCase) {
  * 
  * Note that the background B field is excluded from the diffusive term calculations because they are equivalent to a current term and the background field is curl-free.
  * 
- * \param cellID Index of the cell to process
- * \param mpiGrid Grid
+ * \param cache Field solver cell cache
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
-void calculateEdgeElectricFieldY(fs_cache::CellCache& cache,cint& RKCase) {
+void calculateEdgeElectricFieldY(
+   fs_cache::CellCache& cache,
+   cint& RKCase
+) {
    #ifdef DEBUG_FSOLVER
    bool ok = true;
    if (cache.cells[fs_cache::calculateNbrID(1  ,1  ,1  )] == NULL) ok = false;
@@ -715,6 +784,12 @@ void calculateEdgeElectricFieldY(fs_cache::CellCache& cache,cint& RKCase) {
    if (Parameters::ohmHallTerm > 0) {
       Ey_SW += cp_SW[CellParams::EYHALL_000_010];
    }
+   
+   // Electron pressure gradient term
+   if(Parameters::ohmGradPeTerm > 0) {
+      Ey_SW += cp_SW[CellParams::EYGRADPE];
+   }
+   
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms
       Ey_SW += +HALF*((Bz_S - HALF*dBzdx_S)*(-derivs_SW[fs::dVxdx] - derivs_SW[fs::dVxdz]) - dBzdx_S*Vx0 + SIXTH*dBzdy_S*derivs_SW[fs::dVxdy]);
@@ -761,6 +836,12 @@ void calculateEdgeElectricFieldY(fs_cache::CellCache& cache,cint& RKCase) {
    if (Parameters::ohmHallTerm > 0) {
       Ey_SE += cp_SE[CellParams::EYHALL_001_011];
    }
+   
+   // Electron pressure gradient term
+   if(Parameters::ohmGradPeTerm > 0) {
+      Ey_SE += cp_SE[CellParams::EYGRADPE];
+   }
+   
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ey_SE += +HALF*((Bz_S - HALF*dBzdx_S)*(-derivs_SE[fs::dVxdx] + derivs_SE[fs::dVxdz]) - dBzdx_S*Vx0 + SIXTH*dBzdy_S*derivs_SE[fs::dVxdy]);
@@ -806,6 +887,12 @@ void calculateEdgeElectricFieldY(fs_cache::CellCache& cache,cint& RKCase) {
    if(Parameters::ohmHallTerm > 0) {
       Ey_NW += cp_NW[CellParams::EYHALL_100_110];
    }
+   
+   // Electron pressure gradient term
+   if(Parameters::ohmGradPeTerm > 0) {
+      Ey_NW += cp_NW[CellParams::EYGRADPE];
+   }
+   
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ey_NW += +HALF*((Bz_N + HALF*dBzdx_N)*(+derivs_NW[fs::dVxdx] - derivs_NW[fs::dVxdz]) + dBzdx_N*Vx0 + SIXTH*dBzdy_N*derivs_NW[fs::dVxdy]);
@@ -851,6 +938,12 @@ void calculateEdgeElectricFieldY(fs_cache::CellCache& cache,cint& RKCase) {
    if(Parameters::ohmHallTerm > 0) {
       Ey_NE += cp_NE[CellParams::EYHALL_101_111];
    }
+   
+   // Electron pressure gradient term
+   if(Parameters::ohmGradPeTerm > 0) {
+      Ey_NE += cp_NE[CellParams::EYGRADPE];
+   }
+   
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ey_NE += +HALF*((Bz_N + HALF*dBzdx_N)*(+derivs_NE[fs::dVxdx] + derivs_NE[fs::dVxdz]) + dBzdx_N*Vx0 + SIXTH*dBzdy_N*derivs_NE[fs::dVxdy]);
@@ -917,11 +1010,13 @@ void calculateEdgeElectricFieldY(fs_cache::CellCache& cache,cint& RKCase) {
  * 
  * Note that the background B field is excluded from the diffusive term calculations because they are equivalent to a current term and the background field is curl-free.
  * 
- * \param cellID Index of the cell to process
- * \param mpiGrid Grid
+ * \param cache Field solver cell cache
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
-void calculateEdgeElectricFieldZ(fs_cache::CellCache& cache,cint& RKCase) {
+void calculateEdgeElectricFieldZ(
+   fs_cache::CellCache& cache,
+   cint& RKCase
+) {
    #ifdef DEBUG_FSOLVER
    bool ok = true;
    if (cache.cells[fs_cache::calculateNbrID(1  ,1  ,1  )] == NULL) ok = false;
@@ -1047,6 +1142,12 @@ void calculateEdgeElectricFieldZ(fs_cache::CellCache& cache,cint& RKCase) {
    if (Parameters::ohmHallTerm > 0) {
       Ez_SW += cp_SW[CellParams::EZHALL_000_001];
    }
+   
+   // Electron pressure gradient term
+   if(Parameters::ohmGradPeTerm > 0) {
+      Ez_SW += cp_SW[CellParams::EZGRADPE];
+   }
+   
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ez_SW  += +HALF*((Bx_S - HALF*dBxdy_S)*(-derivs_SW[fs::dVydx] - derivs_SW[fs::dVydy]) - dBxdy_S*Vy0 + SIXTH*dBxdz_S*derivs_SW[fs::dVydz]);
@@ -1093,6 +1194,12 @@ void calculateEdgeElectricFieldZ(fs_cache::CellCache& cache,cint& RKCase) {
    if (Parameters::ohmHallTerm > 0) {
       Ez_SE += cp_SE[CellParams::EZHALL_100_101];
    }
+   
+   // Electron pressure gradient term
+   if(Parameters::ohmGradPeTerm > 0) {
+      Ez_SE += cp_SE[CellParams::EZGRADPE];
+   }
+   
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ez_SE  += +HALF*((Bx_S - HALF*dBxdy_S)*(+derivs_SE[fs::dVydx] - derivs_SE[fs::dVydy]) - dBxdy_S*Vy0 + SIXTH*dBxdz_S*derivs_SE[fs::dVydz]);
@@ -1138,6 +1245,12 @@ void calculateEdgeElectricFieldZ(fs_cache::CellCache& cache,cint& RKCase) {
    if(Parameters::ohmHallTerm > 0) {
       Ez_NW += cp_NW[CellParams::EZHALL_010_011];
    }
+   
+   // Electron pressure gradient term
+   if(Parameters::ohmGradPeTerm > 0) {
+      Ez_NW += cp_NW[CellParams::EZGRADPE];
+   }
+   
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ez_NW  += +HALF*((Bx_N + HALF*dBxdy_N)*(-derivs_NW[fs::dVydx] + derivs_NW[fs::dVydy]) + dBxdy_N*Vy0 + SIXTH*dBxdz_N*derivs_NW[fs::dVydz]);
@@ -1183,6 +1296,12 @@ void calculateEdgeElectricFieldZ(fs_cache::CellCache& cache,cint& RKCase) {
    if(Parameters::ohmHallTerm > 0) {
       Ez_NE += cp_NE[CellParams::EZHALL_110_111];
    }
+   
+   // Electron pressure gradient term
+   if(Parameters::ohmGradPeTerm > 0) {
+      Ez_NE += cp_NE[CellParams::EZGRADPE];
+   }
+   
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ez_NE  += +HALF*((Bx_N + HALF*dBxdy_N)*(+derivs_NE[fs::dVydx] + derivs_NE[fs::dVydy]) + dBxdy_N*Vy0 + SIXTH*dBxdz_N*derivs_NE[fs::dVydz]);
@@ -1242,11 +1361,26 @@ void calculateEdgeElectricFieldZ(fs_cache::CellCache& cache,cint& RKCase) {
    }
 }
 
-void calculateElectricField(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                            std::vector<fs_cache::CellCache>& cellCache,
-                            const std::vector<uint16_t>& cells,
-                            SysBoundary& sysBoundaries,
-                            cint& RKCase) {
+/*! \brief Electric field propagation function.
+ * 
+ * Calls the general or the system boundary electric field propagation functions.
+ * 
+ * \param mpiGrid Grid
+ * \param cellCache Field solver cell cache
+ * \param cells Vector of cells to process
+ * \param sysBoundaries System boundary conditions existing
+ * \param RKCase Element in the enum defining the Runge-Kutta method steps
+ * 
+ * \sa calculateUpwindedElectricFieldSimple calculateEdgeElectricFieldX calculateEdgeElectricFieldY calculateEdgeElectricFieldZ
+ * 
+ */
+void calculateElectricField(
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   std::vector<fs_cache::CellCache>& cellCache,
+   const std::vector<uint16_t>& cells,
+   SysBoundary& sysBoundaries,
+   cint& RKCase
+) {
    #pragma omp parallel for
    for (size_t c=0; c<cells.size(); ++c) {
       const uint16_t localID = cells[c];
@@ -1299,10 +1433,11 @@ void calculateElectricField(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
  * Transfers the derivatives, calculates the edge electric fields and transfers the new electric fields.
  * 
  * \param mpiGrid Grid
+ * \param sysBoundaries System boundary conditions existing
  * \param localCells Vector of local cells to process
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  * 
- * \sa calculateEdgeElectricFieldX calculateEdgeElectricFieldY calculateEdgeElectricFieldZ
+ * \sa calculateElectricField calculateEdgeElectricFieldX calculateEdgeElectricFieldY calculateEdgeElectricFieldZ
  */
 void calculateUpwindedElectricFieldSimple(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
@@ -1313,11 +1448,17 @@ void calculateUpwindedElectricFieldSimple(
    namespace fs = fieldsolver;
    int timer;
    phiprof::start("Calculate upwinded electric field");
+   uint64_t transferMask = 0;
    if(P::ohmHallTerm > 0) {
-      SpatialCell::set_mpi_transfer_type(Transfer::CELL_HALL_TERM);
-   } else {
-      SpatialCell::set_mpi_transfer_type(Transfer::CELL_DERIVATIVES);
+      transferMask = transferMask | Transfer::CELL_HALL_TERM;
    }
+   if(P::ohmGradPeTerm > 0) {
+      transferMask = transferMask | Transfer::CELL_GRADPE_TERM;
+   }
+   if(P::ohmHallTerm == 0 && P::ohmGradPeTerm == 0) {
+      transferMask = Transfer::CELL_DERIVATIVES;
+   }
+   SpatialCell::set_mpi_transfer_type(transferMask);
    
    timer=phiprof::initializeTimer("Start communication in calculateUpwindedElectricFieldSimple","MPI");
    phiprof::start(timer);

@@ -34,8 +34,10 @@ namespace fs_cache {
       for (int i=0; i<27; ++i) cells[i] = NULL;
    }
    
-   void calculateCache(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                       const std::vector<CellID>& cells) {
+   void calculateCache(
+      dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      const std::vector<CellID>& cells
+   ) {
       if (Parameters::tstep == cacheContainer.cacheCalculatedStep) return;
 
       cacheContainer.clear();
