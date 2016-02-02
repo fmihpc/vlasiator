@@ -10,7 +10,7 @@ fileName = "BCB_rho_" # EDIT
 outputLocation = "/lustre/tmp/alfthan/2D/BCB/visualizations/movies/rho/" # EDIT
 
 
-frameList = range(int(sys.argv[2]),int(sys.argv[3])+1)
+frameList = range(int(sys.argv[1]),int(sys.argv[2])+1)
 
 for entry in frameList:
    number=str(entry).rjust(7, '0')
