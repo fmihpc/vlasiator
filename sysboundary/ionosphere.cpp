@@ -38,7 +38,7 @@ namespace SBC {
       Readparameters::add("ionosphere.centerY", "Y coordinate of ionosphere center (m)", 0.0);
       Readparameters::add("ionosphere.centerZ", "Z coordinate of ionosphere center (m)", 0.0);
       Readparameters::add("ionosphere.radius", "Radius of ionosphere (m).", 1.0e7);
-      Readparameters::add("ionosphere.geometry", "Select the geometry of the ionosphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm (circle, DEFAULT)", 2);
+      Readparameters::add("ionosphere.geometry", "Select the geometry of the ionosphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm (circle, DEFAULT), 3: 2-norm cylinder aligned with y-axis, use with polar plane/line dipole.", 2);
       Readparameters::add("ionosphere.rho", "Number density of the ionosphere (m^-3)", 1.0e6);
       Readparameters::add("ionosphere.VX0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", 0.0);
       Readparameters::add("ionosphere.VY0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", 0.0);
@@ -145,6 +145,9 @@ namespace SBC {
             case 2:
                // 2-norm (Cartesian), result is a circle in 2D
                r = sqrt((x-center[0])*(x-center[0]) + (y-center[1])*(y-center[1]) + (z-center[2])*(z-center[2]));
+            case 3:
+               // 2-norm (Cartesian) cylinder aligned on y-axis
+               r = sqrt((x-center[0])*(x-center[0]) + (z-center[2])*(z-center[2]));
                break;
             default:
                std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1 or 2." << std::endl;
@@ -248,7 +251,7 @@ namespace SBC {
                   normalDirection[2] = z / length;
                   break;
                default:
-                  std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1 or 2." << std::endl;
+                  std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1 or 2 with this grid shape." << std::endl;
                   abort();
             }
             // end of X
@@ -289,12 +292,13 @@ namespace SBC {
                   }
                   break;
                case 2:
+               case 3:
                   length = sqrt(x*x + z*z);
                   normalDirection[0] = x / length;
                   normalDirection[2] = z / length;
                   break;
                default:
-                  std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1 or 2." << std::endl;
+                  std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1, 2 or 3 with this grid shape." << std::endl;
                   abort();
             }
             // end of Y
@@ -335,7 +339,7 @@ namespace SBC {
                normalDirection[1] = y / length;
                break;
             default:
-               std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1 or 2." << std::endl;
+               std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1 or 2 with this grid shape." << std::endl;
                abort();
          }
          // end of Z
@@ -427,8 +431,13 @@ namespace SBC {
                normalDirection[1] = y / length;
                normalDirection[2] = z / length;
                break;
+            case 3:
+               length = sqrt(x*x + z*z);
+               normalDirection[0] = x / length;
+               normalDirection[2] = z / length;
+               break;
             default:
-               std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1 or 2." << std::endl;
+               std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1, 2 or 3 with this grid shape." << std::endl;
                abort();
          }
          // end of 3D

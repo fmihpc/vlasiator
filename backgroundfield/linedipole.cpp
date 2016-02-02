@@ -33,7 +33,7 @@ double LineDipole::call( double x, double y, double z) const
    r[1]= y-center[1];
    r[2]= z-center[2];
    
-   double r2 = r[0]*r[0]+r[1]*r[1]+r[2]*r[2];
+   double r2 = r[0]*r[0]+r[2]*r[2]; // r[1] not necessary in this case, removed to enable proper cylindrical ionosphere (ionosphere.geometry = 3)
    
    if(r2<minimumR*minimumR)
       //  r2=minimumR*minimumR;
