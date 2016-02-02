@@ -248,9 +248,9 @@ namespace spatial_cell {
       vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& get_velocity_mesh_temporary();
       vmesh::VelocityBlockContainer<vmesh::LocalID>& get_velocity_blocks_temporary();
 
-      Real get_value(const Real vx,const Real vy,const Real vz,const int& popID) const;
+      Realf get_value(const Real vx,const Real vy,const Real vz,const int& popID) const;
       void increment_value(const Real vx,const Real vy,const Real vz,const Realf value,const int& popID);
-      void increment_value(const vmesh::GlobalID& block,const unsigned int cell,const Real value,const int& popID);
+      void increment_value(const vmesh::GlobalID& block,const unsigned int cell,const Realf value,const int& popID);
       void set_max_r_dt(const int& popID,const Real& value);
       void set_max_v_dt(const int& popID,const Real& value);
       void set_value(const Real vx, const Real vy, const Real vz, const Realf value,const int& popID);
@@ -1410,7 +1410,7 @@ namespace spatial_cell {
     */
    inline void SpatialCell::increment_value(const vmesh::GlobalID& blockGID,
                                             const unsigned int cell,
-                                            const Real value,const int& popID) {
+                                            const Realf value,const int& popID) {
       #ifdef DEBUG_SPATIAL_CELL
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
@@ -1468,7 +1468,7 @@ namespace spatial_cell {
     * 
     * Returns 0 if it doesn't exist.
     */
-   inline Real SpatialCell::get_value(const Real vx, const Real vy, const Real vz,const int& popID) const {
+   inline Realf SpatialCell::get_value(const Real vx, const Real vy, const Real vz,const int& popID) const {
       #ifdef DEBUG_SPATIAL_CELL
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
@@ -1486,8 +1486,7 @@ namespace spatial_cell {
 
       const unsigned int cell = get_velocity_cell(popID,blockGID, vx, vy, vz);
       // Cast to real: Note block_ptr->data[cell] is Realf type
-      const Real value = get_data(blockLID,popID)[cell];
-      return value;
+      return get_data(blockLID,popID)[cell];
    }
    
    inline bool SpatialCell::checkMesh(const int& popID) {
