@@ -186,15 +186,7 @@ void initializeGrid(
             project.setCell(cell);
          }
       }
-
-      // Initial state for sys-boundary cells
       phiprof::stop("Apply initial state");
-      phiprof::start("Apply system boundary conditions state");
-      if (sysBoundaries.applyInitialState(mpiGrid, project) == false) {
-         cerr << " (MAIN) ERROR: System boundary conditions initial state was not applied correctly." << endl;
-         exit(1);
-      }
-      phiprof::stop("Apply system boundary conditions state");
 
       for (size_t i=0; i<cells.size(); ++i) {
          mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = 0;
