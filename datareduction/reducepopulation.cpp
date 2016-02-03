@@ -862,7 +862,7 @@ inline
 bool mergeClusters( Cluster & a, Cluster & b, VelocityCell & aVelocityCell, VelocityCell & bVelocityCell, const SpatialCell * cell, const Real minVolume, const Real minAvgs) {
   const Real * parameters = cell->parameters;
   return (min(*a.members, *b.members)*parameters[BlockParams::DVX]*parameters[BlockParams::DVX]*parameters[BlockParams::DVX] < minVolume) ||
-         (min(aVelocityCell.get_avgs(), aVelocityCell.get_avgs()) > minAvgs );
+         (min(aVelocityCell.get_avgs(), bVelocityCell.get_avgs()) > minAvgs );
 }
 
 void deallocateClusters( vector<Cluster> clusters ) {
