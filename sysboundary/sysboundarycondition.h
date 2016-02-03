@@ -124,6 +124,7 @@ namespace SBC {
             dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const std::vector<CellID> & local_cells_on_boundary
          );
+         bool doApplyUponRestart() const;
       protected:
          void determineFace(
             bool* isThisCellOnAFace,
