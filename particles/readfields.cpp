@@ -45,45 +45,6 @@ std::vector<uint64_t> readCellIds(vlsvinterface::Reader& r) {
    return cellIds;
 }
 
-// Read a single-valued floating point parameter
-double readDoubleParameter(vlsvinterface::Reader& r, const char* name) {
-
-   double retval;
-   if( !r.readParameter(name,retval) ) {
-      std::cerr << "readParameter faied when trying to read PARAMETER \"" << name << "\"." << std::endl;
-      exit(1);
-   }
-   return retval;
-}
-
-// Read a single-valued integer parameter
-uint32_t readUintParameter(vlsvinterface::Reader& r, const char* name) {
-   uint64_t arraySize=0;
-   uint64_t vectorSize=0;
-   uint64_t byteSize=0;
-   vlsv::datatype::type dataType;
-   std::list<std::pair<std::string,std::string> > attribs;
-   attribs.push_back(std::pair<std::string,std::string>("name",name));
-   if( r.getArrayInfo("PARAMETER",attribs, arraySize,vectorSize,dataType,byteSize) == false ) {
-      std::cerr << "getArrayInfo returned false when trying to read PARAMETER \""
-         << name << "\"." << std::endl;
-      exit(1);
-   }
-
-   if(dataType != vlsv::datatype::type::UINT || byteSize != 4 || vectorSize != 1 || arraySize != 1) {
-      std::cerr << "Datatype of PARAMETER \"" << name << "\" is not a single uint32_t value." << std::endl;
-      exit(1);
-   }
-
-   uint32_t retval;
-   if( r.readArray("PARAMETER",attribs,0,arraySize,(char*)&retval) == false) {
-      std::cerr << "readArray faied when trying to read PARAMETER \"" << name << "\"." << std::endl;
-      exit(1);
-   }
-
-   return retval;
-}
-
 /* For debugging purposes - dump a field into a png file
  * We're hardcodedly writing the z=0 plane here. */
 void debug_output(Field& F, const char* filename) {

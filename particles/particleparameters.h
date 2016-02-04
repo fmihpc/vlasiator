@@ -5,6 +5,7 @@
 
 #include "distribution.h"
 #include "../definitions.h"
+#include "boundaries.h"
 
 class Distribution; //forward declaration
 
@@ -23,6 +24,10 @@ struct ParticleParameters {
    static Real input_dt; /*!< Time interval between input files */
 
    static uint64_t num_particles; /*!< Number of particles to generate */
+
+   static Boundary* boundary_behaviour_x; /*!< What to do with particles that reach the x boundary */
+   static Boundary* boundary_behaviour_y; /*!< What to do with particles that reach the y boundary */
+   static Boundary* boundary_behaviour_z; /*!< What to do with particles that reach the z boundary */
 
    static Real precip_inner_boundary; /*!< Distance of the inner boundary from the coordinate centre (meters) */
    static Real precip_start_x; /*!< X-Coordinate at which precipitation injection starts (meters) */
