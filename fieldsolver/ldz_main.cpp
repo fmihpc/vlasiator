@@ -290,7 +290,7 @@ bool propagateFields(
       const vector<CellID> cells = mpiGrid.get_cells();
       Real subcycleDt = dt/convert<Real>(subcycles);
       Real subcycleT = P::t;
-      creal targetT = P::t + P::dt;
+      creal targetT = P::t + dt;
       uint subcycleCount = 0;
       int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
@@ -342,15 +342,18 @@ bool propagateFields(
             //set new timestep to the lowest one of all interval-midpoints
             subcycleDt = meanFieldsCFL * dtMaxGlobal;
             if ( myRank == MASTER_RANK ) {
-               logFile << "(TIMESTEP) New subcycle dt = " << subcycleDt << " computed on step " <<  P::tstep << " and substep " << subcycleCount << " at " << P::t << "s" << std::endl << writeVerbose;
+               logFile << "(TIMESTEP) New field solver subcycle dt = " << subcycleDt << " computed on step " <<  P::tstep << " and substep " << subcycleCount << " at " << P::t << " s" << std::endl;
             }
          }
          
-         if( subcycleT + subcycleDt > targetT ) {
+         // If we are off (and due to rounding errors it is almost always the case...) we readjust the final dt
+         if( subcycleT + subcycleDt + 0.1 * P::bailout_min_dt / convert<Real>(subcycles)  > targetT ) {
+            creal oldSubcycleDt = subcycleDt;
             subcycleDt = targetT - subcycleT;
-            if ( myRank == MASTER_RANK ) {
-# warning TODO this will always trigger, do not keep in final version.
-               std::cout << "(TIMESTEP) Last subcycle dt = " << subcycleDt << " computed on step " <<  P::tstep << std::endl;
+            
+            // If we are off by more than the epsilon we made up here, then we print a warning that it happened. Should not happen too often and thus not flood the logfile.
+            if ( myRank == MASTER_RANK  && fabs(subcycleDt - oldSubcycleDt) > 0.1 * P::bailout_min_dt / convert<Real>(subcycles) ) {
+               logFile << "(TIMESTEP) Last field solver subcycle dt = " << subcycleDt << " computed on step " <<  P::tstep << std::endl;
             }
          }
          
@@ -359,7 +362,7 @@ bool propagateFields(
       }
       
       if( subcycles != subcycleCount && myRank == MASTER_RANK) {
-         logFile << "Effective field solver subcycles were " << subcycleCount << " instead of " << P::fieldSolverSubcycles << " on step " <<  P::tstep << std::endl << writeVerbose;
+         logFile << "Effective field solver subcycles were " << subcycleCount << " instead of " << P::fieldSolverSubcycles << " on step " <<  P::tstep << std::endl;
       }
    }
    
