@@ -377,12 +377,9 @@ bool propagateFields(
          MPI_Allreduce(&(dtMaxLocal), &(dtMaxGlobal), 1, MPI_Type<Real>(), MPI_MIN, MPI_COMM_WORLD);
          phiprof::stop("MPI_Allreduce");
          
-         //reduce dt if it is too high for any of the three propagators, or too low for all propagators
-         if(( subcycleDt > dtMaxGlobal * P::fieldSolverMaxCFL ) ||
-            ( subcycleDt < dtMaxGlobal * P::fieldSolverMinCFL )
-         ) {
+         //reduce dt if it is too high
+         if( subcycleDt > dtMaxGlobal * P::fieldSolverMaxCFL ) {
             creal meanFieldsCFL = 0.5*(P::fieldSolverMaxCFL+ P::fieldSolverMinCFL);
-            //set new timestep to the lowest one of all interval-midpoints
             subcycleDt = meanFieldsCFL * dtMaxGlobal;
             if ( myRank == MASTER_RANK ) {
                logFile << "(TIMESTEP) New field solver subcycle dt = " << subcycleDt << " computed on step " <<  P::tstep << " and substep " << subcycleCount << " at " << P::t << " s" << std::endl;
