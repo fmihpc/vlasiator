@@ -359,8 +359,7 @@ bool propagateFields(
       }
       
       if( P::fieldSolverSubcycles != subcycleCount && myRank == MASTER_RANK) {
-# warning TODO this should be in logfile.
-         std::cout << "Effective field solver subcycles were " << subcycleCount << " instead of " << P::fieldSolverSubcycles << " on step " <<  P::tstep << std::endl;
+         logFile << "Effective field solver subcycles were " << subcycleCount << " instead of " << P::fieldSolverSubcycles << " on step " <<  P::tstep << std::endl << writeVerbose;
       }
    }
    
