@@ -335,7 +335,7 @@ bool propagateFields(
       while (true) {
          if( subcycleT >= targetT ) {
             if( subcycleT > targetT ) {
-               std::cerr << "subcycleT > subcycleDt, should not happen! (values: " << subcycleT << " > " << subcycleDt << ")" << std::endl;
+               std::cerr << "subcycleT > targetT, should not happen! (values: subcycleT " << subcycleT << ", subcycleDt " << subcycleDt << ", targetT " << targetT << ")" << std::endl;
             }
             break;
          }
