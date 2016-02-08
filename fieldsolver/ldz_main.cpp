@@ -358,7 +358,7 @@ bool propagateFields(
          phiprof::stop("FS subcycle stuff");
       }
       
-      if( P::fieldSolverSubcycles != subcycleCount && myRank == MASTER_RANK) {
+      if( subcycles != subcycleCount && myRank == MASTER_RANK) {
          logFile << "Effective field solver subcycles were " << subcycleCount << " instead of " << P::fieldSolverSubcycles << " on step " <<  P::tstep << std::endl << writeVerbose;
       }
    }
