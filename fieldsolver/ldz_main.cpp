@@ -40,6 +40,8 @@ Copyright 2010, 2011, 2012, 2013, 2014 Finnish Meteorological Institute
 
 extern map<CellID,uint> existingCellsFlags; /**< Defined in fs_common.cpp */
 
+extern Logger logFile; //, diagnostic; can be used also later
+
 void calculateExistingCellsFlags(
                                  dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                  const vector<CellID>& localCells
@@ -339,9 +341,8 @@ bool propagateFields(
             creal meanFieldsCFL = 0.5*(P::fieldSolverMaxCFL+ P::fieldSolverMinCFL);
             //set new timestep to the lowest one of all interval-midpoints
             subcycleDt = meanFieldsCFL * dtMaxGlobal;
-# warning TODO this should be in logfile.
             if ( myRank == MASTER_RANK ) {
-               std::cout << "(TIMESTEP) New subcycle dt = " << subcycleDt << " computed on step " <<  P::tstep << " and substep " << subcycleCount << " at " << P::t << "s" << std::endl;
+               logFile << "(TIMESTEP) New subcycle dt = " << subcycleDt << " computed on step " <<  P::tstep << " and substep " << subcycleCount << " at " << P::t << "s" << std::endl << writeVerbose;
             }
          }
          
