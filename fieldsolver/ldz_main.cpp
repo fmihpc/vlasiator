@@ -346,7 +346,7 @@ bool propagateFields(
             }
          }
          
-         if( subcycleT + subcycleDt + 0.1*P::bailout_min_dt > targetT ) {
+         if( subcycleT + subcycleDt > targetT ) {
             subcycleDt = targetT - subcycleT;
             if ( myRank == MASTER_RANK ) {
 # warning TODO this will always trigger, do not keep in final version.
