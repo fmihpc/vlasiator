@@ -292,18 +292,11 @@ bool propagateFields(
       Real subcycleT = P::t;
       creal targetT = P::t + dt;
       uint subcycleCount = 0;
+      uint maxSubcycleCount = std::numeric_limits<uint>::max();
       int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
       
-      while (true) {
-         if( subcycleT >= targetT ) {
-            if( subcycleT > targetT ) {
-               std::cerr << "subcycleT > targetT, should not happen! (values: subcycleT " << subcycleT << ", subcycleDt " << subcycleDt << ", targetT " << targetT << ")" << std::endl;
-            }
-            break;
-         }
-         
-         
+      while (subcycleCount < maxSubcycleCount ) {         
          propagateMagneticFieldSimple(mpiGrid, sysBoundaries, subcycleDt, localCells, RK_ORDER1);
          // If we are at the first subcycle we need to update the derivatives of the moments, 
          // otherwise only B changed and those derivatives need to be updated.
@@ -315,14 +308,25 @@ bool propagateFields(
          
          
          phiprof::start("FS subcycle stuff");
+         subcycleT += subcycleDt; 
          subcycleCount++;
+
+         if( subcycleT >= targetT || subcycleCount >= maxSubcycleCount  ) {
+            //we are done
+            if( subcycleT > targetT ) {
+               //due to roundoff we might hit this, should add delta
+               std::cerr << "subcycleT > targetT, should not happen! (values: subcycleT " << subcycleT << ", subcycleDt " << subcycleDt << ", targetT " << targetT << ")" << std::endl;
+            }
+            break;
+         }
+
+
          
          // Reassess subcycle dt
          Real dtMaxLocal;
          Real dtMaxGlobal;
-         
          dtMaxLocal=std::numeric_limits<Real>::max();
-         
+
          for (std::vector<uint64_t>::const_iterator cell_id = cells.begin(); cell_id != cells.end(); ++cell_id) {
             SpatialCell* cell = mpiGrid[*cell_id];
             if ( cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
@@ -342,21 +346,22 @@ bool propagateFields(
                logFile << "(TIMESTEP) New field solver subcycle dt = " << subcycleDt << " computed on step " <<  P::tstep << " and substep " << subcycleCount << " at " << P::t << " s" << std::endl;
             }
          }
-         
-         // If we are off (and due to rounding errors it is almost always the case...) we readjust the final dt
-         if( subcycleT + subcycleDt + 0.1 * P::bailout_min_dt / convert<Real>(subcycles)  > targetT ) {
-            creal oldSubcycleDt = subcycleDt;
+
+         // Readjust the dt to hit targetT. Try to avoid having a very
+         // short delta step at the end, instead 2 more normal ones
+         if( subcycleT + 1.5 * subcycleDt  > targetT ) {
             subcycleDt = targetT - subcycleT;
-            
-            // If we are off by more than the epsilon we made up here, then we print a warning that it happened. Should not happen too often and thus not flood the logfile.
-            if ( myRank == MASTER_RANK  && fabs(subcycleDt - oldSubcycleDt) > 0.1 * P::bailout_min_dt / convert<Real>(subcycles) ) {
-               logFile << "(TIMESTEP) Last field solver subcycle dt = " << subcycleDt << " computed on step " <<  P::tstep << std::endl;
+            maxSubCycleCount = subcycleCount + 1; // 1 more steps
+            //check that subcyclDt has correct CFL, take 2 if not
+            if(subcycleDt > dtMaxGlobal * P::fieldSolverMaxCFL ) {
+               subcycleDt = (targetT - subcycleT)/2;
+               maxSubCycleCount = subcycleCount + 2; 
             }
          }
          
-         subcycleT += subcycleDt;
          phiprof::stop("FS subcycle stuff");
       }
+      
       
       if( subcycles != subcycleCount && myRank == MASTER_RANK) {
          logFile << "Effective field solver subcycles were " << subcycleCount << " instead of " << P::fieldSolverSubcycles << " on step " <<  P::tstep << std::endl;
