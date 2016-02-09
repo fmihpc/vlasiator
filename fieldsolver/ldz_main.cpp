@@ -351,11 +351,11 @@ bool propagateFields(
          // short delta step at the end, instead 2 more normal ones
          if( subcycleT + 1.5 * subcycleDt  > targetT ) {
             subcycleDt = targetT - subcycleT;
-            maxSubCycleCount = subcycleCount + 1; // 1 more steps
+            maxSubcycleCount = subcycleCount + 1; // 1 more steps
             //check that subcyclDt has correct CFL, take 2 if not
             if(subcycleDt > dtMaxGlobal * P::fieldSolverMaxCFL ) {
                subcycleDt = (targetT - subcycleT)/2;
-               maxSubCycleCount = subcycleCount + 2; 
+               maxSubcycleCount = subcycleCount + 2; 
             }
          }
          
