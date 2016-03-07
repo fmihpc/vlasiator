@@ -145,6 +145,7 @@ namespace SBC {
             case 2:
                // 2-norm (Cartesian), result is a circle in 2D
                r = sqrt((x-center[0])*(x-center[0]) + (y-center[1])*(y-center[1]) + (z-center[2])*(z-center[2]));
+               break;
             case 3:
                // 2-norm (Cartesian) cylinder aligned on y-axis
                r = sqrt((x-center[0])*(x-center[0]) + (z-center[2])*(z-center[2]));
