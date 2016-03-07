@@ -96,10 +96,9 @@ namespace SBC {
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       Project &project
    ) {
-      bool success;
-      
+      bool success = true;
       for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-         if (setCellsFromTemplate(mpiGrid,popID) == false) success = false;
+         if (setCellsFromTemplate(mpiGrid, popID) == false) success = false;
       }
       
       return success;
