@@ -138,7 +138,7 @@ namespace projects {
    ) const {
       vector<std::array<Real, 3>> centerPoints;
       
-      Real VX,VY,VZ;
+      Real VX = 0,VY = 0,VZ = 0;
       if (this->shear == true)
       {
          Real ksi,eta;
