@@ -5,7 +5,7 @@
   This file is part of Vlasiator.
 
   Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
-
+*/
 
 /*! \file vectorclass_fallback.h
   \brief Simple class for implementing a vector with 4 real values
