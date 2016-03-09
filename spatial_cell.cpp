@@ -58,13 +58,13 @@ namespace spatial_cell {
    }
 
    SpatialCell::SpatialCell(const SpatialCell& other):
-     initialized(other.initialized),
-     mpiTransferEnabled(other.mpiTransferEnabled),
      velocity_block_with_content_list(other.velocity_block_with_content_list),
      velocity_block_with_no_content_list(other.velocity_block_with_no_content_list),
      sysBoundaryFlag(other.sysBoundaryFlag),
      sysBoundaryLayer(other.sysBoundaryLayer),
      sysBoundaryLayerNew(other.sysBoundaryLayerNew),
+     initialized(other.initialized),
+     mpiTransferEnabled(other.mpiTransferEnabled),
      populations(other.populations) {
 
         //copy parameters
