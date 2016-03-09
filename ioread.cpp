@@ -613,6 +613,7 @@ bool readCellParamsVariable(
       logFile << "(RESTART)  ERROR: Failed to read data type at readCellParamsVariable" << endl << write;
       return false;
    }
+   return false;
 }
 
 /*! A function for reading parameters, e.g., 'timestep'.
