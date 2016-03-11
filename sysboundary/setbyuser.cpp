@@ -12,7 +12,7 @@
 
 #include <cstdlib>
 #include <iostream>
-#include <typeinfo>
+#include <type_traits>
 
 #include "setbyuser.h"
 #include "../vlasovmover.h"
@@ -325,7 +325,7 @@ namespace SBC {
       int ret = nParams;
 
       // Make sure the type id of Real is correct
-      static_assert( typeid( Real ) == typeid(float) || typeid( Real ) == typeid(double), "Real must be float or double");
+      static_assert( std::is_same<Real, float>::value || std::is_same<Real, double>::value, "Real must be float or double");
 
       while (!feof(fp) && ret == (int)nParams) {
          Real readParam;
