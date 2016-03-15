@@ -26,7 +26,13 @@ extern map<CellID,uint> existingCellsFlags; /**< Defined in fs_common.cpp */
  * \sa calculateDerivativesSimple calculateBVOLDerivativesSimple calculateBVOLDerivatives
  */
 void calculateDerivatives(
-   dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   const FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
+   const FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
+   const FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsGrid,
+   const FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsDt2Grid,
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 3, 2> & dPerBGrid,
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
+   FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
    fs_cache::CellCache& cellCache,
    SysBoundary& sysBoundaries,
    cint& RKCase,
@@ -150,10 +156,9 @@ void calculateDerivatives(
       }
    } else {
       if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-         SBC::SysBoundaryCondition::setCellDerivativesToZero(mpiGrid, cellID, 0);
+         SBC::SysBoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, cellID, 0);
       } else {
-         sysBoundaries.getSysBoundary(sysBoundaryFlag)
-            ->fieldSolverBoundaryCondDerivatives(mpiGrid, cellID, RKCase, 0);
+         sysBoundaries.getSysBoundary(sysBoundaryFlag)->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, cellID, RKCase, 0);
       }
    }
 
@@ -218,9 +223,9 @@ void calculateDerivatives(
       }
    } else {
       if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-         SBC::SysBoundaryCondition::setCellDerivativesToZero(mpiGrid, cellID, 1);
+         SBC::SysBoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, cellID, 1);
       } else {
-         sysBoundaries.getSysBoundary(sysBoundaryFlag)->fieldSolverBoundaryCondDerivatives(mpiGrid, cellID, RKCase, 1);
+         sysBoundaries.getSysBoundary(sysBoundaryFlag)->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, cellID, RKCase, 1);
       }
    }
    
@@ -285,9 +290,9 @@ void calculateDerivatives(
       }
    } else {
       if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-         SBC::SysBoundaryCondition::setCellDerivativesToZero(mpiGrid, cellID, 2);
+         SBC::SysBoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, cellID, 2);
       } else {
-         sysBoundaries.getSysBoundary(sysBoundaryFlag)->fieldSolverBoundaryCondDerivatives(mpiGrid, cellID, RKCase, 2);
+         sysBoundaries.getSysBoundary(sysBoundaryFlag)->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, cellID, RKCase, 2);
       }
    }
    
@@ -312,9 +317,9 @@ void calculateDerivatives(
          }
       } else {
          if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-            SBC::SysBoundaryCondition::setCellDerivativesToZero(mpiGrid, cellID, 3);
+            SBC::SysBoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, cellID, 3);
          } else {
-            sysBoundaries.getSysBoundary(sysBoundaryFlag)->fieldSolverBoundaryCondDerivatives(mpiGrid, cellID, RKCase, 3);
+            sysBoundaries.getSysBoundary(sysBoundaryFlag)->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, cellID, RKCase, 3);
          }
       }
       
@@ -335,9 +340,9 @@ void calculateDerivatives(
          }
       } else {
          if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-            SBC::SysBoundaryCondition::setCellDerivativesToZero(mpiGrid, cellID, 4);
+            SBC::SysBoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, cellID, 4);
          } else {
-            sysBoundaries.getSysBoundary(sysBoundaryFlag)->fieldSolverBoundaryCondDerivatives(mpiGrid, cellID, RKCase, 4);
+            sysBoundaries.getSysBoundary(sysBoundaryFlag)->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, cellID, RKCase, 4);
          }
       }
       
@@ -358,9 +363,9 @@ void calculateDerivatives(
          }
       } else {
          if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-            SBC::SysBoundaryCondition::setCellDerivativesToZero(mpiGrid, cellID, 5);
+            SBC::SysBoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, cellID, 5);
          } else {
-            sysBoundaries.getSysBoundary(sysBoundaryFlag)->fieldSolverBoundaryCondDerivatives(mpiGrid, cellID, RKCase, 5);
+            sysBoundaries.getSysBoundary(sysBoundaryFlag)->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, cellID, RKCase, 5);
          }
       }
    }
@@ -383,7 +388,13 @@ void calculateDerivatives(
  * \sa calculateDerivatives calculateBVOLDerivativesSimple calculateBVOLDerivatives
  */
 void calculateDerivativesSimple(
-   dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   const FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
+   const FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
+   const FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsGrid,
+   const FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsDt2Grid,
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 3, 2> & dPerBGrid,
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
+   FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
    SysBoundary& sysBoundaries,
    const vector<CellID>& localCells,
    cint& RKCase,
@@ -434,7 +445,7 @@ void calculateDerivativesSimple(
       fs_cache::CellCache cache = fs_cache::getCache().localCellsCache[localID];
 
       if (cache.sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
-      calculateDerivatives(mpiGrid,cache,sysBoundaries, RKCase, doMoments);
+      calculateDerivatives(perBGrid, perBDt2Grid, EGrid, EDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, cache,sysBoundaries, RKCase, doMoments);
    }
    phiprof::stop(timer,fs_cache::getCache().cellsWithLocalNeighbours.size(),"Spatial Cells");
 
@@ -451,7 +462,7 @@ void calculateDerivativesSimple(
       fs_cache::CellCache cache = fs_cache::getCache().localCellsCache[localID];
 
       if (cache.sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
-      calculateDerivatives(mpiGrid,cache,sysBoundaries, RKCase, doMoments);
+      calculateDerivatives(perBGrid, perBDt2Grid, EGrid, EDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, cache,sysBoundaries, RKCase, doMoments);
    }
    phiprof::stop(timer,fs_cache::getCache().cellsWithRemoteNeighbours.size(),"Spatial Cells");
 
@@ -475,10 +486,12 @@ void calculateDerivativesSimple(
  * \sa calculateDerivatives calculateBVOLDerivativesSimple calculateDerivativesSimple
  */
 
-void calculateBVOLDerivatives(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                              std::vector<fs_cache::CellCache>& cache,
-                              const std::vector<uint16_t>& cells,
-                              SysBoundary& sysBoundaries) {
+void calculateBVOLDerivatives(
+   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 3, 2> & volGrid,
+   std::vector<fs_cache::CellCache>& cache,
+   const std::vector<uint16_t>& cells,
+   SysBoundary& sysBoundaries
+) {
    #warning This function still contains mpiGrid!
 
    namespace cp = CellParams;
@@ -510,10 +523,9 @@ void calculateBVOLDerivatives(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cart
          array[der::dPERBZVOLdx] = limiter(left[cp::PERBZVOL],cent[cp::PERBZVOL],rght[cp::PERBZVOL]);
       } else {
          if (cache[localID].sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-            SBC::SysBoundaryCondition::setCellBVOLDerivativesToZero(mpiGrid, cache[localID].cellID, 0);
+            SBC::SysBoundaryCondition::setCellBVOLDerivativesToZero(volGrid, cache[localID].cellID, 0);
          } else {
-            sysBoundaries.getSysBoundary(cache[localID].sysBoundaryFlag)
-              ->fieldSolverBoundaryCondBVOLDerivatives(mpiGrid, cache[localID].cellID, 0);
+            sysBoundaries.getSysBoundary(cache[localID].sysBoundaryFlag)->fieldSolverBoundaryCondBVOLDerivatives(volGrid, cache[localID].cellID, 0);
          }
       }
       
@@ -528,10 +540,9 @@ void calculateBVOLDerivatives(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cart
          array[der::dPERBZVOLdy] = limiter(left[cp::PERBZVOL],cent[cp::PERBZVOL],rght[cp::PERBZVOL]);
       } else {
          if (cache[localID].sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-            SBC::SysBoundaryCondition::setCellBVOLDerivativesToZero(mpiGrid, cache[localID].cellID, 1);
+            SBC::SysBoundaryCondition::setCellBVOLDerivativesToZero(volGrid, cache[localID].cellID, 1);
          } else {
-            sysBoundaries.getSysBoundary(cache[localID].sysBoundaryFlag)
-              ->fieldSolverBoundaryCondBVOLDerivatives(mpiGrid, cache[localID].cellID, 1);
+            sysBoundaries.getSysBoundary(cache[localID].sysBoundaryFlag)->fieldSolverBoundaryCondBVOLDerivatives(volGrid, cache[localID].cellID, 1);
          }
       }
       
@@ -546,10 +557,9 @@ void calculateBVOLDerivatives(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cart
          array[der::dPERBYVOLdz] = limiter(left[cp::PERBYVOL],cent[cp::PERBYVOL],rght[cp::PERBYVOL]);
       } else {
          if (cache[localID].sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-            SBC::SysBoundaryCondition::setCellBVOLDerivativesToZero(mpiGrid, cache[localID].cellID, 2);
+            SBC::SysBoundaryCondition::setCellBVOLDerivativesToZero(volGrid, cache[localID].cellID, 2);
          } else {
-            sysBoundaries.getSysBoundary(cache[localID].sysBoundaryFlag)
-              ->fieldSolverBoundaryCondBVOLDerivatives(mpiGrid, cache[localID].cellID, 2);
+            sysBoundaries.getSysBoundary(cache[localID].sysBoundaryFlag)->fieldSolverBoundaryCondBVOLDerivatives(volGrid, cache[localID].cellID, 2);
          }
       }
    }
@@ -567,7 +577,7 @@ void calculateBVOLDerivatives(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cart
  * \sa calculateDerivatives calculateBVOLDerivatives calculateDerivativesSimple
  */
 void calculateBVOLDerivativesSimple(
-   dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 3, 2> & volGrid,
    SysBoundary& sysBoundaries,
    const vector<CellID>& localCells
 ) {
@@ -587,7 +597,7 @@ void calculateBVOLDerivativesSimple(
    // Calculate derivatives on process inner cells
    timer=phiprof::initializeTimer("Compute process inner cells");
    phiprof::start(timer);
-   calculateBVOLDerivatives(mpiGrid,fs_cache::getCache().localCellsCache,fs_cache::getCache().cellsWithLocalNeighbours,sysBoundaries);
+   calculateBVOLDerivatives(volGrid,fs_cache::getCache().localCellsCache,fs_cache::getCache().cellsWithLocalNeighbours,sysBoundaries);
    phiprof::stop(timer,fs_cache::getCache().cellsWithLocalNeighbours.size(),"Spatial Cells");
 
    timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
@@ -598,7 +608,7 @@ void calculateBVOLDerivativesSimple(
    // Calculate derivatives on process boundary cells
    timer=phiprof::initializeTimer("Compute process boundary cells");
    phiprof::start(timer);
-   calculateBVOLDerivatives(mpiGrid,fs_cache::getCache().localCellsCache,fs_cache::getCache().cellsWithRemoteNeighbours,sysBoundaries);
+   calculateBVOLDerivatives(volGrid,fs_cache::getCache().localCellsCache,fs_cache::getCache().cellsWithRemoteNeighbours,sysBoundaries);
    phiprof::stop(timer,fs_cache::getCache().cellsWithRemoteNeighbours.size(),"Spatial Cells");
 
    timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");

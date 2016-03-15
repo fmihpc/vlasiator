@@ -17,9 +17,14 @@
 
 using namespace std;
 
-void calculateVolumeAveragedFields(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                   std::vector<fs_cache::CellCache>& cache,
-                                   const std::vector<uint16_t>& cells) {
+void calculateVolumeAveragedFields(
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EGrid,
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 3, 2> & dPerBGrid,
+   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 3, 2> & volGrid,
+   std::vector<fs_cache::CellCache>& cache,
+   const std::vector<uint16_t>& cells
+) {
    phiprof::start("Calculate volume averaged fields");
 
    namespace fs = fieldsolver;
@@ -50,7 +55,14 @@ void calculateVolumeAveragedFields(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geo
       cuint existingCells = cache[localID].existingCellsFlags;
 
       // Calculate reconstruction coefficients for this cell:
-      reconstructionCoefficients(cache[localID],perturbedCoefficients,2,RK_ORDER1);
+      reconstructionCoefficients(
+         perBGrid,
+         perBDt2Grid,
+         dPerBGrid,
+         perturbedCoefficients,
+         2,
+         RK_ORDER1
+      );
 
       // Calculate volume average of B:
       Real* const cellParams   = cache[localID].cells[fs_cache::calculateNbrID(1  ,1  ,1  )]->parameters;

@@ -31,7 +31,10 @@ using namespace std;
  * \param doZ If true, compute the z component (default true).
  */
 void propagateMagneticField(
-   const std::vector<fs_cache::CellCache>& cellCache,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EGrid,
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EDt2Grid,
    const std::vector<uint16_t>& cells,
    creal& dt,
    cint& RKCase,
@@ -133,7 +136,11 @@ void propagateMagneticField(
  * \sa propagateMagneticField propagateSysBoundaryMagneticField
  */
 void propagateMagneticFieldSimple(
-   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EGrid,
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EDt2Grid,
+   FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
    SysBoundary& sysBoundaries,
    creal& dt,
    const std::vector<CellID>& localCells,
@@ -148,7 +155,7 @@ void propagateMagneticFieldSimple(
    phiprof::start(timer);
 
    // Propagate B on all local cells:
-   propagateMagneticField(cacheContainer.localCellsCache,cacheContainer.local_NOT_SYSBOUND_DO_NOT_COMPUTE,dt,RKCase);
+   propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, cacheContainer.local_NOT_SYSBOUND_DO_NOT_COMPUTE,dt,RKCase);
 
    //phiprof::stop("propagate not sysbound",localCells.size(),"Spatial Cells");
    phiprof::stop(timer,cacheContainer.local_NOT_SYSBOUND_DO_NOT_COMPUTE.size(),"Spatial Cells");
@@ -209,7 +216,9 @@ void propagateMagneticFieldSimple(
  * \sa propagateMagneticFieldSimple propagateMagneticField
  */
 void propagateSysBoundaryMagneticField(
-   const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
+   FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
    const std::vector<fs_cache::CellCache>& cellCache,
    const uint16_t& localID,
    SysBoundary& sysBoundaries,
@@ -225,6 +234,6 @@ void propagateSysBoundaryMagneticField(
       }
       cp0[CellParams::PERBX + offset + component] =
         sysBoundaries.getSysBoundary(sysBoundaryFlag)->
-        fieldSolverBoundaryCondMagneticField(mpiGrid, cellCache, localID, dt, RKCase, offset, component);
+        fieldSolverBoundaryCondMagneticField(perBGrid, perBDt2Grid, cellCache, localID, dt, RKCase, offset, component);
    }
 }

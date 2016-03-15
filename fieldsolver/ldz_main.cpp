@@ -89,7 +89,12 @@ bool initializeFieldPropagatorAfterRebalance(
 /*! Calculates bit masks used in the field solver and computes the initial edge electric fields from the initial magnetic fields. Then computes the initial volume averages.
  */
 bool initializeFieldPropagator(
-        dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+        FsGrid<Real, 3, 2> & bFieldMomentsGrid,
+        FsGrid<Real, 3, 2> & dMomentsGrid,
+        FsGrid<Real, 3, 2> & dPerBGrid,
+        FsGrid<Real, 3, 2> & dBgBGrid,
+        FsGrid<Real, 3, 2> & volGrid,
+        FsGrid<int,  3, 2> & sbcFlagGrid,
         SysBoundary& sysBoundaries
 ) {
    const vector<uint64_t>& localCells = getLocalCells();
@@ -245,7 +250,19 @@ bool finalizeFieldPropagator(
  * 
  */
 bool propagateFields(
-   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EGrid,
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EDt2Grid,
+   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 3, 2> & EHallGrid,
+   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 3, 2> & EGradPeGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsDt2Grid,
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 3, 2> & dPerBGrid,
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
+   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 3, 2> & BgBGrid,
+   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 3, 2> & volGrid,
+   FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
    SysBoundary& sysBoundaries,
    creal& dt,
    cint& subcycles
@@ -274,57 +291,177 @@ bool propagateFields(
 
    if (subcycles == 1) {
       #ifdef FS_1ST_ORDER_TIME
-      propagateMagneticFieldSimple(mpiGrid, sysBoundaries, dt, localCells, RK_ORDER1);
-      calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1, true);
+      propagateMagneticFieldSimple(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, sysBoundaries, dt, localCells, RK_ORDER1);
+      calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, sysBoundaries, localCells, RK_ORDER1, true);
       if(P::ohmGradPeTerm > 0){
-         calculateGradPeTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
+         calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, sysBoundaries, localCells, RK_ORDER1);
          hallTermCommunicateDerivatives = false;
       }
       if(P::ohmHallTerm > 0) {
-         calculateHallTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1, hallTermCommunicateDerivatives);
+         calculateHallTermSimple(
+            perBGrid,
+            perBDt2Grid,
+            EHallGrid,
+            momentsGrid,
+            momentsDt2Grid,
+            dPerBGrid,
+            dMomentsGrid,
+            BgBGrid,
+            technicalGrid,
+            sysBoundaries,
+            localCells,
+            RK_ORDER1,
+            hallTermCommunicateDerivatives
+         );
       }
-      calculateUpwindedElectricFieldSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
+      calculateUpwindedElectricFieldSimple(
+         perBGrid,
+         perBDt2Grid,
+         EGrid,
+         EDt2Grid,
+         EHallGrid,
+         EGradPeGrid,
+         momentsGrid,
+         momentsDt2Grid,
+         dPerBGrid,
+         dMomentsGrid,
+         BgBGrid,
+         technicalGrid,
+         sysBoundaries,
+         localCells,
+         RK_ORDER1
+      );
       #else
-      propagateMagneticFieldSimple(mpiGrid, sysBoundaries, dt, localCells, RK_ORDER2_STEP1);
-      calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP1, true);
+      propagateMagneticFieldSimple(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, sysBoundaries, dt, localCells, RK_ORDER2_STEP1);
+      calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, sysBoundaries, localCells, RK_ORDER2_STEP1, true);
       if(P::ohmGradPeTerm > 0) {
-         calculateGradPeTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP1);
+         calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, sysBoundaries, localCells, RK_ORDER2_STEP1);
          hallTermCommunicateDerivatives = false;
       }
       if(P::ohmHallTerm > 0) {
-         calculateHallTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP1, hallTermCommunicateDerivatives);
+         calculateHallTermSimple(
+            perBGrid,
+            perBDt2Grid,
+            EHallGrid,
+            momentsGrid,
+            momentsDt2Grid,
+            dPerBGrid,
+            dMomentsGrid,
+            BgBGrid,
+            technicalGrid,
+            sysBoundaries,
+            localCells,
+            RK_ORDER2_STEP1,
+            hallTermCommunicateDerivatives
+         );
       }
-      calculateUpwindedElectricFieldSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP1);
+      calculateUpwindedElectricFieldSimple(
+         perBGrid,
+         perBDt2Grid,
+         EGrid,
+         EDt2Grid,
+         EHallGrid,
+         EGradPeGrid,
+         momentsGrid,
+         momentsDt2Grid,
+         dPerBGrid,
+         dMomentsGrid,
+         BgBGrid,
+         technicalGrid,
+         sysBoundaries,
+         localCells,
+         RK_ORDER2_STEP1
+      );
       
-      propagateMagneticFieldSimple(mpiGrid, sysBoundaries, dt, localCells, RK_ORDER2_STEP2);
-      calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP2, true);
+      propagateMagneticFieldSimple(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, sysBoundaries, dt, localCells, RK_ORDER2_STEP2);
+      calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, sysBoundaries, localCells, RK_ORDER2_STEP2, true);
       if(P::ohmGradPeTerm > 0) {
-         calculateGradPeTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP2);
+         calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, sysBoundaries, localCells, RK_ORDER2_STEP2);
          hallTermCommunicateDerivatives = false;
       }
       if(P::ohmHallTerm > 0) {
-         calculateHallTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP2, hallTermCommunicateDerivatives);
+         calculateHallTermSimple(
+            perBGrid,
+            perBDt2Grid,
+            EHallGrid,
+            momentsGrid,
+            momentsDt2Grid,
+            dPerBGrid,
+            dMomentsGrid,
+            BgBGrid,
+            technicalGrid,
+            sysBoundaries,
+            localCells,
+            RK_ORDER2_STEP2,
+            hallTermCommunicateDerivatives
+         );
       }
-      calculateUpwindedElectricFieldSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP2);
+      calculateUpwindedElectricFieldSimple(
+         perBGrid,
+         perBDt2Grid,
+         EGrid,
+         EDt2Grid,
+         EHallGrid,
+         EGradPeGrid,
+         momentsGrid,
+         momentsDt2Grid,
+         dPerBGrid,
+         dMomentsGrid,
+         BgBGrid,
+         technicalGrid,
+         sysBoundaries,
+         localCells,
+         RK_ORDER2_STEP2
+      );
       #endif
    } else {
       for (uint i=0; i<subcycles; i++) {
-         propagateMagneticFieldSimple(mpiGrid, sysBoundaries, dt/convert<Real>(subcycles), localCells, RK_ORDER1);
+         propagateMagneticFieldSimple(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, sysBoundaries, dt/convert<Real>(subcycles), localCells, RK_ORDER1);
          // If we are at the first subcycle we need to update the derivatives of the moments, 
          // otherwise only B changed and those derivatives need to be updated.
-         calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1, (i==0));
+         calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, sysBoundaries, localCells, RK_ORDER1, (i==0));
          if(P::ohmGradPeTerm > 0 && i==0) {
-            calculateGradPeTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
+            calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, sysBoundaries, localCells, RK_ORDER1);
             hallTermCommunicateDerivatives = false;
          }
          if(P::ohmHallTerm > 0) {
-            calculateHallTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1, hallTermCommunicateDerivatives);
+            calculateHallTermSimple(
+               perBGrid,
+               perBDt2Grid,
+               EHallGrid,
+               momentsGrid,
+               momentsDt2Grid,
+               dPerBGrid,
+               dMomentsGrid,
+               BgBGrid,
+               technicalGrid,
+               sysBoundaries,
+               localCells,
+               RK_ORDER1,
+               hallTermCommunicateDerivatives
+            );
          }
-         calculateUpwindedElectricFieldSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
+         calculateUpwindedElectricFieldSimple(
+            perBGrid,
+            perBDt2Grid,
+            EGrid,
+            EDt2Grid,
+            EHallGrid,
+            EGradPeGrid,
+            momentsGrid,
+            momentsDt2Grid,
+            dPerBGrid,
+            dMomentsGrid,
+            BgBGrid,
+            technicalGrid,
+            sysBoundaries,
+            localCells,
+            RK_ORDER1
+         );
       }
    }
    
-   calculateVolumeAveragedFields(mpiGrid,fs_cache::getCache().localCellsCache,fs_cache::getCache().local_NOT_DO_NOT_COMPUTE);
-   calculateBVOLDerivativesSimple(mpiGrid, sysBoundaries, localCells);
+   calculateVolumeAveragedFields(perBGrid,EGrid,dPerBGrid,volGrid,fs_cache::getCache().localCellsCache,fs_cache::getCache().local_NOT_DO_NOT_COMPUTE);
+   calculateBVOLDerivativesSimple(volGrid, sysBoundaries, localCells);
    return true;
 }

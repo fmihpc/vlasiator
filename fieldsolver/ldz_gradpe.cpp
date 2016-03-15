@@ -163,8 +163,10 @@ using namespace std;
 // }
 
 void calculateEdgeGradPeTermXComponents(
-   Real* cp,
-   Real* derivs,
+   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 3, 2> & EGradPeGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsDt2Grid,
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
    cint& RKCase
 ) {
    #warning Particles (charge) assumed to be protons here
@@ -191,8 +193,10 @@ void calculateEdgeGradPeTermXComponents(
 }
 
 void calculateEdgeGradPeTermYComponents(
-   Real* cp,
-   Real* derivs,
+   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 3, 2> & EGradPeGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsDt2Grid,
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
    cint& RKCase
 ) {
    #warning Particles (charge) assumed to be protons here
@@ -219,8 +223,10 @@ void calculateEdgeGradPeTermYComponents(
 }
 
 void calculateEdgeGradPeTermZComponents(
-   Real* cp,
-   Real* derivs,
+   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 3, 2> & EGradPeGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsDt2Grid,
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
    cint& RKCase
 ) {
   #warning Particles (charge) assumed to be protons here
@@ -253,6 +259,11 @@ void calculateEdgeGradPeTermZComponents(
  * @param RKCase
  */
 void calculateGradPeTerm(
+   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 3, 2> & EGradPeGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsDt2Grid,
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
+   FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
    SysBoundary& sysBoundaries,
    std::vector<fs_cache::CellCache>& cache,
    const std::vector<uint16_t>& cells,
@@ -290,38 +301,42 @@ void calculateGradPeTerm(
       if ((fieldSolverSysBoundaryFlag & CALCULATE_EX) == CALCULATE_EX) {
          if ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
              (cellSysBoundaryLayer != 1)) {
-            sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondGradPeElectricField(cache[localID],RKCase,0);
+            sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid,cache[localID],RKCase,0);
          } else {
             Real* cp     = cache[localID].cells[fs_cache::calculateNbrID(1,1,1)]->parameters;
             Real* derivs = cache[localID].cells[fs_cache::calculateNbrID(1,1,1)]->derivatives;
-            calculateEdgeGradPeTermXComponents(cp,derivs,RKCase);
+            calculateEdgeGradPeTermXComponents(EGradPeGrid,momentsGrid,momentsDt2Grid,dMomentsGrid,RKCase);
          }
       }
       if ((fieldSolverSysBoundaryFlag & CALCULATE_EY) == CALCULATE_EY) {
          if ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
              (cellSysBoundaryLayer != 1)) {
-            sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondGradPeElectricField(cache[localID],RKCase,1);
+            sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid,cache[localID],RKCase,1);
          } else {
             Real* cp     = cache[localID].cells[fs_cache::calculateNbrID(1,1,1)]->parameters;
             Real* derivs = cache[localID].cells[fs_cache::calculateNbrID(1,1,1)]->derivatives;
-            calculateEdgeGradPeTermYComponents(cp,derivs,RKCase);
+            calculateEdgeGradPeTermYComponents(EGradPeGrid,momentsGrid,momentsDt2Grid,dMomentsGrid,RKCase);
          }
       }
       if ((fieldSolverSysBoundaryFlag & CALCULATE_EZ) == CALCULATE_EZ) {
          if ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
              (cellSysBoundaryLayer != 1)) {
-            sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondGradPeElectricField(cache[localID],RKCase,2);
+            sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid,cache[localID],RKCase,2);
          } else {
             Real* cp     = cache[localID].cells[fs_cache::calculateNbrID(1,1,1)]->parameters;
             Real* derivs = cache[localID].cells[fs_cache::calculateNbrID(1,1,1)]->derivatives;
-            calculateEdgeGradPeTermZComponents(cp,derivs,RKCase);
+            calculateEdgeGradPeTermZComponents(EGradPeGrid,momentsGrid,momentsDt2Grid,dMomentsGrid,RKCase);
          }
       }
    }
 }
 
 void calculateGradPeTermSimple(
-   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 3, 2> & EGradPeGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsDt2Grid,
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
+   FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
    SysBoundary& sysBoundaries,
    const vector<CellID>& localCells,
    cint& RKCase
@@ -341,7 +356,7 @@ void calculateGradPeTermSimple(
    // Calculate GradPe term on inner cells
    timer=phiprof::initializeTimer("Compute inner cells");
    phiprof::start(timer);
-   calculateGradPeTerm(sysBoundaries,cacheContainer.localCellsCache,cacheContainer.cellsWithLocalNeighbours,RKCase);
+   calculateGradPeTerm(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries,cacheContainer.localCellsCache,cacheContainer.cellsWithLocalNeighbours,RKCase);
    phiprof::stop(timer,cacheContainer.cellsWithLocalNeighbours.size(),"Spatial Cells");
 
    timer=phiprof::initializeTimer("Wait for receives","MPI","Wait");
@@ -352,7 +367,7 @@ void calculateGradPeTermSimple(
    // Calculate GradPe term on boundary cells:
    timer=phiprof::initializeTimer("Compute boundary cells");
    phiprof::start(timer);
-   calculateGradPeTerm(sysBoundaries,cacheContainer.localCellsCache,cacheContainer.cellsWithRemoteNeighbours,RKCase);
+   calculateGradPeTerm(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries,cacheContainer.localCellsCache,cacheContainer.cellsWithRemoteNeighbours,RKCase);
    phiprof::stop(timer,cacheContainer.cellsWithRemoteNeighbours.size(),"Spatial Cells");
 
    timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");

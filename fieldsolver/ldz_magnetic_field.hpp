@@ -20,7 +20,10 @@ Copyright 2010, 2011, 2012, 2013, 2014 Finnish Meteorological Institute
 #include "fs_common.h"
 
 void propagateMagneticField(
-   const std::vector<fs_cache::CellCache>& cellCache,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EGrid,
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EDt2Grid,
    const std::vector<uint16_t>& cells,
    creal& dt,
    cint& RKCase,
@@ -30,8 +33,9 @@ void propagateMagneticField(
 );
 
 void propagateSysBoundaryMagneticField(
-   const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   const std::vector<fs_cache::CellCache>& cellCache,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
+   FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
    const uint16_t& localID,
    SysBoundary& sysBoundaries,
    creal& dt,
@@ -39,7 +43,11 @@ void propagateSysBoundaryMagneticField(
 );
 
 void propagateMagneticFieldSimple(
-   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EGrid,
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EDt2Grid,
+   FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
    SysBoundary& sysBoundaries,
    creal& dt,
    const std::vector<CellID>& localCells,

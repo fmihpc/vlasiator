@@ -15,27 +15,40 @@ Copyright 2010, 2011, 2012, 2013, 2014 Finnish Meteorological Institute
 
 #include "fs_limiters.h"
 
-void calculateDerivatives(
-   const CellID& cellID,
-   dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   SysBoundary& sysBoundaries,
-   cint& RKCase,
-   const bool& doMoments);
+// Not needed?
+// void calculateDerivatives(
+//    const FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
+//    const FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
+//    const FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsGrid,
+//    const FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsDt2Grid,
+//    FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 3, 2> & dPerBGrid,
+//    FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
+//    FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
+//    SysBoundary& sysBoundaries,
+//    cint& RKCase,
+//    const bool& doMoments);
 
 void calculateDerivativesSimple(
-   dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   const FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
+   const FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
+   const FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsGrid,
+   const FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsDt2Grid,
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 3, 2> & dPerBGrid,
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
+   FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
    SysBoundary& sysBoundaries,
    const std::vector<CellID>& localCells,
    cint& RKCase,
    const bool& doMoments);
 
-void calculateBVOLDerivatives(
-   const CellID& cellID,
-   dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   SysBoundary& sysBoundaries);
+// Not needed?
+// void calculateBVOLDerivatives(
+//    const CellID& cellID,
+//    dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+//    SysBoundary& sysBoundaries);
 
 void calculateBVOLDerivativesSimple(
-   dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 3, 2> & volGrid,
    SysBoundary& sysBoundaries,
    const std::vector<CellID>& localCells);
 

@@ -103,7 +103,9 @@ Real divideIfNonZero(
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
 void reconstructionCoefficients(
-   fs_cache::CellCache& cell,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 3, 2> & dPerBGrid,
    Real* perturbedResult,
    creal& reconstructionOrder,
    cint& RKCase

@@ -415,8 +415,15 @@ REAL JXBZ_110_111(
  * 
  */
 void calculateEdgeHallTermXComponents(
-   Real* cp,
-   Real* derivs,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
+   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 3, 2> & EHallGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsDt2Grid,
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 3, 2> & dPerBGrid,
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
+   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 3, 2> & BgBGrid,
+   FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
    const Real* const perturbedCoefficients,
    cint& RKCase
 ) {
@@ -509,8 +516,15 @@ void calculateEdgeHallTermXComponents(
  * 
  */
 void calculateEdgeHallTermYComponents(
-   Real* cp,
-   Real* derivs,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
+   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 3, 2> & EHallGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsDt2Grid,
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 3, 2> & dPerBGrid,
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
+   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 3, 2> & BgBGrid,
+   FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
    const Real* const perturbedCoefficients,
    cint& RKCase
 ) {
@@ -604,8 +618,15 @@ void calculateEdgeHallTermYComponents(
  * 
  */
 void calculateEdgeHallTermZComponents(
-   Real* cp,
-   Real* derivs,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
+   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 3, 2> & EHallGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsDt2Grid,
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 3, 2> & dPerBGrid,
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
+   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 3, 2> & BgBGrid,
+   FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
    const Real* const perturbedCoefficients,
    cint& RKCase
 ) {
@@ -695,6 +716,15 @@ void calculateEdgeHallTermZComponents(
  * \sa calculateHallTermSimple calculateEdgeHallTermXComponents calculateEdgeHallTermYComponents calculateEdgeHallTermZComponents
  */
 void calculateHallTerm(
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
+   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 3, 2> & EHallGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsDt2Grid,
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 3, 2> & dPerBGrid,
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
+   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 3, 2> & BgBGrid,
+   FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
    SysBoundary& sysBoundaries,
    std::vector<fs_cache::CellCache>& cache,
    const std::vector<uint16_t>& cells,
@@ -730,40 +760,43 @@ void calculateHallTerm(
 
       Real perturbedCoefficients[Rec::N_REC_COEFFICIENTS];
 
-      reconstructionCoefficients(cache[localID],
-                                 perturbedCoefficients,
-                                 3, // Reconstruction order of the fields after Balsara 2009, 2 used for general B, 3 used here for 2nd-order Hall term
-                                 RKCase
-                                );
+      reconstructionCoefficients(
+         perBGrid,
+         perBDt2Grid,
+         dPerBGrid,
+         perturbedCoefficients,
+         3, // Reconstruction order of the fields after Balsara 2009, 2 used for general B, 3 used here for 2nd-order Hall term
+         RKCase
+      );
 
       if ((fieldSolverSysBoundaryFlag & CALCULATE_EX) == CALCULATE_EX) {
          if ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
              (cellSysBoundaryLayer != 1)) {
-            sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondHallElectricField(cache[localID],RKCase,0);
+            sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondHallElectricField(EHallGrid, cache[localID],RKCase,0);
          } else {
             Real* cp     = cache[localID].cells[fs_cache::calculateNbrID(1,1,1)]->parameters;
             Real* derivs = cache[localID].cells[fs_cache::calculateNbrID(1,1,1)]->derivatives;
-            calculateEdgeHallTermXComponents(cp,derivs,perturbedCoefficients,RKCase);
+            calculateEdgeHallTermXComponents(perBGrid, perBDt2Grid, EHallGrid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, perturbedCoefficients,RKCase);
          }
       }
       if ((fieldSolverSysBoundaryFlag & CALCULATE_EY) == CALCULATE_EY) {
          if ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
              (cellSysBoundaryLayer != 1)) {
-            sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondHallElectricField(cache[localID],RKCase,1);
+            sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondHallElectricField(EHallGrid, cache[localID],RKCase,1);
          } else {
             Real* cp     = cache[localID].cells[fs_cache::calculateNbrID(1,1,1)]->parameters;
             Real* derivs = cache[localID].cells[fs_cache::calculateNbrID(1,1,1)]->derivatives;
-            calculateEdgeHallTermYComponents(cp,derivs,perturbedCoefficients,RKCase);
+            calculateEdgeHallTermYComponents(perBGrid, perBDt2Grid, EHallGrid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, perturbedCoefficients,RKCase);
          }
       }
       if ((fieldSolverSysBoundaryFlag & CALCULATE_EZ) == CALCULATE_EZ) {
          if ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
              (cellSysBoundaryLayer != 1)) {
-            sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondHallElectricField(cache[localID],RKCase,2);
+            sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondHallElectricField(EHallGrid, cache[localID],RKCase,2);
          } else {
             Real* cp     = cache[localID].cells[fs_cache::calculateNbrID(1,1,1)]->parameters;
             Real* derivs = cache[localID].cells[fs_cache::calculateNbrID(1,1,1)]->derivatives;
-            calculateEdgeHallTermZComponents(cp,derivs,perturbedCoefficients,RKCase);
+            calculateEdgeHallTermZComponents(perBGrid, perBDt2Grid, EHallGrid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, perturbedCoefficients,RKCase);
          }
       }
    }
@@ -781,7 +814,15 @@ void calculateHallTerm(
  * \sa calculateHallTerm
  */
 void calculateHallTermSimple(
-   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
+   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 3, 2> & EHallGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsDt2Grid,
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 3, 2> & dPerBGrid,
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
+   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 3, 2> & BgBGrid,
+   FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
    SysBoundary& sysBoundaries,
    const vector<CellID>& localCells,
    cint& RKCase,
@@ -805,7 +846,7 @@ void calculateHallTermSimple(
       // Calculate Hall term on inner cells
       timer=phiprof::initializeTimer("Compute inner cells");
       phiprof::start(timer);
-      calculateHallTerm(sysBoundaries,cacheContainer.localCellsCache,cacheContainer.cellsWithLocalNeighbours,RKCase);
+      calculateHallTerm(perBGrid, perBDt2Grid, EHallGrid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, sysBoundaries,cacheContainer.localCellsCache,cacheContainer.cellsWithLocalNeighbours,RKCase);
       phiprof::stop(timer,cacheContainer.cellsWithLocalNeighbours.size(),"Spatial Cells");
 
       timer=phiprof::initializeTimer("Wait for receives","MPI","Wait");
@@ -816,7 +857,7 @@ void calculateHallTermSimple(
       // Calculate Hall term on boundary cells:
       timer=phiprof::initializeTimer("Compute boundary cells");
       phiprof::start(timer);
-      calculateHallTerm(sysBoundaries,cacheContainer.localCellsCache,cacheContainer.cellsWithRemoteNeighbours,RKCase);
+      calculateHallTerm(perBGrid, perBDt2Grid, EHallGrid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid,sysBoundaries,cacheContainer.localCellsCache,cacheContainer.cellsWithRemoteNeighbours,RKCase);
       phiprof::stop(timer,cacheContainer.cellsWithRemoteNeighbours.size(),"Spatial Cells");
 
       timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
@@ -828,7 +869,7 @@ void calculateHallTermSimple(
       + cacheContainer.cellsWithLocalNeighbours.size();
    } else {
       fs_cache::CacheContainer& cacheContainer = fs_cache::getCache();
-      calculateHallTerm(sysBoundaries,cacheContainer.localCellsCache,cacheContainer.local_NOT_DO_NOT_COMPUTE,RKCase);
+      calculateHallTerm(perBGrid, perBDt2Grid, EHallGrid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid,sysBoundaries,cacheContainer.localCellsCache,cacheContainer.local_NOT_DO_NOT_COMPUTE,RKCase);
       N_cells = cacheContainer.local_NOT_DO_NOT_COMPUTE.size();
    }
 

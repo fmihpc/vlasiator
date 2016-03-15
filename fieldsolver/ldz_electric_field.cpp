@@ -46,10 +46,13 @@ extern map<CellID,uint> existingCellsFlags;
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
 Real calculateWaveSpeedYZ(
-   const Real* cp,
-   const Real* derivs,
-   const Real* nbr_cp,
-   const Real* nbr_derivs,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsDt2Grid,
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 3, 2> & dPerBGrid,
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
+   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 3, 2> & BgBGrid,
    const Real& By,
    const Real& Bz,
    const Real& dBydx,
@@ -134,10 +137,13 @@ Real calculateWaveSpeedYZ(
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
 Real calculateWaveSpeedXZ(
-   const Real* cp,
-   const Real* derivs,
-   const Real* nbr_cp,
-   const Real* nbr_derivs,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsDt2Grid,
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 3, 2> & dPerBGrid,
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
+   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 3, 2> & BgBGrid,
    const Real& Bx,
    const Real& Bz,
    const Real& dBxdy,
@@ -221,10 +227,13 @@ Real calculateWaveSpeedXZ(
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
 Real calculateWaveSpeedXY(
-   const Real* cp,
-   const Real* derivs,
-   const Real* nbr_cp,
-   const Real* nbr_derivs,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsDt2Grid,
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 3, 2> & dPerBGrid,
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
+   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 3, 2> & BgBGrid,
    const Real& Bx,
    const Real& By,
    const Real& dBxdy,
@@ -295,7 +304,18 @@ Real calculateWaveSpeedXY(
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
 void calculateEdgeElectricFieldX(
-   fs_cache::CellCache& cache,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EGrid,
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EDt2Grid,
+   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 3, 2> & EHallGrid,
+   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 3, 2> & EGradPeGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsDt2Grid,
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 3, 2> & dPerBGrid,
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
+   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 3, 2> & BgBGrid,
+   FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
    cint& RKCase
 ) {
    #ifdef DEBUG_FSOLVER
@@ -657,7 +677,18 @@ void calculateEdgeElectricFieldX(
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
 void calculateEdgeElectricFieldY(
-   fs_cache::CellCache& cache,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EGrid,
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EDt2Grid,
+   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 3, 2> & EHallGrid,
+   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 3, 2> & EGradPeGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsDt2Grid,
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 3, 2> & dPerBGrid,
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
+   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 3, 2> & BgBGrid,
+   FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
    cint& RKCase
 ) {
    #ifdef DEBUG_FSOLVER
@@ -1014,7 +1045,18 @@ void calculateEdgeElectricFieldY(
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
 void calculateEdgeElectricFieldZ(
-   fs_cache::CellCache& cache,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EGrid,
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EDt2Grid,
+   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 3, 2> & EHallGrid,
+   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 3, 2> & EGradPeGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsDt2Grid,
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 3, 2> & dPerBGrid,
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
+   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 3, 2> & BgBGrid,
+   FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
    cint& RKCase
 ) {
    #ifdef DEBUG_FSOLVER
@@ -1375,7 +1417,18 @@ void calculateEdgeElectricFieldZ(
  * 
  */
 void calculateElectricField(
-   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EGrid,
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EDt2Grid,
+   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 3, 2> & EHallGrid,
+   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 3, 2> & EGradPeGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsDt2Grid,
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 3, 2> & dPerBGrid,
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
+   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 3, 2> & BgBGrid,
+   FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
    std::vector<fs_cache::CellCache>& cellCache,
    const std::vector<uint16_t>& cells,
    SysBoundary& sysBoundaries,
@@ -1397,10 +1450,23 @@ void calculateElectricField(
          if ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
              (cellSysBoundaryLayer != 1)
             ) {
-            sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->
-              fieldSolverBoundaryCondElectricField(mpiGrid, cellID, RKCase, 0);
+            sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, EDt2Grid, cellID, RKCase, 0);
          } else {
-            calculateEdgeElectricFieldX(cache,RKCase);
+            calculateEdgeElectricFieldX(
+               perBGrid,
+               perBDt2Grid,
+               EGrid,
+               EDt2Grid,
+               EHallGrid,
+               EGradPeGrid,
+               momentsGrid,
+               momentsDt2Grid,
+               dPerBGrid,
+               dMomentsGrid,
+               BgBGrid,
+               technicalGrid,
+               RKCase
+            );
          }
       }
 
@@ -1408,10 +1474,23 @@ void calculateElectricField(
          if ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
             (cellSysBoundaryLayer != 1)
            ) {
-            sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->
-              fieldSolverBoundaryCondElectricField(mpiGrid, cellID, RKCase, 1);
+            sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, EDt2Grid, cellID, RKCase, 1);
          } else {
-            calculateEdgeElectricFieldY(cache,RKCase);
+            calculateEdgeElectricFieldY(
+               perBGrid,
+               perBDt2Grid,
+               EGrid,
+               EDt2Grid,
+               EHallGrid,
+               EGradPeGrid,
+               momentsGrid,
+               momentsDt2Grid,
+               dPerBGrid,
+               dMomentsGrid,
+               BgBGrid,
+               technicalGrid,
+               RKCase
+            );
          }
       }
 
@@ -1419,10 +1498,23 @@ void calculateElectricField(
          if ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
             (cellSysBoundaryLayer != 1)
            ) {
-            sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->
-              fieldSolverBoundaryCondElectricField(mpiGrid, cellID, RKCase, 2);
+            sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, EDt2Grid, cellID, RKCase, 2);
          } else {
-            calculateEdgeElectricFieldZ(cache,RKCase);
+            calculateEdgeElectricFieldZ(
+               perBGrid,
+               perBDt2Grid,
+               EGrid,
+               EDt2Grid,
+               EHallGrid,
+               EGradPeGrid,
+               momentsGrid,
+               momentsDt2Grid,
+               dPerBGrid,
+               dMomentsGrid,
+               BgBGrid,
+               technicalGrid,
+               RKCase
+            );
          }
       }
    } // for-loop over spatial cells
@@ -1440,7 +1532,18 @@ void calculateElectricField(
  * \sa calculateElectricField calculateEdgeElectricFieldX calculateEdgeElectricFieldY calculateEdgeElectricFieldZ
  */
 void calculateUpwindedElectricFieldSimple(
-   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EGrid,
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EDt2Grid,
+   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 3, 2> & EHallGrid,
+   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 3, 2> & EGradPeGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsDt2Grid,
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 3, 2> & dPerBGrid,
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
+   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 3, 2> & BgBGrid,
+   FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
    SysBoundary& sysBoundaries,
    const vector<CellID>& localCells,
    cint& RKCase
@@ -1468,9 +1571,24 @@ void calculateUpwindedElectricFieldSimple(
    // Calculate upwinded electric field on inner cells
    timer=phiprof::initializeTimer("Compute inner cells");
    phiprof::start(timer);
-   calculateElectricField(mpiGrid,fs_cache::getCache().localCellsCache,
-                          fs_cache::getCache().cellsWithLocalNeighbours,
-                          sysBoundaries,RKCase);
+   calculateElectricField(
+      perBGrid,
+      perBDt2Grid,
+      EGrid,
+      EDt2Grid,
+      EHallGrid,
+      EGradPeGrid,
+      momentsGrid,
+      momentsDt2Grid,
+      dPerBGrid,
+      dMomentsGrid,
+      BgBGrid,
+      technicalGrid,
+      fs_cache::getCache().localCellsCache,
+      fs_cache::getCache().cellsWithLocalNeighbours,
+      sysBoundaries,
+      RKCase
+   );
    phiprof::stop(timer,fs_cache::getCache().cellsWithLocalNeighbours.size(),"Spatial Cells");
    
    timer=phiprof::initializeTimer("Wait for receives","MPI","Wait");
@@ -1481,9 +1599,24 @@ void calculateUpwindedElectricFieldSimple(
    // Calculate upwinded electric field on boundary cells:
    timer=phiprof::initializeTimer("Compute boundary cells");
    phiprof::start(timer);
-   calculateElectricField(mpiGrid,fs_cache::getCache().localCellsCache,   
-                          fs_cache::getCache().cellsWithRemoteNeighbours,
-                          sysBoundaries,RKCase);
+   calculateElectricField(
+      perBGrid,
+      perBDt2Grid,
+      EGrid,
+      EDt2Grid,
+      EHallGrid,
+      EGradPeGrid,
+      momentsGrid,
+      momentsDt2Grid,
+      dPerBGrid,
+      dMomentsGrid,
+      BgBGrid,
+      technicalGrid,
+      fs_cache::getCache().localCellsCache,
+      fs_cache::getCache().cellsWithRemoteNeighbours,
+      sysBoundaries,
+      RKCase
+   );
    phiprof::stop(timer,fs_cache::getCache().cellsWithRemoteNeighbours.size(),"Spatial Cells");
 
 

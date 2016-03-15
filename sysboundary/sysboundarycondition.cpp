@@ -160,7 +160,8 @@ namespace SBC {
     */
 
    Real SysBoundaryCondition::fieldSolverBoundaryCondMagneticField(
-      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
       const std::vector<fs_cache::CellCache>& cellCache,
       const uint16_t& localID,
       creal& dt,
@@ -183,7 +184,8 @@ namespace SBC {
     * \sa fieldSolverBoundaryCondHallElectricField
     */
    void SysBoundaryCondition::fieldSolverBoundaryCondElectricField(
-      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EGrid,
+      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EDt2Grid,
       const CellID& cellID,
       cuint RKCase,
       cuint component
@@ -198,6 +200,7 @@ namespace SBC {
     * \param component 0: x-component, 1: y-component, 2: z-component.
     */
    void SysBoundaryCondition::fieldSolverBoundaryCondHallElectricField(
+      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 3, 2> & EHallGrid,
       fs_cache::CellCache& cache,
       cuint RKCase,
       cuint component
@@ -212,6 +215,7 @@ namespace SBC {
     * \param component 0: x-component, 1: y-component, 2: z-component.
     */
    void SysBoundaryCondition::fieldSolverBoundaryCondGradPeElectricField(
+      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 3, 2> & EGradPeGrid,
       fs_cache::CellCache& cache,
       cuint RKCase,
       cuint component
@@ -227,7 +231,8 @@ namespace SBC {
     * \param component 0: x-derivatives, 1: y-derivatives, 2: z-derivatives, 3: xy-derivatives, 4: xz-derivatives, 5: yz-derivatives.
     */
    void SysBoundaryCondition::fieldSolverBoundaryCondDerivatives(
-      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 3, 2> & dPerBGrid,
+      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
       const CellID& cellID,
       cuint& RKCase,
       cuint& component
@@ -256,7 +261,8 @@ namespace SBC {
     * \param component 0: x-derivatives, 1: y-derivatives, 2: z-derivatives, 3: xy-derivatives, 4: xz-derivatives, 5: yz-derivatives.
     */
    void SysBoundaryCondition::setCellDerivativesToZero(
-      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 3, 2> & dPerBGrid,
+      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
       const CellID& cellID,
       cuint& component
    ) {

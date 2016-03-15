@@ -116,7 +116,8 @@ namespace SBC {
    }
    
    Real ProjectBoundary::fieldSolverBoundaryCondMagneticField(
-                                                              const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
                                                               const CellID& cellID,
                                                               creal& dt,
                                                               cuint& component
@@ -125,7 +126,8 @@ namespace SBC {
    }
 
    void ProjectBoundary::fieldSolverBoundaryCondElectricField(
-                                                              dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EGrid,
+      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EDt2Grid,
                                                               const CellID& cellID,
                                                               cuint RKCase,
                                                               cuint component
@@ -183,7 +185,10 @@ namespace SBC {
       }
    }
 
+#warning missing GradPe function in this class
+   
    void ProjectBoundary::fieldSolverBoundaryCondHallElectricField(
+      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 3, 2> & EHallGrid,
                                                                   dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                                                   const CellID& cellID,
                                                                   cuint RKCase,
@@ -214,12 +219,13 @@ namespace SBC {
    }
    
    void ProjectBoundary::fieldSolverBoundaryCondDerivatives(
-                                                            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 3, 2> & dPerBGrid,
+      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
                                                             const CellID& cellID,
                                                             cuint& RKCase,
                                                             cuint& component
                                                            ) {
-      this->setCellDerivativesToZero(mpiGrid, cellID, component);
+      this->setCellDerivativesToZero(dPerBGrid, dMomentsGrid, cellID, component);
    }
    
    void ProjectBoundary::fieldSolverBoundaryCondBVOLDerivatives(
