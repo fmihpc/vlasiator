@@ -266,24 +266,38 @@ static uint PROPAGATE_BY = 0; /**< Bit mask determining if face By is propagated
 static uint PROPAGATE_BZ = 0; /**< Bit mask determining if face Bz is propagated on a cell.*/
 
 bool initializeFieldPropagator(
-   FsGrid<int,  3, 2> & sbcFlagGrid,
-   FsGrid<Real, 3, 2> & bFieldMomentsGrid,
-   FsGrid<Real, 3, 2> & dMomentsGrid,
-   FsGrid<Real, 3, 2> & dPerBGrid,
-   FsGrid<Real, 3, 2> & dBgBGrid,
-   FsGrid<Real, 3, 2> & dBvolGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EGrid,
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EDt2Grid,
+   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 3, 2> & EHallGrid,
+   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 3, 2> & EGradPeGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsDt2Grid,
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 3, 2> & dPerBGrid,
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
+   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 3, 2> & BgBGrid,
+   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 3, 2> & volGrid,
+   FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
+   SysBoundary& sysBoundaries
    SysBoundary& sysBoundaries
 );
-bool initializeFieldPropagatorAfterRebalance(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
-bool finalizeFieldPropagator(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
+bool initializeFieldPropagatorAfterRebalance();
+bool finalizeFieldPropagator();
 bool propagateFields(
-   FsGrid<int,  3, 2> & sbcFlagGrid,
-   FsGrid<Real, 3, 2> & bFieldMomentsGrid,
-   FsGrid<Real, 3, 2> & bFieldMomentsDt2Grid,
-   FsGrid<Real, 3, 2> & dMomentsGrid,
-   FsGrid<Real, 3, 2> & dPerBGrid,
-   FsGrid<Real, 3, 2> & dBgBGrid,
-   FsGrid<Real, 3, 2> & dBvolGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EGrid,
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EDt2Grid,
+   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 3, 2> & EHallGrid,
+   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 3, 2> & EGradPeGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsDt2Grid,
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 3, 2> & dPerBGrid,
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
+   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 3, 2> & BgBGrid,
+   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 3, 2> & volGrid,
+   FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
    SysBoundary& sysBoundaries,
    creal& dt,
    cint& subcycles
