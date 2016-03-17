@@ -36,17 +36,17 @@ void calculateDerivatives(
    cint& RKCase,
    const bool& doMoments
 ) {
-   std::array<Real, fsgrids::dperb::N_DPERB> * const dPerB = & dPerBGrid->get(i,j,k);
-   std::array<Real, fsgrids::dmoments::N_DMOMENTS> * const dMoments = & dMomentsGrid->get(i,j,k);
+   std::array<Real, fsgrids::dperb::N_DPERB> * const dPerB = & dPerBGrid.get(i,j,k);
+   std::array<Real, fsgrids::dmoments::N_DMOMENTS> * const dMoments = & dMomentsGrid.get(i,j,k);
 
    // Get boundary flag for the cell:
-   cuint sysBoundaryFlag  = technicalGrid->get(i,j,k).sysBoundaryFlag;
-   cuint sysBoundaryLayer = technicalGrid->get(i,j,k).sysBoundaryLayer;
+   cuint sysBoundaryFlag  = technicalGrid.get(i,j,k)->sysBoundaryFlag;
+   cuint sysBoundaryLayer = technicalGrid.get(i,j,k)->sysBoundaryLayer;
    
    std::array<Real, fsgrids::moments::N_MOMENTS> * const leftMoments = NULL;
    std::array<Real, fsgrids::moments::N_BFIELD> * const leftPerB = NULL;
-   const std::array<Real, fsgrids::moments::N_MOMENTS> * const centMoments = & momentsGrid->get(i,j,k);
-   const std::array<Real, fsgrids::moments::N_BFIELD> * const centPerB = & perBGrid->get(i,j,k);
+   const std::array<Real, fsgrids::moments::N_MOMENTS> * const centMoments = & momentsGrid.get(i,j,k);
+   const std::array<Real, fsgrids::moments::N_BFIELD> * const centPerB = & perBGrid.get(i,j,k);
    #ifdef DEBUG_SOLVERS
    if (centMoments[fsgrids::moments::RHO] <= 0) {
       std::cerr << __FILE__ << ":" << __LINE__
@@ -66,19 +66,19 @@ void calculateDerivatives(
    if ((sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) || (sysBoundaryLayer == 1)) {
       
       if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-         leftPerB = & perBGrid->get(i-1,j,k);
-         rghtPerB = & perBGrid->get(i+1,j,k);
+         leftPerB = & perBGrid.get(i-1,j,k);
+         rghtPerB = & perBGrid.get(i+1,j,k);
          if (doMoments) {
-            leftMoments = & momentsGrid->get(i-1,j,k);
-            rghtMoments = & momentsGrid->get(i+1,j,k);
+            leftMoments = & momentsGrid.get(i-1,j,k);
+            rghtMoments = & momentsGrid.get(i+1,j,k);
          }
       }
       if (RKCase == RK_ORDER2_STEP1) {
-         leftPerB = & perBGridDt2->get(i-1,j,k);
-         rghtPerB = & perBGridDt2->get(i+1,j,k);
+         leftPerB = & perBGridDt2.get(i-1,j,k);
+         rghtPerB = & perBGridDt2.get(i+1,j,k);
          if (doMoments) {
-            leftMoments = & momentsGridDt2->get(i-1,j,k);
-            rghtMoments = & momentsGridDt2->get(i+1,j,k);
+            leftMoments = & momentsGridDt2.get(i-1,j,k);
+            rghtMoments = & momentsGridDt2.get(i+1,j,k);
          }
       }
       
@@ -119,19 +119,19 @@ void calculateDerivatives(
    if ((sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) || (sysBoundaryLayer == 1)) {
       
       if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-         leftPerB = & perBGrid->get(i,j-1,k);
-         rghtPerB = & perBGrid->get(i,j+1,k);
+         leftPerB = & perBGrid.get(i,j-1,k);
+         rghtPerB = & perBGrid.get(i,j+1,k);
          if (doMoments) {
-            leftMoments = & momentsGrid->get(i,j-1,k);
-            rghtMoments = & momentsGrid->get(i,j+1,k);
+            leftMoments = & momentsGrid.get(i,j-1,k);
+            rghtMoments = & momentsGrid.get(i,j+1,k);
          }
       }
       if (RKCase == RK_ORDER2_STEP1) {
-         leftPerB = & perBGridDt2->get(i,j-1,k);
-         rghtPerB = & perBGridDt2->get(i,j+1,k);
+         leftPerB = & perBGridDt2.get(i,j-1,k);
+         rghtPerB = & perBGridDt2.get(i,j+1,k);
          if (doMoments) {
-            leftMoments = & momentsGridDt2->get(i,j-1,k);
-            rghtMoments = & momentsGridDt2->get(i,j+1,k);
+            leftMoments = & momentsGridDt2.get(i,j-1,k);
+            rghtMoments = & momentsGridDt2.get(i,j+1,k);
          }
       }
 
@@ -172,19 +172,19 @@ void calculateDerivatives(
    if ((sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) || (sysBoundaryLayer == 1)) {
       
       if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-         leftPerB = & perBGrid->get(i,j,k-1);
-         rghtPerB = & perBGrid->get(i,j,k+1);
+         leftPerB = & perBGrid.get(i,j,k-1);
+         rghtPerB = & perBGrid.get(i,j,k+1);
          if (doMoments) {
-            leftMoments = & momentsGrid->get(i,j,k-1);
-            rghtMoments = & momentsGrid->get(i,j,k+1);
+            leftMoments = & momentsGrid.get(i,j,k-1);
+            rghtMoments = & momentsGrid.get(i,j,k+1);
          }
       }
       if (RKCase == RK_ORDER2_STEP1) {
-         leftPerB = & perBGridDt2->get(i,j,k-1);
-         rghtPerB = & perBGridDt2->get(i,j,k+1);
+         leftPerB = & perBGridDt2.get(i,j,k-1);
+         rghtPerB = & perBGridDt2.get(i,j,k+1);
          if (doMoments) {
-            leftMoments = & momentsGridDt2->get(i,j,k-1);
-            rghtMoments = & momentsGridDt2->get(i,j,k+1);
+            leftMoments = & momentsGridDt2.get(i,j,k-1);
+            rghtMoments = & momentsGridDt2.get(i,j,k+1);
          }
       }
 
@@ -229,16 +229,16 @@ void calculateDerivatives(
       if ((sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) || (sysBoundaryLayer == 1)) {
          
          if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-            botLeft = & perBGrid->get(i-1,j-1,k);
-            botRght = & perBGrid->get(i+1,j-1,k);
-            topLeft = & perBGrid->get(i-1,j+1,k);
-            topRght = & perBGrid->get(i+1,j+1,k);
+            botLeft = & perBGrid.get(i-1,j-1,k);
+            botRght = & perBGrid.get(i+1,j-1,k);
+            topLeft = & perBGrid.get(i-1,j+1,k);
+            topRght = & perBGrid.get(i+1,j+1,k);
          }
          if (RKCase == RK_ORDER2_STEP1) {
-            botLeft = & perBGridDt2->get(i-1,j-1,k);
-            botRght = & perBGridDt2->get(i+1,j-1,k);
-            topLeft = & perBGridDt2->get(i-1,j+1,k);
-            topRght = & perBGridDt2->get(i+1,j+1,k);
+            botLeft = & perBGridDt2.get(i-1,j-1,k);
+            botRght = & perBGridDt2.get(i+1,j-1,k);
+            topLeft = & perBGridDt2.get(i-1,j+1,k);
+            topRght = & perBGridDt2.get(i+1,j+1,k);
          }
          
          dPerB[fsgrids::dperb::dPERBzdxy] = FOURTH * (botLeft[fsgrids::bfield::PERBZ] + topRght[fsgrids::bfield::PERBZ] - botRght[fsgrids::bfield::PERBZ] - topLeft[fsgrids::bfield::PERBZ]);
@@ -255,16 +255,16 @@ void calculateDerivatives(
       if ((sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) || (sysBoundaryLayer == 1)) {
          
          if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-            botLeft = & perBGrid->get(i-1,j,k-1);
-            botRght = & perBGrid->get(i+1,j,k-1);
-            topLeft = & perBGrid->get(i-1,j,k+1);
-            topRght = & perBGrid->get(i+1,j,k+1);
+            botLeft = & perBGrid.get(i-1,j,k-1);
+            botRght = & perBGrid.get(i+1,j,k-1);
+            topLeft = & perBGrid.get(i-1,j,k+1);
+            topRght = & perBGrid.get(i+1,j,k+1);
          }
          if (RKCase == RK_ORDER2_STEP1) {
-            botLeft = & perBGridDt2->get(i-1,j,k-1);
-            botRght = & perBGridDt2->get(i+1,j,k-1);
-            topLeft = & perBGridDt2->get(i-1,j,k+1);
-            topRght = & perBGridDt2->get(i+1,j,k+1);
+            botLeft = & perBGridDt2.get(i-1,j,k-1);
+            botRght = & perBGridDt2.get(i+1,j,k-1);
+            topLeft = & perBGridDt2.get(i-1,j,k+1);
+            topRght = & perBGridDt2.get(i+1,j,k+1);
          }
          
          dPerB[fsgrids::dperb::dPERBydxz] = FOURTH * (botLeft[fsgrids::bfield::PERBY] + topRght[fsgrids::bfield::PERBY] - botRght[fsgrids::bfield::PERBY] - topLeft[fsgrids::bfield::PERBY]);
@@ -281,16 +281,16 @@ void calculateDerivatives(
       if ((sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) || (sysBoundaryLayer == 1)) {
          
          if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-            botLeft = & perBGrid->get(i,j-1,k-1);
-            botRght = & perBGrid->get(i,j+1,k-1);
-            topLeft = & perBGrid->get(i,j-1,k+1);
-            topRght = & perBGrid->get(i,j+1,k+1);
+            botLeft = & perBGrid.get(i,j-1,k-1);
+            botRght = & perBGrid.get(i,j+1,k-1);
+            topLeft = & perBGrid.get(i,j-1,k+1);
+            topRght = & perBGrid.get(i,j+1,k+1);
          }
          if (RKCase == RK_ORDER2_STEP1) {
-            botLeft = & perBGridDt2->get(i,j-1,k-1);
-            botRght = & perBGridDt2->get(i,j+1,k-1);
-            topLeft = & perBGridDt2->get(i,j-1,k+1);
-            topRght = & perBGridDt2->get(i,j+1,k+1);
+            botLeft = & perBGridDt2.get(i,j-1,k-1);
+            botRght = & perBGridDt2.get(i,j+1,k-1);
+            topLeft = & perBGridDt2.get(i,j-1,k+1);
+            topRght = & perBGridDt2.get(i,j+1,k+1);
          }
          
          dPerB[fsgrids::dperb::dPERBxdyz] = FOURTH * (botLeft[fsgrids::bfield::PERBX] + topRght[fsgrids::bfield::PERBX] - botRght[fsgrids::bfield::PERBX] - topLeft[fsgrids::bfield::PERBX]);
@@ -334,7 +334,7 @@ void calculateDerivativesSimple(
    const bool& doMoments
 ) {
    int timer;
-   const std::array<int, 3> gridDims = technicalGrid->getLocalSize();
+   const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
    const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
    
    phiprof::start("Calculate face derivatives");
@@ -380,7 +380,7 @@ void calculateDerivativesSimple(
    for (uint k=0; k<gridDims[2]; k++) {
       for (uint j=0; j<gridDims[1]; j++) {
          for (uint i=0; i<gridDims[0]; i++) {
-            if (technicalGrid->get(i,j,k).sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
+            if (technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
             
             calculateDerivatives(i,j,k, perBGrid, perBDt2Grid, EGrid, EDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RKCase, doMoments);
          }
@@ -410,53 +410,53 @@ void calculateBVOLDerivatives(
    const int k,
    SysBoundary& sysBoundaries
 ) {
-   Real* const array = volGrid->get(i,j,k);
+   Real* const array = volGrid.get(i,j,k);
    
    std::array<Real, fsgrids::volfields::N_VOL> * left = NULL;
    std::array<Real, fsgrids::volfields::N_VOL> * rght = NULL;
    
    // Calculate x-derivatives (is not TVD for AMR mesh):
-   if (technicalGrid->get(i,j,k).sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-      left = & volGrid->get(i-1,j,k);
-      rght = & volGrid->get(i+1,j,k);
+   if (technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+      left = & volGrid.get(i-1,j,k);
+      rght = & volGrid.get(i+1,j,k);
       
       array[fsgrids::volfields::dPERBYVOLdx] = limiter(left[fsgrids::volfields::PERBYVOL],cent[fsgrids::volfields::PERBYVOL],rght[fsgrids::volfields::PERBYVOL]);
       array[fsgrids::volfields::dPERBZVOLdx] = limiter(left[fsgrids::volfields::PERBZVOL],cent[fsgrids::volfields::PERBZVOL],rght[fsgrids::volfields::PERBZVOL]);
    } else {
-      if (technicalGrid->get(i,j,k).sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+      if (technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
          SBC::SysBoundaryCondition::setCellBVOLDerivativesToZero(volGrid, i, j, k, 0);
       } else {
-         sysBoundaries.getSysBoundary(technicalGrid->get(i,j,k).sysBoundaryFlag)->fieldSolverBoundaryCondBVOLDerivatives(volGrid, i, j, k, 0);
+         sysBoundaries.getSysBoundary(technicalGrid.get(i,j,k)->sysBoundaryFlag)->fieldSolverBoundaryCondBVOLDerivatives(volGrid, i, j, k, 0);
       }
    }
    
    // Calculate y-derivatives (is not TVD for AMR mesh):
-   if (technicalGrid->get(i,j,k).sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-      left = & volGrid->get(i,j-1,k);
-      rght = & volGrid->get(i,j+1,k);
+   if (technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+      left = & volGrid.get(i,j-1,k);
+      rght = & volGrid.get(i,j+1,k);
       
       array[fsgrids::volfields::dPERBXVOLdy] = limiter(left[fsgrids::volfields::PERBXVOL],cent[fsgrids::volfields::PERBXVOL],rght[fsgrids::volfields::PERBXVOL]);
       array[fsgrids::volfields::dPERBZVOLdy] = limiter(left[fsgrids::volfields::PERBZVOL],cent[fsgrids::volfields::PERBZVOL],rght[fsgrids::volfields::PERBZVOL]);
    } else {
-      if (technicalGrid->get(i,j,k).sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+      if (technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
          SBC::SysBoundaryCondition::setCellBVOLDerivativesToZero(volGrid, i, j, k, 1);
       } else {
-         sysBoundaries.getSysBoundary(technicalGrid->get(i,j,k).sysBoundaryFlag)->fieldSolverBoundaryCondBVOLDerivatives(volGrid, i, j, k, 1);
+         sysBoundaries.getSysBoundary(technicalGrid.get(i,j,k)->sysBoundaryFlag)->fieldSolverBoundaryCondBVOLDerivatives(volGrid, i, j, k, 1);
       }
    }
    
    // Calculate z-derivatives (is not TVD for AMR mesh):
-   if (technicalGrid->get(i,j,k).sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+   if (technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
       left = cache[localID].cells[fs_cache::calculateNbrID(1  ,1  ,1-1)]->parameters;
       rght = cache[localID].cells[fs_cache::calculateNbrID(1  ,1  ,1+1)]->parameters;
       
       array[fsgrids::volfields::dPERBXVOLdz] = limiter(left[fsgrids::volfields::PERBXVOL],cent[fsgrids::volfields::PERBXVOL],rght[fsgrids::volfields::PERBXVOL]);
       array[fsgrids::volfields::dPERBYVOLdz] = limiter(left[fsgrids::volfields::PERBYVOL],cent[fsgrids::volfields::PERBYVOL],rght[fsgrids::volfields::PERBYVOL]);
    } else {
-      if (technicalGrid->get(i,j,k).sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+      if (technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
          SBC::SysBoundaryCondition::setCellBVOLDerivativesToZero(volGrid, i, j, k, 2);
       } else {
-         sysBoundaries.getSysBoundary(technicalGrid->get(i,j,k).sysBoundaryFlag)->fieldSolverBoundaryCondBVOLDerivatives(volGrid, i, j, k, 2);
+         sysBoundaries.getSysBoundary(technicalGrid.get(i,j,k)->sysBoundaryFlag)->fieldSolverBoundaryCondBVOLDerivatives(volGrid, i, j, k, 2);
       }
    }
 }
@@ -477,7 +477,7 @@ void calculateBVOLDerivativesSimple(
    SysBoundary& sysBoundaries,
 ) {
    int timer;
-   const std::array<int, 3> gridDims = technicalGrid->getLocalSize();
+   const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
    const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
    
    phiprof::start("Calculate volume derivatives");
@@ -497,7 +497,7 @@ void calculateBVOLDerivativesSimple(
    for (uint k=0; k<gridDims[2]; k++) {
       for (uint j=0; j<gridDims[1]; j++) {
          for (uint i=0; i<gridDims[0]; i++) {
-            if (technicalGrid->get(i,j,k).sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
+            if (technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
             
             calculateBVOLDerivatives(volGrid,i,j,k,sysBoundaries);
          }

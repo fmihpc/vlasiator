@@ -1537,7 +1537,7 @@ void calculateUpwindedElectricFieldSimple(
 ) {
    namespace fs = fieldsolver;
    int timer;
-   const std::array<int, 3> gridDims = technicalGrid->getLocalSize();
+   const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
    const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
    phiprof::start("Calculate upwinded electric field");
    if(P::ohmHallTerm > 0) {
