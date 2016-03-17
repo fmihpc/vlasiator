@@ -312,6 +312,9 @@ void calculateEdgeElectricFieldX(
    FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
    FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 3, 2> & BgBGrid,
    FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
+   i,
+   j,
+   k,
    cint& RKCase
 ) {
    #ifdef DEBUG_FSOLVER
@@ -685,6 +688,9 @@ void calculateEdgeElectricFieldY(
    FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
    FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 3, 2> & BgBGrid,
    FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
+   i,
+   j,
+   k,
    cint& RKCase
 ) {
    #ifdef DEBUG_FSOLVER
@@ -1053,6 +1059,9 @@ void calculateEdgeElectricFieldZ(
    FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
    FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 3, 2> & BgBGrid,
    FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
+   i,
+   j,
+   k,
    cint& RKCase
 ) {
    #ifdef DEBUG_FSOLVER
@@ -1425,76 +1434,78 @@ void calculateElectricField(
    FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
    FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 3, 2> & BgBGrid,
    FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
-   std::vector<fs_cache::CellCache>& cellCache,
-   const std::vector<uint16_t>& cells,
+   const int i,
+   const int j,
+   const int k,
    SysBoundary& sysBoundaries,
    cint& RKCase
 ) {
-   #pragma omp parallel for
-   for (size_t c=0; c<cells.size(); ++c) {
-      const uint16_t localID = cells[c];
-      fs_cache::CellCache& cache = cellCache[localID];
-      const CellID cellID = cache.cellID;
-
-      if (cache.sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
-
-      cuint cellSysBoundaryFlag        = cache.sysBoundaryFlag;
-      cuint cellSysBoundaryLayer       = cache.cells[fs_cache::calculateNbrID(1,1,1)]->sysBoundaryLayer;
-
-      if ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
-            (cellSysBoundaryLayer != 1)
-      ) {
-         sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, EDt2Grid, cellID, RKCase, 0);
-         sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, EDt2Grid, cellID, RKCase, 1);
-         sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, EDt2Grid, cellID, RKCase, 2);
-      } else {
-         calculateEdgeElectricFieldX(
-            perBGrid,
-            perBDt2Grid,
-            EGrid,
-            EDt2Grid,
-            EHallGrid,
-            EGradPeGrid,
-            momentsGrid,
-            momentsDt2Grid,
-            dPerBGrid,
-            dMomentsGrid,
-            BgBGrid,
-            technicalGrid,
-            RKCase
-         );
-         calculateEdgeElectricFieldY(
-            perBGrid,
-            perBDt2Grid,
-            EGrid,
-            EDt2Grid,
-            EHallGrid,
-            EGradPeGrid,
-            momentsGrid,
-            momentsDt2Grid,
-            dPerBGrid,
-            dMomentsGrid,
-            BgBGrid,
-            technicalGrid,
-            RKCase
-         );
-         calculateEdgeElectricFieldZ(
-            perBGrid,
-            perBDt2Grid,
-            EGrid,
-            EDt2Grid,
-            EHallGrid,
-            EGradPeGrid,
-            momentsGrid,
-            momentsDt2Grid,
-            dPerBGrid,
-            dMomentsGrid,
-            BgBGrid,
-            technicalGrid,
-            RKCase
-         );
-      }
-   } // for-loop over spatial cells
+   cuint cellSysBoundaryFlag = technicalGrid.get(i,j,k)->sysBoundaryFlag;
+   
+   if (cellSysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
+   
+   cuint cellSysBoundaryLayer = technicalGrid.get(i,j,k)->sysBoundaryLayer;
+   
+   if ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) && (cellSysBoundaryLayer != 1)) {
+      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, EDt2Grid, cellID, RKCase, 0);
+      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, EDt2Grid, cellID, RKCase, 1);
+      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, EDt2Grid, cellID, RKCase, 2);
+   } else {
+      calculateEdgeElectricFieldX(
+         perBGrid,
+         perBDt2Grid,
+         EGrid,
+         EDt2Grid,
+         EHallGrid,
+         EGradPeGrid,
+         momentsGrid,
+         momentsDt2Grid,
+         dPerBGrid,
+         dMomentsGrid,
+         BgBGrid,
+         technicalGrid,
+         i,
+         j,
+         k,
+         RKCase
+      );
+      calculateEdgeElectricFieldY(
+         perBGrid,
+         perBDt2Grid,
+         EGrid,
+         EDt2Grid,
+         EHallGrid,
+         EGradPeGrid,
+         momentsGrid,
+         momentsDt2Grid,
+         dPerBGrid,
+         dMomentsGrid,
+         BgBGrid,
+         technicalGrid,
+         i,
+         j,
+         k,
+         RKCase
+      );
+      calculateEdgeElectricFieldZ(
+         perBGrid,
+         perBDt2Grid,
+         EGrid,
+         EDt2Grid,
+         EHallGrid,
+         EGradPeGrid,
+         momentsGrid,
+         momentsDt2Grid,
+         dPerBGrid,
+         dMomentsGrid,
+         BgBGrid,
+         technicalGrid,
+         i,
+         j,
+         k,
+         RKCase
+      );
+   }
 }
 
 /*! \brief High-level electric field computation function.
@@ -1543,22 +1554,31 @@ void calculateUpwindedElectricFieldSimple(
    // Calculate upwinded electric field on inner cells
    timer=phiprof::initializeTimer("Compute cells");
    phiprof::start(timer);
-   calculateElectricField(
-      perBGrid,
-      perBDt2Grid,
-      EGrid,
-      EDt2Grid,
-      EHallGrid,
-      EGradPeGrid,
-      momentsGrid,
-      momentsDt2Grid,
-      dPerBGrid,
-      dMomentsGrid,
-      BgBGrid,
-      technicalGrid,
-      sysBoundaries,
-      RKCase
-   );
+   for (uint k=0; k<gridDims[2]; k++) {
+      for (uint j=0; j<gridDims[1]; j++) {
+         for (uint i=0; i<gridDims[0]; i++) {
+            calculateElectricField(
+               perBGrid,
+               perBDt2Grid,
+               EGrid,
+               EDt2Grid,
+               EHallGrid,
+               EGradPeGrid,
+               momentsGrid,
+               momentsDt2Grid,
+               dPerBGrid,
+               dMomentsGrid,
+               BgBGrid,
+               technicalGrid,
+               i,
+               j,
+               k,
+               sysBoundaries,
+               RKCase
+            );
+         }
+      }
+   }
    phiprof::stop(timer,fs_cache::getCache().cellsWithLocalNeighbours.size(),"Spatial Cells");
    
    // Exchange electric field with neighbouring processes
