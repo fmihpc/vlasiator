@@ -12,8 +12,6 @@ Copyright 2015 Finnish Meteorological Institute
 #include "fs_limiters.h"
 #include "fs_cache.h"
 
-extern map<CellID,uint> existingCellsFlags; /**< Defined in fs_common.cpp */
-
 /*! \brief Low-level spatial derivatives calculation.
  * 
  * For the cell with ID cellID calculate the spatial derivatives or apply the derivative boundary conditions defined in project.h. Uses RHO, RHOV[XYZ] and B[XYZ] in the first-order time accuracy method and in the second step of the second-order method, and RHO_DT2, RHOV[XYZ]1 and B[XYZ]1 in the first step of the second-order method.
@@ -44,7 +42,6 @@ void calculateDerivatives(
    std::array<Real, fsgrids::dmoments::N_DMOMENTS> * const dMoments = & dMomentsGrid.get(i,j,k);
 
    // Get boundary flag for the cell:
-   cuint existingCells    = technicalGrid.existingCellsFlags;
    cuint sysBoundaryFlag  = technicalGrid.get(i,j,k).sysBoundaryFlag;
    cuint sysBoundaryLayer = technicalGrid.get(i,j,k).sysBoundaryLayer;
    
@@ -68,8 +65,7 @@ void calculateDerivatives(
    std::array<Real, fsgrids::moments::N_BFIELD>  * const topRght = NULL;
    
    // Calculate x-derivatives (is not TVD for AMR mesh):
-   if (((existingCells & CALCULATE_DX) == CALCULATE_DX) &&
-       ((sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) || (sysBoundaryLayer == 1))) {
+   if ((sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) || (sysBoundaryLayer == 1)) {
       
       if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
          leftPerB = & perBGrid.get(i-1,j,k);
@@ -122,8 +118,7 @@ void calculateDerivatives(
    }
 
    // Calculate y-derivatives (is not TVD for AMR mesh):
-   if (((existingCells & CALCULATE_DY) == CALCULATE_DY) &&
-       ((sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) || (sysBoundaryLayer == 1))) {
+   if ((sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) || (sysBoundaryLayer == 1)) {
       
       if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
          leftPerB = & perBGrid.get(i,j-1,k);
@@ -176,9 +171,8 @@ void calculateDerivatives(
    }
    
    // Calculate z-derivatives (is not TVD for AMR mesh):
-   if (((existingCells & CALCULATE_DZ) == CALCULATE_DZ) &&
-       ((sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) || (sysBoundaryLayer == 1))) {
-
+   if ((sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) || (sysBoundaryLayer == 1)) {
+      
       if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
          leftPerB = & perBGrid.get(i,j,k-1);
          rghtPerB = & perBGrid.get(i,j,k+1);
@@ -234,8 +228,7 @@ void calculateDerivatives(
       dPerB[fsgrids::dperb::dPERBzdxy] = 0.0;
    } else {
       // Calculate xy mixed derivatives:
-      if (((existingCells & CALCULATE_DXY) == CALCULATE_DXY) &&
-          ((sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) || (sysBoundaryLayer == 1))) {
+      if ((sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) || (sysBoundaryLayer == 1)) {
          
          if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
             botLeft = & perBGrid.get(i-1,j-1,k);
@@ -261,8 +254,7 @@ void calculateDerivatives(
       }
       
       // Calculate xz mixed derivatives:
-      if (((existingCells & CALCULATE_DXZ) == CALCULATE_DXZ) &&
-          ((sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) || (sysBoundaryLayer == 1))) {
+      if ((sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) || (sysBoundaryLayer == 1)) {
          
          if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
             botLeft = & perBGrid.get(i-1,j,k-1);
@@ -288,8 +280,7 @@ void calculateDerivatives(
       }
       
       // Calculate yz mixed derivatives:
-      if (((existingCells & CALCULATE_DYZ) == CALCULATE_DYZ) &&
-          ((sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) || (sysBoundaryLayer == 1))) {
+      if ((sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) || (sysBoundaryLayer == 1)) {
          
          if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
             botLeft = & perBGrid.get(i,j-1,k-1);
@@ -424,15 +415,11 @@ void calculateBVOLDerivatives(
 ) {
    Real* const array = volGrid.get(i,j,k);
    
-   // Get boundary flag for the cell:
-   cuint existingCells = cache[localID].existingCellsFlags;
-   
    std::array<Real, fsgrids::volfields::N_VOL> * left = NULL;
    std::array<Real, fsgrids::volfields::N_VOL> * rght = NULL;
    
    // Calculate x-derivatives (is not TVD for AMR mesh):
-   if (((existingCells & CALCULATE_DX) == CALCULATE_DX) &&
-         (technicalGrid.get(i,j,k).sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)) {
+   if (technicalGrid.get(i,j,k).sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
       left = & volGrid.get(i-1,j,k);
       rght = & volGrid.get(i+1,j,k);
       
@@ -447,8 +434,7 @@ void calculateBVOLDerivatives(
    }
    
    // Calculate y-derivatives (is not TVD for AMR mesh):
-   if (((existingCells & CALCULATE_DY) == CALCULATE_DY) &&
-         (technicalGrid.get(i,j,k).sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)) {
+   if (technicalGrid.get(i,j,k).sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
       left = & volGrid.get(i,j-1,k);
       rght = & volGrid.get(i,j+1,k);
       
@@ -463,8 +449,7 @@ void calculateBVOLDerivatives(
    }
    
    // Calculate z-derivatives (is not TVD for AMR mesh):
-   if (((existingCells & CALCULATE_DZ) == CALCULATE_DZ) &&
-         (technicalGrid.get(i,j,k).sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)) {
+   if (technicalGrid.get(i,j,k).sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
       left = cache[localID].cells[fs_cache::calculateNbrID(1  ,1  ,1-1)]->parameters;
       rght = cache[localID].cells[fs_cache::calculateNbrID(1  ,1  ,1+1)]->parameters;
       
