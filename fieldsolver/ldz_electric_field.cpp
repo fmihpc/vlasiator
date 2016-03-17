@@ -8,7 +8,6 @@ Copyright 2015 Finnish Meteorological Institute
 #include <cstdlib>
 
 #include "fs_common.h"
-#include "fs_cache.h"
 #include "ldz_electric_field.hpp"
 
 #ifndef NDEBUG

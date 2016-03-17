@@ -10,7 +10,6 @@ Copyright 2015 Finnish Meteorological Institute
 #include "fs_common.h"
 #include "derivatives.hpp"
 #include "fs_limiters.h"
-#include "fs_cache.h"
 
 /*! \brief Low-level spatial derivatives calculation.
  * 

@@ -9,7 +9,6 @@
    #include <omp.h>
 #endif
 
-#include "fs_cache.h"
 #include "ldz_magnetic_field.hpp"
 
 using namespace std;

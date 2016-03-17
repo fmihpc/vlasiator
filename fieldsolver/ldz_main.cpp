@@ -28,7 +28,6 @@ Copyright 2010, 2011, 2012, 2013, 2014 Finnish Meteorological Institute
  * *****      IN THE ABOVEMENTIONED PUBLICATION(S)           *****
  */
 
-#include "fs_cache.h"
 #include "ldz_electric_field.hpp"
 #include "ldz_magnetic_field.hpp"
 #include "ldz_hall.hpp"

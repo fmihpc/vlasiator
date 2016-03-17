@@ -16,7 +16,6 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #include "../definitions.h"
 #include "../spatial_cell.hpp"
 #include "../projects/project.h"
-#include "../fieldsolver/fs_cache.h"
 
 using namespace spatial_cell;
 using namespace projects;

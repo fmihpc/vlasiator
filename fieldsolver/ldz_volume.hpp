@@ -10,9 +10,6 @@ Copyright 2010-2015 Finnish Meteorological Institute
 
 #include <vector>
 
-#include <dccrg.hpp>
-#include <dccrg_cartesian_geometry.hpp>
-
 #include "fs_common.h"
 #include "../spatial_cell.hpp"
 
