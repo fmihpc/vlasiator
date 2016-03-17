@@ -330,7 +330,6 @@ void calculateDerivativesSimple(
    FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
    FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
    SysBoundary& sysBoundaries,
-   const vector<CellID>& localCells,
    cint& RKCase,
    const bool& doMoments
 ) {
@@ -469,7 +468,6 @@ void calculateBVOLDerivatives(
  * 
  * \param mpiGrid Grid
  * \param sysBoundaries System boundary conditions existing
- * \param localCells Vector of local cells to process
  * 
  * \sa calculateDerivatives calculateBVOLDerivatives calculateDerivativesSimple
  */
@@ -477,7 +475,6 @@ void calculateBVOLDerivativesSimple(
    FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 3, 2> & volGrid,
    FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
    SysBoundary& sysBoundaries,
-   const vector<CellID>& localCells
 ) {
    int timer;
    const std::array<int, 3> gridDims = technicalGrid->getLocalSize();
