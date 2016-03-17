@@ -47,7 +47,7 @@ void reconstructionCoefficients(
    cint& RKCase
 ) {
    std::array<Real, fsgrids::bfield::N_BFIELD> * const cep_i1j1k1 = NULL;
-   std::array<Real, fsgrids::dperb::N_DPERB> * const der_i1j1k1 = dPerBGrid.get(i,j,k);
+   std::array<Real, fsgrids::dperb::N_DPERB> * const der_i1j1k1 = dPerBGrid->get(i,j,k);
    std::array<Real, fsgrids::bfield::N_BFIELD> * dummyCellParams = NULL;
    std::array<Real, fsgrids::bfield::N_BFIELD> * cep_i2j1k1 = NULL;
    std::array<Real, fsgrids::bfield::N_BFIELD> * cep_i1j2k1 = NULL;
@@ -62,14 +62,14 @@ void reconstructionCoefficients(
       params = & perBDt2Grid;
    }
    
-   cep_i1j1k1 = params.get(i,j,k);
+   cep_i1j1k1 = params->get(i,j,k);
    dummyCellParams = cep_i1j1k1;
    cep_i2j1k1 = dummyCellParams;
    cep_i1j2k1 = dummyCellParams;
    cep_i1j1k2 = dummyCellParams;
-   if (params.get(i+1,j,k) != NULL) cep_i2j1k1 = params.get(i+1,j,k);
-   if (params.get(i,j+1,k) != NULL) cep_i1j2k1 = params.get(i,j+1,k);
-   if (params.get(i,j,k+1) != NULL) cep_i1j1k2 = params.get(i,j,k+1);
+   if (params->get(i+1,j,k) != NULL) cep_i2j1k1 = params->get(i+1,j,k);
+   if (params->get(i,j+1,k) != NULL) cep_i1j2k1 = params->get(i,j+1,k);
+   if (params->get(i,j,k+1) != NULL) cep_i1j1k2 = params->get(i,j,k+1);
    
    #ifndef FS_1ST_ORDER_SPACE
 
@@ -82,9 +82,9 @@ void reconstructionCoefficients(
    std::array<Real, fsgrids::dperb::N_DPERB> * der_i2j1k1 = dummyDerivatives;
    std::array<Real, fsgrids::dperb::N_DPERB> * der_i1j2k1 = dummyDerivatives;
    std::array<Real, fsgrids::dperb::N_DPERB> * der_i1j1k2 = dummyDerivatives;
-   if (dPerBGrid.get(i+1,j,k) != NULL) der_i2j1k1 = dPerBGrid.get(i+1,j,k);
-   if (dPerBGrid.get(i,j+1,k) != NULL) der_i2j1k1 = dPerBGrid.get(i,j+1,j);
-   if (dPerBGrid.get(i,j,k+1) != NULL) der_i2j1k1 = dPerBGrid.get(i,j,k+1);
+   if (dPerBGrid->get(i+1,j,k) != NULL) der_i2j1k1 = dPerBGrid->get(i+1,j,k);
+   if (dPerBGrid->get(i,j+1,k) != NULL) der_i2j1k1 = dPerBGrid->get(i,j+1,j);
+   if (dPerBGrid->get(i,j,k+1) != NULL) der_i2j1k1 = dPerBGrid->get(i,j,k+1);
    
    // Calculate 3rd order reconstruction coefficients:
    if (reconstructionOrder == 2) {
