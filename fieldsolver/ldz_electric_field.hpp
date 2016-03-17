@@ -24,7 +24,6 @@ void calculateUpwindedElectricFieldSimple(
    FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 3, 2> & BgBGrid,
    FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
    SysBoundary& sysBoundaries,
-   const vector<CellID>& localCells,
    cint& RKCase
 );
 

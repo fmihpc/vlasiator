@@ -2,7 +2,6 @@
 This file is part of Vlasiator.
 
 Copyright 2015 Finnish Meteorological Institute
-
 */
 
 #include <cstdlib>
@@ -1523,31 +1522,26 @@ void calculateUpwindedElectricFieldSimple(
    FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 3, 2> & BgBGrid,
    FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
    SysBoundary& sysBoundaries,
-   const vector<CellID>& localCells,
    cint& RKCase
 ) {
    namespace fs = fieldsolver;
    int timer;
+   const std::array<int, 3> gridDims = technicalGrid->getLocalSize();
+   const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
    phiprof::start("Calculate upwinded electric field");
-   uint64_t transferMask = 0;
    if(P::ohmHallTerm > 0) {
-      transferMask = transferMask | Transfer::CELL_HALL_TERM;
+      EHallGrid.updateGhostCells();
    }
    if(P::ohmGradPeTerm > 0) {
-      transferMask = transferMask | Transfer::CELL_GRADPE_TERM;
+      EGradPeGrid.updateGhostCells();
    }
    if(P::ohmHallTerm == 0 && P::ohmGradPeTerm == 0) {
-      transferMask = Transfer::CELL_DERIVATIVES;
+      dPerBGrid.updateGhostCells();
+      dMomentsGrid.updateGhostCells();
    }
-   SpatialCell::set_mpi_transfer_type(transferMask);
-   
-   timer=phiprof::initializeTimer("Start communication in calculateUpwindedElectricFieldSimple","MPI");
-   phiprof::start(timer);
-   mpiGrid.start_remote_neighbor_copy_updates(FIELD_SOLVER_NEIGHBORHOOD_ID);
-   phiprof::stop(timer);
    
    // Calculate upwinded electric field on inner cells
-   timer=phiprof::initializeTimer("Compute inner cells");
+   timer=phiprof::initializeTimer("Compute cells");
    phiprof::start(timer);
    calculateElectricField(
       perBGrid,
@@ -1562,60 +1556,17 @@ void calculateUpwindedElectricFieldSimple(
       dMomentsGrid,
       BgBGrid,
       technicalGrid,
-      fs_cache::getCache().localCellsCache,
-      fs_cache::getCache().cellsWithLocalNeighbours,
       sysBoundaries,
       RKCase
    );
    phiprof::stop(timer,fs_cache::getCache().cellsWithLocalNeighbours.size(),"Spatial Cells");
    
-   timer=phiprof::initializeTimer("Wait for receives","MPI","Wait");
-   phiprof::start(timer);
-   mpiGrid.wait_remote_neighbor_copy_update_receives(FIELD_SOLVER_NEIGHBORHOOD_ID);
-   phiprof::stop(timer);
-
-   // Calculate upwinded electric field on boundary cells:
-   timer=phiprof::initializeTimer("Compute boundary cells");
-   phiprof::start(timer);
-   calculateElectricField(
-      perBGrid,
-      perBDt2Grid,
-      EGrid,
-      EDt2Grid,
-      EHallGrid,
-      EGradPeGrid,
-      momentsGrid,
-      momentsDt2Grid,
-      dPerBGrid,
-      dMomentsGrid,
-      BgBGrid,
-      technicalGrid,
-      fs_cache::getCache().localCellsCache,
-      fs_cache::getCache().cellsWithRemoteNeighbours,
-      sysBoundaries,
-      RKCase
-   );
-   phiprof::stop(timer,fs_cache::getCache().cellsWithRemoteNeighbours.size(),"Spatial Cells");
-
-
-   timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
-   phiprof::start(timer);
-   mpiGrid.wait_remote_neighbor_copy_update_sends();
-   phiprof::stop(timer);
-   
    // Exchange electric field with neighbouring processes
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      SpatialCell::set_mpi_transfer_type(Transfer::CELL_E);
+      EGrid.updateGhostCells();
    } else { // RKCase == RK_ORDER2_STEP1
-      SpatialCell::set_mpi_transfer_type(Transfer::CELL_EDT2);
+      EDt2Grid.updateGhostCells();
    }
-   timer=phiprof::initializeTimer("Communicate electric fields","MPI","Wait");
-   phiprof::start(timer);
-   mpiGrid.update_copies_of_remote_neighbors(FIELD_SOLVER_NEIGHBORHOOD_ID);
-   phiprof::stop(timer);
-
-   const size_t N_cells = fs_cache::getCache().cellsWithLocalNeighbours.size() 
-     + fs_cache::getCache().cellsWithRemoteNeighbours.size();
    
    phiprof::stop("Calculate upwinded electric field",N_cells,"Spatial Cells");
 }
