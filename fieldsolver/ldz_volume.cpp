@@ -59,6 +59,9 @@ void calculateVolumeAveragedFields(
          perBDt2Grid,
          dPerBGrid,
          perturbedCoefficients,
+         i,
+         j,
+         k,
          2,
          RK_ORDER1
       );

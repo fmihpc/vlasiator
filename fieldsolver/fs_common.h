@@ -289,28 +289,6 @@ bool propagateFields(
    cint& subcycles
 );
 
-/*! \brief Calculate the neighbour number.
- * 
- * Calculate the neighbour number. For the inspected cell the (i,j,k) are (1,1,1). Add or 
- * reduce one from an index to get the "neighbour number" for the neighbour in that direction. 
- * For example, neighbour number for i-1,j-1,k neighbour is calculated with calcNbrNumber(1-1,1-1,1+0).
- * Thus, the cell in question has a "neighbour number" 13.
- * The purpose of this function (and neighbour numbers) is to indicate whether a cell has 
- * existing neighbours on a given direction. The neighbour existence status can be stored in 
- * a single 32bit word and tested with bitwise operations.
- */
-inline uchar calcNbrNumber(const uchar& i,const uchar& j,const uchar& k) {return k*9+j*3+i;}
-
-inline uchar calcNbrTypeID(const uchar& i,const uchar& j,const uchar& k) {return k*25+j*5+i;}
-
-CellID getNeighbourID(
-   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   const CellID& cellID,
-   const uchar& i,
-   const uchar& j,
-   const uchar& k
-);
-
 Real divideIfNonZero(creal rhoV, creal rho);
 
 /*! Namespace encompassing the enum defining the list of reconstruction coefficients used in field component reconstructions.*/
@@ -325,10 +303,13 @@ namespace Rec {
 }
 
 void reconstructionCoefficients(
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
+   const FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
+   const FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
    FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 3, 2> & dPerBGrid,
    Real* perturbedResult,
+   i,
+   j,
+   k,
    creal& reconstructionOrder,
    cint& RKCase
 );

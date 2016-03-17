@@ -764,6 +764,9 @@ void calculateHallTerm(
          perBDt2Grid,
          dPerBGrid,
          perturbedCoefficients,
+         i,
+         j,
+         k,
          3, // Reconstruction order of the fields after Balsara 2009, 2 used for general B, 3 used here for 2nd-order Hall term
          RKCase
       );
