@@ -462,6 +462,6 @@ bool propagateFields(
    }
    
    calculateVolumeAveragedFields(perBGrid,EGrid,dPerBGrid,volGrid,fs_cache::getCache().localCellsCache,fs_cache::getCache().local_NOT_DO_NOT_COMPUTE);
-   calculateBVOLDerivativesSimple(volGrid, sysBoundaries, localCells);
+   calculateBVOLDerivativesSimple(volGrid, technicalGrid, sysBoundaries, localCells);
    return true;
 }

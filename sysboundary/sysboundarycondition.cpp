@@ -263,58 +263,59 @@ namespace SBC {
    void SysBoundaryCondition::setCellDerivativesToZero(
       FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 3, 2> & dPerBGrid,
       FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
-      const CellID& cellID,
+      const int i,
+      const int j,
+      const int k,
       cuint& component
    ) {
-      Real* const derivs = &(mpiGrid[cellID]->derivatives[0]);
       switch(component) {
          case 0: // x, xx
-            derivs[fieldsolver::drhodx] = 0.0;
-            derivs[fieldsolver::dp11dx] = 0.0;
-            derivs[fieldsolver::dp22dx] = 0.0;
-            derivs[fieldsolver::dp33dx] = 0.0;
-            derivs[fieldsolver::dPERBydx]  = 0.0;
-            derivs[fieldsolver::dPERBzdx]  = 0.0;
-            derivs[fieldsolver::dVxdx]  = 0.0;
-            derivs[fieldsolver::dVydx]  = 0.0;
-            derivs[fieldsolver::dVzdx]  = 0.0;
-            derivs[fieldsolver::dPERBydxx] = 0.0;
-            derivs[fieldsolver::dPERBzdxx] = 0.0;
+            dMomentsGrid[fsgrids::dmoments::drhodx] = 0.0;
+            dMomentsGrid[fsgrids::dmomentsdp11dx] = 0.0;
+            dMomentsGrid[fsgrids::dmomentsdp22dx] = 0.0;
+            dMomentsGrid[fsgrids::dmomentsdp33dx] = 0.0;
+            dPerBGrid[fsgrids::dperbdPERBydx]  = 0.0;
+            dPerBGrid[fsgrids::dperbdPERBzdx]  = 0.0;
+            dMomentsGrid[fsgrids::dmomentsdVxdx]  = 0.0;
+            dMomentsGrid[fsgrids::dmomentsdVydx]  = 0.0;
+            dMomentsGrid[fsgrids::dmomentsdVzdx]  = 0.0;
+            dPerBGrid[fsgrids::dperbdPERBydxx] = 0.0;
+            dPerBGrid[fsgrids::dperbdPERBzdxx] = 0.0;
             break;
          case 1: // y, yy
-            derivs[fieldsolver::drhody] = 0.0;
-            derivs[fieldsolver::dp11dy] = 0.0;
-            derivs[fieldsolver::dp22dy] = 0.0;
-            derivs[fieldsolver::dp33dy] = 0.0;
-            derivs[fieldsolver::dPERBxdy]  = 0.0;
-            derivs[fieldsolver::dPERBzdy]  = 0.0;
-            derivs[fieldsolver::dVxdy]  = 0.0;
-            derivs[fieldsolver::dVydy]  = 0.0;
-            derivs[fieldsolver::dVzdy]  = 0.0;
-            derivs[fieldsolver::dPERBxdyy] = 0.0;
-            derivs[fieldsolver::dPERBzdyy] = 0.0;
+            dMomentsGrid[fsgrids::dmomentsdrhody] = 0.0;
+            dMomentsGrid[fsgrids::dmomentsdp11dy] = 0.0;
+            dMomentsGrid[fsgrids::dmomentsdp22dy] = 0.0;
+            dMomentsGrid[fsgrids::dmomentsdp33dy] = 0.0;
+            dPerBGrid[fsgrids::dperbdPERBxdy]  = 0.0;
+            dPerBGrid[fsgrids::dperbdPERBzdy]  = 0.0;
+            dMomentsGrid[fsgrids::dmomentsdVxdy]  = 0.0;
+            dMomentsGrid[fsgrids::dmomentsdVydy]  = 0.0;
+            dMomentsGrid[fsgrids::dmomentsdVzdy]  = 0.0;
+            dPerBGrid[fsgrids::dperbdPERBxdyy] = 0.0;
+            dPerBGrid[fsgrids::dperbdPERBzdyy] = 0.0;
             break;
          case 2: // z, zz
-            derivs[fieldsolver::drhodz] = 0.0;
-            derivs[fieldsolver::dp11dz] = 0.0;
-            derivs[fieldsolver::dp22dz] = 0.0;
-            derivs[fieldsolver::dp33dz] = 0.0;
-            derivs[fieldsolver::dPERBxdz]  = 0.0;
-            derivs[fieldsolver::dPERBydz]  = 0.0;
-            derivs[fieldsolver::dVxdz]  = 0.0;
-            derivs[fieldsolver::dVydz]  = 0.0;
-            derivs[fieldsolver::dVzdz]  = 0.0;
-            derivs[fieldsolver::dPERBxdzz] = 0.0;
-            derivs[fieldsolver::dPERBydzz] = 0.0;
+            dMomentsGrid[fsgrids::dmomentsdrhodz] = 0.0;
+            dMomentsGrid[fsgrids::dmomentsdp11dz] = 0.0;
+            dMomentsGrid[fsgrids::dmomentsdp22dz] = 0.0;
+            dMomentsGrid[fsgrids::dmomentsdp33dz] = 0.0;
+            dPerBGrid[fsgrids::dperbdPERBxdz]  = 0.0;
+            dPerBGrid[fsgrids::dperbdPERBydz]  = 0.0;
+            dMomentsGrid[fsgrids::dmomentsdVxdz]  = 0.0;
+            dMomentsGrid[fsgrids::dmomentsdVydz]  = 0.0;
+            dMomentsGrid[fsgrids::dmomentsdVzdz]  = 0.0;
+            dPerBGrid[fsgrids::dperbdPERBxdzz] = 0.0;
+            dPerBGrid[fsgrids::dperbdPERBydzz] = 0.0;
             break;
          case 3: // xy
-            derivs[fieldsolver::dPERBzdxy] = 0.0;
+            dPerBGrid[fsgrids::dperbdPERBzdxy] = 0.0;
             break;
          case 4: // xz
-            derivs[fieldsolver::dPERBydxz] = 0.0;
+            dPerBGrid[fsgrids::dperbdPERBydxz] = 0.0;
             break;
          case 5: // yz
-            derivs[fieldsolver::dPERBxdyz] = 0.0;
+            dPerBGrid[fsgrids::dperbdPERBxdyz] = 0.0;
             break;
          default:
             cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
@@ -327,23 +328,24 @@ namespace SBC {
     * \param component 0: x-derivatives, 1: y-derivatives, 2: z-derivatives.
     */
    void SysBoundaryCondition::setCellBVOLDerivativesToZero(
-      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID,
+      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 3, 2> & volGrid,
+      const int i,
+      const int j,
+      const int k,
       cuint& component
    ) {
-      Real* const derivs = &(mpiGrid[cellID]->derivativesBVOL[0]);
       switch(component) {
          case 0:
-            derivs[bvolderivatives::dPERBYVOLdx] = 0.0;
-            derivs[bvolderivatives::dPERBZVOLdx] = 0.0;
+            volGrid[fsgrids::volfields::dPERBYVOLdx] = 0.0;
+            volGrid[fsgrids::volfields::dPERBZVOLdx] = 0.0;
             break;
          case 1:
-            derivs[bvolderivatives::dPERBXVOLdy] = 0.0;
-            derivs[bvolderivatives::dPERBZVOLdy] = 0.0;
+            volGrid[fsgrids::volfields::dPERBXVOLdy] = 0.0;
+            volGrid[fsgrids::volfields::dPERBZVOLdy] = 0.0;
             break;
          case 2:
-            derivs[bvolderivatives::dPERBXVOLdz] = 0.0;
-            derivs[bvolderivatives::dPERBYVOLdz] = 0.0;
+            volGrid[fsgrids::volfields::dPERBXVOLdz] = 0.0;
+            volGrid[fsgrids::volfields::dPERBYVOLdz] = 0.0;
             break;
          default:
             cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;

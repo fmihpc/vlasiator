@@ -93,12 +93,16 @@ namespace SBC {
          static void setCellDerivativesToZero(
             FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 3, 2> & dPerBGrid,
             FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
-            const CellID& cellID,
+            const int i,
+            const int j,
+            const int k,
             cuint& component
          );
          static void setCellBVOLDerivativesToZero(
-            const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-            const CellID& cellID,
+            FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 3, 2> & volGrid,
+            const int i,
+            const int j,
+            const int k,
             cuint& component
          );
         

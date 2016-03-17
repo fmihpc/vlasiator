@@ -8,8 +8,6 @@ Copyright 2010-2015 Finnish Meteorological Institute
 #include "fs_common.h"
 #include "fs_cache.h"
 
-map<CellID,uint> existingCellsFlags;
-
 
 /*! \brief Helper function
  * 

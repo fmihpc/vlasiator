@@ -46,10 +46,6 @@ static creal EPS = 1.0e-30;
 using namespace std;
 using namespace fieldsolver;
 
-namespace fs_cache {
-   struct CellCache;
-}
-
 // FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
 // FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
 // FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EGrid,
@@ -226,6 +222,7 @@ namespace fsgrids {
    
    struct technical {
       int sysBoundaryFlag;  /*!< System boundary flags. */
+      int sysBoundaryLayer; /*!< System boundary layer index. */
       Real maxFsDt;         /*!< maximum timestep allowed in ordinary space by fieldsolver for this cell**/
    }
    
