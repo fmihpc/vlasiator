@@ -228,43 +228,6 @@ namespace fsgrids {
    
 }
 
-
-
-/*!< Boundary status flags for all cells on this process. Here "boundary cell" 
- * means that the cell is at the physical boundary of the simulation volume, 
- * in some cases this condition means that this cell is a "ghost cell". However, 
- * this is algorithm-dependent, so one must be careful with ghost cell definition.
- * 
- * Consider a cell and its immediate neighbours (26 in total), i.e. a 3x3 cube 
- * of cells at base grid level. Considered cell is at the center of the cube. 
- * Number the cells with the usual C array numbering, k*9+j*3+i, where i,j,k 
- * are the cell indices in x,y,z directions. Each existing cell within the 
- * 3x3 cube has its bit (calculated with C array indexing) flipped to value 1.
- * The bit 13 is always set to unit value (considered cell always exists).
- * 
- * These boundary flags can be used to determine whether a numerical algorithm 
- * should be applied to a cell, for example, to calculate an edge electric field.
- * The boundary status can be checked with a single bitwise operation instead of 
- * N if-statements.
- * 
- * Note that this definition works with mesh refinement. The boundary flag 
- * should only change for a cell if some of its neighbours are deleted or 
- * created during the simulation.
- */
-
-static uint CALCULATE_DX = 0; /**< Bit mask determining if x-derivatives can be calculated on a cell.*/
-static uint CALCULATE_DY = 0; /**< Bit mask determining if y-derivatives can be calculated on a cell.*/
-static uint CALCULATE_DZ = 0; /**< Bit mask determining if z-derivatives can be calculated on a cell.*/
-static uint CALCULATE_DXY = 0; /**< Bit mask determining if xy mixed derivatives can be calculated on a cell.*/
-static uint CALCULATE_DXZ = 0; /**< Bit mask determining if xz mixed derivatives can be calculated on a cell.*/
-static uint CALCULATE_DYZ = 0; /**< Bit mask determining if yz mixed derivatives can be calculated on a cell.*/
-static uint CALCULATE_EX = 0; /**< Bit mask determining if edge Ex can be calculated on a cell.*/
-static uint CALCULATE_EY = 0; /**< Bit mask determining if edge Ey can be calculated on a cell.*/
-static uint CALCULATE_EZ = 0; /**< Bit mask determining if edge Ez can be calculated on a cell.*/
-static uint PROPAGATE_BX = 0; /**< Bit mask determining if face Bx is propagated on a cell.*/
-static uint PROPAGATE_BY = 0; /**< Bit mask determining if face By is propagated on a cell.*/
-static uint PROPAGATE_BZ = 0; /**< Bit mask determining if face Bz is propagated on a cell.*/
-
 bool initializeFieldPropagator(
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
@@ -282,8 +245,11 @@ bool initializeFieldPropagator(
    SysBoundary& sysBoundaries
    SysBoundary& sysBoundaries
 );
+
 bool initializeFieldPropagatorAfterRebalance();
+
 bool finalizeFieldPropagator();
+
 bool propagateFields(
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,

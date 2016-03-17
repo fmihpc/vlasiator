@@ -46,13 +46,12 @@ void propagateMagneticField(
    for (size_t c=0; c<cells.size(); ++c) {
       const uint16_t localID = cells[c];
 
-      cuint existingCellsFlag = cellCache[localID].existingCellsFlags;
       Real* cp0 = cellCache[localID].cells[fs_cache::calculateNbrID(1  ,1  ,1  )]->parameters;
       creal dx = cp0[CellParams::DX];
       creal dy = cp0[CellParams::DY];
       creal dz = cp0[CellParams::DZ];
 
-      if ((existingCellsFlag & PROPAGATE_BX) == PROPAGATE_BX && doX == true) {
+      if (doX == true) {
          const Real* cp1 = cellCache[localID].cells[fs_cache::calculateNbrID(1  ,1+1,1  )]->parameters;
          const Real* cp2 = cellCache[localID].cells[fs_cache::calculateNbrID(1  ,1  ,1+1)]->parameters;
          switch (RKCase) {
@@ -74,7 +73,7 @@ void propagateMagneticField(
          }
       }
 
-      if ((existingCellsFlag & PROPAGATE_BY) == PROPAGATE_BY && doY == true) {
+      if (doY == true) {
          const Real* cp1 = cellCache[localID].cells[fs_cache::calculateNbrID(1  ,1  ,1+1)]->parameters;
          const Real* cp2 = cellCache[localID].cells[fs_cache::calculateNbrID(1+1,1  ,1  )]->parameters;
 
@@ -97,7 +96,7 @@ void propagateMagneticField(
          }
       }
 
-      if ((existingCellsFlag & PROPAGATE_BZ) == PROPAGATE_BZ && doZ == true) {
+      if (doZ == true) {
          const Real* cp1 = cellCache[localID].cells[fs_cache::calculateNbrID(1+1,1  ,1  )]->parameters;
          const Real* cp2 = cellCache[localID].cells[fs_cache::calculateNbrID(1  ,1+1,1  )]->parameters;
 

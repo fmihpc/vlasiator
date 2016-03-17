@@ -29,21 +29,6 @@ void calculateVolumeAveragedFields(
    namespace fs = fieldsolver;
    namespace cp = CellParams;
 
-   cuint EX_CELLS = (1 << calcNbrNumber(1,1,1))
-                  | (1 << calcNbrNumber(1,2,1))
-                  | (1 << calcNbrNumber(1,1,2))
-                  | (1 << calcNbrNumber(1,2,2));
-
-   cuint EY_CELLS = (1 << calcNbrNumber(1,1,1))
-                  | (1 << calcNbrNumber(2,1,1))
-                  | (1 << calcNbrNumber(1,1,2))
-                  | (1 << calcNbrNumber(2,1,2));
-
-   cuint EZ_CELLS = (1 << calcNbrNumber(1,1,1))
-                  | (1 << calcNbrNumber(2,1,1))
-                  | (1 << calcNbrNumber(1,2,1))
-                  | (1 << calcNbrNumber(2,2,1));
-
    // NOTE: cache does not include DO_NOT_COMPUTE cells
 
    #pragma omp parallel for
@@ -51,7 +36,6 @@ void calculateVolumeAveragedFields(
       const uint16_t localID = cells[c];
 
       Real perturbedCoefficients[Rec::N_REC_COEFFICIENTS];
-      cuint existingCells = cache[localID].existingCellsFlags;
 
       // Calculate reconstruction coefficients for this cell:
       reconstructionCoefficients(
@@ -75,8 +59,8 @@ void calculateVolumeAveragedFields(
 
       // Calculate volume average of E (FIXME NEEDS IMPROVEMENT):
       creal* const cep_i1j1k1 = cellParams;
-
-      if ((existingCells & EX_CELLS) == EX_CELLS) {
+# warning the cell filtering is not correct here after ripping out existing cells
+      if (/* TODO filter cells properly! */) {
          #ifdef DEBUG_FSOLVER
          bool ok = true;
          if (cache[localID].cells[fs_cache::calculateNbrID(1  ,1+1,1  )] == NULL) ok = false;
@@ -106,7 +90,7 @@ void calculateVolumeAveragedFields(
          cellParams[cp::EXVOL] = 0.0;
       }
 
-      if ((existingCells & EY_CELLS) == EY_CELLS) {
+      if (/* TODO filter cells properly! */) {
          #ifdef DEBUG_FSOLVER
          bool ok = true;
          if (cache[localID].cells[fs_cache::calculateNbrID(1+1,1  ,1  )] == NULL) ok = false;
@@ -136,7 +120,7 @@ void calculateVolumeAveragedFields(
          cellParams[cp::EYVOL] = 0.0;
       }
 
-      if ((existingCells & EZ_CELLS) == EZ_CELLS) {
+      if (/* TODO filter cells properly! */) {
          #ifdef DEBUG_FSOLVER
          bool ok = true;
          if (cache[localID].cells[fs_cache::calculateNbrID(1+1,1  ,1  )] == NULL) ok = false;

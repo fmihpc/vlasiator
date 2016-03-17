@@ -18,8 +18,6 @@ namespace fs = fieldsolver;
 namespace pc = physicalconstants;
 using namespace std;
 
-extern map<CellID,uint> existingCellsFlags;
-
 /*! \brief Low-level helper function.
  * 
  * Computes the magnetosonic speed in the YZ plane. Used in upwinding the electric field X component.
@@ -1441,80 +1439,61 @@ void calculateElectricField(
 
       if (cache.sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
 
-      cuint fieldSolverSysBoundaryFlag = cache.existingCellsFlags;
       cuint cellSysBoundaryFlag        = cache.sysBoundaryFlag;
       cuint cellSysBoundaryLayer       = cache.cells[fs_cache::calculateNbrID(1,1,1)]->sysBoundaryLayer;
 
-      if ((fieldSolverSysBoundaryFlag & CALCULATE_EX) == CALCULATE_EX) {
-         if ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
-             (cellSysBoundaryLayer != 1)
-            ) {
-            sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, EDt2Grid, cellID, RKCase, 0);
-         } else {
-            calculateEdgeElectricFieldX(
-               perBGrid,
-               perBDt2Grid,
-               EGrid,
-               EDt2Grid,
-               EHallGrid,
-               EGradPeGrid,
-               momentsGrid,
-               momentsDt2Grid,
-               dPerBGrid,
-               dMomentsGrid,
-               BgBGrid,
-               technicalGrid,
-               RKCase
-            );
-         }
-      }
-
-      if ((fieldSolverSysBoundaryFlag & CALCULATE_EY) == CALCULATE_EY) {
-         if ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
+      if ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
             (cellSysBoundaryLayer != 1)
-           ) {
-            sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, EDt2Grid, cellID, RKCase, 1);
-         } else {
-            calculateEdgeElectricFieldY(
-               perBGrid,
-               perBDt2Grid,
-               EGrid,
-               EDt2Grid,
-               EHallGrid,
-               EGradPeGrid,
-               momentsGrid,
-               momentsDt2Grid,
-               dPerBGrid,
-               dMomentsGrid,
-               BgBGrid,
-               technicalGrid,
-               RKCase
-            );
-         }
-      }
-
-      if ((fieldSolverSysBoundaryFlag & CALCULATE_EZ) == CALCULATE_EZ) {
-         if ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
-            (cellSysBoundaryLayer != 1)
-           ) {
-            sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, EDt2Grid, cellID, RKCase, 2);
-         } else {
-            calculateEdgeElectricFieldZ(
-               perBGrid,
-               perBDt2Grid,
-               EGrid,
-               EDt2Grid,
-               EHallGrid,
-               EGradPeGrid,
-               momentsGrid,
-               momentsDt2Grid,
-               dPerBGrid,
-               dMomentsGrid,
-               BgBGrid,
-               technicalGrid,
-               RKCase
-            );
-         }
+      ) {
+         sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, EDt2Grid, cellID, RKCase, 0);
+         sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, EDt2Grid, cellID, RKCase, 1);
+         sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, EDt2Grid, cellID, RKCase, 2);
+      } else {
+         calculateEdgeElectricFieldX(
+            perBGrid,
+            perBDt2Grid,
+            EGrid,
+            EDt2Grid,
+            EHallGrid,
+            EGradPeGrid,
+            momentsGrid,
+            momentsDt2Grid,
+            dPerBGrid,
+            dMomentsGrid,
+            BgBGrid,
+            technicalGrid,
+            RKCase
+         );
+         calculateEdgeElectricFieldY(
+            perBGrid,
+            perBDt2Grid,
+            EGrid,
+            EDt2Grid,
+            EHallGrid,
+            EGradPeGrid,
+            momentsGrid,
+            momentsDt2Grid,
+            dPerBGrid,
+            dMomentsGrid,
+            BgBGrid,
+            technicalGrid,
+            RKCase
+         );
+         calculateEdgeElectricFieldZ(
+            perBGrid,
+            perBDt2Grid,
+            EGrid,
+            EDt2Grid,
+            EHallGrid,
+            EGradPeGrid,
+            momentsGrid,
+            momentsDt2Grid,
+            dPerBGrid,
+            dMomentsGrid,
+            BgBGrid,
+            technicalGrid,
+            RKCase
+         );
       }
    } // for-loop over spatial cells
 }

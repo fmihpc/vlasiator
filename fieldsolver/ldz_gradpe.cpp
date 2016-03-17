@@ -290,8 +290,7 @@ void calculateGradPeTerm(
          exit(1);
       }
       #endif
-
-      cuint fieldSolverSysBoundaryFlag = cache[localID].existingCellsFlags;
+      
       cuint cellSysBoundaryFlag        = cache[localID].sysBoundaryFlag;
       cuint cellSysBoundaryLayer       = cache[localID].cells[fs_cache::calculateNbrID(1,1,1)]->sysBoundaryLayer;
 

@@ -2,7 +2,6 @@
 This file is part of Vlasiator.
 
 Copyright 2015 Finnish Meteorological Institute
-
 */
 
 #include <cstdlib>

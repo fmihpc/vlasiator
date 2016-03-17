@@ -752,8 +752,7 @@ void calculateHallTerm(
          exit(1);
       }
       #endif
-
-      cuint fieldSolverSysBoundaryFlag = cache[localID].existingCellsFlags;
+      
       cuint cellSysBoundaryFlag        = cache[localID].sysBoundaryFlag;
       cuint cellSysBoundaryLayer       = cache[localID].cells[fs_cache::calculateNbrID(1,1,1)]->sysBoundaryLayer;
 
@@ -771,35 +770,14 @@ void calculateHallTerm(
          RKCase
       );
 
-      if ((fieldSolverSysBoundaryFlag & CALCULATE_EX) == CALCULATE_EX) {
-         if ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
-             (cellSysBoundaryLayer != 1)) {
-            sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondHallElectricField(EHallGrid, cache[localID],RKCase,0);
-         } else {
-            Real* cp     = cache[localID].cells[fs_cache::calculateNbrID(1,1,1)]->parameters;
-            Real* derivs = cache[localID].cells[fs_cache::calculateNbrID(1,1,1)]->derivatives;
-            calculateEdgeHallTermXComponents(perBGrid, perBDt2Grid, EHallGrid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, perturbedCoefficients,RKCase);
-         }
-      }
-      if ((fieldSolverSysBoundaryFlag & CALCULATE_EY) == CALCULATE_EY) {
-         if ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
-             (cellSysBoundaryLayer != 1)) {
-            sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondHallElectricField(EHallGrid, cache[localID],RKCase,1);
-         } else {
-            Real* cp     = cache[localID].cells[fs_cache::calculateNbrID(1,1,1)]->parameters;
-            Real* derivs = cache[localID].cells[fs_cache::calculateNbrID(1,1,1)]->derivatives;
-            calculateEdgeHallTermYComponents(perBGrid, perBDt2Grid, EHallGrid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, perturbedCoefficients,RKCase);
-         }
-      }
-      if ((fieldSolverSysBoundaryFlag & CALCULATE_EZ) == CALCULATE_EZ) {
-         if ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
-             (cellSysBoundaryLayer != 1)) {
-            sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondHallElectricField(EHallGrid, cache[localID],RKCase,2);
-         } else {
-            Real* cp     = cache[localID].cells[fs_cache::calculateNbrID(1,1,1)]->parameters;
-            Real* derivs = cache[localID].cells[fs_cache::calculateNbrID(1,1,1)]->derivatives;
-            calculateEdgeHallTermZComponents(perBGrid, perBDt2Grid, EHallGrid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, perturbedCoefficients,RKCase);
-         }
+      if ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) && (cellSysBoundaryLayer != 1)) {
+         sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondHallElectricField(EHallGrid, cache[localID],RKCase,0);
+         sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondHallElectricField(EHallGrid, cache[localID],RKCase,1);
+         sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondHallElectricField(EHallGrid, cache[localID],RKCase,2);
+      } else {
+         calculateEdgeHallTermXComponents(perBGrid, perBDt2Grid, EHallGrid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, perturbedCoefficients,RKCase);
+         calculateEdgeHallTermYComponents(perBGrid, perBDt2Grid, EHallGrid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, perturbedCoefficients,RKCase);
+         calculateEdgeHallTermZComponents(perBGrid, perBDt2Grid, EHallGrid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, perturbedCoefficients,RKCase);
       }
    }
 }
