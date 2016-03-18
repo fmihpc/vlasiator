@@ -26,9 +26,7 @@ void calculateDerivatives(
    const int j,
    const int k,
    const FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
-   const FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
    const FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsGrid,
-   const FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsDt2Grid,
    FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 3, 2> & dPerBGrid,
    FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
    FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
@@ -65,21 +63,11 @@ void calculateDerivatives(
    // Calculate x-derivatives (is not TVD for AMR mesh):
    if ((sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) || (sysBoundaryLayer == 1)) {
       
-      if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-         leftPerB = & perBGrid.get(i-1,j,k);
-         rghtPerB = & perBGrid.get(i+1,j,k);
-         if (doMoments) {
-            leftMoments = & momentsGrid.get(i-1,j,k);
-            rghtMoments = & momentsGrid.get(i+1,j,k);
-         }
-      }
-      if (RKCase == RK_ORDER2_STEP1) {
-         leftPerB = & perBGridDt2.get(i-1,j,k);
-         rghtPerB = & perBGridDt2.get(i+1,j,k);
-         if (doMoments) {
-            leftMoments = & momentsGridDt2.get(i-1,j,k);
-            rghtMoments = & momentsGridDt2.get(i+1,j,k);
-         }
+      leftPerB = & perBGrid.get(i-1,j,k);
+      rghtPerB = & perBGrid.get(i+1,j,k);
+      if (doMoments) {
+         leftMoments = & momentsGrid.get(i-1,j,k);
+         rghtMoments = & momentsGrid.get(i+1,j,k);
       }
       
       if (doMoments) {
@@ -118,23 +106,13 @@ void calculateDerivatives(
    // Calculate y-derivatives (is not TVD for AMR mesh):
    if ((sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) || (sysBoundaryLayer == 1)) {
       
-      if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-         leftPerB = & perBGrid.get(i,j-1,k);
-         rghtPerB = & perBGrid.get(i,j+1,k);
-         if (doMoments) {
-            leftMoments = & momentsGrid.get(i,j-1,k);
-            rghtMoments = & momentsGrid.get(i,j+1,k);
-         }
+      leftPerB = & perBGrid.get(i,j-1,k);
+      rghtPerB = & perBGrid.get(i,j+1,k);
+      if (doMoments) {
+         leftMoments = & momentsGrid.get(i,j-1,k);
+         rghtMoments = & momentsGrid.get(i,j+1,k);
       }
-      if (RKCase == RK_ORDER2_STEP1) {
-         leftPerB = & perBGridDt2.get(i,j-1,k);
-         rghtPerB = & perBGridDt2.get(i,j+1,k);
-         if (doMoments) {
-            leftMoments = & momentsGridDt2.get(i,j-1,k);
-            rghtMoments = & momentsGridDt2.get(i,j+1,k);
-         }
-      }
-
+      
       if (doMoments) {
          dMoments[fsgrids::dmoments::drhody] = limiter(leftMoments[fsgrids::moments::RHO],centMoments[fsgrids::moments::RHO],rghtMoments[fsgrids::moments::RHO]);
          dMoments[fsgrids::dmoments::dp11dy] = limiter(leftMoments[fsgrids::moments::P_11],centMoments[fsgrids::moments::P_11],rghtMoments[fsgrids::moments::P_11]);
@@ -171,23 +149,13 @@ void calculateDerivatives(
    // Calculate z-derivatives (is not TVD for AMR mesh):
    if ((sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) || (sysBoundaryLayer == 1)) {
       
-      if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-         leftPerB = & perBGrid.get(i,j,k-1);
-         rghtPerB = & perBGrid.get(i,j,k+1);
-         if (doMoments) {
-            leftMoments = & momentsGrid.get(i,j,k-1);
-            rghtMoments = & momentsGrid.get(i,j,k+1);
-         }
+      leftPerB = & perBGrid.get(i,j,k-1);
+      rghtPerB = & perBGrid.get(i,j,k+1);
+      if (doMoments) {
+         leftMoments = & momentsGrid.get(i,j,k-1);
+         rghtMoments = & momentsGrid.get(i,j,k+1);
       }
-      if (RKCase == RK_ORDER2_STEP1) {
-         leftPerB = & perBGridDt2.get(i,j,k-1);
-         rghtPerB = & perBGridDt2.get(i,j,k+1);
-         if (doMoments) {
-            leftMoments = & momentsGridDt2.get(i,j,k-1);
-            rghtMoments = & momentsGridDt2.get(i,j,k+1);
-         }
-      }
-
+      
       if (doMoments) {
          dMoments[fsgrids::dmoments::drhodz] = limiter(leftMoments[fsgrids::moments::RHO],centMoments[fsgrids::moments::RHO],rghtMoments[fsgrids::moments::RHO]);
          dMoments[fsgrids::dmoments::dp11dz] = limiter(leftMoments[fsgrids::moments::P_11],centMoments[fsgrids::moments::P_11],rghtMoments[fsgrids::moments::P_11]);
@@ -228,18 +196,10 @@ void calculateDerivatives(
       // Calculate xy mixed derivatives:
       if ((sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) || (sysBoundaryLayer == 1)) {
          
-         if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-            botLeft = & perBGrid.get(i-1,j-1,k);
-            botRght = & perBGrid.get(i+1,j-1,k);
-            topLeft = & perBGrid.get(i-1,j+1,k);
-            topRght = & perBGrid.get(i+1,j+1,k);
-         }
-         if (RKCase == RK_ORDER2_STEP1) {
-            botLeft = & perBGridDt2.get(i-1,j-1,k);
-            botRght = & perBGridDt2.get(i+1,j-1,k);
-            topLeft = & perBGridDt2.get(i-1,j+1,k);
-            topRght = & perBGridDt2.get(i+1,j+1,k);
-         }
+         botLeft = & perBGrid.get(i-1,j-1,k);
+         botRght = & perBGrid.get(i+1,j-1,k);
+         topLeft = & perBGrid.get(i-1,j+1,k);
+         topRght = & perBGrid.get(i+1,j+1,k);
          
          dPerB[fsgrids::dperb::dPERBzdxy] = FOURTH * (botLeft[fsgrids::bfield::PERBZ] + topRght[fsgrids::bfield::PERBZ] - botRght[fsgrids::bfield::PERBZ] - topLeft[fsgrids::bfield::PERBZ]);
          
@@ -254,18 +214,10 @@ void calculateDerivatives(
       // Calculate xz mixed derivatives:
       if ((sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) || (sysBoundaryLayer == 1)) {
          
-         if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-            botLeft = & perBGrid.get(i-1,j,k-1);
-            botRght = & perBGrid.get(i+1,j,k-1);
-            topLeft = & perBGrid.get(i-1,j,k+1);
-            topRght = & perBGrid.get(i+1,j,k+1);
-         }
-         if (RKCase == RK_ORDER2_STEP1) {
-            botLeft = & perBGridDt2.get(i-1,j,k-1);
-            botRght = & perBGridDt2.get(i+1,j,k-1);
-            topLeft = & perBGridDt2.get(i-1,j,k+1);
-            topRght = & perBGridDt2.get(i+1,j,k+1);
-         }
+         botLeft = & perBGrid.get(i-1,j,k-1);
+         botRght = & perBGrid.get(i+1,j,k-1);
+         topLeft = & perBGrid.get(i-1,j,k+1);
+         topRght = & perBGrid.get(i+1,j,k+1);
          
          dPerB[fsgrids::dperb::dPERBydxz] = FOURTH * (botLeft[fsgrids::bfield::PERBY] + topRght[fsgrids::bfield::PERBY] - botRght[fsgrids::bfield::PERBY] - topLeft[fsgrids::bfield::PERBY]);
          
@@ -280,18 +232,10 @@ void calculateDerivatives(
       // Calculate yz mixed derivatives:
       if ((sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) || (sysBoundaryLayer == 1)) {
          
-         if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-            botLeft = & perBGrid.get(i,j-1,k-1);
-            botRght = & perBGrid.get(i,j+1,k-1);
-            topLeft = & perBGrid.get(i,j-1,k+1);
-            topRght = & perBGrid.get(i,j+1,k+1);
-         }
-         if (RKCase == RK_ORDER2_STEP1) {
-            botLeft = & perBGridDt2.get(i,j-1,k-1);
-            botRght = & perBGridDt2.get(i,j+1,k-1);
-            topLeft = & perBGridDt2.get(i,j-1,k+1);
-            topRght = & perBGridDt2.get(i,j+1,k+1);
-         }
+         botLeft = & perBGrid.get(i,j-1,k-1);
+         botRght = & perBGrid.get(i,j+1,k-1);
+         topLeft = & perBGrid.get(i,j-1,k+1);
+         topRght = & perBGrid.get(i,j+1,k+1);
          
          dPerB[fsgrids::dperb::dPERBxdyz] = FOURTH * (botLeft[fsgrids::bfield::PERBX] + topRght[fsgrids::bfield::PERBX] - botRght[fsgrids::bfield::PERBX] - topLeft[fsgrids::bfield::PERBX]);
          
@@ -381,8 +325,12 @@ void calculateDerivativesSimple(
       for (uint j=0; j<gridDims[1]; j++) {
          for (uint i=0; i<gridDims[0]; i++) {
             if (technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
-            
-            calculateDerivatives(i,j,k, perBGrid, perBDt2Grid, EGrid, EDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RKCase, doMoments);
+            if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+               calculateDerivatives(i,j,k, perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RKCase, doMoments);
+            }
+            if (RKCase == RK_ORDER2_STEP1) {
+               calculateDerivatives(i,j,k, perBDt2Grid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RKCase, doMoments);
+            }
          }
       }
    }
