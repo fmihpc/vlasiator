@@ -244,8 +244,6 @@ void calculateEdgeGradPeTermZComponents(
 
 /** Calculate the electron pressure gradient term on all given cells.
  * @param sysBoundaries System boundary condition functions.
- * @param cache Cache for local cells.
- * @param cells Local IDs of calculated cells, one of the vectors in fs_cache::CacheContainer.
  * @param RKCase
  */
 void calculateGradPeTerm(
@@ -289,7 +287,6 @@ void calculateGradPeTermSimple(
    FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
    FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
    SysBoundary& sysBoundaries,
-   const vector<CellID>& localCells,
    cint& RKCase
 ) {
    namespace fs = fieldsolver;

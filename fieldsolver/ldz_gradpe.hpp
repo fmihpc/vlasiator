@@ -15,7 +15,6 @@ void calculateGradPeTermSimple(
    FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
    FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
    SysBoundary& sysBoundaries,
-   const vector<CellID>& localCells,
    cint& RKCase
 );
 
