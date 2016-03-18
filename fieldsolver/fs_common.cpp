@@ -30,21 +30,17 @@ Real divideIfNonZero(
  * Computes the reconstruction coefficients used for field component reconstruction.
  * Only implemented for 2nd and 3rd order.
  * 
- * \param cell Field solver cell cache
  * \param perturbedResult Array in which to store the coefficients.
  * \param reconstructionOrder Reconstruction order of the fields after Balsara 2009, 2 used for BVOL, 3 used for 2nd-order Hall term calculations.
- * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
 void reconstructionCoefficients(
    const FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
-   const FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
    const FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 3, 2> & dPerBGrid,
    Real* perturbedResult,
    i,
    j,
    k,
-   creal& reconstructionOrder,
-   cint& RKCase
+   creal& reconstructionOrder
 ) {
    std::array<Real, fsgrids::bfield::N_BFIELD> * const cep_i1j1k1 = NULL;
    std::array<Real, fsgrids::dperb::N_DPERB> * const der_i1j1k1 = dPerBGrid.get(i,j,k);
@@ -53,14 +49,7 @@ void reconstructionCoefficients(
    std::array<Real, fsgrids::bfield::N_BFIELD> * cep_i1j2k1 = NULL;
    std::array<Real, fsgrids::bfield::N_BFIELD> * cep_i1j1k2 = NULL;
    
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> * const params = NULL;
-   
-   if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      params = & perBGrid;
-   }
-   if (RKCase == RK_ORDER2_STEP1) {
-      params = & perBDt2Grid;
-   }
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> * const params = perBGrid;
    
    cep_i1j1k1 = params.get(i,j,k);
    dummyCellParams = cep_i1j1k1;

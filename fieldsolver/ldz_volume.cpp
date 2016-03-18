@@ -40,14 +40,12 @@ void calculateVolumeAveragedFields(
       // Calculate reconstruction coefficients for this cell:
       reconstructionCoefficients(
          perBGrid,
-         perBDt2Grid,
          dPerBGrid,
          perturbedCoefficients,
          i,
          j,
          k,
          2,
-         RK_ORDER1
       );
 
       // Calculate volume average of B:

@@ -182,33 +182,33 @@ namespace SBC {
    
    void ProjectBoundary::fieldSolverBoundaryCondHallElectricField(
       FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 3, 2> & EHallGrid,
-                                                                  dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                                                  const CellID& cellID,
-                                                                  cuint RKCase,
-                                                                  cuint component
-                                                                 ) {
+      cint i,
+      cint j,
+      cint k,
+      cuint component
+   ) {
+      const std::array<Real, fsgrids::ehall::N_EHALL> * cp = EHallGrid.get(i,j,k);
       switch (component) {
-       case 0:
-         mpiGrid[cellID]->parameters[CellParams::EXHALL_000_100] = 0.0;
-         mpiGrid[cellID]->parameters[CellParams::EXHALL_010_110] = 0.0;
-         mpiGrid[cellID]->parameters[CellParams::EXHALL_001_101] = 0.0;
-         mpiGrid[cellID]->parameters[CellParams::EXHALL_011_111] = 0.0;
-         break;
-       case 1:
-         mpiGrid[cellID]->parameters[CellParams::EYHALL_000_010] = 0.0;
-         mpiGrid[cellID]->parameters[CellParams::EYHALL_100_110] = 0.0;
-         mpiGrid[cellID]->parameters[CellParams::EYHALL_001_011] = 0.0;
-         mpiGrid[cellID]->parameters[CellParams::EYHALL_101_111] = 0.0;
-         break;
-       case 2:
-         mpiGrid[cellID]->parameters[CellParams::EZHALL_000_001] = 0.0;
-         mpiGrid[cellID]->parameters[CellParams::EZHALL_100_101] = 0.0;
-         mpiGrid[cellID]->parameters[CellParams::EZHALL_010_011] = 0.0;
-         mpiGrid[cellID]->parameters[CellParams::EZHALL_110_111] = 0.0;
-         break;
-       default:
-         cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
-      }
+         case 0:
+            cp[fsgrids::ehall::EXHALL_000_100] = 0.0;
+            cp[fsgrids::ehall::EXHALL_010_110] = 0.0;
+            cp[fsgrids::ehall::EXHALL_001_101] = 0.0;
+            cp[fsgrids::ehall::EXHALL_011_111] = 0.0;
+            break;
+         case 1:
+            cp[fsgrids::ehall::EYHALL_000_010] = 0.0;
+            cp[fsgrids::ehall::EYHALL_100_110] = 0.0;
+            cp[fsgrids::ehall::EYHALL_001_011] = 0.0;
+            cp[fsgrids::ehall::EYHALL_101_111] = 0.0;
+            break;
+         case 2:
+            cp[fsgrids::ehall::EZHALL_000_001] = 0.0;
+            cp[fsgrids::ehall::EZHALL_100_101] = 0.0;
+            cp[fsgrids::ehall::EZHALL_010_011] = 0.0;
+            cp[fsgrids::ehall::EZHALL_110_111] = 0.0;
+            break;
+         default:
+            cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
    }
    
    void ProjectBoundary::fieldSolverBoundaryCondDerivatives(

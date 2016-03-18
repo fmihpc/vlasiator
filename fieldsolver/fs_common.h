@@ -284,14 +284,12 @@ namespace Rec {
 
 void reconstructionCoefficients(
    const FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
-   const FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
    FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 3, 2> & dPerBGrid,
    Real* perturbedResult,
    i,
    j,
    k,
-   creal& reconstructionOrder,
-   cint& RKCase
+   creal& reconstructionOrder
 );
 
 #endif

@@ -55,23 +55,23 @@ namespace SBC {
       );
       virtual void fieldSolverBoundaryCondElectricField(
          FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EGrid,
-         cuint i,
-         cuint j,
-         cuint k,
+         cint i,
+         cint j,
+         cint k,
          cuint component
       );
       virtual void fieldSolverBoundaryCondHallElectricField(
          FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 3, 2> & EHallGrid,
-         dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-         const CellID& cellID,
-         cuint RKCase,
+         cint i,
+         cint j,
+         cint k,
          cuint component
       );
       virtual void fieldSolverBoundaryCondGradPeElectricField(
          FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 3, 2> & EGradPeGrid,
-         cuint i,
-         cuint j,
-         cuint k,
+         cint i,
+         cint j,
+         cint k,
          cuint component
       );
       virtual void fieldSolverBoundaryCondDerivatives(
