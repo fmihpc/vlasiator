@@ -185,9 +185,9 @@ namespace SBC {
     */
    void SysBoundaryCondition::fieldSolverBoundaryCondElectricField(
       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EGrid,
-      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EDt2Grid,
-      const CellID& cellID,
-      cuint RKCase,
+      cuint i,
+      cuint j,
+      cuint k,
       cuint component
    ) {
       cerr << "ERROR: SysBoundaryCondition::fieldSolverBoundaryCondElectricField called instead of derived class function!" << endl;

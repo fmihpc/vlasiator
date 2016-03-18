@@ -137,16 +137,12 @@ namespace SBC {
 
    void SetByUser::fieldSolverBoundaryCondElectricField(
       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EGrid,
-      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EDt2Grid,
-      const CellID& cellID,
-      cuint RKCase,
+      cuint i,
+      cuint j,
+      cuint k,
       cuint component
    ) {
-      if((RKCase == RK_ORDER1) || (RKCase == RK_ORDER2_STEP2)) {
-         mpiGrid[cellID]->parameters[CellParams::EX+component] = 0.0;
-      } else {// RKCase == RK_ORDER2_STEP1
-         mpiGrid[cellID]->parameters[CellParams::EX_DT2+component] = 0.0;
-      }
+      EGrid.get(i,j,k)[fsgrids::efield::EX+component] = 0.0;
    }
 
    void SetByUser::fieldSolverBoundaryCondHallElectricField(

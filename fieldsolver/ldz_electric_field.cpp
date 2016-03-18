@@ -39,13 +39,10 @@ using namespace std;
  * \param zdir +1 or -1 depending on the interpolation direction in z
  * \param minRho Minimum density allowed from the neighborhood
  * \param maxRho Maximum density allowed from the neighborhood
- * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
 Real calculateWaveSpeedYZ(
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
    FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsGrid,
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsDt2Grid,
    FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 3, 2> & dPerBGrid,
    FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
    FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 3, 2> & BgBGrid,
@@ -64,31 +61,18 @@ Real calculateWaveSpeedYZ(
    const Real& ydir,
    const Real& zdir,
    const Real& minRho,
-   const Real& maxRho,
-   cint& RKCase
+   const Real& maxRho
 ) {
    if (Parameters::propagateField == false) return 0.0;
    
-   std::array<Real, fsgrids::bfield::N_BFIELD> * perb = NULL;
-   std::array<Real, fsgrids::bfield::N_BFIELD> * nbr_perb = NULL;
-   std::array<Real, fsgrids::moments::N_MOMENTS> * moments = NULL;
-   
+   const std::array<Real, fsgrids::bfield::N_BFIELD> * const perb = perBGrid.get(i,j,k);
+   const std::array<Real, fsgrids::bfield::N_BFIELD> * const nbr_perb = perBGrid.get(nbi,nbj,nbk);
+   const std::array<Real, fsgrids::moments::N_MOMENTS> * const moments = momentsGrid.get(i,j,k);
    const std::array<Real, fsgrids::dmoments::N_DMOMENTS> * const dmoments = dMomentsGrid.get(i,j,k);
    const std::array<Real, fsgrids::dperb::N_DPERB> * const dperb = dPerBGrid.get(i,j,k);
    const std::array<Real, fsgrids::dperb::N_DPERB> * const nbr_dperb = dPerBGrid.get(nbi,nbj,nbk);
    const std::array<Real, fsgrids::bgbfield::N_BGB> * const bgb = BgBGrid.get(i,j,k);
    const std::array<Real, fsgrids::bgbfield::N_BGB> * const  nbr_bgb = BgBGrid.get(nbi,nbj,nbk);
-   
-   
-   if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      perb = perBGrid.get(i,j,k);
-      nbr_perb = perBGrid.get(nbi,nbj,nbk);
-      moments = momentsGrid.get(i,j,k);
-   } else {
-      perb = perBDt2Grid.get(i,j,k);
-      nbr_perb = perBDt2Grid.get(nbi,nbj,nbk);
-      moments = momentsDt2Grid.get(i,j,k);
-   }
    
    Real A_0, A_X, rhom, p11, p22, p33;
    A_0  = HALF*(nbr_perb[fsgrids::bfield::PERBX] + nbr_bgb[fsgrids::bgbfield::BGBX] + perb[fsgrids::bfield::PERBX] + bgb[fsgrids::bgbfield::BGBX]);
@@ -149,13 +133,10 @@ Real calculateWaveSpeedYZ(
  * \param zdir +1 or -1 depending on the interpolation direction in z
  * \param minRho Minimum density allowed from the neighborhood
  * \param maxRho Maximum density allowed from the neighborhood
- * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
 Real calculateWaveSpeedXZ(
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
    FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsGrid,
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsDt2Grid,
    FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 3, 2> & dPerBGrid,
    FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
    FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 3, 2> & BgBGrid,
@@ -174,31 +155,18 @@ Real calculateWaveSpeedXZ(
    const Real& xdir,
    const Real& zdir,
    const Real& minRho,
-   const Real& maxRho,
-   cint& RKCase
+   const Real& maxRho
 ) {
    if (Parameters::propagateField == false) return 0.0;
    
-   std::array<Real, fsgrids::bfield::N_BFIELD> * perb = NULL;
-   std::array<Real, fsgrids::bfield::N_BFIELD> * nbr_perb = NULL;
-   std::array<Real, fsgrids::moments::N_MOMENTS> * moments = NULL;
-   
+   const std::array<Real, fsgrids::bfield::N_BFIELD> * const perb = perBGrid.get(i,j,k);
+   const std::array<Real, fsgrids::bfield::N_BFIELD> * const nbr_perb = perBGrid.get(nbi,nbj,nbk);
+   const std::array<Real, fsgrids::moments::N_MOMENTS> * const moments = momentsGrid.get(i,j,k);
    const std::array<Real, fsgrids::dmoments::N_DMOMENTS> * const dmoments = dMomentsGrid.get(i,j,k);
    const std::array<Real, fsgrids::dperb::N_DPERB> * const dperb = dPerBGrid.get(i,j,k);
    const std::array<Real, fsgrids::dperb::N_DPERB> * const nbr_dperb = dPerBGrid.get(nbi,nbj,nbk);
    const std::array<Real, fsgrids::bgbfield::N_BGB> * const bgb = BgBGrid.get(i,j,k);
    const std::array<Real, fsgrids::bgbfield::N_BGB> * const  nbr_bgb = BgBGrid.get(nbi,nbj,nbk);
-   
-   
-   if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      perb = perBGrid.get(i,j,k);
-      nbr_perb = perBGrid.get(nbi,nbj,nbk);
-      moments = momentsGrid.get(i,j,k);
-   } else {
-      perb = perBDt2Grid.get(i,j,k);
-      nbr_perb = perBDt2Grid.get(nbi,nbj,nbk);
-      moments = momentsDt2Grid.get(i,j,k);
-   }
    
    Real B_0, B_Y, rhom, p11, p22, p33;
    B_0  = HALF*(nbr_perb[fsgrids::bfield::PERBY] + nbr_bgb[fsgrids::bgbfield::BGBY] + perb[fsgrids::bfield::PERBY] + bgb[fsgrids::bgbfield::BGBY]);
@@ -258,13 +226,10 @@ Real calculateWaveSpeedXZ(
  * \param ydir +1 or -1 depending on the interpolation direction in y
  * \param minRho Minimum density allowed from the neighborhood
  * \param maxRho Maximum density allowed from the neighborhood
- * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
 Real calculateWaveSpeedXY(
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
    FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsGrid,
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsDt2Grid,
    FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 3, 2> & dPerBGrid,
    FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
    FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 3, 2> & BgBGrid,
@@ -283,31 +248,18 @@ Real calculateWaveSpeedXY(
    const Real& xdir,
    const Real& ydir,
    const Real& minRho,
-   const Real& maxRho,
-   cint& RKCase
+   const Real& maxRho
 ) {
    if (Parameters::propagateField == false) return 0.0;
    
-   std::array<Real, fsgrids::bfield::N_BFIELD> * perb = NULL;
-   std::array<Real, fsgrids::bfield::N_BFIELD> * nbr_perb = NULL;
-   std::array<Real, fsgrids::moments::N_MOMENTS> * moments = NULL;
-   
+   const std::array<Real, fsgrids::bfield::N_BFIELD> * const perb = perBGrid.get(i,j,k);
+   const std::array<Real, fsgrids::bfield::N_BFIELD> * const nbr_perb = perBGrid.get(nbi,nbj,nbk);
+   const std::array<Real, fsgrids::moments::N_MOMENTS> * const moments = momentsGrid.get(i,j,k);
    const std::array<Real, fsgrids::dmoments::N_DMOMENTS> * const dmoments = dMomentsGrid.get(i,j,k);
    const std::array<Real, fsgrids::dperb::N_DPERB> * const dperb = dPerBGrid.get(i,j,k);
    const std::array<Real, fsgrids::dperb::N_DPERB> * const nbr_dperb = dPerBGrid.get(nbi,nbj,nbk);
    const std::array<Real, fsgrids::bgbfield::N_BGB> * const bgb = BgBGrid.get(i,j,k);
    const std::array<Real, fsgrids::bgbfield::N_BGB> * const  nbr_bgb = BgBGrid.get(nbi,nbj,nbk);
-   
-   
-   if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      perb = perBGrid.get(i,j,k);
-      nbr_perb = perBGrid.get(nbi,nbj,nbk);
-      moments = momentsGrid.get(i,j,k);
-   } else {
-      perb = perBDt2Grid.get(i,j,k);
-      nbr_perb = perBDt2Grid.get(nbi,nbj,nbk);
-      moments = momentsDt2Grid.get(i,j,k);
-   }
    
    Real C_0, C_Z, rhom, p11, p22, p33;
    C_0  = HALF*(nbr_perb[fsgrids::bfield::PERBZ] + nbr_bgb[fsgrids::bgbfield::BGBZ] + perb[fsgrids::bfield::PERBZ] + bgb[fsgrids::bgbfield::BGBZ]);
@@ -358,13 +310,10 @@ Real calculateWaveSpeedXY(
  */
 void calculateEdgeElectricFieldX(
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
    FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EGrid,
-   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EDt2Grid,
    FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 3, 2> & EHallGrid,
    FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 3, 2> & EGradPeGrid,
    FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsGrid,
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsDt2Grid,
    FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 3, 2> & dPerBGrid,
    FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
    FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 3, 2> & BgBGrid,
@@ -392,20 +341,19 @@ void calculateEdgeElectricFieldX(
    Real az_pos,az_neg;              // Max. characteristic velocities to z-direction
    Real Vy0,Vz0;                    // Reconstructed V
    Real c_y, c_z;                   // Wave speeds to yz-directions
-
-   // Get read-only pointers to NE,NW,SE,SW states (SW is rw, result is written there):
-   std::array<Real, fsgrids::bfield::N_BFIELD> * const perb_SW = NULL;
-   std::array<Real, fsgrids::bfield::N_BFIELD> * const perb_SE = NULL;
-   std::array<Real, fsgrids::bfield::N_BFIELD> * const perb_NE = NULL;
-   std::array<Real, fsgrids::bfield::N_BFIELD> * const perb_NW = NULL;
+   
+   const std::array<Real, fsgrids::bfield::N_BFIELD> * const perb_SW = perBGrid.get(i  ,j  ,k  );
+   const std::array<Real, fsgrids::bfield::N_BFIELD> * const perb_SE = perBGrid.get(i  ,j-1,k  );
+   const std::array<Real, fsgrids::bfield::N_BFIELD> * const perb_NE = perBGrid.get(i  ,j-1,k-1);
+   const std::array<Real, fsgrids::bfield::N_BFIELD> * const perb_NW = perBGrid.get(i  ,j  ,k-1);
    const std::array<Real, fsgrids::bgbfield::N_BGB> * const bgb_SW = BgBGrid.get(i,j  ,k  );
    const std::array<Real, fsgrids::bgbfield::N_BGB> * const bgb_SE = BgBGrid.get(i,j-1,k  );
    const std::array<Real, fsgrids::bgbfield::N_BGB> * const bgb_NE = BgBGrid.get(i,j-1,k-1);
    const std::array<Real, fsgrids::bgbfield::N_BGB> * const bgb_NW = BgBGrid.get(i,j  ,k-1);
-   std::array<Real, fsgrids::moments::N_MOMENTS> * const moments_SW = NULL;
-   std::array<Real, fsgrids::moments::N_MOMENTS> * const moments_SE = NULL;
-   std::array<Real, fsgrids::moments::N_MOMENTS> * const moments_NE = NULL;
-   std::array<Real, fsgrids::moments::N_MOMENTS> * const moments_NW = NULL;
+   const std::array<Real, fsgrids::moments::N_MOMENTS> * const moments_SW = momentsGrid.get(i  ,j  ,k  );
+   const std::array<Real, fsgrids::moments::N_MOMENTS> * const moments_SE = momentsGrid.get(i  ,j-1,k  );
+   const std::array<Real, fsgrids::moments::N_MOMENTS> * const moments_NE = momentsGrid.get(i  ,j-1,k-1);
+   const std::array<Real, fsgrids::moments::N_MOMENTS> * const moments_NW = momentsGrid.get(i  ,j  ,k-1);
    const std::array<Real, fsgrids::dmoments::N_DMOMENTS> * const dmoments_SW = dMomentsGrid.get(i  ,j  ,k  );
    const std::array<Real, fsgrids::dmoments::N_DMOMENTS> * const dmoments_SE = dMomentsGrid.get(i  ,j-1,k  );
    const std::array<Real, fsgrids::dmoments::N_DMOMENTS> * const dmoments_NE = dMomentsGrid.get(i  ,j-1,k-1);
@@ -415,33 +363,7 @@ void calculateEdgeElectricFieldX(
    const std::array<Real, fsgrids::dperb::N_DPERB> * const dperb_NE = dPerBGrid.get(i  ,j-1,k-1);
    const std::array<Real, fsgrids::dperb::N_DPERB> * const dperb_NW = dPerBGrid.get(i  ,j  ,k-1);
    
-   if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      perb_SW = perBGrid.get(i  ,j  ,k  );
-      perb_SE = perBGrid.get(i  ,j-1,k  );
-      perb_NE = perBGrid.get(i  ,j-1,k-1);
-      perb_NW = perBGrid.get(i  ,j  ,k-1);
-      moments_SW = momentsGrid.get(i  ,j  ,k  );
-      moments_SE = momentsGrid.get(i  ,j-1,k  );
-      moments_NE = momentsGrid.get(i  ,j-1,k-1);
-      moments_NW = momentsGrid.get(i  ,j  ,k-1);
-      
-   } else {
-      perb_SW = perBDt2Grid.get(i  ,j  ,k  );
-      perb_SE = perBDt2Grid.get(i  ,j-1,k  );
-      perb_NE = perBDt2Grid.get(i  ,j-1,k-1);
-      perb_NW = perBDt2Grid.get(i  ,j  ,k-1);
-      moments_SW = momentsDt2Grid.get(i  ,j  ,k  );
-      moments_SE = momentsDt2Grid.get(i  ,j-1,k  );
-      moments_NE = momentsDt2Grid.get(i  ,j-1,k-1);
-      moments_NW = momentsDt2Grid.get(i  ,j  ,k-1);
-   }
-   
-   std::array<Real, fsgrids::efield::N_EFIELD> * efield_SW = NULL;
-   if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      efield_SW = EGrid.get(i,j,k);
-   } else {
-      efield_SW = EDt2Grid.get(i,j,k);
-   }
+   const std::array<Real, fsgrids::efield::N_EFIELD> * efield_SW = EGrid.get(i,j,k);
    
    Real By_S, Bz_W, Bz_E, By_N, perBy_S, perBz_W, perBz_E, perBy_N;
    Real minRho = std::numeric_limits<Real>::max();
@@ -522,15 +444,13 @@ void calculateEdgeElectricFieldX(
    
    c_y = calculateWaveSpeedYZ(
       perBGrid,
-      perBDt2Grid,
       momentsGrid,
-      momentsDt2Grid,
       dPerBGrid,
       dMomentsGrid,
       BgBGrid,
       i  , j, k,
       i+1, j, k,
-      By_S, Bz_W, dBydx_S, dBydz_S, dBzdx_W, dBzdy_W, MINUS, MINUS, minRho, maxRho, RKCase);
+      By_S, Bz_W, dBydx_S, dBydz_S, dBzdx_W, dBzdy_W, MINUS, MINUS, minRho, maxRho);
    c_z = c_y;
    ay_neg   = max(ZERO,-Vy0 + c_y);
    ay_pos   = max(ZERO,+Vy0 + c_y);
@@ -576,15 +496,13 @@ void calculateEdgeElectricFieldX(
 
    c_y = calculateWaveSpeedYZ(
       perBGrid,
-      perBDt2Grid,
       momentsGrid,
-      momentsDt2Grid,
       dPerBGrid,
       dMomentsGrid,
       BgBGrid,
       i  ,   j, k,
       i+1, j-1, k,
-      By_S, Bz_E, dBydx_S, dBydz_S, dBzdx_E, dBzdy_E, PLUS, MINUS, minRho, maxRho, RKCase);
+      By_S, Bz_E, dBydx_S, dBydz_S, dBzdx_E, dBzdy_E, PLUS, MINUS, minRho, maxRho);
    c_z = c_y;
    ay_neg   = max(ay_neg,-Vy0 + c_y);
    ay_pos   = max(ay_pos,+Vy0 + c_y);
@@ -638,7 +556,7 @@ void calculateEdgeElectricFieldX(
       BgBGrid,
       i, j, k,
       i+1, j, k-1,
-      By_N, Bz_W, dBydx_N, dBydz_N, dBzdx_W, dBzdy_W, MINUS, PLUS, minRho, maxRho, RKCase);
+      By_N, Bz_W, dBydx_N, dBydz_N, dBzdx_W, dBzdy_W, MINUS, PLUS, minRho, maxRho);
    c_z = c_y;
    ay_neg   = max(ay_neg,-Vy0 + c_y);
    ay_pos   = max(ay_pos,+Vy0 + c_y);
@@ -684,15 +602,13 @@ void calculateEdgeElectricFieldX(
    
    c_y = calculateWaveSpeedYZ(
       perBGrid,
-      perBDt2Grid,
       momentsGrid,
-      momentsDt2Grid,
       dPerBGrid,
       dMomentsGrid,
       BgBGrid,
       i, j, k,
       i+1,j-1,k-1,
-      By_N, Bz_E, dBydx_N, dBydz_N, dBzdx_E, dBzdy_E, PLUS, PLUS, minRho, maxRho, RKCase);
+      By_N, Bz_E, dBydx_N, dBydz_N, dBzdx_E, dBzdy_E, PLUS, PLUS, minRho, maxRho);
    c_z = c_y;
    ay_neg   = max(ay_neg,-Vy0 + c_y);
    ay_pos   = max(ay_pos,+Vy0 + c_y);
@@ -742,13 +658,10 @@ void calculateEdgeElectricFieldX(
  */
 void calculateEdgeElectricFieldY(
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
    FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EGrid,
-   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EDt2Grid,
    FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 3, 2> & EHallGrid,
    FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 3, 2> & EGradPeGrid,
    FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsGrid,
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsDt2Grid,
    FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 3, 2> & dPerBGrid,
    FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
    FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 3, 2> & BgBGrid,
@@ -776,20 +689,19 @@ void calculateEdgeElectricFieldY(
    Real az_pos,az_neg;              // Max. characteristic velocities to z-direction
    Real Vx0,Vz0;                    // Reconstructed V
    Real c_x,c_z;                    // Wave speeds to xz-directions
-
-   // Get read-only pointers to NE,NW,SE,SW states (SW is rw, result is written there):
-   std::array<Real, fsgrids::bfield::N_BFIELD> * const perb_SW = NULL;
-   std::array<Real, fsgrids::bfield::N_BFIELD> * const perb_SE = NULL;
-   std::array<Real, fsgrids::bfield::N_BFIELD> * const perb_NE = NULL;
-   std::array<Real, fsgrids::bfield::N_BFIELD> * const perb_NW = NULL;
+   
+   const std::array<Real, fsgrids::bfield::N_BFIELD> * const perb_SW = perBGrid.get(i  ,j  ,k  );
+   const std::array<Real, fsgrids::bfield::N_BFIELD> * const perb_SE = perBGrid.get(i  ,j  ,k-1);
+   const std::array<Real, fsgrids::bfield::N_BFIELD> * const perb_NW = perBGrid.get(i-1,j  ,k  );
+   const std::array<Real, fsgrids::bfield::N_BFIELD> * const perb_NE = perBGrid.get(i-1,j  ,k-1);
    const std::array<Real, fsgrids::bgbfield::N_BGB> * const bgb_SW = BgBGrid.get(i  ,j  ,k  );
    const std::array<Real, fsgrids::bgbfield::N_BGB> * const bgb_SE = BgBGrid.get(i  ,j  ,k-1);
    const std::array<Real, fsgrids::bgbfield::N_BGB> * const bgb_NW = BgBGrid.get(i-1,j  ,k  );
    const std::array<Real, fsgrids::bgbfield::N_BGB> * const bgb_NE = BgBGrid.get(i-1,j  ,k-1);
-   std::array<Real, fsgrids::moments::N_MOMENTS> * const moments_SW = NULL;
-   std::array<Real, fsgrids::moments::N_MOMENTS> * const moments_SE = NULL;
-   std::array<Real, fsgrids::moments::N_MOMENTS> * const moments_NW = NULL;
-   std::array<Real, fsgrids::moments::N_MOMENTS> * const moments_NE = NULL;
+   const std::array<Real, fsgrids::moments::N_MOMENTS> * const moments_SW = momentsGrid.get(i  ,j  ,k  );
+   const std::array<Real, fsgrids::moments::N_MOMENTS> * const moments_SE = momentsGrid.get(i  ,j  ,k-1);
+   const std::array<Real, fsgrids::moments::N_MOMENTS> * const moments_NW = momentsGrid.get(i-1,j  ,k  );
+   const std::array<Real, fsgrids::moments::N_MOMENTS> * const moments_NE = momentsGrid.get(i-1,j  ,k-1);
    const std::array<Real, fsgrids::dmoments::N_DMOMENTS> * const dmoments_SW = dMomentsGrid.get(i  ,j  ,k  );
    const std::array<Real, fsgrids::dmoments::N_DMOMENTS> * const dmoments_SE = dMomentsGrid.get(i  ,j  ,k-1);
    const std::array<Real, fsgrids::dmoments::N_DMOMENTS> * const dmoments_NW = dMomentsGrid.get(i-1,j  ,k  );
@@ -799,33 +711,7 @@ void calculateEdgeElectricFieldY(
    const std::array<Real, fsgrids::dperb::N_DPERB> * const dperb_NW = dPerBGrid.get(i-1,j  ,k  );
    const std::array<Real, fsgrids::dperb::N_DPERB> * const dperb_NE = dPerBGrid.get(i-1,j  ,k-1);
    
-   if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      perb_SW = perBGrid.get(i  ,j  ,k  );
-      perb_SE = perBGrid.get(i  ,j  ,k-1);
-      perb_NW = perBGrid.get(i-1,j  ,k  );
-      perb_NE = perBGrid.get(i-1,j  ,k-1);
-      moments_SW = momentsGrid.get(i  ,j  ,k  );
-      moments_SE = momentsGrid.get(i  ,j  ,k-1);
-      moments_NW = momentsGrid.get(i-1,j  ,k  );
-      moments_NE = momentsGrid.get(i-1,j  ,k-1);
-      
-   } else {
-      perb_SW = perBDt2Grid.get(i  ,j  ,k  );
-      perb_SE = perBDt2Grid.get(i  ,j  ,k-1);
-      perb_NW = perBDt2Grid.get(i-1,j  ,k  );
-      perb_NE = perBDt2Grid.get(i-1,j  ,k-1);
-      moments_SW = momentsDt2Grid.get(i  ,j  ,k  );
-      moments_SE = momentsDt2Grid.get(i  ,j  ,k-1);
-      moments_NW = momentsDt2Grid.get(i-1,j  ,k  );
-      moments_NE = momentsDt2Grid.get(i-1,j  ,k-1);
-   }
-   
-   std::array<Real, fsgrids::efield::N_EFIELD> * efield_SW = NULL;
-   if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      efield_SW = EGrid.get(i,j,k);
-   } else {
-      efield_SW = EDt2Grid.get(i,j,k);
-   }
+   const std::array<Real, fsgrids::efield::N_EFIELD> * efield_SW = EGrid.get(i,j,k);
    
    // Fetch required plasma parameters:
    Real Bz_S, Bx_W, Bx_E, Bz_N, perBz_S, perBx_W, perBx_E, perBz_N;
@@ -907,15 +793,13 @@ void calculateEdgeElectricFieldY(
    
    c_z = calculateWaveSpeedXZ(
       perBGrid,
-      perBDt2Grid,
       momentsGrid,
-      momentsDt2Grid,
       dPerBGrid,
       dMomentsGrid,
       BgBGrid,
       i, j, k,
       i, j+1, k,
-      Bx_W, Bz_S, dBxdy_W, dBxdz_W, dBzdx_S, dBzdy_S, MINUS, MINUS, minRho, maxRho, RKCase);
+      Bx_W, Bz_S, dBxdy_W, dBxdz_W, dBzdx_S, dBzdy_S, MINUS, MINUS, minRho, maxRho);
    c_x = c_z;
    az_neg   = max(ZERO,-Vz0 + c_z);
    az_pos   = max(ZERO,+Vz0 + c_z);
@@ -961,15 +845,13 @@ void calculateEdgeElectricFieldY(
    
    c_z = calculateWaveSpeedXZ(
       perBGrid,
-      perBDt2Grid,
       momentsGrid,
-      momentsDt2Grid,
       dPerBGrid,
       dMomentsGrid,
       BgBGrid,
       i, j, k,
       i, j+1, k-1,
-      Bx_E, Bz_S, dBxdy_E, dBxdz_E, dBzdx_S, dBzdy_S, MINUS, PLUS, minRho, maxRho, RKCase);
+      Bx_E, Bz_S, dBxdy_E, dBxdz_E, dBzdx_S, dBzdy_S, MINUS, PLUS, minRho, maxRho);
    c_x = c_z;
    az_neg   = max(az_neg,-Vz0 + c_z);
    az_pos   = max(az_pos,+Vz0 + c_z);
@@ -1015,15 +897,13 @@ void calculateEdgeElectricFieldY(
    
    c_z = calculateWaveSpeedXZ(
       perBGrid,
-      perBDt2Grid,
       momentsGrid,
-      momentsDt2Grid,
       dPerBGrid,
       dMomentsGrid,
       BgBGrid,
       i, j, k,
       i-1,j+1,k,
-      Bx_W, Bz_N, dBxdy_W, dBxdz_W, dBzdx_N, dBzdy_N, PLUS, MINUS, minRho, maxRho, RKCase);
+      Bx_W, Bz_N, dBxdy_W, dBxdz_W, dBzdx_N, dBzdy_N, PLUS, MINUS, minRho, maxRho);
    c_x = c_z;
    az_neg   = max(az_neg,-Vz0 + c_z);
    az_pos   = max(az_pos,+Vz0 + c_z);
@@ -1069,15 +949,13 @@ void calculateEdgeElectricFieldY(
    
    c_z = calculateWaveSpeedXZ(
       perBGrid,
-      perBDt2Grid,
       momentsGrid,
-      momentsDt2Grid,
       dPerBGrid,
       dMomentsGrid,
       BgBGrid,
       i, j, k,
       i-1,j+1,k-1,
-      Bx_E, Bz_N, dBxdy_E, dBxdz_E, dBzdx_N, dBzdy_N, PLUS, PLUS, minRho, maxRho, RKCase);
+      Bx_E, Bz_N, dBxdy_E, dBxdz_E, dBzdx_N, dBzdy_N, PLUS, PLUS, minRho, maxRho);
    c_x = c_z;
    az_neg   = max(az_neg,-Vz0 + c_z);
    az_pos   = max(az_pos,+Vz0 + c_z);
@@ -1126,13 +1004,10 @@ void calculateEdgeElectricFieldY(
  */
 void calculateEdgeElectricFieldZ(
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
    FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EGrid,
-   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EDt2Grid,
    FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 3, 2> & EHallGrid,
    FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 3, 2> & EGradPeGrid,
    FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsGrid,
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsDt2Grid,
    FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 3, 2> & dPerBGrid,
    FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
    FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 3, 2> & BgBGrid,
@@ -1162,18 +1037,18 @@ void calculateEdgeElectricFieldZ(
    Real c_x,c_y;                    // Characteristic speeds to xy-directions
    
    // Get read-only pointers to NE,NW,SE,SW states (SW is rw, result is written there):
-   std::array<Real, fsgrids::bfield::N_BFIELD> * const perb_SW = NULL;
-   std::array<Real, fsgrids::bfield::N_BFIELD> * const perb_SE = NULL;
-   std::array<Real, fsgrids::bfield::N_BFIELD> * const perb_NE = NULL;
-   std::array<Real, fsgrids::bfield::N_BFIELD> * const perb_NW = NULL;
+   const std::array<Real, fsgrids::bfield::N_BFIELD> * const perb_SW = perBGrid.get(i  ,j  ,k  );
+   const std::array<Real, fsgrids::bfield::N_BFIELD> * const perb_SE = perBGrid.get(i-1,j  ,k  );
+   const std::array<Real, fsgrids::bfield::N_BFIELD> * const perb_NE = perBGrid.get(i-1,j-1,k  );
+   const std::array<Real, fsgrids::bfield::N_BFIELD> * const perb_NW = perBGrid.get(i  ,j-1,k  );
    const std::array<Real, fsgrids::bgbfield::N_BGB> * const bgb_SW = BgBGrid.get(i  ,j  ,k  );
    const std::array<Real, fsgrids::bgbfield::N_BGB> * const bgb_SE = BgBGrid.get(i-1,j  ,k  );
    const std::array<Real, fsgrids::bgbfield::N_BGB> * const bgb_NE = BgBGrid.get(i-1,j-1,k  );
    const std::array<Real, fsgrids::bgbfield::N_BGB> * const bgb_NW = BgBGrid.get(i  ,j-1,k  );
-   std::array<Real, fsgrids::moments::N_MOMENTS> * const moments_SW = NULL;
-   std::array<Real, fsgrids::moments::N_MOMENTS> * const moments_SE = NULL;
-   std::array<Real, fsgrids::moments::N_MOMENTS> * const moments_NE = NULL;
-   std::array<Real, fsgrids::moments::N_MOMENTS> * const moments_NW = NULL;
+   const std::array<Real, fsgrids::moments::N_MOMENTS> * const moments_SW = momentsGrid.get(i  ,j  ,k  );
+   const std::array<Real, fsgrids::moments::N_MOMENTS> * const moments_SE = momentsGrid.get(i-1,j  ,k  );
+   const std::array<Real, fsgrids::moments::N_MOMENTS> * const moments_NE = momentsGrid.get(i-1,j-1,k  );
+   const std::array<Real, fsgrids::moments::N_MOMENTS> * const moments_NW = momentsGrid.get(i  ,j-1,k  );
    const std::array<Real, fsgrids::dmoments::N_DMOMENTS> * const dmoments_SW = dMomentsGrid.get(i  ,j  ,k  );
    const std::array<Real, fsgrids::dmoments::N_DMOMENTS> * const dmoments_SE = dMomentsGrid.get(i-1,j  ,k  );
    const std::array<Real, fsgrids::dmoments::N_DMOMENTS> * const dmoments_NE = dMomentsGrid.get(i-1,j-1,k  );
@@ -1183,33 +1058,7 @@ void calculateEdgeElectricFieldZ(
    const std::array<Real, fsgrids::dperb::N_DPERB> * const dperb_NE = dPerBGrid.get(i-1,j-1,k  );
    const std::array<Real, fsgrids::dperb::N_DPERB> * const dperb_NW = dPerBGrid.get(i  ,j-1,k  );
    
-   if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      perb_SW = perBGrid.get(i  ,j  ,k  );
-      perb_SE = perBGrid.get(i-1,j  ,k  );
-      perb_NE = perBGrid.get(i-1,j-1,k  );
-      perb_NW = perBGrid.get(i  ,j-1,k  );
-      moments_SW = momentsGrid.get(i  ,j  ,k  );
-      moments_SE = momentsGrid.get(i-1,j  ,k  );
-      moments_NE = momentsGrid.get(i-1,j-1,k  );
-      moments_NW = momentsGrid.get(i  ,j-1,k  );
-      
-   } else {
-      perb_SW = perBDt2Grid.get(i  ,j  ,k  );
-      perb_SE = perBDt2Grid.get(i-1,j  ,k  );
-      perb_NE = perBDt2Grid.get(i-1,j-1,k  );
-      perb_NW = perBDt2Grid.get(i  ,j-1,k  );
-      moments_SW = momentsDt2Grid.get(i  ,j  ,k  );
-      moments_SE = momentsDt2Grid.get(i-1,j  ,k  );
-      moments_NE = momentsDt2Grid.get(i-1,j-1,k  );
-      moments_NW = momentsDt2Grid.get(i  ,j-1,k  );
-   }
-   
-   std::array<Real, fsgrids::efield::N_EFIELD> * efield_SW = NULL;
-   if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      efield_SW = EGrid.get(i,j,k);
-   } else {
-      efield_SW = EDt2Grid.get(i,j,k);
-   }
+   const std::array<Real, fsgrids::efield::N_EFIELD> * efield_SW = EGrid.get(i,j,k);
    
    // Fetch needed plasma parameters/derivatives from the four cells:
    Real Bx_S, By_W, By_E, Bx_N, perBx_S, perBy_W, perBy_E, perBx_N;
@@ -1293,15 +1142,13 @@ void calculateEdgeElectricFieldZ(
    // to get Alfven speed we need to calculate some reconstruction coeff. for Bz:
    c_x = calculateWaveSpeedXY(
       perBGrid,
-      perBDt2Grid,
       momentsGrid,
-      momentsDt2Grid,
       dPerBGrid,
       dMomentsGrid,
       BgBGrid,
       i, j, k,
       i, j, k+1,
-      Bx_S, By_W, dBxdy_S, dBxdz_S, dBydx_W, dBydz_W, MINUS, MINUS, minRho, maxRho, RKCase);
+      Bx_S, By_W, dBxdy_S, dBxdz_S, dBydx_W, dBydz_W, MINUS, MINUS, minRho, maxRho);
    c_y = c_x;
    ax_neg   = max(ZERO,-Vx0 + c_x);
    ax_pos   = max(ZERO,+Vx0 + c_x);
@@ -1346,15 +1193,13 @@ void calculateEdgeElectricFieldZ(
    
    c_x = calculateWaveSpeedXY(
       perBGrid,
-      perBDt2Grid,
       momentsGrid,
-      momentsDt2Grid,
       dPerBGrid,
       dMomentsGrid,
       BgBGrid,
       i, j, k,
       i-1,j,k+1,
-      Bx_S, By_E, dBxdy_S, dBxdz_S, dBydx_E, dBydz_E, PLUS, MINUS, minRho, maxRho, RKCase);
+      Bx_S, By_E, dBxdy_S, dBxdz_S, dBydx_E, dBydz_E, PLUS, MINUS, minRho, maxRho);
    c_y = c_x;
    ax_neg = max(ax_neg,-Vx0 + c_x);
    ax_pos = max(ax_pos,+Vx0 + c_x);
@@ -1400,15 +1245,13 @@ void calculateEdgeElectricFieldZ(
    
    c_x = calculateWaveSpeedXY(
       perBGrid,
-      perBDt2Grid,
       momentsGrid,
-      momentsDt2Grid,
       dPerBGrid,
       dMomentsGrid,
       BgBGrid,
       i, j, k,
       i, j-1, k+1,
-      Bx_N, By_W, dBxdy_N, dBxdz_N, dBydx_W, dBydz_W, MINUS, PLUS, minRho, maxRho, RKCase);
+      Bx_N, By_W, dBxdy_N, dBxdz_N, dBydx_W, dBydz_W, MINUS, PLUS, minRho, maxRho);
    c_y = c_x;
    ax_neg = max(ax_neg,-Vx0 + c_x); 
    ax_pos = max(ax_pos,+Vx0 + c_x);
@@ -1454,15 +1297,13 @@ void calculateEdgeElectricFieldZ(
    
    c_x = calculateWaveSpeedXY(
       perBGrid,
-      perBDt2Grid,
       momentsGrid,
-      momentsDt2Grid,
       dPerBGrid,
       dMomentsGrid,
       BgBGrid,
       i, j, k,
       i-1, j-1, k+1,
-      Bx_N, By_E, dBxdy_N, dBxdz_N, dBydx_E, dBydz_E, PLUS, PLUS, minRho, maxRho, RKCase);
+      Bx_N, By_E, dBxdy_N, dBxdz_N, dBydx_E, dBydz_E, PLUS, PLUS, minRho, maxRho);
    c_y = c_x;
    ax_neg = max(ax_neg,-Vx0 + c_x);
    ax_pos = max(ax_pos,+Vx0 + c_x);
@@ -1513,13 +1354,10 @@ void calculateEdgeElectricFieldZ(
  */
 void calculateElectricField(
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
    FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EGrid,
-   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EDt2Grid,
    FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 3, 2> & EHallGrid,
    FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 3, 2> & EGradPeGrid,
    FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsGrid,
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsDt2Grid,
    FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 3, 2> & dPerBGrid,
    FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
    FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 3, 2> & BgBGrid,
@@ -1537,19 +1375,16 @@ void calculateElectricField(
    cuint cellSysBoundaryLayer = technicalGrid.get(i,j,k)->sysBoundaryLayer;
    
    if ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) && (cellSysBoundaryLayer != 1)) {
-      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, EDt2Grid, cellID, RKCase, 0);
-      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, EDt2Grid, cellID, RKCase, 1);
-      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, EDt2Grid, cellID, RKCase, 2);
+      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, 0);
+      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, 1);
+      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, 2);
    } else {
       calculateEdgeElectricFieldX(
          perBGrid,
-         perBDt2Grid,
          EGrid,
-         EDt2Grid,
          EHallGrid,
          EGradPeGrid,
          momentsGrid,
-         momentsDt2Grid,
          dPerBGrid,
          dMomentsGrid,
          BgBGrid,
@@ -1561,13 +1396,10 @@ void calculateElectricField(
       );
       calculateEdgeElectricFieldY(
          perBGrid,
-         perBDt2Grid,
          EGrid,
-         EDt2Grid,
          EHallGrid,
          EGradPeGrid,
          momentsGrid,
-         momentsDt2Grid,
          dPerBGrid,
          dMomentsGrid,
          BgBGrid,
@@ -1579,13 +1411,10 @@ void calculateElectricField(
       );
       calculateEdgeElectricFieldZ(
          perBGrid,
-         perBDt2Grid,
          EGrid,
-         EDt2Grid,
          EHallGrid,
          EGradPeGrid,
          momentsGrid,
-         momentsDt2Grid,
          dPerBGrid,
          dMomentsGrid,
          BgBGrid,
@@ -1648,25 +1477,41 @@ void calculateUpwindedElectricFieldSimple(
    for (uint k=0; k<gridDims[2]; k++) {
       for (uint j=0; j<gridDims[1]; j++) {
          for (uint i=0; i<gridDims[0]; i++) {
-            calculateElectricField(
-               perBGrid,
-               perBDt2Grid,
-               EGrid,
-               EDt2Grid,
-               EHallGrid,
-               EGradPeGrid,
-               momentsGrid,
-               momentsDt2Grid,
-               dPerBGrid,
-               dMomentsGrid,
-               BgBGrid,
-               technicalGrid,
-               i,
-               j,
-               k,
-               sysBoundaries,
-               RKCase
-            );
+            if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+               calculateElectricField(
+                  perBGrid,
+                  EGrid,
+                  EHallGrid,
+                  EGradPeGrid,
+                  momentsGrid,
+                  dPerBGrid,
+                  dMomentsGrid,
+                  BgBGrid,
+                  technicalGrid,
+                  i,
+                  j,
+                  k,
+                  sysBoundaries,
+                  RKCase
+               );
+            } else { // RKCase == RK_ORDER2_STEP1
+               calculateElectricField(
+                  perBDt2Grid,
+                  EDt2Grid,
+                  EHallGrid,
+                  EGradPeGrid,
+                  momentsDt2Grid,
+                  dPerBGrid,
+                  dMomentsGrid,
+                  BgBGrid,
+                  technicalGrid,
+                  i,
+                  j,
+                  k,
+                  sysBoundaries,
+                  RKCase
+               );
+            }
          }
       }
    }
@@ -1675,7 +1520,7 @@ void calculateUpwindedElectricFieldSimple(
    // Exchange electric field with neighbouring processes
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       EGrid.updateGhostCells();
-   } else { // RKCase == RK_ORDER2_STEP1
+   } else { 
       EDt2Grid.updateGhostCells();
    }
    

@@ -127,22 +127,18 @@ namespace SBC {
 
    void ProjectBoundary::fieldSolverBoundaryCondElectricField(
       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EGrid,
-      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EDt2Grid,
-                                                              const CellID& cellID,
-                                                              cuint RKCase,
-                                                              cuint component
-                                                             ) {
-      dccrg::Types<3>::indices_t indices = mpiGrid.mapping.get_indices(cellID);
+      cuint i,
+      cuint j,
+      cuint k,
+      cuint component
+   ) {
       SpatialCell* nbr = NULL;
       SpatialCell* cell = mpiGrid[cellID];
       
-      int offset=0;
-      if ((RKCase == RK_ORDER1) || (RKCase == RK_ORDER2_STEP2)) offset = CellParams::EX;
-      else offset = CellParams::EX_DT2;
-
-      creal dx = cell->parameters[CellParams::DX];
-      creal dy = cell->parameters[CellParams::DY];
-      creal dz = cell->parameters[CellParams::DZ];
+      creal dx = EGrid.DX;
+      creal dy = EGrid.DY;
+      creal dz = EGrid.DZ;
+#warning the positions have to be got from the new grid
       creal x = cell->parameters[CellParams::XCRD] + 0.5*dx;
       creal y = cell->parameters[CellParams::YCRD] + 0.5*dy;
       creal z = cell->parameters[CellParams::ZCRD] + 0.5*dz;
@@ -152,36 +148,24 @@ namespace SBC {
       for (uint i=0; i<6; i++) if (facesToProcess[i] && isThisCellOnAFace[i]) {
          switch (i) {
           case 0:
-            --indices[0];
-            nbr = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
-            cell->parameters[offset+component] = 0;
+            EGrid.get(i,j,k)[fsgrids::efield::EX+component] = 0;
             break;
           case 1:
-            ++indices[0];
-            nbr = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
-            cell->parameters[offset+component] = 0;
+            EGrid.get(i,j,k)[fsgrids::efield::EX+component] = 0;
             break;
           case 2:
-            --indices[1];
-            nbr = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
-            cell->parameters[offset+component] = 0;
+            EGrid.get(i,j,k)[fsgrids::efield::EX+component] = 0;
             break;
           case 3:
-            ++indices[1];
-            nbr = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
-            cell->parameters[offset+component] = 0;
+            EGrid.get(i,j,k)[fsgrids::efield::EX+component] = 0;
             break;
           case 4:
-            --indices[2];
-            nbr = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
-            cell->parameters[offset+component] = 0;
+            EGrid.get(i,j,k)[fsgrids::efield::EX+component] = 0;
             break;
           case 5:
-            ++indices[2];
-            nbr = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
-            cell->parameters[offset+component] = 0;
+            EGrid.get(i,j,k)[fsgrids::efield::EX+component] = 0;
             break;
-         }         
+         }
       }
    }
 
