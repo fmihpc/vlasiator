@@ -164,9 +164,10 @@ using namespace std;
 void calculateEdgeGradPeTermXComponents(
    FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 3, 2> & EGradPeGrid,
    FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsGrid,
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsDt2Grid,
    FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
-   cint& RKCase
+   cint i,
+   cint j,
+   cint k
 ) {
    #warning Particles (charge) assumed to be protons here
    Real hallRho;
@@ -176,13 +177,9 @@ void calculateEdgeGradPeTermXComponents(
          break;
          
       case 1:
-         if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-            hallRho =  (cp[CellParams::RHO] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO] ;
-         }
-         if (RKCase == RK_ORDER2_STEP1) {
-            hallRho =  (cp[CellParams::RHO_DT2] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO_DT2] ;
-         }
-         cp[CellParams::EXGRADPE] = -physicalconstants::K_B*Parameters::electronTemperature*derivs[fieldsolver::drhodx] / (hallRho*physicalconstants::CHARGE*cp[CellParams::DX]);
+         creal rho = momentsGrid.get(i,j,k)[fsgrids::moments::RHO];
+         hallRho = (rho <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : rho ;
+         EGradPeGrid.get(i,j,k)[fsgrids::egradpe::EXGRADPE] = -physicalconstants::K_B*Parameters::electronTemperature*dMomentsGrid,get(i,j,k)[fsgrids::dmoments::drhodx] / (hallRho*physicalconstants::CHARGE*EGradPeGrid.DX);
          break;
          
       default:
@@ -194,9 +191,10 @@ void calculateEdgeGradPeTermXComponents(
 void calculateEdgeGradPeTermYComponents(
    FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 3, 2> & EGradPeGrid,
    FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsGrid,
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsDt2Grid,
    FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
-   cint& RKCase
+   cint i,
+   cint j,
+   cint k
 ) {
    #warning Particles (charge) assumed to be protons here
    Real hallRho;
@@ -206,13 +204,9 @@ void calculateEdgeGradPeTermYComponents(
          break;
          
       case 1:
-         if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-            hallRho =  (cp[CellParams::RHO] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO] ;
-         }
-         if (RKCase == RK_ORDER2_STEP1) {
-            hallRho =  (cp[CellParams::RHO_DT2] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO_DT2] ;
-         }
-         cp[CellParams::EYGRADPE] = -physicalconstants::K_B*Parameters::electronTemperature*derivs[fieldsolver::drhody] / (hallRho*physicalconstants::CHARGE*cp[CellParams::DY]);
+         creal rho = momentsGrid.get(i,j,k)[fsgrids::moments::RHO];
+         hallRho = (rho <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : rho ;
+         EGradPeGrid.get(i,j,k)[fsgrids::egradpe::EYGRADPE] = -physicalconstants::K_B*Parameters::electronTemperature*dMomentsGrid,get(i,j,k)[fsgrids::dmoments::drhody] / (hallRho*physicalconstants::CHARGE*EGradPeGrid.DY);
          break;
          
       default:
@@ -224,9 +218,10 @@ void calculateEdgeGradPeTermYComponents(
 void calculateEdgeGradPeTermZComponents(
    FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 3, 2> & EGradPeGrid,
    FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsGrid,
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsDt2Grid,
    FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
-   cint& RKCase
+   cint i,
+   cint j,
+   cint k
 ) {
   #warning Particles (charge) assumed to be protons here
    Real hallRho;
@@ -236,13 +231,9 @@ void calculateEdgeGradPeTermZComponents(
          break;
          
       case 1:
-         if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-            hallRho =  (cp[CellParams::RHO] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO] ;
-         }
-         if (RKCase == RK_ORDER2_STEP1) {
-            hallRho =  (cp[CellParams::RHO_DT2] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO_DT2] ;
-         }
-         cp[CellParams::EZGRADPE] = -physicalconstants::K_B*Parameters::electronTemperature*derivs[fieldsolver::drhodz] / (hallRho*physicalconstants::CHARGE*cp[CellParams::DZ]);
+         creal rho = momentsGrid.get(i,j,k)[fsgrids::moments::RHO];
+         hallRho = (rho <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : rho ;
+         EGradPeGrid.get(i,j,k)[fsgrids::egradpe::EZGRADPE] = -physicalconstants::K_B*Parameters::electronTemperature*dMomentsGrid,get(i,j,k)[fsgrids::dmoments::drhodz] / (hallRho*physicalconstants::CHARGE*EGradPeGrid.DZ);
          break;
          
       default:
@@ -259,73 +250,35 @@ void calculateEdgeGradPeTermZComponents(
  */
 void calculateGradPeTerm(
    FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 3, 2> & EGradPeGrid,
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsGrid,
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsDt2Grid,
-   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
-   FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
-   SysBoundary& sysBoundaries,
-   std::vector<fs_cache::CellCache>& cache,
-   const std::vector<uint16_t>& cells,
-   cint& RKCase
+   const FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsGrid,
+   const FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
+   const FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
+   const int i,
+   const int j,
+   const int k,
+   SysBoundary& sysBoundaries
 ) {
-   #pragma omp parallel for
-   for (size_t c=0; c<cells.size(); ++c) { // DO_NOT_COMPUTE cells already removed
-      const uint16_t localID = cells[c];
-
-      #ifdef DEBUG_FSOLVER
-      if (localID >= cache.size()) {
-         cerr << "local index out of bounds in " << __FILE__ << ":" << __LINE__ << endl;
-         exit(1);
-      }
-      if (cache[localID].cells[fs_cache::calculateNbrID(1,1,1)] == NULL) {
-         cerr << "NULL pointer in " << __FILE__ << ":" << __LINE__ << endl;
-         exit(1);
-      }
-      if (cache[localID].cells[fs_cache::calculateNbrID(1,1,1)]->parameters == NULL) {
-         cerr << "NULL cell parameters in " << __FILE__ << ":" << __LINE__ << endl;
-         exit(1);
-      }
-      if (cache[localID].cells[fs_cache::calculateNbrID(1,1,1)]->derivatives == NULL) {
-         cerr << "NULL derivatives in " << __FILE__ << ":" << __LINE__ << endl;
-         exit(1);
-      }
-      #endif
-      
-      cuint cellSysBoundaryFlag        = cache[localID].sysBoundaryFlag;
-      cuint cellSysBoundaryLayer       = cache[localID].cells[fs_cache::calculateNbrID(1,1,1)]->sysBoundaryLayer;
-
-      Real perturbedCoefficients[Rec::N_REC_COEFFICIENTS];
-
-      if ((fieldSolverSysBoundaryFlag & CALCULATE_EX) == CALCULATE_EX) {
-         if ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
-             (cellSysBoundaryLayer != 1)) {
-            sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid,cache[localID],RKCase,0);
-         } else {
-            Real* cp     = cache[localID].cells[fs_cache::calculateNbrID(1,1,1)]->parameters;
-            Real* derivs = cache[localID].cells[fs_cache::calculateNbrID(1,1,1)]->derivatives;
-            calculateEdgeGradPeTermXComponents(EGradPeGrid,momentsGrid,momentsDt2Grid,dMomentsGrid,RKCase);
-         }
-      }
-      if ((fieldSolverSysBoundaryFlag & CALCULATE_EY) == CALCULATE_EY) {
-         if ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
-             (cellSysBoundaryLayer != 1)) {
-            sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid,cache[localID],RKCase,1);
-         } else {
-            Real* cp     = cache[localID].cells[fs_cache::calculateNbrID(1,1,1)]->parameters;
-            Real* derivs = cache[localID].cells[fs_cache::calculateNbrID(1,1,1)]->derivatives;
-            calculateEdgeGradPeTermYComponents(EGradPeGrid,momentsGrid,momentsDt2Grid,dMomentsGrid,RKCase);
-         }
-      }
-      if ((fieldSolverSysBoundaryFlag & CALCULATE_EZ) == CALCULATE_EZ) {
-         if ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
-             (cellSysBoundaryLayer != 1)) {
-            sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid,cache[localID],RKCase,2);
-         } else {
-            Real* cp     = cache[localID].cells[fs_cache::calculateNbrID(1,1,1)]->parameters;
-            Real* derivs = cache[localID].cells[fs_cache::calculateNbrID(1,1,1)]->derivatives;
-            calculateEdgeGradPeTermZComponents(EGradPeGrid,momentsGrid,momentsDt2Grid,dMomentsGrid,RKCase);
-         }
-      }
+   #ifdef DEBUG_FSOLVER
+   if (technicalGrid.get(i,j,k) == NULL) {
+      cerr << "NULL pointer in " << __FILE__ << ":" << __LINE__ << endl;
+      exit(1);
+   }
+   #endif
+   
+   cuint cellSysBoundaryFlag = technicalGrid.get(i,j,k)->sysBoundaryFlag;
+   
+   if (cellSysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
+   
+   cuint cellSysBoundaryLayer = technicalGrid.get(i,j,k)->sysBoundaryLayer;
+   
+   if ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) && (cellSysBoundaryLayer != 1)) {
+      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid,cache[localID],RKCase,0);
+      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid,cache[localID],RKCase,1);
+      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid,cache[localID],RKCase,2);
+   } else {
+      calculateEdgeGradPeTermXComponents(EGradPeGrid,momentsGrid,dMomentsGrid,i,j,k);
+      calculateEdgeGradPeTermXComponents(EGradPeGrid,momentsGrid,dMomentsGrid,i,j,k);
+      calculateEdgeGradPeTermYComponents(EGradPeGrid,momentsGrid,dMomentsGrid,i,j,k);
    }
 }
 
@@ -341,40 +294,32 @@ void calculateGradPeTermSimple(
 ) {
    namespace fs = fieldsolver;
    int timer;
+   const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
+   const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
    phiprof::start("Calculate GradPe term");
-   SpatialCell::set_mpi_transfer_type(Transfer::CELL_DERIVATIVES);
-
-   fs_cache::CacheContainer& cacheContainer = fs_cache::getCache();
 
    timer=phiprof::initializeTimer("Start communication of derivatives","MPI");
    phiprof::start(timer);
-   mpiGrid.start_remote_neighbor_copy_updates(FIELD_SOLVER_NEIGHBORHOOD_ID);
+   dMomentsGrid.updateGhostCells();
    phiprof::stop(timer);
 
-   // Calculate GradPe term on inner cells
-   timer=phiprof::initializeTimer("Compute inner cells");
+   // Calculate GradPe term
+   timer=phiprof::initializeTimer("Compute cells");
    phiprof::start(timer);
-   calculateGradPeTerm(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries,cacheContainer.localCellsCache,cacheContainer.cellsWithLocalNeighbours,RKCase);
-   phiprof::stop(timer,cacheContainer.cellsWithLocalNeighbours.size(),"Spatial Cells");
-
-   timer=phiprof::initializeTimer("Wait for receives","MPI","Wait");
-   phiprof::start(timer);
-   mpiGrid.wait_remote_neighbor_copy_update_receives(FIELD_SOLVER_NEIGHBORHOOD_ID);
-   phiprof::stop(timer);
+   #pragma omp parallel for collapse(3)
+   for (uint k=0; k<gridDims[2]; k++) {
+      for (uint j=0; j<gridDims[1]; j++) {
+         for (uint i=0; i<gridDims[0]; i++) {
+            if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+               calculateGradPeTerm(EGradPeGrid, momentsGrid, dMomentsGrid, technicalGrid, i, j, k, sysBoundaries);
+            }
+            if (RKCase == RK_ORDER2_STEP1) {
+               calculateGradPeTerm(EGradPeGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, i, j, k, sysBoundaries);
+            }
+         }
+      }
+   }
+   phiprof::stop(timer,N_cells,"Spatial Cells");
    
-   // Calculate GradPe term on boundary cells:
-   timer=phiprof::initializeTimer("Compute boundary cells");
-   phiprof::start(timer);
-   calculateGradPeTerm(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries,cacheContainer.localCellsCache,cacheContainer.cellsWithRemoteNeighbours,RKCase);
-   phiprof::stop(timer,cacheContainer.cellsWithRemoteNeighbours.size(),"Spatial Cells");
-
-   timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
-   phiprof::start(timer);
-   mpiGrid.wait_remote_neighbor_copy_update_sends();
-   phiprof::stop(timer);
-
-   const size_t N_cells = cacheContainer.cellsWithRemoteNeighbours.size()
-     + cacheContainer.cellsWithLocalNeighbours.size();
-
    phiprof::stop("Calculate GradPe term",N_cells,"Spatial Cells");
 }
