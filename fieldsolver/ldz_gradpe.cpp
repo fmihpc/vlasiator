@@ -251,9 +251,9 @@ void calculateGradPeTerm(
    const FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsGrid,
    const FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
    const FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
-   const int i,
-   const int j,
-   const int k,
+   cint i,
+   cint j,
+   cint k,
    SysBoundary& sysBoundaries
 ) {
    #ifdef DEBUG_FSOLVER

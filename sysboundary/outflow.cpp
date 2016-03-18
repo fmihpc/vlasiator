@@ -186,9 +186,9 @@ namespace SBC {
 
    void Outflow::fieldSolverBoundaryCondElectricField(
       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EGrid,
-      cuint i,
-      cuint j,
-      cuint k,
+      cint i,
+      cint j,
+      cint k,
       cuint component
    ) {
       EGrid.get(i,j,k)[fsgrids::efield::EX+component] = 0.0;
@@ -196,8 +196,9 @@ namespace SBC {
    
    void Outflow::fieldSolverBoundaryCondHallElectricField(
       FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 3, 2> & EHallGrid,
-      fs_cache::CellCache& cache,
-      cuint RKCase,
+      cint i,
+      cint j,
+      cint k,
       cuint component
    ) {
       const std::array<Real, fsgrids::ehall::N_EHALL> * cp = EHallGrid.get(i,j,k);
@@ -226,9 +227,9 @@ namespace SBC {
    
    void Outflow::fieldSolverBoundaryCondGradPeElectricField(
       FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 3, 2> & EGradPeGrid,
-      cuint i,
-      cuint j,
-      cuint k,
+      cint i,
+      cint j,
+      cint k,
       cuint component
    ) {
       EGradPeGrid.get(i,j,k)[fsgrids::egradpe::EXGRADPE+component] = 0.0;

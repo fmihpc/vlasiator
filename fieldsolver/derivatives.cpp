@@ -22,9 +22,9 @@ Copyright 2015 Finnish Meteorological Institute
  * \sa calculateDerivativesSimple calculateBVOLDerivativesSimple calculateBVOLDerivatives
  */
 void calculateDerivatives(
-   const int i,
-   const int j,
-   const int k,
+   cint i,
+   cint j,
+   cint k,
    const FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
    const FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsGrid,
    FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 3, 2> & dPerBGrid,
@@ -353,9 +353,9 @@ void calculateDerivativesSimple(
 void calculateBVOLDerivatives(
    FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 3, 2> & volGrid,
    FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
-   const int i,
-   const int j,
-   const int k,
+   cint i,
+   cint j,
+   cint k,
    SysBoundary& sysBoundaries
 ) {
    Real* const array = volGrid.get(i,j,k);

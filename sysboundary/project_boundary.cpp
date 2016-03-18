@@ -127,9 +127,9 @@ namespace SBC {
 
    void ProjectBoundary::fieldSolverBoundaryCondElectricField(
       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EGrid,
-      cuint i,
-      cuint j,
-      cuint k,
+      cint i,
+      cint j,
+      cint k,
       cuint component
    ) {
       SpatialCell* nbr = NULL;
@@ -172,9 +172,9 @@ namespace SBC {
    
    void ProjectBoundary::fieldSolverBoundaryCondGradPeElectricField(
       FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 3, 2> & EGradPeGrid,
-      cuint i,
-      cuint j,
-      cuint k,
+      cint i,
+      cint j,
+      cint k,
       cuint component
    ) {
       EGradPeGrid.get(i,j,k)[fsgrids::egradpe::EXGRADPE+component] = 0.0;

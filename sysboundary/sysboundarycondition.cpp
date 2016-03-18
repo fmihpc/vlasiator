@@ -185,9 +185,9 @@ namespace SBC {
     */
    void SysBoundaryCondition::fieldSolverBoundaryCondElectricField(
       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EGrid,
-      cuint i,
-      cuint j,
-      cuint k,
+      cint i,
+      cint j,
+      cint k,
       cuint component
    ) {
       cerr << "ERROR: SysBoundaryCondition::fieldSolverBoundaryCondElectricField called instead of derived class function!" << endl;
@@ -201,8 +201,9 @@ namespace SBC {
     */
    void SysBoundaryCondition::fieldSolverBoundaryCondHallElectricField(
       FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 3, 2> & EHallGrid,
-      fs_cache::CellCache& cache,
-      cuint RKCase,
+      cint i,
+      cint j,
+      cint k,
       cuint component
    ) {
       cerr << "ERROR: SysBoundaryCondition::fieldSolverBoundaryCondHallElectricField called instead of derived class function!" << endl;
@@ -216,9 +217,9 @@ namespace SBC {
     */
    void SysBoundaryCondition::fieldSolverBoundaryCondGradPeElectricField(
       FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 3, 2> & EGradPeGrid,
-      cuint i,
-      cuint j,
-      cuint k,
+      cint i,
+      cint j,
+      cint k,
       cuint component
    ) {
       cerr << "ERROR: SysBoundaryCondition::fieldSolverBoundaryCondGradPeElectricField called instead of derived class function!" << endl;
@@ -264,9 +265,9 @@ namespace SBC {
    void SysBoundaryCondition::setCellDerivativesToZero(
       FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 3, 2> & dPerBGrid,
       FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
-      const int i,
-      const int j,
-      const int k,
+      cint i,
+      cint j,
+      cint k,
       cuint& component
    ) {
       switch(component) {
@@ -330,9 +331,9 @@ namespace SBC {
     */
    void SysBoundaryCondition::setCellBVOLDerivativesToZero(
       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 3, 2> & volGrid,
-      const int i,
-      const int j,
-      const int k,
+      cint i,
+      cint j,
+      cint k,
       cuint& component
    ) {
       switch(component) {
