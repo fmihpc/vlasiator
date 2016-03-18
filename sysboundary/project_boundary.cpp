@@ -145,8 +145,9 @@ namespace SBC {
       bool isThisCellOnAFace[6];
       determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz);
       
-      for (uint i=0; i<6; i++) if (facesToProcess[i] && isThisCellOnAFace[i]) {
-         switch (i) {
+#warning this function makes little sense as is. It made little before, too.
+      for (uint fi=0; fi<6; fi++) if (facesToProcess[fi] && isThisCellOnAFace[fi]) {
+         switch (fi) {
           case 0:
             EGrid.get(i,j,k)[fsgrids::efield::EX+component] = 0;
             break;
@@ -168,8 +169,16 @@ namespace SBC {
          }
       }
    }
-
-#warning missing GradPe function in this class
+   
+   void ProjectBoundary::fieldSolverBoundaryCondGradPeElectricField(
+      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 3, 2> & EGradPeGrid,
+      cuint i,
+      cuint j,
+      cuint k,
+      cuint component
+   ) {
+      EGradPeGrid.get(i,j,k)[fsgrids::egradpe::EXGRADPE+component] = 0.0;
+   }
    
    void ProjectBoundary::fieldSolverBoundaryCondHallElectricField(
       FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 3, 2> & EHallGrid,

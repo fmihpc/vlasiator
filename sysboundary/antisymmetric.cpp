@@ -187,7 +187,15 @@ namespace SBC {
       }
    }
    
-#warning missing GradPe function in this class
+   void Antisymmetric::fieldSolverBoundaryCondGradPeElectricField(
+      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 3, 2> & EGradPeGrid,
+      cuint i,
+      cuint j,
+      cuint k,
+      cuint component
+   ) {
+      EGradPeGrid.get(i,j,k)[fsgrids::egradpe::EXGRADPE+component] = 0.0;
+   }
    
    Real Antisymmetric::fieldBoundaryCopyFromExistingFaceNbrMagneticField(
                                                                    const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,

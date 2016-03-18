@@ -80,8 +80,9 @@ namespace SBC {
       );
       virtual void fieldSolverBoundaryCondGradPeElectricField(
          FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 3, 2> & EGradPeGrid,
-         fs_cache::CellCache& cache,
-         cuint RKCase,
+         cuint i,
+         cuint j,
+         cuint k,
          cuint component
       );
       virtual void fieldSolverBoundaryCondDerivatives(

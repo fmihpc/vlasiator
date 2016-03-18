@@ -77,6 +77,13 @@ namespace SBC {
                                                                cuint RKCase,
                                                                cuint component
                                                               );
+         virtual void fieldSolverBoundaryCondGradPeElectricField(
+            FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 3, 2> & EGradPeGrid,
+            cuint i,
+            cuint j,
+            cuint k,
+            cuint component
+         );
          virtual void fieldSolverBoundaryCondDerivatives(
             FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 3, 2> & dPerBGrid,
             FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
