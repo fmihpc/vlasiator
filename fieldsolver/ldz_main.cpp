@@ -41,9 +41,7 @@ Copyright 2010, 2011, 2012, 2013, 2014 Finnish Meteorological Institute
  cell_dimensions, sysboundaryflag need to be up to date for the
  extended neighborhood
  */
-bool initializeFieldPropagatorAfterRebalance(
-        dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
-) {
+bool initializeFieldPropagatorAfterRebalance() {
    // Assume static background field, they are not communicated here
    // but are assumed to be ok after each load balance as that
    // communicates all spatial data
@@ -71,15 +69,10 @@ bool initializeFieldPropagator(
 ) {
    const vector<uint64_t>& localCells = getLocalCells();
    
-   // Force recalculate of cell caches
-   phiprof::start("Calculate Caches");
-   fs_cache::calculateCache(mpiGrid,localCells);
-   phiprof::stop("Calculate Caches",localCells.size(),"Spatial Cells");
-
    // Checking that spatial cells are cubic, otherwise field solver is incorrect (cf. derivatives in E, Hall term)
-   if((abs((P::dx_ini-P::dy_ini)/P::dx_ini) > 0.001) ||
-      (abs((P::dx_ini-P::dz_ini)/P::dx_ini) > 0.001) ||
-      (abs((P::dy_ini-P::dz_ini)/P::dy_ini) > 0.001)) {
+   if((abs((technicalGrid.DX-technicalGrid.DY)/technicalGrid.DX) > 0.001) ||
+      (abs((technicalGrid.DX-technicalGrid.DZ)/technicalGrid.DX) > 0.001) ||
+      (abs((technicalGrid.DY-technicalGrid.DZ)/technicalGrid.DY) > 0.001)) {
       std::cerr << "WARNING: Your spatial cells seem not to be cubic. However the field solver is assuming them to be. Use at your own risk and responsibility!" << std::endl;
    }
    
@@ -130,7 +123,7 @@ bool initializeFieldPropagator(
       localCells,
       RK_ORDER1
    );
-   calculateVolumeAveragedFields(perBGrid,EGrid,dPerBGrid,volGrid,fs_cache::getCache().localCellsCache,fs_cache::getCache().local_NOT_DO_NOT_COMPUTE);
+   calculateVolumeAveragedFields(perBGrid,EGrid,dPerBGrid,volGrid,technicalGrid);
    calculateBVOLDerivativesSimple(volGrid, technicalGrid, sysBoundaries, localCells);
    
    return true;
@@ -144,7 +137,6 @@ bool finalizeFieldPropagator() {
  * 
  * Propagates the magnetic field, computes the derivatives and the upwinded electric field, then computes the volume-averaged field values. Takes care of the Runge-Kutta iteration at the top level, the functions called get as an argument the element from the enum defining the current stage and handle their job correspondingly.
  * 
- * \param mpiGrid Grid
  * \param dt Length of the time step
  * \param subcycles Number of subcycles to compute.
  * 
@@ -178,19 +170,17 @@ bool propagateFields(
    // Reserve memory for derivatives for all cells on this process:
    const vector<CellID>& localCells = getLocalCells();
    bool hallTermCommunicateDerivatives = true;
-
-   if (Parameters::meshRepartitioned == true) {
-      phiprof::start("Calculate Caches");
-      fs_cache::calculateCache(mpiGrid,localCells);
-      phiprof::stop("Calculate Caches");
+   
+   #pragma omp parallel for collapse(3)
+   for (uint k=0; k<gridDims[2]; k++) {
+      for (uint j=0; j<gridDims[1]; j++) {
+         for (uint i=0; i<gridDims[0]; i++) {
+            technicalGrid.get(i,j,k)->maxFsDt=std::numeric_limits<Real>::max();
+         }
+      }
    }
-
-   for (size_t cell=0; cell<localCells.size(); ++cell) {
-      const CellID cellID = localCells[cell];
-      mpiGrid[cellID]->parameters[CellParams::MAXFDT]=std::numeric_limits<Real>::max();
-   }
-
-
+   
+   
    if (subcycles == 1) {
       #ifdef FS_1ST_ORDER_TIME
       propagateMagneticFieldSimple(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, sysBoundaries, dt, localCells, RK_ORDER1);
@@ -363,7 +353,7 @@ bool propagateFields(
       }
    }
    
-   calculateVolumeAveragedFields(perBGrid,EGrid,dPerBGrid,volGrid,fs_cache::getCache().localCellsCache,fs_cache::getCache().local_NOT_DO_NOT_COMPUTE);
-   calculateBVOLDerivativesSimple(volGrid, technicalGrid, sysBoundaries, localCells);
+   calculateVolumeAveragedFields(perBGrid,EGrid,dPerBGrid,volGrid,technicalGrid);
+   calculateBVOLDerivativesSimple(volGrid, technicalGrid, sysBoundaries);
    return true;
 }
