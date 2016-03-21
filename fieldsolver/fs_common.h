@@ -17,6 +17,7 @@ Copyright 2010-2015 Finnish Meteorological Institute
 #include <set>
 #include <stdint.h>
 
+#include <fsgrid.hpp>
 #include <phiprof.hpp>
 
 #include "../common.h"

@@ -11,6 +11,7 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 
 #include <dccrg.hpp>
 #include <dccrg_cartesian_geometry.hpp>
+#include <fsgrid.hpp>
 
 #include <vector>
 #include "../definitions.h"
