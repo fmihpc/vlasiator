@@ -1454,7 +1454,6 @@ void calculateUpwindedElectricFieldSimple(
    SysBoundary& sysBoundaries,
    cint& RKCase
 ) {
-   namespace fs = fieldsolver;
    int timer;
    const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
    const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
