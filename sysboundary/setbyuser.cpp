@@ -105,9 +105,9 @@ namespace SBC {
    }
    
    Real SetByUser::fieldSolverBoundaryCondMagneticField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
-      FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBDt2Grid,
+      FsGrid< fsgrids::technical, 2> & technicalGrid,
       cint i,
       cint j,
       cint k,
@@ -137,7 +137,7 @@ namespace SBC {
    }
 
    void SetByUser::fieldSolverBoundaryCondElectricField(
-      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EGrid,
+      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
       cint i,
       cint j,
       cint k,
@@ -147,7 +147,7 @@ namespace SBC {
    }
 
    void SetByUser::fieldSolverBoundaryCondHallElectricField(
-      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 3, 2> & EHallGrid,
+      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2> & EHallGrid,
       cint i,
       cint j,
       cint k,
@@ -178,7 +178,7 @@ namespace SBC {
    }
    
    void SetByUser::fieldSolverBoundaryCondGradPeElectricField(
-      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 3, 2> & EGradPeGrid,
+      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2> & EGradPeGrid,
       cint i,
       cint j,
       cint k,
@@ -188,9 +188,11 @@ namespace SBC {
    }
    
    void SetByUser::fieldSolverBoundaryCondDerivatives(
-      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 3, 2> & dPerBGrid,
-      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
-      const CellID& cellID,
+      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
+      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> & dMomentsGrid,
+      cint i,
+      cint j,
+      cint k,
       cuint& RKCase,
       cuint& component
    ) {
@@ -198,8 +200,10 @@ namespace SBC {
    }
 
    void SetByUser::fieldSolverBoundaryCondBVOLDerivatives(
-      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID,
+      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volGrid,
+      cint i,
+      cint j,
+      cint k,
       cuint& component
    ) {
       this->setCellBVOLDerivativesToZero(mpiGrid, cellID, component);

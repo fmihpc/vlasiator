@@ -17,11 +17,11 @@
 using namespace std;
 
 void calculateVolumeAveragedFields(
-   const FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
-   const FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EGrid,
-   const FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 3, 2> & dPerBGrid,
-   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 3, 2> & volGrid,
-   const FsGrid< fsgrids::technical, 3, 2> & technicalGrid
+   const FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+   const FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
+   const FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
+   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volGrid,
+   const FsGrid< fsgrids::technical, 2> & technicalGrid
 ) {
    const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
    const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
@@ -53,7 +53,7 @@ void calculateVolumeAveragedFields(
             volGrid0[fsgrids::volfields::PERBZVOL] = perturbedCoefficients[Rec::c_0];
 
             // Calculate volume average of E (FIXME NEEDS IMPROVEMENT):
-            const FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2>* const EGrid_i1j1k1 = EGrid.get(i,j,k);
+            const FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>* const EGrid_i1j1k1 = EGrid.get(i,j,k);
             if ( technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundaries::NOT_SYSBOUNDARY ||
                 (technicalGrid.get(i,j,k)->sysBoundaryFlag != sysboundaries::NOT_SYSBOUNDARY && technicalGrid.get(i,j,k)->sysBoundaryLayer == 1)
             ) {
@@ -69,9 +69,9 @@ void calculateVolumeAveragedFields(
                }
                #endif
                
-               const FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2>* const EGrid_i1j2k1 = EGrid.get(i  ,j+1,k  );
-               const FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2>* const EGrid_i1j1k2 = EGrid.get(i  ,j  ,k+1);
-               const FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2>* const EGrid_i1j2k2 = EGrid.get(i  ,j+1,k+1);
+               const FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>* const EGrid_i1j2k1 = EGrid.get(i  ,j+1,k  );
+               const FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>* const EGrid_i1j1k2 = EGrid.get(i  ,j  ,k+1);
+               const FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>* const EGrid_i1j2k2 = EGrid.get(i  ,j+1,k+1);
                
                CHECK_FLOAT(EGrid_i1j1k1[fsgrids::efield::EX])
                CHECK_FLOAT(EGrid_i1j2k1[fsgrids::efield::EX])
@@ -98,9 +98,9 @@ void calculateVolumeAveragedFields(
                }
                #endif
                
-               const FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2>* const EGrid_i2j1k1 = EGrid.get(i+1,j  ,k  );
-               const FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2>* const EGrid_i1j1k2 = EGrid.get(i  ,j  ,k+1);
-               const FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2>* const EGrid_i2j1k2 = EGrid.get(i+1,j  ,k+1);
+               const FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>* const EGrid_i2j1k1 = EGrid.get(i+1,j  ,k  );
+               const FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>* const EGrid_i1j1k2 = EGrid.get(i  ,j  ,k+1);
+               const FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>* const EGrid_i2j1k2 = EGrid.get(i+1,j  ,k+1);
                
                CHECK_FLOAT(EGrid_i1j1k1[fsgrids::efield::EY])
                CHECK_FLOAT(EGrid_i2j1k1[fsgrids::efield::EY])
@@ -127,9 +127,9 @@ void calculateVolumeAveragedFields(
                }
                #endif
                
-               const FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2>* const EGrid_i2j1k1 = EGrid.get(i+1,j  ,k  );
-               const FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2>* const EGrid_i1j2k1 = EGrid.get(i  ,j+1,k  );
-               const FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2>* const EGrid_i2j2k1 = EGrid.get(i+1,j+1,k  );
+               const FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>* const EGrid_i2j1k1 = EGrid.get(i+1,j  ,k  );
+               const FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>* const EGrid_i1j2k1 = EGrid.get(i  ,j+1,k  );
+               const FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>* const EGrid_i2j2k1 = EGrid.get(i+1,j+1,k  );
                
                CHECK_FLOAT(EGrid_i1j1k1[fsgrids::efield::EZ])
                CHECK_FLOAT(EGrid_i2j1k1[fsgrids::efield::EZ])

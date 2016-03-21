@@ -28,10 +28,10 @@
  * \param doZ If true, compute the z component (default true).
  */
 void propagateMagneticField(
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
-   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EGrid,
-   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EDt2Grid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBDt2Grid,
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EDt2Grid,
    cint i,
    cint j,
    cint k,
@@ -143,11 +143,11 @@ void propagateMagneticField(
  * \sa propagateMagneticField propagateSysBoundaryMagneticField
  */
 void propagateMagneticFieldSimple(
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
-   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EGrid,
-   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EDt2Grid,
-   FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBDt2Grid,
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EDt2Grid,
+   FsGrid< fsgrids::technical, 2> & technicalGrid,
    SysBoundary& sysBoundaries,
    creal& dt,
    cint& RKCase
@@ -221,9 +221,9 @@ void propagateMagneticFieldSimple(
  * \sa propagateMagneticFieldSimple propagateMagneticField
  */
 void propagateSysBoundaryMagneticField(
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
-   FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBDt2Grid,
+   FsGrid< fsgrids::technical, 2> & technicalGrid,
    cint i,
    cint j,
    cint k,
@@ -231,7 +231,7 @@ void propagateSysBoundaryMagneticField(
    creal& dt,
    cint& RKCase
 ) {
-   const FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> * bGrid;
+   const FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> * bGrid;
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       bGrid = & perBGrid.get(i,j,k);
    } else {

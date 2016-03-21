@@ -25,11 +25,11 @@ void calculateDerivatives(
    cint i,
    cint j,
    cint k,
-   const FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
-   const FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsGrid,
-   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 3, 2> & dPerBGrid,
-   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
-   FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
+   const FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+   const FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsGrid,
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> & dMomentsGrid,
+   FsGrid< fsgrids::technical, 2> & technicalGrid,
    SysBoundary& sysBoundaries,
    cint& RKCase,
    const bool& doMoments
@@ -266,13 +266,13 @@ void calculateDerivatives(
  * \sa calculateDerivatives calculateBVOLDerivativesSimple calculateBVOLDerivatives
  */
 void calculateDerivativesSimple(
-   const FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
-   const FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
-   const FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsGrid,
-   const FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 3, 2> & momentsDt2Grid,
-   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 3, 2> & dPerBGrid,
-   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
-   FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
+   const FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+   const FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBDt2Grid,
+   const FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsGrid,
+   const FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsDt2Grid,
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> & dMomentsGrid,
+   FsGrid< fsgrids::technical, 2> & technicalGrid,
    SysBoundary& sysBoundaries,
    cint& RKCase,
    const bool& doMoments
@@ -327,8 +327,7 @@ void calculateDerivativesSimple(
             if (technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
             if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
                calculateDerivatives(i,j,k, perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RKCase, doMoments);
-            }
-            if (RKCase == RK_ORDER2_STEP1) {
+            } else {
                calculateDerivatives(i,j,k, perBDt2Grid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RKCase, doMoments);
             }
          }
@@ -351,8 +350,8 @@ void calculateDerivativesSimple(
  */
 
 void calculateBVOLDerivatives(
-   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 3, 2> & volGrid,
-   FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
+   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volGrid,
+   FsGrid< fsgrids::technical, 2> & technicalGrid,
    cint i,
    cint j,
    cint k,
@@ -420,8 +419,8 @@ void calculateBVOLDerivatives(
  * \sa calculateDerivatives calculateBVOLDerivatives calculateDerivativesSimple
  */
 void calculateBVOLDerivativesSimple(
-   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 3, 2> & volGrid,
-   FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
+   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volGrid,
+   FsGrid< fsgrids::technical, 2> & technicalGrid,
    SysBoundary& sysBoundaries
 ) {
    int timer;
