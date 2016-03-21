@@ -119,10 +119,10 @@ namespace SBC {
       creal dx = perBGrid.DX;
       creal dy = perBGrid.DY;
       creal dz = perBGrid.DZ;
-#warning not done yet for the spatial coordinates
-      creal x = cp0[CellParams::XCRD] + 0.5*dx;
-      creal y = cp0[CellParams::YCRD] + 0.5*dy;
-      creal z = cp0[CellParams::ZCRD] + 0.5*dz;
+      const std::array<int, 3> globalIndices = technicalGrid.getGlobalIndices(i,j,k);
+      creal x = (convert<Real>(globalIndices[0])+0.5)*dx;
+      creal x = (convert<Real>(globalIndices[1])+0.5)*dy;
+      creal x = (convert<Real>(globalIndices[2])+0.5)*dz;
       
       bool isThisCellOnAFace[6];
       determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz);

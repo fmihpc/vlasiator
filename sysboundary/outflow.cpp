@@ -141,10 +141,10 @@ namespace SBC {
       creal dx =technicalGrid.DX;
       creal dy =technicalGrid.DY;
       creal dz =technicalGrid.DZ;
-#warning position needs to be computed here
-      creal x = cellParams[CellParams::XCRD] + 0.5*dx;
-      creal y = cellParams[CellParams::YCRD] + 0.5*dy;
-      creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
+      const std::array<int, 3> globalIndices = technicalGrid.getGlobalIndices(i,j,k);
+      creal x = (convert<Real>(globalIndices[0])+0.5)*dx;
+      creal x = (convert<Real>(globalIndices[1])+0.5)*dy;
+      creal x = (convert<Real>(globalIndices[2])+0.5)*dz;
       
       bool isThisCellOnAFace[6];
       determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, true);
