@@ -127,20 +127,21 @@ namespace SBC {
    Real Outflow::fieldSolverBoundaryCondMagneticField(
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
-      const std::vector<fs_cache::CellCache>& cellCache,
-      const uint16_t& localID,
+      FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
+      cint i,
+      cint j,
+      cint k,
       creal& dt,
       cuint& RKCase,
-      cint& offset,
       cuint& component
    ) {
-      const CellID cellID = cellCache[localID].cellID;
       Real fieldValue = -1.0;
       
       creal* const cellParams = cellCache[localID].cells[fs_cache::calculateNbrID(1  ,1  ,1  )]->parameters;
-      creal dx = cellParams[CellParams::DX];
-      creal dy = cellParams[CellParams::DY];
-      creal dz = cellParams[CellParams::DZ];
+      creal dx =technicalGrid.DX;
+      creal dy =technicalGrid.DY;
+      creal dz =technicalGrid.DZ;
+#warning position needs to be computed here
       creal x = cellParams[CellParams::XCRD] + 0.5*dx;
       creal y = cellParams[CellParams::YCRD] + 0.5*dy;
       creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
@@ -148,7 +149,7 @@ namespace SBC {
       bool isThisCellOnAFace[6];
       determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, true);
       
-      cuint sysBoundaryLayer = cellCache[localID].cells[fs_cache::calculateNbrID(1  ,1  ,1  )]->sysBoundaryLayer;
+      cuint sysBoundaryLayer = technicalGrid.get(i,j,k)->sysBoundaryLayer;
       
       if (sysBoundaryLayer == 1
          && isThisCellOnAFace[0]                            // we are on the face
@@ -156,29 +157,42 @@ namespace SBC {
          && component == 0                                  // we do the component normal to this face
          && !(isThisCellOnAFace[2] || isThisCellOnAFace[3] || isThisCellOnAFace[4] || isThisCellOnAFace[5]) // we are not in a corner
       ) {
-         const vector<uint16_t> cellVector = {{localID}};
-         propagateMagneticField(cellCache, cellVector, dt, RKCase, true, false, false);
-         fieldValue = cellCache[localID].cells[fs_cache::calculateNbrID(1  ,1  ,1  )]->parameters[CellParams::PERBX + component + offset];
+         propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, true, false, false);
+         if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+            fieldValue = perBGrid.get(i,j,k)[fsgrids::bfield::PERBX + component];
+         } else {
+            fieldValue = perBDtGrid.get(i,j,k)[fsgrids::bfield::PERBX + component];
+         }
       } else if (sysBoundaryLayer == 1
          && isThisCellOnAFace[2]                            // we are on the face
          && this->facesToProcess[2]                         // we are supposed to do this face
          && component == 1                                  // we do the component normal to this face
          && !(isThisCellOnAFace[0] || isThisCellOnAFace[1] || isThisCellOnAFace[4] || isThisCellOnAFace[5]) // we are not in a corner
       ) {
-         const vector<uint16_t> cellVector = {{localID}};
-         propagateMagneticField(cellCache, cellVector, dt, RKCase, false, true, false);
-         fieldValue = cellCache[localID].cells[fs_cache::calculateNbrID(1  ,1  ,1  )]->parameters[CellParams::PERBX + component + offset];
+         propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, false, true, false);
+         if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+            fieldValue = perBGrid.get(i,j,k)[fsgrids::bfield::PERBX + component];
+         } else {
+            fieldValue = perBDtGrid.get(i,j,k)[fsgrids::bfield::PERBX + component];
+         }
       } else if (sysBoundaryLayer == 1
          && isThisCellOnAFace[4]                            // we are on the face
          && this->facesToProcess[4]                         // we are supposed to do this face
          && component == 2                                  // we do the component normal to this face
          && !(isThisCellOnAFace[0] || isThisCellOnAFace[1] || isThisCellOnAFace[2] || isThisCellOnAFace[3]) // we are not in a corner
       ) {
-         const vector<uint16_t> cellVector = {{localID}};
-         propagateMagneticField(cellCache, cellVector, dt, RKCase, false, false, true);
-         fieldValue = cellCache[localID].cells[fs_cache::calculateNbrID(1  ,1  ,1  )]->parameters[CellParams::PERBX + component + offset];
+         propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, false, false, true);
+         if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+            fieldValue = perBGrid.get(i,j,k)[fsgrids::bfield::PERBX + component];
+         } else {
+            fieldValue = perBDtGrid.get(i,j,k)[fsgrids::bfield::PERBX + component];
+         }
       } else {
-         fieldValue = fieldBoundaryCopyFromExistingFaceNbrMagneticField(mpiGrid, cellID, component + offset);
+         if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+            fieldValue = fieldBoundaryCopyFromExistingFaceNbrMagneticField(perBGrid, i, j, k, component);
+         } else {
+            fieldValue = fieldBoundaryCopyFromExistingFaceNbrMagneticField(perBDt2Grid, i, j, k, component);
+         }
       }
       
       return fieldValue;
@@ -233,32 +247,6 @@ namespace SBC {
       cuint component
    ) {
       EGradPeGrid.get(i,j,k)[fsgrids::egradpe::EXGRADPE+component] = 0.0;
-   }
-   
-   Real Outflow::fieldBoundaryCopyFromExistingFaceNbrMagneticField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
-      const CellID& cellID,
-      cuint& component
-   ) {
-      const CellID closestCell = getTheClosestNonsysboundaryCell(cellID);
-      
-      #ifdef DEBUG_OUTFLOW
-      if (mpiGrid[closestCell]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
-         stringstream ss;
-         ss << "ERROR, outflow cell " << cellID << " uses value from sysboundary nbr " << closestCell;
-         ss << " in " << __FILE__ << ":" << __LINE__ << endl;
-         cerr << ss.str();
-         exit(1);
-      }
-      
-      if (closestCell == INVALID_CELLID) {
-         cerr << cellID << " " << __FILE__ << ":" << __LINE__ << ": No closest cell found!" << endl;
-         abort();
-      }
-      #endif
-      
-      return mpiGrid[closestCell]->parameters[CellParams::PERBX+component];
    }
    
    void Outflow::fieldSolverBoundaryCondDerivatives(

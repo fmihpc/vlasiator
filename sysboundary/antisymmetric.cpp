@@ -132,15 +132,18 @@ namespace SBC {
    Real Antisymmetric::fieldSolverBoundaryCondMagneticField(
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
-                                                      const CellID& cellID,
-                                                      creal& dt,
-                                                      cuint& component
+      FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
+      cint i,
+      cint j,
+      cint k,
+      creal& dt,
+      cuint& RKCase,
+      cuint& component
    ) {
-      if (dt == 0.0) {
-         return fieldBoundaryCopyFromExistingFaceNbrMagneticField(mpiGrid, cellID, component);
+      if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+         return fieldBoundaryCopyFromExistingFaceNbrMagneticField(perBGrid, i, j, k, component);
       } else { // Return PERB[XYZ]_DT2
-         cint offset = CellParams::PERBX_DT2 - CellParams::PERBX;
-         return fieldBoundaryCopyFromExistingFaceNbrMagneticField(mpiGrid, cellID, component+offset);
+         return fieldBoundaryCopyFromExistingFaceNbrMagneticField(perBDt2Grid, i, j, k, component);
       }
    }
 
@@ -194,31 +197,6 @@ namespace SBC {
       cuint component
    ) {
       EGradPeGrid.get(i,j,k)[fsgrids::egradpe::EXGRADPE+component] = 0.0;
-   }
-   
-   Real Antisymmetric::fieldBoundaryCopyFromExistingFaceNbrMagneticField(
-                                                                   const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                                                   const CellID& cellID,
-                                                                   cuint& component
-                                                                  ) {
-      const CellID closestCell = getTheClosestNonsysboundaryCell(cellID);
-      
-      #ifdef DEBUG_OUTFLOW
-      if (mpiGrid[closestCell]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
-         stringstream ss;
-         ss << "ERROR, outflow cell " << cellID << " uses value from sysboundary nbr " << closestCell;
-         ss << " in " << __FILE__ << ":" << __LINE__ << endl;
-         cerr << ss.str();
-         exit(1);
-      }
-      
-      if (closestCell == INVALID_CELLID) {
-         cerr << cellID << " " << __FILE__ << ":" << __LINE__ << ": No closest cell found!" << endl;
-         abort();
-      }
-      #endif
-      
-      return mpiGrid[closestCell]->parameters[CellParams::PERBX+component];
    }
    
    void Antisymmetric::fieldSolverBoundaryCondDerivatives(

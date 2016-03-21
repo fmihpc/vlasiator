@@ -161,12 +161,12 @@ namespace SBC {
 
    Real SysBoundaryCondition::fieldSolverBoundaryCondMagneticField(
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
-      const std::vector<fs_cache::CellCache>& cellCache,
-      const uint16_t& localID,
+      FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
+      cint i,
+      cint j,
+      cint k,
       creal& dt,
       cuint& RKCase,
-      cint& offset,
       cuint& component
    ) {
       cerr << "ERROR: SysBoundaryCondition::fieldSolverBoundaryCondMagneticField called instead of derived class function!" << endl;
@@ -772,31 +772,93 @@ namespace SBC {
       }
       return true;
    }
-
+   
    /*! Get the cellID of the first closest cell of type NOT_SYSBOUNDARY found.
     * \param cellID ID of the cell to start look from.
     * \return The cell index of that cell
     * \sa getAllClosestNonsysboundaryCells
     */
-   CellID & SysBoundaryCondition::getTheClosestNonsysboundaryCell(
-      const CellID& cellID
+   std::array<int, 3> SysBoundaryCondition::getTheClosestNonsysboundaryCell(
+      const FsGrid< fsgrids::technical, 3, 2> technicalGrid,
+      cint i,
+      cint j,
+      cint k
    ) {
-      std::vector<CellID> & closestCells = allClosestNonsysboundaryCells.at(cellID);
+      const std::vector< std::array<int, 3> > closestCells = getAllClosestNonsysboundaryCells(technicalGrid, i, j, k);
       return closestCells.at(0);
    }
-
+   
    /*! Get the cellIDs of all the closest cells of type NOT_SYSBOUNDARY.
     * \param cellID ID of the cell to start look from.
     * \return The vector of cell indices of those cells
     * \sa getTheClosestNonsysboundaryCell
     */
-   std::vector<CellID> & SysBoundaryCondition::getAllClosestNonsysboundaryCells(
-      const CellID& cellID
+   std::vector< std::array<int, 3> > SysBoundaryCondition::getAllClosestNonsysboundaryCells(
+      const FsGrid< fsgrids::technical, 3, 2> technicalGrid,
+      cint i,
+      cint j,
+      cint k
    ) {
-      phiprof::start("getAllClosestNonsysboundaryCells");
-      std::vector<CellID> & closestCells = allClosestNonsysboundaryCells.at(cellID);
-      phiprof::stop("getAllClosestNonsysboundaryCells");
+      int distance = std::numeric_limits<int>max();
+      std::vector< std::array<int,3> > closestCells;
+      
+      for (int kk=-2; kk<3; kk++) {
+         for (int jj=-2; jj<3; jj++) {
+            for (int ii=-2; ii<3 ; ii++) {
+               if( technicalGrid.get(ii,jj,kk)->sysBoundaryFlag == sysboundaries::NOT_SYSBOUNDARY) {
+                  distance = min(distance, ii*ii + jj*jj + kk*kk);
+               }
+            }
+         }
+      }
+      
+      for (int kk=-2; kk<3; kk++) {
+         for (int jj=-2; jj<3; jj++) {
+            for (int ii=-2; ii<3 ; ii++) {
+               if( technicalGrid.get(ii,jj,kk)->sysBoundaryFlag == sysboundaries::NOT_SYSBOUNDARY) {
+                  int d = ii*ii + jj*jj + kk*kk;
+                  if( d == distance ) {
+                     std::array<int, 3> cell = {ii, jj, kk};
+                     closestCells.push_back(cell);
+                  }
+               }
+            }
+         }
+      }
+      
+      if(closestCells.size() == 0) {
+         std::array<int, 3> dummy  = {std::numeric_limits<int>min()};
+         closestCells.push_back(dummy);
+      }
+      
       return closestCells;
+   }
+   
+   Real SysBoundaryCondition::fieldBoundaryCopyFromExistingFaceNbrMagneticField(
+      const FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
+      const FsGrid< fsgrids::technical, 3, 2> technicalGrid,
+      cint i,
+      cint j,
+      cint k,
+      cuint& component
+   ) {
+      const std::array<int,3> closestCell = getTheClosestNonsysboundaryCell(technicalGrid, i, j, k);
+      
+      #ifndef NDEBUG
+      if (technicalGrid.get(i,j,k)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+         stringstream ss;
+         ss << "ERROR, cell (" << i << "," << j << "," << k << ") uses value from sysboundary nbr (" << it[0] << "," << it[1] << "," << it[2] << " in " << __FILE__ << ":" << __LINE__ << endl;
+         cerr << ss.str();
+         exit(1);
+      }
+      
+      if (closestCell[0] == std::numeric_limits<int>min()) {
+         cerr << "(" << i << "," << j << "," << k << ")" << __FILE__ << ":" << __LINE__ << ": No closest cell found!" << endl;
+         abort();
+      }
+      #endif
+      
+      return perBGrid.get(closestCell[0], closestCell[1], closestCell[2])[fsgrids::bfield::PERBX+component];
    }
    
    /*! Function used in some cases to know which faces the system boundary condition is being applied to.

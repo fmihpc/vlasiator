@@ -107,18 +107,19 @@ namespace SBC {
    Real SetByUser::fieldSolverBoundaryCondMagneticField(
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
-      const std::vector<fs_cache::CellCache>& cellCache,
-      const uint16_t& localID,
+      FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
+      cint i,
+      cint j,
+      cint k,
       creal& dt,
       cuint& RKCase,
-      cint& offset,
       cuint& component
    ) {
       Real result = 0.0;
-      creal* cp0 = cellCache[localID].cells[fs_cache::calculateNbrID(1  ,1  ,1  )]->parameters;
-      creal dx = cp0[CellParams::DX];
-      creal dy = cp0[CellParams::DY];
-      creal dz = cp0[CellParams::DZ];
+      creal dx = perBGrid.DX;
+      creal dy = perBGrid.DY;
+      creal dz = perBGrid.DZ;
+#warning not done yet for the spatial coordinates
       creal x = cp0[CellParams::XCRD] + 0.5*dx;
       creal y = cp0[CellParams::YCRD] + 0.5*dy;
       creal z = cp0[CellParams::ZCRD] + 0.5*dz;
@@ -128,7 +129,7 @@ namespace SBC {
 
       for (uint i=0; i<6; i++) {
          if (isThisCellOnAFace[i]) {
-            result = templateCells[i].parameters[CellParams::PERBX + offset + component];
+            result = templateCells[i].parameters[CellParams::PERBX + component];
             break; // This effectively sets the precedence of faces through the order of faces.
          }
       }

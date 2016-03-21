@@ -179,8 +179,10 @@ namespace SBC {
    }
 
    std::array<Real, 3> Ionosphere::fieldSolverGetNormalDirection(
-      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID
+      const FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
+      cint i,
+      cint j,
+      cint k
    ) {
       phiprof::start("Ionosphere::fieldSolverGetNormalDirection");
       std::array<Real, 3> normalDirection{{ 0.0, 0.0, 0.0 }};
@@ -188,9 +190,10 @@ namespace SBC {
       static creal DIAG2 = 1.0 / sqrt(2.0);
       static creal DIAG3 = 1.0 / sqrt(3.0);
       
-      creal dx = mpiGrid[cellID]->parameters[CellParams::DX];
-      creal dy = mpiGrid[cellID]->parameters[CellParams::DY];
-      creal dz = mpiGrid[cellID]->parameters[CellParams::DZ];
+      creal dx = technicalGrid.DX;
+      creal dy = technicalGrid.DY;
+      creal dz = technicalGrid.DZ;
+#warning position needs to be computed here
       creal x = mpiGrid[cellID]->parameters[CellParams::XCRD] + 0.5*dx;
       creal y = mpiGrid[cellID]->parameters[CellParams::YCRD] + 0.5*dy;
       creal z = mpiGrid[cellID]->parameters[CellParams::ZCRD] + 0.5*dz;
@@ -444,12 +447,6 @@ namespace SBC {
          // end of 3D
       }
       
-#ifdef DEBUG_IONOSPHERE
-      // Uncomment one of the following line for debugging output to evaluate the correctness of the results. Best used with a single process and single thread.
-//       if (mpiGrid[cellID]->sysBoundaryLayer == 1) std::cerr << x << " " << y << " " << z << " " << normalDirection[0] << " " << normalDirection[1] << " " << normalDirection[2] << std::endl;
-//       if (mpiGrid[cellID]->sysBoundaryLayer == 2) std::cerr << x << " " << y << " " << z << " " << normalDirection[0] << " " << normalDirection[1] << " " << normalDirection[2] << std::endl;
-//      std::cerr << x << " " << y << " " << z << " " << normalDirection[0] << " " << normalDirection[1] << " " << normalDirection[2] << std::endl;
-#endif
       phiprof::stop("Ionosphere::fieldSolverGetNormalDirection");
       return normalDirection;
    }
@@ -463,39 +460,50 @@ namespace SBC {
    Real Ionosphere::fieldSolverBoundaryCondMagneticField(
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
-      const std::vector<fs_cache::CellCache>& cellCache,
-      const uint16_t& localID,
+      FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
+      cint i,
+      cint j,
+      cint k,
       creal& dt,
       cuint& RKCase,
-      cint& offset,
       cuint& component
    ) {
-      const CellID cellID = cellCache[localID].cellID;
-      std::vector<CellID> closestCells = getAllClosestNonsysboundaryCells(cellID);
-      if (closestCells.size() == 1 && closestCells[0] == INVALID_CELLID) {
+      std::vector< std::array<int, 3> > closestCells = getAllClosestNonsysboundaryCells(technicalGrid, i,j,k);
+      if (closestCells.size() == 1 && closestCells[0][0] == std::numeric_limits<int>min() ) {
          std::cerr << __FILE__ << ":" << __LINE__ << ":" << "No closest cells found!" << std::endl;
          abort();
       }
-
+      
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> * bGrid;
+      
+      if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+         bGrid = &perBGrid;
+      } else {
+         bGrid = &perBDt2Grid;
+      }
+      
       // Sum perturbed B component over all nearest NOT_SYSBOUNDARY neighbours
       std::array<Real, 3> averageB = {{ 0.0 }};
-      for (uint i=0; i<closestCells.size(); i++) {
+      for (
+         std::array<int, 3>::const_iterator it = closestCells.begin();
+      it != closestCells.end();
+      it++;
+      ) {
          #ifdef DEBUG_IONOSPHERE
-         if (mpiGrid[closestCells[i]]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+         if (technicalGrid.get(i,j,k)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
             stringstream ss;
-            ss << "ERROR, ionosphere cell " << cellID << " uses value from sysboundary nbr " << closestCells[i];
-            ss << " in " << __FILE__ << ":" << __LINE__ << endl;
+            ss << "ERROR, ionosphere cell (" << i << "," << j << "," << k << ") uses value from sysboundary nbr (" << it[0] << "," << it[1] << "," << it[2] << " in " << __FILE__ << ":" << __LINE__ << endl;
             cerr << ss.str();
             exit(1);
          }
          #endif
-         averageB[0] += mpiGrid[closestCells[i]]->parameters[CellParams::PERBX+offset];
-         averageB[1] += mpiGrid[closestCells[i]]->parameters[CellParams::PERBY+offset];
-         averageB[2] += mpiGrid[closestCells[i]]->parameters[CellParams::PERBZ+offset];
+         averageB[0] += bGrid.get(it[0], it[1], it[2])[fsgrids::bfield::PERBX];
+         averageB[1] += bGrid.get(it[0], it[1], it[2])[fsgrids::bfield::PERBY];
+         averageB[2] += bGrid.get(it[0], it[1], it[2])[fsgrids::bfield::PERBZ];
       }
 
       // Average and project to normal direction
-      std::array<Real, 3> normalDirection = fieldSolverGetNormalDirection(mpiGrid, cellID);
+      std::array<Real, 3> normalDirection = fieldSolverGetNormalDirection(technicalGrid, i, j, k);
       for(uint i=0; i<3; i++) {
          averageB[i] *= normalDirection[i] / closestCells.size();
       }

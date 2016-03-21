@@ -21,22 +21,14 @@ void propagateMagneticField(
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
    FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EGrid,
    FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EDt2Grid,
-   const std::vector<uint16_t>& cells,
+   cint i,
+   cint j,
+   cint k,
    creal& dt,
    cint& RKCase,
    const bool doX=true,
    const bool doY=true,
    const bool doZ=true
-);
-
-void propagateSysBoundaryMagneticField(
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
-   FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
-   const uint16_t& localID,
-   SysBoundary& sysBoundaries,
-   creal& dt,
-   cint& RKCase
 );
 
 void propagateMagneticFieldSimple(
@@ -47,7 +39,6 @@ void propagateMagneticFieldSimple(
    FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
    SysBoundary& sysBoundaries,
    creal& dt,
-   const std::vector<CellID>& localCells,
    cint& RKCase
 );
 

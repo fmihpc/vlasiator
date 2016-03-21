@@ -46,11 +46,12 @@ namespace SBC {
       virtual Real fieldSolverBoundaryCondMagneticField(
          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
-         const std::vector<fs_cache::CellCache>& cellCache,
-         const uint16_t& localID,
+         FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
+         cint i,
+         cint j,
+         cint k,
          creal& dt,
          cuint& RKCase,
-         cint& offset,
          cuint& component
       );
       virtual void fieldSolverBoundaryCondElectricField(

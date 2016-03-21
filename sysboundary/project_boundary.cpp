@@ -118,10 +118,14 @@ namespace SBC {
    Real ProjectBoundary::fieldSolverBoundaryCondMagneticField(
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
-                                                              const CellID& cellID,
-                                                              creal& dt,
-                                                              cuint& component
-                                                             ) {
+      FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
+      cint i,
+      cint j,
+      cint k,
+      creal& dt,
+      cuint& RKCase,
+      cuint& component
+   ) {
       return 0.0;
    }
 
