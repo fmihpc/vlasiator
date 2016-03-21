@@ -34,8 +34,8 @@ Real divideIfNonZero(
  * \param reconstructionOrder Reconstruction order of the fields after Balsara 2009, 2 used for BVOL, 3 used for 2nd-order Hall term calculations.
  */
 void reconstructionCoefficients(
-   const FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
-   const FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 3, 2> & dPerBGrid,
+   const FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+   const FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
    Real* perturbedResult,
    i,
    j,
@@ -49,7 +49,7 @@ void reconstructionCoefficients(
    std::array<Real, fsgrids::bfield::N_BFIELD> * cep_i1j2k1 = NULL;
    std::array<Real, fsgrids::bfield::N_BFIELD> * cep_i1j1k2 = NULL;
    
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> * const params = perBGrid;
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> * const params = perBGrid;
    
    cep_i1j1k1 = params.get(i,j,k);
    dummyCellParams = cep_i1j1k1;
