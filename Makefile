@@ -59,10 +59,6 @@ COMPFLAGS += -DACC_SEMILAG_PQM -DTRANS_SEMILAG_PPM
 #Define MESH=AMR if you want to use adaptive mesh refinement in velocity space
 #MESH = AMR
 
-#Add -DFS_1ST_ORDER_SPACE or -DFS_1ST_ORDER_TIME to make the field solver first-order in space or time
-# COMPFLAGS += -DFS_1ST_ORDER_SPACE
-# COMPFLAGS += -DFS_1ST_ORDER_TIME
-
 #//////////////////////////////////////////////////////
 # The rest of this file users shouldn't need to change
 #//////////////////////////////////////////////////////
