@@ -190,9 +190,9 @@ namespace SBC {
          }
       } else {
          if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-            fieldValue = fieldBoundaryCopyFromExistingFaceNbrMagneticField(perBGrid, i, j, k, component);
+            fieldValue = fieldBoundaryCopyFromExistingFaceNbrMagneticField(perBGrid, technicalGrid, i, j, k, component);
          } else {
-            fieldValue = fieldBoundaryCopyFromExistingFaceNbrMagneticField(perBDt2Grid, i, j, k, component);
+            fieldValue = fieldBoundaryCopyFromExistingFaceNbrMagneticField(perBDt2Grid, technicalGrid, i, j, k, component);
          }
       }
       

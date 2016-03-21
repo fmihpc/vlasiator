@@ -143,9 +143,9 @@ namespace SBC {
       cuint& component
    ) {
       if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-         return fieldBoundaryCopyFromExistingFaceNbrMagneticField(perBGrid, i, j, k, component);
+         return fieldBoundaryCopyFromExistingFaceNbrMagneticField(perBGrid, technicalGrid, i, j, k, component);
       } else { // Return PERB[XYZ]_DT2
-         return fieldBoundaryCopyFromExistingFaceNbrMagneticField(perBDt2Grid, i, j, k, component);
+         return fieldBoundaryCopyFromExistingFaceNbrMagneticField(perBDt2Grid, technicalGrid, i, j, k, component);
       }
    }
 

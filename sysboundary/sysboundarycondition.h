@@ -203,6 +203,7 @@ namespace SBC {
          );
          Real fieldBoundaryCopyFromExistingFaceNbrMagneticField(
             FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+            const FsGrid< fsgrids::technical, 2> technicalGrid,
             cint i,
             cint j,
             cint k,

@@ -110,11 +110,6 @@ namespace SBC {
       bool facesToProcess[6];
       /*! List of faces on which outflow boundary conditions are to be applied ([xyz][+-]). */
       std::vector<std::string> faceList;
-      Real fieldBoundaryCopyFromExistingFaceNbrMagneticField(
-         const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-         const CellID& cellID,
-         cuint& component
-      );
    }; // class Antisymmetric
 } // namespace SBC
 
