@@ -179,7 +179,7 @@ namespace SBC {
    }
 
    std::array<Real, 3> Ionosphere::fieldSolverGetNormalDirection(
-      const FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
+      FsGrid< fsgrids::technical, 2> & technicalGrid,
       cint i,
       cint j,
       cint k
@@ -195,8 +195,8 @@ namespace SBC {
       creal dz = technicalGrid.DZ;
       const std::array<int, 3> globalIndices = technicalGrid.getGlobalIndices(i,j,k);
       creal x = (convert<Real>(globalIndices[0])+0.5)*dx;
-      creal x = (convert<Real>(globalIndices[1])+0.5)*dy;
-      creal x = (convert<Real>(globalIndices[2])+0.5)*dz;
+      creal y = (convert<Real>(globalIndices[1])+0.5)*dy;
+      creal z = (convert<Real>(globalIndices[2])+0.5)*dz;
       creal xsign = divideIfNonZero(x, fabs(x));
       creal ysign = divideIfNonZero(y, fabs(y));
       creal zsign = divideIfNonZero(z, fabs(z));
@@ -458,9 +458,9 @@ namespace SBC {
     * -- Retain only the normal components of perturbed face B
     */
    Real Ionosphere::fieldSolverBoundaryCondMagneticField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> & perBDt2Grid,
-      FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBDt2Grid,
+      FsGrid< fsgrids::technical, 2> & technicalGrid,
       cint i,
       cint j,
       cint k,
@@ -469,12 +469,12 @@ namespace SBC {
       cuint& component
    ) {
       std::vector< std::array<int, 3> > closestCells = getAllClosestNonsysboundaryCells(technicalGrid, i,j,k);
-      if (closestCells.size() == 1 && closestCells[0][0] == std::numeric_limits<int>min() ) {
+      if (closestCells.size() == 1 && closestCells[0][0] == std::numeric_limits<int>::min() ) {
          std::cerr << __FILE__ << ":" << __LINE__ << ":" << "No closest cells found!" << std::endl;
          abort();
       }
       
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 3, 2> * bGrid;
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> * bGrid;
       
       if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
          bGrid = &perBGrid;
@@ -484,22 +484,18 @@ namespace SBC {
       
       // Sum perturbed B component over all nearest NOT_SYSBOUNDARY neighbours
       std::array<Real, 3> averageB = {{ 0.0 }};
-      for (
-         std::array<int, 3>::const_iterator it = closestCells.begin();
-      it != closestCells.end();
-      it++;
-      ) {
+      for (uint it = 0; it < closestCells.size(); it++) {
          #ifdef DEBUG_IONOSPHERE
          if (technicalGrid.get(i,j,k)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
             stringstream ss;
-            ss << "ERROR, ionosphere cell (" << i << "," << j << "," << k << ") uses value from sysboundary nbr (" << it[0] << "," << it[1] << "," << it[2] << " in " << __FILE__ << ":" << __LINE__ << endl;
+            ss << "ERROR, ionosphere cell (" << i << "," << j << "," << k << ") uses value from sysboundary nbr (" << closestCells[it][0] << "," << closestCells[it][1] << "," << closestCells[it][2] << " in " << __FILE__ << ":" << __LINE__ << endl;
             cerr << ss.str();
             exit(1);
          }
          #endif
-         averageB[0] += bGrid.get(it[0], it[1], it[2])[fsgrids::bfield::PERBX];
-         averageB[1] += bGrid.get(it[0], it[1], it[2])[fsgrids::bfield::PERBY];
-         averageB[2] += bGrid.get(it[0], it[1], it[2])[fsgrids::bfield::PERBZ];
+         averageB[0] += bGrid->get(closestCells[it][0], closestCells[it][1], closestCells[it][2])->at(fsgrids::bfield::PERBX);
+         averageB[1] += bGrid->get(closestCells[it][0], closestCells[it][1], closestCells[it][2])->at(fsgrids::bfield::PERBY);
+         averageB[2] += bGrid->get(closestCells[it][0], closestCells[it][1], closestCells[it][2])->at(fsgrids::bfield::PERBZ);
       }
 
       // Average and project to normal direction
@@ -513,74 +509,79 @@ namespace SBC {
    }
 
    void Ionosphere::fieldSolverBoundaryCondElectricField(
-      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 3, 2> & EGrid,
+      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
       cint i,
       cint j,
       cint k,
       cuint component
    ) {
-      EGrid.get(i,j,k)[fsgrids::efield::EX+component] = 0.0;
+      EGrid.get(i,j,k)->at(fsgrids::efield::EX+component) = 0.0;
    }
    
    void Ionosphere::fieldSolverBoundaryCondHallElectricField(
-      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 3, 2> & EHallGrid,
+      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2> & EHallGrid,
       cint i,
       cint j,
       cint k,
       cuint component
    ) {
-      const std::array<Real, fsgrids::ehall::N_EHALL> * cp = EHallGrid.get(i,j,k);
+      std::array<Real, fsgrids::ehall::N_EHALL> * cp = EHallGrid.get(i,j,k);
       switch (component) {
          case 0:
-            cp[fsgrids::ehall::EXHALL_000_100] = 0.0;
-            cp[fsgrids::ehall::EXHALL_010_110] = 0.0;
-            cp[fsgrids::ehall::EXHALL_001_101] = 0.0;
-            cp[fsgrids::ehall::EXHALL_011_111] = 0.0;
+            cp->at(fsgrids::ehall::EXHALL_000_100) = 0.0;
+            cp->at(fsgrids::ehall::EXHALL_010_110) = 0.0;
+            cp->at(fsgrids::ehall::EXHALL_001_101) = 0.0;
+            cp->at(fsgrids::ehall::EXHALL_011_111) = 0.0;
             break;
          case 1:
-            cp[fsgrids::ehall::EYHALL_000_010] = 0.0;
-            cp[fsgrids::ehall::EYHALL_100_110] = 0.0;
-            cp[fsgrids::ehall::EYHALL_001_011] = 0.0;
-            cp[fsgrids::ehall::EYHALL_101_111] = 0.0;
+            cp->at(fsgrids::ehall::EYHALL_000_010) = 0.0;
+            cp->at(fsgrids::ehall::EYHALL_100_110) = 0.0;
+            cp->at(fsgrids::ehall::EYHALL_001_011) = 0.0;
+            cp->at(fsgrids::ehall::EYHALL_101_111) = 0.0;
             break;
          case 2:
-            cp[fsgrids::ehall::EZHALL_000_001] = 0.0;
-            cp[fsgrids::ehall::EZHALL_100_101] = 0.0;
-            cp[fsgrids::ehall::EZHALL_010_011] = 0.0;
-            cp[fsgrids::ehall::EZHALL_110_111] = 0.0;
+            cp->at(fsgrids::ehall::EZHALL_000_001) = 0.0;
+            cp->at(fsgrids::ehall::EZHALL_100_101) = 0.0;
+            cp->at(fsgrids::ehall::EZHALL_010_011) = 0.0;
+            cp->at(fsgrids::ehall::EZHALL_110_111) = 0.0;
             break;
          default:
             cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
+      }
    }
    
    void Ionosphere::fieldSolverBoundaryCondGradPeElectricField(
-      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 3, 2> & EGradPeGrid,
+      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2> & EGradPeGrid,
       cint i,
       cint j,
       cint k,
       cuint component
    ) {
-      EGradPeGrid.get(i,j,k)[fsgrids::egradpe::EXGRADPE+component] = 0.0;
+      EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EXGRADPE+component) = 0.0;
    }
    
    void Ionosphere::fieldSolverBoundaryCondDerivatives(
-      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 3, 2> & dPerBGrid,
-      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 3, 2> & dMomentsGrid,
-      const CellID& cellID,
+      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
+      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> & dMomentsGrid,
+      cint i,
+      cint j,
+      cint k,
       cuint& RKCase,
       cuint& component
    ) {
-      this->setCellDerivativesToZero(dPerBGrid, dMomentsGrid, cellID, component);
+      this->setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, component);
       return;
    }
    
    void Ionosphere::fieldSolverBoundaryCondBVOLDerivatives(
-      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID,
+      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volGrid,
+      cint i,
+      cint j,
+      cint k,
       cuint& component
    ) {
       // FIXME This should be OK as the BVOL derivatives are only used for Lorentz force JXB, which is not applied on the ionosphere cells.
-      this->setCellBVOLDerivativesToZero(mpiGrid, cellID, component);
+      this->setCellBVOLDerivativesToZero(volGrid, i, j, k, component);
    }
    
    void Ionosphere::vlasovBoundaryCondition(
