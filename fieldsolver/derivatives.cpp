@@ -422,7 +422,7 @@ void calculateBVOLDerivatives(
 void calculateBVOLDerivativesSimple(
    FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 3, 2> & volGrid,
    FsGrid< fsgrids::technical, 3, 2> & technicalGrid,
-   SysBoundary& sysBoundaries,
+   SysBoundary& sysBoundaries
 ) {
    int timer;
    const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
