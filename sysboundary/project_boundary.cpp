@@ -118,6 +118,8 @@ namespace SBC {
    Real ProjectBoundary::fieldSolverBoundaryCondMagneticField(
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBDt2Grid,
+      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
+      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EDt2Grid,
       FsGrid< fsgrids::technical, 2> & technicalGrid,
       cint i,
       cint j,
@@ -144,8 +146,8 @@ namespace SBC {
       creal dz = EGrid.DZ;
       const std::array<int, 3> globalIndices = technicalGrid.getGlobalIndices(i,j,k);
       creal x = (convert<Real>(globalIndices[0])+0.5)*dx;
-      creal x = (convert<Real>(globalIndices[1])+0.5)*dy;
-      creal x = (convert<Real>(globalIndices[2])+0.5)*dz;
+      creal y = (convert<Real>(globalIndices[1])+0.5)*dy;
+      creal z = (convert<Real>(globalIndices[2])+0.5)*dz;
       
       bool isThisCellOnAFace[6];
       determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz);

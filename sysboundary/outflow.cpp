@@ -127,6 +127,8 @@ namespace SBC {
    Real Outflow::fieldSolverBoundaryCondMagneticField(
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBDt2Grid,
+      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
+      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EDt2Grid,
       FsGrid< fsgrids::technical, 2> & technicalGrid,
       cint i,
       cint j,
@@ -137,14 +139,13 @@ namespace SBC {
    ) {
       Real fieldValue = -1.0;
       
-      creal* const cellParams = cellCache[localID].cells[fs_cache::calculateNbrID(1  ,1  ,1  )]->parameters;
       creal dx =technicalGrid.DX;
       creal dy =technicalGrid.DY;
       creal dz =technicalGrid.DZ;
       const std::array<int, 3> globalIndices = technicalGrid.getGlobalIndices(i,j,k);
       creal x = (convert<Real>(globalIndices[0])+0.5)*dx;
-      creal x = (convert<Real>(globalIndices[1])+0.5)*dy;
-      creal x = (convert<Real>(globalIndices[2])+0.5)*dz;
+      creal y = (convert<Real>(globalIndices[1])+0.5)*dy;
+      creal z = (convert<Real>(globalIndices[2])+0.5)*dz;
       
       bool isThisCellOnAFace[6];
       determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, true);
@@ -159,9 +160,9 @@ namespace SBC {
       ) {
          propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, true, false, false);
          if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-            fieldValue = perBGrid.get(i,j,k)[fsgrids::bfield::PERBX + component];
+            fieldValue = perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBX + component);
          } else {
-            fieldValue = perBDtGrid.get(i,j,k)[fsgrids::bfield::PERBX + component];
+            fieldValue = perBDt2Grid.get(i,j,k)->at(fsgrids::bfield::PERBX + component);
          }
       } else if (sysBoundaryLayer == 1
          && isThisCellOnAFace[2]                            // we are on the face
@@ -171,9 +172,9 @@ namespace SBC {
       ) {
          propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, false, true, false);
          if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-            fieldValue = perBGrid.get(i,j,k)[fsgrids::bfield::PERBX + component];
+            fieldValue = perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBX + component);
          } else {
-            fieldValue = perBDtGrid.get(i,j,k)[fsgrids::bfield::PERBX + component];
+            fieldValue = perBDt2Grid.get(i,j,k)->at(fsgrids::bfield::PERBX + component);
          }
       } else if (sysBoundaryLayer == 1
          && isThisCellOnAFace[4]                            // we are on the face
@@ -183,9 +184,9 @@ namespace SBC {
       ) {
          propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, false, false, true);
          if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-            fieldValue = perBGrid.get(i,j,k)[fsgrids::bfield::PERBX + component];
+            fieldValue = perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBX + component);
          } else {
-            fieldValue = perBDtGrid.get(i,j,k)[fsgrids::bfield::PERBX + component];
+            fieldValue = perBDt2Grid.get(i,j,k)->at(fsgrids::bfield::PERBX + component);
          }
       } else {
          if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -205,7 +206,7 @@ namespace SBC {
       cint k,
       cuint component
    ) {
-      EGrid.get(i,j,k)[fsgrids::efield::EX+component] = 0.0;
+      EGrid.get(i,j,k)->at(fsgrids::efield::EX+component) = 0.0;
    }
    
    void Outflow::fieldSolverBoundaryCondHallElectricField(
@@ -215,25 +216,25 @@ namespace SBC {
       cint k,
       cuint component
    ) {
-      const std::array<Real, fsgrids::ehall::N_EHALL> * cp = EHallGrid.get(i,j,k);
+      std::array<Real, fsgrids::ehall::N_EHALL> * cp = EHallGrid.get(i,j,k);
       switch (component) {
          case 0:
-            cp[fsgrids::ehall::EXHALL_000_100] = 0.0;
-            cp[fsgrids::ehall::EXHALL_010_110] = 0.0;
-            cp[fsgrids::ehall::EXHALL_001_101] = 0.0;
-            cp[fsgrids::ehall::EXHALL_011_111] = 0.0;
+            cp->at(fsgrids::ehall::EXHALL_000_100) = 0.0;
+            cp->at(fsgrids::ehall::EXHALL_010_110) = 0.0;
+            cp->at(fsgrids::ehall::EXHALL_001_101) = 0.0;
+            cp->at(fsgrids::ehall::EXHALL_011_111) = 0.0;
             break;
          case 1:
-            cp[fsgrids::ehall::EYHALL_000_010] = 0.0;
-            cp[fsgrids::ehall::EYHALL_100_110] = 0.0;
-            cp[fsgrids::ehall::EYHALL_001_011] = 0.0;
-            cp[fsgrids::ehall::EYHALL_101_111] = 0.0;
+            cp->at(fsgrids::ehall::EYHALL_000_010) = 0.0;
+            cp->at(fsgrids::ehall::EYHALL_100_110) = 0.0;
+            cp->at(fsgrids::ehall::EYHALL_001_011) = 0.0;
+            cp->at(fsgrids::ehall::EYHALL_101_111) = 0.0;
             break;
          case 2:
-            cp[fsgrids::ehall::EZHALL_000_001] = 0.0;
-            cp[fsgrids::ehall::EZHALL_100_101] = 0.0;
-            cp[fsgrids::ehall::EZHALL_010_011] = 0.0;
-            cp[fsgrids::ehall::EZHALL_110_111] = 0.0;
+            cp->at(fsgrids::ehall::EZHALL_000_001) = 0.0;
+            cp->at(fsgrids::ehall::EZHALL_100_101) = 0.0;
+            cp->at(fsgrids::ehall::EZHALL_010_011) = 0.0;
+            cp->at(fsgrids::ehall::EZHALL_110_111) = 0.0;
             break;
          default:
             cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
@@ -247,7 +248,7 @@ namespace SBC {
       cint k,
       cuint component
    ) {
-      EGradPeGrid.get(i,j,k)[fsgrids::egradpe::EXGRADPE+component] = 0.0;
+      EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EXGRADPE+component) = 0.0;
    }
    
    void Outflow::fieldSolverBoundaryCondDerivatives(
@@ -259,7 +260,7 @@ namespace SBC {
       cuint& RKCase,
       cuint& component
    ) {
-      this->setCellDerivativesToZero(dPerBGrid, dMomentsGrid, cellID, component);
+      this->setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, component);
    }
    
    void Outflow::fieldSolverBoundaryCondBVOLDerivatives(
@@ -269,7 +270,7 @@ namespace SBC {
       cint k,
       cuint& component
    ) {
-      this->setCellBVOLDerivativesToZero(mpiGrid, cellID, component);
+      this->setCellBVOLDerivativesToZero(volGrid, i, j, k, component);
    }
    
    /**
