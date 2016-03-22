@@ -138,13 +138,10 @@ namespace SBC {
       cint k,
       cuint component
    ) {
-      SpatialCell* nbr = NULL;
-      SpatialCell* cell = mpiGrid[cellID];
-      
       creal dx = EGrid.DX;
       creal dy = EGrid.DY;
       creal dz = EGrid.DZ;
-      const std::array<int, 3> globalIndices = technicalGrid.getGlobalIndices(i,j,k);
+      const std::array<int, 3> globalIndices = EGrid.getGlobalIndices(i,j,k);
       creal x = (convert<Real>(globalIndices[0])+0.5)*dx;
       creal y = (convert<Real>(globalIndices[1])+0.5)*dy;
       creal z = (convert<Real>(globalIndices[2])+0.5)*dz;
@@ -156,22 +153,22 @@ namespace SBC {
       for (uint fi=0; fi<6; fi++) if (facesToProcess[fi] && isThisCellOnAFace[fi]) {
          switch (fi) {
           case 0:
-            EGrid.get(i,j,k)[fsgrids::efield::EX+component] = 0;
+            EGrid.get(i,j,k)->at(fsgrids::efield::EX+component) = 0;
             break;
           case 1:
-            EGrid.get(i,j,k)[fsgrids::efield::EX+component] = 0;
+            EGrid.get(i,j,k)->at(fsgrids::efield::EX+component) = 0;
             break;
           case 2:
-            EGrid.get(i,j,k)[fsgrids::efield::EX+component] = 0;
+            EGrid.get(i,j,k)->at(fsgrids::efield::EX+component) = 0;
             break;
           case 3:
-            EGrid.get(i,j,k)[fsgrids::efield::EX+component] = 0;
+            EGrid.get(i,j,k)->at(fsgrids::efield::EX+component) = 0;
             break;
           case 4:
-            EGrid.get(i,j,k)[fsgrids::efield::EX+component] = 0;
+            EGrid.get(i,j,k)->at(fsgrids::efield::EX+component) = 0;
             break;
           case 5:
-            EGrid.get(i,j,k)[fsgrids::efield::EX+component] = 0;
+            EGrid.get(i,j,k)->at(fsgrids::efield::EX+component) = 0;
             break;
          }
       }
@@ -184,7 +181,7 @@ namespace SBC {
       cint k,
       cuint component
    ) {
-      EGradPeGrid.get(i,j,k)[fsgrids::egradpe::EXGRADPE+component] = 0.0;
+      EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EXGRADPE+component) = 0.0;
    }
    
    void ProjectBoundary::fieldSolverBoundaryCondHallElectricField(
@@ -194,28 +191,29 @@ namespace SBC {
       cint k,
       cuint component
    ) {
-      const std::array<Real, fsgrids::ehall::N_EHALL> * cp = EHallGrid.get(i,j,k);
+      std::array<Real, fsgrids::ehall::N_EHALL> * cp = EHallGrid.get(i,j,k);
       switch (component) {
          case 0:
-            cp[fsgrids::ehall::EXHALL_000_100] = 0.0;
-            cp[fsgrids::ehall::EXHALL_010_110] = 0.0;
-            cp[fsgrids::ehall::EXHALL_001_101] = 0.0;
-            cp[fsgrids::ehall::EXHALL_011_111] = 0.0;
+            cp->at(fsgrids::ehall::EXHALL_000_100) = 0.0;
+            cp->at(fsgrids::ehall::EXHALL_010_110) = 0.0;
+            cp->at(fsgrids::ehall::EXHALL_001_101) = 0.0;
+            cp->at(fsgrids::ehall::EXHALL_011_111) = 0.0;
             break;
          case 1:
-            cp[fsgrids::ehall::EYHALL_000_010] = 0.0;
-            cp[fsgrids::ehall::EYHALL_100_110] = 0.0;
-            cp[fsgrids::ehall::EYHALL_001_011] = 0.0;
-            cp[fsgrids::ehall::EYHALL_101_111] = 0.0;
+            cp->at(fsgrids::ehall::EYHALL_000_010) = 0.0;
+            cp->at(fsgrids::ehall::EYHALL_100_110) = 0.0;
+            cp->at(fsgrids::ehall::EYHALL_001_011) = 0.0;
+            cp->at(fsgrids::ehall::EYHALL_101_111) = 0.0;
             break;
          case 2:
-            cp[fsgrids::ehall::EZHALL_000_001] = 0.0;
-            cp[fsgrids::ehall::EZHALL_100_101] = 0.0;
-            cp[fsgrids::ehall::EZHALL_010_011] = 0.0;
-            cp[fsgrids::ehall::EZHALL_110_111] = 0.0;
+            cp->at(fsgrids::ehall::EZHALL_000_001) = 0.0;
+            cp->at(fsgrids::ehall::EZHALL_100_101) = 0.0;
+            cp->at(fsgrids::ehall::EZHALL_010_011) = 0.0;
+            cp->at(fsgrids::ehall::EZHALL_110_111) = 0.0;
             break;
          default:
             cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
+      }
    }
    
    void ProjectBoundary::fieldSolverBoundaryCondDerivatives(
@@ -237,7 +235,7 @@ namespace SBC {
       cint k,
       cuint& component
    ) {
-      this->setCellBVOLDerivativesToZero(mpiGrid, cellID, component);
+      this->setCellBVOLDerivativesToZero(volGrid, i, j, k, component);
    }
    
    void ProjectBoundary::vlasovBoundaryCondition(
