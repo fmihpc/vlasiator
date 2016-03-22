@@ -190,24 +190,30 @@ namespace SBC {
             const int& popID
          );
          std::array<int, 3> getTheClosestNonsysboundaryCell(
-            const FsGrid< fsgrids::technical, 2> technicalGrid,
+            FsGrid< fsgrids::technical, 2> & technicalGrid,
             cint i,
             cint j,
             cint k
          );
-         std::vector< std::array<int, 3> > & getAllClosestNonsysboundaryCells(
-            const FsGrid< fsgrids::technical, 2> technicalGrid,
+         std::vector< std::array<int, 3> > getAllClosestNonsysboundaryCells(
+            FsGrid< fsgrids::technical, 2> & technicalGrid,
             cint i,
             cint j,
             cint k
+         );
+         CellID & getTheClosestNonsysboundaryCell(
+            const CellID& cellID
+         );
+         std::vector<CellID> & getAllClosestNonsysboundaryCells(
+            const CellID& cellID
          );
          Real fieldBoundaryCopyFromExistingFaceNbrMagneticField(
             FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
-            const FsGrid< fsgrids::technical, 2> technicalGrid,
+            FsGrid< fsgrids::technical, 2> technicalGrid,
             cint i,
             cint j,
             cint k,
-            cuint& component
+            cuint component
          );
          
          /*! Precedence value of the system boundary condition. */
