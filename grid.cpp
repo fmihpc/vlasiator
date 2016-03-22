@@ -403,7 +403,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    phiprof::start("Init solvers");
    // Initialize field propagator (only if in use):
    if (Parameters::propagateField == true) {
-      if (initializeFieldPropagatorAfterRebalance(mpiGrid) == false) {
+      if (initializeFieldPropagatorAfterRebalance() == false) {
          logFile << "(MAIN): Field propagator did not initialize correctly!" << endl << writeVerbose;
          exit(1);
       }

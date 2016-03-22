@@ -244,7 +244,7 @@ int main(int argn,char* args[]) {
    MPI_Comm_rank(comm,&myRank);
    SysBoundary sysBoundaries;
    bool isSysBoundaryCondDynamic;
-
+   
    #ifdef CATCH_FPE
    // WARNING FE_INEXACT is too sensitive to be used. See man fenv.
    //feenableexcept(FE_DIVBYZERO|FE_INVALID|FE_OVERFLOW|FE_UNDERFLOW);
@@ -338,11 +338,47 @@ int main(int argn,char* args[]) {
    DataReducer outputReducer, diagnosticReducer;
    initializeDataReducers(&outputReducer, &diagnosticReducer);
    phiprof::stop("Init DROs");
-
+   
+   const std::array<int,3> dimensions = {convert<int>(P::xcells_ini), convert<int>(P::ycells_ini), convert<int>(P::zcells_ini)};
+   std::array<int,3> periodicity = {0};
+   for (uint i=0; i<3; i++) {
+      if(sysBoundaries.isBoundaryPeriodic(i) == true ) {
+         periodicity[i] = 1;
+      }
+   }
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> perBGrid(dimensions, comm, periodicity);
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> perBDt2Grid(dimensions, comm, periodicity);
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> EGrid(dimensions, comm, periodicity);
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> EDt2Grid(dimensions, comm, periodicity);
+   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2> EHallGrid(dimensions, comm, periodicity);
+   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2> EGradPeGrid(dimensions, comm, periodicity);
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> momentsGrid(dimensions, comm, periodicity);
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> momentsDt2Grid(dimensions, comm, periodicity);
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> dPerBGrid(dimensions, comm, periodicity);
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> dMomentsGrid(dimensions, comm, periodicity);
+   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2> BgBGrid(dimensions, comm, periodicity);
+   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> volGrid(dimensions, comm, periodicity);
+   FsGrid< fsgrids::technical, 2> technicalGrid(dimensions, comm, periodicity);
+   
    // Initialize field propagator:
    if (P::propagateField ) { 
       phiprof::start("Init field propagator");
-      if (initializeFieldPropagator(mpiGrid, sysBoundaries) == false) {
+      if (initializeFieldPropagator(
+         perBGrid,
+         perBDt2Grid,
+         EGrid,
+         EDt2Grid,
+         EHallGrid,
+         EGradPeGrid,
+         momentsGrid,
+         momentsDt2Grid,
+         dPerBGrid,
+         dMomentsGrid,
+         BgBGrid,
+         volGrid,
+         technicalGrid,
+         sysBoundaries
+      ) == false) {
          logFile << "(MAIN): Field propagator did not initialize correctly!" << endl << writeVerbose;
          exit(1);
       }
@@ -401,7 +437,22 @@ int main(int argn,char* args[]) {
       calculateAcceleration(mpiGrid,0.0);
 
       if (P::propagateField == true) {
-         propagateFields(mpiGrid, sysBoundaries, 0.0, 1.0);
+         propagateFields(
+            perBGrid,
+            perBDt2Grid,
+            EGrid,
+            EDt2Grid,
+            EHallGrid,
+            EGradPeGrid,
+            momentsGrid,
+            momentsDt2Grid,
+            dPerBGrid,
+            dMomentsGrid,
+            BgBGrid,
+            volGrid,
+            technicalGrid,
+            sysBoundaries, 0.0, 1.0
+         );
       }
       phiprof::stop("compute-dt");
    }
@@ -707,7 +758,24 @@ int main(int argn,char* args[]) {
       // moments for t + dt are computed (field uses t and t+0.5dt)
       if (P::propagateField) {
          phiprof::start("Propagate Fields");
-         propagateFields(mpiGrid, sysBoundaries, P::dt, P::fieldSolverSubcycles);
+         propagateFields(
+            perBGrid,
+            perBDt2Grid,
+            EGrid,
+            EDt2Grid,
+            EHallGrid,
+            EGradPeGrid,
+            momentsGrid,
+            momentsDt2Grid,
+            dPerBGrid,
+            dMomentsGrid,
+            BgBGrid,
+            volGrid,
+            technicalGrid,
+            sysBoundaries,
+            P::dt,
+            P::fieldSolverSubcycles
+         );
          phiprof::stop("Propagate Fields",cells.size(),"SpatialCells");
          addTimedBarrier("barrier-after-field-solver");
       }
@@ -760,7 +828,7 @@ int main(int argn,char* args[]) {
    phiprof::stop("Simulation");
    phiprof::start("Finalization");
    if (P::propagateField ) { 
-      finalizeFieldPropagator(mpiGrid);
+      finalizeFieldPropagator();
    }
    if (P::propagatePotential == true) {
       poisson::finalize();
