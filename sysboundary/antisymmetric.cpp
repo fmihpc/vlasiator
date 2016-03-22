@@ -156,7 +156,7 @@ namespace SBC {
       cint k,
       cuint component
    ) {
-      EGrid.get(i,j,k)[fsgrids::efield::EX+component] = 0.0;
+      EGrid.get(i,j,k)->at(fsgrids::efield::EX+component) = 0.0;
    }
    
    void Antisymmetric::fieldSolverBoundaryCondHallElectricField(
@@ -166,25 +166,25 @@ namespace SBC {
       cint k,
       cuint component
    ) {
-      const std::array<Real, fsgrids::ehall::N_EHALL> * cp = EHallGrid.get(i,j,k);
+      std::array<Real, fsgrids::ehall::N_EHALL> * cp = EHallGrid.get(i,j,k);
       switch (component) {
          case 0:
-            cp[fsgrids::ehall::EXHALL_000_100] = 0.0;
-            cp[fsgrids::ehall::EXHALL_010_110] = 0.0;
-            cp[fsgrids::ehall::EXHALL_001_101] = 0.0;
-            cp[fsgrids::ehall::EXHALL_011_111] = 0.0;
+            cp->at(fsgrids::ehall::EXHALL_000_100) = 0.0;
+            cp->at(fsgrids::ehall::EXHALL_010_110) = 0.0;
+            cp->at(fsgrids::ehall::EXHALL_001_101) = 0.0;
+            cp->at(fsgrids::ehall::EXHALL_011_111) = 0.0;
             break;
          case 1:
-            cp[fsgrids::ehall::EYHALL_000_010] = 0.0;
-            cp[fsgrids::ehall::EYHALL_100_110] = 0.0;
-            cp[fsgrids::ehall::EYHALL_001_011] = 0.0;
-            cp[fsgrids::ehall::EYHALL_101_111] = 0.0;
+            cp->at(fsgrids::ehall::EYHALL_000_010) = 0.0;
+            cp->at(fsgrids::ehall::EYHALL_100_110) = 0.0;
+            cp->at(fsgrids::ehall::EYHALL_001_011) = 0.0;
+            cp->at(fsgrids::ehall::EYHALL_101_111) = 0.0;
             break;
          case 2:
-            cp[fsgrids::ehall::EZHALL_000_001] = 0.0;
-            cp[fsgrids::ehall::EZHALL_100_101] = 0.0;
-            cp[fsgrids::ehall::EZHALL_010_011] = 0.0;
-            cp[fsgrids::ehall::EZHALL_110_111] = 0.0;
+            cp->at(fsgrids::ehall::EZHALL_000_001) = 0.0;
+            cp->at(fsgrids::ehall::EZHALL_100_101) = 0.0;
+            cp->at(fsgrids::ehall::EZHALL_010_011) = 0.0;
+            cp->at(fsgrids::ehall::EZHALL_110_111) = 0.0;
             break;
          default:
             cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
@@ -198,7 +198,7 @@ namespace SBC {
       cint k,
       cuint component
    ) {
-      EGradPeGrid.get(i,j,k)[fsgrids::egradpe::EXGRADPE+component] = 0.0;
+      EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EXGRADPE+component) = 0.0;
    }
    
    void Antisymmetric::fieldSolverBoundaryCondDerivatives(
@@ -220,7 +220,7 @@ namespace SBC {
       cint k,
       cuint& component
    ) {
-      this->setCellBVOLDerivativesToZero(mpiGrid, cellID, component);
+      this->setCellBVOLDerivativesToZero(volGrid, i, j, k, component);
    }
    
    /**
