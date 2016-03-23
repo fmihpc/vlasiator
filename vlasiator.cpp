@@ -18,6 +18,7 @@ Copyright 2010-2015 Finnish Meteorological Institute
 #endif
 
 #include <fsgrid.hpp>
+#include "fieldsolver/gridGlue.hpp"
 
 #include "vlasovmover.h"
 #include "definitions.h"
@@ -368,6 +369,7 @@ int main(int argn,char* args[]) {
    FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> volGrid(dimensions, comm, periodicity);
    FsGrid< fsgrids::technical, 2> technicalGrid(dimensions, comm, periodicity);
    phiprof::stop("Init fieldsolver grids");
+   phiprof::start("Initial fsgrid coupling");
    const std::vector<CellID>& cells = getLocalCells();
    perBGrid.setupForGridCoupling(cells.size());
    perBDt2Grid.setupForGridCoupling(cells.size());
@@ -397,6 +399,7 @@ int main(int argn,char* args[]) {
       volGrid.setGridCoupling(cells[i],myRank);
       technicalGrid.setGridCoupling(cells[i],myRank);
    }
+   phiprof::stop("Initial fsgrid coupling");
    
    // Initialize field propagator:
    if (P::propagateField ) { 
@@ -791,6 +794,9 @@ int main(int argn,char* args[]) {
          phiprof::stop("Update system boundaries (Vlasov)");
          addTimedBarrier("barrier-boundary-conditions");
       }
+
+      // Copy moments over into the fsgrid.
+      feedMomentsIntoFsGrid(mpiGrid,cells,momentsGrid);
       
       // Propagate fields forward in time by dt. This needs to be done before the
       // moments for t + dt are computed (field uses t and t+0.5dt)
@@ -817,6 +823,9 @@ int main(int argn,char* args[]) {
          phiprof::stop("Propagate Fields",cells.size(),"SpatialCells");
          addTimedBarrier("barrier-after-field-solver");
       }
+
+      // Copy results back from fsgrid.
+      getVolumeFieldsFromFsGrid(volGrid,mpiGrid,cells);
 
       if (P::propagatePotential == true) {
          poisson::solve(mpiGrid);
