@@ -168,9 +168,9 @@ bool propagateFields(
    const std::array<int,3> gridDims = technicalGrid.getLocalSize();
    
    #pragma omp parallel for collapse(3)
-   for (uint k=0; k<gridDims[2]; k++) {
-      for (uint j=0; j<gridDims[1]; j++) {
-         for (uint i=0; i<gridDims[0]; i++) {
+   for (int k=0; k<gridDims[2]; k++) {
+      for (int j=0; j<gridDims[1]; j++) {
+         for (int i=0; i<gridDims[0]; i++) {
             technicalGrid.get(i,j,k)->maxFsDt=std::numeric_limits<Real>::max();
          }
       }
@@ -297,7 +297,7 @@ bool propagateFields(
       );
       #endif
    } else {
-      for (uint i=0; i<subcycles; i++) {
+      for (int i=0; i<subcycles; i++) {
          propagateMagneticFieldSimple(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, sysBoundaries, dt/convert<Real>(subcycles), RK_ORDER1);
          // If we are at the first subcycle we need to update the derivatives of the moments, 
          // otherwise only B changed and those derivatives need to be updated.
