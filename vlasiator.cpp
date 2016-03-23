@@ -18,7 +18,6 @@ Copyright 2010-2015 Finnish Meteorological Institute
 #endif
 
 #include <fsgrid.hpp>
-#include "fieldsolver/gridGlue.hpp"
 
 #include "vlasovmover.h"
 #include "definitions.h"
@@ -38,6 +37,7 @@ Copyright 2010-2015 Finnish Meteorological Institute
 #include "ioread.h"
 
 #include "object_wrapper.h"
+#include "fieldsolver/gridGlue.hpp"
 
 #ifdef CATCH_FPE
 #include <fenv.h>

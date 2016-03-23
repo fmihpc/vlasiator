@@ -14,6 +14,13 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
                            const std::vector<CellID>& cells,
                            FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid);
 
-void getVolumeFieldsFromFsGrid(FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& momentsGrid,
+/*! Copy field solver result (Volume-averaged fields) and store them back into DCCRG
+ * \param mpiGrid The DCCRG grid carrying fields.
+ * \param cells List of local cells
+ * \param volumeFieldsGrid Fieldsolver grid for these quantities
+ *
+ * This function assumes that proper grid coupling has been set up.
+ */
+void getVolumeFieldsFromFsGrid(FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volumeFieldsGrid,
                            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                            const std::vector<CellID>& cells);
