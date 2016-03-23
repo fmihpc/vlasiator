@@ -170,16 +170,16 @@ void calculateEdgeGradPeTermXComponents(
    cint k
 ) {
    #warning Particles (charge) assumed to be protons here
-   Real hallRho;
+   Real hallRho, rho;
    switch (Parameters::ohmGradPeTerm) {
       case 0:
          cerr << __FILE__ << __LINE__ << "You shouldn't be in a electron pressure gradient term function if Parameters::ohmGradPeTerm == 0." << endl;
          break;
          
       case 1:
-         creal rho = momentsGrid.get(i,j,k)[fsgrids::moments::RHO];
+         rho = momentsGrid.get(i,j,k)->at(fsgrids::moments::RHO);
          hallRho = (rho <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : rho ;
-         EGradPeGrid.get(i,j,k)[fsgrids::egradpe::EXGRADPE] = -physicalconstants::K_B*Parameters::electronTemperature*dMomentsGrid,get(i,j,k)[fsgrids::dmoments::drhodx] / (hallRho*physicalconstants::CHARGE*EGradPeGrid.DX);
+         EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EXGRADPE) = -physicalconstants::K_B*Parameters::electronTemperature*dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::drhodx) / (hallRho*physicalconstants::CHARGE*EGradPeGrid.DX);
          break;
          
       default:
@@ -197,16 +197,16 @@ void calculateEdgeGradPeTermYComponents(
    cint k
 ) {
    #warning Particles (charge) assumed to be protons here
-   Real hallRho;
+   Real hallRho, rho;
    switch (Parameters::ohmGradPeTerm) {
       case 0:
          cerr << __FILE__ << __LINE__ << "You shouldn't be in a electron pressure gradient term function if Parameters::ohmGradPeTerm == 0." << endl;
          break;
          
       case 1:
-         creal rho = momentsGrid.get(i,j,k)[fsgrids::moments::RHO];
+         rho = momentsGrid.get(i,j,k)->at(fsgrids::moments::RHO);
          hallRho = (rho <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : rho ;
-         EGradPeGrid.get(i,j,k)[fsgrids::egradpe::EYGRADPE] = -physicalconstants::K_B*Parameters::electronTemperature*dMomentsGrid,get(i,j,k)[fsgrids::dmoments::drhody] / (hallRho*physicalconstants::CHARGE*EGradPeGrid.DY);
+         EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EYGRADPE) = -physicalconstants::K_B*Parameters::electronTemperature*dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::drhody) / (hallRho*physicalconstants::CHARGE*EGradPeGrid.DY);
          break;
          
       default:
@@ -224,16 +224,16 @@ void calculateEdgeGradPeTermZComponents(
    cint k
 ) {
   #warning Particles (charge) assumed to be protons here
-   Real hallRho;
+   Real hallRho, rho;
    switch (Parameters::ohmGradPeTerm) {
       case 0:
          cerr << __FILE__ << __LINE__ << "You shouldn't be in a electron pressure gradient term function if Parameters::ohmGradPeTerm == 0." << endl;
          break;
          
       case 1:
-         creal rho = momentsGrid.get(i,j,k)[fsgrids::moments::RHO];
+         rho = momentsGrid.get(i,j,k)->at(fsgrids::moments::RHO);
          hallRho = (rho <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : rho ;
-         EGradPeGrid.get(i,j,k)[fsgrids::egradpe::EZGRADPE] = -physicalconstants::K_B*Parameters::electronTemperature*dMomentsGrid,get(i,j,k)[fsgrids::dmoments::drhodz] / (hallRho*physicalconstants::CHARGE*EGradPeGrid.DZ);
+         EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EZGRADPE) = -physicalconstants::K_B*Parameters::electronTemperature*dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::drhodz) / (hallRho*physicalconstants::CHARGE*EGradPeGrid.DZ);
          break;
          
       default:
@@ -244,13 +244,12 @@ void calculateEdgeGradPeTermZComponents(
 
 /** Calculate the electron pressure gradient term on all given cells.
  * @param sysBoundaries System boundary condition functions.
- * @param RKCase
  */
 void calculateGradPeTerm(
    FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2> & EGradPeGrid,
-   const FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsGrid,
-   const FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> & dMomentsGrid,
-   const FsGrid< fsgrids::technical, 2> & technicalGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsGrid,
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> & dMomentsGrid,
+   FsGrid< fsgrids::technical, 2> & technicalGrid,
    cint i,
    cint j,
    cint k,
@@ -265,7 +264,7 @@ void calculateGradPeTerm(
    
    cuint cellSysBoundaryFlag = technicalGrid.get(i,j,k)->sysBoundaryFlag;
    
-   if (cellSysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
+   if (cellSysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) return;
    
    cuint cellSysBoundaryLayer = technicalGrid.get(i,j,k)->sysBoundaryLayer;
    
@@ -303,13 +302,12 @@ void calculateGradPeTermSimple(
    timer=phiprof::initializeTimer("Compute cells");
    phiprof::start(timer);
    #pragma omp parallel for collapse(3)
-   for (uint k=0; k<gridDims[2]; k++) {
-      for (uint j=0; j<gridDims[1]; j++) {
-         for (uint i=0; i<gridDims[0]; i++) {
+   for (int k=0; k<gridDims[2]; k++) {
+      for (int j=0; j<gridDims[1]; j++) {
+         for (int i=0; i<gridDims[0]; i++) {
             if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
                calculateGradPeTerm(EGradPeGrid, momentsGrid, dMomentsGrid, technicalGrid, i, j, k, sysBoundaries);
-            }
-            if (RKCase == RK_ORDER2_STEP1) {
+            } else {
                calculateGradPeTerm(EGradPeGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, i, j, k, sysBoundaries);
             }
          }
