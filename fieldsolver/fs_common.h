@@ -101,7 +101,7 @@ namespace Rec {
 }
 
 void reconstructionCoefficients(
-   const FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
    FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
    Real* perturbedResult,
    cint i,
