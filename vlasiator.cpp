@@ -17,6 +17,8 @@ Copyright 2010-2015 Finnish Meteorological Institute
    #include <omp.h>
 #endif
 
+#include <fsgrid.hpp>
+
 #include "vlasovmover.h"
 #include "definitions.h"
 #include "mpiconversion.h"
@@ -331,7 +333,7 @@ int main(int argn,char* args[]) {
    initializeGrid(argn,args,mpiGrid,sysBoundaries,*project);
    isSysBoundaryCondDynamic = sysBoundaries.isDynamic();
    phiprof::stop("Init grid");
-   
+
    // Initialize data reduction operators. This should be done elsewhere in order to initialize 
    // user-defined operators:
    phiprof::start("Init DROs");
@@ -339,13 +341,19 @@ int main(int argn,char* args[]) {
    initializeDataReducers(&outputReducer, &diagnosticReducer);
    phiprof::stop("Init DROs");
    
+   // Initialize simplified Fieldsolver grids.
+   phiprof::start("Init fieldsolver grids");
    const std::array<int,3> dimensions = {convert<int>(P::xcells_ini), convert<int>(P::ycells_ini), convert<int>(P::zcells_ini)};
-   std::array<int,3> periodicity = {0};
-   for (uint i=0; i<3; i++) {
-      if(sysBoundaries.isBoundaryPeriodic(i) == true ) {
-         periodicity[i] = 1;
-      }
-   }
+   // Periodicity information in Parameters in unreliable, better ask mpiGrid here.
+   //std::array<int,3> periodicity = {0};
+   //for (uint i=0; i<3; i++) {
+   //   if(sysBoundaries.isBoundaryPeriodic(i) == true ) {
+   //      periodicity[i] = 1;
+   //   }
+   //}
+   std::array<int,3> periodicity{mpiGrid.topology.is_periodic(0),
+                                 mpiGrid.topology.is_periodic(1),
+                                 mpiGrid.topology.is_periodic(2)};
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> perBGrid(dimensions, comm, periodicity);
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> perBDt2Grid(dimensions, comm, periodicity);
    FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> EGrid(dimensions, comm, periodicity);
@@ -359,6 +367,36 @@ int main(int argn,char* args[]) {
    FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2> BgBGrid(dimensions, comm, periodicity);
    FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> volGrid(dimensions, comm, periodicity);
    FsGrid< fsgrids::technical, 2> technicalGrid(dimensions, comm, periodicity);
+   phiprof::stop("Init fieldsolver grids");
+   const std::vector<CellID>& cells = getLocalCells();
+   perBGrid.setupForGridCoupling(cells.size());
+   perBDt2Grid.setupForGridCoupling(cells.size());
+   EGrid.setupForGridCoupling(cells.size());
+   EDt2Grid.setupForGridCoupling(cells.size());
+   EHallGrid.setupForGridCoupling(cells.size());
+   EGradPeGrid.setupForGridCoupling(cells.size());
+   momentsGrid.setupForGridCoupling(cells.size());
+   momentsDt2Grid.setupForGridCoupling(cells.size());
+   dPerBGrid.setupForGridCoupling(cells.size());
+   dMomentsGrid.setupForGridCoupling(cells.size());
+   BgBGrid.setupForGridCoupling(cells.size());
+   volGrid.setupForGridCoupling(cells.size());
+   technicalGrid.setupForGridCoupling(cells.size());
+   for(unsigned int i=0; i<cells.size(); i++) {
+      perBGrid.setGridCoupling(cells[i],myRank);
+      perBDt2Grid.setGridCoupling(cells[i],myRank);
+      EGrid.setGridCoupling(cells[i],myRank);
+      EDt2Grid.setGridCoupling(cells[i],myRank);
+      EHallGrid.setGridCoupling(cells[i],myRank);
+      EGradPeGrid.setGridCoupling(cells[i],myRank);
+      momentsGrid.setGridCoupling(cells[i],myRank);
+      momentsDt2Grid.setGridCoupling(cells[i],myRank);
+      dPerBGrid.setGridCoupling(cells[i],myRank);
+      dMomentsGrid.setGridCoupling(cells[i],myRank);
+      BgBGrid.setGridCoupling(cells[i],myRank);
+      volGrid.setGridCoupling(cells[i],myRank);
+      technicalGrid.setGridCoupling(cells[i],myRank);
+   }
    
    // Initialize field propagator:
    if (P::propagateField ) { 
