@@ -190,7 +190,7 @@ void initializeGrid(
          mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = 0;
       }
 
-      for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      for (unsigned int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          adjustVelocityBlocks(mpiGrid,cells,true,popID);
          
          #ifdef DEBUG_AMR_VALIDATE
@@ -392,7 +392,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
 
    phiprof::start("update block lists");
    //new partition, re/initialize blocklists of remote cells.
-   for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
+   for (unsigned int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
       updateRemoteVelocityBlockLists(mpiGrid,popID);
    phiprof::stop("update block lists");
 
@@ -578,7 +578,7 @@ void deallocateRemoteCellBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
       uint64_t cell_id=incoming_cells[i];
       SpatialCell* cell = mpiGrid[cell_id];
       if (cell != NULL) {
-         for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
+         for (unsigned int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
             cell->clear(popID);
       }
    }

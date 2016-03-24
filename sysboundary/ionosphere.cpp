@@ -172,7 +172,7 @@ namespace SBC {
          SpatialCell* cell = mpiGrid[cells[i]];
          if (cell->sysBoundaryFlag != this->getIndex()) continue;
          
-         for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
+         for (unsigned int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
             setCellFromTemplate(cell,popID);
       }
       return true;
@@ -613,7 +613,7 @@ namespace SBC {
       templateCell.parameters[CellParams::DZ] = 1;
       
       // Loop over particle species
-      for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      for (unsigned int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          const vector<vmesh::GlobalID> blocksToInitialize = findBlocksToInitialize(templateCell,popID);
          Realf* data = templateCell.get_data(popID);
          

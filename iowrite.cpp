@@ -1115,7 +1115,7 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    phiprof::start("updateRemoteBlocks");
    //Updated newly adjusted velocity block lists on remote cells, and
    //prepare to receive block data
-   for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
+   for (unsigned int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
       updateRemoteVelocityBlockLists(mpiGrid,popID);
    phiprof::stop("updateRemoteBlocks");
 

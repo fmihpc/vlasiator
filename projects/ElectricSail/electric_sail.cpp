@@ -222,7 +222,7 @@ namespace projects {
       cell->parameters[CellParams::RHOQ_EXT] = 0;
 
       const Real EPSILON = 1e-30;
-      int N = 1;
+      unsigned int N = 1;
       int N3_sum = 0;
       Real E_vol[3] = {0,0,0};
       

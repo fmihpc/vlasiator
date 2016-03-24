@@ -97,7 +97,7 @@ namespace SBC {
       Project &project
    ) {
       bool success = true;
-      for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      for (unsigned int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          if (setCellsFromTemplate(mpiGrid, popID) == false) success = false;
       }
       

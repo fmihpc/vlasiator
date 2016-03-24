@@ -103,7 +103,7 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       const Real dy = cell->parameters[CellParams::DY];
       const Real dz = cell->parameters[CellParams::DZ];
       
-      for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      for (unsigned int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
          const Real* blockParams = blockContainer.getParameters();
          const Real EPS = numeric_limits<Real>::min()*1000;
@@ -741,7 +741,7 @@ int main(int argn,char* args[]) {
       //compute how many spatial cells we solve for this step
       computedCells=0;
       for(size_t i=0; i<cells.size(); i++) {
-         for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
+         for (unsigned int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
             computedCells += mpiGrid[cells[i]]->get_number_of_velocity_blocks(popID)*WID3;
       }
       computedTotalCells+=computedCells;

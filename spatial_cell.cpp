@@ -50,7 +50,7 @@ namespace spatial_cell {
       populations.resize(getObjectWrapper().particleSpecies.size());
       
       // Set velocity meshes
-      for (int popID=0; popID<populations.size(); ++popID) {
+      for (unsigned int popID=0; popID<populations.size(); ++popID) {
          const species::Species& spec = getObjectWrapper().particleSpecies[popID];
          populations[popID].vmesh.initialize(spec.velocityMesh);
          populations[popID].velocityBlockMinValue = spec.sparseMinValue;
@@ -418,7 +418,7 @@ namespace spatial_cell {
             parent_data[vblock::index(i_oct*2+i/2,j_oct*2+j/2,k_oct*2+k/2)] = sum/8;
          }*/
 
-         for (int k=0; k<WID; ++k) for (int j=0; j<WID; ++j) for (int i=0; i<WID; ++i) {
+         for (unsigned int k=0; k<WID; ++k) for (unsigned int j=0; j<WID; ++j) for (unsigned int i=0; i<WID; ++i) {
             parent_data[vblock::index(i_oct*2+i/2,j_oct*2+j/2,k_oct*2+k/2)] += data[vblock::index(i,j,k)]/8.0;
          }
       }
@@ -773,7 +773,7 @@ namespace spatial_cell {
          }
          // Copy particle species metadata
          if ((SpatialCell::mpi_transfer_type & Transfer::POP_METADATA) != 0) {
-            for (int popID=0; popID<populations.size(); ++popID) {
+            for (unsigned int popID=0; popID<populations.size(); ++popID) {
                displacements.push_back((uint8_t*) &(populations[popID].max_dt) - (uint8_t*)this);
                block_lengths.push_back(species::SIZE_DT_ELEMENTS*sizeof(Real));
             }
@@ -893,7 +893,7 @@ namespace spatial_cell {
              blockRemovalList.insert(blockGID);*/
          } else {
             // Merge values to this block
-            for (int i=0; i<WID3; ++i) myData[i] += data[i];
+            for (unsigned int i=0; i<WID3; ++i) myData[i] += data[i];
          }
          return;
       }
@@ -927,7 +927,7 @@ namespace spatial_cell {
       
       const uint8_t maxRefLevel = populations[popID].vmesh.getMaxAllowedRefinementLevel();
 
-      for (int i=0; i<WID3; ++i) null_block_data[i] = 0;
+      for (unsigned int i=0; i<WID3; ++i) null_block_data[i] = 0;
       
       // Sort blocks according to their refinement levels:
       vector<vector<vmesh::GlobalID> > blocks(maxRefLevel+1);
