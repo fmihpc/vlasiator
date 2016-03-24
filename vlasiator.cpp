@@ -345,13 +345,6 @@ int main(int argn,char* args[]) {
    // Initialize simplified Fieldsolver grids.
    phiprof::start("Init fieldsolver grids");
    const std::array<int,3> dimensions = {convert<int>(P::xcells_ini), convert<int>(P::ycells_ini), convert<int>(P::zcells_ini)};
-   // Periodicity information in Parameters in unreliable, better ask mpiGrid here.
-   //std::array<int,3> periodicity = {0};
-   //for (uint i=0; i<3; i++) {
-   //   if(sysBoundaries.isBoundaryPeriodic(i) == true ) {
-   //      periodicity[i] = 1;
-   //   }
-   //}
    std::array<int,3> periodicity{mpiGrid.topology.is_periodic(0),
                                  mpiGrid.topology.is_periodic(1),
                                  mpiGrid.topology.is_periodic(2)};
@@ -368,9 +361,22 @@ int main(int argn,char* args[]) {
    FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2> BgBGrid(dimensions, comm, periodicity);
    FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> volGrid(dimensions, comm, periodicity);
    FsGrid< fsgrids::technical, 2> technicalGrid(dimensions, comm, periodicity);
+   // Set DX,DY and DZ
+   // TODO: This is currently just taking the values from cell 1, and assuming them to be
+   // constant throughout the simulation.
+   perBGrid.DX = perBDt2Grid.DX = EGrid.DX = EDt2Grid.DX = EHallGrid.DX = EGradPeGrid.DX = momentsGrid.DX
+      = momentsDt2Grid.DX = dPerBGrid.DX = dMomentsGrid.DX = BgBGrid.DX = volGrid.DX = technicalGrid.DX
+      = mpiGrid[1]->get_cell_parameters()[CellParams::DX];
+   perBGrid.DY = perBDt2Grid.DY = EGrid.DY = EDt2Grid.DY = EHallGrid.DY = EGradPeGrid.DY = momentsGrid.DY
+      = momentsDt2Grid.DY = dPerBGrid.DY = dMomentsGrid.DY = BgBGrid.DY = volGrid.DY = technicalGrid.DY
+      = mpiGrid[1]->get_cell_parameters()[CellParams::DY];
+   perBGrid.DZ = perBDt2Grid.DZ = EGrid.DZ = EDt2Grid.DZ = EHallGrid.DZ = EGradPeGrid.DZ = momentsGrid.DZ
+      = momentsDt2Grid.DZ = dPerBGrid.DZ = dMomentsGrid.DZ = BgBGrid.DZ = volGrid.DZ = technicalGrid.DZ
+      = mpiGrid[1]->get_cell_parameters()[CellParams::DZ];
    phiprof::stop("Init fieldsolver grids");
    phiprof::start("Initial fsgrid coupling");
    const std::vector<CellID>& cells = getLocalCells();
+   // TODO: Do we really need to couple *all* of these fields?
    perBGrid.setupForGridCoupling(cells.size());
    perBDt2Grid.setupForGridCoupling(cells.size());
    EGrid.setupForGridCoupling(cells.size());
@@ -399,6 +405,19 @@ int main(int argn,char* args[]) {
       volGrid.setGridCoupling(cells[i],myRank);
       technicalGrid.setGridCoupling(cells[i],myRank);
    }
+   perBGrid.finishGridCoupling();
+   perBDt2Grid.finishGridCoupling();
+   EGrid.finishGridCoupling();
+   EDt2Grid.finishGridCoupling();
+   EHallGrid.finishGridCoupling();
+   EGradPeGrid.finishGridCoupling();
+   momentsGrid.finishGridCoupling();
+   momentsDt2Grid.finishGridCoupling();
+   dPerBGrid.finishGridCoupling();
+   dMomentsGrid.finishGridCoupling();
+   BgBGrid.finishGridCoupling();
+   volGrid.finishGridCoupling();
+   technicalGrid.finishGridCoupling();
    phiprof::stop("Initial fsgrid coupling");
    
    // Initialize field propagator:
