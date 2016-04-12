@@ -119,11 +119,12 @@ namespace SBC {
          virtual uint getIndex() const;
          uint getPrecedence() const;
          bool isDynamic() const;
-
+      
          bool updateSysBoundaryConditionsAfterLoadBalance(
             dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const std::vector<CellID> & local_cells_on_boundary
          );
+      bool doApplyUponRestart() const;
       protected:
          void determineFace(
             bool* isThisCellOnAFace,
@@ -135,6 +136,7 @@ namespace SBC {
             SpatialCell *from,
             SpatialCell *to,
             bool allowBlockAdjustment,
+            const bool& copyMomentsOnly,
             const int& popID
          );
          void averageCellData(
@@ -149,10 +151,37 @@ namespace SBC {
          std::vector<CellID> & getAllClosestNonsysboundaryCells(
             const CellID& cellID
          );
+         std::array<SpatialCell*,27> & getFlowtoCells(
+               const CellID& cellID
+         );
+
+         std::array<Realf*,27> getFlowtoCellsBlock(
+               const std::array<SpatialCell*,27> flowtoCells,
+               const vmesh::GlobalID blockGID,
+               const int& popID
+         );
+      
+
+      /*! Helper function to get the index of a neighboring cell in the arrays in allFlowtoCells.
+       * \param i Offset in x direction (-1, 0 or 1)
+       * \param j Offset in y direction (-1, 0 or 1)
+       * \param k Offset in z direction (-1, 0 or 1)
+       * \retval int Index in the flowto cell array (0 to 26, indexed from - to + x, y, z.
+       */
+      inline int nbrID(const int i, const int j, const int k){
+         return (k+1)*9 + (j+1)*3 + i + 1;
+      }
+      
          void vlasovBoundaryCopyFromTheClosestNbr(
             const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const CellID& cellID,
+            const bool& copyMomentsOnly,
             const int& popID
+         );
+         void vlasovBoundaryCopyFromTheClosestNbrAndLimit(
+               const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+               const CellID& cellID,
+               const int& popID
          );
          void vlasovBoundaryCopyFromAllClosestNbrs(
             const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
@@ -173,16 +202,26 @@ namespace SBC {
             creal& nx,
             creal& ny,
             creal& nz,
+            creal& quenchingFactor,
             const int& popID
          );
-         
+
+
          /*! Precedence value of the system boundary condition. */
          uint precedence;
          /*! Is the boundary condition dynamic in time or not. */
          bool isThisDynamic;
          /*! Map of closest nonsysboundarycells. Used in getAllClosestNonsysboundaryCells. */
          std::unordered_map<CellID, std::vector<CellID>> allClosestNonsysboundaryCells;
+      
+         /*! Array of cells into which the distribution function can flow. Used in getAllFlowtoCells. Cells into which one cannot flow are set to INVALID_CELLID. */
+         std::unordered_map<CellID, std::array<SpatialCell*, 27>> allFlowtoCells;
+         /*! bool telling whether to call again applyInitialState upon restarting the simulation. */
+         bool applyUponRestart;
    };
+   
+
+
 } // namespace SBC
 
 #endif

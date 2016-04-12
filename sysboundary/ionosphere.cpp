@@ -45,6 +45,7 @@ namespace SBC {
       Readparameters::add("ionosphere.VZ0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", 0.0);
       Readparameters::add("ionosphere.taperRadius", "Width of the zone with a density tapering from the ionospheric value to the background (m)", 0.0);
       Readparameters::add("ionosphere.precedence", "Precedence value of the ionosphere system boundary condition (integer), the higher the stronger.", 2);
+      Readparameters::add("ionosphere.reapplyUponRestart", "If 0 (default), keep going with the state existing in the restart file. If 1, calls again applyInitialState. Can be used to change boundary condition behaviour during a run.", 0);
    }
    
    void Ionosphere::getParameters() {
@@ -101,6 +102,15 @@ namespace SBC {
       if(!Readparameters::get("Magnetosphere.nVelocitySamples", this->nVelocitySamples)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
+      }
+      uint reapply;
+      if(!Readparameters::get("ionosphere.reapplyUponRestart",reapply)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      };
+      this->applyUponRestart = false;
+      if(reapply == 1) {
+         this->applyUponRestart = true;
       }
    }
    
@@ -172,7 +182,7 @@ namespace SBC {
          SpatialCell* cell = mpiGrid[cells[i]];
          if (cell->sysBoundaryFlag != this->getIndex()) continue;
          
-         for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
+         for (unsigned int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
             setCellFromTemplate(cell,popID);
       }
       return true;
@@ -629,7 +639,7 @@ namespace SBC {
       templateCell.parameters[CellParams::DZ] = 1;
       
       // Loop over particle species
-      for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      for (unsigned int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          const vector<vmesh::GlobalID> blocksToInitialize = findBlocksToInitialize(templateCell,popID);
          Realf* data = templateCell.get_data(popID);
          
@@ -776,7 +786,7 @@ namespace SBC {
       }
 
       //Copy, and allow to change blocks
-      copyCellData(&templateCell,cell,true,popID);
+      copyCellData(&templateCell,cell,true,false,popID);
    }
 
    std::string Ionosphere::getName() const {return "Ionosphere";}

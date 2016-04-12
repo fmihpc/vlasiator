@@ -674,6 +674,13 @@ int main(int argn,char* args[]) {
       phiprof::start("Propagate");
       //Propagate the state of simulation forward in time by dt:
       
+      if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
+         phiprof::start("Update system boundaries (Vlasov)");
+         sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid, P::t+0.5*P::dt); 
+         phiprof::stop("Update system boundaries (Vlasov)");
+         addTimedBarrier("barrier-boundary-conditions");
+      }
+      
       phiprof::start("Spatial-space");
       if( P::propagateVlasovTranslation) {
          calculateSpatialTranslation(mpiGrid,P::dt);

@@ -18,7 +18,7 @@ if [ -e $1 ]
 then
 echo "Tag                     Name                          Mesh                          Vectorsize" 
 echo "----------------------------------------------------------------------------------------------"
-tail -c $(( 10 * 1024))  $1 |strings |gawk 'BEGIN {xmlstarted=0} {if($1 == "<VLSV>") xmlstarted=1; if(xmlstarted) print $0;}' |
+tail -c $(( 100 * 1024))  $1 |strings |gawk 'BEGIN {xmlstarted=0} {if($1 == "<VLSV>") xmlstarted=1; if(xmlstarted) print $0;}' |
 sed 's|[<\"=>/]| |g' |
 gawk  '{ 
 

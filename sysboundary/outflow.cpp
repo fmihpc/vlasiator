@@ -16,6 +16,7 @@
 #include "../projects/projects_common.h"
 #include "../fieldsolver/fs_common.h"
 #include "../fieldsolver/ldz_magnetic_field.hpp"
+#include "../vlasovmover.h"
 
 #ifndef NDEBUG
    #define DEBUG_OUTFLOW
@@ -33,6 +34,8 @@ namespace SBC {
    void Outflow::addParameters() {
       Readparameters::addComposing("outflow.face", "List of faces on which outflow boundary conditions are to be applied ([xyz][+-]).");
       Readparameters::add("outflow.precedence", "Precedence value of the outflow system boundary condition (integer), the higher the stronger.", 4);
+      Readparameters::add("outflow.quench", "Factor by which to quench the inflowing parts of the velocity distribution function.", 1.0);
+      Readparameters::add("outflow.reapplyUponRestart", "If 0 (default), keep going with the state existing in the restart file. If 1, calls again applyInitialState. Can be used to change boundary condition behaviour during a run.", 0);
    }
    
    void Outflow::getParameters() {
@@ -45,6 +48,19 @@ namespace SBC {
       if(!Readparameters::get("outflow.precedence", precedence)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
+      }
+      if(!Readparameters::get("outflow.quench", this->quenchFactor)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      uint reapply;
+      if(!Readparameters::get("outflow.reapplyUponRestart",reapply)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      };
+      this->applyUponRestart = false;
+      if(reapply == 1) {
+         this->applyUponRestart = true;
       }
    }
    
@@ -316,7 +332,14 @@ namespace SBC {
       const int& popID
    ) {
 //      phiprof::start("vlasovBoundaryCondition (Outflow)");
-      vlasovBoundaryCopyFromTheClosestNbr(mpiGrid,cellID,popID);
+      
+      SpatialCell* cell = mpiGrid[cellID];
+      
+      if (cell->sysBoundaryLayer == 1) {
+         vlasovBoundaryCopyFromTheClosestNbrAndLimit(mpiGrid,cellID,popID);
+      } else {
+         vlasovBoundaryCopyFromTheClosestNbr(mpiGrid,cellID,false,popID);
+      }
 //      phiprof::stop("vlasovBoundaryCondition (Outflow)");
    }
    

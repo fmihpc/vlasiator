@@ -479,6 +479,9 @@ bool SysBoundary::applyInitialState(
    for (it = sysBoundaries.begin();
         it != sysBoundaries.end();
         it++) {
+      if((Parameters::isRestart == true) && ((*it)->doApplyUponRestart() == false)) {
+         continue;
+      }
       if((*it)->applyInitialState(mpiGrid, project) == false) {
          cerr << "ERROR: " << (*it)->getName() << " system boundary condition initial state not applied correctly." << endl;
          success = false;
@@ -517,7 +520,7 @@ void SysBoundary::applySysBoundaryVlasovConditions(
    
    #warning Same sysBoundaryCondition applied to all populations
    // Loop over existing particle species
-   for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+   for (unsigned int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       SpatialCell::setCommunicatedSpecies(popID);
 
       // Then the block data in the reduced neighbourhood:
@@ -563,7 +566,8 @@ void SysBoundary::applySysBoundaryVlasovConditions(
       mpiGrid.wait_remote_neighbor_copy_update_sends();
       phiprof::stop(timer);
 
-   // WARNING Blocks are changed but lists not updated now, if you need to use/communicate them before the next update is done, add an update here.
+      // WARNING Blocks are changed but lists not updated now, if you need to use/communicate them before the next update is done, add an update here.
+      updateRemoteVelocityBlockLists(mpiGrid, popID);
 
    } // for-loop over populations
 }
@@ -598,8 +602,6 @@ bool SysBoundary::isDynamic() const {return isThisDynamic;}
  * \retval isPeriodic Is the system periodic in the queried direction.
  */
 bool SysBoundary::isBoundaryPeriodic(uint direction) const {return isPeriodic[direction];}
-
-
 
 /*! Get a vector containing the cellID of all cells which are not DO_NOT_COMPUTE or NOT_SYSBOUNDARY in the vector of cellIDs passed to the function.
  * 
