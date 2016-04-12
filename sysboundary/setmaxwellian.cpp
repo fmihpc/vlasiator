@@ -216,7 +216,7 @@ namespace SBC {
       templateCell.parameters[CellParams::RHOLOSSVELBOUNDARY] = 0.0;
       
       // Init all particle species
-      for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      for (unsigned int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          vector<vmesh::GlobalID> blocksToInitialize = this->findBlocksToInitialize(popID,templateCell, rho, T, Vx, Vy, Vz);
          Realf* data = templateCell.get_data(popID);
 
