@@ -1,25 +1,27 @@
 #!/bin/bash
 
-if [ ! $# -eq 4 ]
+if [ ! $# -eq 5 ]
 then
     cat <<EOF
 chunkDataToTape.sh file destination start end
     Script for writing a large file in chunks to destination using dd.
     
-    file           Path to/file name of the file to chunk up and write elsewhere.
-    destination    Path to which the chunks have to be written
+    source         Path to the chunks to read.
+    destination    Path to which the glued chunks have to be written.
+    file           File name
     start          Index of first chunk to transfer
     end            Index of last chunk to transfer
 EOF
     exit
 fi
 
-file=$1
-path=$2
-start=$3
-end=$4
+source=$1
+destination=$2
+file=$3
+start=$4
+end=$5
 
-chunkSize=$((1 * 1024*1024*1024))
+chunkSize=$((50 * 1024*1024*1024))
 fileSize=$( /bin/ls -la ${file} | gawk '{ print $5 }' )
 chunkNumber=$(( fileSize / chunkSize ))
 
@@ -46,7 +48,7 @@ fi
 for chunk in $( seq $start $end )
 do
    echo $(date) "Handling chunk $chunk/$chunkNumber"
-   dd iflag=fullblock bs=${chunkSize} seek=$chunk count=1 if=${path}/${file}.${chunkNumber}_${chunk} of=${path}/${file} 2>> dd_chunk.err
+   dd iflag=fullblock bs=${chunkSize} seek=$chunk count=1 if=${source}/${file}.${chunkNumber}_${chunk} of=${destination}/${file} 2>> dd_chunk.err
 done
 
 echo $(date) "Transferring ${file} of size $fileSize, with a total of $chunkNumber chunks of $chunkSize bytes. Done handling chunks $start to $end."
