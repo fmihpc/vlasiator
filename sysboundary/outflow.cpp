@@ -33,27 +33,65 @@ namespace SBC {
    
    void Outflow::addParameters() {
       Readparameters::addComposing("outflow.face", "List of faces on which outflow boundary conditions are to be applied ([xyz][+-]).");
-      Readparameters::addComposing("outflow.faceNoVlasov", "List of faces on which no Vlasov outflow boundary conditions are to be applied ([xyz][+-]).");
       Readparameters::addComposing("outflow.faceNoFields", "List of faces on which no field outflow boundary conditions are to be applied ([xyz][+-]).");
+      Readparameters::add("outflow.vlasovScheme_face_x+", "Scheme to use on the face x+ (Copy, Limit, None)", "Copy");
+      Readparameters::add("outflow.vlasovScheme_face_x-", "Scheme to use on the face x- (Copy, Limit, None)", "Copy");
+      Readparameters::add("outflow.vlasovScheme_face_y+", "Scheme to use on the face y+ (Copy, Limit, None)", "Copy");
+      Readparameters::add("outflow.vlasovScheme_face_y-", "Scheme to use on the face y- (Copy, Limit, None)", "Copy");
+      Readparameters::add("outflow.vlasovScheme_face_z+", "Scheme to use on the face z+ (Copy, Limit, None)", "Copy");
+      Readparameters::add("outflow.vlasovScheme_face_z-", "Scheme to use on the face z- (Copy, Limit, None)", "Copy");
       Readparameters::add("outflow.precedence", "Precedence value of the outflow system boundary condition (integer), the higher the stronger.", 4);
       Readparameters::add("outflow.quench", "Factor by which to quench the inflowing parts of the velocity distribution function.", 1.0);
       Readparameters::add("outflow.reapplyUponRestart", "If 0 (default), keep going with the state existing in the restart file. If 1, calls again applyInitialState. Can be used to change boundary condition behaviour during a run.", 0);
    }
    
    void Outflow::getParameters() {
+      std::array<std::string, 6> scheme;
       int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
       if(!Readparameters::get("outflow.face", this->faceList)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
-      if(!Readparameters::get("outflow.faceNoVlasov", this->faceNoVlasovList)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
       if(!Readparameters::get("outflow.faceNoFields", this->faceNoFieldsList)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
+      }
+      if(!Readparameters::get("outflow.vlasovScheme_face_x+", scheme[0])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("outflow.vlasovScheme_face_x-", scheme[1])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("outflow.vlasovScheme_face_y+", scheme[2])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("outflow.vlasovScheme_face_y-", scheme[3])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("outflow.vlasovScheme_face_z+", scheme[4])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("outflow.vlasovScheme_face_z-", scheme[5])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      for(uint i=0; i<6 ; i++) {
+         if(strcmp(scheme[i].c_str(), "None") == 0) {
+            faceVlasovScheme[i] = vlasovscheme::NONE;
+         } else if (strcmp(scheme[i].c_str(), "Copy") == 0) {
+            faceVlasovScheme[i] = vlasovscheme::COPY;
+         } else if(strcmp(scheme[i].c_str(), "Limit") == 0) {
+            faceVlasovScheme[i] = vlasovscheme::LIMIT;
+         } else {
+            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: Invalid Outflow Vlasov scheme!" << endl;
+            exit(1);
+         }
       }
       if(!Readparameters::get("outflow.precedence", precedence)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
@@ -84,7 +122,6 @@ namespace SBC {
        */
       for(uint i=0; i<6; i++) {
          facesToProcess[i] = false;
-         facesToSkipVlasov[i] = false;
          facesToSkipFields[i] = false;
       }
       
@@ -102,16 +139,6 @@ namespace SBC {
          if(*it == "y-") facesToProcess[3] = true;
          if(*it == "z+") facesToProcess[4] = true;
          if(*it == "z-") facesToProcess[5] = true;
-      }
-      for (it = faceNoVlasovList.begin();
-           it != faceNoVlasovList.end();
-      it++) {
-         if(*it == "x+") facesToSkipVlasov[0] = true;
-         if(*it == "x-") facesToSkipVlasov[1] = true;
-         if(*it == "y+") facesToSkipVlasov[2] = true;
-         if(*it == "y-") facesToSkipVlasov[3] = true;
-         if(*it == "z+") facesToSkipVlasov[4] = true;
-         if(*it == "z-") facesToSkipVlasov[5] = true;
       }
       for (it = faceNoFieldsList.begin();
            it != faceNoFieldsList.end();
@@ -427,16 +454,32 @@ namespace SBC {
       determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, true);
       
       for(uint i=0; i<6; i++) {
-         if(isThisCellOnAFace[i] && this->facesToSkipVlasov[i]) {
-            return;
+         if(isThisCellOnAFace[i] && facesToProcess[i]) {
+            switch(this->faceVlasovScheme[i]) {
+               case vlasovscheme::NONE:
+                  break;
+               case vlasovscheme::COPY:
+                  if (cell->sysBoundaryLayer == 1) {
+                     vlasovBoundaryCopyFromTheClosestNbr(mpiGrid,cellID,true,popID);
+                  } else {
+                     vlasovBoundaryCopyFromTheClosestNbr(mpiGrid,cellID,false,popID);
+                  }
+                  break;
+               case vlasovscheme::LIMIT:
+                  if (cell->sysBoundaryLayer == 1) {
+                     vlasovBoundaryCopyFromTheClosestNbrAndLimit(mpiGrid,cellID,popID);
+                  } else {
+                     vlasovBoundaryCopyFromTheClosestNbr(mpiGrid,cellID,false,popID);
+                  }
+                  break;
+               default:
+                  std::cerr << __FILE__ << ":" << __LINE__ << "ERROR: invalid Outflow Vlasov scheme!" << std::endl;
+                  exit(1);
+                  break;
+            }
          }
       }
       
-      if (cell->sysBoundaryLayer == 1) {
-         vlasovBoundaryCopyFromTheClosestNbrAndLimit(mpiGrid,cellID,popID);
-      } else {
-         vlasovBoundaryCopyFromTheClosestNbr(mpiGrid,cellID,false,popID);
-      }
 //      phiprof::stop("vlasovBoundaryCondition (Outflow)");
    }
    
