@@ -1,7 +1,7 @@
 /*
 This file is part of Vlasiator.
 
-Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
+Copyright 2010-2015 Finnish Meteorological Institute
 */
 
 /*! \file vlsvdiff.cpp
@@ -35,9 +35,9 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #include <cstring>
 
 #include "definitions.h"
-#include "vlsv_reader.h"
+#include <vlsv_reader.h>
 #include "vlsvreaderinterface.h"
-#include "vlsv_writer.h"
+#include <vlsv_writer.h>
 
 using namespace std;
 using namespace vlsv;
@@ -48,7 +48,7 @@ using namespace vlsv;
 // equal to 'plaa'.
 static map<string,string> attributes;
 
-static uint64_t convUInt(const char* ptr, const vlsv::datatype::type & dataType, const uint64_t& dataSize) {
+static uint64_t convUInt(const char* ptr, const vlsv::datatype::type& dataType, const uint64_t& dataSize) {
    if (dataType != vlsv::datatype::type::UINT) {
       cerr << "Erroneous datatype given to convUInt" << endl;
       exit(1);
@@ -78,8 +78,8 @@ static uint64_t convUInt(const char* ptr, const vlsv::datatype::type & dataType,
  * @param inputAttributes XML attributes for the copied array.
  * @return If true, the array was copied successfully.*/
 bool copyArray(vlsv::Reader& input,vlsv::Writer& output,
-	       const std::string& tagName,
-	       const list<pair<string,string> >& inputAttribs) {
+               const std::string& tagName,
+               const list<pair<string,string> >& inputAttribs) {
    bool success = true;
 
    // Read input array attributes
@@ -88,7 +88,7 @@ bool copyArray(vlsv::Reader& input,vlsv::Writer& output,
       cerr << "ERROR: Failed to read array '" << tagName << "' attributes in " << __FILE__ << ":" << __LINE__ << endl;
       cerr << "Input attributes are:" << endl;
       for (list<pair<string,string> >::const_iterator it=inputAttribs.begin(); it!=inputAttribs.end(); ++it) {
-	 cerr << "\t '" << it->first << "' = '" << it->second << "'" << endl;
+         cerr << "\t '" << it->first << "' = '" << it->second << "'" << endl;
       }
       return false;
    }
@@ -103,7 +103,7 @@ bool copyArray(vlsv::Reader& input,vlsv::Writer& output,
    const uint64_t datasize = atol(it->second.c_str());
    it = outputAttribs.find("datatype"); if (it == outputAttribs.end()) return false;
    const string datatype = it->second;
-
+   
    const size_t bytes = arraysize*vectorsize*datasize;
 
    // Read values from input file
@@ -130,15 +130,15 @@ bool copyArray(vlsv::Reader& input,vlsv::Writer& output,
  * @return If true, the mesh was successfully cloned.*/
 bool cloneMesh(const string& inputFileName,vlsv::Writer& output,const string& meshName) {
    bool success = true;
-   
+            
    vlsv::Reader input;
    if (input.open(inputFileName) == false) {
       cerr << "ERROR failed to open input file '" << inputFileName << "' in " << __FILE__ << ":" << __LINE__ << endl;
-      return false;      
+      return false;
    }
    
    list<pair<string,string> > inputAttribs;
-   inputAttribs.push_back(make_pair("name",meshName));   
+   inputAttribs.push_back(make_pair("name",meshName));
    if (copyArray(input,output,"MESH",inputAttribs) == false) success = false;
 
    inputAttribs.clear();
@@ -167,8 +167,9 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader,
                  const char * varToExtract,
                  const uint compToExtract,
                  map<uint, Real> * orderedData,
-		 unordered_map<size_t,size_t>& cellOrder,
-		 const bool& storeCellOrder) {
+                 unordered_map<size_t,size_t>& cellOrder,
+                 const bool& storeCellOrder) {
+
    //Check for null pointer:
    if( !varToExtract || !orderedData ) {
       cerr << "ERROR, PASSED A NULL POINTER AT " << __FILE__ << " " << __LINE__ << endl;
@@ -188,7 +189,7 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader,
    variableAttributes.push_back( make_pair("name", _varToExtract) );
    //Read in array size, vector size, data type and data size of the array "VARIABLE" in the vlsv file (Needed in reading the array)
    if (vlsvReader.getArrayInfo("VARIABLE", variableAttributes, variableArraySize, variableVectorSize, variableDataType, variableDataSize) == false) {
-      cerr << "ERROR, failed to read variable at " << __FILE__ << " " << __LINE__ << endl;
+      cerr << "ERROR, failed to get array info for '" << _varToExtract << "' at " << __FILE__ << " " << __LINE__ << endl;
       return false;
    }
 
@@ -198,7 +199,7 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader,
       cerr << "Failed to read cell ids at "  << __FILE__ << " " << __LINE__ << endl;
       return false;
    }
-   
+
    //Check for correct output:
    if (local_cells.size() != variableArraySize) {
       cerr << "ERROR array size mismatch: " << local_cells.size() << " " << variableArraySize << endl;
@@ -219,14 +220,14 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader,
    if (storeCellOrder == true) {
       cellOrder.clear();
    }
-
+   
    orderedData->clear();
 
    for (uint64_t i=0; i<local_cells.size(); ++i) {
       const short int amountToReadIn = 1;
       const uint64_t & startingReadIndex = i;
       if (vlsvReader.readArray("VARIABLE", variableAttributes, startingReadIndex, amountToReadIn, variableBuffer) == false) {
-         cerr << "ERROR, failed to read variable at " << __FILE__ << " " << __LINE__ << endl;
+         cerr << "ERROR, failed to read variable '" << _varToExtract << "' at " << __FILE__ << " " << __LINE__ << endl;
          variableSuccess = false; 
          break;
       }
@@ -279,13 +280,13 @@ bool convertSILO(const string fileName,
                  const char * varToExtract,
                  const uint compToExtract,
                  map<uint, Real> * orderedData,
-		 unordered_map<size_t,size_t>& cellOrder,
-		 const bool& storeCellOrder=false) 
-{
+                 unordered_map<size_t,size_t>& cellOrder,
+                 const bool& storeCellOrder=false) {
    bool success = true;
-   
+
    // Open VLSV file for reading:
-   T vlsvReader;
+   T vlsvReader;   
+
    if (vlsvReader.open(fileName) == false) {
       cerr << "Failed to open '" << fileName << "'" << endl;
       return false;
@@ -297,7 +298,7 @@ bool convertSILO(const string fileName,
       cerr << "Failed to read mesh names" << endl;
       exit(1);
    }
-   
+
    // Clear old data
    orderedData->clear();
 
@@ -306,7 +307,7 @@ bool convertSILO(const string fileName,
 
       if (convertMesh(vlsvReader, *it, varToExtract, compToExtract, orderedData, cellOrder, storeCellOrder) == false) {
          return false;
-      }
+      }      
    }
    vlsvReader.close();
    return success;
@@ -384,9 +385,9 @@ bool pDistance(const map<uint, Real>& orderedData1,
                const std::string& meshName,
                const std::string& varName
               ) {
-
    map<uint,Real> shiftedData2;
-   map<uint,Real>* data2 = const_cast< map<uint,Real>* >(&orderedData2);
+   map<uint,Real>* data2 = const_cast< map<uint,Real>* >(&orderedData2);   
+
    if (doShiftAverage == true) {
       shiftAverage(&orderedData1,&orderedData2,&shiftedData2);
       data2 = &shiftedData2;
@@ -728,6 +729,7 @@ uint32_t getBlockId( const double vx,
 // return false or true depending on whether the operation was successful
 template <class T>
 bool readAvgs( T & vlsvReader,
+               string name,
                const unordered_map<uint64_t, pair<uint64_t, uint32_t>> & cellsWithBlocksLocations,
                const uint64_t & cellId, 
                unordered_map<uint32_t, array<double, 64> > & avgs ) {
@@ -736,13 +738,14 @@ bool readAvgs( T & vlsvReader,
    if( getBlockIds( vlsvReader, cellsWithBlocksLocations, cellId, blockIds ) == false ) { return false; }
    // Read avgs:
    list<pair<string, string> > attribs;
-   attribs.push_back(make_pair("name", "avgs"));
+   attribs.push_back(make_pair("name", name));
    attribs.push_back(make_pair("mesh", attributes["--meshname"]));
 
    datatype::type dataType;
    uint64_t arraySize, vectorSize, dataSize;
    if (vlsvReader.getArrayInfo("BLOCKVARIABLE", attribs, arraySize, vectorSize, dataType, dataSize) == false) {
-      cerr << "ERROR READING BLOCKVARIABLE AT " << __FILE__ << " " << __LINE__ << endl;
+      //no 
+//      cerr << "ERROR READING BLOCKVARIABLE AT " << __FILE__ << " " << __LINE__ << endl;
       return false;
    }
 
@@ -959,13 +962,18 @@ bool compareAvgs( const string fileName1,
       unordered_map<uint32_t, array<double, velocityCellsPerBlock> > avgs1;
       unordered_map<uint32_t, array<double, velocityCellsPerBlock> > avgs2;
       // Store the avgs in avgs1 and 2:
-      if( readAvgs( vlsvReader1, cellsWithBlocksLocations1, cellId1, avgs1 ) == false ) {
-         cerr << "ERROR, FAILED TO READ AVGS AT " << __FILE__ << " " << __LINE__ << endl;
-         return false;
+      if( readAvgs( vlsvReader1, "proton", cellsWithBlocksLocations1, cellId1, avgs1 ) == false ) {
+         if( readAvgs( vlsvReader1, "avgs", cellsWithBlocksLocations1, cellId1, avgs1 ) == false ) {
+            cerr << "ERROR, FAILED TO READ AVGS AT " << __FILE__ << " " << __LINE__ << endl;
+            return false;
+         }
       }
-      if( readAvgs( vlsvReader2, cellsWithBlocksLocations2, cellId2, avgs2 ) == false ) {
-         cerr << "ERROR, FAILED TO READ AVGS AT " << __FILE__ << " " << __LINE__ << endl;
-         return false;
+      
+      if( readAvgs( vlsvReader2, "proton", cellsWithBlocksLocations2, cellId2, avgs2 ) == false ) {
+         if( readAvgs( vlsvReader2, "avgs", cellsWithBlocksLocations2, cellId2, avgs2 ) == false ) {
+            cerr << "ERROR, FAILED TO READ AVGS AT " << __FILE__ << " " << __LINE__ << endl;
+            return false;
+         }
       }
    
       //Compare the avgs values:
@@ -1139,7 +1147,7 @@ bool process2Files(const string fileName1,
    Real absolute, relative, mini, maxi, size, avg, stdev;
 
    // If the user wants to check avgs, call the avgs check function and return it. Otherwise move on to compare variables:
-   if( strcmp(varToExtract, "avgs") == 0 && attributes.find("--no-distrib") == attributes.end()) {
+   if( strcmp(varToExtract, "proton") == 0 && attributes.find("--no-distrib") == attributes.end()) {
       vector<uint64_t> cellIds1;
       vector<uint64_t> cellIds2;
       cellIds1.reserve(1);
@@ -1150,7 +1158,7 @@ bool process2Files(const string fileName1,
       if( compareAvgs<vlsvinterface::Reader, vlsvinterface::Reader>(fileName1, fileName2, verboseOutput, cellIds1, cellIds2) == false ) { return false; }
    } else {
       unordered_map<size_t,size_t> cellOrder;
-
+   
       bool success = true;
       success = convertSILO<vlsvinterface::Reader>(fileName1, varToExtract, compToExtract, &orderedData1, cellOrder, true);
 
@@ -1164,7 +1172,7 @@ bool process2Files(const string fileName1,
       if( success == false ) {
          cerr << "ERROR Data import error with " << fileName2 << endl;
          return 1;
-      }
+      }   
 
       // Basic consistency check
       if(orderedData1.size() != orderedData2.size()) {
@@ -1182,7 +1190,7 @@ bool process2Files(const string fileName1,
          if (outputFileName[0] == '.' && outputFileName[1] == '/') {
             outputFileName = outputFileName.substr(2,string::npos);
          }
-
+         
          for (size_t s=0; s<outputFileName.size(); ++s)
            if (outputFileName[s] == '/') outputFileName[s] = '_';
 
@@ -1334,7 +1342,7 @@ int main(int argn,char* args[]) {
    map<string,string> defAttribs;
    map<string,string> descriptions;
    defAttribs.insert(make_pair("--meshname","SpatialGrid"));
-   defAttribs.insert(make_pair("--filemask","fullf"));
+   defAttribs.insert(make_pair("--filemask","bulk"));
    defAttribs.insert(make_pair("--help",""));
    defAttribs.insert(make_pair("--no-distrib",""));
    defAttribs.insert(make_pair("--diff",""));
@@ -1387,7 +1395,7 @@ int main(int argn,char* args[]) {
       }
       ++i;
    }
-   
+
    if (attributes.find("--help") != attributes.end()) {
       printHelp(defAttribs,descriptions);
       return 0;
@@ -1413,7 +1421,8 @@ int main(int argn,char* args[]) {
    // 2nd arg is file2 name
    const string fileName2 = argsVector[2];
    // 3rd arg is variable name
-   const char* varToExtract = argsVector[3].c_str();;
+   const char* varToExtract = argsVector[3].c_str();
+
    // 4th arg is its component, 0 for scalars, 2 for z component etc
    uint compToExtract = atoi(argsVector[4].c_str());
    // 5h arg if there is one:

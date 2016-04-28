@@ -784,45 +784,53 @@ void calculateHallTermSimple(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    SysBoundary& sysBoundaries,
    const vector<CellID>& localCells,
-   cint& RKCase
+   cint& RKCase,
+   const bool communicateDerivatives
 ) {
 
    namespace fs = fieldsolver;
    int timer;
+   size_t N_cells;
    phiprof::start("Calculate Hall term");
-   SpatialCell::set_mpi_transfer_type(Transfer::CELL_DERIVATIVES);
+   if(communicateDerivatives) {
+      SpatialCell::set_mpi_transfer_type(Transfer::CELL_DERIVATIVES);
 
-   fs_cache::CacheContainer& cacheContainer = fs_cache::getCache();
+      fs_cache::CacheContainer& cacheContainer = fs_cache::getCache();
 
-   timer=phiprof::initializeTimer("Start communication of derivatives","MPI");
-   phiprof::start(timer);
-   mpiGrid.start_remote_neighbor_copy_updates(FIELD_SOLVER_NEIGHBORHOOD_ID);
-   phiprof::stop(timer);
+      timer=phiprof::initializeTimer("Start communication of derivatives","MPI");
+      phiprof::start(timer);
+      mpiGrid.start_remote_neighbor_copy_updates(FIELD_SOLVER_NEIGHBORHOOD_ID);
+      phiprof::stop(timer);
 
-   // Calculate Hall term on inner cells
-   timer=phiprof::initializeTimer("Compute inner cells");
-   phiprof::start(timer);
-   calculateHallTerm(sysBoundaries,cacheContainer.localCellsCache,cacheContainer.cellsWithLocalNeighbours,RKCase);
-   phiprof::stop(timer,cacheContainer.cellsWithLocalNeighbours.size(),"Spatial Cells");
+      // Calculate Hall term on inner cells
+      timer=phiprof::initializeTimer("Compute inner cells");
+      phiprof::start(timer);
+      calculateHallTerm(sysBoundaries,cacheContainer.localCellsCache,cacheContainer.cellsWithLocalNeighbours,RKCase);
+      phiprof::stop(timer,cacheContainer.cellsWithLocalNeighbours.size(),"Spatial Cells");
 
-   timer=phiprof::initializeTimer("Wait for receives","MPI","Wait");
-   phiprof::start(timer);
-   mpiGrid.wait_remote_neighbor_copy_update_receives(FIELD_SOLVER_NEIGHBORHOOD_ID);
-   phiprof::stop(timer);
-   
-   // Calculate Hall term on boundary cells:
-   timer=phiprof::initializeTimer("Compute boundary cells");
-   phiprof::start(timer);
-   calculateHallTerm(sysBoundaries,cacheContainer.localCellsCache,cacheContainer.cellsWithRemoteNeighbours,RKCase);
-   phiprof::stop(timer,cacheContainer.cellsWithRemoteNeighbours.size(),"Spatial Cells");
+      timer=phiprof::initializeTimer("Wait for receives","MPI","Wait");
+      phiprof::start(timer);
+      mpiGrid.wait_remote_neighbor_copy_update_receives(FIELD_SOLVER_NEIGHBORHOOD_ID);
+      phiprof::stop(timer);
+      
+      // Calculate Hall term on boundary cells:
+      timer=phiprof::initializeTimer("Compute boundary cells");
+      phiprof::start(timer);
+      calculateHallTerm(sysBoundaries,cacheContainer.localCellsCache,cacheContainer.cellsWithRemoteNeighbours,RKCase);
+      phiprof::stop(timer,cacheContainer.cellsWithRemoteNeighbours.size(),"Spatial Cells");
 
-   timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
-   phiprof::start(timer);
-   mpiGrid.wait_remote_neighbor_copy_update_sends();
-   phiprof::stop(timer);
+      timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
+      phiprof::start(timer);
+      mpiGrid.wait_remote_neighbor_copy_update_sends();
+      phiprof::stop(timer);
 
-   const size_t N_cells = cacheContainer.cellsWithRemoteNeighbours.size()
-     + cacheContainer.cellsWithLocalNeighbours.size();
+      N_cells = cacheContainer.cellsWithRemoteNeighbours.size()
+      + cacheContainer.cellsWithLocalNeighbours.size();
+   } else {
+      fs_cache::CacheContainer& cacheContainer = fs_cache::getCache();
+      calculateHallTerm(sysBoundaries,cacheContainer.localCellsCache,cacheContainer.local_NOT_DO_NOT_COMPUTE,RKCase);
+      N_cells = cacheContainer.local_NOT_DO_NOT_COMPUTE.size();
+   }
 
    phiprof::stop("Calculate Hall term",N_cells,"Spatial Cells");
 }

@@ -19,4 +19,4 @@ struct Particle {
 };
 
 
-void write_particles(std::vector<Particle>& p, const char* filename);
+void writeParticles(std::vector<Particle>& p, const char* filename);

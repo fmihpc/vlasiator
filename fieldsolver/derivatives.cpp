@@ -7,6 +7,7 @@ Copyright 2015 Finnish Meteorological Institute
 
 #include <cstdlib>
 
+#include "fs_common.h"
 #include "derivatives.hpp"
 #include "fs_limiters.h"
 #include "fs_cache.h"
@@ -25,7 +26,7 @@ extern map<CellID,uint> existingCellsFlags; /**< Defined in fs_common.cpp */
  * \sa calculateDerivativesSimple calculateBVOLDerivativesSimple calculateBVOLDerivatives
  */
 void calculateDerivatives(
-   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    fs_cache::CellCache& cellCache,
    SysBoundary& sysBoundaries,
    cint& RKCase,
@@ -382,12 +383,11 @@ void calculateDerivatives(
  * \sa calculateDerivatives calculateBVOLDerivativesSimple calculateBVOLDerivatives
  */
 void calculateDerivativesSimple(
-   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    SysBoundary& sysBoundaries,
    const vector<CellID>& localCells,
    cint& RKCase,
-   const bool& doMoments
-) {
+   const bool& doMoments) {
    int timer;
    namespace fs = fieldsolver;
 
@@ -401,19 +401,19 @@ void calculateDerivativesSimple(
       // standard case Exchange PERB* with neighbours
       // The update of PERB[XYZ] is needed after the system
       // boundary update of propagateMagneticFieldSimple.
-      SpatialCell::set_mpi_transfer_type(Transfer::CELL_PERB | Transfer::CELL_RHO_RHOV | Transfer::CELL_P);
+      spatial_cell::SpatialCell::set_mpi_transfer_type(Transfer::CELL_PERB | Transfer::CELL_RHO_RHOV | Transfer::CELL_P);
       break;
     case RK_ORDER2_STEP1:
       // Exchange PERB*_DT2,RHO_DT2,RHOV*_DT2 with neighbours The
       // update of PERB[XYZ]_DT2 is needed after the system
       // boundary update of propagateMagneticFieldSimple.
-      SpatialCell::set_mpi_transfer_type(Transfer::CELL_PERBDT2 | Transfer::CELL_RHODT2_RHOVDT2 | Transfer::CELL_PDT2);
+      spatial_cell::SpatialCell::set_mpi_transfer_type(Transfer::CELL_PERBDT2 | Transfer::CELL_RHODT2_RHOVDT2 | Transfer::CELL_PDT2);
       break;
     case RK_ORDER2_STEP2:
       // Exchange PERB*,RHO,RHOV* with neighbours The update of B
       // is needed after the system boundary update of
       // propagateMagneticFieldSimple.
-      SpatialCell::set_mpi_transfer_type(Transfer::CELL_PERB | Transfer::CELL_RHO_RHOV | Transfer::CELL_P);
+      spatial_cell::SpatialCell::set_mpi_transfer_type(Transfer::CELL_PERB | Transfer::CELL_RHO_RHOV | Transfer::CELL_P);
       break;
     default:
       cerr << __FILE__ << ":" << __LINE__ << " Went through switch, this should not happen." << endl;
@@ -474,12 +474,11 @@ void calculateDerivativesSimple(
  * 
  * \sa calculateDerivatives calculateBVOLDerivativesSimple calculateDerivativesSimple
  */
-void calculateBVOLDerivatives(
-   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   std::vector<fs_cache::CellCache>& cache,
-   const std::vector<uint16_t>& cells,
-   SysBoundary& sysBoundaries
-) {
+
+void calculateBVOLDerivatives(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                              std::vector<fs_cache::CellCache>& cache,
+                              const std::vector<uint16_t>& cells,
+                              SysBoundary& sysBoundaries) {
    #warning This function still contains mpiGrid!
 
    namespace cp = CellParams;
@@ -568,7 +567,7 @@ void calculateBVOLDerivatives(
  * \sa calculateDerivatives calculateBVOLDerivatives calculateDerivativesSimple
  */
 void calculateBVOLDerivativesSimple(
-   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    SysBoundary& sysBoundaries,
    const vector<CellID>& localCells
 ) {
@@ -577,7 +576,7 @@ void calculateBVOLDerivativesSimple(
    
    phiprof::start("Calculate volume derivatives");
    
-   SpatialCell::set_mpi_transfer_type(Transfer::CELL_BVOL);
+   spatial_cell::SpatialCell::set_mpi_transfer_type(Transfer::CELL_BVOL);
    mpiGrid.update_copies_of_remote_neighbors(FIELD_SOLVER_NEIGHBORHOOD_ID);
    
    timer=phiprof::initializeTimer("Start comm","MPI");

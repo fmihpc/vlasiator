@@ -1,7 +1,7 @@
 /*
 This file is part of Vlasiator.
 
-Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
+Copyright 2010-2015 Finnish Meteorological Institute
 */
 
 /*! \file vlsvdiff.cpp
@@ -15,12 +15,16 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #include <sstream>
 #include <ctime>
 #include <array>
+#include <algorithm>
+#include <limits>
+
 #include "iowrite.h"
 #include "grid.h"
 #include "phiprof.hpp"
 #include "parameters.h"
 #include "logger.h"
 #include "vlasovmover.h"
+#include "object_wrapper.h"
 
 using namespace std;
 using namespace phiprof;
@@ -30,6 +34,9 @@ extern Logger logFile, diagnostic;
 
 typedef Parameters P;
 
+bool writeVelocityDistributionData(const int& popID,Writer& vlsvWriter,
+                                   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                   const std::vector<CellID>& cells,MPI_Comm comm);
 
 /*! Updates local ids across MPI to let other processes know in which order this process saves the local cell ids
  \param mpiGrid Vlasiator's MPI grid
@@ -37,16 +44,16 @@ typedef Parameters P;
  \param comm The MPi comm
  \return Returns true if operation was successful
  */
-bool updateLocalIds(  dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> & mpiGrid,
-                      const vector<uint64_t> & local_cells,
+bool updateLocalIds(  dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                      const std::vector<CellID> & local_cells,
                       MPI_Comm comm ) {
    int myRank;
    MPI_Comm_rank(comm,&myRank);
 
    //Declare an iterator for iterating though the cell ids
-   vector<uint64_t>::const_iterator it;
+   vector<CellID>::const_iterator it;
    //Local ids for the process start from 0 (this is used in the iteration)
-   uint64_t thisProcessLocalId = 0;
+   CellID thisProcessLocalId = 0;
    //Iterate through local cells
    for( it = local_cells.begin(); it != local_cells.end(); ++it ) {
       //NOTE: (*it) = cellId
@@ -95,26 +102,43 @@ bool globalSuccess(bool success,string errorMessage,MPI_Comm comm){
  @return Returns true if operation was successful.*/
 bool writeVelocityDistributionData(Writer& vlsvWriter,
                                    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                   const vector<uint64_t> & cells,MPI_Comm comm) {
+                                   const vector<CellID>& cells,MPI_Comm comm) {
+   bool success = true;
+   for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
+      if (writeVelocityDistributionData(p,vlsvWriter,mpiGrid,cells,comm) == false) success = false;
+   }
+   return success;
+}
+
+/** Writes the velocity distribution of specified population into the file.
+ @param vlsvWriter Some vlsv writer with a file open.
+ @param mpiGrid Vlasiator's grid.
+ @param cells Vector of local cells within this process (no ghost cells).
+ @param comm The MPI communicator.
+ @return Returns true if operation was successful.*/
+bool writeVelocityDistributionData(const int& popID,Writer& vlsvWriter,
+                                   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                   const std::vector<CellID>& cells,MPI_Comm comm) {
    // Write velocity blocks and related data. 
    // In restart we just write velocity grids for all cells.
    // First write global Ids of those cells which write velocity blocks (here: all cells):
    map<string,string> attribs;
-   const string popName      = "avgs";
+   const string popName      = getObjectWrapper().particleSpecies[popID].name;
    const string spatMeshName = "SpatialGrid";
    attribs["name"] = popName;
    bool success=true;
 
    // Compute totalBlocks
-   uint64_t totalBlocks = 0;  
-   vector<uint> blocksPerCell;   
+   uint64_t totalBlocks = 0;
+   vector<vmesh::LocalID> blocksPerCell;
    for (size_t cell=0; cell<cells.size(); ++cell){
-      totalBlocks+=mpiGrid[cells[cell]]->get_number_of_velocity_blocks();
-      blocksPerCell.push_back(mpiGrid[cells[cell]]->get_number_of_velocity_blocks());
+      totalBlocks+=mpiGrid[cells[cell]]->get_number_of_velocity_blocks(popID);
+      blocksPerCell.push_back(mpiGrid[cells[cell]]->get_number_of_velocity_blocks(popID));
    }
 
    // The name of the mesh is "SpatialGrid"
    attribs["mesh"] = spatMeshName;
+
    const unsigned int vectorSize = 1;
    // Write the array:
    if (vlsvWriter.writeArray("CELLSWITHBLOCKS",attribs,cells.size(),vectorSize,cells.data()) == false) success = false;
@@ -124,30 +148,36 @@ bool writeVelocityDistributionData(Writer& vlsvWriter,
    if (success == false) logFile << "(MAIN) writeGrid: ERROR failed to write CELLSWITHBLOCKS to file!" << endl << writeVerbose;
 
    // Write (partial) velocity mesh data
-   const uint8_t refLevel = 0; // Mesh refinement level, 0 here since velocity mesh is unrefined
    uint64_t bbox[6];
-   bbox[0] = vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::getGridLength(refLevel)[0];
-   bbox[1] = vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::getGridLength(refLevel)[1];
-   bbox[2] = vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::getGridLength(refLevel)[2];
-   bbox[3] = WID;
-   bbox[4] = WID;
-   bbox[5] = WID;
+   const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
+   bbox[0] = getObjectWrapper().velocityMeshes[meshID].gridLength[0];
+   bbox[1] = getObjectWrapper().velocityMeshes[meshID].gridLength[1];
+   bbox[2] = getObjectWrapper().velocityMeshes[meshID].gridLength[2];
+   bbox[3] = getObjectWrapper().velocityMeshes[meshID].blockLength[0];
+   bbox[4] = getObjectWrapper().velocityMeshes[meshID].blockLength[1];
+   bbox[5] = getObjectWrapper().velocityMeshes[meshID].blockLength[2];
 
    attribs.clear();
-   attribs["mesh"] = popName;
+   attribs["mesh"] = getObjectWrapper().particleSpecies[popID].name;
    attribs["type"] = vlsv::mesh::STRING_UCD_AMR;
+
+   // stringstream is necessary here to correctly convert refLevelMaxAllowed into a string 
+   stringstream ss;
+   ss << static_cast<unsigned int>(getObjectWrapper().velocityMeshes[meshID].refLevelMaxAllowed);
+   attribs["max_velocity_ref_level"] = ss.str();
+   
    if (mpiGrid.get_rank() == MASTER_RANK) {
       if (vlsvWriter.writeArray("MESH_BBOX",attribs,6,1,bbox) == false) success = false;
-      
+
       for (int crd=0; crd<3; ++crd) {
          const size_t N_nodes = bbox[crd]*bbox[crd+3]+1;
          Real* crds = new Real[N_nodes];
-         const Real dV = vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::getCellSize(refLevel)[crd];
+         const Real dV = getObjectWrapper().velocityMeshes[meshID].cellSize[crd];
 
          for (size_t i=0; i<N_nodes; ++i) {
-            crds[i] = vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::getMeshMinLimits()[crd] + i*dV;
+            crds[i] = getObjectWrapper().velocityMeshes[meshID].meshMinLimits[crd] + i*dV;
          }
-         
+
          if (crd == 0) {
             if (vlsvWriter.writeArray("MESH_NODE_CRDS_X",attribs,N_nodes,1,crds) == false) success = false;
          }
@@ -166,16 +196,16 @@ bool writeVelocityDistributionData(Writer& vlsvWriter,
       if (vlsvWriter.writeArray("MESH_NODE_CRDS_Y",attribs,0,1,crds) == false) success = false;
       if (vlsvWriter.writeArray("MESH_NODE_CRDS_Z",attribs,0,1,crds) == false) success = false;
    }
-   
-   // Write velocity block ids
+
+   // Write velocity block IDs
    vector<vmesh::GlobalID> velocityBlockIds;
    try {
       velocityBlockIds.reserve( totalBlocks );
       // gather data for writing
       for (size_t cell=0; cell<cells.size(); ++cell) {
          SpatialCell* SC = mpiGrid[cells[cell]];
-         for (vmesh::LocalID block_i=0; block_i<SC->get_number_of_velocity_blocks(); ++block_i) {
-            vmesh::GlobalID block = SC->get_velocity_block_global_id(block_i);
+         for (vmesh::LocalID block_i=0; block_i<SC->get_number_of_velocity_blocks(popID); ++block_i) {
+            vmesh::GlobalID block = SC->get_velocity_block_global_id(block_i,popID);
             velocityBlockIds.push_back( block );
          }
       }
@@ -199,7 +229,7 @@ bool writeVelocityDistributionData(Writer& vlsvWriter,
    }
 
    // Write the velocity space data
-   // set everything that is needed for writing in data such as the array's name, size, data type, etc..
+   // set everything that is needed for writing in data such as the array name, size, datatype, etc..
    attribs.clear();
    attribs["mesh"] = spatMeshName; // Name of the spatial mesh
    attribs["name"] = popName;      // Name of the velocity space distribution is written avgs
@@ -219,8 +249,8 @@ bool writeVelocityDistributionData(Writer& vlsvWriter,
       SpatialCell* SC = mpiGrid[cells[cell]];
       
       // Get the number of blocks in this cell
-      const uint64_t arrayElements = SC->get_number_of_velocity_blocks();
-      char* arrayToWrite = reinterpret_cast<char*>(SC->get_data());
+      const uint64_t arrayElements = SC->get_number_of_velocity_blocks(popID);
+      char* arrayToWrite = reinterpret_cast<char*>(SC->get_data(popID));
 
       // Add a subarray to write
       vlsvWriter.addMultiwriteUnit(arrayToWrite, arrayElements); // Note: We told beforehands that the vectorsize = WID3 = 64
@@ -253,26 +283,33 @@ bool writeVelocityDistributionData(Writer& vlsvWriter,
  \return Returns true if operation was successful
  */
 bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                      const vector<uint64_t>& cells,
+                      const std::vector<CellID>& cells,
                       const bool writeAsFloat,
                       DataReducer& dataReducer,
                       int dataReducerIndex,
                       Writer& vlsvWriter){
-   map<string,string> attribs;                      
+   map<string,string> attribs;
    string variableName,dataType;
    bool success=true;
 
+   const string meshName = "SpatialGrid";
+
+   // If the DataReducer can write its data directly to the output file, do it here.
+   // Otherwise the output data is buffered and written below.
+   if (dataReducer.handlesWriting(dataReducerIndex) == true) {
+      return dataReducer.writeData(dataReducerIndex,mpiGrid,cells,meshName,vlsvWriter);
+   }
+
    //Get basic data on a variable:
    uint dataSize,vectorSize;
-   attribs["mesh"] = "SpatialGrid";
+   attribs["mesh"] = meshName;
    variableName = dataReducer.getName(dataReducerIndex);
    attribs["name"] = variableName;
    if (dataReducer.getDataVectorInfo(dataReducerIndex,dataType,dataSize,vectorSize) == false) {
       cerr << "ERROR when requesting info from DRO " << dataReducerIndex << endl;
       return false;
    }
-  
-   
+
    const uint64_t varBufferArraySize = cells.size()*vectorSize*dataSize;
    
    //Request DataReductionOperator to calculate the reduced data for all local cells:
@@ -285,8 +322,7 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       return false;
    }
 
-
-   for (uint64_t cell=0; cell<cells.size(); ++cell) {
+   for (size_t cell=0; cell<cells.size(); ++cell) {
       //Reduce data ( return false if the operation fails )
       if (dataReducer.reduceData(mpiGrid[cells[cell]],dataReducerIndex,varBuffer + cell*vectorSize*dataSize) == false){
          success = false;
@@ -388,23 +424,24 @@ bool writeCommonGridData(
    if( vlsvWriter.writeParameter("xcells_ini", &P::xcells_ini) == false ) { return false; }
    if( vlsvWriter.writeParameter("ycells_ini", &P::ycells_ini) == false ) { return false; }
    if( vlsvWriter.writeParameter("zcells_ini", &P::zcells_ini) == false ) { return false; }
-   if( vlsvWriter.writeParameter("vxmin", &P::vxmin) == false ) { return false; }
-   if( vlsvWriter.writeParameter("vxmax", &P::vxmax) == false ) { return false; }
-   if( vlsvWriter.writeParameter("vymin", &P::vymin) == false ) { return false; }
-   if( vlsvWriter.writeParameter("vymax", &P::vymax) == false ) { return false; }
-   if( vlsvWriter.writeParameter("vzmin", &P::vzmin) == false ) { return false; }
-   if( vlsvWriter.writeParameter("vzmax", &P::vzmax) == false ) { return false; }
-   if( vlsvWriter.writeParameter("vxblocks_ini", &P::vxblocks_ini) == false ) { return false; }
-   if( vlsvWriter.writeParameter("vyblocks_ini", &P::vyblocks_ini) == false ) { return false; }
-   if( vlsvWriter.writeParameter("vzblocks_ini", &P::vzblocks_ini) == false ) { return false; }
-   if ( vlsvWriter.writeParameter("max_velocity_ref_level", &P::amrMaxVelocityRefLevel) == false) {return false;}
+
+#warning Vel Mesh parameters skipped, check that everything still works
+   //if( vlsvWriter.writeParameter("vxmin", &P::vxmin) == false ) { return false; }
+   //if( vlsvWriter.writeParameter("vxmax", &P::vxmax) == false ) { return false; }
+   //if( vlsvWriter.writeParameter("vymin", &P::vymin) == false ) { return false; }
+   //if( vlsvWriter.writeParameter("vymax", &P::vymax) == false ) { return false; }
+   //if( vlsvWriter.writeParameter("vzmin", &P::vzmin) == false ) { return false; }
+   //if( vlsvWriter.writeParameter("vzmax", &P::vzmax) == false ) { return false; }
+   //if( vlsvWriter.writeParameter("vxblocks_ini", &P::vxblocks_ini) == false ) { return false; }
+   //if( vlsvWriter.writeParameter("vyblocks_ini", &P::vyblocks_ini) == false ) { return false; }
+   //if( vlsvWriter.writeParameter("vzblocks_ini", &P::vzblocks_ini) == false ) { return false; }
+   //if( vlsvWriter.writeParameter("max_velocity_ref_level", &P::amrMaxVelocityRefLevel) == false) {return false;}
 
    //Mark the new version:
-   float version = 1.00;
+   float version = 3.00;
    if( vlsvWriter.writeParameter( "version", &version ) == false ) { return false; }
    return true; 
 }
-
 
 /*! Writes ghost cell ids into the file
  \param mpiGrid Vlasiator's grid
@@ -819,7 +856,7 @@ bool checkForSameMembers( const vector<uint64_t> local_cells, const vector<uint6
 \param writeGhosts If true, writes out ghost cells (cells that exist on the process boundary so other process' cells)
 */
 bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-               DataReducer& dataReducer,
+               DataReducer* dataReducer,
                const uint& index,
                const bool writeGhosts ) {
    double allStart = MPI_Wtime();
@@ -904,15 +941,37 @@ bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    phiprof::start("reduceddataIO");
    //Write necessary variables:
    //Determines whether we write in floats or doubles
-   for( uint i = 0; i < dataReducer.size(); ++i ) {
-      if( writeDataReducer( mpiGrid, local_cells, (P::writeAsFloat==1), dataReducer, i, vlsvWriter ) == false ) return false;
+   if (dataReducer != NULL) for( uint i = 0; i < dataReducer->size(); ++i ) {
+      if( writeDataReducer( mpiGrid, local_cells, (P::writeAsFloat==1), *dataReducer, i, vlsvWriter ) == false ) return false;
    }
+   
+   phiprof::initializeTimer("Barrier","MPI","Barrier");
+   phiprof::start("Barrier");
+   MPI_Barrier(MPI_COMM_WORLD);
+   phiprof::stop("Barrier");
+   
+   const uint64_t bytesWritten = vlsvWriter.getBytesWritten();
+   const double writeTime = vlsvWriter.getWriteTime();
+   logFile << "(writeGrid) Wrote ";
+
+   if (bytesWritten > 1.0e9) logFile << bytesWritten/1.0e9 << " GB in ";
+   else if (bytesWritten > 1e6) logFile << bytesWritten/1.0e6 << " MB in ";
+   else if (bytesWritten > 1e3) logFile << bytesWritten/1.0e3 << " kB in ";
+   else logFile << bytesWritten << " B in ";
+
+   logFile << writeTime << " seconds, approximate data rate is ";
+
+   if (bytesWritten/writeTime > 1e9) logFile << bytesWritten/writeTime/1e9 << " GB/s";
+   else if (bytesWritten/writeTime > 1e6) logFile << bytesWritten/writeTime/1e6 << " MB/s";
+   else if (bytesWritten/writeTime > 1e3) logFile << bytesWritten/writeTime/1e3 << " kB/s";
+   else logFile << bytesWritten/writeTime << " B/s";
+   logFile << endl;
+
    phiprof::stop("reduceddataIO");
 
    phiprof::start("close");
    vlsvWriter.close();
    phiprof::stop("close");
-   const uint64_t bytesWritten = vlsvWriter.getBytesWritten();
    phiprof::stop("writeGrid-reduced",bytesWritten*1e-9,"GB");
    return success;
 }
@@ -942,19 +1001,28 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    MPI_Barrier(MPI_COMM_WORLD);
    phiprof::stop("BarrierEnteringWriteRestart");
 
-
    phiprof::start("writeRestart");
    phiprof::start("DeallocateRemoteBlocks");
    //deallocate blocks in remote cells to decrease memory load
    deallocateRemoteCellBlocks(mpiGrid);
    phiprof::stop("DeallocateRemoteBlocks");
    
+   // Get the current time.
+   // Avoid different times on different processes!
+   char currentDate[80];
+   if(myRank == MASTER_RANK) {
+      const time_t rawTime = time(NULL);
+      const struct tm * timeInfo = localtime(&rawTime);
+      strftime(currentDate, 80, "%F_%H-%M-%S", timeInfo);
+   }
+   MPI_Bcast(&currentDate,80,MPI_CHAR,MASTER_RANK,MPI_COMM_WORLD);
+   
    // Create a name for the output file and open it with VLSVWriter:
    stringstream fname;
    fname << P::restartWritePath << "/" << name << ".";
    fname.width(7);
    fname.fill('0');
-   fname << fileIndex << ".vlsv";
+   fname << fileIndex << "." << currentDate << ".vlsv";
 
    phiprof::start("open");
    //Open the file with vlsvWriter:
@@ -971,7 +1039,8 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       char factor[] = "striping_factor";
       MPI_Info_set(MPIinfo, factor, stripeChar);
    }
-   vlsvWriter.open( fname.str(), MPI_COMM_WORLD, masterProcessId, MPIinfo );
+   
+   if( vlsvWriter.open( fname.str(), MPI_COMM_WORLD, masterProcessId, MPIinfo ) == false) return false;
 
    phiprof::stop("open");
 
@@ -1020,7 +1089,8 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("max_fields_dt",CellParams::MAXFDT,1));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("rho_loss_adjust",CellParams::RHOLOSSADJUST,1));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("rho_loss_velocity_boundary",CellParams::RHOLOSSVELBOUNDARY,1));
-   
+   restartReducer.addOperator(new DRO::DataReductionOperatorDerivatives("derivatives",0,fieldsolver::N_SPATIAL_CELL_DERIVATIVES));
+   restartReducer.addOperator(new DRO::DataReductionOperatorBVOLDerivatives("Bvolume_derivatives",0,bvolderivatives::N_BVOL_DERIVATIVES));
    restartReducer.addOperator(new DRO::MPIrank);
    restartReducer.addOperator(new DRO::BoundaryType);
    restartReducer.addOperator(new DRO::BoundaryLayer);
@@ -1045,12 +1115,28 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    phiprof::start("updateRemoteBlocks");
    //Updated newly adjusted velocity block lists on remote cells, and
    //prepare to receive block data
-   updateRemoteVelocityBlockLists(mpiGrid);
+   for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
+      updateRemoteVelocityBlockLists(mpiGrid,popID);
    phiprof::stop("updateRemoteBlocks");
 
    const uint64_t bytesWritten = vlsvWriter.getBytesWritten();
-   phiprof::stop("writeRestart",bytesWritten*1e-9,"GB");
+   const double writeTime = vlsvWriter.getWriteTime();
+   logFile << "(writeGrid) Wrote ";
    
+   if (bytesWritten > 1.0e9) logFile << bytesWritten/1.0e9 << " GB in ";
+   else if (bytesWritten > 1e6) logFile << bytesWritten/1.0e6 << " MB in ";
+   else if (bytesWritten > 1e3) logFile << bytesWritten/1.0e3 << " kB in ";
+   else logFile << bytesWritten << " B in ";
+   
+   logFile << writeTime << " seconds, approximate data rate is ";
+   
+   if (bytesWritten/writeTime > 1e9) logFile << bytesWritten/writeTime/1e9 << " GB/s";
+   else if (bytesWritten/writeTime > 1e6) logFile << bytesWritten/writeTime/1e6 << " MB/s";
+   else if (bytesWritten/writeTime > 1e3) logFile << bytesWritten/writeTime/1e3 << " kB/s";
+   else logFile << bytesWritten/writeTime << " B/s";
+   logFile << endl;
+   
+   phiprof::stop("writeRestart",bytesWritten*1e-9,"GB");
    return success;
 }
 

@@ -24,6 +24,7 @@
 #include <iostream>
 
 #include "donotcompute.h"
+#include "../object_wrapper.h"
 
 using namespace std;
 
@@ -51,9 +52,9 @@ namespace SBC {
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       Project&
    ) {
-      vector<uint64_t> cells = mpiGrid.get_cells();
+      vector<CellID> cells = mpiGrid.get_cells();
 #pragma omp parallel for
-      for (uint i=0; i<cells.size(); ++i) {
+      for (size_t i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
          if(cell->sysBoundaryFlag != this->getIndex()) continue;
          
@@ -79,7 +80,8 @@ namespace SBC {
          
          //let's get rid of blocks not fulfilling the criteria here to save
          //memory.
-         cell->adjustSingleCellVelocityBlocks();
+         for (unsigned int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
+            cell->adjustSingleCellVelocityBlocks(popID);
       }
       
       return true;

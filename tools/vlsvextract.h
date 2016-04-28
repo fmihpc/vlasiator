@@ -69,6 +69,7 @@ public:
       getCellIdFromInput = false;
       getCellIdFromCoordinates = false;
       rotateVectors = false;
+      plasmaFrame =false;
       cellId = std::numeric_limits<uint64_t>::max();
       numberOfCoordinatesInALine = 0;
    }
@@ -76,6 +77,7 @@ public:
    ~UserOptions() {}
 };
 
+bool setVelocityMeshVariables(vlsv::Reader& vlsvReader,CellStructure& cellStruct);
 bool setVelocityMeshVariables(vlsv::Reader& vlsvReader,CellStructure& cellStruct,
                               const std::string& popName);
 

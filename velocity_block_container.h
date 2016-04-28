@@ -33,6 +33,7 @@ namespace vmesh {
       const Realf* getData() const;
       Realf* getData(const LID& blockLID);
       const Realf* getData(const LID& blockLID) const;
+      Realf* getNullData();
       Real* getParameters();
       const Real* getParameters() const;
       Real* getParameters(const LID& blockLID);      
@@ -57,6 +58,7 @@ namespace vmesh {
       void resize();
       
       std::vector<Realf,aligned_allocator<Realf,WID3> > block_data;
+      Realf null_block_data[WID3];
       LID currentCapacity;
       LID numberOfBlocks;
       std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS> > parameters;
@@ -168,7 +170,11 @@ namespace vmesh {
       return block_data.data() + blockLID*WID3;
    }
 
-   
+   template<typename LID> inline
+   Realf* VelocityBlockContainer<LID>::getNullData() {
+       return null_block_data;
+   }
+
    template<typename LID> inline
    Real* VelocityBlockContainer<LID>::getParameters() {
       return parameters.data();

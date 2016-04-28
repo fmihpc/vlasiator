@@ -71,7 +71,12 @@ namespace SBC {
          cuint component
       );
       virtual void fieldSolverBoundaryCondHallElectricField(
-                                                            fs_cache::CellCache& cache,
+         fs_cache::CellCache& cache,
+         cuint RKCase,
+         cuint component
+      );
+      virtual void fieldSolverBoundaryCondGradPeElectricField(
+         fs_cache::CellCache& cache,
          cuint RKCase,
          cuint component
       );
@@ -88,7 +93,8 @@ namespace SBC {
       );
       virtual void vlasovBoundaryCondition(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-         const CellID& cellID
+         const CellID& cellID,
+         const int& popID
       );
       
       virtual std::string getName() const;
@@ -96,14 +102,12 @@ namespace SBC {
       
    protected:
       void generateTemplateCell(Project &project);
-      void setCellFromTemplate(SpatialCell *cell);
+      void setCellFromTemplate(SpatialCell* cell,const int& popID);
       
-      Real shiftedMaxwellianDistribution(
-         creal& vx, creal& vy, creal& vz
-      );
+      Real shiftedMaxwellianDistribution(const int& popID,creal& vx, creal& vy, creal& vz);
       
-      vector<uint> findBlocksToInitialize(
-         SpatialCell& cell
+      vector<vmesh::GlobalID> findBlocksToInitialize(
+         SpatialCell& cell,const int& popID
       );
       
       std::array<Real, 3> fieldSolverGetNormalDirection(
@@ -113,7 +117,7 @@ namespace SBC {
       
       Real center[3]; /*!< Coordinates of the centre of the ionosphere. */
       Real radius; /*!< Radius of the ionosphere. */
-      uint geometry; /*!< Geometry of the ionosphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm (circle, DEFAULT). */
+      uint geometry; /*!< Geometry of the ionosphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm (circle, DEFAULT), 3: polar-plane cylinder with line dipole. */
       
       Real T;
       Real rho;

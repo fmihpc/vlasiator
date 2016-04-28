@@ -10,24 +10,22 @@ namespace vlsvinterface {
          cerr << "Erroneous datatype given to convUInt" << endl;
          exit(1);
       }
-   
       switch (dataSize) {
-         case 1:
-            return *reinterpret_cast<const unsigned char*> (ptr);
-            break;
-         case 2:
-            return *reinterpret_cast<const unsigned short int*> (ptr);
-            break;
-         case 4:
-            return *reinterpret_cast<const unsigned int*> (ptr);
-            break;
-         case 8:
-            return *reinterpret_cast<const unsigned long int*> (ptr);
-            break;
+       case 1:
+         return *reinterpret_cast<const unsigned char*> (ptr);
+         break;
+       case 2:
+         return *reinterpret_cast<const unsigned short int*> (ptr);
+         break;
+       case 4:
+         return *reinterpret_cast<const unsigned int*> (ptr);
+         break;
+       case 8:
+         return *reinterpret_cast<const unsigned long int*> (ptr);
+         break;
       }
       return 0;
    }
-   
    
    float checkVersion( const string & fname ) {
       vlsv::Reader vlsvReader;
@@ -48,7 +46,7 @@ namespace vlsvinterface {
          return 0;
       }
    }
-   
+
    Reader::Reader() : vlsv::Reader() {
       cellIdsSet = false;
       cellsWithBlocksSet = false;
@@ -108,7 +106,12 @@ namespace vlsvinterface {
       std::list< pair<std::string, std::string> > xmlAttributes;
       xmlAttributes.push_back( make_pair( "name", variableName ) );
       xmlAttributes.push_back( make_pair( "mesh", meshName ) );
-      if( getArrayInfo( "VARIABLE", xmlAttributes, amountToReadIn, vectorSize, dataType, byteSize ) == false ) return false;
+
+      if( getArrayInfo("VARIABLE", xmlAttributes, amountToReadIn, vectorSize, dataType, byteSize ) == false ) {
+         cerr << "ERROR, failed to read array info for variable '" << variableName << "' ";
+         cerr << "in mesh '" << meshName << "' at " << __FILE__ << ":" << __LINE__ << endl;
+         return false;
+      }
       if( dataType != vlsv::datatype::type::UINT ) {
          cerr << "ERROR, BAD DATATYPE AT " << __FILE__ << " " << __LINE__ << endl;
          return false;
@@ -125,7 +128,10 @@ namespace vlsvinterface {
       //Read in cell ids to the buffer:
       const uint16_t begin = 0;
       const bool allocateMemory = false;
-      if( read( "VARIABLE", xmlAttributes, begin, amountToReadIn, cellIds_buffer, allocateMemory ) == false ) return false;
+      if( read( "VARIABLE", xmlAttributes, begin, amountToReadIn, cellIds_buffer, allocateMemory ) == false ) {
+         cerr << "ERROR, Failed to read variable data at " << __FILE__ << ":" << __LINE__ << endl;
+         return false;
+      }
       //Input cell ids:
       cellIds.reserve( amountToReadIn * vectorSize );
       for( uint64_t i = 0; i < amountToReadIn * vectorSize; ++i ) {
@@ -175,7 +181,7 @@ namespace vlsvinterface {
       cellIdsSet = true;
       return true;
    }
-   
+
    bool Reader::setCellsWithBlocks(const std::string& meshName,const std::string& popName) {
       if(cellsWithBlocksLocations.empty() == false) {
          cellsWithBlocksLocations.clear();
@@ -183,11 +189,13 @@ namespace vlsvinterface {
       vlsv::datatype::type cwb_dataType;
       uint64_t cwb_arraySize, cwb_vectorSize, cwb_dataSize;
       list<pair<string, string> > attribs;
-   
-      //Get the mesh name for reading in data from the correct place
+
+      // Get the mesh name for reading in data from the correct place. Older Vlasiator VLSV
+      // files did not add particle population name to arrays, so for those files we do 
+      // not require the popName to be present.
       attribs.push_back(make_pair("mesh", meshName));
-      attribs.push_back(make_pair("name", popName));
-   
+      if (popName.size() > 0) attribs.push_back(make_pair("name", popName));
+
       //Get array info
       if (getArrayInfo("CELLSWITHBLOCKS", attribs, cwb_arraySize, cwb_vectorSize, cwb_dataType, cwb_dataSize) == false) {
          cerr << "ERROR, COULD NOT FIND ARRAY CELLSWITHBLOCKS FOR POPULATION '" << popName << "' AT " << __FILE__ << ":" << __LINE__ << endl;
@@ -255,7 +263,7 @@ namespace vlsvinterface {
       cellsWithBlocksSet = true;
       return true;
    }
-   
+
    bool Reader::getBlockIds(const uint64_t& cellId,std::vector<uint64_t>& blockIds,const std::string& popName) {
       if( cellsWithBlocksSet == false ) {
          cerr << "ERROR, setCellsWithBlocks() NOT CALLED AT (CALL setCellsWithBlocks()) BEFORE CALLING getBlockIds " << __FILE__ << " " << __LINE__ << endl;
@@ -274,8 +282,8 @@ namespace vlsvinterface {
    
       // Get some required info from VLSV file:
       list<pair<string, string> > attribs;
-      attribs.push_back(make_pair("name",popName));
-      
+      if (popName.size() > 0) attribs.push_back(make_pair("name",popName));
+
       //READ BLOCK IDS:
       uint64_t blockIds_arraySize, blockIds_vectorSize, blockIds_dataSize;
       vlsv::datatype::type blockIds_dataType;
@@ -324,7 +332,7 @@ namespace vlsvinterface {
       list<pair<string, string> > attribs;
       attribs.push_back(make_pair("name", variableName));
       attribs.push_back(make_pair("mesh", "SpatialGrid"));
-   
+
       vlsv::datatype::type dataType;
       uint64_t arraySize, vectorSize, dataSize;
       if (getArrayInfo("BLOCKVARIABLE", attribs, arraySize, vectorSize, dataType, dataSize) == false) {

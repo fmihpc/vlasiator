@@ -9,7 +9,7 @@ static double gamma(Vec3d v) {
 }
 
 /* Lorentz-boost */
-static Vec3d lorentz_boost(Vec3d& u, Vec3d& v) {
+static Vec3d lorentzBoost(Vec3d& u, Vec3d& v) {
    /* Transform velocities into betas */
    Vec3d uprime = u / PhysicalConstantsSI::c;
    Vec3d vprime = v / PhysicalConstantsSI::c;
