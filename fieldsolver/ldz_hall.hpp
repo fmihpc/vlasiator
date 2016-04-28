@@ -8,6 +8,7 @@ Copyright 2010, 2011, 2012, 2013, 2014 Finnish Meteorological Institute
 #ifndef LDZ_HALL_HPP
 #define LDZ_HALL_HPP
 
+
 void calculateEdgeHallTermXComponents(
    Real* cp,
    Real* derivs,
@@ -40,7 +41,8 @@ void calculateHallTermSimple(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    SysBoundary& sysBoundaries,
    const vector<CellID>& localCells,
-   cint& RKCase
+   cint& RKCase,
+   const bool communicateDerivatives
 );
 
 #endif

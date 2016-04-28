@@ -1,23 +1,13 @@
 /*
  * This file is part of Vlasiator.
  * 
- * Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
+ * Copyright 2010-2013,2015 Finnish Meteorological Institute
  * 
  */
 
 /*!\file setbyuser.cpp
- * \brief Implementation of the class SysBoundaryCondition::SetByUser. This serves as the base class for further classes like SysBoundaryCondition::SetMaxwellian.
+ * \brief Implementation of the class SysBoundaryCondition::SetByUser. 
+ * This serves as the base class for further classes like SysBoundaryCondition::SetMaxwellian.
  */
 
 #include <cstdlib>
@@ -26,6 +16,7 @@
 #include "setbyuser.h"
 #include "../vlasovmover.h"
 #include "../fieldsolver/fs_common.h"
+#include "../object_wrapper.h"
 
 #ifndef NDEBUG
    #define DEBUG_SETBYUSER
@@ -62,9 +53,7 @@ namespace SBC {
       this->getParameters();
       
       vector<string>::const_iterator it;
-      for (it = faceList.begin();
-           it != faceList.end();
-      it++) {
+      for (it = faceList.begin(); it != faceList.end(); ++it) {
          if(*it == "x+") facesToProcess[0] = true;
          if(*it == "x-") facesToProcess[1] = true;
          if(*it == "y+") facesToProcess[2] = true;
@@ -107,9 +96,10 @@ namespace SBC {
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       Project &project
    ) {
-      bool success;
-      
-      success = setCellsFromTemplate(mpiGrid);
+      bool success = true;
+      for (unsigned int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         if (setCellsFromTemplate(mpiGrid, popID) == false) success = false;
+      }
       
       return success;
    }
@@ -189,6 +179,41 @@ namespace SBC {
       }
    }
    
+   void SetByUser::fieldSolverBoundaryCondGradPeElectricField(
+      fs_cache::CellCache& cache,
+      cuint RKCase,
+      cuint component
+   ) {
+      
+      Real* cp = cache.cells[fs_cache::calculateNbrID(1,1,1)]->parameters;
+      
+      switch (component) {
+         case 0:
+            //             cp[CellParams::EXGRADPE_000_100] = 0.0;
+            //             cp[CellParams::EXGRADPE_010_110] = 0.0;
+            //             cp[CellParams::EXGRADPE_001_101] = 0.0;
+            //             cp[CellParams::EXGRADPE_011_111] = 0.0;
+            cp[CellParams::EXGRADPE] = 0.0;
+            break;
+         case 1:
+            //             cp[CellParams::EYGRADPE_000_010] = 0.0;
+            //             cp[CellParams::EYGRADPE_100_110] = 0.0;
+            //             cp[CellParams::EYGRADPE_001_011] = 0.0;
+            //             cp[CellParams::EYGRADPE_101_111] = 0.0;
+            cp[CellParams::EYGRADPE] = 0.0;
+            break;
+         case 2:
+            //             cp[CellParams::EZGRADPE_000_001] = 0.0;
+            //             cp[CellParams::EZGRADPE_100_101] = 0.0;
+            //             cp[CellParams::EZGRADPE_010_011] = 0.0;
+            //             cp[CellParams::EZGRADPE_110_111] = 0.0;
+            cp[CellParams::EZGRADPE] = 0.0;
+            break;
+         default:
+            cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
+      }
+   }
+   
    void SetByUser::fieldSolverBoundaryCondDerivatives(
       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
@@ -208,15 +233,16 @@ namespace SBC {
 
    void SetByUser::vlasovBoundaryCondition(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID
+      const CellID& cellID,
+      const int& popID
    ) {
       // No need to do anything in this function, as the propagators do not touch the distribution function   
    }
    
-   bool SetByUser::setCellsFromTemplate(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
-      vector<uint64_t> cells = mpiGrid.get_cells();
-#pragma omp parallel for
-      for (uint i=0; i<cells.size(); i++) {
+   bool SetByUser::setCellsFromTemplate(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const int& popID) {
+      vector<CellID> cells = mpiGrid.get_cells();
+      #pragma omp parallel for
+      for (size_t i=0; i<cells.size(); i++) {
          SpatialCell* cell = mpiGrid[cells[i]];
          if(cell->sysBoundaryFlag != this->getIndex()) continue;
          
@@ -232,14 +258,16 @@ namespace SBC {
          
          for(uint i=0; i<6; i++) {
             if(facesToProcess[i] && isThisCellOnAFace[i]) {
-               cell->parameters[CellParams::PERBX] = templateCells[i].parameters[CellParams::PERBX];
-               cell->parameters[CellParams::PERBY] = templateCells[i].parameters[CellParams::PERBY];
-               cell->parameters[CellParams::PERBZ] = templateCells[i].parameters[CellParams::PERBZ];
+               if (popID == 0) {
+                  cell->parameters[CellParams::PERBX] = templateCells[i].parameters[CellParams::PERBX];
+                  cell->parameters[CellParams::PERBY] = templateCells[i].parameters[CellParams::PERBY];
+                  cell->parameters[CellParams::PERBZ] = templateCells[i].parameters[CellParams::PERBZ];
                
-               cell->parameters[CellParams::RHOLOSSADJUST] = 0.0;
-               cell->parameters[CellParams::RHOLOSSVELBOUNDARY] = 0.0;
-               
-               copyCellData(&templateCells[i], cell,true,false);
+                  cell->parameters[CellParams::RHOLOSSADJUST] = 0.0;
+                  cell->parameters[CellParams::RHOLOSSVELBOUNDARY] = 0.0;
+               }
+
+               copyCellData(&templateCells[i], cell,true,false,popID);
                break; // This effectively sets the precedence of faces through the order of faces.
             }
          }
@@ -363,7 +391,7 @@ namespace SBC {
     * \sa generateTemplateCell
     */
    bool SetByUser::generateTemplateCells(creal& t) {
-# pragma omp parallel for
+      #pragma omp parallel for
       for(uint i=0; i<6; i++) {
          int index;
          if(facesToProcess[i]) {

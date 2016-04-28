@@ -29,13 +29,14 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 #include "VelocityBox.h"
 
 using namespace std;
+using namespace spatial_cell;
 
 namespace projects {
    VelocityBox::VelocityBox(): Project() { }
    VelocityBox::~VelocityBox() { }
 
 
-   bool VelocityBox::initialize(void) {return true;}
+   bool VelocityBox::initialize(void) {return Project::initialize();}
 
    void VelocityBox::addParameters(){
       typedef Readparameters RP;
@@ -52,6 +53,7 @@ namespace projects {
    }
 
    void VelocityBox::getParameters(){
+      Project::getParameters();
       typedef Readparameters RP;
       RP::get("VelocityBox.rho", this->rho);
       RP::get("VelocityBox.Vx1", this->Vx[0]);
@@ -80,14 +82,15 @@ namespace projects {
      creal& x, creal& y, creal& z,
      creal& dx, creal& dy, creal& dz,
      creal& vx, creal& vy, creal& vz,
-     creal& dvx, creal& dvy, creal& dvz
+     creal& dvx, creal& dvy, creal& dvz,const int& popID
   ) {
     return getDistribValue(vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz);
   }
 
 
   
-   void VelocityBox::calcCellParameters(Real* cellParams,creal& t) {
+   void VelocityBox::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
+      Real* cellParams = cell->get_cell_parameters();
       cellParams[CellParams::EX   ] = 0.0;
       cellParams[CellParams::EY   ] = 0.0;
       cellParams[CellParams::EZ   ] = 0.0;

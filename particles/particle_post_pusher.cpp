@@ -8,18 +8,14 @@
 #include <random>
 #include <string.h>
 #include "particles.h"
+#include "field.h"
 #include "physconst.h"
 #include "readfields.h"
 #include "distribution.h"
 #include "particleparameters.h"
 #include "../readparameters.h"
-
-// "mode" that the particle pusher operates in
-enum pusher_mode {
-   single = 0,    // Single particle trajectory tracking
-   distribution,  // Particle distribution created at a given point
-   analysator     // Particle distribution input as ascii, positions written to stdout as ascii.
-};
+#include "scenario.h"
+#include "boundaries.h"
 
 int main(int argc, char** argv) {
 
@@ -37,76 +33,39 @@ int main(int argc, char** argv) {
 
    int input_file_counter=floor(ParticleParameters::start_time / ParticleParameters::input_dt);
    Field E[2],B[2],V;
+   std::cerr << "Loading first file with index " << ParticleParameters::start_time / ParticleParameters::input_dt
+      << std::endl;
    snprintf(filename_buffer,256,filename_pattern.c_str(),input_file_counter-1);
    readfields(filename_buffer,E[1],B[1],V);
    E[0]=E[1]; B[0]=B[1];
 
-   /* Init particles */
-   std::vector<Particle> particles;
-   pusher_mode mode;
+   // Set boundary conditions based on sizes
+   if(B[0].cells[0] <= 1) {
+      delete ParticleParameters::boundary_behaviour_x;
+      ParticleParameters::boundary_behaviour_x = createBoundary<CompactSpatialDimension>(0);
+   }
+   if(B[0].cells[1] <= 1) {
+      delete ParticleParameters::boundary_behaviour_y;
+      ParticleParameters::boundary_behaviour_y = createBoundary<CompactSpatialDimension>(1);
+   }
+   if(B[0].cells[2] <= 1) {
+      delete ParticleParameters::boundary_behaviour_z;
+      ParticleParameters::boundary_behaviour_z = createBoundary<CompactSpatialDimension>(2);
+   }
+   ParticleParameters::boundary_behaviour_x->setExtent(B[0].min[0], B[0].max[0], B[0].cells[0]);
+   ParticleParameters::boundary_behaviour_y->setExtent(B[0].min[1], B[0].max[1], B[0].cells[1]);
+   ParticleParameters::boundary_behaviour_z->setExtent(B[0].min[2], B[0].max[2], B[0].cells[2]);
 
+   /* Init particles */
    double dt=ParticleParameters::dt;
    double maxtime=ParticleParameters::end_time - ParticleParameters::start_time;
    int maxsteps = maxtime/dt;
 
-   if(ParticleParameters::mode == "single") {
-
-      Vec3d vpos(ParticleParameters::init_x, ParticleParameters::init_y, ParticleParameters::init_z);
-      /* Look up builk velocity in the V-field */
-      Vec3d bulk_vel = V(vpos);
-
-      mode = single;
-      particles.push_back(Particle(PhysicalConstantsSI::mp, PhysicalConstantsSI::e, vpos, bulk_vel));
-   } else if(ParticleParameters::mode == "distribution") {
-
-      mode = distribution;
-
-      std::default_random_engine generator(ParticleParameters::random_seed);
-      Distribution* velocity_distribution=ParticleParameters::distribution(generator);
-
-      Vec3d vpos(ParticleParameters::init_x, ParticleParameters::init_y, ParticleParameters::init_z);
-
-      /* Look up builk velocity in the V-field */
-      Vec3d bulk_vel = V(vpos);
-
-      for(unsigned int i=0; i< ParticleParameters::num_particles; i++) {
-         /* Create a particle with velocity drawn from the given distribution ... */
-         Particle p = velocity_distribution->next_particle();
-         /* Shift it by the bulk velocity ... */
-         p.v += bulk_vel;
-         /* And put it in place. */
-         p.x=vpos;
-         particles.push_back(p);
-      }
-
-      delete velocity_distribution;
-   } else if(ParticleParameters::mode == "analysator") {
-
-     mode = analysator;
-
-     std::cerr << "Reading initial particle data from stdin" << std::endl
-        << "(format: x y z vx vy vz)" << std::endl;
-
-     while(std::cin) {
-        double x0,x1,x2,v0,v1,v2;
-        std::cin >> x0 >> x1 >> x2 >> v0 >> v1 >> v2;
-        if(std::cin) {
-           particles.push_back(Particle(PhysicalConstantsSI::mp, PhysicalConstantsSI::e, Vec3d(x0,x1,x2), Vec3d(v0,v1,v2)));
-        }
-     }
-
-   } else {
-      std::cerr << "Config option particles.mode not set correctly!" << std::endl;
-      return 1;
-   }
-
-   /* Dump the initial state */
-   if(mode == distribution) {
-      write_particles(particles, "particles_initial.vlsv");
-   }
+   Scenario* scenario = createScenario(ParticleParameters::mode);
+   std::vector<Particle> particles = scenario->initialParticles(E[0],B[0],V);
 
    std::cerr << "Pushing " << particles.size() << " particles for " << maxsteps << " steps..." << std::endl;
-        std::cerr << "[                                                                        ]\x0d[";
+   std::cerr << "[                                                                        ]\x0d[";
 
    /* Push them around */
    for(int step=0; step<maxsteps; step++) {
@@ -114,16 +73,31 @@ int main(int argc, char** argv) {
       bool newfile;
       /* Load newer fields, if neccessary */
       if(step >= 0) {
-         newfile = read_next_timestep(filename_pattern, ParticleParameters::start_time + step*dt, 1,E[0], E[1], B[0], B[1], input_file_counter);
+         newfile = readNextTimestep(filename_pattern, ParticleParameters::start_time + step*dt, 1,E[0], E[1],
+               B[0], B[1], V, scenario->needV, input_file_counter);
       } else {
-         newfile = read_next_timestep(filename_pattern, ParticleParameters::start_time + step*dt, -1,E[1], E[0], B[1], B[0], input_file_counter);
+         newfile = readNextTimestep(filename_pattern, ParticleParameters::start_time + step*dt, -1,E[1], E[0],
+               B[1], B[0], V, scenario->needV, input_file_counter);
       }
 
-      Interpolated_Field cur_E(E[0],E[1],step*dt);
-      Interpolated_Field cur_B(B[0],B[1],step*dt);
+      Interpolated_Field cur_E(E[0],E[1],ParticleParameters::start_time + step*dt);
+      Interpolated_Field cur_B(B[0],B[1],ParticleParameters::start_time + step*dt);
 
-      //#pragma omp parallel for
+      // If a new timestep has been opened, add a new bunch of particles
+      if(newfile) {
+         scenario->newTimestep(input_file_counter, step, step*dt, particles, cur_E, cur_B, V);
+      }
+
+      scenario->beforePush(particles,cur_E,cur_B,V);
+
+#pragma omp parallel for
       for(unsigned int i=0; i< particles.size(); i++) {
+
+         if(isnan(vector_length(particles[i].x))) {
+            // Skip disabled particles.
+            continue;
+         }
+
          /* Get E- and B-Field at their position */
          Vec3d Eval,Bval;
 
@@ -132,19 +106,33 @@ int main(int argc, char** argv) {
 
          /* Push them around */
          particles[i].push(Bval,Eval,dt);
+
       }
 
-      /* Write output */
-      if(mode == distribution && newfile) {
-         snprintf(filename_buffer,256, ParticleParameters::output_filename_pattern.c_str(),input_file_counter-1);
-         write_particles(particles, filename_buffer);
-      } else if(mode == analysator && newfile) {
-        for(unsigned int i=0; i< particles.size(); i++) {
-           Vec3d& x = particles[i].x;
-           Vec3d& v = particles[i].v;
-          std::cout << i << " " << step*dt << "\t" <<  x[0] << " " << x[1] << " " << x[2] << "\t" << v[0] << " " << v[1] << " " << v[2] << std::endl;
-        }
+      // Remove all particles that have left the simulation box after this step
+      // (unfortunately, this can not be done in parallel, so it better be fast!)
+      for(std::vector<Particle>::iterator i = particles.begin(); i != particles.end(); ) {
+
+         // Boundaries are allowed to mangle the particles here.
+         // If they return false, particles are deleted.
+         bool do_erase = false;
+         if(!ParticleParameters::boundary_behaviour_x->handleParticle(*i)) {
+            do_erase = true;
+         }
+         if(!ParticleParameters::boundary_behaviour_y->handleParticle(*i)) {
+            do_erase = true;
+         }
+         if(!ParticleParameters::boundary_behaviour_z->handleParticle(*i)) {
+            do_erase = true;
+         }
+         if(do_erase) {
+            particles.erase(i);
+         } else {
+            i++;
+         }
       }
+
+      scenario->afterPush(step, step*dt, particles, cur_E, cur_B, V);
 
       /* Draw progress bar */
       if((step % (maxsteps/71))==0) {
@@ -152,10 +140,7 @@ int main(int argc, char** argv) {
       }
    }
 
-   /* Dump the final state */
-   if(mode == distribution) {
-      write_particles(particles, "particles_final.vlsv");
-   }
+   scenario->finalize(particles,E[1],B[1],V);
 
    std::cerr << std::endl;
 

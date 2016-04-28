@@ -34,13 +34,14 @@ namespace projects {
    TestHall::~TestHall() { }
    
    bool TestHall::initialize(void) {
+      bool success = Project::initialize();
       this->constBgB[0] = 0.0;
       this->constBgB[1] = 0.0;
       this->constBgB[2] = 0.0;
       this->dipoleScalingFactor = 1.0;
       this->dipoleTilt = 0.0;
       this->noDipoleInSW = 0;
-      return true;
+      return success;
    }
    
    void TestHall::addParameters(){
@@ -56,6 +57,7 @@ namespace projects {
    }
    
    void TestHall::getParameters(){
+      Project::getParameters();
       typedef Readparameters RP;
       RP::get("TestHall.BX0", this->BX0);
       RP::get("TestHall.BY0", this->BY0);
@@ -71,7 +73,7 @@ namespace projects {
       creal& x,creal& y,creal& z,
       creal& dx,creal& dy,creal& dz,
       creal& vx,creal& vy,creal& vz,
-      creal& dvx,creal& dvy,creal& dvz
+      creal& dvx,creal& dvy,creal& dvz,const int& popID
    ) {
       creal mass = physicalconstants::MASS_PROTON;
       creal kb = physicalconstants::K_B;
@@ -135,8 +137,8 @@ namespace projects {
 //       }
 //    }
 //    
-   void TestHall::calcCellParameters(Real* cellParams,creal& t) {
-      
+   void TestHall::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
+      Real* cellParams = cell->get_cell_parameters();
       creal x = cellParams[CellParams::XCRD];
       creal dx = cellParams[CellParams::DX];
       creal y = cellParams[CellParams::YCRD];

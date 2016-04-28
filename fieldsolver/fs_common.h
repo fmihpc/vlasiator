@@ -20,7 +20,6 @@ Copyright 2010-2015 Finnish Meteorological Institute
 #include <phiprof.hpp>
 
 #include "../common.h"
-#include "../grid.h"
 #include "../parameters.h"
 #include "../projects/project.h"
 #include "../sysboundary/sysboundary.h"

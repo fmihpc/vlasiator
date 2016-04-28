@@ -21,6 +21,7 @@ namespace poisson {
         PoissonSolverJacobi();
         ~PoissonSolverJacobi();
         
+        bool calculateElectrostaticField(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
         bool initialize();
         bool finalize();
         bool solve(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);

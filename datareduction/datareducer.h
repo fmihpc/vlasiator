@@ -1,17 +1,7 @@
 /*
 This file is part of Vlasiator.
 
-Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
-
-
-
-
-
-
-
-
-
-
+Copyright 2010-2013,2015 Finnish Meteorological Institute
 
 
 */
@@ -37,12 +27,18 @@ class DataReducer {
    ~DataReducer();
    
    bool addOperator(DRO::DataReductionOperator* op);
-   bool getDataVectorInfo(const unsigned int& operatorID,std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+   bool getDataVectorInfo(const unsigned int& operatorID,std::string& dataType,
+                          unsigned int& dataSize,unsigned int& vectorSize) const;
    std::string getName(const unsigned int& operatorID) const;
+   bool handlesWriting(const unsigned int& operatorID) const;
    bool reduceData(const SpatialCell* cell,const unsigned int& operatorID,char* buffer);
    bool reduceData(const SpatialCell* cell,const unsigned int& operatorID,Real * result);
    unsigned int size() const;
-   
+   bool writeData(const unsigned int& operatorID,
+                  const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                  const std::vector<CellID>& cells,const std::string& meshName,
+                  vlsv::Writer& vlsvWriter);
+
  private:
    /** Private copy-constructor to prevent copying the class.
     */

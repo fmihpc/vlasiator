@@ -24,6 +24,7 @@ Copyright 2010-2015 Finnish Meteorological Institute
 #include <Eigen/Dense>
 #include <phiprof.hpp>
 
+#include "vlsv_util.h"
 #include "vlsvreaderinterface.h"
 #include "vlsvextract.h"
 
@@ -597,6 +598,7 @@ void getB(Real* B,vlsvinterface::Reader& vlsvReader,const string& meshName,const
       }
       
       // Attempt to read variable 'B'
+      B_read = true;
       xmlAttributes.clear();
       xmlAttributes.push_back(make_pair("mesh",meshName));
       xmlAttributes.push_back(make_pair("name","B"));
@@ -654,9 +656,15 @@ bool convertVelocityBlocks2(
    
    // Read velocity mesh metadata for this population
    if (setVelocityMeshVariables(vlsvReader,cellStruct,popName) == false) {
-      cerr << "ERROR, failed to read velocity mesh metadata for species '";
-      cerr << popName << "'" << endl;
-      return false;
+      //cerr << "ERROR, failed to read velocity mesh metadata for species '";
+      //cerr << popName << "'" << endl;
+      
+      cerr << "Trying older Vlasiator file format..." << endl;
+      if (setVelocityMeshVariables(vlsvReader,cellStruct) == false) {
+         cerr << "ERROR, failed to read velocity mesh metadata in " << __FILE__ << ":" << __LINE__ << endl;
+         success = false;
+         return success;
+      }
    }
 
    string outputMeshName = "VelGrid_" + popName;
@@ -694,8 +702,12 @@ bool convertVelocityBlocks2(
    // Read velocity block global IDs and write them out
    vector<uint64_t> blockIds;
    if (vlsvReader.getBlockIds(cellID,blockIds,popName) == false ) {
-      cerr << "ERROR, FAILED TO READ BLOCK IDS AT " << __FILE__ << " " << __LINE__ << endl;
-      return false;
+      cerr << "Trying older Vlasiator file format..." << endl;
+      if (vlsvReader.getBlockIds(cellID,blockIds,"") == false) {
+         cerr << "ERROR, failed to read IDs at " << __FILE__ << ":" << __LINE__ << endl;
+         success = false;
+         return success;
+      }
    }
    const size_t N_blocks = blockIds.size();
    
@@ -975,7 +987,11 @@ bool convertVelocityBlocks2(
       cerr << "ERROR could not read population names in " << __FILE__ << ":" << __LINE__ << endl;
       return false;
    }
-   
+
+   if (runDebug == true) {
+      cerr << "Found " << popNames.size() << " particle populations" << endl;
+   }
+
    // Open output file
    vlsv::Writer out;
    if (out.open(fname,MPI_COMM_SELF,0) == false) {
@@ -984,10 +1000,16 @@ bool convertVelocityBlocks2(
    }
    
    bool success = true;
-   for (set<string>::iterator it=popNames.begin(); it!=popNames.end(); ++it) {
-      if (runDebug == true) cerr << "Population '" << *it << "'" << endl;
-      if (vlsvReader.setCellsWithBlocks(meshName,*it) == false) {success = false; continue;}
-      if (convertVelocityBlocks2(vlsvReader,fname,meshName,cellStruct,cellID,rotate,plasmaFrame,out,*it) == false) success = false;
+   if (popNames.size() > 0) {
+      for (set<string>::iterator it=popNames.begin(); it!=popNames.end(); ++it) {
+         if (runDebug == true) cerr << "Population '" << *it << "'" << endl;
+         if (vlsvReader.setCellsWithBlocks(meshName,*it) == false) {success = false; continue;}
+         if (convertVelocityBlocks2(vlsvReader,fname,meshName,cellStruct,cellID,rotate,plasmaFrame,out,*it) == false) success = false;
+      }
+   } else {
+      if (runDebug == true) cerr << "Extracting old-style population 'avgs'" << endl;
+      if (vlsvReader.setCellsWithBlocks(meshName,"") == false) {success = false;}
+      if (convertVelocityBlocks2(vlsvReader,fname,meshName,cellStruct,cellID,rotate,plasmaFrame,out,"avgs") == false) success = false;
    }
 
    out.close();
@@ -1116,8 +1138,88 @@ uint64_t searchForBestCellId( const CellStructure & cellStruct,
           ) );
 }
 
+/** Read velocity mesh metadata from older Vlasiator VLSV files.
+ * @param vlsvReader VLSV reader that has input file open.
+ * @param cellStruct Struct where read metadata is written.
+ * @return If true, metadata was read successfully.*/
+bool setVelocityMeshVariables(vlsv::Reader& vlsvReader,CellStructure& cellStruct) {
+   bool success = true;
+   
+   // Read the velocity mesh bounding box, i.e., maximum number of 
+   // blocks per coordinate direction.
+   uint32_t vcell_bounds[3];
+   if (vlsvReader.readParameter("vxblocks_ini",cellStruct.vcell_bounds[0]) == false) {
+      cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << ":" << __LINE__ << endl;
+      success = false;
+   }
+   if (vlsvReader.readParameter("vyblocks_ini",cellStruct.vcell_bounds[1]) == false) {
+      cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << ":" << __LINE__ << endl;
+      success = false;
+   }
+   if (vlsvReader.readParameter("vzblocks_ini",cellStruct.vcell_bounds[2]) == false) {
+      cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << ":" << __LINE__ << endl;
+      success = false;
+   }
+   
+   // Read velocity mesh min/max extents.
+   Real vx_min,vx_max,vy_min,vy_max,vz_min,vz_max;
+   if (vlsvReader.readParameter("vxmin",vx_min) == false) {
+      cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << ":" << __LINE__ << endl;
+      success = false;
+   }
+   if (vlsvReader.readParameter("vxmax",vx_max) == false) {
+      cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << ":" << __LINE__ << endl;
+      success = false;
+   }
+   if (vlsvReader.readParameter("vymin",vy_min) == false) {
+      cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << ":" << __LINE__ << endl;
+      success = false;
+   }
+   if (vlsvReader.readParameter("vymax",vy_max) == false) {
+      cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << ":" << __LINE__ << endl;
+      success = false;
+   }
+   if (vlsvReader.readParameter("vzmin",vz_min) == false) {
+      cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
+      success = false;
+   }
+   if (vlsvReader.readParameter("vzmax",vz_max) == false) {
+      cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
+      success = false;
+   }
+
+   // Calculate velocity phase-space cell lengths.
+   const Real vx_length = vx_max - vx_min;
+   const Real vy_length = vy_max - vy_min;
+   const Real vz_length = vz_max - vz_min;
+   cellStruct.vblock_length[0] = ( vx_length / (Real)(cellStruct.vcell_bounds[0]) );
+   cellStruct.vblock_length[1] = ( vy_length / (Real)(cellStruct.vcell_bounds[1]) );
+   cellStruct.vblock_length[2] = ( vz_length / (Real)(cellStruct.vcell_bounds[2]) );
+
+   // Set velocity mesh min coordinate values.
+   cellStruct.min_vcoordinates[0] = vx_min;
+   cellStruct.min_vcoordinates[1] = vy_min;
+   cellStruct.min_vcoordinates[2] = vz_min;
+   
+   if (runDebug == true && success == true) {
+      cerr << "Pop 'avgs'" << endl; 
+      cerr << "\t mesh limits   : ";
+      cerr << vx_min << '\t' << vx_max << '\t' << vy_min << '\t' << vy_max << '\t' << vz_min << '\t' << vz_max << endl;
+      cerr << "\t mesh bbox size: " << cellStruct.vcell_bounds[0] << ' ' << cellStruct.vcell_bounds[1] << ' ' << cellStruct.vcell_bounds[2] << endl;
+      cerr << "\t cell sizes    : " << cellStruct.vblock_length[0] << '\t' << cellStruct.vblock_length[1] << '\t' << cellStruct.vblock_length[2] << endl;
+      cerr << "\t max ref level : " << cellStruct.maxVelRefLevel << endl;
+   }
+
+   return success;
+}
+
+/** Read velocity mesh metadata for the given particle species.
+ * @param vlsvReader VLSV reader that has input file open.
+ * @param cellStruct Struct where read metadata is written.
+ * @param popName Name of the particle species.
+ * @return If true, metadata was read successfully.*/
 bool setVelocityMeshVariables(vlsv::Reader& vlsvReader,CellStructure& cellStruct,
-        const std::string& popName) {
+                              const std::string& popName) {
    bool success = true;
 
    Real vx_min,vx_max,vy_min,vy_max,vz_min,vz_max;
@@ -1160,10 +1262,11 @@ bool setVelocityMeshVariables(vlsv::Reader& vlsvReader,CellStructure& cellStruct
    uint64_t* velMeshBbox_ptr = velMeshBbox;
    if (vlsvReader.read("MESH_BBOX",attribs,0,6,velMeshBbox_ptr,false) == false) {
       cerr << "Failed to read velocity mesh BBOX in " << __FILE__ << ":" << __LINE__ << endl;
+      success = false;
    }
 
    //Set the cell structure properly:
-   for(int i = 0; i<3; ++i) {
+   for (int i = 0; i<3; ++i) {
       cellStruct.vcell_bounds[i] = velMeshBbox[i];
    }
 
@@ -1180,21 +1283,26 @@ bool setVelocityMeshVariables(vlsv::Reader& vlsvReader,CellStructure& cellStruct
    cellStruct.min_vcoordinates[1] = vy_min;
    cellStruct.min_vcoordinates[2] = vz_min;
 
-   if (runDebug == true) {
-      cerr << "Pop '" << popName << " mesh limits: ";
-      cerr << vx_min << '\t' << vx_max << '\t' << vy_min << '\t' << vy_max << '\t' << vz_min << '\t' << vz_max << endl;
-      cerr << "\t mesh bbox size: " << velMeshBbox[0] << ' ' << velMeshBbox[1] << ' ' << velMeshBbox[2] << endl;
-   }
-
    // By default set an unrefined velocity mesh. Then check if the max refinement level 
    // was actually given as a parameter.
    uint32_t dummyUInt;
    cellStruct.maxVelRefLevel = 0;
-   if (vlsvReader.readParameter("max_velocity_ref_level",dummyUInt) == true) {
-      cellStruct.maxVelRefLevel = dummyUInt;
+   map<string,string> attribsOut;
+   vlsvReader.getArrayAttributes("MESH_BBOX",attribs,attribsOut);
+   if (attribsOut.find("max_velocity_ref_level") != attribsOut.end()) {
+      cellStruct.maxVelRefLevel = atoi(attribsOut["max_velocity_ref_level"].c_str());
    }
 
-   return true;
+   if (runDebug == true && success == true) {
+      cerr << "Pop '" << popName << "'" << endl; 
+      cerr << "\t mesh limits   : ";
+      cerr << vx_min << '\t' << vx_max << '\t' << vy_min << '\t' << vy_max << '\t' << vz_min << '\t' << vz_max << endl;
+      cerr << "\t mesh bbox size: " << velMeshBbox[0] << ' ' << velMeshBbox[1] << ' ' << velMeshBbox[2] << endl;
+      cerr << "\t cell sizes    : " << cellStruct.vblock_length[0] << '\t' << cellStruct.vblock_length[1] << '\t' << cellStruct.vblock_length[2] << endl;
+      cerr << "\t max ref level : " << cellStruct.maxVelRefLevel << endl;
+   }
+
+   return success;
 }
 
 /** Set correct spatial mesh variables to cellStruct. This function leaves the 
@@ -1304,9 +1412,6 @@ uint64_t getCellIdFromCoords( const CellStructure & cellStruct,
    return cellId;
 }
 
-
-
-
 //Prints out the usage message
 void printUsageMessage() {
    cout << endl;
@@ -1315,7 +1420,6 @@ void printUsageMessage() {
    cout << "To get a list of options use --help" << endl;
    cout << endl;
 }
-
 
 //Used in main() to retrieve options (returns false if something goes wrong)
 //Input:
@@ -1797,7 +1901,6 @@ void extractDistribution( const string & fileName, const UserOptions & mainOptio
    }
 
    vlsvReader.close();
-
 }
 
 int main(int argn, char* args[]) {
@@ -1807,32 +1910,8 @@ int main(int argn, char* args[]) {
    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
    //Get the file name
-   const string mask = args[1];  
-
-   const string directory = ".";
-   const string suffix = ".vlsv";
-   DIR* dir = opendir(directory.c_str());
-   if (dir == NULL) {
-      cerr << "ERROR in reading directory contents!" << endl;
-      closedir(dir);
-      return 1;
-   }
-
-   int filesFound = 0, entryCounter = 0;
-   vector<string> fileList;
-   struct dirent* entry = readdir(dir);
-   while (entry != NULL) {
-      const string entryName = entry->d_name;
-      if (entryName.find(mask) == string::npos || entryName.find(suffix) == string::npos) {
-         entry = readdir(dir);
-         continue;
-      }
-      fileList.push_back(entryName);
-      filesFound++;
-      entry = readdir(dir);
-   }
-   if (filesFound == 0) cout << "\t no file found, check name and read and write rights, vlsvextract currently supports only extracting from the folder where the vlsv file resides (you can get past this by linking the vlsv file" << endl;
-   closedir(dir);
+   const string mask = args[1];
+   vector<string> fileList = toolutil::getFiles(mask);
 
    //Retrieve options variables:
    UserOptions mainOptions;
@@ -1850,6 +1929,7 @@ int main(int argn, char* args[]) {
    }
 
    //Convert files
+   int entryCounter = 0;
    for (size_t entryName = 0; entryName < fileList.size(); entryName++) {
       if (entryCounter++ % ntasks == rank) {
          //Get the file name
@@ -1860,5 +1940,3 @@ int main(int argn, char* args[]) {
    MPI_Finalize();
    return 0;
 }
-
-

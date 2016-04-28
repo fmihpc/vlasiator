@@ -16,7 +16,7 @@ frameLists=numpy.array_split(frames, jobNumber)
 def parallel_worker(frameList):
    time.sleep((os.getpid()%jobNumber)*6)
    
-   subprocess.call(["/home/kempf/visit/bin/visit", "-lb-random", "-cli", "-nowin", "-debug", "1", "-s", "generate_frames.py", str(frameList[0]), str(frameList[-1])])
+   subprocess.call(["/home/kempf/visit/bin/visit", str(frameList[0]), str(frameList[-1]), "-lb-random", "-cli", "-nowin", "-debug", "1", "-s", "generate_frames.py"])
    
    return
    

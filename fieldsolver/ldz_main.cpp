@@ -32,6 +32,7 @@ Copyright 2010, 2011, 2012, 2013, 2014 Finnish Meteorological Institute
 #include "ldz_electric_field.hpp"
 #include "ldz_magnetic_field.hpp"
 #include "ldz_hall.hpp"
+#include "ldz_gradpe.hpp"
 #include "ldz_volume.hpp"
 #include "fs_common.h"
 #include "derivatives.hpp"
@@ -210,9 +211,14 @@ bool initializeFieldPropagator(
    // Calculate derivatives and upwinded edge-E. Exchange derivatives 
    // and edge-E:s between neighbouring processes and calculate 
    // face-averaged E,B fields.
+   bool hallTermCommunicateDerivatives = true;
    calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1, true);
+   if(P::ohmGradPeTerm > 0) {
+      calculateGradPeTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
+      hallTermCommunicateDerivatives = false;
+   }
    if(P::ohmHallTerm > 0) {
-      calculateHallTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
+      calculateHallTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1, hallTermCommunicateDerivatives);
    }
    calculateUpwindedElectricFieldSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
    calculateVolumeAveragedFields(mpiGrid,fs_cache::getCache().localCellsCache,fs_cache::getCache().local_NOT_DO_NOT_COMPUTE);
@@ -244,9 +250,15 @@ bool propagateFields(
    creal& dt,
    cint& subcycles
 ) {
-
+   
+   if(subcycles == 0) {
+      cerr << "Field solver subcycles cannot be 0." << endl;
+      exit(1);
+   }
+   
    // Reserve memory for derivatives for all cells on this process:
    const vector<CellID>& localCells = getLocalCells();
+   bool hallTermCommunicateDerivatives = true;
 
    if (Parameters::meshRepartitioned == true) {
       phiprof::start("Calculate Caches");
@@ -264,22 +276,34 @@ bool propagateFields(
       #ifdef FS_1ST_ORDER_TIME
       propagateMagneticFieldSimple(mpiGrid, sysBoundaries, dt, localCells, RK_ORDER1);
       calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1, true);
+      if(P::ohmGradPeTerm > 0){
+         calculateGradPeTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
+         hallTermCommunicateDerivatives = false;
+      }
       if(P::ohmHallTerm > 0) {
-         calculateHallTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
+         calculateHallTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1, hallTermCommunicateDerivatives);
       }
       calculateUpwindedElectricFieldSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
       #else
       propagateMagneticFieldSimple(mpiGrid, sysBoundaries, dt, localCells, RK_ORDER2_STEP1);
       calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP1, true);
+      if(P::ohmGradPeTerm > 0) {
+         calculateGradPeTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP1);
+         hallTermCommunicateDerivatives = false;
+      }
       if(P::ohmHallTerm > 0) {
-         calculateHallTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP1);
+         calculateHallTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP1, hallTermCommunicateDerivatives);
       }
       calculateUpwindedElectricFieldSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP1);
       
       propagateMagneticFieldSimple(mpiGrid, sysBoundaries, dt, localCells, RK_ORDER2_STEP2);
       calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP2, true);
+      if(P::ohmGradPeTerm > 0) {
+         calculateGradPeTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP2);
+         hallTermCommunicateDerivatives = false;
+      }
       if(P::ohmHallTerm > 0) {
-         calculateHallTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP2);
+         calculateHallTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP2, hallTermCommunicateDerivatives);
       }
       calculateUpwindedElectricFieldSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP2);
       #endif
@@ -289,8 +313,12 @@ bool propagateFields(
          // If we are at the first subcycle we need to update the derivatives of the moments, 
          // otherwise only B changed and those derivatives need to be updated.
          calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1, (i==0));
+         if(P::ohmGradPeTerm > 0 && i==0) {
+            calculateGradPeTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
+            hallTermCommunicateDerivatives = false;
+         }
          if(P::ohmHallTerm > 0) {
-            calculateHallTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
+            calculateHallTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1, hallTermCommunicateDerivatives);
          }
          calculateUpwindedElectricFieldSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
       }

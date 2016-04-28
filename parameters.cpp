@@ -1,9 +1,11 @@
 /*
 This file is part of Vlasiator.
 
-Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
+Copyright 2010-2015 Finnish Meteorological Institute
 */
 
+#include <cstdlib>
+#include <iostream>
 #include "parameters.h"
 #include "readparameters.h"
 #include <limits>
@@ -11,9 +13,8 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #include <unistd.h>
 
 #ifndef NAN
-#define NAN 0
+   #define NAN 0
 #endif
-
 
 using namespace std;
 
@@ -23,6 +24,7 @@ typedef Parameters P;
 
 const Real LARGE_REAL=1e20;
 // Define static members:
+int P::geometry = geometry::XYZ6D;
 Real P::xmin = NAN;
 Real P::xmax = NAN;
 Real P::ymin = NAN;
@@ -33,13 +35,6 @@ Real P::dx_ini = NAN;
 Real P::dy_ini = NAN;
 Real P::dz_ini = NAN;
 
-Real P::vxmin = NAN;
-Real P::vxmax = NAN;
-Real P::vymin = NAN;
-Real P::vymax = NAN;
-Real P::vzmin = NAN;
-Real P::vzmax = NAN;
-
 Real P::backstreamradius = NAN;
 Real P::backstreamvx = NAN;
 Real P::backstreamvy = NAN;
@@ -48,9 +43,6 @@ Real P::backstreamvz = NAN;
 uint P::xcells_ini = numeric_limits<uint>::max();
 uint P::ycells_ini = numeric_limits<uint>::max();
 uint P::zcells_ini = numeric_limits<uint>::max();
-uint P::vxblocks_ini = numeric_limits<uint>::max();
-uint P::vyblocks_ini = numeric_limits<uint>::max();
-uint P::vzblocks_ini = numeric_limits<uint>::max();
 
 Real P::t = 0;
 Real P::t_min = 0;
@@ -69,7 +61,8 @@ uint P::diagnosticInterval = numeric_limits<uint>::max();
 bool P::writeInitialState = true;
 
 bool P::meshRepartitioned = true;
-vector<CellID> P::localCells;
+bool P::prepareForRebalance = false;
+std::vector<CellID> P::localCells;
 
 vector<string> P::systemWriteName;
 vector<string> P::systemWritePath;
@@ -101,12 +94,19 @@ int P::maxSlAccelerationSubcycles = 0.0;
 Real P::resistivity = NAN;
 bool P::fieldSolverDiffusiveEterms = true;
 uint P::ohmHallTerm = 0;
+uint P::ohmGradPeTerm = 0;
+Real P::electronTemperature = 0.0;
 
 Real P::sparseMinValue = NAN;
 int  P::sparseDynamicAlgorithm = 0;
+
+#warning sparseDynamicBulkValue1 needs to be defined per species
 Real P::sparseDynamicBulkValue1 = 1;
+#warning sparseDynamicBulkValue2 needs to be defined per species
 Real P::sparseDynamicBulkValue2 = 1;
+#warning sparseDynamicMinValue1 needs to be defined per species
 Real P::sparseDynamicMinValue1 = 1;
+#warning sparseDynamicMinValue2 needs to be defined per species
 Real P::sparseDynamicMinValue2 = 1;
 
 int P::sparseBlockAddWidthV = 1;
@@ -161,11 +161,12 @@ bool Parameters::addParameters(){
    Readparameters::add("propagate_vlasov_acceleration","Propagate distribution functions during the simulation in velocity space. If false, it is propagated with zero length timesteps.",true);
    Readparameters::add("propagate_vlasov_translation","Propagate distribution functions during the simulation in ordinary space. If false, it is propagated with zero length timesteps.",true);
    Readparameters::add("dynamic_timestep","If true,  timestep is set based on  CFL limits (default on)",true);
-   Readparameters::add("hallMinimumRho", "Minimum rho value used for Hall term in Lorentz force and in field solver. Default is very low and has no effect in practice.", 1.0);
+   Readparameters::add("hallMinimumRho", "Minimum rho value used for the Hall and electron pressure gradient terms in the Lorentz force and in the field solver. Default is very low and has no effect in practice.", 1.0);
    Readparameters::add("project", "Specify the name of the project to use. Supported to date (20150610): Alfven Diffusion Dispersion Distributions Firehose Flowthrough Fluctuations Harris KHB Larmor Magnetosphere Multipeak PoissonTest Riemann1 Shock Shocktest Template test_fp testHall test_trans VelocityBox verificationLarmor", string(""));
 
    Readparameters::add("restart.filename","Restart from this vlsv file. No restart if empty file.",string(""));
    
+   Readparameters::add("gridbuilder.geometry","Simulation geometry XY4D,XZ4D,XY5D,XZ5D,XYZ6D",string("XYZ6D"));
    Readparameters::add("gridbuilder.x_min","Minimum value of the x-coordinate.","");
    Readparameters::add("gridbuilder.x_max","Minimum value of the x-coordinate.","");
    Readparameters::add("gridbuilder.y_min","Minimum value of the y-coordinate.","");
@@ -175,15 +176,6 @@ bool Parameters::addParameters(){
    Readparameters::add("gridbuilder.x_length","Number of cells in x-direction in initial grid.","");
    Readparameters::add("gridbuilder.y_length","Number of cells in y-direction in initial grid.","");
    Readparameters::add("gridbuilder.z_length","Number of cells in z-direction in initial grid.","");
-   Readparameters::add("gridbuilder.vx_min","Minimum value for velocity block vx-coordinates.","");
-   Readparameters::add("gridbuilder.vx_max","Maximum value for velocity block vx-coordinates.","");
-   Readparameters::add("gridbuilder.vy_min","Minimum value for velocity block vy-coordinates.","");
-   Readparameters::add("gridbuilder.vy_max","Maximum value for velocity block vy-coordinates.","");
-   Readparameters::add("gridbuilder.vz_min","Minimum value for velocity block vz-coordinates.","");
-   Readparameters::add("gridbuilder.vz_max","Maximum value for velocity block vz-coordinates.","");
-   Readparameters::add("gridbuilder.vx_length","Initial number of velocity blocks in vx-direction.","");
-   Readparameters::add("gridbuilder.vy_length","Initial number of velocity blocks in vy-direction.","");
-   Readparameters::add("gridbuilder.vz_length","Initial number of velocity blocks in vz-direction.","");
    
    Readparameters::add("gridbuilder.dt","Initial timestep in seconds.",0.0);
 
@@ -196,6 +188,8 @@ bool Parameters::addParameters(){
    Readparameters::add("fieldsolver.resistivity", "Resistivity for the eta*J term in Ohm's law.", 0.0);
    Readparameters::add("fieldsolver.diffusiveEterms", "Enable diffusive terms in the computation of E",true);
    Readparameters::add("fieldsolver.ohmHallTerm", "Enable/choose spatial order of the Hall term in Ohm's law. 0: off, 1: 1st spatial order, 2: 2nd spatial order", 0);
+   Readparameters::add("fieldsolver.ohmGradPeTerm", "Enable/choose spatial order of the electron pressure gradient term in Ohm's law. 0: off, 1: 1st spatial order.", 0);
+   Readparameters::add("fieldsolver.electronTemperature", "Constant electron temperature to be used for the electron pressure gradient term (K).", 0.0);
    Readparameters::add("fieldsolver.maxCFL","The maximum CFL limit for field propagation. Used to set timestep if dynamic_timestep is true.",0.5);
    Readparameters::add("fieldsolver.minCFL","The minimum CFL limit for field propagation. Used to set timestep if dynamic_timestep is true.",0.4);
 
@@ -204,9 +198,6 @@ bool Parameters::addParameters(){
    Readparameters::add("vlasovsolver.maxSlAccelerationSubcycles","Maximum number of subcycles for acceleration",1);
    Readparameters::add("vlasovsolver.maxCFL","The maximum CFL limit for vlasov propagation in ordinary space. Used to set timestep if dynamic_timestep is true.",0.99);
    Readparameters::add("vlasovsolver.minCFL","The minimum CFL limit for vlasov propagation in ordinary space. Used to set timestep if dynamic_timestep is true.",0.8);
-
-
-
    
    // Grid sparsity parameters
    Readparameters::add("sparse.minValue", "Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents", 1);
@@ -350,6 +341,8 @@ bool Parameters::getParameters(){
    Readparameters::get("project", P::projectName);
  
    /*get numerical values, let Readparameters handle the conversions*/
+   string geometryString;
+   Readparameters::get("gridbuilder.geometry",geometryString);
    Readparameters::get("gridbuilder.x_min",P::xmin);
    Readparameters::get("gridbuilder.x_max",P::xmax);
    Readparameters::get("gridbuilder.y_min",P::ymin);
@@ -359,23 +352,23 @@ bool Parameters::getParameters(){
    Readparameters::get("gridbuilder.x_length",P::xcells_ini);
    Readparameters::get("gridbuilder.y_length",P::ycells_ini);
    Readparameters::get("gridbuilder.z_length",P::zcells_ini);
-   Readparameters::get("gridbuilder.vx_min",P::vxmin);
-   Readparameters::get("gridbuilder.vx_max",P::vxmax);
-   Readparameters::get("gridbuilder.vy_min",P::vymin);
-   Readparameters::get("gridbuilder.vy_max",P::vymax);
-   Readparameters::get("gridbuilder.vz_min",P::vzmin);
-   Readparameters::get("gridbuilder.vz_max",P::vzmax);
-   Readparameters::get("gridbuilder.vx_length",P::vxblocks_ini);
-   Readparameters::get("gridbuilder.vy_length",P::vyblocks_ini);
-   Readparameters::get("gridbuilder.vz_length",P::vzblocks_ini);
    Readparameters::get("AMR.max_velocity_level",P::amrMaxVelocityRefLevel);
    Readparameters::get("AMR.vel_refinement_criterion",P::amrVelRefCriterion);
    Readparameters::get("AMR.refine_limit",P::amrRefineLimit);
    Readparameters::get("AMR.coarsen_limit",P::amrCoarsenLimit);
    
+   if (geometryString == "XY4D") P::geometry = geometry::XY4D;
+   else if (geometryString == "XZ4D") P::geometry = geometry::XZ4D;
+   else if (geometryString == "XY5D") P::geometry = geometry::XY5D;
+   else if (geometryString == "XZ5D") P::geometry = geometry::XZ5D;
+   else if (geometryString == "XYZ6D") P::geometry = geometry::XYZ6D;
+   else {
+      cerr << "Unknown simulation geometry in " << __FILE__ << ":" << __LINE__ << endl;
+      return false;
+   }
+   
    if (P::amrCoarsenLimit >= P::amrRefineLimit) return false;
    if (P::xmax < P::xmin || (P::ymax < P::ymin || P::zmax < P::zmin)) return false;
-   if (P::vxmax < P::vxmin || (P::vymax < P::vymin || P::vzmax < P::vzmin)) return false;
    
    // Set some parameter values. 
    P::dx_ini = (P::xmax-P::xmin)/P::xcells_ini;
@@ -402,6 +395,8 @@ bool Parameters::getParameters(){
    Readparameters::get("fieldsolver.resistivity", P::resistivity);
    Readparameters::get("fieldsolver.diffusiveEterms", P::fieldSolverDiffusiveEterms);
    Readparameters::get("fieldsolver.ohmHallTerm", P::ohmHallTerm);
+   Readparameters::get("fieldsolver.ohmGradPeTerm", P::ohmGradPeTerm);
+   Readparameters::get("fieldsolver.electronTemperature", P::electronTemperature);
    Readparameters::get("fieldsolver.maxCFL",P::fieldSolverMaxCFL);
    Readparameters::get("fieldsolver.minCFL",P::fieldSolverMinCFL);
    // Get Vlasov solver parameters
@@ -449,6 +444,8 @@ bool Parameters::getParameters(){
    // Get parameters related to bailout
    Readparameters::get("bailout.write_restart", P::bailout_write_restart);
    Readparameters::get("bailout.min_dt", P::bailout_min_dt);
+
+   for (size_t s=0; s<P::systemWriteName.size(); ++s) P::systemWrites.push_back(0);
    
    return true;
 }

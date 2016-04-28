@@ -20,7 +20,7 @@
 \param writeGhosts Write ghost zones
 */
 bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-               DataReducer& dataReducer,
+               DataReducer* dataReducer,
                const uint& index,
                const bool writeGhosts = true
 );

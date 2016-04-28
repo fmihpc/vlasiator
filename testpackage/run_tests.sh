@@ -105,7 +105,7 @@ do
         echo "------------------------------------------------------------"
         for i in ${!variables_name[*]}
         do
-            if [ ! "${variables_name[$i]}" == "avgs" ]
+            if [ ! "${variables_name[$i]}" == "proton" ]
             then
                 relativeValue=$($run_command_tools vlsvdiff_DP ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables_name[$i]} ${variables_components[$i]} |grep "The relative 0-distance between both datasets" |gawk '{print $8}'  )
                 absoluteValue=$($run_command_tools vlsvdiff_DP ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables_name[$i]} ${variables_components[$i]} |grep "The absolute 0-distance between both datasets" |gawk '{print $8}'  )
@@ -118,12 +118,12 @@ do
 
         for i in ${!variables_name[*]}
         do
-            if [ "${variables_name[$i]}" == "avgs" ]
+            if [ "${variables_name[$i]}" == "proton" ]
             then
                 echo "--------------------------------------------------------------------------------------------" 
                 echo "   Distribution function diff                                                               "
                 echo "--------------------------------------------------------------------------------------------" 
-                $run_command_tools vlsvdiff_DP ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} avgs 0
+                $run_command_tools vlsvdiff_DP ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} proton 0
             fi 
         done # loop over variables
 
