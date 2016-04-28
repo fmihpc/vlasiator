@@ -32,14 +32,15 @@ namespace SBC {
    Outflow::~Outflow() { }
    
    void Outflow::addParameters() {
+      std::string defStr = "None";
       Readparameters::addComposing("outflow.face", "List of faces on which outflow boundary conditions are to be applied ([xyz][+-]).");
       Readparameters::addComposing("outflow.faceNoFields", "List of faces on which no field outflow boundary conditions are to be applied ([xyz][+-]).");
-      Readparameters::add("outflow.vlasovScheme_face_x+", "Scheme to use on the face x+ (Copy, Limit, None)", "Copy");
-      Readparameters::add("outflow.vlasovScheme_face_x-", "Scheme to use on the face x- (Copy, Limit, None)", "Copy");
-      Readparameters::add("outflow.vlasovScheme_face_y+", "Scheme to use on the face y+ (Copy, Limit, None)", "Copy");
-      Readparameters::add("outflow.vlasovScheme_face_y-", "Scheme to use on the face y- (Copy, Limit, None)", "Copy");
-      Readparameters::add("outflow.vlasovScheme_face_z+", "Scheme to use on the face z+ (Copy, Limit, None)", "Copy");
-      Readparameters::add("outflow.vlasovScheme_face_z-", "Scheme to use on the face z- (Copy, Limit, None)", "Copy");
+      Readparameters::add("outflow.vlasovScheme_face_x+", "Scheme to use on the face x+ (Copy, Limit, None)", defStr);
+      Readparameters::add("outflow.vlasovScheme_face_x-", "Scheme to use on the face x- (Copy, Limit, None)", defStr);
+      Readparameters::add("outflow.vlasovScheme_face_y+", "Scheme to use on the face y+ (Copy, Limit, None)", defStr);
+      Readparameters::add("outflow.vlasovScheme_face_y-", "Scheme to use on the face y- (Copy, Limit, None)", defStr);
+      Readparameters::add("outflow.vlasovScheme_face_z+", "Scheme to use on the face z+ (Copy, Limit, None)", defStr);
+      Readparameters::add("outflow.vlasovScheme_face_z-", "Scheme to use on the face z- (Copy, Limit, None)", defStr);
       Readparameters::add("outflow.precedence", "Precedence value of the outflow system boundary condition (integer), the higher the stronger.", 4);
       Readparameters::add("outflow.quench", "Factor by which to quench the inflowing parts of the velocity distribution function.", 1.0);
       Readparameters::add("outflow.reapplyUponRestart", "If 0 (default), keep going with the state existing in the restart file. If 1, calls again applyInitialState. Can be used to change boundary condition behaviour during a run.", 0);
@@ -89,7 +90,7 @@ namespace SBC {
          } else if(strcmp(scheme[i].c_str(), "Limit") == 0) {
             faceVlasovScheme[i] = vlasovscheme::LIMIT;
          } else {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: Invalid Outflow Vlasov scheme!" << endl;
+            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: " << scheme[i] << " is an invalid Outflow Vlasov scheme!" << endl;
             exit(1);
          }
       }
