@@ -822,4 +822,6 @@ namespace SBC {
     */
    bool SysBoundaryCondition::isDynamic() const {return isThisDynamic;}
    
+   /*! Get a bool telling whether to call again applyInitialState upon restarting the simulation. */
+   bool SysBoundaryCondition::doApplyUponRestart() const {return this->applyUponRestart;}
 } // namespace SBC

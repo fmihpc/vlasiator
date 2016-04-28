@@ -479,6 +479,9 @@ bool SysBoundary::applyInitialState(
    for (it = sysBoundaries.begin();
         it != sysBoundaries.end();
         it++) {
+      if((Parameters::isRestart == true) && ((*it)->doApplyUponRestart() == false)) {
+         continue;
+      }
       if((*it)->applyInitialState(mpiGrid, project) == false) {
          cerr << "ERROR: " << (*it)->getName() << " system boundary condition initial state not applied correctly." << endl;
          success = false;
@@ -598,8 +601,6 @@ bool SysBoundary::isDynamic() const {return isThisDynamic;}
  * \retval isPeriodic Is the system periodic in the queried direction.
  */
 bool SysBoundary::isBoundaryPeriodic(uint direction) const {return isPeriodic[direction];}
-
-
 
 /*! Get a vector containing the cellID of all cells which are not DO_NOT_COMPUTE or NOT_SYSBOUNDARY in the vector of cellIDs passed to the function.
  * 

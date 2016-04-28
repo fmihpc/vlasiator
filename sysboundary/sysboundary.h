@@ -64,6 +64,7 @@ class SysBoundary {
    bool isDynamic() const;
    bool isBoundaryPeriodic(uint direction) const;
    bool updateSysBoundariesAfterLoadBalance(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
+   bool doApplyUponRestart() const;
 
    private:
       /*! Private copy-constructor to prevent copying the class. */
