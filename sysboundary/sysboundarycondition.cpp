@@ -421,13 +421,13 @@ namespace SBC {
       for (vmesh::LocalID blockLID=0; blockLID<to->get_number_of_velocity_blocks(popID); ++blockLID) {
          const vmesh::GlobalID blockGID = to->get_velocity_block_global_id(blockLID,popID);
 //          const Realf* fromBlock_data = from->get_data(from->get_velocity_block_local_id(blockGID) );
-         Realf* toBlock_data = to->get_data(blockLID);
+         Realf* toBlock_data = to->get_data(blockLID,popID);
          if (from->get_velocity_block_local_id(blockGID,popID) == from->invalid_local_id()) {
             for (unsigned int i = 0; i < VELOCITY_BLOCK_LENGTH; i++) {
                toBlock_data[i] = 0.0; //block did not exist in from cell, fill with zeros.
             }
          } else {
-            const Real* blockParameters = to->get_block_parameters(blockLID);
+            const Real* blockParameters = to->get_block_parameters(blockLID,popID);
             // check where cells are
             creal vxBlock = blockParameters[BlockParams::VXCRD];
             creal vyBlock = blockParameters[BlockParams::VYCRD];
@@ -902,7 +902,7 @@ namespace SBC {
       flowtoCellsBlock.fill(NULL);
       for (uint i=0; i<27; i++) {
          if(flowtoCells.at(i)) {
-            flowtoCellsBlock.at(i) = flowtoCells.at(i)->get_data(flowtoCells.at(i)->get_velocity_block_local_id(blockGID,popID));
+            flowtoCellsBlock.at(i) = flowtoCells.at(i)->get_data(flowtoCells.at(i)->get_velocity_block_local_id(blockGID,popID), popID);
          }
       }
       phiprof::stop("getFlowtoCellsBlock");
