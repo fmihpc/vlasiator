@@ -461,16 +461,16 @@ namespace SBC {
                   break;
                case vlasovscheme::COPY:
                   if (cell->sysBoundaryLayer == 1) {
-                     vlasovBoundaryCopyFromTheClosestNbr(mpiGrid,cellID,true,popID);
-                  } else {
                      vlasovBoundaryCopyFromTheClosestNbr(mpiGrid,cellID,false,popID);
+                  } else {
+                     vlasovBoundaryCopyFromTheClosestNbr(mpiGrid,cellID,true,popID);
                   }
                   break;
                case vlasovscheme::LIMIT:
                   if (cell->sysBoundaryLayer == 1) {
                      vlasovBoundaryCopyFromTheClosestNbrAndLimit(mpiGrid,cellID,popID);
                   } else {
-                     vlasovBoundaryCopyFromTheClosestNbr(mpiGrid,cellID,false,popID);
+                     vlasovBoundaryCopyFromTheClosestNbr(mpiGrid,cellID,true,popID);
                   }
                   break;
                default:
