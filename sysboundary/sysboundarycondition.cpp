@@ -427,7 +427,7 @@ namespace SBC {
                toBlock_data[i] = 0.0; //block did not exist in from cell, fill with zeros.
             }
          } else {
-            const Real* blockParameters = to->get_block_parameters(blockLID);
+            const Real* blockParameters = to->get_block_parameters(blockLID, popID);
             // check where cells are
             creal vxBlock = blockParameters[BlockParams::VXCRD];
             creal vyBlock = blockParameters[BlockParams::VYCRD];
