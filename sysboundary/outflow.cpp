@@ -32,7 +32,7 @@ namespace SBC {
    Outflow::~Outflow() { }
    
    void Outflow::addParameters() {
-      std::string defStr = "None";
+      std::string defStr = "Copy";
       Readparameters::addComposing("outflow.face", "List of faces on which outflow boundary conditions are to be applied ([xyz][+-]).");
       Readparameters::addComposing("outflow.faceNoFields", "List of faces on which no field outflow boundary conditions are to be applied ([xyz][+-]).");
       Readparameters::add("outflow.vlasovScheme_face_x+", "Scheme to use on the face x+ (Copy, Limit, None)", defStr);
@@ -461,16 +461,16 @@ namespace SBC {
                   break;
                case vlasovscheme::COPY:
                   if (cell->sysBoundaryLayer == 1) {
-                     vlasovBoundaryCopyFromTheClosestNbr(mpiGrid,cellID,true,popID);
-                  } else {
                      vlasovBoundaryCopyFromTheClosestNbr(mpiGrid,cellID,false,popID);
+                  } else {
+                     vlasovBoundaryCopyFromTheClosestNbr(mpiGrid,cellID,true,popID);
                   }
                   break;
                case vlasovscheme::LIMIT:
                   if (cell->sysBoundaryLayer == 1) {
                      vlasovBoundaryCopyFromTheClosestNbrAndLimit(mpiGrid,cellID,popID);
                   } else {
-                     vlasovBoundaryCopyFromTheClosestNbr(mpiGrid,cellID,false,popID);
+                     vlasovBoundaryCopyFromTheClosestNbr(mpiGrid,cellID,true,popID);
                   }
                   break;
                default:
