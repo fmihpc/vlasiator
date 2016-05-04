@@ -51,13 +51,13 @@ namespace SBC {
     * \param dx Cell dx size
     * \param dy Cell dy size
     * \param dz Cell dz size
-    * \param doIgnoreSlices If true, do not consider a cell to be part of the face if that face has a depth of 1 only (single-cell thick slices/columns).
+    * \param excludeSlicesAndPeriodicDimensions If true, do not consider a cell to be part of the face if that face has a depth of 1 only (single-cell thick slices/columns) or if that direciton is periodic..
     */
    void SysBoundaryCondition::determineFace(
       bool* isThisCellOnAFace,
       creal x, creal y, creal z,
       creal dx, creal dy, creal dz,
-      const bool excludeSlices //=false (default)
+      const bool excludeSlicesAndPeriodicDimensions //=false (default)
    ) {
       for(uint i=0; i<6; i++) {
          isThisCellOnAFace[i] = false;
@@ -80,16 +80,16 @@ namespace SBC {
       if(z < Parameters::zmin + 2.0*dz) {
          isThisCellOnAFace[5] = true;
       }
-      if(excludeSlices == true) {
-         if(Parameters::xcells_ini == 1) {
+      if(excludeSlicesAndPeriodicDimensions == true) {
+         if(Parameters::xcells_ini == 1 || this->isPeriodic[0]) {
             isThisCellOnAFace[0] = false;
             isThisCellOnAFace[1] = false;
          }
-         if(Parameters::ycells_ini == 1) {
+         if(Parameters::ycells_ini == 1 || this->isPeriodic[1]) {
             isThisCellOnAFace[2] = false;
             isThisCellOnAFace[3] = false;
          }
-         if(Parameters::zcells_ini == 1) {
+         if(Parameters::zcells_ini == 1 || this->isPeriodic[2]) {
             isThisCellOnAFace[4] = false;
             isThisCellOnAFace[5] = false;
          }
@@ -941,6 +941,14 @@ namespace SBC {
     * \return Boolean value.
     */
    bool SysBoundaryCondition::isDynamic() const {return isThisDynamic;}
+   
+   void SysBoundaryCondition::setPeriodicity(
+      bool isFacePeriodic[3]
+   ) {
+      for (uint i=0; i<3; i++) {
+         this->isPeriodic[i] = isFacePeriodic[i];
+      }
+   }
    
    /*! Get a bool telling whether to call again applyInitialState upon restarting the simulation. */
    bool SysBoundaryCondition::doApplyUponRestart() const {return this->applyUponRestart;}

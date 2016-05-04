@@ -300,6 +300,14 @@ bool SysBoundary::initSysBoundaries(
       }
    }
    
+   list<SBC::SysBoundaryCondition*>::iterator it2;
+   for (it2 = sysBoundaries.begin();
+        it2 != sysBoundaries.end();
+        it2++
+       ) {
+      (*it2)->setPeriodicity(isPeriodic);
+      }
+   
    return success;
 }
 

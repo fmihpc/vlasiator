@@ -125,12 +125,15 @@ namespace SBC {
             const std::vector<CellID> & local_cells_on_boundary
          );
       bool doApplyUponRestart() const;
+      void setPeriodicity(
+         bool isFacePeriodic[3]
+      );
       protected:
          void determineFace(
             bool* isThisCellOnAFace,
             creal x, creal y, creal z,
             creal dx, creal dy, creal dz,
-            const bool excludeSlices = false
+            const bool excludeSlicesAndPeriodicDimensions = false
          );
          void copyCellData(
             SpatialCell *from,
@@ -211,6 +214,8 @@ namespace SBC {
          uint precedence;
          /*! Is the boundary condition dynamic in time or not. */
          bool isThisDynamic;
+         /*! Array of bool telling whether the system is periodic in any direction. */
+         bool isPeriodic[3];
          /*! Map of closest nonsysboundarycells. Used in getAllClosestNonsysboundaryCells. */
          std::unordered_map<CellID, std::vector<CellID>> allClosestNonsysboundaryCells;
       
