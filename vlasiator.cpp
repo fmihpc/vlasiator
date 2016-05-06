@@ -675,9 +675,9 @@ int main(int argn,char* args[]) {
       //Propagate the state of simulation forward in time by dt:
       
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
-         phiprof::start("Update system boundaries (Vlasov)");
+         phiprof::start("Update system boundaries (Vlasov pre-translation)");
          sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid, P::t+0.5*P::dt); 
-         phiprof::stop("Update system boundaries (Vlasov)");
+         phiprof::stop("Update system boundaries (Vlasov pre-translation)");
          addTimedBarrier("barrier-boundary-conditions");
       }
       
@@ -704,9 +704,9 @@ int main(int argn,char* args[]) {
       
       // Apply boundary conditions
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
-         phiprof::start("Update system boundaries (Vlasov)");
+         phiprof::start("Update system boundaries (Vlasov post-translation)");
          sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid, P::t+0.5*P::dt); 
-         phiprof::stop("Update system boundaries (Vlasov)");
+         phiprof::stop("Update system boundaries (Vlasov post-translation)");
          addTimedBarrier("barrier-boundary-conditions");
       }
       
