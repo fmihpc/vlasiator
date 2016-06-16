@@ -123,7 +123,7 @@ void report_process_memory_consumption(){
       double sum_mem_papi[2];
       double min_mem_papi[2];
       double max_mem_papi[2];
-      /*PAPI returns memory in KB units, transform to GiB*/
+      /*PAPI returns memory in KB units, transform to bytes*/
       mem_papi[0] = dmem.high_water_mark * 1024;
       mem_papi[1] = dmem.resident * 1024;
       //sum node mem
