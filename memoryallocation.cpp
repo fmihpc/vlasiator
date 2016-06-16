@@ -7,6 +7,7 @@ Copyright 2014 Finnish Meteorological Institute
 #include <string.h>
 #include <iostream>
 #include <math.h>
+#include <unordered_map> // for hasher
 #include "logger.h"
 #include "memoryallocation.h"
 #ifdef PAPI_MEM
