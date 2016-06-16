@@ -31,6 +31,8 @@
 #include "VelocityBox/VelocityBox.h"
 #include "Riemann1/Riemann1.h"
 #include "Shock/Shock.h"
+#include "IPShock/IPShock.h"
+#include "IPShock/noise.h"
 #include "Template/Template.h"
 #include "test_fp/test_fp.h"
 #include "testHall/testHall.h"
@@ -107,6 +109,7 @@ namespace projects {
       projects::VelocityBox::addParameters();
       projects::Riemann1::addParameters();
       projects::Shock::addParameters();
+      projects::IPShock::addParameters();
       projects::Template::addParameters();
       projects::test_fp::addParameters();
       projects::TestHall::addParameters();
@@ -752,6 +755,9 @@ Project* createProject() {
    }
    if(Parameters::projectName == "Shock") {
       rvalue = new projects::Shock;
+   }
+   if(Parameters::projectName == "IPShock") {
+      rvalue = new projects::IPShock;
    }
    if(Parameters::projectName == "Template") {
       rvalue = new projects::Template;
