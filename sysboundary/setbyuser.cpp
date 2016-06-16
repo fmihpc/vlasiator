@@ -97,7 +97,7 @@ namespace SBC {
       Project &project
    ) {
       bool success = true;
-      for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      for (unsigned int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          if (setCellsFromTemplate(mpiGrid, popID) == false) success = false;
       }
       
@@ -267,7 +267,7 @@ namespace SBC {
                   cell->parameters[CellParams::RHOLOSSVELBOUNDARY] = 0.0;
                }
 
-               copyCellData(&templateCells[i], cell,true,popID);
+               copyCellData(&templateCells[i], cell,true,false,popID);
                break; // This effectively sets the precedence of faces through the order of faces.
             }
          }

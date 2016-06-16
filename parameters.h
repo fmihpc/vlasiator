@@ -82,7 +82,6 @@ struct Parameters {
    static bool propagatePotential;  /*!< If true, electrostatic potential is solved during the simulation.*/
    static bool propagateVlasovAcceleration;     /*!< If true, distribution function is propagated in velocity space during the simulation.*/
    static bool propagateVlasovTranslation;      /*!< If true, distribution function is propagated in ordinary space during the simulation.*/
-   static bool periodic_x, periodic_y, periodic_z; /*!< Whether spatial vlasov grid is periodic */
 
    static Real maxWaveVelocity; /*!< Maximum wave velocity allowed in LDZ. */
    static int maxFieldSolverSubcycles; /*!< Maximum allowed field solver subcycles. */

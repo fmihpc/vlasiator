@@ -284,7 +284,7 @@ namespace SBC {
          const Realf* srcData = nbrBlockContainer.getData(srcLID);
 
          Real V_trgt[3];
-         for (int k=0; k<WID; ++k) for (int j=0; j<WID; ++j) for (int i=0; i<WID; ++i) {
+         for (unsigned int k=0; k<WID; ++k) for (unsigned int j=0; j<WID; ++j) for (unsigned int i=0; i<WID; ++i) {
 //            if (V[1] + (j+0.5)*dV[1] > 0) continue;
 
             for (int dir=-1; dir<0; dir+=2) {

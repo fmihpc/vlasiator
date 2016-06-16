@@ -16,6 +16,7 @@
 #include "../projects/projects_common.h"
 #include "../fieldsolver/fs_common.h"
 #include "../fieldsolver/ldz_magnetic_field.hpp"
+#include "../vlasovmover.h"
 
 #ifndef NDEBUG
    #define DEBUG_OUTFLOW
@@ -31,20 +32,84 @@ namespace SBC {
    Outflow::~Outflow() { }
    
    void Outflow::addParameters() {
+      const std::string defStr = "Copy";
       Readparameters::addComposing("outflow.face", "List of faces on which outflow boundary conditions are to be applied ([xyz][+-]).");
+      Readparameters::addComposing("outflow.faceNoFields", "List of faces on which no field outflow boundary conditions are to be applied ([xyz][+-]).");
+      Readparameters::add("outflow.vlasovScheme_face_x+", "Scheme to use on the face x+ (Copy, Limit, None)", defStr);
+      Readparameters::add("outflow.vlasovScheme_face_x-", "Scheme to use on the face x- (Copy, Limit, None)", defStr);
+      Readparameters::add("outflow.vlasovScheme_face_y+", "Scheme to use on the face y+ (Copy, Limit, None)", defStr);
+      Readparameters::add("outflow.vlasovScheme_face_y-", "Scheme to use on the face y- (Copy, Limit, None)", defStr);
+      Readparameters::add("outflow.vlasovScheme_face_z+", "Scheme to use on the face z+ (Copy, Limit, None)", defStr);
+      Readparameters::add("outflow.vlasovScheme_face_z-", "Scheme to use on the face z- (Copy, Limit, None)", defStr);
       Readparameters::add("outflow.precedence", "Precedence value of the outflow system boundary condition (integer), the higher the stronger.", 4);
+      Readparameters::add("outflow.quench", "Factor by which to quench the inflowing parts of the velocity distribution function.", 1.0);
+      Readparameters::add("outflow.reapplyUponRestart", "If 0 (default), keep going with the state existing in the restart file. If 1, calls again applyInitialState. Can be used to change boundary condition behaviour during a run.", 0);
    }
    
    void Outflow::getParameters() {
+      std::array<std::string, 6> vlasovSysBoundarySchemeName;
       int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-      if(!Readparameters::get("outflow.face", faceList)) {
+      if(!Readparameters::get("outflow.face", this->faceList)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
+      }
+      if(!Readparameters::get("outflow.faceNoFields", this->faceNoFieldsList)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("outflow.vlasovScheme_face_x+", vlasovSysBoundarySchemeName[0])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("outflow.vlasovScheme_face_x-", vlasovSysBoundarySchemeName[1])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("outflow.vlasovScheme_face_y+", vlasovSysBoundarySchemeName[2])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("outflow.vlasovScheme_face_y-", vlasovSysBoundarySchemeName[3])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("outflow.vlasovScheme_face_z+", vlasovSysBoundarySchemeName[4])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("outflow.vlasovScheme_face_z-", vlasovSysBoundarySchemeName[5])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      for(uint i=0; i<6 ; i++) {
+         if(vlasovSysBoundarySchemeName[i] == "None") {
+            faceVlasovScheme[i] = vlasovscheme::NONE;
+         } else if (vlasovSysBoundarySchemeName[i] == "Copy") {
+            faceVlasovScheme[i] = vlasovscheme::COPY;
+         } else if(vlasovSysBoundarySchemeName[i] == "Limit") {
+            faceVlasovScheme[i] = vlasovscheme::LIMIT;
+         } else {
+            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: " << vlasovSysBoundarySchemeName[i] << " is an invalid Outflow Vlasov scheme!" << endl;
+            exit(1);
+         }
       }
       if(!Readparameters::get("outflow.precedence", precedence)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
+      }
+      if(!Readparameters::get("outflow.quench", this->quenchFactor)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      uint reapply;
+      if(!Readparameters::get("outflow.reapplyUponRestart",reapply)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      };
+      this->applyUponRestart = false;
+      if(reapply == 1) {
+         this->applyUponRestart = true;
       }
    }
    
@@ -56,7 +121,10 @@ namespace SBC {
        * A true indicates the corresponding face will have outflow.
        * The 6 elements correspond to x+, x-, y+, y-, z+, z- respectively.
        */
-      for(uint i=0; i<6; i++) facesToProcess[i] = false;
+      for(uint i=0; i<6; i++) {
+         facesToProcess[i] = false;
+         facesToSkipFields[i] = false;
+      }
       
       this->getParameters();
       
@@ -72,6 +140,16 @@ namespace SBC {
          if(*it == "y-") facesToProcess[3] = true;
          if(*it == "z+") facesToProcess[4] = true;
          if(*it == "z-") facesToProcess[5] = true;
+      }
+      for (it = faceNoFieldsList.begin();
+           it != faceNoFieldsList.end();
+      it++) {
+         if(*it == "x+") facesToSkipFields[0] = true;
+         if(*it == "x-") facesToSkipFields[1] = true;
+         if(*it == "y+") facesToSkipFields[2] = true;
+         if(*it == "y-") facesToSkipFields[3] = true;
+         if(*it == "z+") facesToSkipFields[4] = true;
+         if(*it == "z-") facesToSkipFields[5] = true;
       }
       return true;
    }
@@ -152,32 +230,46 @@ namespace SBC {
       if (sysBoundaryLayer == 1
          && isThisCellOnAFace[0]                            // we are on the face
          && this->facesToProcess[0]                         // we are supposed to do this face
+         && !this->facesToSkipFields[0]                     // we are not supposed to skip fields on this face
          && component == 0                                  // we do the component normal to this face
          && !(isThisCellOnAFace[2] || isThisCellOnAFace[3] || isThisCellOnAFace[4] || isThisCellOnAFace[5]) // we are not in a corner
       ) {
          const vector<uint16_t> cellVector = {{localID}};
          propagateMagneticField(cellCache, cellVector, dt, RKCase, true, false, false);
-         fieldValue = cellCache[localID].cells[fs_cache::calculateNbrID(1  ,1  ,1  )]->parameters[CellParams::PERBX + component + offset];
+         fieldValue = cellParams[CellParams::PERBX + component + offset];
       } else if (sysBoundaryLayer == 1
          && isThisCellOnAFace[2]                            // we are on the face
          && this->facesToProcess[2]                         // we are supposed to do this face
+         && !this->facesToSkipFields[2]                     // we are not supposed to skip fields on this face
          && component == 1                                  // we do the component normal to this face
          && !(isThisCellOnAFace[0] || isThisCellOnAFace[1] || isThisCellOnAFace[4] || isThisCellOnAFace[5]) // we are not in a corner
       ) {
          const vector<uint16_t> cellVector = {{localID}};
          propagateMagneticField(cellCache, cellVector, dt, RKCase, false, true, false);
-         fieldValue = cellCache[localID].cells[fs_cache::calculateNbrID(1  ,1  ,1  )]->parameters[CellParams::PERBX + component + offset];
+         fieldValue = cellParams[CellParams::PERBX + component + offset];
       } else if (sysBoundaryLayer == 1
          && isThisCellOnAFace[4]                            // we are on the face
          && this->facesToProcess[4]                         // we are supposed to do this face
+         && !this->facesToSkipFields[4]                     // we are not supposed to skip fields on this face
          && component == 2                                  // we do the component normal to this face
          && !(isThisCellOnAFace[0] || isThisCellOnAFace[1] || isThisCellOnAFace[2] || isThisCellOnAFace[3]) // we are not in a corner
       ) {
          const vector<uint16_t> cellVector = {{localID}};
          propagateMagneticField(cellCache, cellVector, dt, RKCase, false, false, true);
-         fieldValue = cellCache[localID].cells[fs_cache::calculateNbrID(1  ,1  ,1  )]->parameters[CellParams::PERBX + component + offset];
+         fieldValue = cellParams[CellParams::PERBX + component + offset];
       } else {
-         fieldValue = fieldBoundaryCopyFromExistingFaceNbrMagneticField(mpiGrid, cellID, component + offset);
+         bool skipThisOne = false;
+         for(uint i=0; i<6; i++) {
+            if(isThisCellOnAFace[i] && this->facesToProcess[i] && this->facesToSkipFields[i]) {
+               skipThisOne = true;
+               break;
+            }
+         }
+         if(skipThisOne) {
+            fieldValue = cellParams[CellParams::PERBX + component + offset]; // copy the existing value, we do not touch it
+         } else {
+            fieldValue = fieldBoundaryCopyFromExistingFaceNbrMagneticField(mpiGrid, cellID, component + offset);
+         }
       }
       
       return fieldValue;
@@ -189,6 +281,23 @@ namespace SBC {
       cuint RKCase,
       cuint component
    ) {
+      creal* const cellParams = mpiGrid[cellID]->parameters;
+      creal dx = cellParams[CellParams::DX];
+      creal dy = cellParams[CellParams::DY];
+      creal dz = cellParams[CellParams::DZ];
+      creal x = cellParams[CellParams::XCRD] + 0.5*dx;
+      creal y = cellParams[CellParams::YCRD] + 0.5*dy;
+      creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
+      
+      bool isThisCellOnAFace[6];
+      determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, true);
+      
+      for(uint i=0; i<6; i++) {
+         if(isThisCellOnAFace[i] && this->facesToSkipFields[i]) {
+            return;
+         }
+      }
+      
       if((RKCase == RK_ORDER1) || (RKCase == RK_ORDER2_STEP2)) {
          mpiGrid[cellID]->parameters[CellParams::EX+component] = 0.0;
       } else {// RKCase == RK_ORDER2_STEP1
@@ -203,6 +312,22 @@ namespace SBC {
    ) {
 
       Real* cp = cache.cells[fs_cache::calculateNbrID(1,1,1)]->parameters;
+      
+      creal dx = cp[CellParams::DX];
+      creal dy = cp[CellParams::DY];
+      creal dz = cp[CellParams::DZ];
+      creal x = cp[CellParams::XCRD] + 0.5*dx;
+      creal y = cp[CellParams::YCRD] + 0.5*dy;
+      creal z = cp[CellParams::ZCRD] + 0.5*dz;
+      
+      bool isThisCellOnAFace[6];
+      determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, true);
+      
+      for(uint i=0; i<6; i++) {
+         if(isThisCellOnAFace[i] && this->facesToSkipFields[i]) {
+            return;
+         }
+      }
       
       switch (component) {
          case 0:
@@ -316,7 +441,46 @@ namespace SBC {
       const int& popID
    ) {
 //      phiprof::start("vlasovBoundaryCondition (Outflow)");
-      vlasovBoundaryCopyFromTheClosestNbr(mpiGrid,cellID,popID);
+      
+      SpatialCell* cell = mpiGrid[cellID];
+      creal* const cellParams = cell->parameters;
+      creal dx = cellParams[CellParams::DX];
+      creal dy = cellParams[CellParams::DY];
+      creal dz = cellParams[CellParams::DZ];
+      creal x = cellParams[CellParams::XCRD] + 0.5*dx;
+      creal y = cellParams[CellParams::YCRD] + 0.5*dy;
+      creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
+      
+      bool isThisCellOnAFace[6];
+      determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, true);
+      
+      for(uint i=0; i<6; i++) {
+         if(isThisCellOnAFace[i] && facesToProcess[i]) {
+            switch(this->faceVlasovScheme[i]) {
+               case vlasovscheme::NONE:
+                  break;
+               case vlasovscheme::COPY:
+                  if (cell->sysBoundaryLayer == 1) {
+                     vlasovBoundaryCopyFromTheClosestNbr(mpiGrid,cellID,false,popID);
+                  } else {
+                     vlasovBoundaryCopyFromTheClosestNbr(mpiGrid,cellID,true,popID);
+                  }
+                  break;
+               case vlasovscheme::LIMIT:
+                  if (cell->sysBoundaryLayer == 1) {
+                     vlasovBoundaryCopyFromTheClosestNbrAndLimit(mpiGrid,cellID,popID);
+                  } else {
+                     vlasovBoundaryCopyFromTheClosestNbr(mpiGrid,cellID,true,popID);
+                  }
+                  break;
+               default:
+                  std::cerr << __FILE__ << ":" << __LINE__ << "ERROR: invalid Outflow Vlasov scheme!" << std::endl;
+                  exit(1);
+                  break;
+            }
+         }
+      }
+      
 //      phiprof::stop("vlasovBoundaryCondition (Outflow)");
    }
    

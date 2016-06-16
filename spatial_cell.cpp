@@ -773,7 +773,7 @@ namespace spatial_cell {
          }
          // Copy particle species metadata
          if ((SpatialCell::mpi_transfer_type & Transfer::POP_METADATA) != 0) {
-            for (int popID=0; popID<populations.size(); ++popID) {
+            for (unsigned int popID=0; popID<populations.size(); ++popID) {
                displacements.push_back((uint8_t*) &(populations[popID].max_dt) - (uint8_t*)this);
                block_lengths.push_back(species::SIZE_DT_ELEMENTS*sizeof(Real));
             }

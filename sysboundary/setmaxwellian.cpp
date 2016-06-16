@@ -33,6 +33,7 @@ namespace SBC {
       Readparameters::add("maxwellian.precedence", "Precedence value of the set Maxwellian system boundary condition (integer), the higher the stronger.", 3);
       Readparameters::add("maxwellian.nSpaceSamples", "Number of sampling points per spatial dimension (template cells)", 2);
       Readparameters::add("maxwellian.nVelocitySamples", "Number of sampling points per velocity dimension (template cells)", 5);
+      Readparameters::add("maxwellian.reapplyUponRestart", "If 0 (default), keep going with the state existing in the restart file. If 1, calls again applyInitialState. Can be used to change boundary condition behaviour during a run.", 0);
    }
    
    void SetMaxwellian::getParameters() {
@@ -81,6 +82,15 @@ namespace SBC {
       if(!Readparameters::get("maxwellian.nVelocitySamples", nVelocitySamples)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
+      }
+      uint reapply;
+      if(!Readparameters::get("maxwellian.reapplyUponRestart",reapply)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      };
+      this->applyUponRestart = false;
+      if(reapply == 1) {
+         this->applyUponRestart = true;
       }
    }
    
@@ -206,7 +216,7 @@ namespace SBC {
       templateCell.parameters[CellParams::RHOLOSSVELBOUNDARY] = 0.0;
       
       // Init all particle species
-      for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      for (unsigned int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          vector<vmesh::GlobalID> blocksToInitialize = this->findBlocksToInitialize(popID,templateCell, rho, T, Vx, Vy, Vz);
          Realf* data = templateCell.get_data(popID);
 
