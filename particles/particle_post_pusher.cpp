@@ -25,7 +25,10 @@ int main(int argc, char** argv) {
    Readparameters parameters(argc, argv, MPI_COMM_WORLD);
    ParticleParameters::addParameters();
    parameters.parse(false);  // Parse parameters and don't require run_config
-   ParticleParameters::getParameters();
+   if(!ParticleParameters::getParameters()) {
+      std::cerr << "Parsing parameters failed, aborting." << std::endl;
+      return 1;
+   }
 
    /* Read starting fields from specified input file */
    std::string filename_pattern = ParticleParameters::input_filename_pattern;
