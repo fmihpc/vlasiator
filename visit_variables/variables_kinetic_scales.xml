@@ -50,7 +50,7 @@
     </Object>
     <Object name="Expression">
         <Field name="name" type="string">inertial_length</Field>
-        <Field name="definition" type="string">"3e8 / wpi"</Field>
+        <Field name="definition" type="string">"3e8 * wpi^(-1)"</Field>
         <Field name="hidden" type="bool">false</Field>
         <Field name="type" type="string">ScalarMeshVar</Field>
         <Field name="fromDB" type="bool">false</Field>
