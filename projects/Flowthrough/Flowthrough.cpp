@@ -143,9 +143,9 @@ namespace projects {
 
    Real Flowthrough::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const int& popID) const {
       if (emptyBox == true) return 0.0;
-      creal d_x = dx / nSpaceSamples;
-      creal d_y = dy / nSpaceSamples;
-      creal d_z = dz / nSpaceSamples;
+      creal d_x = dx / (nSpaceSamples-1);
+      creal d_y = dy / (nSpaceSamples-1);
+      creal d_z = dz / (nSpaceSamples-1);
       creal d_vx = dvx / (nVelocitySamples-1);
       creal d_vy = dvy / (nVelocitySamples-1);
       creal d_vz = dvz / (nVelocitySamples-1);
@@ -153,7 +153,7 @@ namespace projects {
       Real avg = 0.0;
       for (uint i=0; i<nSpaceSamples; ++i) for (uint j=0; j<nSpaceSamples; ++j) for (uint k=0; k<nSpaceSamples; ++k) {
          for (uint vi=0; vi<nVelocitySamples; ++vi) for (uint vj=0; vj<nVelocitySamples; ++vj) for (uint vk=0; vk<nVelocitySamples; ++vk) {
-            avg += getDistribValue(x+(i+0.5)*d_x, y+(j+0.5)*d_y, z+(k+0.5)*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz);
+            avg += getDistribValue(x+i*d_x,y+j*d_y,z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz);
          }
       }
       return avg / (nSpaceSamples*nSpaceSamples*nSpaceSamples*nVelocitySamples*nVelocitySamples*nVelocitySamples);
