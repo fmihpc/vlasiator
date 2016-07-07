@@ -143,20 +143,25 @@ namespace projects {
 
    Real Flowthrough::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const int& popID) const {
       if (emptyBox == true) return 0.0;
-      creal d_x = dx / (nSpaceSamples-1);
-      creal d_y = dy / (nSpaceSamples-1);
-      creal d_z = dz / (nSpaceSamples-1);
-      creal d_vx = dvx / (nVelocitySamples-1);
-      creal d_vy = dvy / (nVelocitySamples-1);
-      creal d_vz = dvz / (nVelocitySamples-1);
+      if((this->nSpaceSamples > 1) && (this->nVelocitySamples > 1)) {
+         creal d_x = dx / (nSpaceSamples-1);
+         creal d_y = dy / (nSpaceSamples-1);
+         creal d_z = dz / (nSpaceSamples-1);
+         creal d_vx = dvx / (nVelocitySamples-1);
+         creal d_vy = dvy / (nVelocitySamples-1);
+         creal d_vz = dvz / (nVelocitySamples-1);
 
-      Real avg = 0.0;
-      for (uint i=0; i<nSpaceSamples; ++i) for (uint j=0; j<nSpaceSamples; ++j) for (uint k=0; k<nSpaceSamples; ++k) {
-         for (uint vi=0; vi<nVelocitySamples; ++vi) for (uint vj=0; vj<nVelocitySamples; ++vj) for (uint vk=0; vk<nVelocitySamples; ++vk) {
-            avg += getDistribValue(x+i*d_x,y+j*d_y,z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz);
+         Real avg = 0.0;
+         for (uint i=0; i<nSpaceSamples; ++i) for (uint j=0; j<nSpaceSamples; ++j) for (uint k=0; k<nSpaceSamples; ++k) {
+            for (uint vi=0; vi<nVelocitySamples; ++vi) for (uint vj=0; vj<nVelocitySamples; ++vj) for (uint vk=0; vk<nVelocitySamples; ++vk) {
+               avg += getDistribValue(x+i*d_x,y+j*d_y,z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz);
+            }
          }
+         return avg / (nSpaceSamples*nSpaceSamples*nSpaceSamples*nVelocitySamples*nVelocitySamples*nVelocitySamples);
+      } else {
+         return getDistribValue(x+0.5*dx,y+0.5*dy,z+0.5*dz,vx+0.5*dvx,vy+0.5*dvy,vz+0.5*dvz,dvx,dvy,dvz);
+         
       }
-      return avg / (nSpaceSamples*nSpaceSamples*nSpaceSamples*nVelocitySamples*nVelocitySamples*nVelocitySamples);
    }
 
    void Flowthrough::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
