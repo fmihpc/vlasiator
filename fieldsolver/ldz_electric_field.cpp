@@ -364,6 +364,7 @@ void calculateEdgeElectricFieldX(
    Real az_pos,az_neg;              // Max. characteristic velocities to z-direction
    Real Vy0,Vz0;                    // Reconstructed V
    Real vA, vS, vW;                 // Alfven, sound and whistler speed
+   Real maxV = 0.0;                 // Max velocity for CFL purposes
    Real c_y, c_z;                   // Wave speeds to yz-directions
 
    // Get read-only pointers to NE,NW,SE,SW states (SW is rw, result is written there):
@@ -492,6 +493,7 @@ void calculateEdgeElectricFieldX(
    ay_pos   = max(ZERO,+Vy0 + c_y);
    az_neg   = max(ZERO,-Vz0 + c_z);
    az_pos   = max(ZERO,+Vz0 + c_z);
+   maxV = max(maxV, fabs(Vy0) + fabs(Vz0) + vA + vS + vW);
 
    // Ex and characteristic speeds on j-1 neighbour:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -545,6 +547,7 @@ void calculateEdgeElectricFieldX(
    ay_pos   = max(ay_pos,+Vy0 + c_y);
    az_neg   = max(az_neg,-Vz0 + c_z);
    az_pos   = max(az_pos,+Vz0 + c_z);
+   maxV = max(maxV, fabs(Vy0) + fabs(Vz0) + vA + vS + vW);
 
    // Ex and characteristic speeds on k-1 neighbour:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -598,6 +601,7 @@ void calculateEdgeElectricFieldX(
    ay_pos   = max(ay_pos,+Vy0 + c_y);
    az_neg   = max(az_neg,-Vz0 + c_z);
    az_pos   = max(az_pos,+Vz0 + c_z);
+   maxV = max(maxV, fabs(Vy0) + fabs(Vz0) + vA + vS + vW);
 
    // Ex and characteristic speeds on j-1,k-1 neighbour:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -651,6 +655,7 @@ void calculateEdgeElectricFieldX(
    ay_pos   = max(ay_pos,+Vy0 + c_y);
    az_neg   = max(az_neg,-Vz0 + c_z);
    az_pos   = max(az_pos,+Vz0 + c_z);
+   maxV = max(maxV, fabs(Vy0) + fabs(Vz0) + vA + vS + vW);
 
    // Calculate properly upwinded edge-averaged Ex:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -685,16 +690,11 @@ void calculateEdgeElectricFieldX(
    
    if ((RKCase == RK_ORDER1) || (RKCase == RK_ORDER2_STEP2)) {
       //compute maximum timestep for fieldsolver in this cell (CFL=1)
-      Real max_a=ZERO;
-      max_a=max(fabs(az_neg),max_a); 
-      max_a=max(fabs(az_pos),max_a);
-      max_a=max(fabs(ay_neg),max_a);
-      max_a=max(fabs(ay_pos),max_a);
       Real min_dx=std::numeric_limits<Real>::max();
       min_dx=min(min_dx,cp_SW[CellParams::DY]);
       min_dx=min(min_dx,cp_SW[CellParams::DZ]);
       //update max allowed timestep for field propagation in this cell, which is the minimum of CFL=1 timesteps
-      if (max_a != ZERO) cp_SW[CellParams::MAXFDT] = min(cp_SW[CellParams::MAXFDT],min_dx/max_a);
+      if (maxV != ZERO) cp_SW[CellParams::MAXFDT] = min(cp_SW[CellParams::MAXFDT],min_dx/maxV);
    }
 }
 
@@ -731,6 +731,7 @@ void calculateEdgeElectricFieldY(
    Real az_pos,az_neg;              // Max. characteristic velocities to z-direction
    Real Vx0,Vz0;                    // Reconstructed V
    Real vA, vS, vW;                 // Alfven, sound and whistler speed
+   Real maxV = 0.0;                 // Max velocity for CFL purposes
    Real c_x,c_z;                    // Wave speeds to xz-directions
 
    // Get read-only pointers to NE,NW,SE,SW states (SW is rw, result is written there):
@@ -860,6 +861,7 @@ void calculateEdgeElectricFieldY(
    az_pos   = max(ZERO,+Vz0 + c_z);
    ax_neg   = max(ZERO,-Vx0 + c_x);
    ax_pos   = max(ZERO,+Vx0 + c_x);
+   maxV = max(maxV, fabs(Vz0) + fabs(Vx0) + vA + vS + vW);
 
    // Ey and characteristic speeds on k-1 neighbour:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -913,6 +915,7 @@ void calculateEdgeElectricFieldY(
    az_pos   = max(az_pos,+Vz0 + c_z);
    ax_neg   = max(ax_neg,-Vx0 + c_x);
    ax_pos   = max(ax_pos,+Vx0 + c_x);
+   maxV = max(maxV, fabs(Vz0) + fabs(Vx0) + vA + vS + vW);
    
    // Ey and characteristic speeds on i-1 neighbour:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -966,6 +969,7 @@ void calculateEdgeElectricFieldY(
    az_pos   = max(az_pos,+Vz0 + c_z);
    ax_neg   = max(ax_neg,-Vx0 + c_x);
    ax_pos   = max(ax_pos,+Vx0 + c_x);
+   maxV = max(maxV, fabs(Vz0) + fabs(Vx0) + vA + vS + vW);
 
    // Ey and characteristic speeds on i-1,k-1 neighbour:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -1019,6 +1023,7 @@ void calculateEdgeElectricFieldY(
    az_pos   = max(az_pos,+Vz0 + c_z);
    ax_neg   = max(ax_neg,-Vx0 + c_x);
    ax_pos   = max(ax_pos,+Vx0 + c_x);
+   maxV = max(maxV, fabs(Vz0) + fabs(Vx0) + vA + vS + vW);
 
    // Calculate properly upwinded edge-averaged Ey:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -1050,16 +1055,11 @@ void calculateEdgeElectricFieldY(
    
    if ((RKCase == RK_ORDER1) || (RKCase == RK_ORDER2_STEP2)) {
       //compute maximum timestep for fieldsolver in this cell (CFL=1)      
-      Real max_a=ZERO;
-      max_a=max(fabs(az_neg),max_a);
-      max_a=max(fabs(az_pos),max_a);
-      max_a=max(fabs(ax_neg),max_a);
-      max_a=max(fabs(ax_pos),max_a);
       Real min_dx=std::numeric_limits<Real>::max();;
       min_dx=min(min_dx,cp_SW[CellParams::DX]);
       min_dx=min(min_dx,cp_SW[CellParams::DZ]);
       //update max allowed timestep for field propagation in this cell, which is the minimum of CFL=1 timesteps
-      if (max_a!=ZERO) cp_SW[CellParams::MAXFDT]=min(cp_SW[CellParams::MAXFDT],min_dx/max_a);
+      if (maxV!=ZERO) cp_SW[CellParams::MAXFDT]=min(cp_SW[CellParams::MAXFDT],min_dx/maxV);
    }
 }
 
@@ -1096,6 +1096,7 @@ void calculateEdgeElectricFieldZ(
    Real ay_pos,ay_neg;              // Max. characteristic velocities to y-direction
    Real Vx0,Vy0;                    // Reconstructed V
    Real vA, vS, vW;                 // Alfven, sound and whistler speed
+   Real maxV = 0.0;                 // Max velocity for CFL purposes
    Real c_x,c_y;                    // Characteristic speeds to xy-directions
    
    // Get read-only pointers to NE,NW,SE,SW states (SW is rw, result is written there):
@@ -1228,6 +1229,7 @@ void calculateEdgeElectricFieldZ(
    ax_pos   = max(ZERO,+Vx0 + c_x);
    ay_neg   = max(ZERO,-Vy0 + c_y);
    ay_pos   = max(ZERO,+Vy0 + c_y);
+   maxV = max(maxV, fabs(Vx0) + fabs(Vy0) + vA + vS + vW);
 
    // Ez and characteristic speeds on SE (i-1) cell:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -1280,6 +1282,7 @@ void calculateEdgeElectricFieldZ(
    ax_pos = max(ax_pos,+Vx0 + c_x);
    ay_neg = max(ay_neg,-Vy0 + c_y);
    ay_pos = max(ay_pos,+Vy0 + c_y);
+   maxV = max(maxV, fabs(Vx0) + fabs(Vy0) + vA + vS + vW);
 
    // Ez and characteristic speeds on NW (j-1) cell:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -1333,6 +1336,7 @@ void calculateEdgeElectricFieldZ(
    ax_pos = max(ax_pos,+Vx0 + c_x);
    ay_neg = max(ay_neg,-Vy0 + c_y);
    ay_pos = max(ay_pos,+Vy0 + c_y);
+   maxV = max(maxV, fabs(Vx0) + fabs(Vy0) + vA + vS + vW);
    
    // Ez and characteristic speeds on NE (i-1,j-1) cell:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -1386,6 +1390,7 @@ void calculateEdgeElectricFieldZ(
    ax_pos = max(ax_pos,+Vx0 + c_x);
    ay_neg = max(ay_neg,-Vy0 + c_y);
    ay_pos = max(ay_pos,+Vy0 + c_y);
+   maxV = max(maxV, fabs(Vx0) + fabs(Vy0) + vA + vS + vW);
 
    // Calculate properly upwinded edge-averaged Ez:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -1418,16 +1423,11 @@ void calculateEdgeElectricFieldZ(
    
    if ((RKCase == RK_ORDER1) || (RKCase == RK_ORDER2_STEP2)) {
       //compute maximum timestep for fieldsolver in this cell (CFL=1)      
-      Real max_a=ZERO;
-      max_a=max(fabs(ay_neg),max_a);
-      max_a=max(fabs(ay_pos),max_a);
-      max_a=max(fabs(ax_neg),max_a);
-      max_a=max(fabs(ax_pos),max_a);
       Real min_dx=std::numeric_limits<Real>::max();;
       min_dx=min(min_dx,cp_SW[CellParams::DX]);
       min_dx=min(min_dx,cp_SW[CellParams::DY]);
       //update max allowed timestep for field propagation in this cell, which is the minimum of CFL=1 timesteps
-      if(max_a!=ZERO) cp_SW[CellParams::MAXFDT]=min(cp_SW[CellParams::MAXFDT],min_dx/max_a);
+      if(maxV!=ZERO) cp_SW[CellParams::MAXFDT]=min(cp_SW[CellParams::MAXFDT],min_dx/maxV);
    }
 }
 
