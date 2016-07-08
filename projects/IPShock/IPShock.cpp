@@ -28,7 +28,9 @@ namespace projects {
   IPShock::IPShock(): TriAxisSearch() { }
   IPShock::~IPShock() { }
 
-  bool IPShock::initialize(void) {return true;}
+  bool IPShock::initialize() {
+    return Project::initialize();
+  }
 
   void IPShock::addParameters() {
     typedef Readparameters RP;
@@ -65,32 +67,101 @@ namespace projects {
 
     MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
     typedef Readparameters RP;
-    RP::get("IPShock.BX0u", this->B0u[0]);
-    RP::get("IPShock.BY0u", this->B0u[1]);
-    RP::get("IPShock.BZ0u", this->B0u[2]);
-    RP::get("IPShock.VX0u", this->V0u[0]);
-    RP::get("IPShock.VY0u", this->V0u[1]);
-    RP::get("IPShock.VZ0u", this->V0u[2]);
-    RP::get("IPShock.rhou", this->DENSITYu);
-    RP::get("IPShock.Temperatureu", this->TEMPERATUREu);
+    if(!RP::get("IPShock.BX0u", this->B0u[0])) {
+      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      exit(1);
+    }
+    if(!RP::get("IPShock.BY0u", this->B0u[1])) {
+      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      exit(1);
+    }
+    if(!RP::get("IPShock.BZ0u", this->B0u[2])) {
+      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      exit(1);
+    }
+    if(!RP::get("IPShock.VX0u", this->V0u[0])) {
+      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      exit(1);
+    }
+    if(!RP::get("IPShock.VY0u", this->V0u[1])) {
+      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      exit(1);
+    }
+    if(!RP::get("IPShock.VZ0u", this->V0u[2])) {
+      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      exit(1);
+    }
+    if(!RP::get("IPShock.rhou", this->DENSITYu)) {
+      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      exit(1);
+    }
+    if(!RP::get("IPShock.Temperatureu", this->TEMPERATUREu)) {
+      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      exit(1);
+    }
+    
+    if(!RP::get("IPShock.BX0d", this->B0d[0])) {
+      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      exit(1);
+    }
+    if(!RP::get("IPShock.BY0d", this->B0d[1])) {
+      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      exit(1);
+    }
+    if(!RP::get("IPShock.BZ0d", this->B0d[2])) {
+      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      exit(1);
+    }
+    if(!RP::get("IPShock.VX0d", this->V0d[0])) {
+      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      exit(1);
+    }
+    if(!RP::get("IPShock.VY0d", this->V0d[1])) {
+      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      exit(1);
+    }
+    if(!RP::get("IPShock.VZ0d", this->V0d[2])) {
+      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      exit(1);
+    }
+    if(!RP::get("IPShock.rhod", this->DENSITYd)) {
+      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      exit(1);
+    }
+    if(!RP::get("IPShock.Temperatured", this->TEMPERATUREd)) {
+      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      exit(1);
+    }
 
-    RP::get("IPShock.BX0d", this->B0d[0]);
-    RP::get("IPShock.BY0d", this->B0d[1]);
-    RP::get("IPShock.BZ0d", this->B0d[2]);
-    RP::get("IPShock.VX0d", this->V0d[0]);
-    RP::get("IPShock.VY0d", this->V0d[1]);
-    RP::get("IPShock.VZ0d", this->V0d[2]);
-    RP::get("IPShock.rhod", this->DENSITYd);
-    RP::get("IPShock.Temperatured", this->TEMPERATUREd);
+    if(!RP::get("IPShock.nSpaceSamples", this->nSpaceSamples)) {
+      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      exit(1);
+    }
+    if(!RP::get("IPShock.nVelocitySamples", this->nVelocitySamples)) {
+      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      exit(1);
+    }
+    if(!RP::get("IPShock.maxwCutoff", this->maxwCutoff)) {
+      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      exit(1);
+    }
+    if(!RP::get("IPShock.Width", this->Shockwidth)) {
+      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      exit(1);
+    }
 
-    RP::get("IPShock.nSpaceSamples", this->nSpaceSamples);
-    RP::get("IPShock.nVelocitySamples", this->nVelocitySamples);
-    RP::get("IPShock.maxwCutoff", this->maxwCutoff);
-    RP::get("IPShock.Width", this->Shockwidth);
-
-    RP::get("IPShock.BPertAmp", this->BPerturbationAmp);
-    RP::get("IPShock.BPertScale", this->BPerturbationScale);
-    RP::get("IPShock.BPertOctaves", this->BPerturbationOctaves);
+    if(!RP::get("IPShock.BPertAmp", this->BPerturbationAmp)) {
+      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      exit(1);
+    }
+    if(!RP::get("IPShock.BPertScale", this->BPerturbationScale)) {
+      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      exit(1);
+    }
+    if(!RP::get("IPShock.BPertOctaves", this->BPerturbationOctaves)) {
+      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      exit(1);
+    }
     
     if(myRank == MASTER_RANK) {
       std::cerr << "B0x u = " << this->B0u[0] << std::endl;
@@ -125,7 +196,7 @@ namespace projects {
     }
 
     if ((abs(this->V0u[1]) > 1e-10)||(abs(this->B0u[1]) > 1e-10)||(abs(this->V0d[1]) > 1e-10)||(abs(this->B0d[1]) > 1e-10))
-      { 	std::cout<<" Enforcing nil y-directional flow and magnetic flux "<<std::endl;
+      {
 	this->V0u[1] = 0.0;	this->B0u[1] = 0.0;	this->V0d[1] = 0.0;	this->B0d[1] = 0.0;
       }
     
@@ -232,10 +303,12 @@ namespace projects {
     }
   }
   
-  void IPShock::calcCellParameters(Real* cellParams,creal& t) {
-
+  void IPShock::calcCellParameters(spatial_cell::SpatialCell* cell, creal& t) {
     // Disable compiler warnings: (unused variables but the function is inherited)
     (void)t;
+
+    /* Maintain all values in BPERT for simplicity */
+    Real* cellParams = cell->get_cell_parameters();
 
     creal x = cellParams[CellParams::XCRD];
     creal dx = cellParams[CellParams::DX];
@@ -251,19 +324,13 @@ namespace projects {
     Vec3d position = Vec3d(x,y,z);
     Vec3d noise_scale = Vec3d(BPerturbationScale);
 
-    //Legacy parameter, not used
-    //double scaled_x = x / this->Shockwidth;
-
-    // this version of divergence free noise scales noise to exist only in the upstream
-    //<vector std::array<Real, 3>> Bpert;
-    //Bpert = BPerturbationAmp * divergence_free_noise(position, noise_scale, noise_octaves, scaled_x);
-    //std::array<Real, 3> BPertArr = Bpert[0];
     Vec3d Bpert = BPerturbationAmp * divergence_free_noise(position, noise_scale, BPerturbationOctaves);
 
     Real mass = physicalconstants::MASS_PROTON;
     Real KB = physicalconstants::K_B;
     Real mu0 = physicalconstants::MU_0;
     Real adiab = 5./3.;
+
     // Interpolate density between upstream and downstream
     // All other values are calculated from jump conditions
     Real DENSITY = interpolate(this->DENSITYu,this->DENSITYd, x);
@@ -278,14 +345,22 @@ namespace projects {
     cellParams[CellParams::PERBX   ] = BX + Bpert[0];
     cellParams[CellParams::PERBY   ] = 0.0+ Bpert[1];
     cellParams[CellParams::PERBZ   ] = BZ + Bpert[2];
-
+    */
   }
 
   Real IPShock::interpolate(Real upstream, Real downstream, Real x) {
-    x /= 2. * this->Shockwidth;
-    Real a = .5 * (1. + tanh(x * 2. * M_PI));
-
-    return upstream * a + downstream * (1. - a);
+    Real coord = 0.5 + x/this->Shockwidth; //Now shock will be from 0 to 1
+    //x /= 0.5 * this->Shockwidth;
+    Real a = 0.0;
+    if (coord <= 0.0) a = downstream;
+    if (coord >= 1.0) a = upstream;
+    if ((coord > 0.0) && (coord < 1.0)) {
+      // Ken Perlin Smootherstep
+      Real interpolation = ( 6.0 * x * x - 15.0 * x +10. ) * x * x * x;
+      a = upstream * interpolation + downstream * (1. - interpolation);
+      //a = .5 * (1. + tanh(x * 2. * M_PI));
+    }
+    return 
   }
 
   void IPShock::setCellBackgroundField(SpatialCell* cell) {
