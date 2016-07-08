@@ -27,11 +27,11 @@ Previous development version name was UtuShock
 namespace projects {
   IPShock::IPShock(): TriAxisSearch() { }
   IPShock::~IPShock() { }
-
+  
   bool IPShock::initialize() {
     return Project::initialize();
   }
-
+  
   void IPShock::addParameters() {
     typedef Readparameters RP;
     RP::add("IPShock.BX0u", "Upstream mag. field value (T)", 1.0e-9);
@@ -68,98 +68,98 @@ namespace projects {
     MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
     typedef Readparameters RP;
     if(!RP::get("IPShock.BX0u", this->B0u[0])) {
-      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      if(myRank == MASTER_RANK) std::cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << std::endl;
       exit(1);
     }
     if(!RP::get("IPShock.BY0u", this->B0u[1])) {
-      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      if(myRank == MASTER_RANK) std::cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << std::endl;
       exit(1);
     }
     if(!RP::get("IPShock.BZ0u", this->B0u[2])) {
-      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      if(myRank == MASTER_RANK) std::cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << std::endl;
       exit(1);
     }
     if(!RP::get("IPShock.VX0u", this->V0u[0])) {
-      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      if(myRank == MASTER_RANK) std::cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << std::endl;
       exit(1);
     }
     if(!RP::get("IPShock.VY0u", this->V0u[1])) {
-      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      if(myRank == MASTER_RANK) std::cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << std::endl;
       exit(1);
     }
     if(!RP::get("IPShock.VZ0u", this->V0u[2])) {
-      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      if(myRank == MASTER_RANK) std::cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << std::endl;
       exit(1);
     }
     if(!RP::get("IPShock.rhou", this->DENSITYu)) {
-      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      if(myRank == MASTER_RANK) std::cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << std::endl;
       exit(1);
     }
     if(!RP::get("IPShock.Temperatureu", this->TEMPERATUREu)) {
-      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      if(myRank == MASTER_RANK) std::cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << std::endl;
       exit(1);
     }
     
     if(!RP::get("IPShock.BX0d", this->B0d[0])) {
-      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      if(myRank == MASTER_RANK) std::cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << std::endl;
       exit(1);
     }
     if(!RP::get("IPShock.BY0d", this->B0d[1])) {
-      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      if(myRank == MASTER_RANK) std::cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << std::endl;
       exit(1);
     }
     if(!RP::get("IPShock.BZ0d", this->B0d[2])) {
-      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      if(myRank == MASTER_RANK) std::cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << std::endl;
       exit(1);
     }
     if(!RP::get("IPShock.VX0d", this->V0d[0])) {
-      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      if(myRank == MASTER_RANK) std::cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << std::endl;
       exit(1);
     }
     if(!RP::get("IPShock.VY0d", this->V0d[1])) {
-      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      if(myRank == MASTER_RANK) std::cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << std::endl;
       exit(1);
     }
     if(!RP::get("IPShock.VZ0d", this->V0d[2])) {
-      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      if(myRank == MASTER_RANK) std::cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << std::endl;
       exit(1);
     }
     if(!RP::get("IPShock.rhod", this->DENSITYd)) {
-      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      if(myRank == MASTER_RANK) std::cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << std::endl;
       exit(1);
     }
     if(!RP::get("IPShock.Temperatured", this->TEMPERATUREd)) {
-      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      if(myRank == MASTER_RANK) std::cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << std::endl;
       exit(1);
     }
 
     if(!RP::get("IPShock.nSpaceSamples", this->nSpaceSamples)) {
-      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      if(myRank == MASTER_RANK) std::cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << std::endl;
       exit(1);
     }
     if(!RP::get("IPShock.nVelocitySamples", this->nVelocitySamples)) {
-      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      if(myRank == MASTER_RANK) std::cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << std::endl;
       exit(1);
     }
     if(!RP::get("IPShock.maxwCutoff", this->maxwCutoff)) {
-      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      if(myRank == MASTER_RANK) std::cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << std::endl;
       exit(1);
     }
     if(!RP::get("IPShock.Width", this->Shockwidth)) {
-      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      if(myRank == MASTER_RANK) std::cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << std::endl;
       exit(1);
     }
 
     if(!RP::get("IPShock.BPertAmp", this->BPerturbationAmp)) {
-      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      if(myRank == MASTER_RANK) std::cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << std::endl;
       exit(1);
     }
     if(!RP::get("IPShock.BPertScale", this->BPerturbationScale)) {
-      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      if(myRank == MASTER_RANK) std::cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << std::endl;
       exit(1);
     }
     if(!RP::get("IPShock.BPertOctaves", this->BPerturbationOctaves)) {
-      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      if(myRank == MASTER_RANK) std::cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << std::endl;
       exit(1);
     }
     
@@ -203,7 +203,7 @@ namespace projects {
   }
 
 
-  vector<std::array<Real, 3>> IPShock::getV0(creal x, creal y, creal z) {
+  std::vector<std::array<Real, 3>> IPShock::getV0(creal x, creal y, creal z) {
     Real mass = physicalconstants::MASS_PROTON;
     Real mu0 = physicalconstants::MU_0;
 
@@ -218,7 +218,7 @@ namespace projects {
     // Alternatively, could set it so a rotation is performed for solving calculations and then returned to initial frame
     Real VX = this->DENSITYu * this->V0u[0] / DENSITY;
     Real BX = this->B0u[0];
-    Real MAsq = pow((this->V0u[0]/this->B0u[0]), 2) * this->DENSITYu * mass * mu0;
+    Real MAsq = std::pow((this->V0u[0]/this->B0u[0]), 2) * this->DENSITYu * mass * mu0;
     Real BZ = this->B0u[2] * (MAsq - 1.0)/(MAsq*VX/this->V0u[0] -1.0);
     Real VZ = VX * BZ / BX;
 
@@ -226,7 +226,7 @@ namespace projects {
     (void)y; (void)z;
     
     std::array<Real, 3> V0 {{VX, 0.0, VZ}};
-    vector<std::array<Real, 3>> retval;
+    std::vector<std::array<Real, 3>> retval;
     retval.push_back(V0);
 
     return retval;
@@ -251,17 +251,17 @@ namespace projects {
 
     Real VX = this->DENSITYu * this->V0u[0] / DENSITY;
     Real BX = this->B0u[0];
-    Real MAsq = pow((this->V0u[0]/this->B0u[0]), 2) * this->DENSITYu * mass * mu0;
+    Real MAsq = std::pow((this->V0u[0]/this->B0u[0]), 2) * this->DENSITYu * mass * mu0;
     Real BZ = this->B0u[2] * (MAsq - 1.0)/(MAsq*VX/this->V0u[0] -1.0);
     Real VZ = VX * BZ / BX;
     Real TEMPERATURE = this->TEMPERATUREu + (mass*(adiab-1.0)/(2.0*KB*adiab)) * 
-      ( pow(this->V0u[0],2) + pow(this->V0u[2],2) - pow(VX,2) - pow(VZ,2) );
+      ( std::pow(this->V0u[0],2) + std::pow(this->V0u[2],2) - std::pow(VX,2) - std::pow(VZ,2) );
 
     std::array<Real, 3> pertV0 {{VX, 0.0, VZ}};
 
     Real result = 0.0;
 
-    result = DENSITY * pow(mass / (2.0 * M_PI * KB * TEMPERATURE), 1.5) *
+    result = DENSITY * std::pow(mass / (2.0 * M_PI * KB * TEMPERATURE), 1.5) *
       exp(- mass * ((vx-pertV0[0])*(vx-pertV0[0]) + (vy-pertV0[1])*(vy-pertV0[1]) + (vz-pertV0[2])*(vz-pertV0[2])) / (2.0 * KB * TEMPERATURE));
 
     return result;
@@ -339,13 +339,13 @@ namespace projects {
     // Alternatively, could set it so a rotation is performed for solving calculations and then returned to initial frame
     Real VX = this->DENSITYu * this->V0u[0] / DENSITY;
     Real BX = this->B0u[0];
-    Real MAsq = pow((this->V0u[0]/this->B0u[0]), 2) * this->DENSITYu * mass * mu0;
+    Real MAsq = std::pow((this->V0u[0]/this->B0u[0]), 2) * this->DENSITYu * mass * mu0;
     Real BZ = this->B0u[2] * (MAsq - 1.0)/(MAsq*VX/this->V0u[0] -1.0);
 
     cellParams[CellParams::PERBX   ] = BX + Bpert[0];
     cellParams[CellParams::PERBY   ] = 0.0+ Bpert[1];
     cellParams[CellParams::PERBZ   ] = BZ + Bpert[2];
-    */
+
   }
 
   Real IPShock::interpolate(Real upstream, Real downstream, Real x) {
@@ -360,10 +360,10 @@ namespace projects {
       a = upstream * interpolation + downstream * (1. - interpolation);
       //a = .5 * (1. + tanh(x * 2. * M_PI));
     }
-    return 
+    return a;
   }
 
-  void IPShock::setCellBackgroundField(SpatialCell* cell) {
+  void IPShock::setCellBackgroundField(spatial_cell::SpatialCell* cell) {
     setBackgroundFieldToZero(cell->parameters, cell->derivatives,cell->derivativesBVOL);
   }
 
