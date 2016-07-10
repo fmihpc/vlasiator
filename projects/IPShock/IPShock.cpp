@@ -24,6 +24,10 @@ Previous development version name was UtuShock
 #include "IPShock.h"
 #include "noise.h"
 
+
+using namespace std;
+using namespace spatial_cell;
+
 namespace projects {
   IPShock::IPShock(): TriAxisSearch() { }
   IPShock::~IPShock() { }
@@ -203,7 +207,7 @@ namespace projects {
   }
 
 
-  std::vector<std::array<Real, 3>> IPShock::getV0(creal x, creal y, creal z) {
+  std::vector<std::array<Real, 3>> IPShock::getV0(creal x, creal y, creal z) const {
     Real mass = physicalconstants::MASS_PROTON;
     Real mu0 = physicalconstants::MU_0;
 
@@ -232,7 +236,7 @@ namespace projects {
     return retval;
   }
 
-  Real IPShock::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
+  Real IPShock::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) const {
 
     Real mass = physicalconstants::MASS_PROTON;
     Real KB = physicalconstants::K_B;
@@ -249,15 +253,17 @@ namespace projects {
     // Assume all velocities and magnetic fields are in x-z-plane
     // Alternatively, could set it so a rotation is performed for solving calculations and then returned to initial frame
 
-    Real VX = this->DENSITYu * this->V0u[0] / DENSITY;
-    Real BX = this->B0u[0];
+    Real hereVX = this->DENSITYu * this->V0u[0] / DENSITY;
+    Real hereBX = this->B0u[0];
     Real MAsq = std::pow((this->V0u[0]/this->B0u[0]), 2) * this->DENSITYu * mass * mu0;
-    Real BZ = this->B0u[2] * (MAsq - 1.0)/(MAsq*VX/this->V0u[0] -1.0);
-    Real VZ = VX * BZ / BX;
-    Real TEMPERATURE = this->TEMPERATUREu + (mass*(adiab-1.0)/(2.0*KB*adiab)) * 
-      ( std::pow(this->V0u[0],2) + std::pow(this->V0u[2],2) - std::pow(VX,2) - std::pow(VZ,2) );
+    Real hereBZ = this->B0u[2] * (MAsq - 1.0)/(MAsq*hereVX/this->V0u[0] -1.0);
+    Real hereVZ = hereVX * hereBZ / hereBX;
+    // Old incorrect temperature - just interpolate for now
+    //Real TEMPERATURE = this->TEMPERATUREu + (mass*(adiab-1.0)/(2.0*KB*adiab)) * 
+    //  ( std::pow(this->V0u[0],2) + std::pow(this->V0u[2],2) - std::pow(hereVX,2) - std::pow(hereVZ,2) );
+    Real TEMPERATURE = interpolate(this->TEMPERATUREu,this->TEMPERATUREd, x);
 
-    std::array<Real, 3> pertV0 {{VX, 0.0, VZ}};
+    std::array<Real, 3> pertV0 {{hereVX, 0.0, hereVZ}};
 
     Real result = 0.0;
 
@@ -267,7 +273,7 @@ namespace projects {
     return result;
   }
 
-  Real IPShock::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
+  Real IPShock::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const int& popID) const {
     Real result = 0.0;
     if((this->nSpaceSamples > 1) && (this->nVelocitySamples > 1)) {
       creal d_x = dx / (this->nSpaceSamples-1);
@@ -348,7 +354,7 @@ namespace projects {
 
   }
 
-  Real IPShock::interpolate(Real upstream, Real downstream, Real x) {
+  Real IPShock::interpolate(Real upstream, Real downstream, Real x) const {
     Real coord = 0.5 + x/this->Shockwidth; //Now shock will be from 0 to 1
     //x /= 0.5 * this->Shockwidth;
     Real a = 0.0;
@@ -356,14 +362,14 @@ namespace projects {
     if (coord >= 1.0) a = upstream;
     if ((coord > 0.0) && (coord < 1.0)) {
       // Ken Perlin Smootherstep
-      Real interpolation = ( 6.0 * x * x - 15.0 * x +10. ) * x * x * x;
+      Real interpolation = ( 6.0 * coord * coord - 15.0 * coord +10. ) * coord * coord * coord;
       a = upstream * interpolation + downstream * (1. - interpolation);
       //a = .5 * (1. + tanh(x * 2. * M_PI));
     }
     return a;
   }
 
-  void IPShock::setCellBackgroundField(spatial_cell::SpatialCell* cell) {
+  void IPShock::setCellBackgroundField(spatial_cell::SpatialCell* cell) const {
     setBackgroundFieldToZero(cell->parameters, cell->derivatives,cell->derivativesBVOL);
   }
 
