@@ -327,10 +327,10 @@ namespace projects {
     cellParams[CellParams::EY   ] = 0.0;
     cellParams[CellParams::EZ   ] = 0.0;
 
-    Vec3d position = Vec3d(x,y,z);
-    Vec3d noise_scale = Vec3d(BPerturbationScale);
+    //Vec3d position = Vec3d(x,y,z);
+    //Vec3d noise_scale = Vec3d(BPerturbationScale);
 
-    Vec3d Bpert = BPerturbationAmp * divergence_free_noise(position, noise_scale, BPerturbationOctaves);
+    //Vec3d Bpert = BPerturbationAmp * divergence_free_noise(position, noise_scale, BPerturbationOctaves);
 
     Real mass = physicalconstants::MASS_PROTON;
     Real KB = physicalconstants::K_B;
@@ -348,9 +348,9 @@ namespace projects {
     Real MAsq = std::pow((this->V0u[0]/this->B0u[0]), 2) * this->DENSITYu * mass * mu0;
     Real BZ = this->B0u[2] * (MAsq - 1.0)/(MAsq*VX/this->V0u[0] -1.0);
 
-    cellParams[CellParams::PERBX   ] = BX + Bpert[0];
-    cellParams[CellParams::PERBY   ] = 0.0+ Bpert[1];
-    cellParams[CellParams::PERBZ   ] = BZ + Bpert[2];
+    cellParams[CellParams::PERBX   ] = BX ;//+ Bpert[0];
+    cellParams[CellParams::PERBY   ] = 0.0;//+ Bpert[1];
+    cellParams[CellParams::PERBZ   ] = BZ ;//+ Bpert[2];
 
   }
 
