@@ -67,6 +67,7 @@ namespace projects {
   }
 
   void IPShock::getParameters() {
+    Project::getParameters();
     int myRank;
 
     MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
@@ -194,14 +195,15 @@ namespace projects {
       std::cerr << "BPertAmp = " << this->BPerturbationAmp << std::endl;
       std::cerr << "BPertScale = " << this->BPerturbationScale << std::endl;
       std::cerr << "BPertOctaves = " << this->BPerturbationOctaves << std::endl;
-
-      if ((abs(this->V0u[1]) > 1e-10)||(abs(this->B0u[1]) > 1e-10)||(abs(this->V0d[1]) > 1e-10)||(abs(this->B0d[1]) > 1e-10))
-	std::cout<<" Enforcing nil y-directional flow and magnetic flux "<<std::endl;
     }
 
     if ((abs(this->V0u[1]) > 1e-10)||(abs(this->B0u[1]) > 1e-10)||(abs(this->V0d[1]) > 1e-10)||(abs(this->B0d[1]) > 1e-10))
       {
-	this->V0u[1] = 0.0;	this->B0u[1] = 0.0;	this->V0d[1] = 0.0;	this->B0d[1] = 0.0;
+	if(myRank == MASTER_RANK) std::cout<<" Enforcing nil y-directional flow and magnetic flux "<<std::endl;
+	this->V0u[1] = 0.0;
+	this->B0u[1] = 0.0;
+	this->V0d[1] = 0.0;
+	this->B0d[1] = 0.0;
       }
     
   }
@@ -227,7 +229,8 @@ namespace projects {
     Real VZ = VX * BZ / BX;
 
     // Disable compiler warnings: (unused variables but the function is inherited)
-    (void)y; (void)z;
+    (void)y;
+    (void)z;
     
     std::array<Real, 3> V0 {{VX, 0.0, VZ}};
     std::vector<std::array<Real, 3>> retval;
@@ -236,7 +239,9 @@ namespace projects {
     return retval;
   }
 
-  Real IPShock::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) const {
+  Real IPShock::getDistribValue(creal& x, creal& y, creal& z, 
+				creal& vx, creal& vy, creal& vz, 
+				creal& dvx, creal& dvy, creal& dvz) const {
 
     Real mass = physicalconstants::MASS_PROTON;
     Real KB = physicalconstants::K_B;
@@ -327,10 +332,10 @@ namespace projects {
     cellParams[CellParams::EY   ] = 0.0;
     cellParams[CellParams::EZ   ] = 0.0;
 
-    //Vec3d position = Vec3d(x,y,z);
-    //Vec3d noise_scale = Vec3d(BPerturbationScale);
+    Vec3d position = Vec3d(x,y,z);
+    Vec3d noise_scale = Vec3d(BPerturbationScale);
 
-    //Vec3d Bpert = BPerturbationAmp * divergence_free_noise(position, noise_scale, BPerturbationOctaves);
+    Vec3d Bpert = BPerturbationAmp * divergence_free_noise(position, noise_scale, BPerturbationOctaves);
 
     Real mass = physicalconstants::MASS_PROTON;
     Real KB = physicalconstants::K_B;
@@ -348,9 +353,9 @@ namespace projects {
     Real MAsq = std::pow((this->V0u[0]/this->B0u[0]), 2) * this->DENSITYu * mass * mu0;
     Real BZ = this->B0u[2] * (MAsq - 1.0)/(MAsq*VX/this->V0u[0] -1.0);
 
-    cellParams[CellParams::PERBX   ] = BX ;//+ Bpert[0];
-    cellParams[CellParams::PERBY   ] = 0.0;//+ Bpert[1];
-    cellParams[CellParams::PERBZ   ] = BZ ;//+ Bpert[2];
+    cellParams[CellParams::PERBX   ] = BX  + Bpert[0];
+    cellParams[CellParams::PERBY   ] = 0.0 + Bpert[1];
+    cellParams[CellParams::PERBZ   ] = BZ  + Bpert[2];
 
   }
 
@@ -364,7 +369,8 @@ namespace projects {
       // Ken Perlin Smootherstep
       Real interpolation = ( 6.0 * coord * coord - 15.0 * coord +10. ) * coord * coord * coord;
       a = upstream * interpolation + downstream * (1. - interpolation);
-      //a = .5 * (1. + tanh(x * 2. * M_PI));
+      // old tanh-version
+      // a = .5 * (1. + tanh(x * 2. * M_PI));
     }
     return a;
   }
