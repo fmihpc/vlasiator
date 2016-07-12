@@ -337,7 +337,7 @@ void calculateAcceleration(const int& popID,const int& globalMaxSubcycles,const 
       } else{
          subcycleDt = maxVdt;
       }
-
+      
       //generate pseudo-random order which is always the same irrespective of parallelization, restarts, etc
       char rngStateBuffer[256];
       random_data rngDataBuffer;
@@ -377,7 +377,7 @@ void calculateAcceleration(const int& popID,const int& globalMaxSubcycles,const 
  * @param dt Time step.*/
 void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                            Real dt
-                          ) {    
+                          ) {
    typedef Parameters P;
    const vector<CellID>& cells = getLocalCells();
 
@@ -390,7 +390,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
       goto momentCalculation;
    }
    phiprof::start("semilag-acc");
-    
+   
     // Calculate first velocity moments, these are needed to 
     // calculate the transforms used in the accelerations.
     // Calculated moments are stored in the "_V" variables.
@@ -420,8 +420,18 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
        int globalMaxSubcycles;
        for (size_t c=0; c<propagatedCells.size(); ++c) {
           const CellID cellID = propagatedCells[c];
-          int subcycles = getAccerelationSubcycles(mpiGrid[cellID],dt,popID);
-          mpiGrid[cellID]->parameters[CellParams::ACCSUBCYCLES] = subcycles;
+          
+          // Set maximum timestep limit for this cell, based on a maximum allowed rotation angle
+          SpatialCell * spatial_cell = mpiGrid[cellID];
+          const Real Bx = spatial_cell->parameters[CellParams::BGBXVOL]+spatial_cell->parameters[CellParams::PERBXVOL];
+          const Real By = spatial_cell->parameters[CellParams::BGBYVOL]+spatial_cell->parameters[CellParams::PERBYVOL];
+          const Real Bz = spatial_cell->parameters[CellParams::BGBZVOL]+spatial_cell->parameters[CellParams::PERBZVOL];
+          const Real Bmag = sqrt(Bx*Bx + By*By + Bz*Bz) + 1e-30;
+          const Real gyro_period = 2 * M_PI * getObjectWrapper().particleSpecies[popID].mass / (getObjectWrapper().particleSpecies[popID].charge * Bmag);
+          spatial_cell->set_max_v_dt(popID,fabs(gyro_period)*(P::maxSlAccelerationRotation/360.0));
+          
+          int subcycles = getAccerelationSubcycles(spatial_cell,dt,popID);
+          spatial_cell->parameters[CellParams::ACCSUBCYCLES] = subcycles;
           maxSubcycles=maxSubcycles < subcycles ? subcycles:maxSubcycles;
        }
        MPI_Allreduce(&maxSubcycles, &globalMaxSubcycles, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);

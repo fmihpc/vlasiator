@@ -106,8 +106,6 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       return total_transform;
    } // if (Parameters::propagatePotential == true) 
 
-   // Set maximum timestep limit for this cell, based on a maximum allowed rotation angle
-   spatial_cell->set_max_v_dt(popID,fabs(gyro_period)*(P::maxSlAccelerationRotation/360.0));
 
    unsigned int bulk_velocity_substeps; // in this many substeps we iterate forward bulk velocity when the complete transformation is computed (0.1 deg per substep).
    bulk_velocity_substeps = fabs(dt) / (fabs(gyro_period)*(0.1/360.0)); 
