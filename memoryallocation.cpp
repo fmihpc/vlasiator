@@ -135,7 +135,7 @@ void report_process_memory_consumption(){
          MPI_Reduce(node_mem_papi, min_mem_papi, 2, MPI_DOUBLE, MPI_MIN, 0, interComm);
          MPI_Reduce(node_mem_papi, max_mem_papi, 2, MPI_DOUBLE, MPI_MAX, 0, interComm);
          //  logFile << "(MEM) Resident per node (avg, min, max): " << sum_mem_papi[1]/nNodes << " " << min_mem_papi[1] << " "  << max_mem_papi[1] << endl;
-         logFile << "(MEM) High water mark per node (GiB) avg: " << sum_mem_papi[0]/nNodes/GiB << " max: " << min_mem_papi[0]/GiB << " min: "  << max_mem_papi[0]/GiB <<
+         logFile << "(MEM) High water mark per node (GiB) avg: " << sum_mem_papi[0]/nNodes/GiB << " min: " << min_mem_papi[0]/GiB << " max: "  << max_mem_papi[0]/GiB <<
             " sum (TiB): " << sum_mem_papi[0]/TiB << " on "<< nNodes << " nodes" << endl;
          
       }   
