@@ -260,14 +260,21 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, bool doV=tru
      }
    }
 
+   // Make sure the target fields have boundary data.
+   if(E.dimension[0] == nullptr || E.dimension[1] == nullptr || E.dimension[2] == nullptr) {
+      std::cerr << "Warning: Field boundary pointers uninitialized!" << std::endl;
+      E.dimension[0] = B.dimension[0] = V.dimension[0] = createBoundary<OpenBoundary>(0);
+      E.dimension[1] = B.dimension[1] = V.dimension[1] = createBoundary<OpenBoundary>(1);
+      E.dimension[2] = B.dimension[2] = V.dimension[2] = createBoundary<OpenBoundary>(2);
+   }
    /* Set field sizes */
    for(int i=0; i<3;i++) {
       /* Volume-centered values -> shift by half a cell in all directions*/
       E.dx[i] = B.dx[i] = V.dx[i] = (max[i]-min[i])/cells[i];
       double shift = E.dx[i]/2;
-      E.min[i] = B.min[i] = V.min[i] = min[i]+shift;
-      E.max[i] = B.max[i] = V.max[i] = max[i]+shift;
-      E.cells[i] = B.cells[i] = V.cells[i] = cells[i];
+      E.dimension[i]->min = B.dimension[i]->min = V.dimension[i]->min = min[i]+shift;
+      E.dimension[i]->max = B.dimension[i]->max = V.dimension[i]->max = max[i]+shift;
+      E.dimension[i]->cells = B.dimension[i]->cells = V.dimension[i]->cells = cells[i];
    }
    E.time = B.time = V.time = time;
 
