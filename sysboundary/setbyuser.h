@@ -2,18 +2,6 @@
  This file is part of Vlasiator.
  
  Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
  */
 
 #ifndef SETBYUSER_H
@@ -36,7 +24,7 @@ namespace SBC {
     * from file as well as the assignment of the state from the template cells.
     * 
     * The daughter classes have then to handle parameters and generate the template cells as
-    * wished from the data returned. 
+    * wished from the data returned.
     */
    class SetByUser: public SysBoundaryCondition {
    public:
@@ -55,14 +43,13 @@ namespace SBC {
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          Project &project
       );
-//       virtual bool applySysBoundaryCondition(
-//          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-//          creal& t
-//       );
       virtual Real fieldSolverBoundaryCondMagneticField(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-         const CellID& cellID,
+         const std::vector<fs_cache::CellCache>& cellCache,
+         const uint16_t& localID,
          creal& dt,
+         cuint& RKCase,
+         cint& offset,
          cuint& component
       );
       virtual void fieldSolverBoundaryCondElectricField(
@@ -76,11 +63,13 @@ namespace SBC {
          cuint RKCase,
          cuint component
       );
+
       virtual void fieldSolverBoundaryCondGradPeElectricField(
          fs_cache::CellCache& cache,
          cuint RKCase,
          cuint component
       );
+
       virtual void fieldSolverBoundaryCondDerivatives(
          dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const CellID& cellID,
@@ -94,7 +83,8 @@ namespace SBC {
       );
       virtual void vlasovBoundaryCondition(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-         const CellID& cellID
+         const CellID& cellID,
+         const int& popID
       );
       
       virtual void getFaces(bool* faces);
@@ -109,7 +99,7 @@ namespace SBC {
       
       bool generateTemplateCells(creal& t);
       virtual void generateTemplateCell(spatial_cell::SpatialCell& templateCell, int inputDataIndex, creal& t);
-      bool setCellsFromTemplate(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
+      bool setCellsFromTemplate(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const int& popID);
       
       /*! Array of bool telling which faces are going to be processed by the system boundary condition.*/
       bool facesToProcess[6];

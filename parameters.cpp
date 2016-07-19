@@ -1,18 +1,20 @@
 /*
 This file is part of Vlasiator.
 
-Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
+Copyright 2010-2015 Finnish Meteorological Institute
 */
 
+#include <cstdlib>
+#include <iostream>
 #include "parameters.h"
 #include "readparameters.h"
 #include <limits>
 #include <set>
+#include <unistd.h>
 
 #ifndef NAN
-#define NAN 0
+   #define NAN 0
 #endif
-
 
 using namespace std;
 
@@ -22,6 +24,7 @@ typedef Parameters P;
 
 const Real LARGE_REAL=1e20;
 // Define static members:
+int P::geometry = geometry::XYZ6D;
 Real P::xmin = NAN;
 Real P::xmax = NAN;
 Real P::ymin = NAN;
@@ -32,13 +35,6 @@ Real P::dx_ini = NAN;
 Real P::dy_ini = NAN;
 Real P::dz_ini = NAN;
 
-Real P::vxmin = NAN;
-Real P::vxmax = NAN;
-Real P::vymin = NAN;
-Real P::vymax = NAN;
-Real P::vzmin = NAN;
-Real P::vzmax = NAN;
-
 Real P::backstreamradius = NAN;
 Real P::backstreamvx = NAN;
 Real P::backstreamvy = NAN;
@@ -47,9 +43,6 @@ Real P::backstreamvz = NAN;
 uint P::xcells_ini = numeric_limits<uint>::max();
 uint P::ycells_ini = numeric_limits<uint>::max();
 uint P::zcells_ini = numeric_limits<uint>::max();
-uint P::vxblocks_ini = numeric_limits<uint>::max();
-uint P::vyblocks_ini = numeric_limits<uint>::max();
-uint P::vzblocks_ini = numeric_limits<uint>::max();
 
 Real P::t = 0;
 Real P::t_min = 0;
@@ -68,19 +61,22 @@ uint P::diagnosticInterval = numeric_limits<uint>::max();
 bool P::writeInitialState = true;
 
 bool P::meshRepartitioned = true;
+bool P::prepareForRebalance = false;
 std::vector<CellID> P::localCells;
 
-std::vector<std::string> P::systemWriteName; 
-std::vector<Real> P::systemWriteTimeInterval;
-std::vector<int> P::systemWriteDistributionWriteStride;
-std::vector<int> P::systemWriteDistributionWriteXlineStride;
-std::vector<int> P::systemWriteDistributionWriteYlineStride;
-std::vector<int> P::systemWriteDistributionWriteZlineStride;
-std::vector<int> P::systemWrites;
+vector<string> P::systemWriteName;
+vector<string> P::systemWritePath;
+vector<Real> P::systemWriteTimeInterval;
+vector<int> P::systemWriteDistributionWriteStride;
+vector<int> P::systemWriteDistributionWriteXlineStride;
+vector<int> P::systemWriteDistributionWriteYlineStride;
+vector<int> P::systemWriteDistributionWriteZlineStride;
+vector<int> P::systemWrites;
 
 Real P::saveRestartWalltimeInterval = -1.0;
 uint P::exitAfterRestarts = numeric_limits<uint>::max();
 int P::restartStripeFactor = -1;
+string P::restartWritePath = string("");
 
 uint P::transmit = 0;
 
@@ -103,9 +99,14 @@ Real P::electronTemperature = 0.0;
 
 Real P::sparseMinValue = NAN;
 int  P::sparseDynamicAlgorithm = 0;
+
+#warning sparseDynamicBulkValue1 needs to be defined per species
 Real P::sparseDynamicBulkValue1 = 1;
+#warning sparseDynamicBulkValue2 needs to be defined per species
 Real P::sparseDynamicBulkValue2 = 1;
+#warning sparseDynamicMinValue1 needs to be defined per species
 Real P::sparseDynamicMinValue1 = 1;
+#warning sparseDynamicMinValue2 needs to be defined per species
 Real P::sparseDynamicMinValue2 = 1;
 
 int P::sparseBlockAddWidthV = 1;
@@ -139,19 +140,21 @@ bool Parameters::addParameters(){
    Readparameters::add("io.diagnostic_write_interval", "Write diagnostic output every arg time steps",numeric_limits<uint>::max());
    
 
-   Readparameters::addComposing("io.system_write_t_interval", "Save the simulation every arg simulated seconds. Negative values disable writes.");
-   Readparameters::addComposing("io.system_write_file_name", "Save the simulation to this filename series");
-   Readparameters::addComposing("io.system_write_distribution_stride", "Every this many cells write out their velocity space. 0 is none.");
-   Readparameters::addComposing("io.system_write_distribution_xline_stride", "Every this many lines of cells along the x direction write out their velocity space. 0 is none.");
-   Readparameters::addComposing("io.system_write_distribution_yline_stride", "Every this many lines of cells along the y direction write out their velocity space. 0 is none.");
-   Readparameters::addComposing("io.system_write_distribution_zline_stride", "Every this many lines of cells along the z direction write out their velocity space. 0 is none.");
+   Readparameters::addComposing("io.system_write_t_interval", "Save the simulation every arg simulated seconds. Negative values disable writes. [Define for all groups.]");
+   Readparameters::addComposing("io.system_write_file_name", "Save the simulation to this file name series. [Define for all groups.]");
+   Readparameters::addComposing("io.system_write_path", "Save this series in this location. Default is ./ [Define for all groups or none.]");
+   Readparameters::addComposing("io.system_write_distribution_stride", "Every this many cells write out their velocity space. 0 is none. [Define for all groups.]");
+   Readparameters::addComposing("io.system_write_distribution_xline_stride", "Every this many lines of cells along the x direction write out their velocity space. 0 is none. [Define for all groups.]");
+   Readparameters::addComposing("io.system_write_distribution_yline_stride", "Every this many lines of cells along the y direction write out their velocity space. 0 is none. [Define for all groups.]");
+   Readparameters::addComposing("io.system_write_distribution_zline_stride", "Every this many lines of cells along the z direction write out their velocity space. 0 is none. [Define for all groups.]");
 
    Readparameters::add("io.write_initial_state","Write initial state, not even the 0.5 dt propagation is done. Do not use for restarting. ",false);
 
    Readparameters::add("io.restart_walltime_interval","Save the complete simulation in given walltime intervals. Negative values disable writes.",-1.0);
    Readparameters::add("io.number_of_restarts","Exit the simulation after certain number of walltime-based restarts.",numeric_limits<uint>::max());
-   Readparameters::add("io.write_restart_stripe_factor","Stripe factor for restar writing.", -1);
+   Readparameters::add("io.write_restart_stripe_factor","Stripe factor for restart writing.", -1);
    Readparameters::add("io.write_as_float","If true, write in floats instead of doubles", false);
+   Readparameters::add("io.restart_write_path", "Path to the location where restart files should be written. Defaults to the local directory, also if the specified destination is not writeable.", string("./"));
    
    Readparameters::add("propagate_potential","Propagate electrostatic potential during the simulation",false);
    Readparameters::add("propagate_field","Propagate magnetic field during the simulation",true);
@@ -159,10 +162,11 @@ bool Parameters::addParameters(){
    Readparameters::add("propagate_vlasov_translation","Propagate distribution functions during the simulation in ordinary space. If false, it is propagated with zero length timesteps.",true);
    Readparameters::add("dynamic_timestep","If true,  timestep is set based on  CFL limits (default on)",true);
    Readparameters::add("hallMinimumRho", "Minimum rho value used for the Hall and electron pressure gradient terms in the Lorentz force and in the field solver. Default is very low and has no effect in practice.", 1.0);
-   Readparameters::add("project", "Specify the name of the project to use. Supported to date (20121112): Alfven Diffusion Dispersion Firehose Flowthrough Fluctuations harm1D KelvinHelmholtz Magnetosphere", "Fluctuations");
+   Readparameters::add("project", "Specify the name of the project to use. Supported to date (20150610): Alfven Diffusion Dispersion Distributions Firehose Flowthrough Fluctuations Harris KHB Larmor Magnetosphere Multipeak PoissonTest Riemann1 Shock Shocktest Template test_fp testHall test_trans VelocityBox verificationLarmor", string(""));
 
-   Readparameters::add("restart.filename","Restart from this vlsv file. No restart if empty file.",string(""));     
+   Readparameters::add("restart.filename","Restart from this vlsv file. No restart if empty file.",string(""));
    
+   Readparameters::add("gridbuilder.geometry","Simulation geometry XY4D,XZ4D,XY5D,XZ5D,XYZ6D",string("XYZ6D"));
    Readparameters::add("gridbuilder.x_min","Minimum value of the x-coordinate.","");
    Readparameters::add("gridbuilder.x_max","Minimum value of the x-coordinate.","");
    Readparameters::add("gridbuilder.y_min","Minimum value of the y-coordinate.","");
@@ -172,15 +176,6 @@ bool Parameters::addParameters(){
    Readparameters::add("gridbuilder.x_length","Number of cells in x-direction in initial grid.","");
    Readparameters::add("gridbuilder.y_length","Number of cells in y-direction in initial grid.","");
    Readparameters::add("gridbuilder.z_length","Number of cells in z-direction in initial grid.","");
-   Readparameters::add("gridbuilder.vx_min","Minimum value for velocity block vx-coordinates.","");
-   Readparameters::add("gridbuilder.vx_max","Maximum value for velocity block vx-coordinates.","");
-   Readparameters::add("gridbuilder.vy_min","Minimum value for velocity block vy-coordinates.","");
-   Readparameters::add("gridbuilder.vy_max","Maximum value for velocity block vy-coordinates.","");
-   Readparameters::add("gridbuilder.vz_min","Minimum value for velocity block vz-coordinates.","");
-   Readparameters::add("gridbuilder.vz_max","Maximum value for velocity block vz-coordinates.","");
-   Readparameters::add("gridbuilder.vx_length","Initial number of velocity blocks in vx-direction.","");
-   Readparameters::add("gridbuilder.vy_length","Initial number of velocity blocks in vy-direction.","");
-   Readparameters::add("gridbuilder.vz_length","Initial number of velocity blocks in vz-direction.","");
    
    Readparameters::add("gridbuilder.dt","Initial timestep in seconds.",0.0);
 
@@ -203,9 +198,6 @@ bool Parameters::addParameters(){
    Readparameters::add("vlasovsolver.maxSlAccelerationSubcycles","Maximum number of subcycles for acceleration",1);
    Readparameters::add("vlasovsolver.maxCFL","The maximum CFL limit for vlasov propagation in ordinary space. Used to set timestep if dynamic_timestep is true.",0.99);
    Readparameters::add("vlasovsolver.minCFL","The minimum CFL limit for vlasov propagation in ordinary space. Used to set timestep if dynamic_timestep is true.",0.8);
-
-
-
    
    // Grid sparsity parameters
    Readparameters::add("sparse.minValue", "Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents", 1);
@@ -221,8 +213,8 @@ bool Parameters::addParameters(){
    
 
    // Load balancing parameters
-   Readparameters::add("loadBalance.algorithm", "Load balancing algorithm to be used", std::string("RCB"));
-   Readparameters::add("loadBalance.tolerance", "Load imbalance tolerance", std::string("1.05"));
+   Readparameters::add("loadBalance.algorithm", "Load balancing algorithm to be used", string("RCB"));
+   Readparameters::add("loadBalance.tolerance", "Load imbalance tolerance", string("1.05"));
    Readparameters::add("loadBalance.rebalanceInterval", "Load rebalance interval (steps)", 10);
    
 // Output variable parameters
@@ -247,20 +239,95 @@ bool Parameters::addParameters(){
 
 bool Parameters::getParameters(){
    //get numerical values of the parameters
-
    Readparameters::get("io.diagnostic_write_interval", P::diagnosticInterval);
    Readparameters::get("io.system_write_t_interval", P::systemWriteTimeInterval);
    Readparameters::get("io.system_write_file_name", P::systemWriteName);
+   Readparameters::get("io.system_write_path", P::systemWritePath);
    Readparameters::get("io.system_write_distribution_stride", P::systemWriteDistributionWriteStride);
    Readparameters::get("io.system_write_distribution_xline_stride", P::systemWriteDistributionWriteXlineStride);
    Readparameters::get("io.system_write_distribution_yline_stride", P::systemWriteDistributionWriteYlineStride);
    Readparameters::get("io.system_write_distribution_zline_stride", P::systemWriteDistributionWriteZlineStride);
-   //TODO, check that the systemWrite vectors are of equal length
    Readparameters::get("io.write_initial_state", P::writeInitialState);
    Readparameters::get("io.restart_walltime_interval", P::saveRestartWalltimeInterval);
    Readparameters::get("io.number_of_restarts", P::exitAfterRestarts);
    Readparameters::get("io.write_restart_stripe_factor", P::restartStripeFactor);
+   Readparameters::get("io.restart_write_path", P::restartWritePath);
    Readparameters::get("io.write_as_float", P::writeAsFloat);
+   
+   // Checks for validity of io and restart parameters
+   int myRank;
+   MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+   const string prefix = string("./");
+   if (access(&(P::restartWritePath[0]), W_OK) != 0) {
+      if(myRank == MASTER_RANK) {
+         cerr << "ERROR restart write path " << P::restartWritePath << " not writeable, defaulting to local directory." << endl;
+      }
+      P::restartWritePath = prefix;
+   }
+   size_t maxSize = 0;
+   maxSize = max(maxSize, P::systemWriteTimeInterval.size());
+   maxSize = max(maxSize, P::systemWriteName.size());
+   maxSize = max(maxSize, P::systemWritePath.size());
+   maxSize = max(maxSize, P::systemWriteDistributionWriteStride.size());
+   maxSize = max(maxSize, P::systemWriteDistributionWriteXlineStride.size());
+   maxSize = max(maxSize, P::systemWriteDistributionWriteYlineStride.size());
+   maxSize = max(maxSize, P::systemWriteDistributionWriteZlineStride.size());
+   if ( P::systemWriteTimeInterval.size() != maxSize) {
+      if(myRank == MASTER_RANK) {
+         cerr << "ERROR io.system_write_t_interval should be defined for all file types." << endl;
+      }
+      return false;
+   }
+   if ( P::systemWriteName.size() != maxSize) {
+      if(myRank == MASTER_RANK) {
+      cerr << "ERROR io.system_write_file_name should be defined for all file types." << endl;
+      }
+      return false;
+   }
+   if ( P::systemWritePath.size() != maxSize && P::systemWritePath.size() != 0) {
+      if(myRank == MASTER_RANK) {
+         cerr << "ERROR io.system_write_path should be defined for all file types or none at all." << endl;
+      }
+      return false;
+   }
+   if ( P::systemWriteDistributionWriteStride.size() != maxSize) {
+      if(myRank == MASTER_RANK) {
+         cerr << "ERROR io.system_write_distribution_stride should be defined for all file types." << endl;
+      }
+      return false;
+   }
+   if ( P::systemWriteDistributionWriteXlineStride.size() != maxSize) {
+      if(myRank == MASTER_RANK) {
+         cerr << "ERROR io.system_write_distribution_xline_stride should be defined for all file types." << endl;
+      }
+      return false;
+   }
+   if ( P::systemWriteDistributionWriteYlineStride.size() != maxSize) {
+      if(myRank == MASTER_RANK) {
+         cerr << "ERROR io.system_write_distribution_yline_stride should be defined for all file types." << endl;
+      }
+      return false;
+   }
+   if ( P::systemWriteDistributionWriteZlineStride.size() != maxSize) {
+      if(myRank == MASTER_RANK) {
+         cerr << "ERROR io.system_write_distribution_zline_stride should be defined for all file types." << endl;
+      }
+      return false;
+   }
+   if ( P::systemWritePath.size() == 0 ) {
+      for (uint i = 0; i < P::systemWriteName.size(); i++) {
+         P::systemWritePath.push_back(string("./"));
+      }
+   } else {
+      for (uint i = 0; i < P::systemWritePath.size(); i++) {
+         if (access(&(P::systemWritePath.at(i)[0]), W_OK) != 0) {
+            if(myRank == MASTER_RANK) {
+               cerr << "ERROR " << P::systemWriteName.at(i) << " write path " << P::systemWritePath.at(i) << " not writeable, defaulting to local directory." << endl;
+            }
+            P::systemWritePath.at(i) = prefix;
+         }
+      }
+   }
    
    Readparameters::get("propagate_field",P::propagateField);
    Readparameters::get("propagate_potential",P::propagatePotential);
@@ -271,9 +338,11 @@ bool Parameters::getParameters(){
    Readparameters::get("restart.filename",P::restartFileName);
    P::isRestart=(P::restartFileName!=string(""));
 
-   Readparameters::get("project", projectName);
+   Readparameters::get("project", P::projectName);
  
    /*get numerical values, let Readparameters handle the conversions*/
+   string geometryString;
+   Readparameters::get("gridbuilder.geometry",geometryString);
    Readparameters::get("gridbuilder.x_min",P::xmin);
    Readparameters::get("gridbuilder.x_max",P::xmax);
    Readparameters::get("gridbuilder.y_min",P::ymin);
@@ -283,23 +352,23 @@ bool Parameters::getParameters(){
    Readparameters::get("gridbuilder.x_length",P::xcells_ini);
    Readparameters::get("gridbuilder.y_length",P::ycells_ini);
    Readparameters::get("gridbuilder.z_length",P::zcells_ini);
-   Readparameters::get("gridbuilder.vx_min",P::vxmin);
-   Readparameters::get("gridbuilder.vx_max",P::vxmax);
-   Readparameters::get("gridbuilder.vy_min",P::vymin);
-   Readparameters::get("gridbuilder.vy_max",P::vymax);
-   Readparameters::get("gridbuilder.vz_min",P::vzmin);
-   Readparameters::get("gridbuilder.vz_max",P::vzmax);
-   Readparameters::get("gridbuilder.vx_length",P::vxblocks_ini);
-   Readparameters::get("gridbuilder.vy_length",P::vyblocks_ini);
-   Readparameters::get("gridbuilder.vz_length",P::vzblocks_ini);
    Readparameters::get("AMR.max_velocity_level",P::amrMaxVelocityRefLevel);
    Readparameters::get("AMR.vel_refinement_criterion",P::amrVelRefCriterion);
    Readparameters::get("AMR.refine_limit",P::amrRefineLimit);
    Readparameters::get("AMR.coarsen_limit",P::amrCoarsenLimit);
    
+   if (geometryString == "XY4D") P::geometry = geometry::XY4D;
+   else if (geometryString == "XZ4D") P::geometry = geometry::XZ4D;
+   else if (geometryString == "XY5D") P::geometry = geometry::XY5D;
+   else if (geometryString == "XZ5D") P::geometry = geometry::XZ5D;
+   else if (geometryString == "XYZ6D") P::geometry = geometry::XYZ6D;
+   else {
+      cerr << "Unknown simulation geometry in " << __FILE__ << ":" << __LINE__ << endl;
+      return false;
+   }
+   
    if (P::amrCoarsenLimit >= P::amrRefineLimit) return false;
    if (P::xmax < P::xmin || (P::ymax < P::ymin || P::zmax < P::zmin)) return false;
-   if (P::vxmax < P::vxmin || (P::vymax < P::vymin || P::vzmax < P::vzmin)) return false;
    
    // Set some parameter values. 
    P::dx_ini = (P::xmax-P::xmin)/P::xcells_ini;
@@ -375,6 +444,8 @@ bool Parameters::getParameters(){
    // Get parameters related to bailout
    Readparameters::get("bailout.write_restart", P::bailout_write_restart);
    Readparameters::get("bailout.min_dt", P::bailout_min_dt);
+
+   for (size_t s=0; s<P::systemWriteName.size(); ++s) P::systemWrites.push_back(0);
    
    return true;
 }

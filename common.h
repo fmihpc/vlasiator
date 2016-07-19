@@ -1,7 +1,7 @@
 /*
 This file is part of Vlasiator.
 
-Copyright 2010, 2011, 2012, 2013, 2014 Finnish Meteorological Institute
+Copyright 2010-2015 Finnish Meteorological Institute
 
 */
 
@@ -12,7 +12,6 @@ Copyright 2010, 2011, 2012, 2013, 2014 Finnish Meteorological Institute
 #include <string>
 #include <vector>
 #include "definitions.h"
-#include "object_wrapper.h"
 
 #ifdef DEBUG_SOLVERS
 #define CHECK_FLOAT(x) \
@@ -39,25 +38,6 @@ void bailout(
    const char * const file,
    const int line
 );
-
-namespace vmesh {
-   #ifndef AMR
-   typedef uint32_t GlobalID;              /**< Datatype used for velocity block global IDs.*/
-   typedef uint32_t LocalID;               /**< Datatype used for velocity block local IDs.*/
-   #else
-   typedef uint32_t GlobalID;
-   typedef uint32_t LocalID;
-   #endif
-
-   /** Global ID of a non-existing or otherwise erroneous velocity block.*/
-   static const GlobalID INVALID_GLOBALID = std::numeric_limits<GlobalID>::max();
-   
-   /** Local ID of a non-existing or otherwise erroneous velocity block.*/
-   static const LocalID INVALID_LOCALID  = std::numeric_limits<LocalID>::max();
-   
-   /** Block index of a non-existing or erroneous velocity block.*/
-   static const LocalID INVALID_VEL_BLOCK_INDEX = INVALID_LOCALID;
-}
 
 #define sqr(x) ((x)*(x))
 #define pow2(x) sqr(x)
@@ -217,15 +197,21 @@ namespace CellParams {
       P_33_V,   /*!< P_zz component after propagation in velocity space */
       RHOLOSSADJUST,      /*!< Counter for massloss from the destroying blocks in blockadjustment*/
       RHOLOSSVELBOUNDARY, /*!< Counter for massloss through outflow boundaries in velocity space*/
-      MAXVDT,             /*!< maximum timestep allowed in velocity space for this cell**/
-      MAXRDT,             /*!< maximum timestep allowed in ordinary space for this cell **/
+      MAXVDT,             /*!< maximum timestep allowed in velocity space for this cell, 
+                           * this is the max allowed timestep over all particle species.*/
+      MAXRDT,             /*!< maximum timestep allowed in ordinary space for this cell,
+                           * this is the max allowed timestep over all particle species.*/
       MAXFDT,             /*!< maximum timestep allowed in ordinary space by fieldsolver for this cell**/
       LBWEIGHTCOUNTER,    /*!< Counter for storing compute time weights needed by the load balancing**/
       ACCSUBCYCLES,        /*!< number of subcyles for each cell*/
       ISCELLSAVINGF,      /*!< Value telling whether a cell is saving its distribution function when partial f data is written out. */
-      PHI,      /*!< Electrostatic potential.*/
-      PHI_TMP,  /*!< Temporary electrostatic potential.*/
-      RHOQ_TOT, /*!< Total charge density, summed over all particle populations.*/
+      PHI,        /*!< Electrostatic potential.*/
+      PHI_TMP,    /*!< Temporary electrostatic potential.*/
+      RHOQ_TOT,   /*!< Total charge density, summed over all particle populations.*/
+      RHOQ_EXT,   /*<! External charge density.*/
+      BGEXVOL,    /*!< Background electric field averaged over spatial cell, x-component.*/
+      BGEYVOL,    /*!< Background electric field averaged over spatial cell, y-component.*/
+      BGEZVOL,    /*!< Background electric field averaged over spatial cell, z-component.*/
       N_SPATIAL_CELL_PARAMS
    };
 }
@@ -326,11 +312,14 @@ namespace bvolderivatives {
  */
 namespace sysboundarytype {
    enum {
-      DO_NOT_COMPUTE, /*!< E.g. cells within the ionospheric outer radius should not be computed at all. */
-      NOT_SYSBOUNDARY, /*!< Cells within the simulation domain are not boundary cells. */
-      IONOSPHERE, /*!< Initially a perfectly conducting sphere. */
-      OUTFLOW, /*!< No fixed conditions on the fields and distribution function. */
-      SET_MAXWELLIAN, /*!< Set Maxwellian boundary condition, i.e. set fields and distribution function. */
+      DO_NOT_COMPUTE,   /*!< E.g. cells within the ionospheric outer radius should not be computed at all. */
+      NOT_SYSBOUNDARY,  /*!< Cells within the simulation domain are not boundary cells. */
+      IONOSPHERE,       /*!< Initially a perfectly conducting sphere. */
+      OUTFLOW,          /*!< No fixed conditions on the fields and distribution function. */
+      SET_MAXWELLIAN,   /*!< Set Maxwellian boundary condition, i.e. set fields and distribution function. */
+      ANTISYMMETRIC,    /*!< System is antisymmetric wrt. to the boundary.*/
+      PROJECT,         /*!< Simulated project's setCell and setCellBackgroundField functions are used 
+                        * to set the boundary conditions.*/
       N_SYSBOUNDARY_CONDITIONS
    };
 }
@@ -340,7 +329,6 @@ enum {RK_ORDER1,   /*!< First order method, one step (and initialisation) */
 RK_ORDER2_STEP1,   /*!< Two-step second order method, first step */
 RK_ORDER2_STEP2    /*!< Two-step second order method, second step */
 };
-
 
 const uint WID = 4;         /*!< Number of cells per coordinate in a velocity block. Only a value of 4 supported by vectorized Leveque solver */
 const uint WID2 = WID*WID;  /*!< Number of cells per 2D slab in a velocity block. */
@@ -359,24 +347,22 @@ const uint SIZE_VELBLOCK    = WID3; /*!< Number of cells in a velocity block. */
  * Name space for flags needed globally, such as the bailout flag.
  */
 struct globalflags {
-   static int bailingOut; /*!< Global flag raised to true if a run bailout (write restart and stop the simulation peacefully) is needed. */
+   static int bailingOut; /*!< Global flag raised to true if a run bailout (write restart if requested/set and stop the simulation peacefully) is needed. */
+   static bool writeRestart; /*!< Global flag raised to true if a restart writing is needed (without bailout). NOTE: used only by MASTER_RANK in vlasiator.cpp. */
 };
 
 // Natural constants
 namespace physicalconstants {
    const Real EPS_0 = 8.85418782e-12; /*!< Permittivity of value, unit: C / (V m).*/
-   const Real MU_0 = 1.25663706e-6;  /*!< Permeability of vacuo, unit: (kg m) / (s^2 A^2).*/
-   const Real K_B = 1.3806503e-23;   /*!< Boltzmann's constant, unit: (kg m^2) / (s^2 K).*/
-   const Real CHARGE = 1.60217653e-19; /*!< Elementary charge, unit: C. */
-   const Real MASS_PROTON = 1.67262158e-27; /*!< Proton rest mass.*/
-   const Real R_E = 6.3712e6; /*!< radius of the Earth. */
+   const Real MU_0 = 1.25663706e-6;  /*!< Permeability of vacuo, units: (kg m) / (s^2 A^2).*/
+   const Real K_B = 1.3806503e-23;   /*!< Boltzmann's constant, units: (kg m^2) / (s^2 K).*/
+   const Real CHARGE = 1.60217653e-19; /*!< Elementary charge, units: C. */
+   const Real MASS_ELECTRON = 9.10938188e-31; /**< Electron rest mass, units: kg.*/
+   const Real MASS_PROTON = 1.67262158e-27; /*!< Proton rest mass, units: kg.*/
+   const Real R_E = 6.3712e6; /*!< radius of the Earth, units: m. */
 }
 
 const std::vector<CellID>& getLocalCells();
 void recalculateLocalCellsCache();
 
-ObjectWrapper& getObjectWrapper();
-
 #endif
-
-

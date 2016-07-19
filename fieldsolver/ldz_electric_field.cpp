@@ -29,41 +29,64 @@ extern map<CellID,uint> existingCellsFlags;
  * 
  * If fields are not propagated, returns 0.0 as there is no information propagating.
  * 
+ * \param cp Curent cell's parameters
+ * \param derivs Curent cell's derivatives
+ * \param nbr_cp Neighbor cell's parameters
+ * \param nbr_derivs Neighbor cell's derivatives
+ * \param By Current cell's By
+ * \param Bz Current cell's Bz
+ * \param dBydx dBydx derivative
+ * \param dBydz dBydz derivative
+ * \param dBzdx dBzdx derivative
+ * \param dBzdy dBzdy derivative
+ * \param ydir +1 or -1 depending on the interpolation direction in y
+ * \param zdir +1 or -1 depending on the interpolation direction in z
+ * \param minRho Minimum density allowed from the neighborhood
+ * \param maxRho Maximum density allowed from the neighborhood
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
 Real calculateWaveSpeedYZ(
-                          const Real* cp,
-                          const Real* derivs,
-                          const Real* nbr_cp,
-                          const Real* nbr_derivs,
-                          const Real& By,
-                          const Real& Bz,
-                          const Real& dBydx,
-                          const Real& dBydz,
-                          const Real& dBzdx,
-                          const Real& dBzdy,
-                          const Real& ydir,
-                          const Real& zdir,
-                          cint& RKCase
-                         ) {
+   const Real* cp,
+   const Real* derivs,
+   const Real* nbr_cp,
+   const Real* nbr_derivs,
+   const Real& By,
+   const Real& Bz,
+   const Real& dBydx,
+   const Real& dBydz,
+   const Real& dBzdx,
+   const Real& dBzdy,
+   const Real& ydir,
+   const Real& zdir,
+   const Real& minRho,
+   const Real& maxRho,
+   cint& RKCase
+) {
    if (Parameters::propagateField == false) return 0.0;
 
    Real A_0, A_X, rhom, p11, p22, p33;
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       A_0  = HALF*(nbr_cp[CellParams::PERBX] + nbr_cp[CellParams::BGBX] + cp[CellParams::PERBX] + cp[CellParams::BGBX]);
       A_X  = (nbr_cp[CellParams::PERBX] + nbr_cp[CellParams::BGBX]) - (cp[CellParams::PERBX] + cp[CellParams::BGBX]);
-      rhom = pc::MASS_PROTON*(cp[CellParams::RHO] + ydir*HALF*derivs[fs::drhody] + zdir*HALF*derivs[fs::drhodz]);
+      rhom = cp[CellParams::RHO] + ydir*HALF*derivs[fs::drhody] + zdir*HALF*derivs[fs::drhodz];
       p11 = cp[CellParams::P_11] + ydir*HALF*derivs[fs::dp11dy] + zdir*HALF*derivs[fs::dp11dz];
       p22 = cp[CellParams::P_22] + ydir*HALF*derivs[fs::dp22dy] + zdir*HALF*derivs[fs::dp22dz];
       p33 = cp[CellParams::P_33] + ydir*HALF*derivs[fs::dp33dy] + zdir*HALF*derivs[fs::dp33dz];
    } else { // RKCase == RK_ORDER2_STEP1
       A_0  = HALF*(nbr_cp[CellParams::PERBX_DT2] + nbr_cp[CellParams::BGBX] + cp[CellParams::PERBX_DT2] + cp[CellParams::BGBX]);
       A_X  = (nbr_cp[CellParams::PERBX_DT2] + nbr_cp[CellParams::BGBX]) - (cp[CellParams::PERBX_DT2] + cp[CellParams::BGBX]);
-      rhom = pc::MASS_PROTON*(cp[CellParams::RHO_DT2] + ydir*HALF*derivs[fs::drhody] + zdir*HALF*derivs[fs::drhodz]);
+      rhom = cp[CellParams::RHO_DT2] + ydir*HALF*derivs[fs::drhody] + zdir*HALF*derivs[fs::drhodz];
       p11 = cp[CellParams::P_11_DT2] + ydir*HALF*derivs[fs::dp11dy] + zdir*HALF*derivs[fs::dp11dz];
       p22 = cp[CellParams::P_22_DT2] + ydir*HALF*derivs[fs::dp22dy] + zdir*HALF*derivs[fs::dp22dz];
       p33 = cp[CellParams::P_33_DT2] + ydir*HALF*derivs[fs::dp33dy] + zdir*HALF*derivs[fs::dp33dz];
    }
+   if (rhom < minRho) {
+      rhom = minRho;
+   } else if (rhom > maxRho) {
+      rhom = maxRho;
+   }
+   rhom *= pc::MASS_PROTON;
+   
    const Real A_Y  = nbr_derivs[fs::dPERBxdy] + nbr_derivs[fs::dBGBxdy] + derivs[fs::dPERBxdy] + derivs[fs::dBGBxdy];
    const Real A_XY = nbr_derivs[fs::dPERBxdy] + nbr_derivs[fs::dBGBxdy] - (derivs[fs::dPERBxdy] + derivs[fs::dBGBxdy]);
    const Real A_Z  = nbr_derivs[fs::dPERBxdz] + nbr_derivs[fs::dBGBxdz] + derivs[fs::dPERBxdz] + derivs[fs::dBGBxdz];
@@ -94,41 +117,64 @@ Real calculateWaveSpeedYZ(
  * 
  * If fields are not propagated, returns 0.0 as there is no information propagating.
  * 
+ * \param cp Curent cell's parameters
+ * \param derivs Curent cell's derivatives
+ * \param nbr_cp Neighbor cell's parameters
+ * \param nbr_derivs Neighbor cell's derivatives
+ * \param Bx Current cell's Bx
+ * \param Bz Current cell's Bz
+ * \param dBxdy dBxdy derivative
+ * \param dBxdz dBxdz derivative
+ * \param dBzdx dBzdx derivative
+ * \param dBzdy dBzdy derivative
+ * \param xdir +1 or -1 depending on the interpolation direction in x
+ * \param zdir +1 or -1 depending on the interpolation direction in z
+ * \param minRho Minimum density allowed from the neighborhood
+ * \param maxRho Maximum density allowed from the neighborhood
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
 Real calculateWaveSpeedXZ(
-                          const Real* cp,
-                          const Real* derivs,
-                          const Real* nbr_cp,
-                          const Real* nbr_derivs,
-                          const Real& Bx,
-                          const Real& Bz,
-                          const Real& dBxdy,
-                          const Real& dBxdz,
-                          const Real& dBzdx,
-                          const Real& dBzdy,
-                          const Real& xdir,
-                          const Real& zdir,
-                          cint& RKCase
-                         ) {
+   const Real* cp,
+   const Real* derivs,
+   const Real* nbr_cp,
+   const Real* nbr_derivs,
+   const Real& Bx,
+   const Real& Bz,
+   const Real& dBxdy,
+   const Real& dBxdz,
+   const Real& dBzdx,
+   const Real& dBzdy,
+   const Real& xdir,
+   const Real& zdir,
+   const Real& minRho,
+   const Real& maxRho,
+   cint& RKCase
+) {
    if (Parameters::propagateField == false) return 0.0;
 
    Real B_0, B_Y, rhom, p11, p22, p33;
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       B_0  = HALF*(nbr_cp[CellParams::PERBY] + nbr_cp[CellParams::BGBY] + cp[CellParams::PERBY] + cp[CellParams::BGBY]);
       B_Y  = (nbr_cp[CellParams::PERBY] + nbr_cp[CellParams::BGBY]) - (cp[CellParams::PERBY] + cp[CellParams::BGBY]);
-      rhom = pc::MASS_PROTON*(cp[CellParams::RHO] + xdir*HALF*derivs[fs::drhodx] + zdir*HALF*derivs[fs::drhodz]);
+      rhom = cp[CellParams::RHO] + xdir*HALF*derivs[fs::drhodx] + zdir*HALF*derivs[fs::drhodz];
       p11 = cp[CellParams::P_11] + xdir*HALF*derivs[fs::dp11dx] + zdir*HALF*derivs[fs::dp11dz];
       p22 = cp[CellParams::P_22] + xdir*HALF*derivs[fs::dp22dx] + zdir*HALF*derivs[fs::dp22dz];
       p33 = cp[CellParams::P_33] + xdir*HALF*derivs[fs::dp33dx] + zdir*HALF*derivs[fs::dp33dz];
    } else { // RKCase == RK_ORDER2_STEP1
       B_0  = HALF*(nbr_cp[CellParams::PERBY_DT2] + nbr_cp[CellParams::BGBY] + cp[CellParams::PERBY_DT2] + cp[CellParams::BGBY]);
       B_Y  = (nbr_cp[CellParams::PERBY_DT2] + nbr_cp[CellParams::BGBY]) - (cp[CellParams::PERBY_DT2] + cp[CellParams::BGBY]);
-      rhom = pc::MASS_PROTON*(cp[CellParams::RHO_DT2] + xdir*HALF*derivs[fs::drhodx] + zdir*HALF*derivs[fs::drhodz]);
+      rhom = cp[CellParams::RHO_DT2] + xdir*HALF*derivs[fs::drhodx] + zdir*HALF*derivs[fs::drhodz];
       p11 = cp[CellParams::P_11_DT2] + xdir*HALF*derivs[fs::dp11dx] + zdir*HALF*derivs[fs::dp11dz];
       p22 = cp[CellParams::P_22_DT2] + xdir*HALF*derivs[fs::dp22dx] + zdir*HALF*derivs[fs::dp22dz];
       p33 = cp[CellParams::P_33_DT2] + xdir*HALF*derivs[fs::dp33dx] + zdir*HALF*derivs[fs::dp33dz];
    }
+   if (rhom < minRho) {
+      rhom = minRho;
+   } else if (rhom > maxRho) {
+      rhom = maxRho;
+   }
+   rhom *= pc::MASS_PROTON;
+   
    const Real B_X  = nbr_derivs[fs::dPERBydx] + nbr_derivs[fs::dBGBydx] + derivs[fs::dPERBydx] + derivs[fs::dBGBydx];
    const Real B_XY = nbr_derivs[fs::dPERBydx] + nbr_derivs[fs::dBGBydx] - (derivs[fs::dPERBydx] + derivs[fs::dBGBydx]);
    const Real B_Z  = nbr_derivs[fs::dPERBydz] + nbr_derivs[fs::dBGBydz] + derivs[fs::dPERBydz] + derivs[fs::dBGBydz];
@@ -158,41 +204,64 @@ Real calculateWaveSpeedXZ(
  * 
  * If fields are not propagated, returns 0.0 as there is no information propagating.
  * 
+ * \param cp Curent cell's parameters
+ * \param derivs Curent cell's derivatives
+ * \param nbr_cp Neighbor cell's parameters
+ * \param nbr_derivs Neighbor cell's derivatives
+ * \param Bx Current cell's Bx
+ * \param By Current cell's By
+ * \param dBxdy dBxdy derivative
+ * \param dBxdz dBxdz derivative
+ * \param dBydx dBydx derivative
+ * \param dBydz dBydz derivative
+ * \param xdir +1 or -1 depending on the interpolation direction in x
+ * \param ydir +1 or -1 depending on the interpolation direction in y
+ * \param minRho Minimum density allowed from the neighborhood
+ * \param maxRho Maximum density allowed from the neighborhood
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
 Real calculateWaveSpeedXY(
-                          const Real* cp,
-                          const Real* derivs,
-                          const Real* nbr_cp,
-                          const Real* nbr_derivs,
-                          const Real& Bx,
-                          const Real& By,
-                          const Real& dBxdy,
-                          const Real& dBxdz,
-                          const Real& dBydx,
-                          const Real& dBydz,
-                          const Real& xdir,
-                          const Real& ydir,
-                          cint& RKCase
-                         ) {
+   const Real* cp,
+   const Real* derivs,
+   const Real* nbr_cp,
+   const Real* nbr_derivs,
+   const Real& Bx,
+   const Real& By,
+   const Real& dBxdy,
+   const Real& dBxdz,
+   const Real& dBydx,
+   const Real& dBydz,
+   const Real& xdir,
+   const Real& ydir,
+   const Real& minRho,
+   const Real& maxRho,
+   cint& RKCase
+) {
    if (Parameters::propagateField == false) return 0.0;
 
    Real C_0, C_Z, rhom, p11, p22, p33;
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       C_0  = HALF*(nbr_cp[CellParams::PERBZ] + nbr_cp[CellParams::BGBZ] + cp[CellParams::PERBZ] + cp[CellParams::BGBZ]);
       C_Z  = (nbr_cp[CellParams::PERBZ] + nbr_cp[CellParams::BGBZ]) - (cp[CellParams::PERBZ] + cp[CellParams::BGBZ]);
-      rhom = pc::MASS_PROTON*(cp[CellParams::RHO] + xdir*HALF*derivs[fs::drhodx] + ydir*HALF*derivs[fs::drhody]);
+      rhom = cp[CellParams::RHO] + xdir*HALF*derivs[fs::drhodx] + ydir*HALF*derivs[fs::drhody];
       p11 = cp[CellParams::P_11] + xdir*HALF*derivs[fs::dp11dx] + ydir*HALF*derivs[fs::dp11dy];
       p22 = cp[CellParams::P_22] + xdir*HALF*derivs[fs::dp22dx] + ydir*HALF*derivs[fs::dp22dy];
       p33 = cp[CellParams::P_33] + xdir*HALF*derivs[fs::dp33dx] + ydir*HALF*derivs[fs::dp33dy];
    } else { // RKCase == RK_ORDER2_STEP1
       C_0  = HALF*(nbr_cp[CellParams::PERBZ_DT2] + nbr_cp[CellParams::BGBZ] + cp[CellParams::PERBZ_DT2] + cp[CellParams::BGBZ]);
       C_Z  = (nbr_cp[CellParams::PERBZ_DT2] + nbr_cp[CellParams::BGBZ]) - (cp[CellParams::PERBZ_DT2] + cp[CellParams::BGBZ]);
-      rhom = pc::MASS_PROTON*(cp[CellParams::RHO_DT2] + xdir*HALF*derivs[fs::drhodx] + ydir*HALF*derivs[fs::drhody]);
+      rhom = cp[CellParams::RHO_DT2] + xdir*HALF*derivs[fs::drhodx] + ydir*HALF*derivs[fs::drhody];
       p11 = cp[CellParams::P_11_DT2] + xdir*HALF*derivs[fs::dp11dx] + ydir*HALF*derivs[fs::dp11dy];
       p22 = cp[CellParams::P_22_DT2] + xdir*HALF*derivs[fs::dp22dx] + ydir*HALF*derivs[fs::dp22dy];
       p33 = cp[CellParams::P_33_DT2] + xdir*HALF*derivs[fs::dp33dx] + ydir*HALF*derivs[fs::dp33dy];
    }
+   if (rhom < minRho) {
+      rhom = minRho;
+   } else if (rhom > maxRho) {
+      rhom = maxRho;
+   }
+   rhom *= pc::MASS_PROTON;
+   
    const Real C_X  = nbr_derivs[fs::dPERBzdx] + nbr_derivs[fs::dBGBzdx] + derivs[fs::dPERBzdx] + derivs[fs::dBGBzdx];
    const Real C_XZ = nbr_derivs[fs::dPERBzdx] + nbr_derivs[fs::dBGBzdx] - (derivs[fs::dPERBzdx] + derivs[fs::dBGBzdx]);
    const Real C_Y  = nbr_derivs[fs::dPERBzdy] + nbr_derivs[fs::dBGBzdy] + derivs[fs::dPERBzdy] + derivs[fs::dBGBzdy];
@@ -222,11 +291,13 @@ Real calculateWaveSpeedXY(
  * 
  * Note that the background B field is excluded from the diffusive term calculations because they are equivalent to a current term and the background field is curl-free.
  * 
- * \param cellID Index of the cell to process
- * \param mpiGrid Grid
+ * \param cache Field solver cell cache
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
-void calculateEdgeElectricFieldX(fs_cache::CellCache& cache,cint& RKCase) {
+void calculateEdgeElectricFieldX(
+   fs_cache::CellCache& cache,
+   cint& RKCase
+) {
    #ifdef DEBUG_FSOLVER
    bool ok = true;
    if (cache.cells[fs_cache::calculateNbrID(1  ,1  ,1  )] == NULL) ok = false;
@@ -257,6 +328,8 @@ void calculateEdgeElectricFieldX(fs_cache::CellCache& cache,cint& RKCase) {
    creal* const derivs_NW = cache.cells[fs_cache::calculateNbrID(1  ,1  ,1-1)]->derivatives;
 
    Real By_S, Bz_W, Bz_E, By_N, perBy_S, perBz_W, perBz_E, perBy_N;
+   Real minRho = std::numeric_limits<Real>::max();
+   Real maxRho = std::numeric_limits<Real>::min();
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       By_S = cp_SW[CellParams::PERBY]+cp_SW[CellParams::BGBY];
       Bz_W = cp_SW[CellParams::PERBZ]+cp_SW[CellParams::BGBZ];
@@ -268,6 +341,22 @@ void calculateEdgeElectricFieldX(fs_cache::CellCache& cache,cint& RKCase) {
       perBy_N = cp_NW[CellParams::PERBY];
       Vy0  = divideIfNonZero(cp_SW[CellParams::RHOVY], cp_SW[CellParams::RHO]);
       Vz0  = divideIfNonZero(cp_SW[CellParams::RHOVZ], cp_SW[CellParams::RHO]);
+      minRho = min(minRho,
+                  min(cp_SW[CellParams::RHO],
+                     min(cp_SE[CellParams::RHO],
+                        min(cp_NW[CellParams::RHO],
+                            cp_NE[CellParams::RHO])
+                        )
+                     )
+                  );
+      maxRho = max(maxRho,
+                  max(cp_SW[CellParams::RHO],
+                     max(cp_SE[CellParams::RHO],
+                        max(cp_NW[CellParams::RHO],
+                            cp_NE[CellParams::RHO])
+                        )
+                     )
+                  );
    } else { // RKCase == RK_ORDER2_STEP1
       By_S = cp_SW[CellParams::PERBY_DT2]+cp_SW[CellParams::BGBY];
       Bz_W = cp_SW[CellParams::PERBZ_DT2]+cp_SW[CellParams::BGBZ];
@@ -279,6 +368,22 @@ void calculateEdgeElectricFieldX(fs_cache::CellCache& cache,cint& RKCase) {
       perBy_N = cp_NW[CellParams::PERBY_DT2];
       Vy0  = divideIfNonZero(cp_SW[CellParams::RHOVY_DT2], cp_SW[CellParams::RHO_DT2]);
       Vz0  = divideIfNonZero(cp_SW[CellParams::RHOVZ_DT2], cp_SW[CellParams::RHO_DT2]);
+      minRho = min(minRho,
+                  min(cp_SW[CellParams::RHO_DT2],
+                     min(cp_SE[CellParams::RHO_DT2],
+                        min(cp_NW[CellParams::RHO_DT2],
+                            cp_NE[CellParams::RHO_DT2])
+                        )
+                     )
+                  );
+      maxRho = max(maxRho,
+                  max(cp_SW[CellParams::RHO_DT2],
+                     max(cp_SE[CellParams::RHO_DT2],
+                        max(cp_NW[CellParams::RHO_DT2],
+                            cp_NE[CellParams::RHO_DT2])
+                        )
+                     )
+                  );
    }
 
    creal dBydx_S = derivs_SW[fs::dPERBydx] + derivs_SW[fs::dBGBydx];
@@ -331,7 +436,7 @@ void calculateEdgeElectricFieldX(fs_cache::CellCache& cache,cint& RKCase) {
    creal* const nbr_cp_SW     = cache.cells[fs_cache::calculateNbrID(1+1,1  ,1  )]->parameters;
    creal* const nbr_derivs_SW = cache.cells[fs_cache::calculateNbrID(1+1,1  ,1  )]->derivatives;
 
-   c_y = calculateWaveSpeedYZ(cp_SW, derivs_SW, nbr_cp_SW, nbr_derivs_SW, By_S, Bz_W, dBydx_S, dBydz_S, dBzdx_W, dBzdy_W, MINUS, MINUS, RKCase);
+   c_y = calculateWaveSpeedYZ(cp_SW, derivs_SW, nbr_cp_SW, nbr_derivs_SW, By_S, Bz_W, dBydx_S, dBydz_S, dBzdx_W, dBzdy_W, MINUS, MINUS, minRho, maxRho, RKCase);
    c_z = c_y;
    ay_neg   = max(ZERO,-Vy0 + c_y);
    ay_pos   = max(ZERO,+Vy0 + c_y);
@@ -383,7 +488,7 @@ void calculateEdgeElectricFieldX(fs_cache::CellCache& cache,cint& RKCase) {
    creal* const nbr_cp_SE     = cache.cells[fs_cache::calculateNbrID(1+1,1-1,1  )]->parameters;
    creal* const nbr_derivs_SE = cache.cells[fs_cache::calculateNbrID(1+1,1-1,1  )]->derivatives;
 
-   c_y = calculateWaveSpeedYZ(cp_SE, derivs_SE, nbr_cp_SE, nbr_derivs_SE, By_S, Bz_E, dBydx_S, dBydz_S, dBzdx_E, dBzdy_E, PLUS, MINUS, RKCase);
+   c_y = calculateWaveSpeedYZ(cp_SE, derivs_SE, nbr_cp_SE, nbr_derivs_SE, By_S, Bz_E, dBydx_S, dBydz_S, dBzdx_E, dBzdy_E, PLUS, MINUS, minRho, maxRho, RKCase);
    c_z = c_y;
    ay_neg   = max(ay_neg,-Vy0 + c_y);
    ay_pos   = max(ay_pos,+Vy0 + c_y);
@@ -435,7 +540,7 @@ void calculateEdgeElectricFieldX(fs_cache::CellCache& cache,cint& RKCase) {
    creal* const nbr_cp_NW     = cache.cells[fs_cache::calculateNbrID(1+1,1  ,1-1)]->parameters;
    creal* const nbr_derivs_NW = cache.cells[fs_cache::calculateNbrID(1+1,1  ,1-1)]->derivatives;
 
-   c_y = calculateWaveSpeedYZ(cp_NW, derivs_NW, nbr_cp_NW, nbr_derivs_NW, By_N, Bz_W, dBydx_N, dBydz_N, dBzdx_W, dBzdy_W, MINUS, PLUS, RKCase);
+   c_y = calculateWaveSpeedYZ(cp_NW, derivs_NW, nbr_cp_NW, nbr_derivs_NW, By_N, Bz_W, dBydx_N, dBydz_N, dBzdx_W, dBzdy_W, MINUS, PLUS, minRho, maxRho, RKCase);
    c_z = c_y;
    ay_neg   = max(ay_neg,-Vy0 + c_y);
    ay_pos   = max(ay_pos,+Vy0 + c_y);
@@ -487,7 +592,7 @@ void calculateEdgeElectricFieldX(fs_cache::CellCache& cache,cint& RKCase) {
    creal* const nbr_cp_NE     = cache.cells[fs_cache::calculateNbrID(1+1,1-1,1-1)]->parameters;
    creal* const nbr_derivs_NE = cache.cells[fs_cache::calculateNbrID(1+1,1-1,1-1)]->derivatives;
 
-   c_y = calculateWaveSpeedYZ(cp_NE, derivs_NE, nbr_cp_NE, nbr_derivs_NE, By_N, Bz_E, dBydx_N, dBydz_N, dBzdx_E, dBzdy_E, PLUS, PLUS, RKCase);
+   c_y = calculateWaveSpeedYZ(cp_NE, derivs_NE, nbr_cp_NE, nbr_derivs_NE, By_N, Bz_E, dBydx_N, dBydz_N, dBzdx_E, dBzdy_E, PLUS, PLUS, minRho, maxRho, RKCase);
    c_z = c_y;
    ay_neg   = max(ay_neg,-Vy0 + c_y);
    ay_pos   = max(ay_pos,+Vy0 + c_y);
@@ -548,11 +653,13 @@ void calculateEdgeElectricFieldX(fs_cache::CellCache& cache,cint& RKCase) {
  * 
  * Note that the background B field is excluded from the diffusive term calculations because they are equivalent to a current term and the background field is curl-free.
  * 
- * \param cellID Index of the cell to process
- * \param mpiGrid Grid
+ * \param cache Field solver cell cache
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
-void calculateEdgeElectricFieldY(fs_cache::CellCache& cache,cint& RKCase) {
+void calculateEdgeElectricFieldY(
+   fs_cache::CellCache& cache,
+   cint& RKCase
+) {
    #ifdef DEBUG_FSOLVER
    bool ok = true;
    if (cache.cells[fs_cache::calculateNbrID(1  ,1  ,1  )] == NULL) ok = false;
@@ -584,6 +691,8 @@ void calculateEdgeElectricFieldY(fs_cache::CellCache& cache,cint& RKCase) {
 
    // Fetch required plasma parameters:
    Real Bz_S, Bx_W, Bx_E, Bz_N, perBz_S, perBx_W, perBx_E, perBz_N;
+   Real minRho = std::numeric_limits<Real>::max();
+   Real maxRho = std::numeric_limits<Real>::min();
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       Bz_S = cp_SW[CellParams::PERBZ]+cp_SW[CellParams::BGBZ];
       Bx_W = cp_SW[CellParams::PERBX]+cp_SW[CellParams::BGBX];
@@ -595,6 +704,22 @@ void calculateEdgeElectricFieldY(fs_cache::CellCache& cache,cint& RKCase) {
       perBz_N = cp_NW[CellParams::PERBZ];
       Vx0  = divideIfNonZero(cp_SW[CellParams::RHOVX], cp_SW[CellParams::RHO]);
       Vz0  = divideIfNonZero(cp_SW[CellParams::RHOVZ], cp_SW[CellParams::RHO]);
+      minRho = min(minRho,
+                  min(cp_SW[CellParams::RHO],
+                     min(cp_SE[CellParams::RHO],
+                        min(cp_NW[CellParams::RHO],
+                            cp_NE[CellParams::RHO])
+                        )
+                     )
+                  );
+      maxRho = max(maxRho,
+                  max(cp_SW[CellParams::RHO],
+                     max(cp_SE[CellParams::RHO],
+                        max(cp_NW[CellParams::RHO],
+                            cp_NE[CellParams::RHO])
+                        )
+                     )
+                  );
    } else { // RKCase == RK_ORDER2_STEP1
       Bz_S = cp_SW[CellParams::PERBZ_DT2]+cp_SW[CellParams::BGBZ];
       Bx_W = cp_SW[CellParams::PERBX_DT2]+cp_SW[CellParams::BGBX];
@@ -606,6 +731,22 @@ void calculateEdgeElectricFieldY(fs_cache::CellCache& cache,cint& RKCase) {
       perBz_N = cp_NW[CellParams::PERBZ_DT2];
       Vx0  = divideIfNonZero(cp_SW[CellParams::RHOVX_DT2], cp_SW[CellParams::RHO_DT2]);
       Vz0  = divideIfNonZero(cp_SW[CellParams::RHOVZ_DT2], cp_SW[CellParams::RHO_DT2]);
+      minRho = min(minRho,
+                  min(cp_SW[CellParams::RHO_DT2],
+                     min(cp_SE[CellParams::RHO_DT2],
+                        min(cp_NW[CellParams::RHO_DT2],
+                            cp_NE[CellParams::RHO_DT2])
+                        )
+                     )
+                  );
+      maxRho = max(maxRho,
+                  max(cp_SW[CellParams::RHO_DT2],
+                     max(cp_SE[CellParams::RHO_DT2],
+                        max(cp_NW[CellParams::RHO_DT2],
+                            cp_NE[CellParams::RHO_DT2])
+                        )
+                     )
+                  );
    }
    
    creal dBxdy_W = derivs_SW[fs::dPERBxdy] + derivs_SW[fs::dBGBxdy];
@@ -658,7 +799,7 @@ void calculateEdgeElectricFieldY(fs_cache::CellCache& cache,cint& RKCase) {
    creal* const nbr_cp_SW     = cache.cells[fs_cache::calculateNbrID(1  ,1+1,1  )]->parameters;
    creal* const nbr_derivs_SW = cache.cells[fs_cache::calculateNbrID(1  ,1+1,1  )]->derivatives;
 
-   c_z = calculateWaveSpeedXZ(cp_SW, derivs_SW, nbr_cp_SW, nbr_derivs_SW, Bx_W, Bz_S, dBxdy_W, dBxdz_W, dBzdx_S, dBzdy_S, MINUS, MINUS, RKCase);
+   c_z = calculateWaveSpeedXZ(cp_SW, derivs_SW, nbr_cp_SW, nbr_derivs_SW, Bx_W, Bz_S, dBxdy_W, dBxdz_W, dBzdx_S, dBzdy_S, MINUS, MINUS, minRho, maxRho, RKCase);
    c_x = c_z;
    az_neg   = max(ZERO,-Vz0 + c_z);
    az_pos   = max(ZERO,+Vz0 + c_z);
@@ -709,11 +850,11 @@ void calculateEdgeElectricFieldY(fs_cache::CellCache& cache,cint& RKCase) {
    
    creal* const nbr_cp_SE     = cache.cells[fs_cache::calculateNbrID(1  ,1+1,1-1)]->parameters;
    creal* const nbr_derivs_SE = cache.cells[fs_cache::calculateNbrID(1  ,1+1,1-1)]->derivatives;
-   c_z = calculateWaveSpeedXZ(cp_SE, derivs_SE, nbr_cp_SE, nbr_derivs_SE, Bx_E, Bz_S, dBxdy_E, dBxdz_E, dBzdx_S, dBzdy_S, MINUS, PLUS, RKCase);
+   c_z = calculateWaveSpeedXZ(cp_SE, derivs_SE, nbr_cp_SE, nbr_derivs_SE, Bx_E, Bz_S, dBxdy_E, dBxdz_E, dBzdx_S, dBzdy_S, MINUS, PLUS, minRho, maxRho, RKCase);
    c_x = c_z;
-   az_neg   = max(az_neg,-Vz0 - c_z);
+   az_neg   = max(az_neg,-Vz0 + c_z);
    az_pos   = max(az_pos,+Vz0 + c_z);
-   ax_neg   = max(ax_neg,-Vx0 - c_x);
+   ax_neg   = max(ax_neg,-Vx0 + c_x);
    ax_pos   = max(ax_pos,+Vx0 + c_x);
    
    // Ey and characteristic speeds on i-1 neighbour:
@@ -760,7 +901,7 @@ void calculateEdgeElectricFieldY(fs_cache::CellCache& cache,cint& RKCase) {
    
    creal* const nbr_cp_NW     = cache.cells[fs_cache::calculateNbrID(1-1,1+1,1  )]->parameters;
    creal* const nbr_derivs_NW = cache.cells[fs_cache::calculateNbrID(1-1,1+1,1  )]->derivatives;
-   c_z = calculateWaveSpeedXZ(cp_NW, derivs_NW, nbr_cp_NW, nbr_derivs_NW, Bx_W, Bz_N, dBxdy_W, dBxdz_W, dBzdx_N, dBzdy_N, PLUS, MINUS, RKCase);
+   c_z = calculateWaveSpeedXZ(cp_NW, derivs_NW, nbr_cp_NW, nbr_derivs_NW, Bx_W, Bz_N, dBxdy_W, dBxdz_W, dBzdx_N, dBzdy_N, PLUS, MINUS, minRho, maxRho, RKCase);
    c_x = c_z;
    az_neg   = max(az_neg,-Vz0 + c_z);
    az_pos   = max(az_pos,+Vz0 + c_z);
@@ -811,7 +952,7 @@ void calculateEdgeElectricFieldY(fs_cache::CellCache& cache,cint& RKCase) {
 
    creal* const nbr_cp_NE     = cache.cells[fs_cache::calculateNbrID(1-1,1+1,1-1)]->parameters;
    creal* const nbr_derivs_NE = cache.cells[fs_cache::calculateNbrID(1-1,1+1,1-1)]->derivatives;
-   c_z = calculateWaveSpeedXZ(cp_NE, derivs_NE, nbr_cp_NE, nbr_derivs_NE, Bx_E, Bz_N, dBxdy_E, dBxdz_E, dBzdx_N, dBzdy_N, PLUS, PLUS, RKCase);
+   c_z = calculateWaveSpeedXZ(cp_NE, derivs_NE, nbr_cp_NE, nbr_derivs_NE, Bx_E, Bz_N, dBxdy_E, dBxdz_E, dBzdx_N, dBzdy_N, PLUS, PLUS, minRho, maxRho, RKCase);
    c_x = c_z;
    az_neg   = max(az_neg,-Vz0 + c_z);
    az_pos   = max(az_pos,+Vz0 + c_z);
@@ -869,11 +1010,13 @@ void calculateEdgeElectricFieldY(fs_cache::CellCache& cache,cint& RKCase) {
  * 
  * Note that the background B field is excluded from the diffusive term calculations because they are equivalent to a current term and the background field is curl-free.
  * 
- * \param cellID Index of the cell to process
- * \param mpiGrid Grid
+ * \param cache Field solver cell cache
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
-void calculateEdgeElectricFieldZ(fs_cache::CellCache& cache,cint& RKCase) {
+void calculateEdgeElectricFieldZ(
+   fs_cache::CellCache& cache,
+   cint& RKCase
+) {
    #ifdef DEBUG_FSOLVER
    bool ok = true;
    if (cache.cells[fs_cache::calculateNbrID(1  ,1  ,1  )] == NULL) ok = false;
@@ -906,6 +1049,8 @@ void calculateEdgeElectricFieldZ(fs_cache::CellCache& cache,cint& RKCase) {
 
    // Fetch needed plasma parameters/derivatives from the four cells:
    Real Bx_S, By_W, By_E, Bx_N, perBx_S, perBy_W, perBy_E, perBx_N;
+   Real minRho = std::numeric_limits<Real>::max();
+   Real maxRho = std::numeric_limits<Real>::min();
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       Bx_S    = cp_SW[CellParams::PERBX] + cp_SW[CellParams::BGBX];
       By_W    = cp_SW[CellParams::PERBY] + cp_SW[CellParams::BGBY];
@@ -917,6 +1062,22 @@ void calculateEdgeElectricFieldZ(fs_cache::CellCache& cache,cint& RKCase) {
       perBx_N    = cp_NW[CellParams::PERBX];
       Vx0  = divideIfNonZero(cp_SW[CellParams::RHOVX], cp_SW[CellParams::RHO]);
       Vy0  = divideIfNonZero(cp_SW[CellParams::RHOVY], cp_SW[CellParams::RHO]);
+      minRho = min(minRho,
+                  min(cp_SW[CellParams::RHO],
+                     min(cp_SE[CellParams::RHO],
+                        min(cp_NW[CellParams::RHO],
+                            cp_NE[CellParams::RHO])
+                        )
+                     )
+                  );
+      maxRho = max(maxRho,
+                  max(cp_SW[CellParams::RHO],
+                     max(cp_SE[CellParams::RHO],
+                        max(cp_NW[CellParams::RHO],
+                            cp_NE[CellParams::RHO])
+                        )
+                     )
+                  );
    } else { // RKCase == RK_ORDER2_STEP1
       Bx_S    = cp_SW[CellParams::PERBX_DT2] + cp_SW[CellParams::BGBX];
       By_W    = cp_SW[CellParams::PERBY_DT2] + cp_SW[CellParams::BGBY];
@@ -928,6 +1089,22 @@ void calculateEdgeElectricFieldZ(fs_cache::CellCache& cache,cint& RKCase) {
       perBx_N    = cp_NW[CellParams::PERBX_DT2];
       Vx0  = divideIfNonZero(cp_SW[CellParams::RHOVX_DT2], cp_SW[CellParams::RHO_DT2]);
       Vy0  = divideIfNonZero(cp_SW[CellParams::RHOVY_DT2], cp_SW[CellParams::RHO_DT2]);
+      minRho = min(minRho,
+                  min(cp_SW[CellParams::RHO_DT2],
+                     min(cp_SE[CellParams::RHO_DT2],
+                        min(cp_NW[CellParams::RHO_DT2],
+                            cp_NE[CellParams::RHO_DT2])
+                        )
+                     )
+                  );
+      maxRho = max(maxRho,
+                  max(cp_SW[CellParams::RHO_DT2],
+                     max(cp_SE[CellParams::RHO_DT2],
+                        max(cp_NW[CellParams::RHO_DT2],
+                            cp_NE[CellParams::RHO_DT2])
+                        )
+                     )
+                  );
    }
    
    creal dBxdy_S = derivs_SW[fs::dPERBxdy] + derivs_SW[fs::dBGBxdy];
@@ -981,7 +1158,7 @@ void calculateEdgeElectricFieldZ(fs_cache::CellCache& cache,cint& RKCase) {
    // to get Alfven speed we need to calculate some reconstruction coeff. for Bz:
    creal* const nbr_cp_SW     = cache.cells[fs_cache::calculateNbrID(1  ,1  ,1+1)]->parameters;
    creal* const nbr_derivs_SW = cache.cells[fs_cache::calculateNbrID(1  ,1  ,1+1)]->derivatives;
-   c_x = calculateWaveSpeedXY(cp_SW, derivs_SW, nbr_cp_SW, nbr_derivs_SW, Bx_S, By_W, dBxdy_S, dBxdz_S, dBydx_W, dBydz_W, MINUS, MINUS, RKCase);
+   c_x = calculateWaveSpeedXY(cp_SW, derivs_SW, nbr_cp_SW, nbr_derivs_SW, Bx_S, By_W, dBxdy_S, dBxdz_S, dBydx_W, dBydz_W, MINUS, MINUS, minRho, maxRho, RKCase);
    c_y = c_x;
    ax_neg   = max(ZERO,-Vx0 + c_x);
    ax_pos   = max(ZERO,+Vx0 + c_x);
@@ -1031,7 +1208,7 @@ void calculateEdgeElectricFieldZ(fs_cache::CellCache& cache,cint& RKCase) {
    
    creal* const nbr_cp_SE     = cache.cells[fs_cache::calculateNbrID(1-1,1  ,1+1)]->parameters;
    creal* const nbr_derivs_SE = cache.cells[fs_cache::calculateNbrID(1-1,1  ,1+1)]->derivatives;
-   c_x = calculateWaveSpeedXY(cp_SE, derivs_SE, nbr_cp_SE, nbr_derivs_SE, Bx_S, By_E, dBxdy_S, dBxdz_S, dBydx_E, dBydz_E, PLUS, MINUS, RKCase);
+   c_x = calculateWaveSpeedXY(cp_SE, derivs_SE, nbr_cp_SE, nbr_derivs_SE, Bx_S, By_E, dBxdy_S, dBxdz_S, dBydx_E, dBydz_E, PLUS, MINUS, minRho, maxRho, RKCase);
    c_y = c_x;
    ax_neg = max(ax_neg,-Vx0 + c_x);
    ax_pos = max(ax_pos,+Vx0 + c_x);
@@ -1082,7 +1259,7 @@ void calculateEdgeElectricFieldZ(fs_cache::CellCache& cache,cint& RKCase) {
    
    creal* const nbr_cp_NW     = cache.cells[fs_cache::calculateNbrID(1  ,1-1,1+1)]->parameters;
    creal* const nbr_derivs_NW = cache.cells[fs_cache::calculateNbrID(1  ,1-1,1+1)]->derivatives;
-   c_x = calculateWaveSpeedXY(cp_NW, derivs_NW, nbr_cp_NW, nbr_derivs_NW, Bx_N, By_W, dBxdy_N, dBxdz_N, dBydx_W, dBydz_W, MINUS, PLUS, RKCase);
+   c_x = calculateWaveSpeedXY(cp_NW, derivs_NW, nbr_cp_NW, nbr_derivs_NW, Bx_N, By_W, dBxdy_N, dBxdz_N, dBydx_W, dBydz_W, MINUS, PLUS, minRho, maxRho, RKCase);
    c_y = c_x;
    ax_neg = max(ax_neg,-Vx0 + c_x); 
    ax_pos = max(ax_pos,+Vx0 + c_x);
@@ -1133,7 +1310,7 @@ void calculateEdgeElectricFieldZ(fs_cache::CellCache& cache,cint& RKCase) {
    
    creal* const nbr_cp_NE     = cache.cells[fs_cache::calculateNbrID(1-1,1-1,1+1)]->parameters;
    creal* const nbr_derivs_NE = cache.cells[fs_cache::calculateNbrID(1-1,1-1,1+1)]->derivatives;
-   c_x = calculateWaveSpeedXY(cp_NE, derivs_NE, nbr_cp_NE, nbr_derivs_NE, Bx_N, By_E, dBxdy_N, dBxdz_N, dBydx_E, dBydz_E, PLUS, PLUS, RKCase);
+   c_x = calculateWaveSpeedXY(cp_NE, derivs_NE, nbr_cp_NE, nbr_derivs_NE, Bx_N, By_E, dBxdy_N, dBxdz_N, dBydx_E, dBydz_E, PLUS, PLUS, minRho, maxRho, RKCase);
    c_y = c_x;
    ax_neg = max(ax_neg,-Vx0 + c_x);
    ax_pos = max(ax_pos,+Vx0 + c_x);
@@ -1184,11 +1361,26 @@ void calculateEdgeElectricFieldZ(fs_cache::CellCache& cache,cint& RKCase) {
    }
 }
 
-void calculateElectricField(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                            std::vector<fs_cache::CellCache>& cellCache,
-                            const std::vector<uint16_t>& cells,
-                            SysBoundary& sysBoundaries,
-                            cint& RKCase) {
+/*! \brief Electric field propagation function.
+ * 
+ * Calls the general or the system boundary electric field propagation functions.
+ * 
+ * \param mpiGrid Grid
+ * \param cellCache Field solver cell cache
+ * \param cells Vector of cells to process
+ * \param sysBoundaries System boundary conditions existing
+ * \param RKCase Element in the enum defining the Runge-Kutta method steps
+ * 
+ * \sa calculateUpwindedElectricFieldSimple calculateEdgeElectricFieldX calculateEdgeElectricFieldY calculateEdgeElectricFieldZ
+ * 
+ */
+void calculateElectricField(
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   std::vector<fs_cache::CellCache>& cellCache,
+   const std::vector<uint16_t>& cells,
+   SysBoundary& sysBoundaries,
+   cint& RKCase
+) {
    #pragma omp parallel for
    for (size_t c=0; c<cells.size(); ++c) {
       const uint16_t localID = cells[c];
@@ -1241,10 +1433,11 @@ void calculateElectricField(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
  * Transfers the derivatives, calculates the edge electric fields and transfers the new electric fields.
  * 
  * \param mpiGrid Grid
+ * \param sysBoundaries System boundary conditions existing
  * \param localCells Vector of local cells to process
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  * 
- * \sa calculateEdgeElectricFieldX calculateEdgeElectricFieldY calculateEdgeElectricFieldZ
+ * \sa calculateElectricField calculateEdgeElectricFieldX calculateEdgeElectricFieldY calculateEdgeElectricFieldZ
  */
 void calculateUpwindedElectricFieldSimple(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,

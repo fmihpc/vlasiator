@@ -26,7 +26,7 @@ namespace vblock {
    template<typename T> T index(const T& i,const T& j,const T& k);
    template<typename T> T nbrIndex(const T& i_off,const T& j_off,const T& k_off);
    template<int PADDING,typename T> T padIndex(const T& i,const T& j,const T& k);
-
+   template<typename T> T refIndex(const T& i,const T& j,const T& k,T& i_trgt,T& j_trgt,T& k_trgt);
 
    // ***** DEFINITIONS OF TEPLATE FUNCTION ***** //
    
@@ -244,6 +244,23 @@ namespace vblock {
    T padIndex(const T& i,const T& j,const T& k) {
       const T W = WID+2*PADDING;
       return k*W*W + j*W + i;
+   }
+   
+   /** Calculate the target octant and (refined) cell indices 
+    * from the given (coarse) cell indices.
+    * @param i Cell i-index in coarse block.
+    * @param j Cell j-index in coarse block.
+    * @param k Cell k-index in coarse block.
+    * @param i_trgt Target cell i-index in refined block.
+    * @param j_trgt Target cell j-index in refined block.
+    * @param k_trgt Target cell k-index in refined block.
+    * @return Octant of the target block.*/
+   template<typename T> inline
+   T refIndex(const T& i,const T& j,const T& k,T& i_trgt,T& j_trgt,T& k_trgt) {
+       i_trgt = (i % 2) * 2;
+       j_trgt = (j % 2) * 2;
+       k_trgt = (k % 2) * 2;
+       return (k/2)*4 + (j/2)*2 + (i/2);
    }
 
 }; // namespace vblock

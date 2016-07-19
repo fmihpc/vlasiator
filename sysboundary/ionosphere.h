@@ -31,8 +31,12 @@ using namespace std;
 namespace SBC {
    /*!\brief Ionosphere is a class applying ionospheric boundary conditions.
     * 
-    * Ionosphere is a class handling cells tagged as sysboundarytype::IONOSPHERE by this
-    * system boundary condition. It applies ionospheric boundary conditions.
+    * Ionosphere is a class handling cells tagged as sysboundarytype::IONOSPHERE by this system boundary condition. It applies ionospheric boundary conditions.
+    * 
+    * These consist in:
+    * - Do nothing for the distribution (keep the initial state constant in time);
+    * - Keep only the normal perturbed B component and null out the other perturbed components (perfect conductor behavior);
+    * - Null out the electric fields.
     */
    class Ionosphere: public SysBoundaryCondition {
    public:
@@ -51,14 +55,13 @@ namespace SBC {
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          Project &project
       );
-//       virtual bool applySysBoundaryCondition(
-//          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-//          creal& t
-//       );
       virtual Real fieldSolverBoundaryCondMagneticField(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-         const CellID& cellID,
+         const std::vector<fs_cache::CellCache>& cellCache,
+         const uint16_t& localID,
          creal& dt,
+         cuint& RKCase,
+         cint& offset,
          cuint& component
       );
       virtual void fieldSolverBoundaryCondElectricField(
@@ -90,7 +93,8 @@ namespace SBC {
       );
       virtual void vlasovBoundaryCondition(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-         const CellID& cellID
+         const CellID& cellID,
+         const int& popID
       );
       
       virtual std::string getName() const;
@@ -98,14 +102,12 @@ namespace SBC {
       
    protected:
       void generateTemplateCell(Project &project);
-      void setCellFromTemplate(SpatialCell *cell);
+      void setCellFromTemplate(SpatialCell* cell,const int& popID);
       
-      Real shiftedMaxwellianDistribution(
-         creal& vx, creal& vy, creal& vz
-      );
+      Real shiftedMaxwellianDistribution(const int& popID,creal& vx, creal& vy, creal& vz);
       
-      vector<uint> findBlocksToInitialize(
-         SpatialCell& cell
+      vector<vmesh::GlobalID> findBlocksToInitialize(
+         SpatialCell& cell,const int& popID
       );
       
       std::array<Real, 3> fieldSolverGetNormalDirection(
@@ -115,7 +117,7 @@ namespace SBC {
       
       Real center[3]; /*!< Coordinates of the centre of the ionosphere. */
       Real radius; /*!< Radius of the ionosphere. */
-      uint geometry; /*!< Geometry of the ionosphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm (circle, DEFAULT). */
+      uint geometry; /*!< Geometry of the ionosphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm (circle, DEFAULT), 3: polar-plane cylinder with line dipole. */
       
       Real T;
       Real rho;

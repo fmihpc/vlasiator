@@ -2,11 +2,9 @@
 /*
 This file is part of Vlasiator.
 
-Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
+Copyright 2010-2015 Finnish Meteorological Institute
  */
 
-
-#include <cstdlib>
 #include <iostream>
 
 #include <limits>
@@ -17,22 +15,20 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #include <dirent.h>
 #include <stdio.h>
 
-#include "definitions.h"
-#include "vlsv_reader.h"
-#include "vlsv_writer.h"
-#include "vlsvreaderinterface.h"
-#include <vlsv_amr.h>
+#include <unordered_set>
 
-#include <array> //std::array is from here
-#include <unordered_set> //std::unordered_set from here
+#include <vlsv_reader.h>
+#include <vlsv_writer.h>
+#include <vlsv_amr.h>
 #include <boost/program_options.hpp>
 #include <Eigen/Dense>
+#include <phiprof.hpp>
 
-#include "phiprof.hpp"
-
+#include "vlsv_util.h"
+#include "vlsvreaderinterface.h"
+#include "vlsvextract.h"
 
 using namespace std;
-
 using namespace Eigen;
 using namespace vlsv;
 namespace po = boost::program_options;
@@ -40,135 +36,34 @@ namespace po = boost::program_options;
 // If set to true, vlsvextract writes some debugging info to stderr
 static bool runDebug = false;
 
-template<typename REAL> struct NodeCrd {
-   static REAL EPS;
-   REAL x;
-   REAL y;
-   REAL z;
+bool NodeComp::operator()(const NodeCrd<double>& a, const NodeCrd<double>& b) const {
+   double EPS = 0.5e-3 * (fabs(a.z) + fabs(b.z));
+   if (a.z > b.z + EPS) return false;
+   if (a.z < b.z - EPS) return true;
 
-   NodeCrd(const REAL& x, const REAL& y, const REAL& z) : x(x), y(y), z(z) {
-   }
+   EPS = 0.5e-3 * (fabs(a.y) + fabs(b.y));
+   if (a.y > b.y + EPS) return false;
+   if (a.y < b.y - EPS) return true;
 
-   bool comp(const NodeCrd<REAL>& n) const {
-      REAL EPS1, EPS2, EPS;
-      EPS1 = 1.0e-6 * fabs(x);
-      EPS2 = 1.0e-6 * fabs(n.x);
-      if (x == 0.0) EPS1 = 1.0e-7;
-      if (n.x == 0.0) EPS2 = 1.0e-7;
-      EPS = max(EPS1, EPS2);
-      if (fabs(x - n.x) > EPS) return false;
+   EPS = 0.5e-3 * (fabs(a.x) + fabs(b.x));
+   if (a.x > b.x + EPS) return false;
+   if (a.x < b.x - EPS) return true;
+   return false;
+}
 
-      EPS1 = 1.0e-6 * fabs(y);
-      EPS2 = 1.0e-6 * fabs(n.y);
-      if (y == 0.0) EPS1 = 1.0e-7;
-      if (n.y == 0.0) EPS2 = 1.0e-7;
-      EPS = max(EPS1, EPS2);
-      if (fabs(y - n.y) > EPS) return false;
+bool NodeComp::operator()(const NodeCrd<float>& a,const NodeCrd<float>& b) const {
+   float EPS = 0.5e-3 * (fabs(a.z) + fabs(b.z));
+   if (a.z > b.z + EPS) return false;
+   if (a.z < b.z - EPS) return true;
 
-      EPS1 = 1.0e-6 * fabs(z);
-      EPS2 = 1.0e-6 * fabs(n.z);
-      if (z == 0.0) EPS1 = 1.0e-7;
-      if (n.z == 0.0) EPS2 = 1.0e-7;
-      EPS = max(EPS1, EPS2);
-      if (fabs(z - n.z) > EPS) return false;
-      return true;
-   }
-};
+   EPS = 0.5e-3 * (fabs(a.y) + fabs(b.y));
+   if (a.y > b.y + EPS) return false;
+   if (a.y < b.y - EPS) return true;
 
-struct NodeComp {
-
-   bool operator()(const NodeCrd<double>& a, const NodeCrd<double>& b) const {
-      double EPS = 0.5e-3 * (fabs(a.z) + fabs(b.z));
-      if (a.z > b.z + EPS) return false;
-      if (a.z < b.z - EPS) return true;
-
-      EPS = 0.5e-3 * (fabs(a.y) + fabs(b.y));
-      if (a.y > b.y + EPS) return false;
-      if (a.y < b.y - EPS) return true;
-
-      EPS = 0.5e-3 * (fabs(a.x) + fabs(b.x));
-      if (a.x > b.x + EPS) return false;
-      if (a.x < b.x - EPS) return true;
-      return false;
-   }
-
-   bool operator()(const NodeCrd<float>& a, const NodeCrd<float>& b) const {
-      float EPS = 0.5e-3 * (fabs(a.z) + fabs(b.z));
-      if (a.z > b.z + EPS) return false;
-      if (a.z < b.z - EPS) return true;
-
-      EPS = 0.5e-3 * (fabs(a.y) + fabs(b.y));
-      if (a.y > b.y + EPS) return false;
-      if (a.y < b.y - EPS) return true;
-
-      EPS = 0.5e-3 * (fabs(a.x) + fabs(b.x));
-      if (a.x > b.x + EPS) return false;
-      if (a.x < b.x - EPS) return true;
-      return false;
-   }
-};
-
-
-//A struct for holding info on cell structure (the grid)
-struct CellStructure {
-   uint64_t cell_bounds[3];     /**< The number of cells in x, y, z direction (initialized somewhere in read parameters).*/
-   Real cell_length[3];         /**< Length of a cell in x, y, z direction. */
-   Real min_coordinates[3];     /**< x_min, y_min, z_min are stored here.*/
-   uint64_t vcell_bounds[3];    /**< The number of cells in x, y, z direction (initialized somewhere in read parameters).*/
-   Real vblock_length[3];       /**< Size (dvx,dvy,dvz) of a velocity block in vx, vy, vz directions.*/
-   Real min_vcoordinates[3];    /**< vx_min, vy_min, vz_min are stored here.*/
-   uint32_t maxVelRefLevel;     /**< Maximum refinement level of velocity meshes.*/
-
-   int slicedCoords[3];
-   Real slicedCoordValues[3];
-};
-
-//A class for holding user options
-class UserOptions {
-public:
-   bool getCellIdFromLine;
-   bool getCellIdFromInput;
-   bool getCellIdFromCoordinates;
-   bool rotateVectors;
-   bool plasmaFrame;
-   uint64_t cellId;
-   uint32_t numberOfCoordinatesInALine;
-   vector<string> outputDirectoryPath;
-   array<Real, 3> coordinates;
-   array<Real, 3> point1;
-   array<Real, 3> point2;
-   UserOptions() {
-      getCellIdFromLine = false;
-      getCellIdFromInput = false;
-      getCellIdFromCoordinates = false;
-      rotateVectors = false;
-      cellId = numeric_limits<uint64_t>::max();
-      numberOfCoordinatesInALine = 0;
-   }
-   ~UserOptions() {}
-};
-
-uint64_t convUInt(const char* ptr, const VLSV::datatype& dataType, const uint64_t& dataSize) {
-   if (dataType != VLSV::UINT) {
-      cerr << "Erroneous datatype given to convUInt" << endl;
-      exit(1);
-   }
-
-   switch (dataSize) {
-      case 1:
-         return *reinterpret_cast<const unsigned char*> (ptr);
-         break;
-      case 2:
-         return *reinterpret_cast<const unsigned short int*> (ptr);
-         break;
-      case 4:
-         return *reinterpret_cast<const unsigned int*> (ptr);
-         break;
-      case 8:
-         return *reinterpret_cast<const unsigned long int*> (ptr);
-         break;
-   }
-   return 0;
+   EPS = 0.5e-3 * (fabs(a.x) + fabs(b.x));
+   if (a.x > b.x + EPS) return false;
+   if (a.x < b.x - EPS) return true;
+   return false;
 }
 
 uint64_t convUInt(const char* ptr, const datatype::type & dataType, const uint64_t& dataSize) {
@@ -194,35 +89,16 @@ uint64_t convUInt(const char* ptr, const datatype::type & dataType, const uint64
    return 0;
 }
 
-//Outputs the velocity block indices of some given block into indices
-//Input:
-//[0] cellStruct -- some cell structure that has been constructed properly
-//[1] block -- some velocity block id
-//Output:
-//[0] indices -- the array where to store the indices
-void getVelocityBlockCoordinates(const CellStructure & cellStruct, const uint64_t block, array<Real, 3> & coordinates ) {
-   //First get indices:
-   array<uint64_t, 3> blockIndices;
-   blockIndices[0] = block % cellStruct.vcell_bounds[0];
-   blockIndices[1] = (block / cellStruct.vcell_bounds[0]) % cellStruct.vcell_bounds[1];
-   blockIndices[2] = block / (cellStruct.vcell_bounds[0] * cellStruct.vcell_bounds[1]);
-   //Store the coordinates:
-   for( int i = 0; i < 3; ++i ) {
-      coordinates[i] = cellStruct.min_vcoordinates[i] + cellStruct.vblock_length[i] * blockIndices[i];
-   }
-   return;
-}
-
-bool convertSlicedVelocityMesh(newVlsv::Reader& vlsvReader,const string& fname,const string& meshName,
-                               CellStructure& cellStruct) {
+bool convertSlicedVelocityMesh(vlsvinterface::Reader& vlsvReader,const string& fname,const string& meshName,
+                               CellStructure& cellStruct,const std::string& popName) {
    bool success = true;
-   
+
    // TEST
    cellStruct.slicedCoords[0] = 2;
    cellStruct.slicedCoords[1] = 4;
    cellStruct.slicedCoords[2] = 5;
    cellStruct.slicedCoordValues[0] = 1e3;
-   cellStruct.slicedCoordValues[1] = 5e3;
+   cellStruct.slicedCoordValues[1] = -5e3;
    cellStruct.slicedCoordValues[2] = 5e3;
 
    string outputMeshName = "VelSlice";
@@ -296,8 +172,6 @@ bool convertSlicedVelocityMesh(newVlsv::Reader& vlsvReader,const string& fname,c
       if (cellCrds[cellStruct.slicedCoords[0]] > cellStruct.slicedCoordValues[0]) continue;
       if (cellCrds[cellStruct.slicedCoords[0]+3] < cellStruct.slicedCoordValues[0]) continue;
 
-      cerr << "accept " << cellId << endl;
-      
       // Buffer all velocity mesh variables
       vector<char*> varBuffer(blockVarNames.size());
       int counter=0;
@@ -326,7 +200,7 @@ bool convertSlicedVelocityMesh(newVlsv::Reader& vlsvReader,const string& fname,c
       if (varInfo.size() > variables.size()) variables.resize(varInfo.size());
 
       vector<uint64_t> blockIDs;
-      if (vlsvReader.getBlockIds(cellIDs[cell],blockIDs) == false) {         
+      if (vlsvReader.getBlockIds(cellIDs[cell],blockIDs,popName) == false) {
          for (size_t v=0; v<varBuffer.size(); ++v) delete [] varBuffer[v];
          continue;
       }
@@ -558,7 +432,7 @@ void applyRotation(const Real* B,Real* transform) {
    }
 }
 
-void getBulkVelocity(Real* V_bulk,newVlsv::Reader& vlsvReader,const string& meshName,const uint64_t& cellID) {
+void getBulkVelocity(Real* V_bulk,vlsvinterface::Reader& vlsvReader,const string& meshName,const uint64_t& cellID) {
    //Declarations
    vlsv::datatype::type cellIdDataType;
    uint64_t cellIdArraySize, cellIdVectorSize, cellIdDataSize;
@@ -630,7 +504,7 @@ void getBulkVelocity(Real* V_bulk,newVlsv::Reader& vlsvReader,const string& mesh
    V_bulk[2] = momentum[2] / (numberDensity + numeric_limits<double>::min());
 }
 
-void getB(Real* B,newVlsv::Reader& vlsvReader,const string& meshName,const uint64_t& cellID) {
+void getB(Real* B,vlsvinterface::Reader& vlsvReader,const string& meshName,const uint64_t& cellID) {
    //Declarations
    vlsv::datatype::type cellIdDataType;
    uint64_t cellIdArraySize, cellIdVectorSize, cellIdDataSize;
@@ -724,6 +598,7 @@ void getB(Real* B,newVlsv::Reader& vlsvReader,const string& meshName,const uint6
       }
       
       // Attempt to read variable 'B'
+      B_read = true;
       xmlAttributes.clear();
       xmlAttributes.push_back(make_pair("mesh",meshName));
       xmlAttributes.push_back(make_pair("name","B"));
@@ -767,24 +642,33 @@ void getB(Real* B,newVlsv::Reader& vlsvReader,const string& meshName,const uint6
 }
 
 bool convertVelocityBlocks2(
-                            newVlsv::Reader& vlsvReader,
+                            vlsvinterface::Reader& vlsvReader,
                             const string& fname,
                             const string& meshName,
-                            const CellStructure& cellStruct,
+                            CellStructure& cellStruct,
                             const uint64_t& cellID,
                             const bool rotate,
-                            const bool plasmaFrame
+                            const bool plasmaFrame,
+                            vlsv::Writer& out,
+                            const std::string& popName
                            ) {
    bool success = true;
    
-   string outputMeshName = "VelGrid";
-   int cellsInBlocksPerDirection = 4;
-
-   vlsv::Writer out;
-   if (out.open(fname,MPI_COMM_SELF,0) == false) {
-      cerr << "ERROR, failed to open output file with vlsv::Writer at " << __FILE__ << " " << __LINE__ << endl;
-      return false;
+   // Read velocity mesh metadata for this population
+   if (setVelocityMeshVariables(vlsvReader,cellStruct,popName) == false) {
+      //cerr << "ERROR, failed to read velocity mesh metadata for species '";
+      //cerr << popName << "'" << endl;
+      
+      cerr << "Trying older Vlasiator file format..." << endl;
+      if (setVelocityMeshVariables(vlsvReader,cellStruct) == false) {
+         cerr << "ERROR, failed to read velocity mesh metadata in " << __FILE__ << ":" << __LINE__ << endl;
+         success = false;
+         return success;
+      }
    }
+
+   string outputMeshName = "VelGrid_" + popName;
+   int cellsInBlocksPerDirection = 4;
    
    // Transformation (translation + rotation) matrix, defaults 
    // to identity matrix. Modified if rotate and/or plasmaFrame are true.
@@ -817,9 +701,13 @@ bool convertVelocityBlocks2(
 
    // Read velocity block global IDs and write them out
    vector<uint64_t> blockIds;
-   if (vlsvReader.getBlockIds(cellID,blockIds) == false ) {
-      cerr << "ERROR, FAILED TO READ BLOCK IDS AT " << __FILE__ << " " << __LINE__ << endl;
-      return false;
+   if (vlsvReader.getBlockIds(cellID,blockIds,popName) == false ) {
+      cerr << "Trying older Vlasiator file format..." << endl;
+      if (vlsvReader.getBlockIds(cellID,blockIds,"") == false) {
+         cerr << "ERROR, failed to read IDs at " << __FILE__ << ":" << __LINE__ << endl;
+         success = false;
+         return success;
+      }
    }
    const size_t N_blocks = blockIds.size();
    
@@ -834,9 +722,20 @@ bool convertVelocityBlocks2(
 
    if (out.writeArray("MESH",attributes,blockIds.size(),1,&(blockIds[0])) == false) success = false;
    
-   attributes["name"] = "VelBlocks";
+   attributes["name"] = "VelBlocks_" + popName;
    if (out.writeArray("MESH",attributes,blockIds.size(),1,&(blockIds[0])) == false) success = false;
    
+   attributes.clear();
+
+   // Create array of phase-space mesh cell IDs, this is needed to make 
+   // vlsvdiff work with extracted velocity meshes
+   vector<uint64_t> cellIDs(blockIds.size()*64);
+   for (size_t b=0; b<blockIds.size(); ++b) {
+      for (int c=0; c<64; ++c) cellIDs[b*64+c] = blockIds[b]*64+c;
+   }
+   attributes["mesh"] = outputMeshName;
+   attributes["name"] = "CellID";
+   if (out.writeArray("VARIABLE",attributes,cellIDs.size(),1,&(cellIDs[0])) == false) success = false;
    attributes.clear();
 
    // Make domain size array
@@ -849,7 +748,7 @@ bool convertVelocityBlocks2(
         vector<uint64_t> ().swap(blockIds);
      }
    
-   attributes["mesh"] = "VelBlocks";
+   attributes["mesh"] = "VelBlocks_" + popName;
    if (out.writeArray("MESH_DOMAIN_SIZES",attributes,1,2,domainSize) == false) success = false;
 
    // Make bounding box array
@@ -861,7 +760,7 @@ bool convertVelocityBlocks2(
    bbox[3] = 1;
    bbox[4] = 1;
    bbox[5] = 1;
-   attributes["mesh"] = "VelBlocks";
+   attributes["mesh"] = "VelBlocks_" + popName;
    if (out.writeArray("MESH_BBOX",attributes,6,1,bbox) == false) success = false;
    
    bbox[3] = cellsInBlocksPerDirection;
@@ -896,7 +795,10 @@ bool convertVelocityBlocks2(
       }
 
       attributes["mesh"] = outputMeshName;
-      if (out.writeArray(arrayName,attributes,coords.size(),1,&(coords[0])) == false) success = false;
+      if (out.writeArray(arrayName,attributes,coords.size(),1,&(coords[0])) == false) {
+         cerr << "ERROR, failed to write velocity grid coordinates in " << __FILE__ << ":" << __LINE__ << endl;
+         success = false;
+      }
    }
      {
         vector<float> ().swap(coords);
@@ -914,8 +816,11 @@ bool convertVelocityBlocks2(
       else if (crd == 1) arrayName = "MESH_NODE_CRDS_Y";
       else if (crd == 2) arrayName = "MESH_NODE_CRDS_Z";
       
-      attributes["mesh"] = "VelBlocks";
-      if (out.writeArray(arrayName,attributes,coords.size(),1,&(coords[0])) == false) success = false;
+      attributes["mesh"] = "VelBlocks_" + popName;
+      if (out.writeArray(arrayName,attributes,coords.size(),1,&(coords[0])) == false) {
+         cerr << "ERROR, failed to write velocity block coordinates in " << __FILE__ << ":" << __LINE__ << endl;
+         success = false;
+      }
    }
      {
         vector<float> ().swap(coords);
@@ -924,38 +829,54 @@ bool convertVelocityBlocks2(
    // Write dummy ghost zone data (not applicable here):
    uint64_t dummy;
    attributes["mesh"] = outputMeshName;
-   if (out.writeArray("MESH_GHOST_LOCALIDS",attributes,domainSize[1],1,&dummy) == false) success = false;
-   if (out.writeArray("MESH_GHOST_DOMAINS",attributes,domainSize[1],1,&dummy) == false) success = false;
+   if (out.writeArray("MESH_GHOST_LOCALIDS",attributes,domainSize[1],1,&dummy) == false) {
+      cerr << "ERROR, failed to write ghost cell local IDs in " << __FILE__ << ":" << __LINE__ << endl;
+      success = false;
+   }
+   if (out.writeArray("MESH_GHOST_DOMAINS",attributes,domainSize[1],1,&dummy) == false) {
+      cerr << "ERROR, failed to write ghost cell domains in " << __FILE__ << ":" << __LINE__ << endl;
+      success = false;
+   }
    
-   attributes["mesh"] = "VelBlocks";
-   if (out.writeArray("MESH_GHOST_LOCALIDS",attributes,domainSize[1],1,&dummy) == false) success = false;
-   if (out.writeArray("MESH_GHOST_DOMAINS",attributes,domainSize[1],1,&dummy) == false) success = false;
+   attributes["mesh"] = "VelBlocks_" + popName;
+   if (out.writeArray("MESH_GHOST_LOCALIDS",attributes,domainSize[1],1,&dummy) == false) {
+      cerr << "ERROR, failed to write ghost cell local IDs in " << __FILE__ << ":" << __LINE__ << endl;
+      success = false;
+   }
+   if (out.writeArray("MESH_GHOST_DOMAINS",attributes,domainSize[1],1,&dummy) == false) {
+      cerr << "ERROR, failed to write ghost cell domains in " << __FILE__ << ":" << __LINE__ << endl;
+      success = false;
+   }
 
    // ***** Convert variables ***** //
    
-   //Get the name of variables:
+   // Get the names of velocity mesh variables. NOTE: This will find _all_ particle populations
+   // which are stored in their separate meshes.
    set<string> blockVarNames;
    const string attributeName = "name";
    if (vlsvReader.getUniqueAttributeValues( "BLOCKVARIABLE", attributeName, blockVarNames) == false) {
       cerr << "ERROR, FAILED TO GET UNIQUE ATTRIBUTE VALUES AT " << __FILE__ << " " << __LINE__ << endl;
    }
-   
+
    //Writing VLSV file
    if (success == true) {
       for (set<string>::iterator it = blockVarNames.begin(); it != blockVarNames.end(); ++it) {
+         // Only accept the population that belongs to this mesh
+         if (*it != popName) continue;
+
          list<pair<string, string> > attribs;
          attribs.push_back(make_pair("name", *it));
          attribs.push_back(make_pair("mesh", meshName));
          datatype::type dataType;
          uint64_t arraySize, vectorSize, dataSize;
          if (vlsvReader.getArrayInfo("BLOCKVARIABLE", attribs, arraySize, vectorSize, dataType, dataSize) == false) {
-            cerr << "Could not read BLOCKVARIABLE array info" << endl;
+            cerr << "Could not read BLOCKVARIABLE array info in " << __FILE__ << ":" << __LINE__ << endl;
             return false;
          }
 	 
          char* buffer = new char[N_blocks * vectorSize * dataSize];
          if (vlsvReader.readArray("BLOCKVARIABLE", attribs, vlsvReader.getBlockOffset(cellID), N_blocks, buffer) == false) {
-            cerr << "ERROR could not read block variable" << endl;
+            cerr << "ERROR could not read block variable in " << __FILE__ << ":" << __LINE__ << endl;
             delete[] buffer;
             return success;
          }
@@ -975,74 +896,7 @@ bool convertVelocityBlocks2(
    }
    
    vlsvReader.clearCellsWithBlocks();
-   out.close();
    return success;   
-}
-
-//Loads a parameter from a file
-//usage: Real x = loadParameter( vlsvReader, nameOfParameter );
-//Note: this is used in getCellIdFromCoords
-//Input:
-//[0] vlsvReader -- some VLSVReader which has a file opened
-//[1] name -- name of the parameter, e.g. "xmin"
-//Output:
-//[0] Parameter -- Saves the parameter into the parameter variable
-template <typename T>
-bool loadParameter( VLSVReader& vlsvReader, const string& name, T & parameter ) {
-   //Declare dataType, arraySize, vectorSize, dataSize so we know how much data we want to store
-   VLSV::datatype dataType;
-   uint64_t arraySize, vectorSize, dataSize; //vectorSize should be 1
-   //Write into dataType, arraySize, etc with getArrayInfo -- if fails to read, give error message
-   if( vlsvReader.getArrayInfo( "PARAMETERS", name, arraySize, vectorSize, dataType, dataSize ) == false ) {
-      cerr << "Error, could not read parameter '" << name << "' at: " << __FILE__ << " " << __LINE__; //FIX
-      MPI_Finalize();
-      exit(1); //Terminate
-      return false;
-   }
-   //Declare a buffer to write the parameter's data in (arraySize, etc was received from getArrayInfo)
-   char * buffer = new char[arraySize * vectorSize * dataSize];
-
-   //Read data into the buffer and return error if something went wrong
-   if( vlsvReader.readArray( "PARAMETERS", name, 0, vectorSize, buffer ) == false ) {
-      cerr << "Error, could not read parameter '" << name << "' at: " << __FILE__ << " " << __LINE__; //FIX
-      MPI_Finalize();
-      exit(1);
-      return false;
-   }
-   //SHOULD be a vector of size 1 and since I am going to want to assume that, making a check here
-   if( vectorSize != 1 ) {
-      cerr << "Error, could not read parameter '" << name << "' at: " << __FILE__ << " " << __LINE__; //FIX
-      MPI_Finalize();
-      exit(1);
-      return false;
-   }
-   //Input the parameter
-   if( typeid(T) == typeid(double) ) {
-      if( dataSize == 8 ) {
-         parameter = *reinterpret_cast<double*>(buffer);
-      } else if( dataSize == 4 ) {
-         parameter = *reinterpret_cast<float*>(buffer);
-      } else {
-         cerr << "Error, bad datasize while reading parameters at " << __FILE__ << " " << __LINE__ << endl;
-         return false;
-      }
-   } else if( typeid(T) == typeid(uint64_t) ) {
-      if( dataSize == 8 ) {
-         parameter = *reinterpret_cast<uint64_t*>(buffer);
-      } else if( dataSize == 4 ) {
-         parameter = *reinterpret_cast<uint32_t*>(buffer);
-      } else {
-         cerr << "Error, bad datasize while reading parameters at " << __FILE__ << " " << __LINE__ << endl;
-         return false;
-      }
-   } else {
-      cerr << "Error, could not read parameter '" << name << "' at: " << __FILE__ << " " << __LINE__; //FIX
-      cerr << " Error message: invalid type in loadParameters" << endl;
-      MPI_Finalize();
-      exit(1);
-      return false;
-   }
-   return true;
 }
 
 //Creates a cell id list of type std::unordered set and saves it in the input parameters
@@ -1106,7 +960,61 @@ bool createCellIdList( T & vlsvReader, unordered_set<uint64_t> & cellIdList ) {
    return true;
 }
 
+/** Driver function for convertVelocityBlocks. Reads the names of 
+ * existing particle species and calls convertVelocityBlocks2 for 
+ * each of them.
+ * @param vlsvReader VLSV file reader that has input file open.
+ * @param fname Name of the input file.
+ * @param meshName Name of the spatial mesh.
+ * @param cellStruct Struct containing mesh metadata.
+ * @param cellID ID of the spatial cell whose distribution function(s) are to be extracted.
+ * @param rotate If true, distribution function(s) are rotated so that the magnetic field points 
+ * along +vz axis.
+ * @param plasmaFrame If true, distribution function(s) are translated to local plasma rest frame.
+ * @return If true, all distributions were extracted successfully.*/
+bool convertVelocityBlocks2(
+                            vlsvinterface::Reader& vlsvReader,
+                            const string& fname,
+                            const string& meshName,
+                            CellStructure& cellStruct,
+                            const uint64_t& cellID,
+                            const bool rotate,
+                            const bool plasmaFrame
+                           ) {
+   // Read names of all existing particle species
+   set<string> popNames;
+   if (vlsvReader.getUniqueAttributeValues("BLOCKIDS","name",popNames) == false) {
+      cerr << "ERROR could not read population names in " << __FILE__ << ":" << __LINE__ << endl;
+      return false;
+   }
 
+   if (runDebug == true) {
+      cerr << "Found " << popNames.size() << " particle populations" << endl;
+   }
+
+   // Open output file
+   vlsv::Writer out;
+   if (out.open(fname,MPI_COMM_SELF,0) == false) {
+      cerr << "ERROR, failed to open output file with vlsv::Writer at " << __FILE__ << " " << __LINE__ << endl;
+      return false;
+   }
+   
+   bool success = true;
+   if (popNames.size() > 0) {
+      for (set<string>::iterator it=popNames.begin(); it!=popNames.end(); ++it) {
+         if (runDebug == true) cerr << "Population '" << *it << "'" << endl;
+         if (vlsvReader.setCellsWithBlocks(meshName,*it) == false) {success = false; continue;}
+         if (convertVelocityBlocks2(vlsvReader,fname,meshName,cellStruct,cellID,rotate,plasmaFrame,out,*it) == false) success = false;
+      }
+   } else {
+      if (runDebug == true) cerr << "Extracting old-style population 'avgs'" << endl;
+      if (vlsvReader.setCellsWithBlocks(meshName,"") == false) {success = false;}
+      if (convertVelocityBlocks2(vlsvReader,fname,meshName,cellStruct,cellID,rotate,plasmaFrame,out,"avgs") == false) success = false;
+   }
+
+   out.close();
+   return success;
+}
 
 //Calculates the cell coordinates and outputs into *coordinates 
 //NOTE: ASSUMING COORDINATES IS NOT NULL AND IS OF SIZE 3
@@ -1230,18 +1138,186 @@ uint64_t searchForBestCellId( const CellStructure & cellStruct,
           ) );
 }
 
+/** Read velocity mesh metadata from older Vlasiator VLSV files.
+ * @param vlsvReader VLSV reader that has input file open.
+ * @param cellStruct Struct where read metadata is written.
+ * @return If true, metadata was read successfully.*/
+bool setVelocityMeshVariables(vlsv::Reader& vlsvReader,CellStructure& cellStruct) {
+   bool success = true;
+   
+   // Read the velocity mesh bounding box, i.e., maximum number of 
+   // blocks per coordinate direction.
+   uint32_t vcell_bounds[3];
+   if (vlsvReader.readParameter("vxblocks_ini",cellStruct.vcell_bounds[0]) == false) {
+      cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << ":" << __LINE__ << endl;
+      success = false;
+   }
+   if (vlsvReader.readParameter("vyblocks_ini",cellStruct.vcell_bounds[1]) == false) {
+      cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << ":" << __LINE__ << endl;
+      success = false;
+   }
+   if (vlsvReader.readParameter("vzblocks_ini",cellStruct.vcell_bounds[2]) == false) {
+      cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << ":" << __LINE__ << endl;
+      success = false;
+   }
+   
+   // Read velocity mesh min/max extents.
+   Real vx_min,vx_max,vy_min,vy_max,vz_min,vz_max;
+   if (vlsvReader.readParameter("vxmin",vx_min) == false) {
+      cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << ":" << __LINE__ << endl;
+      success = false;
+   }
+   if (vlsvReader.readParameter("vxmax",vx_max) == false) {
+      cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << ":" << __LINE__ << endl;
+      success = false;
+   }
+   if (vlsvReader.readParameter("vymin",vy_min) == false) {
+      cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << ":" << __LINE__ << endl;
+      success = false;
+   }
+   if (vlsvReader.readParameter("vymax",vy_max) == false) {
+      cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << ":" << __LINE__ << endl;
+      success = false;
+   }
+   if (vlsvReader.readParameter("vzmin",vz_min) == false) {
+      cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
+      success = false;
+   }
+   if (vlsvReader.readParameter("vzmax",vz_max) == false) {
+      cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
+      success = false;
+   }
 
+   // Calculate velocity phase-space cell lengths.
+   const Real vx_length = vx_max - vx_min;
+   const Real vy_length = vy_max - vy_min;
+   const Real vz_length = vz_max - vz_min;
+   cellStruct.vblock_length[0] = ( vx_length / (Real)(cellStruct.vcell_bounds[0]) );
+   cellStruct.vblock_length[1] = ( vy_length / (Real)(cellStruct.vcell_bounds[1]) );
+   cellStruct.vblock_length[2] = ( vz_length / (Real)(cellStruct.vcell_bounds[2]) );
 
-//Initalizes cellStruct
-//Input:
-//[0] vlsv::Reader vlsvReader -- some reader with a file open (used for loading parameters)
-//Output:
-//[0] CellStructure cellStruct -- Holds info on cellStruct. The members are given the correct values here (Note: CellStructure could be made into a class
-//instead of a struct with this as the constructor but since a geometry class has already been coded before, it would be a waste)
-void setCellVariables( Reader & vlsvReader, CellStructure & cellStruct ) {
-   //Get x_min, x_max, y_min, y_max, etc so that we know where the given cell id is in (loadParameter returns char*, hence the cast)
-   //Note: Not actually sure if these are Real valued or not
-   Real x_min, x_max, y_min, y_max, z_min, z_max, vx_min, vx_max, vy_min, vy_max, vz_min, vz_max;
+   // Set velocity mesh min coordinate values.
+   cellStruct.min_vcoordinates[0] = vx_min;
+   cellStruct.min_vcoordinates[1] = vy_min;
+   cellStruct.min_vcoordinates[2] = vz_min;
+   
+   if (runDebug == true && success == true) {
+      cerr << "Pop 'avgs'" << endl; 
+      cerr << "\t mesh limits   : ";
+      cerr << vx_min << '\t' << vx_max << '\t' << vy_min << '\t' << vy_max << '\t' << vz_min << '\t' << vz_max << endl;
+      cerr << "\t mesh bbox size: " << cellStruct.vcell_bounds[0] << ' ' << cellStruct.vcell_bounds[1] << ' ' << cellStruct.vcell_bounds[2] << endl;
+      cerr << "\t cell sizes    : " << cellStruct.vblock_length[0] << '\t' << cellStruct.vblock_length[1] << '\t' << cellStruct.vblock_length[2] << endl;
+      cerr << "\t max ref level : " << cellStruct.maxVelRefLevel << endl;
+   }
+
+   return success;
+}
+
+/** Read velocity mesh metadata for the given particle species.
+ * @param vlsvReader VLSV reader that has input file open.
+ * @param cellStruct Struct where read metadata is written.
+ * @param popName Name of the particle species.
+ * @return If true, metadata was read successfully.*/
+bool setVelocityMeshVariables(vlsv::Reader& vlsvReader,CellStructure& cellStruct,
+                              const std::string& popName) {
+   bool success = true;
+
+   Real vx_min,vx_max,vy_min,vy_max,vz_min,vz_max;
+
+   // Read node coordinate arrays to figure out mesh extents
+   for (int crd=0; crd<3; ++crd) {
+      list<pair<string,string> > attribsIn;
+      attribsIn.push_back(make_pair("mesh",popName));
+      
+      string tagName;
+      if (crd == 0) tagName = "MESH_NODE_CRDS_X";
+      if (crd == 1) tagName = "MESH_NODE_CRDS_Y";
+      if (crd == 2) tagName = "MESH_NODE_CRDS_Z";
+
+      // Read node coordinate array info
+      map<string,string> attribsOut;
+      if (vlsvReader.getArrayAttributes(tagName,attribsIn,attribsOut) == false) {
+         success = false; continue;
+      }
+      
+      // Figure out the number of nodes in this coordinate direction
+      uint64_t N_nodes = 0;
+      map<string,string>::const_iterator it = attribsOut.find("arraysize");
+      if (it != attribsOut.end()) N_nodes = atol(it->second.c_str());      
+      
+      // Read node coordinates
+      Real* crds = NULL;
+      if (vlsvReader.read(tagName,attribsIn,0,N_nodes,crds,true) == false) success = false;
+      
+      if (crd == 0) { vx_min = crds[0]; vx_max = crds[N_nodes-1]; }
+      if (crd == 1) { vy_min = crds[0]; vy_max = crds[N_nodes-1]; }
+      if (crd == 2) { vz_min = crds[0]; vz_max = crds[N_nodes-1]; }
+      delete [] crds; crds = NULL;
+   }
+
+   // Read the velocity mesh bounding box
+   list<pair<string,string> > attribs;
+   attribs.push_back(make_pair("mesh",popName));
+   uint64_t velMeshBbox[6];
+   uint64_t* velMeshBbox_ptr = velMeshBbox;
+   if (vlsvReader.read("MESH_BBOX",attribs,0,6,velMeshBbox_ptr,false) == false) {
+      cerr << "Failed to read velocity mesh BBOX in " << __FILE__ << ":" << __LINE__ << endl;
+      success = false;
+   }
+
+   //Set the cell structure properly:
+   for (int i = 0; i<3; ++i) {
+      cellStruct.vcell_bounds[i] = velMeshBbox[i];
+   }
+
+   //Calculate the velocity block physical size (in m/s)
+   Real vx_length = vx_max - vx_min;
+   Real vy_length = vy_max - vy_min;
+   Real vz_length = vz_max - vz_min;
+   cellStruct.vblock_length[0] = ( vx_length / (Real)(velMeshBbox[0]) );
+   cellStruct.vblock_length[1] = ( vy_length / (Real)(velMeshBbox[1]) );
+   cellStruct.vblock_length[2] = ( vz_length / (Real)(velMeshBbox[2]) );
+
+   //Calculate the minimum coordinates for velocity cells
+   cellStruct.min_vcoordinates[0] = vx_min;
+   cellStruct.min_vcoordinates[1] = vy_min;
+   cellStruct.min_vcoordinates[2] = vz_min;
+
+   // By default set an unrefined velocity mesh. Then check if the max refinement level 
+   // was actually given as a parameter.
+   uint32_t dummyUInt;
+   cellStruct.maxVelRefLevel = 0;
+   map<string,string> attribsOut;
+   vlsvReader.getArrayAttributes("MESH_BBOX",attribs,attribsOut);
+   if (attribsOut.find("max_velocity_ref_level") != attribsOut.end()) {
+      cellStruct.maxVelRefLevel = atoi(attribsOut["max_velocity_ref_level"].c_str());
+   }
+
+   if (runDebug == true && success == true) {
+      cerr << "Pop '" << popName << "'" << endl; 
+      cerr << "\t mesh limits   : ";
+      cerr << vx_min << '\t' << vx_max << '\t' << vy_min << '\t' << vy_max << '\t' << vz_min << '\t' << vz_max << endl;
+      cerr << "\t mesh bbox size: " << velMeshBbox[0] << ' ' << velMeshBbox[1] << ' ' << velMeshBbox[2] << endl;
+      cerr << "\t cell sizes    : " << cellStruct.vblock_length[0] << '\t' << cellStruct.vblock_length[1] << '\t' << cellStruct.vblock_length[2] << endl;
+      cerr << "\t max ref level : " << cellStruct.maxVelRefLevel << endl;
+   }
+
+   return success;
+}
+
+/** Set correct spatial mesh variables to cellStruct. This function leaves the 
+ * velocity mesh-related variables untouched.
+ * @param vlsvReader VLSV file reader with input file open.
+ * @param cellStruct Struct where spatial mesh variables are written.
+ * @return If true, spatial mesh variables were read successfully.*/
+bool setSpatialCellVariables(Reader& vlsvReader,CellStructure& cellStruct) {
+   bool success = true;
+   
+   // Get x_min, x_max, y_min, y_max, etc so that we know where the given cell 
+   // id is in (loadParameter returns char*, hence the cast)
+   // Note: Not actually sure if these are Real valued or not
+   Real x_min,x_max,y_min,y_max,z_min,z_max;
+
    //Read in the parameter:
    if( vlsvReader.readParameter( "xmin", x_min ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
    if( vlsvReader.readParameter( "xmax", x_max ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
@@ -1249,27 +1325,13 @@ void setCellVariables( Reader & vlsvReader, CellStructure & cellStruct ) {
    if( vlsvReader.readParameter( "ymax", y_max ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
    if( vlsvReader.readParameter( "zmin", z_min ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
    if( vlsvReader.readParameter( "zmax", z_max ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
-
-   if( vlsvReader.readParameter( "vxmin", vx_min ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
-   if( vlsvReader.readParameter( "vxmax", vx_max ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
-   if( vlsvReader.readParameter( "vymin", vy_min ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
-   if( vlsvReader.readParameter( "vymax", vy_max ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
-   if( vlsvReader.readParameter( "vzmin", vz_min ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
-   if( vlsvReader.readParameter( "vzmax", vz_max ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
-
+   
    //Number of cells in x, y, z directions (used later for calculating where in the cell coordinates the given
    //coordinates are) (Done in getCellCoordinates)
    //There's x, y and z coordinates so the number of different coordinates is 3:
    const short int NumberOfCoordinates = 3;
    uint64_t cell_bounds[NumberOfCoordinates];
-   uint64_t vcell_bounds[NumberOfCoordinates];
-   //Get the number of velocity blocks in x,y,z direction from the file:
-   //x-direction
-   if( vlsvReader.readParameter( "vxblocks_ini", vcell_bounds[0] ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
-   //y-direction
-   if( vlsvReader.readParameter( "vyblocks_ini", vcell_bounds[1] ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
-   //z-direction
-   if( vlsvReader.readParameter( "vzblocks_ini", vcell_bounds[2] ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
+
    //Get the number of spatial cells in x,y,z direction from the file:
    //x-direction
    if( vlsvReader.readParameter( "xcells_ini", cell_bounds[0] ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
@@ -1284,53 +1346,29 @@ void setCellVariables( Reader & vlsvReader, CellStructure & cellStruct ) {
    Real y_length = y_max - y_min;
    Real z_length = z_max - z_min;
 
-   Real vx_length = vx_max - vx_min;
-   Real vy_length = vy_max - vy_min;
-   Real vz_length = vz_max - vz_min;
    //Set the cell structure properly:
    for( int i = 0; i < NumberOfCoordinates; ++i ) {
       cellStruct.cell_bounds[i] = cell_bounds[i];
-      cellStruct.vcell_bounds[i] = vcell_bounds[i];
    }
-   //Calculate the cell length
+   //Calculate the spatial cell physical size (in m)
    cellStruct.cell_length[0] = ( x_length / (Real)(cell_bounds[0]) );
    cellStruct.cell_length[1] = ( y_length / (Real)(cell_bounds[1]) );
    cellStruct.cell_length[2] = ( z_length / (Real)(cell_bounds[2]) );
 
-   //Calculate the velocity cell length
-   cellStruct.vblock_length[0] = ( vx_length / (Real)(vcell_bounds[0]) );
-   cellStruct.vblock_length[1] = ( vy_length / (Real)(vcell_bounds[1]) );
-   cellStruct.vblock_length[2] = ( vz_length / (Real)(vcell_bounds[2]) );
    //Calculate the minimum coordinates
    cellStruct.min_coordinates[0] = x_min;
    cellStruct.min_coordinates[1] = y_min;
    cellStruct.min_coordinates[2] = z_min;
-   //Calculate the minimum coordinates for velocity cells
-   cellStruct.min_vcoordinates[0] = vx_min;
-   cellStruct.min_vcoordinates[1] = vy_min;
-   cellStruct.min_vcoordinates[2] = vz_min;
-
 
    for( int i = 0; i < 3; ++i ) {
-      if( cellStruct.cell_length[i] == 0 || cellStruct.cell_bounds[i] == 0 || cellStruct.vblock_length[i] == 0 || cellStruct.vcell_bounds[i] == 0 ) {
+      if( cellStruct.cell_length[i] == 0 || cellStruct.cell_bounds[i] == 0) {
          cerr << "ERROR, ZERO CELL LENGTH OR CELL_BOUNDS AT " << __FILE__ << " " << __LINE__ << endl;
          exit(1);
       }
    }
    
-   // By default set an unrefined velocity mesh. Then check if the max refinement level 
-   // was actually given as a parameter.
-   uint32_t dummyUInt;
-   cellStruct.maxVelRefLevel = 0;
-   if (vlsvReader.readParameter("max_velocity_ref_level",dummyUInt) == true) {
-      cellStruct.maxVelRefLevel = dummyUInt;
-   }
-   
-   return;
+   return success;
 }
-
-
-
 
 //Returns a cell id based on some given coordinates
 //Returns numeric_limits<uint64_t>::max(), if the distance from the coordinates to cell id is larger than max_distance
@@ -1374,9 +1412,6 @@ uint64_t getCellIdFromCoords( const CellStructure & cellStruct,
    return cellId;
 }
 
-
-
-
 //Prints out the usage message
 void printUsageMessage() {
    cout << endl;
@@ -1385,7 +1420,6 @@ void printUsageMessage() {
    cout << "To get a list of options use --help" << endl;
    cout << endl;
 }
-
 
 //Used in main() to retrieve options (returns false if something goes wrong)
 //Input:
@@ -1686,15 +1720,16 @@ void extractDistribution( const string & fileName, const UserOptions & mainOptio
    const string tagName = "MESH";
    const string attributeName = "name";
    
+   // Get spatial mesh names
    if (vlsvReader.getMeshNames(meshNames) == false) {
       cout << "\t file '" << fileName << "' not compatible" << endl;
       vlsvReader.close();
       return;
    }
-
+   
    //Sets cell variables (for cell geometry) -- used in getCellIdFromCoords function
    CellStructure cellStruct;
-   setCellVariables( vlsvReader, cellStruct );
+   setSpatialCellVariables( vlsvReader, cellStruct );
 
    //Declare a vector for holding multiple cell ids (Note: Used only if we want to calculate the cell id along a line)
    vector<uint64_t> cellIdList;
@@ -1834,9 +1869,6 @@ void extractDistribution( const string & fileName, const UserOptions & mainOptio
 
       // Extract velocity grid from VLSV file, if possible, and write as vlsv file:
       bool velGridExtracted = true;
-      if( typeid(vlsvReader) == typeid(newVlsv::Reader) ) {
-         vlsvReader.setCellsWithBlocks();
-      }
       for (list<string>::const_iterator it2 = meshNames.begin(); it2 != meshNames.end(); ++it2) {
          //slice disabled by default, enable for specific testing. TODO: add command line interface for enabling it
          //convertSlicedVelocityMesh(vlsvReader,outputSliceName,*it2,cellStruct);
@@ -1859,7 +1891,6 @@ void extractDistribution( const string & fileName, const UserOptions & mainOptio
          }
       }
 
-
       // If velocity grid was not extracted, delete the file:
       if (velGridExtracted == false) {
          cerr << "ERROR, FAILED TO EXTRACT VELOCITY GRID AT: " << __FILE__ << " " << __LINE__ << endl;
@@ -1870,7 +1901,6 @@ void extractDistribution( const string & fileName, const UserOptions & mainOptio
    }
 
    vlsvReader.close();
-
 }
 
 int main(int argn, char* args[]) {
@@ -1880,32 +1910,8 @@ int main(int argn, char* args[]) {
    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
    //Get the file name
-   const string mask = args[1];  
-
-   const string directory = ".";
-   const string suffix = ".vlsv";
-   DIR* dir = opendir(directory.c_str());
-   if (dir == NULL) {
-      cerr << "ERROR in reading directory contents!" << endl;
-      closedir(dir);
-      return 1;
-   }
-
-   int filesFound = 0, entryCounter = 0;
-   vector<string> fileList;
-   struct dirent* entry = readdir(dir);
-   while (entry != NULL) {
-      const string entryName = entry->d_name;
-      if (entryName.find(mask) == string::npos || entryName.find(suffix) == string::npos) {
-         entry = readdir(dir);
-         continue;
-      }
-      fileList.push_back(entryName);
-      filesFound++;
-      entry = readdir(dir);
-   }
-   if (filesFound == 0) cout << "\t no file found, check name and read and write rights, vlsvextract currently supports only extracting from the folder where the vlsv file resides (you can get past this by linking the vlsv file" << endl;
-   closedir(dir);
+   const string mask = args[1];
+   vector<string> fileList = toolutil::getFiles(mask);
 
    //Retrieve options variables:
    UserOptions mainOptions;
@@ -1923,22 +1929,14 @@ int main(int argn, char* args[]) {
    }
 
    //Convert files
+   int entryCounter = 0;
    for (size_t entryName = 0; entryName < fileList.size(); entryName++) {
       if (entryCounter++ % ntasks == rank) {
          //Get the file name
          const string & fileName = fileList[entryName];
-         //Check vlsv library version
-         if( checkVersion(fileName) == 1.00 ) {
-            //Using new vlsv library
-            extractDistribution<newVlsv::Reader>( fileName, mainOptions );
-         }
-         else {
-            std::cerr << "VLSV format not supported, try older version of vlsvextract"<<std::endl;
-         }
+         extractDistribution<vlsvinterface::Reader>( fileName, mainOptions );
       }
    }
    MPI_Finalize();
    return 0;
 }
-
-

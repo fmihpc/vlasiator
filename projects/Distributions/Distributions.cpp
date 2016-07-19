@@ -29,13 +29,14 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 #include "Distributions.h"
 
 using namespace std;
+using namespace spatial_cell;
 
 namespace projects {
    Distributions::Distributions(): TriAxisSearch() { }
    Distributions::~Distributions() { }
 
 
-   bool Distributions::initialize(void) {return true;}
+   bool Distributions::initialize(void) {return Project::initialize();}
 
    void Distributions::addParameters(){
       typedef Readparameters RP;
@@ -74,6 +75,7 @@ namespace projects {
    }
 
    void Distributions::getParameters(){
+      Project::getParameters();
       typedef Readparameters RP;
       Project::getParameters();
       RP::get("Distributions.rho1", this->rho[0]);
@@ -131,25 +133,25 @@ namespace projects {
       return value;
    }
 
-   Real Distributions::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {   
+   Real Distributions::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const int& popID) {   
       return getDistribValue(x+0.5*dx, y+0.5*dy,z+0.5*dz,vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz);
    }
 
-
-   void Distributions::calcCellParameters(Real* cellParams,creal& t) {
-      setRandomCellSeed(cellParams);
-      if(this->lambda != 0.0) {
+   void Distributions::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
+      Real* cellParams = cell->get_cell_parameters();
+      setRandomCellSeed(cell,cellParams);
+      if (this->lambda != 0.0) {
          cellParams[CellParams::PERBX] = this->dBx*cos(2.0 * M_PI * cellParams[CellParams::XCRD] / this->lambda);
          cellParams[CellParams::PERBY] = this->dBy*sin(2.0 * M_PI * cellParams[CellParams::XCRD] / this->lambda);
          cellParams[CellParams::PERBZ] = this->dBz*cos(2.0 * M_PI * cellParams[CellParams::XCRD] / this->lambda);
       }
-      
-      cellParams[CellParams::PERBX] += this->magXPertAbsAmp * (0.5 - getRandomNumber());
-      cellParams[CellParams::PERBY] += this->magYPertAbsAmp * (0.5 - getRandomNumber());
-      cellParams[CellParams::PERBZ] += this->magZPertAbsAmp * (0.5 - getRandomNumber());
-      
-      for(uint i=0; i<2; i++) {
-         this->rhoRnd[i] = this->rho[i] + this->rhoPertAbsAmp[i] * (0.5 - getRandomNumber());
+
+      cellParams[CellParams::PERBX] += this->magXPertAbsAmp * (0.5 - getRandomNumber(cell));
+      cellParams[CellParams::PERBY] += this->magYPertAbsAmp * (0.5 - getRandomNumber(cell));
+      cellParams[CellParams::PERBZ] += this->magZPertAbsAmp * (0.5 - getRandomNumber(cell));
+
+      for (uint i=0; i<2; i++) {
+         this->rhoRnd[i] = this->rho[i] + this->rhoPertAbsAmp[i] * (0.5 - getRandomNumber(cell));
       }
    }
 

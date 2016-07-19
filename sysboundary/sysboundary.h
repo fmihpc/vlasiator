@@ -20,11 +20,6 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #include "../spatial_cell.hpp"
 
 #include "sysboundarycondition.h"
-#include "donotcompute.h"
-#include "ionosphere.h"
-#include "outflow.h"
-#include "setmaxwellian.h"
-
 
 /*! \brief SysBoundary contains the SysBoundaryConditions used in the simulation.
  * 
@@ -42,38 +37,40 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
  * are loaded when the simulation initializes.
  */
 class SysBoundary {
-   public:
-      SysBoundary();
-      ~SysBoundary();
+ public:
+   SysBoundary();
+   ~SysBoundary();
       
-      void addParameters();
-      void getParameters();
+   void addParameters();
+   void getParameters();
       
-      bool addSysBoundary(
-         SBC::SysBoundaryCondition* sbc,
-         Project& project,
-         creal& t
-      );
-      bool initSysBoundaries(
-         Project& project,
-         creal& t
-      );
-      bool classifyCells(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
-      bool applyInitialState(
-         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-         Project& project
-      );
-      void applySysBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, creal& t);
-      unsigned int size() const;
-      SBC::SysBoundaryCondition* getSysBoundary(cuint sysBoundaryType) const;
-      bool isDynamic() const;
-      bool isBoundaryPeriodic(uint direction) const;
-      bool updateSysBoundariesAfterLoadBalance(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
+   bool addSysBoundary(
+                       SBC::SysBoundaryCondition* sbc,
+                       Project& project,
+                       creal& t
+                      );
+   bool initSysBoundaries(
+                          Project& project,
+                          creal& t
+                         );
+   bool classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
+   bool applyInitialState(
+                          dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                          Project& project
+                         );
+   void applySysBoundaryVlasovConditions(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, creal& t);
+   unsigned int size() const;
+   SBC::SysBoundaryCondition* getSysBoundary(cuint sysBoundaryType) const;
+   bool isDynamic() const;
+   bool isBoundaryPeriodic(uint direction) const;
+   bool updateSysBoundariesAfterLoadBalance(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 
    private:
       /*! Private copy-constructor to prevent copying the class. */
       SysBoundary(const SysBoundary& bc);
    
+      //std::set<SBC::SysBoundaryCondition*,SBC::Comparator> sysBoundaries;
+
       /*! A container for all SBC::SysBoundaryConditions stored in SysBoundary.*/
       std::list<SBC::SysBoundaryCondition*> sysBoundaries;
       /*! A map from the system boundary types to the corresponding class member. */
@@ -82,7 +79,7 @@ class SysBoundary {
       std::vector<std::string> sysBoundaryCondList;
       /*! bool telling whether any system boundary condition is dynamic in time (and thus needs updating). */
       bool isThisDynamic;
-   
+
       /*! Array of bool telling whether the system is periodic in any direction. */
       bool isPeriodic[3];
 };
@@ -95,9 +92,9 @@ bool precedenceSort(const SBC::SysBoundaryCondition* first,
 /*
    Input a vector of cellIDs (cellList) and compute a new vector with only those cells which are on a sysboundary and are to be computed
 */
-bool getBoundaryCellList(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                         const vector<uint64_t>& cellList,
-                         vector<uint64_t>& boundaryCellList);
+bool getBoundaryCellList(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                         const std::vector<CellID>& cellList,
+                         std::vector<CellID>& boundaryCellList);
 
 
 

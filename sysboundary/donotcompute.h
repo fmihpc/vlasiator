@@ -30,8 +30,7 @@ using namespace projects;
 namespace SBC {
    /*!\brief DoNotCompute is a class handling cells not to be computed.
     * 
-    * DoNotCompute is a class handling cells tagged as sysboundarytype::DO_NOT_COMPUTE by a
-    * system boundary condition (e.g. SysBoundaryCondition::Ionosphere).
+    * DoNotCompute is a class handling cells tagged as sysboundarytype::DO_NOT_COMPUTE by a system boundary condition (e.g. SysBoundaryCondition::Ionosphere).
     */
    class DoNotCompute: public SysBoundaryCondition {
    public:
@@ -50,7 +49,6 @@ namespace SBC {
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          Project &project
       );
-      //       virtual bool applySysBoundaryCondition(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, creal& t);
       virtual std::string getName() const;
       virtual uint getIndex() const;
    };

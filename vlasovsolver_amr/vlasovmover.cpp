@@ -1,33 +1,32 @@
 /*
   This file is part of Vlasiator.
 
-  Copyright 2010, 2011, 2012, 2013, 2014 Finnish Meteorological Institute
+  Copyright 2014-2015 Finnish Meteorological Institute
 
 */
-
 
 #include <cstdlib>
 #include <iostream>
 #include <vector>
+#include <stdint.h>
 
 #ifdef _OPENMP
-#include "omp.h"
+   #include <omp.h>
 #endif
 #include <zoltan.h>
-
-#include "../vlasovmover.h"
-#include "phiprof.hpp"
-
-#include "cpu_moments.h"
-#include "cpu_acc_semilag.hpp"
-#include "cpu_trans_map.hpp"
-
-#include <stdint.h>
+#include <phiprof.hpp>
 #include <dccrg.hpp>
 
-#include "spatial_cell.hpp"
+#include "../vlasovmover.h"
+#include "../spatial_cell.hpp"
 #include "../grid.h"
 #include "../definitions.h"
+#include "../iowrite.h"
+#include "../object_wrapper.h"
+
+#include "../vlasovsolver/cpu_moments.h"
+//#include "cpu_acc_semilag.hpp"
+//#include "cpu_trans_map.hpp"
 
 using namespace std;
 using namespace spatial_cell;
@@ -39,6 +38,49 @@ creal SIXTH   = 1.0/6.0;
 creal ONE     = 1.0;
 creal TWO     = 2.0;
 creal EPSILON = 1.0e-25;
+
+#warning TESTING can be removed later
+static void writeVelMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
+   const vector<CellID>& cells = getLocalCells();
+
+   static int counter=-1;
+   if (counter < 0) {
+      counter = Parameters::systemWrites.size();
+      Parameters::systemWriteDistributionWriteStride.push_back(1);
+      Parameters::systemWriteName.push_back("velocity-trans");
+      Parameters::systemWriteDistributionWriteXlineStride.push_back(0);
+      Parameters::systemWriteDistributionWriteYlineStride.push_back(0);
+      Parameters::systemWriteDistributionWriteZlineStride.push_back(0);
+      Parameters::systemWriteTimeInterval.push_back(-1.0);
+      Parameters::systemWrites.push_back(0);
+   }
+   writeGrid(mpiGrid,NULL,counter,true);
+   ++Parameters::systemWrites[counter];
+}
+
+Real calculateTotalMass(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const int& popID) {
+   const vector<CellID>& local_cells = getLocalCells();
+   Real sum=0.0;
+   for (size_t c=0; c<local_cells.size(); ++c) {
+      const CellID cellID = local_cells[c];
+      SpatialCell* cell = mpiGrid[cellID];
+      
+      for (vmesh::LocalID blockLID=0; blockLID<cell->get_number_of_velocity_blocks(popID); ++blockLID) {
+         const Real* parameters = cell->get_block_parameters(blockLID);
+         const Realf* data = cell->get_data(blockLID);
+         Real blockMass = 0.0;
+         for (int i=0; i<WID3; ++i) {
+            blockMass += data[i];
+         }
+         const Real DV3 = parameters[BlockParams::DVX]*parameters[BlockParams::DVY]*parameters[BlockParams::DVZ];
+         sum += blockMass*DV3;
+      }      
+   }
+   
+   Real globalMass=0.0;
+   MPI_Allreduce(&sum,&globalMass,1,MPI_Type<Real>(),MPI_SUM,MPI_COMM_WORLD);
+   return globalMass;
+}
 
 /*!
   
@@ -54,8 +96,9 @@ creal EPSILON = 1.0e-25;
 */
 
 void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,Real dt) {
-   //return;
-   
+   return;
+
+   /*
    typedef Parameters P;
    int trans_timer;
 
@@ -65,26 +108,20 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    //phiprof::start("semilag-trans");
    phiprof::start("compute_cell_lists");
    const vector<CellID> local_cells = mpiGrid.get_cells();
-   const vector<CellID> remote_stencil_cells_x = 
-     mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
-   const vector<CellID> remote_stencil_cells_y = 
-     mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);
-   const vector<CellID> remote_stencil_cells_z = 
-     mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);
-
-   const vector<CellID> source_cells_x =
-     mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_SOURCE_X_NEIGHBORHOOD_ID);
-   const vector<CellID> source_cells_y =
-     mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_SOURCE_Y_NEIGHBORHOOD_ID);
-   const vector<CellID> source_cells_z =
-     mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_SOURCE_Z_NEIGHBORHOOD_ID);
    phiprof::stop("compute_cell_lists");
 
    // Note: mpiGrid.is_local( cellID ) == true if cell is local
 
-   static int cntr=2;
-
-   int dim=0;
+   static int cntr=0;
+   if (cntr == 0) {
+      writeVelMesh(mpiGrid);
+      if (mpiGrid.get_rank() == 0) {
+         cout << "Initial mass is " << calculateTotalMass(mpiGrid) << endl;
+      }
+      cntr=1;
+   }
+   
+   static int dim=2;
 
    // Generate target mesh
    phiprof::start("target mesh generation");
@@ -98,130 +135,37 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
       SpatialCell* spatial_cell = mpiGrid[local_cells[c]];
       vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh    = spatial_cell->get_velocity_mesh_temporary();
       vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks_temporary();
-      //spatial_cell->swap(vmesh,blockContainer);
+      spatial_cell->swap(vmesh,blockContainer);
    }
+//   writeVelMesh(mpiGrid);
 
    phiprof::start("mapping");
-   if (P::xcells_ini > 1) {
+   //if (P::xcells_ini > 1) {
       for (size_t c=0; c<local_cells.size(); ++c) {
          if (do_translate_cell(mpiGrid[local_cells[c]])) {
-            //trans_map_1d(mpiGrid,local_cells[c],dim,dt);
+            trans_map_1d(mpiGrid,local_cells[c],dim,dt);
          }
       }
-   }
+   //}
    phiprof::stop("mapping");
-
-   --cntr;
-   if (cntr < 0) cntr=2;
 
    for (size_t c=0; c<local_cells.size(); ++c) {
       SpatialCell* spatial_cell = mpiGrid[local_cells[c]];
       vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh    = spatial_cell->get_velocity_mesh_temporary();
       vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks_temporary();
+      //spatial_cell->swap(vmesh,blockContainer);
       vmesh.clear();
       blockContainer.clear();
    }
-
-   /*
-   // ------------- SLICE - map dist function in Z --------------- //
-   if (P::zcells_ini > 1) {
-      trans_timer=phiprof::initializeTimer("transfer-stencil-data-z","MPI");
-      phiprof::start(trans_timer);
-      //start by doing all transfers in a blocking fashion (communication stage can be optimized separately) //
-      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA_TO_FLUXES);
-      mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);
-      phiprof::stop(trans_timer);
-      #pragma omp parallel
-        {
-           phiprof::start("prepare-block-data-z");
-           for (size_t c=0; c<local_cells.size(); ++c)
-             trans_prepare_block_data(mpiGrid,local_cells[c]);
-           for (size_t c=0; c<remote_stencil_cells_z.size(); ++c)
-             trans_prepare_block_data(mpiGrid,remote_stencil_cells_z[c]);
-           #pragma omp barrier
-           phiprof::stop("prepare-block-data-z");
-           phiprof::start("compute-mapping-z");
-           for (size_t c=0; c<local_cells.size(); ++c) {
-              if (do_translate_cell(mpiGrid[local_cells[c]]))
-                trans_map_1d(mpiGrid,local_cells[c], 2, dt); // map along z//
-           }
-           phiprof::stop("compute-mapping-z");
-        }
-      
-      trans_timer=phiprof::initializeTimer("update_remote-z","MPI");
-      phiprof::start("update_remote-z");
-      update_remote_mapping_contribution(mpiGrid, 2, 1);
-      update_remote_mapping_contribution(mpiGrid, 2, -1);
-      phiprof::stop("update_remote-z");
-   }   
+   writeVelMesh(mpiGrid);
    
-   // ------------- SLICE - map dist function in X --------------- //
-   if (P::xcells_ini > 1) {
-      trans_timer=phiprof::initializeTimer("transfer-stencil-data-x","MPI");
-      phiprof::start(trans_timer);
-      //start by doing all transfers in a blocking fashion (communication stage can be optimized separately) //
-      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA_TO_FLUXES);
-      mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_X_NEIGHBORHOOD_ID);  
-      phiprof::stop(trans_timer);
-      
-      #pragma omp parallel
-        {
-           phiprof::start("prepare-block-data-x");
-           for (size_t c=0; c<local_cells.size(); ++c)
-             trans_prepare_block_data(mpiGrid,local_cells[c]);
-           for (size_t c=0; c<remote_stencil_cells_x.size(); ++c)
-             trans_prepare_block_data(mpiGrid,remote_stencil_cells_x[c]);
-           #pragma omp barrier
-           phiprof::stop("prepare-block-data-x");
-
-           phiprof::start("compute-mapping-x");
-           for (size_t c=0; c<local_cells.size(); ++c) {
-              if (do_translate_cell(mpiGrid[local_cells[c]]))
-                trans_map_1d(mpiGrid,local_cells[c], 0, dt); // map along x//
-           }
-           phiprof::stop("compute-mapping-x");
-        }
-
-      trans_timer=phiprof::initializeTimer("update_remote-x","MPI");
-      phiprof::start("update_remote-x");
-      update_remote_mapping_contribution(mpiGrid, 0, 1);
-      update_remote_mapping_contribution(mpiGrid, 0, -1);
-      phiprof::stop("update_remote-x");
+   if (mpiGrid.get_rank() == 0) {
+      cout << "Total mass (dim=" << dim << ") is " << calculateTotalMass(mpiGrid) << endl;
    }
    
-   // ------------- SLICE - map dist function in Y --------------- //
-   if (P::ycells_ini > 1) {
-      trans_timer=phiprof::initializeTimer("transfer-stencil-data-y","MPI");
-      phiprof::start(trans_timer);
-      //start by doing all transfers in a blocking fashion (communication stage can be optimized separately) //
-      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA_TO_FLUXES);
-      mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);  
-      phiprof::stop(trans_timer);
-      #pragma omp parallel
-        {
-           phiprof::start("prepare-block-data-y");
-           for (size_t c=0; c<local_cells.size(); ++c)
-             trans_prepare_block_data(mpiGrid,local_cells[c]);
-           for (size_t c=0; c<remote_stencil_cells_y.size(); ++c)
-             trans_prepare_block_data(mpiGrid,remote_stencil_cells_y[c]);
-           #pragma omp barrier
-           phiprof::stop("prepare-block-data-y");         
-           phiprof::start("compute-mapping-y");
-           for (size_t c=0; c<local_cells.size(); ++c) {
-              if (do_translate_cell(mpiGrid[local_cells[c]]))
-                trans_map_1d(mpiGrid,local_cells[c], 1, dt); // map along y//
-           }
-           phiprof::stop("compute-mapping-y");
-        }
-      
-      trans_timer=phiprof::initializeTimer("update_remote-y","MPI");
-      phiprof::start("update_remote-y");
-      update_remote_mapping_contribution(mpiGrid, 1, 1);
-      update_remote_mapping_contribution(mpiGrid, 1, -1);
-      phiprof::stop("update_remote-y");
-   }
-   */
-   
+   --dim;
+   if (dim < 0) dim = 2;
+
    // Mapping complete, update moments //
    phiprof::start("compute-moments-n-maxdt");
    // Note: Parallelization over blocks is not thread-safe
@@ -288,6 +232,7 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    }
    phiprof::stop("compute-moments-n-maxdt");
    //phiprof::stop("semilag-trans");
+    */
 }
 
 /*
@@ -297,7 +242,7 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
 */
 void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,Real dt) {
    return;
-
+   /*
    typedef Parameters P;
    const vector<CellID> cells = mpiGrid.get_cells();
    vector<CellID> propagatedCells;
@@ -374,6 +319,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
       }
    }
    phiprof::stop("Compute moments");
+    */
 }
 
 
@@ -413,6 +359,7 @@ void calculateInterpolatedVelocityMoments(
 void calculateCellVelocityMoments(SpatialCell* SC,
                                   bool doNotSkip // default: false
                                  ) {
+   /*
    // if doNotSkip == true then the first clause is false and we will never return, i.e. always compute
    // otherwise we skip DO_NOT_COMPUTE cells
    // or boundary cells of layer larger than 1
@@ -422,44 +369,77 @@ void calculateCellVelocityMoments(SpatialCell* SC,
 	 SC->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY))
        ) return;
 
-   SC->parameters[CellParams::RHO  ] = 0.0;
-   SC->parameters[CellParams::RHOVX] = 0.0;
-   SC->parameters[CellParams::RHOVY] = 0.0;
-   SC->parameters[CellParams::RHOVZ] = 0.0;
-   SC->parameters[CellParams::P_11 ] = 0.0;
-   SC->parameters[CellParams::P_22 ] = 0.0;
-   SC->parameters[CellParams::P_33 ] = 0.0;
+   // Clear old moments
+   Real* cellParams = SC->get_cell_parameters();
+   cellParams[CellParams::RHO  ] = 0.0;
+   cellParams[CellParams::RHOVX] = 0.0;
+   cellParams[CellParams::RHOVY] = 0.0;
+   cellParams[CellParams::RHOVZ] = 0.0;
+   cellParams[CellParams::P_11 ] = 0.0;
+   cellParams[CellParams::P_22 ] = 0.0;
+   cellParams[CellParams::P_33 ] = 0.0;
 
-   // Iterate through all velocity blocks in this spatial cell
-   // and calculate velocity moments:
-   for (vmesh::LocalID block_i=0; block_i<SC->get_number_of_velocity_blocks(); ++block_i) {
-      cpu_calcVelocityFirstMoments(SC,
-				   block_i,
-				   CellParams::RHO,
-				   CellParams::RHOVX,
-				   CellParams::RHOVY,
-				   CellParams::RHOVZ
-				   );
-   }
+   // Calculate first moments
+   for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      // Temporary array for storing this species' contribution
+      Real array[4];
+      for (int i=0; i<4; ++i) array[i] = 0;
+      
+      // Pointers to this species' data
+      const Realf* data = SC->get_data(popID);
+      const Real* blockParams = SC->get_block_parameters(popID);
+      
+      for (vmesh::LocalID blockLID=0; blockLID<SC->get_number_of_velocity_blocks(popID); ++blockLID) {
+         blockVelocityFirstMoments(
+                  data,
+                  blockParams,
+                  array
+         );
+         data += SIZE_VELBLOCK;
+         blockParams += BlockParams::N_VELOCITY_BLOCK_PARAMS;
+      }
+      
+      const Real massRatio = getObjectWrapper().particleSpecies[popID].mass / physicalconstants::MASS_PROTON;
+      cellParams[CellParams::RHO  ] += array[0]*massRatio;
+      cellParams[CellParams::RHOVX] += array[1]*massRatio;
+      cellParams[CellParams::RHOVY] += array[2]*massRatio;
+      cellParams[CellParams::RHOVZ] += array[3]*massRatio;
+   } // for-loop over particle species
 
    // Second iteration needed as rho has to be already computed when computing pressure
-   for (vmesh::LocalID block_i=0; block_i<SC->get_number_of_velocity_blocks(); ++block_i) {
-      cpu_calcVelocitySecondMoments(
-				    SC,
-				    block_i,
-				    CellParams::RHO,
-				    CellParams::RHOVX,
-				    CellParams::RHOVY,
-				    CellParams::RHOVZ,
-				    CellParams::P_11,
-				    CellParams::P_22,
-				    CellParams::P_33
-				   );
-   }
+   for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      // Temporary array for storing this species' contribution
+      Real array[3];
+      for (int i=0; i<3; ++i) array[i] = 0;
+      
+      // Pointers to this species' data
+      const Realf* data = SC->get_data(popID);
+      const Real* blockParams = SC->get_block_parameters(popID);
+      
+      for (vmesh::LocalID blockLID=0; blockLID<SC->get_number_of_velocity_blocks(popID); ++blockLID) {
+         blockVelocitySecondMoments(
+                  data,
+                  blockParams,
+                  cellParams,
+                  CellParams::RHO,
+                  CellParams::RHOVX,
+                  CellParams::RHOVY,
+                  CellParams::RHOVZ,
+                  array
+         );
+         data += SIZE_VELBLOCK;
+         blockParams += BlockParams::N_VELOCITY_BLOCK_PARAMS;
+      }
+      
+      cellParams[CellParams::P_11] += array[0]*getObjectWrapper().particleSpecies[popID].mass;
+      cellParams[CellParams::P_22] += array[1]*getObjectWrapper().particleSpecies[popID].mass;
+      cellParams[CellParams::P_33] += array[2]*getObjectWrapper().particleSpecies[popID].mass;
+   } // for-loop over particle species
+    */
 }
 
 void calculateInitialVelocityMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
-   vector<CellID> cells;
+   /*vector<CellID> cells;
    cells=mpiGrid.get_cells();
    phiprof::start("Calculate moments"); 
    // Iterate through all local cells (incl. system boundary cells):
@@ -481,5 +461,5 @@ void calculateInitialVelocityMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_G
 
    }
    phiprof::stop("Calculate moments"); 
-
+   */
 }

@@ -10,6 +10,11 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #define DATAREDUCTIONOPERATOR_H
 
 #include <vector>
+
+#include <vlsv_writer.h>
+#include <dccrg.hpp>
+#include <dccrg_cartesian_geometry.hpp>
+
 #include "../definitions.h"
 #include "../spatial_cell.hpp"
 #include "../parameters.h"
@@ -38,9 +43,13 @@ namespace DRO {
       
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
       virtual std::string getName() const;
+      virtual bool handlesWriting() const;
       virtual bool reduceData(const SpatialCell* cell,char* buffer);
       virtual bool reduceData(const SpatialCell* cell,Real * result);
       virtual bool setSpatialCell(const SpatialCell* cell);
+      virtual bool writeData(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                             const std::vector<CellID>& cells,const std::string& meshName,
+                             vlsv::Writer& vlsvWriter);
       
    protected:
    
@@ -119,6 +128,19 @@ namespace DRO {
       int boundaryLayer;
    };
 
+   class BoundaryLayerNew: public DataReductionOperator {
+   public:
+      BoundaryLayerNew();
+      virtual ~BoundaryLayerNew();
+      
+      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual std::string getName() const;
+      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool setSpatialCell(const SpatialCell* cell);
+      
+   protected:
+      int boundaryLayer;
+   };
 
    class VelocitySubSteps: public DataReductionOperator {
    public:
@@ -299,6 +321,25 @@ namespace DRO {
       Real minF;
    };
 
+   /** This class writes all scalar and two- or three-component vector data 
+    * that is stored to MeshDataContainer to output file.*/
+   class VariableMeshData: public DataReductionOperator {
+   public:
+      VariableMeshData();
+      virtual ~VariableMeshData();
+      
+      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual std::string getName() const;
+      virtual bool handlesWriting() const;
+      virtual bool setSpatialCell(const SpatialCell* cell);
+      virtual bool writeData(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                             const std::vector<CellID>& cells,const std::string& meshName,
+                             vlsv::Writer& vlsvWriter);
+      
+   private:
+      
+   };
+   
    class VariableRhoBackstream: public DataReductionOperator {
    public:
       VariableRhoBackstream();
@@ -453,9 +494,13 @@ namespace DRO {
 
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
       virtual std::string getName() const;
+      virtual bool handlesWriting() const;
       virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool reduceData(const spatial_cell::SpatialCell* cell,Real* result);
       virtual bool setSpatialCell(const SpatialCell* cell);
-
+      virtual bool writeData(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                             const std::vector<CellID>& cells,const std::string& meshName,vlsv::Writer& vlsvWriter);
+      
    protected:
       
    };

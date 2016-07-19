@@ -47,6 +47,7 @@ struct Readparameters {
     static bool addComposing(const std::string& name,const std::string& desc);
     static bool get(const std::string& name,std::vector<std::string>& value);
     static bool get(const std::string& name,std::vector<int>& value);
+    static bool get(const std::string& name,std::vector<unsigned int>& value);
     static bool get(const std::string& name,std::vector<float>& value);
     static bool get(const std::string& name,std::vector<double>& value);
 
@@ -55,7 +56,7 @@ struct Readparameters {
     static bool helpMessage();
     static bool versionMessage();
     static bool isInitialized();
-    static bool parse();
+    static bool parse(bool needsRunConfig=true);
    
 private:
     static int argc;                  /**< How many entries argv contains.*/

@@ -1,18 +1,7 @@
 /*
 This file is part of Vlasiator.
 
-Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
-
-
-
-
-
-
-
-
-
-
-
+Copyright 2010-2013,2015 Finnish Meteorological Institute
 
 */
 
@@ -21,6 +10,7 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 
 #include "datareducer.h"
 #include "../common.h"
+#include "dro_species_moments.h"
 using namespace std;
 
 void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosticReducer)
@@ -97,8 +87,10 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::MPIrank);
       if(*it == "BoundaryType")
          outputReducer->addOperator(new DRO::BoundaryType);
-      if(*it == "BoundaryLayer")
+      if(*it == "BoundaryLayer") {
          outputReducer->addOperator(new DRO::BoundaryLayer);
+         outputReducer->addOperator(new DRO::BoundaryLayerNew);
+      }
       if(*it == "Blocks")
          outputReducer->addOperator(new DRO::Blocks);
       if(*it == "fSaved")
@@ -227,11 +219,20 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if (*it == "Potential") {
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("poisson/potential",CellParams::PHI,1));
       }
+      if (*it == "BackgroundVolE") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("poisson/BGE_vol",CellParams::BGEXVOL,3));
+      }
       if (*it == "ChargeDensity") {
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("poisson/rho_q",CellParams::RHOQ_TOT,1));
       }
       if (*it == "PotentialError") {
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("poisson/pot_error",CellParams::PHI_TMP,1));
+      }
+      if (*it == "SpeciesMoments") {
+         outputReducer->addOperator(new DRO::SpeciesMoments);
+      }
+      if (*it == "MeshData") {
+         outputReducer->addOperator(new DRO::VariableMeshData);
       }
    }
 
@@ -323,6 +324,15 @@ bool DataReducer::getDataVectorInfo(const unsigned int& operatorID,std::string& 
    return operators[operatorID]->getDataVectorInfo(dataType,dataSize,vectorSize);
 }
 
+/** Ask a DataReductionOperator if it wants to take care of writing the data 
+ * to output file instead of letting be handled in iowrite.cpp. 
+ * @param operatorID ID number of the DataReductionOperator.
+ * @return If true, then VLSVWriter should be passed to the DataReductionOperator.*/
+bool DataReducer::handlesWriting(const unsigned int& operatorID) const {
+   if (operatorID >= operators.size()) return false;
+   return operators[operatorID]->handlesWriting();
+}
+
 /** Request a DataReductionOperator to calculate its output data and to write it to the given buffer.
  * @param cell Pointer to spatial cell whose data is to be reduced.
  * @param operatorID ID number of the applied DataReductionOperator.
@@ -358,3 +368,18 @@ bool DataReducer::reduceData(const SpatialCell* cell,const unsigned int& operato
  */
 unsigned int DataReducer::size() const {return operators.size();}
 
+/** Write all data from given DataReductionOperator to the output file.
+ * @param operatorID ID number of the selected DataReductionOperator.
+ * @param mpiGrid Parallel grid library.
+ * @param cells Vector containing spatial cell IDs.
+ * @param meshName Name of the spatial mesh in the output file.
+ * @param vlsvWriter VLSV file writer that has output file open.
+ * @return If true, DataReductionOperator wrote its data successfully.*/
+bool DataReducer::writeData(const unsigned int& operatorID,
+                  const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                  const std::vector<CellID>& cells,const std::string& meshName,
+                  vlsv::Writer& vlsvWriter) {
+   if (operatorID >= operators.size()) return false;
+   if (operators[operatorID]->handlesWriting() == false) return false;
+   return operators[operatorID]->writeData(mpiGrid,cells,meshName,vlsvWriter);
+}

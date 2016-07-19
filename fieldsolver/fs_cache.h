@@ -73,8 +73,10 @@ namespace fs_cache {
       static void clear();
    };
    
-   void calculateCache(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                       const std::vector<CellID>& cells);
+   void calculateCache(
+      dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      const std::vector<CellID>& cells
+   );
    
    CacheContainer& getCache();
 

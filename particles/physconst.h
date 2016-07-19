@@ -2,7 +2,8 @@
 #include <math.h>
 
 // The default is (Gaussian) CGS units
-class PhysicalConstantsCGS {
+class PhysicalConstantsCGS
+{
    public:
       PhysicalConstantsCGS(){};
 
@@ -22,7 +23,8 @@ class PhysicalConstantsCGS {
 };
 
 // Constants in SI
-class PhysicalConstantsSI {
+class PhysicalConstantsSI
+{
    public:
       PhysicalConstantsSI(){};
 
@@ -42,7 +44,8 @@ class PhysicalConstantsSI {
 };
 
 // Natural Units with e = c = k = me = 1 (Stoney units)
-class PhysicalConstantsnorm {
+class PhysicalConstantsnorm
+{
    public:
       PhysicalConstantsnorm(){};
 

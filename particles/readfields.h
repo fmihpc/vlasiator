@@ -1,6 +1,5 @@
 #pragma once
 
-#include "vlsvreader2.h"
 #include "vlsv_reader.h"
 #include "vlsvreaderinterface.h"
 #include "field.h"
@@ -9,15 +8,16 @@
 #include <string>
 #include <set>
 
+#define DEBUG
+
 extern std::string B_field_name;
 extern std::string E_field_name;
 
 /* Read the cellIDs into an array */
-std::vector<uint64_t> readCellIds(oldVlsv::Reader& r);
-std::vector<uint64_t> readCellIds(newVlsv::Reader& r);
+std::vector<uint64_t> readCellIds(vlsvinterface::Reader& r);
 
 template <class Reader>
-void detect_field_names(Reader& r) {
+static void detect_field_names(Reader& r) {
 
 #ifdef DEBUG
    std::cerr << "Checking for volume-averaged fields... ";
@@ -67,7 +67,7 @@ std::vector<double> readFieldData(Reader& r, std::string& name, unsigned int num
 
    /* Allocate memory for the data */
    std::vector<double> buffer(arraySize*vectorSize);
-   
+
    if( r.readArray("VARIABLE",attribs,0,arraySize,(char*) buffer.data()) == false) {
       std::cerr << "readArray faied when trying to read VARIABLE \"" << name << "\"." << std::endl;
       exit(1);
@@ -76,20 +76,13 @@ std::vector<double> readFieldData(Reader& r, std::string& name, unsigned int num
    return buffer;
 }
 
-double readDoubleParameter(newVlsv::Reader& r, const char* name);
-double readDoubleParameter(oldVlsv::Reader& r, const char* name);
-
-/* Read a single-valued integer parameter */
-uint32_t readUintParameter(newVlsv::Reader& r, const char* name);
-uint32_t readUintParameter(oldVlsv::Reader& r, const char* name);
-
 /* Read the next logical input file. Depending on sign of dt,
  * this may be a numerically larger or smaller file.
  * Return value: true if a new file was read, otherwise false.
  */
 template <class Reader>
-bool read_next_timestep(const std::string& filename_pattern, double t, int step, Field& E0, Field& E1,
-   Field& B0, Field& B1, int& input_file_counter) {
+bool readNextTimestep(const std::string& filename_pattern, double t, int step, Field& E0, Field& E1,
+      Field& B0, Field& B1, Field& V, bool doV, int& input_file_counter) {
 
    char filename_buffer[256];
    bool retval = false;
@@ -104,14 +97,22 @@ bool read_next_timestep(const std::string& filename_pattern, double t, int step,
       /* Open next file */
       Reader r;
       r.open(filename_buffer);
-      double t = readDoubleParameter(r,"t");
+      double t;
+      if(!r.readParameter("time",t)) {
+         if(!r.readParameter("t",t)) {
+            std::cerr << "Time parameter in file " << filename_buffer << " is neither 't' nor 'time'. Bad file format?"
+               << std::endl;
+            exit(1);
+         }
+      }
+
       E1.time = t;
       B1.time = t;
 
       uint64_t cells[3];
-      cells[0] = readUintParameter(r,"xcells_ini");
-      cells[1] = readUintParameter(r,"ycells_ini");
-      cells[2] = readUintParameter(r,"zcells_ini");
+      r.readParameter("xcells_ini",cells[0]);
+      r.readParameter("ycells_ini",cells[1]);
+      r.readParameter("zcells_ini",cells[2]);
 
       /* Read CellIDs and Field data */
       std::vector<uint64_t> cellIds = readCellIds(r);
@@ -119,6 +120,18 @@ bool read_next_timestep(const std::string& filename_pattern, double t, int step,
       std::vector<double> Bbuffer = readFieldData(r,name,3u);
       name = E_field_name;
       std::vector<double> Ebuffer = readFieldData(r,name,3u);
+      std::vector<double> Vbuffer;
+      if(doV) {
+         name = "rho_v";
+         std::vector<double> rho_v_buffer = readFieldData(r,name,3u);
+         name = "rho";
+         std::vector<double> rho_buffer = readFieldData(r,name,1u);
+         for(int i=0; i<rho_buffer.size(); i++) {
+            Vbuffer.push_back(rho_v_buffer[3*i] / rho_buffer[i]);
+            Vbuffer.push_back(rho_v_buffer[3*i+1] / rho_buffer[i]);
+            Vbuffer.push_back(rho_v_buffer[3*i+2] / rho_buffer[i]);
+         }
+      }
 
       /* Assign them, without sanity checking */
       /* TODO: Is this actually a good idea? */
@@ -136,6 +149,13 @@ bool read_next_timestep(const std::string& filename_pattern, double t, int step,
          Btgt[0] = Bbuffer[3*i];
          Btgt[1] = Bbuffer[3*i+1];
          Btgt[2] = Bbuffer[3*i+2];
+
+         if(doV) {
+            double* Vtgt = V.getCellRef(x,y,z);
+            Vtgt[0] = Vbuffer[3*i];
+            Vtgt[1] = Vbuffer[3*i+1];
+            Vtgt[2] = Vbuffer[3*i+2];
+         }
       }
 
       r.close();
@@ -146,19 +166,14 @@ bool read_next_timestep(const std::string& filename_pattern, double t, int step,
 }
 
 /* Non-template version, autodetecting the reader type */
-static bool read_next_timestep(const std::string& filename_pattern, double t, int step, Field& E0, Field& E1,
-   Field& B0, Field& B1, int& input_file_counter) {
+static bool readNextTimestep(const std::string& filename_pattern, double t, int step, Field& E0, Field& E1,
+      Field& B0, Field& B1, Field& V, bool doV, int& input_file_counter) {
 
    char filename_buffer[256];
    snprintf(filename_buffer,256,filename_pattern.c_str(),input_file_counter);
 
-   if(checkVersion(filename_buffer)) {
-      return read_next_timestep<newVlsv::Reader>(filename_pattern, t,
-         step,E0,E1,B0,B1,input_file_counter);
-   } else {
-      return read_next_timestep<oldVlsv::Reader>(filename_pattern, t,
-         step,E0,E1,B0,B1,input_file_counter);
-   }
+   return readNextTimestep<vlsvinterface::Reader>(filename_pattern, t,
+         step,E0,E1,B0,B1,V,doV,input_file_counter);
 }
 
 /* Read E- and B-Fields as well as velocity field from a vlsv file */
@@ -194,16 +209,18 @@ void readfields(const char* filename, Field& E, Field& B, Field& V) {
    /* Coordinate Boundaries */
    double min[3], max[3], time;
    uint64_t cells[3];
-   min[0] = readDoubleParameter(r,"xmin");
-   min[1] = readDoubleParameter(r,"ymin");
-   min[2] = readDoubleParameter(r,"zmin");
-   max[0] = readDoubleParameter(r,"xmax");
-   max[1] = readDoubleParameter(r,"ymax");
-   max[2] = readDoubleParameter(r,"zmax");
-   cells[0] = readUintParameter(r,"xcells_ini");
-   cells[1] = readUintParameter(r,"ycells_ini");
-   cells[2] = readUintParameter(r,"zcells_ini");
-   time = readDoubleParameter(r,"t");
+   r.readParameter("xmin",min[0]);
+   r.readParameter("ymin",min[1]);
+   r.readParameter("zmin",min[2]);
+   r.readParameter("xmax",max[0]);
+   r.readParameter("ymax",max[1]);
+   r.readParameter("zmax",max[2]);
+   r.readParameter("xcells_ini",cells[0]);
+   r.readParameter("ycells_ini",cells[1]);
+   r.readParameter("zcells_ini",cells[2]);
+   if(!r.readParameter("t",time)) {
+      r.readParameter("time",time);
+   }
 
    //std::cerr << "Grid is " << cells[0] << " x " << cells[1] << " x " << cells[2] << " Cells, " << std::endl
    //          << " with dx = " << ((max[0]-min[0])/cells[0]) << ", dy = " << ((max[1]-min[1])/cells[1])
@@ -274,11 +291,7 @@ void readfields(const char* filename, Field& E, Field& B, Field& V) {
 
 /* Non-template version, autodetecting the reader type */
 static void readfields(const char* filename, Field& E, Field& B, Field& V) {
-   if(checkVersion(filename)) {
-      readfields<newVlsv::Reader>(filename,E,B,V);
-   } else {
-      readfields<oldVlsv::Reader>(filename,E,B,V);
-   }
+   readfields<vlsvinterface::Reader>(filename,E,B,V);
 }
 
 /* For debugging purposes - dump a field into a png file */

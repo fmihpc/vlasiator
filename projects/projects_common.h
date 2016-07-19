@@ -11,7 +11,6 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 #include <dccrg.hpp>
 #include <dccrg_cartesian_geometry.hpp>
 
-using namespace spatial_cell;
 namespace projects {
    enum Neighbours {
       ZM1_YM1_XM1,
@@ -57,8 +56,6 @@ namespace projects {
 // *********************************
 
 template<typename CELLID,class CONT> bool classifyLevequeGhostCell(const SpatialCell& cell,const CELLID& cellID,const CONT& nbrs);
-
-
 
 template<typename CELLID> CELLID getNeighbour(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const CELLID& cellID,const int& i,const int& j,const int& k);
 

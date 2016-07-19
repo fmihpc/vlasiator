@@ -9,7 +9,10 @@
 
 
 CMP = CC
-LNK = CC -Wl,--allow-multiple-definition
+LNK = CC
+
+not_parallel_tools: CMP = icpc
+not_parallel_tools: LNK = icpc
 
 #-DNO_WRITE_AT_ALL:  Define to disable write at all to 
 #                    avoid memleak (much slower IO)

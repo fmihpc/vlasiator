@@ -1,23 +1,28 @@
+/* This file is part of Vlasiator.
+ * 
+ * Copyright 2010-2015 Finnish Meteorological Institute 
+ */
+
 #ifndef VLSVREADER_INTERFACE_H
 #define VLSVREADER_INTERFACE_H
 
 #define TOOL_NOT_PARALLEL
 
+#include <map>
 #include <vector>
 #include <unordered_map>
 #include <array>
-#include "vlsvreader2.h"
-#include "vlsv_reader.h"
+#include <vlsv_reader.h>
 
 // Returns the vlsv file's version number. Returns 0 if the version does not have a version mark (The old vlsv format does not have it)
 //Input: File name
 extern float checkVersion( const std::string & fname );
 
-namespace newVlsv {
+namespace vlsvinterface {
    class Reader : public vlsv::Reader {
    private:
       std::unordered_map<uint64_t, uint64_t> cellIdLocations;
-      std::unordered_map<uint64_t, std::pair<uint64_t, uint32_t>> cellsWithBlocksLocations;
+      std::unordered_map<uint64_t, std::pair<uint64_t, uint32_t> > cellsWithBlocksLocations;
       bool cellIdsSet;
       bool cellsWithBlocksSet;
    public:
@@ -27,26 +32,26 @@ namespace newVlsv {
       bool getMeshNames( std::set<std::string> & meshNames );
       bool getVariableNames( const std::string&, std::list<std::string> & meshNames );
       bool getVariableNames( std::set<std::string> & meshNames );
-      bool getCellIds( std::vector<uint64_t> & cellIds );
+      bool getCellIds( std::vector<uint64_t> & cellIds,const std::string& meshName="SpatialGrid");
       //Reads in a variable:
       template <typename T, size_t N>
       bool getVariable( const std::string & variableName, const uint64_t & cellId, std::array<T, N> & variable );
-      bool getBlockIds( const uint64_t & cellId, std::vector<uint64_t> & blockIds );
+      bool getBlockIds( const uint64_t& cellId,std::vector<uint64_t>& blockIds,const std::string& popName );
       bool setCellIds();
       inline void clearCellIds() {
          cellIdLocations.clear();
          cellIdsSet = false;
       }
-      bool setCellsWithBlocks();
+      bool setCellsWithBlocks(const std::string& meshName,const std::string& popName);
       inline void clearCellsWithBlocks() {
          cellsWithBlocksLocations.clear();
          cellsWithBlocksSet = false;
       }
       bool getVelocityBlockVariables( const std::string & variableName, const uint64_t & cellId, char*& buffer, bool allocateMemory = true );
-      
+
       inline uint64_t getBlockOffset( const uint64_t & cellId ) {
          //Check if the cell id can be found:
-         std::unordered_map<uint64_t, std::pair<uint64_t, uint32_t>>::const_iterator it = cellsWithBlocksLocations.find( cellId );
+         std::unordered_map<uint64_t, std::pair<uint64_t,uint32_t> >::const_iterator it = cellsWithBlocksLocations.find( cellId );
          if( it == cellsWithBlocksLocations.end() ) {
             std::cerr << "COULDNT FIND CELL ID " << cellId << " AT " << __FILE__ << " " << __LINE__ << std::endl;
             exit(1);
@@ -56,7 +61,7 @@ namespace newVlsv {
       }
       inline uint32_t getNumberOfBlocks( const uint64_t & cellId ) {
          //Check if the cell id can be found:
-         std::unordered_map<uint64_t, std::pair<uint64_t, uint32_t>>::const_iterator it = cellsWithBlocksLocations.find( cellId );
+         std::unordered_map<uint64_t, std::pair<uint64_t,uint32_t> >::const_iterator it = cellsWithBlocksLocations.find( cellId );
          if( it == cellsWithBlocksLocations.end() ) {
             std::cerr << "COULDNT FIND CELL ID " << cellId << " AT " << __FILE__ << " " << __LINE__ << std::endl;
             exit(1);
@@ -85,10 +90,6 @@ namespace newVlsv {
       xmlAttributes.push_back( std::make_pair( "name", variableName ) );
       xmlAttributes.push_back( std::make_pair( "mesh", "SpatialGrid" ) );
       if( getArrayInfo( "VARIABLE", xmlAttributes, arraySize, vectorSize, dataType, byteSize ) == false ) return false;
-//      if( dataType != vlsv::datatype::type::UINT ) {
-//         std::cerr << "ERROR, BAD DATATYPE AT " << __FILE__ << " " << __LINE__ << std::endl;
-//         return false;
-//      }
       if( vectorSize != N ) {
          std::cerr << "ERROR, BAD VECTORSIZE AT " << __FILE__ << " " << __LINE__ << std::endl;
          return false;
@@ -118,6 +119,7 @@ namespace newVlsv {
             }
          } else {
             std::cerr << "BAD BYTESIZE AT " << __FILE__ << " " << __LINE__ << std::endl;
+            delete [] buffer;
             return false;
          }
       } else if( dataType == vlsv::datatype::type::UINT ) {
@@ -133,6 +135,7 @@ namespace newVlsv {
             }
          } else {
             std::cerr << "BAD BYTESIZE AT " << __FILE__ << " " << __LINE__ << std::endl;
+            delete [] buffer;
             return false;
          }
       } else if( dataType == vlsv::datatype::type::INT ) {
@@ -148,24 +151,17 @@ namespace newVlsv {
             }
          } else {
             std::cerr << "BAD BYTESIZE AT " << __FILE__ << " " << __LINE__ << std::endl;
+            delete [] buffer;
             return false;
          }
       } else {
          std::cerr << "BAD DATATYPE AT " << __FILE__ << " " << __LINE__ << std::endl;
+         delete [] buffer;
          return false;
       }
+      delete [] buffer;
       return true;
    }
-
-}
-
-namespace oldVlsv {
-   class Reader : public VLSVReader {
-   public:
-      bool getArrayInfo(const std::string& tagName,const std::list<std::pair<std::string,std::string> >& attribs,
-                        uint64_t& arraySize,uint64_t& vectorSize,vlsv::datatype::type& _dataType,uint64_t& dataSize) const;
-      bool setCellsWithBlocks() { return true; }
-   };
 }
 
 #endif

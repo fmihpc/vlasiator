@@ -16,35 +16,43 @@ fi
 
 if [ -e $1 ]
 then
-echo "Tag           Name            Value          Vectorsize" 
-echo "-------------------------------------------------------"
-tail -300  $1 |
-grep --text arraysize |
-sed 's/[<\"=>]/ /g' |
+echo "Tag                     Name                          Mesh                          Vectorsize" 
+echo "----------------------------------------------------------------------------------------------"
+tail -c $(( 100 * 1024))  $1 |strings |gawk 'BEGIN {xmlstarted=0} {if($1 == "<VLSV>") xmlstarted=1; if(xmlstarted) print $0;}' |
+sed 's|[<\"=>/]| |g' |
 gawk  '{ 
-printf("%-14s",$1); 
 
-for (i=0;i<NF;i++)
-   if ($(i)=="name" )
-      printf("%-16s",$(i+1));  
+printf("%-24s",$1); 
 
-hadValue=0;
+hasname=0
 for (i=0;i<NF;i++)
-  if ($(i)=="value" ) {
-     hadValue=1;
-     printf("%-15s",$(i+1)); 
+   if ($(i)=="name" ) {
+      printf("%-30s",$(i+1));  
+      hasname=1;
+   }
+  
+if ( hasname == 0)
+     printf("%-30s"," ");  
+
+hasmesh=0
+for (i=0;i<NF;i++)
+  if ($(i)=="mesh" ) {
+     hasmesh=1;
+     printf("%-30s",$(i+1)); 
   }
 
-if(hadValue==0)
-     printf("%-15s"," "); 
+if ( hasmesh == 0)
+    printf("%-30s"," ");  
+
+
 
 for (i=0;i<NF;i++)
    if ($(i)=="vectorsize" ) 
      printf("%s",$(i+1));   
 
 printf "\n";
-   
 }' 
+
 else
 
 echo "File $1 does not exist!"
