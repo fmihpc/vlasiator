@@ -323,6 +323,7 @@ void calculateAcceleration(const int& popID,const int& globalMaxSubcycles,const 
    for (size_t c=0; c<propagatedCells.size(); ++c) {
       const CellID cellID = propagatedCells[c];
       const Real maxVdt = mpiGrid[cellID]->get_max_v_dt(popID);
+      mpiGrid[cellID]->parameters[CellParams::STEPS] = step;
 
       //compute subcycle dt. The length is maxVdt on all steps
       //except the last one. This is to keep the neighboring
@@ -338,6 +339,13 @@ void calculateAcceleration(const int& popID,const int& globalMaxSubcycles,const 
          subcycleDt = maxVdt;
       }
       
+//       if(174874 == cellID) {
+//          std::cerr << "maxVdt " << maxVdt << " dt " << dt << " step " << step << " subcycleDt " << subcycleDt << std::endl;
+//       }
+      
+      mpiGrid[cellID]->parameters[CellParams::STEP_DT] = subcycleDt;
+      mpiGrid[cellID]->parameters[CellParams::STEP_DT_INCR] += subcycleDt;
+
       //generate pseudo-random order which is always the same irrespective of parallelization, restarts, etc
       char rngStateBuffer[256];
       random_data rngDataBuffer;
@@ -433,6 +441,8 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
           int subcycles = getAccerelationSubcycles(spatial_cell,dt,popID);
           spatial_cell->parameters[CellParams::ACCSUBCYCLES] = subcycles;
           maxSubcycles=maxSubcycles < subcycles ? subcycles:maxSubcycles;
+          
+          mpiGrid[propagatedCells[c]]->parameters[CellParams::STEP_DT_INCR] = 0;
        }
        MPI_Allreduce(&maxSubcycles, &globalMaxSubcycles, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
 

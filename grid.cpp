@@ -306,6 +306,12 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
 //         mpiGrid.set_cell_weight(cells[i], mpiGrid[cells[i]]->get_number_of_all_velocity_blocks());
       //reset counter
       //mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = 0.0;
+      
+      
+      // set STEPS to 0.
+      mpiGrid[cells[i]]->parameters[CellParams::STEPS] = 0;
+      mpiGrid[cells[i]]->parameters[CellParams::STEP_DT] = 0;
+      mpiGrid[cells[i]]->parameters[CellParams::STEP_DT_INCR] = 0;
    }
    phiprof::start("dccrg.initialize_balance_load");
    mpiGrid.initialize_balance_load(true);

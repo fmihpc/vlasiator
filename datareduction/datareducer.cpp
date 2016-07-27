@@ -25,7 +25,11 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
      outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("DY",CellParams::DY,1));
      outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("DZ",CellParams::DZ,1));
    */
-
+   
+   outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("acc_steps",CellParams::STEPS,1));
+   outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("acc_dt",CellParams::STEP_DT,1));
+   outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("acc_dt_incr",CellParams::STEP_DT_INCR,1));
+   
    vector<string>::const_iterator it;
    for (it = P::outputVariableList.begin();
         it != P::outputVariableList.end();

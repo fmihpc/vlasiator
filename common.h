@@ -204,6 +204,9 @@ namespace CellParams {
       MAXFDT,             /*!< maximum timestep allowed in ordinary space by fieldsolver for this cell**/
       LBWEIGHTCOUNTER,    /*!< Counter for storing compute time weights needed by the load balancing**/
       ACCSUBCYCLES,        /*!< number of subcyles for each cell*/
+      STEPS,
+      STEP_DT,
+      STEP_DT_INCR,
       ISCELLSAVINGF,      /*!< Value telling whether a cell is saving its distribution function when partial f data is written out. */
       PHI,        /*!< Electrostatic potential.*/
       PHI_TMP,    /*!< Temporary electrostatic potential.*/
