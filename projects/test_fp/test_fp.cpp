@@ -83,7 +83,11 @@ namespace projects {
       creal result = NORM*exp(-CONST*(VX2+VY2+VZ2));
       return result;
    }
-
+   
+   void test_fp::setCellBackgroundField(spatial_cell::SpatialCell *cell) const {
+      setBackgroundFieldToZero(cell->parameters, cell->derivatives,cell->derivativesBVOL);
+   }
+   
    void test_fp::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
       Real* cellParams = cell->get_cell_parameters();
       cellParams[CellParams::EX   ] = 0.0;
@@ -94,35 +98,42 @@ namespace projects {
       cellParams[CellParams::PERBZ   ] = 0.0;
       
       typedef Parameters P;
-      creal x = cellParams[CellParams::XCRD] + 0.5 * cellParams[CellParams::DX];
+      creal dx = cellParams[CellParams::DX];
+      creal x = cellParams[CellParams::XCRD] + 0.5 * dx;
       creal y = cellParams[CellParams::YCRD] + 0.5 * cellParams[CellParams::DY];
       creal z = cellParams[CellParams::ZCRD] + 0.5 * cellParams[CellParams::DZ];
       
       switch (this->CASE) {
       case BXCASE:
-         if (y >= -0.2 && y <= 0.2)
-           if (z >= -0.2 && z <= 0.2)
+         cellParams[CellParams::PERBX] = 0.1 * this->B0;
+         if (y >= -3.5 * dx && y <= 3.5 * dx)
+           if (z >= -3.5 * dx && z <= 3.5 * dx)
              cellParams[CellParams::PERBX] = this->B0;
          break;
       case BYCASE:
-         if (x >= -0.2 && x <= 0.2)
-           if (z >= -0.2 && z <= 0.2)
+         cellParams[CellParams::PERBY] = 0.1 * this->B0;
+         if (x >= -3.5 * dx && x <= 3.5 * dx)
+           if (z >= -3.5 * dx && z <= 3.5 * dx)
              cellParams[CellParams::PERBY] = this->B0;
          break;
       case BZCASE:
-         if (x >= -0.2 && x <= 0.2)
-           if (y >= -0.2 && y <= 0.2)
+         cellParams[CellParams::PERBZ] = 0.1 * this->B0;
+         if (x >= -3.5 * dx && x <= 3.5 * dx)
+           if (y >= -3.5 * dx && y <= 3.5 * dx)
              cellParams[CellParams::PERBZ] = this->B0;
          break;
        case BALLCASE:
-         if (y >= -0.2 && y <= 0.2)
-           if (z >= -0.2 && z <= 0.2)
+         cellParams[CellParams::PERBX] = 0.1 * this->B0;
+         cellParams[CellParams::PERBY] = 0.1 * this->B0;
+         cellParams[CellParams::PERBZ] = 0.1 * this->B0;
+         if (y >= -3.5 * dx && y <= 3.5 * dx)
+           if (z >= -3.5 * dx && z <= 3.5 * dx)
              cellParams[CellParams::PERBX] = this->B0;
-         if (x >= -0.2 && x <= 0.2)
-           if (z >= -0.2 && z <= 0.2)
+         if (x >= -3.5 * dx && x <= 3.5 * dx)
+           if (z >= -3.5 * dx && z <= 3.5 * dx)
              cellParams[CellParams::PERBY] = this->B0;
-         if (x >= -0.2 && x <= 0.2)
-           if (y >= -0.2 && y <= 0.2)
+         if (x >= -3.5 * dx && x <= 3.5 * dx)
+           if (y >= -3.5 * dx && y <= 3.5 * dx)
              cellParams[CellParams::PERBZ] = this->B0;
          break;
       }
