@@ -19,12 +19,28 @@ using namespace std;
 using namespace spatial_cell;
 using namespace Eigen;
 
+/*!
+  Prepare to accelerate species in cell. Sets the maximum allowed dt to the
+  correct value.
+
+ * @param spatial_cell Spatial cell containing the accelerated population.
+ * @param popID ID of the accelerated particle species.
+*/
+
 void prepareAccelerateCell(
    SpatialCell* spatial_cell,
    const int popID){   
    updateAccelerationMaxdt(spatial_cell, popID);
 }
 
+/*!
+  Compute the number of subcycles needed for the acceleration of the particle
+  species in the spatial cell. Note that one should first prepare to
+  accelerate the cell with prepareAccelerateCell.
+
+ * @param spatial_cell Spatial cell containing the accelerated population.
+ * @param popID ID of the accelerated particle species.
+*/
 
 int getAccelerationSubcycles(SpatialCell* spatial_cell, Real dt, const int& popID)
 {
@@ -45,7 +61,8 @@ int getAccelerationSubcycles(SpatialCell* spatial_cell, Real dt, const int& popI
  * @param vmesh Velocity mesh.
  * @param blockContainer Velocity block data container.
  * @param map_order Order in which vx,vy,vz mappings are performed. 
- * @param dt Time step of one subcycle.*/
+ * @param dt Time step of one subcycle.
+*/
 
 void cpu_accelerate_cell(SpatialCell* spatial_cell,
                          const int popID,     

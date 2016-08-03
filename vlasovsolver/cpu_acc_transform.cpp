@@ -15,7 +15,13 @@ using namespace Eigen;
 
 
 
-/**/
+/*!
+  Compute max timestep for vlasov acceleration for the particular population
+  in one spatial cell.
+
+ * @param spatial_cell Spatial cell containing the accelerated population.
+ * @param popID ID of the accelerated particle species.
+*/
 void updateAccelerationMaxdt(
    SpatialCell* spatial_cell,
    const int& popID) 
@@ -39,7 +45,13 @@ void updateAccelerationMaxdt(
 }
 
 
-/*Compute transform during on timestep, and update the bulk velocity of the cell*/
+/*!
+ Compute transform during on timestep, and update the bulk velocity of the
+ cell
+ * @param spatial_cell Spatial cell containing the accelerated population.
+ * @param popID ID of the accelerated particle species.
+ * @param dt Time step of one subcycle.
+*/
 
 Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
         SpatialCell* spatial_cell,

@@ -414,8 +414,9 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
              //prepare for acceleration, updates max dt for each cell
              prepareAccelerateCell(SC, popID);
              //update max subcycles for all cells in this process
+#warning CellParams::ACCSUBCYCLES does not support multiple populations
+             SC->parameters[CellParams::ACCSUBCYCLES] = getAccelerationSubcycles(SC, dt, popID);
              maxSubcycles = max(getAccelerationSubcycles(SC, dt, popID), maxSubcycles);
-
           }
        }       
        // Compute global maximum for number of subcycles
