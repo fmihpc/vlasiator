@@ -334,18 +334,19 @@ void calculateAcceleration(const int& popID,const int& globalMaxSubcycles,const 
          subcycleDt = maxVdt;
       }
 
-      //generate pseudo-random order which is always the same irrespective of parallelization, restarts, etc
+      //generate pseudo-random order which is always the same irrespective of parallelization, restarts, etc.
       char rngStateBuffer[256];
       random_data rngDataBuffer;
 
-      // set seed, initialise generator and get value
+      // set seed, initialise generator and get value. The order is the same
+      // for all cells, but varies with timestep.
       memset(&(rngDataBuffer), 0, sizeof(rngDataBuffer));
       #ifdef _AIX
-         initstate_r(P::tstep + cellID, &(rngStateBuffer[0]), 256, NULL, &(rngDataBuffer));
+         initstate_r(P::tstep, &(rngStateBuffer[0]), 256, NULL, &(rngDataBuffer));
          int64_t rndInt;
          random_r(&rndInt, &rngDataBuffer);
       #else
-         initstate_r(P::tstep + cellID, &(rngStateBuffer[0]), 256, &(rngDataBuffer));
+         initstate_r(P::tstep, &(rngStateBuffer[0]), 256, &(rngDataBuffer));
          int32_t rndInt;
          random_r(&rngDataBuffer, &rndInt);
       #endif
