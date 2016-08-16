@@ -204,7 +204,7 @@ namespace projects {
 
       Real factor = 1.0;
       if (timeDependentCharge == true) {
-         factor = max((Real)0.0,1.0+(Parameters::t-tetherChargeRiseTime)/tetherChargeRiseTime);
+         factor = max((Real)0.0,(Real)1.0+(Parameters::t-tetherChargeRiseTime)/tetherChargeRiseTime);
          factor = min((Real)1.0,factor);
       }
 
@@ -357,7 +357,7 @@ namespace projects {
       const Real minRadius2 = 5.0*5.0;
       Real constant = tetherUnitCharge / (2*M_PI*physicalconstants::EPS_0);
       if (timeDependentCharge == true) {
-         Real factor = max((Real)0.0,1.0+(Parameters::t-tetherChargeRiseTime)/tetherChargeRiseTime);
+         Real factor = max((Real)0.0,(Real)1.0+(Parameters::t-tetherChargeRiseTime)/tetherChargeRiseTime);
          factor = min((Real)1.0,factor);
          constant *= factor;
       }
