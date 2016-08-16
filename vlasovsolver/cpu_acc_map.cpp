@@ -145,8 +145,8 @@ bool map_1d(vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
    Realv dv,v_min;
    Realv is_temp;
    uint max_v_length;
-   uint block_indices_to_id[3]; /*< used when computing id of target block */
-   uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
+   uint block_indices_to_id[3] = {0, 0, 0}; /*< used when computing id of target block */
+   uint cell_indices_to_id[3] = {0, 0, 0}; /*< used when computing id of target cell in block*/
    unsigned char cellid_transpose[WID3]; /*< defines the transpose for the solver internal (transposed) id: i + j*WID + k*WID2 to actual one*/
 
    // Velocity grid refinement level, has no effect but is 

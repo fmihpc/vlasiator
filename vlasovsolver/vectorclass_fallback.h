@@ -5,7 +5,7 @@
   This file is part of Vlasiator.
 
   Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
-
+*/
 
 /*! \file vectorclass_fallback.h
   \brief Simple class for implementing a vector with 4 real values
@@ -577,6 +577,6 @@ static inline Vec4Simple<float> to_float(Vec4Simple<T> const & a){
 
 // Dummy functions that Agner vectorclass has.
 // These are here to suppress compiler error messages only
-static void no_subnormals() {};
+static void no_subnormals() {}
 
 #endif

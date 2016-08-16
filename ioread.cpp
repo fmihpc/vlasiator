@@ -609,10 +609,9 @@ bool readCellParamsVariable(
             return _readCellParamsVariable<int64_t>( file, fileCells, localCellStartOffset, localCells, variableName, cellParamsIndex, expectedVectorSize, mpiGrid );
             break;
       }
-   } else {
-      logFile << "(RESTART)  ERROR: Failed to read data type at readCellParamsVariable" << endl << write;
-      return false;
    }
+   logFile << "(RESTART)  ERROR: Failed to read data type at readCellParamsVariable" << endl << write;
+   return false;
 }
 
 /*! A function for reading parameters, e.g., 'timestep'.
