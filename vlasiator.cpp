@@ -345,7 +345,7 @@ int main(int argn,char* args[]) {
    // Initialize simplified Fieldsolver grids.
    phiprof::start("Init fieldsolver grids");
    const std::array<int,3> dimensions = {convert<int>(P::xcells_ini), convert<int>(P::ycells_ini), convert<int>(P::zcells_ini)};
-   std::array<int,3> periodicity{mpiGrid.topology.is_periodic(0),
+   std::array<bool,3> periodicity{mpiGrid.topology.is_periodic(0),
                                  mpiGrid.topology.is_periodic(1),
                                  mpiGrid.topology.is_periodic(2)};
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> perBGrid(dimensions, comm, periodicity);
