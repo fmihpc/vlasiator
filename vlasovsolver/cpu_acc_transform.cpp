@@ -125,6 +125,12 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
 
    // note, we assume q is positive (pretty good assumption though)
    const Real substeps_radians = -(2.0*M_PI*dt/fabs(gyro_period))/bulk_velocity_substeps; // how many radians each substep is.
+   const Real substeps_dt=dt/bulk_velocity_substeps; /*!< how many s each substep is*/
+   Eigen::Matrix<Real,3,1> EgradPe(
+      spatial_cell->parameters[CellParams::EXGRADPE],
+      spatial_cell->parameters[CellParams::EYGRADPE],
+      spatial_cell->parameters[CellParams::EZGRADPE]);
+
    for (uint i=0; i<bulk_velocity_substeps; ++i) {
       // rotation origin is the point through which we place our rotation axis (direction of which is unitB).
       // first add bulk velocity (using the total transform computed this far.
@@ -143,6 +149,11 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       total_transform = Translation<Real,3>(-rotation_pivot)*total_transform;
       total_transform = AngleAxis<Real>(substeps_radians,unit_B)*total_transform;
       total_transform = Translation<Real,3>(rotation_pivot)*total_transform;
+
+      // Electron pressure gradient term
+      if(Parameters::ohmGradPeTerm > 0) {
+         total_transform=Translation<Real,3>( (fabs(physicalconstants::CHARGE)/physicalconstants::MASS_PROTON) * EgradPe * substeps_dt) * total_transform;
+      }
    }
 
    return total_transform;
