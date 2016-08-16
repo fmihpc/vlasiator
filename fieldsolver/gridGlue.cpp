@@ -18,7 +18,7 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
       // Check definition of CellParams in common.h if unsure.
       std::array<Real, fsgrids::moments::N_MOMENTS>* cellDataPointer = reinterpret_cast<std::array<Real, fsgrids::moments::N_MOMENTS>*>(
             &(mpiGrid[i]->get_cell_parameters()[CellParams::RHO]));
-      momentsGrid.transferDataIn(i,cellDataPointer);
+      momentsGrid.transferDataIn(i - 1, cellDataPointer);
    }
 
    momentsGrid.finishTransfersIn();
@@ -34,7 +34,7 @@ void getVolumeFieldsFromFsGrid(FsGrid< std::array<Real, fsgrids::volfields::N_VO
    for(CellID i : cells) {
       std::array<Real, fsgrids::volfields::N_VOL>* cellDataPointer = reinterpret_cast<std::array<Real, fsgrids::volfields::N_VOL>*>(
             &(mpiGrid[i]->get_cell_parameters()[CellParams::RHO]));
-      volumeFieldsGrid.transferDataOut(i,cellDataPointer);
+      volumeFieldsGrid.transferDataOut(i - 1, cellDataPointer);
    }
 
    volumeFieldsGrid.finishTransfersOut();

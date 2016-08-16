@@ -366,13 +366,13 @@ int main(int argn,char* args[]) {
    // constant throughout the simulation.
    perBGrid.DX = perBDt2Grid.DX = EGrid.DX = EDt2Grid.DX = EHallGrid.DX = EGradPeGrid.DX = momentsGrid.DX
       = momentsDt2Grid.DX = dPerBGrid.DX = dMomentsGrid.DX = BgBGrid.DX = volGrid.DX = technicalGrid.DX
-      = mpiGrid[1]->get_cell_parameters()[CellParams::DX];
+      = P::dx_ini;
    perBGrid.DY = perBDt2Grid.DY = EGrid.DY = EDt2Grid.DY = EHallGrid.DY = EGradPeGrid.DY = momentsGrid.DY
       = momentsDt2Grid.DY = dPerBGrid.DY = dMomentsGrid.DY = BgBGrid.DY = volGrid.DY = technicalGrid.DY
-      = mpiGrid[1]->get_cell_parameters()[CellParams::DY];
+      = P::dy_ini;
    perBGrid.DZ = perBDt2Grid.DZ = EGrid.DZ = EDt2Grid.DZ = EHallGrid.DZ = EGradPeGrid.DZ = momentsGrid.DZ
       = momentsDt2Grid.DZ = dPerBGrid.DZ = dMomentsGrid.DZ = BgBGrid.DZ = volGrid.DZ = technicalGrid.DZ
-      = mpiGrid[1]->get_cell_parameters()[CellParams::DZ];
+      = P::dz_ini;
    phiprof::stop("Init fieldsolver grids");
    phiprof::start("Initial fsgrid coupling");
    const std::vector<CellID>& cells = getLocalCells();
@@ -391,19 +391,19 @@ int main(int argn,char* args[]) {
    volGrid.setupForGridCoupling(cells.size());
    technicalGrid.setupForGridCoupling(cells.size());
    for(unsigned int i=0; i<cells.size(); i++) {
-      perBGrid.setGridCoupling(cells[i],myRank);
-      perBDt2Grid.setGridCoupling(cells[i],myRank);
-      EGrid.setGridCoupling(cells[i],myRank);
-      EDt2Grid.setGridCoupling(cells[i],myRank);
-      EHallGrid.setGridCoupling(cells[i],myRank);
-      EGradPeGrid.setGridCoupling(cells[i],myRank);
-      momentsGrid.setGridCoupling(cells[i],myRank);
-      momentsDt2Grid.setGridCoupling(cells[i],myRank);
-      dPerBGrid.setGridCoupling(cells[i],myRank);
-      dMomentsGrid.setGridCoupling(cells[i],myRank);
-      BgBGrid.setGridCoupling(cells[i],myRank);
-      volGrid.setGridCoupling(cells[i],myRank);
-      technicalGrid.setGridCoupling(cells[i],myRank);
+      perBGrid.setGridCoupling(cells[i] - 1, myRank);
+      perBDt2Grid.setGridCoupling(cells[i] - 1, myRank);
+      EGrid.setGridCoupling(cells[i] - 1, myRank);
+      EDt2Grid.setGridCoupling(cells[i] - 1, myRank);
+      EHallGrid.setGridCoupling(cells[i] - 1, myRank);
+      EGradPeGrid.setGridCoupling(cells[i] - 1, myRank);
+      momentsGrid.setGridCoupling(cells[i] - 1, myRank);
+      momentsDt2Grid.setGridCoupling(cells[i] - 1, myRank);
+      dPerBGrid.setGridCoupling(cells[i] - 1, myRank);
+      dMomentsGrid.setGridCoupling(cells[i] - 1, myRank);
+      BgBGrid.setGridCoupling(cells[i] - 1, myRank);
+      volGrid.setGridCoupling(cells[i] - 1, myRank);
+      technicalGrid.setGridCoupling(cells[i] - 1, myRank);
    }
    perBGrid.finishGridCoupling();
    perBDt2Grid.finishGridCoupling();
