@@ -24,3 +24,15 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 void getVolumeFieldsFromFsGrid(FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volumeFieldsGrid,
                            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                            const std::vector<CellID>& cells);
+
+
+/*! Transfer data into technical grid (boundary info etc.)
+ * \param mpiGrid The DCCRG grid carrying rho, rhoV and P
+ * \param cells List of local cells
+ * \param technicalGrid the target Fieldsolver grid for this information
+ *
+ * This function assumes that proper grid coupling has been set up.
+ */
+void setupTechnicalFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      const std::vector<CellID>& cells, FsGrid< fsgrids::technical, 2>& technicalGrid);
+

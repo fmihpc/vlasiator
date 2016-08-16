@@ -497,6 +497,9 @@ int main(int argn,char* args[]) {
       calculateAcceleration(mpiGrid,0.0);
 
       if (P::propagateField == true) {
+         setupTechnicalFsGrid(mpiGrid, cells, technicalGrid);
+         feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid);
+
          propagateFields(
             perBGrid,
             perBDt2Grid,
@@ -513,6 +516,7 @@ int main(int argn,char* args[]) {
             technicalGrid,
             sysBoundaries, 0.0, 1.0
          );
+         getVolumeFieldsFromFsGrid(volGrid, mpiGrid, cells);
       }
       phiprof::stop("compute-dt");
    }
@@ -821,6 +825,9 @@ int main(int argn,char* args[]) {
       // moments for t + dt are computed (field uses t and t+0.5dt)
       if (P::propagateField) {
          phiprof::start("Propagate Fields");
+         setupTechnicalFsGrid(mpiGrid, cells, technicalGrid);
+         feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid);
+
          propagateFields(
             perBGrid,
             perBDt2Grid,
@@ -839,6 +846,8 @@ int main(int argn,char* args[]) {
             P::dt,
             P::fieldSolverSubcycles
          );
+
+         getVolumeFieldsFromFsGrid(volGrid, mpiGrid, cells);
          phiprof::stop("Propagate Fields",cells.size(),"SpatialCells");
          addTimedBarrier("barrier-after-field-solver");
       }
