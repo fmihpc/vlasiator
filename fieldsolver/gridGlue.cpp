@@ -57,7 +57,7 @@ void setupTechnicalFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
       thisCellData->sysBoundaryFlag = mpiGrid[i]->sysBoundaryFlag;
       thisCellData->sysBoundaryLayer = mpiGrid[i]->sysBoundaryLayer;
       thisCellData->maxFsDt = mpiGrid[i]->get_cell_parameters()[CellParams::MAXFDT];
-      technicalGrid.transferDataIn(i,thisCellData);
+      technicalGrid.transferDataIn(i - 1,thisCellData);
    }
 
    technicalGrid.finishTransfersIn();
