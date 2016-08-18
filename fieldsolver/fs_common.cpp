@@ -63,18 +63,18 @@ void reconstructionCoefficients(
    #ifndef FS_1ST_ORDER_SPACE
 
    // Create a dummy array for containing zero values for derivatives on non-existing cells:
-   std::array<Real, fsgrids::dperb::N_DPERB> * dummyDerivatives;
+   std::array<Real, fsgrids::dperb::N_DPERB> dummyDerivatives;
    for (int ii=0; ii<fsgrids::dperb::N_DPERB; ii++) {
-      dummyDerivatives->at(ii) = 0.0;
+      dummyDerivatives.at(ii) = 0.0;
    }
    
    // Fetch neighbour cell derivatives, or in case the neighbour does not 
    // exist, use dummyDerivatives array:
-   std::array<Real, fsgrids::dperb::N_DPERB> * der_i2j1k1 = dummyDerivatives;
-   std::array<Real, fsgrids::dperb::N_DPERB> * der_i1j2k1 = dummyDerivatives;
-   std::array<Real, fsgrids::dperb::N_DPERB> * der_i1j1k2 = dummyDerivatives;
+   std::array<Real, fsgrids::dperb::N_DPERB> * der_i2j1k1 = &dummyDerivatives;
+   std::array<Real, fsgrids::dperb::N_DPERB> * der_i1j2k1 = &dummyDerivatives;
+   std::array<Real, fsgrids::dperb::N_DPERB> * der_i1j1k2 = &dummyDerivatives;
    if (dPerBGrid.get(i+1,j,k) != NULL) der_i2j1k1 = dPerBGrid.get(i+1,j,k);
-   if (dPerBGrid.get(i,j+1,k) != NULL) der_i2j1k1 = dPerBGrid.get(i,j+1,j);
+   if (dPerBGrid.get(i,j+1,k) != NULL) der_i2j1k1 = dPerBGrid.get(i,j+1,k);
    if (dPerBGrid.get(i,j,k+1) != NULL) der_i2j1k1 = dPerBGrid.get(i,j,k+1);
    
    // Calculate 3rd order reconstruction coefficients:
