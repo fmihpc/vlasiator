@@ -749,7 +749,67 @@ int main(int argn,char* args[]) {
       );
 
       phiprof::stop("Propagate",computedCells,"Cells");
+      
+      if(P::projectName == "Dispersion") {
+         vector<Real> localRho(P::xcells_ini, 0.0),
+                      outputRho(P::xcells_ini, 0.0),
+                      localPerBx(P::xcells_ini, 0.0),
+                      outputPerBx(P::xcells_ini, 0.0),
+                      localPerBy(P::xcells_ini, 0.0),
+                      outputPerBy(P::xcells_ini, 0.0),
+                      localPerBz(P::xcells_ini, 0.0),
+                      outputPerBz(P::xcells_ini, 0.0),
+                      localEx(P::xcells_ini, 0.0),
+                      outputEx(P::xcells_ini, 0.0),
+                      localEy(P::xcells_ini, 0.0),
+                      outputEy(P::xcells_ini, 0.0),
+                      localEz(P::xcells_ini, 0.0),
+                      outputEz(P::xcells_ini, 0.0);
+         for(uint i=0; i<cells.size(); i++) {
+            if(cells[i] <= P::xcells_ini) {
+               localPerBx[cells[i] - 1] = mpiGrid[cells[i]]->parameters[CellParams::PERBX];
+               localPerBy[cells[i] - 1] = mpiGrid[cells[i]]->parameters[CellParams::PERBY];
+               localPerBz[cells[i] - 1] = mpiGrid[cells[i]]->parameters[CellParams::PERBZ];
+               localRho[cells[i] - 1] = mpiGrid[cells[i]]->parameters[CellParams::RHO];
+               localEx[cells[i] - 1] = mpiGrid[cells[i]]->parameters[CellParams::EX];
+               localEy[cells[i] - 1] = mpiGrid[cells[i]]->parameters[CellParams::EY];
+               localEz[cells[i] - 1] = mpiGrid[cells[i]]->parameters[CellParams::EZ];
+            }
+         }
 
+         MPI_Reduce(&(localPerBx[0]), &(outputPerBx[0]), P::xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
+         MPI_Reduce(&(localPerBy[0]), &(outputPerBy[0]), P::xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
+         MPI_Reduce(&(localPerBz[0]), &(outputPerBz[0]), P::xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
+         MPI_Reduce(&(localEx[0]), &(outputEx[0]), P::xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
+         MPI_Reduce(&(localEy[0]), &(outputEy[0]), P::xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
+         MPI_Reduce(&(localEz[0]), &(outputEz[0]), P::xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
+         MPI_Reduce(&(localRho[0]), &(outputRho[0]), P::xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
+
+         if(myRank == MASTER_RANK) {
+            FILE* outputFile = fopen("perBxt.bin", "ab");
+            fwrite(&(outputPerBx[0]), sizeof(outputPerBx[0]), P::xcells_ini, outputFile);
+            fclose(outputFile);
+            outputFile = fopen("perByt.bin", "ab");
+            fwrite(&(outputPerBy[0]), sizeof(outputPerBy[0]), P::xcells_ini, outputFile);
+            fclose(outputFile);
+            outputFile = fopen("perBzt.bin", "ab");
+            fwrite(&(outputPerBz[0]), sizeof(outputPerBz[0]), P::xcells_ini, outputFile);
+            fclose(outputFile);
+            outputFile = fopen("rhot.bin", "ab");
+            fwrite(&(outputRho[0]), sizeof(outputRho[0]), P::xcells_ini, outputFile);
+            fclose(outputFile);
+            outputFile = fopen("Ext.bin", "ab");
+            fwrite(&(outputEx[0]), sizeof(outputEx[0]), P::xcells_ini, outputFile);
+            fclose(outputFile);
+            outputFile = fopen("Eyt.bin", "ab");
+            fwrite(&(outputEy[0]), sizeof(outputEy[0]), P::xcells_ini, outputFile);
+            fclose(outputFile);
+            outputFile = fopen("Ezt.bin", "ab");
+            fwrite(&(outputEz[0]), sizeof(outputEz[0]), P::xcells_ini, outputFile);
+            fclose(outputFile);
+         }
+      }
+      
       // Check timestep
       if (P::dt < P::bailout_min_dt) {
          stringstream s;

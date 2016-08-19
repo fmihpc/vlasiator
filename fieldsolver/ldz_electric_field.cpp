@@ -105,7 +105,18 @@ void calculateWaveSpeedYZ(
    const Real By2  = (By + zdir*HALF*dBydz)*(By + zdir*HALF*dBydz) + TWELWTH*dBydx*dBydx; // OK
    const Real Bz2  = (Bz + ydir*HALF*dBzdy)*(Bz + ydir*HALF*dBzdy) + TWELWTH*dBzdx*dBzdx; // OK
    
-   const Real Bmag2 = (Bx2 + By2 + Bz2);
+   Real Bmag2 = (Bx2 + By2 + Bz2);
+   if(Bmag2 < minB2) {
+      Bmag2 = minB2;
+   } else if (Bmag2 > maxB2) {
+      Bmag2 = maxB2;
+   }
+   
+   const Real jx = derivs[fs::dPERBydz] / cp[CellParams::DZ] - derivs[fs::dPERBzdy] / cp[CellParams::DY];
+   const Real jy = derivs[fs::dPERBxdz] / cp[CellParams::DZ] - derivs[fs::dPERBzdx] / cp[CellParams::DX];
+   const Real jz = derivs[fs::dPERBxdy] / cp[CellParams::DY] - derivs[fs::dPERBydx] / cp[CellParams::DX];
+   
+   const Real Ln = rhom / pc::MASS_PROTON / ( (fabs(derivs[fs::drhodx]) / cp[CellParams::DX] + fabs(derivs[fs::drhody]) / cp[CellParams::DY] + fabs(derivs[fs::drhodz]) / cp[CellParams::DZ]) );
    
    p11 = p11 < 0.0 ? 0.0 : p11;
    p22 = p22 < 0.0 ? 0.0 : p22;
@@ -204,7 +215,18 @@ void calculateWaveSpeedXZ(
    const Real Bx2  = (Bx + zdir*HALF*dBxdz)*(Bx + zdir*HALF*dBxdz) + TWELWTH*dBxdy*dBxdy; // OK
    const Real Bz2  = (Bz + xdir*HALF*dBzdx)*(Bz + xdir*HALF*dBzdx) + TWELWTH*dBzdy*dBzdy; // OK
    
-   const Real Bmag2 = (Bx2 + By2 + Bz2);
+   Real Bmag2 = (Bx2 + By2 + Bz2);
+   if(Bmag2 < minB2) {
+      Bmag2 = minB2;
+   } else if (Bmag2 > maxB2) {
+      Bmag2 = maxB2;
+   }
+   
+   const Real jx = derivs[fs::dPERBydz] / cp[CellParams::DZ] - derivs[fs::dPERBzdy] / cp[CellParams::DY];
+   const Real jy = derivs[fs::dPERBxdz] / cp[CellParams::DZ] - derivs[fs::dPERBzdx] / cp[CellParams::DX];
+   const Real jz = derivs[fs::dPERBxdy] / cp[CellParams::DY] - derivs[fs::dPERBydx] / cp[CellParams::DX];
+   
+   const Real Ln = rhom / pc::MASS_PROTON / ( (fabs(derivs[fs::drhodx]) / cp[CellParams::DX] + fabs(derivs[fs::drhody]) / cp[CellParams::DY] + fabs(derivs[fs::drhodz]) / cp[CellParams::DZ]) );
    
    p11 = p11 < 0.0 ? 0.0 : p11;
    p22 = p22 < 0.0 ? 0.0 : p22;
@@ -303,7 +325,19 @@ void calculateWaveSpeedXY(
    const Real Bx2  = (Bx + ydir*HALF*dBxdy)*(Bx + ydir*HALF*dBxdy) + TWELWTH*dBxdz*dBxdz;
    const Real By2  = (By + xdir*HALF*dBydx)*(By + xdir*HALF*dBydx) + TWELWTH*dBydz*dBydz;
    
-   const Real Bmag2 = (Bx2 + By2 + Bz2);
+
+   Real Bmag2 = (Bx2 + By2 + Bz2);
+   if(Bmag2 < minB2) {
+      Bmag2 = minB2;
+   } else if (Bmag2 > maxB2) {
+      Bmag2 = maxB2;
+   }
+   
+   const Real jx = derivs[fs::dPERBydz] / cp[CellParams::DZ] - derivs[fs::dPERBzdy] / cp[CellParams::DY];
+   const Real jy = derivs[fs::dPERBxdz] / cp[CellParams::DZ] - derivs[fs::dPERBzdx] / cp[CellParams::DX];
+   const Real jz = derivs[fs::dPERBxdy] / cp[CellParams::DY] - derivs[fs::dPERBydx] / cp[CellParams::DX];
+   
+   const Real Ln = rhom / pc::MASS_PROTON / ( (fabs(derivs[fs::drhodx]) / cp[CellParams::DX] + fabs(derivs[fs::drhody]) / cp[CellParams::DY] + fabs(derivs[fs::drhodz]) / cp[CellParams::DZ]) );
    
    p11 = p11 < 0.0 ? 0.0 : p11;
    p22 = p22 < 0.0 ? 0.0 : p22;
@@ -480,7 +514,7 @@ void calculateEdgeElectricFieldX(
    ay_pos   = max(ZERO,+Vy0 + c_y);
    az_neg   = max(ZERO,-Vz0 + c_z);
    az_pos   = max(ZERO,+Vz0 + c_z);
-   maxV = max(maxV, fabs(Vy0) + fabs(Vz0) + vA + vS + vW);
+   maxV = max(maxV, fabs(Vy0) + fabs(Vz0) + vA + vS + vW + vH + vHD);
 
    // Ex and characteristic speeds on j-1 neighbour:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -534,7 +568,7 @@ void calculateEdgeElectricFieldX(
    ay_pos   = max(ay_pos,+Vy0 + c_y);
    az_neg   = max(az_neg,-Vz0 + c_z);
    az_pos   = max(az_pos,+Vz0 + c_z);
-   maxV = max(maxV, fabs(Vy0) + fabs(Vz0) + vA + vS + vW);
+   maxV = max(maxV, fabs(Vy0) + fabs(Vz0) + vA + vS + vW + vH + vHD);
 
    // Ex and characteristic speeds on k-1 neighbour:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -588,7 +622,7 @@ void calculateEdgeElectricFieldX(
    ay_pos   = max(ay_pos,+Vy0 + c_y);
    az_neg   = max(az_neg,-Vz0 + c_z);
    az_pos   = max(az_pos,+Vz0 + c_z);
-   maxV = max(maxV, fabs(Vy0) + fabs(Vz0) + vA + vS + vW);
+   maxV = max(maxV, fabs(Vy0) + fabs(Vz0) + vA + vS + vW + vH + vHD);
 
    // Ex and characteristic speeds on j-1,k-1 neighbour:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -642,7 +676,7 @@ void calculateEdgeElectricFieldX(
    ay_pos   = max(ay_pos,+Vy0 + c_y);
    az_neg   = max(az_neg,-Vz0 + c_z);
    az_pos   = max(az_pos,+Vz0 + c_z);
-   maxV = max(maxV, fabs(Vy0) + fabs(Vz0) + vA + vS + vW);
+   maxV = max(maxV, fabs(Vy0) + fabs(Vz0) + vA + vS + vW + vH + vHD);
 
    // Calculate properly upwinded edge-averaged Ex:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -848,7 +882,7 @@ void calculateEdgeElectricFieldY(
    az_pos   = max(ZERO,+Vz0 + c_z);
    ax_neg   = max(ZERO,-Vx0 + c_x);
    ax_pos   = max(ZERO,+Vx0 + c_x);
-   maxV = max(maxV, fabs(Vz0) + fabs(Vx0) + vA + vS + vW);
+   maxV = max(maxV, fabs(Vz0) + fabs(Vx0) + vA + vS + vW + vH + vHD);
 
    // Ey and characteristic speeds on k-1 neighbour:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -902,7 +936,7 @@ void calculateEdgeElectricFieldY(
    az_pos   = max(az_pos,+Vz0 + c_z);
    ax_neg   = max(ax_neg,-Vx0 + c_x);
    ax_pos   = max(ax_pos,+Vx0 + c_x);
-   maxV = max(maxV, fabs(Vz0) + fabs(Vx0) + vA + vS + vW);
+   maxV = max(maxV, fabs(Vz0) + fabs(Vx0) + vA + vS + vW + vH + vHD);
    
    // Ey and characteristic speeds on i-1 neighbour:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -956,7 +990,7 @@ void calculateEdgeElectricFieldY(
    az_pos   = max(az_pos,+Vz0 + c_z);
    ax_neg   = max(ax_neg,-Vx0 + c_x);
    ax_pos   = max(ax_pos,+Vx0 + c_x);
-   maxV = max(maxV, fabs(Vz0) + fabs(Vx0) + vA + vS + vW);
+   maxV = max(maxV, fabs(Vz0) + fabs(Vx0) + vA + vS + vW + vH + vHD);
 
    // Ey and characteristic speeds on i-1,k-1 neighbour:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -1010,7 +1044,7 @@ void calculateEdgeElectricFieldY(
    az_pos   = max(az_pos,+Vz0 + c_z);
    ax_neg   = max(ax_neg,-Vx0 + c_x);
    ax_pos   = max(ax_pos,+Vx0 + c_x);
-   maxV = max(maxV, fabs(Vz0) + fabs(Vx0) + vA + vS + vW);
+   maxV = max(maxV, fabs(Vz0) + fabs(Vx0) + vA + vS + vW + vH + vHD);
 
    // Calculate properly upwinded edge-averaged Ey:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -1216,7 +1250,7 @@ void calculateEdgeElectricFieldZ(
    ax_pos   = max(ZERO,+Vx0 + c_x);
    ay_neg   = max(ZERO,-Vy0 + c_y);
    ay_pos   = max(ZERO,+Vy0 + c_y);
-   maxV = max(maxV, fabs(Vx0) + fabs(Vy0) + vA + vS + vW);
+   maxV = max(maxV, fabs(Vx0) + fabs(Vy0) + vA + vS + vW + vH + vHD);
 
    // Ez and characteristic speeds on SE (i-1) cell:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -1269,7 +1303,7 @@ void calculateEdgeElectricFieldZ(
    ax_pos = max(ax_pos,+Vx0 + c_x);
    ay_neg = max(ay_neg,-Vy0 + c_y);
    ay_pos = max(ay_pos,+Vy0 + c_y);
-   maxV = max(maxV, fabs(Vx0) + fabs(Vy0) + vA + vS + vW);
+   maxV = max(maxV, fabs(Vx0) + fabs(Vy0) + vA + vS + vW + vH + vHD);
 
    // Ez and characteristic speeds on NW (j-1) cell:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -1323,7 +1357,7 @@ void calculateEdgeElectricFieldZ(
    ax_pos = max(ax_pos,+Vx0 + c_x);
    ay_neg = max(ay_neg,-Vy0 + c_y);
    ay_pos = max(ay_pos,+Vy0 + c_y);
-   maxV = max(maxV, fabs(Vx0) + fabs(Vy0) + vA + vS + vW);
+   maxV = max(maxV, fabs(Vx0) + fabs(Vy0) + vA + vS + vW + vH + vHD);
    
    // Ez and characteristic speeds on NE (i-1,j-1) cell:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -1377,7 +1411,7 @@ void calculateEdgeElectricFieldZ(
    ax_pos = max(ax_pos,+Vx0 + c_x);
    ay_neg = max(ay_neg,-Vy0 + c_y);
    ay_pos = max(ay_pos,+Vy0 + c_y);
-   maxV = max(maxV, fabs(Vx0) + fabs(Vy0) + vA + vS + vW);
+   maxV = max(maxV, fabs(Vx0) + fabs(Vy0) + vA + vS + vW + vH + vHD);
 
    // Calculate properly upwinded edge-averaged Ez:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {

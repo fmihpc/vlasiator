@@ -42,8 +42,10 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("perturbed_B",CellParams::PERBX,3));
       if(*it == "E")
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("E",CellParams::EX,3));
-      if(*it == "Rho")
+      if(*it == "Rho") {
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("rho",CellParams::RHO,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("rho_dt2",CellParams::RHO_DT2,1));
+      }
       if(*it == "RhoBackstream")
          outputReducer->addOperator(new DRO::VariableRhoBackstream);
       if(*it == "RhoV")

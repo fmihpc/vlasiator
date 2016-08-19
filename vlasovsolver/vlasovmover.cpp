@@ -353,11 +353,11 @@ void calculateAcceleration(const int& popID,const int& globalMaxSubcycles,const 
       // set seed, initialise generator and get value
       memset(&(rngDataBuffer), 0, sizeof(rngDataBuffer));
       #ifdef _AIX
-         initstate_r(P::tstep + cellID, &(rngStateBuffer[0]), 256, NULL, &(rngDataBuffer));
+         initstate_r(P::tstep, &(rngStateBuffer[0]), 256, NULL, &(rngDataBuffer));
          int64_t rndInt;
          random_r(&rndInt, &rngDataBuffer);
       #else
-         initstate_r(P::tstep + cellID, &(rngStateBuffer[0]), 256, &(rngDataBuffer));
+         initstate_r(P::tstep, &(rngStateBuffer[0]), 256, &(rngDataBuffer));
          int32_t rndInt;
          random_r(&rngDataBuffer, &rndInt);
       #endif
