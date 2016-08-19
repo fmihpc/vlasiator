@@ -62,3 +62,27 @@ void setupTechnicalFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
 
    technicalGrid.finishTransfersIn();
 }
+
+void getFsGridMaxDt(FsGrid< fsgrids::technical, 2>& technicalGrid,
+      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      const std::vector<CellID>& cells) {
+
+   technicalGrid.setupForTransferOut(cells.size());
+
+   // Buffer to store contents of the grid
+   std::vector<fsgrids::technical> transferBuffer(cells.size());
+   size_t count=0;
+
+   for(CellID i : cells) {
+      fsgrids::technical* thisCellData = &transferBuffer[count++];
+      technicalGrid.transferDataOut(i - 1, thisCellData);
+   }
+
+   technicalGrid.finishTransfersOut();
+
+   // After the transfer is completed, stuff the recieved maxFDt into the cells.
+   count=0;
+   for(CellID i : cells) {
+      mpiGrid[i]->get_cell_parameters()[CellParams::MAXFDT] = transferBuffer[count++].maxFsDt;
+   }
+}

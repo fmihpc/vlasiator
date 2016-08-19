@@ -532,6 +532,7 @@ int main(int argn,char* args[]) {
    if (P::dynamicTimestep == true && P::isRestart == false) {
       //compute new dt
       phiprof::start("compute-dt");
+      getFsGridMaxDt(technicalGrid, mpiGrid, cells);
       computeNewTimeStep(mpiGrid,newDt,dtIsChanged);
       if (dtIsChanged == true) P::dt=newDt;
       phiprof::stop("compute-dt");
@@ -763,6 +764,7 @@ int main(int argn,char* args[]) {
       //simulation loop
       // FIXME what if dt changes at a restart??
       if(P::dynamicTimestep  && P::tstep > P::tstep_min) {
+         getFsGridMaxDt(technicalGrid, mpiGrid, cells);
          computeNewTimeStep(mpiGrid,newDt,dtIsChanged);
          addTimedBarrier("barrier-check-dt");
          if(dtIsChanged) {

@@ -36,6 +36,16 @@ void getVolumeFieldsFromFsGrid(FsGrid< std::array<Real, fsgrids::volfields::N_VO
 void setupTechnicalFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const std::vector<CellID>& cells, FsGrid< fsgrids::technical, 2>& technicalGrid);
 
+/*! Transfer max timestep data from technical grid back into DCCRG.
+ * \param technicalGrid the target Fieldsolver grid for this information
+ * \param mpiGrid The DCCRG grid carrying rho, rhoV and P
+ * \param cells List of local cells
+ *
+ * This function assumes that proper grid coupling has been set up.
+ */
+void getFsGridMaxDt(FsGrid< fsgrids::technical, 2>& technicalGrid,
+      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      const std::vector<CellID>& cells);
 
 /*! Transfer field data from DCCRG cellparams into the appropriate FsGrid structure
  * \param mpiGrid The DCCRG grid carrying fieldparam data
