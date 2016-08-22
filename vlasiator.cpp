@@ -506,8 +506,9 @@ int main(int argn,char* args[]) {
 
       if (P::propagateField == true) {
          setupTechnicalFsGrid(mpiGrid, cells, technicalGrid);
-         feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid);
-         feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid);
+         
+         feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid,false);
+         feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid,false);
 
          propagateFields(
             perBGrid,
@@ -605,7 +606,12 @@ int main(int argn,char* args[]) {
          checkExternalCommands();
       }
       phiprof::stop("checkExternalCommands");
-      
+     
+      // TODO: Make sure fsgrid data gets fed back into DCCRG before performing any field I/O
+      //getFieldDataFromFsGrid<fsgrids::N_BGB>(mpiGrid,cells,CellParams::BGBX,BgBGrid); // <- no need, doesn't change.
+      getFieldDataFromFsGrid<fsgrids::N_BFIELD>(perBGrid,mpiGrid,cells,CellParams::PERBX);
+      getFieldDataFromFsGrid<fsgrids::N_EFIELD>(EGrid,mpiGrid,cells,CellParams::EX);
+
       //write out phiprof profiles and logs with a lower interval than normal
       //diagnostic (every 10 diagnostic intervals).
       phiprof::start("logfile-io");
@@ -829,15 +835,16 @@ int main(int argn,char* args[]) {
          addTimedBarrier("barrier-boundary-conditions");
       }
 
-      // Copy moments over into the fsgrid.
-      feedMomentsIntoFsGrid(mpiGrid,cells,momentsGrid);
       
       // Propagate fields forward in time by dt. This needs to be done before the
       // moments for t + dt are computed (field uses t and t+0.5dt)
       if (P::propagateField) {
          phiprof::start("Propagate Fields");
+
+         // Copy moments over into the fsgrid.
          setupTechnicalFsGrid(mpiGrid, cells, technicalGrid);
-         feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid);
+         feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid,false);
+         feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid,true);
 
          propagateFields(
             perBGrid,
@@ -858,13 +865,11 @@ int main(int argn,char* args[]) {
             P::fieldSolverSubcycles
          );
 
+         // Copy results back from fsgrid.
          getVolumeFieldsFromFsGrid(volGrid, mpiGrid, cells);
          phiprof::stop("Propagate Fields",cells.size(),"SpatialCells");
          addTimedBarrier("barrier-after-field-solver");
       }
-
-      // Copy results back from fsgrid.
-      getVolumeFieldsFromFsGrid(volGrid,mpiGrid,cells);
 
       if (P::propagatePotential == true) {
          poisson::solve(mpiGrid);
