@@ -429,68 +429,69 @@ void calculateEdgeHallTermXComponents(
     case 0:
       cerr << __FILE__ << __LINE__ << "You shouldn't be in a Hall term function if Parameters::ohmHallTerm == 0." << endl;
       break;
+   case 1:
+      switch (RKCase) {
+         case (RK_ORDER1):
+            By = cp[CellParams::PERBY]+cp[CellParams::BGBY];
+            Bz = cp[CellParams::PERBZ]+cp[CellParams::BGBZ];
+            hallRho =  (cp[CellParams::RHO_DT2] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO_DT2] ;
+            break;
+         case RK_ORDER2_STEP1:
+            By = cp[CellParams::PERBY_DT2]+cp[CellParams::BGBY];
+            Bz = cp[CellParams::PERBZ_DT2]+cp[CellParams::BGBZ];
+            hallRho =  (cp[CellParams::RHO_DT2] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO_DT2] ;
+            break;
+         case RK_ORDER2_STEP2:
+            By = cp[CellParams::PERBY]+cp[CellParams::BGBY];
+            Bz = cp[CellParams::PERBZ]+cp[CellParams::BGBZ];
+            hallRho =  (cp[CellParams::RHO] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO] ;
+            break;
+         default:
+            cerr << __FILE__ << ":" << __LINE__ << ":" << " Fell through a switch." << endl;
+            exit(1);
+            break;
+      }
+      EXHall = (Bz*((derivs[fieldsolver::dBGBxdz]+derivs[fieldsolver::dPERBxdz])/cp[CellParams::DZ] -
+                           (derivs[fieldsolver::dBGBzdx]+derivs[fieldsolver::dPERBzdx])/cp[CellParams::DX]) -
+                        By*((derivs[fieldsolver::dBGBydx]+derivs[fieldsolver::dPERBydx])/cp[CellParams::DX]-
+                           ((derivs[fieldsolver::dBGBxdy]+derivs[fieldsolver::dPERBxdy])/cp[CellParams::DY])))
+                     / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
       
-    case 1:
-      if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-         By = cp[CellParams::PERBY]+cp[CellParams::BGBY];
-         Bz = cp[CellParams::PERBZ]+cp[CellParams::BGBZ];
-         hallRho =  (cp[CellParams::RHO] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO] ;
-         EXHall = (Bz*((derivs[fieldsolver::dBGBxdz]+derivs[fieldsolver::dPERBxdz])/cp[CellParams::DZ] -
-                       (derivs[fieldsolver::dBGBzdx]+derivs[fieldsolver::dPERBzdx])/cp[CellParams::DX]) -
-                   By*((derivs[fieldsolver::dBGBydx]+derivs[fieldsolver::dPERBydx])/cp[CellParams::DX]-
-                       ((derivs[fieldsolver::dBGBxdy]+derivs[fieldsolver::dPERBxdy])/cp[CellParams::DY])))
-                / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
-      }
-      if (RKCase == RK_ORDER2_STEP1) {
-         By = cp[CellParams::PERBY_DT2]+cp[CellParams::BGBY];
-         Bz = cp[CellParams::PERBZ_DT2]+cp[CellParams::BGBZ];
-         hallRho =  (cp[CellParams::RHO_DT2] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO_DT2] ;
-         EXHall = (Bz*((derivs[fieldsolver::dBGBxdz]+derivs[fieldsolver::dPERBxdz])/cp[CellParams::DZ] -
-                       (derivs[fieldsolver::dBGBzdx]+derivs[fieldsolver::dPERBzdx])/cp[CellParams::DX]) -
-                   By*((derivs[fieldsolver::dBGBydx]+derivs[fieldsolver::dPERBydx])/cp[CellParams::DX]-
-                       ((derivs[fieldsolver::dBGBxdy]+derivs[fieldsolver::dPERBxdy])/cp[CellParams::DY])))
-                / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
-      }
-
       cp[CellParams::EXHALL_000_100] =
       cp[CellParams::EXHALL_010_110] =
       cp[CellParams::EXHALL_001_101] =
       cp[CellParams::EXHALL_011_111] = EXHall;
       break;
-    case 2:
-      if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-         hallRho =  (cp[CellParams::RHO] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO] ;
-         cp[CellParams::EXHALL_000_100] = JXBX_000_100(perturbedCoefficients, cp[CellParams::BGBY], cp[CellParams::BGBZ], 
-                                                       cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]) 
-                                        / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
-         cp[CellParams::EXHALL_010_110] = JXBX_010_110(perturbedCoefficients, cp[CellParams::BGBY], cp[CellParams::BGBZ], 
-                                                       cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]) 
-                                        / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
-         cp[CellParams::EXHALL_001_101] = JXBX_001_101(perturbedCoefficients, cp[CellParams::BGBY], cp[CellParams::BGBZ], 
-                                                       cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]) 
-                                        / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
-         cp[CellParams::EXHALL_011_111] = JXBX_011_111(perturbedCoefficients, cp[CellParams::BGBY], cp[CellParams::BGBZ], 
-                                                       cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]) 
-                                        / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
+   case 2:
+      switch (RKCase) {
+         case RK_ORDER1:
+            hallRho =  (cp[CellParams::RHO_DT2] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO_DT2] ;
+            break;
+         case RK_ORDER2_STEP1:
+            hallRho =  (cp[CellParams::RHO_DT2] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO_DT2] ;
+            break;
+         case RK_ORDER2_STEP2:
+            hallRho =  (cp[CellParams::RHO] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO] ;
+            break;
+         default:
+            cerr << __FILE__ << ":" << __LINE__ << ":" << " Fell through a switch." << endl;
+            exit(1);
+            break;
       }
-      if (RKCase == RK_ORDER2_STEP1) {
-         hallRho =  (cp[CellParams::RHO_DT2] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO_DT2] ;
-         cp[CellParams::EXHALL_000_100] = JXBX_000_100(perturbedCoefficients, cp[CellParams::BGBY], cp[CellParams::BGBZ], 
-                                                       cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]) 
-                                        / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
-         cp[CellParams::EXHALL_010_110] = JXBX_010_110(perturbedCoefficients, cp[CellParams::BGBY], cp[CellParams::BGBZ], 
-                                                       cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]) 
-                                        / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
-         cp[CellParams::EXHALL_001_101] = JXBX_001_101(perturbedCoefficients, cp[CellParams::BGBY], cp[CellParams::BGBZ], 
-                                                       cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]) 
-                                        / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
-         cp[CellParams::EXHALL_011_111] = JXBX_011_111(perturbedCoefficients, cp[CellParams::BGBY], cp[CellParams::BGBZ], 
-                                                       cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]) 
-                                        / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
-      }
+      cp[CellParams::EXHALL_000_100] = JXBX_000_100(perturbedCoefficients, cp[CellParams::BGBY], cp[CellParams::BGBZ], 
+                                                    cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]) 
+      / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
+      cp[CellParams::EXHALL_010_110] = JXBX_010_110(perturbedCoefficients, cp[CellParams::BGBY], cp[CellParams::BGBZ], 
+                                                    cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]) 
+      / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
+      cp[CellParams::EXHALL_001_101] = JXBX_001_101(perturbedCoefficients, cp[CellParams::BGBY], cp[CellParams::BGBZ], 
+                                                    cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]) 
+      / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
+      cp[CellParams::EXHALL_011_111] = JXBX_011_111(perturbedCoefficients, cp[CellParams::BGBY], cp[CellParams::BGBZ], 
+                                                    cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]) 
+      / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
       break;
-
-    default:
+   default:
       cerr << __FILE__ << ":" << __LINE__ << "You are welcome to code higher-order Hall term correction terms." << endl;
       break;
    }
@@ -520,74 +521,76 @@ void calculateEdgeHallTermYComponents(
    Real Bx, Bz, EYHall = 0.0;
    
    switch (Parameters::ohmHallTerm) {
-    case 0:
-      cerr << __FILE__ << __LINE__ << "You shouldn't be in a Hall term function if Parameters::ohmHallTerm == 0." << endl;
+      case 0:
+         cerr << __FILE__ << __LINE__ << "You shouldn't be in a Hall term function if Parameters::ohmHallTerm == 0." << endl;
+         break;
+      
+      case 1:
+         switch (RKCase) {
+            case RK_ORDER1:
+               Bx = cp[CellParams::PERBX_DT2]+cp[CellParams::BGBX];
+               Bz = cp[CellParams::PERBZ_DT2]+cp[CellParams::BGBZ];
+               hallRho =  (cp[CellParams::RHO_DT2] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO_DT2] ;
+               break;
+            case RK_ORDER2_STEP1:
+               Bx = cp[CellParams::PERBX_DT2]+cp[CellParams::BGBX];
+               Bz = cp[CellParams::PERBZ_DT2]+cp[CellParams::BGBZ];
+               hallRho =  (cp[CellParams::RHO_DT2] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO_DT2] ;
+               break;
+            case RK_ORDER2_STEP2:
+               Bx = cp[CellParams::PERBX]+cp[CellParams::BGBX];
+               Bz = cp[CellParams::PERBZ]+cp[CellParams::BGBZ];
+               hallRho =  (cp[CellParams::RHO] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO] ;
+               break;
+            default:
+               cerr << __FILE__ << ":" << __LINE__ << ":" << " Fell through a switch." << endl;
+               exit(1);
+               break;
+         }
+         EYHall = (Bx*((derivs[fieldsolver::dBGBydx]+derivs[fieldsolver::dPERBydx])/cp[CellParams::DX] -
+         (derivs[fieldsolver::dBGBxdy]+derivs[fieldsolver::dPERBxdy])/cp[CellParams::DY]) -
+         Bz*((derivs[fieldsolver::dBGBzdy]+derivs[fieldsolver::dPERBzdy])/cp[CellParams::DY] -
+         ((derivs[fieldsolver::dBGBydz]+derivs[fieldsolver::dPERBydz])/cp[CellParams::DZ] )))
+         / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
+         
+         cp[CellParams::EYHALL_000_010] =
+         cp[CellParams::EYHALL_100_110] =
+         cp[CellParams::EYHALL_101_111] =
+         cp[CellParams::EYHALL_001_011] = EYHall;
       break;
       
-    case 1:
-      if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-         Bx = cp[CellParams::PERBX]+cp[CellParams::BGBX];
-         Bz = cp[CellParams::PERBZ]+cp[CellParams::BGBZ];
-         hallRho =  (cp[CellParams::RHO] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO] ;
-         EYHall = (Bx*((derivs[fieldsolver::dBGBydx]+derivs[fieldsolver::dPERBydx])/cp[CellParams::DX] -
-                       (derivs[fieldsolver::dBGBxdy]+derivs[fieldsolver::dPERBxdy])/cp[CellParams::DY]) -
-                   Bz*((derivs[fieldsolver::dBGBzdy]+derivs[fieldsolver::dPERBzdy])/cp[CellParams::DY] -
-                       ((derivs[fieldsolver::dBGBydz]+derivs[fieldsolver::dPERBydz])/cp[CellParams::DZ] )))
-                / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
-      }
-      if (RKCase == RK_ORDER2_STEP1) {
-         Bx = cp[CellParams::PERBX_DT2]+cp[CellParams::BGBX];
-         Bz = cp[CellParams::PERBZ_DT2]+cp[CellParams::BGBZ];
-         hallRho =  (cp[CellParams::RHO_DT2] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO_DT2] ;
-         EYHall = (Bx*((derivs[fieldsolver::dBGBydx]+derivs[fieldsolver::dPERBydx])/cp[CellParams::DX] -
-                       (derivs[fieldsolver::dBGBxdy]+derivs[fieldsolver::dPERBxdy])/cp[CellParams::DY]) -
-                   Bz*((derivs[fieldsolver::dBGBzdy]+derivs[fieldsolver::dPERBzdy])/cp[CellParams::DY] -
-                       ((derivs[fieldsolver::dBGBydz]+derivs[fieldsolver::dPERBydz])/cp[CellParams::DZ] )))
-                / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
-      }
-
-      cp[CellParams::EYHALL_000_010] =
-      cp[CellParams::EYHALL_100_110] =
-      cp[CellParams::EYHALL_101_111] =
-      cp[CellParams::EYHALL_001_011] = EYHall;
-      break;
-      
-    case 2:
-      if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-         hallRho =  (cp[CellParams::RHO] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO] ;
+      case 2:
+         switch (RKCase) {
+            case RK_ORDER1:
+               hallRho =  (cp[CellParams::RHO_DT2] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO_DT2] ;
+               break;
+            case RK_ORDER2_STEP1:
+               hallRho =  (cp[CellParams::RHO_DT2] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO_DT2] ;
+               break;
+            case RK_ORDER2_STEP2:
+               hallRho =  (cp[CellParams::RHO] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO] ;
+               break;
+            default:
+               cerr << __FILE__ << ":" << __LINE__ << ":" << " Fell through a switch." << endl;
+               exit(1);
+               break;
+         }
          cp[CellParams::EYHALL_000_010] = JXBY_000_010(perturbedCoefficients, cp[CellParams::BGBX], cp[CellParams::BGBZ], 
-                         cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]) 
-                                   / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
+                                                       cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]) 
+         / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
          cp[CellParams::EYHALL_100_110] = JXBY_100_110(perturbedCoefficients, cp[CellParams::BGBX], cp[CellParams::BGBZ], 
-                         cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]) 
-                                   / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
+                                                       cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]) 
+         / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
          cp[CellParams::EYHALL_001_011] = JXBY_001_011(perturbedCoefficients, cp[CellParams::BGBX], cp[CellParams::BGBZ], 
-                         cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]) 
-      / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
+                                                       cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]) 
+         / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
          cp[CellParams::EYHALL_101_111] = JXBY_101_111(perturbedCoefficients, cp[CellParams::BGBX], cp[CellParams::BGBZ], 
-                         cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]) 
-      / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
-      }
-      if (RKCase == RK_ORDER2_STEP1) {
-         hallRho =  (cp[CellParams::RHO_DT2] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO_DT2] ;
-         cp[CellParams::EYHALL_000_010] = JXBY_000_010(perturbedCoefficients, cp[CellParams::BGBX], cp[CellParams::BGBZ], 
-                         cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]) 
-      / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
-         cp[CellParams::EYHALL_100_110] = JXBY_100_110(perturbedCoefficients, cp[CellParams::BGBX], cp[CellParams::BGBZ], 
-                         cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]) 
-      / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
-         cp[CellParams::EYHALL_001_011] = JXBY_001_011(perturbedCoefficients, cp[CellParams::BGBX], cp[CellParams::BGBZ], 
-                         cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]) 
-      / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
-         cp[CellParams::EYHALL_101_111] = JXBY_101_111(perturbedCoefficients, cp[CellParams::BGBX], cp[CellParams::BGBZ], 
-                         cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]) 
-      / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
-      }
-      break;
-
-    default:
-      cerr << __FILE__ << ":" << __LINE__ << "You are welcome to code higher-order Hall term correction terms." << endl;
-      break;
+                                                       cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]) 
+         / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
+         break;
+      default:
+         cerr << __FILE__ << ":" << __LINE__ << "You are welcome to code higher-order Hall term correction terms." << endl;
+         break;
    }
 }
 
@@ -615,74 +618,74 @@ void calculateEdgeHallTermZComponents(
    Real Bx, By, EZHall=0.0;
 
    switch (Parameters::ohmHallTerm) {
-   case 0:
-     cerr << __FILE__ << __LINE__ << "You shouldn't be in a Hall term function if Parameters::ohmHallTerm == 0." << endl;
-     break;
-
-   case 1:
-     if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-        Bx = cp[CellParams::PERBX]+cp[CellParams::BGBX];
-        By = cp[CellParams::PERBY]+cp[CellParams::BGBY];
-        hallRho =  (cp[CellParams::RHO] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO] ;
-        EZHall = (By*((derivs[fieldsolver::dBGBzdy]+derivs[fieldsolver::dPERBzdy])/cp[CellParams::DY] -
-                      (derivs[fieldsolver::dBGBydz]+derivs[fieldsolver::dPERBydz])/cp[CellParams::DZ]) -
-                  Bx*((derivs[fieldsolver::dBGBxdz]+derivs[fieldsolver::dPERBxdz])/cp[CellParams::DZ] -
-                      ((derivs[fieldsolver::dBGBzdx]+derivs[fieldsolver::dPERBzdx])/cp[CellParams::DX])))
-          / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
-     }
-     if (RKCase == RK_ORDER2_STEP1) {
-        Bx = cp[CellParams::PERBX_DT2]+cp[CellParams::BGBX];
-        By = cp[CellParams::PERBY_DT2]+cp[CellParams::BGBY];
-        hallRho =  (cp[CellParams::RHO_DT2] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO_DT2] ;
-        EZHall = (By*((derivs[fieldsolver::dBGBzdy]+derivs[fieldsolver::dPERBzdy])/cp[CellParams::DY] -
-                      (derivs[fieldsolver::dBGBydz]+derivs[fieldsolver::dPERBydz])/cp[CellParams::DZ]) -
-                  Bx*((derivs[fieldsolver::dBGBxdz]+derivs[fieldsolver::dPERBxdz])/cp[CellParams::DZ] -
-                      ((derivs[fieldsolver::dBGBzdx]+derivs[fieldsolver::dPERBzdx])/cp[CellParams::DX])))
-          / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
-     }
-
-      cp[CellParams::EZHALL_000_001] =
-      cp[CellParams::EZHALL_100_101] =
-      cp[CellParams::EZHALL_110_111] =
-      cp[CellParams::EZHALL_010_011] = EZHall;
-     break;
-
-   case 2:
-      if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-         hallRho =  (cp[CellParams::RHO] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO] ;
+      case 0:
+         cerr << __FILE__ << __LINE__ << "You shouldn't be in a Hall term function if Parameters::ohmHallTerm == 0." << endl;
+         break;
+      case 1:
+         switch (RKCase) {
+            case RK_ORDER1:
+               Bx = cp[CellParams::PERBX]+cp[CellParams::BGBX];
+               By = cp[CellParams::PERBY]+cp[CellParams::BGBY];
+               hallRho =  (cp[CellParams::RHO_DT2] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO_DT2] ;
+               break;
+            case RK_ORDER2_STEP1:
+               Bx = cp[CellParams::PERBX_DT2]+cp[CellParams::BGBX];
+               By = cp[CellParams::PERBY_DT2]+cp[CellParams::BGBY];
+               hallRho =  (cp[CellParams::RHO_DT2] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO_DT2] ;
+               break;
+            case RK_ORDER2_STEP2:
+               Bx = cp[CellParams::PERBX]+cp[CellParams::BGBX];
+               By = cp[CellParams::PERBY]+cp[CellParams::BGBY];
+               hallRho =  (cp[CellParams::RHO] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO] ;
+               break;
+            default:
+               cerr << __FILE__ << ":" << __LINE__ << ":" << " Fell through a switch." << endl;
+               exit(1);
+               break;
+         }
+         EZHall = (By*((derivs[fieldsolver::dBGBzdy]+derivs[fieldsolver::dPERBzdy])/cp[CellParams::DY] -
+         (derivs[fieldsolver::dBGBydz]+derivs[fieldsolver::dPERBydz])/cp[CellParams::DZ]) -
+         Bx*((derivs[fieldsolver::dBGBxdz]+derivs[fieldsolver::dPERBxdz])/cp[CellParams::DZ] -
+         ((derivs[fieldsolver::dBGBzdx]+derivs[fieldsolver::dPERBzdx])/cp[CellParams::DX])))
+         / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
+         
+         cp[CellParams::EZHALL_000_001] =
+         cp[CellParams::EZHALL_100_101] =
+         cp[CellParams::EZHALL_110_111] =
+         cp[CellParams::EZHALL_010_011] = EZHall;
+         break;
+      case 2:
+         switch (RKCase) {
+            case RK_ORDER1:
+               hallRho =  (cp[CellParams::RHO_DT2] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO_DT2] ;
+               break;
+            case RK_ORDER2_STEP1:
+               hallRho =  (cp[CellParams::RHO_DT2] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO_DT2] ;
+               break;
+            case RK_ORDER2_STEP2:
+               hallRho =  (cp[CellParams::RHO] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO] ;
+               break;
+            default:
+               cerr << __FILE__ << ":" << __LINE__ << ":" << " Fell through a switch." << endl;
+               exit(1);
+               break;
+         }
          cp[CellParams::EZHALL_000_001] = JXBZ_000_001(perturbedCoefficients, cp[CellParams::BGBX], cp[CellParams::BGBY], 
                                                        cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]) 
-           / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
+         / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
          cp[CellParams::EZHALL_100_101] = JXBZ_100_101(perturbedCoefficients, cp[CellParams::BGBX], cp[CellParams::BGBY], 
                                                        cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]) 
-           / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
+         / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
          cp[CellParams::EZHALL_010_011] = JXBZ_010_011(perturbedCoefficients, cp[CellParams::BGBX], cp[CellParams::BGBY], 
                                                        cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]) 
-           / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
+         / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
          cp[CellParams::EZHALL_110_111] = JXBZ_110_111(perturbedCoefficients, cp[CellParams::BGBX], cp[CellParams::BGBY], 
                                                        cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]) 
-           / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
-      }
-      if (RKCase == RK_ORDER2_STEP1) {
-         hallRho =  (cp[CellParams::RHO_DT2] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO_DT2] ;
-         cp[CellParams::EZHALL_000_001] = JXBZ_000_001(perturbedCoefficients, cp[CellParams::BGBX], cp[CellParams::BGBY], 
-                                                       cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]) 
-           / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
-         cp[CellParams::EZHALL_100_101] = JXBZ_100_101(perturbedCoefficients, cp[CellParams::BGBX], cp[CellParams::BGBY], 
-                                                       cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]) 
-           / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
-         cp[CellParams::EZHALL_010_011] = JXBZ_010_011(perturbedCoefficients, cp[CellParams::BGBX], cp[CellParams::BGBY], 
-                                                       cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]) 
-           / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
-         cp[CellParams::EZHALL_110_111] = JXBZ_110_111(perturbedCoefficients, cp[CellParams::BGBX], cp[CellParams::BGBY], 
-                                                       cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]) 
-           / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
-      }
-      break;
-      
-    default:
-      cerr << __FILE__ << ":" << __LINE__ << "You are welcome to code higher-order Hall term correction terms." << endl;
-      break;
+         / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
+         break;
+      default:
+         cerr << __FILE__ << ":" << __LINE__ << "You are welcome to code higher-order Hall term correction terms." << endl;
+         break;
    }
 }
 
