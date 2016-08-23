@@ -313,6 +313,11 @@ void calculateAcceleration(const int& popID,const int& globalMaxSubcycles,const 
                            const Real& dt) {
    // Set active population
    SpatialCell::setCommunicatedSpecies(popID);
+   
+   // Calculate velocity moments, these are needed to 
+   // calculate the transforms used in the accelerations.
+   // Calculated moments are stored in the "_V" variables.
+   calculateMoments_V(mpiGrid, propagatedCells, false);
 
    // Semi-Lagrangian acceleration for those cells which are subcycled
    #pragma omp parallel for schedule(dynamic,1)
@@ -388,10 +393,6 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    }
    phiprof::start("semilag-acc");
     
-    // Calculate first velocity moments, these are needed to 
-    // calculate the transforms used in the accelerations.
-    // Calculated moments are stored in the "_V" variables.
-   calculateMoments_V(mpiGrid,cells,false);
    
    // Accelerate all particle species
     for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
@@ -436,7 +437,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
              
              propagatedCells.swap(temp);
           }
-       
+          // Accelerate population over one subcycle step
           calculateAcceleration(popID,globalMaxSubcycles,step,mpiGrid,propagatedCells,dt);
        } // for-loop over acceleration substeps
        
