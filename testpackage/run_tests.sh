@@ -96,8 +96,8 @@ do
         echo "------------------------------------------------------------"
         echo " ref-time     |   new-time       |  speedup                |"
         echo "------------------------------------------------------------"
-        refPerf=$(grep "Propagate   " ${result_dir}/${comparison_phiprof[$run]}  |gawk '{print $4}')
-        newPerf=$(grep "Propagate   " ${vlsv_dir}/${comparison_phiprof[$run]}  |gawk '{print $4}')
+        refPerf=$(grep "Propagate" ${result_dir}/${comparison_phiprof[$run]} |gawk  '(NR==1){print $21}')
+        newPerf=$(grep "Propagate" ${vlsv_dir}/${comparison_phiprof[$run]}  |gawk  '(NR==1){print $21}')
         speedup=$( echo $refPerf $newPerf |gawk '{print $1/$2}')
         echo  "$refPerf        $newPerf         $speedup"
         echo "------------------------------------------------------------"
