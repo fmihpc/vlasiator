@@ -90,13 +90,31 @@ namespace SBC {
    protected:
       /*! Array of bool telling which faces are going to be processed by the system boundary condition.*/
       bool facesToProcess[6];
+      /*! Array of bool telling which faces are going to be skipped by the Vlasov system boundary condition.*/
+      bool facesToSkipVlasov[6];
+      /*! Array of bool telling which faces are going to be processed by the fields system boundary condition.*/
+      bool facesToSkipFields[6];
       /*! List of faces on which outflow boundary conditions are to be applied ([xyz][+-]). */
       std::vector<std::string> faceList;
+      /*! List of schemes to use for the Vlasov outflow boundary conditions on each face ([xyz][+-]). */
+      std::array<uint, 6> faceVlasovScheme;
+      /*! List of faces on which no fields outflow boundary conditions are to be applied ([xyz][+-]). */
+      std::vector<std::string> faceNoFieldsList;
       Real fieldBoundaryCopyFromExistingFaceNbrMagneticField(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const CellID& cellID,
          cuint& component
       );
+      /*! Factor by which to quench the inflowing parts of the velocity distribution function.*/
+      Real quenchFactor;
+      
+      enum vlasovscheme {
+         NONE,
+         COPY,
+         LIMIT,
+         N_SCHEMES
+      };
+      
    }; // class Outflow
 } // namespace SBC
 

@@ -249,6 +249,7 @@ namespace spatial_cell {
       vmesh::VelocityBlockContainer<vmesh::LocalID>& get_velocity_blocks_temporary();
 
       Realf get_value(const Real vx,const Real vy,const Real vz,const int& popID) const;
+      Realf get_value(const vmesh::GlobalID& blockGID, const unsigned int cell, const int& popID) const;
       void increment_value(const Real vx,const Real vy,const Real vz,const Realf value,const int& popID);
       void increment_value(const vmesh::GlobalID& block,const unsigned int cell,const Realf value,const int& popID);
       void set_max_r_dt(const int& popID,const Real& value);
@@ -1476,19 +1477,39 @@ namespace spatial_cell {
          exit(1);
       }
       #endif
-      
-      const vmesh::GlobalID blockGID = get_velocity_block(popID,vx, vy, vz);
-      const vmesh::LocalID blockLID = get_velocity_block_local_id(blockGID,popID);
-
-      if (blockLID == SpatialCell::invalid_local_id()) {
-          return 0.0;
+      const vmesh::GlobalID blockGID = get_velocity_block(popID, vx, vy, vz);
+      if (count(blockGID,popID) == 0) {
+         return 0.0;
+      }
+      const vmesh::LocalID blockLID = get_velocity_block_local_id(blockGID, popID);
+      //const Velocity_Block block_ptr = at(block);
+      if (blockLID == invalid_local_id()) {
+      //if (block_ptr.is_null() == true) {
+         std::cerr << __FILE__ << ":" << __LINE__
+            << " block_ptr == NULL" << std::endl; 
+         abort();
       }
 
-      const unsigned int cell = get_velocity_cell(popID,blockGID, vx, vy, vz);
-      // Cast to real: Note block_ptr->data[cell] is Realf type
+      const unsigned int cell = get_velocity_cell(popID, blockGID, vx, vy, vz);
+      
       return get_data(blockLID,popID)[cell];
    }
-   
+
+   inline Realf SpatialCell::get_value(const vmesh::GlobalID& blockGID, const unsigned int cell, const int& popID) const {
+      if (count(blockGID, popID) == 0) {
+         return 0.0;
+      }
+      const vmesh::LocalID blockLID = get_velocity_block_local_id(blockGID, popID);
+      //const Velocity_Block block_ptr = at(block);
+      if (blockLID == invalid_local_id()) {
+      //if (block_ptr.is_null() == true) {
+         std::cerr << __FILE__ << ":" << __LINE__
+            << " block_ptr == NULL" << std::endl; 
+         abort();
+      }
+      return get_data(blockLID,popID)[cell];
+   }
+
    inline bool SpatialCell::checkMesh(const int& popID) {
       #ifdef DEBUG_SPATIAL_CELL
       if (popID >= populations.size()) {
@@ -1594,7 +1615,7 @@ namespace spatial_cell {
 
       // Set block data to zero values:
       Realf* data = populations[popID].blockContainer.getData(VBC_LID);
-      for (int i=0; i<WID*WID*WID; ++i) data[i] = 0;
+      for (unsigned int i=0; i<WID*WID*WID; ++i) data[i] = 0;
 
       // Set block parameters:
 //      Real* parameters = get_block_parameters(populations[popID].vmesh.getLocalID(block));

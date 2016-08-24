@@ -6,6 +6,8 @@ Copyright 2014 Finnish Meteorological Institute
 #include <cstdlib>
 #include <string.h>
 #include <iostream>
+#include <math.h>
+#include <unordered_map> // for hasher
 #include "logger.h"
 #include "memoryallocation.h"
 #ifdef PAPI_MEM
@@ -83,10 +85,33 @@ uint64_t get_node_free_memory(){
 /*! Measures memory consumption and writes it into logfile. Collective operation on MPI_COMM_WORLD
  */
 void report_process_memory_consumption(){
-   /*now report memory consumption into logfile*/
-   int rank,n_procs;
-   MPI_Comm_size(MPI_COMM_WORLD, &n_procs);
+   /*Report memory consumption into logfile*/
+
+   char nodename[MPI_MAX_PROCESSOR_NAME]; 
+   int namelength, nodehash;
+   int rank, nProcs, nodeRank, interRank;
+   int nNodes;
+   const double GiB = pow(2,30);
+   const double TiB = pow(2,40);
+
+   hash<string> hasher; 
+   MPI_Comm nodeComm;
+   MPI_Comm interComm;
+   
+
+   MPI_Comm_size(MPI_COMM_WORLD, &nProcs);
    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  
+   //get name of this node
+   MPI_Get_processor_name(nodename,&namelength);   
+   nodehash=(int)hasher(string(nodename));   
+   //intra-node communicator
+   MPI_Comm_split(MPI_COMM_WORLD, nodehash, rank, &nodeComm);
+   MPI_Comm_rank(nodeComm,&nodeRank);
+   //create communicator for inter-node communication
+   MPI_Comm_split(MPI_COMM_WORLD, nodeRank, rank, &interComm);
+   MPI_Comm_rank(interComm, &interRank);
+   MPI_Comm_size(interComm, &nNodes);
 
 #ifdef PAPI_MEM
    /*If we have PAPI, we can report the resident usage of the process*/
@@ -94,21 +119,33 @@ void report_process_memory_consumption(){
       PAPI_dmem_info_t dmem;  
       PAPI_get_dmem_info(&dmem);
       double mem_papi[2] = {};
+      double node_mem_papi[2] = {};
       double sum_mem_papi[2];
       double min_mem_papi[2];
       double max_mem_papi[2];
       /*PAPI returns memory in KB units, transform to bytes*/
-      mem_papi[0] = dmem.high_water_mark * 1024; 
+      mem_papi[0] = dmem.high_water_mark * 1024;
       mem_papi[1] = dmem.resident * 1024;
-      MPI_Reduce(mem_papi, sum_mem_papi, 2, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
-      MPI_Reduce(mem_papi, min_mem_papi, 2, MPI_DOUBLE, MPI_MIN, 0, MPI_COMM_WORLD);
-      MPI_Reduce(mem_papi, max_mem_papi, 2, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
-      logFile << "(MEM) PAPI Resident (avg, min, max): " << sum_mem_papi[1]/n_procs << " " << min_mem_papi[1] << " "  << max_mem_papi[1] << endl;
-      logFile << "(MEM) PAPI High water mark (avg, min, max): " << sum_mem_papi[0]/n_procs << " " << min_mem_papi[0] << " "  << max_mem_papi[0] << endl;
-   }   
+      //sum node mem
+      MPI_Reduce(mem_papi, node_mem_papi, 2, MPI_DOUBLE, MPI_SUM, 0, nodeComm);
+      
+      //rank 0 on all nodes do total reduces
+      if(nodeRank == 0) {
+         MPI_Reduce(node_mem_papi, sum_mem_papi, 2, MPI_DOUBLE, MPI_SUM, 0, interComm);
+         MPI_Reduce(node_mem_papi, min_mem_papi, 2, MPI_DOUBLE, MPI_MIN, 0, interComm);
+         MPI_Reduce(node_mem_papi, max_mem_papi, 2, MPI_DOUBLE, MPI_MAX, 0, interComm);
+         //  logFile << "(MEM) Resident per node (avg, min, max): " << sum_mem_papi[1]/nNodes << " " << min_mem_papi[1] << " "  << max_mem_papi[1] << endl;
+         logFile << "(MEM) High water mark per node (GiB) avg: " << sum_mem_papi[0]/nNodes/GiB << " min: " << min_mem_papi[0]/GiB << " max: "  << max_mem_papi[0]/GiB <<
+            " sum (TiB): " << sum_mem_papi[0]/TiB << " on "<< nNodes << " nodes" << endl;
+         
+      }   
+   }
+   
 #endif
 
-   // Report /proc/meminfo memory consumption:
+
+   /*
+   // Report /proc/meminfo memory consumption.      
    double mem_proc_free = (double)get_node_free_memory();
    double total_mem_proc = 0;
    double min_free,max_free;
@@ -119,6 +156,11 @@ void report_process_memory_consumption(){
    MPI_Reduce( &mem_proc_free, &max_free, numberOfParameters, MPI_DOUBLE, MPI_MAX, root, MPI_COMM_WORLD );
    logFile << "(MEM) Node free memory (avg, min, max): " << total_mem_proc/n_procs << " " << min_free << " " << max_free << endl;
    logFile << writeVerbose;
+   */
+
+   MPI_Comm_free(&interComm);
+   MPI_Comm_free(&nodeComm);
+
 }
 
 

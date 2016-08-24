@@ -114,6 +114,7 @@ bool ParticleParameters::getParameters() {
    Readparameters::get("particles.end_time",P::end_time);
    Readparameters::get("particles.num_particles",P::num_particles);
    if(P::dt == 0 || P::end_time <= P::start_time) {
+      std::cerr << "Error end_time <= start_time! Won't do anything (and will probably crash now)." << std::endl;
       return false;
    }
 
