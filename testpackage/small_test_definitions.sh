@@ -22,48 +22,48 @@ run_tests=( 1 2 3 4 5 6 7 8 9)
 test_name[1]="acctest_2_maxw_500k_100k_20kms_10deg"
 comparison_vlsv[1]="fullf.0000001.vlsv"
 #only one process does anything -> in _1 phiprof here
-comparison_phiprof[1]="phiprof_full_1.txt"
+comparison_phiprof[1]="phiprof_1.txt"
 
 # translation test
 test_name[2]="transtest_2_maxw_500k_100k_20kms_20x20"
 comparison_vlsv[2]="fullf.0000001.vlsv"
 #only one process does anything -> in _1 phiprof here
-comparison_phiprof[2]="phiprof_full_0.txt"
+comparison_phiprof[2]="phiprof_0.txt"
 
 #very small magnetosphere, tests all at once
 test_name[3]="Magnetosphere_small"
 comparison_vlsv[3]="bulk.0000001.vlsv"
 #only one process does anything -> in _1 phiprof here
-comparison_phiprof[3]="phiprof_full_0.txt"
+comparison_phiprof[3]="phiprof_0.txt"
 
 #Acceleration of 1 maxwellian, corresponds to SW
 test_name[4]="acctest_1_maxw_500k_30kms_1deg"
 comparison_vlsv[4]="fullf.0000001.vlsv"
 #only one process does anything -> in _1 phiprof here
-comparison_phiprof[4]="phiprof_full_1.txt"
+comparison_phiprof[4]="phiprof_1.txt"
 
 # Field solver test
 test_name[5]="test_fp_fsolver_only_3D"
 comparison_vlsv[5]="fullf.0000001.vlsv"
-comparison_phiprof[5]="phiprof_full_0.txt"
+comparison_phiprof[5]="phiprof_0.txt"
 
 # Flowthrough tests
 test_name[6]="Flowthrough_trans_periodic"
 comparison_vlsv[6]="bulk.0000001.vlsv"
-comparison_phiprof[6]="phiprof_full_0.txt"
+comparison_phiprof[6]="phiprof_0.txt"
 
 test_name[7]="Flowthrough_x_inflow_y_outflow"
 comparison_vlsv[7]="bulk.0000001.vlsv"
-comparison_phiprof[7]="phiprof_full_0.txt"
+comparison_phiprof[7]="phiprof_0.txt"
 
 test_name[8]="Flowthrough_x_inflow_y_outflow_acc"
 comparison_vlsv[8]="bulk.0000001.vlsv"
-comparison_phiprof[8]="phiprof_full_0.txt"
+comparison_phiprof[8]="phiprof_0.txt"
 
 # Self-consistent wave generation test
 test_name[9]="Selfgen_Waves_Periodic"
 comparison_vlsv[9]="fullf.0000001.vlsv"
-comparison_phiprof[9]="phiprof_full_0.txt"
+comparison_phiprof[9]="phiprof_0.txt"
 
 # define here the variables you want to be tested
 variables_name=( "rho" "rho_v" "rho_v" "rho_v" "B" "B" "B" "E" "E" "E" "proton" )

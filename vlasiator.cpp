@@ -238,6 +238,8 @@ int main(int argn,char* args[]) {
       exit(1);
    }
    
+   phiprof::initialize();
+   
    double initialWtime =  MPI_Wtime();
    
    MPI_Comm comm = MPI_COMM_WORLD;
@@ -489,10 +491,7 @@ int main(int argn,char* args[]) {
           P::tstep % (P::diagnosticInterval*10) == 0 &&
           P::tstep-P::tstep_min >0) {
 
-         phiprof::print(MPI_COMM_WORLD,"phiprof_reduced",0.01);
-         // MPI_Barrier(MPI_COMM_WORLD);
-         phiprof::print(MPI_COMM_WORLD,"phiprof_full");
-         // phiprof::printLogProfile(MPI_COMM_WORLD,P::tstep,"phiprof_log"," ",7);
+         phiprof::print(MPI_COMM_WORLD,"phiprof");
          
          double currentTime=MPI_Wtime();
          double timePerStep=double(currentTime  - beforeTime) / (P::tstep-beforeStep);
@@ -512,18 +511,6 @@ int main(int argn,char* args[]) {
       }
       logFile << writeVerbose;
       phiprof::stop("logfile-io");
-
-
-      if (P::diagnosticInterval != 0 &&
-          P::tstep % (P::diagnosticInterval*10) == 0 &&
-          P::tstep-P::tstep_min >0) {
-         phiprof::start("phiprof-io");
-         phiprof::print(MPI_COMM_WORLD,"phiprof_reduced",0.01);
-         // MPI_Barrier(MPI_COMM_WORLD);
-         //phiprof::print(MPI_COMM_WORLD,"phiprof_full");
-         // phiprof::printLogProfile(MPI_COMM_WORLD,P::tstep,"phiprof_log"," ",7);
-         phiprof::stop("phiprof-io");
-      }
 
       
 // Check whether diagnostic output has to be produced
@@ -796,9 +783,7 @@ int main(int argn,char* args[]) {
    phiprof::stop("Finalization");
    phiprof::stop("main");
    
-   phiprof::print(MPI_COMM_WORLD,"phiprof_full");
-   phiprof::print(MPI_COMM_WORLD,"phiprof_reduced",0.01);
-   phiprof::printLogProfile(MPI_COMM_WORLD,P::tstep,"phiprof_log"," ",7);
+   phiprof::print(MPI_COMM_WORLD,"phiprof");
    
    if (myRank == MASTER_RANK) logFile << "(MAIN): Exiting." << endl << writeVerbose;
    logFile.close();
