@@ -353,7 +353,7 @@ void ipShockScenario::afterPush(int step, double time, std::vector<Particle>& pa
 		particles[i].x[0], particles[i].x[1], particles[i].x[2],
 		particles[i].v[0], particles[i].v[1], particles[i].v[2],
 		.5 * particles[i].m * dot_product(particles[i].v, particles[i].v) / PhysicalConstantsSI::e,
-		dot_product(normalize_vector(particles[i].v), normalize_vector(B)) );
+		dot_product(normalize_vector(particles[i].v), normalize_vector(B(particles[i].x))) );
 
 	// Disable by setting position to NaN and velocity to 0
 	particles[i].x = Vec3d(std::numeric_limits<double>::quiet_NaN(),0.,0.);
@@ -368,7 +368,7 @@ void ipShockScenario::afterPush(int step, double time, std::vector<Particle>& pa
 		particles[i].x[0], particles[i].x[1], particles[i].x[2],
 		particles[i].v[0], particles[i].v[1], particles[i].v[2],
 		.5 * particles[i].m * dot_product(particles[i].v, particles[i].v) / PhysicalConstantsSI::e,
-		dot_product(normalize_vector(particles[i].v), normalize_vector(B)) );
+		dot_product(normalize_vector(particles[i].v), normalize_vector(B(particles[i].x))) );
 
 	// Disable by setting position to NaN and velocity to 0
 	particles[i].x = Vec3d(std::numeric_limits<double>::quiet_NaN(),0.,0.);

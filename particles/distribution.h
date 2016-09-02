@@ -12,6 +12,7 @@ class Distribution
       Distribution(std::default_random_engine& _rand, Real _mass, Real _charge)
          : mass(_mass), charge(_charge),rand(_rand) {};
       Distribution(std::default_random_engine& _rand);
+      virtual ~Distribution();// Destructor
       virtual Particle next_particle() = 0;
    protected:
       Real mass,charge;

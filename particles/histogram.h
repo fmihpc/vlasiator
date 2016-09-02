@@ -245,15 +245,16 @@ class LinLogHistogram2D : public Histogram2D
          low(_low), high(_high) {};
 
       virtual void addValue(Vec2d value, double weight=1.) {
-         value[0] -= low[0];
-         value[0] /= high[0] - low[0];
-         value[1] /= low[1];
-         value[1] = log(value[1]);
-         value[1] /= log(high[1] / low[1]);
+         double v[2];
+         v[0] -= low[0];
+         v[0] /= high[0] - low[0];
+         v[1] /= low[1];
+         v[1] = log(v[1]);
+         v[1] /= log(high[1] / low[1]);
 
          int histogram_bin[2];
-         histogram_bin[0] = value[0] * num_bins[0];
-         histogram_bin[1] = value[1] * num_bins[1];
+         histogram_bin[0] = v[0] * num_bins[0];
+         histogram_bin[1] = v[1] * num_bins[1];
 
          for(int i = 0; i < 2; i++) {
             if(histogram_bin[i] < 0) {
