@@ -97,6 +97,20 @@ struct shockReflectivityScenario : Scenario {
       }
 };
 
+// Initialize particles on a plane in front of the shock, track their precipitation upstream or downstream
+struct ipShockScenario : Scenario {
+  FILE * traFile;
+  FILE * refFile;
+
+  std::vector<Particle> initialParticles(Field& E, Field& B, Field& V);
+  void newTimestep(int input_file_counter, int step, double time, std::vector<Particle>& particles, Field& E, Field& B,
+        Field& V);
+  void afterPush(int step, double time, std::vector<Particle>& particles, Field& E, Field& B, Field& V);
+  void finalize(std::vector<Particle>& particles, Field& E, Field& B, Field& V);
+
+  ipShockScenario() {needV = true;};
+};
+
 template<typename T> Scenario* createScenario() {
   return new T;
 }

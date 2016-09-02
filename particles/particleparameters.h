@@ -40,6 +40,15 @@ struct ParticleParameters {
    static Real reflect_upstream_boundary; /*!< Distance from particle injection point at which particles are to be counted as 'reflected' */
    static Real reflect_downstream_boundary; /*!< Distance from particle injection point at which particles are to be counted as 'transmitted' */
 
+   static Real ipshock_inject_x0; /*!< Smaller x-coordinate for particle injection (meters) */
+   static Real ipshock_inject_x1; /*!< Larger x-coordinate for particle injection (meters) */
+   static Real ipshock_inject_y0; /*!< Smaller y-coordinate for particle injection (meters) */
+   static Real ipshock_inject_y1; /*!< Larger y-coordinate for particle injection (meters) */
+   static Real ipshock_inject_z0; /*!< Smaller z-coordinate for particle injection (meters) */
+   static Real ipshock_inject_z1; /*!< Larger z-coordinate for particle injection (meters) */
+   static Real ipshock_transmit;  /*!< X-Coordinate for particle transmission (downstream) (meters) */
+   static Real ipshock_reflect;   /*!< X-Coordinate for particle reflection (upstream) (meters) */
+
    static std::default_random_engine::result_type random_seed; /*!< Random seed for particle creation */
    static Distribution* (*distribution)(std::default_random_engine&); /*!< Type of distribution from which to sample the particles */
    static Real temperature; /*!< Initial particle temperature (for distributions where a temperature is meaningful) */

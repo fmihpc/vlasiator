@@ -1,3 +1,4 @@
+#include <random>
 #include <iostream>
 #include "scenario.h"
 
@@ -272,6 +273,123 @@ void shockReflectivityScenario::finalize(std::vector<Particle>& particles, Field
    reflected.save("reflected.dat");
    reflected.writeBovAscii("reflected.dat.bov",0,"reflected.dat");
 }
+
+
+
+
+std::vector<Particle> ipShockScenario::initialParticles(Field& E, Field& B, Field& V) {
+
+  // Open output files for transmission and reflection
+  traFile = fopen("transmitted.dat","w"); 
+  refFile = fopen("reflected.dat","w"); 
+  
+   std::vector<Particle> particles;
+
+   /* Prepare randomization engines */
+   std::default_random_engine generator(ParticleParameters::random_seed);
+   Distribution* velocity_distribution=ParticleParameters::distribution(generator);
+
+   std::random_device rd;
+   std::mt19937 gen(rd());
+   std::uniform_real_distribution<> disx(ParticleParameters::ipshock_inject_x0, ParticleParameters::ipshock_inject_x1);
+   std::uniform_real_distribution<> disy(ParticleParameters::ipshock_inject_y0, ParticleParameters::ipshock_inject_y1);
+   std::uniform_real_distribution<> disz(ParticleParameters::ipshock_inject_z0, ParticleParameters::ipshock_inject_z1);
+
+   /* Loop over particles to generate */
+   for(unsigned int i=0; i< ParticleParameters::num_particles; i++) {
+     /* Create a particle at a random position within the initialisation box */
+     Real posx = disx(gen);
+     Real posy = disy(gen);
+     Real posz = disz(gen);
+     Vec3d vpos(posx, posy, posz);
+
+     /* Look up bulk velocity in the V-field */
+     Vec3d bulk_vel = V(vpos); 
+     
+     /* Create a particle with velocity drawn from the given distribution ... */
+     Particle p = velocity_distribution->next_particle();
+     /* Shift it by the bulk velocity ... */
+     p.v += bulk_vel;
+     /* And put it in place. */
+     p.x=vpos;
+     particles.push_back(p);
+   }
+
+   delete velocity_distribution;
+   return particles;
+}
+
+void ipShockScenario::newTimestep(int input_file_counter, int step, double time, std::vector<Particle>& particles,
+      Field& E, Field& B, Field& V) {
+
+   char filename_buffer[256];
+
+   snprintf(filename_buffer,256, ParticleParameters::output_filename_pattern.c_str(),input_file_counter-1);
+   writeParticles(particles, filename_buffer); //Generates VLSV file
+}
+
+void ipShockScenario::afterPush(int step, double time, std::vector<Particle>& particles,
+      Field& E, Field& B, Field& V) {
+  
+  /* Perform transmission / reflection check for each particle */
+   for(unsigned int i=0; i<particles.size(); i++) {
+
+      if(isnan(vector_length(particles[i].x))) {
+         // skip disabled particles
+         continue;
+      }
+
+      //Get particle's x-coordinate
+      double x = particles[i].x[0];
+
+      // Check if the particle hit a boundary. 
+      // If yes, print it and mark it as disabled.
+      if(particles[i].x[0] < ParticleParameters::ipshock_transmit) {
+	// Record it as transmitted.
+	//transmitted.addValue(Vec2d(y,start_time));
+	
+	// Write particle information to a file
+	fprintf(traFile,"%lf %lf %lf %lf %lf %lf %lf %lf %lf\n", time, 
+		particles[i].x[0], particles[i].x[1], particles[i].x[2],
+		particles[i].v[0], particles[i].v[1], particles[i].v[2],
+		.5 * particles[i].m * dot_product(particles[i].v, particles[i].v) / PhysicalConstantsSI::e,
+		dot_product(normalize_vector(particles[i].v), normalize_vector(B)) );
+
+	// Disable by setting position to NaN and velocity to 0
+	particles[i].x = Vec3d(std::numeric_limits<double>::quiet_NaN(),0.,0.);
+	particles[i].v = Vec3d(0,0,0);
+      } else if (particles[i].x[0] > ParticleParameters::ipshock_reflect) {
+	// Record it as reflected
+	//reflected.addValue(Vec2d(y,start_time));
+	
+	// Write particle information to a file
+	// Write particle information to a file
+	fprintf(refFile,"%lf %lf %lf %lf %lf %lf %lf %lf %lf\n", time, 
+		particles[i].x[0], particles[i].x[1], particles[i].x[2],
+		particles[i].v[0], particles[i].v[1], particles[i].v[2],
+		.5 * particles[i].m * dot_product(particles[i].v, particles[i].v) / PhysicalConstantsSI::e,
+		dot_product(normalize_vector(particles[i].v), normalize_vector(B)) );
+
+	// Disable by setting position to NaN and velocity to 0
+	particles[i].x = Vec3d(std::numeric_limits<double>::quiet_NaN(),0.,0.);
+	particles[i].v = Vec3d(0.,0.,0.);
+      }
+   }
+}
+
+void ipShockScenario::finalize(std::vector<Particle>& particles, Field& E, Field& B, Field& V) {
+   writeParticles(particles, "particles_final.vlsv");
+   /* histograms */
+   //transmitted.save("transmitted.dat");
+   //transmitted.writeBovAscii("transmitted.dat.bov",0,"transmitted.dat");
+   //reflected.save("reflected.dat");
+   //reflected.writeBovAscii("reflected.dat.bov",0,"reflected.dat");
+   
+   fclose(traFile);
+   fclose(refFile);
+}
+
+
 
 Scenario* createScenario(std::string name) {
    std::map<std::string, Scenario*(*)()> scenario_lookup;

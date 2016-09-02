@@ -42,6 +42,15 @@ Real P::reflect_x_offset;
 Real P::reflect_upstream_boundary;
 Real P::reflect_downstream_boundary;
 
+Real P::ipshock_inject_x0;
+Real P::ipshock_inject_x1;
+Real P::ipshock_inject_y0;
+Real P::ipshock_inject_y1;
+Real P::ipshock_inject_z0;
+Real P::ipshock_inject_z1;
+Real P::ipshock_transmit;
+Real P::ipshock_reflect;
+
 bool ParticleParameters::addParameters() {
    Readparameters::add("particles.input_filename_pattern","Printf() like pattern giving the field input filenames.",
          std::string("bulk.%07i.vlsv"));
@@ -94,6 +103,24 @@ bool ParticleParameters::addParameters() {
          "Distance from particle injection point at which particles are to be counted as 'reflected'", 10e6);
    Readparameters::add("particles.reflect_downstream_boundary",
          "Distance from particle injection point at which particles are to be counted as 'transmitted'", 10e6);
+
+   // Parameters for ip shock injection test mode
+   Readparameters::add("particles.ipshock_inject_x0",
+         "X-Coordinate of the lower edge of particle injection region for the ipShock scenario", -1.e6);
+   Readparameters::add("particles.ipshock_inject_x1",
+         "X-Coordinate of the upper edge of particle injection region for the ipShock scenario", 1.e6);
+   Readparameters::add("particles.ipshock_inject_y0",
+         "Y-Coordinate of the lower edge of particle injection region for the ipShock scenario", -1.e6);
+   Readparameters::add("particles.ipshock_inject_y1",
+         "Y-Coordinate of the upper edge of particle injection region for the ipShock scenario", 1.e6);
+   Readparameters::add("particles.ipshock_inject_z0",
+         "Z-Coordinate of the lower edge of particle injection region for the ipShock scenario", -1.e6);
+   Readparameters::add("particles.ipshock_inject_z1",
+         "Z-Coordinate of the upper edge of particle injection region for the ipShock scenario", 1.e6);
+   Readparameters::add("particles.ipshock_transmit",
+         "X-Coordinate of threshold for where particles are counted  as transmitted for the ipShock scenario", -10.e6);
+   Readparameters::add("particles.ipshock_reflect",
+         "X-Coordinate of threshold for where particles are counted  as reflected for the ipShock scenario", 10.e6);
 
    return true;
 }
@@ -179,6 +206,15 @@ bool ParticleParameters::getParameters() {
    Readparameters::get("particles.reflect_x_offset", P::reflect_x_offset);
    Readparameters::get("particles.reflect_upstream_boundary", P::reflect_upstream_boundary);
    Readparameters::get("particles.reflect_downstream_boundary", P::reflect_downstream_boundary);
+
+   Readparameters::get("particles.ipshock_inject_x0", P::ipshock_inject_x0);
+   Readparameters::get("particles.ipshock_inject_x1", P::ipshock_inject_x1);
+   Readparameters::get("particles.ipshock_inject_y0", P::ipshock_inject_y0);
+   Readparameters::get("particles.ipshock_inject_y1", P::ipshock_inject_y1);
+   Readparameters::get("particles.ipshock_inject_z0", P::ipshock_inject_z0);
+   Readparameters::get("particles.ipshock_inject_z1", P::ipshock_inject_z1);
+   Readparameters::get("particles.ipshock_transmit", P::ipshock_transmit);
+   Readparameters::get("particles.ipshock_reflect", P::ipshock_reflect);
 
    return true;
 }
