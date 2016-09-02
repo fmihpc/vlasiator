@@ -7,6 +7,8 @@ Distribution::Distribution(std::default_random_engine& _rand) : rand(_rand) {
    mass = ParticleParameters::mass;
    charge = ParticleParameters::charge;
 }
+Distribution::~Distribution() { }
+
 Maxwell_Boltzmann::Maxwell_Boltzmann(std::default_random_engine& _rand) : Distribution(_rand) {
    Real kT = ParticleParameters::temperature * PhysicalConstantsSI::k;
    velocity_distribution=std::normal_distribution<Real>(0.,sqrt(kT/mass));
