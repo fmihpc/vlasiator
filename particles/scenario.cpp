@@ -398,6 +398,7 @@ Scenario* createScenario(std::string name) {
    scenario_lookup["precipitation"]=&createScenario<precipitationScenario>;
    scenario_lookup["analysator"]=&createScenario<analysatorScenario>;
    scenario_lookup["reflectivity"]=&createScenario<shockReflectivityScenario>;
+   scenario_lookup["ipshock"]=&createScenario<ipShockScenario>;
 
    if(scenario_lookup.find(name) == scenario_lookup.end()) {
       std::cerr << "Error: can't find particle pusher mode \"" << name << "\". Aborting." << std::endl;
