@@ -753,6 +753,52 @@ int main(int argn,char* args[]) {
          phiprof::stop("Shrink_to_fit");
          logFile << "(LB): ... done!"  << endl << writeVerbose;
          P::prepareForRebalance = false;
+
+         // Re-couple fsgrids to updated grid situation
+         phiprof::start("fsgrid_recouple_after_lb");
+         const vector<CellID>& cells = getLocalCells();
+         perBGrid.setupForGridCoupling(cells.size());
+         perBDt2Grid.setupForGridCoupling(cells.size());
+         EGrid.setupForGridCoupling(cells.size());
+         EDt2Grid.setupForGridCoupling(cells.size());
+         EHallGrid.setupForGridCoupling(cells.size());
+         EGradPeGrid.setupForGridCoupling(cells.size());
+         momentsGrid.setupForGridCoupling(cells.size());
+         momentsDt2Grid.setupForGridCoupling(cells.size());
+         dPerBGrid.setupForGridCoupling(cells.size());
+         dMomentsGrid.setupForGridCoupling(cells.size());
+         BgBGrid.setupForGridCoupling(cells.size());
+         volGrid.setupForGridCoupling(cells.size());
+         technicalGrid.setupForGridCoupling(cells.size());
+         for(unsigned int i=0; i<cells.size(); i++) {
+            perBGrid.setGridCoupling(cells[i] - 1, myRank);
+            perBDt2Grid.setGridCoupling(cells[i] - 1, myRank);
+            EGrid.setGridCoupling(cells[i] - 1, myRank);
+            EDt2Grid.setGridCoupling(cells[i] - 1, myRank);
+            EHallGrid.setGridCoupling(cells[i] - 1, myRank);
+            EGradPeGrid.setGridCoupling(cells[i] - 1, myRank);
+            momentsGrid.setGridCoupling(cells[i] - 1, myRank);
+            momentsDt2Grid.setGridCoupling(cells[i] - 1, myRank);
+            dPerBGrid.setGridCoupling(cells[i] - 1, myRank);
+            dMomentsGrid.setGridCoupling(cells[i] - 1, myRank);
+            BgBGrid.setGridCoupling(cells[i] - 1, myRank);
+            volGrid.setGridCoupling(cells[i] - 1, myRank);
+            technicalGrid.setGridCoupling(cells[i] - 1, myRank);
+         }
+         perBGrid.finishGridCoupling();
+         perBDt2Grid.finishGridCoupling();
+         EGrid.finishGridCoupling();
+         EDt2Grid.finishGridCoupling();
+         EHallGrid.finishGridCoupling();
+         EGradPeGrid.finishGridCoupling();
+         momentsGrid.finishGridCoupling();
+         momentsDt2Grid.finishGridCoupling();
+         dPerBGrid.finishGridCoupling();
+         dMomentsGrid.finishGridCoupling();
+         BgBGrid.finishGridCoupling();
+         volGrid.finishGridCoupling();
+         technicalGrid.finishGridCoupling();
+         phiprof::stop("fsgrid_recouple_after_lb");
       }
 
       //get local cells
