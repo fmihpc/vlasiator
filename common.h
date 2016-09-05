@@ -212,6 +212,7 @@ namespace CellParams {
       BGEXVOL,    /*!< Background electric field averaged over spatial cell, x-component.*/
       BGEYVOL,    /*!< Background electric field averaged over spatial cell, y-component.*/
       BGEZVOL,    /*!< Background electric field averaged over spatial cell, z-component.*/
+      FSGRID_RANK, /*!< Rank of this cell in the FsGrid cartesian communicator */
       N_SPATIAL_CELL_PARAMS
    };
 }
@@ -484,6 +485,7 @@ namespace fsgrids {
       int sysBoundaryFlag;  /*!< System boundary flags. */
       int sysBoundaryLayer; /*!< System boundary layer index. */
       Real maxFsDt;         /*!< maximum timestep allowed in ordinary space by fieldsolver for this cell**/
+      int fsGridRank;       /*!< Rank in the fsGrids cartesian coordinator */
    };
    
 }

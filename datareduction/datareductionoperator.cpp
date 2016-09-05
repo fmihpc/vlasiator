@@ -279,6 +279,30 @@ namespace DRO {
       return true;
    }
    
+   //FsGrid cartcomm mpi rank
+   FsGridRank::FsGridRank(): DataReductionOperator() { }
+   FsGridRank::~FsGridRank() { }
+   
+   bool FsGridRank::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "int";
+      dataSize = 4;
+      vectorSize = 1;
+      return true;
+   }
+   
+   std::string FsGridRank::getName() const {return "FSgrid_rank";}
+   
+   bool FsGridRank::reduceData(const SpatialCell* cell,char* buffer) {
+      const char* ptr = reinterpret_cast<const char*>(&fsgridRank);
+      for (uint i=0; i<sizeof(int); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+   
+   bool FsGridRank::setSpatialCell(const SpatialCell* cell) {
+      fsgridRank = cell->get_cell_parameters()[CellParams::FSGRID_RANK];
+      return true;
+   }
+
    // BoundaryType
    BoundaryType::BoundaryType(): DataReductionOperator() { }
    BoundaryType::~BoundaryType() { }

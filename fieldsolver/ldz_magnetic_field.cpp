@@ -210,6 +210,10 @@ void propagateMagneticFieldSimple(
    for (int k=0; k<gridDims[2]; k++) {
       for (int j=0; j<gridDims[1]; j++) {
          for (int i=0; i<gridDims[0]; i++) {
+
+            // Set the fsgrid rank in the technical grid
+            technicalGrid.get(i,j,k)->fsGridRank=technicalGrid.getRank();
+
             if(technicalGrid.get(i,j,k)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) continue;
             // Propagate B on all local cells:
             propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase);

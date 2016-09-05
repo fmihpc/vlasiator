@@ -104,6 +104,7 @@ void getFsGridMaxDt(FsGrid< fsgrids::technical, 2>& technicalGrid,
    // After the transfer is completed, stuff the recieved maxFDt into the cells.
    count=0;
    for(CellID i : cells) {
-      mpiGrid[i]->get_cell_parameters()[CellParams::MAXFDT] = transferBuffer[count++].maxFsDt;
+      mpiGrid[i]->get_cell_parameters()[CellParams::MAXFDT] = transferBuffer[count].maxFsDt;
+      mpiGrid[i]->get_cell_parameters()[CellParams::FSGRID_RANK] = transferBuffer[count++].fsGridRank;
    }
 }
