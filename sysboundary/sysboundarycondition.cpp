@@ -784,7 +784,7 @@ namespace SBC {
    }
    
    /*! Get the cellID of the first closest cell of type NOT_SYSBOUNDARY found.
-    * \param cellID ID of the cell to start look from.
+    * \param i,j,k Coordinates of the cell to start looking from
     * \return The cell index of that cell
     * \sa getAllClosestNonsysboundaryCells
     */
@@ -799,7 +799,7 @@ namespace SBC {
    }
    
    /*! Get the cellIDs of all the closest cells of type NOT_SYSBOUNDARY.
-    * \param cellID ID of the cell to start look from.
+    * \param i,j,k Coordinates of the cell to start looking from
     * \return The vector of cell indices of those cells
     * \sa getTheClosestNonsysboundaryCell
     */
@@ -815,7 +815,7 @@ namespace SBC {
       for (int kk=-2; kk<3; kk++) {
          for (int jj=-2; jj<3; jj++) {
             for (int ii=-2; ii<3 ; ii++) {
-               if( technicalGrid.get(ii,jj,kk)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+               if( technicalGrid.get(i+ii,j+jj,k+kk)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
                   distance = min(distance, ii*ii + jj*jj + kk*kk);
                }
             }
@@ -825,10 +825,10 @@ namespace SBC {
       for (int kk=-2; kk<3; kk++) {
          for (int jj=-2; jj<3; jj++) {
             for (int ii=-2; ii<3 ; ii++) {
-               if( technicalGrid.get(ii,jj,kk)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+               if( technicalGrid.get(i+ii,j+jj,k+kk)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
                   int d = ii*ii + jj*jj + kk*kk;
                   if( d == distance ) {
-                     std::array<int, 3> cell = {ii, jj, kk};
+                     std::array<int, 3> cell = {i+ii, j+jj, k+kk};
                      closestCells.push_back(cell);
                   }
                }
