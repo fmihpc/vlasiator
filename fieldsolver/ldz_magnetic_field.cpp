@@ -241,7 +241,8 @@ void propagateMagneticFieldSimple(
    for (int k=0; k<gridDims[2]; k++) {
       for (int j=0; j<gridDims[1]; j++) {
          for (int i=0; i<gridDims[0]; i++) {
-            if(technicalGrid.get(i,j,k)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+            if(technicalGrid.get(i,j,k)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY &&
+                  technicalGrid.get(i,j,k)->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE) {
                propagateSysBoundaryMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, i, j, k, sysBoundaries, dt, RKCase);
             }
          }
