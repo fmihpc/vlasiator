@@ -289,21 +289,27 @@ void calculateDerivativesSimple(
          // The update of PERB[XYZ] is needed after the system
          // boundary update of propagateMagneticFieldSimple.
          perBGrid.updateGhostCells();
-         momentsGrid.updateGhostCells();
+         if(doMoments) {
+            momentsGrid.updateGhostCells();
+         }
          break;
       case RK_ORDER2_STEP1:
          // Exchange PERB*_DT2,RHO_DT2,RHOV*_DT2,P*DT2 with neighbours The
          // update of PERB[XYZ]_DT2 is needed after the system
          // boundary update of propagateMagneticFieldSimple.
          perBDt2Grid.updateGhostCells();
-         momentsDt2Grid.updateGhostCells();
+         if(doMoments) {
+            momentsDt2Grid.updateGhostCells();
+         }
          break;
       case RK_ORDER2_STEP2:
          // Exchange PERB*,RHO,RHOV*,P* with neighbours The update of B
          // is needed after the system boundary update of
          // propagateMagneticFieldSimple.
          perBGrid.updateGhostCells();
-         momentsGrid.updateGhostCells();
+         if(doMoments) {
+            momentsGrid.updateGhostCells();
+         }
       break;
     default:
       cerr << __FILE__ << ":" << __LINE__ << " Went through switch, this should not happen." << endl;

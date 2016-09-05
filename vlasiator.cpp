@@ -424,6 +424,7 @@ int main(int argn,char* args[]) {
    feedFieldDataIntoFsGrid<fsgrids::N_BFIELD>(mpiGrid,cells,CellParams::PERBX,perBGrid);
    feedFieldDataIntoFsGrid<fsgrids::N_BFIELD>(mpiGrid,cells,CellParams::PERBX,perBDt2Grid);
    feedFieldDataIntoFsGrid<fsgrids::N_BGB>(mpiGrid,cells,CellParams::BGBX,BgBGrid);
+   BgBGrid.updateGhostCells();
    //feedFieldDataIntoFsGrid<fsgrids::N_EFIELD>(mpiGrid,cells,CellParams::EX,EGrid);
    //feedFieldDataIntoFsGrid<fsgrids::N_EHALL>(mpiGrid,cells,CellParams::EXHALL_000_100,EHallGrid);
    //feedFieldDataIntoFsGrid<fsgrids::N_EGRADPE>(mpiGrid,cells,CellParams::EXGRADPE,EGradPeGrid);
@@ -497,6 +498,9 @@ int main(int argn,char* args[]) {
       phiprof::stop("write-initial-state");
    }
 
+   setupTechnicalFsGrid(mpiGrid, cells, technicalGrid);
+   technicalGrid.updateGhostCells();
+
    if (P::isRestart == false) {      
       // Run Vlasov solver once with zero dt to initialize
       //per-cell dt limits. In restarts, we read the dt from file.
@@ -505,7 +509,6 @@ int main(int argn,char* args[]) {
       calculateAcceleration(mpiGrid,0.0);
 
       if (P::propagateField == true) {
-         setupTechnicalFsGrid(mpiGrid, cells, technicalGrid);
          
          feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid,false);
          feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid,false);
@@ -888,7 +891,7 @@ int main(int argn,char* args[]) {
          phiprof::start("Propagate Fields");
 
          // Copy moments over into the fsgrid.
-         setupTechnicalFsGrid(mpiGrid, cells, technicalGrid);
+         //setupTechnicalFsGrid(mpiGrid, cells, technicalGrid);
          feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid,false);
          feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid,true);
 
