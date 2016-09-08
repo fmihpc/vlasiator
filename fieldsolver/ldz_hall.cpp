@@ -676,23 +676,20 @@ void calculateHallTermSimple(
    FsGrid< fsgrids::technical, 2> & technicalGrid,
    SysBoundary& sysBoundaries,
    cint& RKCase,
-   const bool communicateDerivatives,
-   const bool doMoments
+   const bool communicateMomentsDerivatives
 ) {
    int timer;
    const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
    const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
    
    phiprof::start("Calculate Hall term");
-   if(communicateDerivatives) {
-      timer=phiprof::initializeTimer("Start communication of derivatives","MPI");
-      phiprof::start(timer);
-      dPerBGrid.updateGhostCells();
-      if(doMoments) {
-         dMomentsGrid.updateGhostCells();
-      }
-      phiprof::stop(timer);
+   timer=phiprof::initializeTimer("Start communication of derivatives","MPI");
+   phiprof::start(timer);
+   dPerBGrid.updateGhostCells();
+   if(communicateMomentsDerivatives) {
+      dMomentsGrid.updateGhostCells();
    }
+   phiprof::stop(timer);
    
    #pragma omp parallel for collapse(3)
    for (int k=0; k<gridDims[2]; k++) {
