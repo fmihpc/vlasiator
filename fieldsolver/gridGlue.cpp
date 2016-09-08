@@ -106,6 +106,7 @@ void getFsGridMaxDt(FsGrid< fsgrids::technical, 2>& technicalGrid,
    count=0;
    for(CellID i : cells) {
       mpiGrid[i]->get_cell_parameters()[CellParams::MAXFDT] = transferBuffer[count].maxFsDt;
-      mpiGrid[i]->get_cell_parameters()[CellParams::FSGRID_RANK] = transferBuffer[count++].fsGridRank;
+      mpiGrid[i]->get_cell_parameters()[CellParams::FSGRID_RANK] = transferBuffer[count].fsGridRank;
+      mpiGrid[i]->get_cell_parameters()[CellParams::FSGRID_BOUNDARYTYPE] = transferBuffer[count++].sysBoundaryFlag;
    }
 }

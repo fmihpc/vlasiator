@@ -488,7 +488,7 @@ namespace SBC {
       std::array<Real, 3> averageB = {{ 0.0 }};
       for (uint it = 0; it < closestCells.size(); it++) {
          #ifdef DEBUG_IONOSPHERE
-         if (technicalGrid.get(i,j,k)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+         if (technicalGrid.get(closestCells[it][0],closestCells[it][1],closestCells[it][2])->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
             stringstream ss;
             ss << "ERROR, ionosphere cell (" << i << "," << j << "," << k << ") uses value from sysboundary nbr (" << closestCells[it][0] << "," << closestCells[it][1] << "," << closestCells[it][2] << " in " << __FILE__ << ":" << __LINE__ << endl;
             cerr << ss.str();
