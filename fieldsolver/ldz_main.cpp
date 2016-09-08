@@ -81,11 +81,11 @@ bool initializeFieldPropagator(
    // Calculate derivatives and upwinded edge-E. Exchange derivatives 
    // and edge-E:s between neighbouring processes and calculate 
    // face-averaged E,B fields.
-   bool hallTermCommunicateDerivatives = true;
+   bool communicateMomentsDerivatives = true;
    calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER1, true);
    if(P::ohmGradPeTerm > 0) {
       calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER1);
-      hallTermCommunicateDerivatives = false;
+      communicateMomentsDerivatives = false;
    }
    if(P::ohmHallTerm > 0) {
       calculateHallTermSimple(
@@ -100,8 +100,7 @@ bool initializeFieldPropagator(
          technicalGrid,
          sysBoundaries,
          RK_ORDER1,
-         hallTermCommunicateDerivatives,
-         true
+         communicateMomentsDerivatives
       );
    }
    calculateUpwindedElectricFieldSimple(
@@ -164,7 +163,7 @@ bool propagateFields(
       exit(1);
    }
    
-   bool hallTermCommunicateDerivatives = true;
+   bool communicateMomentsDerivatives = true;
    
    const std::array<int,3> gridDims = technicalGrid.getLocalSize();
    
@@ -184,7 +183,7 @@ bool propagateFields(
       calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER1, true);
       if(P::ohmGradPeTerm > 0){
          calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER1);
-         hallTermCommunicateDerivatives = false;
+         communicateMomentsDerivatives = false;
       }
       if(P::ohmHallTerm > 0) {
          calculateHallTermSimple(
@@ -199,8 +198,7 @@ bool propagateFields(
             technicalGrid,
             sysBoundaries,
             RK_ORDER1,
-            hallTermCommunicateDerivatives,
-            true
+            communicateMomentsDerivatives
          );
       }
       calculateUpwindedElectricFieldSimple(
@@ -224,7 +222,7 @@ bool propagateFields(
       calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP1, true);
       if(P::ohmGradPeTerm > 0) {
          calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP1);
-         hallTermCommunicateDerivatives = false;
+         communicateMomentsDerivatives = false;
       }
       if(P::ohmHallTerm > 0) {
          calculateHallTermSimple(
@@ -239,8 +237,7 @@ bool propagateFields(
             technicalGrid,
             sysBoundaries,
             RK_ORDER2_STEP1,
-            hallTermCommunicateDerivatives,
-            true
+            communicateMomentsDerivatives
          );
       }
       calculateUpwindedElectricFieldSimple(
@@ -264,7 +261,6 @@ bool propagateFields(
       calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP2, true);
       if(P::ohmGradPeTerm > 0) {
          calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP2);
-         hallTermCommunicateDerivatives = false;
       }
       if(P::ohmHallTerm > 0) {
          calculateHallTermSimple(
@@ -279,8 +275,7 @@ bool propagateFields(
             technicalGrid,
             sysBoundaries,
             RK_ORDER2_STEP2,
-            hallTermCommunicateDerivatives,
-            true
+            communicateMomentsDerivatives
          );
       }
       calculateUpwindedElectricFieldSimple(
@@ -308,7 +303,7 @@ bool propagateFields(
          calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER1, (i==0));
          if(P::ohmGradPeTerm > 0 && i==0) {
             calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER1);
-            hallTermCommunicateDerivatives = false;
+            communicateMomentsDerivatives = false;
          }
          if(P::ohmHallTerm > 0) {
             calculateHallTermSimple(
@@ -323,8 +318,7 @@ bool propagateFields(
                technicalGrid,
                sysBoundaries,
                RK_ORDER1,
-               hallTermCommunicateDerivatives,
-               (i==0)
+               communicateMomentsDerivatives
             );
          }
          calculateUpwindedElectricFieldSimple(
