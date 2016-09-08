@@ -100,7 +100,8 @@ bool initializeFieldPropagator(
          technicalGrid,
          sysBoundaries,
          RK_ORDER1,
-         hallTermCommunicateDerivatives
+         hallTermCommunicateDerivatives,
+         true
       );
    }
    calculateUpwindedElectricFieldSimple(
@@ -198,7 +199,8 @@ bool propagateFields(
             technicalGrid,
             sysBoundaries,
             RK_ORDER1,
-            hallTermCommunicateDerivatives
+            hallTermCommunicateDerivatives,
+            true
          );
       }
       calculateUpwindedElectricFieldSimple(
@@ -237,7 +239,8 @@ bool propagateFields(
             technicalGrid,
             sysBoundaries,
             RK_ORDER2_STEP1,
-            hallTermCommunicateDerivatives
+            hallTermCommunicateDerivatives,
+            true
          );
       }
       calculateUpwindedElectricFieldSimple(
@@ -276,7 +279,8 @@ bool propagateFields(
             technicalGrid,
             sysBoundaries,
             RK_ORDER2_STEP2,
-            hallTermCommunicateDerivatives
+            hallTermCommunicateDerivatives,
+            true
          );
       }
       calculateUpwindedElectricFieldSimple(
@@ -319,7 +323,8 @@ bool propagateFields(
                technicalGrid,
                sysBoundaries,
                RK_ORDER1,
-               hallTermCommunicateDerivatives
+               hallTermCommunicateDerivatives,
+               (i==0)
             );
          }
          calculateUpwindedElectricFieldSimple(

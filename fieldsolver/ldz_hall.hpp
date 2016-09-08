@@ -20,7 +20,8 @@ void calculateHallTermSimple(
    FsGrid< fsgrids::technical, 2> & technicalGrid,
    SysBoundary& sysBoundaries,
    cint& RKCase,
-   const bool communicateDerivatives
+   const bool communicateDerivatives,
+   const bool doMoments
 );
 
 #endif

@@ -676,7 +676,8 @@ void calculateHallTermSimple(
    FsGrid< fsgrids::technical, 2> & technicalGrid,
    SysBoundary& sysBoundaries,
    cint& RKCase,
-   const bool communicateDerivatives
+   const bool communicateDerivatives,
+   const bool doMoments
 ) {
    int timer;
    const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
@@ -687,6 +688,9 @@ void calculateHallTermSimple(
       timer=phiprof::initializeTimer("Start communication of derivatives","MPI");
       phiprof::start(timer);
       dPerBGrid.updateGhostCells();
+      if(doMoments) {
+         dMomentsGrid.updateGhostCells();
+      }
       phiprof::stop(timer);
    }
    
