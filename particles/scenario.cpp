@@ -15,8 +15,8 @@ std::vector<Particle> singleParticleScenario::initialParticles(Field& E, Field& 
    return particles;
 }
 
-void singleParticleScenario::afterPush(int step, double time, std::vector<Particle>& particles, Field& E, Field& B,
-      Field& V) {
+void singleParticleScenario::afterPush(int step, double time, std::vector<Particle>& particles, 
+      Interpolated_Field& E, Interpolated_Field& B, Field& V) {
 
    Vec3d& x = particles[0].x;
    Vec3d& v = particles[0].v;
@@ -55,7 +55,7 @@ std::vector<Particle> distributionScenario::initialParticles(Field& E, Field& B,
 }
 
 void distributionScenario::newTimestep(int input_file_counter, int step, double time, std::vector<Particle>& particles,
-      Field& E, Field& B, Field& V) {
+      Interpolated_Field& E, Interpolated_Field& B, Field& V) {
 
    char filename_buffer[256];
 
@@ -68,7 +68,7 @@ void distributionScenario::finalize(std::vector<Particle>& particles, Field& E, 
 }
 
 void precipitationScenario::afterPush(int step, double time, std::vector<Particle>& particles,
-      Field& E, Field& B, Field& V) {
+      Interpolated_Field& E, Interpolated_Field& B, Field& V) {
 
    for(unsigned int i=0; i<particles.size(); i++) {
 
@@ -105,7 +105,7 @@ void precipitationScenario::afterPush(int step, double time, std::vector<Particl
 }
 
 void precipitationScenario::newTimestep(int input_file_counter, int step, double time, std::vector<Particle>& particles,
-      Field& E, Field& B, Field& V) {
+      Interpolated_Field& E, Interpolated_Field& B, Field& V) {
 
    // Create particles along the negative x-axis, from inner boundary
    // up to outer one
@@ -160,7 +160,7 @@ std::vector<Particle> analysatorScenario::initialParticles(Field& E, Field& B, F
 }
 
 void analysatorScenario::newTimestep(int input_file_counter, int step, double time, std::vector<Particle>& particles,
-      Field& E, Field& B, Field& V) {
+      Interpolated_Field& E, Interpolated_Field& B, Field& V) {
 
    for(unsigned int i=0; i< particles.size(); i++) {
       Vec3d& x = particles[i].x;
@@ -171,7 +171,7 @@ void analysatorScenario::newTimestep(int input_file_counter, int step, double ti
 }
 
 void shockReflectivityScenario::newTimestep(int input_file_counter, int step, double time,
-      std::vector<Particle>& particles, Field& E, Field& B, Field& V) {
+      std::vector<Particle>& particles, Interpolated_Field& E, Interpolated_Field& B, Field& V) {
 
    const int num_points = 200;
 
@@ -222,7 +222,7 @@ void shockReflectivityScenario::newTimestep(int input_file_counter, int step, do
 }
 
 void shockReflectivityScenario::afterPush(int step, double time, std::vector<Particle>& particles,
-      Field& E, Field& B, Field& V) {
+      Interpolated_Field& E, Interpolated_Field& B, Field& V) {
 
    for(unsigned int i=0; i<particles.size(); i++) {
 
@@ -320,7 +320,7 @@ std::vector<Particle> ipShockScenario::initialParticles(Field& E, Field& B, Fiel
 }
 
 void ipShockScenario::newTimestep(int input_file_counter, int step, double time, std::vector<Particle>& particles,
-      Field& E, Field& B, Field& V) {
+      Interpolated_Field& E, Interpolated_Field& B, Field& V) {
 
    char filename_buffer[256];
 
@@ -329,7 +329,7 @@ void ipShockScenario::newTimestep(int input_file_counter, int step, double time,
 }
 
 void ipShockScenario::afterPush(int step, double time, std::vector<Particle>& particles,
-      Field& E, Field& B, Field& V) {
+      Interpolated_Field& E, Interpolated_Field& B, Field& V) {
   
   /* Perform transmission / reflection check for each particle */
    for(unsigned int i=0; i<particles.size(); i++) {
