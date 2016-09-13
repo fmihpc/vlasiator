@@ -69,8 +69,11 @@ template<typename T> inline T vanLeer(const T& left,const T& cent,const T& right
    const T TWO     = 2.0;
 
    const T numerator = std::max((right-cent)*(cent-left),ZERO);
-   const T denumerator = (right-left)+EPSILON;
-   return TWO * numerator / denumerator;
+   const T denumerator = right-left ;
+   if(fabs(denumerator) < EPSILON)
+      return ZERO;
+   else
+     return TWO * numerator / denumerator;
    
    //return TWO*std::max((right-cent)*(cent-left),ZERO)/(right-left+EPSILON);
 
