@@ -384,7 +384,9 @@ void ipShockScenario::finalize(std::vector<Particle>& particles, Field& E, Field
    //transmitted.writeBovAscii("transmitted.dat.bov",0,"transmitted.dat");
    //reflected.save("reflected.dat");
    //reflected.writeBovAscii("reflected.dat.bov",0,"reflected.dat");
-   
+
+   fflush(traFile);
+   fflush(retFile);
    fclose(traFile);
    fclose(refFile);
 }
