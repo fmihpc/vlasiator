@@ -375,6 +375,8 @@ void ipShockScenario::afterPush(int step, double time, std::vector<Particle>& pa
 	particles[i].v = Vec3d(0.,0.,0.);
       }
    }
+   fflush(traFile);
+   fflush(retFile);
 }
 
 void ipShockScenario::finalize(std::vector<Particle>& particles, Field& E, Field& B, Field& V) {
@@ -385,8 +387,6 @@ void ipShockScenario::finalize(std::vector<Particle>& particles, Field& E, Field
    //reflected.save("reflected.dat");
    //reflected.writeBovAscii("reflected.dat.bov",0,"reflected.dat");
 
-   fflush(traFile);
-   fflush(retFile);
    fclose(traFile);
    fclose(refFile);
 }
