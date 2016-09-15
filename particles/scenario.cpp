@@ -376,7 +376,7 @@ void ipShockScenario::afterPush(int step, double time, std::vector<Particle>& pa
       }
    }
    fflush(traFile);
-   fflush(retFile);
+   fflush(refFile);
 }
 
 void ipShockScenario::finalize(std::vector<Particle>& particles, Field& E, Field& B, Field& V) {
