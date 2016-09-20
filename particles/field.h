@@ -12,36 +12,39 @@ struct Field
    // Time at which this field is "valid"
    double time;
 
-   // Coordinate boundaries
-   double min[3];
-   double max[3];
-
    // Mesh spacing
    double dx[3];
 
-   // Mesh cells
-   int cells[3];
-
-   bool periodic[3];
+   // Information about spatial dimensions (like extent, boundaries, etc)
+   Boundary* dimension[3];
 
    // The actual field data
    std::vector<double> data;
 
+   // Constructor (primarily here to make sure boundaries are properly initialized as zero)
+   Field() {
+      for(int i=0; i<3; i++) {
+         dimension[i] = nullptr;
+      }
+   }
+
    double* getCellRef(int x, int y, int z) {
 
-      if(cells[2] == 1) {
-         return &(data[4*(y*cells[0]+x)]);
+      if(dimension[2]->cells == 1) {
+         // Equatorial plane
+         return &(data[4*(y*dimension[0]->cells+x)]);
       } else {
-         return &(data[4*(z*cells[0]*cells[1] + y*cells[0] + x)]);
+         // General 3d case
+         return &(data[4*(z*dimension[0]->cells*dimension[1]->cells + y*dimension[0]->cells + x)]);
       }
    }
 
    Vec3d getCell(int x, int y, int z) {
 
       // Map these cell coordinates using the boundaries
-      x = ParticleParameters::boundary_behaviour_x->cellCoordinate(x);
-      y = ParticleParameters::boundary_behaviour_y->cellCoordinate(y);
-      z = ParticleParameters::boundary_behaviour_z->cellCoordinate(z);
+      x = dimension[0]->cellCoordinate(x);
+      y = dimension[1]->cellCoordinate(y);
+      z = dimension[2]->cellCoordinate(z);
 
       double* cell = getCellRef(x,y,z);
       Vec3d retval;
@@ -52,6 +55,7 @@ struct Field
    // Round-Brace indexing: indexing by physical location, with interpolation
    Vec3d operator()(Vec3d v) {
       Vec3d vmin,vdx;
+      double min[3] = { min[0] = dimension[0]->min, dimension[1]->min, dimension[2]->min};
       vmin.load(min);
       vdx.load(dx);
 
@@ -63,7 +67,7 @@ struct Field
       truncate_to_int(v).store(index);
       (v-truncate(v)).store(fract);
 
-      if(cells[2] <= 1) {
+      if(dimension[2]->cells <= 1) {
          // Equatorial plane
          Vec3d interp[4];
          interp[0] = getCell(index[0],index[1],index[2]);
@@ -73,7 +77,7 @@ struct Field
 
          return fract[0]*(fract[1]*interp[3]+(1.-fract[1])*interp[1])
             + (1.-fract[0])*(fract[1]*interp[2]+(1.-fract[1])*interp[0]);
-      } else if (cells[1] <= 1) {
+      } else if (dimension[1]->cells <= 1) {
          // Polar plane
          Vec3d interp[4];
 
