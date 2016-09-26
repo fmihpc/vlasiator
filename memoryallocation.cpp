@@ -8,6 +8,7 @@ Copyright 2014 Finnish Meteorological Institute
 #include <iostream>
 #include <math.h>
 #include <unordered_map> // for hasher
+#include <limits>
 #include "logger.h"
 #include "memoryallocation.h"
 #ifdef PAPI_MEM
@@ -104,7 +105,8 @@ void report_process_memory_consumption(){
   
    //get name of this node
    MPI_Get_processor_name(nodename,&namelength);   
-   nodehash=(int)hasher(string(nodename));   
+   nodehash=(int)(hasher(string(nodename)) % std::numeric_limits<int>::max());
+   
    //intra-node communicator
    MPI_Comm_split(MPI_COMM_WORLD, nodehash, rank, &nodeComm);
    MPI_Comm_rank(nodeComm,&nodeRank);
