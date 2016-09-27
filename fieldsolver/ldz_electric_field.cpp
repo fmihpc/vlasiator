@@ -43,6 +43,8 @@ extern map<CellID,uint> existingCellsFlags;
  * \param zdir +1 or -1 depending on the interpolation direction in z
  * \param minRho Minimum density allowed from the neighborhood
  * \param maxRho Maximum density allowed from the neighborhood
+ * \param minB2 Minimum magnetic field squared allowed from the neighborhood
+ * \param maxB2 Maximum magnetic field squared allowed from the neighborhood
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  * \param ret_vA Alfven speed returned
  * \param ret_vS Sound speed returned
@@ -63,6 +65,8 @@ void calculateWaveSpeedYZ(
    const Real& zdir,
    const Real& minRho,
    const Real& maxRho,
+   const Real& minB2,
+   const Real& maxB2,
    cint& RKCase,
    Real& ret_vA,
    Real& ret_vS,
@@ -121,7 +125,12 @@ void calculateWaveSpeedYZ(
    const Real By2  = (By + zdir*HALF*dBydz)*(By + zdir*HALF*dBydz) + TWELWTH*dBydx*dBydx; // OK
    const Real Bz2  = (Bz + ydir*HALF*dBzdy)*(Bz + ydir*HALF*dBzdy) + TWELWTH*dBzdx*dBzdx; // OK
    
-   const Real Bmag2 = Bx2 + By2 + Bz2;
+   Real Bmag2 = (Bx2 + By2 + Bz2);
+   if(Bmag2 < minB2) {
+      Bmag2 = minB2;
+   } else if (Bmag2 > maxB2) {
+      Bmag2 = maxB2;
+   }
    
    p11 = p11 < 0.0 ? 0.0 : p11;
    p22 = p22 < 0.0 ? 0.0 : p22;
@@ -157,6 +166,8 @@ void calculateWaveSpeedYZ(
  * \param zdir +1 or -1 depending on the interpolation direction in z
  * \param minRho Minimum density allowed from the neighborhood
  * \param maxRho Maximum density allowed from the neighborhood
+ * \param minB2 Minimum magnetic field squared allowed from the neighborhood
+ * \param maxB2 Maximum magnetic field squared allowed from the neighborhood
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  * \param ret_vA Alfven speed returned
  * \param ret_vS Sound speed returned
@@ -177,6 +188,8 @@ void calculateWaveSpeedXZ(
    const Real& zdir,
    const Real& minRho,
    const Real& maxRho,
+   const Real& minB2,
+   const Real& maxB2,
    cint& RKCase,
    Real& ret_vA,
    Real& ret_vS,
@@ -235,7 +248,12 @@ void calculateWaveSpeedXZ(
    const Real Bx2  = (Bx + zdir*HALF*dBxdz)*(Bx + zdir*HALF*dBxdz) + TWELWTH*dBxdy*dBxdy; // OK
    const Real Bz2  = (Bz + xdir*HALF*dBzdx)*(Bz + xdir*HALF*dBzdx) + TWELWTH*dBzdy*dBzdy; // OK
    
-   const Real Bmag2 = Bx2 + By2 + Bz2;
+   Real Bmag2 = (Bx2 + By2 + Bz2);
+   if(Bmag2 < minB2) {
+      Bmag2 = minB2;
+   } else if (Bmag2 > maxB2) {
+      Bmag2 = maxB2;
+   }
    
    p11 = p11 < 0.0 ? 0.0 : p11;
    p22 = p22 < 0.0 ? 0.0 : p22;
@@ -271,6 +289,8 @@ void calculateWaveSpeedXZ(
  * \param ydir +1 or -1 depending on the interpolation direction in y
  * \param minRho Minimum density allowed from the neighborhood
  * \param maxRho Maximum density allowed from the neighborhood
+ * \param minB2 Minimum magnetic field squared allowed from the neighborhood
+ * \param maxB2 Maximum magnetic field squared allowed from the neighborhood
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  * \param ret_vA Alfven speed returned
  * \param ret_vS Sound speed returned
@@ -291,6 +311,8 @@ void calculateWaveSpeedXY(
    const Real& ydir,
    const Real& minRho,
    const Real& maxRho,
+   const Real& minB2,
+   const Real& maxB2,
    cint& RKCase,
    Real& ret_vA,
    Real& ret_vS,
@@ -349,12 +371,17 @@ void calculateWaveSpeedXY(
    const Real Bx2  = (Bx + ydir*HALF*dBxdy)*(Bx + ydir*HALF*dBxdy) + TWELWTH*dBxdz*dBxdz;
    const Real By2  = (By + xdir*HALF*dBydx)*(By + xdir*HALF*dBydx) + TWELWTH*dBydz*dBydz;
    
-   const Real Bmag2 = Bx2 + By2 + Bz2;
+   Real Bmag2 = (Bx2 + By2 + Bz2);
+   if(Bmag2 < minB2) {
+      Bmag2 = minB2;
+   } else if (Bmag2 > maxB2) {
+      Bmag2 = maxB2;
+   }
    
    p11 = p11 < 0.0 ? 0.0 : p11;
    p22 = p22 < 0.0 ? 0.0 : p22;
    p33 = p33 < 0.0 ? 0.0 : p33;
-      
+
    const Real vA2 = divideIfNonZero(Bmag2, pc::MU_0*rhom); // Alfven speed
    const Real vS2 = divideIfNonZero(p11+p22+p33, 2.0*rhom); // sound speed, adiabatic coefficient 3/2, P=1/3*trace in sound speed
    const Real vW = Parameters::ohmHallTerm > 0 ? divideIfNonZero(2.0*M_PI*vA2*pc::MASS_PROTON, cp[CellParams::DX]*pc::CHARGE*sqrt(Bmag2)) : 0.0; // whistler speed
@@ -412,6 +439,37 @@ void calculateEdgeElectricFieldX(
    Real By_S, Bz_W, Bz_E, By_N, perBy_S, perBz_W, perBz_E, perBy_N;
    Real minRho = std::numeric_limits<Real>::max();
    Real maxRho = std::numeric_limits<Real>::min();
+   Real minB2 = std::numeric_limits<Real>::max();
+   Real maxB2 = std::numeric_limits<Real>::min();
+   creal B2_SW =   (cp_SW[CellParams::BGBXVOL] + cp_SW[CellParams::PERBXVOL]) * (cp_SW[CellParams::BGBXVOL] + cp_SW[CellParams::PERBXVOL])
+                 + (cp_SW[CellParams::BGBYVOL] + cp_SW[CellParams::PERBYVOL]) * (cp_SW[CellParams::BGBYVOL] + cp_SW[CellParams::PERBYVOL])
+                 + (cp_SW[CellParams::BGBZVOL] + cp_SW[CellParams::PERBZVOL]) * (cp_SW[CellParams::BGBZVOL] + cp_SW[CellParams::PERBZVOL]);
+   creal B2_SE =   (cp_SE[CellParams::BGBXVOL] + cp_SE[CellParams::PERBXVOL]) * (cp_SE[CellParams::BGBXVOL] + cp_SE[CellParams::PERBXVOL])
+                 + (cp_SE[CellParams::BGBYVOL] + cp_SE[CellParams::PERBYVOL]) * (cp_SE[CellParams::BGBYVOL] + cp_SE[CellParams::PERBYVOL])
+                 + (cp_SE[CellParams::BGBZVOL] + cp_SE[CellParams::PERBZVOL]) * (cp_SE[CellParams::BGBZVOL] + cp_SE[CellParams::PERBZVOL]);
+   creal B2_NW =   (cp_NW[CellParams::BGBXVOL] + cp_NW[CellParams::PERBXVOL]) * (cp_NW[CellParams::BGBXVOL] + cp_NW[CellParams::PERBXVOL])
+                 + (cp_NW[CellParams::BGBYVOL] + cp_NW[CellParams::PERBYVOL]) * (cp_NW[CellParams::BGBYVOL] + cp_NW[CellParams::PERBYVOL])
+                 + (cp_NW[CellParams::BGBZVOL] + cp_NW[CellParams::PERBZVOL]) * (cp_NW[CellParams::BGBZVOL] + cp_NW[CellParams::PERBZVOL]);
+   creal B2_NE =   (cp_NE[CellParams::BGBXVOL] + cp_NE[CellParams::PERBXVOL]) * (cp_NE[CellParams::BGBXVOL] + cp_NE[CellParams::PERBXVOL])
+                 + (cp_NE[CellParams::BGBYVOL] + cp_NE[CellParams::PERBYVOL]) * (cp_NE[CellParams::BGBYVOL] + cp_NE[CellParams::PERBYVOL])
+                 + (cp_NE[CellParams::BGBZVOL] + cp_NE[CellParams::PERBZVOL]) * (cp_NE[CellParams::BGBZVOL] + cp_NE[CellParams::PERBZVOL]);
+   minB2 = min(minB2,
+               min(B2_SW,
+                   min(B2_SE,
+                       min(B2_NW,
+                           B2_NE)
+                   )
+               )
+           );
+   maxB2 = max(maxB2,
+               max(B2_SW,
+                   max(B2_SE,
+                       max(B2_NW,
+                           B2_NE)
+                   )
+               )
+   );
+
    switch (RKCase) {
       case RK_ORDER1:
          By_S = cp_SW[CellParams::PERBY]+cp_SW[CellParams::BGBY];
@@ -553,7 +611,7 @@ void calculateEdgeElectricFieldX(
    creal* const nbr_cp_SW     = cache.cells[fs_cache::calculateNbrID(1+1,1  ,1  )]->parameters;
    creal* const nbr_derivs_SW = cache.cells[fs_cache::calculateNbrID(1+1,1  ,1  )]->derivatives;
    
-   calculateWaveSpeedYZ(cp_SW, derivs_SW, nbr_cp_SW, nbr_derivs_SW, By_S, Bz_W, dBydx_S, dBydz_S, dBzdx_W, dBzdy_W, MINUS, MINUS, minRho, maxRho, RKCase, vA, vS, vW);
+   calculateWaveSpeedYZ(cp_SW, derivs_SW, nbr_cp_SW, nbr_derivs_SW, By_S, Bz_W, dBydx_S, dBydz_S, dBzdx_W, dBzdy_W, MINUS, MINUS, minRho, maxRho, minB2, maxB2, RKCase, vA, vS, vW);
    c_y = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS));
    c_z = c_y;
    ay_neg   = max(ZERO,-Vy0 + c_y);
@@ -607,7 +665,7 @@ void calculateEdgeElectricFieldX(
    creal* const nbr_cp_SE     = cache.cells[fs_cache::calculateNbrID(1+1,1-1,1  )]->parameters;
    creal* const nbr_derivs_SE = cache.cells[fs_cache::calculateNbrID(1+1,1-1,1  )]->derivatives;
    
-   calculateWaveSpeedYZ(cp_SE, derivs_SE, nbr_cp_SE, nbr_derivs_SE, By_S, Bz_E, dBydx_S, dBydz_S, dBzdx_E, dBzdy_E, PLUS, MINUS, minRho, maxRho, RKCase, vA, vS, vW);
+   calculateWaveSpeedYZ(cp_SE, derivs_SE, nbr_cp_SE, nbr_derivs_SE, By_S, Bz_E, dBydx_S, dBydz_S, dBzdx_E, dBzdy_E, PLUS, MINUS, minRho, maxRho, minB2, maxB2, RKCase, vA, vS, vW);
    c_y = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS));
    c_z = c_y;
    ay_neg   = max(ay_neg,-Vy0 + c_y);
@@ -661,7 +719,7 @@ void calculateEdgeElectricFieldX(
    creal* const nbr_cp_NW     = cache.cells[fs_cache::calculateNbrID(1+1,1  ,1-1)]->parameters;
    creal* const nbr_derivs_NW = cache.cells[fs_cache::calculateNbrID(1+1,1  ,1-1)]->derivatives;
    
-   calculateWaveSpeedYZ(cp_NW, derivs_NW, nbr_cp_NW, nbr_derivs_NW, By_N, Bz_W, dBydx_N, dBydz_N, dBzdx_W, dBzdy_W, MINUS, PLUS, minRho, maxRho, RKCase, vA, vS, vW);
+   calculateWaveSpeedYZ(cp_NW, derivs_NW, nbr_cp_NW, nbr_derivs_NW, By_N, Bz_W, dBydx_N, dBydz_N, dBzdx_W, dBzdy_W, MINUS, PLUS, minRho, maxRho, minB2, maxB2, RKCase, vA, vS, vW);
    c_y = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS));
    c_z = c_y;
    ay_neg   = max(ay_neg,-Vy0 + c_y);
@@ -715,7 +773,7 @@ void calculateEdgeElectricFieldX(
    creal* const nbr_cp_NE     = cache.cells[fs_cache::calculateNbrID(1+1,1-1,1-1)]->parameters;
    creal* const nbr_derivs_NE = cache.cells[fs_cache::calculateNbrID(1+1,1-1,1-1)]->derivatives;
    
-   calculateWaveSpeedYZ(cp_NE, derivs_NE, nbr_cp_NE, nbr_derivs_NE, By_N, Bz_E, dBydx_N, dBydz_N, dBzdx_E, dBzdy_E, PLUS, PLUS, minRho, maxRho, RKCase, vA, vS, vW);
+   calculateWaveSpeedYZ(cp_NE, derivs_NE, nbr_cp_NE, nbr_derivs_NE, By_N, Bz_E, dBydx_N, dBydz_N, dBzdx_E, dBzdy_E, PLUS, PLUS, minRho, maxRho, minB2, maxB2, RKCase, vA, vS, vW);
    c_y = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS));
    c_z = c_y;
    ay_neg   = max(ay_neg,-Vy0 + c_y);
@@ -815,6 +873,37 @@ void calculateEdgeElectricFieldY(
    Real Bz_S, Bx_W, Bx_E, Bz_N, perBz_S, perBx_W, perBx_E, perBz_N;
    Real minRho = std::numeric_limits<Real>::max();
    Real maxRho = std::numeric_limits<Real>::min();
+   Real minB2 = std::numeric_limits<Real>::max();
+   Real maxB2 = std::numeric_limits<Real>::min();
+   creal B2_SW =   (cp_SW[CellParams::BGBXVOL] + cp_SW[CellParams::PERBXVOL]) * (cp_SW[CellParams::BGBXVOL] + cp_SW[CellParams::PERBXVOL])
+                 + (cp_SW[CellParams::BGBYVOL] + cp_SW[CellParams::PERBYVOL]) * (cp_SW[CellParams::BGBYVOL] + cp_SW[CellParams::PERBYVOL])
+                 + (cp_SW[CellParams::BGBZVOL] + cp_SW[CellParams::PERBZVOL]) * (cp_SW[CellParams::BGBZVOL] + cp_SW[CellParams::PERBZVOL]);
+   creal B2_SE =   (cp_SE[CellParams::BGBXVOL] + cp_SE[CellParams::PERBXVOL]) * (cp_SE[CellParams::BGBXVOL] + cp_SE[CellParams::PERBXVOL])
+                 + (cp_SE[CellParams::BGBYVOL] + cp_SE[CellParams::PERBYVOL]) * (cp_SE[CellParams::BGBYVOL] + cp_SE[CellParams::PERBYVOL])
+                 + (cp_SE[CellParams::BGBZVOL] + cp_SE[CellParams::PERBZVOL]) * (cp_SE[CellParams::BGBZVOL] + cp_SE[CellParams::PERBZVOL]);
+   creal B2_NW =   (cp_NW[CellParams::BGBXVOL] + cp_NW[CellParams::PERBXVOL]) * (cp_NW[CellParams::BGBXVOL] + cp_NW[CellParams::PERBXVOL])
+                 + (cp_NW[CellParams::BGBYVOL] + cp_NW[CellParams::PERBYVOL]) * (cp_NW[CellParams::BGBYVOL] + cp_NW[CellParams::PERBYVOL])
+                 + (cp_NW[CellParams::BGBZVOL] + cp_NW[CellParams::PERBZVOL]) * (cp_NW[CellParams::BGBZVOL] + cp_NW[CellParams::PERBZVOL]);
+   creal B2_NE =   (cp_NE[CellParams::BGBXVOL] + cp_NE[CellParams::PERBXVOL]) * (cp_NE[CellParams::BGBXVOL] + cp_NE[CellParams::PERBXVOL])
+                 + (cp_NE[CellParams::BGBYVOL] + cp_NE[CellParams::PERBYVOL]) * (cp_NE[CellParams::BGBYVOL] + cp_NE[CellParams::PERBYVOL])
+                 + (cp_NE[CellParams::BGBZVOL] + cp_NE[CellParams::PERBZVOL]) * (cp_NE[CellParams::BGBZVOL] + cp_NE[CellParams::PERBZVOL]);
+   minB2 = min(minB2,
+               min(B2_SW,
+                   min(B2_SE,
+                       min(B2_NW,
+                           B2_NE)
+                   )
+               )
+           );
+   maxB2 = max(maxB2,
+               max(B2_SW,
+                   max(B2_SE,
+                       max(B2_NW,
+                           B2_NE)
+                   )
+               )
+           );
+
    switch (RKCase) {
       case RK_ORDER1:
          Bz_S = cp_SW[CellParams::PERBZ]+cp_SW[CellParams::BGBZ];
@@ -955,7 +1044,7 @@ void calculateEdgeElectricFieldY(
    creal* const nbr_cp_SW     = cache.cells[fs_cache::calculateNbrID(1  ,1+1,1  )]->parameters;
    creal* const nbr_derivs_SW = cache.cells[fs_cache::calculateNbrID(1  ,1+1,1  )]->derivatives;
    
-   calculateWaveSpeedXZ(cp_SW, derivs_SW, nbr_cp_SW, nbr_derivs_SW, Bx_W, Bz_S, dBxdy_W, dBxdz_W, dBzdx_S, dBzdy_S, MINUS, MINUS, minRho, maxRho, RKCase, vA, vS, vW);
+   calculateWaveSpeedXZ(cp_SW, derivs_SW, nbr_cp_SW, nbr_derivs_SW, Bx_W, Bz_S, dBxdy_W, dBxdz_W, dBzdx_S, dBzdy_S, MINUS, MINUS, minRho, maxRho, minB2, maxB2, RKCase, vA, vS, vW);
    c_z = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS));
    c_x = c_z;
    az_neg   = max(ZERO,-Vz0 + c_z);
@@ -1009,7 +1098,7 @@ void calculateEdgeElectricFieldY(
    creal* const nbr_cp_SE     = cache.cells[fs_cache::calculateNbrID(1  ,1+1,1-1)]->parameters;
    creal* const nbr_derivs_SE = cache.cells[fs_cache::calculateNbrID(1  ,1+1,1-1)]->derivatives;
    
-   calculateWaveSpeedXZ(cp_SE, derivs_SE, nbr_cp_SE, nbr_derivs_SE, Bx_E, Bz_S, dBxdy_E, dBxdz_E, dBzdx_S, dBzdy_S, MINUS, PLUS, minRho, maxRho, RKCase, vA, vS, vW);
+   calculateWaveSpeedXZ(cp_SE, derivs_SE, nbr_cp_SE, nbr_derivs_SE, Bx_E, Bz_S, dBxdy_E, dBxdz_E, dBzdx_S, dBzdy_S, MINUS, PLUS, minRho, maxRho, minB2, maxB2, RKCase, vA, vS, vW);
    c_z = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS));
    c_x = c_z;
    az_neg   = max(az_neg,-Vz0 + c_z);
@@ -1063,7 +1152,7 @@ void calculateEdgeElectricFieldY(
    creal* const nbr_cp_NW     = cache.cells[fs_cache::calculateNbrID(1-1,1+1,1  )]->parameters;
    creal* const nbr_derivs_NW = cache.cells[fs_cache::calculateNbrID(1-1,1+1,1  )]->derivatives;
    
-   calculateWaveSpeedXZ(cp_NW, derivs_NW, nbr_cp_NW, nbr_derivs_NW, Bx_W, Bz_N, dBxdy_W, dBxdz_W, dBzdx_N, dBzdy_N, PLUS, MINUS, minRho, maxRho, RKCase, vA, vS, vW);
+   calculateWaveSpeedXZ(cp_NW, derivs_NW, nbr_cp_NW, nbr_derivs_NW, Bx_W, Bz_N, dBxdy_W, dBxdz_W, dBzdx_N, dBzdy_N, PLUS, MINUS, minRho, maxRho, minB2, maxB2, RKCase, vA, vS, vW);
    c_z = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS));
    c_x = c_z;
    az_neg   = max(az_neg,-Vz0 + c_z);
@@ -1117,7 +1206,7 @@ void calculateEdgeElectricFieldY(
    creal* const nbr_cp_NE     = cache.cells[fs_cache::calculateNbrID(1-1,1+1,1-1)]->parameters;
    creal* const nbr_derivs_NE = cache.cells[fs_cache::calculateNbrID(1-1,1+1,1-1)]->derivatives;
    
-   calculateWaveSpeedXZ(cp_NE, derivs_NE, nbr_cp_NE, nbr_derivs_NE, Bx_E, Bz_N, dBxdy_E, dBxdz_E, dBzdx_N, dBzdy_N, PLUS, PLUS, minRho, maxRho, RKCase, vA, vS, vW);
+   calculateWaveSpeedXZ(cp_NE, derivs_NE, nbr_cp_NE, nbr_derivs_NE, Bx_E, Bz_N, dBxdy_E, dBxdz_E, dBzdx_N, dBzdy_N, PLUS, PLUS, minRho, maxRho, minB2, maxB2, RKCase, vA, vS, vW);
    c_z = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS));
    c_x = c_z;
    az_neg   = max(az_neg,-Vz0 + c_z);
@@ -1215,6 +1304,37 @@ void calculateEdgeElectricFieldZ(
    Real Bx_S, By_W, By_E, Bx_N, perBx_S, perBy_W, perBy_E, perBx_N;
    Real minRho = std::numeric_limits<Real>::max();
    Real maxRho = std::numeric_limits<Real>::min();
+   Real minB2 = std::numeric_limits<Real>::max();
+   Real maxB2 = std::numeric_limits<Real>::min();
+   creal B2_SW =   (cp_SW[CellParams::BGBXVOL] + cp_SW[CellParams::PERBXVOL]) * (cp_SW[CellParams::BGBXVOL] + cp_SW[CellParams::PERBXVOL])
+                 + (cp_SW[CellParams::BGBYVOL] + cp_SW[CellParams::PERBYVOL]) * (cp_SW[CellParams::BGBYVOL] + cp_SW[CellParams::PERBYVOL])
+                 + (cp_SW[CellParams::BGBZVOL] + cp_SW[CellParams::PERBZVOL]) * (cp_SW[CellParams::BGBZVOL] + cp_SW[CellParams::PERBZVOL]);
+   creal B2_SE =   (cp_SE[CellParams::BGBXVOL] + cp_SE[CellParams::PERBXVOL]) * (cp_SE[CellParams::BGBXVOL] + cp_SE[CellParams::PERBXVOL])
+                 + (cp_SE[CellParams::BGBYVOL] + cp_SE[CellParams::PERBYVOL]) * (cp_SE[CellParams::BGBYVOL] + cp_SE[CellParams::PERBYVOL])
+                 + (cp_SE[CellParams::BGBZVOL] + cp_SE[CellParams::PERBZVOL]) * (cp_SE[CellParams::BGBZVOL] + cp_SE[CellParams::PERBZVOL]);
+   creal B2_NW =   (cp_NW[CellParams::BGBXVOL] + cp_NW[CellParams::PERBXVOL]) * (cp_NW[CellParams::BGBXVOL] + cp_NW[CellParams::PERBXVOL])
+                 + (cp_NW[CellParams::BGBYVOL] + cp_NW[CellParams::PERBYVOL]) * (cp_NW[CellParams::BGBYVOL] + cp_NW[CellParams::PERBYVOL])
+                 + (cp_NW[CellParams::BGBZVOL] + cp_NW[CellParams::PERBZVOL]) * (cp_NW[CellParams::BGBZVOL] + cp_NW[CellParams::PERBZVOL]);
+   creal B2_NE =   (cp_NE[CellParams::BGBXVOL] + cp_NE[CellParams::PERBXVOL]) * (cp_NE[CellParams::BGBXVOL] + cp_NE[CellParams::PERBXVOL])
+                 + (cp_NE[CellParams::BGBYVOL] + cp_NE[CellParams::PERBYVOL]) * (cp_NE[CellParams::BGBYVOL] + cp_NE[CellParams::PERBYVOL])
+                 + (cp_NE[CellParams::BGBZVOL] + cp_NE[CellParams::PERBZVOL]) * (cp_NE[CellParams::BGBZVOL] + cp_NE[CellParams::PERBZVOL]);
+   minB2 = min(minB2,
+               min(B2_SW,
+                   min(B2_SE,
+                       min(B2_NW,
+                           B2_NE)
+                   )
+               )
+           );
+   maxB2 = max(maxB2,
+               max(B2_SW,
+                   max(B2_SE,
+                       max(B2_NW,
+                           B2_NE)
+                   )
+               )
+           );
+
    switch (RKCase) {
       case RK_ORDER1:
          Bx_S    = cp_SW[CellParams::PERBX] + cp_SW[CellParams::BGBX];
@@ -1357,7 +1477,7 @@ void calculateEdgeElectricFieldZ(
    creal* const nbr_cp_SW     = cache.cells[fs_cache::calculateNbrID(1  ,1  ,1+1)]->parameters;
    creal* const nbr_derivs_SW = cache.cells[fs_cache::calculateNbrID(1  ,1  ,1+1)]->derivatives;
    
-   calculateWaveSpeedXY(cp_SW, derivs_SW, nbr_cp_SW, nbr_derivs_SW, Bx_S, By_W, dBxdy_S, dBxdz_S, dBydx_W, dBydz_W, MINUS, MINUS, minRho, maxRho, RKCase, vA, vS, vW);
+   calculateWaveSpeedXY(cp_SW, derivs_SW, nbr_cp_SW, nbr_derivs_SW, Bx_S, By_W, dBxdy_S, dBxdz_S, dBydx_W, dBydz_W, MINUS, MINUS, minRho, maxRho, minB2, maxB2, RKCase, vA, vS, vW);
    c_x = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS));
    c_y = c_x;
    ax_neg   = max(ZERO,-Vx0 + c_x);
@@ -1410,7 +1530,7 @@ void calculateEdgeElectricFieldZ(
    creal* const nbr_cp_SE     = cache.cells[fs_cache::calculateNbrID(1-1,1  ,1+1)]->parameters;
    creal* const nbr_derivs_SE = cache.cells[fs_cache::calculateNbrID(1-1,1  ,1+1)]->derivatives;
    
-   calculateWaveSpeedXY(cp_SE, derivs_SE, nbr_cp_SE, nbr_derivs_SE, Bx_S, By_E, dBxdy_S, dBxdz_S, dBydx_E, dBydz_E, PLUS, MINUS, minRho, maxRho, RKCase, vA, vS, vW);
+   calculateWaveSpeedXY(cp_SE, derivs_SE, nbr_cp_SE, nbr_derivs_SE, Bx_S, By_E, dBxdy_S, dBxdz_S, dBydx_E, dBydz_E, PLUS, MINUS, minRho, maxRho, minB2, maxB2, RKCase, vA, vS, vW);
    c_x = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS));
    c_y = c_x;
    ax_neg = max(ax_neg,-Vx0 + c_x);
@@ -1464,7 +1584,7 @@ void calculateEdgeElectricFieldZ(
    creal* const nbr_cp_NW     = cache.cells[fs_cache::calculateNbrID(1  ,1-1,1+1)]->parameters;
    creal* const nbr_derivs_NW = cache.cells[fs_cache::calculateNbrID(1  ,1-1,1+1)]->derivatives;
    
-   calculateWaveSpeedXY(cp_NW, derivs_NW, nbr_cp_NW, nbr_derivs_NW, Bx_N, By_W, dBxdy_N, dBxdz_N, dBydx_W, dBydz_W, MINUS, PLUS, minRho, maxRho, RKCase, vA, vS, vW);
+   calculateWaveSpeedXY(cp_NW, derivs_NW, nbr_cp_NW, nbr_derivs_NW, Bx_N, By_W, dBxdy_N, dBxdz_N, dBydx_W, dBydz_W, MINUS, PLUS, minRho, maxRho, minB2, maxB2, RKCase, vA, vS, vW);
    c_x = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS));
    c_y = c_x;
    ax_neg = max(ax_neg,-Vx0 + c_x); 
@@ -1518,7 +1638,7 @@ void calculateEdgeElectricFieldZ(
    creal* const nbr_cp_NE     = cache.cells[fs_cache::calculateNbrID(1-1,1-1,1+1)]->parameters;
    creal* const nbr_derivs_NE = cache.cells[fs_cache::calculateNbrID(1-1,1-1,1+1)]->derivatives;
    
-   calculateWaveSpeedXY(cp_NE, derivs_NE, nbr_cp_NE, nbr_derivs_NE, Bx_N, By_E, dBxdy_N, dBxdz_N, dBydx_E, dBydz_E, PLUS, PLUS, minRho, maxRho, RKCase, vA, vS, vW);
+   calculateWaveSpeedXY(cp_NE, derivs_NE, nbr_cp_NE, nbr_derivs_NE, Bx_N, By_E, dBxdy_N, dBxdz_N, dBydx_E, dBydz_E, PLUS, PLUS, minRho, maxRho, minB2, maxB2, RKCase, vA, vS, vW);
    c_x = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS));
    c_y = c_x;
    ax_neg = max(ax_neg,-Vx0 + c_x);
