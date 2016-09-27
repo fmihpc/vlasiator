@@ -73,21 +73,37 @@ void calculateWaveSpeedYZ(
    }
 
    Real A_0, A_X, rhom, p11, p22, p33;
-   if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      A_0  = HALF*(nbr_cp[CellParams::PERBX] + nbr_cp[CellParams::BGBX] + cp[CellParams::PERBX] + cp[CellParams::BGBX]);
-      A_X  = (nbr_cp[CellParams::PERBX] + nbr_cp[CellParams::BGBX]) - (cp[CellParams::PERBX] + cp[CellParams::BGBX]);
-      rhom = cp[CellParams::RHO] + ydir*HALF*derivs[fs::drhody] + zdir*HALF*derivs[fs::drhodz];
-      p11 = cp[CellParams::P_11] + ydir*HALF*derivs[fs::dp11dy] + zdir*HALF*derivs[fs::dp11dz];
-      p22 = cp[CellParams::P_22] + ydir*HALF*derivs[fs::dp22dy] + zdir*HALF*derivs[fs::dp22dz];
-      p33 = cp[CellParams::P_33] + ydir*HALF*derivs[fs::dp33dy] + zdir*HALF*derivs[fs::dp33dz];
-   } else { // RKCase == RK_ORDER2_STEP1
-      A_0  = HALF*(nbr_cp[CellParams::PERBX_DT2] + nbr_cp[CellParams::BGBX] + cp[CellParams::PERBX_DT2] + cp[CellParams::BGBX]);
-      A_X  = (nbr_cp[CellParams::PERBX_DT2] + nbr_cp[CellParams::BGBX]) - (cp[CellParams::PERBX_DT2] + cp[CellParams::BGBX]);
-      rhom = cp[CellParams::RHO_DT2] + ydir*HALF*derivs[fs::drhody] + zdir*HALF*derivs[fs::drhodz];
-      p11 = cp[CellParams::P_11_DT2] + ydir*HALF*derivs[fs::dp11dy] + zdir*HALF*derivs[fs::dp11dz];
-      p22 = cp[CellParams::P_22_DT2] + ydir*HALF*derivs[fs::dp22dy] + zdir*HALF*derivs[fs::dp22dz];
-      p33 = cp[CellParams::P_33_DT2] + ydir*HALF*derivs[fs::dp33dy] + zdir*HALF*derivs[fs::dp33dz];
+   switch (RKCase) {
+      case RK_ORDER1:
+         A_0  = HALF*(nbr_cp[CellParams::PERBX] + nbr_cp[CellParams::BGBX] + cp[CellParams::PERBX] + cp[CellParams::BGBX]);
+         A_X  = (nbr_cp[CellParams::PERBX] + nbr_cp[CellParams::BGBX]) - (cp[CellParams::PERBX] + cp[CellParams::BGBX]);
+         rhom = cp[CellParams::RHO_DT2] + ydir*HALF*derivs[fs::drhody] + zdir*HALF*derivs[fs::drhodz];
+         p11 = cp[CellParams::P_11_DT2] + ydir*HALF*derivs[fs::dp11dy] + zdir*HALF*derivs[fs::dp11dz];
+         p22 = cp[CellParams::P_22_DT2] + ydir*HALF*derivs[fs::dp22dy] + zdir*HALF*derivs[fs::dp22dz];
+         p33 = cp[CellParams::P_33_DT2] + ydir*HALF*derivs[fs::dp33dy] + zdir*HALF*derivs[fs::dp33dz];
+         break;
+      case RK_ORDER2_STEP1:
+         A_0  = HALF*(nbr_cp[CellParams::PERBX_DT2] + nbr_cp[CellParams::BGBX] + cp[CellParams::PERBX_DT2] + cp[CellParams::BGBX]);
+         A_X  = (nbr_cp[CellParams::PERBX_DT2] + nbr_cp[CellParams::BGBX]) - (cp[CellParams::PERBX_DT2] + cp[CellParams::BGBX]);
+         rhom = cp[CellParams::RHO_DT2] + ydir*HALF*derivs[fs::drhody] + zdir*HALF*derivs[fs::drhodz];
+         p11 = cp[CellParams::P_11_DT2] + ydir*HALF*derivs[fs::dp11dy] + zdir*HALF*derivs[fs::dp11dz];
+         p22 = cp[CellParams::P_22_DT2] + ydir*HALF*derivs[fs::dp22dy] + zdir*HALF*derivs[fs::dp22dz];
+         p33 = cp[CellParams::P_33_DT2] + ydir*HALF*derivs[fs::dp33dy] + zdir*HALF*derivs[fs::dp33dz];
+         break;
+      case RK_ORDER2_STEP2:
+         A_0  = HALF*(nbr_cp[CellParams::PERBX] + nbr_cp[CellParams::BGBX] + cp[CellParams::PERBX] + cp[CellParams::BGBX]);
+         A_X  = (nbr_cp[CellParams::PERBX] + nbr_cp[CellParams::BGBX]) - (cp[CellParams::PERBX] + cp[CellParams::BGBX]);
+         rhom = cp[CellParams::RHO] + ydir*HALF*derivs[fs::drhody] + zdir*HALF*derivs[fs::drhodz];
+         p11 = cp[CellParams::P_11] + ydir*HALF*derivs[fs::dp11dy] + zdir*HALF*derivs[fs::dp11dz];
+         p22 = cp[CellParams::P_22] + ydir*HALF*derivs[fs::dp22dy] + zdir*HALF*derivs[fs::dp22dz];
+         p33 = cp[CellParams::P_33] + ydir*HALF*derivs[fs::dp33dy] + zdir*HALF*derivs[fs::dp33dz];
+         break;
+      default:
+         cerr << __FILE__ << ":" << __LINE__ << ":" << " Fell through a switch." << endl;
+         abort();
+         break;
    }
+   
    if (rhom < minRho) {
       rhom = minRho;
    } else if (rhom > maxRho) {
@@ -114,7 +130,6 @@ void calculateWaveSpeedYZ(
    const Real vA2 = divideIfNonZero(Bmag2, pc::MU_0*rhom); // Alfven speed
    const Real vS2 = divideIfNonZero(p11+p22+p33, 2.0*rhom); // sound speed, adiabatic coefficient 3/2, P=1/3*trace in sound speed
    const Real vW = Parameters::ohmHallTerm > 0 ? divideIfNonZero(2.0*M_PI*vA2*pc::MASS_PROTON, cp[CellParams::DX]*pc::CHARGE*sqrt(Bmag2)) : 0.0; // whistler speed
-   
    ret_vA = sqrt(vA2);
    ret_vS = sqrt(vS2);
    ret_vW = vW;
@@ -172,21 +187,37 @@ void calculateWaveSpeedXZ(
    }
 
    Real B_0, B_Y, rhom, p11, p22, p33;
-   if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      B_0  = HALF*(nbr_cp[CellParams::PERBY] + nbr_cp[CellParams::BGBY] + cp[CellParams::PERBY] + cp[CellParams::BGBY]);
-      B_Y  = (nbr_cp[CellParams::PERBY] + nbr_cp[CellParams::BGBY]) - (cp[CellParams::PERBY] + cp[CellParams::BGBY]);
-      rhom = cp[CellParams::RHO] + xdir*HALF*derivs[fs::drhodx] + zdir*HALF*derivs[fs::drhodz];
-      p11 = cp[CellParams::P_11] + xdir*HALF*derivs[fs::dp11dx] + zdir*HALF*derivs[fs::dp11dz];
-      p22 = cp[CellParams::P_22] + xdir*HALF*derivs[fs::dp22dx] + zdir*HALF*derivs[fs::dp22dz];
-      p33 = cp[CellParams::P_33] + xdir*HALF*derivs[fs::dp33dx] + zdir*HALF*derivs[fs::dp33dz];
-   } else { // RKCase == RK_ORDER2_STEP1
-      B_0  = HALF*(nbr_cp[CellParams::PERBY_DT2] + nbr_cp[CellParams::BGBY] + cp[CellParams::PERBY_DT2] + cp[CellParams::BGBY]);
-      B_Y  = (nbr_cp[CellParams::PERBY_DT2] + nbr_cp[CellParams::BGBY]) - (cp[CellParams::PERBY_DT2] + cp[CellParams::BGBY]);
-      rhom = cp[CellParams::RHO_DT2] + xdir*HALF*derivs[fs::drhodx] + zdir*HALF*derivs[fs::drhodz];
-      p11 = cp[CellParams::P_11_DT2] + xdir*HALF*derivs[fs::dp11dx] + zdir*HALF*derivs[fs::dp11dz];
-      p22 = cp[CellParams::P_22_DT2] + xdir*HALF*derivs[fs::dp22dx] + zdir*HALF*derivs[fs::dp22dz];
-      p33 = cp[CellParams::P_33_DT2] + xdir*HALF*derivs[fs::dp33dx] + zdir*HALF*derivs[fs::dp33dz];
+   switch (RKCase) {
+      case RK_ORDER1:
+         B_0  = HALF*(nbr_cp[CellParams::PERBY] + nbr_cp[CellParams::BGBY] + cp[CellParams::PERBY] + cp[CellParams::BGBY]);
+         B_Y  = (nbr_cp[CellParams::PERBY] + nbr_cp[CellParams::BGBY]) - (cp[CellParams::PERBY] + cp[CellParams::BGBY]);
+         rhom = cp[CellParams::RHO_DT2] + xdir*HALF*derivs[fs::drhodx] + zdir*HALF*derivs[fs::drhodz];
+         p11 = cp[CellParams::P_11_DT2] + xdir*HALF*derivs[fs::dp11dx] + zdir*HALF*derivs[fs::dp11dz];
+         p22 = cp[CellParams::P_22_DT2] + xdir*HALF*derivs[fs::dp22dx] + zdir*HALF*derivs[fs::dp22dz];
+         p33 = cp[CellParams::P_33_DT2] + xdir*HALF*derivs[fs::dp33dx] + zdir*HALF*derivs[fs::dp33dz];
+         break;
+      case RK_ORDER2_STEP1:
+         B_0  = HALF*(nbr_cp[CellParams::PERBY_DT2] + nbr_cp[CellParams::BGBY] + cp[CellParams::PERBY_DT2] + cp[CellParams::BGBY]);
+         B_Y  = (nbr_cp[CellParams::PERBY_DT2] + nbr_cp[CellParams::BGBY]) - (cp[CellParams::PERBY_DT2] + cp[CellParams::BGBY]);
+         rhom = cp[CellParams::RHO_DT2] + xdir*HALF*derivs[fs::drhodx] + zdir*HALF*derivs[fs::drhodz];
+         p11 = cp[CellParams::P_11_DT2] + xdir*HALF*derivs[fs::dp11dx] + zdir*HALF*derivs[fs::dp11dz];
+         p22 = cp[CellParams::P_22_DT2] + xdir*HALF*derivs[fs::dp22dx] + zdir*HALF*derivs[fs::dp22dz];
+         p33 = cp[CellParams::P_33_DT2] + xdir*HALF*derivs[fs::dp33dx] + zdir*HALF*derivs[fs::dp33dz];
+         break;
+      case RK_ORDER2_STEP2:
+         B_0  = HALF*(nbr_cp[CellParams::PERBY] + nbr_cp[CellParams::BGBY] + cp[CellParams::PERBY] + cp[CellParams::BGBY]);
+         B_Y  = (nbr_cp[CellParams::PERBY] + nbr_cp[CellParams::BGBY]) - (cp[CellParams::PERBY] + cp[CellParams::BGBY]);
+         rhom = cp[CellParams::RHO] + xdir*HALF*derivs[fs::drhodx] + zdir*HALF*derivs[fs::drhodz];
+         p11 = cp[CellParams::P_11] + xdir*HALF*derivs[fs::dp11dx] + zdir*HALF*derivs[fs::dp11dz];
+         p22 = cp[CellParams::P_22] + xdir*HALF*derivs[fs::dp22dx] + zdir*HALF*derivs[fs::dp22dz];
+         p33 = cp[CellParams::P_33] + xdir*HALF*derivs[fs::dp33dx] + zdir*HALF*derivs[fs::dp33dz];
+         break;
+      default:
+         cerr << __FILE__ << ":" << __LINE__ << ":" << " Fell through a switch." << endl;
+         abort();
+         break;
    }
+   
    if (rhom < minRho) {
       rhom = minRho;
    } else if (rhom > maxRho) {
@@ -213,10 +244,9 @@ void calculateWaveSpeedXZ(
    const Real vA2 = divideIfNonZero(Bmag2, pc::MU_0*rhom); // Alfven speed
    const Real vS2 = divideIfNonZero(p11+p22+p33, 2.0*rhom); // sound speed, adiabatic coefficient 3/2, P=1/3*trace in sound speed
    const Real vW = Parameters::ohmHallTerm > 0 ? divideIfNonZero(2.0*M_PI*vA2*pc::MASS_PROTON, cp[CellParams::DX]*pc::CHARGE*sqrt(Bmag2)) : 0.0; // whistler speed
-   
    ret_vA = sqrt(vA2);
    ret_vS = sqrt(vS2);
-   ret_vW = vW;
+   ret_vHD = vHD;
 }
 
 /*! \brief Low-level helper function.
@@ -244,7 +274,7 @@ void calculateWaveSpeedXZ(
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  * \param ret_vA Alfven speed returned
  * \param ret_vS Sound speed returned
- * \param ret_vW Whistler speed returned
+ * \param ret_vH Hall speed returned
  */
 void calculateWaveSpeedXY(
    const Real* cp,
@@ -271,21 +301,37 @@ void calculateWaveSpeedXY(
    }
 
    Real C_0, C_Z, rhom, p11, p22, p33;
-   if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      C_0  = HALF*(nbr_cp[CellParams::PERBZ] + nbr_cp[CellParams::BGBZ] + cp[CellParams::PERBZ] + cp[CellParams::BGBZ]);
-      C_Z  = (nbr_cp[CellParams::PERBZ] + nbr_cp[CellParams::BGBZ]) - (cp[CellParams::PERBZ] + cp[CellParams::BGBZ]);
-      rhom = cp[CellParams::RHO] + xdir*HALF*derivs[fs::drhodx] + ydir*HALF*derivs[fs::drhody];
-      p11 = cp[CellParams::P_11] + xdir*HALF*derivs[fs::dp11dx] + ydir*HALF*derivs[fs::dp11dy];
-      p22 = cp[CellParams::P_22] + xdir*HALF*derivs[fs::dp22dx] + ydir*HALF*derivs[fs::dp22dy];
-      p33 = cp[CellParams::P_33] + xdir*HALF*derivs[fs::dp33dx] + ydir*HALF*derivs[fs::dp33dy];
-   } else { // RKCase == RK_ORDER2_STEP1
-      C_0  = HALF*(nbr_cp[CellParams::PERBZ_DT2] + nbr_cp[CellParams::BGBZ] + cp[CellParams::PERBZ_DT2] + cp[CellParams::BGBZ]);
-      C_Z  = (nbr_cp[CellParams::PERBZ_DT2] + nbr_cp[CellParams::BGBZ]) - (cp[CellParams::PERBZ_DT2] + cp[CellParams::BGBZ]);
-      rhom = cp[CellParams::RHO_DT2] + xdir*HALF*derivs[fs::drhodx] + ydir*HALF*derivs[fs::drhody];
-      p11 = cp[CellParams::P_11_DT2] + xdir*HALF*derivs[fs::dp11dx] + ydir*HALF*derivs[fs::dp11dy];
-      p22 = cp[CellParams::P_22_DT2] + xdir*HALF*derivs[fs::dp22dx] + ydir*HALF*derivs[fs::dp22dy];
-      p33 = cp[CellParams::P_33_DT2] + xdir*HALF*derivs[fs::dp33dx] + ydir*HALF*derivs[fs::dp33dy];
+   switch (RKCase) {
+      case RK_ORDER1:
+         C_0  = HALF*(nbr_cp[CellParams::PERBZ] + nbr_cp[CellParams::BGBZ] + cp[CellParams::PERBZ] + cp[CellParams::BGBZ]);
+         C_Z  = (nbr_cp[CellParams::PERBZ] + nbr_cp[CellParams::BGBZ]) - (cp[CellParams::PERBZ] + cp[CellParams::BGBZ]);
+         rhom = cp[CellParams::RHO_DT2] + xdir*HALF*derivs[fs::drhodx] + ydir*HALF*derivs[fs::drhody];
+         p11 = cp[CellParams::P_11_DT2] + xdir*HALF*derivs[fs::dp11dx] + ydir*HALF*derivs[fs::dp11dy];
+         p22 = cp[CellParams::P_22_DT2] + xdir*HALF*derivs[fs::dp22dx] + ydir*HALF*derivs[fs::dp22dy];
+         p33 = cp[CellParams::P_33_DT2] + xdir*HALF*derivs[fs::dp33dx] + ydir*HALF*derivs[fs::dp33dy];
+         break;
+      case RK_ORDER2_STEP1:
+         C_0  = HALF*(nbr_cp[CellParams::PERBZ_DT2] + nbr_cp[CellParams::BGBZ] + cp[CellParams::PERBZ_DT2] + cp[CellParams::BGBZ]);
+         C_Z  = (nbr_cp[CellParams::PERBZ_DT2] + nbr_cp[CellParams::BGBZ]) - (cp[CellParams::PERBZ_DT2] + cp[CellParams::BGBZ]);
+         rhom = cp[CellParams::RHO_DT2] + xdir*HALF*derivs[fs::drhodx] + ydir*HALF*derivs[fs::drhody];
+         p11 = cp[CellParams::P_11_DT2] + xdir*HALF*derivs[fs::dp11dx] + ydir*HALF*derivs[fs::dp11dy];
+         p22 = cp[CellParams::P_22_DT2] + xdir*HALF*derivs[fs::dp22dx] + ydir*HALF*derivs[fs::dp22dy];
+         p33 = cp[CellParams::P_33_DT2] + xdir*HALF*derivs[fs::dp33dx] + ydir*HALF*derivs[fs::dp33dy];
+         break;
+      case RK_ORDER2_STEP2:
+         C_0  = HALF*(nbr_cp[CellParams::PERBZ] + nbr_cp[CellParams::BGBZ] + cp[CellParams::PERBZ] + cp[CellParams::BGBZ]);
+         C_Z  = (nbr_cp[CellParams::PERBZ] + nbr_cp[CellParams::BGBZ]) - (cp[CellParams::PERBZ] + cp[CellParams::BGBZ]);
+         rhom = cp[CellParams::RHO] + xdir*HALF*derivs[fs::drhodx] + ydir*HALF*derivs[fs::drhody];
+         p11 = cp[CellParams::P_11] + xdir*HALF*derivs[fs::dp11dx] + ydir*HALF*derivs[fs::dp11dy];
+         p22 = cp[CellParams::P_22] + xdir*HALF*derivs[fs::dp22dx] + ydir*HALF*derivs[fs::dp22dy];
+         p33 = cp[CellParams::P_33] + xdir*HALF*derivs[fs::dp33dx] + ydir*HALF*derivs[fs::dp33dy];
+         break;
+      default:
+         cerr << __FILE__ << ":" << __LINE__ << ":" << " Fell through a switch." << endl;
+         abort();
+         break;
    }
+   
    if (rhom < minRho) {
       rhom = minRho;
    } else if (rhom > maxRho) {
@@ -312,7 +358,6 @@ void calculateWaveSpeedXY(
    const Real vA2 = divideIfNonZero(Bmag2, pc::MU_0*rhom); // Alfven speed
    const Real vS2 = divideIfNonZero(p11+p22+p33, 2.0*rhom); // sound speed, adiabatic coefficient 3/2, P=1/3*trace in sound speed
    const Real vW = Parameters::ohmHallTerm > 0 ? divideIfNonZero(2.0*M_PI*vA2*pc::MASS_PROTON, cp[CellParams::DX]*pc::CHARGE*sqrt(Bmag2)) : 0.0; // whistler speed
-   
    ret_vA = sqrt(vA2);
    ret_vS = sqrt(vS2);
    ret_vW = vW;
@@ -350,7 +395,7 @@ void calculateEdgeElectricFieldX(
    Real ay_pos,ay_neg;              // Max. characteristic velocities to y-direction
    Real az_pos,az_neg;              // Max. characteristic velocities to z-direction
    Real Vy0,Vz0;                    // Reconstructed V
-   Real vA, vS, vW;                 // Alfven, sound, whistler speed
+   Real vA, vS, vW;                 // Alfven, sound, whistler, Hall speed
    Real maxV = 0.0;                 // Max velocity for CFL purposes
    Real c_y, c_z;                   // Wave speeds to yz-directions
 
@@ -367,60 +412,95 @@ void calculateEdgeElectricFieldX(
    Real By_S, Bz_W, Bz_E, By_N, perBy_S, perBz_W, perBz_E, perBy_N;
    Real minRho = std::numeric_limits<Real>::max();
    Real maxRho = std::numeric_limits<Real>::min();
-   if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      By_S = cp_SW[CellParams::PERBY]+cp_SW[CellParams::BGBY];
-      Bz_W = cp_SW[CellParams::PERBZ]+cp_SW[CellParams::BGBZ];
-      Bz_E = cp_SE[CellParams::PERBZ]+cp_SE[CellParams::BGBZ];
-      By_N = cp_NW[CellParams::PERBY]+cp_NW[CellParams::BGBY];
-      perBy_S = cp_SW[CellParams::PERBY];
-      perBz_W = cp_SW[CellParams::PERBZ];
-      perBz_E = cp_SE[CellParams::PERBZ];
-      perBy_N = cp_NW[CellParams::PERBY];
-      Vy0  = divideIfNonZero(cp_SW[CellParams::RHOVY], cp_SW[CellParams::RHO]);
-      Vz0  = divideIfNonZero(cp_SW[CellParams::RHOVZ], cp_SW[CellParams::RHO]);
-      minRho = min(minRho,
-                  min(cp_SW[CellParams::RHO],
-                     min(cp_SE[CellParams::RHO],
-                        min(cp_NW[CellParams::RHO],
-                            cp_NE[CellParams::RHO])
-                        )
-                     )
-                  );
-      maxRho = max(maxRho,
-                  max(cp_SW[CellParams::RHO],
-                     max(cp_SE[CellParams::RHO],
-                        max(cp_NW[CellParams::RHO],
-                            cp_NE[CellParams::RHO])
-                        )
-                     )
-                  );
-   } else { // RKCase == RK_ORDER2_STEP1
-      By_S = cp_SW[CellParams::PERBY_DT2]+cp_SW[CellParams::BGBY];
-      Bz_W = cp_SW[CellParams::PERBZ_DT2]+cp_SW[CellParams::BGBZ];
-      Bz_E = cp_SE[CellParams::PERBZ_DT2]+cp_SE[CellParams::BGBZ];
-      By_N = cp_NW[CellParams::PERBY_DT2]+cp_NW[CellParams::BGBY];
-      perBy_S = cp_SW[CellParams::PERBY_DT2];
-      perBz_W = cp_SW[CellParams::PERBZ_DT2];
-      perBz_E = cp_SE[CellParams::PERBZ_DT2];
-      perBy_N = cp_NW[CellParams::PERBY_DT2];
-      Vy0  = divideIfNonZero(cp_SW[CellParams::RHOVY_DT2], cp_SW[CellParams::RHO_DT2]);
-      Vz0  = divideIfNonZero(cp_SW[CellParams::RHOVZ_DT2], cp_SW[CellParams::RHO_DT2]);
-      minRho = min(minRho,
-                  min(cp_SW[CellParams::RHO_DT2],
-                     min(cp_SE[CellParams::RHO_DT2],
-                        min(cp_NW[CellParams::RHO_DT2],
-                            cp_NE[CellParams::RHO_DT2])
-                        )
-                     )
-                  );
-      maxRho = max(maxRho,
-                  max(cp_SW[CellParams::RHO_DT2],
-                     max(cp_SE[CellParams::RHO_DT2],
-                        max(cp_NW[CellParams::RHO_DT2],
-                            cp_NE[CellParams::RHO_DT2])
-                        )
-                     )
-                  );
+   switch (RKCase) {
+      case RK_ORDER1:
+         By_S = cp_SW[CellParams::PERBY]+cp_SW[CellParams::BGBY];
+         Bz_W = cp_SW[CellParams::PERBZ]+cp_SW[CellParams::BGBZ];
+         Bz_E = cp_SE[CellParams::PERBZ]+cp_SE[CellParams::BGBZ];
+         By_N = cp_NW[CellParams::PERBY]+cp_NW[CellParams::BGBY];
+         perBy_S = cp_SW[CellParams::PERBY];
+         perBz_W = cp_SW[CellParams::PERBZ];
+         perBz_E = cp_SE[CellParams::PERBZ];
+         perBy_N = cp_NW[CellParams::PERBY];
+         Vy0  = divideIfNonZero(cp_SW[CellParams::RHOVY_DT2], cp_SW[CellParams::RHO_DT2]);
+         Vz0  = divideIfNonZero(cp_SW[CellParams::RHOVZ_DT2], cp_SW[CellParams::RHO_DT2]);
+         minRho = min(minRho,
+                      min(cp_SW[CellParams::RHO_DT2],
+                          min(cp_SE[CellParams::RHO_DT2],
+                              min(cp_NW[CellParams::RHO_DT2],
+                                  cp_NE[CellParams::RHO_DT2])
+                          )
+                      )
+         );
+         maxRho = max(maxRho,
+                      max(cp_SW[CellParams::RHO_DT2],
+                          max(cp_SE[CellParams::RHO_DT2],
+                              max(cp_NW[CellParams::RHO_DT2],
+                                  cp_NE[CellParams::RHO_DT2])
+                          )
+                      )
+         );
+         break;
+      case RK_ORDER2_STEP1:
+         By_S = cp_SW[CellParams::PERBY_DT2]+cp_SW[CellParams::BGBY];
+         Bz_W = cp_SW[CellParams::PERBZ_DT2]+cp_SW[CellParams::BGBZ];
+         Bz_E = cp_SE[CellParams::PERBZ_DT2]+cp_SE[CellParams::BGBZ];
+         By_N = cp_NW[CellParams::PERBY_DT2]+cp_NW[CellParams::BGBY];
+         perBy_S = cp_SW[CellParams::PERBY_DT2];
+         perBz_W = cp_SW[CellParams::PERBZ_DT2];
+         perBz_E = cp_SE[CellParams::PERBZ_DT2];
+         perBy_N = cp_NW[CellParams::PERBY_DT2];
+         Vy0  = divideIfNonZero(cp_SW[CellParams::RHOVY_DT2], cp_SW[CellParams::RHO_DT2]);
+         Vz0  = divideIfNonZero(cp_SW[CellParams::RHOVZ_DT2], cp_SW[CellParams::RHO_DT2]);
+         minRho = min(minRho,
+                      min(cp_SW[CellParams::RHO_DT2],
+                          min(cp_SE[CellParams::RHO_DT2],
+                              min(cp_NW[CellParams::RHO_DT2],
+                                  cp_NE[CellParams::RHO_DT2])
+                          )
+                      )
+         );
+         maxRho = max(maxRho,
+                      max(cp_SW[CellParams::RHO_DT2],
+                          max(cp_SE[CellParams::RHO_DT2],
+                              max(cp_NW[CellParams::RHO_DT2],
+                                  cp_NE[CellParams::RHO_DT2])
+                          )
+                      )
+         );
+         break;
+      case RK_ORDER2_STEP2:
+         By_S = cp_SW[CellParams::PERBY]+cp_SW[CellParams::BGBY];
+         Bz_W = cp_SW[CellParams::PERBZ]+cp_SW[CellParams::BGBZ];
+         Bz_E = cp_SE[CellParams::PERBZ]+cp_SE[CellParams::BGBZ];
+         By_N = cp_NW[CellParams::PERBY]+cp_NW[CellParams::BGBY];
+         perBy_S = cp_SW[CellParams::PERBY];
+         perBz_W = cp_SW[CellParams::PERBZ];
+         perBz_E = cp_SE[CellParams::PERBZ];
+         perBy_N = cp_NW[CellParams::PERBY];
+         Vy0  = divideIfNonZero(cp_SW[CellParams::RHOVY], cp_SW[CellParams::RHO]);
+         Vz0  = divideIfNonZero(cp_SW[CellParams::RHOVZ], cp_SW[CellParams::RHO]);
+         minRho = min(minRho,
+                      min(cp_SW[CellParams::RHO],
+                          min(cp_SE[CellParams::RHO],
+                              min(cp_NW[CellParams::RHO],
+                                  cp_NE[CellParams::RHO])
+                          )
+                      )
+         );
+         maxRho = max(maxRho,
+                      max(cp_SW[CellParams::RHO],
+                          max(cp_SE[CellParams::RHO],
+                              max(cp_NW[CellParams::RHO],
+                                  cp_NE[CellParams::RHO])
+                          )
+                      )
+         );
+         break;
+      default:
+         cerr << __FILE__ << ":" << __LINE__ << ":" << " Fell through a switch." << endl;
+         abort();
+         break;
    }
 
    creal dBydx_S = derivs_SW[fs::dPERBydx] + derivs_SW[fs::dBGBydx];
@@ -483,10 +563,10 @@ void calculateEdgeElectricFieldX(
    maxV = max(maxV, fabs(Vy0) + fabs(Vz0) + vA + vS + vW);
 
    // Ex and characteristic speeds on j-1 neighbour:
-   if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+   if (RKCase == RK_ORDER2_STEP2) {
       Vy0  = divideIfNonZero(cp_SE[CellParams::RHOVY], cp_SE[CellParams::RHO]);
       Vz0  = divideIfNonZero(cp_SE[CellParams::RHOVZ], cp_SE[CellParams::RHO]);
-   } else { // RKCase == RK_ORDER2_STEP1
+   } else { // RKCase == RK_ORDER2_STEP1 or RK_ORDER1
       Vy0  = divideIfNonZero(cp_SE[CellParams::RHOVY_DT2], cp_SE[CellParams::RHO_DT2]);
       Vz0  = divideIfNonZero(cp_SE[CellParams::RHOVZ_DT2], cp_SE[CellParams::RHO_DT2]);
    }
@@ -537,10 +617,10 @@ void calculateEdgeElectricFieldX(
    maxV = max(maxV, fabs(Vy0) + fabs(Vz0) + vA + vS + vW);
 
    // Ex and characteristic speeds on k-1 neighbour:
-   if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+   if (RKCase == RK_ORDER2_STEP2) {
       Vy0  = divideIfNonZero(cp_NW[CellParams::RHOVY], cp_NW[CellParams::RHO]);
       Vz0  = divideIfNonZero(cp_NW[CellParams::RHOVZ], cp_NW[CellParams::RHO]);
-   } else { // RKCase == RK_ORDER2_STEP1
+   } else { // RKCase == RK_ORDER2_STEP1 or RK_ORDER1
       Vy0  = divideIfNonZero(cp_NW[CellParams::RHOVY_DT2], cp_NW[CellParams::RHO_DT2]);
       Vz0  = divideIfNonZero(cp_NW[CellParams::RHOVZ_DT2], cp_NW[CellParams::RHO_DT2]);
    }
@@ -591,10 +671,10 @@ void calculateEdgeElectricFieldX(
    maxV = max(maxV, fabs(Vy0) + fabs(Vz0) + vA + vS + vW);
 
    // Ex and characteristic speeds on j-1,k-1 neighbour:
-   if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+   if (RKCase == RK_ORDER2_STEP2) {
       Vy0 = divideIfNonZero(cp_NE[CellParams::RHOVY], cp_NE[CellParams::RHO]);
       Vz0 = divideIfNonZero(cp_NE[CellParams::RHOVZ], cp_NE[CellParams::RHO]);
-   } else { // RKCase == RK_ORDER2_STEP1
+   } else { // RKCase == RK_ORDER2_STEP1 or RK_ORDER1
       Vy0 = divideIfNonZero(cp_NE[CellParams::RHOVY_DT2], cp_NE[CellParams::RHO_DT2]);
       Vz0 = divideIfNonZero(cp_NE[CellParams::RHOVZ_DT2], cp_NE[CellParams::RHO_DT2]);
    }
@@ -735,62 +815,96 @@ void calculateEdgeElectricFieldY(
    Real Bz_S, Bx_W, Bx_E, Bz_N, perBz_S, perBx_W, perBx_E, perBz_N;
    Real minRho = std::numeric_limits<Real>::max();
    Real maxRho = std::numeric_limits<Real>::min();
-   if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      Bz_S = cp_SW[CellParams::PERBZ]+cp_SW[CellParams::BGBZ];
-      Bx_W = cp_SW[CellParams::PERBX]+cp_SW[CellParams::BGBX];
-      Bx_E = cp_SE[CellParams::PERBX]+cp_SE[CellParams::BGBX];
-      Bz_N = cp_NW[CellParams::PERBZ]+cp_NW[CellParams::BGBZ];
-      perBz_S = cp_SW[CellParams::PERBZ];
-      perBx_W = cp_SW[CellParams::PERBX];
-      perBx_E = cp_SE[CellParams::PERBX];
-      perBz_N = cp_NW[CellParams::PERBZ];
-      Vx0  = divideIfNonZero(cp_SW[CellParams::RHOVX], cp_SW[CellParams::RHO]);
-      Vz0  = divideIfNonZero(cp_SW[CellParams::RHOVZ], cp_SW[CellParams::RHO]);
-      minRho = min(minRho,
-                  min(cp_SW[CellParams::RHO],
-                     min(cp_SE[CellParams::RHO],
-                        min(cp_NW[CellParams::RHO],
-                            cp_NE[CellParams::RHO])
-                        )
-                     )
-                  );
-      maxRho = max(maxRho,
-                  max(cp_SW[CellParams::RHO],
-                     max(cp_SE[CellParams::RHO],
-                        max(cp_NW[CellParams::RHO],
-                            cp_NE[CellParams::RHO])
-                        )
-                     )
-                  );
-   } else { // RKCase == RK_ORDER2_STEP1
-      Bz_S = cp_SW[CellParams::PERBZ_DT2]+cp_SW[CellParams::BGBZ];
-      Bx_W = cp_SW[CellParams::PERBX_DT2]+cp_SW[CellParams::BGBX];
-      Bx_E = cp_SE[CellParams::PERBX_DT2]+cp_SE[CellParams::BGBX];
-      Bz_N = cp_NW[CellParams::PERBZ_DT2]+cp_NW[CellParams::BGBZ];
-      perBz_S = cp_SW[CellParams::PERBZ_DT2];
-      perBx_W = cp_SW[CellParams::PERBX_DT2];
-      perBx_E = cp_SE[CellParams::PERBX_DT2];
-      perBz_N = cp_NW[CellParams::PERBZ_DT2];
-      Vx0  = divideIfNonZero(cp_SW[CellParams::RHOVX_DT2], cp_SW[CellParams::RHO_DT2]);
-      Vz0  = divideIfNonZero(cp_SW[CellParams::RHOVZ_DT2], cp_SW[CellParams::RHO_DT2]);
-      minRho = min(minRho,
-                  min(cp_SW[CellParams::RHO_DT2],
-                     min(cp_SE[CellParams::RHO_DT2],
-                        min(cp_NW[CellParams::RHO_DT2],
-                            cp_NE[CellParams::RHO_DT2])
-                        )
-                     )
-                  );
-      maxRho = max(maxRho,
-                  max(cp_SW[CellParams::RHO_DT2],
-                     max(cp_SE[CellParams::RHO_DT2],
-                        max(cp_NW[CellParams::RHO_DT2],
-                            cp_NE[CellParams::RHO_DT2])
-                        )
-                     )
-                  );
+   switch (RKCase) {
+      case RK_ORDER1:
+         Bz_S = cp_SW[CellParams::PERBZ]+cp_SW[CellParams::BGBZ];
+         Bx_W = cp_SW[CellParams::PERBX]+cp_SW[CellParams::BGBX];
+         Bx_E = cp_SE[CellParams::PERBX]+cp_SE[CellParams::BGBX];
+         Bz_N = cp_NW[CellParams::PERBZ]+cp_NW[CellParams::BGBZ];
+         perBz_S = cp_SW[CellParams::PERBZ];
+         perBx_W = cp_SW[CellParams::PERBX];
+         perBx_E = cp_SE[CellParams::PERBX];
+         perBz_N = cp_NW[CellParams::PERBZ];
+         Vx0  = divideIfNonZero(cp_SW[CellParams::RHOVX_DT2], cp_SW[CellParams::RHO_DT2]);
+         Vz0  = divideIfNonZero(cp_SW[CellParams::RHOVZ_DT2], cp_SW[CellParams::RHO_DT2]);
+         minRho = min(minRho,
+                      min(cp_SW[CellParams::RHO_DT2],
+                          min(cp_SE[CellParams::RHO_DT2],
+                              min(cp_NW[CellParams::RHO_DT2],
+                                  cp_NE[CellParams::RHO_DT2])
+                          )
+                      )
+         );
+         maxRho = max(maxRho,
+                      max(cp_SW[CellParams::RHO_DT2],
+                          max(cp_SE[CellParams::RHO_DT2],
+                              max(cp_NW[CellParams::RHO_DT2],
+                                  cp_NE[CellParams::RHO_DT2])
+                          )
+                      )
+         );
+         break;
+      case RK_ORDER2_STEP1:
+         Bz_S = cp_SW[CellParams::PERBZ_DT2]+cp_SW[CellParams::BGBZ];
+         Bx_W = cp_SW[CellParams::PERBX_DT2]+cp_SW[CellParams::BGBX];
+         Bx_E = cp_SE[CellParams::PERBX_DT2]+cp_SE[CellParams::BGBX];
+         Bz_N = cp_NW[CellParams::PERBZ_DT2]+cp_NW[CellParams::BGBZ];
+         perBz_S = cp_SW[CellParams::PERBZ_DT2];
+         perBx_W = cp_SW[CellParams::PERBX_DT2];
+         perBx_E = cp_SE[CellParams::PERBX_DT2];
+         perBz_N = cp_NW[CellParams::PERBZ_DT2];
+         Vx0  = divideIfNonZero(cp_SW[CellParams::RHOVX_DT2], cp_SW[CellParams::RHO_DT2]);
+         Vz0  = divideIfNonZero(cp_SW[CellParams::RHOVZ_DT2], cp_SW[CellParams::RHO_DT2]);
+         minRho = min(minRho,
+                      min(cp_SW[CellParams::RHO_DT2],
+                          min(cp_SE[CellParams::RHO_DT2],
+                              min(cp_NW[CellParams::RHO_DT2],
+                                  cp_NE[CellParams::RHO_DT2])
+                          )
+                      )
+         );
+         maxRho = max(maxRho,
+                      max(cp_SW[CellParams::RHO_DT2],
+                          max(cp_SE[CellParams::RHO_DT2],
+                              max(cp_NW[CellParams::RHO_DT2],
+                                  cp_NE[CellParams::RHO_DT2])
+                          )
+                      )
+         );
+         break;
+      case RK_ORDER2_STEP2:
+         Bz_S = cp_SW[CellParams::PERBZ]+cp_SW[CellParams::BGBZ];
+         Bx_W = cp_SW[CellParams::PERBX]+cp_SW[CellParams::BGBX];
+         Bx_E = cp_SE[CellParams::PERBX]+cp_SE[CellParams::BGBX];
+         Bz_N = cp_NW[CellParams::PERBZ]+cp_NW[CellParams::BGBZ];
+         perBz_S = cp_SW[CellParams::PERBZ];
+         perBx_W = cp_SW[CellParams::PERBX];
+         perBx_E = cp_SE[CellParams::PERBX];
+         perBz_N = cp_NW[CellParams::PERBZ];
+         Vx0  = divideIfNonZero(cp_SW[CellParams::RHOVX], cp_SW[CellParams::RHO]);
+         Vz0  = divideIfNonZero(cp_SW[CellParams::RHOVZ], cp_SW[CellParams::RHO]);
+         minRho = min(minRho,
+                      min(cp_SW[CellParams::RHO],
+                          min(cp_SE[CellParams::RHO],
+                              min(cp_NW[CellParams::RHO],
+                                  cp_NE[CellParams::RHO])
+                          )
+                      )
+         );
+         maxRho = max(maxRho,
+                      max(cp_SW[CellParams::RHO],
+                          max(cp_SE[CellParams::RHO],
+                              max(cp_NW[CellParams::RHO],
+                                  cp_NE[CellParams::RHO])
+                          )
+                      )
+         );
+         break;
+      default:
+         cerr << __FILE__ << ":" << __LINE__ << ":" << " Fell through a switch." << endl;
+         abort();
+         break;
    }
-   
    creal dBxdy_W = derivs_SW[fs::dPERBxdy] + derivs_SW[fs::dBGBxdy];
    creal dBxdz_W = derivs_SW[fs::dPERBxdz] + derivs_SW[fs::dBGBxdz];
    creal dBzdx_S = derivs_SW[fs::dPERBzdx] + derivs_SW[fs::dBGBzdx];
@@ -851,10 +965,10 @@ void calculateEdgeElectricFieldY(
    maxV = max(maxV, fabs(Vz0) + fabs(Vx0) + vA + vS + vW);
 
    // Ey and characteristic speeds on k-1 neighbour:
-   if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+   if (RKCase == RK_ORDER2_STEP2) {
       Vx0  = divideIfNonZero(cp_SE[CellParams::RHOVX], cp_SE[CellParams::RHO]);
       Vz0  = divideIfNonZero(cp_SE[CellParams::RHOVZ], cp_SE[CellParams::RHO]);
-   } else { //RKCase == RK_ORDER2_STEP1
+   } else { //RKCase == RK_ORDER2_STEP1 or RK_ORDER1
       Vx0  = divideIfNonZero(cp_SE[CellParams::RHOVX_DT2], cp_SE[CellParams::RHO_DT2]);
       Vz0  = divideIfNonZero(cp_SE[CellParams::RHOVZ_DT2], cp_SE[CellParams::RHO_DT2]);
    }
@@ -905,10 +1019,10 @@ void calculateEdgeElectricFieldY(
    maxV = max(maxV, fabs(Vz0) + fabs(Vx0) + vA + vS + vW);
    
    // Ey and characteristic speeds on i-1 neighbour:
-   if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+   if (RKCase == RK_ORDER2_STEP2) {
       Vz0  = divideIfNonZero(cp_NW[CellParams::RHOVZ], cp_NW[CellParams::RHO]);
       Vx0  = divideIfNonZero(cp_NW[CellParams::RHOVX], cp_NW[CellParams::RHO]);
-   } else { //RKCase == RK_ORDER2_STEP1
+   } else { //RKCase == RK_ORDER2_STEP1 or RK_ORDER1
       Vz0  = divideIfNonZero(cp_NW[CellParams::RHOVZ_DT2], cp_NW[CellParams::RHO_DT2]);
       Vx0  = divideIfNonZero(cp_NW[CellParams::RHOVX_DT2], cp_NW[CellParams::RHO_DT2]);
    }
@@ -959,10 +1073,10 @@ void calculateEdgeElectricFieldY(
    maxV = max(maxV, fabs(Vz0) + fabs(Vx0) + vA + vS + vW);
 
    // Ey and characteristic speeds on i-1,k-1 neighbour:
-   if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+   if (RKCase == RK_ORDER2_STEP2) {
       Vz0 = divideIfNonZero(cp_NE[CellParams::RHOVZ], cp_NE[CellParams::RHO]);
       Vx0 = divideIfNonZero(cp_NE[CellParams::RHOVX], cp_NE[CellParams::RHO]);
-   } else { //RKCase == RK_ORDER2_STEP1
+   } else { //RKCase == RK_ORDER2_STEP1 or RK_ORDER1
       Vz0 = divideIfNonZero(cp_NE[CellParams::RHOVZ_DT2], cp_NE[CellParams::RHO_DT2]);
       Vx0 = divideIfNonZero(cp_NE[CellParams::RHOVX_DT2], cp_NE[CellParams::RHO_DT2]);
    }
@@ -1082,7 +1196,7 @@ void calculateEdgeElectricFieldZ(
    Real ax_pos,ax_neg;              // Max. characteristic velocities to x-direction
    Real ay_pos,ay_neg;              // Max. characteristic velocities to y-direction
    Real Vx0,Vy0;                    // Reconstructed V
-   Real vA, vS, vW;                         // Alfven, sound, whistler speed
+   Real vA, vS, vW;                 // Alfven, sound, whistler speed
    Real maxV = 0.0;                 // Max velocity for CFL purposes
    Real c_x,c_y;                    // Characteristic speeds to xy-directions
    
@@ -1101,62 +1215,96 @@ void calculateEdgeElectricFieldZ(
    Real Bx_S, By_W, By_E, Bx_N, perBx_S, perBy_W, perBy_E, perBx_N;
    Real minRho = std::numeric_limits<Real>::max();
    Real maxRho = std::numeric_limits<Real>::min();
-   if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      Bx_S    = cp_SW[CellParams::PERBX] + cp_SW[CellParams::BGBX];
-      By_W    = cp_SW[CellParams::PERBY] + cp_SW[CellParams::BGBY];
-      By_E    = cp_SE[CellParams::PERBY] + cp_SE[CellParams::BGBY];
-      Bx_N    = cp_NW[CellParams::PERBX] + cp_NW[CellParams::BGBX];
-      perBx_S    = cp_SW[CellParams::PERBX];
-      perBy_W    = cp_SW[CellParams::PERBY];
-      perBy_E    = cp_SE[CellParams::PERBY];
-      perBx_N    = cp_NW[CellParams::PERBX];
-      Vx0  = divideIfNonZero(cp_SW[CellParams::RHOVX], cp_SW[CellParams::RHO]);
-      Vy0  = divideIfNonZero(cp_SW[CellParams::RHOVY], cp_SW[CellParams::RHO]);
-      minRho = min(minRho,
-                  min(cp_SW[CellParams::RHO],
-                     min(cp_SE[CellParams::RHO],
-                        min(cp_NW[CellParams::RHO],
-                            cp_NE[CellParams::RHO])
-                        )
-                     )
-                  );
-      maxRho = max(maxRho,
-                  max(cp_SW[CellParams::RHO],
-                     max(cp_SE[CellParams::RHO],
-                        max(cp_NW[CellParams::RHO],
-                            cp_NE[CellParams::RHO])
-                        )
-                     )
-                  );
-   } else { // RKCase == RK_ORDER2_STEP1
-      Bx_S    = cp_SW[CellParams::PERBX_DT2] + cp_SW[CellParams::BGBX];
-      By_W    = cp_SW[CellParams::PERBY_DT2] + cp_SW[CellParams::BGBY];
-      By_E    = cp_SE[CellParams::PERBY_DT2] + cp_SE[CellParams::BGBY];
-      Bx_N    = cp_NW[CellParams::PERBX_DT2] + cp_NW[CellParams::BGBX];
-      perBx_S    = cp_SW[CellParams::PERBX_DT2];
-      perBy_W    = cp_SW[CellParams::PERBY_DT2];
-      perBy_E    = cp_SE[CellParams::PERBY_DT2];
-      perBx_N    = cp_NW[CellParams::PERBX_DT2];
-      Vx0  = divideIfNonZero(cp_SW[CellParams::RHOVX_DT2], cp_SW[CellParams::RHO_DT2]);
-      Vy0  = divideIfNonZero(cp_SW[CellParams::RHOVY_DT2], cp_SW[CellParams::RHO_DT2]);
-      minRho = min(minRho,
-                  min(cp_SW[CellParams::RHO_DT2],
-                     min(cp_SE[CellParams::RHO_DT2],
-                        min(cp_NW[CellParams::RHO_DT2],
-                            cp_NE[CellParams::RHO_DT2])
-                        )
-                     )
-                  );
-      maxRho = max(maxRho,
-                  max(cp_SW[CellParams::RHO_DT2],
-                     max(cp_SE[CellParams::RHO_DT2],
-                        max(cp_NW[CellParams::RHO_DT2],
-                            cp_NE[CellParams::RHO_DT2])
-                        )
-                     )
-                  );
+   switch (RKCase) {
+      case RK_ORDER1:
+         Bx_S    = cp_SW[CellParams::PERBX] + cp_SW[CellParams::BGBX];
+         By_W    = cp_SW[CellParams::PERBY] + cp_SW[CellParams::BGBY];
+         By_E    = cp_SE[CellParams::PERBY] + cp_SE[CellParams::BGBY];
+         Bx_N    = cp_NW[CellParams::PERBX] + cp_NW[CellParams::BGBX];
+         perBx_S    = cp_SW[CellParams::PERBX];
+         perBy_W    = cp_SW[CellParams::PERBY];
+         perBy_E    = cp_SE[CellParams::PERBY];
+         perBx_N    = cp_NW[CellParams::PERBX];
+         Vx0  = divideIfNonZero(cp_SW[CellParams::RHOVX_DT2], cp_SW[CellParams::RHO_DT2]);
+         Vy0  = divideIfNonZero(cp_SW[CellParams::RHOVY_DT2], cp_SW[CellParams::RHO_DT2]);
+         minRho = min(minRho,
+                      min(cp_SW[CellParams::RHO_DT2],
+                          min(cp_SE[CellParams::RHO_DT2],
+                              min(cp_NW[CellParams::RHO_DT2],
+                                  cp_NE[CellParams::RHO_DT2])
+                          )
+                      )
+         );
+         maxRho = max(maxRho,
+                      max(cp_SW[CellParams::RHO_DT2],
+                          max(cp_SE[CellParams::RHO_DT2],
+                              max(cp_NW[CellParams::RHO_DT2],
+                                  cp_NE[CellParams::RHO_DT2])
+                          )
+                      )
+         );
+         break;
+      case RK_ORDER2_STEP1:
+         Bx_S    = cp_SW[CellParams::PERBX_DT2] + cp_SW[CellParams::BGBX];
+         By_W    = cp_SW[CellParams::PERBY_DT2] + cp_SW[CellParams::BGBY];
+         By_E    = cp_SE[CellParams::PERBY_DT2] + cp_SE[CellParams::BGBY];
+         Bx_N    = cp_NW[CellParams::PERBX_DT2] + cp_NW[CellParams::BGBX];
+         perBx_S    = cp_SW[CellParams::PERBX_DT2];
+         perBy_W    = cp_SW[CellParams::PERBY_DT2];
+         perBy_E    = cp_SE[CellParams::PERBY_DT2];
+         perBx_N    = cp_NW[CellParams::PERBX_DT2];
+         Vx0  = divideIfNonZero(cp_SW[CellParams::RHOVX_DT2], cp_SW[CellParams::RHO_DT2]);
+         Vy0  = divideIfNonZero(cp_SW[CellParams::RHOVY_DT2], cp_SW[CellParams::RHO_DT2]);
+         minRho = min(minRho,
+                      min(cp_SW[CellParams::RHO_DT2],
+                          min(cp_SE[CellParams::RHO_DT2],
+                              min(cp_NW[CellParams::RHO_DT2],
+                                  cp_NE[CellParams::RHO_DT2])
+                          )
+                      )
+         );
+         maxRho = max(maxRho,
+                      max(cp_SW[CellParams::RHO_DT2],
+                          max(cp_SE[CellParams::RHO_DT2],
+                              max(cp_NW[CellParams::RHO_DT2],
+                                  cp_NE[CellParams::RHO_DT2])
+                          )
+                      )
+         );
+         break;
+      case RK_ORDER2_STEP2:
+         Bx_S    = cp_SW[CellParams::PERBX] + cp_SW[CellParams::BGBX];
+         By_W    = cp_SW[CellParams::PERBY] + cp_SW[CellParams::BGBY];
+         By_E    = cp_SE[CellParams::PERBY] + cp_SE[CellParams::BGBY];
+         Bx_N    = cp_NW[CellParams::PERBX] + cp_NW[CellParams::BGBX];
+         perBx_S    = cp_SW[CellParams::PERBX];
+         perBy_W    = cp_SW[CellParams::PERBY];
+         perBy_E    = cp_SE[CellParams::PERBY];
+         perBx_N    = cp_NW[CellParams::PERBX];
+         Vx0  = divideIfNonZero(cp_SW[CellParams::RHOVX], cp_SW[CellParams::RHO]);
+         Vy0  = divideIfNonZero(cp_SW[CellParams::RHOVY], cp_SW[CellParams::RHO]);
+         minRho = min(minRho,
+                      min(cp_SW[CellParams::RHO],
+                          min(cp_SE[CellParams::RHO],
+                              min(cp_NW[CellParams::RHO],
+                                  cp_NE[CellParams::RHO])
+                          )
+                      )
+         );
+         maxRho = max(maxRho,
+                      max(cp_SW[CellParams::RHO],
+                          max(cp_SE[CellParams::RHO],
+                              max(cp_NW[CellParams::RHO],
+                                  cp_NE[CellParams::RHO])
+                          )
+                      )
+         );
+         break;
+      default:
+         cerr << __FILE__ << ":" << __LINE__ << ":" << " Fell through a switch." << endl;
+         abort();
+         break;
    }
-   
    creal dBxdy_S = derivs_SW[fs::dPERBxdy] + derivs_SW[fs::dBGBxdy];
    creal dBxdz_S = derivs_SW[fs::dPERBxdz] + derivs_SW[fs::dBGBxdz];
    creal dBydx_W = derivs_SW[fs::dPERBydx] + derivs_SW[fs::dBGBydx];
@@ -1219,10 +1367,10 @@ void calculateEdgeElectricFieldZ(
    maxV = max(maxV, fabs(Vx0) + fabs(Vy0) + vA + vS + vW);
 
    // Ez and characteristic speeds on SE (i-1) cell:
-   if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+   if (RKCase == RK_ORDER2_STEP2) {
       Vx0  = divideIfNonZero(cp_SE[CellParams::RHOVX], cp_SE[CellParams::RHO]);
       Vy0  = divideIfNonZero(cp_SE[CellParams::RHOVY], cp_SE[CellParams::RHO]);
-   } else { // RKCase == RK_ORDER2_STEP1
+   } else { // RKCase == RK_ORDER2_STEP1 or RK_ORDER1
       Vx0  = divideIfNonZero(cp_SE[CellParams::RHOVX_DT2], cp_SE[CellParams::RHO_DT2]);
       Vy0  = divideIfNonZero(cp_SE[CellParams::RHOVY_DT2], cp_SE[CellParams::RHO_DT2]);
    }
@@ -1272,10 +1420,10 @@ void calculateEdgeElectricFieldZ(
    maxV = max(maxV, fabs(Vx0) + fabs(Vy0) + vA + vS + vW);
 
    // Ez and characteristic speeds on NW (j-1) cell:
-   if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+   if (RKCase == RK_ORDER2_STEP2) {
       Vx0  = divideIfNonZero(cp_NW[CellParams::RHOVX], cp_NW[CellParams::RHO]);
       Vy0  = divideIfNonZero(cp_NW[CellParams::RHOVY], cp_NW[CellParams::RHO]);
-   } else { // RKCase == RK_ORDER2_STEP1
+   } else { // RKCase == RK_ORDER2_STEP1 or RK_ORDER1
       Vx0  = divideIfNonZero(cp_NW[CellParams::RHOVX_DT2], cp_NW[CellParams::RHO_DT2]);
       Vy0  = divideIfNonZero(cp_NW[CellParams::RHOVY_DT2], cp_NW[CellParams::RHO_DT2]);
    }
@@ -1326,10 +1474,10 @@ void calculateEdgeElectricFieldZ(
    maxV = max(maxV, fabs(Vx0) + fabs(Vy0) + vA + vS + vW);
    
    // Ez and characteristic speeds on NE (i-1,j-1) cell:
-   if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+   if (RKCase == RK_ORDER2_STEP2) {
       Vx0  = divideIfNonZero(cp_NE[CellParams::RHOVX], cp_NE[CellParams::RHO]);
       Vy0  = divideIfNonZero(cp_NE[CellParams::RHOVY], cp_NE[CellParams::RHO]);
-   } else { // RKCase == RK_ORDER2_STEP1
+   } else { // RKCase == RK_ORDER2_STEP1 or RK_ORDER1
       Vx0  = divideIfNonZero(cp_NE[CellParams::RHOVX_DT2], cp_NE[CellParams::RHO_DT2]);
       Vy0  = divideIfNonZero(cp_NE[CellParams::RHOVY_DT2], cp_NE[CellParams::RHO_DT2]);
    }
