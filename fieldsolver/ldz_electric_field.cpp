@@ -246,7 +246,7 @@ void calculateWaveSpeedXZ(
    const Real vW = Parameters::ohmHallTerm > 0 ? divideIfNonZero(2.0*M_PI*vA2*pc::MASS_PROTON, cp[CellParams::DX]*pc::CHARGE*sqrt(Bmag2)) : 0.0; // whistler speed
    ret_vA = sqrt(vA2);
    ret_vS = sqrt(vS2);
-   ret_vHD = vHD;
+   ret_vW = vW;
 }
 
 /*! \brief Low-level helper function.
