@@ -528,8 +528,8 @@ void calculateEdgeHallTermYComponents(
       case 1:
          switch (RKCase) {
             case RK_ORDER1:
-               Bx = cp[CellParams::PERBX_DT2]+cp[CellParams::BGBX];
-               Bz = cp[CellParams::PERBZ_DT2]+cp[CellParams::BGBZ];
+               Bx = cp[CellParams::PERBX]+cp[CellParams::BGBX];
+               Bz = cp[CellParams::PERBZ]+cp[CellParams::BGBZ];
                hallRho =  (cp[CellParams::RHO_DT2] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO_DT2] ;
                break;
             case RK_ORDER2_STEP1:
