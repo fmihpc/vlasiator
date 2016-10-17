@@ -1,12 +1,24 @@
+/*
+ * This file is part of Vlasiator.
+ * Copyright 2010-2016 Finnish Meteorological Institute
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 #ifndef VECTORCLASS_PORTABLE_H
 #define VECTORCLASS_PORTABLE_H
 #include <math.h>
-/*
-  This file is part of Vlasiator.
-
-  Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
-
-
 /*! \file vectorclass_fallback.h
   \brief Simple class for implementing a vector with 4 real values
 
