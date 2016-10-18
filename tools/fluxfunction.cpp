@@ -157,6 +157,14 @@ namespace Equatorialplane {
 
       long double tmp_flux=0.;
 
+      // Calculate flux-difference between bottom and top edge
+      // of +x boundary (so that values are consistent with computeFluxUp)
+      for(int y=3; y<B.dimension[1]->cells-4; y++) {
+         Vec3d bval = B.getCell(B.dimension[0]->cells-2,y,0);
+
+         tmp_flux -= bval[0]*B.dx[1];
+      }
+
       // First, fill the y=max - 4 cells
       for(int x=B.dimension[0]->cells-2; x>0; x--) {
          Vec3d bval = B.getCell(x,B.dimension[1]->cells-4,0);
@@ -188,13 +196,16 @@ namespace Equatorialplane {
       std::vector<double> flux(B.dimension[0]->cells * B.dimension[1]->cells * B.dimension[2]->cells);
 
       long double tmp_flux=0.;
+      long double bottom_right_flux=0.;
 
       // Now, for each row, integrate in -y-direction.
       for(int y=0; y < B.dimension[1]->cells; y++) {
-         tmp_flux = 0;
+         Vec3d bval = B.getCell(B.dimension[0]->cells-1,y,0);
+         bottom_right_flux -= bval[0] * B.dx[1];
+         tmp_flux = bottom_right_flux;
          for(int x=B.dimension[0]->cells-1; x>0; x--) {
 
-            Vec3d bval = B.getCell(x,y,0);
+            bval = B.getCell(x,y,0);
 
             tmp_flux -= bval[1] * B.dx[0];
             flux[B.dimension[0]->cells * y  +  x] = tmp_flux;
