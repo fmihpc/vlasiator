@@ -53,7 +53,7 @@ struct Field
    }
 
    // Round-Brace indexing: indexing by physical location, with interpolation
-   Vec3d operator()(Vec3d v) {
+   virtual Vec3d operator()(Vec3d v) {
       Vec3d vmin,vdx;
       double min[3] = { min[0] = dimension[0]->min, dimension[1]->min, dimension[2]->min};
       vmin.load(min);
@@ -119,7 +119,7 @@ struct Field
 
 // Linear Temporal interpolation between two input fields
 struct Interpolated_Field : Field{
-   Field& a,b;
+   Field &a, &b;
    double t;
 
    /* Constructor:
@@ -129,7 +129,7 @@ struct Interpolated_Field : Field{
    Interpolated_Field(Field& _a, Field& _b, float _t) : a(_a),b(_b),t(_t) {
    }
 
-   Vec3d operator()(Vec3d v) {
+   virtual Vec3d operator()(Vec3d v) {
       Vec3d aval=a(v);
       Vec3d bval=b(v);
 
