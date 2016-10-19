@@ -65,7 +65,7 @@ struct Field
       int index[3];
       double fract[3];
       truncate_to_int(v).store(index);
-      (v-truncate(v)).store(fract);
+      (v-Vec3d(truncate(v))).store(fract);
 
       if(dimension[2]->cells <= 1) {
          // Equatorial plane
