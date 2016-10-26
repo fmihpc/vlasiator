@@ -16,7 +16,7 @@ run_dir="run"
 test_dir="tests"
 
 # choose tests to run
-run_tests=( 1 2 3 4 5 6 7 8 9)
+run_tests=(  3 )
 
 # acceleration test
 test_name[1]="acctest_2_maxw_500k_100k_20kms_10deg"
