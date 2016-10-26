@@ -122,15 +122,15 @@ bool readNextTimestep(const std::string& filename_pattern, double t, int step, F
       std::vector<double> Ebuffer = readFieldData(r,name,3u);
       std::vector<double> Vbuffer;
       if(doV) {
-         name = "rho_v";
-         std::vector<double> rho_v_buffer = readFieldData(r,name,3u);
-         name = "rho";
-         std::vector<double> rho_buffer = readFieldData(r,name,1u);
-         for(int i=0; i<rho_buffer.size(); i++) {
-            Vbuffer.push_back(rho_v_buffer[3*i] / rho_buffer[i]);
-            Vbuffer.push_back(rho_v_buffer[3*i+1] / rho_buffer[i]);
-            Vbuffer.push_back(rho_v_buffer[3*i+2] / rho_buffer[i]);
-         }
+        name = "rho_v";
+        std::vector<double> rho_v_buffer = readFieldData(r,name,3u);
+        name = "rho";
+        std::vector<double> rho_buffer = readFieldData(r,name,1u);
+        for(int i=0; i<rho_buffer.size(); i++) {
+          Vbuffer.push_back(rho_v_buffer[3*i] / rho_buffer[i]);
+          Vbuffer.push_back(rho_v_buffer[3*i+1] / rho_buffer[i]);
+          Vbuffer.push_back(rho_v_buffer[3*i+2] / rho_buffer[i]);
+        }
       }
 
       /* Assign them, without sanity checking */
@@ -151,10 +151,10 @@ bool readNextTimestep(const std::string& filename_pattern, double t, int step, F
          Btgt[2] = Bbuffer[3*i+2];
 
          if(doV) {
-            double* Vtgt = V.getCellRef(x,y,z);
-            Vtgt[0] = Vbuffer[3*i];
-            Vtgt[1] = Vbuffer[3*i+1];
-            Vtgt[2] = Vbuffer[3*i+2];
+           double* Vtgt = V.getCellRef(x,y,z);
+           Vtgt[0] = Vbuffer[3*i];
+           Vtgt[1] = Vbuffer[3*i+1];
+           Vtgt[2] = Vbuffer[3*i+2];
          }
       }
 
@@ -178,7 +178,7 @@ static bool readNextTimestep(const std::string& filename_pattern, double t, int 
 
 /* Read E- and B-Fields as well as velocity field from a vlsv file */
 template <class Reader>
-void readfields(const char* filename, Field& E, Field& B, Field& V) {
+void readfields(const char* filename, Field& E, Field& B, Field& V, bool doV=true) {
    Reader r;
 
 #ifdef DEBUG
@@ -197,14 +197,17 @@ void readfields(const char* filename, Field& E, Field& B, Field& V) {
 
    /* Also read the raw field data */
    std::string name= B_field_name;
-   std::vector<double> Bbuffer = readFieldData(r,name,3u);
+   std::vector<double> Bbuffer(readFieldData(r,name,3u));
    name = E_field_name;
-   std::vector<double> Ebuffer = readFieldData(r,name,3u);
+   std::vector<double> Ebuffer(readFieldData(r,name,3u));
 
-   name = "rho_v";
-   std::vector<double> rho_v_buffer = readFieldData(r,name,3u);
-   name = "rho";
-   std::vector<double> rho_buffer = readFieldData(r,name,1u);
+   std::vector<double> rho_v_buffer,rho_buffer;
+   if(doV) {
+     name = "rho_v";
+     rho_v_buffer = readFieldData(r,name,3u);
+     name = "rho";
+     rho_buffer = readFieldData(r,name,1u);
+   }
 
    /* Coordinate Boundaries */
    double min[3], max[3], time;
@@ -229,7 +232,9 @@ void readfields(const char* filename, Field& E, Field& B, Field& V) {
    /* Allocate space for the actual field structures */
    E.data.resize(4*cells[0]*cells[1]*cells[2]);
    B.data.resize(4*cells[0]*cells[1]*cells[2]);
-   V.data.resize(4*cells[0]*cells[1]*cells[2]);
+	 if(doV) {
+		 V.data.resize(4*cells[0]*cells[1]*cells[2]);
+	 }
 
    /* Sanity-check stored data sizes */
    if(3*cellIds.size() != Bbuffer.size()) {
@@ -242,56 +247,68 @@ void readfields(const char* filename, Field& E, Field& B, Field& V) {
          << std::endl;
       exit(1);
    }
-   if(3*cellIds.size() != rho_v_buffer.size()) {
-      std::cerr << "3 * cellIDs.size (" << cellIds.size() << ") != rho_v_buffer.size (" << Ebuffer.size() << ")!"
-         << std::endl;
-      exit(1);
-   }
-   if(cellIds.size() != rho_buffer.size()) {
-      std::cerr << "cellIDs.size (" << cellIds.size() << ") != rho_buffer.size (" << Ebuffer.size() << ")!"
-         << std::endl;
-      exit(1);
+   if(doV) {
+     if(3*cellIds.size() != rho_v_buffer.size()) {
+        std::cerr << "3 * cellIDs.size (" << cellIds.size() << ") != rho_v_buffer.size (" << Ebuffer.size() << ")!"
+           << std::endl;
+        exit(1);
+     }
+     if(cellIds.size() != rho_buffer.size()) {
+        std::cerr << "cellIDs.size (" << cellIds.size() << ") != rho_buffer.size (" << Ebuffer.size() << ")!"
+           << std::endl;
+        exit(1);
+     }
    }
 
+   // Make sure the target fields have boundary data.
+   if(E.dimension[0] == nullptr || E.dimension[1] == nullptr || E.dimension[2] == nullptr) {
+      std::cerr << "Warning: Field boundary pointers uninitialized!" << std::endl;
+      E.dimension[0] = B.dimension[0] = V.dimension[0] = createBoundary<OpenBoundary>(0);
+      E.dimension[1] = B.dimension[1] = V.dimension[1] = createBoundary<OpenBoundary>(1);
+      E.dimension[2] = B.dimension[2] = V.dimension[2] = createBoundary<OpenBoundary>(2);
+   }
    /* Set field sizes */
    for(int i=0; i<3;i++) {
       /* Volume-centered values -> shift by half a cell in all directions*/
       E.dx[i] = B.dx[i] = V.dx[i] = (max[i]-min[i])/cells[i];
       double shift = E.dx[i]/2;
-      E.min[i] = B.min[i] = V.min[i] = min[i]+shift;
-      E.max[i] = B.max[i] = V.max[i] = max[i]+shift;
-      E.cells[i] = B.cells[i] = V.cells[i] = cells[i];
+      E.dimension[i]->min = B.dimension[i]->min = V.dimension[i]->min = min[i]+shift;
+      E.dimension[i]->max = B.dimension[i]->max = V.dimension[i]->max = max[i]+shift;
+      E.dimension[i]->cells = B.dimension[i]->cells = V.dimension[i]->cells = cells[i];
    }
    E.time = B.time = V.time = time;
 
    /* So, now we've got the cellIDs, the mesh size and the field values,
     * we can sort them into place */
    for(uint i=0; i< cellIds.size(); i++) {
-      uint64_t c = cellIds[i];
+      uint64_t c = cellIds[i]-1;
       int64_t x = c % cells[0];
       int64_t y = (c /cells[0]) % cells[1];
       int64_t z = c /(cells[0]*cells[1]);
 
       double* Etgt = E.getCellRef(x,y,z);
       double* Btgt = B.getCellRef(x,y,z);
-      double* Vtgt = V.getCellRef(x,y,z);
       Etgt[0] = Ebuffer[3*i];
       Etgt[1] = Ebuffer[3*i+1];
       Etgt[2] = Ebuffer[3*i+2];
       Btgt[0] = Bbuffer[3*i];
       Btgt[1] = Bbuffer[3*i+1];
       Btgt[2] = Bbuffer[3*i+2];
-      Vtgt[0] = rho_v_buffer[3*i] / rho_buffer[i];
-      Vtgt[1] = rho_v_buffer[3*i+1] / rho_buffer[i];
-      Vtgt[2] = rho_v_buffer[3*i+2] / rho_buffer[i];
+
+      if(doV) {
+        double* Vtgt = V.getCellRef(x,y,z);
+        Vtgt[0] = rho_v_buffer[3*i] / rho_buffer[i];
+        Vtgt[1] = rho_v_buffer[3*i+1] / rho_buffer[i];
+        Vtgt[2] = rho_v_buffer[3*i+2] / rho_buffer[i];
+      }
    }
 
    r.close();
 }
 
 /* Non-template version, autodetecting the reader type */
-static void readfields(const char* filename, Field& E, Field& B, Field& V) {
-   readfields<vlsvinterface::Reader>(filename,E,B,V);
+static void readfields(const char* filename, Field& E, Field& B, Field& V, bool doV=true) {
+  readfields<vlsvinterface::Reader>(filename,E,B,V,doV);
 }
 
 /* For debugging purposes - dump a field into a png file */

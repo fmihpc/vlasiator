@@ -1,0 +1,74 @@
+/* [wxMaxima batch file version 1] [ DO NOT EDIT BY HAND! ]*/
+/* [ Created with wxMaxima version 11.08.0 ] */
+
+/* [wxMaxima: input   start ] */
+P1(x,dx) := x/dx$
+P2(x,dx) := x^2/dx^2 - 1/12$
+P3(x,dx) := x^3/dx^3 - 3/20*x/dx$
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+Bx_0th(x,y,z) := BGBX + a_0$
+By_0th(x,y,z) := BGBY + b_0$
+Bz_0th(x,y,z) := BGBZ + c_0$
+Bx_1st(x,y,z) := Bx_0th(x,y,z) + a_x*P1(x,dx) + a_y*P1(y,dy) + a_z*P1(z,dz)$
+By_1st(x,y,z) := By_0th(x,y,z) + b_x*P1(x,dx) + b_y*P1(y,dy) + b_z*P1(z,dz)$
+Bz_1st(x,y,z) := Bz_0th(x,y,z) + c_x*P1(x,dx) + c_y*P1(y,dy) + c_z*P1(z,dz)$
+Bx_2nd(x,y,z) := Bx_1st(x,y,z) + a_xx*P2(x,dx) + a_xy*P1(x,dx)*P1(y,dy) + a_xz*P1(x,dx)*P1(z,dz)$
+By_2nd(x,y,z) := By_1st(x,y,z) + b_yy*P2(y,dy) + b_xy*P1(x,dx)*P1(y,dy) + b_yz*P1(y,dy)*P1(z,dz)$
+Bz_2nd(x,y,z) := Bz_1st(x,y,z) + c_zz*P2(z,dz) + c_xz*P1(x,dx)*P1(z,dz) + c_yz*P1(y,dy)*P1(z,dz)$
+Bx_3rd(x,y,z) := Bx_2nd(x,y,z) + a_yy*P2(y,dy) + a_xyy*P1(x,dx)*P2(y,dy) + a_zz*P2(z,dz) + a_xzz*P1(x,dx)*P2(z,dz) + a_yz*P1(y,dy)*P1(z,dz) + a_xyz*P1(x,dx)*P1(y,dy)*P1(z,dz) + a_xxx*P3(x,dx) + a_xxy*P2(x,dx)*P1(y,dy) + a_xxz*P2(x,dx)*P1(z,dz)$
+By_3rd(x,y,z) := By_2nd(x,y,z) + b_xx*P2(x,dx) + b_xxy*P2(x,dx)*P1(y,dy) + b_zz*P2(z,dz) + b_yzz*P1(y,dy)*P2(z,dz) + b_xz*P1(x,dx)*P1(z,dz) + b_xyz*P1(x,dx)*P1(y,dy)*P1(z,dz) + b_yyy*P3(y,dy) + b_xyy*P1(x,dx)*P2(y,dy) + b_yyz*P2(y,dy)*P1(z,dz)$
+Bz_3rd(x,y,z) := Bz_2nd(x,y,z) + c_xx*P2(x,dx) + c_xxz*P2(x,dx)*P1(z,dz) + c_yy*P2(y,dy) + c_yyz*P2(y,dy)*P1(z,dz) + c_xy*P1(x,dx)*P1(y,dy) + c_xyz*P1(x,dx)*P1(y,dy)*P1(z,dz) + c_zzz*P3(z,dz) + c_xzz*P1(x,dx)*P2(z,dz) + c_yzz*P1(y,dy)*P2(z,dz)$
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+load(vect)$
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+declare([B_0th, B_1st, B_2nd, B_3rd, J_2nd], nonscalar)$
+B_0th(x,y,z) := [Bx_0th(x,y,z), By_0th(x,y,z), Bz_0th(x,y,z)]$
+B_1st(x,y,z) := [Bx_1st(x,y,z), By_1st(x,y,z), Bz_1st(x,y,z)]$
+B_2nd(x,y,z) := [Bx_2nd(x,y,z), By_2nd(x,y,z), Bz_2nd(x,y,z)]$
+B_3rd(x,y,z) := [Bx_3rd(x,y,z), By_3rd(x,y,z), Bz_3rd(x,y,z)]$
+J_2nd(x,y,z) := ev(express(curl(B_3rd(x,y,z))), nouns)$
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+JXB_x(y,z) := expand(integrate(ev(express(J_2nd(x,y,z) ~ B_2nd(x,y,z)), nouns), x, -1/2*dx, 1/2*dx))[1]/dx$
+JXB_y(x,z) := expand(integrate(ev(express(J_2nd(x,y,z) ~ B_2nd(x,y,z)), nouns), y, -1/2*dy, 1/2*dy))[2]/dy$
+JXB_z(x,y) := expand(integrate(ev(express(J_2nd(x,y,z) ~ B_2nd(x,y,z)), nouns), z, -1/2*dz, 1/2*dz))[3]/dz$
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+expand(JXB_x(y,z));
+expand(JXB_y(x,z));
+expand(JXB_z(x,y));
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+%o26, y=-1/2*dy, z=-1/2*dz;
+%o26, y= 1/2*dy, z=-1/2*dz;
+%o26, y=-1/2*dy, z= 1/2*dz;
+%o26, y= 1/2*dy, z= 1/2*dz;
+%o27, x=-1/2*dx, z=-1/2*dz;
+%o27, x= 1/2*dx, z=-1/2*dz;
+%o27, x=-1/2*dx, z= 1/2*dz;
+%o27, x= 1/2*dx, z= 1/2*dz;
+%o28, x=-1/2*dx, y=-1/2*dy;
+%o28, x= 1/2*dx, y=-1/2*dy;
+%o28, x=-1/2*dx, y= 1/2*dy;
+%o28, x= 1/2*dx, y= 1/2*dy;
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+kill(all);
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+ratsimp(%o29);
+/* [wxMaxima: input   end   ] */
+
+/* Maxima can't load/batch files which end with a comment! */
+"Created with wxMaxima"$

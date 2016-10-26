@@ -41,23 +41,32 @@ int main(int argc, char** argv) {
    snprintf(filename_buffer,256,filename_pattern.c_str(),input_file_counter-1);
    readfields(filename_buffer,E[1],B[1],V);
    E[0]=E[1]; B[0]=B[1];
+   E[0].dimension[0] = E[1].dimension[0] = B[0].dimension[0] = B[1].dimension[0] = V.dimension[0] = ParticleParameters::boundary_behaviour_x;
+   E[0].dimension[1] = E[1].dimension[1] = B[0].dimension[1] = B[1].dimension[1] = V.dimension[1] = ParticleParameters::boundary_behaviour_y;
+   E[0].dimension[2] = E[1].dimension[2] = B[0].dimension[2] = B[1].dimension[2] = V.dimension[2] = ParticleParameters::boundary_behaviour_z;
 
    // Set boundary conditions based on sizes
-   if(B[0].cells[0] <= 1) {
+   if(B[0].dimension[0]->cells <= 1) {
       delete ParticleParameters::boundary_behaviour_x;
       ParticleParameters::boundary_behaviour_x = createBoundary<CompactSpatialDimension>(0);
    }
-   if(B[0].cells[1] <= 1) {
+   if(B[0].dimension[1]->cells <= 1) {
       delete ParticleParameters::boundary_behaviour_y;
       ParticleParameters::boundary_behaviour_y = createBoundary<CompactSpatialDimension>(1);
    }
-   if(B[0].cells[2] <= 1) {
+   if(B[0].dimension[2]->cells <= 1) {
       delete ParticleParameters::boundary_behaviour_z;
       ParticleParameters::boundary_behaviour_z = createBoundary<CompactSpatialDimension>(2);
    }
-   ParticleParameters::boundary_behaviour_x->setExtent(B[0].min[0], B[0].max[0], B[0].cells[0]);
-   ParticleParameters::boundary_behaviour_y->setExtent(B[0].min[1], B[0].max[1], B[0].cells[1]);
-   ParticleParameters::boundary_behaviour_z->setExtent(B[0].min[2], B[0].max[2], B[0].cells[2]);
+
+   // Make sure updated boundary conditions are also correctly known to the fields
+   E[0].dimension[0] = E[1].dimension[0] = B[0].dimension[0] = B[1].dimension[0] = V.dimension[0] = ParticleParameters::boundary_behaviour_x;
+   E[0].dimension[1] = E[1].dimension[1] = B[0].dimension[1] = B[1].dimension[1] = V.dimension[1] = ParticleParameters::boundary_behaviour_y;
+   E[0].dimension[2] = E[1].dimension[2] = B[0].dimension[2] = B[1].dimension[2] = V.dimension[2] = ParticleParameters::boundary_behaviour_z;
+
+   ParticleParameters::boundary_behaviour_x->setExtent(B[0].dimension[0]->min, B[0].dimension[0]->max, B[0].dimension[0]->cells);
+   ParticleParameters::boundary_behaviour_y->setExtent(B[0].dimension[1]->min, B[0].dimension[1]->max, B[0].dimension[1]->cells);
+   ParticleParameters::boundary_behaviour_z->setExtent(B[0].dimension[2]->min, B[0].dimension[2]->max, B[0].dimension[2]->cells);
 
    /* Init particles */
    double dt=ParticleParameters::dt;

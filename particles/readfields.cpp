@@ -56,7 +56,7 @@ void debug_output(Field& F, const char* filename) {
    min[0] = min[1] = min[2] = 99999999999;
    max[0] = max[1] = max[2] = -99999999999;
 
-   for(int i=0; i<F.cells[0]*F.cells[1]; i++) {
+   for(int i=0; i<F.dimension[0]->cells*F.dimension[1]->cells; i++) {
       for(int j=0; j<3; j++) {
          if(F.data[4*i+j] > max[j]) {
             max[j] = F.data[4*i+j];
@@ -73,11 +73,11 @@ void debug_output(Field& F, const char* filename) {
    vmax.load(max);
 
    /* Allocate a rgb-pixel array */
-   std::vector<uint8_t> pixels(4*F.cells[0]*F.cells[1]);
+   std::vector<uint8_t> pixels(4*F.dimension[0]->cells*F.dimension[1]->cells);
 
    /* And fill it with colors */
-   for(int y=0; y<F.cells[1]; y++) {
-      for(int x=0; x<F.cells[0]; x++) {
+   for(int y=0; y<F.dimension[1]->cells; y++) {
+      for(int x=0; x<F.dimension[0]->cells; x++) {
 
          /* Rescale the field values to lie between 0..255 */
          Vec3d scaled_val = F.getCell(x,y,0);
@@ -85,15 +85,15 @@ void debug_output(Field& F, const char* filename) {
          scaled_val /= (vmax-vmin);
          scaled_val *= 255.;
 
-         pixels[4*(y*F.cells[0] + x)] = (uint8_t) scaled_val[0];
-         pixels[4*(y*F.cells[0] + x)+1] = (uint8_t) scaled_val[1];
-         pixels[4*(y*F.cells[0] + x)+2] = (uint8_t) scaled_val[2];
-         pixels[4*(y*F.cells[0] + x)+3] = 255; // Alpha=1
+         pixels[4*(y*F.dimension[0]->cells + x)] = (uint8_t) scaled_val[0];
+         pixels[4*(y*F.dimension[0]->cells + x)+1] = (uint8_t) scaled_val[1];
+         pixels[4*(y*F.dimension[0]->cells + x)+2] = (uint8_t) scaled_val[2];
+         pixels[4*(y*F.dimension[0]->cells + x)+3] = 255; // Alpha=1
       }
    }
 
    /* Write it out */
-   if(!stbi_write_png(filename, F.cells[0], F.cells[1], 4, pixels.data(), F.cells[0]*4)) {
+   if(!stbi_write_png(filename, F.dimension[0]->cells, F.dimension[1]->cells, 4, pixels.data(), F.dimension[0]->cells*4)) {
       std::cerr << "Writing " << filename << " failed: " << strerror(errno) << std::endl;
    }
 }
