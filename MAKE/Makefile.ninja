@@ -12,8 +12,8 @@ FLAGS =
 #GNU flags:
 CC_BRAND = intel
 CC_BRAND_VERSION = 17-openmpi-2.0.1
-#CXXFLAGS += --O2 -axMIC-AVX512 -std=c++11 -qopenmp -ansi-alias
-CXXFLAGS += -O2 -axMIC-AVX512 -std=c++11 -qopenmp -ansi-alias
+#CXXFLAGS += --O2 -axAVX2 -std=c++11 -qopenmp -ansi-alias
+CXXFLAGS +=  -Ofast  -inline-level=2 -no-inline-min-size -xMIC-AVX512 -std=c++11 -qopenmp -ansi-alias
 testpackage: CXXFLAGS = -O2 -std=c++11 -qopenmp -ansi-alias
 
 

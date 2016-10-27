@@ -81,7 +81,7 @@ typedef float Realv;
 #endif
 
 #ifdef VEC8F_AGNER
-//user Agner's AVX2 optimized datatypes, double precision accuracy
+//user Agner's AVX2 optimized datatypes, single precision accuracy
 #include "vectorclass.h"
 typedef Vec8f Vec;
 typedef Vec8i Veci;
@@ -95,7 +95,7 @@ typedef float Realv;
 
 
 #ifdef VEC16F_AGNER
-//user Agner's AVX512 optimized datatypes, double precision accuracy
+//user Agner's AVX512 optimized datatypes, single precision accuracy
 #include "vectorclass.h"
 typedef Vec16f Vec;
 typedef Vec16i Veci;
