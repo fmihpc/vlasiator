@@ -22,8 +22,6 @@ Previous development version name was UtuShock
 #include "../../backgroundfield/backgroundfield.h"
 
 #include "IPShock.h"
-#include "noise.h"
-
 
 using namespace std;
 using namespace spatial_cell;
@@ -61,9 +59,6 @@ namespace projects {
     RP::add("IPShock.maxwCutoff", "Cutoff for the maxwellian distribution", 1e-12);
     RP::add("IPShock.Width", "Shock Width (m)", 50000);
 
-    RP::add("IPShock.BPertAmp", "Amplitude of magnetic perturbation", 0.0);
-    RP::add("IPShock.BPertScale", "Spatial scale of magnetic perturbation", 1.0);
-    RP::add("IPShock.BPertOctaves", "Octaves of magnetic perturbation", 1);
   }
 
   void IPShock::getParameters() {
@@ -154,19 +149,6 @@ namespace projects {
       if(myRank == MASTER_RANK) std::cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << std::endl;
       exit(1);
     }
-
-    if(!RP::get("IPShock.BPertAmp", this->BPerturbationAmp)) {
-      if(myRank == MASTER_RANK) std::cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << std::endl;
-      exit(1);
-    }
-    if(!RP::get("IPShock.BPertScale", this->BPerturbationScale)) {
-      if(myRank == MASTER_RANK) std::cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << std::endl;
-      exit(1);
-    }
-    if(!RP::get("IPShock.BPertOctaves", this->BPerturbationOctaves)) {
-      if(myRank == MASTER_RANK) std::cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << std::endl;
-      exit(1);
-    }
     
     if(myRank == MASTER_RANK) {
       std::cerr << "B0x u = " << this->B0u[0] << std::endl;
@@ -191,10 +173,6 @@ namespace projects {
       std::cerr << "nVelocitySamples = " << this->nVelocitySamples << std::endl;
       std::cerr << "maxwCutoff = " << this->maxwCutoff << std::endl;
       std::cerr << "Width = " << this->Shockwidth << std::endl;
-
-      std::cerr << "BPertAmp = " << this->BPerturbationAmp << std::endl;
-      std::cerr << "BPertScale = " << this->BPerturbationScale << std::endl;
-      std::cerr << "BPertOctaves = " << this->BPerturbationOctaves << std::endl;
     }
 
     if ((abs(this->V0u[1]) > 1e-10)||(abs(this->B0u[1]) > 1e-10)||(abs(this->V0d[1]) > 1e-10)||(abs(this->B0d[1]) > 1e-10))
@@ -332,11 +310,6 @@ namespace projects {
     cellParams[CellParams::EY   ] = 0.0;
     cellParams[CellParams::EZ   ] = 0.0;
 
-    Vec3d position = Vec3d(x,y,z);
-    Vec3d noise_scale = Vec3d(BPerturbationScale);
-
-    Vec3d Bpert = BPerturbationAmp * divergence_free_noise(position, noise_scale, BPerturbationOctaves);
-
     Real mass = physicalconstants::MASS_PROTON;
     Real KB = physicalconstants::K_B;
     Real mu0 = physicalconstants::MU_0;
@@ -353,9 +326,9 @@ namespace projects {
     Real MAsq = std::pow((this->V0u[0]/this->B0u[0]), 2) * this->DENSITYu * mass * mu0;
     Real BZ = this->B0u[2] * (MAsq - 1.0)/(MAsq*VX/this->V0u[0] -1.0);
 
-    cellParams[CellParams::PERBX   ] = BX  + Bpert[0];
-    cellParams[CellParams::PERBY   ] = 0.0 + Bpert[1];
-    cellParams[CellParams::PERBZ   ] = BZ  + Bpert[2];
+    cellParams[CellParams::PERBX   ] = BX;
+    cellParams[CellParams::PERBY   ] = 0.0;
+    cellParams[CellParams::PERBZ   ] = BZ;
 
   }
 
@@ -369,8 +342,6 @@ namespace projects {
       // Ken Perlin Smootherstep
       Real interpolation = ( 6.0 * coord * coord - 15.0 * coord +10. ) * coord * coord * coord;
       a = upstream * interpolation + downstream * (1. - interpolation);
-      // old tanh-version
-      // a = .5 * (1. + tanh(x * 2. * M_PI));
     }
     return a;
   }

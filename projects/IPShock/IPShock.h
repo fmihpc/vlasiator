@@ -64,10 +64,6 @@ namespace projects {
          uint nVelocitySamples;
          Real Shockwidth;
 
-         Real BPerturbationAmp;
-         Real BPerturbationScale;
-         Real BPerturbationOctaves;
-
   } ; //class IPShock
 } // namespace projects
 
