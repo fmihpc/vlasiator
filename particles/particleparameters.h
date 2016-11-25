@@ -1,4 +1,25 @@
 #pragma once
+/*
+ * This file is part of Vlasiator.
+ * Copyright 2010-2016 Finnish Meteorological Institute
+ *
+ * For details of usage, see the COPYING file and read the "Rules of the Road"
+ * at http://vlasiator.fmi.fi/
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 
 #include <random>
 #include <string>
@@ -39,6 +60,15 @@ struct ParticleParameters {
    static Real reflect_x_offset; /*!< X-Coordinate of the tip of the injection parabola for the reflection scenario */
    static Real reflect_upstream_boundary; /*!< Distance from particle injection point at which particles are to be counted as 'reflected' */
    static Real reflect_downstream_boundary; /*!< Distance from particle injection point at which particles are to be counted as 'transmitted' */
+
+   static Real ipshock_inject_x0; /*!< Smaller x-coordinate for particle injection (meters) */
+   static Real ipshock_inject_x1; /*!< Larger x-coordinate for particle injection (meters) */
+   static Real ipshock_inject_y0; /*!< Smaller y-coordinate for particle injection (meters) */
+   static Real ipshock_inject_y1; /*!< Larger y-coordinate for particle injection (meters) */
+   static Real ipshock_inject_z0; /*!< Smaller z-coordinate for particle injection (meters) */
+   static Real ipshock_inject_z1; /*!< Larger z-coordinate for particle injection (meters) */
+   static Real ipshock_transmit;  /*!< X-Coordinate for particle transmission (downstream) (meters) */
+   static Real ipshock_reflect;   /*!< X-Coordinate for particle reflection (upstream) (meters) */
 
    static std::default_random_engine::result_type random_seed; /*!< Random seed for particle creation */
    static Distribution* (*distribution)(std::default_random_engine&); /*!< Type of distribution from which to sample the particles */

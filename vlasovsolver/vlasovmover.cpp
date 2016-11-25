@@ -1,9 +1,24 @@
 /*
-  This file is part of Vlasiator.
-
-  Copyright 2010-2015 Finnish Meteorological Institute
-
-*/
+ * This file is part of Vlasiator.
+ * Copyright 2010-2016 Finnish Meteorological Institute
+ *
+ * For details of usage, see the COPYING file and read the "Rules of the Road"
+ * at http://vlasiator.fmi.fi/
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 
 #include <cstdlib>
 #include <iostream>
@@ -299,10 +314,6 @@ momentCalculation:
   --------------------------------------------------
 */
 
-int getAccerelationSubcycles(SpatialCell* sc,Real dt,const int& popID) {
-   return max( convert<int>(ceil(dt / sc->get_max_v_dt(popID))), 1);
-}
-
 /** Accelerate the given population to new time t+dt.
  * This function is AMR safe.
  * @param popID Particle population ID.
@@ -323,7 +334,7 @@ void calculateAcceleration(const int& popID,const int& globalMaxSubcycles,const 
    for (size_t c=0; c<propagatedCells.size(); ++c) {
       const CellID cellID = propagatedCells[c];
       const Real maxVdt = mpiGrid[cellID]->get_max_v_dt(popID);
-
+      
       //compute subcycle dt. The length is maxVdt on all steps
       //except the last one. This is to keep the neighboring
       //spatial cells in sync, so that two neighboring cells with
@@ -333,23 +344,24 @@ void calculateAcceleration(const int& popID,const int& globalMaxSubcycles,const 
       //adjust blocks.
       Real subcycleDt;
       if( (step + 1) * maxVdt > dt) {
-         subcycleDt = dt - step * maxVdt;
+         subcycleDt = max(dt - step * maxVdt, 0.0);
       } else{
          subcycleDt = maxVdt;
       }
 
-      //generate pseudo-random order which is always the same irrespective of parallelization, restarts, etc
+      //generate pseudo-random order which is always the same irrespective of parallelization, restarts, etc.
       char rngStateBuffer[256];
       random_data rngDataBuffer;
 
-      // set seed, initialise generator and get value
+      // set seed, initialise generator and get value. The order is the same
+      // for all cells, but varies with timestep.
       memset(&(rngDataBuffer), 0, sizeof(rngDataBuffer));
       #ifdef _AIX
-         initstate_r(P::tstep + cellID, &(rngStateBuffer[0]), 256, NULL, &(rngDataBuffer));
+         initstate_r(P::tstep, &(rngStateBuffer[0]), 256, NULL, &(rngDataBuffer));
          int64_t rndInt;
          random_r(&rndInt, &rngDataBuffer);
       #else
-         initstate_r(P::tstep + cellID, &(rngStateBuffer[0]), 256, &(rngDataBuffer));
+         initstate_r(P::tstep, &(rngStateBuffer[0]), 256, &(rngDataBuffer));
          int32_t rndInt;
          random_r(&rngDataBuffer, &rndInt);
       #endif
@@ -394,13 +406,16 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
     // Calculate first velocity moments, these are needed to 
     // calculate the transforms used in the accelerations.
     // Calculated moments are stored in the "_V" variables.
-    calculateMoments_V(mpiGrid,cells,false);
-    
-    // Accelerate all particle species
+   calculateMoments_V(mpiGrid,cells,false);
+   
+   // Accelerate all particle species
     for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+       int maxSubcycles=0;
+       int globalMaxSubcycles;
+
        // Set active population
        SpatialCell::setCommunicatedSpecies(popID);
-
+       
        // Iterate through all local cells and collect cells to propagate.
        // Ghost cells (spatial cells at the boundary of the simulation 
        // volume) do not need to be propagated:
@@ -412,30 +427,31 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
           // cells with no blocks (well, do not computes in practice)
           if (SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY && vmesh.size() != 0) {
              propagatedCells.push_back(cells[c]);
+             //prepare for acceleration, updates max dt for each cell
+             prepareAccelerateCell(SC, popID);
+             //update max subcycles for all cells in this process
+#warning CellParams::ACCSUBCYCLES does not support multiple populations
+             SC->parameters[CellParams::ACCSUBCYCLES] = getAccelerationSubcycles(SC, dt, popID);
+             maxSubcycles = max(getAccelerationSubcycles(SC, dt, popID), maxSubcycles);
           }
-       }
-
-       // Compute global maximum for number of subcycles (collective operation).
-       int maxSubcycles=0;
-       int globalMaxSubcycles;
-       for (size_t c=0; c<propagatedCells.size(); ++c) {
-          const CellID cellID = propagatedCells[c];
-          int subcycles = getAccerelationSubcycles(mpiGrid[cellID],dt,popID);
-          mpiGrid[cellID]->parameters[CellParams::ACCSUBCYCLES] = subcycles;
-          maxSubcycles=maxSubcycles < subcycles ? subcycles:maxSubcycles;
-       }
+       }       
+       // Compute global maximum for number of subcycles
        MPI_Allreduce(&maxSubcycles, &globalMaxSubcycles, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
 
        // substep global max times
        for(uint step=0; step<globalMaxSubcycles; ++step) {
-          // prune list of cells to propagate to only contained those which are now subcycled
-          vector<CellID> temp;
-          for (size_t c=0; c<propagatedCells.size(); ++c) {
-             if (step < getAccerelationSubcycles(mpiGrid[propagatedCells[c]],dt,popID)) {
-                temp.push_back(propagatedCells[c]);
+          if(step > 0) {
+             // prune list of cells to propagate to only contained those which are now subcycled
+             vector<CellID> temp;
+             for (const auto& cell: propagatedCells) {
+                if (step < getAccelerationSubcycles(mpiGrid[cell], dt, popID) ) {
+                   temp.push_back(cell);
+                }
              }
+             
+             propagatedCells.swap(temp);
           }
-          propagatedCells.swap(temp);
+       
           calculateAcceleration(popID,globalMaxSubcycles,step,mpiGrid,propagatedCells,dt);
        } // for-loop over acceleration substeps
        

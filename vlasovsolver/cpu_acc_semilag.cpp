@@ -1,7 +1,24 @@
 /*
-  This file is part of Vlasiator.
-  Copyright 2015 Finnish Meteorological Institute
-*/
+ * This file is part of Vlasiator.
+ * Copyright 2010-2016 Finnish Meteorological Institute
+ *
+ * For details of usage, see the COPYING file and read the "Rules of the Road"
+ * at http://vlasiator.fmi.fi/
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 
 #include <algorithm>
 #include <cmath>
@@ -20,7 +37,34 @@ using namespace spatial_cell;
 using namespace Eigen;
 
 /*!
+  Prepare to accelerate species in cell. Sets the maximum allowed dt to the
+  correct value.
 
+ * @param spatial_cell Spatial cell containing the accelerated population.
+ * @param popID ID of the accelerated particle species.
+*/
+
+void prepareAccelerateCell(
+   SpatialCell* spatial_cell,
+   const int popID){   
+   updateAccelerationMaxdt(spatial_cell, popID);
+}
+
+/*!
+  Compute the number of subcycles needed for the acceleration of the particle
+  species in the spatial cell. Note that one should first prepare to
+  accelerate the cell with prepareAccelerateCell.
+
+ * @param spatial_cell Spatial cell containing the accelerated population.
+ * @param popID ID of the accelerated particle species.
+*/
+
+int getAccelerationSubcycles(SpatialCell* spatial_cell, Real dt, const int& popID)
+{
+   return max( convert<int>(ceil(dt / spatial_cell->get_max_v_dt(popID))), 1);
+}
+
+/*!
   Propagates the distribution function in velocity space of given real
   space cell.
 
@@ -34,7 +78,8 @@ using namespace Eigen;
  * @param vmesh Velocity mesh.
  * @param blockContainer Velocity block data container.
  * @param map_order Order in which vx,vy,vz mappings are performed. 
- * @param dt Time step.*/
+ * @param dt Time step of one subcycle.
+*/
 
 void cpu_accelerate_cell(SpatialCell* spatial_cell,
                          const int popID,     

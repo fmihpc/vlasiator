@@ -1,0 +1,50 @@
+/* [wxMaxima batch file version 1] [ DO NOT EDIT BY HAND! ]*/
+/* [ Created with wxMaxima version 11.08.0 ] */
+
+/* [wxMaxima: input   start ] */
+load ("vect");
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+P1(x,dx):=x/dx$
+P2(x,dx):=x^2/dx^2-1/12$
+P3(x,dx):=x^3/dx^3-(x/dx)*(3/20)$
+Bx_second(x,y,z):=Bx0+a_0+a_x*P1(x,dx)+a_y*P1(y,dy)+a_z*P1(z,dz)+a_xx*P2(x,dx)+a_xy*P1(x,dx)*P1(y,dy)+a_xz*P1(x,dx)*P1(z,dz)$
+Bx_third(x,y,z):=Bx_second(x,y,z)+a_yy*P2(y,dy)+a_xyy*P1(x,dx)*P2(y,dy)+a_zz*P2(z,dz)+a_xzz*P1(x,dx)*P2(z,dz)+a_yz*P1(y,dy)*P1(z,dz)+a_xyz*P1(x,dx)*P1(y,dy)*P1(z,dz)+a_xxx*P3(x,dx)+a_xxy*P2(x,dx)*P1(y,dy)+a_xxz*P2(x,dx)*P1(z,dz)$
+By_second(x,y,z):=By0+b_0+b_x*P1(x,dx)+b_y*P1(y,dy)+b_z*P1(z,dz)+b_yy*P2(y,dy)+b_xy*P1(x,dx)*P1(y,dy)+b_yz*P1(y,dy)*P1(z,dz)$
+By_third(x,y,z):=By_second(x,y,z)+b_xx*P2(x,dx)+b_xxy*P2(x,dx)*P1(y,dy)+b_zz*P2(z,dz)+b_yzz*P1(y,dy)*P2(z,dz)+b_xz*P1(x,dx)*P1(z,dz)+b_xyz*P1(x,dx)*P1(y,dy)*P1(z,dz)+b_yyy*P3(y,dy)+b_xyy*P1(x,dx)*P2(y,dy)+b_yyz*P2(y,dy)*P1(z,dz)$
+Bz_second(x,y,z):=Bz0+c_0+c_x*P1(x,dx)+c_y*P1(y,dy)+c_z*P1(z,dz)+c_zz*P2(z,dz)+c_xz*P1(x,dx)*P1(z,dz)+c_yz*P1(y,dy)*P1(z,dz)$
+Bz_third(x,y,z):=Bz_second(x,y,z)+c_xx*P2(x,dx)+c_xxz*P2(x,dx)*P1(z,dz)+c_yy*P2(y,dy)+c_yyz*P2(y,dy)*P1(z,dz)+c_xy*P1(x,dx)*P1(y,dy)+c_xyz*P1(x,dx)*P1(y,dy)*P1(z,dz)+c_zzz*P3(z,dz)+c_xzz*P1(x,dx)*P2(z,dz)+c_yzz*P1(y,dy)*P2(z,dz)$
+B_second(x,y,z):=[Bx_second(x,y,z), By_second(x,y,z), Bz_second(x,y,z)]$
+B_third(x,y,z):=[Bx_third(x,y,z), By_third(x,y,z), Bz_third(x,y,z)]$
+J(x,y,z):=ev (express(curl(B_third(x,y,z))), nouns)$    
+Hall(x,y,z):=ev( express(J(x,y,z)~B_second(x,y,z)),nouns)$
+int_x(y,z):=integrate( Hall(x,y,z)[1], x, -1/2*dx, 1/2*dx)/dx$
+int_y(x,z):=integrate( Hall(x,y,z)[2], y, -1/2*dy, 1/2*dy)/dy$
+int_z(x,y):=integrate( Hall(x,y,z)[3], z, -1/2*dz, 1/2*dz)/dz$
+expand(express(int_x(y,z)));
+expand(express(int_y(x,z)));
+expand(express(int_z(x,y)));
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+%o18, y=-1/2*dy, z=-1/2*dz;
+%o18, y= 1/2*dy, z=-1/2*dz;
+%o18, y=-1/2*dy, z= 1/2*dz;
+%o18, y= 1/2*dy, z= 1/2*dz;
+%o19, x=-1/2*dx, z=-1/2*dz;
+%o19, x= 1/2*dx, z=-1/2*dz;
+%o19, x=-1/2*dx, z= 1/2*dz;
+%o19, x= 1/2*dx, z= 1/2*dz;
+%o20, x=-1/2*dx, y=-1/2*dy;
+%o20, x= 1/2*dx, y=-1/2*dy;
+%o20, x=-1/2*dx, y= 1/2*dy;
+%o20, x= 1/2*dx, y= 1/2*dy;
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+kill(all);
+/* [wxMaxima: input   end   ] */
+
+/* Maxima can't load/batch files which end with a comment! */
+"Created with wxMaxima"$

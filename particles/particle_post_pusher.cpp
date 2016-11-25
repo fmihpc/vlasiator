@@ -1,4 +1,24 @@
 /*
+ * This file is part of Vlasiator.
+ * Copyright 2010-2016 Finnish Meteorological Institute
+ *
+ * For details of usage, see the COPYING file and read the "Rules of the Road"
+ * at http://vlasiator.fmi.fi/
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
  * Postprocessing particle trajectory analyzer
  * for Vlasiator
  *
@@ -39,25 +59,34 @@ int main(int argc, char** argv) {
    std::cerr << "Loading first file with index " << ParticleParameters::start_time / ParticleParameters::input_dt
       << std::endl;
    snprintf(filename_buffer,256,filename_pattern.c_str(),input_file_counter-1);
+   E[0].dimension[0] = E[1].dimension[0] = B[0].dimension[0] = B[1].dimension[0] = V.dimension[0] = ParticleParameters::boundary_behaviour_x;
+   E[0].dimension[1] = E[1].dimension[1] = B[0].dimension[1] = B[1].dimension[1] = V.dimension[1] = ParticleParameters::boundary_behaviour_y;
+   E[0].dimension[2] = E[1].dimension[2] = B[0].dimension[2] = B[1].dimension[2] = V.dimension[2] = ParticleParameters::boundary_behaviour_z;
    readfields(filename_buffer,E[1],B[1],V);
    E[0]=E[1]; B[0]=B[1];
 
    // Set boundary conditions based on sizes
-   if(B[0].cells[0] <= 1) {
+   if(B[0].dimension[0]->cells <= 1) {
       delete ParticleParameters::boundary_behaviour_x;
       ParticleParameters::boundary_behaviour_x = createBoundary<CompactSpatialDimension>(0);
    }
-   if(B[0].cells[1] <= 1) {
+   if(B[0].dimension[1]->cells <= 1) {
       delete ParticleParameters::boundary_behaviour_y;
       ParticleParameters::boundary_behaviour_y = createBoundary<CompactSpatialDimension>(1);
    }
-   if(B[0].cells[2] <= 1) {
+   if(B[0].dimension[2]->cells <= 1) {
       delete ParticleParameters::boundary_behaviour_z;
       ParticleParameters::boundary_behaviour_z = createBoundary<CompactSpatialDimension>(2);
    }
-   ParticleParameters::boundary_behaviour_x->setExtent(B[0].min[0], B[0].max[0], B[0].cells[0]);
-   ParticleParameters::boundary_behaviour_y->setExtent(B[0].min[1], B[0].max[1], B[0].cells[1]);
-   ParticleParameters::boundary_behaviour_z->setExtent(B[0].min[2], B[0].max[2], B[0].cells[2]);
+
+   // Make sure updated boundary conditions are also correctly known to the fields
+   E[0].dimension[0] = E[1].dimension[0] = B[0].dimension[0] = B[1].dimension[0] = V.dimension[0] = ParticleParameters::boundary_behaviour_x;
+   E[0].dimension[1] = E[1].dimension[1] = B[0].dimension[1] = B[1].dimension[1] = V.dimension[1] = ParticleParameters::boundary_behaviour_y;
+   E[0].dimension[2] = E[1].dimension[2] = B[0].dimension[2] = B[1].dimension[2] = V.dimension[2] = ParticleParameters::boundary_behaviour_z;
+
+   ParticleParameters::boundary_behaviour_x->setExtent(B[0].dimension[0]->min, B[0].dimension[0]->max, B[0].dimension[0]->cells);
+   ParticleParameters::boundary_behaviour_y->setExtent(B[0].dimension[1]->min, B[0].dimension[1]->max, B[0].dimension[1]->cells);
+   ParticleParameters::boundary_behaviour_z->setExtent(B[0].dimension[2]->min, B[0].dimension[2]->max, B[0].dimension[2]->cells);
 
    /* Init particles */
    double dt=ParticleParameters::dt;

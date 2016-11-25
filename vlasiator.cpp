@@ -1,9 +1,24 @@
 /*
-This file is part of Vlasiator.
-
-Copyright 2010-2015 Finnish Meteorological Institute
-
-*/
+ * This file is part of Vlasiator.
+ * Copyright 2010-2016 Finnish Meteorological Institute
+ *
+ * For details of usage, see the COPYING file and read the "Rules of the Road"
+ * at http://vlasiator.fmi.fi/
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 
 #include <cstdlib>
 #include <iostream>
@@ -237,6 +252,8 @@ int main(int argn,char* args[]) {
          cerr << "(MAIN): MPI_Init_thread failed! Got " << provided << ", need "<<required <<endl;
       exit(1);
    }
+   
+   phiprof::initialize();
    
    double initialWtime =  MPI_Wtime();
    
@@ -489,10 +506,7 @@ int main(int argn,char* args[]) {
           P::tstep % (P::diagnosticInterval*10) == 0 &&
           P::tstep-P::tstep_min >0) {
 
-         phiprof::print(MPI_COMM_WORLD,"phiprof_reduced",0.01);
-         // MPI_Barrier(MPI_COMM_WORLD);
-         phiprof::print(MPI_COMM_WORLD,"phiprof_full");
-         // phiprof::printLogProfile(MPI_COMM_WORLD,P::tstep,"phiprof_log"," ",7);
+         phiprof::print(MPI_COMM_WORLD,"phiprof");
          
          double currentTime=MPI_Wtime();
          double timePerStep=double(currentTime  - beforeTime) / (P::tstep-beforeStep);
@@ -512,18 +526,6 @@ int main(int argn,char* args[]) {
       }
       logFile << writeVerbose;
       phiprof::stop("logfile-io");
-
-
-      if (P::diagnosticInterval != 0 &&
-          P::tstep % (P::diagnosticInterval*10) == 0 &&
-          P::tstep-P::tstep_min >0) {
-         phiprof::start("phiprof-io");
-         phiprof::print(MPI_COMM_WORLD,"phiprof_reduced",0.01);
-         // MPI_Barrier(MPI_COMM_WORLD);
-         //phiprof::print(MPI_COMM_WORLD,"phiprof_full");
-         // phiprof::printLogProfile(MPI_COMM_WORLD,P::tstep,"phiprof_log"," ",7);
-         phiprof::stop("phiprof-io");
-      }
 
       
 // Check whether diagnostic output has to be produced
@@ -796,9 +798,7 @@ int main(int argn,char* args[]) {
    phiprof::stop("Finalization");
    phiprof::stop("main");
    
-   phiprof::print(MPI_COMM_WORLD,"phiprof_full");
-   phiprof::print(MPI_COMM_WORLD,"phiprof_reduced",0.01);
-   phiprof::printLogProfile(MPI_COMM_WORLD,P::tstep,"phiprof_log"," ",7);
+   phiprof::print(MPI_COMM_WORLD,"phiprof");
    
    if (myRank == MASTER_RANK) logFile << "(MAIN): Exiting." << endl << writeVerbose;
    logFile.close();

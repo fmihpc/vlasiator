@@ -1,8 +1,23 @@
 /*
  * This file is part of Vlasiator.
- * 
- * Copyright 2015 Finnish Meteorological Institute
- * 
+ * Copyright 2010-2016 Finnish Meteorological Institute
+ *
+ * For details of usage, see the COPYING file and read the "Rules of the Road"
+ * at http://vlasiator.fmi.fi/
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
 #include "../object_wrapper.h"
@@ -13,7 +28,45 @@ using namespace std;
 using namespace spatial_cell;
 using namespace Eigen;
 
-/*Compute transform during on timestep, and update the bulk velocity of the cell*/
+
+
+/*!
+  Compute max timestep for vlasov acceleration for the particular population
+  in one spatial cell.
+
+ * @param spatial_cell Spatial cell containing the accelerated population.
+ * @param popID ID of the accelerated particle species.
+*/
+void updateAccelerationMaxdt(
+   SpatialCell* spatial_cell,
+   const int& popID) 
+{
+   if (Parameters::propagatePotential == true) {
+      #warning Electric acceleration works for Poisson only atm
+      spatial_cell->set_max_v_dt(popID,numeric_limits<Real>::max());
+   }
+   else {
+      const Real Bx = spatial_cell->parameters[CellParams::BGBXVOL]+spatial_cell->parameters[CellParams::PERBXVOL];
+      const Real By = spatial_cell->parameters[CellParams::BGBYVOL]+spatial_cell->parameters[CellParams::PERBYVOL];
+      const Real Bz = spatial_cell->parameters[CellParams::BGBZVOL]+spatial_cell->parameters[CellParams::PERBZVOL];
+      const Eigen::Matrix<Real,3,1> B(Bx,By,Bz);
+      const Real B_mag = B.norm() + 1e-30;      
+      const Real gyro_period = 2 * M_PI * getObjectWrapper().particleSpecies[popID].mass
+         / (getObjectWrapper().particleSpecies[popID].charge * B_mag);
+
+      // Set maximum timestep limit for this cell, based on a maximum allowed rotation angle
+      spatial_cell->set_max_v_dt(popID,fabs(gyro_period)*(P::maxSlAccelerationRotation/360.0));
+   }
+}
+
+
+/*!
+ Compute transform during on timestep, and update the bulk velocity of the
+ cell
+ * @param spatial_cell Spatial cell containing the accelerated population.
+ * @param popID ID of the accelerated particle species.
+ * @param dt Time step of one subcycle.
+*/
 
 Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
         SpatialCell* spatial_cell,
@@ -77,37 +130,9 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       total_transform(0,3) = CONST * E[0];
       total_transform(1,3) = CONST * E[1];
       total_transform(2,3) = CONST * E[2];
-
-      // Evaluate max dt for acceleration due to electric field.
-      // The criteria is that CFL condition due to spatial translations 
-      // must not be broken.
-      
-      /*
-      // Compute how much we can increase the dt for this species until
-      // spatial CFL breaks
-      Real dt_max_transl = spatial_cell->get_max_r_dt(popID);
-      Real CFL_transl = Parameters::dt / dt_max_transl;
-      CFL_transl = min(1.0,1-CFL_transl);
-
-      // For simplicity just take the max value of electric field
-      Real E_max = max(fabs(E[0]),max(fabs(E[1]),fabs(E[2])));
-      E_max = max(E_max,1e-20);
-
-      // ... and the minimum cell size
-      Real dx_min = min(spatial_cell->parameters[CellParams::DX],spatial_cell->parameters[CellParams::DY]);
-      dx_min = min(dx_min,spatial_cell->parameters[CellParams::DZ]);
-
-      // Compute max dt due to electric acceleration
-      Real dt_max_acc = sqrt(CFL_transl*dx_min/(fabs(q_per_m)*E_max));
-      spatial_cell->set_max_v_dt(popID,dt_max_acc);
-      //spatial_cell->set_max_v_dt(popID,Parameters::dt);*/
-      spatial_cell->set_max_v_dt(popID,numeric_limits<Real>::max());
-
       return total_transform;
    } // if (Parameters::propagatePotential == true) 
 
-   // Set maximum timestep limit for this cell, based on a maximum allowed rotation angle
-   spatial_cell->set_max_v_dt(popID,fabs(gyro_period)*(P::maxSlAccelerationRotation/360.0));
 
    unsigned int bulk_velocity_substeps; // in this many substeps we iterate forward bulk velocity when the complete transformation is computed (0.1 deg per substep).
    bulk_velocity_substeps = fabs(dt) / (fabs(gyro_period)*(0.1/360.0)); 
@@ -115,6 +140,12 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
 
    // note, we assume q is positive (pretty good assumption though)
    const Real substeps_radians = -(2.0*M_PI*dt/fabs(gyro_period))/bulk_velocity_substeps; // how many radians each substep is.
+   const Real substeps_dt=dt/bulk_velocity_substeps; /*!< how many s each substep is*/
+   Eigen::Matrix<Real,3,1> EgradPe(
+      spatial_cell->parameters[CellParams::EXGRADPE],
+      spatial_cell->parameters[CellParams::EYGRADPE],
+      spatial_cell->parameters[CellParams::EZGRADPE]);
+
    for (uint i=0; i<bulk_velocity_substeps; ++i) {
       // rotation origin is the point through which we place our rotation axis (direction of which is unitB).
       // first add bulk velocity (using the total transform computed this far.
@@ -133,6 +164,11 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       total_transform = Translation<Real,3>(-rotation_pivot)*total_transform;
       total_transform = AngleAxis<Real>(substeps_radians,unit_B)*total_transform;
       total_transform = Translation<Real,3>(rotation_pivot)*total_transform;
+
+      // Electron pressure gradient term
+      if(Parameters::ohmGradPeTerm > 0) {
+         total_transform=Translation<Real,3>( (fabs(physicalconstants::CHARGE)/physicalconstants::MASS_PROTON) * EgradPe * substeps_dt) * total_transform;
+      }
    }
 
    return total_transform;
