@@ -155,7 +155,6 @@ DEPS_PROJECTS =	projects/project.h projects/project.cpp \
 		projects/Riemann1/Riemann1.h projects/Riemann1/Riemann1.cpp \
 		projects/Shock/Shock.h projects/Shock/Shock.cpp \
 		projects/IPShock/IPShock.h projects/IPShock/IPShock.cpp \
-		projects/IPShock/noise.h projects/IPShock/noise.cpp \
 		projects/Template/Template.h projects/Template/Template.cpp \
 		projects/test_fp/test_fp.h projects/test_fp/test_fp.cpp \
 		projects/testHall/testHall.h projects/testHall/testHall.cpp \
@@ -198,7 +197,7 @@ OBJS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipo
 	project.o projectTriAxisSearch.o read_gaussian_population.o\
 	Alfven.o Diffusion.o Dispersion.o Distributions.o electric_sail.o Firehose.o Flowthrough.o Fluctuations.o Harris.o KHB.o Larmor.o \
 	Magnetosphere.o MultiPeak.o VelocityBox.o Riemann1.o Shock.o Template.o test_fp.o testHall.o test_trans.o \
-	IPShock.o noise.o\
+	IPShock.o \
 	verificationLarmor.o Shocktest.o grid.o ioread.o iowrite.o vlasiator.o logger.o\
 	common.o parameters.o readparameters.o spatial_cell.o mesh_data_container.o\
 	vlasovmover.o $(FIELDSOLVER).o fs_common.o fs_limiters.o
@@ -362,9 +361,6 @@ Shock.o: ${DEPS_COMMON} projects/Shock/Shock.h projects/Shock/Shock.cpp
 
 IPShock.o: ${DEPS_COMMON} projects/IPShock/IPShock.h projects/IPShock/IPShock.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/IPShock/IPShock.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN} ${INC_VECTORCLASS}
-
-noise.o: ${DEPS_COMMON} projects/IPShock/noise.h projects/IPShock/noise.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/IPShock/noise.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN} ${INC_VECTORCLASS}
 
 Template.o: ${DEPS_COMMON} projects/Template/Template.h projects/Template/Template.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/Template/Template.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}

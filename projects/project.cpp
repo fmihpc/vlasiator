@@ -47,7 +47,6 @@
 #include "Riemann1/Riemann1.h"
 #include "Shock/Shock.h"
 #include "IPShock/IPShock.h"
-#include "IPShock/noise.h"
 #include "Template/Template.h"
 #include "test_fp/test_fp.h"
 #include "testHall/testHall.h"
