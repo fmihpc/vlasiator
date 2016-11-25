@@ -52,12 +52,30 @@ namespace projects {
          Real V0u[3];
          Real DENSITYu;
          Real TEMPERATUREu;
+         Real B0utangential;
+         Real V0utangential;
 
          // Downstream bulk values
          Real B0d[3];
          Real V0d[3];
          Real DENSITYd;
          Real TEMPERATUREd;
+         Real B0dtangential;
+         Real V0dtangential;
+
+         // Flow direction definitions
+	 Real Byzuratio;
+	 Real Byzdratio;
+	 Real Vyzuratio;
+	 Real Vyzdratio;
+	 int Byusign;
+	 int Bydsign;
+	 int Bzusign;
+	 int Bzdsign;
+	 int Vyusign;
+	 int Vydsign;
+	 int Vzusign;
+	 int Vzdsign;
 
          Real maxwCutoff;
          uint nSpaceSamples;

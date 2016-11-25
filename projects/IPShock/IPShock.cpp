@@ -175,13 +175,59 @@ namespace projects {
       std::cerr << "Width = " << this->Shockwidth << std::endl;
     }
 
-    if ((abs(this->V0u[1]) > 1e-10)||(abs(this->B0u[1]) > 1e-10)||(abs(this->V0d[1]) > 1e-10)||(abs(this->B0d[1]) > 1e-10))
+    /* 
+       Now allows flow and field both in z and y -directions. As assuming we're
+       in the dHT frame, all flow and magnetic field should be in a single plane.
+    */
+
+    /* Magnitude of tangential B-field and flow components */
+    this->B0utangential = sqrt(this->B0u[1]*this->B0u[1] + this->B0u[2]*this->B0u[2]);
+    this->B0dtangential = sqrt(this->B0d[1]*this->B0d[1] + this->B0d[2]*this->B0d[2]);
+    this->V0utangential = sqrt(this->V0u[1]*this->V0u[1] + this->V0u[2]*this->V0u[2]);
+    this->V0dtangential = sqrt(this->V0d[1]*this->V0d[1] + this->V0d[2]*this->V0d[2]);
+
+    /* Check direction of upstream and downstream flows and fields 
+       Define y-z-directional angle phi so that 
+       By = cos(phi_B)*B_tang
+       Bz = sin(phi_B)*B_tang
+       Vy = cos(phi_V)*V_tang
+       Vz = sin(phi_V)*V_tang
+       If we're in the dHT frame, phi_B and phi_V should be the same, and also the same
+       both in the upstream and in the downstream.
+    */
+    this->Bucosphi = abs(this->B0u[1])/this->B0utangential;   
+    this->Bdcosphi = abs(this->B0d[1])/this->B0dtangential;   
+    this->Vucosphi = abs(this->V0u[1])/this->V0utangential;   
+    this->Vdcosphi = abs(this->V0d[1])/this->V0dtangential;   
+
+    /* Save signs as well for reconstruction during interpolation.
+       For both components of B and V, upstream and downstream signs should be the same. */
+    if (this->B0u[1] < 0) {this->Byusign=1;} else {this->Byusign=-1;}
+    if (this->B0u[2] < 0) {this->Bzusign=1;} else {this->Bzusign=-1;}
+    if (this->B0d[1] < 0) {this->Bydsign=1;} else {this->Bydsign=-1;}
+    if (this->B0d[2] < 0) {this->Bzdsign=1;} else {this->Bzdsign=-1;}
+    if (this->V0u[1] < 0) {this->Vyusign=1;} else {this->Vyusign=-1;}
+    if (this->V0u[2] < 0) {this->Vzusign=1;} else {this->Vzusign=-1;}
+    if (this->V0d[1] < 0) {this->Vydsign=1;} else {this->Vydsign=-1;}
+    if (this->V0d[2] < 0) {this->Vzdsign=1;} else {this->Vzdsign=-1;}
+
+    /* Check that upstream and downstream values both are separately parallel */
+    if ( (abs(this->Bucosphi)-abs(this->Vucosphi) > 1e-10) || (this->Byusign*this->Bzusign != this->Vyusign*this->Vzusign) )
       {
-	if(myRank == MASTER_RANK) std::cout<<" Enforcing nil y-directional flow and magnetic flux "<<std::endl;
-	this->V0u[1] = 0.0;
-	this->B0u[1] = 0.0;
-	this->V0d[1] = 0.0;
-	this->B0d[1] = 0.0;
+	if(myRank == MASTER_RANK) std::cout<<" Warning: Upstream B and V not parallel"<<std::endl;
+      }
+    if ( (abs(this->Bdcosphi)-abs(this->Vdcosphi) > 1e-10) || (this->Bydsign*this->Bzdsign != this->Vydsign*this->Vzdsign) )
+      {
+	if(myRank == MASTER_RANK) std::cout<<" Warning: Downstream B and V not parallel"<<std::endl;
+      }
+    /* Verify that upstream and downstream flows are in a plane */
+    if ( (abs(this->Bdcosphi)-abs(this->Bucosphi) > 1e-10) && (this->Bydsign*this->Bzdsign != this->Byusign*this->Bzusign) )
+      {
+	if(myRank == MASTER_RANK) std::cout<<" Warning: Upstream and downstream B_tangentials not in same plane"<<std::endl;
+      }
+    if ( (abs(this->Vdcosphi)-abs(this->Vucosphi) > 1e-10) && (this->Vydsign*this->Vzdsign != this->Vyusign*this->Vzusign) )
+      {
+	if(myRank == MASTER_RANK) std::cout<<" Warning: Upstream and downstream V_tangentials not in same plane"<<std::endl;
       }
     
   }
@@ -198,19 +244,24 @@ namespace projects {
       std::cout<<"density too low! "<<DENSITY<<" x "<<x<<" y "<<y<<" z "<<z<<std::endl;
     }
     
-    // Assume all velocities and magnetic fields are in x-z-plane
-    // Alternatively, could set it so a rotation is performed for solving calculations and then returned to initial frame
+    // Solve tangential components for B and V
     Real VX = this->DENSITYu * this->V0u[0] / DENSITY;
     Real BX = this->B0u[0];
     Real MAsq = std::pow((this->V0u[0]/this->B0u[0]), 2) * this->DENSITYu * mass * mu0;
-    Real BZ = this->B0u[2] * (MAsq - 1.0)/(MAsq*VX/this->V0u[0] -1.0);
-    Real VZ = VX * BZ / BX;
+    Real Btang = this->B0utangential * (MAsq - 1.0)/(MAsq*VX/this->V0u[0] -1.0);
+    Real Vtang = VX * Btang / BX;
+
+    /* Reconstruct Y and Z components using cos(phi) values and signs. Tangential variables are always positive. */
+    Real BY = Btang * this->Bucosphi * this->Byusign;
+    Real BZ = Btang * sqrt(1. - this->Bucosphi * this->Bucosphi) * this->Bzusign;
+    Real VY = Vtang * this->Vucosphi * this->Vyusign;
+    Real VZ = Vtang * sqrt(1. - this->Bucosphi * this->Bucosphi) * this->Vzusign;
 
     // Disable compiler warnings: (unused variables but the function is inherited)
     (void)y;
     (void)z;
     
-    std::array<Real, 3> V0 {{VX, 0.0, VZ}};
+    std::array<Real, 3> V0 {{VX, VY, VZ}};
     std::vector<std::array<Real, 3>> retval;
     retval.push_back(V0);
 
@@ -233,20 +284,25 @@ namespace projects {
       std::cout<<"density too low! "<<DENSITY<<" x "<<x<<" y "<<y<<" z "<<z<<std::endl;
     }
     
-    // Assume all velocities and magnetic fields are in x-z-plane
-    // Alternatively, could set it so a rotation is performed for solving calculations and then returned to initial frame
-
+    // Solve tangential components for B and V
     Real hereVX = this->DENSITYu * this->V0u[0] / DENSITY;
     Real hereBX = this->B0u[0];
     Real MAsq = std::pow((this->V0u[0]/this->B0u[0]), 2) * this->DENSITYu * mass * mu0;
-    Real hereBZ = this->B0u[2] * (MAsq - 1.0)/(MAsq*hereVX/this->V0u[0] -1.0);
-    Real hereVZ = hereVX * hereBZ / hereBX;
+    Real hereBtang = this->B0u[2] * (MAsq - 1.0)/(MAsq*hereVX/this->V0u[0] -1.0);
+    Real hereVtang = hereVX * hereBtang / hereBX;
+
+    /* Reconstruct Y and Z components using cos(phi) values and signs. Tangential variables are always positive. */
+    Real hereBY = hereBtang * this->Bucosphi * this->Byusign;
+    Real hereBZ = hereBtang * sqrt(1. - this->Bucosphi * this->Bucosphi) * this->Bzusign;
+    Real hereVY = hereVtang * this->Vucosphi * this->Vyusign;
+    Real hereVZ = hereVtang * sqrt(1. - this->Bucosphi * this->Bucosphi) * this->Vzusign;
+
     // Old incorrect temperature - just interpolate for now
     //Real TEMPERATURE = this->TEMPERATUREu + (mass*(adiab-1.0)/(2.0*KB*adiab)) * 
     //  ( std::pow(this->V0u[0],2) + std::pow(this->V0u[2],2) - std::pow(hereVX,2) - std::pow(hereVZ,2) );
     Real TEMPERATURE = interpolate(this->TEMPERATUREu,this->TEMPERATUREd, x);
 
-    std::array<Real, 3> pertV0 {{hereVX, 0.0, hereVZ}};
+    std::array<Real, 3> pertV0 {{hereVX, hereVY, hereVZ}};
 
     Real result = 0.0;
 
@@ -319,15 +375,21 @@ namespace projects {
     // All other values are calculated from jump conditions
     Real DENSITY = interpolate(this->DENSITYu,this->DENSITYd, x);
     
-    // Assume all velocities and magnetic fields are in x-z-plane
-    // Alternatively, could set it so a rotation is performed for solving calculations and then returned to initial frame
+    // Solve tangential components for B and V
     Real VX = this->DENSITYu * this->V0u[0] / DENSITY;
     Real BX = this->B0u[0];
     Real MAsq = std::pow((this->V0u[0]/this->B0u[0]), 2) * this->DENSITYu * mass * mu0;
-    Real BZ = this->B0u[2] * (MAsq - 1.0)/(MAsq*VX/this->V0u[0] -1.0);
+    Real Btang = this->B0utangential * (MAsq - 1.0)/(MAsq*VX/this->V0u[0] -1.0);
+    Real Vtang = VX * Btang / BX;
+
+    /* Reconstruct Y and Z components using cos(phi) values and signs. Tangential variables are always positive. */
+    Real BY = Btang * this->Bucosphi * this->Byusign;
+    Real BZ = Btang * sqrt(1. - this->Bucosphi * this->Bucosphi) * this->Bzusign;
+    Real VY = Vtang * this->Vucosphi * this->Vyusign;
+    Real VZ = Vtang * sqrt(1. - this->Bucosphi * this->Bucosphi) * this->Vzusign;
 
     cellParams[CellParams::PERBX   ] = BX;
-    cellParams[CellParams::PERBY   ] = 0.0;
+    cellParams[CellParams::PERBY   ] = BY;
     cellParams[CellParams::PERBZ   ] = BZ;
 
   }
