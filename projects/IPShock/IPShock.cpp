@@ -214,20 +214,32 @@ namespace projects {
     /* Check that upstream and downstream values both are separately parallel */
     if ( (abs(this->Bucosphi)-abs(this->Vucosphi) > 1e-10) || (this->Byusign*this->Bzusign != this->Vyusign*this->Vzusign) )
       {
-	if(myRank == MASTER_RANK) std::cout<<" Warning: Upstream B and V not parallel"<<std::endl;
+	if(myRank == MASTER_RANK) {
+	  std::cout<<" Warning: Upstream B and V not parallel"<<std::endl;
+	  std::cout<<" Bucosphi "<<Bucosphi<<" Vucosphi "<<Vucosphi<<" Byusign "<<Byusign<<" Bzusign "<<Bzusign<<" Vyusign "<<Vyusign<<" Vzusign "<<Vzusign<<std::endl;
+	}
       }
     if ( (abs(this->Bdcosphi)-abs(this->Vdcosphi) > 1e-10) || (this->Bydsign*this->Bzdsign != this->Vydsign*this->Vzdsign) )
       {
-	if(myRank == MASTER_RANK) std::cout<<" Warning: Downstream B and V not parallel"<<std::endl;
+	if(myRank == MASTER_RANK) {
+	  std::cout<<" Warning: Downstream B and V not parallel"<<std::endl;
+	  std::cout<<" Bdcosphi "<<Bdcosphi<<" Vdcosphi "<<Vdcosphi<<" Bydsign "<<Bydsign<<" Bzdsign "<<Bzdsign<<" Vydsign "<<Vydsign<<" Vzdsign "<<Vzdsign<<std::endl;
+	}
       }
     /* Verify that upstream and downstream flows are in a plane */
     if ( (abs(this->Bdcosphi)-abs(this->Bucosphi) > 1e-10) && (this->Bydsign*this->Bzdsign != this->Byusign*this->Bzusign) )
       {
-	if(myRank == MASTER_RANK) std::cout<<" Warning: Upstream and downstream B_tangentials not in same plane"<<std::endl;
+	if(myRank == MASTER_RANK) {
+	  std::cout<<" Warning: Upstream and downstream B_tangentials not in same plane"<<std::endl;
+	  std::cout<<" Bdcosphi "<<Bdcosphi<<" Bucosphi "<<Bucosphi<<" Bydsign "<<Bydsign<<" Bzdsign "<<Bzdsign<<" Byusign "<<Byusign<<" Bzusign "<<Bzusign<<std::endl;
+	}
       }
     if ( (abs(this->Vdcosphi)-abs(this->Vucosphi) > 1e-10) && (this->Vydsign*this->Vzdsign != this->Vyusign*this->Vzusign) )
       {
-	if(myRank == MASTER_RANK) std::cout<<" Warning: Upstream and downstream V_tangentials not in same plane"<<std::endl;
+	if(myRank == MASTER_RANK) {
+	  std::cout<<" Warning: Upstream and downstream V_tangentials not in same plane"<<std::endl;
+	  std::cout<<" Vdcosphi "<<Vdcosphi<<" Vucosphi "<<Vucosphi<<" Vydsign "<<Vydsign<<" Vzdsign "<<Vzdsign<<" Vyusign "<<Vyusign<<" Vzusign "<<Vzusign<<std::endl;
+	}
       }
     
   }
@@ -254,8 +266,8 @@ namespace projects {
     /* Reconstruct Y and Z components using cos(phi) values and signs. Tangential variables are always positive. */
     //Real BY = Btang * this->Bucosphi * this->Byusign;
     //Real BZ = Btang * sqrt(1. - this->Bucosphi * this->Bucosphi) * this->Bzusign;
-    Real VY = Vtang * this->Vucosphi * this->Vyusign;
-    Real VZ = Vtang * sqrt(1. - this->Vucosphi * this->Vucosphi) * this->Vzusign;
+    Real VY = abs(Vtang) * this->Vucosphi * this->Vyusign;
+    Real VZ = abs(Vtang) * sqrt(1. - this->Vucosphi * this->Vucosphi) * this->Vzusign;
 
     // Disable compiler warnings: (unused variables but the function is inherited)
     (void)y;
@@ -294,8 +306,8 @@ namespace projects {
     /* Reconstruct Y and Z components using cos(phi) values and signs. Tangential variables are always positive. */
     //Real hereBY = hereBtang * this->Bucosphi * this->Byusign;
     //Real hereBZ = hereBtang * sqrt(1. - this->Bucosphi * this->Bucosphi) * this->Bzusign;
-    Real hereVY = hereVtang * this->Vucosphi * this->Vyusign;
-    Real hereVZ = hereVtang * sqrt(1. - this->Vucosphi * this->Vucosphi) * this->Vzusign;
+    Real hereVY = abs(hereVtang) * this->Vucosphi * this->Vyusign;
+    Real hereVZ = abs(hereVtang) * sqrt(1. - this->Vucosphi * this->Vucosphi) * this->Vzusign;
 
     // Old incorrect temperature - just interpolate for now
     //Real TEMPERATURE = this->TEMPERATUREu + (mass*(adiab-1.0)/(2.0*KB*adiab)) * 
@@ -383,8 +395,8 @@ namespace projects {
     Real Vtang = VX * Btang / BX;
 
     /* Reconstruct Y and Z components using cos(phi) values and signs. Tangential variables are always positive. */
-    Real BY = Btang * this->Bucosphi * this->Byusign;
-    Real BZ = Btang * sqrt(1. - this->Bucosphi * this->Bucosphi) * this->Bzusign;
+    Real BY = abs(Btang) * this->Bucosphi * this->Byusign;
+    Real BZ = abs(Btang) * sqrt(1. - this->Bucosphi * this->Bucosphi) * this->Bzusign;
     //Real VY = Vtang * this->Vucosphi * this->Vyusign;
     //Real VZ = Vtang * sqrt(1. - this->Vucosphi * this->Vucosphi) * this->Vzusign;
 
