@@ -202,14 +202,31 @@ namespace projects {
 
     /* Save signs as well for reconstruction during interpolation.
        For both components of B and V, upstream and downstream signs should be the same. */
-    if (this->B0u[1] < 0) {this->Byusign=-1;} else {this->Byusign=1;}
-    if (this->B0u[2] < 0) {this->Bzusign=-1;} else {this->Bzusign=1;}
-    if (this->B0d[1] < 0) {this->Bydsign=-1;} else {this->Bydsign=1;}
-    if (this->B0d[2] < 0) {this->Bzdsign=-1;} else {this->Bzdsign=1;}
-    if (this->V0u[1] < 0) {this->Vyusign=-1;} else {this->Vyusign=1;}
-    if (this->V0u[2] < 0) {this->Vzusign=-1;} else {this->Vzusign=1;}
-    if (this->V0d[1] < 0) {this->Vydsign=-1;} else {this->Vydsign=1;}
-    if (this->V0d[2] < 0) {this->Vzdsign=-1;} else {this->Vzdsign=1;}
+    this->Byusign=0;
+    if (this->B0u[1] < 0) this->Byusign=-1;
+    if (this->B0u[1] > 0) this->Byusign=+1;
+    this->Bzusign=0;
+    if (this->B0u[2] < 0) this->Bzusign=-1;
+    if (this->B0u[2] > 0) this->Bzusign=+1;
+    this->Bydsign=0;
+    if (this->B0d[1] < 0) this->Bydsign=-1;
+    if (this->B0d[1] > 0) this->Bydsign=+1;
+    this->Bzdsign=0;
+    if (this->B0d[2] < 0) this->Bzdsign=-1;
+    if (this->B0d[2] > 0) this->Bzdsign=+1;
+
+    this->Vyusign=0;
+    if (this->V0u[1] < 0) this->Vyusign=-1;
+    if (this->V0u[1] > 0) this->Vyusign=+1;
+    this->Vzusign=0;
+    if (this->V0u[2] < 0) this->Vzusign=-1;
+    if (this->V0u[2] > 0) this->Vzusign=+1;
+    this->Vydsign=0;
+    if (this->V0d[1] < 0) this->Vydsign=-1;
+    if (this->V0d[1] > 0) this->Vydsign=+1;
+    this->Vzdsign=0;
+    if (this->V0d[2] < 0) this->Vzdsign=-1;
+    if (this->V0d[2] > 0) this->Vzdsign=+1;
 
     /* Check that upstream and downstream values both are separately parallel */
     if ( (abs(this->Bucosphi)-abs(this->Vucosphi) > 1e-10) || (this->Byusign*this->Bzusign != this->Vyusign*this->Vzusign) )
