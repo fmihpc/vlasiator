@@ -64,10 +64,10 @@ namespace projects {
          Real V0dtangential;
 
          // Flow direction definitions
-	 Real Byzuratio;
-	 Real Byzdratio;
-	 Real Vyzuratio;
-	 Real Vyzdratio;
+	 Real Bucosphi;
+	 Real Bdcosphi;
+	 Real Vucosphi;
+	 Real Vdcosphi;
 	 int Byusign;
 	 int Bydsign;
 	 int Bzusign;

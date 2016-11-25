@@ -252,10 +252,10 @@ namespace projects {
     Real Vtang = VX * Btang / BX;
 
     /* Reconstruct Y and Z components using cos(phi) values and signs. Tangential variables are always positive. */
-    Real BY = Btang * this->Bucosphi * this->Byusign;
-    Real BZ = Btang * sqrt(1. - this->Bucosphi * this->Bucosphi) * this->Bzusign;
+    //Real BY = Btang * this->Bucosphi * this->Byusign;
+    //Real BZ = Btang * sqrt(1. - this->Bucosphi * this->Bucosphi) * this->Bzusign;
     Real VY = Vtang * this->Vucosphi * this->Vyusign;
-    Real VZ = Vtang * sqrt(1. - this->Bucosphi * this->Bucosphi) * this->Vzusign;
+    Real VZ = Vtang * sqrt(1. - this->Vucosphi * this->Vucosphi) * this->Vzusign;
 
     // Disable compiler warnings: (unused variables but the function is inherited)
     (void)y;
@@ -292,10 +292,10 @@ namespace projects {
     Real hereVtang = hereVX * hereBtang / hereBX;
 
     /* Reconstruct Y and Z components using cos(phi) values and signs. Tangential variables are always positive. */
-    Real hereBY = hereBtang * this->Bucosphi * this->Byusign;
-    Real hereBZ = hereBtang * sqrt(1. - this->Bucosphi * this->Bucosphi) * this->Bzusign;
+    //Real hereBY = hereBtang * this->Bucosphi * this->Byusign;
+    //Real hereBZ = hereBtang * sqrt(1. - this->Bucosphi * this->Bucosphi) * this->Bzusign;
     Real hereVY = hereVtang * this->Vucosphi * this->Vyusign;
-    Real hereVZ = hereVtang * sqrt(1. - this->Bucosphi * this->Bucosphi) * this->Vzusign;
+    Real hereVZ = hereVtang * sqrt(1. - this->Vucosphi * this->Vucosphi) * this->Vzusign;
 
     // Old incorrect temperature - just interpolate for now
     //Real TEMPERATURE = this->TEMPERATUREu + (mass*(adiab-1.0)/(2.0*KB*adiab)) * 
@@ -385,8 +385,8 @@ namespace projects {
     /* Reconstruct Y and Z components using cos(phi) values and signs. Tangential variables are always positive. */
     Real BY = Btang * this->Bucosphi * this->Byusign;
     Real BZ = Btang * sqrt(1. - this->Bucosphi * this->Bucosphi) * this->Bzusign;
-    Real VY = Vtang * this->Vucosphi * this->Vyusign;
-    Real VZ = Vtang * sqrt(1. - this->Bucosphi * this->Bucosphi) * this->Vzusign;
+    //Real VY = Vtang * this->Vucosphi * this->Vyusign;
+    //Real VZ = Vtang * sqrt(1. - this->Vucosphi * this->Vucosphi) * this->Vzusign;
 
     cellParams[CellParams::PERBX   ] = BX;
     cellParams[CellParams::PERBY   ] = BY;
