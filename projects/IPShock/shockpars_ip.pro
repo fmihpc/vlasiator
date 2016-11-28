@@ -4,12 +4,15 @@ PRO shockpars_ip,v_shock=v_shock, t1=t1, b1=b1, usw=usw, rho1=rho1
  ; Recoded 08/07/2016
  ; shock is always x-planar, propagating radially
 
+ ; This scripts assumes tangential components are in z-direction only. 
+
  ; Shock propagation speed is an input parameter (in SNIF) - this gives Vx
- ; Vz is solved via velocity transform to dHT
  ; solar wind speed Usw is also given in SNIF, and is radial. Thus,
- ; we simply deduct this from V_shock.
+ ; we simply deduct this from V_shock to find the shock-normal inflow speed.
+ ; Vz is solved via velocity transform to dHT
+ ;
  ; Shock-normal angle is calculated via solar wind speed as per Parker
- ; spiral winding
+ ; spiral winding, at 1 AU.
 
  r_s = 6.96e8
  AU = 215.*r_s
@@ -64,12 +67,14 @@ PRO shockpars_ip,v_shock=v_shock, t1=t1, b1=b1, usw=usw, rho1=rho1
  print,' va1 ',va1,' vsound1 ',vsound1, ' uht1 ',uht1,' MA ',sqrt(MA2)
 ; print,' un1 ',un1,' ut1 ',ut1, ' sqrt(un1^2+ut1^2) ',sqrt(un1^2+ut1^2)
 
+ ; Initialize compression ratio for looping
  compr=0
 
- ; Calculate beta (SI, Arto's thesis, Plasma physics notes)
+ ; Calculate beta
  beta1 = (2./adiab)* vs12/va12
  calctemp1 = 1.D + 0.5*adiab*beta1
 
+ ; Calculate plasma compression ratio through iterative Newton method
  Ztry = ((0.5D/cos12)*(calctemp1 + sqrt(calctemp1^2 - 2.*adiab*beta1*cos12)) -1.) > $     ; First (root for M^2) -1
     ((0.5D/cos12)*(calctemp1 - sqrt(calctemp1^2 - 2.*adiab*beta1*cos12)) -1.) > 0.        ; Second and third (root for M^2) -1
 
@@ -109,7 +114,8 @@ PRO shockpars_ip,v_shock=v_shock, t1=t1, b1=b1, usw=usw, rho1=rho1
     IF (Rtry LE MA2) THEN compr = Rtry
     rstep = rstep * 0.1
  ENDWHILE
- 
+
+ ; Now solve magnetic compression ratio
  comprb = sqrt( cos12 + (1.-cos12)*( ( compr * (u12-va12)/(u12-va12*compr))^2 ) )
 
  un2 = un1/compr ;still negative
@@ -126,36 +132,12 @@ PRO shockpars_ip,v_shock=v_shock, t1=t1, b1=b1, usw=usw, rho1=rho1
  ut2 = uht2 * sin21
  rho2 = rho1*compr
 
-; print, 'v_shock ',v_shock*c*(1e-3),' theta ',angle,' DStheta ',theta2*(180./!pi)
-; print,' upstream flow ',uht1*c*(1e-3)
-; print,' mach ',abs(uht1/va1)
- print,' compr  ',compr
-; print,' comprB ',comprb
-; print,'un1',un1*c*(1e-3),'ut1',ut1*c*(1e-3),'bn1',bn1,'bt1',bt1
-; print,'un2',un2*c*(1e-3),'ut2',ut2*c*(1e-3),'bn2',bn2,'bt2',bt2
-; print,'bt2b ',bt1*compr*(MA2-1)/(MA2-compr)
-; print,' b1 ',sqrt(bt1^2 + bn1^2), b1
-; print,' b2 ',sqrt(bt2^2 + bn2^2), b1*comprb
-; print,' u1 ',sqrt(ut1^2 + un1^2) *c*(1e-3)
-; print,' u2 ',sqrt(ut2^2 + un2^2) *c*(1e-3)
-; print,' uht1 ',uht1*c*(1e-3),' uht2 ', uht2*c*(1e-3),' by compr ',uht1*(comprb/compr)*c*(1e-3)
-; print,' rho1 ',rho1, ' rho2 ',rho1*compr
-
- ; Continuity of shock-normal momentum flux
- ;pressure2a = pressure1 + rho1*m_p*un1*un1 + bt1*bt1/(8.*!pi) - rho2*m_p*un2*un2 - bt2*bt2/(8.*!pi)
- ; Continuity of shock-normal energy flux (my thesis,  probably
- ; wrong?)
- ; See https://ui.adsabs.harvard.edu/#abs/1989JPlPh..42..299K/abstract
- ; But with ExB term, which perhaps cannot be neglected
- ;pressure2b = pressure1*compr + ((adiab-1)/adiab)*0.5* rho1*un1 *(uht1*uht1-uht2*uht2)
-
- ; Alternative formulation from Arto's thesis
  pressure2 = pressure1*compr + pressure1*(adiab-1)*compr*(uht1*uht1-uht2*uht2)/(2.*vs12)
- print, ' pressure 1 ',pressure1, ' pressure 2 ',pressure2
 
  ;Use: pressure = n k T (does not include electron pressure)
  t2 = pressure2/(rho2*k_b)
 
+ ; Print values to be copy-pasted into IPShock.cfg
  print,'VX0u = ',un1
  print,'VY0u = ',0.0
  print,'VZ0u = ',ut1
@@ -174,6 +156,7 @@ PRO shockpars_ip,v_shock=v_shock, t1=t1, b1=b1, usw=usw, rho1=rho1
  print,'rhod = ',rho2
  print,'Temperatured = ',t2
 
+ ; Print values to input into upstream.dat (and, if wanted, downstream.dat)
  print,''
  print,'upstream.dat'
  print, 0.0, rho1, t1, un1, 0.0, ut1, bn1, 0.0, bt1
