@@ -369,17 +369,25 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
          SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE2);
          mpiGrid.continue_balance_load();
       
+         int receives = 0;
          for (unsigned int i=0; i<incoming_cells_list.size(); i++) {
             uint64_t cell_id=incoming_cells_list[i];
             SpatialCell* cell = mpiGrid[cell_id];
             if (cell_id % num_part_transfers == transfer_part) {
+               receives++;
                phiprof::start("Preparing receives");
                // reserve space for velocity block data in arriving remote cells
                cell->prepare_to_receive_blocks(p);
-               phiprof::stop("Preparing receives", incoming_cells_list.size(), "Spatial cells");
+               phiprof::stop("Preparing receives", 1, "Spatial cells");
             }
          }
-
+         if(receives == 0) {
+            //empty phiprof timer, to avoid unneccessary divergence in unique
+            //profiles (keep order same)
+            phiprof::start("Preparing receives");
+            phiprof::stop("Preparing receives", 0, "Spatial cells");
+         }
+         
          //do the actual transfer of data for the set of cells to be transferred
          phiprof::start("transfer_all_data");
          SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
