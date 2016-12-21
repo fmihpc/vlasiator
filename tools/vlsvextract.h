@@ -76,6 +76,7 @@ public:
    bool rotateVectors;
    bool plasmaFrame;
    uint64_t cellId;
+   std::vector<uint64_t> cellIdList;
    uint32_t numberOfCoordinatesInALine;
    std::vector<std::string> outputDirectoryPath;
    std::array<Real, 3> coordinates;
