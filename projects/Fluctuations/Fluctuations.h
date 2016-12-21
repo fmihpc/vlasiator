@@ -26,10 +26,10 @@
 #include <stdlib.h>
 
 #include "../../definitions.h"
-#include "../project.h"
+#include "../projectTriAxisSearch.h"
 
 namespace projects {
-   class Fluctuations: public Project {
+   class Fluctuations: public TriAxisSearch {
    public:
       Fluctuations();
       virtual ~Fluctuations();
@@ -37,16 +37,21 @@ namespace projects {
       virtual bool initialize(void);
       static void addParameters(void);
       virtual void getParameters(void);
-      virtual void setCellBackgroundField(spatial_cell::SpatialCell* cell);
+      virtual void setCellBackgroundField(spatial_cell::SpatialCell* cell) const;
+      virtual std::vector<std::array<Real, 3> > getV0(
+         creal x,
+         creal y,
+         creal z
+      ) const;
    protected:
-      Real getDistribValue(creal& vx, creal& vy, creal& vz);
+      Real getDistribValue(creal& vx, creal& vy, creal& vz) const;
       virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
       virtual Real calcPhaseSpaceDensity(
          creal& x, creal& y, creal& z,
          creal& dx, creal& dy, creal& dz,
          creal& vx, creal& vy, creal& vz,
          creal& dvx, creal& dvy, creal& dvz,const int& popID
-      );
+      ) const;
       
       Real BX0;
       Real BY0;
