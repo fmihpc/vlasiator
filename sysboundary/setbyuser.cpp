@@ -324,7 +324,7 @@ namespace SBC {
       int ret = nParams;
 
       // Make sure the type id of Real is correct
-      phiprof_assert( typeid( Real ) == typeid(float) || typeid( Real ) == typeid(double) );
+      //      phiprof_assert( typeid( Real ) == typeid(float) || typeid( Real ) == typeid(double) );
 
       while (!feof(fp) && ret == (int)nParams) {
          Real readParam;
@@ -334,7 +334,7 @@ namespace SBC {
          } else if( typeid( readParam ) == typeid(float) ) {
             for(uint i=0; i<nParams; i++) ret += fscanf(fp, "%f", &readParam);
          } else {
-            phiprof_assert( typeid( readParam ) == typeid(float) || typeid( readParam ) == typeid(double) );
+	   //            phiprof_assert( typeid( readParam ) == typeid(float) || typeid( readParam ) == typeid(double) );
             
          }
          nlines++;
@@ -361,7 +361,7 @@ namespace SBC {
             } else if( typeid( readParam ) == typeid(float) ) {
                ret = fscanf(fp,"%f",&readParam);
             } else {
-               phiprof_assert( typeid( readParam ) == typeid(float) || typeid( readParam ) == typeid(double) ); 
+	      //               phiprof_assert( typeid( readParam ) == typeid(float) || typeid( readParam ) == typeid(double) ); 
             }
             if (ret != 1) {
                cerr << "Couldn't read a number from parameter file " << *fn << " for line value " << line << endl;
