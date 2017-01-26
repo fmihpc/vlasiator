@@ -26,6 +26,7 @@
 #include <vector>
 
 #include "common.h"
+#include "unistd.h"
 
 #ifdef DEBUG_VBC
    #include <sstream>
