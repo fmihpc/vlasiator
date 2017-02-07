@@ -1,8 +1,24 @@
 /*
-This file is part of Vlasiator.
-
-Copyright 2010-2015 Finnish Meteorological Institute
-*/
+ * This file is part of Vlasiator.
+ * Copyright 2010-2016 Finnish Meteorological Institute
+ *
+ * For details of usage, see the COPYING file and read the "Rules of the Road"
+ * at http://vlasiator.fmi.fi/
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 
 #include <boost/assign/list_of.hpp>
 #include <cstdlib>
@@ -353,17 +369,25 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
          SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE2);
          mpiGrid.continue_balance_load();
       
+         int receives = 0;
          for (unsigned int i=0; i<incoming_cells_list.size(); i++) {
             uint64_t cell_id=incoming_cells_list[i];
             SpatialCell* cell = mpiGrid[cell_id];
             if (cell_id % num_part_transfers == transfer_part) {
+               receives++;
                phiprof::start("Preparing receives");
                // reserve space for velocity block data in arriving remote cells
                cell->prepare_to_receive_blocks(p);
-               phiprof::stop("Preparing receives", incoming_cells_list.size(), "Spatial cells");
+               phiprof::stop("Preparing receives", 1, "Spatial cells");
             }
          }
-
+         if(receives == 0) {
+            //empty phiprof timer, to avoid unneccessary divergence in unique
+            //profiles (keep order same)
+            phiprof::start("Preparing receives");
+            phiprof::stop("Preparing receives", 0, "Spatial cells");
+         }
+         
          //do the actual transfer of data for the set of cells to be transferred
          phiprof::start("transfer_all_data");
          SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);

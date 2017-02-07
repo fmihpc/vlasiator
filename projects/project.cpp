@@ -1,8 +1,23 @@
 /*
  * This file is part of Vlasiator.
- * 
- * Copyright 2011-2015 Finnish Meteorological Institute
- * 
+ * Copyright 2010-2016 Finnish Meteorological Institute
+ *
+ * For details of usage, see the COPYING file and read the "Rules of the Road"
+ * at http://vlasiator.fmi.fi/
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
 #include "project.h"
@@ -31,6 +46,7 @@
 #include "VelocityBox/VelocityBox.h"
 #include "Riemann1/Riemann1.h"
 #include "Shock/Shock.h"
+#include "IPShock/IPShock.h"
 #include "Template/Template.h"
 #include "test_fp/test_fp.h"
 #include "testHall/testHall.h"
@@ -107,6 +123,7 @@ namespace projects {
       projects::VelocityBox::addParameters();
       projects::Riemann1::addParameters();
       projects::Shock::addParameters();
+      projects::IPShock::addParameters();
       projects::Template::addParameters();
       projects::test_fp::addParameters();
       projects::TestHall::addParameters();
@@ -752,6 +769,9 @@ Project* createProject() {
    }
    if(Parameters::projectName == "Shock") {
       rvalue = new projects::Shock;
+   }
+   if(Parameters::projectName == "IPShock") {
+      rvalue = new projects::IPShock;
    }
    if(Parameters::projectName == "Template") {
       rvalue = new projects::Template;

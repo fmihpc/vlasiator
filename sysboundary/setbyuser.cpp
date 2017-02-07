@@ -1,8 +1,23 @@
 /*
  * This file is part of Vlasiator.
- * 
- * Copyright 2010-2013,2015 Finnish Meteorological Institute
- * 
+ * Copyright 2010-2016 Finnish Meteorological Institute
+ *
+ * For details of usage, see the COPYING file and read the "Rules of the Road"
+ * at http://vlasiator.fmi.fi/
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
 /*!\file setbyuser.cpp
@@ -13,6 +28,7 @@
 #include <cstdlib>
 #include <iostream>
 
+#include <assert.h>
 #include "setbyuser.h"
 #include "../vlasovmover.h"
 #include "../fieldsolver/fs_common.h"
@@ -324,7 +340,7 @@ namespace SBC {
       int ret = nParams;
 
       // Make sure the type id of Real is correct
-      phiprof_assert( typeid( Real ) == typeid(float) || typeid( Real ) == typeid(double) );
+      assert( typeid( Real ) == typeid(float) || typeid( Real ) == typeid(double) );
 
       while (!feof(fp) && ret == (int)nParams) {
          Real readParam;
@@ -334,7 +350,7 @@ namespace SBC {
          } else if( typeid( readParam ) == typeid(float) ) {
             for(uint i=0; i<nParams; i++) ret += fscanf(fp, "%f", &readParam);
          } else {
-            phiprof_assert( typeid( readParam ) == typeid(float) || typeid( readParam ) == typeid(double) );
+            assert( typeid( readParam ) == typeid(float) || typeid( readParam ) == typeid(double) );
             
          }
          nlines++;
@@ -361,7 +377,7 @@ namespace SBC {
             } else if( typeid( readParam ) == typeid(float) ) {
                ret = fscanf(fp,"%f",&readParam);
             } else {
-               phiprof_assert( typeid( readParam ) == typeid(float) || typeid( readParam ) == typeid(double) ); 
+               assert( typeid( readParam ) == typeid(float) || typeid( readParam ) == typeid(double) ); 
             }
             if (ret != 1) {
                cerr << "Couldn't read a number from parameter file " << *fn << " for line value " << line << endl;

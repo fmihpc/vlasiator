@@ -1,9 +1,24 @@
 /*
-This file is part of Vlasiator.
-
-Copyright 2011,2012,2015 Finnish Meteorological Institute
-
-*/
+ * This file is part of Vlasiator.
+ * Copyright 2010-2016 Finnish Meteorological Institute
+ *
+ * For details of usage, see the COPYING file and read the "Rules of the Road"
+ * at http://vlasiator.fmi.fi/
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 
 #include <cstdlib>
 #include <iostream>
@@ -24,7 +39,7 @@ Real projects::Fluctuations::rndRho, projects::Fluctuations::rndVel[3];
 
 
 namespace projects {
-   Fluctuations::Fluctuations(): Project() { }
+   Fluctuations::Fluctuations(): TriAxisSearch() { }
    Fluctuations::~Fluctuations() { }
    bool Fluctuations::initialize(void) {return Project::initialize();}
    
@@ -64,7 +79,7 @@ namespace projects {
       RP::get("Fluctuations.maxwCutoff", this->maxwCutoff);
    }
    
-   Real Fluctuations::getDistribValue(creal& vx,creal& vy, creal& vz) {
+   Real Fluctuations::getDistribValue(creal& vx,creal& vy, creal& vz) const {
       creal mass = physicalconstants::MASS_PROTON;
       creal kb = physicalconstants::K_B;
       return exp(- mass * (vx*vx + vy*vy + vz*vz) / (2.0 * kb * this->TEMPERATURE));
@@ -75,7 +90,7 @@ namespace projects {
       creal& dx, creal& dy, creal& dz,
       creal& vx, creal& vy, creal& vz,
       creal& dvx, creal& dvy, creal& dvz,const int& popID
-   ) {
+   ) const {
       const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
       vmesh::MeshParameters& meshParams = getObjectWrapper().velocityMeshes[meshID];
       if (vx < meshParams.meshMinLimits[0] + 0.5*dvx ||
@@ -90,27 +105,27 @@ namespace projects {
       creal mass = physicalconstants::MASS_PROTON;
       creal kb = physicalconstants::K_B;
       
-      creal d_vx = dvx / (this->nVelocitySamples-1);
-      creal d_vy = dvy / (this->nVelocitySamples-1);
-      creal d_vz = dvz / (this->nVelocitySamples-1);
+      creal d_vx = dvx / (nVelocitySamples-1);
+      creal d_vy = dvy / (nVelocitySamples-1);
+      creal d_vz = dvz / (nVelocitySamples-1);
       Real avg = 0.0;
       
-      for (uint vi=0; vi<this->nVelocitySamples; ++vi)
-         for (uint vj=0; vj<this->nVelocitySamples; ++vj)
-            for (uint vk=0; vk<this->nVelocitySamples; ++vk)
+      for (uint vi=0; vi<nVelocitySamples; ++vi)
+         for (uint vj=0; vj<nVelocitySamples; ++vj)
+            for (uint vk=0; vk<nVelocitySamples; ++vk)
             {
                avg += getDistribValue(
-                  vx+vi*d_vx - this->velocityPertAbsAmp * (0.5 - rndVel[0] ),
-                  vy+vj*d_vy - this->velocityPertAbsAmp * (0.5 - rndVel[1] ),
-                  vz+vk*d_vz - this->velocityPertAbsAmp * (0.5 - rndVel[2] ));
+                  vx+vi*d_vx - velocityPertAbsAmp * (0.5 - rndVel[0] ),
+                  vy+vj*d_vy - velocityPertAbsAmp * (0.5 - rndVel[1] ),
+                  vz+vk*d_vz - velocityPertAbsAmp * (0.5 - rndVel[2] ));
             }
       
       creal result = avg *
-         this->DENSITY * (1.0 + this->densityPertRelAmp * (0.5 - rndRho)) *
-         pow(mass / (2.0 * M_PI * kb * this->TEMPERATURE), 1.5) /
-         (this->nVelocitySamples*this->nVelocitySamples*this->nVelocitySamples);
+         DENSITY * (1.0 + densityPertRelAmp * (0.5 - rndRho)) *
+         pow(mass / (2.0 * M_PI * kb * TEMPERATURE), 1.5) /
+         (nVelocitySamples*nVelocitySamples*nVelocitySamples);
       
-      if(result < this->maxwCutoff) {
+      if(result < maxwCutoff) {
          return 0.0;
       } else {
          return result;
@@ -146,7 +161,7 @@ namespace projects {
       cellParams[CellParams::PERBZ] = this->magZPertAbsAmp * (0.5 - getRandomNumber(cell));
    }
 
-   void Fluctuations::setCellBackgroundField(SpatialCell* cell) {
+   void Fluctuations::setCellBackgroundField(SpatialCell* cell) const {
       ConstantField bgField;
       bgField.initialize(this->BX0,
                          this->BY0,
@@ -154,4 +169,16 @@ namespace projects {
       
       setBackgroundField(bgField,cell->parameters, cell->derivatives,cell->derivativesBVOL);
    }
+   
+   std::vector<std::array<Real, 3> > Fluctuations::getV0(
+      creal x,
+      creal y,
+      creal z
+   ) const {
+      std::array<Real, 3> V0 {{0.0, 0.0, 0.0}};
+      std::vector<std::array<Real, 3> > centerPoints;
+      centerPoints.push_back(V0);
+      return centerPoints;
+   }
+   
 } // namespace projects

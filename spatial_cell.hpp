@@ -1,16 +1,32 @@
+/*
+ * This file is part of Vlasiator.
+ * Copyright 2010-2016 Finnish Meteorological Institute
+ *
+ * For details of usage, see the COPYING file and read the "Rules of the Road"
+ * at http://vlasiator.fmi.fi/
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 /*!
 Spatial cell class for Vlasiator that supports a variable number of velocity blocks.
-
-Copyright 2011-2015 Finnish Meteorological Institute
 */
 
 #ifndef VLASIATOR_SPATIAL_CELL_HPP
 #define VLASIATOR_SPATIAL_CELL_HPP
 
 #include <algorithm>
-#include <boost/array.hpp>
-#include <boost/unordered_map.hpp>
-#include <boost/lexical_cast.hpp>
 #include <cmath>
 #include <fstream>
 #include <iostream>
@@ -18,6 +34,8 @@ Copyright 2011-2015 Finnish Meteorological Institute
 #include <limits>
 #include <stdint.h>
 #include <vector>
+#include <array>
+#include <unordered_map>
 #include <set>
 #include <phiprof.hpp>
 #include <tuple>
@@ -115,12 +133,12 @@ namespace spatial_cell {
       | POP_METADATA | RANDOMGEN;
    }
 
-   typedef boost::array<unsigned int, 3> velocity_cell_indices_t;             /**< Defines the indices of a velocity cell in a velocity block.
+   typedef std::array<unsigned int, 3> velocity_cell_indices_t;             /**< Defines the indices of a velocity cell in a velocity block.
                                                                                * Indices start from 0 and the first value is the index in x direction.
                                                                                * Note: these are the (i,j,k) indices of the cell within the block.
                                                                                * Valid values are ([0,block_vx_length[,[0,block_vy_length[,[0,block_vz_length[).*/
 
-   typedef boost::array<vmesh::LocalID,3> velocity_block_indices_t;           /**< Defines the indices of a velocity block in the velocity grid.
+   typedef std::array<vmesh::LocalID,3> velocity_block_indices_t;           /**< Defines the indices of a velocity block in the velocity grid.
                                                                                * Indices start from 0 and the first value is the index in x direction.
                                                                                * Note: these are the (i,j,k) indices of the block.
                                                                                * Valid values are ([0,vx_length[,[0,vy_length[,[0,vz_length[).*/

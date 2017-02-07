@@ -5,7 +5,7 @@
 
 ## add absolute paths to folder names, filenames
 reference_dir=$( readlink -f $reference_dir )
-run_dir=$( readlink -f $run_dir )_$( date +%Y.%m.%d_%H:%M:%S)
+run_dir=$( readlink -f $run_dir )_$( date +%Y.%m.%d_%H.%M.%S)
 
 bin=$( readlink -f $bin )
 test_dir=$( readlink -f $test_dir)
@@ -96,9 +96,20 @@ do
         echo "------------------------------------------------------------"
         echo " ref-time     |   new-time       |  speedup                |"
         echo "------------------------------------------------------------"
-        refPerf=$(grep "Propagate   " ${result_dir}/${comparison_phiprof[$run]}  |gawk '{print $4}')
-        newPerf=$(grep "Propagate   " ${vlsv_dir}/${comparison_phiprof[$run]}  |gawk '{print $4}')
-        speedup=$( echo $refPerf $newPerf |gawk '{print $1/$2}')
+	if [ -e  ${result_dir}/${comparison_phiprof[$run]} ] 
+	then
+            refPerf=$(grep "Propagate   " ${result_dir}/${comparison_phiprof[$run]} |gawk  '(NR==1){print $11}')
+	else
+	    refPerf="NA"
+	fi
+	if [ -e ${vlsv_dir}/${comparison_phiprof[$run]} ] 
+	then
+            newPerf=$(grep "Propagate   " ${vlsv_dir}/${comparison_phiprof[$run]}  |gawk  '(NR==1){print $11}')
+	else
+	    newPerf="NA"
+	fi
+	#print speedup if both refPerf and newPerf are numerical values
+        speedup=$( echo $refPerf $newPerf |gawk '{if($2 == $2 + 0 && $1 == $1 + 0 ) print $1/$2; else print "NA"}')
         echo  "$refPerf        $newPerf         $speedup"
         echo "------------------------------------------------------------"
         echo "  variable     |     absolute diff     |     relative diff | "

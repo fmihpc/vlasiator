@@ -1,8 +1,23 @@
-  
 /*
-This file is part of Vlasiator.
-
-Copyright 2010-2015 Finnish Meteorological Institute
+ * This file is part of Vlasiator.
+ * Copyright 2010-2016 Finnish Meteorological Institute
+ *
+ * For details of usage, see the COPYING file and read the "Rules of the Road"
+ * at http://vlasiator.fmi.fi/
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
 #include <iostream>
@@ -1435,6 +1450,7 @@ bool retrieveOptions( const int argn, char *args[], UserOptions & mainOptions ) 
    bool & rotateVectors = mainOptions.rotateVectors;
    bool & plasmaFrame = mainOptions.plasmaFrame;
    uint64_t & cellId = mainOptions.cellId;
+   vector<uint64_t> & cellIdList = mainOptions.cellIdList;
    uint32_t & numberOfCoordinatesInALine = mainOptions.numberOfCoordinatesInALine;
    vector<string>  & outputDirectoryPath = mainOptions.outputDirectoryPath;
    array<Real, 3> & coordinates = mainOptions.coordinates;
@@ -1452,8 +1468,9 @@ bool retrieveOptions( const int argn, char *args[], UserOptions & mainOptions ) 
       //Add options -- cellID takes input of type uint64_t and coordinates takes a Real-valued std::vector
       desc.add_options()
          ("help", "display help")
-	 ("debug", "write debugging info to stderr")
+         ("debug", "write debugging info to stderr")
          ("cellid", po::value<uint64_t>(), "Set cell id")
+         ("cellidlist", po::value< vector<uint64_t>>()->multitoken(), "Set list of cell ids")
          ("rotate", "Rotate velocities so that they face z-axis")
          ("plasmaFrame", "Shift the distribution so that the bulk velocity is 0")
          ("coordinates", po::value< vector<Real> >()->multitoken(), "Set spatial coordinates x y z")
@@ -1522,7 +1539,12 @@ bool retrieveOptions( const int argn, char *args[], UserOptions & mainOptions ) 
       //Check for cell id input
       if( vm.count("cellid") ) {
          //Save input
-         cellId = vm["cellid"].as<uint64_t>();
+         const uint64_t cellId = vm["cellid"].as<uint64_t>();
+         cellIdList.push_back(cellId);
+         getCellIdFromInput = true;
+      }
+      if( vm.count("cellidlist") ) {
+         cellIdList = vm["cellidlist"].as< vector<uint64_t> >();
          getCellIdFromInput = true;
       }
       if( vm.count("outputdirectory") ) {
@@ -1797,10 +1819,11 @@ void extractDistribution( const string & fileName, const UserOptions & mainOptio
    } else if( mainOptions.getCellIdFromInput ) {
       //Declare cellID and set it if the cell id is specified by the user
       //bool getCellIdFromLine equals true) -- this is done later on in the code ( After the file has been opened)
-      const uint64_t cellID = mainOptions.cellId;
-      //store the cell id in the list of cell ids (This is only used because it makes the code for 
-      //calculating the cell ids from a line clearer)
-      cellIdList.push_back( cellID );
+      for(vector<uint64_t>::const_iterator id = mainOptions.cellIdList.begin(); id != mainOptions.cellIdList.end() ; id++) {
+         //store the cell id in the list of cell ids (This is only used because it makes the code for 
+         //calculating the cell ids from a line clearer)
+         cellIdList.push_back( *id );
+      }
    } else {
       //This should never happen but it's better to be safe than sorry
       cerr << "Error at: " << __FILE__ << " " << __LINE__ << ", No user input for cell id retrieval!" << endl;

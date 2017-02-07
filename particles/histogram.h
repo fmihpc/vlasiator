@@ -1,4 +1,25 @@
 #pragma once
+/*
+ * This file is part of Vlasiator.
+ * Copyright 2010-2016 Finnish Meteorological Institute
+ *
+ * For details of usage, see the COPYING file and read the "Rules of the Road"
+ * at http://vlasiator.fmi.fi/
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 #include <mpi.h>
 #include <string.h>
 #include <stdio.h>
@@ -40,6 +61,11 @@ class Histogram1D
       virtual void saveAscii(const char* filename) const;
       virtual void addValue(double value) = 0;
 
+      // Access bins
+      double operator()(int x) {
+         return bins[x];
+      }
+
    protected:
       size_t num_bins;
       double* bins;
@@ -54,14 +80,14 @@ class LinearHistogram1D : public Histogram1D
 
       virtual void addValue(double value) {
          value -= low;
-         value /= high-low;
+         value /= high - low;
 
          int histogram_bin = value * num_bins;
 
          if(histogram_bin < 0) {
             histogram_bin = 0;
-         } else if (histogram_bin+1 > (ssize_t)num_bins) {
-            histogram_bin = num_bins-1;
+         } else if (histogram_bin + 1 >= (ssize_t)num_bins) {
+            histogram_bin = num_bins - 1;
          }
          bins[histogram_bin]++;
       }
@@ -83,14 +109,14 @@ class LogHistogram1D : public Histogram1D
       virtual void addValue(double value) {
          value /= low;
          value = log(value);
-         value /= log(high/low);
+         value /= log(high / low);
 
          int histogram_bin = value * num_bins;
 
          if(histogram_bin < 0) {
             histogram_bin = 0;
-         } else if (histogram_bin+1 > (ssize_t)num_bins) {
-            histogram_bin = num_bins-1;
+         } else if (histogram_bin + 1 >= (ssize_t)num_bins) {
+            histogram_bin = num_bins - 1;
          }
          bins[histogram_bin]++;
       }
@@ -109,8 +135,8 @@ class Histogram2D
          num_bins[0] = n[0];
          num_bins[1] = n[1];
 
-         bins = new double[num_bins[0]*num_bins[1]];
-         memset(bins, 0, sizeof(double)*num_bins[0]*num_bins[1]);
+         bins = new double[num_bins[0] * num_bins[1]];
+         memset(bins, 0, sizeof(double) * num_bins[0] * num_bins[1]);
       }
       ~Histogram2D() {
          delete[] bins;
@@ -118,13 +144,13 @@ class Histogram2D
 
       // Using MPI_Reduce, sum up all CPUs.
       void mpi_reduce() {
-         double* targetbins = new double[num_bins[0]*num_bins[1]];
+         double* targetbins = new double[num_bins[0] * num_bins[1]];
          if(!targetbins) {
             ERROR("allocation failed while mpi-reducing histogram.\n");
             return;
          }
 
-         MPI::COMM_WORLD.Allreduce(bins,targetbins,num_bins[0]*num_bins[1],MPI::DOUBLE,MPI_SUM);
+         MPI::COMM_WORLD.Allreduce(bins, targetbins, num_bins[0] * num_bins[1], MPI::DOUBLE, MPI_SUM);
 
          /* Throw away the old bins. */
          delete[] bins;
@@ -137,7 +163,7 @@ class Histogram2D
 
       // Access bins
       double operator()(int x, int y) {
-         return bins[x + num_bins[0]*y];
+         return bins[x + num_bins[0] * y];
       }
 
    protected:
@@ -158,30 +184,30 @@ class LinearHistogram2D : public Histogram2D
 
       virtual void addValue(Vec2d value, double weight=1.) {
          value -= low;
-         value /= high-low;
+         value /= high - low;
 
          int histogram_bin[2];
          histogram_bin[0] = value[0] * num_bins[0];
          histogram_bin[1] = value[1] * num_bins[1];
 
-         for(int i=0; i<2;i++) {
+         for(int i = 0; i < 2; i++) {
             if(histogram_bin[i] < 0) {
                histogram_bin[i] = 0;
-            } else if (histogram_bin[i]+1 > (ssize_t)num_bins[i]) {
-               histogram_bin[i] = num_bins[i]-1;
+            } else if (histogram_bin[i] + 1 >= (ssize_t)num_bins[i]) {
+               histogram_bin[i] = num_bins[i] - 1;
             }
          }
-         bins[histogram_bin[0] + num_bins[0]*histogram_bin[1]]+= weight;
+         bins[histogram_bin[0] + num_bins[0] * histogram_bin[1]] += weight;
       }
 
       void addValueLinearInterpolate(Vec2d value, double weight=1.) {
 
          value -= low;
-         value /= high-low;
+         value /= high - low;
 
          double v[2];
-         v[0]=value[0]*num_bins[0];
-         v[1]=value[1]*num_bins[1];
+         v[0] = value[0] * num_bins[0];
+         v[1] = value[1] * num_bins[1];
 
          // Interpolation parameter
          double a[2];
@@ -198,11 +224,11 @@ class LinearHistogram2D : public Histogram2D
             a[1] = 0;
          }
 
-         if(v[0] > num_bins[0]-1) {
+         if(v[0] >= num_bins[0]-1) {
             v[0] = num_bins[0]-2;
             a[0] = 1;
          }
-         if(v[1] > num_bins[1]-1) {
+         if(v[1] >= num_bins[1]-1) {
             v[1] = num_bins[1]-2;
             a[1] = 1;
          }
@@ -212,15 +238,15 @@ class LinearHistogram2D : public Histogram2D
          histogram_bin[0] = floor(v[0]);
          histogram_bin[1] = floor(v[1]);
 
-         bins[histogram_bin[0] + num_bins[0]*histogram_bin[1]]+= weight * (1.-a[0]) * (1.-a[1]);
-         bins[histogram_bin[0] + num_bins[0]*(histogram_bin[1]+1)]+= weight * (1.-a[0]) * a[1];
-         bins[histogram_bin[0]+1 + num_bins[0]*histogram_bin[1]]+= weight * a[0] * (1.-a[1]);
-         bins[histogram_bin[0]+1 + num_bins[0]*(histogram_bin[1]+1)]+= weight * a[0] * a[1];
+         bins[histogram_bin[0] + num_bins[0] * histogram_bin[1]] += weight * (1. - a[0]) * (1. - a[1]);
+         bins[histogram_bin[0] + num_bins[0] * (histogram_bin[1] + 1)] += weight * (1. - a[0]) * a[1];
+         bins[histogram_bin[0] + 1 + num_bins[0] * histogram_bin[1]] += weight * a[0] * (1. - a[1]);
+         bins[histogram_bin[0] + 1 + num_bins[0] * (histogram_bin[1] + 1)] += weight * a[0] * a[1];
       }
 
       // Bin-wise arithmetic on histograms
-      void operator+=(LinearHistogram2D& other);
-      void operator-=(LinearHistogram2D& other);
+      void operator += (LinearHistogram2D& other);
+      void operator -= (LinearHistogram2D& other);
 
       // Write and read a ASCII metadata file containing BOV data.
       void writeBovAscii(const char* filename, int index, const char* datafilename);
@@ -240,33 +266,37 @@ class LinLogHistogram2D : public Histogram2D
          low(_low), high(_high) {};
 
       virtual void addValue(Vec2d value, double weight=1.) {
-         value -= low;
-         value /= high-low;
+         double v[2];
+         v[0] -= low[0];
+         v[0] /= high[0] - low[0];
+         v[1] /= low[1];
+         v[1] = log(v[1]);
+         v[1] /= log(high[1] / low[1]);
 
          int histogram_bin[2];
-         histogram_bin[0] = value[0] * num_bins[0];
-         histogram_bin[1] = value[1] * num_bins[1];
+         histogram_bin[0] = v[0] * num_bins[0];
+         histogram_bin[1] = v[1] * num_bins[1];
 
-         for(int i=0; i<2;i++) {
+         for(int i = 0; i < 2; i++) {
             if(histogram_bin[i] < 0) {
                histogram_bin[i] = 0;
-            } else if (histogram_bin[i]+1 > (ssize_t)num_bins[i]) {
-               histogram_bin[i] = num_bins[i]-1;
+            } else if (histogram_bin[i] + 1 >= (ssize_t)num_bins[i]) {
+               histogram_bin[i] = num_bins[i] - 1;
             }
          }
-         bins[histogram_bin[0] + num_bins[0]*histogram_bin[1]]+= weight;
+         bins[histogram_bin[0] + num_bins[0] * histogram_bin[1]] += weight;
       }
 
       void addValueLinearInterpolate(Vec2d value, double weight=1.) {
 
          double v[2];
-         v[0] = value[0]- low[0];
-         v[0] /= high[0]-low[0];
-         v[1] /= value[1] - low[1];
-         v[1] = log(v[1])/log(high[1]/low[1]);
+         v[0] = value[0] - low[0];
+         v[0] /= high[0] - low[0];
+         v[1] = value[1] / low[1];
+         v[1] = log(v[1]) / log(high[1] / low[1]);
 
-         v[0]*=num_bins[0];
-         v[1]*=num_bins[1];
+         v[0] *= num_bins[0];
+         v[1] *= num_bins[1];
 
          // Interpolation parameter
          double a[2];
@@ -283,12 +313,12 @@ class LinLogHistogram2D : public Histogram2D
             a[1] = 0;
          }
 
-         if(v[0] > num_bins[0]-1) {
-            v[0] = num_bins[0]-2;
+         if(v[0] >= num_bins[0] - 1) {
+            v[0] = num_bins[0] - 2;
             a[0] = 1;
          }
-         if(v[1] > num_bins[1]-1) {
-            v[1] = num_bins[1]-2;
+         if(v[1] >= num_bins[1] - 1) {
+            v[1] = num_bins[1] - 2;
             a[1] = 1;
          }
 
@@ -297,10 +327,10 @@ class LinLogHistogram2D : public Histogram2D
          histogram_bin[0] = floor(v[0]);
          histogram_bin[1] = floor(v[1]);
 
-         bins[histogram_bin[0] + num_bins[0]*histogram_bin[1]]+= weight * (1.-a[0]) * (1.-a[1]);
-         bins[histogram_bin[0] + num_bins[0]*(histogram_bin[1]+1)]+= weight * (1.-a[0]) * a[1];
-         bins[histogram_bin[0]+1 + num_bins[0]*histogram_bin[1]]+= weight * a[0] * (1.-a[1]);
-         bins[histogram_bin[0]+1 + num_bins[0]*(histogram_bin[1]+1)]+= weight * a[0] * a[1];
+         bins[histogram_bin[0] + num_bins[0] * histogram_bin[1]] += weight * (1. - a[0]) * (1. - a[1]);
+         bins[histogram_bin[0] + num_bins[0] * (histogram_bin[1] + 1)] += weight * (1. - a[0]) * a[1];
+         bins[histogram_bin[0] + 1 + num_bins[0] * histogram_bin[1]] += weight * a[0] * (1. - a[1]);
+         bins[histogram_bin[0] + 1 + num_bins[0] * (histogram_bin[1] + 1)] += weight * a[0] * a[1];
       }
 
    private:
@@ -322,26 +352,26 @@ class LogHistogram2D : public Histogram2D
          value /= low;
 
          double v[2];
-         v[0] = log(value[0])/log(high[0]/low[0]);
-         v[1] = log(value[1])/log(high[1]/low[1]);
+         v[0] = log(value[0]) / log(high[0] / low[0]);
+         v[1] = log(value[1]) / log(high[1] / low[1]);
 
          int histogram_bin[2];
          histogram_bin[0] = v[0] * num_bins[0];
          histogram_bin[1] = v[1] * num_bins[1];
 
-         for(int i=0; i<2;i++) {
+         for(int i = 0; i < 2; i++) {
             if(histogram_bin[i] < 0) {
                histogram_bin[i] = 0;
-            } else if (histogram_bin[i]+1 > (ssize_t)num_bins[i]) {
-               histogram_bin[i] = num_bins[i]-1;
+            } else if (histogram_bin[i] + 1 >= (ssize_t)num_bins[i]) {
+               histogram_bin[i] = num_bins[i] - 1;
             }
          }
-         bins[histogram_bin[0] + num_bins[0]*histogram_bin[1]]+=weight;
+         bins[histogram_bin[0] + num_bins[0] * histogram_bin[1]] += weight;
       }
 
       /* Bin-wise arithmetic on histograms */
-      void operator+=(LogHistogram2D& other);
-      void operator-=(LogHistogram2D& other);
+      void operator += (LogHistogram2D& other);
+      void operator -= (LogHistogram2D& other);
 };
 
 // Histograms of 3D data
@@ -353,8 +383,8 @@ class Histogram3D
          num_bins[1] = n[1];
          num_bins[2] = n[2];
 
-         bins = new float[num_bins[0]*num_bins[1]*num_bins[2]];
-         memset(bins, 0, sizeof(float)*num_bins[0]*num_bins[1]*num_bins[2]);
+         bins = new float[num_bins[0] * num_bins[1] * num_bins[2]];
+         memset(bins, 0, sizeof(float) * num_bins[0] * num_bins[1] * num_bins[2]);
       }
       ~Histogram3D() {
          delete[] bins;
@@ -362,13 +392,13 @@ class Histogram3D
 
       // Using MPI_Reduce, sum up all CPUs.
       void mpi_reduce() {
-         float* targetbins = new float[num_bins[0]*num_bins[1]*num_bins[2]];
+         float* targetbins = new float[num_bins[0] * num_bins[1] * num_bins[2]];
          if(!targetbins) {
             ERROR("allocation failed while mpi-reducing histogram.\n");
             return;
          }
 
-         MPI::COMM_WORLD.Allreduce(bins,targetbins,num_bins[0]*num_bins[1]*num_bins[2],MPI::FLOAT,MPI_SUM);
+         MPI::COMM_WORLD.Allreduce(bins, targetbins, num_bins[0] * num_bins[1] * num_bins[2], MPI::FLOAT, MPI_SUM);
 
          /* Throw away the old bins. */
          delete[] bins;
@@ -381,7 +411,7 @@ class Histogram3D
 
       // Access bins
       double operator()(int x, int y, int z) {
-         return bins[x + num_bins[0]*y + num_bins[0]*num_bins[1]*z];
+         return bins[x + num_bins[0] * y + num_bins[0] * num_bins[1] * z];
       }
 
    protected:
@@ -398,31 +428,31 @@ class LinearHistogram3D : public Histogram3D
 
       virtual void addValue(Vec3d value) {
          value -= low;
-         value /= high-low;
+         value /= high - low;
 
          int histogram_bin[3];
          histogram_bin[0] = value[0] * num_bins[0];
          histogram_bin[1] = value[1] * num_bins[1];
          histogram_bin[2] = value[2] * num_bins[2];
 
-         for(int i=0; i<3;i++) {
+         for(int i = 0; i < 3; i++) {
             if(histogram_bin[i] < 0) {
                histogram_bin[i] = 0;
-            } else if (histogram_bin[i]+1 > (ssize_t)num_bins[i]) {
-               histogram_bin[i] = num_bins[i]-1;
+            } else if (histogram_bin[i] + 1 >= (ssize_t)num_bins[i]) {
+               histogram_bin[i] = num_bins[i] - 1;
             }
          }
-         bins[histogram_bin[0] + num_bins[0]*histogram_bin[1] + num_bins[0]*num_bins[1]*histogram_bin[2]]++;
+         bins[histogram_bin[0] + num_bins[0] * histogram_bin[1] + num_bins[0] * num_bins[1] * histogram_bin[2]]++;
       }
 
       Vec3d coords_for_cell(Vec3d cell) {
-         Vec3d nx(num_bins[0],num_bins[1],num_bins[2]);
-         return low + cell/nx * (high-low);
+         Vec3d nx(num_bins[0], num_bins[1], num_bins[2]);
+         return low + cell / nx * (high - low);
       }
 
       // Bin-wise arithmetic on histograms
-      void operator+=(LinearHistogram3D& other);
-      void operator-=(LinearHistogram3D& other);
+      void operator += (LinearHistogram3D& other);
+      void operator -= (LinearHistogram3D& other);
 
       // Write and read a ASCII metadata file containing BOV data.
       void writeBovAscii(const char* filename, int index, const char* datafilename);

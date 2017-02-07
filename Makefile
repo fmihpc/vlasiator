@@ -154,6 +154,7 @@ DEPS_PROJECTS =	projects/project.h projects/project.cpp \
 		projects/VelocityBox/VelocityBox.h projects/VelocityBox/VelocityBox.cpp \
 		projects/Riemann1/Riemann1.h projects/Riemann1/Riemann1.cpp \
 		projects/Shock/Shock.h projects/Shock/Shock.cpp \
+		projects/IPShock/IPShock.h projects/IPShock/IPShock.cpp \
 		projects/Template/Template.h projects/Template/Template.cpp \
 		projects/test_fp/test_fp.h projects/test_fp/test_fp.cpp \
 		projects/testHall/testHall.h projects/testHall/testHall.cpp \
@@ -196,6 +197,7 @@ OBJS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipo
 	project.o projectTriAxisSearch.o read_gaussian_population.o\
 	Alfven.o Diffusion.o Dispersion.o Distributions.o electric_sail.o Firehose.o Flowthrough.o Fluctuations.o Harris.o KHB.o Larmor.o \
 	Magnetosphere.o MultiPeak.o VelocityBox.o Riemann1.o Shock.o Template.o test_fp.o testHall.o test_trans.o \
+	IPShock.o \
 	verificationLarmor.o Shocktest.o grid.o ioread.o iowrite.o vlasiator.o logger.o\
 	common.o parameters.o readparameters.o spatial_cell.o mesh_data_container.o\
 	vlasovmover.o $(FIELDSOLVER).o fs_common.o fs_limiters.o
@@ -245,7 +247,7 @@ amr_refinement_criteria.o: ${DEPS_COMMON} velocity_blocks.h amr_refinement_crite
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c amr_refinement_criteria.cpp
 
 memoryallocation.o: memoryallocation.cpp 
-	 ${CMP} ${CXXFLAGS} ${FLAGS} -c memoryallocation.cpp
+	 ${CMP} ${CXXFLAGS} ${FLAGS} -c memoryallocation.cpp ${INC_PAPI}
 
 dipole.o: backgroundfield/dipole.cpp backgroundfield/dipole.hpp backgroundfield/fieldfunction.hpp backgroundfield/functions.hpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/dipole.cpp 
@@ -357,6 +359,9 @@ Riemann1.o: ${DEPS_COMMON} projects/Riemann1/Riemann1.h projects/Riemann1/Rieman
 Shock.o: ${DEPS_COMMON} projects/Shock/Shock.h projects/Shock/Shock.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/Shock/Shock.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
+IPShock.o: ${DEPS_COMMON} projects/IPShock/IPShock.h projects/IPShock/IPShock.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/IPShock/IPShock.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN} ${INC_VECTORCLASS}
+
 Template.o: ${DEPS_COMMON} projects/Template/Template.h projects/Template/Template.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/Template/Template.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
@@ -376,22 +381,22 @@ Shocktest.o: ${DEPS_COMMON} projects/Shocktest/Shocktest.h projects/Shocktest/Sh
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/Shocktest/Shocktest.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
 project.o: ${DEPS_COMMON} $(DEPS_PROJECTS)
-	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/project.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/project.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN} ${INC_VECTORCLASS}
 
 projectTriAxisSearch.o: ${DEPS_COMMON} $(DEPS_PROJECTS) projects/projectTriAxisSearch.h projects/projectTriAxisSearch.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/projectTriAxisSearch.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
 poisson_solver.o: ${DEPS_COMMON} ${DEPS_CELL} poisson_solver/poisson_solver.h poisson_solver/poisson_solver.cpp
-	$(CMP) $(CXXFLAGS) $(FLAGS) ${MATHFLAGS} -std=c++0x -c poisson_solver/poisson_solver.cpp ${INC_DCCRG} ${INC_ZOLTAN}
+	$(CMP) $(CXXFLAGS) $(FLAGS) ${MATHFLAGS} -std=c++0x -c poisson_solver/poisson_solver.cpp ${INC_DCCRG}  ${INC_BOOST} ${INC_ZOLTAN}
 
 poisson_solver_cg.o: ${DEPS_COMMON} ${DEPS_CELL} poisson_solver/poisson_solver.h poisson_solver/poisson_solver_cg.h poisson_solver/poisson_solver_cg.cpp
-	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -std=c++0x -c poisson_solver/poisson_solver_cg.cpp ${INC_DCCRG} ${INC_ZOLTAN}
+	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -std=c++0x -c poisson_solver/poisson_solver_cg.cpp ${INC_DCCRG}  ${INC_BOOST} ${INC_ZOLTAN}
 
 poisson_solver_jacobi.o: ${DEPS_COMMON} ${DEPS_CELL} poisson_solver/poisson_solver.h poisson_solver/poisson_solver_jacobi.h poisson_solver/poisson_solver_jacobi.cpp
-	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -std=c++0x -c poisson_solver/poisson_solver_jacobi.cpp ${INC_DCCRG} ${INC_ZOLTAN}
+	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -std=c++0x -c poisson_solver/poisson_solver_jacobi.cpp ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN}
 
 poisson_solver_sor.o: ${DEPS_COMMON} ${DEPS_CELL} poisson_solver/poisson_solver.h poisson_solver/poisson_solver_sor.h poisson_solver/poisson_solver_sor.cpp
-	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -std=c++0x -c poisson_solver/poisson_solver_sor.cpp ${INC_DCCRG} ${INC_ZOLTAN}
+	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -std=c++0x -c poisson_solver/poisson_solver_sor.cpp ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN}
 
 poisson_test.o: ${DEPS_COMMON} ${DEPS_CELL} projects/project.h projects/project.cpp projects/Poisson/poisson_test.h projects/Poisson/poisson_test.cpp
 	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -std=c++0x -c projects/Poisson/poisson_test.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
@@ -408,26 +413,26 @@ cpu_acc_intersections.o: ${DEPS_CPU_ACC_INTERSECTS}
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_intersections.cpp ${INC_EIGEN}
 
 cpu_acc_map.o: ${DEPS_CPU_ACC_MAP}
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_map.cpp ${INC_EIGEN} ${INC_DCCRG} ${INC_PROFILE} ${INC_VECTORCLASS}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_map.cpp ${INC_EIGEN} ${INC_BOOST} ${INC_DCCRG} ${INC_PROFILE} ${INC_VECTORCLASS}
 
 cpu_acc_semilag.o: ${DEPS_CPU_ACC_SEMILAG}
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_semilag.cpp ${INC_EIGEN} ${INC_DCCRG} ${INC_PROFILE} ${INC_VECTORCLASS}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_semilag.cpp ${INC_EIGEN} ${INC_BOOST} ${INC_DCCRG} ${INC_PROFILE} ${INC_VECTORCLASS}
 
 cpu_acc_sort_blocks.o: ${DEPS_CPU_ACC_SORT_BLOCKS}
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_sort_blocks.cpp ${INC_EIGEN} ${INC_DCCRG} ${INC_PROFILE}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_sort_blocks.cpp ${INC_EIGEN} ${INC_BOOST} ${INC_DCCRG} ${INC_PROFILE}
 
 cpu_acc_transform.o: ${DEPS_CPU_ACC_TRANSFORM}
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_transform.cpp ${INC_EIGEN} ${INC_DCCRG} ${INC_PROFILE} ${INC_ZOLTAN}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_transform.cpp ${INC_EIGEN} ${INC_DCCRG} ${INC_PROFILE} ${INC_ZOLTAN} ${INC_BOOST}
 
 cpu_trans_map.o: ${DEPS_CPU_TRANS_MAP}
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_trans_map.cpp ${INC_EIGEN} ${INC_DCCRG} ${INC_PROFILE} ${INC_VECTORCLASS} ${INC_ZOLTAN} ${INC_VLSV}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_trans_map.cpp ${INC_EIGEN} ${INC_BOOST} ${INC_DCCRG} ${INC_PROFILE} ${INC_VECTORCLASS} ${INC_ZOLTAN} ${INC_VLSV}
 
 vlasovmover.o: ${DEPS_VLSVMOVER}
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/vlasovmover.cpp -I$(CURDIR) ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VECTORCLASS} ${INC_EIGEN} ${INC_VLSV}
 endif
 
 cpu_moments.o: ${DEPS_CPU_MOMENTS}
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_moments.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_PROFILE}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_moments.cpp ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN} ${INC_PROFILE}
 
 derivatives.o: ${DEPS_FSOLVER} fieldsolver/fs_limiters.h fieldsolver/fs_limiters.cpp fieldsolver/derivatives.hpp fieldsolver/derivatives.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c fieldsolver/derivatives.cpp -I$(CURDIR)  ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_PROFILE} ${INC_ZOLTAN}
@@ -464,7 +469,7 @@ vlasiator.o: ${DEPS_COMMON} readparameters.h parameters.h ${DEPS_PROJECTS} grid.
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c vlasiator.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV}
 
 grid.o:  ${DEPS_COMMON} parameters.h ${DEPS_PROJECTS} ${DEPS_CELL} grid.cpp grid.h  sysboundary/sysboundary.h
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c grid.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c grid.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV} ${INC_PAPI}
 
 ioread.o:  ${DEPS_COMMON} parameters.h  ${DEPS_CELL} ioread.cpp ioread.h 
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c ioread.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV}
@@ -540,6 +545,9 @@ particles/distribution.o: ${DEPS_PARTICLES}  ${OBJS_VLSVREADERINTERFACE} particl
 particles/scenario.o: ${DEPS_PARTICLES}  ${OBJS_VLSVREADERINTERFACE} particles/scenario.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c particles/scenario.cpp ${INC_VLSV} ${INC_VECTORCLASS} -I$(CURDIR) -Itools -o $@
 
+particles/physconst.o: ${DEPS_PARTICLES}  ${OBJS_VLSVREADERINTERFACE} particles/physconst.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c particles/physconst.cpp ${INC_VLSV} ${INC_VECTORCLASS} -I$(CURDIR) -Itools -o $@
+
 particles/histogram.o: ${DEPS_PARTICLES}  ${OBJS_VLSVREADERINTERFACE} particles/histogram.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c particles/histogram.cpp ${INC_VLSV} ${INC_VECTORCLASS} -I$(CURDIR) -Itools -o $@
 
@@ -550,7 +558,7 @@ particle_post_pusher: ${OBJS_PARTICLES} ${DEPS_PARTICLES}  ${OBJS_VLSVREADERINTE
 fluxfunction.o:  tools/fluxfunction.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c tools/fluxfunction.cpp ${INC_VLSV} ${INC_VECTORCLASS} -I$(CURDIR)  -Itools -o $@
 
-fluxfunction: fluxfunction.o ${OBJS_VLSVREADERINTERFACE} particles/readfields.o
-	${LNK} -o $@ fluxfunction.o particles/readfields.o ${OBJS_VLSVREADERINTERFACE} ${LIBS} ${LDFLAGS}
+fluxfunction: fluxfunction.o ${OBJS_VLSVREADERINTERFACE} particles/readfields.o particles/particleparameters.o readparameters.o version.o particles/physconst.o particles/distribution.o
+	${LNK} -o $@ fluxfunction.o particles/readfields.o particles/particleparameters.o readparameters.o version.o particles/physconst.o particles/distribution.o ${OBJS_VLSVREADERINTERFACE} ${LIBS} ${LDFLAGS}
 
 # DO NOT DELETE

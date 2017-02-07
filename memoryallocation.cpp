@@ -1,13 +1,30 @@
 /*
-This file is part of Vlasiator.
-
-Copyright 2014 Finnish Meteorological Institute
-*/
+ * This file is part of Vlasiator.
+ * Copyright 2010-2016 Finnish Meteorological Institute
+ *
+ * For details of usage, see the COPYING file and read the "Rules of the Road"
+ * at http://vlasiator.fmi.fi/
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 #include <cstdlib>
 #include <string.h>
 #include <iostream>
 #include <math.h>
 #include <unordered_map> // for hasher
+#include <limits>
 #include "logger.h"
 #include "memoryallocation.h"
 #ifdef PAPI_MEM
@@ -104,7 +121,8 @@ void report_process_memory_consumption(){
   
    //get name of this node
    MPI_Get_processor_name(nodename,&namelength);   
-   nodehash=(int)hasher(string(nodename));   
+   nodehash=(int)(hasher(string(nodename)) % std::numeric_limits<int>::max());
+   
    //intra-node communicator
    MPI_Comm_split(MPI_COMM_WORLD, nodehash, rank, &nodeComm);
    MPI_Comm_rank(nodeComm,&nodeRank);

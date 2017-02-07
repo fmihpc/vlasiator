@@ -1,4 +1,25 @@
 #pragma once
+/*
+ * This file is part of Vlasiator.
+ * Copyright 2010-2016 Finnish Meteorological Institute
+ *
+ * For details of usage, see the COPYING file and read the "Rules of the Road"
+ * at http://vlasiator.fmi.fi/
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 #include <vector>
 #include <map>
 #include "particles.h"
@@ -95,6 +116,20 @@ struct shockReflectivityScenario : Scenario {
             Vec2d(ParticleParameters::reflect_stop_y,ParticleParameters::end_time)) {
         needV= true;
       }
+};
+
+// Initialize particles on a plane in front of the shock, track their precipitation upstream or downstream
+struct ipShockScenario : Scenario {
+  FILE * traFile;
+  FILE * refFile;
+
+  std::vector<Particle> initialParticles(Field& E, Field& B, Field& V);
+  void newTimestep(int input_file_counter, int step, double time, std::vector<Particle>& particles, Field& E, Field& B,
+        Field& V);
+  void afterPush(int step, double time, std::vector<Particle>& particles, Field& E, Field& B, Field& V);
+  void finalize(std::vector<Particle>& particles, Field& E, Field& B, Field& V);
+
+  ipShockScenario() {needV = true;};
 };
 
 template<typename T> Scenario* createScenario() {
