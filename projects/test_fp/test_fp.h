@@ -37,7 +37,7 @@ namespace projects {
       virtual bool initialize(void);
       static void addParameters(void);
       virtual void getParameters(void);
-      
+      virtual void setCellBackgroundField(spatial_cell::SpatialCell* cell) const;
       
    protected:
       Real sign(creal value) const;
