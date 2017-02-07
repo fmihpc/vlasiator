@@ -340,7 +340,7 @@ bool propagateFields(
          // If we are at the first subcycle we need to update the derivatives of the moments, 
          // otherwise only B changed and those derivatives need to be updated.
          calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1, (subcycleCount==0));
-         if(P::ohmGradPeTerm > 0 && i==0) {
+         if(P::ohmGradPeTerm > 0 && subcycleCount==0) {
             calculateGradPeTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
             hallTermCommunicateDerivatives = false;
          }
