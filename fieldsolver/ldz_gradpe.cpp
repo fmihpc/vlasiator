@@ -190,10 +190,10 @@ void calculateEdgeGradPeTermXComponents(
          break;
          
       case 1:
-         if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+         if (RKCase == RK_ORDER2_STEP2) {
             hallRho =  (cp[CellParams::RHO] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO] ;
          }
-         if (RKCase == RK_ORDER2_STEP1) {
+         if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP1) {
             hallRho =  (cp[CellParams::RHO_DT2] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO_DT2] ;
          }
          cp[CellParams::EXGRADPE] = -physicalconstants::K_B*Parameters::electronTemperature*derivs[fieldsolver::drhodx] / (hallRho*physicalconstants::CHARGE*cp[CellParams::DX]);
@@ -218,10 +218,10 @@ void calculateEdgeGradPeTermYComponents(
          break;
          
       case 1:
-         if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+         if (RKCase == RK_ORDER2_STEP2) {
             hallRho =  (cp[CellParams::RHO] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO] ;
          }
-         if (RKCase == RK_ORDER2_STEP1) {
+         if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP1) {
             hallRho =  (cp[CellParams::RHO_DT2] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO_DT2] ;
          }
          cp[CellParams::EYGRADPE] = -physicalconstants::K_B*Parameters::electronTemperature*derivs[fieldsolver::drhody] / (hallRho*physicalconstants::CHARGE*cp[CellParams::DY]);
@@ -246,10 +246,10 @@ void calculateEdgeGradPeTermZComponents(
          break;
          
       case 1:
-         if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+         if (RKCase == RK_ORDER2_STEP2) {
             hallRho =  (cp[CellParams::RHO] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO] ;
          }
-         if (RKCase == RK_ORDER2_STEP1) {
+         if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP1) {
             hallRho =  (cp[CellParams::RHO_DT2] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO_DT2] ;
          }
          cp[CellParams::EZGRADPE] = -physicalconstants::K_B*Parameters::electronTemperature*derivs[fieldsolver::drhodz] / (hallRho*physicalconstants::CHARGE*cp[CellParams::DZ]);
