@@ -27,9 +27,6 @@ Spatial cell class for Vlasiator that supports a variable number of velocity blo
 #define VLASIATOR_SPATIAL_CELL_HPP
 
 #include <algorithm>
-#include <boost/array.hpp>
-#include <boost/unordered_map.hpp>
-#include <boost/lexical_cast.hpp>
 #include <cmath>
 #include <fstream>
 #include <iostream>
@@ -37,6 +34,8 @@ Spatial cell class for Vlasiator that supports a variable number of velocity blo
 #include <limits>
 #include <stdint.h>
 #include <vector>
+#include <array>
+#include <unordered_map>
 #include <set>
 #include <phiprof.hpp>
 #include <tuple>
@@ -134,12 +133,12 @@ namespace spatial_cell {
       | POP_METADATA | RANDOMGEN;
    }
 
-   typedef boost::array<unsigned int, 3> velocity_cell_indices_t;             /**< Defines the indices of a velocity cell in a velocity block.
+   typedef std::array<unsigned int, 3> velocity_cell_indices_t;             /**< Defines the indices of a velocity cell in a velocity block.
                                                                                * Indices start from 0 and the first value is the index in x direction.
                                                                                * Note: these are the (i,j,k) indices of the cell within the block.
                                                                                * Valid values are ([0,block_vx_length[,[0,block_vy_length[,[0,block_vz_length[).*/
 
-   typedef boost::array<vmesh::LocalID,3> velocity_block_indices_t;           /**< Defines the indices of a velocity block in the velocity grid.
+   typedef std::array<vmesh::LocalID,3> velocity_block_indices_t;           /**< Defines the indices of a velocity block in the velocity grid.
                                                                                * Indices start from 0 and the first value is the index in x direction.
                                                                                * Note: these are the (i,j,k) indices of the block.
                                                                                * Valid values are ([0,vx_length[,[0,vy_length[,[0,vz_length[).*/

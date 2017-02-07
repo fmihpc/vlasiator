@@ -268,13 +268,13 @@ bool readNBlocks(vlsv::ParallelReader& file,const std::string& meshName,
  \param blockCoordinates An empty array where to store the block coordinates
  \sa readBlockData
  */
-void getVelocityBlockCoordinates(const vmesh::GlobalID& block, boost::array<Real, 3>& blockCoordinates ) {
+void getVelocityBlockCoordinates(const vmesh::GlobalID& block, std::array<Real, 3>& blockCoordinates ) {
 #warning DEPRECATED
    cerr << "restart disabled" << endl;
    exit(1);
    /*
    //Get indices:
-   boost::array<vmesh::LocalID, 3> blockIndices;
+   std::array<vmesh::LocalID, 3> blockIndices;
    blockIndices[0] = block % P::vxblocks_ini;
    blockIndices[1] = (block / P::vxblocks_ini) % P::vyblocks_ini;
    blockIndices[2] = block / (P::vxblocks_ini * P::vyblocks_ini);
