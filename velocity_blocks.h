@@ -284,6 +284,6 @@ namespace vblock {
        return (k/2)*4 + (j/2)*2 + (i/2);
    }
 
-}; // namespace vblock
+} // namespace vblock
 
 #endif
