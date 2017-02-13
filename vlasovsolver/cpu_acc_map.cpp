@@ -33,7 +33,7 @@
 using namespace std;
 using namespace spatial_cell;
 
-#define MAX_BLOCKS_PER_DIM 100
+#define MAX_BLOCKS_PER_DIM 400
 
 //index in the temporary and padded column data values array. Each
 //column has an empty block in ether end.
