@@ -542,6 +542,7 @@ bool map_1d(vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
                   //store values, one element at a time. All blocks
                   //have been created by now.
 #pragma ivdep
+#pragma GCC ivdep
                   for (int target_i=0; target_i < VECL; ++target_i) {
                      const int blockK = gk_div_WID[target_i];
                      // check that we are within target grid limits.
