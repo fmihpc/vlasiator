@@ -37,6 +37,7 @@ Spatial cell class for Vlasiator that supports a variable number of velocity blo
 #include <array>
 #include <unordered_map>
 #include <set>
+#include <map>
 #include <phiprof.hpp>
 #include <tuple>
 

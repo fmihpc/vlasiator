@@ -19,7 +19,7 @@ FLAGS =
 #GNU flags:
 CC_BRAND = gcc
 CC_BRAND_VERSION = 5.1.0
-CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++0x -W -Wall -Wno-unused -fabi-version=0 -mavx2 
+CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++11 -W -Wall -Wno-unused -fabi-version=0 -mavx2 
 testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++0x -fabi-version=0  -mavx
 
 MATHFLAGS = -ffast-math
