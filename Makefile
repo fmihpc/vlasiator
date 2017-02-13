@@ -8,8 +8,14 @@ FP_PRECISION = DP
 #Set floating point precision for distribution function to SPF (single) or DPF (double)
 DISTRIBUTION_FP_PRECISION = SPF
 
-#Set vector backend type for vlasov solvers, sets precision and length. Options: VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER, VEC4D_FALLBACK, VEC4F_FALLBACK
-VECTORCLASS = VEC8F_AGNER
+
+#Set vector backend type for vlasov solvers, sets precision and length. Options: 
+# Agners vectorclass: 
+# AVX: VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
+# AVX512: VEC8D_AGNER, VEC16F_AGNER
+# Fallback: VEC4D_FALLBACK, VEC4F_FALLBACK, VEC8F_FALLBACK
+VECTORCLASS = VEC16F_AGNER
+
 
 #set a default archive utility, can also be set in Makefile.arch
 AR ?= ar
@@ -32,7 +38,7 @@ COMPFLAGS +=${PAPI_FLAG}
 
 #Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
 #Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
-COMPFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+#COMPFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
 #is profiling on?
 COMPFLAGS += -DPROFILE
@@ -54,7 +60,7 @@ COMPFLAGS += -DACC_SEMILAG_PQM -DTRANS_SEMILAG_PPM
 
 #Add -DCATCH_FPE to catch floating point exceptions and stop execution
 #May cause problems
-# COMPFLAGS += -DCATCH_FPE
+#COMPFLAGS += -DCATCH_FPE
 
 #Define MESH=AMR if you want to use adaptive mesh refinement in velocity space
 #MESH = AMR

@@ -340,6 +340,7 @@ namespace SBC {
       int ret = nParams;
 
       // Make sure the type id of Real is correct
+
       assert( typeid( Real ) == typeid(float) || typeid( Real ) == typeid(double) );
 
       while (!feof(fp) && ret == (int)nParams) {
@@ -350,8 +351,7 @@ namespace SBC {
          } else if( typeid( readParam ) == typeid(float) ) {
             for(uint i=0; i<nParams; i++) ret += fscanf(fp, "%f", &readParam);
          } else {
-            assert( typeid( readParam ) == typeid(float) || typeid( readParam ) == typeid(double) );
-            
+	   assert( typeid( readParam ) == typeid(float) || typeid( readParam ) == typeid(double) );
          }
          nlines++;
       }
