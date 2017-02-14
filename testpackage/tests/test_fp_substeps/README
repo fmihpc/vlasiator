@@ -1,0 +1,18 @@
+This is a test case for field solver. It initialized proton
+distribution so that it has a constant speed (all three components) in
+a box that is periodic in all three coordinates.
+The magnetic field is a 'cross' centered at the origin. At the end of
+the simulation the magnetic field has been translated one full period,
+i.e., ideally the final state should be the same as the initial state. 
+
+This test case tests for errors
+- field solver code: E,B,wave speeds,dt calculation,etc.
+
+This test case does not test errors in
+- vlasov acceleration
+- vlasov translation
+- boundary conditions (field or vlasov)
+
+You should compare either the magnetic field or electric field values to 
+the reference values. Since E and B depend on each others it does not make 
+sense to compare both.
