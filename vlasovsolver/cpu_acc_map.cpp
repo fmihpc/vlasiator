@@ -182,10 +182,10 @@ inline void loadColumnBlockData(//SpatialCell* spatial_cell,
    spatial cells), and would not need synchronization.
    
 */
-bool map_1d(vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
-            vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer,
+bool map_1d(SpatialCell* spatial_cell,
+            const int popID,     
             Realv intersection, Realv intersection_di, Realv intersection_dj,Realv intersection_dk,
-            uint dimension) {
+            const uint dimension) {
    no_subnormals();
 
    Realv dv,v_min;
@@ -194,6 +194,9 @@ bool map_1d(vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
    uint block_indices_to_id[3]; /*< used when computing id of target block */
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
    unsigned char cellid_transpose[WID3]; /*< defines the transpose for the solver internal (transposed) id: i + j*WID + k*WID2 to actual one*/
+
+   vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh    = spatial_cell->get_velocity_mesh(popID);
+   vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks(popID);
 
    // Velocity grid refinement level, has no effect but is 
    // needed in some vmesh::VelocityMesh function calls.
@@ -371,8 +374,8 @@ bool map_1d(vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
           * edge in source grid.
            *lastBlockV is in z the maximum velocity value of the upper
           * edge in source grid. Added 1.01*dv to account for unexpected issues*/ 
-         double firstBlockMinV=((WID * firstBlockIndices[2] - 0.1 ) * dv + v_min);
-         double lastBlockMaxV=((WID * (lastBlockIndices[2] + 1) + 1.1) * dv + v_min);
+         double firstBlockMinV=((WID * firstBlockIndices[2] - 0.01 ) * dv + v_min);
+         double lastBlockMaxV=((WID * (lastBlockIndices[2] + 1) + 0.01) * dv + v_min);
          
          /*gk is now the k value in terms of cells in target
          grid. This distance between max_intersectionMin (so lagrangian
@@ -411,9 +414,15 @@ bool map_1d(vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
             
          }
          if(!isTargetBlock[blockK] && isSourceBlock[blockK] )  {
-            //TODO - remove blocks 
+            const int targetBlock =
+               setFirstBlockIndices[0] * block_indices_to_id[0] +
+               setFirstBlockIndices[1] * block_indices_to_id[1] +
+               blockK                  * block_indices_to_id[2];
+
+            spatial_cell->remove_velocity_block(targetBlock, popID);
          }
       }
+
      /*now store pointer to blocks, cannot do it at the same time as adding
       them since they might move due to re-allocations or migrated when
       removing blocks*/
@@ -529,6 +538,7 @@ bool map_1d(vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
                lagrangian_gk_r = truncate_to_int((v_r-intersection_min)/intersection_dk);
             
                Veci gk(lagrangian_gk_l);
+               
                while (horizontal_or(gk <= lagrangian_gk_r)){
                   const Veci gk_div_WID = gk/WID;
                   const Veci gk_mod_WID = (gk - gk_div_WID * WID);
@@ -573,7 +583,7 @@ bool map_1d(vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
                   for (int target_i=0; target_i < VECL; ++target_i) {
                      const int blockK = gk_div_WID[target_i];
                      // check that we are within target grid limits.
-                     if (blockK >=0 && blockK < max_v_length ) {                     
+                     if (blockK >= 0 && blockIndexToBlockData[blockK] !=NULL){ //blockK < max_v_length &&  gk[target_i] <= lagrangian_gk_r[target_i] ){                      
                         // do the conversion from Realv to Realf here, faster than doing it in accumulation
                         const Realf tval = target_density[target_i];
                         const uint tcell = target_cell[target_i];
