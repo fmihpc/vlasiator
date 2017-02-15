@@ -540,7 +540,7 @@ bool map_1d(SpatialCell* spatial_cell,
                Veci gk(lagrangian_gk_l);
                
                while (horizontal_or(gk <= lagrangian_gk_r)){
-                  const Veci gk_div_WID = gk/WID;
+                  const Veci gk_div_WID = gk/const_int(WID);
                   const Veci gk_mod_WID = (gk - gk_div_WID * WID);
                   //the block of the Lagrangian cell to which we map
                   const Veci target_block(target_block_index_common + gk_div_WID * block_indices_to_id[2]);
