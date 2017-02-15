@@ -24,6 +24,7 @@
 #include <algorithm>
 #include <utility>
 
+#include "vec.h"
 #include "cpu_acc_sort_blocks.hpp"
 #include "cpu_1d_pqm.hpp"
 #include "cpu_1d_ppm.hpp"
@@ -150,7 +151,6 @@ inline void loadColumnBlockData(//SpatialCell* spatial_cell,
    // copy block data for all blocks
    for (vmesh::LocalID block_k=0; block_k<n_blocks; ++block_k) {
       Realf* __restrict__ data = blockContainer.getData(vmesh.getLocalID(blocks[block_k]));
-
       //  Copy volume averages of this block, taking into account the dimension shifting
       for (uint i=0; i<WID3; ++i) {
          blockValues[i] = data[cellid_transpose[i]];
@@ -278,25 +278,29 @@ bool map_1d(vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
                             columnBlockOffsets, columnNumBlocks,
                             setColumnOffsets, setNumColumns);
    
-/*   
-        values array used to store column data The max size is the worst
-        case scenario with every second block having content, creating up
-        to ( MAX_BLOCKS_PER_DIM / 2 + 1) columns with each needing three
-        blocks (two for padding)
-   */
-   Vec values[(3 * ( MAX_BLOCKS_PER_DIM / 2 + 1)) * WID3 / VECL];
-   // these two temporary variables are used to optimize access to target cells
-   vmesh::LocalID previous_target_block = vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID();
-   Realf *target_block_data = NULL;
-
-   Realf *blockIndexToBlockData[MAX_BLOCKS_PER_DIM];
-   for (uint blockK = 0; blockK < MAX_BLOCKS_PER_DIM; blockK++){
-      blockIndexToBlockData[blockK] =  blockContainer.getNullData();
-   }
-   
    // loop over block column sets  (all columns along the dimension with the other dimensions being equal )
-   for( uint setIndex=0; setIndex< setColumnOffsets.size(); ++setIndex) {
+      
+/*   
+     values array used to store column data The max size is the worst
+     case scenario with every second block having content, creating up
+     to ( MAX_BLOCKS_PER_DIM / 2 + 1) columns with each needing three
+     blocks (two for padding)
+*/
+   Vec values[(3 * ( MAX_BLOCKS_PER_DIM / 2 + 1)) * WID3 / VECL];
+   /*pointers to target block datas*/
+   Realf *blockIndexToBlockData[MAX_BLOCKS_PER_DIM];
+   bool isTargetBlock[MAX_BLOCKS_PER_DIM];
+   bool isSourceBlock[MAX_BLOCKS_PER_DIM];
 
+   for( uint setIndex=0; setIndex< setColumnOffsets.size(); ++setIndex) {
+      uint8_t refLevel = 0;
+      //init 
+      for (uint blockK = 0; blockK < MAX_BLOCKS_PER_DIM; blockK++){
+         blockIndexToBlockData[blockK] =  NULL;
+         isTargetBlock[blockK] = false;
+         isSourceBlock[blockK] = false;
+      }
+      
       //Load data into values array (this also zeroes the original data)
       uint valuesColumnOffset = 0; //offset to values array for data in a column in this set
       for(uint columnIndex = setColumnOffsets[setIndex]; columnIndex < setColumnOffsets[setIndex] + setNumColumns[setIndex] ; columnIndex ++){
@@ -305,105 +309,128 @@ bool map_1d(vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
          loadColumnBlockData(vmesh, blockContainer, cblocks, n_cblocks, values + valuesColumnOffset, cellid_transpose);
          valuesColumnOffset += (n_cblocks + 2) * (WID3/VECL); // there are WID3/VECL elements of type Vec per block
       }
+      /*need x,y coordinate of this column set of blocks, take it from first
+        block in first column*/
+      velocity_block_indices_t setFirstBlockIndices;
+      vmesh.getIndices(blocks[columnBlockOffsets[setColumnOffsets[setIndex]]],
+                       refLevel, 
+                       setFirstBlockIndices[0], setFirstBlockIndices[1], setFirstBlockIndices[2]);
+      swapBlockIndices(setFirstBlockIndices, dimension);
+      /*compute the maximum starting point of the lagrangian (target) grid
+        (base level) within the 4 corner cells in this
+        block. Needed for computig maximum extent of target column*/
       
-      //Delete blocks that are not target blocks, and add
-      //non-existing target blocks
+      Realv max_intersectionMin = intersection +
+                                      (setFirstBlockIndices[0] * WID + 0) * intersection_di +
+                                      (setFirstBlockIndices[1] * WID + 0) * intersection_dj;
+      max_intersectionMin =  std::max(max_intersectionMin,
+                                      intersection +
+                                      (setFirstBlockIndices[0] * WID + 0) * intersection_di + 
+                                      (setFirstBlockIndices[1] * WID + WID - 1) * intersection_dj);
+      max_intersectionMin =  std::max(max_intersectionMin,
+                                      intersection +
+                                      (setFirstBlockIndices[0] * WID + WID - 1) * intersection_di + 
+                                      (setFirstBlockIndices[1] * WID + 0) * intersection_dj);
+      max_intersectionMin =  std::max(max_intersectionMin,
+                                      intersection +
+                                      (setFirstBlockIndices[0] * WID + WID - 1) * intersection_di + 
+                                      (setFirstBlockIndices[1] * WID + WID - 1) * intersection_dj);
+      
+      Realv min_intersectionMin = intersection +
+                                      (setFirstBlockIndices[0] * WID + 0) * intersection_di +
+                                      (setFirstBlockIndices[1] * WID + 0) * intersection_dj;
+      min_intersectionMin =  std::min(min_intersectionMin,
+                                      intersection +
+                                      (setFirstBlockIndices[0] * WID + 0) * intersection_di + 
+                                      (setFirstBlockIndices[1] * WID + WID - 1) * intersection_dj);
+      min_intersectionMin =  std::min(min_intersectionMin,
+                                      intersection +
+                                      (setFirstBlockIndices[0] * WID + WID - 1) * intersection_di + 
+                                      (setFirstBlockIndices[1] * WID + 0) * intersection_dj);
+      min_intersectionMin =  std::min(min_intersectionMin,
+                                      intersection +
+                                      (setFirstBlockIndices[0] * WID + WID - 1) * intersection_di + 
+                                      (setFirstBlockIndices[1] * WID + WID - 1) * intersection_dj);
+
+      //now, record which blocks are target blocks
       for(uint columnIndex = setColumnOffsets[setIndex]; columnIndex < setColumnOffsets[setIndex] + setNumColumns[setIndex] ; columnIndex ++){
          const vmesh::LocalID n_cblocks = columnNumBlocks[columnIndex];
          vmesh::GlobalID* cblocks = blocks + columnBlockOffsets[columnIndex]; //column blocks
          velocity_block_indices_t firstBlockIndices;
          velocity_block_indices_t lastBlockIndices;
-         uint8_t refLevel;
-         
          vmesh.getIndices(cblocks[0],
                           refLevel, 
                           firstBlockIndices[0], firstBlockIndices[1], firstBlockIndices[2]);
          vmesh.getIndices(cblocks[n_cblocks -1],
                           refLevel, 
                           lastBlockIndices[0], lastBlockIndices[1], lastBlockIndices[2]);
-
          swapBlockIndices(firstBlockIndices, dimension);
          swapBlockIndices(lastBlockIndices, dimension);
          
-         /*compute the maximum starting point of the lagrangian (target) grid
-         (base level) within the 4 corner cells in this
-         block. Maximum, because that will give us minimum block id*/
-         Realv max_intersectionMin = intersection +
-                                      (firstBlockIndices[0] * WID + 0) * intersection_di +
-                                      (firstBlockIndices[1] * WID + 0) * intersection_dj;
-         max_intersectionMin =  std::max(max_intersectionMin,
-                                      intersection +
-                                      (firstBlockIndices[0] * WID + 0) * intersection_di + 
-                                      (firstBlockIndices[1] * WID + 3) * intersection_dj);
-         max_intersectionMin =  std::max(max_intersectionMin,
-                                      intersection +
-                                      (firstBlockIndices[0] * WID + 3) * intersection_di + 
-                                      (firstBlockIndices[1] * WID + 0) * intersection_dj);
-         max_intersectionMin =  std::max(max_intersectionMin,
-                                      intersection +
-                                      (firstBlockIndices[0] * WID + 3) * intersection_di + 
-                                      (firstBlockIndices[1] * WID + 3) * intersection_dj);
-
-         Realv min_intersectionMin = intersection +
-                                      (lastBlockIndices[0] * WID + 0) * intersection_di +
-                                      (lastBlockIndices[1] * WID + 0) * intersection_dj;
-         min_intersectionMin =  std::min(min_intersectionMin,
-                                      intersection +
-                                      (lastBlockIndices[0] * WID + 0) * intersection_di + 
-                                      (lastBlockIndices[1] * WID + 3) * intersection_dj);
-         min_intersectionMin =  std::min(min_intersectionMin,
-                                      intersection +
-                                      (lastBlockIndices[0] * WID + 3) * intersection_di + 
-                                      (lastBlockIndices[1] * WID + 0) * intersection_dj);
-         min_intersectionMin =  std::min(min_intersectionMin,
-                                      intersection +
-                                      (lastBlockIndices[0] * WID + 3) * intersection_di + 
-                                      (lastBlockIndices[1] * WID + 3) * intersection_dj);
-
-         
          /*firstBlockV is in z the minimum velocity value of the lower
-          * edge in source grid*/ 
-         /*firstBlockV is in z the minimum velocity value of the lower
-          * edge in source grid*/ 
-         double firstBlockMinV=((WID * firstBlockIndices[2]) * dv + v_min);
-         double lastBlockMaxV=((WID * (lastBlockIndices[2] + 1)) * dv + v_min);
+          * edge in source grid.
+           *lastBlockV is in z the maximum velocity value of the upper
+          * edge in source grid. Added 1.01*dv to account for unexpected issues*/ 
+         double firstBlockMinV=((WID * firstBlockIndices[2] ) * dv + v_min);
+         double lastBlockMaxV=((WID * (lastBlockIndices[2] + 1) + 1.01) * dv + v_min);
          
          /*gk is now the k value in terms of cells in target
          grid. This distance between max_intersectionMin (so lagrangian
          plan, well max value here) and V of source grid, divided by
          intersection_dk to find out how many grid cells that is*/
          const int firstBlock_gk=(int)((firstBlockMinV - max_intersectionMin)/intersection_dk);
-         const int firstBlockIndexK = firstBlock_gk/WID;
-         
          const int lastBlock_gk=(int)((lastBlockMaxV - min_intersectionMin)/intersection_dk);
+
+         const int firstBlockIndexK = firstBlock_gk/WID;         
          const int lastBlockIndexK = lastBlock_gk/WID;
+
          
+         //store source blocks
+         for (int blockK = firstBlockIndices[2]; blockK <= lastBlockIndices[2]; blockK++){
+            isSourceBlock[blockK] = true;
+         }
+         
+         //store target blocks
          for (int blockK = firstBlockIndexK; blockK <= lastBlockIndexK; blockK++){
             //check block is withing boundaries of target grid 
             if (blockK >=0 && blockK < max_v_length) {
-               
-               //Now just compte the block of the Lagrangian cell to which
-               //we map, note here x,y same as in source.
-               const int targetBlock =
-                  firstBlockIndices[0] * block_indices_to_id[0] +
-                  firstBlockIndices[1] * block_indices_to_id[1] +
-                  blockK               * block_indices_to_id[2];
-               
-               // Get target block local ID. Attempt to create target
-               // block if it does not exist.
-               vmesh::LocalID tblockLID = vmesh.getLocalID(targetBlock);
-               if (tblockLID == vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) {
-                  tblockLID = addVelocityBlock(targetBlock,vmesh,blockContainer);
-               }
-               
-               // Get pointer to target block data. If target block does 
-               // not exist, values are added to null_block_data.
-               blockIndexToBlockData[blockK] = blockContainer.getData(tblockLID);
+               isTargetBlock[blockK]=true;
             }
          }
       }
-      
 
+      //now add target blocks that do not yet exist and remove source blocks
+      //that are not target blocks
+      for (uint blockK = 0; blockK < MAX_BLOCKS_PER_DIM; blockK++){
+         if(isTargetBlock[blockK] && !isSourceBlock[blockK] )  {
+            const int targetBlock =
+               setFirstBlockIndices[0] * block_indices_to_id[0] +
+               setFirstBlockIndices[1] * block_indices_to_id[1] +
+               blockK                  * block_indices_to_id[2];
+            addVelocityBlock(targetBlock, vmesh, blockContainer);
+            
+         }
+         if(!isTargetBlock[blockK] && isSourceBlock[blockK] )  {
+            //TODO - remove blocks 
+         }
+      }
+     /*now store pointer to blocks, cannot do it at the same time as adding
+      them since they might move due to re-allocations or migrated when
+      removing blocks*/
+      for (int blockK = 0; blockK < MAX_BLOCKS_PER_DIM; blockK++){
+         if(isTargetBlock[blockK])  {
+            const int targetBlock =
+               setFirstBlockIndices[0] * block_indices_to_id[0] +
+               setFirstBlockIndices[1] * block_indices_to_id[1] +
+               blockK                  * block_indices_to_id[2];
+            const vmesh::LocalID tblockLID = vmesh.getLocalID(targetBlock);
+            // Get pointer to target block data.
+            blockIndexToBlockData[blockK] = blockContainer.getData(tblockLID);
+         }
+      }
+      
+      
+      
       // loop over columns in set and do the mapping
       valuesColumnOffset = 0; //offset to values array for data in a column in this set
       for(uint columnIndex = setColumnOffsets[setIndex]; columnIndex < setColumnOffsets[setIndex] + setNumColumns[setIndex] ; columnIndex ++){
@@ -559,7 +586,9 @@ bool map_1d(vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
          }
          valuesColumnOffset += (n_cblocks + 2) * (WID3/VECL) ;// there are WID3/VECL elements of type Vec per block    
       }
+      
    }
    delete [] blocks;
    return true;
 }
+
