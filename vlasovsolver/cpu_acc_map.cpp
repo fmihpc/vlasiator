@@ -371,8 +371,8 @@ bool map_1d(vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
           * edge in source grid.
            *lastBlockV is in z the maximum velocity value of the upper
           * edge in source grid. Added 1.01*dv to account for unexpected issues*/ 
-         double firstBlockMinV=((WID * firstBlockIndices[2] ) * dv + v_min);
-         double lastBlockMaxV=((WID * (lastBlockIndices[2] + 1) + 1.01) * dv + v_min);
+         double firstBlockMinV=((WID * firstBlockIndices[2] - 0.1 ) * dv + v_min);
+         double lastBlockMaxV=((WID * (lastBlockIndices[2] + 1) + 1.1) * dv + v_min);
          
          /*gk is now the k value in terms of cells in target
          grid. This distance between max_intersectionMin (so lagrangian
@@ -383,7 +383,7 @@ bool map_1d(vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
 
          const int firstBlockIndexK = firstBlock_gk/WID;         
          const int lastBlockIndexK = lastBlock_gk/WID;
-
+         
          
          //store source blocks
          for (int blockK = firstBlockIndices[2]; blockK <= lastBlockIndices[2]; blockK++){
