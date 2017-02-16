@@ -108,10 +108,6 @@ void inline swapBlockIndices(velocity_block_indices_t &blockIndices, const uint 
 
 
 
-void loadColumnBlockData(SpatialCell* spatial_cell,vmesh::GlobalID* blocks,
-                         vmesh::LocalID n_blocks,Vec* __restrict__ values,
-                         const unsigned char * const cellid_transpose);
-
 /*!
   Copies the data of a column into the values array, and zeroes the data.
   
@@ -134,6 +130,7 @@ inline void loadColumnBlockData(//SpatialCell* spatial_cell,
         vmesh::GlobalID* blocks,
         vmesh::LocalID n_blocks,
         Vec* __restrict__ values,
+        int dimension,
         const unsigned char * const cellid_transpose) {
 
    Realv blockValues[WID3];  
@@ -151,23 +148,36 @@ inline void loadColumnBlockData(//SpatialCell* spatial_cell,
    // copy block data for all blocks
    for (vmesh::LocalID block_k=0; block_k<n_blocks; ++block_k) {
       Realf* __restrict__ data = blockContainer.getData(vmesh.getLocalID(blocks[block_k]));
-      //  Copy volume averages of this block, taking into account the dimension shifting
-      for (uint i=0; i<WID3; ++i) {
-         blockValues[i] = data[cellid_transpose[i]];
+      uint offset = 0;
+
+      if (dimension == 0 || dimension == 1) {
+//  Copy volume averages of this block, taking into account the dimension shifting
+         for (uint i=0; i<WID3; ++i) {
+            blockValues[i] = data[cellid_transpose[i]];
+         }
+         // now load values into the actual values table..
+         for (uint k=0; k<WID; ++k) {
+            for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){
+               // load data from blockValues which already has shifted dimensions
+               values[i_pcolumnv_b(planeVector, k, block_k, n_blocks)].load(blockValues + offset);
+               offset += VECL;
+            }
+         }
       }
+      else {
+         for (uint k=0; k<WID; ++k) {
+            for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){
+               values[i_pcolumnv_b(planeVector, k, block_k, n_blocks)].load(data + offset);
+               offset += VECL;
+            }
+         }
+      }
+      
+      //zero old output data
       for (uint i=0; i<WID3; ++i) {
          data[i]=0;
       }
-
-      // now load values into the actual values table..
-      uint offset =0;
-      for (uint k=0; k<WID; ++k) {
-         for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){
-            // load data from blockValues which already has shifted dimensions
-            values[i_pcolumnv_b(planeVector, k, block_k, n_blocks)].load(blockValues + offset);
-            offset += VECL;
-         }
-      }
+      
    }
 }
 
@@ -309,7 +319,7 @@ bool map_1d(SpatialCell* spatial_cell,
       for(uint columnIndex = setColumnOffsets[setIndex]; columnIndex < setColumnOffsets[setIndex] + setNumColumns[setIndex] ; columnIndex ++){
          const vmesh::LocalID n_cblocks = columnNumBlocks[columnIndex];
          vmesh::GlobalID* cblocks = blocks + columnBlockOffsets[columnIndex]; //column blocks
-         loadColumnBlockData(vmesh, blockContainer, cblocks, n_cblocks, values + valuesColumnOffset, cellid_transpose);
+         loadColumnBlockData(vmesh, blockContainer, cblocks, n_cblocks, values + valuesColumnOffset, dimension, cellid_transpose);
          valuesColumnOffset += (n_cblocks + 2) * (WID3/VECL); // there are WID3/VECL elements of type Vec per block
       }
       /*need x,y coordinate of this column set of blocks, take it from first
@@ -374,15 +384,15 @@ bool map_1d(SpatialCell* spatial_cell,
           * edge in source grid.
            *lastBlockV is in z the maximum velocity value of the upper
           * edge in source grid. Added 1.01*dv to account for unexpected issues*/ 
-         double firstBlockMinV=((WID * firstBlockIndices[2] - 0.01 ) * dv + v_min);
-         double lastBlockMaxV=((WID * (lastBlockIndices[2] + 1) + 0.01) * dv + v_min);
+         double firstBlockMinV = (WID * firstBlockIndices[2]) * dv + v_min;
+         double lastBlockMaxV = (WID * (lastBlockIndices[2] + 1)) * dv + v_min;
          
          /*gk is now the k value in terms of cells in target
          grid. This distance between max_intersectionMin (so lagrangian
          plan, well max value here) and V of source grid, divided by
          intersection_dk to find out how many grid cells that is*/
-         const int firstBlock_gk=(int)((firstBlockMinV - max_intersectionMin)/intersection_dk);
-         const int lastBlock_gk=(int)((lastBlockMaxV - min_intersectionMin)/intersection_dk);
+         const int firstBlock_gk = (int)((firstBlockMinV - max_intersectionMin)/intersection_dk);
+         const int lastBlock_gk = (int)((lastBlockMaxV - min_intersectionMin)/intersection_dk);
 
          const int firstBlockIndexK = firstBlock_gk/WID;         
          const int lastBlockIndexK = lastBlock_gk/WID;
