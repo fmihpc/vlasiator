@@ -1,6 +1,7 @@
 /*
  * This file is part of Vlasiator.
  * Copyright 2010-2016 Finnish Meteorological Institute
+ * 2017 CSC - IT center for Science
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
  * at http://vlasiator.fmi.fi/
@@ -26,6 +27,7 @@
 
 #include "vec.h"
 #include "cpu_acc_sort_blocks.hpp"
+#include "cpu_acc_load_blocks.hpp"
 #include "cpu_1d_pqm.hpp"
 #include "cpu_1d_ppm.hpp"
 #include "cpu_1d_plm.hpp"
@@ -33,14 +35,6 @@
 
 using namespace std;
 using namespace spatial_cell;
-
-#define MAX_BLOCKS_PER_DIM 400
-
-//index in the temporary and padded column data values array. Each
-//column has an empty block in ether end.
-#define i_pcolumnv(j, k, k_block, num_k_blocks) ( ((j) / ( VECL / WID)) * WID * ( num_k_blocks + 2) + (k) + ( k_block + 1 ) * WID )
-#define i_pcolumnv_b(planeVectorIndex, k, k_block, num_k_blocks) ( planeVectorIndex * WID * ( num_k_blocks + 2) + (k) + ( k_block + 1 ) * WID )
-
 /** Attempt to add the given velocity block to the given velocity mesh.
  * If the block was added to the mesh, its data is set to zero values and 
  * velocity block parameters are calculated.
@@ -108,79 +102,6 @@ void inline swapBlockIndices(velocity_block_indices_t &blockIndices, const uint 
 
 
 
-/*!
-  Copies the data of a column into the values array, and zeroes the data.
-  
-  
-  For dimension=0 data copy  we have rotated data
-  i -> k
-  j -> j
-  k -> i
-  For dimension=1 data copy  we have rotated data
-  i -> i
-  j -> k
-  k -> j
-
- * @param blocks Array containing block global IDs.
- * @param n_blocks Number of blocks in array blocks.
-*/
-inline void loadColumnBlockData(//SpatialCell* spatial_cell,
-        const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
-        vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer,
-        vmesh::GlobalID* blocks,
-        vmesh::LocalID n_blocks,
-        Vec* __restrict__ values,
-        int dimension,
-        const unsigned char * const cellid_transpose) {
-
-   Realv blockValues[WID3];  
-   
-   // first set the 0 values for the two empty blocks 
-   // we store above and below the existing blocks
-
-   for (uint k=0; k<WID; ++k) {
-      for (uint j = 0; j < WID; j += VECL/WID){ 
-         values[i_pcolumnv(j, k, -1, n_blocks)] = Vec(0);
-         values[i_pcolumnv(j, k, n_blocks, n_blocks)] = Vec(0);
-      }
-   }
-
-   // copy block data for all blocks
-   for (vmesh::LocalID block_k=0; block_k<n_blocks; ++block_k) {
-      Realf* __restrict__ data = blockContainer.getData(vmesh.getLocalID(blocks[block_k]));
-      uint offset = 0;
-
-      if (dimension == 0 || dimension == 1) {
-//  Copy volume averages of this block, taking into account the dimension shifting
-         for (uint i=0; i<WID3; ++i) {
-            blockValues[i] = data[cellid_transpose[i]];
-         }
-         // now load values into the actual values table..
-         for (uint k=0; k<WID; ++k) {
-            for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){
-               // load data from blockValues which already has shifted dimensions
-               values[i_pcolumnv_b(planeVector, k, block_k, n_blocks)].load(blockValues + offset);
-               offset += VECL;
-            }
-         }
-      }
-      else {
-         for (uint k=0; k<WID; ++k) {
-            for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){
-               values[i_pcolumnv_b(planeVector, k, block_k, n_blocks)].load(data + offset);
-               offset += VECL;
-            }
-         }
-      }
-      
-      //zero old output data
-      for (uint i=0; i<WID3; ++i) {
-         data[i]=0;
-      }
-      
-   }
-}
-
 /* 
    Here we map from the current time step grid, to a target grid which
    is the lagrangian departure grid (so th grid at timestep +dt,
@@ -203,7 +124,6 @@ bool map_1d(SpatialCell* spatial_cell,
    uint max_v_length;
    uint block_indices_to_id[3]; /*< used when computing id of target block */
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
-   unsigned char cellid_transpose[WID3]; /*< defines the transpose for the solver internal (transposed) id: i + j*WID + k*WID2 to actual one*/
 
    vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh    = spatial_cell->get_velocity_mesh(popID);
    vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks(popID);
@@ -265,19 +185,6 @@ bool map_1d(SpatialCell* spatial_cell,
       cell_indices_to_id[2]=WID2;
       break;
    }
-
-   // init plane_index_to_id.
-   for (uint k=0; k<WID; ++k) {
-      for (uint j=0; j<WID; ++j) {
-         for (uint i=0; i<WID; ++i) {
-            const uint cell =
-               i * cell_indices_to_id[0] +
-               j * cell_indices_to_id[1] +
-               k * cell_indices_to_id[2];
-            cellid_transpose[ i + j * WID + k * WID2] = cell;
-         }
-      }
-   }
    
    const Realv i_dv=1.0/dv;
 
@@ -319,7 +226,7 @@ bool map_1d(SpatialCell* spatial_cell,
       for(uint columnIndex = setColumnOffsets[setIndex]; columnIndex < setColumnOffsets[setIndex] + setNumColumns[setIndex] ; columnIndex ++){
          const vmesh::LocalID n_cblocks = columnNumBlocks[columnIndex];
          vmesh::GlobalID* cblocks = blocks + columnBlockOffsets[columnIndex]; //column blocks
-         loadColumnBlockData(vmesh, blockContainer, cblocks, n_cblocks, values + valuesColumnOffset, dimension, cellid_transpose);
+         loadColumnBlockData(vmesh, blockContainer, cblocks, n_cblocks, dimension, values + valuesColumnOffset);
          valuesColumnOffset += (n_cblocks + 2) * (WID3/VECL); // there are WID3/VECL elements of type Vec per block
       }
       /*need x,y coordinate of this column set of blocks, take it from first
