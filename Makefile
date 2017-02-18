@@ -38,7 +38,7 @@ COMPFLAGS +=${PAPI_FLAG}
 
 #Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
 #Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
-COMPFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+#COMPFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
 #is profiling on?
 COMPFLAGS += -DPROFILE
