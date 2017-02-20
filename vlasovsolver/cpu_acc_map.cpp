@@ -423,8 +423,29 @@ bool map_1d(SpatialCell* spatial_cell,
              * order. See comments where they are shifted for
              * explanations of their meaning*/
             Vec v_r((WID * block_indices_begin[2]) * dv + v_min);
-            Veci lagrangian_gk_r=truncate_to_int((v_r-intersection_min)/intersection_dk);
-         
+            Vec lagrangian_v_r((v_r-intersection_min)/intersection_dk);
+            Veci lagrangian_gk_r=truncate_to_int(lagrangian_v_r);
+
+            /*compute location of min and max, this does not change for one
+             * column (or even for this set of intersections, and can be used
+             * to quickly compute max and min later on*/
+            int minGkIndex, maxGkIndex;
+            {
+               Realv maxV = std::numeric_limits<Realv>::min();
+               Realv minV = std::numeric_limits<Realv>::max();
+               for(int i = 0; i < VECL; i++) {
+                  if ( lagrangian_v_r[i] > maxV) {
+                     maxV = lagrangian_v_r[i];
+                     maxGkIndex = i;
+                  }
+                  if ( lagrangian_v_r[i] < minV) {
+                     minV = lagrangian_v_r[i];
+                     minGkIndex = i;
+                  }
+               }
+            }
+            
+            
             // loop through all blocks in column and compute the mapping as integrals.
             for (uint k=0; k < WID * n_cblocks; ++k ){
                // Compute reconstructions 
@@ -449,20 +470,24 @@ bool map_1d(SpatialCell* spatial_cell,
                // v_l, v_r are the left and right velocity coordinates of source cell. Left is the old right.
                Vec v_l = v_r; 
                v_r += dv;
+               
                // left(l) and right(r) k values (global index) in the target
                // Lagrangian grid, the intersecting cells. Again old right is new left.
                const Veci lagrangian_gk_l = lagrangian_gk_r;
                lagrangian_gk_r = truncate_to_int((v_r-intersection_min)/intersection_dk);
-            
-               Veci gk(lagrangian_gk_l);
-               
-               while (horizontal_or(gk <= lagrangian_gk_r)){
-                  const Veci gk_div_WID = gk/const_int(WID);
-                  const Veci gk_mod_WID = (gk - gk_div_WID * WID);
-                  //the block of the Lagrangian cell to which we map
-                  const Veci target_block(target_block_index_common + gk_div_WID * block_indices_to_id[2]);
 
-                  //cell index in the target block 
+               //TODO add limits from stored blocks here, to avoid if deeper down
+               int minGk = std::max(lagrangian_gk_l[minGkIndex], 0);
+               int maxGk = std::min(lagrangian_gk_r[maxGkIndex], (int)(max_v_length * WID - 1));
+               
+               for(int gk = minGk; gk <= maxGk; gk++){ 
+                  const int blockK = gk/WID;
+                  const int gk_mod_WID = (gk - blockK * WID);
+                  //the block of the Lagrangian cell to which we map
+                  const int target_block(target_block_index_common + blockK * block_indices_to_id[2]);
+                  
+                  //cell indices in the target block  (TODO: to be replaced by
+                  //compile time generated scatter write operation)
                   const Veci target_cell(target_cell_index_common + gk_mod_WID * cell_indices_to_id[2]);
                
                   //the velocity between which we will integrate to put mass
@@ -470,8 +495,7 @@ bool map_1d(SpatialCell* spatial_cell,
                   //then v_1,v_2 should be between v_l and v_r.
                   //v_1 and v_2 normalized to be between 0 and 1 in the cell.
                   //For vector elements where gk is already larger than needed (lagrangian_gk_r), v_2=v_1=v_r and thus the value is zero.
-
-                  const Vec v_norm_r = (min(to_realv(gk + 1) * intersection_dk + intersection_min, v_r) - v_l) * i_dv;
+                  const Vec v_norm_r = (  min(  max( (gk + 1) * intersection_dk + intersection_min, v_l), v_r) - v_l) * i_dv;
                   /*shift, old right is new left*/
                   const Vec target_density_l = target_density_r;
 
@@ -492,24 +516,24 @@ bool map_1d(SpatialCell* spatial_cell,
 
                   // total value of integrand
                   const Vec target_density = target_density_r - target_density_l;
-
-                  //store values, one element at a time. All blocks
-                  //have been created by now.
+                  
+//TODO, store what was max & min index in the table caching block pointers,
+//and use that to limit maxGk, minGk. Then this check deeper in is not needed
+                  if (blockIndexToBlockData[blockK] !=NULL){  
+                     //store values, one element at a time. All blocks
+                     //have been created by now.
+                     //TODO replace by vector version & scatter & gather operation
 #pragma ivdep
 #pragma GCC ivdep
-                  for (int target_i=0; target_i < VECL; ++target_i) {
-                     const int blockK = gk_div_WID[target_i];
-                     // check that we are within target grid limits.
-                     if (blockK >= 0 && blockIndexToBlockData[blockK] !=NULL){ //blockK < max_v_length &&  gk[target_i] <= lagrangian_gk_r[target_i] ){                      
+                     for (int target_i=0; target_i < VECL; ++target_i) {
                         // do the conversion from Realv to Realf here, faster than doing it in accumulation
                         const Realf tval = target_density[target_i];
                         const uint tcell = target_cell[target_i];
                         blockIndexToBlockData[blockK][tcell] += tval;
                      }
                   } // for-loop over vector elements
-                  gk++; //next iteration in while loop
-               }
-            } // for-loop over blocks
+               } // for loop over target k-indices of current source block
+            } // for-loop over source blocks
          }
          valuesColumnOffset += (n_cblocks + 2) * (WID3/VECL) ;// there are WID3/VECL elements of type Vec per block    
       }
