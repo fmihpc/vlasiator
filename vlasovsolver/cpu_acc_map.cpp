@@ -194,6 +194,9 @@ bool map_1d(SpatialCell* spatial_cell,
    std::vector<uint> columnNumBlocks;
    std::vector<uint> setColumnOffsets;
    std::vector<uint> setNumColumns;
+   std::vector<int> columnMinBlockK;
+   std::vector<int> columnMaxBlockK;
+   
    sortBlocklistByDimension(vmesh, dimension, blocks,
                             columnBlockOffsets, columnNumBlocks,
                             setColumnOffsets, setNumColumns);
@@ -229,6 +232,8 @@ bool map_1d(SpatialCell* spatial_cell,
          loadColumnBlockData(vmesh, blockContainer, cblocks, n_cblocks, dimension, values + valuesColumnOffset);
          valuesColumnOffset += (n_cblocks + 2) * (WID3/VECL); // there are WID3/VECL elements of type Vec per block
       }
+
+
       /*need x,y coordinate of this column set of blocks, take it from first
         block in first column*/
       velocity_block_indices_t setFirstBlockIndices;
@@ -303,6 +308,7 @@ bool map_1d(SpatialCell* spatial_cell,
 
          const int firstBlockIndexK = firstBlock_gk/WID;         
          const int lastBlockIndexK = lastBlock_gk/WID;
+
          
          
          //store source blocks
@@ -317,6 +323,10 @@ bool map_1d(SpatialCell* spatial_cell,
                isTargetBlock[blockK]=true;
             }
          }
+
+         //store also for each column firstBlockIndexK, and lastBlockIndexK
+         columnMinBlockK.push_back(firstBlockIndexK);
+         columnMaxBlockK.push_back(lastBlockIndexK);
       }
 
       //now add target blocks that do not yet exist and remove source blocks
@@ -429,6 +439,8 @@ bool map_1d(SpatialCell* spatial_cell,
             /*compute location of min and max, this does not change for one
              * column (or even for this set of intersections, and can be used
              * to quickly compute max and min later on*/
+            //TODO, these can be computed much earlier, since they are
+            //identiacal for each set of intersections
             int minGkIndex, maxGkIndex;
             {
                Realv maxV = std::numeric_limits<Realv>::min();
@@ -475,10 +487,11 @@ bool map_1d(SpatialCell* spatial_cell,
                // Lagrangian grid, the intersecting cells. Again old right is new left.
                const Veci lagrangian_gk_l = lagrangian_gk_r;
                lagrangian_gk_r = truncate_to_int((v_r-intersection_min)/intersection_dk);
-
-               //TODO add limits from stored blocks here, to avoid if deeper down
-               int minGk = std::max(lagrangian_gk_l[minGkIndex], 0);
-               int maxGk = std::min(lagrangian_gk_r[maxGkIndex], (int)(max_v_length * WID - 1));
+               
+               //limits in lagrangian k for target column. Also take into
+               //account limits of target column
+               int minGk = std::max(lagrangian_gk_l[minGkIndex], int(columnMinBlockK[columnIndex] * WID));
+               int maxGk = std::min(lagrangian_gk_r[maxGkIndex], int((columnMaxBlockK[columnIndex] + 1) * WID - 1));
                
                for(int gk = minGk; gk <= maxGk; gk++){ 
                   const int blockK = gk/WID;
@@ -513,30 +526,37 @@ bool map_1d(SpatialCell* spatial_cell,
                   target_density_r =
                      v_norm_r * ( a[0] + v_norm_r * ( a[1] + v_norm_r * ( a[2] + v_norm_r * ( a[3] + v_norm_r * a[4] ) ) ) );
                   #endif
-
-                  // total value of integrand
-                  const Vec target_density = target_density_r - target_density_l;
                   
-//TODO, store what was max & min index in the table caching block pointers,
-//and use that to limit maxGk, minGk. Then this check deeper in is not needed
-                  if (blockIndexToBlockData[blockK] !=NULL){  
-                     //store values, one element at a time. All blocks
-                     //have been created by now.
-                     //TODO replace by vector version & scatter & gather operation
+                  //store values, one element at a time. All blocks
+                  //have been created by now.
+                  //TODO replace by vector version & scatter & gather operation
+                  
+                  
+                  if(dimension == 2) {
+                     Realf* targetDataPointer = blockIndexToBlockData[blockK] + j * cell_indices_to_id[1] + gk_mod_WID * cell_indices_to_id[2];
+                     Vec targetData;
+                     targetData.load_a(targetDataPointer);
+                     targetData += target_density_r - target_density_l;                  
+                     targetData.store_a(targetDataPointer);
+                  }
+                  else{
+                     // total value of integrand
+                     const Vec target_density = target_density_r - target_density_l;                  
 #pragma ivdep
-#pragma GCC ivdep
+#pragma GCC ivdep                     
                      for (int target_i=0; target_i < VECL; ++target_i) {
                         // do the conversion from Realv to Realf here, faster than doing it in accumulation
                         const Realf tval = target_density[target_i];
                         const uint tcell = target_cell[target_i];
                         blockIndexToBlockData[blockK][tcell] += tval;
-                     }
-                  } // for-loop over vector elements
+                     }  // for-loop over vector elements
+                  }
+                  
                } // for loop over target k-indices of current source block
             } // for-loop over source blocks
-         }
+         } //for loop over j index
          valuesColumnOffset += (n_cblocks + 2) * (WID3/VECL) ;// there are WID3/VECL elements of type Vec per block    
-      }
+      } //for loop over columns
       
    }
    delete [] blocks;
