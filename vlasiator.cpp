@@ -169,12 +169,13 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    Real subcycleDt;
    
    //reduce dt if it is too high for any of the three propagators, or too low for all propagators
-   if(( P::dt > dtMaxGlobal[0] * P::vlasovSolverMaxCFL ||
+   if((( P::dt > dtMaxGlobal[0] * P::vlasovSolverMaxCFL ||
         P::dt > dtMaxGlobal[1] * P::vlasovSolverMaxCFL * P::maxSlAccelerationSubcycles ||
         P::dt > dtMaxGlobal[2] * P::fieldSolverMaxCFL * P::maxFieldSolverSubcycles ) ||
       ( P::dt < dtMaxGlobal[0] * P::vlasovSolverMinCFL && 
         P::dt < dtMaxGlobal[1] * P::vlasovSolverMinCFL * P::maxSlAccelerationSubcycles &&
-        P::dt < dtMaxGlobal[2] * P::fieldSolverMinCFL * P::maxFieldSolverSubcycles )
+        P::dt < dtMaxGlobal[2] * P::fieldSolverMinCFL * P::maxFieldSolverSubcycles )) &&
+         P::dynamicTimestep == true
       ) {
       //new dt computed
       isChanged=true;
@@ -423,11 +424,14 @@ int main(int argn,char* args[]) {
       phiprof::stop("compute-dt");
    }
 
-   if (P::dynamicTimestep == true && P::isRestart == false) {
+   if (P::isRestart == false) {
       //compute new dt
       phiprof::start("compute-dt");
       computeNewTimeStep(mpiGrid,newDt,dtIsChanged);
-      if (dtIsChanged == true) P::dt=newDt;
+      if (P::dynamicTimestep == true && dtIsChanged == true) {
+         // Only actually update the timestep if dynamicTimestep is on
+         P::dt=newDt;
+      }
       phiprof::stop("compute-dt");
    }
 
