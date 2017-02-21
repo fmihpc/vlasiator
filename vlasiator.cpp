@@ -169,13 +169,12 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    Real subcycleDt;
    
    //reduce dt if it is too high for any of the three propagators, or too low for all propagators
-   if((( P::dt > dtMaxGlobal[0] * P::vlasovSolverMaxCFL ||
+   if(( P::dt > dtMaxGlobal[0] * P::vlasovSolverMaxCFL ||
         P::dt > dtMaxGlobal[1] * P::vlasovSolverMaxCFL * P::maxSlAccelerationSubcycles ||
         P::dt > dtMaxGlobal[2] * P::fieldSolverMaxCFL * P::maxFieldSolverSubcycles ) ||
       ( P::dt < dtMaxGlobal[0] * P::vlasovSolverMinCFL && 
         P::dt < dtMaxGlobal[1] * P::vlasovSolverMinCFL * P::maxSlAccelerationSubcycles &&
-        P::dt < dtMaxGlobal[2] * P::fieldSolverMinCFL * P::maxFieldSolverSubcycles )) &&
-         P::dynamicTimestep == true
+        P::dt < dtMaxGlobal[2] * P::fieldSolverMinCFL * P::maxFieldSolverSubcycles )
       ) {
       //new dt computed
       isChanged=true;
@@ -199,7 +198,13 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          dtMaxGlobal[1] * P::maxSlAccelerationSubcycles << " " <<
          dtMaxGlobal[2] * P::maxFieldSolverSubcycles<< " " <<
          endl << writeVerbose;
-      subcycleDt = newDt;
+
+      if(P::dynamicTimestep == true) {
+         subcycleDt = newDt;
+      } else {
+         logFile <<"(TIMESTEP) However, fixed timestep in config overrides dt = " << P::dt << endl << writeVerbose;
+         subcycleDt = P::dt;
+      }
    } else {
       subcycleDt = P::dt;
    }
