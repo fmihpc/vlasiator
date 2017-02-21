@@ -324,18 +324,8 @@ bool propagateFields(
       #endif
    } else {
       for (uint i=0; i<subcycles; i++) {
-//          propagateMagneticFieldSimple(mpiGrid, sysBoundaries, dt/convert<Real>(subcycles), localCells, RK_ORDER1);
-//          // If we are at the first subcycle we need to update the derivatives of the moments, 
-//          // otherwise only B changed and those derivatives need to be updated.
-//          calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1, (i==0));
-//          if(P::ohmGradPeTerm > 0 && i==0) {
-//             calculateGradPeTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
-//             hallTermCommunicateDerivatives = false;
-//          }
-//          if(P::ohmHallTerm > 0) {
-//             calculateHallTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1, hallTermCommunicateDerivatives);
-//          }
-//          calculateUpwindedElectricFieldSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
+         // In case of subcycling, we decided to go for a blunt Runge-Kutta subcycling even though e.g. moments are not going along.
+         // Result of the Summer of Debugging 2016, the behaviour in wave dispersion was much improved with this.
          propagateMagneticFieldSimple(mpiGrid, sysBoundaries, dt/convert<Real>(subcycles), localCells, RK_ORDER2_STEP1);
          // If we are at the first subcycle we need to update the derivatives of the moments, 
          // otherwise only B changed and those derivatives need to be updated.
