@@ -53,7 +53,7 @@ inline void filter_pqm_monotonicity(Vec *values, uint k, Vec &fv_l, Vec &fv_r, V
    const Vec sqrt_val = select(val_to_sqrt < 0.0, 
                                b1 + 200.0 * b2,
                                val_to_sqrt * approx_rsqrt(val_to_sqrt));
-#elif
+#else
    const Vec sqrt_val = select(val_to_sqrt < 0.0, 
                                b1 + 200.0 * b2,
                                sqrt(val_to_sqrt));
