@@ -37,6 +37,35 @@ using namespace std;
 extern map<CellID,uint> existingCellsFlags;
 
 /*! \brief Low-level helper function.
+ *
+ * Computes the correct combination of speeds to determine the CFL limits.
+ *
+ * It should be in-plane, but we use the complete wave speeds from calculateWaveSpeed??().
+ * 
+ * At the moment it computes the geometric mean of both bulk velocity components
+ * and takes the maximum of that plus either the magnetosonic or the whistler speed.
+ * 
+ * \sa calculateWaveSpeedYZ calculateWaveSpeedXY calculateWaveSpeedZX
+ *
+ * \param v0 Flow in first direction
+ * \param v1 Flow in second direction
+ * \param vA Alfven speed
+ * \param vS Sound speed
+ * \param vW Whistler speed
+ */
+Real calculateCflSpeed(
+   const Real& v0,
+   const Real& v1,
+   const Real& vA,
+   const Real& vS,
+   const Real& vW
+) {
+   const Real v = sqrt(v0*v0 + v1*v1);
+   const Real vMS = sqrt(vA*vA + vS*vS);
+   return max(v + vMS, v + vW);
+}
+
+/*! \brief Low-level helper function.
  * 
  * Computes the magnetosonic speed in the YZ plane. Used in upwinding the electric field X component.
  * 
@@ -495,7 +524,7 @@ void calculateEdgeElectricFieldX(
    ay_pos   = max(ZERO,+Vy0 + c_y);
    az_neg   = max(ZERO,-Vz0 + c_z);
    az_pos   = max(ZERO,+Vz0 + c_z);
-   maxV = max(maxV, fabs(Vy0) + fabs(Vz0) + vA + vS + vW);
+   maxV = max(maxV, calculateCflSpeed(Vy0, Vz0, vA, vS, vW));
 
    // Ex and characteristic speeds on j-1 neighbour:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -549,7 +578,7 @@ void calculateEdgeElectricFieldX(
    ay_pos   = max(ay_pos,+Vy0 + c_y);
    az_neg   = max(az_neg,-Vz0 + c_z);
    az_pos   = max(az_pos,+Vz0 + c_z);
-   maxV = max(maxV, fabs(Vy0) + fabs(Vz0) + vA + vS + vW);
+   maxV = max(maxV, calculateCflSpeed(Vy0, Vz0, vA, vS, vW));
 
    // Ex and characteristic speeds on k-1 neighbour:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -603,7 +632,7 @@ void calculateEdgeElectricFieldX(
    ay_pos   = max(ay_pos,+Vy0 + c_y);
    az_neg   = max(az_neg,-Vz0 + c_z);
    az_pos   = max(az_pos,+Vz0 + c_z);
-   maxV = max(maxV, fabs(Vy0) + fabs(Vz0) + vA + vS + vW);
+   maxV = max(maxV, calculateCflSpeed(Vy0, Vz0, vA, vS, vW));
 
    // Ex and characteristic speeds on j-1,k-1 neighbour:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -657,7 +686,7 @@ void calculateEdgeElectricFieldX(
    ay_pos   = max(ay_pos,+Vy0 + c_y);
    az_neg   = max(az_neg,-Vz0 + c_z);
    az_pos   = max(az_pos,+Vz0 + c_z);
-   maxV = max(maxV, fabs(Vy0) + fabs(Vz0) + vA + vS + vW);
+   maxV = max(maxV, calculateCflSpeed(Vy0, Vz0, vA, vS, vW));
 
    // Calculate properly upwinded edge-averaged Ex:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -863,7 +892,7 @@ void calculateEdgeElectricFieldY(
    az_pos   = max(ZERO,+Vz0 + c_z);
    ax_neg   = max(ZERO,-Vx0 + c_x);
    ax_pos   = max(ZERO,+Vx0 + c_x);
-   maxV = max(maxV, fabs(Vz0) + fabs(Vx0) + vA + vS + vW);
+   maxV = max(maxV, calculateCflSpeed(Vz0, Vx0, vA, vS, vW));
 
    // Ey and characteristic speeds on k-1 neighbour:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -917,7 +946,7 @@ void calculateEdgeElectricFieldY(
    az_pos   = max(az_pos,+Vz0 + c_z);
    ax_neg   = max(ax_neg,-Vx0 + c_x);
    ax_pos   = max(ax_pos,+Vx0 + c_x);
-   maxV = max(maxV, fabs(Vz0) + fabs(Vx0) + vA + vS + vW);
+   maxV = max(maxV, calculateCflSpeed(Vz0, Vx0, vA, vS, vW));
    
    // Ey and characteristic speeds on i-1 neighbour:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -971,7 +1000,7 @@ void calculateEdgeElectricFieldY(
    az_pos   = max(az_pos,+Vz0 + c_z);
    ax_neg   = max(ax_neg,-Vx0 + c_x);
    ax_pos   = max(ax_pos,+Vx0 + c_x);
-   maxV = max(maxV, fabs(Vz0) + fabs(Vx0) + vA + vS + vW);
+   maxV = max(maxV, calculateCflSpeed(Vz0, Vx0, vA, vS, vW));
 
    // Ey and characteristic speeds on i-1,k-1 neighbour:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -1025,7 +1054,7 @@ void calculateEdgeElectricFieldY(
    az_pos   = max(az_pos,+Vz0 + c_z);
    ax_neg   = max(ax_neg,-Vx0 + c_x);
    ax_pos   = max(ax_pos,+Vx0 + c_x);
-   maxV = max(maxV, fabs(Vz0) + fabs(Vx0) + vA + vS + vW);
+   maxV = max(maxV, calculateCflSpeed(Vz0, Vx0, vA, vS, vW));
 
    // Calculate properly upwinded edge-averaged Ey:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -1231,7 +1260,7 @@ void calculateEdgeElectricFieldZ(
    ax_pos   = max(ZERO,+Vx0 + c_x);
    ay_neg   = max(ZERO,-Vy0 + c_y);
    ay_pos   = max(ZERO,+Vy0 + c_y);
-   maxV = max(maxV, fabs(Vx0) + fabs(Vy0) + vA + vS + vW);
+   maxV = max(maxV, calculateCflSpeed(Vx0, Vy0, vA, vS, vW));
 
    // Ez and characteristic speeds on SE (i-1) cell:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -1284,7 +1313,7 @@ void calculateEdgeElectricFieldZ(
    ax_pos = max(ax_pos,+Vx0 + c_x);
    ay_neg = max(ay_neg,-Vy0 + c_y);
    ay_pos = max(ay_pos,+Vy0 + c_y);
-   maxV = max(maxV, fabs(Vx0) + fabs(Vy0) + vA + vS + vW);
+   maxV = max(maxV, calculateCflSpeed(Vx0, Vy0, vA, vS, vW));
 
    // Ez and characteristic speeds on NW (j-1) cell:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -1338,7 +1367,7 @@ void calculateEdgeElectricFieldZ(
    ax_pos = max(ax_pos,+Vx0 + c_x);
    ay_neg = max(ay_neg,-Vy0 + c_y);
    ay_pos = max(ay_pos,+Vy0 + c_y);
-   maxV = max(maxV, fabs(Vx0) + fabs(Vy0) + vA + vS + vW);
+   maxV = max(maxV, calculateCflSpeed(Vx0, Vy0, vA, vS, vW));
    
    // Ez and characteristic speeds on NE (i-1,j-1) cell:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -1392,7 +1421,7 @@ void calculateEdgeElectricFieldZ(
    ax_pos = max(ax_pos,+Vx0 + c_x);
    ay_neg = max(ay_neg,-Vy0 + c_y);
    ay_pos = max(ay_pos,+Vy0 + c_y);
-   maxV = max(maxV, fabs(Vx0) + fabs(Vy0) + vA + vS + vW);
+   maxV = max(maxV, calculateCflSpeed(Vx0, Vy0, vA, vS, vW));
 
    // Calculate properly upwinded edge-averaged Ez:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
