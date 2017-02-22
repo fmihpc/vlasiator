@@ -33,20 +33,17 @@ comparison_phiprof[2]="phiprof_1.txt"
 # translation test
 test_name[3]="transtest_2_maxw_500k_100k_20kms_20x20"
 comparison_vlsv[3]="fullf.0000001.vlsv"
-#only one process does anything -> in _1 phiprof here
 comparison_phiprof[3]="phiprof_0.txt"
 
-#very small magnetosphere, tests all at once
+#Very small ecliptic magnetosphere, no subcycling in ACC or FS
 test_name[4]="Magnetosphere_small"
 comparison_vlsv[4]="bulk.0000001.vlsv"
-#only one process does anything -> in _1 phiprof here
 comparison_phiprof[4]="phiprof_0.txt"
 
-#Acceleration of 1 maxwellian, corresponds to SW
-test_name[5]="acctest_1_maxw_500k_30kms_1deg"
-comparison_vlsv[5]="fullf.0000001.vlsv"
-#only one process does anything -> in _1 phiprof here
-comparison_phiprof[5]="phiprof_1.txt"
+#Very small polar magnetosphere, with subcycling in ACC or FS
+test_name[5]="Magnetosphere_polar_small"
+comparison_vlsv[5]="bulk.0000001.vlsv"
+comparison_phiprof[5]="phiprof_0.txt"
 
 # Field solver test
 test_name[6]="test_fp_fsolver_only_3D"
