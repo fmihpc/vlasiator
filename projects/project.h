@@ -24,6 +24,8 @@
 #define PROJECT_H
 
 #include "../spatial_cell.hpp"
+#include <dccrg.hpp>
+#include <dccrg_cartesian_geometry.hpp>
 
 namespace projects {
    class Project {
@@ -41,6 +43,13 @@ namespace projects {
       
       /*! Initialize project. Can be used, e.g., to read in parameters from the input file. */
       virtual bool initialize();
+      
+      /*! Perform some operation at each time step in the main program loop. */
+      virtual void endTimeStep(
+         cuint& myRank,
+         const std::vector<CellID>& localCells,
+         const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
+      ) const;
       
       bool initialized();
       

@@ -38,6 +38,11 @@ namespace projects {
       static void addParameters(void);
       virtual void getParameters(void);
       virtual void setCellBackgroundField(spatial_cell::SpatialCell* cell) const;
+      virtual void endTimeStep(
+         cuint& myRank,
+         const std::vector<CellID>& localCells,
+         const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
+      ) const;
     protected:
       Real getDistribValue(creal& vx, creal& vy, creal& vz) const;
       virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);

@@ -393,6 +393,11 @@ namespace projects {
       exit(1);
    }
    
+   void Project::endTimeStep(
+      cuint& myRank,
+      const std::vector<CellID>& localCells,
+      const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
+   ) const { }
 
    void Project::setCell(SpatialCell* cell) {
       // Set up cell parameters:
