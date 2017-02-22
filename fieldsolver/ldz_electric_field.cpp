@@ -37,6 +37,35 @@ using namespace std;
 extern map<CellID,uint> existingCellsFlags;
 
 /*! \brief Low-level helper function.
+ *
+ * Computes the correct combination of speeds to determine the CFL limits.
+ *
+ * It should be in-plane, but we use the complete wave speeds from calculateWaveSpeed??().
+ * 
+ * At the moment it computes the geometric mean of both bulk velocity components
+ * and takes the maximum of that plus either the magnetosonic or the whistler speed.
+ * 
+ * \sa calculateWaveSpeedYZ calculateWaveSpeedXY calculateWaveSpeedZX
+ *
+ * \param v0 Flow in first direction
+ * \param v1 Flow in second direction
+ * \param vA Alfven speed
+ * \param vS Sound speed
+ * \param vW Whistler speed
+ */
+Real calculateCflSpeed(
+   const Real& v0,
+   const Real& v1,
+   const Real& vA,
+   const Real& vS,
+   const Real& vW
+) {
+   const Real v = sqrt(v0*v0 + v1*v1);
+   const Real vMS = sqrt(vA*vA + vS*vS);
+   return max(v + vMS, v + vW);
+}
+
+/*! \brief Low-level helper function.
  * 
  * Computes the magnetosonic speed in the YZ plane. Used in upwinding the electric field X component.
  * 
@@ -59,8 +88,11 @@ extern map<CellID,uint> existingCellsFlags;
  * \param minRho Minimum density allowed from the neighborhood
  * \param maxRho Maximum density allowed from the neighborhood
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
+ * \param ret_vA Alfven speed returned
+ * \param ret_vS Sound speed returned
+ * \param ret_vW Whistler speed returned
  */
-Real calculateWaveSpeedYZ(
+void calculateWaveSpeedYZ(
    const Real* cp,
    const Real* derivs,
    const Real* nbr_cp,
@@ -75,9 +107,14 @@ Real calculateWaveSpeedYZ(
    const Real& zdir,
    const Real& minRho,
    const Real& maxRho,
-   cint& RKCase
+   cint& RKCase,
+   Real& ret_vA,
+   Real& ret_vS,
+   Real& ret_vW
 ) {
-   if (Parameters::propagateField == false) return 0.0;
+   if (Parameters::propagateField == false) {
+      return;
+   }
 
    Real A_0, A_X, rhom, p11, p22, p33;
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -111,17 +148,20 @@ Real calculateWaveSpeedYZ(
      + TWELWTH*(A_X + ydir*HALF*A_XY + zdir*HALF*A_XZ)*(A_X + ydir*HALF*A_XY + zdir*HALF*A_XZ); // OK
    const Real By2  = (By + zdir*HALF*dBydz)*(By + zdir*HALF*dBydz) + TWELWTH*dBydx*dBydx; // OK
    const Real Bz2  = (Bz + ydir*HALF*dBzdy)*(Bz + ydir*HALF*dBzdy) + TWELWTH*dBzdx*dBzdx; // OK
-
+   
+   const Real Bmag2 = Bx2 + By2 + Bz2;
+   
    p11 = p11 < 0.0 ? 0.0 : p11;
    p22 = p22 < 0.0 ? 0.0 : p22;
    p33 = p33 < 0.0 ? 0.0 : p33;
 
-   const Real vA2 = divideIfNonZero(Bx2+By2+Bz2, pc::MU_0*rhom); // Alfven speed
+   const Real vA2 = divideIfNonZero(Bmag2, pc::MU_0*rhom); // Alfven speed
    const Real vS2 = divideIfNonZero(p11+p22+p33, 2.0*rhom); // sound speed, adiabatic coefficient 3/2, P=1/3*trace in sound speed
-   const Real vW = Parameters::ohmHallTerm > 0 ? divideIfNonZero(2.0*M_PI*vA2*pc::MASS_PROTON, 
-                                                                 cp[CellParams::DX]*pc::CHARGE*sqrt(Bx2+By2+Bz2)) : 0.0; // whistler speed
-
-   return min(Parameters::maxWaveVelocity,sqrt(vA2 + vS2) + vW);
+   const Real vW = Parameters::ohmHallTerm > 0 ? divideIfNonZero(2.0*M_PI*vA2*pc::MASS_PROTON, cp[CellParams::DX]*pc::CHARGE*sqrt(Bmag2)) : 0.0; // whistler speed
+   
+   ret_vA = sqrt(vA2);
+   ret_vS = sqrt(vS2);
+   ret_vW = vW;
 }
 
 /*! \brief Low-level helper function.
@@ -147,8 +187,11 @@ Real calculateWaveSpeedYZ(
  * \param minRho Minimum density allowed from the neighborhood
  * \param maxRho Maximum density allowed from the neighborhood
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
+ * \param ret_vA Alfven speed returned
+ * \param ret_vS Sound speed returned
+ * \param ret_vW Whistler speed returned
  */
-Real calculateWaveSpeedXZ(
+void calculateWaveSpeedXZ(
    const Real* cp,
    const Real* derivs,
    const Real* nbr_cp,
@@ -163,9 +206,14 @@ Real calculateWaveSpeedXZ(
    const Real& zdir,
    const Real& minRho,
    const Real& maxRho,
-   cint& RKCase
+   cint& RKCase,
+   Real& ret_vA,
+   Real& ret_vS,
+   Real& ret_vW
 ) {
-   if (Parameters::propagateField == false) return 0.0;
+   if (Parameters::propagateField == false) {
+      return;
+   }
 
    Real B_0, B_Y, rhom, p11, p22, p33;
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -200,15 +248,19 @@ Real calculateWaveSpeedXZ(
    const Real Bx2  = (Bx + zdir*HALF*dBxdz)*(Bx + zdir*HALF*dBxdz) + TWELWTH*dBxdy*dBxdy; // OK
    const Real Bz2  = (Bz + xdir*HALF*dBzdx)*(Bz + xdir*HALF*dBzdx) + TWELWTH*dBzdy*dBzdy; // OK
    
+   const Real Bmag2 = Bx2 + By2 + Bz2;
+   
    p11 = p11 < 0.0 ? 0.0 : p11;
    p22 = p22 < 0.0 ? 0.0 : p22;
    p33 = p33 < 0.0 ? 0.0 : p33;
    
-   const Real vA2 = divideIfNonZero(Bx2+By2+Bz2, pc::MU_0*rhom); // Alfven speed
+   const Real vA2 = divideIfNonZero(Bmag2, pc::MU_0*rhom); // Alfven speed
    const Real vS2 = divideIfNonZero(p11+p22+p33, 2.0*rhom); // sound speed, adiabatic coefficient 3/2, P=1/3*trace in sound speed
-   const Real vW = Parameters::ohmHallTerm > 0 ? divideIfNonZero(2.0*M_PI*vA2*pc::MASS_PROTON, cp[CellParams::DX]*pc::CHARGE*sqrt(Bx2+By2+Bz2)) : 0.0; // whistler speed
-      
-   return min(Parameters::maxWaveVelocity,sqrt(vA2 + vS2) + vW);
+   const Real vW = Parameters::ohmHallTerm > 0 ? divideIfNonZero(2.0*M_PI*vA2*pc::MASS_PROTON, cp[CellParams::DX]*pc::CHARGE*sqrt(Bmag2)) : 0.0; // whistler speed
+   
+   ret_vA = sqrt(vA2);
+   ret_vS = sqrt(vS2);
+   ret_vW = vW;
 }
 
 /*! \brief Low-level helper function.
@@ -234,8 +286,11 @@ Real calculateWaveSpeedXZ(
  * \param minRho Minimum density allowed from the neighborhood
  * \param maxRho Maximum density allowed from the neighborhood
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
+ * \param ret_vA Alfven speed returned
+ * \param ret_vS Sound speed returned
+ * \param ret_vW Whistler speed returned
  */
-Real calculateWaveSpeedXY(
+void calculateWaveSpeedXY(
    const Real* cp,
    const Real* derivs,
    const Real* nbr_cp,
@@ -250,9 +305,14 @@ Real calculateWaveSpeedXY(
    const Real& ydir,
    const Real& minRho,
    const Real& maxRho,
-   cint& RKCase
+   cint& RKCase,
+   Real& ret_vA,
+   Real& ret_vS,
+   Real& ret_vW
 ) {
-   if (Parameters::propagateField == false) return 0.0;
+   if (Parameters::propagateField == false) {
+      return;
+   }
 
    Real C_0, C_Z, rhom, p11, p22, p33;
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -287,15 +347,19 @@ Real calculateWaveSpeedXY(
    const Real Bx2  = (Bx + ydir*HALF*dBxdy)*(Bx + ydir*HALF*dBxdy) + TWELWTH*dBxdz*dBxdz;
    const Real By2  = (By + xdir*HALF*dBydx)*(By + xdir*HALF*dBydx) + TWELWTH*dBydz*dBydz;
    
+   const Real Bmag2 = Bx2 + By2 + Bz2;
+   
    p11 = p11 < 0.0 ? 0.0 : p11;
    p22 = p22 < 0.0 ? 0.0 : p22;
    p33 = p33 < 0.0 ? 0.0 : p33;
       
-   const Real vA2 = divideIfNonZero(Bx2+By2+Bz2, pc::MU_0*rhom); // Alfven speed
+   const Real vA2 = divideIfNonZero(Bmag2, pc::MU_0*rhom); // Alfven speed
    const Real vS2 = divideIfNonZero(p11+p22+p33, 2.0*rhom); // sound speed, adiabatic coefficient 3/2, P=1/3*trace in sound speed
-   const Real vW = Parameters::ohmHallTerm > 0 ? divideIfNonZero(2.0*M_PI*vA2*pc::MASS_PROTON, cp[CellParams::DX]*pc::CHARGE*sqrt(Bx2+By2+Bz2)) : 0.0; // whistler speed
-
-   return min(Parameters::maxWaveVelocity,sqrt(vA2 + vS2) + vW);
+   const Real vW = Parameters::ohmHallTerm > 0 ? divideIfNonZero(2.0*M_PI*vA2*pc::MASS_PROTON, cp[CellParams::DX]*pc::CHARGE*sqrt(Bmag2)) : 0.0; // whistler speed
+   
+   ret_vA = sqrt(vA2);
+   ret_vS = sqrt(vS2);
+   ret_vW = vW;
 }
 
 /*! \brief Low-level electric field propagation function.
@@ -330,6 +394,8 @@ void calculateEdgeElectricFieldX(
    Real ay_pos,ay_neg;              // Max. characteristic velocities to y-direction
    Real az_pos,az_neg;              // Max. characteristic velocities to z-direction
    Real Vy0,Vz0;                    // Reconstructed V
+   Real vA, vS, vW;                 // Alfven, sound, whistler speed
+   Real maxV = 0.0;                 // Max velocity for CFL purposes
    Real c_y, c_z;                   // Wave speeds to yz-directions
 
    // Get read-only pointers to NE,NW,SE,SW states (SW is rw, result is written there):
@@ -450,13 +516,15 @@ void calculateEdgeElectricFieldX(
 
    creal* const nbr_cp_SW     = cache.cells[fs_cache::calculateNbrID(1+1,1  ,1  )]->parameters;
    creal* const nbr_derivs_SW = cache.cells[fs_cache::calculateNbrID(1+1,1  ,1  )]->derivatives;
-
-   c_y = calculateWaveSpeedYZ(cp_SW, derivs_SW, nbr_cp_SW, nbr_derivs_SW, By_S, Bz_W, dBydx_S, dBydz_S, dBzdx_W, dBzdy_W, MINUS, MINUS, minRho, maxRho, RKCase);
+   
+   calculateWaveSpeedYZ(cp_SW, derivs_SW, nbr_cp_SW, nbr_derivs_SW, By_S, Bz_W, dBydx_S, dBydz_S, dBzdx_W, dBzdy_W, MINUS, MINUS, minRho, maxRho, RKCase, vA, vS, vW);
+   c_y = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS));
    c_z = c_y;
    ay_neg   = max(ZERO,-Vy0 + c_y);
    ay_pos   = max(ZERO,+Vy0 + c_y);
    az_neg   = max(ZERO,-Vz0 + c_z);
    az_pos   = max(ZERO,+Vz0 + c_z);
+   maxV = max(maxV, calculateCflSpeed(Vy0, Vz0, vA, vS, vW));
 
    // Ex and characteristic speeds on j-1 neighbour:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -502,13 +570,15 @@ void calculateEdgeElectricFieldX(
 
    creal* const nbr_cp_SE     = cache.cells[fs_cache::calculateNbrID(1+1,1-1,1  )]->parameters;
    creal* const nbr_derivs_SE = cache.cells[fs_cache::calculateNbrID(1+1,1-1,1  )]->derivatives;
-
-   c_y = calculateWaveSpeedYZ(cp_SE, derivs_SE, nbr_cp_SE, nbr_derivs_SE, By_S, Bz_E, dBydx_S, dBydz_S, dBzdx_E, dBzdy_E, PLUS, MINUS, minRho, maxRho, RKCase);
+   
+   calculateWaveSpeedYZ(cp_SE, derivs_SE, nbr_cp_SE, nbr_derivs_SE, By_S, Bz_E, dBydx_S, dBydz_S, dBzdx_E, dBzdy_E, PLUS, MINUS, minRho, maxRho, RKCase, vA, vS, vW);
+   c_y = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS));
    c_z = c_y;
    ay_neg   = max(ay_neg,-Vy0 + c_y);
    ay_pos   = max(ay_pos,+Vy0 + c_y);
    az_neg   = max(az_neg,-Vz0 + c_z);
    az_pos   = max(az_pos,+Vz0 + c_z);
+   maxV = max(maxV, calculateCflSpeed(Vy0, Vz0, vA, vS, vW));
 
    // Ex and characteristic speeds on k-1 neighbour:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -554,13 +624,15 @@ void calculateEdgeElectricFieldX(
    
    creal* const nbr_cp_NW     = cache.cells[fs_cache::calculateNbrID(1+1,1  ,1-1)]->parameters;
    creal* const nbr_derivs_NW = cache.cells[fs_cache::calculateNbrID(1+1,1  ,1-1)]->derivatives;
-
-   c_y = calculateWaveSpeedYZ(cp_NW, derivs_NW, nbr_cp_NW, nbr_derivs_NW, By_N, Bz_W, dBydx_N, dBydz_N, dBzdx_W, dBzdy_W, MINUS, PLUS, minRho, maxRho, RKCase);
+   
+   calculateWaveSpeedYZ(cp_NW, derivs_NW, nbr_cp_NW, nbr_derivs_NW, By_N, Bz_W, dBydx_N, dBydz_N, dBzdx_W, dBzdy_W, MINUS, PLUS, minRho, maxRho, RKCase, vA, vS, vW);
+   c_y = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS));
    c_z = c_y;
    ay_neg   = max(ay_neg,-Vy0 + c_y);
    ay_pos   = max(ay_pos,+Vy0 + c_y);
    az_neg   = max(az_neg,-Vz0 + c_z);
    az_pos   = max(az_pos,+Vz0 + c_z);
+   maxV = max(maxV, calculateCflSpeed(Vy0, Vz0, vA, vS, vW));
 
    // Ex and characteristic speeds on j-1,k-1 neighbour:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -606,13 +678,15 @@ void calculateEdgeElectricFieldX(
    
    creal* const nbr_cp_NE     = cache.cells[fs_cache::calculateNbrID(1+1,1-1,1-1)]->parameters;
    creal* const nbr_derivs_NE = cache.cells[fs_cache::calculateNbrID(1+1,1-1,1-1)]->derivatives;
-
-   c_y = calculateWaveSpeedYZ(cp_NE, derivs_NE, nbr_cp_NE, nbr_derivs_NE, By_N, Bz_E, dBydx_N, dBydz_N, dBzdx_E, dBzdy_E, PLUS, PLUS, minRho, maxRho, RKCase);
+   
+   calculateWaveSpeedYZ(cp_NE, derivs_NE, nbr_cp_NE, nbr_derivs_NE, By_N, Bz_E, dBydx_N, dBydz_N, dBzdx_E, dBzdy_E, PLUS, PLUS, minRho, maxRho, RKCase, vA, vS, vW);
+   c_y = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS));
    c_z = c_y;
    ay_neg   = max(ay_neg,-Vy0 + c_y);
    ay_pos   = max(ay_pos,+Vy0 + c_y);
    az_neg   = max(az_neg,-Vz0 + c_z);
    az_pos   = max(az_pos,+Vz0 + c_z);
+   maxV = max(maxV, calculateCflSpeed(Vy0, Vz0, vA, vS, vW));
 
    // Calculate properly upwinded edge-averaged Ex:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -647,16 +721,11 @@ void calculateEdgeElectricFieldX(
    
    if ((RKCase == RK_ORDER1) || (RKCase == RK_ORDER2_STEP2)) {
       //compute maximum timestep for fieldsolver in this cell (CFL=1)
-      Real max_a=ZERO;
-      max_a=max(fabs(az_neg),max_a); 
-      max_a=max(fabs(az_pos),max_a);
-      max_a=max(fabs(ay_neg),max_a);
-      max_a=max(fabs(ay_pos),max_a);
       Real min_dx=std::numeric_limits<Real>::max();
       min_dx=min(min_dx,cp_SW[CellParams::DY]);
       min_dx=min(min_dx,cp_SW[CellParams::DZ]);
       //update max allowed timestep for field propagation in this cell, which is the minimum of CFL=1 timesteps
-      if (max_a != ZERO) cp_SW[CellParams::MAXFDT] = min(cp_SW[CellParams::MAXFDT],min_dx/max_a);
+      if (maxV != ZERO) cp_SW[CellParams::MAXFDT] = min(cp_SW[CellParams::MAXFDT],min_dx/maxV);
    }
 }
 
@@ -692,6 +761,8 @@ void calculateEdgeElectricFieldY(
    Real ax_pos,ax_neg;              // Max. characteristic velocities to x-direction
    Real az_pos,az_neg;              // Max. characteristic velocities to z-direction
    Real Vx0,Vz0;                    // Reconstructed V
+   Real vA, vS, vW;                 // Alfven, sound, whistler speed
+   Real maxV = 0.0;                 // Max velocity for CFL purposes
    Real c_x,c_z;                    // Wave speeds to xz-directions
 
    // Get read-only pointers to NE,NW,SE,SW states (SW is rw, result is written there):
@@ -813,13 +884,15 @@ void calculateEdgeElectricFieldY(
    
    creal* const nbr_cp_SW     = cache.cells[fs_cache::calculateNbrID(1  ,1+1,1  )]->parameters;
    creal* const nbr_derivs_SW = cache.cells[fs_cache::calculateNbrID(1  ,1+1,1  )]->derivatives;
-
-   c_z = calculateWaveSpeedXZ(cp_SW, derivs_SW, nbr_cp_SW, nbr_derivs_SW, Bx_W, Bz_S, dBxdy_W, dBxdz_W, dBzdx_S, dBzdy_S, MINUS, MINUS, minRho, maxRho, RKCase);
+   
+   calculateWaveSpeedXZ(cp_SW, derivs_SW, nbr_cp_SW, nbr_derivs_SW, Bx_W, Bz_S, dBxdy_W, dBxdz_W, dBzdx_S, dBzdy_S, MINUS, MINUS, minRho, maxRho, RKCase, vA, vS, vW);
+   c_z = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS));
    c_x = c_z;
    az_neg   = max(ZERO,-Vz0 + c_z);
    az_pos   = max(ZERO,+Vz0 + c_z);
    ax_neg   = max(ZERO,-Vx0 + c_x);
    ax_pos   = max(ZERO,+Vx0 + c_x);
+   maxV = max(maxV, calculateCflSpeed(Vz0, Vx0, vA, vS, vW));
 
    // Ey and characteristic speeds on k-1 neighbour:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -865,12 +938,15 @@ void calculateEdgeElectricFieldY(
    
    creal* const nbr_cp_SE     = cache.cells[fs_cache::calculateNbrID(1  ,1+1,1-1)]->parameters;
    creal* const nbr_derivs_SE = cache.cells[fs_cache::calculateNbrID(1  ,1+1,1-1)]->derivatives;
-   c_z = calculateWaveSpeedXZ(cp_SE, derivs_SE, nbr_cp_SE, nbr_derivs_SE, Bx_E, Bz_S, dBxdy_E, dBxdz_E, dBzdx_S, dBzdy_S, MINUS, PLUS, minRho, maxRho, RKCase);
+   
+   calculateWaveSpeedXZ(cp_SE, derivs_SE, nbr_cp_SE, nbr_derivs_SE, Bx_E, Bz_S, dBxdy_E, dBxdz_E, dBzdx_S, dBzdy_S, MINUS, PLUS, minRho, maxRho, RKCase, vA, vS, vW);
+   c_z = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS));
    c_x = c_z;
    az_neg   = max(az_neg,-Vz0 + c_z);
    az_pos   = max(az_pos,+Vz0 + c_z);
    ax_neg   = max(ax_neg,-Vx0 + c_x);
    ax_pos   = max(ax_pos,+Vx0 + c_x);
+   maxV = max(maxV, calculateCflSpeed(Vz0, Vx0, vA, vS, vW));
    
    // Ey and characteristic speeds on i-1 neighbour:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -916,12 +992,15 @@ void calculateEdgeElectricFieldY(
    
    creal* const nbr_cp_NW     = cache.cells[fs_cache::calculateNbrID(1-1,1+1,1  )]->parameters;
    creal* const nbr_derivs_NW = cache.cells[fs_cache::calculateNbrID(1-1,1+1,1  )]->derivatives;
-   c_z = calculateWaveSpeedXZ(cp_NW, derivs_NW, nbr_cp_NW, nbr_derivs_NW, Bx_W, Bz_N, dBxdy_W, dBxdz_W, dBzdx_N, dBzdy_N, PLUS, MINUS, minRho, maxRho, RKCase);
+   
+   calculateWaveSpeedXZ(cp_NW, derivs_NW, nbr_cp_NW, nbr_derivs_NW, Bx_W, Bz_N, dBxdy_W, dBxdz_W, dBzdx_N, dBzdy_N, PLUS, MINUS, minRho, maxRho, RKCase, vA, vS, vW);
+   c_z = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS));
    c_x = c_z;
    az_neg   = max(az_neg,-Vz0 + c_z);
    az_pos   = max(az_pos,+Vz0 + c_z);
    ax_neg   = max(ax_neg,-Vx0 + c_x);
    ax_pos   = max(ax_pos,+Vx0 + c_x);
+   maxV = max(maxV, calculateCflSpeed(Vz0, Vx0, vA, vS, vW));
 
    // Ey and characteristic speeds on i-1,k-1 neighbour:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -967,12 +1046,15 @@ void calculateEdgeElectricFieldY(
 
    creal* const nbr_cp_NE     = cache.cells[fs_cache::calculateNbrID(1-1,1+1,1-1)]->parameters;
    creal* const nbr_derivs_NE = cache.cells[fs_cache::calculateNbrID(1-1,1+1,1-1)]->derivatives;
-   c_z = calculateWaveSpeedXZ(cp_NE, derivs_NE, nbr_cp_NE, nbr_derivs_NE, Bx_E, Bz_N, dBxdy_E, dBxdz_E, dBzdx_N, dBzdy_N, PLUS, PLUS, minRho, maxRho, RKCase);
+   
+   calculateWaveSpeedXZ(cp_NE, derivs_NE, nbr_cp_NE, nbr_derivs_NE, Bx_E, Bz_N, dBxdy_E, dBxdz_E, dBzdx_N, dBzdy_N, PLUS, PLUS, minRho, maxRho, RKCase, vA, vS, vW);
+   c_z = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS));
    c_x = c_z;
    az_neg   = max(az_neg,-Vz0 + c_z);
    az_pos   = max(az_pos,+Vz0 + c_z);
    ax_neg   = max(ax_neg,-Vx0 + c_x);
    ax_pos   = max(ax_pos,+Vx0 + c_x);
+   maxV = max(maxV, calculateCflSpeed(Vz0, Vx0, vA, vS, vW));
 
    // Calculate properly upwinded edge-averaged Ey:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -1004,16 +1086,11 @@ void calculateEdgeElectricFieldY(
    
    if ((RKCase == RK_ORDER1) || (RKCase == RK_ORDER2_STEP2)) {
       //compute maximum timestep for fieldsolver in this cell (CFL=1)      
-      Real max_a=ZERO;
-      max_a=max(fabs(az_neg),max_a);
-      max_a=max(fabs(az_pos),max_a);
-      max_a=max(fabs(ax_neg),max_a);
-      max_a=max(fabs(ax_pos),max_a);
       Real min_dx=std::numeric_limits<Real>::max();;
       min_dx=min(min_dx,cp_SW[CellParams::DX]);
       min_dx=min(min_dx,cp_SW[CellParams::DZ]);
       //update max allowed timestep for field propagation in this cell, which is the minimum of CFL=1 timesteps
-      if (max_a!=ZERO) cp_SW[CellParams::MAXFDT]=min(cp_SW[CellParams::MAXFDT],min_dx/max_a);
+      if (maxV!=ZERO) cp_SW[CellParams::MAXFDT]=min(cp_SW[CellParams::MAXFDT],min_dx/maxV);
    }
 }
 
@@ -1049,6 +1126,8 @@ void calculateEdgeElectricFieldZ(
    Real ax_pos,ax_neg;              // Max. characteristic velocities to x-direction
    Real ay_pos,ay_neg;              // Max. characteristic velocities to y-direction
    Real Vx0,Vy0;                    // Reconstructed V
+   Real vA, vS, vW;                         // Alfven, sound, whistler speed
+   Real maxV = 0.0;                 // Max velocity for CFL purposes
    Real c_x,c_y;                    // Characteristic speeds to xy-directions
    
    // Get read-only pointers to NE,NW,SE,SW states (SW is rw, result is written there):
@@ -1173,12 +1252,15 @@ void calculateEdgeElectricFieldZ(
    // to get Alfven speed we need to calculate some reconstruction coeff. for Bz:
    creal* const nbr_cp_SW     = cache.cells[fs_cache::calculateNbrID(1  ,1  ,1+1)]->parameters;
    creal* const nbr_derivs_SW = cache.cells[fs_cache::calculateNbrID(1  ,1  ,1+1)]->derivatives;
-   c_x = calculateWaveSpeedXY(cp_SW, derivs_SW, nbr_cp_SW, nbr_derivs_SW, Bx_S, By_W, dBxdy_S, dBxdz_S, dBydx_W, dBydz_W, MINUS, MINUS, minRho, maxRho, RKCase);
+   
+   calculateWaveSpeedXY(cp_SW, derivs_SW, nbr_cp_SW, nbr_derivs_SW, Bx_S, By_W, dBxdy_S, dBxdz_S, dBydx_W, dBydz_W, MINUS, MINUS, minRho, maxRho, RKCase, vA, vS, vW);
+   c_x = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS));
    c_y = c_x;
    ax_neg   = max(ZERO,-Vx0 + c_x);
    ax_pos   = max(ZERO,+Vx0 + c_x);
    ay_neg   = max(ZERO,-Vy0 + c_y);
    ay_pos   = max(ZERO,+Vy0 + c_y);
+   maxV = max(maxV, calculateCflSpeed(Vx0, Vy0, vA, vS, vW));
 
    // Ez and characteristic speeds on SE (i-1) cell:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -1223,12 +1305,15 @@ void calculateEdgeElectricFieldZ(
    
    creal* const nbr_cp_SE     = cache.cells[fs_cache::calculateNbrID(1-1,1  ,1+1)]->parameters;
    creal* const nbr_derivs_SE = cache.cells[fs_cache::calculateNbrID(1-1,1  ,1+1)]->derivatives;
-   c_x = calculateWaveSpeedXY(cp_SE, derivs_SE, nbr_cp_SE, nbr_derivs_SE, Bx_S, By_E, dBxdy_S, dBxdz_S, dBydx_E, dBydz_E, PLUS, MINUS, minRho, maxRho, RKCase);
+   
+   calculateWaveSpeedXY(cp_SE, derivs_SE, nbr_cp_SE, nbr_derivs_SE, Bx_S, By_E, dBxdy_S, dBxdz_S, dBydx_E, dBydz_E, PLUS, MINUS, minRho, maxRho, RKCase, vA, vS, vW);
+   c_x = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS));
    c_y = c_x;
    ax_neg = max(ax_neg,-Vx0 + c_x);
    ax_pos = max(ax_pos,+Vx0 + c_x);
    ay_neg = max(ay_neg,-Vy0 + c_y);
    ay_pos = max(ay_pos,+Vy0 + c_y);
+   maxV = max(maxV, calculateCflSpeed(Vx0, Vy0, vA, vS, vW));
 
    // Ez and characteristic speeds on NW (j-1) cell:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -1274,12 +1359,15 @@ void calculateEdgeElectricFieldZ(
    
    creal* const nbr_cp_NW     = cache.cells[fs_cache::calculateNbrID(1  ,1-1,1+1)]->parameters;
    creal* const nbr_derivs_NW = cache.cells[fs_cache::calculateNbrID(1  ,1-1,1+1)]->derivatives;
-   c_x = calculateWaveSpeedXY(cp_NW, derivs_NW, nbr_cp_NW, nbr_derivs_NW, Bx_N, By_W, dBxdy_N, dBxdz_N, dBydx_W, dBydz_W, MINUS, PLUS, minRho, maxRho, RKCase);
+   
+   calculateWaveSpeedXY(cp_NW, derivs_NW, nbr_cp_NW, nbr_derivs_NW, Bx_N, By_W, dBxdy_N, dBxdz_N, dBydx_W, dBydz_W, MINUS, PLUS, minRho, maxRho, RKCase, vA, vS, vW);
+   c_x = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS));
    c_y = c_x;
    ax_neg = max(ax_neg,-Vx0 + c_x); 
    ax_pos = max(ax_pos,+Vx0 + c_x);
    ay_neg = max(ay_neg,-Vy0 + c_y);
    ay_pos = max(ay_pos,+Vy0 + c_y);
+   maxV = max(maxV, calculateCflSpeed(Vx0, Vy0, vA, vS, vW));
    
    // Ez and characteristic speeds on NE (i-1,j-1) cell:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -1325,12 +1413,15 @@ void calculateEdgeElectricFieldZ(
    
    creal* const nbr_cp_NE     = cache.cells[fs_cache::calculateNbrID(1-1,1-1,1+1)]->parameters;
    creal* const nbr_derivs_NE = cache.cells[fs_cache::calculateNbrID(1-1,1-1,1+1)]->derivatives;
-   c_x = calculateWaveSpeedXY(cp_NE, derivs_NE, nbr_cp_NE, nbr_derivs_NE, Bx_N, By_E, dBxdy_N, dBxdz_N, dBydx_E, dBydz_E, PLUS, PLUS, minRho, maxRho, RKCase);
+   
+   calculateWaveSpeedXY(cp_NE, derivs_NE, nbr_cp_NE, nbr_derivs_NE, Bx_N, By_E, dBxdy_N, dBxdz_N, dBydx_E, dBydz_E, PLUS, PLUS, minRho, maxRho, RKCase, vA, vS, vW);
+   c_x = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS));
    c_y = c_x;
    ax_neg = max(ax_neg,-Vx0 + c_x);
    ax_pos = max(ax_pos,+Vx0 + c_x);
    ay_neg = max(ay_neg,-Vy0 + c_y);
    ay_pos = max(ay_pos,+Vy0 + c_y);
+   maxV = max(maxV, calculateCflSpeed(Vx0, Vy0, vA, vS, vW));
 
    // Calculate properly upwinded edge-averaged Ez:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -1363,16 +1454,11 @@ void calculateEdgeElectricFieldZ(
    
    if ((RKCase == RK_ORDER1) || (RKCase == RK_ORDER2_STEP2)) {
       //compute maximum timestep for fieldsolver in this cell (CFL=1)      
-      Real max_a=ZERO;
-      max_a=max(fabs(ay_neg),max_a);
-      max_a=max(fabs(ay_pos),max_a);
-      max_a=max(fabs(ax_neg),max_a);
-      max_a=max(fabs(ax_pos),max_a);
       Real min_dx=std::numeric_limits<Real>::max();;
       min_dx=min(min_dx,cp_SW[CellParams::DX]);
       min_dx=min(min_dx,cp_SW[CellParams::DY]);
       //update max allowed timestep for field propagation in this cell, which is the minimum of CFL=1 timesteps
-      if(max_a!=ZERO) cp_SW[CellParams::MAXFDT]=min(cp_SW[CellParams::MAXFDT],min_dx/max_a);
+      if(maxV!=ZERO) cp_SW[CellParams::MAXFDT]=min(cp_SW[CellParams::MAXFDT],min_dx/maxV);
    }
 }
 
