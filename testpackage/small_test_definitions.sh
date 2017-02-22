@@ -16,7 +16,7 @@ run_dir="run"
 test_dir="tests"
 
 # choose tests to run
-run_tests=( 1 2 3 4 5 6 7 8 9)
+run_tests=( 1 2 3 4 5 6 7 8 9 10 11)
 
 # acceleration test
 test_name[1]="acctest_2_maxw_500k_100k_20kms_10deg"
@@ -24,46 +24,54 @@ comparison_vlsv[1]="fullf.0000001.vlsv"
 #only one process does anything -> in _1 phiprof here
 comparison_phiprof[1]="phiprof_1.txt"
 
-# translation test
-test_name[2]="transtest_2_maxw_500k_100k_20kms_20x20"
+# acceleration test w/ substepping
+test_name[2]="acctest_3_substeps"
 comparison_vlsv[2]="fullf.0000001.vlsv"
 #only one process does anything -> in _1 phiprof here
-comparison_phiprof[2]="phiprof_0.txt"
+comparison_phiprof[2]="phiprof_1.txt"
 
-#very small magnetosphere, tests all at once
-test_name[3]="Magnetosphere_small"
-comparison_vlsv[3]="bulk.0000001.vlsv"
-#only one process does anything -> in _1 phiprof here
+# translation test
+test_name[3]="transtest_2_maxw_500k_100k_20kms_20x20"
+comparison_vlsv[3]="fullf.0000001.vlsv"
 comparison_phiprof[3]="phiprof_0.txt"
 
-#Acceleration of 1 maxwellian, corresponds to SW
-test_name[4]="acctest_1_maxw_500k_30kms_1deg"
-comparison_vlsv[4]="fullf.0000001.vlsv"
-#only one process does anything -> in _1 phiprof here
-comparison_phiprof[4]="phiprof_1.txt"
+#Very small ecliptic magnetosphere, no subcycling in ACC or FS
+test_name[4]="Magnetosphere_small"
+comparison_vlsv[4]="bulk.0000001.vlsv"
+comparison_phiprof[4]="phiprof_0.txt"
 
-# Field solver test
-test_name[5]="test_fp_fsolver_only_3D"
-comparison_vlsv[5]="fullf.0000001.vlsv"
+#Very small polar magnetosphere, with subcycling in ACC or FS
+test_name[5]="Magnetosphere_polar_small"
+comparison_vlsv[5]="bulk.0000001.vlsv"
 comparison_phiprof[5]="phiprof_0.txt"
 
-# Flowthrough tests
-test_name[6]="Flowthrough_trans_periodic"
-comparison_vlsv[6]="bulk.0000001.vlsv"
+# Field solver test
+test_name[6]="test_fp_fsolver_only_3D"
+comparison_vlsv[6]="fullf.0000001.vlsv"
 comparison_phiprof[6]="phiprof_0.txt"
 
-test_name[7]="Flowthrough_x_inflow_y_outflow"
-comparison_vlsv[7]="bulk.0000001.vlsv"
+# Field solver test w/ subcycles
+test_name[7]="test_fp_substeps"
+comparison_vlsv[7]="fullf.0000001.vlsv"
 comparison_phiprof[7]="phiprof_0.txt"
 
-test_name[8]="Flowthrough_x_inflow_y_outflow_acc"
+# Flowthrough tests
+test_name[8]="Flowthrough_trans_periodic"
 comparison_vlsv[8]="bulk.0000001.vlsv"
 comparison_phiprof[8]="phiprof_0.txt"
 
-# Self-consistent wave generation test
-test_name[9]="Selfgen_Waves_Periodic"
-comparison_vlsv[9]="fullf.0000001.vlsv"
+test_name[9]="Flowthrough_x_inflow_y_outflow"
+comparison_vlsv[9]="bulk.0000001.vlsv"
 comparison_phiprof[9]="phiprof_0.txt"
+
+test_name[10]="Flowthrough_x_inflow_y_outflow_acc"
+comparison_vlsv[10]="bulk.0000001.vlsv"
+comparison_phiprof[10]="phiprof_0.txt"
+
+# Self-consistent wave generation test
+test_name[11]="Selfgen_Waves_Periodic"
+comparison_vlsv[11]="fullf.0000001.vlsv"
+comparison_phiprof[11]="phiprof_0.txt"
 
 # define here the variables you want to be tested
 variables_name=( "rho" "rho_v" "rho_v" "rho_v" "B" "B" "B" "E" "E" "E" "proton" )
