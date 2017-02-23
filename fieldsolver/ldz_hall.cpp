@@ -436,9 +436,8 @@ void calculateEdgeHallTermXComponents(
    cint& RKCase
 ) {
    #warning Particles (charge) assumed to be protons here
-
-   Real hallRho;
-   Real By, Bz, EXHall = 0.0;
+   
+   Real By, Bz, hallRho = 0.0;
    
    switch (Parameters::ohmHallTerm) {
     case 0:
@@ -450,27 +449,21 @@ void calculateEdgeHallTermXComponents(
          By = cp[CellParams::PERBY]+cp[CellParams::BGBY];
          Bz = cp[CellParams::PERBZ]+cp[CellParams::BGBZ];
          hallRho =  (cp[CellParams::RHO] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO] ;
-         EXHall = (Bz*((derivs[fieldsolver::dBGBxdz]+derivs[fieldsolver::dPERBxdz])/cp[CellParams::DZ] -
-                       (derivs[fieldsolver::dBGBzdx]+derivs[fieldsolver::dPERBzdx])/cp[CellParams::DX]) -
-                   By*((derivs[fieldsolver::dBGBydx]+derivs[fieldsolver::dPERBydx])/cp[CellParams::DX]-
-                       ((derivs[fieldsolver::dBGBxdy]+derivs[fieldsolver::dPERBxdy])/cp[CellParams::DY])))
-                / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
       }
       if (RKCase == RK_ORDER2_STEP1) {
          By = cp[CellParams::PERBY_DT2]+cp[CellParams::BGBY];
          Bz = cp[CellParams::PERBZ_DT2]+cp[CellParams::BGBZ];
          hallRho =  (cp[CellParams::RHO_DT2] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO_DT2] ;
-         EXHall = (Bz*((derivs[fieldsolver::dBGBxdz]+derivs[fieldsolver::dPERBxdz])/cp[CellParams::DZ] -
-                       (derivs[fieldsolver::dBGBzdx]+derivs[fieldsolver::dPERBzdx])/cp[CellParams::DX]) -
-                   By*((derivs[fieldsolver::dBGBydx]+derivs[fieldsolver::dPERBydx])/cp[CellParams::DX]-
-                       ((derivs[fieldsolver::dBGBxdy]+derivs[fieldsolver::dPERBxdy])/cp[CellParams::DY])))
-                / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
       }
 
       cp[CellParams::EXHALL_000_100] =
       cp[CellParams::EXHALL_010_110] =
       cp[CellParams::EXHALL_001_101] =
-      cp[CellParams::EXHALL_011_111] = EXHall;
+      cp[CellParams::EXHALL_011_111] = (Bz*((derivs[fieldsolver::dBGBxdz]+derivs[fieldsolver::dPERBxdz])/cp[CellParams::DZ] -
+                                            (derivs[fieldsolver::dBGBzdx]+derivs[fieldsolver::dPERBzdx])/cp[CellParams::DX]) -
+                                        By*((derivs[fieldsolver::dBGBydx]+derivs[fieldsolver::dPERBydx])/cp[CellParams::DX]-
+                                            (derivs[fieldsolver::dBGBxdy]+derivs[fieldsolver::dPERBxdy])/cp[CellParams::DY]))
+                                     / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
       break;
     case 2:
       if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -530,9 +523,8 @@ void calculateEdgeHallTermYComponents(
    cint& RKCase
 ) {
    #warning Particles (charge) assumed to be protons here
-
-   Real hallRho;
-   Real Bx, Bz, EYHall = 0.0;
+   
+   Real Bx, Bz, hallRho = 0.0;
    
    switch (Parameters::ohmHallTerm) {
     case 0:
@@ -544,27 +536,21 @@ void calculateEdgeHallTermYComponents(
          Bx = cp[CellParams::PERBX]+cp[CellParams::BGBX];
          Bz = cp[CellParams::PERBZ]+cp[CellParams::BGBZ];
          hallRho =  (cp[CellParams::RHO] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO] ;
-         EYHall = (Bx*((derivs[fieldsolver::dBGBydx]+derivs[fieldsolver::dPERBydx])/cp[CellParams::DX] -
-                       (derivs[fieldsolver::dBGBxdy]+derivs[fieldsolver::dPERBxdy])/cp[CellParams::DY]) -
-                   Bz*((derivs[fieldsolver::dBGBzdy]+derivs[fieldsolver::dPERBzdy])/cp[CellParams::DY] -
-                       ((derivs[fieldsolver::dBGBydz]+derivs[fieldsolver::dPERBydz])/cp[CellParams::DZ] )))
-                / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
       }
       if (RKCase == RK_ORDER2_STEP1) {
          Bx = cp[CellParams::PERBX_DT2]+cp[CellParams::BGBX];
          Bz = cp[CellParams::PERBZ_DT2]+cp[CellParams::BGBZ];
          hallRho =  (cp[CellParams::RHO_DT2] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO_DT2] ;
-         EYHall = (Bx*((derivs[fieldsolver::dBGBydx]+derivs[fieldsolver::dPERBydx])/cp[CellParams::DX] -
-                       (derivs[fieldsolver::dBGBxdy]+derivs[fieldsolver::dPERBxdy])/cp[CellParams::DY]) -
-                   Bz*((derivs[fieldsolver::dBGBzdy]+derivs[fieldsolver::dPERBzdy])/cp[CellParams::DY] -
-                       ((derivs[fieldsolver::dBGBydz]+derivs[fieldsolver::dPERBydz])/cp[CellParams::DZ] )))
-                / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
       }
 
       cp[CellParams::EYHALL_000_010] =
       cp[CellParams::EYHALL_100_110] =
       cp[CellParams::EYHALL_101_111] =
-      cp[CellParams::EYHALL_001_011] = EYHall;
+      cp[CellParams::EYHALL_001_011] = (Bx*((derivs[fieldsolver::dBGBydx]+derivs[fieldsolver::dPERBydx])/cp[CellParams::DX] -
+                                            (derivs[fieldsolver::dBGBxdy]+derivs[fieldsolver::dPERBxdy])/cp[CellParams::DY]) -
+                                        Bz*((derivs[fieldsolver::dBGBzdy]+derivs[fieldsolver::dPERBzdy])/cp[CellParams::DY] -
+                                            (derivs[fieldsolver::dBGBydz]+derivs[fieldsolver::dPERBydz])/cp[CellParams::DZ]))
+                                     / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
       break;
       
     case 2:
@@ -625,9 +611,8 @@ void calculateEdgeHallTermZComponents(
    cint& RKCase
 ) {
   #warning Particles (charge) assumed to be protons here
-
-   Real hallRho;
-   Real Bx, By, EZHall=0.0;
+   
+   Real Bx, By, hallRho = 0.0;
 
    switch (Parameters::ohmHallTerm) {
    case 0:
@@ -639,27 +624,21 @@ void calculateEdgeHallTermZComponents(
         Bx = cp[CellParams::PERBX]+cp[CellParams::BGBX];
         By = cp[CellParams::PERBY]+cp[CellParams::BGBY];
         hallRho =  (cp[CellParams::RHO] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO] ;
-        EZHall = (By*((derivs[fieldsolver::dBGBzdy]+derivs[fieldsolver::dPERBzdy])/cp[CellParams::DY] -
-                      (derivs[fieldsolver::dBGBydz]+derivs[fieldsolver::dPERBydz])/cp[CellParams::DZ]) -
-                  Bx*((derivs[fieldsolver::dBGBxdz]+derivs[fieldsolver::dPERBxdz])/cp[CellParams::DZ] -
-                      ((derivs[fieldsolver::dBGBzdx]+derivs[fieldsolver::dPERBzdx])/cp[CellParams::DX])))
-          / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
      }
      if (RKCase == RK_ORDER2_STEP1) {
         Bx = cp[CellParams::PERBX_DT2]+cp[CellParams::BGBX];
         By = cp[CellParams::PERBY_DT2]+cp[CellParams::BGBY];
         hallRho =  (cp[CellParams::RHO_DT2] <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : cp[CellParams::RHO_DT2] ;
-        EZHall = (By*((derivs[fieldsolver::dBGBzdy]+derivs[fieldsolver::dPERBzdy])/cp[CellParams::DY] -
-                      (derivs[fieldsolver::dBGBydz]+derivs[fieldsolver::dPERBydz])/cp[CellParams::DZ]) -
-                  Bx*((derivs[fieldsolver::dBGBxdz]+derivs[fieldsolver::dPERBxdz])/cp[CellParams::DZ] -
-                      ((derivs[fieldsolver::dBGBzdx]+derivs[fieldsolver::dPERBzdx])/cp[CellParams::DX])))
-          / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
      }
 
       cp[CellParams::EZHALL_000_001] =
       cp[CellParams::EZHALL_100_101] =
       cp[CellParams::EZHALL_110_111] =
-      cp[CellParams::EZHALL_010_011] = EZHall;
+      cp[CellParams::EZHALL_010_011] = (By*((derivs[fieldsolver::dBGBzdy]+derivs[fieldsolver::dPERBzdy])/cp[CellParams::DY] -
+                                            (derivs[fieldsolver::dBGBydz]+derivs[fieldsolver::dPERBydz])/cp[CellParams::DZ]) -
+                                        Bx*((derivs[fieldsolver::dBGBxdz]+derivs[fieldsolver::dPERBxdz])/cp[CellParams::DZ] -
+                                            (derivs[fieldsolver::dBGBzdx]+derivs[fieldsolver::dPERBzdx])/cp[CellParams::DX]))
+                                     / (physicalconstants::MU_0*hallRho*physicalconstants::CHARGE);
      break;
 
    case 2:
