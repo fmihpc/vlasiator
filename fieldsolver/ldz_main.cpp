@@ -52,8 +52,11 @@
 #include "fs_common.h"
 #include "derivatives.hpp"
 #include "fs_limiters.h"
+#include "mpiconversion.h"
 
 extern map<CellID,uint> existingCellsFlags; /**< Defined in fs_common.cpp */
+
+extern Logger logFile; //, diagnostic; can be used also later
 
 void calculateExistingCellsFlags(
                                  dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
@@ -323,14 +326,23 @@ bool propagateFields(
       calculateUpwindedElectricFieldSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP2);
       #endif
    } else {
-      for (uint i=0; i<subcycles; i++) {
+      const vector<CellID> cells = mpiGrid.get_cells();
+      Real subcycleDt = dt/convert<Real>(subcycles);
+      Real subcycleT = P::t;
+      creal targetT = P::t + dt;
+      uint subcycleCount = 0;
+      uint maxSubcycleCount = std::numeric_limits<uint>::max();
+      int myRank;
+      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+      
+      while (subcycleCount < maxSubcycleCount ) {         
          // In case of subcycling, we decided to go for a blunt Runge-Kutta subcycling even though e.g. moments are not going along.
          // Result of the Summer of Debugging 2016, the behaviour in wave dispersion was much improved with this.
-         propagateMagneticFieldSimple(mpiGrid, sysBoundaries, dt/convert<Real>(subcycles), localCells, RK_ORDER2_STEP1);
+         propagateMagneticFieldSimple(mpiGrid, sysBoundaries, subcycleDt, localCells, RK_ORDER2_STEP1);
          // If we are at the first subcycle we need to update the derivatives of the moments, 
          // otherwise only B changed and those derivatives need to be updated.
-         calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP1, true);
-         if(P::ohmGradPeTerm > 0 && i==0) {
+         calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP1, (subcycleCount==0));
+         if(P::ohmGradPeTerm > 0 && subcycleCount==0) {
             calculateGradPeTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP1);
             hallTermCommunicateDerivatives = false;
          }
@@ -339,11 +351,11 @@ bool propagateFields(
          }
          calculateUpwindedElectricFieldSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP1);
          
-         propagateMagneticFieldSimple(mpiGrid, sysBoundaries, dt/convert<Real>(subcycles), localCells, RK_ORDER2_STEP2);
+         propagateMagneticFieldSimple(mpiGrid, sysBoundaries, subcycleDt, localCells, RK_ORDER2_STEP2);
          // If we are at the first subcycle we need to update the derivatives of the moments, 
          // otherwise only B changed and those derivatives need to be updated.
-         calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP2, true);
-         if(P::ohmGradPeTerm > 0 && i==0) {
+         calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP2, (subcycleCount==0));
+         if(P::ohmGradPeTerm > 0 && subcycleCount==0) {
             calculateGradPeTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP2);
             hallTermCommunicateDerivatives = false;
          }
@@ -351,6 +363,65 @@ bool propagateFields(
             calculateHallTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP2, hallTermCommunicateDerivatives);
          }
          calculateUpwindedElectricFieldSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP2);
+         
+         phiprof::start("FS subcycle stuff");
+         subcycleT += subcycleDt; 
+         subcycleCount++;
+
+         if( subcycleT >= targetT || subcycleCount >= maxSubcycleCount  ) {
+            //we are done
+            if( subcycleT > targetT ) {
+               //due to roundoff we might hit this, should add delta
+               std::cerr << "subcycleT > targetT, should not happen! (values: subcycleT " << subcycleT << ", subcycleDt " << subcycleDt << ", targetT " << targetT << ")" << std::endl;
+            }
+            break;
+         }
+
+
+         
+         // Reassess subcycle dt
+         Real dtMaxLocal;
+         Real dtMaxGlobal;
+         dtMaxLocal=std::numeric_limits<Real>::max();
+
+         for (std::vector<uint64_t>::const_iterator cell_id = cells.begin(); cell_id != cells.end(); ++cell_id) {
+            SpatialCell* cell = mpiGrid[*cell_id];
+            if ( cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
+               (cell->sysBoundaryLayer == 1 && cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY )) {
+               dtMaxLocal=min(dtMaxLocal, cell->parameters[CellParams::MAXFDT]);
+            }
+         }
+         phiprof::start("MPI_Allreduce");
+         MPI_Allreduce(&(dtMaxLocal), &(dtMaxGlobal), 1, MPI_Type<Real>(), MPI_MIN, MPI_COMM_WORLD);
+         phiprof::stop("MPI_Allreduce");
+         
+         //reduce dt if it is too high
+         if( subcycleDt > dtMaxGlobal * P::fieldSolverMaxCFL ) {
+            creal meanFieldsCFL = 0.5*(P::fieldSolverMaxCFL+ P::fieldSolverMinCFL);
+            subcycleDt = meanFieldsCFL * dtMaxGlobal;
+            if ( myRank == MASTER_RANK ) {
+               logFile << "(TIMESTEP) New field solver subcycle dt = " << subcycleDt << " computed on step " <<  P::tstep << " and substep " << subcycleCount << " at " << P::t << " s" << std::endl;
+            }
+         }
+
+         // Readjust the dt to hit targetT. Try to avoid having a very
+         // short delta step at the end, instead 2 more normal ones
+         if( subcycleT + 1.5 * subcycleDt  > targetT ) {
+            subcycleDt = targetT - subcycleT;
+            maxSubcycleCount = subcycleCount + 1; // 1 more steps
+            //check that subcyclDt has correct CFL, take 2 if not
+            if(subcycleDt > dtMaxGlobal * P::fieldSolverMaxCFL ) {
+               subcycleDt = (targetT - subcycleT)/2;
+               maxSubcycleCount = subcycleCount + 2; 
+            }
+         }
+         
+         phiprof::stop("FS subcycle stuff");
+      }
+      
+      
+      if( subcycles != subcycleCount && myRank == MASTER_RANK) {
+         logFile << "Effective field solver subcycles were " << subcycleCount << " instead of " << P::fieldSolverSubcycles << " on step " <<  P::tstep << std::endl;
       }
    }
    
