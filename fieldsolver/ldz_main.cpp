@@ -374,6 +374,10 @@ bool propagateFields(
                //due to roundoff we might hit this, should add delta
                std::cerr << "subcycleT > targetT, should not happen! (values: subcycleT " << subcycleT << ", subcycleDt " << subcycleDt << ", targetT " << targetT << ")" << std::endl;
             }
+
+            // Make sure the phiprof group is closed when leaving the loop
+            phiprof::stop("FS subcycle stuff");
+
             break;
          }
 
