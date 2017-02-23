@@ -352,9 +352,9 @@ bool propagateFields(
          calculateUpwindedElectricFieldSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP1);
          
          propagateMagneticFieldSimple(mpiGrid, sysBoundaries, subcycleDt, localCells, RK_ORDER2_STEP2);
-         // If we are at the first subcycle we need to update the derivatives of the moments, 
-         // otherwise only B changed and those derivatives need to be updated.
-         calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP2, (subcycleCount==0));
+         // Here, we never need to update the moment derivatives since they will not have changed from
+         // the previous call.
+         calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP2, false);
          if(P::ohmGradPeTerm > 0 && subcycleCount==0) {
             calculateGradPeTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP2);
             hallTermCommunicateDerivatives = false;
