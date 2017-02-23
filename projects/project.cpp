@@ -393,9 +393,8 @@ namespace projects {
       exit(1);
    }
    
-   void Project::endTimeStep(
-      cuint& myRank,
-      const std::vector<CellID>& localCells,
+   void Project::hook(
+      cuint& stage,
       const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
    ) const { }
 

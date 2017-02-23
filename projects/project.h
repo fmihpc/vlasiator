@@ -45,9 +45,8 @@ namespace projects {
       virtual bool initialize();
       
       /*! Perform some operation at each time step in the main program loop. */
-      virtual void endTimeStep(
-         cuint& myRank,
-         const std::vector<CellID>& localCells,
+      virtual void hook(
+         cuint& stage,
          const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
       ) const;
       
