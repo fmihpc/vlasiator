@@ -47,7 +47,7 @@ inline void filter_pqm_monotonicity(Vec *values, uint k, Vec &fv_l, Vec &fv_r, V
     of[0,1]. We do not catch FP exceptions, so sqrt(negative) are okish (add
     a max(val_to_sqrt,0) if not*/
    const Vec val_to_sqrt = b1 * b1 - 4 * b0 * b2;
-#ifdef VEC16F
+#ifdef VEC16F_AGNER
    //this sqrt gives 10% more perf on acceleration on KNL. Also fairly
    //accurate with AVX512ER. On Xeon it is not any faster, and less accurate.
    const Vec sqrt_val = select(val_to_sqrt < 0.0, 
