@@ -378,6 +378,8 @@ int main(int argn,char* args[]) {
    phiprof::stop("Init fieldsolver grids");
    phiprof::start("Initial fsgrid coupling");
    const std::vector<CellID>& cells = getLocalCells();
+
+   // Couple FSGrids to mpiGrid
    // TODO: Do we really need to couple *all* of these fields?
    perBGrid.setupForGridCoupling(cells.size());
    perBDt2Grid.setupForGridCoupling(cells.size());
@@ -392,20 +394,22 @@ int main(int argn,char* args[]) {
    BgBGrid.setupForGridCoupling(cells.size());
    volGrid.setupForGridCoupling(cells.size());
    technicalGrid.setupForGridCoupling(cells.size());
-   for(unsigned int i=0; i<cells.size(); i++) {
-      perBGrid.setGridCoupling(cells[i] - 1, myRank);
-      perBDt2Grid.setGridCoupling(cells[i] - 1, myRank);
-      EGrid.setGridCoupling(cells[i] - 1, myRank);
-      EDt2Grid.setGridCoupling(cells[i] - 1, myRank);
-      EHallGrid.setGridCoupling(cells[i] - 1, myRank);
-      EGradPeGrid.setGridCoupling(cells[i] - 1, myRank);
-      momentsGrid.setGridCoupling(cells[i] - 1, myRank);
-      momentsDt2Grid.setGridCoupling(cells[i] - 1, myRank);
-      dPerBGrid.setGridCoupling(cells[i] - 1, myRank);
-      dMomentsGrid.setGridCoupling(cells[i] - 1, myRank);
-      BgBGrid.setGridCoupling(cells[i] - 1, myRank);
-      volGrid.setGridCoupling(cells[i] - 1, myRank);
-      technicalGrid.setGridCoupling(cells[i] - 1, myRank);
+
+   // FSGrid cellIds are 0-based, whereas DCCRG cellIds are 1-based, beware
+   for(auto& i : cells) {
+      perBGrid.setGridCoupling(i-1, myRank);
+      perBDt2Grid.setGridCoupling(i-1, myRank);
+      EGrid.setGridCoupling(i-1, myRank);
+      EDt2Grid.setGridCoupling(i-1, myRank);
+      EHallGrid.setGridCoupling(i-1, myRank);
+      EGradPeGrid.setGridCoupling(i-1, myRank);
+      momentsGrid.setGridCoupling(i-1, myRank);
+      momentsDt2Grid.setGridCoupling(i-1, myRank);
+      dPerBGrid.setGridCoupling(i-1, myRank);
+      dMomentsGrid.setGridCoupling(i-1, myRank);
+      BgBGrid.setGridCoupling(i-1, myRank);
+      volGrid.setGridCoupling(i-1, myRank);
+      technicalGrid.setGridCoupling(i-1, myRank);
    }
    perBGrid.finishGridCoupling();
    perBDt2Grid.finishGridCoupling();
