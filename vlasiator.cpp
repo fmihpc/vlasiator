@@ -760,7 +760,11 @@ int main(int argn,char* args[]) {
       );
 
       phiprof::stop("Propagate",computedCells,"Cells");
-
+      
+      phiprof::start("Project endTimeStep");
+      project->hook(hook::END_OF_TIME_STEP, mpiGrid);
+      phiprof::stop("Project endTimeStep");
+      
       // Check timestep
       if (P::dt < P::bailout_min_dt) {
          stringstream s;

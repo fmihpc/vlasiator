@@ -366,6 +366,16 @@ struct globalflags {
    static bool writeRestart; /*!< Global flag raised to true if a restart writing is needed (without bailout). NOTE: used only by MASTER_RANK in vlasiator.cpp. */
 };
 
+/*!
+ * Name space for flags going into the project hook function.
+ */
+namespace hook {
+   enum {
+      END_OF_TIME_STEP
+   };
+}
+
+
 // Natural constants
 namespace physicalconstants {
    const Real EPS_0 = 8.85418782e-12; /*!< Permittivity of value, unit: C / (V m).*/

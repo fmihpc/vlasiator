@@ -393,6 +393,10 @@ namespace projects {
       exit(1);
    }
    
+   void Project::hook(
+      cuint& stage,
+      const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
+   ) const { }
 
    void Project::setCell(SpatialCell* cell) {
       // Set up cell parameters:
