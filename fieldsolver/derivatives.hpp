@@ -31,15 +31,14 @@ void calculateDerivatives(
    const CellID& cellID,
    dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    SysBoundary& sysBoundaries,
-   cint& RKCase,
-   const bool& doMoments);
+   cint& RKCase);
 
 void calculateDerivativesSimple(
    dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    SysBoundary& sysBoundaries,
    const std::vector<CellID>& localCells,
    cint& RKCase,
-   const bool& doMoments);
+   const bool communicateMoments);
 
 void calculateBVOLDerivatives(
    const CellID& cellID,
