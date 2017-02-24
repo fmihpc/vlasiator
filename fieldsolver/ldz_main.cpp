@@ -339,9 +339,9 @@ bool propagateFields(
          // In case of subcycling, we decided to go for a blunt Runge-Kutta subcycling even though e.g. moments are not going along.
          // Result of the Summer of Debugging 2016, the behaviour in wave dispersion was much improved with this.
          propagateMagneticFieldSimple(mpiGrid, sysBoundaries, subcycleDt, localCells, RK_ORDER2_STEP1);
-         // If we are at the first subcycle we need to update the derivatives of the moments, 
-         // otherwise only B changed and those derivatives need to be updated.
-         calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP1, true);
+         // We need to calculate derivatives of the moments at every substep, but they only
+         // need to be communicated in the first one.
+         calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP1, (subcycleCount==0));
          if(P::ohmGradPeTerm > 0 && subcycleCount==0) {
             calculateGradPeTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP1);
             hallTermCommunicateDerivatives = false;
@@ -352,9 +352,9 @@ bool propagateFields(
          calculateUpwindedElectricFieldSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP1);
          
          propagateMagneticFieldSimple(mpiGrid, sysBoundaries, subcycleDt, localCells, RK_ORDER2_STEP2);
-         // Here, we never need to update the moment derivatives since they will not have changed from
-         // the previous call.
-         calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP2, true);
+         // We need to calculate derivatives of the moments at every substep, but they only
+         // need to be communicated in the first one.
+         calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP2, (subcycleCount==0));
          if(P::ohmGradPeTerm > 0 && subcycleCount==0) {
             calculateGradPeTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP2);
             hallTermCommunicateDerivatives = false;
