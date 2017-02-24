@@ -408,7 +408,7 @@ void calculateEdgeElectricFieldX(
    creal* const derivs_NE = cache.cells[fs_cache::calculateNbrID(1  ,1-1,1-1)]->derivatives;
    creal* const derivs_NW = cache.cells[fs_cache::calculateNbrID(1  ,1  ,1-1)]->derivatives;
 
-   Real By_S, Bz_W, Bz_E, By_N, perBy_S, perBz_W, perBz_E, perBy_N;
+   Real By_S, Bz_W, Bz_E, By_N, perBy_S, perBz_W, perBz_E, perBy_N, rho_S;
    Real minRho = std::numeric_limits<Real>::max();
    Real maxRho = std::numeric_limits<Real>::min();
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -422,6 +422,7 @@ void calculateEdgeElectricFieldX(
       perBy_N = cp_NW[CellParams::PERBY];
       Vy0  = divideIfNonZero(cp_SW[CellParams::RHOVY], cp_SW[CellParams::RHO]);
       Vz0  = divideIfNonZero(cp_SW[CellParams::RHOVZ], cp_SW[CellParams::RHO]);
+      rho_S = FOURTH*(cp_SW[CellParams::RHO] + cp_SE[CellParams::RHO] + cp_NW[CellParams::RHO] + cp_NE[CellParams::RHO]);
       minRho = min(minRho,
                   min(cp_SW[CellParams::RHO],
                      min(cp_SE[CellParams::RHO],
@@ -449,6 +450,7 @@ void calculateEdgeElectricFieldX(
       perBy_N = cp_NW[CellParams::PERBY_DT2];
       Vy0  = divideIfNonZero(cp_SW[CellParams::RHOVY_DT2], cp_SW[CellParams::RHO_DT2]);
       Vz0  = divideIfNonZero(cp_SW[CellParams::RHOVZ_DT2], cp_SW[CellParams::RHO_DT2]);
+      rho_S = FOURTH*(cp_SW[CellParams::RHO_DT2] + cp_SE[CellParams::RHO_DT2] + cp_NW[CellParams::RHO_DT2] + cp_NE[CellParams::RHO_DT2]);
       minRho = min(minRho,
                   min(cp_SW[CellParams::RHO_DT2],
                      min(cp_SE[CellParams::RHO_DT2],
@@ -466,7 +468,8 @@ void calculateEdgeElectricFieldX(
                      )
                   );
    }
-
+   rho_S = (rho_S <= Parameters::hallMinimumRho) ? Parameters::hallMinimumRho : rho_S ;
+   
    creal dBydx_S = derivs_SW[fs::dPERBydx] + derivs_SW[fs::dBGBydx];
    creal dBydz_S = derivs_SW[fs::dPERBydz] + derivs_SW[fs::dBGBydz];
    creal dBzdx_W = derivs_SW[fs::dPERBzdx] + derivs_SW[fs::dBGBzdx];
@@ -500,7 +503,7 @@ void calculateEdgeElectricFieldX(
    
    // Hall term
    if(Parameters::ohmHallTerm > 0) {
-      Ex_SW += cp_SW[CellParams::EXHALL_000_100];
+      Ex_SW += cp_SW[CellParams::EXHALL_000_100] / (rho_S*physicalconstants::MU_0*physicalconstants::CHARGE);
    }
    
    // Electron pressure gradient term
@@ -554,7 +557,7 @@ void calculateEdgeElectricFieldX(
 
    // Hall term
    if(Parameters::ohmHallTerm > 0) {
-      Ex_SE += cp_SE[CellParams::EXHALL_010_110];
+      Ex_SE += cp_SE[CellParams::EXHALL_010_110] / (rho_S*physicalconstants::MU_0*physicalconstants::CHARGE);
    }
    
    // Electron pressure gradient term
@@ -608,7 +611,7 @@ void calculateEdgeElectricFieldX(
    
    // Hall term
    if(Parameters::ohmHallTerm > 0) {
-      Ex_NW += cp_NW[CellParams::EXHALL_001_101];
+      Ex_NW += cp_NW[CellParams::EXHALL_001_101]  / (rho_S*physicalconstants::MU_0*physicalconstants::CHARGE);
    }
    
    // Electron pressure gradient term
@@ -662,7 +665,7 @@ void calculateEdgeElectricFieldX(
 
    // Hall term
    if(Parameters::ohmHallTerm > 0) {
-      Ex_NE += cp_NE[CellParams::EXHALL_011_111];
+      Ex_NE += cp_NE[CellParams::EXHALL_011_111] / (rho_S*physicalconstants::MU_0*physicalconstants::CHARGE);
    }
    
    // Electron pressure gradient term
@@ -776,7 +779,7 @@ void calculateEdgeElectricFieldY(
    creal* const derivs_NE = cache.cells[fs_cache::calculateNbrID(1-1,1  ,1-1)]->derivatives;
 
    // Fetch required plasma parameters:
-   Real Bz_S, Bx_W, Bx_E, Bz_N, perBz_S, perBx_W, perBx_E, perBz_N;
+   Real Bz_S, Bx_W, Bx_E, Bz_N, perBz_S, perBx_W, perBx_E, perBz_N, rho_S;
    Real minRho = std::numeric_limits<Real>::max();
    Real maxRho = std::numeric_limits<Real>::min();
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -790,6 +793,7 @@ void calculateEdgeElectricFieldY(
       perBz_N = cp_NW[CellParams::PERBZ];
       Vx0  = divideIfNonZero(cp_SW[CellParams::RHOVX], cp_SW[CellParams::RHO]);
       Vz0  = divideIfNonZero(cp_SW[CellParams::RHOVZ], cp_SW[CellParams::RHO]);
+      rho_S = FOURTH*(cp_SW[CellParams::RHO] + cp_SE[CellParams::RHO] + cp_NW[CellParams::RHO] + cp_NE[CellParams::RHO]);
       minRho = min(minRho,
                   min(cp_SW[CellParams::RHO],
                      min(cp_SE[CellParams::RHO],
@@ -817,6 +821,7 @@ void calculateEdgeElectricFieldY(
       perBz_N = cp_NW[CellParams::PERBZ_DT2];
       Vx0  = divideIfNonZero(cp_SW[CellParams::RHOVX_DT2], cp_SW[CellParams::RHO_DT2]);
       Vz0  = divideIfNonZero(cp_SW[CellParams::RHOVZ_DT2], cp_SW[CellParams::RHO_DT2]);
+      rho_S = FOURTH*(cp_SW[CellParams::RHO_DT2] + cp_SE[CellParams::RHO_DT2] + cp_NW[CellParams::RHO_DT2] + cp_NE[CellParams::RHO_DT2]);
       minRho = min(minRho,
                   min(cp_SW[CellParams::RHO_DT2],
                      min(cp_SE[CellParams::RHO_DT2],
@@ -834,6 +839,7 @@ void calculateEdgeElectricFieldY(
                      )
                   );
    }
+   rho_S = (rho_S <= Parameters::hallMinimumRho) ? Parameters::hallMinimumRho : rho_S ;
    
    creal dBxdy_W = derivs_SW[fs::dPERBxdy] + derivs_SW[fs::dBGBxdy];
    creal dBxdz_W = derivs_SW[fs::dPERBxdz] + derivs_SW[fs::dBGBxdz];
@@ -868,7 +874,7 @@ void calculateEdgeElectricFieldY(
    
    // Hall term
    if (Parameters::ohmHallTerm > 0) {
-      Ey_SW += cp_SW[CellParams::EYHALL_000_010];
+      Ey_SW += cp_SW[CellParams::EYHALL_000_010] / (rho_S*physicalconstants::MU_0*physicalconstants::CHARGE);
    }
    
    // Electron pressure gradient term
@@ -922,7 +928,7 @@ void calculateEdgeElectricFieldY(
 
    // Hall term
    if (Parameters::ohmHallTerm > 0) {
-      Ey_SE += cp_SE[CellParams::EYHALL_001_011];
+      Ey_SE += cp_SE[CellParams::EYHALL_001_011] / (rho_S*physicalconstants::MU_0*physicalconstants::CHARGE);
    }
    
    // Electron pressure gradient term
@@ -976,7 +982,7 @@ void calculateEdgeElectricFieldY(
 
    // Hall term
    if(Parameters::ohmHallTerm > 0) {
-      Ey_NW += cp_NW[CellParams::EYHALL_100_110];
+      Ey_NW += cp_NW[CellParams::EYHALL_100_110] / (rho_S*physicalconstants::MU_0*physicalconstants::CHARGE);
    }
    
    // Electron pressure gradient term
@@ -1030,7 +1036,7 @@ void calculateEdgeElectricFieldY(
 
    // Hall term
    if(Parameters::ohmHallTerm > 0) {
-      Ey_NE += cp_NE[CellParams::EYHALL_101_111];
+      Ey_NE += cp_NE[CellParams::EYHALL_101_111] / (rho_S*physicalconstants::MU_0*physicalconstants::CHARGE);
    }
    
    // Electron pressure gradient term
@@ -1142,7 +1148,7 @@ void calculateEdgeElectricFieldZ(
    creal* const derivs_NW = cache.cells[fs_cache::calculateNbrID(1  ,1-1,1  )]->derivatives;
 
    // Fetch needed plasma parameters/derivatives from the four cells:
-   Real Bx_S, By_W, By_E, Bx_N, perBx_S, perBy_W, perBy_E, perBx_N;
+   Real Bx_S, By_W, By_E, Bx_N, perBx_S, perBy_W, perBy_E, perBx_N, rho_S;
    Real minRho = std::numeric_limits<Real>::max();
    Real maxRho = std::numeric_limits<Real>::min();
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -1156,6 +1162,7 @@ void calculateEdgeElectricFieldZ(
       perBx_N    = cp_NW[CellParams::PERBX];
       Vx0  = divideIfNonZero(cp_SW[CellParams::RHOVX], cp_SW[CellParams::RHO]);
       Vy0  = divideIfNonZero(cp_SW[CellParams::RHOVY], cp_SW[CellParams::RHO]);
+      rho_S = FOURTH*(cp_SW[CellParams::RHO] + cp_SE[CellParams::RHO] + cp_NW[CellParams::RHO] + cp_NE[CellParams::RHO]);
       minRho = min(minRho,
                   min(cp_SW[CellParams::RHO],
                      min(cp_SE[CellParams::RHO],
@@ -1183,6 +1190,7 @@ void calculateEdgeElectricFieldZ(
       perBx_N    = cp_NW[CellParams::PERBX_DT2];
       Vx0  = divideIfNonZero(cp_SW[CellParams::RHOVX_DT2], cp_SW[CellParams::RHO_DT2]);
       Vy0  = divideIfNonZero(cp_SW[CellParams::RHOVY_DT2], cp_SW[CellParams::RHO_DT2]);
+      rho_S = FOURTH*(cp_SW[CellParams::RHO_DT2] + cp_SE[CellParams::RHO_DT2] + cp_NW[CellParams::RHO_DT2] + cp_NE[CellParams::RHO_DT2]);
       minRho = min(minRho,
                   min(cp_SW[CellParams::RHO_DT2],
                      min(cp_SE[CellParams::RHO_DT2],
@@ -1200,6 +1208,7 @@ void calculateEdgeElectricFieldZ(
                      )
                   );
    }
+   rho_S = (rho_S <= Parameters::hallMinimumRho) ? Parameters::hallMinimumRho : rho_S ;
    
    creal dBxdy_S = derivs_SW[fs::dPERBxdy] + derivs_SW[fs::dBGBxdy];
    creal dBxdz_S = derivs_SW[fs::dPERBxdz] + derivs_SW[fs::dBGBxdz];
@@ -1234,7 +1243,7 @@ void calculateEdgeElectricFieldZ(
    
    // Hall term
    if (Parameters::ohmHallTerm > 0) {
-      Ez_SW += cp_SW[CellParams::EZHALL_000_001];
+      Ez_SW += cp_SW[CellParams::EZHALL_000_001] / (rho_S*physicalconstants::MU_0*physicalconstants::CHARGE);
    }
    
    // Electron pressure gradient term
@@ -1287,9 +1296,10 @@ void calculateEdgeElectricFieldZ(
      (cp_SE[CellParams::RHO]*physicalconstants::CHARGE) /
      physicalconstants::MU_0 *
      (derivs_SE[fs::dPERBydx]/cp_SE[CellParams::DX] - derivs_SE[fs::dPERBxdy]/cp_SE[CellParams::DY]);
+   
    // Hall term
    if (Parameters::ohmHallTerm > 0) {
-      Ez_SE += cp_SE[CellParams::EZHALL_100_101];
+      Ez_SE += cp_SE[CellParams::EZHALL_100_101] / (rho_S*physicalconstants::MU_0*physicalconstants::CHARGE);
    }
    
    // Electron pressure gradient term
@@ -1343,7 +1353,7 @@ void calculateEdgeElectricFieldZ(
 
    // Hall term
    if(Parameters::ohmHallTerm > 0) {
-      Ez_NW += cp_NW[CellParams::EZHALL_010_011];
+      Ez_NW += cp_NW[CellParams::EZHALL_010_011] / (rho_S*physicalconstants::MU_0*physicalconstants::CHARGE);
    }
    
    // Electron pressure gradient term
@@ -1397,7 +1407,7 @@ void calculateEdgeElectricFieldZ(
    
    // Hall term
    if(Parameters::ohmHallTerm > 0) {
-      Ez_NE += cp_NE[CellParams::EZHALL_110_111];
+      Ez_NE += cp_NE[CellParams::EZHALL_110_111] / (rho_S*physicalconstants::MU_0*physicalconstants::CHARGE);
    }
    
    // Electron pressure gradient term
