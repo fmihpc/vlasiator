@@ -53,6 +53,7 @@ LIB_PROFILE = -L$(LIBRARY_PREFIX_COMPILED)/phiprof2/lib -lphiprof
 INC_PROFILE = -I$(LIBRARY_PREFIX_COMPILED)/phiprof2/include
 INC_SILO = -I$(LIBRARY_PREFIX_COMPILED)/silo/$(SILO_VERSION)/include
 LIB_SILO = -L$(LIBRARY_PREFIX_COMPILED)/silo/$(SILO_VERSION)/lib -lsilo
+INC_FSGRID = -I$(LIBRARY_PREFIX)/fsgrid
 
 #header libraries
 

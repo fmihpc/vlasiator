@@ -145,104 +145,97 @@ namespace SBC {
    }
    
    Real Antisymmetric::fieldSolverBoundaryCondMagneticField(
-                                                      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                                      const CellID& cellID,
-                                                      creal& dt,
-                                                      cuint& component
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBDt2Grid,
+      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
+      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EDt2Grid,
+      FsGrid< fsgrids::technical, 2> & technicalGrid,
+      cint i,
+      cint j,
+      cint k,
+      creal& dt,
+      cuint& RKCase,
+      cuint& component
    ) {
-      if (dt == 0.0) {
-         return fieldBoundaryCopyFromExistingFaceNbrMagneticField(mpiGrid, cellID, component);
+      if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+         return fieldBoundaryCopyFromExistingFaceNbrMagneticField(perBGrid, technicalGrid, i, j, k, component);
       } else { // Return PERB[XYZ]_DT2
-         cint offset = CellParams::PERBX_DT2 - CellParams::PERBX;
-         return fieldBoundaryCopyFromExistingFaceNbrMagneticField(mpiGrid, cellID, component+offset);
+         return fieldBoundaryCopyFromExistingFaceNbrMagneticField(perBDt2Grid, technicalGrid, i, j, k, component);
       }
    }
 
    void Antisymmetric::fieldSolverBoundaryCondElectricField(
-      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID,
-      cuint RKCase,
+      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
+      cint i,
+      cint j,
+      cint k,
       cuint component
    ) {
-      if((RKCase == RK_ORDER1) || (RKCase == RK_ORDER2_STEP2)) {
-         mpiGrid[cellID]->parameters[CellParams::EX+component] = 0.0;
-      } else {// RKCase == RK_ORDER2_STEP1
-         mpiGrid[cellID]->parameters[CellParams::EX_DT2+component] = 0.0;
-      }
+      EGrid.get(i,j,k)->at(fsgrids::efield::EX+component) = 0.0;
    }
    
    void Antisymmetric::fieldSolverBoundaryCondHallElectricField(
-                                                          fs_cache::CellCache& cache,
-                                                          cuint RKCase,
-                                                          cuint component
-                                                         ) {
-
-      Real* cp = cache.cells[fs_cache::calculateNbrID(1,1,1)]->parameters;      
-      
+      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2> & EHallGrid,
+      cint i,
+      cint j,
+      cint k,
+      cuint component
+   ) {
+      std::array<Real, fsgrids::ehall::N_EHALL> * cp = EHallGrid.get(i,j,k);
       switch (component) {
          case 0:
-            cp[CellParams::EXHALL_000_100] = 0.0;
-            cp[CellParams::EXHALL_010_110] = 0.0;
-            cp[CellParams::EXHALL_001_101] = 0.0;
-            cp[CellParams::EXHALL_011_111] = 0.0;
+            cp->at(fsgrids::ehall::EXHALL_000_100) = 0.0;
+            cp->at(fsgrids::ehall::EXHALL_010_110) = 0.0;
+            cp->at(fsgrids::ehall::EXHALL_001_101) = 0.0;
+            cp->at(fsgrids::ehall::EXHALL_011_111) = 0.0;
             break;
          case 1:
-            cp[CellParams::EYHALL_000_010] = 0.0;
-            cp[CellParams::EYHALL_100_110] = 0.0;
-            cp[CellParams::EYHALL_001_011] = 0.0;
-            cp[CellParams::EYHALL_101_111] = 0.0;
+            cp->at(fsgrids::ehall::EYHALL_000_010) = 0.0;
+            cp->at(fsgrids::ehall::EYHALL_100_110) = 0.0;
+            cp->at(fsgrids::ehall::EYHALL_001_011) = 0.0;
+            cp->at(fsgrids::ehall::EYHALL_101_111) = 0.0;
             break;
          case 2:
-            cp[CellParams::EZHALL_000_001] = 0.0;
-            cp[CellParams::EZHALL_100_101] = 0.0;
-            cp[CellParams::EZHALL_010_011] = 0.0;
-            cp[CellParams::EZHALL_110_111] = 0.0;
+            cp->at(fsgrids::ehall::EZHALL_000_001) = 0.0;
+            cp->at(fsgrids::ehall::EZHALL_100_101) = 0.0;
+            cp->at(fsgrids::ehall::EZHALL_010_011) = 0.0;
+            cp->at(fsgrids::ehall::EZHALL_110_111) = 0.0;
             break;
          default:
             cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
       }
    }
    
-   Real Antisymmetric::fieldBoundaryCopyFromExistingFaceNbrMagneticField(
-                                                                   const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                                                   const CellID& cellID,
-                                                                   cuint& component
-                                                                  ) {
-      const CellID closestCell = getTheClosestNonsysboundaryCell(cellID);
-      
-      #ifdef DEBUG_OUTFLOW
-      if (mpiGrid[closestCell]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
-         stringstream ss;
-         ss << "ERROR, outflow cell " << cellID << " uses value from sysboundary nbr " << closestCell;
-         ss << " in " << __FILE__ << ":" << __LINE__ << endl;
-         cerr << ss.str();
-         exit(1);
-      }
-      
-      if (closestCell == INVALID_CELLID) {
-         cerr << cellID << " " << __FILE__ << ":" << __LINE__ << ": No closest cell found!" << endl;
-         abort();
-      }
-      #endif
-      
-      return mpiGrid[closestCell]->parameters[CellParams::PERBX+component];
+   void Antisymmetric::fieldSolverBoundaryCondGradPeElectricField(
+      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2> & EGradPeGrid,
+      cint i,
+      cint j,
+      cint k,
+      cuint component
+   ) {
+      EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EXGRADPE+component) = 0.0;
    }
    
    void Antisymmetric::fieldSolverBoundaryCondDerivatives(
-      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID,
+      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
+      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> & dMomentsGrid,
+      cint i,
+      cint j,
+      cint k,
       cuint& RKCase,
       cuint& component
    ) {
-      this->setCellDerivativesToZero(mpiGrid, cellID, component);
+      this->setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, component);
    }
    
    void Antisymmetric::fieldSolverBoundaryCondBVOLDerivatives(
-      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID,
+      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volGrid,
+      cint i,
+      cint j,
+      cint k,
       cuint& component
    ) {
-      this->setCellBVOLDerivativesToZero(mpiGrid, cellID, component);
+      this->setCellBVOLDerivativesToZero(volGrid, i, j, k, component);
    }
    
    /**

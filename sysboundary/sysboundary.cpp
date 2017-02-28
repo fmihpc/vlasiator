@@ -652,7 +652,7 @@ bool getBoundaryCellList(
  * \retval Returns true if the operation is successful
  */
 bool SysBoundary::updateSysBoundariesAfterLoadBalance(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
-   phiprof::start("getAllClosestNonsysboundaryCells");
+   phiprof::start("updateSysBoundariesAfterLoadBalance");
    vector<uint64_t> local_cells_on_boundary;
    getBoundaryCellList(mpiGrid, mpiGrid.get_cells(), local_cells_on_boundary);
    // Loop over sysboundaries:
@@ -660,7 +660,7 @@ bool SysBoundary::updateSysBoundariesAfterLoadBalance(dccrg::Dccrg<SpatialCell,d
       (*it)->updateSysBoundaryConditionsAfterLoadBalance(mpiGrid, local_cells_on_boundary);
    }
 
-   phiprof::stop("getAllClosestNonsysboundaryCells");
+   phiprof::stop("updateSysBoundariesAfterLoadBalance");
    return true;
 }
 

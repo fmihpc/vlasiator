@@ -625,7 +625,7 @@ namespace projects {
       const Real* blockParams = cell->get_block_parameters(popID);
       for (vmesh::LocalID blockLID=0; blockLID<cell->get_number_of_velocity_blocks(popID); ++blockLID) {
          Real tmp = 0.0;
-         for (int i=0; i<WID3; ++i) tmp += data[blockLID*WID3+i];
+         for (unsigned int i=0; i<WID3; ++i) tmp += data[blockLID*WID3+i];
          const Real DV3 = blockParams[BlockParams::DVX]*blockParams[BlockParams::DVY]*blockParams[BlockParams::DVZ];
          sum += tmp*DV3;
          blockParams += BlockParams::N_VELOCITY_BLOCK_PARAMS;
