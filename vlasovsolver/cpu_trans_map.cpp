@@ -148,18 +148,16 @@ void zeroTargetGrid(
         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
         const vector<CellID>& cells) {
     
-   phiprof::start("zero-target-grid");      
-#pragma omp  parallel for
-   for (size_t c=0; c<cells.size(); ++c) {
-      SpatialCell *spatial_cell = mpiGrid[cells[c]];
-      vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks_temporary();
-#pragma ivdep
-#pragma GCC ivdep
-      for (unsigned int cell=0; cell<VELOCITY_BLOCK_LENGTH*blockContainer.size(); ++cell) {
-         blockContainer.getData()[cell] = 0;
-      }
-   }
-   phiprof::stop("zero-target-grid");
+    phiprof::start("zero-target-grid");      
+    #pragma omp  parallel for
+    for (size_t c=0; c<cells.size(); ++c) {
+        SpatialCell *spatial_cell = mpiGrid[cells[c]];
+        vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks_temporary();
+        for (unsigned int cell=0; cell<VELOCITY_BLOCK_LENGTH*blockContainer.size(); ++cell) {
+            blockContainer.getData()[cell] = 0;
+        }
+    }
+    phiprof::stop("zero-target-grid");
 }
 
 /** Swap temporary target grid and normal grid. This is cheap as values are not copied.
@@ -379,25 +377,22 @@ inline void copy_trans_block_data(
             // simply have the block, its value will be its null_block which
             // is fine. This null_block has a value of zero in data, and that
             // is thus the velocity space boundary
-#pragma ivdep
-#pragma GCC ivdep
             for (uint i=0; i<WID3; ++i) {
                 blockValues[i] = block_data[cellid_transpose[i]];
             }
 
             // now load values into the actual values table..
-#pragma ivdep
-#pragma GCC ivdep
+            uint offset =0;
             for (uint k=0; k<WID; ++k) {
                 for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){
                     // store data, when reading data from data we swap dimensions 
                     // using precomputed plane_index_to_id and cell_indices_to_id
-                   values[i_trans_ps_blockv(planeVector, k, b)].load(blockValues + (k * VEC_PER_PLANE + planeVector ) * VECL);
+                    values[i_trans_ps_blockv(planeVector, k, b)].load(blockValues + offset);
+                    offset += VECL;
                 }
             }
         } else {
-#pragma ivdep
-#pragma GCC ivdep
+            uint cellid=0;
             for (uint k=0; k<WID; ++k) {
                 for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++) {
                     values[i_trans_ps_blockv(planeVector, k, b)] = Vec(0);
@@ -449,15 +444,14 @@ inline void store_trans_block_data(
         Realf* block_data = blockContainer.getData(blockLID);
 
         Realv blockValues[VECL];
+        uint cellid=0;
         for (uint k=0; k<WID; ++k) {
             for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){
                 target_values[i_trans_pt_blockv(planeVector, k, b)].store(blockValues);
-#pragma ivdep
-#pragma GCC ivdep
                 for(uint i = 0; i< VECL; i++){
                     // store data, when reading data from data we swap dimensions 
                     // using precomputed plane_index_to_id and cell_indices_to_id
-                   block_data[cellid_transpose[(k * VEC_PER_PLANE + planeVector) * VECL + i]] += blockValues[i];
+                    block_data[cellid_transpose[cellid++]] += blockValues[i];
                 }
             }
         }
