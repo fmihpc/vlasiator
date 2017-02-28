@@ -37,9 +37,13 @@ namespace projects {
       virtual bool initialize(void);
       static void addParameters(void);
       virtual void getParameters(void);
-      virtual void setCellBackgroundField(spatial_cell::SpatialCell* cell);
+      virtual void setCellBackgroundField(spatial_cell::SpatialCell* cell) const;
+      virtual void hook(
+         cuint& stage,
+         const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
+      ) const;
     protected:
-      Real getDistribValue(creal& vx, creal& vy, creal& vz);
+      Real getDistribValue(creal& vx, creal& vy, creal& vz) const;
       virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
       virtual Real calcPhaseSpaceDensity(
                                          creal& x, creal& y, creal& z,
@@ -47,7 +51,7 @@ namespace projects {
                                          creal& vx, creal& vy, creal& vz,
                                          creal& dvx, creal& dvy, creal& dvz,
                                          const int& popID
-                                        );
+                                        ) const;
 
       Real B0;
       Real VX0;

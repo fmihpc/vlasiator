@@ -183,7 +183,7 @@ void calculateEdgeGradPeTermXComponents(
    cint& RKCase
 ) {
    #warning Particles (charge) assumed to be protons here
-   Real hallRho;
+   Real hallRho = 0.0;
    switch (Parameters::ohmGradPeTerm) {
       case 0:
          cerr << __FILE__ << __LINE__ << "You shouldn't be in a electron pressure gradient term function if Parameters::ohmGradPeTerm == 0." << endl;
@@ -211,7 +211,7 @@ void calculateEdgeGradPeTermYComponents(
    cint& RKCase
 ) {
    #warning Particles (charge) assumed to be protons here
-   Real hallRho;
+   Real hallRho = 0.0;
    switch (Parameters::ohmGradPeTerm) {
       case 0:
          cerr << __FILE__ << __LINE__ << "You shouldn't be in a electron pressure gradient term function if Parameters::ohmGradPeTerm == 0." << endl;
@@ -239,7 +239,7 @@ void calculateEdgeGradPeTermZComponents(
    cint& RKCase
 ) {
   #warning Particles (charge) assumed to be protons here
-   Real hallRho;
+   Real hallRho = 0.0;
    switch (Parameters::ohmGradPeTerm) {
       case 0:
          cerr << __FILE__ << __LINE__ << "You shouldn't be in a electron pressure gradient term function if Parameters::ohmGradPeTerm == 0." << endl;

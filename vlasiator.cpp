@@ -198,7 +198,13 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          dtMaxGlobal[1] * P::maxSlAccelerationSubcycles << " " <<
          dtMaxGlobal[2] * P::maxFieldSolverSubcycles<< " " <<
          endl << writeVerbose;
-      subcycleDt = newDt;
+
+      if(P::dynamicTimestep == true) {
+         subcycleDt = newDt;
+      } else {
+         logFile <<"(TIMESTEP) However, fixed timestep in config overrides dt = " << P::dt << endl << writeVerbose;
+         subcycleDt = P::dt;
+      }
    } else {
       subcycleDt = P::dt;
    }
@@ -423,11 +429,14 @@ int main(int argn,char* args[]) {
       phiprof::stop("compute-dt");
    }
 
-   if (P::dynamicTimestep == true && P::isRestart == false) {
+   if (P::isRestart == false) {
       //compute new dt
       phiprof::start("compute-dt");
       computeNewTimeStep(mpiGrid,newDt,dtIsChanged);
-      if (dtIsChanged == true) P::dt=newDt;
+      if (P::dynamicTimestep == true && dtIsChanged == true) {
+         // Only actually update the timestep if dynamicTimestep is on
+         P::dt=newDt;
+      }
       phiprof::stop("compute-dt");
    }
 
@@ -751,7 +760,11 @@ int main(int argn,char* args[]) {
       );
 
       phiprof::stop("Propagate",computedCells,"Cells");
-
+      
+      phiprof::start("Project endTimeStep");
+      project->hook(hook::END_OF_TIME_STEP, mpiGrid);
+      phiprof::stop("Project endTimeStep");
+      
       // Check timestep
       if (P::dt < P::bailout_min_dt) {
          stringstream s;
