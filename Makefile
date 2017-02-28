@@ -383,19 +383,19 @@ projectTriAxisSearch.o: ${DEPS_COMMON} $(DEPS_PROJECTS) projects/projectTriAxisS
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/projectTriAxisSearch.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
 poisson_solver.o: ${DEPS_COMMON} ${DEPS_CELL} poisson_solver/poisson_solver.h poisson_solver/poisson_solver.cpp
-	$(CMP) $(CXXFLAGS) $(FLAGS) ${MATHFLAGS} -std=c++0x -c poisson_solver/poisson_solver.cpp ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN}
+	$(CMP) $(CXXFLAGS) $(FLAGS) ${MATHFLAGS} -std=c++0x -c poisson_solver/poisson_solver.cpp ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_ZOLTAN}
 
 poisson_solver_cg.o: ${DEPS_COMMON} ${DEPS_CELL} poisson_solver/poisson_solver.h poisson_solver/poisson_solver_cg.h poisson_solver/poisson_solver_cg.cpp
-	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -std=c++0x -c poisson_solver/poisson_solver_cg.cpp ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN}
+	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -std=c++0x -c poisson_solver/poisson_solver_cg.cpp ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_ZOLTAN}
 
 poisson_solver_jacobi.o: ${DEPS_COMMON} ${DEPS_CELL} poisson_solver/poisson_solver.h poisson_solver/poisson_solver_jacobi.h poisson_solver/poisson_solver_jacobi.cpp
-	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -std=c++0x -c poisson_solver/poisson_solver_jacobi.cpp ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN}
+	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -std=c++0x -c poisson_solver/poisson_solver_jacobi.cpp ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_ZOLTAN}
 
 poisson_solver_sor.o: ${DEPS_COMMON} ${DEPS_CELL} poisson_solver/poisson_solver.h poisson_solver/poisson_solver_sor.h poisson_solver/poisson_solver_sor.cpp
-	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -std=c++0x -c poisson_solver/poisson_solver_sor.cpp ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN}
+	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -std=c++0x -c poisson_solver/poisson_solver_sor.cpp ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_ZOLTAN}
 
 poisson_test.o: ${DEPS_COMMON} ${DEPS_CELL} projects/project.h projects/project.cpp projects/Poisson/poisson_test.h projects/Poisson/poisson_test.cpp
-	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -std=c++0x -c projects/Poisson/poisson_test.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
+	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -std=c++0x -c projects/Poisson/poisson_test.cpp ${INC_DCCRG} ${INC_FSGRID} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
 spatial_cell.o: ${DEPS_CELL} spatial_cell.cpp
 	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -std=c++0x -c spatial_cell.cpp $(INC_BOOST) ${INC_DCCRG} ${INC_EIGEN} ${INC_VECTORCLASS}
