@@ -14,7 +14,7 @@ DISTRIBUTION_FP_PRECISION = SPF
 # AVX: VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
 # AVX512: VEC8D_AGNER, VEC16F_AGNER
 # Fallback: VEC4D_FALLBACK, VEC4F_FALLBACK, VEC8F_FALLBACK
-VECTORCLASS = VEC16F_AGNER
+VECTORCLASS = VEC8F_AGNER
 
 
 #set a default archive utility, can also be set in Makefile.arch
@@ -38,7 +38,7 @@ COMPFLAGS +=${PAPI_FLAG}
 
 #Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
 #Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
-#COMPFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+COMPFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
 #is profiling on?
 COMPFLAGS += -DPROFILE
