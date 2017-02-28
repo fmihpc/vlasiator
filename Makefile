@@ -6,16 +6,17 @@ include MAKE/Makefile.${ARCH}
 FP_PRECISION = DP
 
 #Set floating point precision for distribution function to SPF (single) or DPF (double)
+#NOTE this has to have the same precision as the vectorclass defined below (VECTORCLASS)
 DISTRIBUTION_FP_PRECISION = SPF
 
-
-#Set vector backend type for vlasov solvers, sets precision and length. Options: 
+#Set vector backend type for vlasov solvers, sets precision and length. 
+#NOTE this has to have the same precision as the distribution function define (DISTRIBUTION_FP_PRECISION).
+#Options: 
 # Agners vectorclass: 
 # AVX: VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
 # AVX512: VEC8D_AGNER, VEC16F_AGNER
 # Fallback: VEC4D_FALLBACK, VEC4F_FALLBACK, VEC8F_FALLBACK
 VECTORCLASS = VEC8F_AGNER
-
 
 #set a default archive utility, can also be set in Makefile.arch
 AR ?= ar
