@@ -306,10 +306,14 @@ bool map_1d(SpatialCell* spatial_cell,
          const int firstBlock_gk = (int)((firstBlockMinV - max_intersectionMin)/intersection_dk);
          const int lastBlock_gk = (int)((lastBlockMaxV - min_intersectionMin)/intersection_dk);
 
-         const int firstBlockIndexK = firstBlock_gk/WID;         
-         const int lastBlockIndexK = lastBlock_gk/WID;
-
+         int firstBlockIndexK = firstBlock_gk/WID;         
+         int lastBlockIndexK = lastBlock_gk/WID;
          
+         //now enforce mesh limits for target column blocks
+         firstBlockIndexK = (firstBlockIndexK >= 0)            ? firstBlockIndexK : 0;
+         firstBlockIndexK = (firstBlockIndexK < max_v_length ) ? firstBlockIndexK : max_v_length - 1;
+         lastBlockIndexK  = (lastBlockIndexK  >= 0)            ? lastBlockIndexK  : 0;
+         lastBlockIndexK  = (lastBlockIndexK  < max_v_length ) ? lastBlockIndexK  : max_v_length - 1;
          
          //store source blocks
          for (int blockK = firstBlockIndices[2]; blockK <= lastBlockIndices[2]; blockK++){
@@ -318,10 +322,7 @@ bool map_1d(SpatialCell* spatial_cell,
          
          //store target blocks
          for (int blockK = firstBlockIndexK; blockK <= lastBlockIndexK; blockK++){
-            //check block is withing boundaries of target grid 
-            if (blockK >=0 && blockK < max_v_length) {
-               isTargetBlock[blockK]=true;
-            }
+            isTargetBlock[blockK]=true;
          }
 
          //store also for each column firstBlockIndexK, and lastBlockIndexK
