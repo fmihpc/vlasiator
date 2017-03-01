@@ -450,7 +450,8 @@ int main(int argn,char* args[]) {
    // Transfer initial field configuration into the FsGrids
    feedFieldDataIntoFsGrid<fsgrids::N_BFIELD>(mpiGrid,cells,CellParams::PERBX,perBGrid);
    feedFieldDataIntoFsGrid<fsgrids::N_BFIELD>(mpiGrid,cells,CellParams::PERBX,perBDt2Grid);
-   feedFieldDataIntoFsGrid<fsgrids::N_BGB>(mpiGrid,cells,CellParams::BGBX,BgBGrid);
+   //feedFieldDataIntoFsGrid<fsgrids::N_BGB>(mpiGrid,cells,CellParams::BGBX,BgBGrid);
+   feedBgFieldsIntoFsGrid(mpiGrid,cells,BgBGrid);
    BgBGrid.updateGhostCells();
    //feedFieldDataIntoFsGrid<fsgrids::N_EFIELD>(mpiGrid,cells,CellParams::EX,EGrid);
    //feedFieldDataIntoFsGrid<fsgrids::N_EHALL>(mpiGrid,cells,CellParams::EXHALL_000_100,EHallGrid);

@@ -47,6 +47,76 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 }
 
 
+void feedBgFieldsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+    const std::vector<CellID>& cells, FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& bgBGrid) {
+
+  bgBGrid.setupForTransferIn(cells.size());
+
+   // Setup transfer buffers
+   std::vector< std::array<Real, fsgrids::bgbfield::N_BGB> > transferBuffer(cells.size());
+
+   // Fill from cellParams
+   size_t count=0;
+   for(CellID i : cells) {
+      auto cellParams = mpiGrid[i]->get_cell_parameters();
+      auto derivatives = mpiGrid[i]->derivatives;
+      auto volumeDerivatives = mpiGrid[i]->derivativesBVOL;
+      std::array<Real, fsgrids::bgbfield::N_BGB>* thisCellData = &transferBuffer[count++];
+
+      thisCellData->at(fsgrids::bgbfield::BGBX) = cellParams[CellParams::BGBX];
+      thisCellData->at(fsgrids::bgbfield::BGBY) = cellParams[CellParams::BGBY];
+      thisCellData->at(fsgrids::bgbfield::BGBZ) = cellParams[CellParams::BGBZ];
+      thisCellData->at(fsgrids::bgbfield::BGBXVOL) = cellParams[CellParams::BGBXVOL];
+      thisCellData->at(fsgrids::bgbfield::BGBYVOL) = cellParams[CellParams::BGBYVOL];
+      thisCellData->at(fsgrids::bgbfield::BGBZVOL) = cellParams[CellParams::BGBZVOL];
+      thisCellData->at(fsgrids::bgbfield::BGBX_000_010) = cellParams[CellParams::BGBX_000_010];
+      thisCellData->at(fsgrids::bgbfield::BGBX_100_110) = cellParams[CellParams::BGBX_100_110];
+      thisCellData->at(fsgrids::bgbfield::BGBX_001_011) = cellParams[CellParams::BGBX_001_011];
+      thisCellData->at(fsgrids::bgbfield::BGBX_101_111) = cellParams[CellParams::BGBX_101_111];
+      thisCellData->at(fsgrids::bgbfield::BGBX_000_001) = cellParams[CellParams::BGBX_000_001];
+      thisCellData->at(fsgrids::bgbfield::BGBX_100_101) = cellParams[CellParams::BGBX_100_101];
+      thisCellData->at(fsgrids::bgbfield::BGBX_010_011) = cellParams[CellParams::BGBX_010_011];
+      thisCellData->at(fsgrids::bgbfield::BGBX_110_111) = cellParams[CellParams::BGBX_110_111];
+      thisCellData->at(fsgrids::bgbfield::BGBY_000_100) = cellParams[CellParams::BGBY_000_100];
+      thisCellData->at(fsgrids::bgbfield::BGBY_010_110) = cellParams[CellParams::BGBY_010_110];
+      thisCellData->at(fsgrids::bgbfield::BGBY_001_101) = cellParams[CellParams::BGBY_001_101];
+      thisCellData->at(fsgrids::bgbfield::BGBY_011_111) = cellParams[CellParams::BGBY_011_111];
+      thisCellData->at(fsgrids::bgbfield::BGBY_000_001) = cellParams[CellParams::BGBY_000_001];
+      thisCellData->at(fsgrids::bgbfield::BGBY_100_101) = cellParams[CellParams::BGBY_100_101];
+      thisCellData->at(fsgrids::bgbfield::BGBY_010_011) = cellParams[CellParams::BGBY_010_011];
+      thisCellData->at(fsgrids::bgbfield::BGBY_110_111) = cellParams[CellParams::BGBY_110_111];
+      thisCellData->at(fsgrids::bgbfield::BGBZ_000_100) = cellParams[CellParams::BGBZ_000_100];
+      thisCellData->at(fsgrids::bgbfield::BGBZ_010_110) = cellParams[CellParams::BGBZ_010_110];
+      thisCellData->at(fsgrids::bgbfield::BGBZ_001_101) = cellParams[CellParams::BGBZ_001_101];
+      thisCellData->at(fsgrids::bgbfield::BGBZ_011_111) = cellParams[CellParams::BGBZ_011_111];
+      thisCellData->at(fsgrids::bgbfield::BGBZ_000_010) = cellParams[CellParams::BGBZ_000_010];
+      thisCellData->at(fsgrids::bgbfield::BGBZ_100_110) = cellParams[CellParams::BGBZ_100_110];
+      thisCellData->at(fsgrids::bgbfield::BGBZ_001_011) = cellParams[CellParams::BGBZ_001_011];
+      thisCellData->at(fsgrids::bgbfield::BGBZ_101_111) = cellParams[CellParams::BGBZ_101_111];
+
+      thisCellData->at(fsgrids::bgbfield::dBGBxdy) = derivatives[fieldsolver::dBGBxdy];
+      thisCellData->at(fsgrids::bgbfield::dBGBxdz) = derivatives[fieldsolver::dBGBxdz];
+      thisCellData->at(fsgrids::bgbfield::dBGBydx) = derivatives[fieldsolver::dBGBydx];
+      thisCellData->at(fsgrids::bgbfield::dBGBydz) = derivatives[fieldsolver::dBGBydz];
+      thisCellData->at(fsgrids::bgbfield::dBGBzdx) = derivatives[fieldsolver::dBGBzdx];
+      thisCellData->at(fsgrids::bgbfield::dBGBzdy) = derivatives[fieldsolver::dBGBzdy];
+
+      thisCellData->at(fsgrids::bgbfield::dBGBXVOLdy) = volumeDerivatives[bvolderivatives::dBGBXVOLdy];
+      thisCellData->at(fsgrids::bgbfield::dBGBXVOLdz) = volumeDerivatives[bvolderivatives::dBGBXVOLdz];
+      thisCellData->at(fsgrids::bgbfield::dBGBYVOLdx) = volumeDerivatives[bvolderivatives::dBGBYVOLdx];
+      thisCellData->at(fsgrids::bgbfield::dBGBYVOLdz) = volumeDerivatives[bvolderivatives::dBGBYVOLdz];
+      thisCellData->at(fsgrids::bgbfield::dBGBZVOLdx) = volumeDerivatives[bvolderivatives::dBGBZVOLdx];
+      thisCellData->at(fsgrids::bgbfield::dBGBZVOLdy) = volumeDerivatives[bvolderivatives::dBGBZVOLdy];
+
+      bgBGrid.transferDataIn(i-1, thisCellData);
+   }
+
+
+   // Finish the actual transfer
+   bgBGrid.finishTransfersIn();
+
+}
+
 void getVolumeFieldsFromFsGrid(FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volumeFieldsGrid,
                            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                            const std::vector<CellID>& cells) {
@@ -136,3 +206,4 @@ void getFsGridMaxDt(FsGrid< fsgrids::technical, 2>& technicalGrid,
       mpiGrid[i]->get_cell_parameters()[CellParams::FSGRID_BOUNDARYTYPE] = transferBuffer[count++].sysBoundaryFlag;
    }
 }
+

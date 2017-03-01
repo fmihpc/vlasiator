@@ -49,6 +49,20 @@ void getFsGridMaxDt(FsGrid< fsgrids::technical, 2>& technicalGrid,
       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const std::vector<CellID>& cells);
 
+/*! Transfer background fields into the appropriate FsGrid structure
+ *  This requires separate handling, since the source data is not lying
+ *  continuous in memory on the DCCRG side.
+ *
+ * \param mpiGrid The DCCRG grid carrying fieldparam data
+ * \param cells List of local cells
+ * \param targetGrid Fieldsolver grid for these quantities
+ *
+ * This function assumes that proper grid coupling has been set up.
+ */
+void feedBgFieldsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+		const std::vector<CellID>& cells,
+		FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid);
+
 /*! Transfer field data from DCCRG cellparams into the appropriate FsGrid structure
  * \param mpiGrid The DCCRG grid carrying fieldparam data
  * \param cells List of local cells
