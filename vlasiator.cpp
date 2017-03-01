@@ -478,6 +478,9 @@ int main(int argn,char* args[]) {
          logFile << "(MAIN): Field propagator did not initialize correctly!" << endl << writeVerbose;
          exit(1);
       }
+
+      getVolumeFieldsFromFsGrid(volGrid, mpiGrid, cells);
+
       phiprof::stop("Init field propagator");
    }
 
