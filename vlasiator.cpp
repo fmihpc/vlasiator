@@ -457,33 +457,39 @@ int main(int argn,char* args[]) {
    //feedFieldDataIntoFsGrid<fsgrids::N_EHALL>(mpiGrid,cells,CellParams::EXHALL_000_100,EHallGrid);
    //feedFieldDataIntoFsGrid<fsgrids::N_EGRADPE>(mpiGrid,cells,CellParams::EXGRADPE,EGradPeGrid);
    
+   setupTechnicalFsGrid(mpiGrid, cells, technicalGrid);
+   technicalGrid.updateGhostCells();
+   
    // Initialize field propagator:
-   if (P::propagateField ) { 
-      phiprof::start("Init field propagator");
-      if (initializeFieldPropagator(
-         perBGrid,
-         perBDt2Grid,
-         EGrid,
-         EDt2Grid,
-         EHallGrid,
-         EGradPeGrid,
-         momentsGrid,
-         momentsDt2Grid,
-         dPerBGrid,
-         dMomentsGrid,
-         BgBGrid,
-         volGrid,
-         technicalGrid,
-         sysBoundaries
-      ) == false) {
-         logFile << "(MAIN): Field propagator did not initialize correctly!" << endl << writeVerbose;
-         exit(1);
-      }
-
-      getVolumeFieldsFromFsGrid(volGrid, mpiGrid, cells);
-
-      phiprof::stop("Init field propagator");
+   // WARNING this means moments and dt2 moments are the same here.
+   // WARNING The field solver has to be initialised also when propagateField == false, in order ot get a correct E.
+   feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid,false);
+   feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid,false);
+   
+   phiprof::start("Init field propagator");
+   if (initializeFieldPropagator(
+      perBGrid,
+      perBDt2Grid,
+      EGrid,
+      EDt2Grid,
+      EHallGrid,
+      EGradPeGrid,
+      momentsGrid,
+      momentsDt2Grid,
+      dPerBGrid,
+      dMomentsGrid,
+      BgBGrid,
+      volGrid,
+      technicalGrid,
+      sysBoundaries
+   ) == false) {
+      logFile << "(MAIN): Field propagator did not initialize correctly!" << endl << writeVerbose;
+      exit(1);
    }
+
+   getVolumeFieldsFromFsGrid(volGrid, mpiGrid, cells);
+
+   phiprof::stop("Init field propagator");
 
    // Initialize Poisson solver (if used)
    if (P::propagatePotential == true) {
@@ -529,9 +535,6 @@ int main(int argn,char* args[]) {
       phiprof::stop("write-initial-state");
    }
 
-   setupTechnicalFsGrid(mpiGrid, cells, technicalGrid);
-   technicalGrid.updateGhostCells();
-
    if (P::isRestart == false) {      
       // Run Vlasov solver once with zero dt to initialize
       //per-cell dt limits. In restarts, we read the dt from file.
@@ -540,10 +543,6 @@ int main(int argn,char* args[]) {
       calculateAcceleration(mpiGrid,0.0);
 
       if (P::propagateField == true) {
-         
-         feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid,false);
-         feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid,false);
-
          propagateFields(
             perBGrid,
             perBDt2Grid,
