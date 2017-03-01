@@ -12,19 +12,37 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
    momentsGrid.setupForTransferIn(cells.size());
 
-   int startindex=CellParams::RHO;
-   if(dt2) {
-      startindex=CellParams::RHO_DT2;
-   }
+   // Setup transfer buffers
+   std::vector< std::array<Real, fsgrids::moments::N_MOMENTS> > transferBuffer(cells.size());
 
+   // Fill from cellParams
+   size_t count=0;
    for(CellID i : cells) {
-      // TODO: This assumes that RHO, RHOV and P (diagonals) are lying continuous in memory.
-      // Check definition of CellParams in common.h if unsure.
-      std::array<Real, fsgrids::moments::N_MOMENTS>* cellDataPointer = reinterpret_cast<std::array<Real, fsgrids::moments::N_MOMENTS>*>(
-            &(mpiGrid[i]->get_cell_parameters()[startindex]));
-      momentsGrid.transferDataIn(i - 1, cellDataPointer);
+      auto cellParams = mpiGrid[i]->get_cell_parameters();
+      std::array<Real, fsgrids::moments::N_MOMENTS>* thisCellData = &transferBuffer[count++];
+    
+      if(!dt2) {
+        thisCellData->at(fsgrids::moments::RHO) = cellParams[CellParams::RHO];
+        thisCellData->at(fsgrids::moments::RHOVX) = cellParams[CellParams::RHOVX];
+        thisCellData->at(fsgrids::moments::RHOVY) = cellParams[CellParams::RHOVY];
+        thisCellData->at(fsgrids::moments::RHOVZ) = cellParams[CellParams::RHOVZ];
+        thisCellData->at(fsgrids::moments::P_11) = cellParams[CellParams::P_11];
+        thisCellData->at(fsgrids::moments::P_22) = cellParams[CellParams::P_22];
+        thisCellData->at(fsgrids::moments::P_33) = cellParams[CellParams::P_33];
+      } else {
+        thisCellData->at(fsgrids::moments::RHO) = cellParams[CellParams::RHO_DT2];
+        thisCellData->at(fsgrids::moments::RHOVX) = cellParams[CellParams::RHOVX_DT2];
+        thisCellData->at(fsgrids::moments::RHOVY) = cellParams[CellParams::RHOVY_DT2];
+        thisCellData->at(fsgrids::moments::RHOVZ) = cellParams[CellParams::RHOVZ_DT2];
+        thisCellData->at(fsgrids::moments::P_11) = cellParams[CellParams::P_11_DT2];
+        thisCellData->at(fsgrids::moments::P_22) = cellParams[CellParams::P_22_DT2];
+        thisCellData->at(fsgrids::moments::P_33) = cellParams[CellParams::P_33_DT2];
+      }
+
+      momentsGrid.transferDataIn(i - 1, thisCellData);
    }
 
+   // Finish the actual transfer
    momentsGrid.finishTransfersIn();
 }
 
@@ -33,32 +51,40 @@ void getVolumeFieldsFromFsGrid(FsGrid< std::array<Real, fsgrids::volfields::N_VO
                            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                            const std::vector<CellID>& cells) {
 
-   volumeFieldsGrid.setupForTransferOut(cells.size());
-   // Fill the transfer buffers from the spatial cell structs
+   // Setup transfer buffers
    std::vector< std::array<Real, fsgrids::volfields::N_VOL> > transferBuffer(cells.size());
 
+   // Setup transfer pointers
+   volumeFieldsGrid.setupForTransferOut(cells.size());
    size_t count=0;
    for(CellID i : cells) {
       std::array<Real, fsgrids::volfields::N_VOL>* thisCellData = &transferBuffer[count++];
 
-      // Data needs to be collected from some different places for this grid.
-      auto cellParams = mpiGrid[i]->get_cell_parameters();
-      thisCellData->at(fsgrids::volfields::PERBXVOL) = cellParams[CellParams::PERBXVOL];
-      thisCellData->at(fsgrids::volfields::PERBYVOL) = cellParams[CellParams::PERBYVOL];
-      thisCellData->at(fsgrids::volfields::PERBZVOL) = cellParams[CellParams::PERBZVOL];
-      thisCellData->at(fsgrids::volfields::EXVOL) = cellParams[CellParams::EXVOL];
-      thisCellData->at(fsgrids::volfields::EYVOL) = cellParams[CellParams::EYVOL];
-      thisCellData->at(fsgrids::volfields::EZVOL) = cellParams[CellParams::EZVOL];
-      thisCellData->at(fsgrids::volfields::dPERBXVOLdy) = mpiGrid[i]->derivativesBVOL[bvolderivatives::dPERBXVOLdy];
-      thisCellData->at(fsgrids::volfields::dPERBXVOLdz) = mpiGrid[i]->derivativesBVOL[bvolderivatives::dPERBXVOLdz];
-      thisCellData->at(fsgrids::volfields::dPERBYVOLdx) = mpiGrid[i]->derivativesBVOL[bvolderivatives::dPERBYVOLdx];
-      thisCellData->at(fsgrids::volfields::dPERBYVOLdz) = mpiGrid[i]->derivativesBVOL[bvolderivatives::dPERBYVOLdz];
-      thisCellData->at(fsgrids::volfields::dPERBZVOLdx) = mpiGrid[i]->derivativesBVOL[bvolderivatives::dPERBZVOLdx];
-      thisCellData->at(fsgrids::volfields::dPERBZVOLdy) = mpiGrid[i]->derivativesBVOL[bvolderivatives::dPERBZVOLdy];
       volumeFieldsGrid.transferDataOut(i - 1, thisCellData);
    }
-
+   // Do the transfer
    volumeFieldsGrid.finishTransfersOut();
+
+   // Distribute data from the transfer buffer back into the appropriate mpiGrid places
+   count = 0;
+   for(CellID i : cells) {
+      std::array<Real, fsgrids::volfields::N_VOL>* thisCellData = &transferBuffer[count++];
+      auto cellParams = mpiGrid[i]->get_cell_parameters();
+
+      cellParams[CellParams::PERBXVOL]                          = thisCellData->at(fsgrids::volfields::PERBXVOL);
+      cellParams[CellParams::PERBYVOL]                          = thisCellData->at(fsgrids::volfields::PERBYVOL);
+      cellParams[CellParams::PERBZVOL]                          = thisCellData->at(fsgrids::volfields::PERBZVOL);
+      cellParams[CellParams::EXVOL]                             = thisCellData->at(fsgrids::volfields::EXVOL);
+      cellParams[CellParams::EYVOL]                             = thisCellData->at(fsgrids::volfields::EYVOL);
+      cellParams[CellParams::EZVOL]                             = thisCellData->at(fsgrids::volfields::EZVOL);
+      mpiGrid[i]->derivativesBVOL[bvolderivatives::dPERBXVOLdy] = thisCellData->at(fsgrids::volfields::dPERBXVOLdy);
+      mpiGrid[i]->derivativesBVOL[bvolderivatives::dPERBXVOLdz] = thisCellData->at(fsgrids::volfields::dPERBXVOLdz);
+      mpiGrid[i]->derivativesBVOL[bvolderivatives::dPERBYVOLdx] = thisCellData->at(fsgrids::volfields::dPERBYVOLdx);
+      mpiGrid[i]->derivativesBVOL[bvolderivatives::dPERBYVOLdz] = thisCellData->at(fsgrids::volfields::dPERBYVOLdz);
+      mpiGrid[i]->derivativesBVOL[bvolderivatives::dPERBZVOLdx] = thisCellData->at(fsgrids::volfields::dPERBZVOLdx);
+      mpiGrid[i]->derivativesBVOL[bvolderivatives::dPERBZVOLdy] = thisCellData->at(fsgrids::volfields::dPERBZVOLdy);
+   }
+
 }
 
 
