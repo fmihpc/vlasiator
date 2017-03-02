@@ -460,9 +460,7 @@ int main(int argn,char* args[]) {
    setupTechnicalFsGrid(mpiGrid, cells, technicalGrid);
    technicalGrid.updateGhostCells();
    
-   // Initialize field propagator:
    // WARNING this means moments and dt2 moments are the same here.
-   // WARNING The field solver has to be initialised also when propagateField == false, in order ot get a correct E.
    feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid,false);
    feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid,false);
    
@@ -619,12 +617,12 @@ int main(int argn,char* args[]) {
          checkExternalCommands();
       }
       phiprof::stop("checkExternalCommands");
-     
+      
       // TODO: Make sure fsgrid data gets fed back into DCCRG before performing any field I/O
       //getFieldDataFromFsGrid<fsgrids::N_BGB>(mpiGrid,cells,CellParams::BGBX,BgBGrid); // <- no need, doesn't change.
       getFieldDataFromFsGrid<fsgrids::N_BFIELD>(perBGrid,mpiGrid,cells,CellParams::PERBX);
       getFieldDataFromFsGrid<fsgrids::N_EFIELD>(EGrid,mpiGrid,cells,CellParams::EX);
-
+      
       //write out phiprof profiles and logs with a lower interval than normal
       //diagnostic (every 10 diagnostic intervals).
       phiprof::start("logfile-io");
