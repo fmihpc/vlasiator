@@ -466,31 +466,6 @@ int main(int argn,char* args[]) {
    feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid,false);
    feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid,false);
    
-   phiprof::start("Init field propagator");
-   if (initializeFieldPropagator(
-      perBGrid,
-      perBDt2Grid,
-      EGrid,
-      EDt2Grid,
-      EHallGrid,
-      EGradPeGrid,
-      momentsGrid,
-      momentsDt2Grid,
-      dPerBGrid,
-      dMomentsGrid,
-      BgBGrid,
-      volGrid,
-      technicalGrid,
-      sysBoundaries
-   ) == false) {
-      logFile << "(MAIN): Field propagator did not initialize correctly!" << endl << writeVerbose;
-      exit(1);
-   }
-
-   getVolumeFieldsFromFsGrid(volGrid, mpiGrid, cells);
-
-   phiprof::stop("Init field propagator");
-
    // Initialize Poisson solver (if used)
    if (P::propagatePotential == true) {
       phiprof::start("Init Poisson solver");
@@ -504,6 +479,37 @@ int main(int argn,char* args[]) {
    // Free up memory:
    readparameters.finalize();
 
+   if (P::isRestart == false) {
+      // Run Vlasov solver once with zero dt to initialize
+      //per-cell dt limits. In restarts, we read the dt from file.
+      phiprof::start("compute-dt");
+      
+      if (P::propagateField == true) {
+         propagateFields(
+            perBGrid,
+            perBDt2Grid,
+            EGrid,
+            EDt2Grid,
+            EHallGrid,
+            EGradPeGrid,
+            momentsGrid,
+            momentsDt2Grid,
+            dPerBGrid,
+            dMomentsGrid,
+            BgBGrid,
+            volGrid,
+            technicalGrid,
+            sysBoundaries, 0.0, 1.0
+         );
+         getVolumeFieldsFromFsGrid(volGrid, mpiGrid, cells);
+      }
+      
+      calculateSpatialTranslation(mpiGrid,0.0);
+      calculateAcceleration(mpiGrid,0.0);
+      
+      phiprof::stop("compute-dt");
+   }
+   
    // Save restart data
    if (P::writeInitialState) {
       phiprof::start("write-initial-state");
@@ -533,35 +539,6 @@ int main(int argn,char* args[]) {
       P::systemWritePath.pop_back();
 
       phiprof::stop("write-initial-state");
-   }
-
-   if (P::isRestart == false) {      
-      // Run Vlasov solver once with zero dt to initialize
-      //per-cell dt limits. In restarts, we read the dt from file.
-      phiprof::start("compute-dt");
-      calculateSpatialTranslation(mpiGrid,0.0);
-      calculateAcceleration(mpiGrid,0.0);
-
-      if (P::propagateField == true) {
-         propagateFields(
-            perBGrid,
-            perBDt2Grid,
-            EGrid,
-            EDt2Grid,
-            EHallGrid,
-            EGradPeGrid,
-            momentsGrid,
-            momentsDt2Grid,
-            dPerBGrid,
-            dMomentsGrid,
-            BgBGrid,
-            volGrid,
-            technicalGrid,
-            sysBoundaries, 0.0, 1.0
-         );
-         getVolumeFieldsFromFsGrid(volGrid, mpiGrid, cells);
-      }
-      phiprof::stop("compute-dt");
    }
 
    if (P::isRestart == false) {

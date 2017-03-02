@@ -22,21 +22,21 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
       std::array<Real, fsgrids::moments::N_MOMENTS>* thisCellData = &transferBuffer[count++];
     
       if(!dt2) {
-        thisCellData->at(fsgrids::moments::RHO) = cellParams[CellParams::RHO];
-        thisCellData->at(fsgrids::moments::RHOVX) = cellParams[CellParams::RHOVX];
-        thisCellData->at(fsgrids::moments::RHOVY) = cellParams[CellParams::RHOVY];
-        thisCellData->at(fsgrids::moments::RHOVZ) = cellParams[CellParams::RHOVZ];
-        thisCellData->at(fsgrids::moments::P_11) = cellParams[CellParams::P_11];
-        thisCellData->at(fsgrids::moments::P_22) = cellParams[CellParams::P_22];
-        thisCellData->at(fsgrids::moments::P_33) = cellParams[CellParams::P_33];
+         thisCellData->at(fsgrids::moments::RHO) = cellParams[CellParams::RHO];
+         thisCellData->at(fsgrids::moments::RHOVX) = cellParams[CellParams::RHOVX];
+         thisCellData->at(fsgrids::moments::RHOVY) = cellParams[CellParams::RHOVY];
+         thisCellData->at(fsgrids::moments::RHOVZ) = cellParams[CellParams::RHOVZ];
+         thisCellData->at(fsgrids::moments::P_11) = cellParams[CellParams::P_11];
+         thisCellData->at(fsgrids::moments::P_22) = cellParams[CellParams::P_22];
+         thisCellData->at(fsgrids::moments::P_33) = cellParams[CellParams::P_33];
       } else {
-        thisCellData->at(fsgrids::moments::RHO) = cellParams[CellParams::RHO_DT2];
-        thisCellData->at(fsgrids::moments::RHOVX) = cellParams[CellParams::RHOVX_DT2];
-        thisCellData->at(fsgrids::moments::RHOVY) = cellParams[CellParams::RHOVY_DT2];
-        thisCellData->at(fsgrids::moments::RHOVZ) = cellParams[CellParams::RHOVZ_DT2];
-        thisCellData->at(fsgrids::moments::P_11) = cellParams[CellParams::P_11_DT2];
-        thisCellData->at(fsgrids::moments::P_22) = cellParams[CellParams::P_22_DT2];
-        thisCellData->at(fsgrids::moments::P_33) = cellParams[CellParams::P_33_DT2];
+         thisCellData->at(fsgrids::moments::RHO) = cellParams[CellParams::RHO_DT2];
+         thisCellData->at(fsgrids::moments::RHOVX) = cellParams[CellParams::RHOVX_DT2];
+         thisCellData->at(fsgrids::moments::RHOVY) = cellParams[CellParams::RHOVY_DT2];
+         thisCellData->at(fsgrids::moments::RHOVZ) = cellParams[CellParams::RHOVZ_DT2];
+         thisCellData->at(fsgrids::moments::P_11) = cellParams[CellParams::P_11_DT2];
+         thisCellData->at(fsgrids::moments::P_22) = cellParams[CellParams::P_22_DT2];
+         thisCellData->at(fsgrids::moments::P_33) = cellParams[CellParams::P_33_DT2];
       }
 
       momentsGrid.transferDataIn(i - 1, thisCellData);
@@ -179,6 +179,14 @@ void setupTechnicalFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    }
 
    technicalGrid.finishTransfersIn();
+   
+   // Checking that spatial cells are cubic, otherwise field solver is incorrect (cf. derivatives in E, Hall term)
+   if((abs((technicalGrid.DX-technicalGrid.DY)/technicalGrid.DX) > 0.001) ||
+      (abs((technicalGrid.DX-technicalGrid.DZ)/technicalGrid.DX) > 0.001) ||
+      (abs((technicalGrid.DY-technicalGrid.DZ)/technicalGrid.DY) > 0.001)) {
+      std::cerr << "WARNING: Your spatial cells seem not to be cubic. However the field solver is assuming them to be. Use at your own risk and responsibility!" << std::endl;
+      }
+   
 }
 
 void getFsGridMaxDt(FsGrid< fsgrids::technical, 2>& technicalGrid,
