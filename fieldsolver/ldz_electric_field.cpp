@@ -275,7 +275,6 @@ void calculateWaveSpeedXZ(
    ret_vA = sqrt(vA2);
    ret_vS = sqrt(vS2);
    ret_vW = vW;
-      
 }
 
 /*! \brief Low-level helper function.
@@ -595,7 +594,7 @@ void calculateEdgeElectricFieldX(
       dPerBGrid,
       dMomentsGrid,
       BgBGrid,
-      i  ,   j, k,
+      i  , j-1, k,
       i+1, j-1, k,
       By_S, Bz_E, dBydx_S, dBydz_S, dBzdx_E, dBzdy_E, PLUS, MINUS, minRho, maxRho, RKCase, vA, vS, vW);
    c_y = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS));
@@ -649,7 +648,7 @@ void calculateEdgeElectricFieldX(
       dPerBGrid,
       dMomentsGrid,
       BgBGrid,
-      i, j, k,
+      i  , j, k-1,
       i+1, j, k-1,
       By_N, Bz_W, dBydx_N, dBydz_N, dBzdx_W, dBzdy_W, MINUS, PLUS, minRho, maxRho, RKCase, vA, vS, vW);
    c_y = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS));
@@ -704,7 +703,7 @@ void calculateEdgeElectricFieldX(
       dPerBGrid,
       dMomentsGrid,
       BgBGrid,
-      i, j, k,
+      i  ,j-1,k-1,
       i+1,j-1,k-1,
       By_N, Bz_E, dBydx_N, dBydz_N, dBzdx_E, dBzdy_E, PLUS, PLUS, minRho, maxRho, RKCase, vA, vS, vW);
    c_y = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS));
@@ -950,7 +949,7 @@ void calculateEdgeElectricFieldY(
       dPerBGrid,
       dMomentsGrid,
       BgBGrid,
-      i, j, k,
+      i, j  , k-1,
       i, j+1, k-1,
       Bx_E, Bz_S, dBxdy_E, dBxdz_E, dBzdx_S, dBzdy_S, MINUS, PLUS, minRho, maxRho, RKCase, vA, vS, vW);
    c_z = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS));
@@ -1004,7 +1003,7 @@ void calculateEdgeElectricFieldY(
       dPerBGrid,
       dMomentsGrid,
       BgBGrid,
-      i, j, k,
+      i-1,j  ,k,
       i-1,j+1,k,
       Bx_W, Bz_N, dBxdy_W, dBxdz_W, dBzdx_N, dBzdy_N, PLUS, MINUS, minRho, maxRho, RKCase, vA, vS, vW);
    c_z = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS));
@@ -1058,7 +1057,7 @@ void calculateEdgeElectricFieldY(
       dPerBGrid,
       dMomentsGrid,
       BgBGrid,
-      i, j, k,
+      i-1,j  ,k-1,
       i-1,j+1,k-1,
       Bx_E, Bz_N, dBxdy_E, dBxdz_E, dBzdx_N, dBzdy_N, PLUS, PLUS, minRho, maxRho, RKCase, vA, vS, vW);
    c_z = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS));
@@ -1307,8 +1306,8 @@ void calculateEdgeElectricFieldZ(
       dPerBGrid,
       dMomentsGrid,
       BgBGrid,
-      i, j, k,
-      i-1,j,k+1,
+      i-1,j  ,k,
+      i-1,j  ,k+1,
       Bx_S, By_E, dBxdy_S, dBxdz_S, dBydx_E, dBydz_E, PLUS, MINUS, minRho, maxRho, RKCase, vA, vS, vW);
    c_x = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS));
    c_y = c_x;
@@ -1361,7 +1360,7 @@ void calculateEdgeElectricFieldZ(
       dPerBGrid,
       dMomentsGrid,
       BgBGrid,
-      i, j, k,
+      i, j-1, k,
       i, j-1, k+1,
       Bx_N, By_W, dBxdy_N, dBxdz_N, dBydx_W, dBydz_W, MINUS, PLUS, minRho, maxRho, RKCase, vA, vS, vW);
    c_x = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS));
@@ -1415,8 +1414,8 @@ void calculateEdgeElectricFieldZ(
       dPerBGrid,
       dMomentsGrid,
       BgBGrid,
-      i, j, k,
-      i-1, j-1, k+1,
+      i-1,j-1,k,
+      i-1,j-1,k+1,
       Bx_N, By_E, dBxdy_N, dBxdz_N, dBydx_E, dBydz_E, PLUS, PLUS, minRho, maxRho, RKCase, vA, vS, vW);
    c_x = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS));
    c_y = c_x;
