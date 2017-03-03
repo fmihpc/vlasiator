@@ -75,9 +75,9 @@ struct VelocityMeshParams {
    vector<double> vx_max;
    vector<double> vy_max;
    vector<double> vz_max;
-   vector<double> vx_length;
-   vector<double> vy_length;
-   vector<double> vz_length;
+   vector<vmesh::LocalID> vx_length;
+   vector<vmesh::LocalID> vy_length;
+   vector<vmesh::LocalID> vz_length;
    vector<unsigned int> maxRefLevels;
    
    void resize(const size_t& size) {
@@ -289,6 +289,14 @@ namespace projects {
          meshParams.blockLength[2] = WID;
          meshParams.refLevelMaxAllowed = velMeshParams->maxRefLevels[m];
          owrapper.velocityMeshes.push_back(meshParams);
+	 if(meshParams.gridLength[0] > MAX_BLOCKS_PER_DIM  || meshParams.gridLength[1] > MAX_BLOCKS_PER_DIM  || meshParams.gridLength[2] > MAX_BLOCKS_PER_DIM ) {
+	   stringstream ss;
+	   ss << "(PROJECT) ERROR: Velocity mesh called '" << velMeshParams->name[m] << "' has too many blocks per dimension. Maximum defined in MAX_BLOCKS_PER_DIM is " << MAX_BLOCKS_PER_DIM << " "; 
+	   ss << __FILE__ << ":" << __LINE__ << endl;
+	   cerr << ss.str(); success = false;
+            continue;
+	 }
+	 
       }
 
       delete velMeshParams; velMeshParams = NULL;

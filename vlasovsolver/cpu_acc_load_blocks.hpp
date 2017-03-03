@@ -5,7 +5,7 @@
 #include "../spatial_cell.hpp"
 #include "vec.h"
 
-#define MAX_BLOCKS_PER_DIM 400
+
 //index in the temporary and padded column data values array. Each
 //column has an empty block in ether end.
 #define i_pcolumnv(j, k, k_block, num_k_blocks) ( ((j) / ( VECL / WID)) * WID * ( num_k_blocks + 2) + (k) + ( k_block + 1 ) * WID )
