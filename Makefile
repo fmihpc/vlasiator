@@ -251,7 +251,7 @@ version.o: version.cpp
 	 ${CMP} ${CXXFLAGS} ${FLAGS} -c version.cpp
 
 amr_refinement_criteria.o: ${DEPS_COMMON} velocity_blocks.h amr_refinement_criteria.h amr_refinement_criteria.cpp object_factory.h
-	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c amr_refinement_criteria.cpp ${INC_DCCRG}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c amr_refinement_criteria.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST}
 
 memoryallocation.o: memoryallocation.cpp 
 	 ${CMP} ${CXXFLAGS} ${FLAGS} -c memoryallocation.cpp ${INC_PAPI}
@@ -294,7 +294,7 @@ ionosphere.o: ${DEPS_SYSBOUND} sysboundary/ionosphere.h sysboundary/ionosphere.c
 
 
 mesh_data_container.o: ${DEPS_COMMON} mesh_data_container.h mesh_data.h
-	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c mesh_data_container.cpp ${INC_VLSV} ${INC_DCCRG}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c mesh_data_container.cpp ${INC_VLSV} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST}
 
 project_boundary.o: ${DEPS_SYSBOUND} sysboundary/project_boundary.h sysboundary/project_boundary.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c sysboundary/project_boundary.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
@@ -394,22 +394,22 @@ projectTriAxisSearch.o: ${DEPS_COMMON} $(DEPS_PROJECTS) projects/projectTriAxisS
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/projectTriAxisSearch.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
 poisson_solver.o: ${DEPS_COMMON} ${DEPS_CELL} poisson_solver/poisson_solver.h poisson_solver/poisson_solver.cpp
-	$(CMP) $(CXXFLAGS) $(FLAGS) ${MATHFLAGS} -std=c++0x -c poisson_solver/poisson_solver.cpp ${INC_DCCRG}  ${INC_BOOST} ${INC_ZOLTAN}
+	$(CMP) $(CXXFLAGS) $(FLAGS) ${MATHFLAGS} -c poisson_solver/poisson_solver.cpp ${INC_DCCRG}  ${INC_BOOST} ${INC_ZOLTAN}
 
 poisson_solver_cg.o: ${DEPS_COMMON} ${DEPS_CELL} poisson_solver/poisson_solver.h poisson_solver/poisson_solver_cg.h poisson_solver/poisson_solver_cg.cpp
-	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -std=c++0x -c poisson_solver/poisson_solver_cg.cpp ${INC_DCCRG}  ${INC_BOOST} ${INC_ZOLTAN}
+	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c poisson_solver/poisson_solver_cg.cpp ${INC_DCCRG}  ${INC_BOOST} ${INC_ZOLTAN}
 
 poisson_solver_jacobi.o: ${DEPS_COMMON} ${DEPS_CELL} poisson_solver/poisson_solver.h poisson_solver/poisson_solver_jacobi.h poisson_solver/poisson_solver_jacobi.cpp
-	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -std=c++0x -c poisson_solver/poisson_solver_jacobi.cpp ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN}
+	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c poisson_solver/poisson_solver_jacobi.cpp ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN}
 
 poisson_solver_sor.o: ${DEPS_COMMON} ${DEPS_CELL} poisson_solver/poisson_solver.h poisson_solver/poisson_solver_sor.h poisson_solver/poisson_solver_sor.cpp
-	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -std=c++0x -c poisson_solver/poisson_solver_sor.cpp ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN}
+	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c poisson_solver/poisson_solver_sor.cpp ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN}
 
 poisson_test.o: ${DEPS_COMMON} ${DEPS_CELL} projects/project.h projects/project.cpp projects/Poisson/poisson_test.h projects/Poisson/poisson_test.cpp
-	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -std=c++0x -c projects/Poisson/poisson_test.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
+	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c projects/Poisson/poisson_test.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
 spatial_cell.o: ${DEPS_CELL} spatial_cell.cpp
-	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -std=c++0x -c spatial_cell.cpp $(INC_BOOST) ${INC_DCCRG} ${INC_EIGEN} ${INC_VECTORCLASS}
+	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c spatial_cell.cpp $(INC_BOOST) ${INC_DCCRG} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VECTORCLASS}
 
 ifeq ($(MESH),AMR)
 vlasovmover.o: ${DEPS_VLSVMOVER_AMR}
