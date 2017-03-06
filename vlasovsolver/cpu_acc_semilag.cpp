@@ -114,9 +114,9 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
                                     intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk);
           phiprof::stop("compute-intersections");
           phiprof::start("compute-mapping");
-          map_1d(vmesh,blockContainer,intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk,0); // map along x
-          map_1d(vmesh,blockContainer,intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk,1); // map along y
-          map_1d(vmesh,blockContainer,intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk,2); // map along z
+          map_1d(spatial_cell, popID, intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk,0); // map along x
+          map_1d(spatial_cell, popID, intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk,1); // map along y
+          map_1d(spatial_cell, popID, intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk,2); // map along z
           phiprof::stop("compute-mapping");
           break;
           
@@ -132,9 +132,9 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
       
           phiprof::stop("compute-intersections");
           phiprof::start("compute-mapping");
-          map_1d(vmesh,blockContainer,intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk,1); // map along y
-          map_1d(vmesh,blockContainer,intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk,2); // map along z
-          map_1d(vmesh,blockContainer,intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk,0); // map along x
+          map_1d(spatial_cell, popID, intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk,1); // map along y
+          map_1d(spatial_cell, popID, intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk,2); // map along z
+          map_1d(spatial_cell, popID, intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk,0); // map along x
           phiprof::stop("compute-mapping");
           break;
 
@@ -149,9 +149,9 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
                                     intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk);
           phiprof::stop("compute-intersections");
           phiprof::start("compute-mapping");
-          map_1d(vmesh,blockContainer,intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk,2); // map along z
-          map_1d(vmesh,blockContainer,intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk,0); // map along x
-          map_1d(vmesh,blockContainer,intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk,1); // map along y
+          map_1d(spatial_cell, popID, intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk,2); // map along z
+          map_1d(spatial_cell, popID, intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk,0); // map along x
+          map_1d(spatial_cell, popID, intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk,1); // map along y
           phiprof::stop("compute-mapping");
           break;
    }

@@ -6,9 +6,16 @@ include MAKE/Makefile.${ARCH}
 FP_PRECISION = DP
 
 #Set floating point precision for distribution function to SPF (single) or DPF (double)
+#NOTE this has to have the same precision as the vectorclass defined below (VECTORCLASS)
 DISTRIBUTION_FP_PRECISION = SPF
 
-#Set vector backend type for vlasov solvers, sets precision and length. Options: VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER, VEC4D_FALLBACK, VEC4F_FALLBACK
+#Set vector backend type for vlasov solvers, sets precision and length. 
+#NOTE this has to have the same precision as the distribution function define (DISTRIBUTION_FP_PRECISION).
+#Options: 
+# Agners vectorclass: 
+# AVX: VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
+# AVX512: VEC8D_AGNER, VEC16F_AGNER
+# Fallback: VEC4D_FALLBACK, VEC4F_FALLBACK, VEC8F_FALLBACK
 VECTORCLASS = VEC8F_AGNER
 
 #set a default archive utility, can also be set in Makefile.arch
@@ -54,7 +61,7 @@ COMPFLAGS += -DACC_SEMILAG_PQM -DTRANS_SEMILAG_PPM
 
 #Add -DCATCH_FPE to catch floating point exceptions and stop execution
 #May cause problems
-# COMPFLAGS += -DCATCH_FPE
+#COMPFLAGS += -DCATCH_FPE
 
 #Define MESH=AMR if you want to use adaptive mesh refinement in velocity space
 #MESH = AMR
@@ -164,7 +171,7 @@ DEPS_PROJECTS =	projects/project.h projects/project.cpp \
 
 DEPS_CPU_ACC_INTERSECTS = ${DEPS_COMMON} ${DEPS_CELL} vlasovsolver/cpu_acc_intersections.hpp vlasovsolver/cpu_acc_intersections.cpp
 
-DEPS_CPU_ACC_MAP = ${DEPS_COMMON} ${DEPS_CELL} vlasovsolver/vec.h vlasovsolver/cpu_acc_map.hpp vlasovsolver/cpu_acc_map.cpp
+DEPS_CPU_ACC_MAP = ${DEPS_COMMON} ${DEPS_CELL} vlasovsolver/vec.h vlasovsolver/cpu_acc_map.hpp vlasovsolver/cpu_acc_map.cpp 
 
 DEPS_CPU_ACC_SEMILAG = ${DEPS_COMMON} ${DEPS_CELL} vlasovsolver/cpu_acc_intersections.hpp vlasovsolver/cpu_acc_transform.hpp \
 	vlasovsolver/cpu_acc_map.hpp vlasovsolver/cpu_acc_semilag.hpp vlasovsolver/cpu_acc_semilag.cpp
@@ -206,7 +213,7 @@ OBJS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipo
 ifeq ($(MESH),AMR)
 OBJS += cpu_moments.o
 else
-OBJS += cpu_acc_intersections.o cpu_acc_map.o cpu_acc_sort_blocks.o cpu_acc_semilag.o cpu_acc_transform.o \
+OBJS += cpu_acc_intersections.o cpu_acc_map.o cpu_acc_sort_blocks.o cpu_acc_load_blocks.o cpu_acc_semilag.o cpu_acc_transform.o \
 	cpu_moments.o cpu_trans_map.o
 endif
 
@@ -244,7 +251,7 @@ version.o: version.cpp
 	 ${CMP} ${CXXFLAGS} ${FLAGS} -c version.cpp
 
 amr_refinement_criteria.o: ${DEPS_COMMON} velocity_blocks.h amr_refinement_criteria.h amr_refinement_criteria.cpp object_factory.h
-	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c amr_refinement_criteria.cpp ${INC_DCCRG}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c amr_refinement_criteria.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST}
 
 memoryallocation.o: memoryallocation.cpp 
 	 ${CMP} ${CXXFLAGS} ${FLAGS} -c memoryallocation.cpp ${INC_PAPI}
@@ -287,7 +294,7 @@ ionosphere.o: ${DEPS_SYSBOUND} sysboundary/ionosphere.h sysboundary/ionosphere.c
 
 
 mesh_data_container.o: ${DEPS_COMMON} mesh_data_container.h mesh_data.h
-	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c mesh_data_container.cpp ${INC_VLSV} ${INC_DCCRG}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c mesh_data_container.cpp ${INC_VLSV} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST}
 
 project_boundary.o: ${DEPS_SYSBOUND} sysboundary/project_boundary.h sysboundary/project_boundary.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c sysboundary/project_boundary.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
@@ -387,22 +394,22 @@ projectTriAxisSearch.o: ${DEPS_COMMON} $(DEPS_PROJECTS) projects/projectTriAxisS
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/projectTriAxisSearch.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
 poisson_solver.o: ${DEPS_COMMON} ${DEPS_CELL} poisson_solver/poisson_solver.h poisson_solver/poisson_solver.cpp
-	$(CMP) $(CXXFLAGS) $(FLAGS) ${MATHFLAGS} -std=c++0x -c poisson_solver/poisson_solver.cpp ${INC_DCCRG}  ${INC_BOOST} ${INC_ZOLTAN}
+	$(CMP) $(CXXFLAGS) $(FLAGS) ${MATHFLAGS} -c poisson_solver/poisson_solver.cpp ${INC_DCCRG}  ${INC_BOOST} ${INC_ZOLTAN}
 
 poisson_solver_cg.o: ${DEPS_COMMON} ${DEPS_CELL} poisson_solver/poisson_solver.h poisson_solver/poisson_solver_cg.h poisson_solver/poisson_solver_cg.cpp
-	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -std=c++0x -c poisson_solver/poisson_solver_cg.cpp ${INC_DCCRG}  ${INC_BOOST} ${INC_ZOLTAN}
+	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c poisson_solver/poisson_solver_cg.cpp ${INC_DCCRG}  ${INC_BOOST} ${INC_ZOLTAN}
 
 poisson_solver_jacobi.o: ${DEPS_COMMON} ${DEPS_CELL} poisson_solver/poisson_solver.h poisson_solver/poisson_solver_jacobi.h poisson_solver/poisson_solver_jacobi.cpp
-	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -std=c++0x -c poisson_solver/poisson_solver_jacobi.cpp ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN}
+	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c poisson_solver/poisson_solver_jacobi.cpp ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN}
 
 poisson_solver_sor.o: ${DEPS_COMMON} ${DEPS_CELL} poisson_solver/poisson_solver.h poisson_solver/poisson_solver_sor.h poisson_solver/poisson_solver_sor.cpp
-	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -std=c++0x -c poisson_solver/poisson_solver_sor.cpp ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN}
+	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c poisson_solver/poisson_solver_sor.cpp ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN}
 
 poisson_test.o: ${DEPS_COMMON} ${DEPS_CELL} projects/project.h projects/project.cpp projects/Poisson/poisson_test.h projects/Poisson/poisson_test.cpp
-	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -std=c++0x -c projects/Poisson/poisson_test.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
+	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c projects/Poisson/poisson_test.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
 spatial_cell.o: ${DEPS_CELL} spatial_cell.cpp
-	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -std=c++0x -c spatial_cell.cpp $(INC_BOOST) ${INC_DCCRG} ${INC_EIGEN} ${INC_VECTORCLASS}
+	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c spatial_cell.cpp $(INC_BOOST) ${INC_DCCRG} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VECTORCLASS}
 
 ifeq ($(MESH),AMR)
 vlasovmover.o: ${DEPS_VLSVMOVER_AMR}
@@ -420,6 +427,9 @@ cpu_acc_semilag.o: ${DEPS_CPU_ACC_SEMILAG}
 
 cpu_acc_sort_blocks.o: ${DEPS_CPU_ACC_SORT_BLOCKS}
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_sort_blocks.cpp ${INC_EIGEN} ${INC_BOOST} ${INC_DCCRG} ${INC_PROFILE}
+
+cpu_acc_load_blocks.o: ${DEPS_CPU_ACC_LOAD_BLOCKS}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_load_blocks.cpp  ${INC_VECTORCLASS}
 
 cpu_acc_transform.o: ${DEPS_CPU_ACC_TRANSFORM}
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_transform.cpp ${INC_EIGEN} ${INC_DCCRG} ${INC_PROFILE} ${INC_ZOLTAN} ${INC_BOOST}

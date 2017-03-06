@@ -44,11 +44,20 @@ inline void filter_pqm_monotonicity(Vec *values, uint k, Vec &fv_l, Vec &fv_r, V
    /*let's compute sqrt value to be used for computing roots. If we
     take sqrt of negaitve numbers, then we instead set a value that
     will make the root to be +-100 which is well outside range
-    of[0,1]. We also guard the sqrt against sqrt with negative
-    numbers by doing a max*/
-   const Vec sqrt_val = select(b1 * b1 - 4 * b0 * b2 < 0.0, 
-                                b1 + 200.0 * b2,
-                                sqrt(max(b1 * b1- 4 * b0 * b2, 0.0))); 
+    of[0,1]. We do not catch FP exceptions, so sqrt(negative) are okish (add
+    a max(val_to_sqrt,0) if not*/
+   const Vec val_to_sqrt = b1 * b1 - 4 * b0 * b2;
+#ifdef VEC16F_AGNER
+   //this sqrt gives 10% more perf on acceleration on KNL. Also fairly
+   //accurate with AVX512ER. On Xeon it is not any faster, and less accurate.
+   const Vec sqrt_val = select(val_to_sqrt < 0.0, 
+                               b1 + 200.0 * b2,
+                               val_to_sqrt * approx_rsqrt(val_to_sqrt));
+#else
+   const Vec sqrt_val = select(val_to_sqrt < 0.0, 
+                               b1 + 200.0 * b2,
+                               sqrt(val_to_sqrt));
+#endif
    //compute roots. Division is safe with vectorclass (=inf)
    const Vec root1 = (-b1 + sqrt_val) / (2 * b2);
    const Vec root2 = (-b1 - sqrt_val) / (2 * b2);
@@ -90,6 +99,7 @@ inline void filter_pqm_monotonicity(Vec *values, uint k, Vec &fv_l, Vec &fv_r, V
       //todo store and then load data to avoid inserts (is it beneficial...?)
       
 //serialized the handling of inflexion points, these do not happen for smooth regions
+#pragma ivdep
       for(uint i = 0;i < VECL; i++) {
          if(fixInflexion[i]){
             //need to collapse, at least one inflexion point has wrong

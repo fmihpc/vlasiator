@@ -60,6 +60,13 @@ void bailout(
 
 #define MASTER_RANK 0
 
+
+/* Maximum number of blocks in each dimension in velocity space. The
+   size of velocity space defined in cfg can at maximum be this large
+*/
+#define MAX_BLOCKS_PER_DIM 200
+
+
 /*! A namespace for storing indices into an array which contains 
  * neighbour list for each spatial cell. These indices refer to 
  * the CPU memory, i.e. the device does not use these.

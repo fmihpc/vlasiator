@@ -56,7 +56,7 @@ VEC8F_AGNER
 
 
 #ifdef VEC4D_AGNER
-//user Agner's SSE/AVX optimized datatypes, double precision accuracy
+//user Agner's AVX2 optimized datatypes, double precision accuracy
 #include "vectorclass.h"
 typedef Vec4d Vec;
 typedef Vec4i Veci;
@@ -68,8 +68,21 @@ typedef double Realv;
 #define VEC_PER_BLOCK 16
 #endif
 
+#ifdef VEC8D_AGNER
+//user Agner's AVX512 optimized datatypes, double precision accuracy
+#include "vectorclass.h"
+typedef Vec8d Vec;
+typedef Vec8i Veci;
+typedef Vec8db Vecb;
+typedef double Realv;
+#define to_realv(v) to_double(v)
+#define VECL 8
+#define VEC_PER_PLANE 2 //vectors per plane in block
+#define VEC_PER_BLOCK 8
+#endif
+
 #ifdef VEC4F_AGNER
-//user Agner's SSE/AVX optimized datatypes, double precision accuracy
+//user Agner's SSEx optimized datatypes, double precision accuracy
 #include "vectorclass.h"
 typedef Vec4f Vec;
 typedef Vec4i Veci;
@@ -82,6 +95,7 @@ typedef float Realv;
 #endif
 
 #ifdef VEC8F_AGNER
+//user Agner's AVX2 optimized datatypes, single precision accuracy
 #include "vectorclass.h"
 typedef Vec8f Vec;
 typedef Vec8i Veci;
@@ -91,6 +105,20 @@ typedef float Realv;
 #define VECL 8
 #define VEC_PER_PLANE 2 //vectors per plane in block
 #define VEC_PER_BLOCK 8
+#endif
+
+
+#ifdef VEC16F_AGNER
+//user Agner's AVX512 optimized datatypes, single precision accuracy
+#include "vectorclass.h"
+typedef Vec16f Vec;
+typedef Vec16i Veci;
+typedef Vec16fb Vecb;
+typedef float Realv;
+#define to_realv(v) to_float(v)
+#define VECL 16
+#define VEC_PER_PLANE 1 //vectors per plane in block
+#define VEC_PER_BLOCK 4
 #endif
 
 
@@ -119,6 +147,33 @@ typedef float Realv;
 #define VECL 4
 #define VEC_PER_PLANE 4 //vectors per plane in block
 #define VEC_PER_BLOCK 16
+#endif
+
+#ifdef VEC8D_FALLBACK
+//user portable vecto rclass
+#include "vectorclass_fallback.h"
+typedef Vec8Simple<double> Vec;
+typedef Vec8Simple<bool> Vecb;
+typedef Vec8Simple<int> Veci;
+typedef double Realv;
+#define to_realv(v) to_double(v)
+#define VECL 8
+#define VEC_PER_PLANE 2 //vectors per plane in block
+#define VEC_PER_BLOCK 8
+#endif
+
+
+#ifdef VEC8F_FALLBACK
+//user portable vectorclass
+#include "vectorclass_fallback.h"
+typedef Vec8Simple<float> Vec;
+typedef Vec8Simple<bool> Vecb;
+typedef Vec8Simple<int> Veci;
+typedef float Realv;
+#define to_realv(v) to_float(v)
+#define VECL 8
+#define VEC_PER_PLANE 2 //vectors per plane in block
+#define VEC_PER_BLOCK 8
 #endif
 
 
