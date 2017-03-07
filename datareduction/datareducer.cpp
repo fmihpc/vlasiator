@@ -100,6 +100,10 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("max_fields_dt",CellParams::MAXFDT,1));
       if(*it == "MPIrank")
          outputReducer->addOperator(new DRO::MPIrank);
+      if(*it == "FsGridRank")
+         outputReducer->addOperator(new DRO::FsGridRank);
+      if(*it == "FsGridBoundaryType")
+         outputReducer->addOperator(new DRO::FsGridBoundaryType);
       if(*it == "BoundaryType")
          outputReducer->addOperator(new DRO::BoundaryType);
       if(*it == "BoundaryLayer") {

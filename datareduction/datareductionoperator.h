@@ -113,6 +113,36 @@ namespace DRO {
       Real rank;
       int mpiRank;
    };
+
+   class FsGridRank: public DataReductionOperator {
+   public:
+      FsGridRank();
+      virtual ~FsGridRank();
+      
+      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual std::string getName() const;
+      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool setSpatialCell(const SpatialCell* cell);
+      
+   protected:
+      Real rank;
+      int fsgridRank;
+   };
+
+   class FsGridBoundaryType: public DataReductionOperator {
+   public:
+      FsGridBoundaryType();
+      virtual ~FsGridBoundaryType();
+      
+      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual std::string getName() const;
+      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool setSpatialCell(const SpatialCell* cell);
+      
+   protected:
+      Real rank;
+      int fsgridBoundaryType;
+   };
    
    class BoundaryType: public DataReductionOperator {
    public:

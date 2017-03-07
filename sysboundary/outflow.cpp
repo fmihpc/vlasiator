@@ -219,29 +219,32 @@ namespace SBC {
    }
 
    Real Outflow::fieldSolverBoundaryCondMagneticField(
-      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const std::vector<fs_cache::CellCache>& cellCache,
-      const uint16_t& localID,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBDt2Grid,
+      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
+      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EDt2Grid,
+      FsGrid< fsgrids::technical, 2> & technicalGrid,
+      cint i,
+      cint j,
+      cint k,
       creal& dt,
       cuint& RKCase,
-      cint& offset,
       cuint& component
    ) {
-      const CellID cellID = cellCache[localID].cellID;
       Real fieldValue = -1.0;
       
-      creal* const cellParams = cellCache[localID].cells[fs_cache::calculateNbrID(1  ,1  ,1  )]->parameters;
-      creal dx = cellParams[CellParams::DX];
-      creal dy = cellParams[CellParams::DY];
-      creal dz = cellParams[CellParams::DZ];
-      creal x = cellParams[CellParams::XCRD] + 0.5*dx;
-      creal y = cellParams[CellParams::YCRD] + 0.5*dy;
-      creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
+      creal dx =technicalGrid.DX;
+      creal dy =technicalGrid.DY;
+      creal dz =technicalGrid.DZ;
+      const std::array<int, 3> globalIndices = technicalGrid.getGlobalIndices(i,j,k);
+      creal x = (convert<Real>(globalIndices[0])+0.5)*dx + Parameters::xmin;
+      creal y = (convert<Real>(globalIndices[1])+0.5)*dy + Parameters::ymin;
+      creal z = (convert<Real>(globalIndices[2])+0.5)*dz + Parameters::zmin;
       
       bool isThisCellOnAFace[6];
       determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, true);
       
-      cuint sysBoundaryLayer = cellCache[localID].cells[fs_cache::calculateNbrID(1  ,1  ,1  )]->sysBoundaryLayer;
+      cuint sysBoundaryLayer = technicalGrid.get(i,j,k)->sysBoundaryLayer;
       
       if (sysBoundaryLayer == 1
          && isThisCellOnAFace[0]                            // we are on the face
@@ -250,9 +253,12 @@ namespace SBC {
          && component == 0                                  // we do the component normal to this face
          && !(isThisCellOnAFace[2] || isThisCellOnAFace[3] || isThisCellOnAFace[4] || isThisCellOnAFace[5]) // we are not in a corner
       ) {
-         const vector<uint16_t> cellVector = {{localID}};
-         propagateMagneticField(cellCache, cellVector, dt, RKCase, true, false, false);
-         fieldValue = cellParams[CellParams::PERBX + component + offset];
+         propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, true, false, false);
+         if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+            fieldValue = perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBX + component);
+         } else {
+            fieldValue = perBDt2Grid.get(i,j,k)->at(fsgrids::bfield::PERBX + component);
+         }
       } else if (sysBoundaryLayer == 1
          && isThisCellOnAFace[2]                            // we are on the face
          && this->facesToProcess[2]                         // we are supposed to do this face
@@ -260,9 +266,12 @@ namespace SBC {
          && component == 1                                  // we do the component normal to this face
          && !(isThisCellOnAFace[0] || isThisCellOnAFace[1] || isThisCellOnAFace[4] || isThisCellOnAFace[5]) // we are not in a corner
       ) {
-         const vector<uint16_t> cellVector = {{localID}};
-         propagateMagneticField(cellCache, cellVector, dt, RKCase, false, true, false);
-         fieldValue = cellParams[CellParams::PERBX + component + offset];
+         propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, false, true, false);
+         if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+            fieldValue = perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBX + component);
+         } else {
+            fieldValue = perBDt2Grid.get(i,j,k)->at(fsgrids::bfield::PERBX + component);
+         }
       } else if (sysBoundaryLayer == 1
          && isThisCellOnAFace[4]                            // we are on the face
          && this->facesToProcess[4]                         // we are supposed to do this face
@@ -270,21 +279,17 @@ namespace SBC {
          && component == 2                                  // we do the component normal to this face
          && !(isThisCellOnAFace[0] || isThisCellOnAFace[1] || isThisCellOnAFace[2] || isThisCellOnAFace[3]) // we are not in a corner
       ) {
-         const vector<uint16_t> cellVector = {{localID}};
-         propagateMagneticField(cellCache, cellVector, dt, RKCase, false, false, true);
-         fieldValue = cellParams[CellParams::PERBX + component + offset];
-      } else {
-         bool skipThisOne = false;
-         for(uint i=0; i<6; i++) {
-            if(isThisCellOnAFace[i] && this->facesToProcess[i] && this->facesToSkipFields[i]) {
-               skipThisOne = true;
-               break;
-            }
-         }
-         if(skipThisOne) {
-            fieldValue = cellParams[CellParams::PERBX + component + offset]; // copy the existing value, we do not touch it
+         propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, false, false, true);
+         if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+            fieldValue = perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBX + component);
          } else {
-            fieldValue = fieldBoundaryCopyFromExistingFaceNbrMagneticField(mpiGrid, cellID, component + offset);
+            fieldValue = perBDt2Grid.get(i,j,k)->at(fsgrids::bfield::PERBX + component);
+         }
+      } else {
+         if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+            fieldValue = fieldBoundaryCopyFromExistingFaceNbrMagneticField(perBGrid, technicalGrid, i, j, k, component);
+         } else {
+            fieldValue = fieldBoundaryCopyFromExistingFaceNbrMagneticField(perBDt2Grid, technicalGrid, i, j, k, component);
          }
       }
       
@@ -292,77 +297,41 @@ namespace SBC {
    }
 
    void Outflow::fieldSolverBoundaryCondElectricField(
-      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID,
-      cuint RKCase,
+      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
+      cint i,
+      cint j,
+      cint k,
       cuint component
    ) {
-      creal* const cellParams = mpiGrid[cellID]->parameters;
-      creal dx = cellParams[CellParams::DX];
-      creal dy = cellParams[CellParams::DY];
-      creal dz = cellParams[CellParams::DZ];
-      creal x = cellParams[CellParams::XCRD] + 0.5*dx;
-      creal y = cellParams[CellParams::YCRD] + 0.5*dy;
-      creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
-      
-      bool isThisCellOnAFace[6];
-      determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, true);
-      
-      for(uint i=0; i<6; i++) {
-         if(isThisCellOnAFace[i] && this->facesToSkipFields[i]) {
-            return;
-         }
-      }
-      
-      if((RKCase == RK_ORDER1) || (RKCase == RK_ORDER2_STEP2)) {
-         mpiGrid[cellID]->parameters[CellParams::EX+component] = 0.0;
-      } else {// RKCase == RK_ORDER2_STEP1
-         mpiGrid[cellID]->parameters[CellParams::EX_DT2+component] = 0.0;
-      }
+      EGrid.get(i,j,k)->at(fsgrids::efield::EX+component) = 0.0;
    }
    
    void Outflow::fieldSolverBoundaryCondHallElectricField(
-      fs_cache::CellCache& cache,
-      cuint RKCase,
+      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2> & EHallGrid,
+      cint i,
+      cint j,
+      cint k,
       cuint component
    ) {
-
-      Real* cp = cache.cells[fs_cache::calculateNbrID(1,1,1)]->parameters;
-      
-      creal dx = cp[CellParams::DX];
-      creal dy = cp[CellParams::DY];
-      creal dz = cp[CellParams::DZ];
-      creal x = cp[CellParams::XCRD] + 0.5*dx;
-      creal y = cp[CellParams::YCRD] + 0.5*dy;
-      creal z = cp[CellParams::ZCRD] + 0.5*dz;
-      
-      bool isThisCellOnAFace[6];
-      determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, true);
-      
-      for(uint i=0; i<6; i++) {
-         if(isThisCellOnAFace[i] && this->facesToSkipFields[i]) {
-            return;
-         }
-      }
-      
+      std::array<Real, fsgrids::ehall::N_EHALL> * cp = EHallGrid.get(i,j,k);
       switch (component) {
          case 0:
-            cp[CellParams::EXHALL_000_100] = 0.0;
-            cp[CellParams::EXHALL_010_110] = 0.0;
-            cp[CellParams::EXHALL_001_101] = 0.0;
-            cp[CellParams::EXHALL_011_111] = 0.0;
+            cp->at(fsgrids::ehall::EXHALL_000_100) = 0.0;
+            cp->at(fsgrids::ehall::EXHALL_010_110) = 0.0;
+            cp->at(fsgrids::ehall::EXHALL_001_101) = 0.0;
+            cp->at(fsgrids::ehall::EXHALL_011_111) = 0.0;
             break;
          case 1:
-            cp[CellParams::EYHALL_000_010] = 0.0;
-            cp[CellParams::EYHALL_100_110] = 0.0;
-            cp[CellParams::EYHALL_001_011] = 0.0;
-            cp[CellParams::EYHALL_101_111] = 0.0;
+            cp->at(fsgrids::ehall::EYHALL_000_010) = 0.0;
+            cp->at(fsgrids::ehall::EYHALL_100_110) = 0.0;
+            cp->at(fsgrids::ehall::EYHALL_001_011) = 0.0;
+            cp->at(fsgrids::ehall::EYHALL_101_111) = 0.0;
             break;
          case 2:
-            cp[CellParams::EZHALL_000_001] = 0.0;
-            cp[CellParams::EZHALL_100_101] = 0.0;
-            cp[CellParams::EZHALL_010_011] = 0.0;
-            cp[CellParams::EZHALL_110_111] = 0.0;
+            cp->at(fsgrids::ehall::EZHALL_000_001) = 0.0;
+            cp->at(fsgrids::ehall::EZHALL_100_101) = 0.0;
+            cp->at(fsgrids::ehall::EZHALL_010_011) = 0.0;
+            cp->at(fsgrids::ehall::EZHALL_110_111) = 0.0;
             break;
          default:
             cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
@@ -370,80 +339,35 @@ namespace SBC {
    }
    
    void Outflow::fieldSolverBoundaryCondGradPeElectricField(
-      fs_cache::CellCache& cache,
-      cuint RKCase,
+      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2> & EGradPeGrid,
+      cint i,
+      cint j,
+      cint k,
       cuint component
    ) {
-      
-      Real* cp = cache.cells[fs_cache::calculateNbrID(1,1,1)]->parameters;
-      
-      switch (component) {
-         case 0:
-            //             cp[CellParams::EXGRADPE_000_100] = 0.0;
-            //             cp[CellParams::EXGRADPE_010_110] = 0.0;
-            //             cp[CellParams::EXGRADPE_001_101] = 0.0;
-            //             cp[CellParams::EXGRADPE_011_111] = 0.0;
-            cp[CellParams::EXGRADPE] = 0.0;
-            break;
-         case 1:
-            //             cp[CellParams::EYGRADPE_000_010] = 0.0;
-            //             cp[CellParams::EYGRADPE_100_110] = 0.0;
-            //             cp[CellParams::EYGRADPE_001_011] = 0.0;
-            //             cp[CellParams::EYGRADPE_101_111] = 0.0;
-            cp[CellParams::EYGRADPE] = 0.0;
-            break;
-         case 2:
-            //             cp[CellParams::EZGRADPE_000_001] = 0.0;
-            //             cp[CellParams::EZGRADPE_100_101] = 0.0;
-            //             cp[CellParams::EZGRADPE_010_011] = 0.0;
-            //             cp[CellParams::EZGRADPE_110_111] = 0.0;
-            cp[CellParams::EZGRADPE] = 0.0;
-            break;
-         default:
-            cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
-      }
-   }
-   
-   Real Outflow::fieldBoundaryCopyFromExistingFaceNbrMagneticField(
-      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID,
-      cuint& component
-   ) {
-      const CellID closestCell = getTheClosestNonsysboundaryCell(cellID);
-      
-      #ifdef DEBUG_OUTFLOW
-      if (mpiGrid[closestCell]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
-         stringstream ss;
-         ss << "ERROR, outflow cell " << cellID << " uses value from sysboundary nbr " << closestCell;
-         ss << " in " << __FILE__ << ":" << __LINE__ << endl;
-         cerr << ss.str();
-         exit(1);
-      }
-      
-      if (closestCell == INVALID_CELLID) {
-         cerr << cellID << " " << __FILE__ << ":" << __LINE__ << ": No closest cell found!" << endl;
-         abort();
-      }
-      #endif
-      
-      return mpiGrid[closestCell]->parameters[CellParams::PERBX+component];
+      EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EXGRADPE+component) = 0.0;
    }
    
    void Outflow::fieldSolverBoundaryCondDerivatives(
-      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID,
+      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
+      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> & dMomentsGrid,
+      cint i,
+      cint j,
+      cint k,
       cuint& RKCase,
       cuint& component
    ) {
-      this->setCellDerivativesToZero(mpiGrid, cellID, component);
+      this->setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, component);
    }
    
    void Outflow::fieldSolverBoundaryCondBVOLDerivatives(
-      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID,
+      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volGrid,
+      cint i,
+      cint j,
+      cint k,
       cuint& component
    ) {
-      this->setCellBVOLDerivativesToZero(mpiGrid, cellID, component);
+      this->setCellBVOLDerivativesToZero(volGrid, i, j, k, component);
    }
    
    /**
@@ -506,4 +430,5 @@ namespace SBC {
    
    std::string Outflow::getName() const {return "Outflow";}
    uint Outflow::getIndex() const {return sysboundarytype::OUTFLOW;}
+      
 }

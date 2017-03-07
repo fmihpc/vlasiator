@@ -25,12 +25,13 @@
 
 #include <dccrg.hpp>
 #include <dccrg_cartesian_geometry.hpp>
+#include <fsgrid.hpp>
 
 #include <vector>
+#include "../common.h"
 #include "../definitions.h"
 #include "../spatial_cell.hpp"
 #include "../projects/project.h"
-#include "../fieldsolver/fs_cache.h"
 
 using namespace spatial_cell;
 using namespace projects;
@@ -70,44 +71,68 @@ namespace SBC {
             Project &project
          );
          virtual Real fieldSolverBoundaryCondMagneticField(
-            const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-            const std::vector<fs_cache::CellCache>& cellCache,
-            const uint16_t& localID,
+            FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+            FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBDt2Grid,
+            FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
+            FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EDt2Grid,
+            FsGrid< fsgrids::technical, 2> & technicalGrid,
+            cint i,
+            cint j,
+            cint k,
             creal& dt,
             cuint& RKCase,
-            cint& offset,
             cuint& component
          );
          virtual void fieldSolverBoundaryCondElectricField(
-            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-            const CellID& cellID,
-            cuint RKCase,
+            FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
+            cint i,
+            cint j,
+            cint k,
             cuint component
          );
          virtual void fieldSolverBoundaryCondHallElectricField(
-                                                               fs_cache::CellCache& cache,
-                                                               cuint RKCase,
-                                                               cuint component
+            FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2> & EHallGrid,
+            cint i,
+            cint j,
+            cint k,
+            cuint component
                                                               );
+         virtual void fieldSolverBoundaryCondGradPeElectricField(
+            FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2> & EGradPeGrid,
+            cint i,
+            cint j,
+            cint k,
+            cuint component
+         );
          virtual void fieldSolverBoundaryCondDerivatives(
-            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-            const CellID& cellID,
+            FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
+            FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> & dMomentsGrid,
+            cint i,
+            cint j,
+            cint k,
             cuint& RKCase,
             cuint& component
          );
          virtual void fieldSolverBoundaryCondBVOLDerivatives(
-            const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-            const CellID& cellID,
+            FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volGrid,
+            cint i,
+            cint j,
+            cint k,
             cuint& component
          );
          static void setCellDerivativesToZero(
-            const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-            const CellID& cellID,
+            FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
+            FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> & dMomentsGrid,
+            cint i,
+            cint j,
+            cint k,
             cuint& component
          );
          static void setCellBVOLDerivativesToZero(
-            const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-            const CellID& cellID,
+            FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volGrid,
+            cint i,
+            cint j,
+            cint k,
             cuint& component
          );
         
@@ -122,11 +147,6 @@ namespace SBC {
             const CellID& cellID,
             const int& popID
         );
-        virtual void fieldSolverBoundaryCondGradPeElectricField(
-           fs_cache::CellCache& cache,
-           cuint RKCase,
-           cuint component
-           );
 
          virtual void getFaces(bool* faces);
          virtual std::string getName() const;
@@ -161,12 +181,6 @@ namespace SBC {
             std::vector<CellID> cellList,
             SpatialCell *to,
             const int& popID
-         );
-         CellID & getTheClosestNonsysboundaryCell(
-            const CellID& cellID
-         );
-         std::vector<CellID> & getAllClosestNonsysboundaryCells(
-            const CellID& cellID
          );
          std::array<SpatialCell*,27> & getFlowtoCells(
                const CellID& cellID
@@ -222,8 +236,33 @@ namespace SBC {
             creal& quenchingFactor,
             const int& popID
          );
-
-
+         std::array<int, 3> getTheClosestNonsysboundaryCell(
+            FsGrid< fsgrids::technical, 2> & technicalGrid,
+            cint i,
+            cint j,
+            cint k
+         );
+         std::vector< std::array<int, 3> > getAllClosestNonsysboundaryCells(
+            FsGrid< fsgrids::technical, 2> & technicalGrid,
+            cint i,
+            cint j,
+            cint k
+         );
+         CellID & getTheClosestNonsysboundaryCell(
+            const CellID& cellID
+         );
+         std::vector<CellID> & getAllClosestNonsysboundaryCells(
+            const CellID& cellID
+         );
+         Real fieldBoundaryCopyFromExistingFaceNbrMagneticField(
+            FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+            FsGrid< fsgrids::technical, 2> & technicalGrid,
+            cint i,
+            cint j,
+            cint k,
+            cuint component
+         );
+         
          /*! Precedence value of the system boundary condition. */
          uint precedence;
          /*! Is the boundary condition dynamic in time or not. */

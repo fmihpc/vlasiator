@@ -21,7 +21,6 @@
  */
 
 #include "fs_common.h"
-#include "fs_cache.h"
 #include "ldz_hall.hpp"
 
 #ifndef NDEBUG
@@ -421,24 +420,30 @@ REAL JXBZ_110_111(
  * 
  * Calls the lower-level inline templates and scales the components properly.
  * 
- * \param cp Cell parameters
- * \param derivs Cell derivatives
  * \param perturbedCoefficients Reconstruction coefficients
- * \param RKCase Element in the enum defining the Runge-Kutta method steps
  * 
  * \sa calculateHallTerm JXBX_000_100 JXBX_001_101 JXBX_010_110 JXBX_011_111
  * 
  */
 void calculateEdgeHallTermXComponents(
-   Real* cp,
-   Real* derivs,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2> & EHallGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsGrid,
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> & dMomentsGrid,
+   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2> & BgBGrid,
+   FsGrid< fsgrids::technical, 2> & technicalGrid,
    const Real* const perturbedCoefficients,
-   cint& RKCase
+   cint i,
+   cint j,
+   cint k
 ) {
    #warning Particles (charge) assumed to be protons here
    
    Real By = 0.0;
    Real Bz = 0.0;
+   Real hallRho = 0.0;
+   Real EXHall = 0.0;
    
    switch (Parameters::ohmHallTerm) {
     case 0:
@@ -446,46 +451,29 @@ void calculateEdgeHallTermXComponents(
       break;
       
     case 1:
-      if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-         By = cp[CellParams::PERBY]+cp[CellParams::BGBY];
-         Bz = cp[CellParams::PERBZ]+cp[CellParams::BGBZ];
-      }
-      if (RKCase == RK_ORDER2_STEP1) {
-         By = cp[CellParams::PERBY_DT2]+cp[CellParams::BGBY];
-         Bz = cp[CellParams::PERBZ_DT2]+cp[CellParams::BGBZ];
-      }
+      By = perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBY)+BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBY);
+      Bz = perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBZ)+BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBZ);
+      
+      hallRho =  (momentsGrid.get(i,j,k)->at(fsgrids::moments::RHO) <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : momentsGrid.get(i,j,k)->at(fsgrids::moments::RHO) ;
+      EXHall = (Bz*((BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBxdz)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBxdz))/technicalGrid.DZ -
+                     (BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBzdx)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBzdx))/technicalGrid.DX) -
+                  By*((BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBydx)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBydx))/technicalGrid.DX-
+                     ((BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBxdy)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBxdy))/technicalGrid.DY)));
 
-      cp[CellParams::EXHALL_000_100] =
-      cp[CellParams::EXHALL_010_110] =
-      cp[CellParams::EXHALL_001_101] =
-      cp[CellParams::EXHALL_011_111] = Bz*((derivs[fieldsolver::dBGBxdz]+derivs[fieldsolver::dPERBxdz])/cp[CellParams::DZ] -
-                                           (derivs[fieldsolver::dBGBzdx]+derivs[fieldsolver::dPERBzdx])/cp[CellParams::DX]) -
-                                       By*((derivs[fieldsolver::dBGBydx]+derivs[fieldsolver::dPERBydx])/cp[CellParams::DX]-
-                                           (derivs[fieldsolver::dBGBxdy]+derivs[fieldsolver::dPERBxdy])/cp[CellParams::DY]);
+      EHallGrid.get(i,j,k)->at(fsgrids::ehall::EXHALL_000_100) =
+      EHallGrid.get(i,j,k)->at(fsgrids::ehall::EXHALL_010_110) =
+      EHallGrid.get(i,j,k)->at(fsgrids::ehall::EXHALL_001_101) =
+      EHallGrid.get(i,j,k)->at(fsgrids::ehall::EXHALL_011_111) = EXHall;
+
       break;
     case 2:
-      if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-         cp[CellParams::EXHALL_000_100] = JXBX_000_100(perturbedCoefficients, cp[CellParams::BGBY], cp[CellParams::BGBZ], 
-                                                       cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]);
-         cp[CellParams::EXHALL_010_110] = JXBX_010_110(perturbedCoefficients, cp[CellParams::BGBY], cp[CellParams::BGBZ], 
-                                                       cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]);
-         cp[CellParams::EXHALL_001_101] = JXBX_001_101(perturbedCoefficients, cp[CellParams::BGBY], cp[CellParams::BGBZ], 
-                                                       cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]);
-         cp[CellParams::EXHALL_011_111] = JXBX_011_111(perturbedCoefficients, cp[CellParams::BGBY], cp[CellParams::BGBZ], 
-                                                       cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]);
-      }
-      if (RKCase == RK_ORDER2_STEP1) {
-         cp[CellParams::EXHALL_000_100] = JXBX_000_100(perturbedCoefficients, cp[CellParams::BGBY], cp[CellParams::BGBZ], 
-                                                       cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]);
-         cp[CellParams::EXHALL_010_110] = JXBX_010_110(perturbedCoefficients, cp[CellParams::BGBY], cp[CellParams::BGBZ], 
-                                                       cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]);
-         cp[CellParams::EXHALL_001_101] = JXBX_001_101(perturbedCoefficients, cp[CellParams::BGBY], cp[CellParams::BGBZ], 
-                                                       cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]);
-         cp[CellParams::EXHALL_011_111] = JXBX_011_111(perturbedCoefficients, cp[CellParams::BGBY], cp[CellParams::BGBZ], 
-                                                       cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]);
-      }
+      hallRho =  (momentsGrid.get(i,j,k)->at(fsgrids::moments::RHO) <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : momentsGrid.get(i,j,k)->at(fsgrids::moments::RHO) ;
+      EHallGrid.get(i,j,k)->at(fsgrids::ehall::EXHALL_000_100) = JXBX_000_100(perturbedCoefficients, BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBY), BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBZ), technicalGrid.DX, technicalGrid.DY, technicalGrid.DZ);
+      EHallGrid.get(i,j,k)->at(fsgrids::ehall::EXHALL_010_110) = JXBX_010_110(perturbedCoefficients, BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBY), BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBZ), technicalGrid.DX, technicalGrid.DY, technicalGrid.DZ);
+      EHallGrid.get(i,j,k)->at(fsgrids::ehall::EXHALL_001_101) = JXBX_001_101(perturbedCoefficients, BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBY), BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBZ), technicalGrid.DX, technicalGrid.DY, technicalGrid.DZ);
+      EHallGrid.get(i,j,k)->at(fsgrids::ehall::EXHALL_011_111) = JXBX_011_111(perturbedCoefficients, BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBY), BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBZ), technicalGrid.DX, technicalGrid.DY, technicalGrid.DZ);
       break;
-
+      
     default:
       cerr << __FILE__ << ":" << __LINE__ << "You are welcome to code higher-order Hall term correction terms." << endl;
       break;
@@ -496,24 +484,30 @@ void calculateEdgeHallTermXComponents(
  * 
  * Calls the lower-level inline templates and scales the components properly.
  * 
- * \param cp Cell parameters
- * \param derivs Cell derivatives
  * \param perturbedCoefficients Reconstruction coefficients
- * \param RKCase Element in the enum defining the Runge-Kutta method steps
  * 
  * \sa calculateHallTerm JXBY_000_010 JXBY_001_011 JXBY_100_110 JXBY_101_111
  * 
  */
 void calculateEdgeHallTermYComponents(
-   Real* cp,
-   Real* derivs,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2> & EHallGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsGrid,
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> & dMomentsGrid,
+   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2> & BgBGrid,
+   FsGrid< fsgrids::technical, 2> & technicalGrid,
    const Real* const perturbedCoefficients,
-   cint& RKCase
+   cint i,
+   cint j,
+   cint k
 ) {
    #warning Particles (charge) assumed to be protons here
    
    Real Bx = 0.0;
    Real Bz = 0.0;
+   Real hallRho = 0.0;
+   Real EYHall = 0.0;
    
    switch (Parameters::ohmHallTerm) {
     case 0:
@@ -521,47 +515,29 @@ void calculateEdgeHallTermYComponents(
       break;
       
     case 1:
-      if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-         Bx = cp[CellParams::PERBX]+cp[CellParams::BGBX];
-         Bz = cp[CellParams::PERBZ]+cp[CellParams::BGBZ];
-      }
-      if (RKCase == RK_ORDER2_STEP1) {
-         Bx = cp[CellParams::PERBX_DT2]+cp[CellParams::BGBX];
-         Bz = cp[CellParams::PERBZ_DT2]+cp[CellParams::BGBZ];
-      }
+      Bx = perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBX)+BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBX);
+      Bz = perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBZ)+BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBZ);
+      
+      hallRho =  (momentsGrid.get(i,j,k)->at(fsgrids::moments::RHO) <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : momentsGrid.get(i,j,k)->at(fsgrids::moments::RHO) ;
+      EYHall = (Bx*((BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBydx)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBydx))/technicalGrid.DX -
+                    (BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBxdy)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBxdy))/technicalGrid.DY) -
+                Bz*((BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBzdy)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBzdy))/technicalGrid.DY -
+                    ((BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBydz)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBydz))/technicalGrid.DZ )));
 
-      cp[CellParams::EYHALL_000_010] =
-      cp[CellParams::EYHALL_100_110] =
-      cp[CellParams::EYHALL_101_111] =
-      cp[CellParams::EYHALL_001_011] = Bx*((derivs[fieldsolver::dBGBydx]+derivs[fieldsolver::dPERBydx])/cp[CellParams::DX] -
-                                           (derivs[fieldsolver::dBGBxdy]+derivs[fieldsolver::dPERBxdy])/cp[CellParams::DY]) -
-                                       Bz*((derivs[fieldsolver::dBGBzdy]+derivs[fieldsolver::dPERBzdy])/cp[CellParams::DY] -
-                                           (derivs[fieldsolver::dBGBydz]+derivs[fieldsolver::dPERBydz])/cp[CellParams::DZ]);
+      EHallGrid.get(i,j,k)->at(fsgrids::ehall::EYHALL_000_010) =
+      EHallGrid.get(i,j,k)->at(fsgrids::ehall::EYHALL_100_110) =
+      EHallGrid.get(i,j,k)->at(fsgrids::ehall::EYHALL_101_111) =
+      EHallGrid.get(i,j,k)->at(fsgrids::ehall::EYHALL_001_011) = EYHall;
       break;
       
     case 2:
-      if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-         cp[CellParams::EYHALL_000_010] = JXBY_000_010(perturbedCoefficients, cp[CellParams::BGBX], cp[CellParams::BGBZ], 
-                                                       cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]);
-         cp[CellParams::EYHALL_100_110] = JXBY_100_110(perturbedCoefficients, cp[CellParams::BGBX], cp[CellParams::BGBZ], 
-                                                       cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]);
-         cp[CellParams::EYHALL_001_011] = JXBY_001_011(perturbedCoefficients, cp[CellParams::BGBX], cp[CellParams::BGBZ], 
-                                                       cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]);
-         cp[CellParams::EYHALL_101_111] = JXBY_101_111(perturbedCoefficients, cp[CellParams::BGBX], cp[CellParams::BGBZ], 
-                                                       cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]);
-      }
-      if (RKCase == RK_ORDER2_STEP1) {
-         cp[CellParams::EYHALL_000_010] = JXBY_000_010(perturbedCoefficients, cp[CellParams::BGBX], cp[CellParams::BGBZ], 
-                                                       cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]);
-         cp[CellParams::EYHALL_100_110] = JXBY_100_110(perturbedCoefficients, cp[CellParams::BGBX], cp[CellParams::BGBZ], 
-                                                       cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]);
-         cp[CellParams::EYHALL_001_011] = JXBY_001_011(perturbedCoefficients, cp[CellParams::BGBX], cp[CellParams::BGBZ], 
-                                                       cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]);
-         cp[CellParams::EYHALL_101_111] = JXBY_101_111(perturbedCoefficients, cp[CellParams::BGBX], cp[CellParams::BGBZ], 
-                                                       cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]);
-      }
+      hallRho =  (momentsGrid.get(i,j,k)->at(fsgrids::moments::RHO) <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : momentsGrid.get(i,j,k)->at(fsgrids::moments::RHO) ;
+      EHallGrid.get(i,j,k)->at(fsgrids::ehall::EYHALL_000_010) = JXBY_000_010(perturbedCoefficients, BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBX), BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBZ), technicalGrid.DX, technicalGrid.DY, technicalGrid.DZ);
+      EHallGrid.get(i,j,k)->at(fsgrids::ehall::EYHALL_100_110) = JXBY_100_110(perturbedCoefficients, BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBX), BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBZ), technicalGrid.DX, technicalGrid.DY, technicalGrid.DZ);
+      EHallGrid.get(i,j,k)->at(fsgrids::ehall::EYHALL_001_011) = JXBY_001_011(perturbedCoefficients, BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBX), BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBZ), technicalGrid.DX, technicalGrid.DY, technicalGrid.DZ);
+      EHallGrid.get(i,j,k)->at(fsgrids::ehall::EYHALL_101_111) = JXBY_101_111(perturbedCoefficients, BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBX), BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBZ), technicalGrid.DX, technicalGrid.DY, technicalGrid.DZ);
       break;
-
+      
     default:
       cerr << __FILE__ << ":" << __LINE__ << "You are welcome to code higher-order Hall term correction terms." << endl;
       break;
@@ -572,24 +548,30 @@ void calculateEdgeHallTermYComponents(
  * 
  * Calls the lower-level inline templates and scales the components properly.
  * 
- * \param cp Cell parameters
- * \param derivs Cell derivatives
  * \param perturbedCoefficients Reconstruction coefficients
- * \param RKCase Element in the enum defining the Runge-Kutta method steps
  * 
  * \sa calculateHallTerm JXBZ_000_001 JXBZ_010_011 JXBZ_100_101 JXBZ_110_111
  * 
  */
 void calculateEdgeHallTermZComponents(
-   Real* cp,
-   Real* derivs,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2> & EHallGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsGrid,
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> & dMomentsGrid,
+   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2> & BgBGrid,
+   FsGrid< fsgrids::technical, 2> & technicalGrid,
    const Real* const perturbedCoefficients,
-   cint& RKCase
+   cint i,
+   cint j,
+   cint k
 ) {
   #warning Particles (charge) assumed to be protons here
    
    Real Bx = 0.0;
    Real By = 0.0;
+   Real hallRho = 0.0;
+   Real EZHall = 0.0;
    
    switch (Parameters::ohmHallTerm) {
    case 0:
@@ -597,45 +579,27 @@ void calculateEdgeHallTermZComponents(
      break;
 
    case 1:
-     if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-        Bx = cp[CellParams::PERBX]+cp[CellParams::BGBX];
-        By = cp[CellParams::PERBY]+cp[CellParams::BGBY];
-     }
-     if (RKCase == RK_ORDER2_STEP1) {
-        Bx = cp[CellParams::PERBX_DT2]+cp[CellParams::BGBX];
-        By = cp[CellParams::PERBY_DT2]+cp[CellParams::BGBY];
-     }
+     Bx = perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBX)+BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBX);
+     By = perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBY)+BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBY);
+     
+     hallRho =  (momentsGrid.get(i,j,k)->at(fsgrids::moments::RHO) <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : momentsGrid.get(i,j,k)->at(fsgrids::moments::RHO) ;
+     EZHall = (By*((BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBzdy)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBzdy))/technicalGrid.DY -
+              (BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBydz)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBydz))/technicalGrid.DZ) -
+           Bx*((BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBxdz)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBxdz))/technicalGrid.DZ -
+              ((BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBzdx)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBzdx))/technicalGrid.DX)));
 
-      cp[CellParams::EZHALL_000_001] =
-      cp[CellParams::EZHALL_100_101] =
-      cp[CellParams::EZHALL_110_111] =
-      cp[CellParams::EZHALL_010_011] = By*((derivs[fieldsolver::dBGBzdy]+derivs[fieldsolver::dPERBzdy])/cp[CellParams::DY] -
-                                           (derivs[fieldsolver::dBGBydz]+derivs[fieldsolver::dPERBydz])/cp[CellParams::DZ]) -
-                                       Bx*((derivs[fieldsolver::dBGBxdz]+derivs[fieldsolver::dPERBxdz])/cp[CellParams::DZ] -
-                                           (derivs[fieldsolver::dBGBzdx]+derivs[fieldsolver::dPERBzdx])/cp[CellParams::DX]);
+     EHallGrid.get(i,j,k)->at(fsgrids::ehall::EZHALL_000_001) =
+     EHallGrid.get(i,j,k)->at(fsgrids::ehall::EZHALL_100_101) =
+     EHallGrid.get(i,j,k)->at(fsgrids::ehall::EZHALL_110_111) =
+     EHallGrid.get(i,j,k)->at(fsgrids::ehall::EZHALL_010_011) = EZHall;
      break;
 
    case 2:
-      if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-         cp[CellParams::EZHALL_000_001] = JXBZ_000_001(perturbedCoefficients, cp[CellParams::BGBX], cp[CellParams::BGBY], 
-                                                       cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]);
-         cp[CellParams::EZHALL_100_101] = JXBZ_100_101(perturbedCoefficients, cp[CellParams::BGBX], cp[CellParams::BGBY], 
-                                                       cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]);
-         cp[CellParams::EZHALL_010_011] = JXBZ_010_011(perturbedCoefficients, cp[CellParams::BGBX], cp[CellParams::BGBY], 
-                                                       cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]);
-         cp[CellParams::EZHALL_110_111] = JXBZ_110_111(perturbedCoefficients, cp[CellParams::BGBX], cp[CellParams::BGBY], 
-                                                       cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]);
-      }
-      if (RKCase == RK_ORDER2_STEP1) {
-         cp[CellParams::EZHALL_000_001] = JXBZ_000_001(perturbedCoefficients, cp[CellParams::BGBX], cp[CellParams::BGBY], 
-                                                       cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]);
-         cp[CellParams::EZHALL_100_101] = JXBZ_100_101(perturbedCoefficients, cp[CellParams::BGBX], cp[CellParams::BGBY], 
-                                                       cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]);
-         cp[CellParams::EZHALL_010_011] = JXBZ_010_011(perturbedCoefficients, cp[CellParams::BGBX], cp[CellParams::BGBY], 
-                                                       cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]);
-         cp[CellParams::EZHALL_110_111] = JXBZ_110_111(perturbedCoefficients, cp[CellParams::BGBX], cp[CellParams::BGBY], 
-                                                       cp[CellParams::DX], cp[CellParams::DY], cp[CellParams::DZ]);
-      }
+      hallRho =  (momentsGrid.get(i,j,k)->at(fsgrids::moments::RHO) <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : momentsGrid.get(i,j,k)->at(fsgrids::moments::RHO) ;
+      EHallGrid.get(i,j,k)->at(fsgrids::ehall::EZHALL_000_001) = JXBZ_000_001(perturbedCoefficients, BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBX), BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBY), technicalGrid.DX, technicalGrid.DY, technicalGrid.DZ);
+      EHallGrid.get(i,j,k)->at(fsgrids::ehall::EZHALL_100_101) = JXBZ_100_101(perturbedCoefficients, BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBX), BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBY), technicalGrid.DX, technicalGrid.DY, technicalGrid.DZ);
+      EHallGrid.get(i,j,k)->at(fsgrids::ehall::EZHALL_010_011) = JXBZ_010_011(perturbedCoefficients, BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBX), BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBY), technicalGrid.DX, technicalGrid.DY, technicalGrid.DZ);
+      EHallGrid.get(i,j,k)->at(fsgrids::ehall::EZHALL_110_111) = JXBZ_110_111(perturbedCoefficients, BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBX), BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBY), technicalGrid.DX, technicalGrid.DY, technicalGrid.DZ);
       break;
       
     default:
@@ -646,85 +610,58 @@ void calculateEdgeHallTermZComponents(
 
 /** \brief Calculate the numerator of the Hall term on all given cells.
  * \param sysBoundaries System boundary condition functions.
- * \param cache Cache for local cells.
- * \param cells Local IDs of calculated cells, one of the vectors in fs_cache::CacheContainer.
- * \param RKCase Element in the enum defining the Runge-Kutta method steps
  * 
  * \sa calculateHallTermSimple calculateEdgeHallTermXComponents calculateEdgeHallTermYComponents calculateEdgeHallTermZComponents
  */
 void calculateHallTerm(
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2> & EHallGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsGrid,
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> & dMomentsGrid,
+   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2> & BgBGrid,
+   FsGrid< fsgrids::technical, 2> & technicalGrid,
    SysBoundary& sysBoundaries,
-   std::vector<fs_cache::CellCache>& cache,
-   const std::vector<uint16_t>& cells,
-   cint& RKCase
+   cint i,
+   cint j,
+   cint k
 ) {
 
-   #pragma omp parallel for
-   for (size_t c=0; c<cells.size(); ++c) { // DO_NOT_COMPUTE cells already removed
-      const uint16_t localID = cells[c];
-
-      #ifdef DEBUG_FSOLVER
-      if (localID >= cache.size()) {
-         cerr << "local index out of bounds in " << __FILE__ << ":" << __LINE__ << endl;
-         exit(1);
-      }
-      if (cache[localID].cells[fs_cache::calculateNbrID(1,1,1)] == NULL) {
-         cerr << "NULL pointer in " << __FILE__ << ":" << __LINE__ << endl;
-         exit(1);
-      }
-      if (cache[localID].cells[fs_cache::calculateNbrID(1,1,1)]->parameters == NULL) {
-         cerr << "NULL cell parameters in " << __FILE__ << ":" << __LINE__ << endl;
-         exit(1);
-      }
-      if (cache[localID].cells[fs_cache::calculateNbrID(1,1,1)]->derivatives == NULL) {
-         cerr << "NULL derivatives in " << __FILE__ << ":" << __LINE__ << endl;
-         exit(1);
-      }
-      #endif
-
-      cuint fieldSolverSysBoundaryFlag = cache[localID].existingCellsFlags;
-      cuint cellSysBoundaryFlag        = cache[localID].sysBoundaryFlag;
-      cuint cellSysBoundaryLayer       = cache[localID].cells[fs_cache::calculateNbrID(1,1,1)]->sysBoundaryLayer;
-
-      Real perturbedCoefficients[Rec::N_REC_COEFFICIENTS];
-
-      reconstructionCoefficients(cache[localID],
-                                 perturbedCoefficients,
-                                 3, // Reconstruction order of the fields after Balsara 2009, 2 used for general B, 3 used here for 2nd-order Hall term
-                                 RKCase
-                                );
-
-      if ((fieldSolverSysBoundaryFlag & CALCULATE_EX) == CALCULATE_EX) {
-         if ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
-             (cellSysBoundaryLayer != 1)) {
-            sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondHallElectricField(cache[localID],RKCase,0);
-         } else {
-            Real* cp     = cache[localID].cells[fs_cache::calculateNbrID(1,1,1)]->parameters;
-            Real* derivs = cache[localID].cells[fs_cache::calculateNbrID(1,1,1)]->derivatives;
-            calculateEdgeHallTermXComponents(cp,derivs,perturbedCoefficients,RKCase);
-         }
-      }
-      if ((fieldSolverSysBoundaryFlag & CALCULATE_EY) == CALCULATE_EY) {
-         if ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
-             (cellSysBoundaryLayer != 1)) {
-            sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondHallElectricField(cache[localID],RKCase,1);
-         } else {
-            Real* cp     = cache[localID].cells[fs_cache::calculateNbrID(1,1,1)]->parameters;
-            Real* derivs = cache[localID].cells[fs_cache::calculateNbrID(1,1,1)]->derivatives;
-            calculateEdgeHallTermYComponents(cp,derivs,perturbedCoefficients,RKCase);
-         }
-      }
-      if ((fieldSolverSysBoundaryFlag & CALCULATE_EZ) == CALCULATE_EZ) {
-         if ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
-             (cellSysBoundaryLayer != 1)) {
-            sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondHallElectricField(cache[localID],RKCase,2);
-         } else {
-            Real* cp     = cache[localID].cells[fs_cache::calculateNbrID(1,1,1)]->parameters;
-            Real* derivs = cache[localID].cells[fs_cache::calculateNbrID(1,1,1)]->derivatives;
-            calculateEdgeHallTermZComponents(cp,derivs,perturbedCoefficients,RKCase);
-         }
-      }
+   #ifdef DEBUG_FSOLVER
+   if (technicalGrid.get(i,j,k) == NULL) {
+      cerr << "NULL pointer in " << __FILE__ << ":" << __LINE__ << endl;
+      exit(1);
    }
+   #endif
+   
+   cuint cellSysBoundaryFlag = technicalGrid.get(i,j,k)->sysBoundaryFlag;
+   
+   if (cellSysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) return;
+   
+   cuint cellSysBoundaryLayer = technicalGrid.get(i,j,k)->sysBoundaryLayer;
+   
+   Real perturbedCoefficients[Rec::N_REC_COEFFICIENTS];
+
+   reconstructionCoefficients(
+      perBGrid,
+      dPerBGrid,
+      perturbedCoefficients,
+      i,
+      j,
+      k,
+      3 // Reconstruction order of the fields after Balsara 2009, 2 used for general B, 3 used here for 2nd-order Hall term
+   );
+
+   if ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) && (cellSysBoundaryLayer != 1)) {
+      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, 0);
+      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, 1);
+      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, 2);
+   } else {
+      calculateEdgeHallTermXComponents(perBGrid, EHallGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, perturbedCoefficients, i, j, k);
+      calculateEdgeHallTermYComponents(perBGrid, EHallGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, perturbedCoefficients, i, j, k);
+      calculateEdgeHallTermZComponents(perBGrid, EHallGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, perturbedCoefficients, i, j, k);
+   }
+
 }
 
 /*! \brief High-level function computing the Hall term.
@@ -733,62 +670,49 @@ void calculateHallTerm(
  * 
  * \param mpiGrid Grid
  * \param sysBoundaries System boundary condition functions.
- * \param localCells Vector of local cells
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  * 
  * \sa calculateHallTerm
  */
 void calculateHallTermSimple(
-   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBDt2Grid,
+   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2> & EHallGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsDt2Grid,
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> & dMomentsGrid,
+   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2> & BgBGrid,
+   FsGrid< fsgrids::technical, 2> & technicalGrid,
    SysBoundary& sysBoundaries,
-   const vector<CellID>& localCells,
    cint& RKCase,
-   const bool communicateDerivatives
+   const bool communicateMomentsDerivatives
 ) {
-
-   namespace fs = fieldsolver;
    int timer;
-   size_t N_cells;
+   const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
+   const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
+   
    phiprof::start("Calculate Hall term");
-   if(communicateDerivatives) {
-      SpatialCell::set_mpi_transfer_type(Transfer::CELL_DERIVATIVES);
-
-      fs_cache::CacheContainer& cacheContainer = fs_cache::getCache();
-
-      timer=phiprof::initializeTimer("Start communication of derivatives","MPI");
-      phiprof::start(timer);
-      mpiGrid.start_remote_neighbor_copy_updates(FIELD_SOLVER_NEIGHBORHOOD_ID);
-      phiprof::stop(timer);
-
-      // Calculate Hall term on inner cells
-      timer=phiprof::initializeTimer("Compute inner cells");
-      phiprof::start(timer);
-      calculateHallTerm(sysBoundaries,cacheContainer.localCellsCache,cacheContainer.cellsWithLocalNeighbours,RKCase);
-      phiprof::stop(timer,cacheContainer.cellsWithLocalNeighbours.size(),"Spatial Cells");
-
-      timer=phiprof::initializeTimer("Wait for receives","MPI","Wait");
-      phiprof::start(timer);
-      mpiGrid.wait_remote_neighbor_copy_update_receives(FIELD_SOLVER_NEIGHBORHOOD_ID);
-      phiprof::stop(timer);
-      
-      // Calculate Hall term on boundary cells:
-      timer=phiprof::initializeTimer("Compute boundary cells");
-      phiprof::start(timer);
-      calculateHallTerm(sysBoundaries,cacheContainer.localCellsCache,cacheContainer.cellsWithRemoteNeighbours,RKCase);
-      phiprof::stop(timer,cacheContainer.cellsWithRemoteNeighbours.size(),"Spatial Cells");
-
-      timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
-      phiprof::start(timer);
-      mpiGrid.wait_remote_neighbor_copy_update_sends();
-      phiprof::stop(timer);
-
-      N_cells = cacheContainer.cellsWithRemoteNeighbours.size()
-      + cacheContainer.cellsWithLocalNeighbours.size();
-   } else {
-      fs_cache::CacheContainer& cacheContainer = fs_cache::getCache();
-      calculateHallTerm(sysBoundaries,cacheContainer.localCellsCache,cacheContainer.local_NOT_DO_NOT_COMPUTE,RKCase);
-      N_cells = cacheContainer.local_NOT_DO_NOT_COMPUTE.size();
+   timer=phiprof::initializeTimer("Start communication of derivatives","MPI");
+   phiprof::start(timer);
+   dPerBGrid.updateGhostCells();
+   if(communicateMomentsDerivatives) {
+      dMomentsGrid.updateGhostCells();
    }
-
+   phiprof::stop(timer);
+   
+   #pragma omp parallel for collapse(3)
+   for (int k=0; k<gridDims[2]; k++) {
+      for (int j=0; j<gridDims[1]; j++) {
+         for (int i=0; i<gridDims[0]; i++) {
+            if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+               calculateHallTerm(perBGrid, EHallGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid,sysBoundaries, i, j, k);
+            } else {
+               calculateHallTerm(perBDt2Grid, EHallGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid,sysBoundaries, i, j, k);
+            }
+         }
+      }
+   }
+   
    phiprof::stop("Calculate Hall term",N_cells,"Spatial Cells");
 }
