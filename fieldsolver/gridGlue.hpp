@@ -27,6 +27,15 @@ void getVolumeFieldsFromFsGrid(FsGrid< std::array<Real, fsgrids::volfields::N_VO
                            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                            const std::vector<CellID>& cells);
 
+/*! Copy field derivatives from the appropriate FsGrids and store them back into DCCRG
+ *
+ * This should only be neccessary for debugging.
+ */
+void getDerivativesFromFsGrid(FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2>& dperbGrid,
+                          FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dmomentsGrid,
+                          FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& bgbfieldGrid,
+                          dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                          const std::vector<CellID>& cells);
 
 /*! Transfer data into technical grid (boundary info etc.)
  * \param mpiGrid The DCCRG grid carrying rho, rhoV and P
@@ -60,8 +69,8 @@ void getFsGridMaxDt(FsGrid< fsgrids::technical, 2>& technicalGrid,
  * This function assumes that proper grid coupling has been set up.
  */
 void feedBgFieldsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-		const std::vector<CellID>& cells,
-		FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid);
+    const std::vector<CellID>& cells,
+    FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid);
 
 /*! Transfer field data from DCCRG cellparams into the appropriate FsGrid structure
  * \param mpiGrid The DCCRG grid carrying fieldparam data

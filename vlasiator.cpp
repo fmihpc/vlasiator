@@ -620,6 +620,7 @@ int main(int argn,char* args[]) {
       //getFieldDataFromFsGrid<fsgrids::N_BGB>(mpiGrid,cells,CellParams::BGBX,BgBGrid); // <- no need, doesn't change.
       getFieldDataFromFsGrid<fsgrids::N_BFIELD>(perBGrid,mpiGrid,cells,CellParams::PERBX);
       getFieldDataFromFsGrid<fsgrids::N_EFIELD>(EGrid,mpiGrid,cells,CellParams::EX);
+      getDerivativesFromFsGrid(dPerBGrid, dMomentsGrid, BgBGrid, mpiGrid, cells);
       
       //write out phiprof profiles and logs with a lower interval than normal
       //diagnostic (every 10 diagnostic intervals).
