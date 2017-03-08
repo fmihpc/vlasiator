@@ -89,8 +89,8 @@ void reconstructionCoefficients(
    std::array<Real, fsgrids::dperb::N_DPERB> * der_i1j2k1 = &dummyDerivatives;
    std::array<Real, fsgrids::dperb::N_DPERB> * der_i1j1k2 = &dummyDerivatives;
    if (dPerBGrid.get(i+1,j,k) != NULL) der_i2j1k1 = dPerBGrid.get(i+1,j,k);
-   if (dPerBGrid.get(i,j+1,k) != NULL) der_i2j1k1 = dPerBGrid.get(i,j+1,k);
-   if (dPerBGrid.get(i,j,k+1) != NULL) der_i2j1k1 = dPerBGrid.get(i,j,k+1);
+   if (dPerBGrid.get(i,j+1,k) != NULL) der_i1j2k1 = dPerBGrid.get(i,j+1,k);
+   if (dPerBGrid.get(i,j,k+1) != NULL) der_i1j1k2 = dPerBGrid.get(i,j,k+1);
    
    // Calculate 3rd order reconstruction coefficients:
    if (reconstructionOrder == 2) {
