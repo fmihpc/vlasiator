@@ -30,7 +30,7 @@ LIB_MPI = -lgomp
 # ZOLTAN_VERSION = current trilinos verson
 
 MPT_VERSION = 7.5.1
-JEMALLOC_VERSION = git
+JEMALLOC_VERSION = 4.5.0
 LIBRARY_PREFIX = /proj/vlasiato/libraries/
 
 
