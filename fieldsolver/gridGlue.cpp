@@ -19,7 +19,7 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    size_t count=0;
    for(CellID i : cells) {
       auto cellParams = mpiGrid[i]->get_cell_parameters();
-      std::array<Real, fsgrids::moments::N_MOMENTS>* thisCellData = &transferBuffer[count++];
+      std::array<Real, fsgrids::moments::N_MOMENTS>* thisCellData = &transferBuffer[count];
     
       if(!dt2) {
          thisCellData->at(fsgrids::moments::RHO) = cellParams[CellParams::RHO];
@@ -38,6 +38,8 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
          thisCellData->at(fsgrids::moments::P_22) = cellParams[CellParams::P_22_DT2];
          thisCellData->at(fsgrids::moments::P_33) = cellParams[CellParams::P_33_DT2];
       }
+
+      count++;
 
       momentsGrid.transferDataIn(i - 1, thisCellData);
    }
@@ -61,7 +63,7 @@ void feedBgFieldsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       auto cellParams = mpiGrid[i]->get_cell_parameters();
       auto derivatives = mpiGrid[i]->derivatives;
       auto volumeDerivatives = mpiGrid[i]->derivativesBVOL;
-      std::array<Real, fsgrids::bgbfield::N_BGB>* thisCellData = &transferBuffer[count++];
+      std::array<Real, fsgrids::bgbfield::N_BGB>* thisCellData = &transferBuffer[count];
 
       thisCellData->at(fsgrids::bgbfield::BGBX) = cellParams[CellParams::BGBX];
       thisCellData->at(fsgrids::bgbfield::BGBY) = cellParams[CellParams::BGBY];
@@ -109,6 +111,7 @@ void feedBgFieldsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       thisCellData->at(fsgrids::bgbfield::dBGBZVOLdy) = volumeDerivatives[bvolderivatives::dBGBZVOLdy];
 
       bgBGrid.transferDataIn(i-1, thisCellData);
+      count++;
    }
 
 
@@ -128,9 +131,10 @@ void getVolumeFieldsFromFsGrid(FsGrid< std::array<Real, fsgrids::volfields::N_VO
    volumeFieldsGrid.setupForTransferOut(cells.size());
    size_t count=0;
    for(CellID i : cells) {
-      std::array<Real, fsgrids::volfields::N_VOL>* thisCellData = &transferBuffer[count++];
+      std::array<Real, fsgrids::volfields::N_VOL>* thisCellData = &transferBuffer[count];
 
       volumeFieldsGrid.transferDataOut(i - 1, thisCellData);
+      count++;
    }
    // Do the transfer
    volumeFieldsGrid.finishTransfersOut();
@@ -138,7 +142,7 @@ void getVolumeFieldsFromFsGrid(FsGrid< std::array<Real, fsgrids::volfields::N_VO
    // Distribute data from the transfer buffer back into the appropriate mpiGrid places
    count = 0;
    for(CellID i : cells) {
-      std::array<Real, fsgrids::volfields::N_VOL>* thisCellData = &transferBuffer[count++];
+      std::array<Real, fsgrids::volfields::N_VOL>* thisCellData = &transferBuffer[count];
       auto cellParams = mpiGrid[i]->get_cell_parameters();
 
       cellParams[CellParams::PERBXVOL]                          = thisCellData->at(fsgrids::volfields::PERBXVOL);
@@ -153,6 +157,8 @@ void getVolumeFieldsFromFsGrid(FsGrid< std::array<Real, fsgrids::volfields::N_VO
       mpiGrid[i]->derivativesBVOL[bvolderivatives::dPERBYVOLdz] = thisCellData->at(fsgrids::volfields::dPERBYVOLdz);
       mpiGrid[i]->derivativesBVOL[bvolderivatives::dPERBZVOLdx] = thisCellData->at(fsgrids::volfields::dPERBZVOLdx);
       mpiGrid[i]->derivativesBVOL[bvolderivatives::dPERBZVOLdy] = thisCellData->at(fsgrids::volfields::dPERBZVOLdy);
+
+      count++;
    }
 
 }
@@ -173,9 +179,10 @@ void getDerivativesFromFsGrid(FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>,
    dperbGrid.setupForTransferOut(cells.size());
    size_t count=0;
    for(CellID i : cells) {
-      std::array<Real, fsgrids::dperb::N_DPERB>* thisCellData = &dperbTransferBuffer[count++];
+      std::array<Real, fsgrids::dperb::N_DPERB>* thisCellData = &dperbTransferBuffer[count];
 
       dperbGrid.transferDataOut(i - 1, thisCellData);
+      count++;
    }
    // Do the transfer
    dperbGrid.finishTransfersOut();
@@ -184,9 +191,10 @@ void getDerivativesFromFsGrid(FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>,
    dmomentsGrid.setupForTransferOut(cells.size());
    count=0;
    for(CellID i : cells) {
-      std::array<Real, fsgrids::dmoments::N_DMOMENTS>* thisCellData = &dmomentsTransferBuffer[count++];
+      std::array<Real, fsgrids::dmoments::N_DMOMENTS>* thisCellData = &dmomentsTransferBuffer[count];
 
       dmomentsGrid.transferDataOut(i - 1, thisCellData);
+      count++;
    }
    // Do the transfer
    dmomentsGrid.finishTransfersOut();
@@ -195,9 +203,10 @@ void getDerivativesFromFsGrid(FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>,
    bgbfieldGrid.setupForTransferOut(cells.size());
    count=0;
    for(CellID i : cells) {
-      std::array<Real, fsgrids::bgbfield::N_BGB>* thisCellData = &bgbfieldTransferBuffer[count++];
+      std::array<Real, fsgrids::bgbfield::N_BGB>* thisCellData = &bgbfieldTransferBuffer[count];
 
       bgbfieldGrid.transferDataOut(i - 1, thisCellData);
+      count++;
    }
    // Do the transfer
    bgbfieldGrid.finishTransfersOut();
@@ -205,9 +214,9 @@ void getDerivativesFromFsGrid(FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>,
    // Distribute data from the transfer buffers back into the appropriate mpiGrid places
    count=0;
    for(CellID i : cells) {
-      std::array<Real, fsgrids::dperb::N_DPERB>* dperb = &dperbTransferBuffer[count++];
-      std::array<Real, fsgrids::dmoments::N_DMOMENTS>* dmoments = &dmomentsTransferBuffer[count++];
-      std::array<Real, fsgrids::bgbfield::N_BGB>* bgbfield = &bgbfieldTransferBuffer[count++];
+      std::array<Real, fsgrids::dperb::N_DPERB>* dperb = &dperbTransferBuffer[count];
+      std::array<Real, fsgrids::dmoments::N_DMOMENTS>* dmoments = &dmomentsTransferBuffer[count];
+      std::array<Real, fsgrids::bgbfield::N_BGB>* bgbfield = &bgbfieldTransferBuffer[count];
       auto cellParams = mpiGrid[i]->get_cell_parameters();
 
       mpiGrid[i]->derivatives[fieldsolver::drhodx] = dmoments->at(fsgrids::dmoments::drhodx);
@@ -256,6 +265,8 @@ void getDerivativesFromFsGrid(FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>,
       mpiGrid[i]->derivatives[fieldsolver::dBGBydz] = bgbfield->at(fsgrids::bgbfield::dBGBydz);
       mpiGrid[i]->derivatives[fieldsolver::dBGBzdx] = bgbfield->at(fsgrids::bgbfield::dBGBzdx);
       mpiGrid[i]->derivatives[fieldsolver::dBGBzdy] = bgbfield->at(fsgrids::bgbfield::dBGBzdy);
+
+      count++;
    }
 
 }
@@ -272,13 +283,15 @@ void setupTechnicalFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    size_t count=0;
    for(CellID i : cells) {
 
-      fsgrids::technical* thisCellData = &transferBuffer[count++];
+      fsgrids::technical* thisCellData = &transferBuffer[count];
       // Data needs to be collected from some different places for this grid.
       thisCellData->sysBoundaryFlag = mpiGrid[i]->sysBoundaryFlag;
       thisCellData->sysBoundaryLayer = mpiGrid[i]->sysBoundaryLayer;
       //thisCellData->maxFsDt = mpiGrid[i]->get_cell_parameters()[CellParams::MAXFDT];
       thisCellData->maxFsDt = std::numeric_limits<Real>::max();
       technicalGrid.transferDataIn(i - 1,thisCellData);
+
+      count++;
    }
 
    technicalGrid.finishTransfersIn();
@@ -314,7 +327,9 @@ void getFsGridMaxDt(FsGrid< fsgrids::technical, 2>& technicalGrid,
    for(CellID i : cells) {
       mpiGrid[i]->get_cell_parameters()[CellParams::MAXFDT] = transferBuffer[count].maxFsDt;
       mpiGrid[i]->get_cell_parameters()[CellParams::FSGRID_RANK] = transferBuffer[count].fsGridRank;
-      mpiGrid[i]->get_cell_parameters()[CellParams::FSGRID_BOUNDARYTYPE] = transferBuffer[count++].sysBoundaryFlag;
+      mpiGrid[i]->get_cell_parameters()[CellParams::FSGRID_BOUNDARYTYPE] = transferBuffer[count].sysBoundaryFlag;
+
+      count++;
    }
 }
 
