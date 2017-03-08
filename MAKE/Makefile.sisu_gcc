@@ -18,7 +18,7 @@ FLAGS =
 
 #GNU flags:
 CC_BRAND = gcc
-CC_BRAND_VERSION = 5.1.0
+CC_BRAND_VERSION = 6.2.0
 CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++11 -W -Wall -Wno-unused -fabi-version=0 -mavx2 
 testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++0x -fabi-version=0  -mavx
 
@@ -29,8 +29,8 @@ LIB_MPI = -lgomp
 # BOOST_VERSION = current trilinos version
 # ZOLTAN_VERSION = current trilinos verson
 
-MPT_VERSION = 7.2.6
-JEMALLOC_VERSION = 4.0.4
+MPT_VERSION = 7.5.1
+JEMALLOC_VERSION = git
 LIBRARY_PREFIX = /proj/vlasiato/libraries/
 
 
@@ -48,8 +48,8 @@ INC_VLSV = -I$(LIBRARY_PREFIX)/mpich2/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERS
 LIB_VLSV = -L$(LIBRARY_PREFIX)/mpich2/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/vlsv -lvlsv
 
 
-LIB_PROFILE = -L$(LIBRARY_PREFIX)/mpich2/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof/2.0/lib -lphiprof
-INC_PROFILE = -I$(LIBRARY_PREFIX)/mpich2/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof/2.0/include
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/mpich2/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof/lib -lphiprof
+INC_PROFILE = -I$(LIBRARY_PREFIX)/mpich2/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof/include
 
 #header libraries
 
