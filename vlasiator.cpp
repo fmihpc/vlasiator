@@ -508,6 +508,10 @@ int main(int argn,char* args[]) {
    
    // Save restart data
    if (P::writeInitialState) {
+      getFieldDataFromFsGrid<fsgrids::N_BFIELD>(perBGrid,mpiGrid,cells,CellParams::PERBX);
+      getFieldDataFromFsGrid<fsgrids::N_EFIELD>(EGrid,mpiGrid,cells,CellParams::EX);
+      getDerivativesFromFsGrid(dPerBGrid, dMomentsGrid, BgBGrid, mpiGrid, cells);
+      
       phiprof::start("write-initial-state");
       if (myRank == MASTER_RANK)
          logFile << "(IO): Writing initial state to disk, tstep = "  << endl << writeVerbose;
@@ -536,7 +540,7 @@ int main(int argn,char* args[]) {
 
       phiprof::stop("write-initial-state");
    }
-
+   
    if (P::isRestart == false) {
       //compute new dt
       phiprof::start("compute-dt");
