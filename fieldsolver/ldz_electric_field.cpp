@@ -507,17 +507,19 @@ void calculateEdgeElectricFieldX(
 
    // Resistive term
    // FIXME this does not include RK stepping
-   Ex_SW += Parameters::resistivity *
-     sqrt((bgb_SW->at(fsgrids::bgbfield::BGBX)+perb_SW->at(fsgrids::bfield::PERBX))*
-          (bgb_SW->at(fsgrids::bgbfield::BGBX)+perb_SW->at(fsgrids::bfield::PERBX)) +
-          (bgb_SW->at(fsgrids::bgbfield::BGBY)+perb_SW->at(fsgrids::bfield::PERBY))*
-          (bgb_SW->at(fsgrids::bgbfield::BGBY)+perb_SW->at(fsgrids::bfield::PERBY)) +
-          (bgb_SW->at(fsgrids::bgbfield::BGBZ)+perb_SW->at(fsgrids::bfield::PERBZ))*
-          (bgb_SW->at(fsgrids::bgbfield::BGBZ)+perb_SW->at(fsgrids::bfield::PERBZ))
-         ) /
-     (moments_SW->at(fsgrids::moments::RHO)*physicalconstants::CHARGE) /
-     physicalconstants::MU_0 *
-     (dperb_SW->at(fsgrids::dperb::dPERBzdy)/technicalGrid.DY - dperb_SW->at(fsgrids::dperb::dPERBydz)/technicalGrid.DZ);
+   if (Parameters::resistivity > 0) {
+     Ex_SW += Parameters::resistivity * divideIfNonZero(
+       sqrt((bgb_SW->at(fsgrids::bgbfield::BGBX)+perb_SW->at(fsgrids::bfield::PERBX))*
+            (bgb_SW->at(fsgrids::bgbfield::BGBX)+perb_SW->at(fsgrids::bfield::PERBX)) +
+            (bgb_SW->at(fsgrids::bgbfield::BGBY)+perb_SW->at(fsgrids::bfield::PERBY))*
+            (bgb_SW->at(fsgrids::bgbfield::BGBY)+perb_SW->at(fsgrids::bfield::PERBY)) +
+            (bgb_SW->at(fsgrids::bgbfield::BGBZ)+perb_SW->at(fsgrids::bfield::PERBZ))*
+            (bgb_SW->at(fsgrids::bgbfield::BGBZ)+perb_SW->at(fsgrids::bfield::PERBZ))
+           ),
+       (moments_SW->at(fsgrids::moments::RHO)*physicalconstants::CHARGE)) /
+       physicalconstants::MU_0 *
+       (dperb_SW->at(fsgrids::dperb::dPERBzdy)/technicalGrid.DY - dperb_SW->at(fsgrids::dperb::dPERBydz)/technicalGrid.DZ);
+   }
    
    // Hall term
    if(Parameters::ohmHallTerm > 0) {
@@ -560,17 +562,19 @@ void calculateEdgeElectricFieldX(
 
    // Resistive term
    // FIXME this does not include RK stepping
-   Ex_SE += Parameters::resistivity *
-     sqrt((bgb_SE->at(fsgrids::bgbfield::BGBX)+perb_SE->at(fsgrids::bfield::PERBX))*
-          (bgb_SE->at(fsgrids::bgbfield::BGBX)+perb_SE->at(fsgrids::bfield::PERBX)) +
-          (bgb_SE->at(fsgrids::bgbfield::BGBY)+perb_SE->at(fsgrids::bfield::PERBY))*
-          (bgb_SE->at(fsgrids::bgbfield::BGBY)+perb_SE->at(fsgrids::bfield::PERBY)) +
-          (bgb_SE->at(fsgrids::bgbfield::BGBZ)+perb_SE->at(fsgrids::bfield::PERBZ))*
-          (bgb_SE->at(fsgrids::bgbfield::BGBZ)+perb_SE->at(fsgrids::bfield::PERBZ))
-         ) /
-     (moments_SE->at(fsgrids::moments::RHO)*physicalconstants::CHARGE) /
-     physicalconstants::MU_0 *
-     (dperb_SE->at(fsgrids::dperb::dPERBzdy)/technicalGrid.DY - dperb_SE->at(fsgrids::dperb::dPERBydz)/technicalGrid.DZ);
+   if (Parameters::resistivity > 0) {
+     Ex_SE += Parameters::resistivity * divideIfNonZero(
+       sqrt((bgb_SE->at(fsgrids::bgbfield::BGBX)+perb_SE->at(fsgrids::bfield::PERBX))*
+            (bgb_SE->at(fsgrids::bgbfield::BGBX)+perb_SE->at(fsgrids::bfield::PERBX)) +
+            (bgb_SE->at(fsgrids::bgbfield::BGBY)+perb_SE->at(fsgrids::bfield::PERBY))*
+            (bgb_SE->at(fsgrids::bgbfield::BGBY)+perb_SE->at(fsgrids::bfield::PERBY)) +
+            (bgb_SE->at(fsgrids::bgbfield::BGBZ)+perb_SE->at(fsgrids::bfield::PERBZ))*
+            (bgb_SE->at(fsgrids::bgbfield::BGBZ)+perb_SE->at(fsgrids::bfield::PERBZ))
+           ),
+       (moments_SE->at(fsgrids::moments::RHO)*physicalconstants::CHARGE)) /
+       physicalconstants::MU_0 *
+       (dperb_SE->at(fsgrids::dperb::dPERBzdy)/technicalGrid.DY - dperb_SE->at(fsgrids::dperb::dPERBydz)/technicalGrid.DZ);
+   }
 
    // Hall term
    if(Parameters::ohmHallTerm > 0) {
@@ -614,17 +618,19 @@ void calculateEdgeElectricFieldX(
    
    // Resistive term
    // FIXME this does not include RK stepping
-   Ex_NW += Parameters::resistivity *
-     sqrt((bgb_NW->at(fsgrids::bgbfield::BGBX)+perb_NW->at(fsgrids::bfield::PERBX))*
-          (bgb_NW->at(fsgrids::bgbfield::BGBX)+perb_NW->at(fsgrids::bfield::PERBX)) +
-          (bgb_NW->at(fsgrids::bgbfield::BGBY)+perb_NW->at(fsgrids::bfield::PERBY))*
-          (bgb_NW->at(fsgrids::bgbfield::BGBY)+perb_NW->at(fsgrids::bfield::PERBY)) +
-          (bgb_NW->at(fsgrids::bgbfield::BGBZ)+perb_NW->at(fsgrids::bfield::PERBZ))*
-          (bgb_NW->at(fsgrids::bgbfield::BGBZ)+perb_NW->at(fsgrids::bfield::PERBZ))
-         ) /
-     (moments_NW->at(fsgrids::moments::RHO)*physicalconstants::CHARGE) /
-     physicalconstants::MU_0 *
-     (dperb_NW->at(fsgrids::dperb::dPERBzdy)/technicalGrid.DY - dperb_NW->at(fsgrids::dperb::dPERBydz)/technicalGrid.DZ);
+   if (Parameters::resistivity > 0) {
+     Ex_NW += Parameters::resistivity * divideIfNonZero(
+       sqrt((bgb_NW->at(fsgrids::bgbfield::BGBX)+perb_NW->at(fsgrids::bfield::PERBX))*
+            (bgb_NW->at(fsgrids::bgbfield::BGBX)+perb_NW->at(fsgrids::bfield::PERBX)) +
+            (bgb_NW->at(fsgrids::bgbfield::BGBY)+perb_NW->at(fsgrids::bfield::PERBY))*
+            (bgb_NW->at(fsgrids::bgbfield::BGBY)+perb_NW->at(fsgrids::bfield::PERBY)) +
+            (bgb_NW->at(fsgrids::bgbfield::BGBZ)+perb_NW->at(fsgrids::bfield::PERBZ))*
+            (bgb_NW->at(fsgrids::bgbfield::BGBZ)+perb_NW->at(fsgrids::bfield::PERBZ))
+           ),
+       (moments_NW->at(fsgrids::moments::RHO)*physicalconstants::CHARGE)) /
+       physicalconstants::MU_0 *
+       (dperb_NW->at(fsgrids::dperb::dPERBzdy)/technicalGrid.DY - dperb_NW->at(fsgrids::dperb::dPERBydz)/technicalGrid.DZ);
+   }
    
    // Hall term
    if(Parameters::ohmHallTerm > 0) {
@@ -668,17 +674,19 @@ void calculateEdgeElectricFieldX(
 
    // Resistive term
    // FIXME this does not include RK stepping
-   Ex_NE += Parameters::resistivity *
-            sqrt((bgb_NE->at(fsgrids::bgbfield::BGBX)+perb_NE->at(fsgrids::bfield::PERBX))*
-                 (bgb_NE->at(fsgrids::bgbfield::BGBX)+perb_NE->at(fsgrids::bfield::PERBX)) +
-                 (bgb_NE->at(fsgrids::bgbfield::BGBY)+perb_NE->at(fsgrids::bfield::PERBY))*
-                 (bgb_NE->at(fsgrids::bgbfield::BGBY)+perb_NE->at(fsgrids::bfield::PERBY)) +
-                 (bgb_NE->at(fsgrids::bgbfield::BGBZ)+perb_NE->at(fsgrids::bfield::PERBZ))*
-                 (bgb_NE->at(fsgrids::bgbfield::BGBZ)+perb_NE->at(fsgrids::bfield::PERBZ))
-                ) /
-               (moments_NE->at(fsgrids::moments::RHO)*physicalconstants::CHARGE) /
-            physicalconstants::MU_0 *
-            (dperb_NE->at(fsgrids::dperb::dPERBzdy)/technicalGrid.DY - dperb_NE->at(fsgrids::dperb::dPERBydz)/technicalGrid.DZ);
+   if (Parameters::resistivity > 0) {
+      Ex_NE += Parameters::resistivity * divideIfNonZero(
+               sqrt((bgb_NE->at(fsgrids::bgbfield::BGBX)+perb_NE->at(fsgrids::bfield::PERBX))*
+                    (bgb_NE->at(fsgrids::bgbfield::BGBX)+perb_NE->at(fsgrids::bfield::PERBX)) +
+                    (bgb_NE->at(fsgrids::bgbfield::BGBY)+perb_NE->at(fsgrids::bfield::PERBY))*
+                    (bgb_NE->at(fsgrids::bgbfield::BGBY)+perb_NE->at(fsgrids::bfield::PERBY)) +
+                    (bgb_NE->at(fsgrids::bgbfield::BGBZ)+perb_NE->at(fsgrids::bfield::PERBZ))*
+                    (bgb_NE->at(fsgrids::bgbfield::BGBZ)+perb_NE->at(fsgrids::bfield::PERBZ))
+                   ),
+                  (moments_NE->at(fsgrids::moments::RHO)*physicalconstants::CHARGE)) /
+               physicalconstants::MU_0 *
+               (dperb_NE->at(fsgrids::dperb::dPERBzdy)/technicalGrid.DY - dperb_NE->at(fsgrids::dperb::dPERBydz)/technicalGrid.DZ);
+   }
 
    // Hall term
    if(Parameters::ohmHallTerm > 0) {
@@ -861,18 +869,20 @@ void calculateEdgeElectricFieldY(
    
    // Resistive term
    // FIXME this does not include RK stepping
-   Ey_SW += Parameters::resistivity *
-     sqrt((bgb_SW->at(fsgrids::bgbfield::BGBX)+perb_SW->at(fsgrids::bfield::PERBX))*
-          (bgb_SW->at(fsgrids::bgbfield::BGBX)+perb_SW->at(fsgrids::bfield::PERBX)) +
-          (bgb_SW->at(fsgrids::bgbfield::BGBY)+perb_SW->at(fsgrids::bfield::PERBY))*
-          (bgb_SW->at(fsgrids::bgbfield::BGBY)+perb_SW->at(fsgrids::bfield::PERBY)) +
-          (bgb_SW->at(fsgrids::bgbfield::BGBZ)+perb_SW->at(fsgrids::bfield::PERBZ))*
-          (bgb_SW->at(fsgrids::bgbfield::BGBZ)+perb_SW->at(fsgrids::bfield::PERBZ))
-         ) /
-     (moments_SW->at(fsgrids::moments::RHO)*physicalconstants::CHARGE) /
-     physicalconstants::MU_0 *
-     (dperb_SW->at(fsgrids::dperb::dPERBxdz)/technicalGrid.DZ - dperb_SW->at(fsgrids::dperb::dPERBzdx)/technicalGrid.DX);
-   
+   if (Parameters::resistivity > 0) {
+      Ey_SW += Parameters::resistivity * divideIfNonZero(
+        sqrt((bgb_SW->at(fsgrids::bgbfield::BGBX)+perb_SW->at(fsgrids::bfield::PERBX))*
+             (bgb_SW->at(fsgrids::bgbfield::BGBX)+perb_SW->at(fsgrids::bfield::PERBX)) +
+             (bgb_SW->at(fsgrids::bgbfield::BGBY)+perb_SW->at(fsgrids::bfield::PERBY))*
+             (bgb_SW->at(fsgrids::bgbfield::BGBY)+perb_SW->at(fsgrids::bfield::PERBY)) +
+             (bgb_SW->at(fsgrids::bgbfield::BGBZ)+perb_SW->at(fsgrids::bfield::PERBZ))*
+             (bgb_SW->at(fsgrids::bgbfield::BGBZ)+perb_SW->at(fsgrids::bfield::PERBZ))
+            ),
+        (moments_SW->at(fsgrids::moments::RHO)*physicalconstants::CHARGE)) /
+        physicalconstants::MU_0 *
+        (dperb_SW->at(fsgrids::dperb::dPERBxdz)/technicalGrid.DZ - dperb_SW->at(fsgrids::dperb::dPERBzdx)/technicalGrid.DX);
+   }
+
    // Hall term
    if (Parameters::ohmHallTerm > 0) {
       Ey_SW += EHallGrid.get(i,j,k)->at(fsgrids::ehall::EYHALL_000_010) / (rho_S*physicalconstants::MU_0*physicalconstants::CHARGE);
@@ -915,17 +925,19 @@ void calculateEdgeElectricFieldY(
 
    // Resistive term
    // FIXME this does not include RK stepping
-   Ey_SE += Parameters::resistivity *
-     sqrt((bgb_SE->at(fsgrids::bgbfield::BGBX)+perb_SE->at(fsgrids::bfield::PERBX))*
-          (bgb_SE->at(fsgrids::bgbfield::BGBX)+perb_SE->at(fsgrids::bfield::PERBX)) +
-          (bgb_SE->at(fsgrids::bgbfield::BGBY)+perb_SE->at(fsgrids::bfield::PERBY))*
-          (bgb_SE->at(fsgrids::bgbfield::BGBY)+perb_SE->at(fsgrids::bfield::PERBY)) +
-          (bgb_SE->at(fsgrids::bgbfield::BGBZ)+perb_SE->at(fsgrids::bfield::PERBZ))*
-          (bgb_SE->at(fsgrids::bgbfield::BGBZ)+perb_SE->at(fsgrids::bfield::PERBZ))
-         ) /
-     (moments_SE->at(fsgrids::moments::RHO)*physicalconstants::CHARGE) /
-     physicalconstants::MU_0 *
-     (dperb_SE->at(fsgrids::dperb::dPERBxdz)/technicalGrid.DZ - dperb_SE->at(fsgrids::dperb::dPERBzdx)/technicalGrid.DX);
+   if (Parameters::resistivity > 0) {
+      Ey_SE += Parameters::resistivity * divideIfNonZero(
+        sqrt((bgb_SE->at(fsgrids::bgbfield::BGBX)+perb_SE->at(fsgrids::bfield::PERBX))*
+             (bgb_SE->at(fsgrids::bgbfield::BGBX)+perb_SE->at(fsgrids::bfield::PERBX)) +
+             (bgb_SE->at(fsgrids::bgbfield::BGBY)+perb_SE->at(fsgrids::bfield::PERBY))*
+             (bgb_SE->at(fsgrids::bgbfield::BGBY)+perb_SE->at(fsgrids::bfield::PERBY)) +
+             (bgb_SE->at(fsgrids::bgbfield::BGBZ)+perb_SE->at(fsgrids::bfield::PERBZ))*
+             (bgb_SE->at(fsgrids::bgbfield::BGBZ)+perb_SE->at(fsgrids::bfield::PERBZ))
+            ),
+        (moments_SE->at(fsgrids::moments::RHO)*physicalconstants::CHARGE)) /
+        physicalconstants::MU_0 *
+        (dperb_SE->at(fsgrids::dperb::dPERBxdz)/technicalGrid.DZ - dperb_SE->at(fsgrids::dperb::dPERBzdx)/technicalGrid.DX);
+   }
 
    // Hall term
    if (Parameters::ohmHallTerm > 0) {
@@ -969,17 +981,19 @@ void calculateEdgeElectricFieldY(
 
    // Resistive term
    // FIXME this does not include RK stepping
-   Ey_NW += Parameters::resistivity *
-     sqrt((bgb_NW->at(fsgrids::bgbfield::BGBX)+perb_NW->at(fsgrids::bfield::PERBX))*
-          (bgb_NW->at(fsgrids::bgbfield::BGBX)+perb_NW->at(fsgrids::bfield::PERBX)) +
-          (bgb_NW->at(fsgrids::bgbfield::BGBY)+perb_NW->at(fsgrids::bfield::PERBY))*
-          (bgb_NW->at(fsgrids::bgbfield::BGBY)+perb_NW->at(fsgrids::bfield::PERBY)) +
-          (bgb_NW->at(fsgrids::bgbfield::BGBZ)+perb_NW->at(fsgrids::bfield::PERBZ))*
-          (bgb_NW->at(fsgrids::bgbfield::BGBZ)+perb_NW->at(fsgrids::bfield::PERBZ))
-         ) /
-     (moments_NW->at(fsgrids::moments::RHO)*physicalconstants::CHARGE) /
-     physicalconstants::MU_0 *
-     (dperb_NW->at(fsgrids::dperb::dPERBxdz)/technicalGrid.DZ - dperb_NW->at(fsgrids::dperb::dPERBzdx)/technicalGrid.DX);
+   if (Parameters::resistivity > 0) {
+      Ey_NW += Parameters::resistivity * divideIfNonZero(
+        sqrt((bgb_NW->at(fsgrids::bgbfield::BGBX)+perb_NW->at(fsgrids::bfield::PERBX))*
+             (bgb_NW->at(fsgrids::bgbfield::BGBX)+perb_NW->at(fsgrids::bfield::PERBX)) +
+             (bgb_NW->at(fsgrids::bgbfield::BGBY)+perb_NW->at(fsgrids::bfield::PERBY))*
+             (bgb_NW->at(fsgrids::bgbfield::BGBY)+perb_NW->at(fsgrids::bfield::PERBY)) +
+             (bgb_NW->at(fsgrids::bgbfield::BGBZ)+perb_NW->at(fsgrids::bfield::PERBZ))*
+             (bgb_NW->at(fsgrids::bgbfield::BGBZ)+perb_NW->at(fsgrids::bfield::PERBZ))
+            ),
+        (moments_NW->at(fsgrids::moments::RHO)*physicalconstants::CHARGE)) /
+        physicalconstants::MU_0 *
+        (dperb_NW->at(fsgrids::dperb::dPERBxdz)/technicalGrid.DZ - dperb_NW->at(fsgrids::dperb::dPERBzdx)/technicalGrid.DX);
+   }
 
    // Hall term
    if(Parameters::ohmHallTerm > 0) {
@@ -1023,17 +1037,19 @@ void calculateEdgeElectricFieldY(
    
    // Resistive term
    // FIXME this does not include RK stepping
-   Ey_NE += Parameters::resistivity *
-     sqrt((bgb_NE->at(fsgrids::bgbfield::BGBX)+perb_NE->at(fsgrids::bfield::PERBX))*
-          (bgb_NE->at(fsgrids::bgbfield::BGBX)+perb_NE->at(fsgrids::bfield::PERBX)) +
-          (bgb_NE->at(fsgrids::bgbfield::BGBY)+perb_NE->at(fsgrids::bfield::PERBY))*
-          (bgb_NE->at(fsgrids::bgbfield::BGBY)+perb_NE->at(fsgrids::bfield::PERBY)) +
-          (bgb_NE->at(fsgrids::bgbfield::BGBZ)+perb_NE->at(fsgrids::bfield::PERBZ))*
-          (bgb_NE->at(fsgrids::bgbfield::BGBZ)+perb_NE->at(fsgrids::bfield::PERBZ))
-         ) /
-     (moments_NE->at(fsgrids::moments::RHO)*physicalconstants::CHARGE) /
-     physicalconstants::MU_0 *
-     (dperb_NE->at(fsgrids::dperb::dPERBxdz)/technicalGrid.DZ - dperb_NE->at(fsgrids::dperb::dPERBzdx)/technicalGrid.DX);
+   if (Parameters::resistivity > 0) {
+      Ey_NE += Parameters::resistivity * divideIfNonZero(
+        sqrt((bgb_NE->at(fsgrids::bgbfield::BGBX)+perb_NE->at(fsgrids::bfield::PERBX))*
+             (bgb_NE->at(fsgrids::bgbfield::BGBX)+perb_NE->at(fsgrids::bfield::PERBX)) +
+             (bgb_NE->at(fsgrids::bgbfield::BGBY)+perb_NE->at(fsgrids::bfield::PERBY))*
+             (bgb_NE->at(fsgrids::bgbfield::BGBY)+perb_NE->at(fsgrids::bfield::PERBY)) +
+             (bgb_NE->at(fsgrids::bgbfield::BGBZ)+perb_NE->at(fsgrids::bfield::PERBZ))*
+             (bgb_NE->at(fsgrids::bgbfield::BGBZ)+perb_NE->at(fsgrids::bfield::PERBZ))
+            ),
+        (moments_NE->at(fsgrids::moments::RHO)*physicalconstants::CHARGE)) /
+        physicalconstants::MU_0 *
+        (dperb_NE->at(fsgrids::dperb::dPERBxdz)/technicalGrid.DZ - dperb_NE->at(fsgrids::dperb::dPERBzdx)/technicalGrid.DX);
+   }
 
    // Hall term
    if(Parameters::ohmHallTerm > 0) {
@@ -1216,17 +1232,19 @@ void calculateEdgeElectricFieldZ(
    
    // Resistive term
    // FIXME this does not include RK stepping
-   Ez_SW += Parameters::resistivity *
-     sqrt((bgb_SW->at(fsgrids::bgbfield::BGBX)+perb_SW->at(fsgrids::bfield::PERBX))*
-          (bgb_SW->at(fsgrids::bgbfield::BGBX)+perb_SW->at(fsgrids::bfield::PERBX)) +
-          (bgb_SW->at(fsgrids::bgbfield::BGBY)+perb_SW->at(fsgrids::bfield::PERBY))*
-          (bgb_SW->at(fsgrids::bgbfield::BGBY)+perb_SW->at(fsgrids::bfield::PERBY)) +
-          (bgb_SW->at(fsgrids::bgbfield::BGBZ)+perb_SW->at(fsgrids::bfield::PERBZ))*
-          (bgb_SW->at(fsgrids::bgbfield::BGBZ)+perb_SW->at(fsgrids::bfield::PERBZ))
-         ) /
-     (moments_SW->at(fsgrids::moments::RHO)*physicalconstants::CHARGE) /
-     physicalconstants::MU_0 *
-     (dperb_SW->at(fsgrids::dperb::dPERBydx)/technicalGrid.DX - dperb_SW->at(fsgrids::dperb::dPERBxdy)/technicalGrid.DY);
+   if (Parameters::resistivity > 0) {
+     Ez_SW += Parameters::resistivity * divideIfNonZero(
+       sqrt((bgb_SW->at(fsgrids::bgbfield::BGBX)+perb_SW->at(fsgrids::bfield::PERBX))*
+            (bgb_SW->at(fsgrids::bgbfield::BGBX)+perb_SW->at(fsgrids::bfield::PERBX)) +
+            (bgb_SW->at(fsgrids::bgbfield::BGBY)+perb_SW->at(fsgrids::bfield::PERBY))*
+            (bgb_SW->at(fsgrids::bgbfield::BGBY)+perb_SW->at(fsgrids::bfield::PERBY)) +
+            (bgb_SW->at(fsgrids::bgbfield::BGBZ)+perb_SW->at(fsgrids::bfield::PERBZ))*
+            (bgb_SW->at(fsgrids::bgbfield::BGBZ)+perb_SW->at(fsgrids::bfield::PERBZ))
+           ),
+       (moments_SW->at(fsgrids::moments::RHO)*physicalconstants::CHARGE)) /
+       physicalconstants::MU_0 *
+       (dperb_SW->at(fsgrids::dperb::dPERBydx)/technicalGrid.DX - dperb_SW->at(fsgrids::dperb::dPERBxdy)/technicalGrid.DY);
+   }
    
    // Hall term
    if (Parameters::ohmHallTerm > 0) {
@@ -1272,17 +1290,19 @@ void calculateEdgeElectricFieldZ(
 
    // Resistive term
    // FIXME this does not include RK stepping
-   Ez_SE += Parameters::resistivity *
-     sqrt((bgb_SE->at(fsgrids::bgbfield::BGBX)+perb_SE->at(fsgrids::bfield::PERBX))*
-          (bgb_SE->at(fsgrids::bgbfield::BGBX)+perb_SE->at(fsgrids::bfield::PERBX)) +
-          (bgb_SE->at(fsgrids::bgbfield::BGBY)+perb_SE->at(fsgrids::bfield::PERBY))*
-          (bgb_SE->at(fsgrids::bgbfield::BGBY)+perb_SE->at(fsgrids::bfield::PERBY)) +
-          (bgb_SE->at(fsgrids::bgbfield::BGBZ)+perb_SE->at(fsgrids::bfield::PERBZ))*
-          (bgb_SE->at(fsgrids::bgbfield::BGBZ)+perb_SE->at(fsgrids::bfield::PERBZ))
-         ) /
-     (moments_SE->at(fsgrids::moments::RHO)*physicalconstants::CHARGE) /
-     physicalconstants::MU_0 *
-     (dperb_SE->at(fsgrids::dperb::dPERBydx)/technicalGrid.DX - dperb_SE->at(fsgrids::dperb::dPERBxdy)/technicalGrid.DY);
+   if (Parameters::resistivity > 0) {
+      Ez_SE += Parameters::resistivity * divideIfNonZero(
+        sqrt((bgb_SE->at(fsgrids::bgbfield::BGBX)+perb_SE->at(fsgrids::bfield::PERBX))*
+             (bgb_SE->at(fsgrids::bgbfield::BGBX)+perb_SE->at(fsgrids::bfield::PERBX)) +
+             (bgb_SE->at(fsgrids::bgbfield::BGBY)+perb_SE->at(fsgrids::bfield::PERBY))*
+             (bgb_SE->at(fsgrids::bgbfield::BGBY)+perb_SE->at(fsgrids::bfield::PERBY)) +
+             (bgb_SE->at(fsgrids::bgbfield::BGBZ)+perb_SE->at(fsgrids::bfield::PERBZ))*
+             (bgb_SE->at(fsgrids::bgbfield::BGBZ)+perb_SE->at(fsgrids::bfield::PERBZ))
+            ),
+        (moments_SE->at(fsgrids::moments::RHO)*physicalconstants::CHARGE)) /
+        physicalconstants::MU_0 *
+        (dperb_SE->at(fsgrids::dperb::dPERBydx)/technicalGrid.DX - dperb_SE->at(fsgrids::dperb::dPERBxdy)/technicalGrid.DY);
+   }
    
    // Hall term
    if (Parameters::ohmHallTerm > 0) {
@@ -1326,17 +1346,20 @@ void calculateEdgeElectricFieldZ(
 
    // Resistive term
    // FIXME this does not include RK stepping
-   Ez_NW += Parameters::resistivity *
-     sqrt((bgb_NW->at(fsgrids::bgbfield::BGBX)+perb_NW->at(fsgrids::bfield::PERBX))*
-          (bgb_NW->at(fsgrids::bgbfield::BGBX)+perb_NW->at(fsgrids::bfield::PERBX)) +
-          (bgb_NW->at(fsgrids::bgbfield::BGBY)+perb_NW->at(fsgrids::bfield::PERBY))*
-          (bgb_NW->at(fsgrids::bgbfield::BGBY)+perb_NW->at(fsgrids::bfield::PERBY)) +
-          (bgb_NW->at(fsgrids::bgbfield::BGBZ)+perb_NW->at(fsgrids::bfield::PERBZ))*
-          (bgb_NW->at(fsgrids::bgbfield::BGBZ)+perb_NW->at(fsgrids::bfield::PERBZ))
-         ) /
-     (moments_NW->at(fsgrids::moments::RHO)*physicalconstants::CHARGE) /
-     physicalconstants::MU_0 *
-     (dperb_NW->at(fsgrids::dperb::dPERBydx)/technicalGrid.DX - dperb_NW->at(fsgrids::dperb::dPERBxdy)/technicalGrid.DY);
+   if (Parameters::resistivity > 0) {
+      Ez_NW += Parameters::resistivity * divideIfNonZero(
+        sqrt((bgb_NW->at(fsgrids::bgbfield::BGBX)+perb_NW->at(fsgrids::bfield::PERBX))*
+             (bgb_NW->at(fsgrids::bgbfield::BGBX)+perb_NW->at(fsgrids::bfield::PERBX)) +
+             (bgb_NW->at(fsgrids::bgbfield::BGBY)+perb_NW->at(fsgrids::bfield::PERBY))*
+             (bgb_NW->at(fsgrids::bgbfield::BGBY)+perb_NW->at(fsgrids::bfield::PERBY)) +
+             (bgb_NW->at(fsgrids::bgbfield::BGBZ)+perb_NW->at(fsgrids::bfield::PERBZ))*
+             (bgb_NW->at(fsgrids::bgbfield::BGBZ)+perb_NW->at(fsgrids::bfield::PERBZ))
+            ),
+        (moments_NW->at(fsgrids::moments::RHO)*physicalconstants::CHARGE)) /
+        physicalconstants::MU_0 *
+        (dperb_NW->at(fsgrids::dperb::dPERBydx)/technicalGrid.DX - dperb_NW->at(fsgrids::dperb::dPERBxdy)/technicalGrid.DY);
+   }
+   
 
    // Hall term
    if(Parameters::ohmHallTerm > 0) {
@@ -1380,17 +1403,19 @@ void calculateEdgeElectricFieldZ(
    
    // Resistive term
    // FIXME this does not include RK stepping
-   Ez_NE += Parameters::resistivity *
-     sqrt((bgb_NE->at(fsgrids::bgbfield::BGBX)+perb_NE->at(fsgrids::bfield::PERBX))*
-          (bgb_NE->at(fsgrids::bgbfield::BGBX)+perb_NE->at(fsgrids::bfield::PERBX)) +
-          (bgb_NE->at(fsgrids::bgbfield::BGBY)+perb_NE->at(fsgrids::bfield::PERBY))*
-          (bgb_NE->at(fsgrids::bgbfield::BGBY)+perb_NE->at(fsgrids::bfield::PERBY)) +
-          (bgb_NE->at(fsgrids::bgbfield::BGBZ)+perb_NE->at(fsgrids::bfield::PERBZ))*
-          (bgb_NE->at(fsgrids::bgbfield::BGBZ)+perb_NE->at(fsgrids::bfield::PERBZ))
-         ) /
-     (moments_NE->at(fsgrids::moments::RHO)*physicalconstants::CHARGE) /
-     physicalconstants::MU_0 *
-     (dperb_NE->at(fsgrids::dperb::dPERBydx)/technicalGrid.DX - dperb_NE->at(fsgrids::dperb::dPERBxdy)/technicalGrid.DY);
+   if (Parameters::resistivity > 0) {
+      Ez_NE += Parameters::resistivity * divideIfNonZero(
+        sqrt((bgb_NE->at(fsgrids::bgbfield::BGBX)+perb_NE->at(fsgrids::bfield::PERBX))*
+             (bgb_NE->at(fsgrids::bgbfield::BGBX)+perb_NE->at(fsgrids::bfield::PERBX)) +
+             (bgb_NE->at(fsgrids::bgbfield::BGBY)+perb_NE->at(fsgrids::bfield::PERBY))*
+             (bgb_NE->at(fsgrids::bgbfield::BGBY)+perb_NE->at(fsgrids::bfield::PERBY)) +
+             (bgb_NE->at(fsgrids::bgbfield::BGBZ)+perb_NE->at(fsgrids::bfield::PERBZ))*
+             (bgb_NE->at(fsgrids::bgbfield::BGBZ)+perb_NE->at(fsgrids::bfield::PERBZ))
+            ),
+        (moments_NE->at(fsgrids::moments::RHO)*physicalconstants::CHARGE)) /
+        physicalconstants::MU_0 *
+        (dperb_NE->at(fsgrids::dperb::dPERBydx)/technicalGrid.DX - dperb_NE->at(fsgrids::dperb::dPERBxdy)/technicalGrid.DY);
+   }
    
    // Hall term
    if(Parameters::ohmHallTerm > 0) {

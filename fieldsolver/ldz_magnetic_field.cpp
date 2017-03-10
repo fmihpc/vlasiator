@@ -140,7 +140,6 @@ void propagateMagneticField(
             break;
          case RK_ORDER2_STEP2:
             EGrid0 = EDt2Grid.get(i,j,k);
-            EGrid0 = EDt2Grid.get(i,j,k);
             EGrid1 = EDt2Grid.get(i+1,j,k);
             EGrid2 = EDt2Grid.get(i,j+1,k);
             perBGrid0->at(fsgrids::bfield::PERBZ) += dt  * (1.0/dy*(EGrid2->at(fsgrids::efield::EX) - EGrid0->at(fsgrids::efield::EX)) + 1.0/dx*(EGrid0->at(fsgrids::efield::EY) - EGrid1->at(fsgrids::efield::EY)));
