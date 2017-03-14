@@ -60,7 +60,7 @@ void calculateDerivatives(
    #ifdef DEBUG_SOLVERS
    if (centMoments->at(fsgrids::moments::RHO) <= 0) {
       std::cerr << __FILE__ << ":" << __LINE__
-         << (centMoments->at(fsgrids::moments::RHO) < 0 ? " Negative" : " Zero") << " density in spatial cell " << cellID
+         << (centMoments->at(fsgrids::moments::RHO) < 0 ? " Negative" : " Zero") << " density in spatial cell at (" << i << " " << j << " " << k << ")"
          << std::endl;
       abort();
    }

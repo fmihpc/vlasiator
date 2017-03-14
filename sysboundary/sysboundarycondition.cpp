@@ -1003,15 +1003,24 @@ namespace SBC {
       const std::array<int,3> closestCell = getTheClosestNonsysboundaryCell(technicalGrid, i, j, k);
       
       #ifndef NDEBUG
-      if (technicalGrid.get(i,j,k)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+      const std::array<int32_t, 3> gid = technicalGrid.getGlobalIndices(i, j, k);
+      const std::array<int32_t, 3> ngid = technicalGrid.getGlobalIndices(closestCell[0], closestCell[1], closestCell[2]);
+      if ( technicalGrid.get(closestCell[0], closestCell[1], closestCell[2]) == nullptr ) {
          stringstream ss;
-         ss << "ERROR, cell (" << i << "," << j << "," << k << ") uses value from sysboundary nbr (" << it[0] << "," << it[1] << "," << it[2] << " in " << __FILE__ << ":" << __LINE__ << endl;
+         ss << "ERROR, cell (" << gid[0] << "," << gid[1] << "," << gid[2] << ") tries to access invalid sysboundary nbr (" << ngid[0] << "," << ngid[1] << "," << ngid[2] << ") in " << __FILE__ << ":" << __LINE__ << endl;
          cerr << ss.str();
          exit(1);
       }
       
-      if (closestCell[0] == std::numeric_limits<int>min()) {
-         cerr << "(" << i << "," << j << "," << k << ")" << __FILE__ << ":" << __LINE__ << ": No closest cell found!" << endl;
+      if (technicalGrid.get(closestCell[0], closestCell[1], closestCell[2])->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+         stringstream ss;
+         ss << "ERROR, cell (" << gid[0] << "," << gid[1] << "," << gid[2] << ") uses value from sysboundary nbr (" << ngid[0] << "," << ngid[1] << "," << ngid[2] << ") in " << __FILE__ << ":" << __LINE__ << endl;
+         cerr << ss.str();
+         exit(1);
+      }
+      
+      if (closestCell[0] == std::numeric_limits<int>::min()) {
+         cerr << "(" << gid[0] << "," << gid[1] << "," << gid[2] << ")" << __FILE__ << ":" << __LINE__ << ": No closest cell found!" << endl;
          abort();
       }
       #endif
