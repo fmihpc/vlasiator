@@ -27,6 +27,8 @@
 #include <limits>
 #include "logger.h"
 #include "memoryallocation.h"
+#include "common.h"
+#include "parameters.h"
 #ifdef PAPI_MEM
 #include "papi.h" 
 #endif 
@@ -156,6 +158,7 @@ void report_process_memory_consumption(){
          logFile << "(MEM) High water mark per node (GiB) avg: " << sum_mem_papi[0]/nNodes/GiB << " min: " << min_mem_papi[0]/GiB << " max: "  << max_mem_papi[0]/GiB <<
             " sum (TiB): " << sum_mem_papi[0]/TiB << " on "<< nNodes << " nodes" << endl;
          
+         bailout(sum_mem_papi[0]/nNodes/GiB > Parameters::bailout_max_memory, "Memory high water mark per node exceeds bailout threshold", __FILE__, __LINE__);
       }   
    }
    
