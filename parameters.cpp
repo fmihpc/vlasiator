@@ -145,7 +145,7 @@ Real P::hallMinimumRho=1.0;
 
 bool P::bailout_write_restart = false;
 Real P::bailout_min_dt = NAN;
-Real P::bailout_max_memory = 1e9;
+Real P::bailout_max_memory = 1073741824.;
 
 uint P::amrMaxVelocityRefLevel = 0;
 Realf P::amrRefineLimit = 1.0;
@@ -245,7 +245,7 @@ bool Parameters::addParameters(){
    // bailout parameters
    Readparameters::add("bailout.write_restart", "If 1, write a restart file on bailout. Gets reset when sending a STOP (1) or a KILL (0).", true);
    Readparameters::add("bailout.min_dt", "Minimum time step below which bailout occurs (s).", 1e-6);
-   Readparameters::add("bailout.max_memory", "Maximum amount of memory used per node (in GB) over which bailout occurs.", 1e9);
+   Readparameters::add("bailout.max_memory", "Maximum amount of memory used per node (in GiB) over which bailout occurs.", 1073741824.);
 
    // Refinement parameters
    Readparameters::add("AMR.vel_refinement_criterion","Name of the velocity refinement criterion",string(""));
