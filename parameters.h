@@ -140,6 +140,7 @@ struct Parameters {
    
    static bool bailout_write_restart; /*!< If true, write a restart file on bailout. Gets reset when sending a STOP (true) or a KILL (false). */
    static Real bailout_min_dt; /*!< Minimum time step below which bailout occurs (s). */
+   static Real bailout_max_memory; /*!< Maximum amount of memory used per node (in GB) over which bailout occurs. */
 
    static uint amrMaxVelocityRefLevel;    /**< Maximum velocity mesh refinement level, defaults to 0.*/
    static Realf amrCoarsenLimit;          /**< If the value of refinement criterion is below this value, block can be coarsened.
