@@ -85,15 +85,36 @@ bool initializeFieldPropagator(
       // and edge-E:s between neighbouring processes and calculate volume-averaged E,B fields.
       bool communicateMomentsDerivatives = true;
       calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER1, true);
+      
       if(P::ohmGradPeTerm > 0) {
          calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER1);
          communicateMomentsDerivatives = false;
       }
-      if(P::ohmHallTerm > 0) {
-         calculateHallTermSimple(
+      // derivatives, gradPe and volume B are needed also in cases where propagateFields is false.
+      if(P::propagateField) {
+         if(P::ohmHallTerm > 0) {
+            calculateHallTermSimple(
+               perBGrid,
+               perBDt2Grid,
+               EHallGrid,
+               momentsGrid,
+               momentsDt2Grid,
+               dPerBGrid,
+               dMomentsGrid,
+               BgBGrid,
+               technicalGrid,
+               sysBoundaries,
+               RK_ORDER1,
+               communicateMomentsDerivatives
+            );
+         }
+         calculateUpwindedElectricFieldSimple(
             perBGrid,
             perBDt2Grid,
+            EGrid,
+            EDt2Grid,
             EHallGrid,
+            EGradPeGrid,
             momentsGrid,
             momentsDt2Grid,
             dPerBGrid,
@@ -101,26 +122,9 @@ bool initializeFieldPropagator(
             BgBGrid,
             technicalGrid,
             sysBoundaries,
-            RK_ORDER1,
-            communicateMomentsDerivatives
+            RK_ORDER1
          );
       }
-      calculateUpwindedElectricFieldSimple(
-         perBGrid,
-         perBDt2Grid,
-         EGrid,
-         EDt2Grid,
-         EHallGrid,
-         EGradPeGrid,
-         momentsGrid,
-         momentsDt2Grid,
-         dPerBGrid,
-         dMomentsGrid,
-         BgBGrid,
-         technicalGrid,
-         sysBoundaries,
-         RK_ORDER1
-      );
       calculateVolumeAveragedFields(perBGrid,EGrid,dPerBGrid,volGrid,technicalGrid);
       calculateBVOLDerivativesSimple(volGrid, technicalGrid, sysBoundaries);
       
