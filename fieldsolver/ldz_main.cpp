@@ -54,6 +54,79 @@
 #include "mpiconversion.h"
 
 
+bool initializeFieldPropagator(
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBDt2Grid,
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EDt2Grid,
+   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2> & EHallGrid,
+   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2> & EGradPeGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsDt2Grid,
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> & dMomentsGrid,
+   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2> & BgBGrid,
+   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volGrid,
+   FsGrid< fsgrids::technical, 2> & technicalGrid,
+   SysBoundary& sysBoundaries
+) {
+   // Checking that spatial cells are cubic, otherwise field solver is incorrect (cf. derivatives in E, Hall term)
+   if((abs((technicalGrid.DX-technicalGrid.DY)/technicalGrid.DX) > 0.001) ||
+      (abs((technicalGrid.DX-technicalGrid.DZ)/technicalGrid.DX) > 0.001) ||
+      (abs((technicalGrid.DY-technicalGrid.DZ)/technicalGrid.DY) > 0.001)) {
+         std::cerr << "WARNING: Your spatial cells seem not to be cubic. However the field solver is assuming them to be. Use at your own risk and responsibility!" << std::endl;
+      }
+      
+      // Assume static background field, they are not communicated here
+      // but are assumed to be ok after each load balance as that
+      // communicates all spatial data
+      
+      // Assumin B is known, calculate derivatives and upwinded edge-E. Exchange derivatives 
+      // and edge-E:s between neighbouring processes and calculate volume-averaged E,B fields.
+      bool communicateMomentsDerivatives = true;
+      calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER1, true);
+      if(P::ohmGradPeTerm > 0) {
+         calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER1);
+         communicateMomentsDerivatives = false;
+      }
+      if(P::ohmHallTerm > 0) {
+         calculateHallTermSimple(
+            perBGrid,
+            perBDt2Grid,
+            EHallGrid,
+            momentsGrid,
+            momentsDt2Grid,
+            dPerBGrid,
+            dMomentsGrid,
+            BgBGrid,
+            technicalGrid,
+            sysBoundaries,
+            RK_ORDER1,
+            communicateMomentsDerivatives
+         );
+      }
+      calculateUpwindedElectricFieldSimple(
+         perBGrid,
+         perBDt2Grid,
+         EGrid,
+         EDt2Grid,
+         EHallGrid,
+         EGradPeGrid,
+         momentsGrid,
+         momentsDt2Grid,
+         dPerBGrid,
+         dMomentsGrid,
+         BgBGrid,
+         technicalGrid,
+         sysBoundaries,
+         RK_ORDER1
+      );
+      calculateVolumeAveragedFields(perBGrid,EGrid,dPerBGrid,volGrid,technicalGrid);
+      calculateBVOLDerivativesSimple(volGrid, technicalGrid, sysBoundaries);
+      
+      return true;
+      }
+
 /*! Re-initialize field propagator after rebalance. E, BGB, RHO, RHO_V,
  cell_dimensions, sysboundaryflag need to be up to date for the
  extended neighborhood

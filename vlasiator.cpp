@@ -449,13 +449,8 @@ int main(int argn,char* args[]) {
 
    // Transfer initial field configuration into the FsGrids
    feedFieldDataIntoFsGrid<fsgrids::N_BFIELD>(mpiGrid,cells,CellParams::PERBX,perBGrid);
-   feedFieldDataIntoFsGrid<fsgrids::N_BFIELD>(mpiGrid,cells,CellParams::PERBX,perBDt2Grid);
-   //feedFieldDataIntoFsGrid<fsgrids::N_BGB>(mpiGrid,cells,CellParams::BGBX,BgBGrid);
    feedBgFieldsIntoFsGrid(mpiGrid,cells,BgBGrid);
    BgBGrid.updateGhostCells();
-   //feedFieldDataIntoFsGrid<fsgrids::N_EFIELD>(mpiGrid,cells,CellParams::EX,EGrid);
-   //feedFieldDataIntoFsGrid<fsgrids::N_EHALL>(mpiGrid,cells,CellParams::EXHALL_000_100,EHallGrid);
-   //feedFieldDataIntoFsGrid<fsgrids::N_EGRADPE>(mpiGrid,cells,CellParams::EXGRADPE,EGradPeGrid);
    
    setupTechnicalFsGrid(mpiGrid, cells, technicalGrid);
    technicalGrid.updateGhostCells();
@@ -463,6 +458,29 @@ int main(int argn,char* args[]) {
    // WARNING this means moments and dt2 moments are the same here.
    feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid,false);
    feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid,false);
+   
+   phiprof::start("Init field propagator");
+   if (
+      initializeFieldPropagator(
+         perBGrid,
+         perBDt2Grid,
+         EGrid,
+         EDt2Grid,
+         EHallGrid,
+         EGradPeGrid,
+         momentsGrid,
+         momentsDt2Grid,
+         dPerBGrid,
+         dMomentsGrid,
+         BgBGrid,
+         volGrid,
+         technicalGrid,
+         sysBoundaries
+      ) == false
+   ) {
+      logFile << "(MAIN): Field propagator did not initialize correctly!" << endl << writeVerbose;
+      exit(1);
+   }
    
    // Initialize Poisson solver (if used)
    if (P::propagatePotential == true) {
