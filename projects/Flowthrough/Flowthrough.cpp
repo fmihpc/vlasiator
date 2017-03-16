@@ -181,21 +181,15 @@ namespace projects {
 
    void Flowthrough::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
       Real* cellParams = cell->get_cell_parameters();
-      cellParams[CellParams::PERBX] = this->Bx;
-      cellParams[CellParams::PERBY] = this->By;
-      cellParams[CellParams::PERBZ] = this->Bz;
+      cellParams[CellParams::PERBX] = 0.;
+      cellParams[CellParams::PERBY] = 0.;
+      cellParams[CellParams::PERBZ] = 0.;
    }
 
    void Flowthrough::setCellBackgroundField(spatial_cell::SpatialCell* cell) const {
-      if (Parameters::propagateField == true) {
-         ConstantField bgField;
-         bgField.initialize(0,0,0); //bg bx, by,bz
-         setBackgroundField(bgField,cell->parameters, cell->derivatives,cell->derivativesBVOL);
-      } else {
-         ConstantField bgField;
-         bgField.initialize(Bx,By,Bz); //bg bx, by,bz
-         setBackgroundField(bgField,cell->parameters, cell->derivatives,cell->derivativesBVOL);
-      }
+      ConstantField bgField;
+      bgField.initialize(Bx,By,Bz); //bg bx, by,bz
+      setBackgroundField(bgField,cell->parameters, cell->derivatives,cell->derivativesBVOL);
    }
    
    std::vector<std::array<Real, 3> > Flowthrough::getV0(
