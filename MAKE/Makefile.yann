@@ -26,6 +26,8 @@ LIB_SILO = -L$(LIBRARY_PREFIX)/lib -lsilo
 
 INC_DCCRG = -I$(LIBRARY_PREFIX)/include
 
+INC_FSGRID = -I$(LIBRARY_PREFIX)/Development/fsgrid
+
 INC_JEMALLOC = -I$(LIBRARY_PREFIX)/include/jemalloc
 LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/lib -ljemalloc
 

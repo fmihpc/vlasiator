@@ -22,9 +22,6 @@
 
 #include <vector>
 
-#include <dccrg.hpp>
-#include <dccrg_cartesian_geometry.hpp>
-
 #include "fs_common.h"
 #include "../spatial_cell.hpp"
 
@@ -34,8 +31,12 @@
  * 
  * \sa reconstructionCoefficients
  */
-void calculateVolumeAveragedFields(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                   std::vector<fs_cache::CellCache>& cache,
-                                   const std::vector<uint16_t>& cells);
+void calculateVolumeAveragedFields(
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
+   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volGrid,
+   FsGrid< fsgrids::technical, 2> & technicalGrid
+);
 
 #endif

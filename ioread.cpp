@@ -419,7 +419,7 @@ bool readBlockData(
    uint64_t byteSize;
    uint64_t* offsetArray = new uint64_t[N_processes];
 
-   for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+   for (unsigned int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       const string& popName = getObjectWrapper().particleSpecies[popID].name;
 
       list<pair<string,string> > attribs;
@@ -766,7 +766,7 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
      {
         const vector<CellID>& gridCells = getLocalCells();
         for (size_t i=0; i<gridCells.size(); i++) {
-           for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
+           for (unsigned int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
              mpiGrid[gridCells[i]]->clear(popID);
         }
      }

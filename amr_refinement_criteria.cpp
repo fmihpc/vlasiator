@@ -39,7 +39,7 @@ namespace amr_ref_criteria {
    Base* relDiffMaker() {return new RelativeDifference;}
    
    void Base::evaluate(const Realf* velBlost,Realf* result,const int& popID) {
-      for (int i=0; i<WID3; ++i) result[i] = 0.0;
+      for (unsigned int i=0; i<WID3; ++i) result[i] = 0.0;
    }
 
    RelativeDifference::RelativeDifference() { }
@@ -51,7 +51,7 @@ namespace amr_ref_criteria {
       const int PAD=1;
       Realf maxvalue = 0.0;
 
-      for (int kc=0; kc<WID; ++kc) for (int jc=0; jc<WID; ++jc) for (int ic=0; ic<WID; ++ic) {
+      for (unsigned int kc=0; kc<WID; ++kc) for (unsigned int jc=0; jc<WID; ++jc) for (unsigned int ic=0; ic<WID; ++ic) {
          Realf f_cen = array[vblock::padIndex<PAD>(ic+1,jc+1,kc+1)];
          
          #warning In here should we use SpatialCell::getVeloctyBlockMinValue()?
@@ -79,7 +79,7 @@ namespace amr_ref_criteria {
 
    void RelativeDifference::evaluate(const Realf* array,Realf* result,const int& popID) {
       const int PAD=1;
-      for (int kc=0; kc<WID; ++kc) for (int jc=0; jc<WID; ++jc) for (int ic=0; ic<WID; ++ic) {
+      for (unsigned int kc=0; kc<WID; ++kc) for (unsigned int jc=0; jc<WID; ++jc) for (unsigned int ic=0; ic<WID; ++ic) {
          Realf f_cen = array[vblock::padIndex<PAD>(ic+1,jc+1,kc+1)];
          #warning In here should we use SpatialCell::getVeloctyBlockMinValue()?
          if (fabs(f_cen) < getObjectWrapper().particleSpecies[popID].sparseMinValue) {

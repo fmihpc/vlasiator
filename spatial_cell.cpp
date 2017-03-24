@@ -64,7 +64,7 @@ namespace spatial_cell {
       populations.resize(getObjectWrapper().particleSpecies.size());
       
       // Set velocity meshes
-      for (int popID=0; popID<populations.size(); ++popID) {
+      for (unsigned int popID=0; popID<populations.size(); ++popID) {
          const species::Species& spec = getObjectWrapper().particleSpecies[popID];
          populations[popID].vmesh.initialize(spec.velocityMesh);
          populations[popID].velocityBlockMinValue = spec.sparseMinValue;
@@ -73,12 +73,12 @@ namespace spatial_cell {
 
    SpatialCell::SpatialCell(const SpatialCell& other):
      initialized(other.initialized),
-     mpiTransferEnabled(other.mpiTransferEnabled),
-     velocity_block_with_content_list(other.velocity_block_with_content_list),
-     velocity_block_with_no_content_list(other.velocity_block_with_no_content_list),
      sysBoundaryFlag(other.sysBoundaryFlag),
      sysBoundaryLayer(other.sysBoundaryLayer),
      sysBoundaryLayerNew(other.sysBoundaryLayerNew),
+     velocity_block_with_content_list(other.velocity_block_with_content_list),
+     mpiTransferEnabled(other.mpiTransferEnabled),
+     velocity_block_with_no_content_list(other.velocity_block_with_no_content_list),
      populations(other.populations) {
 
         //copy parameters
@@ -432,7 +432,7 @@ namespace spatial_cell {
             parent_data[vblock::index(i_oct*2+i/2,j_oct*2+j/2,k_oct*2+k/2)] = sum/8;
          }*/
 
-         for (int k=0; k<WID; ++k) for (int j=0; j<WID; ++j) for (int i=0; i<WID; ++i) {
+         for (unsigned int k=0; k<WID; ++k) for (unsigned int j=0; j<WID; ++j) for (unsigned int i=0; i<WID; ++i) {
             parent_data[vblock::index(i_oct*2+i/2,j_oct*2+j/2,k_oct*2+k/2)] += data[vblock::index(i,j,k)]/8.0;
          }
       }
@@ -671,12 +671,10 @@ namespace spatial_cell {
             block_lengths.push_back(sizeof(Real) * 3);
          }
          
-         // send  BGBX BGBY BGBZ and all edge-averaged BGBs
+         // send  BGBX BGBY BGBZ
          if ((SpatialCell::mpi_transfer_type & Transfer::CELL_BGB)!=0){
             displacements.push_back((uint8_t*) &(this->parameters[CellParams::BGBX]) - (uint8_t*) this);
             block_lengths.push_back(sizeof(Real) * 3);
-            displacements.push_back((uint8_t*) &(this->parameters[CellParams::BGBX_000_010]) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(Real) * 24);
          }
          
          // send  BGBXVOL BGBYVOL BGBZVOL PERBXVOL PERBYVOL PERBZVOL
@@ -907,7 +905,7 @@ namespace spatial_cell {
              blockRemovalList.insert(blockGID);*/
          } else {
             // Merge values to this block
-            for (int i=0; i<WID3; ++i) myData[i] += data[i];
+            for (unsigned int i=0; i<WID3; ++i) myData[i] += data[i];
          }
          return;
       }
@@ -941,7 +939,7 @@ namespace spatial_cell {
       
       const uint8_t maxRefLevel = populations[popID].vmesh.getMaxAllowedRefinementLevel();
 
-      for (int i=0; i<WID3; ++i) null_block_data[i] = 0;
+      for (unsigned int i=0; i<WID3; ++i) null_block_data[i] = 0;
       
       // Sort blocks according to their refinement levels:
       vector<vector<vmesh::GlobalID> > blocks(maxRefLevel+1);

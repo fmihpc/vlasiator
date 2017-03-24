@@ -22,9 +22,6 @@
 
 #include <vector>
 
-#include <dccrg.hpp>
-#include <dccrg_cartesian_geometry.hpp>
-
 #include "../definitions.h"
 #include "../common.h"
 #include "../spatial_cell.hpp"
@@ -32,8 +29,13 @@
 #include "fs_common.h"
 
 void propagateMagneticField(
-   const std::vector<fs_cache::CellCache>& cellCache,
-   const std::vector<uint16_t>& cells,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBDt2Grid,
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EDt2Grid,
+   cint i,
+   cint j,
+   cint k,
    creal& dt,
    cint& RKCase,
    const bool doX=true,
@@ -41,20 +43,14 @@ void propagateMagneticField(
    const bool doZ=true
 );
 
-void propagateSysBoundaryMagneticField(
-   const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   const std::vector<fs_cache::CellCache>& cellCache,
-   const uint16_t& localID,
-   SysBoundary& sysBoundaries,
-   creal& dt,
-   cint& RKCase
-);
-
 void propagateMagneticFieldSimple(
-   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBDt2Grid,
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EDt2Grid,
+   FsGrid< fsgrids::technical, 2> & technicalGrid,
    SysBoundary& sysBoundaries,
    creal& dt,
-   const std::vector<CellID>& localCells,
    cint& RKCase
 );
 
