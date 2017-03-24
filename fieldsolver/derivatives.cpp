@@ -96,7 +96,7 @@ void calculateDerivatives(
           rghtMoments->at(fsgrids::moments::RHOVZ), rghtMoments->at(fsgrids::moments::RHO));
       dPerB->at(fsgrids::dperb::dPERBydx)  = limiter(leftPerB->at(fsgrids::bfield::PERBY),centPerB->at(fsgrids::bfield::PERBY),rghtPerB->at(fsgrids::bfield::PERBY));
       dPerB->at(fsgrids::dperb::dPERBzdx)  = limiter(leftPerB->at(fsgrids::bfield::PERBZ),centPerB->at(fsgrids::bfield::PERBZ),rghtPerB->at(fsgrids::bfield::PERBZ));
-      if(Parameters::ohmHallTerm < 2) {
+      if (Parameters::ohmHallTerm < 2 || sysBoundaryLayer == 1) {
         dPerB->at(fsgrids::dperb::dPERBydxx) = 0.0;
         dPerB->at(fsgrids::dperb::dPERBzdxx) = 0.0;
       } else {
@@ -136,7 +136,7 @@ void calculateDerivatives(
       dPerB->at(fsgrids::dperb::dPERBxdy)  = limiter(leftPerB->at(fsgrids::bfield::PERBX),centPerB->at(fsgrids::bfield::PERBX),rghtPerB->at(fsgrids::bfield::PERBX));
       dPerB->at(fsgrids::dperb::dPERBzdy)  = limiter(leftPerB->at(fsgrids::bfield::PERBZ),centPerB->at(fsgrids::bfield::PERBZ),rghtPerB->at(fsgrids::bfield::PERBZ));
 
-      if(Parameters::ohmHallTerm < 2) {
+      if (Parameters::ohmHallTerm < 2 || sysBoundaryLayer == 1) {
          dPerB->at(fsgrids::dperb::dPERBxdyy) = 0.0;
          dPerB->at(fsgrids::dperb::dPERBzdyy) = 0.0;
       } else {
@@ -176,7 +176,7 @@ void calculateDerivatives(
       
       dPerB->at(fsgrids::dperb::dPERBxdz)  = limiter(leftPerB->at(fsgrids::bfield::PERBX),centPerB->at(fsgrids::bfield::PERBX),rghtPerB->at(fsgrids::bfield::PERBX));
       dPerB->at(fsgrids::dperb::dPERBydz)  = limiter(leftPerB->at(fsgrids::bfield::PERBY),centPerB->at(fsgrids::bfield::PERBY),rghtPerB->at(fsgrids::bfield::PERBY));
-      if(Parameters::ohmHallTerm < 2) {
+      if (Parameters::ohmHallTerm < 2 || sysBoundaryLayer == 1) {
         dPerB->at(fsgrids::dperb::dPERBxdzz) = 0.0;
         dPerB->at(fsgrids::dperb::dPERBydzz) = 0.0;
       } else {
@@ -192,7 +192,7 @@ void calculateDerivatives(
       }
    }
    
-   if (Parameters::ohmHallTerm < 2) {
+   if (Parameters::ohmHallTerm < 2 || sysBoundaryLayer == 1) {
       dPerB->at(fsgrids::dperb::dPERBxdyz) = 0.0;
       dPerB->at(fsgrids::dperb::dPERBydxz) = 0.0;
       dPerB->at(fsgrids::dperb::dPERBzdxy) = 0.0;
