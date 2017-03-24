@@ -126,7 +126,7 @@ void calculateDerivatives(
          
          array[fs::dPERBydx]  = limiter(left[cp::PERBY],cent[cp::PERBY],rght[cp::PERBY]);
          array[fs::dPERBzdx]  = limiter(left[cp::PERBZ],cent[cp::PERBZ],rght[cp::PERBZ]);
-         if(Parameters::ohmHallTerm < 2) {
+         if (Parameters::ohmHallTerm < 2 || sysBoundaryLayer == 1) {
             array[fs::dPERBydxx] = 0.0;
             array[fs::dPERBzdxx] = 0.0;
          } else {
@@ -151,7 +151,7 @@ void calculateDerivatives(
          
          array[fs::dPERBydx]  = limiter(left[cp::PERBY_DT2],cent[cp::PERBY_DT2],rght[cp::PERBY_DT2]);
          array[fs::dPERBzdx]  = limiter(left[cp::PERBZ_DT2],cent[cp::PERBZ_DT2],rght[cp::PERBZ_DT2]);
-         if(Parameters::ohmHallTerm < 2) {
+         if (Parameters::ohmHallTerm < 2 || sysBoundaryLayer == 1) {
             array[fs::dPERBydxx] = 0.0;
             array[fs::dPERBzdxx] = 0.0;
          } else {
@@ -192,7 +192,7 @@ void calculateDerivatives(
          array[fs::dPERBxdy]  = limiter(left[cp::PERBX],cent[cp::PERBX],rght[cp::PERBX]);
          array[fs::dPERBzdy]  = limiter(left[cp::PERBZ],cent[cp::PERBZ],rght[cp::PERBZ]);
 
-         if(Parameters::ohmHallTerm < 2) {
+         if (Parameters::ohmHallTerm < 2 || sysBoundaryLayer == 1) {
             array[fs::dPERBxdyy] = 0.0;
             array[fs::dPERBzdyy] = 0.0;
          } else {
@@ -217,7 +217,7 @@ void calculateDerivatives(
          
          array[fs::dPERBxdy]  = limiter(left[cp::PERBX_DT2],cent[cp::PERBX_DT2],rght[cp::PERBX_DT2]);
          array[fs::dPERBzdy]  = limiter(left[cp::PERBZ_DT2],cent[cp::PERBZ_DT2],rght[cp::PERBZ_DT2]);
-         if(Parameters::ohmHallTerm < 2) {
+         if (Parameters::ohmHallTerm < 2 || sysBoundaryLayer == 1) {
             array[fs::dPERBxdyy] = 0.0;
             array[fs::dPERBzdyy] = 0.0;
          } else {
@@ -257,7 +257,7 @@ void calculateDerivatives(
          
          array[fs::dPERBxdz]  = limiter(left[cp::PERBX],cent[cp::PERBX],rght[cp::PERBX]);
          array[fs::dPERBydz]  = limiter(left[cp::PERBY],cent[cp::PERBY],rght[cp::PERBY]);
-         if(Parameters::ohmHallTerm < 2) {
+         if (Parameters::ohmHallTerm < 2 || sysBoundaryLayer == 1) {
             array[fs::dPERBxdzz] = 0.0;
             array[fs::dPERBydzz] = 0.0;
          } else {
@@ -282,7 +282,7 @@ void calculateDerivatives(
          
          array[fs::dPERBxdz]  = limiter(left[cp::PERBX_DT2],cent[cp::PERBX_DT2],rght[cp::PERBX_DT2]);
          array[fs::dPERBydz]  = limiter(left[cp::PERBY_DT2],cent[cp::PERBY_DT2],rght[cp::PERBY_DT2]);
-         if(Parameters::ohmHallTerm < 2) {
+         if (Parameters::ohmHallTerm < 2 || sysBoundaryLayer == 1) {
             array[fs::dPERBxdzz] = 0.0;
             array[fs::dPERBydzz] = 0.0;
          } else {
@@ -298,7 +298,7 @@ void calculateDerivatives(
       }
    }
    
-   if (Parameters::ohmHallTerm < 2) {
+   if (Parameters::ohmHallTerm < 2 || sysBoundaryLayer == 1) {
       array[fs::dPERBxdyz] = 0.0;
       array[fs::dPERBydxz] = 0.0;
       array[fs::dPERBzdxy] = 0.0;
