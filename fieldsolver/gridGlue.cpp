@@ -38,8 +38,10 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
          thisCellData->at(fsgrids::moments::P_22) = cellParams[CellParams::P_22_DT2];
          thisCellData->at(fsgrids::moments::P_33) = cellParams[CellParams::P_33_DT2];
       }
+   }
 
-      momentsGrid.transferDataIn(cells[i] - 1, thisCellData);
+   for(int i=0; i< cells.size(); i++) {
+      momentsGrid.transferDataIn(cells[i] - 1, &transferBuffer[i]);
    }
 
    // Finish the actual transfer
@@ -83,10 +85,11 @@ void feedBgFieldsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       thisCellData->at(fsgrids::bgbfield::dBGBYVOLdz) = volumeDerivatives[bvolderivatives::dBGBYVOLdz];
       thisCellData->at(fsgrids::bgbfield::dBGBZVOLdx) = volumeDerivatives[bvolderivatives::dBGBZVOLdx];
       thisCellData->at(fsgrids::bgbfield::dBGBZVOLdy) = volumeDerivatives[bvolderivatives::dBGBZVOLdy];
-
-      bgBGrid.transferDataIn(cells[i] - 1, thisCellData);
    }
 
+   for(int i=0; i< cells.size(); i++) {
+      bgBGrid.transferDataIn(cells[i] - 1, &transferBuffer[i]);
+   }
 
    // Finish the actual transfer
    bgBGrid.finishTransfersIn();
@@ -102,10 +105,8 @@ void getVolumeFieldsFromFsGrid(FsGrid< std::array<Real, fsgrids::volfields::N_VO
 
    // Setup transfer pointers
    volumeFieldsGrid.setupForTransferOut(cells.size());
-   #pragma omp parallel for
    for(int i=0; i< cells.size(); i++) {
       std::array<Real, fsgrids::volfields::N_VOL>* thisCellData = &transferBuffer[i];
-
       volumeFieldsGrid.transferDataOut(cells[i] - 1, thisCellData);
    }
    // Do the transfer
@@ -147,10 +148,8 @@ void getDerivativesFromFsGrid(FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>,
 
    // Transfer dperbGrid data
    dperbGrid.setupForTransferOut(cells.size());
-   #pragma omp parallel for
    for(int i=0; i< cells.size(); i++) {
       std::array<Real, fsgrids::dperb::N_DPERB>* thisCellData = &dperbTransferBuffer[i];
-
       dperbGrid.transferDataOut(cells[i] - 1, thisCellData);
    }
    // Do the transfer
@@ -158,10 +157,8 @@ void getDerivativesFromFsGrid(FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>,
 
    // Transfer dmomentsGrid data
    dmomentsGrid.setupForTransferOut(cells.size());
-   #pragma omp parallel for
    for(int i=0; i< cells.size(); i++) {
       std::array<Real, fsgrids::dmoments::N_DMOMENTS>* thisCellData = &dmomentsTransferBuffer[i];
-
       dmomentsGrid.transferDataOut(cells[i] - 1, thisCellData);
    }
    // Do the transfer
@@ -169,10 +166,8 @@ void getDerivativesFromFsGrid(FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>,
 
    // Transfer bgbfieldGrid data
    bgbfieldGrid.setupForTransferOut(cells.size());
-   #pragma omp parallel for
    for(int i=0; i< cells.size(); i++) {
       std::array<Real, fsgrids::bgbfield::N_BGB>* thisCellData = &bgbfieldTransferBuffer[i];
-
       bgbfieldGrid.transferDataOut(cells[i] - 1, thisCellData);
    }
    // Do the transfer
@@ -254,7 +249,9 @@ void setupTechnicalFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
       thisCellData->sysBoundaryLayer = mpiGrid[cells[i]]->sysBoundaryLayer;
       //thisCellData->maxFsDt = mpiGrid[i]->get_cell_parameters()[CellParams::MAXFDT];
       thisCellData->maxFsDt = std::numeric_limits<Real>::max();
-      technicalGrid.transferDataIn(cells[i] - 1,thisCellData);
+   }
+   for(int i=0; i< cells.size(); i++) {
+      technicalGrid.transferDataIn(cells[i] - 1,&transferBuffer[i]);
    }
 
    technicalGrid.finishTransfersIn();
@@ -269,7 +266,6 @@ void getFsGridMaxDt(FsGrid< fsgrids::technical, 2>& technicalGrid,
    // Buffer to store contents of the grid
    std::vector<fsgrids::technical> transferBuffer(cells.size());
 
-   #pragma omp parallel for
    for(int i=0; i< cells.size(); i++) {
       fsgrids::technical* thisCellData = &transferBuffer[i];
       technicalGrid.transferDataOut(cells[i] - 1, thisCellData);
