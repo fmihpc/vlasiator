@@ -693,7 +693,7 @@ void calculateHallTermSimple(
    const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
    
    phiprof::start("Calculate Hall term");
-   timer=phiprof::initializeTimer("Start communication of derivatives","MPI");
+   timer=phiprof::initializeTimer("MPI","MPI");
    phiprof::start(timer);
    dPerBGrid.updateGhostCells();
    if(communicateMomentsDerivatives) {
@@ -701,6 +701,7 @@ void calculateHallTermSimple(
    }
    phiprof::stop(timer);
    
+   phiprof::start("Compute cells");
    #pragma omp parallel for collapse(3)
    for (int k=0; k<gridDims[2]; k++) {
       for (int j=0; j<gridDims[1]; j++) {
@@ -713,6 +714,7 @@ void calculateHallTermSimple(
          }
       }
    }
+   phiprof::stop("Compute cells");
    
    phiprof::stop("Calculate Hall term",N_cells,"Spatial Cells");
 }

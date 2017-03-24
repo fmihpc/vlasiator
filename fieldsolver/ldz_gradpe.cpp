@@ -311,7 +311,7 @@ void calculateGradPeTermSimple(
    const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
    phiprof::start("Calculate GradPe term");
 
-   timer=phiprof::initializeTimer("Start communication of derivatives","MPI");
+   timer=phiprof::initializeTimer("MPI","MPI");
    phiprof::start(timer);
    dMomentsGrid.updateGhostCells();
    phiprof::stop(timer);

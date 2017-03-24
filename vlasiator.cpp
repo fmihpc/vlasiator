@@ -534,11 +534,11 @@ int main(int argn,char* args[]) {
    // Save restart data
    if (P::writeInitialState) {
       phiprof::start("write-initial-state");
-      phiprof::start("fsgrid-coupling");
+      phiprof::start("fsgrid-coupling-out");
       getFieldDataFromFsGrid<fsgrids::N_BFIELD>(perBGrid,mpiGrid,cells,CellParams::PERBX);
       getFieldDataFromFsGrid<fsgrids::N_EFIELD>(EGrid,mpiGrid,cells,CellParams::EX);
       getDerivativesFromFsGrid(dPerBGrid, dMomentsGrid, BgBGrid, mpiGrid, cells);
-      phiprof::stop("fsgrid-coupling");
+      phiprof::stop("fsgrid-coupling-out");
       
       if (myRank == MASTER_RANK)
          logFile << "(IO): Writing initial state to disk, tstep = "  << endl << writeVerbose;
@@ -649,14 +649,6 @@ int main(int argn,char* args[]) {
       }
       phiprof::stop("checkExternalCommands");
       
-      phiprof::start("fsgrid-coupling");
-      // TODO: Make sure fsgrid data gets fed back into DCCRG before performing any field I/O
-      //getFieldDataFromFsGrid<fsgrids::N_BGB>(mpiGrid,cells,CellParams::BGBX,BgBGrid); // <- no need, doesn't change.
-      getFieldDataFromFsGrid<fsgrids::N_BFIELD>(perBGrid,mpiGrid,cells,CellParams::PERBX);
-      getFieldDataFromFsGrid<fsgrids::N_EFIELD>(EGrid,mpiGrid,cells,CellParams::EX);
-      getDerivativesFromFsGrid(dPerBGrid, dMomentsGrid, BgBGrid, mpiGrid, cells);
-      phiprof::stop("fsgrid-coupling");
-      
       //write out phiprof profiles and logs with a lower interval than normal
       //diagnostic (every 10 diagnostic intervals).
       phiprof::start("logfile-io");
@@ -688,6 +680,22 @@ int main(int argn,char* args[]) {
       
 // Check whether diagnostic output has to be produced
       if (P::diagnosticInterval != 0 && P::tstep % P::diagnosticInterval == 0) {
+         vector<string>::const_iterator it;
+         for (it = P::diagnosticVariableList.begin();
+              it != P::diagnosticVariableList.end();
+         it++) {
+            if (*it == "FluxB") {
+               phiprof::start("fsgrid-coupling-out");
+               getFieldDataFromFsGrid<fsgrids::N_BFIELD>(perBGrid,mpiGrid,cells,CellParams::PERBX);
+               phiprof::stop("fsgrid-coupling-out");
+            }
+            if (*it == "FluxE") {
+               phiprof::start("fsgrid-coupling-out");
+               getFieldDataFromFsGrid<fsgrids::N_EFIELD>(EGrid,mpiGrid,cells,CellParams::EX);
+               phiprof::stop("fsgrid-coupling-out");
+            }
+         }
+         
          phiprof::start("diagnostic-io");
          if (writeDiagnostic(mpiGrid, diagnosticReducer) == false) {
             if(myRank == MASTER_RANK)  cerr << "ERROR with diagnostic computation" << endl;
@@ -695,10 +703,36 @@ int main(int argn,char* args[]) {
          }
          phiprof::stop("diagnostic-io");
       }
+      bool extractFsGridFields = true;
       // write system, loop through write classes
       for (uint i = 0; i < P::systemWriteTimeInterval.size(); i++) {
          if (P::systemWriteTimeInterval[i] >= 0.0 &&
                  P::t >= P::systemWrites[i] * P::systemWriteTimeInterval[i] - DT_EPSILON) {
+            if (extractFsGridFields) {
+               vector<string>::const_iterator it;
+               for (it = P::outputVariableList.begin();
+                    it != P::outputVariableList.end();
+               it++) {
+                  if (*it == "B" ||
+                      *it == "PerturbedB"
+                  ) {
+                     phiprof::start("fsgrid-coupling-out");
+                     getFieldDataFromFsGrid<fsgrids::N_BFIELD>(perBGrid,mpiGrid,cells,CellParams::PERBX);
+                     phiprof::stop("fsgrid-coupling-out");
+                  }
+                  if (*it == "E") {
+                     phiprof::start("fsgrid-coupling-out");
+                     getFieldDataFromFsGrid<fsgrids::N_EFIELD>(EGrid,mpiGrid,cells,CellParams::EX);
+                     phiprof::stop("fsgrid-coupling-out");
+                  }
+                  if (*it == "derivs") {
+                     phiprof::start("fsgrid-coupling-out");
+                     getDerivativesFromFsGrid(dPerBGrid, dMomentsGrid, BgBGrid, mpiGrid, cells);
+                     phiprof::stop("fsgrid-coupling-out");
+                  }
+               }
+               extractFsGridFields = false;
+            }
             
             phiprof::start("write-system");
             logFile << "(IO): Writing spatial cell and reduced system data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
@@ -923,12 +957,12 @@ int main(int argn,char* args[]) {
       if (P::propagateField) {
          phiprof::start("Propagate Fields");
          
-         phiprof::start("fsgrid-coupling");
+         phiprof::start("fsgrid-coupling-in");
          // Copy moments over into the fsgrid.
          //setupTechnicalFsGrid(mpiGrid, cells, technicalGrid);
          feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid,false);
          feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid,true);
-         phiprof::stop("fsgrid-coupling");
+         phiprof::stop("fsgrid-coupling-in");
 
          propagateFields(
             perBGrid,
@@ -949,10 +983,10 @@ int main(int argn,char* args[]) {
             P::fieldSolverSubcycles
          );
 
-         phiprof::start("fsgrid-coupling");
+         phiprof::start("fsgrid-coupling-out");
          // Copy results back from fsgrid.
          getVolumeFieldsFromFsGrid(volGrid, mpiGrid, cells);
-         phiprof::stop("fsgrid-coupling");
+         phiprof::stop("fsgrid-coupling-out");
          phiprof::stop("Propagate Fields",cells.size(),"SpatialCells");
          addTimedBarrier("barrier-after-field-solver");
       }

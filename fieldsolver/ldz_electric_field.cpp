@@ -1593,6 +1593,9 @@ void calculateUpwindedElectricFieldSimple(
    const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
    const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
    phiprof::start("Calculate upwinded electric field");
+   
+   timer=phiprof::initializeTimer("MPI","MPI");
+   phiprof::start(timer);
    if(P::ohmHallTerm > 0) {
       EHallGrid.updateGhostCells();
    }
@@ -1603,6 +1606,7 @@ void calculateUpwindedElectricFieldSimple(
       dPerBGrid.updateGhostCells();
       dMomentsGrid.updateGhostCells();
    }
+   phiprof::stop(timer);
    
    // Calculate upwinded electric field on inner cells
    timer=phiprof::initializeTimer("Compute cells");
@@ -1651,12 +1655,15 @@ void calculateUpwindedElectricFieldSimple(
    }
    phiprof::stop(timer,N_cells,"Spatial Cells");
    
+   timer=phiprof::initializeTimer("MPI","MPI");
+   phiprof::start(timer);
    // Exchange electric field with neighbouring processes
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       EGrid.updateGhostCells();
    } else { 
       EDt2Grid.updateGhostCells();
    }
+   phiprof::stop(timer);
    
    phiprof::stop("Calculate upwinded electric field",N_cells,"Spatial Cells");
 }

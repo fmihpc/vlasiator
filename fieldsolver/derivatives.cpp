@@ -284,7 +284,7 @@ void calculateDerivativesSimple(
    
    phiprof::start("Calculate face derivatives");
    
-   timer=phiprof::initializeTimer("Start comm","MPI");
+   timer=phiprof::initializeTimer("MPI","MPI");
    phiprof::start(timer);
    
    switch (RKCase) {

@@ -241,7 +241,8 @@ void propagateMagneticFieldSimple(
    //This communication is needed for boundary conditions, in practice almost all
    //of the communication is going to be redone in calculateDerivativesSimple
    //TODO: do not transfer if there are no field boundaryconditions
-   phiprof::start("MPI");
+   timer=phiprof::initializeTimer("MPI","MPI");
+   phiprof::start(timer);
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       // Exchange PERBX,PERBY,PERBZ with neighbours
       perBGrid.updateGhostCells();
@@ -250,7 +251,7 @@ void propagateMagneticFieldSimple(
       perBDt2Grid.updateGhostCells();
    }
    
-   phiprof::stop("MPI");
+   phiprof::stop(timer);
    
    // Propagate B on system boundary/process inner cells
    timer=phiprof::initializeTimer("Compute system boundary cells");
