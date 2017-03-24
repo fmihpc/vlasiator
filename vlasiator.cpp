@@ -533,11 +533,13 @@ int main(int argn,char* args[]) {
    
    // Save restart data
    if (P::writeInitialState) {
+      phiprof::start("write-initial-state");
+      phiprof::start("fsgrid-coupling");
       getFieldDataFromFsGrid<fsgrids::N_BFIELD>(perBGrid,mpiGrid,cells,CellParams::PERBX);
       getFieldDataFromFsGrid<fsgrids::N_EFIELD>(EGrid,mpiGrid,cells,CellParams::EX);
       getDerivativesFromFsGrid(dPerBGrid, dMomentsGrid, BgBGrid, mpiGrid, cells);
+      phiprof::stop("fsgrid-coupling");
       
-      phiprof::start("write-initial-state");
       if (myRank == MASTER_RANK)
          logFile << "(IO): Writing initial state to disk, tstep = "  << endl << writeVerbose;
       P::systemWriteDistributionWriteStride.push_back(1);
@@ -600,7 +602,9 @@ int main(int argn,char* args[]) {
    // Main simulation loop:
    if (myRank == MASTER_RANK) logFile << "(MAIN): Starting main simulation loop." << endl << writeVerbose;
    
+   phiprof::start("report-memory-consumption");
    report_process_memory_consumption();
+   phiprof::stop("report-memory-consumption");
    
    unsigned int computedCells=0;
    unsigned int computedTotalCells=0;
@@ -645,11 +649,13 @@ int main(int argn,char* args[]) {
       }
       phiprof::stop("checkExternalCommands");
       
+      phiprof::start("fsgrid-coupling");
       // TODO: Make sure fsgrid data gets fed back into DCCRG before performing any field I/O
       //getFieldDataFromFsGrid<fsgrids::N_BGB>(mpiGrid,cells,CellParams::BGBX,BgBGrid); // <- no need, doesn't change.
       getFieldDataFromFsGrid<fsgrids::N_BFIELD>(perBGrid,mpiGrid,cells,CellParams::PERBX);
       getFieldDataFromFsGrid<fsgrids::N_EFIELD>(EGrid,mpiGrid,cells,CellParams::EX);
       getDerivativesFromFsGrid(dPerBGrid, dMomentsGrid, BgBGrid, mpiGrid, cells);
+      phiprof::stop("fsgrid-coupling");
       
       //write out phiprof profiles and logs with a lower interval than normal
       //diagnostic (every 10 diagnostic intervals).
@@ -778,7 +784,7 @@ int main(int argn,char* args[]) {
          P::prepareForRebalance = false;
 
          // Re-couple fsgrids to updated grid situation
-         phiprof::start("fsgrid_recouple_after_lb");
+         phiprof::start("fsgrid-recouple-after-lb");
          const vector<CellID>& cells = getLocalCells();
          perBGrid.setupForGridCoupling(cells.size());
          perBDt2Grid.setupForGridCoupling(cells.size());
@@ -821,7 +827,7 @@ int main(int argn,char* args[]) {
          BgBGrid.finishGridCoupling();
          volGrid.finishGridCoupling();
          technicalGrid.finishGridCoupling();
-         phiprof::stop("fsgrid_recouple_after_lb");
+         phiprof::stop("fsgrid-recouple-after-lb");
       }
 
       //get local cells
@@ -916,11 +922,13 @@ int main(int argn,char* args[]) {
       // moments for t + dt are computed (field uses t and t+0.5dt)
       if (P::propagateField) {
          phiprof::start("Propagate Fields");
-
+         
+         phiprof::start("fsgrid-coupling");
          // Copy moments over into the fsgrid.
          //setupTechnicalFsGrid(mpiGrid, cells, technicalGrid);
          feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid,false);
          feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid,true);
+         phiprof::stop("fsgrid-coupling");
 
          propagateFields(
             perBGrid,
@@ -941,8 +949,10 @@ int main(int argn,char* args[]) {
             P::fieldSolverSubcycles
          );
 
+         phiprof::start("fsgrid-coupling");
          // Copy results back from fsgrid.
          getVolumeFieldsFromFsGrid(volGrid, mpiGrid, cells);
+         phiprof::stop("fsgrid-coupling");
          phiprof::stop("Propagate Fields",cells.size(),"SpatialCells");
          addTimedBarrier("barrier-after-field-solver");
       }
@@ -963,6 +973,7 @@ int main(int argn,char* args[]) {
       phiprof::stop("Velocity-space",computedCells,"Cells");
       addTimedBarrier("barrier-after-acceleration");
 
+      phiprof::start("Compute interp moments");
       // *here we compute rho and rho_v for timestep t + dt, so next
       // timestep * //
       calculateInterpolatedVelocityMoments(
@@ -975,6 +986,7 @@ int main(int argn,char* args[]) {
          CellParams::P_22,
          CellParams::P_33
       );
+      phiprof::stop("Compute interp moments");
 
       phiprof::stop("Propagate",computedCells,"Cells");
       
