@@ -16,10 +16,10 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    std::vector< std::array<Real, fsgrids::moments::N_MOMENTS> > transferBuffer(cells.size());
 
    // Fill from cellParams
-   size_t count=0;
-   for(CellID i : cells) {
-      auto cellParams = mpiGrid[i]->get_cell_parameters();
-      std::array<Real, fsgrids::moments::N_MOMENTS>* thisCellData = &transferBuffer[count];
+   #pragma omp parallel for
+   for(int i=0; i< cells.size(); i++) {
+      auto cellParams = mpiGrid[cells[i]]->get_cell_parameters();
+      std::array<Real, fsgrids::moments::N_MOMENTS>* thisCellData = &transferBuffer[i];
     
       if(!dt2) {
          thisCellData->at(fsgrids::moments::RHO) = cellParams[CellParams::RHO];
@@ -39,9 +39,7 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
          thisCellData->at(fsgrids::moments::P_33) = cellParams[CellParams::P_33_DT2];
       }
 
-      count++;
-
-      momentsGrid.transferDataIn(i - 1, thisCellData);
+      momentsGrid.transferDataIn(cells[i] - 1, thisCellData);
    }
 
    // Finish the actual transfer
@@ -58,12 +56,12 @@ void feedBgFieldsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    std::vector< std::array<Real, fsgrids::bgbfield::N_BGB> > transferBuffer(cells.size());
 
    // Fill from cellParams
-   size_t count=0;
-   for(CellID i : cells) {
-      auto cellParams = mpiGrid[i]->get_cell_parameters();
-      auto derivatives = mpiGrid[i]->derivatives;
-      auto volumeDerivatives = mpiGrid[i]->derivativesBVOL;
-      std::array<Real, fsgrids::bgbfield::N_BGB>* thisCellData = &transferBuffer[count];
+   #pragma omp parallel for
+   for(int i=0; i< cells.size(); i++) {
+      auto cellParams = mpiGrid[cells[i]]->get_cell_parameters();
+      auto derivatives = mpiGrid[cells[i]]->derivatives;
+      auto volumeDerivatives = mpiGrid[cells[i]]->derivativesBVOL;
+      std::array<Real, fsgrids::bgbfield::N_BGB>* thisCellData = &transferBuffer[i];
 
       thisCellData->at(fsgrids::bgbfield::BGBX) = cellParams[CellParams::BGBX];
       thisCellData->at(fsgrids::bgbfield::BGBY) = cellParams[CellParams::BGBY];
@@ -86,8 +84,7 @@ void feedBgFieldsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       thisCellData->at(fsgrids::bgbfield::dBGBZVOLdx) = volumeDerivatives[bvolderivatives::dBGBZVOLdx];
       thisCellData->at(fsgrids::bgbfield::dBGBZVOLdy) = volumeDerivatives[bvolderivatives::dBGBZVOLdy];
 
-      bgBGrid.transferDataIn(i-1, thisCellData);
-      count++;
+      bgBGrid.transferDataIn(cells[i] - 1, thisCellData);
    }
 
 
@@ -105,21 +102,20 @@ void getVolumeFieldsFromFsGrid(FsGrid< std::array<Real, fsgrids::volfields::N_VO
 
    // Setup transfer pointers
    volumeFieldsGrid.setupForTransferOut(cells.size());
-   size_t count=0;
-   for(CellID i : cells) {
-      std::array<Real, fsgrids::volfields::N_VOL>* thisCellData = &transferBuffer[count];
+   #pragma omp parallel for
+   for(int i=0; i< cells.size(); i++) {
+      std::array<Real, fsgrids::volfields::N_VOL>* thisCellData = &transferBuffer[i];
 
-      volumeFieldsGrid.transferDataOut(i - 1, thisCellData);
-      count++;
+      volumeFieldsGrid.transferDataOut(cells[i] - 1, thisCellData);
    }
    // Do the transfer
    volumeFieldsGrid.finishTransfersOut();
 
    // Distribute data from the transfer buffer back into the appropriate mpiGrid places
-   count = 0;
-   for(CellID i : cells) {
-      std::array<Real, fsgrids::volfields::N_VOL>* thisCellData = &transferBuffer[count];
-      auto cellParams = mpiGrid[i]->get_cell_parameters();
+   #pragma omp parallel for
+   for(int i=0; i< cells.size(); i++) {
+      std::array<Real, fsgrids::volfields::N_VOL>* thisCellData = &transferBuffer[i];
+      auto cellParams = mpiGrid[cells[i]]->get_cell_parameters();
 
       cellParams[CellParams::PERBXVOL]                          = thisCellData->at(fsgrids::volfields::PERBXVOL);
       cellParams[CellParams::PERBYVOL]                          = thisCellData->at(fsgrids::volfields::PERBYVOL);
@@ -127,14 +123,12 @@ void getVolumeFieldsFromFsGrid(FsGrid< std::array<Real, fsgrids::volfields::N_VO
       cellParams[CellParams::EXVOL]                             = thisCellData->at(fsgrids::volfields::EXVOL);
       cellParams[CellParams::EYVOL]                             = thisCellData->at(fsgrids::volfields::EYVOL);
       cellParams[CellParams::EZVOL]                             = thisCellData->at(fsgrids::volfields::EZVOL);
-      mpiGrid[i]->derivativesBVOL[bvolderivatives::dPERBXVOLdy] = thisCellData->at(fsgrids::volfields::dPERBXVOLdy);
-      mpiGrid[i]->derivativesBVOL[bvolderivatives::dPERBXVOLdz] = thisCellData->at(fsgrids::volfields::dPERBXVOLdz);
-      mpiGrid[i]->derivativesBVOL[bvolderivatives::dPERBYVOLdx] = thisCellData->at(fsgrids::volfields::dPERBYVOLdx);
-      mpiGrid[i]->derivativesBVOL[bvolderivatives::dPERBYVOLdz] = thisCellData->at(fsgrids::volfields::dPERBYVOLdz);
-      mpiGrid[i]->derivativesBVOL[bvolderivatives::dPERBZVOLdx] = thisCellData->at(fsgrids::volfields::dPERBZVOLdx);
-      mpiGrid[i]->derivativesBVOL[bvolderivatives::dPERBZVOLdy] = thisCellData->at(fsgrids::volfields::dPERBZVOLdy);
-
-      count++;
+      mpiGrid[cells[i]]->derivativesBVOL[bvolderivatives::dPERBXVOLdy] = thisCellData->at(fsgrids::volfields::dPERBXVOLdy);
+      mpiGrid[cells[i]]->derivativesBVOL[bvolderivatives::dPERBXVOLdz] = thisCellData->at(fsgrids::volfields::dPERBXVOLdz);
+      mpiGrid[cells[i]]->derivativesBVOL[bvolderivatives::dPERBYVOLdx] = thisCellData->at(fsgrids::volfields::dPERBYVOLdx);
+      mpiGrid[cells[i]]->derivativesBVOL[bvolderivatives::dPERBYVOLdz] = thisCellData->at(fsgrids::volfields::dPERBYVOLdz);
+      mpiGrid[cells[i]]->derivativesBVOL[bvolderivatives::dPERBZVOLdx] = thisCellData->at(fsgrids::volfields::dPERBZVOLdx);
+      mpiGrid[cells[i]]->derivativesBVOL[bvolderivatives::dPERBZVOLdy] = thisCellData->at(fsgrids::volfields::dPERBZVOLdy);
    }
 
 }
@@ -153,96 +147,91 @@ void getDerivativesFromFsGrid(FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>,
 
    // Transfer dperbGrid data
    dperbGrid.setupForTransferOut(cells.size());
-   size_t count=0;
-   for(CellID i : cells) {
-      std::array<Real, fsgrids::dperb::N_DPERB>* thisCellData = &dperbTransferBuffer[count];
+   #pragma omp parallel for
+   for(int i=0; i< cells.size(); i++) {
+      std::array<Real, fsgrids::dperb::N_DPERB>* thisCellData = &dperbTransferBuffer[i];
 
-      dperbGrid.transferDataOut(i - 1, thisCellData);
-      count++;
+      dperbGrid.transferDataOut(cells[i] - 1, thisCellData);
    }
    // Do the transfer
    dperbGrid.finishTransfersOut();
 
    // Transfer dmomentsGrid data
    dmomentsGrid.setupForTransferOut(cells.size());
-   count=0;
-   for(CellID i : cells) {
-      std::array<Real, fsgrids::dmoments::N_DMOMENTS>* thisCellData = &dmomentsTransferBuffer[count];
+   #pragma omp parallel for
+   for(int i=0; i< cells.size(); i++) {
+      std::array<Real, fsgrids::dmoments::N_DMOMENTS>* thisCellData = &dmomentsTransferBuffer[i];
 
-      dmomentsGrid.transferDataOut(i - 1, thisCellData);
-      count++;
+      dmomentsGrid.transferDataOut(cells[i] - 1, thisCellData);
    }
    // Do the transfer
    dmomentsGrid.finishTransfersOut();
 
    // Transfer bgbfieldGrid data
    bgbfieldGrid.setupForTransferOut(cells.size());
-   count=0;
-   for(CellID i : cells) {
-      std::array<Real, fsgrids::bgbfield::N_BGB>* thisCellData = &bgbfieldTransferBuffer[count];
+   #pragma omp parallel for
+   for(int i=0; i< cells.size(); i++) {
+      std::array<Real, fsgrids::bgbfield::N_BGB>* thisCellData = &bgbfieldTransferBuffer[i];
 
-      bgbfieldGrid.transferDataOut(i - 1, thisCellData);
-      count++;
+      bgbfieldGrid.transferDataOut(cells[i] - 1, thisCellData);
    }
    // Do the transfer
    bgbfieldGrid.finishTransfersOut();
 
    // Distribute data from the transfer buffers back into the appropriate mpiGrid places
-   count=0;
-   for(CellID i : cells) {
-      std::array<Real, fsgrids::dperb::N_DPERB>* dperb = &dperbTransferBuffer[count];
-      std::array<Real, fsgrids::dmoments::N_DMOMENTS>* dmoments = &dmomentsTransferBuffer[count];
-      std::array<Real, fsgrids::bgbfield::N_BGB>* bgbfield = &bgbfieldTransferBuffer[count];
-      auto cellParams = mpiGrid[i]->get_cell_parameters();
+   #pragma omp parallel for
+   for(int i=0; i< cells.size(); i++) {
+      std::array<Real, fsgrids::dperb::N_DPERB>* dperb = &dperbTransferBuffer[i];
+      std::array<Real, fsgrids::dmoments::N_DMOMENTS>* dmoments = &dmomentsTransferBuffer[i];
+      std::array<Real, fsgrids::bgbfield::N_BGB>* bgbfield = &bgbfieldTransferBuffer[i];
+      auto cellParams = mpiGrid[cells[i]]->get_cell_parameters();
 
-      mpiGrid[i]->derivatives[fieldsolver::drhodx] = dmoments->at(fsgrids::dmoments::drhodx);
-      mpiGrid[i]->derivatives[fieldsolver::drhody] = dmoments->at(fsgrids::dmoments::drhody);
-      mpiGrid[i]->derivatives[fieldsolver::drhodz] = dmoments->at(fsgrids::dmoments::drhodz);
-      mpiGrid[i]->derivatives[fieldsolver::dp11dx] = dmoments->at(fsgrids::dmoments::dp11dx);
-      mpiGrid[i]->derivatives[fieldsolver::dp11dy] = dmoments->at(fsgrids::dmoments::dp11dy);
-      mpiGrid[i]->derivatives[fieldsolver::dp11dz] = dmoments->at(fsgrids::dmoments::dp11dz);
-      mpiGrid[i]->derivatives[fieldsolver::dp22dx] = dmoments->at(fsgrids::dmoments::dp22dx);
-      mpiGrid[i]->derivatives[fieldsolver::dp22dy] = dmoments->at(fsgrids::dmoments::dp22dy);
-      mpiGrid[i]->derivatives[fieldsolver::dp22dz] = dmoments->at(fsgrids::dmoments::dp22dz);
-      mpiGrid[i]->derivatives[fieldsolver::dp33dx] = dmoments->at(fsgrids::dmoments::dp33dx);
-      mpiGrid[i]->derivatives[fieldsolver::dp33dy] = dmoments->at(fsgrids::dmoments::dp33dy);
-      mpiGrid[i]->derivatives[fieldsolver::dp33dz] = dmoments->at(fsgrids::dmoments::dp33dz);
+      mpiGrid[cells[i]]->derivatives[fieldsolver::drhodx] = dmoments->at(fsgrids::dmoments::drhodx);
+      mpiGrid[cells[i]]->derivatives[fieldsolver::drhody] = dmoments->at(fsgrids::dmoments::drhody);
+      mpiGrid[cells[i]]->derivatives[fieldsolver::drhodz] = dmoments->at(fsgrids::dmoments::drhodz);
+      mpiGrid[cells[i]]->derivatives[fieldsolver::dp11dx] = dmoments->at(fsgrids::dmoments::dp11dx);
+      mpiGrid[cells[i]]->derivatives[fieldsolver::dp11dy] = dmoments->at(fsgrids::dmoments::dp11dy);
+      mpiGrid[cells[i]]->derivatives[fieldsolver::dp11dz] = dmoments->at(fsgrids::dmoments::dp11dz);
+      mpiGrid[cells[i]]->derivatives[fieldsolver::dp22dx] = dmoments->at(fsgrids::dmoments::dp22dx);
+      mpiGrid[cells[i]]->derivatives[fieldsolver::dp22dy] = dmoments->at(fsgrids::dmoments::dp22dy);
+      mpiGrid[cells[i]]->derivatives[fieldsolver::dp22dz] = dmoments->at(fsgrids::dmoments::dp22dz);
+      mpiGrid[cells[i]]->derivatives[fieldsolver::dp33dx] = dmoments->at(fsgrids::dmoments::dp33dx);
+      mpiGrid[cells[i]]->derivatives[fieldsolver::dp33dy] = dmoments->at(fsgrids::dmoments::dp33dy);
+      mpiGrid[cells[i]]->derivatives[fieldsolver::dp33dz] = dmoments->at(fsgrids::dmoments::dp33dz);
 
-      mpiGrid[i]->derivatives[fieldsolver::dVxdx] = dmoments->at(fsgrids::dmoments::dVxdx);
-      mpiGrid[i]->derivatives[fieldsolver::dVxdy] = dmoments->at(fsgrids::dmoments::dVxdy);
-      mpiGrid[i]->derivatives[fieldsolver::dVxdz] = dmoments->at(fsgrids::dmoments::dVxdz);
-      mpiGrid[i]->derivatives[fieldsolver::dVydx] = dmoments->at(fsgrids::dmoments::dVydx);
-      mpiGrid[i]->derivatives[fieldsolver::dVydy] = dmoments->at(fsgrids::dmoments::dVydy);
-      mpiGrid[i]->derivatives[fieldsolver::dVydz] = dmoments->at(fsgrids::dmoments::dVydz);
-      mpiGrid[i]->derivatives[fieldsolver::dVzdx] = dmoments->at(fsgrids::dmoments::dVzdx);
-      mpiGrid[i]->derivatives[fieldsolver::dVzdy] = dmoments->at(fsgrids::dmoments::dVzdy);
-      mpiGrid[i]->derivatives[fieldsolver::dVzdz] = dmoments->at(fsgrids::dmoments::dVzdz);
+      mpiGrid[cells[i]]->derivatives[fieldsolver::dVxdx] = dmoments->at(fsgrids::dmoments::dVxdx);
+      mpiGrid[cells[i]]->derivatives[fieldsolver::dVxdy] = dmoments->at(fsgrids::dmoments::dVxdy);
+      mpiGrid[cells[i]]->derivatives[fieldsolver::dVxdz] = dmoments->at(fsgrids::dmoments::dVxdz);
+      mpiGrid[cells[i]]->derivatives[fieldsolver::dVydx] = dmoments->at(fsgrids::dmoments::dVydx);
+      mpiGrid[cells[i]]->derivatives[fieldsolver::dVydy] = dmoments->at(fsgrids::dmoments::dVydy);
+      mpiGrid[cells[i]]->derivatives[fieldsolver::dVydz] = dmoments->at(fsgrids::dmoments::dVydz);
+      mpiGrid[cells[i]]->derivatives[fieldsolver::dVzdx] = dmoments->at(fsgrids::dmoments::dVzdx);
+      mpiGrid[cells[i]]->derivatives[fieldsolver::dVzdy] = dmoments->at(fsgrids::dmoments::dVzdy);
+      mpiGrid[cells[i]]->derivatives[fieldsolver::dVzdz] = dmoments->at(fsgrids::dmoments::dVzdz);
 
-      mpiGrid[i]->derivatives[fieldsolver::dPERBxdy] = dperb->at(fsgrids::dperb::dPERBxdy);
-      mpiGrid[i]->derivatives[fieldsolver::dPERBxdz] = dperb->at(fsgrids::dperb::dPERBxdz);
-      mpiGrid[i]->derivatives[fieldsolver::dPERBydx] = dperb->at(fsgrids::dperb::dPERBydx);
-      mpiGrid[i]->derivatives[fieldsolver::dPERBydz] = dperb->at(fsgrids::dperb::dPERBydz);
-      mpiGrid[i]->derivatives[fieldsolver::dPERBzdx] = dperb->at(fsgrids::dperb::dPERBzdx);
-      mpiGrid[i]->derivatives[fieldsolver::dPERBzdy] = dperb->at(fsgrids::dperb::dPERBzdy);
+      mpiGrid[cells[i]]->derivatives[fieldsolver::dPERBxdy] = dperb->at(fsgrids::dperb::dPERBxdy);
+      mpiGrid[cells[i]]->derivatives[fieldsolver::dPERBxdz] = dperb->at(fsgrids::dperb::dPERBxdz);
+      mpiGrid[cells[i]]->derivatives[fieldsolver::dPERBydx] = dperb->at(fsgrids::dperb::dPERBydx);
+      mpiGrid[cells[i]]->derivatives[fieldsolver::dPERBydz] = dperb->at(fsgrids::dperb::dPERBydz);
+      mpiGrid[cells[i]]->derivatives[fieldsolver::dPERBzdx] = dperb->at(fsgrids::dperb::dPERBzdx);
+      mpiGrid[cells[i]]->derivatives[fieldsolver::dPERBzdy] = dperb->at(fsgrids::dperb::dPERBzdy);
 
-      mpiGrid[i]->derivatives[fieldsolver::dPERBxdyy] = dperb->at(fsgrids::dperb::dPERBxdyy);
-      mpiGrid[i]->derivatives[fieldsolver::dPERBxdzz] = dperb->at(fsgrids::dperb::dPERBxdzz);
-      mpiGrid[i]->derivatives[fieldsolver::dPERBydxx] = dperb->at(fsgrids::dperb::dPERBydxx);
-      mpiGrid[i]->derivatives[fieldsolver::dPERBydzz] = dperb->at(fsgrids::dperb::dPERBydzz);
-      mpiGrid[i]->derivatives[fieldsolver::dPERBzdxx] = dperb->at(fsgrids::dperb::dPERBzdxx);
-      mpiGrid[i]->derivatives[fieldsolver::dPERBzdyy] = dperb->at(fsgrids::dperb::dPERBzdyy);
-      mpiGrid[i]->derivatives[fieldsolver::dPERBxdyz] = dperb->at(fsgrids::dperb::dPERBxdyz);
-      mpiGrid[i]->derivatives[fieldsolver::dPERBydxz] = dperb->at(fsgrids::dperb::dPERBydxz);
-      mpiGrid[i]->derivatives[fieldsolver::dPERBzdxy] = dperb->at(fsgrids::dperb::dPERBzdxy);
+      mpiGrid[cells[i]]->derivatives[fieldsolver::dPERBxdyy] = dperb->at(fsgrids::dperb::dPERBxdyy);
+      mpiGrid[cells[i]]->derivatives[fieldsolver::dPERBxdzz] = dperb->at(fsgrids::dperb::dPERBxdzz);
+      mpiGrid[cells[i]]->derivatives[fieldsolver::dPERBydxx] = dperb->at(fsgrids::dperb::dPERBydxx);
+      mpiGrid[cells[i]]->derivatives[fieldsolver::dPERBydzz] = dperb->at(fsgrids::dperb::dPERBydzz);
+      mpiGrid[cells[i]]->derivatives[fieldsolver::dPERBzdxx] = dperb->at(fsgrids::dperb::dPERBzdxx);
+      mpiGrid[cells[i]]->derivatives[fieldsolver::dPERBzdyy] = dperb->at(fsgrids::dperb::dPERBzdyy);
+      mpiGrid[cells[i]]->derivatives[fieldsolver::dPERBxdyz] = dperb->at(fsgrids::dperb::dPERBxdyz);
+      mpiGrid[cells[i]]->derivatives[fieldsolver::dPERBydxz] = dperb->at(fsgrids::dperb::dPERBydxz);
+      mpiGrid[cells[i]]->derivatives[fieldsolver::dPERBzdxy] = dperb->at(fsgrids::dperb::dPERBzdxy);
 
-      mpiGrid[i]->derivatives[fieldsolver::dBGBxdy] = bgbfield->at(fsgrids::bgbfield::dBGBxdy);
-      mpiGrid[i]->derivatives[fieldsolver::dBGBxdz] = bgbfield->at(fsgrids::bgbfield::dBGBxdz);
-      mpiGrid[i]->derivatives[fieldsolver::dBGBydx] = bgbfield->at(fsgrids::bgbfield::dBGBydx);
-      mpiGrid[i]->derivatives[fieldsolver::dBGBydz] = bgbfield->at(fsgrids::bgbfield::dBGBydz);
-      mpiGrid[i]->derivatives[fieldsolver::dBGBzdx] = bgbfield->at(fsgrids::bgbfield::dBGBzdx);
-      mpiGrid[i]->derivatives[fieldsolver::dBGBzdy] = bgbfield->at(fsgrids::bgbfield::dBGBzdy);
-
-      count++;
+      mpiGrid[cells[i]]->derivatives[fieldsolver::dBGBxdy] = bgbfield->at(fsgrids::bgbfield::dBGBxdy);
+      mpiGrid[cells[i]]->derivatives[fieldsolver::dBGBxdz] = bgbfield->at(fsgrids::bgbfield::dBGBxdz);
+      mpiGrid[cells[i]]->derivatives[fieldsolver::dBGBydx] = bgbfield->at(fsgrids::bgbfield::dBGBydx);
+      mpiGrid[cells[i]]->derivatives[fieldsolver::dBGBydz] = bgbfield->at(fsgrids::bgbfield::dBGBydz);
+      mpiGrid[cells[i]]->derivatives[fieldsolver::dBGBzdx] = bgbfield->at(fsgrids::bgbfield::dBGBzdx);
+      mpiGrid[cells[i]]->derivatives[fieldsolver::dBGBzdy] = bgbfield->at(fsgrids::bgbfield::dBGBzdy);
    }
 
 }
@@ -256,18 +245,16 @@ void setupTechnicalFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    // Fill the transfer buffers from the spatial cell structs
    std::vector<fsgrids::technical> transferBuffer(cells.size());
 
-   size_t count=0;
-   for(CellID i : cells) {
+   #pragma omp parallel for
+   for(int i=0; i< cells.size(); i++) {
 
-      fsgrids::technical* thisCellData = &transferBuffer[count];
+      fsgrids::technical* thisCellData = &transferBuffer[i];
       // Data needs to be collected from some different places for this grid.
-      thisCellData->sysBoundaryFlag = mpiGrid[i]->sysBoundaryFlag;
-      thisCellData->sysBoundaryLayer = mpiGrid[i]->sysBoundaryLayer;
+      thisCellData->sysBoundaryFlag = mpiGrid[cells[i]]->sysBoundaryFlag;
+      thisCellData->sysBoundaryLayer = mpiGrid[cells[i]]->sysBoundaryLayer;
       //thisCellData->maxFsDt = mpiGrid[i]->get_cell_parameters()[CellParams::MAXFDT];
       thisCellData->maxFsDt = std::numeric_limits<Real>::max();
-      technicalGrid.transferDataIn(i - 1,thisCellData);
-
-      count++;
+      technicalGrid.transferDataIn(cells[i] - 1,thisCellData);
    }
 
    technicalGrid.finishTransfersIn();
@@ -281,23 +268,21 @@ void getFsGridMaxDt(FsGrid< fsgrids::technical, 2>& technicalGrid,
 
    // Buffer to store contents of the grid
    std::vector<fsgrids::technical> transferBuffer(cells.size());
-   size_t count=0;
 
-   for(CellID i : cells) {
-      fsgrids::technical* thisCellData = &transferBuffer[count++];
-      technicalGrid.transferDataOut(i - 1, thisCellData);
+   #pragma omp parallel for
+   for(int i=0; i< cells.size(); i++) {
+      fsgrids::technical* thisCellData = &transferBuffer[i];
+      technicalGrid.transferDataOut(cells[i] - 1, thisCellData);
    }
 
    technicalGrid.finishTransfersOut();
 
    // After the transfer is completed, stuff the recieved maxFDt into the cells.
-   count=0;
-   for(CellID i : cells) {
-      mpiGrid[i]->get_cell_parameters()[CellParams::MAXFDT] = transferBuffer[count].maxFsDt;
-      mpiGrid[i]->get_cell_parameters()[CellParams::FSGRID_RANK] = transferBuffer[count].fsGridRank;
-      mpiGrid[i]->get_cell_parameters()[CellParams::FSGRID_BOUNDARYTYPE] = transferBuffer[count].sysBoundaryFlag;
-
-      count++;
+   #pragma omp parallel for
+   for(int i=0; i< cells.size(); i++) {
+      mpiGrid[cells[i]]->get_cell_parameters()[CellParams::MAXFDT] = transferBuffer[i].maxFsDt;
+      mpiGrid[cells[i]]->get_cell_parameters()[CellParams::FSGRID_RANK] = transferBuffer[i].fsGridRank;
+      mpiGrid[cells[i]]->get_cell_parameters()[CellParams::FSGRID_BOUNDARYTYPE] = transferBuffer[i].sysBoundaryFlag;
    }
 }
 
