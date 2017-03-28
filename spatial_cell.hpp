@@ -146,6 +146,19 @@ namespace spatial_cell {
 
    /** Wrapper for variables needed for each particle species.*/
    struct Population {
+      Real RHO;
+      Real RHOV[3];
+      Real RHO_R;
+      Real RHOV_R[3];
+      Real RHO_V;
+      Real RHOV_V[3];
+      Real P[3];
+      Real P_R[3];
+      Real P_V[3];
+      Real RHOLOSSADJUST;      /*!< Counter for massloss from the destroying blocks in blockadjustment*/
+      Real RHOLOSSVELBOUNDARY; /*!< Counter for massloss through outflow boundaries in velocity space*/
+      Real ACCSUBCYCLES;        /*!< number of subcyles for each cell*/
+      
       Real max_dt[2];                                                /**< Element[0] is max_r_dt, element[1] max_v_dt.*/
       vmesh::LocalID N_blocks;                                       /**< Number of velocity blocks, used when receiving velocity 
                                                                       * mesh from remote neighbors using MPI.*/
