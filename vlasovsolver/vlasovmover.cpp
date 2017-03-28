@@ -84,10 +84,6 @@ void calculateSpatialTranslation(
       mpiGrid.start_remote_neighbor_copy_updates(VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);
       phiprof::stop(trans_timer);
       
-      // generate target grid in the temporary arrays, same size as
-      // original one. We only need to create these in target cells
-      createTargetGrid(mpiGrid,remoteTargetCellsz,popID);
-
       phiprof::start(trans_timer);
       mpiGrid.wait_remote_neighbor_copy_update_receives(VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);
       phiprof::stop(trans_timer);
@@ -106,7 +102,7 @@ void calculateSpatialTranslation(
       update_remote_mapping_contribution(mpiGrid, 2,-1,popID);
       phiprof::stop("update_remote-z");
 
-      clearTargetGrid(mpiGrid,remoteTargetCellsz);
+
    }
 
    // ------------- SLICE - map dist function in X --------------- //
@@ -116,8 +112,6 @@ void calculateSpatialTranslation(
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
       mpiGrid.start_remote_neighbor_copy_updates(VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
       phiprof::stop(trans_timer);
-
-      createTargetGrid(mpiGrid,remoteTargetCellsx,popID);
 
       phiprof::start(trans_timer);
       mpiGrid.wait_remote_neighbor_copy_update_receives(VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
@@ -136,7 +130,6 @@ void calculateSpatialTranslation(
       update_remote_mapping_contribution(mpiGrid, 0,+1,popID);
       update_remote_mapping_contribution(mpiGrid, 0,-1,popID);
       phiprof::stop("update_remote-x");
-      clearTargetGrid(mpiGrid,remoteTargetCellsx);
    }
    
    // ------------- SLICE - map dist function in Y --------------- //
@@ -146,8 +139,6 @@ void calculateSpatialTranslation(
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
       mpiGrid.start_remote_neighbor_copy_updates(VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);
       phiprof::stop(trans_timer);
-      
-      createTargetGrid(mpiGrid,remoteTargetCellsy,popID);
       
       phiprof::start(trans_timer);
       mpiGrid.wait_remote_neighbor_copy_update_receives(VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);
@@ -166,8 +157,6 @@ void calculateSpatialTranslation(
       update_remote_mapping_contribution(mpiGrid, 1,+1,popID);
       update_remote_mapping_contribution(mpiGrid, 1,-1,popID);
       phiprof::stop("update_remote-y");
-      clearTargetGrid(mpiGrid,remoteTargetCellsy);
-
    }
 }
 
