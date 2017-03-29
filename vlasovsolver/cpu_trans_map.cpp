@@ -362,7 +362,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    }
    std::vector<vmesh::GlobalID> localPropagatedBlocks;
    localPropagatedBlocks.reserve(localPropagatedBlocksSet.size());
-   for(auto itBlockGID = localPropagatedBlocks.begin(); itBlockGID != localPropagatedBlocks.end(); itBlockGID++){
+   for(auto itBlockGID = localPropagatedBlocksSet.begin(); itBlockGID != localPropagatedBlocksSet.end(); itBlockGID++){
       localPropagatedBlocks.push_back(*itBlockGID);
    }
     
@@ -426,7 +426,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 #pragma omp parallel for
    for(uint blocki = 0; blocki < localPropagatedBlocks.size(); blocki++){
       vmesh::GlobalID blockGID = localPropagatedBlocks[blocki];
-       
+      
       std::vector<SpatialCell*> targetNeighbors( 3 * localPropagatedCells.size() );
       std::vector<Realf> targetBlockData(3  * localPropagatedCells.size() * WID3);
       std::vector<Realf*> targetBlockPointer(3  * localPropagatedCells.size() ); //pointer to actual block
@@ -448,7 +448,6 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             continue;
          }
           
-          
          // compute spatial neighbors, separately for targets and source. In
          // source cells we have a wider stencil and take into account
          // boundaries. For targets we only have actual cells as we do not
@@ -458,7 +457,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 
          compute_spatial_source_neighbors(mpiGrid,cellID,dimension,source_neighbors);
          compute_spatial_target_neighbors(mpiGrid,cellID,dimension,targetNeighbors.data() +  nTargetCells );
-          
+         
          // Velocity mesh refinement level, has no effect here but it 
          // is needed in some vmesh::VelocityMesh function calls.
           
@@ -542,7 +541,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             }
          }
          //Store final vector data in temporary data for all target blocks
-         for (uint b = -1; b< 2 ; ++b) {
+         for (int b = -1; b< 2 ; ++b) {
             Realv vector[VECL];
             uint cellid=0;
             for (uint k=0; k<WID; ++k) {
@@ -561,7 +560,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             nTargetCells++;
          }
       }
-
+//      cout <<"nTargetCells" << nTargetCells<< "\n";
       //reset value in blocks, and store pointers to the blockdata for when we fill it again
       for (int tcelli = 0; tcelli < nTargetCells; tcelli++) {
          SpatialCell* spatial_cell = targetNeighbors[tcelli];
@@ -574,8 +573,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             targetBlockPointer[tcelli] = NULL;
             continue;
          }
-         vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks(popID);
-         Realf* blockData = blockContainer.getData(blockLID);
+         Realf* blockData = spatial_cell->get_data(blockLID, popID);
          targetBlockPointer[tcelli] = blockData;
 #pragma IVDEP
          for(int i = 0; i < WID3 ; i++) {
@@ -681,7 +679,8 @@ void update_remote_mapping_contribution(
          //data array, if 1) m is a valid source cell, 2) center cell is to be updated (normal cell) 3) m is remote
          //we will here allocate a receive buffer, since we need to aggregate values
          mcell->neighbor_number_of_blocks = ccell->get_number_of_velocity_blocks(popID);
-         mcell->neighbor_block_data = (Realf*)aligned_malloc(mcell->neighbor_number_of_blocks * WID3 *sizeof(Realf), 64);
+         mcell->neighbor_block_data = (Realf*) aligned_malloc(mcell->neighbor_number_of_blocks * WID3 * sizeof(Realf), 64);
+         
          receive_cells.push_back(local_cells[c]);
          receiveBuffers.push_back(mcell->neighbor_block_data);
       }
@@ -715,7 +714,6 @@ void update_remote_mapping_contribution(
           
 #pragma omp for 
          for(unsigned int cell = 0; cell<VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(popID); ++cell) {
-            // copy received target data to temporary array where target data is stored.
             blockData[cell] += receiveBuffers[c][cell];
          }
       }
@@ -728,7 +726,7 @@ void update_remote_mapping_contribution(
          Realf * blockData = spatial_cell->get_data(popID);
            
 #pragma omp for nowait
-         for(unsigned int cell = 0; cell<VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(popID); ++cell) {
+         for(unsigned int cell = 0; cell< VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(popID); ++cell) {
             // copy received target data to temporary array where target data is stored.
             blockData[cell] = 0;
          }
