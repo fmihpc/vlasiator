@@ -111,23 +111,13 @@ struct Parameters {
    static int maxSlAccelerationSubcycles; /*!< Maximum number of subcycles in acceleration*/
 
    static Real hallMinimumRho;  /*!< Minimum rho value used for the Hall and electron pressure gradient terms in the Lorentz force and in the field solver.*/
-   static Real sparseMinValue; /*!< (DEPRECATED) Minimum value of distribution function in any cell of a velocity 
-                                * block for the block to be considered to have content.
-                                * This value is only used for default particle species.*/
-   static int sparseBlockAddWidthV; /*!< Number of layers of blocks that are kept in velocity space around the blocks with content */
-   static bool sparse_conserve_mass; /*!< If true, density is scaled to conserve mass when removing blocks*/
-   static int  sparseDynamicAlgorithm; /*!< Type of algorithm used for calculating the dynamic minValue; 0 = none, 1 = linear algorithm based on minValue and rho, 2 = linear algorithm based on minValue and Blocks, (Example linear algorithm: minValue = rho / sparse.dynamicValue * sparse.minValue)*/
-   static Real sparseDynamicBulkValue1; /*!< Minimum value for the dynamic algorithm range, so for example if dynamicAlgorithm=1 then for sparse.dynamicMinValue = 1e3, sparse.dynamicMaxValue=1e5, we apply the algorithm to cells for which 1e3<cell.rho<1e5*/
-   static Real sparseDynamicBulkValue2; /*!< Maximum value for the dynamic algorithm range, so for example if dynamicAlgorithm=1 then for sparse.dynamicMinValue = 1e3, sparse.dynamicMaxValue=1e5, we apply the algorithm to cells for which 1e3<cell.rho<1e5*/
-   static Real sparseDynamicMinValue1; /*!< The minimum value for the minValue*/
-   static Real sparseDynamicMinValue2; /*!< The maximum value for the minValue*/
    
    static std::string loadBalanceAlgorithm; /*!< Algorithm to be used for load balance.*/
    static std::string loadBalanceTolerance; /*!< Load imbalance tolerance. */ 
    static uint rebalanceInterval; /*!< Load rebalance interval (steps). */
    static bool prepareForRebalance; /**< If true, propagators should measure their time consumption in preparation
                                      * for mesh repartitioning.*/
-   
+
    static std::vector<std::string> outputVariableList; /*!< List of data reduction operators (DROs) to add to the grid file output.*/
    static std::vector<std::string> diagnosticVariableList; /*!< List of data reduction operators (DROs) to add to the diagnostic runtime output.*/
    
@@ -172,6 +162,8 @@ struct Parameters {
     * readable. Please make sure when coding new parameters here that the options in
     * addParameters match the ones read here.
     * 
+    * \param firstPass determines whether to only parse out particle populations (first pass),
+    *                  to parse all other parameters.
     * \sa addParameters
     */
    static bool getParameters();

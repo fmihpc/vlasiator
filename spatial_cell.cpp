@@ -148,10 +148,11 @@ namespace spatial_cell {
          const uint8_t refLevel=0;
          const velocity_block_indices_t indices = SpatialCell::get_velocity_block_indices(popID,block);
          neighbors_have_content.insert(block); //also add the cell itself
-         
-         for (int offset_vx=-P::sparseBlockAddWidthV;offset_vx<=P::sparseBlockAddWidthV;offset_vx++) {
-            for (int offset_vy=-P::sparseBlockAddWidthV;offset_vy<=P::sparseBlockAddWidthV;offset_vy++) {
-               for (int offset_vz=-P::sparseBlockAddWidthV;offset_vz<=P::sparseBlockAddWidthV;offset_vz++) {
+
+         int addWidthV = getObjectWrapper().particleSpecies[popID].sparseBlockAddWidthV;
+         for (int offset_vx=-addWidthV;offset_vx<=addWidthV;offset_vx++) {
+            for (int offset_vy=-addWidthV;offset_vy<=addWidthV;offset_vy++) {
+               for (int offset_vz=-addWidthV;offset_vz<=addWidthV;offset_vz++) {
                   const vmesh::GlobalID neighbor_block 
                      = get_velocity_block(popID,{{indices[0]+offset_vx,indices[1]+offset_vy,indices[2]+offset_vz}},refLevel);
                   neighbors_have_content.insert(neighbor_block); //add all potential ngbrs of this block with content
@@ -1468,21 +1469,24 @@ namespace spatial_cell {
    /** Updates minValue based on algorithm value from parameters (see parameters.cpp).
     * @param popID ID of the particle species.*/
    void SpatialCell::updateSparseMinValue(const int& popID) {
-      if ( P::sparseDynamicAlgorithm == 1 || P::sparseDynamicAlgorithm == 2 ) {
+
+      species::Species& population = getObjectWrapper().particleSpecies[popID];
+
+      if ( population.sparseDynamicAlgorithm == 1 || population.sparseDynamicAlgorithm == 2 ) {
          // Linear algorithm for the minValue: y=kx+b
-         const Real k = (P::sparseDynamicMinValue2 - P::sparseDynamicMinValue1) / (P::sparseDynamicBulkValue2 - P::sparseDynamicBulkValue1);
-         const Real b = P::sparseDynamicMinValue1 - k * P::sparseDynamicBulkValue1;
+         const Real k = (population.sparseDynamicMinValue2 - population.sparseDynamicMinValue1) / (population.sparseDynamicBulkValue2 - population.sparseDynamicBulkValue1);
+         const Real b = population.sparseDynamicMinValue1 - k * population.sparseDynamicBulkValue1;
          Real x;
-         if ( P::sparseDynamicAlgorithm == 1 ) {
-            x = this->parameters[CellParams::RHO];
+         if ( population.sparseDynamicAlgorithm == 1 ) {
+            x = this->parameters[CellParams::RHO]; // TODO: Use this population's density here!
          } else {
             x = this->get_number_of_velocity_blocks(popID);
          }
          const Real newMinValue = k*x+b;
-         if( newMinValue < P::sparseDynamicMinValue1 ) { // Compare against the min minValue
-            populations[popID].velocityBlockMinValue = P::sparseDynamicMinValue1;
-         } else if( newMinValue > P::sparseDynamicMinValue2 ) { // Compare against the max minValue
-            populations[popID].velocityBlockMinValue = P::sparseDynamicMinValue2;
+         if( newMinValue < population.sparseDynamicMinValue1 ) { // Compare against the min minValue
+            populations[popID].velocityBlockMinValue = population.sparseDynamicMinValue1;
+         } else if( newMinValue > population.sparseDynamicMinValue2 ) { // Compare against the max minValue
+            populations[popID].velocityBlockMinValue = population.sparseDynamicMinValue2;
          } else {
             populations[popID].velocityBlockMinValue = newMinValue;
          }

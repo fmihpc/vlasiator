@@ -161,14 +161,6 @@ namespace projects {
       #pragma omp threadprivate(rngStateBuffer,rngDataBuffer)
 
       bool baseClassInitialized;                      /**< If true, base class has been initialized.*/
-      std::vector<std::string> popNames;              /**< Name(s) of particle population(s), read from configuration file.*/
-      std::vector<int> popCharges;                    /**< Particle population charge(s), read from configuration file.*/
-      std::vector<std::string> popMassUnits;          /**< Units in which particle population mass(es) were given,
-                                                       * read from configuration file.*/
-      std::vector<double> popMasses;                  /**< Particle population mass(es) in chosen units.
-                                                       * Read from configuration file.*/
-      std::vector<std::string> popMeshNames;          /**< Name of the velocity mesh each species should use.*/
-      std::vector<double> popSparseMinValue;          /**< Sparse mesh threshold value for the population.*/
    };
    
    Project* createProject();

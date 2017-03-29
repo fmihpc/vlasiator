@@ -284,13 +284,18 @@ int main(int argn,char* args[]) {
    P::addParameters();
    projects::Project::addParameters();
    sysBoundaries.addParameters();
-   readparameters.parse();
-   if (P::getParameters() == false) {
+   getObjectWrapper().addParameters();
+   readparameters.parse(); // First pass parsing: Determine population names only
+   getObjectWrapper().addPopulationParameters();
+   P::getParameters(); 
+   if (P::getParameters() == false) { // Second pass
       if (myRank == MASTER_RANK) {
          cerr << "(MAIN) ERROR: getParameters failed!" << endl;
       }
       exit(1);
    }
+   readparameters.parse(); // Second pass parsing: specific population parameters
+   getObjectWrapper().getParameters();
 
    Project* project = projects::createProject();
    getObjectWrapper().project = project;
