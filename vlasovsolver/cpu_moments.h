@@ -41,8 +41,8 @@ void blockVelocityFirstMoments(const Realf* avgs,const Real* blockParams,
                                const Real& massRatio,REAL* array);
 
 template<typename REAL> 
-void blockVelocitySecondMoments(const Realf* avgs,const Real* blockParams,const Real* cellParams,
-                                const int cp_rho,const int cp_rhovx,const int cp_rhovy,const int cp_rhovz,
+void blockVelocitySecondMoments(const Realf* avgs,const Real* blockParams,
+                                const REAL rho,const REAL rhov[3],
                                 REAL* array);
 
 void calculateMoments_R_maxdt(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
@@ -114,19 +114,16 @@ template<typename REAL> inline
 void blockVelocitySecondMoments(
         const Realf* avgs,
         const Real* blockParams,
-        const Real* cellParams,
-        const int cp_rho,
-        const int cp_rhovx,
-        const int cp_rhovy,
-        const int cp_rhovz,
+        const REAL rho,
+        const REAL rhov[3],
         REAL* array) {
 
    const Real HALF = 0.5;
 
-   const Real RHO = std::max(cellParams[cp_rho], std::numeric_limits<REAL>::min());
-   const Real averageVX = cellParams[cp_rhovx] / RHO;
-   const Real averageVY = cellParams[cp_rhovy] / RHO;
-   const Real averageVZ = cellParams[cp_rhovz] / RHO;
+   const Real RHO = std::max(rho, std::numeric_limits<REAL>::min());
+   const Real averageVX = rhov[0] / RHO;
+   const Real averageVY = rhov[1] / RHO;
+   const Real averageVZ = rhov[2] / RHO;
    Real nvx2_sum = 0.0;
    Real nvy2_sum = 0.0;
    Real nvz2_sum = 0.0;
