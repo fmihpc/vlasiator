@@ -463,12 +463,6 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
           
          const Realv i_dz=1.0/dz;
           
-         // Loop over blocks in spatial cell. In ordinary space the number of
-         // blocks in this spatial cell does not change.
-          
-         // Each thread only computes a certain non-overlapping subset of blocks
-         //if (blockGID % num_threads != thread_id) continue;
-          
          // Vector buffer where we write data, initialized to 0*/
          Vec targetVecValues[3 * WID3 / VECL];
          // init target_values
@@ -552,7 +546,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
                      // dimensions 
                      // using precomputed plane_index_to_id and
                      // cell_indices_to_id
-                     targetBlockData[nTargetCells * WID3 +  cellid_transpose[i + planeVector * VECL + k * WID2]] += 
+                     targetBlockData[nTargetCells * WID3 +  cellid_transpose[i + planeVector * VECL + k * WID2]] = 
                         vector[i];
                   }
                }
@@ -560,10 +554,15 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             nTargetCells++;
          }
       }
-//      cout <<"nTargetCells" << nTargetCells<< "\n";
+
       //reset value in blocks, and store pointers to the blockdata for when we fill it again
       for (int tcelli = 0; tcelli < nTargetCells; tcelli++) {
          SpatialCell* spatial_cell = targetNeighbors[tcelli];
+         if(spatial_cell ==NULL) {
+            //invalid target spatial cell
+            targetBlockPointer[tcelli] = NULL;
+            continue;
+         }
          const vmesh::LocalID blockLID = spatial_cell->get_velocity_block_local_id(blockGID, popID);
          if (blockLID == vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) {
             // block does not exist. If so, we do not create it and add stuff to it here.
@@ -580,8 +579,6 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             blockData[i] = 0.0;
          }
       }
-       
-             
        
       //store values from target_values array to the actual blocks
       for (int tcelli = 0; tcelli < nTargetCells; tcelli++) {
