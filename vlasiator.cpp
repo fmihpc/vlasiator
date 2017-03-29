@@ -285,15 +285,15 @@ int main(int argn,char* args[]) {
    projects::Project::addParameters();
    sysBoundaries.addParameters();
    getObjectWrapper().addParameters();
-   readparameters.parse(); // First pass parsing: Determine population names only
-   getObjectWrapper().addPopulationParameters();
-   P::getParameters(); 
-   if (P::getParameters() == false) { // Second pass
+   readparameters.parse(); // First pass parsing
+   if (P::getParameters() == false) {
       if (myRank == MASTER_RANK) {
          cerr << "(MAIN) ERROR: getParameters failed!" << endl;
       }
       exit(1);
    }
+
+   getObjectWrapper().addPopulationParameters();
    readparameters.parse(); // Second pass parsing: specific population parameters
    getObjectWrapper().getParameters();
 

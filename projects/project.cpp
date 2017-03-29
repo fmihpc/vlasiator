@@ -171,106 +171,9 @@ namespace projects {
       
       // Basic error checking
       bool success = true;
-      //if (popNames.size() != popCharges.size()) success = false;
-      //if (popNames.size() != popMassUnits.size()) success = false;
-      //if (popNames.size() != popMasses.size()) success = false;
-      //if (popNames.size() != popSparseMinValue.size()) success = false;
-      //if (popNames.size() != popMeshNames.size()) success = false;
-      //if (success == false) {
-      //   stringstream ss;
-      //   ss << "(PROJECT) ERROR in configuration file particle population definitions at ";
-      //   ss << __FILE__ << ":" << __LINE__ << endl;
-      //   ss << "\t vector sizes are: " << popNames.size() << ' ' << popMassUnits.size();
-      //   ss << ' ' << popMasses.size() << ' ' << popSparseMinValue.size() << ' ';
-      //   ss << popMeshNames.size() << endl;
-      //   cerr << ss.str(); return success;
-      //}
-
-      //if (velMeshParams->vx_min.size() != velMeshParams->name.size()) success = false;
-      //if (velMeshParams->vy_min.size() != velMeshParams->name.size()) success = false;
-      //if (velMeshParams->vz_min.size() != velMeshParams->name.size()) success = false;
-      //if (velMeshParams->vx_max.size() != velMeshParams->name.size()) success = false;
-      //if (velMeshParams->vy_max.size() != velMeshParams->name.size()) success = false;
-      //if (velMeshParams->vz_max.size() != velMeshParams->name.size()) success = false;
-      //if (velMeshParams->vx_length.size() != velMeshParams->name.size()) success = false;
-      //if (velMeshParams->vy_length.size() != velMeshParams->name.size()) success = false;
-      //if (velMeshParams->vz_length.size() != velMeshParams->name.size()) success = false;
-      //if (velMeshParams->maxRefLevels.size() != velMeshParams->name.size()) success = false;
-      //if (success == false) {
-      //   stringstream ss;
-      //   ss << "(PROJECT) ERROR in configuration file velocity mesh definitions at ";
-      //   ss << __FILE__ << ":" << __LINE__ << endl;
-      //   cerr << ss.str(); return success;
-      //}
 
       ObjectWrapper& owrapper = getObjectWrapper();
       
-      // ********** VELOCITY MESHES  ********** //
-      
-      // If velocity meshes were not defined under 'velocitymesh' config file region, 
-      // read the parameters from 'gridbuilder'
-      //if (velMeshParams->name.size() == 0) {
-      //   velMeshParams->resize(1);
-      //   velMeshParams->name[0] = "gridbuilder";
-      //   RP::get("gridbuilder.vx_min",velMeshParams->vx_min[0]);
-      //   RP::get("gridbuilder.vy_min",velMeshParams->vy_min[0]);
-      //   RP::get("gridbuilder.vz_min",velMeshParams->vz_min[0]);
-      //   RP::get("gridbuilder.vx_max",velMeshParams->vx_max[0]);
-      //   RP::get("gridbuilder.vy_max",velMeshParams->vy_max[0]);
-      //   RP::get("gridbuilder.vz_max",velMeshParams->vz_max[0]);
-      //   RP::get("gridbuilder.vx_length",velMeshParams->vx_length[0]);
-      //   RP::get("gridbuilder.vy_length",velMeshParams->vy_length[0]);
-      //   RP::get("gridbuilder.vz_length",velMeshParams->vz_length[0]);
-      //   velMeshParams->maxRefLevels[0] = 0;
-      //}
-
-      //// Store velocity mesh parameters
-      //for (size_t m=0; m<velMeshParams->name.size(); ++m) {         
-      //   // Check that a mesh with the same name doesn't already exists:
-      //   bool addMesh = true;         
-      //   for (size_t i=0; i<owrapper.velocityMeshes.size(); ++i) {
-      //      if (velMeshParams->name[m] == owrapper.velocityMeshes[i].name) {
-      //         addMesh = false;
-      //         break;
-      //      }
-      //   }
-      //   if (addMesh == false) {
-      //      stringstream ss;
-      //      ss << "(PROJECT) ERROR: Velocity mesh called '" << velMeshParams->name[m] << "' already exists in ";
-      //      ss << __FILE__ << ":" << __LINE__ << endl;
-      //      cerr << ss.str(); success = false;
-      //      continue;
-      //   }
-
-      //   vmesh::MeshParameters meshParams;
-      //   meshParams.name = velMeshParams->name[m];
-      //   meshParams.meshLimits[0] = velMeshParams->vx_min[m];
-      //   meshParams.meshLimits[1] = velMeshParams->vx_max[m];
-      //   meshParams.meshLimits[2] = velMeshParams->vy_min[m];
-      //   meshParams.meshLimits[3] = velMeshParams->vy_max[m];
-      //   meshParams.meshLimits[4] = velMeshParams->vz_min[m];
-      //   meshParams.meshLimits[5] = velMeshParams->vz_max[m];
-      //   meshParams.gridLength[0] = velMeshParams->vx_length[m];
-      //   meshParams.gridLength[1] = velMeshParams->vy_length[m];
-      //   meshParams.gridLength[2] = velMeshParams->vz_length[m];
-      //   meshParams.blockLength[0] = WID;
-      //   meshParams.blockLength[1] = WID;
-      //   meshParams.blockLength[2] = WID;
-      //   meshParams.refLevelMaxAllowed = velMeshParams->maxRefLevels[m];
-      //   owrapper.velocityMeshes.push_back(meshParams);
-      //    if(meshParams.gridLength[0] > MAX_BLOCKS_PER_DIM  || meshParams.gridLength[1] > MAX_BLOCKS_PER_DIM  || meshParams.gridLength[2] > MAX_BLOCKS_PER_DIM ) {
-      //       stringstream ss;
-      //       ss << "(PROJECT) ERROR: Velocity mesh called '" << velMeshParams->name[m] << "' has too many blocks per dimension. Maximum defined in MAX_BLOCKS_PER_DIM is " << MAX_BLOCKS_PER_DIM << " "; 
-      //       ss << __FILE__ << ":" << __LINE__ << endl;
-      //       cerr << ss.str(); success = false;
-      //       continue;
-      //    }
-      //}
-
-      //delete velMeshParams; velMeshParams = NULL;
-      
-      // ********** PARTICLE SPECIES ********** //
-
       // If particle population(s) have not been defined, add protons as a default population
       // and assume that the velocity mesh is called 'gridbuilder'
       //if (popNames.size() == 0) {
@@ -297,62 +200,10 @@ namespace projects {
 
       //   owrapper.particleSpecies.push_back(population);
       //   printPopulations();
-      //   baseClassInitialized = success;
       //   return success;
       //}
-
-      //// Parse populations from configuration file parameters:
-      //for (size_t p=0; p<popNames.size(); ++p) {
-      //   species::Species population;
-      //   population.name = popNames[p];
-      //   population.charge = popCharges[p]*physicalconstants::CHARGE;
-      //   double massUnits = 0;
-      //   if (popMassUnits[p] == "PROTON") {
-      //      massUnits = physicalconstants::MASS_PROTON;
-      //   }
-      //   else if (popMassUnits[p] == "ELECTRON") {
-      //      massUnits = physicalconstants::MASS_ELECTRON;
-      //   }
-      //   else {
-      //      stringstream ss;
-      //      ss << "(PROJECT) ERROR: Could not determine species '" << popNames[p] << " mass units set to " << popMassUnits[p]  << " (not PROTON or ELECTRON) in ";
-      //      ss << __FILE__ << ":" << __LINE__ << endl;
-      //      cerr << ss.str(); success = false;
-      //   }
-      //   population.mass = massUnits*popMasses[p];
-      //   population.sparseMinValue = popSparseMinValue[p];
-      //   
-      //   bool meshFound = false;
-      //   for (size_t m=0; m<owrapper.velocityMeshes.size(); ++m) {
-      //      if (owrapper.velocityMeshes[m].name == popMeshNames[p]) {
-      //         population.velocityMesh = m;
-      //         meshFound = true; break;
-      //      }
-      //   }
-      //   if (meshFound == false) {
-      //      stringstream ss;
-      //      ss << "(PROJECT) ERROR: Could not associate population '" << popNames[p] << "' with a velocity mesh in ";
-      //      ss << __FILE__ << ":" << __LINE__ << endl; 
-      //      cerr << ss.str(); success = false;
-      //   }
-
-      //   if (success == false) {
-      //      stringstream ss;
-      //      ss << "ERROR in population '" << popNames[p] << "' parameters" << endl;
-      //      cerr << ss.str(); continue;
-      //   }
-      //   
-      //   owrapper.particleSpecies.push_back(population);
-      //}
-
-      //if (success == false) {
-      //   logFile << "ERROR in configuration file particle population definitions!" << endl << writeVerbose;
-      //} else {
-      //   printPopulations();
-      //}
-
-      //baseClassInitialized = success;
-      //return success;
+      baseClassInitialized = success;
+      return success;
    }
    
    /** Check if base class has been initialized.

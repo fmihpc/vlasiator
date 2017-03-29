@@ -25,6 +25,7 @@ bool ObjectWrapper::addPopulationParameters() {
      // Originally, there was support for species and velocity meshes to be separate.
      // This was abandoned, since there wasn't really any use for it.
      newSpecies.name = newVMesh.name = pop;
+     newSpecies.velocityMesh = getObjectWrapper().velocityMeshes.size();
 
      getObjectWrapper().particleSpecies.push_back(newSpecies);
      getObjectWrapper().velocityMeshes.push_back(newVMesh);
