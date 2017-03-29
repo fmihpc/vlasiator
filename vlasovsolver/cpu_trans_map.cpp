@@ -684,7 +684,7 @@ void update_remote_mapping_contribution(
            mcell->neighbor_number_of_blocks = ccell->get_number_of_velocity_blocks(popID);
            mcell->neighbor_block_data = (Realf*)aligned_malloc(mcell->neighbor_number_of_blocks * WID3 *sizeof(Realf), 64);
            receive_cells.push_back(local_cells[c]);
-           receiveBuffers.push_back( mcell->neighbor_block_data);
+           receiveBuffers.push_back(mcell->neighbor_block_data);
         }
     }
     
@@ -714,29 +714,34 @@ void update_remote_mapping_contribution(
           SpatialCell* spatial_cell = mpiGrid[receive_cells[c]];
           Realf *blockData = spatial_cell->get_data(popID);
           
-#pragma omp for
+#pragma omp for 
           for(unsigned int cell = 0; cell<VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(popID); ++cell) {
              // copy received target data to temporary array where target data is stored.
              blockData[cell] += receiveBuffers[c][cell];
           }
-          //and free temporary receive buffer
-#pragma master
-          aligned_free(receiveBuffers[c]);
        }
        
-        // send cell data is set to zero. This is to avoid double copy if
-        // one cell is the neighbor on bot + and - side to the same
-        // process
-        for (size_t c=0; c<send_cells.size(); ++c) {
-           SpatialCell* spatial_cell = mpiGrid[send_cells[c]];
-           Realf * blockData = spatial_cell->get_data(popID);
+       
+       // send cell data is set to zero. This is to avoid double copy if
+       // one cell is the neighbor on bot + and - side to the same
+       // process
+       for (size_t c=0; c<send_cells.size(); ++c) {
+          SpatialCell* spatial_cell = mpiGrid[send_cells[c]];
+          Realf * blockData = spatial_cell->get_data(popID);
            
 #pragma omp for nowait
           for(unsigned int cell = 0; cell<VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(popID); ++cell) {
              // copy received target data to temporary array where target data is stored.
              blockData[cell] = 0;
           }
-        }
-        
+       }
     }
+    
+    //and finally free temporary receive buffer
+    for (size_t c=0; c < receiveBuffers.size(); ++c) {
+       aligned_free(receiveBuffers[c]);
+    }
+    
+
+
 }
