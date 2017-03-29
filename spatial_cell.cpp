@@ -721,6 +721,30 @@ namespace spatial_cell {
             block_lengths.push_back(sizeof(Real) * 4);
          }
          
+         // send RHOM, VX, VY, VZ
+         if ((SpatialCell::mpi_transfer_type & Transfer::CELL_RHOM_V)!=0){
+            displacements.push_back((uint8_t*) &(this->parameters[CellParams::RHOM]) - (uint8_t*) this);
+            block_lengths.push_back(sizeof(Real) * 4);
+         }
+         
+         // send RHOM_DT2, VX_DT2, VY_DT2, VZ_DT2
+         if ((SpatialCell::mpi_transfer_type & Transfer::CELL_RHOMDT2_VDT2)!=0){
+            displacements.push_back((uint8_t*) &(this->parameters[CellParams::RHOM_DT2]) - (uint8_t*) this);
+            block_lengths.push_back(sizeof(Real) * 4);
+         }
+         
+         // send RHOQ
+         if ((SpatialCell::mpi_transfer_type & Transfer::CELL_RHOQ)!=0){
+            displacements.push_back((uint8_t*) &(this->parameters[CellParams::RHOQ]) - (uint8_t*) this);
+            block_lengths.push_back(sizeof(Real));
+         }
+         
+         // send RHOQ_DT2
+         if ((SpatialCell::mpi_transfer_type & Transfer::CELL_RHOQDT2)!=0){
+            displacements.push_back((uint8_t*) &(this->parameters[CellParams::RHOQ_DT2]) - (uint8_t*) this);
+            block_lengths.push_back(sizeof(Real));
+         }
+         
          // send  spatial cell derivatives
          if ((SpatialCell::mpi_transfer_type & Transfer::CELL_DERIVATIVES)!=0){
             displacements.push_back((uint8_t*) &(this->derivatives[0]) - (uint8_t*) this);

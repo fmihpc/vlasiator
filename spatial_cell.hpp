@@ -105,19 +105,23 @@ namespace spatial_cell {
       const uint64_t CELL_BGB                 = (1<<14);
       const uint64_t CELL_RHO_RHOV            = (1<<15);
       const uint64_t CELL_RHODT2_RHOVDT2      = (1<<16);
-      const uint64_t CELL_BVOL                = (1<<17);
-      const uint64_t CELL_BVOL_DERIVATIVES    = (1<<18);
-      const uint64_t CELL_DIMENSIONS          = (1<<19);
-      const uint64_t CELL_IOLOCALCELLID       = (1<<20);
-      const uint64_t NEIGHBOR_VEL_BLOCK_DATA  = (1<<21);
-      const uint64_t CELL_HALL_TERM           = (1<<22);
-      const uint64_t CELL_P                   = (1<<23);
-      const uint64_t CELL_PDT2                = (1<<24);
-      const uint64_t CELL_RHOQ_TOT            = (1<<25);
-      const uint64_t CELL_PHI                 = (1<<26);
-      const uint64_t POP_METADATA             = (1<<27);
-      const uint64_t RANDOMGEN                = (1<<28);
-      const uint64_t CELL_GRADPE_TERM         = (1<<29);
+      const uint64_t CELL_RHOM_V              = (1<<17);
+      const uint64_t CELL_RHOMDT2_VDT2        = (1<<18);
+      const uint64_t CELL_RHOQ                = (1<<19);
+      const uint64_t CELL_RHOQ_DT2            = (1<<20);
+      const uint64_t CELL_BVOL                = (1<<21);
+      const uint64_t CELL_BVOL_DERIVATIVES    = (1<<22);
+      const uint64_t CELL_DIMENSIONS          = (1<<23);
+      const uint64_t CELL_IOLOCALCELLID       = (1<<24);
+      const uint64_t NEIGHBOR_VEL_BLOCK_DATA  = (1<<25);
+      const uint64_t CELL_HALL_TERM           = (1<<26);
+      const uint64_t CELL_P                   = (1<<27);
+      const uint64_t CELL_PDT2                = (1<<28);
+      const uint64_t CELL_RHOQ_TOT            = (1<<29);
+      const uint64_t CELL_PHI                 = (1<<30);
+      const uint64_t POP_METADATA             = (1<<31);
+      const uint64_t RANDOMGEN                = (1<<32);
+      const uint64_t CELL_GRADPE_TERM         = (1<<33);
       //all data
       const uint64_t ALL_DATA =
       CELL_PARAMETERS
