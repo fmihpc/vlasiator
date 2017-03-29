@@ -34,6 +34,16 @@ bool ObjectWrapper::addPopulationParameters() {
      RP::add(pop + "_properties.mass","Particle mass in given units (float)", 1);
      RP::add(pop + "_properties.sparse_min_value","Minimum value of distribution function in any cell of a velocity block for the block to be considered to have content", 1e-15);
 
+     // Grid sparsity parameters
+     RP::add(pop + "_sparse.minValue", "Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents", 1);
+     RP::add(pop + "_sparse.blockAddWidthV", "Number of layers of blocks that are kept in velocity space around the blocks with content",1);
+     RP::add(pop + "_sparse.conserve_mass", "If true, then mass is conserved by scaling the dist. func. in the remaining blocks", false);
+     RP::add(pop + "_sparse.dynamicAlgorithm", "Type of algorithm used for calculating the dynamic minValue; 0 = none, 1 = linear algorithm based on rho, 2 = linear algorithm based on Blocks, (Example linear algorithm: y = kx+b, where dynamicMinValue1=k*dynamicBulkValue1 + b, and dynamicMinValue2 = k*dynamicBulkValue2 + b", 0);
+     RP::add(pop + "_sparse.dynamicMinValue1", "The minimum value for the dynamic minValue", 1);
+     RP::add(pop + "_sparse.dynamicMinValue2", "The maximum value (value 2) for the dynamic minValue", 1);
+     RP::add(pop + "_sparse.dynamicBulkValue1", "Minimum value for the dynamic algorithm range, so for example if dynamicAlgorithm=1 then for sparse.dynamicBulkValue1 = 1e3, sparse.dynamicBulkValue2=1e5, we apply the algorithm to cells for which 1e3<cell.rho<1e5", 0);
+     RP::add(pop + "_sparse.dynamicBulkValue2", "Maximum value for the dynamic algorithm range, so for example if dynamicAlgorithm=1 then for sparse.dynamicBulkValue1 = 1e3, sparse.dynamicBulkValue2=1e5, we apply the algorithm to cells for which 1e3<cell.rho<1e5", 0);
+
      RP::add(pop + "_vspace.vx_min","Minimum value for velocity mesh vx-coordinates.",0);
      RP::add(pop + "_vspace.vx_max","Maximum value for velocity mesh vx-coordinates.",0);
      RP::add(pop + "_vspace.vy_min","Minimum value for velocity mesh vy-coordinates.",0);
@@ -85,8 +95,16 @@ bool ObjectWrapper::getParameters() {
          return false;
       }
 
-      RP::get(pop + "_properties.sparse_min_value",species.sparseMinValue);
-      // TODO: Add additional sparsity parameters
+      // sparsity parameters
+      RP::get(pop + "_sparse.minValue", species.sparseMinValue);
+      RP::get(pop + "_sparse.blockAddWidthV", species.sparseBlockAddWidthV);
+      RP::get(pop + "_sparse.conserve_mass", species.sparse_conserve_mass);
+      RP::get(pop + "_sparse.dynamicAlgorithm", species.sparseDynamicAlgorithm);
+      RP::get(pop + "_sparse.dynamicBulkValue1", species.sparseDynamicBulkValue1);
+      RP::get(pop + "_sparse.dynamicBulkValue2", species.sparseDynamicBulkValue2);
+      RP::get(pop + "_sparse.dynamicMinValue1", species.sparseDynamicMinValue1);
+      RP::get(pop + "_sparse.dynamicMinValue2", species.sparseDynamicMinValue2);
+
 
       // Particle velocity space properties
       RP::get(pop + "_vspace.vx_min",vMesh.meshLimits[0]);
@@ -102,16 +120,6 @@ bool ObjectWrapper::getParameters() {
       int maxRefLevel; // Temporary variable, since target value is a uint8_t
       RP::get(pop + "_vspace.max_refinement_level",maxRefLevel);
       vMesh.refLevelMaxAllowed = maxRefLevel;
-
-      //// Get sparsity parameters
-      //Readparameters::get("sparse.minValue", P::sparseMinValue);
-      //Readparameters::get("sparse.blockAddWidthV", P::sparseBlockAddWidthV); 
-      //Readparameters::get("sparse.conserve_mass", P::sparse_conserve_mass);
-      //Readparameters::get("sparse.dynamicAlgorithm", P::sparseDynamicAlgorithm);
-      //Readparameters::get("sparse.dynamicBulkValue1", P::sparseDynamicBulkValue1);
-      //Readparameters::get("sparse.dynamicBulkValue2", P::sparseDynamicBulkValue2);
-      //Readparameters::get("sparse.dynamicMinValue1", P::sparseDynamicMinValue1);
-      //Readparameters::get("sparse.dynamicMinValue2", P::sparseDynamicMinValue2);
 
    }
 
