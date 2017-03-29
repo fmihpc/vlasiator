@@ -68,6 +68,8 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
           
           const Realf* data       = blockContainer.getData();
           const Real* blockParams = blockContainer.getParameters();
+          const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+          const Real charge = getObjectWrapper().particleSpecies[popID].charge;
           
           // Temporary array for storing moments
           Real array[4];
@@ -92,6 +94,11 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
           cell->parameters[CellParams::RHOVX] += array[1];
           cell->parameters[CellParams::RHOVY] += array[2];
           cell->parameters[CellParams::RHOVZ] += array[3];
+          cell->parameters[CellParams::RHOM  ] += array[0]*mass;
+          cell->parameters[CellParams::RHOMVX] += array[1]*mass;
+          cell->parameters[CellParams::RHOMVY] += array[2]*mass;
+          cell->parameters[CellParams::RHOMVZ] += array[3]*mass;
+          cell->parameters[CellParams::RHOQ  ] += array[0]*charge;
        } // for-loop over particle species
     }
 
@@ -105,6 +112,7 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
        
        const Realf* data       = blockContainer.getData();
        const Real* blockParams = blockContainer.getParameters();
+       const Real mass = getObjectWrapper().particleSpecies[popID].mass;
        
        // Temporary array for storing moments
        Real array[3];
@@ -121,7 +129,6 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
        }
        
        // Store species' contribution to bulk velocity moments
-       const Real mass = getObjectWrapper().particleSpecies[popID].mass;
        pop.P[0] = mass*array[0];
        pop.P[1] = mass*array[1];
        pop.P[2] = mass*array[2];
@@ -177,6 +184,8 @@ void calculateMoments_R_maxdt(
           if (blockContainer.size() == 0) continue;
           const Realf* data       = blockContainer.getData();
           const Real* blockParams = blockContainer.getParameters();
+          const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+          const Real charge = getObjectWrapper().particleSpecies[popID].charge;
 
           #ifdef DEBUG_MOMENTS
           bool ok = true;
@@ -238,6 +247,11 @@ void calculateMoments_R_maxdt(
           cell->parameters[CellParams::RHOVX_R] += array[1];
           cell->parameters[CellParams::RHOVY_R] += array[2];
           cell->parameters[CellParams::RHOVZ_R] += array[3];
+          cell->parameters[CellParams::RHOM_R  ] += array[0]*mass;
+          cell->parameters[CellParams::RHOMVX_R] += array[1]*mass;
+          cell->parameters[CellParams::RHOMVY_R] += array[2]*mass;
+          cell->parameters[CellParams::RHOMVZ_R] += array[3]*mass;
+          cell->parameters[CellParams::RHOQ_R  ] += array[0]*charge;
        } // for-loop over spatial cells
     } // for-loop over particle species
 
@@ -257,6 +271,7 @@ void calculateMoments_R_maxdt(
          if (blockContainer.size() == 0) continue;
          const Realf* data       = blockContainer.getData();
          const Real* blockParams = blockContainer.getParameters();
+         const Real mass = getObjectWrapper().particleSpecies[popID].mass;
 
          // Temporary array where species' contribution to 2nd moments is accumulated
          Real array[3];
@@ -273,7 +288,6 @@ void calculateMoments_R_maxdt(
          } // for-loop over velocity blocks
 
          // Store species' contribution to 2nd bulk velocity moments
-         const Real mass = getObjectWrapper().particleSpecies[popID].mass;
          pop.P_R[0] = mass*array[0];
          pop.P_R[1] = mass*array[1];
          pop.P_R[2] = mass*array[2];
@@ -324,6 +338,8 @@ void calculateMoments_V(
          if (blockContainer.size() == 0) continue;
          const Realf* data       = blockContainer.getData();
          const Real* blockParams = blockContainer.getParameters();
+         const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+         const Real charge = getObjectWrapper().particleSpecies[popID].charge;
 
          // Temporary array for storing moments
          Real array[4];
@@ -349,6 +365,11 @@ void calculateMoments_V(
          cell->parameters[CellParams::RHOVX_V] += array[1];
          cell->parameters[CellParams::RHOVY_V] += array[2];
          cell->parameters[CellParams::RHOVZ_V] += array[3];
+         cell->parameters[CellParams::RHOM_V  ] += array[0]*mass;
+         cell->parameters[CellParams::RHOMVX_V] += array[1]*mass;
+         cell->parameters[CellParams::RHOMVY_V] += array[2]*mass;
+         cell->parameters[CellParams::RHOMVZ_V] += array[3]*mass;
+         cell->parameters[CellParams::RHOQ_V  ] += array[0]*charge;
       } // for-loop over spatial cells
    } // for-loop over particle species
 
@@ -368,6 +389,7 @@ void calculateMoments_V(
          if (blockContainer.size() == 0) continue;
          const Realf* data       = blockContainer.getData();
          const Real* blockParams = blockContainer.getParameters();
+         const Real mass = getObjectWrapper().particleSpecies[popID].mass;
 
          // Temporary array where moments are stored
          Real array[3];
@@ -385,7 +407,6 @@ void calculateMoments_V(
          } // for-loop over velocity blocks
          
          // Store species' contribution to 2nd bulk velocity moments
-         const Real mass = getObjectWrapper().particleSpecies[popID].mass;
          pop.P_V[0] = mass*array[0];
          pop.P_V[1] = mass*array[1];
          pop.P_V[2] = mass*array[2];
