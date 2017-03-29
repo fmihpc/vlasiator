@@ -79,106 +79,6 @@ bool do_translate_cell(SpatialCell* SC){
       return true;
 }
 
-/** Create temporary target grid where we write the mapped values for
- * all cells in cells vector. In this non-AMR version it contains the
- * same blocks as the normal grid.
- * @param mpiGrid
- * @param cells .*/
-void createTargetGrid(
-        dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-        const vector<CellID>& cells,
-        const int& popID) {
-
-   phiprof::start("create-target-grid");
-    #pragma omp parallel for
-    for (size_t c=0; c<cells.size(); ++c) {
-      Real t_start = 0.0;
-      if (Parameters::prepareForRebalance == true) t_start = MPI_Wtime();
-      
-      SpatialCell* spatial_cell = mpiGrid[cells[c]];
-      
-      // get target mesh & blocks (in temporary arrays)
-      vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh    = spatial_cell->get_velocity_mesh_temporary();
-      vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks_temporary();
-
-      // copy mesh. Okay, this works because reference variables cannot be re-pointed,
-      // i.e., vmesh still points to the temporary mesh.
-      vmesh = spatial_cell->get_velocity_mesh(popID);
-
-      // allocate space in block container and set block parameters
-      blockContainer.clear();
-      blockContainer.setSize(vmesh.size());
-
-      for (size_t b=0; b<vmesh.size(); ++b) {
-         vmesh::GlobalID blockGID = vmesh.getGlobalID(b);
-         Real* blockParams = blockContainer.getParameters(b);
-         blockParams[BlockParams::VXCRD] = spatial_cell->get_velocity_block_vx_min(popID,blockGID);
-         blockParams[BlockParams::VYCRD] = spatial_cell->get_velocity_block_vy_min(popID,blockGID);
-         blockParams[BlockParams::VZCRD] = spatial_cell->get_velocity_block_vz_min(popID,blockGID);
-         vmesh.getCellSize(blockGID,&(blockParams[BlockParams::DVX]));
-      }
-      
-      if (Parameters::prepareForRebalance == true) 
-         spatial_cell->get_cell_parameters()[CellParams::LBWEIGHTCOUNTER] += (MPI_Wtime()-t_start);
-   }
-   phiprof::stop("create-target-grid");
-}
-
-/** Clear temporary target grid for all given cells.
- * @param mpiGrid Parallel grid.
- * @param cells Spatial cells in which mesh is cleared.*/
-void clearTargetGrid(
-        dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-        const vector<CellID>& cells) {
-
-    phiprof::start("clear-target-grid");
-    #pragma omp parallel for
-    for (size_t c=0; c<cells.size(); ++c) {
-        SpatialCell *spatial_cell = mpiGrid[cells[c]];
-        spatial_cell->get_velocity_mesh_temporary().clear();
-        spatial_cell->get_velocity_blocks_temporary().clear();
-    }
-    phiprof::stop("clear-target-grid");
-}
-
-/** Set all values in the temporary target grid to zero (0.0) for all given spatial cells.
- * @param mpiGrid Parallel grid.
- * @param cells List of spatial cells.*/
-void zeroTargetGrid(
-        dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-        const vector<CellID>& cells) {
-    
-    phiprof::start("zero-target-grid");      
-    #pragma omp  parallel for
-    for (size_t c=0; c<cells.size(); ++c) {
-        SpatialCell *spatial_cell = mpiGrid[cells[c]];
-        vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks_temporary();
-        for (unsigned int cell=0; cell<VELOCITY_BLOCK_LENGTH*blockContainer.size(); ++cell) {
-            blockContainer.getData()[cell] = 0;
-        }
-    }
-    phiprof::stop("zero-target-grid");
-}
-
-/** Swap temporary target grid and normal grid. This is cheap as values are not copied.
- * @param mpiGrid Parallel grid.
- * @param cells List of spatial cells in which the meshes are swapped.
- * @param popID ID of the particle species whose mesh is swapped.*/
-void swapTargetSourceGrid(
-        dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-        const vector<CellID>& cells,
-        const int& popID) {
-   
-    phiprof::start("swap-target-grid");
-    for (size_t c=0; c<cells.size(); ++c) {
-        SpatialCell* spatial_cell = mpiGrid[cells[c]];
-        spatial_cell->swap(spatial_cell->get_velocity_mesh_temporary(),
-                           spatial_cell->get_velocity_blocks_temporary(),
-                           popID);
-    }
-    phiprof::stop("swap-target-grid");
-}
-
 /*
  * return INVALID_CELLID if the spatial neighbor does not exist, or if
  * it is a cell that is not computed. If the
@@ -781,7 +681,6 @@ void update_remote_mapping_contribution(
            //Receive data that mcell mapped to ccell to this local cell
            //data array, if 1) m is a valid source cell, 2) center cell is to be updated (normal cell) 3) m is remote
            //we will here allocate a receive buffer, since we need to aggregate values
-           vmesh::VelocityBlockContainer<vmesh::LocalID>& pcellBlockContainer = pcell->get_velocity_blocks_temporary();
            mcell->neighbor_number_of_blocks = ccell->get_number_of_velocity_blocks(popID);
            mcell->neighbor_block_data = (Realf*)aligned_malloc(mcell->neighbor_number_of_blocks * WID3 *sizeof(Realf), 64);
            receive_cells.push_back(local_cells[c]);
