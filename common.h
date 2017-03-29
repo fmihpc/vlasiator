@@ -119,7 +119,6 @@ namespace BlockParams {
  * field solver are optimised for this particular ordering.
  */
 namespace CellParams {
-#warning New charge/mass densities are not communicated
 #warning RHO/RHOV not needed any more eventually
 #warning RHOMV not needed, switch to V?
    enum {
