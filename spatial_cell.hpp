@@ -197,6 +197,7 @@ namespace spatial_cell {
       vmesh::LocalID get_number_of_velocity_blocks(const int& popID) const;
       vmesh::LocalID get_number_of_all_velocity_blocks() const;
       int get_number_of_populations() const;
+      Population & get_population(const int popID);
 
       uint8_t get_maximum_refinement_level(const int& popID);
       const Real& get_max_r_dt(const int& popID) const;
@@ -897,6 +898,10 @@ namespace spatial_cell {
     
    inline int SpatialCell::get_number_of_populations() const {
       return populations.size();
+   }
+   
+   inline Population & SpatialCell::get_population(const int popID) {
+      return populations[popID];
    }
 
    inline const vmesh::LocalID* SpatialCell::get_velocity_grid_length(const int& popID,const uint8_t& refLevel) {
