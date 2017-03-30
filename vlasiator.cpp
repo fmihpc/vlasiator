@@ -282,8 +282,6 @@ int main(int argn,char* args[]) {
    //init parameter file reader
    Readparameters readparameters(argn,args,MPI_COMM_WORLD);
    P::addParameters();
-   projects::Project::addParameters();
-   sysBoundaries.addParameters();
    getObjectWrapper().addParameters();
    readparameters.parse(); // First pass parsing
    if (P::getParameters() == false) {
@@ -294,12 +292,13 @@ int main(int argn,char* args[]) {
    }
 
    getObjectWrapper().addPopulationParameters();
-   readparameters.parse(); // Second pass parsing: specific population parameters
-   getObjectWrapper().getParameters();
-
+   sysBoundaries.addParameters();
+   projects::Project::addParameters();
    Project* project = projects::createProject();
    getObjectWrapper().project = project;
    
+   readparameters.parse(); // Second pass parsing: specific population parameters
+   getObjectWrapper().getParameters();
    project->getParameters();
    sysBoundaries.getParameters();
    phiprof::stop("Read parameters");

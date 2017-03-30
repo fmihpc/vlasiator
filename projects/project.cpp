@@ -449,7 +449,7 @@ namespace projects {
       const Real* blockParams = cell->get_block_parameters(popID);
       for (vmesh::LocalID blockLID=0; blockLID<cell->get_number_of_velocity_blocks(popID); ++blockLID) {
          Real tmp = 0.0;
-         for (int i=0; i<WID3; ++i) tmp += data[blockLID*WID3+i];
+         for (unsigned int i=0; i<WID3; ++i) tmp += data[blockLID*WID3+i];
          const Real DV3 = blockParams[BlockParams::DVX]*blockParams[BlockParams::DVY]*blockParams[BlockParams::DVZ];
          sum += tmp*DV3;
          blockParams += BlockParams::N_VELOCITY_BLOCK_PARAMS;
@@ -473,17 +473,6 @@ namespace projects {
       exit(1);
    }
    
-   Real Project::calcPhaseSpaceDensity(
-      creal& x, creal& y, creal& z,
-      creal& dx, creal& dy, creal& dz,
-      creal& vx, creal& vy, creal& vz,
-      creal& dvx, creal& dvy, creal& dvz,
-      const int& popID) const {
-      cerr << "ERROR: Project::calcPhaseSpaceDensity called instead of derived class function!" << endl;
-      exit(1);
-      return -1.0;
-   }
-
    /*!
      Get random number between 0 and 1.0. One should always first initialize the rng.
    */

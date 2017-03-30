@@ -156,7 +156,7 @@ namespace projects {
       return rvalue;
    }
 
-   Real Flowthrough::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const int& popID) const {
+   Real Flowthrough::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const unsigned int popID) const {
       if (emptyBox == true) return 0.0;
       if((this->nSpaceSamples > 1) && (this->nVelocitySamples > 1)) {
          creal d_x = dx / (nSpaceSamples-1);
@@ -195,7 +195,8 @@ namespace projects {
    std::vector<std::array<Real, 3> > Flowthrough::getV0(
       creal x,
       creal y,
-      creal z
+      creal z,
+      const unsigned int popID
    ) const {
       vector<std::array<Real, 3>> centerPoints;
       std::array<Real, 3> point {{this->V0[0], this->V0[1], this->V0[2]}};

@@ -153,13 +153,13 @@ namespace projects {
       }
    }
    
-   Real Dispersion::getDistribValue(creal& vx,creal& vy, creal& vz) const {
+   Real Dispersion::getDistribValue(creal& vx,creal& vy, creal& vz, const unsigned int popID) const {
       creal mass = physicalconstants::MASS_PROTON;
       creal kb = physicalconstants::K_B;
       return exp(- mass * ((vx-this->VX0)*(vx-this->VX0) + (vy-this->VY0)*(vy-this->VY0) + (vz-this->VZ0)*(vz-this->VZ0)) / (2.0 * kb * this->TEMPERATURE));
    }
    
-   Real Dispersion::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const int& popID) const {
+   Real Dispersion::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const unsigned int popID) const {
       const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
       const vmesh::MeshParameters& meshParams = getObjectWrapper().velocityMeshes[meshID];
       if (vx < meshParams.meshMinLimits[0] + 0.5*dvx ||
@@ -186,7 +186,8 @@ namespace projects {
                avg += getDistribValue(
                   vx+vi*d_vx - this->velocityPertAbsAmp * (0.5 - this->rndVel[0]),
                   vy+vj*d_vy - this->velocityPertAbsAmp * (0.5 - this->rndVel[1]),
-                  vz+vk*d_vz - this->velocityPertAbsAmp * (0.5 - this->rndVel[2])
+                  vz+vk*d_vz - this->velocityPertAbsAmp * (0.5 - this->rndVel[2]),
+                  popID
                );
             }
             

@@ -41,15 +41,17 @@ namespace projects {
     protected:
       Real getDistribValue(
                            creal& x,creal& y, creal& z,
-                           creal& vx, creal& vy, creal& vz
-         );
+                           creal& vx, creal& vy, creal& vz,
+                           const unsigned int popID
+         ) const;
       virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
       virtual Real calcPhaseSpaceDensity(
                                          creal& x, creal& y, creal& z,
                                          creal& dx, creal& dy, creal& dz,
                                          creal& vx, creal& vy, creal& vz,
-                                         creal& dvx, creal& dvy, creal& dvz,const int& popID
-                                        );
+                                         creal& dvx, creal& dvy, creal& dvz,
+                                         const unsigned int popID
+                                        ) const;
       
       Real B0;
       Real DENSITY;

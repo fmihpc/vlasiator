@@ -49,7 +49,7 @@ namespace projects {
       virtual ~ElectricSail();
         
       static void addParameters();
-      Real getCorrectNumberDensity(spatial_cell::SpatialCell* cell,const int& popID) const;
+      Real getCorrectNumberDensity(spatial_cell::SpatialCell* cell,const unsigned int popID) const;
       virtual void getParameters();
       virtual bool initialize();
       virtual void setCellBackgroundField(spatial_cell::SpatialCell* cell) const;
@@ -79,12 +79,12 @@ namespace projects {
             creal& x, creal& y, creal& z,
             creal& dx, creal& dy, creal& dz,
             creal& vx, creal& vy, creal& vz,
-            creal& dvx, creal& dvy, creal& dvz,const int& popID) const;
+            creal& dvx, creal& dvy, creal& dvz,const unsigned int popID) const;
       
       Real getDistribValue(creal& vx,creal& vy, creal& vz,
-                           creal& dvx, creal& dvy, creal& dvz,const int& popID) const;
+                           creal& dvx, creal& dvy, creal& dvz,const unsigned int popID) const;
 
-      std::vector<std::array<Real,3>> getV0(creal x,creal y,creal z) const;
+      std::vector<std::array<Real,3>> getV0(creal x,creal y,creal z, const unsigned int popID) const;
 
       virtual bool rescalesDensity(const int& popID) const;
 

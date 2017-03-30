@@ -589,7 +589,7 @@ namespace spatial_cell {
 
       // Copy values from this block:
       const Realf* ptr = src + blockLID*WID3;
-      for (int k=0; k<WID; ++k) for (int j=0; j<WID; ++j) for (int i=0; i<WID; ++i) {
+      for (unsigned int k=0; k<WID; ++k) for (unsigned int j=0; j<WID; ++j) for (unsigned int i=0; i<WID; ++i) {
          array[vblock::padIndex<PAD>(i+PAD,j+PAD,k+PAD)] = ptr[vblock::index(i,j,k)];
       }
 

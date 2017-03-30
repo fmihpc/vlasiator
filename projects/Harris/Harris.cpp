@@ -67,7 +67,8 @@ namespace projects {
    Real Harris::getDistribValue(
       creal& x,creal& y, creal& z,
       creal& vx, creal& vy, creal& vz,
-      creal& dvx, creal& dvy, creal& dvz
+      creal& dvx, creal& dvy, creal& dvz,
+      const unsigned int popID
    ) const {
       return this->DENSITY * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B * this->TEMPERATURE), 1.5) * (
          5.0 / pow(cosh(x / (this->SCA_LAMBDA)), 2.0) * exp(- physicalconstants::MASS_PROTON * (pow(vx, 2.0) + pow(vy, 2.0) + pow(vz, 2.0)) / (2.0 * physicalconstants::K_B * this->TEMPERATURE))
@@ -79,7 +80,7 @@ namespace projects {
       creal& x,creal& y,creal& z,
       creal& dx,creal& dy,creal& dz,
       creal& vx,creal& vy,creal& vz,
-      creal& dvx,creal& dvy,creal& dvz,const int& popID
+      creal& dvx,creal& dvy,creal& dvz,const unsigned int popID
    ) const {
       if((this->nSpaceSamples > 1) && (this->nVelocitySamples > 1)) {
          creal d_x = dx / (this->nSpaceSamples-1);
@@ -98,13 +99,13 @@ namespace projects {
                   for (uint vi=0; vi<this->nVelocitySamples; ++vi)
                      for (uint vj=0; vj<this->nVelocitySamples; ++vj)
                         for (uint vk=0; vk<this->nVelocitySamples; ++vk) {
-                           avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz);
+                           avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz, popID);
                         }
                         return avg /
                         (this->nSpaceSamples*this->nSpaceSamples*this->nSpaceSamples) /
                         (this->nVelocitySamples*this->nVelocitySamples*this->nVelocitySamples);
       } else {
-         return getDistribValue(x+0.5*dx, y+0.5*dy, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, dvx, dvy, dvz);
+         return getDistribValue(x+0.5*dx, y+0.5*dy, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, dvx, dvy, dvz, popID);
       }
       
       
@@ -134,7 +135,8 @@ namespace projects {
    vector<std::array<Real, 3>> Harris::getV0(
       creal x,
       creal y,
-      creal z
+      creal z,
+      const unsigned int popID
    ) const {
       vector<std::array<Real, 3>> V0;
       std::array<Real, 3> v = {{0.0, 0.0, 0.0 }};

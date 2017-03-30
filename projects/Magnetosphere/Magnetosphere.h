@@ -27,6 +27,17 @@
 #include "../projectTriAxisSearch.h"
 
 namespace projects {
+
+   struct MagnetosphereSpeciesParameters {
+      Real rho;
+      Real T;
+      Real V0[3];
+      Real ionosphereV0[3];
+      Real ionosphereRho;
+      uint nSpaceSamples;
+      uint nVelocitySamples;
+   };
+
    class Magnetosphere: public TriAxisSearch {
     public:
       Magnetosphere();
@@ -41,29 +52,26 @@ namespace projects {
                                          creal& dx, creal& dy, creal& dz,
                                          creal& vx, creal& vy, creal& vz,
                                          creal& dvx, creal& dvy, creal& dvz,
-                                         const int& popID
+                                         const unsigned int popID
                                         ) const;
       
     protected:
       Real getDistribValue(
                            creal& x,creal& y, creal& z,
                            creal& vx, creal& vy, creal& vz,
-                           creal& dvx, creal& dvy, creal& dvz
+                           creal& dvx, creal& dvy, creal& dvz,
+                           const unsigned int popID
                           ) const;
       virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
       virtual std::vector<std::array<Real, 3> > getV0(
                                                       creal x,
                                                       creal y,
-                                                      creal z
+                                                      creal z,
+                                                      const unsigned int popID
                                                      ) const;
       
-      Real T;
-      Real tailRho;
-      Real V0[3];
-      Real ionosphereV0[3];
       Real constBgB[3];
       bool noDipoleInSW;
-      Real ionosphereRho;
       Real ionosphereRadius;
       Real ionosphereTaperRadius;
       uint ionosphereGeometry;
@@ -71,8 +79,7 @@ namespace projects {
       Real dipoleScalingFactor;
       Real dipoleMirrorLocationX;
       uint dipoleType;
-      uint nSpaceSamples;
-      uint nVelocitySamples;
+      std::vector<MagnetosphereSpeciesParameters> speciesParams;
    }; // class Magnetosphere
 } // namespace projects
 

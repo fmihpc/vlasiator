@@ -43,18 +43,19 @@ namespace projects {
       Real getDistribValue(
                            creal& x,creal& y, creal& z,
                            creal& vx, creal& vy, creal& vz,
-                          const int& popID) const;
+                          const unsigned int popID) const;
       virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
       virtual Real calcPhaseSpaceDensity(
                                          creal& x, creal& y, creal& z,
                                          creal& dx, creal& dy, creal& dz,
                                          creal& vx, creal& vy, creal& vz,
                                          creal& dvx, creal& dvy, creal& dvz,
-                                         const int& popID) const;
+                                         const unsigned int popID) const;
       virtual std::vector<std::array<Real, 3> > getV0(
                                                       creal x,
                                                       creal y,
-                                                      creal z
+                                                      creal z,
+                                                      const unsigned int popID
                                                      ) const;
       int popID;
       int numberOfPopulations;

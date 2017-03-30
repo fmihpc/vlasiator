@@ -79,7 +79,7 @@ namespace projects {
       RP::get("Fluctuations.maxwCutoff", this->maxwCutoff);
    }
    
-   Real Fluctuations::getDistribValue(creal& vx,creal& vy, creal& vz) const {
+   Real Fluctuations::getDistribValue(creal& vx,creal& vy, creal& vz, const unsigned int popID) const {
       creal mass = physicalconstants::MASS_PROTON;
       creal kb = physicalconstants::K_B;
       return exp(- mass * (vx*vx + vy*vy + vz*vz) / (2.0 * kb * this->TEMPERATURE));
@@ -89,7 +89,7 @@ namespace projects {
       creal& x, creal& y, creal& z,
       creal& dx, creal& dy, creal& dz,
       creal& vx, creal& vy, creal& vz,
-      creal& dvx, creal& dvy, creal& dvz,const int& popID
+      creal& dvx, creal& dvy, creal& dvz,const unsigned int popID
    ) const {
       const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
       vmesh::MeshParameters& meshParams = getObjectWrapper().velocityMeshes[meshID];
@@ -117,7 +117,7 @@ namespace projects {
                avg += getDistribValue(
                   vx+vi*d_vx - velocityPertAbsAmp * (0.5 - rndVel[0] ),
                   vy+vj*d_vy - velocityPertAbsAmp * (0.5 - rndVel[1] ),
-                  vz+vk*d_vz - velocityPertAbsAmp * (0.5 - rndVel[2] ));
+                  vz+vk*d_vz - velocityPertAbsAmp * (0.5 - rndVel[2] ), popID);
             }
       
       creal result = avg *
@@ -173,7 +173,8 @@ namespace projects {
    std::vector<std::array<Real, 3> > Fluctuations::getV0(
       creal x,
       creal y,
-      creal z
+      creal z,
+      const unsigned int popID
    ) const {
       std::array<Real, 3> V0 {{0.0, 0.0, 0.0}};
       std::vector<std::array<Real, 3> > centerPoints;

@@ -279,7 +279,7 @@ namespace projects {
   }
 
 
-  std::vector<std::array<Real, 3>> IPShock::getV0(creal x, creal y, creal z) const {
+  std::vector<std::array<Real, 3>> IPShock::getV0(creal x, creal y, creal z, const unsigned int popID) const {
     Real mass = physicalconstants::MASS_PROTON;
     Real mu0 = physicalconstants::MU_0;
 
@@ -316,7 +316,8 @@ namespace projects {
 
   Real IPShock::getDistribValue(creal& x, creal& y, creal& z, 
 				creal& vx, creal& vy, creal& vz, 
-				creal& dvx, creal& dvy, creal& dvz) const {
+				creal& dvx, creal& dvy, creal& dvz,
+        const unsigned int popID) const {
 
     Real mass = physicalconstants::MASS_PROTON;
     Real KB = physicalconstants::K_B;
@@ -358,7 +359,7 @@ namespace projects {
     return result;
   }
 
-  Real IPShock::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const int& popID) const {
+  Real IPShock::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const unsigned int popID) const {
     Real result = 0.0;
     if((this->nSpaceSamples > 1) && (this->nVelocitySamples > 1)) {
       creal d_x = dx / (this->nSpaceSamples-1);
@@ -377,14 +378,14 @@ namespace projects {
 	      for (uint vj=0; vj<this->nVelocitySamples; ++vj)
 		for (uint vk=0; vk<this->nVelocitySamples; ++vk)
 		  {
-		    avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz);
+		    avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz, popID);
 		  }
       
       result = avg /
 	(this->nSpaceSamples*this->nSpaceSamples*this->nSpaceSamples) / 
 	(this->nVelocitySamples*this->nVelocitySamples*this->nVelocitySamples);
     } else {
-      result = getDistribValue(x+0.5*dx, y+0.5*dy, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, dvx, dvy, dvz);
+      result = getDistribValue(x+0.5*dx, y+0.5*dy, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, dvx, dvy, dvz, popID);
     }               
 
     if(result < this->maxwCutoff) {

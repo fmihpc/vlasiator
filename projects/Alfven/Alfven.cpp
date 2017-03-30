@@ -83,7 +83,7 @@ namespace projects {
 
    /*Real calcPhaseSpaceDensity(creal& z,creal& x,creal& y,creal& dz,creal& dx,creal& dy,
                creal& vz,creal& vx,creal& vy,creal& dvz,creal& dvx,creal& dvy) {*/
-   Real Alfven::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const int& popID) {
+   Real Alfven::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const unsigned int popID) const {
       creal mass = getObjectWrapper().particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
       creal mu0 = physicalconstants::MU_0;
@@ -96,10 +96,10 @@ namespace projects {
    
       creal den = this->DENSITY * pow(mass / (2.0 * M_PI * kb * this->TEMPERATURE), 1.5) *
       exp(- mass * (pow(vx - Vx, 2.0) + pow(vy - Vy, 2.0) + pow(vz - Vz, 2.0)) / (2.0 * kb * this->TEMPERATURE));
-   return den;
+      return den;
    }
    
-   Real Alfven::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const int& popID) {
+   Real Alfven::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const unsigned int popID) const {
       creal d_x = dx / (this->nSpaceSamples-1);
       creal d_y = dy / (this->nSpaceSamples-1);
       creal d_z = dz / (this->nSpaceSamples-1);

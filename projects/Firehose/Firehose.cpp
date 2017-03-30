@@ -89,14 +89,15 @@ namespace projects {
       RP::get("Firehose.nVelocitySamples", this->nVelocitySamples);
    }
 
-   Real Firehose::profile(creal top, creal bottom, creal x) {
+   Real Firehose::profile(creal top, creal bottom, creal x) const {
       return top * (1.0 + this->amp*cos(2.0*M_PI*x/this->lambda));
    }
 
    Real Firehose::getDistribValue(
       creal& x, creal& y,
       creal& vx, creal& vy, creal& vz,
-      creal& dvx, creal& dvy, creal& dvz) {
+      creal& dvx, creal& dvy, creal& dvz,
+      const unsigned int popID) const  {
       creal mass = physicalconstants::MASS_PROTON;
       creal kb = physicalconstants::K_B;
       
@@ -113,7 +114,7 @@ namespace projects {
    //           pow(vz - this->Vz[2], 2.0) / (2.0 * kb * this->Tz[2]))); 
    }
 
-   Real Firehose::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const int& popID) {
+   Real Firehose::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const unsigned int popID) const {
       creal d_x = dx / (this->nSpaceSamples-1);
       creal d_y = dy / (this->nSpaceSamples-1);
       creal d_vx = dvx / (this->nVelocitySamples-1);
@@ -127,7 +128,7 @@ namespace projects {
          for (uint vj=0; vj<this->nVelocitySamples; ++vj)
             for (uint vk=0; vk<this->nVelocitySamples; ++vk)
          {
-            avg += getDistribValue(x+i*d_x, y+j*d_y, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz);
+            avg += getDistribValue(x+i*d_x, y+j*d_y, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz, popID);
          }
       return avg / pow(this->nSpaceSamples, 2.0) /  pow(this->nVelocitySamples, 3.0);
    }

@@ -78,7 +78,7 @@ namespace projects {
       RP::get("Larmor.Scale_y", this->SCA_Y);
     }
 
-    Real Larmor::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz) {
+    Real Larmor::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, const unsigned int popID) const {
       creal kb = physicalconstants::K_B;
       creal mass = physicalconstants::MASS_PROTON;
       
@@ -87,7 +87,7 @@ namespace projects {
     }
 
     Real Larmor::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, 
-            creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const int& popID) {
+            creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const unsigned int popID) const {
        const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
       vmesh::MeshParameters& meshParams = getObjectWrapper().velocityMeshes[meshID];
       if (vx < meshParams.meshMinLimits[0] + 0.5*dvx ||
@@ -117,7 +117,7 @@ namespace projects {
                   for (uint vj=0; vj<this->nVelocitySamples; ++vj)
                      for (uint vk=0; vk<this->nVelocitySamples; ++vk)
                      {
-                        avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz);
+                        avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, popID);
                      }
       
       creal result = avg *this->DENSITY * pow(mass / (2.0 * M_PI * kb * this->TEMPERATURE), 1.5) /

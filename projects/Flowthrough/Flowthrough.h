@@ -51,12 +51,13 @@ namespace projects {
                                          creal& x, creal& y, creal& z,
                                          creal& dx, creal& dy, creal& dz,
                                          creal& vx, creal& vy, creal& vz,
-                                         creal& dvx, creal& dvy, creal& dvz,const int& popID
+                                         creal& dvx, creal& dvy, creal& dvz,const unsigned int popID
                                         ) const;
       virtual std::vector<std::array<Real, 3> > getV0(
                                                       creal x,
                                                       creal y,
-                                                      creal z
+                                                      creal z,
+                                                      const unsigned int popID
                                                      ) const;
 
       bool emptyBox;               /**< If true, then the simulation domain is empty initially 

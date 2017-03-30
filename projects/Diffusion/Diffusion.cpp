@@ -68,8 +68,9 @@ namespace projects {
 
    Real Diffusion::getDistribValue(
       creal& x,creal& y,creal& z,
-      creal& vx,creal& vy,creal& vz
-   ) {
+      creal& vx,creal& vy,creal& vz,
+      const unsigned int popID
+   ) const {
       creal mass = physicalconstants::MASS_PROTON;
       creal kb = physicalconstants::K_B;
       
@@ -80,7 +81,7 @@ namespace projects {
          exp(- mass * (pow(vx, 2.0) + pow(vy, 2.0) + pow(vz, 2.0)) / (2.0 * kb * this->TEMPERATURE)));
    }
    
-   Real Diffusion::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const int& popID) {
+   Real Diffusion::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const unsigned int popID) const {
       creal d_x = dx / (this->nSpaceSamples-1);
       creal d_y = dy / (this->nSpaceSamples-1);
       creal d_z = dz / (this->nSpaceSamples-1);
@@ -95,7 +96,7 @@ namespace projects {
             for (uint vj=0; vj<this->nVelocitySamples; ++vj)
          for (uint vk=0; vk<this->nVelocitySamples; ++vk)
          {
-            avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz);
+            avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, popID);
          }
       return avg / (this->nSpaceSamples*this->nSpaceSamples*this->nSpaceSamples) / (this->nVelocitySamples*this->nVelocitySamples*this->nVelocitySamples);
    }
