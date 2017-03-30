@@ -41,6 +41,8 @@
 
 using namespace std;
 
+#warning Antisymmetric boundaries do not yet support multipop
+
 namespace SBC {
    Antisymmetric::Antisymmetric(): SysBoundaryCondition() { }
    Antisymmetric::~Antisymmetric() { }
