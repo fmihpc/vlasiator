@@ -204,7 +204,7 @@ OBJS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipo
 	project.o projectTriAxisSearch.o read_gaussian_population.o\
 	Alfven.o Diffusion.o Dispersion.o Distributions.o electric_sail.o Firehose.o Flowthrough.o Fluctuations.o Harris.o KHB.o Larmor.o \
 	Magnetosphere.o MultiPeak.o VelocityBox.o Riemann1.o Shock.o Template.o test_fp.o testHall.o test_trans.o \
-	IPShock.o \
+	IPShock.o object_wrapper.o\
 	verificationLarmor.o Shocktest.o grid.o ioread.o iowrite.o vlasiator.o logger.o\
 	common.o parameters.o readparameters.o spatial_cell.o mesh_data_container.o\
 	vlasovmover.o $(FIELDSOLVER).o fs_common.o fs_limiters.o
@@ -505,6 +505,8 @@ particle_species.o: particle_species.h ${DEPS_COMMON}
 vlscommon.o:  $(DEPS_COMMON)  vlscommon.h vlscommon.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c vlscommon.cpp
 
+object_wrapper.o:  $(DEPS_COMMON)  object_wrapper.h object_wrapper.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c object_wrapper.cpp
 
 # Make executable
 vlasiator: $(OBJS) $(OBJS_POISSON) $(OBJS_FSOLVER)
