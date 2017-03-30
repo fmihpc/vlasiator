@@ -409,10 +409,7 @@ namespace projects {
    void Project::setCell(SpatialCell* cell) {
       // Set up cell parameters:
       calcCellParameters(cell,0.0);
-
-      cell->parameters[CellParams::RHOLOSSADJUST] = 0.0;
-      cell->parameters[CellParams::RHOLOSSVELBOUNDARY] = 0.0;
-
+      
       for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
          this->setVelocitySpace(p,cell);
       }

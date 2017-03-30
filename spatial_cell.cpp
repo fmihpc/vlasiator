@@ -204,7 +204,7 @@ namespace spatial_cell {
                  * block_parameters[BlockParams::DVZ];
                Real sum=0;
                for (unsigned int i=0; i<WID3; ++i) sum += get_data(popID)[blockLID*SIZE_VELBLOCK+i];
-               this->parameters[CellParams::RHOLOSSADJUST] += DV3*sum;
+               this->populations[popID].RHOMLOSSADJUST += DV3*sum*getObjectWrapper().particleSpecies[popID].mass;
 	       
                // and finally remove block
                this->remove_velocity_block(blockGID,popID);
@@ -298,7 +298,7 @@ namespace spatial_cell {
                  * block_parameters[BlockParams::DVZ];
                Real sum=0;
                for (unsigned int i=0; i<WID3; ++i) sum += get_data(popID)[blockLID*SIZE_VELBLOCK+i];
-               this->parameters[CellParams::RHOLOSSADJUST] += DV3*sum;
+               this->populations[popID].RHOMLOSSADJUST += DV3*sum*getObjectWrapper().particleSpecies[popID].mass;
 	       
                // and finally remove block
                this->remove_velocity_block(blockGID,popID);
@@ -707,18 +707,6 @@ namespace spatial_cell {
          if ((SpatialCell::mpi_transfer_type & Transfer::CELL_PERBDT2)!=0){
             displacements.push_back((uint8_t*) &(this->parameters[CellParams::PERBX_DT2]) - (uint8_t*) this);
             block_lengths.push_back(sizeof(Real) * 3);
-         }
-         
-         // send RHO, RHOVX, RHOVY, RHOVZ
-         if ((SpatialCell::mpi_transfer_type & Transfer::CELL_RHO_RHOV)!=0){
-            displacements.push_back((uint8_t*) &(this->parameters[CellParams::RHO]) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(Real) * 4);
-         }
-         
-         // send RHO_DT2, RHOVX_DT2, RHOVY_DT2, RHOVZ_DT2
-         if ((SpatialCell::mpi_transfer_type & Transfer::CELL_RHODT2_RHOVDT2)!=0){
-            displacements.push_back((uint8_t*) &(this->parameters[CellParams::RHO_DT2]) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(Real) * 4);
          }
          
          // send RHOM, VX, VY, VZ
@@ -1498,7 +1486,8 @@ namespace spatial_cell {
          const Real b = P::sparseDynamicMinValue1 - k * P::sparseDynamicBulkValue1;
          Real x;
          if ( P::sparseDynamicAlgorithm == 1 ) {
-            x = this->parameters[CellParams::RHO];
+#warning this should be adapted per population probably
+            x = this->parameters[CellParams::RHOM];
          } else {
             x = this->get_number_of_velocity_blocks(popID);
          }

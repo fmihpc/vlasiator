@@ -279,8 +279,6 @@ namespace SBC {
                   cell->parameters[CellParams::PERBY] = templateCells[i].parameters[CellParams::PERBY];
                   cell->parameters[CellParams::PERBZ] = templateCells[i].parameters[CellParams::PERBZ];
                
-                  cell->parameters[CellParams::RHOLOSSADJUST] = 0.0;
-                  cell->parameters[CellParams::RHOLOSSVELBOUNDARY] = 0.0;
                }
 
                copyCellData(&templateCells[i], cell,true,false,popID);

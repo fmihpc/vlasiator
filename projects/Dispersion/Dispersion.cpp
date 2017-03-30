@@ -93,8 +93,8 @@ namespace projects {
       if(hook::END_OF_TIME_STEP == stage) {
          int myRank;
          MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-         vector<Real> localRho(P::xcells_ini, 0.0),
-                     outputRho(P::xcells_ini, 0.0),
+         vector<Real> localRhom(P::xcells_ini, 0.0),
+                     outputRhom(P::xcells_ini, 0.0),
                      localPerBx(P::xcells_ini, 0.0),
                      outputPerBx(P::xcells_ini, 0.0),
                      localPerBy(P::xcells_ini, 0.0),
@@ -112,7 +112,7 @@ namespace projects {
                localPerBx[Parameters::localCells[i] - 1] = mpiGrid[Parameters::localCells[i]]->parameters[CellParams::PERBX];
                localPerBy[Parameters::localCells[i] - 1] = mpiGrid[Parameters::localCells[i]]->parameters[CellParams::PERBY];
                localPerBz[Parameters::localCells[i] - 1] = mpiGrid[Parameters::localCells[i]]->parameters[CellParams::PERBZ];
-               localRho[Parameters::localCells[i] - 1] = mpiGrid[Parameters::localCells[i]]->parameters[CellParams::RHO];
+               localRhom[Parameters::localCells[i] - 1] = mpiGrid[Parameters::localCells[i]]->parameters[CellParams::RHOM];
                localEx[Parameters::localCells[i] - 1] = mpiGrid[Parameters::localCells[i]]->parameters[CellParams::EX];
                localEy[Parameters::localCells[i] - 1] = mpiGrid[Parameters::localCells[i]]->parameters[CellParams::EY];
                localEz[Parameters::localCells[i] - 1] = mpiGrid[Parameters::localCells[i]]->parameters[CellParams::EZ];
@@ -125,7 +125,7 @@ namespace projects {
          MPI_Reduce(&(localEx[0]), &(outputEx[0]), P::xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
          MPI_Reduce(&(localEy[0]), &(outputEy[0]), P::xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
          MPI_Reduce(&(localEz[0]), &(outputEz[0]), P::xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
-         MPI_Reduce(&(localRho[0]), &(outputRho[0]), P::xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
+         MPI_Reduce(&(localRhom[0]), &(outputRhom[0]), P::xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
          
          if(myRank == MASTER_RANK) {
             FILE* outputFile = fopen("perBxt.bin", "ab");
@@ -137,8 +137,8 @@ namespace projects {
             outputFile = fopen("perBzt.bin", "ab");
             fwrite(&(outputPerBz[0]), sizeof(outputPerBz[0]), P::xcells_ini, outputFile);
             fclose(outputFile);
-            outputFile = fopen("rhot.bin", "ab");
-            fwrite(&(outputRho[0]), sizeof(outputRho[0]), P::xcells_ini, outputFile);
+            outputFile = fopen("rhomt.bin", "ab");
+            fwrite(&(outputRhom[0]), sizeof(outputRhom[0]), P::xcells_ini, outputFile);
             fclose(outputFile);
             outputFile = fopen("Ext.bin", "ab");
             fwrite(&(outputEx[0]), sizeof(outputEx[0]), P::xcells_ini, outputFile);

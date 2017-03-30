@@ -107,15 +107,17 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
 
    // scale rho for hall term, if user requests
    const Real EPSILON = 1e10 * numeric_limits<Real>::min();
-   const Real rho = spatial_cell->parameters[CellParams::RHO_V] + EPSILON;
-   const Real hallRho =  (rho <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : rho ;
+   const Real rhoq = spatial_cell->parameters[CellParams::RHOQ_V] + EPSILON;
+   const Real hallRhoq =  (rhoq <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : rhoq ;
+   const Real rhom = spatial_cell->parameters[CellParams::RHOM_V] + EPSILON;
+   const Real hallRhom =  (rhom <= Parameters::hallMinimumRhom ) ? Parameters::hallMinimumRhom : rhom ;
    
    #warning This should be electron charge density!
-   const Real hallPrefactor = 1.0 / (physicalconstants::MU_0 * hallRho * physicalconstants::CHARGE );
+   const Real hallPrefactor = 1.0 / (physicalconstants::MU_0 * hallRhoq );
 
-   Eigen::Matrix<Real,3,1> bulk_velocity(spatial_cell->parameters[CellParams::RHOVX_V]/rho,
-                                         spatial_cell->parameters[CellParams::RHOVY_V]/rho,
-                                         spatial_cell->parameters[CellParams::RHOVZ_V]/rho);
+   Eigen::Matrix<Real,3,1> bulk_velocity(spatial_cell->parameters[CellParams::RHOMVX_V]/hallRhom,
+                                         spatial_cell->parameters[CellParams::RHOMVY_V]/hallRhom,
+                                         spatial_cell->parameters[CellParams::RHOMVZ_V]/hallRhom);
 
    // compute total transformation
    Transform<Real,3,Affine> total_transform(Matrix<Real, 4, 4>::Identity()); //CONTINUE

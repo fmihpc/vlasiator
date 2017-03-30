@@ -72,9 +72,9 @@ void calculateDerivatives(
    creal* left = NULL;
    creal* cent = cellCache.cells[fs_cache::calculateNbrID(1,1,1)]->parameters;
    #ifdef DEBUG_SOLVERS
-   if (cent[cp::RHO] <= 0) {
+   if (cent[cp::RHOM] <= 0) {
       std::cerr << __FILE__ << ":" << __LINE__
-         << (cent[cp::RHO] < 0 ? " Negative" : " Zero") << " density in spatial cell " << cellID
+         << (cent[cp::RHOM] < 0 ? " Negative" : " Zero") << " density in spatial cell " << cellID
          << std::endl;
       abort();
    }
@@ -91,38 +91,39 @@ void calculateDerivatives(
        ((sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) || (sysBoundaryLayer == 1))) {
       left = cellCache.cells[fs_cache::calculateNbrID(1-1,1  ,1  )]->parameters;
       #ifdef DEBUG_SOLVERS
-      if (left[cp::RHO] <= 0) {
+      if (left[cp::RHOM] <= 0) {
          std::cerr << __FILE__ << ":" << __LINE__
-            << (left[cp::RHO] < 0 ? " Negative" : " Zero") << " density in spatial cell " << leftNbrID
+            << (left[cp::RHOM] < 0 ? " Negative" : " Zero") << " density in spatial cell " << leftNbrID
             << std::endl;
          abort();
       }
       #endif
       rght = cellCache.cells[fs_cache::calculateNbrID(1+1,1  ,1  )]->parameters;
       #ifdef DEBUG_SOLVERS
-      if (rght[cp::RHO] <= 0) {
+      if (rght[cp::RHOM] <= 0) {
          std::cerr << __FILE__ << ":" << __LINE__
-            << (rght[cp::RHO] < 0 ? " Negative" : " Zero") << " density in spatial cell " << rghtNbrID
+            << (rght[cp::RHOM] < 0 ? " Negative" : " Zero") << " density in spatial cell " << rghtNbrID
             << std::endl;
          abort();
       }
       #endif
       
       if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-         array[fs::drhodx] = limiter(left[cp::RHO],cent[cp::RHO],rght[cp::RHO]);
+         array[fs::drhomdx] = limiter(left[cp::RHOM],cent[cp::RHOM],rght[cp::RHOM]);
+         array[fs::drhoqdx] = limiter(left[cp::RHOQ],cent[cp::RHOQ],rght[cp::RHOQ]);
          array[fs::dp11dx] = limiter(left[cp::P_11],cent[cp::P_11],rght[cp::P_11]);
          array[fs::dp22dx] = limiter(left[cp::P_22],cent[cp::P_22],rght[cp::P_22]);
          array[fs::dp33dx] = limiter(left[cp::P_33],cent[cp::P_33],rght[cp::P_33]);
 
-         array[fs::dVxdx]  = limiter(left[cp::RHOVX], left[cp::RHO],
-                                     cent[cp::RHOVX], cent[cp::RHO],
-                                     rght[cp::RHOVX], rght[cp::RHO]);
-         array[fs::dVydx]  = limiter(left[cp::RHOVY], left[cp::RHO],
-                                     cent[cp::RHOVY], cent[cp::RHO],
-                                     rght[cp::RHOVY], rght[cp::RHO]);            
-         array[fs::dVzdx]  = limiter(left[cp::RHOVZ], left[cp::RHO],
-                                     cent[cp::RHOVZ], cent[cp::RHO],
-                                     rght[cp::RHOVZ], rght[cp::RHO]);
+         array[fs::dVxdx]  = limiter(left[cp::RHOMVX], left[cp::RHOM],
+                                     cent[cp::RHOMVX], cent[cp::RHOM],
+                                     rght[cp::RHOMVX], rght[cp::RHOM]);
+         array[fs::dVydx]  = limiter(left[cp::RHOMVY], left[cp::RHOM],
+                                     cent[cp::RHOMVY], cent[cp::RHOM],
+                                     rght[cp::RHOMVY], rght[cp::RHOM]);
+         array[fs::dVzdx]  = limiter(left[cp::RHOMVZ], left[cp::RHOM],
+                                     cent[cp::RHOMVZ], cent[cp::RHOM],
+                                     rght[cp::RHOMVZ], rght[cp::RHOM]);
          
          array[fs::dPERBydx]  = limiter(left[cp::PERBY],cent[cp::PERBY],rght[cp::PERBY]);
          array[fs::dPERBzdx]  = limiter(left[cp::PERBZ],cent[cp::PERBZ],rght[cp::PERBZ]);
@@ -135,19 +136,20 @@ void calculateDerivatives(
          }
       }
       if (RKCase == RK_ORDER2_STEP1) {
-         array[fs::drhodx] = limiter(left[cp::RHO_DT2],cent[cp::RHO_DT2],rght[cp::RHO_DT2]);
+         array[fs::drhomdx] = limiter(left[cp::RHOM_DT2],cent[cp::RHOM_DT2],rght[cp::RHOM_DT2]);
+         array[fs::drhoqdx] = limiter(left[cp::RHOQ_DT2],cent[cp::RHOQ_DT2],rght[cp::RHOQ_DT2]);
          array[fs::dp11dx] = limiter(left[cp::P_11_DT2],cent[cp::P_11_DT2],rght[cp::P_11_DT2]);
          array[fs::dp22dx] = limiter(left[cp::P_22_DT2],cent[cp::P_22_DT2],rght[cp::P_22_DT2]);
          array[fs::dp33dx] = limiter(left[cp::P_33_DT2],cent[cp::P_33_DT2],rght[cp::P_33_DT2]);
-         array[fs::dVxdx]  = limiter(left[cp::RHOVX_DT2], left[cp::RHO_DT2],
-                                     cent[cp::RHOVX_DT2], cent[cp::RHO_DT2],
-                                     rght[cp::RHOVX_DT2], rght[cp::RHO_DT2]);
-         array[fs::dVydx]  = limiter(left[cp::RHOVY_DT2], left[cp::RHO_DT2],
-                                     cent[cp::RHOVY_DT2], cent[cp::RHO_DT2],
-                                     rght[cp::RHOVY_DT2], rght[cp::RHO_DT2]);
-         array[fs::dVzdx]  = limiter(left[cp::RHOVZ_DT2], left[cp::RHO_DT2],
-                                     cent[cp::RHOVZ_DT2], cent[cp::RHO_DT2],
-                                     rght[cp::RHOVZ_DT2], rght[cp::RHO_DT2]);
+         array[fs::dVxdx]  = limiter(left[cp::RHOMVX_DT2], left[cp::RHOM_DT2],
+                                     cent[cp::RHOMVX_DT2], cent[cp::RHOM_DT2],
+                                     rght[cp::RHOMVX_DT2], rght[cp::RHOM_DT2]);
+         array[fs::dVydx]  = limiter(left[cp::RHOMVY_DT2], left[cp::RHOM_DT2],
+                                     cent[cp::RHOMVY_DT2], cent[cp::RHOM_DT2],
+                                     rght[cp::RHOMVY_DT2], rght[cp::RHOM_DT2]);
+         array[fs::dVzdx]  = limiter(left[cp::RHOMVZ_DT2], left[cp::RHOM_DT2],
+                                     cent[cp::RHOMVZ_DT2], cent[cp::RHOM_DT2],
+                                     rght[cp::RHOMVZ_DT2], rght[cp::RHOM_DT2]);
          
          array[fs::dPERBydx]  = limiter(left[cp::PERBY_DT2],cent[cp::PERBY_DT2],rght[cp::PERBY_DT2]);
          array[fs::dPERBzdx]  = limiter(left[cp::PERBZ_DT2],cent[cp::PERBZ_DT2],rght[cp::PERBZ_DT2]);
@@ -175,19 +177,20 @@ void calculateDerivatives(
       rght = cellCache.cells[fs_cache::calculateNbrID(1  ,1+1,1  )]->parameters;
 
       if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-         array[fs::drhody] = limiter(left[cp::RHO],cent[cp::RHO],rght[cp::RHO]);
+         array[fs::drhomdy] = limiter(left[cp::RHOM],cent[cp::RHOM],rght[cp::RHOM]);
+         array[fs::drhoqdy] = limiter(left[cp::RHOQ],cent[cp::RHOQ],rght[cp::RHOQ]);
          array[fs::dp11dy] = limiter(left[cp::P_11],cent[cp::P_11],rght[cp::P_11]);
          array[fs::dp22dy] = limiter(left[cp::P_22],cent[cp::P_22],rght[cp::P_22]);
          array[fs::dp33dy] = limiter(left[cp::P_33],cent[cp::P_33],rght[cp::P_33]);
-         array[fs::dVxdy]  = limiter(left[cp::RHOVX], left[cp::RHO],
-                                     cent[cp::RHOVX], cent[cp::RHO],
-                                     rght[cp::RHOVX], rght[cp::RHO]);
-         array[fs::dVydy]  = limiter(left[cp::RHOVY], left[cp::RHO],
-                                     cent[cp::RHOVY], cent[cp::RHO],
-                                     rght[cp::RHOVY], rght[cp::RHO]);
-         array[fs::dVzdy]  = limiter(left[cp::RHOVZ], left[cp::RHO],
-                                     cent[cp::RHOVZ], cent[cp::RHO],
-                                     rght[cp::RHOVZ], rght[cp::RHO]);
+         array[fs::dVxdy]  = limiter(left[cp::RHOMVX], left[cp::RHOM],
+                                     cent[cp::RHOMVX], cent[cp::RHOM],
+                                     rght[cp::RHOMVX], rght[cp::RHOM]);
+         array[fs::dVydy]  = limiter(left[cp::RHOMVY], left[cp::RHOM],
+                                     cent[cp::RHOMVY], cent[cp::RHOM],
+                                     rght[cp::RHOMVY], rght[cp::RHOM]);
+         array[fs::dVzdy]  = limiter(left[cp::RHOMVZ], left[cp::RHOM],
+                                     cent[cp::RHOMVZ], cent[cp::RHOM],
+                                     rght[cp::RHOMVZ], rght[cp::RHOM]);
          
          array[fs::dPERBxdy]  = limiter(left[cp::PERBX],cent[cp::PERBX],rght[cp::PERBX]);
          array[fs::dPERBzdy]  = limiter(left[cp::PERBZ],cent[cp::PERBZ],rght[cp::PERBZ]);
@@ -201,19 +204,20 @@ void calculateDerivatives(
          }
       }
       if (RKCase == RK_ORDER2_STEP1) {
-         array[fs::drhody] = limiter(left[cp::RHO_DT2],cent[cp::RHO_DT2],rght[cp::RHO_DT2]);
+         array[fs::drhomdy] = limiter(left[cp::RHOM_DT2],cent[cp::RHOM_DT2],rght[cp::RHOM_DT2]);
+         array[fs::drhoqdy] = limiter(left[cp::RHOQ_DT2],cent[cp::RHOQ_DT2],rght[cp::RHOQ_DT2]);
          array[fs::dp11dy] = limiter(left[cp::P_11_DT2],cent[cp::P_11_DT2],rght[cp::P_11_DT2]);
          array[fs::dp22dy] = limiter(left[cp::P_22_DT2],cent[cp::P_22_DT2],rght[cp::P_22_DT2]);
          array[fs::dp33dy] = limiter(left[cp::P_33_DT2],cent[cp::P_33_DT2],rght[cp::P_33_DT2]);
-         array[fs::dVxdy]  = limiter(left[cp::RHOVX_DT2], left[cp::RHO_DT2],
-                                     cent[cp::RHOVX_DT2], cent[cp::RHO_DT2],
-                                     rght[cp::RHOVX_DT2], rght[cp::RHO_DT2]);
-         array[fs::dVydy]  = limiter(left[cp::RHOVY_DT2], left[cp::RHO_DT2],
-                                     cent[cp::RHOVY_DT2], cent[cp::RHO_DT2],
-                                     rght[cp::RHOVY_DT2], rght[cp::RHO_DT2]);
-         array[fs::dVzdy]  = limiter(left[cp::RHOVZ_DT2], left[cp::RHO_DT2],
-                                     cent[cp::RHOVZ_DT2], cent[cp::RHO_DT2],
-                                     rght[cp::RHOVZ_DT2], rght[cp::RHO_DT2]);
+         array[fs::dVxdy]  = limiter(left[cp::RHOMVX_DT2], left[cp::RHOM_DT2],
+                                     cent[cp::RHOMVX_DT2], cent[cp::RHOM_DT2],
+                                     rght[cp::RHOMVX_DT2], rght[cp::RHOM_DT2]);
+         array[fs::dVydy]  = limiter(left[cp::RHOMVY_DT2], left[cp::RHOM_DT2],
+                                     cent[cp::RHOMVY_DT2], cent[cp::RHOM_DT2],
+                                     rght[cp::RHOMVY_DT2], rght[cp::RHOM_DT2]);
+         array[fs::dVzdy]  = limiter(left[cp::RHOMVZ_DT2], left[cp::RHOM_DT2],
+                                     cent[cp::RHOMVZ_DT2], cent[cp::RHOM_DT2],
+                                     rght[cp::RHOMVZ_DT2], rght[cp::RHOM_DT2]);
          
          array[fs::dPERBxdy]  = limiter(left[cp::PERBX_DT2],cent[cp::PERBX_DT2],rght[cp::PERBX_DT2]);
          array[fs::dPERBzdy]  = limiter(left[cp::PERBZ_DT2],cent[cp::PERBZ_DT2],rght[cp::PERBZ_DT2]);
@@ -241,19 +245,20 @@ void calculateDerivatives(
       rght = cellCache.cells[fs_cache::calculateNbrID(1  ,1  ,1+1)]->parameters;
 
       if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-         array[fs::drhodz] = limiter(left[cp::RHO],cent[cp::RHO],rght[cp::RHO]);
+         array[fs::drhomdz] = limiter(left[cp::RHOM],cent[cp::RHOM],rght[cp::RHOM]);
+         array[fs::drhoqdz] = limiter(left[cp::RHOQ],cent[cp::RHOQ],rght[cp::RHOQ]);
          array[fs::dp11dz] = limiter(left[cp::P_11],cent[cp::P_11],rght[cp::P_11]);
          array[fs::dp22dz] = limiter(left[cp::P_22],cent[cp::P_22],rght[cp::P_22]);
          array[fs::dp33dz] = limiter(left[cp::P_33],cent[cp::P_33],rght[cp::P_33]);
-         array[fs::dVxdz]  = limiter(left[cp::RHOVX], left[cp::RHO],
-                                     cent[cp::RHOVX], cent[cp::RHO],
-                                     rght[cp::RHOVX], rght[cp::RHO]);
-         array[fs::dVydz]  = limiter(left[cp::RHOVY], left[cp::RHO],
-                                     cent[cp::RHOVY], cent[cp::RHO],
-                                     rght[cp::RHOVY], rght[cp::RHO]);
-         array[fs::dVzdz]  = limiter(left[cp::RHOVZ], left[cp::RHO],
-                                     cent[cp::RHOVZ], cent[cp::RHO],
-                                     rght[cp::RHOVZ], rght[cp::RHO]);
+         array[fs::dVxdz]  = limiter(left[cp::RHOMVX], left[cp::RHOM],
+                                     cent[cp::RHOMVX], cent[cp::RHOM],
+                                     rght[cp::RHOMVX], rght[cp::RHOM]);
+         array[fs::dVydz]  = limiter(left[cp::RHOMVY], left[cp::RHOM],
+                                     cent[cp::RHOMVY], cent[cp::RHOM],
+                                     rght[cp::RHOMVY], rght[cp::RHOM]);
+         array[fs::dVzdz]  = limiter(left[cp::RHOMVZ], left[cp::RHOM],
+                                     cent[cp::RHOMVZ], cent[cp::RHOM],
+                                     rght[cp::RHOMVZ], rght[cp::RHOM]);
          
          array[fs::dPERBxdz]  = limiter(left[cp::PERBX],cent[cp::PERBX],rght[cp::PERBX]);
          array[fs::dPERBydz]  = limiter(left[cp::PERBY],cent[cp::PERBY],rght[cp::PERBY]);
@@ -266,19 +271,20 @@ void calculateDerivatives(
          }
       }
       if (RKCase == RK_ORDER2_STEP1) {
-         array[fs::drhodz] = limiter(left[cp::RHO_DT2],cent[cp::RHO_DT2],rght[cp::RHO_DT2]);
+         array[fs::drhomdz] = limiter(left[cp::RHOM_DT2],cent[cp::RHOM_DT2],rght[cp::RHOM_DT2]);
+         array[fs::drhoqdz] = limiter(left[cp::RHOQ_DT2],cent[cp::RHOQ_DT2],rght[cp::RHOQ_DT2]);
          array[fs::dp11dz] = limiter(left[cp::P_11_DT2],cent[cp::P_11_DT2],rght[cp::P_11_DT2]);
          array[fs::dp22dz] = limiter(left[cp::P_22_DT2],cent[cp::P_22_DT2],rght[cp::P_22_DT2]);
          array[fs::dp33dz] = limiter(left[cp::P_33_DT2],cent[cp::P_33_DT2],rght[cp::P_33_DT2]);
-         array[fs::dVxdz]  = limiter(left[cp::RHOVX_DT2], left[cp::RHO_DT2],
-                                     cent[cp::RHOVX_DT2], cent[cp::RHO_DT2],
-                                     rght[cp::RHOVX_DT2], rght[cp::RHO_DT2]);
-         array[fs::dVydz]  = limiter(left[cp::RHOVY_DT2], left[cp::RHO_DT2],
-                                     cent[cp::RHOVY_DT2], cent[cp::RHO_DT2],
-                                     rght[cp::RHOVY_DT2], rght[cp::RHO_DT2]);
-         array[fs::dVzdz]  = limiter(left[cp::RHOVZ_DT2], left[cp::RHO_DT2],
-                                     cent[cp::RHOVZ_DT2], cent[cp::RHO_DT2],
-                                     rght[cp::RHOVZ_DT2], rght[cp::RHO_DT2]);
+         array[fs::dVxdz]  = limiter(left[cp::RHOMVX_DT2], left[cp::RHOM_DT2],
+                                     cent[cp::RHOMVX_DT2], cent[cp::RHOM_DT2],
+                                     rght[cp::RHOMVX_DT2], rght[cp::RHOM_DT2]);
+         array[fs::dVydz]  = limiter(left[cp::RHOMVY_DT2], left[cp::RHOM_DT2],
+                                     cent[cp::RHOMVY_DT2], cent[cp::RHOM_DT2],
+                                     rght[cp::RHOMVY_DT2], rght[cp::RHOM_DT2]);
+         array[fs::dVzdz]  = limiter(left[cp::RHOMVZ_DT2], left[cp::RHOM_DT2],
+                                     cent[cp::RHOMVZ_DT2], cent[cp::RHOM_DT2],
+                                     rght[cp::RHOMVZ_DT2], rght[cp::RHOM_DT2]);
          
          array[fs::dPERBxdz]  = limiter(left[cp::PERBX_DT2],cent[cp::PERBX_DT2],rght[cp::PERBX_DT2]);
          array[fs::dPERBydz]  = limiter(left[cp::PERBY_DT2],cent[cp::PERBY_DT2],rght[cp::PERBY_DT2]);
@@ -409,7 +415,7 @@ void calculateDerivativesSimple(
       // The update of PERB[XYZ] is needed after the system
       // boundary update of propagateMagneticFieldSimple.
       if(communicateMoments) {
-        spatial_cell::SpatialCell::set_mpi_transfer_type(Transfer::CELL_PERB | Transfer::CELL_RHO_RHOV | Transfer::CELL_P);
+        spatial_cell::SpatialCell::set_mpi_transfer_type(Transfer::CELL_PERB | Transfer::CELL_RHOM_V | Transfer::CELL_RHOQ | Transfer::CELL_P);
       } else {
         spatial_cell::SpatialCell::set_mpi_transfer_type(Transfer::CELL_PERB);
       }
@@ -419,7 +425,7 @@ void calculateDerivativesSimple(
       // update of PERB[XYZ]_DT2 is needed after the system
       // boundary update of propagateMagneticFieldSimple.
       if(communicateMoments) {
-        spatial_cell::SpatialCell::set_mpi_transfer_type(Transfer::CELL_PERBDT2 | Transfer::CELL_RHODT2_RHOVDT2 | Transfer::CELL_PDT2);
+        spatial_cell::SpatialCell::set_mpi_transfer_type(Transfer::CELL_PERBDT2 | Transfer::CELL_RHOMDT2_VDT2 | Transfer::CELL_RHOQDT2 | Transfer::CELL_PDT2);
       } else {
         spatial_cell::SpatialCell::set_mpi_transfer_type(Transfer::CELL_PERBDT2);
       }
@@ -429,7 +435,7 @@ void calculateDerivativesSimple(
       // is needed after the system boundary update of
       // propagateMagneticFieldSimple.
       if(communicateMoments) {
-        spatial_cell::SpatialCell::set_mpi_transfer_type(Transfer::CELL_PERB | Transfer::CELL_RHO_RHOV | Transfer::CELL_P);
+        spatial_cell::SpatialCell::set_mpi_transfer_type(Transfer::CELL_PERB | Transfer::CELL_RHOM_V | Transfer::CELL_RHOQ | Transfer::CELL_P);
       } else {
         spatial_cell::SpatialCell::set_mpi_transfer_type(Transfer::CELL_PERB);
       }

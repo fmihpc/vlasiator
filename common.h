@@ -239,10 +239,6 @@ namespace CellParams {
       P_11_V,   /*!< P_xx component after propagation in velocity space */
       P_22_V,   /*!< P_yy component after propagation in velocity space */
       P_33_V,   /*!< P_zz component after propagation in velocity space */
-      #warning can be dropped in multipop
-      RHOLOSSADJUST,      /*!< Counter for massloss from the destroying blocks in blockadjustment*/
-      #warning can be dropped in multipop
-      RHOLOSSVELBOUNDARY, /*!< Counter for massloss through outflow boundaries in velocity space*/
       MAXVDT,             /*!< maximum timestep allowed in velocity space for this cell, 
                            * this is the max allowed timestep over all particle species.*/
       MAXRDT,             /*!< maximum timestep allowed in ordinary space for this cell,
@@ -272,9 +268,12 @@ namespace CellParams {
  */
 namespace fieldsolver {
    enum {
-      drhodx,    /*!< Derivative of volume-averaged number density to x-direction. */
-      drhody,    /*!< Derivative of volume-averaged number density to y-direction. */
-      drhodz,    /*!< Derivative of volume-averaged number density to z-direction. */
+      drhomdx,    /*!< Derivative of volume-averaged mass density to x-direction. */
+      drhomdy,    /*!< Derivative of volume-averaged mass density to y-direction. */
+      drhomdz,    /*!< Derivative of volume-averaged mass density to z-direction. */
+      drhoqdx,    /*!< Derivative of volume-averaged charge density to x-direction. */
+      drhoqdy,    /*!< Derivative of volume-averaged charge density to y-direction. */
+      drhoqdz,    /*!< Derivative of volume-averaged charge density to z-direction. */
       dBGBxdy,     /*!< Derivative of face-averaged Bx to y-direction. */
       dBGBxdz,     /*!< Derivative of face-averaged Bx to z-direction. */
       dBGBydx,     /*!< Derivative of face-averaged By to x-direction. */

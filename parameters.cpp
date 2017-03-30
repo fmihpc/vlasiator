@@ -141,7 +141,8 @@ vector<string> P::diagnosticVariableList;
 string P::projectName = string("");
 
 Real P::maxSlAccelerationRotation=10.0;
-Real P::hallMinimumRho=1.0;
+Real P::hallMinimumRhom = physicalconstants::MASS_PROTON;
+Real P::hallMinimumRhoq = physicalconstants::CHARGE;
 
 bool P::bailout_write_restart = false;
 Real P::bailout_min_dt = NAN;
@@ -352,7 +353,10 @@ bool Parameters::getParameters(){
    Readparameters::get("propagate_vlasov_acceleration",P::propagateVlasovAcceleration);
    Readparameters::get("propagate_vlasov_translation",P::propagateVlasovTranslation);
    Readparameters::get("dynamic_timestep",P::dynamicTimestep);
-   Readparameters::get("hallMinimumRho",P::hallMinimumRho);
+   Real hallRho;
+   Readparameters::get("hallMinimumRho",hallRho);
+   P::hallMinimumRhom = hallRho*physicalconstants::MASS_PROTON;
+   P::hallMinimumRhoq = hallRho*physicalconstants::CHARGE;
    Readparameters::get("restart.filename",P::restartFileName);
    P::isRestart=(P::restartFileName!=string(""));
 

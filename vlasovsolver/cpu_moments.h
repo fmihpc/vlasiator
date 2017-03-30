@@ -114,16 +114,16 @@ template<typename REAL> inline
 void blockVelocitySecondMoments(
         const Realf* avgs,
         const Real* blockParams,
-        const REAL rho,
-        const REAL rhov[3],
+        const REAL rhom,
+        const REAL rhomv[3],
         REAL* array) {
 
    const Real HALF = 0.5;
 
-   const Real RHO = std::max(rho, std::numeric_limits<REAL>::min());
-   const Real averageVX = rhov[0] / RHO;
-   const Real averageVY = rhov[1] / RHO;
-   const Real averageVZ = rhov[2] / RHO;
+   const Real RHOM = std::max(rhom, std::numeric_limits<REAL>::min());
+   const Real averageVX = rhomv[0] / RHOM;
+   const Real averageVY = rhomv[1] / RHOM;
+   const Real averageVZ = rhomv[2] / RHOM;
    Real nvx2_sum = 0.0;
    Real nvy2_sum = 0.0;
    Real nvz2_sum = 0.0;

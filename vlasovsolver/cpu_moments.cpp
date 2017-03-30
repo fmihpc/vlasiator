@@ -51,10 +51,11 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
 
     // Clear old moments to zero value
     if (skipMoments == false) {
-        cell->parameters[CellParams::RHO  ] = 0.0;
-        cell->parameters[CellParams::RHOVX] = 0.0;
-        cell->parameters[CellParams::RHOVY] = 0.0;
-        cell->parameters[CellParams::RHOVZ] = 0.0;
+        cell->parameters[CellParams::RHOM  ] = 0.0;
+        cell->parameters[CellParams::RHOMVX] = 0.0;
+        cell->parameters[CellParams::RHOMVY] = 0.0;
+        cell->parameters[CellParams::RHOMVZ] = 0.0;
+        cell->parameters[CellParams::RHOQ  ] = 0.0;
         cell->parameters[CellParams::P_11] = 0.0;
         cell->parameters[CellParams::P_22] = 0.0;
         cell->parameters[CellParams::P_33] = 0.0;
@@ -90,10 +91,6 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
           pop.RHOV[2] = array[3];
           
           // Store species' contribution to bulk velocity moments
-          cell->parameters[CellParams::RHO  ] += array[0];
-          cell->parameters[CellParams::RHOVX] += array[1];
-          cell->parameters[CellParams::RHOVY] += array[2];
-          cell->parameters[CellParams::RHOVZ] += array[3];
           cell->parameters[CellParams::RHOM  ] += array[0]*mass;
           cell->parameters[CellParams::RHOMVX] += array[1]*mass;
           cell->parameters[CellParams::RHOMVY] += array[2]*mass;
@@ -163,10 +160,11 @@ void calculateMoments_R_maxdt(
           
           // Clear old moments to zero value
           if (popID == 0) {
-             cell->parameters[CellParams::RHO_R  ] = 0.0;
-             cell->parameters[CellParams::RHOVX_R] = 0.0;
-             cell->parameters[CellParams::RHOVY_R] = 0.0;
-             cell->parameters[CellParams::RHOVZ_R] = 0.0;
+             cell->parameters[CellParams::RHOM_R  ] = 0.0;
+             cell->parameters[CellParams::RHOMVX_R] = 0.0;
+             cell->parameters[CellParams::RHOMVY_R] = 0.0;
+             cell->parameters[CellParams::RHOMVZ_R] = 0.0;
+             cell->parameters[CellParams::RHOQ_R  ] = 0.0;
              cell->parameters[CellParams::P_11_R] = 0.0;
              cell->parameters[CellParams::P_22_R] = 0.0;
              cell->parameters[CellParams::P_33_R] = 0.0;
@@ -243,10 +241,6 @@ void calculateMoments_R_maxdt(
           pop.RHOV_R[1] = array[2];
           pop.RHOV_R[2] = array[3];
           
-          cell->parameters[CellParams::RHO_R  ] += array[0];
-          cell->parameters[CellParams::RHOVX_R] += array[1];
-          cell->parameters[CellParams::RHOVY_R] += array[2];
-          cell->parameters[CellParams::RHOVZ_R] += array[3];
           cell->parameters[CellParams::RHOM_R  ] += array[0]*mass;
           cell->parameters[CellParams::RHOMVX_R] += array[1]*mass;
           cell->parameters[CellParams::RHOMVY_R] += array[2]*mass;
@@ -325,10 +319,11 @@ void calculateMoments_V(
          
          // Clear old moments to zero value
          if (popID == 0) {
-             cell->parameters[CellParams::RHO_V  ] = 0.0;
-             cell->parameters[CellParams::RHOVX_V] = 0.0;
-             cell->parameters[CellParams::RHOVY_V] = 0.0;
-             cell->parameters[CellParams::RHOVZ_V] = 0.0;
+             cell->parameters[CellParams::RHOM_V  ] = 0.0;
+             cell->parameters[CellParams::RHOMVX_V] = 0.0;
+             cell->parameters[CellParams::RHOMVY_V] = 0.0;
+             cell->parameters[CellParams::RHOMVZ_V] = 0.0;
+             cell->parameters[CellParams::RHOQ_V  ] = 0.0;
              cell->parameters[CellParams::P_11_V] = 0.0;
              cell->parameters[CellParams::P_22_V] = 0.0;
              cell->parameters[CellParams::P_33_V] = 0.0;
@@ -361,10 +356,6 @@ void calculateMoments_V(
          pop.RHOV_V[1] = array[2];
          pop.RHOV_V[2] = array[3];
          
-         cell->parameters[CellParams::RHO_V  ] += array[0];
-         cell->parameters[CellParams::RHOVX_V] += array[1];
-         cell->parameters[CellParams::RHOVY_V] += array[2];
-         cell->parameters[CellParams::RHOVZ_V] += array[3];
          cell->parameters[CellParams::RHOM_V  ] += array[0]*mass;
          cell->parameters[CellParams::RHOMVX_V] += array[1]*mass;
          cell->parameters[CellParams::RHOMVY_V] += array[2]*mass;

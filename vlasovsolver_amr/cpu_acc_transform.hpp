@@ -61,24 +61,28 @@ Transform<Real,3,Affine> compute_acceleration_transformation( SpatialCell* spati
    spatial_cell->parameters[CellParams::MAXVDT]=gyro_period*(P::maxSlAccelerationRotation/360.0);
    
   //compute initial moments, based on actual distribution function
-   spatial_cell->parameters[CellParams::RHO_V  ] = 0.0;
-   spatial_cell->parameters[CellParams::RHOVX_V] = 0.0;
-   spatial_cell->parameters[CellParams::RHOVY_V] = 0.0;
-   spatial_cell->parameters[CellParams::RHOVZ_V] = 0.0;
+   spatial_cell->parameters[CellParams::RHOM_V  ] = 0.0;
+   spatial_cell->parameters[CellParams::RHOMVX_V] = 0.0;
+   spatial_cell->parameters[CellParams::RHOMVY_V] = 0.0;
+   spatial_cell->parameters[CellParams::RHOMVZ_V] = 0.0;
+   spatial_cell->parameters[CellParams::RHOQ_V] = 0.0;
    
    for (vmesh::LocalID block_i=0; block_i<spatial_cell->get_number_of_velocity_blocks(); ++block_i) {
-      cpu_calcVelocityFirstMoments(spatial_cell,block_i,CellParams::RHO_V,CellParams::RHOVX_V,CellParams::RHOVY_V,CellParams::RHOVZ_V);
+      cpu_calcVelocityFirstMoments(spatial_cell,block_i,CellParams::RHOM_V,CellParams::RHOMVX_V,CellParams::RHOMVY_V,CellParams::RHOMVZ_V);
    }
    
-   const Real rho=spatial_cell->parameters[CellParams::RHO_V];
+   const Real rhom=spatial_cell->parameters[CellParams::RHOM_V];
    //scale rho for hall term, if user requests
-   const Real hallRho =  (rho <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : rho ;
-   const Real hallPrefactor = 1.0 / (physicalconstants::MU_0 * hallRho * physicalconstants::CHARGE );
+   const Real hallRhom =  (rhom <= Parameters::hallMinimumRhom ) ? Parameters::hallMinimumRhom : rhom ;
+   const Real rhoq=spatial_cell->parameters[CellParams::RHOQ_V];
+   //scale rho for hall term, if user requests
+   const Real hallRhoq =  (rhoq <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : rhoq ;
+   const Real hallPrefactor = 1.0 / (physicalconstants::MU_0 * hallRhoq );
 
    
-   Eigen::Matrix<Real,3,1> bulk_velocity(spatial_cell->parameters[CellParams::RHOVX_V]/rho,
-                                 spatial_cell->parameters[CellParams::RHOVY_V]/rho,
-                                 spatial_cell->parameters[CellParams::RHOVZ_V]/rho);   
+   Eigen::Matrix<Real,3,1> bulk_velocity(spatial_cell->parameters[CellParams::RHOMVX_V]/rhom,
+                                 spatial_cell->parameters[CellParams::RHOMVY_V]/rhom,
+                                 spatial_cell->parameters[CellParams::RHOMVZ_V]/rhom);
    /*compute total transformation*/
    Transform<Real,3,Affine> total_transform(Matrix<Real, 4, 4>::Identity()); //CONTINUE
 

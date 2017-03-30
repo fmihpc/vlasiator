@@ -135,10 +135,11 @@ namespace SBC {
          // Defined in project.cpp, used here as the outflow cell has the same state as the initial state of non-system boundary cells.
          project.setCell(cell);
          // WARNING Time-independence assumed here.
-         cell->parameters[CellParams::RHO_DT2] = cell->parameters[CellParams::RHO];
-         cell->parameters[CellParams::RHOVX_DT2] = cell->parameters[CellParams::RHOVX];
-         cell->parameters[CellParams::RHOVY_DT2] = cell->parameters[CellParams::RHOVY];
-         cell->parameters[CellParams::RHOVZ_DT2] = cell->parameters[CellParams::RHOVZ];
+         cell->parameters[CellParams::RHOM_DT2] = cell->parameters[CellParams::RHOM];
+         cell->parameters[CellParams::RHOMVX_DT2] = cell->parameters[CellParams::RHOMVX];
+         cell->parameters[CellParams::RHOMVY_DT2] = cell->parameters[CellParams::RHOMVY];
+         cell->parameters[CellParams::RHOMVZ_DT2] = cell->parameters[CellParams::RHOMVZ];
+         cell->parameters[CellParams::RHOQ_DT2] = cell->parameters[CellParams::RHOQ];
       }
       
       return true;

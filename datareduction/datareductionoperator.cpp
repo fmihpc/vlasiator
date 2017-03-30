@@ -470,10 +470,10 @@ namespace DRO {
   }
    
    bool VariablePressure::setSpatialCell(const SpatialCell* cell) {
-      if(cell-> parameters[CellParams::RHO] != 0.0) {
-         averageVX = cell-> parameters[CellParams::RHOVX] / cell-> parameters[CellParams::RHO];
-         averageVY = cell-> parameters[CellParams::RHOVY] / cell-> parameters[CellParams::RHO];
-         averageVZ = cell-> parameters[CellParams::RHOVZ] / cell-> parameters[CellParams::RHO];
+      if(cell-> parameters[CellParams::RHOM] != 0.0) {
+         averageVX = cell-> parameters[CellParams::RHOMVX] / cell-> parameters[CellParams::RHOM];
+         averageVY = cell-> parameters[CellParams::RHOMVY] / cell-> parameters[CellParams::RHOM];
+         averageVZ = cell-> parameters[CellParams::RHOMVZ] / cell-> parameters[CellParams::RHOM];
       } else {
          averageVX = 0.0;
          averageVY = 0.0;
@@ -587,10 +587,10 @@ namespace DRO {
    }
    
    bool VariablePTensorDiagonal::setSpatialCell(const SpatialCell* cell) {
-      if (cell-> parameters[CellParams::RHO] != 0.0) {
-         averageVX = cell-> parameters[CellParams::RHOVX] / cell-> parameters[CellParams::RHO];
-         averageVY = cell-> parameters[CellParams::RHOVY] / cell-> parameters[CellParams::RHO];
-         averageVZ = cell-> parameters[CellParams::RHOVZ] / cell-> parameters[CellParams::RHO];
+      if (cell-> parameters[CellParams::RHOM] != 0.0) {
+         averageVX = cell-> parameters[CellParams::RHOMVX] / cell-> parameters[CellParams::RHOM];
+         averageVY = cell-> parameters[CellParams::RHOMVY] / cell-> parameters[CellParams::RHOM];
+         averageVZ = cell-> parameters[CellParams::RHOMVZ] / cell-> parameters[CellParams::RHOM];
       } else {
          averageVX = 0.0;
          averageVY = 0.0;
@@ -673,10 +673,10 @@ namespace DRO {
    }
    
    bool VariablePTensorOffDiagonal::setSpatialCell(const SpatialCell* cell) {
-      if(cell-> parameters[CellParams::RHO] != 0.0) {
-         averageVX = cell-> parameters[CellParams::RHOVX] / cell-> parameters[CellParams::RHO];
-         averageVY = cell-> parameters[CellParams::RHOVY] / cell-> parameters[CellParams::RHO];
-         averageVZ = cell-> parameters[CellParams::RHOVZ] / cell-> parameters[CellParams::RHO];
+      if(cell-> parameters[CellParams::RHOM] != 0.0) {
+         averageVX = cell-> parameters[CellParams::RHOMVX] / cell-> parameters[CellParams::RHOM];
+         averageVY = cell-> parameters[CellParams::RHOMVY] / cell-> parameters[CellParams::RHOM];
+         averageVZ = cell-> parameters[CellParams::RHOMVZ] / cell-> parameters[CellParams::RHOM];
       } else {
          averageVX = 0.0;
          averageVY = 0.0;
@@ -986,7 +986,7 @@ namespace DRO {
    }
 
    //Calculates rho backstream or rho non backstream
-   static void rhoBackstreamCalculation( const SpatialCell * cell, const bool calculateBackstream, Real & rho ) {
+   static void rhomBackstreamCalculation( const SpatialCell * cell, const bool calculateBackstream, Real & rhom ) {
       const Real HALF = 0.5;
       # pragma omp parallel
       {
@@ -1022,18 +1022,18 @@ namespace DRO {
          // todo: use omp reduction
          # pragma omp critical
          {
-            rho += thread_n_sum;
+            rhom += thread_n_sum;
          }
       }
       return;
    }
 
-   static void rhoVBackstreamCalculation( const SpatialCell * cell, const bool calculateBackstream, Real * rhoV ) {
+   static void rhomVBackstreamCalculation( const SpatialCell * cell, const bool calculateBackstream, Real * rhomV ) {
       const Real HALF = 0.5;
       // Make sure the rhoV is initialized
-      rhoV[0] = 0;
-      rhoV[1] = 0;
-      rhoV[2] = 0;
+      rhomV[0] = 0;
+      rhomV[1] = 0;
+      rhomV[2] = 0;
       # pragma omp parallel
       {
          Real thread_nvx_sum = 0.0;
@@ -1084,9 +1084,9 @@ namespace DRO {
          // these updates need to be atomic:
          # pragma omp critical
          {
-            rhoV[0] += thread_nvx_sum;
-            rhoV[1] += thread_nvy_sum;
-            rhoV[2] += thread_nvz_sum;
+            rhomV[0] += thread_nvx_sum;
+            rhomV[1] += thread_nvy_sum;
+            rhomV[2] += thread_nvz_sum;
          }
       }
       return;
@@ -1332,12 +1332,12 @@ namespace DRO {
    }
    
    // Rho backstream:
-   VariableRhoBackstream::VariableRhoBackstream(): DataReductionOperator() { }
-   VariableRhoBackstream::~VariableRhoBackstream() { }
+   VariableRhomBackstream::VariableRhomBackstream(): DataReductionOperator() { }
+   VariableRhomBackstream::~VariableRhomBackstream() { }
    
-   std::string VariableRhoBackstream::getName() const {return "RhoBackstream";}
+   std::string VariableRhomBackstream::getName() const {return "RhomBackstream";}
    
-   bool VariableRhoBackstream::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+   bool VariableRhomBackstream::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
       dataSize =  sizeof(Real);
       vectorSize = 1;
@@ -1345,27 +1345,27 @@ namespace DRO {
    }
    
    // Adding rho backstream calculations to Vlasiator.
-   bool VariableRhoBackstream::reduceData(const SpatialCell* cell,char* buffer) {
+   bool VariableRhomBackstream::reduceData(const SpatialCell* cell,char* buffer) {
       const bool calculateBackstream = true;
-      rhoBackstreamCalculation( cell, calculateBackstream, RhoBackstream );
-      const char* ptr = reinterpret_cast<const char*>(&RhoBackstream);
+      rhomBackstreamCalculation( cell, calculateBackstream, RhomBackstream );
+      const char* ptr = reinterpret_cast<const char*>(&RhomBackstream);
       for (uint i = 0; i < sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
    }
    
-   bool VariableRhoBackstream::setSpatialCell(const SpatialCell* cell) {
-      RhoBackstream = 0.0;
+   bool VariableRhomBackstream::setSpatialCell(const SpatialCell* cell) {
+      RhomBackstream = 0.0;
       return true;
    }
 
 
    // Rho non backstream:
-   VariableRhoNonBackstream::VariableRhoNonBackstream(): DataReductionOperator() { }
-   VariableRhoNonBackstream::~VariableRhoNonBackstream() { }
+   VariableRhomNonBackstream::VariableRhomNonBackstream(): DataReductionOperator() { }
+   VariableRhomNonBackstream::~VariableRhomNonBackstream() { }
    
-   std::string VariableRhoNonBackstream::getName() const {return "RhoNonBackstream";}
+   std::string VariableRhomNonBackstream::getName() const {return "RhomNonBackstream";}
    
-   bool VariableRhoNonBackstream::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+   bool VariableRhomNonBackstream::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
       dataSize =  sizeof(Real);
       vectorSize = 1;
@@ -1373,26 +1373,26 @@ namespace DRO {
    }
    
    // Adding rho non backstream calculations to Vlasiator.
-   bool VariableRhoNonBackstream::reduceData(const SpatialCell* cell,char* buffer) {
+   bool VariableRhomNonBackstream::reduceData(const SpatialCell* cell,char* buffer) {
       const bool calculateBackstream = false; //We don't want backstream
-      rhoBackstreamCalculation( cell, calculateBackstream, Rho );
-      const char* ptr = reinterpret_cast<const char*>(&Rho);
+      rhomBackstreamCalculation( cell, calculateBackstream, Rhom );
+      const char* ptr = reinterpret_cast<const char*>(&Rhom);
       for (uint i = 0; i < sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
    }
    
-   bool VariableRhoNonBackstream::setSpatialCell(const SpatialCell* cell) {
-      Rho = 0.0;
+   bool VariableRhomNonBackstream::setSpatialCell(const SpatialCell* cell) {
+      Rhom = 0.0;
       return true;
    }
 
    //Rho v backstream:
-   VariableRhoVBackstream::VariableRhoVBackstream(): DataReductionOperator() { }
-   VariableRhoVBackstream::~VariableRhoVBackstream() { }
+   VariableRhomVBackstream::VariableRhomVBackstream(): DataReductionOperator() { }
+   VariableRhomVBackstream::~VariableRhomVBackstream() { }
    
-   std::string VariableRhoVBackstream::getName() const {return "RhoVBackstream";}
+   std::string VariableRhomVBackstream::getName() const {return "RhomVBackstream";}
    
-   bool VariableRhoVBackstream::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+   bool VariableRhomVBackstream::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
       dataSize =  sizeof(Real);
       vectorSize = 3;
@@ -1402,31 +1402,31 @@ namespace DRO {
 
 
    // Adding rho v backstream calculations to Vlasiator.
-   bool VariableRhoVBackstream::reduceData(const SpatialCell* cell,char* buffer) {
+   bool VariableRhomVBackstream::reduceData(const SpatialCell* cell,char* buffer) {
       const bool calculateBackstream = true;
       //Calculate rho v backstream
-      rhoVBackstreamCalculation( cell, calculateBackstream, RhoVBackstream );
-      const uint RhoVBackstreamSize = 3;
-      const char* ptr = reinterpret_cast<const char*>(&RhoVBackstream);
-      for (uint i = 0; i < RhoVBackstreamSize*sizeof(Real); ++i) buffer[i] = ptr[i];
+      rhomVBackstreamCalculation( cell, calculateBackstream, RhomVBackstream );
+      const uint RhomVBackstreamSize = 3;
+      const char* ptr = reinterpret_cast<const char*>(&RhomVBackstream);
+      for (uint i = 0; i < RhomVBackstreamSize*sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
    }
    
-   bool VariableRhoVBackstream::setSpatialCell(const SpatialCell* cell) {
+   bool VariableRhomVBackstream::setSpatialCell(const SpatialCell* cell) {
       // Initialize values
       for( uint i = 0; i < 3; ++i ) {
-         RhoVBackstream[i] = 0.0;
+         RhomVBackstream[i] = 0.0;
       }
       return true;
    }
 
    //Rho v non backstream:
-   VariableRhoVNonBackstream::VariableRhoVNonBackstream(): DataReductionOperator() { }
-   VariableRhoVNonBackstream::~VariableRhoVNonBackstream() { }
+   VariableRhomVNonBackstream::VariableRhomVNonBackstream(): DataReductionOperator() { }
+   VariableRhomVNonBackstream::~VariableRhomVNonBackstream() { }
    
-   std::string VariableRhoVNonBackstream::getName() const {return "RhoVNonBackstream";}
+   std::string VariableRhomVNonBackstream::getName() const {return "RhomVNonBackstream";}
    
-   bool VariableRhoVNonBackstream::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+   bool VariableRhomVNonBackstream::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
       dataSize =  sizeof(Real);
       vectorSize = 3;
@@ -1434,20 +1434,20 @@ namespace DRO {
    }
 
    // Adding rho v non backstream calculations to Vlasiator.
-   bool VariableRhoVNonBackstream::reduceData(const SpatialCell* cell,char* buffer) {
+   bool VariableRhomVNonBackstream::reduceData(const SpatialCell* cell,char* buffer) {
       const bool calculateBackstream = false;
       //Calculate rho v backstream
-      rhoVBackstreamCalculation( cell, calculateBackstream, RhoV );
+      rhomVBackstreamCalculation( cell, calculateBackstream, RhomV );
       const uint vectorSize = 3;
-      const char* ptr = reinterpret_cast<const char*>(&RhoV);
+      const char* ptr = reinterpret_cast<const char*>(&RhomV);
       for (uint i = 0; i < vectorSize*sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
    }
    
-   bool VariableRhoVNonBackstream::setSpatialCell(const SpatialCell* cell) {
+   bool VariableRhomVNonBackstream::setSpatialCell(const SpatialCell* cell) {
       // Initialize values
       for( uint i = 0; i < 3; ++i ) {
-         RhoV[i] = 0.0;
+         RhomV[i] = 0.0;
       }
       return true;
    }
@@ -1477,17 +1477,17 @@ namespace DRO {
    }
    
    bool VariablePressureBackstream::setSpatialCell(const SpatialCell* cell) {
-      if(cell-> parameters[CellParams::RHO] != 0.0) {
+      if(cell-> parameters[CellParams::RHOM] != 0.0) {
          //Get rho and rho v of the backstream:
-         Real rho = 0;
-         Real rhoV[3] = {0};
+         Real rhom = 0;
+         Real rhomV[3] = {0};
          const bool calculateBackstream = true;
-         rhoBackstreamCalculation( cell, calculateBackstream, rho );
-         rhoVBackstreamCalculation( cell, calculateBackstream, rhoV );
+         rhomBackstreamCalculation( cell, calculateBackstream, rhom );
+         rhomVBackstreamCalculation( cell, calculateBackstream, rhomV );
          //Set the average velocities:
-         averageVX = rhoV[0] / rho;
-         averageVY = rhoV[1] / rho;
-         averageVZ = rhoV[2] / rho;
+         averageVX = rhomV[0] / rhom;
+         averageVY = rhomV[1] / rhom;
+         averageVZ = rhomV[2] / rhom;
       } else {
          averageVX = 0.0;
          averageVY = 0.0;
@@ -1521,17 +1521,17 @@ namespace DRO {
    }
    
    bool VariablePressureNonBackstream::setSpatialCell(const SpatialCell* cell) {
-      if(cell-> parameters[CellParams::RHO] != 0.0) {
+      if(cell-> parameters[CellParams::RHOM] != 0.0) {
          //Get rho and rho v of the backstream:
-         Real rho = 0;
-         Real rhoV[3] = {0};
+         Real rhom = 0;
+         Real rhomV[3] = {0};
          const bool calculateBackstream = false;
-         rhoBackstreamCalculation( cell, calculateBackstream, rho );
-         rhoVBackstreamCalculation( cell, calculateBackstream, rhoV );
+         rhomBackstreamCalculation( cell, calculateBackstream, rhom );
+         rhomVBackstreamCalculation( cell, calculateBackstream, rhomV );
          //Set the average velocities:
-         averageVX = rhoV[0] / rho;
-         averageVY = rhoV[1] / rho;
-         averageVZ = rhoV[2] / rho;
+         averageVX = rhomV[0] / rhom;
+         averageVY = rhomV[1] / rhom;
+         averageVZ = rhomV[2] / rhom;
       } else {
          averageVX = 0.0;
          averageVY = 0.0;
@@ -1572,17 +1572,17 @@ namespace DRO {
    }
    
    bool VariablePTensorBackstreamDiagonal::setSpatialCell(const SpatialCell* cell) {
-      if(cell-> parameters[CellParams::RHO] != 0.0) {
+      if(cell-> parameters[CellParams::RHOM] != 0.0) {
          //Get rho and rho v of the backstream:
-         Real rho = 0;
-         Real rhoV[3] = {0};
+         Real rhom = 0;
+         Real rhomV[3] = {0};
          const bool calculateBackstream = true; //We are calculating backstream
-         rhoBackstreamCalculation( cell, calculateBackstream, rho );
-         rhoVBackstreamCalculation( cell, calculateBackstream, rhoV );
+         rhomBackstreamCalculation( cell, calculateBackstream, rhom );
+         rhomVBackstreamCalculation( cell, calculateBackstream, rhomV );
          //Set the average velocities:
-         averageVX = rhoV[0] / rho;
-         averageVY = rhoV[1] / rho;
-         averageVZ = rhoV[2] / rho;
+         averageVX = rhomV[0] / rhom;
+         averageVY = rhomV[1] / rhom;
+         averageVZ = rhomV[2] / rhom;
       } else {
          averageVX = 0.0;
          averageVY = 0.0;
@@ -1623,17 +1623,17 @@ namespace DRO {
    }
    
    bool VariablePTensorNonBackstreamDiagonal::setSpatialCell(const SpatialCell* cell) {
-      if(cell-> parameters[CellParams::RHO] != 0.0) {
+      if(cell-> parameters[CellParams::RHOM] != 0.0) {
          //Get rho and rho v of the backstream:
-         Real rho = 0;
-         Real rhoV[3] = {0};
+         Real rhom = 0;
+         Real rhomV[3] = {0};
          const bool calculateBackstream = false; //We are not calculating backstream
-         rhoBackstreamCalculation( cell, calculateBackstream, rho );
-         rhoVBackstreamCalculation( cell, calculateBackstream, rhoV );
+         rhomBackstreamCalculation( cell, calculateBackstream, rhom );
+         rhomVBackstreamCalculation( cell, calculateBackstream, rhomV );
          //Set the average velocities:
-         averageVX = rhoV[0] / rho;
-         averageVY = rhoV[1] / rho;
-         averageVZ = rhoV[2] / rho;
+         averageVX = rhomV[0] / rhom;
+         averageVY = rhomV[1] / rhom;
+         averageVZ = rhomV[2] / rhom;
       } else {
          averageVX = 0.0;
          averageVY = 0.0;
@@ -1669,17 +1669,17 @@ namespace DRO {
    }
    
    bool VariablePTensorBackstreamOffDiagonal::setSpatialCell(const SpatialCell* cell) {
-      if(cell-> parameters[CellParams::RHO] != 0.0) {
+      if(cell-> parameters[CellParams::RHOM] != 0.0) {
          //Get rho and rho v of the backstream:
-         Real rho = 0;
-         Real rhoV[3] = {0};
+         Real rhom = 0;
+         Real rhomV[3] = {0};
          const bool calculateBackstream = true; //We are calculating backstream
-         rhoBackstreamCalculation( cell, calculateBackstream, rho );
-         rhoVBackstreamCalculation( cell, calculateBackstream, rhoV );
+         rhomBackstreamCalculation( cell, calculateBackstream, rhom );
+         rhomVBackstreamCalculation( cell, calculateBackstream, rhomV );
          //Set the average velocities:
-         averageVX = rhoV[0] / rho;
-         averageVY = rhoV[1] / rho;
-         averageVZ = rhoV[2] / rho;
+         averageVX = rhomV[0] / rhom;
+         averageVY = rhomV[1] / rhom;
+         averageVZ = rhomV[2] / rhom;
       } else {
          averageVX = 0.0;
          averageVY = 0.0;
@@ -1714,17 +1714,17 @@ namespace DRO {
    }
    
    bool VariablePTensorNonBackstreamOffDiagonal::setSpatialCell(const SpatialCell* cell) {
-      if(cell-> parameters[CellParams::RHO] != 0.0) {
+      if(cell-> parameters[CellParams::RHOM] != 0.0) {
          //Get rho and rho v of the backstream:
-         Real rho = 0;
-         Real rhoV[3] = {0};
+         Real rhom = 0;
+         Real rhomV[3] = {0};
          const bool calculateBackstream = false; //We are not calculating backstream
-         rhoBackstreamCalculation( cell, calculateBackstream, rho );
-         rhoVBackstreamCalculation( cell, calculateBackstream, rhoV );
+         rhomBackstreamCalculation( cell, calculateBackstream, rhom );
+         rhomVBackstreamCalculation( cell, calculateBackstream, rhomV );
          //Set the average velocities:
-         averageVX = rhoV[0] / rho;
-         averageVY = rhoV[1] / rho;
-         averageVZ = rhoV[2] / rho;
+         averageVX = rhomV[0] / rhom;
+         averageVY = rhomV[1] / rhom;
+         averageVZ = rhomV[2] / rhom;
       } else {
          averageVX = 0.0;
          averageVY = 0.0;

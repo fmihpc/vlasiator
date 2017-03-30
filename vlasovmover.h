@@ -54,10 +54,11 @@ void calculateCellMoments(
  
 void calculateInterpolatedVelocityMoments(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   const int cp_rho,
-   const int cp_rhovx,
-   const int cp_rhovy,
-   const int cp_rhovz,
+   const int cp_rhom,
+   const int cp_rhomvx,
+   const int cp_rhomvy,
+   const int cp_rhomvz,
+   const int cp_rhoq,
    const int cp_p11,
    const int cp_p22,
    const int cp_p33

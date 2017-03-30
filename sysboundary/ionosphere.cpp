@@ -719,10 +719,11 @@ namespace SBC {
       calculateCellMoments(&templateCell,true,true);
 
       // WARNING Time-independence assumed here. Normal moments computed in setProjectCell
-      templateCell.parameters[CellParams::RHO_DT2] = templateCell.parameters[CellParams::RHO];
-      templateCell.parameters[CellParams::RHOVX_DT2] = templateCell.parameters[CellParams::RHOVX];
-      templateCell.parameters[CellParams::RHOVY_DT2] = templateCell.parameters[CellParams::RHOVY];
-      templateCell.parameters[CellParams::RHOVZ_DT2] = templateCell.parameters[CellParams::RHOVZ];
+      templateCell.parameters[CellParams::RHOM_DT2] = templateCell.parameters[CellParams::RHOM];
+      templateCell.parameters[CellParams::RHOMVX_DT2] = templateCell.parameters[CellParams::RHOMVX];
+      templateCell.parameters[CellParams::RHOMVY_DT2] = templateCell.parameters[CellParams::RHOMVY];
+      templateCell.parameters[CellParams::RHOMVZ_DT2] = templateCell.parameters[CellParams::RHOMVZ];
+      templateCell.parameters[CellParams::RHOQ_DT2] = templateCell.parameters[CellParams::RHOQ];
    }
    
    Real Ionosphere::shiftedMaxwellianDistribution(
@@ -794,12 +795,6 @@ namespace SBC {
    }
 
    void Ionosphere::setCellFromTemplate(SpatialCell* cell,const int& popID) {
-      // The ionospheric cell has the same state as the initial state of non-system boundary cells so far.
-      if (popID == 0) {
-         cell->parameters[CellParams::RHOLOSSADJUST] = 0.0;
-         cell->parameters[CellParams::RHOLOSSVELBOUNDARY] = 0.0;
-      }
-
       //Copy, and allow to change blocks
       copyCellData(&templateCell,cell,true,false,popID);
    }

@@ -103,25 +103,23 @@ namespace spatial_cell {
       const uint64_t CELL_PERB                = (1ull<<12);
       const uint64_t CELL_PERBDT2             = (1ull<<13);
       const uint64_t CELL_BGB                 = (1ull<<14);
-      const uint64_t CELL_RHO_RHOV            = (1ull<<15);
-      const uint64_t CELL_RHODT2_RHOVDT2      = (1ull<<16);
-      const uint64_t CELL_RHOM_V              = (1ull<<17);
-      const uint64_t CELL_RHOMDT2_VDT2        = (1ull<<18);
-      const uint64_t CELL_RHOQ                = (1ull<<19);
-      const uint64_t CELL_RHOQDT2             = (1ull<<20);
-      const uint64_t CELL_BVOL                = (1ull<<21);
-      const uint64_t CELL_BVOL_DERIVATIVES    = (1ull<<22);
-      const uint64_t CELL_DIMENSIONS          = (1ull<<23);
-      const uint64_t CELL_IOLOCALCELLID       = (1ull<<24);
-      const uint64_t NEIGHBOR_VEL_BLOCK_DATA  = (1ull<<25);
-      const uint64_t CELL_HALL_TERM           = (1ull<<26);
-      const uint64_t CELL_P                   = (1ull<<27);
-      const uint64_t CELL_PDT2                = (1ull<<28);
-      const uint64_t CELL_RHOQ_TOT            = (1ull<<29);
-      const uint64_t CELL_PHI                 = (1ull<<30);
-      const uint64_t POP_METADATA             = (1ull<<31);
-      const uint64_t RANDOMGEN                = (1ull<<32);
-      const uint64_t CELL_GRADPE_TERM         = (1ull<<33);
+      const uint64_t CELL_RHOM_V              = (1ull<<15);
+      const uint64_t CELL_RHOMDT2_VDT2        = (1ull<<16);
+      const uint64_t CELL_RHOQ                = (1ull<<17);
+      const uint64_t CELL_RHOQDT2             = (1ull<<18);
+      const uint64_t CELL_BVOL                = (1ull<<19);
+      const uint64_t CELL_BVOL_DERIVATIVES    = (1ull<<20);
+      const uint64_t CELL_DIMENSIONS          = (1ull<<21);
+      const uint64_t CELL_IOLOCALCELLID       = (1ull<<22);
+      const uint64_t NEIGHBOR_VEL_BLOCK_DATA  = (1ull<<23);
+      const uint64_t CELL_HALL_TERM           = (1ull<<24);
+      const uint64_t CELL_P                   = (1ull<<25);
+      const uint64_t CELL_PDT2                = (1ull<<26);
+      const uint64_t CELL_RHOQ_TOT            = (1ull<<27);
+      const uint64_t CELL_PHI                 = (1ull<<28);
+      const uint64_t POP_METADATA             = (1ull<<29);
+      const uint64_t RANDOMGEN                = (1ull<<30);
+      const uint64_t CELL_GRADPE_TERM         = (1ull<<31);
       //all data
       const uint64_t ALL_DATA =
       CELL_PARAMETERS
@@ -159,8 +157,7 @@ namespace spatial_cell {
       Real P[3];
       Real P_R[3];
       Real P_V[3];
-      Real RHOLOSSADJUST;      /*!< Counter for massloss from the destroying blocks in blockadjustment*/
-      Real RHOLOSSVELBOUNDARY; /*!< Counter for massloss through outflow boundaries in velocity space*/
+      Real RHOMLOSSADJUST = 0.0;      /*!< Counter for mass loss from the destroying blocks in blockadjustment*/
       Real ACCSUBCYCLES;        /*!< number of subcyles for each cell*/
       
       Real max_dt[2];                                                /**< Element[0] is max_r_dt, element[1] max_v_dt.*/

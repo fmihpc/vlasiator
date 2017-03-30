@@ -228,9 +228,6 @@ namespace SBC {
       templateCell.parameters[CellParams::PERBY] = By;
       templateCell.parameters[CellParams::PERBZ] = Bz;
       
-      templateCell.parameters[CellParams::RHOLOSSADJUST] = 0.0;
-      templateCell.parameters[CellParams::RHOLOSSVELBOUNDARY] = 0.0;
-      
       // Init all particle species
       for (unsigned int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          vector<vmesh::GlobalID> blocksToInitialize = this->findBlocksToInitialize(popID,templateCell, rho, T, Vx, Vy, Vz);
@@ -303,10 +300,11 @@ namespace SBC {
       
       if(!this->isThisDynamic) {
          // WARNING Time-independence assumed here.
-         templateCell.parameters[CellParams::RHO_DT2] = templateCell.parameters[CellParams::RHO];
-         templateCell.parameters[CellParams::RHOVX_DT2] = templateCell.parameters[CellParams::RHOVX];
-         templateCell.parameters[CellParams::RHOVY_DT2] = templateCell.parameters[CellParams::RHOVY];
-         templateCell.parameters[CellParams::RHOVZ_DT2] = templateCell.parameters[CellParams::RHOVZ];
+         templateCell.parameters[CellParams::RHOM_DT2] = templateCell.parameters[CellParams::RHOM];
+         templateCell.parameters[CellParams::RHOMVX_DT2] = templateCell.parameters[CellParams::RHOMVX];
+         templateCell.parameters[CellParams::RHOMVY_DT2] = templateCell.parameters[CellParams::RHOMVY];
+         templateCell.parameters[CellParams::RHOMVZ_DT2] = templateCell.parameters[CellParams::RHOMVZ];
+         templateCell.parameters[CellParams::RHOQ_DT2] = templateCell.parameters[CellParams::RHOQ];
          templateCell.parameters[CellParams::PERBX_DT2] = templateCell.parameters[CellParams::PERBX];
          templateCell.parameters[CellParams::PERBY_DT2] = templateCell.parameters[CellParams::PERBY];
          templateCell.parameters[CellParams::PERBZ_DT2] = templateCell.parameters[CellParams::PERBZ];

@@ -703,10 +703,11 @@ int main(int argn,char* args[]) {
       phiprof::start("Compute interp moments");
       calculateInterpolatedVelocityMoments(
          mpiGrid,
-         CellParams::RHO_DT2,
-         CellParams::RHOVX_DT2,
-         CellParams::RHOVY_DT2,
-         CellParams::RHOVZ_DT2,
+         CellParams::RHOM_DT2,
+         CellParams::RHOMVX_DT2,
+         CellParams::RHOMVY_DT2,
+         CellParams::RHOMVZ_DT2,
+         CellParams::RHOQ_DT2,
          CellParams::P_11_DT2,
          CellParams::P_22_DT2,
          CellParams::P_33_DT2
@@ -750,10 +751,11 @@ int main(int argn,char* args[]) {
       // timestep * //
       calculateInterpolatedVelocityMoments(
          mpiGrid,
-         CellParams::RHO,
-         CellParams::RHOVX,
-         CellParams::RHOVY,
-         CellParams::RHOVZ,
+         CellParams::RHOM,
+         CellParams::RHOMVX,
+         CellParams::RHOMVY,
+         CellParams::RHOMVZ,
+         CellParams::RHOQ,
          CellParams::P_11,
          CellParams::P_22,
          CellParams::P_33

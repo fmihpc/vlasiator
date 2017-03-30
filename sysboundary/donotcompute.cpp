@@ -71,16 +71,16 @@ namespace SBC {
          cell->parameters[CellParams::EX] = 0.0;
          cell->parameters[CellParams::EY] = 0.0;
          cell->parameters[CellParams::EZ] = 0.0;
-         cell->parameters[CellParams::RHO] = 0.0;
-         cell->parameters[CellParams::RHOVX] = 0.0;
-         cell->parameters[CellParams::RHOVY] = 0.0;
-         cell->parameters[CellParams::RHOVZ] = 0.0;
-         cell->parameters[CellParams::RHO_DT2] = 0.0;
-         cell->parameters[CellParams::RHOVX_DT2] = 0.0;
-         cell->parameters[CellParams::RHOVY_DT2] = 0.0;
-         cell->parameters[CellParams::RHOVZ_DT2] = 0.0;
-         cell->parameters[CellParams::RHOLOSSADJUST] = 0.0;
-         cell->parameters[CellParams::RHOLOSSVELBOUNDARY] = 0.0;
+         cell->parameters[CellParams::RHOM] = 0.0;
+         cell->parameters[CellParams::RHOMVX] = 0.0;
+         cell->parameters[CellParams::RHOMVY] = 0.0;
+         cell->parameters[CellParams::RHOMVZ] = 0.0;
+         cell->parameters[CellParams::RHOQ] = 0.0;
+         cell->parameters[CellParams::RHOM_DT2] = 0.0;
+         cell->parameters[CellParams::RHOMVX_DT2] = 0.0;
+         cell->parameters[CellParams::RHOMVY_DT2] = 0.0;
+         cell->parameters[CellParams::RHOMVZ_DT2] = 0.0;
+         cell->parameters[CellParams::RHOQ_DT2] = 0.0;
          
          //let's get rid of blocks not fulfilling the criteria here to save
          //memory.
