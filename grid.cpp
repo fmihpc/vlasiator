@@ -244,7 +244,7 @@ void initializeGrid(
    }
 
    // Init mesh data container
-   if (getObjectWrapper().meshData.initialize("spatialGrid") == false) {
+   if (getObjectWrapper().meshData.initialize("SpatialGrid") == false) {
       cerr << "(Grid) Failed to initialize mesh data container in " << __FILE__ << ":" << __LINE__ << endl;
       exit(1);
    }
