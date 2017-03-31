@@ -33,27 +33,27 @@ fi
 
 
 # Extract the project name to filter out these options below
-project=$( cat $cfg | grep "project" | cut --delimiter="=" -f 2 | tr -d " " )
+project=$( cat $cfg | grep "^project" | cut --delimiter="=" -f 2 | tr -d " " )
 
 # Extract the loaded system boundaries to filter out these options below
 boundaries=""
-if [[ $( grep "boundary" $cfg | grep Ionosphere | wc -l ) -eq 1 ]]
+if [[ $( grep "^boundary" $cfg | grep Ionosphere | wc -l ) -eq 1 ]]
 then
    boundaries=ionosphere
 fi
 
-if [[ $( grep "boundary" $cfg | grep Maxwellian | wc -l ) -eq 1 ]]
+if [[ $( grep "^boundary" $cfg | grep Maxwellian | wc -l ) -eq 1 ]]
 then
    boundaries=$boundaries" maxwellian"
 fi
 
-if [[ $( grep "boundary" $cfg | grep Outflow | wc -l ) -eq 1 ]]
+if [[ $( grep "^boundary" $cfg | grep Outflow | wc -l ) -eq 1 ]]
 then
    boundaries=$boundaries" outflow"
 fi
 
 # Extract the populations to filter out these options below
-populations=$( cat $cfg | grep "ParticlePopulations" | cut --delimiter="=" -f 2 | tr -d " " )
+populations=$( cat $cfg | grep "^ParticlePopulations" | cut --delimiter="=" -f 2 | tr -d " " )
 
 for pop in $populations
 do
