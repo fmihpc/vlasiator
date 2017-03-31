@@ -29,6 +29,20 @@
 #include "../project.h"
 
 namespace projects {
+
+   struct DispersionSpeciesParameters {
+      Real VX0;
+      Real VY0;
+      Real VZ0;
+      Real DENSITY;
+      Real TEMPERATURE;
+      Real densityPertRelAmp;
+      Real velocityPertAbsAmp;
+      uint nSpaceSamples;
+      uint nVelocitySamples;
+
+   };
+
    class Dispersion: public Project {
     public:
       Dispersion();
@@ -54,22 +68,14 @@ namespace projects {
                                         ) const;
 
       Real B0;
-      Real VX0;
-      Real VY0;
-      Real VZ0;
-      Real angleXY;
-      Real angleXZ;
-      Real DENSITY;
-      Real TEMPERATURE;
       Real magXPertAbsAmp;
       Real magYPertAbsAmp;
       Real magZPertAbsAmp;
-      Real densityPertRelAmp;
-      Real velocityPertAbsAmp;
+      Real angleXY;
+      Real angleXZ;
       Real maxwCutoff;
+      std::vector<DispersionSpeciesParameters> speciesParams;
       uint seed;
-      uint nSpaceSamples;
-      uint nVelocitySamples;
       
       char rngStateBuffer[256];
       random_data rngDataBuffer;
