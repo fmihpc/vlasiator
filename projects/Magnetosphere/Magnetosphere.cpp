@@ -132,55 +132,55 @@ namespace projects {
 
       // Per-population parameters
       for(int i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-        const std::string& pop = getObjectWrapper().particleSpecies[i].name;
-        MagnetosphereSpeciesParameters sP;
+         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+         MagnetosphereSpeciesParameters sP;
 
-        if(!RP::get(pop + "_Magnetosphere.rho", sP.rho)) {
-           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-           exit(1);
-        }
-        if(!RP::get(pop + "_Magnetosphere.T", sP.T)) {
-           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-           exit(1);
-        }
-        if(!RP::get(pop + "_Magnetosphere.VX0", sP.V0[0])) {
-           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-           exit(1);
-        }
-        if(!RP::get(pop + "_Magnetosphere.VY0", sP.V0[1])) {
-           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-           exit(1);
-        }
-        if(!RP::get(pop + "_Magnetosphere.VZ0", sP.V0[2])) {
-           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-           exit(1);
-        }
+         if(!RP::get(pop + "_Magnetosphere.rho", sP.rho)) {
+            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
+            exit(1);
+         }
+         if(!RP::get(pop + "_Magnetosphere.T", sP.T)) {
+            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
+            exit(1);
+         }
+         if(!RP::get(pop + "_Magnetosphere.VX0", sP.V0[0])) {
+            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
+            exit(1);
+         }
+         if(!RP::get(pop + "_Magnetosphere.VY0", sP.V0[1])) {
+            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
+            exit(1);
+         }
+         if(!RP::get(pop + "_Magnetosphere.VZ0", sP.V0[2])) {
+            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
+            exit(1);
+         }
 
-        if(!RP::get(pop + "_Magnetosphere.nSpaceSamples", sP.nSpaceSamples)) {
-           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-           exit(1);
-        }
-        if(!RP::get(pop + "_Magnetosphere.nVelocitySamples", sP.nVelocitySamples)) {
-           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-           exit(1);
-        }
+         if(!RP::get(pop + "_Magnetosphere.nSpaceSamples", sP.nSpaceSamples)) {
+            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
+            exit(1);
+         }
+         if(!RP::get(pop + "_Magnetosphere.nVelocitySamples", sP.nVelocitySamples)) {
+            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
+            exit(1);
+         }
 
-        if(!RP::get(pop + "_ionosphere.rho", sP.ionosphereRho)) {
-           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-           exit(1);
-        }
-        if(!RP::get(pop + "_ionosphere.VX0", sP.ionosphereV0[0])) {
-           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-           exit(1);
-        }
-        if(!RP::get(pop + "_ionosphere.VY0", sP.ionosphereV0[1])) {
-           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-           exit(1);
-        }
-        if(!RP::get(pop + "_ionosphere.VZ0", sP.ionosphereV0[2])) {
-           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-           exit(1);
-        }
+         if(!RP::get(pop + "_ionosphere.rho", sP.ionosphereRho)) {
+            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
+            exit(1);
+         }
+         if(!RP::get(pop + "_ionosphere.VX0", sP.ionosphereV0[0])) {
+            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
+            exit(1);
+         }
+         if(!RP::get(pop + "_ionosphere.VY0", sP.ionosphereV0[1])) {
+            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
+            exit(1);
+         }
+         if(!RP::get(pop + "_ionosphere.VZ0", sP.ionosphereV0[2])) {
+            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
+            exit(1);
+         }
 
         speciesParams.push_back(sP);
       }

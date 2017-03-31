@@ -27,6 +27,20 @@
 #include "../project.h"
 
 namespace projects {
+
+   struct FirehoseSpeciesParameters {
+      Real rho[2];
+      Real Tx[2];
+      Real Ty[2];
+      Real Tz[2];
+      Real Vx[2];
+      Real Vy[2];
+      Real Vz[2];
+      uint nSpaceSamples;
+      uint nVelocitySamples;
+
+   };
+
    class Firehose: public Project {
     public:
       Firehose();
@@ -52,21 +66,13 @@ namespace projects {
                                          creal& dvx, creal& dvy, creal& dvz,
                                          const unsigned int popID
                                         ) const;
-      
-      Real rho[2];
-      Real Tx[2];
-      Real Ty[2];
-      Real Tz[2];
-      Real Vx[2];
-      Real Vy[2];
-      Real Vz[2];
+
       Real Bx;
       Real By;
       Real Bz;   
       Real lambda;
       Real amp;
-      uint nSpaceSamples;
-      uint nVelocitySamples;
+      std::vector<FirehoseSpeciesParameters> speciesParams;
    }; // class Firehose
 } // namespace projects
 

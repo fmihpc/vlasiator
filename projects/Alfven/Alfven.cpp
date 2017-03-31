@@ -62,11 +62,12 @@ namespace projects {
       for(int i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
 
-         RP::add("Alfven.rho", "Number density (m^-3)", 1.0e8);
-         RP::add("Alfven.Temperature", "Temperature (K)", 0.86456498092);
-         RP::add("Alfven.A_vel", "Amplitude of the velocity perturbation", 0.1);
-         RP::add("Alfven.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
-         RP::add("Alfven.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
+         RP::add(pop + "_Alfven.rho", "Number density (m^-3)", 1.0e8);
+         RP::add(pop + "_Alfven.Temperature", "Temperature (K)", 0.86456498092);
+         RP::add(pop + "_Alfven.A_vel", "Amplitude of the velocity perturbation", 0.1);
+         RP::add(pop + "_Alfven.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
+         RP::add(pop + "_Alfven.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
+
       }
    }
 
@@ -88,10 +89,10 @@ namespace projects {
 
          AlfvenSpeciesParameters sP;
 
-         RP::get("Alfven.rho", sP.rho);
-         RP::get("Alfven.Temperature",sP.T);
-         RP::get("Alfven.A_vel", sP.A_VEL);
-         RP::get("Alfven.nVelocitySamples", sP.nVelocitySamples);
+         RP::get(pop + "_Alfven.rho", sP.rho);
+         RP::get(pop + "_Alfven.Temperature",sP.T);
+         RP::get(pop + "_Alfven.A_vel", sP.A_VEL);
+         RP::get(pop + "_Alfven.nVelocitySamples", sP.nVelocitySamples);
 
          speciesParams.push_back(sP);
       }
