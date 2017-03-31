@@ -1,7 +1,7 @@
 #!/bin/bash
 
-mpirun_cmd="aprun -n 1"
-#mpirun_cmd="mpirun -np 1"
+#mpirun_cmd="aprun -n 1"
+mpirun_cmd="mpirun -np 1"
 vlasiator=$1
 cfg=$2
 
@@ -52,9 +52,21 @@ then
    boundaries=$boundaries" outflow"
 fi
 
+# Extract the populations to filter out these options below
+populations=$( cat $cfg | grep "ParticlePopulations" | cut --delimiter="=" -f 2 | tr -d " " )
+
+for pop in $populations
+do
+   for category in ionosphere $project $boundaries properties sparse vspace
+   do
+      population_prefixes=$population_prefixes" "$pop"_"$category
+   done
+done
+
+
 
 # List of prefixes to allow (excludes all but the active project's project options)
-for prefix in $project $boundaries AMR bailout boundaries fieldsolver gridbuilder io loadBalance Project_common restart sparse variables vlasovsolver
+for prefix in $project $boundaries $population_prefixes AMR bailout boundaries fieldsolver gridbuilder io loadBalance Project_common restart sparse variables vlasovsolver
 do
    echo "${prefix}\."
 done > .allowed_prefixes
@@ -64,6 +76,22 @@ done > .allowed_prefixes
 cat $cfg |  grep -v "^[ ]*#" |gawk '{if ( $1 ~ /\[/) {prefix=substr($1,2,length($1)-2);prefix=sprintf("%s.",prefix);} else if(NF>0) printf("%s%s\n",prefix,$0)}' > .cfg_variables
 
 $mpirun_cmd $vlasiator --help | grep "\-\-" | sed 's/--//g'  > .vlasiator_variables
+
+# Replace <population> with loaded populations
+cat .vlasiator_variables | grep "\<population\>" | while read opt
+do
+   option_line=""
+   for pop in $populations
+   do
+      option=${opt/\<population\>/$pop}
+      option=${option/\//\\/}
+      option_line+=${option}"\n"
+   done
+   option_line=${option_line%"\n"}
+   opt=${opt/\//\\/}
+   sed .vlasiator_variables -i'' -e "s/${opt}/${option_line}/g"
+done
+
 
 cat .vlasiator_variables | gawk '{print $1}'|sort -u >.vlasiator_variable_names
 cat .vlasiator_variables | gawk '{if( substr($3,1,2)=="(=") { print $1,$3}  else{ print $1}}'|sort -u >.vlasiator_variable_names_default_val
@@ -90,4 +118,4 @@ else
 fi
 
 
-rm .cfg_variables .cfg_variable_names .vlasiator_variables .vlasiator_variable_names .allowed_prefixes .unused_variables  .vlasiator_variable_names_default_val 
+#rm .cfg_variables .cfg_variable_names .vlasiator_variables .vlasiator_variable_names .allowed_prefixes .unused_variables  .vlasiator_variable_names_default_val
