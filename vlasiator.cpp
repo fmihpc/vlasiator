@@ -298,6 +298,7 @@ int main(int argn,char* args[]) {
    getObjectWrapper().project = project;
    
    readparameters.parse(); // Second pass parsing: specific population parameters
+   readparameters.helpMessage(); // Call after last parse, exits after printing help if help requested
    getObjectWrapper().getParameters();
    project->getParameters();
    sysBoundaries.getParameters();

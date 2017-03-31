@@ -336,6 +336,9 @@ bool Parameters::getParameters(){
    P::isRestart=(P::restartFileName!=string(""));
 
    Readparameters::get("project", P::projectName);
+   if(Readparameters::helpRequested) {
+      P::projectName = string("Magnetosphere");
+   }
  
    /*get numerical values, let Readparameters handle the conversions*/
    string geometryString;
@@ -349,6 +352,17 @@ bool Parameters::getParameters(){
    Readparameters::get("gridbuilder.x_length",P::xcells_ini);
    Readparameters::get("gridbuilder.y_length",P::ycells_ini);
    Readparameters::get("gridbuilder.z_length",P::zcells_ini);
+   if(Readparameters::helpRequested) {
+      P::xcells_ini = 1;
+      P::ycells_ini = 1;
+      P::zcells_ini = 1;
+      P::xmin = 0;
+      P::xmax = 1;
+      P::ymin = 0;
+      P::ymax = 1;
+      P::zmin = 0;
+      P::zmax = 1;
+   }
    Readparameters::get("AMR.max_velocity_level",P::amrMaxVelocityRefLevel);
    Readparameters::get("AMR.vel_refinement_criterion",P::amrVelRefCriterion);
    Readparameters::get("AMR.refine_limit",P::amrRefineLimit);
@@ -360,7 +374,7 @@ bool Parameters::getParameters(){
    else if (geometryString == "XZ5D") P::geometry = geometry::XZ5D;
    else if (geometryString == "XYZ6D") P::geometry = geometry::XYZ6D;
    else {
-      cerr << "Unknown simulation geometry in " << __FILE__ << ":" << __LINE__ << endl;
+      cerr << "Unknown simulation geometry " << geometryString << " in " << __FILE__ << ":" << __LINE__ << endl;
       return false;
    }
    
