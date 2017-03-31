@@ -337,6 +337,7 @@ inline void copy_trans_block_data(
 
 bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                   const vector<CellID>& localPropagatedCells,
+                  const vector<CellID>& remoteTargetCells,
                   const uint dimension,
                   const Realv dt,
                   const int& popID) {
@@ -348,28 +349,34 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 
    if(localPropagatedCells.size() == 0) 
       return true; 
+//vector with all cells
+   vector<CellID> allCells(localPropagatedCells);
+   allCells.insert(allCells.end(), remoteTargetCells.begin(), remoteTargetCells.end());
     
    //Get a unique sorted list of blockids that are in any of the
    // propagated cells. First use set for this, then add to vector (may not
    // be the most nice way to do this and in any case we could do it along
    // dimension for data locality reasons => copy acc map column code, TODO: FIXME
-   std::set<vmesh::GlobalID> localPropagatedBlocksSet;
-   for(const auto &cellID: localPropagatedCells){
+   std::unordered_set<vmesh::GlobalID> unionOfBlocksSet;
+   
+
+
+   for(const auto &cellID: allCells){
       vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = mpiGrid[cellID]->get_velocity_mesh(popID);
       for (vmesh::LocalID block_i=0; block_i<vmesh.size(); ++block_i) {
-         localPropagatedBlocksSet.insert(vmesh.getGlobalID(block_i));
+         unionOfBlocksSet.insert(vmesh.getGlobalID(block_i));
       }
    }
-   std::vector<vmesh::GlobalID> localPropagatedBlocks;
-   localPropagatedBlocks.reserve(localPropagatedBlocksSet.size());
-   for(auto itBlockGID = localPropagatedBlocksSet.begin(); itBlockGID != localPropagatedBlocksSet.end(); itBlockGID++){
-      localPropagatedBlocks.push_back(*itBlockGID);
+   
+   std::vector<vmesh::GlobalID> unionOfBlocks;
+   unionOfBlocks.reserve(unionOfBlocksSet.size());
+   for(const auto blockGID:  unionOfBlocksSet) {
+      unionOfBlocks.push_back(blockGID);
    }
-    
+   
     
 
    {
-       
       const uint8_t REFLEVEL=0;
       vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = mpiGrid[localPropagatedCells[0]]->get_velocity_mesh(popID);
       // set cell size in dimension direction
@@ -408,7 +415,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          abort();
          break;
       }
-
+         
       // init plane_index_to_id
       for (uint k=0; k<WID; ++k) {
          for (uint j=0; j<WID; ++j) {
@@ -422,14 +429,14 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          }
       }
    }
+   const Realv i_dz=1.0/dz;
     
 #pragma omp parallel for
-   for(uint blocki = 0; blocki < localPropagatedBlocks.size(); blocki++){
-      vmesh::GlobalID blockGID = localPropagatedBlocks[blocki];
+   for(uint blocki = 0; blocki < unionOfBlocks.size(); blocki++){
+      vmesh::GlobalID blockGID = unionOfBlocks[blocki];
       
       std::vector<SpatialCell*> targetNeighbors( 3 * localPropagatedCells.size() );
       std::vector<Realf> targetBlockData(3  * localPropagatedCells.size() * WID3);
-      std::vector<Realf*> targetBlockPointer(3  * localPropagatedCells.size() ); //pointer to actual block
 
       int nTargetCells = 0;
        
@@ -438,7 +445,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          CellID cellID =  localPropagatedCells[celli];          
          SpatialCell *spatial_cell = mpiGrid[cellID];
          vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = spatial_cell->get_velocity_mesh(popID);          
-         const vmesh::LocalID blockLID = spatial_cell->get_velocity_block_local_id(blockGID,popID);
+         const vmesh::LocalID blockLID = spatial_cell->get_velocity_block_local_id(blockGID,popID);          
 
          if (blockLID == vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID() ||
              get_spatial_neighbor(mpiGrid, cellID, true, 0, 0, 0) == INVALID_CELLID) {
@@ -447,21 +454,16 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             //spatial cell
             continue;
          }
-          
+
          // compute spatial neighbors, separately for targets and source. In
          // source cells we have a wider stencil and take into account
          // boundaries. For targets we only have actual cells as we do not
          // want to propagate boundary cells (array may contain
          // INVALID_CELLIDs at boundaries).
          SpatialCell* source_neighbors[1 + 2 * VLASOV_STENCIL_WIDTH];
-
          compute_spatial_source_neighbors(mpiGrid,cellID,dimension,source_neighbors);
          compute_spatial_target_neighbors(mpiGrid,cellID,dimension,targetNeighbors.data() +  nTargetCells );
-         
-         // Velocity mesh refinement level, has no effect here but it 
-         // is needed in some vmesh::VelocityMesh function calls.
-          
-         const Realv i_dz=1.0/dz;
+
           
          // Vector buffer where we write data, initialized to 0*/
          Vec targetVecValues[3 * WID3 / VECL];
@@ -555,12 +557,24 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          }
       }
 
-      //reset value in blocks, and store pointers to the blockdata for when we fill it again
+      //reset blocks in all spatial cells for this block id
+      for(const auto &cellID: allCells){
+         SpatialCell *spatial_cell = mpiGrid[cellID];
+         const vmesh::LocalID blockLID = spatial_cell->get_velocity_block_local_id(blockGID, popID);          
+         if (blockLID != vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) {
+            Realf* blockData = spatial_cell->get_data(blockLID, popID);
+            for(int i = 0; i < WID3; i++) {
+               blockData[i] = 0.0;
+            }
+         }
+         
+      }
+      
+      //store values from target_values array to the actual blocks
       for (int tcelli = 0; tcelli < nTargetCells; tcelli++) {
          SpatialCell* spatial_cell = targetNeighbors[tcelli];
          if(spatial_cell ==NULL) {
             //invalid target spatial cell
-            targetBlockPointer[tcelli] = NULL;
             continue;
          }
          const vmesh::LocalID blockLID = spatial_cell->get_velocity_block_local_id(blockGID, popID);
@@ -569,25 +583,11 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             // We have already created blocks around blocks with content in
             // spatial sense, so we have no need to create even more blocks here
             // TODO add loss counter
-            targetBlockPointer[tcelli] = NULL;
             continue;
          }
          Realf* blockData = spatial_cell->get_data(blockLID, popID);
-         targetBlockPointer[tcelli] = blockData;
-#pragma IVDEP
          for(int i = 0; i < WID3 ; i++) {
-            blockData[i] = 0.0;
-         }
-      }
-       
-      //store values from target_values array to the actual blocks
-      for (int tcelli = 0; tcelli < nTargetCells; tcelli++) {
-         Realf* __restrict__ blockData = targetBlockPointer[tcelli];
-         if(blockData != NULL) {
-#pragma IVDEP
-            for(int i = 0; i < WID3 ; i++) {
-               blockData[i] += targetBlockData[tcelli * WID3 + i];
-            }
+            blockData[i] += targetBlockData[tcelli * WID3 + i];
          }
       }
    } //loop over set of blocks on process

@@ -30,6 +30,7 @@
 bool do_translate_cell(spatial_cell::SpatialCell* SC);
 bool trans_map_1d(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                   const std::vector<CellID>& localPropagatedCells,
+                  const std::vector<CellID>& remoteTargetCells,
                   const uint dimension,
                   const Realv dt,
                   const int& popID);

@@ -81,20 +81,12 @@ void calculateSpatialTranslation(
       trans_timer=phiprof::initializeTimer("transfer-stencil-data-z","MPI");
       phiprof::start(trans_timer);
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
-      mpiGrid.start_remote_neighbor_copy_updates(VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);
-      phiprof::stop(trans_timer);
-      
-      phiprof::start(trans_timer);
-      mpiGrid.wait_remote_neighbor_copy_update_receives(VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);
+      mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);
       phiprof::stop(trans_timer);
       
       phiprof::start("compute-mapping-z");
-      trans_map_1d(mpiGrid,local_propagated_cells, 2, dt,popID); // map along z//
+      trans_map_1d(mpiGrid,local_propagated_cells, remoteTargetCellsz, 2, dt,popID); // map along z//
       phiprof::stop("compute-mapping-z");
-
-      phiprof::start(trans_timer);
-      mpiGrid.wait_remote_neighbor_copy_update_sends();
-      phiprof::stop(trans_timer);
 
       trans_timer=phiprof::initializeTimer("update_remote-z","MPI");
       phiprof::start("update_remote-z");
@@ -110,20 +102,12 @@ void calculateSpatialTranslation(
       trans_timer=phiprof::initializeTimer("transfer-stencil-data-x","MPI");
       phiprof::start(trans_timer);
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
-      mpiGrid.start_remote_neighbor_copy_updates(VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
-      phiprof::stop(trans_timer);
-
-      phiprof::start(trans_timer);
-      mpiGrid.wait_remote_neighbor_copy_update_receives(VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
+      mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
       phiprof::stop(trans_timer);
 
       phiprof::start("compute-mapping-x");
-      trans_map_1d(mpiGrid,local_propagated_cells,0,dt,popID); // map along x//
+      trans_map_1d(mpiGrid,local_propagated_cells, remoteTargetCellsx, 0,dt,popID); // map along x//
       phiprof::stop("compute-mapping-x");
-
-      phiprof::start(trans_timer);
-      mpiGrid.wait_remote_neighbor_copy_update_sends();
-      phiprof::stop(trans_timer);
 
       trans_timer=phiprof::initializeTimer("update_remote-x","MPI");
       phiprof::start("update_remote-x");
@@ -137,20 +121,12 @@ void calculateSpatialTranslation(
       trans_timer=phiprof::initializeTimer("transfer-stencil-data-y","MPI");
       phiprof::start(trans_timer);
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
-      mpiGrid.start_remote_neighbor_copy_updates(VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);
-      phiprof::stop(trans_timer);
-      
-      phiprof::start(trans_timer);
-      mpiGrid.wait_remote_neighbor_copy_update_receives(VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);
+      mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);
       phiprof::stop(trans_timer);
 
       phiprof::start("compute-mapping-y");      
-      trans_map_1d(mpiGrid,local_propagated_cells,1,dt,popID); // map along y//
+      trans_map_1d(mpiGrid,local_propagated_cells, remoteTargetCellsy, 1,dt,popID); // map along y//
       phiprof::stop("compute-mapping-y");
-
-      phiprof::start(trans_timer);
-      mpiGrid.wait_remote_neighbor_copy_update_sends();
-      phiprof::stop(trans_timer);
       
       trans_timer=phiprof::initializeTimer("update_remote-y","MPI");
       phiprof::start("update_remote-y");
