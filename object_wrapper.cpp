@@ -33,10 +33,9 @@ bool ObjectWrapper::addPopulationParameters() {
      RP::add(pop + "_properties.charge", "Particle charge, in units of elementary charges (int)", 1);
      RP::add(pop + "_properties.mass_units", "Units in which particle mass is given, either 'PROTON' or 'ELECTRON' (string)", "PROTON");
      RP::add(pop + "_properties.mass","Particle mass in given units (float)", 1);
-     RP::add(pop + "_properties.sparse_min_value","Minimum value of distribution function in any cell of a velocity block for the block to be considered to have content", 1e-15);
 
      // Grid sparsity parameters
-     RP::add(pop + "_sparse.minValue", "Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents", 1);
+     RP::add(pop + "_sparse.minValue", "Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents", 1e-15);
      RP::add(pop + "_sparse.blockAddWidthV", "Number of layers of blocks that are kept in velocity space around the blocks with content",1);
      RP::add(pop + "_sparse.conserve_mass", "If true, then mass is conserved by scaling the dist. func. in the remaining blocks", false);
      RP::add(pop + "_sparse.dynamicAlgorithm", "Type of algorithm used for calculating the dynamic minValue; 0 = none, 1 = linear algorithm based on rho, 2 = linear algorithm based on Blocks, (Example linear algorithm: y = kx+b, where dynamicMinValue1=k*dynamicBulkValue1 + b, and dynamicMinValue2 = k*dynamicBulkValue2 + b", 0);
