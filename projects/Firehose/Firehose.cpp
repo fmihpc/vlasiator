@@ -83,22 +83,24 @@ namespace projects {
       for(int i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
          FirehoseSpeciesParameters sP;
-         RP::get("Firehose.rho1", sP.rho[1]);
-         RP::get("Firehose.rho2", sP.rho[2]);
-         RP::get("Firehose.Tx1", sP.Tx[1]);
-         RP::get("Firehose.Tx2", sP.Tx[2]);
-         RP::get("Firehose.Ty1", sP.Ty[1]);
-         RP::get("Firehose.Ty2", sP.Ty[2]);
-         RP::get("Firehose.Tz1", sP.Tz[1]);
-         RP::get("Firehose.Tz2", sP.Tz[2]);
-         RP::get("Firehose.Vx1", sP.Vx[1]);
-         RP::get("Firehose.Vx2", sP.Vx[2]);
-         RP::get("Firehose.Vy1", sP.Vy[1]);
-         RP::get("Firehose.Vy2", sP.Vy[2]);
-         RP::get("Firehose.Vz1", sP.Vz[1]);
-         RP::get("Firehose.Vz2", sP.Vz[2]);
-         RP::get("Firehose.nSpaceSamples", sP.nSpaceSamples);
-         RP::get("Firehose.nVelocitySamples", sP.nVelocitySamples);
+         RP::get(pop + "_Firehose.rho1", sP.rho[1]);
+         RP::get(pop + "_Firehose.rho2", sP.rho[2]);
+         RP::get(pop + "_Firehose.Tx1", sP.Tx[1]);
+         RP::get(pop + "_Firehose.Tx2", sP.Tx[2]);
+         RP::get(pop + "_Firehose.Ty1", sP.Ty[1]);
+         RP::get(pop + "_Firehose.Ty2", sP.Ty[2]);
+         RP::get(pop + "_Firehose.Tz1", sP.Tz[1]);
+         RP::get(pop + "_Firehose.Tz2", sP.Tz[2]);
+         RP::get(pop + "_Firehose.Vx1", sP.Vx[1]);
+         RP::get(pop + "_Firehose.Vx2", sP.Vx[2]);
+         RP::get(pop + "_Firehose.Vy1", sP.Vy[1]);
+         RP::get(pop + "_Firehose.Vy2", sP.Vy[2]);
+         RP::get(pop + "_Firehose.Vz1", sP.Vz[1]);
+         RP::get(pop + "_Firehose.Vz2", sP.Vz[2]);
+         RP::get(pop + "_Firehose.nSpaceSamples", sP.nSpaceSamples);
+         RP::get(pop + "_Firehose.nVelocitySamples", sP.nVelocitySamples);
+
+         speciesParams.push_back(sP);
       }
    }
 

@@ -30,6 +30,15 @@
 #include "../projectTriAxisSearch.h"
 
 namespace projects {
+
+   struct FlowthroughSpeciesParameters {
+      Real rho;
+      Real T;
+      Real V0[3];
+      uint nSpaceSamples;
+      uint nVelocitySamples;
+   };
+
    class Flowthrough: public TriAxisSearch {
     public:
       Flowthrough();
@@ -44,7 +53,8 @@ namespace projects {
       Real getDistribValue(
                            creal& x,creal& y, creal& z,
                            creal& vx, creal& vy, creal& vz,
-                           creal& dvx, creal& dvy, creal& dvz
+                           creal& dvx, creal& dvy, creal& dvz,
+                           const uint popID
                           ) const;
       virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
       virtual Real calcPhaseSpaceDensity(
@@ -63,14 +73,10 @@ namespace projects {
       bool emptyBox;               /**< If true, then the simulation domain is empty initially 
                                     * and matter will flow in only through the boundaries.*/
 
-      Real rho;
-      Real T;
-      Real V0[3];
       Real Bx;
       Real By;
       Real Bz;
-      uint nSpaceSamples;
-      uint nVelocitySamples;
+      std::vector<FlowthroughSpeciesParameters> speciesParams;
    }; // class Flowthrough
 } // namespace projects
 
