@@ -27,6 +27,14 @@
 #include "../project.h"
 
 namespace projects {
+
+   struct AlfvenSpeciesParameters {
+      Real rho;
+      Real T;
+      Real A_VEL;
+      uint nVelocitySamples;
+   };
+
    class Alfven: public Project {
     public:
       Alfven();
@@ -56,14 +64,11 @@ namespace projects {
       Real Bx_guiding;
       Real By_guiding;
       Real Bz_guiding;
-      Real DENSITY;
       Real ALPHA;
       Real WAVELENGTH;
-      Real TEMPERATURE;
-      Real A_VEL;
       Real A_MAG;
       uint nSpaceSamples;
-      uint nVelocitySamples;
+      std::vector<AlfvenSpeciesParameters> speciesParams;
    } ; // class Alfven
 } // namespace projects
 

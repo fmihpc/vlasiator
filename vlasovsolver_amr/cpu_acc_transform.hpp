@@ -55,6 +55,8 @@ Transform<Real,3,Affine> compute_acceleration_transformation( SpatialCell* spati
    
    const Eigen::Matrix<Real,3,1> B(Bx,By,Bz);
    const Eigen::Matrix<Real,3,1> unit_B(B.normalized());
+
+   #warning This is wrong for multipop 
    const Real gyro_period = 2 * M_PI * physicalconstants::MASS_PROTON  / (fabs(physicalconstants::CHARGE) * B.norm());
    
    //Set maximum timestep limit for this cell, based on a  maximum allowed rotation angle

@@ -27,6 +27,16 @@
 #include "../project.h"
 
 namespace projects {
+
+   struct DiffusionSpeciesParameters {
+      Real DENSITY;
+      Real TEMPERATURE;
+      Real SCA_X;
+      Real SCA_Y;
+      uint nSpaceSamples;
+      uint nVelocitySamples;
+   };
+
    class Diffusion: public Project {
     public:
       Diffusion();
@@ -54,12 +64,7 @@ namespace projects {
                                         ) const;
       
       Real B0;
-      Real DENSITY;
-      Real TEMPERATURE;
-      Real SCA_X;
-      Real SCA_Y;
-      uint nSpaceSamples;
-      uint nVelocitySamples;
+      std::vector<DiffusionSpeciesParameters> speciesParams;
    } ; // class Diffusion
 } // namespace projects
 

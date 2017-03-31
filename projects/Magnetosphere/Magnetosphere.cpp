@@ -54,15 +54,15 @@ namespace projects {
 
       // Per-population parameters
       for(int i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-        const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
 
-        RP::add(pop + "_Magnetosphere.rho", "Tail region number density (m^-3)", 0.0);
-        RP::add(pop + "_Magnetosphere.T", "Temperature (K)", 0.0);
-        RP::add(pop + "_Magnetosphere.VX0", "Initial bulk velocity in x-direction", 0.0);
-        RP::add(pop + "_Magnetosphere.VY0", "Initial bulk velocity in y-direction", 0.0);
-        RP::add(pop + "_Magnetosphere.VZ0", "Initial bulk velocity in z-direction", 0.0);
-        RP::add(pop + "_Magnetosphere.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
-        RP::add(pop + "_Magnetosphere.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
+         RP::add(pop + "_Magnetosphere.rho", "Tail region number density (m^-3)", 0.0);
+         RP::add(pop + "_Magnetosphere.T", "Temperature (K)", 0.0);
+         RP::add(pop + "_Magnetosphere.VX0", "Initial bulk velocity in x-direction", 0.0);
+         RP::add(pop + "_Magnetosphere.VY0", "Initial bulk velocity in y-direction", 0.0);
+         RP::add(pop + "_Magnetosphere.VZ0", "Initial bulk velocity in z-direction", 0.0);
+         RP::add(pop + "_Magnetosphere.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
+         RP::add(pop + "_Magnetosphere.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
       }
    }
    

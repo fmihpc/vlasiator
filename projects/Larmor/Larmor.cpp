@@ -80,7 +80,7 @@ namespace projects {
 
     Real Larmor::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, const unsigned int popID) const {
       creal kb = physicalconstants::K_B;
-      creal mass = physicalconstants::MASS_PROTON;
+      creal mass = getObjectWrapper().particleSpecies[popID].mass;
       
       return exp(- mass * ((vx-this->VX0)*(vx-this->VX0) + (vy-this->VY0)*(vy-this->VY0)+ (vz-this->VZ0)*(vz-this->VZ0)) / (2.0 * kb * this->TEMPERATURE))*
       exp(-pow(x-Parameters::xmax/2.5, 2.0)/pow(this->SCA_X, 2.0))*exp(-pow(y-Parameters::ymax/2.0, 2.0)/pow(this->SCA_Y, 2.0));
@@ -99,7 +99,7 @@ namespace projects {
          return 0.0;
       }
 
-      creal mass = physicalconstants::MASS_PROTON;
+      creal mass = getObjectWrapper().particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
 
       creal d_x = dx / (this->nSpaceSamples-1);
