@@ -27,6 +27,14 @@
 #include "../projectTriAxisSearch.h"
 
 namespace projects {
+
+   struct HarrisSpeciesParameters {
+         Real TEMPERATURE;
+         Real DENSITY;
+         Real nSpaceSamples;
+         Real nVelocitySamples;
+   };
+
    class Harris: public TriAxisSearch {
       public:
          Harris();
@@ -60,10 +68,7 @@ namespace projects {
          
          Real SCA_LAMBDA;
          Real BX0, BY0, BZ0;
-         Real TEMPERATURE;
-         Real DENSITY;
-         Real nSpaceSamples;
-         Real nVelocitySamples;
+         std::vector<HarrisSpeciesParameters> speciesParams;
 
    }; // class Harris
 } // namespace Harris
