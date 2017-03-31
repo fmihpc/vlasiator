@@ -3,19 +3,28 @@
 #include <iostream>
 
 bool ObjectWrapper::addParameters() {
-  typedef Readparameters RP;
+   typedef Readparameters RP;
 
    // Parameters needed to create particle populations
-   RP::addComposing("ParticlePopulations","Name of the simulated particle populations (string)");
+   
+   if (RP::helpRequested) { // dummy name for the help message
+      RP::add("ParticlePopulations","Name of the simulated particle populations (string)","<population>");
+   } else {
+      RP::addComposing("ParticlePopulations","Name of the simulated particle populations (string)");
+   }
 
    return true;
 }
 
 bool ObjectWrapper::addPopulationParameters() {
-  typedef Readparameters RP;
+   typedef Readparameters RP;
 
-  std::vector<std::string> popNames;
-  RP::get("ParticlePopulations",popNames);
+   std::vector<std::string> popNames;
+   if (RP::helpRequested) {
+      popNames.push_back(std::string("<population>"));
+   } else {
+      RP::get("ParticlePopulations", popNames);
+   }
 
   // Create appropriate subparameters for each population
   for(auto& pop : popNames) {

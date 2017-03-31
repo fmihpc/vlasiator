@@ -26,6 +26,7 @@
 #include "datareducer.h"
 #include "../common.h"
 #include "dro_species_moments.h"
+#include "dro_populations.h"
 using namespace std;
 
 void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosticReducer)
@@ -57,6 +58,14 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("rhom",CellParams::RHOM,1));
       if(*it == "Rhoq")
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("rhoq",CellParams::RHOQ,1));
+      if(*it == "populations_Rho") {
+         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+            species::Species& species=getObjectWrapper().particleSpecies[i];
+            const std::string& pop = species.name;
+            outputReducer->addOperator(new DRO::DataReductionOperatorPopulations(pop + "/rho", i, offsetof(spatial_cell::Population, RHO), 1));
+         }
+      }
+      
       if(*it == "RhomBackstream")
          outputReducer->addOperator(new DRO::VariableRhomBackstream);
       if(*it == "RhomV")
