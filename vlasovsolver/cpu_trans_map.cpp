@@ -557,14 +557,16 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          }
       }
 
-      //reset blocks in all spatial cells for this block id
+      //reset blocks in all non-sysboundary spatial cells for this block id
       for(const auto &cellID: allCells){
          SpatialCell *spatial_cell = mpiGrid[cellID];
-         const vmesh::LocalID blockLID = spatial_cell->get_velocity_block_local_id(blockGID, popID);          
-         if (blockLID != vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) {
-            Realf* blockData = spatial_cell->get_data(blockLID, popID);
-            for(int i = 0; i < WID3; i++) {
-               blockData[i] = 0.0;
+         if(spatial_cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+            const vmesh::LocalID blockLID = spatial_cell->get_velocity_block_local_id(blockGID, popID);          
+            if (blockLID != vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) {
+               Realf* blockData = spatial_cell->get_data(blockLID, popID);
+               for(int i = 0; i < WID3; i++) {
+                  blockData[i] = 0.0;
+               }
             }
          }
          
