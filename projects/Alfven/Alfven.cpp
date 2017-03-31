@@ -59,7 +59,7 @@ namespace projects {
       RP::add("Alfven.A_mag", "Amplitude of the magnetic perturbation", 0.1);
 
       // Per-population parameters
-      for(int i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
 
          RP::add(pop + "_Alfven.rho", "Number density (m^-3)", 1.0e8);
@@ -84,7 +84,7 @@ namespace projects {
       RP::get("Alfven.nSpaceSamples", this->nSpaceSamples);
 
       // Per-population parameters
-      for(int i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
 
          AlfvenSpeciesParameters sP;

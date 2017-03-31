@@ -55,7 +55,7 @@ namespace projects {
       RP::add("Dispersion.angleXZ", "Orientation of the guide magnetic field with respect to the x-axis in x-z plane (rad)", 0.001);
 
       // Per-population parameters
-      for(int i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
         RP::add(pop + "_Dispersion.VX0", "Bulk velocity (m/s)", 0.0);
         RP::add(pop + "_Dispersion.VY0", "Bulk velocity (m/s)", 0.0);
@@ -82,7 +82,7 @@ namespace projects {
       RP::get("Dispersion.angleXZ", this->angleXZ);
 
       // Per-population parameters
-      for(int i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
         DispersionSpeciesParameters sP;
         RP::get(pop + "_Dispersion.VX0", sP.VX0);

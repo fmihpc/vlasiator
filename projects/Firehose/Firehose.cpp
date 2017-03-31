@@ -49,7 +49,7 @@ namespace projects {
       RP::add("Firehose.amp", "Initial perturbation amplitude (m)", 0.0);
 
       // Per-population parameters
-      for(int i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
          RP::add(pop + "_Firehose.rho1", "Number density, first peak (m^-3)", 0.0);
          RP::add(pop + "_Firehose.rho2", "Number density, second peak (m^-3)", 0.0);
@@ -80,7 +80,7 @@ namespace projects {
       RP::get("Firehose.amp", this->amp);
 
       // Per-population parameters
-      for(int i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
          FirehoseSpeciesParameters sP;
          RP::get(pop + "_Firehose.rho1", sP.rho[1]);

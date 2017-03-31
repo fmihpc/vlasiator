@@ -29,6 +29,17 @@
 #include "../projectTriAxisSearch.h"
 
 namespace projects {
+
+   struct FluctuationsSpeciesParameters {
+      Real DENSITY;
+      Real TEMPERATURE;
+      Real densityPertRelAmp;
+      Real velocityPertAbsAmp;
+      Real maxwCutoff;
+      uint nSpaceSamples;
+      uint nVelocitySamples;
+   };
+
    class Fluctuations: public TriAxisSearch {
    public:
       Fluctuations();
@@ -57,17 +68,11 @@ namespace projects {
       Real BX0;
       Real BY0;
       Real BZ0;
-      Real DENSITY;
-      Real TEMPERATURE;
       Real magXPertAbsAmp;
       Real magYPertAbsAmp;
       Real magZPertAbsAmp;
-      Real densityPertRelAmp;
-      Real velocityPertAbsAmp;
-      Real maxwCutoff;
       uint seed;
-      uint nSpaceSamples;
-      uint nVelocitySamples;
+      std::vector<FluctuationsSpeciesParameters> speciesParams;
 
       static Real rndRho, rndVel[3];
       #pragma omp threadprivate(rndRho,rndVel)

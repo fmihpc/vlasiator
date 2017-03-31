@@ -48,7 +48,7 @@ namespace projects {
       RP::add("Diffusion.B0", "Background field value (T)", 1.0e-9);
 
       // Per-population parameters
-      for(int i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
 
          RP::add(pop + "_Diffusion.rho", "Number density (m^-3)", 1.0e7);
@@ -67,7 +67,7 @@ namespace projects {
       RP::get("Diffusion.B0", this->B0);
 
       // Per-population parameters
-      for(int i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
         DiffusionSpeciesParameters sP;
 

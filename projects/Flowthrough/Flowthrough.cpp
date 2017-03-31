@@ -63,7 +63,7 @@ namespace projects {
       RP::add("Flowthrough.Bz", "Magnetic field z component (T)", 0.0);
 
       // Per-population parameters
-      for(int i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
          RP::add(pop + "_Flowthrough.rho", "Number density (m^-3)", 0.0);
          RP::add(pop + "_Flowthrough.T", "Temperature (K)", 0.0);
@@ -110,7 +110,7 @@ namespace projects {
       }
 
       // Per-population parameters
-      for(int i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
          FlowthroughSpeciesParameters sP;
 
