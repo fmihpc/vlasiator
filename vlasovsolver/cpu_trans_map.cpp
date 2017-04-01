@@ -352,6 +352,13 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 //vector with all cells
    vector<CellID> allCells(localPropagatedCells);
    allCells.insert(allCells.end(), remoteTargetCells.begin(), remoteTargetCells.end());
+   
+   vector<SpatialCell*> allCellsPointer(allCells.size());
+#pragma omp parallel for
+   for(uint celli = 0; celli < allCells.size(); celli++) {
+      allCellsPointer[celli] = mpiGrid[allCells[celli]];
+   }
+   
     
    //Get a unique sorted list of blockids that are in any of the
    // propagated cells. First use set for this, then add to vector (may not
@@ -361,9 +368,9 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    
 
 
-   for(const auto &cellID: allCells){
-      vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = mpiGrid[cellID]->get_velocity_mesh(popID);
-      for (vmesh::LocalID block_i=0; block_i<vmesh.size(); ++block_i) {
+   for(uint celli = 0; celli < allCellsPointer.size(); celli++) {
+      vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = allCellsPointer[celli]->get_velocity_mesh(popID);
+      for (vmesh::LocalID block_i=0; block_i< vmesh.size(); ++block_i) {
          unionOfBlocksSet.insert(vmesh.getGlobalID(block_i));
       }
    }
@@ -378,7 +385,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 
    {
       const uint8_t REFLEVEL=0;
-      vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = mpiGrid[localPropagatedCells[0]]->get_velocity_mesh(popID);
+      vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = allCellsPointer[0]->get_velocity_mesh(popID);
       // set cell size in dimension direction
       dvz = vmesh.getCellSize(REFLEVEL)[dimension];
       vz_min = vmesh.getMeshMinLimits()[dimension];
@@ -443,7 +450,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 
       for(uint celli = 0; celli < localPropagatedCells.size(); celli++){
          CellID cellID =  localPropagatedCells[celli];          
-         SpatialCell *spatial_cell = mpiGrid[cellID];
+         SpatialCell *spatial_cell = allCellsPointer[celli];
          vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = spatial_cell->get_velocity_mesh(popID);          
          const vmesh::LocalID blockLID = spatial_cell->get_velocity_block_local_id(blockGID,popID);          
 
@@ -558,8 +565,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       }
 
       //reset blocks in all non-sysboundary spatial cells for this block id
-      for(const auto &cellID: allCells){
-         SpatialCell *spatial_cell = mpiGrid[cellID];
+      for(auto spatial_cell: allCellsPointer){
          if(spatial_cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
             const vmesh::LocalID blockLID = spatial_cell->get_velocity_block_local_id(blockGID, popID);          
             if (blockLID != vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) {
