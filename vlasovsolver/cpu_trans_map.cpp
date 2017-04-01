@@ -355,9 +355,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    
    const uint nSourceNeighborsPerCell = 1 + 2 * VLASOV_STENCIL_WIDTH;
    std::vector<SpatialCell*> allCellsPointer(allCells.size());
-
    std::vector<SpatialCell*> sourceNeighbors(localPropagatedCells.size() * nSourceNeighborsPerCell);
-   
    std::vector<SpatialCell*> targetNeighbors(3 * localPropagatedCells.size() );
 
    
@@ -458,167 +456,184 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    }
    const Realv i_dz=1.0/dz;
    
+   int t1 = phiprof::initializeTimer("mapping");
+   int t2 = phiprof::initializeTimer("store");
    
-#pragma omp parallel for schedule(guided)
-   for(uint blocki = 0; blocki < unionOfBlocks.size(); blocki++){
+   
+#pragma omp parallel 
+   {      
       std::vector<Realf> targetBlockData(3 * localPropagatedCells.size() * WID3);
       std::vector<bool> targetsValid(localPropagatedCells.size());
-      vmesh::GlobalID blockGID = unionOfBlocks[blocki];
-      for(uint celli = 0; celli < localPropagatedCells.size(); celli++){
-         CellID cellID =  localPropagatedCells[celli];          
-         SpatialCell *spatial_cell = allCellsPointer[celli];
-         vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = spatial_cell->get_velocity_mesh(popID);          
-         const vmesh::LocalID blockLID = spatial_cell->get_velocity_block_local_id(blockGID,popID);          
 
-         //Reset list of valid targets, will be set to true later for those
-         //that are valid
-         targetsValid[celli] = false;
+#pragma omp for schedule(guided)
+      for(uint blocki = 0; blocki < unionOfBlocks.size(); blocki++){
+         vmesh::GlobalID blockGID = unionOfBlocks[blocki];
+         phiprof::start(t1);
+      
+         for(uint celli = 0; celli < localPropagatedCells.size(); celli++){
+            CellID cellID =  localPropagatedCells[celli];          
+            SpatialCell *spatial_cell = allCellsPointer[celli];
+            vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = spatial_cell->get_velocity_mesh(popID);          
+            const vmesh::LocalID blockLID = spatial_cell->get_velocity_block_local_id(blockGID,popID);          
+
+            //Reset list of valid targets, will be set to true later for those
+            //that are valid
+            targetsValid[celli] = false;
           
-         if (blockLID == vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID() ||
-             get_spatial_neighbor(mpiGrid, cellID, true, 0, 0, 0) == INVALID_CELLID) {
-            //do nothing if it is not a normal cell, or a cell that is in the
-            //first boundary layer, or the block does not exist in this
-            //spatial cell
-            continue;
-         }
+            if (blockLID == vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID() ||
+                get_spatial_neighbor(mpiGrid, cellID, true, 0, 0, 0) == INVALID_CELLID) {
+               //do nothing if it is not a normal cell, or a cell that is in the
+               //first boundary layer, or the block does not exist in this
+               //spatial cell
+               continue;
+            }
 
           
-         // Vector buffer where we write data, initialized to 0*/
-         Vec targetVecValues[3 * WID3 / VECL];
-         // init target_values
-         for (uint i = 0; i< 3 * WID3 / VECL; ++i) {
-            targetVecValues[i] = Vec(0.0);
-         }
-          
-         // buffer where we read in source data. i index vectorized
-         Vec values[(1 + 2 * VLASOV_STENCIL_WIDTH) * WID3 / VECL];
-         copy_trans_block_data(sourceNeighbors.data() + celli * nSourceNeighborsPerCell, blockGID, values, cellid_transpose, popID);
-         velocity_block_indices_t block_indices;
-         uint8_t refLevel;
-         vmesh.getIndices(blockGID,refLevel,block_indices[0],block_indices[1],block_indices[2]);
-          
-         //i,j,k are now relative to the order in which we copied data to the values array. 
-         //After this point in the k,j,i loops there should be no branches based on dimensions
-         //
-         //Note that the i dimension is vectorized, and thus there are no loops over i
-         for (uint k=0; k<WID; ++k) {
-            const Realv cell_vz = (block_indices[dimension] * WID + k + 0.5) * dvz + vz_min; //cell centered velocity
-            const Realv z_translation = cell_vz * dt * i_dz; // how much it moved in time dt (reduced units)
-            const int target_scell_index = (z_translation > 0) ? 1: -1; //part of density goes here (cell index change along spatial direcion)
-             
-            //the coordinates (scaled units from 0 to 1) between which we will
-            //integrate to put mass in the target  neighboring cell. 
-            //As we are below CFL<1, we know
-            //that mass will go to two cells: current and the new one.
-            Realv z_1,z_2;
-            if ( z_translation < 0 ) {
-               z_1 = 0;
-               z_2 = -z_translation; 
-            } else {
-               z_1 = 1.0 - z_translation;
-               z_2 = 1.0;
+            // Vector buffer where we write data, initialized to 0*/
+            Vec targetVecValues[3 * WID3 / VECL];
+            // init target_values
+            for (uint i = 0; i< 3 * WID3 / VECL; ++i) {
+               targetVecValues[i] = Vec(0.0);
             }
-            for (uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++) {         
-               //compute reconstruction
-#ifdef TRANS_SEMILAG_PLM
-               Vec a[3];
-               compute_plm_coeff(values + i_trans_ps_blockv(planeVector, k, -VLASOV_STENCIL_WIDTH), VLASOV_STENCIL_WIDTH, a);
-#endif
-#ifdef TRANS_SEMILAG_PPM
-               Vec a[3];
-               //Check that stencil width VLASOV_STENCIL_WIDTH in grid.h corresponds to order of face estimates  (h4 & h5 =2, H6=3, h8=4)
-               compute_ppm_coeff(values + i_trans_ps_blockv(planeVector, k, -VLASOV_STENCIL_WIDTH), h4, VLASOV_STENCIL_WIDTH, a);
-#endif
-#ifdef TRANS_SEMILAG_PQM
-               Vec a[5];
-               //Check that stencil width VLASOV_STENCIL_WIDTH in grid.h corresponds to order of face estimates (h4 & h5 =2, H6=3, h8=4)
-               compute_pqm_coeff(values + i_trans_ps_blockv(planeVector, k, -VLASOV_STENCIL_WIDTH), h6, VLASOV_STENCIL_WIDTH, a);
-#endif
           
-#ifdef TRANS_SEMILAG_PLM
-               const Vec ngbr_target_density =
-                  z_2 * ( a[0] + z_2 * a[1] ) -
-                  z_1 * ( a[0] + z_1 * a[1] );
-#endif
-#ifdef TRANS_SEMILAG_PPM
-               const Vec ngbr_target_density =
-                  z_2 * ( a[0] + z_2 * ( a[1] + z_2 * a[2] ) ) -
-                  z_1 * ( a[0] + z_1 * ( a[1] + z_1 * a[2] ) );
-#endif
-#ifdef TRANS_SEMILAG_PQM
-               const Vec ngbr_target_density =
-                  z_2 * ( a[0] + z_2 * ( a[1] + z_2 * ( a[2] + z_2 * ( a[3] + z_2 * a[4] ) ) ) ) -
-                  z_1 * ( a[0] + z_1 * ( a[1] + z_1 * ( a[2] + z_1 * ( a[3] + z_1 * a[4] ) ) ) );
-#endif
-               targetVecValues[i_trans_pt_blockv(planeVector, k, target_scell_index)] +=  ngbr_target_density;                     //in the current original cells we will put this density        
-               targetVecValues[i_trans_pt_blockv(planeVector, k, 0)] +=  values[i_trans_ps_blockv(planeVector, k, 0)] - ngbr_target_density; //in the current original cells we will put the rest of the original density
-            }
-         }
-         //Store final vector data in temporary data for all target blocks,
-         //and mark that this celli produced valid targets
-         targetsValid[celli] = true;
-         for (int b = -1; b< 2 ; ++b) {
-            Realv vector[VECL];
+            // buffer where we read in source data. i index vectorized
+            Vec values[(1 + 2 * VLASOV_STENCIL_WIDTH) * WID3 / VECL];
+            copy_trans_block_data(sourceNeighbors.data() + celli * nSourceNeighborsPerCell, blockGID, values, cellid_transpose, popID);
+            velocity_block_indices_t block_indices;
+            uint8_t refLevel;
+            vmesh.getIndices(blockGID,refLevel,block_indices[0],block_indices[1],block_indices[2]);
+          
+            //i,j,k are now relative to the order in which we copied data to the values array. 
+            //After this point in the k,j,i loops there should be no branches based on dimensions
+            //
+            //Note that the i dimension is vectorized, and thus there are no loops over i
             for (uint k=0; k<WID; ++k) {
-               for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){
-                  targetVecValues[i_trans_pt_blockv(planeVector, k, b)].store(vector);
-                  for(uint i = 0; i< VECL; i++){
-                     // store data, when reading data from data we swap
-                     // dimensions 
-                     // using precomputed plane_index_to_id and
-                     // cell_indices_to_id
-                     targetBlockData[(celli * 3 + b + 1) * WID3 +  cellid_transpose[i + planeVector * VECL + k * WID2]] = 
-                        vector[i];
+               const Realv cell_vz = (block_indices[dimension] * WID + k + 0.5) * dvz + vz_min; //cell centered velocity
+               const Realv z_translation = cell_vz * dt * i_dz; // how much it moved in time dt (reduced units)
+               const int target_scell_index = (z_translation > 0) ? 1: -1; //part of density goes here (cell index change along spatial direcion)
+             
+               //the coordinates (scaled units from 0 to 1) between which we will
+               //integrate to put mass in the target  neighboring cell. 
+               //As we are below CFL<1, we know
+               //that mass will go to two cells: current and the new one.
+               Realv z_1,z_2;
+               if ( z_translation < 0 ) {
+                  z_1 = 0;
+                  z_2 = -z_translation; 
+               } else {
+                  z_1 = 1.0 - z_translation;
+                  z_2 = 1.0;
+               }
+               for (uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++) {         
+                  //compute reconstruction
+#ifdef TRANS_SEMILAG_PLM
+                  Vec a[3];
+                  compute_plm_coeff(values + i_trans_ps_blockv(planeVector, k, -VLASOV_STENCIL_WIDTH), VLASOV_STENCIL_WIDTH, a);
+#endif
+#ifdef TRANS_SEMILAG_PPM
+                  Vec a[3];
+                  //Check that stencil width VLASOV_STENCIL_WIDTH in grid.h corresponds to order of face estimates  (h4 & h5 =2, H6=3, h8=4)
+                  compute_ppm_coeff(values + i_trans_ps_blockv(planeVector, k, -VLASOV_STENCIL_WIDTH), h4, VLASOV_STENCIL_WIDTH, a);
+#endif
+#ifdef TRANS_SEMILAG_PQM
+                  Vec a[5];
+                  //Check that stencil width VLASOV_STENCIL_WIDTH in grid.h corresponds to order of face estimates (h4 & h5 =2, H6=3, h8=4)
+                  compute_pqm_coeff(values + i_trans_ps_blockv(planeVector, k, -VLASOV_STENCIL_WIDTH), h6, VLASOV_STENCIL_WIDTH, a);
+#endif
+          
+#ifdef TRANS_SEMILAG_PLM
+                  const Vec ngbr_target_density =
+                     z_2 * ( a[0] + z_2 * a[1] ) -
+                     z_1 * ( a[0] + z_1 * a[1] );
+#endif
+#ifdef TRANS_SEMILAG_PPM
+                  const Vec ngbr_target_density =
+                     z_2 * ( a[0] + z_2 * ( a[1] + z_2 * a[2] ) ) -
+                     z_1 * ( a[0] + z_1 * ( a[1] + z_1 * a[2] ) );
+#endif
+#ifdef TRANS_SEMILAG_PQM
+                  const Vec ngbr_target_density =
+                     z_2 * ( a[0] + z_2 * ( a[1] + z_2 * ( a[2] + z_2 * ( a[3] + z_2 * a[4] ) ) ) ) -
+                     z_1 * ( a[0] + z_1 * ( a[1] + z_1 * ( a[2] + z_1 * ( a[3] + z_1 * a[4] ) ) ) );
+#endif
+                  targetVecValues[i_trans_pt_blockv(planeVector, k, target_scell_index)] +=  ngbr_target_density;                     //in the current original cells we will put this density        
+                  targetVecValues[i_trans_pt_blockv(planeVector, k, 0)] +=  values[i_trans_ps_blockv(planeVector, k, 0)] - ngbr_target_density; //in the current original cells we will put the rest of the original density
+               }
+            }
+         
+            //Store final vector data in temporary data for all target blocks,
+            //and mark that this celli produced valid targets
+         
+            targetsValid[celli] = true;
+            for (int b = -1; b< 2 ; ++b) {
+               Realv vector[VECL];
+               for (uint k=0; k<WID; ++k) {
+                  for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){
+                     targetVecValues[i_trans_pt_blockv(planeVector, k, b)].store(vector);
+#pragma ivdep
+#pragma GCC ivdep
+                     for(uint i = 0; i< VECL; i++){
+                        // store data, when reading data from data we swap
+                        // dimensions 
+                        // using precomputed plane_index_to_id and
+                        // cell_indices_to_id
+                        targetBlockData[(celli * 3 + b + 1) * WID3 +  cellid_transpose[i + planeVector * VECL + k * WID2]] = 
+                           vector[i];
+                     }
                   }
                }
             }
          }
-      }
       
-      
-      //reset blocks in all non-sysboundary spatial cells for this block id
-      for(auto spatial_cell: allCellsPointer){
-         if(spatial_cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-            const vmesh::LocalID blockLID = spatial_cell->get_velocity_block_local_id(blockGID, popID);          
-            if (blockLID != vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) {
-               Realf* blockData = spatial_cell->get_data(blockLID, popID);
-               for(int i = 0; i < WID3; i++) {
-                  blockData[i] = 0.0;
-               }
-            }
-         }
-         
-      }
-      
-      //store values from target_values array to the actual blocks
-      for(uint celli = 0; celli < localPropagatedCells.size(); celli++){
-         if(targetsValid[celli]) {
-            for(uint ti = 0; ti < 3; ti++) {
-               SpatialCell* spatial_cell = targetNeighbors[celli * 3 + ti];
-               if(spatial_cell ==NULL) {
-                  //invalid target spatial cell
-                  continue;
-               }
+         phiprof::stop(t1);
+         phiprof::start(t2);
                
-               const vmesh::LocalID blockLID = spatial_cell->get_velocity_block_local_id(blockGID, popID);
-               if (blockLID == vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) {
-                  // block does not exist. If so, we do not create it and add stuff to it here.
-                  // We have already created blocks around blocks with content in
-                  // spatial sense, so we have no need to create even more blocks here
-                  // TODO add loss counter
-                  continue;
-               }
-               Realf* blockData = spatial_cell->get_data(blockLID, popID);
-               for(int i = 0; i < WID3 ; i++) {
-                  blockData[i] += targetBlockData[(celli * 3 + ti) * WID3 + i];
+         //reset blocks in all non-sysboundary spatial cells for this block id
+         for(auto spatial_cell: allCellsPointer){
+            if(spatial_cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+               const vmesh::LocalID blockLID = spatial_cell->get_velocity_block_local_id(blockGID, popID);          
+               if (blockLID != vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) {
+                  Realf* blockData = spatial_cell->get_data(blockLID, popID);
+                  for(int i = 0; i < WID3; i++) {
+                     blockData[i] = 0.0;
+                  }
                }
             }
-         }
          
-      }
+         }
       
-   } //loop over set of blocks on process
+         //store values from target_values array to the actual blocks
+         for(uint celli = 0; celli < localPropagatedCells.size(); celli++){
+            if(targetsValid[celli]) {
+               for(uint ti = 0; ti < 3; ti++) {
+                  SpatialCell* spatial_cell = targetNeighbors[celli * 3 + ti];
+                  if(spatial_cell ==NULL) {
+                     //invalid target spatial cell
+                     continue;
+                  }
+               
+                  const vmesh::LocalID blockLID = spatial_cell->get_velocity_block_local_id(blockGID, popID);
+                  if (blockLID == vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) {
+                     // block does not exist. If so, we do not create it and add stuff to it here.
+                     // We have already created blocks around blocks with content in
+                     // spatial sense, so we have no need to create even more blocks here
+                     // TODO add loss counter
+                     continue;
+                  }
+                  Realf* blockData = spatial_cell->get_data(blockLID, popID);
+                  for(int i = 0; i < WID3 ; i++) {
+                     blockData[i] += targetBlockData[(celli * 3 + ti) * WID3 + i];
+                  }
+               }
+            }
+         
+         }
+         phiprof::stop(t2);
 
+      
+      } //loop over set of blocks on process
+   }
+   
 
    return true;
 }
