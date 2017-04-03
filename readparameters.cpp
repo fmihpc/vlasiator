@@ -89,6 +89,7 @@ Readparameters::Readparameters(int argc, char* argv[],MPI_Comm mpicomm) {
     else{
        descriptions = NULL;
        variables = NULL;
+       MPI_Bcast(&helpRequested,sizeof(bool),MPI_BYTE,0,MPI_COMM_WORLD);
     }
     //send as Int as MPI_BOOL is only in C++ bindings
     int init_int=initialized;
