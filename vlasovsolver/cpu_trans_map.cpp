@@ -401,59 +401,59 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    
     
 
-   {
-      const uint8_t REFLEVEL=0;
-      vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = allCellsPointer[0]->get_velocity_mesh(popID);
-      // set cell size in dimension direction
-      dvz = vmesh.getCellSize(REFLEVEL)[dimension];
-      vz_min = vmesh.getMeshMinLimits()[dimension];
-      switch (dimension) {
-      case 0:
-         dz = P::dx_ini;
-         z_min = P::xmin;      
-         // set values in array that is used to convert block indices 
-         // to global ID using a dot product.
-         cell_indices_to_id[0]=WID2;
-         cell_indices_to_id[1]=WID;
-         cell_indices_to_id[2]=1;
-         break;
-      case 1:
-         dz = P::dy_ini;
-         z_min = P::ymin;
-         // set values in array that is used to convert block indices 
-         // to global ID using a dot product
-         cell_indices_to_id[0]=1;
-         cell_indices_to_id[1]=WID2;
-         cell_indices_to_id[2]=WID;
-         break;
-      case 2:
-         dz = P::dz_ini;
-         z_min = P::zmin;
-         // set values in array that is used to convert block indices
-         // to global id using a dot product.
-         cell_indices_to_id[0]=1;
-         cell_indices_to_id[1]=WID;
-         cell_indices_to_id[2]=WID2;
-         break;
-      default:
-         cerr << __FILE__ << ":"<< __LINE__ << " Wrong dimension, abort"<<endl;
-         abort();
-         break;
-      }
+   
+   const uint8_t REFLEVEL=0;
+   const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = allCellsPointer[0]->get_velocity_mesh(popID);
+   // set cell size in dimension direction
+   dvz = vmesh.getCellSize(REFLEVEL)[dimension];
+   vz_min = vmesh.getMeshMinLimits()[dimension];
+   switch (dimension) {
+   case 0:
+      dz = P::dx_ini;
+      z_min = P::xmin;      
+      // set values in array that is used to convert block indices 
+      // to global ID using a dot product.
+      cell_indices_to_id[0]=WID2;
+      cell_indices_to_id[1]=WID;
+      cell_indices_to_id[2]=1;
+      break;
+   case 1:
+      dz = P::dy_ini;
+      z_min = P::ymin;
+      // set values in array that is used to convert block indices 
+      // to global ID using a dot product
+      cell_indices_to_id[0]=1;
+      cell_indices_to_id[1]=WID2;
+      cell_indices_to_id[2]=WID;
+      break;
+   case 2:
+      dz = P::dz_ini;
+      z_min = P::zmin;
+      // set values in array that is used to convert block indices
+      // to global id using a dot product.
+      cell_indices_to_id[0]=1;
+      cell_indices_to_id[1]=WID;
+      cell_indices_to_id[2]=WID2;
+      break;
+   default:
+      cerr << __FILE__ << ":"<< __LINE__ << " Wrong dimension, abort"<<endl;
+      abort();
+      break;
+   }
          
-      // init plane_index_to_id
-      for (uint k=0; k<WID; ++k) {
-         for (uint j=0; j<WID; ++j) {
-            for (uint i=0; i<WID; ++i) {
-               const uint cell =
-                  i * cell_indices_to_id[0] +
-                  j * cell_indices_to_id[1] +
-                  k * cell_indices_to_id[2];
-               cellid_transpose[ i + j * WID + k * WID2] = cell;
-            }
+   // init plane_index_to_id
+   for (uint k=0; k<WID; ++k) {
+      for (uint j=0; j<WID; ++j) {
+         for (uint i=0; i<WID; ++i) {
+            const uint cell =
+               i * cell_indices_to_id[0] +
+               j * cell_indices_to_id[1] +
+               k * cell_indices_to_id[2];
+            cellid_transpose[ i + j * WID + k * WID2] = cell;
          }
       }
    }
+
    const Realv i_dz=1.0/dz;
    
    int t1 = phiprof::initializeTimer("mapping");
@@ -464,22 +464,29 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    {      
       std::vector<Realf> targetBlockData(3 * localPropagatedCells.size() * WID3);
       std::vector<bool> targetsValid(localPropagatedCells.size());
+      std::vector<vmesh::LocalID> allCellsBlockLocalID(allCells.size());
 
+      
+      
 #pragma omp for schedule(guided)
       for(uint blocki = 0; blocki < unionOfBlocks.size(); blocki++){
          vmesh::GlobalID blockGID = unionOfBlocks[blocki];
          phiprof::start(t1);
+
+         for(uint celli = 0; celli < allCellsPointer.size(); celli++){
+            allCellsBlockLocalID[celli] = allCellsPointer[celli]->get_velocity_block_local_id(blockGID, popID);
+         }
+
       
          for(uint celli = 0; celli < localPropagatedCells.size(); celli++){
-            CellID cellID =  localPropagatedCells[celli];          
             SpatialCell *spatial_cell = allCellsPointer[celli];
-            vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = spatial_cell->get_velocity_mesh(popID);          
-            const vmesh::LocalID blockLID = spatial_cell->get_velocity_block_local_id(blockGID,popID);          
-
+            const CellID cellID =  localPropagatedCells[celli];
+            const vmesh::LocalID blockLID = allCellsBlockLocalID[celli];
+            
             //Reset list of valid targets, will be set to true later for those
             //that are valid
             targetsValid[celli] = false;
-          
+            
             if (blockLID == vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID() ||
                 get_spatial_neighbor(mpiGrid, cellID, true, 0, 0, 0) == INVALID_CELLID) {
                //do nothing if it is not a normal cell, or a cell that is in the
@@ -501,7 +508,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             copy_trans_block_data(sourceNeighbors.data() + celli * nSourceNeighborsPerCell, blockGID, values, cellid_transpose, popID);
             velocity_block_indices_t block_indices;
             uint8_t refLevel;
-            vmesh.getIndices(blockGID,refLevel,block_indices[0],block_indices[1],block_indices[2]);
+            vmesh.getIndices(blockGID,refLevel, block_indices[0], block_indices[1], block_indices[2]);
           
             //i,j,k are now relative to the order in which we copied data to the values array. 
             //After this point in the k,j,i loops there should be no branches based on dimensions
@@ -589,9 +596,10 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          phiprof::start(t2);
                
          //reset blocks in all non-sysboundary spatial cells for this block id
-         for(auto spatial_cell: allCellsPointer){
+         for(uint celli = 0; celli < allCellsPointer.size(); celli++){
+            SpatialCell* spatial_cell = allCellsPointer[celli];
             if(spatial_cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-               const vmesh::LocalID blockLID = spatial_cell->get_velocity_block_local_id(blockGID, popID);          
+               const vmesh::LocalID blockLID = allCellsBlockLocalID[celli];
                if (blockLID != vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) {
                   Realf* blockData = spatial_cell->get_data(blockLID, popID);
                   for(int i = 0; i < WID3; i++) {
@@ -599,7 +607,6 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
                   }
                }
             }
-         
          }
       
          //store values from target_values array to the actual blocks
