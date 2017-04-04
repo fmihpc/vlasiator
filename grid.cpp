@@ -112,7 +112,7 @@ void initializeGrid(
    geom_params.level_0_cell_length[0] = P::dx_ini;
    geom_params.level_0_cell_length[1] = P::dy_ini;
    geom_params.level_0_cell_length[2] = P::dz_ini;
-
+   
    mpiGrid.initialize(
       grid_length,
       comm,
@@ -123,12 +123,13 @@ void initializeGrid(
       sysBoundaries.isBoundaryPeriodic(1),
       sysBoundaries.isBoundaryPeriodic(2)
    );
+   
    mpiGrid.set_geometry(geom_params);
    
    // Init velocity mesh on all cells
    initVelocityGridGeometry(mpiGrid);   
    initializeStencils(mpiGrid);
-
+   
    mpiGrid.set_partitioning_option("IMBALANCE_TOL", P::loadBalanceTolerance);
    phiprof::start("Initial load-balancing");
    if (myRank == MASTER_RANK) logFile << "(INIT): Starting initial load balance." << endl << writeVerbose;

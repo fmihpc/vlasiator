@@ -65,7 +65,7 @@ namespace DRO {
       *buffer=_data[0];
       return true;
    }
-   bool DataReductionOperatorPopulations::setSpatialCell(SpatialCell* cell) {
+   bool DataReductionOperatorPopulations::setSpatialCell(const SpatialCell* cell) {
       _data  = reinterpret_cast<const Real*>(& reinterpret_cast<const uint8_t*>(&(cell->get_population(_popID)))[_byteOffset]);
       
       for (uint i=0; i<_vectorSize; i++) {

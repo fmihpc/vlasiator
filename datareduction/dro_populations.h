@@ -37,7 +37,7 @@ namespace DRO {
       virtual std::string getName() const;
       virtual bool reduceData(const spatial_cell::SpatialCell* cell,char* buffer);
       virtual bool reduceData(const spatial_cell::SpatialCell* cell,Real* result);
-      virtual bool setSpatialCell(spatial_cell::SpatialCell* cell);
+      virtual bool setSpatialCell(const spatial_cell::SpatialCell* cell);
       
    protected:
       uint _byteOffset;

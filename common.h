@@ -152,6 +152,7 @@ namespace CellParams {
       PERBX_DT2, /*!< Intermediate step value for PERBX for RK2 time stepping in field solver.*/
       PERBY_DT2, /*!< Intermediate step value for PERBY for RK2 time stepping in field solver.*/
       PERBZ_DT2, /*!< Intermediate step value for PERBZ for RK2 time stepping in field solver.*/
+#warning can be dropped in multipop
       RHO_DT2,   /*!< Intermediate step value for RK2 time stepping in field solver. Computed from RHO_R and RHO_V*/
       RHOVX_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from RHOVX_R and RHOVX_V*/
       RHOVY_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from RHOVY_R and RHOVY_V*/
@@ -209,6 +210,7 @@ namespace CellParams {
       EXGRADPE,         /*!< Electron pressure gradient term x.*/
       EYGRADPE,         /*!< Electron pressure gradient term y.*/
       EZGRADPE,         /*!< Electron pressure gradient term z.*/
+#warning can be dropped in multipop
       RHO_R,     /*!< RHO after propagation in ordinary space*/
       RHOVX_R,   /*!< RHOVX after propagation in ordinary space*/
       RHOVY_R,   /*!< RHOVX after propagation in ordinary space*/
@@ -218,6 +220,7 @@ namespace CellParams {
       RHOMVY_R,   /*!< RHOVX after propagation in ordinary space*/
       RHOMVZ_R,   /*!< RHOVX after propagation in ordinary space*/
       RHOQ_R,     /*!< RHO after propagation in ordinary space*/
+#warning can be dropped in multipop
       RHO_V,     /*!< RHO after propagation in velocity space*/
       RHOVX_V,   /*!< RHOVX after propagation in velocity space*/
       RHOVY_V,   /*!< RHOVX after propagation in velocity space*/
