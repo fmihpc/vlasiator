@@ -471,7 +471,7 @@ momentCalculation:
    for (size_t c=0; c<cells.size(); ++c) {
       SpatialCell* cell = mpiGrid[cells[c]];
       cell->parameters[CellParams::MAXVDT] = numeric_limits<Real>::max();
-      for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          cell->parameters[CellParams::MAXVDT]
            = min(cell->get_max_v_dt(popID), cell->parameters[CellParams::MAXVDT]);
       }
@@ -509,6 +509,15 @@ void calculateInterpolatedVelocityMoments(
          SC->parameters[cp_p11]   = 0.5* ( SC->parameters[CellParams::P_11_R] + SC->parameters[CellParams::P_11_V] );
          SC->parameters[cp_p22]   = 0.5* ( SC->parameters[CellParams::P_22_R] + SC->parameters[CellParams::P_22_V] );
          SC->parameters[cp_p33]   = 0.5* ( SC->parameters[CellParams::P_33_R] + SC->parameters[CellParams::P_33_V] );
+
+         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+            spatial_cell::Population& pop = SC->get_population(popID);
+            pop.RHO = 0.5 * ( pop.RHO_R + pop.RHO_V );
+            for(int i=0; i<3; i++) {
+               pop.RHOV[i] = 0.5 * ( pop.RHOV_R[i] + pop.RHOV_V[i] );
+               pop.P[i]    = 0.5 * ( pop.P_R[i] + pop.P_V[i] );
+            }
+         }
       }
    }
 }

@@ -44,7 +44,6 @@ namespace DRO {
       uint _vectorSize;
       uint _popID;
       std::string _name;
-      const Real *_data;
    };
    
 } // namespace DRO

@@ -53,7 +53,12 @@ namespace DRO {
    std::string DataReductionOperatorPopulations::getName() const {return _name;}
    
    bool DataReductionOperatorPopulations::reduceData(const SpatialCell* cell,char* buffer) {
-      const char* ptr = reinterpret_cast<const char*>(_data);
+      // First, get a byte-sized pointer to this populations' struct within this cell.
+      const char* population_struct = reinterpret_cast<const char*>(&cell->get_population(_popID));
+
+      // Find the actual data at the specified offset
+      const char* ptr = population_struct + _byteOffset;
+
       for (uint i = 0; i < _vectorSize*sizeof(Real); ++i){
          buffer[i] = ptr[i];
       }
@@ -61,15 +66,28 @@ namespace DRO {
    }
    
    bool DataReductionOperatorPopulations::reduceData(const SpatialCell* cell,Real* buffer){
+
+      // First, get a byte-sized pointer to this populations' struct within this cell.
+      const char* population_struct = reinterpret_cast<const char*>(&cell->get_population(_popID));
+
+      // Find the actual data at the specified offset
+      const Real* ptr = reinterpret_cast<const Real*>(population_struct + _byteOffset);
+
       //If _vectorSize is >1 it still works, we just give the first value and no other ones.
-      *buffer=_data[0];
+      *buffer= ptr[0];
+
       return true;
    }
    bool DataReductionOperatorPopulations::setSpatialCell(const SpatialCell* cell) {
-      _data  = reinterpret_cast<const Real*>(& reinterpret_cast<const uint8_t*>(&(cell->get_population(_popID)))[_byteOffset]);
-      
+
+      // First, get a byte-sized pointer to this populations' struct within this cell.
+      const char* population_struct = reinterpret_cast<const char*>(&cell->get_population(_popID));
+
+      // Find the actual data at the specified offset
+      const Real* ptr = reinterpret_cast<const Real*>(population_struct + _byteOffset);
+
       for (uint i=0; i<_vectorSize; i++) {
-         if(std::isinf(_data[i]) || std::isnan(_data[i])) {
+         if(std::isinf(ptr[i]) || std::isnan(ptr[i])) {
          string message = "The DataReductionOperator " + this->getName() + " returned a nan or an inf.";
          bailout(true, message, __FILE__, __LINE__);
          }
