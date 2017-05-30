@@ -78,7 +78,7 @@ Readparameters::Readparameters(int argc, char* argv[],MPI_Comm mpicomm) {
           addDefaultParameters();
           
           // Read options from command line, first time for help message parsing, second time in parse() below.
-          PO::store(PO::parse_command_line(argc, argv, *descriptions), *variables);
+          PO::store(PO::command_line_parser(argc, argv).options(*descriptions).allow_unregistered().run(), *variables);
           PO::notify(*variables);
           
           helpRequested=(variables->count("help") > 0);
