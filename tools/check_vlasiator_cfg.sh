@@ -1,7 +1,7 @@
 #!/bin/bash
 
-#mpirun_cmd="aprun -n 1"
-mpirun_cmd="mpirun -np 1"
+mpirun_cmd="aprun -n 1"
+#mpirun_cmd="mpirun -np 1"
 vlasiator=$1
 cfg=$2
 
@@ -77,6 +77,7 @@ cat $cfg |  grep -v "^[ ]*#" |gawk '{if ( $1 ~ /\[/) {prefix=substr($1,2,length(
 
 $mpirun_cmd $vlasiator --help | grep "\-\-" | sed 's/--//g'  > .vlasiator_variables
 
+
 # Replace <population> with loaded populations
 cat .vlasiator_variables | grep "\<population\>" | while read opt
 do
@@ -84,12 +85,16 @@ do
    for pop in $populations
    do
       option=${opt/\<population\>/$pop}
-      option=${option/\//\\/}
+      option=${option//\//\\/}
+      option=${option//\[/\\[}
+      option=${option//\]/\\]}
       option_line+=${option}"\n"
    done
    option_line=${option_line%"\n"}
-   opt=${opt/\//\\/}
-   sed .vlasiator_variables -i'' -e "s/${opt}/${option_line}/g"
+   opt_protected=${opt//\//\\/}
+   opt_protected=${opt_protected//\[/\\[}
+   opt_protected=${opt_protected//\]/\\]}
+   sed .vlasiator_variables -i'' -e "s/${opt_protected}/${option_line}/g"
 done
 
 
