@@ -64,7 +64,7 @@ namespace spatial_cell {
       populations.resize(getObjectWrapper().particleSpecies.size());
       
       // Set velocity meshes
-      for (int popID=0; popID<populations.size(); ++popID) {
+      for (uint popID=0; popID<populations.size(); ++popID) {
          const species::Species& spec = getObjectWrapper().particleSpecies[popID];
          populations[popID].vmesh.initialize(spec.velocityMesh);
          populations[popID].velocityBlockMinValue = spec.sparseMinValue;
@@ -433,7 +433,7 @@ namespace spatial_cell {
             parent_data[vblock::index(i_oct*2+i/2,j_oct*2+j/2,k_oct*2+k/2)] = sum/8;
          }*/
 
-         for (int k=0; k<WID; ++k) for (int j=0; j<WID; ++j) for (int i=0; i<WID; ++i) {
+         for (uint k=0; k<WID; ++k) for (uint j=0; j<WID; ++j) for (uint i=0; i<WID; ++i) {
             parent_data[vblock::index(i_oct*2+i/2,j_oct*2+j/2,k_oct*2+k/2)] += data[vblock::index(i,j,k)]/8.0;
          }
       }
@@ -868,7 +868,7 @@ namespace spatial_cell {
       vector<vmesh::GlobalID> childrenGIDs;
       populations[popID].vmesh.getChildren(blockGID,childrenGIDs);
 
-      #warning FIXME activePopID is not correct here
+      #warning FIXME activePopID is not correct here (AMR, hence TBD)
       
       // Check if any of block's children exist:
       bool hasChildren = false;
@@ -920,7 +920,7 @@ namespace spatial_cell {
              blockRemovalList.insert(blockGID);*/
          } else {
             // Merge values to this block
-            for (int i=0; i<WID3; ++i) myData[i] += data[i];
+            for (uint i=0; i<WID3; ++i) myData[i] += data[i];
          }
          return;
       }
@@ -930,7 +930,7 @@ namespace spatial_cell {
       for (int k_oct=0; k_oct<2; ++k_oct) for (int j_oct=0; j_oct<2; ++j_oct) for (int i_oct=0; i_oct<2; ++i_oct) {
          // Copy data belonging to the octant to a temporary array:
          Realf array[WID3];
-         for (int k=0; k<WID; ++k) for (int j=0; j<WID; ++j) for (int i=0; i<WID; ++i) {
+         for (uint k=0; k<WID; ++k) for (uint j=0; j<WID; ++j) for (uint i=0; i<WID; ++i) {
             array[vblock::index(i,j,k)] =   data[vblock::index(i_oct*2+i/2,j_oct*2+j/2,k_oct*2+k/2)];
          }
          
@@ -954,7 +954,7 @@ namespace spatial_cell {
       
       const uint8_t maxRefLevel = populations[popID].vmesh.getMaxAllowedRefinementLevel();
 
-      for (int i=0; i<WID3; ++i) null_block_data[i] = 0;
+      for (uint i=0; i<WID3; ++i) null_block_data[i] = 0;
       
       // Sort blocks according to their refinement levels:
       vector<vector<vmesh::GlobalID> > blocks(maxRefLevel+1);
@@ -1016,7 +1016,7 @@ namespace spatial_cell {
       it = sourceData.find(neighborIDs[vblock::nbrIndex( 0, 0, 0)]); // This block
       if (it != sourceData.end()) {
          Realf* source = it->second;
-         for (int k=0; k<WID; ++k) for (int j=0; j<WID; ++j) for (int i=0; i<WID; ++i) {
+         for (uint k=0; k<WID; ++k) for (uint j=0; j<WID; ++j) for (uint i=0; i<WID; ++i) {
             targetData[vblock::index(i,j,k)] += source[vblock::padIndex<1>(i+1,j+1,k+1)];
          }
       }
@@ -1026,11 +1026,11 @@ namespace spatial_cell {
          it = sourceData.find(neighborIDs[vblock::nbrIndex(i_off,0,0)]);
          if (it == sourceData.end()) continue;
          
-         int i_trgt = 0;
-         int i_src  = WID+1;
+         uint i_trgt = 0;
+         uint i_src  = WID+1;
          if (i_off > 0) {i_trgt = WID-1; i_src=0;}
          Realf* source = it->second;
-         for (int k=0; k<WID; ++k) for (int j=0; j<WID; ++j) {
+         for (uint k=0; k<WID; ++k) for (uint j=0; j<WID; ++j) {
             targetData[vblock::index(i_trgt,j,k)] += source[vblock::padIndex<1>(i_src,j+1,k+1)];
          }
       }
@@ -1039,11 +1039,11 @@ namespace spatial_cell {
          it = sourceData.find(neighborIDs[vblock::nbrIndex(0,j_off,0)]);
          if (it == sourceData.end()) continue;
 
-         int j_trgt = 0;
-         int j_src  = WID+1;
+         uint j_trgt = 0;
+         uint j_src  = WID+1;
          if (j_off > 0) {j_trgt = WID-1; j_src=0;}
          Realf* source = it->second;
-         for (int k=0; k<WID; ++k) for (int i=0; i<WID; ++i) {
+         for (uint k=0; k<WID; ++k) for (uint i=0; i<WID; ++i) {
             targetData[vblock::index(i,j_trgt,k)] += source[vblock::padIndex<1>(i+1,j_src,k+1)];
          }
       }
@@ -1052,11 +1052,11 @@ namespace spatial_cell {
          it = sourceData.find(neighborIDs[vblock::nbrIndex(0,0,k_off)]);
          if (it == sourceData.end()) continue;
          
-         int k_trgt = 0;
-         int k_src  = WID+1;
+         uint k_trgt = 0;
+         uint k_src  = WID+1;
          if (k_off > 0) {k_trgt = WID-1; k_src=0;}
          Realf* source = it->second;
-         for (int j=0; j<WID; ++j) for (int i=0; i<WID; ++i) {
+         for (uint j=0; j<WID; ++j) for (uint i=0; i<WID; ++i) {
             targetData[vblock::index(i,j,k_trgt)] += source[vblock::padIndex<1>(i+1,j+1,k_src)];
          }
       }
@@ -1067,11 +1067,11 @@ namespace spatial_cell {
          if (it == sourceData.end()) continue;
          Realf* source = it->second;
          
-         const int i_trgt = max(i_off,0) * (WID-1);
-         const int j_trgt = max(j_off,0) * (WID-1);
-         const int i_src  = max(-i_off,0) * (WID+1);
-         const int j_src  = max(-j_off,0) * (WID+1);
-         for (int k=0; k<WID; ++k) {
+         const uint i_trgt = max(i_off,0) * (WID-1);
+         const uint j_trgt = max(j_off,0) * (WID-1);
+         const uint i_src  = max(-i_off,0) * (WID+1);
+         const uint j_src  = max(-j_off,0) * (WID+1);
+         for (uint k=0; k<WID; ++k) {
             targetData[vblock::index(i_trgt,j_trgt,k)] += source[vblock::padIndex<1>(i_src,j_src,k+1)];
          }
       }
@@ -1081,11 +1081,11 @@ namespace spatial_cell {
          if (it == sourceData.end()) continue;
          Realf* source = it->second;
          
-         const int i_trgt = max(i_off,0) * (WID-1);
-         const int k_trgt = max(k_off,0) * (WID-1);
-         const int i_src  = max(-i_off,0) * (WID+1);
-         const int k_src  = max(-k_off,0) * (WID+1);
-         for (int j=0; j<WID; ++j) {
+         const uint i_trgt = max(i_off,0) * (WID-1);
+         const uint k_trgt = max(k_off,0) * (WID-1);
+         const uint i_src  = max(-i_off,0) * (WID+1);
+         const uint k_src  = max(-k_off,0) * (WID+1);
+         for (uint j=0; j<WID; ++j) {
             targetData[vblock::index(i_trgt,j,k_trgt)] += source[vblock::padIndex<1>(i_src,j+1,k_src)];
          }
       }
@@ -1095,11 +1095,11 @@ namespace spatial_cell {
          if (it == sourceData.end()) continue;
          Realf* source = it->second;
          
-         const int j_trgt = max(j_off,0) * (WID-1);
-         const int k_trgt = max(k_off,0) * (WID-1);
-         const int j_src  = max(-j_off,0) * (WID+1);
-         const int k_src  = max(-k_off,0) * (WID+1);
-         for (int i=0; i<WID; ++i) {
+         const uint j_trgt = max(j_off,0) * (WID-1);
+         const uint k_trgt = max(k_off,0) * (WID-1);
+         const uint j_src  = max(-j_off,0) * (WID+1);
+         const uint k_src  = max(-k_off,0) * (WID+1);
+         for (uint i=0; i<WID; ++i) {
             targetData[vblock::index(i,j_trgt,k_trgt)] += source[vblock::padIndex<1>(i+1,j_src,k_src)];
          }
       }
@@ -1143,11 +1143,11 @@ namespace spatial_cell {
       it = sourceData.find(parentGID);
       if (it != sourceData.end()) {
          Realf* source = it->second;
-         for (int k=0; k<WID; ++k) for (int j=0; j<WID; ++j) for (int i=0; i<WID; ++i) {
+         for (uint k=0; k<WID; ++k) for (uint j=0; j<WID; ++j) for (uint i=0; i<WID; ++i) {
             targetData[vblock::index(i,j,k)] += source[vblock::padIndex<1>(parentIndex[0]+i/2,parentIndex[1]+j/2,parentIndex[2]+k/2)];
          }
          
-         for (int k=0; k<WID; ++k) for (int j=0; j<WID; ++j) for (int i=0; i<WID; ++i) source[vblock::padIndex<1>(parentIndex[0]+i/2,parentIndex[1]+j/2,parentIndex[2]+k/2)]=0;
+         for (uint k=0; k<WID; ++k) for (uint j=0; j<WID; ++j) for (uint i=0; i<WID; ++i) source[vblock::padIndex<1>(parentIndex[0]+i/2,parentIndex[1]+j/2,parentIndex[2]+k/2)]=0;
       }
       
       // ***** face neighbors ***** //
@@ -1157,11 +1157,11 @@ namespace spatial_cell {
          it = sourceData.find(parentGID);
          if (it == sourceData.end()) continue;
 
-         int i_trgt = max( i_off,0) * (WID-1);
-         int i_src  = max(-i_off,0) * (WID+1);
+         const uint i_trgt = max( i_off,0) * (WID-1);
+         const uint i_src  = max(-i_off,0) * (WID+1);
          
          Realf* source = it->second;
-         for (int k=0; k<WID; ++k) for (int j=0; j<WID; ++j) {
+         for (uint k=0; k<WID; ++k) for (uint j=0; j<WID; ++j) {
             targetData[vblock::index(i_trgt,j,k)] += face_mul*source[vblock::padIndex<1>(i_src,parentIndex[1]+j/2,parentIndex[2]+k/2)];
          }
       }
@@ -1172,11 +1172,11 @@ namespace spatial_cell {
          it = sourceData.find(parentGID);
          if (it == sourceData.end()) continue;
          
-         int j_trgt = max( j_off,0) * (WID-1);
-         int j_src  = max(-j_off,0) * (WID+1);
+         const uint j_trgt = max( j_off,0) * (WID-1);
+         const uint j_src  = max(-j_off,0) * (WID+1);
          
          Realf* source = it->second;
-         for (int k=0; k<WID; ++k) for (int i=0; i<WID; ++i) {
+         for (uint k=0; k<WID; ++k) for (uint i=0; i<WID; ++i) {
             targetData[vblock::index(i,j_trgt,k)] += face_mul*source[vblock::padIndex<1>(parentIndex[0]+i/2,j_src,parentIndex[2]+k/2)];
          }
       }
@@ -1187,11 +1187,11 @@ namespace spatial_cell {
          it = sourceData.find(parentGID);
          if (it == sourceData.end()) continue;
          
-         int k_trgt = max( k_off,0) * (WID-1);
-         int k_src  = max(-k_off,0) * (WID+1);
+         const uint k_trgt = max( k_off,0) * (WID-1);
+         const uint k_src  = max(-k_off,0) * (WID+1);
          
          Realf* source = it->second;
-         for (int j=0; j<WID; ++j) for (int i=0; i<WID; ++i) {
+         for (uint j=0; j<WID; ++j) for (uint i=0; i<WID; ++i) {
             targetData[vblock::index(i,j,k_trgt)] += face_mul*source[vblock::padIndex<1>(parentIndex[0]+i/2,parentIndex[1]+j/2,k_src)];
          }
       }
@@ -1210,11 +1210,11 @@ namespace spatial_cell {
          it = sourceData.find(parentGID);
          if (it != sourceData.end()) {
             source = it->second;
-            const int i_trgt = max(i_off,0) * (WID-1);
-            const int j_trgt = max(j_off,0) * (WID-1);
-            const int i_src  = max(-i_off,0) * (WID+1);
-            const int j_src  = max(-j_off,0) * (WID+1);
-            for (int k=0; k<WID; ++k) {
+            const uint i_trgt = max(i_off,0) * (WID-1);
+            const uint j_trgt = max(j_off,0) * (WID-1);
+            const uint i_src  = max(-i_off,0) * (WID+1);
+            const uint j_src  = max(-j_off,0) * (WID+1);
+            for (uint k=0; k<WID; ++k) {
                targetData[vblock::index(i_trgt,j_trgt,k)] += edge_mul*source[vblock::padIndex<1>(i_src,j_src,parentIndex[2]+k/2)];
             }
          }
@@ -1230,11 +1230,11 @@ namespace spatial_cell {
          it = sourceData.find(parentGID);
          if (it != sourceData.end()) {
             source = it->second;
-            const int i_trgt = max(i_off,0) * (WID-1);
-            const int k_trgt = max(k_off,0) * (WID-1);
-            const int i_src  = max(-i_off,0) * (WID+1);
-            const int k_src  = max(-k_off,0) * (WID+1);
-            for (int j=0; j<WID; ++j) {
+            const uint i_trgt = max(i_off,0) * (WID-1);
+            const uint k_trgt = max(k_off,0) * (WID-1);
+            const uint i_src  = max(-i_off,0) * (WID+1);
+            const uint k_src  = max(-k_off,0) * (WID+1);
+            for (uint j=0; j<WID; ++j) {
                targetData[vblock::index(i_trgt,j,k_trgt)] += edge_mul*source[vblock::padIndex<1>(i_src,parentIndex[1]+j/2,k_src)];
             }
          }
@@ -1250,11 +1250,11 @@ namespace spatial_cell {
          it = sourceData.find(parentGID);
          if (it != sourceData.end()) {
             source = it->second;
-            const int j_trgt = max(j_off,0) * (WID-1);
-            const int k_trgt = max(k_off,0) * (WID-1);
-            const int j_src  = max(-j_off,0) * (WID+1);
-            const int k_src  = max(-k_off,0) * (WID+1);
-            for (int i=0; i<WID; ++i) {
+            const uint j_trgt = max(j_off,0) * (WID-1);
+            const uint k_trgt = max(k_off,0) * (WID-1);
+            const uint j_src  = max(-j_off,0) * (WID+1);
+            const uint k_src  = max(-k_off,0) * (WID+1);
+            for (uint i=0; i<WID; ++i) {
                targetData[vblock::index(i,j_trgt,k_trgt)] += edge_mul*source[vblock::padIndex<1>(parentIndex[0]+i/2,j_src,k_src)];
             }
          }
@@ -1469,7 +1469,7 @@ namespace spatial_cell {
     * @param maxRefLevel Maximum allowed mesh refinement level.*/
    bool SpatialCell::initialize_mesh() {
       bool success = true;
-      for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          const species::Species& spec = getObjectWrapper().particleSpecies[popID];
          if (populations[popID].vmesh.initialize(spec.velocityMesh,getObjectWrapper().velocityMeshes) == false) {
             success = false;
@@ -1490,9 +1490,8 @@ namespace spatial_cell {
          const Real k = (population.sparseDynamicMinValue2 - population.sparseDynamicMinValue1) / (population.sparseDynamicBulkValue2 - population.sparseDynamicBulkValue1);
          const Real b = population.sparseDynamicMinValue1 - k * population.sparseDynamicBulkValue1;
          Real x;
-#warning this should be adapted per population probably?
          if ( population.sparseDynamicAlgorithm == 1 ) {
-            x = this->parameters[CellParams::RHOM];
+            x = this->populations[popID].RHO;
          } else {
             x = this->get_number_of_velocity_blocks(popID);
          }

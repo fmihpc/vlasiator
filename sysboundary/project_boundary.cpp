@@ -34,7 +34,7 @@
 
 using namespace std;
 
-#warning Project boundaries do not yet support multipop
+#warning Project boundaries do not yet support multipop, not checked whether any changes are needed.
 
 namespace SBC {
    ProjectBoundary::ProjectBoundary(): SysBoundaryCondition() { 

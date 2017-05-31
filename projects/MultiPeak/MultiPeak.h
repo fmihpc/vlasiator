@@ -58,7 +58,7 @@ namespace projects {
                                                       const uint popID
                                                      ) const;
       uint popID;
-      int numberOfPopulations;
+      uint numberOfPopulations;
       std::vector<Real> rho;
       static std::vector<Real> rhoRnd; //static as it has to be threadprivate
       #pragma omp threadprivate(rhoRnd)       

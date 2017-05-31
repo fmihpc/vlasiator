@@ -168,7 +168,7 @@ namespace projects {
       // iteration improves the average by less than 1%, return the value.
       Real avgTotal = 0.0;
       bool ok = false;
-      int N = nVelocitySamples; // Start by using nVelocitySamples
+      uint N = nVelocitySamples; // Start by using nVelocitySamples
       int N3_sum = 0;           // Sum of sampling points used so far
                                             
       #warning TODO: Replace getObjectWrapper().particleSpecies[popID].sparseMinValue with SpatialCell::velocity_block_threshold(?)

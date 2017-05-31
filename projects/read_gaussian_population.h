@@ -36,7 +36,7 @@
 namespace projects {
    
    struct GaussianPopulation {
-      int numberOfPopulations;
+      uint numberOfPopulations;
       std::vector<Real> rho;
       std::vector<Real> rhoPertAbsAmp;
       std::vector<Real> Tx;

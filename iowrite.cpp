@@ -441,18 +441,6 @@ bool writeCommonGridData(
    if( vlsvWriter.writeParameter("ycells_ini", &P::ycells_ini) == false ) { return false; }
    if( vlsvWriter.writeParameter("zcells_ini", &P::zcells_ini) == false ) { return false; }
 
-#warning Vel Mesh parameters skipped, check that everything still works
-   //if( vlsvWriter.writeParameter("vxmin", &P::vxmin) == false ) { return false; }
-   //if( vlsvWriter.writeParameter("vxmax", &P::vxmax) == false ) { return false; }
-   //if( vlsvWriter.writeParameter("vymin", &P::vymin) == false ) { return false; }
-   //if( vlsvWriter.writeParameter("vymax", &P::vymax) == false ) { return false; }
-   //if( vlsvWriter.writeParameter("vzmin", &P::vzmin) == false ) { return false; }
-   //if( vlsvWriter.writeParameter("vzmax", &P::vzmax) == false ) { return false; }
-   //if( vlsvWriter.writeParameter("vxblocks_ini", &P::vxblocks_ini) == false ) { return false; }
-   //if( vlsvWriter.writeParameter("vyblocks_ini", &P::vyblocks_ini) == false ) { return false; }
-   //if( vlsvWriter.writeParameter("vzblocks_ini", &P::vzblocks_ini) == false ) { return false; }
-   //if( vlsvWriter.writeParameter("max_velocity_ref_level", &P::amrMaxVelocityRefLevel) == false) {return false;}
-
    //Mark the new version:
    float version = 3.00;
    if( vlsvWriter.writeParameter( "version", &version ) == false ) { return false; }
@@ -1129,7 +1117,7 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    phiprof::start("updateRemoteBlocks");
    //Updated newly adjusted velocity block lists on remote cells, and
    //prepare to receive block data
-   for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
+   for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
       updateRemoteVelocityBlockLists(mpiGrid,popID);
    phiprof::stop("updateRemoteBlocks");
 

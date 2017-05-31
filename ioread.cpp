@@ -256,35 +256,6 @@ bool readNBlocks(vlsv::ParallelReader& file,const std::string& meshName,
    return success;
 }
 
-//Outputs the velocity block indices of some given block into indices
-//Input:
-//[0] cellStruct -- some cell structure that has been constructed properly
-//[1] block -- some velocity block id
-//Output:
-//[0] indices -- the array where to store the indices
-
-/*! Outputs given block's velocity min coordinates (the corner of the block) in blockCoordinates
- \param block The block's id
- \param blockCoordinates An empty array where to store the block coordinates
- \sa readBlockData
- */
-void getVelocityBlockCoordinates(const vmesh::GlobalID& block, std::array<Real, 3>& blockCoordinates ) {
-#warning DEPRECATED
-   cerr << "restart disabled" << endl;
-   exit(1);
-   /*
-   //Get indices:
-   std::array<vmesh::LocalID, 3> blockIndices;
-   blockIndices[0] = block % P::vxblocks_ini;
-   blockIndices[1] = (block / P::vxblocks_ini) % P::vyblocks_ini;
-   blockIndices[2] = block / (P::vxblocks_ini * P::vyblocks_ini);
-   //Store the coordinates:
-   blockCoordinates[0] = P::vxmin + ((P::vxmax - P::vxmin) / P::vxblocks_ini) * blockIndices[0];
-   blockCoordinates[1] = P::vymin + ((P::vymax - P::vymin) / P::vyblocks_ini) * blockIndices[1];
-   blockCoordinates[2] = P::vzmin + ((P::vzmax - P::vzmin) / P::vzblocks_ini) * blockIndices[2];
-   return;*/
-}
-
 /** Read velocity block mesh data and distribution function data belonging to this process 
  * for the given particle species. This function must be called simultaneously by all processes.
  * @param file VLSV reader with input file open.
@@ -419,7 +390,7 @@ bool readBlockData(
    uint64_t byteSize;
    uint64_t* offsetArray = new uint64_t[N_processes];
 
-   for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+   for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       const string& popName = getObjectWrapper().particleSpecies[popID].name;
 
       list<pair<string,string> > attribs;
@@ -447,7 +418,7 @@ bool readBlockData(
       
       // Calculate the offset from which this process starts reading block data
       uint64_t myOffset = 0;
-      for (uint64_t i=0; i<mpiGrid.get_rank(); ++i) myOffset += offsetArray[i];
+      for (int64_t i=0; i<mpiGrid.get_rank(); ++i) myOffset += offsetArray[i];
       
       if (file.getArrayInfo("BLOCKVARIABLE",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
          logFile << "(RESTART)  ERROR: Failed to read BLOCKVARIABLE INFO" << endl << write;
@@ -630,6 +601,8 @@ bool readCellParamsVariable(
       logFile << "(RESTART)  ERROR: Failed to read data type at readCellParamsVariable" << endl << write;
       return false;
    }
+   // For compiler purposes
+   return false;
 }
 
 /*! A function for reading parameters, e.g., 'timestep'.
@@ -766,7 +739,7 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
      {
         const vector<CellID>& gridCells = getLocalCells();
         for (size_t i=0; i<gridCells.size(); i++) {
-           for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
+           for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
              mpiGrid[gridCells[i]]->clear(popID);
         }
      }

@@ -240,7 +240,7 @@ namespace projects {
       cell->parameters[CellParams::RHOQ_EXT] = 0;
 
       const Real EPSILON = 1e-30;
-      int N = 1;
+      uint N = 1;
       int N3_sum = 0;
       Real E_vol[3] = {0,0,0};
       
@@ -254,7 +254,7 @@ namespace projects {
 
          // Sample E using N points
          Real E_dummy[3] = {0,0,0};
-         for (int k=0; k<N; ++k) for (int j=0; j<N; ++j) for (int i=0; i<N; ++i) {
+         for (uint k=0; k<N; ++k) for (uint j=0; j<N; ++j) for (uint i=0; i<N; ++i) {
             Real x[3];
             x[0] = X + 0.5*DX_N + i*DX_N;
             x[1] = Y + 0.5*DY_N + j*DY_N;
@@ -320,7 +320,7 @@ namespace projects {
       // iteration improves the average by less than 1%, return the value.
       Real avgTotal = 0.0;
       bool ok = false;
-      int N = 2;                // Start by using a single velocity sample
+      uint N = 2;                // Start by using a single velocity sample
       int N3_sum = 0;           // Sum of sampling points used so far
       do {
          Real avg = 0.0;        // Volume average obtained during this sampling
