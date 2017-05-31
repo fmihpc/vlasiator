@@ -119,7 +119,6 @@ namespace BlockParams {
  * field solver are optimised for this particular ordering.
  */
 namespace CellParams {
-#warning RHO/RHOV not needed any more eventually
 #warning RHOMV not needed, switch to V?
    enum {
       XCRD,   /*!< x-coordinate of the bottom left corner.*/
@@ -152,11 +151,6 @@ namespace CellParams {
       PERBX_DT2, /*!< Intermediate step value for PERBX for RK2 time stepping in field solver.*/
       PERBY_DT2, /*!< Intermediate step value for PERBY for RK2 time stepping in field solver.*/
       PERBZ_DT2, /*!< Intermediate step value for PERBZ for RK2 time stepping in field solver.*/
-#warning can be dropped in multipop
-      RHO_DT2,   /*!< Intermediate step value for RK2 time stepping in field solver. Computed from RHO_R and RHO_V*/
-      RHOVX_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from RHOVX_R and RHOVX_V*/
-      RHOVY_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from RHOVY_R and RHOVY_V*/
-      RHOVZ_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from RHOVZ_R and RHOVZ_V*/
       RHOM_DT2,    /*!< Total mass density. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       RHOMVX_DT2,  /*!< x-component of mass density times Vx. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       RHOMVY_DT2,  /*!< y-component of mass density times Vy. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
@@ -210,21 +204,11 @@ namespace CellParams {
       EXGRADPE,         /*!< Electron pressure gradient term x.*/
       EYGRADPE,         /*!< Electron pressure gradient term y.*/
       EZGRADPE,         /*!< Electron pressure gradient term z.*/
-#warning can be dropped in multipop
-      RHO_R,     /*!< RHO after propagation in ordinary space*/
-      RHOVX_R,   /*!< RHOVX after propagation in ordinary space*/
-      RHOVY_R,   /*!< RHOVX after propagation in ordinary space*/
-      RHOVZ_R,   /*!< RHOVX after propagation in ordinary space*/
       RHOM_R,     /*!< RHO after propagation in ordinary space*/
       RHOMVX_R,   /*!< RHOVX after propagation in ordinary space*/
       RHOMVY_R,   /*!< RHOVX after propagation in ordinary space*/
       RHOMVZ_R,   /*!< RHOVX after propagation in ordinary space*/
       RHOQ_R,     /*!< RHO after propagation in ordinary space*/
-#warning can be dropped in multipop
-      RHO_V,     /*!< RHO after propagation in velocity space*/
-      RHOVX_V,   /*!< RHOVX after propagation in velocity space*/
-      RHOVY_V,   /*!< RHOVX after propagation in velocity space*/
-      RHOVZ_V,   /*!< RHOVX after propagation in velocity space*/
       RHOM_V,     /*!< RHO after propagation in velocity space*/
       RHOMVX_V,   /*!< RHOVX after propagation in velocity space*/
       RHOMVY_V,   /*!< RHOVX after propagation in velocity space*/
@@ -248,8 +232,6 @@ namespace CellParams {
                            * this is the max allowed timestep over all particle species.*/
       MAXFDT,             /*!< maximum timestep allowed in ordinary space by fieldsolver for this cell**/
       LBWEIGHTCOUNTER,    /*!< Counter for storing compute time weights needed by the load balancing**/
-      #warning can be dropped in multipop
-      ACCSUBCYCLES,        /*!< number of subcyles for each cell*/
       ISCELLSAVINGF,      /*!< Value telling whether a cell is saving its distribution function when partial f data is written out. */
       PHI,        /*!< Electrostatic potential.*/
       PHI_TMP,    /*!< Temporary electrostatic potential.*/
