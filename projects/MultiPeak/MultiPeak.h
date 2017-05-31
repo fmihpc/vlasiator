@@ -37,27 +37,27 @@ namespace projects {
       virtual bool initialize(void);
       static void addParameters(void);
       virtual void getParameters(void);
-      virtual void setActivePopulation(const int& popID);
+      virtual void setActivePopulation(const uint popID);
       virtual void setCellBackgroundField(spatial_cell::SpatialCell* cell) const;
     protected:
       Real getDistribValue(
                            creal& x,creal& y, creal& z,
                            creal& vx, creal& vy, creal& vz,
-                          const unsigned int popID) const;
+                          const uint popID) const;
       virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
       virtual Real calcPhaseSpaceDensity(
                                          creal& x, creal& y, creal& z,
                                          creal& dx, creal& dy, creal& dz,
                                          creal& vx, creal& vy, creal& vz,
                                          creal& dvx, creal& dvy, creal& dvz,
-                                         const unsigned int popID) const;
+                                         const uint popID) const;
       virtual std::vector<std::array<Real, 3> > getV0(
                                                       creal x,
                                                       creal y,
                                                       creal z,
-                                                      const unsigned int popID
+                                                      const uint popID
                                                      ) const;
-      int popID;
+      uint popID;
       int numberOfPopulations;
       std::vector<Real> rho;
       static std::vector<Real> rhoRnd; //static as it has to be threadprivate

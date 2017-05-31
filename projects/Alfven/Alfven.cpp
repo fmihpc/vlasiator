@@ -100,7 +100,7 @@ namespace projects {
 
    /*Real calcPhaseSpaceDensity(creal& z,creal& x,creal& y,creal& dz,creal& dx,creal& dy,
                creal& vz,creal& vx,creal& vy,creal& dvz,creal& dvx,creal& dvy) {*/
-   Real Alfven::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const unsigned int popID) const {
+   Real Alfven::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
       const AlfvenSpeciesParameters& sP = speciesParams[popID];
       creal mass = getObjectWrapper().particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
@@ -117,7 +117,7 @@ namespace projects {
       return den;
    }
    
-   Real Alfven::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const unsigned int popID) const {
+   Real Alfven::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
       const AlfvenSpeciesParameters& sP = speciesParams[popID];
       creal d_x = dx / (this->nSpaceSamples-1);
       creal d_y = dy / (this->nSpaceSamples-1);

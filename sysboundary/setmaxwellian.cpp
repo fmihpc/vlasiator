@@ -235,7 +235,7 @@ namespace SBC {
       templateCell.parameters[CellParams::PERBZ] = Bz;
       
       // Init all particle species
-      for (unsigned int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          interpolate(inputDataIndex, popID, t, &buffer[0]);
          rho = buffer[0];
          T = buffer[1];

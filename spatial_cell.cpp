@@ -123,7 +123,7 @@ namespace spatial_cell {
     * remove some blocks that should not be removed.*/
    #ifndef AMR
    void SpatialCell::adjust_velocity_blocks(const std::vector<SpatialCell*>& spatial_neighbors,
-                                            const int& popID,bool doDeleteEmptyBlocks) {
+                                            const uint popID,bool doDeleteEmptyBlocks) {
       #ifdef DEBUG_SPATIAL_CELL
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
@@ -222,7 +222,7 @@ namespace spatial_cell {
    #else       // AMR version
 
    void SpatialCell::adjust_velocity_blocks(const std::vector<SpatialCell*>& spatial_neighbors,
-                                            const int& popID,bool doDeleteEmptyBlocks) {
+                                            const uint popID,bool doDeleteEmptyBlocks) {
       //  This set contains all those cell ids which have neighbors in any
       //  of the 6-dimensions Actually, we would only need to add
       //  local blocks with no content here, as blocks with content
@@ -378,7 +378,7 @@ namespace spatial_cell {
 
    #endif
 
-   void SpatialCell::adjustSingleCellVelocityBlocks(const int& popID) {
+   void SpatialCell::adjustSingleCellVelocityBlocks(const uint popID) {
       #ifdef DEBUG_SPATIAL_CELL
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
@@ -395,7 +395,7 @@ namespace spatial_cell {
       adjust_velocity_blocks(neighbor_ptrs,popID,false);
    }
 
-   void SpatialCell::coarsen_block(const vmesh::GlobalID& parent,const std::vector<vmesh::GlobalID>& children,const int& popID) {
+   void SpatialCell::coarsen_block(const vmesh::GlobalID& parent,const std::vector<vmesh::GlobalID>& children,const uint popID) {
       #ifdef DEBUG_SPATIAL_CELL
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
@@ -444,7 +444,7 @@ namespace spatial_cell {
       }
    }
 
-   void SpatialCell::coarsen_blocks(amr_ref_criteria::Base* refCriterion,const int& popID) {
+   void SpatialCell::coarsen_blocks(amr_ref_criteria::Base* refCriterion,const uint popID) {
       #ifdef DEBUG_SPATIAL_CELL
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
@@ -527,7 +527,7 @@ namespace spatial_cell {
     sense in given block.
     Also returns false if given block doesn't exist or is an error block.
     */
-   bool SpatialCell::compute_block_has_content(const vmesh::GlobalID& blockGID,const int& popID) const {
+   bool SpatialCell::compute_block_has_content(const vmesh::GlobalID& blockGID,const uint popID) const {
       #ifdef DEBUG_SPATIAL_CELL
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
@@ -556,7 +556,7 @@ namespace spatial_cell {
    /** Get maximum translation timestep for the given species.
     * @param popID ID of the particle species.
     * @return Maximum timestep calculated by the Vlasov translation.*/
-   const Real& SpatialCell::get_max_r_dt(const int& popID) const {
+   const Real& SpatialCell::get_max_r_dt(const uint popID) const {
       #ifdef DEBUG_SPATIAL_CELL
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
@@ -571,7 +571,7 @@ namespace spatial_cell {
    /** Get maximum acceleration timestep for the given species.
     * @param popID ID of the particle species.
     * @return Maximum timestep calculated by Vlasov acceleration.*/
-   const Real& SpatialCell::get_max_v_dt(const int& popID) const {
+   const Real& SpatialCell::get_max_v_dt(const uint popID) const {
       #ifdef DEBUG_SPATIAL_CELL
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
@@ -800,7 +800,7 @@ namespace spatial_cell {
          }
          // Copy particle species metadata
          if ((SpatialCell::mpi_transfer_type & Transfer::POP_METADATA) != 0) {
-            for (unsigned int popID=0; popID<populations.size(); ++popID) {
+            for (uint popID=0; popID<populations.size(); ++popID) {
                displacements.push_back((uint8_t*) &(populations[popID].max_dt) - (uint8_t*)this);
                block_lengths.push_back(species::SIZE_DT_ELEMENTS*sizeof(Real));
             }
@@ -851,11 +851,11 @@ namespace spatial_cell {
     * of a velocity block for the block to be considered to have content.
     * @param popID ID of the particle species.
     * @return Sparse min value for this species.*/
-   Real SpatialCell::getVelocityBlockMinValue(const int& popID) const {
+   Real SpatialCell::getVelocityBlockMinValue(const uint popID) const {
       return populations[popID].velocityBlockMinValue;
    }
 
-   void SpatialCell::merge_values_recursive(const int& popID,vmesh::GlobalID parentGID,vmesh::GlobalID blockGID,
+   void SpatialCell::merge_values_recursive(const uint popID,vmesh::GlobalID parentGID,vmesh::GlobalID blockGID,
                                             uint8_t refLevel,bool recursive,const Realf* data,
 					    std::set<vmesh::GlobalID>& blockRemovalList) {
       #ifdef DEBUG_SPATIAL_CELL
@@ -943,7 +943,7 @@ namespace spatial_cell {
       blockRemovalList.insert(blockGID);
    }
 
-   void SpatialCell::merge_values(const int& popID) {
+   void SpatialCell::merge_values(const uint popID) {
       #ifdef DEBUG_SPATIAL_CELL
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
@@ -990,7 +990,7 @@ namespace spatial_cell {
    
    void SpatialCell::add_values(const vmesh::GlobalID& targetGID,
                                 std::unordered_map<vmesh::GlobalID,Realf[(WID+2)*(WID+2)*(WID+2)]>& sourceData,
-                                const int& popID) {
+                                const uint popID) {
       #ifdef DEBUG_SPATIAL_CELL
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
@@ -1295,7 +1295,7 @@ namespace spatial_cell {
     * mpi_velocity_block_list, but the rest of the cell structures
     * have not been adapted to this new list. Here we re-initialize
     * the cell with empty blocks based on the new list.*/
-   void SpatialCell::prepare_to_receive_blocks(const int& popID) {
+   void SpatialCell::prepare_to_receive_blocks(const uint popID) {
       populations[popID].vmesh.setGrid();
       populations[popID].blockContainer.setSize(populations[popID].vmesh.size());
 
@@ -1312,7 +1312,7 @@ namespace spatial_cell {
       }
    }
 
-   void SpatialCell::refine_block(const vmesh::GlobalID& blockGID,std::map<vmesh::GlobalID,vmesh::LocalID>& insertedBlocks,const int& popID) {
+   void SpatialCell::refine_block(const vmesh::GlobalID& blockGID,std::map<vmesh::GlobalID,vmesh::LocalID>& insertedBlocks,const uint popID) {
       #ifdef DEBUG_SPATIAL_CELL
       if (blockGID == invalid_global_id()) {
          std::cerr << "invalid global ID, skip refinement" << std::endl;
@@ -1364,7 +1364,7 @@ namespace spatial_cell {
     * use the velocity mesh.
     * @param popID Population ID.
     * @return If true, the new species is in use.*/
-   bool SpatialCell::setCommunicatedSpecies(const int& popID) {
+   bool SpatialCell::setCommunicatedSpecies(const uint popID) {
       #ifdef DEBUG_SPATIAL_CELL
       if (popID >= getObjectWrapper().particleSpecies.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds species.size() " << getObjectWrapper().particleSpecies.size() << " in ";
@@ -1381,7 +1381,7 @@ namespace spatial_cell {
     * This function is called during Vlasov translation.
     * @param popID ID of the particle species.
     * @param value New maximum timestep.*/
-   void SpatialCell::set_max_r_dt(const int& popID,const Real& value) {
+   void SpatialCell::set_max_r_dt(const uint popID,const Real& value) {
       #ifdef DEBUG_SPATIAL_CELL
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
@@ -1397,7 +1397,7 @@ namespace spatial_cell {
     * This function is called during Vlasov acceleration.
     * @param popID ID of the particle species.
     * @param value New maximum timestep.*/
-   void SpatialCell::set_max_v_dt(const int& popID,const Real& value) {
+   void SpatialCell::set_max_v_dt(const uint popID,const Real& value) {
       #ifdef DEBUG_SPATIAL_CELL
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
@@ -1430,7 +1430,7 @@ namespace spatial_cell {
 
    /** Update the two lists containing blocks with content, and blocks without content.
     * @see adjustVelocityBlocks */
-   void SpatialCell::update_velocity_block_content_lists(const int& popID) {
+   void SpatialCell::update_velocity_block_content_lists(const uint popID) {
       #ifdef DEBUG_SPATIAL_CELL
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
@@ -1481,7 +1481,7 @@ namespace spatial_cell {
    
    /** Updates minValue based on algorithm value from parameters (see parameters.cpp).
     * @param popID ID of the particle species.*/
-   void SpatialCell::updateSparseMinValue(const int& popID) {
+   void SpatialCell::updateSparseMinValue(const uint popID) {
 
       species::Species& population = getObjectWrapper().particleSpecies[popID];
 

@@ -107,7 +107,7 @@ namespace SBC {
       virtual void vlasovBoundaryCondition(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const CellID& cellID,
-         const int& popID
+         const uint popID
       );
       
       virtual std::string getName() const;
@@ -115,12 +115,12 @@ namespace SBC {
       
    protected:
       void generateTemplateCell(Project &project);
-      void setCellFromTemplate(SpatialCell* cell,const int& popID);
+      void setCellFromTemplate(SpatialCell* cell,const uint popID);
       
-      Real shiftedMaxwellianDistribution(const int& popID,creal& vx, creal& vy, creal& vz);
+      Real shiftedMaxwellianDistribution(const uint popID,creal& vx, creal& vy, creal& vz);
       
       vector<vmesh::GlobalID> findBlocksToInitialize(
-         SpatialCell& cell,const int& popID
+         SpatialCell& cell,const uint popID
       );
       
       std::array<Real, 3> fieldSolverGetNormalDirection(

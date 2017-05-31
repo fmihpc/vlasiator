@@ -31,7 +31,7 @@ namespace projects {
    /*!
     * WARNING This assumes that the velocity space is isotropic (same resolution in vx, vy, vz).
     */
-   std::vector<vmesh::GlobalID> TriAxisSearch::findBlocksToInitialize(SpatialCell* cell,const unsigned int popID) const {
+   std::vector<vmesh::GlobalID> TriAxisSearch::findBlocksToInitialize(SpatialCell* cell,const uint popID) const {
       set<vmesh::GlobalID> blocksToInitialize;
       bool search;
       unsigned int counter;

@@ -38,7 +38,7 @@ namespace amr_ref_criteria {
    
    Base* relDiffMaker() {return new RelativeDifference;}
    
-   void Base::evaluate(const Realf* velBlost,Realf* result,const int& popID) {
+   void Base::evaluate(const Realf* velBlost,Realf* result,const uint popID) {
       for (int i=0; i<WID3; ++i) result[i] = 0.0;
    }
 
@@ -46,7 +46,7 @@ namespace amr_ref_criteria {
    
    RelativeDifference::~RelativeDifference() { }
 
-   Realf RelativeDifference::evaluate(const Realf* array,const int& popID) {
+   Realf RelativeDifference::evaluate(const Realf* array,const uint popID) {
       // How many neighbor data points (per coordinate) the given block includes?
       const int PAD=1;
       Realf maxvalue = 0.0;
@@ -77,7 +77,7 @@ namespace amr_ref_criteria {
       return maxvalue;
    }
 
-   void RelativeDifference::evaluate(const Realf* array,Realf* result,const int& popID) {
+   void RelativeDifference::evaluate(const Realf* array,Realf* result,const uint popID) {
       const int PAD=1;
       for (int kc=0; kc<WID; ++kc) for (int jc=0; jc<WID; ++jc) for (int ic=0; ic<WID; ++ic) {
          Realf f_cen = array[vblock::padIndex<PAD>(ic+1,jc+1,kc+1)];

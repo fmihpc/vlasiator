@@ -44,7 +44,7 @@ void compute_spatial_source_neighbors(const dccrg::Dccrg<SpatialCell,dccrg::Cart
 void compute_spatial_target_neighbors(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                       const CellID& cellID,const uint dimension,SpatialCell **neighbors);
 void copy_trans_block_data(SpatialCell** source_neighbors,const vmesh::GlobalID blockGID,
-                           Vec* values,const unsigned char* const cellid_transpose,const int& popID);
+                           Vec* values,const unsigned char* const cellid_transpose,const uint popID);
 CellID get_spatial_neighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                             const CellID& cellID,const bool include_first_boundary_layer,
                             const int spatial_di,const int spatial_dj,const int spatial_dk);
@@ -53,7 +53,7 @@ SpatialCell* get_spatial_neighbor_pointer(const dccrg::Dccrg<SpatialCell,dccrg::
                                           const int spatial_di,const int spatial_dj,const int spatial_dk);
 void store_trans_block_data(SpatialCell** target_neighbors,const vmesh::GlobalID blockGID,
                             Vec* __restrict__ target_values,
-                            const unsigned char* const cellid_transpose,const int& popID);
+                            const unsigned char* const cellid_transpose,const uint popID);
 
 // indices in padded source block, which is of type Vec with VECL
 // element sin each vector. b_k is the block index in z direction in
@@ -87,7 +87,7 @@ bool do_translate_cell(SpatialCell* SC){
 void createTargetGrid(
         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
         const vector<CellID>& cells,
-        const int& popID) {
+        const uint popID) {
 
    phiprof::start("create-target-grid");
     #pragma omp parallel for
@@ -167,7 +167,7 @@ void zeroTargetGrid(
 void swapTargetSourceGrid(
         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
         const vector<CellID>& cells,
-        const int& popID) {
+        const uint popID) {
    
     phiprof::start("swap-target-grid");
     for (size_t c=0; c<cells.size(); ++c) {
@@ -362,7 +362,7 @@ inline void copy_trans_block_data(
         const vmesh::GlobalID blockGID,
         Vec* values,
         const unsigned char* const cellid_transpose,
-        const int& popID) { 
+        const uint popID) { 
 
    /*load pointers to blocks and prefetch them to L1*/
    Realf* blockDatas[VLASOV_STENCIL_WIDTH * 2 + 1];
@@ -445,7 +445,7 @@ inline void store_trans_block_data(
    const vmesh::GlobalID blockGID,
    Vec* __restrict__ target_values,
    const unsigned char* const cellid_transpose,
-   const int& popID) {
+   const uint popID) {
 
 
    /*load pointers to blocks and prefetch them to L1*/
@@ -518,7 +518,7 @@ bool trans_map_1d(
         const CellID cellID,
         const uint dimension,
         const Realv dt,
-        const int& popID) {
+        const uint popID) {
     
     // values used with an stencil in 1 dimension, initialized to 0. 
     // Contains a block, and its spatial neighbours in one dimension.
@@ -723,7 +723,7 @@ void update_remote_mapping_contribution(
         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
         const uint dimension,
         int direction,
-        const int& popID) {
+        const uint popID) {
    
     const vector<CellID> local_cells = mpiGrid.get_cells();
     const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_NEIGHBORHOOD_ID);

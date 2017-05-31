@@ -84,7 +84,7 @@ namespace projects {
 
    Real test_fp::calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,
                                        creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz,
-                                       const unsigned int popID) const {      
+                                       const uint popID) const {      
       vector<std::array<Real, 3> > V = this->getV0(x,y,z,dx,dy,dz, popID);
       
       creal VX2 = (vx+0.5*dvx-V[0][0])*(vx+0.5*dvx-V[0][0]);
@@ -161,7 +161,7 @@ namespace projects {
       creal dx,
       creal dy,
       creal dz,
-      const unsigned int popID
+      const uint popID
    ) const {
       vector<std::array<Real, 3>> centerPoints;
       
@@ -234,7 +234,7 @@ namespace projects {
       creal x,
       creal y,
       creal z,
-      const unsigned int popID
+      const uint popID
    ) const {
       vector<std::array<Real, 3>> centerPoints;
       

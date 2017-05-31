@@ -84,7 +84,7 @@ namespace projects {
       RP::get("Riemann.nVelocitySamples", this->nVelocitySamples);
    }
 
-   Real Riemann1::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const unsigned int popID) const {
+   Real Riemann1::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const {
       cint side = (x < 0.0) ? this->LEFT : this->RIGHT;
       
       return this->rho[side] * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B * this->T[side]), 1.5) *
@@ -92,7 +92,7 @@ namespace projects {
    }
 
 
-   Real Riemann1::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const unsigned int popID) const {
+   Real Riemann1::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
       creal d_x = dx / (this->nSpaceSamples-1);
       creal d_y = dy / (this->nSpaceSamples-1);
       creal d_z = dz / (this->nSpaceSamples-1);

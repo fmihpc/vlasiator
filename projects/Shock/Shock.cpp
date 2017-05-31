@@ -83,7 +83,7 @@ namespace projects {
       RP::get("Shock.Sharp_Y", this->Sharp_Y);
    }
 
-   Real Shock::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, const unsigned int popID) const {
+   Real Shock::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, const uint popID) const {
       creal kb = physicalconstants::K_B;
       creal mass = physicalconstants::MASS_PROTON;
       return exp(- mass * ((vx-this->VX0)*(vx-this->VX0) + (vy-this->VY0)*(vy-this->VY0)+ (vz-this->VZ0)*(vz-this->VZ0)) / (2.0 * kb * this->TEMPERATURE));
@@ -92,7 +92,7 @@ namespace projects {
 
 
    Real Shock::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz,
-           creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const unsigned int popID) const {
+           creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
       const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
       vmesh::MeshParameters& meshParams = getObjectWrapper().velocityMeshes[meshID];
       if (vx < meshParams.meshMinLimits[0] + 0.5*dvx ||

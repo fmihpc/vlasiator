@@ -127,7 +127,7 @@ namespace projects {
                                          creal& dx, creal& dy, creal& dz,
                                          creal& vx, creal& vy, creal& vz,
                                          creal& dvx, creal& dvy, creal& dvz,
-                                         const unsigned int popID) const = 0;
+                                         const uint popID) const = 0;
       
       /*!
        Get random number between 0 and 1.0. One should always first initialize the rng.

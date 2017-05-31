@@ -542,7 +542,7 @@ void SysBoundary::applySysBoundaryVlasovConditions(
    
    #warning Same sysBoundaryCondition applied to all populations
    // Loop over existing particle species
-   for (unsigned int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+   for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       SpatialCell::setCommunicatedSpecies(popID);
 
       // Then the block data in the reduced neighbourhood:

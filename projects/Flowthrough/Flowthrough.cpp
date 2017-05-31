@@ -176,7 +176,7 @@ namespace projects {
       return rvalue;
    }
 
-   Real Flowthrough::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const unsigned int popID) const {
+   Real Flowthrough::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
 
       const FlowthroughSpeciesParameters& sP = speciesParams[popID];
 
@@ -219,7 +219,7 @@ namespace projects {
       creal x,
       creal y,
       creal z,
-      const unsigned int popID
+      const uint popID
    ) const {
       const FlowthroughSpeciesParameters& sP = speciesParams[popID];
       vector<std::array<Real, 3>> centerPoints;

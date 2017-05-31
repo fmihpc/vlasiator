@@ -166,14 +166,14 @@ namespace projects {
       }
    }
    
-   Real Dispersion::getDistribValue(creal& vx,creal& vy, creal& vz, const unsigned int popID) const {
+   Real Dispersion::getDistribValue(creal& vx,creal& vy, creal& vz, const uint popID) const {
       const DispersionSpeciesParameters& sP = speciesParams[popID];
       creal mass = getObjectWrapper().particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
       return exp(- mass * ((vx-sP.VX0)*(vx-sP.VX0) + (vy-sP.VY0)*(vy-sP.VY0) + (vz-sP.VZ0)*(vz-sP.VZ0)) / (2.0 * kb * sP.TEMPERATURE));
    }
    
-   Real Dispersion::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const unsigned int popID) const {
+   Real Dispersion::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const {
       const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
       const vmesh::MeshParameters& meshParams = getObjectWrapper().velocityMeshes[meshID];
       if (vx < meshParams.meshMinLimits[0] + 0.5*dvx ||
@@ -206,16 +206,16 @@ namespace projects {
                );
             }
             
-            creal result = avg *
-            sP.DENSITY * (1.0 + sP.densityPertRelAmp * (0.5 - this->rndRho)) *
-            pow(mass / (2.0 * M_PI * kb * sP.TEMPERATURE), 1.5) /
-            //            (Parameters::vzmax - Parameters::vzmin) / 
-            (sP.nVelocitySamples*sP.nVelocitySamples*sP.nVelocitySamples);
-            if(result < this->maxwCutoff) {
-               return 0.0;
-            } else {
-               return result;
-            }
+      creal result = avg *
+      sP.DENSITY * (1.0 + sP.densityPertRelAmp * (0.5 - this->rndRho)) *
+      pow(mass / (2.0 * M_PI * kb * sP.TEMPERATURE), 1.5) /
+      //            (Parameters::vzmax - Parameters::vzmin) / 
+      (sP.nVelocitySamples*sP.nVelocitySamples*sP.nVelocitySamples);
+      if(result < this->maxwCutoff) {
+         return 0.0;
+      } else {
+         return result;
+      }
    }
 
    void Dispersion::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {

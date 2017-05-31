@@ -85,7 +85,7 @@ namespace projects {
    Real Diffusion::getDistribValue(
       creal& x,creal& y,creal& z,
       creal& vx,creal& vy,creal& vz,
-      const unsigned int popID
+      const uint popID
    ) const {
       const DiffusionSpeciesParameters& sP = speciesParams[popID];
       creal mass = getObjectWrapper().particleSpecies[popID].mass;
@@ -98,7 +98,7 @@ namespace projects {
          exp(- mass * (pow(vx, 2.0) + pow(vy, 2.0) + pow(vz, 2.0)) / (2.0 * kb * sP.TEMPERATURE)));
    }
    
-   Real Diffusion::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const unsigned int popID) const {
+   Real Diffusion::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
       const DiffusionSpeciesParameters& sP = speciesParams[popID];
       creal d_x = dx / (sP.nSpaceSamples-1);
       creal d_y = dy / (sP.nSpaceSamples-1);

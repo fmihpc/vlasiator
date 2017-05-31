@@ -34,7 +34,7 @@ using namespace std;
 
 namespace DRO {
    
-   DataReductionOperatorPopulations::DataReductionOperatorPopulations(const std::string& name,const unsigned int popID, const unsigned int byteOffset,const unsigned int vectorSize):
+   DataReductionOperatorPopulations::DataReductionOperatorPopulations(const std::string& name,const uint popID, const unsigned int byteOffset,const unsigned int vectorSize):
    DataReductionOperator() {
       _vectorSize=vectorSize;
       _name=name;

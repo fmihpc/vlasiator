@@ -52,7 +52,7 @@ namespace projects {
                                          creal& dx, creal& dy, creal& dz,
                                          creal& vx, creal& vy, creal& vz,
                                          creal& dvx, creal& dvy, creal& dvz,
-                                         const unsigned int popID
+                                         const uint popID
                                         ) const;
       
     protected:
@@ -60,14 +60,14 @@ namespace projects {
                            creal& x,creal& y, creal& z,
                            creal& vx, creal& vy, creal& vz,
                            creal& dvx, creal& dvy, creal& dvz,
-                           const unsigned int popID
+                           const uint popID
                           ) const;
       virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
       virtual std::vector<std::array<Real, 3> > getV0(
                                                       creal x,
                                                       creal y,
                                                       creal z,
-                                                      const unsigned int popID
+                                                      const uint popID
                                                      ) const;
       
       Real constBgB[3];

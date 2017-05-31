@@ -43,6 +43,8 @@ Previous development version name was UtuShock
 using namespace std;
 using namespace spatial_cell;
 
+#warning IPShock project not yet ready for multipop use
+
 namespace projects {
   IPShock::IPShock(): TriAxisSearch() { }
   IPShock::~IPShock() { }
@@ -279,7 +281,7 @@ namespace projects {
   }
 
 
-  std::vector<std::array<Real, 3>> IPShock::getV0(creal x, creal y, creal z, const unsigned int popID) const {
+  std::vector<std::array<Real, 3>> IPShock::getV0(creal x, creal y, creal z, const uint popID) const {
     Real mass = physicalconstants::MASS_PROTON;
     Real mu0 = physicalconstants::MU_0;
 
@@ -317,7 +319,7 @@ namespace projects {
   Real IPShock::getDistribValue(creal& x, creal& y, creal& z, 
 				creal& vx, creal& vy, creal& vz, 
 				creal& dvx, creal& dvy, creal& dvz,
-        const unsigned int popID) const {
+        const uint popID) const {
 
     Real mass = physicalconstants::MASS_PROTON;
     Real KB = physicalconstants::K_B;
@@ -359,7 +361,7 @@ namespace projects {
     return result;
   }
 
-  Real IPShock::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const unsigned int popID) const {
+  Real IPShock::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const {
     Real result = 0.0;
     if((this->nSpaceSamples > 1) && (this->nVelocitySamples > 1)) {
       creal d_x = dx / (this->nSpaceSamples-1);

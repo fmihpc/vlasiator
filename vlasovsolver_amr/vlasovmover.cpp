@@ -73,7 +73,7 @@ static void writeVelMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mp
    ++Parameters::systemWrites[counter];
 }
 
-Real calculateTotalMass(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const int& popID) {
+Real calculateTotalMass(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const uint popID) {
    const vector<CellID>& local_cells = getLocalCells();
    Real sum=0.0;
    for (size_t c=0; c<local_cells.size(); ++c) {
