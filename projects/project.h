@@ -75,7 +75,7 @@ namespace projects {
        * small portions actually containing something. Use with care.
        * NOTE: This function is called inside parallel region so it must be declared as const.
        */
-      virtual std::vector<vmesh::GlobalID> findBlocksToInitialize(spatial_cell::SpatialCell* cell,const int& popID) const;
+      virtual std::vector<vmesh::GlobalID> findBlocksToInitialize(spatial_cell::SpatialCell* cell,const uint popID) const;
       
       /*! \brief Sets the distribution function in a cell.
        * 
