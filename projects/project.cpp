@@ -241,7 +241,7 @@ namespace projects {
       calculateCellMoments(cell,true,true);
    }
 
-   std::vector<vmesh::GlobalID> Project::findBlocksToInitialize(spatial_cell::SpatialCell* cell,const int& popID) const {
+   std::vector<vmesh::GlobalID> Project::findBlocksToInitialize(spatial_cell::SpatialCell* cell,const uint popID) const {
       vector<vmesh::GlobalID> blocksToInitialize;
       const uint8_t refLevel = 0;
 
