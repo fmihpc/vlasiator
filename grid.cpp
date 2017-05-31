@@ -219,20 +219,21 @@ void initializeGrid(
 
       for (unsigned int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          adjustVelocityBlocks(mpiGrid,cells,true,popID);
-         
          #ifdef DEBUG_AMR_VALIDATE
             writeVelMesh(mpiGrid);
+            validateMesh(mpiGrid,popID);
          #endif
-         
-         validateMesh(mpiGrid,popID);
-         shrink_to_fit_grid_data(mpiGrid); //get rid of excess data already here
-
          // set initial LB metric based on number of blocks, all others
          // will be based on time spent in acceleration
          for (size_t i=0; i<cells.size(); ++i) {
             mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] += mpiGrid[cells[i]]->get_number_of_velocity_blocks(popID);
          }
       }
+      
+      shrink_to_fit_grid_data(mpiGrid); //get rid of excess data already here
+
+
+   
 /*
       // Apply boundary conditions so that we get correct initial moments
       sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid,Parameters::t);
@@ -533,15 +534,13 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
  */
 void shrink_to_fit_grid_data(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
    const std::vector<CellID>& cells = getLocalCells();
+   const std::vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(FULL_NEIGHBORHOOD_ID);
    #pragma omp parallel for
-   for(size_t i=0; i<cells.size(); ++i) {
-      mpiGrid[cells[i]]->shrink_to_fit();
-   }
-
-   const std::vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(DIST_FUNC_NEIGHBORHOOD_ID);
-   #pragma omp parallel for
-   for(size_t i=0; i<remote_cells.size(); ++i) {
-      mpiGrid[remote_cells[i]]->shrink_to_fit();
+   for(size_t i=0; i<cells.size() + remote_cells.size(); ++i) {
+      if(i < cells.size())
+         mpiGrid[cells[i]]->shrink_to_fit();
+      else
+         mpiGrid[remote_cells[i - cells.size()]]->shrink_to_fit();
    }
 }
 
