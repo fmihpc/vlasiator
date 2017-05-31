@@ -36,7 +36,7 @@ namespace projects {
       /*! Register parameters that should be read in. */
       static void addParameters();
       
-      virtual Real getCorrectNumberDensity(spatial_cell::SpatialCell* cell,const int& popID) const;
+      virtual Real getCorrectNumberDensity(spatial_cell::SpatialCell* cell,const uint popID) const;
       
       /*! Get the value that was read in. */
       virtual void getParameters();
@@ -65,7 +65,7 @@ namespace projects {
        */
       void setCell(spatial_cell::SpatialCell* cell);
          
-      Real setVelocityBlock(spatial_cell::SpatialCell* cell,const vmesh::LocalID& blockLID,const int& popID) const;
+      Real setVelocityBlock(spatial_cell::SpatialCell* cell,const vmesh::LocalID& blockLID,const uint popID) const;
 
     protected:
       /*! \brief Returns a list of blocks to loop through when initialising.
@@ -84,7 +84,7 @@ namespace projects {
        * 
        * \sa findBlocksToInitialize
        */
-      void setVelocitySpace(const int& popID,spatial_cell::SpatialCell* cell) const;
+      void setVelocitySpace(const uint popID,spatial_cell::SpatialCell* cell) const;
          
       /** Calculate parameters for the given spatial cell at the given time.
        * Here you need to set values for the following array indices:
@@ -136,8 +136,8 @@ namespace projects {
          
       void printPopulations();
       
-      virtual bool rescalesDensity(const int& popID) const;
-      void rescaleDensity(spatial_cell::SpatialCell* cell,const int& popID) const;
+      virtual bool rescalesDensity(const uint popID) const;
+      void rescaleDensity(spatial_cell::SpatialCell* cell,const uint popID) const;
       
       /*!  Set random seed (thread-safe). Seed is based on the seed read
        in from cfg + the seedModifier parameter
