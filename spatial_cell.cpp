@@ -1419,10 +1419,11 @@ namespace spatial_cell {
          const size_t amount 
             = 2 + populations[p].blockContainer.size() 
             * populations[p].blockContainer.getBlockAllocationFactor();
-
+         
          // Allow capacity to be a bit large than needed by number of blocks, shrink otherwise
-         if (populations[p].blockContainer.capacity() > amount * VELOCITY_BLOCK_LENGTH) 
+         if (populations[p].blockContainer.capacity() > amount ) 
             if (populations[p].blockContainer.recapacitate(amount) == false) success = false;
+
       }
       return success;
    }
