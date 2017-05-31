@@ -39,7 +39,7 @@ using namespace Eigen;
 */
 void updateAccelerationMaxdt(
    SpatialCell* spatial_cell,
-   const int& popID) 
+   const uint popID) 
 {
    if (Parameters::propagatePotential == true) {
       #warning Electric acceleration works for Poisson only atm
@@ -70,7 +70,7 @@ void updateAccelerationMaxdt(
 
 Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
         SpatialCell* spatial_cell,
-        const int& popID,
+        const uint popID,
         const Real& dt) {
    // total field
    const Real Bx = spatial_cell->parameters[CellParams::BGBXVOL]+spatial_cell->parameters[CellParams::PERBXVOL];

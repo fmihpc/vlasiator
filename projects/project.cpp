@@ -290,7 +290,7 @@ namespace projects {
     * @param blockLID Velocity block local ID within the spatial cell.
     * @param popID Population ID.
     * @return Maximum value of the calculated distribution function.*/
-   Real Project::setVelocityBlock(spatial_cell::SpatialCell* cell,const vmesh::LocalID& blockLID,const int& popID) const {
+   Real Project::setVelocityBlock(spatial_cell::SpatialCell* cell,const vmesh::LocalID& blockLID,const uint popID) const {
       // If simulation doesn't use one or more velocity coordinates, 
       // only calculate the distribution function for one layer of cells.
       uint WID_VX = WID;
@@ -345,7 +345,7 @@ namespace projects {
       return maxValue;
    }
    
-   void Project::setVelocitySpace(const int& popID,SpatialCell* cell) const {
+   void Project::setVelocitySpace(const uint popID,SpatialCell* cell) const {
       vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = cell->get_velocity_mesh(popID);
 
       vector<vmesh::GlobalID> blocksToInitialize = this->findBlocksToInitialize(cell,popID);
@@ -434,7 +434,7 @@ namespace projects {
    /** Check if the project wants to rescale densities.
     * @param popID ID of the particle species.
     * @return If true, rescaleDensity is called for this species.*/
-   bool Project::rescalesDensity(const int& popID) const {
+   bool Project::rescalesDensity(const uint popID) const {
       return false;
    }
 
@@ -442,7 +442,7 @@ namespace projects {
     * the number density corresponds to the value returned by getCorrectNumberDensity.
     * @param cell Spatial cell.
     * @param popID ID of the particle species.*/
-   void Project::rescaleDensity(spatial_cell::SpatialCell* cell,const int& popID) const {      
+   void Project::rescaleDensity(spatial_cell::SpatialCell* cell,const uint popID) const {
       // Re-scale densities
       Real sum = 0.0;
       Realf* data = cell->get_data(popID);
@@ -476,7 +476,7 @@ namespace projects {
    /*!
      Get random number between 0 and 1.0. One should always first initialize the rng.
    */
-   Real Project::getCorrectNumberDensity(spatial_cell::SpatialCell* cell,const int& popID) const {
+   Real Project::getCorrectNumberDensity(spatial_cell::SpatialCell* cell,const uint popID) const {
       cerr << "ERROR: Project::getCorrectNumberDensity called instead of derived class function!" << endl;
       exit(1);
       return 0.0;

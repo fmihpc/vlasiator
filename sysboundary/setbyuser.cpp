@@ -107,7 +107,7 @@ namespace SBC {
       Project &project
    ) {
       bool success = true;
-      for (unsigned int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          if (setCellsFromTemplate(mpiGrid, popID) == false) success = false;
       }
       
@@ -244,12 +244,12 @@ namespace SBC {
    void SetByUser::vlasovBoundaryCondition(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
-      const int& popID
+      const uint popID
    ) {
       // No need to do anything in this function, as the propagators do not touch the distribution function   
    }
    
-   bool SetByUser::setCellsFromTemplate(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const int& popID) {
+   bool SetByUser::setCellsFromTemplate(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const uint popID) {
       vector<CellID> cells = mpiGrid.get_cells();
       #pragma omp parallel for
       for (size_t i=0; i<cells.size(); i++) {
@@ -287,7 +287,7 @@ namespace SBC {
       for(uint i=0; i<6; i++) faces[i] = facesToProcess[i];
    }
    
-   bool SetByUser::loadInputData(const unsigned int popID) {
+   bool SetByUser::loadInputData(const uint popID) {
       UserSpeciesParameters& sP = speciesParams[popID];
 
       for(uint i=0; i<6; i++) {

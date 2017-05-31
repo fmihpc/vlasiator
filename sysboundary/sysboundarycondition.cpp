@@ -360,7 +360,7 @@ namespace SBC {
    void SysBoundaryCondition::vlasovBoundaryCondition(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const CellID& cellID,
-         const int& popID
+         const uint popID
    ) {
       cerr << "ERROR: SysBoundaryCondition::vlasovBoundaryCondition called instead of derived class function!" << endl;
       exit(1);
@@ -375,7 +375,7 @@ namespace SBC {
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const CellID& cellID,
          const bool& copyMomentsOnly,
-         const int& popID
+         const uint popID
    ) {
       const CellID closestCell = getTheClosestNonsysboundaryCell(cellID);
       
@@ -393,7 +393,7 @@ namespace SBC {
     */
    void SysBoundaryCondition::vlasovBoundaryCopyFromAllClosestNbrs(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID,const int& popID
+      const CellID& cellID,const uint popID
    ) {
       const std::vector<CellID> closestCells = getAllClosestNonsysboundaryCells(cellID);
       
@@ -411,7 +411,7 @@ namespace SBC {
    void SysBoundaryCondition::vlasovBoundaryCopyFromTheClosestNbrAndLimit(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
-      const int& popID
+      const uint popID
       ) {
       const CellID closestCell = getTheClosestNonsysboundaryCell(cellID);
       SpatialCell * from = mpiGrid[closestCell];
@@ -488,7 +488,7 @@ namespace SBC {
             SpatialCell* to,
             bool allowBlockAdjustment,
             const bool& copyMomentsOnly,
-            const int& popID
+            const uint popID
    ) {
       // WARNING Time-independence assumed here. _R and _V not copied, 
       // as boundary conditions cells should not set/use them.
@@ -582,7 +582,7 @@ namespace SBC {
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const std::vector<CellID> cellList,
          SpatialCell *to,
-         const int& popID
+         const uint popID
    ) {
       const size_t numberOfCells = cellList.size();
       if(numberOfCells == 1) {
@@ -684,7 +684,7 @@ namespace SBC {
          creal& nx,
          creal& ny,
          creal& nz,
-         const int& popID
+         const uint popID
    ) {
       SpatialCell * cell = mpiGrid[cellID];
       const std::vector<CellID> cellList = this->getAllClosestNonsysboundaryCells(cellID);
@@ -753,7 +753,7 @@ namespace SBC {
       creal& ny,
       creal& nz,
       creal& quenchingFactor,
-      const int& popID
+      const uint popID
    ) {
       SpatialCell* cell = mpiGrid[cellID];
       const std::vector<CellID> cellList = this->getAllClosestNonsysboundaryCells(cellID);
@@ -908,7 +908,7 @@ namespace SBC {
    std::array<Realf*,27> SysBoundaryCondition::getFlowtoCellsBlock(
       const std::array<SpatialCell*,27> flowtoCells,
       const vmesh::GlobalID blockGID,
-      const int& popID
+      const uint popID
    ) {
       phiprof::start("getFlowtoCellsBlock");
       std::array<Realf*,27> flowtoCellsBlock;

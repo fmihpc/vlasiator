@@ -55,7 +55,7 @@ namespace projects {
                            creal& x,creal& y,
                            creal& vx, creal& vy, creal& vz,
                            creal& dvx, creal& dvy, creal& dvz,
-                           const unsigned int popID
+                           const uint popID
                           ) const;
       Real profile(creal top, creal bottom, creal x) const;
       virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
@@ -64,7 +64,7 @@ namespace projects {
                                          creal& dx, creal& dy, creal& dz,
                                          creal& vx, creal& vy, creal& vz,
                                          creal& dvx, creal& dvy, creal& dvz,
-                                         const unsigned int popID
+                                         const uint popID
                                         ) const;
 
       Real Bx;

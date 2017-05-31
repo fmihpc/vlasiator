@@ -120,7 +120,7 @@ namespace SBC {
         virtual void vlasovBoundaryCondition(
             const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const CellID& cellID,
-            const int& popID
+            const uint popID
         );
         virtual void fieldSolverBoundaryCondGradPeElectricField(
            fs_cache::CellCache& cache,
@@ -154,13 +154,13 @@ namespace SBC {
             SpatialCell *to,
             bool allowBlockAdjustment,
             const bool& copyMomentsOnly,
-            const int& popID
+            const uint popID
          );
          void averageCellData(
             const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             std::vector<CellID> cellList,
             SpatialCell *to,
-            const int& popID
+            const uint popID
          );
          CellID & getTheClosestNonsysboundaryCell(
             const CellID& cellID
@@ -175,7 +175,7 @@ namespace SBC {
          std::array<Realf*,27> getFlowtoCellsBlock(
                const std::array<SpatialCell*,27> flowtoCells,
                const vmesh::GlobalID blockGID,
-               const int& popID
+               const uint popID
          );
       
 
@@ -193,17 +193,17 @@ namespace SBC {
             const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const CellID& cellID,
             const bool& copyMomentsOnly,
-            const int& popID
+            const uint popID
          );
          void vlasovBoundaryCopyFromTheClosestNbrAndLimit(
                const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                const CellID& cellID,
-               const int& popID
+               const uint popID
          );
          void vlasovBoundaryCopyFromAllClosestNbrs(
             const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const CellID& cellID,
-            const int& popID
+            const uint popID
          );
          void vlasovBoundaryReflect(
             const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
@@ -211,7 +211,7 @@ namespace SBC {
             creal& nx,
             creal& ny,
             creal& nz,
-            const int& popID
+            const uint popID
          );
          void vlasovBoundaryAbsorb(
             const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
@@ -220,7 +220,7 @@ namespace SBC {
             creal& ny,
             creal& nz,
             creal& quenchingFactor,
-            const int& popID
+            const uint popID
          );
 
 

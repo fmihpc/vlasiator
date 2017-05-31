@@ -50,7 +50,7 @@ extern Logger logFile, diagnostic;
 
 typedef Parameters P;
 
-bool writeVelocityDistributionData(const int& popID,Writer& vlsvWriter,
+bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
                                    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                    const std::vector<CellID>& cells,MPI_Comm comm);
 
@@ -132,7 +132,7 @@ bool writeVelocityDistributionData(Writer& vlsvWriter,
  @param cells Vector of local cells within this process (no ghost cells).
  @param comm The MPI communicator.
  @return Returns true if operation was successful.*/
-bool writeVelocityDistributionData(const int& popID,Writer& vlsvWriter,
+bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
                                    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                    const std::vector<CellID>& cells,MPI_Comm comm) {
    // Write velocity blocks and related data. 

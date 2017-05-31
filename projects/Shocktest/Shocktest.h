@@ -60,7 +60,7 @@ namespace projects {
                            creal& x,creal& y, creal& z,
                            creal& vx, creal& vy, creal& vz,
                            creal& dvx, creal& dvy, creal& dvz,
-                           const unsigned int popID
+                           const uint popID
                           ) const;
       virtual void setCellBackgroundField(spatial_cell::SpatialCell* cell);
       
@@ -70,14 +70,14 @@ namespace projects {
                                          creal& dx, creal& dy, creal& dz,
                                          creal& vx, creal& vy, creal& vz,
                                          creal& dvx, creal& dvy, creal& dvz,
-                                         const unsigned int popID
+                                         const uint popID
                                         ) const;
          
          virtual std::vector<std::array<Real, 3> > getV0(
                                                          creal x,
                                                          creal y,
                                                          creal z,
-                                                         const unsigned int popID
+                                                         const uint popID
                                                         ) const;
          
    }; // Class Shocktest

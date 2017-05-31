@@ -85,7 +85,7 @@ namespace projects {
       creal& x,creal& y, creal& z,
       creal& vx, creal& vy, creal& vz,
       creal& dvx, creal& dvy, creal& dvz,
-      const unsigned int popID
+      const uint popID
    ) const {
 
       const HarrisSpeciesParameters& sP = speciesParams[popID];
@@ -101,7 +101,7 @@ namespace projects {
       creal& x,creal& y,creal& z,
       creal& dx,creal& dy,creal& dz,
       creal& vx,creal& vy,creal& vz,
-      creal& dvx,creal& dvy,creal& dvz,const unsigned int popID
+      creal& dvx,creal& dvy,creal& dvz,const uint popID
    ) const {
       const HarrisSpeciesParameters& sP = speciesParams[popID];
       if((sP.nSpaceSamples > 1) && (sP.nVelocitySamples > 1)) {
@@ -158,7 +158,7 @@ namespace projects {
       creal x,
       creal y,
       creal z,
-      const unsigned int popID
+      const uint popID
    ) const {
       vector<std::array<Real, 3>> V0;
       std::array<Real, 3> v = {{0.0, 0.0, 0.0 }};
