@@ -1091,10 +1091,10 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    DataReducer restartReducer;
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("background_B",CellParams::BGBX,3));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("perturbed_B",CellParams::PERBX,3));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments",CellParams::RHOM,4));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments_dt2",CellParams::RHOM_DT2,4));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments_r",CellParams::RHOM_R,4));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments_v",CellParams::RHOM_V,4));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments",CellParams::RHOM,5));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments_dt2",CellParams::RHOM_DT2,5));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments_r",CellParams::RHOM_R,5));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments_v",CellParams::RHOM_V,5));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure",CellParams::P_11,3));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_dt2",CellParams::P_11_DT2,3));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_r",CellParams::P_11_R,3));
