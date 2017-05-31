@@ -97,9 +97,13 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       }
       if(*it == "RhomNonBackstream")
          outputReducer->addOperator(new DRO::VariableRhomNonBackstream);
-#warning this has to be changed in multipop
-      if(*it == "RhomLossAdjust")
-//          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("rhom_loss_adjust",CellParams::RHOMLOSSADJUST,1));
+      if(*it == "populations_RhomLossAdjust") {
+         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+            species::Species& species=getObjectWrapper().particleSpecies[i];
+            const std::string& pop = species.name;
+            outputReducer->addOperator(new DRO::DataReductionOperatorPopulations(pop + "/rhom_loss_adjust", i, offsetof(spatial_cell::Population, RHOMLOSSADJUST), 1));
+         }
+      }
       if(*it == "LBweight")
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("LB_weight",CellParams::LBWEIGHTCOUNTER,1));
       if(*it == "MaxVdt")
