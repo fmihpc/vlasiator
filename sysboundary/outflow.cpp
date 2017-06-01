@@ -479,7 +479,7 @@ namespace SBC {
    void Outflow::vlasovBoundaryCondition(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
-      const int& popID
+      const uint popID
    ) {
 //      phiprof::start("vlasovBoundaryCondition (Outflow)");
       

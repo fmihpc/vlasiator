@@ -309,7 +309,7 @@ bool _readBlockData(
    const uint64_t localBlockStartOffset,
    const uint64_t localBlocks,
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   const int& popID
+   const uint popID
 ) {   
    uint64_t arraySize;
    uint64_t avgVectorSize;

@@ -256,7 +256,7 @@ namespace SBC {
    void Antisymmetric::vlasovBoundaryCondition(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
-      const int& popID
+      const uint popID
    ) {
       //cerr << "AS vlasovBoundaryCondition cell " << cellID << " called " << endl;
       

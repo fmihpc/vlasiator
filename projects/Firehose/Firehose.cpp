@@ -112,7 +112,7 @@ namespace projects {
       creal& x, creal& y,
       creal& vx, creal& vy, creal& vz,
       creal& dvx, creal& dvy, creal& dvz,
-      const unsigned int popID) const  {
+      const uint popID) const  {
       const FirehoseSpeciesParameters& sP = speciesParams[popID];
       creal mass = getObjectWrapper().particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
@@ -130,7 +130,7 @@ namespace projects {
    //           pow(vz - this->Vz[2], 2.0) / (2.0 * kb * this->Tz[2]))); 
    }
 
-   Real Firehose::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const unsigned int popID) const {
+   Real Firehose::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
       const FirehoseSpeciesParameters& sP = speciesParams[popID];
       creal d_x = dx / (sP.nSpaceSamples-1);
       creal d_y = dy / (sP.nSpaceSamples-1);

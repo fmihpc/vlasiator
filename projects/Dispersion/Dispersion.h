@@ -57,14 +57,14 @@ namespace projects {
          const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
       ) const;
     protected:
-      Real getDistribValue(creal& vx, creal& vy, creal& vz, const unsigned int popID) const;
+      Real getDistribValue(creal& vx, creal& vy, creal& vz, const uint popID) const;
       virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
       virtual Real calcPhaseSpaceDensity(
                                          creal& x, creal& y, creal& z,
                                          creal& dx, creal& dy, creal& dz,
                                          creal& vx, creal& vy, creal& vz,
                                          creal& dvx, creal& dvy, creal& dvz,
-                                         const unsigned int popID
+                                         const uint popID
                                         ) const;
 
       Real B0;

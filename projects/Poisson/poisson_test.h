@@ -51,7 +51,7 @@ namespace projects {
                                           creal& dx, creal& dy, creal& dz,
                                           creal& vx, creal& vy, creal& vz,
                                           creal& dvx, creal& dvy, creal& dvz,
-                                          const unsigned int popID) const;
+                                          const uint popID) const;
        
        virtual std::vector<uint> findBlocksToInitialize(spatial_cell::SpatialCell* cell);
        

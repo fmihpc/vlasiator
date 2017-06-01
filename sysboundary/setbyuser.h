@@ -114,7 +114,7 @@ namespace SBC {
       virtual void vlasovBoundaryCondition(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const CellID& cellID,
-         const int& popID
+         const uint popID
       );
       
       virtual void getFaces(bool* faces);
@@ -123,13 +123,13 @@ namespace SBC {
       virtual uint getIndex() const = 0;
       
    protected:
-      bool loadInputData(const unsigned int popID);
+      bool loadInputData(const uint popID);
       std::vector<std::vector<Real> > loadFile(const char* file, unsigned int nParams);
       void interpolate(const int inputDataIndex, const uint popID, creal t, Real* outputData);
       
       bool generateTemplateCells(creal& t);
       virtual void generateTemplateCell(spatial_cell::SpatialCell& templateCell, int inputDataIndex, creal& t) = 0;
-      bool setCellsFromTemplate(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const int& popID);
+      bool setCellsFromTemplate(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const uint popID);
       
       /*! Array of bool telling which faces are going to be processed by the system boundary condition.*/
       bool facesToProcess[6];

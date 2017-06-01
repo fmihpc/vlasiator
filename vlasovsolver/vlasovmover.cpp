@@ -71,7 +71,7 @@ void calculateSpatialTranslation(
         const vector<CellID>& remoteTargetCellsy,
         const vector<CellID>& remoteTargetCellsz,
         creal dt,
-        const int& popID) {
+        const uint popID) {
 
     int trans_timer;
     bool localTargetGridGenerated = false;
@@ -322,7 +322,7 @@ momentCalculation:
  * @param mpiGrid Parallel grid library.
  * @param propagatedCells List of cells in which the population is accelerated.
  * @param dt Timestep.*/
-void calculateAcceleration(const int& popID,const int& globalMaxSubcycles,const uint& step,
+void calculateAcceleration(const uint popID,const int& globalMaxSubcycles,const uint& step,
                            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                            const std::vector<CellID>& propagatedCells,
                            const Real& dt) {

@@ -60,7 +60,7 @@ namespace projects {
       return Project::initialize();
    }
 
-   Real Template::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const unsigned int popID) const {
+   Real Template::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
       creal rho = 1.0;
       creal T = 1.0;
       const std::array<Real, 3> V0 = this->getV0(x, y, z, popID)[0];
@@ -85,7 +85,7 @@ namespace projects {
       creal x,
       creal y,
       creal z,
-      const unsigned int popID
+      const uint popID
    ) const {
       vector<std::array<Real, 3>> centerPoints;
       std::array<Real, 3> point {{0.0, 0.0, 0.0}};

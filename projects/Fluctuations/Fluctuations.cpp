@@ -93,7 +93,7 @@ namespace projects {
       }
    }
    
-   Real Fluctuations::getDistribValue(creal& vx,creal& vy, creal& vz, const unsigned int popID) const {
+   Real Fluctuations::getDistribValue(creal& vx,creal& vy, creal& vz, const uint popID) const {
       const FluctuationsSpeciesParameters& sP = speciesParams[popID];
 
       creal mass = getObjectWrapper().particleSpecies[popID].mass;
@@ -105,7 +105,7 @@ namespace projects {
       creal& x, creal& y, creal& z,
       creal& dx, creal& dy, creal& dz,
       creal& vx, creal& vy, creal& vz,
-      creal& dvx, creal& dvy, creal& dvz,const unsigned int popID
+      creal& dvx, creal& dvy, creal& dvz,const uint popID
    ) const {
       const FluctuationsSpeciesParameters& sP = speciesParams[popID];
       const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
@@ -191,7 +191,7 @@ namespace projects {
       creal x,
       creal y,
       creal z,
-      const unsigned int popID
+      const uint popID
    ) const {
       std::array<Real, 3> V0 {{0.0, 0.0, 0.0}};
       std::vector<std::array<Real, 3> > centerPoints;

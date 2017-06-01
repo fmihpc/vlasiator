@@ -114,7 +114,7 @@ void inline swapBlockIndices(velocity_block_indices_t &blockIndices, const uint 
    
 */
 bool map_1d(SpatialCell* spatial_cell,
-            const int popID,     
+            const uint popID,     
             Realv intersection, Realv intersection_di, Realv intersection_dj,Realv intersection_dk,
             const uint dimension) {
    no_subnormals();

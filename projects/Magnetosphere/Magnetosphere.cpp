@@ -193,7 +193,7 @@ namespace projects {
 
    Real Magnetosphere::calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,
                                              creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,
-                                             creal& dvz,const unsigned int popID) const {
+                                             creal& dvz,const uint popID) const {
 
       const MagnetosphereSpeciesParameters& sP = this->speciesParams[popID];
 
@@ -342,7 +342,7 @@ namespace projects {
            creal& x,creal& y,creal& z,
            creal& vx,creal& vy,creal& vz,
            creal& dvx,creal& dvy,creal& dvz,
-           const unsigned int popID) const
+           const uint popID) const
    {
       const MagnetosphereSpeciesParameters& sP = this->speciesParams[popID];
       Real initRho = sP.rho;
@@ -394,7 +394,7 @@ namespace projects {
       creal x,
       creal y,
       creal z,
-      const unsigned int popID
+      const uint popID
    ) const {
       const MagnetosphereSpeciesParameters& sP = this->speciesParams[popID];
 

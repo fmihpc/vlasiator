@@ -211,7 +211,7 @@ namespace SBC {
          SpatialCell* cell = mpiGrid[cells[i]];
          if (cell->sysBoundaryFlag != this->getIndex()) continue;
          
-         for (unsigned int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
+         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
             setCellFromTemplate(cell,popID);
       }
       return true;
@@ -644,7 +644,7 @@ namespace SBC {
    void Ionosphere::vlasovBoundaryCondition(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
-      const int& popID
+      const uint popID
    ) {
 //       phiprof::start("vlasovBoundaryCondition (Ionosphere)");
 //       const SpatialCell * cell = mpiGrid[cellID];
@@ -668,7 +668,7 @@ namespace SBC {
       templateCell.parameters[CellParams::DZ] = 1;
       
       // Loop over particle species
-      for (unsigned int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          const IonosphereSpeciesParameters& sP = this->speciesParams[popID];
          const vector<vmesh::GlobalID> blocksToInitialize = findBlocksToInitialize(templateCell,popID);
          Realf* data = templateCell.get_data(popID);
@@ -742,7 +742,7 @@ namespace SBC {
    }
    
    Real Ionosphere::shiftedMaxwellianDistribution(
-      const int& popID,
+      const uint popID,
       creal& vx, creal& vy, creal& vz
    ) {
       
@@ -755,7 +755,7 @@ namespace SBC {
       (2.0 * physicalconstants::K_B * sP.T));
    }
 
-   std::vector<vmesh::GlobalID> Ionosphere::findBlocksToInitialize(spatial_cell::SpatialCell& cell,const int& popID) {
+   std::vector<vmesh::GlobalID> Ionosphere::findBlocksToInitialize(spatial_cell::SpatialCell& cell,const uint popID) {
       vector<vmesh::GlobalID> blocksToInitialize;
       bool search = true;
       uint counter = 0;
@@ -809,7 +809,7 @@ namespace SBC {
       return blocksToInitialize;
    }
 
-   void Ionosphere::setCellFromTemplate(SpatialCell* cell,const int& popID) {
+   void Ionosphere::setCellFromTemplate(SpatialCell* cell,const uint popID) {
       //Copy, and allow to change blocks
       copyCellData(&templateCell,cell,true,false,popID);
    }

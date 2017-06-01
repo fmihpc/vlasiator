@@ -30,7 +30,7 @@ namespace DRO {
    
    class DataReductionOperatorPopulations: public DataReductionOperator {
    public:
-      DataReductionOperatorPopulations(const std::string& name,const unsigned int popID, const unsigned int byteOffset,const unsigned int vectorSize);
+      DataReductionOperatorPopulations(const std::string& name,const uint popID, const unsigned int byteOffset,const unsigned int vectorSize);
       virtual ~DataReductionOperatorPopulations();
       
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;

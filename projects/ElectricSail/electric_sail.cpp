@@ -81,7 +81,7 @@ namespace projects {
       rgp.addParameters("ElectricSail");
    }
 
-   Real ElectricSail::getCorrectNumberDensity(spatial_cell::SpatialCell* cell,const unsigned int popID) const {
+   Real ElectricSail::getCorrectNumberDensity(spatial_cell::SpatialCell* cell,const uint popID) const {
       if (addParticleCloud == false) return populations[popID].rho;
       if (getObjectWrapper().particleSpecies[popID].name != "Electron") return populations[popID].rho;
 
@@ -106,7 +106,7 @@ namespace projects {
       return populations[popID].rho + cloudDens;
    }
 
-   Real ElectricSail::getDistribValue(creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz,const unsigned int popID) const {
+   Real ElectricSail::getDistribValue(creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz,const uint popID) const {
       creal mass = getObjectWrapper().particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
       const Population& pop = populations[popID];
@@ -197,7 +197,7 @@ namespace projects {
       return success;
    }
 
-   bool ElectricSail::rescalesDensity(const int& popID) const {
+   bool ElectricSail::rescalesDensity(const uint popID) const {
       return true;
    }
 
@@ -313,7 +313,7 @@ namespace projects {
             creal& x, creal& y, creal& z,
             creal& dx, creal& dy, creal& dz,
             creal& vx, creal& vy, creal& vz,
-            creal& dvx, creal& dvy, creal& dvz,const unsigned int popID) const {
+            creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
       
       // Iterative sampling of the distribution function. Keep track of the 
       // accumulated volume average over the iterations. When the next 
@@ -362,7 +362,7 @@ namespace projects {
       return avgTotal / N3_sum;
    }
 
-   std::vector<std::array<Real, 3>> ElectricSail::getV0(creal x,creal y,creal z, const unsigned int popID) const {
+   std::vector<std::array<Real, 3>> ElectricSail::getV0(creal x,creal y,creal z, const uint popID) const {
       vector<std::array<Real, 3>> centerPoints;
       for(uint i=0; i<populations.size(); ++i) {
          std::array<Real,3> point {{populations[i].V[0],populations[i].V[1],populations[i].V[2]}};
