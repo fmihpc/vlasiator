@@ -545,6 +545,9 @@ namespace projects {
          const Real maxValue = setVelocityBlock(cell,blockLID,popID);
          if (maxValue < getObjectWrapper().particleSpecies[popID].sparseMinValue) removeList.push_back(blockGID);
       }
+      if (removeList.size() >= blocksToInitialize.size()) {
+         cerr << "WARNING: removing all blocks in spatial cell" << endl;
+      }
 
       // Get AMR refinement criterion and use it to test which blocks should be refined
       amr_ref_criteria::Base* refCriterion = getObjectWrapper().amrVelRefCriteria.create(Parameters::amrVelRefCriterion);
