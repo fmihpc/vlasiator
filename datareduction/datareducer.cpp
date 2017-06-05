@@ -120,8 +120,16 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::BoundaryLayer);
          outputReducer->addOperator(new DRO::BoundaryLayerNew);
       }
-      if(*it == "Blocks")
+      if(*it == "Blocks") {
          outputReducer->addOperator(new DRO::Blocks);
+      }
+      if (*it == "populations_Blocks") {
+         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+            species::Species& species=getObjectWrapper().particleSpecies[i];
+            const std::string& pop = species.name;
+            outputReducer->addOperator(new DRO::DataReductionOperatorPopulations(pop + "/Blocks", i, offsetof(spatial_cell::Population, N_blocks), 1));
+         }
+      }
       if(*it == "fSaved")
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("fSaved",CellParams::ISCELLSAVINGF,1));
       if(*it == "populations_accSubcycles") {
