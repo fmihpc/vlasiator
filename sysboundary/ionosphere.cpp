@@ -59,7 +59,7 @@ namespace SBC {
       Readparameters::add("ionosphere.reapplyUponRestart", "If 0 (default), keep going with the state existing in the restart file. If 1, calls again applyInitialState. Can be used to change boundary condition behaviour during a run.", 0);
 
       // Per-population parameters
-      for(int i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
 
         Readparameters::add(pop + "_ionosphere.rho", "Number density of the ionosphere (m^-3)", 1.0e6);
@@ -106,7 +106,7 @@ namespace SBC {
          this->applyUponRestart = true;
       }
 
-      for(int i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
         IonosphereSpeciesParameters sP;
 

@@ -540,7 +540,6 @@ void SysBoundary::applySysBoundaryVlasovConditions(
       Transfer::CELL_SYSBOUNDARYFLAG,true);
    mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
    
-   #warning Same sysBoundaryCondition applied to all populations
    // Loop over existing particle species
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       SpatialCell::setCommunicatedSpecies(popID);

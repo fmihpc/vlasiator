@@ -70,7 +70,7 @@ Real P::vlasovSolverMaxCFL = NAN;
 Real P::vlasovSolverMinCFL = NAN;
 Real P::fieldSolverMaxCFL = NAN;
 Real P::fieldSolverMinCFL = NAN;
-int P::fieldSolverSubcycles = 1;
+uint P::fieldSolverSubcycles = 1;
 
 uint P::tstep = 0;
 uint P::tstep_min = 0;
@@ -107,7 +107,7 @@ bool P::propagatePotential = false;
 bool P::dynamicTimestep = true;
 
 Real P::maxWaveVelocity = 0.0;
-int P::maxFieldSolverSubcycles = 0.0;
+uint P::maxFieldSolverSubcycles = 0.0;
 int P::maxSlAccelerationSubcycles = 0.0;
 Real P::resistivity = NAN;
 bool P::fieldSolverDiffusiveEterms = true;

@@ -112,7 +112,6 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
    const Real rhom = spatial_cell->parameters[CellParams::RHOM_V] + EPSILON;
    const Real hallRhom =  (rhom <= Parameters::hallMinimumRhom ) ? Parameters::hallMinimumRhom : rhom ;
    
-   #warning This should be electron charge density!
    const Real hallPrefactor = 1.0 / (physicalconstants::MU_0 * hallRhoq );
 
    Eigen::Matrix<Real,3,1> bulk_velocity(spatial_cell->parameters[CellParams::RHOMVX_V]/hallRhom,

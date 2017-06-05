@@ -420,7 +420,7 @@ namespace DRO {
 
       # pragma omp parallel reduction(+:thread_nvx2_sum,thread_nvy2_sum,thread_nvz2_sum)
       {
-         for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
             // Get velocity block parameters and distribution function of active population
             const Real*  parameters = cell->get_block_parameters(popID);
             const Realf* block_data = cell->get_data(popID);
@@ -534,7 +534,7 @@ namespace DRO {
          Real thread_nvyvy_sum = 0.0;
          Real thread_nvzvz_sum = 0.0;
          
-         for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
             const Real* parameters  = cell->get_block_parameters(popID);
             const Realf* block_data = cell->get_data(popID);
             
@@ -620,7 +620,7 @@ namespace DRO {
          Real thread_nvzvx_sum = 0.0;
          Real thread_nvyvz_sum = 0.0;
          
-         for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
             const Real* parameters = cell->get_block_parameters(popID);
             const Realf* block_data = cell->get_data(popID);
             
@@ -807,7 +807,7 @@ namespace DRO {
       {
          Real threadMax = std::numeric_limits<Real>::min();
          
-         for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
             const Realf* block_data = cell->get_data(popID);
             
             #pragma omp for
@@ -865,7 +865,7 @@ namespace DRO {
       {
          Real threadMin = std::numeric_limits<Real>::max();
          
-         for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
             const Realf* block_data = cell->get_data(popID);
 
             #pragma omp for
@@ -992,7 +992,7 @@ namespace DRO {
       {
          Real thread_n_sum = 0.0;
          
-         for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
             const Real* parameters = cell->get_block_parameters(popID);
             const Realf* block_data = cell->get_data(popID);
             
@@ -1040,7 +1040,7 @@ namespace DRO {
          Real thread_nvy_sum = 0.0;
          Real thread_nvz_sum = 0.0;
          
-         for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
             const Real* parameters = cell->get_block_parameters(popID);
             const Realf* block_data = cell->get_data(popID);
             
@@ -1107,7 +1107,7 @@ namespace DRO {
          Real thread_nvy2_sum = 0.0;
          Real thread_nvz2_sum = 0.0;
          
-         for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
             const Real* parameters = cell->get_block_parameters(popID);
             const Realf* block_data = cell->get_data(popID);
 
@@ -1171,7 +1171,7 @@ namespace DRO {
          Real thread_nvyvy_sum = 0.0;
          Real thread_nvzvz_sum = 0.0;
          
-         for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
             const Real* parameters = cell->get_block_parameters(popID);
             const Realf* block_data = cell->get_data(popID);
          
@@ -1237,7 +1237,7 @@ namespace DRO {
          Real thread_nvzvx_sum = 0.0;
          Real thread_nvyvz_sum = 0.0;
          
-         for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
             const Real* parameters = cell->get_block_parameters(popID);
             const Realf* block_data = cell->get_data(popID);
          
@@ -1774,7 +1774,7 @@ namespace DRO {
       bool success = true;
       Real* buffer = new Real[cells.size()];
       
-      for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          #pragma omp parallel for
          for (size_t c=0; c<cells.size(); ++c) {
             buffer[c] = mpiGrid[cells[c]]->getVelocityBlockMinValue(popID);

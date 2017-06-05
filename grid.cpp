@@ -196,12 +196,16 @@ void initializeGrid(
       const vector<CellID>& cells = getLocalCells();
 
       #pragma omp parallel for schedule(dynamic)
-      for (size_t i=0; i<cells.size(); ++i) {         
+      for (size_t i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
+         phiprof::start("setCellBackgroundField");
          project.setCellBackgroundField(cell);
+         phiprof::stop("setCellBackgroundField");
+         phiprof::start("setCell");
          if (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
             project.setCell(cell);
          }
+         phiprof::stop("setCell");
       }
 
       // Initial state for sys-boundary cells
@@ -223,7 +227,8 @@ void initializeGrid(
             writeVelMesh(mpiGrid);
             validateMesh(mpiGrid,popID);
          #endif
-         // set initial LB metric based on number of blocks, all others
+
+            // set initial LB metric based on number of blocks, all others
          // will be based on time spent in acceleration
          for (size_t i=0; i<cells.size(); ++i) {
             mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] += mpiGrid[cells[i]]->get_number_of_velocity_blocks(popID);
@@ -232,9 +237,7 @@ void initializeGrid(
       
       shrink_to_fit_grid_data(mpiGrid); //get rid of excess data already here
 
-
-   
-/*
+      /*
       // Apply boundary conditions so that we get correct initial moments
       sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid,Parameters::t);
       
@@ -464,9 +467,8 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    const vector<CellID>& cells = getLocalCells();
 
    phiprof::start("Compute with_content_list");
-   #pragma omp parallel for  
+   #pragma omp parallel for
    for (uint i=0; i<cells.size(); ++i) {
-      #warning updateSparseMinValue does not yet take multiple inputs for different populations
       mpiGrid[cells[i]]->updateSparseMinValue(popID);
       mpiGrid[cells[i]]->update_velocity_block_content_lists(popID);
    }
@@ -993,8 +995,7 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,c
             // min value, add the block to remove list
             #pragma omp for
             for (size_t b=0; b<newBlocks[c].size(); ++b) {
-               #warning This should be using the spatialcell minValue instead of the global one
-               if (getObjectWrapper().project->setVelocityBlock(cell,newBlocks[c][b].second,popID) <= getObjectWrapper().particleSpecies[popID].sparseMinValue) {
+               if (getObjectWrapper().project->setVelocityBlock(cell,newBlocks[c][b].second,popID) <= cell->getVelocityBlockMinValue(popID)) {
                   threadRemBlocks[tid].push_back(newBlocks[c][b].first);
                   ++counter[tid];
                }

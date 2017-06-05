@@ -109,8 +109,8 @@ namespace projects {
                   {
                      avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz, popID);
                   }
-               return avg / pow(this->nSpaceSamples, 3.0) / pow(this->nVelocitySamples, 3.0);
-         }
+      return avg / pow(this->nSpaceSamples, 3.0) / pow(this->nVelocitySamples, 3.0);
+   }
 
 
    void Riemann1::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
