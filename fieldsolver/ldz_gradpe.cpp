@@ -182,7 +182,6 @@ void calculateEdgeGradPeTermXComponents(
    Real* derivs,
    cint& RKCase
 ) {
-   #warning Particles (charge) assumed to be protons here
    Real hallRhoq = 0.0;
    switch (Parameters::ohmGradPeTerm) {
       case 0:
@@ -210,7 +209,6 @@ void calculateEdgeGradPeTermYComponents(
    Real* derivs,
    cint& RKCase
 ) {
-   #warning Particles (charge) assumed to be protons here
    Real hallRhoq = 0.0;
    switch (Parameters::ohmGradPeTerm) {
       case 0:
@@ -238,7 +236,6 @@ void calculateEdgeGradPeTermZComponents(
    Real* derivs,
    cint& RKCase
 ) {
-  #warning Particles (charge) assumed to be protons here
    Real hallRhoq = 0.0;
    switch (Parameters::ohmGradPeTerm) {
       case 0:

@@ -42,7 +42,7 @@ namespace SBC {
       Readparameters::add("maxwellian.reapplyUponRestart", "If 0 (default), keep going with the state existing in the restart file. If 1, calls again applyInitialState. Can be used to change boundary condition behaviour during a run.", 0);
 
       // Per-population parameters
-      for(int i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
 
         Readparameters::add(pop + "_maxwellian.file_x+", "Input files for the set Maxwellian inflow parameters on face x+. Data format per line: time (s) density (p/m^3) Temperature (K) Vx Vy Vz (m/s) Bx By Bz (T).", "");
@@ -51,7 +51,6 @@ namespace SBC {
         Readparameters::add(pop + "_maxwellian.file_y-", "Input files for the set Maxwellian inflow parameters on face y-. Data format per line: time (s) density (p/m^3) Temperature (K) Vx Vy Vz (m/s) Bx By Bz (T).", "");
         Readparameters::add(pop + "_maxwellian.file_z+", "Input files for the set Maxwellian inflow parameters on face z+. Data format per line: time (s) density (p/m^3) Temperature (K) Vx Vy Vz (m/s) Bx By Bz (T).", "");
         Readparameters::add(pop + "_maxwellian.file_z-", "Input files for the set Maxwellian inflow parameters on face z-. Data format per line: time (s) density (p/m^3) Temperature (K) Vx Vy Vz (m/s) Bx By Bz (T).", "");
-        Readparameters::add(pop + "_maxwellian.nSpaceSamples", "Number of sampling points per spatial dimension (template cells)", 2);
         Readparameters::add(pop + "_maxwellian.nVelocitySamples", "Number of sampling points per velocity dimension (template cells)", 5);
         Readparameters::add(pop + "_maxwellian.dynamic", "Boolean value, is the set Maxwellian inflow dynamic in time or not.", 0);
       }
@@ -79,7 +78,7 @@ namespace SBC {
       }
 
       // Per-population parameters
-      for(int i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
 
          UserSpeciesParameters sP;
@@ -110,10 +109,6 @@ namespace SBC {
             exit(1);
          }
          if(!Readparameters::get(pop + "_maxwellian.file_z-", sP.files[5])) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-            exit(1);
-         }
-         if(!Readparameters::get(pop + "_maxwellian.nSpaceSamples", sP.nSpaceSamples)) {
             if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
             exit(1);
          }
@@ -218,7 +213,7 @@ namespace SBC {
       int inputDataIndex,
       creal& t
    ) {
-      Real rho, T, Vx, Vy, Vz, Bx, By, Bz, buffer[8];
+      Real rho, T, Vx, Vy, Vz, Bx=0.0, By=0.0, Bz=0.0, buffer[8];
       
       
       templateCell.sysBoundaryFlag = this->getIndex();
@@ -230,9 +225,6 @@ namespace SBC {
       templateCell.parameters[CellParams::DX] = 1;
       templateCell.parameters[CellParams::DY] = 1;
       templateCell.parameters[CellParams::DZ] = 1;
-      templateCell.parameters[CellParams::PERBX] = Bx;
-      templateCell.parameters[CellParams::PERBY] = By;
-      templateCell.parameters[CellParams::PERBZ] = Bz;
       
       // Init all particle species
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
@@ -273,7 +265,6 @@ namespace SBC {
                creal vyCell = vyBlock + jc*dvyCell;
                creal vzCell = vzBlock + kc*dvzCell;
                Real average = 0.0;
-               #warning SpaceSamples is never being used in maxwellian inflow
                if(speciesParams[popID].nVelocitySamples > 1) {
                   creal d_vx = dvxCell / (speciesParams[popID].nVelocitySamples-1);
                   creal d_vy = dvyCell / (speciesParams[popID].nVelocitySamples-1);
@@ -312,6 +303,10 @@ namespace SBC {
          //memory.
          templateCell.adjustSingleCellVelocityBlocks(popID);
       } // for-loop over particle species
+      
+      templateCell.parameters[CellParams::PERBX] = Bx;
+      templateCell.parameters[CellParams::PERBY] = By;
+      templateCell.parameters[CellParams::PERBZ] = Bz;
       
       calculateCellMoments(&templateCell,true,true);
       

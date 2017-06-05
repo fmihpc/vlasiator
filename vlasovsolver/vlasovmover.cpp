@@ -286,7 +286,7 @@ void calculateSpatialTranslation(
    phiprof::stop("compute_cell_lists");
 
    // Translate all particle species
-   for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+   for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       string profName = "translate "+getObjectWrapper().particleSpecies[popID].name;
       phiprof::start(profName);
       SpatialCell::setCommunicatedSpecies(popID);
@@ -322,7 +322,7 @@ momentCalculation:
  * @param mpiGrid Parallel grid library.
  * @param propagatedCells List of cells in which the population is accelerated.
  * @param dt Timestep.*/
-void calculateAcceleration(const uint popID,const int& globalMaxSubcycles,const uint& step,
+void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const uint step,
                            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                            const std::vector<CellID>& propagatedCells,
                            const Real& dt) {
@@ -402,7 +402,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
       // Even if acceleration is turned off we need to adjust velocity blocks 
       // because the boundary conditions may have altered the velocity space, 
       // and to update changes in no-content blocks during translation.
-      for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
+      for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
         adjustVelocityBlocks(mpiGrid, cells, true, popID);
       goto momentCalculation;
    }
@@ -410,7 +410,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
     
    
    // Accelerate all particle species
-    for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
        int maxSubcycles=0;
        int globalMaxSubcycles;
 
@@ -431,7 +431,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
              //prepare for acceleration, updates max dt for each cell
              prepareAccelerateCell(SC, popID);
              //update max subcycles for all cells in this process
-             maxSubcycles = max(getAccelerationSubcycles(SC, dt, popID), maxSubcycles);
+             maxSubcycles = max((int)getAccelerationSubcycles(SC, dt, popID), maxSubcycles);
              spatial_cell::Population& pop = SC->get_population(popID);
              pop.ACCSUBCYCLES = getAccelerationSubcycles(SC, dt, popID);
           }
@@ -440,7 +440,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
        MPI_Allreduce(&maxSubcycles, &globalMaxSubcycles, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
 
        // substep global max times
-       for(uint step=0; step<globalMaxSubcycles; ++step) {
+       for(uint step=0; step<(uint)globalMaxSubcycles; ++step) {
           if(step > 0) {
              // prune list of cells to propagate to only contained those which are now subcycled
              vector<CellID> temp;
@@ -453,7 +453,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
              propagatedCells.swap(temp);
           }
           // Accelerate population over one subcycle step
-          calculateAcceleration(popID,globalMaxSubcycles,step,mpiGrid,propagatedCells,dt);
+          calculateAcceleration(popID,(uint)globalMaxSubcycles,step,mpiGrid,propagatedCells,dt);
        } // for-loop over acceleration substeps
        
        // final adjust for all cells, also fixing remote cells.

@@ -435,8 +435,6 @@ void calculateEdgeHallTermXComponents(
    const Real* const perturbedCoefficients,
    cint& RKCase
 ) {
-   #warning Particles (charge) assumed to be protons here
-   
    Real By = 0.0;
    Real Bz = 0.0;
    
@@ -510,8 +508,6 @@ void calculateEdgeHallTermYComponents(
    const Real* const perturbedCoefficients,
    cint& RKCase
 ) {
-   #warning Particles (charge) assumed to be protons here
-   
    Real Bx = 0.0;
    Real Bz = 0.0;
    
@@ -586,8 +582,6 @@ void calculateEdgeHallTermZComponents(
    const Real* const perturbedCoefficients,
    cint& RKCase
 ) {
-  #warning Particles (charge) assumed to be protons here
-   
    Real Bx = 0.0;
    Real By = 0.0;
    

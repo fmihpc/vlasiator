@@ -59,9 +59,9 @@ void prepareAccelerateCell(
  * @param popID ID of the accelerated particle species.
 */
 
-int getAccelerationSubcycles(SpatialCell* spatial_cell, Real dt, const uint popID)
+uint getAccelerationSubcycles(SpatialCell* spatial_cell, Real dt, const uint popID)
 {
-   return max( convert<int>(ceil(dt / spatial_cell->get_max_v_dt(popID))), 1);
+   return max( convert<uint>(ceil(dt / spatial_cell->get_max_v_dt(popID))), 1u);
 }
 
 /*!

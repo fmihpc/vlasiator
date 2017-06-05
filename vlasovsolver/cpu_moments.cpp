@@ -63,7 +63,7 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
 
     // Loop over all particle species
     if (skipMoments == false) {
-       for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
           vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
           if (blockContainer.size() == 0) continue;
           
@@ -103,7 +103,7 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
     if (computeSecond == false) return;
             
     // Loop over all particle species
-    for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
        vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
        if (blockContainer.size() == 0) continue;
        
@@ -152,7 +152,7 @@ void calculateMoments_R_maxdt(
     phiprof::start("compute-moments-n-maxdt");
     creal HALF = 0.5;
 
-    for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
        #pragma omp parallel for
        for (size_t c=0; c<cells.size(); ++c) {
           const CellID cellID = cells[c];
@@ -255,7 +255,7 @@ void calculateMoments_R_maxdt(
       return;
    }
 
-   for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+   for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       #pragma omp parallel for
       for (size_t c=0; c<cells.size(); ++c) {
          const CellID cellID = cells[c];
@@ -311,7 +311,7 @@ void calculateMoments_V(
    phiprof::start("Compute _V moments");
    
    // Loop over all particle species
-   for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+   for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       #pragma omp parallel for
       for (size_t c=0; c<cells.size(); ++c) {
          const CellID cellID = cells[c];
@@ -370,7 +370,7 @@ void calculateMoments_V(
       return;
    }
 
-   for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+   for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       #pragma omp parallel for
       for (size_t c=0; c<cells.size(); ++c) {
          const CellID cellID = cells[c];
