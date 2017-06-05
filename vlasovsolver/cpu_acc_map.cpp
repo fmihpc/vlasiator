@@ -128,6 +128,11 @@ bool map_1d(SpatialCell* spatial_cell,
    vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh    = spatial_cell->get_velocity_mesh(popID);
    vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks(popID);
 
+   //nothing to do if no blocks
+   if(vmesh.size() == 0 )
+      return true;
+   
+
    // Velocity grid refinement level, has no effect but is 
    // needed in some vmesh::VelocityMesh function calls.
    const uint8_t REFLEVEL = 0;
