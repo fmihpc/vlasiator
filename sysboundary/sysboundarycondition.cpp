@@ -510,64 +510,22 @@ namespace SBC {
          to->parameters[CellParams::P_22] = from->parameters[CellParams::P_22];
          to->parameters[CellParams::P_33] = from->parameters[CellParams::P_33];
       }
-      if(to->sysBoundaryLayer == 1 && !copyMomentsOnly) { // Do this only for the first layer, the other layers do not need this. Do only if copyMomentsOnly is false.
-
-      // Do this only for the first layer, the other layers do not need this.
-      if (to->sysBoundaryLayer != 1) return;
-
-      if (allowBlockAdjustment) {
-         // prepare list of blocks to remove. It is not safe to loop 
-         // over velocity_block_list while adding/removing blocks
-         std::vector<vmesh::GlobalID> blocksToRemove;
-         for (vmesh::LocalID block_i=0; block_i<to->get_number_of_velocity_blocks(popID); ++block_i) {
-            const vmesh::GlobalID blockGID = to->get_velocity_block_global_id(block_i,popID);
-
-            // If this block does not exist in from, mark it for removal.
-            if (from->get_velocity_block_local_id(blockGID,popID) == from->invalid_local_id()) {
-               blocksToRemove.push_back(blockGID);
-            }
-         }
-
-         // remove blocks
-         for (size_t b=0; b<blocksToRemove.size(); ++b) {
-            cuint blockID=blocksToRemove[b];
-            to->remove_velocity_block(blockID,popID);
-         }
-
-         // add blocks
-         const Realf* fromBlock_data = from->get_data(popID);
-         for (vmesh::LocalID block_i=0; block_i<from->get_number_of_velocity_blocks(popID); ++block_i) {
-            const vmesh::GlobalID blockGID = from->get_velocity_block_global_id(block_i,popID);
+      
+       if(to->sysBoundaryLayer == 1 && !copyMomentsOnly) { // Do this only for the first layer, the other layers do not need this. Do only if copyMomentsOnly is false.
+         to->set_population(from->get_population(popID), popID);
+      } else {
+         to->get_population(popID).RHO = from->get_population(popID).RHO;
+         to->get_population(popID).RHO_R = from->get_population(popID).RHO_R;
+         to->get_population(popID).RHO_V = from->get_population(popID).RHO_V;
+         for (uint i=0; i<3; i++) {
+            to->get_population(popID).RHOV[i] = from->get_population(popID).RHOV[i];
+            to->get_population(popID).RHOV_R[i] = from->get_population(popID).RHOV_R[i];
+            to->get_population(popID).RHOV_V[i] = from->get_population(popID).RHOV_V[i];
+            to->get_population(popID).P[i] = from->get_population(popID).P[i];
+            to->get_population(popID).P_R[i] = from->get_population(popID).P_R[i];
+            to->get_population(popID).P_V[i] = from->get_population(popID).P_V[i];
             
-            // Ensure that target block exists in 'to' cell. 
-            // We must get a new pointer to the 'to' data array here 
-            // because add_velocity_block may reallocate it.
-            to->add_velocity_block(blockGID,popID);
-            Realf* toBlock_data = to->get_data(popID);
-            const vmesh::LocalID toBlockLID = to->get_velocity_block_local_id(blockGID,popID);
-
-            for (unsigned int i = 0; i < SIZE_VELBLOCK; i++) {
-               toBlock_data[toBlockLID*SIZE_VELBLOCK+i] = fromBlock_data[block_i*SIZE_VELBLOCK+i];
-            }
          }
-      } else {         
-         //just copy data to existing blocks, no modification of to blocks allowed
-         const Realf* fromBlock_data = from->get_data(popID);
-         Realf* toBlock_data = to->get_data(popID);
-         for (vmesh::LocalID block_i=0; block_i<to->get_number_of_velocity_blocks(popID); ++block_i) {
-            const vmesh::GlobalID blockGID = to->get_velocity_block_global_id(block_i,popID);
-            const vmesh::LocalID fromBlockLID = from->get_velocity_block_local_id(blockGID,popID);
-            if (from->get_velocity_block_local_id(blockGID,popID) == from->invalid_local_id()) {
-               for (unsigned int i = 0; i < VELOCITY_BLOCK_LENGTH; i++) {
-                  toBlock_data[block_i*SIZE_VELBLOCK+i] = 0.0; //block did not exist in from cell, fill with zeros.
-               }
-            } else {
-               for (unsigned int i = 0; i < VELOCITY_BLOCK_LENGTH; i++) {
-                  toBlock_data[block_i*SIZE_VELBLOCK+i] = fromBlock_data[fromBlockLID*SIZE_VELBLOCK+i];
-               }
-            }
-         }
-      }
       }
    }
    
