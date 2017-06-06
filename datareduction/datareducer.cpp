@@ -136,7 +136,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
-            outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<int>(pop + "/acc_subcycles", i, offsetof(spatial_cell::Population, ACCSUBCYCLES), 1));
+            outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<uint>(pop + "/acc_subcycles", i, offsetof(spatial_cell::Population, ACCSUBCYCLES), 1));
          }
       }
       if(*it == "VolE")

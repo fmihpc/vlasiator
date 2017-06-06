@@ -55,23 +55,9 @@ namespace DRO {
          // Find the actual data at the specified offset
          const char* ptr = population_struct + _byteOffset;
 
-         for (uint i = 0; i < _vectorSize*sizeof(Real); ++i){
+         for (uint i = 0; i < _vectorSize*sizeof(T); ++i){
             buffer[i] = ptr[i];
          }
-         return true;
-      };
-
-      virtual bool reduceData(const spatial_cell::SpatialCell* cell,Real* buffer) {
-
-         // First, get a byte-sized pointer to this populations' struct within this cell.
-         const char* population_struct = reinterpret_cast<const char*>(&cell->get_population(_popID));
-
-         // Find the actual data at the specified offset
-         const Real* ptr = reinterpret_cast<const Real*>(population_struct + _byteOffset);
-
-         //If _vectorSize is >1 it still works, we just give the first value and no other ones.
-         *buffer= ptr[0];
-
          return true;
       };
 
@@ -81,7 +67,7 @@ namespace DRO {
          const char* population_struct = reinterpret_cast<const char*>(&cell->get_population(_popID));
 
          // Find the actual data at the specified offset
-         const Real* ptr = reinterpret_cast<const Real*>(population_struct + _byteOffset);
+         const T* ptr = reinterpret_cast<const T*>(population_struct + _byteOffset);
 
          for (uint i=0; i<_vectorSize; i++) {
             if(std::isinf(ptr[i]) || std::isnan(ptr[i])) {
@@ -111,6 +97,12 @@ namespace DRO {
    template<> bool DataReductionOperatorPopulations<int>::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "int";
       dataSize =  sizeof(int);
+      vectorSize = _vectorSize;
+      return true;
+   }
+   template<> bool DataReductionOperatorPopulations<uint>::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "uint";
+      dataSize =  sizeof(uint);
       vectorSize = _vectorSize;
       return true;
    }

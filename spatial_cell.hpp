@@ -162,10 +162,10 @@ namespace spatial_cell {
       Real P_R[3];
       Real P_V[3];
       Real RHOMLOSSADJUST = 0.0;      /*!< Counter for mass loss from the destroying blocks in blockadjustment*/
-      Real ACCSUBCYCLES;        /*!< number of subcyles for each cell*/
       Real max_dt[2];                                                /**< Element[0] is max_r_dt, element[1] max_v_dt.*/
       Real velocityBlockMinValue;
       
+      uint ACCSUBCYCLES;        /*!< number of subcyles for each cell*/
       vmesh::LocalID N_blocks;                                       /**< Number of velocity blocks, used when receiving velocity 
                                                                       * mesh from remote neighbors using MPI.*/
       vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID> vmesh;     /**< Velocity mesh. Contains all velocity blocks that exist 
