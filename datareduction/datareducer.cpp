@@ -120,14 +120,9 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::BoundaryLayer);
          outputReducer->addOperator(new DRO::BoundaryLayerNew);
       }
-      if(*it == "Blocks") {
-         outputReducer->addOperator(new DRO::Blocks);
-      }
       if (*it == "populations_Blocks") {
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
-            species::Species& species=getObjectWrapper().particleSpecies[i];
-            const std::string& pop = species.name;
-            outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<int>(pop + "/Blocks", i, offsetof(spatial_cell::Population, N_blocks), 1));
+            outputReducer->addOperator(new DRO::Blocks(i));
          }
       }
       if(*it == "fSaved")
@@ -288,8 +283,11 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          diagnosticReducer->addOperator(new DRO::DiagnosticFluxB);
       if(*it == "FluxE")
          diagnosticReducer->addOperator(new DRO::DiagnosticFluxE);
-      if(*it == "Blocks")
-         diagnosticReducer->addOperator(new DRO::Blocks);
+      if (*it == "populations_Blocks") {
+         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+            diagnosticReducer->addOperator(new DRO::Blocks(i));
+         }
+      }
       if(*it == "Pressure")
          diagnosticReducer->addOperator(new DRO::VariablePressure);
       if(*it == "Rhom")

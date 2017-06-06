@@ -173,7 +173,7 @@ namespace DRO {
 
    class Blocks: public DataReductionOperator {
    public:
-      Blocks();
+      Blocks(cuint popID);
       virtual ~Blocks();
       
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
@@ -183,7 +183,9 @@ namespace DRO {
       virtual bool setSpatialCell(const SpatialCell* cell);
       
    protected:
-      int nBlocks;
+      uint _nBlocks;
+      uint _popID;
+      std::string _name;
    };
    
    class VariableB: public DataReductionOperator {
