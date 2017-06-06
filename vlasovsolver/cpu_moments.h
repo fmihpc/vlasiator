@@ -38,7 +38,7 @@ using namespace spatial_cell;
 
 template<typename REAL> 
 void blockVelocityFirstMoments(const Realf* avgs,const Real* blockParams,
-                               const Real& massRatio,REAL* array);
+                               REAL* array);
 
 template<typename REAL> 
 void blockVelocitySecondMoments(const Realf* avgs,const Real* blockParams,
@@ -65,13 +65,12 @@ void calculateMoments_V(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
  * times population mass / proton mass. This function is AMR safe.
  * @param avgs Distribution function.
  * @param blockParams Parameters for the given velocity block.
- * @param massRatio Population mass / proton mass.
  * @param array Array of at least size four where the calculated moments are added.*/
 template<typename REAL> inline
 void blockVelocityFirstMoments(
         const Realf* avgs,
         const Real* blockParams,
-        const Real& massRatio,REAL* array) {
+        REAL* array) {
 
     const Real HALF = 0.5;
 
@@ -91,7 +90,7 @@ void blockVelocityFirstMoments(
    }
    
    const Real DV3 = blockParams[BlockParams::DVX]*blockParams[BlockParams::DVY]*blockParams[BlockParams::DVZ];
-   array[0] += n_sum   * massRatio * DV3;
+   array[0] += n_sum   * DV3;
    array[1] += nvx_sum * DV3;
    array[2] += nvy_sum * DV3;
    array[3] += nvz_sum * DV3;

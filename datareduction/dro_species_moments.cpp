@@ -95,7 +95,7 @@ namespace DRO {
             for (vmesh::LocalID blockLID=0; blockLID<blockContainer.size(); ++blockLID) {
                blockVelocityFirstMoments(data+blockLID*WID3,
                                          blockParams+blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS,
-                                         1.0,array);
+                                         array);
             } // for-loop over velocity blocks
             
             bufferRho[c]      = array[0];
