@@ -138,9 +138,9 @@ namespace SBC {
          project.setCell(cell);
          // WARNING Time-independence assumed here.
          cell->parameters[CellParams::RHOM_DT2] = cell->parameters[CellParams::RHOM];
-         cell->parameters[CellParams::RHOMVX_DT2] = cell->parameters[CellParams::RHOMVX];
-         cell->parameters[CellParams::RHOMVY_DT2] = cell->parameters[CellParams::RHOMVY];
-         cell->parameters[CellParams::RHOMVZ_DT2] = cell->parameters[CellParams::RHOMVZ];
+         cell->parameters[CellParams::VX_DT2] = cell->parameters[CellParams::VX];
+         cell->parameters[CellParams::VY_DT2] = cell->parameters[CellParams::VY];
+         cell->parameters[CellParams::VZ_DT2] = cell->parameters[CellParams::VZ];
          cell->parameters[CellParams::RHOQ_DT2] = cell->parameters[CellParams::RHOQ];
       }
       

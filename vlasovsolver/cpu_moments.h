@@ -42,7 +42,7 @@ void blockVelocityFirstMoments(const Realf* avgs,const Real* blockParams,
 
 template<typename REAL> 
 void blockVelocitySecondMoments(const Realf* avgs,const Real* blockParams,
-                                const REAL rho,const REAL rhov[3],
+                                const REAL v[3],
                                 REAL* array);
 
 void calculateMoments_R_maxdt(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
@@ -87,14 +87,14 @@ void blockVelocityFirstMoments(
       n_sum   += avgs[cellIndex(i,j,k)];
       nvx_sum += avgs[cellIndex(i,j,k)]*VX;
       nvy_sum += avgs[cellIndex(i,j,k)]*VY;
-      nvz_sum += avgs[cellIndex(i,j,k)]*VZ;        
+      nvz_sum += avgs[cellIndex(i,j,k)]*VZ;
    }
    
-   const Real mrDV3 = massRatio * blockParams[BlockParams::DVX]*blockParams[BlockParams::DVY]*blockParams[BlockParams::DVZ];
-   array[0] += n_sum   * mrDV3;
-   array[1] += nvx_sum * mrDV3;
-   array[2] += nvy_sum * mrDV3;
-   array[3] += nvz_sum * mrDV3;
+   const Real DV3 = blockParams[BlockParams::DVX]*blockParams[BlockParams::DVY]*blockParams[BlockParams::DVZ];
+   array[0] += n_sum   * massRatio * DV3;
+   array[1] += nvx_sum * DV3;
+   array[2] += nvy_sum * DV3;
+   array[3] += nvz_sum * DV3;
 }
 
 /** Calculate the second velocity moments for the given velocity block, and add 
@@ -104,26 +104,20 @@ void blockVelocityFirstMoments(
  * of the bulk velocity (calculated over all species). This function is AMR safe.
  * @param avgs Distribution function.
  * @param blockParams Parameters for the given velocity block.
- * @param cellParams Parameters for the spatial cell containing the given velocity block.
- * @param rho Index into cellParams, used to read bulk number density.
- * @param rhovx Index into cellParams, used to read bulk Vx times number density.
- * @param rhovy Index into cellParams, used to read bulk Vy times number density.
- * @param rhovz Index into cellParams, used to read bulk Vz times number density.
+ * @param v Bulk velocity of the population
  * @param array Array where the calculated moments are added.*/
 template<typename REAL> inline
 void blockVelocitySecondMoments(
         const Realf* avgs,
         const Real* blockParams,
-        const REAL rhom,
-        const REAL rhomv[3],
+        const REAL v[3],
         REAL* array) {
 
    const Real HALF = 0.5;
 
-   const Real RHOM = std::max(rhom, std::numeric_limits<REAL>::min());
-   const Real averageVX = rhomv[0] / RHOM;
-   const Real averageVY = rhomv[1] / RHOM;
-   const Real averageVZ = rhomv[2] / RHOM;
+   const Real averageVX = v[0];
+   const Real averageVY = v[1];
+   const Real averageVZ = v[2];
    Real nvx2_sum = 0.0;
    Real nvy2_sum = 0.0;
    Real nvz2_sum = 0.0;

@@ -119,7 +119,6 @@ namespace BlockParams {
  * field solver are optimised for this particular ordering.
  */
 namespace CellParams {
-#warning RHOMV not needed, switch to V?
    enum {
       XCRD,   /*!< x-coordinate of the bottom left corner.*/
       YCRD,   /*!< y-coordinate of the bottom left corner.*/
@@ -136,14 +135,10 @@ namespace CellParams {
       PERBX,  /*!< Perturbed Magnetic field x-component, averaged over cell x-face. Propagated by field solver.*/
       PERBY,  /*!< Perturbed Magnetic field y-component, averaged over cell y-face. Propagated by field solver.*/
       PERBZ,  /*!< Perturbed Magnetic field z-component, averaged over cell z-face. Propagated by field solver.*/
-      RHO,    /*!< Number density. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
-      RHOVX,  /*!< x-component of number density times Vx. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
-      RHOVY,  /*!< y-component of number density times Vy. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
-      RHOVZ,  /*!< z-component of number density times Vz. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       RHOM,    /*!< Total mass density. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
-      RHOMVX,  /*!< x-component of mass density times Vx. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
-      RHOMVY,  /*!< y-component of mass density times Vy. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
-      RHOMVZ,  /*!< z-component of mass density times Vz. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
+      VX,  /*!< Vx. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
+      VY,  /*!< Vy. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
+      VZ,  /*!< Vz. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       RHOQ,    /*!< Total charge density. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       EX_DT2,    /*!< Intermediate step value for RK2 time stepping in field solver.*/
       EY_DT2,    /*!< Intermediate step value for RK2 time stepping in field solver.*/
@@ -152,9 +147,9 @@ namespace CellParams {
       PERBY_DT2, /*!< Intermediate step value for PERBY for RK2 time stepping in field solver.*/
       PERBZ_DT2, /*!< Intermediate step value for PERBZ for RK2 time stepping in field solver.*/
       RHOM_DT2,    /*!< Total mass density. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
-      RHOMVX_DT2,  /*!< x-component of mass density times Vx. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
-      RHOMVY_DT2,  /*!< y-component of mass density times Vy. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
-      RHOMVZ_DT2,  /*!< z-component of mass density times Vz. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
+      VX_DT2,  /*!< Vx. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
+      VY_DT2,  /*!< Vy. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
+      VZ_DT2,  /*!< Vz. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       RHOQ_DT2,    /*!< Total charge density. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       BGBXVOL,   /*!< background magnetic field averaged over spatial cell.*/
       BGBYVOL,   /*!< background magnetic field averaged over spatial cell.*/
@@ -205,14 +200,14 @@ namespace CellParams {
       EYGRADPE,         /*!< Electron pressure gradient term y.*/
       EZGRADPE,         /*!< Electron pressure gradient term z.*/
       RHOM_R,     /*!< RHO after propagation in ordinary space*/
-      RHOMVX_R,   /*!< RHOVX after propagation in ordinary space*/
-      RHOMVY_R,   /*!< RHOVX after propagation in ordinary space*/
-      RHOMVZ_R,   /*!< RHOVX after propagation in ordinary space*/
+      VX_R,   /*!< VX after propagation in ordinary space*/
+      VY_R,   /*!< VY after propagation in ordinary space*/
+      VZ_R,   /*!< VZ after propagation in ordinary space*/
       RHOQ_R,     /*!< RHO after propagation in ordinary space*/
       RHOM_V,     /*!< RHO after propagation in velocity space*/
-      RHOMVX_V,   /*!< RHOVX after propagation in velocity space*/
-      RHOMVY_V,   /*!< RHOVX after propagation in velocity space*/
-      RHOMVZ_V,   /*!< RHOVX after propagation in velocity space*/
+      VX_V,   /*!< VX after propagation in velocity space*/
+      VY_V,   /*!< VY after propagation in velocity space*/
+      VZ_V,   /*!< VZ after propagation in velocity space*/
       RHOQ_V,     /*!< RHO after propagation in velocity space*/
       P_11,     /*!< Pressure P_xx component, computed by Vlasov propagator. */
       P_22,     /*!< Pressure P_yy component, computed by Vlasov propagator. */

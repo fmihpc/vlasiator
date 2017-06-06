@@ -366,7 +366,7 @@ void calculateWaveSpeedXY(
  * 
  * Computes the upwinded electric field X component along the cell's corresponding edge as the cross product of B and V in the YZ plane. Also includes the calculation of the maximally allowed time step.
  * 
- * Selects the RHO/RHO_DT2 RHOV[XYZ]/RHOV[XYZ]1 and B[XYZ]/B[XYZ]1 values depending on the stage of the Runge-Kutta time stepping method.
+ * Selects the RHO/RHO_DT2 V[XYZ]/V[XYZ]1 and B[XYZ]/B[XYZ]1 values depending on the stage of the Runge-Kutta time stepping method.
  * 
  * Note that the background B field is excluded from the diffusive term calculations because they are equivalent to a current term and the background field is curl-free.
  * 
@@ -420,8 +420,8 @@ void calculateEdgeElectricFieldX(
       perBz_W = cp_SW[CellParams::PERBZ];
       perBz_E = cp_SE[CellParams::PERBZ];
       perBy_N = cp_NW[CellParams::PERBY];
-      Vy0  = divideIfNonZero(cp_SW[CellParams::RHOMVY], cp_SW[CellParams::RHOM]);
-      Vz0  = divideIfNonZero(cp_SW[CellParams::RHOMVZ], cp_SW[CellParams::RHOM]);
+      Vy0  = cp_SW[CellParams::VY];
+      Vz0  = cp_SW[CellParams::VZ];
       rhoq_S = FOURTH*(cp_SW[CellParams::RHOQ] + cp_SE[CellParams::RHOQ] + cp_NW[CellParams::RHOQ] + cp_NE[CellParams::RHOQ]);
       minRhom = min(minRhom,
                   min(cp_SW[CellParams::RHOM],
@@ -448,8 +448,8 @@ void calculateEdgeElectricFieldX(
       perBz_W = cp_SW[CellParams::PERBZ_DT2];
       perBz_E = cp_SE[CellParams::PERBZ_DT2];
       perBy_N = cp_NW[CellParams::PERBY_DT2];
-      Vy0  = divideIfNonZero(cp_SW[CellParams::RHOMVY_DT2], cp_SW[CellParams::RHOM_DT2]);
-      Vz0  = divideIfNonZero(cp_SW[CellParams::RHOMVZ_DT2], cp_SW[CellParams::RHOM_DT2]);
+      Vy0  = cp_SW[CellParams::VY_DT2];
+      Vz0  = cp_SW[CellParams::VZ_DT2];
       rhoq_S = FOURTH*(cp_SW[CellParams::RHOQ_DT2] + cp_SE[CellParams::RHOQ_DT2] + cp_NW[CellParams::RHOQ_DT2] + cp_NE[CellParams::RHOQ_DT2]);
       minRhom = min(minRhom,
                   min(cp_SW[CellParams::RHOM_DT2],
@@ -531,11 +531,11 @@ void calculateEdgeElectricFieldX(
 
    // Ex and characteristic speeds on j-1 neighbour:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      Vy0  = divideIfNonZero(cp_SE[CellParams::RHOMVY], cp_SE[CellParams::RHOM]);
-      Vz0  = divideIfNonZero(cp_SE[CellParams::RHOMVZ], cp_SE[CellParams::RHOM]);
+      Vy0  = cp_SE[CellParams::VY];
+      Vz0  = cp_SE[CellParams::VZ];
    } else { // RKCase == RK_ORDER2_STEP1
-      Vy0  = divideIfNonZero(cp_SE[CellParams::RHOMVY_DT2], cp_SE[CellParams::RHOM_DT2]);
-      Vz0  = divideIfNonZero(cp_SE[CellParams::RHOMVZ_DT2], cp_SE[CellParams::RHOM_DT2]);
+      Vy0  = cp_SE[CellParams::VY_DT2];
+      Vz0  = cp_SE[CellParams::VZ_DT2];
    }
 
    // 1st order terms:
@@ -585,11 +585,11 @@ void calculateEdgeElectricFieldX(
 
    // Ex and characteristic speeds on k-1 neighbour:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      Vy0  = divideIfNonZero(cp_NW[CellParams::RHOMVY], cp_NW[CellParams::RHOM]);
-      Vz0  = divideIfNonZero(cp_NW[CellParams::RHOMVZ], cp_NW[CellParams::RHOM]);
+      Vy0  = cp_NW[CellParams::VY];
+      Vz0  = cp_NW[CellParams::VZ];
    } else { // RKCase == RK_ORDER2_STEP1
-      Vy0  = divideIfNonZero(cp_NW[CellParams::RHOMVY_DT2], cp_NW[CellParams::RHOM_DT2]);
-      Vz0  = divideIfNonZero(cp_NW[CellParams::RHOMVZ_DT2], cp_NW[CellParams::RHOM_DT2]);
+      Vy0  = cp_NW[CellParams::VY_DT2];
+      Vz0  = cp_NW[CellParams::VZ_DT2];
    }
 
    // 1st order terms:
@@ -639,11 +639,11 @@ void calculateEdgeElectricFieldX(
 
    // Ex and characteristic speeds on j-1,k-1 neighbour:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      Vy0 = divideIfNonZero(cp_NE[CellParams::RHOMVY], cp_NE[CellParams::RHOM]);
-      Vz0 = divideIfNonZero(cp_NE[CellParams::RHOMVZ], cp_NE[CellParams::RHOM]);
+      Vy0 = cp_NE[CellParams::VY];
+      Vz0 = cp_NE[CellParams::VZ];
    } else { // RKCase == RK_ORDER2_STEP1
-      Vy0 = divideIfNonZero(cp_NE[CellParams::RHOMVY_DT2], cp_NE[CellParams::RHOM_DT2]);
-      Vz0 = divideIfNonZero(cp_NE[CellParams::RHOMVZ_DT2], cp_NE[CellParams::RHOM_DT2]);
+      Vy0 = cp_NE[CellParams::VY_DT2];
+      Vz0 = cp_NE[CellParams::VZ_DT2];
    }
    
    // 1st order terms:
@@ -736,7 +736,7 @@ void calculateEdgeElectricFieldX(
  * 
  * Computes the upwinded electric field Y component along the cell's corresponding edge as the cross product of B and V in the XZ plane. Also includes the calculation of the maximally allowed time step.
  * 
- * Selects the RHO/RHO_DT2 RHOV[XYZ]/RHOV[XYZ]1 and B[XYZ]/B[XYZ]1 values depending on the stage of the Runge-Kutta time stepping method.
+ * Selects the RHO/RHO_DT2 V[XYZ]/V[XYZ]1 and B[XYZ]/B[XYZ]1 values depending on the stage of the Runge-Kutta time stepping method.
  * 
  * Note that the background B field is excluded from the diffusive term calculations because they are equivalent to a current term and the background field is curl-free.
  * 
@@ -791,8 +791,8 @@ void calculateEdgeElectricFieldY(
       perBx_W = cp_SW[CellParams::PERBX];
       perBx_E = cp_SE[CellParams::PERBX];
       perBz_N = cp_NW[CellParams::PERBZ];
-      Vx0  = divideIfNonZero(cp_SW[CellParams::RHOMVX], cp_SW[CellParams::RHOM]);
-      Vz0  = divideIfNonZero(cp_SW[CellParams::RHOMVZ], cp_SW[CellParams::RHOM]);
+      Vx0  = cp_SW[CellParams::VX];
+      Vz0  = cp_SW[CellParams::VZ];
       rhoq_S = FOURTH*(cp_SW[CellParams::RHOQ] + cp_SE[CellParams::RHOQ] + cp_NW[CellParams::RHOQ] + cp_NE[CellParams::RHOQ]);
       minRhom = min(minRhom,
                   min(cp_SW[CellParams::RHOM],
@@ -819,8 +819,8 @@ void calculateEdgeElectricFieldY(
       perBx_W = cp_SW[CellParams::PERBX_DT2];
       perBx_E = cp_SE[CellParams::PERBX_DT2];
       perBz_N = cp_NW[CellParams::PERBZ_DT2];
-      Vx0  = divideIfNonZero(cp_SW[CellParams::RHOMVX_DT2], cp_SW[CellParams::RHOM_DT2]);
-      Vz0  = divideIfNonZero(cp_SW[CellParams::RHOMVZ_DT2], cp_SW[CellParams::RHOM_DT2]);
+      Vx0  = cp_SW[CellParams::VX_DT2];
+      Vz0  = cp_SW[CellParams::VZ_DT2];
       rhoq_S = FOURTH*(cp_SW[CellParams::RHOQ_DT2] + cp_SE[CellParams::RHOQ_DT2] + cp_NW[CellParams::RHOQ_DT2] + cp_NE[CellParams::RHOQ_DT2]);
       minRhom = min(minRhom,
                   min(cp_SW[CellParams::RHOM_DT2],
@@ -902,11 +902,11 @@ void calculateEdgeElectricFieldY(
 
    // Ey and characteristic speeds on k-1 neighbour:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      Vx0  = divideIfNonZero(cp_SE[CellParams::RHOMVX], cp_SE[CellParams::RHOM]);
-      Vz0  = divideIfNonZero(cp_SE[CellParams::RHOMVZ], cp_SE[CellParams::RHOM]);
+      Vx0  = cp_SE[CellParams::VX];
+      Vz0  = cp_SE[CellParams::VZ];
    } else { //RKCase == RK_ORDER2_STEP1
-      Vx0  = divideIfNonZero(cp_SE[CellParams::RHOMVX_DT2], cp_SE[CellParams::RHOM_DT2]);
-      Vz0  = divideIfNonZero(cp_SE[CellParams::RHOMVZ_DT2], cp_SE[CellParams::RHOM_DT2]);
+      Vx0  = cp_SE[CellParams::VX_DT2];
+      Vz0  = cp_SE[CellParams::VZ_DT2];
    }
 
    // 1st order terms:
@@ -956,11 +956,11 @@ void calculateEdgeElectricFieldY(
    
    // Ey and characteristic speeds on i-1 neighbour:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      Vz0  = divideIfNonZero(cp_NW[CellParams::RHOMVZ], cp_NW[CellParams::RHOM]);
-      Vx0  = divideIfNonZero(cp_NW[CellParams::RHOMVX], cp_NW[CellParams::RHOM]);
+      Vz0  = cp_NW[CellParams::VZ];
+      Vx0  = cp_NW[CellParams::VX];
    } else { //RKCase == RK_ORDER2_STEP1
-      Vz0  = divideIfNonZero(cp_NW[CellParams::RHOMVZ_DT2], cp_NW[CellParams::RHOM_DT2]);
-      Vx0  = divideIfNonZero(cp_NW[CellParams::RHOMVX_DT2], cp_NW[CellParams::RHOM_DT2]);
+      Vz0  = cp_NW[CellParams::VZ_DT2];
+      Vx0  = cp_NW[CellParams::VX_DT2];
    }
    
    // 1st order terms:
@@ -1010,11 +1010,11 @@ void calculateEdgeElectricFieldY(
 
    // Ey and characteristic speeds on i-1,k-1 neighbour:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      Vz0 = divideIfNonZero(cp_NE[CellParams::RHOMVZ], cp_NE[CellParams::RHOM]);
-      Vx0 = divideIfNonZero(cp_NE[CellParams::RHOMVX], cp_NE[CellParams::RHOM]);
+      Vz0 = cp_NE[CellParams::VZ];
+      Vx0 = cp_NE[CellParams::VX];
    } else { //RKCase == RK_ORDER2_STEP1
-      Vz0 = divideIfNonZero(cp_NE[CellParams::RHOMVZ_DT2], cp_NE[CellParams::RHOM_DT2]);
-      Vx0 = divideIfNonZero(cp_NE[CellParams::RHOMVX_DT2], cp_NE[CellParams::RHOM_DT2]);
+      Vz0 = cp_NE[CellParams::VZ_DT2];
+      Vx0 = cp_NE[CellParams::VX_DT2];
    }
    
    // 1st order terms:
@@ -1104,7 +1104,7 @@ void calculateEdgeElectricFieldY(
  *
  * Computes the upwinded electric field Z component along the cell's corresponding edge as the cross product of B and V in the XY plane. Also includes the calculation of the maximally allowed time step.
  * 
- * Selects the RHO/RHO_DT2 RHOV[XYZ]/RHOV[XYZ]1 and B[XYZ]/B[XYZ]1 values depending on the stage of the Runge-Kutta time stepping method.
+ * Selects the RHO/RHO_DT2 V[XYZ]/V[XYZ]1 and B[XYZ]/B[XYZ]1 values depending on the stage of the Runge-Kutta time stepping method.
  * 
  * Note that the background B field is excluded from the diffusive term calculations because they are equivalent to a current term and the background field is curl-free.
  * 
@@ -1160,8 +1160,8 @@ void calculateEdgeElectricFieldZ(
       perBy_W    = cp_SW[CellParams::PERBY];
       perBy_E    = cp_SE[CellParams::PERBY];
       perBx_N    = cp_NW[CellParams::PERBX];
-      Vx0  = divideIfNonZero(cp_SW[CellParams::RHOMVX], cp_SW[CellParams::RHOM]);
-      Vy0  = divideIfNonZero(cp_SW[CellParams::RHOMVY], cp_SW[CellParams::RHOM]);
+      Vx0  = cp_SW[CellParams::VX];
+      Vy0  = cp_SW[CellParams::VY];
       rhoq_S = FOURTH*(cp_SW[CellParams::RHOQ] + cp_SE[CellParams::RHOQ] + cp_NW[CellParams::RHOQ] + cp_NE[CellParams::RHOQ]);
       minRhom = min(minRhom,
                   min(cp_SW[CellParams::RHOM],
@@ -1188,8 +1188,8 @@ void calculateEdgeElectricFieldZ(
       perBy_W    = cp_SW[CellParams::PERBY_DT2];
       perBy_E    = cp_SE[CellParams::PERBY_DT2];
       perBx_N    = cp_NW[CellParams::PERBX_DT2];
-      Vx0  = divideIfNonZero(cp_SW[CellParams::RHOMVX_DT2], cp_SW[CellParams::RHOM_DT2]);
-      Vy0  = divideIfNonZero(cp_SW[CellParams::RHOMVY_DT2], cp_SW[CellParams::RHOM_DT2]);
+      Vx0  = cp_SW[CellParams::VX_DT2];
+      Vy0  = cp_SW[CellParams::VY_DT2];
       rhoq_S = FOURTH*(cp_SW[CellParams::RHOQ_DT2] + cp_SE[CellParams::RHOQ_DT2] + cp_NW[CellParams::RHOQ_DT2] + cp_NE[CellParams::RHOQ_DT2]);
       minRhom = min(minRhom,
                   min(cp_SW[CellParams::RHOM_DT2],
@@ -1273,11 +1273,11 @@ void calculateEdgeElectricFieldZ(
 
    // Ez and characteristic speeds on SE (i-1) cell:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      Vx0  = divideIfNonZero(cp_SE[CellParams::RHOMVX], cp_SE[CellParams::RHOM]);
-      Vy0  = divideIfNonZero(cp_SE[CellParams::RHOMVY], cp_SE[CellParams::RHOM]);
+      Vx0  = cp_SE[CellParams::VX];
+      Vy0  = cp_SE[CellParams::VY];
    } else { // RKCase == RK_ORDER2_STEP1
-      Vx0  = divideIfNonZero(cp_SE[CellParams::RHOMVX_DT2], cp_SE[CellParams::RHOM_DT2]);
-      Vy0  = divideIfNonZero(cp_SE[CellParams::RHOMVY_DT2], cp_SE[CellParams::RHOM_DT2]);
+      Vx0  = cp_SE[CellParams::VX_DT2];
+      Vy0  = cp_SE[CellParams::VY_DT2];
    }
    
    // 1st order terms:
@@ -1327,11 +1327,11 @@ void calculateEdgeElectricFieldZ(
 
    // Ez and characteristic speeds on NW (j-1) cell:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      Vx0  = divideIfNonZero(cp_NW[CellParams::RHOMVX], cp_NW[CellParams::RHOM]);
-      Vy0  = divideIfNonZero(cp_NW[CellParams::RHOMVY], cp_NW[CellParams::RHOM]);
+      Vx0  = cp_NW[CellParams::VX];
+      Vy0  = cp_NW[CellParams::VY];
    } else { // RKCase == RK_ORDER2_STEP1
-      Vx0  = divideIfNonZero(cp_NW[CellParams::RHOMVX_DT2], cp_NW[CellParams::RHOM_DT2]);
-      Vy0  = divideIfNonZero(cp_NW[CellParams::RHOMVY_DT2], cp_NW[CellParams::RHOM_DT2]);
+      Vx0  = cp_NW[CellParams::VX_DT2];
+      Vy0  = cp_NW[CellParams::VY_DT2];
    }
 
    // 1st order terms:
@@ -1381,11 +1381,11 @@ void calculateEdgeElectricFieldZ(
    
    // Ez and characteristic speeds on NE (i-1,j-1) cell:
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      Vx0  = divideIfNonZero(cp_NE[CellParams::RHOMVX], cp_NE[CellParams::RHOM]);
-      Vy0  = divideIfNonZero(cp_NE[CellParams::RHOMVY], cp_NE[CellParams::RHOM]);
+      Vx0  = cp_NE[CellParams::VX];
+      Vy0  = cp_NE[CellParams::VY];
    } else { // RKCase == RK_ORDER2_STEP1
-      Vx0  = divideIfNonZero(cp_NE[CellParams::RHOMVX_DT2], cp_NE[CellParams::RHOM_DT2]);
-      Vy0  = divideIfNonZero(cp_NE[CellParams::RHOMVY_DT2], cp_NE[CellParams::RHOM_DT2]);
+      Vx0  = cp_NE[CellParams::VX_DT2];
+      Vy0  = cp_NE[CellParams::VY_DT2];
    }
    
    // 1st order terms:

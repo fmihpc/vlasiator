@@ -385,10 +385,10 @@ namespace DRO {
    };
 
 
-   class VariableRhomVBackstream: public DataReductionOperator {
+   class VariableVBackstream: public DataReductionOperator {
    public:
-      VariableRhomVBackstream();
-      virtual ~VariableRhomVBackstream();
+      VariableVBackstream();
+      virtual ~VariableVBackstream();
      
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
       virtual std::string getName() const;
@@ -396,13 +396,13 @@ namespace DRO {
       virtual bool setSpatialCell(const SpatialCell* cell);
      
    protected:
-      Real RhomVBackstream[3];
+      Real VBackstream[3];
    };
 
-   class VariableRhomVNonBackstream: public DataReductionOperator {
+   class VariableVNonBackstream: public DataReductionOperator {
    public:
-      VariableRhomVNonBackstream();
-      virtual ~VariableRhomVNonBackstream();
+      VariableVNonBackstream();
+      virtual ~VariableVNonBackstream();
 
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
       virtual std::string getName() const;
@@ -410,7 +410,7 @@ namespace DRO {
       virtual bool setSpatialCell(const SpatialCell* cell);
 
    protected:
-      Real RhomV[3];
+      Real V[3];
    };
 
    class VariablePressureBackstream: public DataReductionOperator {

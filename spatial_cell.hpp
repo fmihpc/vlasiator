@@ -153,11 +153,11 @@ namespace spatial_cell {
     */
    struct Population {
       Real RHO;
-      Real RHOV[3];
+      Real V[3];
       Real RHO_R;
-      Real RHOV_R[3];
+      Real V_R[3];
       Real RHO_V;
-      Real RHOV_V[3];
+      Real V_V[3];
       Real P[3];
       Real P_R[3];
       Real P_V[3];
