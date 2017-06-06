@@ -62,7 +62,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
-            outputReducer->addOperator(new DRO::DataReductionOperatorPopulations(pop + "/rho", i, offsetof(spatial_cell::Population, RHO), 1));
+            outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + "/rho", i, offsetof(spatial_cell::Population, RHO), 1));
          }
       }
       
@@ -101,7 +101,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
-            outputReducer->addOperator(new DRO::DataReductionOperatorPopulations(pop + "/rhom_loss_adjust", i, offsetof(spatial_cell::Population, RHOMLOSSADJUST), 1));
+            outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + "/rhom_loss_adjust", i, offsetof(spatial_cell::Population, RHOMLOSSADJUST), 1));
          }
       }
       if(*it == "LBweight")
@@ -120,15 +120,18 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::BoundaryLayer);
          outputReducer->addOperator(new DRO::BoundaryLayerNew);
       }
-      if(*it == "Blocks")
-         outputReducer->addOperator(new DRO::Blocks);
+      if (*it == "populations_Blocks") {
+         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+            outputReducer->addOperator(new DRO::Blocks(i));
+         }
+      }
       if(*it == "fSaved")
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("fSaved",CellParams::ISCELLSAVINGF,1));
       if(*it == "populations_accSubcycles") {
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
-            outputReducer->addOperator(new DRO::DataReductionOperatorPopulations(pop + "/acc_subcycles", i, offsetof(spatial_cell::Population, ACCSUBCYCLES), 1));
+            outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<uint>(pop + "/acc_subcycles", i, offsetof(spatial_cell::Population, ACCSUBCYCLES), 1));
          }
       }
       if(*it == "VolE")
@@ -280,8 +283,11 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          diagnosticReducer->addOperator(new DRO::DiagnosticFluxB);
       if(*it == "FluxE")
          diagnosticReducer->addOperator(new DRO::DiagnosticFluxE);
-      if(*it == "Blocks")
-         diagnosticReducer->addOperator(new DRO::Blocks);
+      if (*it == "populations_Blocks") {
+         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+            diagnosticReducer->addOperator(new DRO::Blocks(i));
+         }
+      }
       if(*it == "Pressure")
          diagnosticReducer->addOperator(new DRO::VariablePressure);
       if(*it == "Rhom")
@@ -290,7 +296,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
-            diagnosticReducer->addOperator(new DRO::DataReductionOperatorPopulations(pop + "/rhom_loss_adjust", i, offsetof(spatial_cell::Population, RHOMLOSSADJUST), 1));
+            diagnosticReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + "/rhom_loss_adjust", i, offsetof(spatial_cell::Population, RHOMLOSSADJUST), 1));
          }
       }
       if(*it == "LBweight")

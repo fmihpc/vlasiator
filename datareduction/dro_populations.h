@@ -23,21 +23,61 @@
 #ifndef DRO_POPULATIONS_H
 #define	DRO_POPULATIONS_H
 
+#include <string>
+
 #include "datareductionoperator.h"
 #include "../object_wrapper.h"
+#include "../vlasovsolver/cpu_moments.h"
 
 namespace DRO {
    
-   class DataReductionOperatorPopulations: public DataReductionOperator {
+   template <typename T> class DataReductionOperatorPopulations: public DataReductionOperator {
    public:
-      DataReductionOperatorPopulations(const std::string& name,const uint popID, const unsigned int byteOffset,const unsigned int vectorSize);
-      virtual ~DataReductionOperatorPopulations();
+      DataReductionOperatorPopulations(const std::string& name,const uint popID, const unsigned int byteOffset,const unsigned int vectorSize):
+   DataReductionOperator() {
+      _vectorSize=vectorSize;
+      _name=name;
+      _byteOffset=byteOffset;
+      _popID=popID;
+   };
+      virtual ~DataReductionOperatorPopulations() {};
       
-      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
-      virtual std::string getName() const;
-      virtual bool reduceData(const spatial_cell::SpatialCell* cell,char* buffer);
-      virtual bool reduceData(const spatial_cell::SpatialCell* cell,Real* result);
-      virtual bool setSpatialCell(const spatial_cell::SpatialCell* cell);
+      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+         std::cerr << "Error! Trying to perform population-based data reducer on unspecialized template!" << std::endl;
+         return false;
+      };
+      virtual std::string getName() const {return _name;};
+
+      virtual bool reduceData(const spatial_cell::SpatialCell* cell,char* buffer) {
+         // First, get a byte-sized pointer to this populations' struct within this cell.
+         const char* population_struct = reinterpret_cast<const char*>(&cell->get_population(_popID));
+
+         // Find the actual data at the specified offset
+         const char* ptr = population_struct + _byteOffset;
+
+         for (uint i = 0; i < _vectorSize*sizeof(T); ++i){
+            buffer[i] = ptr[i];
+         }
+         return true;
+      };
+
+      virtual bool setSpatialCell(const spatial_cell::SpatialCell* cell) {
+
+         // First, get a byte-sized pointer to this populations' struct within this cell.
+         const char* population_struct = reinterpret_cast<const char*>(&cell->get_population(_popID));
+
+         // Find the actual data at the specified offset
+         const T* ptr = reinterpret_cast<const T*>(population_struct + _byteOffset);
+
+         for (uint i=0; i<_vectorSize; i++) {
+            if(std::isinf(ptr[i]) || std::isnan(ptr[i])) {
+               std::string message = "The DataReductionOperator " + this->getName() + " returned a nan or an inf.";
+               bailout(true, message, __FILE__, __LINE__);
+            }
+         }
+
+         return true;
+      }
       
    protected:
       uint _byteOffset;
@@ -46,6 +86,27 @@ namespace DRO {
       std::string _name;
    };
    
+
+   // Partial specialization for int- and real datatypes
+   template<> bool DataReductionOperatorPopulations<Real>::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize =  sizeof(Real);
+      vectorSize = _vectorSize;
+      return true;
+   }
+   template<> bool DataReductionOperatorPopulations<int>::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "int";
+      dataSize =  sizeof(int);
+      vectorSize = _vectorSize;
+      return true;
+   }
+   template<> bool DataReductionOperatorPopulations<uint>::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "uint";
+      dataSize =  sizeof(uint);
+      vectorSize = _vectorSize;
+      return true;
+   }
+
 } // namespace DRO
 
 #endif	/* DRO_POPULATIONS_H */

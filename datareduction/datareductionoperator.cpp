@@ -367,7 +367,10 @@ namespace DRO {
    }
 
    // Blocks
-   Blocks::Blocks(): DataReductionOperator() { }
+   Blocks::Blocks(cuint popID): DataReductionOperator() {
+      _name=getObjectWrapper().particleSpecies[popID].name;
+      _popID=popID;
+   }
    Blocks::~Blocks() { }
    
    bool Blocks::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
@@ -377,21 +380,21 @@ namespace DRO {
       return true;
    }
    
-   std::string Blocks::getName() const {return "Blocks";}
+   std::string Blocks::getName() const {return _name + "/Blocks";}
    
    bool Blocks::reduceData(const SpatialCell* cell,char* buffer) {
-      const char* ptr = reinterpret_cast<const char*>(&nBlocks);
+      const char* ptr = reinterpret_cast<const char*>(&_nBlocks);
       for (uint i = 0; i < sizeof(int); ++i) buffer[i] = ptr[i];
       return true;
    }
    
    bool Blocks::reduceData(const SpatialCell* cell,Real* buffer) {
-      *buffer = 1.0 * nBlocks;
+      *buffer = 1.0 * _nBlocks;
       return true;
    }
   
    bool Blocks::setSpatialCell(const SpatialCell* cell) {
-      nBlocks = cell->get_number_of_all_velocity_blocks();
+      _nBlocks = cell->get_number_of_velocity_blocks(_popID);
       return true;
    }
 

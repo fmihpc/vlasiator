@@ -801,8 +801,8 @@ namespace spatial_cell {
          // Copy particle species metadata
          if ((SpatialCell::mpi_transfer_type & Transfer::POP_METADATA) != 0) {
             for (uint popID=0; popID<populations.size(); ++popID) {
-               displacements.push_back((uint8_t*) &(populations[popID].max_dt) - (uint8_t*)this);
-               block_lengths.push_back(species::SIZE_DT_ELEMENTS*sizeof(Real));
+               displacements.push_back((uint8_t*) &(populations[popID].RHO) - (uint8_t*)this);
+               block_lengths.push_back(offsetof(spatial_cell::Population, N_blocks));
             }
          }
          // Copy random number generator state variables

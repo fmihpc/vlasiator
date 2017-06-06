@@ -146,7 +146,11 @@ namespace spatial_cell {
                                                                                * Note: these are the (i,j,k) indices of the block.
                                                                                * Valid values are ([0,vx_length[,[0,vy_length[,[0,vz_length[).*/
 
-   /** Wrapper for variables needed for each particle species.*/
+   /** Wrapper for variables needed for each particle species.
+    *  Change order if you know what you are doing.
+    * All Real fields should be consecutive, as they are communicated as a block.
+    * 
+    */
    struct Population {
       Real RHO;
       Real RHOV[3];
@@ -158,12 +162,12 @@ namespace spatial_cell {
       Real P_R[3];
       Real P_V[3];
       Real RHOMLOSSADJUST = 0.0;      /*!< Counter for mass loss from the destroying blocks in blockadjustment*/
-      Real ACCSUBCYCLES;        /*!< number of subcyles for each cell*/
-      
       Real max_dt[2];                                                /**< Element[0] is max_r_dt, element[1] max_v_dt.*/
+      Real velocityBlockMinValue;
+      
+      uint ACCSUBCYCLES;        /*!< number of subcyles for each cell*/
       vmesh::LocalID N_blocks;                                       /**< Number of velocity blocks, used when receiving velocity 
                                                                       * mesh from remote neighbors using MPI.*/
-      Real velocityBlockMinValue;
       vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID> vmesh;     /**< Velocity mesh. Contains all velocity blocks that exist 
                                                                       * in this spatial cell. Cells are identified by their unique 
                                                                       * global IDs.*/
@@ -201,6 +205,7 @@ namespace spatial_cell {
       
       Population & get_population(const uint popID);
       const Population & get_population(const uint popID) const;
+      void set_population(const Population& pop, cuint popID);
 
       uint8_t get_maximum_refinement_level(const uint popID);
       const Real& get_max_r_dt(const uint popID) const;
@@ -909,6 +914,10 @@ namespace spatial_cell {
    
    inline const Population & SpatialCell::get_population(const uint popID) const {
       return populations[popID];
+   }
+   
+   inline void SpatialCell::set_population(const Population& pop, cuint popID) {
+      this->populations[popID] = pop;
    }
 
    inline const vmesh::LocalID* SpatialCell::get_velocity_grid_length(const uint popID,const uint8_t& refLevel) {
