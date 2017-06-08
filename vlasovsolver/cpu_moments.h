@@ -72,7 +72,7 @@ void blockVelocityFirstMoments(
         const Real* blockParams,
         REAL* array) {
 
-    const Real HALF = 0.5;
+   const Real HALF = 0.5;
 
    Real n_sum = 0.0;
    Real nvx_sum = 0.0;
@@ -103,20 +103,21 @@ void blockVelocityFirstMoments(
  * of the bulk velocity (calculated over all species). This function is AMR safe.
  * @param avgs Distribution function.
  * @param blockParams Parameters for the given velocity block.
- * @param v Bulk velocity of the population
+ * @param averageVX Bulk velocity x
+ * @param averageVY Bulk velocity y
+ * @param averageVZ Bulk velocity z
  * @param array Array where the calculated moments are added.*/
 template<typename REAL> inline
 void blockVelocitySecondMoments(
         const Realf* avgs,
         const Real* blockParams,
-        const REAL v[3],
+        const REAL averageVX,
+        const REAL averageVY,
+        const REAL averageVZ,
         REAL* array) {
 
    const Real HALF = 0.5;
 
-   const Real averageVX = v[0];
-   const Real averageVY = v[1];
-   const Real averageVZ = v[2];
    Real nvx2_sum = 0.0;
    Real nvy2_sum = 0.0;
    Real nvz2_sum = 0.0;

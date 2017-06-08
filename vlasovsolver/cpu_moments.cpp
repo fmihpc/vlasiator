@@ -124,7 +124,9 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
        for (vmesh::LocalID blockLID=0; blockLID<blockContainer.size(); ++blockLID) {
           blockVelocitySecondMoments(data+blockLID*WID3,
                                      blockParams+blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS,
-                                     pop.V,
+                                     cell->parameters[CellParams::VX],
+                                     cell->parameters[CellParams::VY],
+                                     cell->parameters[CellParams::VZ],
                                      array);
        }
        
@@ -284,7 +286,9 @@ void calculateMoments_R_maxdt(
          for (vmesh::LocalID blockLID=0; blockLID<blockContainer.size(); ++blockLID) {
             blockVelocitySecondMoments(data+blockLID*WID3,
                                        blockParams+blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS,
-                                       pop.V_R,
+                                       cell->parameters[CellParams::VX_R],
+                                       cell->parameters[CellParams::VY_R],
+                                       cell->parameters[CellParams::VZ_R],
                                        array);
          } // for-loop over velocity blocks
 
@@ -403,7 +407,9 @@ void calculateMoments_V(
             blockVelocitySecondMoments(
                                        data+blockLID*WID3,
                                        blockParams+blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS,
-                                       pop.V_V,
+                                       cell->parameters[CellParams::VX_V],
+                                       cell->parameters[CellParams::VY_V],
+                                       cell->parameters[CellParams::VZ_V],
                                        array);
          } // for-loop over velocity blocks
          
