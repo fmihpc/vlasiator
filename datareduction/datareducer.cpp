@@ -196,6 +196,11 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(*it == "Pressure") {
          outputReducer->addOperator(new DRO::VariablePressureSolver);
       }
+      if(*it == "populations_Pressure") {
+         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+            outputReducer->addOperator(new DRO::VariablePressurePopulation(i));
+         }
+      }
       if(*it == "PTensor") {
          outputReducer->addOperator(new DRO::VariablePTensorDiagonal);
          outputReducer->addOperator(new DRO::VariablePTensorOffDiagonal);

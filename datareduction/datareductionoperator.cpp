@@ -510,6 +510,33 @@ namespace DRO {
       return true;
    }
    
+   // Scalar pressure per population
+   VariablePressurePopulation::VariablePressurePopulation(cuint popID): DataReductionOperator() {
+      _name=getObjectWrapper().particleSpecies[popID].name;
+      _popID=popID;
+   }
+   VariablePressurePopulation::~VariablePressurePopulation() { }
+   
+   std::string VariablePressurePopulation::getName() const {return _name + "/Pressure";}
+   
+   bool VariablePressurePopulation::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize =  sizeof(Real);
+      vectorSize = 1;
+      return true;
+   }
+   
+   bool VariablePressurePopulation::reduceData(const SpatialCell* cell,char* buffer) {
+      const char* ptr = reinterpret_cast<const char*>(&_Pressure);
+      for (uint i = 0; i < sizeof(Real); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+   
+   bool VariablePressurePopulation::setSpatialCell(const SpatialCell* cell) {
+      _Pressure = 1.0/3.0 * (cell->get_population(_popID).P[0] + cell->get_population(_popID).P[1] + cell->get_population(_popID).P[2]);
+      return true;
+   }
+   
    
    // YK Adding pressure calculations to Vlasiator.
    // p_ij = m/3 * integral((v - <V>)_i(v - <V>)_j * f(r,v) dV)

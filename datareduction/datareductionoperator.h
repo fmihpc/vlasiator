@@ -249,6 +249,22 @@ namespace DRO {
       Real Pressure;
    };
    
+   class VariablePressurePopulation: public DataReductionOperator {
+   public:
+      VariablePressurePopulation(cuint popID);
+      virtual ~VariablePressurePopulation();
+      
+      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual std::string getName() const;
+      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool setSpatialCell(const SpatialCell* cell);
+      
+   protected:
+      Real _Pressure;
+      uint _popID;
+      std::string _name;
+   };
+   
    class VariablePTensorDiagonal: public DataReductionOperator {
    public:
       VariablePTensorDiagonal();
