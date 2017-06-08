@@ -70,6 +70,13 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::VariableRhomBackstream);
       if(*it == "V")
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("V",CellParams::VX,3));
+      if(*it == "populations_V") {
+         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+            species::Species& species=getObjectWrapper().particleSpecies[i];
+            const std::string& pop = species.name;
+            outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + "/V", i, offsetof(spatial_cell::Population, V), 3));
+         }
+      }
       if(*it == "VBackstream")
          outputReducer->addOperator(new DRO::VariableVBackstream);
       if(*it == "VNonBackstream")
