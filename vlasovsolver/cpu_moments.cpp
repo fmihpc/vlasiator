@@ -24,6 +24,7 @@
 #include "cpu_moments.h"
 #include "../vlasovmover.h"
 #include "../object_wrapper.h"
+#include "../fieldsolver/fs_common.h" // divideIfNonZero()
 
 using namespace std;
 
@@ -85,9 +86,9 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
           
           Population & pop = cell->get_population(popID);
           pop.RHO = array[0];
-          pop.V[0] = array[1] / array[0];
-          pop.V[1] = array[2] / array[0];
-          pop.V[2] = array[3] / array[0];
+          pop.V[0] = divideIfNonZero(array[1], array[0]);
+          pop.V[1] = divideIfNonZero(array[2], array[0]);
+          pop.V[2] = divideIfNonZero(array[3], array[0]);
           
           // Store species' contribution to bulk velocity moments
           cell->parameters[CellParams::RHOM  ] += array[0]*mass;
@@ -237,9 +238,9 @@ void calculateMoments_R_maxdt(
           // Store species' contribution to bulk velocity moments
           Population & pop = cell->get_population(popID);
           pop.RHO_R = array[0];
-          pop.V_R[0] = array[1] / array[0];
-          pop.V_R[1] = array[2] / array[0];
-          pop.V_R[2] = array[3] / array[0];
+          pop.V_R[0] = divideIfNonZero(array[1], array[0]);
+          pop.V_R[1] = divideIfNonZero(array[2], array[0]);
+          pop.V_R[2] = divideIfNonZero(array[3], array[0]);
           
           cell->parameters[CellParams::RHOM_R  ] += array[0]*mass;
           cell->parameters[CellParams::VX_R] += array[1]*mass;
@@ -355,9 +356,9 @@ void calculateMoments_V(
          // Store species' contribution to bulk velocity moments
          Population & pop = cell->get_population(popID);
          pop.RHO_V = array[0];
-         pop.V_V[0] = array[1] / array[0];
-         pop.V_V[1] = array[2] / array[0];
-         pop.V_V[2] = array[3] / array[0];
+         pop.V_V[0] = divideIfNonZero(array[1], array[0]);
+         pop.V_V[1] = divideIfNonZero(array[2], array[0]);
+         pop.V_V[2] = divideIfNonZero(array[3], array[0]);
          
          cell->parameters[CellParams::RHOM_V  ] += array[0]*mass;
          cell->parameters[CellParams::VX_V] += array[1]*mass;
