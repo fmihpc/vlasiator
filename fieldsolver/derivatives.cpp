@@ -31,7 +31,7 @@ extern map<CellID,uint> existingCellsFlags; /**< Defined in fs_common.cpp */
 
 /*! \brief Low-level spatial derivatives calculation.
  * 
- * For the cell with ID cellID calculate the spatial derivatives or apply the derivative boundary conditions defined in project.h. Uses RHO, RHOV[XYZ] and B[XYZ] in the first-order time accuracy method and in the second step of the second-order method, and RHO_DT2, RHOV[XYZ]1 and B[XYZ]1 in the first step of the second-order method.
+ * For the cell with ID cellID calculate the spatial derivatives or apply the derivative boundary conditions defined in project.h. Uses RHO, V[XYZ] and B[XYZ] in the first-order time accuracy method and in the second step of the second-order method, and RHO_DT2, V[XYZ]1 and B[XYZ]1 in the first step of the second-order method.
  * \param mpiGrid Grid
  * \param cellCache Field solver cell cache
  * \param sysBoundaries System boundary conditions existing
@@ -115,15 +115,9 @@ void calculateDerivatives(
          array[fs::dp22dx] = limiter(left[cp::P_22],cent[cp::P_22],rght[cp::P_22]);
          array[fs::dp33dx] = limiter(left[cp::P_33],cent[cp::P_33],rght[cp::P_33]);
 
-         array[fs::dVxdx]  = limiter(left[cp::RHOMVX], left[cp::RHOM],
-                                     cent[cp::RHOMVX], cent[cp::RHOM],
-                                     rght[cp::RHOMVX], rght[cp::RHOM]);
-         array[fs::dVydx]  = limiter(left[cp::RHOMVY], left[cp::RHOM],
-                                     cent[cp::RHOMVY], cent[cp::RHOM],
-                                     rght[cp::RHOMVY], rght[cp::RHOM]);
-         array[fs::dVzdx]  = limiter(left[cp::RHOMVZ], left[cp::RHOM],
-                                     cent[cp::RHOMVZ], cent[cp::RHOM],
-                                     rght[cp::RHOMVZ], rght[cp::RHOM]);
+         array[fs::dVxdx]  = limiter(left[cp::VX],cent[cp::VX],rght[cp::VX]);
+         array[fs::dVydx]  = limiter(left[cp::VY],cent[cp::VY],rght[cp::VY]);
+         array[fs::dVzdx]  = limiter(left[cp::VZ],cent[cp::VZ],rght[cp::VZ]);
          
          array[fs::dPERBydx]  = limiter(left[cp::PERBY],cent[cp::PERBY],rght[cp::PERBY]);
          array[fs::dPERBzdx]  = limiter(left[cp::PERBZ],cent[cp::PERBZ],rght[cp::PERBZ]);
@@ -141,15 +135,9 @@ void calculateDerivatives(
          array[fs::dp11dx] = limiter(left[cp::P_11_DT2],cent[cp::P_11_DT2],rght[cp::P_11_DT2]);
          array[fs::dp22dx] = limiter(left[cp::P_22_DT2],cent[cp::P_22_DT2],rght[cp::P_22_DT2]);
          array[fs::dp33dx] = limiter(left[cp::P_33_DT2],cent[cp::P_33_DT2],rght[cp::P_33_DT2]);
-         array[fs::dVxdx]  = limiter(left[cp::RHOMVX_DT2], left[cp::RHOM_DT2],
-                                     cent[cp::RHOMVX_DT2], cent[cp::RHOM_DT2],
-                                     rght[cp::RHOMVX_DT2], rght[cp::RHOM_DT2]);
-         array[fs::dVydx]  = limiter(left[cp::RHOMVY_DT2], left[cp::RHOM_DT2],
-                                     cent[cp::RHOMVY_DT2], cent[cp::RHOM_DT2],
-                                     rght[cp::RHOMVY_DT2], rght[cp::RHOM_DT2]);
-         array[fs::dVzdx]  = limiter(left[cp::RHOMVZ_DT2], left[cp::RHOM_DT2],
-                                     cent[cp::RHOMVZ_DT2], cent[cp::RHOM_DT2],
-                                     rght[cp::RHOMVZ_DT2], rght[cp::RHOM_DT2]);
+         array[fs::dVxdx]  = limiter(left[cp::VX_DT2],cent[cp::VX_DT2],rght[cp::VX_DT2]);
+         array[fs::dVydx]  = limiter(left[cp::VY_DT2],cent[cp::VY_DT2],rght[cp::VY_DT2]);
+         array[fs::dVzdx]  = limiter(left[cp::VZ_DT2],cent[cp::VZ_DT2],rght[cp::VZ_DT2]);
          
          array[fs::dPERBydx]  = limiter(left[cp::PERBY_DT2],cent[cp::PERBY_DT2],rght[cp::PERBY_DT2]);
          array[fs::dPERBzdx]  = limiter(left[cp::PERBZ_DT2],cent[cp::PERBZ_DT2],rght[cp::PERBZ_DT2]);
@@ -182,15 +170,9 @@ void calculateDerivatives(
          array[fs::dp11dy] = limiter(left[cp::P_11],cent[cp::P_11],rght[cp::P_11]);
          array[fs::dp22dy] = limiter(left[cp::P_22],cent[cp::P_22],rght[cp::P_22]);
          array[fs::dp33dy] = limiter(left[cp::P_33],cent[cp::P_33],rght[cp::P_33]);
-         array[fs::dVxdy]  = limiter(left[cp::RHOMVX], left[cp::RHOM],
-                                     cent[cp::RHOMVX], cent[cp::RHOM],
-                                     rght[cp::RHOMVX], rght[cp::RHOM]);
-         array[fs::dVydy]  = limiter(left[cp::RHOMVY], left[cp::RHOM],
-                                     cent[cp::RHOMVY], cent[cp::RHOM],
-                                     rght[cp::RHOMVY], rght[cp::RHOM]);
-         array[fs::dVzdy]  = limiter(left[cp::RHOMVZ], left[cp::RHOM],
-                                     cent[cp::RHOMVZ], cent[cp::RHOM],
-                                     rght[cp::RHOMVZ], rght[cp::RHOM]);
+         array[fs::dVxdy]  = limiter(left[cp::VX],cent[cp::VX],rght[cp::VX]);
+         array[fs::dVydy]  = limiter(left[cp::VY],cent[cp::VY],rght[cp::VY]);
+         array[fs::dVzdy]  = limiter(left[cp::VZ],cent[cp::VZ],rght[cp::VZ]);
          
          array[fs::dPERBxdy]  = limiter(left[cp::PERBX],cent[cp::PERBX],rght[cp::PERBX]);
          array[fs::dPERBzdy]  = limiter(left[cp::PERBZ],cent[cp::PERBZ],rght[cp::PERBZ]);
@@ -209,15 +191,9 @@ void calculateDerivatives(
          array[fs::dp11dy] = limiter(left[cp::P_11_DT2],cent[cp::P_11_DT2],rght[cp::P_11_DT2]);
          array[fs::dp22dy] = limiter(left[cp::P_22_DT2],cent[cp::P_22_DT2],rght[cp::P_22_DT2]);
          array[fs::dp33dy] = limiter(left[cp::P_33_DT2],cent[cp::P_33_DT2],rght[cp::P_33_DT2]);
-         array[fs::dVxdy]  = limiter(left[cp::RHOMVX_DT2], left[cp::RHOM_DT2],
-                                     cent[cp::RHOMVX_DT2], cent[cp::RHOM_DT2],
-                                     rght[cp::RHOMVX_DT2], rght[cp::RHOM_DT2]);
-         array[fs::dVydy]  = limiter(left[cp::RHOMVY_DT2], left[cp::RHOM_DT2],
-                                     cent[cp::RHOMVY_DT2], cent[cp::RHOM_DT2],
-                                     rght[cp::RHOMVY_DT2], rght[cp::RHOM_DT2]);
-         array[fs::dVzdy]  = limiter(left[cp::RHOMVZ_DT2], left[cp::RHOM_DT2],
-                                     cent[cp::RHOMVZ_DT2], cent[cp::RHOM_DT2],
-                                     rght[cp::RHOMVZ_DT2], rght[cp::RHOM_DT2]);
+         array[fs::dVxdy]  = limiter(left[cp::VX_DT2],cent[cp::VX_DT2],rght[cp::VX_DT2]);
+         array[fs::dVydy]  = limiter(left[cp::VY_DT2],cent[cp::VY_DT2],rght[cp::VY_DT2]);
+         array[fs::dVzdy]  = limiter(left[cp::VZ_DT2],cent[cp::VZ_DT2],rght[cp::VZ_DT2]);
          
          array[fs::dPERBxdy]  = limiter(left[cp::PERBX_DT2],cent[cp::PERBX_DT2],rght[cp::PERBX_DT2]);
          array[fs::dPERBzdy]  = limiter(left[cp::PERBZ_DT2],cent[cp::PERBZ_DT2],rght[cp::PERBZ_DT2]);
@@ -250,15 +226,9 @@ void calculateDerivatives(
          array[fs::dp11dz] = limiter(left[cp::P_11],cent[cp::P_11],rght[cp::P_11]);
          array[fs::dp22dz] = limiter(left[cp::P_22],cent[cp::P_22],rght[cp::P_22]);
          array[fs::dp33dz] = limiter(left[cp::P_33],cent[cp::P_33],rght[cp::P_33]);
-         array[fs::dVxdz]  = limiter(left[cp::RHOMVX], left[cp::RHOM],
-                                     cent[cp::RHOMVX], cent[cp::RHOM],
-                                     rght[cp::RHOMVX], rght[cp::RHOM]);
-         array[fs::dVydz]  = limiter(left[cp::RHOMVY], left[cp::RHOM],
-                                     cent[cp::RHOMVY], cent[cp::RHOM],
-                                     rght[cp::RHOMVY], rght[cp::RHOM]);
-         array[fs::dVzdz]  = limiter(left[cp::RHOMVZ], left[cp::RHOM],
-                                     cent[cp::RHOMVZ], cent[cp::RHOM],
-                                     rght[cp::RHOMVZ], rght[cp::RHOM]);
+         array[fs::dVxdz]  = limiter(left[cp::VX],cent[cp::VX],rght[cp::VX]);
+         array[fs::dVydz]  = limiter(left[cp::VY],cent[cp::VY],rght[cp::VY]);
+         array[fs::dVzdz]  = limiter(left[cp::VZ],cent[cp::VZ],rght[cp::VZ]);
          
          array[fs::dPERBxdz]  = limiter(left[cp::PERBX],cent[cp::PERBX],rght[cp::PERBX]);
          array[fs::dPERBydz]  = limiter(left[cp::PERBY],cent[cp::PERBY],rght[cp::PERBY]);
@@ -276,15 +246,9 @@ void calculateDerivatives(
          array[fs::dp11dz] = limiter(left[cp::P_11_DT2],cent[cp::P_11_DT2],rght[cp::P_11_DT2]);
          array[fs::dp22dz] = limiter(left[cp::P_22_DT2],cent[cp::P_22_DT2],rght[cp::P_22_DT2]);
          array[fs::dp33dz] = limiter(left[cp::P_33_DT2],cent[cp::P_33_DT2],rght[cp::P_33_DT2]);
-         array[fs::dVxdz]  = limiter(left[cp::RHOMVX_DT2], left[cp::RHOM_DT2],
-                                     cent[cp::RHOMVX_DT2], cent[cp::RHOM_DT2],
-                                     rght[cp::RHOMVX_DT2], rght[cp::RHOM_DT2]);
-         array[fs::dVydz]  = limiter(left[cp::RHOMVY_DT2], left[cp::RHOM_DT2],
-                                     cent[cp::RHOMVY_DT2], cent[cp::RHOM_DT2],
-                                     rght[cp::RHOMVY_DT2], rght[cp::RHOM_DT2]);
-         array[fs::dVzdz]  = limiter(left[cp::RHOMVZ_DT2], left[cp::RHOM_DT2],
-                                     cent[cp::RHOMVZ_DT2], cent[cp::RHOM_DT2],
-                                     rght[cp::RHOMVZ_DT2], rght[cp::RHOM_DT2]);
+         array[fs::dVxdz]  = limiter(left[cp::VX_DT2],cent[cp::VX_DT2],rght[cp::VX_DT2]);
+         array[fs::dVydz]  = limiter(left[cp::VY_DT2],cent[cp::VY_DT2],rght[cp::VY_DT2]);
+         array[fs::dVzdz]  = limiter(left[cp::VZ_DT2],cent[cp::VZ_DT2],rght[cp::VZ_DT2]);
          
          array[fs::dPERBxdz]  = limiter(left[cp::PERBX_DT2],cent[cp::PERBX_DT2],rght[cp::PERBX_DT2]);
          array[fs::dPERBydz]  = limiter(left[cp::PERBY_DT2],cent[cp::PERBY_DT2],rght[cp::PERBY_DT2]);
@@ -421,7 +385,7 @@ void calculateDerivativesSimple(
       }
       break;
     case RK_ORDER2_STEP1:
-      // Exchange PERB*_DT2,RHO_DT2,RHOV*_DT2 with neighbours The
+      // Exchange PERB*_DT2,RHO_DT2,V*_DT2 with neighbours The
       // update of PERB[XYZ]_DT2 is needed after the system
       // boundary update of propagateMagneticFieldSimple.
       if(communicateMoments) {
@@ -431,7 +395,7 @@ void calculateDerivativesSimple(
       }
       break;
     case RK_ORDER2_STEP2:
-      // Exchange PERB*,RHO,RHOV* with neighbours The update of B
+      // Exchange PERB*,RHO,V* with neighbours The update of B
       // is needed after the system boundary update of
       // propagateMagneticFieldSimple.
       if(communicateMoments) {

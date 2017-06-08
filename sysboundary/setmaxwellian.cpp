@@ -313,9 +313,9 @@ namespace SBC {
       if(!this->isThisDynamic) {
          // WARNING Time-independence assumed here.
          templateCell.parameters[CellParams::RHOM_DT2] = templateCell.parameters[CellParams::RHOM];
-         templateCell.parameters[CellParams::RHOMVX_DT2] = templateCell.parameters[CellParams::RHOMVX];
-         templateCell.parameters[CellParams::RHOMVY_DT2] = templateCell.parameters[CellParams::RHOMVY];
-         templateCell.parameters[CellParams::RHOMVZ_DT2] = templateCell.parameters[CellParams::RHOMVZ];
+         templateCell.parameters[CellParams::VX_DT2] = templateCell.parameters[CellParams::VX];
+         templateCell.parameters[CellParams::VY_DT2] = templateCell.parameters[CellParams::VY];
+         templateCell.parameters[CellParams::VZ_DT2] = templateCell.parameters[CellParams::VZ];
          templateCell.parameters[CellParams::RHOQ_DT2] = templateCell.parameters[CellParams::RHOQ];
          templateCell.parameters[CellParams::PERBX_DT2] = templateCell.parameters[CellParams::PERBX];
          templateCell.parameters[CellParams::PERBY_DT2] = templateCell.parameters[CellParams::PERBY];

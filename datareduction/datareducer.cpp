@@ -68,12 +68,19 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       
       if(*it == "RhomBackstream")
          outputReducer->addOperator(new DRO::VariableRhomBackstream);
-      if(*it == "RhomV")
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("rho_v",CellParams::RHOMVX,3));
-      if(*it == "RhomVBackstream")
-         outputReducer->addOperator(new DRO::VariableRhomVBackstream);
-      if(*it == "RhomVNonBackstream")
-         outputReducer->addOperator(new DRO::VariableRhomVNonBackstream);
+      if(*it == "V")
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("V",CellParams::VX,3));
+      if(*it == "populations_V") {
+         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+            species::Species& species=getObjectWrapper().particleSpecies[i];
+            const std::string& pop = species.name;
+            outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + "/V", i, offsetof(spatial_cell::Population, V), 3));
+         }
+      }
+      if(*it == "VBackstream")
+         outputReducer->addOperator(new DRO::VariableVBackstream);
+      if(*it == "VNonBackstream")
+         outputReducer->addOperator(new DRO::VariableVNonBackstream);
       if(*it == "PressureBackstream")
          outputReducer->addOperator(new DRO::VariablePressureBackstream);
       if(*it == "PTensorBackstreamDiagonal")

@@ -64,27 +64,24 @@ Transform<Real,3,Affine> compute_acceleration_transformation( SpatialCell* spati
    
   //compute initial moments, based on actual distribution function
    spatial_cell->parameters[CellParams::RHOM_V  ] = 0.0;
-   spatial_cell->parameters[CellParams::RHOMVX_V] = 0.0;
-   spatial_cell->parameters[CellParams::RHOMVY_V] = 0.0;
-   spatial_cell->parameters[CellParams::RHOMVZ_V] = 0.0;
+   spatial_cell->parameters[CellParams::VX_V] = 0.0;
+   spatial_cell->parameters[CellParams::VY_V] = 0.0;
+   spatial_cell->parameters[CellParams::VZ_V] = 0.0;
    spatial_cell->parameters[CellParams::RHOQ_V] = 0.0;
    
    for (vmesh::LocalID block_i=0; block_i<spatial_cell->get_number_of_velocity_blocks(); ++block_i) {
-      cpu_calcVelocityFirstMoments(spatial_cell,block_i,CellParams::RHOM_V,CellParams::RHOMVX_V,CellParams::RHOMVY_V,CellParams::RHOMVZ_V);
+      cpu_calcVelocityFirstMoments(spatial_cell,block_i,CellParams::RHOM_V,CellParams::VX_V,CellParams::VY_V,CellParams::VZ_V);
    }
    
-   const Real rhom=spatial_cell->parameters[CellParams::RHOM_V];
-   //scale rho for hall term, if user requests
-   const Real hallRhom =  (rhom <= Parameters::hallMinimumRhom ) ? Parameters::hallMinimumRhom : rhom ;
    const Real rhoq=spatial_cell->parameters[CellParams::RHOQ_V];
    //scale rho for hall term, if user requests
    const Real hallRhoq =  (rhoq <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : rhoq ;
    const Real hallPrefactor = 1.0 / (physicalconstants::MU_0 * hallRhoq );
 
    
-   Eigen::Matrix<Real,3,1> bulk_velocity(spatial_cell->parameters[CellParams::RHOMVX_V]/rhom,
-                                 spatial_cell->parameters[CellParams::RHOMVY_V]/rhom,
-                                 spatial_cell->parameters[CellParams::RHOMVZ_V]/rhom);
+   Eigen::Matrix<Real,3,1> bulk_velocity(spatial_cell->parameters[CellParams::VX_V],
+                                 spatial_cell->parameters[CellParams::VY_V],
+                                 spatial_cell->parameters[CellParams::VZ_V]);
    /*compute total transformation*/
    Transform<Real,3,Affine> total_transform(Matrix<Real, 4, 4>::Identity()); //CONTINUE
 

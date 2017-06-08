@@ -494,17 +494,17 @@ namespace SBC {
       // as boundary conditions cells should not set/use them.
       if (popID == 0) {
          to->parameters[CellParams::RHOM_DT2] = from->parameters[CellParams::RHOM_DT2];
-         to->parameters[CellParams::RHOMVX_DT2] = from->parameters[CellParams::RHOMVX_DT2];
-         to->parameters[CellParams::RHOMVY_DT2] = from->parameters[CellParams::RHOMVY_DT2];
-         to->parameters[CellParams::RHOMVZ_DT2] = from->parameters[CellParams::RHOMVZ_DT2];
+         to->parameters[CellParams::VX_DT2] = from->parameters[CellParams::VX_DT2];
+         to->parameters[CellParams::VY_DT2] = from->parameters[CellParams::VY_DT2];
+         to->parameters[CellParams::VZ_DT2] = from->parameters[CellParams::VZ_DT2];
          to->parameters[CellParams::RHOQ_DT2] = from->parameters[CellParams::RHOQ_DT2];
          to->parameters[CellParams::P_11_DT2] = from->parameters[CellParams::P_11_DT2];
          to->parameters[CellParams::P_22_DT2] = from->parameters[CellParams::P_22_DT2];
          to->parameters[CellParams::P_33_DT2] = from->parameters[CellParams::P_33_DT2];
          to->parameters[CellParams::RHOM] = from->parameters[CellParams::RHOM];
-         to->parameters[CellParams::RHOMVX] = from->parameters[CellParams::RHOMVX];
-         to->parameters[CellParams::RHOMVY] = from->parameters[CellParams::RHOMVY];
-         to->parameters[CellParams::RHOMVZ] = from->parameters[CellParams::RHOMVZ];
+         to->parameters[CellParams::VX] = from->parameters[CellParams::VX];
+         to->parameters[CellParams::VY] = from->parameters[CellParams::VY];
+         to->parameters[CellParams::VZ] = from->parameters[CellParams::VZ];
          to->parameters[CellParams::RHOQ] = from->parameters[CellParams::RHOQ];
          to->parameters[CellParams::P_11] = from->parameters[CellParams::P_11];
          to->parameters[CellParams::P_22] = from->parameters[CellParams::P_22];
@@ -518,9 +518,9 @@ namespace SBC {
          to->get_population(popID).RHO_R = from->get_population(popID).RHO_R;
          to->get_population(popID).RHO_V = from->get_population(popID).RHO_V;
          for (uint i=0; i<3; i++) {
-            to->get_population(popID).RHOV[i] = from->get_population(popID).RHOV[i];
-            to->get_population(popID).RHOV_R[i] = from->get_population(popID).RHOV_R[i];
-            to->get_population(popID).RHOV_V[i] = from->get_population(popID).RHOV_V[i];
+            to->get_population(popID).V[i] = from->get_population(popID).V[i];
+            to->get_population(popID).V_R[i] = from->get_population(popID).V_R[i];
+            to->get_population(popID).V_V[i] = from->get_population(popID).V_V[i];
             to->get_population(popID).P[i] = from->get_population(popID).P[i];
             to->get_population(popID).P_R[i] = from->get_population(popID).P_R[i];
             to->get_population(popID).P_V[i] = from->get_population(popID).P_V[i];
@@ -550,17 +550,17 @@ namespace SBC {
 
          if (popID == 0) {
             to->parameters[CellParams::RHOM_DT2] = 0.0;
-            to->parameters[CellParams::RHOMVX_DT2] = 0.0;
-            to->parameters[CellParams::RHOMVY_DT2] = 0.0;
-            to->parameters[CellParams::RHOMVZ_DT2] = 0.0;
+            to->parameters[CellParams::VX_DT2] = 0.0;
+            to->parameters[CellParams::VY_DT2] = 0.0;
+            to->parameters[CellParams::VZ_DT2] = 0.0;
             to->parameters[CellParams::RHOQ_DT2] = 0.0;
             to->parameters[CellParams::P_11_DT2] = 0.0;
             to->parameters[CellParams::P_22_DT2] = 0.0;
             to->parameters[CellParams::P_33_DT2] = 0.0;
             to->parameters[CellParams::RHOM] = 0.0;
-            to->parameters[CellParams::RHOMVX] = 0.0;
-            to->parameters[CellParams::RHOMVY] = 0.0;
-            to->parameters[CellParams::RHOMVZ] = 0.0;
+            to->parameters[CellParams::VX] = 0.0;
+            to->parameters[CellParams::VY] = 0.0;
+            to->parameters[CellParams::VZ] = 0.0;
             to->parameters[CellParams::RHOQ] = 0.0;
             to->parameters[CellParams::P_11] = 0.0;
             to->parameters[CellParams::P_22] = 0.0;
@@ -574,17 +574,17 @@ namespace SBC {
             // WARNING Time-independence assumed here. _R and _V not copied, as boundary conditions cells should not set/use them
             if (popID == 0) {
                to->parameters[CellParams::RHOM_DT2] += factor*incomingCell->parameters[CellParams::RHOM_DT2];
-               to->parameters[CellParams::RHOMVX_DT2] += factor*incomingCell->parameters[CellParams::RHOMVX_DT2];
-               to->parameters[CellParams::RHOMVY_DT2] += factor*incomingCell->parameters[CellParams::RHOMVY_DT2];
-               to->parameters[CellParams::RHOMVZ_DT2] += factor*incomingCell->parameters[CellParams::RHOMVZ_DT2];
+               to->parameters[CellParams::VX_DT2] += factor*incomingCell->parameters[CellParams::VX_DT2];
+               to->parameters[CellParams::VY_DT2] += factor*incomingCell->parameters[CellParams::VY_DT2];
+               to->parameters[CellParams::VZ_DT2] += factor*incomingCell->parameters[CellParams::VZ_DT2];
                to->parameters[CellParams::RHOQ_DT2] += factor*incomingCell->parameters[CellParams::RHOQ_DT2];
                to->parameters[CellParams::P_11_DT2] += factor*incomingCell->parameters[CellParams::P_11_DT2];
                to->parameters[CellParams::P_22_DT2] += factor*incomingCell->parameters[CellParams::P_22_DT2];
                to->parameters[CellParams::P_33_DT2] += factor*incomingCell->parameters[CellParams::P_33_DT2];
                to->parameters[CellParams::RHOM] += factor*incomingCell->parameters[CellParams::RHOM];
-               to->parameters[CellParams::RHOMVX] += factor*incomingCell->parameters[CellParams::RHOMVX];
-               to->parameters[CellParams::RHOMVY] += factor*incomingCell->parameters[CellParams::RHOMVY];
-               to->parameters[CellParams::RHOMVZ] += factor*incomingCell->parameters[CellParams::RHOMVZ];
+               to->parameters[CellParams::VX] += factor*incomingCell->parameters[CellParams::VX];
+               to->parameters[CellParams::VY] += factor*incomingCell->parameters[CellParams::VY];
+               to->parameters[CellParams::VZ] += factor*incomingCell->parameters[CellParams::VZ];
                to->parameters[CellParams::RHOQ] += factor*incomingCell->parameters[CellParams::RHOQ];
                to->parameters[CellParams::P_11] += factor*incomingCell->parameters[CellParams::P_11];
                to->parameters[CellParams::P_22] += factor*incomingCell->parameters[CellParams::P_22];

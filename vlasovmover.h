@@ -55,9 +55,9 @@ void calculateCellMoments(
 void calculateInterpolatedVelocityMoments(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const int cp_rhom,
-   const int cp_rhomvx,
-   const int cp_rhomvy,
-   const int cp_rhomvz,
+   const int cp_vx,
+   const int cp_vy,
+   const int cp_vz,
    const int cp_rhoq,
    const int cp_p11,
    const int cp_p22,
@@ -65,7 +65,7 @@ void calculateInterpolatedVelocityMoments(
 );
 
 /*!
-  \brief Compute 0th, 1st and 2nd velocity moments (RHO,RHOVX,RHOVY,RHOVZ,P_11,P_22,P_33 and *_DT2) for all cells in the grid directly from distribution function. The simulation should be at a true time-step! This is at the moment only called at initialisation.
+  \brief Compute 0th, 1st and 2nd velocity moments (RHO,VX,VY,VZ,P_11,P_22,P_33 and *_DT2) for all cells in the grid directly from distribution function. The simulation should be at a true time-step! This is at the moment only called at initialisation.
   \param mpiGrid Grid of spatial cells for which moments are computed 
   
 */

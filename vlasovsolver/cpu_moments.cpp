@@ -24,6 +24,7 @@
 #include "cpu_moments.h"
 #include "../vlasovmover.h"
 #include "../object_wrapper.h"
+#include "../fieldsolver/fs_common.h" // divideIfNonZero()
 
 using namespace std;
 
@@ -52,9 +53,9 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
     // Clear old moments to zero value
     if (skipMoments == false) {
         cell->parameters[CellParams::RHOM  ] = 0.0;
-        cell->parameters[CellParams::RHOMVX] = 0.0;
-        cell->parameters[CellParams::RHOMVY] = 0.0;
-        cell->parameters[CellParams::RHOMVZ] = 0.0;
+        cell->parameters[CellParams::VX] = 0.0;
+        cell->parameters[CellParams::VY] = 0.0;
+        cell->parameters[CellParams::VZ] = 0.0;
         cell->parameters[CellParams::RHOQ  ] = 0.0;
         cell->parameters[CellParams::P_11] = 0.0;
         cell->parameters[CellParams::P_22] = 0.0;
@@ -77,26 +78,29 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
           for (int i=0; i<4; ++i) array[i] = 0.0;
 
           // Calculate species' contribution to first velocity moments
-          const Real massRatio = getObjectWrapper().particleSpecies[popID].mass / physicalconstants::MASS_PROTON;
           for (vmesh::LocalID blockLID=0; blockLID<blockContainer.size(); ++blockLID) {
              blockVelocityFirstMoments(data+blockLID*WID3,
                                        blockParams+blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS,
-                                       massRatio,array);
+                                       array);
           }
           
           Population & pop = cell->get_population(popID);
           pop.RHO = array[0];
-          pop.RHOV[0] = array[1];
-          pop.RHOV[1] = array[2];
-          pop.RHOV[2] = array[3];
+          pop.V[0] = divideIfNonZero(array[1], array[0]);
+          pop.V[1] = divideIfNonZero(array[2], array[0]);
+          pop.V[2] = divideIfNonZero(array[3], array[0]);
           
           // Store species' contribution to bulk velocity moments
           cell->parameters[CellParams::RHOM  ] += array[0]*mass;
-          cell->parameters[CellParams::RHOMVX] += array[1]*mass;
-          cell->parameters[CellParams::RHOMVY] += array[2]*mass;
-          cell->parameters[CellParams::RHOMVZ] += array[3]*mass;
+          cell->parameters[CellParams::VX] += array[1]*mass;
+          cell->parameters[CellParams::VY] += array[2]*mass;
+          cell->parameters[CellParams::VZ] += array[3]*mass;
           cell->parameters[CellParams::RHOQ  ] += array[0]*charge;
        } // for-loop over particle species
+       
+       cell->parameters[CellParams::VX] /= cell->parameters[CellParams::RHOM];
+       cell->parameters[CellParams::VY] /= cell->parameters[CellParams::RHOM];
+       cell->parameters[CellParams::VZ] /= cell->parameters[CellParams::RHOM];
     }
 
     // Compute second moments only if requested
@@ -120,8 +124,9 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
        for (vmesh::LocalID blockLID=0; blockLID<blockContainer.size(); ++blockLID) {
           blockVelocitySecondMoments(data+blockLID*WID3,
                                      blockParams+blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS,
-                                     pop.RHO,
-                                     pop.RHOV,
+                                     cell->parameters[CellParams::VX],
+                                     cell->parameters[CellParams::VY],
+                                     cell->parameters[CellParams::VZ],
                                      array);
        }
        
@@ -155,15 +160,14 @@ void calculateMoments_R_maxdt(
     for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
        #pragma omp parallel for
        for (size_t c=0; c<cells.size(); ++c) {
-          const CellID cellID = cells[c];
           SpatialCell* cell = mpiGrid[cells[c]];
           
           // Clear old moments to zero value
           if (popID == 0) {
              cell->parameters[CellParams::RHOM_R  ] = 0.0;
-             cell->parameters[CellParams::RHOMVX_R] = 0.0;
-             cell->parameters[CellParams::RHOMVY_R] = 0.0;
-             cell->parameters[CellParams::RHOMVZ_R] = 0.0;
+             cell->parameters[CellParams::VX_R] = 0.0;
+             cell->parameters[CellParams::VY_R] = 0.0;
+             cell->parameters[CellParams::VZ_R] = 0.0;
              cell->parameters[CellParams::RHOQ_R  ] = 0.0;
              cell->parameters[CellParams::P_11_R] = 0.0;
              cell->parameters[CellParams::P_22_R] = 0.0;
@@ -228,26 +232,33 @@ void calculateMoments_R_maxdt(
                 cell->set_max_r_dt(popID,min(dt_max_cell,cell->get_max_r_dt(popID)));
              }
 
-             const Real massRatio = getObjectWrapper().particleSpecies[popID].mass / physicalconstants::MASS_PROTON;
              blockVelocityFirstMoments(data+blockLID*WID3,
                                        blockParams+blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS,
-                                       massRatio,array);
+                                       array);
           } // for-loop over velocity blocks
 
           // Store species' contribution to bulk velocity moments
           Population & pop = cell->get_population(popID);
           pop.RHO_R = array[0];
-          pop.RHOV_R[0] = array[1];
-          pop.RHOV_R[1] = array[2];
-          pop.RHOV_R[2] = array[3];
+          pop.V_R[0] = divideIfNonZero(array[1], array[0]);
+          pop.V_R[1] = divideIfNonZero(array[2], array[0]);
+          pop.V_R[2] = divideIfNonZero(array[3], array[0]);
           
           cell->parameters[CellParams::RHOM_R  ] += array[0]*mass;
-          cell->parameters[CellParams::RHOMVX_R] += array[1]*mass;
-          cell->parameters[CellParams::RHOMVY_R] += array[2]*mass;
-          cell->parameters[CellParams::RHOMVZ_R] += array[3]*mass;
+          cell->parameters[CellParams::VX_R] += array[1]*mass;
+          cell->parameters[CellParams::VY_R] += array[2]*mass;
+          cell->parameters[CellParams::VZ_R] += array[3]*mass;
           cell->parameters[CellParams::RHOQ_R  ] += array[0]*charge;
        } // for-loop over spatial cells
     } // for-loop over particle species
+    
+    #pragma omp parallel for
+    for (size_t c=0; c<cells.size(); ++c) {
+       SpatialCell* cell = mpiGrid[cells[c]];
+       cell->parameters[CellParams::VX_R] /= cell->parameters[CellParams::RHOM_R];
+       cell->parameters[CellParams::VY_R] /= cell->parameters[CellParams::RHOM_R];
+       cell->parameters[CellParams::VZ_R] /= cell->parameters[CellParams::RHOM_R];
+    }
 
    // Compute second moments only if requested.
    if (computeSecond == false) {
@@ -258,7 +269,6 @@ void calculateMoments_R_maxdt(
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       #pragma omp parallel for
       for (size_t c=0; c<cells.size(); ++c) {
-         const CellID cellID = cells[c];
          SpatialCell* cell = mpiGrid[cells[c]];
        
          vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
@@ -276,8 +286,9 @@ void calculateMoments_R_maxdt(
          for (vmesh::LocalID blockLID=0; blockLID<blockContainer.size(); ++blockLID) {
             blockVelocitySecondMoments(data+blockLID*WID3,
                                        blockParams+blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS,
-                                       pop.RHO_R,
-                                       pop.RHOV_R,
+                                       cell->parameters[CellParams::VX_R],
+                                       cell->parameters[CellParams::VY_R],
+                                       cell->parameters[CellParams::VZ_R],
                                        array);
          } // for-loop over velocity blocks
 
@@ -314,15 +325,14 @@ void calculateMoments_V(
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       #pragma omp parallel for
       for (size_t c=0; c<cells.size(); ++c) {
-         const CellID cellID = cells[c];
          SpatialCell* cell = mpiGrid[cells[c]];
          
          // Clear old moments to zero value
          if (popID == 0) {
              cell->parameters[CellParams::RHOM_V  ] = 0.0;
-             cell->parameters[CellParams::RHOMVX_V] = 0.0;
-             cell->parameters[CellParams::RHOMVY_V] = 0.0;
-             cell->parameters[CellParams::RHOMVZ_V] = 0.0;
+             cell->parameters[CellParams::VX_V] = 0.0;
+             cell->parameters[CellParams::VY_V] = 0.0;
+             cell->parameters[CellParams::VZ_V] = 0.0;
              cell->parameters[CellParams::RHOQ_V  ] = 0.0;
              cell->parameters[CellParams::P_11_V] = 0.0;
              cell->parameters[CellParams::P_22_V] = 0.0;
@@ -340,29 +350,35 @@ void calculateMoments_V(
          Real array[4];
          for (int i=0; i<4; ++i) array[i] = 0.0;
 
-         const Real massRatio = getObjectWrapper().particleSpecies[popID].mass / physicalconstants::MASS_PROTON;
-
          // Calculate species' contribution to first velocity moments
          for (vmesh::LocalID blockLID=0; blockLID<blockContainer.size(); ++blockLID) {
             blockVelocityFirstMoments(data+blockLID*WID3,
                                       blockParams+blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS,
-                                      massRatio,array);
+                                      array);
          }
          
          // Store species' contribution to bulk velocity moments
          Population & pop = cell->get_population(popID);
          pop.RHO_V = array[0];
-         pop.RHOV_V[0] = array[1];
-         pop.RHOV_V[1] = array[2];
-         pop.RHOV_V[2] = array[3];
+         pop.V_V[0] = divideIfNonZero(array[1], array[0]);
+         pop.V_V[1] = divideIfNonZero(array[2], array[0]);
+         pop.V_V[2] = divideIfNonZero(array[3], array[0]);
          
          cell->parameters[CellParams::RHOM_V  ] += array[0]*mass;
-         cell->parameters[CellParams::RHOMVX_V] += array[1]*mass;
-         cell->parameters[CellParams::RHOMVY_V] += array[2]*mass;
-         cell->parameters[CellParams::RHOMVZ_V] += array[3]*mass;
+         cell->parameters[CellParams::VX_V] += array[1]*mass;
+         cell->parameters[CellParams::VY_V] += array[2]*mass;
+         cell->parameters[CellParams::VZ_V] += array[3]*mass;
          cell->parameters[CellParams::RHOQ_V  ] += array[0]*charge;
       } // for-loop over spatial cells
    } // for-loop over particle species
+   
+   #pragma omp parallel for
+   for (size_t c=0; c<cells.size(); ++c) {
+      SpatialCell* cell = mpiGrid[cells[c]];
+      cell->parameters[CellParams::VX_V] /= cell->parameters[CellParams::RHOM_V];
+      cell->parameters[CellParams::VY_V] /= cell->parameters[CellParams::RHOM_V];
+      cell->parameters[CellParams::VZ_V] /= cell->parameters[CellParams::RHOM_V];
+   }
 
    // Compute second moments only if requested
    if (computeSecond == false) {
@@ -373,7 +389,6 @@ void calculateMoments_V(
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       #pragma omp parallel for
       for (size_t c=0; c<cells.size(); ++c) {
-         const CellID cellID = cells[c];
          SpatialCell* cell = mpiGrid[cells[c]];
 
          vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
@@ -392,8 +407,9 @@ void calculateMoments_V(
             blockVelocitySecondMoments(
                                        data+blockLID*WID3,
                                        blockParams+blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS,
-                                       pop.RHO_V,
-                                       pop.RHOV_V,
+                                       cell->parameters[CellParams::VX_V],
+                                       cell->parameters[CellParams::VY_V],
+                                       cell->parameters[CellParams::VZ_V],
                                        array);
          } // for-loop over velocity blocks
          

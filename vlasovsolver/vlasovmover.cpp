@@ -489,9 +489,9 @@ momentCalculation:
 void calculateInterpolatedVelocityMoments(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const int cp_rhom,
-   const int cp_rhomvx,
-   const int cp_rhomvy,
-   const int cp_rhomvz,
+   const int cp_vx,
+   const int cp_vy,
+   const int cp_vz,
    const int cp_rhoq,
    const int cp_p11,
    const int cp_p22,
@@ -506,9 +506,9 @@ void calculateInterpolatedVelocityMoments(
       SpatialCell* SC = mpiGrid[cellID];
       if(SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
          SC->parameters[cp_rhom  ] = 0.5* ( SC->parameters[CellParams::RHOM_R] + SC->parameters[CellParams::RHOM_V] );
-         SC->parameters[cp_rhomvx] = 0.5* ( SC->parameters[CellParams::RHOMVX_R] + SC->parameters[CellParams::RHOMVX_V] );
-         SC->parameters[cp_rhomvy] = 0.5* ( SC->parameters[CellParams::RHOMVY_R] + SC->parameters[CellParams::RHOMVY_V] );
-         SC->parameters[cp_rhomvz] = 0.5* ( SC->parameters[CellParams::RHOMVZ_R] + SC->parameters[CellParams::RHOMVZ_V] );
+         SC->parameters[cp_vx] = 0.5* ( SC->parameters[CellParams::VX_R] + SC->parameters[CellParams::VX_V] );
+         SC->parameters[cp_vy] = 0.5* ( SC->parameters[CellParams::VY_R] + SC->parameters[CellParams::VY_V] );
+         SC->parameters[cp_vz] = 0.5* ( SC->parameters[CellParams::VZ_R] + SC->parameters[CellParams::VZ_V] );
          SC->parameters[cp_rhoq  ] = 0.5* ( SC->parameters[CellParams::RHOQ_R] + SC->parameters[CellParams::RHOQ_V] );
          SC->parameters[cp_p11]   = 0.5* ( SC->parameters[CellParams::P_11_R] + SC->parameters[CellParams::P_11_V] );
          SC->parameters[cp_p22]   = 0.5* ( SC->parameters[CellParams::P_22_R] + SC->parameters[CellParams::P_22_V] );
@@ -518,7 +518,7 @@ void calculateInterpolatedVelocityMoments(
             spatial_cell::Population& pop = SC->get_population(popID);
             pop.RHO = 0.5 * ( pop.RHO_R + pop.RHO_V );
             for(int i=0; i<3; i++) {
-               pop.RHOV[i] = 0.5 * ( pop.RHOV_R[i] + pop.RHOV_V[i] );
+               pop.V[i] = 0.5 * ( pop.V_R[i] + pop.V_V[i] );
                pop.P[i]    = 0.5 * ( pop.P_R[i] + pop.P_V[i] );
             }
          }
@@ -541,9 +541,9 @@ void calculateInitialVelocityMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_G
       // We need initialized _DT2 values for the dt=0 field propagation done in the beginning.
       // Later these will be set properly.
       SC->parameters[CellParams::RHOM_DT2] = SC->parameters[CellParams::RHOM];
-      SC->parameters[CellParams::RHOMVX_DT2] = SC->parameters[CellParams::RHOMVX];
-      SC->parameters[CellParams::RHOMVY_DT2] = SC->parameters[CellParams::RHOMVY];
-      SC->parameters[CellParams::RHOMVZ_DT2] = SC->parameters[CellParams::RHOMVZ];
+      SC->parameters[CellParams::VX_DT2] = SC->parameters[CellParams::VX];
+      SC->parameters[CellParams::VY_DT2] = SC->parameters[CellParams::VY];
+      SC->parameters[CellParams::VZ_DT2] = SC->parameters[CellParams::VZ];
       SC->parameters[CellParams::RHOQ_DT2] = SC->parameters[CellParams::RHOQ];
       SC->parameters[CellParams::P_11_DT2] = SC->parameters[CellParams::P_11];
       SC->parameters[CellParams::P_22_DT2] = SC->parameters[CellParams::P_22];
