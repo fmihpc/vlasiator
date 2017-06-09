@@ -376,10 +376,10 @@ namespace DRO {
       
    };
    
-   class VariableRhomBackstream: public DataReductionOperator {
+   class VariableRhoBackstream: public DataReductionOperator {
    public:
-      VariableRhomBackstream();
-      virtual ~VariableRhomBackstream();
+      VariableRhoBackstream(cuint popID);
+      virtual ~VariableRhoBackstream();
      
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
       virtual std::string getName() const;
@@ -387,13 +387,15 @@ namespace DRO {
       virtual bool setSpatialCell(const SpatialCell* cell);
      
    protected:
-   Real RhomBackstream;
+      Real RhoBackstream;
+      uint _popID;
+      std::string _name;
    };
 
-   class VariableRhomNonBackstream: public DataReductionOperator {
+   class VariableRhoNonBackstream: public DataReductionOperator {
    public:
-      VariableRhomNonBackstream();
-      virtual ~VariableRhomNonBackstream();
+      VariableRhoNonBackstream(cuint popID);
+      virtual ~VariableRhoNonBackstream();
      
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
       virtual std::string getName() const;
@@ -401,13 +403,15 @@ namespace DRO {
       virtual bool setSpatialCell(const SpatialCell* cell);
      
    protected:
-   Real Rhom;
+      Real Rho;
+      uint _popID;
+      std::string _name;
    };
 
 
    class VariableVBackstream: public DataReductionOperator {
    public:
-      VariableVBackstream();
+      VariableVBackstream(cuint popID);
       virtual ~VariableVBackstream();
      
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
@@ -417,11 +421,13 @@ namespace DRO {
      
    protected:
       Real VBackstream[3];
+      uint _popID;
+      std::string _name;
    };
 
    class VariableVNonBackstream: public DataReductionOperator {
    public:
-      VariableVNonBackstream();
+      VariableVNonBackstream(cuint popID);
       virtual ~VariableVNonBackstream();
 
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
@@ -431,11 +437,13 @@ namespace DRO {
 
    protected:
       Real V[3];
+      uint _popID;
+      std::string _name;
    };
 
    class VariablePressureBackstream: public DataReductionOperator {
    public:
-      VariablePressureBackstream();
+      VariablePressureBackstream(cuint popID);
       virtual ~VariablePressureBackstream();
 
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
@@ -446,11 +454,13 @@ namespace DRO {
    protected:
       Real averageVX, averageVY, averageVZ;
       Real Pressure;
+      uint _popID;
+      std::string _name;
    };
 
    class VariablePressureNonBackstream: public DataReductionOperator {
    public:
-      VariablePressureNonBackstream();
+      VariablePressureNonBackstream(cuint popID);
       virtual ~VariablePressureNonBackstream();
 
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
@@ -461,11 +471,13 @@ namespace DRO {
    protected:
       Real averageVX, averageVY, averageVZ;
       Real Pressure;
+      uint _popID;
+      std::string _name;
    };
 
    class VariablePTensorBackstreamDiagonal: public DataReductionOperator {
    public:
-      VariablePTensorBackstreamDiagonal();
+      VariablePTensorBackstreamDiagonal(cuint popID);
       virtual ~VariablePTensorBackstreamDiagonal();
       
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
@@ -476,11 +488,13 @@ namespace DRO {
    protected:
       Real averageVX, averageVY, averageVZ;
       Real PTensor[3];
+      uint _popID;
+      std::string _name;
    };
 
    class VariablePTensorNonBackstreamDiagonal: public DataReductionOperator {
    public:
-      VariablePTensorNonBackstreamDiagonal();
+      VariablePTensorNonBackstreamDiagonal(cuint popID);
       virtual ~VariablePTensorNonBackstreamDiagonal();
 
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
@@ -491,11 +505,13 @@ namespace DRO {
    protected:
       Real averageVX, averageVY, averageVZ;
       Real PTensor[3];
+      uint _popID;
+      std::string _name;
    };
 
    class VariablePTensorBackstreamOffDiagonal: public DataReductionOperator {
    public:
-      VariablePTensorBackstreamOffDiagonal();
+      VariablePTensorBackstreamOffDiagonal(cuint popID);
       virtual ~VariablePTensorBackstreamOffDiagonal();
 
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
@@ -506,11 +522,13 @@ namespace DRO {
    protected:
       Real averageVX, averageVY, averageVZ;
       Real PTensor[3];
+      uint _popID;
+      std::string _name;
    };
 
    class VariablePTensorNonBackstreamOffDiagonal: public DataReductionOperator {
    public:
-      VariablePTensorNonBackstreamOffDiagonal();
+      VariablePTensorNonBackstreamOffDiagonal(cuint popID);
       virtual ~VariablePTensorNonBackstreamOffDiagonal();
 
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
@@ -521,6 +539,8 @@ namespace DRO {
    protected:
       Real averageVX, averageVY, averageVZ;
       Real PTensor[3];
+      uint _popID;
+      std::string _name;
    };
    
    class VariableMinValue: public DataReductionOperator {
