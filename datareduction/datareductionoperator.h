@@ -267,7 +267,7 @@ namespace DRO {
    
    class VariablePTensorDiagonal: public DataReductionOperator {
    public:
-      VariablePTensorDiagonal();
+      VariablePTensorDiagonal(cuint popID);
       virtual ~VariablePTensorDiagonal();
       
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
@@ -278,11 +278,13 @@ namespace DRO {
    protected:
       Real averageVX, averageVY, averageVZ;
       Real PTensor[3];
+      uint _popID;
+      std::string _name;
    };
    
    class VariablePTensorOffDiagonal: public DataReductionOperator {
    public:
-      VariablePTensorOffDiagonal();
+      VariablePTensorOffDiagonal(cuint popID);
       virtual ~VariablePTensorOffDiagonal();
       
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
@@ -293,6 +295,8 @@ namespace DRO {
    protected:
       Real averageVX, averageVY, averageVZ;
       Real PTensor[3];
+      uint _popID;
+      std::string _name;
    };
    
    class DiagnosticFluxB: public DataReductionOperator {
