@@ -108,10 +108,6 @@ namespace projects {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
-      if(!RP::get("ionosphere.taperRadius", this->ionosphereTaperRadius)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
       if(!RP::get("ionosphere.centerX", this->center[0])) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
@@ -179,6 +175,10 @@ namespace projects {
          }
          if(!RP::get(pop + "_ionosphere.VZ0", sP.ionosphereV0[2])) {
             if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
+            exit(1);
+         }
+         if(!RP::get(pop + "_ionosphere.taperRadius", sP.ionosphereTaperRadius)) {
+            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
             exit(1);
          }
 
@@ -372,12 +372,12 @@ namespace projects {
             abort();
       }
       
-      if(radius < this->ionosphereTaperRadius) {
+      if(radius < sP.ionosphereTaperRadius) {
          // linear tapering
          //initRho = this->ionosphereRho - (ionosphereRho-tailRho)*(radius-this->ionosphereRadius) / (this->ionosphereTaperRadius-this->ionosphereRadius);
          
          // sine tapering
-         initRho = sP.rho - (sP.rho-sP.ionosphereRho)*0.5*(1.0+sin(M_PI*(radius-this->ionosphereRadius)/(this->ionosphereTaperRadius-this->ionosphereRadius)+0.5*M_PI));
+         initRho = sP.rho - (sP.rho-sP.ionosphereRho)*0.5*(1.0+sin(M_PI*(radius-this->ionosphereRadius)/(sP.ionosphereTaperRadius-this->ionosphereRadius)+0.5*M_PI));
          if(radius < this->ionosphereRadius) {
             // Just to be safe, there are observed cases where this failed.
             initRho = sP.ionosphereRho;
@@ -426,12 +426,12 @@ namespace projects {
             abort();
       }
       
-      if(radius < this->ionosphereTaperRadius) {
+      if(radius < sP.ionosphereTaperRadius) {
          // linear tapering
          //initV0[i] *= (radius-this->ionosphereRadius) / (this->ionosphereTaperRadius-this->ionosphereRadius);
          
          // sine tapering
-         Real q=0.5*(1.0-sin(M_PI*(radius-this->ionosphereRadius)/(this->ionosphereTaperRadius-this->ionosphereRadius)+0.5*M_PI));
+         Real q=0.5*(1.0-sin(M_PI*(radius-this->ionosphereRadius)/(sP.ionosphereTaperRadius-this->ionosphereRadius)+0.5*M_PI));
          
          for(uint i=0; i<3; i++) {
             V0[i]=q*(V0[i]-ionosphereV0[i])+ionosphereV0[i];

@@ -34,6 +34,7 @@ namespace projects {
       Real V0[3];
       Real ionosphereV0[3];
       Real ionosphereRho;
+      Real ionosphereTaperRadius;
       uint nSpaceSamples;
       uint nVelocitySamples;
    };
@@ -73,7 +74,6 @@ namespace projects {
       Real constBgB[3];
       bool noDipoleInSW;
       Real ionosphereRadius;
-      Real ionosphereTaperRadius;
       uint ionosphereGeometry;
       Real center[3];
       Real dipoleScalingFactor;
