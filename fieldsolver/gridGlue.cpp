@@ -22,18 +22,20 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
       std::array<Real, fsgrids::moments::N_MOMENTS>* thisCellData = &transferBuffer[i];
     
       if(!dt2) {
-         thisCellData->at(fsgrids::moments::RHO) = cellParams[CellParams::RHO];
-         thisCellData->at(fsgrids::moments::RHOVX) = cellParams[CellParams::RHOVX];
-         thisCellData->at(fsgrids::moments::RHOVY) = cellParams[CellParams::RHOVY];
-         thisCellData->at(fsgrids::moments::RHOVZ) = cellParams[CellParams::RHOVZ];
+         thisCellData->at(fsgrids::moments::RHOM) = cellParams[CellParams::RHOM];
+         thisCellData->at(fsgrids::moments::RHOQ) = cellParams[CellParams::RHOQ];
+         thisCellData->at(fsgrids::moments::VX) = cellParams[CellParams::VX];
+         thisCellData->at(fsgrids::moments::VY) = cellParams[CellParams::VY];
+         thisCellData->at(fsgrids::moments::VZ) = cellParams[CellParams::VZ];
          thisCellData->at(fsgrids::moments::P_11) = cellParams[CellParams::P_11];
          thisCellData->at(fsgrids::moments::P_22) = cellParams[CellParams::P_22];
          thisCellData->at(fsgrids::moments::P_33) = cellParams[CellParams::P_33];
       } else {
-         thisCellData->at(fsgrids::moments::RHO) = cellParams[CellParams::RHO_DT2];
-         thisCellData->at(fsgrids::moments::RHOVX) = cellParams[CellParams::RHOVX_DT2];
-         thisCellData->at(fsgrids::moments::RHOVY) = cellParams[CellParams::RHOVY_DT2];
-         thisCellData->at(fsgrids::moments::RHOVZ) = cellParams[CellParams::RHOVZ_DT2];
+         thisCellData->at(fsgrids::moments::RHOM) = cellParams[CellParams::RHOM_DT2];
+         thisCellData->at(fsgrids::moments::RHOQ) = cellParams[CellParams::RHOQ_DT2];
+         thisCellData->at(fsgrids::moments::VX) = cellParams[CellParams::VX_DT2];
+         thisCellData->at(fsgrids::moments::VY) = cellParams[CellParams::VY_DT2];
+         thisCellData->at(fsgrids::moments::VZ) = cellParams[CellParams::VZ_DT2];
          thisCellData->at(fsgrids::moments::P_11) = cellParams[CellParams::P_11_DT2];
          thisCellData->at(fsgrids::moments::P_22) = cellParams[CellParams::P_22_DT2];
          thisCellData->at(fsgrids::moments::P_33) = cellParams[CellParams::P_33_DT2];
@@ -181,9 +183,12 @@ void getDerivativesFromFsGrid(FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>,
       std::array<Real, fsgrids::bgbfield::N_BGB>* bgbfield = &bgbfieldTransferBuffer[i];
       auto cellParams = mpiGrid[cells[i]]->get_cell_parameters();
 
-      mpiGrid[cells[i]]->derivatives[fieldsolver::drhodx] = dmoments->at(fsgrids::dmoments::drhodx);
-      mpiGrid[cells[i]]->derivatives[fieldsolver::drhody] = dmoments->at(fsgrids::dmoments::drhody);
-      mpiGrid[cells[i]]->derivatives[fieldsolver::drhodz] = dmoments->at(fsgrids::dmoments::drhodz);
+      mpiGrid[cells[i]]->derivatives[fieldsolver::drhomdx] = dmoments->at(fsgrids::dmoments::drhomdx);
+      mpiGrid[cells[i]]->derivatives[fieldsolver::drhomdy] = dmoments->at(fsgrids::dmoments::drhomdy);
+      mpiGrid[cells[i]]->derivatives[fieldsolver::drhomdz] = dmoments->at(fsgrids::dmoments::drhomdz);
+      mpiGrid[cells[i]]->derivatives[fieldsolver::drhoqdx] = dmoments->at(fsgrids::dmoments::drhoqdx);
+      mpiGrid[cells[i]]->derivatives[fieldsolver::drhoqdy] = dmoments->at(fsgrids::dmoments::drhoqdy);
+      mpiGrid[cells[i]]->derivatives[fieldsolver::drhoqdz] = dmoments->at(fsgrids::dmoments::drhoqdz);
       mpiGrid[cells[i]]->derivatives[fieldsolver::dp11dx] = dmoments->at(fsgrids::dmoments::dp11dx);
       mpiGrid[cells[i]]->derivatives[fieldsolver::dp11dy] = dmoments->at(fsgrids::dmoments::dp11dy);
       mpiGrid[cells[i]]->derivatives[fieldsolver::dp11dz] = dmoments->at(fsgrids::dmoments::dp11dz);

@@ -118,8 +118,9 @@ namespace projects {
 
    Real Distributions::getDistribValue(
       creal& x, creal& y, creal& z,
-      creal& vx, creal& vy, creal& vz
-   ) {
+      creal& vx, creal& vy, creal& vz,
+      const uint popID
+   ) const {
       Real value = 0.0;
       creal relx = x/(Parameters::xmax - Parameters::xmin);
       creal rely = y/(Parameters::ymax - Parameters::ymin);
@@ -137,8 +138,8 @@ namespace projects {
       return value;
    }
 
-   Real Distributions::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const int& popID) {   
-      return getDistribValue(x+0.5*dx, y+0.5*dy,z+0.5*dz,vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz);
+   Real Distributions::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {   
+      return getDistribValue(x+0.5*dx, y+0.5*dy,z+0.5*dz,vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, popID);
    }
 
    void Distributions::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
@@ -171,8 +172,9 @@ namespace projects {
    vector<std::array<Real, 3>> Distributions::getV0(
       creal x,
       creal y,
-      creal z
-   ) {
+      creal z,
+      const uint popID
+   ) const {
       vector<std::array<Real, 3>> centerPoints;
       creal relx = x/(Parameters::xmax - Parameters::xmin);
       creal rely = y/(Parameters::ymax - Parameters::ymin);

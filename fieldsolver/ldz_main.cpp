@@ -173,7 +173,7 @@ bool propagateFields(
    FsGrid< fsgrids::technical, 2> & technicalGrid,
    SysBoundary& sysBoundaries,
    creal& dt,
-   cint& subcycles
+   cuint subcycles
 ) {
    
    if(subcycles == 0) {

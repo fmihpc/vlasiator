@@ -54,13 +54,19 @@ namespace SBC {
       Readparameters::add("ionosphere.centerZ", "Z coordinate of ionosphere center (m)", 0.0);
       Readparameters::add("ionosphere.radius", "Radius of ionosphere (m).", 1.0e7);
       Readparameters::add("ionosphere.geometry", "Select the geometry of the ionosphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm (circle, DEFAULT), 3: 2-norm cylinder aligned with y-axis, use with polar plane/line dipole.", 2);
-      Readparameters::add("ionosphere.rho", "Number density of the ionosphere (m^-3)", 1.0e6);
-      Readparameters::add("ionosphere.VX0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", 0.0);
-      Readparameters::add("ionosphere.VY0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", 0.0);
-      Readparameters::add("ionosphere.VZ0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", 0.0);
-      Readparameters::add("ionosphere.taperRadius", "Width of the zone with a density tapering from the ionospheric value to the background (m)", 0.0);
       Readparameters::add("ionosphere.precedence", "Precedence value of the ionosphere system boundary condition (integer), the higher the stronger.", 2);
       Readparameters::add("ionosphere.reapplyUponRestart", "If 0 (default), keep going with the state existing in the restart file. If 1, calls again applyInitialState. Can be used to change boundary condition behaviour during a run.", 0);
+
+      // Per-population parameters
+      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+         
+         Readparameters::add(pop + "_ionosphere.taperRadius", "Width of the zone with a density tapering from the ionospheric value to the background (m)", 0.0);
+         Readparameters::add(pop + "_ionosphere.rho", "Number density of the ionosphere (m^-3)", 1.0e6);
+         Readparameters::add(pop + "_ionosphere.VX0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", 0.0);
+         Readparameters::add(pop + "_ionosphere.VY0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", 0.0);
+         Readparameters::add(pop + "_ionosphere.VZ0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", 0.0);
+      }
    }
    
    void Ionosphere::getParameters() {
@@ -86,35 +92,7 @@ namespace SBC {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
-      if(!Readparameters::get("ionosphere.rho", this->rho)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!Readparameters::get("ionosphere.VX0", this->VX0)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!Readparameters::get("ionosphere.VY0", this->VY0)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!Readparameters::get("ionosphere.VZ0", this->VZ0)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!Readparameters::get("Magnetosphere.T", this->T)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
       if(!Readparameters::get("ionosphere.precedence", this->precedence)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!Readparameters::get("Magnetosphere.nSpaceSamples", this->nSpaceSamples)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!Readparameters::get("Magnetosphere.nVelocitySamples", this->nVelocitySamples)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
@@ -126,6 +104,42 @@ namespace SBC {
       this->applyUponRestart = false;
       if(reapply == 1) {
          this->applyUponRestart = true;
+      }
+
+      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+        const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+        IonosphereSpeciesParameters sP;
+
+        if(!Readparameters::get(pop + "_ionosphere.rho", sP.rho)) {
+           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
+           exit(1);
+        }
+        if(!Readparameters::get(pop + "_ionosphere.VX0", sP.V0[0])) {
+           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
+           exit(1);
+        }
+        if(!Readparameters::get(pop + "_ionosphere.VY0", sP.V0[1])) {
+           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
+           exit(1);
+        }
+        if(!Readparameters::get(pop + "_ionosphere.VZ0", sP.V0[2])) {
+           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
+           exit(1);
+        }
+        if(!Readparameters::get(pop + "_Magnetosphere.T", sP.T)) {
+           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
+           exit(1);
+        }
+        if(!Readparameters::get(pop + "_Magnetosphere.nSpaceSamples", sP.nSpaceSamples)) {
+           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
+           exit(1);
+        }
+        if(!Readparameters::get(pop + "_Magnetosphere.nVelocitySamples", sP.nVelocitySamples)) {
+           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
+           exit(1);
+        }
+
+        speciesParams.push_back(sP);
       }
    }
    
@@ -197,7 +211,7 @@ namespace SBC {
          SpatialCell* cell = mpiGrid[cells[i]];
          if (cell->sysBoundaryFlag != this->getIndex()) continue;
          
-         for (unsigned int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
+         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
             setCellFromTemplate(cell,popID);
       }
       return true;
@@ -614,7 +628,7 @@ namespace SBC {
    void Ionosphere::vlasovBoundaryCondition(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
-      const int& popID
+      const uint popID
    ) {
 //       phiprof::start("vlasovBoundaryCondition (Ionosphere)");
 //       const SpatialCell * cell = mpiGrid[cellID];
@@ -638,7 +652,8 @@ namespace SBC {
       templateCell.parameters[CellParams::DZ] = 1;
       
       // Loop over particle species
-      for (unsigned int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         const IonosphereSpeciesParameters& sP = this->speciesParams[popID];
          const vector<vmesh::GlobalID> blocksToInitialize = findBlocksToInitialize(templateCell,popID);
          Realf* data = templateCell.get_data(popID);
          
@@ -666,13 +681,13 @@ namespace SBC {
                creal vyCell = vyBlock + jc*dvyCell;
                creal vzCell = vzBlock + kc*dvzCell;
                Real average = 0.0;
-               if(this->nVelocitySamples > 1) {
-                  creal d_vx = dvxCell / (nVelocitySamples-1);
-                  creal d_vy = dvyCell / (nVelocitySamples-1);
-                  creal d_vz = dvzCell / (nVelocitySamples-1);
-                  for (uint vi=0; vi<nVelocitySamples; ++vi)
-                     for (uint vj=0; vj<nVelocitySamples; ++vj)
-                        for (uint vk=0; vk<nVelocitySamples; ++vk) {
+               if(sP.nVelocitySamples > 1) {
+                  creal d_vx = dvxCell / (sP.nVelocitySamples-1);
+                  creal d_vy = dvyCell / (sP.nVelocitySamples-1);
+                  creal d_vz = dvzCell / (sP.nVelocitySamples-1);
+                  for (uint vi=0; vi<sP.nVelocitySamples; ++vi)
+                     for (uint vj=0; vj<sP.nVelocitySamples; ++vj)
+                        for (uint vk=0; vk<sP.nVelocitySamples; ++vk) {
                            average +=  shiftedMaxwellianDistribution(
                                                                      popID,
                                                                      vxCell + vi*d_vx,
@@ -680,7 +695,7 @@ namespace SBC {
                                                                      vzCell + vk*d_vz
                                                                     );
                         }
-                  average /= this->nVelocitySamples * this->nVelocitySamples * this->nVelocitySamples;
+                  average /= sP.nVelocitySamples * sP.nVelocitySamples * sP.nVelocitySamples;
                } else {
                   average = shiftedMaxwellianDistribution(
                                                           popID,
@@ -703,27 +718,28 @@ namespace SBC {
       calculateCellMoments(&templateCell,true,true);
 
       // WARNING Time-independence assumed here. Normal moments computed in setProjectCell
-      templateCell.parameters[CellParams::RHO_DT2] = templateCell.parameters[CellParams::RHO];
-      templateCell.parameters[CellParams::RHOVX_DT2] = templateCell.parameters[CellParams::RHOVX];
-      templateCell.parameters[CellParams::RHOVY_DT2] = templateCell.parameters[CellParams::RHOVY];
-      templateCell.parameters[CellParams::RHOVZ_DT2] = templateCell.parameters[CellParams::RHOVZ];
+      templateCell.parameters[CellParams::RHOM_DT2] = templateCell.parameters[CellParams::RHOM];
+      templateCell.parameters[CellParams::VX_DT2] = templateCell.parameters[CellParams::VX];
+      templateCell.parameters[CellParams::VY_DT2] = templateCell.parameters[CellParams::VY];
+      templateCell.parameters[CellParams::VZ_DT2] = templateCell.parameters[CellParams::VZ];
+      templateCell.parameters[CellParams::RHOQ_DT2] = templateCell.parameters[CellParams::RHOQ];
    }
    
    Real Ionosphere::shiftedMaxwellianDistribution(
-      const int& popID,
+      const uint popID,
       creal& vx, creal& vy, creal& vz
    ) {
       
-      #warning All species have the same VX0,VY0,VZ0,T
       const Real MASS = getObjectWrapper().particleSpecies[popID].mass;
+      const IonosphereSpeciesParameters& sP = this->speciesParams[popID];
 
-      return this->rho * pow(MASS /
-      (2.0 * M_PI * physicalconstants::K_B * this->T), 1.5) *
-      exp(-MASS * ((vx-this->VX0)*(vx-this->VX0) + (vy-this->VY0)*(vy-this->VY0) + (vz-this->VZ0)*(vz-this->VZ0)) /
-      (2.0 * physicalconstants::K_B * this->T));
+      return sP.rho * pow(MASS /
+      (2.0 * M_PI * physicalconstants::K_B * sP.T), 1.5) *
+      exp(-MASS * ((vx-sP.V0[0])*(vx-sP.V0[0]) + (vy-sP.V0[1])*(vy-sP.V0[1]) + (vz-sP.V0[2])*(vz-sP.V0[2])) /
+      (2.0 * physicalconstants::K_B * sP.T));
    }
 
-   std::vector<vmesh::GlobalID> Ionosphere::findBlocksToInitialize(spatial_cell::SpatialCell& cell,const int& popID) {
+   std::vector<vmesh::GlobalID> Ionosphere::findBlocksToInitialize(spatial_cell::SpatialCell& cell,const uint popID) {
       vector<vmesh::GlobalID> blocksToInitialize;
       bool search = true;
       uint counter = 0;
@@ -777,13 +793,7 @@ namespace SBC {
       return blocksToInitialize;
    }
 
-   void Ionosphere::setCellFromTemplate(SpatialCell* cell,const int& popID) {
-      // The ionospheric cell has the same state as the initial state of non-system boundary cells so far.
-      if (popID == 0) {
-         cell->parameters[CellParams::RHOLOSSADJUST] = 0.0;
-         cell->parameters[CellParams::RHOLOSSVELBOUNDARY] = 0.0;
-      }
-
+   void Ionosphere::setCellFromTemplate(SpatialCell* cell,const uint popID) {
       //Copy, and allow to change blocks
       copyCellData(&templateCell,cell,true,false,popID);
    }

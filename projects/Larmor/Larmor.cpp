@@ -78,16 +78,16 @@ namespace projects {
       RP::get("Larmor.Scale_y", this->SCA_Y);
     }
 
-    Real Larmor::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz) {
+    Real Larmor::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, const uint popID) const {
       creal kb = physicalconstants::K_B;
-      creal mass = physicalconstants::MASS_PROTON;
+      creal mass = getObjectWrapper().particleSpecies[popID].mass;
       
       return exp(- mass * ((vx-this->VX0)*(vx-this->VX0) + (vy-this->VY0)*(vy-this->VY0)+ (vz-this->VZ0)*(vz-this->VZ0)) / (2.0 * kb * this->TEMPERATURE))*
       exp(-pow(x-Parameters::xmax/2.5, 2.0)/pow(this->SCA_X, 2.0))*exp(-pow(y-Parameters::ymax/2.0, 2.0)/pow(this->SCA_Y, 2.0));
     }
 
     Real Larmor::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, 
-            creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const int& popID) {
+            creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
        const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
       vmesh::MeshParameters& meshParams = getObjectWrapper().velocityMeshes[meshID];
       if (vx < meshParams.meshMinLimits[0] + 0.5*dvx ||
@@ -99,7 +99,7 @@ namespace projects {
          return 0.0;
       }
 
-      creal mass = physicalconstants::MASS_PROTON;
+      creal mass = getObjectWrapper().particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
 
       creal d_x = dx / (this->nSpaceSamples-1);
@@ -117,7 +117,7 @@ namespace projects {
                   for (uint vj=0; vj<this->nVelocitySamples; ++vj)
                      for (uint vk=0; vk<this->nVelocitySamples; ++vk)
                      {
-                        avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz);
+                        avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, popID);
                      }
       
       creal result = avg *this->DENSITY * pow(mass / (2.0 * M_PI * kb * this->TEMPERATURE), 1.5) /

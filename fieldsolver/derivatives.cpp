@@ -28,7 +28,7 @@
 
 /*! \brief Low-level spatial derivatives calculation.
  * 
- * For the cell with ID cellID calculate the spatial derivatives or apply the derivative boundary conditions defined in project.h. Uses RHO, RHOV[XYZ] and B[XYZ] in the first-order time accuracy method and in the second step of the second-order method, and RHO_DT2, RHOV[XYZ]1 and B[XYZ]1 in the first step of the second-order method.
+ * For the cell with ID cellID calculate the spatial derivatives or apply the derivative boundary conditions defined in project.h. Uses RHO, V[XYZ] and B[XYZ] in the first-order time accuracy method and in the second step of the second-order method, and RHO_DT2, V[XYZ]1 and B[XYZ]1 in the first step of the second-order method.
  * \param sysBoundaries System boundary conditions existing
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  * 
@@ -58,9 +58,9 @@ void calculateDerivatives(
    std::array<Real, fsgrids::moments::N_MOMENTS> * centMoments = momentsGrid.get(i,j,k);
    std::array<Real, fsgrids::bfield::N_BFIELD> * centPerB = perBGrid.get(i,j,k);
    #ifdef DEBUG_SOLVERS
-   if (centMoments->at(fsgrids::moments::RHO) <= 0) {
+   if (centMoments->at(fsgrids::moments::RHOM) <= 0) {
       std::cerr << __FILE__ << ":" << __LINE__
-         << (centMoments->at(fsgrids::moments::RHO) < 0 ? " Negative" : " Zero") << " density in spatial cell at (" << i << " " << j << " " << k << ")"
+         << (centMoments->at(fsgrids::moments::RHOM) < 0 ? " Negative" : " Zero") << " density in spatial cell at (" << i << " " << j << " " << k << ")"
          << std::endl;
       abort();
    }
@@ -79,21 +79,30 @@ void calculateDerivatives(
       rghtPerB = perBGrid.get(i+1,j,k);
       leftMoments = momentsGrid.get(i-1,j,k);
       rghtMoments = momentsGrid.get(i+1,j,k);
+      #ifdef DEBUG_SOLVERS
+      if (leftMoments->at(fsgrids::moments::RHOM) <= 0) {
+         std::cerr << __FILE__ << ":" << __LINE__
+            << (leftMoments->at(fsgrids::moments::RHOM) < 0 ? " Negative" : " Zero") << " density in spatial cell " << leftNbrID
+            << std::endl;
+         abort();
+      }
+      if (rightMoments->at(fsgrids::moments::RHOM) <= 0) {
+         std::cerr << __FILE__ << ":" << __LINE__
+            << (rightMoments->at(fsgrids::moments::RHOM) < 0 ? " Negative" : " Zero") << " density in spatial cell " << rightNbrID
+            << std::endl;
+         abort();
+      }
+      #endif
       
-      dMoments->at(fsgrids::dmoments::drhodx) = limiter(leftMoments->at(fsgrids::moments::RHO),centMoments->at(fsgrids::moments::RHO),rghtMoments->at(fsgrids::moments::RHO));
+      dMoments->at(fsgrids::dmoments::drhomdx) = limiter(leftMoments->at(fsgrids::moments::RHOM),centMoments->at(fsgrids::moments::RHOM),rghtMoments->at(fsgrids::moments::RHOM));
+      dMoments->at(fsgrids::dmoments::drhoqdx) = limiter(leftMoments->at(fsgrids::moments::RHOQ),centMoments->at(fsgrids::moments::RHOQ),rghtMoments->at(fsgrids::moments::RHOQ));
       dMoments->at(fsgrids::dmoments::dp11dx) = limiter(leftMoments->at(fsgrids::moments::P_11),centMoments->at(fsgrids::moments::P_11),rghtMoments->at(fsgrids::moments::P_11));
       dMoments->at(fsgrids::dmoments::dp22dx) = limiter(leftMoments->at(fsgrids::moments::P_22),centMoments->at(fsgrids::moments::P_22),rghtMoments->at(fsgrids::moments::P_22));
       dMoments->at(fsgrids::dmoments::dp33dx) = limiter(leftMoments->at(fsgrids::moments::P_33),centMoments->at(fsgrids::moments::P_33),rghtMoments->at(fsgrids::moments::P_33));
 
-      dMoments->at(fsgrids::dmoments::dVxdx)  = limiter(leftMoments->at(fsgrids::moments::RHOVX), leftMoments->at(fsgrids::moments::RHO),
-          centMoments->at(fsgrids::moments::RHOVX), centMoments->at(fsgrids::moments::RHO),
-          rghtMoments->at(fsgrids::moments::RHOVX), rghtMoments->at(fsgrids::moments::RHO));
-      dMoments->at(fsgrids::dmoments::dVydx)  = limiter(leftMoments->at(fsgrids::moments::RHOVY), leftMoments->at(fsgrids::moments::RHO),
-          centMoments->at(fsgrids::moments::RHOVY), centMoments->at(fsgrids::moments::RHO),
-          rghtMoments->at(fsgrids::moments::RHOVY), rghtMoments->at(fsgrids::moments::RHO));
-      dMoments->at(fsgrids::dmoments::dVzdx)  = limiter(leftMoments->at(fsgrids::moments::RHOVZ), leftMoments->at(fsgrids::moments::RHO),
-          centMoments->at(fsgrids::moments::RHOVZ), centMoments->at(fsgrids::moments::RHO),
-          rghtMoments->at(fsgrids::moments::RHOVZ), rghtMoments->at(fsgrids::moments::RHO));
+      dMoments->at(fsgrids::dmoments::dVxdx)  = limiter(leftMoments->at(fsgrids::moments::VX), centMoments->at(fsgrids::moments::VX), rghtMoments->at(fsgrids::moments::VX));
+      dMoments->at(fsgrids::dmoments::dVydx)  = limiter(leftMoments->at(fsgrids::moments::VY), centMoments->at(fsgrids::moments::VY), rghtMoments->at(fsgrids::moments::VY));
+      dMoments->at(fsgrids::dmoments::dVzdx)  = limiter(leftMoments->at(fsgrids::moments::VZ), centMoments->at(fsgrids::moments::VZ), rghtMoments->at(fsgrids::moments::VZ));
       dPerB->at(fsgrids::dperb::dPERBydx)  = limiter(leftPerB->at(fsgrids::bfield::PERBY),centPerB->at(fsgrids::bfield::PERBY),rghtPerB->at(fsgrids::bfield::PERBY));
       dPerB->at(fsgrids::dperb::dPERBzdx)  = limiter(leftPerB->at(fsgrids::bfield::PERBZ),centPerB->at(fsgrids::bfield::PERBZ),rghtPerB->at(fsgrids::bfield::PERBZ));
       if (Parameters::ohmHallTerm < 2 || sysBoundaryLayer == 1) {
@@ -119,19 +128,14 @@ void calculateDerivatives(
       leftMoments = momentsGrid.get(i,j-1,k);
       rghtMoments = momentsGrid.get(i,j+1,k);
       
-       dMoments->at(fsgrids::dmoments::drhody) = limiter(leftMoments->at(fsgrids::moments::RHO),centMoments->at(fsgrids::moments::RHO),rghtMoments->at(fsgrids::moments::RHO));
+       dMoments->at(fsgrids::dmoments::drhomdy) = limiter(leftMoments->at(fsgrids::moments::RHOM),centMoments->at(fsgrids::moments::RHOM),rghtMoments->at(fsgrids::moments::RHOM));
+       dMoments->at(fsgrids::dmoments::drhoqdy) = limiter(leftMoments->at(fsgrids::moments::RHOQ),centMoments->at(fsgrids::moments::RHOQ),rghtMoments->at(fsgrids::moments::RHOQ));
        dMoments->at(fsgrids::dmoments::dp11dy) = limiter(leftMoments->at(fsgrids::moments::P_11),centMoments->at(fsgrids::moments::P_11),rghtMoments->at(fsgrids::moments::P_11));
        dMoments->at(fsgrids::dmoments::dp22dy) = limiter(leftMoments->at(fsgrids::moments::P_22),centMoments->at(fsgrids::moments::P_22),rghtMoments->at(fsgrids::moments::P_22));
        dMoments->at(fsgrids::dmoments::dp33dy) = limiter(leftMoments->at(fsgrids::moments::P_33),centMoments->at(fsgrids::moments::P_33),rghtMoments->at(fsgrids::moments::P_33));
-       dMoments->at(fsgrids::dmoments::dVxdy)  = limiter(leftMoments->at(fsgrids::moments::RHOVX), leftMoments->at(fsgrids::moments::RHO),
-                                                     centMoments->at(fsgrids::moments::RHOVX), centMoments->at(fsgrids::moments::RHO),
-                                                     rghtMoments->at(fsgrids::moments::RHOVX), rghtMoments->at(fsgrids::moments::RHO));
-       dMoments->at(fsgrids::dmoments::dVydy)  = limiter(leftMoments->at(fsgrids::moments::RHOVY), leftMoments->at(fsgrids::moments::RHO),
-                                                     centMoments->at(fsgrids::moments::RHOVY), centMoments->at(fsgrids::moments::RHO),
-                                                     rghtMoments->at(fsgrids::moments::RHOVY), rghtMoments->at(fsgrids::moments::RHO));
-       dMoments->at(fsgrids::dmoments::dVzdy)  = limiter(leftMoments->at(fsgrids::moments::RHOVZ), leftMoments->at(fsgrids::moments::RHO),
-                                                     centMoments->at(fsgrids::moments::RHOVZ), centMoments->at(fsgrids::moments::RHO),
-                                                     rghtMoments->at(fsgrids::moments::RHOVZ), rghtMoments->at(fsgrids::moments::RHO));
+       dMoments->at(fsgrids::dmoments::dVxdy)  = limiter(leftMoments->at(fsgrids::moments::VX), centMoments->at(fsgrids::moments::VX), rghtMoments->at(fsgrids::moments::VX));
+       dMoments->at(fsgrids::dmoments::dVydy)  = limiter(leftMoments->at(fsgrids::moments::VY), centMoments->at(fsgrids::moments::VY), rghtMoments->at(fsgrids::moments::VY));
+       dMoments->at(fsgrids::dmoments::dVzdy)  = limiter(leftMoments->at(fsgrids::moments::VZ), centMoments->at(fsgrids::moments::VZ), rghtMoments->at(fsgrids::moments::VZ));
 
       dPerB->at(fsgrids::dperb::dPERBxdy)  = limiter(leftPerB->at(fsgrids::bfield::PERBX),centPerB->at(fsgrids::bfield::PERBX),rghtPerB->at(fsgrids::bfield::PERBX));
       dPerB->at(fsgrids::dperb::dPERBzdy)  = limiter(leftPerB->at(fsgrids::bfield::PERBZ),centPerB->at(fsgrids::bfield::PERBZ),rghtPerB->at(fsgrids::bfield::PERBZ));
@@ -160,19 +164,14 @@ void calculateDerivatives(
       leftMoments = momentsGrid.get(i,j,k-1);
       rghtMoments = momentsGrid.get(i,j,k+1);
       
-      dMoments->at(fsgrids::dmoments::drhodz) = limiter(leftMoments->at(fsgrids::moments::RHO),centMoments->at(fsgrids::moments::RHO),rghtMoments->at(fsgrids::moments::RHO));
+      dMoments->at(fsgrids::dmoments::drhomdz) = limiter(leftMoments->at(fsgrids::moments::RHOM),centMoments->at(fsgrids::moments::RHOM),rghtMoments->at(fsgrids::moments::RHOM));
+      dMoments->at(fsgrids::dmoments::drhoqdz) = limiter(leftMoments->at(fsgrids::moments::RHOQ),centMoments->at(fsgrids::moments::RHOQ),rghtMoments->at(fsgrids::moments::RHOQ));
       dMoments->at(fsgrids::dmoments::dp11dz) = limiter(leftMoments->at(fsgrids::moments::P_11),centMoments->at(fsgrids::moments::P_11),rghtMoments->at(fsgrids::moments::P_11));
       dMoments->at(fsgrids::dmoments::dp22dz) = limiter(leftMoments->at(fsgrids::moments::P_22),centMoments->at(fsgrids::moments::P_22),rghtMoments->at(fsgrids::moments::P_22));
       dMoments->at(fsgrids::dmoments::dp33dz) = limiter(leftMoments->at(fsgrids::moments::P_33),centMoments->at(fsgrids::moments::P_33),rghtMoments->at(fsgrids::moments::P_33));
-      dMoments->at(fsgrids::dmoments::dVxdz)  = limiter(leftMoments->at(fsgrids::moments::RHOVX), leftMoments->at(fsgrids::moments::RHO),
-                                                    centMoments->at(fsgrids::moments::RHOVX), centMoments->at(fsgrids::moments::RHO),
-                                                    rghtMoments->at(fsgrids::moments::RHOVX), rghtMoments->at(fsgrids::moments::RHO));
-      dMoments->at(fsgrids::dmoments::dVydz)  = limiter(leftMoments->at(fsgrids::moments::RHOVY), leftMoments->at(fsgrids::moments::RHO),
-                                                    centMoments->at(fsgrids::moments::RHOVY), centMoments->at(fsgrids::moments::RHO),
-                                                    rghtMoments->at(fsgrids::moments::RHOVY), rghtMoments->at(fsgrids::moments::RHO));
-      dMoments->at(fsgrids::dmoments::dVzdz)  = limiter(leftMoments->at(fsgrids::moments::RHOVZ), leftMoments->at(fsgrids::moments::RHO),
-                                                    centMoments->at(fsgrids::moments::RHOVZ), centMoments->at(fsgrids::moments::RHO),
-                                                    rghtMoments->at(fsgrids::moments::RHOVZ), rghtMoments->at(fsgrids::moments::RHO));
+      dMoments->at(fsgrids::dmoments::dVxdz)  = limiter(leftMoments->at(fsgrids::moments::VX), centMoments->at(fsgrids::moments::VX), rghtMoments->at(fsgrids::moments::VX));
+      dMoments->at(fsgrids::dmoments::dVydz)  = limiter(leftMoments->at(fsgrids::moments::VY), centMoments->at(fsgrids::moments::VY), rghtMoments->at(fsgrids::moments::VY));
+      dMoments->at(fsgrids::dmoments::dVzdz)  = limiter(leftMoments->at(fsgrids::moments::VZ), centMoments->at(fsgrids::moments::VZ), rghtMoments->at(fsgrids::moments::VZ));
       
       dPerB->at(fsgrids::dperb::dPERBxdz)  = limiter(leftPerB->at(fsgrids::bfield::PERBX),centPerB->at(fsgrids::bfield::PERBX),rghtPerB->at(fsgrids::bfield::PERBX));
       dPerB->at(fsgrids::dperb::dPERBydz)  = limiter(leftPerB->at(fsgrids::bfield::PERBY),centPerB->at(fsgrids::bfield::PERBY),rghtPerB->at(fsgrids::bfield::PERBY));
@@ -299,7 +298,7 @@ void calculateDerivativesSimple(
        }
        break;
     case RK_ORDER2_STEP1:
-      // Exchange PERB*_DT2,RHO_DT2,RHOV*_DT2 with neighbours The
+      // Exchange PERB*_DT2,RHO_DT2,V*_DT2 with neighbours The
       // update of PERB[XYZ]_DT2 is needed after the system
       // boundary update of propagateMagneticFieldSimple.
        perBDt2Grid.updateGhostCells();
@@ -308,7 +307,7 @@ void calculateDerivativesSimple(
        }
        break;
     case RK_ORDER2_STEP2:
-      // Exchange PERB*,RHO,RHOV* with neighbours The update of B
+      // Exchange PERB*,RHO,V* with neighbours The update of B
       // is needed after the system boundary update of
       // propagateMagneticFieldSimple.
        perBGrid.updateGhostCells();

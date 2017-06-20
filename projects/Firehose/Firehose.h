@@ -27,6 +27,20 @@
 #include "../project.h"
 
 namespace projects {
+
+   struct FirehoseSpeciesParameters {
+      Real rho[2];
+      Real Tx[2];
+      Real Ty[2];
+      Real Tz[2];
+      Real Vx[2];
+      Real Vy[2];
+      Real Vz[2];
+      uint nSpaceSamples;
+      uint nVelocitySamples;
+
+   };
+
    class Firehose: public Project {
     public:
       Firehose();
@@ -40,31 +54,25 @@ namespace projects {
       Real getDistribValue(
                            creal& x,creal& y,
                            creal& vx, creal& vy, creal& vz,
-                           creal& dvx, creal& dvy, creal& dvz
-                          );
-      Real profile(creal top, creal bottom, creal x);
+                           creal& dvx, creal& dvy, creal& dvz,
+                           const uint popID
+                          ) const;
+      Real profile(creal top, creal bottom, creal x) const;
       virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
       virtual Real calcPhaseSpaceDensity(
                                          creal& x, creal& y, creal& z,
                                          creal& dx, creal& dy, creal& dz,
                                          creal& vx, creal& vy, creal& vz,
-                                         creal& dvx, creal& dvy, creal& dvz,const int& popID
-                                        );
-      
-      Real rho[2];
-      Real Tx[2];
-      Real Ty[2];
-      Real Tz[2];
-      Real Vx[2];
-      Real Vy[2];
-      Real Vz[2];
+                                         creal& dvx, creal& dvy, creal& dvz,
+                                         const uint popID
+                                        ) const;
+
       Real Bx;
       Real By;
       Real Bz;   
       Real lambda;
       Real amp;
-      uint nSpaceSamples;
-      uint nVelocitySamples;
+      std::vector<FirehoseSpeciesParameters> speciesParams;
    }; // class Firehose
 } // namespace projects
 

@@ -92,7 +92,7 @@ namespace projects {
    }
    
    
-   Real KHB::profile(creal top, creal bottom, creal x, creal z) {
+   Real KHB::profile(creal top, creal bottom, creal x, creal z) const {
       if(top == bottom) {
          return top;
       }
@@ -105,7 +105,7 @@ namespace projects {
       }
    }
    
-   Real KHB::getDistribValue(creal& x, creal& z, creal& vx, creal& vy, creal& vz){
+   Real KHB::getDistribValue(creal& x, creal& z, creal& vx, creal& vy, creal& vz, const uint popID) const {
       creal mass = physicalconstants::MASS_PROTON;
       creal kb = physicalconstants::K_B;
       Real rho = profile(this->rho[this->BOTTOM], this->rho[this->TOP], x, z);
@@ -118,7 +118,7 @@ namespace projects {
       exp(- mass * (pow(vx - Vx, 2.0) + pow(vy - Vy, 2.0) + pow(vz - Vz, 2.0)) / (2.0 * kb * T));
    }
 
-   Real KHB::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const int& popID) {   
+   Real KHB::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {   
       creal d_x = dx / (this->nSpaceSamples-1);
       creal d_z = dz / (this->nSpaceSamples-1);
       creal d_vx = dvx / (this->nVelocitySamples-1);
@@ -127,7 +127,7 @@ namespace projects {
       Real avg = 0.0;
       uint samples=0;
 
-      Real middleValue=getDistribValue(x+0.5*dx, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz);
+      Real middleValue=getDistribValue(x+0.5*dx, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, popID);
       if (middleValue < 0.000001*getObjectWrapper().particleSpecies[popID].sparseMinValue) {
          return middleValue; //abort, this will not be accepted anyway
       }
@@ -138,7 +138,7 @@ namespace projects {
             for (uint vi=0; vi<this->nVelocitySamples; ++vi)
                for (uint vj=0; vj<this->nVelocitySamples; ++vj)
                   for (uint vk=0; vk<this->nVelocitySamples; ++vk){
-                     avg +=getDistribValue(x+i*d_x, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz);
+                     avg +=getDistribValue(x+i*d_x, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, popID);
                      samples++;
                   }
       return avg / samples;

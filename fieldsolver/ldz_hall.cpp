@@ -438,8 +438,6 @@ void calculateEdgeHallTermXComponents(
    cint j,
    cint k
 ) {
-   #warning Particles (charge) assumed to be protons here
-   
    Real By = 0.0;
    Real Bz = 0.0;
    Real hallRho = 0.0;
@@ -454,7 +452,7 @@ void calculateEdgeHallTermXComponents(
       By = perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBY)+BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBY);
       Bz = perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBZ)+BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBZ);
       
-      hallRho =  (momentsGrid.get(i,j,k)->at(fsgrids::moments::RHO) <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : momentsGrid.get(i,j,k)->at(fsgrids::moments::RHO) ;
+      //hallRho =  (momentsGrid.get(i,j,k)->at(fsgrids::moments::RHO) <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : momentsGrid.get(i,j,k)->at(fsgrids::moments::RHO) ;
       EXHall = (Bz*((BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBxdz)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBxdz))/technicalGrid.DZ -
                      (BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBzdx)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBzdx))/technicalGrid.DX) -
                   By*((BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBydx)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBydx))/technicalGrid.DX-
@@ -467,7 +465,7 @@ void calculateEdgeHallTermXComponents(
 
       break;
     case 2:
-      hallRho =  (momentsGrid.get(i,j,k)->at(fsgrids::moments::RHO) <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : momentsGrid.get(i,j,k)->at(fsgrids::moments::RHO) ;
+      //hallRho =  (momentsGrid.get(i,j,k)->at(fsgrids::moments::RHO) <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : momentsGrid.get(i,j,k)->at(fsgrids::moments::RHO) ;
       EHallGrid.get(i,j,k)->at(fsgrids::ehall::EXHALL_000_100) = JXBX_000_100(perturbedCoefficients, BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBY), BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBZ), technicalGrid.DX, technicalGrid.DY, technicalGrid.DZ);
       EHallGrid.get(i,j,k)->at(fsgrids::ehall::EXHALL_010_110) = JXBX_010_110(perturbedCoefficients, BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBY), BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBZ), technicalGrid.DX, technicalGrid.DY, technicalGrid.DZ);
       EHallGrid.get(i,j,k)->at(fsgrids::ehall::EXHALL_001_101) = JXBX_001_101(perturbedCoefficients, BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBY), BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBZ), technicalGrid.DX, technicalGrid.DY, technicalGrid.DZ);
@@ -502,8 +500,6 @@ void calculateEdgeHallTermYComponents(
    cint j,
    cint k
 ) {
-   #warning Particles (charge) assumed to be protons here
-   
    Real Bx = 0.0;
    Real Bz = 0.0;
    Real hallRho = 0.0;
@@ -518,7 +514,7 @@ void calculateEdgeHallTermYComponents(
       Bx = perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBX)+BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBX);
       Bz = perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBZ)+BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBZ);
       
-      hallRho =  (momentsGrid.get(i,j,k)->at(fsgrids::moments::RHO) <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : momentsGrid.get(i,j,k)->at(fsgrids::moments::RHO) ;
+      //hallRho =  (momentsGrid.get(i,j,k)->at(fsgrids::moments::RHO) <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : momentsGrid.get(i,j,k)->at(fsgrids::moments::RHO) ;
       EYHall = (Bx*((BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBydx)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBydx))/technicalGrid.DX -
                     (BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBxdy)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBxdy))/technicalGrid.DY) -
                 Bz*((BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBzdy)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBzdy))/technicalGrid.DY -
@@ -531,7 +527,7 @@ void calculateEdgeHallTermYComponents(
       break;
       
     case 2:
-      hallRho =  (momentsGrid.get(i,j,k)->at(fsgrids::moments::RHO) <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : momentsGrid.get(i,j,k)->at(fsgrids::moments::RHO) ;
+      //hallRho =  (momentsGrid.get(i,j,k)->at(fsgrids::moments::RHO) <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : momentsGrid.get(i,j,k)->at(fsgrids::moments::RHO) ;
       EHallGrid.get(i,j,k)->at(fsgrids::ehall::EYHALL_000_010) = JXBY_000_010(perturbedCoefficients, BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBX), BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBZ), technicalGrid.DX, technicalGrid.DY, technicalGrid.DZ);
       EHallGrid.get(i,j,k)->at(fsgrids::ehall::EYHALL_100_110) = JXBY_100_110(perturbedCoefficients, BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBX), BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBZ), technicalGrid.DX, technicalGrid.DY, technicalGrid.DZ);
       EHallGrid.get(i,j,k)->at(fsgrids::ehall::EYHALL_001_011) = JXBY_001_011(perturbedCoefficients, BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBX), BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBZ), technicalGrid.DX, technicalGrid.DY, technicalGrid.DZ);
@@ -566,8 +562,6 @@ void calculateEdgeHallTermZComponents(
    cint j,
    cint k
 ) {
-  #warning Particles (charge) assumed to be protons here
-   
    Real Bx = 0.0;
    Real By = 0.0;
    Real hallRho = 0.0;
@@ -582,7 +576,7 @@ void calculateEdgeHallTermZComponents(
      Bx = perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBX)+BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBX);
      By = perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBY)+BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBY);
      
-     hallRho =  (momentsGrid.get(i,j,k)->at(fsgrids::moments::RHO) <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : momentsGrid.get(i,j,k)->at(fsgrids::moments::RHO) ;
+     //hallRho =  (momentsGrid.get(i,j,k)->at(fsgrids::moments::RHO) <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : momentsGrid.get(i,j,k)->at(fsgrids::moments::RHO) ;
      EZHall = (By*((BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBzdy)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBzdy))/technicalGrid.DY -
               (BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBydz)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBydz))/technicalGrid.DZ) -
            Bx*((BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBxdz)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBxdz))/technicalGrid.DZ -
@@ -595,7 +589,7 @@ void calculateEdgeHallTermZComponents(
      break;
 
    case 2:
-      hallRho =  (momentsGrid.get(i,j,k)->at(fsgrids::moments::RHO) <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : momentsGrid.get(i,j,k)->at(fsgrids::moments::RHO) ;
+      //hallRho =  (momentsGrid.get(i,j,k)->at(fsgrids::moments::RHO) <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : momentsGrid.get(i,j,k)->at(fsgrids::moments::RHO) ;
       EHallGrid.get(i,j,k)->at(fsgrids::ehall::EZHALL_000_001) = JXBZ_000_001(perturbedCoefficients, BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBX), BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBY), technicalGrid.DX, technicalGrid.DY, technicalGrid.DZ);
       EHallGrid.get(i,j,k)->at(fsgrids::ehall::EZHALL_100_101) = JXBZ_100_101(perturbedCoefficients, BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBX), BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBY), technicalGrid.DX, technicalGrid.DY, technicalGrid.DZ);
       EHallGrid.get(i,j,k)->at(fsgrids::ehall::EZHALL_010_011) = JXBZ_010_011(perturbedCoefficients, BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBX), BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBY), technicalGrid.DX, technicalGrid.DY, technicalGrid.DZ);

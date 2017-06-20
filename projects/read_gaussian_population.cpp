@@ -47,7 +47,6 @@ namespace projects {
       RP::addComposing(prefix+".Vx", "Bulk velocity x component (m/s)");
       RP::addComposing(prefix+".Vy", "Bulk velocity y component (m/s)");
       RP::addComposing(prefix+".Vz", "Bulk velocity z component (m/s)");
-
       return true;
    }
 

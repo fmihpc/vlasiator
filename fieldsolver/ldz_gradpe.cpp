@@ -184,18 +184,17 @@ void calculateEdgeGradPeTermXComponents(
    cint j,
    cint k
 ) {
-   #warning Particles (charge) assumed to be protons here
-   Real hallRho = 0.0;
-   Real rho = 0.0;
+   Real hallRhoq = 0.0;
+   Real rhoq = 0.0;
    switch (Parameters::ohmGradPeTerm) {
       case 0:
          cerr << __FILE__ << __LINE__ << "You shouldn't be in a electron pressure gradient term function if Parameters::ohmGradPeTerm == 0." << endl;
          break;
          
       case 1:
-         rho = momentsGrid.get(i,j,k)->at(fsgrids::moments::RHO);
-         hallRho = (rho <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : rho ;
-         EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EXGRADPE) = -physicalconstants::K_B*Parameters::electronTemperature*dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::drhodx) / (hallRho*physicalconstants::CHARGE*EGradPeGrid.DX);
+         rhoq = momentsGrid.get(i,j,k)->at(fsgrids::moments::RHOQ);
+         hallRhoq = (rhoq <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : rhoq ;
+         EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EXGRADPE) = -physicalconstants::K_B*Parameters::electronTemperature*dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::drhoqdx) / (hallRhoq*EGradPeGrid.DX);
          break;
          
       default:
@@ -212,18 +211,17 @@ void calculateEdgeGradPeTermYComponents(
    cint j,
    cint k
 ) {
-   #warning Particles (charge) assumed to be protons here
-   Real hallRho = 0.0;
-   Real rho = 0.0;
+   Real hallRhoq = 0.0;
+   Real rhoq = 0.0;
    switch (Parameters::ohmGradPeTerm) {
       case 0:
          cerr << __FILE__ << __LINE__ << "You shouldn't be in a electron pressure gradient term function if Parameters::ohmGradPeTerm == 0." << endl;
          break;
          
       case 1:
-         rho = momentsGrid.get(i,j,k)->at(fsgrids::moments::RHO);
-         hallRho = (rho <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : rho ;
-         EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EYGRADPE) = -physicalconstants::K_B*Parameters::electronTemperature*dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::drhody) / (hallRho*physicalconstants::CHARGE*EGradPeGrid.DY);
+         rhoq = momentsGrid.get(i,j,k)->at(fsgrids::moments::RHOQ);
+         hallRhoq = (rhoq <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : rhoq ;
+         EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EYGRADPE) = -physicalconstants::K_B*Parameters::electronTemperature*dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::drhoqdy) / (hallRhoq*EGradPeGrid.DY);
          break;
          
       default:
@@ -240,18 +238,17 @@ void calculateEdgeGradPeTermZComponents(
    cint j,
    cint k
 ) {
-  #warning Particles (charge) assumed to be protons here
-   Real hallRho = 0.0;
-   Real rho = 0.0;
+   Real hallRhoq = 0.0;
+   Real rhoq = 0.0;
    switch (Parameters::ohmGradPeTerm) {
       case 0:
          cerr << __FILE__ << __LINE__ << "You shouldn't be in a electron pressure gradient term function if Parameters::ohmGradPeTerm == 0." << endl;
          break;
          
       case 1:
-         rho = momentsGrid.get(i,j,k)->at(fsgrids::moments::RHO);
-         hallRho = (rho <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : rho ;
-         EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EZGRADPE) = -physicalconstants::K_B*Parameters::electronTemperature*dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::drhodz) / (hallRho*physicalconstants::CHARGE*EGradPeGrid.DZ);
+         rhoq = momentsGrid.get(i,j,k)->at(fsgrids::moments::RHOQ);
+         hallRhoq = (rhoq <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : rhoq ;
+         EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EZGRADPE) = -physicalconstants::K_B*Parameters::electronTemperature*dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::drhoqdz) / (hallRhoq*EGradPeGrid.DZ);
          break;
          
       default:

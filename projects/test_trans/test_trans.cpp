@@ -62,7 +62,7 @@ namespace projects {
 
    Real test_trans::calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,
                                           creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz,
-                                          const int& popID) const {
+                                          const uint popID) const {
       //Please use even number of cells in velocity and real space
       Real xyz[3];
       Real vxyz[3];

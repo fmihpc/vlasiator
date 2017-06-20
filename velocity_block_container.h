@@ -135,7 +135,7 @@ namespace vmesh {
          }
       #endif
 
-      for (int i=0; i<WID3; ++i) block_data[target*WID3+i] = block_data[source*WID3+i];
+      for (unsigned int i=0; i<WID3; ++i) block_data[target*WID3+i] = block_data[source*WID3+i];
       for (int i=0; i<BlockParams::N_VELOCITY_BLOCK_PARAMS; ++i) {
          parameters[target*BlockParams::N_VELOCITY_BLOCK_PARAMS+i] = parameters[source*BlockParams::N_VELOCITY_BLOCK_PARAMS+i];
       }
