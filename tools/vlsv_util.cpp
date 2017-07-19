@@ -27,7 +27,7 @@
 
 #include <cstdlib>
 #include <iostream>
-#include <dirent.h>
+#include <glob.h>
 
 #include "vlsv_util.h"
 
@@ -35,25 +35,28 @@ using namespace std;
 
 std::vector<std::string> toolutil::getFiles(const std::string& mask) {
    vector<string> fileList;
-   const string directory = ".";
-   const string suffix = ".vlsv";
-   DIR* dir = opendir(directory.c_str());
-   if (dir == NULL) {
-      cerr << "ERROR in reading directory contents in " << __FILE__ << ":" << __LINE__ << endl;
-      closedir(dir);
+
+   glob_t glob_matches;
+   int retval = glob(mask.c_str(), GLOB_TILDE_CHECK, NULL, &glob_matches);
+   if(retval != 0) {
+      switch(retval) {
+         case GLOB_NOSPACE:
+            cerr << "ERROR enumerating filenames: out of memory in " << __FILE__ << ":" << __LINE__ << endl;
+            break;
+         case GLOB_ABORTED:
+            cerr << "ERROR in reading directory contents in " << __FILE__ << ":" << __LINE__ << endl;
+            break;
+         case GLOB_NOMATCH:
+            cerr << "ERROR: no matching file found for pattern " << mask << endl;
+            break;
+      }
+      globfree(&glob_matches);
       return fileList;
    }
-
-   struct dirent* entry = readdir(dir);
-   while (entry != NULL) {
-      const string entryName = entry->d_name;
-      if (entryName.find(mask) == string::npos || entryName.find(suffix) == string::npos) {
-         entry = readdir(dir);
-         continue;
-      }
-      fileList.push_back(entryName);
-      entry = readdir(dir);
+   for(unsigned int i=0; i<glob_matches.gl_pathc; i++) {
+      fileList.push_back(glob_matches.gl_pathv[i]);
    }
-   closedir(dir);
+
+   globfree(&glob_matches);
    return fileList;
 }
