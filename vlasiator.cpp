@@ -362,15 +362,13 @@ int main(int argn,char* args[]) {
    initializeDataReducers(&outputReducer, &diagnosticReducer);
    phiprof::stop("Init DROs");
 
-   // Initialize field propagator:
-   if (P::propagateField ) { 
-      phiprof::start("Init field propagator");
-      if (initializeFieldPropagator(mpiGrid, sysBoundaries) == false) {
-         logFile << "(MAIN): Field propagator did not initialize correctly!" << endl << writeVerbose;
-         exit(1);
-      }
-      phiprof::stop("Init field propagator");
+   // Initialize field propagator (also in test-Vlasov simulations!):
+   phiprof::start("Init field propagator");
+   if (initializeFieldPropagator(mpiGrid, sysBoundaries) == false) {
+      logFile << "(MAIN): Field propagator did not initialize correctly!" << endl << writeVerbose;
+      exit(1);
    }
+   phiprof::stop("Init field propagator");
 
    // Initialize Poisson solver (if used)
    if (P::propagatePotential == true) {
