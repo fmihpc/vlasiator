@@ -55,6 +55,11 @@ namespace projects {
 
    void PoissonTest::getParameters() {
       typedef Readparameters RP;
+
+      if(getObjectWrapper().particleSpecies.size() > 1) {
+         std::cerr << "The selected project does not support multiple particle populations! Aborting in " << __FILE__ << " line " << __LINE__ << std::endl;
+         abort();
+      }
       RP::get("Poisson.solver",poisson::Poisson::solverName);
       RP::get("Poisson.radius",radius);
       RP::get("Poisson.max_iterations",poisson::Poisson::maxIterations);

@@ -55,6 +55,11 @@ namespace projects {
       Project::getParameters();
       
       typedef Readparameters RP;
+
+      if(getObjectWrapper().particleSpecies.size() > 1) {
+         std::cerr << "The selected project does not support multiple particle populations! Aborting in " << __FILE__ << " line " << __LINE__ << std::endl;
+         abort();
+      }
       RP::get("test_trans.cellPosition", this->cellPosition);
       RP::get("test_trans.peakValue" ,peakValue);
    }

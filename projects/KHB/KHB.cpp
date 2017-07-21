@@ -67,6 +67,12 @@ namespace projects {
    void KHB::getParameters() {
       Project::getParameters();
       typedef Readparameters RP;
+
+      if(getObjectWrapper().particleSpecies.size() > 1) {
+         std::cerr << "The selected project does not support multiple particle populations! Aborting in " << __FILE__ << " line " << __LINE__ << std::endl;
+         abort();
+      }
+
       RP::get("KHB.rho1", this->rho[this->TOP]);
       RP::get("KHB.rho2", this->rho[this->BOTTOM]);
       RP::get("KHB.T1", this->T[this->TOP]);

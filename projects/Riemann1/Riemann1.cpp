@@ -64,6 +64,11 @@ namespace projects {
    void Riemann1::getParameters(){
       Project::getParameters();
       typedef Readparameters RP;
+
+      if(getObjectWrapper().particleSpecies.size() > 1) {
+         std::cerr << "The selected project does not support multiple particle populations! Aborting in " << __FILE__ << " line " << __LINE__ << std::endl;
+         abort();
+      }
       RP::get("Riemann.rho1", this->rho[this->LEFT]);
       RP::get("Riemann.rho2", this->rho[this->RIGHT]);
       RP::get("Riemann.T1", this->T[this->LEFT]);
