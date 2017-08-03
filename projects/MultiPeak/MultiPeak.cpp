@@ -51,6 +51,11 @@ namespace projects {
 
    void MultiPeak::addParameters(){
       typedef Readparameters RP;
+
+      if(getObjectWrapper().particleSpecies.size() > 1) {
+         std::cerr << "The selected project does not support multiple particle populations! Aborting in " << __FILE__ << " line " << __LINE__ << std::endl;
+         abort();
+      }
       RP::add("MultiPeak.n", "Number of populations to use", 0);
       RP::addComposing("MultiPeak.rho", "Number density (m^-3)");
       RP::addComposing("MultiPeak.Tx", "Temperature (K)");
@@ -129,7 +134,7 @@ namespace projects {
       else if (densModelString == "testcase") densityModel = TestCase;
    }
 
-   Real MultiPeak::getDistribValue(creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const int& popID) const {
+   Real MultiPeak::getDistribValue(creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
       creal mass = getObjectWrapper().particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
 
@@ -162,13 +167,13 @@ namespace projects {
 
    Real MultiPeak::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, 
                                          creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,
-                                         const int& popID) const {
+                                         const uint popID) const {
       // Iterative sampling of the distribution function. Keep track of the 
       // accumulated volume average over the iterations. When the next 
       // iteration improves the average by less than 1%, return the value.
       Real avgTotal = 0.0;
       bool ok = false;
-      int N = nVelocitySamples; // Start by using nVelocitySamples
+      uint N = nVelocitySamples; // Start by using nVelocitySamples
       int N3_sum = 0;           // Sum of sampling points used so far
                                             
       #warning TODO: Replace getObjectWrapper().particleSpecies[popID].sparseMinValue with SpatialCell::velocity_block_threshold(?)
@@ -246,7 +251,7 @@ namespace projects {
       }
    }
 
-   void MultiPeak::setActivePopulation(const int& popID) {
+   void MultiPeak::setActivePopulation(const uint popID) {
       this->popID = popID;
    }
 
@@ -262,7 +267,8 @@ namespace projects {
    std::vector<std::array<Real, 3> > MultiPeak::getV0(
                                                 creal x,
                                                 creal y,
-                                                creal z
+                                                creal z,
+                                                const uint popID
                                                ) const {
       vector<std::array<Real, 3> > centerPoints;
       for(uint i=0; i<this->numberOfPopulations; i++) {

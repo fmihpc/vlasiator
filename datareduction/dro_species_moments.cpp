@@ -75,13 +75,13 @@ namespace DRO {
       phiprof::start("SpeciesMoments");
       bool success = true;
       
-      Real* bufferRho   = new Real[cells.size()];
-      Real* bufferRhoV  = new Real[cells.size()*3];
-      uint* blocks      = new uint[cells.size()];
+      Real* bufferRho = new Real[cells.size()];
+      Real* bufferV   = new Real[cells.size()*3];
+      uint* blocks    = new uint[cells.size()];
       size_t N_cells = 0;
       size_t thread_N_cells = 0;
 
-      for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          #pragma omp parallel for reduction(+:thread_N_cells)
          for (size_t c=0; c<cells.size(); ++c) {
             Real array[4];
@@ -95,13 +95,13 @@ namespace DRO {
             for (vmesh::LocalID blockLID=0; blockLID<blockContainer.size(); ++blockLID) {
                blockVelocityFirstMoments(data+blockLID*WID3,
                                          blockParams+blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS,
-                                         1.0,array);
+                                         array);
             } // for-loop over velocity blocks
             
             bufferRho[c]      = array[0];
-            bufferRhoV[c*3+0] = array[1];
-            bufferRhoV[c*3+1] = array[2];
-            bufferRhoV[c*3+2] = array[3];
+            bufferV[c*3+0] = array[1] / array[0];
+            bufferV[c*3+1] = array[2] / array[0];
+            bufferV[c*3+2] = array[3] / array[0];
             thread_N_cells += blockContainer.size()*WID3;
             
             blocks[c] = blockContainer.size();
@@ -114,15 +114,15 @@ namespace DRO {
          attribs["name"] = getObjectWrapper().particleSpecies[popID].name + "/" + "n";
          if (vlsvWriter.writeArray("VARIABLE",attribs,cells.size(),1,bufferRho) == false) success = false;
             
-         attribs["name"] = getObjectWrapper().particleSpecies[popID].name + "/" + "nV";
-         if (vlsvWriter.writeArray("VARIABLE",attribs,cells.size(),3,bufferRhoV) == false) success = false;
+         attribs["name"] = getObjectWrapper().particleSpecies[popID].name + "/" + "V";
+         if (vlsvWriter.writeArray("VARIABLE",attribs,cells.size(),3,bufferV) == false) success = false;
          
          attribs["name"] = getObjectWrapper().particleSpecies[popID].name + "/" + "blocks";
          if (vlsvWriter.writeArray("VARIABLE",attribs,cells.size(),1,blocks) == false) success = false;
       } // for-loop over particle species
 
       delete [] bufferRho ; bufferRho  = NULL;
-      delete [] bufferRhoV; bufferRhoV = NULL;
+      delete [] bufferV; bufferV = NULL;
       delete [] blocks; blocks = NULL;
 
       phiprof::stop("SpeciesMoments",N_cells,"Phase-Space Cells");

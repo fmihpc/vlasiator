@@ -267,7 +267,8 @@ namespace SBC {
       Real* const derivs = &(mpiGrid[cellID]->derivatives[0]);
       switch(component) {
          case 0: // x, xx
-            derivs[fieldsolver::drhodx] = 0.0;
+            derivs[fieldsolver::drhomdx] = 0.0;
+            derivs[fieldsolver::drhoqdx] = 0.0;
             derivs[fieldsolver::dp11dx] = 0.0;
             derivs[fieldsolver::dp22dx] = 0.0;
             derivs[fieldsolver::dp33dx] = 0.0;
@@ -280,7 +281,8 @@ namespace SBC {
             derivs[fieldsolver::dPERBzdxx] = 0.0;
             break;
          case 1: // y, yy
-            derivs[fieldsolver::drhody] = 0.0;
+            derivs[fieldsolver::drhomdy] = 0.0;
+            derivs[fieldsolver::drhoqdy] = 0.0;
             derivs[fieldsolver::dp11dy] = 0.0;
             derivs[fieldsolver::dp22dy] = 0.0;
             derivs[fieldsolver::dp33dy] = 0.0;
@@ -293,7 +295,8 @@ namespace SBC {
             derivs[fieldsolver::dPERBzdyy] = 0.0;
             break;
          case 2: // z, zz
-            derivs[fieldsolver::drhodz] = 0.0;
+            derivs[fieldsolver::drhomdz] = 0.0;
+            derivs[fieldsolver::drhoqdz] = 0.0;
             derivs[fieldsolver::dp11dz] = 0.0;
             derivs[fieldsolver::dp22dz] = 0.0;
             derivs[fieldsolver::dp33dz] = 0.0;
@@ -357,7 +360,7 @@ namespace SBC {
    void SysBoundaryCondition::vlasovBoundaryCondition(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const CellID& cellID,
-         const int& popID
+         const uint popID
    ) {
       cerr << "ERROR: SysBoundaryCondition::vlasovBoundaryCondition called instead of derived class function!" << endl;
       exit(1);
@@ -372,7 +375,7 @@ namespace SBC {
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const CellID& cellID,
          const bool& copyMomentsOnly,
-         const int& popID
+         const uint popID
    ) {
       const CellID closestCell = getTheClosestNonsysboundaryCell(cellID);
       
@@ -390,7 +393,7 @@ namespace SBC {
     */
    void SysBoundaryCondition::vlasovBoundaryCopyFromAllClosestNbrs(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID,const int& popID
+      const CellID& cellID,const uint popID
    ) {
       const std::vector<CellID> closestCells = getAllClosestNonsysboundaryCells(cellID);
       
@@ -408,7 +411,7 @@ namespace SBC {
    void SysBoundaryCondition::vlasovBoundaryCopyFromTheClosestNbrAndLimit(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
-      const int& popID
+      const uint popID
       ) {
       const CellID closestCell = getTheClosestNonsysboundaryCell(cellID);
       SpatialCell * from = mpiGrid[closestCell];
@@ -485,84 +488,44 @@ namespace SBC {
             SpatialCell* to,
             bool allowBlockAdjustment,
             const bool& copyMomentsOnly,
-            const int& popID
+            const uint popID
    ) {
       // WARNING Time-independence assumed here. _R and _V not copied, 
       // as boundary conditions cells should not set/use them.
       if (popID == 0) {
-         to->parameters[CellParams::RHO_DT2] = from->parameters[CellParams::RHO_DT2];
-         to->parameters[CellParams::RHOVX_DT2] = from->parameters[CellParams::RHOVX_DT2];
-         to->parameters[CellParams::RHOVY_DT2] = from->parameters[CellParams::RHOVY_DT2];
-         to->parameters[CellParams::RHOVZ_DT2] = from->parameters[CellParams::RHOVZ_DT2];
+         to->parameters[CellParams::RHOM_DT2] = from->parameters[CellParams::RHOM_DT2];
+         to->parameters[CellParams::VX_DT2] = from->parameters[CellParams::VX_DT2];
+         to->parameters[CellParams::VY_DT2] = from->parameters[CellParams::VY_DT2];
+         to->parameters[CellParams::VZ_DT2] = from->parameters[CellParams::VZ_DT2];
+         to->parameters[CellParams::RHOQ_DT2] = from->parameters[CellParams::RHOQ_DT2];
          to->parameters[CellParams::P_11_DT2] = from->parameters[CellParams::P_11_DT2];
          to->parameters[CellParams::P_22_DT2] = from->parameters[CellParams::P_22_DT2];
          to->parameters[CellParams::P_33_DT2] = from->parameters[CellParams::P_33_DT2];
-         to->parameters[CellParams::RHO] = from->parameters[CellParams::RHO];
-         to->parameters[CellParams::RHOVX] = from->parameters[CellParams::RHOVX];
-         to->parameters[CellParams::RHOVY] = from->parameters[CellParams::RHOVY];
-         to->parameters[CellParams::RHOVZ] = from->parameters[CellParams::RHOVZ];
+         to->parameters[CellParams::RHOM] = from->parameters[CellParams::RHOM];
+         to->parameters[CellParams::VX] = from->parameters[CellParams::VX];
+         to->parameters[CellParams::VY] = from->parameters[CellParams::VY];
+         to->parameters[CellParams::VZ] = from->parameters[CellParams::VZ];
+         to->parameters[CellParams::RHOQ] = from->parameters[CellParams::RHOQ];
          to->parameters[CellParams::P_11] = from->parameters[CellParams::P_11];
          to->parameters[CellParams::P_22] = from->parameters[CellParams::P_22];
          to->parameters[CellParams::P_33] = from->parameters[CellParams::P_33];
       }
-      if(to->sysBoundaryLayer == 1 && !copyMomentsOnly) { // Do this only for the first layer, the other layers do not need this. Do only if copyMomentsOnly is false.
-
-      // Do this only for the first layer, the other layers do not need this.
-      if (to->sysBoundaryLayer != 1) return;
-
-      if (allowBlockAdjustment) {
-         // prepare list of blocks to remove. It is not safe to loop 
-         // over velocity_block_list while adding/removing blocks
-         std::vector<vmesh::GlobalID> blocksToRemove;
-         for (vmesh::LocalID block_i=0; block_i<to->get_number_of_velocity_blocks(popID); ++block_i) {
-            const vmesh::GlobalID blockGID = to->get_velocity_block_global_id(block_i,popID);
-
-            // If this block does not exist in from, mark it for removal.
-            if (from->get_velocity_block_local_id(blockGID,popID) == from->invalid_local_id()) {
-               blocksToRemove.push_back(blockGID);
-            }
-         }
-
-         // remove blocks
-         for (size_t b=0; b<blocksToRemove.size(); ++b) {
-            cuint blockID=blocksToRemove[b];
-            to->remove_velocity_block(blockID,popID);
-         }
-
-         // add blocks
-         const Realf* fromBlock_data = from->get_data(popID);
-         for (vmesh::LocalID block_i=0; block_i<from->get_number_of_velocity_blocks(popID); ++block_i) {
-            const vmesh::GlobalID blockGID = from->get_velocity_block_global_id(block_i,popID);
+      
+       if(to->sysBoundaryLayer == 1 && !copyMomentsOnly) { // Do this only for the first layer, the other layers do not need this. Do only if copyMomentsOnly is false.
+         to->set_population(from->get_population(popID), popID);
+      } else {
+         to->get_population(popID).RHO = from->get_population(popID).RHO;
+         to->get_population(popID).RHO_R = from->get_population(popID).RHO_R;
+         to->get_population(popID).RHO_V = from->get_population(popID).RHO_V;
+         for (uint i=0; i<3; i++) {
+            to->get_population(popID).V[i] = from->get_population(popID).V[i];
+            to->get_population(popID).V_R[i] = from->get_population(popID).V_R[i];
+            to->get_population(popID).V_V[i] = from->get_population(popID).V_V[i];
+            to->get_population(popID).P[i] = from->get_population(popID).P[i];
+            to->get_population(popID).P_R[i] = from->get_population(popID).P_R[i];
+            to->get_population(popID).P_V[i] = from->get_population(popID).P_V[i];
             
-            // Ensure that target block exists in 'to' cell. 
-            // We must get a new pointer to the 'to' data array here 
-            // because add_velocity_block may reallocate it.
-            to->add_velocity_block(blockGID,popID);
-            Realf* toBlock_data = to->get_data(popID);
-            const vmesh::LocalID toBlockLID = to->get_velocity_block_local_id(blockGID,popID);
-
-            for (unsigned int i = 0; i < SIZE_VELBLOCK; i++) {
-               toBlock_data[toBlockLID*SIZE_VELBLOCK+i] = fromBlock_data[block_i*SIZE_VELBLOCK+i];
-            }
          }
-      } else {         
-         //just copy data to existing blocks, no modification of to blocks allowed
-         const Realf* fromBlock_data = from->get_data(popID);
-         Realf* toBlock_data = to->get_data(popID);
-         for (vmesh::LocalID block_i=0; block_i<to->get_number_of_velocity_blocks(popID); ++block_i) {
-            const vmesh::GlobalID blockGID = to->get_velocity_block_global_id(block_i,popID);
-            const vmesh::LocalID fromBlockLID = from->get_velocity_block_local_id(blockGID,popID);
-            if (from->get_velocity_block_local_id(blockGID,popID) == from->invalid_local_id()) {
-               for (unsigned int i = 0; i < VELOCITY_BLOCK_LENGTH; i++) {
-                  toBlock_data[block_i*SIZE_VELBLOCK+i] = 0.0; //block did not exist in from cell, fill with zeros.
-               }
-            } else {
-               for (unsigned int i = 0; i < VELOCITY_BLOCK_LENGTH; i++) {
-                  toBlock_data[block_i*SIZE_VELBLOCK+i] = fromBlock_data[fromBlockLID*SIZE_VELBLOCK+i];
-               }
-            }
-         }
-      }
       }
    }
    
@@ -577,7 +540,7 @@ namespace SBC {
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const std::vector<CellID> cellList,
          SpatialCell *to,
-         const int& popID
+         const uint popID
    ) {
       const size_t numberOfCells = cellList.size();
       if(numberOfCells == 1) {
@@ -586,17 +549,19 @@ namespace SBC {
          creal factor = 1.0 / convert<Real>(numberOfCells);
 
          if (popID == 0) {
-            to->parameters[CellParams::RHO_DT2] = 0.0;
-            to->parameters[CellParams::RHOVX_DT2] = 0.0;
-            to->parameters[CellParams::RHOVY_DT2] = 0.0;
-            to->parameters[CellParams::RHOVZ_DT2] = 0.0;
+            to->parameters[CellParams::RHOM_DT2] = 0.0;
+            to->parameters[CellParams::VX_DT2] = 0.0;
+            to->parameters[CellParams::VY_DT2] = 0.0;
+            to->parameters[CellParams::VZ_DT2] = 0.0;
+            to->parameters[CellParams::RHOQ_DT2] = 0.0;
             to->parameters[CellParams::P_11_DT2] = 0.0;
             to->parameters[CellParams::P_22_DT2] = 0.0;
             to->parameters[CellParams::P_33_DT2] = 0.0;
-            to->parameters[CellParams::RHO] = 0.0;
-            to->parameters[CellParams::RHOVX] = 0.0;
-            to->parameters[CellParams::RHOVY] = 0.0;
-            to->parameters[CellParams::RHOVZ] = 0.0;
+            to->parameters[CellParams::RHOM] = 0.0;
+            to->parameters[CellParams::VX] = 0.0;
+            to->parameters[CellParams::VY] = 0.0;
+            to->parameters[CellParams::VZ] = 0.0;
+            to->parameters[CellParams::RHOQ] = 0.0;
             to->parameters[CellParams::P_11] = 0.0;
             to->parameters[CellParams::P_22] = 0.0;
             to->parameters[CellParams::P_33] = 0.0;
@@ -608,17 +573,19 @@ namespace SBC {
             
             // WARNING Time-independence assumed here. _R and _V not copied, as boundary conditions cells should not set/use them
             if (popID == 0) {
-               to->parameters[CellParams::RHO_DT2] += factor*incomingCell->parameters[CellParams::RHO_DT2];
-               to->parameters[CellParams::RHOVX_DT2] += factor*incomingCell->parameters[CellParams::RHOVX_DT2];
-               to->parameters[CellParams::RHOVY_DT2] += factor*incomingCell->parameters[CellParams::RHOVY_DT2];
-               to->parameters[CellParams::RHOVZ_DT2] += factor*incomingCell->parameters[CellParams::RHOVZ_DT2];
+               to->parameters[CellParams::RHOM_DT2] += factor*incomingCell->parameters[CellParams::RHOM_DT2];
+               to->parameters[CellParams::VX_DT2] += factor*incomingCell->parameters[CellParams::VX_DT2];
+               to->parameters[CellParams::VY_DT2] += factor*incomingCell->parameters[CellParams::VY_DT2];
+               to->parameters[CellParams::VZ_DT2] += factor*incomingCell->parameters[CellParams::VZ_DT2];
+               to->parameters[CellParams::RHOQ_DT2] += factor*incomingCell->parameters[CellParams::RHOQ_DT2];
                to->parameters[CellParams::P_11_DT2] += factor*incomingCell->parameters[CellParams::P_11_DT2];
                to->parameters[CellParams::P_22_DT2] += factor*incomingCell->parameters[CellParams::P_22_DT2];
                to->parameters[CellParams::P_33_DT2] += factor*incomingCell->parameters[CellParams::P_33_DT2];
-               to->parameters[CellParams::RHO] += factor*incomingCell->parameters[CellParams::RHO];
-               to->parameters[CellParams::RHOVX] += factor*incomingCell->parameters[CellParams::RHOVX];
-               to->parameters[CellParams::RHOVY] += factor*incomingCell->parameters[CellParams::RHOVY];
-               to->parameters[CellParams::RHOVZ] += factor*incomingCell->parameters[CellParams::RHOVZ];
+               to->parameters[CellParams::RHOM] += factor*incomingCell->parameters[CellParams::RHOM];
+               to->parameters[CellParams::VX] += factor*incomingCell->parameters[CellParams::VX];
+               to->parameters[CellParams::VY] += factor*incomingCell->parameters[CellParams::VY];
+               to->parameters[CellParams::VZ] += factor*incomingCell->parameters[CellParams::VZ];
+               to->parameters[CellParams::RHOQ] += factor*incomingCell->parameters[CellParams::RHOQ];
                to->parameters[CellParams::P_11] += factor*incomingCell->parameters[CellParams::P_11];
                to->parameters[CellParams::P_22] += factor*incomingCell->parameters[CellParams::P_22];
                to->parameters[CellParams::P_33] += factor*incomingCell->parameters[CellParams::P_33];
@@ -675,7 +642,7 @@ namespace SBC {
          creal& nx,
          creal& ny,
          creal& nz,
-         const int& popID
+         const uint popID
    ) {
       SpatialCell * cell = mpiGrid[cellID];
       const std::vector<CellID> cellList = this->getAllClosestNonsysboundaryCells(cellID);
@@ -744,7 +711,7 @@ namespace SBC {
       creal& ny,
       creal& nz,
       creal& quenchingFactor,
-      const int& popID
+      const uint popID
    ) {
       SpatialCell* cell = mpiGrid[cellID];
       const std::vector<CellID> cellList = this->getAllClosestNonsysboundaryCells(cellID);
@@ -899,7 +866,7 @@ namespace SBC {
    std::array<Realf*,27> SysBoundaryCondition::getFlowtoCellsBlock(
       const std::array<SpatialCell*,27> flowtoCells,
       const vmesh::GlobalID blockGID,
-      const int& popID
+      const uint popID
    ) {
       phiprof::start("getFlowtoCellsBlock");
       std::array<Realf*,27> flowtoCellsBlock;

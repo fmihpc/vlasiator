@@ -266,7 +266,7 @@ bool propagateFields(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    SysBoundary& sysBoundaries,
    creal& dt,
-   cint& subcycles
+   cuint subcycles
 ) {
    
    if(subcycles == 0) {

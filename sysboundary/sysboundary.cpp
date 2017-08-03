@@ -179,13 +179,13 @@ bool SysBoundary::initSysBoundaries(
    vector<string>::const_iterator it;
    
    if (sysBoundaryCondList.size() == 0) {
-      if(!isPeriodic[0]) {
+      if(!isPeriodic[0] && !Readparameters::helpRequested) {
          if(myRank == MASTER_RANK) cerr << "You set boundaries.periodic_x = no but you didn't load any system boundary condition using the option boundaries.boundary, are you sure this is correct?" << endl;
       }
-      if(!isPeriodic[1]) {
+      if(!isPeriodic[1] && !Readparameters::helpRequested) {
          if(myRank == MASTER_RANK) cerr << "You set boundaries.periodic_y = no but you didn't load any system boundary condition using the option boundaries.boundary, are you sure this is correct?" << endl;
       }
-      if(!isPeriodic[2]) {
+      if(!isPeriodic[2] && !Readparameters::helpRequested) {
          if(myRank == MASTER_RANK) cerr << "You set boundaries.periodic_z = no but you didn't load any system boundary condition using the option boundaries.boundary, are you sure this is correct?" << endl;
       }
    }
@@ -540,9 +540,8 @@ void SysBoundary::applySysBoundaryVlasovConditions(
       Transfer::CELL_SYSBOUNDARYFLAG,true);
    mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
    
-   #warning Same sysBoundaryCondition applied to all populations
    // Loop over existing particle species
-   for (unsigned int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+   for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       SpatialCell::setCommunicatedSpecies(popID);
 
       // Then the block data in the reduced neighbourhood:

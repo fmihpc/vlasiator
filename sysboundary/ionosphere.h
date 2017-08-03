@@ -33,6 +33,15 @@ using namespace projects;
 using namespace std;
 
 namespace SBC {
+
+   struct IonosphereSpeciesParameters {
+      Real rho;
+      Real V0[3];
+      Real T;
+      uint nSpaceSamples;
+      uint nVelocitySamples;
+   };
+
    /*!\brief Ionosphere is a class applying ionospheric boundary conditions.
     * 
     * Ionosphere is a class handling cells tagged as sysboundarytype::IONOSPHERE by this system boundary condition. It applies ionospheric boundary conditions.
@@ -98,7 +107,7 @@ namespace SBC {
       virtual void vlasovBoundaryCondition(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const CellID& cellID,
-         const int& popID
+         const uint popID
       );
       
       virtual std::string getName() const;
@@ -106,12 +115,12 @@ namespace SBC {
       
    protected:
       void generateTemplateCell(Project &project);
-      void setCellFromTemplate(SpatialCell* cell,const int& popID);
+      void setCellFromTemplate(SpatialCell* cell,const uint popID);
       
-      Real shiftedMaxwellianDistribution(const int& popID,creal& vx, creal& vy, creal& vz);
+      Real shiftedMaxwellianDistribution(const uint popID,creal& vx, creal& vy, creal& vz);
       
       vector<vmesh::GlobalID> findBlocksToInitialize(
-         SpatialCell& cell,const int& popID
+         SpatialCell& cell,const uint popID
       );
       
       std::array<Real, 3> fieldSolverGetNormalDirection(
@@ -122,7 +131,8 @@ namespace SBC {
       Real center[3]; /*!< Coordinates of the centre of the ionosphere. */
       Real radius; /*!< Radius of the ionosphere. */
       uint geometry; /*!< Geometry of the ionosphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm (circle, DEFAULT), 3: polar-plane cylinder with line dipole. */
-      
+
+      std::vector<IonosphereSpeciesParameters> speciesParams;
       Real T;
       Real rho;
       Real VX0;

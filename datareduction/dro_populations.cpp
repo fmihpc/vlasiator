@@ -20,17 +20,4 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef CPU_ACC_MAP_H
-#define CPU_ACC_MAP_H
-
-#include "../common.h"
-#include "../spatial_cell.hpp"
-#include "vec.h"
-
-using namespace spatial_cell;
-
-bool map_1d(SpatialCell* spatial_cell, const uint popID,     
-            Realv intersection, Realv intersection_di, Realv intersection_dj,Realv intersection_dk,
-            const uint dimension) ;
-
-#endif
+// Empty sourcefile after dro was turned into a template.

@@ -115,7 +115,7 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       const Real dy = cell->parameters[CellParams::DY];
       const Real dz = cell->parameters[CellParams::DZ];
       
-      for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
          const Real* blockParams = blockContainer.getParameters();
          const Real EPS = numeric_limits<Real>::min()*1000;
@@ -211,7 +211,7 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    
    // Subcycle if field solver dt < global dt (including CFL) (new or old dt hence the hassle with subcycleDt
    if (meanFieldsCFL*dtMaxGlobal[2] < subcycleDt && P::propagateField) {
-      P::fieldSolverSubcycles = min(convert<int>(ceil(subcycleDt / (meanFieldsCFL*dtMaxGlobal[2]))), P::maxFieldSolverSubcycles);
+      P::fieldSolverSubcycles = min(convert<uint>(ceil(subcycleDt / (meanFieldsCFL*dtMaxGlobal[2]))), P::maxFieldSolverSubcycles);
    } else {
       P::fieldSolverSubcycles = 1;
    }
@@ -282,9 +282,8 @@ int main(int argn,char* args[]) {
    //init parameter file reader
    Readparameters readparameters(argn,args,MPI_COMM_WORLD);
    P::addParameters();
-   projects::Project::addParameters();
-   sysBoundaries.addParameters();
-   readparameters.parse();
+   getObjectWrapper().addParameters();
+   readparameters.parse(); // First pass parsing
    if (P::getParameters() == false) {
       if (myRank == MASTER_RANK) {
          cerr << "(MAIN) ERROR: getParameters failed!" << endl;
@@ -292,9 +291,15 @@ int main(int argn,char* args[]) {
       exit(1);
    }
 
+   getObjectWrapper().addPopulationParameters();
+   sysBoundaries.addParameters();
+   projects::Project::addParameters();
    Project* project = projects::createProject();
    getObjectWrapper().project = project;
    
+   readparameters.parse(); // Second pass parsing: specific population parameters
+   readparameters.helpMessage(); // Call after last parse, exits after printing help if help requested
+   getObjectWrapper().getParameters();
    project->getParameters();
    sysBoundaries.getParameters();
    phiprof::stop("Read parameters");
@@ -641,7 +646,7 @@ int main(int argn,char* args[]) {
       //compute how many spatial cells we solve for this step
       computedCells=0;
       for(size_t i=0; i<cells.size(); i++) {
-         for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
+         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
             computedCells += mpiGrid[cells[i]]->get_number_of_velocity_blocks(popID)*WID3;
       }
       computedTotalCells+=computedCells;
@@ -703,10 +708,11 @@ int main(int argn,char* args[]) {
       phiprof::start("Compute interp moments");
       calculateInterpolatedVelocityMoments(
          mpiGrid,
-         CellParams::RHO_DT2,
-         CellParams::RHOVX_DT2,
-         CellParams::RHOVY_DT2,
-         CellParams::RHOVZ_DT2,
+         CellParams::RHOM_DT2,
+         CellParams::VX_DT2,
+         CellParams::VY_DT2,
+         CellParams::VZ_DT2,
+         CellParams::RHOQ_DT2,
          CellParams::P_11_DT2,
          CellParams::P_22_DT2,
          CellParams::P_33_DT2
@@ -750,10 +756,11 @@ int main(int argn,char* args[]) {
       // timestep * //
       calculateInterpolatedVelocityMoments(
          mpiGrid,
-         CellParams::RHO,
-         CellParams::RHOVX,
-         CellParams::RHOVY,
-         CellParams::RHOVZ,
+         CellParams::RHOM,
+         CellParams::VX,
+         CellParams::VY,
+         CellParams::VZ,
+         CellParams::RHOQ,
          CellParams::P_11,
          CellParams::P_22,
          CellParams::P_33

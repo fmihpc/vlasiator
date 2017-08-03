@@ -30,6 +30,17 @@
 #include "sysboundarycondition.h"
 
 namespace SBC {
+
+	struct OutflowSpeciesParameters {
+      /*! Array of bool telling which faces are going to be skipped by the Vlasov system boundary condition.*/
+			std::array<bool, 6> facesToSkipVlasov;
+      /*! List of schemes to use for the Vlasov outflow boundary conditions on each face ([xyz][+-]). */
+      std::array<uint, 6> faceVlasovScheme;
+
+      /*! Factor by which to quench the inflowing parts of the velocity distribution function.*/
+      Real quenchFactor;
+	};
+
    /*!\brief Outflow is a class applying copy/outflow boundary conditions.
     * 
     * Outflow is a class handling cells tagged as sysboundarytype::OUTFLOW by this system boundary condition. It applies copy/outflow boundary conditions.
@@ -96,7 +107,7 @@ namespace SBC {
       virtual void vlasovBoundaryCondition(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const CellID& cellID,
-         const int& popID
+         const uint popID
       );
       
       virtual void getFaces(bool* faces);
@@ -106,14 +117,10 @@ namespace SBC {
    protected:
       /*! Array of bool telling which faces are going to be processed by the system boundary condition.*/
       bool facesToProcess[6];
-      /*! Array of bool telling which faces are going to be skipped by the Vlasov system boundary condition.*/
-      bool facesToSkipVlasov[6];
       /*! Array of bool telling which faces are going to be processed by the fields system boundary condition.*/
       bool facesToSkipFields[6];
       /*! List of faces on which outflow boundary conditions are to be applied ([xyz][+-]). */
       std::vector<std::string> faceList;
-      /*! List of schemes to use for the Vlasov outflow boundary conditions on each face ([xyz][+-]). */
-      std::array<uint, 6> faceVlasovScheme;
       /*! List of faces on which no fields outflow boundary conditions are to be applied ([xyz][+-]). */
       std::vector<std::string> faceNoFieldsList;
       Real fieldBoundaryCopyFromExistingFaceNbrMagneticField(
@@ -121,8 +128,7 @@ namespace SBC {
          const CellID& cellID,
          cuint& component
       );
-      /*! Factor by which to quench the inflowing parts of the velocity distribution function.*/
-      Real quenchFactor;
+			std::vector<OutflowSpeciesParameters> speciesParams;
       
       enum vlasovscheme {
          NONE,

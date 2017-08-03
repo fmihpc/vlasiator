@@ -62,6 +62,11 @@ namespace projects {
    
    void ElectricSail::addParameters() {
       typedef Readparameters RP;
+
+      if(getObjectWrapper().particleSpecies.size() > 1) {
+         std::cerr << "The selected project does not support multiple particle populations! Aborting in " << __FILE__ << " line " << __LINE__ << std::endl;
+         abort();
+      }
       RP::add("ElectricSail.solver","Name of the Poisson solver",string("SOR"));
       RP::add("ElectricSail.radius","Radius where charge density is non-zero",(Real)15e3);
       RP::add("ElectricSail.max_iterations","Maximum number of iterations",(uint)1000);
@@ -81,7 +86,7 @@ namespace projects {
       rgp.addParameters("ElectricSail");
    }
 
-   Real ElectricSail::getCorrectNumberDensity(spatial_cell::SpatialCell* cell,const int& popID) const {
+   Real ElectricSail::getCorrectNumberDensity(spatial_cell::SpatialCell* cell,const uint popID) const {
       if (addParticleCloud == false) return populations[popID].rho;
       if (getObjectWrapper().particleSpecies[popID].name != "Electron") return populations[popID].rho;
 
@@ -106,7 +111,7 @@ namespace projects {
       return populations[popID].rho + cloudDens;
    }
 
-   Real ElectricSail::getDistribValue(creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz,const int& popID) const {
+   Real ElectricSail::getDistribValue(creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz,const uint popID) const {
       creal mass = getObjectWrapper().particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
       const Population& pop = populations[popID];
@@ -197,7 +202,7 @@ namespace projects {
       return success;
    }
 
-   bool ElectricSail::rescalesDensity(const int& popID) const {
+   bool ElectricSail::rescalesDensity(const uint popID) const {
       return true;
    }
 
@@ -240,7 +245,7 @@ namespace projects {
       cell->parameters[CellParams::RHOQ_EXT] = 0;
 
       const Real EPSILON = 1e-30;
-      int N = 1;
+      uint N = 1;
       int N3_sum = 0;
       Real E_vol[3] = {0,0,0};
       
@@ -254,7 +259,7 @@ namespace projects {
 
          // Sample E using N points
          Real E_dummy[3] = {0,0,0};
-         for (int k=0; k<N; ++k) for (int j=0; j<N; ++j) for (int i=0; i<N; ++i) {
+         for (uint k=0; k<N; ++k) for (uint j=0; j<N; ++j) for (uint i=0; i<N; ++i) {
             Real x[3];
             x[0] = X + 0.5*DX_N + i*DX_N;
             x[1] = Y + 0.5*DY_N + j*DY_N;
@@ -313,14 +318,14 @@ namespace projects {
             creal& x, creal& y, creal& z,
             creal& dx, creal& dy, creal& dz,
             creal& vx, creal& vy, creal& vz,
-            creal& dvx, creal& dvy, creal& dvz,const int& popID) const {
+            creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
       
       // Iterative sampling of the distribution function. Keep track of the 
       // accumulated volume average over the iterations. When the next 
       // iteration improves the average by less than 1%, return the value.
       Real avgTotal = 0.0;
       bool ok = false;
-      int N = 2;                // Start by using a single velocity sample
+      uint N = 2;                // Start by using a single velocity sample
       int N3_sum = 0;           // Sum of sampling points used so far
       do {
          Real avg = 0.0;        // Volume average obtained during this sampling
@@ -362,7 +367,7 @@ namespace projects {
       return avgTotal / N3_sum;
    }
 
-   std::vector<std::array<Real, 3>> ElectricSail::getV0(creal x,creal y,creal z) const {
+   std::vector<std::array<Real, 3>> ElectricSail::getV0(creal x,creal y,creal z, const uint popID) const {
       vector<std::array<Real, 3>> centerPoints;
       for(uint i=0; i<populations.size(); ++i) {
          std::array<Real,3> point {{populations[i].V[0],populations[i].V[1],populations[i].V[2]}};

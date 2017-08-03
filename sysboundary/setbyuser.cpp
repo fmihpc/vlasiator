@@ -47,14 +47,6 @@ namespace SBC {
    SetByUser::SetByUser(): SysBoundaryCondition() { }
    SetByUser::~SetByUser() { }
    
-   void SetByUser::addParameters() {
-      cerr << "Base class SetByUser::addParameters() called instead of derived class function!" << endl;
-   }
-   
-   void SetByUser::getParameters() {
-      cerr << "Base class SetByUser::getParameters() called instead of derived class function!" << endl;
-   }
-   
    bool SetByUser::initSysBoundary(
       creal& t,
       Project &project
@@ -78,7 +70,9 @@ namespace SBC {
          if(*it == "z-") facesToProcess[5] = true;
       }
       
-      success = loadInputData();
+      for(unsigned int i=0; i<speciesParams.size(); i++) {
+         success = loadInputData(i);
+      }
       success = success & generateTemplateCells(t);
       
       return success;
@@ -113,7 +107,7 @@ namespace SBC {
       Project &project
    ) {
       bool success = true;
-      for (unsigned int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          if (setCellsFromTemplate(mpiGrid, popID) == false) success = false;
       }
       
@@ -250,12 +244,12 @@ namespace SBC {
    void SetByUser::vlasovBoundaryCondition(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
-      const int& popID
+      const uint popID
    ) {
       // No need to do anything in this function, as the propagators do not touch the distribution function   
    }
    
-   bool SetByUser::setCellsFromTemplate(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const int& popID) {
+   bool SetByUser::setCellsFromTemplate(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const uint popID) {
       vector<CellID> cells = mpiGrid.get_cells();
       #pragma omp parallel for
       for (size_t i=0; i<cells.size(); i++) {
@@ -279,8 +273,6 @@ namespace SBC {
                   cell->parameters[CellParams::PERBY] = templateCells[i].parameters[CellParams::PERBY];
                   cell->parameters[CellParams::PERBZ] = templateCells[i].parameters[CellParams::PERBZ];
                
-                  cell->parameters[CellParams::RHOLOSSADJUST] = 0.0;
-                  cell->parameters[CellParams::RHOLOSSVELBOUNDARY] = 0.0;
                }
 
                copyCellData(&templateCells[i], cell,true,false,popID);
@@ -295,18 +287,20 @@ namespace SBC {
       for(uint i=0; i<6; i++) faces[i] = facesToProcess[i];
    }
    
-   bool SetByUser::loadInputData() {
+   bool SetByUser::loadInputData(const uint popID) {
+      UserSpeciesParameters& sP = speciesParams[popID];
+
       for(uint i=0; i<6; i++) {
          if(facesToProcess[i]) {
-            inputData[i] = loadFile(&(files[i][0]));
+            sP.inputData[i] = loadFile(sP.files[i].c_str(), sP.nParams);
          } else {
             vector<Real> tmp1;
             vector<vector<Real> > tmp2;
-            for(uint j=0; j<nParams; j++) {
+            for(uint j=0; j<sP.nParams; j++) {
                tmp1.push_back(-1.0);
             }
             tmp2.push_back(tmp1);
-            inputData[i] = tmp2;
+            sP.inputData[i] = tmp2;
          }
       }
       return true;
@@ -322,7 +316,7 @@ namespace SBC {
     * \param fn Name of the file to be opened.
     * \retval dataset Vector of Real vectors. Each line of length nParams is put into a vector. Each of these is then put into the vector returned here.
     */
-   vector<vector<Real> > SetByUser::loadFile(const char *fn) {
+   vector<vector<Real> > SetByUser::loadFile(const char *fn, unsigned int nParams) {
       vector<vector<Real> > dataset;
  
    
@@ -424,22 +418,25 @@ namespace SBC {
     * \param outputData Pointer to the location where to write the result. Make sure from the calling side that nParams Real values can be written there!
     */
    void SetByUser::interpolate(
-      const int inputDataIndex,
+      const int inputDataIndex, const uint popID,
       creal t,
       Real* outputData
    ) {
+
+      UserSpeciesParameters& sP = speciesParams[popID];
+
       // Find first data[0] value which is >= t
       int i1=0,i2=0;
       bool found = false;
       Real s;      // 0 <= s < 1
       
       // use first value of sw data if interpolating for time before sw data starts
-      if (t < inputData[inputDataIndex][0][0]) {
+      if (t < sP.inputData[inputDataIndex][0][0]) {
          i1 = i2 = 0;
          s = 0;
       } else {
-         for (uint i=0; i<inputData[inputDataIndex].size(); i++) {
-            if (inputData[inputDataIndex][i][0] >= t) {
+         for (uint i=0; i<sP.inputData[inputDataIndex].size(); i++) {
+            if (sP.inputData[inputDataIndex][i][0] >= t) {
                found = true;
                i2 = (int)i;
                break;
@@ -453,37 +450,19 @@ namespace SBC {
                s = 0.0;
             } else {
                // normal case, now both i1 and i2 are >= 0 and < nlines, and i1 = i2-1
-               s = (t - inputData[inputDataIndex][i1][0])/(inputData[inputDataIndex][i2][0] - inputData[inputDataIndex][i1][0]);
+               s = (t - sP.inputData[inputDataIndex][i1][0])/(sP.inputData[inputDataIndex][i2][0] - sP.inputData[inputDataIndex][i1][0]);
             }
          } else {
-            i1 = i2 = inputData[inputDataIndex].size()-1;
+            i1 = i2 = sP.inputData[inputDataIndex].size()-1;
             s = 0.0;
          }
       }
       
       creal s1 = 1 - s;
       
-      for(uint i=0; i<nParams-1; i++) {
-         outputData[i] = s1*inputData[inputDataIndex][i1][i+1] +
-                           s*inputData[inputDataIndex][i2][i+1];
+      for(uint i=0; i<sP.nParams-1; i++) {
+         outputData[i] = s1*sP.inputData[inputDataIndex][i1][i+1] +
+                           s*sP.inputData[inputDataIndex][i2][i+1];
       }
-   }
-
-   void SetByUser::generateTemplateCell(
-      spatial_cell::SpatialCell& templateCell,
-      int inputDataIndex,
-      creal& t
-   ) {
-      cerr << "Base class SetByUser::generateTemplateCell() called instead of derived class function!" << endl;
-   }
-   
-   string SetByUser::getName() const {
-      cerr << "Base class SetByUser::getName() called instead of derived class function!" << endl;
-      return "SetByUser";
-   }
-   
-   uint SetByUser::getIndex() const {
-      cerr << "Base class SetByUser::getIndex() called instead of derived class function!" << endl;
-      return sysboundarytype::N_SYSBOUNDARY_CONDITIONS;
    }
 }
