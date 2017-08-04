@@ -40,7 +40,7 @@ bool ObjectWrapper::addPopulationParameters() {
      getObjectWrapper().velocityMeshes.push_back(newVMesh);
 
      RP::add(pop + "_properties.charge", "Particle charge, in units of elementary charges (int)", 1);
-     RP::add(pop + "_properties.mass_units", "Units in which particle mass is given, either 'PROTON' or 'ELECTRON' (string)", "PROTON");
+     RP::add(pop + "_properties.mass_units", "Units in which particle mass is given, either 'PROTON' or 'ELECTRON' (string)", std::string("PROTON"));
      RP::add(pop + "_properties.mass","Particle mass in given units (float)", 1);
 
      // Grid sparsity parameters
