@@ -29,6 +29,7 @@
 #include <iostream>
 
 #include "../../readparameters.h"
+#include "../../object_wrapper.h"
 
 #include "../../poisson_solver/poisson_solver.h"
 #include "poisson_test.h"

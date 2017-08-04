@@ -27,6 +27,7 @@
 #include "../../common.h"
 #include "../../readparameters.h"
 #include "../../backgroundfield/backgroundfield.h"
+#include "../../object_wrapper.h"
 
 #include "test_fp.h"
 
