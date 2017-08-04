@@ -29,6 +29,7 @@
 #include "../../readparameters.h"
 #include "../../backgroundfield/backgroundfield.h"
 #include "../../backgroundfield/constantfield.hpp"
+#include "../../object_wrapper.h"
 
 #include "Distributions.h"
 
