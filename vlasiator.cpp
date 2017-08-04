@@ -74,6 +74,7 @@ using namespace phiprof;
 
 int globalflags::bailingOut = 0;
 bool globalflags::writeRestart = 0;
+bool globalflags::balanceLoad = 0;
 
 ObjectWrapper objectWrapper;
 
@@ -488,6 +489,10 @@ int main(int argn,char* args[]) {
    P::meshRepartitioned = true;
 
    unsigned int wallTimeRestartCounter=1;
+
+   int doNow[2]; // 0: writeRestartNow, 1: balanceLoadNow ; declared outside main loop
+   int writeRestartNow; // declared outside main loop
+   bool overrideRebalanceNow = false; // declared outside main loop
    
    addTimedBarrier("barrier-end-initialization");
    
@@ -574,8 +579,8 @@ int main(int argn,char* args[]) {
       phiprof::stop("Bailout-allreduce");
       
       // Write restart data if needed
-      phiprof::start("compute-is-restart-written");
-      int writeRestartNow;
+      // Combined with checking of additional load balancing to have only one collective call.
+      phiprof::start("compute-is-restart-written-and-extra-LB");
       if (myRank == MASTER_RANK) {
          if (  (P::saveRestartWalltimeInterval >= 0.0
             && (P::saveRestartWalltimeInterval*wallTimeRestartCounter <=  MPI_Wtime()-initialWtime
@@ -584,18 +589,28 @@ int main(int argn,char* args[]) {
             || (doBailout > 0 && P::bailout_write_restart)
             || globalflags::writeRestart
          ) {
-            writeRestartNow = 1;
+            doNow[0] = 1;
             if (globalflags::writeRestart == true) {
-               writeRestartNow = 2; // Setting to 2 so as to not increment the restart count below.
+               doNow[0] = 2; // Setting to 2 so as to not increment the restart count below.
                globalflags::writeRestart = false; // This flag is only used by MASTER_RANK here and it needs to be reset after a restart write has been issued.
             }
          }
          else {
-            writeRestartNow = 0;
+            doNow[0] = 0;
+         }
+         if (globalflags::balanceLoad == true) {
+            doNow[1] = 1;
+            globalflags::balanceLoad = false;
          }
       }
-      MPI_Bcast( &writeRestartNow, 1 , MPI_INT , MASTER_RANK ,MPI_COMM_WORLD);
-      phiprof::stop("compute-is-restart-written");
+      MPI_Bcast( &doNow, 2 , MPI_INT , MASTER_RANK ,MPI_COMM_WORLD);
+      writeRestartNow = doNow[0];
+      doNow[0] = 0;
+      if (doNow[1] == 1) {
+         P::prepareForRebalance = true;
+         doNow[1] = 0;
+      }
+      phiprof::stop("compute-is-restart-written-and-extra-LB");
 
       if (writeRestartNow >= 1){
          phiprof::start("write-restart");
@@ -628,7 +643,7 @@ int main(int argn,char* args[]) {
       
       //Re-loadbalance if needed
       //TODO - add LB measure and do LB if it exceeds threshold
-      if(P::tstep % P::rebalanceInterval == 0 && P::tstep > P::tstep_min) {
+      if((P::tstep % P::rebalanceInterval == 0 && P::tstep > P::tstep_min) || overrideRebalanceNow == true) {
          logFile << "(LB): Start load balance, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
          balanceLoad(mpiGrid, sysBoundaries);
          addTimedBarrier("barrier-end-load-balance");
@@ -638,6 +653,7 @@ int main(int argn,char* args[]) {
          phiprof::stop("Shrink_to_fit");
          logFile << "(LB): ... done!"  << endl << writeVerbose;
          P::prepareForRebalance = false;
+         overrideRebalanceNow = false;
       }
 
       //get local cells
@@ -679,8 +695,12 @@ int main(int argn,char* args[]) {
          }
       }
       
-      if (P::tstep % P::rebalanceInterval == P::rebalanceInterval-1) {
-         P::prepareForRebalance = true;
+      if (P::tstep % P::rebalanceInterval == P::rebalanceInterval-1 || P::prepareForRebalance == true) {
+         if(P::prepareForRebalance == true) {
+            overrideRebalanceNow = true;
+         } else {
+            P::prepareForRebalance = true;
+         }
          #pragma omp parallel for
          for (size_t c=0; c<cells.size(); ++c) {
             mpiGrid[cells[c]]->get_cell_parameters()[CellParams::LBWEIGHTCOUNTER] = 0;

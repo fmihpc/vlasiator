@@ -51,6 +51,7 @@ typedef Parameters P;
  * If a file STOP was written and is readable, then a bailout with restart writing is initiated.
  * If a file KILL was written and is readable, then a bailout without a restart is initiated.
  * If a file SAVE was written and is readable, then restart writing without a bailout is initiated.
+ * If a file DOLB was written and is readable, then a new load balancing is initiated.
  * To avoid bailing out upfront on a new run the files are renamed with the date to keep a trace.
  * The function should only be called by MASTER_RANK. This ensures that resetting P::bailout_write_restart works.
  */
@@ -87,6 +88,17 @@ void checkExternalCommands() {
       const struct tm * timeInfo = localtime(&rawTime);
       strftime(newName, 80, "SAVE_%F_%H-%M-%S", timeInfo);
       rename("SAVE", newName);
+      return;
+   }
+   if(stat("DOLB", &tempStat) == 0) {
+      cerr << "Received an external DOLB command. Balancing load." << endl;
+      globalflags::balanceLoad = true;
+      char newName[80];
+      // Get the current time.
+      const time_t rawTime = time(NULL);
+      const struct tm * timeInfo = localtime(&rawTime);
+      strftime(newName, 80, "DOLB_%F_%H-%M-%S", timeInfo);
+      rename("DOLB", newName);
       return;
    }
 }
