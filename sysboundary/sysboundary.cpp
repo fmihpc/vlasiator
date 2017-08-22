@@ -495,13 +495,16 @@ bool SysBoundary::applyInitialState(
    Project& project
 ) {
    bool success = true;
-   using namespace sysboundarytype;
    
    list<SBC::SysBoundaryCondition*>::iterator it;
    for (it = sysBoundaries.begin();
         it != sysBoundaries.end();
         it++) {
-      if((Parameters::isRestart == true) && ((*it)->doApplyUponRestart() == false)) {
+      if(Parameters::isRestart == true
+         && (*it)->doApplyUponRestart() == false
+         && (*it)->getIndex() != sysboundarytype::IONOSPHERE
+         && (*it)->getIndex() != sysboundarytype::SET_MAXWELLIAN
+      ) {
          continue;
       }
       if((*it)->applyInitialState(mpiGrid, project) == false) {
