@@ -502,8 +502,8 @@ bool SysBoundary::applyInitialState(
         it++) {
       if(Parameters::isRestart == true
          && (*it)->doApplyUponRestart() == false
-         && (*it)->getIndex() != sysboundarytype::IONOSPHERE
-         && (*it)->getIndex() != sysboundarytype::SET_MAXWELLIAN
+         || ((*it)->getIndex() != sysboundarytype::IONOSPHERE
+         || (*it)->getIndex() != sysboundarytype::SET_MAXWELLIAN)
       ) {
          continue;
       }
