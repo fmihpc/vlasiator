@@ -540,6 +540,7 @@ void SysBoundary::applySysBoundaryVlasovConditions(
    // First the small stuff without overlapping in an extended neighbourhood:
    SpatialCell::set_mpi_transfer_type(
       Transfer::CELL_PARAMETERS|
+      Transfer::POP_METADATA|
       Transfer::CELL_SYSBOUNDARYFLAG,true);
    mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
    
