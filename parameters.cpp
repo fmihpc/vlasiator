@@ -88,9 +88,11 @@ vector<int> P::systemWriteDistributionWriteXlineStride;
 vector<int> P::systemWriteDistributionWriteYlineStride;
 vector<int> P::systemWriteDistributionWriteZlineStride;
 vector<int> P::systemWrites;
+std::vector<std::pair<std::string,std::string>> P::systemWriteHints;
 
 Real P::saveRestartWalltimeInterval = -1.0;
 uint P::exitAfterRestarts = numeric_limits<uint>::max();
+uint64_t P::vlsvBufferSize;
 int P::restartStripeFactor = -1;
 string P::restartWritePath = string("");
 
@@ -164,11 +166,14 @@ bool Parameters::addParameters(){
    Readparameters::addComposing("io.system_write_distribution_xline_stride", "Every this many lines of cells along the x direction write out their velocity space. 0 is none. [Define for all groups.]");
    Readparameters::addComposing("io.system_write_distribution_yline_stride", "Every this many lines of cells along the y direction write out their velocity space. 0 is none. [Define for all groups.]");
    Readparameters::addComposing("io.system_write_distribution_zline_stride", "Every this many lines of cells along the z direction write out their velocity space. 0 is none. [Define for all groups.]");
+   Readparameters::addComposing("io.system_write_mpiio_hint_key", "MPI-IO hint key passed to the non-restart IO. Has to be matched by io.system_write_mpiio_hint_value.");
+   Readparameters::addComposing("io.system_write_mpiio_hint_value", "MPI-IO hint value passed to the non-restart IO. Has to be matched by io.system_write_mpiio_hint_key.");
 
    Readparameters::add("io.write_initial_state","Write initial state, not even the 0.5 dt propagation is done. Do not use for restarting. ",false);
 
    Readparameters::add("io.restart_walltime_interval","Save the complete simulation in given walltime intervals. Negative values disable writes.",-1.0);
    Readparameters::add("io.number_of_restarts","Exit the simulation after certain number of walltime-based restarts.",numeric_limits<uint>::max());
+   Readparameters::add("io.vlsv_buffer_size", "Buffer size passed to VLSV writer (bytes, up to uint64_t)", 1024*1024*1024);
    Readparameters::add("io.write_restart_stripe_factor","Stripe factor for restart writing.", -1);
    Readparameters::add("io.write_as_float","If true, write in floats instead of doubles", false);
    Readparameters::add("io.restart_write_path", "Path to the location where restart files should be written. Defaults to the local directory, also if the specified destination is not writeable.", string("./"));
@@ -268,6 +273,7 @@ bool Parameters::getParameters(){
    Readparameters::get("io.write_initial_state", P::writeInitialState);
    Readparameters::get("io.restart_walltime_interval", P::saveRestartWalltimeInterval);
    Readparameters::get("io.number_of_restarts", P::exitAfterRestarts);
+   Readparameters::get("io.vlsv_buffer_size", P::vlsvBufferSize);
    Readparameters::get("io.write_restart_stripe_factor", P::restartStripeFactor);
    Readparameters::get("io.restart_write_path", P::restartWritePath);
    Readparameters::get("io.write_as_float", P::writeAsFloat);
@@ -347,6 +353,20 @@ bool Parameters::getParameters(){
       }
    }
    
+   std::vector<std::string> mpiioKeys, mpiioValues;
+   Readparameters::get("io.system_write_mpiio_hint_key", mpiioKeys);
+   Readparameters::get("io.system_write_mpiio_hint_value", mpiioValues);
+   
+   if ( mpiioKeys.size() != mpiioValues.size() ) {
+      if(myRank == MASTER_RANK) {
+         cerr << "WARNING the number of io.system_write_mpiio_hint_key and io.system_write_mpiio_hint_value do not match. Disregarding these options." << endl;
+      }
+   } else {
+      for ( uint i=0; i<mpiioKeys.size(); i++) {
+         P::systemWriteHints.push_back({mpiioKeys[i], mpiioValues[i]});
+      }
+   }
+
    Readparameters::get("propagate_field",P::propagateField);
    Readparameters::get("propagate_potential",P::propagatePotential);
    Readparameters::get("propagate_vlasov_acceleration",P::propagateVlasovAcceleration);

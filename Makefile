@@ -1,22 +1,21 @@
 #set default architecture, can be overridden from the compile line
 ARCH = ${VLASIATOR_ARCH}
-include MAKE/Makefile.${ARCH}
-
 #set FP precision to SP (single) or DP (double)
 FP_PRECISION = DP
-
 #Set floating point precision for distribution function to SPF (single) or DPF (double)
-#NOTE this has to have the same precision as the vectorclass defined below (VECTORCLASS)
 DISTRIBUTION_FP_PRECISION = SPF
+#override flags if we are building testpackage:
 
-#Set vector backend type for vlasov solvers, sets precision and length. 
-#NOTE this has to have the same precision as the distribution function define (DISTRIBUTION_FP_PRECISION).
-#Options: 
-# Agners vectorclass: 
-# AVX: VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
-# AVX512: VEC8D_AGNER, VEC16F_AGNER
-# Fallback: VEC4D_FALLBACK, VEC4F_FALLBACK, VEC8F_FALLBACK
-VECTORCLASS = VEC8F_AGNER
+testpackage: MATHFLAGS =
+testpackage: FP_PRECISION = DP
+testpackage: DISTRIBUTION_FP_PRECISION = DPF
+
+
+include MAKE/Makefile.${ARCH}
+
+
+
+
 
 #set a default archive utility, can also be set in Makefile.arch
 AR ?= ar
@@ -27,19 +26,7 @@ FIELDSOLVER ?= londrillo_delzanna
 # COMPFLAGS += -DFS_1ST_ORDER_SPACE
 # COMPFLAGS += -DFS_1ST_ORDER_TIME
 
-#override flags if we are building testpackage:
-testpackage: MATHFLAGS =
-testpackage: FP_PRECISION = DP
-testpackage: DISTRIBUTION_FP_PRECISION = DPF
-testpackage: VECTORCLASS = VEC4D_AGNER
 
-#also use papi to report memory consumption?
-PAPI_FLAG ?= -DPAPI_MEM
-COMPFLAGS +=${PAPI_FLAG}
-
-#Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
-#Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
-COMPFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
 #is profiling on?
 COMPFLAGS += -DPROFILE
@@ -65,10 +52,6 @@ COMPFLAGS += -DACC_SEMILAG_PQM -DTRANS_SEMILAG_PPM
 
 #Define MESH=AMR if you want to use adaptive mesh refinement in velocity space
 #MESH = AMR
-
-#Add -DFS_1ST_ORDER_SPACE or -DFS_1ST_ORDER_TIME to make the field solver first-order in space or time
-# COMPFLAGS += -DFS_1ST_ORDER_SPACE
-# COMPFLAGS += -DFS_1ST_ORDER_TIME
 
 #//////////////////////////////////////////////////////
 # The rest of this file users shouldn't need to change
