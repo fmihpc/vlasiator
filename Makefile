@@ -6,9 +6,11 @@ FP_PRECISION = DP
 DISTRIBUTION_FP_PRECISION = SPF
 #override flags if we are building testpackage:
 
-testpackage: MATHFLAGS =
-testpackage: FP_PRECISION = DP
-testpackage: DISTRIBUTION_FP_PRECISION = DPF
+ifneq (,$(findstring testpackage,$(MAKECMDGOALS)))
+	MATHFLAGS =
+	FP_PRECISION = DP
+	DISTRIBUTION_FP_PRECISION = DPF
+endif
 
 
 include MAKE/Makefile.${ARCH}
