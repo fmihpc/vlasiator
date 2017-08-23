@@ -45,7 +45,7 @@ LDFLAGS += -L$(TBBROOT)/lib/intel64/gcc4.7/ -ltbbmalloc_proxy -ltbbmalloc
 CC_BRAND = intel
 CC_BRAND_VERSION = 17.0.1
 CXXFLAGS +=  -O2 -g -DMAX_VECTOR_SIZE=512 -xMIC-AVX512 -std=c++11 -qopenmp -ansi-alias
-testpackage: CXXFLAGS = -O2 -std=c++11 -qopenmp -ansi-alias
+testpackage: CXXFLAGS = -O2 -g -DMAX_VECTOR_SIZE=512 -xMIC-AVX512 -std=c++11 -qopenmp -ansi-alias
 MATHFLAGS = 
 LDFLAGS += -qopenmp -lifcore 
 CMP = mpicxx
