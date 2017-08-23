@@ -1,6 +1,39 @@
 CMP = mpiCC
 LNK = mpiCC
 
+#======== Vectorization ==========
+#Set vector backend type for vlasov solvers, sets precision and length. 
+#NOTE this has to have the same precision as the distribution function define (DISTRIBUTION_FP_PRECISION)
+#Options: 
+# AVX:	    VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
+# AVX512:   VEC8D_AGNER, VEC16F_AGNER
+# Fallback: VEC4D_FALLBACK, VEC4F_FALLBACK, VEC8F_FALLBACK
+
+ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
+#Single-precision        
+	VECTORCLASS = VEC8F_AGNER
+else
+#Double-precision
+	VECTORCLASS = VEC4D_AGNER
+endif
+
+#======== PAPI ==========
+#Add PAPI_MEM define to use papi to report memory consumption?
+CXXFLAGS +=  -DPAPI_MEM
+
+
+#======== Allocator =========
+#Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
+#Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
+CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+
+
+#======= Compiler and compilation flags =========
+# NOTES on compiler flags:
+# CXXFLAGS is for compiler flags, they are always used
+# MATHFLAGS are for special math etc. flags, these are only applied on solver functions
+# LDFLAGS flags for linker
+
 #-DNO_WRITE_AT_ALL:  Define to disable write at all to 
 #                    avoid memleak (much slower IO)
 #-DMPICH_IGNORE_CXX_SEEK: Ignores some multiple definition 
@@ -10,11 +43,6 @@ LNK = mpiCC
 CXXFLAGS = -DMPICH_IGNORE_CXX_SEEK
 
 FLAGS = 
-
-# NOTES on compiler flags:
-# CXXFLAGS is for compiler flags, they are always used
-# MATHFLAGS are for special math etc. flags, these are only applied on solver functions
-# LDFLAGS flags for linker
 
 #GNU flags:
 CC_BRAND = gcc
@@ -28,6 +56,8 @@ LIB_MPI = -lgomp
 
 # BOOST_VERSION = current trilinos version
 # ZOLTAN_VERSION = current trilinos verson
+#
+#======== Libraries ===========
 
 MPT_VERSION = 1.10.2
 JEMALLOC_VERSION = 4.0.4
