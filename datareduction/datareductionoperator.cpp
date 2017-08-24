@@ -1000,44 +1000,44 @@ namespace DRO {
       const Real* parameters = cell->get_block_parameters(popID);
       const Realf* block_data = cell->get_data(popID);
       
-         for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); ++n) {
-            // Get the volume of a velocity cell
-            const Real DV3
-            = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]
-            * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY]
-            * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
-            // Get the velocity cell indices of the cells that are a part of the backstream population
-            vector< array<uint, 3> > vCellIndices;
-            vCellIndices.clear();
-            // Save indices to the std::vector
-            if( calculateBackstream == true ) {
-               getBackstreamVelocityCellIndices(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCellIndices);
-            } else {
-               getNonBackstreamVelocityCellIndices(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCellIndices);
-            }
-            // We have now fethced all of the needed velocity cell indices, so now go through them:
-            for( vector< array<uint, 3> >::const_iterator it = vCellIndices.begin(); it != vCellIndices.end(); ++it ) {
-               // Get the indices of the current iterated velocity cell
-               const array<uint, 3> indices = *it;
-               const uint i = indices[0];
-               const uint j = indices[1];
-               const uint k = indices[2];
-               // Get the coordinates of the velocity cell (e.g. VX = block_vx_min_coordinates + (velocity_cell_indice_x+0.5)*length_of_velocity_cell_in_x_direction)
-               const Real VX = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] + (i + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
-               const Real VY = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] + (j + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
-               const Real VZ = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] + (k + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
-               // Add the value of the coordinates and multiply by the AVGS value of the velocity cell and the volume of the velocity cell
-               nvx_sum += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)]*VX*DV3;
-               nvy_sum += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)]*VY*DV3;
-               nvz_sum += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)]*VZ*DV3;
-               n_sum   += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)]*DV3;
-            }
-         } // for-loop over velocity blocks
+      for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); ++n) {
+         // Get the volume of a velocity cell
+         const Real DV3
+         = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]
+         * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY]
+         * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+         // Get the velocity cell indices of the cells that are a part of the backstream population
+         vector< array<uint, 3> > vCellIndices;
+         vCellIndices.clear();
+         // Save indices to the std::vector
+         if( calculateBackstream == true ) {
+            getBackstreamVelocityCellIndices(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCellIndices);
+         } else {
+            getNonBackstreamVelocityCellIndices(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCellIndices);
+         }
+         // We have now fethced all of the needed velocity cell indices, so now go through them:
+         for( vector< array<uint, 3> >::const_iterator it = vCellIndices.begin(); it != vCellIndices.end(); ++it ) {
+            // Get the indices of the current iterated velocity cell
+            const array<uint, 3> indices = *it;
+            const uint i = indices[0];
+            const uint j = indices[1];
+            const uint k = indices[2];
+            // Get the coordinates of the velocity cell (e.g. VX = block_vx_min_coordinates + (velocity_cell_indice_x+0.5)*length_of_velocity_cell_in_x_direction)
+            const Real VX = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] + (i + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
+            const Real VY = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] + (j + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
+            const Real VZ = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] + (k + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+            // Add the value of the coordinates and multiply by the AVGS value of the velocity cell and the volume of the velocity cell
+            nvx_sum += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)]*VX*DV3;
+            nvy_sum += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)]*VY*DV3;
+            nvz_sum += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)]*VZ*DV3;
+            n_sum   += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)]*DV3;
+         }
+      } // for-loop over velocity blocks
 
-         V[0] += nvx_sum / n_sum;
-         V[1] += nvy_sum / n_sum;
-         V[2] += nvz_sum / n_sum;
-      }
+      V[0] += nvx_sum / n_sum;
+      V[1] += nvy_sum / n_sum;
+      V[2] += nvz_sum / n_sum;
+
       return;
    }
 
