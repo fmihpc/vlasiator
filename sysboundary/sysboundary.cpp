@@ -503,7 +503,8 @@ bool SysBoundary::applyInitialState(
       if(                                                        // This is to skip the reapplication
          Parameters::isRestart == true                           // When not restarting
          && (*it)->doApplyUponRestart() == false                 // When reapplicaiton is not requested
-         && (*it)->getIndex() != sysboundarytype::IONOSPHERE     // But this is to firce it when we have either IONOSPHERE
+         && (*it)->getIndex() != sysboundarytype::IONOSPHERE     
+// But this is to force it when we have either IONOSPHERE
          && (*it)->getIndex() != sysboundarytype::SET_MAXWELLIAN // or SET_MAXWELLIAN as otherwise the POP_METADA are not properly set
       ) {
          continue;
