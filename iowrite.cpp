@@ -41,6 +41,7 @@
 #include "logger.h"
 #include "vlasovmover.h"
 #include "object_wrapper.h"
+#include "phiprof.h"
 
 using namespace std;
 using namespace phiprof;
@@ -309,20 +310,24 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    bool success=true;
 
    const string meshName = "SpatialGrid";
+   variableName = dataReducer.getName(dataReducerIndex);
+   phiprof::start("DRO_"+variableName);
 
    // If the DataReducer can write its data directly to the output file, do it here.
    // Otherwise the output data is buffered and written below.
    if (dataReducer.handlesWriting(dataReducerIndex) == true) {
-      return dataReducer.writeData(dataReducerIndex,mpiGrid,cells,meshName,vlsvWriter);
+      success = dataReducer.writeData(dataReducerIndex,mpiGrid,cells,meshName,vlsvWriter);
+      phiprof::stop("DRO_"+variableName);
+      return success;
    }
 
    //Get basic data on a variable:
    uint dataSize,vectorSize;
    attribs["mesh"] = meshName;
-   variableName = dataReducer.getName(dataReducerIndex);
    attribs["name"] = variableName;
    if (dataReducer.getDataVectorInfo(dataReducerIndex,dataType,dataSize,vectorSize) == false) {
       cerr << "ERROR when requesting info from DRO " << dataReducerIndex << endl;
+      phiprof::stop("DRO_"+variableName);
       return false;
    }
 
@@ -335,6 +340,7 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    } catch( bad_alloc& ) {
       cerr << "ERROR, FAILED TO ALLOCATE MEMORY AT: " << __FILE__ << " " << __LINE__ << endl;
       logFile << "(MAIN) writeGrid: ERROR FAILED TO ALLOCATE MEMORY AT: " << __FILE__ << " " << __LINE__ << endl << writeVerbose;
+      phiprof::stop("DRO_"+variableName);
       return false;
    }
 
@@ -362,6 +368,7 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
             logFile << "(MAIN) writeGrid: ERROR FAILED TO ALLOCATE MEMORY AT: " << __FILE__ << " " << __LINE__ << endl << writeVerbose;
             delete[] varBuffer;
             varBuffer = NULL;
+            phiprof::stop("DRO_"+variableName);
             return false;
          }
          //Input varBuffer_double into varBuffer_smaller:
@@ -389,6 +396,7 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
 
    delete[] varBuffer;
    varBuffer = NULL;
+   phiprof::stop("DRO_"+variableName);
    return success;
 }
 
