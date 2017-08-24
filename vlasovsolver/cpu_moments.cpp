@@ -98,9 +98,9 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
           cell->parameters[CellParams::RHOQ  ] += array[0]*charge;
        } // for-loop over particle species
        
-       cell->parameters[CellParams::VX] /= cell->parameters[CellParams::RHOM];
-       cell->parameters[CellParams::VY] /= cell->parameters[CellParams::RHOM];
-       cell->parameters[CellParams::VZ] /= cell->parameters[CellParams::RHOM];
+       cell->parameters[CellParams::VX] = divideIfNonZero(cell->parameters[CellParams::VX], cell->parameters[CellParams::RHOM]);
+       cell->parameters[CellParams::VY] = divideIfNonZero(cell->parameters[CellParams::VY], cell->parameters[CellParams::RHOM]);
+       cell->parameters[CellParams::VZ] = divideIfNonZero(cell->parameters[CellParams::VZ], cell->parameters[CellParams::RHOM]);
     }
 
     // Compute second moments only if requested
@@ -255,9 +255,9 @@ void calculateMoments_R_maxdt(
     #pragma omp parallel for
     for (size_t c=0; c<cells.size(); ++c) {
        SpatialCell* cell = mpiGrid[cells[c]];
-       cell->parameters[CellParams::VX_R] /= cell->parameters[CellParams::RHOM_R];
-       cell->parameters[CellParams::VY_R] /= cell->parameters[CellParams::RHOM_R];
-       cell->parameters[CellParams::VZ_R] /= cell->parameters[CellParams::RHOM_R];
+       cell->parameters[CellParams::VX_R] = divideIfNonZero(cell->parameters[CellParams::VX_R], cell->parameters[CellParams::RHOM_R]);
+       cell->parameters[CellParams::VY_R] = divideIfNonZero(cell->parameters[CellParams::VY_R], cell->parameters[CellParams::RHOM_R]);
+       cell->parameters[CellParams::VZ_R] = divideIfNonZero(cell->parameters[CellParams::VZ_R], cell->parameters[CellParams::RHOM_R]);
     }
 
    // Compute second moments only if requested.
@@ -375,9 +375,9 @@ void calculateMoments_V(
    #pragma omp parallel for
    for (size_t c=0; c<cells.size(); ++c) {
       SpatialCell* cell = mpiGrid[cells[c]];
-      cell->parameters[CellParams::VX_V] /= cell->parameters[CellParams::RHOM_V];
-      cell->parameters[CellParams::VY_V] /= cell->parameters[CellParams::RHOM_V];
-      cell->parameters[CellParams::VZ_V] /= cell->parameters[CellParams::RHOM_V];
+      cell->parameters[CellParams::VX_V] = divideIfNonZero(cell->parameters[CellParams::VX_V], cell->parameters[CellParams::RHOM_V]);
+      cell->parameters[CellParams::VY_V] = divideIfNonZero(cell->parameters[CellParams::VY_V], cell->parameters[CellParams::RHOM_V]);
+      cell->parameters[CellParams::VZ_V] = divideIfNonZero(cell->parameters[CellParams::VZ_V], cell->parameters[CellParams::RHOM_V]);
    }
 
    // Compute second moments only if requested

@@ -25,7 +25,7 @@
 #include <cmath>
 #include "../../backgroundfield/backgroundfield.h"
 #include "../../backgroundfield/constantfield.hpp"
-
+#include "../../object_wrapper.h"
 
 #include "Shocktest.h"
 #include "../../spatial_cell.hpp"

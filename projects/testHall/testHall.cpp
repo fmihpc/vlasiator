@@ -28,6 +28,7 @@
 #include "../../readparameters.h"
 #include "../../backgroundfield/backgroundfield.h"
 #include "../../backgroundfield/dipole.hpp"
+#include "../../object_wrapper.h"
 
 #include "testHall.h"
 
