@@ -337,7 +337,9 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       logFile << "(MAIN) writeGrid: ERROR FAILED TO ALLOCATE MEMORY AT: " << __FILE__ << " " << __LINE__ << endl << writeVerbose;
       return false;
    }
-
+   
+   phiprof::start("reduceData");
+//   #pragma omp parallel for schedule(dynamic)
    for (size_t cell=0; cell<cells.size(); ++cell) {
       //Reduce data ( return false if the operation fails )
       if (dataReducer.reduceData(mpiGrid[cells[cell]],dataReducerIndex,varBuffer + cell*vectorSize*dataSize) == false){
@@ -346,7 +348,11 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
             "' returned false!" << endl << writeVerbose;
       }
    }
+   phiprof::stop("reduceData");
+   
+   phiprof::start("writeReducedData");
    if( success ) {
+
       if( (writeAsFloat == true && dataType.compare("float") == 0) && dataSize == sizeof(double) ) {
          double * varBuffer_double = reinterpret_cast<double*>(varBuffer);
          //Declare smaller varbuffer:
@@ -372,21 +378,27 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
          //Cast the varBuffer to char:
          char * varBuffer_smaller_char = reinterpret_cast<char*>(varBuffer_smaller);
          //Write the array:
+         phiprof::start("writeArray");
          if (vlsvWriter.writeArray("VARIABLE", attribs, dataType_smaller, arraySize_smaller, vectorSize_smaller, dataSize_smaller, varBuffer_smaller_char) == false) {
             success = false;
             logFile << "(MAIN) writeGrid: ERROR failed to write datareductionoperator data to file!" << endl << writeVerbose;
          }
+         phiprof::stop("writeArray");
          delete[] varBuffer_smaller;
          varBuffer_smaller = NULL;
       } else {
          // Write  reduced data to file if DROP was successful:
+         phiprof::start("writeArray");
          if (vlsvWriter.writeArray("VARIABLE",attribs, dataType, cells.size(), vectorSize, dataSize, varBuffer) == false) {
             success = false;
             logFile << "(MAIN) writeGrid: ERROR failed to write datareductionoperator data to file!" << endl << writeVerbose;
          }
+         phiprof::stop("writeArray");
       }
-   }
 
+   }
+   phiprof::stop("writeReducedData");
+   
    delete[] varBuffer;
    varBuffer = NULL;
    return success;
@@ -885,11 +897,31 @@ bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    //Open the file with vlsvWriter:
    Writer vlsvWriter;
    const int masterProcessId = 0;
-   MPI_Info MPIinfo = MPI_INFO_NULL;
+
+   MPI_Info MPIinfo;
+   
+   if (P::systemWriteHints.size() == 0) {
+      MPIinfo = MPI_INFO_NULL;
+   } else {
+      MPI_Info_create(&MPIinfo);
+      
+      for (std::vector<std::pair<std::string,std::string>>::const_iterator it = P::systemWriteHints.begin();
+           it != P::systemWriteHints.end();
+           it++)
+      {
+         MPI_Info_set(MPIinfo, it->first.c_str(), it->second.c_str());
+      }
+   }
 
    phiprof::start("open");
    vlsvWriter.open( fname.str(), MPI_COMM_WORLD, masterProcessId, MPIinfo );
    phiprof::stop("open");
+   
+   if( MPIinfo != MPI_INFO_NULL ) {
+      MPI_Info_free(&MPIinfo);
+   }
+   
+   vlsvWriter.setBuffer(P::vlsvBufferSize);
 
    phiprof::start("metadataIO");
 
@@ -945,9 +977,11 @@ bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    phiprof::start("reduceddataIO");
    //Write necessary variables:
    //Determines whether we write in floats or doubles
+   phiprof::start("writeDataReducer");
    if (dataReducer != NULL) for( uint i = 0; i < dataReducer->size(); ++i ) {
       if( writeDataReducer( mpiGrid, local_cells, (P::writeAsFloat==1), *dataReducer, i, vlsvWriter ) == false ) return false;
    }
+   phiprof::stop("writeDataReducer");
    
    phiprof::initializeTimer("Barrier","MPI","Barrier");
    phiprof::start("Barrier");
@@ -1045,6 +1079,10 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    }
    
    if( vlsvWriter.open( fname.str(), MPI_COMM_WORLD, masterProcessId, MPIinfo ) == false) return false;
+
+   if( MPIinfo != MPI_INFO_NULL ) {
+      MPI_Info_free(&MPIinfo);
+   }
 
    phiprof::stop("open");
 

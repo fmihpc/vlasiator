@@ -305,6 +305,7 @@ bool convertSILO(const string fileName,
 
    if (vlsvReader.open(fileName) == false) {
       cerr << "Failed to open '" << fileName << "'" << endl;
+      cerr << "VLSV error " << vlsvReader.getErrorString() << endl;
       return false;
    }
 
