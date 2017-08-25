@@ -29,6 +29,7 @@
 #include "../../readparameters.h"
 #include "../../backgroundfield/backgroundfield.h"
 #include "../../backgroundfield/constantfield.hpp"
+#include "../../object_wrapper.h"
 
 #include "Distributions.h"
 
@@ -82,6 +83,12 @@ namespace projects {
       Project::getParameters();
       typedef Readparameters RP;
       Project::getParameters();
+
+      if(getObjectWrapper().particleSpecies.size() > 1) {
+         std::cerr << "The selected project does not support multiple particle populations! Aborting in " << __FILE__ << " line " << __LINE__ << std::endl;
+         abort();
+      }
+
       RP::get("Distributions.rho1", this->rho[0]);
       RP::get("Distributions.rho2", this->rho[1]);
       RP::get("Distributions.Tx1", this->Tx[0]);

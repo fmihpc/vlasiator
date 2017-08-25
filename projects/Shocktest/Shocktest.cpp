@@ -25,7 +25,7 @@
 #include <cmath>
 #include "../../backgroundfield/backgroundfield.h"
 #include "../../backgroundfield/constantfield.hpp"
-
+#include "../../object_wrapper.h"
 
 #include "Shocktest.h"
 #include "../../spatial_cell.hpp"
@@ -70,6 +70,11 @@ namespace projects {
    
    void Shocktest::getParameters(){
       Project::getParameters();
+
+      if(getObjectWrapper().particleSpecies.size() > 1) {
+         std::cerr << "The selected project does not support multiple particle populations! Aborting in " << __FILE__ << " line " << __LINE__ << std::endl;
+         abort();
+      }
       this->rho[this->LEFT] = {NAN};
       this->T[this->LEFT] = {NAN};
       this->Vx[this->LEFT] = {NAN};

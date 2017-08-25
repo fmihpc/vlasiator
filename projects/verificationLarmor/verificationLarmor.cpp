@@ -57,6 +57,11 @@ namespace projects {
    void verificationLarmor::getParameters() {
       Project::getParameters();
       typedef Readparameters RP;
+
+      if(getObjectWrapper().particleSpecies.size() > 1) {
+         std::cerr << "The selected project does not support multiple particle populations! Aborting in " << __FILE__ << " line " << __LINE__ << std::endl;
+         abort();
+      }
       RP::get("VerificationLarmor.BX0", this->BX0);
       RP::get("VerificationLarmor.BY0", this->BY0);
       RP::get("VerificationLarmor.BZ0", this->BZ0);

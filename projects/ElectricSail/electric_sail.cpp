@@ -62,6 +62,7 @@ namespace projects {
    
    void ElectricSail::addParameters() {
       typedef Readparameters RP;
+
       RP::add("ElectricSail.solver","Name of the Poisson solver",string("SOR"));
       RP::add("ElectricSail.radius","Radius where charge density is non-zero",(Real)15e3);
       RP::add("ElectricSail.max_iterations","Maximum number of iterations",(uint)1000);
@@ -124,6 +125,11 @@ namespace projects {
 
    void ElectricSail::getParameters() {
       bool success = true;
+
+      if(getObjectWrapper().particleSpecies.size() > 1) {
+         std::cerr << "The selected project does not support multiple particle populations! Aborting in " << __FILE__ << " line " << __LINE__ << std::endl;
+         abort();
+      }
       
       Project::getParameters();
       typedef Readparameters RP;

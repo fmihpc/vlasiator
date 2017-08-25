@@ -29,6 +29,7 @@
 #include "../../readparameters.h"
 #include "../../backgroundfield/backgroundfield.h"
 #include "../../backgroundfield/constantfield.hpp"
+#include "../../object_wrapper.h"
 
 #include "VelocityBox.h"
 
@@ -59,6 +60,11 @@ namespace projects {
    void VelocityBox::getParameters(){
       Project::getParameters();
       typedef Readparameters RP;
+
+      if(getObjectWrapper().particleSpecies.size() > 1) {
+         std::cerr << "The selected project does not support multiple particle populations! Aborting in " << __FILE__ << " line " << __LINE__ << std::endl;
+         abort();
+      }
       RP::get("VelocityBox.rho", this->rho);
       RP::get("VelocityBox.Vx1", this->Vx[0]);
       RP::get("VelocityBox.Vx2", this->Vx[1]);

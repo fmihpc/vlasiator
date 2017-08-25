@@ -27,6 +27,7 @@
 #include "../../common.h"
 #include "../../readparameters.h"
 #include "../../backgroundfield/backgroundfield.h"
+#include "../../object_wrapper.h"
 
 #include "test_fp.h"
 
@@ -68,6 +69,11 @@ namespace projects {
    void test_fp::getParameters(void){
       Project::getParameters();
       typedef Readparameters RP;
+
+      if(getObjectWrapper().particleSpecies.size() > 1) {
+         std::cerr << "The selected project does not support multiple particle populations! Aborting in " << __FILE__ << " line " << __LINE__ << std::endl;
+         abort();
+      }
       RP::get("test_fp.B0", this->B0);
       RP::get("test_fp.V0", this->V0);
       RP::get("test_fp.rho", this->DENSITY);
