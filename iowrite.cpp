@@ -41,7 +41,6 @@
 #include "logger.h"
 #include "vlasovmover.h"
 #include "object_wrapper.h"
-#include "phiprof.h"
 
 using namespace std;
 using namespace phiprof;
