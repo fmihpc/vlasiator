@@ -683,7 +683,8 @@ void calculateHallTermSimple(
    const bool communicateMomentsDerivatives
 ) {
    int timer;
-   const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
+   //const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
+   const int* gridDims = &technicalGrid.getLocalSize()[0];
    const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
    
    phiprof::start("Calculate Hall term");

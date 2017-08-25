@@ -183,7 +183,7 @@ bool propagateFields(
    
    bool hallTermCommunicateDerivatives = true;
    
-   const std::array<int,3> gridDims = technicalGrid.getLocalSize();
+   const int* gridDims = &technicalGrid.getLocalSize()[0];
    
    #pragma omp parallel for collapse(3)
    for (int k=0; k<gridDims[2]; k++) {
