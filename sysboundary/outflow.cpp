@@ -97,8 +97,8 @@ namespace SBC {
         OutflowSpeciesParameters sP;
 
         // Unless we find out otherwise, we assume that this species will not be treated at any boundary
-        for(int i=0; i<6; i++) {
-          sP.facesToSkipVlasov[i] = true;
+        for(int j=0; j<6; j++) {
+          sP.facesToSkipVlasov[j] = true;
         }
 
         std::vector<std::string> thisSpeciesFaceList;
@@ -145,15 +145,15 @@ namespace SBC {
            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
            exit(1);
         }
-        for(uint i=0; i<6 ; i++) {
-           if(vlasovSysBoundarySchemeName[i] == "None") {
-              sP.faceVlasovScheme[i] = vlasovscheme::NONE;
-           } else if (vlasovSysBoundarySchemeName[i] == "Copy") {
-              sP.faceVlasovScheme[i] = vlasovscheme::COPY;
-           } else if(vlasovSysBoundarySchemeName[i] == "Limit") {
-              sP.faceVlasovScheme[i] = vlasovscheme::LIMIT;
+        for(uint j=0; j<6 ; j++) {
+           if(vlasovSysBoundarySchemeName[j] == "None") {
+              sP.faceVlasovScheme[j] = vlasovscheme::NONE;
+           } else if (vlasovSysBoundarySchemeName[j] == "Copy") {
+              sP.faceVlasovScheme[j] = vlasovscheme::COPY;
+           } else if(vlasovSysBoundarySchemeName[j] == "Limit") {
+              sP.faceVlasovScheme[j] = vlasovscheme::LIMIT;
            } else {
-              if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: " << vlasovSysBoundarySchemeName[i] << " is an invalid Outflow Vlasov scheme!" << endl;
+              if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: " << vlasovSysBoundarySchemeName[j] << " is an invalid Outflow Vlasov scheme!" << endl;
               exit(1);
            }
         }
@@ -179,6 +179,7 @@ namespace SBC {
       for(uint i=0; i<6; i++) {
          facesToProcess[i] = false;
          facesToSkipFields[i] = false;
+         facesToReapply[i] = false;
       }
       
       this->getParameters();
@@ -198,9 +199,9 @@ namespace SBC {
       }
 
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-         const OutflowSpeciesParameters& sP = this->speciesParams[i];
-         for (it = faceToReapplyUponRestartList.begin();
-              it != faceToReapplyUponRestartList.end();
+         OutflowSpeciesParameters& sP = this->speciesParams[i];
+         for (it = sP.faceToReapplyUponRestartList.begin();
+              it != sP.faceToReapplyUponRestartList.end();
          it++) {
             if(*it == "x+") sP.facesToReapply[0] = true;
             if(*it == "x-") sP.facesToReapply[1] = true;
@@ -248,16 +249,6 @@ namespace SBC {
          SpatialCell* cell = mpiGrid[cells[i]];
          if (cell->sysBoundaryFlag != this->getIndex()) continue;
          
-      //   // Defined in project.cpp, used here as the outflow cell has the same state 
-      //   // as the initial state of non-system boundary cells.
-      //   project.setCell(cell);
-      //   // WARNING Time-independence assumed here.
-      //   cell->parameters[CellParams::RHOM_DT2] = cell->parameters[CellParams::RHOM];
-      //   cell->parameters[CellParams::VX_DT2] = cell->parameters[CellParams::VX];
-      //   cell->parameters[CellParams::VY_DT2] = cell->parameters[CellParams::VY];
-      //   cell->parameters[CellParams::VZ_DT2] = cell->parameters[CellParams::VZ];
-      //   cell->parameters[CellParams::RHOQ_DT2] = cell->parameters[CellParams::RHOQ];
-      //}
          bool doApply = true;
          
          if(Parameters::isRestart) {
@@ -274,7 +265,6 @@ namespace SBC {
             
             doApply=false;
             // Comparison of the array defining which faces to use and the array telling on which faces this cell is
-            // TODO: Loop over populations
             for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
                const OutflowSpeciesParameters& sP = this->speciesParams[i];
                for(uint j=0; j<6; j++) {
@@ -288,10 +278,11 @@ namespace SBC {
             // as the initial state of non-system boundary cells.
             project.setCell(cell);
             // WARNING Time-independence assumed here.
-            cell->parameters[CellParams::RHO_DT2] = cell->parameters[CellParams::RHO];
-            cell->parameters[CellParams::RHOVX_DT2] = cell->parameters[CellParams::RHOVX];
-            cell->parameters[CellParams::RHOVY_DT2] = cell->parameters[CellParams::RHOVY];
-            cell->parameters[CellParams::RHOVZ_DT2] = cell->parameters[CellParams::RHOVZ];
+            cell->parameters[CellParams::RHOM_DT2] = cell->parameters[CellParams::RHOM];
+            cell->parameters[CellParams::RHOQ_DT2] = cell->parameters[CellParams::RHOQ];
+            cell->parameters[CellParams::VX_DT2] = cell->parameters[CellParams::VX];
+            cell->parameters[CellParams::VY_DT2] = cell->parameters[CellParams::VY];
+            cell->parameters[CellParams::VZ_DT2] = cell->parameters[CellParams::VZ];
          }
       }
       return true;
