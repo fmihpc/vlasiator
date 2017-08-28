@@ -36,6 +36,10 @@ namespace SBC {
 			std::array<bool, 6> facesToSkipVlasov;
       /*! List of schemes to use for the Vlasov outflow boundary conditions on each face ([xyz][+-]). */
       std::array<uint, 6> faceVlasovScheme;
+      /*! List of faces on which outflow boundary conditions are to be reapplied upon restart ([xyz][+-]). */
+      std::vector<std::string> faceToReapplyUponRestartList;
+      /*! Array of bool telling which faces are going to be reapplied upon restart.*/
+      bool facesToReapply[6];
 
       /*! Factor by which to quench the inflowing parts of the velocity distribution function.*/
       Real quenchFactor;
@@ -136,6 +140,14 @@ namespace SBC {
       /*! List of faces on which no fields outflow boundary conditions are to be applied ([xyz][+-]). */
       std::vector<std::string> faceNoFieldsList;
       std::vector<OutflowSpeciesParameters> speciesParams;
+      
+      Real fieldBoundaryCopyFromExistingFaceNbrMagneticField(
+         const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+         const CellID& cellID,
+         cuint& component
+      );
+      /*! Factor by which to quench the inflowing parts of the velocity distribution function.*/
+      Real quenchFactor;
       
       enum vlasovscheme {
          NONE,
