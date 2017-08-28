@@ -145,6 +145,7 @@ namespace SBC {
       for(uint i=0; i<6; i++) {
          facesToProcess[i] = false;
          facesToSkipFields[i] = false;
+         facesToReapply[i] = false;
       }
       
       this->getParameters();
