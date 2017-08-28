@@ -110,12 +110,17 @@ namespace SBC {
       bool facesToSkipVlasov[6];
       /*! Array of bool telling which faces are going to be processed by the fields system boundary condition.*/
       bool facesToSkipFields[6];
+      /*! Array of bool telling which faces are going to be reapplied upon restart.*/
+      bool facesToReapply[6];
       /*! List of faces on which outflow boundary conditions are to be applied ([xyz][+-]). */
       std::vector<std::string> faceList;
       /*! List of schemes to use for the Vlasov outflow boundary conditions on each face ([xyz][+-]). */
       std::array<uint, 6> faceVlasovScheme;
       /*! List of faces on which no fields outflow boundary conditions are to be applied ([xyz][+-]). */
       std::vector<std::string> faceNoFieldsList;
+      /*! List of faces on which outflow boundary conditions are to be reapplied upon restart ([xyz][+-]). */
+      std::vector<std::string> faceToReapplyUponRestartList;
+      
       Real fieldBoundaryCopyFromExistingFaceNbrMagneticField(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const CellID& cellID,
