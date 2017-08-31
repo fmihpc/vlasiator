@@ -58,8 +58,8 @@ HEADER_LIBRARY_PREFIX = /marconi_work/Pra14_3521/libraries
 LIBRARY_PREFIX = /marconi_work/Pra14_3521/libraries
 
 
-INC_BOOST = -I$(BOOST_INC)
-LIB_BOOST = -L$(BOOST_LIB) -lboost_program_options
+INC_BOOST = -I/cineca/prod/opt/libraries/boost/1.61.0/intelmpi--2017--binary/include
+LIB_BOOST = -L/cineca/prod/opt/libraries/boost/1.61.0/intelmpi--2017--binary/lib -lboost_program_options
 
 INC_ZOLTAN = -I$(LIBRARY_PREFIX)/zoltan/include
 LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/zoltan/lib -lzoltan
