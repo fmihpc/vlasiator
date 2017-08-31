@@ -111,163 +111,6 @@ namespace SBC {
       cerr << "ERROR: SysBoundaryCondition::addParameters called instead of derived class function!" << endl;
    }
    
-   /*! SysBoundaryCondition base class instance of the getParameters function. Should not be used, each derived class should have its own.*/
-   void SysBoundaryCondition::getParameters() {
-      cerr << "ERROR: SysBoundaryCondition::getParameters called instead of derived class function!" << endl;
-   }
-   
-   /*! Function called during initialisation to set the system boundary condition's parameters.
-    * This function must initialize the boundary condition function for all particle species,
-    * i.e., its behavior is not allowed to depend on SysBoundaryCondition::activePopID.
-    * Base version should not be used, each derived class should have its own.
-    */
-   bool SysBoundaryCondition::initSysBoundary(
-      creal& t,
-      Project &project
-   ) {
-      cerr << "ERROR: SysBoundaryCondition::initSysBoundary called instead of derived class function!" << endl;
-      return false;
-   }
-
-   /*! Function used to assign the system boundary condition type to a cell.
-    * \param mpiGrid Grid
-    * \return The system boundary condition type's index
-    */
-   bool SysBoundaryCondition::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
-      cerr << "ERROR: SysBoundaryCondition::assignSysBoundary called instead of derived class function!" << endl;
-      return false;
-   }
-   
-   /*! Function used to apply the system boundary condition initial state to a cell.
-    * \param mpiGrid Grid
-    * \param project Project object
-    * \return Boolean true on success, false on failure.
-    */
-   bool SysBoundaryCondition::applyInitialState(
-      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      Project &project
-   ) {
-      cerr << "ERROR: SysBoundaryCondition::applyInitialState called instead of derived class function!" << endl;
-      return false;
-   }
-   
-   /*! Function used to return the system boundary condition cell's magnetic field component.
-    * \param mpiGrid Grid
-    * \param cellCache Field solver cell cache
-    * \param localID Field solver cache local cell ID
-    * \param dt Time step length
-    * \param RKCase The step in Runge-Kutta (use values from enum defined in common.h).
-    * \param offset Offset of 0-index to the PERBX component, usually 0 or CellParams::PERBX_DT2 - CellParams::PERBX
-    * \param component 0: x-component, 1: y-component, 2: z-component.
-    * 
-    * \return The requested component value.
-    */
-
-   Real SysBoundaryCondition::fieldSolverBoundaryCondMagneticField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBDt2Grid,
-      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
-      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EDt2Grid,
-      FsGrid< fsgrids::technical, 2> & technicalGrid,
-      cint i,
-      cint j,
-      cint k,
-      creal& dt,
-      cuint& RKCase,
-      cuint& component
-   ) {
-      cerr << "ERROR: SysBoundaryCondition::fieldSolverBoundaryCondMagneticField called instead of derived class function!" << endl;
-      exit(1);
-   }
-   
-   /*! Function used to return the system boundary condition cell's main electric field component (without Hall term).
-    * \param mpiGrid Grid
-    * \param cellID The cell's ID.
-    * \param RKCase The step in Runge-Kutta (use values from enum defined in common.h).
-    * \param component 0: x-component, 1: y-component, 2: z-component.
-    * 
-    * \return The requested component value.
-    * 
-    * \sa fieldSolverBoundaryCondHallElectricField
-    */
-   void SysBoundaryCondition::fieldSolverBoundaryCondElectricField(
-      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
-      cint i,
-      cint j,
-      cint k,
-      cuint component
-   ) {
-      cerr << "ERROR: SysBoundaryCondition::fieldSolverBoundaryCondElectricField called instead of derived class function!" << endl;
-      exit(1);
-   }
-   
-   /*! Function used to compute the system boundary condition cell's Hall electric field components and save them into the cell parameters.
-    * \param cache Field solver cell cache
-    * \param RKCase The step in Runge-Kutta (use values from enum defined in common.h).
-    * \param component 0: x-component, 1: y-component, 2: z-component.
-    */
-   void SysBoundaryCondition::fieldSolverBoundaryCondHallElectricField(
-      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2> & EHallGrid,
-      cint i,
-      cint j,
-      cint k,
-      cuint component
-   ) {
-      cerr << "ERROR: SysBoundaryCondition::fieldSolverBoundaryCondHallElectricField called instead of derived class function!" << endl;
-      exit(1);
-   }
-   
-   /*! Function used to compute the system boundary condition cell's electron pressure gradient electric field components and save them into the cell parameters.
-    * \param cache Field solver cell cache.
-    * \param RKCase The step in Runge-Kutta (use values from enum defined in common.h).
-    * \param component 0: x-component, 1: y-component, 2: z-component.
-    */
-   void SysBoundaryCondition::fieldSolverBoundaryCondGradPeElectricField(
-      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2> & EGradPeGrid,
-      cint i,
-      cint j,
-      cint k,
-      cuint component
-   ) {
-      cerr << "ERROR: SysBoundaryCondition::fieldSolverBoundaryCondGradPeElectricField called instead of derived class function!" << endl;
-      exit(1);
-   }
-   
-   /*! Function used to compute the system boundary condition cell's derivatives and save them into the cell derivatives.
-    * \param mpiGrid Grid
-    * \param cellID The cell's ID.
-    * \param RKCase The step in Runge-Kutta (use values from enum defined in common.h).
-    * \param component 0: x-derivatives, 1: y-derivatives, 2: z-derivatives, 3: xy-derivatives, 4: xz-derivatives, 5: yz-derivatives.
-    */
-   void SysBoundaryCondition::fieldSolverBoundaryCondDerivatives(
-      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
-      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> & dMomentsGrid,
-      cint i,
-      cint j,
-      cint k,
-      cuint& RKCase,
-      cuint& component
-   ) {
-      cerr << "ERROR: SysBoundaryCondition::fieldSolverBoundaryCondDerivatives called instead of derived class function!" << endl;
-      exit(1);
-   }
-   
-   /*! Function used to compute the system boundary condition cell's BVOL derivatives and save them into the cell derivatives.
-    * \param mpiGrid Grid
-    * \param cellID The cell's ID.
-    * \param component 0: x-derivatives, 1: y-derivatives, 2: z-derivatives.
-    */
-   void SysBoundaryCondition::fieldSolverBoundaryCondBVOLDerivatives(
-      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volGrid,
-      cint i,
-      cint j,
-      cint k,
-      cuint& component
-   ) {
-      cerr << "ERROR: SysBoundaryCondition::fieldSolverBoundaryCondBVOLDerivatives called instead of derived class function!" << endl;
-      exit(1);
-   }
-   
    /*! Function used to set the system boundary condition cell's derivatives to 0.
     * \param mpiGrid Grid
     * \param cellID The cell's ID.
@@ -369,21 +212,6 @@ namespace SBC {
          default:
             cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
       }
-   }
-   
-
-   /*! Function used to compute the system boundary condition for 
-    * the distribution function and moments in the given spatial cell.
-    * @param mpiGrid The grid.
-    * @param cellID The cell's ID.
-    * @param popID Particle species ID.*/
-   void SysBoundaryCondition::vlasovBoundaryCondition(
-         const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-         const CellID& cellID,
-         const uint popID
-   ) {
-      cerr << "ERROR: SysBoundaryCondition::vlasovBoundaryCondition called instead of derived class function!" << endl;
-      exit(1);
    }
    
    /*! Function used to copy the distribution and moments from (one of) the closest sysboundarytype::NOT_SYSBOUNDARY cell.
@@ -1000,22 +828,9 @@ namespace SBC {
     */
    void SysBoundaryCondition::getFaces(bool* faces) {
       cerr << "ERROR: SysBoundaryCondition::getFaces called instead of derived class function!" << endl;
-   }
-   
-   /*! Get the name of the system boundary condition.
-    * \return The name of the system boundary. The base class function returns an empty string.
-    */
-   string SysBoundaryCondition::getName() const {
-      cerr << "ERROR: SysBoundaryCondition::getName called instead of derived class function!" << endl;
-      return string("");
-   }
-   
-   /*! Get the enum index of the system boundary condition.
-    * \return The index of the system boundary condition as enumerated in namespace sysboundarytype. The base class function returns 0.
-    */
-   uint SysBoundaryCondition::getIndex() const {
-      cerr << "ERROR: SysBoundaryCondition::getIndex called instead of derived class function!" << endl;
-      return 0;
+      for(int i=0; i<6; i++) {
+        faces[i]=false;
+      }
    }
    
    /*! Get the precedence value of the system boundary condition.

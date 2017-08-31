@@ -59,17 +59,17 @@ namespace SBC {
          virtual ~SysBoundaryCondition();
          
          static void addParameters();
-         virtual void getParameters();
+         virtual void getParameters()=0;
          
          virtual bool initSysBoundary(
             creal& t,
             Project &project
-         );
-         virtual bool assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
+         )=0;
+         virtual bool assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid)=0;
          virtual bool applyInitialState(
             const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             Project &project
-         );
+         )=0;
          virtual Real fieldSolverBoundaryCondMagneticField(
             FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
             FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBDt2Grid,
@@ -82,28 +82,28 @@ namespace SBC {
             creal& dt,
             cuint& RKCase,
             cuint& component
-         );
+         )=0;
          virtual void fieldSolverBoundaryCondElectricField(
             FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
             cint i,
             cint j,
             cint k,
             cuint component
-         );
+         )=0;
          virtual void fieldSolverBoundaryCondHallElectricField(
             FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2> & EHallGrid,
             cint i,
             cint j,
             cint k,
             cuint component
-                                                              );
+         )=0;
          virtual void fieldSolverBoundaryCondGradPeElectricField(
             FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2> & EGradPeGrid,
             cint i,
             cint j,
             cint k,
             cuint component
-         );
+         )=0;
          virtual void fieldSolverBoundaryCondDerivatives(
             FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
             FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> & dMomentsGrid,
@@ -112,14 +112,14 @@ namespace SBC {
             cint k,
             cuint& RKCase,
             cuint& component
-         );
+         )=0;
          virtual void fieldSolverBoundaryCondBVOLDerivatives(
             FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volGrid,
             cint i,
             cint j,
             cint k,
             cuint& component
-         );
+         )=0;
          static void setCellDerivativesToZero(
             FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
             FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> & dMomentsGrid,
@@ -146,11 +146,11 @@ namespace SBC {
             const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const CellID& cellID,
             const uint popID
-        );
+        )=0;
 
          virtual void getFaces(bool* faces);
-         virtual std::string getName() const;
-         virtual uint getIndex() const;
+         virtual std::string getName() const=0;
+         virtual uint getIndex() const=0;
          uint getPrecedence() const;
          bool isDynamic() const;
       
