@@ -41,7 +41,6 @@
 #include "logger.h"
 #include "vlasovmover.h"
 #include "object_wrapper.h"
-#include "phiprof.h"
 
 using namespace std;
 using namespace phiprof;
@@ -402,7 +401,6 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       }
 
    }
-   phiprof::stop("writeReducedData");
    
    delete[] varBuffer;
    varBuffer = NULL;
