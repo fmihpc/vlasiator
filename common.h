@@ -352,18 +352,18 @@ RK_ORDER2_STEP1,   /*!< Two-step second order method, first step */
 RK_ORDER2_STEP2    /*!< Two-step second order method, second step */
 };
 
-const uint WID = 4;         /*!< Number of cells per coordinate in a velocity block. Only a value of 4 supported by vectorized Leveque solver */
-const uint WID2 = WID*WID;  /*!< Number of cells per 2D slab in a velocity block. */
-const uint WID3 = WID2*WID; /*!< Number of cells in a velocity block. */
+const int WID = 4;         /*!< Number of cells per coordinate in a velocity block. Only a value of 4 supported by vectorized Leveque solver */
+const int WID2 = WID*WID;  /*!< Number of cells per 2D slab in a velocity block. */
+const int WID3 = WID2*WID; /*!< Number of cells in a velocity block. */
 
 /*!
 Get the cellindex in the velocity space block
 */
-template<typename UINT> inline UINT cellIndex(const UINT& i,const UINT& j,const UINT& k) {
+template<typename INT> inline INT cellIndex(const INT& i,const INT& j,const INT& k) {
    return k*WID2 + j*WID + i;
 }
 
-const uint SIZE_VELBLOCK    = WID3; /*!< Number of cells in a velocity block. */
+const int SIZE_VELBLOCK    = WID3; /*!< Number of cells in a velocity block. */
 
 /*!
  * Name space for flags needed globally, such as the bailout flag.
