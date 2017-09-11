@@ -81,44 +81,12 @@ void calculateSpatialTranslation(
       trans_timer=phiprof::initializeTimer("transfer-stencil-data-z","MPI");
       phiprof::start(trans_timer);
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
-      mpiGrid.start_remote_neighbor_copy_updates(VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);
-      phiprof::stop(trans_timer);
-      
-      // generate target grid in the temporary arrays, same size as
-      // original one. We only need to create these in target cells
-      createTargetGrid(mpiGrid,remoteTargetCellsz,popID);
-
-      if(!localTargetGridGenerated){ 
-         createTargetGrid(mpiGrid,local_target_cells,popID);
-         localTargetGridGenerated=true;
-      }
-
-      phiprof::start(trans_timer);
-      mpiGrid.wait_remote_neighbor_copy_update_receives(VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);
+      mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);
       phiprof::stop(trans_timer);
       
       phiprof::start("compute-mapping-z");
-      #pragma omp parallel
-      {
-         const int tid = omp_get_thread_num();
-         no_subnormals();
-         for (size_t c=0; c<local_propagated_cells.size(); ++c) {
-            Real t_start = 0;
-            if (tid == 0) if (Parameters::prepareForRebalance == true) t_start = MPI_Wtime();
-
-            trans_map_1d(mpiGrid,local_propagated_cells[c], 2, dt,popID); // map along z//
-
-            if (tid == 0) if (Parameters::prepareForRebalance == true) {
-               mpiGrid[local_propagated_cells[c]]->get_cell_parameters()[CellParams::LBWEIGHTCOUNTER] 
-                       += (MPI_Wtime()-t_start);
-            }
-         }
-      }
+      trans_map_1d(mpiGrid,local_propagated_cells, remoteTargetCellsz, 2, dt,popID); // map along z//
       phiprof::stop("compute-mapping-z");
-
-      phiprof::start(trans_timer);
-      mpiGrid.wait_remote_neighbor_copy_update_sends();
-      phiprof::stop(trans_timer);
 
       trans_timer=phiprof::initializeTimer("update_remote-z","MPI");
       phiprof::start("update_remote-z");
@@ -126,9 +94,7 @@ void calculateSpatialTranslation(
       update_remote_mapping_contribution(mpiGrid, 2,-1,popID);
       phiprof::stop("update_remote-z");
 
-      clearTargetGrid(mpiGrid,remoteTargetCellsz);
-      swapTargetSourceGrid(mpiGrid, local_target_cells,popID);
-      zeroTargetGrid(mpiGrid, local_target_cells);
+
    }
 
    // ------------- SLICE - map dist function in X --------------- //
@@ -136,50 +102,18 @@ void calculateSpatialTranslation(
       trans_timer=phiprof::initializeTimer("transfer-stencil-data-x","MPI");
       phiprof::start(trans_timer);
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
-      mpiGrid.start_remote_neighbor_copy_updates(VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
-      phiprof::stop(trans_timer);
-      
-      createTargetGrid(mpiGrid,remoteTargetCellsx,popID);
-       if(!localTargetGridGenerated){ 
-         createTargetGrid(mpiGrid,local_target_cells,popID);
-         localTargetGridGenerated=true;
-      }
-
-      phiprof::start(trans_timer);
-      mpiGrid.wait_remote_neighbor_copy_update_receives(VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
+      mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
       phiprof::stop(trans_timer);
 
       phiprof::start("compute-mapping-x");
-      #pragma omp parallel
-      {
-         const int tid = omp_get_thread_num();
-         no_subnormals();
-         for (size_t c=0; c<local_propagated_cells.size(); ++c) {
-            Real t_start = 0;
-            if (tid == 0) if (Parameters::prepareForRebalance == true) t_start = MPI_Wtime();
-
-            trans_map_1d(mpiGrid,local_propagated_cells[c],0,dt,popID); // map along x//
-
-            if (tid == 0) if (Parameters::prepareForRebalance == true) {
-               mpiGrid[local_propagated_cells[c]]->get_cell_parameters()[CellParams::LBWEIGHTCOUNTER] 
-                       += (MPI_Wtime()-t_start);
-            }
-         }
-      }
+      trans_map_1d(mpiGrid,local_propagated_cells, remoteTargetCellsx, 0,dt,popID); // map along x//
       phiprof::stop("compute-mapping-x");
-
-      phiprof::start(trans_timer);
-      mpiGrid.wait_remote_neighbor_copy_update_sends();
-      phiprof::stop(trans_timer);
 
       trans_timer=phiprof::initializeTimer("update_remote-x","MPI");
       phiprof::start("update_remote-x");
       update_remote_mapping_contribution(mpiGrid, 0,+1,popID);
       update_remote_mapping_contribution(mpiGrid, 0,-1,popID);
       phiprof::stop("update_remote-x");
-      clearTargetGrid(mpiGrid,remoteTargetCellsx);
-      swapTargetSourceGrid(mpiGrid, local_target_cells,popID);
-      zeroTargetGrid(mpiGrid, local_target_cells);
    }
    
    // ------------- SLICE - map dist function in Y --------------- //
@@ -187,52 +121,19 @@ void calculateSpatialTranslation(
       trans_timer=phiprof::initializeTimer("transfer-stencil-data-y","MPI");
       phiprof::start(trans_timer);
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
-      mpiGrid.start_remote_neighbor_copy_updates(VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);
-      phiprof::stop(trans_timer);
-      
-      createTargetGrid(mpiGrid,remoteTargetCellsy,popID);
-      if(!localTargetGridGenerated){ 
-         createTargetGrid(mpiGrid,local_target_cells,popID);
-         localTargetGridGenerated=true;
-      }
-      
-      phiprof::start(trans_timer);
-      mpiGrid.wait_remote_neighbor_copy_update_receives(VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);
+      mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);
       phiprof::stop(trans_timer);
 
-      phiprof::start("compute-mapping-y");
-      #pragma omp parallel
-      {
-         const int tid = omp_get_thread_num();
-         no_subnormals();
-         for (size_t c=0; c<local_propagated_cells.size(); ++c) {
-            Real t_start = 0;
-            if (tid == 0) if (Parameters::prepareForRebalance == true) t_start = MPI_Wtime();
-            
-            trans_map_1d(mpiGrid,local_propagated_cells[c],1,dt,popID); // map along y//
-            
-            if (tid == 0) if (Parameters::prepareForRebalance == true) {
-               mpiGrid[local_propagated_cells[c]]->get_cell_parameters()[CellParams::LBWEIGHTCOUNTER] 
-                       += (MPI_Wtime()-t_start);
-            }
-         }
-      }
+      phiprof::start("compute-mapping-y");      
+      trans_map_1d(mpiGrid,local_propagated_cells, remoteTargetCellsy, 1,dt,popID); // map along y//
       phiprof::stop("compute-mapping-y");
-
-      phiprof::start(trans_timer);
-      mpiGrid.wait_remote_neighbor_copy_update_sends();
-      phiprof::stop(trans_timer);
       
       trans_timer=phiprof::initializeTimer("update_remote-y","MPI");
       phiprof::start("update_remote-y");
       update_remote_mapping_contribution(mpiGrid, 1,+1,popID);
       update_remote_mapping_contribution(mpiGrid, 1,-1,popID);
       phiprof::stop("update_remote-y");
-      clearTargetGrid(mpiGrid,remoteTargetCellsy);
-      swapTargetSourceGrid(mpiGrid, local_target_cells,popID);
    }
-
-   clearTargetGrid(mpiGrid,local_target_cells);
 }
 
 /*!
