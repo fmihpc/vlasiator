@@ -41,6 +41,8 @@
 
 using namespace std;
 
+#warning Antisymmetric boundaries do not yet support multipop
+
 namespace SBC {
    Antisymmetric::Antisymmetric(): SysBoundaryCondition() { }
    Antisymmetric::~Antisymmetric() { }
@@ -135,10 +137,11 @@ namespace SBC {
          // Defined in project.cpp, used here as the outflow cell has the same state as the initial state of non-system boundary cells.
          project.setCell(cell);
          // WARNING Time-independence assumed here.
-         cell->parameters[CellParams::RHO_DT2] = cell->parameters[CellParams::RHO];
-         cell->parameters[CellParams::RHOVX_DT2] = cell->parameters[CellParams::RHOVX];
-         cell->parameters[CellParams::RHOVY_DT2] = cell->parameters[CellParams::RHOVY];
-         cell->parameters[CellParams::RHOVZ_DT2] = cell->parameters[CellParams::RHOVZ];
+         cell->parameters[CellParams::RHOM_DT2] = cell->parameters[CellParams::RHOM];
+         cell->parameters[CellParams::VX_DT2] = cell->parameters[CellParams::VX];
+         cell->parameters[CellParams::VY_DT2] = cell->parameters[CellParams::VY];
+         cell->parameters[CellParams::VZ_DT2] = cell->parameters[CellParams::VZ];
+         cell->parameters[CellParams::RHOQ_DT2] = cell->parameters[CellParams::RHOQ];
       }
       
       return true;
@@ -253,7 +256,7 @@ namespace SBC {
    void Antisymmetric::vlasovBoundaryCondition(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
-      const int& popID
+      const uint popID
    ) {
       //cerr << "AS vlasovBoundaryCondition cell " << cellID << " called " << endl;
       

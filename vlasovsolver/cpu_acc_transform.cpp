@@ -39,7 +39,7 @@ using namespace Eigen;
 */
 void updateAccelerationMaxdt(
    SpatialCell* spatial_cell,
-   const int& popID) 
+   const uint popID) 
 {
    if (Parameters::propagatePotential == true) {
       #warning Electric acceleration works for Poisson only atm
@@ -70,7 +70,7 @@ void updateAccelerationMaxdt(
 
 Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
         SpatialCell* spatial_cell,
-        const int& popID,
+        const uint popID,
         const Real& dt) {
    // total field
    const Real Bx = spatial_cell->parameters[CellParams::BGBXVOL]+spatial_cell->parameters[CellParams::PERBXVOL];
@@ -107,15 +107,13 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
 
    // scale rho for hall term, if user requests
    const Real EPSILON = 1e10 * numeric_limits<Real>::min();
-   const Real rho = spatial_cell->parameters[CellParams::RHO_V] + EPSILON;
-   const Real hallRho =  (rho <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : rho ;
-   
-   #warning This should be electron charge density!
-   const Real hallPrefactor = 1.0 / (physicalconstants::MU_0 * hallRho * physicalconstants::CHARGE );
+   const Real rhoq = spatial_cell->parameters[CellParams::RHOQ_V] + EPSILON;
+   const Real hallRhoq =  (rhoq <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : rhoq ;
+   const Real hallPrefactor = 1.0 / (physicalconstants::MU_0 * hallRhoq );
 
-   Eigen::Matrix<Real,3,1> bulk_velocity(spatial_cell->parameters[CellParams::RHOVX_V]/rho,
-                                         spatial_cell->parameters[CellParams::RHOVY_V]/rho,
-                                         spatial_cell->parameters[CellParams::RHOVZ_V]/rho);
+   Eigen::Matrix<Real,3,1> bulk_velocity(spatial_cell->parameters[CellParams::VX_V],
+                                         spatial_cell->parameters[CellParams::VY_V],
+                                         spatial_cell->parameters[CellParams::VZ_V]);
 
    // compute total transformation
    Transform<Real,3,Affine> total_transform(Matrix<Real, 4, 4>::Identity()); //CONTINUE
@@ -167,6 +165,7 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
 
       // Electron pressure gradient term
       if(Parameters::ohmGradPeTerm > 0) {
+         #warning Use actual population mass and charge for multipop here
          total_transform=Translation<Real,3>( (fabs(physicalconstants::CHARGE)/physicalconstants::MASS_PROTON) * EgradPe * substeps_dt) * total_transform;
       }
    }

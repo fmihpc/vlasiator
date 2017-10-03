@@ -47,6 +47,15 @@ namespace species {
        Real mass;                      /**< Particle species mass, in simulation units.*/
        Real sparseMinValue;            /**< Sparse mesh threshold value for the population.*/
        size_t velocityMesh;            /**< ID of the velocity mesh (parameters) this species uses.*/
+
+      int sparseBlockAddWidthV;        /*!< Number of layers of blocks that are kept in velocity space around the blocks with content */
+      bool sparse_conserve_mass;       /*!< If true, density is scaled to conserve mass when removing blocks*/
+      int  sparseDynamicAlgorithm;     /*!< Type of algorithm used for calculating the dynamic minValue; 0 = none, 1 = linear algorithm based on minValue and rho, 2 = linear algorithm based on minValue and Blocks, (Example linear algorithm: minValue = rho / sparse.dynamicValue * sparse.minValue)*/
+      Real sparseDynamicBulkValue1;    /*!< Minimum value for the dynamic algorithm range, so for example if dynamicAlgorithm=1 then for sparse.dynamicMinValue = 1e3, sparse.dynamicMaxValue=1e5, we apply the algorithm to cells for which 1e3<cell.rho<1e5*/
+      Real sparseDynamicBulkValue2;    /*!< Maximum value for the dynamic algorithm range, so for example if dynamicAlgorithm=1 then for sparse.dynamicMinValue = 1e3, sparse.dynamicMaxValue=1e5, we apply the algorithm to cells for which 1e3<cell.rho<1e5*/
+      Real sparseDynamicMinValue1;     /*!< The minimum value for the minValue*/
+      Real sparseDynamicMinValue2;     /*!< The maximum value for the minValue*/
+
        
        Species();
        Species(const Species& other);

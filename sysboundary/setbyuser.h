@@ -30,6 +30,21 @@
 #include "sysboundarycondition.h"
 
 namespace SBC {
+
+   struct UserSpeciesParameters {
+      /*! Vector containing a vector for each face which has the current boundary condition. Each of these vectors has one line per input data line (time point). The length of the lines is nParams.*/
+      std::vector<std::vector<Real> > inputData[6];
+      /*! Input files for the user-set boundary conditions. */
+      std::string files[6];
+
+      /*! Number of space- and velocityspace samples used when creating phase space densities */
+      uint nSpaceSamples;
+      uint nVelocitySamples;
+
+      /*! Number of parameters per input file line. */
+      uint nParams;
+   };
+
    /*!\brief Base class for system boundary conditions with user-set settings and parameters read from file.
     * 
     * SetByUser is a base class for e.g. SysBoundaryConditon::SetMaxwellian.
@@ -47,8 +62,7 @@ namespace SBC {
       SetByUser();
       virtual ~SetByUser();
       
-      static void addParameters();
-      virtual void getParameters();
+      virtual void getParameters() = 0;
       
       virtual bool initSysBoundary(
          creal& t,
@@ -100,35 +114,31 @@ namespace SBC {
       virtual void vlasovBoundaryCondition(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const CellID& cellID,
-         const int& popID
+         const uint popID
       );
       
       virtual void getFaces(bool* faces);
       
-      virtual std::string getName() const;
-      virtual uint getIndex() const;
+      virtual std::string getName() const = 0;
+      virtual uint getIndex() const = 0;
       
    protected:
-      bool loadInputData();
-      std::vector<std::vector<Real> > loadFile(const char* file);
-      void interpolate(const int inputDataIndex, creal t, Real* outputData);
+      bool loadInputData(const uint popID);
+      std::vector<std::vector<Real> > loadFile(const char* file, unsigned int nParams);
+      void interpolate(const int inputDataIndex, const uint popID, creal t, Real* outputData);
       
       bool generateTemplateCells(creal& t);
-      virtual void generateTemplateCell(spatial_cell::SpatialCell& templateCell, int inputDataIndex, creal& t);
-      bool setCellsFromTemplate(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const int& popID);
+      virtual void generateTemplateCell(spatial_cell::SpatialCell& templateCell, int inputDataIndex, creal& t) = 0;
+      bool setCellsFromTemplate(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const uint popID);
       
       /*! Array of bool telling which faces are going to be processed by the system boundary condition.*/
       bool facesToProcess[6];
-      /*! Vector containing a vector for each face which has the current boundary condition. Each of these vectors has one line per input data line (time point). The length of the lines is nParams.*/
-      std::vector<std::vector<Real> > inputData[6];
       /*! Array of template spatial cells replicated over the corresponding simulation volume face. Only the template for an active face is actually being touched at all by the code. */
       spatial_cell::SpatialCell templateCells[6];
       /*! List of faces on which user-set boundary conditions are to be applied ([xyz][+-]). */
       std::vector<std::string> faceList;
-      /*! Input files for the user-set boundary conditions. */
-      std::string files[6];
-      /*! Number of parameters per input file line. */
-      uint nParams;
+
+      std::vector<UserSpeciesParameters> speciesParams;
    };
 }
 

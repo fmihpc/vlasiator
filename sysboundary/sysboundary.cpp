@@ -179,13 +179,13 @@ bool SysBoundary::initSysBoundaries(
    vector<string>::const_iterator it;
    
    if (sysBoundaryCondList.size() == 0) {
-      if(!isPeriodic[0]) {
+      if(!isPeriodic[0] && !Readparameters::helpRequested) {
          if(myRank == MASTER_RANK) cerr << "You set boundaries.periodic_x = no but you didn't load any system boundary condition using the option boundaries.boundary, are you sure this is correct?" << endl;
       }
-      if(!isPeriodic[1]) {
+      if(!isPeriodic[1] && !Readparameters::helpRequested) {
          if(myRank == MASTER_RANK) cerr << "You set boundaries.periodic_y = no but you didn't load any system boundary condition using the option boundaries.boundary, are you sure this is correct?" << endl;
       }
-      if(!isPeriodic[2]) {
+      if(!isPeriodic[2] && !Readparameters::helpRequested) {
          if(myRank == MASTER_RANK) cerr << "You set boundaries.periodic_z = no but you didn't load any system boundary condition using the option boundaries.boundary, are you sure this is correct?" << endl;
       }
    }
@@ -495,13 +495,17 @@ bool SysBoundary::applyInitialState(
    Project& project
 ) {
    bool success = true;
-   using namespace sysboundarytype;
    
    list<SBC::SysBoundaryCondition*>::iterator it;
    for (it = sysBoundaries.begin();
         it != sysBoundaries.end();
         it++) {
-      if((Parameters::isRestart == true) && ((*it)->doApplyUponRestart() == false)) {
+      if(                                                        // This is to skip the reapplication
+         Parameters::isRestart == true                           // When not restarting
+         && (*it)->doApplyUponRestart() == false                 // When reapplicaiton is not requested
+         && (*it)->getIndex() != sysboundarytype::IONOSPHERE     // But this is to force it when we have either IONOSPHERE
+         && (*it)->getIndex() != sysboundarytype::SET_MAXWELLIAN // or SET_MAXWELLIAN as otherwise the POP_METADA are not properly set
+      ) {
          continue;
       }
       if((*it)->applyInitialState(mpiGrid, project) == false) {
@@ -537,12 +541,12 @@ void SysBoundary::applySysBoundaryVlasovConditions(
    // First the small stuff without overlapping in an extended neighbourhood:
    SpatialCell::set_mpi_transfer_type(
       Transfer::CELL_PARAMETERS|
+      Transfer::POP_METADATA|
       Transfer::CELL_SYSBOUNDARYFLAG,true);
    mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
    
-   #warning Same sysBoundaryCondition applied to all populations
    // Loop over existing particle species
-   for (unsigned int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+   for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       SpatialCell::setCommunicatedSpecies(popID);
 
       // Then the block data in the reduced neighbourhood:

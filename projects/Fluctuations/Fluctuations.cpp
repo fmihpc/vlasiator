@@ -48,16 +48,22 @@ namespace projects {
       RP::add("Fluctuations.BX0", "Background field value (T)", 1.0e-9);
       RP::add("Fluctuations.BY0", "Background field value (T)", 2.0e-9);
       RP::add("Fluctuations.BZ0", "Background field value (T)", 3.0e-9);
-      RP::add("Fluctuations.rho", "Number density (m^-3)", 1.0e7);
-      RP::add("Fluctuations.Temperature", "Temperature (K)", 2.0e6);
       RP::add("Fluctuations.magXPertAbsAmp", "Amplitude of the magnetic perturbation along x", 1.0e-9);
       RP::add("Fluctuations.magYPertAbsAmp", "Amplitude of the magnetic perturbation along y", 1.0e-9);
       RP::add("Fluctuations.magZPertAbsAmp", "Amplitude of the magnetic perturbation along z", 1.0e-9);
-      RP::add("Fluctuations.densityPertRelAmp", "Amplitude factor of the density perturbation", 0.1);
-      RP::add("Fluctuations.velocityPertAbsAmp", "Amplitude of the velocity perturbation", 1.0e6);
-      RP::add("Fluctuations.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
-      RP::add("Fluctuations.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
-      RP::add("Fluctuations.maxwCutoff", "Cutoff for the maxwellian distribution", 1e-12);
+
+      // Per-population parameters
+      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+
+         RP::add(pop + "_Fluctuations.rho", "Number density (m^-3)", 1.0e7);
+         RP::add(pop + "_Fluctuations.Temperature", "Temperature (K)", 2.0e6);
+         RP::add(pop + "_Fluctuations.densityPertRelAmp", "Amplitude factor of the density perturbation", 0.1);
+         RP::add(pop + "_Fluctuations.velocityPertAbsAmp", "Amplitude of the velocity perturbation", 1.0e6);
+         RP::add(pop + "_Fluctuations.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
+         RP::add(pop + "_Fluctuations.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
+         RP::add(pop + "_Fluctuations.maxwCutoff", "Cutoff for the maxwellian distribution", 1e-12);
+      }
    }
 
    void Fluctuations::getParameters() {
@@ -67,30 +73,41 @@ namespace projects {
       RP::get("Fluctuations.BX0", this->BX0);
       RP::get("Fluctuations.BY0", this->BY0);
       RP::get("Fluctuations.BZ0", this->BZ0);
-      RP::get("Fluctuations.rho", this->DENSITY);
-      RP::get("Fluctuations.Temperature", this->TEMPERATURE);
       RP::get("Fluctuations.magXPertAbsAmp", this->magXPertAbsAmp);
       RP::get("Fluctuations.magYPertAbsAmp", this->magYPertAbsAmp);
       RP::get("Fluctuations.magZPertAbsAmp", this->magZPertAbsAmp);
-      RP::get("Fluctuations.densityPertRelAmp", this->densityPertRelAmp);
-      RP::get("Fluctuations.velocityPertAbsAmp", this->velocityPertAbsAmp);
-      RP::get("Fluctuations.nSpaceSamples", this->nSpaceSamples);
-      RP::get("Fluctuations.nVelocitySamples", this->nVelocitySamples);
-      RP::get("Fluctuations.maxwCutoff", this->maxwCutoff);
+
+      // Per-population parameters
+      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+         FluctuationsSpeciesParameters sP;
+         RP::get(pop + "_Fluctuations.rho", sP.DENSITY);
+         RP::get(pop + "_Fluctuations.Temperature", sP.TEMPERATURE);
+         RP::get(pop + "_Fluctuations.densityPertRelAmp", sP.densityPertRelAmp);
+         RP::get(pop + "_Fluctuations.velocityPertAbsAmp", sP.velocityPertAbsAmp);
+         RP::get(pop + "_Fluctuations.nSpaceSamples", sP.nSpaceSamples);
+         RP::get(pop + "_Fluctuations.nVelocitySamples", sP.nVelocitySamples);
+         RP::get(pop + "_Fluctuations.maxwCutoff", sP.maxwCutoff);
+
+         speciesParams.push_back(sP);
+      }
    }
    
-   Real Fluctuations::getDistribValue(creal& vx,creal& vy, creal& vz) const {
-      creal mass = physicalconstants::MASS_PROTON;
+   Real Fluctuations::getDistribValue(creal& vx,creal& vy, creal& vz, const uint popID) const {
+      const FluctuationsSpeciesParameters& sP = speciesParams[popID];
+
+      creal mass = getObjectWrapper().particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
-      return exp(- mass * (vx*vx + vy*vy + vz*vz) / (2.0 * kb * this->TEMPERATURE));
+      return exp(- mass * (vx*vx + vy*vy + vz*vz) / (2.0 * kb * sP.TEMPERATURE));
    }
 
    Real Fluctuations::calcPhaseSpaceDensity(
       creal& x, creal& y, creal& z,
       creal& dx, creal& dy, creal& dz,
       creal& vx, creal& vy, creal& vz,
-      creal& dvx, creal& dvy, creal& dvz,const int& popID
+      creal& dvx, creal& dvy, creal& dvz,const uint popID
    ) const {
+      const FluctuationsSpeciesParameters& sP = speciesParams[popID];
       const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
       vmesh::MeshParameters& meshParams = getObjectWrapper().velocityMeshes[meshID];
       if (vx < meshParams.meshMinLimits[0] + 0.5*dvx ||
@@ -102,30 +119,30 @@ namespace projects {
          return 0.0;
       }
       
-      creal mass = physicalconstants::MASS_PROTON;
+      creal mass = getObjectWrapper().particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
       
-      creal d_vx = dvx / (nVelocitySamples-1);
-      creal d_vy = dvy / (nVelocitySamples-1);
-      creal d_vz = dvz / (nVelocitySamples-1);
+      creal d_vx = dvx / (sP.nVelocitySamples-1);
+      creal d_vy = dvy / (sP.nVelocitySamples-1);
+      creal d_vz = dvz / (sP.nVelocitySamples-1);
       Real avg = 0.0;
       
-      for (uint vi=0; vi<nVelocitySamples; ++vi)
-         for (uint vj=0; vj<nVelocitySamples; ++vj)
-            for (uint vk=0; vk<nVelocitySamples; ++vk)
+      for (uint vi=0; vi<sP.nVelocitySamples; ++vi)
+         for (uint vj=0; vj<sP.nVelocitySamples; ++vj)
+            for (uint vk=0; vk<sP.nVelocitySamples; ++vk)
             {
                avg += getDistribValue(
-                  vx+vi*d_vx - velocityPertAbsAmp * (0.5 - rndVel[0] ),
-                  vy+vj*d_vy - velocityPertAbsAmp * (0.5 - rndVel[1] ),
-                  vz+vk*d_vz - velocityPertAbsAmp * (0.5 - rndVel[2] ));
+                  vx+vi*d_vx - sP.velocityPertAbsAmp * (0.5 - rndVel[0] ),
+                  vy+vj*d_vy - sP.velocityPertAbsAmp * (0.5 - rndVel[1] ),
+                  vz+vk*d_vz - sP.velocityPertAbsAmp * (0.5 - rndVel[2] ), popID);
             }
       
       creal result = avg *
-         DENSITY * (1.0 + densityPertRelAmp * (0.5 - rndRho)) *
-         pow(mass / (2.0 * M_PI * kb * TEMPERATURE), 1.5) /
-         (nVelocitySamples*nVelocitySamples*nVelocitySamples);
+         sP.DENSITY * (1.0 + sP.densityPertRelAmp * (0.5 - rndRho)) *
+         pow(mass / (2.0 * M_PI * kb * sP.TEMPERATURE), 1.5) /
+         (sP.nVelocitySamples*sP.nVelocitySamples*sP.nVelocitySamples);
       
-      if(result < maxwCutoff) {
+      if(result < sP.maxwCutoff) {
          return 0.0;
       } else {
          return result;
@@ -173,7 +190,8 @@ namespace projects {
    std::vector<std::array<Real, 3> > Fluctuations::getV0(
       creal x,
       creal y,
-      creal z
+      creal z,
+      const uint popID
    ) const {
       std::array<Real, 3> V0 {{0.0, 0.0, 0.0}};
       std::vector<std::array<Real, 3> > centerPoints;

@@ -34,6 +34,8 @@
 
 using namespace std;
 
+#warning Project boundaries do not yet support multipop, not checked whether any changes are needed.
+
 namespace SBC {
    ProjectBoundary::ProjectBoundary(): SysBoundaryCondition() { 
       project = NULL;
@@ -248,7 +250,7 @@ namespace SBC {
    void ProjectBoundary::vlasovBoundaryCondition(
                                                  const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                                  const CellID& cellID,
-                                                 const int& popID
+                                                 const uint popID
                                                 ) {
       SpatialCell* cell = mpiGrid[cellID];
       cell->get_velocity_mesh(popID)   = templateCell.get_velocity_mesh(popID);

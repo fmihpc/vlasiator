@@ -135,20 +135,22 @@ namespace CellParams {
       PERBX,  /*!< Perturbed Magnetic field x-component, averaged over cell x-face. Propagated by field solver.*/
       PERBY,  /*!< Perturbed Magnetic field y-component, averaged over cell y-face. Propagated by field solver.*/
       PERBZ,  /*!< Perturbed Magnetic field z-component, averaged over cell z-face. Propagated by field solver.*/
-      RHO,    /*!< Number density. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
-      RHOVX,  /*!< x-component of number density times Vx. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
-      RHOVY,  /*!< y-component of number density times Vy. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
-      RHOVZ,  /*!< z-component of number density times Vz. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
+      RHOM,    /*!< Total mass density. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
+      VX,  /*!< Vx. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
+      VY,  /*!< Vy. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
+      VZ,  /*!< Vz. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
+      RHOQ,    /*!< Total charge density. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       EX_DT2,    /*!< Intermediate step value for RK2 time stepping in field solver.*/
       EY_DT2,    /*!< Intermediate step value for RK2 time stepping in field solver.*/
       EZ_DT2,    /*!< Intermediate step value for RK2 time stepping in field solver.*/
       PERBX_DT2, /*!< Intermediate step value for PERBX for RK2 time stepping in field solver.*/
       PERBY_DT2, /*!< Intermediate step value for PERBY for RK2 time stepping in field solver.*/
       PERBZ_DT2, /*!< Intermediate step value for PERBZ for RK2 time stepping in field solver.*/
-      RHO_DT2,   /*!< Intermediate step value for RK2 time stepping in field solver. Computed from RHO_R and RHO_V*/
-      RHOVX_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from RHOVX_R and RHOVX_V*/
-      RHOVY_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from RHOVY_R and RHOVY_V*/
-      RHOVZ_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from RHOVZ_R and RHOVZ_V*/
+      RHOM_DT2,    /*!< Total mass density. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
+      VX_DT2,  /*!< Vx. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
+      VY_DT2,  /*!< Vy. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
+      VZ_DT2,  /*!< Vz. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
+      RHOQ_DT2,    /*!< Total charge density. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       BGBXVOL,   /*!< background magnetic field averaged over spatial cell.*/
       BGBYVOL,   /*!< background magnetic field averaged over spatial cell.*/
       BGBZVOL,   /*!< background magnetic field averaged over spatial cell.*/
@@ -197,14 +199,16 @@ namespace CellParams {
       EXGRADPE,         /*!< Electron pressure gradient term x.*/
       EYGRADPE,         /*!< Electron pressure gradient term y.*/
       EZGRADPE,         /*!< Electron pressure gradient term z.*/
-      RHO_R,     /*!< RHO after propagation in ordinary space*/
-      RHOVX_R,   /*!< RHOVX after propagation in ordinary space*/
-      RHOVY_R,   /*!< RHOVX after propagation in ordinary space*/
-      RHOVZ_R,   /*!< RHOVX after propagation in ordinary space*/
-      RHO_V,     /*!< RHO after propagation in velocity space*/
-      RHOVX_V,   /*!< RHOVX after propagation in velocity space*/
-      RHOVY_V,   /*!< RHOVX after propagation in velocity space*/
-      RHOVZ_V,   /*!< RHOVX after propagation in velocity space*/
+      RHOM_R,     /*!< RHO after propagation in ordinary space*/
+      VX_R,   /*!< VX after propagation in ordinary space*/
+      VY_R,   /*!< VY after propagation in ordinary space*/
+      VZ_R,   /*!< VZ after propagation in ordinary space*/
+      RHOQ_R,     /*!< RHO after propagation in ordinary space*/
+      RHOM_V,     /*!< RHO after propagation in velocity space*/
+      VX_V,   /*!< VX after propagation in velocity space*/
+      VY_V,   /*!< VY after propagation in velocity space*/
+      VZ_V,   /*!< VZ after propagation in velocity space*/
+      RHOQ_V,     /*!< RHO after propagation in velocity space*/
       P_11,     /*!< Pressure P_xx component, computed by Vlasov propagator. */
       P_22,     /*!< Pressure P_yy component, computed by Vlasov propagator. */
       P_33,     /*!< Pressure P_zz component, computed by Vlasov propagator. */
@@ -217,15 +221,12 @@ namespace CellParams {
       P_11_V,   /*!< P_xx component after propagation in velocity space */
       P_22_V,   /*!< P_yy component after propagation in velocity space */
       P_33_V,   /*!< P_zz component after propagation in velocity space */
-      RHOLOSSADJUST,      /*!< Counter for massloss from the destroying blocks in blockadjustment*/
-      RHOLOSSVELBOUNDARY, /*!< Counter for massloss through outflow boundaries in velocity space*/
       MAXVDT,             /*!< maximum timestep allowed in velocity space for this cell, 
                            * this is the max allowed timestep over all particle species.*/
       MAXRDT,             /*!< maximum timestep allowed in ordinary space for this cell,
                            * this is the max allowed timestep over all particle species.*/
       MAXFDT,             /*!< maximum timestep allowed in ordinary space by fieldsolver for this cell**/
       LBWEIGHTCOUNTER,    /*!< Counter for storing compute time weights needed by the load balancing**/
-      ACCSUBCYCLES,        /*!< number of subcyles for each cell*/
       ISCELLSAVINGF,      /*!< Value telling whether a cell is saving its distribution function when partial f data is written out. */
       PHI,        /*!< Electrostatic potential.*/
       PHI_TMP,    /*!< Temporary electrostatic potential.*/
@@ -247,9 +248,12 @@ namespace CellParams {
  */
 namespace fieldsolver {
    enum {
-      drhodx,    /*!< Derivative of volume-averaged number density to x-direction. */
-      drhody,    /*!< Derivative of volume-averaged number density to y-direction. */
-      drhodz,    /*!< Derivative of volume-averaged number density to z-direction. */
+      drhomdx,    /*!< Derivative of volume-averaged mass density to x-direction. */
+      drhomdy,    /*!< Derivative of volume-averaged mass density to y-direction. */
+      drhomdz,    /*!< Derivative of volume-averaged mass density to z-direction. */
+      drhoqdx,    /*!< Derivative of volume-averaged charge density to x-direction. */
+      drhoqdy,    /*!< Derivative of volume-averaged charge density to y-direction. */
+      drhoqdz,    /*!< Derivative of volume-averaged charge density to z-direction. */
       dBGBxdy,     /*!< Derivative of face-averaged Bx to y-direction. */
       dBGBxdz,     /*!< Derivative of face-averaged Bx to z-direction. */
       dBGBydx,     /*!< Derivative of face-averaged By to x-direction. */

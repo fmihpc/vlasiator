@@ -98,9 +98,6 @@ void setProjectCell(SpatialCell* cell) {
    // Set up cell parameters:
    calcCellParameters(&((*cell).parameters[0]), 0.0);
    
-   cell->parameters[CellParams::RHOLOSSADJUST] = 0.0;
-   cell->parameters[CellParams::RHOLOSSVELBOUNDARY] = 0.0;
-   
    // Go through each velocity block in the velocity phase space grid.
    // Set the initial state and block parameters:
    creal dvx_block = SpatialCell::block_dvx; // Size of a block in vx-direction

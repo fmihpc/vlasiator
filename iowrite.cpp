@@ -50,7 +50,7 @@ extern Logger logFile, diagnostic;
 
 typedef Parameters P;
 
-bool writeVelocityDistributionData(const int& popID,Writer& vlsvWriter,
+bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
                                    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                    const std::vector<CellID>& cells,MPI_Comm comm);
 
@@ -132,7 +132,7 @@ bool writeVelocityDistributionData(Writer& vlsvWriter,
  @param cells Vector of local cells within this process (no ghost cells).
  @param comm The MPI communicator.
  @return Returns true if operation was successful.*/
-bool writeVelocityDistributionData(const int& popID,Writer& vlsvWriter,
+bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
                                    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                    const std::vector<CellID>& cells,MPI_Comm comm) {
    // Write velocity blocks and related data. 
@@ -440,18 +440,6 @@ bool writeCommonGridData(
    if( vlsvWriter.writeParameter("xcells_ini", &P::xcells_ini) == false ) { return false; }
    if( vlsvWriter.writeParameter("ycells_ini", &P::ycells_ini) == false ) { return false; }
    if( vlsvWriter.writeParameter("zcells_ini", &P::zcells_ini) == false ) { return false; }
-
-#warning Vel Mesh parameters skipped, check that everything still works
-   //if( vlsvWriter.writeParameter("vxmin", &P::vxmin) == false ) { return false; }
-   //if( vlsvWriter.writeParameter("vxmax", &P::vxmax) == false ) { return false; }
-   //if( vlsvWriter.writeParameter("vymin", &P::vymin) == false ) { return false; }
-   //if( vlsvWriter.writeParameter("vymax", &P::vymax) == false ) { return false; }
-   //if( vlsvWriter.writeParameter("vzmin", &P::vzmin) == false ) { return false; }
-   //if( vlsvWriter.writeParameter("vzmax", &P::vzmax) == false ) { return false; }
-   //if( vlsvWriter.writeParameter("vxblocks_ini", &P::vxblocks_ini) == false ) { return false; }
-   //if( vlsvWriter.writeParameter("vyblocks_ini", &P::vyblocks_ini) == false ) { return false; }
-   //if( vlsvWriter.writeParameter("vzblocks_ini", &P::vzblocks_ini) == false ) { return false; }
-   //if( vlsvWriter.writeParameter("max_velocity_ref_level", &P::amrMaxVelocityRefLevel) == false) {return false;}
 
    //Mark the new version:
    float version = 3.00;
@@ -1091,10 +1079,10 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    DataReducer restartReducer;
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("background_B",CellParams::BGBX,3));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("perturbed_B",CellParams::PERBX,3));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments",CellParams::RHO,4));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments_dt2",CellParams::RHO_DT2,4));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments_r",CellParams::RHO_R,4));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments_v",CellParams::RHO_V,4));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments",CellParams::RHOM,5));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments_dt2",CellParams::RHOM_DT2,5));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments_r",CellParams::RHOM_R,5));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments_v",CellParams::RHOM_V,5));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure",CellParams::P_11,3));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_dt2",CellParams::P_11_DT2,3));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_r",CellParams::P_11_R,3));
@@ -1103,8 +1091,6 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("max_v_dt",CellParams::MAXVDT,1));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("max_r_dt",CellParams::MAXRDT,1));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("max_fields_dt",CellParams::MAXFDT,1));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("rho_loss_adjust",CellParams::RHOLOSSADJUST,1));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("rho_loss_velocity_boundary",CellParams::RHOLOSSVELBOUNDARY,1));
    restartReducer.addOperator(new DRO::DataReductionOperatorDerivatives("derivatives",0,fieldsolver::N_SPATIAL_CELL_DERIVATIVES));
    restartReducer.addOperator(new DRO::DataReductionOperatorBVOLDerivatives("Bvolume_derivatives",0,bvolderivatives::N_BVOL_DERIVATIVES));
    restartReducer.addOperator(new DRO::MPIrank);
@@ -1131,7 +1117,7 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    phiprof::start("updateRemoteBlocks");
    //Updated newly adjusted velocity block lists on remote cells, and
    //prepare to receive block data
-   for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
+   for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
       updateRemoteVelocityBlockLists(mpiGrid,popID);
    phiprof::stop("updateRemoteBlocks");
 
