@@ -40,7 +40,7 @@ CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 #                         errors that come up when using 
 #                         mpi.h in c++ on Cray
 
-CXXFLAGS = -DMPICH_IGNORE_CXX_SEEK
+CXXFLAGS += -DMPICH_IGNORE_CXX_SEEK
 
 FLAGS = 
 
