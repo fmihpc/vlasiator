@@ -309,20 +309,24 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    bool success=true;
 
    const string meshName = "SpatialGrid";
+   variableName = dataReducer.getName(dataReducerIndex);
+   phiprof::start("DRO_"+variableName);
 
    // If the DataReducer can write its data directly to the output file, do it here.
    // Otherwise the output data is buffered and written below.
    if (dataReducer.handlesWriting(dataReducerIndex) == true) {
-      return dataReducer.writeData(dataReducerIndex,mpiGrid,cells,meshName,vlsvWriter);
+      success = dataReducer.writeData(dataReducerIndex,mpiGrid,cells,meshName,vlsvWriter);
+      phiprof::stop("DRO_"+variableName);
+      return success;
    }
 
    //Get basic data on a variable:
    uint dataSize,vectorSize;
    attribs["mesh"] = meshName;
-   variableName = dataReducer.getName(dataReducerIndex);
    attribs["name"] = variableName;
    if (dataReducer.getDataVectorInfo(dataReducerIndex,dataType,dataSize,vectorSize) == false) {
       cerr << "ERROR when requesting info from DRO " << dataReducerIndex << endl;
+      phiprof::stop("DRO_"+variableName);
       return false;
    }
 
@@ -335,22 +339,21 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    } catch( bad_alloc& ) {
       cerr << "ERROR, FAILED TO ALLOCATE MEMORY AT: " << __FILE__ << " " << __LINE__ << endl;
       logFile << "(MAIN) writeGrid: ERROR FAILED TO ALLOCATE MEMORY AT: " << __FILE__ << " " << __LINE__ << endl << writeVerbose;
+      phiprof::stop("DRO_"+variableName);
       return false;
    }
-   
-   phiprof::start("reduceData");
-//   #pragma omp parallel for schedule(dynamic)
+
+#pragma omp parallel for schedule(guided) reduction(min : success)
    for (size_t cell=0; cell<cells.size(); ++cell) {
       //Reduce data ( return false if the operation fails )
       if (dataReducer.reduceData(mpiGrid[cells[cell]],dataReducerIndex,varBuffer + cell*vectorSize*dataSize) == false){
          success = false;
-         logFile << "(MAIN) writeGrid: ERROR datareductionoperator '" << dataReducer.getName(dataReducerIndex) <<
-            "' returned false!" << endl << writeVerbose;
       }
    }
-   phiprof::stop("reduceData");
+   if(success == false) {
+      logFile << "(MAIN) writeGrid: ERROR datareductionoperator '" << dataReducer.getName(dataReducerIndex) << "' returned false!" << endl << writeVerbose;
+   }
    
-   phiprof::start("writeReducedData");
    if( success ) {
 
       if( (writeAsFloat == true && dataType.compare("float") == 0) && dataSize == sizeof(double) ) {
@@ -368,6 +371,7 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
             logFile << "(MAIN) writeGrid: ERROR FAILED TO ALLOCATE MEMORY AT: " << __FILE__ << " " << __LINE__ << endl << writeVerbose;
             delete[] varBuffer;
             varBuffer = NULL;
+            phiprof::stop("DRO_"+variableName);
             return false;
          }
          //Input varBuffer_double into varBuffer_smaller:
@@ -397,10 +401,10 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       }
 
    }
-   phiprof::stop("writeReducedData");
    
    delete[] varBuffer;
    varBuffer = NULL;
+   phiprof::stop("DRO_"+variableName);
    return success;
 }
 
@@ -1269,6 +1273,4 @@ bool writeDiagnostic(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    if (myRank == MASTER_RANK) diagnostic << endl << write;
    return true;
 }
-
-
 
