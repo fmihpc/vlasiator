@@ -241,6 +241,10 @@ namespace projects {
          Dipole bgFieldDipole;
          LineDipole bgFieldLineDipole;
 
+         // The hardcoded constants of dipole and line dipole moments are obtained
+         // from Daldorff et al (2014), see
+         // https://github.com/fmihpc/vlasiator/issues/20 for a derivation of the
+         // values used here.
          switch(this->dipoleType) {
              case 0:
                 bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );//set dipole moment
