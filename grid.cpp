@@ -512,6 +512,9 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
          if (density_post_adjust != 0.0) {
             for (size_t i=0; i<cell->get_number_of_velocity_blocks(popID)*WID3; ++i) {
                cell->get_data(popID)[i] *= density_pre_adjust/density_post_adjust;
+               if(cell->get_data(popID)[i] < 0) {
+                  cell->get_data(popID)[i] = 0;
+               }
             }
          }
       }
