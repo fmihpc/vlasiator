@@ -505,7 +505,11 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
       }
       cell->adjust_velocity_blocks(neighbor_ptrs,popID);
 
-      if (P::sparse_conserve_mass) {
+      // Compensate for mass loss if the user explicitly requests this.
+      // If the dynamic sparse algorithm is employed, only massloss-compensate under the
+      // minimum dynamic threshold.
+      if (P::sparse_conserve_mass &&
+            (P::sparseDynamicAlgorithm != 1 || density_pre_adjust < P::sparseDynamicMinValue1 )) {
          for (size_t i=0; i<cell->get_number_of_velocity_blocks(popID)*WID3; ++i) {
             density_post_adjust += cell->get_data(popID)[i];
          }
