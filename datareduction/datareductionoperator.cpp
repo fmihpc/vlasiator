@@ -162,9 +162,11 @@ namespace DRO {
       return true;
    }
    bool DataReductionOperatorCellParams::setSpatialCell(const SpatialCell* cell) {
-      if(std::isinf(cell->parameters[_parameterIndex]) || std::isnan(cell->parameters[_parameterIndex])) {
-         string message = "The DataReductionOperator " + this->getName() + " returned a nan or an inf.";
-         bailout(true, message, __FILE__, __LINE__);
+      for (uint i=0; i<_vectorSize; i++) {
+         if(std::isinf(cell->parameters[_parameterIndex+i]) || std::isnan(cell->parameters[_parameterIndex+i])) {
+            string message = "The DataReductionOperator " + this->getName() + " returned a nan or an inf in its " + std::to_string(i) + "-component.";
+            bailout(true, message, __FILE__, __LINE__);
+         }
       }
       _data  = &(cell->parameters[_parameterIndex]);
       return true;
