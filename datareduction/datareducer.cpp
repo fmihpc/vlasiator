@@ -31,15 +31,6 @@ using namespace std;
 void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosticReducer)
 {
    typedef Parameters P;
-   /*
-     //TODO - make these optional in cfg
-     outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("X",CellParams::XCRD,1));
-     outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("Y",CellParams::YCRD,1));
-     outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("Z",CellParams::ZCRD,1));
-     outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("DX",CellParams::DX,1));
-     outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("DY",CellParams::DY,1));
-     outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("DZ",CellParams::DZ,1));
-   */
 
    vector<string>::const_iterator it;
    for (it = P::outputVariableList.begin();
@@ -301,6 +292,16 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("dBGBZVOLdy",bvolderivatives::dBGBZVOLdy,1));
          continue;
       }
+      if(*it == "GridCoordinates") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("X",CellParams::XCRD,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("Y",CellParams::YCRD,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("Z",CellParams::ZCRD,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("DX",CellParams::DX,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("DY",CellParams::DY,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("DZ",CellParams::DZ,1));
+         continue;
+      }
+      
       if (*it == "Potential") {
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("poisson/potential",CellParams::PHI,1));
          continue;
