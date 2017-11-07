@@ -1,3 +1,25 @@
+# For Yann's laptop
+
+#======== Vectorization ==========
+#Set vector backend type for vlasov solvers, sets precision and length. 
+#NOTE this has to have the same precision as the distribution function define (DISTRIBUTION_FP_PRECISION)
+#Options: 
+# AVX:	    VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
+# AVX512:   VEC8D_AGNER, VEC16F_AGNER
+# Fallback: VEC4D_FALLBACK, VEC4F_FALLBACK, VEC8F_FALLBACK
+
+ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
+#Single-precision        
+	VECTORCLASS = VEC4F_FALLBACK
+else
+#Double-precision
+	VECTORCLASS = VEC4D_FALLBACK
+endif
+
+
+#======== Allocator =========
+#Use TBB malloc
+
 CMP = mpic++
 LNK = mpic++
 
@@ -9,6 +31,9 @@ CXXFLAGS = -I $(HOME)/include  -L $(HOME)/lib -O3  -funroll-loops -std=c++0x -fo
 MATHFLAGS = -ffast-math
 LDFLAGS = -L $(HOME)/lib
 LIB_MPI = -lgomp 
+
+
+#======== Libraries ===========
 
 LIBRARY_PREFIX = $(HOME)
 
