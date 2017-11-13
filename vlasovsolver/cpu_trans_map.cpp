@@ -339,7 +339,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
                   const vector<CellID>& remoteTargetCells,
                   const uint dimension,
                   const Realv dt,
-                  const int& popID) {
+                  const uint popID) {
    // values used with an stencil in 1 dimension, initialized to 0. 
    // Contains a block, and its spatial neighbours in one dimension.
    Realv dz,z_min, dvz,vz_min;
@@ -656,7 +656,7 @@ void update_remote_mapping_contribution(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const uint dimension,
    int direction,
-   const int& popID) {
+   const uint popID) {
    
    const vector<CellID> local_cells = mpiGrid.get_cells();
    const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_NEIGHBORHOOD_ID);

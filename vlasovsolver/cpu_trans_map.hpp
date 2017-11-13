@@ -33,8 +33,8 @@ bool trans_map_1d(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_
                   const std::vector<CellID>& remoteTargetCells,
                   const uint dimension,
                   const Realv dt,
-                  const int& popID);
+                  const uint popID);
 void update_remote_mapping_contribution(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-        const uint dimension,int direction,const int& popID);
+        const uint dimension,int direction,const uint popID);
 
 #endif
