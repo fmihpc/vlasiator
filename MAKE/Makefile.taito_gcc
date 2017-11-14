@@ -19,7 +19,7 @@ endif
 
 #======== PAPI ==========
 #Add PAPI_MEM define to use papi to report memory consumption?
-CXXFLAGS +=  -DPAPI_MEM
+#CXXFLAGS +=  -DPAPI_MEM
 
 
 #======== Allocator =========
@@ -61,7 +61,7 @@ LIB_MPI = -lgomp
 
 MPT_VERSION = 1.10.2
 JEMALLOC_VERSION = 4.0.4
-LIBRARY_PREFIX = /proj/vlasiato/libraries
+LIBRARY_PREFIX = /proj/vlasov/libraries
 
 
 #compiled libraries
@@ -80,8 +80,8 @@ LIB_VLSV = -L$(LIBRARY_PREFIX)/taito/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRA
 LIB_PROFILE = -L$(LIBRARY_PREFIX)/taito/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof/2.0/lib -lphiprof
 INC_PROFILE = -I$(LIBRARY_PREFIX)/taito/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof/2.0/include
 
-LIB_PAPI = -L$(LIBRARY_PREFIX)/taito/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/papi/5.5.0/lib -lpapi
-INC_PAPI = -I$(LIBRARY_PREFIX)/taito/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/papi/5.5.0/include
+#LIB_PAPI = -L$(LIBRARY_PREFIX)/taito/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/papi/5.5.0/lib -lpapi
+#INC_PAPI = -I$(LIBRARY_PREFIX)/taito/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/papi/5.5.0/include
 
 #header libraries
 
