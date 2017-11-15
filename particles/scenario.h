@@ -36,20 +36,20 @@ struct Scenario {
 
 	// Fill in the initial particles, given electromagnetic- and velocity fields
   // Further parameters, depending on the scenario, are given by the parameter object
-	virtual std::vector<Particle> initialParticles(Field& E, Field& B, Field& V) {return std::vector<Particle>();};
+	virtual ParticleContainer initialParticles(Field& E, Field& B, Field& V) {return ParticleContainer();};
 
   // Do something when a new input timestep has been opened
-  virtual void newTimestep(int input_file_counter, int step, double time, std::vector<Particle>& particles, Field& E,
+  virtual void newTimestep(int input_file_counter, int step, double time, ParticleContainer& particles, Field& E,
         Field& B, Field& V) {};
 
   // Modify or analyze particle behaviour before they are moved by the particle pusher.
-  virtual void beforePush(std::vector<Particle>& particles, Field& E, Field& B, Field& V) {};
+  virtual void beforePush(ParticleContainer& particles, Field& E, Field& B, Field& V) {};
 
   // Modify or analzye particle behaviour after they are moved by the particle pusher
-  virtual void afterPush(int step, double time, std::vector<Particle>& particles, Field& E, Field& B, Field& V) {};
+  virtual void afterPush(int step, double time, ParticleContainer& particles, Field& E, Field& B, Field& V) {};
 
   // Analyze the final state and / or write output
-  virtual void finalize(std::vector<Particle>& particles, Field& E, Field& B, Field& V) {};
+  virtual void finalize(ParticleContainer& particles, Field& E, Field& B, Field& V) {};
 
   // Flags specifying which fields are required for this scenario
   bool needV; // Velocity field (it's always available for initialization)
@@ -65,35 +65,35 @@ struct Scenario {
 
 // Trace a single particle, it's initial position and velocity given in the parameter file
 struct singleParticleScenario : Scenario {
-  std::vector<Particle> initialParticles(Field& E, Field& B, Field& V);
-  void afterPush(int step, double time, std::vector<Particle>& particles, Field& E, Field& B, Field& V);
+  ParticleContainer initialParticles(Field& E, Field& B, Field& V);
+  virtual void afterPush(int step, double time, ParticleContainer& particles, Field& E, Field& B, Field& V);
 
   singleParticleScenario() {needV = false;};
 };
 
 // Sample a bunch of particles from a distribution, create them at a given point, then trace them
 struct distributionScenario : Scenario {
-  std::vector<Particle> initialParticles(Field& E, Field& B, Field& V);
-  void newTimestep(int input_file_counter, int step, double time, std::vector<Particle>& particles, Field& E, Field& B,
+  ParticleContainer initialParticles(Field& E, Field& B, Field& V);
+  void newTimestep(int input_file_counter, int step, double time, ParticleContainer& particles, Field& E, Field& B,
         Field& V);
-  void finalize(std::vector<Particle>& particles, Field& E, Field& B, Field& V);
+  void finalize(ParticleContainer& particles, Field& E, Field& B, Field& V);
 
   distributionScenario() {needV = false;};
 };
 
 // Inject particles in the tail continuously, see where they precipitate
 struct precipitationScenario : Scenario {
-  void newTimestep(int input_file_counter, int step, double time, std::vector<Particle>& particles, Field& E, Field& B,
+  void newTimestep(int input_file_counter, int step, double time, ParticleContainer& particles, Field& E, Field& B,
         Field& V);
-  void afterPush(int step, double time, std::vector<Particle>& particles, Field& E, Field& B, Field& V);
+  void afterPush(int step, double time, ParticleContainer& particles, Field& E, Field& B, Field& V);
 
   precipitationScenario() {needV = true;};
 };
 
 // For interactive usage from analysator: read positions and velocities from stdin, push those particles.
 struct analysatorScenario : Scenario {
-  std::vector<Particle> initialParticles(Field& E, Field& B, Field& V);
-  void newTimestep(int input_file_counter, int step, double time, std::vector<Particle>& particles, Field& E, Field& B,
+  ParticleContainer initialParticles(Field& E, Field& B, Field& V);
+  void newTimestep(int input_file_counter, int step, double time, ParticleContainer& particles, Field& E, Field& B,
         Field& V);
   analysatorScenario() {needV = false;};
 };
@@ -104,10 +104,10 @@ struct shockReflectivityScenario : Scenario {
   LinearHistogram2D transmitted;
   LinearHistogram2D reflected;
 
-  void newTimestep(int input_file_counter, int step, double time, std::vector<Particle>& particles, Field& E, Field& B,
+  void newTimestep(int input_file_counter, int step, double time, ParticleContainer& particles, Field& E, Field& B,
         Field& V);
-  void afterPush(int step, double time, std::vector<Particle>& particles, Field& E, Field& B, Field& V);
-  void finalize(std::vector<Particle>& particles, Field& E, Field& B, Field& V);
+  void afterPush(int step, double time, ParticleContainer& particles, Field& E, Field& B, Field& V);
+  void finalize(ParticleContainer& particles, Field& E, Field& B, Field& V);
 
   shockReflectivityScenario() :
       transmitted(200,300, Vec2d(ParticleParameters::reflect_start_y,ParticleParameters::start_time),
@@ -123,11 +123,11 @@ struct ipShockScenario : Scenario {
   FILE * traFile;
   FILE * refFile;
 
-  std::vector<Particle> initialParticles(Field& E, Field& B, Field& V);
-  void newTimestep(int input_file_counter, int step, double time, std::vector<Particle>& particles, Field& E, Field& B,
+  ParticleContainer initialParticles(Field& E, Field& B, Field& V);
+  void newTimestep(int input_file_counter, int step, double time, ParticleContainer& particles, Field& E, Field& B,
         Field& V);
-  void afterPush(int step, double time, std::vector<Particle>& particles, Field& E, Field& B, Field& V);
-  void finalize(std::vector<Particle>& particles, Field& E, Field& B, Field& V);
+  void afterPush(int step, double time, ParticleContainer& particles, Field& E, Field& B, Field& V);
+  void finalize(ParticleContainer& particles, Field& E, Field& B, Field& V);
 
   ipShockScenario() {needV = true;};
 };

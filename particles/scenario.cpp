@@ -23,9 +23,9 @@
 #include <iostream>
 #include "scenario.h"
 
-std::vector<Particle> singleParticleScenario::initialParticles(Field& E, Field& B, Field& V) {
+ParticleContainer singleParticleScenario::initialParticles(Field& E, Field& B, Field& V) {
 
-   std::vector<Particle> particles;
+   ParticleContainer particles;
 
    Vec3d vpos(ParticleParameters::init_x, ParticleParameters::init_y, ParticleParameters::init_z);
    /* Look up builk velocity in the V-field */
@@ -36,7 +36,7 @@ std::vector<Particle> singleParticleScenario::initialParticles(Field& E, Field& 
    return particles;
 }
 
-void singleParticleScenario::afterPush(int step, double time, std::vector<Particle>& particles, 
+void singleParticleScenario::afterPush(int step, double time, ParticleContainer& particles, 
       Field& E, Field& B, Field& V) {
 
    Vec3d& x = particles[0].x;
@@ -48,9 +48,9 @@ void singleParticleScenario::afterPush(int step, double time, std::vector<Partic
 
 
 
-std::vector<Particle> distributionScenario::initialParticles(Field& E, Field& B, Field& V) {
+ParticleContainer distributionScenario::initialParticles(Field& E, Field& B, Field& V) {
 
-   std::vector<Particle> particles;
+   ParticleContainer particles;
 
    std::default_random_engine generator(ParticleParameters::random_seed);
    Distribution* velocity_distribution=ParticleParameters::distribution(generator);
@@ -75,7 +75,7 @@ std::vector<Particle> distributionScenario::initialParticles(Field& E, Field& B,
    return particles;
 }
 
-void distributionScenario::newTimestep(int input_file_counter, int step, double time, std::vector<Particle>& particles,
+void distributionScenario::newTimestep(int input_file_counter, int step, double time, ParticleContainer& particles,
       Field& E, Field& B, Field& V) {
 
    char filename_buffer[256];
@@ -84,11 +84,11 @@ void distributionScenario::newTimestep(int input_file_counter, int step, double 
    writeParticles(particles, filename_buffer);
 }
 
-void distributionScenario::finalize(std::vector<Particle>& particles, Field& E, Field& B, Field& V) {
+void distributionScenario::finalize(ParticleContainer& particles, Field& E, Field& B, Field& V) {
    writeParticles(particles, "particles_final.vlsv");
 }
 
-void precipitationScenario::afterPush(int step, double time, std::vector<Particle>& particles,
+void precipitationScenario::afterPush(int step, double time, ParticleContainer& particles,
       Field& E, Field& B, Field& V) {
 
    for(unsigned int i=0; i<particles.size(); i++) {
@@ -125,7 +125,7 @@ void precipitationScenario::afterPush(int step, double time, std::vector<Particl
    }
 }
 
-void precipitationScenario::newTimestep(int input_file_counter, int step, double time, std::vector<Particle>& particles,
+void precipitationScenario::newTimestep(int input_file_counter, int step, double time, ParticleContainer& particles,
       Field& E, Field& B, Field& V) {
 
    // Create particles along the negative x-axis, from inner boundary
@@ -161,9 +161,9 @@ void precipitationScenario::newTimestep(int input_file_counter, int step, double
 }
 
 
-std::vector<Particle> analysatorScenario::initialParticles(Field& E, Field& B, Field& V) {
+ParticleContainer analysatorScenario::initialParticles(Field& E, Field& B, Field& V) {
 
-   std::vector<Particle> particles;
+   ParticleContainer particles;
 
    std::cerr << "Reading initial particle data from stdin" << std::endl
       << "(format: x y z vx vy vz)" << std::endl;
@@ -180,7 +180,7 @@ std::vector<Particle> analysatorScenario::initialParticles(Field& E, Field& B, F
    return particles;
 }
 
-void analysatorScenario::newTimestep(int input_file_counter, int step, double time, std::vector<Particle>& particles,
+void analysatorScenario::newTimestep(int input_file_counter, int step, double time, ParticleContainer& particles,
       Field& E, Field& B, Field& V) {
 
    for(unsigned int i=0; i< particles.size(); i++) {
@@ -192,7 +192,7 @@ void analysatorScenario::newTimestep(int input_file_counter, int step, double ti
 }
 
 void shockReflectivityScenario::newTimestep(int input_file_counter, int step, double time,
-      std::vector<Particle>& particles, Field& E, Field& B, Field& V) {
+      ParticleContainer& particles, Field& E, Field& B, Field& V) {
 
    const int num_points = 200;
 
@@ -242,7 +242,7 @@ void shockReflectivityScenario::newTimestep(int input_file_counter, int step, do
    writeParticles(particles, filename_buffer);
 }
 
-void shockReflectivityScenario::afterPush(int step, double time, std::vector<Particle>& particles,
+void shockReflectivityScenario::afterPush(int step, double time, ParticleContainer& particles,
       Field& E, Field& B, Field& V) {
 
    for(unsigned int i=0; i<particles.size(); i++) {
@@ -288,7 +288,7 @@ void shockReflectivityScenario::afterPush(int step, double time, std::vector<Par
    }
 }
 
-void shockReflectivityScenario::finalize(std::vector<Particle>& particles, Field& E, Field& B, Field& V) {
+void shockReflectivityScenario::finalize(ParticleContainer& particles, Field& E, Field& B, Field& V) {
    transmitted.save("transmitted.dat");
    transmitted.writeBovAscii("transmitted.dat.bov",0,"transmitted.dat");
    reflected.save("reflected.dat");
@@ -298,13 +298,13 @@ void shockReflectivityScenario::finalize(std::vector<Particle>& particles, Field
 
 
 
-std::vector<Particle> ipShockScenario::initialParticles(Field& E, Field& B, Field& V) {
+ParticleContainer ipShockScenario::initialParticles(Field& E, Field& B, Field& V) {
 
   // Open output files for transmission and reflection
   traFile = fopen("transmitted.dat","w"); 
   refFile = fopen("reflected.dat","w"); 
   
-   std::vector<Particle> particles;
+   ParticleContainer particles;
 
    /* Prepare randomization engines */
    std::default_random_engine generator(ParticleParameters::random_seed);
@@ -340,7 +340,7 @@ std::vector<Particle> ipShockScenario::initialParticles(Field& E, Field& B, Fiel
    return particles;
 }
 
-void ipShockScenario::newTimestep(int input_file_counter, int step, double time, std::vector<Particle>& particles,
+void ipShockScenario::newTimestep(int input_file_counter, int step, double time, ParticleContainer& particles,
       Field& E, Field& B, Field& V) {
 
    char filename_buffer[256];
@@ -349,7 +349,7 @@ void ipShockScenario::newTimestep(int input_file_counter, int step, double time,
    writeParticles(particles, filename_buffer); //Generates VLSV file
 }
 
-void ipShockScenario::afterPush(int step, double time, std::vector<Particle>& particles,
+void ipShockScenario::afterPush(int step, double time, ParticleContainer& particles,
       Field& E, Field& B, Field& V) {
   
   /* Perform transmission / reflection check for each particle */
@@ -400,7 +400,7 @@ void ipShockScenario::afterPush(int step, double time, std::vector<Particle>& pa
    fflush(refFile);
 }
 
-void ipShockScenario::finalize(std::vector<Particle>& particles, Field& E, Field& B, Field& V) {
+void ipShockScenario::finalize(ParticleContainer& particles, Field& E, Field& B, Field& V) {
    writeParticles(particles, "particles_final.vlsv");
    /* histograms */
    //transmitted.save("transmitted.dat");
