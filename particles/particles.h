@@ -24,7 +24,7 @@
 #include "vectorclass.h"
 #include "vector3d.h"
 #include "../definitions.h"
-#include "aligned_allocator.h"
+#include "../memoryallocation.h"
 
 struct Particle {
       Vec3d x;
