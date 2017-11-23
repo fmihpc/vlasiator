@@ -125,6 +125,17 @@ bool ObjectWrapper::getParameters() {
       RP::get(pop + "_vspace.vx_length",vMesh.gridLength[0]);
       RP::get(pop + "_vspace.vy_length",vMesh.gridLength[1]);
       RP::get(pop + "_vspace.vz_length",vMesh.gridLength[2]);
+      if(vMesh.gridLength[0] > MAX_BLOCKS_PER_DIM  ||
+            vMesh.gridLength[1] > MAX_BLOCKS_PER_DIM  ||
+            vMesh.gridLength[2] > MAX_BLOCKS_PER_DIM ) {
+
+         // Build error message as a string first, so that the cerr output hapens atomically and we don't spam
+         // thousands of unreadable lines through each other
+         std::string errormsg = "(VSPACE) ERROR: Velocity mesh for population " + species.name + " has too many blocks per dimension. Maximum defined in MAX_BLOCKS_PER_DIM is " + std::to_string(MAX_BLOCKS_PER_DIM) + " "
+            + std::string(__FILE__) + ":" + std::to_string(__LINE__) + "\n";
+         std::cerr << errormsg;
+      }
+
       vMesh.blockLength[0] = vMesh.blockLength[1] = vMesh.blockLength[2] = WID;
       int maxRefLevel; // Temporary variable, since target value is a uint8_t
       RP::get(pop + "_vspace.max_refinement_level",maxRefLevel);

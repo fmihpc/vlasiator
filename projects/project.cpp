@@ -172,36 +172,6 @@ namespace projects {
       // Basic error checking
       bool success = true;
 
-      ObjectWrapper& owrapper = getObjectWrapper();
-      
-      // If particle population(s) have not been defined, add protons as a default population
-      // and assume that the velocity mesh is called 'gridbuilder'
-      //if (popNames.size() == 0) {
-      //   species::Species population;
-      //   population.name   = "proton";
-      //   population.charge = physicalconstants::CHARGE;
-      //   population.mass   = physicalconstants::MASS_PROTON;
-      //   population.sparseMinValue = Parameters::sparseMinValue;
-      //   
-      //   size_t index=owrapper.velocityMeshes.size();
-      //   for (size_t m=0; m<owrapper.velocityMeshes.size(); ++m) {
-      //      if (owrapper.velocityMeshes[m].name == "gridbuilder") {
-      //         index = m; break;
-      //      }
-      //   }
-      //   if (index >= owrapper.velocityMeshes.size()) {
-      //      stringstream ss;
-      //      ss << "(PROJECT) ERROR: Could not associate default particle population with a velocity ";
-      //      ss << "mesh in " << __FILE__ << ":" << __LINE__ << endl;
-      //      cerr << ss.str(); success = false;
-      //      return success;
-      //   }
-      //   population.velocityMesh = index;
-
-      //   owrapper.particleSpecies.push_back(population);
-      //   printPopulations();
-      //   return success;
-      //}
       baseClassInitialized = success;
       return success;
    }
