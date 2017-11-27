@@ -82,7 +82,7 @@ namespace DRO {
       size_t thread_N_cells = 0;
 
       for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-         #pragma omp parallel for reduction(+:thread_N_cells)
+//          #pragma omp parallel for reduction(+:thread_N_cells) // Commented out as the DROs are being threaded at a higher level. And this is not used at the moment.
          for (size_t c=0; c<cells.size(); ++c) {
             Real array[4];
             for (int i=0; i<4; ++i) array[i] = 0;

@@ -49,8 +49,9 @@ namespace DRO {
                              vlsv::Writer& vlsvWriter);
      
    protected:
-      Real averageVX, averageVY, averageVZ;
-      Real rho_m;
+      static Real averageVX, averageVY, averageVZ;
+      static Real rho_m;
+      #pragma omp threadprivate(rho_m,averageVX,averageVY,averageVZ)
    };
 
 } // namespace DRO

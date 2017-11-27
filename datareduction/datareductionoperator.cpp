@@ -33,6 +33,63 @@ using namespace std;
 typedef Parameters P;
 
 namespace DRO {
+   const Real * DataReductionOperatorCellParams::_data;
+   int MPIrank::mpiRank = 0;
+   int BoundaryType::boundaryType = 0;
+   int BoundaryLayer::boundaryLayer = 0;
+   int BoundaryLayerNew::boundaryLayer = 0;
+   int Blocks::nBlocks = 0;
+   Real VariableBVol::B[3] = {0.0,0.0,0.0};
+   Real VariableB::B[3] = {0.0,0.0,0.0};
+   Real VariablePressure::averageVX = 0.0;
+   Real VariablePressure::averageVY = 0.0;
+   Real VariablePressure::averageVZ = 0.0;
+   Real VariablePressure::Pressure = 0.0;
+   Real VariablePressureSolver::Pressure = 0.0;
+   Real VariablePTensorDiagonal::averageVX = 0.0;
+   Real VariablePTensorDiagonal::averageVY = 0.0;
+   Real VariablePTensorDiagonal::averageVZ = 0.0;
+   Real VariablePTensorDiagonal::PTensor[3] = {0.0,0.0,0.0};
+   Real VariablePTensorOffDiagonal::averageVX = 0.0;
+   Real VariablePTensorOffDiagonal::averageVY = 0.0;
+   Real VariablePTensorOffDiagonal::averageVZ = 0.0;
+   Real VariablePTensorOffDiagonal::PTensor[3] = {0.0,0.0,0.0};
+   Real MaxDistributionFunction::maxF = 0.0;
+   Real MinDistributionFunction::minF = 0.0;
+   Real VariableRhoBackstream::RhoBackstream = 0.0;
+   Real VariableRhoNonBackstream::Rho = 0.0;
+   Real VariableRhoVBackstream::RhoVBackstream[3] = {0.0,0.0,0.0};
+   Real VariableRhoVNonBackstream::RhoV[3] = {0.0,0.0,0.0};
+   
+   Real VariablePressureBackstream::averageVX = 0.0;
+   Real VariablePressureBackstream::averageVY = 0.0;
+   Real VariablePressureBackstream::averageVZ = 0.0;
+   Real VariablePressureBackstream::Pressure = 0.0;
+   
+   Real VariablePressureNonBackstream::averageVX = 0.0;
+   Real VariablePressureNonBackstream::averageVY = 0.0;
+   Real VariablePressureNonBackstream::averageVZ = 0.0;
+   Real VariablePressureNonBackstream::Pressure = 0.0;
+   
+   Real VariablePTensorBackstreamDiagonal::averageVX = 0.0;
+   Real VariablePTensorBackstreamDiagonal::averageVY = 0.0;
+   Real VariablePTensorBackstreamDiagonal::averageVZ = 0.0;
+   Real VariablePTensorBackstreamDiagonal::PTensor[3] = {0.0,0.0,0.0};
+   
+   Real VariablePTensorNonBackstreamDiagonal::averageVX = 0.0;
+   Real VariablePTensorNonBackstreamDiagonal::averageVY = 0.0;
+   Real VariablePTensorNonBackstreamDiagonal::averageVZ = 0.0;
+   Real VariablePTensorNonBackstreamDiagonal::PTensor[3] = {0.0,0.0,0.0};
+   
+   Real VariablePTensorBackstreamOffDiagonal::averageVX = 0.0;
+   Real VariablePTensorBackstreamOffDiagonal::averageVY = 0.0;
+   Real VariablePTensorBackstreamOffDiagonal::averageVZ = 0.0;
+   Real VariablePTensorBackstreamOffDiagonal::PTensor[3] = {0.0,0.0,0.0};
+   
+   Real VariablePTensorNonBackstreamOffDiagonal::averageVX = 0.0;
+   Real VariablePTensorNonBackstreamOffDiagonal::averageVY = 0.0;
+   Real VariablePTensorNonBackstreamOffDiagonal::averageVZ = 0.0;
+   Real VariablePTensorNonBackstreamOffDiagonal::PTensor[3] = {0.0,0.0,0.0};
    
    // ************************************************************
    // ***** DEFINITIONS FOR DATAREDUCTIONOPERATOR BASE CLASS *****
@@ -287,10 +344,7 @@ namespace DRO {
    }
    
    bool MPIrank::setSpatialCell(const SpatialCell* cell) {
-      int intRank;
-      MPI_Comm_rank(MPI_COMM_WORLD,&intRank);
-      rank = 1.0*intRank;
-      mpiRank = intRank;
+      MPI_Comm_rank(MPI_COMM_WORLD,&mpiRank);
       return true;
    }
    
@@ -768,23 +822,20 @@ namespace DRO {
    bool MaxDistributionFunction::reduceData(const SpatialCell* cell,Real* buffer) {
       const Real HALF = 0.5;
       
-      Real threadMax = std::numeric_limits<Real>::min();
+      Real maxF = std::numeric_limits<Real>::min();
       
       for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          const Realf* block_data = cell->get_data(popID);
-         
          for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); ++n) {
             for (uint k = 0; k < WID; ++k)
                for (uint j = 0; j < WID; ++j)
                   for (uint i = 0; i < WID; ++i) {
                      const int celli=k*WID*WID+j*WID+i;
-                     threadMax = max((Real)(block_data[n * SIZE_VELBLOCK+celli]), threadMax);
+                     maxF = max((Real)(block_data[n * SIZE_VELBLOCK+celli]), maxF);
             }
          }
       }
 
-      maxF = max(threadMax, maxF);
-      
       *buffer = maxF;
       return true;
    }
@@ -819,23 +870,20 @@ namespace DRO {
    bool MinDistributionFunction::reduceData(const SpatialCell* cell,Real* buffer) {
       const Real HALF = 0.5;
       
-      Real threadMin = std::numeric_limits<Real>::max();
+      minF = std::numeric_limits<Real>::max();
       
       for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          const Realf* block_data = cell->get_data(popID);
-
-         for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); ++n) {               
+         for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); ++n) {
             for (uint k = 0; k < WID; ++k)
                for (uint j = 0; j < WID; ++j)
                   for (uint i = 0; i < WID; ++i) {
                      const int celli=k*WID*WID+j*WID+i;
-                     threadMin = min((Real)(block_data[n * SIZE_VELBLOCK+celli]), threadMin);
+                     minF = min((Real)(block_data[n * SIZE_VELBLOCK+celli]), minF);
             }
          }
       
       }
-
-      minF = min(threadMin, minF);
       
       *buffer = minF;
       return true;
