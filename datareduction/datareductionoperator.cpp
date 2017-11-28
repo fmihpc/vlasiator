@@ -467,48 +467,51 @@ namespace DRO {
       const Real HALF = 0.5;
       const Real THIRD = 1.0/3.0;
       
-      Real nvx2_sum = 0.0;
-      Real nvy2_sum = 0.0;
-      Real nvz2_sum = 0.0;
+      Real thread_nvx2_sum = 0.0;
+      Real thread_nvy2_sum = 0.0;
+      Real thread_nvz2_sum = 0.0;
 
-      for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-         // Get velocity block parameters and distribution function of active population
-         const Real*  parameters = cell->get_block_parameters(popID);
-         const Realf* block_data = cell->get_data(popID);
+      # pragma omp parallel reduction(+:thread_nvx2_sum,thread_nvy2_sum,thread_nvz2_sum)
+      {
+         for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+            // Get velocity block parameters and distribution function of active population
+            const Real*  parameters = cell->get_block_parameters(popID);
+            const Realf* block_data = cell->get_data(popID);
 
-         Real pop_nvx2_sum = 0.0;
-         Real pop_nvy2_sum = 0.0;
-         Real pop_nvz2_sum = 0.0;
-         
-         for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); n++) {
-            for (uint k = 0; k < WID; ++k)
-               for (uint j = 0; j < WID; ++j)
-                  for (uint i = 0; i < WID; ++i) {
-                     const Real VX 
-                        =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
-                        + (i + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
-                     const Real VY 
-                        =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] 
-                        + (j + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
-                     const Real VZ 
-                        =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] 
-                        + (k + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
-                     const Real DV3 
-                        = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]
-                        * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY] 
-                        * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
-                     pop_nvx2_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * (VX - averageVX) * (VX - averageVX) * DV3;
-                     pop_nvy2_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * (VY - averageVY) * (VY - averageVY) * DV3;
-                     pop_nvz2_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * (VZ - averageVZ) * (VZ - averageVZ) * DV3;
+            Real pop_nvx2_sum = 0.0;
+            Real pop_nvy2_sum = 0.0;
+            Real pop_nvz2_sum = 0.0;
+            
+            #pragma omp for
+            for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); n++) {
+               for (uint k = 0; k < WID; ++k)
+                  for (uint j = 0; j < WID; ++j)
+                     for (uint i = 0; i < WID; ++i) {
+                        const Real VX 
+                           =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
+                           + (i + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
+                        const Real VY 
+                           =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] 
+                           + (j + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
+                        const Real VZ 
+                           =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] 
+                           + (k + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+                        const Real DV3 
+                           = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]
+                           * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY] 
+                           * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+                        pop_nvx2_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * (VX - averageVX) * (VX - averageVX) * DV3;
+                        pop_nvy2_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * (VY - averageVY) * (VY - averageVY) * DV3;
+                        pop_nvz2_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * (VZ - averageVZ) * (VZ - averageVZ) * DV3;
+               }
             }
+            const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+            thread_nvx2_sum += mass*pop_nvx2_sum;
+            thread_nvy2_sum += mass*pop_nvy2_sum;
+            thread_nvz2_sum += mass*pop_nvz2_sum;
          }
-         const Real mass = getObjectWrapper().particleSpecies[popID].mass;
-         nvx2_sum += mass*pop_nvx2_sum;
-         nvy2_sum += mass*pop_nvy2_sum;
-         nvz2_sum += mass*pop_nvz2_sum;
       }
-      
-      Pressure = THIRD*(nvx2_sum + nvy2_sum + nvz2_sum);
+      Pressure = THIRD*(thread_nvx2_sum + thread_nvy2_sum + thread_nvz2_sum);
       const char* ptr = reinterpret_cast<const char*>(&Pressure);
       for (uint i = 0; i < sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
@@ -608,41 +611,59 @@ namespace DRO {
    
    bool VariablePTensorDiagonal::reduceData(const SpatialCell* cell,char* buffer) {
       const Real HALF = 0.5;
-      
-      const Real* parameters  = cell->get_block_parameters(_popID);
-      const Realf* block_data = cell->get_data(_popID);
+      # pragma omp parallel
+      {
+         Real thread_nvxvx_sum = 0.0;
+         Real thread_nvyvy_sum = 0.0;
+         Real thread_nvzvz_sum = 0.0;
          
-      Real pop_nvxvx_sum = 0;
-      Real pop_nvyvy_sum = 0;
-      Real pop_nvzvz_sum = 0;
-         
-      for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(_popID); n++) {
-         for (uint k = 0; k < WID; ++k)
-            for (uint j = 0; j < WID; ++j)
-               for (uint i = 0; i < WID; ++i) {
-                  const Real VX 
-                  =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
-                  + (i + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
-                  const Real VY 
-                  =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] 
-                  + (j + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
-                  const Real VZ 
-                  =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] 
-                  + (k + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
-                  const Real DV3 
-                  = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]
-                  * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY] 
-                  * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
-                  
-                  pop_nvxvx_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * (VX - averageVX) * (VX - averageVX) * DV3;
-                  pop_nvyvy_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * (VY - averageVY) * (VY - averageVY) * DV3;
-                  pop_nvzvz_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * (VZ - averageVZ) * (VZ - averageVZ) * DV3;
+         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+            const Real* parameters  = cell->get_block_parameters(popID);
+            const Realf* block_data = cell->get_data(popID);
+            
+            Real pop_nvxvx_sum = 0;
+            Real pop_nvyvy_sum = 0;
+            Real pop_nvzvz_sum = 0;
+            
+            # pragma omp for
+            for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); n++) {
+               for (uint k = 0; k < WID; ++k)
+                  for (uint j = 0; j < WID; ++j)
+                     for (uint i = 0; i < WID; ++i) {
+                        const Real VX 
+                        =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
+                        + (i + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
+                        const Real VY 
+                        =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] 
+                        + (j + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
+                        const Real VZ 
+                        =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] 
+                        + (k + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+                        const Real DV3 
+                        = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]
+                        * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY] 
+                        * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+                        
+                        pop_nvxvx_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * (VX - averageVX) * (VX - averageVX) * DV3;
+                        pop_nvyvy_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * (VY - averageVY) * (VY - averageVY) * DV3;
+                        pop_nvzvz_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * (VZ - averageVZ) * (VZ - averageVZ) * DV3;
+               }
+            }
+            thread_nvxvx_sum += pop_nvxvx_sum * getObjectWrapper().particleSpecies[popID].mass;
+            thread_nvyvy_sum += pop_nvyvy_sum * getObjectWrapper().particleSpecies[popID].mass;
+            thread_nvzvz_sum += pop_nvzvz_sum * getObjectWrapper().particleSpecies[popID].mass;
+         }
+
+         // Accumulate contributions coming from this velocity block to the 
+         // spatial cell velocity moments. If multithreading / OpenMP is used, 
+         // these updates need to be atomic:
+         # pragma omp critical
+         {
+            PTensor[0] += thread_nvxvx_sum;
+            PTensor[1] += thread_nvyvy_sum;
+            PTensor[2] += thread_nvzvz_sum;
          }
       }
-      PTensor[0] += pop_nvxvx_sum * getObjectWrapper().particleSpecies[_popID].mass;
-      PTensor[1] += pop_nvyvy_sum * getObjectWrapper().particleSpecies[_popID].mass;
-      PTensor[2] += pop_nvzvz_sum * getObjectWrapper().particleSpecies[_popID].mass;
-         
       const char* ptr = reinterpret_cast<const char*>(&PTensor);
       for (uint i = 0; i < 3*sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
@@ -673,41 +694,59 @@ namespace DRO {
    
    bool VariablePTensorOffDiagonal::reduceData(const SpatialCell* cell,char* buffer) {
       const Real HALF = 0.5;
-      
-      const Real* parameters = cell->get_block_parameters(_popID);
-      const Realf* block_data = cell->get_data(_popID);
-      
-      Real pop_nvxvy_sum = 0.0;
-      Real pop_nvzvx_sum = 0.0;
-      Real pop_nvyvz_sum = 0.0;
+      # pragma omp parallel
+      {
+         Real thread_nvxvy_sum = 0.0;
+         Real thread_nvzvx_sum = 0.0;
+         Real thread_nvyvz_sum = 0.0;
          
-      for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(_popID); n++) {               
-         for (uint k = 0; k < WID; ++k)
-            for (uint j = 0; j < WID; ++j)
-               for (uint i = 0; i < WID; ++i) {
-                  const Real VX 
-                  =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
-                  + (i + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
-                  const Real VY 
-                  =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] 
-                  + (j + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
-                  const Real VZ 
-                  =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] 
-                  + (k + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
-                  const Real DV3 
-                  = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]
-                  * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY] 
-                  * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
-                  
-                  pop_nvxvy_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * (VX - averageVX) * (VY - averageVY) * DV3;
-                  pop_nvzvx_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * (VZ - averageVZ) * (VX - averageVX) * DV3;
-                  pop_nvyvz_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * (VY - averageVY) * (VZ - averageVZ) * DV3;
+         for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+            const Real* parameters = cell->get_block_parameters(popID);
+            const Realf* block_data = cell->get_data(popID);
+            
+            Real pop_nvxvy_sum = 0.0;
+            Real pop_nvzvx_sum = 0.0;
+            Real pop_nvyvz_sum = 0.0;
+            
+            # pragma omp for
+            for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); n++) {               
+               for (uint k = 0; k < WID; ++k)
+                  for (uint j = 0; j < WID; ++j)
+                     for (uint i = 0; i < WID; ++i) {
+                        const Real VX 
+                        =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
+                        + (i + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
+                        const Real VY 
+                        =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] 
+                        + (j + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
+                        const Real VZ 
+                        =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] 
+                        + (k + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+                        const Real DV3 
+                        = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]
+                        * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY] 
+                        * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+                        
+                        pop_nvxvy_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * (VX - averageVX) * (VY - averageVY) * DV3;
+                        pop_nvzvx_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * (VZ - averageVZ) * (VX - averageVX) * DV3;
+                        pop_nvyvz_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * (VY - averageVY) * (VZ - averageVZ) * DV3;
+               }
+            }
+            thread_nvxvy_sum += pop_nvxvy_sum * getObjectWrapper().particleSpecies[popID].mass;
+            thread_nvzvx_sum += pop_nvzvx_sum * getObjectWrapper().particleSpecies[popID].mass;
+            thread_nvyvz_sum += pop_nvyvz_sum * getObjectWrapper().particleSpecies[popID].mass;
+         }
+         
+         // Accumulate contributions coming from this velocity block to the 
+         // spatial cell velocity moments. If multithreading / OpenMP is used, 
+         // these updates need to be atomic:
+         # pragma omp critical
+         {
+            PTensor[0] += thread_nvyvz_sum;
+            PTensor[1] += thread_nvzvx_sum;
+            PTensor[2] += thread_nvxvy_sum;
          }
       }
-      PTensor[0] += pop_nvxvy_sum * getObjectWrapper().particleSpecies[_popID].mass;
-      PTensor[1] += pop_nvzvx_sum * getObjectWrapper().particleSpecies[_popID].mass;
-      PTensor[2] += pop_nvyvz_sum * getObjectWrapper().particleSpecies[_popID].mass;
-
       const char* ptr = reinterpret_cast<const char*>(&PTensor);
       for (uint i = 0; i < 3*sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
@@ -838,22 +877,29 @@ namespace DRO {
    bool MaxDistributionFunction::reduceData(const SpatialCell* cell,Real* buffer) {
       const Real HALF = 0.5;
       
-      Real threadMax = std::numeric_limits<Real>::min();
-      
-      for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-         const Realf* block_data = cell->get_data(popID);
+      #pragma omp parallel 
+      {
+         Real threadMax = std::numeric_limits<Real>::min();
          
-         for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); ++n) {
-            for (uint k = 0; k < WID; ++k)
-               for (uint j = 0; j < WID; ++j)
-                  for (uint i = 0; i < WID; ++i) {
-                     const int celli=k*WID*WID+j*WID+i;
-                     threadMax = max((Real)(block_data[n * SIZE_VELBLOCK+celli]), threadMax);
+         for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+            const Realf* block_data = cell->get_data(popID);
+            
+            #pragma omp for
+            for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); ++n) {
+               for (uint k = 0; k < WID; ++k)
+                  for (uint j = 0; j < WID; ++j)
+                     for (uint i = 0; i < WID; ++i) {
+                        const int celli=k*WID*WID+j*WID+i;
+                        threadMax = max((Real)(block_data[n * SIZE_VELBLOCK+celli]), threadMax);
+               }
             }
          }
-      }
 
-      maxF = max(threadMax, maxF);
+         #pragma omp critical
+         {
+            maxF = max(threadMax, maxF);
+         }
+      }
       
       *buffer = maxF;
       return true;
@@ -889,23 +935,29 @@ namespace DRO {
    bool MinDistributionFunction::reduceData(const SpatialCell* cell,Real* buffer) {
       const Real HALF = 0.5;
       
-      Real threadMin = std::numeric_limits<Real>::max();
-      
-      for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-         const Realf* block_data = cell->get_data(popID);
+      #pragma omp parallel 
+      {
+         Real threadMin = std::numeric_limits<Real>::max();
+         
+         for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+            const Realf* block_data = cell->get_data(popID);
 
-         for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); ++n) {               
-            for (uint k = 0; k < WID; ++k)
-               for (uint j = 0; j < WID; ++j)
-                  for (uint i = 0; i < WID; ++i) {
-                     const int celli=k*WID*WID+j*WID+i;
-                     threadMin = min((Real)(block_data[n * SIZE_VELBLOCK+celli]), threadMin);
+            #pragma omp for
+            for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); ++n) {               
+               for (uint k = 0; k < WID; ++k)
+                  for (uint j = 0; j < WID; ++j)
+                     for (uint i = 0; i < WID; ++i) {
+                        const int celli=k*WID*WID+j*WID+i;
+                        threadMin = min((Real)(block_data[n * SIZE_VELBLOCK+celli]), threadMin);
+               }
             }
+         
          }
-      
+         #pragma omp critical
+         {
+            minF = min(threadMin, minF);
+         }
       }
-
-      minF = min(threadMin, minF);
       
       *buffer = minF;
       return true;
@@ -1010,27 +1062,41 @@ namespace DRO {
    //Calculates rho backstream or rho non backstream
    static void rhoBackstreamCalculation( const SpatialCell * cell, const bool calculateBackstream, cuint popID, Real & rho ) {
       const Real HALF = 0.5;
-      
-      for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-         const Real* parameters = cell->get_block_parameters(popID);
-         const Realf* block_data = cell->get_data(popID);
+      # pragma omp parallel
+      {
+         Real thread_n_sum = 0.0;
          
-         for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); ++n) {
-            const Real DV3
-            = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]
-            * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY]
-            * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
-            vector< uint64_t > vCells; //Velocity cell ids
-            vCells.clear();
-            if ( calculateBackstream == true ) {
-               getBackstreamVelocityCells(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCells);
-            } else {
-               getNonBackstreamVelocityCells(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCells);
+         for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+            const Real* parameters = cell->get_block_parameters(popID);
+            const Realf* block_data = cell->get_data(popID);
+            
+            # pragma omp for
+            for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); ++n) {
+               const Real DV3
+               = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]
+               * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY]
+               * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+               vector< uint64_t > vCells; //Velocity cell ids
+               vCells.clear();
+               if ( calculateBackstream == true ) {
+                  getBackstreamVelocityCells(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCells);
+               } else {
+                  getNonBackstreamVelocityCells(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCells);
+               }
+               for( vector< uint64_t >::const_iterator it = vCells.begin(); it != vCells.end(); ++it ) {
+                  //velocity cell id = *it
+                  thread_n_sum += block_data[n * SIZE_VELBLOCK + (*it)] * DV3;
+               }
             }
-            for( vector< uint64_t >::const_iterator it = vCells.begin(); it != vCells.end(); ++it ) {
-               //velocity cell id = *it
-               rho += block_data[n * SIZE_VELBLOCK + (*it)] * DV3;
-            }
+         }
+
+         // Accumulate contributions coming from this velocity block
+         // If multithreading / OpenMP is used, 
+         // these updates need to be atomic:
+         // todo: use omp reduction
+         # pragma omp critical
+         {
+            rho += thread_n_sum;
          }
       }
       return;
@@ -1038,56 +1104,65 @@ namespace DRO {
 
    static void VBackstreamCalculation( const SpatialCell * cell, const bool calculateBackstream, cuint popID, Real * V ) {
       const Real HALF = 0.5;
-      // Make sure V is initialized
+      // Make sure the V is initialized
       V[0] = 0;
       V[1] = 0;
       V[2] = 0;
-      Real nvx_sum = 0.0;
-      Real nvy_sum = 0.0;
-      Real nvz_sum = 0.0;
-      Real n_sum = 0.0;
-      
-      const Real* parameters = cell->get_block_parameters(popID);
-      const Realf* block_data = cell->get_data(popID);
-      
-      for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); ++n) {
-         // Get the volume of a velocity cell
-         const Real DV3
-         = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]
-         * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY]
-         * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
-         // Get the velocity cell indices of the cells that are a part of the backstream population
-         vector< array<uint, 3> > vCellIndices;
-         vCellIndices.clear();
-         // Save indices to the std::vector
-         if( calculateBackstream == true ) {
-            getBackstreamVelocityCellIndices(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCellIndices);
-         } else {
-            getNonBackstreamVelocityCellIndices(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCellIndices);
-         }
-         // We have now fethced all of the needed velocity cell indices, so now go through them:
-         for( vector< array<uint, 3> >::const_iterator it = vCellIndices.begin(); it != vCellIndices.end(); ++it ) {
-            // Get the indices of the current iterated velocity cell
-            const array<uint, 3> indices = *it;
-            const uint i = indices[0];
-            const uint j = indices[1];
-            const uint k = indices[2];
-            // Get the coordinates of the velocity cell (e.g. VX = block_vx_min_coordinates + (velocity_cell_indice_x+0.5)*length_of_velocity_cell_in_x_direction)
-            const Real VX = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] + (i + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
-            const Real VY = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] + (j + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
-            const Real VZ = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] + (k + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
-            // Add the value of the coordinates and multiply by the AVGS value of the velocity cell and the volume of the velocity cell
-            nvx_sum += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)]*VX*DV3;
-            nvy_sum += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)]*VY*DV3;
-            nvz_sum += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)]*VZ*DV3;
-            n_sum   += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)]*DV3;
-         }
-      } // for-loop over velocity blocks
+      # pragma omp parallel
+      {
+         Real thread_nvx_sum = 0.0;
+         Real thread_nvy_sum = 0.0;
+         Real thread_nvz_sum = 0.0;
+         Real thread_n_sum = 0.0;
 
-      V[0] += nvx_sum / n_sum;
-      V[1] += nvy_sum / n_sum;
-      V[2] += nvz_sum / n_sum;
+         const Real* parameters = cell->get_block_parameters(popID);
+         const Realf* block_data = cell->get_data(popID);
+         
+         # pragma omp for
+         for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); ++n) {
+            // Get the volume of a velocity cell
+            const Real DV3
+            = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]
+            * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY]
+            * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+            // Get the velocity cell indices of the cells that are a part of the backstream population
+            vector< array<uint, 3> > vCellIndices;
+            vCellIndices.clear();
+            // Save indices to the std::vector
+            if( calculateBackstream == true ) {
+               getBackstreamVelocityCellIndices(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCellIndices);
+            } else {
+               getNonBackstreamVelocityCellIndices(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCellIndices);
+            }
+            // We have now fethced all of the needed velocity cell indices, so now go through them:
+            for( vector< array<uint, 3> >::const_iterator it = vCellIndices.begin(); it != vCellIndices.end(); ++it ) {
+               // Get the indices of the current iterated velocity cell
+               const array<uint, 3> indices = *it;
+               const uint i = indices[0];
+               const uint j = indices[1];
+               const uint k = indices[2];
+               // Get the coordinates of the velocity cell (e.g. VX = block_vx_min_coordinates + (velocity_cell_indice_x+0.5)*length_of_velocity_cell_in_x_direction)
+               const Real VX = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] + (i + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
+               const Real VY = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] + (j + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
+               const Real VZ = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] + (k + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+               // Add the value of the coordinates and multiply by the AVGS value of the velocity cell and the volume of the velocity cell
+               thread_nvx_sum += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)]*VX*DV3;
+               thread_nvy_sum += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)]*VY*DV3;
+               thread_nvz_sum += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)]*VZ*DV3;
+               thread_n_sum += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)]*DV3;
+            }
+         } // for-loop over velocity blocks
 
+         // Accumulate contributions coming from this velocity block
+         // If multithreading / OpenMP is used, 
+         // these updates need to be atomic:
+         # pragma omp critical
+         {
+            V[0] += thread_nvx_sum / thread_n_sum;
+            V[1] += thread_nvy_sum / thread_n_sum;
+            V[2] += thread_nvz_sum / thread_n_sum;
+         }
+      }
       return;
    }
 
@@ -1101,43 +1176,60 @@ namespace DRO {
       const Real HALF = 0.5;
       const Real THIRD = 1.0/3.0;
       Pressure = 0;
-      
-      for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-         const Real* parameters = cell->get_block_parameters(popID);
-         const Realf* block_data = cell->get_data(popID);
+      # pragma omp parallel
+      {
+         Real thread_nvx2_sum = 0.0;
+         Real thread_nvy2_sum = 0.0;
+         Real thread_nvz2_sum = 0.0;
+         
+         for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+            const Real* parameters = cell->get_block_parameters(popID);
+            const Realf* block_data = cell->get_data(popID);
 
-         Real pop_nvx2_sum = 0.0;
-         Real pop_nvy2_sum = 0.0;
-         Real pop_nvz2_sum = 0.0;
+            Real pop_nvx2_sum = 0.0;
+            Real pop_nvy2_sum = 0.0;
+            Real pop_nvz2_sum = 0.0;
 
-         for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); ++n) {
-            const Real DV3
-            = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]
-            * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY]
-            * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
-            vector< array<uint, 3> > vCellIndices;
-            vCellIndices.clear();
-            //Note: Could use function pointers
-            if( calculateBackstream == true ) {
-               getBackstreamVelocityCellIndices(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCellIndices);
-            } else {
-               getNonBackstreamVelocityCellIndices(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCellIndices);
+            # pragma omp for
+            for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); ++n) {
+               const Real DV3
+               = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]
+               * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY]
+               * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+               vector< array<uint, 3> > vCellIndices;
+               vCellIndices.clear();
+               //Note: Could use function pointers
+               if( calculateBackstream == true ) {
+                  getBackstreamVelocityCellIndices(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCellIndices);
+               } else {
+                  getNonBackstreamVelocityCellIndices(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCellIndices);
+               }
+               for( vector< array<uint, 3> >::const_iterator it = vCellIndices.begin(); it != vCellIndices.end(); ++it ) {
+                  //Go through every velocity cell:
+                  const array<uint, 3> indices = *it;
+                  const uint i = indices[0];
+                  const uint j = indices[1];
+                  const uint k = indices[2];
+                  const Real VX = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] + (i + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
+                  const Real VY = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] + (j + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
+                  const Real VZ = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] + (k + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+                  pop_nvx2_sum += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)] * (VX - averageVX) * (VX - averageVX) * DV3;
+                  pop_nvy2_sum += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)] * (VY - averageVY) * (VY - averageVY) * DV3;
+                  pop_nvz2_sum += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)] * (VZ - averageVZ) * (VZ - averageVZ) * DV3;
+               }
             }
-            for( vector< array<uint, 3> >::const_iterator it = vCellIndices.begin(); it != vCellIndices.end(); ++it ) {
-               //Go through every velocity cell:
-               const array<uint, 3> indices = *it;
-               const uint i = indices[0];
-               const uint j = indices[1];
-               const uint k = indices[2];
-               const Real VX = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] + (i + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
-               const Real VY = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] + (j + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
-               const Real VZ = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] + (k + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
-               pop_nvx2_sum += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)] * (VX - averageVX) * (VX - averageVX) * DV3;
-               pop_nvy2_sum += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)] * (VY - averageVY) * (VY - averageVY) * DV3;
-               pop_nvz2_sum += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)] * (VZ - averageVZ) * (VZ - averageVZ) * DV3;
-            }
+            thread_nvx2_sum += pop_nvx2_sum * getObjectWrapper().particleSpecies[popID].mass;
+            thread_nvy2_sum += pop_nvy2_sum * getObjectWrapper().particleSpecies[popID].mass;
+            thread_nvz2_sum += pop_nvz2_sum * getObjectWrapper().particleSpecies[popID].mass;
          }
-         Pressure += THIRD * (pop_nvx2_sum + pop_nvy2_sum + pop_nvz2_sum ) * getObjectWrapper().particleSpecies[popID].mass;
+
+         // Accumulate contributions coming from this velocity block to the 
+         // spatial cell velocity moments. If multithreading / OpenMP is used, 
+         // these updates need to be atomic:
+         # pragma omp critical
+         {
+            Pressure += THIRD * (thread_nvx2_sum + thread_nvy2_sum + thread_nvz2_sum);
+         }
       }
    }
 
@@ -1149,45 +1241,63 @@ namespace DRO {
                                                       cuint popID,
                                                       Real * PTensor ) {
       const Real HALF = 0.5;
-      
-      for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-         const Real* parameters = cell->get_block_parameters(popID);
-         const Realf* block_data = cell->get_data(popID);
-      
-         Real pop_nvxvx_sum = 0.0;
-         Real pop_nvyvy_sum = 0.0;
-         Real pop_nvzvz_sum = 0.0;
+      # pragma omp parallel
+      {
+         Real thread_nvxvx_sum = 0.0;
+         Real thread_nvyvy_sum = 0.0;
+         Real thread_nvzvz_sum = 0.0;
          
-         for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); ++n) {
-            const Real DV3
-            = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]
-            * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY]
-            * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
-            vector< array<uint, 3> > vCellIndices;
-            vCellIndices.clear();
-            if( calculateBackstream == true ) {
-               getBackstreamVelocityCellIndices(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCellIndices);
-            } else {
-               getNonBackstreamVelocityCellIndices(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCellIndices);
+         for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+            const Real* parameters = cell->get_block_parameters(popID);
+            const Realf* block_data = cell->get_data(popID);
+         
+            Real pop_nvxvx_sum = 0.0;
+            Real pop_nvyvy_sum = 0.0;
+            Real pop_nvzvz_sum = 0.0;
+            
+            # pragma omp for
+            for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); ++n) {
+               const Real DV3
+               = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]
+               * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY]
+               * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+               vector< array<uint, 3> > vCellIndices;
+               vCellIndices.clear();
+               if( calculateBackstream == true ) {
+                  getBackstreamVelocityCellIndices(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCellIndices);
+               } else {
+                  getNonBackstreamVelocityCellIndices(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCellIndices);
+               }
+               for( vector< array<uint, 3> >::const_iterator it = vCellIndices.begin(); it != vCellIndices.end(); ++it ) {
+                  //Go through every velocity cell:
+                  const array<uint, 3> indices = *it;
+                  const uint i = indices[0];
+                  const uint j = indices[1];
+                  const uint k = indices[2];
+                  const Real VX = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] + (i + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
+                  const Real VY = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] + (j + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
+                  const Real VZ = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] + (k + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+                  pop_nvxvx_sum += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)] * (VX - averageVX) * (VX - averageVX) * DV3;
+                  pop_nvyvy_sum += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)] * (VY - averageVY) * (VY - averageVY) * DV3;
+                  pop_nvzvz_sum += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)] * (VZ - averageVZ) * (VZ - averageVZ) * DV3;
+               }
             }
-            for( vector< array<uint, 3> >::const_iterator it = vCellIndices.begin(); it != vCellIndices.end(); ++it ) {
-               //Go through every velocity cell:
-               const array<uint, 3> indices = *it;
-               const uint i = indices[0];
-               const uint j = indices[1];
-               const uint k = indices[2];
-               const Real VX = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] + (i + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
-               const Real VY = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] + (j + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
-               const Real VZ = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] + (k + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
-               pop_nvxvx_sum += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)] * (VX - averageVX) * (VX - averageVX) * DV3;
-               pop_nvyvy_sum += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)] * (VY - averageVY) * (VY - averageVY) * DV3;
-               pop_nvzvz_sum += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)] * (VZ - averageVZ) * (VZ - averageVZ) * DV3;
-            }
+            thread_nvxvx_sum += pop_nvxvx_sum * getObjectWrapper().particleSpecies[popID].mass;
+            thread_nvyvy_sum += pop_nvyvy_sum * getObjectWrapper().particleSpecies[popID].mass;
+            thread_nvzvz_sum += pop_nvzvz_sum * getObjectWrapper().particleSpecies[popID].mass;
          }
-         PTensor[0] += pop_nvxvx_sum * getObjectWrapper().particleSpecies[popID].mass;
-         PTensor[1] += pop_nvyvy_sum * getObjectWrapper().particleSpecies[popID].mass;
-         PTensor[2] += pop_nvzvz_sum * getObjectWrapper().particleSpecies[popID].mass;
+
+         // Accumulate contributions coming from this velocity block to the 
+         // spatial cell velocity moments. If multithreading / OpenMP is used, 
+         // these updates need to be atomic:
+         # pragma omp critical
+         {
+            PTensor[0] += thread_nvxvx_sum;
+            PTensor[1] += thread_nvyvy_sum;
+            PTensor[2] += thread_nvzvz_sum;
+         }
       }
+      return;
    }
 
    static void PTensorOffDiagonalBackstreamCalculations( const SpatialCell * cell,
@@ -1198,43 +1308,60 @@ namespace DRO {
                                                          cuint popID,
                                                          Real * PTensor ) {
       const Real HALF = 0.5;
-      
-      for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-         const Real* parameters = cell->get_block_parameters(popID);
-         const Realf* block_data = cell->get_data(popID);
-      
-         Real pop_nvxvy_sum = 0.0;
-         Real pop_nvzvx_sum = 0.0;
-         Real pop_nvyvz_sum = 0.0;
+      # pragma omp parallel
+      {
+         Real thread_nvxvy_sum = 0.0;
+         Real thread_nvzvx_sum = 0.0;
+         Real thread_nvyvz_sum = 0.0;
          
-         for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); ++n) {
-            const Real DV3
-            = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]
-            * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY]
-            * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
-            vector< array<uint, 3> > vCellIndices;
-            if( calculateBackstream == true ) {
-               getBackstreamVelocityCellIndices(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCellIndices);
-            } else {
-               getNonBackstreamVelocityCellIndices(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCellIndices);
+         for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+            const Real* parameters = cell->get_block_parameters(popID);
+            const Realf* block_data = cell->get_data(popID);
+         
+            Real pop_nvxvy_sum = 0.0;
+            Real pop_nvzvx_sum = 0.0;
+            Real pop_nvyvz_sum = 0.0;
+            
+            # pragma omp for
+            for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); ++n) {
+               const Real DV3
+               = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]
+               * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY]
+               * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+               vector< array<uint, 3> > vCellIndices;
+               if( calculateBackstream == true ) {
+                  getBackstreamVelocityCellIndices(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCellIndices);
+               } else {
+                  getNonBackstreamVelocityCellIndices(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCellIndices);
+               }
+               for( vector< array<uint, 3> >::const_iterator it = vCellIndices.begin(); it != vCellIndices.end(); ++it ) {
+                  //Go through every velocity cell:
+                  const array<uint, 3> indices = *it;
+                  const uint i = indices[0];
+                  const uint j = indices[1];
+                  const uint k = indices[2];
+                  const Real VX = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] + (i + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
+                  const Real VY = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] + (j + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
+                  const Real VZ = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] + (k + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+                  pop_nvxvy_sum += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)] * (VX - averageVX) * (VY - averageVY) * DV3;
+                  pop_nvzvx_sum += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)] * (VZ - averageVZ) * (VX - averageVX) * DV3;
+                  pop_nvyvz_sum += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)] * (VY - averageVY) * (VZ - averageVZ) * DV3;
+               }
             }
-            for( vector< array<uint, 3> >::const_iterator it = vCellIndices.begin(); it != vCellIndices.end(); ++it ) {
-               //Go through every velocity cell:
-               const array<uint, 3> indices = *it;
-               const uint i = indices[0];
-               const uint j = indices[1];
-               const uint k = indices[2];
-               const Real VX = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] + (i + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
-               const Real VY = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] + (j + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
-               const Real VZ = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] + (k + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
-               pop_nvxvy_sum += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)] * (VX - averageVX) * (VY - averageVY) * DV3;
-               pop_nvzvx_sum += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)] * (VZ - averageVZ) * (VX - averageVX) * DV3;
-               pop_nvyvz_sum += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)] * (VY - averageVY) * (VZ - averageVZ) * DV3;
-            }
+            thread_nvxvy_sum += pop_nvxvy_sum * getObjectWrapper().particleSpecies[popID].mass;
+            thread_nvzvx_sum += pop_nvzvx_sum * getObjectWrapper().particleSpecies[popID].mass;
+            thread_nvyvz_sum += pop_nvyvz_sum * getObjectWrapper().particleSpecies[popID].mass;
          }
-         PTensor[0] += pop_nvxvy_sum * getObjectWrapper().particleSpecies[popID].mass;
-         PTensor[1] += pop_nvzvx_sum * getObjectWrapper().particleSpecies[popID].mass;
-         PTensor[2] += pop_nvyvz_sum * getObjectWrapper().particleSpecies[popID].mass;
+         
+         // Accumulate contributions coming from this velocity block to the 
+         // spatial cell velocity moments. If multithreading / OpenMP is used, 
+         // these updates need to be atomic:
+         # pragma omp critical
+         {
+            PTensor[0] += thread_nvyvz_sum;
+            PTensor[1] += thread_nvzvx_sum;
+            PTensor[2] += thread_nvxvy_sum;
+         }
       }
    }
 
