@@ -84,7 +84,8 @@ namespace DRO {
       uint _parameterIndex;
       uint _vectorSize;
       std::string _name;
-      const Real *_data;
+      static const Real *_data;
+      #pragma omp threadprivate(_data)
    };
 
    class DataReductionOperatorDerivatives: public DataReductionOperatorCellParams {
@@ -110,8 +111,8 @@ namespace DRO {
       virtual bool setSpatialCell(const SpatialCell* cell);
       
    protected:
-      Real rank;
-      int mpiRank;
+      static int mpiRank;
+      #pragma omp threadprivate(mpiRank)
    };
    
    class BoundaryType: public DataReductionOperator {
@@ -125,7 +126,8 @@ namespace DRO {
       virtual bool setSpatialCell(const SpatialCell* cell);
       
    protected:
-      int boundaryType;
+      static int boundaryType;
+      #pragma omp threadprivate(boundaryType)
    };
 
    class BoundaryLayer: public DataReductionOperator {
@@ -139,7 +141,8 @@ namespace DRO {
       virtual bool setSpatialCell(const SpatialCell* cell);
       
    protected:
-      int boundaryLayer;
+      static int boundaryLayer;
+      #pragma omp threadprivate(boundaryLayer)
    };
 
    class BoundaryLayerNew: public DataReductionOperator {
@@ -153,22 +156,10 @@ namespace DRO {
       virtual bool setSpatialCell(const SpatialCell* cell);
       
    protected:
-      int boundaryLayer;
+      static int boundaryLayer;
+      #pragma omp threadprivate(boundaryLayer)
    };
 
-   class VelocitySubSteps: public DataReductionOperator {
-   public:
-      VelocitySubSteps();
-      virtual ~VelocitySubSteps();
-      
-      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
-      virtual std::string getName() const;
-      virtual bool reduceData(const SpatialCell* cell,char* buffer);
-      virtual bool setSpatialCell(const SpatialCell* cell);
-      
-   protected:
-      int substeps;
-   };
    
 
    class Blocks: public DataReductionOperator {
@@ -183,7 +174,8 @@ namespace DRO {
       virtual bool setSpatialCell(const SpatialCell* cell);
       
    protected:
-      int nBlocks;
+      static int nBlocks;
+      #pragma omp threadprivate(nBlocks)
    };
    
    class VariableB: public DataReductionOperator {
@@ -197,7 +189,8 @@ namespace DRO {
       virtual bool setSpatialCell(const SpatialCell* cell);
       
    protected:
-      Real B[3];
+      static Real B[3];
+      #pragma omp threadprivate(B)
    };
 
       
@@ -212,7 +205,8 @@ namespace DRO {
       virtual bool setSpatialCell(const SpatialCell* cell);
       
    protected:
-      Real B[3];
+      static Real B[3];
+      #pragma omp threadprivate(B)
    };
 
    
@@ -229,8 +223,9 @@ namespace DRO {
       virtual bool setSpatialCell(const SpatialCell* cell);
      
    protected:
-      Real averageVX, averageVY, averageVZ;
-      Real Pressure;
+      static Real averageVX, averageVY, averageVZ;
+      static Real Pressure;
+      #pragma omp threadprivate(averageVX,averageVY,averageVZ,Pressure)
    };
    
    class VariablePressureSolver: public DataReductionOperator {
@@ -244,7 +239,8 @@ namespace DRO {
       virtual bool setSpatialCell(const SpatialCell* cell);
       
    protected:
-      Real Pressure;
+      static Real Pressure;
+      #pragma omp threadprivate(Pressure)
    };
    
    class VariablePTensorDiagonal: public DataReductionOperator {
@@ -258,8 +254,9 @@ namespace DRO {
       virtual bool setSpatialCell(const SpatialCell* cell);
       
    protected:
-      Real averageVX, averageVY, averageVZ;
-      Real PTensor[3];
+      static Real averageVX, averageVY, averageVZ;
+      static Real PTensor[3];
+      #pragma omp threadprivate(averageVX,averageVY,averageVZ,PTensor)
    };
    
    class VariablePTensorOffDiagonal: public DataReductionOperator {
@@ -273,8 +270,9 @@ namespace DRO {
       virtual bool setSpatialCell(const SpatialCell* cell);
       
    protected:
-      Real averageVX, averageVY, averageVZ;
-      Real PTensor[3];
+      static Real averageVX, averageVY, averageVZ;
+      static Real PTensor[3];
+      #pragma omp threadprivate(averageVX,averageVY,averageVZ,PTensor)
    };
    
    class DiagnosticFluxB: public DataReductionOperator {
@@ -317,7 +315,8 @@ namespace DRO {
       virtual bool setSpatialCell(const SpatialCell* cell);
       
    protected:
-      Real maxF;
+      static Real maxF;
+      #pragma omp threadprivate(maxF)
    };
    
    class MinDistributionFunction: public DataReductionOperator {
@@ -332,7 +331,8 @@ namespace DRO {
       virtual bool setSpatialCell(const SpatialCell* cell);
       
    protected:
-      Real minF;
+      static Real minF;
+      #pragma omp threadprivate(minF)
    };
 
    /** This class writes all scalar and two- or three-component vector data 
@@ -365,7 +365,8 @@ namespace DRO {
       virtual bool setSpatialCell(const SpatialCell* cell);
      
    protected:
-   Real RhoBackstream;
+   static Real RhoBackstream;
+   #pragma omp threadprivate(RhoBackstream)
    };
 
    class VariableRhoNonBackstream: public DataReductionOperator {
@@ -379,7 +380,8 @@ namespace DRO {
       virtual bool setSpatialCell(const SpatialCell* cell);
      
    protected:
-   Real Rho;
+   static Real Rho;
+   #pragma omp threadprivate(Rho)
    };
 
 
@@ -394,7 +396,8 @@ namespace DRO {
       virtual bool setSpatialCell(const SpatialCell* cell);
      
    protected:
-      Real RhoVBackstream[3];
+      static Real RhoVBackstream[3];
+      #pragma omp threadprivate(RhoVBackstream)
    };
 
    class VariableRhoVNonBackstream: public DataReductionOperator {
@@ -408,7 +411,8 @@ namespace DRO {
       virtual bool setSpatialCell(const SpatialCell* cell);
 
    protected:
-      Real RhoV[3];
+      static Real RhoV[3];
+      #pragma omp threadprivate(RhoV)
    };
 
    class VariablePressureBackstream: public DataReductionOperator {
@@ -422,8 +426,9 @@ namespace DRO {
       virtual bool setSpatialCell(const SpatialCell* cell);
 
    protected:
-      Real averageVX, averageVY, averageVZ;
-      Real Pressure;
+      static Real averageVX, averageVY, averageVZ;
+      static Real Pressure;
+      #pragma omp threadprivate(averageVX,averageVY,averageVZ,Pressure)
    };
 
    class VariablePressureNonBackstream: public DataReductionOperator {
@@ -437,8 +442,9 @@ namespace DRO {
       virtual bool setSpatialCell(const SpatialCell* cell);
 
    protected:
-      Real averageVX, averageVY, averageVZ;
-      Real Pressure;
+      static Real averageVX, averageVY, averageVZ;
+      static Real Pressure;
+      #pragma omp threadprivate(averageVX,averageVY,averageVZ,Pressure)
    };
 
    class VariablePTensorBackstreamDiagonal: public DataReductionOperator {
@@ -452,8 +458,9 @@ namespace DRO {
       virtual bool setSpatialCell(const SpatialCell* cell);
       
    protected:
-      Real averageVX, averageVY, averageVZ;
-      Real PTensor[3];
+      static Real averageVX, averageVY, averageVZ;
+      static Real PTensor[3];
+      #pragma omp threadprivate(averageVX,averageVY,averageVZ,PTensor)
    };
 
    class VariablePTensorNonBackstreamDiagonal: public DataReductionOperator {
@@ -467,8 +474,9 @@ namespace DRO {
       virtual bool setSpatialCell(const SpatialCell* cell);
 
    protected:
-      Real averageVX, averageVY, averageVZ;
-      Real PTensor[3];
+      static Real averageVX, averageVY, averageVZ;
+      static Real PTensor[3];
+      #pragma omp threadprivate(averageVX,averageVY,averageVZ,PTensor)
    };
 
    class VariablePTensorBackstreamOffDiagonal: public DataReductionOperator {
@@ -482,8 +490,9 @@ namespace DRO {
       virtual bool setSpatialCell(const SpatialCell* cell);
 
    protected:
-      Real averageVX, averageVY, averageVZ;
-      Real PTensor[3];
+      static Real averageVX, averageVY, averageVZ;
+      static Real PTensor[3];
+      #pragma omp threadprivate(averageVX,averageVY,averageVZ,PTensor)
    };
 
    class VariablePTensorNonBackstreamOffDiagonal: public DataReductionOperator {
@@ -497,8 +506,9 @@ namespace DRO {
       virtual bool setSpatialCell(const SpatialCell* cell);
 
    protected:
-      Real averageVX, averageVY, averageVZ;
-      Real PTensor[3];
+      static Real averageVX, averageVY, averageVZ;
+      static Real PTensor[3];
+      #pragma omp threadprivate(averageVX,averageVY,averageVZ,PTensor)
    };
    
    class VariableMinValue: public DataReductionOperator {
