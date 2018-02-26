@@ -147,7 +147,7 @@ bool readNextTimestep(const std::string& filename_pattern, double t, int step, F
         std::vector<double> rho_v_buffer = readFieldData(r,name,3u);
         name = "rho";
         std::vector<double> rho_buffer = readFieldData(r,name,1u);
-        for(int i=0; i<rho_buffer.size(); i++) {
+        for(unsigned int i=0; i<rho_buffer.size(); i++) {
           Vbuffer.push_back(rho_v_buffer[3*i] / rho_buffer[i]);
           Vbuffer.push_back(rho_v_buffer[3*i+1] / rho_buffer[i]);
           Vbuffer.push_back(rho_v_buffer[3*i+2] / rho_buffer[i]);

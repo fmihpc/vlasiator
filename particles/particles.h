@@ -24,20 +24,24 @@
 #include "vectorclass.h"
 #include "vector3d.h"
 #include "../definitions.h"
+#include "../memoryallocation.h"
 
 struct Particle {
-      Real m;
-      Real q;
       Vec3d x;
       Vec3d v;
+      Real m;
+      Real q;
+      char padding[128-sizeof(Vec3d)*2-sizeof(Real)*2];
 
-      Particle(Real mass, Real charge, Vec3d _x, Vec3d _v) :
-         m(mass),q(charge),x(_x),v(_v) {}
+      Particle(Real mass, Real charge, const Vec3d& _x, const Vec3d& _v) :
+         x(_x),v(_v),m(mass),q(charge) {}
 
       /* Particle propagation given E- and B-Field at the particle location
        * with the Boris-Method */
       void push(Vec3d& B, Vec3d& E, double dt);
 };
 
+typedef std::vector<Particle, aligned_allocator<Particle, 32>> ParticleContainer;
 
-void writeParticles(std::vector<Particle>& p, const char* filename);
+void writeParticles(ParticleContainer& p, const char* filename);
+
