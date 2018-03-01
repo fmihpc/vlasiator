@@ -653,7 +653,7 @@ void calculateEdgeHallTermZComponents(
          momentsGrid.get(i-1,j-1,k  )->at(fsgrids::moments::RHOQ)
       );
       hallRhoq =  (hallRhoq <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : hallRhoq ;
-      EHallGrid.get(i,j,k)->at(fsgrids::ehall::EZHALL_000_001) = JXBZ_000_001(perturbedCoefficients, BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBX), BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBY), technicalGrid.DX, technicalGrid.DY, technicalGrid.DZ / (physicalconstants::MU_0 * hallRhoq));
+      EHallGrid.get(i,j,k)->at(fsgrids::ehall::EZHALL_000_001) = JXBZ_000_001(perturbedCoefficients, BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBX), BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBY), technicalGrid.DX, technicalGrid.DY, technicalGrid.DZ) / (physicalconstants::MU_0 * hallRhoq);
       hallRhoq = FOURTH * (
          momentsGrid.get(i  ,j  ,k  )->at(fsgrids::moments::RHOQ) +
          momentsGrid.get(i+1,j  ,k  )->at(fsgrids::moments::RHOQ) +
