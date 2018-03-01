@@ -448,7 +448,7 @@ void calculateEdgeElectricFieldX(
    
    std::array<Real, fsgrids::efield::N_EFIELD> * efield_SW = EGrid.get(i,j,k);
    
-   Real By_S, Bz_W, Bz_E, By_N, perBy_S, perBz_W, perBz_E, perBy_N, rhoq_S;
+   Real By_S, Bz_W, Bz_E, By_N, perBy_S, perBz_W, perBz_E, perBy_N;
    Real minRhom = std::numeric_limits<Real>::max();
    Real maxRhom = std::numeric_limits<Real>::min();
 
@@ -462,8 +462,6 @@ void calculateEdgeElectricFieldX(
    perBy_N = perb_NW->at(fsgrids::bfield::PERBY);
    Vy0  = moments_SW->at(fsgrids::moments::VY);
    Vz0  = moments_SW->at(fsgrids::moments::VZ);
-   rhoq_S = FOURTH*(moments_SW->at(fsgrids::moments::RHOQ) + moments_SE->at(fsgrids::moments::RHOQ) + moments_NW->at(fsgrids::moments::RHOQ) + moments_NE->at(fsgrids::moments::RHOQ));
-   rhoq_S = (rhoq_S <= Parameters::hallMinimumRhoq) ? Parameters::hallMinimumRhoq : rhoq_S ;
    minRhom = min(minRhom,
        min(moments_SW->at(fsgrids::moments::RHOM),
          min(moments_SE->at(fsgrids::moments::RHOM),
@@ -515,7 +513,7 @@ void calculateEdgeElectricFieldX(
    
    // Hall term
    if(Parameters::ohmHallTerm > 0) {
-      Ex_SW += EHallGrid.get(i,j,k)->at(fsgrids::ehall::EXHALL_000_100) / (rhoq_S*physicalconstants::MU_0);
+      Ex_SW += EHallGrid.get(i,j,k)->at(fsgrids::ehall::EXHALL_000_100);
    }
    
    // Electron pressure gradient term
@@ -570,7 +568,7 @@ void calculateEdgeElectricFieldX(
 
    // Hall term
    if(Parameters::ohmHallTerm > 0) {
-      Ex_SE += EHallGrid.get(i,j-1,k)->at(fsgrids::ehall::EXHALL_010_110) / (rhoq_S*physicalconstants::MU_0);
+      Ex_SE += EHallGrid.get(i,j-1,k)->at(fsgrids::ehall::EXHALL_010_110);
    }
    
    // Electron pressure gradient term
@@ -626,7 +624,7 @@ void calculateEdgeElectricFieldX(
    
    // Hall term
    if(Parameters::ohmHallTerm > 0) {
-      Ex_NW += EHallGrid.get(i,j,k-1)->at(fsgrids::ehall::EXHALL_001_101)  / (rhoq_S*physicalconstants::MU_0);
+      Ex_NW += EHallGrid.get(i,j,k-1)->at(fsgrids::ehall::EXHALL_001_101);
    }
    
    // Electron pressure gradient term
@@ -682,7 +680,7 @@ void calculateEdgeElectricFieldX(
 
    // Hall term
    if(Parameters::ohmHallTerm > 0) {
-      Ex_NE += EHallGrid.get(i,j-1,k-1)->at(fsgrids::ehall::EXHALL_011_111) / (rhoq_S*physicalconstants::MU_0);
+      Ex_NE += EHallGrid.get(i,j-1,k-1)->at(fsgrids::ehall::EXHALL_011_111);
    }
    
    // Electron pressure gradient term
@@ -809,7 +807,7 @@ void calculateEdgeElectricFieldY(
    std::array<Real, fsgrids::efield::N_EFIELD> * efield_SW = EGrid.get(i,j,k);
    
    // Fetch required plasma parameters:
-   Real Bz_S, Bx_W, Bx_E, Bz_N, perBz_S, perBx_W, perBx_E, perBz_N, rhoq_S;
+   Real Bz_S, Bx_W, Bx_E, Bz_N, perBz_S, perBx_W, perBx_E, perBz_N;
    Real minRhom = std::numeric_limits<Real>::max();
    Real maxRhom = std::numeric_limits<Real>::min();
    Bz_S = perb_SW->at(fsgrids::bfield::PERBZ)+bgb_SW->at(fsgrids::bgbfield::BGBZ);
@@ -822,8 +820,6 @@ void calculateEdgeElectricFieldY(
    perBz_N = perb_NW->at(fsgrids::bfield::PERBZ);
    Vx0  = moments_SW->at(fsgrids::moments::VX);
    Vz0  = moments_SW->at(fsgrids::moments::VZ);
-   rhoq_S = FOURTH*(moments_SW->at(fsgrids::moments::RHOQ) + moments_SE->at(fsgrids::moments::RHOQ) + moments_NW->at(fsgrids::moments::RHOQ) + moments_NE->at(fsgrids::moments::RHOQ));
-   rhoq_S = (rhoq_S <= Parameters::hallMinimumRhoq) ? Parameters::hallMinimumRhoq : rhoq_S ;
    minRhom = min(minRhom,
        min(moments_SW->at(fsgrids::moments::RHOM),
          min(moments_SE->at(fsgrids::moments::RHOM),
@@ -875,7 +871,7 @@ void calculateEdgeElectricFieldY(
 
    // Hall term
    if (Parameters::ohmHallTerm > 0) {
-      Ey_SW += EHallGrid.get(i,j,k)->at(fsgrids::ehall::EYHALL_000_010) / (rhoq_S*physicalconstants::MU_0);
+      Ey_SW += EHallGrid.get(i,j,k)->at(fsgrids::ehall::EYHALL_000_010);
    }
    
    // Electron pressure gradient term
@@ -931,7 +927,7 @@ void calculateEdgeElectricFieldY(
 
    // Hall term
    if (Parameters::ohmHallTerm > 0) {
-      Ey_SE += EHallGrid.get(i,j,k-1)->at(fsgrids::ehall::EYHALL_001_011) / (rhoq_S*physicalconstants::MU_0);
+      Ey_SE += EHallGrid.get(i,j,k-1)->at(fsgrids::ehall::EYHALL_001_011);
    }
    
    // Electron pressure gradient term
@@ -987,7 +983,7 @@ void calculateEdgeElectricFieldY(
 
    // Hall term
    if(Parameters::ohmHallTerm > 0) {
-      Ey_NW += EHallGrid.get(i-1,j,k)->at(fsgrids::ehall::EYHALL_100_110) / (rhoq_S*physicalconstants::MU_0);
+      Ey_NW += EHallGrid.get(i-1,j,k)->at(fsgrids::ehall::EYHALL_100_110);
    }
    
    // Electron pressure gradient term
@@ -1043,7 +1039,7 @@ void calculateEdgeElectricFieldY(
 
    // Hall term
    if(Parameters::ohmHallTerm > 0) {
-      Ey_NE += EHallGrid.get(i-1,j,k-1)->at(fsgrids::ehall::EYHALL_101_111) / (rhoq_S*physicalconstants::MU_0);
+      Ey_NE += EHallGrid.get(i-1,j,k-1)->at(fsgrids::ehall::EYHALL_101_111);
    }
    
    // Electron pressure gradient term
@@ -1170,7 +1166,7 @@ void calculateEdgeElectricFieldZ(
    std::array<Real, fsgrids::efield::N_EFIELD> * efield_SW = EGrid.get(i,j,k);
    
    // Fetch needed plasma parameters/derivatives from the four cells:
-   Real Bx_S, By_W, By_E, Bx_N, perBx_S, perBy_W, perBy_E, perBx_N, rhoq_S;
+   Real Bx_S, By_W, By_E, Bx_N, perBx_S, perBy_W, perBy_E, perBx_N;
    Real minRhom = std::numeric_limits<Real>::max();
    Real maxRhom = std::numeric_limits<Real>::min();
 
@@ -1184,8 +1180,6 @@ void calculateEdgeElectricFieldZ(
    perBx_N    = perb_NW->at(fsgrids::bfield::PERBX);
    Vx0  = moments_SW->at(fsgrids::moments::VX);
    Vy0  = moments_SW->at(fsgrids::moments::VY);
-   rhoq_S = FOURTH*(moments_SW->at(fsgrids::moments::RHOQ) + moments_SE->at(fsgrids::moments::RHOQ) + moments_NW->at(fsgrids::moments::RHOQ) + moments_NE->at(fsgrids::moments::RHOQ));
-   rhoq_S = (rhoq_S <= Parameters::hallMinimumRhoq) ? Parameters::hallMinimumRhoq : rhoq_S ;
    minRhom = min(minRhom,
          min(moments_SW->at(fsgrids::moments::RHOM),
             min(moments_SE->at(fsgrids::moments::RHOM),
@@ -1237,7 +1231,7 @@ void calculateEdgeElectricFieldZ(
    
    // Hall term
    if (Parameters::ohmHallTerm > 0) {
-      Ez_SW += EHallGrid.get(i,j,k)->at(fsgrids::ehall::EZHALL_000_001) / (rhoq_S*physicalconstants::MU_0);
+      Ez_SW += EHallGrid.get(i,j,k)->at(fsgrids::ehall::EZHALL_000_001);
    }
    
    // Electron pressure gradient term
@@ -1295,7 +1289,7 @@ void calculateEdgeElectricFieldZ(
    
    // Hall term
    if (Parameters::ohmHallTerm > 0) {
-      Ez_SE += EHallGrid.get(i-1,j,k)->at(fsgrids::ehall::EZHALL_100_101) / (rhoq_S*physicalconstants::MU_0);
+      Ez_SE += EHallGrid.get(i-1,j,k)->at(fsgrids::ehall::EZHALL_100_101);
    }
    
    // Electron pressure gradient term
@@ -1351,7 +1345,7 @@ void calculateEdgeElectricFieldZ(
    
    // Hall term
    if(Parameters::ohmHallTerm > 0) {
-      Ez_NW += EHallGrid.get(i,j-1,k)->at(fsgrids::ehall::EZHALL_010_011) / (rhoq_S*physicalconstants::MU_0);
+      Ez_NW += EHallGrid.get(i,j-1,k)->at(fsgrids::ehall::EZHALL_010_011);
    }
    
    // Electron pressure gradient term
@@ -1407,7 +1401,7 @@ void calculateEdgeElectricFieldZ(
    
    // Hall term
    if(Parameters::ohmHallTerm > 0) {
-      Ez_NE += EHallGrid.get(i-1,j-1,k)->at(fsgrids::ehall::EZHALL_110_111) / (rhoq_S*physicalconstants::MU_0);
+      Ez_NE += EHallGrid.get(i-1,j-1,k)->at(fsgrids::ehall::EZHALL_110_111);
    }
    
    // Electron pressure gradient term
