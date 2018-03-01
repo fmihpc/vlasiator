@@ -137,7 +137,7 @@ namespace SBC {
       creal z = (convert<Real>(globalIndices[2])+0.5)*dz + Parameters::zmin;
       
       bool isThisCellOnAFace[6];
-      determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz);
+      determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, true);
 
       for (uint i=0; i<6; i++) {
          if (isThisCellOnAFace[i]) {
@@ -233,8 +233,8 @@ namespace SBC {
    bool SetByUser::setCellsFromTemplate(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const uint popID) {
       vector<CellID> cells = mpiGrid.get_cells();
       #pragma omp parallel for
-      for (size_t i=0; i<cells.size(); i++) {
-         SpatialCell* cell = mpiGrid[cells[i]];
+      for (size_t c=0; c<cells.size(); c++) {
+         SpatialCell* cell = mpiGrid[cells[c]];
          if(cell->sysBoundaryFlag != this->getIndex()) continue;
          
          creal dx = cell->parameters[CellParams::DX];
@@ -245,7 +245,7 @@ namespace SBC {
          creal z = cell->parameters[CellParams::ZCRD] + 0.5*dz;
          
          bool isThisCellOnAFace[6];
-         determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz);
+         determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, true);
          
          for(uint i=0; i<6; i++) {
             if(facesToProcess[i] && isThisCellOnAFace[i]) {
