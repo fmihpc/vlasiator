@@ -543,6 +543,8 @@ int main(int argn,char* args[]) {
       phiprof::start("fsgrid-coupling-out");
       getFieldDataFromFsGrid<fsgrids::N_BFIELD>(perBGrid,mpiGrid,cells,CellParams::PERBX);
       getFieldDataFromFsGrid<fsgrids::N_EFIELD>(EGrid,mpiGrid,cells,CellParams::EX);
+      getFieldDataFromFsGrid<fsgrids::N_EHALL>(EHallGrid,mpiGrid,cells,CellParams::EXHALL_000_100);
+      getFieldDataFromFsGrid<fsgrids::N_EGRADPE>(EGradPeGrid,mpiGrid,cells,CellParams::EXGRADPE);
       getDerivativesFromFsGrid(dPerBGrid, dMomentsGrid, BgBGrid, mpiGrid, cells);
       phiprof::stop("fsgrid-coupling-out");
       
@@ -733,6 +735,16 @@ int main(int argn,char* args[]) {
                   if (*it == "E") {
                      phiprof::start("fsgrid-coupling-out");
                      getFieldDataFromFsGrid<fsgrids::N_EFIELD>(EGrid,mpiGrid,cells,CellParams::EX);
+                     phiprof::stop("fsgrid-coupling-out");
+                  }
+                  if (*it == "HallE") {
+                     phiprof::start("fsgrid-coupling-out");
+                     getFieldDataFromFsGrid<fsgrids::N_EHALL>(EHallGrid,mpiGrid,cells,CellParams::EXHALL_000_100);
+                     phiprof::stop("fsgrid-coupling-out");
+                  }
+                  if (*it == "GradPeE") {
+                     phiprof::start("fsgrid-coupling-out");
+                     getFieldDataFromFsGrid<fsgrids::N_EGRADPE>(EGradPeGrid,mpiGrid,cells,CellParams::EXGRADPE);
                      phiprof::stop("fsgrid-coupling-out");
                   }
                   if (*it == "derivs") {
