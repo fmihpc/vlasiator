@@ -31,7 +31,8 @@ struct Particle {
       Vec3d v;
       Real m;
       Real q;
-      char padding[128-sizeof(Vec3d)*2-sizeof(Real)*2];
+      Real mu; // pitch-cosine for injection scenario
+      char padding[128-sizeof(Vec3d)*2-sizeof(Real)*3];
 
       Particle(Real mass, Real charge, const Vec3d& _x, const Vec3d& _v) :
          x(_x),v(_v),m(mass),q(charge) {}

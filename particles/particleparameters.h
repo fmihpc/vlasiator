@@ -45,6 +45,7 @@ struct ParticleParameters {
    static Real input_dt; /*!< Time interval between input files */
 
    static uint64_t num_particles; /*!< Number of particles to generate */
+   static bool staticfields; /*!< Flag for using static fields from first time step */
 
    static Boundary* boundary_behaviour_x; /*!< What to do with particles that reach the x boundary */
    static Boundary* boundary_behaviour_y; /*!< What to do with particles that reach the y boundary */
@@ -69,6 +70,21 @@ struct ParticleParameters {
    static Real ipshock_inject_z1; /*!< Larger z-coordinate for particle injection (meters) */
    static Real ipshock_transmit;  /*!< X-Coordinate for particle transmission (downstream) (meters) */
    static Real ipshock_reflect;   /*!< X-Coordinate for particle reflection (upstream) (meters) */
+
+/*    static Real injection_r0;           /\*!< injection scenario: Bow shock fit standoff distance in metres *\/ */
+/*    static Real injection_alpha;        /\*!< injection scenario: Bow shock fit tail flare parameter alpha  *\/ */
+/*    static Real injection_ecc;          /\*!< injection scenario: Bow shock fit eccentricity parameter ecc*\/ */
+   static Real injection_bs_p0;        /*!< injection scenario: Bow shock fit p0 */
+   static Real injection_bs_p1;        /*!< injection scenario: Bow shock fit p1 */
+   static Real injection_bs_p2;        /*!< injection scenario: Bow shock fit p2 */
+   static Real injection_bs_p3;        /*!< injection scenario: Bow shock fit p3 */
+   static Real injection_bs_p4;        /*!< injection scenario: Bow shock fit p4 */
+   static Real injection_r_bound_ds;   /*!< injection scenario: Downstream transmission boundary radial distance in metres */
+   static Real injection_r_bound_us;   /*!< injection scenario: Upstream reflection boundary radial distance in metres */
+   static Real injection_x_bound_ds;   /*!< injection scenario: discard boundary X-coordinate in metres */
+   static Real injection_start_deg0;   /*!< injection scenario: initialisation arc start angle in degrees */
+   static Real injection_start_deg1;   /*!< injection scenario: initialisation arc finish angle in degrees */
+   static Real injection_start_rplus;  /*!< injection scenario: initialisation arc distance from shock in metres */
 
    static std::default_random_engine::result_type random_seed; /*!< Random seed for particle creation */
    static Distribution* (*distribution)(std::default_random_engine&); /*!< Type of distribution from which to sample the particles */

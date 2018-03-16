@@ -296,8 +296,6 @@ void shockReflectivityScenario::finalize(ParticleContainer& particles, Field& E,
 }
 
 
-
-
 ParticleContainer ipShockScenario::initialParticles(Field& E, Field& B, Field& V) {
 
   // Open output files for transmission and reflection
@@ -414,6 +412,233 @@ void ipShockScenario::finalize(ParticleContainer& particles, Field& E, Field& B,
 
 
 
+
+
+
+
+ParticleContainer InjectionScenario::initialParticles(Field& E, Field& B, Field& V) {
+
+  // Open output files for transmission and reflection
+  traFile = fopen("inj_trans.dat","w"); 
+  refFile = fopen("inj_refl.dat","w"); 
+  lostFile = fopen("inj_lost.dat","w"); 
+  kickFile = fopen("inj_kicks.dat","w"); 
+
+   ParticleContainer particles;
+
+   /* Prepare randomization engines */
+   std::default_random_engine generator(ParticleParameters::random_seed);
+   Distribution* velocity_distribution=ParticleParameters::distribution(generator);
+
+   std::random_device rd;
+   std::mt19937 gen(rd());
+   std::uniform_real_distribution<> disrad((M_PI/180.)*ParticleParameters::injection_start_deg0, (M_PI/180.)*ParticleParameters::injection_start_deg1);
+
+   /* Loop over particles to generate */
+   for(unsigned int i=0; i< ParticleParameters::num_particles; i++) {
+     /* Create a particle with a random nose angle.
+	Nose angle is defined as going from -pi to +pi, with negative values placed in the
+	-y or -z hemisphere. */
+     Real rad = disrad(gen);
+     Real sinalpha = sin(rad);
+     Real cosalpha = cos(rad);
+     //Real initr = ParticleParameters::injection_r0 * std::pow( (1. + ParticleParameters::injection_ecc)/(1. + ParticleParameters::injection_ecc * costheta), ParticleParameters::injection_alpha ) + ParticleParameters::injection_start_rplus;
+
+     Real initr = ParticleParameters::injection_bs_p0
+       + ParticleParameters::injection_bs_p1 * std::pow(rad,1)
+       + ParticleParameters::injection_bs_p2 * std::pow(rad,2)
+       + ParticleParameters::injection_bs_p3 * std::pow(rad,3)
+       + ParticleParameters::injection_bs_p4 * std::pow(rad,4)
+       + ParticleParameters::injection_start_rplus;
+
+     Real posx;
+     Real posy;
+     Real posz;
+     if (B.dimension[1]->cells <= 1) {
+       /* polar x-z simulation */
+       posx = cosalpha * initr;
+       posy = 0.0;
+       posz = sinalpha * initr;
+     }
+     if (B.dimension[2]->cells <= 1) {
+       /* equatorial x-y simulation */
+       posx = cosalpha * initr;
+       posy = sinalpha * initr;
+       posz = 0.0;
+     }
+     Vec3d vpos(posx, posy, posz);
+     //std::cerr<<i<<" rad "<<rad<<" sina "<<sinalpha<<" cosa "<<cosalpha<<" ir "<<initr<<" x "<<posx<<" y "<<posy<<" z "<<posz<<std::endl;
+
+     /* Look up bulk velocity in the V-field */
+     Vec3d bulk_vel = V(vpos); 
+     
+     /* Create a particle with velocity drawn from the given distribution ... */
+     Particle p = velocity_distribution->next_particle();
+     /* Shift it by the bulk velocity ... */
+     p.v += bulk_vel;
+     /* And put it in place. */
+     p.x = vpos;
+     particles.push_back(p);
+   }
+
+   delete velocity_distribution;
+   return particles;
+}
+
+void InjectionScenario::newTimestep(int input_file_counter, int step, double time, ParticleContainer& particles,
+      Field& E, Field& B, Field& V) {
+
+   char filename_buffer[256];
+
+   snprintf(filename_buffer,256, ParticleParameters::output_filename_pattern.c_str(),input_file_counter-1);
+   writeParticles(particles, filename_buffer); //Generates VLSV file
+}
+
+void InjectionScenario::beforePush(ParticleContainer& particles,
+				   Field& E, Field& B, Field& V) {
+  /* Save pitch-angles for tracking purposes */
+  for(unsigned int i=0; i<particles.size(); i++) {
+    if(isnan(vector_length(particles[i].x))) {
+      // skip disabled particles
+      continue;
+    }
+    Vec3d Bval;
+    Bval = B(particles[i].x);
+    particles[i].mu = dot_product(particles[i].v,Bval);
+  }
+}
+
+void InjectionScenario::afterPush(int step, double time, ParticleContainer& particles,
+      Field& E, Field& B, Field& V) {
+  
+  /* Perform transmission / reflection check for each particle */
+   for(unsigned int i=0; i<particles.size(); i++) {
+
+      if(isnan(vector_length(particles[i].x))) {
+         // skip disabled particles
+         continue;
+      }
+
+      //Get particle coordinates
+      double x = particles[i].x[0];      
+      double y = particles[i].x[1];
+      double z = particles[i].x[2];
+	
+      // Check if particle is past rear boundary
+      if (particles[i].x[0] < ParticleParameters::injection_x_bound_ds) {
+	// Record it as lost
+	fprintf(lostFile,"%d %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e\n", i, time, 
+		particles[i].x[0], particles[i].x[1], particles[i].x[2],
+		particles[i].v[0], particles[i].v[1], particles[i].v[2],
+		.5 * particles[i].m * dot_product(particles[i].v, particles[i].v) / PhysicalConstantsSI::e,
+		dot_product(normalize_vector(particles[i].v), normalize_vector(B(particles[i].x))) );
+
+	// Disable by setting position to NaN and velocity to 0
+	particles[i].x = Vec3d(std::numeric_limits<double>::quiet_NaN(),0.,0.);
+	particles[i].v = Vec3d(0,0,0);
+	continue;
+      }
+
+      // calculate particle costheta and bow shock position
+      Real r = 0.0;
+      Real rad = 0.0;
+//       if (B.dimension[0]->cells <= 1) {
+// 	/* polar x-z simulation */
+// 	rad = atan2(x,z);
+// 	r = sqrt(x*x+z*z);
+//       }
+//       if (B.dimension[1]->cells <= 1) {
+// 	/* equatorial x-y simulation */
+// 	rad = atan2(x,y);
+// 	r = sqrt(x*x+y*y);
+//       }
+      rad = atan2(y,x);
+      r = sqrt(x*x+y*y);
+
+      Real r0 = ParticleParameters::injection_bs_p0 
+	+ ParticleParameters::injection_bs_p1 * std::pow(rad,1)
+	+ ParticleParameters::injection_bs_p2 * std::pow(rad,2)
+	+ ParticleParameters::injection_bs_p3 * std::pow(rad,3)
+	+ ParticleParameters::injection_bs_p4 * std::pow(rad,4);
+      //Real r0 = ParticleParameters::injection_r0 * std::pow( (1. + ParticleParameters::injection_ecc)/(1. + ParticleParameters::injection_ecc * costheta), ParticleParameters::injection_alpha );
+      // Check if particle escaped upstream
+      if (r > r0 + ParticleParameters::injection_r_bound_us) {
+	// Record it as reflected
+	//reflected.addValue(Vec2d(y,start_time));
+	
+	// Write particle information to a file
+	// Write particle information to a file
+	fprintf(refFile,"%d %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e\n", i, time, 
+		particles[i].x[0], particles[i].x[1], particles[i].x[2],
+		particles[i].v[0], particles[i].v[1], particles[i].v[2],
+		.5 * particles[i].m * dot_product(particles[i].v, particles[i].v) / PhysicalConstantsSI::e,
+		dot_product(normalize_vector(particles[i].v), normalize_vector(B(particles[i].x))) );
+
+	// Disable by setting position to NaN and velocity to 0
+	particles[i].x = Vec3d(std::numeric_limits<double>::quiet_NaN(),0.,0.);
+	particles[i].v = Vec3d(0.,0.,0.);
+	continue;
+      }
+      if (r < r0 - ParticleParameters::injection_r_bound_ds) {
+	//std::cerr<<i<<" xx "<<xx<<" yy "<<yy<<" rad "<<rad<<" r "<<r<<" r0 "<<r0<<" us "<<ParticleParameters::injection_r_bound_us<<" x "<<x<<" y "<<y<<" z "<<z<<std::endl;
+
+	// Record it as transmitted.
+	//transmitted.addValue(Vec2d(y,start_time));
+	
+	// Write particle information to a file
+	fprintf(traFile,"%d %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e\n", i, time, 
+		particles[i].x[0], particles[i].x[1], particles[i].x[2],
+		particles[i].v[0], particles[i].v[1], particles[i].v[2],
+		.5 * particles[i].m * dot_product(particles[i].v, particles[i].v) / PhysicalConstantsSI::e,
+		dot_product(normalize_vector(particles[i].v), normalize_vector(B(particles[i].x))) );
+
+	// Disable by setting position to NaN and velocity to 0
+	particles[i].x = Vec3d(std::numeric_limits<double>::quiet_NaN(),0.,0.);
+	particles[i].v = Vec3d(0,0,0);
+	continue;
+      }
+
+      // Check to see if particle pitch-angle has changed i.e. kick has been received
+      Vec3d Bval;
+      Bval = B(particles[i].x);
+      Real newmu = dot_product(particles[i].v,Bval);
+      if (particles[i].mu * newmu < 0) {
+	//pitch-angle changed past zero
+	Vec3d Eval;
+	Eval = E(particles[i].x);
+	fprintf(kickFile,"%d %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e\n", i, time, 
+		particles[i].x[0], particles[i].x[1], particles[i].x[2],
+		particles[i].v[0], particles[i].v[1], particles[i].v[2],
+		.5 * particles[i].m * dot_product(particles[i].v, particles[i].v) / PhysicalConstantsSI::e,
+		dot_product(normalize_vector(particles[i].v), normalize_vector(B(particles[i].x))), 
+		Bval[0], Bval[1], Bval[2], Eval[0], Eval[1], Eval[2]);
+	
+      }
+      
+
+   }
+   fflush(traFile);
+   fflush(refFile);
+   fflush(lostFile);
+   fflush(kickFile);
+}
+
+void InjectionScenario::finalize(ParticleContainer& particles, Field& E, Field& B, Field& V) {
+   writeParticles(particles, "particles_final.vlsv");
+   /* histograms */
+   //transmitted.save("transmitted.dat");
+   //transmitted.writeBovAscii("transmitted.dat.bov",0,"transmitted.dat");
+   //reflected.save("reflected.dat");
+   //reflected.writeBovAscii("reflected.dat.bov",0,"reflected.dat");
+
+   fclose(traFile);
+   fclose(refFile);
+   fclose(lostFile);
+   fclose(kickFile);
+}
+
+
+
 Scenario* createScenario(std::string name) {
    std::map<std::string, Scenario*(*)()> scenario_lookup;
    scenario_lookup["single"]=&createScenario<singleParticleScenario>;
@@ -422,6 +647,7 @@ Scenario* createScenario(std::string name) {
    scenario_lookup["analysator"]=&createScenario<analysatorScenario>;
    scenario_lookup["reflectivity"]=&createScenario<shockReflectivityScenario>;
    scenario_lookup["ipshock"]=&createScenario<ipShockScenario>;
+   scenario_lookup["injection"]=&createScenario<InjectionScenario>;
 
    if(scenario_lookup.find(name) == scenario_lookup.end()) {
       std::cerr << "Error: can't find particle pusher mode \"" << name << "\". Aborting." << std::endl;
@@ -430,3 +656,7 @@ Scenario* createScenario(std::string name) {
 
    return scenario_lookup[name]();
 }
+
+
+
+

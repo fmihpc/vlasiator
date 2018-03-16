@@ -41,6 +41,8 @@ Real P::start_time = 0;
 Real P::end_time = 0;
 uint64_t P::num_particles = 0;
 
+bool P::staticfields = 0;
+
 std::default_random_engine::result_type P::random_seed = 1;
 Distribution* (*P::distribution)(std::default_random_engine&) = NULL;
 Real P::temperature = 1e6;
@@ -72,6 +74,21 @@ Real P::ipshock_inject_z1;
 Real P::ipshock_transmit;
 Real P::ipshock_reflect;
 
+// Real P::injection_r0;
+// Real P::injection_alpha;
+// Real P::injection_ecc;
+Real P::injection_bs_p0;
+Real P::injection_bs_p1;
+Real P::injection_bs_p2;
+Real P::injection_bs_p3;
+Real P::injection_bs_p4;
+Real P::injection_r_bound_ds;
+Real P::injection_r_bound_us;
+Real P::injection_x_bound_ds;
+Real P::injection_start_deg0;
+Real P::injection_start_deg1;
+Real P::injection_start_rplus;
+
 bool ParticleParameters::addParameters() {
    Readparameters::add("particles.input_filename_pattern","Printf() like pattern giving the field input filenames.",
          std::string("bulk.%07i.vlsv"));
@@ -95,6 +112,8 @@ bool ParticleParameters::addParameters() {
    Readparameters::add("particles.particle_vel", "Initial velocity of the particles (in the plasma rest frame)",0);
    Readparameters::add("particles.mass", "Mass of the test particles",PhysicalConstantsSI::mp);
    Readparameters::add("particles.charge", "Charge of the test particles",PhysicalConstantsSI::e);
+
+   Readparameters::add("particles.staticfields", "Use static fields from first time step",false);
 
    Readparameters::add("particles.boundary_behaviour_x",
          "What to do with particles that reach the x boundaries (DELETE/REFLECT/PERIODIC)",std::string("DELETE"));
@@ -143,6 +162,37 @@ bool ParticleParameters::addParameters() {
    Readparameters::add("particles.ipshock_reflect",
          "X-Coordinate of threshold for where particles are counted  as reflected for the ipShock scenario", 10.e6);
 
+   // Parameters for bow shock injection test mode
+//    Readparameters::add("particles.injection_r0", 
+// 		       "injection scenario: Bow shock fit standoff distance in metres", 9.5565e7);
+//    Readparameters::add("particles.injection_alpha",
+// 		       "injection scenario: Bow shock fit tail flare parameter alpha", 1.0);
+//    Readparameters::add("particles.injection_ecc", 
+// 		       "injection scenario: Bow shock fit eccentricity parameter ecc", 1.0);
+   Readparameters::add("particles.injection_bs_p0",
+		       "injection scenario: Bow shock fit parameter p0", 0);
+   Readparameters::add("particles.injection_bs_p1",
+		       "injection scenario: Bow shock fit parameter p1", 0);
+   Readparameters::add("particles.injection_bs_p2",
+		       "injection scenario: Bow shock fit parameter p2", 0);
+   Readparameters::add("particles.injection_bs_p3",
+		       "injection scenario: Bow shock fit parameter p3", 0);
+   Readparameters::add("particles.injection_bs_p4",
+		       "injection scenario: Bow shock fit parameter p4", 0);
+   Readparameters::add("particles.injection_r_bound_ds",
+		       "injection scenario: Downstream transmission boundary radial distance in metres", 6.371e6);
+   Readparameters::add("particles.injection_r_bound_us",
+		       "injection scenario: Upstream reflection boundary radial distance in metres", 6.371e6);
+   Readparameters::add("particles.injection_x_bound_ds",
+		       "injection scenario: discard boundary X-coordinate in metres", -1.27420e8);
+   Readparameters::add("particles.injection_start_deg0",
+		       "injection scenario: initialisation arc start angle in degrees", 45);
+   Readparameters::add("particles.injection_start_deg1",
+		       "injection scenario: initialisation arc finish angle in degrees", 135);
+   Readparameters::add("particles.injection_start_rplus",
+		       "injection scenario: initialisation arc distance from shock in metres", 3.185e6);
+
+
    return true;
 }
 
@@ -165,6 +215,8 @@ bool ParticleParameters::getParameters() {
       std::cerr << "Error end_time <= start_time! Won't do anything (and will probably crash now)." << std::endl;
       return false;
    }
+
+   Readparameters::get("particles.staticfields",P::staticfields);
 
    Readparameters::get("particles.random_seed",P::random_seed);
 
@@ -236,6 +288,21 @@ bool ParticleParameters::getParameters() {
    Readparameters::get("particles.ipshock_inject_z1", P::ipshock_inject_z1);
    Readparameters::get("particles.ipshock_transmit", P::ipshock_transmit);
    Readparameters::get("particles.ipshock_reflect", P::ipshock_reflect);
+
+//    Readparameters::get("particles.injection_r0", P::injection_r0);
+//    Readparameters::get("particles.injection_alpha", P::injection_alpha);
+//    Readparameters::get("particles.injection_ecc", P::injection_ecc);
+   Readparameters::get("particles.injection_bs_p0", P::injection_bs_p0);
+   Readparameters::get("particles.injection_bs_p1", P::injection_bs_p1);
+   Readparameters::get("particles.injection_bs_p2", P::injection_bs_p2);
+   Readparameters::get("particles.injection_bs_p3", P::injection_bs_p3);
+   Readparameters::get("particles.injection_bs_p4", P::injection_bs_p4);
+   Readparameters::get("particles.injection_r_bound_ds", P::injection_r_bound_ds);
+   Readparameters::get("particles.injection_r_bound_us", P::injection_r_bound_us);
+   Readparameters::get("particles.injection_x_bound_ds", P::injection_x_bound_ds);
+   Readparameters::get("particles.injection_start_deg0", P::injection_start_deg0);
+   Readparameters::get("particles.injection_start_deg1", P::injection_start_deg1);
+   Readparameters::get("particles.injection_start_rplus", P::injection_start_rplus);
 
    return true;
 }

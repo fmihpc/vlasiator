@@ -68,15 +68,18 @@ int main(int argc, char** argv) {
    // Set boundary conditions based on sizes
    if(B[0].dimension[0]->cells <= 1) {
       delete ParticleParameters::boundary_behaviour_x;
-      ParticleParameters::boundary_behaviour_x = createBoundary<CompactSpatialDimension>(0);
+      ParticleParameters::boundary_behaviour_x = createBoundary<CompactSpatialDimension>(0);      
+      ParticleParameters::boundary_behaviour_x->cells=1;
    }
    if(B[0].dimension[1]->cells <= 1) {
       delete ParticleParameters::boundary_behaviour_y;
       ParticleParameters::boundary_behaviour_y = createBoundary<CompactSpatialDimension>(1);
+      ParticleParameters::boundary_behaviour_y->cells=1;
    }
    if(B[0].dimension[2]->cells <= 1) {
       delete ParticleParameters::boundary_behaviour_z;
       ParticleParameters::boundary_behaviour_z = createBoundary<CompactSpatialDimension>(2);
+      ParticleParameters::boundary_behaviour_z->cells=1;
    }
 
    // Make sure updated boundary conditions are also correctly known to the fields
@@ -101,26 +104,29 @@ int main(int argc, char** argv) {
 
    /* Push them around */
    for(int step=0; step<maxsteps; step++) {
+     
+     bool newfile = false;
+     /* Load newer fields, if neccessary */
+     if(step >= 0) {
+       newfile = readNextTimestep(filename_pattern, ParticleParameters::start_time + step*dt, 1,E[0], E[1],
+				  B[0], B[1], V, scenario->needV, input_file_counter, ParticleParameters::staticfields);
+     } else {
+       newfile = readNextTimestep(filename_pattern, ParticleParameters::start_time + step*dt, -1,E[1], E[0],
+				  B[1], B[0], V, scenario->needV, input_file_counter, ParticleParameters::staticfields);
+     }
 
-      bool newfile;
-      /* Load newer fields, if neccessary */
-      if(step >= 0) {
-         newfile = readNextTimestep(filename_pattern, ParticleParameters::start_time + step*dt, 1,E[0], E[1],
-               B[0], B[1], V, scenario->needV, input_file_counter);
-      } else {
-         newfile = readNextTimestep(filename_pattern, ParticleParameters::start_time + step*dt, -1,E[1], E[0],
-               B[1], B[0], V, scenario->needV, input_file_counter);
-      }
+     Interpolated_Field cur_E(E[0],E[1],ParticleParameters::start_time + step*dt);
+     Interpolated_Field cur_B(B[0],B[1],ParticleParameters::start_time + step*dt);       
 
-      Interpolated_Field cur_E(E[0],E[1],ParticleParameters::start_time + step*dt);
-      Interpolated_Field cur_B(B[0],B[1],ParticleParameters::start_time + step*dt);
+     // If a new timestep has been opened, add a new bunch of particles
+     if(newfile) {
+       std::cerr << "New file " << input_file_counter<<" step "<< step<<" time "<< step*dt<<std::endl;
+       //std::cerr << "   fields "<<ParticleParameters::staticfields<<std::endl;
 
-      // If a new timestep has been opened, add a new bunch of particles
-      if(newfile) {
-         scenario->newTimestep(input_file_counter, step, step*dt, particles, cur_E, cur_B, V);
-      }
+       scenario->newTimestep(input_file_counter, step, step*dt, particles, cur_E, cur_B, V);
+     }
 
-      scenario->beforePush(particles,cur_E,cur_B,V);
+     scenario->beforePush(particles,cur_E,cur_B,V);
 
 #pragma omp parallel for
       for(unsigned int i=0; i< particles.size(); i++) {

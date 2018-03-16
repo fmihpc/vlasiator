@@ -103,7 +103,7 @@ std::vector<double> readFieldData(Reader& r, std::string& name, unsigned int num
  */
 template <class Reader>
 bool readNextTimestep(const std::string& filename_pattern, double t, int step, Field& E0, Field& E1,
-      Field& B0, Field& B1, Field& V, bool doV, int& input_file_counter) {
+		      Field& B0, Field& B1, Field& V, bool doV, int& input_file_counter, bool staticfields) {
 
    char filename_buffer[256];
    bool retval = false;
@@ -130,55 +130,57 @@ bool readNextTimestep(const std::string& filename_pattern, double t, int step, F
       E1.time = t;
       B1.time = t;
 
-      uint64_t cells[3];
-      r.readParameter("xcells_ini",cells[0]);
-      r.readParameter("ycells_ini",cells[1]);
-      r.readParameter("zcells_ini",cells[2]);
+      if (!staticfields) {
+	//std::cerr << "Updating field contents "<<std::endl;
+	uint64_t cells[3];
+	r.readParameter("xcells_ini",cells[0]);
+	r.readParameter("ycells_ini",cells[1]);
+	r.readParameter("zcells_ini",cells[2]);
 
-      /* Read CellIDs and Field data */
-      std::vector<uint64_t> cellIds = readCellIds(r);
-      std::string name(B_field_name);
-      std::vector<double> Bbuffer = readFieldData(r,name,3u);
-      name = E_field_name;
-      std::vector<double> Ebuffer = readFieldData(r,name,3u);
-      std::vector<double> Vbuffer;
-      if(doV) {
-        name = "rho_v";
-        std::vector<double> rho_v_buffer = readFieldData(r,name,3u);
-        name = "rho";
-        std::vector<double> rho_buffer = readFieldData(r,name,1u);
-        for(unsigned int i=0; i<rho_buffer.size(); i++) {
-          Vbuffer.push_back(rho_v_buffer[3*i] / rho_buffer[i]);
-          Vbuffer.push_back(rho_v_buffer[3*i+1] / rho_buffer[i]);
-          Vbuffer.push_back(rho_v_buffer[3*i+2] / rho_buffer[i]);
-        }
+	/* Read CellIDs and Field data */
+	std::vector<uint64_t> cellIds = readCellIds(r);
+	std::string name(B_field_name);
+	std::vector<double> Bbuffer = readFieldData(r,name,3u);
+	name = E_field_name;
+	std::vector<double> Ebuffer = readFieldData(r,name,3u);
+	std::vector<double> Vbuffer;
+	if(doV) {
+	  name = "rho_v";
+	  std::vector<double> rho_v_buffer = readFieldData(r,name,3u);
+	  name = "rho";
+	  std::vector<double> rho_buffer = readFieldData(r,name,1u);
+	  for(unsigned int i=0; i<rho_buffer.size(); i++) {
+	    Vbuffer.push_back(rho_v_buffer[3*i] / rho_buffer[i]);
+	    Vbuffer.push_back(rho_v_buffer[3*i+1] / rho_buffer[i]);
+	    Vbuffer.push_back(rho_v_buffer[3*i+2] / rho_buffer[i]);
+	  }
+	}
+
+	/* Assign them, without sanity checking */
+	/* TODO: Is this actually a good idea? */
+	for(uint i=0; i< cellIds.size(); i++) {
+	  uint64_t c = cellIds[i];
+	  int64_t x = c % cells[0];
+	  int64_t y = (c /cells[0]) % cells[1];
+	  int64_t z = c /(cells[0]*cells[1]);
+
+	  double* Etgt = E1.getCellRef(x,y,z);
+	  double* Btgt = B1.getCellRef(x,y,z);
+	  Etgt[0] = Ebuffer[3*i];
+	  Etgt[1] = Ebuffer[3*i+1];
+	  Etgt[2] = Ebuffer[3*i+2];
+	  Btgt[0] = Bbuffer[3*i];
+	  Btgt[1] = Bbuffer[3*i+1];
+	  Btgt[2] = Bbuffer[3*i+2];
+
+	  if(doV) {
+	    double* Vtgt = V.getCellRef(x,y,z);
+	    Vtgt[0] = Vbuffer[3*i];
+	    Vtgt[1] = Vbuffer[3*i+1];
+	    Vtgt[2] = Vbuffer[3*i+2];
+	  }
+	}
       }
-
-      /* Assign them, without sanity checking */
-      /* TODO: Is this actually a good idea? */
-      for(uint i=0; i< cellIds.size(); i++) {
-         uint64_t c = cellIds[i];
-         int64_t x = c % cells[0];
-         int64_t y = (c /cells[0]) % cells[1];
-         int64_t z = c /(cells[0]*cells[1]);
-
-         double* Etgt = E1.getCellRef(x,y,z);
-         double* Btgt = B1.getCellRef(x,y,z);
-         Etgt[0] = Ebuffer[3*i];
-         Etgt[1] = Ebuffer[3*i+1];
-         Etgt[2] = Ebuffer[3*i+2];
-         Btgt[0] = Bbuffer[3*i];
-         Btgt[1] = Bbuffer[3*i+1];
-         Btgt[2] = Bbuffer[3*i+2];
-
-         if(doV) {
-           double* Vtgt = V.getCellRef(x,y,z);
-           Vtgt[0] = Vbuffer[3*i];
-           Vtgt[1] = Vbuffer[3*i+1];
-           Vtgt[2] = Vbuffer[3*i+2];
-         }
-      }
-
       r.close();
       retval = true;
    }
@@ -188,13 +190,13 @@ bool readNextTimestep(const std::string& filename_pattern, double t, int step, F
 
 /* Non-template version, autodetecting the reader type */
 static bool readNextTimestep(const std::string& filename_pattern, double t, int step, Field& E0, Field& E1,
-      Field& B0, Field& B1, Field& V, bool doV, int& input_file_counter) {
+      Field& B0, Field& B1, Field& V, bool doV, int& input_file_counter, bool staticfields) {
 
    char filename_buffer[256];
    snprintf(filename_buffer,256,filename_pattern.c_str(),input_file_counter);
 
    return readNextTimestep<vlsvinterface::Reader>(filename_pattern, t,
-         step,E0,E1,B0,B1,V,doV,input_file_counter);
+						  step,E0,E1,B0,B1,V,doV,input_file_counter, staticfields);
 }
 
 /* Read E- and B-Fields as well as velocity field from a vlsv file */
@@ -245,6 +247,10 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, bool doV=tru
    if(!r.readParameter("t",time)) {
       r.readParameter("time",time);
    }
+
+   std::cout <<"cells "<<cells[0]<<" "<<cells[1]<<" "<<cells[2]<< std::endl;
+   std::cout <<" min "<<min[0]<<" "<<min[1]<<" "<<min[2]<<" "<< std::endl;
+   std::cout <<" max "<<max[0]<<" "<<max[1]<<" "<<max[2]<<" "<< std::endl;
 
    //std::cerr << "Grid is " << cells[0] << " x " << cells[1] << " x " << cells[2] << " Cells, " << std::endl
    //          << " with dx = " << ((max[0]-min[0])/cells[0]) << ", dy = " << ((max[1]-min[1])/cells[1])

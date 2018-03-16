@@ -40,7 +40,9 @@ struct Field
    Boundary* dimension[3];
 
    // The actual field data
-   std::vector<double> data;
+   //std::vector<double> data;
+   //typedef std::vector<Particle, aligned_allocator<Particle, 32>> ParticleContainer;
+   std::vector<double, aligned_allocator<double, 261280000>> data;
 
    // Constructor (primarily here to make sure boundaries are properly initialized as zero)
    Field() {

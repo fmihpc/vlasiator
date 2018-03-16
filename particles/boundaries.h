@@ -65,7 +65,9 @@ struct CompactSpatialDimension : public Boundary
       // always mapped to 0.
       return 0;
    }
-   CompactSpatialDimension(int _dimension) : Boundary(_dimension){};
+   CompactSpatialDimension(int _dimension) : Boundary(_dimension){
+      cells=1;
+   };
 };
 
 // Open boundary, which removes particles if they fly out
