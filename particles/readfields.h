@@ -103,7 +103,7 @@ std::vector<double> readFieldData(Reader& r, std::string& name, unsigned int num
  */
 template <class Reader>
 bool readNextTimestep(const std::string& filename_pattern, double t, int step, Field& E0, Field& E1,
-		      Field& B0, Field& B1, Field& V, bool doV, int& input_file_counter, bool staticfields) {
+		      Field& B0, Field& B1, Field& V, bool doV, int& input_file_counter) {
 
    char filename_buffer[256];
    bool retval = false;
@@ -130,30 +130,27 @@ bool readNextTimestep(const std::string& filename_pattern, double t, int step, F
       E1.time = t;
       B1.time = t;
 
-      if (!staticfields) {
-	//std::cerr << "Updating field contents "<<std::endl;
-	uint64_t cells[3];
-	r.readParameter("xcells_ini",cells[0]);
-	r.readParameter("ycells_ini",cells[1]);
-	r.readParameter("zcells_ini",cells[2]);
+      uint64_t cells[3];
+      r.readParameter("xcells_ini",cells[0]);
+      r.readParameter("ycells_ini",cells[1]);
+      r.readParameter("zcells_ini",cells[2]);
 
-	/* Read CellIDs and Field data */
-	std::vector<uint64_t> cellIds = readCellIds(r);
-	std::string name(B_field_name);
-	std::vector<double> Bbuffer = readFieldData(r,name,3u);
-	name = E_field_name;
-	std::vector<double> Ebuffer = readFieldData(r,name,3u);
-	std::vector<double> Vbuffer;
-	if(doV) {
-	  name = "rho_v";
-	  std::vector<double> rho_v_buffer = readFieldData(r,name,3u);
-	  name = "rho";
-	  std::vector<double> rho_buffer = readFieldData(r,name,1u);
-	  for(unsigned int i=0; i<rho_buffer.size(); i++) {
-	    Vbuffer.push_back(rho_v_buffer[3*i] / rho_buffer[i]);
-	    Vbuffer.push_back(rho_v_buffer[3*i+1] / rho_buffer[i]);
-	    Vbuffer.push_back(rho_v_buffer[3*i+2] / rho_buffer[i]);
-	  }
+      /* Read CellIDs and Field data */
+      std::vector<uint64_t> cellIds = readCellIds(r);
+      std::string name(B_field_name);
+      std::vector<double> Bbuffer = readFieldData(r,name,3u);
+      name = E_field_name;
+      std::vector<double> Ebuffer = readFieldData(r,name,3u);
+      std::vector<double> Vbuffer;
+      if(doV) {
+	name = "rho_v";
+	std::vector<double> rho_v_buffer = readFieldData(r,name,3u);
+	name = "rho";
+	std::vector<double> rho_buffer = readFieldData(r,name,1u);
+	for(unsigned int i=0; i<rho_buffer.size(); i++) {
+	  Vbuffer.push_back(rho_v_buffer[3*i] / rho_buffer[i]);
+	  Vbuffer.push_back(rho_v_buffer[3*i+1] / rho_buffer[i]);
+	  Vbuffer.push_back(rho_v_buffer[3*i+2] / rho_buffer[i]);
 	}
 
 	/* Assign them, without sanity checking */
@@ -190,13 +187,13 @@ bool readNextTimestep(const std::string& filename_pattern, double t, int step, F
 
 /* Non-template version, autodetecting the reader type */
 static bool readNextTimestep(const std::string& filename_pattern, double t, int step, Field& E0, Field& E1,
-      Field& B0, Field& B1, Field& V, bool doV, int& input_file_counter, bool staticfields) {
+      Field& B0, Field& B1, Field& V, bool doV, int& input_file_counter) {
 
    char filename_buffer[256];
    snprintf(filename_buffer,256,filename_pattern.c_str(),input_file_counter);
 
    return readNextTimestep<vlsvinterface::Reader>(filename_pattern, t,
-						  step,E0,E1,B0,B1,V,doV,input_file_counter, staticfields);
+						  step,E0,E1,B0,B1,V,doV,input_file_counter);
 }
 
 /* Read E- and B-Fields as well as velocity field from a vlsv file */

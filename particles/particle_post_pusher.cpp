@@ -95,6 +95,7 @@ int main(int argc, char** argv) {
    double dt=ParticleParameters::dt;
    double maxtime=ParticleParameters::end_time - ParticleParameters::start_time;
    int maxsteps = maxtime/dt;
+   Real filetime = ParticleParameters::start_time;    /* for use in static fields */
 
    Scenario* scenario = createScenario(ParticleParameters::mode);
    ParticleContainer particles = scenario->initialParticles(E[0],B[0],V);
@@ -102,22 +103,47 @@ int main(int argc, char** argv) {
    std::cerr << "Pushing " << particles.size() << " particles for " << maxsteps << " steps..." << std::endl;
    std::cerr << "[                                                                        ]\x0d[";
 
+   // Initial fields
+   Interpolated_Field cur_E(E[0],E[1],ParticleParameters::start_time);
+   Interpolated_Field cur_B(B[0],B[1],ParticleParameters::start_time);       
+   if (ParticleParameters::staticfields) {
+     bool initfields = readNextTimestep(filename_pattern, ParticleParameters::start_time, 1,E[0], E[1],
+					B[0], B[1], V, scenario->needV, input_file_counter);
+   }
+
+//    Vec3d Eval,Bval;
+//    Vec3d xx(2e7,0,0);
+//    Eval = cur_E(xx);
+//    Bval = cur_B(xx);
+//    std::cerr<<"Eval "<<Eval[0]<<" "<<Eval[1]<<" "<<Eval[2]<<"Bval "<<Bval[0]<<" "<<Bval[1]<<" "<<Bval[2]<<std::endl;
+
    /* Push them around */
    for(int step=0; step<maxsteps; step++) {
      
      bool newfile = false;
-     /* Load newer fields, if neccessary */
-     if(step >= 0) {
-       newfile = readNextTimestep(filename_pattern, ParticleParameters::start_time + step*dt, 1,E[0], E[1],
-				  B[0], B[1], V, scenario->needV, input_file_counter, ParticleParameters::staticfields);
+     if (!ParticleParameters::staticfields) {
+       /* Load newer fields, if neccessary */
+       if(step >= 0) {
+	 newfile = readNextTimestep(filename_pattern, ParticleParameters::start_time + step*dt, 1,E[0], E[1],
+				    B[0], B[1], V, scenario->needV, input_file_counter);
+       } else {
+	 newfile = readNextTimestep(filename_pattern, ParticleParameters::start_time + step*dt, -1,E[1], E[0],
+				    B[1], B[0], V, scenario->needV, input_file_counter);
+       }
+
+       cur_E.setfields(E[0],E[1],ParticleParameters::start_time + step*dt);
+       cur_B.setfields(B[0],B[1],ParticleParameters::start_time + step*dt);       
      } else {
-       newfile = readNextTimestep(filename_pattern, ParticleParameters::start_time + step*dt, -1,E[1], E[0],
-				  B[1], B[0], V, scenario->needV, input_file_counter, ParticleParameters::staticfields);
+       if (ParticleParameters::start_time + step*dt > filetime) {
+	 if (step >= 0) {
+	   input_file_counter += 1;
+	 } else {
+	   input_file_counter += -1;
+	 }
+	 filetime = input_file_counter * ParticleParameters::input_dt;
+	 newfile = true;
+       }
      }
-
-     Interpolated_Field cur_E(E[0],E[1],ParticleParameters::start_time + step*dt);
-     Interpolated_Field cur_B(B[0],B[1],ParticleParameters::start_time + step*dt);       
-
      // If a new timestep has been opened, add a new bunch of particles
      if(newfile) {
        std::cerr << "New file " << input_file_counter<<" step "<< step<<" time "<< step*dt<<std::endl;
@@ -141,6 +167,7 @@ int main(int argc, char** argv) {
 
          Eval = cur_E(particles[i].x);
          Bval = cur_B(particles[i].x);
+	 //std::cerr<<"Eval "<<Eval[0]<<" "<<Eval[1]<<" "<<Eval[2]<<"Bval "<<Bval[0]<<" "<<Bval[1]<<" "<<Bval[2]<<std::endl;
 
          /* Push them around */
          particles[i].push(Bval,Eval,dt);

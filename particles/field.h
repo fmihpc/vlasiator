@@ -152,6 +152,12 @@ struct Interpolated_Field : Field{
    Interpolated_Field(Field& _a, Field& _b, float _t) : a(_a),b(_b),t(_t) {
    }
 
+   void setfields(Field& _a, Field& _b, float _t) {
+     a=_a;
+     b=_b;
+     t=_t;
+   }
+
    virtual Vec3d operator()(Vec3d v) {
       Vec3d aval=a(v);
       Vec3d bval=b(v);
