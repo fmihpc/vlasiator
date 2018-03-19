@@ -37,7 +37,7 @@ ParticleContainer singleParticleScenario::initialParticles(Field& E, Field& B, F
 }
 
 void singleParticleScenario::afterPush(int step, double time, ParticleContainer& particles, 
-      Field& E, Field& B, Field& V) {
+      Interpolated_Field& E, Interpolated_Field& B, Interpolated_Field& V) {
 
    Vec3d& x = particles[0].x;
    Vec3d& v = particles[0].v;
@@ -76,7 +76,7 @@ ParticleContainer distributionScenario::initialParticles(Field& E, Field& B, Fie
 }
 
 void distributionScenario::newTimestep(int input_file_counter, int step, double time, ParticleContainer& particles,
-      Field& E, Field& B, Field& V) {
+      Interpolated_Field& E, Interpolated_Field& B, Interpolated_Field& V) {
 
    char filename_buffer[256];
 
@@ -89,7 +89,7 @@ void distributionScenario::finalize(ParticleContainer& particles, Field& E, Fiel
 }
 
 void precipitationScenario::afterPush(int step, double time, ParticleContainer& particles,
-      Field& E, Field& B, Field& V) {
+      Interpolated_Field& E, Interpolated_Field& B, Interpolated_Field& V) {
 
    for(unsigned int i=0; i<particles.size(); i++) {
 
@@ -126,7 +126,7 @@ void precipitationScenario::afterPush(int step, double time, ParticleContainer& 
 }
 
 void precipitationScenario::newTimestep(int input_file_counter, int step, double time, ParticleContainer& particles,
-      Field& E, Field& B, Field& V) {
+      Interpolated_Field& E, Interpolated_Field& B, Interpolated_Field& V) {
 
    // Create particles along the negative x-axis, from inner boundary
    // up to outer one
@@ -181,7 +181,7 @@ ParticleContainer analysatorScenario::initialParticles(Field& E, Field& B, Field
 }
 
 void analysatorScenario::newTimestep(int input_file_counter, int step, double time, ParticleContainer& particles,
-      Field& E, Field& B, Field& V) {
+      Interpolated_Field& E, Interpolated_Field& B, Interpolated_Field& V) {
 
    for(unsigned int i=0; i< particles.size(); i++) {
       Vec3d& x = particles[i].x;
@@ -192,7 +192,7 @@ void analysatorScenario::newTimestep(int input_file_counter, int step, double ti
 }
 
 void shockReflectivityScenario::newTimestep(int input_file_counter, int step, double time,
-      ParticleContainer& particles, Field& E, Field& B, Field& V) {
+      ParticleContainer& particles, Interpolated_Field& E, Interpolated_Field& B, Interpolated_Field& V) {
 
    const int num_points = 200;
 
@@ -243,7 +243,7 @@ void shockReflectivityScenario::newTimestep(int input_file_counter, int step, do
 }
 
 void shockReflectivityScenario::afterPush(int step, double time, ParticleContainer& particles,
-      Field& E, Field& B, Field& V) {
+      Interpolated_Field& E, Interpolated_Field& B, Interpolated_Field& V) {
 
    for(unsigned int i=0; i<particles.size(); i++) {
 
@@ -339,7 +339,7 @@ ParticleContainer ipShockScenario::initialParticles(Field& E, Field& B, Field& V
 }
 
 void ipShockScenario::newTimestep(int input_file_counter, int step, double time, ParticleContainer& particles,
-      Field& E, Field& B, Field& V) {
+      Interpolated_Field& E, Interpolated_Field& B, Interpolated_Field& V) {
 
    char filename_buffer[256];
 
@@ -348,7 +348,7 @@ void ipShockScenario::newTimestep(int input_file_counter, int step, double time,
 }
 
 void ipShockScenario::afterPush(int step, double time, ParticleContainer& particles,
-      Field& E, Field& B, Field& V) {
+      Interpolated_Field& E, Interpolated_Field& B, Interpolated_Field& V) {
   
   /* Perform transmission / reflection check for each particle */
    for(unsigned int i=0; i<particles.size(); i++) {
@@ -486,7 +486,7 @@ ParticleContainer InjectionScenario::initialParticles(Field& E, Field& B, Field&
 }
 
 void InjectionScenario::newTimestep(int input_file_counter, int step, double time, ParticleContainer& particles,
-      Field& E, Field& B, Field& V) {
+      Interpolated_Field& E, Interpolated_Field& B, Interpolated_Field& V) {
 
    char filename_buffer[256];
 
@@ -495,7 +495,7 @@ void InjectionScenario::newTimestep(int input_file_counter, int step, double tim
 }
 
 void InjectionScenario::beforePush(ParticleContainer& particles,
-				   Field& E, Field& B, Field& V) {
+				   Interpolated_Field& E, Interpolated_Field& B, Interpolated_Field& V) {
   /* Save pitch-angles for tracking purposes */
   for(unsigned int i=0; i<particles.size(); i++) {
     if(isnan(vector_length(particles[i].x))) {
@@ -509,7 +509,7 @@ void InjectionScenario::beforePush(ParticleContainer& particles,
 }
 
 void InjectionScenario::afterPush(int step, double time, ParticleContainer& particles,
-      Field& E, Field& B, Field& V) {
+      Interpolated_Field& E, Interpolated_Field& B, Interpolated_Field& V) {
   
   /* Perform transmission / reflection check for each particle */
    for(unsigned int i=0; i<particles.size(); i++) {
@@ -542,18 +542,20 @@ void InjectionScenario::afterPush(int step, double time, ParticleContainer& part
       // calculate particle costheta and bow shock position
       Real r = 0.0;
       Real rad = 0.0;
-//       if (B.dimension[0]->cells <= 1) {
-// 	/* polar x-z simulation */
-// 	rad = atan2(x,z);
-// 	r = sqrt(x*x+z*z);
-//       }
-//       if (B.dimension[1]->cells <= 1) {
-// 	/* equatorial x-y simulation */
-// 	rad = atan2(x,y);
-// 	r = sqrt(x*x+y*y);
-//       }
-      rad = atan2(y,x);
-      r = sqrt(x*x+y*y);
+      //std::cerr<<"cells "<<B.a.dimension[0]->cells<<" "<<B.a.dimension[1]->cells<<" "<<B.a.dimension[2]->cells<<std::endl;
+      //std::cerr<<"cells "<<B.b.dimension[0]->cells<<" "<<B.b.dimension[1]->cells<<" "<<B.b.dimension[2]->cells<<std::endl;
+      if (B.a.dimension[1]->cells <= 1) {
+	/* polar x-z simulation */
+	rad = atan2(z,x);
+	r = sqrt(x*x+z*z);
+	//std::cerr<<"polar"<<std::endl;
+      }
+      if (B.a.dimension[2]->cells <= 1) {
+	/* equatorial x-y simulation */
+	rad = atan2(y,x);
+	r = sqrt(x*x+y*y);
+	//std::cerr<<"ecliptic"<<std::endl;
+      }
 
       Real r0 = ParticleParameters::injection_bs_p0 
 	+ ParticleParameters::injection_bs_p1 * std::pow(rad,1)
@@ -566,7 +568,6 @@ void InjectionScenario::afterPush(int step, double time, ParticleContainer& part
 	// Record it as reflected
 	//reflected.addValue(Vec2d(y,start_time));
 	
-	// Write particle information to a file
 	// Write particle information to a file
 	fprintf(refFile,"%d %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e\n", i, time, 
 		particles[i].x[0], particles[i].x[1], particles[i].x[2],

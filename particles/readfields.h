@@ -103,7 +103,7 @@ std::vector<double> readFieldData(Reader& r, std::string& name, unsigned int num
  */
 template <class Reader>
 bool readNextTimestep(const std::string& filename_pattern, double t, int step, Field& E0, Field& E1,
-		      Field& B0, Field& B1, Field& V, bool doV, int& input_file_counter) {
+		      Field& B0, Field& B1, Field& V0, Field& V1, bool doV, int& input_file_counter) {
 
    char filename_buffer[256];
    bool retval = false;
@@ -143,6 +143,8 @@ bool readNextTimestep(const std::string& filename_pattern, double t, int step, F
       std::vector<double> Ebuffer = readFieldData(r,name,3u);
       std::vector<double> Vbuffer;
       if(doV) {
+	V0=V1;
+	// TODO: This bit doesn't support newer file formats properly. Or multipop?
 	name = "rho_v";
 	std::vector<double> rho_v_buffer = readFieldData(r,name,3u);
 	name = "rho";
@@ -152,30 +154,29 @@ bool readNextTimestep(const std::string& filename_pattern, double t, int step, F
 	  Vbuffer.push_back(rho_v_buffer[3*i+1] / rho_buffer[i]);
 	  Vbuffer.push_back(rho_v_buffer[3*i+2] / rho_buffer[i]);
 	}
+      }
+      /* Assign them, without sanity checking */
+      /* TODO: Is this actually a good idea? */
+      for(uint i=0; i< cellIds.size(); i++) {
+	uint64_t c = cellIds[i];
+	int64_t x = c % cells[0];
+	int64_t y = (c /cells[0]) % cells[1];
+	int64_t z = c /(cells[0]*cells[1]);
 
-	/* Assign them, without sanity checking */
-	/* TODO: Is this actually a good idea? */
-	for(uint i=0; i< cellIds.size(); i++) {
-	  uint64_t c = cellIds[i];
-	  int64_t x = c % cells[0];
-	  int64_t y = (c /cells[0]) % cells[1];
-	  int64_t z = c /(cells[0]*cells[1]);
+	double* Etgt = E1.getCellRef(x,y,z);
+	double* Btgt = B1.getCellRef(x,y,z);
+	Etgt[0] = Ebuffer[3*i];
+	Etgt[1] = Ebuffer[3*i+1];
+	Etgt[2] = Ebuffer[3*i+2];
+	Btgt[0] = Bbuffer[3*i];
+	Btgt[1] = Bbuffer[3*i+1];
+	Btgt[2] = Bbuffer[3*i+2];
 
-	  double* Etgt = E1.getCellRef(x,y,z);
-	  double* Btgt = B1.getCellRef(x,y,z);
-	  Etgt[0] = Ebuffer[3*i];
-	  Etgt[1] = Ebuffer[3*i+1];
-	  Etgt[2] = Ebuffer[3*i+2];
-	  Btgt[0] = Bbuffer[3*i];
-	  Btgt[1] = Bbuffer[3*i+1];
-	  Btgt[2] = Bbuffer[3*i+2];
-
-	  if(doV) {
-	    double* Vtgt = V.getCellRef(x,y,z);
-	    Vtgt[0] = Vbuffer[3*i];
-	    Vtgt[1] = Vbuffer[3*i+1];
-	    Vtgt[2] = Vbuffer[3*i+2];
-	  }
+	if(doV) {
+	  double* Vtgt = V1.getCellRef(x,y,z);
+	  Vtgt[0] = Vbuffer[3*i];
+	  Vtgt[1] = Vbuffer[3*i+1];
+	  Vtgt[2] = Vbuffer[3*i+2];
 	}
       }
       r.close();
@@ -187,13 +188,13 @@ bool readNextTimestep(const std::string& filename_pattern, double t, int step, F
 
 /* Non-template version, autodetecting the reader type */
 static bool readNextTimestep(const std::string& filename_pattern, double t, int step, Field& E0, Field& E1,
-      Field& B0, Field& B1, Field& V, bool doV, int& input_file_counter) {
+      Field& B0, Field& B1, Field& V0, Field& V1, bool doV, int& input_file_counter) {
 
    char filename_buffer[256];
    snprintf(filename_buffer,256,filename_pattern.c_str(),input_file_counter);
 
    return readNextTimestep<vlsvinterface::Reader>(filename_pattern, t,
-						  step,E0,E1,B0,B1,V,doV,input_file_counter);
+						  step,E0,E1,B0,B1,V0,V1,doV,input_file_counter);
 }
 
 /* Read E- and B-Fields as well as velocity field from a vlsv file */
