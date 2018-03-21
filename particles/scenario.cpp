@@ -368,7 +368,7 @@ void ipShockScenario::afterPush(int step, double time, ParticleContainer& partic
 	//transmitted.addValue(Vec2d(y,start_time));
 	
 	// Write particle information to a file
-	fprintf(traFile,"%lf %lf %lf %lf %lf %lf %lf %lf %lf\n", time, 
+	fprintf(traFile,"%12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e\n", time, 
 		particles[i].x[0], particles[i].x[1], particles[i].x[2],
 		particles[i].v[0], particles[i].v[1], particles[i].v[2],
 		.5 * particles[i].m * dot_product(particles[i].v, particles[i].v) / PhysicalConstantsSI::e,
@@ -383,7 +383,7 @@ void ipShockScenario::afterPush(int step, double time, ParticleContainer& partic
 	
 	// Write particle information to a file
 	// Write particle information to a file
-	fprintf(refFile,"%lf %lf %lf %lf %lf %lf %lf %lf %lf\n", time, 
+	fprintf(refFile,"%12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e\n", time, 
 		particles[i].x[0], particles[i].x[1], particles[i].x[2],
 		particles[i].v[0], particles[i].v[1], particles[i].v[2],
 		.5 * particles[i].m * dot_product(particles[i].v, particles[i].v) / PhysicalConstantsSI::e,
@@ -418,11 +418,13 @@ void ipShockScenario::finalize(ParticleContainer& particles, Field& E, Field& B,
 
 ParticleContainer InjectionScenario::initialParticles(Field& E, Field& B, Field& V) {
 
-  // Open output files for transmission and reflection
-  traFile = fopen("inj_trans.dat","w"); 
-  refFile = fopen("inj_refl.dat","w"); 
-  lostFile = fopen("inj_lost.dat","w"); 
-  kickFile = fopen("inj_kicks.dat","w"); 
+   // Open output files for transmission and reflection
+   initFile = fopen("inj_init.dat","w"); 
+   traFile = fopen("inj_trans.dat","w"); 
+   refFile = fopen("inj_refl.dat","w"); 
+   lostFile = fopen("inj_lost.dat","w"); 
+   kickFile = fopen("inj_kicks.dat","w"); 
+   meetFile = fopen("inj_meet.dat","w"); 
 
    ParticleContainer particles;
 
@@ -433,6 +435,18 @@ ParticleContainer InjectionScenario::initialParticles(Field& E, Field& B, Field&
    std::random_device rd;
    std::mt19937 gen(rd());
    std::uniform_real_distribution<> disrad((M_PI/180.)*ParticleParameters::injection_start_deg0, (M_PI/180.)*ParticleParameters::injection_start_deg1);
+
+   // Allocate arrays for storing accumulated particle information
+   accumulated_E = new Real [ParticleParameters::num_particles];
+   accumulated_B = new Real [ParticleParameters::num_particles];
+   accumulated_mu = new Real [ParticleParameters::num_particles];
+   current_mu = new Real [ParticleParameters::num_particles];
+
+//    fs_r = new Real [ParticleParameters::num_particles,3];
+//    fs_v = new Real [ParticleParameters::num_particles,3];
+//    fs_E = new Real [ParticleParameters::num_particles,3];
+//    fs_B = new Real [ParticleParameters::num_particles,3];
+   fs_hasmet = new bool [ParticleParameters::num_particles];
 
    /* Loop over particles to generate */
    for(unsigned int i=0; i< ParticleParameters::num_particles; i++) {
@@ -479,7 +493,25 @@ ParticleContainer InjectionScenario::initialParticles(Field& E, Field& B, Field&
      /* And put it in place. */
      p.x = vpos;
      particles.push_back(p);
+
+     fprintf(initFile,"%d %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e\n", i, time, 
+	     particles[i].x[0], particles[i].x[1], particles[i].x[2],
+	     particles[i].v[0], particles[i].v[1], particles[i].v[2],
+	     .5 * particles[i].m * dot_product(particles[i].v, particles[i].v) / PhysicalConstantsSI::e,
+	     dot_product(normalize_vector(particles[i].v), normalize_vector(B(particles[i].x))) );
+
+     accumulated_E[i] = 0;
+     accumulated_B[i] = 0;
+     accumulated_mu[i] = 0;
+//      fs_r[i,*] = [0,0,0];
+//      fs_v[i,*] = [0,0,0];
+//      fs_E[i,*] = [0,0,0];
+//      fs_B[i,*] = [0,0,0];
+     fs_hasmet[i]=false;
    }
+
+   fflush(initFile);
+   fclose(initFile);
 
    delete velocity_distribution;
    return particles;
@@ -502,9 +534,8 @@ void InjectionScenario::beforePush(ParticleContainer& particles,
       // skip disabled particles
       continue;
     }
-    Vec3d Bval;
-    Bval = B(particles[i].x);
-    particles[i].mu = dot_product(particles[i].v,Bval);
+    //particles[i].mu = dot_product(particles[i].v,Bval);
+    current_mu[i] = dot_product(normalize_vector(particles[i].v), normalize_vector(B(particles[i].x)));
   }
 }
 
@@ -527,11 +558,12 @@ void InjectionScenario::afterPush(int step, double time, ParticleContainer& part
       // Check if particle is past rear boundary
       if (particles[i].x[0] < ParticleParameters::injection_x_bound_ds) {
 	// Record it as lost
-	fprintf(lostFile,"%d %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e\n", i, time, 
+	fprintf(lostFile,"%d %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e\n", i, time, 
 		particles[i].x[0], particles[i].x[1], particles[i].x[2],
 		particles[i].v[0], particles[i].v[1], particles[i].v[2],
 		.5 * particles[i].m * dot_product(particles[i].v, particles[i].v) / PhysicalConstantsSI::e,
-		dot_product(normalize_vector(particles[i].v), normalize_vector(B(particles[i].x))) );
+		dot_product(normalize_vector(particles[i].v), normalize_vector(B(particles[i].x))),
+		accumulated_B[i], accumulated_E[i], accumulated_mu[i] );
 
 	// Disable by setting position to NaN and velocity to 0
 	particles[i].x = Vec3d(std::numeric_limits<double>::quiet_NaN(),0.,0.);
@@ -569,11 +601,12 @@ void InjectionScenario::afterPush(int step, double time, ParticleContainer& part
 	//reflected.addValue(Vec2d(y,start_time));
 	
 	// Write particle information to a file
-	fprintf(refFile,"%d %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e\n", i, time, 
+	fprintf(refFile,"%d %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e\n", i, time, 
 		particles[i].x[0], particles[i].x[1], particles[i].x[2],
 		particles[i].v[0], particles[i].v[1], particles[i].v[2],
 		.5 * particles[i].m * dot_product(particles[i].v, particles[i].v) / PhysicalConstantsSI::e,
-		dot_product(normalize_vector(particles[i].v), normalize_vector(B(particles[i].x))) );
+		dot_product(normalize_vector(particles[i].v), normalize_vector(B(particles[i].x))),
+		accumulated_B[i], accumulated_E[i], accumulated_mu[i] );
 
 	// Disable by setting position to NaN and velocity to 0
 	particles[i].x = Vec3d(std::numeric_limits<double>::quiet_NaN(),0.,0.);
@@ -587,11 +620,12 @@ void InjectionScenario::afterPush(int step, double time, ParticleContainer& part
 	//transmitted.addValue(Vec2d(y,start_time));
 	
 	// Write particle information to a file
-	fprintf(traFile,"%d %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e\n", i, time, 
+	fprintf(traFile,"%d %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e\n", i, time, 
 		particles[i].x[0], particles[i].x[1], particles[i].x[2],
 		particles[i].v[0], particles[i].v[1], particles[i].v[2],
 		.5 * particles[i].m * dot_product(particles[i].v, particles[i].v) / PhysicalConstantsSI::e,
-		dot_product(normalize_vector(particles[i].v), normalize_vector(B(particles[i].x))) );
+		dot_product(normalize_vector(particles[i].v), normalize_vector(B(particles[i].x))),
+		accumulated_B[i], accumulated_E[i], accumulated_mu[i] );
 
 	// Disable by setting position to NaN and velocity to 0
 	particles[i].x = Vec3d(std::numeric_limits<double>::quiet_NaN(),0.,0.);
@@ -601,12 +635,13 @@ void InjectionScenario::afterPush(int step, double time, ParticleContainer& part
 
       // Check to see if particle pitch-angle has changed i.e. kick has been received
       Vec3d Bval;
+      Vec3d Eval;
       Bval = B(particles[i].x);
-      Real newmu = dot_product(particles[i].v,Bval);
-      if (particles[i].mu * newmu < 0) {
+      Eval = E(particles[i].x);
+      Real newmu = dot_product(normalize_vector(particles[i].v), normalize_vector(B(particles[i].x)));
+      //if (particles[i].mu * newmu < 0) {
+      if (current_mu[i] * newmu < 0) {
 	//pitch-angle changed past zero
-	Vec3d Eval;
-	Eval = E(particles[i].x);
 	fprintf(kickFile,"%d %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e\n", i, time, 
 		particles[i].x[0], particles[i].x[1], particles[i].x[2],
 		particles[i].v[0], particles[i].v[1], particles[i].v[2],
@@ -615,13 +650,29 @@ void InjectionScenario::afterPush(int step, double time, ParticleContainer& part
 		Bval[0], Bval[1], Bval[2], Eval[0], Eval[1], Eval[2]);
 	
       }
-      
+      // Accumulate E- and B-field magnitudes over path      
+      accumulated_E[i] += abs(newmu-current_mu[i]) * sqrt( Eval[0]*Eval[0] + Eval[1]*Eval[1] + Eval[2]*Eval[2] );
+      accumulated_B[i] += abs(newmu-current_mu[i]) * sqrt( Bval[0]*Bval[0] + Bval[1]*Bval[1] + Bval[2]*Bval[2] );
+      accumulated_mu[i] += abs(newmu-current_mu[i]);
+
+      // Check if particle has just now met shock for the first time
+      if ( (r < r0 + ParticleParameters::injection_r_meet) && (fs_hasmet[i]==false) ) {
+	fs_hasmet[i]=true;
+	fprintf(meetFile,"%d %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e\n", i, time, 
+		particles[i].x[0], particles[i].x[1], particles[i].x[2],
+		particles[i].v[0], particles[i].v[1], particles[i].v[2],
+		.5 * particles[i].m * dot_product(particles[i].v, particles[i].v) / PhysicalConstantsSI::e,
+		dot_product(normalize_vector(particles[i].v), normalize_vector(B(particles[i].x))), 
+		Bval[0], Bval[1], Bval[2], Eval[0], Eval[1], Eval[2]);
+      }
+
 
    }
    fflush(traFile);
    fflush(refFile);
    fflush(lostFile);
    fflush(kickFile);
+   fflush(meetFile);
 }
 
 void InjectionScenario::finalize(ParticleContainer& particles, Field& E, Field& B, Field& V) {
@@ -636,6 +687,7 @@ void InjectionScenario::finalize(ParticleContainer& particles, Field& E, Field& 
    fclose(refFile);
    fclose(lostFile);
    fclose(kickFile);
+   fclose(meetFile);
 }
 
 

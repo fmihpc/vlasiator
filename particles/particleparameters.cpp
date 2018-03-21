@@ -82,6 +82,7 @@ Real P::injection_bs_p1;
 Real P::injection_bs_p2;
 Real P::injection_bs_p3;
 Real P::injection_bs_p4;
+Real P::injection_r_meet;
 Real P::injection_r_bound_ds;
 Real P::injection_r_bound_us;
 Real P::injection_x_bound_ds;
@@ -179,6 +180,8 @@ bool ParticleParameters::addParameters() {
 		       "injection scenario: Bow shock fit parameter p3", 0);
    Readparameters::add("particles.injection_bs_p4",
 		       "injection scenario: Bow shock fit parameter p4", 0);
+   Readparameters::add("particles.injection_r_meet",
+		       "injection scenario: Distance for meeting shock in metres", 1.275e6);
    Readparameters::add("particles.injection_r_bound_ds",
 		       "injection scenario: Downstream transmission boundary radial distance in metres", 6.371e6);
    Readparameters::add("particles.injection_r_bound_us",
@@ -297,6 +300,7 @@ bool ParticleParameters::getParameters() {
    Readparameters::get("particles.injection_bs_p2", P::injection_bs_p2);
    Readparameters::get("particles.injection_bs_p3", P::injection_bs_p3);
    Readparameters::get("particles.injection_bs_p4", P::injection_bs_p4);
+   Readparameters::get("particles.injection_r_meet", P::injection_r_meet);
    Readparameters::get("particles.injection_r_bound_ds", P::injection_r_bound_ds);
    Readparameters::get("particles.injection_r_bound_us", P::injection_r_bound_us);
    Readparameters::get("particles.injection_x_bound_ds", P::injection_x_bound_ds);

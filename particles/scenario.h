@@ -134,10 +134,23 @@ struct ipShockScenario : Scenario {
 
 // Initialize particles at a given distance away from the fitted bow shock shape, track their precipitation upstream or downstream
 struct InjectionScenario : Scenario {
+  FILE * initFile;
   FILE * traFile;
   FILE * refFile;
   FILE * lostFile;
   FILE * kickFile;
+  FILE * meetFile;
+  
+  Real * accumulated_E;
+  Real * accumulated_B;
+  Real * accumulated_mu;
+  Real * current_mu;
+
+/*   Real * fs_r; */
+/*   Real * fs_v; */
+/*   Real * fs_E; */
+/*   Real * fs_B; */
+  bool * fs_hasmet;
 
   ParticleContainer initialParticles(Field& E, Field& B, Field& V);
   void beforePush(ParticleContainer& particles, Interpolated_Field& E, Interpolated_Field& B, Interpolated_Field& V);

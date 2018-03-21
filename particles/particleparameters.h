@@ -79,6 +79,7 @@ struct ParticleParameters {
    static Real injection_bs_p2;        /*!< injection scenario: Bow shock fit p2 */
    static Real injection_bs_p3;        /*!< injection scenario: Bow shock fit p3 */
    static Real injection_bs_p4;        /*!< injection scenario: Bow shock fit p4 */
+   static Real injection_r_meet;       /*!< injection scenario: Distance from shock fit to assume particle meets shock (in metres) */
    static Real injection_r_bound_ds;   /*!< injection scenario: Downstream transmission boundary radial distance in metres */
    static Real injection_r_bound_us;   /*!< injection scenario: Upstream reflection boundary radial distance in metres */
    static Real injection_x_bound_ds;   /*!< injection scenario: discard boundary X-coordinate in metres */
