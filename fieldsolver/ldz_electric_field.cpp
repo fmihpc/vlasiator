@@ -521,7 +521,7 @@ void calculateEdgeElectricFieldX(
    creal* const nbr_derivs_SW = cache.cells[fs_cache::calculateNbrID(1+1,1  ,1  )]->derivatives;
    
    calculateWaveSpeedYZ(cp_SW, derivs_SW, nbr_cp_SW, nbr_derivs_SW, By_S, Bz_W, dBydx_S, dBydz_S, dBzdx_W, dBzdy_W, MINUS, MINUS, minRho, maxRho, RKCase, vA, vS, vW);
-   c_y = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS));
+   c_y = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
    c_z = c_y;
    ay_neg   = max(ZERO,-Vy0 + c_y);
    ay_pos   = max(ZERO,+Vy0 + c_y);
@@ -575,7 +575,7 @@ void calculateEdgeElectricFieldX(
    creal* const nbr_derivs_SE = cache.cells[fs_cache::calculateNbrID(1+1,1-1,1  )]->derivatives;
    
    calculateWaveSpeedYZ(cp_SE, derivs_SE, nbr_cp_SE, nbr_derivs_SE, By_S, Bz_E, dBydx_S, dBydz_S, dBzdx_E, dBzdy_E, PLUS, MINUS, minRho, maxRho, RKCase, vA, vS, vW);
-   c_y = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS));
+   c_y = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
    c_z = c_y;
    ay_neg   = max(ay_neg,-Vy0 + c_y);
    ay_pos   = max(ay_pos,+Vy0 + c_y);
@@ -629,7 +629,7 @@ void calculateEdgeElectricFieldX(
    creal* const nbr_derivs_NW = cache.cells[fs_cache::calculateNbrID(1+1,1  ,1-1)]->derivatives;
    
    calculateWaveSpeedYZ(cp_NW, derivs_NW, nbr_cp_NW, nbr_derivs_NW, By_N, Bz_W, dBydx_N, dBydz_N, dBzdx_W, dBzdy_W, MINUS, PLUS, minRho, maxRho, RKCase, vA, vS, vW);
-   c_y = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS));
+   c_y = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
    c_z = c_y;
    ay_neg   = max(ay_neg,-Vy0 + c_y);
    ay_pos   = max(ay_pos,+Vy0 + c_y);
@@ -683,7 +683,7 @@ void calculateEdgeElectricFieldX(
    creal* const nbr_derivs_NE = cache.cells[fs_cache::calculateNbrID(1+1,1-1,1-1)]->derivatives;
    
    calculateWaveSpeedYZ(cp_NE, derivs_NE, nbr_cp_NE, nbr_derivs_NE, By_N, Bz_E, dBydx_N, dBydz_N, dBzdx_E, dBzdy_E, PLUS, PLUS, minRho, maxRho, RKCase, vA, vS, vW);
-   c_y = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS));
+   c_y = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
    c_z = c_y;
    ay_neg   = max(ay_neg,-Vy0 + c_y);
    ay_pos   = max(ay_pos,+Vy0 + c_y);
@@ -892,7 +892,7 @@ void calculateEdgeElectricFieldY(
    creal* const nbr_derivs_SW = cache.cells[fs_cache::calculateNbrID(1  ,1+1,1  )]->derivatives;
    
    calculateWaveSpeedXZ(cp_SW, derivs_SW, nbr_cp_SW, nbr_derivs_SW, Bx_W, Bz_S, dBxdy_W, dBxdz_W, dBzdx_S, dBzdy_S, MINUS, MINUS, minRho, maxRho, RKCase, vA, vS, vW);
-   c_z = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS));
+   c_z = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
    c_x = c_z;
    az_neg   = max(ZERO,-Vz0 + c_z);
    az_pos   = max(ZERO,+Vz0 + c_z);
@@ -946,7 +946,7 @@ void calculateEdgeElectricFieldY(
    creal* const nbr_derivs_SE = cache.cells[fs_cache::calculateNbrID(1  ,1+1,1-1)]->derivatives;
    
    calculateWaveSpeedXZ(cp_SE, derivs_SE, nbr_cp_SE, nbr_derivs_SE, Bx_E, Bz_S, dBxdy_E, dBxdz_E, dBzdx_S, dBzdy_S, MINUS, PLUS, minRho, maxRho, RKCase, vA, vS, vW);
-   c_z = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS));
+   c_z = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
    c_x = c_z;
    az_neg   = max(az_neg,-Vz0 + c_z);
    az_pos   = max(az_pos,+Vz0 + c_z);
@@ -1000,7 +1000,7 @@ void calculateEdgeElectricFieldY(
    creal* const nbr_derivs_NW = cache.cells[fs_cache::calculateNbrID(1-1,1+1,1  )]->derivatives;
    
    calculateWaveSpeedXZ(cp_NW, derivs_NW, nbr_cp_NW, nbr_derivs_NW, Bx_W, Bz_N, dBxdy_W, dBxdz_W, dBzdx_N, dBzdy_N, PLUS, MINUS, minRho, maxRho, RKCase, vA, vS, vW);
-   c_z = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS));
+   c_z = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
    c_x = c_z;
    az_neg   = max(az_neg,-Vz0 + c_z);
    az_pos   = max(az_pos,+Vz0 + c_z);
@@ -1054,7 +1054,7 @@ void calculateEdgeElectricFieldY(
    creal* const nbr_derivs_NE = cache.cells[fs_cache::calculateNbrID(1-1,1+1,1-1)]->derivatives;
    
    calculateWaveSpeedXZ(cp_NE, derivs_NE, nbr_cp_NE, nbr_derivs_NE, Bx_E, Bz_N, dBxdy_E, dBxdz_E, dBzdx_N, dBzdy_N, PLUS, PLUS, minRho, maxRho, RKCase, vA, vS, vW);
-   c_z = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS));
+   c_z = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
    c_x = c_z;
    az_neg   = max(az_neg,-Vz0 + c_z);
    az_pos   = max(az_pos,+Vz0 + c_z);
@@ -1263,7 +1263,7 @@ void calculateEdgeElectricFieldZ(
    creal* const nbr_derivs_SW = cache.cells[fs_cache::calculateNbrID(1  ,1  ,1+1)]->derivatives;
    
    calculateWaveSpeedXY(cp_SW, derivs_SW, nbr_cp_SW, nbr_derivs_SW, Bx_S, By_W, dBxdy_S, dBxdz_S, dBydx_W, dBydz_W, MINUS, MINUS, minRho, maxRho, RKCase, vA, vS, vW);
-   c_x = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS));
+   c_x = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
    c_y = c_x;
    ax_neg   = max(ZERO,-Vx0 + c_x);
    ax_pos   = max(ZERO,+Vx0 + c_x);
@@ -1317,7 +1317,7 @@ void calculateEdgeElectricFieldZ(
    creal* const nbr_derivs_SE = cache.cells[fs_cache::calculateNbrID(1-1,1  ,1+1)]->derivatives;
    
    calculateWaveSpeedXY(cp_SE, derivs_SE, nbr_cp_SE, nbr_derivs_SE, Bx_S, By_E, dBxdy_S, dBxdz_S, dBydx_E, dBydz_E, PLUS, MINUS, minRho, maxRho, RKCase, vA, vS, vW);
-   c_x = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS));
+   c_x = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
    c_y = c_x;
    ax_neg = max(ax_neg,-Vx0 + c_x);
    ax_pos = max(ax_pos,+Vx0 + c_x);
@@ -1371,7 +1371,7 @@ void calculateEdgeElectricFieldZ(
    creal* const nbr_derivs_NW = cache.cells[fs_cache::calculateNbrID(1  ,1-1,1+1)]->derivatives;
    
    calculateWaveSpeedXY(cp_NW, derivs_NW, nbr_cp_NW, nbr_derivs_NW, Bx_N, By_W, dBxdy_N, dBxdz_N, dBydx_W, dBydz_W, MINUS, PLUS, minRho, maxRho, RKCase, vA, vS, vW);
-   c_x = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS));
+   c_x = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
    c_y = c_x;
    ax_neg = max(ax_neg,-Vx0 + c_x); 
    ax_pos = max(ax_pos,+Vx0 + c_x);
@@ -1425,7 +1425,7 @@ void calculateEdgeElectricFieldZ(
    creal* const nbr_derivs_NE = cache.cells[fs_cache::calculateNbrID(1-1,1-1,1+1)]->derivatives;
    
    calculateWaveSpeedXY(cp_NE, derivs_NE, nbr_cp_NE, nbr_derivs_NE, Bx_N, By_E, dBxdy_N, dBxdz_N, dBydx_E, dBydz_E, PLUS, PLUS, minRho, maxRho, RKCase, vA, vS, vW);
-   c_x = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS));
+   c_x = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
    c_y = c_x;
    ax_neg = max(ax_neg,-Vx0 + c_x);
    ax_pos = max(ax_pos,+Vx0 + c_x);
