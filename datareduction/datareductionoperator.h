@@ -279,22 +279,6 @@ namespace DRO {
       Real Pressure;
    };
    
-   class VariablePressurePopulation: public DataReductionOperator {
-   public:
-      VariablePressurePopulation(cuint popID);
-      virtual ~VariablePressurePopulation();
-      
-      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
-      virtual std::string getName() const;
-      virtual bool reduceData(const SpatialCell* cell,char* buffer);
-      virtual bool setSpatialCell(const SpatialCell* cell);
-      
-   protected:
-      Real _Pressure;
-      uint _popID;
-      std::string _name;
-   };
-   
    class VariablePTensorDiagonal: public DataReductionOperator {
    public:
       VariablePTensorDiagonal(cuint popID);
@@ -420,6 +404,7 @@ namespace DRO {
       Real RhoBackstream;
       uint _popID;
       std::string _name;
+      bool _skip;
    };
 
    class VariableRhoNonBackstream: public DataReductionOperator {
@@ -436,8 +421,8 @@ namespace DRO {
       Real Rho;
       uint _popID;
       std::string _name;
+      bool _skip;
    };
-
 
    class VariableVBackstream: public DataReductionOperator {
    public:
@@ -453,6 +438,7 @@ namespace DRO {
       Real VBackstream[3];
       uint _popID;
       std::string _name;
+      bool _skip;
    };
 
    class VariableVNonBackstream: public DataReductionOperator {
@@ -469,40 +455,7 @@ namespace DRO {
       Real V[3];
       uint _popID;
       std::string _name;
-   };
-
-   class VariablePressureBackstream: public DataReductionOperator {
-   public:
-      VariablePressureBackstream(cuint popID);
-      virtual ~VariablePressureBackstream();
-
-      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
-      virtual std::string getName() const;
-      virtual bool reduceData(const SpatialCell* cell,char* buffer);
-      virtual bool setSpatialCell(const SpatialCell* cell);
-
-   protected:
-      Real averageVX, averageVY, averageVZ;
-      Real Pressure;
-      uint _popID;
-      std::string _name;
-   };
-
-   class VariablePressureNonBackstream: public DataReductionOperator {
-   public:
-      VariablePressureNonBackstream(cuint popID);
-      virtual ~VariablePressureNonBackstream();
-
-      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
-      virtual std::string getName() const;
-      virtual bool reduceData(const SpatialCell* cell,char* buffer);
-      virtual bool setSpatialCell(const SpatialCell* cell);
-
-   protected:
-      Real averageVX, averageVY, averageVZ;
-      Real Pressure;
-      uint _popID;
-      std::string _name;
+      bool _skip;
    };
 
    class VariablePTensorBackstreamDiagonal: public DataReductionOperator {
@@ -520,6 +473,7 @@ namespace DRO {
       Real PTensor[3];
       uint _popID;
       std::string _name;
+      bool _skip;
    };
 
    class VariablePTensorNonBackstreamDiagonal: public DataReductionOperator {
@@ -537,6 +491,7 @@ namespace DRO {
       Real PTensor[3];
       uint _popID;
       std::string _name;
+      bool _skip;
    };
 
    class VariablePTensorBackstreamOffDiagonal: public DataReductionOperator {
@@ -554,6 +509,7 @@ namespace DRO {
       Real PTensor[3];
       uint _popID;
       std::string _name;
+      bool _skip;
    };
 
    class VariablePTensorNonBackstreamOffDiagonal: public DataReductionOperator {
@@ -571,6 +527,7 @@ namespace DRO {
       Real PTensor[3];
       uint _popID;
       std::string _name;
+      bool _skip;
    };
    
    class VariableMinValue: public DataReductionOperator {

@@ -81,58 +81,24 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          }
          continue;
       }
-      
-      if(*it == "populations_RhoBackstream") {
+      if(*it == "populations_moments_Backstream") {
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             outputReducer->addOperator(new DRO::VariableRhoBackstream(i));
-         }
-         continue;
-      }
-      if(*it == "populations_RhoNonBackstream") {
-         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
-            outputReducer->addOperator(new DRO::VariableRhoNonBackstream(i));
-         }
-         continue;
-      }
-      if(*it == "populations_VBackstream") {
-         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             outputReducer->addOperator(new DRO::VariableVBackstream(i));
-         }
-         continue;
-      }
-      if(*it == "populations_VNonBackstream") {
-         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
-            outputReducer->addOperator(new DRO::VariableVNonBackstream(i));
-         }
-         continue;
-      }
-      if(*it == "populations_PressureBackstream") {
-         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
-            outputReducer->addOperator(new DRO::VariablePressureBackstream(i));
-         }
-         continue;
-      }
-      if(*it == "populations_PressureNonBackstream") {
-         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
-            outputReducer->addOperator(new DRO::VariablePressureNonBackstream(i));
-         }
-         continue;
-      }
-      if(*it == "populations_PTensorBackstream") {
-         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             outputReducer->addOperator(new DRO::VariablePTensorBackstreamDiagonal(i));
             outputReducer->addOperator(new DRO::VariablePTensorBackstreamOffDiagonal(i));
          }
          continue;
       }
-      if(*it == "populations_PTensorNonBackstream") {
+      if(*it == "populations_moments_NonBackstream") {
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+            outputReducer->addOperator(new DRO::VariableRhoNonBackstream(i));
+            outputReducer->addOperator(new DRO::VariableVNonBackstream(i));
             outputReducer->addOperator(new DRO::VariablePTensorNonBackstreamDiagonal(i));
             outputReducer->addOperator(new DRO::VariablePTensorNonBackstreamOffDiagonal(i));
          }
          continue;
       }
-      
       if(*it == "populations_MinValue") {
          outputReducer->addOperator(new DRO::VariableMinValue);
          continue;
@@ -237,12 +203,6 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       }
       if(*it == "Pressure") {
          outputReducer->addOperator(new DRO::VariablePressureSolver);
-         continue;
-      }
-      if(*it == "populations_Pressure") {
-         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
-            outputReducer->addOperator(new DRO::VariablePressurePopulation(i));
-         }
          continue;
       }
       if(*it == "populations_PTensor") {
@@ -375,7 +335,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          continue;
       }
       if(*it == "Pressure") {
-         diagnosticReducer->addOperator(new DRO::VariablePressure);
+         diagnosticReducer->addOperator(new DRO::VariablePressureSolver);
          continue;
       }
       if(*it == "Rhom") {

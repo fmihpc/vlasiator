@@ -53,11 +53,6 @@ Real P::dx_ini = NAN;
 Real P::dy_ini = NAN;
 Real P::dz_ini = NAN;
 
-Real P::backstreamradius = NAN;
-Real P::backstreamvx = NAN;
-Real P::backstreamvy = NAN;
-Real P::backstreamvz = NAN;
-
 uint P::xcells_ini = numeric_limits<uint>::max();
 uint P::ycells_ini = numeric_limits<uint>::max();
 uint P::zcells_ini = numeric_limits<uint>::max();
@@ -214,12 +209,8 @@ bool Parameters::addParameters(){
    Readparameters::add("loadBalance.rebalanceInterval", "Load rebalance interval (steps)", 10);
    
 // Output variable parameters
-   Readparameters::addComposing("variables.output", "List of data reduction operators (DROs) to add to the grid file output. Each variable to be added has to be on a new line output = XXX. Available are (20171123) B BackgroundB PerturbedB E Rhom Rhoq populations_Rho V populations_V populations_RhoBackstream populations_RhoNonBackstream populations_VBackstream populations_VNonBackstream populations_PressureBackstream populations_PressureNonBackstream populations_PTensorBackstream populations_PTensorNonBackstream MinValue populations_RhomLossAdjust LBweight MaxVdt MaxRdt MaxFieldsdt MPIrank FsGridRank FsGridBoundaryType BoundaryType BoundaryLayer populations_Blocks fSaved populations_accSubcycles VolE HallE GradPeE BackgroundBedge VolB BackgroundVolB PerturbedVolB Pressure populations_Pressure populations_PTensor derivs BVOLderivs GridCoordinates Potential BackgroundVolE ChargeDensity PotentialError SpeciesMoments MeshData");
+   Readparameters::addComposing("variables.output", "List of data reduction operators (DROs) to add to the grid file output. Each variable to be added has to be on a new line output = XXX. Available are (20171123) B BackgroundB PerturbedB E Rhom Rhoq populations_Rho V populations_V populations_moments_Backstream populations_moments_NonBackstream populations_MinValue populations_RhomLossAdjust LBweight MaxVdt MaxRdt MaxFieldsdt MPIrank FsGridRank FsGridBoundaryType BoundaryType BoundaryLayer populations_Blocks fSaved populations_accSubcycles VolE HallE GradPeE BackgroundBedge VolB BackgroundVolB PerturbedVolB Pressure populations_Pressure populations_PTensor derivs BVOLderivs GridCoordinates Potential BackgroundVolE ChargeDensity PotentialError SpeciesMoments MeshData");
    Readparameters::addComposing("variables.diagnostic", "List of data reduction operators (DROs) to add to the diagnostic runtime output. Each variable to be added has to be on a new line diagnostic = XXX.  Available (20171123) are FluxB FluxE populations_Blocks Pressure Rho populations_RhoLossAdjust LBweight MaxVdt MaxRdt MaxFieldsdt MaxDistributionFunction MinDistributionFunction BoundaryType BoundaryLayer.");
-   Readparameters::add("variables.dr_backstream_vx", "Center coordinate for the maxwellian distribution. Used for calculating the backstream contriution for rho.", -500000.0);
-   Readparameters::add("variables.dr_backstream_vy", "Center coordinate for the maxwellian distribution. Used for calculating the backstream contriution for rho.", 0.0);
-   Readparameters::add("variables.dr_backstream_vz", "Center coordinate for the maxwellian distribution. Used for calculating the backstream contriution for rho.", 0.0);
-   Readparameters::add("variables.dr_backstream_radius", "Radius of the maxwellian distribution. Used for calculating the backstream contribution for rho", 468621.0);
 
    // bailout parameters
    Readparameters::add("bailout.write_restart", "If 1, write a restart file on bailout. Gets reset when sending a STOP (1) or a KILL (0).", true);
@@ -455,12 +446,6 @@ bool Parameters::getParameters(){
    dummy.insert(P::diagnosticVariableList.begin(),P::diagnosticVariableList.end());
    P::diagnosticVariableList.clear();
    P::diagnosticVariableList.insert(P::diagnosticVariableList.end(),dummy.begin(),dummy.end());
-
-   //Get parameters related to calculating backstream contributions
-   Readparameters::get("variables.dr_backstream_radius", P::backstreamradius);
-   Readparameters::get("variables.dr_backstream_vx", P::backstreamvx);
-   Readparameters::get("variables.dr_backstream_vy", P::backstreamvy);
-   Readparameters::get("variables.dr_backstream_vz", P::backstreamvz);
    
    // Get parameters related to bailout
    Readparameters::get("bailout.write_restart", P::bailout_write_restart);

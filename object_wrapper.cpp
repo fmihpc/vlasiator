@@ -53,6 +53,7 @@ bool ObjectWrapper::addPopulationParameters() {
      RP::add(pop + "_sparse.dynamicBulkValue1", "Minimum value for the dynamic algorithm range, so for example if dynamicAlgorithm=1 then for sparse.dynamicBulkValue1 = 1e3, sparse.dynamicBulkValue2=1e5, we apply the algorithm to cells for which 1e3<cell.rho<1e5", 0);
      RP::add(pop + "_sparse.dynamicBulkValue2", "Maximum value for the dynamic algorithm range, so for example if dynamicAlgorithm=1 then for sparse.dynamicBulkValue1 = 1e3, sparse.dynamicBulkValue2=1e5, we apply the algorithm to cells for which 1e3<cell.rho<1e5", 0);
 
+     // Grid parameters
      RP::add(pop + "_vspace.vx_min","Minimum value for velocity mesh vx-coordinates.",0);
      RP::add(pop + "_vspace.vx_max","Maximum value for velocity mesh vx-coordinates.",0);
      RP::add(pop + "_vspace.vy_min","Minimum value for velocity mesh vy-coordinates.",0);
@@ -63,6 +64,12 @@ bool ObjectWrapper::addPopulationParameters() {
      RP::add(pop + "_vspace.vy_length","Initial number of velocity blocks in vy-direction.",1);
      RP::add(pop + "_vspace.vz_length","Initial number of velocity blocks in vz-direction.",1);
      RP::add(pop + "_vspace.max_refinement_level","Maximum allowed mesh refinement level.", 1);
+     
+     // Backstreaming parameters
+     Readparameters::add(pop + "_backstream_vx", "Center coordinate for the maxwellian distribution. Used for calculating the backstream moments.", -500000.0);
+     Readparameters::add(pop + "_backstream_vy", "Center coordinate for the maxwellian distribution. Used for calculating the backstream moments.", 0.0);
+     Readparameters::add(pop + "_backstream_vz", "Center coordinate for the maxwellian distribution. Used for calculating the backstream moments.", 0.0);
+     Readparameters::add(pop + "_backstream_radius", "Radius of the maxwellian distribution. Used for calculating the backstream moments. If set to 0 (default), the backstream/non-backstream DROs are skipped.", 0.0);
   }
 
   return true;
@@ -141,6 +148,12 @@ bool ObjectWrapper::getParameters() {
       RP::get(pop + "_vspace.max_refinement_level",maxRefLevel);
       vMesh.refLevelMaxAllowed = maxRefLevel;
 
+      
+      //Get backstream/non-backstream moments parameters
+      Readparameters::get(pop + "_backstream_radius", species.backstreamRadius);
+      Readparameters::get(pop + "_backstream_vx", species.backstreamV[0]);
+      Readparameters::get(pop + "_backstream_vy", species.backstreamV[1]);
+      Readparameters::get(pop + "_backstream_vz", species.backstreamV[2]);
    }
 
    return true;

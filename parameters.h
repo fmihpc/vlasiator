@@ -48,11 +48,6 @@ struct Parameters {
    static uint xcells_ini; /*!< Initial number of spatial cells in x-direction. */
    static uint ycells_ini; /*!< Initial number of spatial cells in y-direction. */
    static uint zcells_ini; /*!< Initial number of spatial cells in z-direction. */
-
-   static Real backstreamradius; /*!< Radius of the maxwellian distribution. Used for calculating rho of the backstream population. */
-   static Real backstreamvx; /*!< X coordinate of the origin of the maxwellian distribution. Used for calculating rho of the backstream population. */
-   static Real backstreamvy; /*!< Y coordinate of the origin of the maxwellian distribution. Used for calculating rho of the backstream population. */
-   static Real backstreamvz; /*!< Z coordinate of the origin of the maxwellian distribution. Used for calculating rho of the backstream population. */
    
    static Real t;                    /*!< Current simulation time. */
    static Real t_min;                    /*!< Initial simulation time. */

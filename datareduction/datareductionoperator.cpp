@@ -50,7 +50,7 @@ namespace DRO {
     * @param dataType Basic datatype, must be int, uint, float
     * @param dataSize Byte size of written datatype, for example double-precision floating points
     * have byte size of sizeof(double).
-    * @param vectorSize How many elements are in the vector returned by the DataReductionOperator.
+    * @param vectorSize How many elements are in the vector returned by the DataReductionOperator. If 0, writeDataReducer will skip this DRO.
     * @return If true, DataReductionOperator returned sensible values.
     */
    bool DataReductionOperator::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
@@ -447,94 +447,6 @@ namespace DRO {
       _nBlocks = cell->get_number_of_velocity_blocks(_popID);
       return true;
    }
-
-   // Scalar pressure 
-   VariablePressure::VariablePressure(): DataReductionOperator() { }
-   VariablePressure::~VariablePressure() { }
-   
-   std::string VariablePressure::getName() const {return "Pressure";}
-   
-   bool VariablePressure::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-      dataType = "float";
-      dataSize =  sizeof(Real);
-      vectorSize = 1;
-      return true;
-   }
-   
-   // Adding pressure calculations to Vlasiator.
-   // p = m/3 * integral((v - <V>)^2 * f(r,v) dV), doing the sum of the x, y and z components.
-   bool VariablePressure::reduceData(const SpatialCell* cell,char* buffer) {
-      const Real HALF = 0.5;
-      const Real THIRD = 1.0/3.0;
-      
-      Real thread_nvx2_sum = 0.0;
-      Real thread_nvy2_sum = 0.0;
-      Real thread_nvz2_sum = 0.0;
-
-      # pragma omp parallel reduction(+:thread_nvx2_sum,thread_nvy2_sum,thread_nvz2_sum)
-      {
-         for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-            // Get velocity block parameters and distribution function of active population
-            const Real*  parameters = cell->get_block_parameters(popID);
-            const Realf* block_data = cell->get_data(popID);
-
-            Real pop_nvx2_sum = 0.0;
-            Real pop_nvy2_sum = 0.0;
-            Real pop_nvz2_sum = 0.0;
-            
-            #pragma omp for
-            for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); n++) {
-               for (uint k = 0; k < WID; ++k)
-                  for (uint j = 0; j < WID; ++j)
-                     for (uint i = 0; i < WID; ++i) {
-                        const Real VX 
-                           =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
-                           + (i + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
-                        const Real VY 
-                           =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] 
-                           + (j + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
-                        const Real VZ 
-                           =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] 
-                           + (k + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
-                        const Real DV3 
-                           = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]
-                           * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY] 
-                           * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
-                        pop_nvx2_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * (VX - averageVX) * (VX - averageVX) * DV3;
-                        pop_nvy2_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * (VY - averageVY) * (VY - averageVY) * DV3;
-                        pop_nvz2_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * (VZ - averageVZ) * (VZ - averageVZ) * DV3;
-               }
-            }
-            const Real mass = getObjectWrapper().particleSpecies[popID].mass;
-            thread_nvx2_sum += mass*pop_nvx2_sum;
-            thread_nvy2_sum += mass*pop_nvy2_sum;
-            thread_nvz2_sum += mass*pop_nvz2_sum;
-         }
-      }
-      Pressure = THIRD*(thread_nvx2_sum + thread_nvy2_sum + thread_nvz2_sum);
-      const char* ptr = reinterpret_cast<const char*>(&Pressure);
-      for (uint i = 0; i < sizeof(Real); ++i) buffer[i] = ptr[i];
-      return true;
-   }
-
-  bool VariablePressure::reduceData(const SpatialCell* cell,Real* buffer) {
-    reduceData(cell,(char*)buffer);
-    return true;
-  }
-   
-   bool VariablePressure::setSpatialCell(const SpatialCell* cell) {
-      if(cell-> parameters[CellParams::RHOM] != 0.0) {
-         averageVX = cell-> parameters[CellParams::VX];
-         averageVY = cell-> parameters[CellParams::VY];
-         averageVZ = cell-> parameters[CellParams::VZ];
-      } else {
-         averageVX = 0.0;
-         averageVY = 0.0;
-         averageVZ = 0.0;
-      }
-      Pressure = 0.0;
-      return true;
-   }
    
    // Scalar pressure from the solvers
    VariablePressureSolver::VariablePressureSolver(): DataReductionOperator() { }
@@ -559,34 +471,6 @@ namespace DRO {
       Pressure = 1.0/3.0 * (cell->parameters[CellParams::P_11] + cell->parameters[CellParams::P_22] + cell->parameters[CellParams::P_33]);
       return true;
    }
-   
-   // Scalar pressure per population
-   VariablePressurePopulation::VariablePressurePopulation(cuint popID): DataReductionOperator() {
-      _name=getObjectWrapper().particleSpecies[popID].name;
-      _popID=popID;
-   }
-   VariablePressurePopulation::~VariablePressurePopulation() { }
-   
-   std::string VariablePressurePopulation::getName() const {return _name + "/Pressure";}
-   
-   bool VariablePressurePopulation::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-      dataType = "float";
-      dataSize =  sizeof(Real);
-      vectorSize = 1;
-      return true;
-   }
-   
-   bool VariablePressurePopulation::reduceData(const SpatialCell* cell,char* buffer) {
-      const char* ptr = reinterpret_cast<const char*>(&_Pressure);
-      for (uint i = 0; i < sizeof(Real); ++i) buffer[i] = ptr[i];
-      return true;
-   }
-   
-   bool VariablePressurePopulation::setSpatialCell(const SpatialCell* cell) {
-      _Pressure = 1.0/3.0 * (cell->get_population(_popID).P[0] + cell->get_population(_popID).P[1] + cell->get_population(_popID).P[2]);
-      return true;
-   }
-   
    
    // YK Adding pressure calculations to Vlasiator.
    // p_ij = m/3 * integral((v - <V>)_i(v - <V>)_j * f(r,v) dV)
@@ -976,8 +860,14 @@ namespace DRO {
    }
 
    //Helper function for getting the velocity cell ids that are a part of the backstream population:
-   static void getBackstreamVelocityCells(const Real* block_parameters, vector<uint64_t> & vCellIds ) {
-      const Real HALF = 0.5;
+   static void getBackstreamVelocityCells(
+      const Real* block_parameters,
+      vector<uint64_t> & vCellIds,
+      cuint popID
+   ) {
+      creal HALF = 0.5;
+      const std::array<Real, 3> backstreamV = getObjectWrapper().particleSpecies[popID].backstreamV;
+      creal backstreamRadius = getObjectWrapper().particleSpecies[popID].backstreamRadius;
       // Go through every velocity cell (i, j, k are indices)
       for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
          // Get the vx, vy, vz coordinates of the velocity cell
@@ -985,28 +875,34 @@ namespace DRO {
          const Real VY = block_parameters[BlockParams::VYCRD] + (j + HALF) * block_parameters[BlockParams::DVY];
          const Real VZ = block_parameters[BlockParams::VZCRD] + (k + HALF) * block_parameters[BlockParams::DVZ];
          // Compare the distance of the velocity cell from the center of the maxwellian distribution to the radius of the maxwellian distribution
-         if( ( (P::backstreamvx - VX) * (P::backstreamvx - VX)
-             + (P::backstreamvy - VY) * (P::backstreamvy - VY)
-             + (P::backstreamvz - VZ) * (P::backstreamvz - VZ) )
+         if( ( (backstreamV[0] - VX) * (backstreamV[0] - VX)
+             + (backstreamV[1] - VY) * (backstreamV[1] - VY)
+             + (backstreamV[2] - VZ) * (backstreamV[2] - VZ) )
              >
-             P::backstreamradius*P::backstreamradius ) {
+             backstreamRadius*backstreamRadius ) {
              //The velocity cell is a part of the backstream population:
              vCellIds.push_back(cellIndex(i,j,k));
           }
       }
    }
    //Helper function for getting the velocity cell ids that are a part of the backstream population:
-   static void getNonBackstreamVelocityCells(const Real* block_parameters, vector<uint64_t> & vCellIds ) {
-      const Real HALF = 0.5;
+   static void getNonBackstreamVelocityCells(
+      const Real* block_parameters,
+      vector<uint64_t> & vCellIds,
+      cuint popID
+   ) {
+      creal HALF = 0.5;
+      const std::array<Real, 3> backstreamV = getObjectWrapper().particleSpecies[popID].backstreamV;
+      creal backstreamRadius = getObjectWrapper().particleSpecies[popID].backstreamRadius;
       for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
          const Real VX = block_parameters[BlockParams::VXCRD] + (i + HALF) * block_parameters[BlockParams::DVX];
          const Real VY = block_parameters[BlockParams::VYCRD] + (j + HALF) * block_parameters[BlockParams::DVY];
          const Real VZ = block_parameters[BlockParams::VZCRD] + (k + HALF) * block_parameters[BlockParams::DVZ];
-         if( ( (P::backstreamvx - VX) * (P::backstreamvx - VX)
-             + (P::backstreamvy - VY) * (P::backstreamvy - VY)
-             + (P::backstreamvz - VZ) * (P::backstreamvz - VZ) )
+         if( ( (backstreamV[0] - VX) * (backstreamV[0] - VX)
+             + (backstreamV[1] - VY) * (backstreamV[1] - VY)
+             + (backstreamV[2] - VZ) * (backstreamV[2] - VZ) )
              <=
-             P::backstreamradius*P::backstreamradius ) {
+             backstreamRadius*backstreamRadius ) {
              //The velocity cell is a part of the backstream population:
              vCellIds.push_back(cellIndex(i,j,k));
           }
@@ -1015,9 +911,12 @@ namespace DRO {
    //Helper function for getting the velocity cell indices that are a part of the backstream population:
    static void getBackstreamVelocityCellIndices(
       const Real* block_parameters,
-      vector<array<uint, 3>> & vCellIndices
+      vector<array<uint, 3>> & vCellIndices,
+      cuint popID
    ) {
-      const Real HALF = 0.5;
+      creal HALF = 0.5;
+      const std::array<Real, 3> backstreamV = getObjectWrapper().particleSpecies[popID].backstreamV;
+      creal backstreamRadius = getObjectWrapper().particleSpecies[popID].backstreamRadius;
       // Go through a block's every velocity cell
       for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
          // Get the coordinates of the velocity cell (e.g. VX = block_vx_min_coordinates + (velocity_cell_indice_x+0.5)*length_of_velocity_cell_in_x_direction
@@ -1025,11 +924,11 @@ namespace DRO {
          const Real VY = block_parameters[BlockParams::VYCRD] + (j + HALF) * block_parameters[BlockParams::DVY];
          const Real VZ = block_parameters[BlockParams::VZCRD] + (k + HALF) * block_parameters[BlockParams::DVZ];
          // Calculate the distance of the velocity cell from the center of the maxwellian distribution and compare it to the approximate radius of the maxwellian distribution
-         if( ( (P::backstreamvx - VX) * (P::backstreamvx - VX)
-             + (P::backstreamvy - VY) * (P::backstreamvy - VY)
-             + (P::backstreamvz - VZ) * (P::backstreamvz - VZ) )
+         if( ( (backstreamV[0] - VX) * (backstreamV[0] - VX)
+             + (backstreamV[1] - VY) * (backstreamV[1] - VY)
+             + (backstreamV[2] - VZ) * (backstreamV[2] - VZ) )
              >
-             P::backstreamradius*P::backstreamradius ) {
+             backstreamRadius*backstreamRadius ) {
              //The velocity cell is a part of the backstream population because it is not within the radius:
              const array<uint, 3> indices{{i, j, k}};
              vCellIndices.push_back( indices );
@@ -1037,9 +936,14 @@ namespace DRO {
       }
    }
    //Helper function for getting the velocity cell indices that are not a part of the backstream population:
-   static void getNonBackstreamVelocityCellIndices(const Real* block_parameters,
-                                                 vector<array<uint, 3>> & vCellIndices ) {
-      const Real HALF = 0.5;
+   static void getNonBackstreamVelocityCellIndices(
+      const Real* block_parameters,
+      vector<array<uint, 3>> & vCellIndices,
+      cuint popID
+   ) {
+      creal HALF = 0.5;
+      const std::array<Real, 3> backstreamV = getObjectWrapper().particleSpecies[popID].backstreamV;
+      creal backstreamRadius = getObjectWrapper().particleSpecies[popID].backstreamRadius;
       // Go through a block's every velocity cell
       for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
          // Get the coordinates of the velocity cell (e.g. VX = block_vx_min_coordinates + (velocity_cell_indice_x+0.5)*length_of_velocity_cell_in_x_direction
@@ -1047,11 +951,11 @@ namespace DRO {
          const Real VY = block_parameters[BlockParams::VYCRD] + (j + HALF) * block_parameters[BlockParams::DVY];
          const Real VZ = block_parameters[BlockParams::VZCRD] + (k + HALF) * block_parameters[BlockParams::DVZ];
          // Calculate the distance of the velocity cell from the center of the maxwellian distribution and compare it to the approximate radius of the maxwellian distribution
-         if( ( (P::backstreamvx - VX) * (P::backstreamvx - VX)
-             + (P::backstreamvy - VY) * (P::backstreamvy - VY)
-             + (P::backstreamvz - VZ) * (P::backstreamvz - VZ) )
+         if( ( (backstreamV[0] - VX) * (backstreamV[0] - VX)
+             + (backstreamV[1] - VY) * (backstreamV[1] - VY)
+             + (backstreamV[2] - VZ) * (backstreamV[2] - VZ) )
              <=
-             P::backstreamradius*P::backstreamradius ) {
+             backstreamRadius*backstreamRadius ) {
              //The velocity cell is a part of the backstream population because it is within the radius:
              const array<uint, 3> indices{{i, j, k}};
              vCellIndices.push_back( indices );
@@ -1079,9 +983,9 @@ namespace DRO {
                vector< uint64_t > vCells; //Velocity cell ids
                vCells.clear();
                if ( calculateBackstream == true ) {
-                  getBackstreamVelocityCells(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCells);
+                  getBackstreamVelocityCells(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCells, popID);
                } else {
-                  getNonBackstreamVelocityCells(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCells);
+                  getNonBackstreamVelocityCells(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCells, popID);
                }
                for( vector< uint64_t >::const_iterator it = vCells.begin(); it != vCells.end(); ++it ) {
                   //velocity cell id = *it
@@ -1130,9 +1034,9 @@ namespace DRO {
             vCellIndices.clear();
             // Save indices to the std::vector
             if( calculateBackstream == true ) {
-               getBackstreamVelocityCellIndices(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCellIndices);
+               getBackstreamVelocityCellIndices(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCellIndices, popID);
             } else {
-               getNonBackstreamVelocityCellIndices(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCellIndices);
+               getNonBackstreamVelocityCellIndices(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCellIndices, popID);
             }
             // We have now fethced all of the needed velocity cell indices, so now go through them:
             for( vector< array<uint, 3> >::const_iterator it = vCellIndices.begin(); it != vCellIndices.end(); ++it ) {
@@ -1166,73 +1070,6 @@ namespace DRO {
       return;
    }
 
-   static void pressureBackstreamCalculations( const SpatialCell * cell, 
-                                               const bool calculateBackstream, 
-                                               const Real averageVX,
-                                               const Real averageVY,
-                                               const Real averageVZ,
-                                               cuint popID,
-                                               Real & Pressure ) {
-      const Real HALF = 0.5;
-      const Real THIRD = 1.0/3.0;
-      Pressure = 0;
-      # pragma omp parallel
-      {
-         Real thread_nvx2_sum = 0.0;
-         Real thread_nvy2_sum = 0.0;
-         Real thread_nvz2_sum = 0.0;
-         
-         for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-            const Real* parameters = cell->get_block_parameters(popID);
-            const Realf* block_data = cell->get_data(popID);
-
-            Real pop_nvx2_sum = 0.0;
-            Real pop_nvy2_sum = 0.0;
-            Real pop_nvz2_sum = 0.0;
-
-            # pragma omp for
-            for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); ++n) {
-               const Real DV3
-               = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]
-               * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY]
-               * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
-               vector< array<uint, 3> > vCellIndices;
-               vCellIndices.clear();
-               //Note: Could use function pointers
-               if( calculateBackstream == true ) {
-                  getBackstreamVelocityCellIndices(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCellIndices);
-               } else {
-                  getNonBackstreamVelocityCellIndices(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCellIndices);
-               }
-               for( vector< array<uint, 3> >::const_iterator it = vCellIndices.begin(); it != vCellIndices.end(); ++it ) {
-                  //Go through every velocity cell:
-                  const array<uint, 3> indices = *it;
-                  const uint i = indices[0];
-                  const uint j = indices[1];
-                  const uint k = indices[2];
-                  const Real VX = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] + (i + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
-                  const Real VY = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] + (j + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
-                  const Real VZ = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] + (k + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
-                  pop_nvx2_sum += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)] * (VX - averageVX) * (VX - averageVX) * DV3;
-                  pop_nvy2_sum += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)] * (VY - averageVY) * (VY - averageVY) * DV3;
-                  pop_nvz2_sum += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)] * (VZ - averageVZ) * (VZ - averageVZ) * DV3;
-               }
-            }
-            thread_nvx2_sum += pop_nvx2_sum * getObjectWrapper().particleSpecies[popID].mass;
-            thread_nvy2_sum += pop_nvy2_sum * getObjectWrapper().particleSpecies[popID].mass;
-            thread_nvz2_sum += pop_nvz2_sum * getObjectWrapper().particleSpecies[popID].mass;
-         }
-
-         // Accumulate contributions coming from this velocity block to the 
-         // spatial cell velocity moments. If multithreading / OpenMP is used, 
-         // these updates need to be atomic:
-         # pragma omp critical
-         {
-            Pressure += THIRD * (thread_nvx2_sum + thread_nvy2_sum + thread_nvz2_sum);
-         }
-      }
-   }
-
    static void PTensorDiagonalBackstreamCalculations( const SpatialCell * cell,
                                                       const bool calculateBackstream,
                                                       const Real averageVX,
@@ -1264,9 +1101,9 @@ namespace DRO {
                vector< array<uint, 3> > vCellIndices;
                vCellIndices.clear();
                if( calculateBackstream == true ) {
-                  getBackstreamVelocityCellIndices(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCellIndices);
+                  getBackstreamVelocityCellIndices(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCellIndices, popID);
                } else {
-                  getNonBackstreamVelocityCellIndices(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCellIndices);
+                  getNonBackstreamVelocityCellIndices(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCellIndices, popID);
                }
                for( vector< array<uint, 3> >::const_iterator it = vCellIndices.begin(); it != vCellIndices.end(); ++it ) {
                   //Go through every velocity cell:
@@ -1330,9 +1167,9 @@ namespace DRO {
                * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
                vector< array<uint, 3> > vCellIndices;
                if( calculateBackstream == true ) {
-                  getBackstreamVelocityCellIndices(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCellIndices);
+                  getBackstreamVelocityCellIndices(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCellIndices, popID);
                } else {
-                  getNonBackstreamVelocityCellIndices(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCellIndices);
+                  getNonBackstreamVelocityCellIndices(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCellIndices, popID);
                }
                for( vector< array<uint, 3> >::const_iterator it = vCellIndices.begin(); it != vCellIndices.end(); ++it ) {
                   //Go through every velocity cell:
@@ -1412,6 +1249,7 @@ namespace DRO {
    VariableRhoBackstream::VariableRhoBackstream(cuint popID): DataReductionOperator() {
       _popID = popID;
       _name = getObjectWrapper().particleSpecies[_popID].name;
+      _skip = (getObjectWrapper().particleSpecies[_popID].backstreamRadius == 0.0) ? true : false;
    }
    VariableRhoBackstream::~VariableRhoBackstream() { }
    
@@ -1420,7 +1258,7 @@ namespace DRO {
    bool VariableRhoBackstream::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
       dataSize =  sizeof(Real);
-      vectorSize = 1;
+      vectorSize = (_skip == true) ? 0 : 1;
       return true;
    }
    
@@ -1443,6 +1281,7 @@ namespace DRO {
    VariableRhoNonBackstream::VariableRhoNonBackstream(cuint popID): DataReductionOperator() {
       _popID = popID;
       _name = getObjectWrapper().particleSpecies[_popID].name;
+      _skip = (getObjectWrapper().particleSpecies[_popID].backstreamRadius == 0.0) ? true : false;
    }
    VariableRhoNonBackstream::~VariableRhoNonBackstream() { }
    
@@ -1451,7 +1290,7 @@ namespace DRO {
    bool VariableRhoNonBackstream::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
       dataSize =  sizeof(Real);
-      vectorSize = 1;
+      vectorSize = (_skip == true) ? 0 : 1;
       return true;
    }
    
@@ -1473,6 +1312,7 @@ namespace DRO {
    VariableVBackstream::VariableVBackstream(cuint popID): DataReductionOperator() {
       _popID = popID;
       _name = getObjectWrapper().particleSpecies[_popID].name;
+      _skip = (getObjectWrapper().particleSpecies[_popID].backstreamRadius == 0.0) ? true : false;
    }
    VariableVBackstream::~VariableVBackstream() { }
    
@@ -1481,7 +1321,7 @@ namespace DRO {
    bool VariableVBackstream::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
       dataSize =  sizeof(Real);
-      vectorSize = 3;
+      vectorSize = (_skip == true) ? 0 : 3;
       return true;
    }
 
@@ -1508,6 +1348,7 @@ namespace DRO {
    VariableVNonBackstream::VariableVNonBackstream(cuint popID): DataReductionOperator() {
       _popID = popID;
       _name = getObjectWrapper().particleSpecies[_popID].name;
+      _skip = (getObjectWrapper().particleSpecies[_popID].backstreamRadius == 0.0) ? true : false;
    }
    VariableVNonBackstream::~VariableVNonBackstream() { }
    
@@ -1516,7 +1357,7 @@ namespace DRO {
    bool VariableVNonBackstream::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
       dataSize =  sizeof(Real);
-      vectorSize = 3;
+      vectorSize = (_skip == true) ? 0 : 3;
       return true;
    }
 
@@ -1539,85 +1380,6 @@ namespace DRO {
       return true;
    }
 
-   // Scalar pressure of backstream
-   VariablePressureBackstream::VariablePressureBackstream(cuint popID): DataReductionOperator() {
-      _popID = popID;
-      _name = getObjectWrapper().particleSpecies[_popID].name;
-   }
-   VariablePressureBackstream::~VariablePressureBackstream() { }
-   
-   std::string VariablePressureBackstream::getName() const {return _name + "/PressureBackstream";}
-   
-   bool VariablePressureBackstream::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-      dataType = "float";
-      dataSize =  sizeof(Real);
-      vectorSize = 1;
-      return true;
-   }
-   
-   // Adding pressure backstream calculations to Vlasiator.
-   // p = m/3 * integral((v - <V>)^2 * f(r,v) dV), doing the sum of the x, y and z components.
-   bool VariablePressureBackstream::reduceData(const SpatialCell* cell,char* buffer) {
-      const bool calculateBackstream = true;
-      pressureBackstreamCalculations( cell, calculateBackstream, averageVX, averageVY, averageVZ, _popID, Pressure );
-      const char* ptr = reinterpret_cast<const char*>(&Pressure);
-      for (uint i = 0; i < sizeof(Real); ++i) buffer[i] = ptr[i];
-      return true;
-   }
-   
-   bool VariablePressureBackstream::setSpatialCell(const SpatialCell* cell) {
-      //Get v of the backstream:
-      Real V[3] = {0};
-      const bool calculateBackstream = true;
-      VBackstreamCalculation( cell, calculateBackstream, _popID, V );
-      //Set the average velocities:
-      averageVX = V[0];
-      averageVY = V[1];
-      averageVZ = V[2];
-      Pressure = 0.0;
-      return true;
-   }
-
-   // Scalar pressure of non backstream
-   VariablePressureNonBackstream::VariablePressureNonBackstream(cuint popID): DataReductionOperator() {
-      _popID = popID;
-      _name = getObjectWrapper().particleSpecies[_popID].name;
-   }
-   VariablePressureNonBackstream::~VariablePressureNonBackstream() { }
-   
-   std::string VariablePressureNonBackstream::getName() const {return _name + "/PressureNonBackstream";}
-   
-   bool VariablePressureNonBackstream::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-      dataType = "float";
-      dataSize =  sizeof(Real);
-      vectorSize = 1;
-      return true;
-   }
-   
-   // Adding pressure backstream calculations to Vlasiator.
-   // p = m/3 * integral((v - <V>)^2 * f(r,v) dV), doing the sum of the x, y and z components.
-   bool VariablePressureNonBackstream::reduceData(const SpatialCell* cell,char* buffer) {
-      const bool calculateBackstream = false;
-      pressureBackstreamCalculations( cell, calculateBackstream, averageVX, averageVY, averageVZ, _popID, Pressure );
-      const char* ptr = reinterpret_cast<const char*>(&Pressure);
-      for (uint i = 0; i < sizeof(Real); ++i) buffer[i] = ptr[i];
-      return true;
-   }
-   
-   bool VariablePressureNonBackstream::setSpatialCell(const SpatialCell* cell) {
-      //Get v of the backstream:
-      Real V[3] = {0};
-      const bool calculateBackstream = false;
-      VBackstreamCalculation( cell, calculateBackstream, _popID, V );
-      //Set the average velocities:
-      averageVX = V[0];
-      averageVY = V[1];
-      averageVZ = V[2];
-      Pressure = 0.0;
-      return true;
-   }
-
-
    // Adding pressure calculations for backstream population to Vlasiator.
    // p_ij = m/3 * integral((v - <V>)_i(v - <V>)_j * f(r,v) dV)
    
@@ -1627,6 +1389,7 @@ namespace DRO {
    VariablePTensorBackstreamDiagonal::VariablePTensorBackstreamDiagonal(cuint popID): DataReductionOperator() {
       _popID = popID;
       _name = getObjectWrapper().particleSpecies[_popID].name;
+      _skip = (getObjectWrapper().particleSpecies[_popID].backstreamRadius == 0.0) ? true : false;
    }
    VariablePTensorBackstreamDiagonal::~VariablePTensorBackstreamDiagonal() { }
    
@@ -1635,7 +1398,7 @@ namespace DRO {
    bool VariablePTensorBackstreamDiagonal::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
       dataSize =  sizeof(Real);
-      vectorSize = 3;
+      vectorSize = (_skip == true) ? 0 : 3;
       return true;
    }
    
@@ -1673,6 +1436,7 @@ namespace DRO {
    VariablePTensorNonBackstreamDiagonal::VariablePTensorNonBackstreamDiagonal(cuint popID): DataReductionOperator() {
       _popID = popID;
       _name = getObjectWrapper().particleSpecies[_popID].name;
+      _skip = (getObjectWrapper().particleSpecies[_popID].backstreamRadius == 0.0) ? true : false;
    }
    VariablePTensorNonBackstreamDiagonal::~VariablePTensorNonBackstreamDiagonal() { }
    
@@ -1681,7 +1445,7 @@ namespace DRO {
    bool VariablePTensorNonBackstreamDiagonal::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
       dataSize =  sizeof(Real);
-      vectorSize = 3;
+      vectorSize = (_skip == true) ? 0 : 3;
       return true;
    }
    
@@ -1713,6 +1477,7 @@ namespace DRO {
    VariablePTensorBackstreamOffDiagonal::VariablePTensorBackstreamOffDiagonal(cuint popID): DataReductionOperator() {
       _popID = popID;
       _name = getObjectWrapper().particleSpecies[_popID].name;
+      _skip = (getObjectWrapper().particleSpecies[_popID].backstreamRadius == 0.0) ? true : false;
    }
    VariablePTensorBackstreamOffDiagonal::~VariablePTensorBackstreamOffDiagonal() { }
    
@@ -1721,7 +1486,7 @@ namespace DRO {
    bool VariablePTensorBackstreamOffDiagonal::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
       dataSize =  sizeof(Real);
-      vectorSize = 3;
+      vectorSize = (_skip == true) ? 0 : 3;
       return true;
    }
    
@@ -1753,6 +1518,7 @@ namespace DRO {
    VariablePTensorNonBackstreamOffDiagonal::VariablePTensorNonBackstreamOffDiagonal(cuint popID): DataReductionOperator() {
       _popID = popID;
       _name = getObjectWrapper().particleSpecies[_popID].name;
+      _skip = (getObjectWrapper().particleSpecies[_popID].backstreamRadius == 0.0) ? true : false;
    }
    VariablePTensorNonBackstreamOffDiagonal::~VariablePTensorNonBackstreamOffDiagonal() { }
    
@@ -1761,7 +1527,7 @@ namespace DRO {
    bool VariablePTensorNonBackstreamOffDiagonal::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
       dataSize =  sizeof(Real);
-      vectorSize = 3;
+      vectorSize = (_skip == true) ? 0 : 3;
       return true;
    }
    
