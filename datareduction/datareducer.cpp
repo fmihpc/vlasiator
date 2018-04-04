@@ -25,7 +25,6 @@
 
 #include "datareducer.h"
 #include "../common.h"
-#include "dro_species_moments.h"
 #include "dro_populations.h"
 using namespace std;
 
@@ -342,10 +341,6 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       }
       if (*it == "PotentialError") {
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("poisson/pot_error",CellParams::PHI_TMP,1));
-         continue;
-      }
-      if (*it == "SpeciesMoments") {
-         outputReducer->addOperator(new DRO::SpeciesMoments);
          continue;
       }
       if (*it == "MeshData") {
