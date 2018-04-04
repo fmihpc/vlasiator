@@ -133,7 +133,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          continue;
       }
       
-      if(*it == "MinValue") {
+      if(*it == "populations_MinValue") {
          outputReducer->addOperator(new DRO::VariableMinValue);
          continue;
       }
