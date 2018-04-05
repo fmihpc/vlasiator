@@ -51,6 +51,7 @@ namespace SBC {
       const std::string defStr = "Copy";
       Readparameters::addComposing("outflow.face", "List of faces on which outflow boundary conditions are to be applied ([xyz][+-]).");
       Readparameters::addComposing("outflow.faceNoFields", "List of faces on which no field outflow boundary conditions are to be applied ([xyz][+-]).");
+      Readparameters::addComposing("outflow.reapplyFaceUponRestart", "List of faces on which outflow boundary conditions are to be reapplied upon restart ([xyz][+-]).");
       Readparameters::add("outflow.vlasovScheme_face_x+", "Scheme to use on the face x+ (Copy, Limit, None)", defStr);
       Readparameters::add("outflow.vlasovScheme_face_x-", "Scheme to use on the face x- (Copy, Limit, None)", defStr);
       Readparameters::add("outflow.vlasovScheme_face_y+", "Scheme to use on the face y+ (Copy, Limit, None)", defStr);
@@ -71,6 +72,10 @@ namespace SBC {
          exit(1);
       }
       if(!Readparameters::get("outflow.faceNoFields", this->faceNoFieldsList)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("outflow.reapplyFaceUponRestart", this->faceToReapplyUponRestartList)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
@@ -140,6 +145,7 @@ namespace SBC {
       for(uint i=0; i<6; i++) {
          facesToProcess[i] = false;
          facesToSkipFields[i] = false;
+         facesToReapply[i] = false;
       }
       
       this->getParameters();
@@ -166,6 +172,16 @@ namespace SBC {
          if(*it == "y-") facesToSkipFields[3] = true;
          if(*it == "z+") facesToSkipFields[4] = true;
          if(*it == "z-") facesToSkipFields[5] = true;
+      }
+      for (it = faceToReapplyUponRestartList.begin();
+           it != faceToReapplyUponRestartList.end();
+      it++) {
+         if(*it == "x+") facesToReapply[0] = true;
+         if(*it == "x-") facesToReapply[1] = true;
+         if(*it == "y+") facesToReapply[2] = true;
+         if(*it == "y-") facesToReapply[3] = true;
+         if(*it == "z+") facesToReapply[4] = true;
+         if(*it == "z-") facesToReapply[5] = true;
       }
       return true;
    }
@@ -205,16 +221,36 @@ namespace SBC {
          SpatialCell* cell = mpiGrid[cells[i]];
          if (cell->sysBoundaryFlag != this->getIndex()) continue;
          
-         // Defined in project.cpp, used here as the outflow cell has the same state 
-         // as the initial state of non-system boundary cells.
-         project.setCell(cell);
-         // WARNING Time-independence assumed here.
-         cell->parameters[CellParams::RHO_DT2] = cell->parameters[CellParams::RHO];
-         cell->parameters[CellParams::RHOVX_DT2] = cell->parameters[CellParams::RHOVX];
-         cell->parameters[CellParams::RHOVY_DT2] = cell->parameters[CellParams::RHOVY];
-         cell->parameters[CellParams::RHOVZ_DT2] = cell->parameters[CellParams::RHOVZ];
-      }
+         bool doApply = true;
+         
+         if(Parameters::isRestart) {
+            creal* const cellParams = &(mpiGrid[cells[i]]->parameters[0]);
+            creal dx = cellParams[CellParams::DX];
+            creal dy = cellParams[CellParams::DY];
+            creal dz = cellParams[CellParams::DZ];
+            creal x = cellParams[CellParams::XCRD] + 0.5*dx;
+            creal y = cellParams[CellParams::YCRD] + 0.5*dy;
+            creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
+            
+            bool isThisCellOnAFace[6];
+            determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz);
+            
+            doApply=false;
+            // Comparison of the array defining which faces to use and the array telling on which faces this cell is
+            for(uint j=0; j<6; j++) doApply = doApply || (facesToReapply[j] && isThisCellOnAFace[j]);
+         }
 
+         if(doApply) {
+            // Defined in project.cpp, used here as the outflow cell has the same state 
+            // as the initial state of non-system boundary cells.
+            project.setCell(cell);
+            // WARNING Time-independence assumed here.
+            cell->parameters[CellParams::RHO_DT2] = cell->parameters[CellParams::RHO];
+            cell->parameters[CellParams::RHOVX_DT2] = cell->parameters[CellParams::RHOVX];
+            cell->parameters[CellParams::RHOVY_DT2] = cell->parameters[CellParams::RHOVY];
+            cell->parameters[CellParams::RHOVZ_DT2] = cell->parameters[CellParams::RHOVZ];
+         }
+      }
       return true;
    }
 

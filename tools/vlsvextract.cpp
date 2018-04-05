@@ -369,27 +369,36 @@ void applyTranslation(const Real* V_bulk,Real* transform) {
    }
 }
 
-void applyRotation(const Real* B,Real* transform) {
+void applyRotation(const Real* B, const Real* v, Real* transform) {
    // Now we have the B vector, so now the idea is to rotate the v-coordinates so that B always faces z-direction
    // Since we're handling only one spatial cell, B is the same in every v-coordinate.
    const int _size = 3;
 
    Real rotAngle = 0.0;
    Matrix<Real, _size, 1> _B(B[0], B[1], B[2]);
-   Matrix<Real, _size, 1> unit_z(0, 0, 1);                 // Unit vector in z-direction
-   Matrix<Real, _size, 1> Bxu = _B.cross( unit_z );        // Cross product of B and unit_z
-   
+   _B.normalize();
+   Matrix<Real, _size, 1> _V(v[0], v[1], v[2]);
+   _V.normalize();
+   Matrix<Real, _size, 1> Bxu = _B.cross( _V );        // Cross product of B and unit_z
+
+   Matrix<Real, _size, 1> vOrthogonal = _V - _V.dot(_B) * _B;
+   vOrthogonal.normalize();
+
    // Check if divide by zero -- if there's division by zero, the B vector 
    // is already in the direction of z-axis and no need to do anything
    if ( (Bxu[0]*Bxu[0] + Bxu[1]*Bxu[1] + Bxu[2]*Bxu[2]) != 0 ) {
       // Determine the axis of rotation: (Note: Bxu[2] is zero)
-      Matrix<Real, _size, 1> axisDir = Bxu/(sqrt(Bxu[0]*Bxu[0] + Bxu[1]*Bxu[1] + Bxu[2]*Bxu[2]));
+      Matrix<Real, _size, 1> axisDir = Bxu;
+      axisDir.normalize();
 
-      // Determine the angle of rotation: (No need for a check for div/by/zero because of the above check)
-      rotAngle = -1 * acos(_B[2] / sqrt(_B[0]*_B[0] + _B[1]*_B[1] + _B[2]*_B[2])); //B_z / |B|
-
-      // Determine the rotation matrix and copy to output
-      Transform<Real, _size, _size> rotationMatrix( AngleAxis<Real>(rotAngle, axisDir) );
+      // Build the rotation matrix
+      Matrix<Real, _size, _size> rotationMatrix;
+      for(int i=0; i<_size; i++) {
+         rotationMatrix(i,0)=vOrthogonal[i];
+         rotationMatrix(i,1)=axisDir[i];
+         rotationMatrix(i,2)=_B[i];
+      }
+      //Transform<Real, _size, _size> rotationMatrix( AngleAxis<Real>(rotAngle, axisDir) );
 
       // Rotation matrix
       double Rot[16];
@@ -418,6 +427,7 @@ void applyRotation(const Real* B,Real* transform) {
    if (runDebug == true) {
       cerr << "***** DEBUGGING INFO FOR applyRotation() *****" << endl;
       cerr << "B = " << B[0] << '\t' << B[1] << '\t' << B[2] << endl;
+      cerr << "v = " << v[0] << '\t' << v[1] << '\t' << v[2] << endl;
       cerr << "rotAngle is " << 180.0/M_PI*rotAngle << " degrees " << endl;
       cerr << endl;
       cerr << "transform matrix components:" << endl;
@@ -519,7 +529,7 @@ void getBulkVelocity(Real* V_bulk,vlsvinterface::Reader& vlsvReader,const string
    V_bulk[2] = momentum[2] / (numberDensity + numeric_limits<double>::min());
 }
 
-void getB(Real* B,vlsvinterface::Reader& vlsvReader,const string& meshName,const uint64_t& cellID) {
+void getBandRhoV(Real* B, Real* rhoV,vlsvinterface::Reader& vlsvReader,const string& meshName,const uint64_t& cellID) {
    //Declarations
    vlsv::datatype::type cellIdDataType;
    uint64_t cellIdArraySize, cellIdVectorSize, cellIdDataSize;
@@ -654,6 +664,35 @@ void getB(Real* B,vlsvinterface::Reader& vlsvReader,const string& meshName,const
       cerr << "B  = " << B[0] << '\t' << B[1] << '\t' << B[2] << endl;
       cerr << endl;
    }
+
+   // Now read rhoV (this should be easier.)
+
+   bool V_read=false;
+   
+   if(V_read==false) {
+      xmlAttributes.clear();
+      xmlAttributes.push_back(make_pair("mesh",meshName));
+      xmlAttributes.push_back(make_pair("name","rhoV"));
+      V_read = vlsvReader.read("VARIABLE",xmlAttributes,cellIndex,1,rhoV,false);
+   }
+   if(V_read==false) {
+      Real moments_v[4];
+      Real* moment_ptr = moments_v;
+      xmlAttributes.clear();
+      xmlAttributes.push_back(make_pair("mesh",meshName));
+      xmlAttributes.push_back(make_pair("name","moments_v"));
+      V_read = vlsvReader.read("VARIABLE",xmlAttributes,cellIndex,1,moment_ptr,false);
+      if(V_read) {
+         rhoV[0] = moments_v[1];
+         rhoV[1] = moments_v[2];
+         rhoV[2] = moments_v[3];
+      }
+   }
+   if(V_read==false) {
+      cerr << "Faild to read rhoV in " << __FILE__ << " " << __LINE__ << endl;
+      exit(1);
+   }
+
 }
 
 bool convertVelocityBlocks2(
@@ -703,9 +742,10 @@ bool convertVelocityBlocks2(
    // Write transform matrix (if needed)
    if (rotate == true) {
       Real B[3];
+      Real rhoV[3];
       //Note: allocates memory and stores the vector value into B_ptr
-      getB(B,vlsvReader,meshName,cellID);
-      applyRotation(B,transform);
+      getBandRhoV(B,rhoV,vlsvReader,meshName,cellID);
+      applyRotation(B,rhoV,transform);
    }
 
    if (plasmaFrame == true || rotate == true) {
