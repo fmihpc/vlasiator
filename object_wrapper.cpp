@@ -66,10 +66,10 @@ bool ObjectWrapper::addPopulationParameters() {
      RP::add(pop + "_vspace.max_refinement_level","Maximum allowed mesh refinement level.", 1);
      
      // Backstreaming parameters
-     Readparameters::add(pop + "_backstream_vx", "Center coordinate for the maxwellian distribution. Used for calculating the backstream moments.", -500000.0);
-     Readparameters::add(pop + "_backstream_vy", "Center coordinate for the maxwellian distribution. Used for calculating the backstream moments.", 0.0);
-     Readparameters::add(pop + "_backstream_vz", "Center coordinate for the maxwellian distribution. Used for calculating the backstream moments.", 0.0);
-     Readparameters::add(pop + "_backstream_radius", "Radius of the maxwellian distribution. Used for calculating the backstream moments. If set to 0 (default), the backstream/non-backstream DROs are skipped.", 0.0);
+     Readparameters::add(pop + "_backstream.vx", "Center coordinate for the maxwellian distribution. Used for calculating the backstream moments.", -500000.0);
+     Readparameters::add(pop + "_backstream.vy", "Center coordinate for the maxwellian distribution. Used for calculating the backstream moments.", 0.0);
+     Readparameters::add(pop + "_backstream.vz", "Center coordinate for the maxwellian distribution. Used for calculating the backstream moments.", 0.0);
+     Readparameters::add(pop + "_backstream.radius", "Radius of the maxwellian distribution. Used for calculating the backstream moments. If set to 0 (default), the backstream/non-backstream DROs are skipped.", 0.0);
   }
 
   return true;
@@ -150,10 +150,10 @@ bool ObjectWrapper::getParameters() {
 
       
       //Get backstream/non-backstream moments parameters
-      Readparameters::get(pop + "_backstream_radius", species.backstreamRadius);
-      Readparameters::get(pop + "_backstream_vx", species.backstreamV[0]);
-      Readparameters::get(pop + "_backstream_vy", species.backstreamV[1]);
-      Readparameters::get(pop + "_backstream_vz", species.backstreamV[2]);
+      Readparameters::get(pop + "_backstream.radius", species.backstreamRadius);
+      Readparameters::get(pop + "_backstream.vx", species.backstreamV[0]);
+      Readparameters::get(pop + "_backstream.vy", species.backstreamV[1]);
+      Readparameters::get(pop + "_backstream.vz", species.backstreamV[2]);
    }
 
    return true;
