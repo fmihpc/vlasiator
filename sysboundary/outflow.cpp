@@ -203,12 +203,12 @@ namespace SBC {
          for (it = sP.faceToReapplyUponRestartList.begin();
               it != sP.faceToReapplyUponRestartList.end();
          it++) {
-            if(*it == "x+") sP.facesToReapply[0] = true;
-            if(*it == "x-") sP.facesToReapply[1] = true;
-            if(*it == "y+") sP.facesToReapply[2] = true;
-            if(*it == "y-") sP.facesToReapply[3] = true;
-            if(*it == "z+") sP.facesToReapply[4] = true;
-            if(*it == "z-") sP.facesToReapply[5] = true;
+            if(*it == "x+") facesToReapply[0] = true;
+            if(*it == "x-") facesToReapply[1] = true;
+            if(*it == "y+") facesToReapply[2] = true;
+            if(*it == "y-") facesToReapply[3] = true;
+            if(*it == "z+") facesToReapply[4] = true;
+            if(*it == "z-") facesToReapply[5] = true;
          }
       }
       return true;
@@ -266,9 +266,8 @@ namespace SBC {
             doApply=false;
             // Comparison of the array defining which faces to use and the array telling on which faces this cell is
             for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-               const OutflowSpeciesParameters& sP = this->speciesParams[i];
                for(uint j=0; j<6; j++) {
-                  doApply = doApply || (sP.facesToReapply[j] && isThisCellOnAFace[j]);
+                  doApply = doApply || (facesToReapply[j] && isThisCellOnAFace[j]);
                }
             }
          }
