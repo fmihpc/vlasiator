@@ -292,6 +292,7 @@ bool _readBlockData(
    const uint64_t localBlockStartOffset,
    const uint64_t localBlocks,
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   std::function<vmesh::GlobalID(vmesh::GlobalID)> cellIDremapper,
    const uint popID
 ) {   
    uint64_t arraySize;
@@ -359,6 +360,9 @@ bool _readBlockData(
       //copy blocks in this cell to vector blockIdsInCell, size of read in data has been checked earlier
       blockIdsInCell.reserve(nBlocksInCell);
       blockIdsInCell.assign(blockIdBuffer + blockBufferOffset, blockIdBuffer + blockBufferOffset + nBlocksInCell);
+      for(auto& id : blockIdsInCell) {
+         id = cellIDremapper(id);
+      }
       mpiGrid[cell]->add_velocity_blocks(blockIdsInCell,popID); //allocate space for all blocks and create them
       //copy avgs data, here a conversion may happen between float and double
       Realf *cellBlockData=mpiGrid[cell]->get_data(popID);
@@ -405,12 +409,109 @@ bool readBlockData(
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       const string& popName = getObjectWrapper().particleSpecies[popID].name;
 
+      // Create a cellID remapping lambda that can renumber our velocity space, should it's size have changed.
+      std::function<vmesh::GlobalID(vmesh::GlobalID)> cellIDremapper = [](vmesh::GlobalID oldID) -> vmesh::GlobalID {return oldID;};
+
+      // Check that velocity space extents and DV matches the grids we have created
       list<pair<string,string> > attribs;
-      attribs.push_back(make_pair("mesh",meshName));
-      attribs.push_back(make_pair("name",popName));      
+      attribs.push_back(make_pair("mesh",popName));
+      std::array<unsigned int, 6> fileMeshBBox;
+      unsigned int* bufferpointer = &fileMeshBBox[0];
+      if (file.read("MESH_BBOX",attribs,0,6,bufferpointer,false) == false) {
+         logFile << "(RESTART) ERROR: Failed to read MESH_BBOX at " << __FILE__ << ":" << __LINE__ << endl << write;
+         success = false;
+      }
+
+      const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
+      const vmesh::MeshParameters& ourMeshParams = getObjectWrapper().velocityMeshes[meshID];
+      if(fileMeshBBox[0] != ourMeshParams.gridLength[0] ||
+            fileMeshBBox[1] != ourMeshParams.gridLength[1] ||
+            fileMeshBBox[2] != ourMeshParams.gridLength[2]) {
+
+         if(ourMeshParams.gridLength[0] < fileMeshBBox[0] ||
+               ourMeshParams.gridLength[1] < fileMeshBBox[1] ||
+               ourMeshParams.gridLength[2] < fileMeshBBox[2]) {
+            logFile << "(RESTART) WARNING: trying to shrink velocity space has undefined behaviour if velocity cells outside of the new extents are encountered." << endl << write;
+         }
+
+         // If we are mismatched, we have to iterate through the velocity coords to see if we have a
+         // chance at renumbering.
+         std::vector<Real> fileVelCoordsX(fileMeshBBox[0]*fileMeshBBox[3]+1);
+         std::vector<Real> fileVelCoordsY(fileMeshBBox[1]*fileMeshBBox[4]+1);
+         std::vector<Real> fileVelCoordsZ(fileMeshBBox[2]*fileMeshBBox[5]+1);
+
+         Real* tempPointer = fileVelCoordsX.data();
+         if (file.read("MESH_NODE_CRDS_X",attribs,0,fileMeshBBox[0]*fileMeshBBox[3]+1,tempPointer,false) == false) {
+            logFile << "(RESTART) ERROR: Failed to read MESH_NODE_CRDS_X at " << __FILE__ << ":" << __LINE__ << endl << write;
+            success = false;
+         }
+         tempPointer = fileVelCoordsY.data();
+         if (file.read("MESH_NODE_CRDS_Y",attribs,0,fileMeshBBox[1]*fileMeshBBox[4]+1,tempPointer,false) == false) {
+            logFile << "(RESTART) ERROR: Failed to read MESH_NODE_CRDS_X at " << __FILE__ << ":" << __LINE__ << endl << write;
+            success = false;
+         }
+         tempPointer = fileVelCoordsZ.data();
+         if (file.read("MESH_NODE_CRDS_Z",attribs,0,fileMeshBBox[2]*fileMeshBBox[5]+1,tempPointer,false) == false) {
+            logFile << "(RESTART) ERROR: Failed to read MESH_NODE_CRDS_X at " << __FILE__ << ":" << __LINE__ << endl << write;
+            success = false;
+         }
+
+         const Real dVx = getObjectWrapper().velocityMeshes[meshID].cellSize[0];
+         for(const auto& c : fileVelCoordsX) {
+            Real cellindex = (c - getObjectWrapper().velocityMeshes[meshID].meshMinLimits[0]) / dVx;
+            if(nearbyint(cellindex) != cellindex) {
+               logFile << "(RESTART) ERROR: Can't resize velocity space as cell coordinates don't match." << endl
+                  << "(X coordinate " << c << " = " << cellindex <<" * " << dVx << " (dV))" << endl << write;
+               return false;
+            }
+         }
+
+         const Real dVy = getObjectWrapper().velocityMeshes[meshID].cellSize[1];
+         for(const auto& c : fileVelCoordsY) {
+            Real cellindex = (c - getObjectWrapper().velocityMeshes[meshID].meshMinLimits[1]) / dVy;
+            if(nearbyint(cellindex) != cellindex) {
+               logFile << "(RESTART) ERROR: Can't resize velocity space as cell coordinates don't match." << endl
+                  << "(Y coordinate " << c << " = " << cellindex <<" * " << dVy << " (dV))" << endl << write;
+               return false;
+            }
+         }
+
+         const Real dVz = getObjectWrapper().velocityMeshes[meshID].cellSize[2];
+         for(const auto& c : fileVelCoordsY) {
+            Real cellindex = (c - getObjectWrapper().velocityMeshes[meshID].meshMinLimits[2]) / dVz;
+            if(nearbyint(cellindex) != cellindex) {
+               logFile << "(RESTART) ERROR: Can't resize velocity space as cell coordinates don't match." << endl
+                  << "(Z coordinate " << c << " = " << cellindex <<" * " << dVz << " (dV))" << endl << write;
+               return false;
+            }
+         }
+
+         // If we haven't aborted above, we can apparently renumber our
+         // cellIDs. Build an approprita cellIDRemapper lambda for this purpose.
+         std::array<int, 3> velGridOffset;
+         velGridOffset[0] = (fileVelCoordsX[0] - getObjectWrapper().velocityMeshes[meshID].meshMinLimits[0]) / dVx;
+         velGridOffset[1] = (fileVelCoordsX[1] - getObjectWrapper().velocityMeshes[meshID].meshMinLimits[1]) / dVy;
+         velGridOffset[2] = (fileVelCoordsX[2] - getObjectWrapper().velocityMeshes[meshID].meshMinLimits[2]) / dVz;
+
+         cellIDremapper = [fileMeshBBox,velGridOffset,ourMeshParams](vmesh::GlobalID oldID) -> vmesh::GlobalID {
+            unsigned int x,y,z;
+            x = oldID % fileMeshBBox[0];
+            y = oldID / fileMeshBBox[0] % fileMeshBBox[1];
+            z = oldID / fileMeshBBox[0] / fileMeshBBox[1];
+
+            x += velGridOffset[0];
+            y += velGridOffset[1];
+            z += velGridOffset[2];
+
+            return x + y * ourMeshParams.gridLength[0] + z* ourMeshParams.gridLength[0] * ourMeshParams.gridLength[1];
+         };
+      }
 
       // In restart files each spatial cell has an entry in CELLSWITHBLOCKS. 
       // Each process calculates how many velocity blocks it has for this species.
+      attribs.clear();
+      attribs.push_back(make_pair("mesh",meshName));
+      attribs.push_back(make_pair("name",popName));
       vmesh::LocalID* blocksPerCell = NULL;
       
       if (file.read("BLOCKSPERCELL",attribs,localCellStartOffset,localCells,blocksPerCell,true) == false) {
@@ -442,33 +543,33 @@ bool readBlockData(
          switch (byteSize) {
             case sizeof(double):
                if (_readBlockData<double>(file,meshName,fileCells,localCellStartOffset,localCells,blocksPerCell,
-                                          myOffset,blockSum,mpiGrid,popID) == false) success = false;
+                                          myOffset,blockSum,mpiGrid,cellIDremapper,popID) == false) success = false;
                break;
             case sizeof(float):
                if (_readBlockData<float>(file,meshName,fileCells,localCellStartOffset,localCells,blocksPerCell,
-                                         myOffset,blockSum,mpiGrid,popID) == false) success = false;
+                                         myOffset,blockSum,mpiGrid,cellIDremapper,popID) == false) success = false;
                break;
          }
       } else if (dataType == vlsv::datatype::type::UINT) {
          switch (byteSize) {
             case sizeof(uint32_t):
                if (_readBlockData<uint32_t>(file,meshName,fileCells,localCellStartOffset,localCells,blocksPerCell,
-                                            myOffset,blockSum,mpiGrid,popID) == false) success = false;
+                                            myOffset,blockSum,mpiGrid,cellIDremapper,popID) == false) success = false;
                break;
             case sizeof(uint64_t):
                if (_readBlockData<uint64_t>(file,meshName,fileCells,localCellStartOffset,localCells,blocksPerCell,
-                                            myOffset,blockSum,mpiGrid,popID) == false) success = false;
+                                            myOffset,blockSum,mpiGrid,cellIDremapper,popID) == false) success = false;
                break;
          }
       } else if (dataType == vlsv::datatype::type::INT) {
          switch (byteSize) {
             case sizeof(int32_t):
                if (_readBlockData<int32_t>(file,meshName,fileCells,localCellStartOffset,localCells,blocksPerCell,
-                                           myOffset,blockSum,mpiGrid,popID) == false) success = false;
+                                           myOffset,blockSum,mpiGrid,cellIDremapper,popID) == false) success = false;
                break;
             case sizeof(int64_t):
                if (_readBlockData<int64_t>(file,meshName,fileCells,localCellStartOffset,localCells,blocksPerCell,
-                                           myOffset,blockSum,mpiGrid,popID) == false) success = false;
+                                           myOffset,blockSum,mpiGrid,cellIDremapper,popID) == false) success = false;
                break;
          }
       } else {
