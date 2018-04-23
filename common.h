@@ -64,7 +64,7 @@ void bailout(
 /* Maximum number of blocks in each dimension in velocity space. The
    size of velocity space defined in cfg can at maximum be this large
 */
-#define MAX_BLOCKS_PER_DIM 200
+#define MAX_BLOCKS_PER_DIM 256
 
 
 /*! A namespace for storing indices into an array which contains 

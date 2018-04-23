@@ -436,7 +436,8 @@ bool readBlockData(
          if(ourMeshParams.gridLength[0] < fileMeshBBox[0] ||
                ourMeshParams.gridLength[1] < fileMeshBBox[1] ||
                ourMeshParams.gridLength[2] < fileMeshBBox[2]) {
-            logFile << "(RESTART) WARNING: trying to shrink velocity space has undefined behaviour if velocity cells outside of the new extents are encountered." << endl << write;
+            logFile << "(RESTART) ERROR: trying to shrink velocity space." << endl << write;
+            abort();
          }
 
          // If we are mismatched, we have to iterate through the velocity coords to see if we have a
