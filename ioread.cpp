@@ -465,9 +465,10 @@ bool readBlockData(
          const Real dVx = getObjectWrapper().velocityMeshes[meshID].cellSize[0];
          for(const auto& c : fileVelCoordsX) {
             Real cellindex = (c - getObjectWrapper().velocityMeshes[meshID].meshMinLimits[0]) / dVx;
-            if(nearbyint(cellindex) != cellindex) {
+            if(fabs(nearbyint(cellindex) - cellindex) > 1./10000.) {
                logFile << "(RESTART) ERROR: Can't resize velocity space as cell coordinates don't match." << endl
-                  << "(X coordinate " << c << " = " << cellindex <<" * " << dVx << " (dV))" << endl << write;
+                  << "          (X coordinate " << c << " = " << cellindex <<" * " << dVx << " + " << getObjectWrapper().velocityMeshes[meshID].meshMinLimits[0] << endl
+                  << "           coordinate  = cellindex *   dV  +  meshMinLimits)" << endl << write;
                abort();
             }
          }
@@ -475,9 +476,10 @@ bool readBlockData(
          const Real dVy = getObjectWrapper().velocityMeshes[meshID].cellSize[1];
          for(const auto& c : fileVelCoordsY) {
             Real cellindex = (c - getObjectWrapper().velocityMeshes[meshID].meshMinLimits[1]) / dVy;
-            if(nearbyint(cellindex) != cellindex) {
+            if(fabs(nearbyint(cellindex) - cellindex) > 1./10000.) {
                logFile << "(RESTART) ERROR: Can't resize velocity space as cell coordinates don't match." << endl
-                  << "(Y coordinate " << c << " = " << cellindex <<" * " << dVy << " (dV))" << endl << write;
+                  << "           (Y coordinate " << c << " = " << cellindex <<" * " << dVy << " + " << getObjectWrapper().velocityMeshes[meshID].meshMinLimits[1] << endl
+                  << "           coordinate  = cellindex *   dV  +  meshMinLimits)" << endl << write;
                abort();
             }
          }
@@ -485,9 +487,10 @@ bool readBlockData(
          const Real dVz = getObjectWrapper().velocityMeshes[meshID].cellSize[2];
          for(const auto& c : fileVelCoordsY) {
             Real cellindex = (c - getObjectWrapper().velocityMeshes[meshID].meshMinLimits[2]) / dVz;
-            if(nearbyint(cellindex) != cellindex) {
+            if(fabs(nearbyint(cellindex) - cellindex) > 1./10000.) {
                logFile << "(RESTART) ERROR: Can't resize velocity space as cell coordinates don't match." << endl
-                  << "(Z coordinate " << c << " = " << cellindex <<" * " << dVz << " (dV))" << endl << write;
+                  << "           (Z coordinate " << c << " = " << cellindex <<" * " << dVz << " + " << getObjectWrapper().velocityMeshes[meshID].meshMinLimits[2] << endl
+                  << "           coordinate  = cellindex *   dV  +  meshMinLimits)" << endl << write;
                abort();
             }
          }
