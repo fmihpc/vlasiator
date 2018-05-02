@@ -35,6 +35,7 @@
 
 std::string B_field_name;
 std::string E_field_name;
+std::string rho_name;
 
 /* Read the cellIDs into an array */
 std::vector<uint64_t> readCellIds(vlsvinterface::Reader& r) {

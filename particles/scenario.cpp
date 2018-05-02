@@ -23,7 +23,7 @@
 #include <iostream>
 #include "scenario.h"
 
-ParticleContainer singleParticleScenario::initialParticles(Field& E, Field& B, Field& V) {
+ParticleContainer singleParticleScenario::initialParticles(Field& E, Field& B, Field& V, Field& R) {
 
    ParticleContainer particles;
 
@@ -37,7 +37,7 @@ ParticleContainer singleParticleScenario::initialParticles(Field& E, Field& B, F
 }
 
 void singleParticleScenario::afterPush(int step, double time, ParticleContainer& particles, 
-      Interpolated_Field& E, Interpolated_Field& B, Interpolated_Field& V) {
+      Interpolated_Field& E, Interpolated_Field& B, Interpolated_Field& V, Interpolated_Field& R) {
 
    Vec3d& x = particles[0].x;
    Vec3d& v = particles[0].v;
@@ -48,7 +48,7 @@ void singleParticleScenario::afterPush(int step, double time, ParticleContainer&
 
 
 
-ParticleContainer distributionScenario::initialParticles(Field& E, Field& B, Field& V) {
+ParticleContainer distributionScenario::initialParticles(Field& E, Field& B, Field& V, Field& R) {
 
    ParticleContainer particles;
 
@@ -76,7 +76,7 @@ ParticleContainer distributionScenario::initialParticles(Field& E, Field& B, Fie
 }
 
 void distributionScenario::newTimestep(int input_file_counter, int step, double time, ParticleContainer& particles,
-      Interpolated_Field& E, Interpolated_Field& B, Interpolated_Field& V) {
+      Interpolated_Field& E, Interpolated_Field& B, Interpolated_Field& V, Interpolated_Field& R) {
 
    char filename_buffer[256];
 
@@ -84,12 +84,12 @@ void distributionScenario::newTimestep(int input_file_counter, int step, double 
    writeParticles(particles, filename_buffer);
 }
 
-void distributionScenario::finalize(ParticleContainer& particles, Field& E, Field& B, Field& V) {
+void distributionScenario::finalize(ParticleContainer& particles, Field& E, Field& B, Field& V, Field& R) {
    writeParticles(particles, "particles_final.vlsv");
 }
 
 void precipitationScenario::afterPush(int step, double time, ParticleContainer& particles,
-      Interpolated_Field& E, Interpolated_Field& B, Interpolated_Field& V) {
+      Interpolated_Field& E, Interpolated_Field& B, Interpolated_Field& V, Interpolated_Field& R) {
 
    for(unsigned int i=0; i<particles.size(); i++) {
 
@@ -126,7 +126,7 @@ void precipitationScenario::afterPush(int step, double time, ParticleContainer& 
 }
 
 void precipitationScenario::newTimestep(int input_file_counter, int step, double time, ParticleContainer& particles,
-      Interpolated_Field& E, Interpolated_Field& B, Interpolated_Field& V) {
+      Interpolated_Field& E, Interpolated_Field& B, Interpolated_Field& V, Interpolated_Field& R) {
 
    // Create particles along the negative x-axis, from inner boundary
    // up to outer one
@@ -161,7 +161,7 @@ void precipitationScenario::newTimestep(int input_file_counter, int step, double
 }
 
 
-ParticleContainer analysatorScenario::initialParticles(Field& E, Field& B, Field& V) {
+ParticleContainer analysatorScenario::initialParticles(Field& E, Field& B, Field& V, Field& R) {
 
    ParticleContainer particles;
 
@@ -181,7 +181,7 @@ ParticleContainer analysatorScenario::initialParticles(Field& E, Field& B, Field
 }
 
 void analysatorScenario::newTimestep(int input_file_counter, int step, double time, ParticleContainer& particles,
-      Interpolated_Field& E, Interpolated_Field& B, Interpolated_Field& V) {
+      Interpolated_Field& E, Interpolated_Field& B, Interpolated_Field& V, Interpolated_Field& R) {
 
    for(unsigned int i=0; i< particles.size(); i++) {
       Vec3d& x = particles[i].x;
@@ -192,7 +192,7 @@ void analysatorScenario::newTimestep(int input_file_counter, int step, double ti
 }
 
 void shockReflectivityScenario::newTimestep(int input_file_counter, int step, double time,
-      ParticleContainer& particles, Interpolated_Field& E, Interpolated_Field& B, Interpolated_Field& V) {
+      ParticleContainer& particles, Interpolated_Field& E, Interpolated_Field& B, Interpolated_Field& V, Interpolated_Field& R) {
 
    const int num_points = 200;
 
@@ -243,7 +243,7 @@ void shockReflectivityScenario::newTimestep(int input_file_counter, int step, do
 }
 
 void shockReflectivityScenario::afterPush(int step, double time, ParticleContainer& particles,
-      Interpolated_Field& E, Interpolated_Field& B, Interpolated_Field& V) {
+      Interpolated_Field& E, Interpolated_Field& B, Interpolated_Field& V, Interpolated_Field& R) {
 
    for(unsigned int i=0; i<particles.size(); i++) {
 
@@ -288,7 +288,7 @@ void shockReflectivityScenario::afterPush(int step, double time, ParticleContain
    }
 }
 
-void shockReflectivityScenario::finalize(ParticleContainer& particles, Field& E, Field& B, Field& V) {
+void shockReflectivityScenario::finalize(ParticleContainer& particles, Field& E, Field& B, Field& V, Field& R) {
    transmitted.save("transmitted.dat");
    transmitted.writeBovAscii("transmitted.dat.bov",0,"transmitted.dat");
    reflected.save("reflected.dat");
@@ -296,7 +296,7 @@ void shockReflectivityScenario::finalize(ParticleContainer& particles, Field& E,
 }
 
 
-ParticleContainer ipShockScenario::initialParticles(Field& E, Field& B, Field& V) {
+ParticleContainer ipShockScenario::initialParticles(Field& E, Field& B, Field& V, Field& R) {
 
   // Open output files for transmission and reflection
   traFile = fopen("transmitted.dat","w"); 
@@ -339,7 +339,7 @@ ParticleContainer ipShockScenario::initialParticles(Field& E, Field& B, Field& V
 }
 
 void ipShockScenario::newTimestep(int input_file_counter, int step, double time, ParticleContainer& particles,
-      Interpolated_Field& E, Interpolated_Field& B, Interpolated_Field& V) {
+      Interpolated_Field& E, Interpolated_Field& B, Interpolated_Field& V, Interpolated_Field& R) {
 
    char filename_buffer[256];
 
@@ -348,7 +348,7 @@ void ipShockScenario::newTimestep(int input_file_counter, int step, double time,
 }
 
 void ipShockScenario::afterPush(int step, double time, ParticleContainer& particles,
-      Interpolated_Field& E, Interpolated_Field& B, Interpolated_Field& V) {
+      Interpolated_Field& E, Interpolated_Field& B, Interpolated_Field& V, Interpolated_Field& R) {
   
   /* Perform transmission / reflection check for each particle */
    for(unsigned int i=0; i<particles.size(); i++) {
@@ -398,7 +398,7 @@ void ipShockScenario::afterPush(int step, double time, ParticleContainer& partic
    fflush(refFile);
 }
 
-void ipShockScenario::finalize(ParticleContainer& particles, Field& E, Field& B, Field& V) {
+void ipShockScenario::finalize(ParticleContainer& particles, Field& E, Field& B, Field& V, Field& R) {
    writeParticles(particles, "particles_final.vlsv");
    /* histograms */
    //transmitted.save("transmitted.dat");
@@ -416,7 +416,7 @@ void ipShockScenario::finalize(ParticleContainer& particles, Field& E, Field& B,
 
 
 
-ParticleContainer InjectionScenario::initialParticles(Field& E, Field& B, Field& V) {
+ParticleContainer InjectionScenario::initialParticles(Field& E, Field& B, Field& V, Field& R) {
 
    // Open output files for transmission and reflection
    initFile = fopen("inj_init.dat","w"); 
@@ -518,7 +518,7 @@ ParticleContainer InjectionScenario::initialParticles(Field& E, Field& B, Field&
 }
 
 void InjectionScenario::newTimestep(int input_file_counter, int step, double time, ParticleContainer& particles,
-      Interpolated_Field& E, Interpolated_Field& B, Interpolated_Field& V) {
+      Interpolated_Field& E, Interpolated_Field& B, Interpolated_Field& V, Interpolated_Field& R) {
 
    char filename_buffer[256];
 
@@ -527,7 +527,7 @@ void InjectionScenario::newTimestep(int input_file_counter, int step, double tim
 }
 
 void InjectionScenario::beforePush(ParticleContainer& particles,
-				   Interpolated_Field& E, Interpolated_Field& B, Interpolated_Field& V) {
+				   Interpolated_Field& E, Interpolated_Field& B, Interpolated_Field& V, Interpolated_Field& R) {
   /* Save pitch-angles for tracking purposes */
   for(unsigned int i=0; i<particles.size(); i++) {
     if(isnan(vector_length(particles[i].x))) {
@@ -540,7 +540,7 @@ void InjectionScenario::beforePush(ParticleContainer& particles,
 }
 
 void InjectionScenario::afterPush(int step, double time, ParticleContainer& particles,
-      Interpolated_Field& E, Interpolated_Field& B, Interpolated_Field& V) {
+      Interpolated_Field& E, Interpolated_Field& B, Interpolated_Field& V, Interpolated_Field& R) {
   
   /* Perform transmission / reflection check for each particle */
    for(unsigned int i=0; i<particles.size(); i++) {
@@ -636,8 +636,10 @@ void InjectionScenario::afterPush(int step, double time, ParticleContainer& part
       // Check to see if particle pitch-angle has changed i.e. kick has been received
       Vec3d Bval;
       Vec3d Eval;
+      Vec3d Rval;
       Bval = B(particles[i].x);
       Eval = E(particles[i].x);
+      Rval = R(particles[i].x);
       Real newmu = dot_product(normalize_vector(particles[i].v), normalize_vector(B(particles[i].x)));
       //if (particles[i].mu * newmu < 0) {
       if (current_mu[i] * newmu < 0) {
@@ -655,8 +657,18 @@ void InjectionScenario::afterPush(int step, double time, ParticleContainer& part
       accumulated_B[i] += abs(newmu-current_mu[i]) * sqrt( Bval[0]*Bval[0] + Bval[1]*Bval[1] + Bval[2]*Bval[2] );
       accumulated_mu[i] += abs(newmu-current_mu[i]);
 
-      // Check if particle has just now met shock for the first time
-      if ( (r < r0 + ParticleParameters::injection_r_meet) && (fs_hasmet[i]==false) ) {
+      // Check if particle has just now met shock for the first time (based on distance)
+      if ( (r < r0 + ParticleParameters::injection_r_meet) && (fs_hasmet[i]==false) && (ParticleParameters::injection_rho_meet < 1)) {
+	fs_hasmet[i]=true;
+	fprintf(meetFile,"%d %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e\n", i, time, 
+		particles[i].x[0], particles[i].x[1], particles[i].x[2],
+		particles[i].v[0], particles[i].v[1], particles[i].v[2],
+		.5 * particles[i].m * dot_product(particles[i].v, particles[i].v) / PhysicalConstantsSI::e,
+		dot_product(normalize_vector(particles[i].v), normalize_vector(B(particles[i].x))), 
+		Bval[0], Bval[1], Bval[2], Eval[0], Eval[1], Eval[2]);
+      }
+      // Check if particle has just now met shock for the first time (based on density)
+      if ( (Rval[0] > ParticleParameters::injection_rho_meet) && (fs_hasmet[i]==false) && (ParticleParameters::injection_r_meet > 1)) {
 	fs_hasmet[i]=true;
 	fprintf(meetFile,"%d %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e\n", i, time, 
 		particles[i].x[0], particles[i].x[1], particles[i].x[2],
@@ -675,7 +687,7 @@ void InjectionScenario::afterPush(int step, double time, ParticleContainer& part
    fflush(meetFile);
 }
 
-void InjectionScenario::finalize(ParticleContainer& particles, Field& E, Field& B, Field& V) {
+void InjectionScenario::finalize(ParticleContainer& particles, Field& E, Field& B, Field& V, Field& R) {
    writeParticles(particles, "particles_final.vlsv");
    /* histograms */
    //transmitted.save("transmitted.dat");

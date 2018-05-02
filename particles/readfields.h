@@ -33,6 +33,7 @@
 
 extern std::string B_field_name;
 extern std::string E_field_name;
+extern std::string rho_name;
 
 /* Read the cellIDs into an array */
 std::vector<uint64_t> readCellIds(vlsvinterface::Reader& r);
@@ -63,6 +64,17 @@ static void detect_field_names(Reader& r) {
       std::cerr << "No B- or E-fields found! Strange file format?" << std::endl;
       exit(1);
    }
+   if(find(variableNames.begin(), variableNames.end(), std::string("rho"))!=variableNames.end()) {   
+     rho_name = "rho";
+   } else if (find(variableNames.begin(), variableNames.end(), std::string("proton/rho"))!=variableNames.end()) {
+     rho_name = "proton/rho";
+   } else if (find(variableNames.begin(), variableNames.end(), std::string("rhom"))!=variableNames.end()) {
+     rho_name = "rhom";
+   } else {
+      std::cerr << "Error, could not identify plasma density variable." << std::endl;
+      exit(1);
+   }
+
 }
 
 /* Read the "raw" field data in file order */
@@ -90,7 +102,7 @@ std::vector<double> readFieldData(Reader& r, std::string& name, unsigned int num
    std::vector<double> buffer(arraySize*vectorSize);
 
    if( r.readArray("VARIABLE",attribs,0,arraySize,(char*) buffer.data()) == false) {
-      std::cerr << "readArray faied when trying to read VARIABLE \"" << name << "\"." << std::endl;
+      std::cerr << "readArray failed when trying to read VARIABLE \"" << name << "\"." << std::endl;
       exit(1);
    }
 
@@ -103,7 +115,7 @@ std::vector<double> readFieldData(Reader& r, std::string& name, unsigned int num
  */
 template <class Reader>
 bool readNextTimestep(const std::string& filename_pattern, double t, int step, Field& E0, Field& E1,
-		      Field& B0, Field& B1, Field& V0, Field& V1, bool doV, int& input_file_counter) {
+		      Field& B0, Field& B1, Field& V0, Field& V1, Field& R0, Field& R1, bool doV, bool doRho, int& input_file_counter) {
 
    char filename_buffer[256];
    bool retval = false;
@@ -142,18 +154,22 @@ bool readNextTimestep(const std::string& filename_pattern, double t, int step, F
       name = E_field_name;
       std::vector<double> Ebuffer = readFieldData(r,name,3u);
       std::vector<double> Vbuffer;
+      std::vector<double> Rhobuffer;
       if(doV) {
 	V0=V1;
 	// TODO: This bit doesn't support newer file formats properly. Or multipop?
 	name = "rho_v";
 	std::vector<double> rho_v_buffer = readFieldData(r,name,3u);
-	name = "rho";
-	std::vector<double> rho_buffer = readFieldData(r,name,1u);
+	std::vector<double> rho_buffer = readFieldData(r,rho_name,1u);
 	for(unsigned int i=0; i<rho_buffer.size(); i++) {
 	  Vbuffer.push_back(rho_v_buffer[3*i] / rho_buffer[i]);
 	  Vbuffer.push_back(rho_v_buffer[3*i+1] / rho_buffer[i]);
 	  Vbuffer.push_back(rho_v_buffer[3*i+2] / rho_buffer[i]);
 	}
+      }
+      if(doRho) {
+	R0=R1;
+	Rhobuffer = readFieldData(r,rho_name,1u);
       }
       /* Assign them, without sanity checking */
       /* TODO: Is this actually a good idea? */
@@ -178,6 +194,12 @@ bool readNextTimestep(const std::string& filename_pattern, double t, int step, F
 	  Vtgt[1] = Vbuffer[3*i+1];
 	  Vtgt[2] = Vbuffer[3*i+2];
 	}
+	if(doRho) {
+	  double* Rtgt = R1.getCellRef(x,y,z);
+	  Rtgt[0] = Rhobuffer[i];
+	  Rtgt[1] = 0;
+	  Rtgt[2] = 0;
+	}
       }
       r.close();
       retval = true;
@@ -188,18 +210,18 @@ bool readNextTimestep(const std::string& filename_pattern, double t, int step, F
 
 /* Non-template version, autodetecting the reader type */
 static bool readNextTimestep(const std::string& filename_pattern, double t, int step, Field& E0, Field& E1,
-      Field& B0, Field& B1, Field& V0, Field& V1, bool doV, int& input_file_counter) {
+      Field& B0, Field& B1, Field& V0, Field& V1, Field& R0, Field& R1, bool doV, bool doRho, int& input_file_counter) {
 
    char filename_buffer[256];
    snprintf(filename_buffer,256,filename_pattern.c_str(),input_file_counter);
 
    return readNextTimestep<vlsvinterface::Reader>(filename_pattern, t,
-						  step,E0,E1,B0,B1,V0,V1,doV,input_file_counter);
+						  step,E0,E1,B0,B1,V0,V1,R0,R1,doV,doRho,input_file_counter);
 }
 
 /* Read E- and B-Fields as well as velocity field from a vlsv file */
 template <class Reader>
-void readfields(const char* filename, Field& E, Field& B, Field& V, bool doV=true) {
+void readfields(const char* filename, Field& E, Field& B, Field& V, Field& R, bool doV=true, bool doRho=true) {
    Reader r;
 
 #ifdef DEBUG
@@ -226,8 +248,10 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, bool doV=tru
    if(doV) {
      name = "rho_v";
      rho_v_buffer = readFieldData(r,name,3u);
-     name = "rho";
-     rho_buffer = readFieldData(r,name,1u);
+     rho_buffer = readFieldData(r,rho_name,1u);
+   }
+   if(doRho) {
+     rho_buffer = readFieldData(r,rho_name,1u);
    }
 
    /* Coordinate Boundaries */
@@ -260,6 +284,9 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, bool doV=tru
 	 if(doV) {
 		 V.data.resize(4*cells[0]*cells[1]*cells[2]);
 	 }
+	 if(doRho) {
+		 R.data.resize(4*cells[0]*cells[1]*cells[2]);
+	 }
 
    /* Sanity-check stored data sizes */
    if(3*cellIds.size() != Bbuffer.size()) {
@@ -274,12 +301,19 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, bool doV=tru
    }
    if(doV) {
      if(3*cellIds.size() != rho_v_buffer.size()) {
-        std::cerr << "3 * cellIDs.size (" << cellIds.size() << ") != rho_v_buffer.size (" << Ebuffer.size() << ")!"
+        std::cerr << "3 * cellIDs.size (" << cellIds.size() << ") != rho_v_buffer.size (" << rho_v_buffer.size() << ")!"
            << std::endl;
         exit(1);
      }
      if(cellIds.size() != rho_buffer.size()) {
-        std::cerr << "cellIDs.size (" << cellIds.size() << ") != rho_buffer.size (" << Ebuffer.size() << ")!"
+        std::cerr << "cellIDs.size (" << cellIds.size() << ") != rho_buffer.size (" << rho_buffer.size() << ")!"
+           << std::endl;
+        exit(1);
+     }
+   }
+   if(doRho) {
+     if(cellIds.size() != rho_buffer.size()) {
+        std::cerr << "cellIDs.size (" << cellIds.size() << ") != rho_buffer.size (" << rho_buffer.size() << ")!"
            << std::endl;
         exit(1);
      }
@@ -288,20 +322,20 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, bool doV=tru
    // Make sure the target fields have boundary data.
    if(E.dimension[0] == nullptr || E.dimension[1] == nullptr || E.dimension[2] == nullptr) {
       std::cerr << "Warning: Field boundary pointers uninitialized!" << std::endl;
-      E.dimension[0] = B.dimension[0] = V.dimension[0] = createBoundary<OpenBoundary>(0);
-      E.dimension[1] = B.dimension[1] = V.dimension[1] = createBoundary<OpenBoundary>(1);
-      E.dimension[2] = B.dimension[2] = V.dimension[2] = createBoundary<OpenBoundary>(2);
+      E.dimension[0] = B.dimension[0] = V.dimension[0] = R.dimension[0] = createBoundary<OpenBoundary>(0);
+      E.dimension[1] = B.dimension[1] = V.dimension[1] = R.dimension[1] = createBoundary<OpenBoundary>(1);
+      E.dimension[2] = B.dimension[2] = V.dimension[2] = R.dimension[2] = createBoundary<OpenBoundary>(2);
    }
    /* Set field sizes */
    for(int i=0; i<3;i++) {
       /* Volume-centered values -> shift by half a cell in all directions*/
-      E.dx[i] = B.dx[i] = V.dx[i] = (max[i]-min[i])/cells[i];
+      E.dx[i] = B.dx[i] = V.dx[i] = R.dx[i]= (max[i]-min[i])/cells[i];
       double shift = E.dx[i]/2;
-      E.dimension[i]->min = B.dimension[i]->min = V.dimension[i]->min = min[i]+shift;
-      E.dimension[i]->max = B.dimension[i]->max = V.dimension[i]->max = max[i]+shift;
-      E.dimension[i]->cells = B.dimension[i]->cells = V.dimension[i]->cells = cells[i];
+      E.dimension[i]->min = B.dimension[i]->min = V.dimension[i]->min = R.dimension[i]->min = min[i]+shift;
+      E.dimension[i]->max = B.dimension[i]->max = V.dimension[i]->max = R.dimension[i]->max = max[i]+shift;
+      E.dimension[i]->cells = B.dimension[i]->cells = V.dimension[i]->cells = R.dimension[i]->cells = cells[i];
    }
-   E.time = B.time = V.time = time;
+   E.time = B.time = V.time = R.time = time;
 
    /* So, now we've got the cellIDs, the mesh size and the field values,
     * we can sort them into place */
@@ -326,14 +360,20 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, bool doV=tru
         Vtgt[1] = rho_v_buffer[3*i+1] / rho_buffer[i];
         Vtgt[2] = rho_v_buffer[3*i+2] / rho_buffer[i];
       }
+      if(doRho) {
+        double* Rtgt = R.getCellRef(x,y,z);
+        Rtgt[0] = rho_buffer[i];
+        Rtgt[1] = 0;
+        Rtgt[2] = 0;
+      }
    }
 
    r.close();
 }
 
 /* Non-template version, autodetecting the reader type */
-static void readfields(const char* filename, Field& E, Field& B, Field& V, bool doV=true) {
-  readfields<vlsvinterface::Reader>(filename,E,B,V,doV);
+static void readfields(const char* filename, Field& E, Field& B, Field& V, Field& R, bool doV=true, bool doRho=true) {
+  readfields<vlsvinterface::Reader>(filename,E,B,V,R,doV,doRho);
 }
 
 /* For debugging purposes - dump a field into a png file */
