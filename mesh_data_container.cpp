@@ -34,9 +34,9 @@ namespace mesh {
 
    MeshDataContainer::MeshDataContainer(): initialized(false) { }
    
-   bool MeshDataContainer::initialize() {
+   bool MeshDataContainer::initialize(const std::string& name) {
       vmesh::MeshParameters meshParams;
-      meshParams.name = "SpatialGrid";
+      meshParams.name = name;
       meshParams.max_velocity_blocks = numeric_limits<vmesh::LocalID>::max();
       meshParams.meshLimits[0] = Parameters::xmin;
       meshParams.meshLimits[1] = Parameters::xmax;

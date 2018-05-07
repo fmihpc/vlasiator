@@ -41,14 +41,15 @@ namespace projects {
                                          creal& dx, creal& dy, creal& dz,
                                          creal& vx, creal& vy, creal& vz,
                                          creal& dvx, creal& dvy, creal& dvz,
-                                         const int& popID
-                                        );
+                                         const uint popID
+                                        ) const;
       
     protected:
       virtual std::vector<std::array<Real, 3>> getV0(
                                                      creal x,
                                                      creal y,
-                                                     creal z
+                                                     creal z,
+                                                     const uint popID
                                                     ) const;
       
       Real param;

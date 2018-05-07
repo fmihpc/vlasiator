@@ -25,7 +25,7 @@
 
 #include "datareducer.h"
 #include "../common.h"
-#include "dro_species_moments.h"
+#include "dro_populations.h"
 using namespace std;
 
 void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosticReducer)
@@ -52,70 +52,63 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("E",CellParams::EX,3));
          continue;
       }
-      if(*it == "Rho") {
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("rho",CellParams::RHO,1));
+      if(*it == "Rhom") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("rhom",CellParams::RHOM,1));
          continue;
       }
-      if(*it == "RhoBackstream") {
-         outputReducer->addOperator(new DRO::VariableRhoBackstream);
+      if(*it == "Rhoq") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("rhoq",CellParams::RHOQ,1));
          continue;
       }
-      if(*it == "RhoV") {
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("rho_v",CellParams::RHOVX,3));
+      if(*it == "populations_Rho") {
+         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+            species::Species& species=getObjectWrapper().particleSpecies[i];
+            const std::string& pop = species.name;
+            outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + "/rho", i, offsetof(spatial_cell::Population, RHO), 1));
+         }
          continue;
       }
-      if(*it == "RhoVBackstream") {
-         outputReducer->addOperator(new DRO::VariableRhoVBackstream);
+      
+      if(*it == "V") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("V",CellParams::VX,3));
          continue;
       }
-      if(*it == "RhoVNonBackstream") {
-         outputReducer->addOperator(new DRO::VariableRhoVNonBackstream);
+      if(*it == "populations_V") {
+         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+            species::Species& species=getObjectWrapper().particleSpecies[i];
+            const std::string& pop = species.name;
+            outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + "/V", i, offsetof(spatial_cell::Population, V), 3));
+         }
          continue;
       }
-      if(*it == "PressureBackstream") {
-         outputReducer->addOperator(new DRO::VariablePressureBackstream);
+      if(*it == "populations_moments_Backstream") {
+         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+            outputReducer->addOperator(new DRO::VariableRhoBackstream(i));
+            outputReducer->addOperator(new DRO::VariableVBackstream(i));
+            outputReducer->addOperator(new DRO::VariablePTensorBackstreamDiagonal(i));
+            outputReducer->addOperator(new DRO::VariablePTensorBackstreamOffDiagonal(i));
+         }
          continue;
       }
-      if(*it == "PTensorBackstreamDiagonal") {
-         outputReducer->addOperator(new DRO::VariablePTensorBackstreamDiagonal);
+      if(*it == "populations_moments_NonBackstream") {
+         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+            outputReducer->addOperator(new DRO::VariableRhoNonBackstream(i));
+            outputReducer->addOperator(new DRO::VariableVNonBackstream(i));
+            outputReducer->addOperator(new DRO::VariablePTensorNonBackstreamDiagonal(i));
+            outputReducer->addOperator(new DRO::VariablePTensorNonBackstreamOffDiagonal(i));
+         }
          continue;
       }
-      if(*it == "PTensorNonBackstreamDiagonal") {
-         outputReducer->addOperator(new DRO::VariablePTensorNonBackstreamDiagonal);
-         continue;
-      }
-      if(*it == "PTensorBackstreamOffDiagonal") {
-         outputReducer->addOperator(new DRO::VariablePTensorBackstreamOffDiagonal);
-         continue;
-      }
-      if(*it == "PTensorNonBackstreamOffDiagonal") {
-         outputReducer->addOperator(new DRO::VariablePTensorNonBackstreamOffDiagonal);
-         continue;
-      }
-      if(*it == "PTensorBackstream") {
-         outputReducer->addOperator(new DRO::VariablePTensorBackstreamDiagonal);
-         outputReducer->addOperator(new DRO::VariablePTensorBackstreamOffDiagonal);
-         continue;
-      }
-      if(*it == "PTensorNonBackstream") {
-         outputReducer->addOperator(new DRO::VariablePTensorNonBackstreamDiagonal);
-         outputReducer->addOperator(new DRO::VariablePTensorNonBackstreamOffDiagonal);
-         continue;
-      }
-      if(*it == "MinValue") {
+      if(*it == "populations_MinValue") {
          outputReducer->addOperator(new DRO::VariableMinValue);
          continue;
       }
-      if(*it == "RhoNonBackstream") {
-         outputReducer->addOperator(new DRO::VariableRhoNonBackstream);
-         continue;
-      }
-      if(*it == "RhoLossAdjust") {
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("rho_loss_adjust",CellParams::RHOLOSSADJUST,1));
-         continue;
-      }
-      if(*it == "RhoLossVelBoundary") {
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("rho_loss_velocity_boundary",CellParams::RHOLOSSVELBOUNDARY,1));
+      if(*it == "populations_RhomLossAdjust") {
+         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+            species::Species& species=getObjectWrapper().particleSpecies[i];
+            const std::string& pop = species.name;
+            outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + "/rhom_loss_adjust", i, offsetof(spatial_cell::Population, RHOMLOSSADJUST), 1));
+         }
          continue;
       }
       if(*it == "LBweight") {
@@ -138,6 +131,14 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::MPIrank);
          continue;
       }
+      if(*it == "FsGridRank") {
+         outputReducer->addOperator(new DRO::FsGridRank);
+         continue;
+      }
+      if(*it == "FsGridBoundaryType") {
+         outputReducer->addOperator(new DRO::FsGridBoundaryType);
+         continue;
+      }
       if(*it == "BoundaryType") {
          outputReducer->addOperator(new DRO::BoundaryType);
          continue;
@@ -147,16 +148,22 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::BoundaryLayerNew);
          continue;
       }
-      if(*it == "Blocks") {
-         outputReducer->addOperator(new DRO::Blocks);
+      if (*it == "populations_Blocks") {
+         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+            outputReducer->addOperator(new DRO::Blocks(i));
+         }
          continue;
       }
       if(*it == "fSaved") {
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("fSaved",CellParams::ISCELLSAVINGF,1));
          continue;
       }
-      if(*it == "accSubcycles") {
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("acc_subcycles",CellParams::ACCSUBCYCLES,1));
+      if(*it == "populations_accSubcycles") {
+         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+            species::Species& species=getObjectWrapper().particleSpecies[i];
+            const std::string& pop = species.name;
+            outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<uint>(pop + "/acc_subcycles", i, offsetof(spatial_cell::Population, ACCSUBCYCLES), 1));
+         }
          continue;
       }
       if(*it == "VolE") {
@@ -182,33 +189,6 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EGRADPE",CellParams::EXGRADPE,3));
          continue;
       }
-      if(*it == "BackgroundBedge") {
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBX_000_010",CellParams::BGBX_000_010,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBX_100_110",CellParams::BGBX_100_110,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBX_001_011",CellParams::BGBX_001_011,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBX_101_111",CellParams::BGBX_101_111,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBX_000_001",CellParams::BGBX_000_001,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBX_100_101",CellParams::BGBX_100_101,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBX_010_011",CellParams::BGBX_010_011,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBX_110_111",CellParams::BGBX_110_111,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBY_000_100",CellParams::BGBY_000_100,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBY_010_110",CellParams::BGBY_010_110,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBY_001_101",CellParams::BGBY_001_101,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBY_011_111",CellParams::BGBY_011_111,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBY_000_001",CellParams::BGBY_000_001,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBY_100_101",CellParams::BGBY_100_101,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBY_010_011",CellParams::BGBY_010_011,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBY_110_111",CellParams::BGBY_110_111,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBZ_000_100",CellParams::BGBZ_000_100,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBZ_010_110",CellParams::BGBZ_010_110,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBZ_001_101",CellParams::BGBZ_001_101,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBZ_011_111",CellParams::BGBZ_011_111,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBZ_000_010",CellParams::BGBZ_000_010,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBZ_100_110",CellParams::BGBZ_100_110,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBZ_001_011",CellParams::BGBZ_001_011,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGBZ_101_111",CellParams::BGBZ_101_111,1));
-         continue;
-      }
       if(*it == "VolB") {
          outputReducer->addOperator(new DRO::VariableBVol);
          continue;
@@ -225,15 +205,20 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::VariablePressureSolver);
          continue;
       }
-      if(*it == "PTensor") {
-         outputReducer->addOperator(new DRO::VariablePTensorDiagonal);
-         outputReducer->addOperator(new DRO::VariablePTensorOffDiagonal);
+      if(*it == "populations_PTensor") {
+         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+            outputReducer->addOperator(new DRO::VariablePTensorDiagonal(i));
+            outputReducer->addOperator(new DRO::VariablePTensorOffDiagonal(i));
+         }
          continue;
       }
       if(*it == "derivs") {
-         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("drhodx",fieldsolver::drhodx,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("drhody",fieldsolver::drhody,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("drhodz",fieldsolver::drhodz,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("drhomdx",fieldsolver::drhomdx,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("drhomdy",fieldsolver::drhomdy,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("drhomdz",fieldsolver::drhomdz,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("drhoqdx",fieldsolver::drhoqdx,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("drhoqdy",fieldsolver::drhoqdy,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("drhoqdz",fieldsolver::drhoqdz,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dp11dx",fieldsolver::dp11dx,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dp22dx",fieldsolver::dp22dx,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dp33dx",fieldsolver::dp33dx,1));
@@ -318,10 +303,6 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("poisson/pot_error",CellParams::PHI_TMP,1));
          continue;
       }
-      if (*it == "SpeciesMoments") {
-         outputReducer->addOperator(new DRO::SpeciesMoments);
-         continue;
-      }
       if (*it == "MeshData") {
          outputReducer->addOperator(new DRO::VariableMeshData);
          continue;
@@ -347,26 +328,32 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          diagnosticReducer->addOperator(new DRO::DiagnosticFluxE);
          continue;
       }
-      if(*it == "Blocks") {
-         diagnosticReducer->addOperator(new DRO::Blocks);
+      if (*it == "populations_Blocks") {
+         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+            diagnosticReducer->addOperator(new DRO::Blocks(i));
+         }
          continue;
       }
       if(*it == "Pressure") {
-         diagnosticReducer->addOperator(new DRO::VariablePressure);
+         diagnosticReducer->addOperator(new DRO::VariablePressureSolver);
          continue;
       }
-      if(*it == "Rho") {
-         diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("rho",CellParams::RHO,1));
+      if(*it == "Rhom") {
+         diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("rho",CellParams::RHOM,1));
          continue;
       }
-      if(*it == "RhoLossAdjust") {
-         diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("rho_loss_adjust",CellParams::RHOLOSSADJUST,1));
+      if(*it == "populations_RhomLossAdjust") {
+         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+            species::Species& species=getObjectWrapper().particleSpecies[i];
+            const std::string& pop = species.name;
+            diagnosticReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + "/rhom_loss_adjust", i, offsetof(spatial_cell::Population, RHOMLOSSADJUST), 1));
+         }
          continue;
       }
-      if(*it == "RhoLossVelBoundary") {
-         diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("rho_loss_velocity_boundary",CellParams::RHOLOSSVELBOUNDARY,1));
-         continue;
-      }
+      //if(*it == "RhoLossVelBoundary") {
+      //   diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("rho_loss_velocity_boundary",CellParams::RHOLOSSVELBOUNDARY,1));
+      //   continue;
+      //}
       if(*it == "LBweight") {
          diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("LB_weight",CellParams::LBWEIGHTCOUNTER,1));
          continue;

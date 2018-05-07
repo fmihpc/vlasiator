@@ -43,6 +43,10 @@ struct ObjectWrapper {
    projects::Project*                    project;           /**< Simulated project.*/
    std::vector<vmesh::MeshParameters> velocityMeshes;       /**< Parameters for velocity mesh(es).*/
 
+   bool addParameters();                                    /**< Add config file parameters for objects held in this wrapper */
+   bool addPopulationParameters();                          /**< After parsing the names of populations, create parameters for each of them */
+   bool getParameters();                                    /**< Use parsed config file parameters for objects held in this wrapper */
+
  private:
    ObjectWrapper(const ObjectWrapper& ow);
    ObjectWrapper& operator=(const ObjectWrapper& ow);

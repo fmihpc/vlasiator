@@ -57,7 +57,7 @@ data. This is needed if one has locally adjusted velocity blocks
 */
 void updateRemoteVelocityBlockLists(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-        const int& popID
+        const uint popID
 );
 
 /*! Deallocates all blocks in remote cells in order to save
@@ -83,7 +83,7 @@ void deallocateRemoteCellBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
 bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                           const std::vector<CellID>& cellsToAdjust,
                           bool doPrepareToReceiveBlocks,
-                            const int& popID);
+                            const uint popID);
 
 /*! Estimates memory consumption and writes it into logfile. Collective operation on MPI_COMM_WORLD
  * \param mpiGrid Spatial grid
@@ -102,6 +102,6 @@ void shrink_to_fit_grid_data(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
  * @param mpiGrid Parallel grid.
  * @return If true, the mesh is valid. Otherwise an error has occurred and the simulation 
  * should be aborted.*/
-bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const int& popID);
+bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const uint popID);
 
 #endif

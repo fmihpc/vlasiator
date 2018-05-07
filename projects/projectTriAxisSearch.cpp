@@ -31,10 +31,10 @@ namespace projects {
    /*!
     * WARNING This assumes that the velocity space is isotropic (same resolution in vx, vy, vz).
     */
-   std::vector<vmesh::GlobalID> TriAxisSearch::findBlocksToInitialize(SpatialCell* cell,const int& popID) const {
+   std::vector<vmesh::GlobalID> TriAxisSearch::findBlocksToInitialize(SpatialCell* cell,const uint popID) const {
       set<vmesh::GlobalID> blocksToInitialize;
       bool search;
-      int counter;
+      unsigned int counter;
       
       creal x = cell->parameters[CellParams::XCRD];
       creal y = cell->parameters[CellParams::YCRD];
@@ -55,7 +55,7 @@ namespace projects {
       const size_t vyblocks_ini = cell->get_velocity_grid_length(popID,refLevel)[1];
       const size_t vzblocks_ini = cell->get_velocity_grid_length(popID,refLevel)[2];
 
-      const vector<std::array<Real, 3>> V0 = this->getV0(x+0.5*dx, y+0.5*dy, z+0.5*dz);
+      const vector<std::array<Real, 3>> V0 = this->getV0(x+0.5*dx, y+0.5*dy, z+0.5*dz, popID);
       for (vector<std::array<Real, 3>>::const_iterator it = V0.begin(); it != V0.end(); it++) {
          // VX search
          search = true;
@@ -167,19 +167,6 @@ namespace projects {
       }
 
       return returnVector;
-   }
-   
-   vector<std::array<Real, 3>> TriAxisSearch::getV0(
-      creal x,
-      creal y,
-      creal z
-   ) const {
-      cerr << "ERROR: TriAxisSearch::getV0 called instead of derived class function!" << endl;
-      abort();
-      vector<std::array<Real, 3>> dummy;
-      std::array<Real, 3> dudummy  {{0.0, 0.0, 0.0}};
-      dummy.push_back(dudummy);
-      return dummy;
    }
    
 } // namespace projects

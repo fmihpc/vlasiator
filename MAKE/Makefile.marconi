@@ -33,7 +33,8 @@ CXXFLAGS +=  -DPAPI_MEM
 
 #======== Allocator =========
 #Use TBB malloc
-LDFLAGS += -L$(TBBROOT)/lib/intel64/gcc4.7/ -ltbbmalloc_proxy -ltbbmalloc
+#LDFLAGS += -L$(TBBROOT)/lib/intel64/gcc4.7/ -ltbbmalloc_proxy -ltbbmalloc
+CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
 
 #======= Compiler and compilation flags =========
@@ -47,7 +48,7 @@ CC_BRAND_VERSION = 17.0.1
 CXXFLAGS +=  -O2 -g -DMAX_VECTOR_SIZE=512 -xMIC-AVX512 -std=c++11 -qopenmp -ansi-alias
 testpackage: CXXFLAGS = -O2 -g -DMAX_VECTOR_SIZE=512 -xMIC-AVX512 -std=c++11 -qopenmp -ansi-alias
 MATHFLAGS = 
-LDFLAGS += -qopenmp -lifcore 
+LDFLAGS += -qopenmp -lifcore -Wl,-rpath,/cineca/prod/opt/libraries/boost/1.61.0/intelmpi--2017--binary/lib,-rpath,/marconi_work/Pra14_3521/libraries/phiprof/lib,-rpath,/marconi_work/Pra14_3521/libraries/papi/lib
 CMP = mpicxx
 LNK = mpicxx
 
@@ -58,18 +59,22 @@ HEADER_LIBRARY_PREFIX = /marconi_work/Pra14_3521/libraries
 LIBRARY_PREFIX = /marconi_work/Pra14_3521/libraries
 
 
-INC_BOOST = -I$(BOOST_INC)
-LIB_BOOST = -L$(BOOST_LIB) -lboost_program_options
+INC_BOOST = -I/cineca/prod/opt/libraries/boost/1.61.0/intelmpi--2017--binary/include
+LIB_BOOST = -L/cineca/prod/opt/libraries/boost/1.61.0/intelmpi--2017--binary/lib -lboost_program_options
 
 INC_ZOLTAN = -I$(LIBRARY_PREFIX)/zoltan/include
 LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/zoltan/lib -lzoltan
 
-INC_VLSV = -I$(LIBRARY_PREFIX)/vlsv
-LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv
+INC_VLSV = -I$(LIBRARY_PREFIX)/vlsv_debug
+LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv_debug -lvlsv
 
+INC_FSGRID = -I$(HEADER_LIBRARY_PREFIX)/fsgrid
 
 LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof
 INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include
+
+INC_JEMALLOC = -I$(LIBRARY_PREFIX)/jemalloc/include
+LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/jemalloc/lib -ljemalloc -Wl,-rpath,$(LIBRARY_PREFIX)/jemalloc/lib
 
 #system
 INC_PAPI = -I$(LIBRARY_PREFIX)/papi/include

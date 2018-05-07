@@ -3,7 +3,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://www.physics.helsinki.fi/vlasiator/
+ * at http://vlasiator.fmi.fi/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,21 +19,5 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#include <cstdlib>
-#include <iostream>
 
-#include "particle_species.h"
-
-using namespace std;
-
-species::Species::Species() { }
-
-species::Species::Species(const Species& other) {
-   name = other.name;
-   charge = other.charge;
-   mass = other.mass;
-   sparseMinValue = other.sparseMinValue;
-   velocityMesh = other.velocityMesh;
-}
-
-species::Species::~Species() { }
+// Empty sourcefile after dro was turned into a template.

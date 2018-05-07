@@ -506,7 +506,7 @@ namespace poisson {
       phiprof::stop("MPI (RHOQ)");
 
       SpatialCell::set_mpi_transfer_type(Transfer::CELL_PHI,false);
-      int iterations = 0;
+      uint iterations = 0;
       Real relPotentialChange = 0;
       Real maxError = 0;
       do {
