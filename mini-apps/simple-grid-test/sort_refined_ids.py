@@ -7,13 +7,13 @@ def findParent(id, gridSize, debug):
     for refLvl in np.arange(1,10):
         nIndicesInRefLvl.append(gridSize * 2 ** ((refLvl - 1) * 3))
     
-    for i,_ in enumerate(nIndicesInRefLvl):
+    for i in np.arange(len(nIndicesInRefLvl)):
         if id <= sum(nIndicesInRefLvl[:i+1]):
             refLvl = i
             break
     if refLvl == 0:
         if id > 0:
-            #print("cell {:3d}".format(id)+" is not refined")
+            print("cell {:3d}".format(id)+" is not refined")
             pass
             
         return 0, refLvl       
@@ -32,7 +32,7 @@ def findParent(id, gridSize, debug):
               ", plane = {:2d}".format(iz)+", parentId = {:2d}".format(parentId)+
               ", refLvl = {:1d}".format(refLvl))
     else:
-        #print("cell {:3d}".format(id)+" is the child of cell {:2d}".format(parentId))
+        print("cell {:3d}".format(id)+" is the child of cell {:2d}".format(parentId))
         pass
 
     return parentId, refLvl
@@ -120,6 +120,8 @@ for id in ids:
         # Make a list of children for each cell        
         children[parentId].append(id)
 
+# Sort the id and children lists, this is needed when adding cells to pencils
+# to get the order right
 for key in children.keys():
     children[key].sort()
 ids.sort()
@@ -137,18 +139,29 @@ for id in ids:
 # Begin sorting, select the dimension by which we sort
 dimension = 0
 
-# Sort the mesh ids using Sebastians c++ code
-if dimension == 0:
+sortedIds = list()
+for id in ids:
+    # Sort the mesh ids using Sebastians c++ code
+    if dimension == 0:
 
-    pass
+        idMapped = id
+    
+    if dimension == 1:
+        
+        x_index = id % xdim
+        y_index = (id / xdim) % ydim
+        idMapped = id - (x_index + y_index * xdim) + y_index + x_index * ydim
+        
+    if dimension == 2:
+        
+        x_index = id % xdim
+        y_index = (id / xdim) % ydim
+        z_index = (id / (xdim * ydim))
+        idMapped = z_index + y_index * zdim + x_index * ydim * zdim
 
-if dimension == 1:
+    sortedIds.append((idMapped, id))
 
-    pass
-
-if dimension == 2:
-
-    pass
+sortedIds.sort()
 
 # Create a list of unrefined cells
 sortedUnrefinedIds = dict()
@@ -160,15 +173,15 @@ for id in isRefined.keys():
 unrefinedPencils = list()
 for iz in np.arange(zdim):
     for iy in np.arange(ydim):
-        ibeg = iz * zdim + iy * ydim
-        iend = iz * zdim + (iy + 1) * ydim
+        ibeg = iz * xdim * ydim + iy * ydim
+        iend = iz * xdim * ydim + (iy + 1) * ydim
         unrefinedPencils.append({'ids' : sortedUnrefinedIds.keys()[ibeg:iend],
                                  'refLvl' : sortedUnrefinedIds.values()[ibeg:iend]})
 
 # Refine the unrefined pencils that contain refined cells
-#print
-#print('*** Refining ***')
-#print
+print
+print('*** Refining ***')
+print
 
 pencils = list()
 parentIds = list()
@@ -183,12 +196,12 @@ for row,unrefinedPencil in enumerate(unrefinedPencils):
     # Assuming the refinement has been done equally in each dimension
     for i in np.arange(2 ** maxRefLvl):
         for j in np.arange(2 ** maxRefLvl):
-            #print('Starting new pencil, row = {:1d}, subrow = {:1d}, column = {:1d}'.format(row,i,j))
+            print('Starting new pencil, row = {:1d}, subrow = {:1d}, column = {:1d}'.format(row,i,j))
             pencilIds = list()
             # Walk along the unrefined pencil
             for ix in np.arange(xdim):
                 maxLocalRefLvl = unrefinedPencil['refLvl'][ix]
-                #print('  ix = {:1d}, maxLocalRefLvl = {:1d}'.format(ix,maxLocalRefLvl))
+                print('  ix = {:1d}, maxLocalRefLvl = {:1d}'.format(ix,maxLocalRefLvl))
                 # Walk down the refinement tree of the parent cell
                 parentIds.append(unrefinedPencil['ids'][ix])
                 #offsets = np.zeros(maxLocalRefLvl, dtype = int)
@@ -201,7 +214,7 @@ for row,unrefinedPencil in enumerate(unrefinedPencils):
                     left = ( (j / 2 ** (maxRefLvl - iref - 1)) % 2 == 0 )
                     up   = ( (i / 2 ** (maxRefLvl - iref - 1)) % 2 == 0 )
 
-                    #print('    iref = {:1d}, up = {:b}, left = {:b}'.format(iref,up,left))
+                    print('    iref = {:1d}, up = {:b}, left = {:b}'.format(iref,up,left))
                     # The function getChildren returns the children of the parent, or the
                     # parent itself if it has no children
                     cells = getChildren(children, parentIds, up, left)
@@ -243,8 +256,8 @@ for row,unrefinedPencil in enumerate(unrefinedPencils):
                                 'subrow' : i,
                                 'subcolumn' : j})
             else:
+                print('Removing duplicate pencil')
                 pass
-                #print('Removing duplicate pencil')
 
                 
     
