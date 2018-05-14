@@ -423,7 +423,7 @@ ParticleContainer InjectionScenario::initialParticles(Field& E, Field& B, Field&
    traFile = fopen("inj_trans.dat","w"); 
    refFile = fopen("inj_refl.dat","w"); 
    lostFile = fopen("inj_lost.dat","w"); 
-   kickFile = fopen("inj_kicks.dat","w"); 
+   //kickFile = fopen("inj_kicks.dat","w"); 
    meetFile = fopen("inj_meet.dat","w"); 
 
    ParticleContainer particles;
@@ -642,16 +642,16 @@ void InjectionScenario::afterPush(int step, double time, ParticleContainer& part
       Rval = R(particles[i].x);
       Real newmu = dot_product(normalize_vector(particles[i].v), normalize_vector(B(particles[i].x)));
       //if (particles[i].mu * newmu < 0) {
-      if (current_mu[i] * newmu < 0) {
-	//pitch-angle changed past zero
-	fprintf(kickFile,"%d %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e\n", i, time, 
-		particles[i].x[0], particles[i].x[1], particles[i].x[2],
-		particles[i].v[0], particles[i].v[1], particles[i].v[2],
-		.5 * particles[i].m * dot_product(particles[i].v, particles[i].v) / PhysicalConstantsSI::e,
-		dot_product(normalize_vector(particles[i].v), normalize_vector(B(particles[i].x))), 
-		Bval[0], Bval[1], Bval[2], Eval[0], Eval[1], Eval[2]);
+//       if (current_mu[i] * newmu < 0) {
+// 	//pitch-angle changed past zero
+// 	fprintf(kickFile,"%d %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e\n", i, time, 
+// 		particles[i].x[0], particles[i].x[1], particles[i].x[2],
+// 		particles[i].v[0], particles[i].v[1], particles[i].v[2],
+// 		.5 * particles[i].m * dot_product(particles[i].v, particles[i].v) / PhysicalConstantsSI::e,
+// 		dot_product(normalize_vector(particles[i].v), normalize_vector(B(particles[i].x))), 
+// 		Bval[0], Bval[1], Bval[2], Eval[0], Eval[1], Eval[2]);
 	
-      }
+//       }
       // Accumulate E- and B-field magnitudes over path      
       accumulated_E[i] += abs(newmu-current_mu[i]) * sqrt( Eval[0]*Eval[0] + Eval[1]*Eval[1] + Eval[2]*Eval[2] );
       accumulated_B[i] += abs(newmu-current_mu[i]) * sqrt( Bval[0]*Bval[0] + Bval[1]*Bval[1] + Bval[2]*Bval[2] );
@@ -668,8 +668,9 @@ void InjectionScenario::afterPush(int step, double time, ParticleContainer& part
 		Bval[0], Bval[1], Bval[2], Eval[0], Eval[1], Eval[2]);
       }
       // Check if particle has just now met shock for the first time (based on density)
-      if ( (Rval[0] > ParticleParameters::injection_rho_meet) && (fs_hasmet[i]==false) && (ParticleParameters::injection_r_meet > 1)) {
+      if ( (Rval[0] > ParticleParameters::injection_rho_meet) && (fs_hasmet[i]==false) && (ParticleParameters::injection_rho_meet > 1)) {
 	fs_hasmet[i]=true;
+	//std::cout<<" MEET "<<Rval[0]<<" "<<ParticleParameters::injection_rho_meet<<std::endl;
 	fprintf(meetFile,"%d %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e\n", i, time, 
 		particles[i].x[0], particles[i].x[1], particles[i].x[2],
 		particles[i].v[0], particles[i].v[1], particles[i].v[2],
@@ -683,7 +684,7 @@ void InjectionScenario::afterPush(int step, double time, ParticleContainer& part
    fflush(traFile);
    fflush(refFile);
    fflush(lostFile);
-   fflush(kickFile);
+   //fflush(kickFile);
    fflush(meetFile);
 }
 
@@ -698,7 +699,7 @@ void InjectionScenario::finalize(ParticleContainer& particles, Field& E, Field& 
    fclose(traFile);
    fclose(refFile);
    fclose(lostFile);
-   fclose(kickFile);
+   //fclose(kickFile);
    fclose(meetFile);
 }
 

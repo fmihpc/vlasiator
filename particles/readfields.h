@@ -157,6 +157,7 @@ bool readNextTimestep(const std::string& filename_pattern, double t, int step, F
       std::vector<double> Rhobuffer;
       if(doV) {
 	V0=V1;
+	V1.time = t;
 	// TODO: This bit doesn't support newer file formats properly. Or multipop?
 	name = "rho_v";
 	std::vector<double> rho_v_buffer = readFieldData(r,name,3u);
@@ -169,7 +170,19 @@ bool readNextTimestep(const std::string& filename_pattern, double t, int step, F
       }
       if(doRho) {
 	R0=R1;
-	Rhobuffer = readFieldData(r,rho_name,1u);
+	R1.time = t;
+	/* start hack to calculate non-backstreaming temperature instead */
+	std::string rhonbs_name("RhoNonBackstream");
+	std::string ptdnbs_name("PTensorNonBackstreamDiagonal");
+
+	std::vector<double> ptdnbs_buffer = readFieldData(r,ptdnbs_name,3u);
+	std::vector<double> rhonbs_buffer = readFieldData(r,rhonbs_name,1u);
+	for(unsigned int i=0; i<rhonbs_buffer.size(); i++) {
+	  // Pressure-nonbackstreaming = (ptdnbs_buffer[3*i]+ptdnbs_buffer[3*i+1]+ptdnbs_buffer[3*i+2])*(1./3.)
+	  Rhobuffer.push_back( ((ptdnbs_buffer[3*i]+ptdnbs_buffer[3*i+1]+ptdnbs_buffer[3*i+2])*(1./3.)) / ((1.+rhonbs_buffer[i])*1.38065e-23));
+	}
+	/* finish hack to calculate non-backstreaming temperature instead */
+	//Rhobuffer = readFieldData(r,rho_name,1u);
       }
       /* Assign them, without sanity checking */
       /* TODO: Is this actually a good idea? */
@@ -245,13 +258,22 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, Field& R, bo
    std::vector<double> Ebuffer(readFieldData(r,name,3u));
 
    std::vector<double> rho_v_buffer,rho_buffer;
+
+   std::vector<double> ptdnbs_buffer;
+   std::vector<double> rhonbs_buffer;
+
+   std::string rhonbs_name("RhoNonBackstream");
+   std::string ptdnbs_name("PTensorNonBackstreamDiagonal");
+
    if(doV) {
      name = "rho_v";
      rho_v_buffer = readFieldData(r,name,3u);
      rho_buffer = readFieldData(r,rho_name,1u);
    }
    if(doRho) {
-     rho_buffer = readFieldData(r,rho_name,1u);
+     //rho_buffer = readFieldData(r,rho_name,1u);
+     ptdnbs_buffer = readFieldData(r,ptdnbs_name,3u);
+     rhonbs_buffer = readFieldData(r,rhonbs_name,1u);   
    }
 
    /* Coordinate Boundaries */
@@ -362,7 +384,9 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, Field& R, bo
       }
       if(doRho) {
         double* Rtgt = R.getCellRef(x,y,z);
-        Rtgt[0] = rho_buffer[i];
+	//Rhobuffer.push_back( ((ptdnbs_buffer[3*i]+ptdnbs_buffer[3*i+1]+ptdnbs_buffer[3*i+2])*(1./3.)) / ((1.+rhonbs_buffer[i])*1.38065e-23));
+        //Rtgt[0] = rho_buffer[i];
+	Rtgt[0] = ((ptdnbs_buffer[3*i]+ptdnbs_buffer[3*i+1]+ptdnbs_buffer[3*i+2])*(1./3.)) / ((1.+rhonbs_buffer[i])*1.38065e-23);
         Rtgt[1] = 0;
         Rtgt[2] = 0;
       }
