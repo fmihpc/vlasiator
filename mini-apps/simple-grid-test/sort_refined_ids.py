@@ -37,7 +37,7 @@ def findParent(id, gridSize, debug):
 
     return parentId, refLvl
 
-def getChildren(children, parentIds, up = True, left = True):
+def getChildren(children, parentIds, dimension = 0, up = True, left = True):
 
     down  = not up
     right = not left
@@ -46,19 +46,48 @@ def getChildren(children, parentIds, up = True, left = True):
 
     myChildren = list()
     for id in parentIds:
-    
-        if up and left:
-            i1 = 0
-            i2 = 1
-        if down and left:
-            i1 = 2
-            i2 = 3
-        if up and right:
-            i1 = 4
-            i2 = 5
-        if down and right:
-            i1 = 6
-            i2 = 7
+
+        if dimension == 0:
+            if up and left:
+                i1 = 0
+                i2 = 1
+            if down and left:
+                i1 = 2
+                i2 = 3
+            if up and right:
+                i1 = 4
+                i2 = 5
+            if down and right:
+                i1 = 6
+                i2 = 7
+
+        if dimension == 1:
+            if up and left:
+                i1 = 0
+                i2 = 2
+            if down and left:
+                i1 = 1
+                i2 = 3
+            if up and right:
+                i1 = 4
+                i2 = 6
+            if down and right:
+                i1 = 5
+                i2 = 7
+
+        if dimension == 2:
+            if up and left:
+                i1 = 0
+                i2 = 4
+            if down and left:
+                i1 = 1
+                i2 = 5
+            if up and right:
+                i1 = 2
+                i2 = 6
+            if down and right:
+                i1 = 3
+                i2 = 7
 
         if id in children.keys():
             myChildren.extend(children[id][i1::N])
@@ -137,46 +166,62 @@ for id in ids:
             parentId = parents[parentId]
 
 # Begin sorting, select the dimension by which we sort
-dimension = 0
+dimension = 2
 
-sortedIds = list()
+#sortedIds = list()
+mapping = dict()
 for id in ids:
     # Sort the mesh ids using Sebastians c++ code
     if dimension == 0:
 
+        dims = (zdim, ydim, xdim)
+        
         idMapped = id
     
     if dimension == 1:
+
+        dims = (zdim, xdim, ydim)
         
-        x_index = id % xdim
-        y_index = (id / xdim) % ydim
+        x_index = (id-1) % xdim
+        y_index = ((id-1) / xdim) % ydim
         idMapped = id - (x_index + y_index * xdim) + y_index + x_index * ydim
         
     if dimension == 2:
+
+        dims = (ydim, xdim, zdim)
         
-        x_index = id % xdim
-        y_index = (id / xdim) % ydim
-        z_index = (id / (xdim * ydim))
-        idMapped = z_index + y_index * zdim + x_index * ydim * zdim
+        x_index = (id-1) % xdim
+        y_index = ((id-1) / xdim) % ydim
+        z_index = ((id-1) / (xdim * ydim))
+        idMapped = 1 + z_index + y_index * zdim + x_index * ydim * zdim
 
-    sortedIds.append((idMapped, id))
+    #sortedIds.append((idMapped, id))
+    if refLvls[id] == 0:
+        mapping[idMapped] = id
 
-sortedIds.sort()
+#sortedIds.sort()
 
 # Create a list of unrefined cells
-sortedUnrefinedIds = dict()
-for id in isRefined.keys():
-    if refLvls[id] == 0:
-        sortedUnrefinedIds[id] = isRefined[id]
+#sortedUnrefinedIds = dict()
+# for id in isRefined.keys():
+#     if refLvls[id] == 0:
+#         sortedUnrefinedIds[id] = isRefined[id]
 
 # Create pencils of unrefined cells, store the level of refinement for each cell
 unrefinedPencils = list()
-for iz in np.arange(zdim):
-    for iy in np.arange(ydim):
-        ibeg = iz * xdim * ydim + iy * ydim
-        iend = iz * xdim * ydim + (iy + 1) * ydim
-        unrefinedPencils.append({'ids' : sortedUnrefinedIds.keys()[ibeg:iend],
-                                 'refLvl' : sortedUnrefinedIds.values()[ibeg:iend]})
+for i in np.arange(dims[0]):
+    for j in np.arange(dims[1]):
+        ibeg = 1 + i * dims[2] * dims[1] + j * dims[2]
+        iend = 1 + i * dims[2] * dims[1] + (j + 1) * dims[2]
+        myIsRefined = list()
+        myIds = list()
+        for k in np.arange(ibeg,iend):
+            myIds.append(mapping[k])
+            myIsRefined.append(isRefined[mapping[k]])
+        unrefinedPencils.append({'ids' : myIds,
+                                 'refLvl' : myIsRefined})
+        #unrefinedPencils.append({'ids' : sortedUnrefinedIds.keys()[ibeg:iend],
+        #                         'refLvl' : sortedUnrefinedIds.values()[ibeg:iend]})
 
 # Refine the unrefined pencils that contain refined cells
 print
@@ -199,7 +244,7 @@ for row,unrefinedPencil in enumerate(unrefinedPencils):
             print('Starting new pencil, row = {:1d}, subrow = {:1d}, column = {:1d}'.format(row,i,j))
             pencilIds = list()
             # Walk along the unrefined pencil
-            for ix in np.arange(xdim):
+            for ix in np.arange(dims[2]):
                 maxLocalRefLvl = unrefinedPencil['refLvl'][ix]
                 print('  ix = {:1d}, maxLocalRefLvl = {:1d}'.format(ix,maxLocalRefLvl))
                 # Walk down the refinement tree of the parent cell
@@ -217,8 +262,8 @@ for row,unrefinedPencil in enumerate(unrefinedPencils):
                     print('    iref = {:1d}, up = {:b}, left = {:b}'.format(iref,up,left))
                     # The function getChildren returns the children of the parent, or the
                     # parent itself if it has no children
-                    cells = getChildren(children, parentIds, up, left)
-                    #print(cells)
+                    cells = getChildren(children, parentIds, dimension, up, left)
+                    print(cells)
                     parentIds = list()
 
                     offset = nUnRefined - iRefined
