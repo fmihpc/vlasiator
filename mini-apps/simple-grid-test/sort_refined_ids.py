@@ -47,6 +47,8 @@ def getChildren(children, parentIds, dimension = 0, up = True, left = True):
     myChildren = list()
     for id in parentIds:
 
+        # Select 2/8 children per parent according to the logical parameters up,down,left,right.
+        # The names are slightly unintuitive in other dimensions but they come from dimension == 0
         if dimension == 0:
             if up and left:
                 i1 = 0
