@@ -1,5 +1,6 @@
 import numpy as np
 import pdb
+import time
 
 def findParent(id, gridSize, debug):
 
@@ -103,7 +104,8 @@ def getChildren(children, parentIds, dimension = 0, up = True, left = True):
 
 debug = False
 
-filename = "grid_test.out"
+#filename = "grid_test.out"
+filename = "refined_4.out"
 fh = open(filename)
 lines = fh.readlines()
 fh.close()
@@ -123,6 +125,8 @@ for i,line in enumerate(lines):
 gridSize = xdim*ydim*zdim
 
 #debug = True
+
+t1 = time.time()
 
 parents = dict()
 children = dict()
@@ -168,7 +172,7 @@ for id in ids:
             parentId = parents[parentId]
 
 # Begin sorting, select the dimension by which we sort
-dimension = 2
+dimension = 1
 
 #sortedIds = list()
 mapping = dict()
@@ -227,8 +231,8 @@ for i in np.arange(dims[0]):
 
 # Refine the unrefined pencils that contain refined cells
 print
-print('*** Refining ***')
-print
+#print('*** Refining ***')
+#print
 
 pencils = list()
 parentIds = list()
@@ -243,15 +247,16 @@ for row,unrefinedPencil in enumerate(unrefinedPencils):
     # Assuming the refinement has been done equally in each dimension
     for i in np.arange(2 ** maxRefLvl):
         for j in np.arange(2 ** maxRefLvl):
-            print('Starting new pencil, row = {:1d}, subrow = {:1d}, column = {:1d}'.format(row,i,j))
+            if debug:
+                print('Starting new pencil, row = {:1d}, subrow = {:1d}, column = {:1d}'.format(row,i,j))
             pencilIds = list()
             # Walk along the unrefined pencil
             for ix in np.arange(dims[2]):
                 maxLocalRefLvl = unrefinedPencil['refLvl'][ix]
-                print('  ix = {:1d}, maxLocalRefLvl = {:1d}'.format(ix,maxLocalRefLvl))
+                if debug:
+                    print('  ix = {:1d}, maxLocalRefLvl = {:1d}'.format(ix,maxLocalRefLvl))
                 # Walk down the refinement tree of the parent cell
                 parentIds.append(unrefinedPencil['ids'][ix])
-                #offsets = np.zeros(maxLocalRefLvl, dtype = int)
                 offset = 0
                 nUnRefined = 0
                 iRefined = 0
@@ -260,12 +265,12 @@ for row,unrefinedPencil in enumerate(unrefinedPencils):
                     # Logic for selecting cells for the pencil among the child cells
                     left = ( (j / 2 ** (maxRefLvl - iref - 1)) % 2 == 0 )
                     up   = ( (i / 2 ** (maxRefLvl - iref - 1)) % 2 == 0 )
-
-                    print('    iref = {:1d}, up = {:b}, left = {:b}'.format(iref,up,left))
+                    if debug:
+                        print('    iref = {:1d}, up = {:b}, left = {:b}'.format(iref,up,left))
                     # The function getChildren returns the children of the parent, or the
                     # parent itself if it has no children
                     cells = getChildren(children, parentIds, dimension, up, left)
-                    print(cells)
+                    #print(cells)
                     parentIds = list()
 
                     offset = nUnRefined - iRefined
@@ -281,7 +286,7 @@ for row,unrefinedPencil in enumerate(unrefinedPencils):
                             # The offset is the number of unrefined cells from the last
                             # iteration minus the index of the refined cell.
                             if offset > 0:
-                                pencilIds.insert(-offset,icell)
+                                pencilIds.insert(-offset,icell)                                
                             else:
                                 pencilIds.append(icell)
                         else:
@@ -306,5 +311,9 @@ for row,unrefinedPencil in enumerate(unrefinedPencils):
                 print('Removing duplicate pencil')
                 pass
 
+t2 = time.time()
                 
     
+for i,pencil in enumerate(pencils):
+    print("pencil {:2d}, ids: ".format(i), pencil['ids'])
+print(t2-t1)
