@@ -101,7 +101,6 @@ def getChildren(children, parentId, dimension = 0, up = True, left = True):
     #print(up,left,myChildren)
     return myChildren
 
-#def buildPencils(pencils,initialPencil,idsIn,isRefined,refLvls,children,dimension = 0,path = list()):
 def buildPencils(pencils,initialPencil,idsIn,dimension = 0,path = list()):
 
     # pencils - list of completed pencils
@@ -116,10 +115,10 @@ def buildPencils(pencils,initialPencil,idsIn,dimension = 0,path = list()):
     # children - global array that contains the children of each refined cell
     import copy
 
-    # Copy the input ids to a working set of ids
+    # (Hard) Copy the input ids to a working set of ids
     ids = copy.copy(idsIn)
 
-    # Copy the already computed pencil to the output list
+    # (Hard) Copy the already computed pencil to the output list
     idsOut = copy.copy(initialPencil)
     
     # Walk along the input pencil
@@ -171,7 +170,6 @@ def buildPencils(pencils,initialPencil,idsIn,dimension = 0,path = list()):
                             # working set to the current children.
                             myChildren.extend(myIds)
                             
-                            #buildPencils(pencils,idsOut,myChildren,isRefined,refLvls,children,dimension,myPath)
                             buildPencils(pencils,idsOut,myChildren,dimension,myPath)
 
         # Add unrefined cells to the pencil directly
@@ -187,9 +185,24 @@ def buildPencils(pencils,initialPencil,idsIn,dimension = 0,path = list()):
     #print(idsOut)
     #print(pencils)
 
+import argparse
+
+parser = argparse.ArgumentParser(description='Create pencils on a refined grid.')
+parser.add_argument('--dimension', metavar = 'N', type=int, nargs=1,
+                    default=[0], help='Dimension')
+parser.add_argument('--filename', metavar = 'fn', type=str, nargs=1,
+                    default=['test.vtk'], help='Input file name')
+args = parser.parse_args()
+
+if args.dimension[0] > 0 and args.dimension[0] <= 2:
+    dimension = args.dimension[0]
+else:
+    dimension = 0
+    
 debug = False
 
-filename = 'refined_4.vtk'
+#filename = 'test.vtk'
+filename = args.filename[0]
 fh = open(filename)
 lines = fh.readlines()
 fh.close()
@@ -267,7 +280,7 @@ for id in ids:
             parentId = parents[parentId]
 
 # Begin sorting, select the dimension by which we sort
-dimension = 1
+# dimension = 0
 # dimensions = ('x','y','z')
 print
 print('Building pencils along dimension {:1d}'.format(dimension))
@@ -276,7 +289,7 @@ print
 #sortedIds = list()
 mapping = dict()
 for id in ids:
-    # Sort the mesh ids using Sebastians c++ code
+    # Sort the unrefined mesh ids following Sebastians c++ code
     if dimension == 0:
 
         dims = (zdim, ydim, xdim)
@@ -324,7 +337,6 @@ pencils = list()
 # Loop over the unrefined pencils
 for unrefinedPencil in unrefinedPencils:
 
-    #pencils = buildPencils(pencils,[],unrefinedPencil['ids'],isRefined,refLvls,children,dimension)
     pencils = buildPencils(pencils,[],unrefinedPencil['ids'],dimension)
     
 t2 = time.time()
