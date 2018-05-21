@@ -55,18 +55,22 @@ namespace DRO {
       DataReductionOperator();
       virtual ~DataReductionOperator();
       
-      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
-      virtual std::string getName() const;
-      virtual bool handlesWriting() const;
+      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const = 0;
+      virtual std::string getName() const = 0;
       virtual bool reduceData(const SpatialCell* cell,char* buffer);
       virtual bool reduceData(const SpatialCell* cell,Real * result);
-      virtual bool setSpatialCell(const SpatialCell* cell);
-      virtual bool writeData(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                             const std::vector<CellID>& cells,const std::string& meshName,
-                             vlsv::Writer& vlsvWriter);
+      virtual bool setSpatialCell(const SpatialCell* cell) = 0;
       
    protected:
    
+   };
+
+   class DataReductionOperatorHandlesWriting: public DataReductionOperator {
+   public:
+      DataReductionOperatorHandlesWriting() : DataReductionOperator() {};
+      virtual bool writeData(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                             const std::vector<CellID>& cells,const std::string& meshName,
+                             vlsv::Writer& vlsvWriter) = 0;
    };
 
    class DataReductionOperatorCellParams: public DataReductionOperator {
@@ -356,14 +360,13 @@ namespace DRO {
 
    /** This class writes all scalar and two- or three-component vector data 
     * that is stored to MeshDataContainer to output file.*/
-   class VariableMeshData: public DataReductionOperator {
+   class VariableMeshData: public DataReductionOperatorHandlesWriting {
    public:
       VariableMeshData();
       virtual ~VariableMeshData();
       
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
       virtual std::string getName() const;
-      virtual bool handlesWriting() const;
       virtual bool setSpatialCell(const SpatialCell* cell);
       virtual bool writeData(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                              const std::vector<CellID>& cells,const std::string& meshName,
@@ -513,14 +516,13 @@ namespace DRO {
       bool _skip;
    };
    
-   class VariableMinValue: public DataReductionOperator {
+   class VariableMinValue: public DataReductionOperatorHandlesWriting {
    public:
       VariableMinValue();
       virtual ~VariableMinValue();
 
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
       virtual std::string getName() const;
-      virtual bool handlesWriting() const;
       virtual bool reduceData(const SpatialCell* cell,char* buffer);
       virtual bool reduceData(const spatial_cell::SpatialCell* cell,Real* result);
       virtual bool setSpatialCell(const SpatialCell* cell);

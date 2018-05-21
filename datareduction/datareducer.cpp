@@ -448,7 +448,7 @@ bool DataReducer::getDataVectorInfo(const unsigned int& operatorID,std::string& 
  * @return If true, then VLSVWriter should be passed to the DataReductionOperator.*/
 bool DataReducer::handlesWriting(const unsigned int& operatorID) const {
    if (operatorID >= operators.size()) return false;
-   return operators[operatorID]->handlesWriting();
+   return dynamic_cast<DRO::DataReductionOperatorHandlesWriting*>(operators[operatorID]) != nullptr;
 }
 
 /** Request a DataReductionOperator to calculate its output data and to write it to the given buffer.
@@ -498,6 +498,9 @@ bool DataReducer::writeData(const unsigned int& operatorID,
                   const std::vector<CellID>& cells,const std::string& meshName,
                   vlsv::Writer& vlsvWriter) {
    if (operatorID >= operators.size()) return false;
-   if (operators[operatorID]->handlesWriting() == false) return false;
-   return operators[operatorID]->writeData(mpiGrid,cells,meshName,vlsvWriter);
+   DRO::DataReductionOperatorHandlesWriting* writingOperator = dynamic_cast<DRO::DataReductionOperatorHandlesWriting*>(operators[operatorID]);
+   if(writingOperator == nullptr) {
+      return false;
+   }
+   return writingOperator->writeData(mpiGrid,cells,meshName,vlsvWriter);
 }

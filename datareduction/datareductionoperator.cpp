@@ -43,94 +43,34 @@ namespace DRO {
    
    /** DataReductionOperator base class virtual destructor. The destructor is empty.*/
    DataReductionOperator::~DataReductionOperator() { }
-   
-   /** Get info on the data the DataReductionOperator writes on disk. A DataReductionOperator writes 
-    * an array on disk. Each element of the array is a vector with n elements. Finally, each 
-    * vector element has a byte size, as given by the sizeof function.
-    * @param dataType Basic datatype, must be int, uint, float
-    * @param dataSize Byte size of written datatype, for example double-precision floating points
-    * have byte size of sizeof(double).
-    * @param vectorSize How many elements are in the vector returned by the DataReductionOperator. If 0, writeDataReducer will skip this DRO.
-    * @return If true, DataReductionOperator returned sensible values.
-    */
-   bool DataReductionOperator::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-      cerr << "ERROR: DataReductionOperator::getDataVectorInfo called insted of derived class function!" << endl;
-      return false;
-   }
-   
-   /** Get the name of the reduced data variable. The name is written to the disk as-is 
-    * and is used in visualization.
-    * @return The name of the data. The base class function returns an empty string.
-    */
-   std::string DataReductionOperator::getName() const {
-      cerr << "ERROR: DataReductionOperator::getName called instead of derived class function!" << endl;
-      return string("");
-   }
-   
-   /** Check if this DataReductionOperator wants to take care of writing the 
-    * data to the output file instead of letting it be handled in iowrite.cpp, 
-    * i.e., one should call the writeData function.
-    * @return If true, then this DRO wants to write the data to file.
-    * @see DataReductionOperator::writeData.*/
-   bool DataReductionOperator::handlesWriting() const {return false;}
-   
-   // TODO update this documentation snippet.
-   /** Reduce the data and write the data vector to the given buffer.
-    * @param N_blocks Number of velocity blocks in array avgs.
-    * @param avgs Array containing distribution function values for each velocity block.
-    * @param blockParams Array containing the parameters of each velocity block.
+
+   /** Reduce the data and write the data vector to the given vlsv output buffer.
+    * @param cell the SpatialCell to reduce data out of
     * @param buffer Buffer in which the reduced data is written.
     * @return If true, DataReductionOperator reduced data successfully.
     */
    bool DataReductionOperator::reduceData(const SpatialCell* cell,char* buffer) {
-      cerr << "ERROR: DataReductionOperator::reduceData called instead of derived class function!" << endl;
+      cerr << "ERROR: DataReductionOperator::reduceData called instead of derived class function! (variable" <<
+               getName() << ")" << endl;
+      cerr << "       Did you use a diagnostic reducer for writing bulk data?" << endl;
       return false;
    }
    
-   // TODO update this documentation snippet.
    /** Reduce the data and write the data vector to the given variable.
-    * @param N_blocks Number of velocity blocks in array avgs.
-    * @param avgs Array containing distribution function values for each velocity block.
-    * @param blockParams Array containing the parameters of each velocity block.
-    * @param result Real variable in which the reduced data is written.
+    * If the vector length is larger than one, memory gets corrupted.
+    * Note that this function is only used for writing into diagnostic files.
+    * @param cell the SpatialCell to reduce data out of
+    * @param buffer Buffer in which the reduced data is written.
     * @return If true, DataReductionOperator reduced data successfully.
     */
    bool DataReductionOperator::reduceData(const SpatialCell* cell,Real* result) {
-      cerr << "ERROR: DataReductionOperator::reduceData called instead of derived class function!" << endl;
+      cerr << "ERROR: DataReductionOperator::reduceData called instead of derived class function! (variable " <<
+              getName() << ")" << endl;
+      cerr << "       Did you use a bulk reducer for writing diagnostic data?" << endl;
       return false;
    }
-   
-   /** Set the SpatialCell whose data is going to be reduced by subsequent calls to 
-    * DRO::DataReductionOperator::reduceData. This function is provided so that 
-    * variables stored per SpatialCell can be accessed.
-    * 
-    * Spatial cell variables are stored in array SpatialCell::cpu_cellParams. 
-    * The contents of array elements are stored in namespace CellParams. For example, 
-    * cell.cpu_cellParams[%CellParams::EX] contains the electric field.
-    * @param cell The SpatialCell whose data is to be reduced next.
-    * @return If true, the SpatialCell was set correctly.
-    */
-   bool DataReductionOperator::setSpatialCell(const SpatialCell* cell) {
-      cerr << "ERROR: DataReductionOperator::setSpatialCell called instead of derived class function!" << endl;
-      return false;
-   }
-   
-   /** Request the DataReductionOperator to write all its data to the output file.
-    * This function should only be called if handlesWriting function returned true.
-    * @param mpiGrid Parallel grid.
-    * @param cells List of spatial cells (ordered).
-    * @param meshName Name of the spatial mesh.
-    * @param vlsvWriter Output file writer.
-    * @return If true, then output data was written successfully.*/
-   bool DataReductionOperator::writeData(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                             const std::vector<CellID>& cells,const std::string& meshName,
-                             vlsv::Writer& vlsvWriter) {
-      cerr << "ERROR: DataReductionOperator::writeData called instead of derived class function!" << endl;
-      return false;
-   }
-   
-   
-   
+
+
    DataReductionOperatorCellParams::DataReductionOperatorCellParams(const std::string& name,const unsigned int parameterIndex,const unsigned int vectorSize):
    DataReductionOperator() {
       _vectorSize=vectorSize;
@@ -761,7 +701,7 @@ namespace DRO {
       {
          Real threadMax = std::numeric_limits<Real>::min();
          
-         for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         for (unsigned int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
             const Realf* block_data = cell->get_data(popID);
             
             #pragma omp for
@@ -819,7 +759,7 @@ namespace DRO {
       {
          Real threadMin = std::numeric_limits<Real>::max();
          
-         for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         for (unsigned int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
             const Realf* block_data = cell->get_data(popID);
 
             #pragma omp for
@@ -1193,7 +1133,7 @@ namespace DRO {
       }
    }
 
-   VariableMeshData::VariableMeshData(): DataReductionOperator() { }
+   VariableMeshData::VariableMeshData(): DataReductionOperatorHandlesWriting() { }
    VariableMeshData::~VariableMeshData() { }
    
    std::string VariableMeshData::getName() const {return "MeshData";}
@@ -1201,8 +1141,6 @@ namespace DRO {
    bool VariableMeshData::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       return true;
    }
-   
-   bool VariableMeshData::handlesWriting() const {return true;}
    
    bool VariableMeshData::setSpatialCell(const SpatialCell* cell) {return true;}
    
@@ -1554,7 +1492,7 @@ namespace DRO {
    // Split into VariablePTensorBackstreamDiagonal (11, 22, 33)
    // and VariablePTensorOffDiagonal (23, 13, 12)
 
-   VariableMinValue::VariableMinValue(): DataReductionOperator() { }
+   VariableMinValue::VariableMinValue(): DataReductionOperatorHandlesWriting() { }
    VariableMinValue::~VariableMinValue() { }
 
    bool VariableMinValue::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
@@ -1566,8 +1504,6 @@ namespace DRO {
 
    std::string VariableMinValue::getName() const {return "MinValue";}
    
-   bool VariableMinValue::handlesWriting() const {return true;}
-
    bool VariableMinValue::reduceData(const spatial_cell::SpatialCell* cell,char* buffer) {
       return false;
    }
