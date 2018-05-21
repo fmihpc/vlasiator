@@ -379,14 +379,6 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          diagnosticReducer->addOperator(new DRO::MinDistributionFunction);
          continue;
       }
-      if(*it == "BoundaryType") {
-         diagnosticReducer->addOperator(new DRO::BoundaryType);
-         continue;
-      }
-      if(*it == "BoundaryLayer") {
-         diagnosticReducer->addOperator(new DRO::BoundaryLayer);
-         continue;
-      }
       // After all the continue; statements one should never land here.
       int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
