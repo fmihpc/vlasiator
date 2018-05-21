@@ -334,10 +334,11 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          }
          continue;
       }
-      if(*it == "Pressure") {
-         diagnosticReducer->addOperator(new DRO::VariablePressureSolver);
-         continue;
-      }
+      // Pressure doesn't work as a diagnostic reducer.
+      //if(*it == "Pressure") {
+      //   diagnosticReducer->addOperator(new DRO::VariablePressureSolver);
+      //   continue;
+      //}
       if(*it == "Rhom") {
          diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("rho",CellParams::RHOM,1));
          continue;
