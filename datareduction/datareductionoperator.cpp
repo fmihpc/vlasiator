@@ -1223,7 +1223,7 @@ namespace DRO {
       return true;
    }
    
-   // Adding rho non backstream calculations to Vlasiator.
+   // Rho non backstream calculation.
    bool VariableRhoNonBackstream::reduceData(const SpatialCell* cell,char* buffer) {
       const bool calculateBackstream = false; //We don't want backstream
       rhoBackstreamCalculation( cell, calculateBackstream, _popID, Rho );
@@ -1237,7 +1237,7 @@ namespace DRO {
       return true;
    }
 
-   //Rho v backstream:
+   // v backstream:
    VariableVBackstream::VariableVBackstream(cuint popID): DataReductionOperator() {
       _popID = popID;
       _name = getObjectWrapper().particleSpecies[_popID].name;
