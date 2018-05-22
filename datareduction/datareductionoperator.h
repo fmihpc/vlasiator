@@ -330,7 +330,7 @@ namespace DRO {
    
    class MaxDistributionFunction: public DataReductionOperator {
    public:
-      MaxDistributionFunction();
+      MaxDistributionFunction(cuint _popID);
       virtual ~MaxDistributionFunction();
       
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
@@ -341,11 +341,13 @@ namespace DRO {
       
    protected:
       Real maxF;
+      unsigned int popID;
+      std::string popName;
    };
    
    class MinDistributionFunction: public DataReductionOperator {
    public:
-      MinDistributionFunction();
+      MinDistributionFunction(cuint _popID);
       virtual ~MinDistributionFunction();
       
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
@@ -356,6 +358,8 @@ namespace DRO {
       
    protected:
       Real minF;
+      unsigned int popID;
+      std::string popName;
    };
 
    /** This class writes all scalar and two- or three-component vector data 

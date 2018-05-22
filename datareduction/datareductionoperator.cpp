@@ -681,10 +681,12 @@ namespace DRO {
    bool DiagnosticFluxE::setSpatialCell(const SpatialCell* cell) {return true;}
    
    // YK maximum value of the distribution function
-   MaxDistributionFunction::MaxDistributionFunction(): DataReductionOperator() { }
+   MaxDistributionFunction::MaxDistributionFunction(cuint _popID): DataReductionOperator(),popID(_popID) {
+      popName=getObjectWrapper().particleSpecies[popID].name;
+   }
    MaxDistributionFunction::~MaxDistributionFunction() { }
    
-   std::string MaxDistributionFunction::getName() const {return "MaximumDistributionFunctionValue";}
+   std::string MaxDistributionFunction::getName() const {return popName + "/MaximumDistributionFunctionValue";}
    
    bool MaxDistributionFunction::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
@@ -696,22 +698,21 @@ namespace DRO {
    
    bool MaxDistributionFunction::reduceData(const SpatialCell* cell,Real* buffer) {
       const Real HALF = 0.5;
+      maxF = std::numeric_limits<Real>::min();
       
       #pragma omp parallel 
       {
          Real threadMax = std::numeric_limits<Real>::min();
          
-         for (unsigned int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-            const Realf* block_data = cell->get_data(popID);
-            
-            #pragma omp for
-            for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); ++n) {
-               for (uint k = 0; k < WID; ++k)
-                  for (uint j = 0; j < WID; ++j)
-                     for (uint i = 0; i < WID; ++i) {
-                        const int celli=k*WID*WID+j*WID+i;
-                        threadMax = max((Real)(block_data[n * SIZE_VELBLOCK+celli]), threadMax);
-               }
+         const Realf* block_data = cell->get_data(popID);
+         
+         #pragma omp for
+         for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); ++n) {
+            for (uint k = 0; k < WID; ++k)
+               for (uint j = 0; j < WID; ++j)
+                  for (uint i = 0; i < WID; ++i) {
+                     const int celli=k*WID*WID+j*WID+i;
+                     threadMax = max((Real)(block_data[n * SIZE_VELBLOCK+celli]), threadMax);
             }
          }
 
@@ -739,10 +740,12 @@ namespace DRO {
    
    
    // YK minimum value of the distribution function
-   MinDistributionFunction::MinDistributionFunction(): DataReductionOperator() { }
+   MinDistributionFunction::MinDistributionFunction(cuint _popID): DataReductionOperator(),popID(_popID) {
+      popName=getObjectWrapper().particleSpecies[popID].name;
+   }
    MinDistributionFunction::~MinDistributionFunction() { }
    
-   std::string MinDistributionFunction::getName() const {return "MinimumDistributionFunctionValue";}
+   std::string MinDistributionFunction::getName() const {return popName + "/MinimumDistributionFunctionValue";}
    
    bool MinDistributionFunction::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
@@ -754,25 +757,24 @@ namespace DRO {
    
    bool MinDistributionFunction::reduceData(const SpatialCell* cell,Real* buffer) {
       const Real HALF = 0.5;
-      
+      minF =  std::numeric_limits<Real>::max();
+
       #pragma omp parallel 
       {
          Real threadMin = std::numeric_limits<Real>::max();
          
-         for (unsigned int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-            const Realf* block_data = cell->get_data(popID);
+         const Realf* block_data = cell->get_data(popID);
 
-            #pragma omp for
-            for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); ++n) {               
-               for (uint k = 0; k < WID; ++k)
-                  for (uint j = 0; j < WID; ++j)
-                     for (uint i = 0; i < WID; ++i) {
-                        const int celli=k*WID*WID+j*WID+i;
-                        threadMin = min((Real)(block_data[n * SIZE_VELBLOCK+celli]), threadMin);
-               }
+         #pragma omp for
+         for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); ++n) {
+            for (uint k = 0; k < WID; ++k)
+               for (uint j = 0; j < WID; ++j)
+                  for (uint i = 0; i < WID; ++i) {
+                     const int celli=k*WID*WID+j*WID+i;
+                     threadMin = min((Real)(block_data[n * SIZE_VELBLOCK+celli]), threadMin);
             }
-         
          }
+         
          #pragma omp critical
          {
             minF = min(threadMin, minF);

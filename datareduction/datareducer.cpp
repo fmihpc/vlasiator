@@ -366,12 +366,16 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("max_fields_dt",CellParams::MAXFDT,1));
          continue;
       }
-      if(*it == "MaxDistributionFunction") {
-         diagnosticReducer->addOperator(new DRO::MaxDistributionFunction);
+      if(*it == "populations_MaxDistributionFunction") {
+         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+            diagnosticReducer->addOperator(new DRO::MaxDistributionFunction(i));
+         }
          continue;
       }
-      if(*it == "MinDistributionFunction") {
-         diagnosticReducer->addOperator(new DRO::MinDistributionFunction);
+      if(*it == "populations_MinDistributionFunction") {
+         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+            diagnosticReducer->addOperator(new DRO::MinDistributionFunction(i));
+         }
          continue;
       }
       // After all the continue; statements one should never land here.
