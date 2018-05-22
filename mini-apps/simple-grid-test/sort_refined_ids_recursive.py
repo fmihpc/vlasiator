@@ -47,8 +47,17 @@ def getChildren(children, parentId, dimension = 0, up = True, left = True):
 
     myChildren = list()
 
-    # Select 2/8 children per parent according to the logical parameters up,down,left,right.
-    # The names are slightly unintuitive in other dimensions but they come from dimension == 0
+    # Select 2/8 children per parent according to the logical parameters up, down, left, right.
+    # The names depict sides of the four children seen when looking along the direction of the
+    # pencil.
+
+    #  ----    ---- 
+    # /   /|  /   /| 
+    # ---- |  ---- | 
+    # |UU| |  |LR| | 
+    # |DD|/   |LR|/  
+    # ----    ----    
+    #
     if dimension == 0:
         if up and left:
             i1 = 0
@@ -189,17 +198,19 @@ import argparse
 
 parser = argparse.ArgumentParser(description='Create pencils on a refined grid.')
 parser.add_argument('--dimension', metavar = 'N', type=int, nargs=1,
-                    default=[0], help='Dimension')
+                    default=[0], help='Dimension (x = 0, y = 1, z = 2)')
 parser.add_argument('--filename', metavar = 'fn', type=str, nargs=1,
-                    default=['test.vtk'], help='Input file name')
+                    default=['test.vtk'], help='Input vtk file name')
+parser.add_argument('--debug', metavar = 'd', type=int, nargs=1,
+                    default=[0], help='Debug printouts (no = 0, yes = 1)')
 args = parser.parse_args()
 
 if args.dimension[0] > 0 and args.dimension[0] <= 2:
     dimension = args.dimension[0]
 else:
     dimension = 0
-    
-debug = False
+
+debug = bool(args.debug[0])
 
 #filename = 'test.vtk'
 filename = args.filename[0]
