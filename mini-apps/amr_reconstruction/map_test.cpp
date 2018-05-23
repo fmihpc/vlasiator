@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include "common.h"
 #include "vlasovsolver/vec.h"
-#include "vlasovsolver/cpu_1d_ppm.hpp"
-//#include "vlasovsolver/cpu_1d_ppm_nonuniform.hpp"
+//#include "vlasovsolver/cpu_1d_ppm.hpp"
+#include "vlasovsolver/cpu_1d_ppm_nonuniform.hpp"
 #include <random>
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/uniform_real.hpp>
@@ -37,8 +37,8 @@ void print_reconstruction(int step, Vec dv[], Vec values[], uint  blocks_per_dim
 #ifdef ACC_SEMILAG_PPM
       Vec a[3];
       //Vec a2[3];
-      compute_ppm_coeff(               values, h6, (k_block + 1) * WID + k_cell, a);
-      //compute_ppm_coeff_nonuniform(dv, values, h6, (k_block + 1) * WID + k_cell, a);
+      //compute_ppm_coeff(               values, h6, (k_block + 1) * WID + k_cell, a);
+      compute_ppm_coeff_nonuniform(dv, values, h6, (k_block + 1) * WID + k_cell, a);
       fprintf(fp2,"%12.8g %12.8g %12.8g\n",a[0][0],a[1][0],a[2][0]);
 #endif
       
@@ -96,9 +96,8 @@ int main(void) {
   /*clear target & values array*/
   for (uint k=0; k<WID* (blocks_per_dim + 2); ++k){ 
     values[k] = 0.0;
-    //rnd = gen();
-    rnd = dv0;
-    dv[k] = rnd;
+    //    dv[k] = dv0;
+    dv[k] = gen();
   }
 
   Real T = 500000;
