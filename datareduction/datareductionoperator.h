@@ -520,21 +520,20 @@ namespace DRO {
       bool _skip;
    };
    
-   class VariableMinValue: public DataReductionOperatorHandlesWriting {
+   class VariableEffectiveSparsityThreshold: public DataReductionOperator {
    public:
-      VariableMinValue();
-      virtual ~VariableMinValue();
+      VariableEffectiveSparsityThreshold(cuint popID);
+      virtual ~VariableEffectiveSparsityThreshold();
 
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
       virtual std::string getName() const;
       virtual bool reduceData(const SpatialCell* cell,char* buffer);
       virtual bool reduceData(const spatial_cell::SpatialCell* cell,Real* result);
       virtual bool setSpatialCell(const SpatialCell* cell);
-      virtual bool writeData(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                             const std::vector<CellID>& cells,const std::string& meshName,vlsv::Writer& vlsvWriter);
       
    protected:
-      
+      uint popID;
+      std::string popName;
    };
    
 } // namespace DRO

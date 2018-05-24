@@ -99,8 +99,10 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          }
          continue;
       }
-      if(*it == "populations_MinValue") {
-         outputReducer->addOperator(new DRO::VariableMinValue);
+      if(*it == "populations_MinValue" || *it == "populations_EffectiveSparsityThreshold") {
+         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+            outputReducer->addOperator(new DRO::VariableEffectiveSparsityThreshold(i));
+         }
          continue;
       }
       if(*it == "populations_RhomLossAdjust") {

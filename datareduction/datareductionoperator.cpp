@@ -1494,51 +1494,35 @@ namespace DRO {
    // Split into VariablePTensorBackstreamDiagonal (11, 22, 33)
    // and VariablePTensorOffDiagonal (23, 13, 12)
 
-   VariableMinValue::VariableMinValue(): DataReductionOperatorHandlesWriting() { }
-   VariableMinValue::~VariableMinValue() { }
+   VariableEffectiveSparsityThreshold::VariableEffectiveSparsityThreshold(cuint
+         _popID): DataReductionOperator(),popID(_popID) { 
+      popName=getObjectWrapper().particleSpecies[popID].name;
+   }
+   VariableEffectiveSparsityThreshold::~VariableEffectiveSparsityThreshold() { }
 
-   bool VariableMinValue::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+   bool VariableEffectiveSparsityThreshold::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
       dataSize =  sizeof(Real);
       vectorSize = 1;
       return true;
    }
 
-   std::string VariableMinValue::getName() const {return "MinValue";}
+   std::string VariableEffectiveSparsityThreshold::getName() const {return popName + "/EffectiveSparsityThreshold";}
    
-   bool VariableMinValue::reduceData(const spatial_cell::SpatialCell* cell,char* buffer) {
-      return false;
-   }
-
-   bool VariableMinValue::reduceData(const spatial_cell::SpatialCell* cell,Real* result) {
-      return false;
-   }
-
-   bool VariableMinValue::setSpatialCell(const spatial_cell::SpatialCell* cell) {
+   bool VariableEffectiveSparsityThreshold::reduceData(const spatial_cell::SpatialCell* cell,char* buffer) {
+      Real dummy;
+      reduceData(cell,&dummy);
+      const char* ptr = reinterpret_cast<const char*>(&dummy);
+      for (uint i = 0; i < sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
    }
 
-   bool VariableMinValue::writeData(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                    const std::vector<CellID>& cells,
-                                    const std::string& meshName,
-                                    vlsv::Writer& vlsvWriter) {
-      bool success = true;
-      Real* buffer = new Real[cells.size()];
-      
-      for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-         #pragma omp parallel for
-         for (size_t c=0; c<cells.size(); ++c) {
-            buffer[c] = mpiGrid[cells[c]]->getVelocityBlockMinValue(popID);
-         }
-         
-         map<string,string> attribs;
-         attribs["mesh"] = meshName;
-         attribs["name"] = getObjectWrapper().particleSpecies[popID].name + "/" + "MinValue";
-         if (vlsvWriter.writeArray("VARIABLE",attribs,cells.size(),1,buffer) == false) success = false;
-      }
-
-      delete [] buffer; buffer = NULL;
-      return success;
+   bool VariableEffectiveSparsityThreshold::reduceData(const spatial_cell::SpatialCell* cell,Real* result) {
+      *result = cell->getVelocityBlockMinValue(popID);
+      return true;
    }
 
+   bool VariableEffectiveSparsityThreshold::setSpatialCell(const spatial_cell::SpatialCell* cell) {
+      return true;
+   }
 } // namespace DRO
