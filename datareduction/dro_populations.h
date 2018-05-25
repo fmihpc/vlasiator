@@ -59,7 +59,23 @@ namespace DRO {
             buffer[i] = ptr[i];
          }
          return true;
-      };
+      }
+
+      virtual bool reduceDiagnostic(const spatial_cell::SpatialCell* cell, Real* target) {
+         if(_vectorSize > 1) {
+            std::cerr << "Warning: trying to use variable " << getName() << " as a diagnostic reducer, but it's vectorSize is " << _vectorSize << " > 1" << std::endl;
+            return false;
+         }
+
+         // First, get a byte-sized pointer to this populations' struct within this cell.
+         const char* population_struct = reinterpret_cast<const char*>(&cell->get_population(_popID));
+
+         // Find the actual data at the specified offset
+         const char* ptr = population_struct + _byteOffset;
+
+         *target = *reinterpret_cast<const Real*>(ptr);
+         return true;
+      }
 
       virtual bool setSpatialCell(const spatial_cell::SpatialCell* cell) {
 
