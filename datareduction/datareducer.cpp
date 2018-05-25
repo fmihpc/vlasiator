@@ -121,13 +121,31 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          continue;
       }
       if(*it == "MaxVdt") {
-         // Maximum timestep constraint as calculated by the velocity space vlasov update
+         // Overall maximum timestep constraint as calculated by the velocity space vlasov update
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("max_v_dt",CellParams::MAXVDT,1));
          continue;
       }
+      if(*it == "populations_MaxVdt") {
+         // Per-population maximum timestep constraint as calculated by the velocity space vlasov update
+         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+            species::Species& species=getObjectWrapper().particleSpecies[i];
+            const std::string& pop = species.name;
+            outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + "/MaxVdt", i, offsetof(spatial_cell::Population, max_dt[1]), 1));
+         }
+         continue;
+      }
       if(*it == "MaxRdt") {
-         // Maximum timestep constraint as calculated by the real space vlasov update
+         // Overall maximum timestep constraint as calculated by the real space vlasov update
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("max_r_dt",CellParams::MAXRDT,1));
+         continue;
+      }
+      if(*it == "populations_MaxRdt") {
+         // Per-population maximum timestep constraint as calculated by the real space vlasov update
+         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+            species::Species& species=getObjectWrapper().particleSpecies[i];
+            const std::string& pop = species.name;
+            outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + "/MaxRdt", i, offsetof(spatial_cell::Population, max_dt[0]), 1));
+         }
          continue;
       }
       if(*it == "MaxFieldsdt") {
