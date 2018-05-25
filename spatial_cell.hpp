@@ -161,7 +161,7 @@ namespace spatial_cell {
       Real P[3];
       Real P_R[3];
       Real P_V[3];
-      Real RHOMLOSSADJUST = 0.0;      /*!< Counter for mass loss from the destroying blocks in blockadjustment*/
+      Real RHOLOSSADJUST = 0.0;      /*!< Counter for particle number loss from the destroying blocks in blockadjustment*/
       Real max_dt[2];                                                /**< Element[0] is max_r_dt, element[1] max_v_dt.*/
       Real velocityBlockMinValue;
       

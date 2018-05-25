@@ -105,11 +105,11 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          }
          continue;
       }
-      if(*it == "populations_RhomLossAdjust") {
+      if(*it == "populations_RhoLossAdjust") {
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
-            outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + "/rhom_loss_adjust", i, offsetof(spatial_cell::Population, RHOMLOSSADJUST), 1));
+            outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + "/rhom_loss_adjust", i, offsetof(spatial_cell::Population, RHOLOSSADJUST), 1));
          }
          continue;
       }
@@ -340,11 +340,11 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("rho",CellParams::RHOM,1));
          continue;
       }
-      if(*it == "populations_RhomLossAdjust") {
+      if(*it == "populations_RhoLossAdjust") {
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
-            diagnosticReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + "/rhom_loss_adjust", i, offsetof(spatial_cell::Population, RHOMLOSSADJUST), 1));
+            diagnosticReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + "/rhom_loss_adjust", i, offsetof(spatial_cell::Population, RHOLOSSADJUST), 1));
          }
          continue;
       }

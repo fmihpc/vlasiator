@@ -205,7 +205,7 @@ namespace spatial_cell {
                  * block_parameters[BlockParams::DVZ];
                Real sum=0;
                for (unsigned int i=0; i<WID3; ++i) sum += get_data(popID)[blockLID*SIZE_VELBLOCK+i];
-               this->populations[popID].RHOMLOSSADJUST += DV3*sum*getObjectWrapper().particleSpecies[popID].mass;
+               this->populations[popID].RHOLOSSADJUST += DV3*sum;
 	       
                // and finally remove block
                this->remove_velocity_block(blockGID,popID);
@@ -299,7 +299,7 @@ namespace spatial_cell {
                  * block_parameters[BlockParams::DVZ];
                Real sum=0;
                for (unsigned int i=0; i<WID3; ++i) sum += get_data(popID)[blockLID*SIZE_VELBLOCK+i];
-               this->populations[popID].RHOMLOSSADJUST += DV3*sum*getObjectWrapper().particleSpecies[popID].mass;
+               this->populations[popID].RHOLOSSADJUST += DV3*sum;
 	       
                // and finally remove block
                this->remove_velocity_block(blockGID,popID);
