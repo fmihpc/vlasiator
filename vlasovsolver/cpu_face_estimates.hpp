@@ -185,7 +185,7 @@ inline void compute_h4_left_face_value_nonuniform(const Vec * const h, const Vec
 	      * ( u[k - 1] * h[k] + u[k] * h[k - 1] )
 	      * (1.0 / ( h[k - 2] + h[k - 1] + h[k] ) + 1.0 / ( h[k - 1] + h[k] + h[k + 1] ) )
 	      + ( h[k] * ( h[k] + h[k + 1] ) ) / ( ( h[k - 2] + h[k - 1] + h[k] ) * (h[k - 2] + h[k - 1] ) )
-	      * ( u[k - 1] * (h[k - 2] * 2.0 * h[k - 1] ) - ( u[k - 2] * h[k - 1] ) )
+	      * ( u[k - 1] * (h[k - 2] + 2.0 * h[k - 1] ) - ( u[k - 2] * h[k - 1] ) )
 	      + h[k - 1] * ( h[k - 2] + h[k - 1] ) / ( ( h[k - 1] + h[k] + h[k + 1] ) * ( h[k] + h[k + 1] ) )
 	      * ( u[k] * ( 2.0 * h[k] + h[k + 1] ) - u[k + 1] * h[k] ) )
 	  );
@@ -341,6 +341,7 @@ inline void compute_filtered_face_values_nonuniform(const Vec * const dv, const 
   //   compute_h8_left_face_value(dv, values, k + 1, fv_r);   
   //   break;
   default:
+    std::cout << "Order " << order << " has not been implemented (yet)\n";
     break;
   }
    Vec slope_abs,slope_sign;
