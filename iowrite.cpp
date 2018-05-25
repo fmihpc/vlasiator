@@ -1242,7 +1242,7 @@ bool writeDiagnostic(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
       // Request DataReductionOperator to calculate the reduced data for all local cells:
       for (uint64_t cell=0; cell<nCells; ++cell) {
          success = true;
-         if (dataReducer.reduceData(mpiGrid[cells[cell]], i, &buffer) == false) success = false;
+         if (dataReducer.reduceDiagnostic(mpiGrid[cells[cell]], i, &buffer) == false) success = false;
          localMin[i] = min(buffer, localMin[i]);
          localMax[i] = max(buffer, localMax[i]);
          localSum[i+1] += buffer;

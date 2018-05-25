@@ -63,7 +63,7 @@ namespace DRO {
     * @param buffer Buffer in which the reduced data is written.
     * @return If true, DataReductionOperator reduced data successfully.
     */
-   bool DataReductionOperator::reduceData(const SpatialCell* cell,Real* result) {
+   bool DataReductionOperator::reduceDiagnostic(const SpatialCell* cell,Real* result) {
       cerr << "ERROR: DataReductionOperator::reduceData called instead of derived class function! (variable " <<
               getName() << ")" << endl;
       cerr << "       Did you use a bulk reducer for writing diagnostic data?" << endl;
@@ -96,7 +96,7 @@ namespace DRO {
       return true;
    }
    
-   bool DataReductionOperatorCellParams::reduceData(const SpatialCell* cell,Real* buffer){
+   bool DataReductionOperatorCellParams::reduceDiagnostic(const SpatialCell* cell,Real* buffer){
       //If _vectorSize is >1 it still works, we just give the first value and no other ones..
       *buffer=_data[0];
       return true;
@@ -378,7 +378,7 @@ namespace DRO {
       return true;
    }
    
-   bool Blocks::reduceData(const SpatialCell* cell,Real* buffer) {
+   bool Blocks::reduceDiagnostic(const SpatialCell* cell,Real* buffer) {
       *buffer = 1.0 * _nBlocks;
       return true;
    }
@@ -595,7 +595,7 @@ namespace DRO {
       return true;
    }
    
-   bool DiagnosticFluxB::reduceData(const SpatialCell* cell,Real * result) {
+   bool DiagnosticFluxB::reduceDiagnostic(const SpatialCell* cell,Real * result) {
       creal x = cell->parameters[CellParams::XCRD];
       creal dx = cell->parameters[CellParams::DX];
       creal y = cell->parameters[CellParams::YCRD];
@@ -646,7 +646,7 @@ namespace DRO {
       return true;
    }
    
-   bool DiagnosticFluxE::reduceData(const SpatialCell* cell,Real * result) {
+   bool DiagnosticFluxE::reduceDiagnostic(const SpatialCell* cell,Real * result) {
       creal x = cell->parameters[CellParams::XCRD];
       creal dx = cell->parameters[CellParams::DX];
       creal y = cell->parameters[CellParams::YCRD];
@@ -696,7 +696,7 @@ namespace DRO {
    }
    
    
-   bool MaxDistributionFunction::reduceData(const SpatialCell* cell,Real* buffer) {
+   bool MaxDistributionFunction::reduceDiagnostic(const SpatialCell* cell,Real* buffer) {
       const Real HALF = 0.5;
       maxF = std::numeric_limits<Real>::min();
       
@@ -728,7 +728,7 @@ namespace DRO {
    
    bool MaxDistributionFunction::reduceData(const SpatialCell* cell,char* buffer) {
       Real dummy;
-      reduceData(cell,&dummy);
+      reduceDiagnostic(cell,&dummy);
       const char* ptr = reinterpret_cast<const char*>(&dummy);
       for (uint i = 0; i < sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
@@ -755,7 +755,7 @@ namespace DRO {
    }
    
    
-   bool MinDistributionFunction::reduceData(const SpatialCell* cell,Real* buffer) {
+   bool MinDistributionFunction::reduceDiagnostic(const SpatialCell* cell,Real* buffer) {
       const Real HALF = 0.5;
       minF =  std::numeric_limits<Real>::max();
 
@@ -787,7 +787,7 @@ namespace DRO {
    
    bool MinDistributionFunction::reduceData(const SpatialCell* cell,char* buffer) {
       Real dummy;
-      reduceData(cell,&dummy);
+      reduceDiagnostic(cell,&dummy);
       const char* ptr = reinterpret_cast<const char*>(&dummy);
       for (uint i = 0; i < sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
@@ -1511,13 +1511,13 @@ namespace DRO {
    
    bool VariableEffectiveSparsityThreshold::reduceData(const spatial_cell::SpatialCell* cell,char* buffer) {
       Real dummy;
-      reduceData(cell,&dummy);
+      reduceDiagnostic(cell,&dummy);
       const char* ptr = reinterpret_cast<const char*>(&dummy);
       for (uint i = 0; i < sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
    }
 
-   bool VariableEffectiveSparsityThreshold::reduceData(const spatial_cell::SpatialCell* cell,Real* result) {
+   bool VariableEffectiveSparsityThreshold::reduceDiagnostic(const spatial_cell::SpatialCell* cell,Real* result) {
       *result = cell->getVelocityBlockMinValue(popID);
       return true;
    }

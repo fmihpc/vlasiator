@@ -36,31 +36,31 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
    for (it = P::outputVariableList.begin();
         it != P::outputVariableList.end();
         it++) {
-      if(*it == "B") {
+      if(*it == "B") { // Bulk magnetic field at Yee-Lattice locations
          outputReducer->addOperator(new DRO::VariableB);
          continue;
       }
-      if(*it == "BackgroundB") {
+      if(*it == "BackgroundB") { // Static (typically dipole) magnetic field part
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("background_B",CellParams::BGBX,3));
          continue;
       }
-      if(*it == "PerturbedB") {
+      if(*it == "PerturbedB") { // Fluctuating magnetic field part
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("perturbed_B",CellParams::PERBX,3));
          continue;
       }
-      if(*it == "E") {
+      if(*it == "E") { // Bulk electric field at Yee-lattice locations
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("E",CellParams::EX,3));
          continue;
       }
-      if(*it == "Rhom") {
+      if(*it == "Rhom") { // Overall mass density (summed over all populations)
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("rhom",CellParams::RHOM,1));
          continue;
       }
-      if(*it == "Rhoq") {
+      if(*it == "Rhoq") { // Overall charge density (summed over all populations)
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("rhoq",CellParams::RHOQ,1));
          continue;
       }
-      if(*it == "populations_Rho") {
+      if(*it == "populations_Rho") { // Per-population particle number density
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
@@ -69,11 +69,11 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          continue;
       }
       
-      if(*it == "V") {
+      if(*it == "V") { // Overall effective bulk density defining the center-of-mass frame from all populations
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("V",CellParams::VX,3));
          continue;
       }
-      if(*it == "populations_V") {
+      if(*it == "populations_V") { // Per population bulk velocities
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
@@ -81,7 +81,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          }
          continue;
       }
-      if(*it == "populations_moments_Backstream") {
+      if(*it == "populations_moments_Backstream") { // Per-population moments of the backstreaming part
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             outputReducer->addOperator(new DRO::VariableRhoBackstream(i));
             outputReducer->addOperator(new DRO::VariableVBackstream(i));
@@ -90,7 +90,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          }
          continue;
       }
-      if(*it == "populations_moments_NonBackstream") {
+      if(*it == "populations_moments_NonBackstream") { // Per-population moments of the non-backstreaming (thermal?) part.
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             outputReducer->addOperator(new DRO::VariableRhoNonBackstream(i));
             outputReducer->addOperator(new DRO::VariableVNonBackstream(i));
@@ -100,12 +100,14 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          continue;
       }
       if(*it == "populations_MinValue" || *it == "populations_EffectiveSparsityThreshold") {
+         // Effective sparsity threshold affecting each cell, if dynamic threshould algorithm is used
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             outputReducer->addOperator(new DRO::VariableEffectiveSparsityThreshold(i));
          }
          continue;
       }
       if(*it == "populations_RhoLossAdjust") {
+         // Accumulated lost particle number, per population, in each cell, since last restart
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
@@ -114,53 +116,65 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          continue;
       }
       if(*it == "LBweight") {
+         // Load balance metric for LB debugging
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("LB_weight",CellParams::LBWEIGHTCOUNTER,1));
          continue;
       }
       if(*it == "MaxVdt") {
+         // Maximum timestep constraint as calculated by the velocity space vlasov update
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("max_v_dt",CellParams::MAXVDT,1));
          continue;
       }
       if(*it == "MaxRdt") {
+         // Maximum timestep constraint as calculated by the real space vlasov update
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("max_r_dt",CellParams::MAXRDT,1));
          continue;
       }
       if(*it == "MaxFieldsdt") {
+         // Maximum timestep constraint as calculated by the fieldsolver
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("max_fields_dt",CellParams::MAXFDT,1));
          continue;
       }
       if(*it == "MPIrank") {
+         // Map of spatial decomposition of the DCCRG grid into MPI ranks
          outputReducer->addOperator(new DRO::MPIrank);
          continue;
       }
       if(*it == "FsGridRank") {
+         // Map of spatial decomposition of the FsGrid into MPI ranks
          outputReducer->addOperator(new DRO::FsGridRank);
          continue;
       }
-      if(*it == "FsGridBoundaryType") {
-         outputReducer->addOperator(new DRO::FsGridBoundaryType);
-         continue;
-      }
       if(*it == "BoundaryType") {
+         // Type of boundarycells
          outputReducer->addOperator(new DRO::BoundaryType);
          continue;
       }
+      if(*it == "FsGridBoundaryType") {
+         // Type of boundarycells as stored in FSGrid
+         outputReducer->addOperator(new DRO::FsGridBoundaryType);
+         continue;
+      }
       if(*it == "BoundaryLayer") {
+         // For boundaries with multiple layers: layer count per cell
          outputReducer->addOperator(new DRO::BoundaryLayer);
          outputReducer->addOperator(new DRO::BoundaryLayerNew);
          continue;
       }
       if (*it == "populations_Blocks") {
+         // Per-population velocity space block counts
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             outputReducer->addOperator(new DRO::Blocks(i));
          }
          continue;
       }
       if(*it == "fSaved") {
+         // Boolean marker whether a velocity space is saved in a given spatial cell
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("fSaved",CellParams::ISCELLSAVINGF,1));
          continue;
       }
       if(*it == "populations_accSubcycles") {
+         // Per-population number of subcycles performed for velocity space update
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
@@ -169,10 +183,12 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          continue;
       }
       if(*it == "VolE") {
+         // Volume-averaged E field
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("E_vol",CellParams::EXVOL,3));
          continue;
       }
       if(*it == "HallE") {
+         // 12 corner components of the hall-effect contribution to the electric field
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EXHALL_000_100",CellParams::EXHALL_000_100,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EXHALL_001_101",CellParams::EXHALL_001_101,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EXHALL_010_110",CellParams::EXHALL_010_110,1));
@@ -188,10 +204,12 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          continue;
       }
       if(*it =="GradPeE") {
+         // Electron pressure gradient contribution to the generalized ohm's law
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EGRADPE",CellParams::EXGRADPE,3));
          continue;
       }
       if(*it == "VolB") {
+         // Volume-averaged magnetic field
          outputReducer->addOperator(new DRO::VariableBVol);
          continue;
       }
@@ -204,10 +222,12 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          continue;
       }
       if(*it == "Pressure") {
+         // Overall scalar pressure from all populations
          outputReducer->addOperator(new DRO::VariablePressureSolver);
          continue;
       }
       if(*it == "populations_PTensor") {
+         // Per-population pressure tensor, stored as diagonal and offdiagonal components
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             outputReducer->addOperator(new DRO::VariablePTensorDiagonal(i));
             outputReducer->addOperator(new DRO::VariablePTensorOffDiagonal(i));
@@ -215,6 +235,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          continue;
       }
       if(*it == "derivs") {
+         // Derivatives of all quantities that might be of interest
          outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("drhomdx",fieldsolver::drhomdx,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("drhomdy",fieldsolver::drhomdy,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("drhomdz",fieldsolver::drhomdz,1));
@@ -265,6 +286,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          continue;
       }
       if(*it == "BVOLderivs") {
+         // Volume-averaged derivatives
          outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("dPERBXVOLdy",bvolderivatives::dPERBXVOLdy,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("dBGBXVOLdy",bvolderivatives::dBGBXVOLdy,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("dPERBXVOLdz",bvolderivatives::dPERBXVOLdz,1));
@@ -280,6 +302,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          continue;
       }
       if(*it == "GridCoordinates") {
+         // Spatial coordinates for each cell
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("X",CellParams::XCRD,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("Y",CellParams::YCRD,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("Z",CellParams::ZCRD,1));
@@ -290,6 +313,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       }
       
       if (*it == "Potential") {
+         // Poisson soler potential
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("poisson/potential",CellParams::PHI,1));
          continue;
       }
@@ -298,10 +322,13 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          continue;
       }
       if (*it == "ChargeDensity") {
+         // Poisson-solver charge density
+         // TODO: This is redundant with Rhoq
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("poisson/rho_q",CellParams::RHOQ_TOT,1));
          continue;
       }
       if (*it == "PotentialError") {
+         // Poisson solver convergence measure
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("poisson/pot_error",CellParams::PHI_TMP,1));
          continue;
       }
@@ -323,24 +350,29 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
         it != P::diagnosticVariableList.end();
         it++) {
       if(*it == "FluxB") {
+         // Overall magnetic flux through the simulation plane
          diagnosticReducer->addOperator(new DRO::DiagnosticFluxB);
          continue;
       }
       if(*it == "FluxE") {
+         // Overall electric flux through the simulation plane
          diagnosticReducer->addOperator(new DRO::DiagnosticFluxE);
          continue;
       }
       if (*it == "populations_Blocks") {
+         // Per-population total block counts
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             diagnosticReducer->addOperator(new DRO::Blocks(i));
          }
          continue;
       }
       if(*it == "Rhom") {
+         // Overall mass density
          diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("rho",CellParams::RHOM,1));
          continue;
       }
       if(*it == "populations_RhoLossAdjust") {
+         // Per-particle overall lost particle number
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
@@ -473,12 +505,12 @@ bool DataReducer::reduceData(const SpatialCell* cell,const unsigned int& operato
  * @param result Real variable in which DataReductionOperator should write its result.
  * @return If true, DataReductionOperator calculated and wrote data successfully.
  */
-bool DataReducer::reduceData(const SpatialCell* cell,const unsigned int& operatorID,Real * result) {
+bool DataReducer::reduceDiagnostic(const SpatialCell* cell,const unsigned int& operatorID,Real * result) {
    // Tell the chosen operator which spatial cell we are counting:
    if (operatorID >= operators.size()) return false;
    if (operators[operatorID]->setSpatialCell(cell) == false) return false;
    
-   if (operators[operatorID]->reduceData(cell,result) == false) return false;
+   if (operators[operatorID]->reduceDiagnostic(cell,result) == false) return false;
    return true;
 }
 

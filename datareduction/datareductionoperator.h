@@ -58,7 +58,7 @@ namespace DRO {
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const = 0;
       virtual std::string getName() const = 0;
       virtual bool reduceData(const SpatialCell* cell,char* buffer);
-      virtual bool reduceData(const SpatialCell* cell,Real * result);
+      virtual bool reduceDiagnostic(const SpatialCell* cell,Real * result);
       virtual bool setSpatialCell(const SpatialCell* cell) = 0;
       
    protected:
@@ -81,7 +81,7 @@ namespace DRO {
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
       virtual std::string getName() const;
       virtual bool reduceData(const SpatialCell* cell,char* buffer);
-      virtual bool reduceData(const SpatialCell* cell,Real * result);
+      virtual bool reduceDiagnostic(const SpatialCell* cell,Real * result);
       virtual bool setSpatialCell(const SpatialCell* cell);
       
    protected:
@@ -213,7 +213,7 @@ namespace DRO {
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
       virtual std::string getName() const;
       virtual bool reduceData(const SpatialCell* cell,char* buffer);
-      virtual bool reduceData(const SpatialCell* cell,Real* buffer);
+      virtual bool reduceDiagnostic(const SpatialCell* cell,Real* buffer);
       virtual bool setSpatialCell(const SpatialCell* cell);
       
    protected:
@@ -307,7 +307,7 @@ namespace DRO {
       
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
       virtual std::string getName() const;
-      virtual bool reduceData(const SpatialCell* cell,Real* result);
+      virtual bool reduceDiagnostic(const SpatialCell* cell,Real* result);
       virtual bool setSpatialCell(const SpatialCell* cell);
       
    protected:
@@ -321,7 +321,7 @@ namespace DRO {
       
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
       virtual std::string getName() const;
-      virtual bool reduceData(const SpatialCell* cell,Real* result);
+      virtual bool reduceDiagnostic(const SpatialCell* cell,Real* result);
       virtual bool setSpatialCell(const SpatialCell* cell);
       
    protected:
@@ -336,7 +336,7 @@ namespace DRO {
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
       virtual std::string getName() const;
       virtual bool reduceData(const SpatialCell* cell,char* buffer);
-      virtual bool reduceData(const SpatialCell* cell,Real *buffer);
+      virtual bool reduceDiagnostic(const SpatialCell* cell,Real *buffer);
       virtual bool setSpatialCell(const SpatialCell* cell);
       
    protected:
@@ -353,7 +353,7 @@ namespace DRO {
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
       virtual std::string getName() const;
       virtual bool reduceData(const SpatialCell* cell,char* buffer);
-      virtual bool reduceData(const SpatialCell* cell,Real *buffer);
+      virtual bool reduceDiagnostic(const SpatialCell* cell,Real *buffer);
       virtual bool setSpatialCell(const SpatialCell* cell);
       
    protected:
@@ -528,7 +528,7 @@ namespace DRO {
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
       virtual std::string getName() const;
       virtual bool reduceData(const SpatialCell* cell,char* buffer);
-      virtual bool reduceData(const spatial_cell::SpatialCell* cell,Real* result);
+      virtual bool reduceDiagnostic(const spatial_cell::SpatialCell* cell,Real* result);
       virtual bool setSpatialCell(const SpatialCell* cell);
       
    protected:
