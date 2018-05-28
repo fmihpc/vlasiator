@@ -23,13 +23,94 @@ void print_values(int step, Vec *values, uint blocks_per_dim, Real v_min, Real d
   fclose(fp);
 }
 
-void print_reconstruction(int step, Vec dv[], Vec values[], uint  blocks_per_dim, Real v_min, Real dv0){
+void propagate(Vec dr[], Vec values[], Real z_translation, uint blocks_per_dim ) {
+
+  // Determine direction of translation
+  // part of density goes here (cell index change along spatial direcion)
+  const int target_scell_index = (z_translation > 0) ? 1: -1; 
+
+  // Vector buffer where we write data, initialized to 0*/
+  Vec targetValues[(blocks_per_dim + 2) * WID];
+
+
+  auto it = max_element(std::begin(dr), std::end(dr)); 
+  Real i_dz = 1.0 / (it)
+  
+  for (uint k_block = 0; k_block < blocks_per_dim; k_block++){
+
+    for (uint k_cell=0; k_cell < WID; ++k_cell) {
+
+      uint gid = k_block * WID + k_cell + WID;
+      // init target_values
+      targetValues[gid] = 0.0;
+      
+    }
+  }
+  for (uint k_block = 0; k_block < blocks_per_dim; k_block++){
+    
+    for (uint k_cell=0; k_cell < WID; ++k_cell){
+
+      uint gid = k_block * WID + k_cell + WID;
+      
+      // Calculate normalized coordinates in current cell.
+      // The coordinates (scaled units from 0 to 1) between which we will
+      // integrate to put mass in the target  neighboring cell.          
+      Realv z_1,z_2;
+      if ( z_translation < 0 ) {
+	z_1 = 0;
+	z_2 = -z_translation * i_dz;
+      } else {
+	z_1 = 1.0 - z_translation * i_dz;
+	z_2 = 1.0;
+      }
+
+      if( abs(z_1) > 1.0 || abs(z_2) > 1.0 ) {
+	std::cout << "Error, CFL condition violated\n";
+	std::cout << "Exiting\n";
+	std::exit(1);
+      }
+
+      //std::cout << z_1 << ", " << z_2 << "\n";
+      
+      // Compute polynomial coefficients
+      Vec a[3];
+      //compute_ppm_coeff_nonuniform(dr, values, h4, gid + target_scell_index, a);
+      compute_ppm_coeff_nonuniform(dr, values, h4, gid, a);
+
+      // Compute integral
+      const Vec ngbr_target_density =
+	z_2 * ( a[0] + z_2 * ( a[1] + z_2 * a[2] ) ) -
+	z_1 * ( a[0] + z_1 * ( a[1] + z_1 * a[2] ) );
+
+      // Store mapped density in two target cells
+      // in the neighbor cell we will put this density        
+      targetValues[gid + target_scell_index] +=  ngbr_target_density;
+      // in the current original cells we will put the rest of the original density
+      targetValues[gid]                      +=  values[gid] - ngbr_target_density;
+      //std::cout << values[gid][0] << ", " << ngbr_target_density[0] << ", " << targetValues[gid][0] << "\n";
+    }
+  }
+
+  // Store target data into source data
+  for (uint k_block = 0; k_block<blocks_per_dim;k_block++){
+    
+    for (uint k_cell=0; k_cell<WID; ++k_cell){
+
+      uint gid = k_block * WID + k_cell + WID;      
+      values[gid] = targetValues[gid];
+      
+    }
+    
+  }  
+
+}
+
+void print_reconstruction(int step, Vec dr[], Vec values[], uint  blocks_per_dim, Real r_min){
   char name[256];
   sprintf(name,"reconstructions_%03d.dat",step);
   FILE* fp=fopen(name,"w");
-  FILE* fp2=fopen("a.dat","w");
 
-  Vec v0 = v_min;
+  Vec r0 = r_min;
   const int subcells = 50;
   /*loop through all blocks in column and divide into subcells. Print value of reconstruction*/
   for (unsigned int k_block = 0; k_block<blocks_per_dim;k_block++){
@@ -37,50 +118,47 @@ void print_reconstruction(int step, Vec dv[], Vec values[], uint  blocks_per_dim
 #ifdef ACC_SEMILAG_PPM
       Vec a[3];
       //compute_ppm_coeff(               values, h4, (k_block + 1) * WID + k_cell, a);
-      compute_ppm_coeff_nonuniform(dv, values, h4, (k_block + 1) * WID + k_cell, a);
-      fprintf(fp2,"%12.8g %12.8g %12.8g %12.8g\n",values[(k_block + 1) * WID + k_cell][0], a[0][0],a[1][0],a[2][0]);
+      compute_ppm_coeff_nonuniform(dr, values, h4, (k_block + 1) * WID + k_cell, a);
 #endif     
       
       int iend = k_block * WID + k_cell;
       if (iend > 0)
-	v0 += dv[iend-1+WID];
+	r0 += dr[iend-1+WID];
 	
       
       for (uint k_subcell=0; k_subcell< subcells; ++k_subcell){ 
-	Vec v_norm = (Real)(k_subcell + 0.5)/subcells; //normalized v of subcell in source cell
-	Vec v = v0 + v_norm * dv[k_block * WID + k_cell + WID];
+	Vec r_norm = (Real)(k_subcell + 0.5)/subcells; //normalized r of subcell in source cell
+	Vec r = r0 + r_norm * dr[k_block * WID + k_cell + WID];
 	
 #ifdef ACC_SEMILAG_PPM
 	Vec target = 
 	  a[0] +
-	  2.0 * v_norm * a[1] +
-	  3.0 * v_norm * v_norm * a[2];
+	  2.0 * r_norm * a[1] +
+	  3.0 * r_norm * r_norm * a[2];
 #endif
 
-	fprintf(fp,"%20.12g %20.12g %20.12g\n", v[0], values[k_block * WID + k_cell + WID][0], target[0]);
+	fprintf(fp,"%20.12g %20.12g %20.12g\n", r[0], values[k_block * WID + k_cell + WID][0], target[0]);
       }
       //fprintf(fp,"\n"); //empty line to deay wgments in gnuplot
     }
   }
   
   fclose(fp);
-  fclose(fp2);
 }
 
 int main(void) {
   
-  const Real dv0 = 20000;
-  //const Real v_min = -4e6;
+  const Real dr0 = 20000;
   const int blocks_per_dim = 100;
   const int i_block = 0; //x index of block, fixed in this simple test
   const int j_block = 0; //y index of block, fixed in this simple test
   const int j_cell = 0; // y index of cell within block (0..WID-1)
 
-  Vec dv[(blocks_per_dim+2)*WID];
+  Vec dr[(blocks_per_dim+2)*WID];
   Vec values[(blocks_per_dim+2)*WID];
 
   boost::mt19937 rng;
-  boost::uniform_real<Real> u(0.0, 2.0 * dv0);
+  boost::uniform_real<Real> u(0.0, 2.0 * dr0);
   boost::variate_generator<boost::mt19937&, boost::uniform_real<Real> > gen(rng, u);
   gen.distribution().reset();
   gen.engine().seed(12345);
@@ -89,43 +167,51 @@ int main(void) {
   /*clear target & values array*/
   for (uint k=0; k<WID* (blocks_per_dim + 2); ++k){ 
     values[k] = 0.0;
-    dv[k] = dv0;
-    //dv[k] = gen();
+    dr[k] = dr0;
+    //dr[k] = gen();
   }
 
-  int max_refinement = 5;
-  int cells_per_level = 2;
+  uint max_refinement = 1;
+  uint cells_per_level = 2;
   for (uint k=0; k < max_refinement * cells_per_level; ++k) {
-    dv[(blocks_per_dim + 2) * WID / 2 + k] = dv[(blocks_per_dim + 2) * WID / 2 + k]/pow(2,(max_refinement - k / cells_per_level));
+    dr[(blocks_per_dim + 2) * WID / 2 + k] = dr[(blocks_per_dim + 2) * WID / 2 + k]/pow(2,(max_refinement - k / cells_per_level));
     if (k > 0)
-      dv[(blocks_per_dim + 2) * WID / 2 - k] = dv[(blocks_per_dim + 2) * WID / 2 - k]/pow(2,(max_refinement - k / cells_per_level));
+      dr[(blocks_per_dim + 2) * WID / 2 - k] = dr[(blocks_per_dim + 2) * WID / 2 - k]/pow(2,(max_refinement - k / cells_per_level));
   }
 
-  Real v_min = 0.0;
+  Real r_min = 0.0;
   for (uint k=WID;k < (blocks_per_dim + 2) * WID / 2; ++k) {    
-    v_min -= dv[k][0];
+    r_min -= dr[k][0];
   }
   
   Real T = 500000;
   Real rho = 1.0e6;
-  Real v = v_min;
-  Real const v1 = 10 * dv0;
+  Real r = r_min;
+  Real const r1 = 10 * dr0;
   
   for(uint i=0; i < blocks_per_dim * WID; i++){
-    // Real v=v_min + i*dv;
 
-    // Evaluate the function at the middle of the v cell
-    v = v + 0.5 * dv[i + WID][0];
+    // Evaluate the function at the middle of the cell
+    r = r + 0.5 * dr[i + WID][0];
     values[i + WID] = rho * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B * T), 1.5) *
-      exp(- physicalconstants::MASS_PROTON * v * v / (2.0 * physicalconstants::K_B * T));
+      exp(- physicalconstants::MASS_PROTON * r * r / (2.0 * physicalconstants::K_B * T));
 
     //values[i + WID] = rho * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B * T), 1.5) *
     //  ( exp(- physicalconstants::MASS_PROTON * v * v / (2.0 * physicalconstants::K_B * T)) +
     //    exp(- physicalconstants::MASS_PROTON * (v+v1) * (v+v1) / (2.0 * physicalconstants::K_B * T)));
     // Move to the end of the cell for the next iteration
-    v = v + 0.5 * dv[i + WID][0];
+    r = r + 0.5 * dr[i + WID][0];
   }
   
-  // print_values(0,values,blocks_per_dim, v_min, dv);
-  print_reconstruction(0, dv, values, blocks_per_dim, v_min, dv0);
+  print_reconstruction(0, dr, values, blocks_per_dim, r_min);
+
+  uint nstep = 200;
+  Real step = -500.0;
+  
+  for (uint istep=0; istep < nstep; ++istep) {
+    propagate(dr, values, step, blocks_per_dim);
+    if ((istep+1) % 10 == 0)
+      print_reconstruction(istep+1, dr, values, blocks_per_dim, r_min);
+  }
+  
 }

@@ -1,10 +1,18 @@
 from pylab import *
 from cycler import cycler
+import argparse
 
-fname = 'reconstruction_10000'
+parser = argparse.ArgumentParser(description='Plot 1d reconstructions')
+parser.add_argument('--step', metavar = 'N', type=int, nargs=1,
+                    default=[0], help='Step to plot')
+args = parser.parse_args()
 
-dat = loadtxt('reconstructions_10000.dat')
-figure()
+#fname = 'reconstruction_100'
+fname = 'reconstruction_{:03d}'.format(args.step[0])
+
+#dat = loadtxt('reconstructions_010.dat')
+dat = loadtxt('reconstructions_{:03d}.dat'.format(args.step[0]))
+figure(1)
 clf()
 T = 5e5
 m_p = 1.67262158e-27
@@ -24,4 +32,5 @@ legend()
 xlim(vmax-5e5,vmax+5e5)
 savefig(fname+'.png')
 savefig(fname+'.eps')
-show()
+show(block=False)
+#print(sum(dat[:,2]))
