@@ -86,9 +86,9 @@ namespace DRO {
       
    protected:
       uint _parameterIndex;
-      uint _vectorSize;
-      std::string _name;
-      const Real *_data;
+      uint vectorSize;
+      std::string variableName;
+      const Real *data;
    };
 
    class DataReductionOperatorDerivatives: public DataReductionOperatorCellParams {
@@ -188,9 +188,9 @@ namespace DRO {
       virtual bool setSpatialCell(const SpatialCell* cell);
       
    protected:
-      uint _nBlocks;
-      uint _popID;
-      std::string _name;
+      uint nBlocks;
+      uint popID;
+      std::string popName;
    };
    
    class VariableB: public DataReductionOperator {
@@ -250,8 +250,8 @@ namespace DRO {
    protected:
       Real averageVX, averageVY, averageVZ;
       Real PTensor[3];
-      uint _popID;
-      std::string _name;
+      uint popID;
+      std::string popName;
    };
    
    class VariablePTensorOffDiagonal: public DataReductionOperator {
@@ -267,8 +267,8 @@ namespace DRO {
    protected:
       Real averageVX, averageVY, averageVZ;
       Real PTensor[3];
-      uint _popID;
-      std::string _name;
+      uint popID;
+      std::string popName;
    };
    
    class DiagnosticFluxB: public DataReductionOperator {
@@ -312,8 +312,8 @@ namespace DRO {
       
    protected:
       Real maxF;
-      uint _popID;
-      std::string _name;
+      uint popID;
+      std::string popName;
    };
    
    class MinDistributionFunction: public DataReductionOperator {
@@ -329,8 +329,8 @@ namespace DRO {
       
    protected:
       Real minF;
-      uint _popID;
-      std::string _name;
+      uint popID;
+      std::string popName;
    };
 
    /** This class writes all scalar and two- or three-component vector data 
@@ -363,9 +363,9 @@ namespace DRO {
      
    protected:
       Real RhoBackstream;
-      uint _popID;
-      std::string _name;
-      bool _skip;
+      uint popID;
+      std::string popName;
+      bool doSkip;
    };
 
    class VariableRhoNonBackstream: public DataReductionOperator {
@@ -380,9 +380,9 @@ namespace DRO {
      
    protected:
       Real Rho;
-      uint _popID;
-      std::string _name;
-      bool _skip;
+      uint popID;
+      std::string popName;
+      bool doSkip;
    };
 
    class VariableVBackstream: public DataReductionOperator {
@@ -397,9 +397,9 @@ namespace DRO {
      
    protected:
       Real VBackstream[3];
-      uint _popID;
-      std::string _name;
-      bool _skip;
+      uint popID;
+      std::string popName;
+      bool doSkip;
    };
 
    class VariableVNonBackstream: public DataReductionOperator {
@@ -414,9 +414,9 @@ namespace DRO {
 
    protected:
       Real V[3];
-      uint _popID;
-      std::string _name;
-      bool _skip;
+      uint popID;
+      std::string popName;
+      bool doSkip;
    };
 
    class VariablePTensorBackstreamDiagonal: public DataReductionOperator {
@@ -432,9 +432,9 @@ namespace DRO {
    protected:
       Real averageVX, averageVY, averageVZ;
       Real PTensor[3];
-      uint _popID;
-      std::string _name;
-      bool _skip;
+      uint popID;
+      std::string popName;
+      bool doSkip;
    };
 
    class VariablePTensorNonBackstreamDiagonal: public DataReductionOperator {
@@ -450,9 +450,9 @@ namespace DRO {
    protected:
       Real averageVX, averageVY, averageVZ;
       Real PTensor[3];
-      uint _popID;
-      std::string _name;
-      bool _skip;
+      uint popID;
+      std::string popName;
+      bool doSkip;
    };
 
    class VariablePTensorBackstreamOffDiagonal: public DataReductionOperator {
@@ -468,9 +468,9 @@ namespace DRO {
    protected:
       Real averageVX, averageVY, averageVZ;
       Real PTensor[3];
-      uint _popID;
-      std::string _name;
-      bool _skip;
+      uint popID;
+      std::string popName;
+      bool doSkip;
    };
 
    class VariablePTensorNonBackstreamOffDiagonal: public DataReductionOperator {
@@ -486,9 +486,9 @@ namespace DRO {
    protected:
       Real averageVX, averageVY, averageVZ;
       Real PTensor[3];
-      uint _popID;
-      std::string _name;
-      bool _skip;
+      uint popID;
+      std::string popName;
+      bool doSkip;
    };
    
    class VariableEffectiveSparsityThreshold: public DataReductionOperator {
@@ -503,8 +503,8 @@ namespace DRO {
       virtual bool setSpatialCell(const SpatialCell* cell);
       
    protected:
-      uint _popID;
-      std::string _name;
+      uint popID;
+      std::string popName;
    };
    
 } // namespace DRO

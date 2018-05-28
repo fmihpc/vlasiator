@@ -71,44 +71,44 @@ namespace DRO {
    }
 
 
-   DataReductionOperatorCellParams::DataReductionOperatorCellParams(const std::string& name,const unsigned int parameterIndex,const unsigned int vectorSize):
+   DataReductionOperatorCellParams::DataReductionOperatorCellParams(const std::string& name,const unsigned int parameterIndex,const unsigned int _vectorSize):
    DataReductionOperator() {
-      _vectorSize=vectorSize;
-      _name=name;
+      vectorSize=_vectorSize;
+      variableName=name;
       _parameterIndex=parameterIndex;
    }
    DataReductionOperatorCellParams::~DataReductionOperatorCellParams() { }
    
-   bool DataReductionOperatorCellParams::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+   bool DataReductionOperatorCellParams::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& _vectorSize) const {
       dataType = "float";
       dataSize =  sizeof(Real);
-      vectorSize = _vectorSize;
+      _vectorSize = vectorSize;
       return true;
    }
    
-   std::string DataReductionOperatorCellParams::getName() const {return _name;}
+   std::string DataReductionOperatorCellParams::getName() const {return variableName;}
    
    bool DataReductionOperatorCellParams::reduceData(const SpatialCell* cell,char* buffer) {
-      const char* ptr = reinterpret_cast<const char*>(_data);
-      for (uint i = 0; i < _vectorSize*sizeof(Real); ++i){
+      const char* ptr = reinterpret_cast<const char*>(data);
+      for (uint i = 0; i < vectorSize*sizeof(Real); ++i){
          buffer[i] = ptr[i];
       }
       return true;
    }
    
    bool DataReductionOperatorCellParams::reduceDiagnostic(const SpatialCell* cell,Real* buffer){
-      //If _vectorSize is >1 it still works, we just give the first value and no other ones..
-      *buffer=_data[0];
+      //If vectorSize is >1 it still works, we just give the first value and no other ones..
+      *buffer=data[0];
       return true;
    }
    bool DataReductionOperatorCellParams::setSpatialCell(const SpatialCell* cell) {
-      for (uint i=0; i<_vectorSize; i++) {
+      for (uint i=0; i<vectorSize; i++) {
          if(std::isinf(cell->parameters[_parameterIndex+i]) || std::isnan(cell->parameters[_parameterIndex+i])) {
             string message = "The DataReductionOperator " + this->getName() + " returned a nan or an inf in its " + std::to_string(i) + "-component.";
             bailout(true, message, __FILE__, __LINE__);
          }
       }
-      _data  = &(cell->parameters[_parameterIndex]);
+      data  = &(cell->parameters[_parameterIndex]);
       return true;
    }
 
@@ -122,7 +122,7 @@ namespace DRO {
    }
    //a version with derivatives, this is the only function that is different
    bool DataReductionOperatorDerivatives::setSpatialCell(const SpatialCell* cell) {
-      _data  = &(cell->derivatives[_parameterIndex]);
+      data  = &(cell->derivatives[_parameterIndex]);
       return true;
    }
 
@@ -133,7 +133,7 @@ namespace DRO {
    }
    //a version with derivatives, this is the only function that is different
    bool DataReductionOperatorBVOLDerivatives::setSpatialCell(const SpatialCell* cell) {
-      _data  = &(cell->derivativesBVOL[_parameterIndex]);
+      data  = &(cell->derivativesBVOL[_parameterIndex]);
       return true;
    }
    
@@ -334,9 +334,8 @@ namespace DRO {
    }
    
    // Blocks
-   Blocks::Blocks(cuint popID): DataReductionOperator() {
-      _popID=popID;
-      _name=getObjectWrapper().particleSpecies[_popID].name;
+   Blocks::Blocks(cuint _popID): DataReductionOperator(),popID(_popID) {
+      popName=getObjectWrapper().particleSpecies[popID].name;
    }
    Blocks::~Blocks() { }
    
@@ -347,21 +346,21 @@ namespace DRO {
       return true;
    }
    
-   std::string Blocks::getName() const {return _name + "/Blocks";}
+   std::string Blocks::getName() const {return popName + "/Blocks";}
    
    bool Blocks::reduceData(const SpatialCell* cell,char* buffer) {
-      const char* ptr = reinterpret_cast<const char*>(&_nBlocks);
+      const char* ptr = reinterpret_cast<const char*>(&nBlocks);
       for (uint i = 0; i < sizeof(int); ++i) buffer[i] = ptr[i];
       return true;
    }
    
    bool Blocks::reduceDiagnostic(const SpatialCell* cell,Real* buffer) {
-      *buffer = 1.0 * _nBlocks;
+      *buffer = 1.0 * nBlocks;
       return true;
    }
   
    bool Blocks::setSpatialCell(const SpatialCell* cell) {
-      _nBlocks = cell->get_number_of_velocity_blocks(_popID);
+      nBlocks = cell->get_number_of_velocity_blocks(popID);
       return true;
    }
    
@@ -395,13 +394,12 @@ namespace DRO {
    // Pressure tensor 6 components (11, 22, 33, 23, 13, 12) added by YK
    // Split into VariablePTensorDiagonal (11, 22, 33)
    // and VariablePTensorOffDiagonal (23, 13, 12)
-   VariablePTensorDiagonal::VariablePTensorDiagonal(cuint popID): DataReductionOperator() {
-      _popID = popID;
-      _name = getObjectWrapper().particleSpecies[_popID].name;
+   VariablePTensorDiagonal::VariablePTensorDiagonal(cuint _popID): DataReductionOperator(),popID(_popID) {
+      popName = getObjectWrapper().particleSpecies[popID].name;
    }
    VariablePTensorDiagonal::~VariablePTensorDiagonal() { }
    
-   std::string VariablePTensorDiagonal::getName() const {return _name + "/PTensorDiagonal";}
+   std::string VariablePTensorDiagonal::getName() const {return popName + "/PTensorDiagonal";}
    
    bool VariablePTensorDiagonal::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
@@ -418,11 +416,11 @@ namespace DRO {
          Real thread_nvyvy_sum = 0.0;
          Real thread_nvzvz_sum = 0.0;
          
-         const Real* parameters  = cell->get_block_parameters(_popID);
-         const Realf* block_data = cell->get_data(_popID);
+         const Real* parameters  = cell->get_block_parameters(popID);
+         const Realf* block_data = cell->get_data(popID);
          
          # pragma omp for
-         for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(_popID); n++) {
+         for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); n++) {
 	    for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
 	       const Real VX 
 		 =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
@@ -443,9 +441,9 @@ namespace DRO {
 	       thread_nvzvz_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * (VZ - averageVZ) * (VZ - averageVZ) * DV3;
             }
          }
-         thread_nvxvx_sum *= getObjectWrapper().particleSpecies[_popID].mass;
-         thread_nvyvy_sum *= getObjectWrapper().particleSpecies[_popID].mass;
-         thread_nvzvz_sum *= getObjectWrapper().particleSpecies[_popID].mass;
+         thread_nvxvx_sum *= getObjectWrapper().particleSpecies[popID].mass;
+         thread_nvyvy_sum *= getObjectWrapper().particleSpecies[popID].mass;
+         thread_nvzvz_sum *= getObjectWrapper().particleSpecies[popID].mass;
 
          // Accumulate contributions coming from this velocity block to the 
          // spatial cell velocity moments. If multithreading / OpenMP is used, 
@@ -470,13 +468,12 @@ namespace DRO {
       return true;
    }
    
-   VariablePTensorOffDiagonal::VariablePTensorOffDiagonal(cuint popID): DataReductionOperator() {
-      _popID = popID;
-      _name = getObjectWrapper().particleSpecies[_popID].name;
+   VariablePTensorOffDiagonal::VariablePTensorOffDiagonal(cuint _popID): DataReductionOperator(),popID(_popID) {
+      popName = getObjectWrapper().particleSpecies[popID].name;
    }
    VariablePTensorOffDiagonal::~VariablePTensorOffDiagonal() { }
    
-   std::string VariablePTensorOffDiagonal::getName() const {return _name + "/PTensorOffDiagonal";}
+   std::string VariablePTensorOffDiagonal::getName() const {return popName + "/PTensorOffDiagonal";}
    
    bool VariablePTensorOffDiagonal::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
@@ -493,11 +490,11 @@ namespace DRO {
          Real thread_nvzvx_sum = 0.0;
          Real thread_nvyvz_sum = 0.0;
          
-         const Real* parameters = cell->get_block_parameters(_popID);
-         const Realf* block_data = cell->get_data(_popID);
+         const Real* parameters = cell->get_block_parameters(popID);
+         const Realf* block_data = cell->get_data(popID);
          
          # pragma omp for
-         for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(_popID); n++) {               
+         for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); n++) {               
 	    for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
 	       const Real VX 
 		 =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
@@ -518,9 +515,9 @@ namespace DRO {
 	       thread_nvyvz_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * (VY - averageVY) * (VZ - averageVZ) * DV3;
             }
          }
-         thread_nvxvy_sum *= getObjectWrapper().particleSpecies[_popID].mass;
-         thread_nvzvx_sum *= getObjectWrapper().particleSpecies[_popID].mass;
-         thread_nvyvz_sum *= getObjectWrapper().particleSpecies[_popID].mass;
+         thread_nvxvy_sum *= getObjectWrapper().particleSpecies[popID].mass;
+         thread_nvzvx_sum *= getObjectWrapper().particleSpecies[popID].mass;
+         thread_nvyvz_sum *= getObjectWrapper().particleSpecies[popID].mass;
          
          // Accumulate contributions coming from this velocity block to the 
          // spatial cell velocity moments. If multithreading / OpenMP is used, 
@@ -646,13 +643,12 @@ namespace DRO {
    bool DiagnosticFluxE::setSpatialCell(const SpatialCell* cell) {return true;}
    
    // YK maximum value of the distribution function
-   MaxDistributionFunction::MaxDistributionFunction(cuint popID): DataReductionOperator() {
-     _popID = popID;
-     _name=getObjectWrapper().particleSpecies[_popID].name;
+   MaxDistributionFunction::MaxDistributionFunction(cuint _popID): DataReductionOperator(),popID(_popID) {
+     popName=getObjectWrapper().particleSpecies[popID].name;
    }
    MaxDistributionFunction::~MaxDistributionFunction() { }
    
-   std::string MaxDistributionFunction::getName() const {return _name + "/MaximumDistributionFunctionValue";}
+   std::string MaxDistributionFunction::getName() const {return popName + "/MaximumDistributionFunctionValue";}
    
    bool MaxDistributionFunction::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
@@ -668,10 +664,10 @@ namespace DRO {
       {
          Real threadMax = std::numeric_limits<Real>::min();
          
-         const Realf* block_data = cell->get_data(_popID);
+         const Realf* block_data = cell->get_data(popID);
          
          #pragma omp for
-         for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(_popID); ++n) {
+         for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); ++n) {
 	    for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
 	       threadMax = max((Real)(block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)]), threadMax);
             }
@@ -701,13 +697,12 @@ namespace DRO {
    
    
    // YK minimum value of the distribution function
-   MinDistributionFunction::MinDistributionFunction(cuint popID): DataReductionOperator() {
-     _popID = popID;
-     _name=getObjectWrapper().particleSpecies[_popID].name;
+   MinDistributionFunction::MinDistributionFunction(cuint _popID): DataReductionOperator(),popID(_popID) {
+     popName=getObjectWrapper().particleSpecies[popID].name;
    }
    MinDistributionFunction::~MinDistributionFunction() { }
    
-   std::string MinDistributionFunction::getName() const {return _name + "/MinimumDistributionFunctionValue";}
+   std::string MinDistributionFunction::getName() const {return popName + "/MinimumDistributionFunctionValue";}
    
    bool MinDistributionFunction::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
@@ -723,10 +718,10 @@ namespace DRO {
       {
          Real threadMin = std::numeric_limits<Real>::max();
          
-         const Realf* block_data = cell->get_data(_popID);
+         const Realf* block_data = cell->get_data(popID);
 
          #pragma omp for
-         for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(_popID); ++n) {
+         for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); ++n) {
 	    for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
 	       threadMin = min((Real)(block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)]), threadMin);
             }
@@ -1141,26 +1136,25 @@ namespace DRO {
    }
    
    // Rho backstream:
-   VariableRhoBackstream::VariableRhoBackstream(cuint popID): DataReductionOperator() {
-      _popID = popID;
-      _name = getObjectWrapper().particleSpecies[_popID].name;
-      _skip = (getObjectWrapper().particleSpecies[_popID].backstreamRadius == 0.0) ? true : false;
+   VariableRhoBackstream::VariableRhoBackstream(cuint _popID): DataReductionOperator(),popID(_popID) {
+      popName = getObjectWrapper().particleSpecies[popID].name;
+      doSkip = (getObjectWrapper().particleSpecies[popID].backstreamRadius == 0.0) ? true : false;
    }
    VariableRhoBackstream::~VariableRhoBackstream() { }
    
-   std::string VariableRhoBackstream::getName() const {return _name + "/RhoBackstream";}
+   std::string VariableRhoBackstream::getName() const {return popName + "/RhoBackstream";}
    
    bool VariableRhoBackstream::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
       dataSize =  sizeof(Real);
-      vectorSize = (_skip == true) ? 0 : 1;
+      vectorSize = (doSkip == true) ? 0 : 1;
       return true;
    }
    
    // Adding rho backstream calculations to Vlasiator.
    bool VariableRhoBackstream::reduceData(const SpatialCell* cell,char* buffer) {
       const bool calculateBackstream = true;
-      rhoBackstreamCalculation( cell, calculateBackstream, _popID, RhoBackstream );
+      rhoBackstreamCalculation( cell, calculateBackstream, popID, RhoBackstream );
       const char* ptr = reinterpret_cast<const char*>(&RhoBackstream);
       for (uint i = 0; i < sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
@@ -1173,26 +1167,25 @@ namespace DRO {
 
 
    // Rho non backstream:
-   VariableRhoNonBackstream::VariableRhoNonBackstream(cuint popID): DataReductionOperator() {
-      _popID = popID;
-      _name = getObjectWrapper().particleSpecies[_popID].name;
-      _skip = (getObjectWrapper().particleSpecies[_popID].backstreamRadius == 0.0) ? true : false;
+   VariableRhoNonBackstream::VariableRhoNonBackstream(cuint _popID): DataReductionOperator(),popID(_popID) {
+      popName = getObjectWrapper().particleSpecies[popID].name;
+      doSkip = (getObjectWrapper().particleSpecies[popID].backstreamRadius == 0.0) ? true : false;
    }
    VariableRhoNonBackstream::~VariableRhoNonBackstream() { }
    
-   std::string VariableRhoNonBackstream::getName() const {return _name + "/RhoNonBackstream";}
+   std::string VariableRhoNonBackstream::getName() const {return popName + "/RhoNonBackstream";}
    
    bool VariableRhoNonBackstream::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
       dataSize =  sizeof(Real);
-      vectorSize = (_skip == true) ? 0 : 1;
+      vectorSize = (doSkip == true) ? 0 : 1;
       return true;
    }
    
    // Rho non backstream calculation.
    bool VariableRhoNonBackstream::reduceData(const SpatialCell* cell,char* buffer) {
       const bool calculateBackstream = false; //We don't want backstream
-      rhoBackstreamCalculation( cell, calculateBackstream, _popID, Rho );
+      rhoBackstreamCalculation( cell, calculateBackstream, popID, Rho );
       const char* ptr = reinterpret_cast<const char*>(&Rho);
       for (uint i = 0; i < sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
@@ -1204,19 +1197,18 @@ namespace DRO {
    }
 
    // v backstream:
-   VariableVBackstream::VariableVBackstream(cuint popID): DataReductionOperator() {
-      _popID = popID;
-      _name = getObjectWrapper().particleSpecies[_popID].name;
-      _skip = (getObjectWrapper().particleSpecies[_popID].backstreamRadius == 0.0) ? true : false;
+   VariableVBackstream::VariableVBackstream(cuint _popID): DataReductionOperator(),popID(_popID) {
+      popName = getObjectWrapper().particleSpecies[popID].name;
+      doSkip = (getObjectWrapper().particleSpecies[popID].backstreamRadius == 0.0) ? true : false;
    }
    VariableVBackstream::~VariableVBackstream() { }
    
-   std::string VariableVBackstream::getName() const {return _name + "/VBackstream";}
+   std::string VariableVBackstream::getName() const {return popName + "/VBackstream";}
    
    bool VariableVBackstream::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
       dataSize =  sizeof(Real);
-      vectorSize = (_skip == true) ? 0 : 3;
+      vectorSize = (doSkip == true) ? 0 : 3;
       return true;
    }
 
@@ -1224,7 +1216,7 @@ namespace DRO {
    bool VariableVBackstream::reduceData(const SpatialCell* cell,char* buffer) {
       const bool calculateBackstream = true;
       //Calculate v backstream
-      VBackstreamCalculation( cell, calculateBackstream, _popID, VBackstream );
+      VBackstreamCalculation( cell, calculateBackstream, popID, VBackstream );
       const uint VBackstreamSize = 3;
       const char* ptr = reinterpret_cast<const char*>(&VBackstream);
       for (uint i = 0; i < VBackstreamSize*sizeof(Real); ++i) buffer[i] = ptr[i];
@@ -1240,19 +1232,18 @@ namespace DRO {
    }
 
    //v non backstream:
-   VariableVNonBackstream::VariableVNonBackstream(cuint popID): DataReductionOperator() {
-      _popID = popID;
-      _name = getObjectWrapper().particleSpecies[_popID].name;
-      _skip = (getObjectWrapper().particleSpecies[_popID].backstreamRadius == 0.0) ? true : false;
+   VariableVNonBackstream::VariableVNonBackstream(cuint _popID): DataReductionOperator(),popID(_popID) {
+      popName = getObjectWrapper().particleSpecies[popID].name;
+      doSkip = (getObjectWrapper().particleSpecies[popID].backstreamRadius == 0.0) ? true : false;
    }
    VariableVNonBackstream::~VariableVNonBackstream() { }
    
-   std::string VariableVNonBackstream::getName() const {return _name + "/VNonBackstream";}
+   std::string VariableVNonBackstream::getName() const {return popName + "/VNonBackstream";}
    
    bool VariableVNonBackstream::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
       dataSize =  sizeof(Real);
-      vectorSize = (_skip == true) ? 0 : 3;
+      vectorSize = (doSkip == true) ? 0 : 3;
       return true;
    }
 
@@ -1260,7 +1251,7 @@ namespace DRO {
    bool VariableVNonBackstream::reduceData(const SpatialCell* cell,char* buffer) {
       const bool calculateBackstream = false;
       //Calculate v backstream
-      VBackstreamCalculation( cell, calculateBackstream, _popID, V );
+      VBackstreamCalculation( cell, calculateBackstream, popID, V );
       const uint vectorSize = 3;
       const char* ptr = reinterpret_cast<const char*>(&V);
       for (uint i = 0; i < vectorSize*sizeof(Real); ++i) buffer[i] = ptr[i];
@@ -1281,26 +1272,25 @@ namespace DRO {
    // Pressure tensor 6 components (11, 22, 33, 23, 13, 12) added by YK
    // Split into VariablePTensorBackstreamDiagonal (11, 22, 33)
    // and VariablePTensorOffDiagonal (23, 13, 12)
-   VariablePTensorBackstreamDiagonal::VariablePTensorBackstreamDiagonal(cuint popID): DataReductionOperator() {
-      _popID = popID;
-      _name = getObjectWrapper().particleSpecies[_popID].name;
-      _skip = (getObjectWrapper().particleSpecies[_popID].backstreamRadius == 0.0) ? true : false;
+   VariablePTensorBackstreamDiagonal::VariablePTensorBackstreamDiagonal(cuint _popID): DataReductionOperator(),popID(_popID) {
+      popName = getObjectWrapper().particleSpecies[popID].name;
+      doSkip = (getObjectWrapper().particleSpecies[popID].backstreamRadius == 0.0) ? true : false;
    }
    VariablePTensorBackstreamDiagonal::~VariablePTensorBackstreamDiagonal() { }
    
-   std::string VariablePTensorBackstreamDiagonal::getName() const {return _name + "/PTensorBackstreamDiagonal";}
+   std::string VariablePTensorBackstreamDiagonal::getName() const {return popName + "/PTensorBackstreamDiagonal";}
    
    bool VariablePTensorBackstreamDiagonal::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
       dataSize =  sizeof(Real);
-      vectorSize = (_skip == true) ? 0 : 3;
+      vectorSize = (doSkip == true) ? 0 : 3;
       return true;
    }
    
    bool VariablePTensorBackstreamDiagonal::reduceData(const SpatialCell* cell,char* buffer) {
       const bool calculateBackstream = true;
       //Calculate PTensor and save it in PTensorArray:
-      PTensorDiagonalBackstreamCalculations( cell, calculateBackstream, averageVX, averageVY, averageVZ, _popID, PTensor );
+      PTensorDiagonalBackstreamCalculations( cell, calculateBackstream, averageVX, averageVY, averageVZ, popID, PTensor );
       const uint vectorSize = 3;
       //Save the data into buffer:
       const char* ptr = reinterpret_cast<const char*>(&PTensor);
@@ -1312,7 +1302,7 @@ namespace DRO {
       //Get v of the backstream:
       Real V[3] = {0};
       const bool calculateBackstream = true; //We are calculating backstream
-      VBackstreamCalculation( cell, calculateBackstream, _popID, V );
+      VBackstreamCalculation( cell, calculateBackstream, popID, V );
       //Set the average velocities:
       averageVX = V[0];
       averageVY = V[1];
@@ -1328,26 +1318,25 @@ namespace DRO {
    // Pressure tensor 6 components (11, 22, 33, 23, 13, 12) added by YK
    // Split into VariablePTensorNonBackstreamDiagonal (11, 22, 33)
    // and VariablePTensorOffDiagonal (23, 13, 12)
-   VariablePTensorNonBackstreamDiagonal::VariablePTensorNonBackstreamDiagonal(cuint popID): DataReductionOperator() {
-      _popID = popID;
-      _name = getObjectWrapper().particleSpecies[_popID].name;
-      _skip = (getObjectWrapper().particleSpecies[_popID].backstreamRadius == 0.0) ? true : false;
+   VariablePTensorNonBackstreamDiagonal::VariablePTensorNonBackstreamDiagonal(cuint _popID): DataReductionOperator(),popID(_popID) {
+      popName = getObjectWrapper().particleSpecies[popID].name;
+      doSkip = (getObjectWrapper().particleSpecies[popID].backstreamRadius == 0.0) ? true : false;
    }
    VariablePTensorNonBackstreamDiagonal::~VariablePTensorNonBackstreamDiagonal() { }
    
-   std::string VariablePTensorNonBackstreamDiagonal::getName() const {return _name + "/PTensorNonBackstreamDiagonal";}
+   std::string VariablePTensorNonBackstreamDiagonal::getName() const {return popName + "/PTensorNonBackstreamDiagonal";}
    
    bool VariablePTensorNonBackstreamDiagonal::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
       dataSize =  sizeof(Real);
-      vectorSize = (_skip == true) ? 0 : 3;
+      vectorSize = (doSkip == true) ? 0 : 3;
       return true;
    }
    
    bool VariablePTensorNonBackstreamDiagonal::reduceData(const SpatialCell* cell,char* buffer) {
       const bool calculateBackstream = false;
       //Calculate PTensor and save it in PTensorArray:
-      PTensorDiagonalBackstreamCalculations( cell, calculateBackstream, averageVX, averageVY, averageVZ, _popID, PTensor );
+      PTensorDiagonalBackstreamCalculations( cell, calculateBackstream, averageVX, averageVY, averageVZ, popID, PTensor );
       const uint vectorSize = 3;
       //Save the data into buffer:
       const char* ptr = reinterpret_cast<const char*>(&PTensor);
@@ -1359,7 +1348,7 @@ namespace DRO {
       //Get v of the backstream:
       Real V[3] = {0};
       const bool calculateBackstream = false; //We are not calculating backstream
-      VBackstreamCalculation( cell, calculateBackstream, _popID, V );
+      VBackstreamCalculation( cell, calculateBackstream, popID, V );
       //Set the average velocities:
       averageVX = V[0];
       averageVY = V[1];
@@ -1369,19 +1358,18 @@ namespace DRO {
       return true;
    }
 
-   VariablePTensorBackstreamOffDiagonal::VariablePTensorBackstreamOffDiagonal(cuint popID): DataReductionOperator() {
-      _popID = popID;
-      _name = getObjectWrapper().particleSpecies[_popID].name;
-      _skip = (getObjectWrapper().particleSpecies[_popID].backstreamRadius == 0.0) ? true : false;
+   VariablePTensorBackstreamOffDiagonal::VariablePTensorBackstreamOffDiagonal(cuint _popID): DataReductionOperator(),popID(_popID) {
+      popName = getObjectWrapper().particleSpecies[popID].name;
+      doSkip = (getObjectWrapper().particleSpecies[popID].backstreamRadius == 0.0) ? true : false;
    }
    VariablePTensorBackstreamOffDiagonal::~VariablePTensorBackstreamOffDiagonal() { }
    
-   std::string VariablePTensorBackstreamOffDiagonal::getName() const {return _name + "/PTensorBackstreamOffDiagonal";}
+   std::string VariablePTensorBackstreamOffDiagonal::getName() const {return popName + "/PTensorBackstreamOffDiagonal";}
    
    bool VariablePTensorBackstreamOffDiagonal::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
       dataSize =  sizeof(Real);
-      vectorSize = (_skip == true) ? 0 : 3;
+      vectorSize = (doSkip == true) ? 0 : 3;
       return true;
    }
    
@@ -1389,7 +1377,7 @@ namespace DRO {
       //Calculate PTensor for PTensorArray:
       const bool calculateBackstream = true;
       //Calculate and save:
-      PTensorOffDiagonalBackstreamCalculations( cell, calculateBackstream, averageVX, averageVY, averageVZ, _popID, PTensor );
+      PTensorOffDiagonalBackstreamCalculations( cell, calculateBackstream, averageVX, averageVY, averageVZ, popID, PTensor );
       const uint vectorSize = 3;
       //Input data into buffer
       const char* ptr = reinterpret_cast<const char*>(&PTensor);
@@ -1401,7 +1389,7 @@ namespace DRO {
       //Get v of the backstream:
       Real V[3] = {0};
       const bool calculateBackstream = true; //We are calculating backstream
-      VBackstreamCalculation( cell, calculateBackstream, _popID, V );
+      VBackstreamCalculation( cell, calculateBackstream, popID, V );
       //Set the average velocities:
       averageVX = V[0];
       averageVY = V[1];
@@ -1410,19 +1398,18 @@ namespace DRO {
       return true;
    }
 
-   VariablePTensorNonBackstreamOffDiagonal::VariablePTensorNonBackstreamOffDiagonal(cuint popID): DataReductionOperator() {
-      _popID = popID;
-      _name = getObjectWrapper().particleSpecies[_popID].name;
-      _skip = (getObjectWrapper().particleSpecies[_popID].backstreamRadius == 0.0) ? true : false;
+   VariablePTensorNonBackstreamOffDiagonal::VariablePTensorNonBackstreamOffDiagonal(cuint _popID): DataReductionOperator(),popID(_popID) {
+      popName = getObjectWrapper().particleSpecies[popID].name;
+      doSkip = (getObjectWrapper().particleSpecies[popID].backstreamRadius == 0.0) ? true : false;
    }
    VariablePTensorNonBackstreamOffDiagonal::~VariablePTensorNonBackstreamOffDiagonal() { }
    
-   std::string VariablePTensorNonBackstreamOffDiagonal::getName() const {return _name + "/PTensorNonBackstreamOffDiagonal";}
+   std::string VariablePTensorNonBackstreamOffDiagonal::getName() const {return popName + "/PTensorNonBackstreamOffDiagonal";}
    
    bool VariablePTensorNonBackstreamOffDiagonal::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
       dataSize =  sizeof(Real);
-      vectorSize = (_skip == true) ? 0 : 3;
+      vectorSize = (doSkip == true) ? 0 : 3;
       return true;
    }
    
@@ -1430,7 +1417,7 @@ namespace DRO {
       //Calculate PTensor for PTensorArray:
       const bool calculateBackstream = false;
       //Calculate and save:
-      PTensorOffDiagonalBackstreamCalculations( cell, calculateBackstream, averageVX, averageVY, averageVZ, _popID, PTensor );
+      PTensorOffDiagonalBackstreamCalculations( cell, calculateBackstream, averageVX, averageVY, averageVZ, popID, PTensor );
       const uint vectorSize = 3;
       //Input data into buffer
       const char* ptr = reinterpret_cast<const char*>(&PTensor);
@@ -1442,7 +1429,7 @@ namespace DRO {
       //Get v of the backstream:
       Real V[3] = {0};
       const bool calculateBackstream = false; //We are not calculating backstream
-      VBackstreamCalculation( cell, calculateBackstream, _popID, V );
+      VBackstreamCalculation( cell, calculateBackstream, popID, V );
       //Set the average velocities:
       averageVX = V[0];
       averageVY = V[1];
@@ -1452,9 +1439,8 @@ namespace DRO {
    }
 
 
-   VariableEffectiveSparsityThreshold::VariableEffectiveSparsityThreshold(cuint popID): DataReductionOperator() { 
-     _popID = popID;
-     _name=getObjectWrapper().particleSpecies[_popID].name;
+   VariableEffectiveSparsityThreshold::VariableEffectiveSparsityThreshold(cuint _popID): DataReductionOperator(),popID(_popID) { 
+     popName=getObjectWrapper().particleSpecies[popID].name;
    }
    VariableEffectiveSparsityThreshold::~VariableEffectiveSparsityThreshold() { }
 
@@ -1465,7 +1451,7 @@ namespace DRO {
       return true;
    }
 
-   std::string VariableEffectiveSparsityThreshold::getName() const {return _name + "/EffectiveSparsityThreshold";}
+   std::string VariableEffectiveSparsityThreshold::getName() const {return popName + "/EffectiveSparsityThreshold";}
    
    bool VariableEffectiveSparsityThreshold::reduceData(const spatial_cell::SpatialCell* cell,char* buffer) {
       Real dummy;
@@ -1476,7 +1462,7 @@ namespace DRO {
    }
 
    bool VariableEffectiveSparsityThreshold::reduceDiagnostic(const spatial_cell::SpatialCell* cell,Real* result) {
-      *result = cell->getVelocityBlockMinValue(_popID);
+      *result = cell->getVelocityBlockMinValue(popID);
       return true;
    }
 
