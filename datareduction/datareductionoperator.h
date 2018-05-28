@@ -176,35 +176,6 @@ namespace DRO {
       int boundaryLayer;
    };
 
-   class BoundaryLayerNew: public DataReductionOperator {
-   public:
-      BoundaryLayerNew();
-      virtual ~BoundaryLayerNew();
-      
-      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
-      virtual std::string getName() const;
-      virtual bool reduceData(const SpatialCell* cell,char* buffer);
-      virtual bool setSpatialCell(const SpatialCell* cell);
-      
-   protected:
-      int boundaryLayer;
-   };
-
-   class VelocitySubSteps: public DataReductionOperator {
-   public:
-      VelocitySubSteps();
-      virtual ~VelocitySubSteps();
-      
-      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
-      virtual std::string getName() const;
-      virtual bool reduceData(const SpatialCell* cell,char* buffer);
-      virtual bool setSpatialCell(const SpatialCell* cell);
-      
-   protected:
-      int substeps;
-   };
-   
-
    class Blocks: public DataReductionOperator {
    public:
       Blocks(cuint popID);
@@ -330,7 +301,7 @@ namespace DRO {
    
    class MaxDistributionFunction: public DataReductionOperator {
    public:
-      MaxDistributionFunction(cuint _popID);
+      MaxDistributionFunction(cuint popID);
       virtual ~MaxDistributionFunction();
       
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
@@ -341,13 +312,13 @@ namespace DRO {
       
    protected:
       Real maxF;
-      unsigned int popID;
-      std::string popName;
+      uint _popID;
+      std::string _name;
    };
    
    class MinDistributionFunction: public DataReductionOperator {
    public:
-      MinDistributionFunction(cuint _popID);
+      MinDistributionFunction(cuint popID);
       virtual ~MinDistributionFunction();
       
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
@@ -358,8 +329,8 @@ namespace DRO {
       
    protected:
       Real minF;
-      unsigned int popID;
-      std::string popName;
+      uint _popID;
+      std::string _name;
    };
 
    /** This class writes all scalar and two- or three-component vector data 
@@ -532,8 +503,8 @@ namespace DRO {
       virtual bool setSpatialCell(const SpatialCell* cell);
       
    protected:
-      uint popID;
-      std::string popName;
+      uint _popID;
+      std::string _name;
    };
    
 } // namespace DRO

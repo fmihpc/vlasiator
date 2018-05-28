@@ -176,7 +176,6 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(*it == "BoundaryLayer") {
          // For boundaries with multiple layers: layer count per cell
          outputReducer->addOperator(new DRO::BoundaryLayer);
-         outputReducer->addOperator(new DRO::BoundaryLayerNew);
          continue;
       }
       if (*it == "populations_Blocks") {
