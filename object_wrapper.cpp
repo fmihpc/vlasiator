@@ -42,6 +42,8 @@ bool ObjectWrapper::addPopulationParameters() {
      RP::add(pop + "_properties.charge", "Particle charge, in units of elementary charges (int)", 1);
      RP::add(pop + "_properties.mass_units", "Units in which particle mass is given, either 'PROTON' or 'ELECTRON' (string)", std::string("PROTON"));
      RP::add(pop + "_properties.mass","Particle mass in given units (float)", 1);
+     RP::add(pop + "_properties.test_population","Considered a test particle population? (bool)", 0);
+     RP::add(pop + "_properties.propagate_population","Perform spatial translation and acceleration to this species? (bool)", 1);
 
      // Grid sparsity parameters
      RP::add(pop + "_sparse.minValue", "Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents", 1e-15);
@@ -95,6 +97,12 @@ bool ObjectWrapper::getParameters() {
       RP::get(pop + "_properties.mass", species.mass);
       std::string massUnit;
       RP::get(pop + "_properties.mass_units", massUnit);
+      bool testPop;
+      RP::get(pop + "_properties.test_population", testPop);
+      species.isTestSpecies = testPop;
+      bool propagatePop;
+      RP::get(pop + "_properties.propagate_population", propagatePop);
+      species.propagateSpecies = propagatePop;
       if(massUnit == "PROTON") {
          species.mass *= physicalconstants::MASS_PROTON;
       } else if(massUnit == "ELECTRON") {

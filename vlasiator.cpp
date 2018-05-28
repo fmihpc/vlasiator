@@ -113,38 +113,40 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    dtMaxLocal[1]=numeric_limits<Real>::max();
    dtMaxLocal[2]=numeric_limits<Real>::max();
 
+
    for (vector<CellID>::const_iterator cell_id=cells.begin(); cell_id!=cells.end(); ++cell_id) {
       SpatialCell* cell = mpiGrid[*cell_id];
       const Real dx = cell->parameters[CellParams::DX];
       const Real dy = cell->parameters[CellParams::DY];
       const Real dz = cell->parameters[CellParams::DZ];
-      
+  
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-         vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
-         const Real* blockParams = blockContainer.getParameters();
-         const Real EPS = numeric_limits<Real>::min()*1000;
-         for (vmesh::LocalID blockLID=0; blockLID<blockContainer.size(); ++blockLID) {
-            for (unsigned int i=0; i<WID;i+=WID-1) {
-                const Real Vx 
-                  = blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::VXCRD] 
-                  + (i+HALF)*blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::DVX]
-                  + EPS;
-                const Real Vy 
-                  = blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::VYCRD] 
-                  + (i+HALF)*blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::DVY]
-                  + EPS;
-                    const Real Vz 
-                  = blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::VZCRD]
-                  + (i+HALF)*blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::DVZ]
-                  + EPS;
+         if (getObjectWrapper().particleSpecies[popID].propagateSpecies == true) {
+             vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
+             const Real* blockParams = blockContainer.getParameters();
+             const Real EPS = numeric_limits<Real>::min()*1000;
+             for (vmesh::LocalID blockLID=0; blockLID<blockContainer.size(); ++blockLID) {
+                for (unsigned int i=0; i<WID;i+=WID-1) {
+                    const Real Vx 
+                      = blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::VXCRD] 
+                      + (i+HALF)*blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::DVX]
+                      + EPS;
+                    const Real Vy 
+                      = blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::VYCRD] 
+                      + (i+HALF)*blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::DVY]
+                      + EPS;
+                        const Real Vz 
+                      = blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::VZCRD]
+                      + (i+HALF)*blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::DVZ]
+                      + EPS;
 
-                const Real dt_max_cell = min(dx/fabs(Vx),min(dy/fabs(Vy),dz/fabs(Vz)));
-                cell->parameters[CellParams::MAXRDT] = min(dt_max_cell,cell->parameters[CellParams::MAXRDT]);
-                cell->set_max_r_dt(popID,min(dt_max_cell,cell->get_max_r_dt(popID)));
+                    const Real dt_max_cell = min(dx/fabs(Vx),min(dy/fabs(Vy),dz/fabs(Vz)));
+                    cell->parameters[CellParams::MAXRDT] = min(dt_max_cell,cell->parameters[CellParams::MAXRDT]);
+                    cell->set_max_r_dt(popID,min(dt_max_cell,cell->get_max_r_dt(popID)));
+                 }
              }
          }
       }
-      
       
       if ( cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
            (cell->sysBoundaryLayer == 1 && cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY )) {
@@ -152,7 +154,7 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          dtMaxLocal[0]=min(dtMaxLocal[0], cell->parameters[CellParams::MAXRDT]);
          dtMaxLocal[2]=min(dtMaxLocal[2], cell->parameters[CellParams::MAXFDT]);
       }
-
+      
       if (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY && cell->parameters[CellParams::MAXVDT] != 0) {
          //Acceleration only done on non sysboundary cells
          dtMaxLocal[1]=min(dtMaxLocal[1], cell->parameters[CellParams::MAXVDT]);
