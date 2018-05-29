@@ -32,9 +32,11 @@ void propagate(Vec dr[], Vec values[], Real z_translation, uint blocks_per_dim )
   // Vector buffer where we write data, initialized to 0*/
   Vec targetValues[(blocks_per_dim + 2) * WID];
 
+  Real maxdr = 1.0e-8;
 
-  auto it = max_element(std::begin(dr), std::end(dr)); 
-  Real i_dz = 1.0 / (it)
+  for (uint i = 0; i < (blocks_per_dim + 2) * WID; i++) {
+    maxdr = max(maxdr,dr[i][0]);
+  }
   
   for (uint k_block = 0; k_block < blocks_per_dim; k_block++){
 
@@ -54,13 +56,15 @@ void propagate(Vec dr[], Vec values[], Real z_translation, uint blocks_per_dim )
       
       // Calculate normalized coordinates in current cell.
       // The coordinates (scaled units from 0 to 1) between which we will
-      // integrate to put mass in the target  neighboring cell.          
+      // integrate to put mass in the target  neighboring cell.
+      // Normalize the coordinates to the origin cell. Then we scale with the difference
+      // in volume between target and origin later when adding the integrated value.
       Realv z_1,z_2;
       if ( z_translation < 0 ) {
 	z_1 = 0;
-	z_2 = -z_translation * i_dz;
+	z_2 = -z_translation / dr[gid][0]; 
       } else {
-	z_1 = 1.0 - z_translation * i_dz;
+	z_1 = 1.0 - z_translation / dr[gid][0]; 
 	z_2 = 1.0;
       }
 
@@ -69,8 +73,6 @@ void propagate(Vec dr[], Vec values[], Real z_translation, uint blocks_per_dim )
 	std::cout << "Exiting\n";
 	std::exit(1);
       }
-
-      //std::cout << z_1 << ", " << z_2 << "\n";
       
       // Compute polynomial coefficients
       Vec a[3];
@@ -84,10 +86,9 @@ void propagate(Vec dr[], Vec values[], Real z_translation, uint blocks_per_dim )
 
       // Store mapped density in two target cells
       // in the neighbor cell we will put this density        
-      targetValues[gid + target_scell_index] +=  ngbr_target_density;
+      targetValues[gid + target_scell_index] +=  ngbr_target_density * dr[gid] / dr[gid + target_scell_index];
       // in the current original cells we will put the rest of the original density
       targetValues[gid]                      +=  values[gid] - ngbr_target_density;
-      //std::cout << values[gid][0] << ", " << ngbr_target_density[0] << ", " << targetValues[gid][0] << "\n";
     }
   }
 
@@ -146,6 +147,16 @@ void print_reconstruction(int step, Vec dr[], Vec values[], uint  blocks_per_dim
   fclose(fp);
 }
 
+void refine(Vec dr[], int ir, int max_refinement, int cells_per_level) {
+
+   for (uint k=0; k < max_refinement * cells_per_level; ++k) {
+    dr[ir + k] = dr[ir + k]/pow(2,(max_refinement - k / cells_per_level));
+    if (k > 0)
+      dr[ir - k] = dr[ir - k]/pow(2,(max_refinement - k / cells_per_level));
+  }
+
+}
+
 int main(void) {
   
   const Real dr0 = 20000;
@@ -171,41 +182,38 @@ int main(void) {
     //dr[k] = gen();
   }
 
-  uint max_refinement = 1;
-  uint cells_per_level = 2;
-  for (uint k=0; k < max_refinement * cells_per_level; ++k) {
-    dr[(blocks_per_dim + 2) * WID / 2 + k] = dr[(blocks_per_dim + 2) * WID / 2 + k]/pow(2,(max_refinement - k / cells_per_level));
-    if (k > 0)
-      dr[(blocks_per_dim + 2) * WID / 2 - k] = dr[(blocks_per_dim + 2) * WID / 2 - k]/pow(2,(max_refinement - k / cells_per_level));
-  }
+  int ir = (blocks_per_dim + 2) * WID / 2;
+  int ir2 = (blocks_per_dim + 2) * WID / 3;
+  int max_refinement = 5;
+  int cells_per_level = 2;
 
+  refine(dr,ir,max_refinement,cells_per_level);
+  // refine(dr,ir2,max_refinement,cells_per_level);
+ 
   Real r_min = 0.0;
   for (uint k=WID;k < (blocks_per_dim + 2) * WID / 2; ++k) {    
     r_min -= dr[k][0];
   }
   
   Real T = 500000;
-  Real rho = 1.0e6;
+  Real rho = 1.0e18;
   Real r = r_min;
-  Real const r1 = 10 * dr0;
+  Real r1 = 10.0 * dr0;
   
   for(uint i=0; i < blocks_per_dim * WID; i++){
 
     // Evaluate the function at the middle of the cell
     r = r + 0.5 * dr[i + WID][0];
     values[i + WID] = rho * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B * T), 1.5) *
-      exp(- physicalconstants::MASS_PROTON * r * r / (2.0 * physicalconstants::K_B * T));
-
-    //values[i + WID] = rho * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B * T), 1.5) *
-    //  ( exp(- physicalconstants::MASS_PROTON * v * v / (2.0 * physicalconstants::K_B * T)) +
-    //    exp(- physicalconstants::MASS_PROTON * (v+v1) * (v+v1) / (2.0 * physicalconstants::K_B * T)));
+      exp(- physicalconstants::MASS_PROTON * (r - r1) * (r - r1) / (2.0 * physicalconstants::K_B * T));    
+    
     // Move to the end of the cell for the next iteration
     r = r + 0.5 * dr[i + WID][0];
   }
   
   print_reconstruction(0, dr, values, blocks_per_dim, r_min);
 
-  uint nstep = 200;
+  uint nstep = 900;
   Real step = -500.0;
   
   for (uint istep=0; istep < nstep; ++istep) {
