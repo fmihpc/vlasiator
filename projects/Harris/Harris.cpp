@@ -46,6 +46,10 @@ namespace projects {
       RP::add("Harris.BX0", "Magnetic field at infinity (T)", 8.33061003094e-8);
       RP::add("Harris.BY0", "Magnetic field at infinity (T)", 8.33061003094e-8);
       RP::add("Harris.BZ0", "Magnetic field at infinity (T)", 8.33061003094e-8);
+      RP::add("Harris.magXPertAbsAmp", "Absolute amplitude of the magnetic perturbation along x (T)", 1.0e-9);
+      RP::add("Harris.magYPertAbsAmp", "Absolute amplitude of the magnetic perturbation along y (T)", 1.0e-9);
+      RP::add("Harris.magZPertAbsAmp", "Absolute amplitude of the magnetic perturbation along z (T)", 1.0e-9);
+
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
@@ -65,6 +69,10 @@ namespace projects {
       RP::get("Harris.BX0", this->BX0);
       RP::get("Harris.BY0", this->BY0);
       RP::get("Harris.BZ0", this->BZ0);
+      RP::get("Harris.magXPertAbsAmp", this->magXPertAbsAmp);
+      RP::get("Harris.magYPertAbsAmp", this->magYPertAbsAmp);
+      RP::get("Harris.magZPertAbsAmp", this->magZPertAbsAmp);
+
 
 
       // Per-population parameters
@@ -91,10 +99,16 @@ namespace projects {
       const HarrisSpeciesParameters& sP = speciesParams[popID];
       Real mass = getObjectWrapper().particleSpecies[popID].mass;
 
+      const std::array<Real, 3> v0 = this->getV0(x, y, z, popID)[0];
+
       return sP.DENSITY * pow(mass / (2.0 * M_PI * physicalconstants::K_B * sP.TEMPERATURE), 1.5) * (
-         5.0 / pow(cosh(x / (this->SCA_LAMBDA)), 2.0) * exp(- mass * (pow(vx, 2.0) + pow(vy, 2.0) + pow(vz, 2.0)) / (2.0 * physicalconstants::K_B * sP.TEMPERATURE))
+         5.0 / pow(cosh(z / (this->SCA_LAMBDA)), 2.0) * exp(- mass * (pow(vx - v0[0], 2.0) + pow(vy - v0[1], 2.0) + pow(vz - v0[2], 
+2.0)) / 
+(2.0 * 
+physicalconstants::K_B * sP.TEMPERATURE))
          +
-         exp(- mass * (pow(vx, 2.0) + pow(vy, 2.0) + pow(vz, 2.0)) / (2.0 * physicalconstants::K_B * sP.TEMPERATURE)));
+         exp(- mass * (pow(vx - v0[0], 2.0) + pow(vy - v0[1], 2.0) + pow(vz - v0[2], 2.0)) / (2.0 * physicalconstants::K_B * 
+sP.TEMPERATURE)));
    }
    
    Real Harris::calcPhaseSpaceDensity(
@@ -143,12 +157,27 @@ namespace projects {
       creal z = cellParams[CellParams::ZCRD];
       creal dz = cellParams[CellParams::DZ];
       
+      //creal noise_par;
+      //srand(1234);
+      CellID cellID = (int) ((x - Parameters::xmin) / dx) +
+         (int) ((y - Parameters::ymin) / dy) * Parameters::xcells_ini +
+         (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
+
+      setRandomSeed(cell,cellID);
+      Real rndBuffer[3];
+      rndBuffer[0]=getRandomNumber(cell);
+      rndBuffer[1]=getRandomNumber(cell);
+      rndBuffer[2]=getRandomNumber(cell);
+
+      
       cellParams[CellParams::EX   ] = 0.0;
       cellParams[CellParams::EY   ] = 0.0;
       cellParams[CellParams::EZ   ] = 0.0;
-      cellParams[CellParams::PERBX   ] = this->BX0 * tanh((y + 0.5 * dy) / this->SCA_LAMBDA);
-      cellParams[CellParams::PERBY   ] = this->BY0 * tanh((z + 0.5 * dz) / this->SCA_LAMBDA);
-      cellParams[CellParams::PERBZ   ] = this->BZ0 * tanh((x + 0.5 * dx) / this->SCA_LAMBDA);
+      //cellParams[CellParams::PERBX   ] = this->BX0 * tanh((z + 0.5 * dz) / this->SCA_LAMBDA) + 0.01*BX0*(-1. + 2.*rand()/(double)RAND_MAX);
+      cellParams[CellParams::PERBX   ] = this->BX0 * tanh((z + 0.5 * dz) / this->SCA_LAMBDA) + this->magXPertAbsAmp * (0.5 - rndBuffer[0]);
+      cellParams[CellParams::PERBY   ] = this->BY0 * tanh((z + 0.5 * dz) / this->SCA_LAMBDA) + this->magYPertAbsAmp * (0.5 - rndBuffer[1]);
+      cellParams[CellParams::PERBZ   ] = this->BZ0 * tanh((z + 0.5 * dz) / this->SCA_LAMBDA) + this->magZPertAbsAmp * (0.5 - rndBuffer[2]);
+
       cellParams[CellParams::BGBX   ] = 0.0;
       cellParams[CellParams::BGBY   ] = 0.0;
       cellParams[CellParams::BGBZ   ] = 0.0;
@@ -162,6 +191,13 @@ namespace projects {
    ) const {
       vector<std::array<Real, 3>> V0;
       std::array<Real, 3> v = {{0.0, 0.0, 0.0 }};
+      
+      if(z < 0) {
+         v[2] = 5e4;
+      } else {
+         v[2] = -5e4;
+      }
+
       V0.push_back(v);
       return V0;
    }
