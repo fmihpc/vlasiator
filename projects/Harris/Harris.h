@@ -71,6 +71,7 @@ namespace projects {
          Real magXPertAbsAmp;
          Real magYPertAbsAmp;
          Real magZPertAbsAmp;
+         Real boundaryV0;
          std::vector<HarrisSpeciesParameters> speciesParams;
 
    }; // class Harris

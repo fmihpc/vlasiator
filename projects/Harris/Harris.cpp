@@ -49,6 +49,7 @@ namespace projects {
       RP::add("Harris.magXPertAbsAmp", "Absolute amplitude of the magnetic perturbation along x (T)", 1.0e-9);
       RP::add("Harris.magYPertAbsAmp", "Absolute amplitude of the magnetic perturbation along y (T)", 1.0e-9);
       RP::add("Harris.magZPertAbsAmp", "Absolute amplitude of the magnetic perturbation along z (T)", 1.0e-9);
+      RP::add("Harris.boundaryV0", "Magnitude of bulk velocity at the boundary", 5.0e4);
 
 
       // Per-population parameters
@@ -72,6 +73,7 @@ namespace projects {
       RP::get("Harris.magXPertAbsAmp", this->magXPertAbsAmp);
       RP::get("Harris.magYPertAbsAmp", this->magYPertAbsAmp);
       RP::get("Harris.magZPertAbsAmp", this->magZPertAbsAmp);
+      RP::get("Harris.boundaryV0", this->boundaryV0);
 
 
 
@@ -101,14 +103,11 @@ namespace projects {
 
       const std::array<Real, 3> v0 = this->getV0(x, y, z, popID)[0];
 
-      return sP.DENSITY * pow(mass / (2.0 * M_PI * physicalconstants::K_B * sP.TEMPERATURE), 1.5) * (
-         5.0 / pow(cosh(z / (this->SCA_LAMBDA)), 2.0) * exp(- mass * (pow(vx - v0[0], 2.0) + pow(vy - v0[1], 2.0) + pow(vz - v0[2], 
-2.0)) / 
-(2.0 * 
-physicalconstants::K_B * sP.TEMPERATURE))
-         +
-         exp(- mass * (pow(vx - v0[0], 2.0) + pow(vy - v0[1], 2.0) + pow(vz - v0[2], 2.0)) / (2.0 * physicalconstants::K_B * 
-sP.TEMPERATURE)));
+      return sP.DENSITY * pow(mass / (2.0 * M_PI * physicalconstants::K_B * sP.TEMPERATURE), 1.5) *
+         (5.0 / pow(cosh(z / (this->SCA_LAMBDA)), 2.0) * exp(- mass * (pow(vx - v0[0], 2.0) + pow(vy - v0[1], 2.0) + 
+         pow(vz - v0[2],2.0)) / (2.0 * physicalconstants::K_B * sP.TEMPERATURE)) +
+         exp(- mass * (pow(vx - v0[0], 2.0) + pow(vy - v0[1], 2.0) + pow(vz - v0[2], 2.0)) / 
+         (2.0 * physicalconstants::K_B *sP.TEMPERATURE)));
    }
    
    Real Harris::calcPhaseSpaceDensity(
@@ -192,10 +191,11 @@ sP.TEMPERATURE)));
       vector<std::array<Real, 3>> V0;
       std::array<Real, 3> v = {{0.0, 0.0, 0.0 }};
       
+      // The bulk velocity at the boundaries are set on the Z-direction only. Make this flexible?
       if(z < 0) {
-         v[2] = 5e4;
+         v[2] = this->boundaryV0;
       } else {
-         v[2] = -5e4;
+         v[2] = -this->boundaryV0;
       }
 
       V0.push_back(v);
