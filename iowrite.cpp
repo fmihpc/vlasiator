@@ -329,6 +329,11 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       phiprof::stop("DRO_"+variableName);
       return false;
    }
+   
+   // If DRO has a vector size of 0 it means this DRO should not write out anything. This is used e.g. for DROs we want only for certain populations.
+   if (vectorSize == 0) {
+      return true;
+   }
 
    const uint64_t varBufferArraySize = cells.size()*vectorSize*dataSize;
    

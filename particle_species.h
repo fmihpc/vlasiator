@@ -30,6 +30,7 @@
 
 #include <omp.h>
 #include "definitions.h"
+#include <array>
 
 namespace species {
     
@@ -40,13 +41,13 @@ namespace species {
       SIZE_DT_ELEMENTS                  /**< Number of elements in array.*/
    };
    
-    /** Variables common to a particle species.*/
-    struct Species {
-       std::string name;               /**< Name of the species.*/
-       Real charge;                    /**< Particle species charge, in simulation units.*/
-       Real mass;                      /**< Particle species mass, in simulation units.*/
-       Real sparseMinValue;            /**< Sparse mesh threshold value for the population.*/
-       size_t velocityMesh;            /**< ID of the velocity mesh (parameters) this species uses.*/
+   /** Variables common to a particle species.*/
+   struct Species {
+      std::string name;               /**< Name of the species.*/
+      Real charge;                    /**< Particle species charge, in simulation units.*/
+      Real mass;                      /**< Particle species mass, in simulation units.*/
+      Real sparseMinValue;            /**< Sparse mesh threshold value for the population.*/
+      size_t velocityMesh;            /**< ID of the velocity mesh (parameters) this species uses.*/
 
       int sparseBlockAddWidthV;        /*!< Number of layers of blocks that are kept in velocity space around the blocks with content */
       bool sparse_conserve_mass;       /*!< If true, density is scaled to conserve mass when removing blocks*/
@@ -57,7 +58,9 @@ namespace species {
       Real sparseDynamicMinValue2;     /*!< The maximum value for the minValue*/
       bool isTestSpecies = false;      /* Is this species being used as a test-particle species?*/
       bool propagateSpecies = true;    /* Is this species going to be translated and accelerated? */
-       
+      Real backstreamRadius;           /*!< Radius of sphere to split the distribution into backstreaming and non-backstreaming. 0 (default in cfg) disables the DRO. */
+      std::array<Real, 3> backstreamV; /*!< Centre of sphere to split the distribution into backstreaming and non-backstreaming. 0 (default in cfg) disables the DRO. */
+      
        Species();
        Species(const Species& other);
        ~Species();
