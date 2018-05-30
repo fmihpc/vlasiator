@@ -29,6 +29,30 @@
 #include "../projectTriAxisSearch.h"
 
 namespace projects {
+   struct MultiPeakSpeciesParameters {
+      uint numberOfPeaks;
+      std::vector<Real> rho;
+      std::vector<Real> Tx;
+      std::vector<Real> Ty;
+      std::vector<Real> Tz;
+      std::vector<Real> Vx;
+      std::vector<Real> Vy;
+      std::vector<Real> Vz;
+      std::vector<Real> rhoPertAbsAmp;
+
+      // Test whether parameters have been set up for all peaks
+      bool isConsistent() {
+         return rho.size() == Tx.size() &&
+            Tx.size() == Ty.size() &&
+            Ty.size() == Tz.size() &&
+            Tz.size() == Vx.size() &&
+            Vx.size() == Vy.size() &&
+            Vy.size() == Vz.size() &&
+            Vz.size() == rhoPertAbsAmp.size() &&
+            rhoPertAbsAmp.size() == rho.size() &&
+            rho.size() == numberOfPeaks;
+      }
+   };
    class MultiPeak: public TriAxisSearch {
     public:
       MultiPeak();
@@ -37,7 +61,6 @@ namespace projects {
       virtual bool initialize(void);
       static void addParameters(void);
       virtual void getParameters(void);
-      virtual void setActivePopulation(const uint popID);
       virtual void setCellBackgroundField(spatial_cell::SpatialCell* cell) const;
     protected:
       Real getDistribValue(
@@ -57,17 +80,8 @@ namespace projects {
                                                       creal z,
                                                       const uint popID
                                                      ) const;
-      uint popID;
-      uint numberOfPopulations;
-      std::vector<Real> rho;
-      static std::vector<Real> rhoRnd; //static as it has to be threadprivate
+      static Real rhoRnd; //static as it has to be threadprivate
       #pragma omp threadprivate(rhoRnd)       
-      std::vector<Real> Tx;
-      std::vector<Real> Ty;
-      std::vector<Real> Tz;
-      std::vector<Real> Vx;
-      std::vector<Real> Vy;
-      std::vector<Real> Vz;
       Real Bx;
       Real By;
       Real Bz;
@@ -77,12 +91,10 @@ namespace projects {
       Real magXPertAbsAmp;
       Real magYPertAbsAmp;
       Real magZPertAbsAmp;
-      std::vector<Real> rhoPertAbsAmp;
       Real lambda;
       uint nVelocitySamples;
-      bool useMultipleSpecies;      /**< If true, then each peak is a separate particle species.
-                                     * Defaults to false.*/
-      
+      std::vector<MultiPeakSpeciesParameters> speciesParams;
+
       enum densitymodel {
          Uniform,
          TestCase
