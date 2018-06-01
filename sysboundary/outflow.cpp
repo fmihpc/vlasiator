@@ -57,6 +57,7 @@ namespace SBC {
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
 
+        Readparameters::addComposing(pop + "_outflow.reapplyFaceUponRestart", "List of faces on which outflow boundary conditions are to be reapplied upon restart ([xyz][+-]).");
         Readparameters::addComposing(pop + "_outflow.face", "List of faces on which outflow boundary conditions are to be applied ([xyz][+-]).");
         Readparameters::add(pop + "_outflow.vlasovScheme_face_x+", "Scheme to use on the face x+ (Copy, Limit, None)", defStr);
         Readparameters::add(pop + "_outflow.vlasovScheme_face_x-", "Scheme to use on the face x- (Copy, Limit, None)", defStr);
@@ -96,8 +97,8 @@ namespace SBC {
         OutflowSpeciesParameters sP;
 
         // Unless we find out otherwise, we assume that this species will not be treated at any boundary
-        for(int i=0; i<6; i++) {
-          sP.facesToSkipVlasov[i] = true;
+        for(int j=0; j<6; j++) {
+          sP.facesToSkipVlasov[j] = true;
         }
 
         std::vector<std::string> thisSpeciesFaceList;
@@ -115,6 +116,10 @@ namespace SBC {
           if(face == "z-") { facesToProcess[5] = true; sP.facesToSkipVlasov[5] = false; }
         }
 
+        if(!Readparameters::get(pop + "_outflow.reapplyFaceUponRestart", sP.faceToReapplyUponRestartList)) {
+           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
+           exit(1);
+        }
         std::array<std::string, 6> vlasovSysBoundarySchemeName;
         if(!Readparameters::get(pop + "_outflow.vlasovScheme_face_x+", vlasovSysBoundarySchemeName[0])) {
            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
@@ -140,15 +145,15 @@ namespace SBC {
            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
            exit(1);
         }
-        for(uint i=0; i<6 ; i++) {
-           if(vlasovSysBoundarySchemeName[i] == "None") {
-              sP.faceVlasovScheme[i] = vlasovscheme::NONE;
-           } else if (vlasovSysBoundarySchemeName[i] == "Copy") {
-              sP.faceVlasovScheme[i] = vlasovscheme::COPY;
-           } else if(vlasovSysBoundarySchemeName[i] == "Limit") {
-              sP.faceVlasovScheme[i] = vlasovscheme::LIMIT;
+        for(uint j=0; j<6 ; j++) {
+           if(vlasovSysBoundarySchemeName[j] == "None") {
+              sP.faceVlasovScheme[j] = vlasovscheme::NONE;
+           } else if (vlasovSysBoundarySchemeName[j] == "Copy") {
+              sP.faceVlasovScheme[j] = vlasovscheme::COPY;
+           } else if(vlasovSysBoundarySchemeName[j] == "Limit") {
+              sP.faceVlasovScheme[j] = vlasovscheme::LIMIT;
            } else {
-              if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: " << vlasovSysBoundarySchemeName[i] << " is an invalid Outflow Vlasov scheme!" << endl;
+              if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: " << vlasovSysBoundarySchemeName[j] << " is an invalid Outflow Vlasov scheme!" << endl;
               exit(1);
            }
         }
@@ -174,6 +179,7 @@ namespace SBC {
       for(uint i=0; i<6; i++) {
          facesToProcess[i] = false;
          facesToSkipFields[i] = false;
+         facesToReapply[i] = false;
       }
       
       this->getParameters();
@@ -190,6 +196,20 @@ namespace SBC {
          if(*it == "y-") facesToSkipFields[3] = true;
          if(*it == "z+") facesToSkipFields[4] = true;
          if(*it == "z-") facesToSkipFields[5] = true;
+      }
+
+      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+         OutflowSpeciesParameters& sP = this->speciesParams[i];
+         for (it = sP.faceToReapplyUponRestartList.begin();
+              it != sP.faceToReapplyUponRestartList.end();
+         it++) {
+            if(*it == "x+") facesToReapply[0] = true;
+            if(*it == "x-") facesToReapply[1] = true;
+            if(*it == "y+") facesToReapply[2] = true;
+            if(*it == "y-") facesToReapply[3] = true;
+            if(*it == "z+") facesToReapply[4] = true;
+            if(*it == "z-") facesToReapply[5] = true;
+         }
       }
       return true;
    }
@@ -229,17 +249,41 @@ namespace SBC {
          SpatialCell* cell = mpiGrid[cells[i]];
          if (cell->sysBoundaryFlag != this->getIndex()) continue;
          
-         // Defined in project.cpp, used here as the outflow cell has the same state 
-         // as the initial state of non-system boundary cells.
-         project.setCell(cell);
-         // WARNING Time-independence assumed here.
-         cell->parameters[CellParams::RHOM_DT2] = cell->parameters[CellParams::RHOM];
-         cell->parameters[CellParams::VX_DT2] = cell->parameters[CellParams::VX];
-         cell->parameters[CellParams::VY_DT2] = cell->parameters[CellParams::VY];
-         cell->parameters[CellParams::VZ_DT2] = cell->parameters[CellParams::VZ];
-         cell->parameters[CellParams::RHOQ_DT2] = cell->parameters[CellParams::RHOQ];
-      }
+         bool doApply = true;
+         
+         if(Parameters::isRestart) {
+            creal* const cellParams = &(mpiGrid[cells[i]]->parameters[0]);
+            creal dx = cellParams[CellParams::DX];
+            creal dy = cellParams[CellParams::DY];
+            creal dz = cellParams[CellParams::DZ];
+            creal x = cellParams[CellParams::XCRD] + 0.5*dx;
+            creal y = cellParams[CellParams::YCRD] + 0.5*dy;
+            creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
+            
+            bool isThisCellOnAFace[6];
+            determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz);
+            
+            doApply=false;
+            // Comparison of the array defining which faces to use and the array telling on which faces this cell is
+            for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+               for(uint j=0; j<6; j++) {
+                  doApply = doApply || (facesToReapply[j] && isThisCellOnAFace[j]);
+               }
+            }
+         }
 
+         if(doApply) {
+            // Defined in project.cpp, used here as the outflow cell has the same state 
+            // as the initial state of non-system boundary cells.
+            project.setCell(cell);
+            // WARNING Time-independence assumed here.
+            cell->parameters[CellParams::RHOM_DT2] = cell->parameters[CellParams::RHOM];
+            cell->parameters[CellParams::RHOQ_DT2] = cell->parameters[CellParams::RHOQ];
+            cell->parameters[CellParams::VX_DT2] = cell->parameters[CellParams::VX];
+            cell->parameters[CellParams::VY_DT2] = cell->parameters[CellParams::VY];
+            cell->parameters[CellParams::VZ_DT2] = cell->parameters[CellParams::VZ];
+         }
+      }
       return true;
    }
 

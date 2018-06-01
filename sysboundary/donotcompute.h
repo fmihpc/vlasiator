@@ -69,7 +69,7 @@ namespace SBC {
          creal& dt,
          cuint& RKCase,
          cuint& component
-      ) { std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondMagneticField called!" << std::endl;}
+      ) { std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondMagneticField called!" << std::endl; return 0.;}
       virtual void fieldSolverBoundaryCondElectricField(
          FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
          cint i,
