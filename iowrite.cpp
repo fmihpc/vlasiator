@@ -1092,6 +1092,8 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 
    phiprof::stop("open");
 
+   vlsvWriter.setBuffer(P::vlsvBufferSize);
+
    phiprof::start("metadataIO");
    
    // Get all local cell Ids 
