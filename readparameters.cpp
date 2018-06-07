@@ -46,6 +46,8 @@ static map<string,bool>   isOptionParsed;
 static map< string,vector<string> > vectorOptions;
 static map<string,bool>   isVectorOptionParsed;
 
+bool Readparameters::helpRequested = false;
+
 static string global_config_file_name = "";
 static string user_config_file_name = "";
 static string run_config_file_name = "";
@@ -74,11 +76,20 @@ Readparameters::Readparameters(int argc, char* argv[],MPI_Comm mpicomm) {
           variables = new PO::variables_map;
           initialized = true;
           addDefaultParameters();
+          
+          // Read options from command line, first time for help message parsing, second time in parse() below.
+          PO::store(PO::command_line_parser(argc, argv).options(*descriptions).allow_unregistered().run(), *variables);
+          PO::notify(*variables);
+          
+          helpRequested=(variables->count("help") > 0);
+          MPI_Bcast(&helpRequested,sizeof(bool),MPI_BYTE,0,MPI_COMM_WORLD);
+          
        }
     }
     else{
        descriptions = NULL;
        variables = NULL;
+       MPI_Bcast(&helpRequested,sizeof(bool),MPI_BYTE,0,MPI_COMM_WORLD);
     }
     //send as Int as MPI_BOOL is only in C++ bindings
     int init_int=initialized;
@@ -299,7 +310,7 @@ bool Readparameters::get(const std::string& name,std::vector<std::string>& value
  * @return If true, the given parameter was found and its value was written to value.
  */
 bool Readparameters::get(const std::string& name,std::vector<int>& value) {
-    vector<string> stringValue;
+   vector<string> stringValue;
     bool ret;
     using boost::lexical_cast;
     ret=Readparameters::get(name,stringValue);
@@ -350,7 +361,7 @@ bool Readparameters::get(const std::string& name,std::vector<unsigned int>& valu
  * @return If true, the given parameter was found and its value was written to value.
  */
 bool Readparameters::get(const std::string& name,std::vector<float>& value) {
-    vector<string> stringValue;
+   vector<string> stringValue;
     bool ret;
     using boost::lexical_cast;
     ret=Readparameters::get(name,stringValue);
@@ -377,7 +388,7 @@ bool Readparameters::get(const std::string& name,std::vector<float>& value) {
  * @return If true, the given parameter was found and its value was written to value.
  */
 bool Readparameters::get(const std::string& name,std::vector<double>& value) {
-    vector<string> stringValue;
+   vector<string> stringValue;
     bool ret;
     using boost::lexical_cast;
     ret=Readparameters::get(name,stringValue);
@@ -409,7 +420,7 @@ bool Readparameters::get(const std::string& name,std::vector<double>& value) {
  * @return If true, the given parameter was found and its value was written to value.
  */
 bool Readparameters::get(const std::string& name,std::string& value) {
-    if(options.find(name) != options.end() ){ //check if it exists
+   if(options.find(name) != options.end() ){ //check if it exists
         value = options[name];
         return true;
     }
@@ -424,7 +435,7 @@ bool Readparameters::get(const std::string& name,std::string& value) {
  * @return If true, the given parameter was found and its value was written to value.
  */
 bool Readparameters::get(const std::string& name,bool& value) {
-    string sval;
+   string sval;
     bool ret;
     using boost::lexical_cast;
     ret=Readparameters::get(name,sval);
@@ -448,7 +459,7 @@ bool Readparameters::get(const std::string& name,bool& value) {
  * @return If true, the given parameter was found and its value was written to value.
  */
 bool Readparameters::get(const std::string& name,int& value) {
-    string sval;
+   string sval;
     bool ret;
     using boost::lexical_cast;
     ret=Readparameters::get(name,sval);
@@ -472,7 +483,7 @@ bool Readparameters::get(const std::string& name,int& value) {
  * @return If true, the given parameter was found and its value was written to value.
  */
 bool Readparameters::get(const std::string& name,unsigned int& value) {
-    string sval;
+   string sval;
     bool ret;
     using boost::lexical_cast;
     ret=Readparameters::get(name,sval);
@@ -497,7 +508,7 @@ bool Readparameters::get(const std::string& name,unsigned int& value) {
  * @return If true, the given parameter was found and its value was written to value.
  */
 bool Readparameters::get(const std::string& name,unsigned long& value) {
-    string sval;
+   string sval;
     bool ret;
     using boost::lexical_cast;
     ret=Readparameters::get(name,sval);
@@ -525,7 +536,7 @@ bool Readparameters::get(const std::string& name,unsigned long& value) {
  * @return If true, the given parameter was found and its value was written to value.
  */
 bool Readparameters::get(const std::string& name,float& value) {
-    string sval;
+   string sval;
     bool ret;
     using boost::lexical_cast;
     ret=Readparameters::get(name,sval);
@@ -550,7 +561,7 @@ bool Readparameters::get(const std::string& name,float& value) {
  * @return If true, the given parameter was found and its value was written to value.
  */
 bool Readparameters::get(const std::string& name,double& value) {
-    string sval;
+   string sval;
     bool ret;
     using boost::lexical_cast;
     ret=Readparameters::get(name,sval);
@@ -572,19 +583,16 @@ bool Readparameters::get(const std::string& name,double& value) {
 
 
 /** Write the descriptions of known input options to standard output if 
- * an option called "help" has been read.
- * @return If true, option called "help" was found and descriptions were written 
- * to standard output.
+ * an option called "help" has been read, and exit in that case.
  */
-bool Readparameters::helpMessage() {
-    if(rank==MASTER_RANK){
-        if (variables->count("help") > 0) {
-            cout << *descriptions <<endl;
-            return true;
-        }
-        return false;
-    }
-    return true;
+void Readparameters::helpMessage() {
+   if (helpRequested) {
+      if (rank==MASTER_RANK) {
+         cout << *descriptions <<endl;
+      }
+      MPI_Finalize();
+      exit(0);
+   }
 }
 
 
@@ -618,13 +626,13 @@ bool Readparameters::isInitialized() {return initialized;}
  * @param needsRunConfig Whether or not this program can run without a runconfig file (esm: vlasiator can't, but particle pusher can)
  * @return If true, input file(s) were parsed successfully.
  */
-bool Readparameters::parse(bool needsRunConfig) {
+bool Readparameters::parse(const bool needsRunConfig) {
     if (initialized == false) return false;
     // Tell Boost to allow undescribed options (throws exception otherwise)
    
     if(rank==MASTER_RANK){
         const bool ALLOW_UNKNOWN = true;
-        // Read options from command line:
+        // Read options from command line: Duplicated in constructor for help message processing
         PO::store(PO::parse_command_line(argc, argv, *descriptions), *variables);
         PO::notify(*variables);
         // Read options from environment variables:
@@ -669,36 +677,27 @@ bool Readparameters::parse(bool needsRunConfig) {
         
     }
 
-    //Check if the user has specified --help    
-    bool hasHelpOption=helpMessage();
-    MPI_Bcast(&hasHelpOption,sizeof(bool),MPI_BYTE,0,MPI_COMM_WORLD);
-    if(hasHelpOption){
-        MPI_Finalize();
-        exit(0);
-    }
+   //Check if the user has specified --version
+   bool hasVersionOption=versionMessage();
+   MPI_Bcast(&hasVersionOption,sizeof(bool),MPI_BYTE,0,MPI_COMM_WORLD);
+   if(hasVersionOption){
+      MPI_Finalize();
+      exit(0);
+   }
 
-    //Check if the user has specified --version
-    bool hasVersionOption=versionMessage();
-    MPI_Bcast(&hasVersionOption,sizeof(bool),MPI_BYTE,0,MPI_COMM_WORLD);
-    if(hasVersionOption){
-        MPI_Finalize();
-        exit(0);
-    }
-
-    //Require that there is a run config file. There are so many options so it is unlikely
-    //that one would like to define all on the command line, or only in global/user run files
-    //If no arguments are given the program (currently r155) would crash later on with nasty error messages
-    bool hasRunConfigFile=(run_config_file_name.size() > 0);
-    MPI_Bcast(&hasRunConfigFile,sizeof(bool),MPI_BYTE,0,MPI_COMM_WORLD);    
-    if(needsRunConfig && !hasRunConfigFile){
-        if(Readparameters::rank==MASTER_RANK){
+   //Require that there is a run config file. There are so many options so it is unlikely
+   //that one would like to define all on the command line, or only in global/user run files
+   //If no arguments are given the program (currently r155) would crash later on with nasty error messages
+   bool hasRunConfigFile=(run_config_file_name.size() > 0);
+   MPI_Bcast(&hasRunConfigFile,sizeof(bool),MPI_BYTE,0,MPI_COMM_WORLD);
+   if(needsRunConfig && !hasRunConfigFile && !helpRequested){
+      if(Readparameters::rank==MASTER_RANK){
             cout << "Run config file required. Use --help to list all options" <<endl;
-        }
-        MPI_Finalize();
-        exit(0);
-    }
-
-
+      }
+      MPI_Finalize();
+      exit(0);
+   }
+    
     
     
     int nOptionsToBroadcast;

@@ -59,8 +59,15 @@ do
     export OMP_NUM_THREADS=$t
     export MPICH_MAX_THREAD_SAFETY=funneled
 
+    # Run prerequisite script, if it exists
+    test -e test_prelude.sh && ./test_prelude.sh
+
+    # Run the actual simulation
     $run_command $bin --version  > VERSION.txt
     $run_command $bin --run_config=${test_name[$run]}.cfg
+
+    # Run postprocessing script, if it exists
+    test -e test_postproc.sh && ./test_postproc.sh
 
 
   ###copy new reference data to correct folder

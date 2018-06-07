@@ -60,7 +60,7 @@ namespace mesh {
             return "";
          }
          unsigned int getLocalID(const CellID& cellID) const {return mesh.getLocalID(cellID);}
-         bool initialize();
+         bool initialize(const std::string& name);
          void reallocate();
          size_t size() const {return meshData.size();}
 
