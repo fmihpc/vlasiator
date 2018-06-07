@@ -8,6 +8,8 @@
 #include <algorithm>
 #include "../../definitions.h"
 #include <list>
+#include "cpu_sort_ids.hpp"
+#include <map>
 
 using namespace std;
 
@@ -153,7 +155,7 @@ void printVector(vector<CellID> v) {
 setOfPencils buildPencils( dccrg::Dccrg<grid_data> grid,
 			   setOfPencils &pencils, vector<CellID> idsOut,
 			   vector<CellID> idsIn, int dimension, 
-			   vector<tuple<bool,bool>> path) {
+			   vector<pair<bool,bool>> path) {
 
   // Not necessary since c++ passes a copy by default.
   // Copy the input ids to a working set of ids
@@ -184,8 +186,8 @@ setOfPencils buildPencils( dccrg::Dccrg<grid_data> grid,
 
 	// Get children using the stored path	
 	vector<CellID> myChildren = getMyChildren(children,dimension,
-						  get<0>(path[grid.get_refinement_level(id)]),
-						  get<1>(path[grid.get_refinement_level(id)]));
+						  path[grid.get_refinement_level(id)].first,
+						  path[grid.get_refinement_level(id)].second);
 	
 	// Add the children to the working set at index i1
 
@@ -200,8 +202,8 @@ setOfPencils buildPencils( dccrg::Dccrg<grid_data> grid,
 	  for (bool left : { true, false }) {
 	    
 	    // Store the path this builder has chosen
-	    vector < tuple <bool,bool>> myPath = path;
-	    myPath.push_back(tuple<bool, bool>(up,left));
+	    vector < pair <bool,bool>> myPath = path;
+	    myPath.push_back(pair<bool, bool>(up,left));
 	    
 	    // Get children along my path.
 	    vector<CellID> myChildren = getMyChildren(children,dimension,up,left);
@@ -268,9 +270,9 @@ int main(int argc, char* argv[]) {
   
   dccrg::Dccrg<grid_data> grid;
 
-  const int xDim = 9;
-  const int yDim = 3;
-  const int zDim = 1;
+  const uint xDim = 9;
+  const uint yDim = 3;
+  const uint zDim = 1;
   const std::array<uint64_t, 3> grid_size = {{xDim,yDim,zDim}};
   
   grid.initialize(grid_size, comm, "RANDOM", 1);
@@ -314,19 +316,43 @@ int main(int argc, char* argv[]) {
   uint ibeg = 0;
   uint iend = 0;
 
-  list < vector < CellID >> unrefinedPencils;
+  uint dimension = 0;
+  vector<uint> dims;
+  
+  switch( dimension ) {
+  case 0 : {
+    dims = {zDim,yDim,xDim};
+  }
+    break;
+  case 1 : {
+    dims = {zDim,xDim,yDim};
+  }
+    break;
+  case 2 : {
+    dims = {yDim,xDim,zDim};
+  }
+    break;
+  default : {
+    dims = {0,0,0};
+  }
+  };
 
+  map <CellID,CellID> mapping;
+  sortIds< CellID, dccrg::Grid_Length::type >(dimension, grid_size, ids, mapping);
+  
+  list < vector < CellID >> unrefinedPencils;
   std::cout << "The unrefined pencils are :\n";
-  for (uint i = 0; i <zDim; i++) {
-    for (uint j = 0; j < yDim; j++) {
-      vector <CellID> myIds;
-      ibeg = i * xDim * yDim + j * xDim;
-      iend = i * xDim * yDim + (j + 1) * xDim;
+  for (uint i = 0; i < dims[0]; i++) {
+    for (uint j = 0; j < dims[1]; j++) {
+      vector <CellID> unrefinedIds;
+      ibeg = 1 + i * dims[2] * dims[1] + j * dims[2];
+      iend = 1 + i * dims[2] * dims[1] + (j + 1) * dims[2];
       for (uint k = ibeg; k < iend; k++) {
-	std::cout << ids[k] << " ";
-	myIds.push_back(ids[k]);
+	std::cout << mapping[k] << " ";
+	unrefinedIds.push_back(mapping[k]);
+	//unrefinedIds.push_back(ids[k]);
       }
-      unrefinedPencils.push_back(myIds);
+      unrefinedPencils.push_back(unrefinedIds);
       std::cout << "\n";
     }
   }
@@ -336,12 +362,11 @@ int main(int argc, char* argv[]) {
   
   setOfPencils pencilInitial;
   vector<CellID> idsInitial;
-  uint dimension = 0;
-  vector<tuple<bool,bool>> path;
-
+  vector<pair<bool,bool>> path;
+  
   setOfPencils pencils;
-  for ( auto &myIds : unrefinedPencils ) {
-    pencils = buildPencils(grid, pencilInitial, idsInitial, myIds, dimension, path);
+  for ( auto &unrefinedIds : unrefinedPencils ) {
+    pencils = buildPencils(grid, pencilInitial, idsInitial, unrefinedIds, dimension, path);
   }
 
   std::cout << "I have created the following pencils:\n";

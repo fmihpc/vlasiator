@@ -9,8 +9,8 @@ default: grid_test
 clean:
 	rm -rf *.o grid_test
 
-grid_test.o: grid_test.cpp
+grid_test.o: grid_test.cpp cpu_sort_ids.hpp
 	${CMP} ${FLAGS} ${INCLUDES} -c $^
 
-grid_test: grid_test.o
+grid_test: grid_test.o cpu_sort_ids.hpp
 	$(CMP) ${FLAGS} $^ ${INCLUDES} -o $@
