@@ -4,7 +4,7 @@ from pylab import *
 mass = list()
 peak = list()
 
-for i in arange(0,910,10):
+for i in arange(0,1000,10):
     m,p = fun_plot_reconstruction.plot_reconstruction(i,'log')
     mass.append(m)
     peak.append(p)

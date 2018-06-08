@@ -13,10 +13,10 @@ def plot_reconstruction(step,scale='linear'):
     #args = parser.parse_args()
     
     #fname = 'reconstruction_100'
-    fname = 'reconstruction_{:03d}'.format(step)
+    fname = 'reconstruction_{:05d}'.format(step)
     
     #dat = loadtxt('reconstructions_010.dat')
-    dat = np.loadtxt('reconstructions_{:03d}.dat'.format(step))
+    dat = np.loadtxt('reconstructions_{:05d}.dat'.format(step))
     plt.figure(1,figsize=(8,6),dpi = 100)
     plt.clf()
     T = 5e5
@@ -26,8 +26,8 @@ def plot_reconstruction(step,scale='linear'):
     imax = mlab.find(dat[:,1] == max(dat[:,1]))
     rmax = dat[imax[0],0]
 
-    r0 = 2e5
-    dr = -500
+    r0 = -2e5
+    dr = 500
     
     r = dat[:,0] - (r0 + step * dr)
     f = 1.0e18 * (m_p / (2.0 * np.pi * k_B * T)) ** 1.5 * np.exp(-m_p * r ** 2 / (2.0 * k_B * T))
@@ -43,9 +43,10 @@ def plot_reconstruction(step,scale='linear'):
 
     if scale is 'log':
         plt.ylim(1e-16,1e3)
-        plt.xlim(-8e5,8e5)
+        plt.xlim(-1e6,1e6)
     else:
-        plt.xlim(-5e5,5e5)
+        pass
+        plt.xlim(0e6,2e6)
 
     ax = plt.gca()
     ax.set_yscale(scale)

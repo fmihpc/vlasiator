@@ -53,6 +53,7 @@ void propagate(Vec dr[], Vec values[], Real z_translation, uint blocks_per_dim )
     for (uint k_cell=0; k_cell < WID; ++k_cell){
 
       uint gid = k_block * WID + k_cell + WID;
+      //uint gid = (blocks_per_dim + 2) * WID - (k_block * WID + k_cell + WID);
       
       // Calculate normalized coordinates in current cell.
       // The coordinates (scaled units from 0 to 1) between which we will
@@ -97,7 +98,8 @@ void propagate(Vec dr[], Vec values[], Real z_translation, uint blocks_per_dim )
     
     for (uint k_cell=0; k_cell<WID; ++k_cell){
 
-      uint gid = k_block * WID + k_cell + WID;      
+      uint gid = k_block * WID + k_cell + WID;
+      //uint gid = (blocks_per_dim + 2) * WID - (k_block * WID + k_cell + WID);
       values[gid] = targetValues[gid];
       
     }
@@ -108,7 +110,7 @@ void propagate(Vec dr[], Vec values[], Real z_translation, uint blocks_per_dim )
 
 void print_reconstruction(int step, Vec dr[], Vec values[], uint  blocks_per_dim, Real r_min){
   char name[256];
-  sprintf(name,"reconstructions_%03d.dat",step);
+  sprintf(name,"reconstructions_%05d.dat",step);
   FILE* fp=fopen(name,"w");
 
   Vec r0 = r_min;
@@ -198,7 +200,7 @@ int main(void) {
   Real T = 500000;
   Real rho = 1.0e18;
   Real r = r_min;
-  Real r1 = 10.0 * dr0;
+  Real r1 = -10.0 * dr0;
   
   for(uint i=0; i < blocks_per_dim * WID; i++){
 
@@ -207,14 +209,14 @@ int main(void) {
     values[i + WID] = rho * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B * T), 1.5) *
       exp(- physicalconstants::MASS_PROTON * (r - r1) * (r - r1) / (2.0 * physicalconstants::K_B * T));    
     
-    // Move to the end of the cell for the next iteration
+    // Move r to the end of the cell for the next iteration
     r = r + 0.5 * dr[i + WID][0];
   }
   
   print_reconstruction(0, dr, values, blocks_per_dim, r_min);
 
-  uint nstep = 900;
-  Real step = -500.0;
+  uint nstep = 1000;
+  Real step = 500.0;
   
   for (uint istep=0; istep < nstep; ++istep) {
     propagate(dr, values, step, blocks_per_dim);
