@@ -385,7 +385,6 @@ void calculateWaveSpeedXY(
  * 
  * Note that the background B field is excluded from the diffusive term calculations because they are equivalent to a current term and the background field is curl-free.
  * 
- * \param cache Field solver cell cache
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
 void calculateEdgeElectricFieldX(
@@ -744,7 +743,6 @@ void calculateEdgeElectricFieldX(
  * 
  * Note that the background B field is excluded from the diffusive term calculations because they are equivalent to a current term and the background field is curl-free.
  * 
- * \param cache Field solver cell cache
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
 void calculateEdgeElectricFieldY(
@@ -1102,7 +1100,6 @@ void calculateEdgeElectricFieldY(
  * 
  * Note that the background B field is excluded from the diffusive term calculations because they are equivalent to a current term and the background field is curl-free.
  * 
- * \param cache Field solver cell cache
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
 void calculateEdgeElectricFieldZ(
@@ -1462,7 +1459,6 @@ void calculateEdgeElectricFieldZ(
  * Calls the general or the system boundary electric field propagation functions.
  * 
  * \param mpiGrid Grid
- * \param cellCache Field solver cell cache
  * \param cells Vector of cells to process
  * \param sysBoundaries System boundary conditions existing
  * \param RKCase Element in the enum defining the Runge-Kutta method steps

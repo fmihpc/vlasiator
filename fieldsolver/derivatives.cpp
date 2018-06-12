@@ -113,6 +113,7 @@ void calculateDerivatives(
         dPerB->at(fsgrids::dperb::dPERBzdxx) = leftPerB->at(fsgrids::bfield::PERBZ) + rghtPerB->at(fsgrids::bfield::PERBZ) - 2.0*centPerB->at(fsgrids::bfield::PERBZ);
       }
    } else {
+      // Boundary conditions handle derivatives.
       if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
          SBC::SysBoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, 0);
       } else {
@@ -149,6 +150,7 @@ void calculateDerivatives(
       }
       
    } else {
+      // Boundary conditions handle derivatives.
       if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
          SBC::SysBoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, 1);
       } else {
@@ -184,6 +186,7 @@ void calculateDerivatives(
       }
       
    } else {
+      // Boundary conditions handle derivatives.
       if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
          SBC::SysBoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, 2);
       } else {
@@ -207,6 +210,7 @@ void calculateDerivatives(
          dPerB->at(fsgrids::dperb::dPERBzdxy) = FOURTH * (botLeft->at(fsgrids::bfield::PERBZ) + topRght->at(fsgrids::bfield::PERBZ) - botRght->at(fsgrids::bfield::PERBZ) - topLeft->at(fsgrids::bfield::PERBZ));
          
       } else {
+         // Boundary conditions handle derivatives.
          if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
             SBC::SysBoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, 3);
          } else {
@@ -225,6 +229,7 @@ void calculateDerivatives(
          dPerB->at(fsgrids::dperb::dPERBydxz) = FOURTH * (botLeft->at(fsgrids::bfield::PERBY) + topRght->at(fsgrids::bfield::PERBY) - botRght->at(fsgrids::bfield::PERBY) - topLeft->at(fsgrids::bfield::PERBY));
          
       } else {
+         // Boundary conditions handle derivatives.
          if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
             SBC::SysBoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, 4);
          } else {
@@ -243,6 +248,7 @@ void calculateDerivatives(
          dPerB->at(fsgrids::dperb::dPERBxdyz) = FOURTH * (botLeft->at(fsgrids::bfield::PERBX) + topRght->at(fsgrids::bfield::PERBX) - botRght->at(fsgrids::bfield::PERBX) - topLeft->at(fsgrids::bfield::PERBX));
          
       } else {
+         // Boundary conditions handle derivatives.
          if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
             SBC::SysBoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, 5);
          } else {

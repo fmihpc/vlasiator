@@ -29,7 +29,6 @@
 
 using namespace std;
 
-// X
 /*! \brief Low-level Hall component computation
  * 
  * Hall term computation following Balsara reconstruction, edge-averaged.

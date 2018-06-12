@@ -34,7 +34,6 @@
  * intermediate E1 components for the first stage of the second-order
  * Runge-Kutta method and E for the other cases.
  * 
- * \param cellCache Field solver cell cache
  * \param cells Vector of cells to process
  * \param dt Length of the time step
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
@@ -156,8 +155,6 @@ void propagateMagneticField(
  * Propagates the magnetic field according to the system boundary conditions.
  * 
  * \param mpiGrid Grid
- * \param cellCache Field solver cell cache
- * \param localID Field solver cache local cell ID
  * \param sysBoundaries System boundary conditions existing
  * \param dt Length of the time step
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
