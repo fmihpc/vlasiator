@@ -2,7 +2,6 @@
 #include "mpi.h"
 #include <iostream>
 #include <fstream>
-#include <tuple>
 #include <vector>
 #include <iterator>
 #include <algorithm>
@@ -198,8 +197,8 @@ setOfPencils buildPencils( dccrg::Dccrg<grid_data> grid,
 
 	// Spawn new builders to construct pencils at the new refinement level
 	
-	for (bool up : { true, false }) {	
-	  for (bool left : { true, false }) {
+	for (bool left : { true, false }) {	
+	  for (bool up : { true, false }) {
 	    
 	    // Store the path this builder has chosen
 	    vector < pair <bool,bool>> myPath = path;
@@ -270,9 +269,9 @@ int main(int argc, char* argv[]) {
   
   dccrg::Dccrg<grid_data> grid;
 
-  const uint xDim = 9;
+  const uint xDim = 3;
   const uint yDim = 3;
-  const uint zDim = 1;
+  const uint zDim = 3;
   const std::array<uint64_t, 3> grid_size = {{xDim,yDim,zDim}};
   
   grid.initialize(grid_size, comm, "RANDOM", 1);
@@ -280,7 +279,7 @@ int main(int argc, char* argv[]) {
   grid.balance_load();
 
   bool doRefine = true;
-  const std::array<uint,4> refinementIds = {{3,7,40,41}};
+  const std::array<uint,4> refinementIds = {{3,7,38,58}};
   if(doRefine) {
     for(uint i = 0; i < refinementIds.size(); i++) {
       if(refinementIds[i] > 0) {
@@ -308,6 +307,11 @@ int main(int argc, char* argv[]) {
     if (parent > 0 &&
 	!(std::find(ids.begin(), ids.end(), parent) != ids.end())) {
       ids.push_back(parent);
+      std::cout << "Cell " << parent << " at refinement level " << grid.get_refinement_level(parent) << " has been refined into ";
+      for (const auto& child: grid.get_all_children(parent)) {
+	std::cout << child << " ";
+      }
+      std::cout << "\n";
     }
   }
 
@@ -341,7 +345,7 @@ int main(int argc, char* argv[]) {
   sortIds< CellID, dccrg::Grid_Length::type >(dimension, grid_size, ids, mapping);
   
   list < vector < CellID >> unrefinedPencils;
-  std::cout << "The unrefined pencils are :\n";
+  std::cout << "The unrefined pencils along dimension " << dimension << " are :\n";
   for (uint i = 0; i < dims[0]; i++) {
     for (uint j = 0; j < dims[1]; j++) {
       vector <CellID> unrefinedIds;

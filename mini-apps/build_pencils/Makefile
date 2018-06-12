@@ -1,7 +1,7 @@
 ARCH=$(VLASIATOR_ARCH)
 include ../../MAKE/Makefile.${ARCH}
 
-FLAGS = -W -Wall -Wextra -pedantic -std=c++11 -O0
+FLAGS = -W -Wall -Wextra -pedantic -std=c++11 -O3
 INCLUDES = ${INC_DCCRG} -L$/usr/lib/x86_64-linux-gnu -lboost_program_options -I$/usr/include/boost -L/home/tkoskela/lib/zoltan/Zoltan_v3.83/build/lib -lzoltan -I/home/tkoskela/lib/zoltan/Zoltan_v3.83/build/include 
 
 default: grid_test

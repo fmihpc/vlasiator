@@ -23,7 +23,7 @@ template<typename ID, typename LENGTH> inline void sortIds(const uint dimension,
 
   //sortedIds.resize(ids.size());
   //TODO conditionally parallel version?
-#pragma omp parallel for
+  //#pragma omp parallel for
    for (uint i = 0; i < ids.size() ; ++i ) {
      const ID id = ids[i];
      
