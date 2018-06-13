@@ -88,6 +88,7 @@ setOfPencils buildPencilsWithNeighbors( dccrg::Dccrg<grid_data> grid,
 					vector<CellID> ids, uint dimension, 
 					vector<int> path) {
 
+  const bool debug = true;
   CellID nextNeighbor;
   uint id = startingId;
   uint startingRefLvl = grid.get_refinement_level(id);
@@ -100,8 +101,8 @@ setOfPencils buildPencilsWithNeighbors( dccrg::Dccrg<grid_data> grid,
   // use the order or the children of the parent cell to figure out which
   // corner we are in.
   // Maybe you could use physical coordinates here?
-  if( startingRefLvl > 0 ) {
-    for ( uint i = 0; i < startingRefLvl; i++) {
+  if( startingRefLvl > path.size() ) {
+    for ( uint i = path.size(); i < startingRefLvl; i++) {
       auto parent = grid.get_parent(id);
       auto children = grid.get_all_children(parent);
       auto it = std::find(children.begin(),children.end(),id);
@@ -138,37 +139,31 @@ setOfPencils buildPencilsWithNeighbors( dccrg::Dccrg<grid_data> grid,
     
     uint refLvl = grid.get_refinement_level(nextNeighbor);
 
-    //std::cout << "I am cell " << id << ". Next neighbor is " << nextNeighbor << " at refinement level " << refLvl << std::endl;
+    if (refLvl > 0) {
     
-    if (refLvl == 0 ) {
-
-      // If the neighbor is unrefined, add it to the pencil
-      ids.push_back(nextNeighbor);
-      
-    } else {
-
       // Check if we have encountered this refinement level before and stored
       // the path this builder follows.
       if ( path.size() >= refLvl ) {
+      
+	if(debug) {
+	  std::cout << "I am cell " << id << ". ";
+	  std::cout << "I have seen refinement level " << refLvl << " before. Path is ";
+	  for (auto k = path.begin(); k != path.end(); ++k)
+	    std::cout << *k << " ";
+	  std::cout << std::endl;
+	}
 	
-	// std::cout << " I have seen refinement level " << refLvl << " before. Path is ";
-	// for (auto k = path.begin(); k != path.end(); ++k)
-	//   std::cout << *k << ' ';
-	// std::cout << std::endl;
-
-	nextNeighbor = selectNeighbor(grid,id,dimension,path[refLvl-1]);
-	if (nextNeighbor == 0)
-	  break;
-	
-	ids.push_back(nextNeighbor);
+	nextNeighbor = selectNeighbor(grid,id,dimension,path[refLvl-1]);      
 	
       } else {
-
-	// std::cout << " I have NOT seen refinement level " << refLvl << " before. Path is ";
-	// for (auto k = path.begin(); k != path.end(); ++k)
-	//   std::cout << *k << ' ';
-	// std::cout << std::endl;
-
+	
+	if(debug) {
+	  std::cout << "I am cell " << id << ". ";
+	  std::cout << "I have NOT seen refinement level " << refLvl << " before. Path is ";
+	  for (auto k = path.begin(); k != path.end(); ++k)
+	    std::cout << *k << ' ';
+	  std::cout << std::endl;
+	}
 	
 	// New refinement level, create a path through each neighbor cell
 	for ( uint i : {0,1,2,3} ) {
@@ -177,17 +172,15 @@ setOfPencils buildPencilsWithNeighbors( dccrg::Dccrg<grid_data> grid,
 	  myPath.push_back(i);
 	  
 	  nextNeighbor = selectNeighbor(grid,id,dimension,myPath.back());
-	  if (nextNeighbor == 0)
-	    break;
 	  
 	  if ( i == 3 ) {
-
+	    
 	    // This builder continues along neighbor 3
 	    ids.push_back(nextNeighbor);
 	    path = myPath;
 	    
 	  } else {
-
+	    
 	    // Spawn new builders for neighbors 0,1,2
 	    buildPencilsWithNeighbors(grid,pencils,id,ids,dimension,myPath);
 	    
@@ -197,8 +190,18 @@ setOfPencils buildPencilsWithNeighbors( dccrg::Dccrg<grid_data> grid,
 	
       }
 
-    } // Closes if (refLvl == 0)
-
+    } else {
+      if(debug) {
+	std::cout << "I am cell " << id << ". ";
+	std::cout << " I am on refinement level 0." << std::endl;
+      }
+    }// Closes if (refLvl == 0)
+    if(nextNeighbor > 0) {
+      if (debug) {
+	std::cout << " Next neighbor is " << nextNeighbor << "." << std::endl;
+      }
+      ids.push_back(nextNeighbor);
+    }
     id = nextNeighbor;
     
   } // Closes while loop
@@ -242,7 +245,7 @@ int main(int argc, char* argv[]) {
   grid.balance_load();
 
   bool doRefine = true;
-  const std::array<uint,4> refinementIds = {{10,14,64,72}};
+  const std::array<uint,4> refinementIds = {{14,64,72}};
   if(doRefine) {
     for(uint i = 0; i < refinementIds.size(); i++) {
       if(refinementIds[i] > 0) {
