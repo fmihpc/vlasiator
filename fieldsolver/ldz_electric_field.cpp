@@ -157,9 +157,18 @@ void calculateWaveSpeedYZ(
    p22 = p22 < 0.0 ? 0.0 : p22;
    p33 = p33 < 0.0 ? 0.0 : p33;
 
+   // Effective wave speeds for advection and CFL calculation
+   // Note that these are calculated as if the plasma is purely made up of hydrogen, which
+   // is a reasonable approximation if it is proton-dominant.
+   // Simulations which predominantly contain heavier ion species will have to change this!
+   //
+   // See
+   // https://www.ann-geophys.net/26/1605/2008/  (Whistler waves)
+   // and
+   // http://iopscience.iop.org/article/10.1088/0253-6102/43/2/026/meta (Alfven waves)
+   // for details.
    const Real vA2 = divideIfNonZero(Bmag2, pc::MU_0*rhom); // Alfven speed
    const Real vS2 = divideIfNonZero(p11+p22+p33, 2.0*rhom); // sound speed, adiabatic coefficient 3/2, P=1/3*trace in sound speed
-#warning Which ion species to take into whistler speed?
    const Real vW = Parameters::ohmHallTerm > 0 ? divideIfNonZero(2.0*M_PI*vA2*pc::MASS_PROTON, perBGrid.DX*pc::CHARGE*sqrt(Bmag2)) : 0.0; // whistler speed
    
    ret_vA = sqrt(vA2);
@@ -262,9 +271,18 @@ void calculateWaveSpeedXZ(
    p22 = p22 < 0.0 ? 0.0 : p22;
    p33 = p33 < 0.0 ? 0.0 : p33;
    
+   // Effective wave speeds for advection and CFL calculation
+   // Note that these are calculated as if the plasma is purely made up of hydrogen, which
+   // is a reasonable approximation if it is proton-dominant.
+   // Simulations which predominantly contain heavier ion species will have to change this!
+   //
+   // See
+   // https://www.ann-geophys.net/26/1605/2008/  (Whistler waves)
+   // and
+   // http://iopscience.iop.org/article/10.1088/0253-6102/43/2/026/meta (Alfven waves)
+   // for details.
    const Real vA2 = divideIfNonZero(Bmag2, pc::MU_0*rhom); // Alfven speed
    const Real vS2 = divideIfNonZero(p11+p22+p33, 2.0*rhom); // sound speed, adiabatic coefficient 3/2, P=1/3*trace in sound speed
-#warning Which ion species to take into whistler speed?
    const Real vW = Parameters::ohmHallTerm > 0 ? divideIfNonZero(2.0*M_PI*vA2*pc::MASS_PROTON, perBGrid.DX*pc::CHARGE*sqrt(Bmag2)) : 0.0; // whistler speed
    
    ret_vA = sqrt(vA2);
@@ -367,9 +385,18 @@ void calculateWaveSpeedXY(
    p22 = p22 < 0.0 ? 0.0 : p22;
    p33 = p33 < 0.0 ? 0.0 : p33;
       
+   // Effective wave speeds for advection and CFL calculation
+   // Note that these are calculated as if the plasma is purely made up of hydrogen, which
+   // is a reasonable approximation if it is proton-dominant.
+   // Simulations which predominantly contain heavier ion species will have to change this!
+   //
+   // See
+   // https://www.ann-geophys.net/26/1605/2008/  (Whistler waves)
+   // and
+   // http://iopscience.iop.org/article/10.1088/0253-6102/43/2/026/meta (Alfven waves)
+   // for details.
    const Real vA2 = divideIfNonZero(Bmag2, pc::MU_0*rhom); // Alfven speed
    const Real vS2 = divideIfNonZero(p11+p22+p33, 2.0*rhom); // sound speed, adiabatic coefficient 3/2, P=1/3*trace in sound speed
-#warning Which ion species to take into whistler speed?
    const Real vW = Parameters::ohmHallTerm > 0 ? divideIfNonZero(2.0*M_PI*vA2*pc::MASS_PROTON, perBGrid.DX*pc::CHARGE*sqrt(Bmag2)) : 0.0; // whistler speed
    
    ret_vA = sqrt(vA2);
