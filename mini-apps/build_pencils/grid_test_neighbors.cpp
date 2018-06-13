@@ -85,12 +85,12 @@ CellID selectNeighbor(dccrg::Dccrg<grid_data> grid, CellID id, int dimension = 0
 
 setOfPencils buildPencilsWithNeighbors( dccrg::Dccrg<grid_data> grid, 
 					setOfPencils &pencils, CellID startingId,
-					vector<CellID> ids, int dimension, 
+					vector<CellID> ids, uint dimension, 
 					vector<int> path) {
 
   CellID nextNeighbor;
-  int id = startingId;
-  int startingRefLvl = grid.get_refinement_level(id);
+  uint id = startingId;
+  uint startingRefLvl = grid.get_refinement_level(id);
 
   if( ids.size() == 0 )
     ids.push_back(startingId);
@@ -136,7 +136,7 @@ setOfPencils buildPencilsWithNeighbors( dccrg::Dccrg<grid_data> grid,
     if (nextNeighbor == 0)
       break;
     
-    int refLvl = grid.get_refinement_level(nextNeighbor);
+    uint refLvl = grid.get_refinement_level(nextNeighbor);
 
     //std::cout << "I am cell " << id << ". Next neighbor is " << nextNeighbor << " at refinement level " << refLvl << std::endl;
     
@@ -260,14 +260,14 @@ int main(int argc, char* argv[]) {
   vector<CellID> ids;
   vector<CellID> startingIds;
   
-  uint dimension = 0;
+  int dimension = 0;
   
   for (const auto& cell: cells) {
     // std::cout << "Data of cell " << cell.id << " is stored at " << cell.data << std::endl;
     // Collect a list of cell ids.
     ids.push_back(cell.id);
 
-    // Collect a list of cell ids that do not have a neighbor on the negative direction
+    // Collect a list of cell ids that do not have a neighbor in the negative direction
     vector<CellID> negativeNeighbors;
     for (auto neighbor : grid.get_face_neighbors_of(cell.id)) {      
       
