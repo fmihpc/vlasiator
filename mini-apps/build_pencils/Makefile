@@ -15,8 +15,8 @@ grid_test.o: grid_test.cpp cpu_sort_ids.hpp
 grid_test: grid_test.o cpu_sort_ids.hpp
 	$(CMP) ${FLAGS} $^ ${INCLUDES} -o $@
 
-grid_test_neighbors.o: grid_test_neighbors.cpp cpu_sort_ids.hpp
+grid_test_neighbors.o: grid_test_neighbors.cpp
 	${CMP} ${FLAGS} ${INCLUDES} -c $^
 
-grid_test_neighbors: grid_test_neighbors.o cpu_sort_ids.hpp
+grid_test_neighbors: grid_test_neighbors.o
 	$(CMP) ${FLAGS} $^ ${INCLUDES} -o $@

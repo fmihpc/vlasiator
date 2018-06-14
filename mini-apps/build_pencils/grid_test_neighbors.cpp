@@ -61,7 +61,7 @@ CellID selectNeighbor(dccrg::Dccrg<grid_data> &grid, CellID id, int dimension = 
   
   switch( myNeighbors.size() ) {
     // Since refinement can only increase by 1 level the only possibilities
-    // Should be no neighbors, 1 neighbor or 4 neighbors.
+    // Should be 0 neighbors, 1 neighbor or 4 neighbors.
   case 0 : {
     // did not find neighbors
     neighbor = INVALID_CELLID;
@@ -78,6 +78,7 @@ CellID selectNeighbor(dccrg::Dccrg<grid_data> &grid, CellID id, int dimension = 
   default: {
     // something is wrong
     neighbor = INVALID_CELLID;
+    throw "Invalid neighbor count!";
   }
     break;
   }
@@ -274,7 +275,7 @@ int main(int argc, char* argv[]) {
   vector<CellID> ids;
   vector<CellID> startingIds;
   
-  int dimension = 1;
+  int dimension = 0;
   
   for (const auto& cell: cells) {
     // std::cout << "Data of cell " << cell.id << " is stored at " << cell.data << std::endl;
