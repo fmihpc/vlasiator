@@ -65,22 +65,22 @@ CellID selectNeighbor(dccrg::Dccrg<grid_data> &grid, CellID id, int dimension = 
   case 0 : {
     // did not find neighbors
     neighbor = INVALID_CELLID;
-  }
     break;
+  }
   case 1 : {
     neighbor = myNeighbors[0];
-  }
     break;
+  }
   case 4 : {
     neighbor = myNeighbors[path];
-  }
     break;
+  }
   default: {
     // something is wrong
     neighbor = INVALID_CELLID;
     throw "Invalid neighbor count!";
-  }
     break;
+  }
   }
 
   return neighbor;
@@ -116,16 +116,16 @@ setOfPencils buildPencilsWithNeighbors( dccrg::Dccrg<grid_data> &grid,
       switch( dimension ) {
       case 0: {
 	index2 = index / 2;
-      }
 	break;
+      }
       case 1: {
 	index2 = index - index / 2;
-      }
 	break;
+      }
       case 2: {
 	index2 = index % 4;
-      }
 	break;
+      }
       }
       path.insert(path.begin(),index2);
       id = parent;
@@ -217,8 +217,33 @@ setOfPencils buildPencilsWithNeighbors( dccrg::Dccrg<grid_data> &grid,
     id = nextNeighbor;
     
   } // Closes while loop
-  
-  pencils.addPencil(ids,0.0,0.0);
+
+  // Get the x,y - coordinates of the pencil (in the direction perpendicular to the pencil)
+  const auto coordinates = grid.get_center(ids[0]);
+  double x,y;  
+  switch(dimension) {
+  case 0: {
+    x = coordinates[1];
+    y = coordinates[2];
+    break;
+  }
+  case 1: {
+    x = coordinates[0];
+    y = coordinates[2];
+    break;
+  }
+  case 2: {
+    x = coordinates[0];
+    y = coordinates[1];
+    break;
+  }
+  default: {
+    x = 0.0;
+    y = 0.0;
+    break;
+  }
+  }  
+  pencils.addPencil(ids,x,y);
   return pencils;
   
 }
@@ -247,17 +272,19 @@ int main(int argc, char* argv[]) {
   
   dccrg::Dccrg<grid_data> grid;
 
+  // paremeters
   const uint xDim = 9;
   const uint yDim = 3;
   const uint zDim = 1;
   const std::array<uint64_t, 3> grid_size = {{xDim,yDim,zDim}};
+  const int dimension = 0;
+  const bool doRefine = true;
+  const std::array<uint,4> refinementIds = {{10,14,64,72}};
   
   grid.initialize(grid_size, comm, "RANDOM", 1);
 
   grid.balance_load();
 
-  bool doRefine = true;
-  const std::array<uint,4> refinementIds = {{10,14,64,72}};
   if(doRefine) {
     for(uint i = 0; i < refinementIds.size(); i++) {
       if(refinementIds[i] > 0) {
@@ -273,9 +300,7 @@ int main(int argc, char* argv[]) {
   sort(cells.begin(), cells.end());
 
   vector<CellID> ids;
-  vector<CellID> startingIds;
-  
-  int dimension = 0;
+  vector<CellID> startingIds;  
   
   for (const auto& cell: cells) {
     // std::cout << "Data of cell " << cell.id << " is stored at " << cell.data << std::endl;
@@ -310,13 +335,16 @@ int main(int argc, char* argv[]) {
   uint iend = 0;
   
   std::cout << "I have created " << pencils.N << " pencils along dimension " << dimension << ":\n";
+  std::cout << "(x, y): indices " << std::endl;
+  std::cout << "-----------------------------------------------------------------" << std::endl;
   for (uint i = 0; i < pencils.N; i++) {
     iend += pencils.lengthOfPencils[i];
+    std::cout << "(" << pencils.x[i] << ", " << pencils.y[i] << "): ";
     for (auto j = pencils.ids.begin() + ibeg; j != pencils.ids.begin() + iend; ++j) {
       std::cout << *j << " ";
     }
     ibeg  = iend;
-    std::cout << "\n";
+    std::cout << std::endl;
   }
   
   std::ofstream outfile;
