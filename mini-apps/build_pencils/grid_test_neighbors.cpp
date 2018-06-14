@@ -6,7 +6,7 @@
 #include <iterator>
 #include <algorithm>
 #include "../../definitions.h"
-#include "cpu_sort_ids.hpp"
+#include "../../parameters.h"
 
 using namespace std;
 
@@ -26,7 +26,7 @@ struct setOfPencils {
   uint N; // Number of pencils in the set
   std::vector<uint> lengthOfPencils; // Lengths of pencils
   std::vector<CellID> ids; // List of cells
-  std::vector<Real> x,y; // x,y - position (Maybe replace with uint width?)
+  std::vector<Real> x,y; // x,y - position (Maybe replace with uint refinement level or Real width?)
 
   setOfPencils() {
     N = 0;
@@ -45,50 +45,53 @@ struct setOfPencils {
 };
 
 
-CellID selectNeighbor(dccrg::Dccrg<grid_data> grid, CellID id, int dimension = 0, int path = 0) {
+CellID selectNeighbor(dccrg::Dccrg<grid_data> &grid, CellID id, int dimension = 0, uint path = 0) {
 
   const auto neighbors = grid.get_face_neighbors_of(id);
 
   vector < CellID > myNeighbors;
-  
+  // Collect neighbor ids in the positive direction of the chosen dimension.
+  // Note that dimension indexing starts from 1 (of course it does)
   for (const auto cell : neighbors) {
     if (cell.second == dimension + 1)
       myNeighbors.push_back(cell.first);
   }
 
-  CellID retVal;
+  CellID neighbor;
   
   switch( myNeighbors.size() ) {
+    // Since refinement can only increase by 1 level the only possibilities
+    // Should be no neighbors, 1 neighbor or 4 neighbors.
   case 0 : {
     // did not find neighbors
-    retVal = 0;
+    neighbor = INVALID_CELLID;
   }
     break;
   case 1 : {
-    retVal = myNeighbors[0];
+    neighbor = myNeighbors[0];
   }
     break;
   case 4 : {
-    retVal = myNeighbors[path];
+    neighbor = myNeighbors[path];
   }
     break;
   default: {
     // something is wrong
-    retVal = 0;
+    neighbor = INVALID_CELLID;
   }
     break;
   }
 
-  return retVal;
+  return neighbor;
   
 }
 
-setOfPencils buildPencilsWithNeighbors( dccrg::Dccrg<grid_data> grid, 
+setOfPencils buildPencilsWithNeighbors( dccrg::Dccrg<grid_data> &grid, 
 					setOfPencils &pencils, CellID startingId,
 					vector<CellID> ids, uint dimension, 
-					vector<int> path) {
+					vector<uint> path) {
 
-  const bool debug = true;
+  const bool debug = false;
   CellID nextNeighbor;
   uint id = startingId;
   uint startingRefLvl = grid.get_refinement_level(id);
@@ -108,6 +111,7 @@ setOfPencils buildPencilsWithNeighbors( dccrg::Dccrg<grid_data> grid,
       auto it = std::find(children.begin(),children.end(),id);
       auto index = std::distance(children.begin(),it);
       auto index2 = index;
+      
       switch( dimension ) {
       case 0: {
 	index2 = index / 2;
@@ -131,9 +135,11 @@ setOfPencils buildPencilsWithNeighbors( dccrg::Dccrg<grid_data> grid,
   
   while (id > 0) {
 
-    // Find the refinement level in the neighboring cell
+    // Find the refinement level in the neighboring cell. Any neighbor will do
+    // since refinement level can only increase by 1 between neighbors.
     nextNeighbor = selectNeighbor(grid,id,dimension);
 
+    // If there are no neighbors, we can stop.
     if (nextNeighbor == 0)
       break;
     
@@ -141,8 +147,9 @@ setOfPencils buildPencilsWithNeighbors( dccrg::Dccrg<grid_data> grid,
 
     if (refLvl > 0) {
     
-      // Check if we have encountered this refinement level before and stored
-      // the path this builder follows.
+      // If we have encountered this refinement level before and stored
+      // the path this builder follows, we will just take the same path
+      // again.
       if ( path.size() >= refLvl ) {
       
 	if(debug) {
@@ -168,14 +175,14 @@ setOfPencils buildPencilsWithNeighbors( dccrg::Dccrg<grid_data> grid,
 	// New refinement level, create a path through each neighbor cell
 	for ( uint i : {0,1,2,3} ) {
 	  
-	  vector < int > myPath = path;
+	  vector < uint > myPath = path;
 	  myPath.push_back(i);
 	  
 	  nextNeighbor = selectNeighbor(grid,id,dimension,myPath.back());
 	  
 	  if ( i == 3 ) {
 	    
-	    // This builder continues along neighbor 3
+	    // This builder continues with neighbor 3
 	    ids.push_back(nextNeighbor);
 	    path = myPath;
 	    
@@ -196,12 +203,16 @@ setOfPencils buildPencilsWithNeighbors( dccrg::Dccrg<grid_data> grid,
 	std::cout << " I am on refinement level 0." << std::endl;
       }
     }// Closes if (refLvl == 0)
-    if(nextNeighbor > 0) {
+
+    // If we found a neighbor, add it to the list of ids for this pencil.
+    if(nextNeighbor != INVALID_CELLID) {
       if (debug) {
 	std::cout << " Next neighbor is " << nextNeighbor << "." << std::endl;
       }
       ids.push_back(nextNeighbor);
     }
+
+    // Move to the next cell.
     id = nextNeighbor;
     
   } // Closes while loop
@@ -245,7 +256,7 @@ int main(int argc, char* argv[]) {
   grid.balance_load();
 
   bool doRefine = true;
-  const std::array<uint,4> refinementIds = {{14,64,72}};
+  const std::array<uint,4> refinementIds = {{10,14,64,72}};
   if(doRefine) {
     for(uint i = 0; i < refinementIds.size(); i++) {
       if(refinementIds[i] > 0) {
@@ -263,7 +274,7 @@ int main(int argc, char* argv[]) {
   vector<CellID> ids;
   vector<CellID> startingIds;
   
-  int dimension = 0;
+  int dimension = 1;
   
   for (const auto& cell: cells) {
     // std::cout << "Data of cell " << cell.id << " is stored at " << cell.data << std::endl;
@@ -287,7 +298,7 @@ int main(int argc, char* argv[]) {
   sort(ids.begin(),ids.end());     
   
   vector<CellID> idsInitial;
-  vector<int> path;  
+  vector<uint> path;  
   setOfPencils pencils;
 
   for (auto id : startingIds) {
