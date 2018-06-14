@@ -31,12 +31,6 @@ void propagate(Vec dr[], Vec values[], Real z_translation, uint blocks_per_dim )
 
   // Vector buffer where we write data, initialized to 0*/
   Vec targetValues[(blocks_per_dim + 2) * WID];
-
-  Realv maxdr = 1.0e-8;
-
-  for (uint i = 0; i < (blocks_per_dim + 2) * WID; i++) {
-    maxdr = max(maxdr,dr[i][0]);
-  }
   
   for (uint k_block = 0; k_block < blocks_per_dim; k_block++){
 
