@@ -3,10 +3,10 @@ ARCH = $(VLASIATOR_ARCH)
 include ../../MAKE/Makefile.${ARCH}
 
 #set FP precision to SP (single) or DP (double)
-FP_PRECISION = DP
+FP_PRECISION = SP
 
 #Set floating point precision for distribution function to SPF (single) or DPF (double)
-DISTRIBUTION_FP_PRECISION = DPF
+DISTRIBUTION_FP_PRECISION = SPF
 
 #Set vector backend type for vlasov solvers, sets precision and length. 
 #This mini-app only supports length 4(!)
