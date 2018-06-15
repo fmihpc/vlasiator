@@ -87,7 +87,7 @@ namespace poisson {
         bool update_x_r();
 
         Real globalVariables[cgglobal::SIZE];
-        int iterations;
+        uint iterations;
    };
 
    PoissonSolver* makeCG();

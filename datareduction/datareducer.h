@@ -46,7 +46,7 @@ class DataReducer {
    std::string getName(const unsigned int& operatorID) const;
    bool handlesWriting(const unsigned int& operatorID) const;
    bool reduceData(const SpatialCell* cell,const unsigned int& operatorID,char* buffer);
-   bool reduceData(const SpatialCell* cell,const unsigned int& operatorID,Real * result);
+   bool reduceDiagnostic(const SpatialCell* cell,const unsigned int& operatorID,Real * result);
    unsigned int size() const;
    bool writeData(const unsigned int& operatorID,
                   const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
