@@ -53,6 +53,7 @@
 
 #include "object_wrapper.h"
 #include "fieldsolver/gridGlue.hpp"
+#include "instrumented_functions.h"
 
 #ifdef CATCH_FPE
 #include <fenv.h>
@@ -224,7 +225,7 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    return true;
 }
 
-ObjectWrapper& getObjectWrapper() {
+ObjectWrapper& __attribute__((__no_instrument_function__)) getObjectWrapper() {
    return objectWrapper;
 }
 
@@ -269,6 +270,8 @@ int main(int argn,char* args[]) {
    
    MPI_Comm comm = MPI_COMM_WORLD;
    MPI_Comm_rank(comm,&myRank);
+
+   instrumentation_init(myRank == MASTER_RANK);
    SysBoundary sysBoundaries;
    bool isSysBoundaryCondDynamic;
    

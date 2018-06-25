@@ -38,6 +38,10 @@ COMPFLAGS += -DNDEBUG
 # CXXFLAGS += -DDEBUG_SOLVERS
 # CXXFLAGS += -DDEBUG_IONOSPHERE
 
+#For really coarse run-time tracing, compile with function instrumentation in some (high-level) source files:
+#LDFLAGS += -rdynamic
+#INSTRUMENTATION = -finstrument-functions
+
 #Set order of semilag solver in velocity space acceleration
 #  ACC_SEMILAG_PLM 	2nd order	
 #  ACC_SEMILAG_PPM	3rd order 
@@ -192,7 +196,7 @@ OBJS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipo
 	IPShock.o object_wrapper.o\
 	verificationLarmor.o Shocktest.o grid.o ioread.o iowrite.o vlasiator.o logger.o\
 	common.o parameters.o readparameters.o spatial_cell.o mesh_data_container.o\
-	vlasovmover.o $(FIELDSOLVER).o fs_common.o fs_limiters.o gridGlue.o
+	vlasovmover.o $(FIELDSOLVER).o fs_common.o fs_limiters.o gridGlue.o instrumented_functions.o
 
 # Add Vlasov solver objects (depend on mesh: AMR or non-AMR)
 ifeq ($(MESH),AMR)
@@ -461,7 +465,7 @@ gridGlue.o: ${DEPS_FSOLVER} fieldsolver/gridGlue.hpp fieldsolver/gridGlue.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c fieldsolver/gridGlue.cpp ${INC_BOOST} ${INC_FSGRID} ${INC_DCCRG} ${INC_PROFILE} ${INC_ZOLTAN}
 
 vlasiator.o: ${DEPS_COMMON} readparameters.h parameters.h ${DEPS_PROJECTS} grid.h vlasovmover.h ${DEPS_CELL} vlasiator.cpp iowrite.h fieldsolver/gridGlue.hpp
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c vlasiator.cpp ${INC_MPI} ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c vlasiator.cpp ${INC_MPI} ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV} ${INSTRUMENTATION}
 
 grid.o:  ${DEPS_COMMON} parameters.h ${DEPS_PROJECTS} ${DEPS_CELL} grid.cpp grid.h  sysboundary/sysboundary.h
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c grid.cpp ${INC_MPI} ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV} ${INC_PAPI}
@@ -492,6 +496,9 @@ vlscommon.o:  $(DEPS_COMMON)  vlscommon.h vlscommon.cpp
 
 object_wrapper.o:  $(DEPS_COMMON)  object_wrapper.h object_wrapper.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c object_wrapper.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST}
+
+instrumented_functions.o: instrumented_functions.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c instrumented_functions.cpp
 
 # Make executable
 vlasiator: $(OBJS) $(OBJS_POISSON) $(OBJS_FSOLVER)

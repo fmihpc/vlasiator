@@ -53,6 +53,6 @@ struct ObjectWrapper {
 };
 
 // Currently defined in vlasiator.cpp
-ObjectWrapper& getObjectWrapper();
+ObjectWrapper& __attribute__((__no_instrument_function__)) getObjectWrapper();
 
 #endif
