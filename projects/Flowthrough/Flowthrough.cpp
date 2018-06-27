@@ -3,7 +3,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -114,31 +114,31 @@ namespace projects {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
          FlowthroughSpeciesParameters sP;
 
-         if(!RP::get("Flowthrough.rho", sP.rho)) {
+         if(!RP::get(pop + "_Flowthrough.rho", sP.rho)) {
             if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
             exit(1);
          }
-         if(!RP::get("Flowthrough.T", sP.T)) {
+         if(!RP::get(pop + "_Flowthrough.T", sP.T)) {
             if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
             exit(1);
          }
-         if(!RP::get("Flowthrough.VX0", sP.V0[0])) {
+         if(!RP::get(pop + "_Flowthrough.VX0", sP.V0[0])) {
             if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
             exit(1);
          }
-         if(!RP::get("Flowthrough.VY0", sP.V0[1])) {
+         if(!RP::get(pop + "_Flowthrough.VY0", sP.V0[1])) {
             if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
             exit(1);
          }
-         if(!RP::get("Flowthrough.VZ0", sP.V0[2])) {
+         if(!RP::get(pop + "_Flowthrough.VZ0", sP.V0[2])) {
             if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
             exit(1);
          }
-         if(!RP::get("Flowthrough.nSpaceSamples", sP.nSpaceSamples)) {
+         if(!RP::get(pop + "_Flowthrough.nSpaceSamples", sP.nSpaceSamples)) {
             if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
             exit(1);
          }
-         if(!RP::get("Flowthrough.nVelocitySamples", sP.nVelocitySamples)) {
+         if(!RP::get(pop + "_Flowthrough.nVelocitySamples", sP.nVelocitySamples)) {
             if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
             exit(1);
          }

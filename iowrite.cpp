@@ -3,7 +3,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1092,6 +1092,8 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 
    phiprof::stop("open");
 
+   vlsvWriter.setBuffer(P::vlsvBufferSize);
+
    phiprof::start("metadataIO");
    
    // Get all local cell Ids 
@@ -1242,7 +1244,7 @@ bool writeDiagnostic(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
       // Request DataReductionOperator to calculate the reduced data for all local cells:
       for (uint64_t cell=0; cell<nCells; ++cell) {
          success = true;
-         if (dataReducer.reduceData(mpiGrid[cells[cell]], i, &buffer) == false) success = false;
+         if (dataReducer.reduceDiagnostic(mpiGrid[cells[cell]], i, &buffer) == false) success = false;
          localMin[i] = min(buffer, localMin[i]);
          localMax[i] = max(buffer, localMax[i]);
          localSum[i+1] += buffer;

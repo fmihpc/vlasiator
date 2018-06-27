@@ -3,7 +3,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -205,7 +205,7 @@ namespace spatial_cell {
                  * block_parameters[BlockParams::DVZ];
                Real sum=0;
                for (unsigned int i=0; i<WID3; ++i) sum += get_data(popID)[blockLID*SIZE_VELBLOCK+i];
-               this->populations[popID].RHOMLOSSADJUST += DV3*sum*getObjectWrapper().particleSpecies[popID].mass;
+               this->populations[popID].RHOLOSSADJUST += DV3*sum;
 	       
                // and finally remove block
                this->remove_velocity_block(blockGID,popID);
@@ -299,7 +299,7 @@ namespace spatial_cell {
                  * block_parameters[BlockParams::DVZ];
                Real sum=0;
                for (unsigned int i=0; i<WID3; ++i) sum += get_data(popID)[blockLID*SIZE_VELBLOCK+i];
-               this->populations[popID].RHOMLOSSADJUST += DV3*sum*getObjectWrapper().particleSpecies[popID].mass;
+               this->populations[popID].RHOLOSSADJUST += DV3*sum;
 	       
                // and finally remove block
                this->remove_velocity_block(blockGID,popID);
