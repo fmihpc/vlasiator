@@ -102,8 +102,8 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
    }
 
    const Real gyro_period
-     = fabs(2 * M_PI * getObjectWrapper().particleSpecies[popID].mass
-     / (getObjectWrapper().particleSpecies[popID].charge * B_mag));
+     = 2 * M_PI * getObjectWrapper().particleSpecies[popID].mass
+     / (getObjectWrapper().particleSpecies[popID].charge * B_mag);
 
    // scale rho for hall term, if user requests
    const Real EPSILON = 1e10 * numeric_limits<Real>::min();
@@ -133,11 +133,10 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
 
 
    unsigned int bulk_velocity_substeps; // in this many substeps we iterate forward bulk velocity when the complete transformation is computed (0.1 deg per substep).
-   bulk_velocity_substeps = fabs(dt) / (gyro_period*(0.1/360.0));
+   bulk_velocity_substeps = fabs(dt) / fabs(gyro_period*(0.1/360.0));
    if (bulk_velocity_substeps < 1) bulk_velocity_substeps=1;
 
-   const Real substeps_radians = -(2.0*M_PI*dt/gyro_period)/bulk_velocity_substeps
-      * (getObjectWrapper().particleSpecies[popID].charge > 0)?(1.):(-1.); // how many radians each substep is.
+   const Real substeps_radians = -(2.0*M_PI*dt/gyro_period)/bulk_velocity_substeps; // how many radians each substep is.
    const Real substeps_dt=dt/bulk_velocity_substeps; /*!< how many s each substep is*/
    Eigen::Matrix<Real,3,1> EgradPe(
       spatial_cell->parameters[CellParams::EXGRADPE],
