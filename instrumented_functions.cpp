@@ -41,17 +41,12 @@
 #include <execinfo.h>
 
 /*---------------------------------------------------------------------------
-                           Defines
- ---------------------------------------------------------------------------*/
-
-#define FUNCTION_ENTRY   "enter"
-#define FUNCTION_EXIT    "exit"
-
-/*---------------------------------------------------------------------------
                      Function codes
  ---------------------------------------------------------------------------*/
 
 static bool doOutput=false; 
+static int depth=1;
+static const int maxdepth=4;
 
 void instrumentation_init(bool doOutputOnThisRank) {
    doOutput = doOutputOnThisRank;
@@ -59,9 +54,24 @@ void instrumentation_init(bool doOutputOnThisRank) {
 
 extern "C" {
    /** Function called by every function event */
-   void __attribute__((__no_instrument_function__)) gnu_ptrace(char * what, void * p) {
-      char** fun_name = backtrace_symbols(&p,1);
-      fprintf(stderr, "TRACE %ld> %s %s\n", (long)getpid(), what, fun_name[0]);
+   void __attribute__((__no_instrument_function__)) gnu_ptrace(void * p) {
+      char spaces[16];
+      char** fun_name;
+
+      /* Only trace into functions up to a certain recursion depth */
+      if(depth > maxdepth) {
+         return;
+      }
+
+      for(int i=0; i<depth*3; i++) {
+         spaces[i] = ' ';
+      }
+      spaces[depth*3] = 0;
+
+      /* Lookup function name */
+      fun_name = backtrace_symbols(&p,1);
+
+      fprintf(stderr, "TRACE %ld> %s%s\n", (long)getpid(), spaces, fun_name[0]);
       free(fun_name);
       return ;
    }
@@ -69,7 +79,8 @@ extern "C" {
    /** According to gcc documentation: called upon function entry */
    void __attribute__((__no_instrument_function__)) __cyg_profile_func_enter(void *this_fn, void *call_site) {
       if(doOutput) {
-         gnu_ptrace(FUNCTION_ENTRY, this_fn);
+         depth++;
+         gnu_ptrace(this_fn);
          (void)call_site;
       }
    }
@@ -77,8 +88,10 @@ extern "C" {
    /** According to gcc documentation: called upon function exit */
    void __attribute__((__no_instrument_function__)) __cyg_profile_func_exit(void *this_fn, void *call_site) {
       if(doOutput) {
-         gnu_ptrace(FUNCTION_EXIT, this_fn);
+         //gnu_ptrace(FUNCTION_EXIT, this_fn);
+         depth--;
          (void)call_site;
+         (void)this_fn;
       }
    }
 }

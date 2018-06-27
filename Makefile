@@ -40,7 +40,7 @@ COMPFLAGS += -DNDEBUG
 
 #For really coarse run-time tracing, compile with function instrumentation in some (high-level) source files:
 #LDFLAGS += -rdynamic
-#INSTRUMENTATION = -finstrument-functions
+#COMPFLAGS += -finstrument-functions -finstrument-functions-exclude-file-list=boost,include,c++,cxx -finstrument-functions-exclude-function-list=operator,new,delete
 
 #Set order of semilag solver in velocity space acceleration
 #  ACC_SEMILAG_PLM 	2nd order	
@@ -465,7 +465,7 @@ gridGlue.o: ${DEPS_FSOLVER} fieldsolver/gridGlue.hpp fieldsolver/gridGlue.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c fieldsolver/gridGlue.cpp ${INC_BOOST} ${INC_FSGRID} ${INC_DCCRG} ${INC_PROFILE} ${INC_ZOLTAN}
 
 vlasiator.o: ${DEPS_COMMON} readparameters.h parameters.h ${DEPS_PROJECTS} grid.h vlasovmover.h ${DEPS_CELL} vlasiator.cpp iowrite.h fieldsolver/gridGlue.hpp
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c vlasiator.cpp ${INC_MPI} ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV} ${INSTRUMENTATION}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c vlasiator.cpp ${INC_MPI} ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV}
 
 grid.o:  ${DEPS_COMMON} parameters.h ${DEPS_PROJECTS} ${DEPS_CELL} grid.cpp grid.h  sysboundary/sysboundary.h
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c grid.cpp ${INC_MPI} ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV} ${INC_PAPI}
