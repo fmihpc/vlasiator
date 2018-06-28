@@ -81,10 +81,6 @@ namespace projects {
    }
 
    void MultiPeak::getParameters(){
-      if(getObjectWrapper().particleSpecies.size() > 1) {
-         std::cerr << "The selected project does not support multiple particle populations! Aborting in " << __FILE__ << " line " << __LINE__ << std::endl;
-         abort();
-      }
 
       typedef Readparameters RP;
       Project::getParameters();
@@ -138,7 +134,7 @@ namespace projects {
       Real value = 0.0;
 
       for (uint i=0; i<sP.numberOfPeaks; ++i) {
-         value += (sP.rho[i] * sP.rhoPertAbsAmp[i] * rhoRnd)
+         value += (sP.rho[i] + sP.rhoPertAbsAmp[i] * rhoRnd)
                * pow(mass / (2.0 * M_PI * kb ), 1.5) * 1.0
                / sqrt(sP.Tx[i]*sP.Ty[i]*sP.Tz[i]) 
                * exp(- mass * (pow(vx - sP.Vx[i], 2.0) / (2.0 * kb * sP.Tx[i]) 

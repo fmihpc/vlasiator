@@ -101,7 +101,7 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       unit_B(0,0) = 0; unit_B(1,0) = 0; unit_B(2,0) = 1;
    }
 
-   const Real gyro_period 
+   const Real gyro_period
      = 2 * M_PI * getObjectWrapper().particleSpecies[popID].mass
      / (getObjectWrapper().particleSpecies[popID].charge * B_mag);
 
@@ -133,11 +133,10 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
 
 
    unsigned int bulk_velocity_substeps; // in this many substeps we iterate forward bulk velocity when the complete transformation is computed (0.1 deg per substep).
-   bulk_velocity_substeps = fabs(dt) / (fabs(gyro_period)*(0.1/360.0)); 
+   bulk_velocity_substeps = fabs(dt) / fabs(gyro_period*(0.1/360.0));
    if (bulk_velocity_substeps < 1) bulk_velocity_substeps=1;
 
-   // note, we assume q is positive (pretty good assumption though)
-   const Real substeps_radians = -(2.0*M_PI*dt/fabs(gyro_period))/bulk_velocity_substeps; // how many radians each substep is.
+   const Real substeps_radians = -(2.0*M_PI*dt/gyro_period)/bulk_velocity_substeps; // how many radians each substep is.
    const Real substeps_dt=dt/bulk_velocity_substeps; /*!< how many s each substep is*/
    Eigen::Matrix<Real,3,1> EgradPe(
       spatial_cell->parameters[CellParams::EXGRADPE],
@@ -153,8 +152,6 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       rotation_pivot[0]-= hallPrefactor*(dBZdy - dBYdz);
       rotation_pivot[1]-= hallPrefactor*(dBXdz - dBZdx);
       rotation_pivot[2]-= hallPrefactor*(dBYdx - dBXdy);
-
-#warning Is particle charge sign taken correctly into account here?
       
       // add to transform matrix the small rotation around  pivot
       // when added like this, and not using *= operator, the transformations
@@ -165,8 +162,7 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
 
       // Electron pressure gradient term
       if(Parameters::ohmGradPeTerm > 0) {
-         #warning Use actual population mass and charge for multipop here
-         total_transform=Translation<Real,3>( (fabs(physicalconstants::CHARGE)/physicalconstants::MASS_PROTON) * EgradPe * substeps_dt) * total_transform;
+         total_transform=Translation<Real,3>( (fabs(getObjectWrapper().particleSpecies[popID].charge)/getObjectWrapper().particleSpecies[popID].mass) * EgradPe * substeps_dt) * total_transform;
       }
    }
 
