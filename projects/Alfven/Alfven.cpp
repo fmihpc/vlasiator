@@ -119,23 +119,54 @@ namespace projects {
    
    Real Alfven::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
       const AlfvenSpeciesParameters& sP = speciesParams[popID];
-      creal d_x = dx / (this->nSpaceSamples-1);
-      creal d_y = dy / (this->nSpaceSamples-1);
-      creal d_z = dz / (this->nSpaceSamples-1);
-      creal d_vx = dvx / (sP.nVelocitySamples-1);
-      creal d_vy = dvy / (sP.nVelocitySamples-1);
-      creal d_vz = dvz / (sP.nVelocitySamples-1);
-      Real avg = 0.0;
-      for (uint i=0; i<this->nSpaceSamples; ++i)
-         for (uint j=0; j<this->nSpaceSamples; ++j)
-            for (uint k=0; k<this->nSpaceSamples; ++k)
-               for (uint vi=0; vi<sP.nVelocitySamples; ++vi)
-                  for (uint vj=0; vj<sP.nVelocitySamples; ++vj)
-                     for (uint vk=0; vk<sP.nVelocitySamples; ++vk)
-                     {
-                        avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz,popID);
-                     }
-      return avg / pow(this->nSpaceSamples, 3.0) / pow(sP.nVelocitySamples, 3.0);
+      
+      if((this->nSpaceSamples > 1) && (sP.nVelocitySamples > 1)) {
+         creal d_x = dx / (this->nSpaceSamples-1);
+         creal d_y = dy / (this->nSpaceSamples-1);
+         creal d_z = dz / (this->nSpaceSamples-1);
+         creal d_vx = dvx / (sP.nVelocitySamples-1);
+         creal d_vy = dvy / (sP.nVelocitySamples-1);
+         creal d_vz = dvz / (sP.nVelocitySamples-1);
+         Real avg = 0.0;
+         for (uint i=0; i<this->nSpaceSamples; ++i)
+            for (uint j=0; j<this->nSpaceSamples; ++j)
+               for (uint k=0; k<this->nSpaceSamples; ++k)
+                  for (uint vi=0; vi<sP.nVelocitySamples; ++vi)
+                     for (uint vj=0; vj<sP.nVelocitySamples; ++vj)
+                        for (uint vk=0; vk<sP.nVelocitySamples; ++vk)
+                        {
+                           avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz,popID);
+                        }
+         return avg / pow(this->nSpaceSamples, 3.0) / pow(sP.nVelocitySamples, 3.0);
+      } else if (this->nSpaceSamples > 1) {
+         creal d_x = dx / (this->nSpaceSamples-1);
+         creal d_y = dy / (this->nSpaceSamples-1);
+         creal d_z = dz / (this->nSpaceSamples-1);
+         
+         Real avg = 0.0;
+         for (uint i=0; i<this->nSpaceSamples; ++i)
+            for (uint j=0; j<this->nSpaceSamples; ++j)
+               for (uint k=0; k<this->nSpaceSamples; ++k) {
+                  avg += getDistribValue(x+i*d_x,y+j*d_y,z+k*d_z,vx+0.5*dvx,vy+0.5*dvy,vz+0.5*dvz,dvx,dvy,dvz,popID);
+               }
+               return avg /
+               (this->nSpaceSamples*this->nSpaceSamples*this->nSpaceSamples);
+      } else if (sP.nVelocitySamples > 1) {
+         creal d_vx = dvx / (sP.nVelocitySamples-1);
+         creal d_vy = dvy / (sP.nVelocitySamples-1);
+         creal d_vz = dvz / (sP.nVelocitySamples-1);
+         
+         Real avg = 0.0;
+         for (uint vi=0; vi<sP.nVelocitySamples; ++vi)
+            for (uint vj=0; vj<sP.nVelocitySamples; ++vj)
+               for (uint vk=0; vk<sP.nVelocitySamples; ++vk) {
+                  avg += getDistribValue(x+0.5*dx,y+0.5*dy,z+0.5*dz,vx+vi*d_vx,vy+vj*d_vy,vz+vk*d_vz,dvx,dvy,dvz,popID);
+               }
+               return avg /
+               (sP.nVelocitySamples*sP.nVelocitySamples*sP.nVelocitySamples);
+      } else {
+         return getDistribValue(x+0.5*dx,y+0.5*dy,z+0.5*dz,vx+0.5*dvx,vy+0.5*dvy,vz+0.5*dvz,dvx,dvy,dvz,popID);
+      }
    }
    
    void Alfven::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
