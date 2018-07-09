@@ -3,7 +3,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,6 +29,7 @@
 #include "../../readparameters.h"
 #include "../../backgroundfield/backgroundfield.h"
 #include "../../backgroundfield/constantfield.hpp"
+#include "../../object_wrapper.h"
 
 #include "Distributions.h"
 
@@ -82,6 +83,12 @@ namespace projects {
       Project::getParameters();
       typedef Readparameters RP;
       Project::getParameters();
+
+      if(getObjectWrapper().particleSpecies.size() > 1) {
+         std::cerr << "The selected project does not support multiple particle populations! Aborting in " << __FILE__ << " line " << __LINE__ << std::endl;
+         abort();
+      }
+
       RP::get("Distributions.rho1", this->rho[0]);
       RP::get("Distributions.rho2", this->rho[1]);
       RP::get("Distributions.Tx1", this->Tx[0]);
@@ -118,8 +125,9 @@ namespace projects {
 
    Real Distributions::getDistribValue(
       creal& x, creal& y, creal& z,
-      creal& vx, creal& vy, creal& vz
-   ) {
+      creal& vx, creal& vy, creal& vz,
+      const uint popID
+   ) const {
       Real value = 0.0;
       creal relx = x/(Parameters::xmax - Parameters::xmin);
       creal rely = y/(Parameters::ymax - Parameters::ymin);
@@ -137,8 +145,8 @@ namespace projects {
       return value;
    }
 
-   Real Distributions::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const int& popID) {   
-      return getDistribValue(x+0.5*dx, y+0.5*dy,z+0.5*dz,vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz);
+   Real Distributions::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {   
+      return getDistribValue(x+0.5*dx, y+0.5*dy,z+0.5*dz,vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, popID);
    }
 
    void Distributions::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
@@ -171,8 +179,9 @@ namespace projects {
    vector<std::array<Real, 3>> Distributions::getV0(
       creal x,
       creal y,
-      creal z
-   ) {
+      creal z,
+      const uint popID
+   ) const {
       vector<std::array<Real, 3>> centerPoints;
       creal relx = x/(Parameters::xmax - Parameters::xmin);
       creal rely = y/(Parameters::ymax - Parameters::ymin);

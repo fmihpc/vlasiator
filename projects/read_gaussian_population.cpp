@@ -3,7 +3,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -47,6 +47,7 @@ namespace projects {
       RP::addComposing(prefix+".Vx", "Bulk velocity x component (m/s)");
       RP::addComposing(prefix+".Vy", "Bulk velocity y component (m/s)");
       RP::addComposing(prefix+".Vz", "Bulk velocity z component (m/s)");
+      return true;
    }
 
    bool ReadGaussianPopulation::getParameters(const std::string& prefix,projects::GaussianPopulation& populations) {

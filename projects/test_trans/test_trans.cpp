@@ -3,7 +3,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,6 +29,7 @@
 #include "../../readparameters.h"
 #include "../../backgroundfield/backgroundfield.h"
 #include "../../backgroundfield/constantfield.hpp"
+#include "../../object_wrapper.h"
 
 #include "test_trans.h"
 
@@ -55,6 +56,11 @@ namespace projects {
       Project::getParameters();
       
       typedef Readparameters RP;
+
+      if(getObjectWrapper().particleSpecies.size() > 1) {
+         std::cerr << "The selected project does not support multiple particle populations! Aborting in " << __FILE__ << " line " << __LINE__ << std::endl;
+         abort();
+      }
       RP::get("test_trans.cellPosition", this->cellPosition);
       RP::get("test_trans.peakValue" ,peakValue);
    }
@@ -62,7 +68,7 @@ namespace projects {
 
    Real test_trans::calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,
                                           creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz,
-                                          const int& popID) const {
+                                          const uint popID) const {
       //Please use even number of cells in velocity and real space
       Real xyz[3];
       Real vxyz[3];

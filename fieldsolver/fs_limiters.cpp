@@ -3,7 +3,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,25 +21,4 @@
  */
 
 #include "fs_limiters.h"
-
-/*
-Real limiter(creal& left,creal& cent,creal& rght) {
-   //const Real limited = minmod(left,cent,rght);
-   //const Real limited = MClimiter(left,cent,rght);
-   const Real limited = vanLeer(left,cent,rght);
-   
-   #ifdef DEBUG_SOLVERS
-   if (limited != limited
-      || limited * 0 != 0) {
-      std::cerr << __FILE__ << ":" << __LINE__
-                  << " Limiter returned an invalid value " << limited
-                  << " with left, center, right: " << left << ", " << cent << ", " << rght
-                  << std::endl;
-      abort();
-   }
-   #endif
-   
-   return limited;
-}
-*/
 

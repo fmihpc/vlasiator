@@ -3,7 +3,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -55,30 +55,33 @@ Transform<Real,3,Affine> compute_acceleration_transformation( SpatialCell* spati
    
    const Eigen::Matrix<Real,3,1> B(Bx,By,Bz);
    const Eigen::Matrix<Real,3,1> unit_B(B.normalized());
+
+   #warning This is wrong for multipop 
    const Real gyro_period = 2 * M_PI * physicalconstants::MASS_PROTON  / (fabs(physicalconstants::CHARGE) * B.norm());
    
    //Set maximum timestep limit for this cell, based on a  maximum allowed rotation angle
    spatial_cell->parameters[CellParams::MAXVDT]=gyro_period*(P::maxSlAccelerationRotation/360.0);
    
   //compute initial moments, based on actual distribution function
-   spatial_cell->parameters[CellParams::RHO_V  ] = 0.0;
-   spatial_cell->parameters[CellParams::RHOVX_V] = 0.0;
-   spatial_cell->parameters[CellParams::RHOVY_V] = 0.0;
-   spatial_cell->parameters[CellParams::RHOVZ_V] = 0.0;
+   spatial_cell->parameters[CellParams::RHOM_V  ] = 0.0;
+   spatial_cell->parameters[CellParams::VX_V] = 0.0;
+   spatial_cell->parameters[CellParams::VY_V] = 0.0;
+   spatial_cell->parameters[CellParams::VZ_V] = 0.0;
+   spatial_cell->parameters[CellParams::RHOQ_V] = 0.0;
    
    for (vmesh::LocalID block_i=0; block_i<spatial_cell->get_number_of_velocity_blocks(); ++block_i) {
-      cpu_calcVelocityFirstMoments(spatial_cell,block_i,CellParams::RHO_V,CellParams::RHOVX_V,CellParams::RHOVY_V,CellParams::RHOVZ_V);
+      cpu_calcVelocityFirstMoments(spatial_cell,block_i,CellParams::RHOM_V,CellParams::VX_V,CellParams::VY_V,CellParams::VZ_V);
    }
    
-   const Real rho=spatial_cell->parameters[CellParams::RHO_V];
+   const Real rhoq=spatial_cell->parameters[CellParams::RHOQ_V];
    //scale rho for hall term, if user requests
-   const Real hallRho =  (rho <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : rho ;
-   const Real hallPrefactor = 1.0 / (physicalconstants::MU_0 * hallRho * physicalconstants::CHARGE );
+   const Real hallRhoq =  (rhoq <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : rhoq ;
+   const Real hallPrefactor = 1.0 / (physicalconstants::MU_0 * hallRhoq );
 
    
-   Eigen::Matrix<Real,3,1> bulk_velocity(spatial_cell->parameters[CellParams::RHOVX_V]/rho,
-                                 spatial_cell->parameters[CellParams::RHOVY_V]/rho,
-                                 spatial_cell->parameters[CellParams::RHOVZ_V]/rho);   
+   Eigen::Matrix<Real,3,1> bulk_velocity(spatial_cell->parameters[CellParams::VX_V],
+                                 spatial_cell->parameters[CellParams::VY_V],
+                                 spatial_cell->parameters[CellParams::VZ_V]);
    /*compute total transformation*/
    Transform<Real,3,Affine> total_transform(Matrix<Real, 4, 4>::Identity()); //CONTINUE
 

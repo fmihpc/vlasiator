@@ -3,7 +3,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -64,7 +64,7 @@ namespace spatial_cell {
       populations.resize(getObjectWrapper().particleSpecies.size());
       
       // Set velocity meshes
-      for (int popID=0; popID<populations.size(); ++popID) {
+      for (uint popID=0; popID<populations.size(); ++popID) {
          const species::Species& spec = getObjectWrapper().particleSpecies[popID];
          populations[popID].vmesh.initialize(spec.velocityMesh);
          populations[popID].velocityBlockMinValue = spec.sparseMinValue;
@@ -72,13 +72,13 @@ namespace spatial_cell {
    }
 
    SpatialCell::SpatialCell(const SpatialCell& other):
-     initialized(other.initialized),
-     mpiTransferEnabled(other.mpiTransferEnabled),
-     velocity_block_with_content_list(other.velocity_block_with_content_list),
-     velocity_block_with_no_content_list(other.velocity_block_with_no_content_list),
      sysBoundaryFlag(other.sysBoundaryFlag),
      sysBoundaryLayer(other.sysBoundaryLayer),
      sysBoundaryLayerNew(other.sysBoundaryLayerNew),
+     velocity_block_with_content_list(other.velocity_block_with_content_list),
+     velocity_block_with_no_content_list(other.velocity_block_with_no_content_list),
+     initialized(other.initialized),
+     mpiTransferEnabled(other.mpiTransferEnabled),
      populations(other.populations) {
 
         //copy parameters
@@ -123,7 +123,7 @@ namespace spatial_cell {
     * remove some blocks that should not be removed.*/
    #ifndef AMR
    void SpatialCell::adjust_velocity_blocks(const std::vector<SpatialCell*>& spatial_neighbors,
-                                            const int& popID,bool doDeleteEmptyBlocks) {
+                                            const uint popID,bool doDeleteEmptyBlocks) {
       #ifdef DEBUG_SPATIAL_CELL
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
@@ -148,10 +148,11 @@ namespace spatial_cell {
          const uint8_t refLevel=0;
          const velocity_block_indices_t indices = SpatialCell::get_velocity_block_indices(popID,block);
          neighbors_have_content.insert(block); //also add the cell itself
-         
-         for (int offset_vx=-P::sparseBlockAddWidthV;offset_vx<=P::sparseBlockAddWidthV;offset_vx++) {
-            for (int offset_vy=-P::sparseBlockAddWidthV;offset_vy<=P::sparseBlockAddWidthV;offset_vy++) {
-               for (int offset_vz=-P::sparseBlockAddWidthV;offset_vz<=P::sparseBlockAddWidthV;offset_vz++) {
+
+         int addWidthV = getObjectWrapper().particleSpecies[popID].sparseBlockAddWidthV;
+         for (int offset_vx=-addWidthV;offset_vx<=addWidthV;offset_vx++) {
+            for (int offset_vy=-addWidthV;offset_vy<=addWidthV;offset_vy++) {
+               for (int offset_vz=-addWidthV;offset_vz<=addWidthV;offset_vz++) {
                   const vmesh::GlobalID neighbor_block 
                      = get_velocity_block(popID,{{indices[0]+offset_vx,indices[1]+offset_vy,indices[2]+offset_vz}},refLevel);
                   neighbors_have_content.insert(neighbor_block); //add all potential ngbrs of this block with content
@@ -204,7 +205,7 @@ namespace spatial_cell {
                  * block_parameters[BlockParams::DVZ];
                Real sum=0;
                for (unsigned int i=0; i<WID3; ++i) sum += get_data(popID)[blockLID*SIZE_VELBLOCK+i];
-               this->parameters[CellParams::RHOLOSSADJUST] += DV3*sum;
+               this->populations[popID].RHOLOSSADJUST += DV3*sum;
 	       
                // and finally remove block
                this->remove_velocity_block(blockGID,popID);
@@ -221,7 +222,7 @@ namespace spatial_cell {
    #else       // AMR version
 
    void SpatialCell::adjust_velocity_blocks(const std::vector<SpatialCell*>& spatial_neighbors,
-                                            const int& popID,bool doDeleteEmptyBlocks) {
+                                            const uint popID,bool doDeleteEmptyBlocks) {
       //  This set contains all those cell ids which have neighbors in any
       //  of the 6-dimensions Actually, we would only need to add
       //  local blocks with no content here, as blocks with content
@@ -298,7 +299,7 @@ namespace spatial_cell {
                  * block_parameters[BlockParams::DVZ];
                Real sum=0;
                for (unsigned int i=0; i<WID3; ++i) sum += get_data(popID)[blockLID*SIZE_VELBLOCK+i];
-               this->parameters[CellParams::RHOLOSSADJUST] += DV3*sum;
+               this->populations[popID].RHOLOSSADJUST += DV3*sum;
 	       
                // and finally remove block
                this->remove_velocity_block(blockGID,popID);
@@ -377,7 +378,7 @@ namespace spatial_cell {
 
    #endif
 
-   void SpatialCell::adjustSingleCellVelocityBlocks(const int& popID) {
+   void SpatialCell::adjustSingleCellVelocityBlocks(const uint popID) {
       #ifdef DEBUG_SPATIAL_CELL
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
@@ -394,7 +395,7 @@ namespace spatial_cell {
       adjust_velocity_blocks(neighbor_ptrs,popID,false);
    }
 
-   void SpatialCell::coarsen_block(const vmesh::GlobalID& parent,const std::vector<vmesh::GlobalID>& children,const int& popID) {
+   void SpatialCell::coarsen_block(const vmesh::GlobalID& parent,const std::vector<vmesh::GlobalID>& children,const uint popID) {
       #ifdef DEBUG_SPATIAL_CELL
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
@@ -432,7 +433,7 @@ namespace spatial_cell {
             parent_data[vblock::index(i_oct*2+i/2,j_oct*2+j/2,k_oct*2+k/2)] = sum/8;
          }*/
 
-         for (int k=0; k<WID; ++k) for (int j=0; j<WID; ++j) for (int i=0; i<WID; ++i) {
+         for (uint k=0; k<WID; ++k) for (uint j=0; j<WID; ++j) for (uint i=0; i<WID; ++i) {
             parent_data[vblock::index(i_oct*2+i/2,j_oct*2+j/2,k_oct*2+k/2)] += data[vblock::index(i,j,k)]/8.0;
          }
       }
@@ -443,7 +444,7 @@ namespace spatial_cell {
       }
    }
 
-   void SpatialCell::coarsen_blocks(amr_ref_criteria::Base* refCriterion,const int& popID) {
+   void SpatialCell::coarsen_blocks(amr_ref_criteria::Base* refCriterion,const uint popID) {
       #ifdef DEBUG_SPATIAL_CELL
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
@@ -526,7 +527,7 @@ namespace spatial_cell {
     sense in given block.
     Also returns false if given block doesn't exist or is an error block.
     */
-   bool SpatialCell::compute_block_has_content(const vmesh::GlobalID& blockGID,const int& popID) const {
+   bool SpatialCell::compute_block_has_content(const vmesh::GlobalID& blockGID,const uint popID) const {
       #ifdef DEBUG_SPATIAL_CELL
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
@@ -555,7 +556,7 @@ namespace spatial_cell {
    /** Get maximum translation timestep for the given species.
     * @param popID ID of the particle species.
     * @return Maximum timestep calculated by the Vlasov translation.*/
-   const Real& SpatialCell::get_max_r_dt(const int& popID) const {
+   const Real& SpatialCell::get_max_r_dt(const uint popID) const {
       #ifdef DEBUG_SPATIAL_CELL
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
@@ -570,7 +571,7 @@ namespace spatial_cell {
    /** Get maximum acceleration timestep for the given species.
     * @param popID ID of the particle species.
     * @return Maximum timestep calculated by Vlasov acceleration.*/
-   const Real& SpatialCell::get_max_v_dt(const int& popID) const {
+   const Real& SpatialCell::get_max_v_dt(const uint popID) const {
       #ifdef DEBUG_SPATIAL_CELL
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
@@ -671,12 +672,10 @@ namespace spatial_cell {
             block_lengths.push_back(sizeof(Real) * 3);
          }
          
-         // send  BGBX BGBY BGBZ and all edge-averaged BGBs
+         // send  BGBX BGBY BGBZ
          if ((SpatialCell::mpi_transfer_type & Transfer::CELL_BGB)!=0){
             displacements.push_back((uint8_t*) &(this->parameters[CellParams::BGBX]) - (uint8_t*) this);
             block_lengths.push_back(sizeof(Real) * 3);
-            displacements.push_back((uint8_t*) &(this->parameters[CellParams::BGBX_000_010]) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(Real) * 24);
          }
          
          // send  BGBXVOL BGBYVOL BGBZVOL PERBXVOL PERBYVOL PERBZVOL
@@ -709,16 +708,28 @@ namespace spatial_cell {
             block_lengths.push_back(sizeof(Real) * 3);
          }
          
-         // send RHO, RHOVX, RHOVY, RHOVZ
-         if ((SpatialCell::mpi_transfer_type & Transfer::CELL_RHO_RHOV)!=0){
-            displacements.push_back((uint8_t*) &(this->parameters[CellParams::RHO]) - (uint8_t*) this);
+         // send RHOM, VX, VY, VZ
+         if ((SpatialCell::mpi_transfer_type & Transfer::CELL_RHOM_V)!=0){
+            displacements.push_back((uint8_t*) &(this->parameters[CellParams::RHOM]) - (uint8_t*) this);
             block_lengths.push_back(sizeof(Real) * 4);
          }
          
-         // send RHO_DT2, RHOVX_DT2, RHOVY_DT2, RHOVZ_DT2
-         if ((SpatialCell::mpi_transfer_type & Transfer::CELL_RHODT2_RHOVDT2)!=0){
-            displacements.push_back((uint8_t*) &(this->parameters[CellParams::RHO_DT2]) - (uint8_t*) this);
+         // send RHOM_DT2, VX_DT2, VY_DT2, VZ_DT2
+         if ((SpatialCell::mpi_transfer_type & Transfer::CELL_RHOMDT2_VDT2)!=0){
+            displacements.push_back((uint8_t*) &(this->parameters[CellParams::RHOM_DT2]) - (uint8_t*) this);
             block_lengths.push_back(sizeof(Real) * 4);
+         }
+         
+         // send RHOQ
+         if ((SpatialCell::mpi_transfer_type & Transfer::CELL_RHOQ)!=0){
+            displacements.push_back((uint8_t*) &(this->parameters[CellParams::RHOQ]) - (uint8_t*) this);
+            block_lengths.push_back(sizeof(Real));
+         }
+         
+         // send RHOQ_DT2
+         if ((SpatialCell::mpi_transfer_type & Transfer::CELL_RHOQDT2)!=0){
+            displacements.push_back((uint8_t*) &(this->parameters[CellParams::RHOQ_DT2]) - (uint8_t*) this);
+            block_lengths.push_back(sizeof(Real));
          }
          
          // send  spatial cell derivatives
@@ -787,9 +798,9 @@ namespace spatial_cell {
          }
          // Copy particle species metadata
          if ((SpatialCell::mpi_transfer_type & Transfer::POP_METADATA) != 0) {
-            for (unsigned int popID=0; popID<populations.size(); ++popID) {
-               displacements.push_back((uint8_t*) &(populations[popID].max_dt) - (uint8_t*)this);
-               block_lengths.push_back(species::SIZE_DT_ELEMENTS*sizeof(Real));
+            for (uint popID=0; popID<populations.size(); ++popID) {
+               displacements.push_back((uint8_t*) &(populations[popID].RHO) - (uint8_t*)this);
+               block_lengths.push_back(offsetof(spatial_cell::Population, N_blocks));
             }
          }
          // Copy random number generator state variables
@@ -838,11 +849,11 @@ namespace spatial_cell {
     * of a velocity block for the block to be considered to have content.
     * @param popID ID of the particle species.
     * @return Sparse min value for this species.*/
-   Real SpatialCell::getVelocityBlockMinValue(const int& popID) const {
+   Real SpatialCell::getVelocityBlockMinValue(const uint popID) const {
       return populations[popID].velocityBlockMinValue;
    }
 
-   void SpatialCell::merge_values_recursive(const int& popID,vmesh::GlobalID parentGID,vmesh::GlobalID blockGID,
+   void SpatialCell::merge_values_recursive(const uint popID,vmesh::GlobalID parentGID,vmesh::GlobalID blockGID,
                                             uint8_t refLevel,bool recursive,const Realf* data,
 					    std::set<vmesh::GlobalID>& blockRemovalList) {
       #ifdef DEBUG_SPATIAL_CELL
@@ -855,7 +866,7 @@ namespace spatial_cell {
       vector<vmesh::GlobalID> childrenGIDs;
       populations[popID].vmesh.getChildren(blockGID,childrenGIDs);
 
-      #warning FIXME activePopID is not correct here
+      #warning FIXME activePopID is not correct here (AMR, hence TBD)
       
       // Check if any of block's children exist:
       bool hasChildren = false;
@@ -907,7 +918,7 @@ namespace spatial_cell {
              blockRemovalList.insert(blockGID);*/
          } else {
             // Merge values to this block
-            for (int i=0; i<WID3; ++i) myData[i] += data[i];
+            for (uint i=0; i<WID3; ++i) myData[i] += data[i];
          }
          return;
       }
@@ -917,7 +928,7 @@ namespace spatial_cell {
       for (int k_oct=0; k_oct<2; ++k_oct) for (int j_oct=0; j_oct<2; ++j_oct) for (int i_oct=0; i_oct<2; ++i_oct) {
          // Copy data belonging to the octant to a temporary array:
          Realf array[WID3];
-         for (int k=0; k<WID; ++k) for (int j=0; j<WID; ++j) for (int i=0; i<WID; ++i) {
+         for (uint k=0; k<WID; ++k) for (uint j=0; j<WID; ++j) for (uint i=0; i<WID; ++i) {
             array[vblock::index(i,j,k)] =   data[vblock::index(i_oct*2+i/2,j_oct*2+j/2,k_oct*2+k/2)];
          }
          
@@ -930,7 +941,7 @@ namespace spatial_cell {
       blockRemovalList.insert(blockGID);
    }
 
-   void SpatialCell::merge_values(const int& popID) {
+   void SpatialCell::merge_values(const uint popID) {
       #ifdef DEBUG_SPATIAL_CELL
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
@@ -941,7 +952,7 @@ namespace spatial_cell {
       
       const uint8_t maxRefLevel = populations[popID].vmesh.getMaxAllowedRefinementLevel();
 
-      for (int i=0; i<WID3; ++i) null_block_data[i] = 0;
+      for (uint i=0; i<WID3; ++i) null_block_data[i] = 0;
       
       // Sort blocks according to their refinement levels:
       vector<vector<vmesh::GlobalID> > blocks(maxRefLevel+1);
@@ -977,7 +988,7 @@ namespace spatial_cell {
    
    void SpatialCell::add_values(const vmesh::GlobalID& targetGID,
                                 std::unordered_map<vmesh::GlobalID,Realf[(WID+2)*(WID+2)*(WID+2)]>& sourceData,
-                                const int& popID) {
+                                const uint popID) {
       #ifdef DEBUG_SPATIAL_CELL
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
@@ -1003,7 +1014,7 @@ namespace spatial_cell {
       it = sourceData.find(neighborIDs[vblock::nbrIndex( 0, 0, 0)]); // This block
       if (it != sourceData.end()) {
          Realf* source = it->second;
-         for (int k=0; k<WID; ++k) for (int j=0; j<WID; ++j) for (int i=0; i<WID; ++i) {
+         for (uint k=0; k<WID; ++k) for (uint j=0; j<WID; ++j) for (uint i=0; i<WID; ++i) {
             targetData[vblock::index(i,j,k)] += source[vblock::padIndex<1>(i+1,j+1,k+1)];
          }
       }
@@ -1013,11 +1024,11 @@ namespace spatial_cell {
          it = sourceData.find(neighborIDs[vblock::nbrIndex(i_off,0,0)]);
          if (it == sourceData.end()) continue;
          
-         int i_trgt = 0;
-         int i_src  = WID+1;
+         uint i_trgt = 0;
+         uint i_src  = WID+1;
          if (i_off > 0) {i_trgt = WID-1; i_src=0;}
          Realf* source = it->second;
-         for (int k=0; k<WID; ++k) for (int j=0; j<WID; ++j) {
+         for (uint k=0; k<WID; ++k) for (uint j=0; j<WID; ++j) {
             targetData[vblock::index(i_trgt,j,k)] += source[vblock::padIndex<1>(i_src,j+1,k+1)];
          }
       }
@@ -1026,11 +1037,11 @@ namespace spatial_cell {
          it = sourceData.find(neighborIDs[vblock::nbrIndex(0,j_off,0)]);
          if (it == sourceData.end()) continue;
 
-         int j_trgt = 0;
-         int j_src  = WID+1;
+         uint j_trgt = 0;
+         uint j_src  = WID+1;
          if (j_off > 0) {j_trgt = WID-1; j_src=0;}
          Realf* source = it->second;
-         for (int k=0; k<WID; ++k) for (int i=0; i<WID; ++i) {
+         for (uint k=0; k<WID; ++k) for (uint i=0; i<WID; ++i) {
             targetData[vblock::index(i,j_trgt,k)] += source[vblock::padIndex<1>(i+1,j_src,k+1)];
          }
       }
@@ -1039,11 +1050,11 @@ namespace spatial_cell {
          it = sourceData.find(neighborIDs[vblock::nbrIndex(0,0,k_off)]);
          if (it == sourceData.end()) continue;
          
-         int k_trgt = 0;
-         int k_src  = WID+1;
+         uint k_trgt = 0;
+         uint k_src  = WID+1;
          if (k_off > 0) {k_trgt = WID-1; k_src=0;}
          Realf* source = it->second;
-         for (int j=0; j<WID; ++j) for (int i=0; i<WID; ++i) {
+         for (uint j=0; j<WID; ++j) for (uint i=0; i<WID; ++i) {
             targetData[vblock::index(i,j,k_trgt)] += source[vblock::padIndex<1>(i+1,j+1,k_src)];
          }
       }
@@ -1054,11 +1065,11 @@ namespace spatial_cell {
          if (it == sourceData.end()) continue;
          Realf* source = it->second;
          
-         const int i_trgt = max(i_off,0) * (WID-1);
-         const int j_trgt = max(j_off,0) * (WID-1);
-         const int i_src  = max(-i_off,0) * (WID+1);
-         const int j_src  = max(-j_off,0) * (WID+1);
-         for (int k=0; k<WID; ++k) {
+         const uint i_trgt = max(i_off,0) * (WID-1);
+         const uint j_trgt = max(j_off,0) * (WID-1);
+         const uint i_src  = max(-i_off,0) * (WID+1);
+         const uint j_src  = max(-j_off,0) * (WID+1);
+         for (uint k=0; k<WID; ++k) {
             targetData[vblock::index(i_trgt,j_trgt,k)] += source[vblock::padIndex<1>(i_src,j_src,k+1)];
          }
       }
@@ -1068,11 +1079,11 @@ namespace spatial_cell {
          if (it == sourceData.end()) continue;
          Realf* source = it->second;
          
-         const int i_trgt = max(i_off,0) * (WID-1);
-         const int k_trgt = max(k_off,0) * (WID-1);
-         const int i_src  = max(-i_off,0) * (WID+1);
-         const int k_src  = max(-k_off,0) * (WID+1);
-         for (int j=0; j<WID; ++j) {
+         const uint i_trgt = max(i_off,0) * (WID-1);
+         const uint k_trgt = max(k_off,0) * (WID-1);
+         const uint i_src  = max(-i_off,0) * (WID+1);
+         const uint k_src  = max(-k_off,0) * (WID+1);
+         for (uint j=0; j<WID; ++j) {
             targetData[vblock::index(i_trgt,j,k_trgt)] += source[vblock::padIndex<1>(i_src,j+1,k_src)];
          }
       }
@@ -1082,11 +1093,11 @@ namespace spatial_cell {
          if (it == sourceData.end()) continue;
          Realf* source = it->second;
          
-         const int j_trgt = max(j_off,0) * (WID-1);
-         const int k_trgt = max(k_off,0) * (WID-1);
-         const int j_src  = max(-j_off,0) * (WID+1);
-         const int k_src  = max(-k_off,0) * (WID+1);
-         for (int i=0; i<WID; ++i) {
+         const uint j_trgt = max(j_off,0) * (WID-1);
+         const uint k_trgt = max(k_off,0) * (WID-1);
+         const uint j_src  = max(-j_off,0) * (WID+1);
+         const uint k_src  = max(-k_off,0) * (WID+1);
+         for (uint i=0; i<WID; ++i) {
             targetData[vblock::index(i,j_trgt,k_trgt)] += source[vblock::padIndex<1>(i+1,j_src,k_src)];
          }
       }
@@ -1130,11 +1141,11 @@ namespace spatial_cell {
       it = sourceData.find(parentGID);
       if (it != sourceData.end()) {
          Realf* source = it->second;
-         for (int k=0; k<WID; ++k) for (int j=0; j<WID; ++j) for (int i=0; i<WID; ++i) {
+         for (uint k=0; k<WID; ++k) for (uint j=0; j<WID; ++j) for (uint i=0; i<WID; ++i) {
             targetData[vblock::index(i,j,k)] += source[vblock::padIndex<1>(parentIndex[0]+i/2,parentIndex[1]+j/2,parentIndex[2]+k/2)];
          }
          
-         for (int k=0; k<WID; ++k) for (int j=0; j<WID; ++j) for (int i=0; i<WID; ++i) source[vblock::padIndex<1>(parentIndex[0]+i/2,parentIndex[1]+j/2,parentIndex[2]+k/2)]=0;
+         for (uint k=0; k<WID; ++k) for (uint j=0; j<WID; ++j) for (uint i=0; i<WID; ++i) source[vblock::padIndex<1>(parentIndex[0]+i/2,parentIndex[1]+j/2,parentIndex[2]+k/2)]=0;
       }
       
       // ***** face neighbors ***** //
@@ -1144,11 +1155,11 @@ namespace spatial_cell {
          it = sourceData.find(parentGID);
          if (it == sourceData.end()) continue;
 
-         int i_trgt = max( i_off,0) * (WID-1);
-         int i_src  = max(-i_off,0) * (WID+1);
+         const uint i_trgt = max( i_off,0) * (WID-1);
+         const uint i_src  = max(-i_off,0) * (WID+1);
          
          Realf* source = it->second;
-         for (int k=0; k<WID; ++k) for (int j=0; j<WID; ++j) {
+         for (uint k=0; k<WID; ++k) for (uint j=0; j<WID; ++j) {
             targetData[vblock::index(i_trgt,j,k)] += face_mul*source[vblock::padIndex<1>(i_src,parentIndex[1]+j/2,parentIndex[2]+k/2)];
          }
       }
@@ -1159,11 +1170,11 @@ namespace spatial_cell {
          it = sourceData.find(parentGID);
          if (it == sourceData.end()) continue;
          
-         int j_trgt = max( j_off,0) * (WID-1);
-         int j_src  = max(-j_off,0) * (WID+1);
+         const uint j_trgt = max( j_off,0) * (WID-1);
+         const uint j_src  = max(-j_off,0) * (WID+1);
          
          Realf* source = it->second;
-         for (int k=0; k<WID; ++k) for (int i=0; i<WID; ++i) {
+         for (uint k=0; k<WID; ++k) for (uint i=0; i<WID; ++i) {
             targetData[vblock::index(i,j_trgt,k)] += face_mul*source[vblock::padIndex<1>(parentIndex[0]+i/2,j_src,parentIndex[2]+k/2)];
          }
       }
@@ -1174,11 +1185,11 @@ namespace spatial_cell {
          it = sourceData.find(parentGID);
          if (it == sourceData.end()) continue;
          
-         int k_trgt = max( k_off,0) * (WID-1);
-         int k_src  = max(-k_off,0) * (WID+1);
+         const uint k_trgt = max( k_off,0) * (WID-1);
+         const uint k_src  = max(-k_off,0) * (WID+1);
          
          Realf* source = it->second;
-         for (int j=0; j<WID; ++j) for (int i=0; i<WID; ++i) {
+         for (uint j=0; j<WID; ++j) for (uint i=0; i<WID; ++i) {
             targetData[vblock::index(i,j,k_trgt)] += face_mul*source[vblock::padIndex<1>(parentIndex[0]+i/2,parentIndex[1]+j/2,k_src)];
          }
       }
@@ -1197,11 +1208,11 @@ namespace spatial_cell {
          it = sourceData.find(parentGID);
          if (it != sourceData.end()) {
             source = it->second;
-            const int i_trgt = max(i_off,0) * (WID-1);
-            const int j_trgt = max(j_off,0) * (WID-1);
-            const int i_src  = max(-i_off,0) * (WID+1);
-            const int j_src  = max(-j_off,0) * (WID+1);
-            for (int k=0; k<WID; ++k) {
+            const uint i_trgt = max(i_off,0) * (WID-1);
+            const uint j_trgt = max(j_off,0) * (WID-1);
+            const uint i_src  = max(-i_off,0) * (WID+1);
+            const uint j_src  = max(-j_off,0) * (WID+1);
+            for (uint k=0; k<WID; ++k) {
                targetData[vblock::index(i_trgt,j_trgt,k)] += edge_mul*source[vblock::padIndex<1>(i_src,j_src,parentIndex[2]+k/2)];
             }
          }
@@ -1217,11 +1228,11 @@ namespace spatial_cell {
          it = sourceData.find(parentGID);
          if (it != sourceData.end()) {
             source = it->second;
-            const int i_trgt = max(i_off,0) * (WID-1);
-            const int k_trgt = max(k_off,0) * (WID-1);
-            const int i_src  = max(-i_off,0) * (WID+1);
-            const int k_src  = max(-k_off,0) * (WID+1);
-            for (int j=0; j<WID; ++j) {
+            const uint i_trgt = max(i_off,0) * (WID-1);
+            const uint k_trgt = max(k_off,0) * (WID-1);
+            const uint i_src  = max(-i_off,0) * (WID+1);
+            const uint k_src  = max(-k_off,0) * (WID+1);
+            for (uint j=0; j<WID; ++j) {
                targetData[vblock::index(i_trgt,j,k_trgt)] += edge_mul*source[vblock::padIndex<1>(i_src,parentIndex[1]+j/2,k_src)];
             }
          }
@@ -1237,11 +1248,11 @@ namespace spatial_cell {
          it = sourceData.find(parentGID);
          if (it != sourceData.end()) {
             source = it->second;
-            const int j_trgt = max(j_off,0) * (WID-1);
-            const int k_trgt = max(k_off,0) * (WID-1);
-            const int j_src  = max(-j_off,0) * (WID+1);
-            const int k_src  = max(-k_off,0) * (WID+1);
-            for (int i=0; i<WID; ++i) {
+            const uint j_trgt = max(j_off,0) * (WID-1);
+            const uint k_trgt = max(k_off,0) * (WID-1);
+            const uint j_src  = max(-j_off,0) * (WID+1);
+            const uint k_src  = max(-k_off,0) * (WID+1);
+            for (uint i=0; i<WID; ++i) {
                targetData[vblock::index(i,j_trgt,k_trgt)] += edge_mul*source[vblock::padIndex<1>(parentIndex[0]+i/2,j_src,k_src)];
             }
          }
@@ -1282,7 +1293,7 @@ namespace spatial_cell {
     * mpi_velocity_block_list, but the rest of the cell structures
     * have not been adapted to this new list. Here we re-initialize
     * the cell with empty blocks based on the new list.*/
-   void SpatialCell::prepare_to_receive_blocks(const int& popID) {
+   void SpatialCell::prepare_to_receive_blocks(const uint popID) {
       populations[popID].vmesh.setGrid();
       populations[popID].blockContainer.setSize(populations[popID].vmesh.size());
 
@@ -1299,7 +1310,7 @@ namespace spatial_cell {
       }
    }
 
-   void SpatialCell::refine_block(const vmesh::GlobalID& blockGID,std::map<vmesh::GlobalID,vmesh::LocalID>& insertedBlocks,const int& popID) {
+   void SpatialCell::refine_block(const vmesh::GlobalID& blockGID,std::map<vmesh::GlobalID,vmesh::LocalID>& insertedBlocks,const uint popID) {
       #ifdef DEBUG_SPATIAL_CELL
       if (blockGID == invalid_global_id()) {
          std::cerr << "invalid global ID, skip refinement" << std::endl;
@@ -1351,7 +1362,7 @@ namespace spatial_cell {
     * use the velocity mesh.
     * @param popID Population ID.
     * @return If true, the new species is in use.*/
-   bool SpatialCell::setCommunicatedSpecies(const int& popID) {
+   bool SpatialCell::setCommunicatedSpecies(const uint popID) {
       #ifdef DEBUG_SPATIAL_CELL
       if (popID >= getObjectWrapper().particleSpecies.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds species.size() " << getObjectWrapper().particleSpecies.size() << " in ";
@@ -1368,7 +1379,7 @@ namespace spatial_cell {
     * This function is called during Vlasov translation.
     * @param popID ID of the particle species.
     * @param value New maximum timestep.*/
-   void SpatialCell::set_max_r_dt(const int& popID,const Real& value) {
+   void SpatialCell::set_max_r_dt(const uint popID,const Real& value) {
       #ifdef DEBUG_SPATIAL_CELL
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
@@ -1384,7 +1395,7 @@ namespace spatial_cell {
     * This function is called during Vlasov acceleration.
     * @param popID ID of the particle species.
     * @param value New maximum timestep.*/
-   void SpatialCell::set_max_v_dt(const int& popID,const Real& value) {
+   void SpatialCell::set_max_v_dt(const uint popID,const Real& value) {
       #ifdef DEBUG_SPATIAL_CELL
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
@@ -1406,17 +1417,18 @@ namespace spatial_cell {
          const size_t amount 
             = 2 + populations[p].blockContainer.size() 
             * populations[p].blockContainer.getBlockAllocationFactor();
-
+         
          // Allow capacity to be a bit large than needed by number of blocks, shrink otherwise
-         if (populations[p].blockContainer.capacity() > amount * VELOCITY_BLOCK_LENGTH) 
+         if (populations[p].blockContainer.capacity() > amount ) 
             if (populations[p].blockContainer.recapacitate(amount) == false) success = false;
+
       }
       return success;
    }
 
    /** Update the two lists containing blocks with content, and blocks without content.
     * @see adjustVelocityBlocks */
-   void SpatialCell::update_velocity_block_content_lists(const int& popID) {
+   void SpatialCell::update_velocity_block_content_lists(const uint popID) {
       #ifdef DEBUG_SPATIAL_CELL
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
@@ -1455,7 +1467,7 @@ namespace spatial_cell {
     * @param maxRefLevel Maximum allowed mesh refinement level.*/
    bool SpatialCell::initialize_mesh() {
       bool success = true;
-      for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          const species::Species& spec = getObjectWrapper().particleSpecies[popID];
          if (populations[popID].vmesh.initialize(spec.velocityMesh,getObjectWrapper().velocityMeshes) == false) {
             success = false;
@@ -1467,22 +1479,25 @@ namespace spatial_cell {
    
    /** Updates minValue based on algorithm value from parameters (see parameters.cpp).
     * @param popID ID of the particle species.*/
-   void SpatialCell::updateSparseMinValue(const int& popID) {
-      if ( P::sparseDynamicAlgorithm == 1 || P::sparseDynamicAlgorithm == 2 ) {
+   void SpatialCell::updateSparseMinValue(const uint popID) {
+
+      species::Species& population = getObjectWrapper().particleSpecies[popID];
+
+      if ( population.sparseDynamicAlgorithm == 1 || population.sparseDynamicAlgorithm == 2 ) {
          // Linear algorithm for the minValue: y=kx+b
-         const Real k = (P::sparseDynamicMinValue2 - P::sparseDynamicMinValue1) / (P::sparseDynamicBulkValue2 - P::sparseDynamicBulkValue1);
-         const Real b = P::sparseDynamicMinValue1 - k * P::sparseDynamicBulkValue1;
+         const Real k = (population.sparseDynamicMinValue2 - population.sparseDynamicMinValue1) / (population.sparseDynamicBulkValue2 - population.sparseDynamicBulkValue1);
+         const Real b = population.sparseDynamicMinValue1 - k * population.sparseDynamicBulkValue1;
          Real x;
-         if ( P::sparseDynamicAlgorithm == 1 ) {
-            x = this->parameters[CellParams::RHO];
+         if ( population.sparseDynamicAlgorithm == 1 ) {
+            x = this->populations[popID].RHO;
          } else {
             x = this->get_number_of_velocity_blocks(popID);
          }
          const Real newMinValue = k*x+b;
-         if( newMinValue < P::sparseDynamicMinValue1 ) { // Compare against the min minValue
-            populations[popID].velocityBlockMinValue = P::sparseDynamicMinValue1;
-         } else if( newMinValue > P::sparseDynamicMinValue2 ) { // Compare against the max minValue
-            populations[popID].velocityBlockMinValue = P::sparseDynamicMinValue2;
+         if( newMinValue < population.sparseDynamicMinValue1 ) { // Compare against the min minValue
+            populations[popID].velocityBlockMinValue = population.sparseDynamicMinValue1;
+         } else if( newMinValue > population.sparseDynamicMinValue2 ) { // Compare against the max minValue
+            populations[popID].velocityBlockMinValue = population.sparseDynamicMinValue2;
          } else {
             populations[popID].velocityBlockMinValue = newMinValue;
          }

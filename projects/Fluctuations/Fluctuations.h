@@ -3,7 +3,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,6 +29,17 @@
 #include "../projectTriAxisSearch.h"
 
 namespace projects {
+
+   struct FluctuationsSpeciesParameters {
+      Real DENSITY;
+      Real TEMPERATURE;
+      Real densityPertRelAmp;
+      Real velocityPertAbsAmp;
+      Real maxwCutoff;
+      uint nSpaceSamples;
+      uint nVelocitySamples;
+   };
+
    class Fluctuations: public TriAxisSearch {
    public:
       Fluctuations();
@@ -41,32 +52,27 @@ namespace projects {
       virtual std::vector<std::array<Real, 3> > getV0(
          creal x,
          creal y,
-         creal z
+         creal z,
+         const uint popID
       ) const;
    protected:
-      Real getDistribValue(creal& vx, creal& vy, creal& vz) const;
+      Real getDistribValue(creal& vx, creal& vy, creal& vz, const uint popID) const;
       virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
       virtual Real calcPhaseSpaceDensity(
          creal& x, creal& y, creal& z,
          creal& dx, creal& dy, creal& dz,
          creal& vx, creal& vy, creal& vz,
-         creal& dvx, creal& dvy, creal& dvz,const int& popID
+         creal& dvx, creal& dvy, creal& dvz,const uint popID
       ) const;
       
       Real BX0;
       Real BY0;
       Real BZ0;
-      Real DENSITY;
-      Real TEMPERATURE;
       Real magXPertAbsAmp;
       Real magYPertAbsAmp;
       Real magZPertAbsAmp;
-      Real densityPertRelAmp;
-      Real velocityPertAbsAmp;
-      Real maxwCutoff;
       uint seed;
-      uint nSpaceSamples;
-      uint nVelocitySamples;
+      std::vector<FluctuationsSpeciesParameters> speciesParams;
 
       static Real rndRho, rndVel[3];
       #pragma omp threadprivate(rndRho,rndVel)

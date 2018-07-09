@@ -3,7 +3,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,6 +28,7 @@
 #include "../../readparameters.h"
 #include "../../backgroundfield/backgroundfield.h"
 #include "../../backgroundfield/constantfield.hpp"
+#include "../../object_wrapper.h"
 
 #include "Flowthrough.h"
 
@@ -56,17 +57,22 @@ namespace projects {
    void Flowthrough::addParameters(){
       typedef Readparameters RP;
       RP::add("Flowthrough.emptyBox","Is the simulation domain empty initially?",false);
-      RP::add("Flowthrough.rho", "Number density (m^-3)", 0.0);
-      RP::add("Flowthrough.T", "Temperature (K)", 0.0);
+      RP::add("Flowthrough.densityModel","Plasma density model, 'Maxwellian' or 'SheetMaxwellian'",string("Maxwellian"));
       RP::add("Flowthrough.Bx", "Magnetic field x component (T)", 0.0);
       RP::add("Flowthrough.By", "Magnetic field y component (T)", 0.0);
       RP::add("Flowthrough.Bz", "Magnetic field z component (T)", 0.0);
-      RP::add("Flowthrough.VX0", "Initial bulk velocity in x-direction", 0.0);
-      RP::add("Flowthrough.VY0", "Initial bulk velocity in y-direction", 0.0);
-      RP::add("Flowthrough.VZ0", "Initial bulk velocity in z-direction", 0.0);
-      RP::add("Flowthrough.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
-      RP::add("Flowthrough.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
-      RP::add("Flowthrough.densityModel","Plasma density model, 'Maxwellian' or 'SheetMaxwellian'",string("Maxwellian"));
+
+      // Per-population parameters
+      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+         RP::add(pop + "_Flowthrough.rho", "Number density (m^-3)", 0.0);
+         RP::add(pop + "_Flowthrough.T", "Temperature (K)", 0.0);
+         RP::add(pop + "_Flowthrough.VX0", "Initial bulk velocity in x-direction", 0.0);
+         RP::add(pop + "_Flowthrough.VY0", "Initial bulk velocity in y-direction", 0.0);
+         RP::add(pop + "_Flowthrough.VZ0", "Initial bulk velocity in z-direction", 0.0);
+         RP::add(pop + "_Flowthrough.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
+         RP::add(pop + "_Flowthrough.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
+      }
    }
    
    void Flowthrough::getParameters(){
@@ -74,15 +80,8 @@ namespace projects {
       int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
       typedef Readparameters RP;
+
       if (!RP::get("Flowthrough.emptyBox",emptyBox)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!RP::get("Flowthrough.rho", this->rho)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!RP::get("Flowthrough.T", this->T)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
@@ -98,26 +97,6 @@ namespace projects {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
-      if(!RP::get("Flowthrough.VX0", this->V0[0])) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!RP::get("Flowthrough.VY0", this->V0[1])) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!RP::get("Flowthrough.VZ0", this->V0[2])) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!RP::get("Flowthrough.nSpaceSamples", this->nSpaceSamples)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!RP::get("Flowthrough.nVelocitySamples", this->nVelocitySamples)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
       string densityModelString;
       if (!RP::get("Flowthrough.densityModel",densityModelString)) {
          if (myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
@@ -129,24 +108,65 @@ namespace projects {
          if (myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: Unknown option value!" << endl;
          exit(1);
       }
+
+      // Per-population parameters
+      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+         FlowthroughSpeciesParameters sP;
+
+         if(!RP::get(pop + "_Flowthrough.rho", sP.rho)) {
+            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
+            exit(1);
+         }
+         if(!RP::get(pop + "_Flowthrough.T", sP.T)) {
+            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
+            exit(1);
+         }
+         if(!RP::get(pop + "_Flowthrough.VX0", sP.V0[0])) {
+            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
+            exit(1);
+         }
+         if(!RP::get(pop + "_Flowthrough.VY0", sP.V0[1])) {
+            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
+            exit(1);
+         }
+         if(!RP::get(pop + "_Flowthrough.VZ0", sP.V0[2])) {
+            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
+            exit(1);
+         }
+         if(!RP::get(pop + "_Flowthrough.nSpaceSamples", sP.nSpaceSamples)) {
+            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
+            exit(1);
+         }
+         if(!RP::get(pop + "_Flowthrough.nVelocitySamples", sP.nVelocitySamples)) {
+            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
+            exit(1);
+         }
+
+         speciesParams.push_back(sP);
+      }
    }
 
-   Real Flowthrough::getDistribValue(creal& x,creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) const {
+   Real Flowthrough::getDistribValue(creal& x,creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const {
+
+      Real mass = getObjectWrapper().particleSpecies[popID].mass;
+      const FlowthroughSpeciesParameters& sP = speciesParams[popID];
+
       Real rvalue = 0;
       switch (densityModel) {
        case Maxwellian:
-         rvalue = rho * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B * this->T), 1.5)
-           * exp(- physicalconstants::MASS_PROTON * (  (vx-this->V0[0])*(vx-this->V0[0])
-                                                       + (vy-this->V0[1])*(vy-this->V0[1])
-                                                       + (vz-this->V0[2])*(vz-this->V0[2])
-                                                    ) / (2.0 * physicalconstants::K_B * this->T));
+         rvalue = sP.rho * pow(mass / (2.0 * M_PI * physicalconstants::K_B * sP.T), 1.5)
+           * exp(- mass * (  (vx-sP.V0[0])*(vx-sP.V0[0])
+                           + (vy-sP.V0[1])*(vy-sP.V0[1])
+                           + (vz-sP.V0[2])*(vz-sP.V0[2])
+                          ) / (2.0 * physicalconstants::K_B * sP.T));
          break;
        case SheetMaxwellian:
          rvalue = sqrt(x*x + y*y + z*z);
          if (rvalue <= +3e7) {
-            rvalue = 4*rho * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B * this->T), 1.5)
-              * exp(- physicalconstants::MASS_PROTON * ((  vx-this->V0[0])*(vx-this->V0[0]) + (vy-this->V0[1])*(vy-this->V0[1])
-                                                        + (vz-this->V0[2])*(vz-this->V0[2])) / (2.0 * physicalconstants::K_B * this->T));
+            rvalue = 4*sP.rho * pow(mass / (2.0 * M_PI * physicalconstants::K_B * sP.T), 1.5)
+              * exp(- mass * ((  vx-sP.V0[0])*(vx-sP.V0[0]) + (vy-sP.V0[1])*(vy-sP.V0[1])
+                                + (vz-sP.V0[2])*(vz-sP.V0[2])) / (2.0 * physicalconstants::K_B * sP.T));
          } else {
             rvalue = 0;
          }
@@ -156,25 +176,28 @@ namespace projects {
       return rvalue;
    }
 
-   Real Flowthrough::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const int& popID) const {
+   Real Flowthrough::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
+
+      const FlowthroughSpeciesParameters& sP = speciesParams[popID];
+
       if (emptyBox == true) return 0.0;
-      if((this->nSpaceSamples > 1) && (this->nVelocitySamples > 1)) {
-         creal d_x = dx / (nSpaceSamples-1);
-         creal d_y = dy / (nSpaceSamples-1);
-         creal d_z = dz / (nSpaceSamples-1);
-         creal d_vx = dvx / (nVelocitySamples-1);
-         creal d_vy = dvy / (nVelocitySamples-1);
-         creal d_vz = dvz / (nVelocitySamples-1);
+      if((sP.nSpaceSamples > 1) && (sP.nVelocitySamples > 1)) {
+         creal d_x = dx / (sP.nSpaceSamples-1);
+         creal d_y = dy / (sP.nSpaceSamples-1);
+         creal d_z = dz / (sP.nSpaceSamples-1);
+         creal d_vx = dvx / (sP.nVelocitySamples-1);
+         creal d_vy = dvy / (sP.nVelocitySamples-1);
+         creal d_vz = dvz / (sP.nVelocitySamples-1);
 
          Real avg = 0.0;
-         for (uint i=0; i<nSpaceSamples; ++i) for (uint j=0; j<nSpaceSamples; ++j) for (uint k=0; k<nSpaceSamples; ++k) {
-            for (uint vi=0; vi<nVelocitySamples; ++vi) for (uint vj=0; vj<nVelocitySamples; ++vj) for (uint vk=0; vk<nVelocitySamples; ++vk) {
-               avg += getDistribValue(x+i*d_x,y+j*d_y,z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz);
+         for (uint i=0; i<sP.nSpaceSamples; ++i) for (uint j=0; j<sP.nSpaceSamples; ++j) for (uint k=0; k<sP.nSpaceSamples; ++k) {
+            for (uint vi=0; vi<sP.nVelocitySamples; ++vi) for (uint vj=0; vj<sP.nVelocitySamples; ++vj) for (uint vk=0; vk<sP.nVelocitySamples; ++vk) {
+               avg += getDistribValue(x+i*d_x,y+j*d_y,z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz, popID);
             }
          }
-         return avg / (nSpaceSamples*nSpaceSamples*nSpaceSamples*nVelocitySamples*nVelocitySamples*nVelocitySamples);
+         return avg / (sP.nSpaceSamples*sP.nSpaceSamples*sP.nSpaceSamples*sP.nVelocitySamples*sP.nVelocitySamples*sP.nVelocitySamples);
       } else {
-         return getDistribValue(x+0.5*dx,y+0.5*dy,z+0.5*dz,vx+0.5*dvx,vy+0.5*dvy,vz+0.5*dvz,dvx,dvy,dvz);
+         return getDistribValue(x+0.5*dx,y+0.5*dy,z+0.5*dz,vx+0.5*dvx,vy+0.5*dvy,vz+0.5*dvz,dvx,dvy,dvz,popID);
          
       }
    }
@@ -195,10 +218,12 @@ namespace projects {
    std::vector<std::array<Real, 3> > Flowthrough::getV0(
       creal x,
       creal y,
-      creal z
+      creal z,
+      const uint popID
    ) const {
+      const FlowthroughSpeciesParameters& sP = speciesParams[popID];
       vector<std::array<Real, 3>> centerPoints;
-      std::array<Real, 3> point {{this->V0[0], this->V0[1], this->V0[2]}};
+      std::array<Real, 3> point {{sP.V0[0], sP.V0[1], sP.V0[2]}};
       centerPoints.push_back(point);
       return centerPoints;
    }

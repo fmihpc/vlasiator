@@ -3,7 +3,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -268,35 +268,6 @@ bool readNBlocks(vlsv::ParallelReader& file,const std::string& meshName,
    return success;
 }
 
-//Outputs the velocity block indices of some given block into indices
-//Input:
-//[0] cellStruct -- some cell structure that has been constructed properly
-//[1] block -- some velocity block id
-//Output:
-//[0] indices -- the array where to store the indices
-
-/*! Outputs given block's velocity min coordinates (the corner of the block) in blockCoordinates
- \param block The block's id
- \param blockCoordinates An empty array where to store the block coordinates
- \sa readBlockData
- */
-void getVelocityBlockCoordinates(const vmesh::GlobalID& block, std::array<Real, 3>& blockCoordinates ) {
-#warning DEPRECATED
-   cerr << "restart disabled" << endl;
-   exit(1);
-   /*
-   //Get indices:
-   std::array<vmesh::LocalID, 3> blockIndices;
-   blockIndices[0] = block % P::vxblocks_ini;
-   blockIndices[1] = (block / P::vxblocks_ini) % P::vyblocks_ini;
-   blockIndices[2] = block / (P::vxblocks_ini * P::vyblocks_ini);
-   //Store the coordinates:
-   blockCoordinates[0] = P::vxmin + ((P::vxmax - P::vxmin) / P::vxblocks_ini) * blockIndices[0];
-   blockCoordinates[1] = P::vymin + ((P::vymax - P::vymin) / P::vyblocks_ini) * blockIndices[1];
-   blockCoordinates[2] = P::vzmin + ((P::vzmax - P::vzmin) / P::vzblocks_ini) * blockIndices[2];
-   return;*/
-}
-
 /** Read velocity block mesh data and distribution function data belonging to this process 
  * for the given particle species. This function must be called simultaneously by all processes.
  * @param file VLSV reader with input file open.
@@ -321,7 +292,8 @@ bool _readBlockData(
    const uint64_t localBlockStartOffset,
    const uint64_t localBlocks,
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   const int& popID
+   std::function<vmesh::GlobalID(vmesh::GlobalID)> blockIDremapper,
+   const uint popID
 ) {   
    uint64_t arraySize;
    uint64_t avgVectorSize;
@@ -388,6 +360,9 @@ bool _readBlockData(
       //copy blocks in this cell to vector blockIdsInCell, size of read in data has been checked earlier
       blockIdsInCell.reserve(nBlocksInCell);
       blockIdsInCell.assign(blockIdBuffer + blockBufferOffset, blockIdBuffer + blockBufferOffset + nBlocksInCell);
+      for(auto& id : blockIdsInCell) {
+         id = blockIDremapper(id);
+      }
       mpiGrid[cell]->add_velocity_blocks(blockIdsInCell,popID); //allocate space for all blocks and create them
       //copy avgs data, here a conversion may happen between float and double
       Realf *cellBlockData=mpiGrid[cell]->get_data(popID);
@@ -431,15 +406,137 @@ bool readBlockData(
    uint64_t byteSize;
    uint64_t* offsetArray = new uint64_t[N_processes];
 
-   for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+   for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       const string& popName = getObjectWrapper().particleSpecies[popID].name;
 
+      // Create a cellID remapping lambda that can renumber our velocity space, should it's size have changed.
+      // By default, this is a no-op that keeps the blockIDs untouched.
+      std::function<vmesh::GlobalID(vmesh::GlobalID)> blockIDremapper = [](vmesh::GlobalID oldID) -> vmesh::GlobalID {return oldID;};
+
+      // Check that velocity space extents and DV matches the grids we have created
       list<pair<string,string> > attribs;
-      attribs.push_back(make_pair("mesh",meshName));
-      attribs.push_back(make_pair("name",popName));      
+      attribs.push_back(make_pair("mesh",popName));
+      std::array<unsigned int, 6> fileMeshBBox;
+      unsigned int* bufferpointer = &fileMeshBBox[0];
+      if (file.read("MESH_BBOX",attribs,0,6,bufferpointer,false) == false) {
+         logFile << "(RESTART) ERROR: Failed to read MESH_BBOX at " << __FILE__ << ":" << __LINE__ << endl << write;
+         success = false;
+      }
+
+      const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
+      const vmesh::MeshParameters& ourMeshParams = getObjectWrapper().velocityMeshes[meshID];
+      if(fileMeshBBox[0] != ourMeshParams.gridLength[0] ||
+            fileMeshBBox[1] != ourMeshParams.gridLength[1] ||
+            fileMeshBBox[2] != ourMeshParams.gridLength[2]) {
+
+         logFile << "(RESTART) INFO: velocity mesh sizes don't match:" << endl
+                 << "    restart file has " << fileMeshBBox[0] << " x " << fileMeshBBox[1] << " x " << fileMeshBBox[2] << "," << endl
+                 << "    config specifies " << ourMeshParams.gridLength[0] << " x " <<  ourMeshParams.gridLength[1] << " x " <<  ourMeshParams.gridLength[2] << endl << write;
+
+         if(ourMeshParams.gridLength[0] < fileMeshBBox[0] ||
+               ourMeshParams.gridLength[1] < fileMeshBBox[1] ||
+               ourMeshParams.gridLength[2] < fileMeshBBox[2]) {
+            logFile << "(RESTART) ERROR: trying to shrink velocity space." << endl << write;
+            abort();
+         }
+
+         // If we are mismatched, we have to iterate through the velocity coords to see if we have a
+         // chance at renumbering.
+         std::vector<Real> fileVelCoordsX(fileMeshBBox[0]*fileMeshBBox[3]+1);
+         std::vector<Real> fileVelCoordsY(fileMeshBBox[1]*fileMeshBBox[4]+1);
+         std::vector<Real> fileVelCoordsZ(fileMeshBBox[2]*fileMeshBBox[5]+1);
+
+         Real* tempPointer = fileVelCoordsX.data();
+         if (file.read("MESH_NODE_CRDS_X",attribs,0,fileMeshBBox[0]*fileMeshBBox[3]+1,tempPointer,false) == false) {
+            logFile << "(RESTART) ERROR: Failed to read MESH_NODE_CRDS_X at " << __FILE__ << ":" << __LINE__ << endl << write;
+            success = false;
+         }
+         tempPointer = fileVelCoordsY.data();
+         if (file.read("MESH_NODE_CRDS_Y",attribs,0,fileMeshBBox[1]*fileMeshBBox[4]+1,tempPointer,false) == false) {
+            logFile << "(RESTART) ERROR: Failed to read MESH_NODE_CRDS_X at " << __FILE__ << ":" << __LINE__ << endl << write;
+            success = false;
+         }
+         tempPointer = fileVelCoordsZ.data();
+         if (file.read("MESH_NODE_CRDS_Z",attribs,0,fileMeshBBox[2]*fileMeshBBox[5]+1,tempPointer,false) == false) {
+            logFile << "(RESTART) ERROR: Failed to read MESH_NODE_CRDS_X at " << __FILE__ << ":" << __LINE__ << endl << write;
+            success = false;
+         }
+
+         const Real dVx = getObjectWrapper().velocityMeshes[meshID].cellSize[0];
+         for(const auto& c : fileVelCoordsX) {
+            Real cellindex = (c - getObjectWrapper().velocityMeshes[meshID].meshMinLimits[0]) / dVx;
+            if(fabs(nearbyint(cellindex) - cellindex) > 1./10000.) {
+               logFile << "(RESTART) ERROR: Can't resize velocity space as cell coordinates don't match." << endl
+                  << "          (X coordinate " << c << " = " << cellindex <<" * " << dVx << " + " << getObjectWrapper().velocityMeshes[meshID].meshMinLimits[0] << endl
+                  << "           coordinate  = cellindex *   dV  +  meshMinLimits)" << endl << write;
+               abort();
+            }
+         }
+
+         const Real dVy = getObjectWrapper().velocityMeshes[meshID].cellSize[1];
+         for(const auto& c : fileVelCoordsY) {
+            Real cellindex = (c - getObjectWrapper().velocityMeshes[meshID].meshMinLimits[1]) / dVy;
+            if(fabs(nearbyint(cellindex) - cellindex) > 1./10000.) {
+               logFile << "(RESTART) ERROR: Can't resize velocity space as cell coordinates don't match." << endl
+                  << "           (Y coordinate " << c << " = " << cellindex <<" * " << dVy << " + " << getObjectWrapper().velocityMeshes[meshID].meshMinLimits[1] << endl
+                  << "           coordinate  = cellindex *   dV  +  meshMinLimits)" << endl << write;
+               abort();
+            }
+         }
+
+         const Real dVz = getObjectWrapper().velocityMeshes[meshID].cellSize[2];
+         for(const auto& c : fileVelCoordsY) {
+            Real cellindex = (c - getObjectWrapper().velocityMeshes[meshID].meshMinLimits[2]) / dVz;
+            if(fabs(nearbyint(cellindex) - cellindex) > 1./10000.) {
+               logFile << "(RESTART) ERROR: Can't resize velocity space as cell coordinates don't match." << endl
+                  << "           (Z coordinate " << c << " = " << cellindex <<" * " << dVz << " + " << getObjectWrapper().velocityMeshes[meshID].meshMinLimits[2] << endl
+                  << "           coordinate  = cellindex *   dV  +  meshMinLimits)" << endl << write;
+               abort();
+            }
+         }
+
+         // If we haven't aborted above, we can apparently renumber our
+         // cellIDs. Build an approprita blockIDremapper lambda for this purpose.
+         std::array<int, 3> velGridOffset;
+         velGridOffset[0] = (fileVelCoordsX[0] - getObjectWrapper().velocityMeshes[meshID].meshMinLimits[0]) / dVx;
+         velGridOffset[1] = (fileVelCoordsY[0] - getObjectWrapper().velocityMeshes[meshID].meshMinLimits[1]) / dVy;
+         velGridOffset[2] = (fileVelCoordsZ[0] - getObjectWrapper().velocityMeshes[meshID].meshMinLimits[2]) / dVz;
+
+         if((velGridOffset[0] % ourMeshParams.blockLength[0] != 0) ||
+               (velGridOffset[1] % ourMeshParams.blockLength[1] != 0) ||
+               (velGridOffset[2] % ourMeshParams.blockLength[2] != 0)) {
+            logFile << "(RESTART) ERROR: resizing velocity space on restart must end up with the old velocity space" << endl
+                    << "                 at a block boundary of the new space!" << endl
+                    << "                 (It now starts at cell [" << velGridOffset[0] << ", " << velGridOffset[1] << "," << velGridOffset[2] << "])" << endl << write;
+            abort();
+         }
+
+         velGridOffset[0] /= ourMeshParams.blockLength[0];
+         velGridOffset[1] /= ourMeshParams.blockLength[1];
+         velGridOffset[2] /= ourMeshParams.blockLength[2];
+
+         blockIDremapper = [fileMeshBBox,velGridOffset,ourMeshParams](vmesh::GlobalID oldID) -> vmesh::GlobalID {
+            unsigned int x,y,z;
+            x = oldID % fileMeshBBox[0];
+            y = (oldID / fileMeshBBox[0]) % fileMeshBBox[1];
+            z = oldID / (fileMeshBBox[0] * fileMeshBBox[1]);
+
+            x += velGridOffset[0];
+            y += velGridOffset[1];
+            z += velGridOffset[2];
+
+            //logFile << " Remapping " << oldID << "(" << x << "," << y << "," << z << ") to " << x + y * ourMeshParams.gridLength[0] + z* ourMeshParams.gridLength[0] * ourMeshParams.gridLength[1] << endl << write;
+            return x + y * ourMeshParams.gridLength[0] + z* ourMeshParams.gridLength[0] * ourMeshParams.gridLength[1];
+         };
+
+         logFile << "    => Resizing velocity space by renumbering GlobalIDs." << endl << endl << write;
+      }
 
       // In restart files each spatial cell has an entry in CELLSWITHBLOCKS. 
       // Each process calculates how many velocity blocks it has for this species.
+      attribs.clear();
+      attribs.push_back(make_pair("mesh",meshName));
+      attribs.push_back(make_pair("name",popName));
       vmesh::LocalID* blocksPerCell = NULL;
       
       if (file.read("BLOCKSPERCELL",attribs,localCellStartOffset,localCells,blocksPerCell,true) == false) {
@@ -459,7 +556,7 @@ bool readBlockData(
       
       // Calculate the offset from which this process starts reading block data
       uint64_t myOffset = 0;
-      for (uint64_t i=0; i<mpiGrid.get_rank(); ++i) myOffset += offsetArray[i];
+      for (int64_t i=0; i<mpiGrid.get_rank(); ++i) myOffset += offsetArray[i];
       
       if (file.getArrayInfo("BLOCKVARIABLE",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
          logFile << "(RESTART)  ERROR: Failed to read BLOCKVARIABLE INFO" << endl << write;
@@ -471,33 +568,33 @@ bool readBlockData(
          switch (byteSize) {
             case sizeof(double):
                if (_readBlockData<double>(file,meshName,fileCells,localCellStartOffset,localCells,blocksPerCell,
-                                          myOffset,blockSum,mpiGrid,popID) == false) success = false;
+                                          myOffset,blockSum,mpiGrid,blockIDremapper,popID) == false) success = false;
                break;
             case sizeof(float):
                if (_readBlockData<float>(file,meshName,fileCells,localCellStartOffset,localCells,blocksPerCell,
-                                         myOffset,blockSum,mpiGrid,popID) == false) success = false;
+                                         myOffset,blockSum,mpiGrid,blockIDremapper,popID) == false) success = false;
                break;
          }
       } else if (dataType == vlsv::datatype::type::UINT) {
          switch (byteSize) {
             case sizeof(uint32_t):
                if (_readBlockData<uint32_t>(file,meshName,fileCells,localCellStartOffset,localCells,blocksPerCell,
-                                            myOffset,blockSum,mpiGrid,popID) == false) success = false;
+                                            myOffset,blockSum,mpiGrid,blockIDremapper,popID) == false) success = false;
                break;
             case sizeof(uint64_t):
                if (_readBlockData<uint64_t>(file,meshName,fileCells,localCellStartOffset,localCells,blocksPerCell,
-                                            myOffset,blockSum,mpiGrid,popID) == false) success = false;
+                                            myOffset,blockSum,mpiGrid,blockIDremapper,popID) == false) success = false;
                break;
          }
       } else if (dataType == vlsv::datatype::type::INT) {
          switch (byteSize) {
             case sizeof(int32_t):
                if (_readBlockData<int32_t>(file,meshName,fileCells,localCellStartOffset,localCells,blocksPerCell,
-                                           myOffset,blockSum,mpiGrid,popID) == false) success = false;
+                                           myOffset,blockSum,mpiGrid,blockIDremapper,popID) == false) success = false;
                break;
             case sizeof(int64_t):
                if (_readBlockData<int64_t>(file,meshName,fileCells,localCellStartOffset,localCells,blocksPerCell,
-                                           myOffset,blockSum,mpiGrid,popID) == false) success = false;
+                                           myOffset,blockSum,mpiGrid,blockIDremapper,popID) == false) success = false;
                break;
          }
       } else {
@@ -521,7 +618,7 @@ bool readBlockData(
  \param fileCells List of all cell ids
  \param localCellStartOffset Offset in the fileCells list for this process ( calculated so that the amount of blocks is distributed somewhat evenly between processes)
  \param localCells The amount of cells to read in this process after localCellStartOffset
- \param cellParamsIndex The parameter of the cell index e.g. CellParams::RHO
+ \param cellParamsIndex The parameter of the cell index e.g. CellParams::RHOM
  \param expectedVectorSize The amount of elements in the parameter (parameter can be a scalar or a vector of size N)
  \param mpiGrid Vlasiator's grid (the parameters are saved here)
  \return Returns true if the operation is successful
@@ -580,7 +677,7 @@ static bool _readCellParamsVariable(
  \param fileCells List of all cell ids
  \param localCellStartOffset Offset in the fileCells list for this process ( calculated so that the amount of blocks is distributed somewhat evenly between processes)
  \param localCells The amount of cells to read in this process after localCellStartOffset
- \param cellParamsIndex The parameter of the cell index e.g. CellParams::RHO
+ \param cellParamsIndex The parameter of the cell index e.g. CellParams::RHOM
  \param expectedVectorSize The amount of elements in the parameter (parameter can be a scalar or a vector of size N)
  \param mpiGrid Vlasiator's grid (the parameters are saved here)
  \return Returns true if the operation is successful
@@ -642,6 +739,8 @@ bool readCellParamsVariable(
       logFile << "(RESTART)  ERROR: Failed to read data type at readCellParamsVariable" << endl << write;
       return false;
    }
+   // For compiler purposes
+   return false;
 }
 
 /*! A function for reading parameters, e.g., 'timestep'.
@@ -778,7 +877,7 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
      {
         const vector<CellID>& gridCells = getLocalCells();
         for (size_t i=0; i<gridCells.size(); i++) {
-           for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
+           for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
              mpiGrid[gridCells[i]]->clear(popID);
         }
      }
@@ -861,10 +960,10 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    phiprof::start("readCellParameters");
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"perturbed_B",CellParams::PERBX,3,mpiGrid); }
 // Backround B has to be set, there are also the derivatives that should be written/read if we wanted to only read in background field
-   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"moments",CellParams::RHO,4,mpiGrid); }
-   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"moments_dt2",CellParams::RHO_DT2,4,mpiGrid); }
-   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"moments_r",CellParams::RHO_R,4,mpiGrid); }
-   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"moments_v",CellParams::RHO_V,4,mpiGrid); }
+   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"moments",CellParams::RHOM,5,mpiGrid); }
+   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"moments_dt2",CellParams::RHOM_DT2,5,mpiGrid); }
+   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"moments_r",CellParams::RHOM_R,5,mpiGrid); }
+   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"moments_v",CellParams::RHOM_V,5,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"pressure",CellParams::P_11,3,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"pressure_dt2",CellParams::P_11_DT2,3,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"pressure_r",CellParams::P_11_R,3,mpiGrid); }
@@ -873,8 +972,6 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"max_v_dt",CellParams::MAXVDT,1,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"max_r_dt",CellParams::MAXRDT,1,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"max_fields_dt",CellParams::MAXFDT,1,mpiGrid); }
-   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"rho_loss_adjust",CellParams::RHOLOSSADJUST,1,mpiGrid); }
-   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"rho_loss_velocity_boundary",CellParams::RHOLOSSVELBOUNDARY,1,mpiGrid); }
 // Backround B has to be set, there are also the derivatives that should be written/read if we wanted to only read in background field
    phiprof::stop("readCellParameters");
 

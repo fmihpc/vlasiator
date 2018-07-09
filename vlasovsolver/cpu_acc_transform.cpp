@@ -3,7 +3,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,7 +39,7 @@ using namespace Eigen;
 */
 void updateAccelerationMaxdt(
    SpatialCell* spatial_cell,
-   const int& popID) 
+   const uint popID) 
 {
    if (Parameters::propagatePotential == true) {
       #warning Electric acceleration works for Poisson only atm
@@ -70,7 +70,7 @@ void updateAccelerationMaxdt(
 
 Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
         SpatialCell* spatial_cell,
-        const int& popID,
+        const uint popID,
         const Real& dt) {
    // total field
    const Real Bx = spatial_cell->parameters[CellParams::BGBXVOL]+spatial_cell->parameters[CellParams::PERBXVOL];
@@ -101,21 +101,19 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       unit_B(0,0) = 0; unit_B(1,0) = 0; unit_B(2,0) = 1;
    }
 
-   const Real gyro_period 
+   const Real gyro_period
      = 2 * M_PI * getObjectWrapper().particleSpecies[popID].mass
      / (getObjectWrapper().particleSpecies[popID].charge * B_mag);
 
    // scale rho for hall term, if user requests
    const Real EPSILON = 1e10 * numeric_limits<Real>::min();
-   const Real rho = spatial_cell->parameters[CellParams::RHO_V] + EPSILON;
-   const Real hallRho =  (rho <= Parameters::hallMinimumRho ) ? Parameters::hallMinimumRho : rho ;
-   
-   #warning This should be electron charge density!
-   const Real hallPrefactor = 1.0 / (physicalconstants::MU_0 * hallRho * physicalconstants::CHARGE );
+   const Real rhoq = spatial_cell->parameters[CellParams::RHOQ_V] + EPSILON;
+   const Real hallRhoq =  (rhoq <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : rhoq ;
+   const Real hallPrefactor = 1.0 / (physicalconstants::MU_0 * hallRhoq );
 
-   Eigen::Matrix<Real,3,1> bulk_velocity(spatial_cell->parameters[CellParams::RHOVX_V]/rho,
-                                         spatial_cell->parameters[CellParams::RHOVY_V]/rho,
-                                         spatial_cell->parameters[CellParams::RHOVZ_V]/rho);
+   Eigen::Matrix<Real,3,1> bulk_velocity(spatial_cell->parameters[CellParams::VX_V],
+                                         spatial_cell->parameters[CellParams::VY_V],
+                                         spatial_cell->parameters[CellParams::VZ_V]);
 
    // compute total transformation
    Transform<Real,3,Affine> total_transform(Matrix<Real, 4, 4>::Identity()); //CONTINUE
@@ -135,11 +133,10 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
 
 
    unsigned int bulk_velocity_substeps; // in this many substeps we iterate forward bulk velocity when the complete transformation is computed (0.1 deg per substep).
-   bulk_velocity_substeps = fabs(dt) / (fabs(gyro_period)*(0.1/360.0)); 
+   bulk_velocity_substeps = fabs(dt) / fabs(gyro_period*(0.1/360.0));
    if (bulk_velocity_substeps < 1) bulk_velocity_substeps=1;
 
-   // note, we assume q is positive (pretty good assumption though)
-   const Real substeps_radians = -(2.0*M_PI*dt/fabs(gyro_period))/bulk_velocity_substeps; // how many radians each substep is.
+   const Real substeps_radians = -(2.0*M_PI*dt/gyro_period)/bulk_velocity_substeps; // how many radians each substep is.
    const Real substeps_dt=dt/bulk_velocity_substeps; /*!< how many s each substep is*/
    Eigen::Matrix<Real,3,1> EgradPe(
       spatial_cell->parameters[CellParams::EXGRADPE],
@@ -155,8 +152,6 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       rotation_pivot[0]-= hallPrefactor*(dBZdy - dBYdz);
       rotation_pivot[1]-= hallPrefactor*(dBXdz - dBZdx);
       rotation_pivot[2]-= hallPrefactor*(dBYdx - dBXdy);
-
-#warning Is particle charge sign taken correctly into account here?
       
       // add to transform matrix the small rotation around  pivot
       // when added like this, and not using *= operator, the transformations
@@ -167,7 +162,7 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
 
       // Electron pressure gradient term
       if(Parameters::ohmGradPeTerm > 0) {
-         total_transform=Translation<Real,3>( (fabs(physicalconstants::CHARGE)/physicalconstants::MASS_PROTON) * EgradPe * substeps_dt) * total_transform;
+         total_transform=Translation<Real,3>( (fabs(getObjectWrapper().particleSpecies[popID].charge)/getObjectWrapper().particleSpecies[popID].mass) * EgradPe * substeps_dt) * total_transform;
       }
    }
 

@@ -3,7 +3,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,6 +27,14 @@
 #include "../project.h"
 
 namespace projects {
+
+   struct AlfvenSpeciesParameters {
+      Real rho;
+      Real T;
+      Real A_VEL;
+      uint nVelocitySamples;
+   };
+
    class Alfven: public Project {
     public:
       Alfven();
@@ -40,28 +48,27 @@ namespace projects {
       Real getDistribValue(
                            creal& x,creal& y, creal& z,
                            creal& vx, creal& vy, creal& vz,
-                           creal& dvx, creal& dvy, creal& dvz,const int& popID
-                          );
+                           creal& dvx, creal& dvy, creal& dvz,
+                           const uint popID
+                          ) const;
       virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
       virtual Real calcPhaseSpaceDensity(
                                          creal& x, creal& y, creal& z,
                                          creal& dx, creal& dy, creal& dz,
                                          creal& vx, creal& vy, creal& vz,
-                                         creal& dvx, creal& dvy, creal& dvz,const int& popID
-                                        );
+                                         creal& dvx, creal& dvy, creal& dvz,
+                                         const uint popID
+                                        ) const;
       
       Real B0;
       Real Bx_guiding;
       Real By_guiding;
       Real Bz_guiding;
-      Real DENSITY;
       Real ALPHA;
       Real WAVELENGTH;
-      Real TEMPERATURE;
-      Real A_VEL;
       Real A_MAG;
       uint nSpaceSamples;
-      uint nVelocitySamples;
+      std::vector<AlfvenSpeciesParameters> speciesParams;
    } ; // class Alfven
 } // namespace projects
 

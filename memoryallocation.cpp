@@ -3,7 +3,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -154,7 +154,7 @@ void report_process_memory_consumption(){
          MPI_Reduce(node_mem_papi, sum_mem_papi, 2, MPI_DOUBLE, MPI_SUM, 0, interComm);
          MPI_Reduce(node_mem_papi, min_mem_papi, 2, MPI_DOUBLE, MPI_MIN, 0, interComm);
          MPI_Reduce(node_mem_papi, max_mem_papi, 2, MPI_DOUBLE, MPI_MAX, 0, interComm);
-         //  logFile << "(MEM) Resident per node (avg, min, max): " << sum_mem_papi[1]/nNodes << " " << min_mem_papi[1] << " "  << max_mem_papi[1] << endl;
+         logFile << "(MEM) Resident per node (avg, min, max): " << sum_mem_papi[1]/nNodes/GiB << " " << min_mem_papi[1]/GiB << " "  << max_mem_papi[1]/GiB << endl;
          logFile << "(MEM) High water mark per node (GiB) avg: " << sum_mem_papi[0]/nNodes/GiB << " min: " << min_mem_papi[0]/GiB << " max: "  << max_mem_papi[0]/GiB <<
             " sum (TiB): " << sum_mem_papi[0]/TiB << " on "<< nNodes << " nodes" << endl;
          

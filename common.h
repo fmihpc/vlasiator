@@ -3,7 +3,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -64,7 +64,7 @@ void bailout(
 /* Maximum number of blocks in each dimension in velocity space. The
    size of velocity space defined in cfg can at maximum be this large
 */
-#define MAX_BLOCKS_PER_DIM 200
+#define MAX_BLOCKS_PER_DIM 256
 
 
 /*! A namespace for storing indices into an array which contains 
@@ -135,50 +135,28 @@ namespace CellParams {
       PERBX,  /*!< Perturbed Magnetic field x-component, averaged over cell x-face. Propagated by field solver.*/
       PERBY,  /*!< Perturbed Magnetic field y-component, averaged over cell y-face. Propagated by field solver.*/
       PERBZ,  /*!< Perturbed Magnetic field z-component, averaged over cell z-face. Propagated by field solver.*/
-      RHO,    /*!< Number density. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
-      RHOVX,  /*!< x-component of number density times Vx. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
-      RHOVY,  /*!< y-component of number density times Vy. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
-      RHOVZ,  /*!< z-component of number density times Vz. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
+      RHOM,    /*!< Total mass density. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
+      VX,  /*!< Vx. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
+      VY,  /*!< Vy. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
+      VZ,  /*!< Vz. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
+      RHOQ,    /*!< Total charge density. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       EX_DT2,    /*!< Intermediate step value for RK2 time stepping in field solver.*/
       EY_DT2,    /*!< Intermediate step value for RK2 time stepping in field solver.*/
       EZ_DT2,    /*!< Intermediate step value for RK2 time stepping in field solver.*/
       PERBX_DT2, /*!< Intermediate step value for PERBX for RK2 time stepping in field solver.*/
       PERBY_DT2, /*!< Intermediate step value for PERBY for RK2 time stepping in field solver.*/
       PERBZ_DT2, /*!< Intermediate step value for PERBZ for RK2 time stepping in field solver.*/
-      RHO_DT2,   /*!< Intermediate step value for RK2 time stepping in field solver. Computed from RHO_R and RHO_V*/
-      RHOVX_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from RHOVX_R and RHOVX_V*/
-      RHOVY_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from RHOVY_R and RHOVY_V*/
-      RHOVZ_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from RHOVZ_R and RHOVZ_V*/
+      RHOM_DT2,    /*!< Total mass density. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
+      VX_DT2,  /*!< Vx. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
+      VY_DT2,  /*!< Vy. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
+      VZ_DT2,  /*!< Vz. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
+      RHOQ_DT2,    /*!< Total charge density. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       BGBXVOL,   /*!< background magnetic field averaged over spatial cell.*/
       BGBYVOL,   /*!< background magnetic field averaged over spatial cell.*/
       BGBZVOL,   /*!< background magnetic field averaged over spatial cell.*/
       PERBXVOL,  /*!< perturbed magnetic field  PERBX averaged over spatial cell.*/
       PERBYVOL,  /*!< perturbed magnetic field  PERBY averaged over spatial cell.*/
       PERBZVOL,  /*!< perturbed magnetic field  PERBZ averaged over spatial cell.*/
-      BGBX_000_010,   /*!< Background Bx averaged along y on -x/-z edge of spatial cell (for Hall term only).*/
-      BGBX_100_110,   /*!< Background Bx averaged along y on +x/-z edge of spatial cell (for Hall term only).*/
-      BGBX_001_011,   /*!< Background Bx averaged along y on -x/+z edge of spatial cell (for Hall term only).*/
-      BGBX_101_111,   /*!< Background Bx averaged along y on +x/+z edge of spatial cell (for Hall term only).*/
-      BGBX_000_001,   /*!< Background Bx averaged along z on -x/-y edge of spatial cell (for Hall term only).*/
-      BGBX_100_101,   /*!< Background Bx averaged along z on +x/-y edge of spatial cell (for Hall term only).*/
-      BGBX_010_011,   /*!< Background Bx averaged along z on +y/-x edge of spatial cell (for Hall term only).*/
-      BGBX_110_111,   /*!< Background Bx averaged along z on +x/+y edge of spatial cell (for Hall term only).*/
-      BGBY_000_100,   /*!< Background By averaged along x on -y/-z edge of spatial cell (for Hall term only).*/
-      BGBY_010_110,   /*!< Background By averaged along x on +y/-z edge of spatial cell (for Hall term only).*/
-      BGBY_001_101,   /*!< Background By averaged along x on -y/+z edge of spatial cell (for Hall term only).*/
-      BGBY_011_111,   /*!< Background By averaged along x on +y/+z edge of spatial cell (for Hall term only).*/
-      BGBY_000_001,   /*!< Background By averaged along z on -x/-y edge of spatial cell (for Hall term only).*/
-      BGBY_100_101,   /*!< Background By averaged along z on +x/-y edge of spatial cell (for Hall term only).*/
-      BGBY_010_011,   /*!< Background By averaged along z on +y/-x edge of spatial cell (for Hall term only).*/
-      BGBY_110_111,   /*!< Background By averaged along z on +x/+y edge of spatial cell (for Hall term only).*/
-      BGBZ_000_100,   /*!< Background Bz averaged along x on -y/-z edge of spatial cell (for Hall term only).*/
-      BGBZ_010_110,   /*!< Background Bz averaged along x on +y/-z edge of spatial cell (for Hall term only).*/
-      BGBZ_001_101,   /*!< Background Bz averaged along x on -y/+z edge of spatial cell (for Hall term only).*/
-      BGBZ_011_111,   /*!< Background Bz averaged along x on +y/+z edge of spatial cell (for Hall term only).*/
-      BGBZ_000_010,   /*!< Background Bz averaged along y on -x/-z edge of spatial cell (for Hall term only).*/
-      BGBZ_100_110,   /*!< Background Bz averaged along y on +x/-z edge of spatial cell (for Hall term only).*/
-      BGBZ_001_011,   /*!< Background Bz averaged along y on -x/+z edge of spatial cell (for Hall term only).*/
-      BGBZ_101_111,   /*!< Background Bz averaged along y on +x/+z edge of spatial cell (for Hall term only).*/
       EXVOL,     /*!< Ex averaged over spatial cell.*/
       EYVOL,     /*!< Ey averaged over spatial cell.*/
       EZVOL,     /*!< Ez averaged over spatial cell.*/
@@ -197,14 +175,16 @@ namespace CellParams {
       EXGRADPE,         /*!< Electron pressure gradient term x.*/
       EYGRADPE,         /*!< Electron pressure gradient term y.*/
       EZGRADPE,         /*!< Electron pressure gradient term z.*/
-      RHO_R,     /*!< RHO after propagation in ordinary space*/
-      RHOVX_R,   /*!< RHOVX after propagation in ordinary space*/
-      RHOVY_R,   /*!< RHOVX after propagation in ordinary space*/
-      RHOVZ_R,   /*!< RHOVX after propagation in ordinary space*/
-      RHO_V,     /*!< RHO after propagation in velocity space*/
-      RHOVX_V,   /*!< RHOVX after propagation in velocity space*/
-      RHOVY_V,   /*!< RHOVX after propagation in velocity space*/
-      RHOVZ_V,   /*!< RHOVX after propagation in velocity space*/
+      RHOM_R,     /*!< RHO after propagation in ordinary space*/
+      VX_R,   /*!< VX after propagation in ordinary space*/
+      VY_R,   /*!< VY after propagation in ordinary space*/
+      VZ_R,   /*!< VZ after propagation in ordinary space*/
+      RHOQ_R,     /*!< RHO after propagation in ordinary space*/
+      RHOM_V,     /*!< RHO after propagation in velocity space*/
+      VX_V,   /*!< VX after propagation in velocity space*/
+      VY_V,   /*!< VY after propagation in velocity space*/
+      VZ_V,   /*!< VZ after propagation in velocity space*/
+      RHOQ_V,     /*!< RHO after propagation in velocity space*/
       P_11,     /*!< Pressure P_xx component, computed by Vlasov propagator. */
       P_22,     /*!< Pressure P_yy component, computed by Vlasov propagator. */
       P_33,     /*!< Pressure P_zz component, computed by Vlasov propagator. */
@@ -217,15 +197,12 @@ namespace CellParams {
       P_11_V,   /*!< P_xx component after propagation in velocity space */
       P_22_V,   /*!< P_yy component after propagation in velocity space */
       P_33_V,   /*!< P_zz component after propagation in velocity space */
-      RHOLOSSADJUST,      /*!< Counter for massloss from the destroying blocks in blockadjustment*/
-      RHOLOSSVELBOUNDARY, /*!< Counter for massloss through outflow boundaries in velocity space*/
       MAXVDT,             /*!< maximum timestep allowed in velocity space for this cell, 
                            * this is the max allowed timestep over all particle species.*/
       MAXRDT,             /*!< maximum timestep allowed in ordinary space for this cell,
                            * this is the max allowed timestep over all particle species.*/
       MAXFDT,             /*!< maximum timestep allowed in ordinary space by fieldsolver for this cell**/
       LBWEIGHTCOUNTER,    /*!< Counter for storing compute time weights needed by the load balancing**/
-      ACCSUBCYCLES,        /*!< number of subcyles for each cell*/
       ISCELLSAVINGF,      /*!< Value telling whether a cell is saving its distribution function when partial f data is written out. */
       PHI,        /*!< Electrostatic potential.*/
       PHI_TMP,    /*!< Temporary electrostatic potential.*/
@@ -234,6 +211,8 @@ namespace CellParams {
       BGEXVOL,    /*!< Background electric field averaged over spatial cell, x-component.*/
       BGEYVOL,    /*!< Background electric field averaged over spatial cell, y-component.*/
       BGEZVOL,    /*!< Background electric field averaged over spatial cell, z-component.*/
+      FSGRID_RANK, /*!< Rank of this cell in the FsGrid cartesian communicator */
+      FSGRID_BOUNDARYTYPE, /*!< Boundary type of this cell, as stored in the fsGrid */
       N_SPATIAL_CELL_PARAMS
    };
 }
@@ -247,9 +226,12 @@ namespace CellParams {
  */
 namespace fieldsolver {
    enum {
-      drhodx,    /*!< Derivative of volume-averaged number density to x-direction. */
-      drhody,    /*!< Derivative of volume-averaged number density to y-direction. */
-      drhodz,    /*!< Derivative of volume-averaged number density to z-direction. */
+      drhomdx,    /*!< Derivative of volume-averaged mass density to x-direction. */
+      drhomdy,    /*!< Derivative of volume-averaged mass density to y-direction. */
+      drhomdz,    /*!< Derivative of volume-averaged mass density to z-direction. */
+      drhoqdx,    /*!< Derivative of volume-averaged charge density to x-direction. */
+      drhoqdy,    /*!< Derivative of volume-averaged charge density to y-direction. */
+      drhoqdz,    /*!< Derivative of volume-averaged charge density to z-direction. */
       dBGBxdy,     /*!< Derivative of face-averaged Bx to y-direction. */
       dBGBxdz,     /*!< Derivative of face-averaged Bx to z-direction. */
       dBGBydx,     /*!< Derivative of face-averaged By to x-direction. */
@@ -328,6 +310,169 @@ namespace bvolderivatives {
    };
 }
 
+// FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+// FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBDt2Grid,
+// FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
+// FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EDt2Grid,
+// FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2> & EHallGrid,
+// FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2> & EGradPeGrid,
+// FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsGrid,
+// FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsDt2Grid,
+// FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
+// FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> & dMomentsGrid,
+// FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2> & BgBGrid,
+// FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volGrid,
+// FsGrid< fsgrids::technical, 2> & technicalGrid,
+
+/*! Namespace containing enums and structs for the various field solver grid instances
+ * 
+ */
+namespace fsgrids {
+   enum bfield {
+      PERBX,  /*!< Perturbed Magnetic field x-component, averaged over cell x-face. Propagated by field solver.*/
+      PERBY,  /*!< Perturbed Magnetic field y-component, averaged over cell y-face. Propagated by field solver.*/
+      PERBZ,  /*!< Perturbed Magnetic field z-component, averaged over cell z-face. Propagated by field solver.*/
+      N_BFIELD
+   };
+   
+   enum efield {
+      EX,     /*!< Total electric field x-component, averaged over cell edge. Used to propagate BX,BY,BZ.*/
+      EY,     /*!< Total electric field y-component, averaged over cell edge. Used to propagate BX,BY,BZ.*/
+      EZ,     /*!< Total electric field z-component, averaged over cell edge. Used to propagate BX,BY,BZ.*/
+      N_EFIELD
+   };
+   
+   enum ehall {
+      EXHALL_000_100,   /*!< Hall term x averaged along x on -y/-z edge of spatial cell.*/
+      EYHALL_000_010,   /*!< Hall term y averaged along y on -x/-z edge of spatial cell.*/
+      EZHALL_000_001,   /*!< Hall term z averaged along z on -x/-y edge of spatial cell.*/
+      EYHALL_100_110,   /*!< Hall term y averaged along y on +x/-z edge of spatial cell.*/
+      EZHALL_100_101,   /*!< Hall term z averaged along z on +x/-y edge of spatial cell.*/
+      EXHALL_010_110,   /*!< Hall term x averaged along x on +y/-z edge of spatial cell.*/
+      EZHALL_010_011,   /*!< Hall term z averaged along z on +y/-x edge of spatial cell.*/
+      EZHALL_110_111,   /*!< Hall term z averaged along z on +x/+y edge of spatial cell.*/
+      EXHALL_001_101,   /*!< Hall term x averaged along x on -y/+z edge of spatial cell.*/
+      EYHALL_001_011,   /*!< Hall term y averaged along y on -x/+z edge of spatial cell.*/
+      EYHALL_101_111,   /*!< Hall term y averaged along y on +x/+z edge of spatial cell.*/
+      EXHALL_011_111,   /*!< Hall term x averaged along x on +y/+z edge of spatial cell.*/
+      N_EHALL
+   };
+   
+   enum egradpe {
+      EXGRADPE,         /*!< Electron pressure gradient term x.*/
+      EYGRADPE,         /*!< Electron pressure gradient term y.*/
+      EZGRADPE,         /*!< Electron pressure gradient term z.*/
+      N_EGRADPE
+   };
+   
+   enum moments {
+      RHOM, /*!< Mass density. Calculated by Vlasov propagator, used to propagate fields.*/
+      RHOQ, /*!< Mass density. Calculated by Vlasov propagator, used to propagate fields.*/
+      VX,   /*!< Vx. Calculated by Vlasov propagator, used to propagate fields.*/
+      VY,   /*!< Vy. Calculated by Vlasov propagator, used to propagate fields.*/
+      VZ,   /*!< Vz. Calculated by Vlasov propagator, used to propagate fields.*/
+      P_11, /*!< Pressure P_xx component, computed by Vlasov propagator. */
+      P_22, /*!< Pressure P_yy component, computed by Vlasov propagator. */
+      P_33, /*!< Pressure P_zz component, computed by Vlasov propagator. */
+      N_MOMENTS
+   };
+   
+   enum dperb {
+      dPERBxdy,     /*!< Derivative of face-averaged Bx to y-direction. */
+      dPERBxdz,     /*!< Derivative of face-averaged Bx to z-direction. */
+      dPERBydx,     /*!< Derivative of face-averaged By to x-direction. */
+      dPERBydz,     /*!< Derivative of face-averaged By to z-direction. */
+      dPERBzdx,     /*!< Derivative of face-averaged Bz to x-direction. */
+      dPERBzdy,     /*!< Derivative of face-averaged Bz to y-direction. */
+      dPERBxdyy,     /*!< Second derivative of face-averaged Bx to yy-direction. */
+      dPERBxdzz,     /*!< Second derivative of face-averaged Bx to zz-direction. */
+      dPERBxdyz,     /*!< Second derivative of face-averaged Bx to yz-direction. */
+      dPERBydxx,     /*!< Second derivative of face-averaged By to xx-direction. */
+      dPERBydzz,     /*!< Second derivative of face-averaged By to zz-direction. */
+      dPERBydxz,     /*!< Second derivative of face-averaged By to xz-direction. */
+      dPERBzdxx,     /*!< Second derivative of face-averaged Bz to xx-direction. */
+      dPERBzdyy,     /*!< Second derivative of face-averaged Bz to yy-direction. */
+      dPERBzdxy,     /*!< Second derivative of face-averaged Bz to xy-direction. */
+      N_DPERB
+   };
+   
+   enum dmoments {
+      drhomdx,    /*!< Derivative of mass density to x-direction. */
+      drhomdy,    /*!< Derivative of mass density to y-direction. */
+      drhomdz,    /*!< Derivative of mass density to z-direction. */
+      drhoqdx,    /*!< Derivative of charge density to x-direction. */
+      drhoqdy,    /*!< Derivative of charge density to y-direction. */
+      drhoqdz,    /*!< Derivative of charge density to z-direction. */
+      dp11dx,        /*!< Derivative of P_11 to x direction. */
+      dp11dy,        /*!< Derivative of P_11 to x direction. */
+      dp11dz,        /*!< Derivative of P_11 to x direction. */
+      dp22dx,        /*!< Derivative of P_22 to y direction. */
+      dp22dy,        /*!< Derivative of P_22 to y direction. */
+      dp22dz,        /*!< Derivative of P_22 to y direction. */
+      dp33dx,        /*!< Derivative of P_33 to z direction. */
+      dp33dy,        /*!< Derivative of P_33 to z direction. */
+      dp33dz,        /*!< Derivative of P_33 to z direction. */
+      dVxdx,     /*!< Derivative of volume-averaged Vx to x-direction. */
+      dVxdy,     /*!< Derivative of volume-averaged Vx to y-direction. */
+      dVxdz,     /*!< Derivative of volume-averaged Vx to z-direction. */
+      dVydx,     /*!< Derivative of volume-averaged Vy to x-direction. */
+      dVydy,     /*!< Derivative of volume-averaged Vy to y-direction. */
+      dVydz,     /*!< Derivative of volume-averaged Vy to z-direction. */
+      dVzdx,     /*!< Derivative of volume-averaged Vz to x-direction. */
+      dVzdy,     /*!< Derivative of volume-averaged Vz to y-direction. */
+      dVzdz,     /*!< Derivative of volume-averaged Vz to z-direction. */
+      N_DMOMENTS
+   };
+   
+   // NOTE This contains the BGB derivatives as they do not change either
+   enum bgbfield {
+      BGBX,   /*!< Background magnetic field x-component, averaged over cell x-face.*/
+      BGBY,   /*!< Background magnetic field x-component, averaged over cell x-face.*/
+      BGBZ,   /*!< Background magnetic field x-component, averaged over cell x-face.*/
+      BGBXVOL,   /*!< background magnetic field averaged over spatial cell.*/
+      BGBYVOL,   /*!< background magnetic field averaged over spatial cell.*/
+      BGBZVOL,   /*!< background magnetic field averaged over spatial cell.*/
+      dBGBxdy,     /*!< Derivative of face-averaged Bx to y-direction. */
+      dBGBxdz,     /*!< Derivative of face-averaged Bx to z-direction. */
+      dBGBydx,     /*!< Derivative of face-averaged By to x-direction. */
+      dBGBydz,     /*!< Derivative of face-averaged By to z-direction. */
+      dBGBzdx,     /*!< Derivative of face-averaged Bz to x-direction. */
+      dBGBzdy,     /*!< Derivative of face-averaged Bz to y-direction. */
+      dBGBXVOLdy,
+      dBGBXVOLdz,
+      dBGBYVOLdx,
+      dBGBYVOLdz,
+      dBGBZVOLdx,
+      dBGBZVOLdy,
+      N_BGB
+   };
+   
+   // NOTE This contains the PERBVOL derivatives
+   enum volfields {
+      PERBXVOL,  /*!< perturbed magnetic field  PERBX averaged over spatial cell.*/
+      PERBYVOL,  /*!< perturbed magnetic field  PERBY averaged over spatial cell.*/
+      PERBZVOL,  /*!< perturbed magnetic field  PERBZ averaged over spatial cell.*/
+      EXVOL,     /*!< Ex averaged over spatial cell.*/
+      EYVOL,     /*!< Ey averaged over spatial cell.*/
+      EZVOL,     /*!< Ez averaged over spatial cell.*/
+      dPERBXVOLdy,
+      dPERBXVOLdz,
+      dPERBYVOLdx,
+      dPERBYVOLdz,
+      dPERBZVOLdx,
+      dPERBZVOLdy,
+      N_VOL
+   };
+   
+   struct technical {
+      int sysBoundaryFlag;  /*!< System boundary flags. */
+      int sysBoundaryLayer; /*!< System boundary layer index. */
+      Real maxFsDt;         /*!< maximum timestep allowed in ordinary space by fieldsolver for this cell**/
+      int fsGridRank;       /*!< Rank in the fsGrids cartesian coordinator */
+   };
+   
+}
+
 /*! The namespace sysboundarytype contains the identification index of the boundary condition types applied to a cell,
  * it is stored in SpatialCell::sysBoundaryFlag and used by the BoundaryCondition class' functions to determine what type of BC to apply to a cell.
  * At least for the workings of vlasovmover_leveque.cpp the order of the first two entries should not be changed.
@@ -352,18 +497,18 @@ RK_ORDER2_STEP1,   /*!< Two-step second order method, first step */
 RK_ORDER2_STEP2    /*!< Two-step second order method, second step */
 };
 
-const uint WID = 4;         /*!< Number of cells per coordinate in a velocity block. Only a value of 4 supported by vectorized Leveque solver */
-const uint WID2 = WID*WID;  /*!< Number of cells per 2D slab in a velocity block. */
-const uint WID3 = WID2*WID; /*!< Number of cells in a velocity block. */
+const int WID = 4;         /*!< Number of cells per coordinate in a velocity block. Only a value of 4 supported by vectorized Leveque solver */
+const int WID2 = WID*WID;  /*!< Number of cells per 2D slab in a velocity block. */
+const int WID3 = WID2*WID; /*!< Number of cells in a velocity block. */
 
 /*!
 Get the cellindex in the velocity space block
 */
-template<typename UINT> inline UINT cellIndex(const UINT& i,const UINT& j,const UINT& k) {
+template<typename INT> inline INT cellIndex(const INT& i,const INT& j,const INT& k) {
    return k*WID2 + j*WID + i;
 }
 
-const uint SIZE_VELBLOCK    = WID3; /*!< Number of cells in a velocity block. */
+const int SIZE_VELBLOCK    = WID3; /*!< Number of cells in a velocity block. */
 
 /*!
  * Name space for flags needed globally, such as the bailout flag.

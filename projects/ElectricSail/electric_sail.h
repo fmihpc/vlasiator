@@ -3,7 +3,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -49,13 +49,13 @@ namespace projects {
       virtual ~ElectricSail();
         
       static void addParameters();
-      Real getCorrectNumberDensity(spatial_cell::SpatialCell* cell,const int& popID) const;
+      Real getCorrectNumberDensity(spatial_cell::SpatialCell* cell,const uint popID) const;
       virtual void getParameters();
       virtual bool initialize();
       virtual void setCellBackgroundField(spatial_cell::SpatialCell* cell) const;
                 
    protected:
-      int popID;
+      uint popID;
       std::vector<Population> populations;
 
       bool addParticleCloud;     /**< If true, a charge-neutralising particle cloud is added around the tether.*/
@@ -79,14 +79,14 @@ namespace projects {
             creal& x, creal& y, creal& z,
             creal& dx, creal& dy, creal& dz,
             creal& vx, creal& vy, creal& vz,
-            creal& dvx, creal& dvy, creal& dvz,const int& popID) const;
+            creal& dvx, creal& dvy, creal& dvz,const uint popID) const;
       
       Real getDistribValue(creal& vx,creal& vy, creal& vz,
-                           creal& dvx, creal& dvy, creal& dvz,const int& popID) const;
+                           creal& dvx, creal& dvy, creal& dvz,const uint popID) const;
 
-      std::vector<std::array<Real,3>> getV0(creal x,creal y,creal z) const;
+      std::vector<std::array<Real,3>> getV0(creal x,creal y,creal z, const uint popID) const;
 
-      virtual bool rescalesDensity(const int& popID) const;
+      virtual bool rescalesDensity(const uint popID) const;
 
     }; // class PoissonTest
 

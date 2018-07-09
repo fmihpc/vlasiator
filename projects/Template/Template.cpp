@@ -3,7 +3,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -60,10 +60,10 @@ namespace projects {
       return Project::initialize();
    }
 
-   Real Template::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const int& popID) {
+   Real Template::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
       creal rho = 1.0;
       creal T = 1.0;
-      const std::array<Real, 3> V0 = this->getV0(x, y, z)[0];
+      const std::array<Real, 3> V0 = this->getV0(x, y, z, popID)[0];
       creal Vx0 = V0[0];
       creal Vy0 = V0[1];
       creal Vz0 = V0[2];
@@ -84,7 +84,8 @@ namespace projects {
    vector<std::array<Real, 3>> Template::getV0(
       creal x,
       creal y,
-      creal z
+      creal z,
+      const uint popID
    ) const {
       vector<std::array<Real, 3>> centerPoints;
       std::array<Real, 3> point {{0.0, 0.0, 0.0}};

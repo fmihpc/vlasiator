@@ -3,7 +3,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -97,9 +97,6 @@ bool getProjectParameters(){
 void setProjectCell(SpatialCell* cell) {
    // Set up cell parameters:
    calcCellParameters(&((*cell).parameters[0]), 0.0);
-   
-   cell->parameters[CellParams::RHOLOSSADJUST] = 0.0;
-   cell->parameters[CellParams::RHOLOSSVELBOUNDARY] = 0.0;
    
    // Go through each velocity block in the velocity phase space grid.
    // Set the initial state and block parameters:

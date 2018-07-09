@@ -3,7 +3,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,11 +38,11 @@ using namespace spatial_cell;
 
 template<typename REAL> 
 void blockVelocityFirstMoments(const Realf* avgs,const Real* blockParams,
-                               const Real& massRatio,REAL* array);
+                               REAL* array);
 
 template<typename REAL> 
-void blockVelocitySecondMoments(const Realf* avgs,const Real* blockParams,const Real* cellParams,
-                                const int cp_rho,const int cp_rhovx,const int cp_rhovy,const int cp_rhovz,
+void blockVelocitySecondMoments(const Realf* avgs,const Real* blockParams,
+                                const REAL v[3],
                                 REAL* array);
 
 void calculateMoments_R_maxdt(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
@@ -65,15 +65,14 @@ void calculateMoments_V(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
  * times population mass / proton mass. This function is AMR safe.
  * @param avgs Distribution function.
  * @param blockParams Parameters for the given velocity block.
- * @param massRatio Population mass / proton mass.
  * @param array Array of at least size four where the calculated moments are added.*/
 template<typename REAL> inline
 void blockVelocityFirstMoments(
         const Realf* avgs,
         const Real* blockParams,
-        const Real& massRatio,REAL* array) {
+        REAL* array) {
 
-    const Real HALF = 0.5;
+   const Real HALF = 0.5;
 
    Real n_sum = 0.0;
    Real nvx_sum = 0.0;
@@ -87,14 +86,14 @@ void blockVelocityFirstMoments(
       n_sum   += avgs[cellIndex(i,j,k)];
       nvx_sum += avgs[cellIndex(i,j,k)]*VX;
       nvy_sum += avgs[cellIndex(i,j,k)]*VY;
-      nvz_sum += avgs[cellIndex(i,j,k)]*VZ;        
+      nvz_sum += avgs[cellIndex(i,j,k)]*VZ;
    }
    
-   const Real mrDV3 = massRatio * blockParams[BlockParams::DVX]*blockParams[BlockParams::DVY]*blockParams[BlockParams::DVZ];
-   array[0] += n_sum   * mrDV3;
-   array[1] += nvx_sum * mrDV3;
-   array[2] += nvy_sum * mrDV3;
-   array[3] += nvz_sum * mrDV3;
+   const Real DV3 = blockParams[BlockParams::DVX]*blockParams[BlockParams::DVY]*blockParams[BlockParams::DVZ];
+   array[0] += n_sum   * DV3;
+   array[1] += nvx_sum * DV3;
+   array[2] += nvy_sum * DV3;
+   array[3] += nvz_sum * DV3;
 }
 
 /** Calculate the second velocity moments for the given velocity block, and add 
@@ -104,29 +103,21 @@ void blockVelocityFirstMoments(
  * of the bulk velocity (calculated over all species). This function is AMR safe.
  * @param avgs Distribution function.
  * @param blockParams Parameters for the given velocity block.
- * @param cellParams Parameters for the spatial cell containing the given velocity block.
- * @param rho Index into cellParams, used to read bulk number density.
- * @param rhovx Index into cellParams, used to read bulk Vx times number density.
- * @param rhovy Index into cellParams, used to read bulk Vy times number density.
- * @param rhovz Index into cellParams, used to read bulk Vz times number density.
+ * @param averageVX Bulk velocity x
+ * @param averageVY Bulk velocity y
+ * @param averageVZ Bulk velocity z
  * @param array Array where the calculated moments are added.*/
 template<typename REAL> inline
 void blockVelocitySecondMoments(
         const Realf* avgs,
         const Real* blockParams,
-        const Real* cellParams,
-        const int cp_rho,
-        const int cp_rhovx,
-        const int cp_rhovy,
-        const int cp_rhovz,
+        const REAL averageVX,
+        const REAL averageVY,
+        const REAL averageVZ,
         REAL* array) {
 
    const Real HALF = 0.5;
 
-   const Real RHO = std::max(cellParams[cp_rho], std::numeric_limits<REAL>::min());
-   const Real averageVX = cellParams[cp_rhovx] / RHO;
-   const Real averageVY = cellParams[cp_rhovy] / RHO;
-   const Real averageVZ = cellParams[cp_rhovz] / RHO;
    Real nvx2_sum = 0.0;
    Real nvy2_sum = 0.0;
    Real nvz2_sum = 0.0;

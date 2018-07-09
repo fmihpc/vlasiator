@@ -3,7 +3,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,14 +39,14 @@ namespace projects {
       virtual void getParameters(void);
       virtual void setCellBackgroundField(spatial_cell::SpatialCell* cell);
    protected:
-      Real getDistribValue(creal& vx, creal& vy, creal& vz);
+      Real getDistribValue(creal& vx, creal& vy, creal& vz, const uint popID) const;
       virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
       virtual Real calcPhaseSpaceDensity(
          creal& x, creal& y, creal& z,
          creal& dx, creal& dy, creal& dz,
          creal& vx, creal& vy, creal& vz,
-         creal& dvx, creal& dvy, creal& dvz,const int& popID
-      );
+         creal& dvx, creal& dvy, creal& dvz,const uint popID
+      ) const;
 
       Real BX0;
       Real BY0;

@@ -3,7 +3,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,6 +33,15 @@ using namespace projects;
 using namespace std;
 
 namespace SBC {
+
+   struct IonosphereSpeciesParameters {
+      Real rho;
+      Real V0[3];
+      Real T;
+      uint nSpaceSamples;
+      uint nVelocitySamples;
+   };
+
    /*!\brief Ionosphere is a class applying ionospheric boundary conditions.
     * 
     * Ionosphere is a class handling cells tagged as sysboundarytype::IONOSPHERE by this system boundary condition. It applies ionospheric boundary conditions.
@@ -60,45 +69,59 @@ namespace SBC {
          Project &project
       );
       virtual Real fieldSolverBoundaryCondMagneticField(
-         const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-         const std::vector<fs_cache::CellCache>& cellCache,
-         const uint16_t& localID,
+         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBDt2Grid,
+         FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
+         FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EDt2Grid,
+         FsGrid< fsgrids::technical, 2> & technicalGrid,
+         cint i,
+         cint j,
+         cint k,
          creal& dt,
          cuint& RKCase,
-         cint& offset,
          cuint& component
       );
       virtual void fieldSolverBoundaryCondElectricField(
-         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-         const CellID& cellID,
-         cuint RKCase,
+         FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
+         cint i,
+         cint j,
+         cint k,
          cuint component
       );
       virtual void fieldSolverBoundaryCondHallElectricField(
-         fs_cache::CellCache& cache,
-         cuint RKCase,
+         FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2> & EHallGrid,
+         cint i,
+         cint j,
+         cint k,
          cuint component
       );
       virtual void fieldSolverBoundaryCondGradPeElectricField(
-         fs_cache::CellCache& cache,
-         cuint RKCase,
+         FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2> & EGradPeGrid,
+         cint i,
+         cint j,
+         cint k,
          cuint component
       );
       virtual void fieldSolverBoundaryCondDerivatives(
-         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-         const CellID& cellID,
+         FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
+         FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> & dMomentsGrid,
+         cint i,
+         cint j,
+         cint k,
          cuint& RKCase,
          cuint& component
       );
       virtual void fieldSolverBoundaryCondBVOLDerivatives(
-         const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-         const CellID& cellID,
+         FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volGrid,
+         cint i,
+         cint j,
+         cint k,
          cuint& component
       );
       virtual void vlasovBoundaryCondition(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const CellID& cellID,
-         const int& popID
+         const uint popID
       );
       
       virtual std::string getName() const;
@@ -106,23 +129,26 @@ namespace SBC {
       
    protected:
       void generateTemplateCell(Project &project);
-      void setCellFromTemplate(SpatialCell* cell,const int& popID);
+      void setCellFromTemplate(SpatialCell* cell,const uint popID);
       
-      Real shiftedMaxwellianDistribution(const int& popID,creal& vx, creal& vy, creal& vz);
+      Real shiftedMaxwellianDistribution(const uint popID,creal& vx, creal& vy, creal& vz);
       
       vector<vmesh::GlobalID> findBlocksToInitialize(
-         SpatialCell& cell,const int& popID
+         SpatialCell& cell,const uint popID
       );
       
       std::array<Real, 3> fieldSolverGetNormalDirection(
-         const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-         const CellID& cellID
+         FsGrid< fsgrids::technical, 2> & technicalGrid,
+         cint i,
+         cint j,
+         cint k
       );
       
       Real center[3]; /*!< Coordinates of the centre of the ionosphere. */
       Real radius; /*!< Radius of the ionosphere. */
       uint geometry; /*!< Geometry of the ionosphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm (circle, DEFAULT), 3: polar-plane cylinder with line dipole. */
-      
+
+      std::vector<IonosphereSpeciesParameters> speciesParams;
       Real T;
       Real rho;
       Real VX0;

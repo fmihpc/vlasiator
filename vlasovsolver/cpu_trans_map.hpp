@@ -3,7 +3,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,19 +27,14 @@
 #include "vec.h"
 #include "../common.h"
 #include "../spatial_cell.hpp"
-
-void clearTargetGrid(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-        const std::vector<CellID>& cells);
-void createTargetGrid(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-        const std::vector<CellID>& cells,const int& popID);
 bool do_translate_cell(spatial_cell::SpatialCell* SC);
-void swapTargetSourceGrid(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-        const std::vector<CellID>& cells,const int& popID);
 bool trans_map_1d(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-        const CellID cellID,const uint dimension,const Realv dt,const int& popID);
+                  const std::vector<CellID>& localPropagatedCells,
+                  const std::vector<CellID>& remoteTargetCells,
+                  const uint dimension,
+                  const Realv dt,
+                  const uint popID);
 void update_remote_mapping_contribution(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-        const uint dimension,int direction,const int& popID);
-void zeroTargetGrid(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-        const std::vector<CellID>& cells);
+        const uint dimension,int direction,const uint popID);
 
 #endif

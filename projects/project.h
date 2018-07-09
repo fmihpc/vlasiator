@@ -3,7 +3,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,7 +36,7 @@ namespace projects {
       /*! Register parameters that should be read in. */
       static void addParameters();
       
-      virtual Real getCorrectNumberDensity(spatial_cell::SpatialCell* cell,const int& popID) const;
+      virtual Real getCorrectNumberDensity(spatial_cell::SpatialCell* cell,const uint popID) const;
       
       /*! Get the value that was read in. */
       virtual void getParameters();
@@ -65,7 +65,7 @@ namespace projects {
        */
       void setCell(spatial_cell::SpatialCell* cell);
          
-      Real setVelocityBlock(spatial_cell::SpatialCell* cell,const vmesh::LocalID& blockLID,const int& popID) const;
+      Real setVelocityBlock(spatial_cell::SpatialCell* cell,const vmesh::LocalID& blockLID,const uint popID) const;
 
     protected:
       /*! \brief Returns a list of blocks to loop through when initialising.
@@ -75,7 +75,7 @@ namespace projects {
        * small portions actually containing something. Use with care.
        * NOTE: This function is called inside parallel region so it must be declared as const.
        */
-      virtual std::vector<vmesh::GlobalID> findBlocksToInitialize(spatial_cell::SpatialCell* cell,const int& popID) const;
+      virtual std::vector<vmesh::GlobalID> findBlocksToInitialize(spatial_cell::SpatialCell* cell,const uint popID) const;
       
       /*! \brief Sets the distribution function in a cell.
        * 
@@ -84,7 +84,7 @@ namespace projects {
        * 
        * \sa findBlocksToInitialize
        */
-      void setVelocitySpace(const int& popID,spatial_cell::SpatialCell* cell) const;
+      void setVelocitySpace(const uint popID,spatial_cell::SpatialCell* cell) const;
          
       /** Calculate parameters for the given spatial cell at the given time.
        * Here you need to set values for the following array indices:
@@ -127,7 +127,7 @@ namespace projects {
                                          creal& dx, creal& dy, creal& dz,
                                          creal& vx, creal& vy, creal& vz,
                                          creal& dvx, creal& dvy, creal& dvz,
-                                         const int& popID) const;
+                                         const uint popID) const = 0;
       
       /*!
        Get random number between 0 and 1.0. One should always first initialize the rng.
@@ -136,8 +136,8 @@ namespace projects {
          
       void printPopulations();
       
-      virtual bool rescalesDensity(const int& popID) const;
-      void rescaleDensity(spatial_cell::SpatialCell* cell,const int& popID) const;
+      virtual bool rescalesDensity(const uint popID) const;
+      void rescaleDensity(spatial_cell::SpatialCell* cell,const uint popID) const;
       
       /*!  Set random seed (thread-safe). Seed is based on the seed read
        in from cfg + the seedModifier parameter
@@ -161,14 +161,6 @@ namespace projects {
       #pragma omp threadprivate(rngStateBuffer,rngDataBuffer)
 
       bool baseClassInitialized;                      /**< If true, base class has been initialized.*/
-      std::vector<std::string> popNames;              /**< Name(s) of particle population(s), read from configuration file.*/
-      std::vector<int> popCharges;                    /**< Particle population charge(s), read from configuration file.*/
-      std::vector<std::string> popMassUnits;          /**< Units in which particle population mass(es) were given,
-                                                       * read from configuration file.*/
-      std::vector<double> popMasses;                  /**< Particle population mass(es) in chosen units.
-                                                       * Read from configuration file.*/
-      std::vector<std::string> popMeshNames;          /**< Name of the velocity mesh each species should use.*/
-      std::vector<double> popSparseMinValue;          /**< Sparse mesh threshold value for the population.*/
    };
    
    Project* createProject();

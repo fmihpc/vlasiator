@@ -3,7 +3,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -506,7 +506,7 @@ namespace poisson {
       phiprof::stop("MPI (RHOQ)");
 
       SpatialCell::set_mpi_transfer_type(Transfer::CELL_PHI,false);
-      int iterations = 0;
+      uint iterations = 0;
       Real relPotentialChange = 0;
       Real maxError = 0;
       do {

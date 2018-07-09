@@ -3,7 +3,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -41,7 +41,6 @@
 #include "logger.h"
 #include "vlasovmover.h"
 #include "object_wrapper.h"
-#include "phiprof.h"
 
 using namespace std;
 using namespace phiprof;
@@ -51,7 +50,7 @@ extern Logger logFile, diagnostic;
 
 typedef Parameters P;
 
-bool writeVelocityDistributionData(const int& popID,Writer& vlsvWriter,
+bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
                                    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                    const std::vector<CellID>& cells,MPI_Comm comm);
 
@@ -133,7 +132,7 @@ bool writeVelocityDistributionData(Writer& vlsvWriter,
  @param cells Vector of local cells within this process (no ghost cells).
  @param comm The MPI communicator.
  @return Returns true if operation was successful.*/
-bool writeVelocityDistributionData(const int& popID,Writer& vlsvWriter,
+bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
                                    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                    const std::vector<CellID>& cells,MPI_Comm comm) {
    // Write velocity blocks and related data. 
@@ -330,6 +329,11 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       phiprof::stop("DRO_"+variableName);
       return false;
    }
+   
+   // If DRO has a vector size of 0 it means this DRO should not write out anything. This is used e.g. for DROs we want only for certain populations.
+   if (vectorSize == 0) {
+      return true;
+   }
 
    const uint64_t varBufferArraySize = cells.size()*vectorSize*dataSize;
    
@@ -344,18 +348,16 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       return false;
    }
 
-#pragma omp parallel for schedule(guided) reduction(min : success)
    for (size_t cell=0; cell<cells.size(); ++cell) {
       //Reduce data ( return false if the operation fails )
       if (dataReducer.reduceData(mpiGrid[cells[cell]],dataReducerIndex,varBuffer + cell*vectorSize*dataSize) == false){
          success = false;
+         logFile << "(MAIN) writeGrid: ERROR datareductionoperator '" << dataReducer.getName(dataReducerIndex) <<
+            "' returned false!" << endl << writeVerbose;
       }
    }
-   if(success == false) {
-      logFile << "(MAIN) writeGrid: ERROR datareductionoperator '" << dataReducer.getName(dataReducerIndex) << "' returned false!" << endl << writeVerbose;
-   }
-   
    if( success ) {
+
       if( (writeAsFloat == true && dataType.compare("float") == 0) && dataSize == sizeof(double) ) {
          double * varBuffer_double = reinterpret_cast<double*>(varBuffer);
          //Declare smaller varbuffer:
@@ -382,21 +384,26 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
          //Cast the varBuffer to char:
          char * varBuffer_smaller_char = reinterpret_cast<char*>(varBuffer_smaller);
          //Write the array:
+         phiprof::start("writeArray");
          if (vlsvWriter.writeArray("VARIABLE", attribs, dataType_smaller, arraySize_smaller, vectorSize_smaller, dataSize_smaller, varBuffer_smaller_char) == false) {
             success = false;
             logFile << "(MAIN) writeGrid: ERROR failed to write datareductionoperator data to file!" << endl << writeVerbose;
          }
+         phiprof::stop("writeArray");
          delete[] varBuffer_smaller;
          varBuffer_smaller = NULL;
       } else {
          // Write  reduced data to file if DROP was successful:
+         phiprof::start("writeArray");
          if (vlsvWriter.writeArray("VARIABLE",attribs, dataType, cells.size(), vectorSize, dataSize, varBuffer) == false) {
             success = false;
             logFile << "(MAIN) writeGrid: ERROR failed to write datareductionoperator data to file!" << endl << writeVerbose;
          }
+         phiprof::stop("writeArray");
       }
-   }
 
+   }
+   
    delete[] varBuffer;
    varBuffer = NULL;
    phiprof::stop("DRO_"+variableName);
@@ -451,18 +458,6 @@ bool writeCommonGridData(
    if( vlsvWriter.writeParameter("xcells_ini", &P::xcells_ini) == false ) { return false; }
    if( vlsvWriter.writeParameter("ycells_ini", &P::ycells_ini) == false ) { return false; }
    if( vlsvWriter.writeParameter("zcells_ini", &P::zcells_ini) == false ) { return false; }
-
-#warning Vel Mesh parameters skipped, check that everything still works
-   //if( vlsvWriter.writeParameter("vxmin", &P::vxmin) == false ) { return false; }
-   //if( vlsvWriter.writeParameter("vxmax", &P::vxmax) == false ) { return false; }
-   //if( vlsvWriter.writeParameter("vymin", &P::vymin) == false ) { return false; }
-   //if( vlsvWriter.writeParameter("vymax", &P::vymax) == false ) { return false; }
-   //if( vlsvWriter.writeParameter("vzmin", &P::vzmin) == false ) { return false; }
-   //if( vlsvWriter.writeParameter("vzmax", &P::vzmax) == false ) { return false; }
-   //if( vlsvWriter.writeParameter("vxblocks_ini", &P::vxblocks_ini) == false ) { return false; }
-   //if( vlsvWriter.writeParameter("vyblocks_ini", &P::vyblocks_ini) == false ) { return false; }
-   //if( vlsvWriter.writeParameter("vzblocks_ini", &P::vzblocks_ini) == false ) { return false; }
-   //if( vlsvWriter.writeParameter("max_velocity_ref_level", &P::amrMaxVelocityRefLevel) == false) {return false;}
 
    //Mark the new version:
    float version = 3.00;
@@ -908,11 +903,31 @@ bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    //Open the file with vlsvWriter:
    Writer vlsvWriter;
    const int masterProcessId = 0;
-   MPI_Info MPIinfo = MPI_INFO_NULL;
+
+   MPI_Info MPIinfo;
+   
+   if (P::systemWriteHints.size() == 0) {
+      MPIinfo = MPI_INFO_NULL;
+   } else {
+      MPI_Info_create(&MPIinfo);
+      
+      for (std::vector<std::pair<std::string,std::string>>::const_iterator it = P::systemWriteHints.begin();
+           it != P::systemWriteHints.end();
+           it++)
+      {
+         MPI_Info_set(MPIinfo, it->first.c_str(), it->second.c_str());
+      }
+   }
 
    phiprof::start("open");
    vlsvWriter.open( fname.str(), MPI_COMM_WORLD, masterProcessId, MPIinfo );
    phiprof::stop("open");
+   
+   if( MPIinfo != MPI_INFO_NULL ) {
+      MPI_Info_free(&MPIinfo);
+   }
+   
+   vlsvWriter.setBuffer(P::vlsvBufferSize);
 
    phiprof::start("metadataIO");
 
@@ -968,9 +983,11 @@ bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    phiprof::start("reduceddataIO");
    //Write necessary variables:
    //Determines whether we write in floats or doubles
+   phiprof::start("writeDataReducer");
    if (dataReducer != NULL) for( uint i = 0; i < dataReducer->size(); ++i ) {
       if( writeDataReducer( mpiGrid, local_cells, (P::writeAsFloat==1), *dataReducer, i, vlsvWriter ) == false ) return false;
    }
+   phiprof::stop("writeDataReducer");
    
    phiprof::initializeTimer("Barrier","MPI","Barrier");
    phiprof::start("Barrier");
@@ -1069,7 +1086,13 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    
    if( vlsvWriter.open( fname.str(), MPI_COMM_WORLD, masterProcessId, MPIinfo ) == false) return false;
 
+   if( MPIinfo != MPI_INFO_NULL ) {
+      MPI_Info_free(&MPIinfo);
+   }
+
    phiprof::stop("open");
+
+   vlsvWriter.setBuffer(P::vlsvBufferSize);
 
    phiprof::start("metadataIO");
    
@@ -1102,10 +1125,10 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    DataReducer restartReducer;
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("background_B",CellParams::BGBX,3));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("perturbed_B",CellParams::PERBX,3));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments",CellParams::RHO,4));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments_dt2",CellParams::RHO_DT2,4));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments_r",CellParams::RHO_R,4));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments_v",CellParams::RHO_V,4));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments",CellParams::RHOM,5));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments_dt2",CellParams::RHOM_DT2,5));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments_r",CellParams::RHOM_R,5));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments_v",CellParams::RHOM_V,5));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure",CellParams::P_11,3));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_dt2",CellParams::P_11_DT2,3));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_r",CellParams::P_11_R,3));
@@ -1114,8 +1137,6 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("max_v_dt",CellParams::MAXVDT,1));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("max_r_dt",CellParams::MAXRDT,1));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("max_fields_dt",CellParams::MAXFDT,1));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("rho_loss_adjust",CellParams::RHOLOSSADJUST,1));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("rho_loss_velocity_boundary",CellParams::RHOLOSSVELBOUNDARY,1));
    restartReducer.addOperator(new DRO::DataReductionOperatorDerivatives("derivatives",0,fieldsolver::N_SPATIAL_CELL_DERIVATIVES));
    restartReducer.addOperator(new DRO::DataReductionOperatorBVOLDerivatives("Bvolume_derivatives",0,bvolderivatives::N_BVOL_DERIVATIVES));
    restartReducer.addOperator(new DRO::MPIrank);
@@ -1142,7 +1163,7 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    phiprof::start("updateRemoteBlocks");
    //Updated newly adjusted velocity block lists on remote cells, and
    //prepare to receive block data
-   for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
+   for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
       updateRemoteVelocityBlockLists(mpiGrid,popID);
    phiprof::stop("updateRemoteBlocks");
 
@@ -1223,7 +1244,7 @@ bool writeDiagnostic(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
       // Request DataReductionOperator to calculate the reduced data for all local cells:
       for (uint64_t cell=0; cell<nCells; ++cell) {
          success = true;
-         if (dataReducer.reduceData(mpiGrid[cells[cell]], i, &buffer) == false) success = false;
+         if (dataReducer.reduceDiagnostic(mpiGrid[cells[cell]], i, &buffer) == false) success = false;
          localMin[i] = min(buffer, localMin[i]);
          localMax[i] = max(buffer, localMax[i]);
          localSum[i+1] += buffer;
@@ -1256,6 +1277,4 @@ bool writeDiagnostic(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    if (myRank == MASTER_RANK) diagnostic << endl << write;
    return true;
 }
-
-
 
