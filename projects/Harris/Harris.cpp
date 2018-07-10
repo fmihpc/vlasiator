@@ -102,33 +102,7 @@ namespace projects {
       creal& vx,creal& vy,creal& vz,
       creal& dvx,creal& dvy,creal& dvz,const uint popID
    ) const {
-      const HarrisSpeciesParameters& sP = speciesParams[popID];
-      if((sP.nSpaceSamples > 1) && (sP.nVelocitySamples > 1)) {
-         creal d_x = dx / (sP.nSpaceSamples-1);
-         creal d_y = dy / (sP.nSpaceSamples-1);
-         creal d_z = dz / (sP.nSpaceSamples-1);
-         creal d_vx = dvx / (sP.nVelocitySamples-1);
-         creal d_vy = dvy / (sP.nVelocitySamples-1);
-         creal d_vz = dvz / (sP.nVelocitySamples-1);
-         
-         Real avg = 0.0;
-         // #pragma omp parallel for collapse(6) reduction(+:avg)
-         // WARNING No threading here if calling functions are already threaded
-         for (uint i=0; i<sP.nSpaceSamples; ++i)
-            for (uint j=0; j<sP.nSpaceSamples; ++j)
-               for (uint k=0; k<sP.nSpaceSamples; ++k)
-                  for (uint vi=0; vi<sP.nVelocitySamples; ++vi)
-                     for (uint vj=0; vj<sP.nVelocitySamples; ++vj)
-                        for (uint vk=0; vk<sP.nVelocitySamples; ++vk) {
-                           avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, popID);
-                        }
-         return avg /
-         (sP.nSpaceSamples*sP.nSpaceSamples*sP.nSpaceSamples) /
-         (sP.nVelocitySamples*sP.nVelocitySamples*sP.nVelocitySamples);
-      } else {
-         return getDistribValue(x+0.5*dx, y+0.5*dy, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, popID);
-      }
-   
+      return sampleVelocitySpace(x, y, z, dx, dy, dz, vx, vy, vz, dvx, dvy, dvz, popID, speciesParams[popID].nSpaceSamples, speciesParams[popID].nVelocitySamples);
    }
    
    void Harris::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {

@@ -142,16 +142,7 @@ namespace projects {
          return middleValue; //abort, this will not be accepted anyway
       }
       
-   //#pragma omp parallel for collapse(6) reduction(+:avg)
-      for (uint i=0; i<this->nSpaceSamples; ++i)
-         for (uint k=0; k<this->nSpaceSamples; ++k)
-            for (uint vi=0; vi<this->nVelocitySamples; ++vi)
-               for (uint vj=0; vj<this->nVelocitySamples; ++vj)
-                  for (uint vk=0; vk<this->nVelocitySamples; ++vk){
-                     avg +=getDistribValue(x+i*d_x, y/*not needed*/, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, popID);
-                     samples++;
-                  }
-      return avg / samples;
+      return sampleVelocitySpace(x, y, z, dx, dy, dz, vx, vy, vz, dvx, dvy, dvz, popID, this->nSpaceSamples, this->nVelocitySamples);
    }
    
 

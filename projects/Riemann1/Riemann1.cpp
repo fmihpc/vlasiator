@@ -103,23 +103,7 @@ namespace projects {
 
 
    Real Riemann1::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
-      creal d_x = dx / (this->nSpaceSamples-1);
-      creal d_y = dy / (this->nSpaceSamples-1);
-      creal d_z = dz / (this->nSpaceSamples-1);
-      creal d_vx = dvx / (this->nVelocitySamples-1);
-      creal d_vy = dvy / (this->nVelocitySamples-1);
-      creal d_vz = dvz / (this->nVelocitySamples-1);
-      Real avg = 0.0;
-      for (uint i=0; i<this->nSpaceSamples; ++i)
-      for (uint j=0; j<this->nSpaceSamples; ++j)
-         for (uint k=0; k<this->nSpaceSamples; ++k)
-            for (uint vi=0; vi<this->nVelocitySamples; ++vi)
-               for (uint vj=0; vj<this->nVelocitySamples; ++vj)
-                  for (uint vk=0; vk<this->nVelocitySamples; ++vk)
-                  {
-                     avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, popID);
-                  }
-      return avg / pow(this->nSpaceSamples, 3.0) / pow(this->nVelocitySamples, 3.0);
+      return sampleVelocitySpace(x, y, z, dx, dy, dz, vx, vy, vz, dvx, dvy, dvz, popID, this->nSpaceSamples, this->nVelocitySamples);
    }
 
 
