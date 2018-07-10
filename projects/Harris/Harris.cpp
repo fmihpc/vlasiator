@@ -84,7 +84,6 @@ namespace projects {
    Real Harris::getDistribValue(
       creal& x,creal& y, creal& z,
       creal& vx, creal& vy, creal& vz,
-      creal& dvx, creal& dvy, creal& dvz,
       const uint popID
    ) const {
 
@@ -121,17 +120,15 @@ namespace projects {
                   for (uint vi=0; vi<sP.nVelocitySamples; ++vi)
                      for (uint vj=0; vj<sP.nVelocitySamples; ++vj)
                         for (uint vk=0; vk<sP.nVelocitySamples; ++vk) {
-                           avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz, popID);
+                           avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, popID);
                         }
          return avg /
          (sP.nSpaceSamples*sP.nSpaceSamples*sP.nSpaceSamples) /
          (sP.nVelocitySamples*sP.nVelocitySamples*sP.nVelocitySamples);
       } else {
-         return getDistribValue(x+0.5*dx, y+0.5*dy, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, dvx, dvy, dvz, popID);
+         return getDistribValue(x+0.5*dx, y+0.5*dy, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, popID);
       }
-      
-      
-      
+   
    }
    
    void Harris::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {

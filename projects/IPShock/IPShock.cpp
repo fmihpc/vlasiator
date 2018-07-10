@@ -337,10 +337,11 @@ namespace projects {
     return retval;
   }
 
-  Real IPShock::getDistribValue(creal& x, creal& y, creal& z, 
-				creal& vx, creal& vy, creal& vz, 
-				creal& dvx, creal& dvy, creal& dvz,
-        const uint popID) const {
+   Real IPShock::getDistribValue(
+      creal& x, creal& y, creal& z,
+      creal& vx, creal& vy, creal& vz,
+      const uint popID
+   ) const {
 
     Real mass = getObjectWrapper().particleSpecies[popID].mass;
     Real KB = physicalconstants::K_B;
@@ -404,14 +405,14 @@ namespace projects {
                   for (uint vj=0; vj<sP.nVelocitySamples; ++vj)
                      for (uint vk=0; vk<sP.nVelocitySamples; ++vk)
                      {
-                        avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz, popID);
+                        avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, popID);
                      }
       
       result = avg /
 	(sP.nSpaceSamples*sP.nSpaceSamples*sP.nSpaceSamples) / 
 	(sP.nVelocitySamples*sP.nVelocitySamples*sP.nVelocitySamples);
     } else {
-      result = getDistribValue(x+0.5*dx, y+0.5*dy, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, dvx, dvy, dvz, popID);
+      result = getDistribValue(x+0.5*dx, y+0.5*dy, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, popID);
     }               
 
     if(result < sP.maxwCutoff) {

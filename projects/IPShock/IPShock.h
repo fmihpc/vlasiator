@@ -74,12 +74,11 @@ namespace projects {
 
 
       protected:
-         Real getDistribValue(
-               creal& x,creal& y, creal& z,
-               creal& vx, creal& vy, creal& vz,
-               creal& dvx, creal& dvy, creal& dvz,
-               const uint popID
-               ) const;
+         virtual Real getDistribValue(
+            creal& x, creal& y, creal& z,
+            creal& vx, creal& vy, creal& vz,
+            const uint popID
+         ) const;
          virtual std::vector<std::array<Real, 3>> getV0(creal x, creal y, creal z, const uint popID) const;
          //virtual void calcCellParameters(Real* cellParams,creal& t);
          virtual void calcCellParameters(spatial_cell::SpatialCell* cell, creal& t);

@@ -40,7 +40,6 @@ namespace projects {
       void setCellBackgroundField(spatial_cell::SpatialCell* cell) const;
 
    protected:
-      Real getDistribValue(creal& vx, creal& vy, creal& vz);
       virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
       virtual Real calcPhaseSpaceDensity(
          creal& x, creal& y, creal& z,

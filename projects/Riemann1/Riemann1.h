@@ -38,10 +38,9 @@ namespace projects {
          virtual void getParameters(void);
       
       protected:
-         Real getDistribValue(
-            creal& x,creal& y, creal& z,
+         virtual Real getDistribValue(
+            creal& x, creal& y, creal& z,
             creal& vx, creal& vy, creal& vz,
-            creal& dvx, creal& dvy, creal& dvz,
             const uint popID
          ) const;
       virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);

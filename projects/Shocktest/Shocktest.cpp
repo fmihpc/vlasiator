@@ -115,14 +115,14 @@ namespace projects {
       RP::get("Shocktest.nVelocitySamples", this->nVelocitySamples);
    }
    
-   Real Shocktest::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const {
+   Real Shocktest::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, const uint popID) const {
       creal mass = physicalconstants::MASS_PROTON;
       creal kb = physicalconstants::K_B;
       
       cint side = (x < 0.0) ? this->LEFT : this->RIGHT;
 
       // Disable compiler warnings: (unused variables but the function is inherited)
-      (void)y; (void)z; (void)dvx; (void)dvy; (void)dvz;
+      (void)y; (void)z;
       
       return this->rho[side] * pow(mass / (2.0 * M_PI * kb * this->T[side]), 1.5) *
       exp(- mass * (pow(vx - this->Vx[side], 2.0) + pow(vy - this->Vy[side], 2.0) + pow(vz - this->Vz[side], 2.0)) / (2.0 * kb * this->T[side]));
@@ -179,7 +179,7 @@ namespace projects {
                   for (uint vj=0; vj<this->nVelocitySamples; ++vj)
                      for (uint vk=0; vk<this->nVelocitySamples; ++vk)
                      {
-                        avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz, popID);
+                        avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, popID);
                      }
       return avg / pow(this->nSpaceSamples, 3.0) / pow(this->nVelocitySamples, 3.0);
    }

@@ -90,7 +90,11 @@ namespace projects {
       RP::get("Riemann.nVelocitySamples", this->nVelocitySamples);
    }
 
-   Real Riemann1::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const {
+   Real Riemann1::getDistribValue(
+      creal& x, creal& y, creal& z,
+      creal& vx, creal& vy, creal& vz,
+      const uint popID
+   ) const {
       cint side = (x < 0.0) ? this->LEFT : this->RIGHT;
       
       return this->rho[side] * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B * this->T[side]), 1.5) *
@@ -113,7 +117,7 @@ namespace projects {
                for (uint vj=0; vj<this->nVelocitySamples; ++vj)
                   for (uint vk=0; vk<this->nVelocitySamples; ++vk)
                   {
-                     avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz, popID);
+                     avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, popID);
                   }
       return avg / pow(this->nSpaceSamples, 3.0) / pow(this->nVelocitySamples, 3.0);
    }

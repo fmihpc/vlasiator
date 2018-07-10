@@ -45,12 +45,6 @@ namespace projects {
          ) const;
          
       protected:
-         Real getDistribValue(
-            creal& x,creal& y, creal& z,
-            creal& vx, creal& vy, creal& vz,
-            creal& dvx, creal& dvy, creal& dvz
-         );
-         
          bool noDipoleInSW;
          Real constBgB[3];
          Real dipoleScalingFactor;

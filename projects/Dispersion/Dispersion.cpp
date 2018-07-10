@@ -166,7 +166,11 @@ namespace projects {
       }
    }
    
-   Real Dispersion::getDistribValue(creal& vx,creal& vy, creal& vz, const uint popID) const {
+   Real Dispersion::getDistribValue(
+      creal& x, creal&y, creal& z,
+      creal& vx,creal& vy, creal& vz,
+      const uint popID
+   ) const {
       const DispersionSpeciesParameters& sP = speciesParams[popID];
       creal mass = getObjectWrapper().particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
@@ -199,6 +203,7 @@ namespace projects {
             for (uint vk=0; vk<sP.nVelocitySamples; ++vk)
             {
                avg += getDistribValue(
+                  x, y, z, // not needed
                   vx+vi*d_vx - sP.velocityPertAbsAmp * (0.5 - this->rndVel[0]),
                   vy+vj*d_vy - sP.velocityPertAbsAmp * (0.5 - this->rndVel[1]),
                   vz+vk*d_vz - sP.velocityPertAbsAmp * (0.5 - this->rndVel[2]),

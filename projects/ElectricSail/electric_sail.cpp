@@ -107,7 +107,11 @@ namespace projects {
       return populations[popID].rho + cloudDens;
    }
 
-   Real ElectricSail::getDistribValue(creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz,const uint popID) const {
+   Real ElectricSail::getDistribValue(
+      creal& x, creal& y, creal& z,
+      creal& vx,creal& vy,creal& vz,
+      const uint popID
+   ) const {
       creal mass = getObjectWrapper().particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
       const Population& pop = populations[popID];

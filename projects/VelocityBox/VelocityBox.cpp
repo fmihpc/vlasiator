@@ -77,7 +77,11 @@ namespace projects {
       RP::get("VelocityBox.Bz", this->Bz);
    }
 
-  Real VelocityBox::getDistribValue(creal& vx, creal& vy, creal& vz, const uint popID) const {
+  Real VelocityBox::getDistribValue(
+     creal& x, creal& y, creal& z,
+     creal& vx, creal& vy, creal& vz,
+     const uint popID
+  ) const {
      if (vx >= this->Vx[0] && vx <= this->Vx[1] &&
          vy >= this->Vy[0] && vy <= this->Vy[1] &&
          vz >= this->Vz[0] && vz <= this->Vz[1])
@@ -94,7 +98,11 @@ namespace projects {
      creal& vx, creal& vy, creal& vz,
      creal& dvx, creal& dvy, creal& dvz,const uint popID
   ) const {
-    return getDistribValue(vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, popID);
+    return getDistribValue(
+       x, y, z, // not needed
+       vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz,
+       popID
+    );
   }
 
 

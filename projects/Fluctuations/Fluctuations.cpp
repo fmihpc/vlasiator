@@ -93,7 +93,11 @@ namespace projects {
       }
    }
    
-   Real Fluctuations::getDistribValue(creal& vx,creal& vy, creal& vz, const uint popID) const {
+   Real Fluctuations::getDistribValue(
+      creal& x, creal& y, creal& z,
+      creal& vx,creal& vy, creal& vz,
+      const uint popID
+   ) const {
       const FluctuationsSpeciesParameters& sP = speciesParams[popID];
 
       creal mass = getObjectWrapper().particleSpecies[popID].mass;
@@ -132,6 +136,7 @@ namespace projects {
             for (uint vk=0; vk<sP.nVelocitySamples; ++vk)
             {
                avg += getDistribValue(
+                  x, y, z, // not needed
                   vx+vi*d_vx - sP.velocityPertAbsAmp * (0.5 - rndVel[0] ),
                   vy+vj*d_vy - sP.velocityPertAbsAmp * (0.5 - rndVel[1] ),
                   vz+vk*d_vz - sP.velocityPertAbsAmp * (0.5 - rndVel[2] ), popID);

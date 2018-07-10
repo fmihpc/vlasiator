@@ -46,10 +46,11 @@ namespace projects {
                                          const uint popID
                                         ) const;
     protected:
-      Real getDistribValue(
-                           creal& x, creal& z,
-                           creal& vx, creal& vy, creal& vz,
-                           const uint popID) const;
+       virtual Real getDistribValue(
+          creal& x, creal& y, creal& z,
+          creal& vx, creal& vy, creal& vz,
+          const uint popID
+       ) const;
       Real profile(creal top, creal bottom, creal x, creal z) const;
       
       enum {

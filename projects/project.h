@@ -121,6 +121,10 @@ namespace projects {
        * @param popID Particle species ID.
        * @return The volume average of the distribution function in the given phase space cell.
        * The physical unit of this quantity is 1 / (m^3 (m/s)^3).
+       * 
+       * sampleVelocitySpace is provided for a default regularly-spaced sampling.
+       * 
+       * \sa sampleVelocitySpace
        */
       virtual Real calcPhaseSpaceDensity(
                                          creal& x, creal& y, creal& z,
@@ -128,6 +132,59 @@ namespace projects {
                                          creal& vx, creal& vy, creal& vz,
                                          creal& dvx, creal& dvy, creal& dvz,
                                          const uint popID) const = 0;
+      
+      /** Sample the six dimensions uniformly according to the given nSpaceSamples and nVelocitySamples per dimension.
+       * NOTE: This function is called inside parallel region so it must be declared as const.
+       * 
+       * Typically this will be called from the project's calcPhaseSpaceDensity which in turn will call the derived class' getDistribValue.
+       * 
+       * @param x Starting value of the x-coordinate of the cell.
+       * @param y Starting value of the y-coordinate of the cell.
+       * @param z Starting value of the z-coordinate of the cell.
+       * @param dx The size of the cell in x-direction.
+       * @param dy The size of the cell in y-direction.
+       * @param dz The size of the cell in z-direction.
+       * @param vx Starting value of the vx-coordinate of the cell.
+       * @param vy Starting value of the vy-coordinate of the cell.
+       * @param vz Starting value of the vz-coordinate of the cell.
+       * @param dvx The size of the cell in vx-direction.
+       * @param dvy The size of the cell in vy-direction.
+       * @param dvz The size of the cell in vz-direction.
+       * @param popID Particle species ID.
+       * @return The volume average of the distribution function in the given phase space cell.
+       * The physical unit of this quantity is 1 / (m^3 (m/s)^3).
+       * 
+       * \sa calcPhaseSpaceDensity, getDistribValue
+       */
+      Real sampleVelocitySpace(
+         creal& x, creal& y, creal& z,
+         creal& dx, creal& dy, creal& dz,
+         creal& vx, creal& vy, creal& vz,
+         creal& dvx, creal& dvy, creal& dvz,
+         cuint popID,
+         cuint nSpaceSamples,
+         cuint nVelocitySamples
+      ) const;
+      
+      /** Returns the value of the phase space density at the given 6D coordinates.
+       * NOTE: This function is called inside parallel region so it must be declared as const.
+       * NOTE: This is not necessarily called by every project, some implement everything directly in calcPhaseSpaceDensity.
+       * 
+       * Passing all 6 coordinates although some only need 3. No resolutions needed atthis stage an more.
+       * @param x Starting value of the x-coordinate of the cell.
+       * @param y Starting value of the y-coordinate of the cell.
+       * @param z Starting value of the z-coordinate of the cell.
+       * @param vx Starting value of the vx-coordinate of the cell.
+       * @param vy Starting value of the vy-coordinate of the cell.
+       * @param vz Starting value of the vz-coordinate of the cell.
+       * 
+       * \sa calcPhaseSpaceDensity, sampleVelocitySpace
+       */
+      virtual Real getDistribValue(
+         creal& x,creal& y, creal& z,
+         creal& vx, creal& vy, creal& vz,
+         const uint popID
+      ) const ;
       
       /*!
        Get random number between 0 and 1.0. One should always first initialize the rng.

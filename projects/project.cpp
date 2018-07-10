@@ -400,7 +400,73 @@ namespace projects {
 
       if (rescalesDensity(popID) == true) rescaleDensity(cell,popID);
    }
-
+   
+   Real Project::sampleVelocitySpace(
+      creal& x, creal& y, creal& z,
+      creal& dx, creal& dy, creal& dz,
+      creal& vx, creal& vy, creal& vz,
+      creal& dvx, creal& dvy, creal& dvz,
+      cuint popID,
+      cuint n_SpaceSamples,   // _ to avoid confusion with the potential derived class members
+      cuint n_VelocitySamples // _ to avoid confusion with the potential derived class members
+   ) const {
+      Real avg = 0.0;
+      if((n_SpaceSamples > 1) && (n_VelocitySamples > 1)) {
+         creal d_x = dx / (n_SpaceSamples-1);
+         creal d_y = dy / (n_SpaceSamples-1);
+         creal d_z = dz / (n_SpaceSamples-1);
+         creal d_vx = dvx / (n_VelocitySamples-1);
+         creal d_vy = dvy / (n_VelocitySamples-1);
+         creal d_vz = dvz / (n_VelocitySamples-1);
+         
+         for (uint i=0; i<n_SpaceSamples; ++i)
+            for (uint j=0; j<n_SpaceSamples; ++j)
+               for (uint k=0; k<n_SpaceSamples; ++k)
+                  for (uint vi=0; vi<n_VelocitySamples; ++vi)
+                     for (uint vj=0; vj<n_VelocitySamples; ++vj)
+                        for (uint vk=0; vk<n_VelocitySamples; ++vk)
+                        {
+                           avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz,popID);
+                        }
+         avg /= n_SpaceSamples*n_SpaceSamples*n_SpaceSamples * n_VelocitySamples*n_VelocitySamples*n_VelocitySamples;
+      } else if (n_SpaceSamples > 1) {
+         creal d_x = dx / (n_SpaceSamples-1);
+         creal d_y = dy / (n_SpaceSamples-1);
+         creal d_z = dz / (n_SpaceSamples-1);
+         
+         for (uint i=0; i<n_SpaceSamples; ++i)
+            for (uint j=0; j<n_SpaceSamples; ++j)
+               for (uint k=0; k<n_SpaceSamples; ++k) {
+                  avg += getDistribValue(x+i*d_x,y+j*d_y,z+k*d_z,vx+0.5*dvx,vy+0.5*dvy,vz+0.5*dvz,popID);
+               }
+         avg /= n_SpaceSamples*n_SpaceSamples*n_SpaceSamples;
+      } else if (n_VelocitySamples > 1) {
+         creal d_vx = dvx / (n_VelocitySamples-1);
+         creal d_vy = dvy / (n_VelocitySamples-1);
+         creal d_vz = dvz / (n_VelocitySamples-1);
+         
+         for (uint vi=0; vi<n_VelocitySamples; ++vi)
+            for (uint vj=0; vj<n_VelocitySamples; ++vj)
+               for (uint vk=0; vk<n_VelocitySamples; ++vk) {
+                  avg += getDistribValue(x+0.5*dx,y+0.5*dy,z+0.5*dz,vx+vi*d_vx,vy+vj*d_vy,vz+vk*d_vz,popID);
+               }
+         avg /= n_VelocitySamples*n_VelocitySamples*n_VelocitySamples;
+      } else {
+         avg = getDistribValue(x+0.5*dx,y+0.5*dy,z+0.5*dz,vx+0.5*dvx,vy+0.5*dvy,vz+0.5*dvz,popID);
+      }
+      return avg;
+   }
+   
+   Real Project::getDistribValue(
+      creal& x,creal& y, creal& z,
+      creal& vx, creal& vy, creal& vz,
+      const uint popID
+   ) const {
+      cerr << "ERROR: Project:getDistribValue called instead of derived class function!" << endl;
+      exit(1);
+      return 0;
+   }
+   
    /** Check if the project wants to rescale densities.
     * @param popID ID of the particle species.
     * @return If true, rescaleDensity is called for this species.*/

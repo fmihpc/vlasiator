@@ -111,7 +111,11 @@ namespace projects {
       }
    }
    
-   Real KHB::getDistribValue(creal& x, creal& z, creal& vx, creal& vy, creal& vz, const uint popID) const {
+   Real KHB::getDistribValue(
+      creal& x, creal& y, creal& z,
+      creal& vx, creal& vy, creal& vz,
+      const uint popID
+   ) const {
       creal mass = physicalconstants::MASS_PROTON;
       creal kb = physicalconstants::K_B;
       Real rho = profile(this->rho[this->BOTTOM], this->rho[this->TOP], x, z);
@@ -133,7 +137,7 @@ namespace projects {
       Real avg = 0.0;
       uint samples=0;
 
-      Real middleValue=getDistribValue(x+0.5*dx, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, popID);
+      Real middleValue=getDistribValue(x+0.5*dx, y/*not needed*/, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, popID);
       if (middleValue < 0.000001*getObjectWrapper().particleSpecies[popID].sparseMinValue) {
          return middleValue; //abort, this will not be accepted anyway
       }
@@ -144,7 +148,7 @@ namespace projects {
             for (uint vi=0; vi<this->nVelocitySamples; ++vi)
                for (uint vj=0; vj<this->nVelocitySamples; ++vj)
                   for (uint vk=0; vk<this->nVelocitySamples; ++vk){
-                     avg +=getDistribValue(x+i*d_x, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, popID);
+                     avg +=getDistribValue(x+i*d_x, y/*not needed*/, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, popID);
                      samples++;
                   }
       return avg / samples;

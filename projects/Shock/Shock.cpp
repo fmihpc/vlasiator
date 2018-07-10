@@ -88,7 +88,11 @@ namespace projects {
       RP::get("Shock.Sharp_Y", this->Sharp_Y);
    }
 
-   Real Shock::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, const uint popID) const {
+   Real Shock::getDistribValue(
+      creal& x, creal& y, creal& z,
+      creal& vx, creal& vy, creal& vz,
+      const uint popID
+   ) const {
       creal kb = physicalconstants::K_B;
       creal mass = physicalconstants::MASS_PROTON;
       return exp(- mass * ((vx-this->VX0)*(vx-this->VX0) + (vy-this->VY0)*(vy-this->VY0)+ (vz-this->VZ0)*(vz-this->VZ0)) / (2.0 * kb * this->TEMPERATURE));

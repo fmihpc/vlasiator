@@ -126,7 +126,11 @@ namespace projects {
       else if (densModelString == "testcase") densityModel = TestCase;
    }
 
-   Real MultiPeak::getDistribValue(creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
+   Real MultiPeak::getDistribValue(
+      creal& x, creal& y, creal& z,
+      creal& vx, creal& vy, creal& vz,
+      const uint popID
+   ) const {
       const MultiPeakSpeciesParameters& sP = speciesParams[popID];
       creal mass = getObjectWrapper().particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
@@ -188,7 +192,10 @@ namespace projects {
                   creal VX = vx + 0.5*DVX + vi*DVX;
                   creal VY = vy + 0.5*DVY + vj*DVY;
                   creal VZ = vz + 0.5*DVZ + vk*DVZ;
-                  avg += getDistribValue(VX,VY,VZ,DVX,DVY,DVZ,popID);
+                  avg += getDistribValue(
+                     x,y,z, // not needed
+                     VX,VY,VZ,
+                     popID);
                }
             }
          }
@@ -203,7 +210,7 @@ namespace projects {
          else if (N > 10) {
             ok = true;
          }
-
+         
          avgTotal += avg;
          N3_sum += N*N*N;
          ++N;
