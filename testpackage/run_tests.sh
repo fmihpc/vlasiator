@@ -16,7 +16,10 @@ test_dir=$( readlink -f $test_dir)
 #   test_cfg[$run]=$( readlink -f runs/${test_name[$run]}/${test_name[$run]}.cfg )
 # done
 
-  
+if [[ ! $small_run_command ]]; then
+	small_run_command=$run_command
+fi 
+ 
 flags=$(  $run_command $bin  --version |grep CXXFLAGS)
 solveropts=$(echo $flags|sed 's/[-+]//g' | gawk '{for(i = 1;i<=NF;i++) { if( $i=="DDP" || $i=="DFP" || index($i,"PF")|| index($i,"DVEC") || index($i,"SEMILAG") ) printf "__%s", $(i) }}')
 revision=$( $run_command $bin --version |gawk '{if(flag==1) {print $1;flag=0}if ($3=="log") flag=1;}' )
@@ -63,8 +66,13 @@ do
     test -e test_prelude.sh && ./test_prelude.sh
 
     # Run the actual simulation
-    $run_command $bin --version  > VERSION.txt
-    $run_command $bin --run_config=${test_name[$run]}.cfg
+    if [[ ${single_cell[$run]} ]]; then
+    	$small_run_command $bin --version  > VERSION.txt
+	$small_run_command $bin --run_config=${test_name[$run]}.cfg
+    else
+	$run_command $bin --version  > VERSION.txt
+	$run_command $bin --run_config=${test_name[$run]}.cfg
+    fi
 
     # Run postprocessing script, if it exists
     test -e test_postproc.sh && ./test_postproc.sh

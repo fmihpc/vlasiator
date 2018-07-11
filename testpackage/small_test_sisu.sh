@@ -36,6 +36,7 @@ umask 007
 echo "Running $exec on $tasks mpi tasks, with $t threads per task on $nodes nodes ($ht threads per physical core)"
 #command for running stuff
 run_command="aprun -n $tasks -N $tasks_per_node -d $OMP_NUM_THREADS -j $ht"
+small_run_command="aprun -n 1 -N 1 -d $OMP_NUM_THREADS"
 run_command_tools="aprun -n 1"
 
 #get baseddir from PBS_O_WORKDIR if set (batch job), otherwise go to current folder
@@ -45,7 +46,7 @@ cd  $base_dir
 
 #If 1, the reference vlsv files are generated
 # if 0 then we check the v1
-create_verification_files=0
+create_verification_files=1
 
 
 #folder for all reference data 
