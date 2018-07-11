@@ -17,7 +17,8 @@ test_dir=$( readlink -f $test_dir)
 # done
 
 if [[ ! $small_run_command ]]; then
-	small_run_command=$run_command
+	echo "No small_run_command provided in machine config, please update it!"
+	exit
 fi 
  
 flags=$(  $run_command $bin  --version |grep CXXFLAGS)
