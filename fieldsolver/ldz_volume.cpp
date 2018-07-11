@@ -3,7 +3,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,7 +23,6 @@
 #include <cstdlib>
 
 #include "fs_common.h"
-#include "fs_cache.h"
 #include "ldz_volume.hpp"
 
 #ifndef NDEBUG
@@ -32,147 +31,136 @@
 
 using namespace std;
 
-void calculateVolumeAveragedFields(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                   std::vector<fs_cache::CellCache>& cache,
-                                   const std::vector<uint16_t>& cells) {
+void calculateVolumeAveragedFields(
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
+   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volGrid,
+   FsGrid< fsgrids::technical, 2> & technicalGrid
+) {
+   //const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
+   const int* gridDims = &technicalGrid.getLocalSize()[0];
+   const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
    phiprof::start("Calculate volume averaged fields");
+   
+   #pragma omp parallel for collapse(3)
+   for (int k=0; k<gridDims[2]; k++) {
+      for (int j=0; j<gridDims[1]; j++) {
+         for (int i=0; i<gridDims[0]; i++) {
+            if(technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
+            
+            Real perturbedCoefficients[Rec::N_REC_COEFFICIENTS];
+            std::array<Real, fsgrids::volfields::N_VOL> * volGrid0 = volGrid.get(i,j,k);
+            
+            // Calculate reconstruction coefficients for this cell:
+            reconstructionCoefficients(
+               perBGrid,
+               dPerBGrid,
+               perturbedCoefficients,
+               i,
+               j,
+               k,
+               2
+            );
+            
+            // Calculate volume average of B:
+            volGrid0->at(fsgrids::volfields::PERBXVOL) = perturbedCoefficients[Rec::a_0];
+            volGrid0->at(fsgrids::volfields::PERBYVOL) = perturbedCoefficients[Rec::b_0];
+            volGrid0->at(fsgrids::volfields::PERBZVOL) = perturbedCoefficients[Rec::c_0];
+            
+            if(P::propagatePotential) {
+               // Calculate volume average of E (FIXME NEEDS IMPROVEMENT):
+               std::array<Real, fsgrids::efield::N_EFIELD> * EGrid_i1j1k1 = EGrid.get(i,j,k);
+               if ( technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
+                  (technicalGrid.get(i,j,k)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY && technicalGrid.get(i,j,k)->sysBoundaryLayer == 1)
+               ) {
+                  #ifdef DEBUG_FSOLVER
+                  bool ok = true;
+                  if (technicalGrid.get(i  ,j+1,k  ) == NULL) ok = false;
+                  if (technicalGrid.get(i  ,j  ,k+1) == NULL) ok = false;
+                  if (technicalGrid.get(i  ,j+1,k+1) == NULL) ok = false;
+                  if (ok == false) {
+                     stringstream ss;
+                     ss << "ERROR, got NULL neighbor in " << __FILE__ << ":" << __LINE__ << endl;
+                     cerr << ss.str(); exit(1);
+                  }
+                  #endif
+                  
+                  std::array<Real, fsgrids::efield::N_EFIELD> * EGrid_i1j2k1 = EGrid.get(i  ,j+1,k  );
+                  std::array<Real, fsgrids::efield::N_EFIELD> * EGrid_i1j1k2 = EGrid.get(i  ,j  ,k+1);
+                  std::array<Real, fsgrids::efield::N_EFIELD> * EGrid_i1j2k2 = EGrid.get(i  ,j+1,k+1);
+                  
+                  CHECK_FLOAT(EGrid_i1j1k1->at(fsgrids::efield::EX))
+                  CHECK_FLOAT(EGrid_i1j2k1->at(fsgrids::efield::EX))
+                  CHECK_FLOAT(EGrid_i1j1k2->at(fsgrids::efield::EX))
+                  CHECK_FLOAT(EGrid_i1j2k2->at(fsgrids::efield::EX))
+                  volGrid0->at(fsgrids::volfields::EXVOL) = FOURTH*(EGrid_i1j1k1->at(fsgrids::efield::EX) + EGrid_i1j2k1->at(fsgrids::efield::EX) + EGrid_i1j1k2->at(fsgrids::efield::EX) + EGrid_i1j2k2->at(fsgrids::efield::EX));
+                  CHECK_FLOAT(volGrid0->at(fsgrids::volfields::EXVOL))
+               } else {
+                  volGrid0->at(fsgrids::volfields::EXVOL) = 0.0;
+               }
 
-   namespace fs = fieldsolver;
-   namespace cp = CellParams;
+               if ( technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
+                  (technicalGrid.get(i,j,k)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY && technicalGrid.get(i,j,k)->sysBoundaryLayer == 1)
+               ) {
+                  #ifdef DEBUG_FSOLVER
+                  bool ok = true;
+                  if (technicalGrid.get(i+1,j  ,k  ) == NULL) ok = false;
+                  if (technicalGrid.get(i  ,j  ,k+1) == NULL) ok = false;
+                  if (technicalGrid.get(i+1,j  ,k+1) == NULL) ok = false;
+                  if (ok == false) {
+                     stringstream ss;
+                     ss << "ERROR, got NULL neighbor in " << __FILE__ << ":" << __LINE__ << endl;
+                     cerr << ss.str(); exit(1);
+                  }
+                  #endif
+                  
+                  std::array<Real, fsgrids::efield::N_EFIELD> * EGrid_i2j1k1 = EGrid.get(i+1,j  ,k  );
+                  std::array<Real, fsgrids::efield::N_EFIELD> * EGrid_i1j1k2 = EGrid.get(i  ,j  ,k+1);
+                  std::array<Real, fsgrids::efield::N_EFIELD> * EGrid_i2j1k2 = EGrid.get(i+1,j  ,k+1);
+                  
+                  CHECK_FLOAT(EGrid_i1j1k1->at(fsgrids::efield::EY))
+                  CHECK_FLOAT(EGrid_i2j1k1->at(fsgrids::efield::EY))
+                  CHECK_FLOAT(EGrid_i1j1k2->at(fsgrids::efield::EY))
+                  CHECK_FLOAT(EGrid_i2j1k2->at(fsgrids::efield::EY))
+                  volGrid0->at(fsgrids::volfields::EYVOL) = FOURTH*(EGrid_i1j1k1->at(fsgrids::efield::EY) + EGrid_i2j1k1->at(fsgrids::efield::EY) + EGrid_i1j1k2->at(fsgrids::efield::EY) + EGrid_i2j1k2->at(fsgrids::efield::EY));
+                  CHECK_FLOAT(volGrid0->at(fsgrids::volfields::EYVOL))
+               } else {
+                  volGrid0->at(fsgrids::volfields::EYVOL) = 0.0;
+               }
 
-   cuint EX_CELLS = (1 << calcNbrNumber(1,1,1))
-                  | (1 << calcNbrNumber(1,2,1))
-                  | (1 << calcNbrNumber(1,1,2))
-                  | (1 << calcNbrNumber(1,2,2));
-
-   cuint EY_CELLS = (1 << calcNbrNumber(1,1,1))
-                  | (1 << calcNbrNumber(2,1,1))
-                  | (1 << calcNbrNumber(1,1,2))
-                  | (1 << calcNbrNumber(2,1,2));
-
-   cuint EZ_CELLS = (1 << calcNbrNumber(1,1,1))
-                  | (1 << calcNbrNumber(2,1,1))
-                  | (1 << calcNbrNumber(1,2,1))
-                  | (1 << calcNbrNumber(2,2,1));
-
-   // NOTE: cache does not include DO_NOT_COMPUTE cells
-
-   #pragma omp parallel for
-   for (size_t c=0; c<cells.size(); ++c) {
-      const uint16_t localID = cells[c];
-
-      Real perturbedCoefficients[Rec::N_REC_COEFFICIENTS];
-      cuint existingCells = cache[localID].existingCellsFlags;
-
-      // Calculate reconstruction coefficients for this cell:
-      reconstructionCoefficients(cache[localID],perturbedCoefficients,2,RK_ORDER1);
-
-      // Calculate volume average of B:
-      Real* const cellParams   = cache[localID].cells[fs_cache::calculateNbrID(1  ,1  ,1  )]->parameters;
-      //Real* const cellParams   = cache[localID].parameters[fs_cache::C222];
-      cellParams[cp::PERBXVOL] = perturbedCoefficients[Rec::a_0];
-      cellParams[cp::PERBYVOL] = perturbedCoefficients[Rec::b_0];
-      cellParams[cp::PERBZVOL] = perturbedCoefficients[Rec::c_0];
-
-      // Calculate volume average of E (FIXME NEEDS IMPROVEMENT):
-      creal* const cep_i1j1k1 = cellParams;
-
-      if ((existingCells & EX_CELLS) == EX_CELLS) {
-         #ifdef DEBUG_FSOLVER
-         bool ok = true;
-         if (cache[localID].cells[fs_cache::calculateNbrID(1  ,1+1,1  )] == NULL) ok = false;
-         if (cache[localID].cells[fs_cache::calculateNbrID(1  ,1  ,1+1)] == NULL) ok = false;
-         if (cache[localID].cells[fs_cache::calculateNbrID(1  ,1+1,1+1)] == NULL) ok = false;
-         if (ok == false) {
-            stringstream ss;
-            ss << "ERROR, got NULL neighbor in " << __FILE__ << ":" << __LINE__ << endl;
-            cerr << ss.str(); exit(1);
+               if ( technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
+                  (technicalGrid.get(i,j,k)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY && technicalGrid.get(i,j,k)->sysBoundaryLayer == 1)
+               ) {
+                  #ifdef DEBUG_FSOLVER
+                  bool ok = true;
+                  if (technicalGrid.get(i+1,j  ,k  ) == NULL) ok = false;
+                  if (technicalGrid.get(i  ,j+1,k  ) == NULL) ok = false;
+                  if (technicalGrid.get(i+1,j+1,k  ) == NULL) ok = false;
+                  if (ok == false) {
+                     stringstream ss;
+                     ss << "ERROR, got NULL neighbor in " << __FILE__ << ":" << __LINE__ << endl;
+                     cerr << ss.str(); exit(1);
+                  }
+                  #endif
+                  
+                  std::array<Real, fsgrids::efield::N_EFIELD> * EGrid_i2j1k1 = EGrid.get(i+1,j  ,k  );
+                  std::array<Real, fsgrids::efield::N_EFIELD> * EGrid_i1j2k1 = EGrid.get(i  ,j+1,k  );
+                  std::array<Real, fsgrids::efield::N_EFIELD> * EGrid_i2j2k1 = EGrid.get(i+1,j+1,k  );
+                  
+                  CHECK_FLOAT(EGrid_i1j1k1->at(fsgrids::efield::EZ))
+                  CHECK_FLOAT(EGrid_i2j1k1->at(fsgrids::efield::EZ))
+                  CHECK_FLOAT(EGrid_i1j2k1->at(fsgrids::efield::EZ))
+                  CHECK_FLOAT(EGrid_i2j2k1->at(fsgrids::efield::EZ))
+                  volGrid0->at(fsgrids::volfields::EZVOL) = FOURTH*(EGrid_i1j1k1->at(fsgrids::efield::EZ) + EGrid_i2j1k1->at(fsgrids::efield::EZ) + EGrid_i1j2k1->at(fsgrids::efield::EZ) + EGrid_i2j2k1->at(fsgrids::efield::EZ));
+                  CHECK_FLOAT(volGrid0->at(fsgrids::volfields::EZVOL))
+               } else {
+                  volGrid0->at(fsgrids::volfields::EZVOL) = 0.0;
+               }
+            }
          }
-         #endif
-         
-         creal* const cep_i1j2k1 = cache[localID].cells[fs_cache::calculateNbrID(1  ,1+1,1  )]->parameters;
-         creal* const cep_i1j1k2 = cache[localID].cells[fs_cache::calculateNbrID(1  ,1  ,1+1)]->parameters;
-         creal* const cep_i1j2k2 = cache[localID].cells[fs_cache::calculateNbrID(1  ,1+1,1+1)]->parameters;
-         //creal* const cep_i1j2k1 = cache[localID].parameters[fs_cache::C232];
-         //creal* const cep_i1j1k2 = cache[localID].parameters[fs_cache::C223];
-         //creal* const cep_i1j2k2 = cache[localID].parameters[fs_cache::C233];
-         
-         CHECK_FLOAT(cep_i1j1k1[cp::EX])
-         CHECK_FLOAT(cep_i1j2k1[cp::EX])
-         CHECK_FLOAT(cep_i1j1k2[cp::EX])
-         CHECK_FLOAT(cep_i1j2k2[cp::EX])
-         cellParams[cp::EXVOL] = FOURTH*(cep_i1j1k1[cp::EX] + cep_i1j2k1[cp::EX] + cep_i1j1k2[cp::EX] + cep_i1j2k2[cp::EX]);
-         CHECK_FLOAT(cellParams[cp::EXVOL])
-      } else {
-         cellParams[cp::EXVOL] = 0.0;
-      }
-
-      if ((existingCells & EY_CELLS) == EY_CELLS) {
-         #ifdef DEBUG_FSOLVER
-         bool ok = true;
-         if (cache[localID].cells[fs_cache::calculateNbrID(1+1,1  ,1  )] == NULL) ok = false;
-         if (cache[localID].cells[fs_cache::calculateNbrID(1  ,1  ,1+1)] == NULL) ok = false;
-         if (cache[localID].cells[fs_cache::calculateNbrID(1+1,1  ,1+1)] == NULL) ok = false;
-         if (ok == false) {
-            stringstream ss;
-            ss << "ERROR, got NULL neighbor in " << __FILE__ << ":" << __LINE__ << endl;
-            cerr << ss.str(); exit(1);
-         }
-         #endif
-         
-         creal* const cep_i2j1k1 = cache[localID].cells[fs_cache::calculateNbrID(1+1,1  ,1  )]->parameters;
-         creal* const cep_i1j1k2 = cache[localID].cells[fs_cache::calculateNbrID(1  ,1  ,1+1)]->parameters;
-         creal* const cep_i2j1k2 = cache[localID].cells[fs_cache::calculateNbrID(1+1,1  ,1+1)]->parameters;
-         //creal* const cep_i2j1k1 = cache[localID].parameters[fs_cache::C322];
-         //creal* const cep_i1j1k2 = cache[localID].parameters[fs_cache::C223];
-         //creal* const cep_i2j1k2 = cache[localID].parameters[fs_cache::C323];
-         
-         CHECK_FLOAT(cep_i1j1k1[cp::EY])
-         CHECK_FLOAT(cep_i2j1k1[cp::EY])
-         CHECK_FLOAT(cep_i1j1k2[cp::EY])
-         CHECK_FLOAT(cep_i2j1k2[cp::EY])
-         cellParams[cp::EYVOL] = FOURTH*(cep_i1j1k1[cp::EY] + cep_i2j1k1[cp::EY] + cep_i1j1k2[cp::EY] + cep_i2j1k2[cp::EY]);
-         CHECK_FLOAT(cellParams[cp::EYVOL])
-      } else {
-         cellParams[cp::EYVOL] = 0.0;
-      }
-
-      if ((existingCells & EZ_CELLS) == EZ_CELLS) {
-         #ifdef DEBUG_FSOLVER
-         bool ok = true;
-         if (cache[localID].cells[fs_cache::calculateNbrID(1+1,1  ,1  )] == NULL) ok = false;
-         if (cache[localID].cells[fs_cache::calculateNbrID(1  ,1+1,1  )] == NULL) ok = false;
-         if (cache[localID].cells[fs_cache::calculateNbrID(1+1,1+1,1  )] == NULL) ok = false;
-         if (ok == false) {
-            stringstream ss;
-            ss << "ERROR, got NULL neighbor in " << __FILE__ << ":" << __LINE__ << endl;
-            cerr << ss.str(); exit(1);
-         }
-         #endif
-         
-         creal* const cep_i2j1k1 = cache[localID].cells[fs_cache::calculateNbrID(1+1,1  ,1  )]->parameters;
-         creal* const cep_i1j2k1 = cache[localID].cells[fs_cache::calculateNbrID(1  ,1+1,1  )]->parameters;
-         creal* const cep_i2j2k1 = cache[localID].cells[fs_cache::calculateNbrID(1+1,1+1,1  )]->parameters;
-         //creal* const cep_i2j1k1 = cache[localID].parameters[fs_cache::C322];
-         //creal* const cep_i1j2k1 = cache[localID].parameters[fs_cache::C232];
-         //creal* const cep_i2j2k1 = cache[localID].parameters[fs_cache::C332];
-
-         CHECK_FLOAT(cep_i1j1k1[cp::EZ])
-         CHECK_FLOAT(cep_i2j1k1[cp::EZ])
-         CHECK_FLOAT(cep_i1j2k1[cp::EZ])
-         CHECK_FLOAT(cep_i2j2k1[cp::EZ])
-         cellParams[cp::EZVOL] = FOURTH*(cep_i1j1k1[cp::EZ] + cep_i2j1k1[cp::EZ] + cep_i1j2k1[cp::EZ] + cep_i2j2k1[cp::EZ]);
-         CHECK_FLOAT(cellParams[cp::EZVOL])
-      } else {
-         cellParams[cp::EZVOL] = 0.0;
       }
    }
-
-   phiprof::stop("Calculate volume averaged fields",cache.size(),"Spatial Cells");
+   
+   phiprof::stop("Calculate volume averaged fields",N_cells,"Spatial Cells");
 }
-         
-         
-         
-
-
-

@@ -3,7 +3,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,8 +33,8 @@ namespace amr_ref_criteria {
       Base();
       virtual ~Base();
 
-      virtual Realf evaluate(const Realf* velBlock,const int& popID) = 0;
-      virtual void evaluate(const Realf* velBlost,Realf* result,const int& popID);
+      virtual Realf evaluate(const Realf* velBlock,const uint popID) = 0;
+      virtual void evaluate(const Realf* velBlost,Realf* result,const uint popID);
       virtual bool initialize(const std::string& configRegion) = 0;
       
     protected:
@@ -48,8 +48,8 @@ namespace amr_ref_criteria {
       RelativeDifference();
       ~RelativeDifference();
       
-      Realf evaluate(const Realf* velBlock,const int& popID);
-      void evaluate(const Realf* velBlost,Realf* result,const int& popID);
+      Realf evaluate(const Realf* velBlock,const uint popID);
+      void evaluate(const Realf* velBlost,Realf* result,const uint popID);
       bool initialize(const std::string& configRegion);
 
     protected:

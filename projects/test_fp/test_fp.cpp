@@ -3,7 +3,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,6 +27,7 @@
 #include "../../common.h"
 #include "../../readparameters.h"
 #include "../../backgroundfield/backgroundfield.h"
+#include "../../object_wrapper.h"
 
 #include "test_fp.h"
 
@@ -68,6 +69,11 @@ namespace projects {
    void test_fp::getParameters(void){
       Project::getParameters();
       typedef Readparameters RP;
+
+      if(getObjectWrapper().particleSpecies.size() > 1) {
+         std::cerr << "The selected project does not support multiple particle populations! Aborting in " << __FILE__ << " line " << __LINE__ << std::endl;
+         abort();
+      }
       RP::get("test_fp.B0", this->B0);
       RP::get("test_fp.V0", this->V0);
       RP::get("test_fp.rho", this->DENSITY);
@@ -84,8 +90,8 @@ namespace projects {
 
    Real test_fp::calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,
                                        creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz,
-                                       const int& popID) const {      
-      vector<std::array<Real, 3> > V = this->getV0(x,y,z,dx,dy,dz);
+                                       const uint popID) const {      
+      vector<std::array<Real, 3> > V = this->getV0(x,y,z,dx,dy,dz, popID);
       
       creal VX2 = (vx+0.5*dvx-V[0][0])*(vx+0.5*dvx-V[0][0]);
       creal VY2 = (vy+0.5*dvy-V[0][1])*(vy+0.5*dvy-V[0][1]);
@@ -160,11 +166,12 @@ namespace projects {
       creal z,
       creal dx,
       creal dy,
-      creal dz
+      creal dz,
+      const uint popID
    ) const {
       vector<std::array<Real, 3>> centerPoints;
       
-      Real VX,VY,VZ;
+      Real VX=0.0,VY=0.0,VZ=0.0;
       if (this->shear == true)
       {
          Real ksi,eta;
@@ -232,7 +239,8 @@ namespace projects {
    vector<std::array<Real, 3>> test_fp::getV0(
       creal x,
       creal y,
-      creal z
+      creal z,
+      const uint popID
    ) const {
       vector<std::array<Real, 3>> centerPoints;
       
@@ -240,6 +248,6 @@ namespace projects {
       creal dy = 0.0;
       creal dz = 0.0;
       
-      return this->getV0(x,y,z,dx,dy,dz);
+      return this->getV0(x,y,z,dx,dy,dz,popID);
    }
 }// namespace projects

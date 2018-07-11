@@ -3,7 +3,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -60,7 +60,7 @@ namespace mesh {
             return "";
          }
          unsigned int getLocalID(const CellID& cellID) const {return mesh.getLocalID(cellID);}
-         bool initialize();
+         bool initialize(const std::string& name);
          void reallocate();
          size_t size() const {return meshData.size();}
 

@@ -4,7 +4,7 @@
  * 2017 CSC - IT center for Science
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -114,7 +114,7 @@ void inline swapBlockIndices(velocity_block_indices_t &blockIndices, const uint 
    
 */
 bool map_1d(SpatialCell* spatial_cell,
-            const int popID,     
+            const uint popID,     
             Realv intersection, Realv intersection_di, Realv intersection_dj,Realv intersection_dk,
             const uint dimension) {
    no_subnormals();
@@ -122,11 +122,16 @@ bool map_1d(SpatialCell* spatial_cell,
    Realv dv,v_min;
    Realv is_temp;
    uint max_v_length;
-   uint block_indices_to_id[3]; /*< used when computing id of target block */
-   uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
+   uint block_indices_to_id[3] = {0, 0, 0}; /*< used when computing id of target block, 0 for compiler */
+   uint cell_indices_to_id[3] = {0, 0, 0}; /*< used when computing id of target cell in block, 0 for compiler */
 
    vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh    = spatial_cell->get_velocity_mesh(popID);
    vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks(popID);
+
+   //nothing to do if no blocks
+   if(vmesh.size() == 0 )
+      return true;
+   
 
    // Velocity grid refinement level, has no effect but is 
    // needed in some vmesh::VelocityMesh function calls.
@@ -316,7 +321,7 @@ bool map_1d(SpatialCell* spatial_cell,
          lastBlockIndexK  = (lastBlockIndexK  < max_v_length ) ? lastBlockIndexK  : max_v_length - 1;
          
          //store source blocks
-         for (int blockK = firstBlockIndices[2]; blockK <= lastBlockIndices[2]; blockK++){
+         for (uint blockK = firstBlockIndices[2]; blockK <= lastBlockIndices[2]; blockK++){
             isSourceBlock[blockK] = true;
          }
          
@@ -442,7 +447,7 @@ bool map_1d(SpatialCell* spatial_cell,
              * to quickly compute max and min later on*/
             //TODO, these can be computed much earlier, since they are
             //identiacal for each set of intersections
-            int minGkIndex, maxGkIndex;
+            int minGkIndex=0, maxGkIndex=0; // 0 for compiler
             {
                Realv maxV = std::numeric_limits<Realv>::min();
                Realv minV = std::numeric_limits<Realv>::max();

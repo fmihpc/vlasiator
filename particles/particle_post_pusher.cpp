@@ -3,7 +3,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -94,7 +94,7 @@ int main(int argc, char** argv) {
    int maxsteps = maxtime/dt;
 
    Scenario* scenario = createScenario(ParticleParameters::mode);
-   std::vector<Particle> particles = scenario->initialParticles(E[0],B[0],V);
+   ParticleContainer particles = scenario->initialParticles(E[0],B[0],V);
 
    std::cerr << "Pushing " << particles.size() << " particles for " << maxsteps << " steps..." << std::endl;
    std::cerr << "[                                                                        ]\x0d[";
@@ -143,7 +143,7 @@ int main(int argc, char** argv) {
 
       // Remove all particles that have left the simulation box after this step
       // (unfortunately, this can not be done in parallel, so it better be fast!)
-      for(std::vector<Particle>::iterator i = particles.begin(); i != particles.end(); ) {
+      for(auto i = particles.begin(); i != particles.end(); ) {
 
          // Boundaries are allowed to mangle the particles here.
          // If they return false, particles are deleted.

@@ -3,7 +3,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,7 +42,7 @@ void Particle::push(Vec3d& B, Vec3d& E, double dt) {
    x += dt * v;
 }
 
-void writeParticles(std::vector<Particle>& p,const char* filename) {
+void writeParticles(ParticleContainer& p,const char* filename) {
 
    vlsv::Writer vlsvWriter;
    vlsvWriter.open(filename,MPI_COMM_WORLD,0);

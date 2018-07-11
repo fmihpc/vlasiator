@@ -3,7 +3,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -61,12 +61,12 @@ namespace SBC {
    protected:
       void generateTemplateCell(spatial_cell::SpatialCell& templateCell, int inputDataIndex, creal& t);
       
-      Real maxwellianDistribution(const int& popID,
+      Real maxwellianDistribution(const uint popID,
          creal& rho, creal& T, creal& vx, creal& vy, creal& vz
       );
       
       vector<vmesh::GlobalID> findBlocksToInitialize(
-         const int& popID,
+         const uint popID,
          SpatialCell& cell,
          creal& rho,
          creal& T,
@@ -75,8 +75,6 @@ namespace SBC {
          creal& VZ
       );
       
-      uint nSpaceSamples;
-      uint nVelocitySamples;
    };
 }
 

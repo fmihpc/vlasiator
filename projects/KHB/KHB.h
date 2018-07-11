@@ -3,7 +3,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,13 +42,15 @@ namespace projects {
                                          creal& x, creal& y, creal& z,
                                          creal& dx, creal& dy, creal& dz,
                                          creal& vx, creal& vy, creal& vz,
-                                         creal& dvx, creal& dvy, creal& dvz,const int& popID
-                                        );
+                                         creal& dvx, creal& dvy, creal& dvz,
+                                         const uint popID
+                                        ) const;
     protected:
       Real getDistribValue(
                            creal& x, creal& z,
-                           creal& vx, creal& vy, creal& vz);
-      Real profile(creal top, creal bottom, creal x, creal z);
+                           creal& vx, creal& vy, creal& vz,
+                           const uint popID) const;
+      Real profile(creal top, creal bottom, creal x, creal z) const;
       
       enum {
          TOP,

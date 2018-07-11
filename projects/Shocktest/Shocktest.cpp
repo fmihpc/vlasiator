@@ -3,7 +3,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@
 #include <cmath>
 #include "../../backgroundfield/backgroundfield.h"
 #include "../../backgroundfield/constantfield.hpp"
-
+#include "../../object_wrapper.h"
 
 #include "Shocktest.h"
 #include "../../spatial_cell.hpp"
@@ -70,6 +70,11 @@ namespace projects {
    
    void Shocktest::getParameters(){
       Project::getParameters();
+
+      if(getObjectWrapper().particleSpecies.size() > 1) {
+         std::cerr << "The selected project does not support multiple particle populations! Aborting in " << __FILE__ << " line " << __LINE__ << std::endl;
+         abort();
+      }
       this->rho[this->LEFT] = {NAN};
       this->T[this->LEFT] = {NAN};
       this->Vx[this->LEFT] = {NAN};
@@ -110,7 +115,7 @@ namespace projects {
       RP::get("Shocktest.nVelocitySamples", this->nVelocitySamples);
    }
    
-   Real Shocktest::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
+   Real Shocktest::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const {
       creal mass = physicalconstants::MASS_PROTON;
       creal kb = physicalconstants::K_B;
       
@@ -133,8 +138,9 @@ namespace projects {
    vector<std::array<Real, 3>> Shocktest::getV0(
       creal x,
       creal y,
-      creal z
-   ) {
+      creal z,
+      const uint popID
+   ) const {
       vector<std::array<Real, 3>> centerPoints;
       cint side = (x < 0.0) ? this->LEFT : this->RIGHT;
       std::array<Real, 3> V0 {{this->Vx[side], this->Vy[side], this->Vz[side]}};
@@ -158,7 +164,7 @@ namespace projects {
     * @return The volume average of the distribution function in the given phase space cell.
     * The physical unit of this quantity is 1 / (m^3 (m/s)^3).
     */
-   Real Shocktest::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const int& popID) {   
+   Real Shocktest::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {   
       creal d_x = dx / (this->nSpaceSamples-1);
       creal d_y = dy / (this->nSpaceSamples-1);
       creal d_z = dz / (this->nSpaceSamples-1);
@@ -173,7 +179,7 @@ namespace projects {
                   for (uint vj=0; vj<this->nVelocitySamples; ++vj)
                      for (uint vk=0; vk<this->nVelocitySamples; ++vk)
                      {
-                        avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz);
+                        avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz, popID);
                      }
       return avg / pow(this->nSpaceSamples, 3.0) / pow(this->nVelocitySamples, 3.0);
    }

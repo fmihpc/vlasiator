@@ -3,7 +3,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,7 +36,7 @@ namespace projects {
          * 
          * This radius is used to determine all blocks within that radius of V0, create them and return their list for initialisation.
          */
-        virtual std::vector<vmesh::GlobalID> findBlocksToInitialize(spatial_cell::SpatialCell* cell,const int& popID) const;
+        virtual std::vector<vmesh::GlobalID> findBlocksToInitialize(spatial_cell::SpatialCell* cell,const uint popID) const;
       
       /*! \brief Return a vector containing the velocity coordinate of the centre of each ion population in the distribution.
        * 
@@ -48,8 +48,9 @@ namespace projects {
       virtual std::vector<std::array<Real, 3>> getV0(
                                                      creal x,
                                                      creal y,
-                                                     creal z
-                                                    ) const;
+                                                     creal z,
+                                                     const uint popID
+                                                    ) const = 0;
    }; // class TriAxisSearch
 } // namespace
 

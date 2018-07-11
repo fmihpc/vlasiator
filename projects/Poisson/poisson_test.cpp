@@ -3,7 +3,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,6 +29,7 @@
 #include <iostream>
 
 #include "../../readparameters.h"
+#include "../../object_wrapper.h"
 
 #include "../../poisson_solver/poisson_solver.h"
 #include "poisson_test.h"
@@ -55,6 +56,11 @@ namespace projects {
 
    void PoissonTest::getParameters() {
       typedef Readparameters RP;
+
+      if(getObjectWrapper().particleSpecies.size() > 1) {
+         std::cerr << "The selected project does not support multiple particle populations! Aborting in " << __FILE__ << " line " << __LINE__ << std::endl;
+         abort();
+      }
       RP::get("Poisson.solver",poisson::Poisson::solverName);
       RP::get("Poisson.radius",radius);
       RP::get("Poisson.max_iterations",poisson::Poisson::maxIterations);
@@ -96,7 +102,8 @@ namespace projects {
             creal& x, creal& y, creal& z,
             creal& dx, creal& dy, creal& dz,
             creal& vx, creal& vy, creal& vz,
-            creal& dvx, creal& dvy, creal& dvz) {
+            creal& dvx, creal& dvy, creal& dvz,
+            const uint popID) const {
       return 0.0;
    }
 

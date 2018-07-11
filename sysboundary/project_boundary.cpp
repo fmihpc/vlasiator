@@ -3,7 +3,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,6 +33,8 @@
 #include "../object_wrapper.h"
 
 using namespace std;
+
+#warning Project boundaries do not yet support multipop, not checked whether any changes are needed.
 
 namespace SBC {
    ProjectBoundary::ProjectBoundary(): SysBoundaryCondition() { 
@@ -131,124 +133,132 @@ namespace SBC {
    }
    
    Real ProjectBoundary::fieldSolverBoundaryCondMagneticField(
-                                                              const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                                              const CellID& cellID,
-                                                              creal& dt,
-                                                              cuint& component
-                                                             ) {
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBDt2Grid,
+      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
+      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EDt2Grid,
+      FsGrid< fsgrids::technical, 2> & technicalGrid,
+      cint i,
+      cint j,
+      cint k,
+      creal& dt,
+      cuint& RKCase,
+      cuint& component
+   ) {
       return 0.0;
    }
 
    void ProjectBoundary::fieldSolverBoundaryCondElectricField(
-                                                              dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                                              const CellID& cellID,
-                                                              cuint RKCase,
-                                                              cuint component
-                                                             ) {
-      dccrg::Types<3>::indices_t indices = mpiGrid.mapping.get_indices(cellID);
-      SpatialCell* nbr = NULL;
-      SpatialCell* cell = mpiGrid[cellID];
+      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
+      cint i,
+      cint j,
+      cint k,
+      cuint component
+   ) {
+      creal dx = EGrid.DX;
+      creal dy = EGrid.DY;
+      creal dz = EGrid.DZ;
+      const std::array<int, 3> globalIndices = EGrid.getGlobalIndices(i,j,k);
+      creal x = (convert<Real>(globalIndices[0])+0.5)*dx + Parameters::xmin;
+      creal y = (convert<Real>(globalIndices[1])+0.5)*dy + Parameters::ymin;
+      creal z = (convert<Real>(globalIndices[2])+0.5)*dz + Parameters::zmin;
       
-      int offset=0;
-      if ((RKCase == RK_ORDER1) || (RKCase == RK_ORDER2_STEP2)) offset = CellParams::EX;
-      else offset = CellParams::EX_DT2;
-
-      creal dx = cell->parameters[CellParams::DX];
-      creal dy = cell->parameters[CellParams::DY];
-      creal dz = cell->parameters[CellParams::DZ];
-      creal x = cell->parameters[CellParams::XCRD] + 0.5*dx;
-      creal y = cell->parameters[CellParams::YCRD] + 0.5*dy;
-      creal z = cell->parameters[CellParams::ZCRD] + 0.5*dz;
       bool isThisCellOnAFace[6];
       determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz);
       
-      for (uint i=0; i<6; i++) if (facesToProcess[i] && isThisCellOnAFace[i]) {
-         switch (i) {
+#warning this function makes little sense as is. It made little before, too.
+      for (uint fi=0; fi<6; fi++) if (facesToProcess[fi] && isThisCellOnAFace[fi]) {
+         switch (fi) {
           case 0:
-            --indices[0];
-            nbr = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
-            cell->parameters[offset+component] = 0;
+            EGrid.get(i,j,k)->at(fsgrids::efield::EX+component) = 0;
             break;
           case 1:
-            ++indices[0];
-            nbr = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
-            cell->parameters[offset+component] = 0;
+            EGrid.get(i,j,k)->at(fsgrids::efield::EX+component) = 0;
             break;
           case 2:
-            --indices[1];
-            nbr = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
-            cell->parameters[offset+component] = 0;
+            EGrid.get(i,j,k)->at(fsgrids::efield::EX+component) = 0;
             break;
           case 3:
-            ++indices[1];
-            nbr = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
-            cell->parameters[offset+component] = 0;
+            EGrid.get(i,j,k)->at(fsgrids::efield::EX+component) = 0;
             break;
           case 4:
-            --indices[2];
-            nbr = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
-            cell->parameters[offset+component] = 0;
+            EGrid.get(i,j,k)->at(fsgrids::efield::EX+component) = 0;
             break;
           case 5:
-            ++indices[2];
-            nbr = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
-            cell->parameters[offset+component] = 0;
+            EGrid.get(i,j,k)->at(fsgrids::efield::EX+component) = 0;
             break;
-         }         
+         }
       }
    }
-
+   
+   void ProjectBoundary::fieldSolverBoundaryCondGradPeElectricField(
+      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2> & EGradPeGrid,
+      cint i,
+      cint j,
+      cint k,
+      cuint component
+   ) {
+      EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EXGRADPE+component) = 0.0;
+   }
+   
    void ProjectBoundary::fieldSolverBoundaryCondHallElectricField(
-                                                                  dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                                                  const CellID& cellID,
-                                                                  cuint RKCase,
-                                                                  cuint component
-                                                                 ) {
+      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2> & EHallGrid,
+      cint i,
+      cint j,
+      cint k,
+      cuint component
+   ) {
+      std::array<Real, fsgrids::ehall::N_EHALL> * cp = EHallGrid.get(i,j,k);
       switch (component) {
-       case 0:
-         mpiGrid[cellID]->parameters[CellParams::EXHALL_000_100] = 0.0;
-         mpiGrid[cellID]->parameters[CellParams::EXHALL_010_110] = 0.0;
-         mpiGrid[cellID]->parameters[CellParams::EXHALL_001_101] = 0.0;
-         mpiGrid[cellID]->parameters[CellParams::EXHALL_011_111] = 0.0;
-         break;
-       case 1:
-         mpiGrid[cellID]->parameters[CellParams::EYHALL_000_010] = 0.0;
-         mpiGrid[cellID]->parameters[CellParams::EYHALL_100_110] = 0.0;
-         mpiGrid[cellID]->parameters[CellParams::EYHALL_001_011] = 0.0;
-         mpiGrid[cellID]->parameters[CellParams::EYHALL_101_111] = 0.0;
-         break;
-       case 2:
-         mpiGrid[cellID]->parameters[CellParams::EZHALL_000_001] = 0.0;
-         mpiGrid[cellID]->parameters[CellParams::EZHALL_100_101] = 0.0;
-         mpiGrid[cellID]->parameters[CellParams::EZHALL_010_011] = 0.0;
-         mpiGrid[cellID]->parameters[CellParams::EZHALL_110_111] = 0.0;
-         break;
-       default:
-         cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
+         case 0:
+            cp->at(fsgrids::ehall::EXHALL_000_100) = 0.0;
+            cp->at(fsgrids::ehall::EXHALL_010_110) = 0.0;
+            cp->at(fsgrids::ehall::EXHALL_001_101) = 0.0;
+            cp->at(fsgrids::ehall::EXHALL_011_111) = 0.0;
+            break;
+         case 1:
+            cp->at(fsgrids::ehall::EYHALL_000_010) = 0.0;
+            cp->at(fsgrids::ehall::EYHALL_100_110) = 0.0;
+            cp->at(fsgrids::ehall::EYHALL_001_011) = 0.0;
+            cp->at(fsgrids::ehall::EYHALL_101_111) = 0.0;
+            break;
+         case 2:
+            cp->at(fsgrids::ehall::EZHALL_000_001) = 0.0;
+            cp->at(fsgrids::ehall::EZHALL_100_101) = 0.0;
+            cp->at(fsgrids::ehall::EZHALL_010_011) = 0.0;
+            cp->at(fsgrids::ehall::EZHALL_110_111) = 0.0;
+            break;
+         default:
+            cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
       }
    }
    
    void ProjectBoundary::fieldSolverBoundaryCondDerivatives(
-                                                            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                                            const CellID& cellID,
-                                                            cuint& RKCase,
-                                                            cuint& component
-                                                           ) {
-      this->setCellDerivativesToZero(mpiGrid, cellID, component);
+      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
+      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> & dMomentsGrid,
+      cint i,
+      cint j,
+      cint k,
+      cuint& RKCase,
+      cuint& component
+   ) {
+      this->setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, component);
    }
    
    void ProjectBoundary::fieldSolverBoundaryCondBVOLDerivatives(
-                                                                const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                                                const CellID& cellID,
-                                                                cuint& component
-                                                               ) {
-      this->setCellBVOLDerivativesToZero(mpiGrid, cellID, component);
+      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volGrid,
+      cint i,
+      cint j,
+      cint k,
+      cuint& component
+   ) {
+      this->setCellBVOLDerivativesToZero(volGrid, i, j, k, component);
    }
    
    void ProjectBoundary::vlasovBoundaryCondition(
                                                  const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                                  const CellID& cellID,
-                                                 const int& popID
+                                                 const uint popID
                                                 ) {
       SpatialCell* cell = mpiGrid[cellID];
       cell->get_velocity_mesh(popID)   = templateCell.get_velocity_mesh(popID);

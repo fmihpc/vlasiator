@@ -4,7 +4,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -147,7 +147,7 @@ bool readNextTimestep(const std::string& filename_pattern, double t, int step, F
         std::vector<double> rho_v_buffer = readFieldData(r,name,3u);
         name = "rho";
         std::vector<double> rho_buffer = readFieldData(r,name,1u);
-        for(int i=0; i<rho_buffer.size(); i++) {
+        for(unsigned int i=0; i<rho_buffer.size(); i++) {
           Vbuffer.push_back(rho_v_buffer[3*i] / rho_buffer[i]);
           Vbuffer.push_back(rho_v_buffer[3*i+1] / rho_buffer[i]);
           Vbuffer.push_back(rho_v_buffer[3*i+2] / rho_buffer[i]);

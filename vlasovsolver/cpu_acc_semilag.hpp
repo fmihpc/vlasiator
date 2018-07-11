@@ -3,7 +3,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,14 +26,14 @@
 #include "../common.h"
 #include "../spatial_cell.hpp"
 
-void prepareAccelerateCell(spatial_cell::SpatialCell* spatial_cell, const int popID);
-int getAccelerationSubcycles(spatial_cell::SpatialCell* spatial_cell, Real dt, const int& popID);
+void prepareAccelerateCell(spatial_cell::SpatialCell* spatial_cell, const uint popID);
+uint getAccelerationSubcycles(spatial_cell::SpatialCell* spatial_cell, Real dt, const uint popID);
 
 
 
 void cpu_accelerate_cell(
         spatial_cell::SpatialCell* spatial_cell,
-        const int popID,
+        const uint popID,
         uint map_order,
         const Real& dt);
 

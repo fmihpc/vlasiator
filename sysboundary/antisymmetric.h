@@ -3,7 +3,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -61,37 +61,59 @@ namespace SBC {
 //          creal& t
 //       );
       virtual Real fieldSolverBoundaryCondMagneticField(
-                                                        const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                                        const CellID& cellID,
-                                                        creal& dt,
-                                                        cuint& component
+         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBDt2Grid,
+         FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
+         FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EDt2Grid,
+         FsGrid< fsgrids::technical, 2> & technicalGrid,
+         cint i,
+         cint j,
+         cint k,
+         creal& dt,
+         cuint& RKCase,
+         cuint& component
       );
       virtual void fieldSolverBoundaryCondElectricField(
-         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-         const CellID& cellID,
-         cuint RKCase,
+         FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
+         cint i,
+         cint j,
+         cint k,
          cuint component
       );
       virtual void fieldSolverBoundaryCondHallElectricField(
-                                                            fs_cache::CellCache& cache,
-                                                            cuint RKCase,
-                                                            cuint component
-                                                           );
+         FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2> & EHallGrid,
+         cint i,
+         cint j,
+         cint k,
+         cuint component
+      );
+      virtual void fieldSolverBoundaryCondGradPeElectricField(
+         FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2> & EGradPeGrid,
+         cint i,
+         cint j,
+         cint k,
+         cuint component
+      );
       virtual void fieldSolverBoundaryCondDerivatives(
-         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-         const CellID& cellID,
+         FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
+         FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> & dMomentsGrid,
+         cint i,
+         cint j,
+         cint k,
          cuint& RKCase,
          cuint& component
       );
       virtual void fieldSolverBoundaryCondBVOLDerivatives(
-         const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-         const CellID& cellID,
+         FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volGrid,
+         cint i,
+         cint j,
+         cint k,
          cuint& component
       );
       virtual void vlasovBoundaryCondition(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const CellID& cellID,
-         const int& popID
+         const uint popID
       );
       
       virtual void getFaces(bool* faces);
@@ -103,11 +125,6 @@ namespace SBC {
       bool facesToProcess[6];
       /*! List of faces on which outflow boundary conditions are to be applied ([xyz][+-]). */
       std::vector<std::string> faceList;
-      Real fieldBoundaryCopyFromExistingFaceNbrMagneticField(
-         const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-         const CellID& cellID,
-         cuint& component
-      );
    }; // class Antisymmetric
 } // namespace SBC
 

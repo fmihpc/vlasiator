@@ -3,7 +3,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,6 +29,20 @@
 #include "../project.h"
 
 namespace projects {
+
+   struct DispersionSpeciesParameters {
+      Real VX0;
+      Real VY0;
+      Real VZ0;
+      Real DENSITY;
+      Real TEMPERATURE;
+      Real densityPertRelAmp;
+      Real velocityPertAbsAmp;
+      uint nSpaceSamples;
+      uint nVelocitySamples;
+
+   };
+
    class Dispersion: public Project {
     public:
       Dispersion();
@@ -43,33 +57,25 @@ namespace projects {
          const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
       ) const;
     protected:
-      Real getDistribValue(creal& vx, creal& vy, creal& vz) const;
+      Real getDistribValue(creal& vx, creal& vy, creal& vz, const uint popID) const;
       virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
       virtual Real calcPhaseSpaceDensity(
                                          creal& x, creal& y, creal& z,
                                          creal& dx, creal& dy, creal& dz,
                                          creal& vx, creal& vy, creal& vz,
                                          creal& dvx, creal& dvy, creal& dvz,
-                                         const int& popID
+                                         const uint popID
                                         ) const;
 
       Real B0;
-      Real VX0;
-      Real VY0;
-      Real VZ0;
-      Real angleXY;
-      Real angleXZ;
-      Real DENSITY;
-      Real TEMPERATURE;
       Real magXPertAbsAmp;
       Real magYPertAbsAmp;
       Real magZPertAbsAmp;
-      Real densityPertRelAmp;
-      Real velocityPertAbsAmp;
+      Real angleXY;
+      Real angleXZ;
       Real maxwCutoff;
+      std::vector<DispersionSpeciesParameters> speciesParams;
       uint seed;
-      uint nSpaceSamples;
-      uint nVelocitySamples;
       
       char rngStateBuffer[256];
       random_data rngDataBuffer;

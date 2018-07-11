@@ -3,7 +3,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,6 +30,19 @@
 #include "sysboundarycondition.h"
 
 namespace SBC {
+
+	struct OutflowSpeciesParameters {
+      /*! Array of bool telling which faces are going to be skipped by the Vlasov system boundary condition.*/
+			std::array<bool, 6> facesToSkipVlasov;
+      /*! List of schemes to use for the Vlasov outflow boundary conditions on each face ([xyz][+-]). */
+      std::array<uint, 6> faceVlasovScheme;
+      /*! List of faces on which outflow boundary conditions are to be reapplied upon restart ([xyz][+-]). */
+      std::vector<std::string> faceToReapplyUponRestartList;
+
+      /*! Factor by which to quench the inflowing parts of the velocity distribution function.*/
+      Real quenchFactor;
+	};
+
    /*!\brief Outflow is a class applying copy/outflow boundary conditions.
     * 
     * Outflow is a class handling cells tagged as sysboundarytype::OUTFLOW by this system boundary condition. It applies copy/outflow boundary conditions.
@@ -56,47 +69,59 @@ namespace SBC {
          Project &project
       );
       virtual Real fieldSolverBoundaryCondMagneticField(
-         const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-         const std::vector<fs_cache::CellCache>& cellCache,
-         const uint16_t& localID,
+         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBDt2Grid,
+         FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
+         FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EDt2Grid,
+         FsGrid< fsgrids::technical, 2> & technicalGrid,
+         cint i,
+         cint j,
+         cint k,
          creal& dt,
          cuint& RKCase,
-         cint& offset,
          cuint& component
       );
       virtual void fieldSolverBoundaryCondElectricField(
-         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-         const CellID& cellID,
-         cuint RKCase,
+         FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
+         cint i,
+         cint j,
+         cint k,
          cuint component
       );
       virtual void fieldSolverBoundaryCondHallElectricField(
-         fs_cache::CellCache& cache,
-         cuint RKCase,
+         FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2> & EHallGrid,
+         cint i,
+         cint j,
+         cint k,
          cuint component
       );
-
       virtual void fieldSolverBoundaryCondGradPeElectricField(
-         fs_cache::CellCache& cache,
-         cuint RKCase,
+         FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2> & EGradPeGrid,
+         cint i,
+         cint j,
+         cint k,
          cuint component
       );
-
       virtual void fieldSolverBoundaryCondDerivatives(
-         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-         const CellID& cellID,
+         FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
+         FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> & dMomentsGrid,
+         cint i,
+         cint j,
+         cint k,
          cuint& RKCase,
          cuint& component
       );
       virtual void fieldSolverBoundaryCondBVOLDerivatives(
-         const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-         const CellID& cellID,
+         FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volGrid,
+         cint i,
+         cint j,
+         cint k,
          cuint& component
       );
       virtual void vlasovBoundaryCondition(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const CellID& cellID,
-         const int& popID
+         const uint popID
       );
       
       virtual void getFaces(bool* faces);
@@ -106,21 +131,16 @@ namespace SBC {
    protected:
       /*! Array of bool telling which faces are going to be processed by the system boundary condition.*/
       bool facesToProcess[6];
-      /*! Array of bool telling which faces are going to be skipped by the Vlasov system boundary condition.*/
-      bool facesToSkipVlasov[6];
       /*! Array of bool telling which faces are going to be processed by the fields system boundary condition.*/
       bool facesToSkipFields[6];
+      /*! Array of bool telling which faces are going to be reapplied upon restart.*/
+      bool facesToReapply[6];
       /*! List of faces on which outflow boundary conditions are to be applied ([xyz][+-]). */
       std::vector<std::string> faceList;
-      /*! List of schemes to use for the Vlasov outflow boundary conditions on each face ([xyz][+-]). */
-      std::array<uint, 6> faceVlasovScheme;
       /*! List of faces on which no fields outflow boundary conditions are to be applied ([xyz][+-]). */
       std::vector<std::string> faceNoFieldsList;
-      Real fieldBoundaryCopyFromExistingFaceNbrMagneticField(
-         const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-         const CellID& cellID,
-         cuint& component
-      );
+      std::vector<OutflowSpeciesParameters> speciesParams;
+      
       /*! Factor by which to quench the inflowing parts of the velocity distribution function.*/
       Real quenchFactor;
       

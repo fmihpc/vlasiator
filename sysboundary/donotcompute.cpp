@@ -3,7 +3,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -71,20 +71,20 @@ namespace SBC {
          cell->parameters[CellParams::EX] = 0.0;
          cell->parameters[CellParams::EY] = 0.0;
          cell->parameters[CellParams::EZ] = 0.0;
-         cell->parameters[CellParams::RHO] = 0.0;
-         cell->parameters[CellParams::RHOVX] = 0.0;
-         cell->parameters[CellParams::RHOVY] = 0.0;
-         cell->parameters[CellParams::RHOVZ] = 0.0;
-         cell->parameters[CellParams::RHO_DT2] = 0.0;
-         cell->parameters[CellParams::RHOVX_DT2] = 0.0;
-         cell->parameters[CellParams::RHOVY_DT2] = 0.0;
-         cell->parameters[CellParams::RHOVZ_DT2] = 0.0;
-         cell->parameters[CellParams::RHOLOSSADJUST] = 0.0;
-         cell->parameters[CellParams::RHOLOSSVELBOUNDARY] = 0.0;
+         cell->parameters[CellParams::RHOM] = 0.0;
+         cell->parameters[CellParams::VX] = 0.0;
+         cell->parameters[CellParams::VY] = 0.0;
+         cell->parameters[CellParams::VZ] = 0.0;
+         cell->parameters[CellParams::RHOQ] = 0.0;
+         cell->parameters[CellParams::RHOM_DT2] = 0.0;
+         cell->parameters[CellParams::VX_DT2] = 0.0;
+         cell->parameters[CellParams::VY_DT2] = 0.0;
+         cell->parameters[CellParams::VZ_DT2] = 0.0;
+         cell->parameters[CellParams::RHOQ_DT2] = 0.0;
          
          //let's get rid of blocks not fulfilling the criteria here to save
          //memory.
-         for (unsigned int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
+         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
             cell->adjustSingleCellVelocityBlocks(popID);
       }
       

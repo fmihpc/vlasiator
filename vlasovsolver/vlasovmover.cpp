@@ -3,7 +3,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -71,7 +71,7 @@ void calculateSpatialTranslation(
         const vector<CellID>& remoteTargetCellsy,
         const vector<CellID>& remoteTargetCellsz,
         creal dt,
-        const int& popID) {
+        const uint popID) {
 
     int trans_timer;
     bool localTargetGridGenerated = false;
@@ -81,44 +81,12 @@ void calculateSpatialTranslation(
       trans_timer=phiprof::initializeTimer("transfer-stencil-data-z","MPI");
       phiprof::start(trans_timer);
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
-      mpiGrid.start_remote_neighbor_copy_updates(VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);
-      phiprof::stop(trans_timer);
-      
-      // generate target grid in the temporary arrays, same size as
-      // original one. We only need to create these in target cells
-      createTargetGrid(mpiGrid,remoteTargetCellsz,popID);
-
-      if(!localTargetGridGenerated){ 
-         createTargetGrid(mpiGrid,local_target_cells,popID);
-         localTargetGridGenerated=true;
-      }
-
-      phiprof::start(trans_timer);
-      mpiGrid.wait_remote_neighbor_copy_update_receives(VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);
+      mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);
       phiprof::stop(trans_timer);
       
       phiprof::start("compute-mapping-z");
-      #pragma omp parallel
-      {
-         const int tid = omp_get_thread_num();
-         no_subnormals();
-         for (size_t c=0; c<local_propagated_cells.size(); ++c) {
-            Real t_start = 0;
-            if (tid == 0) if (Parameters::prepareForRebalance == true) t_start = MPI_Wtime();
-
-            trans_map_1d(mpiGrid,local_propagated_cells[c], 2, dt,popID); // map along z//
-
-            if (tid == 0) if (Parameters::prepareForRebalance == true) {
-               mpiGrid[local_propagated_cells[c]]->get_cell_parameters()[CellParams::LBWEIGHTCOUNTER] 
-                       += (MPI_Wtime()-t_start);
-            }
-         }
-      }
+      trans_map_1d(mpiGrid,local_propagated_cells, remoteTargetCellsz, 2, dt,popID); // map along z//
       phiprof::stop("compute-mapping-z");
-
-      phiprof::start(trans_timer);
-      mpiGrid.wait_remote_neighbor_copy_update_sends();
-      phiprof::stop(trans_timer);
 
       trans_timer=phiprof::initializeTimer("update_remote-z","MPI");
       phiprof::start("update_remote-z");
@@ -126,9 +94,7 @@ void calculateSpatialTranslation(
       update_remote_mapping_contribution(mpiGrid, 2,-1,popID);
       phiprof::stop("update_remote-z");
 
-      clearTargetGrid(mpiGrid,remoteTargetCellsz);
-      swapTargetSourceGrid(mpiGrid, local_target_cells,popID);
-      zeroTargetGrid(mpiGrid, local_target_cells);
+
    }
 
    // ------------- SLICE - map dist function in X --------------- //
@@ -136,50 +102,18 @@ void calculateSpatialTranslation(
       trans_timer=phiprof::initializeTimer("transfer-stencil-data-x","MPI");
       phiprof::start(trans_timer);
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
-      mpiGrid.start_remote_neighbor_copy_updates(VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
-      phiprof::stop(trans_timer);
-      
-      createTargetGrid(mpiGrid,remoteTargetCellsx,popID);
-       if(!localTargetGridGenerated){ 
-         createTargetGrid(mpiGrid,local_target_cells,popID);
-         localTargetGridGenerated=true;
-      }
-
-      phiprof::start(trans_timer);
-      mpiGrid.wait_remote_neighbor_copy_update_receives(VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
+      mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
       phiprof::stop(trans_timer);
 
       phiprof::start("compute-mapping-x");
-      #pragma omp parallel
-      {
-         const int tid = omp_get_thread_num();
-         no_subnormals();
-         for (size_t c=0; c<local_propagated_cells.size(); ++c) {
-            Real t_start = 0;
-            if (tid == 0) if (Parameters::prepareForRebalance == true) t_start = MPI_Wtime();
-
-            trans_map_1d(mpiGrid,local_propagated_cells[c],0,dt,popID); // map along x//
-
-            if (tid == 0) if (Parameters::prepareForRebalance == true) {
-               mpiGrid[local_propagated_cells[c]]->get_cell_parameters()[CellParams::LBWEIGHTCOUNTER] 
-                       += (MPI_Wtime()-t_start);
-            }
-         }
-      }
+      trans_map_1d(mpiGrid,local_propagated_cells, remoteTargetCellsx, 0,dt,popID); // map along x//
       phiprof::stop("compute-mapping-x");
-
-      phiprof::start(trans_timer);
-      mpiGrid.wait_remote_neighbor_copy_update_sends();
-      phiprof::stop(trans_timer);
 
       trans_timer=phiprof::initializeTimer("update_remote-x","MPI");
       phiprof::start("update_remote-x");
       update_remote_mapping_contribution(mpiGrid, 0,+1,popID);
       update_remote_mapping_contribution(mpiGrid, 0,-1,popID);
       phiprof::stop("update_remote-x");
-      clearTargetGrid(mpiGrid,remoteTargetCellsx);
-      swapTargetSourceGrid(mpiGrid, local_target_cells,popID);
-      zeroTargetGrid(mpiGrid, local_target_cells);
    }
    
    // ------------- SLICE - map dist function in Y --------------- //
@@ -187,52 +121,19 @@ void calculateSpatialTranslation(
       trans_timer=phiprof::initializeTimer("transfer-stencil-data-y","MPI");
       phiprof::start(trans_timer);
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
-      mpiGrid.start_remote_neighbor_copy_updates(VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);
-      phiprof::stop(trans_timer);
-      
-      createTargetGrid(mpiGrid,remoteTargetCellsy,popID);
-      if(!localTargetGridGenerated){ 
-         createTargetGrid(mpiGrid,local_target_cells,popID);
-         localTargetGridGenerated=true;
-      }
-      
-      phiprof::start(trans_timer);
-      mpiGrid.wait_remote_neighbor_copy_update_receives(VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);
+      mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);
       phiprof::stop(trans_timer);
 
-      phiprof::start("compute-mapping-y");
-      #pragma omp parallel
-      {
-         const int tid = omp_get_thread_num();
-         no_subnormals();
-         for (size_t c=0; c<local_propagated_cells.size(); ++c) {
-            Real t_start = 0;
-            if (tid == 0) if (Parameters::prepareForRebalance == true) t_start = MPI_Wtime();
-            
-            trans_map_1d(mpiGrid,local_propagated_cells[c],1,dt,popID); // map along y//
-            
-            if (tid == 0) if (Parameters::prepareForRebalance == true) {
-               mpiGrid[local_propagated_cells[c]]->get_cell_parameters()[CellParams::LBWEIGHTCOUNTER] 
-                       += (MPI_Wtime()-t_start);
-            }
-         }
-      }
+      phiprof::start("compute-mapping-y");      
+      trans_map_1d(mpiGrid,local_propagated_cells, remoteTargetCellsy, 1,dt,popID); // map along y//
       phiprof::stop("compute-mapping-y");
-
-      phiprof::start(trans_timer);
-      mpiGrid.wait_remote_neighbor_copy_update_sends();
-      phiprof::stop(trans_timer);
       
       trans_timer=phiprof::initializeTimer("update_remote-y","MPI");
       phiprof::start("update_remote-y");
       update_remote_mapping_contribution(mpiGrid, 1,+1,popID);
       update_remote_mapping_contribution(mpiGrid, 1,-1,popID);
       phiprof::stop("update_remote-y");
-      clearTargetGrid(mpiGrid,remoteTargetCellsy);
-      swapTargetSourceGrid(mpiGrid, local_target_cells,popID);
    }
-
-   clearTargetGrid(mpiGrid,local_target_cells);
 }
 
 /*!
@@ -286,7 +187,7 @@ void calculateSpatialTranslation(
    phiprof::stop("compute_cell_lists");
 
    // Translate all particle species
-   for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+   for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       string profName = "translate "+getObjectWrapper().particleSpecies[popID].name;
       phiprof::start(profName);
       SpatialCell::setCommunicatedSpecies(popID);
@@ -322,7 +223,7 @@ momentCalculation:
  * @param mpiGrid Parallel grid library.
  * @param propagatedCells List of cells in which the population is accelerated.
  * @param dt Timestep.*/
-void calculateAcceleration(const int& popID,const int& globalMaxSubcycles,const uint& step,
+void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const uint step,
                            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                            const std::vector<CellID>& propagatedCells,
                            const Real& dt) {
@@ -402,7 +303,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
       // Even if acceleration is turned off we need to adjust velocity blocks 
       // because the boundary conditions may have altered the velocity space, 
       // and to update changes in no-content blocks during translation.
-      for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
+      for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
         adjustVelocityBlocks(mpiGrid, cells, true, popID);
       goto momentCalculation;
    }
@@ -410,7 +311,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
     
    
    // Accelerate all particle species
-    for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
        int maxSubcycles=0;
        int globalMaxSubcycles;
 
@@ -424,23 +325,27 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
        for (size_t c=0; c<cells.size(); ++c) {
           SpatialCell* SC = mpiGrid[cells[c]];
           const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = SC->get_velocity_mesh(popID);
-          // disregard boundary cells and do not propagate spatial 
-          // cells with no blocks (well, do not computes in practice)
-          if (SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY && vmesh.size() != 0) {
-             propagatedCells.push_back(cells[c]);
-             //prepare for acceleration, updates max dt for each cell
+          // disregard boundary cells, in preparation for acceleration 
+          if (SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ) {
+             if(vmesh.size() != 0){
+                //do not propagate spatial cells with no blocks
+                propagatedCells.push_back(cells[c]);
+             }
+             //prepare for acceleration, updates max dt for each cell, it
+             //needs to be set to somthing sensible for _all_ cells, even if
+             //they are not propagated
              prepareAccelerateCell(SC, popID);
              //update max subcycles for all cells in this process
-#warning CellParams::ACCSUBCYCLES does not support multiple populations
-             SC->parameters[CellParams::ACCSUBCYCLES] = getAccelerationSubcycles(SC, dt, popID);
-             maxSubcycles = max(getAccelerationSubcycles(SC, dt, popID), maxSubcycles);
+             maxSubcycles = max((int)getAccelerationSubcycles(SC, dt, popID), maxSubcycles);
+             spatial_cell::Population& pop = SC->get_population(popID);
+             pop.ACCSUBCYCLES = getAccelerationSubcycles(SC, dt, popID);
           }
        }       
        // Compute global maximum for number of subcycles
        MPI_Allreduce(&maxSubcycles, &globalMaxSubcycles, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
 
        // substep global max times
-       for(uint step=0; step<globalMaxSubcycles; ++step) {
+       for(uint step=0; step<(uint)globalMaxSubcycles; ++step) {
           if(step > 0) {
              // prune list of cells to propagate to only contained those which are now subcycled
              vector<CellID> temp;
@@ -453,7 +358,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
              propagatedCells.swap(temp);
           }
           // Accelerate population over one subcycle step
-          calculateAcceleration(popID,globalMaxSubcycles,step,mpiGrid,propagatedCells,dt);
+          calculateAcceleration(popID,(uint)globalMaxSubcycles,step,mpiGrid,propagatedCells,dt);
        } // for-loop over acceleration substeps
        
        // final adjust for all cells, also fixing remote cells.
@@ -471,7 +376,7 @@ momentCalculation:
    for (size_t c=0; c<cells.size(); ++c) {
       SpatialCell* cell = mpiGrid[cells[c]];
       cell->parameters[CellParams::MAXVDT] = numeric_limits<Real>::max();
-      for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          cell->parameters[CellParams::MAXVDT]
            = min(cell->get_max_v_dt(popID), cell->parameters[CellParams::MAXVDT]);
       }
@@ -484,10 +389,11 @@ momentCalculation:
 
 void calculateInterpolatedVelocityMoments(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   const int cp_rho,
-   const int cp_rhovx,
-   const int cp_rhovy,
-   const int cp_rhovz,
+   const int cp_rhom,
+   const int cp_vx,
+   const int cp_vy,
+   const int cp_vz,
+   const int cp_rhoq,
    const int cp_p11,
    const int cp_p22,
    const int cp_p33
@@ -500,13 +406,23 @@ void calculateInterpolatedVelocityMoments(
       const CellID cellID = cells[c];
       SpatialCell* SC = mpiGrid[cellID];
       if(SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-         SC->parameters[cp_rho  ] = 0.5* ( SC->parameters[CellParams::RHO_R] + SC->parameters[CellParams::RHO_V] );
-         SC->parameters[cp_rhovx] = 0.5* ( SC->parameters[CellParams::RHOVX_R] + SC->parameters[CellParams::RHOVX_V] );
-         SC->parameters[cp_rhovy] = 0.5* ( SC->parameters[CellParams::RHOVY_R] + SC->parameters[CellParams::RHOVY_V] );
-         SC->parameters[cp_rhovz] = 0.5* ( SC->parameters[CellParams::RHOVZ_R] + SC->parameters[CellParams::RHOVZ_V] );
+         SC->parameters[cp_rhom  ] = 0.5* ( SC->parameters[CellParams::RHOM_R] + SC->parameters[CellParams::RHOM_V] );
+         SC->parameters[cp_vx] = 0.5* ( SC->parameters[CellParams::VX_R] + SC->parameters[CellParams::VX_V] );
+         SC->parameters[cp_vy] = 0.5* ( SC->parameters[CellParams::VY_R] + SC->parameters[CellParams::VY_V] );
+         SC->parameters[cp_vz] = 0.5* ( SC->parameters[CellParams::VZ_R] + SC->parameters[CellParams::VZ_V] );
+         SC->parameters[cp_rhoq  ] = 0.5* ( SC->parameters[CellParams::RHOQ_R] + SC->parameters[CellParams::RHOQ_V] );
          SC->parameters[cp_p11]   = 0.5* ( SC->parameters[CellParams::P_11_R] + SC->parameters[CellParams::P_11_V] );
          SC->parameters[cp_p22]   = 0.5* ( SC->parameters[CellParams::P_22_R] + SC->parameters[CellParams::P_22_V] );
          SC->parameters[cp_p33]   = 0.5* ( SC->parameters[CellParams::P_33_R] + SC->parameters[CellParams::P_33_V] );
+
+         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+            spatial_cell::Population& pop = SC->get_population(popID);
+            pop.RHO = 0.5 * ( pop.RHO_R + pop.RHO_V );
+            for(int i=0; i<3; i++) {
+               pop.V[i] = 0.5 * ( pop.V_R[i] + pop.V_V[i] );
+               pop.P[i]    = 0.5 * ( pop.P_R[i] + pop.P_V[i] );
+            }
+         }
       }
    }
 }
@@ -525,10 +441,11 @@ void calculateInitialVelocityMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_G
       // WARNING the following is sane as this function is only called by initializeGrid.
       // We need initialized _DT2 values for the dt=0 field propagation done in the beginning.
       // Later these will be set properly.
-      SC->parameters[CellParams::RHO_DT2] = SC->parameters[CellParams::RHO];
-      SC->parameters[CellParams::RHOVX_DT2] = SC->parameters[CellParams::RHOVX];
-      SC->parameters[CellParams::RHOVY_DT2] = SC->parameters[CellParams::RHOVY];
-      SC->parameters[CellParams::RHOVZ_DT2] = SC->parameters[CellParams::RHOVZ];
+      SC->parameters[CellParams::RHOM_DT2] = SC->parameters[CellParams::RHOM];
+      SC->parameters[CellParams::VX_DT2] = SC->parameters[CellParams::VX];
+      SC->parameters[CellParams::VY_DT2] = SC->parameters[CellParams::VY];
+      SC->parameters[CellParams::VZ_DT2] = SC->parameters[CellParams::VZ];
+      SC->parameters[CellParams::RHOQ_DT2] = SC->parameters[CellParams::RHOQ];
       SC->parameters[CellParams::P_11_DT2] = SC->parameters[CellParams::P_11];
       SC->parameters[CellParams::P_22_DT2] = SC->parameters[CellParams::P_22];
       SC->parameters[CellParams::P_33_DT2] = SC->parameters[CellParams::P_33];

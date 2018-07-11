@@ -3,7 +3,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,10 +30,10 @@
 #include "../spatial_cell.hpp"
 
 Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
-   spatial_cell::SpatialCell* spatial_cell,const int& popID,const Real& dt);
+   spatial_cell::SpatialCell* spatial_cell,const uint popID,const Real& dt);
 
 void updateAccelerationMaxdt(spatial_cell::SpatialCell* spatial_cell, 
-                             const int& popID);
+                             const uint popID);
 
 
 

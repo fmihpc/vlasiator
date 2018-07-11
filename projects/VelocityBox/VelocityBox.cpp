@@ -3,7 +3,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,6 +29,7 @@
 #include "../../readparameters.h"
 #include "../../backgroundfield/backgroundfield.h"
 #include "../../backgroundfield/constantfield.hpp"
+#include "../../object_wrapper.h"
 
 #include "VelocityBox.h"
 
@@ -59,6 +60,11 @@ namespace projects {
    void VelocityBox::getParameters(){
       Project::getParameters();
       typedef Readparameters RP;
+
+      if(getObjectWrapper().particleSpecies.size() > 1) {
+         std::cerr << "The selected project does not support multiple particle populations! Aborting in " << __FILE__ << " line " << __LINE__ << std::endl;
+         abort();
+      }
       RP::get("VelocityBox.rho", this->rho);
       RP::get("VelocityBox.Vx1", this->Vx[0]);
       RP::get("VelocityBox.Vx2", this->Vx[1]);
@@ -71,7 +77,7 @@ namespace projects {
       RP::get("VelocityBox.Bz", this->Bz);
    }
 
-  Real VelocityBox::getDistribValue(creal& vx, creal& vy, creal& vz){
+  Real VelocityBox::getDistribValue(creal& vx, creal& vy, creal& vz, const uint popID) const {
      if (vx >= this->Vx[0] && vx <= this->Vx[1] &&
          vy >= this->Vy[0] && vy <= this->Vy[1] &&
          vz >= this->Vz[0] && vz <= this->Vz[1])
@@ -86,9 +92,9 @@ namespace projects {
      creal& x, creal& y, creal& z,
      creal& dx, creal& dy, creal& dz,
      creal& vx, creal& vy, creal& vz,
-     creal& dvx, creal& dvy, creal& dvz,const int& popID
-  ) {
-    return getDistribValue(vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz);
+     creal& dvx, creal& dvy, creal& dvz,const uint popID
+  ) const {
+    return getDistribValue(vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, popID);
   }
 
 

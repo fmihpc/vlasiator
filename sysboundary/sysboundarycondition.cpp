@@ -3,7 +3,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -111,208 +111,72 @@ namespace SBC {
       cerr << "ERROR: SysBoundaryCondition::addParameters called instead of derived class function!" << endl;
    }
    
-   /*! SysBoundaryCondition base class instance of the getParameters function. Should not be used, each derived class should have its own.*/
-   void SysBoundaryCondition::getParameters() {
-      cerr << "ERROR: SysBoundaryCondition::getParameters called instead of derived class function!" << endl;
-   }
-   
-   /*! Function called during initialisation to set the system boundary condition's parameters.
-    * This function must initialize the boundary condition function for all particle species,
-    * i.e., its behavior is not allowed to depend on SysBoundaryCondition::activePopID.
-    * Base version should not be used, each derived class should have its own.
-    */
-   bool SysBoundaryCondition::initSysBoundary(
-      creal& t,
-      Project &project
-   ) {
-      cerr << "ERROR: SysBoundaryCondition::initSysBoundary called instead of derived class function!" << endl;
-      return false;
-   }
-
-   /*! Function used to assign the system boundary condition type to a cell.
-    * \param mpiGrid Grid
-    * \return The system boundary condition type's index
-    */
-   bool SysBoundaryCondition::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
-      cerr << "ERROR: SysBoundaryCondition::assignSysBoundary called instead of derived class function!" << endl;
-      return false;
-   }
-   
-   /*! Function used to apply the system boundary condition initial state to a cell.
-    * \param mpiGrid Grid
-    * \param project Project object
-    * \return Boolean true on success, false on failure.
-    */
-   bool SysBoundaryCondition::applyInitialState(
-      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      Project &project
-   ) {
-      cerr << "ERROR: SysBoundaryCondition::applyInitialState called instead of derived class function!" << endl;
-      return false;
-   }
-   
-   /*! Function used to return the system boundary condition cell's magnetic field component.
-    * \param mpiGrid Grid
-    * \param cellCache Field solver cell cache
-    * \param localID Field solver cache local cell ID
-    * \param dt Time step length
-    * \param RKCase The step in Runge-Kutta (use values from enum defined in common.h).
-    * \param offset Offset of 0-index to the PERBX component, usually 0 or CellParams::PERBX_DT2 - CellParams::PERBX
-    * \param component 0: x-component, 1: y-component, 2: z-component.
-    * 
-    * \return The requested component value.
-    */
-
-   Real SysBoundaryCondition::fieldSolverBoundaryCondMagneticField(
-      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const std::vector<fs_cache::CellCache>& cellCache,
-      const uint16_t& localID,
-      creal& dt,
-      cuint& RKCase,
-      cint& offset,
-      cuint& component
-   ) {
-      cerr << "ERROR: SysBoundaryCondition::fieldSolverBoundaryCondMagneticField called instead of derived class function!" << endl;
-      exit(1);
-   }
-   
-   /*! Function used to return the system boundary condition cell's main electric field component (without Hall term).
-    * \param mpiGrid Grid
-    * \param cellID The cell's ID.
-    * \param RKCase The step in Runge-Kutta (use values from enum defined in common.h).
-    * \param component 0: x-component, 1: y-component, 2: z-component.
-    * 
-    * \return The requested component value.
-    * 
-    * \sa fieldSolverBoundaryCondHallElectricField
-    */
-   void SysBoundaryCondition::fieldSolverBoundaryCondElectricField(
-      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID,
-      cuint RKCase,
-      cuint component
-   ) {
-      cerr << "ERROR: SysBoundaryCondition::fieldSolverBoundaryCondElectricField called instead of derived class function!" << endl;
-      exit(1);
-   }
-   
-   /*! Function used to compute the system boundary condition cell's Hall electric field components and save them into the cell parameters.
-    * \param cache Field solver cell cache
-    * \param RKCase The step in Runge-Kutta (use values from enum defined in common.h).
-    * \param component 0: x-component, 1: y-component, 2: z-component.
-    */
-   void SysBoundaryCondition::fieldSolverBoundaryCondHallElectricField(
-      fs_cache::CellCache& cache,
-      cuint RKCase,
-      cuint component
-   ) {
-      cerr << "ERROR: SysBoundaryCondition::fieldSolverBoundaryCondHallElectricField called instead of derived class function!" << endl;
-      exit(1);
-   }
-   
-   /*! Function used to compute the system boundary condition cell's electron pressure gradient electric field components and save them into the cell parameters.
-    * \param cache Field solver cell cache.
-    * \param RKCase The step in Runge-Kutta (use values from enum defined in common.h).
-    * \param component 0: x-component, 1: y-component, 2: z-component.
-    */
-   void SysBoundaryCondition::fieldSolverBoundaryCondGradPeElectricField(
-      fs_cache::CellCache& cache,
-      cuint RKCase,
-      cuint component
-   ) {
-      cerr << "ERROR: SysBoundaryCondition::fieldSolverBoundaryCondGradPeElectricField called instead of derived class function!" << endl;
-      exit(1);
-   }
-   
-   /*! Function used to compute the system boundary condition cell's derivatives and save them into the cell derivatives.
-    * \param mpiGrid Grid
-    * \param cellID The cell's ID.
-    * \param RKCase The step in Runge-Kutta (use values from enum defined in common.h).
-    * \param component 0: x-derivatives, 1: y-derivatives, 2: z-derivatives, 3: xy-derivatives, 4: xz-derivatives, 5: yz-derivatives.
-    */
-   void SysBoundaryCondition::fieldSolverBoundaryCondDerivatives(
-      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID,
-      cuint& RKCase,
-      cuint& component
-   ) {
-      cerr << "ERROR: SysBoundaryCondition::fieldSolverBoundaryCondDerivatives called instead of derived class function!" << endl;
-      exit(1);
-   }
-   
-   /*! Function used to compute the system boundary condition cell's BVOL derivatives and save them into the cell derivatives.
-    * \param mpiGrid Grid
-    * \param cellID The cell's ID.
-    * \param component 0: x-derivatives, 1: y-derivatives, 2: z-derivatives.
-    */
-   void SysBoundaryCondition::fieldSolverBoundaryCondBVOLDerivatives(
-      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID,
-      cuint& component
-   ) {
-      cerr << "ERROR: SysBoundaryCondition::fieldSolverBoundaryCondBVOLDerivatives called instead of derived class function!" << endl;
-      exit(1);
-   }
-   
    /*! Function used to set the system boundary condition cell's derivatives to 0.
     * \param mpiGrid Grid
     * \param cellID The cell's ID.
     * \param component 0: x-derivatives, 1: y-derivatives, 2: z-derivatives, 3: xy-derivatives, 4: xz-derivatives, 5: yz-derivatives.
     */
    void SysBoundaryCondition::setCellDerivativesToZero(
-      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID,
+      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
+      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> & dMomentsGrid,
+      cint i,
+      cint j,
+      cint k,
       cuint& component
    ) {
-      Real* const derivs = &(mpiGrid[cellID]->derivatives[0]);
+      std::array<Real, fsgrids::dperb::N_DPERB> * dPerBGrid0 = dPerBGrid.get(i,j,k);
+      std::array<Real, fsgrids::dmoments::N_DMOMENTS> * dMomentsGrid0 = dMomentsGrid.get(i,j,k);
       switch(component) {
          case 0: // x, xx
-            derivs[fieldsolver::drhodx] = 0.0;
-            derivs[fieldsolver::dp11dx] = 0.0;
-            derivs[fieldsolver::dp22dx] = 0.0;
-            derivs[fieldsolver::dp33dx] = 0.0;
-            derivs[fieldsolver::dPERBydx]  = 0.0;
-            derivs[fieldsolver::dPERBzdx]  = 0.0;
-            derivs[fieldsolver::dVxdx]  = 0.0;
-            derivs[fieldsolver::dVydx]  = 0.0;
-            derivs[fieldsolver::dVzdx]  = 0.0;
-            derivs[fieldsolver::dPERBydxx] = 0.0;
-            derivs[fieldsolver::dPERBzdxx] = 0.0;
+            dMomentsGrid0->at(fsgrids::dmoments::drhomdx) = 0.0;
+            dMomentsGrid0->at(fsgrids::dmoments::drhoqdx) = 0.0;
+            dMomentsGrid0->at(fsgrids::dmoments::dp11dx) = 0.0;
+            dMomentsGrid0->at(fsgrids::dmoments::dp22dx) = 0.0;
+            dMomentsGrid0->at(fsgrids::dmoments::dp33dx) = 0.0;
+            dPerBGrid0->at(fsgrids::dperb::dPERBydx)  = 0.0;
+            dPerBGrid0->at(fsgrids::dperb::dPERBzdx)  = 0.0;
+            dMomentsGrid0->at(fsgrids::dmoments::dVxdx)  = 0.0;
+            dMomentsGrid0->at(fsgrids::dmoments::dVydx)  = 0.0;
+            dMomentsGrid0->at(fsgrids::dmoments::dVzdx)  = 0.0;
+            dPerBGrid0->at(fsgrids::dperb::dPERBydxx) = 0.0;
+            dPerBGrid0->at(fsgrids::dperb::dPERBzdxx) = 0.0;
             break;
          case 1: // y, yy
-            derivs[fieldsolver::drhody] = 0.0;
-            derivs[fieldsolver::dp11dy] = 0.0;
-            derivs[fieldsolver::dp22dy] = 0.0;
-            derivs[fieldsolver::dp33dy] = 0.0;
-            derivs[fieldsolver::dPERBxdy]  = 0.0;
-            derivs[fieldsolver::dPERBzdy]  = 0.0;
-            derivs[fieldsolver::dVxdy]  = 0.0;
-            derivs[fieldsolver::dVydy]  = 0.0;
-            derivs[fieldsolver::dVzdy]  = 0.0;
-            derivs[fieldsolver::dPERBxdyy] = 0.0;
-            derivs[fieldsolver::dPERBzdyy] = 0.0;
+            dMomentsGrid0->at(fsgrids::dmoments::drhomdy) = 0.0;
+            dMomentsGrid0->at(fsgrids::dmoments::drhoqdy) = 0.0;
+            dMomentsGrid0->at(fsgrids::dmoments::dp11dy) = 0.0;
+            dMomentsGrid0->at(fsgrids::dmoments::dp22dy) = 0.0;
+            dMomentsGrid0->at(fsgrids::dmoments::dp33dy) = 0.0;
+            dPerBGrid0->at(fsgrids::dperb::dPERBxdy)  = 0.0;
+            dPerBGrid0->at(fsgrids::dperb::dPERBzdy)  = 0.0;
+            dMomentsGrid0->at(fsgrids::dmoments::dVxdy)  = 0.0;
+            dMomentsGrid0->at(fsgrids::dmoments::dVydy)  = 0.0;
+            dMomentsGrid0->at(fsgrids::dmoments::dVzdy)  = 0.0;
+            dPerBGrid0->at(fsgrids::dperb::dPERBxdyy) = 0.0;
+            dPerBGrid0->at(fsgrids::dperb::dPERBzdyy) = 0.0;
             break;
          case 2: // z, zz
-            derivs[fieldsolver::drhodz] = 0.0;
-            derivs[fieldsolver::dp11dz] = 0.0;
-            derivs[fieldsolver::dp22dz] = 0.0;
-            derivs[fieldsolver::dp33dz] = 0.0;
-            derivs[fieldsolver::dPERBxdz]  = 0.0;
-            derivs[fieldsolver::dPERBydz]  = 0.0;
-            derivs[fieldsolver::dVxdz]  = 0.0;
-            derivs[fieldsolver::dVydz]  = 0.0;
-            derivs[fieldsolver::dVzdz]  = 0.0;
-            derivs[fieldsolver::dPERBxdzz] = 0.0;
-            derivs[fieldsolver::dPERBydzz] = 0.0;
+            dMomentsGrid0->at(fsgrids::dmoments::drhomdz) = 0.0;
+            dMomentsGrid0->at(fsgrids::dmoments::drhoqdz) = 0.0;
+            dMomentsGrid0->at(fsgrids::dmoments::dp11dz) = 0.0;
+            dMomentsGrid0->at(fsgrids::dmoments::dp22dz) = 0.0;
+            dMomentsGrid0->at(fsgrids::dmoments::dp33dz) = 0.0;
+            dPerBGrid0->at(fsgrids::dperb::dPERBxdz)  = 0.0;
+            dPerBGrid0->at(fsgrids::dperb::dPERBydz)  = 0.0;
+            dMomentsGrid0->at(fsgrids::dmoments::dVxdz)  = 0.0;
+            dMomentsGrid0->at(fsgrids::dmoments::dVydz)  = 0.0;
+            dMomentsGrid0->at(fsgrids::dmoments::dVzdz)  = 0.0;
+            dPerBGrid0->at(fsgrids::dperb::dPERBxdzz) = 0.0;
+            dPerBGrid0->at(fsgrids::dperb::dPERBydzz) = 0.0;
             break;
          case 3: // xy
-            derivs[fieldsolver::dPERBzdxy] = 0.0;
+            dPerBGrid0->at(fsgrids::dperb::dPERBzdxy) = 0.0;
             break;
          case 4: // xz
-            derivs[fieldsolver::dPERBydxz] = 0.0;
+            dPerBGrid0->at(fsgrids::dperb::dPERBydxz) = 0.0;
             break;
          case 5: // yz
-            derivs[fieldsolver::dPERBxdyz] = 0.0;
+            dPerBGrid0->at(fsgrids::dperb::dPERBxdyz) = 0.0;
             break;
          default:
             cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
@@ -325,42 +189,29 @@ namespace SBC {
     * \param component 0: x-derivatives, 1: y-derivatives, 2: z-derivatives.
     */
    void SysBoundaryCondition::setCellBVOLDerivativesToZero(
-      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID,
+      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volGrid,
+      cint i,
+      cint j,
+      cint k,
       cuint& component
    ) {
-      Real* const derivs = &(mpiGrid[cellID]->derivativesBVOL[0]);
+      std::array<Real, fsgrids::volfields::N_VOL> * volGrid0 = volGrid.get(i,j,k);
       switch(component) {
          case 0:
-            derivs[bvolderivatives::dPERBYVOLdx] = 0.0;
-            derivs[bvolderivatives::dPERBZVOLdx] = 0.0;
+            volGrid0->at(fsgrids::volfields::dPERBYVOLdx) = 0.0;
+            volGrid0->at(fsgrids::volfields::dPERBZVOLdx) = 0.0;
             break;
          case 1:
-            derivs[bvolderivatives::dPERBXVOLdy] = 0.0;
-            derivs[bvolderivatives::dPERBZVOLdy] = 0.0;
+            volGrid0->at(fsgrids::volfields::dPERBXVOLdy) = 0.0;
+            volGrid0->at(fsgrids::volfields::dPERBZVOLdy) = 0.0;
             break;
          case 2:
-            derivs[bvolderivatives::dPERBXVOLdz] = 0.0;
-            derivs[bvolderivatives::dPERBYVOLdz] = 0.0;
+            volGrid0->at(fsgrids::volfields::dPERBXVOLdz) = 0.0;
+            volGrid0->at(fsgrids::volfields::dPERBYVOLdz) = 0.0;
             break;
          default:
             cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
       }
-   }
-   
-
-   /*! Function used to compute the system boundary condition for 
-    * the distribution function and moments in the given spatial cell.
-    * @param mpiGrid The grid.
-    * @param cellID The cell's ID.
-    * @param popID Particle species ID.*/
-   void SysBoundaryCondition::vlasovBoundaryCondition(
-         const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-         const CellID& cellID,
-         const int& popID
-   ) {
-      cerr << "ERROR: SysBoundaryCondition::vlasovBoundaryCondition called instead of derived class function!" << endl;
-      exit(1);
    }
    
    /*! Function used to copy the distribution and moments from (one of) the closest sysboundarytype::NOT_SYSBOUNDARY cell.
@@ -372,7 +223,7 @@ namespace SBC {
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const CellID& cellID,
          const bool& copyMomentsOnly,
-         const int& popID
+         const uint popID
    ) {
       const CellID closestCell = getTheClosestNonsysboundaryCell(cellID);
       
@@ -390,7 +241,7 @@ namespace SBC {
     */
    void SysBoundaryCondition::vlasovBoundaryCopyFromAllClosestNbrs(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID,const int& popID
+      const CellID& cellID,const uint popID
    ) {
       const std::vector<CellID> closestCells = getAllClosestNonsysboundaryCells(cellID);
       
@@ -408,7 +259,7 @@ namespace SBC {
    void SysBoundaryCondition::vlasovBoundaryCopyFromTheClosestNbrAndLimit(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
-      const int& popID
+      const uint popID
       ) {
       const CellID closestCell = getTheClosestNonsysboundaryCell(cellID);
       SpatialCell * from = mpiGrid[closestCell];
@@ -485,84 +336,44 @@ namespace SBC {
             SpatialCell* to,
             bool allowBlockAdjustment,
             const bool& copyMomentsOnly,
-            const int& popID
+            const uint popID
    ) {
       // WARNING Time-independence assumed here. _R and _V not copied, 
       // as boundary conditions cells should not set/use them.
       if (popID == 0) {
-         to->parameters[CellParams::RHO_DT2] = from->parameters[CellParams::RHO_DT2];
-         to->parameters[CellParams::RHOVX_DT2] = from->parameters[CellParams::RHOVX_DT2];
-         to->parameters[CellParams::RHOVY_DT2] = from->parameters[CellParams::RHOVY_DT2];
-         to->parameters[CellParams::RHOVZ_DT2] = from->parameters[CellParams::RHOVZ_DT2];
+         to->parameters[CellParams::RHOM_DT2] = from->parameters[CellParams::RHOM_DT2];
+         to->parameters[CellParams::VX_DT2] = from->parameters[CellParams::VX_DT2];
+         to->parameters[CellParams::VY_DT2] = from->parameters[CellParams::VY_DT2];
+         to->parameters[CellParams::VZ_DT2] = from->parameters[CellParams::VZ_DT2];
+         to->parameters[CellParams::RHOQ_DT2] = from->parameters[CellParams::RHOQ_DT2];
          to->parameters[CellParams::P_11_DT2] = from->parameters[CellParams::P_11_DT2];
          to->parameters[CellParams::P_22_DT2] = from->parameters[CellParams::P_22_DT2];
          to->parameters[CellParams::P_33_DT2] = from->parameters[CellParams::P_33_DT2];
-         to->parameters[CellParams::RHO] = from->parameters[CellParams::RHO];
-         to->parameters[CellParams::RHOVX] = from->parameters[CellParams::RHOVX];
-         to->parameters[CellParams::RHOVY] = from->parameters[CellParams::RHOVY];
-         to->parameters[CellParams::RHOVZ] = from->parameters[CellParams::RHOVZ];
+         to->parameters[CellParams::RHOM] = from->parameters[CellParams::RHOM];
+         to->parameters[CellParams::VX] = from->parameters[CellParams::VX];
+         to->parameters[CellParams::VY] = from->parameters[CellParams::VY];
+         to->parameters[CellParams::VZ] = from->parameters[CellParams::VZ];
+         to->parameters[CellParams::RHOQ] = from->parameters[CellParams::RHOQ];
          to->parameters[CellParams::P_11] = from->parameters[CellParams::P_11];
          to->parameters[CellParams::P_22] = from->parameters[CellParams::P_22];
          to->parameters[CellParams::P_33] = from->parameters[CellParams::P_33];
       }
-      if(to->sysBoundaryLayer == 1 && !copyMomentsOnly) { // Do this only for the first layer, the other layers do not need this. Do only if copyMomentsOnly is false.
-
-      // Do this only for the first layer, the other layers do not need this.
-      if (to->sysBoundaryLayer != 1) return;
-
-      if (allowBlockAdjustment) {
-         // prepare list of blocks to remove. It is not safe to loop 
-         // over velocity_block_list while adding/removing blocks
-         std::vector<vmesh::GlobalID> blocksToRemove;
-         for (vmesh::LocalID block_i=0; block_i<to->get_number_of_velocity_blocks(popID); ++block_i) {
-            const vmesh::GlobalID blockGID = to->get_velocity_block_global_id(block_i,popID);
-
-            // If this block does not exist in from, mark it for removal.
-            if (from->get_velocity_block_local_id(blockGID,popID) == from->invalid_local_id()) {
-               blocksToRemove.push_back(blockGID);
-            }
-         }
-
-         // remove blocks
-         for (size_t b=0; b<blocksToRemove.size(); ++b) {
-            cuint blockID=blocksToRemove[b];
-            to->remove_velocity_block(blockID,popID);
-         }
-
-         // add blocks
-         const Realf* fromBlock_data = from->get_data(popID);
-         for (vmesh::LocalID block_i=0; block_i<from->get_number_of_velocity_blocks(popID); ++block_i) {
-            const vmesh::GlobalID blockGID = from->get_velocity_block_global_id(block_i,popID);
+      
+       if(to->sysBoundaryLayer == 1 && !copyMomentsOnly) { // Do this only for the first layer, the other layers do not need this. Do only if copyMomentsOnly is false.
+         to->set_population(from->get_population(popID), popID);
+      } else {
+         to->get_population(popID).RHO = from->get_population(popID).RHO;
+         to->get_population(popID).RHO_R = from->get_population(popID).RHO_R;
+         to->get_population(popID).RHO_V = from->get_population(popID).RHO_V;
+         for (uint i=0; i<3; i++) {
+            to->get_population(popID).V[i] = from->get_population(popID).V[i];
+            to->get_population(popID).V_R[i] = from->get_population(popID).V_R[i];
+            to->get_population(popID).V_V[i] = from->get_population(popID).V_V[i];
+            to->get_population(popID).P[i] = from->get_population(popID).P[i];
+            to->get_population(popID).P_R[i] = from->get_population(popID).P_R[i];
+            to->get_population(popID).P_V[i] = from->get_population(popID).P_V[i];
             
-            // Ensure that target block exists in 'to' cell. 
-            // We must get a new pointer to the 'to' data array here 
-            // because add_velocity_block may reallocate it.
-            to->add_velocity_block(blockGID,popID);
-            Realf* toBlock_data = to->get_data(popID);
-            const vmesh::LocalID toBlockLID = to->get_velocity_block_local_id(blockGID,popID);
-
-            for (unsigned int i = 0; i < SIZE_VELBLOCK; i++) {
-               toBlock_data[toBlockLID*SIZE_VELBLOCK+i] = fromBlock_data[block_i*SIZE_VELBLOCK+i];
-            }
          }
-      } else {         
-         //just copy data to existing blocks, no modification of to blocks allowed
-         const Realf* fromBlock_data = from->get_data(popID);
-         Realf* toBlock_data = to->get_data(popID);
-         for (vmesh::LocalID block_i=0; block_i<to->get_number_of_velocity_blocks(popID); ++block_i) {
-            const vmesh::GlobalID blockGID = to->get_velocity_block_global_id(block_i,popID);
-            const vmesh::LocalID fromBlockLID = from->get_velocity_block_local_id(blockGID,popID);
-            if (from->get_velocity_block_local_id(blockGID,popID) == from->invalid_local_id()) {
-               for (unsigned int i = 0; i < VELOCITY_BLOCK_LENGTH; i++) {
-                  toBlock_data[block_i*SIZE_VELBLOCK+i] = 0.0; //block did not exist in from cell, fill with zeros.
-               }
-            } else {
-               for (unsigned int i = 0; i < VELOCITY_BLOCK_LENGTH; i++) {
-                  toBlock_data[block_i*SIZE_VELBLOCK+i] = fromBlock_data[fromBlockLID*SIZE_VELBLOCK+i];
-               }
-            }
-         }
-      }
       }
    }
    
@@ -577,7 +388,7 @@ namespace SBC {
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const std::vector<CellID> cellList,
          SpatialCell *to,
-         const int& popID
+         const uint popID
    ) {
       const size_t numberOfCells = cellList.size();
       if(numberOfCells == 1) {
@@ -586,17 +397,19 @@ namespace SBC {
          creal factor = 1.0 / convert<Real>(numberOfCells);
 
          if (popID == 0) {
-            to->parameters[CellParams::RHO_DT2] = 0.0;
-            to->parameters[CellParams::RHOVX_DT2] = 0.0;
-            to->parameters[CellParams::RHOVY_DT2] = 0.0;
-            to->parameters[CellParams::RHOVZ_DT2] = 0.0;
+            to->parameters[CellParams::RHOM_DT2] = 0.0;
+            to->parameters[CellParams::VX_DT2] = 0.0;
+            to->parameters[CellParams::VY_DT2] = 0.0;
+            to->parameters[CellParams::VZ_DT2] = 0.0;
+            to->parameters[CellParams::RHOQ_DT2] = 0.0;
             to->parameters[CellParams::P_11_DT2] = 0.0;
             to->parameters[CellParams::P_22_DT2] = 0.0;
             to->parameters[CellParams::P_33_DT2] = 0.0;
-            to->parameters[CellParams::RHO] = 0.0;
-            to->parameters[CellParams::RHOVX] = 0.0;
-            to->parameters[CellParams::RHOVY] = 0.0;
-            to->parameters[CellParams::RHOVZ] = 0.0;
+            to->parameters[CellParams::RHOM] = 0.0;
+            to->parameters[CellParams::VX] = 0.0;
+            to->parameters[CellParams::VY] = 0.0;
+            to->parameters[CellParams::VZ] = 0.0;
+            to->parameters[CellParams::RHOQ] = 0.0;
             to->parameters[CellParams::P_11] = 0.0;
             to->parameters[CellParams::P_22] = 0.0;
             to->parameters[CellParams::P_33] = 0.0;
@@ -608,17 +421,19 @@ namespace SBC {
             
             // WARNING Time-independence assumed here. _R and _V not copied, as boundary conditions cells should not set/use them
             if (popID == 0) {
-               to->parameters[CellParams::RHO_DT2] += factor*incomingCell->parameters[CellParams::RHO_DT2];
-               to->parameters[CellParams::RHOVX_DT2] += factor*incomingCell->parameters[CellParams::RHOVX_DT2];
-               to->parameters[CellParams::RHOVY_DT2] += factor*incomingCell->parameters[CellParams::RHOVY_DT2];
-               to->parameters[CellParams::RHOVZ_DT2] += factor*incomingCell->parameters[CellParams::RHOVZ_DT2];
+               to->parameters[CellParams::RHOM_DT2] += factor*incomingCell->parameters[CellParams::RHOM_DT2];
+               to->parameters[CellParams::VX_DT2] += factor*incomingCell->parameters[CellParams::VX_DT2];
+               to->parameters[CellParams::VY_DT2] += factor*incomingCell->parameters[CellParams::VY_DT2];
+               to->parameters[CellParams::VZ_DT2] += factor*incomingCell->parameters[CellParams::VZ_DT2];
+               to->parameters[CellParams::RHOQ_DT2] += factor*incomingCell->parameters[CellParams::RHOQ_DT2];
                to->parameters[CellParams::P_11_DT2] += factor*incomingCell->parameters[CellParams::P_11_DT2];
                to->parameters[CellParams::P_22_DT2] += factor*incomingCell->parameters[CellParams::P_22_DT2];
                to->parameters[CellParams::P_33_DT2] += factor*incomingCell->parameters[CellParams::P_33_DT2];
-               to->parameters[CellParams::RHO] += factor*incomingCell->parameters[CellParams::RHO];
-               to->parameters[CellParams::RHOVX] += factor*incomingCell->parameters[CellParams::RHOVX];
-               to->parameters[CellParams::RHOVY] += factor*incomingCell->parameters[CellParams::RHOVY];
-               to->parameters[CellParams::RHOVZ] += factor*incomingCell->parameters[CellParams::RHOVZ];
+               to->parameters[CellParams::RHOM] += factor*incomingCell->parameters[CellParams::RHOM];
+               to->parameters[CellParams::VX] += factor*incomingCell->parameters[CellParams::VX];
+               to->parameters[CellParams::VY] += factor*incomingCell->parameters[CellParams::VY];
+               to->parameters[CellParams::VZ] += factor*incomingCell->parameters[CellParams::VZ];
+               to->parameters[CellParams::RHOQ] += factor*incomingCell->parameters[CellParams::RHOQ];
                to->parameters[CellParams::P_11] += factor*incomingCell->parameters[CellParams::P_11];
                to->parameters[CellParams::P_22] += factor*incomingCell->parameters[CellParams::P_22];
                to->parameters[CellParams::P_33] += factor*incomingCell->parameters[CellParams::P_33];
@@ -675,7 +490,7 @@ namespace SBC {
          creal& nx,
          creal& ny,
          creal& nz,
-         const int& popID
+         const uint popID
    ) {
       SpatialCell * cell = mpiGrid[cellID];
       const std::vector<CellID> cellList = this->getAllClosestNonsysboundaryCells(cellID);
@@ -744,7 +559,7 @@ namespace SBC {
       creal& ny,
       creal& nz,
       creal& quenchingFactor,
-      const int& popID
+      const uint popID
    ) {
       SpatialCell* cell = mpiGrid[cellID];
       const std::vector<CellID> cellList = this->getAllClosestNonsysboundaryCells(cellID);
@@ -856,7 +671,68 @@ namespace SBC {
       }
       return true;
    }
-
+   
+   /*! Get the cellID of the first closest cell of type NOT_SYSBOUNDARY found.
+    * \param i,j,k Coordinates of the cell to start looking from
+    * \return The cell index of that cell
+    * \sa getAllClosestNonsysboundaryCells
+    */
+   std::array<int, 3> SysBoundaryCondition::getTheClosestNonsysboundaryCell(
+      FsGrid< fsgrids::technical, 2> & technicalGrid,
+      cint i,
+      cint j,
+      cint k
+   ) {
+      const std::vector< std::array<int, 3> > closestCells = getAllClosestNonsysboundaryCells(technicalGrid, i, j, k);
+      return closestCells.at(0);
+   }
+   
+   /*! Get the cellIDs of all the closest cells of type NOT_SYSBOUNDARY.
+    * \param i,j,k Coordinates of the cell to start looking from
+    * \return The vector of cell indices of those cells
+    * \sa getTheClosestNonsysboundaryCell
+    */
+   std::vector< std::array<int, 3> > SysBoundaryCondition::getAllClosestNonsysboundaryCells(
+      FsGrid< fsgrids::technical, 2> & technicalGrid,
+      cint i,
+      cint j,
+      cint k
+   ) {
+      int distance = std::numeric_limits<int>::max();
+      std::vector< std::array<int,3> > closestCells;
+      
+      for (int kk=-2; kk<3; kk++) {
+         for (int jj=-2; jj<3; jj++) {
+            for (int ii=-2; ii<3 ; ii++) {
+               if( technicalGrid.get(i+ii,j+jj,k+kk) && technicalGrid.get(i+ii,j+jj,k+kk)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+                  distance = min(distance, ii*ii + jj*jj + kk*kk);
+               }
+            }
+         }
+      }
+      
+      for (int kk=-2; kk<3; kk++) {
+         for (int jj=-2; jj<3; jj++) {
+            for (int ii=-2; ii<3 ; ii++) {
+               if( technicalGrid.get(i+ii,j+jj,k+kk) && technicalGrid.get(i+ii,j+jj,k+kk)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+                  int d = ii*ii + jj*jj + kk*kk;
+                  if( d == distance ) {
+                     std::array<int, 3> cell = {i+ii, j+jj, k+kk};
+                     closestCells.push_back(cell);
+                  }
+               }
+            }
+         }
+      }
+      
+      if(closestCells.size() == 0) {
+         std::array<int, 3> dummy  = {std::numeric_limits<int>::min()};
+         closestCells.push_back(dummy);
+      }
+      
+      return closestCells;
+   }
+   
    /*! Get the cellID of the first closest cell of type NOT_SYSBOUNDARY found.
     * \param cellID ID of the cell to start look from.
     * \return The cell index of that cell
@@ -868,7 +744,7 @@ namespace SBC {
       std::vector<CellID> & closestCells = allClosestNonsysboundaryCells.at(cellID);
       return closestCells.at(0);
    }
-
+   
    /*! Get the cellIDs of all the closest cells of type NOT_SYSBOUNDARY.
     * \param cellID ID of the cell to start look from.
     * \return The vector of cell indices of those cells
@@ -877,9 +753,7 @@ namespace SBC {
    std::vector<CellID> & SysBoundaryCondition::getAllClosestNonsysboundaryCells(
       const CellID& cellID
    ) {
-      phiprof::start("getAllClosestNonsysboundaryCells");
       std::vector<CellID> & closestCells = allClosestNonsysboundaryCells.at(cellID);
-      phiprof::stop("getAllClosestNonsysboundaryCells");
       return closestCells;
    }
    
@@ -899,7 +773,7 @@ namespace SBC {
    std::array<Realf*,27> SysBoundaryCondition::getFlowtoCellsBlock(
       const std::array<SpatialCell*,27> flowtoCells,
       const vmesh::GlobalID blockGID,
-      const int& popID
+      const uint popID
    ) {
       phiprof::start("getFlowtoCellsBlock");
       std::array<Realf*,27> flowtoCellsBlock;
@@ -913,27 +787,50 @@ namespace SBC {
       return flowtoCellsBlock;
    }
    
+   Real SysBoundaryCondition::fieldBoundaryCopyFromExistingFaceNbrMagneticField(
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+      FsGrid< fsgrids::technical, 2> & technicalGrid,
+      cint i,
+      cint j,
+      cint k,
+      cuint component
+   ) {
+      const std::array<int,3> closestCell = getTheClosestNonsysboundaryCell(technicalGrid, i, j, k);
+      
+      #ifndef NDEBUG
+      const std::array<int32_t, 3> gid = technicalGrid.getGlobalIndices(i, j, k);
+      const std::array<int32_t, 3> ngid = technicalGrid.getGlobalIndices(closestCell[0], closestCell[1], closestCell[2]);
+      if ( technicalGrid.get(closestCell[0], closestCell[1], closestCell[2]) == nullptr ) {
+         stringstream ss;
+         ss << "ERROR, cell (" << gid[0] << "," << gid[1] << "," << gid[2] << ") tries to access invalid sysboundary nbr (" << ngid[0] << "," << ngid[1] << "," << ngid[2] << ") in " << __FILE__ << ":" << __LINE__ << endl;
+         cerr << ss.str();
+         exit(1);
+      }
+      
+      if (technicalGrid.get(closestCell[0], closestCell[1], closestCell[2])->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+         stringstream ss;
+         ss << "ERROR, cell (" << gid[0] << "," << gid[1] << "," << gid[2] << ") uses value from sysboundary nbr (" << ngid[0] << "," << ngid[1] << "," << ngid[2] << ") in " << __FILE__ << ":" << __LINE__ << endl;
+         cerr << ss.str();
+         exit(1);
+      }
+      
+      if (closestCell[0] == std::numeric_limits<int>::min()) {
+         cerr << "(" << gid[0] << "," << gid[1] << "," << gid[2] << ")" << __FILE__ << ":" << __LINE__ << ": No closest cell found!" << endl;
+         abort();
+      }
+      #endif
+      
+      return perBGrid.get(closestCell[0], closestCell[1], closestCell[2])->at(fsgrids::bfield::PERBX+component);
+   }
+   
    /*! Function used in some cases to know which faces the system boundary condition is being applied to.
     * \param faces Pointer to array of 6 bool in which the values are returned whether the corresponding face is of that type. Order: 0 x+; 1 x-; 2 y+; 3 y-; 4 z+; 5 z-
     */
    void SysBoundaryCondition::getFaces(bool* faces) {
       cerr << "ERROR: SysBoundaryCondition::getFaces called instead of derived class function!" << endl;
-   }
-   
-   /*! Get the name of the system boundary condition.
-    * \return The name of the system boundary. The base class function returns an empty string.
-    */
-   string SysBoundaryCondition::getName() const {
-      cerr << "ERROR: SysBoundaryCondition::getName called instead of derived class function!" << endl;
-      return string("");
-   }
-   
-   /*! Get the enum index of the system boundary condition.
-    * \return The index of the system boundary condition as enumerated in namespace sysboundarytype. The base class function returns 0.
-    */
-   uint SysBoundaryCondition::getIndex() const {
-      cerr << "ERROR: SysBoundaryCondition::getIndex called instead of derived class function!" << endl;
-      return 0;
+      for(int i=0; i<6; i++) {
+        faces[i]=false;
+      }
    }
    
    /*! Get the precedence value of the system boundary condition.

@@ -3,7 +3,7 @@
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
- * at http://vlasiator.fmi.fi/
+ * at http://www.physics.helsinki.fi/vlasiator/
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -46,7 +46,7 @@ using namespace Eigen;
 
 void prepareAccelerateCell(
    SpatialCell* spatial_cell,
-   const int popID){   
+   const uint popID){   
    updateAccelerationMaxdt(spatial_cell, popID);
 }
 
@@ -59,9 +59,9 @@ void prepareAccelerateCell(
  * @param popID ID of the accelerated particle species.
 */
 
-int getAccelerationSubcycles(SpatialCell* spatial_cell, Real dt, const int& popID)
+uint getAccelerationSubcycles(SpatialCell* spatial_cell, Real dt, const uint popID)
 {
-   return max( convert<int>(ceil(dt / spatial_cell->get_max_v_dt(popID))), 1);
+   return max( convert<uint>(ceil(dt / spatial_cell->get_max_v_dt(popID))), 1u);
 }
 
 /*!
@@ -82,7 +82,7 @@ int getAccelerationSubcycles(SpatialCell* spatial_cell, Real dt, const int& popI
 */
 
 void cpu_accelerate_cell(SpatialCell* spatial_cell,
-                         const int popID,     
+                         const uint popID,     
                          const uint map_order,
                          const Real& dt) {
    double t1 = MPI_Wtime();
