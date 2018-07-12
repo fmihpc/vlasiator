@@ -45,6 +45,7 @@ single_cell[4]=1
 
 # Gyration test with protons and antiprotons
 test_name[5]="acctest_5_proton_antiproton"
+comparison_vlsv[5]="fullf.0000001.vlsv"
 #only one process does anything -> in _1 phiprof here
 comparison_phiprof[5]="phiprof_1.txt"
 single_cell[5]=1
