@@ -130,22 +130,22 @@ do
         echo "------------------------------------------------------------"
         echo "  variable     |     absolute diff     |     relative diff | "
         echo "------------------------------------------------------------"
-        for i in ${!variables_name[*]}
+
+	variables=(${variable_names[$run]// / })
+	echo "=== variables: ==="
+        for i in ${!variables[*]}; do
+		print " --> ${variables[$i]}"
+	done
+	indices=(${variable_components[$run]// / })
+        for i in ${!variables[*]}
         do
-            if [ ! "${variables_name[$i]}" == "proton" ]
+            if [ ! "${variables[$i]}" == "proton" ]
             then
-                relativeValue=$($run_command_tools vlsvdiff_DP ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables_name[$i]} ${variables_components[$i]} |grep "The relative 0-distance between both datasets" |gawk '{print $8}'  )
-                absoluteValue=$($run_command_tools vlsvdiff_DP ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables_name[$i]} ${variables_components[$i]} |grep "The absolute 0-distance between both datasets" |gawk '{print $8}'  )
+                relativeValue=$($run_command_tools vlsvdiff_DP ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables[$i]} ${indices[$i]} |grep "The relative 0-distance between both datasets" |gawk '{print $8}'  )
+                absoluteValue=$($run_command_tools vlsvdiff_DP ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables[$i]} ${indices[$i]} |grep "The absolute 0-distance between both datasets" |gawk '{print $8}'  )
 #print the results      
-                echo "${variables_name[$i]}_${variables_components[$i]}                $absoluteValue                 $relativeValue    "
-            fi
-
-        done # loop over variables
-
-
-        for i in ${!variables_name[*]}
-        do
-            if [ "${variables_name[$i]}" == "proton" ]
+                echo "${variables[$i]}_${indices[$i]}                $absoluteValue                 $relativeValue    "
+            elif [ "${variables[$i]}" == "proton" ]
             then
                 echo "--------------------------------------------------------------------------------------------" 
                 echo "   Distribution function diff                                                               "
