@@ -23,7 +23,7 @@ test_name[1]="acctest_2_maxw_500k_100k_20kms_10deg"
 comparison_vlsv[1]="fullf.0000001.vlsv"
 #only one process does anything -> in _1 phiprof here
 comparison_phiprof[1]="phiprof_1.txt"
-variable_names[1]="proton/rho proton/V proton/V proton/V"
+variable_names[1]="proton/rho proton/V proton/V proton/V protons"
 variable_components[1]="0 0 1 2"
 single_cell[1]=1
 
@@ -32,7 +32,7 @@ test_name[2]="acctest_3_substeps"
 comparison_vlsv[2]="fullf.0000001.vlsv"
 #only one process does anything -> in _1 phiprof here
 comparison_phiprof[2]="phiprof_1.txt"
-variable_names[2]="proton/rho proton/V proton/V proton/V"
+variable_names[2]="proton/rho proton/V proton/V proton/V protons"
 variable_components[2]="0 0 1 2"
 single_cell[2]=1
 
@@ -40,7 +40,7 @@ single_cell[2]=1
 test_name[3]="transtest_2_maxw_500k_100k_20kms_20x20"
 comparison_vlsv[3]="fullf.0000001.vlsv"
 comparison_phiprof[3]="phiprof_0.txt"
-variable_names[3]="proton/rho proton/V proton/V proton/V"
+variable_names[3]="proton/rho proton/V proton/V proton/V protons"
 variable_components[3]="0 0 1 2"
 
 test_name[4]="acctest_4_helium"
@@ -55,7 +55,7 @@ test_name[5]="acctest_5_proton_antiproton"
 comparison_vlsv[5]="fullf.0000001.vlsv"
 #only one process does anything -> in _1 phiprof here
 comparison_phiprof[5]="phiprof_1.txt"
-variable_names[5]="proton/rho proton/V proton/V proton/V"
+variable_names[5]="proton/rho proton/V proton/V proton/V protons"
 variable_components[5]="0 0 1 2"
 single_cell[5]=1
 
@@ -66,7 +66,7 @@ comparison_phiprof[6]="phiprof_0.txt"
 variable_names[6]="proton/rho proton/V proton/V proton/V B B B E E E"
 variable_components[6]="0 0 1 2 0 1 2 0 1 2"
 test_name[7]="restart_read"
-comparison_vlsv[7]="bulk.0000039.vlsv"
+comparison_vlsv[7]="bulk.0000001.vlsv"
 comparison_phiprof[7]="phiprof_0.txt"
 variable_names[7]="proton/rho proton/V proton/V proton/V B B B E E E"
 variable_components[7]="0 0 1 2 0 1 2 0 1 2"
@@ -75,14 +75,14 @@ variable_components[7]="0 0 1 2 0 1 2 0 1 2"
 test_name[8]="Magnetosphere_small"
 comparison_vlsv[8]="bulk.0000001.vlsv"
 comparison_phiprof[8]="phiprof_0.txt"
-variable_names[8]="proton/rho proton/V proton/V proton/V B B B E E E"
+variable_names[8]="proton/rho proton/V proton/V proton/V B B B E E E protons"
 variable_components[8]="0 0 1 2 0 1 2 0 1 2"
 
 #Very small polar magnetosphere, with subcycling in ACC or FS
 test_name[9]="Magnetosphere_polar_small"
 comparison_vlsv[9]="bulk.0000001.vlsv"
 comparison_phiprof[9]="phiprof_0.txt"
-variable_names[9]="proton/rho proton/V proton/V proton/V B B B E E E"
+variable_names[9]="proton/rho proton/V proton/V proton/V B B B E E E protons"
 variable_components[9]="0 0 1 2 0 1 2 0 1 2"
 
 # Field solver test
@@ -122,5 +122,5 @@ variable_components[14]="0 0 1 2 0 1 2 0 1 2"
 test_name[15]="Selfgen_Waves_Periodic"
 comparison_vlsv[15]="fullf.0000001.vlsv"
 comparison_phiprof[15]="phiprof_0.txt"
-variable_names[15]="proton/rho proton/V proton/V proton/V B B B E E E"
+variable_names[15]="proton/rho proton/V proton/V proton/V B B B E E E protons"
 variable_components[15]="0 0 1 2 0 1 2 0 1 2"

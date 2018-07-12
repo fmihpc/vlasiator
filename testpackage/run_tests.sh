@@ -132,10 +132,6 @@ do
         echo "------------------------------------------------------------"
 
 	variables=(${variable_names[$run]// / })
-	echo "=== variables: ==="
-        for i in ${!variables[*]}; do
-		print " --> ${variables[$i]}"
-	done
 	indices=(${variable_components[$run]// / })
         for i in ${!variables[*]}
         do
