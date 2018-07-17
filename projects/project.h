@@ -105,6 +105,7 @@ namespace projects {
       virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
 
       /** Integrate the distribution function over the given six-dimensional phase-space cell.
+       * NOTE: used by the project but also in the derived TriAxisSearch class to find blocks to initialize.
        * NOTE: This function is called inside parallel region so it must be declared as const.
        * @param x Starting value of the x-coordinate of the cell.
        * @param y Starting value of the y-coordinate of the cell.
@@ -170,7 +171,7 @@ namespace projects {
        * NOTE: This function is called inside parallel region so it must be declared as const.
        * NOTE: This is not necessarily called by every project, some implement everything directly in calcPhaseSpaceDensity.
        * 
-       * Passing all 6 coordinates although some only need 3. No resolutions needed atthis stage an more.
+       * Passing all 6 coordinates although some only need 3. No resolutions needed at this stage any more.
        * @param x Starting value of the x-coordinate of the cell.
        * @param y Starting value of the y-coordinate of the cell.
        * @param z Starting value of the z-coordinate of the cell.
