@@ -1,4 +1,4 @@
-/*
+/* 
  * This file is part of Vlasiator.
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
@@ -74,7 +74,7 @@ namespace projects {
                                          creal& dx, creal& dy, creal& dz,
                                          creal& vx, creal& vy, creal& vz,
                                          creal& dvx, creal& dvy, creal& dvz,
-                                         const uint popID) const;
+                                         const uint popID) const __attribute__((optimize("O2","no-unroll-loops")));
       virtual std::vector<std::array<Real, 3> > getV0(
                                                       creal x,
                                                       creal y,
