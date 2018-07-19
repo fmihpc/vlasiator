@@ -88,7 +88,7 @@ namespace projects {
       RP::get("Shock.Sharp_Y", this->Sharp_Y);
    }
 
-   Real Shock::getDistribValue(
+   Realf Shock::getDistribValue(
       creal& x, creal& y, creal& z,
       creal& vx, creal& vy, creal& vz,
       const uint popID
@@ -100,7 +100,7 @@ namespace projects {
    }
 
 
-   Real Shock::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz,
+   Realf Shock::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz,
            creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
       const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
       vmesh::MeshParameters& meshParams = getObjectWrapper().velocityMeshes[meshID];
@@ -134,7 +134,7 @@ namespace projects {
          avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, popID);
          }
       
-      creal result = avg *this->DENSITY * pow(mass / (2.0 * M_PI * kb * this->TEMPERATURE), 1.5) /
+      crealf result = avg *this->DENSITY * pow(mass / (2.0 * M_PI * kb * this->TEMPERATURE), 1.5) /
                      (this->nSpaceSamples*this->nSpaceSamples*this->nSpaceSamples) / 
    //                (Parameters::vzmax - Parameters::vzmin) / 
                      (this->nVelocitySamples*this->nVelocitySamples*this->nVelocitySamples);

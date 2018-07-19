@@ -191,7 +191,7 @@ namespace projects {
       return Project::initialize();
    }
 
-   Real Magnetosphere::calcPhaseSpaceDensity(
+   Realf Magnetosphere::calcPhaseSpaceDensity(
       creal& x,creal& y,creal& z,
       creal& dx,creal& dy,creal& dz,
       creal& vx,creal& vy,creal& vz,
@@ -319,7 +319,7 @@ namespace projects {
    }
       
       
-   Real Magnetosphere::getDistribValue(
+   Realf Magnetosphere::getDistribValue(
       creal& x,creal& y,creal& z,
       creal& vx,creal& vy,creal& vz,
       const uint popID

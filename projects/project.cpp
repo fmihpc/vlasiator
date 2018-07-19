@@ -260,7 +260,7 @@ namespace projects {
     * @param blockLID Velocity block local ID within the spatial cell.
     * @param popID Population ID.
     * @return Maximum value of the calculated distribution function.*/
-   Real Project::setVelocityBlock(spatial_cell::SpatialCell* cell,const vmesh::LocalID& blockLID,const uint popID) const {
+   Realf Project::setVelocityBlock(spatial_cell::SpatialCell* cell,const vmesh::LocalID& blockLID,const uint popID) const {
       // If simulation doesn't use one or more velocity coordinates, 
       // only calculate the distribution function for one layer of cells.
       uint WID_VX = WID;
@@ -296,12 +296,12 @@ namespace projects {
       creal dvzCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
       
       // Calculate volume average of distribution function for each phase-space cell in the block.
-      Real maxValue = 0.0;
+      Realf maxValue = 0.0;
       for (uint kc=0; kc<WID_VZ; ++kc) for (uint jc=0; jc<WID_VY; ++jc) for (uint ic=0; ic<WID_VX; ++ic) {
          creal vxCell = vxBlock + ic*dvxCell;
          creal vyCell = vyBlock + jc*dvyCell;
          creal vzCell = vzBlock + kc*dvzCell;
-         creal average =
+         crealf average =
             calcPhaseSpaceDensity(
                x, y, z, dx, dy, dz,
                vxCell,vyCell,vzCell,
@@ -328,7 +328,7 @@ namespace projects {
             exit(1);
          }
 
-         const Real maxValue = setVelocityBlock(cell,blockLID,popID);
+         const Realf maxValue = setVelocityBlock(cell,blockLID,popID);
          if (maxValue < getObjectWrapper().particleSpecies[popID].sparseMinValue) removeList.push_back(blockGID);
       }
 
@@ -383,7 +383,7 @@ namespace projects {
          for (map<vmesh::GlobalID,vmesh::LocalID>::const_iterator it=insertedBlocks.begin(); it!=insertedBlocks.end(); ++it) {
             const vmesh::GlobalID blockGID = it->first;
             const vmesh::LocalID blockLID = it->second;
-            const Real maxValue = setVelocityBlock(cell,blockLID,popID);
+            const Realf maxValue = setVelocityBlock(cell,blockLID,popID);
             if (maxValue <= getObjectWrapper().particleSpecies[popID].sparseMinValue) 
               removeList.push_back(it->first);
          }
@@ -401,7 +401,7 @@ namespace projects {
       if (rescalesDensity(popID) == true) rescaleDensity(cell,popID);
    }
    
-   Real Project::sampleVelocitySpace(
+   Realf Project::sampleVelocitySpace(
       creal& x, creal& y, creal& z,
       creal& dx, creal& dy, creal& dz,
       creal& vx, creal& vy, creal& vz,
@@ -410,7 +410,7 @@ namespace projects {
       cuint n_SpaceSamples,   // _ to avoid confusion with the potential derived class members
       cuint n_VelocitySamples // _ to avoid confusion with the potential derived class members
    ) const {
-      Real avg = 0.0;
+      Realf avg = 0.0;
       if((n_SpaceSamples > 1) && (n_VelocitySamples > 1)) {
          creal d_x = dx / (n_SpaceSamples-1);
          creal d_y = dy / (n_SpaceSamples-1);
@@ -457,7 +457,7 @@ namespace projects {
       return avg;
    }
    
-   Real Project::getDistribValue(
+   Realf Project::getDistribValue(
       creal& x,creal& y, creal& z,
       creal& vx, creal& vy, creal& vz,
       const uint popID
@@ -480,11 +480,11 @@ namespace projects {
     * @param popID ID of the particle species.*/
    void Project::rescaleDensity(spatial_cell::SpatialCell* cell,const uint popID) const {
       // Re-scale densities
-      Real sum = 0.0;
+      Realf sum = 0.0;
       Realf* data = cell->get_data(popID);
       const Real* blockParams = cell->get_block_parameters(popID);
       for (vmesh::LocalID blockLID=0; blockLID<cell->get_number_of_velocity_blocks(popID); ++blockLID) {
-         Real tmp = 0.0;
+         Realf tmp = 0.0;
          for (unsigned int i=0; i<WID3; ++i) tmp += data[blockLID*WID3+i];
          const Real DV3 = blockParams[BlockParams::DVX]*blockParams[BlockParams::DVY]*blockParams[BlockParams::DVZ];
          sum += tmp*DV3;

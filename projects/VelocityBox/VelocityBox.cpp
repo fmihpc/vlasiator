@@ -77,7 +77,7 @@ namespace projects {
       RP::get("VelocityBox.Bz", this->Bz);
    }
 
-  Real VelocityBox::getDistribValue(
+  Realf VelocityBox::getDistribValue(
      creal& x, creal& y, creal& z,
      creal& vx, creal& vy, creal& vz,
      const uint popID
@@ -92,7 +92,7 @@ namespace projects {
 
 
 
-  Real VelocityBox::calcPhaseSpaceDensity(
+  Realf VelocityBox::calcPhaseSpaceDensity(
      creal& x, creal& y, creal& z,
      creal& dx, creal& dy, creal& dz,
      creal& vx, creal& vy, creal& vz,

@@ -79,7 +79,7 @@ namespace projects {
       RP::get("TestHall.rho", this->DENSITY);
    }
    
-   Real TestHall::calcPhaseSpaceDensity(
+   Realf TestHall::calcPhaseSpaceDensity(
       creal& x,creal& y,creal& z,
       creal& dx,creal& dy,creal& dz,
       creal& vx,creal& vy,creal& vz,

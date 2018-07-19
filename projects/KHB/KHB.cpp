@@ -111,7 +111,7 @@ namespace projects {
       }
    }
    
-   Real KHB::getDistribValue(
+   Realf KHB::getDistribValue(
       creal& x, creal& y, creal& z,
       creal& vx, creal& vy, creal& vz,
       const uint popID
@@ -128,7 +128,7 @@ namespace projects {
       exp(- mass * (pow(vx - Vx, 2.0) + pow(vy - Vy, 2.0) + pow(vz - Vz, 2.0)) / (2.0 * kb * T));
    }
 
-   Real KHB::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {   
+   Realf KHB::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {   
       creal d_x = dx / (this->nSpaceSamples-1);
       creal d_z = dz / (this->nSpaceSamples-1);
       creal d_vx = dvx / (this->nVelocitySamples-1);
@@ -137,7 +137,7 @@ namespace projects {
       Real avg = 0.0;
       uint samples=0;
 
-      Real middleValue=getDistribValue(x+0.5*dx, y/*not needed*/, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, popID);
+      Realf middleValue=getDistribValue(x+0.5*dx, y/*not needed*/, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, popID);
       if (middleValue < 0.000001*getObjectWrapper().particleSpecies[popID].sparseMinValue) {
          return middleValue; //abort, this will not be accepted anyway
       }

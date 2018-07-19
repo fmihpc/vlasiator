@@ -126,7 +126,7 @@ namespace projects {
       else if (densModelString == "testcase") densityModel = TestCase;
    }
 
-   Real MultiPeak::getDistribValue(
+   Realf MultiPeak::getDistribValue(
       creal& x, creal& y, creal& z,
       creal& vx, creal& vy, creal& vz,
       const uint popID
@@ -135,7 +135,7 @@ namespace projects {
       creal mass = getObjectWrapper().particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
 
-      Real value = 0.0;
+      Realf value = 0.0;
 
       for (uint i=0; i<sP.numberOfPeaks; ++i) {
          value += (sP.rho[i] + sP.rhoPertAbsAmp[i] * rhoRnd)
@@ -148,7 +148,7 @@ namespace projects {
       return value;
    }
 
-   Real MultiPeak::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, 
+   Realf MultiPeak::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, 
                                          creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,
                                          const uint popID) const {
       Real rhoFactor = 1.0;
@@ -167,7 +167,7 @@ namespace projects {
             break;
       }
       
-      Real avg = sampleVelocitySpace(x, y, z, dx, dy, dz, vx, vy, vz, dvx, dvy, dvz, popID, 1, nVelocitySamples);
+      Realf avg = sampleVelocitySpace(x, y, z, dx, dy, dz, vx, vy, vz, dvx, dvy, dvz, popID, 1, nVelocitySamples);
 
       avg *= rhoFactor;
       

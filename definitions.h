@@ -29,8 +29,10 @@
 //set floating point precision for storing the distribution function here. Default is single precision, use -DDPF to set double precision
 #ifdef DPF
 typedef double Realf;
+typedef const double crealf;
 #else
 typedef float Realf;
+typedef const float crealf;
 #endif
 
 //set general floating point precision here. Default is single precision, use -DDP to set double precision

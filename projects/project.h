@@ -65,7 +65,7 @@ namespace projects {
        */
       void setCell(spatial_cell::SpatialCell* cell);
          
-      Real setVelocityBlock(spatial_cell::SpatialCell* cell,const vmesh::LocalID& blockLID,const uint popID) const;
+      Realf setVelocityBlock(spatial_cell::SpatialCell* cell,const vmesh::LocalID& blockLID,const uint popID) const;
 
     protected:
       /*! \brief Returns a list of blocks to loop through when initialising.
@@ -127,7 +127,7 @@ namespace projects {
        * 
        * \sa sampleVelocitySpace
        */
-      virtual Real calcPhaseSpaceDensity(
+      virtual Realf calcPhaseSpaceDensity(
                                          creal& x, creal& y, creal& z,
                                          creal& dx, creal& dy, creal& dz,
                                          creal& vx, creal& vy, creal& vz,
@@ -157,7 +157,7 @@ namespace projects {
        * 
        * \sa calcPhaseSpaceDensity, getDistribValue
        */
-      Real sampleVelocitySpace(
+      Realf sampleVelocitySpace(
          creal& x, creal& y, creal& z,
          creal& dx, creal& dy, creal& dz,
          creal& vx, creal& vy, creal& vz,
@@ -181,7 +181,7 @@ namespace projects {
        * 
        * \sa calcPhaseSpaceDensity, sampleVelocitySpace
        */
-      virtual Real getDistribValue(
+      virtual Realf getDistribValue(
          creal& x,creal& y, creal& z,
          creal& vx, creal& vy, creal& vz,
          const uint popID

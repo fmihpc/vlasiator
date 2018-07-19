@@ -337,7 +337,7 @@ namespace projects {
     return retval;
   }
 
-   Real IPShock::getDistribValue(
+   Realf IPShock::getDistribValue(
       creal& x, creal& y, creal& z,
       creal& vx, creal& vy, creal& vz,
       const uint popID
@@ -376,7 +376,7 @@ namespace projects {
 
     std::array<Real, 3> pertV0 {{hereVX, hereVY, hereVZ}};
 
-    Real result = 0.0;
+    Realf result = 0.0;
 
     result = DENSITY * std::pow(mass / (2.0 * M_PI * KB * TEMPERATURE), 1.5) *
       exp(- mass * ((vx-pertV0[0])*(vx-pertV0[0]) + (vy-pertV0[1])*(vy-pertV0[1]) + (vz-pertV0[2])*(vz-pertV0[2])) / (2.0 * KB * TEMPERATURE));
@@ -384,9 +384,9 @@ namespace projects {
     return result;
   }
 
-  Real IPShock::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const {
+  Realf IPShock::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const {
     const IPShockSpeciesParameters& sP = this->speciesParams[popID];
-    Real result = sampleVelocitySpace(x, y, z, dx, dy, dz, vx, vy, vz, dvx, dvy, dvz, popID, sP.nSpaceSamples, sP.nVelocitySamples);
+    Realf result = sampleVelocitySpace(x, y, z, dx, dy, dz, vx, vy, vz, dvx, dvy, dvz, popID, sP.nSpaceSamples, sP.nVelocitySamples);
     if(result < sP.maxwCutoff) {
       return 0.0;
     } else {

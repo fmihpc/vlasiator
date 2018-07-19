@@ -98,7 +98,7 @@ namespace projects {
       }
    }
 
-   Real Alfven::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, const uint popID) const {
+   Realf Alfven::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, const uint popID) const {
       const AlfvenSpeciesParameters& sP = speciesParams[popID];
       creal mass = getObjectWrapper().particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
@@ -110,12 +110,12 @@ namespace projects {
       creal Vy = - sP.A_VEL * ALFVEN_VEL * cos(this->ALPHA) * sin(2.0 * M_PI * ksi);
       creal Vz = - sP.A_VEL * ALFVEN_VEL * cos(2.0 * M_PI * ksi);
    
-      creal den = sP.rho * pow(mass / (2.0 * M_PI * kb * sP.T), 1.5) *
+      crealf den = sP.rho * pow(mass / (2.0 * M_PI * kb * sP.T), 1.5) *
       exp(- mass * (pow(vx - Vx, 2.0) + pow(vy - Vy, 2.0) + pow(vz - Vz, 2.0)) / (2.0 * kb * sP.T));
       return den;
    }
    
-   Real Alfven::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
+   Realf Alfven::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
       return sampleVelocitySpace(x, y, z, dx, dy, dz, vx, vy, vz, dvx, dvy, dvz, popID, this->nSpaceSamples, speciesParams[popID].nVelocitySamples);
    }
    

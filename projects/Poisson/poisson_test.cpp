@@ -98,7 +98,7 @@ namespace projects {
       cellParams[CellParams::PHI] = 0;
    }
 
-   Real PoissonTest::calcPhaseSpaceDensity(
+   Realf PoissonTest::calcPhaseSpaceDensity(
             creal& x, creal& y, creal& z,
             creal& dx, creal& dy, creal& dz,
             creal& vx, creal& vy, creal& vz,

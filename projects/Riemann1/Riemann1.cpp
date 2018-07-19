@@ -90,7 +90,7 @@ namespace projects {
       RP::get("Riemann.nVelocitySamples", this->nVelocitySamples);
    }
 
-   Real Riemann1::getDistribValue(
+   Realf Riemann1::getDistribValue(
       creal& x, creal& y, creal& z,
       creal& vx, creal& vy, creal& vz,
       const uint popID
@@ -102,7 +102,7 @@ namespace projects {
    }
 
 
-   Real Riemann1::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
+   Realf Riemann1::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
       return sampleVelocitySpace(x, y, z, dx, dy, dz, vx, vy, vz, dvx, dvy, dvz, popID, this->nSpaceSamples, this->nVelocitySamples);
    }
 

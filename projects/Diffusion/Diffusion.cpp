@@ -82,7 +82,7 @@ namespace projects {
       }
    }
 
-   Real Diffusion::getDistribValue(
+   Realf Diffusion::getDistribValue(
       creal& x,creal& y,creal& z,
       creal& vx,creal& vy,creal& vz,
       const uint popID
@@ -98,7 +98,7 @@ namespace projects {
          exp(- mass * (pow(vx, 2.0) + pow(vy, 2.0) + pow(vz, 2.0)) / (2.0 * kb * sP.TEMPERATURE)));
    }
    
-   Real Diffusion::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
+   Realf Diffusion::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
          return sampleVelocitySpace(x, y, z, dx, dy, dz, vx, vy, vz, dvx, dvy, dvz, popID, speciesParams[popID].nSpaceSamples, speciesParams[popID].nVelocitySamples);
    }
    

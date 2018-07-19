@@ -108,7 +108,7 @@ namespace projects {
       return top * (1.0 + this->amp*cos(2.0*M_PI*x/this->lambda));
    }
 
-   Real Firehose::getDistribValue(
+   Realf Firehose::getDistribValue(
       creal& x, creal& y, creal& z,
       creal& vx, creal& vy, creal& vz,
       const uint popID
@@ -130,7 +130,7 @@ namespace projects {
    //           pow(vz - this->Vz[2], 2.0) / (2.0 * kb * this->Tz[2]))); 
    }
 
-   Real Firehose::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
+   Realf Firehose::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
       return sampleVelocitySpace(x, y, z, dx, dy, dz, vx, vy, vz, dvx, dvy, dvz, popID, speciesParams[popID].nSpaceSamples, speciesParams[popID].nVelocitySamples);
    }
 

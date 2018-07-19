@@ -81,7 +81,7 @@ namespace projects {
       }
    }
    
-   Real Harris::getDistribValue(
+   Realf Harris::getDistribValue(
       creal& x,creal& y, creal& z,
       creal& vx, creal& vy, creal& vz,
       const uint popID
@@ -96,7 +96,7 @@ namespace projects {
          exp(- mass * (pow(vx, 2.0) + pow(vy, 2.0) + pow(vz, 2.0)) / (2.0 * physicalconstants::K_B * sP.TEMPERATURE)));
    }
    
-   Real Harris::calcPhaseSpaceDensity(
+   Realf Harris::calcPhaseSpaceDensity(
       creal& x,creal& y,creal& z,
       creal& dx,creal& dy,creal& dz,
       creal& vx,creal& vy,creal& vz,

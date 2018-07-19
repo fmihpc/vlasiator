@@ -93,7 +93,7 @@ namespace projects {
       }
    }
    
-   Real Fluctuations::getDistribValue(
+   Realf Fluctuations::getDistribValue(
       creal& x, creal& y, creal& z,
       creal& vx,creal& vy, creal& vz,
       const uint popID
@@ -105,7 +105,7 @@ namespace projects {
       return exp(- mass * (vx*vx + vy*vy + vz*vz) / (2.0 * kb * sP.TEMPERATURE));
    }
 
-   Real Fluctuations::calcPhaseSpaceDensity(
+   Realf Fluctuations::calcPhaseSpaceDensity(
       creal& x, creal& y, creal& z,
       creal& dx, creal& dy, creal& dz,
       creal& vx, creal& vy, creal& vz,
@@ -142,7 +142,7 @@ namespace projects {
                   vz+vk*d_vz - sP.velocityPertAbsAmp * (0.5 - rndVel[2] ), popID);
             }
       
-      creal result = avg *
+      crealf result = avg *
          sP.DENSITY * (1.0 + sP.densityPertRelAmp * (0.5 - rndRho)) *
          pow(mass / (2.0 * M_PI * kb * sP.TEMPERATURE), 1.5) /
          (sP.nVelocitySamples*sP.nVelocitySamples*sP.nVelocitySamples);

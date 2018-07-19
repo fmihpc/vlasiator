@@ -107,7 +107,7 @@ namespace projects {
       return populations[popID].rho + cloudDens;
    }
 
-   Real ElectricSail::getDistribValue(
+   Realf ElectricSail::getDistribValue(
       creal& x, creal& y, creal& z,
       creal& vx,creal& vy,creal& vz,
       const uint popID
@@ -116,7 +116,7 @@ namespace projects {
       creal kb = physicalconstants::K_B;
       const Population& pop = populations[popID];
 
-      Real value 
+      Realf value 
          = pop.rho
          * mass / (2.0 * M_PI * kb )
          * exp(-mass * (  pow(vx-pop.V[0],2.0) / (2.0*kb*pop.T[0]) 
@@ -319,7 +319,7 @@ namespace projects {
       cellParams[CellParams::PHI] = 0;
    }
 
-   Real ElectricSail::calcPhaseSpaceDensity(
+   Realf ElectricSail::calcPhaseSpaceDensity(
             creal& x, creal& y, creal& z,
             creal& dx, creal& dy, creal& dz,
             creal& vx, creal& vy, creal& vz,
@@ -328,12 +328,12 @@ namespace projects {
       // Iterative sampling of the distribution function. Keep track of the 
       // accumulated volume average over the iterations. When the next 
       // iteration improves the average by less than 1%, return the value.
-      Real avgTotal = 0.0;
+      Realf avgTotal = 0.0;
       bool ok = false;
       uint N = 2;                // Start by using a single velocity sample
       int N3_sum = 0;           // Sum of sampling points used so far
       do {
-         Real avg = 0.0;        // Volume average obtained during this sampling
+         Realf avg = 0.0;        // Volume average obtained during this sampling
          creal DVX = dvx / N; 
          creal DVY = dvy / N;
          //creal DVZ = dvz / N;
@@ -354,7 +354,7 @@ namespace projects {
          
          // Compare the current and accumulated volume averages:
          Real eps = max(numeric_limits<creal>::min(),avg * static_cast<Real>(1e-6));
-         Real avgAccum   = avgTotal / (avg + N3_sum);
+         Realf avgAccum   = avgTotal / (avg + N3_sum);
          //Real avgCurrent = avg / (N*N*N);
          Real avgCurrent = avg / (N*N);
          if (fabs(avgCurrent-avgAccum)/(avgAccum+eps) < 0.01) ok = true;

@@ -47,13 +47,13 @@ namespace projects {
          virtual void setCellBackgroundField(spatial_cell::SpatialCell* cell) const;
          
       protected:
-         virtual Real calcPhaseSpaceDensity(
+         virtual Realf calcPhaseSpaceDensity(
             creal& x, creal& y, creal& z,
             creal& dx, creal& dy, creal& dz,
             creal& vx, creal& vy, creal& vz,
             creal& dvx, creal& dvy, creal& dvz, const uint popID
          ) const ;
-         virtual Real getDistribValue(
+         virtual Realf getDistribValue(
             creal& x, creal& y, creal& z,
             creal& vx, creal& vy, creal& vz,
             const uint popID

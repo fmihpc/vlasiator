@@ -147,7 +147,7 @@ namespace projects {
       }
    }
 
-   Real Flowthrough::getDistribValue(
+   Realf Flowthrough::getDistribValue(
       creal& x,creal& y, creal& z,
       creal& vx, creal& vy, creal& vz,
       const uint popID
@@ -156,7 +156,7 @@ namespace projects {
       Real mass = getObjectWrapper().particleSpecies[popID].mass;
       const FlowthroughSpeciesParameters& sP = speciesParams[popID];
 
-      Real rvalue = 0;
+      Realf rvalue = 0;
       switch (densityModel) {
        case Maxwellian:
          rvalue = sP.rho * pow(mass / (2.0 * M_PI * physicalconstants::K_B * sP.T), 1.5)
@@ -180,7 +180,7 @@ namespace projects {
       return rvalue;
    }
 
-   Real Flowthrough::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
+   Realf Flowthrough::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
       if (emptyBox == true) {
          return 0.0;
       } else {

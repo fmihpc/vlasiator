@@ -88,20 +88,20 @@ namespace projects {
       else return value / abs(value);
    }
 
-   Real test_fp::calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,
+   Realf test_fp::calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,
                                        creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz,
                                        const uint popID) const {      
       vector<std::array<Real, 3> > V = this->getV0(x,y,z,dx,dy,dz, popID);
       
-      creal VX2 = (vx+0.5*dvx-V[0][0])*(vx+0.5*dvx-V[0][0]);
-      creal VY2 = (vy+0.5*dvy-V[0][1])*(vy+0.5*dvy-V[0][1]);
-      creal VZ2 = (vz+0.5*dvz-V[0][2])*(vz+0.5*dvz-V[0][2]);
+      crealf VX2 = (vx+0.5*dvx-V[0][0])*(vx+0.5*dvx-V[0][0]);
+      crealf VY2 = (vy+0.5*dvy-V[0][1])*(vy+0.5*dvy-V[0][1]);
+      crealf VZ2 = (vz+0.5*dvz-V[0][2])*(vz+0.5*dvz-V[0][2]);
       
-      creal CONST = physicalconstants::MASS_PROTON / 2.0 / physicalconstants::K_B / this->TEMPERATURE;
-      Real NORM = (physicalconstants::MASS_PROTON / 2.0 / M_PI / physicalconstants::K_B / this->TEMPERATURE);
+      crealf CONST = physicalconstants::MASS_PROTON / 2.0 / physicalconstants::K_B / this->TEMPERATURE;
+      Realf NORM = (physicalconstants::MASS_PROTON / 2.0 / M_PI / physicalconstants::K_B / this->TEMPERATURE);
       NORM = this->DENSITY * pow(NORM,1.5);
       
-      creal result = NORM*exp(-CONST*(VX2+VY2+VZ2));
+      crealf result = NORM*exp(-CONST*(VX2+VY2+VZ2));
       return result;
    }
    
