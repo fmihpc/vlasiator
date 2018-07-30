@@ -81,7 +81,7 @@ bool initializeFieldPropagator(
       // but are assumed to be ok after each load balance as that
       // communicates all spatial data
       
-      // Assumin B is known, calculate derivatives and upwinded edge-E. Exchange derivatives 
+      // Assuming B is known, calculate derivatives and upwinded edge-E. Exchange derivatives 
       // and edge-E:s between neighbouring processes and calculate volume-averaged E,B fields.
       bool communicateMomentsDerivatives = true;
       calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER1, true);
@@ -149,7 +149,11 @@ bool finalizeFieldPropagator() {
 
 /*! \brief Top-level field propagation function.
  * 
- * Propagates the magnetic field, computes the derivatives and the upwinded electric field, then computes the volume-averaged field values. Takes care of the Runge-Kutta iteration at the top level, the functions called get as an argument the element from the enum defining the current stage and handle their job correspondingly.
+ * Propagates the magnetic field, computes the derivatives and the upwinded
+ * electric field, then computes the volume-averaged field values. Takes care
+ * of the Runge-Kutta iteration at the top level, the functions called get as
+ * an argument the element from the enum defining the current stage and handle
+ * their job correspondingly.
  * 
  * \param dt Length of the time step
  * \param subcycles Number of subcycles to compute.

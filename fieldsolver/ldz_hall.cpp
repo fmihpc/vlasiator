@@ -29,7 +29,6 @@
 
 using namespace std;
 
-// X
 /*! \brief Low-level Hall component computation
  * 
  * Hall term computation following Balsara reconstruction, edge-averaged.
@@ -420,7 +419,15 @@ REAL JXBZ_110_111(
  * 
  * Calls the lower-level inline templates and scales the components properly.
  * 
+ * \param perBGrid fsGrid holding the perturbed B quantities 
+ * \param EHallGrid fsGrid holding the Hall contributions to the electric field
+ * \param momentsGrid fsGrid holding the moment quantities
+ * \param dPerBGrid fsGrid holding the derivatives of perturbed B
+ * \param dMomentsGrid fsGrid holding the derviatives of moments
+ * \param BgBGrid fsGrid holding the background B quantities
+ * \param technicalGrid fsGrid holding technical information (such as boundary types)
  * \param perturbedCoefficients Reconstruction coefficients
+ * \param i,j,k fsGrid cell coordinates for the current cell
  * 
  * \sa calculateHallTerm JXBX_000_100 JXBX_001_101 JXBX_010_110 JXBX_011_111
  * 
@@ -510,7 +517,15 @@ void calculateEdgeHallTermXComponents(
  * 
  * Calls the lower-level inline templates and scales the components properly.
  * 
+ * \param perBGrid fsGrid holding the perturbed B quantities 
+ * \param EHallGrid fsGrid holding the Hall contributions to the electric field
+ * \param momentsGrid fsGrid holding the moment quantities
+ * \param dPerBGrid fsGrid holding the derivatives of perturbed B
+ * \param dMomentsGrid fsGrid holding the derviatives of moments
+ * \param BgBGrid fsGrid holding the background B quantities
+ * \param technicalGrid fsGrid holding technical information (such as boundary types)
  * \param perturbedCoefficients Reconstruction coefficients
+ * \param i,j,k fsGrid cell coordinates for the current cell
  * 
  * \sa calculateHallTerm JXBY_000_010 JXBY_001_011 JXBY_100_110 JXBY_101_111
  * 
@@ -600,7 +615,15 @@ void calculateEdgeHallTermYComponents(
  * 
  * Calls the lower-level inline templates and scales the components properly.
  * 
+ * \param perBGrid fsGrid holding the perturbed B quantities 
+ * \param EHallGrid fsGrid holding the Hall contributions to the electric field
+ * \param momentsGrid fsGrid holding the moment quantities
+ * \param dPerBGrid fsGrid holding the derivatives of perturbed B
+ * \param dMomentsGrid fsGrid holding the derviatives of moments
+ * \param BgBGrid fsGrid holding the background B quantities
+ * \param technicalGrid fsGrid holding technical information (such as boundary types)
  * \param perturbedCoefficients Reconstruction coefficients
+ * \param i,j,k fsGrid cell coordinates for the current cell
  * 
  * \sa calculateHallTerm JXBZ_000_001 JXBZ_010_011 JXBZ_100_101 JXBZ_110_111
  * 
@@ -687,7 +710,16 @@ void calculateEdgeHallTermZComponents(
 }
 
 /** \brief Calculate the numerator of the Hall term on all given cells.
+ *
+ * \param perBGrid fsGrid holding the perturbed B quantities 
+ * \param EHallGrid fsGrid holding the Hall contributions to the electric field
+ * \param momentsGrid fsGrid holding the moment quantities
+ * \param dPerBGrid fsGrid holding the derivatives of perturbed B
+ * \param dMomentsGrid fsGrid holding the derviatives of moments
+ * \param BgBGrid fsGrid holding the background B quantities
+ * \param technicalGrid fsGrid holding technical information (such as boundary types)
  * \param sysBoundaries System boundary condition functions.
+ * \param i,j,k fsGrid cell coordinates for the current cell
  * 
  * \sa calculateHallTermSimple calculateEdgeHallTermXComponents calculateEdgeHallTermYComponents calculateEdgeHallTermZComponents
  */
@@ -746,9 +778,18 @@ void calculateHallTerm(
  * 
  * Performs the communication before and after the computation as well as the computation of all Hall term numerator components.
  * 
- * \param mpiGrid Grid
+ * \param perBGrid fsGrid holding the perturbed B quantities 
+ * \param perBDt2Grid fsGrid holding the perturbed B quantities at runge-kutta half step
+ * \param EHallGrid fsGrid holding the Hall contributions to the electric field
+ * \param momentsGrid fsGrid holding the moment quantities
+ * \param momentsDt2Grid fsGrid holding the moment quantities at runge-kutta half step
+ * \param dPerBGrid fsGrid holding the derivatives of perturbed B
+ * \param dMomentsGrid fsGrid holding the derviatives of moments
+ * \param BgBGrid fsGrid holding the background B quantities
+ * \param technicalGrid fsGrid holding technical information (such as boundary types)
  * \param sysBoundaries System boundary condition functions.
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
+ * \param communicateMomentsDerivatives whether to communicate derivatves with the neighbour CPUs
  * 
  * \sa calculateHallTerm
  */

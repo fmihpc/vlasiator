@@ -29,6 +29,12 @@
 /*! \brief Low-level spatial derivatives calculation.
  * 
  * For the cell with ID cellID calculate the spatial derivatives or apply the derivative boundary conditions defined in project.h. Uses RHO, V[XYZ] and B[XYZ] in the first-order time accuracy method and in the second step of the second-order method, and RHO_DT2, V[XYZ]1 and B[XYZ]1 in the first step of the second-order method.
+ * \param i,j,k fsGrid cell coordinates for the current cell
+ * \param perBGrid fsGrid holding the perturbed B quantities
+ * \param momentsGrid fsGrid holding the moment quantities
+ * \param dPerBGrid fsGrid holding the derivatives of perturbed B
+ * \param dMomentsGrid fsGrid holding the derviatives of moments
+ * \param technicalGrid fsGrid holding technical information (such as boundary types)
  * \param sysBoundaries System boundary conditions existing
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  * 
@@ -113,6 +119,7 @@ void calculateDerivatives(
         dPerB->at(fsgrids::dperb::dPERBzdxx) = leftPerB->at(fsgrids::bfield::PERBZ) + rghtPerB->at(fsgrids::bfield::PERBZ) - 2.0*centPerB->at(fsgrids::bfield::PERBZ);
       }
    } else {
+      // Boundary conditions handle derivatives.
       if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
          SBC::SysBoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, 0);
       } else {
@@ -149,6 +156,7 @@ void calculateDerivatives(
       }
       
    } else {
+      // Boundary conditions handle derivatives.
       if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
          SBC::SysBoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, 1);
       } else {
@@ -184,6 +192,7 @@ void calculateDerivatives(
       }
       
    } else {
+      // Boundary conditions handle derivatives.
       if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
          SBC::SysBoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, 2);
       } else {
@@ -207,6 +216,7 @@ void calculateDerivatives(
          dPerB->at(fsgrids::dperb::dPERBzdxy) = FOURTH * (botLeft->at(fsgrids::bfield::PERBZ) + topRght->at(fsgrids::bfield::PERBZ) - botRght->at(fsgrids::bfield::PERBZ) - topLeft->at(fsgrids::bfield::PERBZ));
          
       } else {
+         // Boundary conditions handle derivatives.
          if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
             SBC::SysBoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, 3);
          } else {
@@ -225,6 +235,7 @@ void calculateDerivatives(
          dPerB->at(fsgrids::dperb::dPERBydxz) = FOURTH * (botLeft->at(fsgrids::bfield::PERBY) + topRght->at(fsgrids::bfield::PERBY) - botRght->at(fsgrids::bfield::PERBY) - topLeft->at(fsgrids::bfield::PERBY));
          
       } else {
+         // Boundary conditions handle derivatives.
          if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
             SBC::SysBoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, 4);
          } else {
@@ -243,6 +254,7 @@ void calculateDerivatives(
          dPerB->at(fsgrids::dperb::dPERBxdyz) = FOURTH * (botLeft->at(fsgrids::bfield::PERBX) + topRght->at(fsgrids::bfield::PERBX) - botRght->at(fsgrids::bfield::PERBX) - topLeft->at(fsgrids::bfield::PERBX));
          
       } else {
+         // Boundary conditions handle derivatives.
          if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
             SBC::SysBoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, 5);
          } else {
@@ -260,9 +272,16 @@ void calculateDerivatives(
  * 
  * Then the derivatives are calculated.
  * 
+ * \param perBGrid fsGrid holding the perturbed B quantities
+ * \param perBDt2Grid fsGrid holding the perturbed B quantities at runge-kutta t=0.5
+ * \param momentsGrid fsGrid holding the moment quantities
+ * \param momentsDt2Grid fsGrid holding the moment quantities at runge-kutta t=0.5
+ * \param dPerBGrid fsGrid holding the derivatives of perturbed B
+ * \param dMomentsGrid fsGrid holding the derviatives of moments
+ * \param technicalGrid fsGrid holding technical information (such as boundary types)
  * \param sysBoundaries System boundary conditions existing
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
- * \param doMoments If true, the derivatives of moments (rho, V, P) are computed.
+ * \param communicateMoments If true, the derivatives of moments (rho, V, P) are communicated to neighbours.
  
  * \sa calculateDerivatives calculateBVOLDerivativesSimple calculateBVOLDerivatives
  */
@@ -350,6 +369,11 @@ void calculateDerivativesSimple(
  * 
  * For the cell with ID cellID calculate the spatial derivatives of BVOL or apply the derivative boundary conditions defined in project.h.
  * 
+ * \param volGrid fsGrid holding the volume averaged fields
+ * \param technicalGrid fsGrid holding technical information (such as boundary types)
+ * \param i,j,k fsGrid cell coordinates for the current cell
+ * \param sysBoundaries System boundary conditions existing
+ *
  * \sa calculateDerivatives calculateBVOLDerivativesSimple calculateDerivativesSimple
  */
 
@@ -417,6 +441,8 @@ void calculateBVOLDerivatives(
  * BVOL has been calculated locally by calculateVolumeAveragedFields but not communicated.
  * For the acceleration step one needs the cross-derivatives of BVOL
  * 
+ * \param volGrid fsGrid holding the volume averaged fields
+ * \param technicalGrid fsGrid holding technical information (such as boundary types)
  * \param sysBoundaries System boundary conditions existing
  * 
  * \sa calculateDerivatives calculateBVOLDerivatives calculateDerivativesSimple

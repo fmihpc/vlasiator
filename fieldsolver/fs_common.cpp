@@ -45,7 +45,10 @@ Real divideIfNonZero(
  * Computes the reconstruction coefficients used for field component reconstruction.
  * Only implemented for 2nd and 3rd order.
  * 
+ * \param perBGrid fsGrid holding the perturbed B quantities 
+ * \param dPerBGrid fsGrid holding the derivatives of perturbed B
  * \param perturbedResult Array in which to store the coefficients.
+ * \param i,j,k fsGrid cell coordinates for the current cell
  * \param reconstructionOrder Reconstruction order of the fields after Balsara 2009, 2 used for BVOL, 3 used for 2nd-order Hall term calculations.
  */
 void reconstructionCoefficients(

@@ -69,7 +69,7 @@ template<typename T> inline T MClimiter(const T& left,const T& cent,const T& rig
 }
 
 template<typename T> inline T superbee(const T& left,const T& cent,const T& right) {
-   const T HALF = 0.5; 
+   const T HALF = 0.5;
    
    const T back = cent-left;
    const T forw = right-cent;
