@@ -34,8 +34,12 @@
  * intermediate E1 components for the first stage of the second-order
  * Runge-Kutta method and E for the other cases.
  * 
- * \param cellCache Field solver cell cache
- * \param cells Vector of cells to process
+ *
+ * \param perBGrid fsGrid holding the perturbed B quantities at runge-kutta t=0
+ * \param perBDt2Grid fsGrid holding the perturbed B quantities at runge-kutta t=0.5
+ * \param EGrid fsGrid holding the Electric field quantities at runge-kutta t=0
+ * \param EDt2Grid fsGrid holding the Electric field quantities at runge-kutta t=0.5
+ * \param i,j,k fsGrid cell coordinates for the current cell
  * \param dt Length of the time step
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  * \param doX If true, compute the x component (default true).
@@ -155,9 +159,12 @@ void propagateMagneticField(
  * 
  * Propagates the magnetic field according to the system boundary conditions.
  * 
- * \param mpiGrid Grid
- * \param cellCache Field solver cell cache
- * \param localID Field solver cache local cell ID
+ * \param perBGrid fsGrid holding the perturbed B quantities at runge-kutta t=0
+ * \param perBDt2Grid fsGrid holding the perturbed B quantities at runge-kutta t=0.5
+ * \param EGrid fsGrid holding the Electric field quantities at runge-kutta t=0
+ * \param EDt2Grid fsGrid holding the Electric field quantities at runge-kutta t=0.5
+ * \param technicalGrid fsGrid holding technical information (such as boundary types)
+ * \param i,j,k fsGrid cell coordinates for the current cell
  * \param sysBoundaries System boundary conditions existing
  * \param dt Length of the time step
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
@@ -193,10 +200,13 @@ void propagateSysBoundaryMagneticField(
  * 
  * Propagates the magnetic field and applies the field boundary conditions defined in project.h where needed.
  * 
- * \param mpiGrid Grid
+ * \param perBGrid fsGrid holding the perturbed B quantities at runge-kutta t=0
+ * \param perBDt2Grid fsGrid holding the perturbed B quantities at runge-kutta t=0.5
+ * \param EGrid fsGrid holding the Electric field quantities at runge-kutta t=0
+ * \param EDt2Grid fsGrid holding the Electric field quantities at runge-kutta t=0.5
+ * \param technicalGrid fsGrid holding technical information (such as boundary types)
  * \param sysBoundaries System boundary conditions existing
  * \param dt Length of the time step
- * \param localCells Vector of local cells to process
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  * 
  * \sa propagateMagneticField propagateSysBoundaryMagneticField
