@@ -195,6 +195,9 @@ void initializeGrid(
       // Each initialization has to be independent to avoid threading problems 
       const vector<CellID>& cells = getLocalCells();
 
+      // Allow the project to set up data structures for it's setCell calls
+      project.setupBeforeSetCell(cells);
+
       #pragma omp parallel for schedule(dynamic)
       for (size_t i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];

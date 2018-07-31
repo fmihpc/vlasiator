@@ -195,6 +195,11 @@ namespace projects {
       const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
    ) const { }
 
+   void Project::setupBeforeSetCell(const std::vector<CellID>& cells) {
+      // Dummy implementation.
+      return;
+   }
+
    void Project::setCell(SpatialCell* cell) {
       // Set up cell parameters:
       calcCellParameters(cell,0.0);
