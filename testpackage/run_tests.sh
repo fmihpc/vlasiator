@@ -16,7 +16,11 @@ test_dir=$( readlink -f $test_dir)
 #   test_cfg[$run]=$( readlink -f runs/${test_name[$run]}/${test_name[$run]}.cfg )
 # done
 
-  
+if [[ ! $small_run_command ]]; then
+	echo "No small_run_command provided in machine config, please update it!"
+	exit
+fi 
+ 
 flags=$(  $run_command $bin  --version |grep CXXFLAGS)
 solveropts=$(echo $flags|sed 's/[-+]//g' | gawk '{for(i = 1;i<=NF;i++) { if( $i=="DDP" || $i=="DFP" || index($i,"PF")|| index($i,"DVEC") || index($i,"SEMILAG") ) printf "__%s", $(i) }}')
 revision=$( $run_command $bin --version |gawk '{if(flag==1) {print $1;flag=0}if ($3=="log") flag=1;}' )
@@ -63,8 +67,13 @@ do
     test -e test_prelude.sh && ./test_prelude.sh
 
     # Run the actual simulation
-    $run_command $bin --version  > VERSION.txt
-    $run_command $bin --run_config=${test_name[$run]}.cfg
+    if [[ ${single_cell[$run]} ]]; then
+    	$small_run_command $bin --version  > VERSION.txt
+	$small_run_command $bin --run_config=${test_name[$run]}.cfg
+    else
+	$run_command $bin --version  > VERSION.txt
+	$run_command $bin --run_config=${test_name[$run]}.cfg
+    fi
 
     # Run postprocessing script, if it exists
     test -e test_postproc.sh && ./test_postproc.sh
@@ -121,22 +130,18 @@ do
         echo "------------------------------------------------------------"
         echo "  variable     |     absolute diff     |     relative diff | "
         echo "------------------------------------------------------------"
-        for i in ${!variables_name[*]}
+
+	variables=(${variable_names[$run]// / })
+	indices=(${variable_components[$run]// / })
+        for i in ${!variables[*]}
         do
-            if [ ! "${variables_name[$i]}" == "proton" ]
+            if [ ! "${variables[$i]}" == "proton" ]
             then
-                relativeValue=$($run_command_tools vlsvdiff_DP ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables_name[$i]} ${variables_components[$i]} |grep "The relative 0-distance between both datasets" |gawk '{print $8}'  )
-                absoluteValue=$($run_command_tools vlsvdiff_DP ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables_name[$i]} ${variables_components[$i]} |grep "The absolute 0-distance between both datasets" |gawk '{print $8}'  )
+                relativeValue=$($run_command_tools vlsvdiff_DP ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables[$i]} ${indices[$i]} |grep "The relative 0-distance between both datasets" |gawk '{print $8}'  )
+                absoluteValue=$($run_command_tools vlsvdiff_DP ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables[$i]} ${indices[$i]} |grep "The absolute 0-distance between both datasets" |gawk '{print $8}'  )
 #print the results      
-                echo "${variables_name[$i]}_${variables_components[$i]}                $absoluteValue                 $relativeValue    "
-            fi
-
-        done # loop over variables
-
-
-        for i in ${!variables_name[*]}
-        do
-            if [ "${variables_name[$i]}" == "proton" ]
+                echo "${variables[$i]}_${indices[$i]}                $absoluteValue                 $relativeValue    "
+            elif [ "${variables[$i]}" == "proton" ]
             then
                 echo "--------------------------------------------------------------------------------------------" 
                 echo "   Distribution function diff                                                               "
