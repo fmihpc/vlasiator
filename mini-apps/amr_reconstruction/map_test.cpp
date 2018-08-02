@@ -2,7 +2,8 @@
 #include "common.h"
 #include "vlasovsolver/vec.h"
 //#include "vlasovsolver/cpu_1d_ppm.hpp"
-#include "vlasovsolver/cpu_1d_ppm_nonuniform.hpp"
+//#include "vlasovsolver/cpu_1d_ppm_nonuniform.hpp"
+#include "vlasovsolver/cpu_1d_ppm_nonuniform_conserving.hpp"
 #include <random>
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/uniform_real.hpp>
@@ -134,7 +135,7 @@ void print_reconstruction(int step, Vec dr[], Vec values[], uint  blocks_per_dim
 	  3.0 * r_norm * r_norm * a[2];
 #endif
 
-	fprintf(fp,"%20.12g %20.12g %20.12g\n", r[0], values[k_block * WID + k_cell + WID][0], target[0]);
+	fprintf(fp,"%20.12g %20.12e %20.12e\n", r[0], values[k_block * WID + k_cell + WID][0], target[0]);
       }
       //fprintf(fp,"\n"); //empty line to deay wgments in gnuplot
     }
@@ -201,7 +202,13 @@ int main(void) {
     // Evaluate the function at the middle of the cell
     r = r + 0.5 * dr[i + WID][0];
     values[i + WID] = rho * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B * T), 1.5) *
-      exp(- physicalconstants::MASS_PROTON * (r - r1) * (r - r1) / (2.0 * physicalconstants::K_B * T));    
+     exp(- physicalconstants::MASS_PROTON * (r - r1) * (r - r1) / (2.0 * physicalconstants::K_B * T));    
+
+    // if (r < 0.0 && r_min - 10.0 * r < 0.0) {
+    //   values[i + WID] = abs(r_min - 10.0 * r);
+    // } else {
+    //   values[i + WID] = 0.0;
+    // }
     
     // Move r to the end of the cell for the next iteration
     r = r + 0.5 * dr[i + WID][0];
