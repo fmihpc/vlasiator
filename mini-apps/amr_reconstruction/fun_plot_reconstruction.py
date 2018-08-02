@@ -23,9 +23,6 @@ def plot_reconstruction(step,scale='linear'):
     m_p = 1.67262158e-27
     k_B = 1.3806503e-23
     
-    imax = mlab.find(dat[:,1] == max(dat[:,1]))
-    rmax = dat[imax[0],0]
-
     r0 = -2e5
     dr = 500
     
@@ -46,7 +43,7 @@ def plot_reconstruction(step,scale='linear'):
         plt.xlim(-1e6,1e6)
     else:
         pass
-        plt.xlim(0e6,2e6)
+        plt.xlim(-0.6e6,0.6e6)
 
     ax = plt.gca()
     ax.set_yscale(scale)
