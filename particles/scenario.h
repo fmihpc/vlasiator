@@ -141,6 +141,7 @@ struct InjectionScenario : Scenario {
   FILE * lostFile;
   FILE * kickFile;
   FILE * meetFile;
+  FILE * minxFile;
   
   Real * accumulated_E;
   Real * accumulated_B;

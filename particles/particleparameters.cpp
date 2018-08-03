@@ -82,6 +82,11 @@ Real P::injection_bs_p1;
 Real P::injection_bs_p2;
 Real P::injection_bs_p3;
 Real P::injection_bs_p4;
+Real P::injection_bs2_p0;
+Real P::injection_bs2_p1;
+Real P::injection_bs2_p2;
+Real P::injection_bs2_p3;
+Real P::injection_bs2_p4;
 Real P::injection_r_meet;
 Real P::injection_rho_meet;
 Real P::injection_r_bound_ds;
@@ -90,6 +95,9 @@ Real P::injection_x_bound_ds;
 Real P::injection_start_deg0;
 Real P::injection_start_deg1;
 Real P::injection_start_rplus;
+Real P::injection_init_vx;
+Real P::injection_init_vy;
+Real P::injection_init_vz;
 
 bool ParticleParameters::addParameters() {
    Readparameters::add("particles.input_filename_pattern","Printf() like pattern giving the field input filenames.",
@@ -172,15 +180,25 @@ bool ParticleParameters::addParameters() {
 //    Readparameters::add("particles.injection_ecc", 
 // 		       "injection scenario: Bow shock fit eccentricity parameter ecc", 1.0);
    Readparameters::add("particles.injection_bs_p0",
-		       "injection scenario: Bow shock fit parameter p0", 0);
+		       "injection scenario: Bow shock fit parameter p0 (at start)", 0);
    Readparameters::add("particles.injection_bs_p1",
-		       "injection scenario: Bow shock fit parameter p1", 0);
+		       "injection scenario: Bow shock fit parameter p1 (at start)", 0);
    Readparameters::add("particles.injection_bs_p2",
-		       "injection scenario: Bow shock fit parameter p2", 0);
+		       "injection scenario: Bow shock fit parameter p2 (at start)", 0);
    Readparameters::add("particles.injection_bs_p3",
-		       "injection scenario: Bow shock fit parameter p3", 0);
+		       "injection scenario: Bow shock fit parameter p3 (at start)", 0);
    Readparameters::add("particles.injection_bs_p4",
-		       "injection scenario: Bow shock fit parameter p4", 0);
+		       "injection scenario: Bow shock fit parameter p4 (at start)", 0);
+   Readparameters::add("particles.injection_bs2_p0",
+		       "injection scenario: Bow shock fit parameter p0 (at end)", 0);
+   Readparameters::add("particles.injection_bs2_p1",
+		       "injection scenario: Bow shock fit parameter p1 (at end)", 0);
+   Readparameters::add("particles.injection_bs2_p2",
+		       "injection scenario: Bow shock fit parameter p2 (at end)", 0);
+   Readparameters::add("particles.injection_bs2_p3",
+		       "injection scenario: Bow shock fit parameter p3 (at end)", 0);
+   Readparameters::add("particles.injection_bs2_p4",
+		       "injection scenario: Bow shock fit parameter p4 (at end)", 0);
    Readparameters::add("particles.injection_r_meet",
 		       "injection scenario: Distance for meeting shock in metres", 1.275e6);
    Readparameters::add("particles.injection_rho_meet",
@@ -197,7 +215,12 @@ bool ParticleParameters::addParameters() {
 		       "injection scenario: initialisation arc finish angle in degrees", 135);
    Readparameters::add("particles.injection_start_rplus",
 		       "injection scenario: initialisation arc distance from shock in metres", 5.7339e6);
-
+   Readparameters::add("particles.injection_init_vx",
+		       "injection scenario: V_x for initialisation solar wind", -6e5);
+   Readparameters::add("particles.injection_init_vy",
+		       "injection scenario: V_y for initialisation solar wind", 0);
+   Readparameters::add("particles.injection_init_vz",
+		       "injection scenario: V_z for initialisation solar wind", 0);
 
    return true;
 }
@@ -303,6 +326,11 @@ bool ParticleParameters::getParameters() {
    Readparameters::get("particles.injection_bs_p2", P::injection_bs_p2);
    Readparameters::get("particles.injection_bs_p3", P::injection_bs_p3);
    Readparameters::get("particles.injection_bs_p4", P::injection_bs_p4);
+   Readparameters::get("particles.injection_bs2_p0", P::injection_bs2_p0);
+   Readparameters::get("particles.injection_bs2_p1", P::injection_bs2_p1);
+   Readparameters::get("particles.injection_bs2_p2", P::injection_bs2_p2);
+   Readparameters::get("particles.injection_bs2_p3", P::injection_bs2_p3);
+   Readparameters::get("particles.injection_bs2_p4", P::injection_bs2_p4);
    Readparameters::get("particles.injection_r_meet", P::injection_r_meet);
    Readparameters::get("particles.injection_rho_meet", P::injection_rho_meet);
    Readparameters::get("particles.injection_r_bound_ds", P::injection_r_bound_ds);
@@ -311,6 +339,9 @@ bool ParticleParameters::getParameters() {
    Readparameters::get("particles.injection_start_deg0", P::injection_start_deg0);
    Readparameters::get("particles.injection_start_deg1", P::injection_start_deg1);
    Readparameters::get("particles.injection_start_rplus", P::injection_start_rplus);
+   Readparameters::get("particles.injection_init_vx", P::injection_init_vx);
+   Readparameters::get("particles.injection_init_vy", P::injection_init_vy);
+   Readparameters::get("particles.injection_init_vz", P::injection_init_vz);
 
    return true;
 }

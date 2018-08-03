@@ -148,7 +148,11 @@ int main(int argc, char** argv) {
      }
      // If a new timestep has been opened, add a new bunch of particles
      if(newfile) {
-       std::cerr << "New file " << input_file_counter<<" step "<< step<<" time "<< step*dt<<std::endl;
+       if (!ParticleParameters::staticfields) {
+	 std::cerr << "New file " << input_file_counter<<" step "<< step<<" time "<< step*dt<<std::endl;
+       } else {
+	 std::cerr << "Static fields new file " << input_file_counter<<" step "<< step<<" time "<< step*dt<<std::endl;
+       }
        //std::cerr << "   fields "<<ParticleParameters::staticfields<<std::endl;
 
        scenario->newTimestep(input_file_counter, step, step*dt, particles, cur_E, cur_B, cur_V, cur_R);

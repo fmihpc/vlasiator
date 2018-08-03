@@ -74,11 +74,17 @@ struct ParticleParameters {
 /*    static Real injection_r0;           /\*!< injection scenario: Bow shock fit standoff distance in metres *\/ */
 /*    static Real injection_alpha;        /\*!< injection scenario: Bow shock fit tail flare parameter alpha  *\/ */
 /*    static Real injection_ecc;          /\*!< injection scenario: Bow shock fit eccentricity parameter ecc*\/ */
-   static Real injection_bs_p0;        /*!< injection scenario: Bow shock fit p0 */
-   static Real injection_bs_p1;        /*!< injection scenario: Bow shock fit p1 */
-   static Real injection_bs_p2;        /*!< injection scenario: Bow shock fit p2 */
-   static Real injection_bs_p3;        /*!< injection scenario: Bow shock fit p3 */
-   static Real injection_bs_p4;        /*!< injection scenario: Bow shock fit p4 */
+   static Real injection_bs_p0;        /*!< injection scenario: Bow shock fit p0 (at start) */
+   static Real injection_bs_p1;        /*!< injection scenario: Bow shock fit p1 (at start) */
+   static Real injection_bs_p2;        /*!< injection scenario: Bow shock fit p2 (at start) */
+   static Real injection_bs_p3;        /*!< injection scenario: Bow shock fit p3 (at start) */
+   static Real injection_bs_p4;        /*!< injection scenario: Bow shock fit p4 (at start) */
+   static Real injection_bs2_p0;        /*!< injection scenario: Bow shock fit p0 (at end) */
+   static Real injection_bs2_p1;        /*!< injection scenario: Bow shock fit p1 (at end) */
+   static Real injection_bs2_p2;        /*!< injection scenario: Bow shock fit p2 (at end) */
+   static Real injection_bs2_p3;        /*!< injection scenario: Bow shock fit p3 (at end) */
+   static Real injection_bs2_p4;        /*!< injection scenario: Bow shock fit p4 (at end) */
+
    static Real injection_r_meet;       /*!< injection scenario: Distance from shock fit to assume particle meets shock (in metres) */
    static Real injection_rho_meet;     /*!< injection scenario: Number density value to assume particle meets shock */
    static Real injection_r_bound_ds;   /*!< injection scenario: Downstream transmission boundary radial distance in metres */
@@ -87,6 +93,9 @@ struct ParticleParameters {
    static Real injection_start_deg0;   /*!< injection scenario: initialisation arc start angle in degrees */
    static Real injection_start_deg1;   /*!< injection scenario: initialisation arc finish angle in degrees */
    static Real injection_start_rplus;  /*!< injection scenario: initialisation arc distance from shock in metres */
+   static Real injection_init_vx;        /*!< injection scenario: V_x for initialisation solar wind */
+   static Real injection_init_vy;        /*!< injection scenario: V_y for initialisation solar wind */
+   static Real injection_init_vz;        /*!< injection scenario: V_z for initialisation solar wind */
 
    static std::default_random_engine::result_type random_seed; /*!< Random seed for particle creation */
    static Distribution* (*distribution)(std::default_random_engine&); /*!< Type of distribution from which to sample the particles */
