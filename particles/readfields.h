@@ -155,6 +155,7 @@ bool readNextTimestep(const std::string& filename_pattern, double t, int step, F
       std::vector<double> Ebuffer = readFieldData(r,name,3u);
       std::vector<double> Vbuffer;
       std::vector<double> Rhobuffer;
+      std::vector<double> TNBSbuffer;
       if(doV) {
 	V0=V1;
 	V1.time = t;
@@ -175,14 +176,15 @@ bool readNextTimestep(const std::string& filename_pattern, double t, int step, F
 	std::string rhonbs_name("RhoNonBackstream");
 	std::string ptdnbs_name("PTensorNonBackstreamDiagonal");
 
+	Rhobuffer = readFieldData(r,rho_name,1u);
+
 	std::vector<double> ptdnbs_buffer = readFieldData(r,ptdnbs_name,3u);
 	std::vector<double> rhonbs_buffer = readFieldData(r,rhonbs_name,1u);
 	for(unsigned int i=0; i<rhonbs_buffer.size(); i++) {
 	  // Pressure-nonbackstreaming = (ptdnbs_buffer[3*i]+ptdnbs_buffer[3*i+1]+ptdnbs_buffer[3*i+2])*(1./3.)
-	  Rhobuffer.push_back( ((ptdnbs_buffer[3*i]+ptdnbs_buffer[3*i+1]+ptdnbs_buffer[3*i+2])*(1./3.)) / ((1.+rhonbs_buffer[i])*1.38065e-23));
+	  TNBSbuffer.push_back( ((ptdnbs_buffer[3*i]+ptdnbs_buffer[3*i+1]+ptdnbs_buffer[3*i+2])*(1./3.)) / ((1.+rhonbs_buffer[i])*1.38065e-23));
 	}
-	/* finish hack to calculate non-backstreaming temperature instead */
-	//Rhobuffer = readFieldData(r,rho_name,1u);
+
       }
       /* Assign them, without sanity checking */
       /* TODO: Is this actually a good idea? */
@@ -210,8 +212,8 @@ bool readNextTimestep(const std::string& filename_pattern, double t, int step, F
 	if(doRho) {
 	  double* Rtgt = R1.getCellRef(x,y,z);
 	  Rtgt[0] = Rhobuffer[i];
-	  Rtgt[1] = 0;
-	  Rtgt[2] = 0;
+	  Rtgt[1] = TNBSbuffer[i];
+	  Rtgt[2] = 0; // Something for magnetosonic mach number here
 	}
       }
       r.close();

@@ -87,8 +87,10 @@ Real P::injection_bs2_p1;
 Real P::injection_bs2_p2;
 Real P::injection_bs2_p3;
 Real P::injection_bs2_p4;
-Real P::injection_r_meet;
 Real P::injection_rho_meet;
+Real P::injection_TNBS_meet;
+Real P::injection_Mms_meet;
+Real P::injection_tbn_meet;
 Real P::injection_r_bound_ds;
 Real P::injection_r_bound_us;
 Real P::injection_x_bound_ds;
@@ -199,10 +201,14 @@ bool ParticleParameters::addParameters() {
 		       "injection scenario: Bow shock fit parameter p3 (at end)", 0);
    Readparameters::add("particles.injection_bs2_p4",
 		       "injection scenario: Bow shock fit parameter p4 (at end)", 0);
-   Readparameters::add("particles.injection_r_meet",
-		       "injection scenario: Distance for meeting shock in metres", 1.275e6);
    Readparameters::add("particles.injection_rho_meet",
 		       "injection scenario: Number density for meeting shock", 6.6e6);
+   Readparameters::add("particles.injection_TNBS_meet",
+		       "injection scenario: Non-backstreaming temperature for meeting shock", 2.e6);
+   Readparameters::add("particles.injection_Mms_meet",
+		       "injection scenario: Magnetosonic Mach number for meeting shock", 1.);
+   Readparameters::add("particles.injection_tbn_meet",
+		       "injection scenario: Theta_Bn value for meeting shock", 6.6e6);
    Readparameters::add("particles.injection_r_bound_ds",
 		       "injection scenario: Downstream transmission boundary radial distance in metres", 6.371e6);
    Readparameters::add("particles.injection_r_bound_us",
@@ -331,8 +337,10 @@ bool ParticleParameters::getParameters() {
    Readparameters::get("particles.injection_bs2_p2", P::injection_bs2_p2);
    Readparameters::get("particles.injection_bs2_p3", P::injection_bs2_p3);
    Readparameters::get("particles.injection_bs2_p4", P::injection_bs2_p4);
-   Readparameters::get("particles.injection_r_meet", P::injection_r_meet);
    Readparameters::get("particles.injection_rho_meet", P::injection_rho_meet);
+   Readparameters::get("particles.injection_TNBS_meet", P::injection_TNBS_meet);
+   Readparameters::get("particles.injection_Mms_meet", P::injection_Mms_meet);
+   Readparameters::get("particles.injection_tbn_meet", P::injection_tbn_meet);
    Readparameters::get("particles.injection_r_bound_ds", P::injection_r_bound_ds);
    Readparameters::get("particles.injection_r_bound_us", P::injection_r_bound_us);
    Readparameters::get("particles.injection_x_bound_ds", P::injection_x_bound_ds);

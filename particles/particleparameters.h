@@ -85,8 +85,12 @@ struct ParticleParameters {
    static Real injection_bs2_p3;        /*!< injection scenario: Bow shock fit p3 (at end) */
    static Real injection_bs2_p4;        /*!< injection scenario: Bow shock fit p4 (at end) */
 
-   static Real injection_r_meet;       /*!< injection scenario: Distance from shock fit to assume particle meets shock (in metres) */
    static Real injection_rho_meet;     /*!< injection scenario: Number density value to assume particle meets shock */
+   static Real injection_TNBS_meet;    /*!< injection scenario: Non-backstreaming temperature value to assume particle meets shock */
+   static Real injection_Mms_meet;     /*!< injection scenario: Magnetosonic Mach number to assume particle meets shock */
+   static Real injection_tbn_meet;     /*!< injection scenario: Shock-normal angle value to assume particle meets shock */
+   // No parameter required for flipmu calculation
+
    static Real injection_r_bound_ds;   /*!< injection scenario: Downstream transmission boundary radial distance in metres */
    static Real injection_r_bound_us;   /*!< injection scenario: Upstream reflection boundary radial distance in metres */
    static Real injection_x_bound_ds;   /*!< injection scenario: discard boundary X-coordinate in metres */

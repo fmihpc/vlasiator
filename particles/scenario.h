@@ -139,20 +139,20 @@ struct InjectionScenario : Scenario {
   FILE * traFile;
   FILE * refFile;
   FILE * lostFile;
-  FILE * kickFile;
-  FILE * meetFile;
-  FILE * minxFile;
-  
-  Real * accumulated_E;
-  Real * accumulated_B;
-  Real * accumulated_mu;
-  Real * current_mu;
 
-/*   Real * fs_r; */
-/*   Real * fs_v; */
-/*   Real * fs_E; */
-/*   Real * fs_B; */
-  bool * fs_hasmet;
+  FILE * meet_rho_File;
+  FILE * meet_TNBS_File;
+  FILE * meet_Mms_File;
+  FILE * meet_tbn_File;
+  FILE * meet_flipmu_File;
+  FILE * minxFile;
+  FILE * boostFile;
+
+  bool * fs_hasmet_rho;
+  bool * fs_hasmet_TNBS;
+  bool * fs_hasmet_Mms;
+  bool * fs_hasmet_tbn;
+  bool * fs_hasmet_flipmu;
 
   ParticleContainer initialParticles(Field& E, Field& B, Field& V, Field& R);
   void beforePush(ParticleContainer& particles, Interpolated_Field& E, Interpolated_Field& B, Interpolated_Field& V, Interpolated_Field& R);
