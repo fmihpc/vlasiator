@@ -369,13 +369,11 @@ inline void compute_filtered_face_values_nonuniform(const Vec * const dv, const 
    }
 }
 
+inline Vec get_D2aLim(const Vec * h, const Vec * values, uint k, const Vec C, Vec & fv) {
 
-inline pair<Vec,Vec> constrain_face_values(const Vec * h,const Vec * values,uint k,Vec & fv_l, Vec & fv_r) {
   // Colella & Sekora, eq. 18
-
-  const Vec C = 1.25;
   Vec invh2 = 1.0 / (h[k] * h[k]);
-  Vec d2a =  invh2 * 3.0 * (values[k]     - 2.0 * fv_r          + values[k + 1]);
+  Vec d2a =  invh2 * 3.0 * (values[k]     - 2.0 * fv            + values[k + 1]);
   Vec d2aL = invh2       * (values[k - 1] - 2.0 * values[k]     + values[k + 1]);
   Vec d2aR = invh2       * (values[k]     - 2.0 * values[k + 1] + values[k + 2]);
   Vec d2aLim;
@@ -385,55 +383,56 @@ inline pair<Vec,Vec> constrain_face_values(const Vec * h,const Vec * values,uint
   } else {
     d2aLim = 0.0;
   }
+
+  return d2aLim;
   
-   // Colella & Sekora, eq 19
-   Vec p_face = 0.5 * (values[k] + values[k + 1]) - h[k] * h[k] / 3.0 * d2aLim;
+}
 
-   // Calculate negative face value. TODO: Fix copy-paste
-   uint l = k - 1;
-   invh2 = 1.0 / (h[l] * h[l]);
-   d2a =  invh2 * 3.0 * (values[l]     - 2.0 * fv_l          + values[l + 1]);
-   d2aL = invh2       * (values[l - 1] - 2.0 * values[l]     + values[l + 1]);
-   d2aR = invh2       * (values[l]     - 2.0 * values[l + 1] + values[l + 2]);
-   if ( (horizontal_or(d2a * d2aL >= 0)) && (horizontal_or(d2a * d2aR >= 0)) &&
-	horizontal_and(d2a != 0)) {
-     d2aLim = d2a / abs(d2a) * min(abs(d2a),min(C*abs(d2aL),C*abs(d2aR)));
-   } else {
-     d2aLim = 0.0;
-   }
+inline pair<Vec,Vec> constrain_face_values(const Vec * h,const Vec * values,uint k,Vec & fv_l, Vec & fv_r) {
 
-   Vec m_face = 0.5 * (values[l] + values[l + 1]) - h[l] * h[l] / 3.0 * d2aLim;
+  const Vec C = 1.25;
+  Vec invh2 = 1.0 / (h[k] * h[k]);
+  
+  // Colella & Sekora, eq 19
+  Vec p_face = 0.5 * (values[k] + values[k + 1])
+    - h[k] * h[k] / 3.0 * get_D2aLim(h,values,k  ,C,fv_r);
+  Vec m_face = 0.5 * (values[k-1] + values[k])
+    - h[k-1] * h[k-1] / 3.0 * get_D2aLim(h,values,k-1,C,fv_l);
 
-   // Colella & Sekora, eq 22
-   d2a = -2.0 * invh2 * 6.0 * (values[k] - 3.0 * (m_face + p_face)); // a6,j from eq. 7 
-   Vec d2aC = invh2 * (values[k - 1] - 2.0 * values[k] + values[k + 1]);
-   //d2aL = invh2 * (values[k-2] - 2.0 * values[k] + values[k]);
-   d2aL = invh2 * (values[k-2] - 2.0 * values[k-1] + values[k]);
-   d2aR = invh2 * (values[k] - 2.0 * values[k+1] + values[k+2]);
-   if ( (horizontal_or(d2a * d2aL >= 0)) && (horizontal_or(d2a * d2aR >= 0)) &&
-	(horizontal_or(d2a * d2aC >= 0)) && horizontal_and(d2a != 0)) {
-     
-     d2aLim = d2a / abs(d2a) * min(C * abs(d2aL), min(C * abs(d2aR), min(C * abs(d2aC), abs(d2a))));
-   } else {
-     d2aLim = 0.0;
-     if( horizontal_or(d2a == 0.0)) {
-       // Set a non-zero value for the divison in eq. 23.
-       // According to the paper the ratio should be 0.0
-       d2a = 1.0;
-     }
-   }
+  // Colella & Sekora, eq 21
+  Vec d2a = -2.0 * invh2 * 6.0 * (values[k] - 3.0 * (m_face + p_face)); // a6,j from eq. 7 
+  Vec d2aC = invh2 * (values[k - 1] - 2.0 * values[k    ] + values[k + 1]);
+  // Note: Corrected the index of 2nd term in d2aL to k - 1.
+  //       In the paper it is k but that is almost certainly an error.
+  Vec d2aL = invh2 * (values[k - 2] - 2.0 * values[k - 1] + values[k    ]);
+  Vec d2aR = invh2 * (values[k    ] - 2.0 * values[k + 1] + values[k + 2]);
+  Vec d2aLim;
 
-   // Colella & Sekora, eq 23
-   Vec p_face_interpolant = values[k] + (p_face - values[k]) * d2aLim / d2a;
-   Vec m_face_interpolant = values[k] + (m_face - values[k]) * d2aLim / d2a;
-
-   pair<Vec,Vec> faceInterpolants;
-   faceInterpolants = make_pair(m_face_interpolant,p_face_interpolant);
-
-   // if(horizontal_and(values[k] > 1.0))
-   //   std::cout << "k, a-, a+, <a>: " << k << ", " << p_face_interpolant[0] << ", " << m_face_interpolant[0] << ", " << values[k][0] << endl;
-   
-   return faceInterpolants;
+  // Colella & Sekora, eq 22
+  if ( (horizontal_or(d2a * d2aL >= 0)) && (horizontal_or(d2a * d2aR >= 0)) &&
+       (horizontal_or(d2a * d2aC >= 0)) && horizontal_and(d2a != 0)) {
+    
+    d2aLim = d2a / abs(d2a) * min(C * abs(d2aL), min(C * abs(d2aR), min(C * abs(d2aC), abs(d2a))));
+  } else {
+    d2aLim = 0.0;
+    if( horizontal_or(d2a == 0.0)) {
+      // Set a non-zero value for the denominator in eq. 23.
+      // According to the paper the ratio d2aLim/d2a should be 0
+      d2a = 1.0;
+    }
+  }
+  
+  // Colella & Sekora, eq 23
+  Vec p_face_interpolant = values[k] + (p_face - values[k]) * d2aLim / d2a;
+  Vec m_face_interpolant = values[k] + (m_face - values[k]) * d2aLim / d2a;
+  
+  pair<Vec,Vec> faceInterpolants;
+  faceInterpolants = make_pair(m_face_interpolant,p_face_interpolant);
+  
+  // if(horizontal_and(values[k] > 1.0))
+  //   std::cout << "k, a-, a+, <a>: " << k << ", " << p_face_interpolant[0] << ", " << m_face_interpolant[0] << ", " << values[k][0] << endl;
+  
+  return faceInterpolants;
 }
 
 inline void compute_filtered_face_values_nonuniform_conserving(const Vec * const dv, const Vec * const values,uint k, face_estimate_order order, Vec &fv_l, Vec &fv_r){   
