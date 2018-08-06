@@ -164,6 +164,9 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
    if (success == false) logFile << "(MAIN) writeGrid: ERROR failed to write CELLSWITHBLOCKS to file!" << endl << writeVerbose;
 
    // Write (partial) velocity mesh data
+   // The mesh bounding box gives the outer extent of the available velocity space
+   // in blocks and cells. Note that this is not the physical extent of that
+   // space, but a purely numerical bounding box.
    uint64_t bbox[6];
    const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
    bbox[0] = getObjectWrapper().velocityMeshes[meshID].gridLength[0];
@@ -736,6 +739,7 @@ bool writeBoundingBoxNodeCoordinates ( Writer & vlsvWriter,
 
 
 /*! Function for writing the bounding box. This writes only if the process running it is the master rank. This array contains info on the boundaries of the grid so for example the number of cells in x, y, z direction.
+ * Note that this is *not* the physical coordinate bounding box, but the computational domain bounding box, measured in blocks and cells.
  \param vlsvWriter Some vlsv writer with a file open
  \param meshName Name of the mesh to write ("SpatialGrid" is used in writeGrid and it should be the default)
  \param masterRank The master process' id. Vlasiator uses 0 as the master process id, so by default should be 0
