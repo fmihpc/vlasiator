@@ -116,7 +116,11 @@ namespace BlockParams {
 /*! A namespace for storing indices into an array which contains the 
  * physical parameters of each spatial cell. Do not change the order 
  * of variables unless you know what you are doing - MPI transfers in 
- * field solver are optimised for this particular ordering.
+ * field solver are relying on this particular ordering, even though the actual
+ * fsgrid data layouts might be slightly different (see below).
+ *
+ * Note: RHOM and RHOQ are somewhat out-of-order for backwards compatibility
+ * with pre-multipop tools.
  */
 namespace CellParams {
    enum {
@@ -179,12 +183,12 @@ namespace CellParams {
       VX_R,   /*!< VX after propagation in ordinary space*/
       VY_R,   /*!< VY after propagation in ordinary space*/
       VZ_R,   /*!< VZ after propagation in ordinary space*/
-      RHOQ_R,     /*!< RHO after propagation in ordinary space*/
-      RHOM_V,     /*!< RHO after propagation in velocity space*/
+      RHOQ_R,     /*!< RHOQ after propagation in ordinary space*/
+      RHOM_V,     /*!< RHOM after propagation in velocity space*/
       VX_V,   /*!< VX after propagation in velocity space*/
       VY_V,   /*!< VY after propagation in velocity space*/
       VZ_V,   /*!< VZ after propagation in velocity space*/
-      RHOQ_V,     /*!< RHO after propagation in velocity space*/
+      RHOQ_V,     /*!< RHOQ after propagation in velocity space*/
       P_11,     /*!< Pressure P_xx component, computed by Vlasov propagator. */
       P_22,     /*!< Pressure P_yy component, computed by Vlasov propagator. */
       P_33,     /*!< Pressure P_zz component, computed by Vlasov propagator. */
@@ -326,6 +330,9 @@ namespace bvolderivatives {
 
 /*! Namespace containing enums and structs for the various field solver grid instances
  * 
+ * Note that in some of these, the order of members differs from the cell
+ * parameter fields (see above). So double-check before blindly copying data
+ * back and forth.
  */
 namespace fsgrids {
    enum bfield {
@@ -366,8 +373,8 @@ namespace fsgrids {
    };
    
    enum moments {
-      RHOM, /*!< Mass density. Calculated by Vlasov propagator, used to propagate fields.*/
-      RHOQ, /*!< Mass density. Calculated by Vlasov propagator, used to propagate fields.*/
+      RHOM, /*!< Overall mass density. Calculated by Vlasov propagator, used to propagate fields.*/
+      RHOQ, /*!< Overall charge density. Calculated by Vlasov propagator, used to propagate fields.*/
       VX,   /*!< Vx. Calculated by Vlasov propagator, used to propagate fields.*/
       VY,   /*!< Vy. Calculated by Vlasov propagator, used to propagate fields.*/
       VZ,   /*!< Vz. Calculated by Vlasov propagator, used to propagate fields.*/

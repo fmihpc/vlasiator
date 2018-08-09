@@ -58,6 +58,13 @@ namespace projects {
        * @param cell Pointer to the spatial cell.*/
       virtual void setCellBackgroundField(spatial_cell::SpatialCell* cell) const;
       
+      /*! Setup data structures for subsequent setCell calls.
+       * This will most likely be empty for most projects, except for some advanced
+       * data juggling ones (like restart from a subset of a larger run)
+       * \param cells Local cellIDs of this task.
+       */
+      virtual void setupBeforeSetCell(const std::vector<CellID>& cells);
+
       /*!\brief Set the perturbed fields and distribution of a cell according to the default simulation settings.
        * This is used for the NOT_SYSBOUNDARY cells and some other system boundary conditions (e.g. Outflow).
        * NOTE: This function is called inside parallel region so it must be declared as const.
