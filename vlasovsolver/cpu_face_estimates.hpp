@@ -178,19 +178,19 @@ inline void compute_h4_left_face_value(const Vec * const values, uint k, Vec &fv
   \param h Array with cell widths. Can be in abritrary units since they always cancel. Maybe 1/refinement ratio?
 */
 inline void compute_h4_left_face_value_nonuniform(const Vec * const h, const Vec * const u, uint k, Vec &fv_l) {
-
-  fv_l = (
-	  1.0 / ( h[k - 2] + h[k - 1] + h[k] + h[k + 1] )
-	  * ( ( h[k - 2] + h[k - 1] ) * ( h[k] + h[k + 1] ) / ( h[k - 1] + h[k] )
-	      * ( u[k - 1] * h[k] + u[k] * h[k - 1] )
-	      * (1.0 / ( h[k - 2] + h[k - 1] + h[k] ) + 1.0 / ( h[k - 1] + h[k] + h[k + 1] ) )
-	      + ( h[k] * ( h[k] + h[k + 1] ) ) / ( ( h[k - 2] + h[k - 1] + h[k] ) * (h[k - 2] + h[k - 1] ) )
-	      * ( u[k - 1] * (h[k - 2] + 2.0 * h[k - 1] ) - ( u[k - 2] * h[k - 1] ) )
-	      + h[k - 1] * ( h[k - 2] + h[k - 1] ) / ( ( h[k - 1] + h[k] + h[k + 1] ) * ( h[k] + h[k + 1] ) )
-	      * ( u[k] * ( 2.0 * h[k] + h[k + 1] ) - u[k + 1] * h[k] ) )
-	  );
+   
+   fv_l = (
+           1.0 / ( h[k - 2] + h[k - 1] + h[k] + h[k + 1] )
+           * ( ( h[k - 2] + h[k - 1] ) * ( h[k] + h[k + 1] ) / ( h[k - 1] + h[k] )
+               * ( u[k - 1] * h[k] + u[k] * h[k - 1] )
+               * (1.0 / ( h[k - 2] + h[k - 1] + h[k] ) + 1.0 / ( h[k - 1] + h[k] + h[k + 1] ) )
+               + ( h[k] * ( h[k] + h[k + 1] ) ) / ( ( h[k - 2] + h[k - 1] + h[k] ) * (h[k - 2] + h[k - 1] ) )
+               * ( u[k - 1] * (h[k - 2] + 2.0 * h[k - 1] ) - ( u[k - 2] * h[k - 1] ) )
+               + h[k - 1] * ( h[k - 2] + h[k - 1] ) / ( ( h[k - 1] + h[k] + h[k + 1] ) * ( h[k] + h[k + 1] ) )
+               * ( u[k] * ( 2.0 * h[k] + h[k + 1] ) - u[k + 1] * h[k] ) )
+           );
 }							    
-  
+
 /*! 
   Compute left face value based on the explicit h4 estimate.
 
@@ -325,10 +325,10 @@ inline void compute_filtered_face_values(const Vec * const values,uint k, face_e
 
 inline void compute_filtered_face_values_nonuniform(const Vec * const dv, const Vec * const values,uint k, face_estimate_order order, Vec &fv_l, Vec &fv_r){   
   switch(order){
-  case h4:
-    compute_h4_left_face_value_nonuniform(dv, values, k, fv_l);
-    compute_h4_left_face_value_nonuniform(dv, values, k + 1, fv_r);
-    break;
+  case h4:     
+     compute_h4_left_face_value_nonuniform(dv, values, k, fv_l);
+     compute_h4_left_face_value_nonuniform(dv, values, k + 1, fv_r);
+     break;
   // case h5:
   //   compute_h5_face_values(dv, values, k, fv_l, fv_r);
   //   break;
@@ -475,22 +475,35 @@ inline void compute_filtered_face_values_nonuniform_conserving(const Vec * const
 
   //    fv_r = select(is_extrema, values[k], fv_r);
   //    fv_l = select(is_extrema, values[k], fv_l);
-  }
+  } else {
 
-  
+     //Fix left face if needed; boundary value is not bounded
+     Vecb filter = (values[k -1] - fv_l) * (fv_l - values[k]) < 0 ;
+     if(horizontal_or (filter)) {  
+        //Go to linear (PLM) estimates if not ok (this is always ok!)
+        fv_l=select(filter, values[k ] - slope_sign * 0.5 * slope_abs, fv_l);
+     }
+     
+     //Fix  face if needed; boundary value is not bounded    
+     filter = (values[k + 1] - fv_r) * (fv_r - values[k]) < 0;
+     if(horizontal_or (filter)) {  
+        //Go to linear (PLM) estimates if not ok (this is always ok!)
+        fv_r=select(filter, values[k] + slope_sign * 0.5 * slope_abs, fv_r);
+     }
+  }
   
   // //Fix left face if needed; boundary value is not bounded
   // Vecb filter = (values[k -1] - fv_l) * (fv_l - values[k]) < 0 ;
   // if(horizontal_or (filter)) {  
-  //    //Go to linear (PLM) estimates if not ok (this is always ok!)
-  //    fv_l=select(filter, values[k ] - slope_sign * 0.5 * slope_abs, fv_l);
+  //   //Go to linear (PLM) estimates if not ok (this is always ok!)
+  //   fv_l=select(filter, values[k ] - slope_sign * 0.5 * slope_abs, fv_l);
   // }
   
   // //Fix  face if needed; boundary value is not bounded    
   // filter = (values[k + 1] - fv_r) * (fv_r - values[k]) < 0;
   // if(horizontal_or (filter)) {  
-  //    //Go to linear (PLM) estimates if not ok (this is always ok!)
-  //    fv_r=select(filter, values[k] + slope_sign * 0.5 * slope_abs, fv_r);
+  //   //Go to linear (PLM) estimates if not ok (this is always ok!)
+  //   fv_r=select(filter, values[k] + slope_sign * 0.5 * slope_abs, fv_r);
   // }
 
   
