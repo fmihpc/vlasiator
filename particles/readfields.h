@@ -156,6 +156,8 @@ bool readNextTimestep(const std::string& filename_pattern, double t, int step, F
       std::vector<double> Vbuffer;
       std::vector<double> Rhobuffer;
       std::vector<double> TNBSbuffer;
+      std::vector<double> vmsbuffer;
+
       if(doV) {
 	V0=V1;
 	V1.time = t;
@@ -169,20 +171,31 @@ bool readNextTimestep(const std::string& filename_pattern, double t, int step, F
 	  Vbuffer.push_back(rho_v_buffer[3*i+2] / rho_buffer[i]);
 	}
       }
+
       if(doRho) {
 	R0=R1;
 	R1.time = t;
-	/* start hack to calculate non-backstreaming temperature instead */
-	std::string rhonbs_name("RhoNonBackstream");
-	std::string ptdnbs_name("PTensorNonBackstreamDiagonal");
 
 	Rhobuffer = readFieldData(r,rho_name,1u);
 
+	/* Calculate non-backstreaming temperature */
+	std::string rhonbs_name("RhoNonBackstream");
+	std::string ptdnbs_name("PTensorNonBackstreamDiagonal");
 	std::vector<double> ptdnbs_buffer = readFieldData(r,ptdnbs_name,3u);
 	std::vector<double> rhonbs_buffer = readFieldData(r,rhonbs_name,1u);
 	for(unsigned int i=0; i<rhonbs_buffer.size(); i++) {
 	  // Pressure-nonbackstreaming = (ptdnbs_buffer[3*i]+ptdnbs_buffer[3*i+1]+ptdnbs_buffer[3*i+2])*(1./3.)
 	  TNBSbuffer.push_back( ((ptdnbs_buffer[3*i]+ptdnbs_buffer[3*i+1]+ptdnbs_buffer[3*i+2])*(1./3.)) / ((1.+rhonbs_buffer[i])*1.38065e-23));
+	}
+
+	/* Calculate Magnetosonic velocity */
+	std::string pressure_name("Pressure");
+	std::vector<double> pressure_buffer = readFieldData(r,pressure_name,1u);
+	for(unsigned int i=0; i<pressure_buffer.size(); i++) {	  
+	  Real Bmag2 = std::pow(Bbuffer[3*i],2) + std::pow(Bbuffer[3*i+1],2) + std::pow(Bbuffer[3*i+2],2);
+	  Real va2 = Bmag2/(1.25663706144e-6 * 1.672622e-27 * Rhobuffer[i]);
+	  Real vs2 = (pressure_buffer[i] * (5./3.))/( 1.672622e-27 * Rhobuffer[i] );
+	  vmsbuffer.push_back( sqrt(va2 + vs2) );
 	}
 
       }
@@ -213,7 +226,7 @@ bool readNextTimestep(const std::string& filename_pattern, double t, int step, F
 	  double* Rtgt = R1.getCellRef(x,y,z);
 	  Rtgt[0] = Rhobuffer[i];
 	  Rtgt[1] = TNBSbuffer[i];
-	  Rtgt[2] = 0; // Something for magnetosonic mach number here
+	  Rtgt[2] = vmsbuffer[i]; // Magnetosonic speed
 	}
       }
       r.close();
@@ -263,9 +276,11 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, Field& R, bo
 
    std::vector<double> ptdnbs_buffer;
    std::vector<double> rhonbs_buffer;
+   std::vector<double> pressure_buffer;
 
    std::string rhonbs_name("RhoNonBackstream");
    std::string ptdnbs_name("PTensorNonBackstreamDiagonal");
+   std::string pressure_name("Pressure");
 
    if(doV) {
      name = "rho_v";
@@ -273,9 +288,10 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, Field& R, bo
      rho_buffer = readFieldData(r,rho_name,1u);
    }
    if(doRho) {
-     //rho_buffer = readFieldData(r,rho_name,1u);
+     rho_buffer = readFieldData(r,rho_name,1u);
      ptdnbs_buffer = readFieldData(r,ptdnbs_name,3u);
      rhonbs_buffer = readFieldData(r,rhonbs_name,1u);   
+     pressure_buffer = readFieldData(r,pressure_name,1u);
    }
 
    /* Coordinate Boundaries */
@@ -386,11 +402,14 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, Field& R, bo
       }
       if(doRho) {
         double* Rtgt = R.getCellRef(x,y,z);
-	//Rhobuffer.push_back( ((ptdnbs_buffer[3*i]+ptdnbs_buffer[3*i+1]+ptdnbs_buffer[3*i+2])*(1./3.)) / ((1.+rhonbs_buffer[i])*1.38065e-23));
-        //Rtgt[0] = rho_buffer[i];
-	Rtgt[0] = ((ptdnbs_buffer[3*i]+ptdnbs_buffer[3*i+1]+ptdnbs_buffer[3*i+2])*(1./3.)) / ((1.+rhonbs_buffer[i])*1.38065e-23);
-        Rtgt[1] = 0;
-        Rtgt[2] = 0;
+        Rtgt[0] = rho_buffer[i];	
+	// Pressure-nonbackstreaming = (ptdnbs_buffer[3*i]+ptdnbs_buffer[3*i+1]+ptdnbs_buffer[3*i+2])*(1./3.)
+	Rtgt[1] = ((ptdnbs_buffer[3*i]+ptdnbs_buffer[3*i+1]+ptdnbs_buffer[3*i+2])*(1./3.)) / ((1.+rhonbs_buffer[i])*1.38065e-23);
+	// Magnetosonic speed
+	Real Bmag2 = std::pow(Bbuffer[3*i],2) + std::pow(Bbuffer[3*i+1],2) + std::pow(Bbuffer[3*i+2],2);
+	Real va2 = Bmag2/(1.25663706144e-6 * 1.672622e-27 * Rhobuffer[i]);
+	Real vs2 = (pressure_buffer[i] * (5./3.))/( 1.672622e-27 * Rhobuffer[i] );
+        Rtgt[2] = sqrt(va2 + vs2);
       }
    }
 

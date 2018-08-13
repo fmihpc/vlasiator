@@ -601,9 +601,11 @@ void InjectionScenario::afterPush(int step, double time, ParticleContainer& part
       Vec3d Bval;
       Vec3d Eval;
       Vec3d Rval;
+      Vec3d Vval;
       Bval = B(particles[i].x);
       Eval = E(particles[i].x);
       Rval = R(particles[i].x);
+      Vval = V(particles[i].x);
 
       // Calculate current pitch-cosine and square of velocity
       Real curr_mu = dot_product(normalize_vector(particles[i].v), normalize_vector(Bval));
@@ -726,9 +728,28 @@ void InjectionScenario::afterPush(int step, double time, ParticleContainer& part
 		Bval[0], Bval[1], Bval[2], Eval[0], Eval[1], Eval[2]);
       }
 
+      /* As per https://www.math24.net/tangent-normal-lines/
+	 calculate the direction of the shock-normal based on the shock shape fit
+	 dy/dx = -(r' cos theta - r sin theta)/( r' sin theta + r cos theta) */
+      Real rder = interp_bs_p1
+	+ 2. * interp_bs_p2 * std::pow(rad,1)
+	+ 3. * interp_bs_p3 * std::pow(rad,2)
+	+ 4. * interp_bs_p4 * std::pow(rad,3);
+      Real costheta = cos(rad);
+      Real sintheta = sin(rad);
+      Real normaldypdx = - (rder*costheta - r0*sintheta)/(rder*sintheta + r0*costheta);
+      Vec3d normalvect;
+      normalvect[0] = 1.;
+      normalvect[1] = normaldypdx;
+      normalvect[2] = 0. ;
+
+      // Calculate shock-normal bulk velocity from shock shape fit
+      // Rval [2] is magnetosonic speed v_ms for this position. Calculate Mms assuming shock normal direction from fit.
+      Real bulkV_normal = dot_product(normalize_vector(normalvect), Vval);
+      Real Mms_local = bulkV_normal / Rval[2];
+
       // Check if particle has just now met shock for the first time (based on Mms)
-      // Rval [2] is ?????? for this position. Calculate Mms assuming shock normal direction from fit.
-      if ( (Rval[2] < ParticleParameters::injection_Mms_meet) && (fs_hasmet_Mms[i]==false) ) {
+      if ( (Mms_local < ParticleParameters::injection_Mms_meet) && (fs_hasmet_Mms[i]==false) ) {
 	fs_hasmet_Mms[i]=true;
 	fprintf(meet_Mms_File,"%d %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e\n",
 		i, ParticleParameters::start_time+time, 
@@ -740,8 +761,8 @@ void InjectionScenario::afterPush(int step, double time, ParticleContainer& part
 
       // Check if particle has just now met shock for the first time (based on thetaBn)
       // Calculate theta_Bn for current position from magnetic field and shock normal direction from fit
-      VALUE = something;
-      if ( (VALUE > ParticleParameters::injection_tbn_meet) && (fs_hasmet_tbn[i]==false) ) {
+      Real thetabn_local = acos(dot_product(normalize_vector(normalvect), normalize_vector(Bval)))*(180./3.14159);
+      if ( (thetabn_local > ParticleParameters::injection_tbn_meet) && (fs_hasmet_tbn[i]==false) ) {
 	fs_hasmet_tbn[i]=true;
 	fprintf(meet_tbn_File,"%d %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e %12.8e\n",
 		i, ParticleParameters::start_time+time, 
