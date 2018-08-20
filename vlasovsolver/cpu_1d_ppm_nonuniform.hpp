@@ -20,8 +20,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef CPU_1D_PPM_H
-#define CPU_1D_PPM_H
+#ifndef CPU_1D_PPM_NU_H
+#define CPU_1D_PPM_NU_H
 
 #include <iostream>
 #include "vec.h"
