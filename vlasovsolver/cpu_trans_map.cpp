@@ -257,7 +257,7 @@ void compute_spatial_target_neighbors(const dccrg::Dccrg<SpatialCell,dccrg::Cart
  * @param cellid_transpose
  * @param popID ID of the particle species.
  */
-inline void copy_trans_block_data(
+void copy_trans_block_data(
     SpatialCell** source_neighbors,
     const vmesh::GlobalID blockGID,
     Vec* values,
