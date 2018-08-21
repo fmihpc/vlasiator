@@ -1,5 +1,5 @@
-//#include "vlasovsolver/cpu_1d_ppm_nonuniform.hpp"
-#include "cpu_1d_ppm_nonuniform_conserving.hpp"
+#include "vlasovsolver/cpu_1d_ppm_nonuniform.hpp"
+//#include "cpu_1d_ppm_nonuniform_conserving.hpp"
 #include "vec.h"
 #include "../grid.h"
 #include "../object_wrapper.h"
@@ -645,11 +645,15 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
    unsigned char  cellid_transpose[WID3]; /*< defines the transpose for the solver internal (transposed) id: i + j*WID + k*WID2 to actual one*/
    const uint blocks_per_dim = 1;
-      
+
+   cout << "entering trans_map_1d_amr" << endl;
+   
    // return if there's no cells to propagate
-   if(localPropagatedCells.size() == 0)
-      std::cout << "Returning because of no cells" << std::endl;
-      return true;
+   if(localPropagatedCells.size() == 0) {
+      //std::cout << "Returning because of no cells" << std::endl;
+      cerr << "Returning because of no cells" << endl;
+      return false;
+   }
   
    // Vector with all cell ids
    vector<CellID> allCells(localPropagatedCells);

@@ -57,5 +57,13 @@ void copy_trans_block_data(SpatialCell** source_neighbors,
                            const unsigned char* const cellid_transpose,
                            const uint popID);
 
+bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                  const std::vector<CellID>& localPropagatedCells,
+                  const std::vector<CellID>& remoteTargetCells,
+                  const uint dimension,
+                  const Realv dt,
+                  const uint popID);
+
+
 
 #endif
