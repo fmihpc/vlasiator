@@ -1008,12 +1008,23 @@ setOfPencils buildPencilsWithNeighbors( dccrg::Dccrg<SpatialCell,dccrg::Cartesia
       if(nextNeighbor != INVALID_CELLID) {
          if (debug) {
             std::cout << " Next neighbor is " << nextNeighbor << "." << std::endl;
+         }         
+         bool idAlreadyInPencil = false;
+         for (auto id : ids) {
+            if (nextNeighbor == id) {
+               idAlreadyInPencil = true;
+            }
          }
-         ids.push_back(nextNeighbor);
+         if (idAlreadyInPencil) {
+            // Exit the while loop
+            id = -1;
+         } else {
+            //cout << "adding id " << nextNeighbor << " to pencil." << endl;
+            ids.push_back(nextNeighbor);
+            // Move to the next cell.
+            id = nextNeighbor;
+         }
       }
-
-      // Move to the next cell.
-      id = nextNeighbor;
     
    } // Closes while loop
 
@@ -1135,11 +1146,11 @@ void propagatePencil(Vec dr[], Vec values[], Vec z_translation, uint lengthOfPen
 
 
 bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                  const vector<CellID>& localPropagatedCells,
-                  const vector<CellID>& remoteTargetCells,
-                  const uint dimension,
-                  const Realv dt,
-                  const uint popID) {
+                      const vector<CellID>& localPropagatedCells,
+                      const vector<CellID>& remoteTargetCells,
+                      const uint dimension,
+                      const Realv dt,
+                      const uint popID) {
    
    Realv dvz,vz_min;  
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
@@ -1178,84 +1189,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       allCellsDz[celli] = P::dz_ini / pow(2.0, mpiGrid.get_refinement_level(celli));
    }
    //cout << endl;
-   
-   // ****************************************************************************
-   
-   // compute pencils => set of pencils (shared datastructure)
-   vector<CellID> seedIds;  
 
-   //cout << "localpropagatedcells.size() " << localPropagatedCells.size() << endl;
-   //cout << "dimension " << dimension << endl;
-   
-   //#pragma omp parallel for      
-   for(uint celli = 0; celli < localPropagatedCells.size(); ++celli){
-      CellID localCelli = localPropagatedCells[celli];
-      int myProcess = mpiGrid.get_process(localCelli);
-      // Collect a list of cell ids that do not have a neighbor in the negative direction
-      // These are the seed ids for the pencils.
-      vector<CellID> negativeNeighbors;
-      // Returns all neighbors as (id, direction-dimension) pairs.
-      //cout << "neighbors of cell " << localCelli << " are ";
-      for ( const auto neighbor : mpiGrid.get_face_neighbors_of(localCelli ) ) {
-
-         if ( mpiGrid.get_process(neighbor.first) == myProcess ) {
-            //cout << neighbor.first << "," << neighbor.second << " ";
-            // select the neighbor in the negative dimension of the propagation
-            if (neighbor.second == - (dimension + 1)) {
-               
-               // add the id of the neighbor to a list if it's on the same process
-               negativeNeighbors.push_back(neighbor.first);
-               
-            }
-
-         }
-      }
-      //cout << endl;
-      // if no neighbors were found in the negative direction, add this cell id to the seed cells
-      if (negativeNeighbors.size() == 0)
-         seedIds.push_back(localCelli);    
-   }
-
-   // Empty vectors for internal use of buildPencilsWithNeighbors. Could be default values but
-   // default vectors are complicated. Should overload buildPencilsWithNeighbors like suggested here
-   // https://stackoverflow.com/questions/3147274/c-default-argument-for-vectorint
-   vector<CellID> ids;
-   vector<uint> path;
-
-   // Output vectors for ready pencils
-   setOfPencils pencils;
-   vector<setOfPencils> pencilSets;
-
-   //cout << "Seed ids are: ";
-   for (const auto seedId : seedIds) {
-      //cout << seedId << " ";
-      // Construct pencils from the seedIds into a set of pencils.
-      pencils = buildPencilsWithNeighbors(mpiGrid, pencils, seedId, ids, dimension, path);
-   }
-   // cout << endl;
-   //cout << "Number of seed ids is " << seedIds.size() << endl;
-
-   uint ibeg = 0;
-   uint iend = 0;
-   std::cout << "I have created " << pencils.N << " pencils along dimension " << dimension << ":\n";
-   std::cout << "(x, y): indices " << std::endl;
-   std::cout << "-----------------------------------------------------------------" << std::endl;
-   for (uint i = 0; i < pencils.N; i++) {
-      iend += pencils.lengthOfPencils[i];
-      std::cout << "(" << pencils.x[i] << ", " << pencils.y[i] << "): ";
-      for (auto j = pencils.ids.begin() + ibeg; j != pencils.ids.begin() + iend; ++j) {
-         std::cout << *j << " ";
-      }
-      ibeg  = iend;
-      std::cout << std::endl;
-   }
-
-   
-   // Add the final set of pencils to the pencilSets - vector.
-   // Only one set is created for now but we retain support for multiple sets
-   pencilSets.push_back(pencils);
-   // ****************************************************************************
-  
    // Fiddle indices x,y,z
    switch (dimension) {
    case 0:
@@ -1297,171 +1231,291 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
          }
       }
    }
-      // ****************************************************************************
+   // ****************************************************************************
 
-      const uint8_t VMESH_REFLEVEL = 0;
-      
-      // Get a pointer to the velocity mesh of the first spatial cell
-      const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = allCellsPointer[0]->get_velocity_mesh(popID);
+   //cout << "end of index fiddle" << endl;
+   
+   // ****************************************************************************
+   
+   // compute pencils => set of pencils (shared datastructure)
+   vector<CellID> seedIds;  
 
-      // set cell size in dimension direction
-      dvz = vmesh.getCellSize(VMESH_REFLEVEL)[dimension];
-      vz_min = vmesh.getMeshMinLimits()[dimension];
-  
-      // Get a unique sorted list of blockids that are in any of the
-      // propagated cells. First use set for this, then add to vector (may not
-      // be the most nice way to do this and in any case we could do it along
-      // dimension for data locality reasons => copy acc map column code, TODO: FIXME
-      // TODO: Do this separately for each pencil?
-      std::unordered_set<vmesh::GlobalID> unionOfBlocksSet;    
-  
-      for(auto cell : allCellsPointer) {
-         vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = cell->get_velocity_mesh(popID);
-         for (vmesh::LocalID block_i=0; block_i< vmesh.size(); ++block_i) {
-            unionOfBlocksSet.insert(vmesh.getGlobalID(block_i));
+   //cout << "localpropagatedcells.size() " << localPropagatedCells.size() << endl;
+   //cout << "dimension " << dimension << endl;
+   
+   //#pragma omp parallel for      
+   for(auto celli: localPropagatedCells) {
+      int myProcess = mpiGrid.get_process(celli);
+      // Collect a list of cell ids that do not have a neighbor in the negative direction
+      // These are the seed ids for the pencils.
+      vector<CellID> negativeNeighbors;
+      // Returns all neighbors as (id, direction-dimension) pairs.
+      //cout << "neighbors of cell " << localCelli << " are ";
+      for ( const auto neighbor : mpiGrid.get_face_neighbors_of(celli ) ) {
+
+         if ( mpiGrid.get_process(neighbor.first) == myProcess ) {
+            //cout << neighbor.first << "," << neighbor.second << " ";
+            // select the neighbor in the negative dimension of the propagation
+            if (neighbor.second == - (static_cast<int>(dimension) + 1)) {
+               
+               // add the id of the neighbor to a list if it's on the same process
+               negativeNeighbors.push_back(neighbor.first);
+               
+            }
+
          }
       }
-  
-      std::vector<vmesh::GlobalID> unionOfBlocks;
-      unionOfBlocks.reserve(unionOfBlocksSet.size());
-      for(const auto blockGID:  unionOfBlocksSet) {
-         unionOfBlocks.push_back(blockGID);
-      }
-      // ****************************************************************************
-  
-      int t1 = phiprof::initializeTimer("mappingAndStore");
-      
-#pragma omp parallel
-      {      
-         //std::vector<bool> targetsValid(localPropagatedCells.size());
-         //std::vector<vmesh::LocalID> allCellsBlockLocalID(allCells.size());
-             
-#pragma omp for schedule(guided)
-         // Loop over velocity space blocks. Thread this loop (over vspace blocks) with OpenMP.    
-         for(uint blocki = 0; blocki < unionOfBlocks.size(); blocki++){
-            
-            phiprof::start(t1);
-
-            // Get global id of the velocity block
-            vmesh::GlobalID blockGID = unionOfBlocks[blocki];
-
-            velocity_block_indices_t block_indices;
-            uint8_t vRefLevel;
-            vmesh.getIndices(blockGID,vRefLevel, block_indices[0],
-                             block_indices[1], block_indices[2]);      
-      
-            // Loop over sets of pencils
-            // This loop only has one iteration for now
-            for ( auto pencils: pencilSets ) {
-
-               // Allocate targetdata sum(lengths of pencils)*WID3)               
-               Vec targetData[pencils.sumOfLengths * WID3];
-
-               // Initialize targetdata to 0
-               for( uint i = 0; i < pencils.sumOfLengths * WID3; i++ ) {
-                  targetData[i] = 0.0;
-               }
-
-               // TODO: There's probably a smarter way to keep track of where we are writing
-               //       in the target data structure.
-               uint targetDataIndex = 0;
-
-               // Compute spatial neighbors for target cells.
-               // For targets we only have actual cells as we do not
-               // want to propagate boundary cells (array may contain
-               // INVALID_CELLIDs at boundaries).
-               for ( auto celli: pencils.ids ) {
-                  compute_spatial_target_neighbors(mpiGrid, localPropagatedCells[celli], dimension,
-                                                   targetNeighbors.data() + celli * 3);
-               }
-	
-               // Loop over pencils	
-               for(uint pencili = 0; pencili < pencils.N; pencili++){
-
-                  // Allocate source data: sourcedata<length of pencil * WID3)
-                  Vec sourceData[pencils.lengthOfPencils[pencili] * WID3];                  
-                  
-                  // Compute spatial neighbors for source cells. In
-                  // source cells we have a wider stencil and take into account
-                  // boundaries.
-                  vector<CellID> pencilIds = pencils.getIds(pencili);
-                  for( auto celli: pencilIds) {
-                     compute_spatial_source_neighbors(mpiGrid, localPropagatedCells[celli],
-                                                      dimension, sourceNeighbors.data()
-                                                      + celli * nSourceNeighborsPerCell);                                          
-                  }	 
-
-                  Vec * dzPointer = allCellsDz + pencilIds[0];
-                  
-                  // load data(=> sourcedata) / (proper xy reconstruction in future)
-                  // copied from regular code, should work?
-                  int offset = 0; // TODO: Figure out what needs to go here.
-                  copy_trans_block_data(sourceNeighbors.data() + offset,
-                                        blockGID, sourceData, cellid_transpose, popID);
-
-                  
-                  // Calculate cell centered velocity for each v cell in the block
-                  const Vec k = (0,1,2,3);
-                  const Vec cell_vz = (block_indices[dimension] * WID + k + 0.5) * dvz + vz_min;
-	  
-                  const Vec z_translation = dt * cell_vz;
-                  // propagate pencil(blockid = velocities, pencil-ids = dzs ),
-                  propagatePencil(dzPointer, sourceData, z_translation, pencils.lengthOfPencils[pencili], nSourceNeighborsPerCell);
-
-                  // sourcedata => targetdata[this pencil])
-                  for (auto value: sourceData) {
-                     targetData[targetDataIndex] = value;
-                     targetDataIndex++;
-                  }
-                  
-                  // dealloc source data -- Should be automatic since it's declared in this iteration?
-	  
-               }
-      
-               // Loop over pencils again
-               for(uint pencili = 0; pencili < pencils.N; pencili++){
-
-                  // store_data(target_data =>)  :Aggregate data for blockid to original location 
-                  
-                  //store values from target_values array to the actual blocks
-                  for(auto celli: pencils.ids) {
-                     //TODO: Figure out validity check later
-                     //if(targetsValid[celli]) {
-                        for(uint ti = 0; ti < 3; ti++) {
-                           SpatialCell* spatial_cell = targetNeighbors[celli * 3 + ti];
-                           if(spatial_cell ==NULL) {
-                              //invalid target spatial cell
-                              continue;
-                           }
-                           
-                           // Get local ID of the velocity block
-                           const vmesh::LocalID blockLID = spatial_cell->get_velocity_block_local_id(blockGID, popID);
-                           
-                           if (blockLID == vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) {
-                              // block does not exist. If so, we do not create it and add stuff to it here.
-                              // We have already created blocks around blocks with content in
-                              // spatial sense, so we have no need to create even more blocks here
-                              // TODO add loss counter
-                              continue;
-                           }
-                           // Pointer to the data field of the velocity block
-                           Realf* blockData = spatial_cell->get_data(blockLID, popID);
-                           // Unpack the vector data to the cell data types
-                           for(int i = 0; i < WID3 ; i++) {
-
-                              // Write data into target block
-                              blockData[i] += targetData[(celli * 3 + ti)][i];
-                           }
-                        }
-                        //}
-                     
-                  }
-                  
-                  // dealloc target data -- Should be automatic again?
+      //cout << endl;
+      // if no neighbors were found in the negative direction, add this cell id to the seed cells
+      if (negativeNeighbors.size() == 0)
+         seedIds.push_back(celli);    
+   }
+   cout << P::xcells_ini << " " << P::ycells_ini << " " << P::zcells_ini << endl;
+   // If no seed ids were found, let's assume we have a periodic boundary and
+   // a single process in the dimension of propagation. In this case we start from
+   // the first cells of the plane perpendicular to the propagation dimension
+   if (seedIds.size() == 0) {
+      for (uint ix = 0; ix < P::xcells_ini; ix++) {
+         for (uint iy = 0; iy < P::ycells_ini; iy++) {
+            for (uint iz = 0; iz < P::zcells_ini; iz++) {
+               switch (dimension) {
+               case 0:
+                  // yz - plane
+                  if(ix == 0)
+                     seedIds.push_back(P::xcells_ini * P::ycells_ini * iz + P::xcells_ini * iy +1 );
+                  break;
+               case 1:                  
+                  // xz - plane
+                  if(iy == 0)
+                     seedIds.push_back(P::xcells_ini * P::ycells_ini * iz + ix + 1);
+                  break;
+               case 2:
+                  // xy - plane
+                  if(iz == 0)
+                     seedIds.push_back(P::xcells_ini * iy + ix + 1);
+                  break;
                }
             }
          }
       }
-
-      return true;
    }
+
+   // Empty vectors for internal use of buildPencilsWithNeighbors. Could be default values but
+   // default vectors are complicated. Should overload buildPencilsWithNeighbors like suggested here
+   // https://stackoverflow.com/questions/3147274/c-default-argument-for-vectorint
+   vector<CellID> ids;
+   vector<uint> path;
+
+   // Output vectors for ready pencils
+   setOfPencils pencils;
+   vector<setOfPencils> pencilSets;
+
+   cout << "Number of seed ids is " << seedIds.size() << endl;
+   cout << "Seed ids are: ";
+   for (const auto seedId : seedIds) {
+      cout << seedId << " ";
+   }
+   cout << endl;
+
+   for (const auto seedId : seedIds) {
+      // Construct pencils from the seedIds into a set of pencils.
+      pencils = buildPencilsWithNeighbors(mpiGrid, pencils, seedId, ids, dimension, path);
+   }
+   uint ibeg = 0;
+   uint iend = 0;
+   std::cout << "I have created " << pencils.N << " pencils along dimension " << dimension << ":\n";
+   std::cout << "(x, y): indices " << std::endl;
+   std::cout << "-----------------------------------------------------------------" << std::endl;
+   for (uint i = 0; i < pencils.N; i++) {
+      iend += pencils.lengthOfPencils[i];
+      std::cout << "(" << pencils.x[i] << ", " << pencils.y[i] << "): ";
+      for (auto j = pencils.ids.begin() + ibeg; j != pencils.ids.begin() + iend; ++j) {
+         std::cout << *j << " ";
+      }
+      ibeg  = iend;
+      std::cout << std::endl;
+   }
+
+   
+   // Add the final set of pencils to the pencilSets - vector.
+   // Only one set is created for now but we retain support for multiple sets
+   pencilSets.push_back(pencils);
+   // ****************************************************************************
+     
+   const uint8_t VMESH_REFLEVEL = 0;
+   
+   // Get a pointer to the velocity mesh of the first spatial cell
+   const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = allCellsPointer[0]->get_velocity_mesh(popID);   
+   
+   // set cell size in dimension direction
+   dvz = vmesh.getCellSize(VMESH_REFLEVEL)[dimension];
+   vz_min = vmesh.getMeshMinLimits()[dimension];
+   
+   // Get a unique sorted list of blockids that are in any of the
+   // propagated cells. First use set for this, then add to vector (may not
+   // be the most nice way to do this and in any case we could do it along
+   // dimension for data locality reasons => copy acc map column code, TODO: FIXME
+   // TODO: Do this separately for each pencil?
+   std::unordered_set<vmesh::GlobalID> unionOfBlocksSet;    
+   
+   for(auto cell : allCellsPointer) {
+      vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = cell->get_velocity_mesh(popID);
+      for (vmesh::LocalID block_i=0; block_i< vmesh.size(); ++block_i) {
+         unionOfBlocksSet.insert(vmesh.getGlobalID(block_i));
+      }
+   }
+   
+   std::vector<vmesh::GlobalID> unionOfBlocks;
+   unionOfBlocks.reserve(unionOfBlocksSet.size());
+   for(const auto blockGID:  unionOfBlocksSet) {
+      unionOfBlocks.push_back(blockGID);
+   }
+   // ****************************************************************************
+   
+   //cout << "Beginning of parallel region" << endl;
+   int t1 = phiprof::initializeTimer("mappingAndStore");
+   
+   //#pragma omp parallel
+   {      
+      //std::vector<bool> targetsValid(localPropagatedCells.size());
+      //std::vector<vmesh::LocalID> allCellsBlockLocalID(allCells.size());
+      
+      //#pragma omp for schedule(guided)
+      // Loop over velocity space blocks. Thread this loop (over vspace blocks) with OpenMP.    
+      for(uint blocki = 0; blocki < unionOfBlocks.size(); blocki++){
+         
+         phiprof::start(t1);
+
+         // Get global id of the velocity block
+         vmesh::GlobalID blockGID = unionOfBlocks[blocki];
+
+         velocity_block_indices_t block_indices;
+         uint8_t vRefLevel;
+         vmesh.getIndices(blockGID,vRefLevel, block_indices[0],
+                          block_indices[1], block_indices[2]);      
+      
+         // Loop over sets of pencils
+         // This loop only has one iteration for now
+         cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
+         for ( auto pencils: pencilSets ) {
+
+            // Allocate targetdata sum(lengths of pencils)*WID3)               
+            Vec targetData[pencils.sumOfLengths * WID3];
+
+            // Initialize targetdata to 0
+            for( uint i = 0; i < pencils.sumOfLengths * WID3; i++ ) {
+               targetData[i] = 0.0;
+            }
+
+            // TODO: There's probably a smarter way to keep track of where we are writing
+            //       in the target data structure.
+            uint targetDataIndex = 0;
+            
+            // Compute spatial neighbors for target cells.
+            // For targets we only have actual cells as we do not
+            // want to propagate boundary cells (array may contain
+            // INVALID_CELLIDs at boundaries).
+            for ( auto celli: pencils.ids ) {
+               compute_spatial_target_neighbors(mpiGrid, localPropagatedCells[celli], dimension,
+                                                targetNeighbors.data() + celli * 3);
+            }
+
+            cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
+            
+            // Loop over pencils	
+            for(uint pencili = 0; pencili < pencils.N; pencili++){
+
+               // Allocate source data: sourcedata<length of pencil * WID3)
+               Vec sourceData[pencils.lengthOfPencils[pencili] * WID3];                  
+
+               
+               // Compute spatial neighbors for source cells. In
+               // source cells we have a wider stencil and take into account
+               // boundaries.
+               vector<CellID> pencilIds = pencils.getIds(pencili);
+
+               cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
+               
+               for( auto celli: pencilIds) {
+                  compute_spatial_source_neighbors(mpiGrid, localPropagatedCells[celli],
+                                                   dimension, sourceNeighbors.data()
+                                                   + celli * nSourceNeighborsPerCell);                                          
+               }	 
+
+               cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
+               
+               Vec * dzPointer = allCellsDz + pencilIds[0];
+                  
+               // load data(=> sourcedata) / (proper xy reconstruction in future)
+               // copied from regular code, should work?
+               int offset = 0; // TODO: Figure out what needs to go here.
+               copy_trans_block_data(sourceNeighbors.data() + offset,
+                                     blockGID, sourceData, cellid_transpose, popID);
+
+               cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
+                  
+               // Calculate cell centered velocity for each v cell in the block
+               const Vec k = (0,1,2,3);
+               const Vec cell_vz = (block_indices[dimension] * WID + k + 0.5) * dvz + vz_min;
+	  
+               const Vec z_translation = dt * cell_vz;
+               // propagate pencil(blockid = velocities, pencil-ids = dzs ),
+               propagatePencil(dzPointer, sourceData, z_translation, pencils.lengthOfPencils[pencili], nSourceNeighborsPerCell);
+
+               // sourcedata => targetdata[this pencil])
+               for (auto value: sourceData) {
+                  targetData[targetDataIndex] = value;
+                  targetDataIndex++;
+               }
+                  
+               // dealloc source data -- Should be automatic since it's declared in this iteration?
+	  
+            }
+      
+            // Loop over pencils again
+            for(uint pencili = 0; pencili < pencils.N; pencili++){
+
+               // store_data(target_data =>)  :Aggregate data for blockid to original location 
+                  
+               //store values from target_values array to the actual blocks
+               for(auto celli: pencils.ids) {
+                  //TODO: Figure out validity check later
+                  //if(targetsValid[celli]) {
+                  for(uint ti = 0; ti < 3; ti++) {
+                     SpatialCell* spatial_cell = targetNeighbors[celli * 3 + ti];
+                     if(spatial_cell ==NULL) {
+                        //invalid target spatial cell
+                        continue;
+                     }
+                           
+                     // Get local ID of the velocity block
+                     const vmesh::LocalID blockLID = spatial_cell->get_velocity_block_local_id(blockGID, popID);
+                           
+                     if (blockLID == vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) {
+                        // block does not exist. If so, we do not create it and add stuff to it here.
+                        // We have already created blocks around blocks with content in
+                        // spatial sense, so we have no need to create even more blocks here
+                        // TODO add loss counter
+                        continue;
+                     }
+                     // Pointer to the data field of the velocity block
+                     Realf* blockData = spatial_cell->get_data(blockLID, popID);
+                     // Unpack the vector data to the cell data types
+                     for(int i = 0; i < WID3 ; i++) {
+
+                        // Write data into target block
+                        blockData[i] += targetData[(celli * 3 + ti)][i];
+                     }
+                  }
+                  //}
+                     
+               }
+                  
+               // dealloc target data -- Should be automatic again?
+            }
+         }
+      }
+   }
+
+   return true;
+}
