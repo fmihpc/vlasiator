@@ -842,7 +842,8 @@ struct setOfPencils {
 
 };
 
-CellID selectNeighbor(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> &grid, CellID id, int dimension = 0, uint path = 0) {
+CellID selectNeighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> &grid,
+                      CellID id, int dimension = 0, uint path = 0) {
 
    const auto neighbors = grid.get_face_neighbors_of(id);
    const int myProcess = grid.get_process(id);
@@ -886,7 +887,7 @@ CellID selectNeighbor(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> &grid,
   
 }
 
-setOfPencils buildPencilsWithNeighbors( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> grid, 
+setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> &grid, 
 					setOfPencils &pencils, CellID startingId,
 					vector<CellID> ids, uint dimension, 
 					vector<uint> path) {
@@ -1144,6 +1145,92 @@ void propagatePencil(Vec dr[], Vec values[], Vec z_translation, uint lengthOfPen
   
 }
 
+void get_seed_ids(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                  const vector<CellID> &localPropagatedCells,
+                  const uint dimension,
+                  vector<CellID> &seedIds) {
+
+   //cout << "localpropagatedcells.size() " << localPropagatedCells.size() << endl;
+   //cout << "dimension " << dimension << endl;
+   
+   //#pragma omp parallel for      
+   for(auto celli: localPropagatedCells) {
+      int myProcess = mpiGrid.get_process(celli);
+      // Collect a list of cell ids that do not have a neighbor in the negative direction
+      // These are the seed ids for the pencils.
+      vector<CellID> negativeNeighbors;
+      // Returns all neighbors as (id, direction-dimension) pairs.
+      //cout << "neighbors of cell " << localCelli << " are ";
+      for ( const auto neighbor : mpiGrid.get_face_neighbors_of(celli ) ) {
+
+         if ( mpiGrid.get_process(neighbor.first) == myProcess ) {
+            //cout << neighbor.first << "," << neighbor.second << " ";
+            // select the neighbor in the negative dimension of the propagation
+            if (neighbor.second == - (static_cast<int>(dimension) + 1)) {
+               
+               // add the id of the neighbor to a list if it's on the same process
+               negativeNeighbors.push_back(neighbor.first);
+               
+            }
+
+         }
+      }
+      //cout << endl;
+      // if no neighbors were found in the negative direction, add this cell id to the seed cells
+      if (negativeNeighbors.size() == 0)
+         seedIds.push_back(celli);    
+   }
+
+   // If no seed ids were found, let's assume we have a periodic boundary and
+   // a single process in the dimension of propagation. In this case we start from
+   // the first cells of the plane perpendicular to the propagation dimension
+   if (seedIds.size() == 0) {
+      for (uint ix = 0; ix < P::xcells_ini; ix++) {
+         for (uint iy = 0; iy < P::ycells_ini; iy++) {
+            for (uint iz = 0; iz < P::zcells_ini; iz++) {
+               CellID seedId;
+               switch (dimension) {
+               case 0:
+                  // yz - plane
+                  if(ix == 0) {
+                     seedId = P::xcells_ini * P::ycells_ini * iz + P::xcells_ini * iy + 1;
+                     if(mpiGrid.get_process(seedId) == mpiGrid.get_process(localPropagatedCells[0]))
+                        seedIds.push_back(seedId);
+
+                  }
+                  break;
+               case 1:                  
+                  // xz - plane
+                  if(iy == 0) {
+                     seedId = P::xcells_ini * P::ycells_ini * iz + ix + 1;
+                     if(mpiGrid.get_process(seedId) == mpiGrid.get_process(localPropagatedCells[0]))
+                        seedIds.push_back(seedId);
+
+                  }
+                  break;
+               case 2:
+                  // xy - plane
+                  if(iz == 0) {
+                     seedId = P::xcells_ini * iy + ix + 1;
+                     if(mpiGrid.get_process(seedId) == mpiGrid.get_process(localPropagatedCells[0]))
+                        seedIds.push_back(seedId);
+                  }
+                  break;
+               }
+            }
+         }
+      }
+   }
+
+   cout << "Number of seed ids is " << seedIds.size() << endl;
+   cout << "Seed ids are: ";
+   for (const auto seedId : seedIds) {
+      cout << seedId << " ";
+   }
+   cout << endl;   
+   
+}
+
 
 bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                       const vector<CellID>& localPropagatedCells,
@@ -1238,68 +1325,10 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    // ****************************************************************************
    
    // compute pencils => set of pencils (shared datastructure)
-   vector<CellID> seedIds;  
 
-   //cout << "localpropagatedcells.size() " << localPropagatedCells.size() << endl;
-   //cout << "dimension " << dimension << endl;
+   vector<CellID> seedIds;
+   get_seed_ids(mpiGrid, localPropagatedCells, dimension, seedIds);
    
-   //#pragma omp parallel for      
-   for(auto celli: localPropagatedCells) {
-      int myProcess = mpiGrid.get_process(celli);
-      // Collect a list of cell ids that do not have a neighbor in the negative direction
-      // These are the seed ids for the pencils.
-      vector<CellID> negativeNeighbors;
-      // Returns all neighbors as (id, direction-dimension) pairs.
-      //cout << "neighbors of cell " << localCelli << " are ";
-      for ( const auto neighbor : mpiGrid.get_face_neighbors_of(celli ) ) {
-
-         if ( mpiGrid.get_process(neighbor.first) == myProcess ) {
-            //cout << neighbor.first << "," << neighbor.second << " ";
-            // select the neighbor in the negative dimension of the propagation
-            if (neighbor.second == - (static_cast<int>(dimension) + 1)) {
-               
-               // add the id of the neighbor to a list if it's on the same process
-               negativeNeighbors.push_back(neighbor.first);
-               
-            }
-
-         }
-      }
-      //cout << endl;
-      // if no neighbors were found in the negative direction, add this cell id to the seed cells
-      if (negativeNeighbors.size() == 0)
-         seedIds.push_back(celli);    
-   }
-   cout << P::xcells_ini << " " << P::ycells_ini << " " << P::zcells_ini << endl;
-   // If no seed ids were found, let's assume we have a periodic boundary and
-   // a single process in the dimension of propagation. In this case we start from
-   // the first cells of the plane perpendicular to the propagation dimension
-   if (seedIds.size() == 0) {
-      for (uint ix = 0; ix < P::xcells_ini; ix++) {
-         for (uint iy = 0; iy < P::ycells_ini; iy++) {
-            for (uint iz = 0; iz < P::zcells_ini; iz++) {
-               switch (dimension) {
-               case 0:
-                  // yz - plane
-                  if(ix == 0)
-                     seedIds.push_back(P::xcells_ini * P::ycells_ini * iz + P::xcells_ini * iy +1 );
-                  break;
-               case 1:                  
-                  // xz - plane
-                  if(iy == 0)
-                     seedIds.push_back(P::xcells_ini * P::ycells_ini * iz + ix + 1);
-                  break;
-               case 2:
-                  // xy - plane
-                  if(iz == 0)
-                     seedIds.push_back(P::xcells_ini * iy + ix + 1);
-                  break;
-               }
-            }
-         }
-      }
-   }
-
    // Empty vectors for internal use of buildPencilsWithNeighbors. Could be default values but
    // default vectors are complicated. Should overload buildPencilsWithNeighbors like suggested here
    // https://stackoverflow.com/questions/3147274/c-default-argument-for-vectorint
@@ -1309,13 +1338,6 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    // Output vectors for ready pencils
    setOfPencils pencils;
    vector<setOfPencils> pencilSets;
-
-   cout << "Number of seed ids is " << seedIds.size() << endl;
-   cout << "Seed ids are: ";
-   for (const auto seedId : seedIds) {
-      cout << seedId << " ";
-   }
-   cout << endl;
 
    for (const auto seedId : seedIds) {
       // Construct pencils from the seedIds into a set of pencils.
