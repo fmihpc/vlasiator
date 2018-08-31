@@ -110,8 +110,6 @@ void calculateSpatialTranslation(
       bool foo;
       foo = trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsx, 0,dt,popID); // map along x//
       phiprof::stop("compute-mapping-x");
-
-      cout << "return value of trans_map_1d_amr: " << foo << endl;
       
       trans_timer=phiprof::initializeTimer("update_remote-x","MPI");
       phiprof::start("update_remote-x");

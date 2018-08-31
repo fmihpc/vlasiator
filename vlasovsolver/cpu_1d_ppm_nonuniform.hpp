@@ -51,10 +51,10 @@ inline void compute_ppm_coeff_nonuniform(const Vec * const dv, const Vec * const
                    (p_face - m_face)*(p_face - m_face) * one_sixth,
                    3 * values[k] - 2 * p_face,
                    m_face);
-  p_face = select(-(p_face - m_face) * (p_face - m_face) * one_sixth >
+   p_face = select(-(p_face - m_face) * (p_face - m_face) * one_sixth >
                    (p_face - m_face) * (values[k] - 0.5 * (m_face + p_face)),
-                  3 * values[k] - 2 * m_face,
-                  p_face);
+                   3 * values[k] - 2 * m_face,
+                   p_face);
    
    //Fit a second order polynomial for reconstruction see, e.g., White
    //2008 (PQM article) (note additional integration factors built in,
