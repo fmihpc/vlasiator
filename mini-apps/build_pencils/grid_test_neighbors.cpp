@@ -34,7 +34,7 @@ struct setOfPencils {
       sumOfLengths = 0;
    }
 
-   void addPencil(std::vector<CellID> idsIn, Real xIn, Real yIn, vector<Real> zIn) {
+   void addPencil(std::vector<CellID> idsIn, Real xIn, Real yIn) {
 
       N += 1;
       sumOfLengths += idsIn.size();
@@ -42,14 +42,14 @@ struct setOfPencils {
       ids.insert(ids.end(),idsIn.begin(),idsIn.end());
       x.push_back(xIn);
       y.push_back(yIn);
-      z.insert(z.end(),zIn.begin(),zIn.end());
   
    }
 
    std::vector<CellID> getIds(uint pencilId) {
 
       if (pencilId > N) {
-         return;
+         vector<CellID> foo;
+         return foo;
       }
 
       CellID ibeg = 0;
@@ -246,34 +246,34 @@ setOfPencils buildPencilsWithNeighbors( dccrg::Dccrg<grid_data> &grid,
    // Get the x,y - coordinates of the pencil (in the direction perpendicular to the pencil)
    const auto coordinates = grid.get_center(ids[0]);
    double x,y;
-   uint ix,iy,iz
-      switch(dimension) {
-      case 0: {
-         ix = 1;
-         iy = 2;
-         iz = 0;
-         break;
-      }
-      case 1: {
-         ix = 2;
-         iy = 0;
-         iz = 1;
-         break;
-      }
-      case 2: {
-         ix = 0;
-         iy = 1;
-         iz = 2;
-         break;
-      }
-      default: {
-         ix = 0;
-         iy = 1;
-         iz = 2;
-         break;
-      }
-      }
-
+   uint ix,iy,iz;
+   switch(dimension) {
+   case 0: 
+      ix = 1;
+      iy = 2;
+      iz = 0;
+      break;
+   
+   case 1: 
+      ix = 2;
+      iy = 0;
+      iz = 1;
+      break;
+   
+   case 2: 
+      ix = 0;
+      iy = 1;
+      iz = 2;
+      break;
+   
+   default: 
+      ix = 0;
+      iy = 1;
+      iz = 2;
+      break;
+   
+   }
+   
    x = coordinates[ix];
    y = coordinates[iy];
    // z = vector<Real>;
