@@ -111,7 +111,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
-            outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + "/rhom_loss_adjust", i, offsetof(spatial_cell::Population, RHOLOSSADJUST), 1));
+            outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + "/rho_loss_adjust", i, offsetof(spatial_cell::Population, RHOLOSSADJUST), 1));
          }
          continue;
       }
