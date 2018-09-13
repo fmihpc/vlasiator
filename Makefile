@@ -3,7 +3,7 @@ ARCH = ${VLASIATOR_ARCH}
 #set FP precision to SP (single) or DP (double)
 FP_PRECISION = DP
 #Set floating point precision for distribution function to SPF (single) or DPF (double)
-DISTRIBUTION_FP_PRECISION = SPF
+DISTRIBUTION_FP_PRECISION = DPF
 #override flags if we are building testpackage:
 
 ifneq (,$(findstring testpackage,$(MAKECMDGOALS)))

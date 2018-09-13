@@ -127,7 +127,7 @@ void calculateSpatialTranslation(
       phiprof::stop(trans_timer);
 
       phiprof::start("compute-mapping-y");      
-      trans_map_1d(mpiGrid,local_propagated_cells, remoteTargetCellsy, 1,dt,popID); // map along y//
+      trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsy, 1,dt,popID); // map along y//
       phiprof::stop("compute-mapping-y");
       
       trans_timer=phiprof::initializeTimer("update_remote-y","MPI");
