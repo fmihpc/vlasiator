@@ -1190,14 +1190,14 @@ void propagatePencil(Vec* dz, Vec* values, const uint dimension, const uint bloc
    // Write target data into source data
    // VLASOV_STENCIL_WIDTH >= nTargetNeighborsPerPencil is required (default 2 >= 1)
 
-   for (int i = 0; i < lengthOfPencil + 2 * nTargetNeighborsPerPencil; i++) {
+   for (uint i = 0; i < lengthOfPencil + 2 * nTargetNeighborsPerPencil; i++) {
 
       for (uint k = 0; k < WID; ++k) {
          
-         for (uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++) {
-
-            values[i_trans_ps_blockv_pencil(planeVector, k, i - 1, lengthOfPencil)] =
-               targetValues[i_trans_pt_blockv(planeVector, k, i - 1)];
+         for (uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++) {            
+            int im1 = i - 1; // doing this to shut up compiler warnings
+            values[i_trans_ps_blockv_pencil(planeVector, k, im1, lengthOfPencil)] =
+               targetValues[i_trans_pt_blockv(planeVector, k, im1)];
             
          }
       }
@@ -1620,7 +1620,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                propagatePencil(dz, sourceVecData, dimension, blockGID, dt, vmesh, L, debugflag);
 
                // sourcedata => targetdata[this pencil])
-               for (int i = 0; i < targetLength; i++) {
+               for (uint i = 0; i < targetLength; i++) {
                   for (uint k=0; k<WID; k++) {
                      for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){
                         
@@ -1659,7 +1659,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
             for(uint pencili = 0; pencili < pencils.N; pencili++){
                
                int L = pencils.lengthOfPencils[pencili];
-               int targetLength = L + 2;
+               uint targetLength = L + 2;
                vector<CellID> pencilIds = pencils.getIds(pencili);
 
                bool debugPencilFlag = false;

@@ -53,7 +53,7 @@ struct setOfPencils {
       periodic.push_back(periodicIn);
    }
 
-   std::vector<CellID> getIds(const uint pencilId) {
+   std::vector<CellID> getIds(const uint pencilId) const {
 
       std::vector<CellID> idsOut;
       
