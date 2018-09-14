@@ -560,20 +560,6 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       for(uint blocki = 0; blocki < unionOfBlocks.size(); blocki++){
          vmesh::GlobalID blockGID = unionOfBlocks[blocki];
          phiprof::start(t1);
-
-         // bool exitflag = false;
-         // cout << "sourceData: " << endl;
-         // const vmesh::LocalID blockLID = allCellsPointer[0]->get_velocity_block_local_id(blockGID, popID);
-         // Realf* data = allCellsPointer[0]->get_data(blockLID,popID);
-         // for (uint i = 0; i < WID3; i++) {
-         //    cout << " " << data[i];
-         //    if (data[i] != 0) exitflag = true;
-         // }
-         // cout << endl;
-         // if(exitflag) {
-         //    cout << blockGID << " " << blockLID << endl;
-         //    throw;
-         // }
          
          for(uint celli = 0; celli < allCellsPointer.size(); celli++){
             allCellsBlockLocalID[celli] = allCellsPointer[celli]->get_velocity_block_local_id(blockGID, popID);
@@ -1070,7 +1056,6 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
             // Exit the while loop
             id = -1;
          } else {
-            //cout << "adding id " << nextNeighbor << " to pencil." << endl;
             ids.push_back(nextNeighbor);
             // Move to the next cell.
             id = nextNeighbor;
@@ -1172,8 +1157,6 @@ void propagatePencil(Vec* dz, Vec* values, const uint dimension, const uint bloc
             std::cout << "Exiting\n";
             std::exit(1);
          }
-
-         // cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
          
          for (uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++) {   
       
@@ -1190,7 +1173,6 @@ void propagatePencil(Vec* dz, Vec* values, const uint dimension, const uint bloc
             const Vec ngbr_target_density =
                z_2 * ( a[0] + z_2 * ( a[1] + z_2 * a[2] ) ) -
                z_1 * ( a[0] + z_1 * ( a[1] + z_1 * a[2] ) );
-                        
             // Store mapped density in two target cells
             // in the neighbor cell we will put this density
             targetValues[i_trans_pt_blockv(planeVector, k, i + 1)] += select( positiveTranslationDirection,
@@ -1217,14 +1199,9 @@ void propagatePencil(Vec* dz, Vec* values, const uint dimension, const uint bloc
             values[i_trans_ps_blockv_pencil(planeVector, k, i - 1, lengthOfPencil)] =
                targetValues[i_trans_pt_blockv(planeVector, k, i - 1)];
             
-            if(horizontal_or(is_nan(values[i_trans_ps_blockv_pencil(planeVector, k, i - 1, lengthOfPencil)]))) {
-               cerr << "nan detected in output" << endl;
-               throw;
-            }
          }
       }
-   }
-  
+   }  
 }
 
 void get_seed_ids(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
@@ -1241,11 +1218,9 @@ void get_seed_ids(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       // These are the seed ids for the pencils.
       vector<CellID> negativeNeighbors;
       // Returns all neighbors as (id, direction-dimension) pairs.
-      //cout << "neighbors of cell " << localCelli << " are ";
       for ( const auto neighbor : mpiGrid.get_face_neighbors_of(celli ) ) {
 
          if ( mpiGrid.get_process(neighbor.first) == myProcess ) {
-            //cout << neighbor.first << "," << neighbor.second << " ";
             // select the neighbor in the negative dimension of the propagation
             if (neighbor.second == - (static_cast<int>(dimension) + 1)) {
                
@@ -1415,7 +1390,6 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
    unsigned char  cellid_transpose[WID3]; /*< defines the transpose for the solver internal (transposed) id: i + j*WID + k*WID2 to actual one*/
    const uint blocks_per_dim = 1;
-   
    // return if there's no cells to propagate
    if(localPropagatedCells.size() == 0) {
       cout << "Returning because of no cells" << endl;
@@ -1476,8 +1450,8 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
          }
       }
    }
-   // ****************************************************************************   
-   
+   // ****************************************************************************
+
    // compute pencils => set of pencils (shared datastructure)
 
    vector<CellID> seedIds;
@@ -1555,7 +1529,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    int t1 = phiprof::initializeTimer("mappingAndStore");
    
    //#pragma omp parallel
-   {  
+   {
       //#pragma omp for schedule(guided)
       // Loop over velocity space blocks. Thread this loop (over vspace blocks) with OpenMP.    
       for(uint blocki = 0; blocki < unionOfBlocks.size(); blocki++){
@@ -1572,7 +1546,6 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
          const vmesh::LocalID debugLID = allCellsPointer[allCellsPointerIndex]->get_velocity_block_local_id(blockGID, popID);
          Realf* data = allCellsPointer[allCellsPointerIndex]->get_data(debugLID,popID);
          //for (uint i = 0; i < WID3; i++) if (data[i] != 0) debugflag = true;
-        
          velocity_block_indices_t block_indices;
          uint8_t vRefLevel;
          vmesh.getIndices(blockGID,vRefLevel, block_indices[0],
@@ -1641,7 +1614,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                // load data(=> sourcedata) / (proper xy reconstruction in future)
                copy_trans_block_data_amr(sourceCells.data(), blockGID, L, sourceVecData,
                                          cellid_transpose, popID);                                 
-               
+                             
                // Dz and sourceVecData are both padded by VLASOV_STENCIL_WIDTH
                // Dz has 1 value/cell, sourceVecData has WID3 values/cell
                propagatePencil(dz, sourceVecData, dimension, blockGID, dt, vmesh, L, debugflag);
@@ -1657,6 +1630,8 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                      }
                   }
                }
+               totalTargetLength += targetLength;
+               // dealloc source data -- Should be automatic since it's declared in this iteration?
             }
 
             // reset blocks in all non-sysboundary neighbor spatial cells for this block id
@@ -1682,10 +1657,6 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
             // Loop over pencils again
             totalTargetLength = 0;
             for(uint pencili = 0; pencili < pencils.N; pencili++){
-
-               if(debugflag) {
-                  cout << "pencil.periodic: " << pencils.periodic[pencili] << endl;
-               }
                
                int L = pencils.lengthOfPencils[pencili];
                int targetLength = L + 2;
@@ -1723,7 +1694,6 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                }
 
                // store values from targetBlockData array to the actual blocks
-
                // Loop over cells in the pencil, including the padded cells of the target array
                for ( uint celli = 0; celli < targetLength; celli++ ) {
                   
@@ -1757,5 +1727,8 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
          data = allCellsPointer[allCellsPointerIndex]->get_data(debugLID,popID);         
       }
    }   
+
+   //cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
+  
    return true;
 }
