@@ -1404,7 +1404,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    std::vector<SpatialCell*> allCellsPointer(allCells.size());  
    
    // Initialize allCellsPointer
-   //#pragma omp parallel for
+   #pragma omp parallel for
    for(uint celli = 0; celli < allCells.size(); celli++){
       allCellsPointer[celli] = mpiGrid[allCells[celli]];
    }
@@ -1528,10 +1528,10 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    
    int t1 = phiprof::initializeTimer("mappingAndStore");
    
-   //#pragma omp parallel
+#pragma omp parallel
    {
-      //#pragma omp for schedule(guided)
       // Loop over velocity space blocks. Thread this loop (over vspace blocks) with OpenMP.    
+#pragma omp for schedule(guided)
       for(uint blocki = 0; blocki < unionOfBlocks.size(); blocki++){
          
          phiprof::start(t1);
