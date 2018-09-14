@@ -1657,6 +1657,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                      }
                   }
                }
+            }
 
             // reset blocks in all non-sysboundary neighbor spatial cells for this block id
             // At this point the data is saved in targetVecData so we can reset the spatial cells
