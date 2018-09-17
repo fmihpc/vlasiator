@@ -28,53 +28,21 @@
 #include "../common.h"
 #include "../spatial_cell.hpp"
 
-struct setOfPencils {
-
-   uint N; // Number of pencils in the set
-   uint sumOfLengths;
-   std::vector<uint> lengthOfPencils; // Lengths of pencils
-   std::vector<CellID> ids; // List of cells
-   std::vector<Realv> x,y; // x,y - position
-   std::vector<bool> periodic;
-
-   setOfPencils() {
-      N = 0;
-      sumOfLengths = 0;
-   }
-
-   void addPencil(std::vector<CellID> idsIn, Real xIn, Real yIn, bool periodicIn) {
-
-      N += 1;
-      sumOfLengths += idsIn.size();
-      lengthOfPencils.push_back(idsIn.size());
-      ids.insert(ids.end(),idsIn.begin(),idsIn.end());
-      x.push_back(xIn);
-      y.push_back(yIn);
-      periodic.push_back(periodicIn);
-   }
-
-   std::vector<CellID> getIds(const uint pencilId) const {
-
-      std::vector<CellID> idsOut;
-      
-      if (pencilId > N) {
-         return idsOut;
-      }
-
-      CellID ibeg = 0;
-      for (uint i = 0; i < pencilId; i++) {
-         ibeg += lengthOfPencils[i];
-      }
-      CellID iend = ibeg + lengthOfPencils[pencilId];
-    
-      for (uint i = ibeg; i <= iend; i++) {
-         idsOut.push_back(ids[i]);
-      }
-
-      return idsOut;
-   }
-
-};
+void compute_spatial_source_neighbors(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                      const CellID& cellID,const uint dimension,SpatialCell **neighbors);
+void compute_spatial_target_neighbors(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                      const CellID& cellID,const uint dimension,SpatialCell **neighbors);
+void copy_trans_block_data(SpatialCell** source_neighbors,const vmesh::GlobalID blockGID,
+                           Vec* values,const unsigned char* const cellid_transpose,const uint popID);
+CellID get_spatial_neighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                            const CellID& cellID,const bool include_first_boundary_layer,
+                            const int spatial_di,const int spatial_dj,const int spatial_dk);
+SpatialCell* get_spatial_neighbor_pointer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                          const CellID& cellID,const bool include_first_boundary_layer,
+                                          const int spatial_di,const int spatial_dj,const int spatial_dk);
+void store_trans_block_data(SpatialCell** target_neighbors,const vmesh::GlobalID blockGID,
+                            Vec* __restrict__ target_values,
+                            const unsigned char* const cellid_transpose,const uint popID);
 
 bool do_translate_cell(spatial_cell::SpatialCell* SC);
 bool trans_map_1d(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
@@ -105,22 +73,5 @@ void copy_trans_block_data(SpatialCell** source_neighbors,
                            Vec* values,
                            const unsigned char* const cellid_transpose,
                            const uint popID);
-
-bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                  const std::vector<CellID>& localPropagatedCells,
-                  const std::vector<CellID>& remoteTargetCells,
-                  const uint dimension,
-                  const Realv dt,
-                  const uint popID);
-
-setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> &grid, 
-					setOfPencils &pencils, CellID startingId,
-					std::vector<CellID> ids, uint dimension, 
-					std::vector<uint> path);
-
-void get_seed_ids(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                  const std::vector<CellID> &localPropagatedCells,
-                  const uint dimension,
-                  std::vector<CellID> &seedIds);
 
 #endif

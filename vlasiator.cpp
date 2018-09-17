@@ -361,7 +361,7 @@ int main(int argn,char* args[]) {
    phiprof::start("Init grid");
    //dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> mpiGrid;
    initializeGrid(argn,args,mpiGrid,sysBoundaries,*project);
-   isSysBoundaryCondDynamic = sysBoundaries.isDynamic();
+   isSysBoundaryCondDynamic = sysBoundaries.isDynamic();   
    phiprof::stop("Init grid");
 
    // Initialize data reduction operators. This should be done elsewhere in order to initialize 
@@ -601,6 +601,14 @@ int main(int argn,char* args[]) {
       phiprof::stop("propagate-velocity-space-dt/2");
 
    }
+
+   // std::array<double,3> coords;
+   // coords[1] = (P::xmax - P::xmin) / 2.0;
+   // coords[2] = (P::ymax - P::ymin) / 2.0;
+   // coords[3] = (P::zmax - P::zmin) / 2.0;
+   // mpiGrid.refine_completely_at(coords);
+   // mpiGrid.stop_refining();
+   
    phiprof::stop("Initialization");
 
    // ***********************************
