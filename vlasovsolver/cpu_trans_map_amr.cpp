@@ -130,25 +130,24 @@ CellID selectNeighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> 
    switch( myNeighbors.size() ) {
       // Since refinement can only increase by 1 level the only possibilities
       // Should be 0 neighbors, 1 neighbor or 4 neighbors.
-   case 0 : {
+   case 0 : 
       // did not find neighbors
       neighbor = INVALID_CELLID;
       break;
-   }
-   case 1 : {
+   
+   case 1 : 
       neighbor = myNeighbors[0];
       break;
-   }
-   case 4 : {
+   
+   case 4 : 
       neighbor = myNeighbors[path];
       break;
-   }
-   default: {
+   
+   default: 
       // something is wrong
       neighbor = INVALID_CELLID;
       throw "Invalid neighbor count!";
-      break;
-   }
+      break;   
    }
 
    return neighbor;
