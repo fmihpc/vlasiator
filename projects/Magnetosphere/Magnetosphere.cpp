@@ -235,7 +235,7 @@ namespace projects {
    /* set 0-centered dipole */
    void Magnetosphere::setCellBackgroundField(SpatialCell *cell) const {
       if(cell->sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN && this->noDipoleInSW) {
-         setBackgroundFieldToZero(cell->parameters, cell->derivatives,cell->derivativesBVOL);
+         setBackgroundFieldToZero(cell->parameters.data(), cell->derivatives.data(),cell->derivativesBVOL.data());
       }
       else {
          Dipole bgFieldDipole;
@@ -248,29 +248,29 @@ namespace projects {
          switch(this->dipoleType) {
              case 0:
                 bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );//set dipole moment
-                setBackgroundField(bgFieldDipole,cell->parameters, cell->derivatives,cell->derivativesBVOL);
+                setBackgroundField(bgFieldDipole,cell->parameters.data(), cell->derivatives.data(),cell->derivativesBVOL.data());
                 break;
              case 1:
                 bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor, 0.0, 0.0, 0.0 );//set dipole moment     
-                setBackgroundField(bgFieldLineDipole,cell->parameters, cell->derivatives,cell->derivativesBVOL);
+                setBackgroundField(bgFieldLineDipole,cell->parameters.data(), cell->derivatives.data(),cell->derivativesBVOL.data());
                 break;
              case 2:
                 bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor, 0.0, 0.0, 0.0 );//set dipole moment     
-                setBackgroundField(bgFieldLineDipole,cell->parameters, cell->derivatives,cell->derivativesBVOL);
+                setBackgroundField(bgFieldLineDipole,cell->parameters.data(), cell->derivatives.data(),cell->derivativesBVOL.data());
                 //Append mirror dipole
                 bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor, this->dipoleMirrorLocationX, 0.0, 0.0 );
-                setBackgroundField(bgFieldLineDipole,cell->parameters, cell->derivatives,cell->derivativesBVOL, true);
+                setBackgroundField(bgFieldLineDipole,cell->parameters.data(), cell->derivatives.data(),cell->derivativesBVOL.data(), true);
                 break;
              case 3:
                 bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );//set dipole moment
-                setBackgroundField(bgFieldDipole,cell->parameters, cell->derivatives,cell->derivativesBVOL);
+                setBackgroundField(bgFieldDipole,cell->parameters.data(), cell->derivatives.data(),cell->derivativesBVOL.data());
                 //Append mirror dipole                
                 bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, this->dipoleMirrorLocationX, 0.0, 0.0, 0.0 );//mirror
-                setBackgroundField(bgFieldDipole,cell->parameters, cell->derivatives,cell->derivativesBVOL, true);
+                setBackgroundField(bgFieldDipole,cell->parameters.data(), cell->derivatives.data(),cell->derivativesBVOL.data(), true);
                 break;
                 
              default:
-                setBackgroundFieldToZero(cell->parameters, cell->derivatives,cell->derivativesBVOL);
+                setBackgroundFieldToZero(cell->parameters.data(), cell->derivatives.data(),cell->derivativesBVOL.data());
                 
          }
       }

@@ -453,7 +453,7 @@ namespace SBC {
       
       const OutflowSpeciesParameters& sP = this->speciesParams[popID];
       SpatialCell* cell = mpiGrid[cellID];
-      creal* const cellParams = cell->parameters;
+      creal* const cellParams = cell->parameters.data();
       creal dx = cellParams[CellParams::DX];
       creal dy = cellParams[CellParams::DY];
       creal dz = cellParams[CellParams::DZ];

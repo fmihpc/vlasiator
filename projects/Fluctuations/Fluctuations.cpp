@@ -183,8 +183,8 @@ namespace projects {
       bgField.initialize(this->BX0,
                          this->BY0,
                          this->BZ0);
-      
-      setBackgroundField(bgField,cell->parameters, cell->derivatives,cell->derivativesBVOL);
+
+      setBackgroundField(bgField,cell->parameters.data(), cell->derivatives.data(),cell->derivativesBVOL.data());
    }
    
    std::vector<std::array<Real, 3> > Fluctuations::getV0(

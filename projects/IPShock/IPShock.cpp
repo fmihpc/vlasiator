@@ -492,7 +492,7 @@ namespace projects {
   }
 
   void IPShock::setCellBackgroundField(spatial_cell::SpatialCell* cell) const {
-    setBackgroundFieldToZero(cell->parameters, cell->derivatives,cell->derivativesBVOL);
+     setBackgroundFieldToZero(cell->parameters.data(), cell->derivatives.data(),cell->derivativesBVOL.data());
   }
 
 }//namespace projects
