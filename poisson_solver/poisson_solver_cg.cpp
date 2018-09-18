@@ -186,7 +186,7 @@ namespace poisson {
          CellCache3D<cgvar::SIZE> cache;
          cache.cellID = cells[c];
          cache.cell = mpiGrid[cells[c]];
-         cache[0]   = mpiGrid[cells[c]]->parameters;
+         cache[0]   = mpiGrid[cells[c]]->parameters.data();
 
          #ifdef DEBUG_POISSON_CG
          if (cache.cell == NULL) {
@@ -205,8 +205,8 @@ namespace poisson {
             case sysboundarytype::NOT_SYSBOUNDARY:
                // Fetch pointers to this cell's (cell) parameters array, 
                // and pointers to +/- xyz face neighbors' arrays               
-               indices[0] -= 1; cache[1] = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ]->parameters;
-               indices[0] += 2; cache[2] = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ]->parameters;
+               indices[0] -= 1; cache[1] = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ]->parameters.data();
+               indices[0] += 2; cache[2] = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ]->parameters.data();
                indices[0] -= 1;
             
                if (indices[1] == 2) {
@@ -218,10 +218,10 @@ namespace poisson {
                      cache[3] = dummy->get_cell_parameters();
                   }
                } else {
-                  indices[1] -= 1; cache[3] = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ]->parameters;
+                  indices[1] -= 1; cache[3] = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ]->parameters.data();
                }
 
-               indices[1] += 2; cache[4] = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ]->parameters;
+               indices[1] += 2; cache[4] = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ]->parameters.data();
                indices[1] -= 1;
                break;
 
@@ -232,11 +232,11 @@ namespace poisson {
                indices[0] -= 1;
                dummy = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
                if (dummy == NULL) cache[1] = bndryCellParams;
-               else               cache[1] = dummy->parameters;
+               else               cache[1] = dummy->parameters.data();
                indices[0] += 2;
                dummy = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
                if (dummy == NULL) cache[2] = bndryCellParams;
-               else               cache[2] = dummy->parameters;
+               else               cache[2] = dummy->parameters.data();
                indices[0] -= 1;
 
                // Set +/- y-neighbors both point to +y neighbor 
@@ -249,7 +249,7 @@ namespace poisson {
                   if (dummy == NULL) {
                      cache[4] = bndryCellParams;
                   } else {
-                     cache[4] = dummy->parameters;
+                     cache[4] = dummy->parameters.data();
                   }
                   indices[1] -= 1;
                } else {
@@ -259,7 +259,7 @@ namespace poisson {
                   if (dummy == NULL) {
                      cache[3] = bndryCellParams;
                   } else {
-                     cache[3] = dummy->parameters;
+                     cache[3] = dummy->parameters.data();
                   }
                   indices[1] += 1;
                }
@@ -270,24 +270,24 @@ namespace poisson {
                dummy = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
                //if (dummy == NULL) cache[1] = bndryCellParams;
                if (dummy == NULL) continue;
-               else               cache[1] = dummy->parameters;
+               else               cache[1] = dummy->parameters.data();
                indices[0] += 2;
                dummy = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
                //if (dummy == NULL) cache[2] = bndryCellParams;
                if (dummy == NULL) continue;
-               else               cache[2] = dummy->parameters;
+               else               cache[2] = dummy->parameters.data();
                indices[0] -= 1;
 
                indices[1] -= 1; 
                dummy = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
                //if (dummy == NULL) cache[3] = bndryCellParams;
                if (dummy == NULL) continue;
-               else               cache[3] = dummy->parameters;
+               else               cache[3] = dummy->parameters.data();
                indices[1] += 2;
                dummy = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ];
                //if (dummy == NULL) cache[4] = bndryCellParams;
                if (dummy == NULL) continue;
-               else               cache[4] = dummy->parameters;
+               else               cache[4] = dummy->parameters.data();
                indices[1] -= 1;
                break;
          }
@@ -316,18 +316,18 @@ namespace poisson {
             // Fetch pointers to this cell's (cell) parameters array, 
             // and pointers to +/- xyz face neighbors' arrays
             cache.cell = mpiGrid[cells[c]];
-            cache[0] = mpiGrid[cells[c]]->parameters;
+            cache[0] = mpiGrid[cells[c]]->parameters.data();
             
-            indices[0] -= 1; cache[1] = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ]->parameters;
-            indices[0] += 2; cache[2] = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ]->parameters;
+            indices[0] -= 1; cache[1] = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ]->parameters.data();
+            indices[0] += 2; cache[2] = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ]->parameters.data();
             indices[0] -= 1;
             
-            indices[1] -= 1; cache[3] = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ]->parameters;
-            indices[1] += 2; cache[4] = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ]->parameters;
+            indices[1] -= 1; cache[3] = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ]->parameters.data();
+            indices[1] += 2; cache[4] = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ]->parameters.data();
             indices[1] -= 1;
             
-            indices[2] -= 1; cache[5] = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ]->parameters;
-            indices[2] += 2; cache[6] = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ]->parameters;
+            indices[2] -= 1; cache[5] = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ]->parameters.data();
+            indices[2] += 2; cache[6] = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ]->parameters.data();
             indices[2] -= 1;
             
             redCache.push_back(cache);
@@ -340,18 +340,18 @@ namespace poisson {
             // Fetch pointers to this cell's (cell) parameters array,
             // and pointers to +/- xyz face neighbors' arrays
             cache.cell = mpiGrid[cells[c]];
-            cache[0] = mpiGrid[cells[c]]->parameters;
+            cache[0] = mpiGrid[cells[c]]->parameters.data();
             
-            indices[0] -= 1; cache[1] = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ]->parameters;
-            indices[0] += 2; cache[2] = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ]->parameters;
+            indices[0] -= 1; cache[1] = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ]->parameters.data();
+            indices[0] += 2; cache[2] = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ]->parameters.data();
             indices[0] -= 1;
             
-            indices[1] -= 1; cache[3] = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ]->parameters;
-            indices[1] += 2; cache[4] = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ]->parameters;
+            indices[1] -= 1; cache[3] = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ]->parameters.data();
+            indices[1] += 2; cache[4] = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ]->parameters.data();
             indices[1] -= 1;
             
-            indices[2] -= 1; cache[5] = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ]->parameters;
-            indices[2] += 2; cache[6] = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ]->parameters;
+            indices[2] -= 1; cache[5] = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ]->parameters.data();
+            indices[2] += 2; cache[6] = mpiGrid[ mpiGrid.mapping.get_cell_from_indices(indices,0) ]->parameters.data();
             indices[2] -= 1;
             
             blackCache.push_back(cache);

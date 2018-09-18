@@ -78,7 +78,7 @@ namespace poisson {
 
       // Fetch pointers
       for (size_t c=0; c<cells.size(); ++c) {
-	 Poisson::localCellParams[c] = mpiGrid[cells[c]]->parameters;
+	 Poisson::localCellParams[c] = mpiGrid[cells[c]]->parameters.data();
       }
    }
 

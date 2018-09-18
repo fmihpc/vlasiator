@@ -97,7 +97,7 @@ namespace SBC {
       const vector<CellID>& cells = getLocalCells();
       for (size_t c=0; c<cells.size(); ++c) {
          if (mpiGrid[cells[c]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
-         creal* const cellParams = mpiGrid[cells[c]]->parameters;
+         creal* const cellParams = mpiGrid[cells[c]]->parameters.data();
          creal dx = cellParams[CellParams::DX];
          creal dy = cellParams[CellParams::DY];
          creal dz = cellParams[CellParams::DZ];
