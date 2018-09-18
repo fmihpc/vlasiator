@@ -136,6 +136,6 @@ namespace projects {
    void Diffusion::setCellBackgroundField(SpatialCell* cell) {
       ConstantField bgField;
       bgField.initialize(0,0,this->B0); //bg bx, by,bz
-      setBackgroundField(bgField,cell->parameters, cell->derivatives,cell->derivativesBVOL);
+      setBackgroundField(bgField,cell->parameters.data(), cell->derivatives.data(),cell->derivativesBVOL.data());
    }
 } // namespace projects
