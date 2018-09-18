@@ -347,8 +347,9 @@ namespace spatial_cell {
       static uint64_t mpi_transfer_type;                                      /**< Which data is transferred by the mpi datatype given by spatial cells.*/
       static bool mpiTransferAtSysBoundaries;                                 /**< Do we only transfer data at boundaries (true), or in the whole system (false).*/
 
+      SpatialCell& operator=(const SpatialCell& other);
     private:
-      SpatialCell& operator=(const SpatialCell&);
+      //SpatialCell& operator=(const SpatialCell&);
       
       bool compute_block_has_content(const vmesh::GlobalID& block,const uint popID) const;
       void merge_values_recursive(const uint popID,vmesh::GlobalID parentGID,vmesh::GlobalID blockGID,uint8_t refLevel,bool recursive,const Realf* data,
@@ -1891,7 +1892,21 @@ namespace spatial_cell {
       return populations[popID].vmesh.hasGrandParent(blockGID);
    }
    
-   inline SpatialCell& SpatialCell::operator=(const SpatialCell&) { 
+   inline SpatialCell& SpatialCell::operator=(const SpatialCell& other) {
+
+      this->sysBoundaryFlag = other.sysBoundaryFlag;
+      this->sysBoundaryLayer = other.sysBoundaryLayer;
+      this->sysBoundaryLayerNew = other.sysBoundaryLayerNew;
+      this->velocity_block_with_content_list = other.velocity_block_with_content_list;
+      this->velocity_block_with_no_content_list = other.velocity_block_with_no_content_list;
+      this->initialized = other.initialized;
+      this->mpiTransferEnabled = other.mpiTransferEnabled;      
+      this->parameters = other.parameters;
+      this->derivatives = other.derivatives;
+      this->derivativesBVOL = other.derivativesBVOL;      
+      this->null_block_data = other.null_block_data;
+      this->populations = other.populations;
+   
       return *this;
    }
 

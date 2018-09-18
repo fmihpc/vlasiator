@@ -118,7 +118,7 @@ void initializeGrid(
       comm,
       &P::loadBalanceAlgorithm[0],
       neighborhood_size, // neighborhood size
-      0, // maximum refinement level
+      P::amrMaxSpatialRefLevel, // maximum refinement level
       sysBoundaries.isBoundaryPeriodic(0),
       sysBoundaries.isBoundaryPeriodic(1),
       sysBoundaries.isBoundaryPeriodic(2)

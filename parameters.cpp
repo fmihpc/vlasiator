@@ -137,6 +137,8 @@ Realf P::amrRefineLimit = 1.0;
 Realf P::amrCoarsenLimit = 0.5;
 string P::amrVelRefCriterion = "";
 
+int P::amrMaxSpatialRefLevel = 0;
+
 bool Parameters::addParameters(){
    //the other default parameters we read through the add/get interface
    Readparameters::add("io.diagnostic_write_interval", "Write diagnostic output every arg time steps",numeric_limits<uint>::max());
