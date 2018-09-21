@@ -427,6 +427,7 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
    for(uint i=0; i<cells.size(); i++) {
       mpiGrid[cells[i]]->sysBoundaryLayer=0; /*Initial value*/
       if(mpiGrid[cells[i]]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY ) {
+#ifdef OLD_DCCRG_API
          const std::vector<CellID>* nbrs = mpiGrid.get_neighbors_of(cells[i],SYSBOUNDARIES_NEIGHBORHOOD_ID);
          for(uint j=0; j<(*nbrs).size(); j++) {
             if((*nbrs)[j]!=0 ) {
@@ -435,6 +436,18 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
                }
             }
          }
+#else
+	 const std::vector<std::pair<long unsigned int, std::array<int, 4> > >* nbrs = mpiGrid.get_neighbors_of(cells[i],SYSBOUNDARIES_NEIGHBORHOOD_ID);
+	 for(uint j=0; j<(*nbrs).size(); j++) {
+           std::pair<long unsigned int, std::array<int, 4> > items = (*nbrs)[j];
+	   long unsigned int value = items.first;
+	   if(value !=0 ) {
+	     if(mpiGrid[value]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ) {
+	       mpiGrid[cells[i]]->sysBoundaryLayer=1;
+	     }
+           }
+         }
+#endif
       }
    }
 
@@ -448,6 +461,7 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
    for(uint layer=1;layer<maxLayers;layer++){
       for(uint i=0; i<cells.size(); i++) {
          if(mpiGrid[cells[i]]->sysBoundaryLayer==0){
+#ifdef OLD_DCCRG_API
             const std::vector<CellID>* nbrs = mpiGrid.get_neighbors_of(cells[i],SYSBOUNDARIES_NEIGHBORHOOD_ID);
             for(uint j=0; j<(*nbrs).size(); j++) {
                if((*nbrs)[j]!=0 && (*nbrs)[j]!=cells[i] ) {
@@ -457,6 +471,19 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
                   }
                }
             }
+#else
+	    const std::vector<std::pair<long unsigned int, std::array<int, 4> > >* nbrs = mpiGrid.get_neighbors_of(cells[i],SYSBOUNDARIES_NEIGHBORHOOD_ID);
+	    for(uint j=0; j<(*nbrs).size(); j++) {
+	       std::pair<long unsigned int, std::array<int, 4> > items = (*nbrs)[j];
+	       long unsigned int value = items.first;
+	       if(value!=0 && value!=cells[i] ) {
+	          if(mpiGrid[value]->sysBoundaryLayer==layer) {
+	             mpiGrid[cells[i]]->sysBoundaryLayer=layer+1;
+	             break;
+	          }
+	       }
+	    }
+#endif
          }
       }
       SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);

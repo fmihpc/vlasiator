@@ -112,7 +112,8 @@ void initializeGrid(
    geom_params.level_0_cell_length[0] = P::dx_ini;
    geom_params.level_0_cell_length[1] = P::dy_ini;
    geom_params.level_0_cell_length[2] = P::dz_ini;
-   
+
+#ifdef OLD_DCCRG_API   
    mpiGrid.initialize(
       grid_length,
       comm,
@@ -123,6 +124,9 @@ void initializeGrid(
       sysBoundaries.isBoundaryPeriodic(1),
       sysBoundaries.isBoundaryPeriodic(2)
    );
+#else
+   mpiGrid.initialize(comm);
+#endif
    
    mpiGrid.set_geometry(geom_params);
    
@@ -496,14 +500,28 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
       SpatialCell* cell = mpiGrid[cell_id];
       
       // gather spatial neighbor list and create vector with pointers to neighbor spatial cells
+#ifdef OLD_DCCRG_API 
       const vector<CellID>* neighbors = mpiGrid.get_neighbors_of(cell_id, NEAREST_NEIGHBORHOOD_ID);
+#else
+      const std::vector<std::pair<long unsigned int, std::array<int, 4> >>* neighbors = mpiGrid.get_neighbors_of(cell_id, NEAREST_NEIGHBORHOOD_ID);
+#endif
       vector<SpatialCell*> neighbor_ptrs;
       neighbor_ptrs.reserve(neighbors->size());
+#ifdef OLD_DCCRG_API
       for (vector<CellID>::const_iterator neighbor_id = neighbors->begin(); neighbor_id != neighbors->end(); ++neighbor_id) {
          if (*neighbor_id == 0 || *neighbor_id == cell_id) {
+#else 
+      for(unsigned int idx=0; idx < neighbors->size(); idx++) { 
+	 const std::pair<long unsigned int, std::array<int, 4> > items = (*neighbors)[idx];
+         if (items.first == 0 || items.first == cell_id) {
+#endif
             continue;
          }
+#ifdef OLD_DCCRG_API
          neighbor_ptrs.push_back(mpiGrid[*neighbor_id]);
+#else
+	 neighbor_ptrs.push_back(mpiGrid[items.first]);
+#endif
       }
       if (getObjectWrapper().particleSpecies[popID].sparse_conserve_mass) {
          for (size_t i=0; i<cell->get_number_of_velocity_blocks(popID)*WID3; ++i) {
@@ -931,6 +949,7 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,c
          SpatialCell* cell = mpiGrid[cells[c]];
             
          // Get all spatial neighbors
+#ifdef OLD_DCCRG_API
          const vector<CellID>* neighbors = mpiGrid.get_neighbors_of(cells[c],NEAREST_NEIGHBORHOOD_ID);
                
          // Iterate over all spatial neighbors
@@ -951,6 +970,23 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,c
                }
             }
          }
+#else
+       const std::vector<std::pair<long unsigned int, std::array<int, 4> > >* neighbors = mpiGrid.get_neighbors_of(cells[c],NEAREST_NEIGHBORHOOD_ID); 
+       for (size_t n=0; n<neighbors->size(); ++n) {
+	                   CellID nbrCellID = (*neighbors)[n].first;
+			               const SpatialCell* nbr = mpiGrid[nbrCellID];
+					        for (vmesh::LocalID b=0; b<nbr->get_number_of_velocity_blocks(popID); ++b) {
+							               vmesh::GlobalID blockGID = nbr->get_velocity_block_global_id(b,popID);
+								                      vmesh::GlobalID grandParentGID = cell->velocity_block_has_grandparent(blockGID,popID);
+										                     if (grandParentGID != cell->invalid_global_id()) {
+													                       //cerr << "spatial nbr block " << blockGID << " h
+															       refinements[c].insert(cell->get_velocity_block_parent(popID,blockGID));
+															                      }
+															                                  }
+															                                           }
+#endif
+
+
       }
       phiprof::stop("calc refinements");
             

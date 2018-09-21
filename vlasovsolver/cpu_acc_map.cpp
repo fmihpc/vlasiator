@@ -541,9 +541,17 @@ bool map_1d(SpatialCell* spatial_cell,
                   if(dimension == 2) {
                      Realf* targetDataPointer = blockIndexToBlockData[blockK] + j * cell_indices_to_id[1] + gk_mod_WID * cell_indices_to_id[2];
                      Vec targetData;
+#ifdef OLD_DCCRG_API
                      targetData.load_a(targetDataPointer);
+#else
+		     targetData.load_a((float*)targetDataPointer);
+#endif
                      targetData += target_density_r - target_density_l;                  
+#ifdef OLD_DCCRG_API
                      targetData.store_a(targetDataPointer);
+#else
+		     targetData.store_a((float*)targetDataPointer);
+#endif
                   }
                   else{
                      // total value of integrand
