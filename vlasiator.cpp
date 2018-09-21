@@ -372,8 +372,9 @@ int main(int argn,char* args[]) {
    cout << "Got cell ID " << myCell << endl;
    cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << endl;
    bool refineSuccess = mpiGrid.refine_completely_at(coords);
-   std::vector<CellID> refinedCells = mpiGrid.stop_refining();
+   std::vector<CellID> refinedCells = mpiGrid.stop_refining();   
    cout << "Result: " << refineSuccess << endl;
+   mpiGrid.balance_load();
    if(refineSuccess) {
       cout << "Refined Cells are: ";
       for (auto cellid : refinedCells) {
