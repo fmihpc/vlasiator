@@ -690,6 +690,10 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
 
    // compute pencils => set of pencils (shared datastructure)
 
+   // std::cout << "LocalPropagatedCells: ";
+   // for (const auto id : localPropagatedCells) std::cout << id << " ";
+   // std::cout << endl;
+   
    vector<CellID> seedIds;
    get_seed_ids(mpiGrid, localPropagatedCells, dimension, seedIds);
    
@@ -703,13 +707,17 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    setOfPencils pencils;
    vector<setOfPencils> pencilSets;
 
+   // std::cout << "Starting cell ids for pencils are ";
+   // for (const auto seedId : seedIds) std::cout << seedId << " ";
+   // std::cout << endl;
+   
    for (const auto seedId : seedIds) {
       // Construct pencils from the seedIds into a set of pencils.
       pencils = buildPencilsWithNeighbors(mpiGrid, pencils, seedId, ids, dimension, path);
    }
 
    // Print out ids of pencils (if needed for debugging)
-   if (false) {
+   if (true) {
       uint ibeg = 0;
       uint iend = 0;
       std::cout << "I have created " << pencils.N << " pencils along dimension " << dimension << ":\n";
@@ -717,15 +725,24 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       std::cout << "-----------------------------------------------------------------" << std::endl;
       for (uint i = 0; i < pencils.N; i++) {
          iend += pencils.lengthOfPencils[i];
-         std::cout << "(" << pencils.x[i] << ", " << pencils.y[i] << "): ";
+         std::cout << mpiGrid.get_process(pencils.ids[ibeg])<< " (" << pencils.x[i] << ", " << pencils.y[i] << "): ";
          for (auto j = pencils.ids.begin() + ibeg; j != pencils.ids.begin() + iend; ++j) {
             std::cout << *j << " ";
          }
          ibeg  = iend;
          std::cout << std::endl;
       }
-   }
 
+      // CellID id = 56;
+      // const vector<CellID>* neighbors = mpiGrid.get_neighbors_of(id, VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
+      // if (neighbors != NULL) {
+      //    std::cout << "Neighbors of cell " << id << std::endl;
+      //    for (auto neighbor : *neighbors) {
+      //       std::cout << neighbor << std::endl;
+      //    }
+      // }
+
+   }   
    
    // Add the final set of pencils to the pencilSets - vector.
    // Only one set is created for now but we retain support for multiple sets
@@ -965,6 +982,5 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    }   
 
    //cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
-  
    return true;
 }
