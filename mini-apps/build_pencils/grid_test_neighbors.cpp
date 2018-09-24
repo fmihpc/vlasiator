@@ -320,8 +320,22 @@ int main(int argc, char* argv[]) {
    const int dimension = 0;
    const bool doRefine = true;
    const std::array<uint,4> refinementIds = {{10,14,64,72}};
-  
+
    grid.initialize(grid_size, comm, "RANDOM", 1);
+   
+   typedef dccrg::Types<3>::neighborhood_item_t neigh_t;
+   std::vector<neigh_t> neighborhood_x;
+   std::vector<neigh_t> neighborhood_y;
+
+   int neighborhood_width = 2;
+   for (int d = -neighborhood_width; d <= neighborhood_width; d++) {
+     if (d != 0) {
+        neighborhood_x.push_back({{d, 0, 0}});
+        neighborhood_y.push_back({{0, d, 0}});
+     }
+   }
+   grid.add_neighborhood(1, neighborhood_x);
+   grid.add_neighborhood(2, neighborhood_y);      
 
    grid.balance_load();
 
@@ -333,7 +347,7 @@ int main(int argc, char* argv[]) {
          }
       }
    }
-
+   
    grid.balance_load();
 
    auto cells = grid.cells;
@@ -386,7 +400,19 @@ int main(int argc, char* argv[]) {
       ibeg  = iend;
       std::cout << std::endl;
    }
-  
+
+
+   CellID id = 3;
+   const vector<CellID>* neighbors = grid.get_neighbors_of(id, 1);
+   if (neighbors != NULL) {
+      std::cout << "Neighbors of cell " << id << std::endl;
+      for (auto neighbor : *neighbors) {
+         std::cout << neighbor << std::endl;
+      }
+   }
+
+
+   
    std::ofstream outfile;
   
    grid.write_vtk_file("test.vtk");
