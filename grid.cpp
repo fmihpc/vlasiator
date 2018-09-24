@@ -497,9 +497,12 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
       
       // gather spatial neighbor list and create vector with pointers to neighbor spatial cells
       const vector<CellID>* neighbors = mpiGrid.get_neighbors_of(cell_id, NEAREST_NEIGHBORHOOD_ID);
+      //const vector<pair<CellID,array<int,4> > >* neighbors = mpiGrid.get_neighbors_of(cell_id, NEAREST_NEIGHBORHOOD_ID);
       vector<SpatialCell*> neighbor_ptrs;
       neighbor_ptrs.reserve(neighbors->size());
+      //for (auto nbrPair : neighbors) {
       for (vector<CellID>::const_iterator neighbor_id = neighbors->begin(); neighbor_id != neighbors->end(); ++neighbor_id) {
+         //CellID neighbor_id = *nbrPair->first;
          if (*neighbor_id == 0 || *neighbor_id == cell_id) {
             continue;
          }
@@ -932,10 +935,14 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,c
             
          // Get all spatial neighbors
          const vector<CellID>* neighbors = mpiGrid.get_neighbors_of(cells[c],NEAREST_NEIGHBORHOOD_ID);
+         // const vector<pair<CellID,array<int,4> > >* neighbors = mpiGrid.get_neighbors_of(cells[c],NEAREST_NEIGHBORHOOD_ID);
                
          // Iterate over all spatial neighbors
          for (size_t n=0; n<neighbors->size(); ++n) {
+            //for (auto nbrPair : neighbors) {
             CellID nbrCellID = (*neighbors)[n];
+            //CellID nbrCellID = *nbrPair->first;
+         
             const SpatialCell* nbr = mpiGrid[nbrCellID];
                   
             // Iterate over all blocks in the spatial neighbor, 
