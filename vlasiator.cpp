@@ -363,26 +363,27 @@ int main(int argn,char* args[]) {
    initializeGrid(argn,args,mpiGrid,sysBoundaries,*project);
    isSysBoundaryCondDynamic = sysBoundaries.isDynamic();
 
-   std::array<double,3> coords;
-   coords[0] = (P::xmax - P::xmin) / 2.0;
-   coords[1] = (P::ymax - P::ymin) / 2.0;
-   coords[2] = (P::zmax - P::zmin) / 2.0;
-   cout << "Trying to refine at " << coords[0] << ", " << coords[1] << ", " << coords[2] << endl;
-   CellID myCell = mpiGrid.get_existing_cell(coords);
-   cout << "Got cell ID " << myCell << endl;
-   cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << endl;
-   bool refineSuccess = mpiGrid.refine_completely_at(coords);
-   std::vector<CellID> refinedCells = mpiGrid.stop_refining();   
-   cout << "Result: " << refineSuccess << endl;
-   mpiGrid.balance_load();
-   if(refineSuccess) {
-      cout << "Refined Cells are: ";
-      for (auto cellid : refinedCells) {
-         cout << cellid << " ";
-      }
-      cout << endl;
-      mpiGrid.write_vtk_file("mpiGrid.vtk");
-   }
+   // std::array<double,3> coords;
+   // coords[0] = (P::xmax - P::xmin) / 2.0;
+   // coords[1] = (P::ymax - P::ymin) / 2.0;
+   // coords[2] = (P::zmax - P::zmin) / 2.0;
+   // cout << "Trying to refine at " << coords[0] << ", " << coords[1] << ", " << coords[2] << endl;
+   // CellID myCell = mpiGrid.get_existing_cell(coords);
+   // cout << "Got cell ID " << myCell << endl;
+   // cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << endl;
+   // bool refineSuccess = mpiGrid.refine_completely_at(coords);
+   // std::vector<CellID> refinedCells = mpiGrid.stop_refining();   
+   // cout << "Result: " << refineSuccess << endl;
+   // mpiGrid.balance_load();
+   // if(refineSuccess) {
+   //    cout << "Refined Cells are: ";
+   //    for (auto cellid : refinedCells) {
+   //       cout << cellid << " ";
+   //    }
+   //    cout << endl;
+   //    mpiGrid.write_vtk_file("mpiGrid.vtk");
+   // }
+   
    recalculateLocalCellsCache();
    phiprof::stop("Init grid");
 
