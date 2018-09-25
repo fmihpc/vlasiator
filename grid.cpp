@@ -125,14 +125,14 @@ void initializeGrid(
    // );
 
    mpiGrid.set_initial_length(grid_length)
-      .initialize(comm)
       .set_load_balancing_method(&P::loadBalanceAlgorithm[0])
       .set_neighborhood_length(neighborhood_size)
       .set_maximum_refinement_level(0)
-      .set_geometry(geom_params)
       .set_periodic(sysBoundaries.isBoundaryPeriodic(0),
                     sysBoundaries.isBoundaryPeriodic(1),
-                    sysBoundaries.isBoundaryPeriodic(2));
+                    sysBoundaries.isBoundaryPeriodic(2))
+      .initialize(comm)
+      .set_geometry(geom_params);
    
    // Init velocity mesh on all cells
    initVelocityGridGeometry(mpiGrid);   
