@@ -363,26 +363,26 @@ int main(int argn,char* args[]) {
    initializeGrid(argn,args,mpiGrid,sysBoundaries,*project);
    isSysBoundaryCondDynamic = sysBoundaries.isDynamic();
 
-   // std::array<double,3> coords;
-   // coords[0] = (P::xmax - P::xmin) / 2.0;
-   // coords[1] = (P::ymax - P::ymin) / 2.0;
-   // coords[2] = (P::zmax - P::zmin) / 2.0;
-   // cout << "Trying to refine at " << coords[0] << ", " << coords[1] << ", " << coords[2] << endl;
-   // CellID myCell = mpiGrid.get_existing_cell(coords);
-   // cout << "Got cell ID " << myCell << endl;
-   // cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << endl;
-   // bool refineSuccess = mpiGrid.refine_completely_at(coords);
-   // std::vector<CellID> refinedCells = mpiGrid.stop_refining();   
-   // cout << "Result: " << refineSuccess << endl;
-   // mpiGrid.balance_load();
-   // if(refineSuccess) {
-   //    cout << "Refined Cells are: ";
-   //    for (auto cellid : refinedCells) {
-   //       cout << cellid << " ";
-   //    }
-   //    cout << endl;
-   //    mpiGrid.write_vtk_file("mpiGrid.vtk");
-   // }
+   std::array<double,3> coords;
+   coords[0] = (P::xmax - P::xmin) / 2.0;
+   coords[1] = (P::ymax - P::ymin) / 2.0;
+   coords[2] = (P::zmax - P::zmin) / 2.0;
+   cout << "Trying to refine at " << coords[0] << ", " << coords[1] << ", " << coords[2] << endl;
+   CellID myCell = mpiGrid.get_existing_cell(coords);
+   cout << "Got cell ID " << myCell << endl;
+   cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << endl;
+   bool refineSuccess = mpiGrid.refine_completely_at(coords);
+   std::vector<CellID> refinedCells = mpiGrid.stop_refining();   
+   cout << "Result: " << refineSuccess << endl;
+   mpiGrid.balance_load();
+   if(refineSuccess) {
+      cout << "Refined Cells are: ";
+      for (auto cellid : refinedCells) {
+         cout << cellid << " ";
+      }
+      cout << endl;
+      mpiGrid.write_vtk_file("mpiGrid.vtk");
+   }
    
    recalculateLocalCellsCache();
    phiprof::stop("Init grid");
@@ -396,70 +396,73 @@ int main(int argn,char* args[]) {
    
    // Initialize simplified Fieldsolver grids.
    phiprof::start("Init fieldsolver grids");
-   const std::array<int,3> dimensions = {convert<int>(P::xcells_ini), convert<int>(P::ycells_ini), convert<int>(P::zcells_ini)};
+   const std::array<int,3> fsGridDimensions = {convert<int>(P::xcells_ini) * pow(2,P::amrMaxSpatialRefLevel),
+                                               convert<int>(P::ycells_ini) * pow(2,P::amrMaxSpatialRefLevel),
+                                               convert<int>(P::zcells_ini) * pow(2,P::amrMaxSpatialRefLevel)};
+   const int fsGridSize = fsGridDimensions[0] * fsGridDimensions[1] * fsGridDimensions[2];
    std::array<bool,3> periodicity{mpiGrid.topology.is_periodic(0),
                                  mpiGrid.topology.is_periodic(1),
                                  mpiGrid.topology.is_periodic(2)};
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> perBGrid(dimensions, comm, periodicity);
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> perBDt2Grid(dimensions, comm, periodicity);
-   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> EGrid(dimensions, comm, periodicity);
-   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> EDt2Grid(dimensions, comm, periodicity);
-   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2> EHallGrid(dimensions, comm, periodicity);
-   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2> EGradPeGrid(dimensions, comm, periodicity);
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> momentsGrid(dimensions, comm, periodicity);
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> momentsDt2Grid(dimensions, comm, periodicity);
-   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> dPerBGrid(dimensions, comm, periodicity);
-   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> dMomentsGrid(dimensions, comm, periodicity);
-   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2> BgBGrid(dimensions, comm, periodicity);
-   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> volGrid(dimensions, comm, periodicity);
-   FsGrid< fsgrids::technical, 2> technicalGrid(dimensions, comm, periodicity);
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> perBGrid(fsGridDimensions, comm, periodicity);
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> perBDt2Grid(fsGridDimensions, comm, periodicity);
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> EGrid(fsGridDimensions, comm, periodicity);
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> EDt2Grid(fsGridDimensions, comm, periodicity);
+   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2> EHallGrid(fsGridDimensions, comm, periodicity);
+   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2> EGradPeGrid(fsGridDimensions, comm, periodicity);
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> momentsGrid(fsGridDimensions, comm, periodicity);
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> momentsDt2Grid(fsGridDimensions, comm, periodicity);
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> dPerBGrid(fsGridDimensions, comm, periodicity);
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> dMomentsGrid(fsGridDimensions, comm, periodicity);
+   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2> BgBGrid(fsGridDimensions, comm, periodicity);
+   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> volGrid(fsGridDimensions, comm, periodicity);
+   FsGrid< fsgrids::technical, 2> technicalGrid(fsGridDimensions, comm, periodicity);
    // Set DX,DY and DZ
    // TODO: This is currently just taking the values from cell 1, and assuming them to be
    // constant throughout the simulation.
    perBGrid.DX = perBDt2Grid.DX = EGrid.DX = EDt2Grid.DX = EHallGrid.DX = EGradPeGrid.DX = momentsGrid.DX
       = momentsDt2Grid.DX = dPerBGrid.DX = dMomentsGrid.DX = BgBGrid.DX = volGrid.DX = technicalGrid.DX
-      = P::dx_ini;
+      = P::dx_ini * pow(2,-P::amrMaxSpatialRefLevel);
    perBGrid.DY = perBDt2Grid.DY = EGrid.DY = EDt2Grid.DY = EHallGrid.DY = EGradPeGrid.DY = momentsGrid.DY
       = momentsDt2Grid.DY = dPerBGrid.DY = dMomentsGrid.DY = BgBGrid.DY = volGrid.DY = technicalGrid.DY
-      = P::dy_ini;
+      = P::dy_ini * pow(2,-P::amrMaxSpatialRefLevel);
    perBGrid.DZ = perBDt2Grid.DZ = EGrid.DZ = EDt2Grid.DZ = EHallGrid.DZ = EGradPeGrid.DZ = momentsGrid.DZ
       = momentsDt2Grid.DZ = dPerBGrid.DZ = dMomentsGrid.DZ = BgBGrid.DZ = volGrid.DZ = technicalGrid.DZ
-      = P::dz_ini;
+      = P::dz_ini * pow(2,-P::amrMaxSpatialRefLevel);
    phiprof::stop("Init fieldsolver grids");
    phiprof::start("Initial fsgrid coupling");
    const std::vector<CellID>& cells = getLocalCells();
 
    // Couple FSGrids to mpiGrid
    // TODO: Do we really need to couple *all* of these fields?
-   perBGrid.setupForGridCoupling(cells.size());
-   perBDt2Grid.setupForGridCoupling(cells.size());
-   EGrid.setupForGridCoupling(cells.size());
-   EDt2Grid.setupForGridCoupling(cells.size());
-   EHallGrid.setupForGridCoupling(cells.size());
-   EGradPeGrid.setupForGridCoupling(cells.size());
-   momentsGrid.setupForGridCoupling(cells.size());
-   momentsDt2Grid.setupForGridCoupling(cells.size());
-   dPerBGrid.setupForGridCoupling(cells.size());
-   dMomentsGrid.setupForGridCoupling(cells.size());
-   BgBGrid.setupForGridCoupling(cells.size());
-   volGrid.setupForGridCoupling(cells.size());
-   technicalGrid.setupForGridCoupling(cells.size());
+   perBGrid.setupForGridCoupling(fsGridSize);
+   perBDt2Grid.setupForGridCoupling(fsGridSize);
+   EGrid.setupForGridCoupling(fsGridSize);
+   EDt2Grid.setupForGridCoupling(fsGridSize);
+   EHallGrid.setupForGridCoupling(fsGridSize);
+   EGradPeGrid.setupForGridCoupling(fsGridSize);
+   momentsGrid.setupForGridCoupling(fsGridSize);
+   momentsDt2Grid.setupForGridCoupling(fsGridSize);
+   dPerBGrid.setupForGridCoupling(fsGridSize);
+   dMomentsGrid.setupForGridCoupling(fsGridSize);
+   BgBGrid.setupForGridCoupling(fsGridSize);
+   volGrid.setupForGridCoupling(fsGridSize);
+   technicalGrid.setupForGridCoupling(fsGridSize);
 
    // FSGrid cellIds are 0-based, whereas DCCRG cellIds are 1-based, beware
-   for(auto& i : cells) {
-      perBGrid.setGridCoupling(i-1, myRank);
-      perBDt2Grid.setGridCoupling(i-1, myRank);
-      EGrid.setGridCoupling(i-1, myRank);
-      EDt2Grid.setGridCoupling(i-1, myRank);
-      EHallGrid.setGridCoupling(i-1, myRank);
-      EGradPeGrid.setGridCoupling(i-1, myRank);
-      momentsGrid.setGridCoupling(i-1, myRank);
-      momentsDt2Grid.setGridCoupling(i-1, myRank);
-      dPerBGrid.setGridCoupling(i-1, myRank);
-      dMomentsGrid.setGridCoupling(i-1, myRank);
-      BgBGrid.setGridCoupling(i-1, myRank);
-      volGrid.setGridCoupling(i-1, myRank);
-      technicalGrid.setGridCoupling(i-1, myRank);
+   for(auto& cellId : cells) {
+      perBGrid.setGridCoupling(cellId-1, myRank);
+      perBDt2Grid.setGridCoupling(cellId-1, myRank);
+      EGrid.setGridCoupling(cellId-1, myRank);
+      EDt2Grid.setGridCoupling(cellId-1, myRank);
+      EHallGrid.setGridCoupling(cellId-1, myRank);
+      EGradPeGrid.setGridCoupling(cellId-1, myRank);
+      momentsGrid.setGridCoupling(cellId-1, myRank);
+      momentsDt2Grid.setGridCoupling(cellId-1, myRank);
+      dPerBGrid.setGridCoupling(cellId-1, myRank);
+      dMomentsGrid.setGridCoupling(cellId-1, myRank);
+      BgBGrid.setGridCoupling(cellId-1, myRank);
+      volGrid.setGridCoupling(cellId-1, myRank);
+      technicalGrid.setGridCoupling(cellId-1, myRank);
    }
    perBGrid.finishGridCoupling();
    perBDt2Grid.finishGridCoupling();
