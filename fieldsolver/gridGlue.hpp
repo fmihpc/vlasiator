@@ -101,6 +101,40 @@ template< unsigned int numFields > void feedFieldDataIntoFsGrid(
    targetGrid.finishTransfersIn();
 }
 
+/*! Transfer field data from DCCRG cellparams into the appropriate FsGrid structure
+ * \param mpiGrid The DCCRG grid carrying fieldparam data
+ * \param cells List of local cells
+ * \param index Index into the cellparams array from which to copy
+ * \param targetGrid Fieldsolver grid for these quantities
+ *
+ * The cellparams with indices from index to index+numFields are copied over, and
+ * have to be continuous in memory.
+ *
+ * This function assumes that proper grid coupling has been set up.
+ */
+
+template< unsigned int numFields > void feedFieldDataIntoFsGridAmr(
+      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      const std::vector<CellID>& cells, int cellParamsIndex, 
+      FsGrid< std::array<Real, numFields>, 2>& targetGrid) {
+
+   targetGrid.setupForTransferIn(cells.size() * pow(2,mpiGrid.mapping.get_maximum_refinement_level()));
+
+   for(CellID dccrgId : cells) {
+      const auto fsgridIds = mapDccrgIdToFsGrid(mpiGrid, targetGrid.getLocalSize(), dccrgId);
+      // TODO: This assumes that the field data are lying continuous in memory.
+      // Check definition of CellParams in common.h if unsure.
+      std::array<Real, numFields>* cellDataPointer = reinterpret_cast<std::array<Real, numFields>*>(
+                                                     &(mpiGrid[dccrgId]->get_cell_parameters()[cellParamsIndex]));
+      for (auto fsgridId : fsgridIds) {
+         targetGrid.transferDataIn(fsgridId, cellDataPointer);
+      }
+   }
+
+   targetGrid.finishTransfersIn();
+}
+
+
 /*! Transfer field data from an FsGrid back into the appropriate CellParams slot in DCCRG 
  * \param sourceGrid Fieldsolver grid for these quantities
  * \param mpiGrid The DCCRG grid carrying fieldparam data
@@ -129,4 +163,11 @@ template< unsigned int numFields > void getFieldDataFromFsGrid(
 
    sourceGrid.finishTransfersOut();
 }
+
+std::vector<CellID> mapDccrgIdToFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                       std::array<int32_t,3> fsgridDims, CellID dccrgID);
+
+CellID mapFsGridIdToDccrg(FsGrid< fsgrids::technical, 2>& technicalGrid,
+                           dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                          CellID fsgridID);
 

@@ -401,8 +401,8 @@ int main(int argn,char* args[]) {
                                                convert<int>(P::zcells_ini) * pow(2,P::amrMaxSpatialRefLevel)};
    const int fsGridSize = fsGridDimensions[0] * fsGridDimensions[1] * fsGridDimensions[2];
    std::array<bool,3> periodicity{mpiGrid.topology.is_periodic(0),
-                                 mpiGrid.topology.is_periodic(1),
-                                 mpiGrid.topology.is_periodic(2)};
+                                  mpiGrid.topology.is_periodic(1),
+                                  mpiGrid.topology.is_periodic(2)};
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> perBGrid(fsGridDimensions, comm, periodicity);
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> perBDt2Grid(fsGridDimensions, comm, periodicity);
    FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> EGrid(fsGridDimensions, comm, periodicity);
@@ -434,49 +434,49 @@ int main(int argn,char* args[]) {
 
    // Couple FSGrids to mpiGrid
    // TODO: Do we really need to couple *all* of these fields?
-   perBGrid.setupForGridCoupling(fsGridSize);
-   perBDt2Grid.setupForGridCoupling(fsGridSize);
-   EGrid.setupForGridCoupling(fsGridSize);
-   EDt2Grid.setupForGridCoupling(fsGridSize);
-   EHallGrid.setupForGridCoupling(fsGridSize);
-   EGradPeGrid.setupForGridCoupling(fsGridSize);
-   momentsGrid.setupForGridCoupling(fsGridSize);
+   perBGrid.      setupForGridCoupling(fsGridSize);
+   perBDt2Grid.   setupForGridCoupling(fsGridSize);
+   EGrid.         setupForGridCoupling(fsGridSize);
+   EDt2Grid.      setupForGridCoupling(fsGridSize);
+   EHallGrid.     setupForGridCoupling(fsGridSize);
+   EGradPeGrid.   setupForGridCoupling(fsGridSize);
+   momentsGrid.   setupForGridCoupling(fsGridSize);
    momentsDt2Grid.setupForGridCoupling(fsGridSize);
-   dPerBGrid.setupForGridCoupling(fsGridSize);
-   dMomentsGrid.setupForGridCoupling(fsGridSize);
-   BgBGrid.setupForGridCoupling(fsGridSize);
-   volGrid.setupForGridCoupling(fsGridSize);
-   technicalGrid.setupForGridCoupling(fsGridSize);
+   dPerBGrid.     setupForGridCoupling(fsGridSize);
+   dMomentsGrid.  setupForGridCoupling(fsGridSize);
+   BgBGrid.       setupForGridCoupling(fsGridSize);
+   volGrid.       setupForGridCoupling(fsGridSize);
+   technicalGrid. setupForGridCoupling(fsGridSize);
 
    // FSGrid cellIds are 0-based, whereas DCCRG cellIds are 1-based, beware
-   for(auto& cellId : cells) {
-      perBGrid.setGridCoupling(cellId-1, myRank);
-      perBDt2Grid.setGridCoupling(cellId-1, myRank);
-      EGrid.setGridCoupling(cellId-1, myRank);
-      EDt2Grid.setGridCoupling(cellId-1, myRank);
-      EHallGrid.setGridCoupling(cellId-1, myRank);
-      EGradPeGrid.setGridCoupling(cellId-1, myRank);
-      momentsGrid.setGridCoupling(cellId-1, myRank);
-      momentsDt2Grid.setGridCoupling(cellId-1, myRank);
-      dPerBGrid.setGridCoupling(cellId-1, myRank);
-      dMomentsGrid.setGridCoupling(cellId-1, myRank);
-      BgBGrid.setGridCoupling(cellId-1, myRank);
-      volGrid.setGridCoupling(cellId-1, myRank);
-      technicalGrid.setGridCoupling(cellId-1, myRank);
+   for(int cellId = 0;cellId < fsGridSize; ++cellId) {
+      perBGrid.      setGridCoupling(cellId, myRank);
+      perBDt2Grid.   setGridCoupling(cellId, myRank);
+      EGrid.         setGridCoupling(cellId, myRank);
+      EDt2Grid.      setGridCoupling(cellId, myRank);
+      EHallGrid.     setGridCoupling(cellId, myRank);
+      EGradPeGrid.   setGridCoupling(cellId, myRank);
+      momentsGrid.   setGridCoupling(cellId, myRank);
+      momentsDt2Grid.setGridCoupling(cellId, myRank);
+      dPerBGrid.     setGridCoupling(cellId, myRank);
+      dMomentsGrid.  setGridCoupling(cellId, myRank);
+      BgBGrid.       setGridCoupling(cellId, myRank);
+      volGrid.       setGridCoupling(cellId, myRank);
+      technicalGrid. setGridCoupling(cellId, myRank);
    }
-   perBGrid.finishGridCoupling();
-   perBDt2Grid.finishGridCoupling();
-   EGrid.finishGridCoupling();
-   EDt2Grid.finishGridCoupling();
-   EHallGrid.finishGridCoupling();
-   EGradPeGrid.finishGridCoupling();
-   momentsGrid.finishGridCoupling();
+   perBGrid.      finishGridCoupling();
+   perBDt2Grid.   finishGridCoupling();
+   EGrid.         finishGridCoupling();
+   EDt2Grid.      finishGridCoupling();
+   EHallGrid.     finishGridCoupling();
+   EGradPeGrid.   finishGridCoupling();
+   momentsGrid.   finishGridCoupling();
    momentsDt2Grid.finishGridCoupling();
-   dPerBGrid.finishGridCoupling();
-   dMomentsGrid.finishGridCoupling();
-   BgBGrid.finishGridCoupling();
-   volGrid.finishGridCoupling();
-   technicalGrid.finishGridCoupling();
+   dPerBGrid.     finishGridCoupling();
+   dMomentsGrid.  finishGridCoupling();
+   BgBGrid.       finishGridCoupling();
+   volGrid.       finishGridCoupling();
+   technicalGrid. finishGridCoupling();
    phiprof::stop("Initial fsgrid coupling");
 
    // Transfer initial field configuration into the FsGrids
