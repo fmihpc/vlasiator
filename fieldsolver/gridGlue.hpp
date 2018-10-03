@@ -72,6 +72,9 @@ void feedBgFieldsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
     const std::vector<CellID>& cells,
     FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid);
 
+int getNumberOfCellsOnMaxRefLvl(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                const std::vector<CellID>& cells);
+
 /*! Transfer field data from DCCRG cellparams into the appropriate FsGrid structure
  * \param mpiGrid The DCCRG grid carrying fieldparam data
  * \param cells List of local cells
@@ -118,7 +121,8 @@ template< unsigned int numFields > void feedFieldDataIntoFsGridAmr(
       const std::vector<CellID>& cells, int cellParamsIndex, 
       FsGrid< std::array<Real, numFields>, 2>& targetGrid) {
 
-   targetGrid.setupForTransferIn(cells.size() * pow(2,mpiGrid.mapping.get_maximum_refinement_level()));
+   int nCells = getNumberOfCellsOnMaxRefLvl(mpiGrid, cells);
+   targetGrid.setupForTransferIn(nCells);
 
    for(CellID dccrgId : cells) {
       const auto fsgridIds = mapDccrgIdToFsGrid(mpiGrid, targetGrid.getLocalSize(), dccrgId);
@@ -170,4 +174,3 @@ std::vector<CellID> mapDccrgIdToFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian
 CellID mapFsGridIdToDccrg(FsGrid< fsgrids::technical, 2>& technicalGrid,
                            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                           CellID fsgridID);
-

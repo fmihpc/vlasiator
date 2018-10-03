@@ -6,12 +6,29 @@
 #include "../common.h"
 #include "gridGlue.hpp"
 
+/*
+Calculate the number of cells on the maximum refinement level overlapping the list of dccrg cells in cells.
+*/
+int getNumberOfCellsOnMaxRefLvl(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, const std::vector<CellID>& cells) {
+
+   int nCells = 0;
+   auto maxRefLvl = mpiGrid.mapping.get_maximum_refinement_level();
+   
+   for (auto cellid : cells) {
+      auto refLvl = mpiGrid.get_refinement_level(cellid);
+      nCells += pow(pow(2,maxRefLvl-refLvl),3);
+   }
+
+   return nCells;
+   
+}
+
 void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                            const std::vector<CellID>& cells,
                            FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid, bool dt2 /*=false*/) {
 
-   int fsgridSize = cells.size() * pow(pow(2,mpiGrid.mapping.get_maximum_refinement_level()),3);
-   momentsGrid.setupForTransferIn(fsgridSize);
+   int nCells = getNumberOfCellsOnMaxRefLvl(mpiGrid, cells);
+   momentsGrid.setupForTransferIn(nCells);
 
    // Fill from cellParams
    // #pragma omp parallel for
@@ -53,11 +70,11 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 void feedBgFieldsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
     const std::vector<CellID>& cells, FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& bgBGrid) {
 
-   int fsgridSize = cells.size() * pow(pow(2,mpiGrid.mapping.get_maximum_refinement_level()),3);
-   bgBGrid.setupForTransferIn(fsgridSize);
+   int nCells = getNumberOfCellsOnMaxRefLvl(mpiGrid, cells);
+   bgBGrid.setupForTransferIn(nCells);
 
    // Setup transfer buffers
-   std::vector< std::array<Real, fsgrids::bgbfield::N_BGB> > transferBuffer(fsgridSize);
+   std::vector< std::array<Real, fsgrids::bgbfield::N_BGB> > transferBuffer(nCells);
 
    // Fill from cellParams
    // TODO: Making this thread-safe requires some tricks. Don't think threading is crucial here.
@@ -109,12 +126,12 @@ void getVolumeFieldsFromFsGrid(FsGrid< std::array<Real, fsgrids::volfields::N_VO
 
 
    // Setup transfer buffers
-   int fsgridSize = cells.size() * pow(pow(2,mpiGrid.mapping.get_maximum_refinement_level()),3);
-   std::vector< std::array<Real, fsgrids::volfields::N_VOL> > transferBuffer(fsgridSize);
+   int nCells = getNumberOfCellsOnMaxRefLvl(mpiGrid, cells);
+   std::vector< std::array<Real, fsgrids::volfields::N_VOL> > transferBuffer(nCells);
    std::vector< std::array<Real, fsgrids::volfields::N_VOL>*> transferBufferPointer;
 
    // Setup transfer pointers
-   volumeFieldsGrid.setupForTransferOut(fsgridSize);
+   volumeFieldsGrid.setupForTransferOut(nCells);
    int k = 0;
    for(auto dccrgId : cells) {
       const auto fsgridIds = mapDccrgIdToFsGrid(mpiGrid, volumeFieldsGrid.getLocalSize(), dccrgId);
@@ -191,18 +208,18 @@ void getDerivativesFromFsGrid(FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>,
                           const std::vector<CellID>& cells) {
 
    // Setup transfer buffers
-   int fsgridSize = cells.size() * pow(pow(2,mpiGrid.mapping.get_maximum_refinement_level()),3);
-   std::vector< std::array<Real, fsgrids::dperb::N_DPERB> > dperbTransferBuffer(fsgridSize);
-   std::vector< std::array<Real, fsgrids::dmoments::N_DMOMENTS> > dmomentsTransferBuffer(fsgridSize);
-   std::vector< std::array<Real, fsgrids::bgbfield::N_BGB> > bgbfieldTransferBuffer(fsgridSize);
+   int nCellsOnMaxRefLvl = getNumberOfCellsOnMaxRefLvl(mpiGrid, cells);
+   std::vector< std::array<Real, fsgrids::dperb::N_DPERB> > dperbTransferBuffer(nCellsOnMaxRefLvl);
+   std::vector< std::array<Real, fsgrids::dmoments::N_DMOMENTS> > dmomentsTransferBuffer(nCellsOnMaxRefLvl);
+   std::vector< std::array<Real, fsgrids::bgbfield::N_BGB> > bgbfieldTransferBuffer(nCellsOnMaxRefLvl);
    
    std::vector< std::array<Real, fsgrids::dperb::N_DPERB>*> dperbTransferBufferPointer;
    std::vector< std::array<Real, fsgrids::dmoments::N_DMOMENTS>*> dmomentsTransferBufferPointer;
    std::vector< std::array<Real, fsgrids::bgbfield::N_BGB>*> bgbfieldTransferBufferPointer;
    
-   dperbGrid.setupForTransferOut(fsgridSize);
-   dmomentsGrid.setupForTransferOut(fsgridSize);
-   bgbfieldGrid.setupForTransferOut(fsgridSize);
+   dperbGrid.setupForTransferOut(nCellsOnMaxRefLvl);
+   dmomentsGrid.setupForTransferOut(nCellsOnMaxRefLvl);
+   bgbfieldGrid.setupForTransferOut(nCellsOnMaxRefLvl);
    
    int k = 0;
    for (auto dccrgId : cells) {
@@ -323,9 +340,9 @@ void getDerivativesFromFsGrid(FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>,
 void setupTechnicalFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const std::vector<CellID>& cells, FsGrid< fsgrids::technical, 2>& technicalGrid) {
 
-   int fsgridSize = cells.size() * pow(pow(2,mpiGrid.mapping.get_maximum_refinement_level()),3);
+   int nCells = getNumberOfCellsOnMaxRefLvl(mpiGrid, cells);
    
-   technicalGrid.setupForTransferIn(fsgridSize);
+   technicalGrid.setupForTransferIn(nCells);
 
    //#pragma omp parallel for
    for(auto dccrgId : cells) {
