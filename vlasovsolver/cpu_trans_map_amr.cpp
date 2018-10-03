@@ -614,6 +614,60 @@ void copy_trans_block_data_amr(
    }
 }
 
+/* 
+Check whether the ghost cells around the pencil contain higher refinement than the pencil does.
+If they do, the pencil must be split to match the finest refined ghost cell. This function checks
+One neighbor pair, but takes as an argument the offset from the pencil. Call multiple times for
+Multiple ghost cells.
+ */
+void check_ghost_cells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                       vector<setOfPencils>& pencilSets,
+                       uint dimension,
+                       uint offset) {
+
+   uint neighborhoodId;
+   switch (dimension) {
+   case 0:
+      neighborhoodId = VLASOV_SOLVER_X_NEIGHBORHOOD_ID;
+      break;
+   case 1:
+      neighborhoodId = VLASOV_SOLVER_Y_NEIGHBORHOOD_ID;
+      break;
+   case 2:
+      neighborhoodId = VLASOV_SOLVER_Z_NEIGHBORHOOD_ID;
+      break;
+   }
+   
+   for (setOfPencils pencils : pencilSets) {
+      for (uint pencili = 0; pencili < pencils.N; ++pencili) {
+         auto ids = pencils.getIds(pencili);
+         CellID maxId = *std::max_element(ids.begin(),ids.end());
+         int maxRefLvl = mpiGrid.mapping.get_refinement_level(maxId);
+         
+         const auto* frontNeighbors = mpiGrid.get_neighbors_of(ids.front(),neighborhoodId);
+         int refLvl = 0;
+         for (pair<CellID, array<int,4>> nbrPair: *frontNeighbors) {
+            if(nbrPair.second[dimension] == -offset) {
+               refLvl = max(refLvl,mpiGrid.mapping.get_refinement_level(nbrPair.first));
+            }
+         }
+         
+         const auto* backNeighbors = mpiGrid.get_neighbors_of(ids.back(),neighborhoodId);
+         for (pair<CellID, array<int,4>> nbrPair: *backNeighbors) {
+            if(nbrPair.second[dimension] == offset) {
+               refLvl = max(refLvl,mpiGrid.mapping.get_refinement_level(nbrPair.first));
+            }
+         }
+         
+         if (refLvl > maxRefLvl) {
+            // TODO: Double-check that this gives you the right dimensions!
+            Realv dx = mpiGrid[ids[0]]->SpatialCell::parameters[CellParams::DX];
+            Realv dy = mpiGrid[ids[0]]->SpatialCell::parameters[CellParams::DY];
+            pencils.split(pencili,dx,dy);
+         }
+      }
+   }
+}
 
 bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                       const vector<CellID>& localPropagatedCells,
@@ -714,7 +768,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    for (const auto seedId : seedIds) {
       // Construct pencils from the seedIds into a set of pencils.
       pencils = buildPencilsWithNeighbors(mpiGrid, pencils, seedId, ids, dimension, path);
-   }
+   }   
 
    // Print out ids of pencils (if needed for debugging)
    if (true) {
@@ -733,22 +787,42 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
          std::cout << std::endl;
       }
 
-      // CellID id = 56;
-      // const vector<CellID>* neighbors = mpiGrid.get_neighbors_of(id, VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
-      // if (neighbors != NULL) {
-      //    std::cout << "Neighbors of cell " << id << std::endl;
-      //    for (auto neighbor : *neighbors) {
-      //       std::cout << neighbor << std::endl;
-      //    }
-      // }
+      CellID idX = 55;
+      const auto* neighborsX = mpiGrid.get_neighbors_of(idX, VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
+      if (neighborsX != NULL) {
+         std::cout << "Neighbors of cell " << idX << " in x dimension" << std::endl;
+         for (auto neighbor : *neighborsX) {
+            std::cout << neighbor.first << ", ";
+            for (int n = 0; n < 4; ++n) {
+               std::cout << neighbor.second[n] << " ";
+            }
+            std::cout << std::endl;
+         }
+      }
+
+      CellID idY = 46;
+      const auto* neighborsY = mpiGrid.get_neighbors_of(idY, VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);
+      if (neighborsY != NULL) {
+         std::cout << "Neighbors of cell " << idY << " in y dimension" << std::endl;
+         for (auto neighbor : *neighborsY) {
+            std::cout << neighbor.first << ", ";
+            for (int n = 0; n < 4; ++n) {
+               std::cout << neighbor.second[n] << " ";
+            }
+            std::cout << std::endl;
+         }
+      }
 
    }   
    
    // Add the final set of pencils to the pencilSets - vector.
    // Only one set is created for now but we retain support for multiple sets
    pencilSets.push_back(pencils);
-   // ****************************************************************************
-     
+
+   // Check refinement of two ghost cells on each end of each pencil
+
+   // ****************************************************************************   
+   
    const uint8_t VMESH_REFLEVEL = 0;
    
    // Get a pointer to the velocity mesh of the first spatial cell

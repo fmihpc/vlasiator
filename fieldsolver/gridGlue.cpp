@@ -308,21 +308,21 @@ CellID mapFsGridIdToDccrg(FsGrid< fsgrids::technical, 2>& technicalGrid,
    return dccrgID;
    
 }
-/*
-Map from dccrg cell ids to fsgrid cell ids when they aren't identical (ie. when dccrg has refinement).
-*/
+// /*
+// Map from dccrg cell ids to fsgrid cell ids when they aren't identical (ie. when dccrg has refinement).
+// */
 
-CellID mapDccrgIdToFsGrid(FsGrid< fsgrids::technical, 2>& technicalGrid,
-                          dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                          CellID dccrgID) {
-   auto indices = mpiGrid.mapping.get_indices(dccrgID);
-   // The indices we get from dccrg are directly coordinates at the finest refinement level.
-   // Therefore, they should match fsgrid coordinates exactly.
-   std::array<int,3> cellCoord;
-   for (uint i = 0;i < 3; ++i) {
-      cellCoord[i] = indices[i];
-   }
-   CellID fsgridID = technicalGrid.cellCoordtoGlobalID(cellCoord);
-   return fsgridID;
-}
+// CellID mapDccrgIdToFsGrid(FsGrid< fsgrids::technical, 2>& technicalGrid,
+//                           dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+//                           CellID dccrgID) {
+//    auto indices = mpiGrid.mapping.get_indices(dccrgID);
+//    // The indices we get from dccrg are directly coordinates at the finest refinement level.
+//    // Therefore, they should match fsgrid coordinates exactly.
+//    std::array<int,3> cellCoord;
+//    for (uint i = 0;i < 3; ++i) {
+//       cellCoord[i] = indices[i];
+//    }
+//    CellID fsgridID = technicalGrid.cellCoordtoGlobalID(cellCoord);
+//    return fsgridID;
+// }
 

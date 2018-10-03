@@ -74,6 +74,21 @@ struct setOfPencils {
       return idsOut;
    }
 
+   // Split one pencil into four pencils covering the same space.
+   // dx and dy are the dimensions of the original pencil.
+   void split(const uint pencilId, const Realv dx, const Realv dy) {
+
+      x[pencilId] += 0.25 * dx;
+      y[pencilId] += 0.25 * dy;
+      
+      auto ids = getIds(pencilId);      
+
+      addPencil(ids, x[pencilId] + 0.25 * dx, y[pencilId]            , periodic[pencilId]);
+      addPencil(ids, x[pencilId]            , y[pencilId] + 0.25 * dy, periodic[pencilId]);
+      addPencil(ids, x[pencilId] + 0.25 * dx, y[pencilId] + 0.25 * dy, periodic[pencilId]);
+      
+   }
+
 };
 
 void compute_spatial_source_cells_for_pencil(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
