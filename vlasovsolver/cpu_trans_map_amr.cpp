@@ -202,7 +202,7 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
 
    id = startingId;
 
-   bool periodic;
+   bool periodic = false;
    
    while (id > 0) {
 
@@ -623,7 +623,7 @@ Multiple ghost cells.
 void check_ghost_cells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                        vector<setOfPencils>& pencilSets,
                        uint dimension,
-                       uint offset) {
+                       int offset) {
 
    uint neighborhoodId;
    switch (dimension) {
@@ -636,35 +636,71 @@ void check_ghost_cells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
    case 2:
       neighborhoodId = VLASOV_SOLVER_Z_NEIGHBORHOOD_ID;
       break;
+   default:
+      neighborhoodId = 0;
+      break;
    }
    
+   std::vector<CellID> idsToSplit;
+   
    for (setOfPencils pencils : pencilSets) {
+      cout << "pencils.N = " << pencils.N << endl;
       for (uint pencili = 0; pencili < pencils.N; ++pencili) {
+
+         if(pencils.periodic[pencili]) continue;
+         
          auto ids = pencils.getIds(pencili);
          CellID maxId = *std::max_element(ids.begin(),ids.end());
          int maxRefLvl = mpiGrid.mapping.get_refinement_level(maxId);
          
          const auto* frontNeighbors = mpiGrid.get_neighbors_of(ids.front(),neighborhoodId);
+         const auto* backNeighbors  = mpiGrid.get_neighbors_of(ids.back() ,neighborhoodId);
          int refLvl = 0;
+
          for (pair<CellID, array<int,4>> nbrPair: *frontNeighbors) {
             if(nbrPair.second[dimension] == -offset) {
                refLvl = max(refLvl,mpiGrid.mapping.get_refinement_level(nbrPair.first));
             }
          }
          
-         const auto* backNeighbors = mpiGrid.get_neighbors_of(ids.back(),neighborhoodId);
          for (pair<CellID, array<int,4>> nbrPair: *backNeighbors) {
             if(nbrPair.second[dimension] == offset) {
                refLvl = max(refLvl,mpiGrid.mapping.get_refinement_level(nbrPair.first));
             }
          }
-         
+
          if (refLvl > maxRefLvl) {
-            // TODO: Double-check that this gives you the right dimensions!
-            Realv dx = mpiGrid[ids[0]]->SpatialCell::parameters[CellParams::DX];
-            Realv dy = mpiGrid[ids[0]]->SpatialCell::parameters[CellParams::DY];
-            pencils.split(pencili,dx,dy);
+            //std::cout << "Found refinement level " << refLvl << " in one of the ghost cells. Splitting pencil " << pencili << endl;
+            // Let's avoid modifying pencils while we are looping over it. Write down the indices of pencils
+            // that need to be split and split them later.
+            idsToSplit.push_back(pencili);
          }
+      }
+
+      for (auto pencili: idsToSplit) {
+
+
+         Realv dx = 0.0;
+         Realv dy = 0.0;
+         // TODO: Double-check that this gives you the right dimensions!
+         auto ids = pencils.getIds(pencili);
+         switch(dimension) {
+         case 0:
+            dx = mpiGrid[ids[0]]->SpatialCell::parameters[CellParams::DY];
+            dy = mpiGrid[ids[0]]->SpatialCell::parameters[CellParams::DZ];
+            break;
+         case 1:
+            dx = mpiGrid[ids[0]]->SpatialCell::parameters[CellParams::DX];
+            dy = mpiGrid[ids[0]]->SpatialCell::parameters[CellParams::DZ];
+            break;
+         case 2:
+            dx = mpiGrid[ids[0]]->SpatialCell::parameters[CellParams::DX];
+            dy = mpiGrid[ids[0]]->SpatialCell::parameters[CellParams::DY];
+            break;
+         }
+
+         pencils.split(pencili,dx,dy);
+         
       }
    }
 }
@@ -820,7 +856,9 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    pencilSets.push_back(pencils);
 
    // Check refinement of two ghost cells on each end of each pencil
-
+   for (int offset = 1; offset <= VLASOV_STENCIL_WIDTH; ++offset) {
+      check_ghost_cells(mpiGrid,pencilSets,dimension,offset);
+   }
    // ****************************************************************************   
    
    const uint8_t VMESH_REFLEVEL = 0;
