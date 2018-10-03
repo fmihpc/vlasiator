@@ -67,7 +67,7 @@ struct setOfPencils {
       }
       CellID iend = ibeg + lengthOfPencils[pencilId];
     
-      for (uint i = ibeg; i <= iend; i++) {
+      for (uint i = ibeg; i < iend; i++) {
          idsOut.push_back(ids[i]);
       }
 
