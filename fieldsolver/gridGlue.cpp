@@ -80,8 +80,6 @@ void feedBgFieldsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
 
    // Setup transfer buffers
    std::vector< std::array<Real, fsgrids::bgbfield::N_BGB> > transferBuffer(cells.size());
-
-   std::cout << "I am at line " << __LINE__ << " of " << __FILE__ << std::endl;
    
    // Fill from cellParams
    // We only need to read data once per dccrg cell here
@@ -116,8 +114,6 @@ void feedBgFieldsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       thisCellData->at(fsgrids::bgbfield::dBGBYVOLdz) = volumeDerivatives[bvolderivatives::dBGBYVOLdz];
       thisCellData->at(fsgrids::bgbfield::dBGBZVOLdx) = volumeDerivatives[bvolderivatives::dBGBZVOLdx];
       thisCellData->at(fsgrids::bgbfield::dBGBZVOLdy) = volumeDerivatives[bvolderivatives::dBGBZVOLdy];
-
-      std::cout << "I am at line " << __LINE__ << " of " << __FILE__ << std::endl;
    }
 
    // Copy data into each fsgrid cell overlapping the dccrg cell
@@ -354,25 +350,31 @@ void getDerivativesFromFsGrid(FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>,
 void setupTechnicalFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const std::vector<CellID>& cells, FsGrid< fsgrids::technical, 2>& technicalGrid) {
 
-   int nCells = getNumberOfCellsOnMaxRefLvl(mpiGrid, cells);
-   
+   int nCells = getNumberOfCellsOnMaxRefLvl(mpiGrid, cells);   
    technicalGrid.setupForTransferIn(nCells);
 
-   //#pragma omp parallel for
-   for(auto dccrgId : cells) {
+   // Setup transfer buffers
+   std::vector< fsgrids::technical > transferBuffer(cells.size());
+   
+#pragma omp parallel for
+   for(uint i = 0; i < cells.size(); ++i) {
 
-      fsgrids::technical* thisCellData;
-      const auto fsgridIds = mapDccrgIdToFsGrid(mpiGrid, technicalGrid.getLocalSize(), dccrgId);
+      fsgrids::technical* thisCellData = &transferBuffer[i];
+      // Data needs to be collected from some different places for this grid.
+      thisCellData->sysBoundaryFlag = mpiGrid[cells[i]]->sysBoundaryFlag;
+      thisCellData->sysBoundaryLayer = mpiGrid[cells[i]]->sysBoundaryLayer;
+      thisCellData->maxFsDt = std::numeric_limits<Real>::max();        
+   }
 
+   for(uint i = 0; i < cells.size(); ++i) {
+      
+      const auto fsgridIds = mapDccrgIdToFsGrid(mpiGrid, technicalGrid.getLocalSize(), cells[i]);
+      
       for (auto fsgridId : fsgridIds) {
-         // Data needs to be collected from some different places for this grid.
-         thisCellData->sysBoundaryFlag = mpiGrid[dccrgId]->sysBoundaryFlag;
-         thisCellData->sysBoundaryLayer = mpiGrid[dccrgId]->sysBoundaryLayer;
-         thisCellData->maxFsDt = std::numeric_limits<Real>::max();
-         
-         technicalGrid.transferDataIn(fsgridId,thisCellData);
+         technicalGrid.transferDataIn(fsgridId,&transferBuffer[i]);
       }
    }
+
 
    technicalGrid.finishTransfersIn();
 }
