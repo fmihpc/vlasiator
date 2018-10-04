@@ -90,7 +90,7 @@ void feedBgFieldsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       auto derivatives = mpiGrid[dccrgId]->derivatives;
       auto volumeDerivatives = mpiGrid[dccrgId]->derivativesBVOL;
 
-      std::cout << "I am at line " << __LINE__ << " of " << __FILE__ << std::endl;
+      //      std::cout << "I am at line " << __LINE__ << " of " << __FILE__ << std::endl;
                
       std::array<Real, fsgrids::bgbfield::N_BGB>* thisCellData = &transferBuffer[i];
       
