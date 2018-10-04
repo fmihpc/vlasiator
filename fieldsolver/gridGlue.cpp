@@ -30,35 +30,40 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    int nCells = getNumberOfCellsOnMaxRefLvl(mpiGrid, cells);
    momentsGrid.setupForTransferIn(nCells);
 
+   std::vector< std::array<Real, fsgrids::moments::N_MOMENTS> > transferBuffer(cells.size());
+   
    // Fill from cellParams
-   // #pragma omp parallel for
-   for(auto dccrgId : cells) {
+#pragma omp parallel for
+   for(uint i = 0; i < cells.size(); ++i) {
+      CellID dccrgId = cells[i];
       auto cellParams = mpiGrid[dccrgId]->get_cell_parameters();
-      std::array<Real, fsgrids::moments::N_MOMENTS>* thisCellData;
+      std::array<Real, fsgrids::moments::N_MOMENTS>* thisCellData = &transferBuffer[i];
+      if(dt2) {
+         thisCellData->at(fsgrids::moments::RHOM) = cellParams[CellParams::RHOM_DT2];
+         thisCellData->at(fsgrids::moments::RHOQ) = cellParams[CellParams::RHOQ_DT2];
+         thisCellData->at(fsgrids::moments::VX) = cellParams[CellParams::VX_DT2];
+         thisCellData->at(fsgrids::moments::VY) = cellParams[CellParams::VY_DT2];
+         thisCellData->at(fsgrids::moments::VZ) = cellParams[CellParams::VZ_DT2];
+         thisCellData->at(fsgrids::moments::P_11) = cellParams[CellParams::P_11_DT2];
+         thisCellData->at(fsgrids::moments::P_22) = cellParams[CellParams::P_22_DT2];
+         thisCellData->at(fsgrids::moments::P_33) = cellParams[CellParams::P_33_DT2];
+      } else {
+         thisCellData->at(fsgrids::moments::RHOM) = cellParams[CellParams::RHOM];
+         thisCellData->at(fsgrids::moments::RHOQ) = cellParams[CellParams::RHOQ];
+         thisCellData->at(fsgrids::moments::VX) = cellParams[CellParams::VX];
+         thisCellData->at(fsgrids::moments::VY) = cellParams[CellParams::VY];
+         thisCellData->at(fsgrids::moments::VZ) = cellParams[CellParams::VZ];
+         thisCellData->at(fsgrids::moments::P_11) = cellParams[CellParams::P_11];
+         thisCellData->at(fsgrids::moments::P_22) = cellParams[CellParams::P_22];
+         thisCellData->at(fsgrids::moments::P_33) = cellParams[CellParams::P_33];
+      }
+   }
+
+   for (uint i = 0;i < cells.size(); ++i) {
+      CellID dccrgId = cells[i];
       const auto fsgridIds = mapDccrgIdToFsGrid(mpiGrid, momentsGrid.getLocalSize(), dccrgId);
-
       for (auto fsgridId : fsgridIds) {
-         if(!dt2) {
-            thisCellData->at(fsgrids::moments::RHOM) = cellParams[CellParams::RHOM];
-            thisCellData->at(fsgrids::moments::RHOQ) = cellParams[CellParams::RHOQ];
-            thisCellData->at(fsgrids::moments::VX) = cellParams[CellParams::VX];
-            thisCellData->at(fsgrids::moments::VY) = cellParams[CellParams::VY];
-            thisCellData->at(fsgrids::moments::VZ) = cellParams[CellParams::VZ];
-            thisCellData->at(fsgrids::moments::P_11) = cellParams[CellParams::P_11];
-            thisCellData->at(fsgrids::moments::P_22) = cellParams[CellParams::P_22];
-            thisCellData->at(fsgrids::moments::P_33) = cellParams[CellParams::P_33];
-         } else {
-            thisCellData->at(fsgrids::moments::RHOM) = cellParams[CellParams::RHOM_DT2];
-            thisCellData->at(fsgrids::moments::RHOQ) = cellParams[CellParams::RHOQ_DT2];
-            thisCellData->at(fsgrids::moments::VX) = cellParams[CellParams::VX_DT2];
-            thisCellData->at(fsgrids::moments::VY) = cellParams[CellParams::VY_DT2];
-            thisCellData->at(fsgrids::moments::VZ) = cellParams[CellParams::VZ_DT2];
-            thisCellData->at(fsgrids::moments::P_11) = cellParams[CellParams::P_11_DT2];
-            thisCellData->at(fsgrids::moments::P_22) = cellParams[CellParams::P_22_DT2];
-            thisCellData->at(fsgrids::moments::P_33) = cellParams[CellParams::P_33_DT2];
-         }
-
-         momentsGrid.transferDataIn(fsgridId, thisCellData);
+         momentsGrid.transferDataIn(fsgridId, &transferBuffer[i]);
       }
    }
 
@@ -74,47 +79,56 @@ void feedBgFieldsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    bgBGrid.setupForTransferIn(nCells);
 
    // Setup transfer buffers
-   std::vector< std::array<Real, fsgrids::bgbfield::N_BGB> > transferBuffer(nCells);
+   std::vector< std::array<Real, fsgrids::bgbfield::N_BGB> > transferBuffer(cells.size());
 
+   std::cout << "I am at line " << __LINE__ << " of " << __FILE__ << std::endl;
+   
    // Fill from cellParams
-   // TODO: Making this thread-safe requires some tricks. Don't think threading is crucial here.
-   // #pragma omp parallel for
-   for(auto dccrgId : cells) {
+   // We only need to read data once per dccrg cell here
+#pragma omp parallel for
+   for(uint i = 0; i < cells.size(); ++i) {
+      CellID dccrgId = cells[i];
       auto cellParams = mpiGrid[dccrgId]->get_cell_parameters();
       auto derivatives = mpiGrid[dccrgId]->derivatives;
       auto volumeDerivatives = mpiGrid[dccrgId]->derivativesBVOL;
 
-      const auto fsgridIds = mapDccrgIdToFsGrid(mpiGrid, bgBGrid.getLocalSize(), dccrgId);
-
-      for (auto fsgridId : fsgridIds) {
+      std::cout << "I am at line " << __LINE__ << " of " << __FILE__ << std::endl;
+               
+      std::array<Real, fsgrids::bgbfield::N_BGB>* thisCellData = &transferBuffer[i];
       
-         std::array<Real, fsgrids::bgbfield::N_BGB>* thisCellData;
-         
-         thisCellData->at(fsgrids::bgbfield::BGBX) = cellParams[CellParams::BGBX];
-         thisCellData->at(fsgrids::bgbfield::BGBY) = cellParams[CellParams::BGBY];
-         thisCellData->at(fsgrids::bgbfield::BGBZ) = cellParams[CellParams::BGBZ];
-         thisCellData->at(fsgrids::bgbfield::BGBXVOL) = cellParams[CellParams::BGBXVOL];
-         thisCellData->at(fsgrids::bgbfield::BGBYVOL) = cellParams[CellParams::BGBYVOL];
-         thisCellData->at(fsgrids::bgbfield::BGBZVOL) = cellParams[CellParams::BGBZVOL];
-         
-         thisCellData->at(fsgrids::bgbfield::dBGBxdy) = derivatives[fieldsolver::dBGBxdy];
-         thisCellData->at(fsgrids::bgbfield::dBGBxdz) = derivatives[fieldsolver::dBGBxdz];
-         thisCellData->at(fsgrids::bgbfield::dBGBydx) = derivatives[fieldsolver::dBGBydx];
-         thisCellData->at(fsgrids::bgbfield::dBGBydz) = derivatives[fieldsolver::dBGBydz];
-         thisCellData->at(fsgrids::bgbfield::dBGBzdx) = derivatives[fieldsolver::dBGBzdx];
-         thisCellData->at(fsgrids::bgbfield::dBGBzdy) = derivatives[fieldsolver::dBGBzdy];
-         
-         thisCellData->at(fsgrids::bgbfield::dBGBXVOLdy) = volumeDerivatives[bvolderivatives::dBGBXVOLdy];
-         thisCellData->at(fsgrids::bgbfield::dBGBXVOLdz) = volumeDerivatives[bvolderivatives::dBGBXVOLdz];
-         thisCellData->at(fsgrids::bgbfield::dBGBYVOLdx) = volumeDerivatives[bvolderivatives::dBGBYVOLdx];
-         thisCellData->at(fsgrids::bgbfield::dBGBYVOLdz) = volumeDerivatives[bvolderivatives::dBGBYVOLdz];
-         thisCellData->at(fsgrids::bgbfield::dBGBZVOLdx) = volumeDerivatives[bvolderivatives::dBGBZVOLdx];
-         thisCellData->at(fsgrids::bgbfield::dBGBZVOLdy) = volumeDerivatives[bvolderivatives::dBGBZVOLdy];
+      thisCellData->at(fsgrids::bgbfield::BGBX) = cellParams[CellParams::BGBX];
+      thisCellData->at(fsgrids::bgbfield::BGBY) = cellParams[CellParams::BGBY];
+      thisCellData->at(fsgrids::bgbfield::BGBZ) = cellParams[CellParams::BGBZ];
+      thisCellData->at(fsgrids::bgbfield::BGBXVOL) = cellParams[CellParams::BGBXVOL];
+      thisCellData->at(fsgrids::bgbfield::BGBYVOL) = cellParams[CellParams::BGBYVOL];
+      thisCellData->at(fsgrids::bgbfield::BGBZVOL) = cellParams[CellParams::BGBZVOL];
+      
+      thisCellData->at(fsgrids::bgbfield::dBGBxdy) = derivatives[fieldsolver::dBGBxdy];
+      thisCellData->at(fsgrids::bgbfield::dBGBxdz) = derivatives[fieldsolver::dBGBxdz];
+      thisCellData->at(fsgrids::bgbfield::dBGBydx) = derivatives[fieldsolver::dBGBydx];
+      thisCellData->at(fsgrids::bgbfield::dBGBydz) = derivatives[fieldsolver::dBGBydz];
+      thisCellData->at(fsgrids::bgbfield::dBGBzdx) = derivatives[fieldsolver::dBGBzdx];
+      thisCellData->at(fsgrids::bgbfield::dBGBzdy) = derivatives[fieldsolver::dBGBzdy];
+      
+      thisCellData->at(fsgrids::bgbfield::dBGBXVOLdy) = volumeDerivatives[bvolderivatives::dBGBXVOLdy];
+      thisCellData->at(fsgrids::bgbfield::dBGBXVOLdz) = volumeDerivatives[bvolderivatives::dBGBXVOLdz];
+      thisCellData->at(fsgrids::bgbfield::dBGBYVOLdx) = volumeDerivatives[bvolderivatives::dBGBYVOLdx];
+      thisCellData->at(fsgrids::bgbfield::dBGBYVOLdz) = volumeDerivatives[bvolderivatives::dBGBYVOLdz];
+      thisCellData->at(fsgrids::bgbfield::dBGBZVOLdx) = volumeDerivatives[bvolderivatives::dBGBZVOLdx];
+      thisCellData->at(fsgrids::bgbfield::dBGBZVOLdy) = volumeDerivatives[bvolderivatives::dBGBZVOLdy];
 
-         bgBGrid.transferDataIn(fsgridId, thisCellData);
-      }
+      std::cout << "I am at line " << __LINE__ << " of " << __FILE__ << std::endl;
    }
 
+   // Copy data into each fsgrid cell overlapping the dccrg cell
+   for (uint i = 0; i < cells.size(); ++i) {
+      CellID dccrgId = cells[i];
+      const auto fsgridIds = mapDccrgIdToFsGrid(mpiGrid, bgBGrid.getLocalSize(), dccrgId);
+      for (auto fsgridId : fsgridIds) {
+         bgBGrid.transferDataIn(fsgridId, &transferBuffer[i]);
+      }
+   }
+   
    // Finish the actual transfer
    bgBGrid.finishTransfersIn();
 
