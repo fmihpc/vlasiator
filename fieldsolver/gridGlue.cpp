@@ -23,6 +23,8 @@ int getNumberOfCellsOnMaxRefLvl(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
    
 }
 
+
+
 void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                            const std::vector<CellID>& cells,
                            FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid, bool dt2 /*=false*/) {
@@ -37,22 +39,24 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    for(uint i = 0; i < cells.size(); ++i) {
       CellID dccrgId = cells[i];
       auto cellParams = mpiGrid[dccrgId]->get_cell_parameters();
+      
       std::array<Real, fsgrids::moments::N_MOMENTS>* thisCellData = &transferBuffer[i];
+      
       if(dt2) {
          thisCellData->at(fsgrids::moments::RHOM) = cellParams[CellParams::RHOM_DT2];
          thisCellData->at(fsgrids::moments::RHOQ) = cellParams[CellParams::RHOQ_DT2];
-         thisCellData->at(fsgrids::moments::VX) = cellParams[CellParams::VX_DT2];
-         thisCellData->at(fsgrids::moments::VY) = cellParams[CellParams::VY_DT2];
-         thisCellData->at(fsgrids::moments::VZ) = cellParams[CellParams::VZ_DT2];
+         thisCellData->at(fsgrids::moments::VX)   = cellParams[CellParams::VX_DT2];
+         thisCellData->at(fsgrids::moments::VY)   = cellParams[CellParams::VY_DT2];
+         thisCellData->at(fsgrids::moments::VZ)   = cellParams[CellParams::VZ_DT2];
          thisCellData->at(fsgrids::moments::P_11) = cellParams[CellParams::P_11_DT2];
          thisCellData->at(fsgrids::moments::P_22) = cellParams[CellParams::P_22_DT2];
          thisCellData->at(fsgrids::moments::P_33) = cellParams[CellParams::P_33_DT2];
       } else {
          thisCellData->at(fsgrids::moments::RHOM) = cellParams[CellParams::RHOM];
          thisCellData->at(fsgrids::moments::RHOQ) = cellParams[CellParams::RHOQ];
-         thisCellData->at(fsgrids::moments::VX) = cellParams[CellParams::VX];
-         thisCellData->at(fsgrids::moments::VY) = cellParams[CellParams::VY];
-         thisCellData->at(fsgrids::moments::VZ) = cellParams[CellParams::VZ];
+         thisCellData->at(fsgrids::moments::VX)   = cellParams[CellParams::VX];
+         thisCellData->at(fsgrids::moments::VY)   = cellParams[CellParams::VY];
+         thisCellData->at(fsgrids::moments::VZ)   = cellParams[CellParams::VZ];
          thisCellData->at(fsgrids::moments::P_11) = cellParams[CellParams::P_11];
          thisCellData->at(fsgrids::moments::P_22) = cellParams[CellParams::P_22];
          thisCellData->at(fsgrids::moments::P_33) = cellParams[CellParams::P_33];
@@ -434,29 +438,28 @@ std::vector<CellID> mapDccrgIdToFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian
    const auto cellLength = mpiGrid.mapping.get_cell_length_in_indices(dccrgID);
    const auto gridLength = mpiGrid.length.get();
    const auto maxRefLvl  = mpiGrid.mapping.get_maximum_refinement_level();
+   const auto topLeftIndices = mpiGrid.mapping.get_indices(dccrgID);
+   std::array<int,3> indices;
+   std::vector<std::array<int,3>> allIndices;
    
-   std::vector<std::array<int,3>> indices;
    for (uint i = 0; i < cellLength; ++i) {
       for (uint j = 0; j < cellLength; ++j) {
          for (uint k = 0; k < cellLength; ++k) {
-            CellID id = dccrgID + i
-               + (j * gridLength[0] * pow(2,maxRefLvl))
-               + (k * gridLength[1] * pow(2,maxRefLvl) * gridLength[0] * pow(2,maxRefLvl));
-            auto ids = mpiGrid.mapping.get_indices(id);
-            std::array<int,3> cellCoord;
-            for (uint m = 0; m < 3; m++) {
-               cellCoord[m] = static_cast<int>(ids[m]);
-            }
-            indices.push_back(cellCoord);
+            indices[0] = topLeftIndices[0] + i + 1;
+            indices[1] = topLeftIndices[1] + j + 1;
+            indices[2] = topLeftIndices[2] + k + 1;
+            allIndices.push_back(indices);
          }
       }
    }
+
    std::vector<CellID> fsgridIDs;
    // The indices we get from dccrg are directly coordinates at the finest refinement level.
    // Therefore, they should match fsgrid coordinates exactly.
-   for (auto cellCoord: indices) {
-      fsgridIDs.push_back(cellCoord[0] + cellCoord[1] * fsgridDims[0] + cellCoord[2] * fsgridDims[1]);
+   for (auto cellCoord: allIndices) {
+      fsgridIDs.push_back(cellCoord[0] + cellCoord[1] * fsgridDims[0] + cellCoord[2] * fsgridDims[1] * fsgridDims[0]);
    }
+
    return fsgridIDs;
 }
 

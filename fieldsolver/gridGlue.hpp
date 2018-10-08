@@ -3,6 +3,14 @@
 #include <vector>
 #include <array>
 
+std::vector<CellID> mapDccrgIdToFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                       std::array<int32_t,3> fsgridDims, CellID dccrgID);
+
+CellID mapFsGridIdToDccrg(FsGrid< fsgrids::technical, 2>& technicalGrid,
+                           dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                          CellID fsgridID);
+
+
 /*! Take input moments from DCCRG grid and put them into the Fieldsolver grid
  * \param mpiGrid The DCCRG grid carrying rho, rhoV and P
  * \param cells List of local cells
@@ -167,10 +175,3 @@ template< unsigned int numFields > void getFieldDataFromFsGrid(
 
    sourceGrid.finishTransfersOut();
 }
-
-std::vector<CellID> mapDccrgIdToFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                       std::array<int32_t,3> fsgridDims, CellID dccrgID);
-
-CellID mapFsGridIdToDccrg(FsGrid< fsgrids::technical, 2>& technicalGrid,
-                           dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                          CellID fsgridID);
