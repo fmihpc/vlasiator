@@ -383,8 +383,8 @@ int main(int argn,char* args[]) {
       cout << endl;
       mpiGrid.write_vtk_file("mpiGrid.vtk");
    }
-   
    recalculateLocalCellsCache();
+   
    phiprof::stop("Init grid");
 
    // Initialize data reduction operators. This should be done elsewhere in order to initialize 
@@ -486,7 +486,7 @@ int main(int argn,char* args[]) {
    phiprof::stop("Initial fsgrid coupling");
 
    // Transfer initial field configuration into the FsGrids
-   feedFieldDataIntoFsGrid<fsgrids::N_BFIELD>(mpiGrid,cells,CellParams::PERBX,perBGrid);
+   feedFieldDataIntoFsGridAmr<fsgrids::N_BFIELD>(mpiGrid,cells,CellParams::PERBX,perBGrid);
 
    feedBgFieldsIntoFsGrid(mpiGrid,cells,BgBGrid);
    BgBGrid.updateGhostCells();
