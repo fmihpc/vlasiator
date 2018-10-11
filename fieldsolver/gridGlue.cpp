@@ -187,7 +187,6 @@ void getVolumeFieldsFromFsGrid(FsGrid< std::array<Real, fsgrids::volfields::N_VO
       auto cellParams = mpiGrid[dccrgId]->get_cell_parameters();
 
       // Calculate the number of fsgrid cells we need to average into the current dccrg cell
-      auto refLvl = mpiGrid.mapping.get_refinement_level(dccrgId);
       int nCells = pow(pow(2,mpiGrid.mapping.get_maximum_refinement_level() - mpiGrid.mapping.get_refinement_level(dccrgId)),3);
 
       // TODO: Could optimize here by adding a separate branch for nCells == 1 with direct assignment of the value
@@ -375,6 +374,10 @@ void setupTechnicalFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
       const auto fsgridIds = mapDccrgIdToFsGrid(mpiGrid, technicalGrid.getLocalSize(), cells[i]);
       
       for (auto fsgridId : fsgridIds) {
+         // std::cout << "fsgridId: " << fsgridId << ", fsgrid Cell Coordinates:";
+         // auto coords = technicalGrid.globalIDtoCellCoord(fsgridId);
+         // for (auto coord : coords) std::cout << " " << coord;
+         // std::cout << std::endl;
          technicalGrid.transferDataIn(fsgridId,&transferBuffer[i]);
       }
    }
@@ -387,14 +390,22 @@ void getFsGridMaxDt(FsGrid< fsgrids::technical, 2>& technicalGrid,
       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const std::vector<CellID>& cells) {
 
-   technicalGrid.setupForTransferOut(cells.size());
+   int nCells = getNumberOfCellsOnMaxRefLvl(mpiGrid, cells);   
+   technicalGrid.setupForTransferOut(nCells);
 
    // Buffer to store contents of the grid
    std::vector<fsgrids::technical> transferBuffer(cells.size());
+   std::vector<fsgrids::technical*> transferBufferPointer;
 
+   int k = 0;
    for(int i=0; i< cells.size(); i++) {
-      fsgrids::technical* thisCellData = &transferBuffer[i];
-      technicalGrid.transferDataOut(cells[i] - 1, thisCellData);
+
+      transferBufferPointer.push_back(&transferBuffer[k]);
+      const auto fsgridIds = mapDccrgIdToFsGrid(mpiGrid, technicalGrid.getLocalSize(), cells[i]);
+      for (auto fsgridId : fsgridIds) {
+         fsgrids::technical* thisCellData = &transferBuffer[k++];
+         technicalGrid.transferDataOut(fsgridId, thisCellData);
+      }
    }
 
    technicalGrid.finishTransfersOut();
@@ -402,9 +413,27 @@ void getFsGridMaxDt(FsGrid< fsgrids::technical, 2>& technicalGrid,
    // After the transfer is completed, stuff the recieved maxFDt into the cells.
    #pragma omp parallel for
    for(int i=0; i< cells.size(); i++) {
-      mpiGrid[cells[i]]->get_cell_parameters()[CellParams::MAXFDT] = transferBuffer[i].maxFsDt;
-      mpiGrid[cells[i]]->get_cell_parameters()[CellParams::FSGRID_RANK] = transferBuffer[i].fsGridRank;
-      mpiGrid[cells[i]]->get_cell_parameters()[CellParams::FSGRID_BOUNDARYTYPE] = transferBuffer[i].sysBoundaryFlag;
+      
+      int dccrgId = cells[i];
+      auto cellParams = mpiGrid[dccrgId]->get_cell_parameters();
+      
+      // Calculate the number of fsgrid cells we need to average into the current dccrg cell
+      int nCells = pow(pow(2,mpiGrid.mapping.get_maximum_refinement_level() - mpiGrid.mapping.get_refinement_level(dccrgId)),3);
+
+      cellParams[CellParams::MAXFDT] = std::numeric_limits<Real>::max();
+      //cellParams[CellParams::FSGRID_RANK] = 0;
+      //cellParams[CellParams::FSGRID_BOUNDARYTYPE] = 0;
+
+      for (int iCell = 0; iCell < nCells; ++iCell) {
+
+         fsgrids::technical* thisCellData = transferBufferPointer[i] + iCell;
+         
+         cellParams[CellParams::MAXFDT] = std::min(cellParams[CellParams::MAXFDT],thisCellData->maxFsDt);         
+         
+         //TODO: Implement something for FSGRID_RANK and FSGRID_BOUNDARYTYPE
+         //cellParams[CellParams::FSGRID_RANK] = thisCellData->fsGridRank;
+         //cellParams[CellParams::FSGRID_BOUNDARYTYPE] = thisCellData->sysBoundaryFlag;
+      }
    }
 }
 
@@ -445,17 +474,15 @@ std::vector<CellID> mapDccrgIdToFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian
    for (uint i = 0; i < cellLength; ++i) {
       for (uint j = 0; j < cellLength; ++j) {
          for (uint k = 0; k < cellLength; ++k) {
-            indices[0] = topLeftIndices[0] + i + 1;
-            indices[1] = topLeftIndices[1] + j + 1;
-            indices[2] = topLeftIndices[2] + k + 1;
+            indices[0] = topLeftIndices[0] + i;
+            indices[1] = topLeftIndices[1] + j;
+            indices[2] = topLeftIndices[2] + k;
             allIndices.push_back(indices);
          }
       }
    }
 
    std::vector<CellID> fsgridIDs;
-   // The indices we get from dccrg are directly coordinates at the finest refinement level.
-   // Therefore, they should match fsgrid coordinates exactly.
    for (auto cellCoord: allIndices) {
       fsgridIDs.push_back(cellCoord[0] + cellCoord[1] * fsgridDims[0] + cellCoord[2] * fsgridDims[1] * fsgridDims[0]);
    }
