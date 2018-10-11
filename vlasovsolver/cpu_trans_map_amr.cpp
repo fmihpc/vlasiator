@@ -256,7 +256,7 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
                if ( i == 3 ) {
 	    
                   // This builder continues with neighbor 3
-                  ids.push_back(nextNeighbor);
+                  //ids.push_back(nextNeighbor);
                   path = myPath;
 	    
                } else {
@@ -285,6 +285,9 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
 
          for (auto id : ids) {
             if (nextNeighbor == id) {
+               if(debug)
+                  std::cout << "Found neighbor " << nextNeighbor << " after cell " << ids.back()
+                            << " that is already in the pencil, exiting" << std::endl;
                periodic = true;
             }
          }
@@ -631,7 +634,9 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       cout << "Returning because of no cells" << endl;
       return false;
    }
-  
+
+   cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
+   
    // Vector with all cell ids
    vector<CellID> allCells(localPropagatedCells);
    allCells.insert(allCells.end(), remoteTargetCells.begin(), remoteTargetCells.end());  
@@ -688,6 +693,8 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    }
    // ****************************************************************************
 
+   cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
+   
    // compute pencils => set of pencils (shared datastructure)
 
    // std::cout << "LocalPropagatedCells: ";
@@ -748,7 +755,9 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    // Only one set is created for now but we retain support for multiple sets
    pencilSets.push_back(pencils);
    // ****************************************************************************
-     
+
+   cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
+   
    const uint8_t VMESH_REFLEVEL = 0;
    
    // Get a pointer to the velocity mesh of the first spatial cell
@@ -778,6 +787,8 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       unionOfBlocks.push_back(blockGID);
    }
    // ****************************************************************************
+
+   cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
    
    int t1 = phiprof::initializeTimer("mappingAndStore");
    
