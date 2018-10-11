@@ -721,7 +721,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       uint ibeg = 0;
       uint iend = 0;
       std::cout << "I have created " << pencils.N << " pencils along dimension " << dimension << ":\n";
-      std::cout << "(x, y): indices " << std::endl;
+      std::cout << "mpirank (x, y): indices " << std::endl;
       std::cout << "-----------------------------------------------------------------" << std::endl;
       for (uint i = 0; i < pencils.N; i++) {
          iend += pencils.lengthOfPencils[i];

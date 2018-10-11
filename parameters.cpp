@@ -137,7 +137,7 @@ Realf P::amrRefineLimit = 1.0;
 Realf P::amrCoarsenLimit = 0.5;
 string P::amrVelRefCriterion = "";
 
-int P::amrMaxSpatialRefLevel = 0;
+int P::amrMaxSpatialRefLevel = 1;
 
 bool Parameters::addParameters(){
    //the other default parameters we read through the add/get interface

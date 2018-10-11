@@ -94,6 +94,8 @@ void addTimedBarrier(string name){
 
 bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,Real &newDt, bool &isChanged) {
 
+   cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
+   
    phiprof::start("compute-timestep");
    //compute maximum time-step, this cannot be done at the first
    //step as the solvers compute the limits for each cell
@@ -133,7 +135,7 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
                   = blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::VYCRD] 
                   + (i+HALF)*blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::DVY]
                   + EPS;
-                    const Real Vz 
+                const Real Vz 
                   = blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::VZCRD]
                   + (i+HALF)*blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::DVZ]
                   + EPS;
@@ -171,6 +173,24 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    creal meanVlasovCFL = 0.5*(P::vlasovSolverMaxCFL+ P::vlasovSolverMinCFL);
    creal meanFieldsCFL = 0.5*(P::fieldSolverMaxCFL+ P::fieldSolverMinCFL);
    Real subcycleDt;
+
+   cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
+
+   cout << dtMaxGlobal[0];
+   cout << " ";
+   cout << dtMaxGlobal[1];
+   cout << " ";
+   cout << dtMaxGlobal[2];
+   cout << " ";
+   cout << P::vlasovSolverMaxCFL;
+   cout << " ";
+   cout << P::vlasovSolverMinCFL;
+   cout << " ";
+   cout << P::fieldSolverMaxCFL;
+   cout << " ";
+   cout << P::fieldSolverMinCFL;
+   cout << endl;
+   
    
    //reduce dt if it is too high for any of the three propagators, or too low for all propagators
    if(( P::dt > dtMaxGlobal[0] * P::vlasovSolverMaxCFL ||
@@ -180,6 +200,8 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
         P::dt < dtMaxGlobal[1] * P::vlasovSolverMinCFL * P::maxSlAccelerationSubcycles &&
         P::dt < dtMaxGlobal[2] * P::fieldSolverMinCFL * P::maxFieldSolverSubcycles )
       ) {
+
+      cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
       //new dt computed
       isChanged=true;
 
@@ -362,28 +384,6 @@ int main(int argn,char* args[]) {
    //dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> mpiGrid;
    initializeGrid(argn,args,mpiGrid,sysBoundaries,*project);
    isSysBoundaryCondDynamic = sysBoundaries.isDynamic();
-
-   std::array<double,3> coords;
-   coords[0] = (P::xmax - P::xmin) / 2.0;
-   coords[1] = (P::ymax - P::ymin) / 2.0;
-   coords[2] = (P::zmax - P::zmin) / 2.0;
-   cout << "Trying to refine at " << coords[0] << ", " << coords[1] << ", " << coords[2] << endl;
-   CellID myCell = mpiGrid.get_existing_cell(coords);
-   cout << "Got cell ID " << myCell << endl;
-   cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << endl;
-   bool refineSuccess = mpiGrid.refine_completely_at(coords);
-   std::vector<CellID> refinedCells = mpiGrid.stop_refining();   
-   cout << "Result: " << refineSuccess << endl;
-   mpiGrid.balance_load();
-   if(refineSuccess) {
-      cout << "Refined Cells are: ";
-      for (auto cellid : refinedCells) {
-         cout << cellid << " ";
-      }
-      cout << endl;
-      mpiGrid.write_vtk_file("mpiGrid.vtk");
-   }
-   recalculateLocalCellsCache();
    
    phiprof::stop("Init grid");
 
@@ -486,7 +486,7 @@ int main(int argn,char* args[]) {
    phiprof::stop("Initial fsgrid coupling");
 
    // Transfer initial field configuration into the FsGrids
-   feedFieldDataIntoFsGridAmr<fsgrids::N_BFIELD>(mpiGrid,cells,CellParams::PERBX,perBGrid);
+   feedFieldDataIntoFsGrid<fsgrids::N_BFIELD>(mpiGrid,cells,CellParams::PERBX,perBGrid);
 
    feedBgFieldsIntoFsGrid(mpiGrid,cells,BgBGrid);
    BgBGrid.updateGhostCells();
@@ -498,6 +498,8 @@ int main(int argn,char* args[]) {
    feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid,false);
    feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid,false);
 
+   cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
+   
    phiprof::start("Init field propagator");
    if (
       initializeFieldPropagator(
@@ -521,6 +523,8 @@ int main(int argn,char* args[]) {
       exit(1);
    }
    phiprof::stop("Init field propagator");
+
+   cout << "I am at line " << __LINE__ << " of " << __FILE__  << " dt =  " << P::dt << endl;
    
    // Initialize Poisson solver (if used)
    if (P::propagatePotential == true) {
@@ -535,6 +539,8 @@ int main(int argn,char* args[]) {
    // Free up memory:
    readparameters.finalize();
 
+   cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
+   
    if (P::isRestart == false) {
       // Run Vlasov solver once with zero dt to initialize
       //per-cell dt limits. In restarts, we read the dt from file.
@@ -569,6 +575,8 @@ int main(int argn,char* args[]) {
    // These should be done by initializeFieldPropagator() if the propagation is turned off.
    getVolumeFieldsFromFsGrid(volGrid, mpiGrid, cells);
    phiprof::stop("getVolumeFieldsFromFsGrid");
+
+   cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
    
    // Save restart data
    if (P::writeInitialState) {
@@ -608,6 +616,8 @@ int main(int argn,char* args[]) {
 
       phiprof::stop("write-initial-state");
    }
+
+   cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
    
    if (P::isRestart == false) {
       //compute new dt
@@ -620,6 +630,8 @@ int main(int argn,char* args[]) {
       }
       phiprof::stop("compute-dt");
    }
+
+   cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
 
    if (!P::isRestart) {      
       //go forward by dt/2 in V, initializes leapfrog split. In restarts the
@@ -997,11 +1009,13 @@ int main(int argn,char* args[]) {
       }
       
       phiprof::start("Spatial-space");
+      cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
       if( P::propagateVlasovTranslation) {
          calculateSpatialTranslation(mpiGrid,P::dt);
       } else {
          calculateSpatialTranslation(mpiGrid,0.0);
       }
+      cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
       phiprof::stop("Spatial-space",computedCells,"Cells");
 
       phiprof::start("Compute interp moments");
@@ -1018,7 +1032,7 @@ int main(int argn,char* args[]) {
       );
       phiprof::stop("Compute interp moments");
       
-      // Apply boundary conditions
+      // Apply boundary conditions      
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
          phiprof::start("Update system boundaries (Vlasov post-translation)");
          sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid, P::t+0.5*P::dt); 
@@ -1031,6 +1045,8 @@ int main(int argn,char* args[]) {
       // moments for t + dt are computed (field uses t and t+0.5dt)
       if (P::propagateField) {
          phiprof::start("Propagate Fields");
+
+         cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
          
          phiprof::start("fsgrid-coupling-in");
          // Copy moments over into the fsgrid.

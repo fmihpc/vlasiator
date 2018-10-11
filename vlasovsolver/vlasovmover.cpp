@@ -136,6 +136,7 @@ void calculateSpatialTranslation(
       update_remote_mapping_contribution(mpiGrid, 1,-1,popID);
       phiprof::stop("update_remote-y");
    }
+   bailout(true, "", __FILE__, __LINE__);
 }
 
 /*!
@@ -165,12 +166,16 @@ void calculateSpatialTranslation(
    // If dt=0 we are either initializing or distribution functions are not translated. 
    // In both cases go to the end of this function and calculate the moments.
    if (dt == 0.0) goto momentCalculation;
-   
-    phiprof::start("compute_cell_lists");
-    remoteTargetCellsx = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID);
-    remoteTargetCellsy = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID);
-    remoteTargetCellsz = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID);
 
+   std::cout << "I am at line " << __LINE__ << " of " << __FILE__ << std::endl;
+   
+   phiprof::start("compute_cell_lists");
+   remoteTargetCellsx = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID);
+   remoteTargetCellsy = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID);
+   remoteTargetCellsz = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID);
+
+   std::cout << "I am at line " << __LINE__ << " of " << __FILE__ << std::endl;
+    
     // Figure out which spatial cells are translated, 
     // result independent of particle species.
     for (size_t c=0; c<localCells.size(); ++c) {
@@ -179,6 +184,8 @@ void calculateSpatialTranslation(
        }
     }
 
+   std::cout << "I am at line " << __LINE__ << " of " << __FILE__ << std::endl;
+    
    // Figure out target spatial cells, result
    // independent of particle species.
    for (size_t c=0; c<localCells.size(); ++c) {
@@ -188,6 +195,8 @@ void calculateSpatialTranslation(
    }
    phiprof::stop("compute_cell_lists");
 
+   std::cout << "I am at line " << __LINE__ << " of " << __FILE__ << std::endl;
+   
    // Translate all particle species
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       string profName = "translate "+getObjectWrapper().particleSpecies[popID].name;
