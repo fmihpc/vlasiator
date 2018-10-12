@@ -740,6 +740,46 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
          std::cout << std::endl;
       }
 
+      CellID idX = 114;
+      const auto* neighborsX = mpiGrid.get_neighbors_of(idX, VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
+      if (neighborsX != NULL) {
+         std::cout << "Neighbors of cell " << idX << " in x dimension" << std::endl;
+         for (auto neighbor : *neighborsX) {
+            std::cout << neighbor.first << ", ";
+            for (int n = 0; n < 4; ++n) {
+               std::cout << neighbor.second[n] << " ";
+            }
+            std::cout << std::endl;
+         }
+      }
+
+      CellID idY = 114;
+      const auto* neighborsY = mpiGrid.get_neighbors_of(idY, VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);
+      if (neighborsY != NULL) {
+         std::cout << "Neighbors of cell " << idY << " in y dimension" << std::endl;
+         for (auto neighbor : *neighborsY) {
+            std::cout << neighbor.first << ", ";
+            for (int n = 0; n < 4; ++n) {
+               std::cout << neighbor.second[n] << " ";
+            }
+            std::cout << std::endl;
+         }
+      }
+
+      CellID idZ = 114;
+      const auto* neighborsZ = mpiGrid.get_neighbors_of(idZ, VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);
+      if (neighborsZ != NULL) {
+         std::cout << "Neighbors of cell " << idZ << " in z dimension" << std::endl;
+         for (auto neighbor : *neighborsZ) {
+            std::cout << neighbor.first << ", ";
+            for (int n = 0; n < 4; ++n) {
+               std::cout << neighbor.second[n] << " ";
+            }
+            std::cout << std::endl;
+         }
+      }
+
+      
       // CellID id = 56;
       // const vector<CellID>* neighbors = mpiGrid.get_neighbors_of(id, VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
       // if (neighbors != NULL) {
