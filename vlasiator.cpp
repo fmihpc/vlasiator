@@ -631,8 +631,6 @@ int main(int argn,char* args[]) {
       phiprof::stop("compute-dt");
    }
 
-   //   cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
-
    if (!P::isRestart) {      
       //go forward by dt/2 in V, initializes leapfrog split. In restarts the
       //the distribution function is already propagated forward in time by dt/2
@@ -652,6 +650,8 @@ int main(int argn,char* args[]) {
    // ***********************************
    // ***** INITIALIZATION COMPLETE *****
    // ***********************************
+
+   cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
    
    // Main simulation loop:
    if (myRank == MASTER_RANK) logFile << "(MAIN): Starting main simulation loop." << endl << writeVerbose;
@@ -911,23 +911,45 @@ int main(int argn,char* args[]) {
          BgBGrid.setupForGridCoupling();
          volGrid.setupForGridCoupling();
          technicalGrid.setupForGridCoupling();
-         
-         // FSGrid cellIds are 0-based, whereas DCCRG cellIds are 1-based, beware
-         for(auto& i : cells) {
-            perBGrid.setGridCoupling(i-1, myRank);
-            perBDt2Grid.setGridCoupling(i-1, myRank);
-            EGrid.setGridCoupling(i-1, myRank);
-            EDt2Grid.setGridCoupling(i-1, myRank);
-            EHallGrid.setGridCoupling(i-1, myRank);
-            EGradPeGrid.setGridCoupling(i-1, myRank);
-            momentsGrid.setGridCoupling(i-1, myRank);
-            momentsDt2Grid.setGridCoupling(i-1, myRank);
-            dPerBGrid.setGridCoupling(i-1, myRank);
-            dMomentsGrid.setGridCoupling(i-1, myRank);
-            BgBGrid.setGridCoupling(i-1, myRank);
-            volGrid.setGridCoupling(i-1, myRank);
-            technicalGrid.setGridCoupling(i-1, myRank);
+
+         // Each dccrg cell may have to communicate with multiple fsgrid cells, if they are on a lower refinement level.
+         // Calculate the corresponding fsgrid ids for each dccrg cell and set coupling for each fsgrid id.
+         for(auto& dccrgId : cells) {
+            const auto fsgridIds = mapDccrgIdToFsGrid(mpiGrid, fsGridDimensions, dccrgId);
+            for (auto fsgridId : fsgridIds) {
+               perBGrid.      setGridCoupling(fsgridId, myRank);
+               perBDt2Grid.   setGridCoupling(fsgridId, myRank);
+               EGrid.         setGridCoupling(fsgridId, myRank);
+               EDt2Grid.      setGridCoupling(fsgridId, myRank);
+               EHallGrid.     setGridCoupling(fsgridId, myRank);
+               EGradPeGrid.   setGridCoupling(fsgridId, myRank);
+               momentsGrid.   setGridCoupling(fsgridId, myRank);
+               momentsDt2Grid.setGridCoupling(fsgridId, myRank);
+               dPerBGrid.     setGridCoupling(fsgridId, myRank);
+               dMomentsGrid.  setGridCoupling(fsgridId, myRank);
+               BgBGrid.       setGridCoupling(fsgridId, myRank);
+               volGrid.       setGridCoupling(fsgridId, myRank);
+               technicalGrid. setGridCoupling(fsgridId, myRank);
+            }
          }
+         
+         // // FSGrid cellIds are 0-based, whereas DCCRG cellIds are 1-based, beware
+         // for(auto& i : cells) {
+         //    perBGrid.setGridCoupling(i-1, myRank);
+         //    perBDt2Grid.setGridCoupling(i-1, myRank);
+         //    EGrid.setGridCoupling(i-1, myRank);
+         //    EDt2Grid.setGridCoupling(i-1, myRank);
+         //    EHallGrid.setGridCoupling(i-1, myRank);
+         //    EGradPeGrid.setGridCoupling(i-1, myRank);
+         //    momentsGrid.setGridCoupling(i-1, myRank);
+         //    momentsDt2Grid.setGridCoupling(i-1, myRank);
+         //    dPerBGrid.setGridCoupling(i-1, myRank);
+         //    dMomentsGrid.setGridCoupling(i-1, myRank);
+         //    BgBGrid.setGridCoupling(i-1, myRank);
+         //    volGrid.setGridCoupling(i-1, myRank);
+         //    technicalGrid.setGridCoupling(i-1, myRank);
+         // }
+         
          perBGrid.finishGridCoupling();
          perBDt2Grid.finishGridCoupling();
          EGrid.finishGridCoupling();
