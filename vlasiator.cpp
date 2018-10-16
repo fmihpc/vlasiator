@@ -94,7 +94,7 @@ void addTimedBarrier(string name){
 
 bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,Real &newDt, bool &isChanged) {
 
-   cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
+   //   cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
    
    phiprof::start("compute-timestep");
    //compute maximum time-step, this cannot be done at the first
@@ -174,22 +174,22 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    creal meanFieldsCFL = 0.5*(P::fieldSolverMaxCFL+ P::fieldSolverMinCFL);
    Real subcycleDt;
 
-   cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
+   //   cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
 
-   cout << dtMaxGlobal[0];
-   cout << " ";
-   cout << dtMaxGlobal[1];
-   cout << " ";
-   cout << dtMaxGlobal[2];
-   cout << " ";
-   cout << P::vlasovSolverMaxCFL;
-   cout << " ";
-   cout << P::vlasovSolverMinCFL;
-   cout << " ";
-   cout << P::fieldSolverMaxCFL;
-   cout << " ";
-   cout << P::fieldSolverMinCFL;
-   cout << endl;
+   // cout << dtMaxGlobal[0];
+   // cout << " ";
+   // cout << dtMaxGlobal[1];
+   // cout << " ";
+   // cout << dtMaxGlobal[2];
+   // cout << " ";
+   // cout << P::vlasovSolverMaxCFL;
+   // cout << " ";
+   // cout << P::vlasovSolverMinCFL;
+   // cout << " ";
+   // cout << P::fieldSolverMaxCFL;
+   // cout << " ";
+   // cout << P::fieldSolverMinCFL;
+   // cout << endl;
    
    
    //reduce dt if it is too high for any of the three propagators, or too low for all propagators
@@ -201,7 +201,7 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
         P::dt < dtMaxGlobal[2] * P::fieldSolverMinCFL * P::maxFieldSolverSubcycles )
       ) {
 
-      cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
+      //      cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
       //new dt computed
       isChanged=true;
 
@@ -524,7 +524,7 @@ int main(int argn,char* args[]) {
    }
    phiprof::stop("Init field propagator");
 
-   cout << "I am at line " << __LINE__ << " of " << __FILE__  << " dt =  " << P::dt << endl;
+   //   cout << "I am at line " << __LINE__ << " of " << __FILE__  << " dt =  " << P::dt << endl;
    
    // Initialize Poisson solver (if used)
    if (P::propagatePotential == true) {
@@ -539,7 +539,7 @@ int main(int argn,char* args[]) {
    // Free up memory:
    readparameters.finalize();
 
-   cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
+   //   cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
    
    if (P::isRestart == false) {
       // Run Vlasov solver once with zero dt to initialize
@@ -576,7 +576,7 @@ int main(int argn,char* args[]) {
    getVolumeFieldsFromFsGrid(volGrid, mpiGrid, cells);
    phiprof::stop("getVolumeFieldsFromFsGrid");
 
-   cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
+   //   cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
    
    // Save restart data
    if (P::writeInitialState) {
@@ -617,7 +617,7 @@ int main(int argn,char* args[]) {
       phiprof::stop("write-initial-state");
    }
 
-   cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
+   //   cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
    
    if (P::isRestart == false) {
       //compute new dt
@@ -631,7 +631,7 @@ int main(int argn,char* args[]) {
       phiprof::stop("compute-dt");
    }
 
-   cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
+   //   cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
 
    if (!P::isRestart) {      
       //go forward by dt/2 in V, initializes leapfrog split. In restarts the
@@ -1031,6 +1031,8 @@ int main(int argn,char* args[]) {
          CellParams::P_33_DT2
       );
       phiprof::stop("Compute interp moments");
+
+      //      cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
       
       // Apply boundary conditions      
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
@@ -1040,13 +1042,14 @@ int main(int argn,char* args[]) {
          addTimedBarrier("barrier-boundary-conditions");
       }
 
+      //      cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
       
       // Propagate fields forward in time by dt. This needs to be done before the
       // moments for t + dt are computed (field uses t and t+0.5dt)
       if (P::propagateField) {
          phiprof::start("Propagate Fields");
 
-         cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
+         //         cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
          
          phiprof::start("fsgrid-coupling-in");
          // Copy moments over into the fsgrid.
@@ -1095,9 +1098,13 @@ int main(int argn,char* args[]) {
          calculateAcceleration(mpiGrid, 0.0);
       }
 
+//      cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
+      
       phiprof::stop("Velocity-space",computedCells,"Cells");
       addTimedBarrier("barrier-after-acceleration");
 
+//      cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
+      
       phiprof::start("Compute interp moments");
       // *here we compute rho and rho_v for timestep t + dt, so next
       // timestep * //
@@ -1114,11 +1121,15 @@ int main(int argn,char* args[]) {
       );
       phiprof::stop("Compute interp moments");
 
+//      cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
+      
       phiprof::stop("Propagate",computedCells,"Cells");
       
       phiprof::start("Project endTimeStep");
       project->hook(hook::END_OF_TIME_STEP, mpiGrid);
       phiprof::stop("Project endTimeStep");
+
+//      cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
       
       // Check timestep
       if (P::dt < P::bailout_min_dt) {
@@ -1133,6 +1144,8 @@ int main(int argn,char* args[]) {
    }
 
    double after = MPI_Wtime();
+
+   cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
    
    phiprof::stop("Simulation");
    phiprof::start("Finalization");
