@@ -651,7 +651,7 @@ int main(int argn,char* args[]) {
    // ***** INITIALIZATION COMPLETE *****
    // ***********************************
 
-   cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
+   //   cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
    
    // Main simulation loop:
    if (myRank == MASTER_RANK) logFile << "(MAIN): Starting main simulation loop." << endl << writeVerbose;
@@ -695,6 +695,8 @@ int main(int argn,char* args[]) {
    while(P::tstep <= P::tstep_max  &&
          P::t-P::dt <= P::t_max+DT_EPSILON &&
          wallTimeRestartCounter <= P::exitAfterRestarts) {
+
+      //      cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
       
       addTimedBarrier("barrier-loop-start");
       
@@ -706,6 +708,8 @@ int main(int argn,char* args[]) {
          checkExternalCommands();
       }
       phiprof::stop("checkExternalCommands");
+
+      cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
       
       //write out phiprof profiles and logs with a lower interval than normal
       //diagnostic (every 10 diagnostic intervals).
@@ -735,6 +739,8 @@ int main(int argn,char* args[]) {
       }
       logFile << writeVerbose;
       phiprof::stop("logfile-io");
+
+      //      cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
       
 // Check whether diagnostic output has to be produced
       if (P::diagnosticInterval != 0 && P::tstep % P::diagnosticInterval == 0) {
@@ -761,6 +767,9 @@ int main(int argn,char* args[]) {
          }
          phiprof::stop("diagnostic-io");
       }
+
+      //      cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
+      
       bool extractFsGridFields = true;
       // write system, loop through write classes
       for (uint i = 0; i < P::systemWriteTimeInterval.size(); i++) {
@@ -813,11 +822,15 @@ int main(int argn,char* args[]) {
             phiprof::stop("write-system");
          }
       }
+
+      //      cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
       
       // Reduce globalflags::bailingOut from all processes
       phiprof::start("Bailout-allreduce");
       MPI_Allreduce(&(globalflags::bailingOut), &(doBailout), 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
       phiprof::stop("Bailout-allreduce");
+
+      //      cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
       
       // Write restart data if needed
       // Combined with checking of additional load balancing to have only one collective call.
@@ -844,6 +857,8 @@ int main(int argn,char* args[]) {
             globalflags::balanceLoad = false;
          }
       }
+      //      cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
+      
       MPI_Bcast( &doNow, 2 , MPI_INT , MASTER_RANK ,MPI_COMM_WORLD);
       writeRestartNow = doNow[0];
       doNow[0] = 0;
@@ -853,6 +868,8 @@ int main(int argn,char* args[]) {
       }
       phiprof::stop("compute-is-restart-written-and-extra-LB");
 
+      //      cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
+      
       if (writeRestartNow >= 1){
          phiprof::start("write-restart");
          if (writeRestartNow == 1) {
@@ -873,6 +890,8 @@ int main(int argn,char* args[]) {
       
       phiprof::stop("IO");
       addTimedBarrier("barrier-end-io");
+
+//      cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
       
       //no need to propagate if we are on the final step, we just
       //wanted to make sure all IO is done even for final step
@@ -885,6 +904,7 @@ int main(int argn,char* args[]) {
       //Re-loadbalance if needed
       //TODO - add LB measure and do LB if it exceeds threshold
       if((P::tstep % P::rebalanceInterval == 0 && P::tstep > P::tstep_min) || overrideRebalanceNow == true) {
+         //      if(false) {
          logFile << "(LB): Start load balance, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
          balanceLoad(mpiGrid, sysBoundaries);
          addTimedBarrier("barrier-end-load-balance");
@@ -895,9 +915,17 @@ int main(int argn,char* args[]) {
          logFile << "(LB): ... done!"  << endl << writeVerbose;
          P::prepareForRebalance = false;
 
+         //cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
+         
          // Re-couple fsgrids to updated grid situation
          phiprof::start("fsgrid-recouple-after-lb");
+         
          const vector<CellID>& cells = getLocalCells();
+
+         cout << "Cells are: ";
+         for(auto id : cells) cout << id << " ";
+         cout << endl;
+         
          perBGrid.setupForGridCoupling();
          perBDt2Grid.setupForGridCoupling();
          EGrid.setupForGridCoupling();
@@ -912,11 +940,15 @@ int main(int argn,char* args[]) {
          volGrid.setupForGridCoupling();
          technicalGrid.setupForGridCoupling();
 
+         //cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
+         
          // Each dccrg cell may have to communicate with multiple fsgrid cells, if they are on a lower refinement level.
          // Calculate the corresponding fsgrid ids for each dccrg cell and set coupling for each fsgrid id.
          for(auto& dccrgId : cells) {
             const auto fsgridIds = mapDccrgIdToFsGrid(mpiGrid, fsGridDimensions, dccrgId);
+            cout << "Fsgrid ids for cell " << dccrgId << " are: ";
             for (auto fsgridId : fsgridIds) {
+               cout << fsgridId << " ";
                perBGrid.      setGridCoupling(fsgridId, myRank);
                perBDt2Grid.   setGridCoupling(fsgridId, myRank);
                EGrid.         setGridCoupling(fsgridId, myRank);
@@ -931,7 +963,10 @@ int main(int argn,char* args[]) {
                volGrid.       setGridCoupling(fsgridId, myRank);
                technicalGrid. setGridCoupling(fsgridId, myRank);
             }
+            cout << endl;
          }
+
+         //         cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
          
          // // FSGrid cellIds are 0-based, whereas DCCRG cellIds are 1-based, beware
          // for(auto& i : cells) {
@@ -968,6 +1003,8 @@ int main(int argn,char* args[]) {
          overrideRebalanceNow = false;
       }
 
+      //      cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
+      
       //get local cells
       const vector<CellID>& cells = getLocalCells();
 
@@ -1031,13 +1068,13 @@ int main(int argn,char* args[]) {
       }
       
       phiprof::start("Spatial-space");
-      cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
+      //      cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
       if( P::propagateVlasovTranslation) {
          calculateSpatialTranslation(mpiGrid,P::dt);
       } else {
          calculateSpatialTranslation(mpiGrid,0.0);
       }
-      cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
+      //      cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
       phiprof::stop("Spatial-space",computedCells,"Cells");
 
       phiprof::start("Compute interp moments");
@@ -1120,12 +1157,12 @@ int main(int argn,char* args[]) {
          calculateAcceleration(mpiGrid, 0.0);
       }
 
-//      cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
+      //      cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
       
       phiprof::stop("Velocity-space",computedCells,"Cells");
       addTimedBarrier("barrier-after-acceleration");
 
-//      cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
+      //      cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
       
       phiprof::start("Compute interp moments");
       // *here we compute rho and rho_v for timestep t + dt, so next
@@ -1143,7 +1180,7 @@ int main(int argn,char* args[]) {
       );
       phiprof::stop("Compute interp moments");
 
-//      cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
+      //      cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
       
       phiprof::stop("Propagate",computedCells,"Cells");
       
@@ -1151,8 +1188,8 @@ int main(int argn,char* args[]) {
       project->hook(hook::END_OF_TIME_STEP, mpiGrid);
       phiprof::stop("Project endTimeStep");
 
-//      cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
-      
+      //      cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
+    
       // Check timestep
       if (P::dt < P::bailout_min_dt) {
          stringstream s;
@@ -1163,6 +1200,8 @@ int main(int argn,char* args[]) {
       P::meshRepartitioned = false;
       ++P::tstep;
       P::t += P::dt;
+
+      //      cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
    }
 
    double after = MPI_Wtime();
