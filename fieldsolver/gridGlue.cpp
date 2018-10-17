@@ -394,7 +394,7 @@ void getFsGridMaxDt(FsGrid< fsgrids::technical, 2>& technicalGrid,
    technicalGrid.setupForTransferOut(nCells);
 
    // Buffer to store contents of the grid
-   std::vector<fsgrids::technical> transferBuffer(cells.size());
+   std::vector<fsgrids::technical> transferBuffer(nCells);
    std::vector<fsgrids::technical*> transferBufferPointer;
 
    int k = 0;
