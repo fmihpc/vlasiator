@@ -119,10 +119,6 @@ void calculateWaveSpeedYZ(
    Real& ret_vS,
    Real& ret_vW
 ) {
-   if (Parameters::propagateField == false) {
-      return;
-   }
-
    std::array<Real, fsgrids::bfield::N_BFIELD> * perb = perBGrid.get(i,j,k);
    std::array<Real, fsgrids::bfield::N_BFIELD> * nbr_perb = perBGrid.get(nbi,nbj,nbk);
    std::array<Real, fsgrids::moments::N_MOMENTS> * moments = momentsGrid.get(i,j,k);
@@ -237,10 +233,6 @@ void calculateWaveSpeedXZ(
    Real& ret_vS,
    Real& ret_vW
 ) {
-   if (Parameters::propagateField == false) {
-      return;
-   }
-
    std::array<Real, fsgrids::bfield::N_BFIELD> * perb = perBGrid.get(i,j,k);
    std::array<Real, fsgrids::bfield::N_BFIELD> * nbr_perb = perBGrid.get(nbi,nbj,nbk);
    std::array<Real, fsgrids::moments::N_MOMENTS> * moments = momentsGrid.get(i,j,k);
@@ -355,10 +347,6 @@ void calculateWaveSpeedXY(
    Real& ret_vS,
    Real& ret_vW
 ) {
-   if (Parameters::propagateField == false) {
-      return;
-   }
-
    std::array<Real, fsgrids::bfield::N_BFIELD> * perb = perBGrid.get(i,j,k);
    std::array<Real, fsgrids::bfield::N_BFIELD> * nbr_perb = perBGrid.get(nbi,nbj,nbk);
    std::array<Real, fsgrids::moments::N_MOMENTS> * moments = momentsGrid.get(i,j,k);
