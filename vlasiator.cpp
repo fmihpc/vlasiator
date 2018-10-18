@@ -93,8 +93,6 @@ void addTimedBarrier(string name){
 }
 
 bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,Real &newDt, bool &isChanged) {
-
-   //   cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
    
    phiprof::start("compute-timestep");
    //compute maximum time-step, this cannot be done at the first
@@ -174,8 +172,6 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    creal meanFieldsCFL = 0.5*(P::fieldSolverMaxCFL+ P::fieldSolverMinCFL);
    Real subcycleDt;
 
-   //   cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
-
    // cout << dtMaxGlobal[0];
    // cout << " ";
    // cout << dtMaxGlobal[1];
@@ -201,7 +197,6 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
         P::dt < dtMaxGlobal[2] * P::fieldSolverMinCFL * P::maxFieldSolverSubcycles )
       ) {
 
-      //      cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
       //new dt computed
       isChanged=true;
 
@@ -273,6 +268,7 @@ int main(int argn,char* args[]) {
    typedef Parameters P;
    Real newDt;
    bool dtIsChanged;
+   const bool printLines = false;
    
 // Init MPI:
    int required=MPI_THREAD_FUNNELED;
@@ -386,7 +382,7 @@ int main(int argn,char* args[]) {
    isSysBoundaryCondDynamic = sysBoundaries.isDynamic();
    
    phiprof::stop("Init grid");
-
+   
    // Initialize data reduction operators. This should be done elsewhere in order to initialize 
    // user-defined operators:
    phiprof::start("Init DROs");
@@ -432,6 +428,14 @@ int main(int argn,char* args[]) {
    phiprof::stop("Init fieldsolver grids");
    phiprof::start("Initial fsgrid coupling");
    const std::vector<CellID>& cells = getLocalCells();
+
+   // for (auto cell: cells) {
+   //    creal dx = mpiGrid[cell]->parameters[CellParams::DX];
+   //    creal dy = mpiGrid[cell]->parameters[CellParams::DY];
+   //    creal dz = mpiGrid[cell]->parameters[CellParams::DZ];
+
+   //    std::cout << "cell " << cell << " dx,dy,dz = " << dx << ", " << dy << ", " << dz << std::endl;
+   // }
    
    // Couple FSGrids to mpiGrid
    // TODO: Do we really need to couple *all* of these fields?
@@ -498,7 +502,7 @@ int main(int argn,char* args[]) {
    feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid,false);
    feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid,false);
 
-   cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
+   if(printLines) cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
    
    phiprof::start("Init field propagator");
    if (
@@ -524,7 +528,7 @@ int main(int argn,char* args[]) {
    }
    phiprof::stop("Init field propagator");
 
-   //   cout << "I am at line " << __LINE__ << " of " << __FILE__  << " dt =  " << P::dt << endl;
+   if(printLines) cout << "I am at line " << __LINE__ << " of " << __FILE__  << " dt =  " << P::dt << endl;
    
    // Initialize Poisson solver (if used)
    if (P::propagatePotential == true) {
@@ -539,7 +543,7 @@ int main(int argn,char* args[]) {
    // Free up memory:
    readparameters.finalize();
 
-   //   cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
+   if(printLines)  cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
    
    if (P::isRestart == false) {
       // Run Vlasov solver once with zero dt to initialize
@@ -576,7 +580,7 @@ int main(int argn,char* args[]) {
    getVolumeFieldsFromFsGrid(volGrid, mpiGrid, cells);
    phiprof::stop("getVolumeFieldsFromFsGrid");
 
-   //   cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
+   if(printLines)  cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
    
    // Save restart data
    if (P::writeInitialState) {
@@ -617,12 +621,15 @@ int main(int argn,char* args[]) {
       phiprof::stop("write-initial-state");
    }
 
-   //   cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
+   if(printLines)  cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
    
    if (P::isRestart == false) {
       //compute new dt
       phiprof::start("compute-dt");
       getFsGridMaxDt(technicalGrid, mpiGrid, cells);
+
+      if(printLines)  cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
+      
       computeNewTimeStep(mpiGrid,newDt,dtIsChanged);
       if (P::dynamicTimestep == true && dtIsChanged == true) {
          // Only actually update the timestep if dynamicTimestep is on
@@ -630,6 +637,8 @@ int main(int argn,char* args[]) {
       }
       phiprof::stop("compute-dt");
    }
+
+   if(printLines)  cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
 
    if (!P::isRestart) {      
       //go forward by dt/2 in V, initializes leapfrog split. In restarts the
@@ -651,7 +660,7 @@ int main(int argn,char* args[]) {
    // ***** INITIALIZATION COMPLETE *****
    // ***********************************
 
-   //   cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
+   if(printLines)  cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
    
    // Main simulation loop:
    if (myRank == MASTER_RANK) logFile << "(MAIN): Starting main simulation loop." << endl << writeVerbose;
@@ -696,7 +705,7 @@ int main(int argn,char* args[]) {
          P::t-P::dt <= P::t_max+DT_EPSILON &&
          wallTimeRestartCounter <= P::exitAfterRestarts) {
 
-      //      cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
+      if(printLines)  cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
       
       addTimedBarrier("barrier-loop-start");
       
@@ -709,7 +718,7 @@ int main(int argn,char* args[]) {
       }
       phiprof::stop("checkExternalCommands");
 
-      cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
+      if(printLines) cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
       
       //write out phiprof profiles and logs with a lower interval than normal
       //diagnostic (every 10 diagnostic intervals).
@@ -740,7 +749,7 @@ int main(int argn,char* args[]) {
       logFile << writeVerbose;
       phiprof::stop("logfile-io");
 
-      //      cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
+      if(printLines) cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
       
 // Check whether diagnostic output has to be produced
       if (P::diagnosticInterval != 0 && P::tstep % P::diagnosticInterval == 0) {
@@ -768,7 +777,7 @@ int main(int argn,char* args[]) {
          phiprof::stop("diagnostic-io");
       }
 
-      //      cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
+      if(printLines) cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
       
       bool extractFsGridFields = true;
       // write system, loop through write classes
@@ -823,14 +832,14 @@ int main(int argn,char* args[]) {
          }
       }
 
-      //      cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
+      if(printLines) cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
       
       // Reduce globalflags::bailingOut from all processes
       phiprof::start("Bailout-allreduce");
       MPI_Allreduce(&(globalflags::bailingOut), &(doBailout), 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
       phiprof::stop("Bailout-allreduce");
 
-      //      cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
+      if(printLines) cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
       
       // Write restart data if needed
       // Combined with checking of additional load balancing to have only one collective call.
@@ -857,7 +866,7 @@ int main(int argn,char* args[]) {
             globalflags::balanceLoad = false;
          }
       }
-      //      cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
+      if(printLines) cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
       
       MPI_Bcast( &doNow, 2 , MPI_INT , MASTER_RANK ,MPI_COMM_WORLD);
       writeRestartNow = doNow[0];
@@ -868,7 +877,7 @@ int main(int argn,char* args[]) {
       }
       phiprof::stop("compute-is-restart-written-and-extra-LB");
 
-      //      cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
+      if(printLines) cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
       
       if (writeRestartNow >= 1){
          phiprof::start("write-restart");
@@ -891,7 +900,7 @@ int main(int argn,char* args[]) {
       phiprof::stop("IO");
       addTimedBarrier("barrier-end-io");
 
-//      cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
+      if(printLines) cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
       
       //no need to propagate if we are on the final step, we just
       //wanted to make sure all IO is done even for final step
@@ -903,8 +912,8 @@ int main(int argn,char* args[]) {
       
       //Re-loadbalance if needed
       //TODO - add LB measure and do LB if it exceeds threshold
-      if((P::tstep % P::rebalanceInterval == 0 && P::tstep > P::tstep_min) || overrideRebalanceNow == true) {
-         //      if(false) {
+      #warning Re-loadbalance has been disabled temporarily for amr debugging
+      if(((P::tstep % P::rebalanceInterval == 0 && P::tstep > P::tstep_min) || overrideRebalanceNow) && false) {
          logFile << "(LB): Start load balance, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
          balanceLoad(mpiGrid, sysBoundaries);
          addTimedBarrier("barrier-end-load-balance");
@@ -915,32 +924,32 @@ int main(int argn,char* args[]) {
          logFile << "(LB): ... done!"  << endl << writeVerbose;
          P::prepareForRebalance = false;
 
-         //cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
+         if(printLines) cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
          
          // Re-couple fsgrids to updated grid situation
          phiprof::start("fsgrid-recouple-after-lb");
          
          const vector<CellID>& cells = getLocalCells();
 
-         cout << "Cells are: ";
+         cout << "Local cells are: ";
          for(auto id : cells) cout << id << " ";
          cout << endl;
          
-         perBGrid.setupForGridCoupling();
-         perBDt2Grid.setupForGridCoupling();
-         EGrid.setupForGridCoupling();
-         EDt2Grid.setupForGridCoupling();
-         EHallGrid.setupForGridCoupling();
-         EGradPeGrid.setupForGridCoupling();
-         momentsGrid.setupForGridCoupling();
+         perBGrid.      setupForGridCoupling();
+         perBDt2Grid.   setupForGridCoupling();
+         EGrid.         setupForGridCoupling();
+         EDt2Grid.      setupForGridCoupling();
+         EHallGrid.     setupForGridCoupling();
+         EGradPeGrid.   setupForGridCoupling();
+         momentsGrid.   setupForGridCoupling();
          momentsDt2Grid.setupForGridCoupling();
-         dPerBGrid.setupForGridCoupling();
-         dMomentsGrid.setupForGridCoupling();
-         BgBGrid.setupForGridCoupling();
-         volGrid.setupForGridCoupling();
-         technicalGrid.setupForGridCoupling();
+         dPerBGrid.     setupForGridCoupling();
+         dMomentsGrid.  setupForGridCoupling();
+         BgBGrid.       setupForGridCoupling();
+         volGrid.       setupForGridCoupling();
+         technicalGrid. setupForGridCoupling();
 
-         //cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
+         if(printLines) cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
          
          // Each dccrg cell may have to communicate with multiple fsgrid cells, if they are on a lower refinement level.
          // Calculate the corresponding fsgrid ids for each dccrg cell and set coupling for each fsgrid id.
@@ -959,51 +968,34 @@ int main(int argn,char* args[]) {
                momentsDt2Grid.setGridCoupling(fsgridId, myRank);
                dPerBGrid.     setGridCoupling(fsgridId, myRank);
                dMomentsGrid.  setGridCoupling(fsgridId, myRank);
-               BgBGrid.       setGridCoupling(fsgridId, myRank);
+               BgBGrid.       setGridCoupling(fsgridId, myRank);               
                volGrid.       setGridCoupling(fsgridId, myRank);
                technicalGrid. setGridCoupling(fsgridId, myRank);
             }
             cout << endl;
          }
-
-         //         cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
+         //cout << endl;
+         if(printLines) cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
          
-         // // FSGrid cellIds are 0-based, whereas DCCRG cellIds are 1-based, beware
-         // for(auto& i : cells) {
-         //    perBGrid.setGridCoupling(i-1, myRank);
-         //    perBDt2Grid.setGridCoupling(i-1, myRank);
-         //    EGrid.setGridCoupling(i-1, myRank);
-         //    EDt2Grid.setGridCoupling(i-1, myRank);
-         //    EHallGrid.setGridCoupling(i-1, myRank);
-         //    EGradPeGrid.setGridCoupling(i-1, myRank);
-         //    momentsGrid.setGridCoupling(i-1, myRank);
-         //    momentsDt2Grid.setGridCoupling(i-1, myRank);
-         //    dPerBGrid.setGridCoupling(i-1, myRank);
-         //    dMomentsGrid.setGridCoupling(i-1, myRank);
-         //    BgBGrid.setGridCoupling(i-1, myRank);
-         //    volGrid.setGridCoupling(i-1, myRank);
-         //    technicalGrid.setGridCoupling(i-1, myRank);
-         // }
-         
-         perBGrid.finishGridCoupling();
-         perBDt2Grid.finishGridCoupling();
-         EGrid.finishGridCoupling();
-         EDt2Grid.finishGridCoupling();
-         EHallGrid.finishGridCoupling();
-         EGradPeGrid.finishGridCoupling();
-         momentsGrid.finishGridCoupling();
+         perBGrid.      finishGridCoupling();
+         perBDt2Grid.   finishGridCoupling();
+         EGrid.         finishGridCoupling();
+         EDt2Grid.      finishGridCoupling();
+         EHallGrid.     finishGridCoupling();
+         EGradPeGrid.   finishGridCoupling();
+         momentsGrid.   finishGridCoupling();
          momentsDt2Grid.finishGridCoupling();
-         dPerBGrid.finishGridCoupling();
-         dMomentsGrid.finishGridCoupling();
-         BgBGrid.finishGridCoupling();
-         volGrid.finishGridCoupling();
-         technicalGrid.finishGridCoupling();
+         dPerBGrid.     finishGridCoupling();
+         dMomentsGrid.  finishGridCoupling();
+         BgBGrid.       finishGridCoupling();
+         volGrid.       finishGridCoupling();
+         technicalGrid. finishGridCoupling();
          phiprof::stop("fsgrid-recouple-after-lb");
 
          overrideRebalanceNow = false;
       }
 
-      //      cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
+      if(printLines) cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
       
       //get local cells
       const vector<CellID>& cells = getLocalCells();
@@ -1068,13 +1060,56 @@ int main(int argn,char* args[]) {
       }
       
       phiprof::start("Spatial-space");
-      //      cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
+      if(printLines) cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
+
+      cout << "Before spatialTranslation, ";
+      Real nSum = 0.0;
+      Real nSumRef = 0.0;
+
+      for(auto cell: cells) {
+         
+         creal rho = mpiGrid[cell]->parameters[CellParams::RHOM_R];
+         creal dx = mpiGrid[cell]->parameters[CellParams::DX];
+         creal dy = mpiGrid[cell]->parameters[CellParams::DY];
+         creal dz = mpiGrid[cell]->parameters[CellParams::DZ];
+         if(cell >= 114) {   
+            nSumRef += rho*dx*dy*dz;
+            cout << "Cell " << cell << " n = " << rho*dx*dy*dz << endl;
+         } else {
+            nSum += rho*dx*dy*dz;
+            cout << "Cell " << cell << " n = " << rho*dx*dy*dz << endl;
+         }
+      }
+      cout << "nSum = " << nSum << ", nSumRef = " << nSumRef << endl;
+      
       if( P::propagateVlasovTranslation) {
          calculateSpatialTranslation(mpiGrid,P::dt);
       } else {
          calculateSpatialTranslation(mpiGrid,0.0);
       }
-      //      cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
+
+      cout << "After spatialTranslation,  ";
+      nSum = 0.0;
+      nSumRef = 0.0;
+      for(auto cell: cells) {
+         creal rho = mpiGrid[cell]->parameters[CellParams::RHOM_R];
+         creal dx = mpiGrid[cell]->parameters[CellParams::DX];
+         creal dy = mpiGrid[cell]->parameters[CellParams::DY];
+         creal dz = mpiGrid[cell]->parameters[CellParams::DZ];
+
+         if(cell >= 114) {            
+            nSumRef += rho*dx*dy*dz;
+            cout << "Cell " << cell << " n = " << rho*dx*dy*dz << endl;
+         } else {
+            nSum += rho*dx*dy*dz;
+            cout << "Cell " << cell << " n = " << rho*dx*dy*dz << endl;
+         }
+      }
+      cout << "nSum = " << nSum << ", nSumRef = " << nSumRef << endl;
+
+      bailout(true, "", __FILE__, __LINE__);
+      
+      if(printLines) cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
       phiprof::stop("Spatial-space",computedCells,"Cells");
 
       phiprof::start("Compute interp moments");
@@ -1091,7 +1126,7 @@ int main(int argn,char* args[]) {
       );
       phiprof::stop("Compute interp moments");
 
-      //      cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
+      if(printLines) cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
       
       // Apply boundary conditions      
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
@@ -1101,14 +1136,14 @@ int main(int argn,char* args[]) {
          addTimedBarrier("barrier-boundary-conditions");
       }
 
-      //      cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
+      if(printLines) cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
       
       // Propagate fields forward in time by dt. This needs to be done before the
       // moments for t + dt are computed (field uses t and t+0.5dt)
       if (P::propagateField) {
          phiprof::start("Propagate Fields");
 
-         //         cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
+         if(printLines) cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
          
          phiprof::start("fsgrid-coupling-in");
          // Copy moments over into the fsgrid.
@@ -1157,12 +1192,12 @@ int main(int argn,char* args[]) {
          calculateAcceleration(mpiGrid, 0.0);
       }
 
-      //      cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
+      if(printLines) cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
       
       phiprof::stop("Velocity-space",computedCells,"Cells");
       addTimedBarrier("barrier-after-acceleration");
 
-      //      cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
+      if(printLines) cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
       
       phiprof::start("Compute interp moments");
       // *here we compute rho and rho_v for timestep t + dt, so next
@@ -1180,7 +1215,7 @@ int main(int argn,char* args[]) {
       );
       phiprof::stop("Compute interp moments");
 
-      //      cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
+      if(printLines) cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
       
       phiprof::stop("Propagate",computedCells,"Cells");
       
@@ -1188,7 +1223,7 @@ int main(int argn,char* args[]) {
       project->hook(hook::END_OF_TIME_STEP, mpiGrid);
       phiprof::stop("Project endTimeStep");
 
-      //      cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
+      if(printLines) cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
     
       // Check timestep
       if (P::dt < P::bailout_min_dt) {
@@ -1201,7 +1236,7 @@ int main(int argn,char* args[]) {
       ++P::tstep;
       P::t += P::dt;
 
-      //      cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
+      if(printLines) cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
    }
 
    double after = MPI_Wtime();

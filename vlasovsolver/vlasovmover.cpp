@@ -80,7 +80,7 @@ void calculateSpatialTranslation(
     //   std::cout << "I am at line " << __LINE__ << " of " << __FILE__ << std::endl;
     
     // ------------- SLICE - map dist function in Z --------------- //
-   if(P::zcells_ini > 1 ){
+   if(P::zcells_ini > 1 && false){
       trans_timer=phiprof::initializeTimer("transfer-stencil-data-z","MPI");
       phiprof::start(trans_timer);
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
@@ -112,8 +112,7 @@ void calculateSpatialTranslation(
       phiprof::stop(trans_timer);
 
       phiprof::start("compute-mapping-x");
-      bool foo;
-      foo = trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsx, 0,dt,popID); // map along x//
+      trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsx, 0,dt,popID); // map along x//
       phiprof::stop("compute-mapping-x");
 
       trans_timer=phiprof::initializeTimer("update_remote-x","MPI");
@@ -126,7 +125,7 @@ void calculateSpatialTranslation(
    //   std::cout << "I am at line " << __LINE__ << " of " << __FILE__ << std::endl;
    
    // ------------- SLICE - map dist function in Y --------------- //
-   if(P::ycells_ini > 1 ){
+   if(P::ycells_ini > 1 && false){
       trans_timer=phiprof::initializeTimer("transfer-stencil-data-y","MPI");
       phiprof::start(trans_timer);
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
