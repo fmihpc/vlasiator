@@ -648,6 +648,8 @@ void update_remote_mapping_contribution(
    vector<CellID> receive_cells;
    vector<CellID> send_cells;
    vector<Realf*> receiveBuffers;
+
+   //   std::cout << "I am at line " << __LINE__ << " of " << __FILE__ << std::endl;
    
    //normalize
    if(direction > 0) direction = 1;
@@ -659,31 +661,61 @@ void update_remote_mapping_contribution(
       ccell->neighbor_number_of_blocks = 0;
    }
 
+   //std::cout << "I am at line " << __LINE__ << " of " << __FILE__ << std::endl;
+   
    //TODO: prepare arrays, make parallel by avoidin push_back and by checking also for other stuff
-   for (size_t c=0; c<local_cells.size(); ++c) {
+   for (size_t c = 0; c < local_cells.size(); ++c) {
+
+      //std::cout << "I am at line " << __LINE__ << " of " << __FILE__ << " " << local_cells[c] << std::endl;
+      
       SpatialCell *ccell = mpiGrid[local_cells[c]];
       //default values, to avoid any extra sends and receives
       ccell->neighbor_block_data = ccell->get_data(popID);
       ccell->neighbor_number_of_blocks = 0;
       CellID p_ngbr,m_ngbr;
+      // switch (dimension) {
+      // case 0:
+      //    //p_ngbr is target, if in boundaries then it is not updated
+      //    p_ngbr=get_spatial_neighbor(mpiGrid, local_cells[c], false, direction, 0, 0);
+      //    //m_ngbr is source, first boundary layer is propagated so that it flows into system
+      //    m_ngbr=get_spatial_neighbor(mpiGrid, local_cells[c], true, -direction, 0, 0); 
+      //    break;
+      // case 1:
+      //    //p_ngbr is target, if in boundaries then it is not update
+      //    p_ngbr=get_spatial_neighbor(mpiGrid, local_cells[c], false, 0, direction, 0);
+      //    //m_ngbr is source, first boundary layer is propagated so that it flows into system
+      //    m_ngbr=get_spatial_neighbor(mpiGrid, local_cells[c], true, 0, -direction, 0); 
+      //    break;
+      // case 2:
+      //    //p_ngbr is target, if in boundaries then it is not update
+      //    p_ngbr=get_spatial_neighbor(mpiGrid, local_cells[c], false, 0, 0, direction);
+      //    //m_ngbr is source, first boundary layer is propagated so that it flows into system
+      //    m_ngbr=get_spatial_neighbor(mpiGrid, local_cells[c], true, 0, 0, -direction); 
+      //    break;
+      // default:
+      //    cerr << "Dimension wrong at (impossible!) "<< __FILE__ <<":" << __LINE__<<endl;
+      //    exit(1);
+      //    break;
+      // }
+
+      int neighborhood = 0;
       switch (dimension) {
       case 0:
-         p_ngbr=get_spatial_neighbor(mpiGrid, local_cells[c], false, direction, 0, 0); //p_ngbr is target, if in boundaries then it is not updated
-         m_ngbr=get_spatial_neighbor(mpiGrid, local_cells[c], true, -direction, 0, 0); //m_ngbr is source, first boundary layer is propagated so that it flows into system
+         neighborhood = VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID;
          break;
       case 1:
-         p_ngbr=get_spatial_neighbor(mpiGrid, local_cells[c], false, 0, direction, 0); //p_ngbr is target, if in boundaries then it is not update
-         m_ngbr=get_spatial_neighbor(mpiGrid, local_cells[c], true, 0, -direction, 0); //m_ngbr is source, first boundary layer is propagated so that it flows into system
+         neighborhood = VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID;
          break;
       case 2:
-         p_ngbr=get_spatial_neighbor(mpiGrid, local_cells[c], false, 0, 0, direction); //p_ngbr is target, if in boundaries then it is not update
-         m_ngbr=get_spatial_neighbor(mpiGrid, local_cells[c], true, 0, 0, -direction); //m_ngbr is source, first boundary layer is propagated so that it flows into system
+         neighborhood = VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID;
          break;
-      default:
-         cerr << "Dimension wrong at (impossible!) "<< __FILE__ <<":" << __LINE__<<endl;
-         exit(1);
-         break;
-      }
+      }     
+      auto NbrPairVector = mpiGrid.get_neighbors_of(local_cells[c], neighborhood);
+      m_ngbr = NbrPairVector->front().first;
+      p_ngbr = NbrPairVector->back().first;
+
+      //std::cout << "I am at line " << __LINE__ << " of " << __FILE__ << std::endl;
+      
       //internal cell, not much to do
       if (mpiGrid.is_local(p_ngbr) && mpiGrid.is_local(m_ngbr)) continue;
 
@@ -715,7 +747,9 @@ void update_remote_mapping_contribution(
          receiveBuffers.push_back(mcell->neighbor_block_data);
       }
    }
-    
+
+   //std::cout << "I am at line " << __LINE__ << " of " << __FILE__ << std::endl;
+   
    // Do communication
    SpatialCell::setCommunicatedSpecies(popID);
    SpatialCell::set_mpi_transfer_type(Transfer::NEIGHBOR_VEL_BLOCK_DATA);
@@ -733,6 +767,8 @@ void update_remote_mapping_contribution(
       if(direction < 0) mpiGrid.update_copies_of_remote_neighbors(SHIFT_M_Z_NEIGHBORHOOD_ID);
       break;
    }
+
+   //std::cout << "I am at line " << __LINE__ << " of " << __FILE__ << std::endl;
    
 #pragma omp parallel
    {
@@ -762,7 +798,9 @@ void update_remote_mapping_contribution(
          }
       }
    }
-    
+
+   //std::cout << "I am at line " << __LINE__ << " of " << __FILE__ << std::endl;
+   
    //and finally free temporary receive buffer
    for (size_t c=0; c < receiveBuffers.size(); ++c) {
       aligned_free(receiveBuffers[c]);
