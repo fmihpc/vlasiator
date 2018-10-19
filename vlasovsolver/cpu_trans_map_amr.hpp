@@ -32,25 +32,28 @@ struct setOfPencils {
 
    uint N; // Number of pencils in the set
    uint sumOfLengths;
-   std::vector<uint> lengthOfPencils; // Lengths of pencils
-   std::vector<CellID> ids; // List of cells
-   std::vector<Realv> x,y; // x,y - position
-   std::vector<bool> periodic;
+   std::vector< uint > lengthOfPencils; // Lengths of pencils
+   std::vector< CellID > ids; // List of cells
+   std::vector< Realv > x,y; // x,y - position
+   std::vector< bool > periodic;
+   std::vector< std::vector<uint> > path; // Path taken through refinement levels
 
    setOfPencils() {
+      
       N = 0;
       sumOfLengths = 0;
    }
 
-   void addPencil(std::vector<CellID> idsIn, Real xIn, Real yIn, bool periodicIn) {
+   void addPencil(std::vector<CellID> idsIn, Real xIn, Real yIn, bool periodicIn, std::vector<uint> pathIn) {
 
-      N += 1;
+      N++;
       sumOfLengths += idsIn.size();
       lengthOfPencils.push_back(idsIn.size());
       ids.insert(ids.end(),idsIn.begin(),idsIn.end());
       x.push_back(xIn);
       y.push_back(yIn);
       periodic.push_back(periodicIn);
+      path.push_back(pathIn);
    }
 
    std::vector<CellID> getIds(const uint pencilId) const {
@@ -78,14 +81,22 @@ struct setOfPencils {
    // dx and dy are the dimensions of the original pencil.
    void split(const uint pencilId, const Realv dx, const Realv dy) {
 
-      x[pencilId] += 0.25 * dx;
-      y[pencilId] += 0.25 * dy;
-      
-      auto ids = getIds(pencilId);      
+      auto ids = getIds(pencilId);
+      auto path1 = path.at(pencilId);
+      auto path2 = path.at(pencilId);
+      auto path3 = path.at(pencilId);
 
-      addPencil(ids, x[pencilId] + 0.25 * dx, y[pencilId]            , periodic[pencilId]);
-      addPencil(ids, x[pencilId]            , y[pencilId] + 0.25 * dy, periodic[pencilId]);
-      addPencil(ids, x[pencilId] + 0.25 * dx, y[pencilId] + 0.25 * dy, periodic[pencilId]);
+      path1.push_back(1);
+      path2.push_back(2);
+      path3.push_back(3);
+      
+      x[pencilId] -= 0.25 * dx;
+      y[pencilId] += 0.25 * dy;
+      path.at(pencilId).push_back(0);     
+      
+      addPencil(ids, x[pencilId] + 0.25 * dx, y[pencilId] + 0.25 * dy, periodic[pencilId], path1);
+      addPencil(ids, x[pencilId] - 0.25 * dx, y[pencilId] - 0.25 * dy, periodic[pencilId], path2);
+      addPencil(ids, x[pencilId] + 0.25 * dx, y[pencilId] - 0.25 * dy, periodic[pencilId], path3);
       
    }
 
