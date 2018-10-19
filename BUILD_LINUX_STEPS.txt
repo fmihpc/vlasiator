@@ -1,0 +1,204 @@
+------------------------------------------------------------------------------------------------------------
+Target OS:
+------------------------------------------------------------------------------------------------------------
+
+- Ubuntu/Linux Mint server (both platforms tested)
+
+------------------------------------------------------------------------------------------------------------
+Dependencies tree
+------------------------------------------------------------------------------------------------------------
+
+vlasiator
+|
+|---------- DCCRG
+|            |
+|            |--------- OpenMPI  x
+|            |--------- Boost    x
+|            |--------- Zoltan   x 
+|
+|
+|---------- Eigen         x
+|---------- VectorClass   x 
+|---------- Phiprof       x
+|---------- vlsv          x 
+|---------- papi          x
+|---------- jemalloc      x 
+|---------- silo          x
+
+
+------------------------------------------------------------------------------------------------------------
+Steps:
+------------------------------------------------------------------------------------------------------------
+
+1) Ensure that repositories and packages are up to date, use sudo if not using root:
+
+> (sudo) apt-get update    (confirm with "Y")
+> (sudo) apt-get upgrade   (confirm with "Y")
+
+
+
+2) Install basic tools required for C/C++ compilation (again use sudo if not root):
+
+> (sudo) apt-get install build-essential cmake autoconf git automake unzip dos2unix
+
+
+
+3) Make a workspace directory:
+
+> cd $HOME
+> mkdir vlasiator
+> cd vlasiator
+
+
+4) Download, build and install the dependencies:
+
+	4-1) Install low level dependencies:
+
+		4-1-1) Intall zoltan dependency:
+
+			> (sudo) apt install libtrilinos-zoltan-dev
+			> (sudo) cp /usr/lib/x86_64-linux-gnu/libtrilinos_zoltan.so /usr/lib/x86_64-linux-gnu/libzoltan.so
+
+		4-1-2) Install boost:
+
+			> (sudo) apt-get install libboost-dev libboost-program-options-dev
+
+		4-1-3) Install eigen:
+
+			> (sudo) apt-get install libeigen3-dev 
+
+		4-1-4) Install open MPI 2:
+
+			> (sudo) apt-get install libopenmpi-dev
+
+
+		4-1-5) Install Vector class (headers only library):
+
+		    > cd $HOME/vlasiator
+		    > mkdir vectorclass
+		    > cd vectorclass
+		    > git clone https://github.com/lemire/vectorclass.git 
+		    > cd vectorclass
+		    > (sudo) cp *.h /usr/include
+
+		4-1-6) Install phiprof:
+
+		    > cd $HOME/vlasiator
+		    > mkdir phiprof
+		    > cd phiprof
+		    > wget https://github.com/fmihpc/phiprof/archive/v2.0-beta.zip
+		    > unzip v2.0-beta.zip
+		    > cd phiprof-2.0-beta
+		    > cd src
+
+		    Edit Makefile and modify the following lines (to update the compiler and include paths):
+
+		    INCLUDES = -I../include -I/usr/lib/x86_64-linux-gnu/openmpi/include/
+
+			CCC = gcc
+
+			Then build as follows:
+
+			> make
+
+			Now copy the includes and lib to system paths (to make them available) :
+
+			> cd ..
+			> (sudo) cp lib/*  /usr/lib
+			> (sudo) cp include/* /usr/include
+
+		4-1-7) Install vlsv:
+
+			> cd $HOME/vlasiator
+			> git clone https://github.com/fmihpc/vlsv
+			> cd vlsv
+			> make 
+			> (sudo) cp *.h /usr/include
+			> (sudo) cp *.a /usr/lib
+
+
+		4-1-8) Install papi:
+
+			> cd $HOME/vlasiator
+			> git clone https://bitbucket.org/icl/papi.git
+			> cd papi/src
+			> ./configure --prefix=${HOME}/papi_install
+			> make
+			> make install
+			> cd ${HOME}/papi_install
+			> (sudo) cp -R include/* /usr/include
+			> (sudo) cp lib/lib* /usr/lib
+
+		4-1-9) Install jemalloc:
+
+			> cd $HOME/vlasiator
+			> wget -O jemalloc-4.0.4.tar.bz2 https://github.com/jemalloc/jemalloc/releases/download/4.0.4/jemalloc-4.0.4.tar.bz2
+			> tar xf jemalloc-4.0.4.tar.bz2
+			> cd jemalloc-4.0.4
+			> ./configure --prefix=${HOME}/jmalloc_install --with-jemalloc-prefix=je_
+			> make 
+			> make install
+			> cd ${HOME}/jmalloc_install
+			> (sudo) cp -R include/* /usr/include 
+			> (sudo) cp -R bin/* /usr/bin 
+			> (sudo) cp -R lib/* /usr/lib 
+
+        4-1-10) Install silo:
+
+		    > (sudo) apt-get install libsilo-dev
+
+		4-1-11) Install fsgrid.hpp.
+
+            > cd $HOME/vlasiator
+		    > git clone https://github.com/fmihpc/fsgrid.git
+		    > cd fsgrid
+		    > (sudo) cp fsgrid.hh /usr/include		
+
+	4-2) Install DCCRG project:
+
+		> cd $HOME
+		> mkdir vlasiator
+		> cd vlasiator
+		> wget https://github.com/fmihpc/dccrg/archive/master.zip
+		> unzip master.zip
+		> cd dccrg-master
+		> (sudo) cp *.hpp /usr/include
+
+
+5) Download and install vlasiator:
+
+> cd $HOME/vlasiator
+> git clone https://github.com/fmihpc/vlasiator.git
+> cd vlasiator/MAKE
+> cp Makefile.home Makefile.mybuild
+
+Edit the file Makefile.mybuild and set the variable CXXFLAGS to this value:
+
+CXXFLAGS = -DPAPI_MEM -DUSE_JEMALLOC -DINSTRSET=7 -I/usr/include -I/usr/include/trilinos -I/usr/include/eigen3 -fpermissive -L/usr/lib -O3 -funroll-loops -std=c++11 -W -Wall -pedantic -Wno-unused -Wno-unused-parameter -Wno-missing-braces  -fopenmp -march=nehalem
+
+(OPTIONAL: at this line we can remove -DPAPI_MEM or -DUSE_JEMALLOC if we do not want to use them)
+
+> cd ..
+> export VECTORCLASS=VEC4F_AGNER
+> export VLASIATOR_ARCH=mybuild 
+> export LIB_JEMALLOC=-ljemalloc (skip this step if you removed from CXXFLAGS the -DUSE_JEMALLOC)
+> export LIB_PAPI=-lpapi   (skip this step if you removed from CXXFLAGS the -DPAPI_MEM)
+
+Build vlasiator:
+
+> make clean
+> make -j 12 
+
+Build additional tools:
+
+> make -j 12 tools
+
+You will find both, vlasiator program and tools under $HOME/vlasiator/vlasiator:
+
+> cd $HOME/vlasiator/vlasiator
+
+You can check tools usage as follows:
+
+> ./vlasiator --help
+> ./vlsvextract_DP --help
+> ./vlsvdiff_DP --help

@@ -80,11 +80,19 @@ template<typename CELLID> CELLID getNeighbour(const dccrg::Dccrg<SpatialCell,dcc
 // ********************************
 
 template<typename CELLID> CELLID getNeighbour(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const CELLID& cellID,const int& i,const int& j,const int& k){
+#ifdef OLD_DCCRG_API
     std::vector<uint64_t> neighbors = mpiGrid.get_neighbors_of_at_offset(cellID, i, j, k);
+#else
+    const std::vector<std::pair<long unsigned int, std::array<int, 4> > > neighbors = mpiGrid.get_neighbors_of_at_offset(cellID, i, j, k);
+#endif
 
     //FIXME: support refined grids
     if(neighbors.size() > 0) {
+#ifdef OLD_DCCRG_API
         return neighbors[0];
+#else
+	return neighbors[0].first;
+#endif
     } else {
         return INVALID_CELLID;
     }

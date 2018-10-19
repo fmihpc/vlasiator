@@ -110,22 +110,22 @@ for dimension in range(0, 2):
          values[i_pcolumnv_b(3, 3, block_k, n_blocks)] = gather4f<15 ,31 ,47 ,63>(data);
    #endif //VEC4F_AGNER
    #ifdef VEC4D_AGNER
-         values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = gather4d<0 ,16 ,32 ,48>(data);
-         values[i_pcolumnv_b(1, 0, block_k, n_blocks)] = gather4d<4 ,20 ,36 ,52>(data);
-         values[i_pcolumnv_b(2, 0, block_k, n_blocks)] = gather4d<8 ,24 ,40 ,56>(data);
-         values[i_pcolumnv_b(3, 0, block_k, n_blocks)] = gather4d<12 ,28 ,44 ,60>(data);
-         values[i_pcolumnv_b(0, 1, block_k, n_blocks)] = gather4d<1 ,17 ,33 ,49>(data);
-         values[i_pcolumnv_b(1, 1, block_k, n_blocks)] = gather4d<5 ,21 ,37 ,53>(data);
-         values[i_pcolumnv_b(2, 1, block_k, n_blocks)] = gather4d<9 ,25 ,41 ,57>(data);
-         values[i_pcolumnv_b(3, 1, block_k, n_blocks)] = gather4d<13 ,29 ,45 ,61>(data);
-         values[i_pcolumnv_b(0, 2, block_k, n_blocks)] = gather4d<2 ,18 ,34 ,50>(data);
-         values[i_pcolumnv_b(1, 2, block_k, n_blocks)] = gather4d<6 ,22 ,38 ,54>(data);
-         values[i_pcolumnv_b(2, 2, block_k, n_blocks)] = gather4d<10 ,26 ,42 ,58>(data);
-         values[i_pcolumnv_b(3, 2, block_k, n_blocks)] = gather4d<14 ,30 ,46 ,62>(data);
-         values[i_pcolumnv_b(0, 3, block_k, n_blocks)] = gather4d<3 ,19 ,35 ,51>(data);
-         values[i_pcolumnv_b(1, 3, block_k, n_blocks)] = gather4d<7 ,23 ,39 ,55>(data);
-         values[i_pcolumnv_b(2, 3, block_k, n_blocks)] = gather4d<11 ,27 ,43 ,59>(data);
-         values[i_pcolumnv_b(3, 3, block_k, n_blocks)] = gather4d<15 ,31 ,47 ,63>(data);
+         values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = gather4d<0 ,16 ,32 ,48>((const void*)data);
+         values[i_pcolumnv_b(1, 0, block_k, n_blocks)] = gather4d<4 ,20 ,36 ,52>((const void*)data);
+         values[i_pcolumnv_b(2, 0, block_k, n_blocks)] = gather4d<8 ,24 ,40 ,56>((const void*)data);
+         values[i_pcolumnv_b(3, 0, block_k, n_blocks)] = gather4d<12 ,28 ,44 ,60>((const void*)data);
+         values[i_pcolumnv_b(0, 1, block_k, n_blocks)] = gather4d<1 ,17 ,33 ,49>((const void*)data);
+         values[i_pcolumnv_b(1, 1, block_k, n_blocks)] = gather4d<5 ,21 ,37 ,53>((const void*)data);
+         values[i_pcolumnv_b(2, 1, block_k, n_blocks)] = gather4d<9 ,25 ,41 ,57>((const void*)data);
+         values[i_pcolumnv_b(3, 1, block_k, n_blocks)] = gather4d<13 ,29 ,45 ,61>((const void*)data);
+         values[i_pcolumnv_b(0, 2, block_k, n_blocks)] = gather4d<2 ,18 ,34 ,50>((const void*)data);
+         values[i_pcolumnv_b(1, 2, block_k, n_blocks)] = gather4d<6 ,22 ,38 ,54>((const void*)data);
+         values[i_pcolumnv_b(2, 2, block_k, n_blocks)] = gather4d<10 ,26 ,42 ,58>((const void*)data);
+         values[i_pcolumnv_b(3, 2, block_k, n_blocks)] = gather4d<14 ,30 ,46 ,62>((const void*)data);
+         values[i_pcolumnv_b(0, 3, block_k, n_blocks)] = gather4d<3 ,19 ,35 ,51>((const void*)data);
+         values[i_pcolumnv_b(1, 3, block_k, n_blocks)] = gather4d<7 ,23 ,39 ,55>((const void*)data);
+         values[i_pcolumnv_b(2, 3, block_k, n_blocks)] = gather4d<11 ,27 ,43 ,59>((const void*)data);
+         values[i_pcolumnv_b(3, 3, block_k, n_blocks)] = gather4d<15 ,31 ,47 ,63>((const void*)data);
    #endif //VEC4D_AGNER
    #ifdef VEC8F_AGNER
          values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = gather8f<0 ,16 ,32 ,48 ,4 ,20 ,36 ,52>(data);
@@ -252,7 +252,7 @@ for dimension in range(0, 2):
          uint offset = 0;
          for (uint k=0; k<WID; ++k) {
             for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){
-               values[i_pcolumnv_b(planeVector, k, block_k, n_blocks)].load(data + offset);
+               values[i_pcolumnv_b(planeVector, k, block_k, n_blocks)].load((float const*)data + offset);
                offset += VECL;
             }
          }
