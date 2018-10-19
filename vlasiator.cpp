@@ -700,6 +700,17 @@ int main(int argn,char* args[]) {
    double beforeTime = MPI_Wtime();
    double beforeSimulationTime=P::t_min;
    double beforeStep=P::tstep_min;
+
+   Real nSum = 0.0;
+   for(auto cell: cells) {
+      creal rho = mpiGrid[cell]->parameters[CellParams::RHOM_R];
+      creal dx = mpiGrid[cell]->parameters[CellParams::DX];
+      creal dy = mpiGrid[cell]->parameters[CellParams::DY];
+      creal dz = mpiGrid[cell]->parameters[CellParams::DZ];
+      
+      nSum += rho*dx*dy*dz;
+   }
+   cout << "nSum = " << nSum << endl;   
    
    while(P::tstep <= P::tstep_max  &&
          P::t-P::dt <= P::t_max+DT_EPSILON &&
@@ -1061,26 +1072,6 @@ int main(int argn,char* args[]) {
       
       phiprof::start("Spatial-space");
       if(printLines) cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
-
-      cout << "Before spatialTranslation, ";
-      Real nSum = 0.0;
-      Real nSumRef = 0.0;
-
-      for(auto cell: cells) {
-         
-         creal rho = mpiGrid[cell]->parameters[CellParams::RHOM_R];
-         creal dx = mpiGrid[cell]->parameters[CellParams::DX];
-         creal dy = mpiGrid[cell]->parameters[CellParams::DY];
-         creal dz = mpiGrid[cell]->parameters[CellParams::DZ];
-         if(cell >= 114) {   
-            nSumRef += rho*dx*dy*dz;
-            cout << "Cell " << cell << " n = " << rho*dx*dy*dz << endl;
-         } else {
-            nSum += rho*dx*dy*dz;
-            cout << "Cell " << cell << " n = " << rho*dx*dy*dz << endl;
-         }
-      }
-      cout << "nSum = " << nSum << ", nSumRef = " << nSumRef << endl;
       
       if( P::propagateVlasovTranslation) {
          calculateSpatialTranslation(mpiGrid,P::dt);
@@ -1088,26 +1079,17 @@ int main(int argn,char* args[]) {
          calculateSpatialTranslation(mpiGrid,0.0);
       }
 
-      cout << "After spatialTranslation,  ";
-      nSum = 0.0;
-      nSumRef = 0.0;
+      Real nSum = 0.0;
       for(auto cell: cells) {
          creal rho = mpiGrid[cell]->parameters[CellParams::RHOM_R];
          creal dx = mpiGrid[cell]->parameters[CellParams::DX];
          creal dy = mpiGrid[cell]->parameters[CellParams::DY];
          creal dz = mpiGrid[cell]->parameters[CellParams::DZ];
-
-         if(cell >= 114) {            
-            nSumRef += rho*dx*dy*dz;
-            cout << "Cell " << cell << " n = " << rho*dx*dy*dz << endl;
-         } else {
-            nSum += rho*dx*dy*dz;
-            cout << "Cell " << cell << " n = " << rho*dx*dy*dz << endl;
-         }
+         
+         nSum += rho*dx*dy*dz;
+         //cout << "Cell " << cell << " rho = " << rho << endl;
       }
-      cout << "nSum = " << nSum << ", nSumRef = " << nSumRef << endl;
-
-      bailout(true, "", __FILE__, __LINE__);
+      cout << "nSum = " << nSum << endl;     
       
       if(printLines) cout << "I am at line " << __LINE__ << " of " << __FILE__ << " dt =  " << P::dt << endl;
       phiprof::stop("Spatial-space",computedCells,"Cells");
