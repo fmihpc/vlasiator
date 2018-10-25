@@ -34,6 +34,7 @@
 #include "Dispersion/Dispersion.h"
 #include "Distributions/Distributions.h"
 #include "ElectricSail/electric_sail.h"
+#include "ElVentana/ElVentana.h"
 #include "Firehose/Firehose.h"
 #include "Flowthrough/Flowthrough.h"
 #include "Fluctuations/Fluctuations.h"
@@ -111,6 +112,7 @@ namespace projects {
       projects::Dispersion::addParameters();
       projects::Distributions::addParameters();
       projects::ElectricSail::addParameters();
+      projects::ElVentana::addParameters();
       projects::Firehose::addParameters();
       projects::Flowthrough::addParameters();
       projects::Fluctuations::addParameters();
@@ -195,6 +197,12 @@ namespace projects {
       const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
    ) const { }
 
+   void Project::setupBeforeSetCell(const std::vector<CellID>& cells,
+        dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
+      // Dummy implementation.
+      return;
+   }
+
    void Project::setCell(SpatialCell* cell) {
       // Set up cell parameters:
       calcCellParameters(cell,0.0);
@@ -202,10 +210,6 @@ namespace projects {
       for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
          this->setVelocitySpace(p,cell);
       }
-
-      //let's get rid of blocks not fulfilling the criteria here to save memory.
-      //cell->adjustSingleCellVelocityBlocks();
-
       // Passing true for the doNotSkip argument as we want to calculate 
       // the moment no matter what when this function is called.
       calculateCellMoments(cell,true,true);
@@ -523,6 +527,9 @@ Project* createProject() {
    }
    if (Parameters::projectName == "ElectricSail") {
       return new projects::ElectricSail;
+   }
+   if (Parameters::projectName == "ElVentana") {
+      return new projects::ElVentana;
    }
    if(Parameters::projectName == "Firehose") {
       rvalue = new projects::Firehose;
