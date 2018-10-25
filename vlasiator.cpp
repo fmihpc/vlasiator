@@ -527,6 +527,10 @@ int main(int argn,char* args[]) {
             sysBoundaries, 0.0, 1.0
          );
       }
+      phiprof::start("getVolumeFieldsFromFsGrid");
+      // These should be done by initializeFieldPropagator() if the propagation is turned off.
+      getVolumeFieldsFromFsGrid(volGrid, mpiGrid, cells);
+      phiprof::stop("getVolumeFieldsFromFsGrid");
       
       calculateSpatialTranslation(mpiGrid,0.0);
       calculateAcceleration(mpiGrid,0.0);
@@ -717,6 +721,11 @@ int main(int argn,char* args[]) {
          }
          phiprof::stop("diagnostic-io");
       }
+
+      //phiprof::start("Project beginTimeStep");
+      //project->hook(hook::END_OF_TIME_STEP, mpiGrid);
+      //phiprof::stop("Project beginTimeStep");
+      
       bool extractFsGridFields = true;
       // write system, loop through write classes
       for (uint i = 0; i < P::systemWriteTimeInterval.size(); i++) {
@@ -829,7 +838,6 @@ int main(int argn,char* args[]) {
       
       phiprof::stop("IO");
       addTimedBarrier("barrier-end-io");
-      
       //no need to propagate if we are on the final step, we just
       //wanted to make sure all IO is done even for final step
       if(P::tstep == P::tstep_max ||
@@ -1037,7 +1045,28 @@ int main(int argn,char* args[]) {
       if (P::propagatePotential == true) {
          poisson::solve(mpiGrid);
       }
-
+      {
+      // Add electric field due to electron current
+      const vector<CellID>& cells = getLocalCells(); 
+      #pragma omp parallel for
+      for (size_t c=0; c<cells.size(); ++c) {
+          const CellID cellID = cells[c];
+          SpatialCell* SC = mpiGrid[cellID];
+          for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+             if( getObjectWrapper().particleSpecies[popID].charge > 0) {
+                continue;
+             }
+             for (uint popID2=0; popID2<getObjectWrapper().particleSpecies.size(); ++popID2) {
+                SC->parameters[CellParams::EXJE] += -getObjectWrapper().particleSpecies[popID2].charge *
+                    SC->get_population(popID2).RHO * SC->get_population(popID2).V[0] * P::dt / physicalconstants::EPS_0;
+                SC->parameters[CellParams::EYJE] += -getObjectWrapper().particleSpecies[popID2].charge *
+                    SC->get_population(popID2).RHO * SC->get_population(popID2).V[1] * P::dt / physicalconstants::EPS_0;
+                SC->parameters[CellParams::EZJE] += -getObjectWrapper().particleSpecies[popID2].charge *
+                    SC->get_population(popID2).RHO * SC->get_population(popID2).V[2] * P::dt / physicalconstants::EPS_0;
+             }
+          }
+      }
+      }
       phiprof::start("Velocity-space");
       if ( P::propagateVlasovAcceleration ) {
          calculateAcceleration(mpiGrid,P::dt);

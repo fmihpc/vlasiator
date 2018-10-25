@@ -142,6 +142,10 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       spatial_cell->parameters[CellParams::EXGRADPE],
       spatial_cell->parameters[CellParams::EYGRADPE],
       spatial_cell->parameters[CellParams::EZGRADPE]);
+   Eigen::Matrix<Real,3,1> EfromJe(
+      spatial_cell->parameters[CellParams::EXJE],
+      spatial_cell->parameters[CellParams::EYJE],
+      spatial_cell->parameters[CellParams::EZJE]);
 
    for (uint i=0; i<bulk_velocity_substeps; ++i) {
       // rotation origin is the point through which we place our rotation axis (direction of which is unitB).
@@ -160,9 +164,13 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       total_transform = AngleAxis<Real>(substeps_radians,unit_B)*total_transform;
       total_transform = Translation<Real,3>(rotation_pivot)*total_transform;
 
+      // Add electron field term from current only to the electron population
+      if (getObjectWrapper().particleSpecies[popID].charge < 0) {
+            total_transform=Translation<Real,3>( (getObjectWrapper().particleSpecies[popID].charge/getObjectWrapper().particleSpecies[popID].mass) * EfromJe * substeps_dt) * total_transform;
+      }
       // Electron pressure gradient term
       if(Parameters::ohmGradPeTerm > 0) {
-         total_transform=Translation<Real,3>( (fabs(getObjectWrapper().particleSpecies[popID].charge)/getObjectWrapper().particleSpecies[popID].mass) * EgradPe * substeps_dt) * total_transform;
+            total_transform=Translation<Real,3>( (fabs(getObjectWrapper().particleSpecies[popID].charge)/getObjectWrapper().particleSpecies[popID].mass) * EgradPe * substeps_dt) * total_transform;
       }
    }
 

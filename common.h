@@ -175,6 +175,9 @@ namespace CellParams {
       EXGRADPE,         /*!< Electron pressure gradient term x.*/
       EYGRADPE,         /*!< Electron pressure gradient term y.*/
       EZGRADPE,         /*!< Electron pressure gradient term z.*/
+      EXJE,             /*!< Electric field from electron current term x.*/
+      EYJE,             /*!< Electric field from electron current term y.*/
+      EZJE,             /*!< Electric field from electron current term z.*/
       RHOM_R,     /*!< RHO after propagation in ordinary space*/
       VX_R,   /*!< VX after propagation in ordinary space*/
       VY_R,   /*!< VY after propagation in ordinary space*/

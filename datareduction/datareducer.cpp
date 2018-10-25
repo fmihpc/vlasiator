@@ -204,6 +204,11 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("E_vol",CellParams::EXVOL,3));
          continue;
       }
+      if(*it == "EJE") {
+         // Volume-averaged E field
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EJE",CellParams::EXJE,3));
+         continue;
+      }
       if(*it == "HallE") {
          // 12 corner components of the hall-effect contribution to the electric field
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EXHALL_000_100",CellParams::EXHALL_000_100,1));
@@ -374,6 +379,11 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(*it == "FluxE") {
          // Overall electric flux through the simulation plane
          diagnosticReducer->addOperator(new DRO::DiagnosticFluxE);
+         continue;
+      }
+      if(*it == "EJE") {
+         // E field from electron current
+         diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("EJE",CellParams::EXJE,3));
          continue;
       }
       if (*it == "populations_Blocks") {
