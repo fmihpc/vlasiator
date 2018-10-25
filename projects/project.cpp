@@ -209,6 +209,10 @@ namespace projects {
       
       for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
          this->setVelocitySpace(p,cell);
+         uint n = cell->get_number_of_velocity_blocks(p);
+         if ( n < 64) {
+            cout << " WARNING!!! Low block count in this cell for population " << getObjectWrapper().particleSpecies[p].name << ". Number of velocity blocks = " << n << endl;
+         }
       }
       // Passing true for the doNotSkip argument as we want to calculate 
       // the moment no matter what when this function is called.

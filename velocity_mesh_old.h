@@ -604,7 +604,7 @@ namespace vmesh {
 
    template<typename GID,typename LID> inline
    bool VelocityMesh<GID,LID>::push_back(const std::vector<GID>& blocks) {
-      if (size()+blocks.size() >= meshParameters[meshID].max_velocity_blocks) {
+      if (size()+blocks.size() > meshParameters[meshID].max_velocity_blocks) {
          std::cerr << "vmesh: too many blocks, current size is " << size();
          std::cerr << ", adding " << blocks.size() << " blocks";
          std::cerr << ", max is " << meshParameters[meshID].max_velocity_blocks << std::endl;
