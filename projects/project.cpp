@@ -507,6 +507,14 @@ namespace projects {
          (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
       setRandomSeed(cell,cellID);
    }
+
+   /*
+     Refine cells of mpiGrid. Each project that wants refinement shoudl implement this function. 
+     Base class function does nothing.
+    */
+   bool Project::refineSpatialCells( const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
+      return false;
+   }
    
 Project* createProject() {
    Project* rvalue = NULL;

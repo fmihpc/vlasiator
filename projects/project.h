@@ -161,6 +161,8 @@ namespace projects {
        */
       void setRandomCellSeed(spatial_cell::SpatialCell* cell,const Real* const cellParams) const;
 
+      bool refineSpatialCells( const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const;
+      
     private:
       uint seed;
       static char rngStateBuffer[256];
