@@ -48,7 +48,7 @@
 #include "IPShock/IPShock.h"
 #include "Template/Template.h"
 #include "test_fp/test_fp.h"
-#include "testAMR/testAMR.h"
+#include "testAmr/testAmr.h"
 #include "testHall/testHall.h"
 #include "test_trans/test_trans.h"
 #include "verificationLarmor/verificationLarmor.h"
@@ -126,6 +126,7 @@ namespace projects {
       projects::IPShock::addParameters();
       projects::Template::addParameters();
       projects::test_fp::addParameters();
+      projects::testAmr::addParameters();
       projects::TestHall::addParameters();
       projects::test_trans::addParameters();
       projects::verificationLarmor::addParameters();
@@ -511,9 +512,15 @@ namespace projects {
 
    /*
      Refine cells of mpiGrid. Each project that wants refinement shoudl implement this function. 
-     Base class function does nothing.
+     Base class function prints a warning and does nothing.
     */
    bool Project::refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
+      int rank;
+      MPI_Comm_rank(MPI_COMM_WORLD,&rank);
+      if (rank == MASTER_RANK) {
+         cerr << "(Project.cpp) WARNING: Base class 'refineSpatialCells' in " << __FILE__ << ":" << __LINE__ << " called." << endl;
+      }
+
       return false;
    }
    
