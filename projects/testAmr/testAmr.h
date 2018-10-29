@@ -20,8 +20,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef MULTIPEAK_H
-#define MULTIPEAK_H
+#ifndef TESTAMR_H
+#define TESTAMR_H
 
 #include <vector>
 
@@ -29,7 +29,7 @@
 #include "../projectTriAxisSearch.h"
 
 namespace projects {
-   struct MultiPeakSpeciesParameters {
+   struct testAmrSpeciesParameters {
       uint numberOfPeaks;
       std::vector<Real> rho;
       std::vector<Real> Tx;
@@ -53,10 +53,10 @@ namespace projects {
             rho.size() == numberOfPeaks;
       }
    };
-   class MultiPeak: public TriAxisSearch {
+   class testAmr: public TriAxisSearch {
     public:
-      MultiPeak();
-      virtual ~MultiPeak();
+      testAmr();
+      virtual ~testAmr();
       
       virtual bool initialize(void);
       static void addParameters(void);
@@ -80,6 +80,8 @@ namespace projects {
                                                       creal z,
                                                       const uint popID
                                                      ) const;
+      bool refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const;
+      
       static Real rhoRnd; //static as it has to be threadprivate
       #pragma omp threadprivate(rhoRnd)       
       Real Bx;
@@ -93,14 +95,14 @@ namespace projects {
       Real magZPertAbsAmp;
       Real lambda;
       uint nVelocitySamples;
-      std::vector<MultiPeakSpeciesParameters> speciesParams;
+      std::vector<testAmrSpeciesParameters> speciesParams;
 
       enum densitymodel {
          Uniform,
          TestCase
       } densityModel;
 
-   }; // class MultiPeak
+   }; // class testAmr
 } //  namespace projects
 
 #endif
