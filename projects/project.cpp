@@ -48,6 +48,7 @@
 #include "IPShock/IPShock.h"
 #include "Template/Template.h"
 #include "test_fp/test_fp.h"
+#include "testAMR/testAMR.h"
 #include "testHall/testHall.h"
 #include "test_trans/test_trans.h"
 #include "verificationLarmor/verificationLarmor.h"
@@ -512,7 +513,7 @@ namespace projects {
      Refine cells of mpiGrid. Each project that wants refinement shoudl implement this function. 
      Base class function does nothing.
     */
-   bool Project::refineSpatialCells( const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
+   bool Project::refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
       return false;
    }
    
@@ -578,6 +579,9 @@ Project* createProject() {
    }
    if(Parameters::projectName == "test_fp") {
       rvalue = new projects::test_fp;
+   }
+   if(Parameters::projectName == "testAmr") {
+      rvalue = new projects::testAmr;
    }
    if(Parameters::projectName == "testHall") {
       rvalue = new projects::TestHall;
