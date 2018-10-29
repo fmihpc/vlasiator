@@ -313,33 +313,19 @@ CellID selectNeighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> 
          myNeighbors.push_back(cell.first);
    }
 
-   CellID neighbor;
-  
-   switch( myNeighbors.size() ) {
-      // Since refinement can only increase by 1 level the only possibilities
-      // Should be 0 neighbors, 1 neighbor or 4 neighbors.
-   case 0 : 
-      // did not find neighbors
-      neighbor = INVALID_CELLID;
-      break;
-   
-   case 1 : 
-      neighbor = myNeighbors[0];
-      break;
-   
-   case 4 : 
+   CellID neighbor = INVALID_CELLID;
+
+   if (myNeighbors.size() == 1) {
+      neighbor = myNeighbors[0];   
+   } else if ( path < myNeighbors.size() ) {
       neighbor = myNeighbors[path];
-      break;
-   
-   default: 
-      // something is wrong
-      neighbor = INVALID_CELLID;
-      throw "Invalid neighbor count!";
-      break;   
    }
 
+   // std::cout << "selectNeighbor: path = " << path << " neighbors = ";
+   // for (auto nbr : myNeighbors) std::cout << neighbor << " ";
+   // std::cout << ", returning " << neighbor << std::endl;
+   
    return neighbor;
-  
 }
 
 
@@ -395,16 +381,22 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
    while (id > 0) {
 
       periodic = false;
-
-      // Find the refinement level in the neighboring cell. Any neighbor will do
-      // since refinement level can only increase by 1 between neighbors.
-      nextNeighbor = selectNeighbor(grid,id,dimension);
-
+      bool neighborExists = false;
+      int refLvl = 0;
+      
+      // Find the refinement level in the neighboring cell. Check all possible neighbors
+      // in case some of them are remote.
+      for (int tmpPath = 0; tmpPath < 4; ++tmpPath) {
+         nextNeighbor = selectNeighbor(grid,id,dimension,tmpPath);
+         if(nextNeighbor != INVALID_CELLID) {
+            refLvl = max(refLvl,grid.get_refinement_level(nextNeighbor));
+            neighborExists = true;
+         }
+      }
+         
       // If there are no neighbors, we can stop.
-      if (nextNeighbor == 0)
-         break;
-    
-      uint refLvl = grid.get_refinement_level(nextNeighbor);
+      if (!neighborExists)
+         break;   
 
       if (refLvl > 0) {
     
