@@ -149,6 +149,7 @@ DEPS_PROJECTS =	projects/project.h projects/project.cpp \
 		projects/IPShock/IPShock.h projects/IPShock/IPShock.cpp \
 		projects/Template/Template.h projects/Template/Template.cpp \
 		projects/test_fp/test_fp.h projects/test_fp/test_fp.cpp \
+		projects/testAmr/testAmr.h projects/testAmr/testAmr.cpp \
 		projects/testHall/testHall.h projects/testHall/testHall.cpp \
 		projects/test_trans/test_trans.h projects/test_trans/test_trans.cpp \
 		projects/verificationLarmor/verificationLarmor.h projects/verificationLarmor/verificationLarmor.cpp \
@@ -189,8 +190,9 @@ OBJS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipo
 	donotcompute.o ionosphere.o outflow.o setbyuser.o setmaxwellian.o antisymmetric.o\
 	sysboundary.o sysboundarycondition.o project_boundary.o particle_species.o\
 	project.o projectTriAxisSearch.o read_gaussian_population.o\
-	Alfven.o Diffusion.o Dispersion.o Distributions.o electric_sail.o Firehose.o Flowthrough.o Fluctuations.o Harris.o KHB.o Larmor.o \
-	Magnetosphere.o MultiPeak.o VelocityBox.o Riemann1.o Shock.o Template.o test_fp.o testHall.o test_trans.o \
+	Alfven.o Diffusion.o Dispersion.o Distributions.o electric_sail.o Firehose.o\
+	Flowthrough.o Fluctuations.o Harris.o KHB.o Larmor.o Magnetosphere.o MultiPeak.o\
+	VelocityBox.o Riemann1.o Shock.o Template.o test_fp.o testAmr.o testHall.o test_trans.o\
 	IPShock.o object_wrapper.o\
 	verificationLarmor.o Shocktest.o grid.o ioread.o iowrite.o vlasiator.o logger.o\
 	common.o parameters.o readparameters.o spatial_cell.o mesh_data_container.o\
@@ -361,6 +363,9 @@ Template.o: ${DEPS_COMMON} projects/Template/Template.h projects/Template/Templa
 
 test_fp.o: ${DEPS_COMMON} projects/test_fp/test_fp.h projects/test_fp/test_fp.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/test_fp/test_fp.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
+
+testAmr.o: ${DEPS_COMMON} projects/testAmr/testAmr.h projects/testAmr/testAmr.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/testAmr/testAmr.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
 testHall.o: ${DEPS_COMMON} projects/testHall/testHall.h projects/testHall/testHall.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/testHall/testHall.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
