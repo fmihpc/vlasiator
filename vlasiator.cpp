@@ -269,6 +269,8 @@ int main(int argn,char* args[]) {
    Real newDt;
    bool dtIsChanged;
    const bool printLines = false;
+   const bool printCells = false;
+   const bool printSums  = false;
    
 // Init MPI:
    int required=MPI_THREAD_FUNNELED;
@@ -369,6 +371,8 @@ int main(int argn,char* args[]) {
    
    // Add AMR refinement criterias:
    amr_ref_criteria::addRefinementCriteria();
+
+   if(printLines) cout << "I am at line " << __LINE__ << " of " << __FILE__ <<  endl;
    
    // Initialize grid.  After initializeGrid local cells have dist
    // functions, and B fields set. Cells have also been classified for
@@ -380,6 +384,8 @@ int main(int argn,char* args[]) {
    //dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> mpiGrid;
    initializeGrid(argn,args,mpiGrid,sysBoundaries,*project);
    isSysBoundaryCondDynamic = sysBoundaries.isDynamic();
+
+   if(printLines) cout << "I am at line " << __LINE__ << " of " << __FILE__ <<  endl;
    
    phiprof::stop("Init grid");
    
@@ -717,9 +723,9 @@ int main(int argn,char* args[]) {
       creal z = mpiGrid[cell]->parameters[CellParams::ZCRD];
       
       nSum += rho*dx*dy*dz;
-      //cout << "Cell " << cell << " rho = " << rho << " x: " << x << " y: " << y << " z: " << z << endl;
+      if(printCells) cout << "Cell " << cell << " rho = " << rho << " x: " << x << " y: " << y << " z: " << z << endl;
    }
-   cout << "nSum = " << nSum << endl;   
+   if(printSums) cout << "nSum = " << nSum << endl;   
    
    while(P::tstep <= P::tstep_max  &&
          P::t-P::dt <= P::t_max+DT_EPSILON &&
@@ -1100,9 +1106,9 @@ int main(int argn,char* args[]) {
          creal z = mpiGrid[cell]->parameters[CellParams::ZCRD];
          
          nSum += rho*dx*dy*dz;
-         //cout << "Cell " << cell << " rho = " << rho << " x: " << x << " y: " << y << " z: " << z << endl;
+         if(printCells) cout << "Cell " << cell << " rho = " << rho << " x: " << x << " y: " << y << " z: " << z << endl;
       }
-      cout << "nSum = " << nSum << endl;     
+      if (printSums) cout << "nSum = " << nSum << endl;     
       
       if(printLines) cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
       phiprof::stop("Spatial-space",computedCells,"Cells");
