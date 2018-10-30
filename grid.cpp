@@ -62,7 +62,6 @@ void initVelocityGridGeometry(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry
 void initSpatialCellCoordinates(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 
-#warning This is for testing, can be removed later
 void writeVelMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
    const vector<CellID>& cells = getLocalCells();
    
@@ -126,33 +125,7 @@ void initializeGrid(
 
    if(project.refineSpatialCells(mpiGrid)) {
       recalculateLocalCellsCache();
-   } else {
-      std::cout << "Call to refineSpatialCells failed" << std::endl;
-   }
-   
-   // if(true) {
-   //    std::array<double,3> coords;
-   //    coords[0] = (P::xmax - P::xmin) / 2.0;
-   //    coords[1] = (P::ymax - P::ymin) / 2.0;
-   //    coords[2] = (P::zmax - P::zmin) / 2.0;
-   //    cout << "Trying to refine at " << coords[0] << ", " << coords[1] << ", " << coords[2] << endl;
-   //    CellID myCell = mpiGrid.get_existing_cell(coords);
-   //    cout << "Got cell ID " << myCell << endl;
-   //    cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << endl;
-   //    bool refineSuccess = mpiGrid.refine_completely_at(coords);
-   //    std::vector<CellID> refinedCells = mpiGrid.stop_refining();
-   //    std::cout << std::boolalpha <<"Refine result: " << refineSuccess << endl;
-   //    mpiGrid.balance_load();
-   //    if(refineSuccess) {
-   //       cout << "Refined Cells are: ";
-   //       for (auto cellid : refinedCells) {
-   //          cout << cellid << " ";
-   //       }
-   //       cout << endl;
-   //       mpiGrid.write_vtk_file("mpiGrid.vtk");
-   //    }
-   //    recalculateLocalCellsCache();
-   // }
+   }    
    
    // Init velocity mesh on all cells
    initVelocityGridGeometry(mpiGrid);   
