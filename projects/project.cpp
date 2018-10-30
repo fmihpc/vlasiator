@@ -518,7 +518,7 @@ namespace projects {
       int rank;
       MPI_Comm_rank(MPI_COMM_WORLD,&rank);
       if (rank == MASTER_RANK) {
-         cerr << "(Project.cpp) WARNING: Base class 'refineSpatialCells' in " << __FILE__ << ":" << __LINE__ << " called." << endl;
+         cerr << "(Project.cpp) Base class 'refineSpatialCells' in " << __FILE__ << ":" << __LINE__ << " called. This function does nothing." << endl;
       }
 
       return false;

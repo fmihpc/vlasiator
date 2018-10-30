@@ -253,6 +253,8 @@ namespace projects {
 
    bool testAmr::refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
 
+      //cout << "I am at line " << __LINE__ << " of " << __FILE__ <<  endl;
+      
       std::array<double,3> coords;
       coords[0] = (P::xmax - P::xmin) / 2.0;
       coords[1] = (P::ymax - P::ymin) / 2.0;
