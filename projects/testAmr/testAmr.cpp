@@ -170,7 +170,8 @@ namespace projects {
                break;
             case TestCase:
                rhoFactor = 1.0;
-               if (x < 6.1e5) {
+               if (x < 0.31 * (P::xmax - P::xmin) &&
+                   y < 0.31 * (P::ymax - P::ymin)) {
                   rhoFactor = 3.0;
                }
                break;
@@ -253,29 +254,64 @@ namespace projects {
 
    bool testAmr::refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
 
-      //cout << "I am at line " << __LINE__ << " of " << __FILE__ <<  endl;
-      
-      std::array<double,3> coords;
-      coords[0] = (P::xmax - P::xmin) / 2.0;
-      coords[1] = (P::ymax - P::ymin) / 2.0;
-      coords[2] = (P::zmax - P::zmin) / 2.0;
-      std::cout << "Trying to refine at " << coords[0] << ", " << coords[1] << ", " << coords[2] << std::endl;
-      CellID myCell = mpiGrid.get_existing_cell(coords);
-      std::cout << "Got cell ID " << myCell << std::endl;
+      cout << "I am at line " << __LINE__ << " of " << __FILE__ <<  endl;
       std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
-      bool refineSuccess = mpiGrid.refine_completely_at(coords);
-      std::vector<CellID> refinedCells = mpiGrid.stop_refining();
-      mpiGrid.balance_load();
-      if(refineSuccess) {
-         cout << "Refined Cells are: ";
-         for (auto cellid : refinedCells) {
-            cout << cellid << " ";
+      
+      std::array<double,3> xyz_mid;
+      xyz_mid[0] = (P::xmax - P::xmin) / 2.0;
+      xyz_mid[1] = (P::ymax - P::ymin) / 2.0;
+      xyz_mid[2] = (P::zmax - P::zmin) / 2.0;
+
+      std::vector<bool> refineSuccess;
+
+      // Refine the top-right quadrant of the box (-boundaries)
+      for (double x = xyz_mid[0]; x < P::xmax - P::dx_ini; x += P::dx_ini) {
+         for (double y = xyz_mid[1]; y < P::ymax - P::dy_ini; y += P::dy_ini) {
+            auto xyz = xyz_mid;
+            xyz[0] = x;
+            xyz[1] = y;
+            //std::cout << "Trying to refine at " << xyz[0] << ", " << xyz[1] << ", " << xyz[2] << std::endl;
+            //CellID myCell = mpiGrid.get_existing_cell(xyz);
+            //std::cout << "Got cell ID " << myCell << std::endl;
+            //refineSuccess.push_back(mpiGrid.refine_completely(myCell));
+
+            refineSuccess.push_back(mpiGrid.refine_completely_at(xyz));
          }
-         cout << endl;
-         mpiGrid.write_vtk_file("mpiGrid.vtk");
       }
 
-      return refineSuccess;
+      std::vector<CellID> refinedCells = mpiGrid.stop_refining(true);
+      
+      cout << "Finished first level of refinement" << endl;
+
+      // cout << "Refined Cells are: ";
+      // for (auto cellid : refinedCells) {
+      //    cout << cellid << " ";
+      // }
+      // cout << endl;
+      
+      // auto xyz = xyz_mid;
+      // xyz[0] = 1.5 * xyz[0];
+      // xyz[1] = 1.5 * xyz[1];
+      // std::cout << "Trying to refine at " << xyz[0] << ", " << xyz[1] << ", " << xyz[2] << std::endl;
+      // CellID myCell = mpiGrid.get_existing_cell(xyz);
+      // std::cout << "Got cell ID " << myCell << std::endl;
+      // //mpiGrid.refine_completely_at(xyz);
+      // mpiGrid.refine_completely(myCell);
+      // refinedCells.clear();
+      // refinedCells = mpiGrid.stop_refining(true);     
+      // cout << "Finished second level of refinement" << endl;      
+      // cout << "Refined Cells are: ";
+      // for (auto cellid : refinedCells) {
+      //    cout << cellid << " ";
+      // }
+      // cout << endl;
+      //mpiGrid.write_vtk_file("mpiGrid.vtk");
+
+      mpiGrid.balance_load();
+
+      cout << "I am at line " << __LINE__ << " of " << __FILE__ <<  endl;
+
+      return std::all_of(refineSuccess.begin(), refineSuccess.end(), [](bool v) { return v; });
    }
    
 }// namespace projects
