@@ -126,7 +126,7 @@ void initializeGrid(
    if(project.refineSpatialCells(mpiGrid)) {
       recalculateLocalCellsCache();
    }    
-   
+
    // Init velocity mesh on all cells
    initVelocityGridGeometry(mpiGrid);   
    initializeStencils(mpiGrid);
@@ -140,18 +140,18 @@ void initializeGrid(
    
    if (myRank == MASTER_RANK) logFile << "(INIT): Set initial state." << endl << writeVerbose;
    phiprof::start("Set initial state");
-   
+
    phiprof::start("Set spatial cell coordinates");
    initSpatialCellCoordinates(mpiGrid);
    phiprof::stop("Set spatial cell coordinates");
-   
+
    phiprof::start("Initialize system boundary conditions");
    if(sysBoundaries.initSysBoundaries(project, P::t_min) == false) {
       if (myRank == MASTER_RANK) cerr << "Error in initialising the system boundaries." << endl;
       exit(1);
    }
    phiprof::stop("Initialize system boundary conditions");
-   
+
    // Initialise system boundary conditions (they need the initialised positions!!)
    phiprof::start("Classify cells (sys boundary conditions)");
    if(sysBoundaries.classifyCells(mpiGrid) == false) {
@@ -302,6 +302,9 @@ void initSpatialCellCoordinates(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
       mpiGrid[cells[i]]->parameters[CellParams::DX  ] = cell_length[0];
       mpiGrid[cells[i]]->parameters[CellParams::DY  ] = cell_length[1];
       mpiGrid[cells[i]]->parameters[CellParams::DZ  ] = cell_length[2];
+
+      mpiGrid[cells[i]]->parameters[CellParams::CELLID] = cells[i];
+      mpiGrid[cells[i]]->parameters[CellParams::REFINEMENT_LEVEL] = mpiGrid.get_refinement_level(cells[i]);
    }
 }
 
