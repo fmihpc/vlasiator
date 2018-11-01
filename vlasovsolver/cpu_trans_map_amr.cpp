@@ -895,6 +895,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                       const Realv dt,
                       const uint popID) {
 
+   const bool printPencils = true;
    const bool printLines = false;
    Realv dvz,vz_min;  
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
@@ -995,7 +996,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    }   
 
    // Print out ids of pencils (if needed for debugging)
-   if (false) {
+   if (printPencils) {
       uint ibeg = 0;
       uint iend = 0;
       std::cout << "I have created " << pencils.N << " pencils along dimension " << dimension << ":\n";
@@ -1248,6 +1249,10 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                uint targetLength = L + 2;
                vector<CellID> pencilIds = pencils.getIds(pencili);
 
+               // Calculate the max and min refinement levels in this pencil.
+               // All cells that are not on the max refinement level will be split
+               // Into multiple pencils. This has to be taken into account when adding
+               // up the contributions from each pencil.
                int maxRefLvl = 0;
                int minRefLvl = mpiGrid.get_maximum_refinement_level();
                for (auto id : pencilIds) {
@@ -1304,11 +1309,8 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                   Realf* blockData = spatial_cell->get_data(blockLID, popID);
 
                   Realf areaRatio = 1.0;
-                  if (maxRefLvl > minRefLvl &&
-                      spatial_cell->parameters[CellParams::DX] == P::dx_ini &&
-                      spatial_cell->parameters[CellParams::DY] == P::dy_ini &&
-                      spatial_cell->parameters[CellParams::DZ] == P::dz_ini) {
-                     areaRatio = 1.0 / pow(pow(2, maxRefLvl - minRefLvl), 2);
+                  if (spatial_cell->parameters[CellParams::REFINEMENT_LEVEL] < maxRefLvl) {
+                     areaRatio = 1.0 / pow(pow(2, maxRefLvl - spatial_cell->parameters[CellParams::REFINEMENT_LEVEL]), 2);
                   }
                                     
                   for(int i = 0; i < WID3 ; i++) {
