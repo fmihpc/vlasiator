@@ -427,10 +427,10 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
    for(uint i=0; i<cells.size(); i++) {
       mpiGrid[cells[i]]->sysBoundaryLayer=0; /*Initial value*/
       if(mpiGrid[cells[i]]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY ) {
-         const std::vector<CellID>* nbrs = mpiGrid.get_neighbors_of(cells[i],SYSBOUNDARIES_NEIGHBORHOOD_ID);
+         const auto* nbrs = mpiGrid.get_neighbors_of(cells[i],SYSBOUNDARIES_NEIGHBORHOOD_ID);
          for(uint j=0; j<(*nbrs).size(); j++) {
-            if((*nbrs)[j]!=0 ) {
-               if(mpiGrid[(*nbrs)[j]]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ) {
+            if((*nbrs)[j].first!=0 ) {
+               if(mpiGrid[(*nbrs)[j].first]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ) {
                   mpiGrid[cells[i]]->sysBoundaryLayer=1;
                }
             }
@@ -448,10 +448,10 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
    for(uint layer=1;layer<maxLayers;layer++){
       for(uint i=0; i<cells.size(); i++) {
          if(mpiGrid[cells[i]]->sysBoundaryLayer==0){
-            const std::vector<CellID>* nbrs = mpiGrid.get_neighbors_of(cells[i],SYSBOUNDARIES_NEIGHBORHOOD_ID);
+            const auto* nbrs = mpiGrid.get_neighbors_of(cells[i],SYSBOUNDARIES_NEIGHBORHOOD_ID);
             for(uint j=0; j<(*nbrs).size(); j++) {
-               if((*nbrs)[j]!=0 && (*nbrs)[j]!=cells[i] ) {
-                  if(mpiGrid[(*nbrs)[j]]->sysBoundaryLayer==layer) { 
+               if((*nbrs)[j].first!=0 && (*nbrs)[j].first!=cells[i] ) {
+                  if(mpiGrid[(*nbrs)[j].first]->sysBoundaryLayer==layer) { 
                      mpiGrid[cells[i]]->sysBoundaryLayer=layer+1;
                      break;
                   }

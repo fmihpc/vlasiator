@@ -211,8 +211,8 @@ namespace projects {
 
    void Flowthrough::setCellBackgroundField(spatial_cell::SpatialCell* cell) const {
       ConstantField bgField;
-      bgField.initialize(Bx,By,Bz); //bg bx, by,bz
-      setBackgroundField(bgField,cell->parameters, cell->derivatives,cell->derivativesBVOL);
+      bgField.initialize(Bx,By,Bz); //bg bx, by,bz      
+      setBackgroundField(bgField,cell->parameters.data(), cell->derivatives.data(),cell->derivativesBVOL.data());
    }
    
    std::vector<std::array<Real, 3> > Flowthrough::getV0(

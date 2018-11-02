@@ -106,7 +106,7 @@ namespace projects {
    }
    
    void test_fp::setCellBackgroundField(spatial_cell::SpatialCell *cell) const {
-      setBackgroundFieldToZero(cell->parameters, cell->derivatives,cell->derivativesBVOL);
+      setBackgroundFieldToZero(cell->parameters.data(), cell->derivatives.data(),cell->derivativesBVOL.data());
    }
    
    void test_fp::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {

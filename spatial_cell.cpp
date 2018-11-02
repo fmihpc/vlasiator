@@ -71,32 +71,35 @@ namespace spatial_cell {
       }
    }
 
-   SpatialCell::SpatialCell(const SpatialCell& other):
-     sysBoundaryFlag(other.sysBoundaryFlag),
-     sysBoundaryLayer(other.sysBoundaryLayer),
-     sysBoundaryLayerNew(other.sysBoundaryLayerNew),
-     velocity_block_with_content_list(other.velocity_block_with_content_list),
-     velocity_block_with_no_content_list(other.velocity_block_with_no_content_list),
-     initialized(other.initialized),
-     mpiTransferEnabled(other.mpiTransferEnabled),
-     populations(other.populations) {
+   // SpatialCell::SpatialCell(const SpatialCell& other):
+   //   sysBoundaryFlag(other.sysBoundaryFlag),
+   //   sysBoundaryLayer(other.sysBoundaryLayer),
+   //   sysBoundaryLayerNew(other.sysBoundaryLayerNew),
+   //   velocity_block_with_content_list(other.velocity_block_with_content_list),
+   //   velocity_block_with_no_content_list(other.velocity_block_with_no_content_list),
+   //   initialized(other.initialized),
+   //   mpiTransferEnabled(other.mpiTransferEnabled),
+   //   populations(other.populations),
+   //   parameters(other.parameters),
+   //   derivatives(other.derivatives),
+   //   derivativesBVOL(other.derivativesBVOL),
+   //   null_block_data(std::array<Realf,WID3> {}) {
 
-        //copy parameters
-        for(unsigned int i=0;i< CellParams::N_SPATIAL_CELL_PARAMS;i++){
-           parameters[i]=other.parameters[i];
-        }
-        //copy derivatives
-        for(unsigned int i=0;i< fieldsolver::N_SPATIAL_CELL_DERIVATIVES;i++){
-           derivatives[i]=other.derivatives[i];
-        }
-        //copy BVOL derivatives
-        for(unsigned int i=0;i< bvolderivatives::N_BVOL_DERIVATIVES;i++){
-           derivativesBVOL[i]=other.derivativesBVOL[i];
-        }
-        
-        //set null block data
-        for (unsigned int i=0; i<WID3; ++i) null_block_data[i] = 0.0;
-   }
+   //      // //copy parameters
+   //      // for(unsigned int i=0;i< CellParams::N_SPATIAL_CELL_PARAMS;i++){
+   //      //    parameters[i]=other.parameters[i];
+   //      // }
+   //      // //copy derivatives
+   //      // for(unsigned int i=0;i< fieldsolver::N_SPATIAL_CELL_DERIVATIVES;i++){
+   //      //    derivatives[i]=other.derivatives[i];
+   //      // }
+   //      // //copy BVOL derivatives
+   //      // for(unsigned int i=0;i< bvolderivatives::N_BVOL_DERIVATIVES;i++){
+   //      //    derivativesBVOL[i]=other.derivativesBVOL[i];
+   //      // }        
+   //      // //set null block data
+   //      // for (unsigned int i=0; i<WID3; ++i) null_block_data[i] = 0.0;
+   // }
 
 
    /** Adds "important" and removes "unimportant" velocity blocks

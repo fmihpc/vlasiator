@@ -161,7 +161,7 @@ namespace projects {
                          this->BY0,
                          this->BZ0);
       
-      setBackgroundField(bgField,cell->parameters, cell->derivatives,cell->derivativesBVOL);
+      setBackgroundField(bgField,cell->parameters.data(), cell->derivatives.data(),cell->derivativesBVOL.data());
    }
 } //namespace projects 
   

@@ -113,18 +113,26 @@ void initializeGrid(
    geom_params.level_0_cell_length[1] = P::dy_ini;
    geom_params.level_0_cell_length[2] = P::dz_ini;
    
-   mpiGrid.initialize(
-      grid_length,
-      comm,
-      &P::loadBalanceAlgorithm[0],
-      neighborhood_size, // neighborhood size
-      0, // maximum refinement level
-      sysBoundaries.isBoundaryPeriodic(0),
-      sysBoundaries.isBoundaryPeriodic(1),
-      sysBoundaries.isBoundaryPeriodic(2)
-   );
-   
-   mpiGrid.set_geometry(geom_params);
+   // mpiGrid.initialize(
+   //    grid_length,
+   //    comm,
+   //    &P::loadBalanceAlgorithm[0],
+   //    neighborhood_size, // neighborhood size
+   //    0, // maximum refinement level
+   //    sysBoundaries.isBoundaryPeriodic(0),
+   //    sysBoundaries.isBoundaryPeriodic(1),
+   //    sysBoundaries.isBoundaryPeriodic(2)
+   // );
+
+   mpiGrid.set_initial_length(grid_length)
+      .set_load_balancing_method(&P::loadBalanceAlgorithm[0])
+      .set_neighborhood_length(neighborhood_size)
+      .set_maximum_refinement_level(0)
+      .set_periodic(sysBoundaries.isBoundaryPeriodic(0),
+                    sysBoundaries.isBoundaryPeriodic(1),
+                    sysBoundaries.isBoundaryPeriodic(2))
+      .initialize(comm)
+      .set_geometry(geom_params);
    
    // Init velocity mesh on all cells
    initVelocityGridGeometry(mpiGrid);   
@@ -496,14 +504,15 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
       SpatialCell* cell = mpiGrid[cell_id];
       
       // gather spatial neighbor list and create vector with pointers to neighbor spatial cells
-      const vector<CellID>* neighbors = mpiGrid.get_neighbors_of(cell_id, NEAREST_NEIGHBORHOOD_ID);
+      const auto* neighbors = mpiGrid.get_neighbors_of(cell_id, NEAREST_NEIGHBORHOOD_ID);
       vector<SpatialCell*> neighbor_ptrs;
       neighbor_ptrs.reserve(neighbors->size());
-      for (vector<CellID>::const_iterator neighbor_id = neighbors->begin(); neighbor_id != neighbors->end(); ++neighbor_id) {
-         if (*neighbor_id == 0 || *neighbor_id == cell_id) {
+      for ( pair<CellID, array<int,4>> nbrPair : *neighbors) {
+         CellID neighbor_id = nbrPair.first;
+         if (neighbor_id == 0 || neighbor_id == cell_id) {
             continue;
          }
-         neighbor_ptrs.push_back(mpiGrid[*neighbor_id]);
+         neighbor_ptrs.push_back(mpiGrid[neighbor_id]);
       }
       if (getObjectWrapper().particleSpecies[popID].sparse_conserve_mass) {
          for (size_t i=0; i<cell->get_number_of_velocity_blocks(popID)*WID3; ++i) {
@@ -931,11 +940,14 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,c
          SpatialCell* cell = mpiGrid[cells[c]];
             
          // Get all spatial neighbors
-         const vector<CellID>* neighbors = mpiGrid.get_neighbors_of(cells[c],NEAREST_NEIGHBORHOOD_ID);
+         //const vector<CellID>* neighbors = mpiGrid.get_neighbors_of(cells[c],NEAREST_NEIGHBORHOOD_ID);
+         const auto* neighbors = mpiGrid.get_neighbors_of(cells[c], NEAREST_NEIGHBORHOOD_ID);
                
          // Iterate over all spatial neighbors
-         for (size_t n=0; n<neighbors->size(); ++n) {
-            CellID nbrCellID = (*neighbors)[n];
+         // for (size_t n=0; n<neighbors->size(); ++n) {
+         for (pair<CellID,array<int,4> > nbrPair : *neighbors) {
+            // CellID nbrCellID = (*neighbors)[n];
+            CellID nbrCellID = nbrPair.first;
             const SpatialCell* nbr = mpiGrid[nbrCellID];
                   
             // Iterate over all blocks in the spatial neighbor, 

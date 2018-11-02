@@ -139,7 +139,7 @@ namespace projects {
    void test_trans::setCellBackgroundField(SpatialCell* cell) const {
       ConstantField bgField;
       bgField.initialize(0.0,0.0,1e-9);
-      setBackgroundField(bgField,cell->parameters, cell->derivatives,cell->derivativesBVOL);
+      setBackgroundField(bgField,cell->parameters.data(), cell->derivatives.data(),cell->derivativesBVOL.data());
    }
 
 }// namespace projects

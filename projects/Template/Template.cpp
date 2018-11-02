@@ -75,9 +75,9 @@ namespace projects {
       Dipole bgField;
       bgField.initialize(8e15, 0.0, 0.0, 0.0, 0.0); //set dipole moment and location
       if(cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
-         setBackgroundFieldToZero(cell->parameters, cell->derivatives,cell->derivativesBVOL);
+         setBackgroundFieldToZero(cell->parameters.data(), cell->derivatives.data(),cell->derivativesBVOL.data());
       } else {
-         setBackgroundField(bgField,cell->parameters, cell->derivatives,cell->derivativesBVOL);
+         setBackgroundField(bgField,cell->parameters.data(), cell->derivatives.data(),cell->derivativesBVOL.data());
       }
    }
    
