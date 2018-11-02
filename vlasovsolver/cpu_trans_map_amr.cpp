@@ -403,7 +403,7 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
          // If we have encountered this refinement level before and stored
          // the path this builder follows, we will just take the same path
          // again.
-         if ( path.size() >= refLvl ) {
+         if ( static_cast<int>(path.size()) >= refLvl ) {
       
             if(debug) {
                std::cout << "I am cell " << id << ". ";
@@ -413,7 +413,7 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
                std::cout << std::endl;
             }
 	
-            nextNeighbor = selectNeighbor(grid,id,dimension,path[refLvl-1]);      
+            nextNeighbor = selectNeighbor(grid,id,dimension,path[refLvl - 1]);      
 	
          } else {
 	
@@ -895,7 +895,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                       const Realv dt,
                       const uint popID) {
 
-   const bool printPencils = true;
+   const bool printPencils = false;
    const bool printLines = false;
    Realv dvz,vz_min;  
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/

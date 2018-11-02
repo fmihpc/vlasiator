@@ -91,7 +91,7 @@ CellID get_spatial_neighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geom
       if(mpiGrid.topology.is_periodic(i)) {
          while(indices[i] < 0 )
             indices[i] += length[i];
-         while(indices[i] >= length[i] )
+         while(indices[i] >= static_cast<int64_t>(length[i]) )
             indices[i] -= length[i];
       }
    }
@@ -99,7 +99,7 @@ CellID get_spatial_neighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geom
    for(uint i = 0; i<3; i++) {
       if(indices[i]< 0)
          return INVALID_CELLID;
-      if(indices[i]>=length[i])
+      if(indices[i]>=static_cast<int64_t>(length[i]))
          return INVALID_CELLID;
    }
    //store nbr indices into the correct datatype
