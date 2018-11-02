@@ -402,12 +402,14 @@ int main(int argn,char* args[]) {
    const std::array<int,3> fsGridDimensions = {convert<int>(P::xcells_ini) * pow(2,P::amrMaxSpatialRefLevel),
                                                convert<int>(P::ycells_ini) * pow(2,P::amrMaxSpatialRefLevel),
                                                convert<int>(P::zcells_ini) * pow(2,P::amrMaxSpatialRefLevel)};
-   const int fsGridSize = fsGridDimensions[0] * fsGridDimensions[1] * fsGridDimensions[2];
+
    std::array<bool,3> periodicity{mpiGrid.topology.is_periodic(0),
                                   mpiGrid.topology.is_periodic(1),
                                   mpiGrid.topology.is_periodic(2)};
 
-   const int tagOffset = 1e6;
+   const int fsGridSize = (fsGridDimensions[0] + 4) * (fsGridDimensions[1] + 4) * (fsGridDimensions[2] + 4);
+   // adding 1 just to be safe
+   const int tagOffset = fsGridSize + 1;
    int tagId = 0;
    
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> perBGrid(fsGridDimensions, comm, periodicity, tagOffset * tagId++);
@@ -457,10 +459,7 @@ int main(int argn,char* args[]) {
    bool debugFsgrid = false;
    
    perBGrid.      setupForGridCoupling(debugFsgrid);   
-   perBDt2Grid.   setupForGridCoupling(debugFsgrid);
-
-   debugFsgrid = false;
-      
+   perBDt2Grid.   setupForGridCoupling(debugFsgrid);      
    EGrid.         setupForGridCoupling(debugFsgrid);
    EDt2Grid.      setupForGridCoupling(debugFsgrid);
    EHallGrid.     setupForGridCoupling(debugFsgrid);
@@ -483,10 +482,7 @@ int main(int argn,char* args[]) {
          debugFsgrid = false;
          
          perBGrid.      setGridCoupling(fsgridId, myRank, debugFsgrid);         
-         perBDt2Grid.   setGridCoupling(fsgridId, myRank, debugFsgrid);
-
-         debugFsgrid = false;
-         
+         perBDt2Grid.   setGridCoupling(fsgridId, myRank, debugFsgrid);         
          EGrid.         setGridCoupling(fsgridId, myRank, debugFsgrid);
          EDt2Grid.      setGridCoupling(fsgridId, myRank, debugFsgrid);
          EHallGrid.     setGridCoupling(fsgridId, myRank, debugFsgrid);
@@ -973,18 +969,14 @@ int main(int argn,char* args[]) {
          
          const vector<CellID>& cells = getLocalCells();
 
-         cout << "Local cells are: ";
+         cout << "Reloadbalance: Local cells are: ";
          for(auto id : cells) cout << id << " ";
          cout << endl;
 
-         debugFsgrid = true;
-         
-         perBGrid.      setupForGridCoupling(debugFsgrid);
-
          debugFsgrid = false;
          
-         perBDt2Grid.   setupForGridCoupling(debugFsgrid);
-         
+         perBGrid.      setupForGridCoupling(debugFsgrid);
+         perBDt2Grid.   setupForGridCoupling(debugFsgrid);        
          EGrid.         setupForGridCoupling(debugFsgrid);
          EDt2Grid.      setupForGridCoupling(debugFsgrid);
          EHallGrid.     setupForGridCoupling(debugFsgrid);
@@ -1008,14 +1000,10 @@ int main(int argn,char* args[]) {
             for (auto& fsgridId : fsgridIds) {
                //cout << fsgridId << " ";
 
-               debugFsgrid = true;
-               
-               perBGrid.      setGridCoupling(fsgridId, myRank, debugFsgrid);
-
                debugFsgrid = false;
                
-               perBDt2Grid.   setGridCoupling(fsgridId, myRank, debugFsgrid);
-               
+               perBGrid.      setGridCoupling(fsgridId, myRank, debugFsgrid);
+               perBDt2Grid.   setGridCoupling(fsgridId, myRank, debugFsgrid);               
                EGrid.         setGridCoupling(fsgridId, myRank, debugFsgrid);
                EDt2Grid.      setGridCoupling(fsgridId, myRank, debugFsgrid);
                EHallGrid.     setGridCoupling(fsgridId, myRank, debugFsgrid);
