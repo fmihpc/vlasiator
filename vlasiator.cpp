@@ -1022,18 +1022,18 @@ int main(int argn,char* args[]) {
          if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ <<  endl;
          
          perBGrid.      finishGridCoupling();
-         // perBDt2Grid.   finishGridCoupling();
-         // EGrid.         finishGridCoupling();
-         // EDt2Grid.      finishGridCoupling();
-         // EHallGrid.     finishGridCoupling();
-         // EGradPeGrid.   finishGridCoupling();
-         // momentsGrid.   finishGridCoupling();
-         // momentsDt2Grid.finishGridCoupling();
-         // dPerBGrid.     finishGridCoupling();
-         // dMomentsGrid.  finishGridCoupling();
-         // BgBGrid.       finishGridCoupling();
-         // volGrid.       finishGridCoupling();
-         // technicalGrid. finishGridCoupling();
+         perBDt2Grid.   finishGridCoupling();
+         EGrid.         finishGridCoupling();
+         EDt2Grid.      finishGridCoupling();
+         EHallGrid.     finishGridCoupling();
+         EGradPeGrid.   finishGridCoupling();
+         momentsGrid.   finishGridCoupling();
+         momentsDt2Grid.finishGridCoupling();
+         dPerBGrid.     finishGridCoupling();
+         dMomentsGrid.  finishGridCoupling();
+         BgBGrid.       finishGridCoupling();
+         volGrid.       finishGridCoupling();
+         technicalGrid. finishGridCoupling();
          phiprof::stop("fsgrid-recouple-after-lb");
 
          overrideRebalanceNow = false;
