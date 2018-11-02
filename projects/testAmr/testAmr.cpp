@@ -264,9 +264,10 @@ namespace projects {
 
       std::vector<bool> refineSuccess;
 
-      // Refine the top-right quadrant of the box (-boundaries)
-      for (double x = xyz_mid[0]; x < P::xmax - P::dx_ini; x += P::dx_ini) {
-         for (double y = xyz_mid[1]; y < P::ymax - P::dy_ini; y += P::dy_ini) {
+      int boxHalfWidth = 1;
+      
+      for (double x = xyz_mid[0] - boxHalfWidth * P::dx_ini; x <= xyz_mid[0] + boxHalfWidth * P::dx_ini; x += P::dx_ini) {
+         for (double y = xyz_mid[1] - boxHalfWidth * P::dx_ini; y <= xyz_mid[1] + boxHalfWidth * P::dx_ini; y += P::dy_ini) {
             auto xyz = xyz_mid;
             xyz[0] = x;
             xyz[1] = y;
@@ -274,44 +275,49 @@ namespace projects {
             //CellID myCell = mpiGrid.get_existing_cell(xyz);
             //std::cout << "Got cell ID " << myCell << std::endl;
             //refineSuccess.push_back(mpiGrid.refine_completely(myCell));
-
             refineSuccess.push_back(mpiGrid.refine_completely_at(xyz));
          }
-      }
-
-      std::vector<CellID> refinedCells = mpiGrid.stop_refining(true);
-      
+      }      
+      std::vector<CellID> refinedCells = mpiGrid.stop_refining(true);      
       cout << "Finished first level of refinement" << endl;
-
-      // cout << "Refined Cells are: ";
-      // for (auto cellid : refinedCells) {
-      //    cout << cellid << " ";
-      // }
-      // cout << endl;
+      cout << "Refined Cells are: ";
+      for (auto cellid : refinedCells) {
+         cout << cellid << " ";
+      }
+      cout << endl;
       
       // auto xyz = xyz_mid;
-      // xyz[0] = 1.5 * xyz[0];
-      // xyz[1] = 1.5 * xyz[1];
+      // xyz[0] = 1.4 * xyz[0];
+      // xyz[1] = 1.4 * xyz[1];
       // std::cout << "Trying to refine at " << xyz[0] << ", " << xyz[1] << ", " << xyz[2] << std::endl;
       // CellID myCell = mpiGrid.get_existing_cell(xyz);
       // std::cout << "Got cell ID " << myCell << std::endl;
+      // int refLvl = mpiGrid.get_refinement_level(myCell);
+      // std::cout << "Refinement level is " << refLvl << std::endl;
       // //mpiGrid.refine_completely_at(xyz);
       // mpiGrid.refine_completely(myCell);
       // refinedCells.clear();
       // refinedCells = mpiGrid.stop_refining(true);     
-      // cout << "Finished second level of refinement" << endl;      
+      // cout << "Finished second level of refinement" << endl;
       // cout << "Refined Cells are: ";
       // for (auto cellid : refinedCells) {
       //    cout << cellid << " ";
       // }
       // cout << endl;
-      //mpiGrid.write_vtk_file("mpiGrid.vtk");
-
+      
+      // mpiGrid.refine_completely_at(xyz_mid);
+      // mpiGrid.stop_refining();
+      // mpiGrid.refine_completely_at(xyz_mid);
+      // mpiGrid.stop_refining();
+      // mpiGrid.unrefine_completely_at(xyz_mid);
+      // mpiGrid.stop_refining();
+            
       mpiGrid.balance_load();
 
       cout << "I am at line " << __LINE__ << " of " << __FILE__ <<  endl;
 
-      return std::all_of(refineSuccess.begin(), refineSuccess.end(), [](bool v) { return v; });
+      //   return std::all_of(refineSuccess.begin(), refineSuccess.end(), [](bool v) { return v; });
+      return true;
    }
    
 }// namespace projects
