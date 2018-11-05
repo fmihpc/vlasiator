@@ -267,7 +267,7 @@ namespace projects {
       int boxHalfWidth = 1;
       
       for (double x = xyz_mid[0] - boxHalfWidth * P::dx_ini; x <= xyz_mid[0] + boxHalfWidth * P::dx_ini; x += P::dx_ini) {
-         for (double y = xyz_mid[1] - boxHalfWidth * P::dx_ini; y <= xyz_mid[1] + boxHalfWidth * P::dx_ini; y += P::dy_ini) {
+         for (double y = xyz_mid[1] - boxHalfWidth * P::dy_ini; y <= xyz_mid[1] + boxHalfWidth * P::dy_ini; y += P::dy_ini) {
             auto xyz = xyz_mid;
             xyz[0] = x;
             xyz[1] = y;
