@@ -26,6 +26,42 @@ using namespace spatial_cell;
 
 #define i_trans_ps_blockv_pencil(planeVectorIndex, planeIndex, blockIndex, lengthOfPencil) ( (blockIndex) + VLASOV_STENCIL_WIDTH  +  ( (planeVectorIndex) + (planeIndex) * VEC_PER_PLANE ) * ( lengthOfPencil + 2 * VLASOV_STENCIL_WIDTH) )
 
+int getNeighborhood(const uint dimension, const uint stencil) {
+
+   int neighborhood = 0;
+
+   if (stencil == 1) {
+      switch (dimension) {
+      case 0:
+         neighborhood = VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID;
+         break;
+      case 1:
+         neighborhood = VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID;
+         break;
+      case 2:
+         neighborhood = VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID;
+         break;
+      }
+   }
+
+   if (stencil == 2) {
+      switch (dimension) {
+      case 0:
+         neighborhood = VLASOV_SOLVER_X_NEIGHBORHOOD_ID;
+         break;
+      case 1:
+         neighborhood = VLASOV_SOLVER_Y_NEIGHBORHOOD_ID;
+         break;
+      case 2:
+         neighborhood = VLASOV_SOLVER_Z_NEIGHBORHOOD_ID;
+         break;
+      }
+   }
+   
+   return neighborhood;
+   
+}
+
 void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                         setOfPencils pencils,
                                         const uint iPencil,
@@ -36,18 +72,7 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
    int L = pencils.lengthOfPencils[iPencil];
    vector<CellID> ids = pencils.getIds(iPencil);
       
-   int neighborhood = 0;
-   switch (dimension) {
-   case 0:
-      neighborhood = VLASOV_SOLVER_X_NEIGHBORHOOD_ID;
-      break;
-   case 1:
-      neighborhood = VLASOV_SOLVER_Y_NEIGHBORHOOD_ID;
-      break;
-   case 2:
-      neighborhood = VLASOV_SOLVER_Z_NEIGHBORHOOD_ID;
-      break;
-   }
+   int neighborhood = getNeighborhood(dimension,2);
 
    //   std::cout << "Source cells: ";
    // Get pointers for each cell id of the pencil
@@ -213,6 +238,8 @@ void computeSpatialTargetCellsForPencils(const dccrg::Dccrg<SpatialCell,dccrg::C
                                          setOfPencils& pencils,
                                          const uint dimension,
                                          SpatialCell **targetCells){
+
+   int neighborhood = getNeighborhood(dimension,1);
    
    uint GID = 0;
    // Loop over pencils
@@ -221,19 +248,6 @@ void computeSpatialTargetCellsForPencils(const dccrg::Dccrg<SpatialCell,dccrg::C
       // L = length of the pencil iPencil
       int L = pencils.lengthOfPencils[iPencil];
       vector<CellID> ids = pencils.getIds(iPencil);
-
-      int neighborhood = 0;
-      switch (dimension) {
-      case 0:
-         neighborhood = VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID;
-         break;
-      case 1:
-         neighborhood = VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID;
-         break;
-      case 2:
-         neighborhood = VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID;
-         break;
-      }
       
       //std::cout << "Target cells for pencil " << iPencil << ": ";
       
@@ -301,15 +315,17 @@ void computeSpatialTargetCellsForPencils(const dccrg::Dccrg<SpatialCell,dccrg::C
 CellID selectNeighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> &grid,
                       CellID id, int dimension = 0, uint path = 0) {
 
-   const auto neighbors = grid.get_face_neighbors_of(id);
+   int neighborhood = getNeighborhood(dimension,1);
+   
+   const auto* neighbors = grid.get_neighbors_of(id, neighborhood);
    const int myProcess = grid.get_process(id);
    
    vector < CellID > myNeighbors;
    // Collect neighbor ids in the positive direction of the chosen dimension,
    // that are on the same process as the origin.
    // Note that dimension indexing starts from 1 (of course it does)
-   for (const auto cell : neighbors) {
-      if (cell.second == dimension + 1 && grid.get_process(cell.first) == myProcess)
+   for (const auto cell : *neighbors) {
+      if (cell.second[dimension] == 1 && grid.get_process(cell.first) == myProcess)
          myNeighbors.push_back(cell.first);
    }
 
@@ -629,6 +645,7 @@ void get_seed_ids(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
                   vector<CellID> &seedIds) {
 
    const bool debug = false;
+   int neighborhood = getNeighborhood(dimension,1);
    
    //#pragma omp parallel for      
    for(auto celli: localPropagatedCells) {
@@ -636,12 +653,12 @@ void get_seed_ids(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       // Collect a list of cell ids that do not have a neighbor in the negative direction
       // These are the seed ids for the pencils.
       vector<CellID> negativeNeighbors;
-      // Returns all neighbors as (id, direction-dimension) pairs.
-      for ( const auto neighbor : mpiGrid.get_face_neighbors_of(celli ) ) {
+      // Returns all neighbors as (id, direction-dimension) pair pointers.
+      for ( const auto neighbor : *(mpiGrid.get_neighbors_of(celli, neighborhood)) ) {
 
          if ( mpiGrid.get_process(neighbor.first) == myProcess ) {
             // select the neighbor in the negative dimension of the propagation
-            if (neighbor.second == - (static_cast<int>(dimension) + 1)) {
+            if (neighbor.second[dimension] == -1) {
                
                // add the id of the neighbor to a list if it's on the same process
                negativeNeighbors.push_back(neighbor.first);
@@ -808,21 +825,7 @@ void check_ghost_cells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
                        uint dimension,
                        int offset) {
 
-   uint neighborhoodId;
-   switch (dimension) {
-   case 0:
-      neighborhoodId = VLASOV_SOLVER_X_NEIGHBORHOOD_ID;
-      break;
-   case 1:
-      neighborhoodId = VLASOV_SOLVER_Y_NEIGHBORHOOD_ID;
-      break;
-   case 2:
-      neighborhoodId = VLASOV_SOLVER_Z_NEIGHBORHOOD_ID;
-      break;
-   default:
-      neighborhoodId = 0;
-      break;
-   }
+   int neighborhoodId = getNeighborhood(dimension,2);
    
    std::vector<CellID> idsToSplit;
    
