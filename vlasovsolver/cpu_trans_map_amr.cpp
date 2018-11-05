@@ -90,27 +90,6 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
    // std::cout << (*frontNbrPairs)[0].first << ", " << (*frontNbrPairs)[1].first << "; ";
    // std::cout << (*backNbrPairs)[VLASOV_STENCIL_WIDTH].first << ", " << (*backNbrPairs)[VLASOV_STENCIL_WIDTH + 1].first;
 
-   // if(ids.front() == 1) {
-   //    std::cout << "Neighbors of cell " << ids.front() << " in pencil " << iPencil << ":" << std::endl;
-   //    for (auto pair: *frontNbrPairs) {
-   //       std::cout << pair.first << ", ";
-   //       for (auto i : pair.second) {
-   //          std::cout << i << " ";
-   //       }
-   //       std::cout << std::endl;;
-   //    }
-   //    std::cout << endl;
-   //    std::cout << "Neighbors of cell " << ids.back() << " in pencil " << iPencil << ":" << std::endl;
-   //    for (auto pair: *backNbrPairs) {
-   //       std::cout << pair.first << ", ";
-   //       for (auto i : pair.second) {
-   //          std::cout << i << " ";
-   //       }
-   //       std::cout << std::endl;;
-   //    }
-   //    std::cout << endl;      
-   // }
-
    const bool printDebug = false;
    if(printDebug) std::cout << "Ghost cells of pencil " << iPencil << ": ";
       
@@ -317,16 +296,15 @@ CellID selectNeighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> 
 
    int neighborhood = getNeighborhood(dimension,1);
    
-   const auto* neighbors = grid.get_neighbors_of(id, neighborhood);
+   const auto* nbrPairs = grid.get_neighbors_of(id, neighborhood);
    const int myProcess = grid.get_process(id);
    
    vector < CellID > myNeighbors;
    // Collect neighbor ids in the positive direction of the chosen dimension,
    // that are on the same process as the origin.
-   // Note that dimension indexing starts from 1 (of course it does)
-   for (const auto cell : *neighbors) {
-      if (cell.second[dimension] == 1 && grid.get_process(cell.first) == myProcess)
-         myNeighbors.push_back(cell.first);
+   for (const auto nbrPair : *nbrPairs) {
+      if (nbrPair.second[dimension] == 1 && grid.get_process(nbrPair.first) == myProcess)
+         myNeighbors.push_back(nbrPair.first);
    }
 
    CellID neighbor = INVALID_CELLID;
@@ -639,10 +617,10 @@ void propagatePencil(Vec* dz, Vec* values, const uint dimension, const uint bloc
    }  
 }
 
-void get_seed_ids(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                  const vector<CellID> &localPropagatedCells,
-                  const uint dimension,
-                  vector<CellID> &seedIds) {
+void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                const vector<CellID> &localPropagatedCells,
+                const uint dimension,
+                vector<CellID> &seedIds) {
 
    const bool debug = false;
    int neighborhood = getNeighborhood(dimension,1);
@@ -654,16 +632,12 @@ void get_seed_ids(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       // These are the seed ids for the pencils.
       vector<CellID> negativeNeighbors;
       // Returns all neighbors as (id, direction-dimension) pair pointers.
-      for ( const auto neighbor : *(mpiGrid.get_neighbors_of(celli, neighborhood)) ) {
+      for ( const auto nbrPair : *(mpiGrid.get_neighbors_of(celli, neighborhood)) ) {
 
-         if ( mpiGrid.get_process(neighbor.first) == myProcess ) {
-            // select the neighbor in the negative dimension of the propagation
-            if (neighbor.second[dimension] == -1) {
-               
-               // add the id of the neighbor to a list if it's on the same process
-               negativeNeighbors.push_back(neighbor.first);
-               
-            }
+         if ( nbrPair.second[dimension] == -1 && mpiGrid.get_process(nbrPair.first) == myProcess ) {
+            // select the first local neighbor in the negative direction and
+            // add the id of the neighbor to a list
+            negativeNeighbors.push_back(nbrPair.first);              
 
          }
       }
@@ -843,13 +817,13 @@ void check_ghost_cells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
          const auto* backNeighbors  = mpiGrid.get_neighbors_of(ids.back() ,neighborhoodId);
          int refLvl = 0;
 
-         for (pair<CellID, array<int,4>> nbrPair: *frontNeighbors) {
+         for (auto nbrPair: *frontNeighbors) {
             if(nbrPair.second[dimension] == -offset) {
                refLvl = max(refLvl,mpiGrid.mapping.get_refinement_level(nbrPair.first));
             }
          }
          
-         for (pair<CellID, array<int,4>> nbrPair: *backNeighbors) {
+         for (auto nbrPair: *backNeighbors) {
             if(nbrPair.second[dimension] == offset) {
                refLvl = max(refLvl,mpiGrid.mapping.get_refinement_level(nbrPair.first));
             }
@@ -977,7 +951,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    // std::cout << endl;
    
    vector<CellID> seedIds;
-   get_seed_ids(mpiGrid, localPropagatedCells, dimension, seedIds);
+   getSeedIds(mpiGrid, localPropagatedCells, dimension, seedIds);
    
    // Empty vectors for internal use of buildPencilsWithNeighbors. Could be default values but
    // default vectors are complicated. Should overload buildPencilsWithNeighbors like suggested here
