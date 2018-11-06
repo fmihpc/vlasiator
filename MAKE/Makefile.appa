@@ -53,7 +53,7 @@ CXXFLAGS += -g -O2 -fopenmp -funroll-loops -std=c++11 -W -Wall -Wno-unused -fabi
 testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++0x -fabi-version=0  -mavx
 
 MATHFLAGS = -ffast-math
-LDFLAGS =
+LDFLAGS = -g
 LIB_MPI = -lgomp
 
 # BOOST_VERSION = current trilinos version
