@@ -63,9 +63,11 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
       }
    }
 
+
+
    for (uint i = 0;i < cells.size(); ++i) {
       CellID dccrgId = cells[i];
-      const auto fsgridIds = mapDccrgIdToFsGrid(mpiGrid, momentsGrid.getLocalSize(), dccrgId);
+      const auto fsgridIds = mapDccrgIdToFsGridGlobalID(mpiGrid, dccrgId);
       for (auto fsgridId : fsgridIds) {
          momentsGrid.transferDataIn(fsgridId, &transferBuffer[i]);
       }
@@ -123,7 +125,7 @@ void feedBgFieldsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    // Copy data into each fsgrid cell overlapping the dccrg cell
    for (uint i = 0; i < cells.size(); ++i) {
       CellID dccrgId = cells[i];
-      const auto fsgridIds = mapDccrgIdToFsGrid(mpiGrid, bgBGrid.getLocalSize(), dccrgId);
+      const auto fsgridIds = mapDccrgIdToFsGridGlobalID(mpiGrid, dccrgId);
       for (auto fsgridId : fsgridIds) {
          bgBGrid.transferDataIn(fsgridId, &transferBuffer[i]);
       }
@@ -148,7 +150,7 @@ void getVolumeFieldsFromFsGrid(FsGrid< std::array<Real, fsgrids::volfields::N_VO
    volumeFieldsGrid.setupForTransferOut(nCells);
    int k = 0;
    for(auto dccrgId : cells) {
-      const auto fsgridIds = mapDccrgIdToFsGrid(mpiGrid, volumeFieldsGrid.getLocalSize(), dccrgId);
+      const auto fsgridIds = mapDccrgIdToFsGridGlobalID(mpiGrid, dccrgId);
       // Store a pointer to the first fsgrid cell that maps to each dccrg Id
       transferBufferPointer.push_back(&transferBuffer[k]);
       for (auto fsgridId : fsgridIds) {
@@ -238,7 +240,7 @@ void getDerivativesFromFsGrid(FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>,
    for (auto dccrgId : cells) {
 
       // Assuming same local size in all fsgrids
-      const auto fsgridIds = mapDccrgIdToFsGrid(mpiGrid, dperbGrid.getLocalSize(), dccrgId);
+      const auto fsgridIds = mapDccrgIdToFsGridGlobalID(mpiGrid, dccrgId);
       // Store a pointer to the first fsgrid cell that maps to each dccrg Id
       dperbTransferBufferPointer.push_back(&dperbTransferBuffer[k]);
       dmomentsTransferBufferPointer.push_back(&dmomentsTransferBuffer[k]);
@@ -371,7 +373,7 @@ void setupTechnicalFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
 
    for(uint i = 0; i < cells.size(); ++i) {
       
-      const auto fsgridIds = mapDccrgIdToFsGrid(mpiGrid, technicalGrid.getLocalSize(), cells[i]);
+      const auto fsgridIds = mapDccrgIdToFsGridGlobalID(mpiGrid, cells[i]);
       
       for (auto fsgridId : fsgridIds) {
          // std::cout << "fsgridId: " << fsgridId << ", fsgrid Cell Coordinates:";
@@ -401,7 +403,7 @@ void getFsGridMaxDt(FsGrid< fsgrids::technical, 2>& technicalGrid,
    for(int i=0; i< cells.size(); i++) {
 
       transferBufferPointer.push_back(&transferBuffer[k]);
-      const auto fsgridIds = mapDccrgIdToFsGrid(mpiGrid, technicalGrid.getLocalSize(), cells[i]);
+      const auto fsgridIds = mapDccrgIdToFsGridGlobalID(mpiGrid, cells[i]);
       for (auto fsgridId : fsgridIds) {
          fsgrids::technical* thisCellData = &transferBuffer[k++];
          technicalGrid.transferDataOut(fsgridId, thisCellData);
@@ -438,42 +440,27 @@ void getFsGridMaxDt(FsGrid< fsgrids::technical, 2>& technicalGrid,
 }
 
 /*
-Map from fsgrid cell id to dccrg cell id when they aren't identical (ie. when dccrg has refinement).
-*/
-CellID mapFsGridIdToDccrg(FsGrid< fsgrids::technical, 2>& technicalGrid,
-                           dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                           CellID fsgridID) {
-
-   auto cellCoord = technicalGrid.globalIDtoCellCoord(fsgridID);
-   // theoretically we could directly use cellCoord as indices for
-   // mpiGrid.get_cell_from_indices, if we knew the refinement level
-   // of the cell in advance. Going via cartesian coordinates is probably
-   // faster than iterating through refinement levels until we find the
-   // correct one.
-   std::array<double,3> cartesianCoord;
-   cartesianCoord[0] = cellCoord[0] * technicalGrid.DX + P::xmin;
-   cartesianCoord[1] = cellCoord[1] * technicalGrid.DY + P::ymin;
-   cartesianCoord[2] = cellCoord[2] * technicalGrid.DZ + P::zmin;
-   CellID dccrgID = mpiGrid.get_existing_cell(cartesianCoord);
-   return dccrgID;
-   
-}
-/*
-Map from dccrg cell id to fsgrid cell ids when they aren't identical (ie. when dccrg has refinement).
+Map from dccrg cell id to fsgrid global cell ids when they aren't identical (ie. when dccrg has refinement).
 */
 
-std::vector<CellID> mapDccrgIdToFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                       std::array<int32_t,3> fsgridDims, CellID dccrgID) {
+std::vector<CellID> mapDccrgIdToFsGridGlobalID(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+					       CellID dccrgID) {
+
    const auto cellLength = mpiGrid.mapping.get_cell_length_in_indices(dccrgID);
    const auto gridLength = mpiGrid.length.get();
-   const auto maxRefLvl  = mpiGrid.mapping.get_maximum_refinement_level();
+   const auto maxRefLvl  = mpiGrid.get_maximum_refinement_level();
    const auto topLeftIndices = mpiGrid.mapping.get_indices(dccrgID);
    std::array<int,3> indices;
    std::vector<std::array<int,3>> allIndices;
+
+   std::array<int,3> fsgridDims;
+   fsgridDims[0] = P::xcells_ini * (mpiGrid.get_maximum_refinement_level() + 1);
+   fsgridDims[1] = P::ycells_ini * (mpiGrid.get_maximum_refinement_level() + 1);
+   fsgridDims[2] = P::zcells_ini * (mpiGrid.get_maximum_refinement_level() + 1);
    
-   for (uint i = 0; i < cellLength; ++i) {
+   for (uint k = 0; k < cellLength; ++k) {
       for (uint j = 0; j < cellLength; ++j) {
-         for (uint k = 0; k < cellLength; ++k) {
+         for (uint i = 0; i < cellLength; ++i) {
             indices[0] = topLeftIndices[0] + i;
             indices[1] = topLeftIndices[1] + j;
             indices[2] = topLeftIndices[2] + k;
@@ -482,9 +469,15 @@ std::vector<CellID> mapDccrgIdToFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian
       }
    }
 
-   std::vector<CellID> fsgridIDs;
+   std::vector<CellID> fsgridIDs;  
+
+
    for (auto cellCoord: allIndices) {
-      fsgridIDs.push_back(cellCoord[0] + cellCoord[1] * fsgridDims[0] + cellCoord[2] * fsgridDims[1] * fsgridDims[0]);
+     
+     fsgridIDs.push_back(cellCoord[0] 
+			 + cellCoord[1] * fsgridDims[0] 
+			 + cellCoord[2] * fsgridDims[1] * fsgridDims[0]);
+
    }
 
    return fsgridIDs;

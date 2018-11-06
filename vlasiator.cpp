@@ -475,7 +475,7 @@ int main(int argn,char* args[]) {
    // Each dccrg cell may have to communicate with multiple fsgrid cells, if they are on a lower refinement level.
    // Calculate the corresponding fsgrid ids for each dccrg cell and set coupling for each fsgrid id.
    for(auto& dccrgId : cells) {
-      const auto fsgridIds = mapDccrgIdToFsGrid(mpiGrid, fsGridDimensions, dccrgId);
+      const auto fsgridIds = mapDccrgIdToFsGridGlobalID(mpiGrid, dccrgId);
 
       for (auto fsgridId : fsgridIds) {
 
@@ -497,6 +497,8 @@ int main(int argn,char* args[]) {
       }
    }
    
+   if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ <<  endl;
+
    perBGrid.      finishGridCoupling();
    perBDt2Grid.   finishGridCoupling();
    EGrid.         finishGridCoupling();
@@ -512,14 +514,22 @@ int main(int argn,char* args[]) {
    technicalGrid. finishGridCoupling();
    phiprof::stop("Initial fsgrid coupling");
 
+   if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ <<  endl;
+
    // Transfer initial field configuration into the FsGrids
    feedFieldDataIntoFsGrid<fsgrids::N_BFIELD>(mpiGrid,cells,CellParams::PERBX,perBGrid);
+
+   if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ <<  endl;
 
    feedBgFieldsIntoFsGrid(mpiGrid,cells,BgBGrid);
    BgBGrid.updateGhostCells();
 
+   if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ <<  endl;
+
    setupTechnicalFsGrid(mpiGrid, cells, technicalGrid);
    technicalGrid.updateGhostCells();
+
+   if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ <<  endl;
 
    // WARNING this means moments and dt2 moments are the same here.
    feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid,false);
@@ -995,7 +1005,7 @@ int main(int argn,char* args[]) {
          // Calculate the corresponding fsgrid ids for each dccrg cell and set coupling for each fsgrid id.
          // cout << "send tags are: " << endl;
          for(auto& dccrgId : cells) {
-            const auto fsgridIds = mapDccrgIdToFsGrid(mpiGrid, fsGridDimensions, dccrgId);
+            const auto fsgridIds = mapDccrgIdToFsGridGlobalID(mpiGrid, dccrgId);
             //cout << "Fsgrid ids for cell " << dccrgId << " are: ";
             for (auto& fsgridId : fsgridIds) {
                //cout << fsgridId << " ";
