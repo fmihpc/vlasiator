@@ -336,6 +336,8 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
    bool success = true;
    vector<CellID> cells = mpiGrid.get_cells();
 
+   const bool printLines = false;
+   
    /*set all cells to default value, not_sysboundary*/
    for(uint i=0; i<cells.size(); i++) {
       mpiGrid[cells[i]]->sysBoundaryFlag = sysboundarytype::NOT_SYSBOUNDARY;
@@ -356,6 +358,8 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
    mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
 
+   if(printLines) cout << "I am at line " << __LINE__ << " of " << __FILE__ <<  endl;
+   
    // Compute distances to system boundaries according to the new classification
    for (size_t c=0; c<cells.size(); ++c) {
       bool hasNormalNbrs = false;
@@ -423,6 +427,8 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
       }*/
    }
 
+   if(printLines) cout << "I am at line " << __LINE__ << " of " << __FILE__ <<  endl;
+   
    // set distance 1 cells to boundary cells, that have neighbors which are normal cells
    for(uint i=0; i<cells.size(); i++) {
       mpiGrid[cells[i]]->sysBoundaryLayer=0; /*Initial value*/
@@ -438,11 +444,18 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
       }
    }
 
+   if(printLines) cout << "I am at line " << __LINE__ << " of " << __FILE__ <<  endl;
+   
    /*communicate which cells have Layer 1 set above for local cells (sysBoundaryFlag
     * and sysBoundaryLayer communicated)*/
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
+
+   if(printLines) cout << "I am at line " << __LINE__ << " of " << __FILE__ <<  endl;
+   
    mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
 
+   if(printLines) cout << "I am at line " << __LINE__ << " of " << __FILE__ <<  endl;
+   
    /*Compute distances*/
    uint maxLayers=3;//max(max(P::xcells_ini, P::ycells_ini), P::zcells_ini);
    for(uint layer=1;layer<maxLayers;layer++){
@@ -459,9 +472,12 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
             }
          }
       }
+
       SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
       mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
    }
+
+   if(printLines) cout << "I am at line " << __LINE__ << " of " << __FILE__ <<  endl;
    
    /*set cells to DO_NOT_COMPUTE if they are on boundary, and are not
     * in the first two layers of the boundary*/
@@ -473,6 +489,8 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
          mpiGrid[cells[i]]->sysBoundaryFlag = sysboundarytype::DO_NOT_COMPUTE;
       }
    }
+
+   if(printLines) cout << "I am at line " << __LINE__ << " of " << __FILE__ <<  endl;
    
    // The following is done so that everyone knows their neighbour's
    // layer flags.  This is needed for the correct use of the system
