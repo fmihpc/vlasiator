@@ -76,11 +76,14 @@ void calculateSpatialTranslation(
 
     int trans_timer;
     bool localTargetGridGenerated = false;
-
-    //   std::cout << "I am at line " << __LINE__ << " of " << __FILE__ << std::endl;
+    const bool printLines = true;
+    
+    int myRank;
+    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+    if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
     
     // ------------- SLICE - map dist function in Z --------------- //
-   if(P::zcells_ini > 1){
+   if(P::zcells_ini > 1 && false){
       trans_timer=phiprof::initializeTimer("transfer-stencil-data-z","MPI");
       phiprof::start(trans_timer);
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
@@ -97,41 +100,56 @@ void calculateSpatialTranslation(
       update_remote_mapping_contribution(mpiGrid, 2,-1,popID);
       phiprof::stop("update_remote-z");
 
-
    }
 
-   //   std::cout << "I am at line " << __LINE__ << " of " << __FILE__ << std::endl;
+   if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
    
    // ------------- SLICE - map dist function in X --------------- //
    if(P::xcells_ini > 1 ){     
       
       trans_timer=phiprof::initializeTimer("transfer-stencil-data-x","MPI");
       phiprof::start(trans_timer);
-      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);     
+      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
+
+      if(printLines)      cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
+
+      mpiGrid.set_send_single_cells(true);
       mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
       phiprof::stop(trans_timer);
 
+      if(printLines)      cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
+      
       phiprof::start("compute-mapping-x");
       trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsx, 0,dt,popID); // map along x//
       phiprof::stop("compute-mapping-x");
 
+      if(printLines)      cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
+      
       trans_timer=phiprof::initializeTimer("update_remote-x","MPI");
       phiprof::start("update_remote-x");
       update_remote_mapping_contribution(mpiGrid, 0,+1,popID);
       update_remote_mapping_contribution(mpiGrid, 0,-1,popID);
       phiprof::stop("update_remote-x");
+
+      if(printLines)      cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
    }
 
-   //   std::cout << "I am at line " << __LINE__ << " of " << __FILE__ << std::endl;
+   if(printLines)   cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
    
    // ------------- SLICE - map dist function in Y --------------- //
-   if(P::ycells_ini > 1){
+   if(P::ycells_ini > 1 && false){
       trans_timer=phiprof::initializeTimer("transfer-stencil-data-y","MPI");
       phiprof::start(trans_timer);
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
+
+      if(printLines)      cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
+      
+      mpiGrid.set_send_single_cells(true);
       mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);
       phiprof::stop(trans_timer);
 
+      if(printLines)      cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
+      
       phiprof::start("compute-mapping-y");      
       trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsy, 1,dt,popID); // map along y//
       phiprof::stop("compute-mapping-y");
@@ -324,16 +342,29 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    typedef Parameters P;
    const vector<CellID>& cells = getLocalCells();
 
+   const bool printLines = true;
+   
+   int myRank;
+   MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+   if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__;
+   cout << " " << dt << " " << P::tstep << endl;
+   
    if (dt == 0.0 && P::tstep > 0) {
+      if(printLines)      cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
+      
       // Even if acceleration is turned off we need to adjust velocity blocks 
       // because the boundary conditions may have altered the velocity space, 
       // and to update changes in no-content blocks during translation.
-      for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
-        adjustVelocityBlocks(mpiGrid, cells, true, popID);
+      for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         adjustVelocityBlocks(mpiGrid, cells, true, popID);
+      }
+
+      if(printLines)      cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
       goto momentCalculation;
    }
    phiprof::start("semilag-acc");
     
+   if(printLines)   cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
    
    // Accelerate all particle species
     for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
@@ -365,10 +396,13 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
              spatial_cell::Population& pop = SC->get_population(popID);
              pop.ACCSUBCYCLES = getAccelerationSubcycles(SC, dt, popID);
           }
-       }       
+       }
+
+       if(printLines)       cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
        // Compute global maximum for number of subcycles
        MPI_Allreduce(&maxSubcycles, &globalMaxSubcycles, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
-
+       if(printLines)       cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
+       
        // substep global max times
        for(uint step=0; step<(uint)globalMaxSubcycles; ++step) {
           if(step > 0) {

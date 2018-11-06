@@ -649,7 +649,11 @@ void update_remote_mapping_contribution(
    vector<CellID> send_cells;
    vector<Realf*> receiveBuffers;
 
-   //   std::cout << "I am at line " << __LINE__ << " of " << __FILE__ << std::endl;
+   int myRank;
+   const bool printLines = true;
+   
+   MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+   if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;  
    
    //normalize
    if(direction > 0) direction = 1;
@@ -661,12 +665,12 @@ void update_remote_mapping_contribution(
       ccell->neighbor_number_of_blocks = 0;
    }
 
-   //std::cout << "I am at line " << __LINE__ << " of " << __FILE__ << std::endl;
+   if(printLines)    std::cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << std::endl;
    
    //TODO: prepare arrays, make parallel by avoidin push_back and by checking also for other stuff
    for (size_t c = 0; c < local_cells.size(); ++c) {
 
-      //std::cout << "I am at line " << __LINE__ << " of " << __FILE__ << " " << local_cells[c] << std::endl;
+      if(printLines)       std::cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << std::endl;
       
       SpatialCell *ccell = mpiGrid[local_cells[c]];
       //default values, to avoid any extra sends and receives
@@ -714,7 +718,7 @@ void update_remote_mapping_contribution(
       m_ngbr = NbrPairVector->front().first;
       p_ngbr = NbrPairVector->back().first;
 
-      //std::cout << "I am at line " << __LINE__ << " of " << __FILE__ << std::endl;
+      if(printLines) std::cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << std::endl;
       
       //internal cell, not much to do
       if (mpiGrid.is_local(p_ngbr) && mpiGrid.is_local(m_ngbr)) continue;
@@ -748,8 +752,9 @@ void update_remote_mapping_contribution(
       }
    }
 
-   //std::cout << "I am at line " << __LINE__ << " of " << __FILE__ << std::endl;
-   
+   if(printLines) std::cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << " " << direction << " " << dimension <<std::endl;
+
+   mpiGrid.set_send_single_cells(true);
    // Do communication
    SpatialCell::setCommunicatedSpecies(popID);
    SpatialCell::set_mpi_transfer_type(Transfer::NEIGHBOR_VEL_BLOCK_DATA);
@@ -768,7 +773,7 @@ void update_remote_mapping_contribution(
       break;
    }
 
-   //std::cout << "I am at line " << __LINE__ << " of " << __FILE__ << std::endl;
+   if(printLines) std::cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << std::endl;
    
 #pragma omp parallel
    {
@@ -799,7 +804,7 @@ void update_remote_mapping_contribution(
       }
    }
 
-   //std::cout << "I am at line " << __LINE__ << " of " << __FILE__ << std::endl;
+   if(printLines) std::cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << std::endl;
    
    //and finally free temporary receive buffer
    for (size_t c=0; c < receiveBuffers.size(); ++c) {

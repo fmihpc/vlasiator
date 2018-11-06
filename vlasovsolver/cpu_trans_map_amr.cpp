@@ -297,13 +297,12 @@ CellID selectNeighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> 
    int neighborhood = getNeighborhood(dimension,1);
    
    const auto* nbrPairs = grid.get_neighbors_of(id, neighborhood);
-   const int myProcess = grid.get_process(id);
    
    vector < CellID > myNeighbors;
    // Collect neighbor ids in the positive direction of the chosen dimension,
    // that are on the same process as the origin.
    for (const auto nbrPair : *nbrPairs) {
-      if (nbrPair.second[dimension] == 1 && grid.get_process(nbrPair.first) == myProcess)
+      if (nbrPair.second[dimension] == 1 && grid.is_local(nbrPair.first))
          myNeighbors.push_back(nbrPair.first);
    }
 
@@ -622,19 +621,18 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
                 const uint dimension,
                 vector<CellID> &seedIds) {
 
-   const bool debug = false;
+   const bool debug = true;
    int neighborhood = getNeighborhood(dimension,1);
    
    //#pragma omp parallel for      
    for(auto celli: localPropagatedCells) {
-      int myProcess = mpiGrid.get_process(celli);
       // Collect a list of cell ids that do not have a neighbor in the negative direction
       // These are the seed ids for the pencils.
       vector<CellID> negativeNeighbors;
       // Returns all neighbors as (id, direction-dimension) pair pointers.
       for ( const auto nbrPair : *(mpiGrid.get_neighbors_of(celli, neighborhood)) ) {
 
-         if ( nbrPair.second[dimension] == -1 && mpiGrid.get_process(nbrPair.first) == myProcess ) {
+         if ( nbrPair.second[dimension] == -1 && mpiGrid.is_local(nbrPair.first)) {
             // select the first local neighbor in the negative direction and
             // add the id of the neighbor to a list
             negativeNeighbors.push_back(nbrPair.first);              
@@ -660,7 +658,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
                   // yz - plane
                   if(ix == 0) {
                      seedId = P::xcells_ini * P::ycells_ini * iz + P::xcells_ini * iy + 1;
-                     if(mpiGrid.get_process(seedId) == mpiGrid.get_process(localPropagatedCells[0]))
+                     if(mpiGrid.is_local(seedId))
                         seedIds.push_back(seedId);
 
                   }
@@ -669,7 +667,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
                   // xz - plane
                   if(iy == 0) {
                      seedId = P::xcells_ini * P::ycells_ini * iz + ix + 1;
-                     if(mpiGrid.get_process(seedId) == mpiGrid.get_process(localPropagatedCells[0]))
+                     if(mpiGrid.is_local(seedId))
                         seedIds.push_back(seedId);
 
                   }
@@ -678,7 +676,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
                   // xy - plane
                   if(iz == 0) {
                      seedId = P::xcells_ini * iy + ix + 1;
-                     if(mpiGrid.get_process(seedId) == mpiGrid.get_process(localPropagatedCells[0]))
+                     if(mpiGrid.is_local(seedId))
                         seedIds.push_back(seedId);
                   }
                   break;
@@ -872,8 +870,8 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                       const Realv dt,
                       const uint popID) {
 
-   const bool printPencils = false;
-   const bool printLines = false;
+   const bool printPencils = true;
+   const bool printLines = true;
    Realv dvz,vz_min;  
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
    unsigned char  cellid_transpose[WID3]; /*< defines the transpose for the solver internal (transposed) id: i + j*WID + k*WID2 to actual one*/
@@ -884,6 +882,9 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       return false;
    }
 
+   int myRank;
+   if(printLines || printPencils) MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+   
    //cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
    
    // Vector with all cell ids
@@ -976,13 +977,17 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    if (printPencils) {
       uint ibeg = 0;
       uint iend = 0;
-      std::cout << "I have created " << pencils.N << " pencils along dimension " << dimension << ":\n";
-      std::cout << "N, mpirank, (x, y): indices " << std::endl;
-      std::cout << "-----------------------------------------------------------------" << std::endl;
+      std::cout << "I am rank " << myRank << ", I have created " << pencils.N << " pencils along dimension " << dimension << ":\n";
+      MPI_Barrier(MPI_COMM_WORLD);
+      if(myRank == MASTER_RANK) {
+         std::cout << "N, mpirank, (x, y): indices " << std::endl;
+         std::cout << "-----------------------------------------------------------------" << std::endl;
+      }
+      MPI_Barrier(MPI_COMM_WORLD);
       for (uint i = 0; i < pencils.N; i++) {
          iend += pencils.lengthOfPencils[i];
          std::cout << i << ", ";
-         std::cout << mpiGrid.get_process(pencils.ids[ibeg]) << ", ";
+         std::cout << myRank << ", ";
          std::cout << "(" << pencils.x[i] << ", " << pencils.y[i] << "): ";
          for (auto j = pencils.ids.begin() + ibeg; j != pencils.ids.begin() + iend; ++j) {
             std::cout << *j << " ";
@@ -1041,7 +1046,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    }
    // ****************************************************************************   
 
-   if(printLines) cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
+   if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
    
    const uint8_t VMESH_REFLEVEL = 0;
    
@@ -1073,7 +1078,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    }
    // ****************************************************************************
 
-   if(printLines) cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
+   if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
    
    int t1 = phiprof::initializeTimer("mappingAndStore");
    
@@ -1093,7 +1098,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
          vmesh.getIndices(blockGID,vRefLevel, block_indices[0],
                           block_indices[1], block_indices[2]);      
 
-         if(printLines) cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
+         if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
          
          // Loop over sets of pencils
          // This loop only has one iteration for now
@@ -1104,14 +1109,14 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
             // Add padding by 2 for each pencil
             Vec targetVecData[(pencils.sumOfLengths + 2 * pencils.N) * WID3 / VECL];
 
-            if(printLines) cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
+            if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
             
             // Initialize targetvecdata to 0
             for( uint i = 0; i < (pencils.sumOfLengths + 2 * pencils.N) * WID3 / VECL; i++ ) {
                targetVecData[i] = Vec(0.0);
             }
 
-            if(printLines) cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
+            if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
             
             // TODO: There's probably a smarter way to keep track of where we are writing
             //       in the target data array.
@@ -1121,11 +1126,11 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
             // For targets we need the local cells, plus a padding of 1 cell at both ends
             std::vector<SpatialCell*> targetCells(pencils.sumOfLengths + pencils.N * 2 );
 
-            if(printLines) cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
+            if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
             
             computeSpatialTargetCellsForPencils(mpiGrid, pencils, dimension, targetCells.data());           
 
-            if(printLines) cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
+            if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
             
             // Loop over pencils
             uint totalTargetLength = 0;
@@ -1142,7 +1147,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
 
                computeSpatialSourceCellsForPencil(mpiGrid, pencils, pencili, dimension, sourceCells.data());
 
-               if(printLines) cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
+               if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
                
                Vec dz[sourceCells.size()];
                uint i = 0;
@@ -1161,25 +1166,25 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                   i++;
                }
 
-               if(printLines) cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
+               if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
                
                // Allocate source data: sourcedata<length of pencil * WID3)
                // Add padding by 2 * VLASOV_STENCIL_WIDTH
                Vec sourceVecData[(sourceLength) * WID3 / VECL];                              
 
-               if(printLines) cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
+               if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
                
                // load data(=> sourcedata) / (proper xy reconstruction in future)
                copy_trans_block_data_amr(sourceCells.data(), blockGID, L, sourceVecData,
                                          cellid_transpose, popID);
 
-               if(printLines)   cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
+               if(printLines)   cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
                
                // Dz and sourceVecData are both padded by VLASOV_STENCIL_WIDTH
                // Dz has 1 value/cell, sourceVecData has WID3 values/cell
                propagatePencil(dz, sourceVecData, dimension, blockGID, dt, vmesh, L);
 
-               if(printLines)   cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
+               if(printLines)   cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
                
                // sourcedata => targetdata[this pencil])
                for (uint i = 0; i < targetLength; i++) {
@@ -1215,7 +1220,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                }
             }
 
-            if(printLines) cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
+            if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
             
             // store_data(target_data => targetCells)  :Aggregate data for blockid to original location 
             // Loop over pencils again
@@ -1303,6 +1308,6 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       }
    }   
 
-   if(printLines) cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
+   if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
    return true;
 }
