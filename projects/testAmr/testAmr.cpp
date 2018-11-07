@@ -254,7 +254,7 @@ namespace projects {
 
    bool testAmr::refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
 
-      cout << "I am at line " << __LINE__ << " of " << __FILE__ <<  endl;
+      // cout << "I am at line " << __LINE__ << " of " << __FILE__ <<  endl;
       std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
       
       std::array<double,3> xyz_mid;
@@ -314,7 +314,7 @@ namespace projects {
             
       mpiGrid.balance_load();
 
-      cout << "I am at line " << __LINE__ << " of " << __FILE__ <<  endl;
+      //cout << "I am at line " << __LINE__ << " of " << __FILE__ <<  endl;
 
       //   return std::all_of(refineSuccess.begin(), refineSuccess.end(), [](bool v) { return v; });
       return true;

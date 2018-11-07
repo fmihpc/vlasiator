@@ -650,7 +650,7 @@ void update_remote_mapping_contribution(
    vector<Realf*> receiveBuffers;
 
    int myRank;
-   const bool printLines = true;
+   const bool printLines = false;
    
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;  

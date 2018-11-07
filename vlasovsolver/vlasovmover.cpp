@@ -76,7 +76,7 @@ void calculateSpatialTranslation(
 
     int trans_timer;
     bool localTargetGridGenerated = false;
-    const bool printLines = true;
+    const bool printLines = false;
     
     int myRank;
     MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
@@ -113,7 +113,7 @@ void calculateSpatialTranslation(
 
       if(printLines)      cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
 
-      mpiGrid.set_send_single_cells(true);
+      mpiGrid.set_send_single_cells(false);
       mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
       phiprof::stop(trans_timer);
 
@@ -137,14 +137,14 @@ void calculateSpatialTranslation(
    if(printLines)   cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
    
    // ------------- SLICE - map dist function in Y --------------- //
-   if(P::ycells_ini > 1 && false){
+   if(P::ycells_ini > 1){
       trans_timer=phiprof::initializeTimer("transfer-stencil-data-y","MPI");
       phiprof::start(trans_timer);
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
 
       if(printLines)      cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
       
-      mpiGrid.set_send_single_cells(true);
+      mpiGrid.set_send_single_cells(false);
       mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);
       phiprof::stop(trans_timer);
 
@@ -342,12 +342,12 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    typedef Parameters P;
    const vector<CellID>& cells = getLocalCells();
 
-   const bool printLines = true;
+   const bool printLines = false;
    
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__;
-   cout << " " << dt << " " << P::tstep << endl;
+   if(printLines) cout << " " << dt << " " << P::tstep << endl;
    
    if (dt == 0.0 && P::tstep > 0) {
       if(printLines)      cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
