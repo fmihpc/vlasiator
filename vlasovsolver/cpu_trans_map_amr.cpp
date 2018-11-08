@@ -621,22 +621,37 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
                 const uint dimension,
                 vector<CellID> &seedIds) {
 
-   const bool debug = false;
+   const bool debug = true;
+   int myRank;
+   MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+   
    int neighborhood = getNeighborhood(dimension,1);
    
    //#pragma omp parallel for      
    for(auto celli: localPropagatedCells) {
+
+      auto myIndices = mpiGrid.mapping.get_indices(celli);
+      
       // Collect a list of cell ids that do not have a neighbor in the negative direction
       // These are the seed ids for the pencils.
       vector<CellID> negativeNeighbors;
       // Returns all neighbors as (id, direction-dimension) pair pointers.
       for ( const auto nbrPair : *(mpiGrid.get_neighbors_of(celli, neighborhood)) ) {
-
+         
          if ( nbrPair.second[dimension] == -1 && mpiGrid.is_local(nbrPair.first)) {
-            // select the first local neighbor in the negative direction and
-            // add the id of the neighbor to a list
-            negativeNeighbors.push_back(nbrPair.first);              
 
+            // Check that the neighbor is not across a periodic boundary by calculating
+            // the distance in indices between this cell and its neighbor.
+            auto nbrIndices = mpiGrid.mapping.get_indices(nbrPair.first);
+
+            if ( abs ( myIndices[dimension] - nbrIndices[dimension] ) <=
+                 pow(2,mpiGrid.get_maximum_refinement_level()) ) {
+            
+               // select the first local neighbor in the negative direction and
+               // add the id of the neighbor to a list
+               negativeNeighbors.push_back(nbrPair.first);
+               
+            }
          }
       }
       //cout << endl;
@@ -645,50 +660,9 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
          seedIds.push_back(celli);    
    }
 
-   // If no seed ids were found, let's assume we have a periodic boundary and
-   // a single process in the dimension of propagation. In this case we start from
-   // the first cells of the plane perpendicular to the propagation dimension
-   if (seedIds.size() == 0) {
-      for (uint ix = 0; ix < P::xcells_ini; ix++) {
-         for (uint iy = 0; iy < P::ycells_ini; iy++) {
-            for (uint iz = 0; iz < P::zcells_ini; iz++) {
-               CellID seedId;
-               switch (dimension) {
-               case 0:
-                  // yz - plane
-                  if(ix == 0) {
-                     seedId = P::xcells_ini * P::ycells_ini * iz + P::xcells_ini * iy + 1;
-                     if(mpiGrid.is_local(seedId))
-                        seedIds.push_back(seedId);
-
-                  }
-                  break;
-               case 1:                  
-                  // xz - plane
-                  if(iy == 0) {
-                     seedId = P::xcells_ini * P::ycells_ini * iz + ix + 1;
-                     if(mpiGrid.is_local(seedId))
-                        seedIds.push_back(seedId);
-
-                  }
-                  break;
-               case 2:
-                  // xy - plane
-                  if(iz == 0) {
-                     seedId = P::xcells_ini * iy + ix + 1;
-                     if(mpiGrid.is_local(seedId))
-                        seedIds.push_back(seedId);
-                  }
-                  break;
-               }
-            }
-         }
-      }
-   }
-
    if(debug) {
-      cout << "Number of seed ids is " << seedIds.size() << endl;
-      cout << "Seed ids are: ";
+      //cout << "Number of seed ids is " << seedIds.size() << endl;
+      cout << "Rank " << myRank << ", Seed ids are: ";
       for (const auto seedId : seedIds) {
          cout << seedId << " ";
       }
@@ -884,8 +858,8 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
 
    int myRank;
    if(printLines || printPencils) MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-   
-   //cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
+
+   if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
    
    // Vector with all cell ids
    vector<CellID> allCells(localPropagatedCells);
@@ -943,8 +917,6 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    }
    // ****************************************************************************
 
-   //cout << "I am at line " << __LINE__ << " of " << __FILE__ << endl;
-   
    // compute pencils => set of pencils (shared datastructure)
 
    // std::cout << "LocalPropagatedCells: ";
@@ -964,15 +936,15 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    setOfPencils pencils;
    vector<setOfPencils> pencilSets;
 
-   // std::cout << "Starting cell ids for pencils are ";
-   // for (const auto seedId : seedIds) std::cout << seedId << " ";
-   // std::cout << endl;
+   if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
    
    for (const auto seedId : seedIds) {
       // Construct pencils from the seedIds into a set of pencils.
       pencils = buildPencilsWithNeighbors(mpiGrid, pencils, seedId, ids, dimension, path);
    }   
 
+   if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
+                                                
    // Print out ids of pencils (if needed for debugging)
    if (printPencils) {
       uint ibeg = 0;
