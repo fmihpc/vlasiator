@@ -170,7 +170,8 @@ template< unsigned int numFields > void getFieldDataFromFsGrid(
       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const std::vector<CellID>& cells, int index) {
 
-   sourceGrid.setupForTransferOut(cells.size());
+   int nCells = getNumberOfCellsOnMaxRefLvl(mpiGrid, cells);
+   sourceGrid.setupForTransferOut(nCells);
 
    for(CellID dccrgId : cells) {
       // TODO: This assumes that the field data are lying continuous in memory.
