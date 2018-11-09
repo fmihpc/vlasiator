@@ -833,6 +833,10 @@ namespace spatial_cell {
          datatype = MPI_BYTE;
       }
 
+      int mpiSize;
+      MPI_Type_size(datatype,&mpiSize);
+      cout << "get_mpi_datatype: " << cellID << " " << sender_rank << " " << receiver_rank << " " << mpiSize << endl;
+      
       return std::make_tuple(address,count,datatype);
    }
    

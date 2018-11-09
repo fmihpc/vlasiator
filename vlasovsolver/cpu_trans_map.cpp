@@ -650,7 +650,7 @@ void update_remote_mapping_contribution(
    vector<Realf*> receiveBuffers;
 
    int myRank;
-   const bool printLines = false;
+   const bool printLines = true;
    
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;  
@@ -670,7 +670,7 @@ void update_remote_mapping_contribution(
    //TODO: prepare arrays, make parallel by avoidin push_back and by checking also for other stuff
    for (size_t c = 0; c < local_cells.size(); ++c) {
 
-      if(printLines)       std::cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << std::endl;
+      //if(printLines)       std::cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << std::endl;
       
       SpatialCell *ccell = mpiGrid[local_cells[c]];
       //default values, to avoid any extra sends and receives
@@ -718,7 +718,7 @@ void update_remote_mapping_contribution(
       m_ngbr = NbrPairVector->front().first;
       p_ngbr = NbrPairVector->back().first;
 
-      if(printLines) std::cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << std::endl;
+      //if(printLines) std::cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << std::endl;
       
       //internal cell, not much to do
       if (mpiGrid.is_local(p_ngbr) && mpiGrid.is_local(m_ngbr)) continue;
@@ -752,9 +752,9 @@ void update_remote_mapping_contribution(
       }
    }
 
+   MPI_Barrier(MPI_COMM_WORLD);
    if(printLines) std::cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << " " << direction << " " << dimension <<std::endl;
 
-   mpiGrid.set_send_single_cells(true);
    // Do communication
    SpatialCell::setCommunicatedSpecies(popID);
    SpatialCell::set_mpi_transfer_type(Transfer::NEIGHBOR_VEL_BLOCK_DATA);
@@ -772,6 +772,8 @@ void update_remote_mapping_contribution(
       if(direction < 0) mpiGrid.update_copies_of_remote_neighbors(SHIFT_M_Z_NEIGHBORHOOD_ID);
       break;
    }
+
+   MPI_Barrier(MPI_COMM_WORLD);
 
    if(printLines) std::cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << std::endl;
    

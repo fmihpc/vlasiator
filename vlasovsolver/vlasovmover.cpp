@@ -153,6 +153,10 @@ void calculateSpatialTranslation(
       phiprof::start("compute-mapping-y");      
       trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsy, 1,dt,popID); // map along y//
       phiprof::stop("compute-mapping-y");
+
+      MPI_Barrier(MPI_COMM_WORLD);
+      
+      if(printLines)      cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
       
       trans_timer=phiprof::initializeTimer("update_remote-y","MPI");
       phiprof::start("update_remote-y");
@@ -160,6 +164,9 @@ void calculateSpatialTranslation(
       update_remote_mapping_contribution(mpiGrid, 1,-1,popID);
       phiprof::stop("update_remote-y");
    }
+
+   if(printLines)      cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
+   
    //   bailout(true, "", __FILE__, __LINE__);
    //   throw;
 }

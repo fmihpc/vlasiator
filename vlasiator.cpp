@@ -269,7 +269,7 @@ int main(int argn,char* args[]) {
    Real newDt;
    bool dtIsChanged;
    
-   const bool printLines = false;
+   const bool printLines = true;
    const bool printCells = false;
    const bool printSums  = false;
    

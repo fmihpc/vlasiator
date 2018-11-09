@@ -371,7 +371,7 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
 
    bool periodic = false;
    
-   while (id > 0) {
+   while (id != INVALID_CELLID) {
 
       periodic = false;
       bool neighborExists = false;
@@ -451,6 +451,7 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
       }// Closes if (refLvl == 0)
 
       // If we found a neighbor, add it to the list of ids for this pencil.
+      // TODO: FIX this logical mess
       if(nextNeighbor != INVALID_CELLID) {
          if (debug) {
             std::cout << " Next neighbor is " << nextNeighbor << "." << std::endl;
@@ -466,14 +467,15 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
          }
          if (periodic) {
             // Exit the while loop
-            id = -1;
+            id = INVALID_CELLID;
          } else {
             ids.push_back(nextNeighbor);
             // Move to the next cell.
             id = nextNeighbor;
          }
-      }
-    
+      } else {
+         id = nextNeighbor;
+      }    
    } // Closes while loop
 
    // Get the x,y - coordinates of the pencil (in the direction perpendicular to the pencil)
@@ -844,7 +846,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                       const Realv dt,
                       const uint popID) {
 
-   const bool printPencils = false;
+   const bool printPencils = true;
    const bool printLines = false;
    Realv dvz,vz_min;  
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/

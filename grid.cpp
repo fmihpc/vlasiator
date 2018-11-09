@@ -123,9 +123,11 @@ void initializeGrid(
       .set_geometry(geom_params);
 
 
+   MPI_Barrier(comm);
    if(project.refineSpatialCells(mpiGrid)) {
       recalculateLocalCellsCache();
-   }    
+   }
+   MPI_Barrier(comm);
 
    // Init velocity mesh on all cells
    initVelocityGridGeometry(mpiGrid);   
