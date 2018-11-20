@@ -269,9 +269,9 @@ int main(int argn,char* args[]) {
    Real newDt;
    bool dtIsChanged;
    
-   const bool printLines = true;
+   const bool printLines = false;
    const bool printCells = false;
-   const bool printSums  = false;
+   const bool printSums  = true;
    
 // Init MPI:
    int required=MPI_THREAD_FUNNELED;
@@ -747,7 +747,7 @@ int main(int argn,char* args[]) {
       nSum += rho*dx*dy*dz;
       if(printCells) cout << "Cell " << cell << " rho = " << rho << " x: " << x << " y: " << y << " z: " << z << endl;
    }
-   if(printSums) cout << "nSum = " << nSum << endl;   
+   if(printSums) cout << "Rank " << myRank << ", nSum = " << nSum << endl;   
    
    while(P::tstep <= P::tstep_max  &&
          P::t-P::dt <= P::t_max+DT_EPSILON &&
@@ -1135,7 +1135,7 @@ int main(int argn,char* args[]) {
          nSum += rho*dx*dy*dz;
          if(printCells) cout << "Cell " << cell << " rho = " << rho << " x: " << x << " y: " << y << " z: " << z << endl;
       }
-      if (printSums) cout << "nSum = " << nSum << endl;     
+      if(printSums) cout << "Rank " << myRank << ", nSum = " << nSum << endl;   
       
       if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
       phiprof::stop("Spatial-space",computedCells,"Cells");

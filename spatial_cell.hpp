@@ -330,9 +330,12 @@ namespace spatial_cell {
       uint64_t ioLocalCellId;                                                 /**< Local cell ID used for IO, not needed elsewhere 
                                                                                * and thus not being kept up-to-date.*/
       //vmesh::LocalID mpi_number_of_blocks;                                    /**< Number of blocks in mpi_velocity_block_list.*/
-      Realf* neighbor_block_data;                                             /**< Pointers for translation operator. We can point to neighbor
+      //Realf* neighbor_block_data;                                             /**< Pointers for translation operator. We can point to neighbor
+      //                                                                         * cell block data. We do not allocate memory for the pointer.*/
+      //vmesh::LocalID neighbor_number_of_blocks;
+      std::vector<Realf*> neighbor_block_data;                                /**< Pointers for translation operator. We can point to neighbor
                                                                                * cell block data. We do not allocate memory for the pointer.*/
-      vmesh::LocalID neighbor_number_of_blocks;
+      std::vector<vmesh::LocalID> neighbor_number_of_blocks;
       uint sysBoundaryFlag;                                                   /**< What type of system boundary does the cell belong to. 
                                                                                * Enumerated in the sysboundarytype namespace's enum.*/
       uint sysBoundaryLayer;                                                  /**< Layers counted from closest systemBoundary. If 0 then it has not 

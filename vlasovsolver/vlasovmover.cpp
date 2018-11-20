@@ -76,7 +76,7 @@ void calculateSpatialTranslation(
 
     int trans_timer;
     bool localTargetGridGenerated = false;
-    const bool printLines = true;
+    const bool printLines = false;
     
     int myRank;
     MPI_Comm_rank(MPI_COMM_WORLD,&myRank);

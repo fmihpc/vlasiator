@@ -637,6 +637,8 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
   \par dimension: 0,1,2 for x,y,z
   \par direction: 1 for + dir, -1 for - dir
 */
+
+/*
 void update_remote_mapping_contribution(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const uint dimension,
@@ -813,4 +815,6 @@ void update_remote_mapping_contribution(
       aligned_free(receiveBuffers[c]);
    }
 }
+
+*/
 

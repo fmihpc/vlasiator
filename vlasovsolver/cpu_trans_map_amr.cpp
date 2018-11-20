@@ -623,7 +623,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
                 const uint dimension,
                 vector<CellID> &seedIds) {
 
-   const bool debug = true;
+   const bool debug = false;
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    
@@ -846,7 +846,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                       const Realv dt,
                       const uint popID) {
 
-   const bool printPencils = true;
+   const bool printPencils = false;
    const bool printLines = false;
    Realv dvz,vz_min;  
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
@@ -1284,4 +1284,189 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
 
    if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
    return true;
+}
+
+
+
+/*!
+
+  This function communicates the mapping on process boundaries, and then updates the data to their correct values.
+  TODO, this could be inside an openmp region, in which case some m ore barriers and masters should be added
+
+  \par dimension: 0,1,2 for x,y,z
+  \par direction: 1 for + dir, -1 for - dir
+*/
+void update_remote_mapping_contribution(
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   const uint dimension,
+   int direction,
+   const uint popID) {
+   
+   const vector<CellID> local_cells = mpiGrid.get_cells();
+   const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_NEIGHBORHOOD_ID);
+   vector<CellID> receive_cells;
+   vector<CellID> send_cells;
+   vector<Realf*> receiveBuffers;
+
+   int myRank;
+   const bool printLines = false;
+   
+   MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+   if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;  
+   
+   //normalize
+   if(direction > 0) direction = 1;
+   if(direction < 0) direction = -1;
+   for (size_t c=0; c<remote_cells.size(); ++c) {
+      SpatialCell *ccell = mpiGrid[remote_cells[c]];
+      //default values, to avoid any extra sends and receives
+      ccell->neighbor_block_data.push_back(ccell->get_data(popID));
+      ccell->neighbor_number_of_blocks.push_back(0);
+   }
+
+   if(printLines)    std::cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << std::endl;
+   
+   //TODO: prepare arrays, make parallel by avoidin push_back and by checking also for other stuff
+   for (size_t c = 0; c < local_cells.size(); ++c) {
+
+      //if(printLines)       std::cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << std::endl;
+      
+      SpatialCell *ccell = mpiGrid[local_cells[c]];
+      //default values, to avoid any extra sends and receives
+      ccell->neighbor_block_data.push_back(ccell->get_data(popID));
+      ccell->neighbor_number_of_blocks.push_back(0);
+      CellID p_ngbr,m_ngbr;
+
+      int neighborhood = 0;
+      switch (dimension) {
+      case 0:
+         neighborhood = VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID;
+         break;
+      case 1:
+         neighborhood = VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID;
+         break;
+      case 2:
+         neighborhood = VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID;
+         break;
+      }     
+      auto nbrPairVector = mpiGrid.get_neighbors_of(local_cells[c], neighborhood);
+
+      //if(printLines) std::cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << std::endl;
+
+      if (all_of(nbrPairVector->begin(), nbrPairVector->end(),
+                 [mpiGrid](pair<int,array<int,4> > p){return mpiGrid.is_local(p.first);})) {
+         continue;
+      }
+
+      vector<CellID> n_nbrs;
+      vector<CellID> p_nbrs;
+
+      // Collect neighbors on the positive and negative sides into separate lists
+      for (auto nbrPair : *nbrPairVector) {
+
+         if (nbrPair.second.at(dimension) == direction) {
+            p_nbrs.push_back(nbrPair.first);
+         }
+
+         if (nbrPair.second.at(dimension) == -direction) {
+            n_nbrs.push_back(nbrPair.first);
+         }
+      }
+
+      for (auto nbr : p_nbrs) {
+
+         SpatialCell *pcell = NULL;
+         if (nbr != INVALID_CELLID) {
+            pcell = mpiGrid[nbr];
+         }
+         if (nbr != INVALID_CELLID && !mpiGrid.is_local(nbr) && do_translate_cell(ccell) &&
+             pcell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+            //Send data in nbr target array that we just mapped to if 1) it is a valid target,
+            //2) is remote cell, 3) the source cell in center was translated, 4) it is not a boundary cell?
+            ccell->neighbor_block_data.push_back(pcell->get_data(popID));
+            ccell->neighbor_number_of_blocks.push_back(pcell->get_number_of_velocity_blocks(popID));
+            send_cells.push_back(nbr);
+         }         
+      }
+
+      for (auto nbr : n_nbrs) {
+      
+         SpatialCell *ncell = NULL;
+         if (nbr != INVALID_CELLID) {
+            ncell = mpiGrid[nbr];
+         }
+         if (nbr != INVALID_CELLID && !mpiGrid.is_local(nbr) &&
+             ccell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+            //Receive data that mcell mapped to ccell to this local cell
+            //data array, if 1) m is a valid source cell, 2) center cell is to be updated (normal cell) 3) m is remote
+            //we will here allocate a receive buffer, since we need to aggregate values
+            ncell->neighbor_number_of_blocks.push_back(ccell->get_number_of_velocity_blocks(popID));
+            ncell->neighbor_block_data.push_back((Realf*) aligned_malloc(ncell->neighbor_number_of_blocks.back() * WID3 * sizeof(Realf), 64));
+         
+            receive_cells.push_back(local_cells[c]);
+            receiveBuffers.push_back(ncell->neighbor_block_data.back());
+         }
+      }
+   }
+
+   MPI_Barrier(MPI_COMM_WORLD);
+   if(printLines) std::cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << " " << direction << " " << dimension <<std::endl;
+
+   // Do communication
+   SpatialCell::setCommunicatedSpecies(popID);
+   SpatialCell::set_mpi_transfer_type(Transfer::NEIGHBOR_VEL_BLOCK_DATA);
+   switch(dimension) {
+   case 0:
+      if(direction > 0) mpiGrid.update_copies_of_remote_neighbors(SHIFT_P_X_NEIGHBORHOOD_ID);
+      if(direction < 0) mpiGrid.update_copies_of_remote_neighbors(SHIFT_M_X_NEIGHBORHOOD_ID);
+      break;
+   case 1:
+      if(direction > 0) mpiGrid.update_copies_of_remote_neighbors(SHIFT_P_Y_NEIGHBORHOOD_ID);
+      if(direction < 0) mpiGrid.update_copies_of_remote_neighbors(SHIFT_M_Y_NEIGHBORHOOD_ID);
+      break;
+   case 2:
+      if(direction > 0) mpiGrid.update_copies_of_remote_neighbors(SHIFT_P_Z_NEIGHBORHOOD_ID);
+      if(direction < 0) mpiGrid.update_copies_of_remote_neighbors(SHIFT_M_Z_NEIGHBORHOOD_ID);
+      break;
+   }
+
+   MPI_Barrier(MPI_COMM_WORLD);
+
+   if(printLines) std::cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << std::endl;
+   
+#pragma omp parallel
+   {
+      //reduce data: sum received data in the data array to 
+      // the target grid in the temporary block container
+      for (size_t c=0; c < receive_cells.size(); ++c) {
+         SpatialCell* spatial_cell = mpiGrid[receive_cells[c]];
+         Realf *blockData = spatial_cell->get_data(popID);
+          
+#pragma omp for 
+         for(unsigned int cell = 0; cell<VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(popID); ++cell) {
+            blockData[cell] += receiveBuffers[c][cell];
+         }
+      }
+       
+      // send cell data is set to zero. This is to avoid double copy if
+      // one cell is the neighbor on bot + and - side to the same
+      // process
+      for (size_t c=0; c<send_cells.size(); ++c) {
+         SpatialCell* spatial_cell = mpiGrid[send_cells[c]];
+         Realf * blockData = spatial_cell->get_data(popID);
+           
+#pragma omp for nowait
+         for(unsigned int cell = 0; cell< VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(popID); ++cell) {
+            // copy received target data to temporary array where target data is stored.
+            blockData[cell] = 0;
+         }
+      }
+   }
+
+   if(printLines) std::cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << std::endl;
+   
+   //and finally free temporary receive buffer
+   for (size_t c=0; c < receiveBuffers.size(); ++c) {
+      aligned_free(receiveBuffers[c]);
+   }
 }

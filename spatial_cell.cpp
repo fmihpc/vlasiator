@@ -658,9 +658,11 @@ namespace spatial_cell {
             /*We are actually transferring the data of a
             * neighbor. The values of neighbor_block_data
             * and neighbor_number_of_blocks should be set in
-            * solver.*/               
-            displacements.push_back((uint8_t*) this->neighbor_block_data - (uint8_t*) this);               
-            block_lengths.push_back(sizeof(Realf) * VELOCITY_BLOCK_LENGTH* this->neighbor_number_of_blocks);
+            * solver.*/
+            for ( int i = 0; i < this->neighbor_block_data.size(); ++i) {
+               displacements.push_back((uint8_t*) this->neighbor_block_data[i] - (uint8_t*) this);               
+               block_lengths.push_back(sizeof(Realf) * VELOCITY_BLOCK_LENGTH* this->neighbor_number_of_blocks[i]);
+            }
          }
 
          // send  spatial cell parameters
@@ -833,9 +835,12 @@ namespace spatial_cell {
          datatype = MPI_BYTE;
       }
 
-      int mpiSize;
-      MPI_Type_size(datatype,&mpiSize);
-      cout << "get_mpi_datatype: " << cellID << " " << sender_rank << " " << receiver_rank << " " << mpiSize << endl;
+      const bool printMpiDatatype = false;
+      if(printMpiDatatype) {
+         int mpiSize;
+         MPI_Type_size(datatype,&mpiSize);
+         cout << "get_mpi_datatype: " << cellID << " " << sender_rank << " " << receiver_rank << " " << mpiSize << endl;
+      }
       
       return std::make_tuple(address,count,datatype);
    }
