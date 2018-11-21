@@ -1320,8 +1320,11 @@ void update_remote_mapping_contribution(
    for (size_t c=0; c<remote_cells.size(); ++c) {
       SpatialCell *ccell = mpiGrid[remote_cells[c]];
       //default values, to avoid any extra sends and receives
-      ccell->neighbor_block_data.push_back(ccell->get_data(popID));
-      ccell->neighbor_number_of_blocks.push_back(0);
+      ccell->neighbor_block_data.clear();
+      ccell->neighbor_number_of_blocks.clear();
+
+      //ccell->neighbor_block_data.push_back(ccell->get_data(popID));      
+      //ccell->neighbor_number_of_blocks.push_back(0);
    }
 
    if(printLines)    std::cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << std::endl;
@@ -1329,12 +1332,10 @@ void update_remote_mapping_contribution(
    //TODO: prepare arrays, make parallel by avoidin push_back and by checking also for other stuff
    for (size_t c = 0; c < local_cells.size(); ++c) {
 
-      //if(printLines)       std::cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << std::endl;
-      
       SpatialCell *ccell = mpiGrid[local_cells[c]];
-      //default values, to avoid any extra sends and receives
-      ccell->neighbor_block_data.push_back(ccell->get_data(popID));
-      ccell->neighbor_number_of_blocks.push_back(0);
+      // Initialize to empty vectors, add default values at the end.
+      ccell->neighbor_block_data.clear();
+      ccell->neighbor_number_of_blocks.clear();
       CellID p_ngbr,m_ngbr;
 
       int neighborhood = 0;
@@ -1350,8 +1351,6 @@ void update_remote_mapping_contribution(
          break;
       }     
       auto nbrPairVector = mpiGrid.get_neighbors_of(local_cells[c], neighborhood);
-
-      //if(printLines) std::cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << std::endl;
 
       if (all_of(nbrPairVector->begin(), nbrPairVector->end(),
                  [mpiGrid](pair<int,array<int,4> > p){return mpiGrid.is_local(p.first);})) {
@@ -1386,7 +1385,10 @@ void update_remote_mapping_contribution(
             ccell->neighbor_block_data.push_back(pcell->get_data(popID));
             ccell->neighbor_number_of_blocks.push_back(pcell->get_number_of_velocity_blocks(popID));
             send_cells.push_back(nbr);
-         }         
+         } else {
+            ccell->neighbor_block_data.push_back(ccell->get_data(popID));      
+            ccell->neighbor_number_of_blocks.push_back(0);
+         }
       }
 
       for (auto nbr : n_nbrs) {
@@ -1405,8 +1407,20 @@ void update_remote_mapping_contribution(
          
             receive_cells.push_back(local_cells[c]);
             receiveBuffers.push_back(ncell->neighbor_block_data.back());
+         } else {
+            ncell->neighbor_block_data.push_back(ncell->get_data(popID));      
+            ncell->neighbor_number_of_blocks.push_back(0);
          }
       }
+      
+      //default values, to avoid any extra sends and receives
+      if(ccell->neighbor_number_of_blocks.empty()) {
+         ccell->neighbor_number_of_blocks.push_back(0);
+      }
+      if(ccell->neighbor_block_data.empty()) {
+         ccell->neighbor_block_data.push_back(ccell->get_data(popID));
+      }
+
    }
 
    MPI_Barrier(MPI_COMM_WORLD);
@@ -1446,6 +1460,9 @@ void update_remote_mapping_contribution(
          for(unsigned int cell = 0; cell<VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(popID); ++cell) {
             blockData[cell] += receiveBuffers[c][cell];
          }
+
+         spatial_cell->neighbor_number_of_blocks.clear();
+         spatial_cell->neighbor_block_data.clear();
       }
        
       // send cell data is set to zero. This is to avoid double copy if
@@ -1460,6 +1477,9 @@ void update_remote_mapping_contribution(
             // copy received target data to temporary array where target data is stored.
             blockData[cell] = 0;
          }
+
+         spatial_cell->neighbor_number_of_blocks.clear();
+         spatial_cell->neighbor_block_data.clear();
       }
    }
 
