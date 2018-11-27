@@ -211,33 +211,23 @@ void computeSpatialTargetCellsForPencils(const dccrg::Dccrg<SpatialCell,dccrg::C
             backNeighborIds.push_back(nbrPair.first);
          }
       }
-      
-      switch (frontNeighborIds.size()) {
-      case 1: {
+
+      int refLvl = mpiGrid.get_refinement_level(ids.front());
+      int path = pencils.path[iPencil][refLvl];
+
+      if (frontNeighborIds.size() == 1) {
          targetCells[GID] = mpiGrid[frontNeighborIds.at(0)];
-         break;
-      }
-      case 4: {
-         targetCells[GID] = mpiGrid[frontNeighborIds.at(pencils.path[iPencil][mpiGrid.get_refinement_level(ids.front())])];
-         break;
-      }
-      default:
-         cout << "Unexpected number of neighbors for cell " << ids.front() << endl;
-         break;
+      } else if ( path < frontNeighborIds.size() ) {
+         targetCells[GID] = mpiGrid[frontNeighborIds.at(path)];
       }
 
-      switch (backNeighborIds.size()) {
-      case 1: {
+      refLvl = mpiGrid.get_refinement_level(ids.back());
+      path = pencils.path[iPencil][refLvl];
+
+      if (backNeighborIds.size() == 1) {
          targetCells[GID + L + 1] = mpiGrid[backNeighborIds.at(0)];
-         break;
-      }
-      case 4: {
-         targetCells[GID + L + 1] = mpiGrid[backNeighborIds.at(pencils.path[iPencil][mpiGrid.get_refinement_level(ids.back())])];
-         break;
-      }
-      default:
-         cout << "Unexpected number of neighbors for cell " << ids.front() << endl;
-         break;
+      } else if ( path < backNeighborIds.size() ) {
+         targetCells[GID + L + 1] = mpiGrid[backNeighborIds.at(path)];
       }
       
       // Incerment global id by L + 2 ghost cells.
@@ -846,7 +836,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                       const Realv dt,
                       const uint popID) {
 
-   const bool printPencils = true;
+   const bool printPencils = false;
    const bool printLines = false;
    Realv dvz,vz_min;  
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
@@ -1040,7 +1030,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
             // Loop over pencils
             uint totalTargetLength = 0;
             for(uint pencili = 0; pencili < pencils.N; ++pencili){
-
+               
                int L = pencils.lengthOfPencils[pencili];
                uint targetLength = L + 2;
                uint sourceLength = L + 2 * VLASOV_STENCIL_WIDTH;
@@ -1051,11 +1041,11 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
 
                computeSpatialSourceCellsForPencil(mpiGrid, pencils, pencili, dimension, sourceCells.data());
 
-               std::cout << "Source cells for pencil " << pencili << ", rank " << myRank << ": ";
-               for (auto cell : sourceCells) {
-                  std::cout << cell->parameters[CellParams::CELLID] << " ";
-               }
-               std::cout << std::endl;
+               // std::cout << "Source cells for pencil " << pencili << ", rank " << myRank << ": ";
+               // for (auto cell : sourceCells) {
+               //    std::cout << cell->parameters[CellParams::CELLID] << " ";
+               // }
+               // std::cout << std::endl;
                
                if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
                
@@ -1095,9 +1085,11 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                propagatePencil(dz, sourceVecData, dimension, blockGID, dt, vmesh, L);
 
                if(printLines)   cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
-               
+
+               //std::cout << "Target cells for pencil " << pencili << ", rank " << myRank << ": ";
                // sourcedata => targetdata[this pencil])
                for (uint i = 0; i < targetLength; i++) {
+                  //std::cout << targetCells[i + totalTargetLength]->parameters[CellParams::CELLID] << " ";
                   for (uint k=0; k<WID; k++) {
                      for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){
                         
@@ -1107,12 +1099,14 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                      }
                   }
                }
+               //std::cout << std::endl;
                totalTargetLength += targetLength;
                // dealloc source data -- Should be automatic since it's declared in this loop iteration?
             }
 
             // reset blocks in all non-sysboundary neighbor spatial cells for this block id
             // At this point the data is saved in targetVecData so we can reset the spatial cells
+
             for (auto *spatial_cell: targetCells) {
                // Check for system boundary
                if(spatial_cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
