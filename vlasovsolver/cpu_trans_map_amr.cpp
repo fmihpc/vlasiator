@@ -1142,7 +1142,8 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                int maxRefLvl = 0;
                int minRefLvl = mpiGrid.get_maximum_refinement_level();
                for (auto id : pencilIds) {
-                  int refLvl = mpiGrid.get_refinement_level(id);
+                  //int refLvl = mpiGrid.get_refinement_level(id);
+                  int refLvl = pencils.path[pencili].size();
                   maxRefLvl = max(maxRefLvl,refLvl);
                   minRefLvl = min(minRefLvl,refLvl);
                }              
@@ -1198,7 +1199,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                   if (spatial_cell->parameters[CellParams::REFINEMENT_LEVEL] < maxRefLvl) {
                      areaRatio = 1.0 / pow(pow(2, maxRefLvl - spatial_cell->parameters[CellParams::REFINEMENT_LEVEL]), 2);
                   }
-                                    
+                  
                   for(int i = 0; i < WID3 ; i++) {
                      blockData[i] += targetBlockData[GID * WID3 + i] * areaRatio;
                   }
