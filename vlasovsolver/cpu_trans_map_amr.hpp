@@ -79,27 +79,51 @@ struct setOfPencils {
 
    // Split one pencil into four pencils covering the same space.
    // dx and dy are the dimensions of the original pencil.
-   void split(const uint pencilId, const Realv dx, const Realv dy) {
+   void split(const uint myPencilId, const Realv dx, const Realv dy) {
 
-      auto ids = getIds(pencilId);
-      auto path1 = path.at(pencilId);
-      auto path2 = path.at(pencilId);
-      auto path3 = path.at(pencilId);
+      auto ids = getIds(myPencilId);
+      
+      x[myPencilId] -= 0.25 * dx;
+      y[myPencilId] += 0.25 * dy;
 
-      path1.push_back(1);
-      path2.push_back(2);
-      path3.push_back(3);
-      
-      x[pencilId] -= 0.25 * dx;
-      y[pencilId] += 0.25 * dy;
-      path.at(pencilId).push_back(0);     
-      
-      addPencil(ids, x[pencilId] + 0.25 * dx, y[pencilId] + 0.25 * dy, periodic[pencilId], path1);
-      addPencil(ids, x[pencilId] - 0.25 * dx, y[pencilId] - 0.25 * dy, periodic[pencilId], path2);
-      addPencil(ids, x[pencilId] + 0.25 * dx, y[pencilId] - 0.25 * dy, periodic[pencilId], path3);
-      
+
+      // Find paths that members of this pencil may have in other pencils (can happen)
+      // so that we don't add duplicates.
+      std::vector<int> existingSteps;
+      for (int theirPencilId = 0; theirPencilId < N; ++theirPencilId) {
+         if(theirPencilId == myPencilId) continue;
+         auto theirIds = getIds(theirPencilId);
+         for (auto theirId : theirIds) {
+            for (auto myId : ids) {
+               if (myId == theirId) {
+                  auto theirPath = path.at(theirPencilId);
+                  auto myPath = path.at(myPencilId);
+                  auto theirStep = theirPath.at(myPath.size());
+                  existingSteps.push_back(theirStep);
+               }
+            }
+         }
+      }
+
+      bool firstPencil = true;
+      const auto copy_of_path = path.at(myPencilId);
+
+      // Add those pencils whose steps dont already exist in the pencils struct
+      for (int step = 0; step < 4; ++step) {
+         if (std::any_of(existingSteps.begin(), existingSteps.end(), [step](int i){return step == i;})) {
+            continue;
+         }
+
+         if(firstPencil) {
+            path.at(myPencilId).push_back(step);
+            firstPencil = false;
+         } else {
+            auto myPath = copy_of_path;
+            myPath.push_back(step);
+            addPencil(ids, x.at(myPencilId) + 0.25 * dx, y.at(myPencilId) + 0.25 * dy, periodic.at(myPencilId), myPath);
+         }
+      }
    }
-
 };
 
 void compute_spatial_source_cells_for_pencil(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
