@@ -1086,10 +1086,10 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
 
                if(printLines)   cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
 
-               //std::cout << "Target cells for pencil " << pencili << ", rank " << myRank << ": ";
+               if (printPencils) std::cout << "Target cells for pencil " << pencili << ", rank " << myRank << ": ";
                // sourcedata => targetdata[this pencil])
                for (uint i = 0; i < targetLength; i++) {
-                  //std::cout << targetCells[i + totalTargetLength]->parameters[CellParams::CELLID] << " ";
+                  if (printPencils) std::cout << targetCells[i + totalTargetLength]->parameters[CellParams::CELLID] << " ";
                   for (uint k=0; k<WID; k++) {
                      for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){
                         
@@ -1099,7 +1099,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                      }
                   }
                }
-               //std::cout << std::endl;
+               if (printPencils) std::cout << std::endl;
                totalTargetLength += targetLength;
                // dealloc source data -- Should be automatic since it's declared in this loop iteration?
             }
@@ -1342,13 +1342,17 @@ void update_remote_mapping_contribution(
             //Receive data that ncell mapped to this local cell
             //data array, if 1) m is a valid source cell, 2) center cell is to be updated (normal cell) 3) m is remote
             //we will here allocate a receive buffer, since we need to aggregate values
-            ncell->neighbor_number_of_blocks.push_back(ccell->get_number_of_velocity_blocks(popID));
-            ncell->neighbor_block_data.push_back((Realf*) aligned_malloc(ncell->neighbor_number_of_blocks.back() * WID3 * sizeof(Realf), 64));
+
+            vmesh::LocalID neighbor_number_of_blocks = ccell->get_number_of_velocity_blocks(popID);
+            Realf* neighbor_block_data_pointer = (Realf*) aligned_malloc(neighbor_number_of_blocks * WID3 * sizeof(Realf), 64);
+            
+            ncell->neighbor_number_of_blocks.push_back(neighbor_number_of_blocks);
+            ncell->neighbor_block_data.push_back(neighbor_block_data_pointer);
          
             receive_cells.push_back(local_cells[c]);
             receive_origin_cells.push_back(nbr);
             
-            receiveBuffers.push_back(ncell->neighbor_block_data.back());
+            receiveBuffers.push_back(neighbor_block_data_pointer);
 
           } else {
             ncell->neighbor_block_data.push_back(ncell->get_data(popID));      
@@ -1402,9 +1406,9 @@ void update_remote_mapping_contribution(
 
          Realf checksum = 0.0;
 #pragma omp for 
-         for(unsigned int cell = 0; cell<VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(popID); ++cell) {
-            checksum += receiveBuffers[c][cell];
-            blockData[cell] += receiveBuffers[c][cell];
+         for(unsigned int vCell = 0; vCell<VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(popID); ++vCell) {
+            checksum += receiveBuffers[c][vCell];
+            blockData[vCell] += receiveBuffers[c][vCell];
          }
          receive_cells_sums.push_back(checksum);
       }
@@ -1417,9 +1421,9 @@ void update_remote_mapping_contribution(
          Realf * blockData = spatial_cell->get_data(popID);
            
 #pragma omp for nowait
-         for(unsigned int cell = 0; cell< VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(popID); ++cell) {
+         for(unsigned int vCell = 0; vCell< VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(popID); ++vCell) {
             // copy received target data to temporary array where target data is stored.
-            blockData[cell] = 0;
+            blockData[vCell] = 0;
          }
       }
    }
