@@ -1245,52 +1245,42 @@ void update_remote_mapping_contribution(
    int myRank;
    const bool printLines = false;
    
-   MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+   if(printLines) MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;  
    
    //normalize
    if(direction > 0) direction = 1;
    if(direction < 0) direction = -1;
-   for (size_t c=0; c<remote_cells.size(); ++c) {
-      SpatialCell *ccell = mpiGrid[remote_cells[c]];
-      //default values, to avoid any extra sends and receives
+   
+   for (auto c : remote_cells) {
+      SpatialCell *ccell = mpiGrid[c];
+      // Initialize to empty vectors, add default values at the end.
       ccell->neighbor_block_data.clear();
       ccell->neighbor_number_of_blocks.clear();
+   }
 
-      //ccell->neighbor_block_data.push_back(ccell->get_data(popID));      
-      //ccell->neighbor_number_of_blocks.push_back(0);
+   for (auto c : local_cells) {
+      SpatialCell *ccell = mpiGrid[c];
+      // Initialize to empty vectors, add default values at the end.
+      ccell->neighbor_block_data.clear();
+      ccell->neighbor_number_of_blocks.clear();
    }
 
    if(printLines)    std::cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << std::endl;
    
-   //TODO: prepare arrays, make parallel by avoidin push_back and by checking also for other stuff
-   for (size_t c = 0; c < local_cells.size(); ++c) {
+   for (auto c : local_cells) {
 
-      SpatialCell *ccell = mpiGrid[local_cells[c]];
-      // Initialize to empty vectors, add default values at the end.
-      ccell->neighbor_block_data.clear();
-      ccell->neighbor_number_of_blocks.clear();
-      CellID p_ngbr,m_ngbr;
-
-      int neighborhood = 0;
-      switch (dimension) {
-      case 0:
-         neighborhood = VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID;
-         break;
-      case 1:
-         neighborhood = VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID;
-         break;
-      case 2:
-         neighborhood = VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID;
-         break;
-      }     
-      auto nbrPairVector = mpiGrid.get_neighbors_of(local_cells[c], neighborhood);
+      SpatialCell *ccell = mpiGrid[c];
+     
+      int neighborhood = getNeighborhood(dimension,1);      
+      auto* nbrPairVector = mpiGrid.get_neighbors_of(c, neighborhood);
 
       if (all_of(nbrPairVector->begin(), nbrPairVector->end(),
                  [mpiGrid](pair<int,array<int,4> > p){return mpiGrid.is_local(p.first);})) {
          continue;
       }
 
+      // Initialize to empty vectors, add default values at the end.     
       vector<CellID> n_nbrs;
       vector<CellID> p_nbrs;
       
@@ -1308,66 +1298,50 @@ void update_remote_mapping_contribution(
 
       for (auto nbr : p_nbrs) {
 
-         SpatialCell *pcell = NULL;
-         if (nbr != INVALID_CELLID) {
-            pcell = mpiGrid[nbr];
-         }
-         if (nbr != INVALID_CELLID && !mpiGrid.is_local(nbr) && do_translate_cell(ccell) &&
-             pcell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-            //Send data in nbr target array that we just mapped to if 1) it is a valid target,
-            //2) is remote cell, 3) the source cell in center was translated, 4) it is not a boundary cell?
-            ccell->neighbor_block_data.push_back(pcell->get_data(popID));
-            ccell->neighbor_number_of_blocks.push_back(pcell->get_number_of_velocity_blocks(popID));
-            send_cells.push_back(nbr);
-            send_origin_cells.push_back(local_cells[c]);            
+         if (nbr != INVALID_CELLID && !mpiGrid.is_local(nbr) && do_translate_cell(ccell)) {
+            SpatialCell *pcell = mpiGrid[nbr];
+            if(pcell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+               //Send data in nbr target array that we just mapped to if 1) it is a valid target,
+               //2) is remote cell, 3) the source cell in center was translated, 4) it is not a boundary cell?
+               
+               ccell->neighbor_block_data.push_back(pcell->get_data(popID));
+               ccell->neighbor_number_of_blocks.push_back(pcell->get_number_of_velocity_blocks(popID));
+               send_cells.push_back(nbr);
+               send_origin_cells.push_back(c);
+            }
          }
       }
 
       // Default values, after the loop.
-      if(ccell->neighbor_block_data.empty()) {
+      if(ccell->neighbor_block_data.empty() && ccell->neighbor_number_of_blocks.empty()) {
          ccell->neighbor_block_data.push_back(ccell->get_data(popID));
-      }
-      if(ccell->neighbor_number_of_blocks.empty()) {
          ccell->neighbor_number_of_blocks.push_back(0);
       }
 
       for (auto nbr : n_nbrs) {
       
-         SpatialCell *ncell = NULL;
-         if (nbr != INVALID_CELLID) {
-            ncell = mpiGrid[nbr];
-         }
          if (nbr != INVALID_CELLID && !mpiGrid.is_local(nbr) &&
-             ccell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-            //Receive data that ncell mapped to this local cell
-            //data array, if 1) m is a valid source cell, 2) center cell is to be updated (normal cell) 3) m is remote
+             ccell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {            
+            //Receive data that ncell mapped to this local cell data array,
+            //if 1) ncell is a valid source cell, 2) center cell is to be updated (normal cell) 3) ncell is remote
             //we will here allocate a receive buffer, since we need to aggregate values
 
+            SpatialCell *ncell = mpiGrid[nbr];
+            
             vmesh::LocalID neighbor_number_of_blocks = ccell->get_number_of_velocity_blocks(popID);
             Realf* neighbor_block_data_pointer = (Realf*) aligned_malloc(neighbor_number_of_blocks * WID3 * sizeof(Realf), 64);
             
             ncell->neighbor_number_of_blocks.push_back(neighbor_number_of_blocks);
             ncell->neighbor_block_data.push_back(neighbor_block_data_pointer);
          
-            receive_cells.push_back(local_cells[c]);
-            receive_origin_cells.push_back(nbr);
-            
+            receive_cells.push_back(c);
             receiveBuffers.push_back(neighbor_block_data_pointer);
 
-          } else {
-            ncell->neighbor_block_data.push_back(ncell->get_data(popID));      
-            ncell->neighbor_number_of_blocks.push_back(0);
+            // For debugging
+            receive_origin_cells.push_back(nbr);            
+
          }
       }
-      
-      //default values, to avoid any extra sends and receives
-      if(ccell->neighbor_number_of_blocks.empty()) {
-         ccell->neighbor_number_of_blocks.push_back(0);
-      }
-      if(ccell->neighbor_block_data.empty()) {
-         ccell->neighbor_block_data.push_back(ccell->get_data(popID));
-      }
-
    }
 
    MPI_Barrier(MPI_COMM_WORLD);
@@ -1395,18 +1369,18 @@ void update_remote_mapping_contribution(
    
    if(printLines) std::cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << std::endl;
    
-#pragma omp parallel
+   //#pragma omp parallel
    {
       std::vector<Realf> receive_cells_sums;
       //reduce data: sum received data in the data array to 
       // the target grid in the temporary block container
-      for (size_t c=0; c < receive_cells.size(); ++c) {
+      for (size_t c = 0; c < receive_cells.size(); ++c) {
          SpatialCell* spatial_cell = mpiGrid[receive_cells[c]];
          Realf *blockData = spatial_cell->get_data(popID);
 
          Realf checksum = 0.0;
-#pragma omp for 
-         for(unsigned int vCell = 0; vCell<VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(popID); ++vCell) {
+         //#pragma omp for 
+         for(unsigned int vCell = 0; vCell < VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(popID); ++vCell) {
             checksum += receiveBuffers[c][vCell];
             blockData[vCell] += receiveBuffers[c][vCell];
          }
@@ -1414,14 +1388,13 @@ void update_remote_mapping_contribution(
       }
        
       // send cell data is set to zero. This is to avoid double copy if
-      // one cell is the neighbor on bot + and - side to the same
-      // process
-      for (size_t c=0; c<send_cells.size(); ++c) {
+      // one cell is the neighbor on bot + and - side to the same process
+      for (size_t c = 0; c < send_cells.size(); ++c) {
          SpatialCell* spatial_cell = mpiGrid[send_cells[c]];
          Realf * blockData = spatial_cell->get_data(popID);
            
-#pragma omp for nowait
-         for(unsigned int vCell = 0; vCell< VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(popID); ++vCell) {
+         //#pragma omp for nowait
+         for(unsigned int vCell = 0; vCell < VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(popID); ++vCell) {
             // copy received target data to temporary array where target data is stored.
             blockData[vCell] = 0;
          }
