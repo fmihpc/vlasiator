@@ -166,9 +166,9 @@ void calculateSpatialTranslation(
    }
 
    if(printLines)      cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
-   
+
+   //   MPI_Barrier(MPI_COMM_WORLD);
    //   bailout(true, "", __FILE__, __LINE__);
-   //   throw;
 }
 
 /*!
