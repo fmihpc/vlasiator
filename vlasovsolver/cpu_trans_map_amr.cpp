@@ -1370,7 +1370,7 @@ void update_remote_mapping_contribution(
    if(printLines) std::cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << std::endl;
    
    //#pragma omp parallel
-   {
+   //{
       std::vector<Realf> receive_cells_sums;
       //reduce data: sum received data in the data array to 
       // the target grid in the temporary block container
@@ -1379,10 +1379,13 @@ void update_remote_mapping_contribution(
          Realf *blockData = spatial_cell->get_data(popID);
 
          Realf checksum = 0.0;
+
+         int numReceiveCells = count(receive_cells.begin(), receive_cells.end(), receive_cells[c]);
+         
          //#pragma omp for 
          for(unsigned int vCell = 0; vCell < VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(popID); ++vCell) {
             checksum += receiveBuffers[c][vCell];
-            blockData[vCell] += receiveBuffers[c][vCell];
+            blockData[vCell] += receiveBuffers[c][vCell] / numReceiveCells;
          }
          receive_cells_sums.push_back(checksum);
       }
@@ -1399,8 +1402,9 @@ void update_remote_mapping_contribution(
             blockData[vCell] = 0;
          }
       }
-   }
+      //}
 
+   MPI_Barrier(MPI_COMM_WORLD);
    if(printLines) std::cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << std::endl;
    
    //and finally free temporary receive buffer

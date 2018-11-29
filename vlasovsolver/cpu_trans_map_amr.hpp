@@ -115,6 +115,7 @@ struct setOfPencils {
          }
 
          if(firstPencil) {
+            //TODO: set x and y correctly. Right now they are not used anywhere.
             path.at(myPencilId).push_back(step);
             firstPencil = false;
          } else {
