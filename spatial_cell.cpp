@@ -659,7 +659,7 @@ namespace spatial_cell {
             * neighbor. The values of neighbor_block_data
             * and neighbor_number_of_blocks should be set in
             * solver.*/
-            for ( int i = 0; i < this->neighbor_block_data.size(); ++i) {
+            for ( int i = 0; i < MAX_FACE_NEIGHBORS_PER_DIM; ++i) {
                displacements.push_back((uint8_t*) this->neighbor_block_data[i] - (uint8_t*) this);               
                block_lengths.push_back(sizeof(Realf) * VELOCITY_BLOCK_LENGTH* this->neighbor_number_of_blocks[i]);
             }
@@ -838,8 +838,10 @@ namespace spatial_cell {
       const bool printMpiDatatype = false;
       if(printMpiDatatype) {
          int mpiSize;
+         int myRank;
          MPI_Type_size(datatype,&mpiSize);
-         cout << "get_mpi_datatype: " << cellID << " " << sender_rank << " " << receiver_rank << " " << mpiSize << endl;
+         MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+         cout << myRank << " get_mpi_datatype: " << cellID << " " << sender_rank << " " << receiver_rank << " " << mpiSize << endl;
       }
       
       return std::make_tuple(address,count,datatype);

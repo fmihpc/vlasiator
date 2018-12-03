@@ -1242,7 +1242,10 @@ void update_remote_mapping_contribution(
    vector<CellID> send_origin_cells;
    vector<CellID> receive_origin_cells;
 
-   int myRank;
+
+   std::map<CellID,int> i_remote_cells;
+   
+   int myRank;     
    const bool printLines = false;
    
    if(printLines) MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
@@ -1251,29 +1254,34 @@ void update_remote_mapping_contribution(
    //normalize
    if(direction > 0) direction = 1;
    if(direction < 0) direction = -1;
+
    
    for (auto c : remote_cells) {
       SpatialCell *ccell = mpiGrid[c];
-      // Initialize to empty vectors, add default values at the end.
-      ccell->neighbor_block_data.clear();
-      ccell->neighbor_number_of_blocks.clear();
+      // Initialize number of blocks to 0 and block data to a default value
+      for (uint i = 0; i < MAX_FACE_NEIGHBORS_PER_DIM; ++i) {
+         ccell->neighbor_block_data[i] = ccell->get_data(popID);
+         ccell->neighbor_number_of_blocks[i] = 0;
+      }
+
+      i_remote_cells[c] = 0;
    }
 
-   for (auto c : local_cells) {
-      SpatialCell *ccell = mpiGrid[c];
-      // Initialize to empty vectors, add default values at the end.
-      ccell->neighbor_block_data.clear();
-      ccell->neighbor_number_of_blocks.clear();
-   }
 
    if(printLines)    std::cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << std::endl;
    
-   for (auto c : local_cells) {
+   for (uint c = 0; c < local_cells.size(); ++c) {
 
-      SpatialCell *ccell = mpiGrid[c];
-     
+      SpatialCell *ccell = mpiGrid[local_cells[c]];
+
+      // Initialize number of blocks to 0 and block data to a default value
+      for (uint i = 0; i < MAX_FACE_NEIGHBORS_PER_DIM; ++i) {
+         ccell->neighbor_block_data[i] = ccell->get_data(popID);
+         ccell->neighbor_number_of_blocks[i] = 0;
+      }
+      
       int neighborhood = getNeighborhood(dimension,1);      
-      auto* nbrPairVector = mpiGrid.get_neighbors_of(c, neighborhood);
+      auto* nbrPairVector = mpiGrid.get_neighbors_of(local_cells[c], neighborhood);
 
       if (all_of(nbrPairVector->begin(), nbrPairVector->end(),
                  [mpiGrid](pair<int,array<int,4> > p){return mpiGrid.is_local(p.first);})) {
@@ -1296,30 +1304,43 @@ void update_remote_mapping_contribution(
          }
       }
 
+      uint i_nbr = 0;
+      // ccell adds a neighbor_block_data block for each neighbor in the positive direction to its local data
       for (auto nbr : p_nbrs) {
 
+         if (i_nbr >= MAX_FACE_NEIGHBORS_PER_DIM) {
+            std::cout << "Error: neighbor count is greater than 4";
+            break;
+         }
+         
          if (nbr != INVALID_CELLID && !mpiGrid.is_local(nbr) && do_translate_cell(ccell)) {
             SpatialCell *pcell = mpiGrid[nbr];
             if(pcell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
                //Send data in nbr target array that we just mapped to if 1) it is a valid target,
                //2) is remote cell, 3) the source cell in center was translated, 4) it is not a boundary cell?
                
-               ccell->neighbor_block_data.push_back(pcell->get_data(popID));
-               ccell->neighbor_number_of_blocks.push_back(pcell->get_number_of_velocity_blocks(popID));
+               ccell->neighbor_block_data[i_nbr] = pcell->get_data(popID);
+               ccell->neighbor_number_of_blocks[i_nbr] = pcell->get_number_of_velocity_blocks(popID);
                send_cells.push_back(nbr);
-               send_origin_cells.push_back(c);
+               send_origin_cells.push_back(local_cells[c]);
+               i_nbr++;
             }
          }
       }
 
-      // Default values, after the loop.
-      if(ccell->neighbor_block_data.empty() && ccell->neighbor_number_of_blocks.empty()) {
-         ccell->neighbor_block_data.push_back(ccell->get_data(popID));
-         ccell->neighbor_number_of_blocks.push_back(0);
-      }
 
       for (auto nbr : n_nbrs) {
-      
+
+         auto it = i_remote_cells.find(nbr);
+         if(it == i_remote_cells.end()) {
+            i_remote_cells[nbr] = 0;
+         }
+         
+         if (i_remote_cells[nbr] >= MAX_FACE_NEIGHBORS_PER_DIM) {
+            std::cout << "Error: neighbor count is greater than 4";
+            break;
+         }
+         
          if (nbr != INVALID_CELLID && !mpiGrid.is_local(nbr) &&
              ccell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {            
             //Receive data that ncell mapped to this local cell data array,
@@ -1327,16 +1348,15 @@ void update_remote_mapping_contribution(
             //we will here allocate a receive buffer, since we need to aggregate values
 
             SpatialCell *ncell = mpiGrid[nbr];
+                        
+            ncell->neighbor_number_of_blocks[i_remote_cells[nbr]] = ccell->get_number_of_velocity_blocks(popID);
+            ncell->neighbor_block_data[i_remote_cells[nbr]] =
+               (Realf*) aligned_malloc(ncell->neighbor_number_of_blocks[i_remote_cells[nbr]] * WID3 * sizeof(Realf), 64);
             
-            vmesh::LocalID neighbor_number_of_blocks = ccell->get_number_of_velocity_blocks(popID);
-            Realf* neighbor_block_data_pointer = (Realf*) aligned_malloc(neighbor_number_of_blocks * WID3 * sizeof(Realf), 64);
+            receive_cells.push_back(local_cells[c]);
+            receiveBuffers.push_back(ncell->neighbor_block_data[i_remote_cells[nbr]]);
+            i_remote_cells[nbr]++;
             
-            ncell->neighbor_number_of_blocks.push_back(neighbor_number_of_blocks);
-            ncell->neighbor_block_data.push_back(neighbor_block_data_pointer);
-         
-            receive_cells.push_back(c);
-            receiveBuffers.push_back(neighbor_block_data_pointer);
-
             // For debugging
             receive_origin_cells.push_back(nbr);            
 
@@ -1344,6 +1364,12 @@ void update_remote_mapping_contribution(
       }
    }
 
+   std::vector<CellID> a;
+   for( auto c : local_cells ) {
+      a.push_back(mpiGrid[c]->ioLocalCellId);
+   }
+   std::cout << a.back() << std::endl;
+   
    MPI_Barrier(MPI_COMM_WORLD);
    if(printLines) std::cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << " " << direction << " " << dimension <<std::endl;
 
@@ -1365,6 +1391,12 @@ void update_remote_mapping_contribution(
       break;
    }
 
+   std::vector<CellID> b;
+   for( auto c : local_cells ) {
+      b.push_back(mpiGrid[c]->ioLocalCellId);
+   }
+   std::cout << b.back() << std::endl;
+   
    MPI_Barrier(MPI_COMM_WORLD);
    
    if(printLines) std::cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << std::endl;
@@ -1384,8 +1416,8 @@ void update_remote_mapping_contribution(
          
          //#pragma omp for 
          for(unsigned int vCell = 0; vCell < VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(popID); ++vCell) {
-            checksum += receiveBuffers[c][vCell];
             blockData[vCell] += receiveBuffers[c][vCell] / numReceiveCells;
+            checksum += blockData[vCell];
          }
          receive_cells_sums.push_back(checksum);
       }
