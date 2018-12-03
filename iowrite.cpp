@@ -80,7 +80,7 @@ bool updateLocalIds(  dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
    }
    //Update the local ids (let the other processes know they've been updated)
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_IOLOCALCELLID);
-   mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
+   mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
 
    return true;
 }
