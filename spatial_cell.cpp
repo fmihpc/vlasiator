@@ -645,7 +645,7 @@ namespace spatial_cell {
             * solver.*/
             for ( int i = 0; i < MAX_FACE_NEIGHBORS_PER_DIM; ++i) {
                displacements.push_back((uint8_t*) this->neighbor_block_data[i] - (uint8_t*) this);               
-               block_lengths.push_back(sizeof(Realf) * VELOCITY_BLOCK_LENGTH* this->neighbor_number_of_blocks[i]);
+               block_lengths.push_back(sizeof(Realf) * VELOCITY_BLOCK_LENGTH * this->neighbor_number_of_blocks[i]);
             }
          }
 

@@ -105,26 +105,20 @@ void calculateSpatialTranslation(
    if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
    
    // ------------- SLICE - map dist function in X --------------- //
-   if(P::xcells_ini > 1 ){     
+   if(P::xcells_ini > 1){     
       
       trans_timer=phiprof::initializeTimer("transfer-stencil-data-x","MPI");
       phiprof::start(trans_timer);
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
 
-      if(printLines)      cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
-
       mpiGrid.set_send_single_cells(false);
       mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
       phiprof::stop(trans_timer);
-
-      if(printLines)      cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
       
       phiprof::start("compute-mapping-x");
       trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsx, 0,dt,popID); // map along x//
       phiprof::stop("compute-mapping-x");
 
-      if(printLines)      cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
-      
       trans_timer=phiprof::initializeTimer("update_remote-x","MPI");
       phiprof::start("update_remote-x");
       update_remote_mapping_contribution(mpiGrid, 0,+1,popID);
@@ -137,38 +131,119 @@ void calculateSpatialTranslation(
    if(printLines)   cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
    
    // ------------- SLICE - map dist function in Y --------------- //
-   if(P::ycells_ini > 1){
+   if(P::ycells_ini > 1) {
+
+      std::vector<Realf> sum_local_initial;;
+      std::vector<Realf> sum_local_before_trans;
+      std::vector<Realf> sum_local_after_trans;
+      std::vector<Realf> sum_local_after_update;
+      std::vector<Realf> sum_remote_initial;
+      std::vector<Realf> sum_remote_before_trans;
+      std::vector<Realf> sum_remote_after_trans;
+      std::vector<Realf> sum_remote_after_update;
+      
       trans_timer=phiprof::initializeTimer("transfer-stencil-data-y","MPI");
       phiprof::start(trans_timer);
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
 
-      if(printLines)      cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
+      // for (auto c : local_propagated_cells) {
+      //    Realf sum = 0.0;
+      //    SpatialCell* spatial_cell = mpiGrid[c];
+      //    Realf *blockData = spatial_cell->get_data(popID);
+      //    for(unsigned int vCell = 0; vCell < VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(popID); ++vCell) {
+      //       sum += blockData[vCell];
+      //    }
+      //    sum_local_initial.push_back(sum);              
+      // }
+      // for (auto c : remoteTargetCellsy) {
+      //    Realf sum = 0.0;
+      //    SpatialCell* spatial_cell = mpiGrid[c];
+      //    Realf *blockData = spatial_cell->get_data(popID);
+      //    for(unsigned int vCell = 0; vCell < VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(popID); ++vCell) {
+      //       sum += blockData[vCell];
+      //    }
+      //    sum_remote_initial.push_back(sum);              
+      // }
       
       mpiGrid.set_send_single_cells(false);
       mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);
       phiprof::stop(trans_timer);
 
-      if(printLines)      cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
+      // for (auto c : local_propagated_cells) {
+      //    Realf sum = 0.0;
+      //    SpatialCell* spatial_cell = mpiGrid[c];
+      //    Realf *blockData = spatial_cell->get_data(popID);
+      //    for(unsigned int vCell = 0; vCell < VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(popID); ++vCell) {
+      //       sum += blockData[vCell];
+      //    }
+      //    sum_local_before_trans.push_back(sum);              
+      // }
+      // for (auto c : remoteTargetCellsy) {
+      //    Realf sum = 0.0;
+      //    SpatialCell* spatial_cell = mpiGrid[c];
+      //    Realf *blockData = spatial_cell->get_data(popID);
+      //    for(unsigned int vCell = 0; vCell < VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(popID); ++vCell) {
+      //       sum += blockData[vCell];
+      //    }
+      //    sum_remote_before_trans.push_back(sum);              
+      // }
       
       phiprof::start("compute-mapping-y");      
       trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsy, 1,dt,popID); // map along y//
       phiprof::stop("compute-mapping-y");
 
-      MPI_Barrier(MPI_COMM_WORLD);
+      // for (auto c : local_propagated_cells) {
+      //    Realf sum = 0.0;
+      //    SpatialCell* spatial_cell = mpiGrid[c];
+      //    Realf *blockData = spatial_cell->get_data(popID);
+      //    for(unsigned int vCell = 0; vCell < VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(popID); ++vCell) {
+      //       sum += blockData[vCell];
+      //    }
+      //    sum_local_after_trans.push_back(sum);
+      // }
+      // for (auto c : remoteTargetCellsy) {
+      //    Realf sum = 0.0;
+      //    SpatialCell* spatial_cell = mpiGrid[c];
+      //    Realf *blockData = spatial_cell->get_data(popID);
+      //    for(unsigned int vCell = 0; vCell < VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(popID); ++vCell) {
+      //       sum += blockData[vCell];
+      //    }
+      //    sum_remote_after_trans.push_back(sum);              
+      // }
       
-      if(printLines)      cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
+      MPI_Barrier(MPI_COMM_WORLD);
       
       trans_timer=phiprof::initializeTimer("update_remote-y","MPI");
       phiprof::start("update_remote-y");
       update_remote_mapping_contribution(mpiGrid, 1,+1,popID);
       update_remote_mapping_contribution(mpiGrid, 1,-1,popID);
       phiprof::stop("update_remote-y");
+
+      // for (auto c : local_propagated_cells) {
+      //    Realf sum = 0.0;
+      //    SpatialCell* spatial_cell = mpiGrid[c];
+      //    Realf *blockData = spatial_cell->get_data(popID);
+      //    for(unsigned int vCell = 0; vCell < VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(popID); ++vCell) {
+      //       sum += blockData[vCell];
+      //    }
+      //    sum_local_after_update.push_back(sum);              
+      // }
+      // for (auto c : remoteTargetCellsy) {
+      //    Realf sum = 0.0;
+      //    SpatialCell* spatial_cell = mpiGrid[c];
+      //    Realf *blockData = spatial_cell->get_data(popID);
+      //    for(unsigned int vCell = 0; vCell < VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(popID); ++vCell) {
+      //       sum += blockData[vCell];
+      //    }
+      //    sum_remote_after_update.push_back(sum);              
+      // }
+
+      
+      MPI_Barrier(MPI_COMM_WORLD);
    }
 
-   if(printLines)      cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
-
-   //   MPI_Barrier(MPI_COMM_WORLD);
-   //   bailout(true, "", __FILE__, __LINE__);
+   MPI_Barrier(MPI_COMM_WORLD);
+   bailout(true, "", __FILE__, __LINE__);
 }
 
 /*!
