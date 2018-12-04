@@ -747,7 +747,13 @@ int main(int argn,char* args[]) {
       nSum += rho*dx*dy*dz;
       if(printCells) cout << "Cell " << cell << " rho = " << rho << " x: " << x << " y: " << y << " z: " << z << endl;
    }
-   if(printSums) cout << "Rank " << myRank << ", nSum = " << nSum << endl;   
+   if(printSums) {
+      cout << "Rank " << myRank << ", nSum = " << nSum << endl;   
+      Real globalSum = 0.0;
+      MPI_Reduce(&nSum, &globalSum, 1, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
+      MPI_Barrier(MPI_COMM_WORLD);
+      if(myRank == MASTER_RANK) cout << " Global sum = " << globalSum << endl;
+   }
    
    while(P::tstep <= P::tstep_max  &&
          P::t-P::dt <= P::t_max+DT_EPSILON &&
@@ -1135,7 +1141,13 @@ int main(int argn,char* args[]) {
          nSum += rho*dx*dy*dz;
          if(printCells) cout << "Cell " << cell << " rho = " << rho << " x: " << x << " y: " << y << " z: " << z << endl;
       }
-      if(printSums) cout << "Rank " << myRank << ", nSum = " << nSum << endl;   
+      if(printSums) {
+         cout << "Rank " << myRank << ", Local sum = " << nSum << endl;
+         Real globalSum = 0.0;
+         MPI_Reduce(&nSum, &globalSum, 1, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
+         MPI_Barrier(MPI_COMM_WORLD);
+         if(printSums && myRank == MASTER_RANK) cout << " Global sum = " << globalSum << endl;
+      }
       
       if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
       phiprof::stop("Spatial-space",computedCells,"Cells");
