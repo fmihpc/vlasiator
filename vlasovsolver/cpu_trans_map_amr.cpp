@@ -852,7 +852,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                       const Realv dt,
                       const uint popID) {
 
-   const bool printPencils = true;
+   const bool printPencils = false;
    const bool printTargets = false;
    const bool printLines = false;
    Realv dvz,vz_min;  
