@@ -83,7 +83,7 @@ void calculateSpatialTranslation(
     if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
     
     // ------------- SLICE - map dist function in Z --------------- //
-   if(P::zcells_ini > 1 && false){
+   if(P::zcells_ini > 1){
       trans_timer=phiprof::initializeTimer("transfer-stencil-data-z","MPI");
       phiprof::start(trans_timer);
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
@@ -211,7 +211,7 @@ void calculateSpatialTranslation(
       //    sum_remote_after_trans.push_back(sum);              
       // }
       
-      MPI_Barrier(MPI_COMM_WORLD);
+      // MPI_Barrier(MPI_COMM_WORLD);
       
       trans_timer=phiprof::initializeTimer("update_remote-y","MPI");
       phiprof::start("update_remote-y");
@@ -239,11 +239,11 @@ void calculateSpatialTranslation(
       // }
 
       
-      MPI_Barrier(MPI_COMM_WORLD);
+      // MPI_Barrier(MPI_COMM_WORLD);
    }
 
    // MPI_Barrier(MPI_COMM_WORLD);
-   // bailout(true, "", __FILE__, __LINE__);
+   //   bailout(true, "", __FILE__, __LINE__);
 }
 
 /*!

@@ -254,14 +254,16 @@ CellID selectNeighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> 
    }
 
    int neighborIndex = 0;
-   if (myNeighbors.size() > 1)
+   if (myNeighbors.size() > 1) {
       neighborIndex = path;
-   if (grid.is_local(myNeighbors[neighborIndex]))
+   }
+   if (grid.is_local(myNeighbors[neighborIndex])) {
       neighbor = myNeighbors[neighborIndex];
+   }
    
 
-   // std::cout << "selectNeighbor: path = " << path << " neighbors = ";
-   // for (auto nbr : myNeighbors) std::cout << neighbor << " ";
+   // std::cout << "selectNeighbor: id = " << id << " path = " << path << " neighbors = ";
+   // for (auto nbr : myNeighbors) std::cout << nbr << " ";
    // std::cout << ", returning " << neighbor << std::endl;
    
    return neighbor;
@@ -1383,7 +1385,7 @@ void update_remote_mapping_contribution(
       }
    }
    
-   MPI_Barrier(MPI_COMM_WORLD);
+   // MPI_Barrier(MPI_COMM_WORLD);
    if(printLines) std::cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << " " << direction << " " << dimension <<std::endl;
 
    // Do communication
@@ -1410,7 +1412,7 @@ void update_remote_mapping_contribution(
    // }
    // std::cout << b.back() << std::endl;
    
-   MPI_Barrier(MPI_COMM_WORLD);
+   // MPI_Barrier(MPI_COMM_WORLD);
    
    if(printLines) std::cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << std::endl;
    
@@ -1449,7 +1451,7 @@ void update_remote_mapping_contribution(
       }
       //}
 
-   MPI_Barrier(MPI_COMM_WORLD);
+      // MPI_Barrier(MPI_COMM_WORLD);
    if(printLines) std::cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << std::endl;
    
    //and finally free temporary receive buffer
