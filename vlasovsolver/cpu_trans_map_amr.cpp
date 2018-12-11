@@ -107,12 +107,11 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
       }
 
       int refLvl = mpiGrid.get_refinement_level(ids.front());
-      int path = pencils.path[iPencil][refLvl];
       
       if (neighbors.size() == 1) {
          sourceCells[iSrc++] = mpiGrid[neighbors.at(0)];
-      } else if ( path < neighbors.size() ) {
-         sourceCells[iSrc++] = mpiGrid[neighbors.at(path)];
+      } else if ( pencils.path[iPencil][refLvl] < neighbors.size() ) {
+         sourceCells[iSrc++] = mpiGrid[neighbors.at(pencils.path[iPencil][refLvl])];
       }
    }
 
@@ -139,30 +138,29 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
       }
 
       int refLvl = mpiGrid.get_refinement_level(ids.back());
-      int path = pencils.path[iPencil][refLvl];
 
       if (neighbors.size() == 1) {
          sourceCells[iSrc++] = mpiGrid[neighbors.at(0)];
-      } else if ( path < neighbors.size() ) {
-         sourceCells[iSrc++] = mpiGrid[neighbors.at(path)];
+      } else if ( pencils.path[iPencil][refLvl] < neighbors.size() ) {
+         sourceCells[iSrc++] = mpiGrid[neighbors.at(pencils.path[iPencil][refLvl])];
       }
    }
 
    /*loop to neative side and replace all invalid cells with the closest good cell*/
    SpatialCell* lastGoodCell = mpiGrid[ids.front()];
-   for(int i = -1;i>=-VLASOV_STENCIL_WIDTH;i--){
-      if(sourceCells[i + VLASOV_STENCIL_WIDTH] == NULL) 
-         sourceCells[i + VLASOV_STENCIL_WIDTH] = lastGoodCell;
+   for(int i = VLASOV_STENCIL_WIDTH - 1; i >= 0 ;i--){
+      if(sourceCells[i] == NULL) 
+         sourceCells[i] = lastGoodCell;
       else
-         lastGoodCell = sourceCells[i + VLASOV_STENCIL_WIDTH];
+         lastGoodCell = sourceCells[i];
    }
    /*loop to positive side and replace all invalid cells with the closest good cell*/
    lastGoodCell = mpiGrid[ids.back()];
-   for(int i = L + 1; i <= L + VLASOV_STENCIL_WIDTH; i++){
-      if(sourceCells[i + VLASOV_STENCIL_WIDTH] == NULL) 
-         sourceCells[i + VLASOV_STENCIL_WIDTH] = lastGoodCell;
+   for(int i = L + VLASOV_STENCIL_WIDTH; i < L + 2*VLASOV_STENCIL_WIDTH; i++){
+      if(sourceCells[i] == NULL) 
+         sourceCells[i] = lastGoodCell;
       else
-         lastGoodCell = sourceCells[i + VLASOV_STENCIL_WIDTH];
+         lastGoodCell = sourceCells[i];
    }
 }
 
@@ -204,6 +202,10 @@ void computeSpatialTargetCellsForPencils(const dccrg::Dccrg<SpatialCell,dccrg::C
             frontNeighborIds.push_back(nbrPair.first);
          }
       }
+
+      if (frontNeighborIds.size() == 0) {
+	throw;
+      }
       
       vector <CellID> backNeighborIds;
       for( auto nbrPair: *backNbrPairs ) {
@@ -212,22 +214,24 @@ void computeSpatialTargetCellsForPencils(const dccrg::Dccrg<SpatialCell,dccrg::C
          }
       }
 
+      if (backNeighborIds.size() == 0) {
+	throw;
+      }
+
       int refLvl = mpiGrid.get_refinement_level(ids.front());
-      int path = pencils.path[iPencil][refLvl];
 
       if (frontNeighborIds.size() == 1) {
          targetCells[GID] = mpiGrid[frontNeighborIds.at(0)];
-      } else if ( path < frontNeighborIds.size() ) {
-         targetCells[GID] = mpiGrid[frontNeighborIds.at(path)];
+      } else if ( pencils.path[iPencil][refLvl] < frontNeighborIds.size() ) {
+         targetCells[GID] = mpiGrid[frontNeighborIds.at(pencils.path[iPencil][refLvl])];
       }
 
       refLvl = mpiGrid.get_refinement_level(ids.back());
-      path = pencils.path[iPencil][refLvl];
 
       if (backNeighborIds.size() == 1) {
          targetCells[GID + L + 1] = mpiGrid[backNeighborIds.at(0)];
-      } else if ( path < backNeighborIds.size() ) {
-         targetCells[GID + L + 1] = mpiGrid[backNeighborIds.at(path)];
+      } else if ( pencils.path[iPencil][refLvl] < backNeighborIds.size() ) {
+         targetCells[GID + L + 1] = mpiGrid[backNeighborIds.at(pencils.path[iPencil][refLvl])];
       }
       
       // Incerment global id by L + 2 ghost cells.
@@ -735,11 +739,10 @@ Multiple ghost cells.
  */
 void check_ghost_cells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                        setOfPencils& pencils,
-                       uint dimension,
-                       int offset) {
+                       uint dimension) {
 
    const bool debug = false;
-   int neighborhoodId = getNeighborhood(dimension,2);
+   int neighborhoodId = getNeighborhood(dimension,VLASOV_STENCIL_WIDTH);
 
    int myRank;
    if(debug) {
@@ -764,15 +767,15 @@ void check_ghost_cells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
       const auto* backNeighbors  = mpiGrid.get_neighbors_of(ids.back() ,neighborhoodId);
 
       for (auto nbrPair: *frontNeighbors) {
-         if(nbrPair.second[dimension] == -offset) {
-            maxNbrRefLvl = max(maxNbrRefLvl,mpiGrid.mapping.get_refinement_level(nbrPair.first));
-         }
+	//if((nbrPair.second[dimension] + 1) / pow(2,mpiGrid.get_refinement_level(nbrPair.first)) == -offset) {
+	maxNbrRefLvl = max(maxNbrRefLvl,mpiGrid.mapping.get_refinement_level(nbrPair.first));
+	//}
       }
          
       for (auto nbrPair: *backNeighbors) {
-         if(nbrPair.second[dimension] == offset) {
-            maxNbrRefLvl = max(maxNbrRefLvl,mpiGrid.get_refinement_level(nbrPair.first));
-         }
+	//if((nbrPair.second[dimension] + 1) / pow(2,mpiGrid.get_refinement_level(nbrPair.first)) == offset) {
+	maxNbrRefLvl = max(maxNbrRefLvl,mpiGrid.get_refinement_level(nbrPair.first));
+	//}
       }
 
       if (maxNbrRefLvl > maxPencilRefLvl) {
@@ -953,9 +956,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
                                                          
    // Check refinement of two ghost cells on each end of each pencil
-   for (int offset = 1; offset <= VLASOV_STENCIL_WIDTH; ++offset) {
-      check_ghost_cells(mpiGrid,pencils,dimension,offset);
-   }
+   check_ghost_cells(mpiGrid,pencils,dimension);
    // ****************************************************************************   
    
    if(printPencils) printPencilsFunc(pencils,dimension,myRank);
@@ -1108,7 +1109,13 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                if (printTargets) std::cout << "Target cells for pencil " << pencili << ", rank " << myRank << ": ";
                // sourcedata => targetdata[this pencil])
                for (uint i = 0; i < targetLength; i++) {
-                  if (printTargets) std::cout << targetCells[i + totalTargetLength]->parameters[CellParams::CELLID] << " ";
+		 if (printTargets) {
+		   if( targetCells[i + totalTargetLength] != NULL) {		     
+		     std::cout << targetCells[i + totalTargetLength]->parameters[CellParams::CELLID] << " ";
+		   } else {
+		     std::cout << "NULL" << " ";
+		   }
+		 }
                   for (uint k=0; k<WID; k++) {
                      for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){
                         
