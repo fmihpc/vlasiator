@@ -171,18 +171,53 @@ template< unsigned int numFields > void getFieldDataFromFsGrid(
       const std::vector<CellID>& cells, int index) {
 
    int nCells = getNumberOfCellsOnMaxRefLvl(mpiGrid, cells);
+   std::vector< std::array<Real, numFields> > transferBuffer(nCells);
+   std::vector< std::array<Real, numFields>*> transferBufferPointer;
    sourceGrid.setupForTransferOut(nCells);
 
+   int k = 0;
    for(CellID dccrgId : cells) {
       // TODO: This assumes that the field data are lying continuous in memory.
       // Check definition of CellParams in common.h if unsure.
-      std::array<Real, numFields>* cellDataPointer = reinterpret_cast<std::array<Real, numFields>*>(
-            &(mpiGrid[dccrgId]->get_cell_parameters()[index]));      
+      
+      //std::array<Real, numFields>* cellDataPointer = reinterpret_cast<std::array<Real, numFields>*>(
+      //      &(mpiGrid[dccrgId]->get_cell_parameters()[index]));
+
+      transferBufferPointer.push_back(&transferBuffer[k]);
+      
       const auto fsgridIds = mapDccrgIdToFsGridGlobalID(mpiGrid, dccrgId);
       for (auto fsgridId : fsgridIds) {
-         sourceGrid.transferDataIn(fsgridId, cellDataPointer);
+         std::array<Real, numFields>* cellDataPointer = &transferBuffer[k++];
+         sourceGrid.transferDataOut(fsgridId, cellDataPointer);
       }
    }
 
    sourceGrid.finishTransfersOut();
+
+   // Average data in transferBuffer
+#pragma omp parallel for
+   for(uint i = 0; i < cells.size(); ++i) {
+      
+      CellID dccrgId = cells[i];
+
+      // Calculate the number of fsgrid cells we need to average into the current dccrg cell
+      auto refLvl = mpiGrid.mapping.get_refinement_level(dccrgId);
+      int nCells = pow(pow(2,mpiGrid.mapping.get_maximum_refinement_level() - mpiGrid.mapping.get_refinement_level(dccrgId)),3);
+
+      for(int iCell = 0; iCell < nCells; ++iCell) {
+
+         std::array<Real, numFields>* cellDataPointer = transferBufferPointer[i] + iCell;
+
+         for (int iField = 0; iField < numFields; ++iField) {
+            mpiGrid[dccrgId]->get_cell_parameters()[index+iField] += cellDataPointer->at(iField);
+         }
+         
+      }
+
+      for (int iField = 0; iField < numFields; ++iField) {
+         mpiGrid[dccrgId]->get_cell_parameters()[index+iField] /= nCells;
+      }
+      
+   }
+
 }
