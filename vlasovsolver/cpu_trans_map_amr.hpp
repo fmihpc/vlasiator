@@ -56,6 +56,25 @@ struct setOfPencils {
       path.push_back(pathIn);
    }
 
+   void removePencil(const uint pencilId) {
+
+      x.erase(x.begin() + pencilId);
+      y.erase(y.begin() + pencilId);
+      periodic.erase(periodic.begin() + pencilId);
+      path.erase(path.begin() + pencilId);
+
+      CellID ibeg = 0;
+      for (uint i = 0; i < pencilId; ++i) {
+         ibeg += lengthOfPencils[i];
+      }
+      ids.erase(ids.begin() + ibeg, ids.begin() + ibeg + lengthOfPencils[pencilId]);
+
+      N--;
+      sumOfLengths -= lengthOfPencils[pencilId];
+      lengthOfPencils.erase(lengthOfPencils.begin() + pencilId);
+         
+   }
+   
    std::vector<CellID> getIds(const uint pencilId) const {
 
       std::vector<CellID> idsOut;
