@@ -274,10 +274,69 @@ CellID selectNeighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> 
 }
 
 
+void removeDuplicates(setOfPencils &pencils) {
+
+   vector<uint> duplicatePencilIds;
+
+   // Loop over all pencils twice to do cross-comparisons
+   for (uint myPencilId = 0; myPencilId < pencils.N; ++myPencilId) {
+
+      vector<CellID> myCellIds = pencils.getIds(myPencilId);
+      
+      for (uint theirPencilId = 0; theirPencilId < pencils.N; ++theirPencilId) {
+
+         // Do not compare with self
+         if (myPencilId == theirPencilId) {
+            continue;
+         }
+
+         // we check if all cells of pencil b ("their") are included in pencil a ("my")
+         bool removeThisPencil = true;
+         
+         vector<CellID> theirCellIds = pencils.getIds(theirPencilId);
+
+         for (auto theirCellId : theirCellIds) {
+            bool matchFound = false;
+            for (auto myCellId : myCellIds) {
+               // Compare each "my" cell to all "their" cells, if any of them match
+               // update a logical value matchFound to true.
+               if (myCellId == theirCellId && pencils.path[myPencilId] == pencils.path[theirPencilId]) {
+                  matchFound = true;
+               }
+            }
+            // If no match was found for this "my" cell, we can end the comparison, these pencils
+            // are not duplicates.
+            if(!matchFound) {
+               removeThisPencil = false;
+               continue;
+            }
+         }
+
+         if(removeThisPencil) {
+            if(std::find(duplicatePencilIds.begin(), duplicatePencilIds.end(), myPencilId) == duplicatePencilIds.end() ) {
+               duplicatePencilIds.push_back(theirPencilId);  
+            }
+            
+         }
+         
+      }
+      
+   }
+
+   int myRank;
+   MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+
+   for (auto id : duplicatePencilIds) {
+      //pencils.removePencil(id);
+      cout << "I am rank " << myRank << ", I would like to remove pencil number " << id << endl;
+   }
+   
+}
+
 setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> &grid, 
-					setOfPencils &pencils, CellID startingId,
-					vector<CellID> ids, uint dimension, 
-					vector<uint> path) {
+					setOfPencils &pencils, const CellID startingId,
+					vector<CellID> ids, const uint dimension, 
+					vector<uint> path, const vector<CellID> &endIds) {
 
    const bool debug = false;
    CellID nextNeighbor;
@@ -403,7 +462,7 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
                } else {
 	    
                   // Spawn new builders for neighbors 0,1,2
-                  buildPencilsWithNeighbors(grid,pencils,id,ids,dimension,myPath);
+                  buildPencilsWithNeighbors(grid,pencils,id,ids,dimension,myPath,endIds);
 	    
                }
 	  
@@ -423,27 +482,23 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
       if(nextNeighbor != INVALID_CELLID) {
          if (debug) {
             std::cout << " Next neighbor is " << nextNeighbor << "." << std::endl;
-         }         
-
-         for (auto id : ids) {
-            if (nextNeighbor == id) {
-               if(debug)
-                  std::cout << "Found neighbor " << nextNeighbor << " after cell " << ids.back()
-                            << " that is already in the pencil, exiting" << std::endl;
-               periodic = true;
-            }
          }
-         if (periodic) {
-            // Exit the while loop
-            id = INVALID_CELLID;
+
+         if ( std::any_of(endIds.begin(), endIds.end(), [nextNeighbor](int i){return i == nextNeighbor;}) ) {
+            nextNeighbor = INVALID_CELLID;
          } else {
             ids.push_back(nextNeighbor);
-            // Move to the next cell.
-            id = nextNeighbor;
          }
-      } else {
-         id = nextNeighbor;
-      }    
+         // Check for id in seedIds list
+         // for (auto endId : endIds) {
+         //    if (nextNeighbor == id) {
+         //       nextNeighbor = INVALID_CELLID;
+         //    }
+         // }                                  
+
+      }
+      
+      id = nextNeighbor;
    } // Closes while loop
 
    // Get the x,y - coordinates of the pencil (in the direction perpendicular to the pencil)
@@ -591,7 +646,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
                 const uint dimension,
                 vector<CellID> &seedIds) {
 
-   const bool debug = false;
+   const bool debug = true;
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    
@@ -950,7 +1005,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    
    for (const auto seedId : seedIds) {
       // Construct pencils from the seedIds into a set of pencils.
-      pencils = buildPencilsWithNeighbors(mpiGrid, pencils, seedId, ids, dimension, path);
+      pencils = buildPencilsWithNeighbors(mpiGrid, pencils, seedId, ids, dimension, path, seedIds);
    }   
    
    if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
@@ -958,8 +1013,11 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    // Check refinement of two ghost cells on each end of each pencil
    check_ghost_cells(mpiGrid,pencils,dimension);
    // ****************************************************************************   
-   
+
    if(printPencils) printPencilsFunc(pencils,dimension,myRank);
+   
+   // // Remove duplicates
+   // removeDuplicates(pencils);
    
    // Add the final set of pencils to the pencilSets - vector.
    // Only one set is created for now but we retain support for multiple sets
