@@ -1365,42 +1365,57 @@ void update_remote_mapping_contribution(
    for (auto c : remote_cells) {
       SpatialCell *ccell = mpiGrid[c];
       // Initialize number of blocks to 0 and block data to a default value
+      // We need the default for 1 to 1 communications
       for (uint i = 0; i < MAX_FACE_NEIGHBORS_PER_DIM; ++i) {
          ccell->neighbor_block_data[i] = ccell->get_data(popID);
          ccell->neighbor_number_of_blocks[i] = 0;
       }
-   }     
-
-
-   if(printLines)    std::cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << std::endl;
+   }
    
-   for (uint c = 0; c < local_cells.size(); ++c) {
+   for (auto c : local_cells) {
 
-      SpatialCell *ccell = mpiGrid[local_cells[c]];
+      SpatialCell *ccell = mpiGrid[c];
       
-      int neighborhood = getNeighborhood(dimension,1);      
-      auto* nbrPairVector = mpiGrid.get_neighbors_of(local_cells[c], neighborhood);
+      int neighborhood = getNeighborhood(dimension,1);
+      auto* nbrPairVector = mpiGrid.get_neighbors_of(c, neighborhood);
 
-      // Initialize to empty vectors, add default values at the end.     
-      vector<CellID> n_nbrs;
+      // Initialize to empty vectors, add default values at the end.
+      
+      // neighbors in the positive direction
       vector<CellID> p_nbrs;
+      // neighbors on the negative direction
+      vector<CellID> n_nbrs;
+
+      auto myRefLvl = mpiGrid.get_refinement_level(c);
+      bool sameRefinementAsNeighbors = true;
       
       // Collect neighbors on the positive and negative sides into separate lists
       for (auto nbrPair : *nbrPairVector) {
          
          if (nbrPair.second.at(dimension) == direction) {
             p_nbrs.push_back(nbrPair.first);
+            
+            if(mpiGrid.get_refinement_level(nbrPair.first) != myRefLvl) {
+               sameRefinementAsNeighbors = false;
+            }
+
          }
 
          if (nbrPair.second.at(dimension) == -direction) {
             n_nbrs.push_back(nbrPair.first);
+
+            // if(mpiGrid.get_refinement_level(nbrPair.first) != myRefLvl) {
+            //    sameRefinementAsNeighbors = false;
+            // }
+
          }
       }
-
-      int maxNeighborSize = max(p_nbrs.size(),n_nbrs.size());
+      
+      //      int maxNeighborSize = max(p_nbrs.size(),n_nbrs.size());
       
       for (uint i = 0; i < MAX_FACE_NEIGHBORS_PER_DIM; ++i) {
-         if(maxNeighborSize == 1) {
+         if(sameRefinementAsNeighbors) {
+            //if(maxNeighborSize == 1) {
             // Initialize number of blocks to 0 and block data to a default value
             ccell->neighbor_block_data[i] = ccell->get_data(popID);
             ccell->neighbor_number_of_blocks[i] = 0;
@@ -1437,7 +1452,7 @@ void update_remote_mapping_contribution(
                ccell->neighbor_block_data.at(i_nbr) = pcell->get_data(popID);
                ccell->neighbor_number_of_blocks.at(i_nbr) = pcell->get_number_of_velocity_blocks(popID);
                send_cells.push_back(nbr);
-               send_origin_cells.push_back(local_cells[c]);
+               send_origin_cells.push_back(c);
             }
          }
       }
@@ -1465,8 +1480,8 @@ void update_remote_mapping_contribution(
             
             // Find out which cell in the list of siblings this cell is. That will determine which
             // neighbor_block_data gets stored as the transferBuffer.
-            auto myIndices = mpiGrid.mapping.get_indices(local_cells[c]);
-            auto allSiblings = mpiGrid.get_all_children(mpiGrid.get_parent(local_cells[c]));
+            auto myIndices = mpiGrid.mapping.get_indices(c);
+            auto allSiblings = mpiGrid.get_all_children(mpiGrid.get_parent(c));
             vector<CellID> siblings;
             
             for (auto sibling : allSiblings) {
@@ -1476,7 +1491,7 @@ void update_remote_mapping_contribution(
                }
             }
             
-            auto myLocation = std::find(siblings.begin(),siblings.end(),local_cells[c]);
+            auto myLocation = std::find(siblings.begin(),siblings.end(),c);
             uint nSiblings = 1;
             uint recvBufferIndex = 0;
             uint bufferSize = 1;
@@ -1501,7 +1516,7 @@ void update_remote_mapping_contribution(
             }
             
             receiveBuffers.push_back(ncell->neighbor_block_data.at(recvBufferIndex));
-            receive_cells.push_back(local_cells[c]);
+            receive_cells.push_back(c);
             // For debugging
             receive_origin_cells.push_back(nbr);
          }
