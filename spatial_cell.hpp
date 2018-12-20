@@ -335,7 +335,7 @@ namespace spatial_cell {
       //vmesh::LocalID neighbor_number_of_blocks;
       std::array<Realf*,MAX_FACE_NEIGHBOR_PER_DIM> neighbor_block_data;       /**< Pointers for translation operator. We can point to neighbor
                                                                                * cell block data. We do not allocate memory for the pointer.*/
-      std::array<vmesh::LocalID,MAX_FACE_NEIGHBOR_PER_DIM> neighbor_number_of_blocks;
+      std::array<vmesh::LocalID,MAX_FACE_NEIGHBORS_PER_DIM> neighbor_number_of_blocks;
       uint sysBoundaryFlag;                                                   /**< What type of system boundary does the cell belong to. 
                                                                                * Enumerated in the sysboundarytype namespace's enum.*/
       uint sysBoundaryLayer;                                                  /**< Layers counted from closest systemBoundary. If 0 then it has not 
