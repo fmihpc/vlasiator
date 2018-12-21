@@ -242,8 +242,8 @@ void calculateSpatialTranslation(
       // MPI_Barrier(MPI_COMM_WORLD);
    }
 
-   // MPI_Barrier(MPI_COMM_WORLD);
-   //   bailout(true, "", __FILE__, __LINE__);
+   MPI_Barrier(MPI_COMM_WORLD);
+   bailout(true, "", __FILE__, __LINE__);
 }
 
 /*!

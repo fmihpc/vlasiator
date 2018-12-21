@@ -271,7 +271,7 @@ int main(int argn,char* args[]) {
    
    const bool printLines = false;
    const bool printCells = false;
-   const bool printSums  = false;
+   const bool printSums  = true;
    
 // Init MPI:
    int required=MPI_THREAD_FUNNELED;
