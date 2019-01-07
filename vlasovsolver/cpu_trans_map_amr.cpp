@@ -274,64 +274,63 @@ CellID selectNeighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> 
 }
 
 
-void removeDuplicates(setOfPencils &pencils) {
+// void removeDuplicates(setOfPencils &pencils) {
 
-   vector<uint> duplicatePencilIds;
+//    vector<uint> duplicatePencilIds;
 
-   // Loop over all pencils twice to do cross-comparisons
-   for (uint myPencilId = 0; myPencilId < pencils.N; ++myPencilId) {
+//    // Loop over all pencils twice to do cross-comparisons
+//    for (uint myPencilId = 0; myPencilId < pencils.N; ++myPencilId) {
 
-      vector<CellID> myCellIds = pencils.getIds(myPencilId);
+//       vector<CellID> myCellIds = pencils.getIds(myPencilId);
       
-      for (uint theirPencilId = 0; theirPencilId < pencils.N; ++theirPencilId) {
+//       for (uint theirPencilId = 0; theirPencilId < pencils.N; ++theirPencilId) {
 
-         // Do not compare with self
-         if (myPencilId == theirPencilId) {
-            continue;
-         }
+//          // Do not compare with self
+//          if (myPencilId == theirPencilId) {
+//             continue;
+//          }
 
-         // we check if all cells of pencil b ("their") are included in pencil a ("my")
-         bool removeThisPencil = true;
+//          // we check if all cells of pencil b ("their") are included in pencil a ("my")
+//          bool removeThisPencil = true;
          
-         vector<CellID> theirCellIds = pencils.getIds(theirPencilId);
+//          vector<CellID> theirCellIds = pencils.getIds(theirPencilId);
 
-         for (auto theirCellId : theirCellIds) {
-            bool matchFound = false;
-            for (auto myCellId : myCellIds) {
-               // Compare each "my" cell to all "their" cells, if any of them match
-               // update a logical value matchFound to true.
-               if (myCellId == theirCellId && pencils.path[myPencilId] == pencils.path[theirPencilId]) {
-                  matchFound = true;
-               }
-            }
-            // If no match was found for this "my" cell, we can end the comparison, these pencils
-            // are not duplicates.
-            if(!matchFound) {
-               removeThisPencil = false;
-               continue;
-            }
-         }
+//          for (auto theirCellId : theirCellIds) {
+//             bool matchFound = false;
+//             for (auto myCellId : myCellIds) {
+//                // Compare each "my" cell to all "their" cells, if any of them match
+//                // update a logical value matchFound to true.
+//                if (myCellId == theirCellId && pencils.path[myPencilId] == pencils.path[theirPencilId]) {
+//                   matchFound = true;
+//                }
+//             }
+//             // If no match was found for this "my" cell, we can end the comparison, these pencils
+//             // are not duplicates.
+//             if(!matchFound) {
+//                removeThisPencil = false;
+//                continue;
+//             }
+//          }
 
-         if(removeThisPencil) {
-            if(std::find(duplicatePencilIds.begin(), duplicatePencilIds.end(), myPencilId) == duplicatePencilIds.end() ) {
-               duplicatePencilIds.push_back(theirPencilId);  
-            }
+//          if(removeThisPencil) {
+//             if(std::find(duplicatePencilIds.begin(), duplicatePencilIds.end(), myPencilId) == duplicatePencilIds.end() ) {
+//                duplicatePencilIds.push_back(theirPencilId);  
+//             }
             
-         }
+//          }
          
-      }
+//       }
       
-   }
+//    }
 
-   int myRank;
-   MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+//    int myRank;
+//    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
-   for (auto id : duplicatePencilIds) {
-      //pencils.removePencil(id);
-      cout << "I am rank " << myRank << ", I would like to remove pencil number " << id << endl;
-   }
-   
-}
+//    for (auto id : duplicatePencilIds) {
+//       //pencils.removePencil(id);
+//       cout << "I am rank " << myRank << ", I would like to remove pencil number " << id << endl;
+//    }   
+// }
 
 setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> &grid, 
 					setOfPencils &pencils, const CellID startingId,
@@ -484,7 +483,7 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
             std::cout << " Next neighbor is " << nextNeighbor << "." << std::endl;
          }
 
-         if ( std::any_of(endIds.begin(), endIds.end(), [nextNeighbor](int i){return i == nextNeighbor;}) ) {
+         if ( std::any_of(endIds.begin(), endIds.end(), [nextNeighbor](uint i){return i == nextNeighbor;}) ) {
             nextNeighbor = INVALID_CELLID;
          } else {
             ids.push_back(nextNeighbor);
@@ -610,15 +609,20 @@ void propagatePencil(Vec* dz, Vec* values, const uint dimension, const uint bloc
             const Vec ngbr_target_density =
                z_2 * ( a[0] + z_2 * ( a[1] + z_2 * a[2] ) ) -
                z_1 * ( a[0] + z_1 * ( a[1] + z_1 * a[2] ) );
+                                    
             // Store mapped density in two target cells
             // in the neighbor cell we will put this density
             targetValues[i_trans_pt_blockv(planeVector, k, i + 1)] += select( positiveTranslationDirection,
-                                                  ngbr_target_density * dz[i_source] / dz[i_source + 1],Vec(0.0));
+                                                                              ngbr_target_density
+                                                                              * dz[i_source] / dz[i_source + 1],
+                                                                              Vec(0.0));
             targetValues[i_trans_pt_blockv(planeVector, k, i - 1 )] += select(!positiveTranslationDirection,
-                                                 ngbr_target_density * dz[i_source] / dz[i_source - 1],Vec(0.0));
+                                                                              ngbr_target_density
+                                                                              * dz[i_source] / dz[i_source - 1],
+                                                                              Vec(0.0));
             
             // in the current original cells we will put the rest of the original density
-            targetValues[i_trans_pt_blockv(planeVector, k, i)] +=
+            targetValues[i_trans_pt_blockv(planeVector, k, i)] += 
                values[i_trans_ps_blockv_pencil(planeVector, k, i, lengthOfPencil)] - ngbr_target_density;
          }
       }
@@ -648,7 +652,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
 
    const bool debug = false;
    int myRank;
-   MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+   if (debug) MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    
    int neighborhood = getNeighborhood(dimension,1);
    
@@ -924,6 +928,7 @@ void printPencilsFunc(const setOfPencils& pencils, const uint dimension, const i
       std::cout << std::endl;
    }
 
+   MPI_Barrier(MPI_COMM_WORLD);
 }
 
 bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
@@ -935,7 +940,6 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
 
    const bool printPencils = false;
    const bool printTargets = false;
-   const bool printLines = false;
    Realv dvz,vz_min;  
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
    unsigned char  cellid_transpose[WID3]; /*< defines the transpose for the solver internal (transposed) id: i + j*WID + k*WID2 to actual one*/
@@ -947,9 +951,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    }
 
    int myRank;
-   if(printLines || printPencils) MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-
-   if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
+   if(printTargets || printPencils) MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    
    // Vector with all cell ids
    vector<CellID> allCells(localPropagatedCells);
@@ -1022,15 +1024,11 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    setOfPencils pencils;
    vector<setOfPencils> pencilSets;
 
-   if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
-   
    for (const auto seedId : seedIds) {
       // Construct pencils from the seedIds into a set of pencils.
       pencils = buildPencilsWithNeighbors(mpiGrid, pencils, seedId, ids, dimension, path, seedIds);
    }   
    
-   if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
-                                                         
    // Check refinement of two ghost cells on each end of each pencil
    check_ghost_cells(mpiGrid,pencils,dimension);
    // ****************************************************************************   
@@ -1047,8 +1045,6 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    // Add the final set of pencils to the pencilSets - vector.
    // Only one set is created for now but we retain support for multiple sets
    pencilSets.push_back(pencils);
-   
-   if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
    
    const uint8_t VMESH_REFLEVEL = 0;
    
@@ -1075,8 +1071,6 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       unionOfBlocks.push_back(blockGID);
    }
    // ****************************************************************************
-
-   if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
    
    int t1 = phiprof::initializeTimer("mappingAndStore");
    
@@ -1139,7 +1133,9 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                //    std::cout << cell->parameters[CellParams::CELLID] << " ";
                // }
                // std::cout << std::endl;
-               
+
+
+               // dz is the cell size in the direction of the pencil
                Vec dz[sourceCells.size()];
                uint i = 0;
                for(auto cell: sourceCells) {
@@ -1154,6 +1150,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                      dz[i] = cell->SpatialCell::parameters[CellParams::DZ];
                      break;
                   }
+                  
                   i++;
                }
 
@@ -1220,7 +1217,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                
                int L = pencils.lengthOfPencils[pencili];
                uint targetLength = L + 2;
-               vector<CellID> pencilIds = pencils.getIds(pencili);
+               //vector<CellID> pencilIds = pencils.getIds(pencili);
 
                // Calculate the max and min refinement levels in this pencil.
                // All cells that are not on the max refinement level will be split
@@ -1228,18 +1225,12 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                // up the contributions from each pencil.
                // The most convenient way is to just count how many refinement steps the
                // pencil has taken on its path.
-               int maxRefLvl = pencils.path[pencili].size();
+               int pencilRefLvl = pencils.path[pencili].size();
                
                // Unpack the vector data
 
                // Loop over cells in pencil +- 1 padded cell
                for ( uint celli = 0; celli < targetLength; ++celli ) {
-
-                  // // If the pencil is periodic, we do not write the ghost cells because
-                  // // They are copies of cells that are already in the pencil
-                  // // - It seems that doing this was wrong. Investigate!
-                  // if(pencils.periodic[pencili] && (celli == 0 || celli == targetLength - 1))
-                  //   continue;                 
                   
                   Realv vector[VECL];
                   // Loop over 1st vspace dimension
@@ -1277,14 +1268,24 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
 
                   Realf* blockData = spatial_cell->get_data(blockLID, popID);
 
-                  Realf areaRatio = 1.0;
-                  if (spatial_cell->parameters[CellParams::REFINEMENT_LEVEL] < maxRefLvl) {
-                     areaRatio = 1.0 / pow(pow(2, maxRefLvl - spatial_cell->parameters[CellParams::REFINEMENT_LEVEL]), 2);
-                  }
-                  
+                  // areaRatio is the reatio of the cross-section of the spatial cell to the cross-section of the pencil.
+                  Realf areaRatio = pow(pow(2,spatial_cell->SpatialCell::parameters[CellParams::REFINEMENT_LEVEL] - pencils.path[pencili].size()),2);;
+
+                  // Realf checksum = 0.0;
                   for(int i = 0; i < WID3 ; i++) {
                      blockData[i] += targetBlockData[GID * WID3 + i] * areaRatio;
+                     // checksum += targetBlockData[GID * WID3 + i] * areaRatio;
                   }
+
+                  
+                  // cout << "Rank " << myRank;
+                  // cout << ", pencil " << pencili;
+                  // cout << ", cell " << spatial_cell->parameters[CellParams::CELLID];
+                  // cout << ", dimension " << dimension;
+                  // cout << ", areaRatio " << areaRatio;
+                  // cout << ", checksum = " << checksum;
+                  // cout << endl;
+
                }
 
                totalTargetLength += targetLength;
@@ -1293,9 +1294,8 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
             }
          }
       }
-   }   
+   }
 
-   if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
    return true;
 }
 
@@ -1319,18 +1319,10 @@ void update_remote_mapping_contribution(
    const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_NEIGHBORHOOD_ID);
    vector<CellID> receive_cells;
    vector<CellID> send_cells;
-   //vector<Realf*> receiveBuffers;
    
-   vector<CellID> send_origin_cells;
    vector<CellID> receive_origin_cells;
    vector<uint> receive_origin_index;
-   
-   int myRank;     
-   const bool printLines = false;
-   
-   MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-   if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;  
-   
+      
    //normalize
    if(direction > 0) direction = 1;
    if(direction < 0) direction = -1;
@@ -1351,9 +1343,10 @@ void update_remote_mapping_contribution(
          for (uint j = 0; j < ccell->neighbor_number_of_blocks[i] * WID3; ++j) {
             ccell->neighbor_block_data[i][j] = 0.0;
          }
-
       }
    }
+
+   set<CellID> allNeighbors;
    
    for (auto c : local_cells) {
 
@@ -1447,18 +1440,23 @@ void update_remote_mapping_contribution(
          bufferSize = 4;
       }
       
-      //      MPI_Barrier(MPI_COMM_WORLD);
       // ccell adds a neighbor_block_data block for each neighbor in the positive direction to its local data
       for (uint i_nbr = 0; i_nbr < p_nbrs.size(); ++i_nbr) {         
 
          CellID nbr = p_nbrs[i_nbr];
          
-         if (nbr != INVALID_CELLID && !mpiGrid.is_local(nbr) && do_translate_cell(ccell)) {
+         if (nbr != INVALID_CELLID && !mpiGrid.is_local(nbr) && do_translate_cell(ccell)
+             && allNeighbors.find(nbr) == allNeighbors.end()) {
+            
             SpatialCell *pcell = mpiGrid[nbr];
+            
             if(pcell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
                //Send data in nbr target array that we just mapped to if 1) it is a valid target,
                //2) is remote cell, 3) the source cell in center was translated, 4) it is not a boundary cell?
+               //5) We have not already sent data from this rank to this cell.
 
+               allNeighbors.insert(nbr);
+               
                if(nSiblings == 1 && p_nbrs.size() == 4) {
                   sendIndex = i_nbr;
                }
@@ -1466,34 +1464,31 @@ void update_remote_mapping_contribution(
                ccell->neighbor_block_data.at(sendIndex) = pcell->get_data(popID);
                ccell->neighbor_number_of_blocks.at(sendIndex) = pcell->get_number_of_velocity_blocks(popID);
                send_cells.push_back(nbr);
-               send_origin_cells.push_back(c);
-
-               Realf checksum1 = 0.0;
-               Realf checksum2 = 0.0;
-               Realf checksum3 = 0.0;
-               Realf checksum4 = 0.0;
-               for(unsigned int vCell = 0; vCell < VELOCITY_BLOCK_LENGTH * ccell->get_number_of_velocity_blocks(popID); ++vCell) {
-                  checksum1 += ccell->neighbor_block_data[0][vCell];
-                  checksum2 += ccell->neighbor_block_data[1][vCell];
-                  checksum3 += ccell->neighbor_block_data[2][vCell];
-                  checksum4 += ccell->neighbor_block_data[3][vCell];
-               }
                
-               cout << "Rank " << myRank << ": Cell " << c << " sending to " << nbr << " index is " << sendIndex << " sums are ";
-               cout << checksum1 << ", ";
-               cout << checksum2 << ", ";
-               cout << checksum3 << ", ";
-               cout << checksum4 << ", ";
-               cout << "numbers of blocks are ";
-               cout << ccell->neighbor_number_of_blocks[0] << ", ";
-               cout << ccell->neighbor_number_of_blocks[1] << ", ";
-               cout << ccell->neighbor_number_of_blocks[2] << ", ";
-               cout << ccell->neighbor_number_of_blocks[3];
-               cout << endl;
+               // Realf checksum1 = 0.0;
+               // Realf checksum2 = 0.0;
+               // Realf checksum3 = 0.0;
+               // Realf checksum4 = 0.0;
+               // for(unsigned int vCell = 0; vCell < VELOCITY_BLOCK_LENGTH * ccell->get_number_of_velocity_blocks(popID); ++vCell) {
+               //    checksum1 += ccell->neighbor_block_data[0][vCell];
+               //    checksum2 += ccell->neighbor_block_data[1][vCell];
+               //    checksum3 += ccell->neighbor_block_data[2][vCell];
+               //    checksum4 += ccell->neighbor_block_data[3][vCell];
+               // }
+               
+               // cout << "Rank " << myRank;
+               // cout << ", dimension " << dimension;
+               // cout << ", direction " << direction;
+               // cout << ": Cell " << c;
+               // cout << " sending to " << nbr << " index is " << sendIndex << " sums are ";
+               // cout << checksum1 << ", ";
+               // cout << checksum2 << ", ";
+               // cout << checksum3 << ", ";
+               // cout << checksum4 << ", ";
+               // cout << endl;
             }
          }
       }
-      //      MPI_Barrier(MPI_COMM_WORLD);
 
       for (uint i_nbr = 0; i_nbr < n_nbrs.size(); ++i_nbr) {         
 
@@ -1533,9 +1528,7 @@ void update_remote_mapping_contribution(
                // }
             }
             
-            //receiveBuffers.push_back(ncell->neighbor_block_data.at(recvIndex));
             receive_cells.push_back(c);
-            // For debugging
             receive_origin_cells.push_back(nbr);
             receive_origin_index.push_back(recvIndex);
          }
@@ -1560,12 +1553,9 @@ void update_remote_mapping_contribution(
       break;
    }
 
-   if(printLines) std::cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << std::endl;
-
    //#pragma omp parallel
    //{
    std::vector<Realf> receive_cells_sums;
-   MPI_Barrier(MPI_COMM_WORLD);
       //reduce data: sum received data in the data array to 
       // the target grid in the temporary block container
       for (size_t c = 0; c < receive_cells.size(); ++c) {
@@ -1576,31 +1566,33 @@ void update_remote_mapping_contribution(
          Realf *neighborData = origin_cell->neighbor_block_data[receive_origin_index[c]];
 
          int numReceiveCells = count(receive_cells.begin(), receive_cells.end(), receive_cells[c]);
-         Realf checksum = 0.0;
-         Realf checksum1 = 0.0;
-         Realf checksum2 = 0.0;
-         Realf checksum3 = 0.0;
-         Realf checksum4 = 0.0;
+         // Realf checksum = 0.0;
+         // Realf checksum1 = 0.0;
+         // Realf checksum2 = 0.0;
+         // Realf checksum3 = 0.0;
+         // Realf checksum4 = 0.0;
          
          //#pragma omp for 
          for(unsigned int vCell = 0; vCell < VELOCITY_BLOCK_LENGTH * receive_cell->get_number_of_velocity_blocks(popID); ++vCell) {
-            checksum += neighborData[vCell];
-            checksum1 += origin_cell->neighbor_block_data[0][vCell];
-            checksum2 += origin_cell->neighbor_block_data[1][vCell];
-            checksum3 += origin_cell->neighbor_block_data[2][vCell];
-            checksum4 += origin_cell->neighbor_block_data[3][vCell];
-            blockData[vCell] += neighborData[vCell] / numReceiveCells;
+            // checksum += neighborData[vCell];
+            // checksum1 += origin_cell->neighbor_block_data[0][vCell];
+            // checksum2 += origin_cell->neighbor_block_data[1][vCell];
+            // checksum3 += origin_cell->neighbor_block_data[2][vCell];
+            // checksum4 += origin_cell->neighbor_block_data[3][vCell];
+            blockData[vCell] += neighborData[vCell];
          }
-         receive_cells_sums.push_back(checksum);
-         cout << "Rank " << myRank << ": cell " << receive_cells[c] << " receiving from " << receive_origin_cells[c] << ". Checksums: ";
-         cout << checksum1 << ", ";
-         cout << checksum2 << ", ";
-         cout << checksum3 << ", ";
-         cout << checksum4 << ".";
-         cout << " Index is " << receive_origin_index[c] << endl;
+         // receive_cells_sums.push_back(checksum);
+         // cout << "Rank " << myRank << ": cell " << receive_cells[c] << " receiving from " << receive_origin_cells[c] << ". Checksums: ";
+         // cout << checksum1 << ", ";
+         // cout << checksum2 << ", ";
+         // cout << checksum3 << ", ";
+         // cout << checksum4 << ".";
+         // cout << " Index is " << receive_origin_index[c] << endl;
       }
-      MPI_Barrier(MPI_COMM_WORLD);
-      cout << endl;
+      
+      // MPI_Barrier(MPI_COMM_WORLD);
+      // cout << endl;
+      
       // send cell data is set to zero. This is to avoid double copy if
       // one cell is the neighbor on bot + and - side to the same process
       for (size_t c = 0; c < send_cells.size(); ++c) {
@@ -1613,9 +1605,4 @@ void update_remote_mapping_contribution(
          }
       }
       //}
-
-   // //and finally free temporary receive buffer
-   // for (size_t c=0; c < receiveBuffers.size(); ++c) {
-   //    aligned_free(receiveBuffers[c]);
-   // }
 }
