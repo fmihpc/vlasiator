@@ -100,16 +100,12 @@ struct setOfPencils {
    // dx and dy are the dimensions of the original pencil.
    void split(const uint myPencilId, const Realv dx, const Realv dy) {
 
-      auto ids = getIds(myPencilId);
-      
-      x[myPencilId] -= 0.25 * dx;
-      y[myPencilId] += 0.25 * dy;
-
+      auto ids = getIds(myPencilId);     
 
       // Find paths that members of this pencil may have in other pencils (can happen)
       // so that we don't add duplicates.
       std::vector<int> existingSteps;
-      for (int theirPencilId = 0; theirPencilId < N; ++theirPencilId) {
+      for (uint theirPencilId = 0; theirPencilId < N; ++theirPencilId) {
          if(theirPencilId == myPencilId) continue;
          auto theirIds = getIds(theirPencilId);
          for (auto theirId : theirIds) {
@@ -126,6 +122,8 @@ struct setOfPencils {
 
       bool firstPencil = true;
       const auto copy_of_path = path.at(myPencilId);
+      const auto copy_of_x = x.at(myPencilId);
+      const auto copy_of_y = y.at(myPencilId);
 
       // Add those pencils whose steps dont already exist in the pencils struct
       for (int step = 0; step < 4; ++step) {
@@ -133,14 +131,30 @@ struct setOfPencils {
             continue;
          }
 
+         Realv signX = 1.0;
+         Realv signY = 1.0;
+         
+         if(step < 2) {
+            signY = -1.0;
+         }
+
+         if(step % 2 == 0) {
+            signX = -1.0;
+         }
+         
+         auto myX = copy_of_x + signX * 0.25 * dx;
+         auto myY = copy_of_y + signY * 0.25 * dy;
+
          if(firstPencil) {
             //TODO: set x and y correctly. Right now they are not used anywhere.
             path.at(myPencilId).push_back(step);
+            x.at(myPencilId) = myX;
+            y.at(myPencilId) = myY;
             firstPencil = false;
          } else {
             auto myPath = copy_of_path;
             myPath.push_back(step);
-            addPencil(ids, x.at(myPencilId) + 0.25 * dx, y.at(myPencilId) + 0.25 * dy, periodic.at(myPencilId), myPath);
+            addPencil(ids, myX, myY, periodic.at(myPencilId), myPath);
          }
       }
    }
