@@ -1327,23 +1327,25 @@ void update_remote_mapping_contribution(
    if(direction > 0) direction = 1;
    if(direction < 0) direction = -1;
 
-   
    for (auto c : remote_cells) {
+
       SpatialCell *ccell = mpiGrid[c];
+
       // Initialize number of blocks to 0 and block data to a default value
       // We need the default for 1 to 1 communications
-      for (uint i = 0; i < MAX_FACE_NEIGHBORS_PER_DIM; ++i) {
-         //ccell->neighbor_block_data[i] = ccell->get_data(popID);
-         //ccell->neighbor_number_of_blocks[i] = 0;
-
-
-         ccell->neighbor_number_of_blocks[i] = ccell->get_number_of_velocity_blocks(popID);
-         ccell->neighbor_block_data[i] =
+      if(ccell) {
+	for (uint i = 0; i < MAX_FACE_NEIGHBORS_PER_DIM; ++i) {
+	  //ccell->neighbor_block_data[i] = ccell->get_data(popID);
+	  //ccell->neighbor_number_of_blocks[i] = 0;
+	  
+	  ccell->neighbor_number_of_blocks[i] = ccell->get_number_of_velocity_blocks(popID);
+	  ccell->neighbor_block_data[i] =
             (Realf*) aligned_malloc(ccell->neighbor_number_of_blocks[i] * WID3 * sizeof(Realf), 64);
-         for (uint j = 0; j < ccell->neighbor_number_of_blocks[i] * WID3; ++j) {
+	  for (uint j = 0; j < ccell->neighbor_number_of_blocks[i] * WID3; ++j) {
             ccell->neighbor_block_data[i][j] = 0.0;
-         }
-      }
+	  }
+	}
+      } 
    }
 
    set<CellID> allNeighbors;
