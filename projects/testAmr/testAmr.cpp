@@ -299,6 +299,17 @@ namespace projects {
                   
       mpiGrid.balance_load();
 
+//       auto cells = mpiGrid.get_cells();           
+//       if(cells.empty()) {
+//          std::cout << "Rank " << myRank << " has no cells!" << std::endl;
+//       } else {
+//          std::cout << "Cells on rank " << myRank << ": ";
+//          for (auto c : cells) {
+//             std::cout << c << " ";
+//          }
+//          std::cout << std::endl;
+//       }
+
       return true;
    }
    
