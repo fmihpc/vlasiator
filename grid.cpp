@@ -656,17 +656,28 @@ void updateRemoteVelocityBlockLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
    const std::vector<uint64_t> incoming_cells
       = mpiGrid.get_remote_cells_on_process_boundary(DIST_FUNC_NEIGHBORHOOD_ID);
    #pragma omp parallel for
+
    for (unsigned int i=0; i<incoming_cells.size(); ++i) {
-      uint64_t cell_id = incoming_cells[i];
-      SpatialCell* cell = mpiGrid[cell_id];
-      if (cell == NULL) {
-         cerr << __FILE__ << ":" << __LINE__
-              << " No data for spatial cell " << cell_id
-              << endl;
-         abort();
-      }      
-      cell->prepare_to_receive_blocks(popID);
-   }
+     uint64_t cell_id = incoming_cells[i];
+     SpatialCell* cell = mpiGrid[cell_id];
+     if (cell == NULL) {
+       for (const auto& cell: mpiGrid.local_cells) {
+	 if (cell.id == cell_id) {
+	   cerr << __FILE__ << ":" << __LINE__ << std::endl;
+	   abort();
+	 }
+	 for (const auto& neighbor: cell.neighbors_of) {
+	   if (neighbor.id == cell_id) {
+	     cerr << __FILE__ << ":" << __LINE__ << std::endl;
+	     abort();
+	   }
+	 }
+       }
+       continue;
+     }
+     cell->prepare_to_receive_blocks(popID);
+   } 
+
    phiprof::stop("Preparing receives", incoming_cells.size(), "SpatialCells");
 }
 
