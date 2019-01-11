@@ -250,4 +250,67 @@ namespace projects {
       
       return this->getV0(x,y,z,dx,dy,dz,popID);
    }
+
+   bool test_fp::refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
+ 
+     int myRank;       
+     MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+
+     // mpiGrid.set_maximum_refinement_level(std::min(this->maxSpatialRefinementLevel, mpiGrid.mapping.get_maximum_refinement_level()));
+
+      // cout << "I am at line " << __LINE__ << " of " << __FILE__ <<  endl;
+     if(myRank == MASTER_RANK) std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
+      
+      std::array<double,3> xyz_mid;
+      xyz_mid[0] = (P::xmax + P::xmin) / 2.0;
+      xyz_mid[1] = (P::ymax + P::ymin) / 2.0;
+      xyz_mid[2] = (P::zmax + P::zmin) / 2.0;
+
+      std::vector<bool> refineSuccess;
+
+      int boxHalfWidth = 1;
+      
+      for (double x = xyz_mid[0] - boxHalfWidth * P::dx_ini; x <= xyz_mid[0] + boxHalfWidth * P::dx_ini; x += P::dx_ini) {
+         for (double y = xyz_mid[1] - boxHalfWidth * P::dy_ini; y <= xyz_mid[1] + boxHalfWidth * P::dy_ini; y += P::dy_ini) {
+            for (double z = xyz_mid[2] - boxHalfWidth * P::dz_ini; z <= xyz_mid[2] + boxHalfWidth * P::dz_ini; z += P::dz_ini) {
+               auto xyz = xyz_mid;
+               xyz[0] = x;
+               xyz[1] = y;
+               xyz[2] = z;
+               std::cout << "Trying to refine at " << xyz[0] << ", " << xyz[1] << ", " << xyz[2] << std::endl;
+               CellID myCell = mpiGrid.get_existing_cell(xyz);
+               if (mpiGrid.is_local(myCell)) {
+                  std::cout << "Rank " << myRank << " is refining cell " << myCell << std::endl;
+               }
+               //refineSuccess.push_back(mpiGrid.refine_completely(myCell));
+               refineSuccess.push_back(mpiGrid.refine_completely_at(xyz));
+            }
+         }
+      }
+      std::vector<CellID> refinedCells = mpiGrid.stop_refining(true);      
+      if(myRank == MASTER_RANK) std::cout << "Finished first level of refinement" << endl;
+      if(refinedCells.size() > 0) {
+	std::cout << "Refined cells produced by rank " << myRank << " are: ";
+	for (auto cellid : refinedCells) {
+	  std::cout << cellid << " ";
+	}
+	std::cout << endl;
+      }
+                  
+      mpiGrid.balance_load();
+
+//       auto cells = mpiGrid.get_cells();           
+//       if(cells.empty()) {
+//          std::cout << "Rank " << myRank << " has no cells!" << std::endl;
+//       } else {
+//          std::cout << "Cells on rank " << myRank << ": ";
+//          for (auto c : cells) {
+//             std::cout << c << " ";
+//          }
+//          std::cout << std::endl;
+//       }
+
+      return true;
+   }
+
 }// namespace projects
