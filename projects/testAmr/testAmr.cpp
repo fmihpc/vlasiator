@@ -265,9 +265,9 @@ namespace projects {
      if(myRank == MASTER_RANK) std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
       
       std::array<double,3> xyz_mid;
-      xyz_mid[0] = (P::xmax - P::xmin) / 2.0;
-      xyz_mid[1] = (P::ymax - P::ymin) / 2.0;
-      xyz_mid[2] = (P::zmax - P::zmin) / 2.0;
+      xyz_mid[0] = (P::xmax + P::xmin) / 2.0;
+      xyz_mid[1] = (P::ymax + P::ymin) / 2.0;
+      xyz_mid[2] = (P::zmax + P::zmin) / 2.0;
 
       std::vector<bool> refineSuccess;
 
