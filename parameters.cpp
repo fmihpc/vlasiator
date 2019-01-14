@@ -224,6 +224,7 @@ bool Parameters::addParameters(){
    Readparameters::add("AMR.max_velocity_level","Maximum velocity mesh refinement level",(uint)0);
    Readparameters::add("AMR.refine_limit","If the refinement criterion function returns a larger value than this, block is refined",(Realf)1.0);
    Readparameters::add("AMR.coarsen_limit","If the refinement criterion function returns a smaller value than this, block can be coarsened",(Realf)0.5);
+   Readparameters::add("AMR.max_spatial_level","Maximum spatial mesh refinement level",(uint)1);
    return true;
 }
 
@@ -377,6 +378,7 @@ bool Parameters::getParameters(){
       P::zmax = 1;
    }
    Readparameters::get("AMR.max_velocity_level",P::amrMaxVelocityRefLevel);
+   Readparameters::get("AMR.max_spatial_level",P::amrMaxSpatialRefLevel);
    Readparameters::get("AMR.vel_refinement_criterion",P::amrVelRefCriterion);
    Readparameters::get("AMR.refine_limit",P::amrRefineLimit);
    Readparameters::get("AMR.coarsen_limit",P::amrCoarsenLimit);
