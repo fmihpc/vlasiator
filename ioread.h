@@ -25,10 +25,11 @@
 #include <dccrg.hpp>
 #include <dccrg_cartesian_geometry.hpp>
 #include <string>
+#include <vector>
 
 #include "spatial_cell.hpp"
 #include "datareduction/datareducer.h"
-
+#include "vlsv_reader_parallel.h"
 
 /*!
 
@@ -39,6 +40,16 @@
 bool readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
               const std::string& name);
 
+/*!
+ \brief Read cell ID's
+ Read in cell ID's from file. Note: Uses the newer version of vlsv parallel reader
+ \param file Some vlsv reader with a file open
+ \param fileCells Vector in whic to store the cell ids
+ \param masterRank The simulation's master rank id (Vlasiator uses 0, which should be the default)
+ \param comm MPI comm (MPI_COMM_WORLD should be the default)
+*/     
+bool readCellIds(vlsv::ParallelReader& file, 
+                 std::vector<CellID>& fileCells, const int masterRank,MPI_Comm comm);          
 
 /*!
  * \brief Check in local directory for external commands passed to the simulation. Only executed by MASTER_RANK

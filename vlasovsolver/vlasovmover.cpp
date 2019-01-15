@@ -46,6 +46,8 @@
 using namespace std;
 using namespace spatial_cell;
 
+extern Logger logFile, diagnostic;
+
 creal ZERO    = 0.0;
 creal HALF    = 0.5;
 creal FOURTH  = 1.0/4.0;
@@ -300,6 +302,8 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
                           ) {    
    typedef Parameters P;
    const vector<CellID>& cells = getLocalCells();
+   int myRank;
+   MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
    if (dt == 0.0 && P::tstep > 0) {
       // Even if acceleration is turned off we need to adjust velocity blocks 
@@ -311,7 +315,6 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    }
    phiprof::start("semilag-acc");
     
-   
    // Accelerate all particle species
     for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
        if (getObjectWrapper().particleSpecies[popID].propagateSpecies == true) {
@@ -346,6 +349,12 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
            }       
            // Compute global maximum for number of subcycles
            MPI_Allreduce(&maxSubcycles, &globalMaxSubcycles, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+           if (myRank == MASTER_RANK) {
+               if (globalMaxSubcycles > 10000) {
+                   logFile << "(MAIN) ERROR: Variable 'globalMaxSubcycles' above critical value! Aborting!" << endl;
+                   exit(1);
+               }
+           }
 
            // substep global max times
            for(uint step=0; step<(uint)globalMaxSubcycles; ++step) {
