@@ -119,43 +119,53 @@ namespace projects {
       cellParams[CellParams::PERBZ   ] = 0.0;
       
       typedef Parameters P;
-      creal dx = cellParams[CellParams::DX];
-      creal x = cellParams[CellParams::XCRD] + 0.5 * dx;
+      creal dx = P::dx_ini * 3.5;
+      creal dy = P::dy_ini * 3.5;
+      creal dz = P::dz_ini * 3.5;
+      creal x = cellParams[CellParams::XCRD] + 0.5 * cellParams[CellParams::DX];
       creal y = cellParams[CellParams::YCRD] + 0.5 * cellParams[CellParams::DY];
       creal z = cellParams[CellParams::ZCRD] + 0.5 * cellParams[CellParams::DZ];
-      
+
+      Real areaFactor = 1.0;
+         
       switch (this->CASE) {
-      case BXCASE:
-         cellParams[CellParams::PERBX] = 0.1 * this->B0;
-         if (y >= -3.5 * dx && y <= 3.5 * dx)
-           if (z >= -3.5 * dx && z <= 3.5 * dx)
-             cellParams[CellParams::PERBX] = this->B0;
+      case BXCASE:         
+         cellParams[CellParams::PERBX] = 0.1 * this->B0 * areaFactor;
+         //areaFactor = (CellParams::DY * CellParams::DZ) / (dy * dz);
+         if (y >= -dy && y <= dy)
+            if (z >= -dz && z <= dz)
+               cellParams[CellParams::PERBX] = this->B0 * areaFactor;
          break;
       case BYCASE:
-         cellParams[CellParams::PERBY] = 0.1 * this->B0;
-         if (x >= -3.5 * dx && x <= 3.5 * dx)
-           if (z >= -3.5 * dx && z <= 3.5 * dx)
-             cellParams[CellParams::PERBY] = this->B0;
+         cellParams[CellParams::PERBY] = 0.1 * this->B0 * areaFactor;
+         //areaFactor = (CellParams::DX * CellParams::DZ) / (dx * dz);
+         if (x >= -dx && x <= dx)
+            if (z >= -dz && z <= dz)
+               cellParams[CellParams::PERBY] = this->B0 * areaFactor;
          break;
       case BZCASE:
-         cellParams[CellParams::PERBZ] = 0.1 * this->B0;
-         if (x >= -3.5 * dx && x <= 3.5 * dx)
-           if (y >= -3.5 * dx && y <= 3.5 * dx)
-             cellParams[CellParams::PERBZ] = this->B0;
+         cellParams[CellParams::PERBZ] = 0.1 * this->B0 * areaFactor;
+         //areaFactor = (CellParams::DX * CellParams::DY) / (dx * dy);
+         if (x >= -dx && x <= dx)
+            if (y >= -dy && y <= dy)
+               cellParams[CellParams::PERBZ] = this->B0 * areaFactor;
          break;
-       case BALLCASE:
-         cellParams[CellParams::PERBX] = 0.1 * this->B0;
-         cellParams[CellParams::PERBY] = 0.1 * this->B0;
-         cellParams[CellParams::PERBZ] = 0.1 * this->B0;
-         if (y >= -3.5 * dx && y <= 3.5 * dx)
-           if (z >= -3.5 * dx && z <= 3.5 * dx)
-             cellParams[CellParams::PERBX] = this->B0;
-         if (x >= -3.5 * dx && x <= 3.5 * dx)
-           if (z >= -3.5 * dx && z <= 3.5 * dx)
-             cellParams[CellParams::PERBY] = this->B0;
-         if (x >= -3.5 * dx && x <= 3.5 * dx)
-           if (y >= -3.5 * dx && y <= 3.5 * dx)
-             cellParams[CellParams::PERBZ] = this->B0;
+      case BALLCASE:
+         cellParams[CellParams::PERBX] = 0.1 * this->B0 * areaFactor;
+         cellParams[CellParams::PERBY] = 0.1 * this->B0 * areaFactor;
+         cellParams[CellParams::PERBZ] = 0.1 * this->B0 * areaFactor;
+
+         //areaFactor = (CellParams::DX * CellParams::DY) / (dx * dy);
+         
+         if (y >= -dy && y <= dy)
+            if (z >= -dz && z <= dz)
+               cellParams[CellParams::PERBX] = this->B0 * areaFactor;
+         if (x >= -dx && x <= dx)
+            if (z >= -dz && z <= dz)
+               cellParams[CellParams::PERBY] = this->B0 * areaFactor;
+         if (x >= -dx && x <= dx)
+            if (y >= -dy && y <= dy)
+               cellParams[CellParams::PERBZ] = this->B0 * areaFactor;
          break;
       }
    }
@@ -277,13 +287,10 @@ namespace projects {
                xyz[0] = x;
                xyz[1] = y;
                xyz[2] = z;
-               std::cout << "Trying to refine at " << xyz[0] << ", " << xyz[1] << ", " << xyz[2] << std::endl;
                CellID myCell = mpiGrid.get_existing_cell(xyz);
-               if (mpiGrid.is_local(myCell)) {
+               if (mpiGrid.refine_completely_at(xyz)) {
                   std::cout << "Rank " << myRank << " is refining cell " << myCell << std::endl;
                }
-               //refineSuccess.push_back(mpiGrid.refine_completely(myCell));
-               refineSuccess.push_back(mpiGrid.refine_completely_at(xyz));
             }
          }
       }
