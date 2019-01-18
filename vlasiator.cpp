@@ -440,37 +440,20 @@ int main(int argn,char* args[]) {
    phiprof::stop("Init fieldsolver grids");
    phiprof::start("Initial fsgrid coupling");
    const std::vector<CellID>& cells = getLocalCells();
-
-   // for (auto cell: cells) {
-   //    creal dx = mpiGrid[cell]->parameters[CellParams::DX];
-   //    creal dy = mpiGrid[cell]->parameters[CellParams::DY];
-   //    creal dz = mpiGrid[cell]->parameters[CellParams::DZ];
-
-   //    std::cout << "cell " << cell << " dx,dy,dz = " << dx << ", " << dy << ", " << dz << std::endl;
-   // }
-
-   // cout << "Local cells are: ";
-   // for(auto id : cells) cout << id << " ";
-   // cout << endl;
    
-   // Couple FSGrids to mpiGrid
-   // TODO: Do we really need to couple *all* of these fields?
-
-   bool debugFsgrid = false;
-   
-   perBGrid.      setupForGridCoupling(debugFsgrid);   
-   perBDt2Grid.   setupForGridCoupling(debugFsgrid);      
-   EGrid.         setupForGridCoupling(debugFsgrid);
-   EDt2Grid.      setupForGridCoupling(debugFsgrid);
-   EHallGrid.     setupForGridCoupling(debugFsgrid);
-   EGradPeGrid.   setupForGridCoupling(debugFsgrid);
-   momentsGrid.   setupForGridCoupling(debugFsgrid);
-   momentsDt2Grid.setupForGridCoupling(debugFsgrid);
-   dPerBGrid.     setupForGridCoupling(debugFsgrid);
-   dMomentsGrid.  setupForGridCoupling(debugFsgrid);
-   BgBGrid.       setupForGridCoupling(debugFsgrid);
-   volGrid.       setupForGridCoupling(debugFsgrid);
-   technicalGrid. setupForGridCoupling(debugFsgrid);
+   perBGrid.      setupForGridCoupling();   
+   perBDt2Grid.   setupForGridCoupling();      
+   EGrid.         setupForGridCoupling();
+   EDt2Grid.      setupForGridCoupling();
+   EHallGrid.     setupForGridCoupling();
+   EGradPeGrid.   setupForGridCoupling();
+   momentsGrid.   setupForGridCoupling();
+   momentsDt2Grid.setupForGridCoupling();
+   dPerBGrid.     setupForGridCoupling();
+   dMomentsGrid.  setupForGridCoupling();
+   BgBGrid.       setupForGridCoupling();
+   volGrid.       setupForGridCoupling();
+   technicalGrid. setupForGridCoupling();
    
    // Each dccrg cell may have to communicate with multiple fsgrid cells, if they are on a lower refinement level.
    // Calculate the corresponding fsgrid ids for each dccrg cell and set coupling for each fsgrid id.
@@ -478,22 +461,20 @@ int main(int argn,char* args[]) {
       const auto fsgridIds = mapDccrgIdToFsGridGlobalID(mpiGrid, dccrgId);
 
       for (auto fsgridId : fsgridIds) {
-
-         debugFsgrid = false;
          
-         perBGrid.      setGridCoupling(fsgridId, myRank, debugFsgrid);         
-         perBDt2Grid.   setGridCoupling(fsgridId, myRank, debugFsgrid);         
-         EGrid.         setGridCoupling(fsgridId, myRank, debugFsgrid);
-         EDt2Grid.      setGridCoupling(fsgridId, myRank, debugFsgrid);
-         EHallGrid.     setGridCoupling(fsgridId, myRank, debugFsgrid);
-         EGradPeGrid.   setGridCoupling(fsgridId, myRank, debugFsgrid);
-         momentsGrid.   setGridCoupling(fsgridId, myRank, debugFsgrid);
-         momentsDt2Grid.setGridCoupling(fsgridId, myRank, debugFsgrid);
-         dPerBGrid.     setGridCoupling(fsgridId, myRank, debugFsgrid);
-         dMomentsGrid.  setGridCoupling(fsgridId, myRank, debugFsgrid);
-         BgBGrid.       setGridCoupling(fsgridId, myRank, debugFsgrid);
-         volGrid.       setGridCoupling(fsgridId, myRank, debugFsgrid);
-         technicalGrid. setGridCoupling(fsgridId, myRank, debugFsgrid);
+         perBGrid.      setGridCoupling(fsgridId, myRank);         
+         perBDt2Grid.   setGridCoupling(fsgridId, myRank);         
+         EGrid.         setGridCoupling(fsgridId, myRank);
+         EDt2Grid.      setGridCoupling(fsgridId, myRank);
+         EHallGrid.     setGridCoupling(fsgridId, myRank);
+         EGradPeGrid.   setGridCoupling(fsgridId, myRank);
+         momentsGrid.   setGridCoupling(fsgridId, myRank);
+         momentsDt2Grid.setGridCoupling(fsgridId, myRank);
+         dPerBGrid.     setGridCoupling(fsgridId, myRank);
+         dMomentsGrid.  setGridCoupling(fsgridId, myRank);
+         BgBGrid.       setGridCoupling(fsgridId, myRank);
+         volGrid.       setGridCoupling(fsgridId, myRank);
+         technicalGrid. setGridCoupling(fsgridId, myRank);
       }
    }
    
@@ -985,54 +966,46 @@ int main(int argn,char* args[]) {
          
          const vector<CellID>& cells = getLocalCells();
 
-         cout << "Reloadbalance: Local cells are: ";
-         for(auto id : cells) cout << id << " ";
-         cout << endl;
-
-         debugFsgrid = false;
+//          cout << "Reloadbalance: Local cells are: ";
+//          for(auto id : cells) cout << id << " ";
+//          cout << endl;
          
-         perBGrid.      setupForGridCoupling(debugFsgrid);
-         perBDt2Grid.   setupForGridCoupling(debugFsgrid);        
-         EGrid.         setupForGridCoupling(debugFsgrid);
-         EDt2Grid.      setupForGridCoupling(debugFsgrid);
-         EHallGrid.     setupForGridCoupling(debugFsgrid);
-         EGradPeGrid.   setupForGridCoupling(debugFsgrid);
-         momentsGrid.   setupForGridCoupling(debugFsgrid);
-         momentsDt2Grid.setupForGridCoupling(debugFsgrid);
-         dPerBGrid.     setupForGridCoupling(debugFsgrid);
-         dMomentsGrid.  setupForGridCoupling(debugFsgrid);
-         BgBGrid.       setupForGridCoupling(debugFsgrid);
-         volGrid.       setupForGridCoupling(debugFsgrid);
-         technicalGrid. setupForGridCoupling(debugFsgrid);
+         perBGrid.      setupForGridCoupling();
+         perBDt2Grid.   setupForGridCoupling();        
+         EGrid.         setupForGridCoupling();
+         EDt2Grid.      setupForGridCoupling();
+         EHallGrid.     setupForGridCoupling();
+         EGradPeGrid.   setupForGridCoupling();
+         momentsGrid.   setupForGridCoupling();
+         momentsDt2Grid.setupForGridCoupling();
+         dPerBGrid.     setupForGridCoupling();
+         dMomentsGrid.  setupForGridCoupling();
+         BgBGrid.       setupForGridCoupling();
+         volGrid.       setupForGridCoupling();
+         technicalGrid. setupForGridCoupling();
 
          if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ <<  endl;
          
          // Each dccrg cell may have to communicate with multiple fsgrid cells, if they are on a lower refinement level.
          // Calculate the corresponding fsgrid ids for each dccrg cell and set coupling for each fsgrid id.
-         // cout << "send tags are: " << endl;
          for(auto& dccrgId : cells) {
             const auto fsgridIds = mapDccrgIdToFsGridGlobalID(mpiGrid, dccrgId);
-            //cout << "Fsgrid ids for cell " << dccrgId << " are: ";
             for (auto& fsgridId : fsgridIds) {
-               //cout << fsgridId << " ";
-
-               debugFsgrid = false;
                
-               perBGrid.      setGridCoupling(fsgridId, myRank, debugFsgrid);
-               perBDt2Grid.   setGridCoupling(fsgridId, myRank, debugFsgrid);               
-               EGrid.         setGridCoupling(fsgridId, myRank, debugFsgrid);
-               EDt2Grid.      setGridCoupling(fsgridId, myRank, debugFsgrid);
-               EHallGrid.     setGridCoupling(fsgridId, myRank, debugFsgrid);
-               EGradPeGrid.   setGridCoupling(fsgridId, myRank, debugFsgrid);
-               momentsGrid.   setGridCoupling(fsgridId, myRank, debugFsgrid);
-               momentsDt2Grid.setGridCoupling(fsgridId, myRank, debugFsgrid);
-               dPerBGrid.     setGridCoupling(fsgridId, myRank, debugFsgrid);
-               dMomentsGrid.  setGridCoupling(fsgridId, myRank, debugFsgrid);
-               BgBGrid.       setGridCoupling(fsgridId, myRank, debugFsgrid);               
-               volGrid.       setGridCoupling(fsgridId, myRank, debugFsgrid);
-               technicalGrid. setGridCoupling(fsgridId, myRank, debugFsgrid);
+               perBGrid.      setGridCoupling(fsgridId, myRank);
+               perBDt2Grid.   setGridCoupling(fsgridId, myRank);               
+               EGrid.         setGridCoupling(fsgridId, myRank);
+               EDt2Grid.      setGridCoupling(fsgridId, myRank);
+               EHallGrid.     setGridCoupling(fsgridId, myRank);
+               EGradPeGrid.   setGridCoupling(fsgridId, myRank);
+               momentsGrid.   setGridCoupling(fsgridId, myRank);
+               momentsDt2Grid.setGridCoupling(fsgridId, myRank);
+               dPerBGrid.     setGridCoupling(fsgridId, myRank);
+               dMomentsGrid.  setGridCoupling(fsgridId, myRank);
+               BgBGrid.       setGridCoupling(fsgridId, myRank);               
+               volGrid.       setGridCoupling(fsgridId, myRank);
+               technicalGrid. setGridCoupling(fsgridId, myRank);
             }
-            //cout << endl;
          }
          cout << endl;
          if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ <<  endl;
