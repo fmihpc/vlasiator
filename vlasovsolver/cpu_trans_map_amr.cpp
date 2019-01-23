@@ -204,7 +204,7 @@ void computeSpatialTargetCellsForPencils(const dccrg::Dccrg<SpatialCell,dccrg::C
       }
 
       if (frontNeighborIds.size() == 0) {
-	throw;
+         abort();
       }
       
       vector <CellID> backNeighborIds;
@@ -215,7 +215,7 @@ void computeSpatialTargetCellsForPencils(const dccrg::Dccrg<SpatialCell,dccrg::C
       }
 
       if (backNeighborIds.size() == 0) {
-	throw;
+         abort();
       }
 
       int refLvl = mpiGrid.get_refinement_level(ids.front());
@@ -257,18 +257,18 @@ CellID selectNeighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> 
       }
    }
 
+   if( myNeighbors.size() == 0 ) {
+      return neighbor;
+   }
+   
    int neighborIndex = 0;
    if (myNeighbors.size() > 1) {
       neighborIndex = path;
    }
+   
    if (grid.is_local(myNeighbors[neighborIndex])) {
       neighbor = myNeighbors[neighborIndex];
    }
-   
-
-   // std::cout << "selectNeighbor: id = " << id << " path = " << path << " neighbors = ";
-   // for (auto nbr : myNeighbors) std::cout << nbr << " ";
-   // std::cout << ", returning " << neighbor << std::endl;
    
    return neighbor;
 }
@@ -477,24 +477,19 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
       }// Closes if (refLvl == 0)
 
       // If we found a neighbor, add it to the list of ids for this pencil.
-      // TODO: FIX this logical mess
       if(nextNeighbor != INVALID_CELLID) {
          if (debug) {
             std::cout << " Next neighbor is " << nextNeighbor << "." << std::endl;
          }
 
-         if ( std::any_of(endIds.begin(), endIds.end(), [nextNeighbor](uint i){return i == nextNeighbor;}) ) {
+         if ( std::any_of(endIds.begin(), endIds.end(), [nextNeighbor](uint i){return i == nextNeighbor;}) ||
+              grid[nextNeighbor]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
+              ( grid[nextNeighbor]->sysBoundaryLayer == 2 &&
+                grid[nextNeighbor]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY ) )  {
             nextNeighbor = INVALID_CELLID;
          } else {
             ids.push_back(nextNeighbor);
          }
-         // Check for id in seedIds list
-         // for (auto endId : endIds) {
-         //    if (nextNeighbor == id) {
-         //       nextNeighbor = INVALID_CELLID;
-         //    }
-         // }                                  
-
       }
       
       id = nextNeighbor;
@@ -661,7 +656,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
 
       auto myIndices = mpiGrid.mapping.get_indices(celli);
       
-      bool remoteNeighborExists = false;
+      bool addToSeedIds = false;
       // Returns all neighbors as (id, direction-dimension) pair pointers.
       for ( const auto nbrPair : *(mpiGrid.get_neighbors_of(celli, neighborhood)) ) {
          
@@ -675,15 +670,18 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
             // cell as a seed for pencils
             if ( abs ( myIndices[dimension] - nbrIndices[dimension] ) >
                  pow(2,mpiGrid.get_maximum_refinement_level()) ||
-                 !mpiGrid.is_local(nbrPair.first)) {
+                 !mpiGrid.is_local(nbrPair.first) ||
+                 mpiGrid[nbrPair.first]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
+                 ( mpiGrid[nbrPair.first]->sysBoundaryLayer == 2 &&
+                   mpiGrid[nbrPair.first]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY ) )  {
 
-               remoteNeighborExists = true;
+               addToSeedIds = true;
                
             }
          }
       }
 
-      if (remoteNeighborExists) {
+      if (addToSeedIds) {
          seedIds.push_back(celli);
       }
 
@@ -878,7 +876,6 @@ void check_ghost_cells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
 
 bool checkPencils(const std::vector<CellID> &cells, const setOfPencils& pencils) {
 
-
    bool correct = true;
 
    for (auto id : cells) {
@@ -887,7 +884,7 @@ bool checkPencils(const std::vector<CellID> &cells, const setOfPencils& pencils)
 
       if( myCount == 0 || (myCount != 1 && myCount % 4 != 0)) {        
 
-         std::cerr << "ERROR: Cell ID " << id << " Appears in pencils " << myCount << " times!";            
+         std::cerr << "ERROR: Cell ID " << id << " Appears in pencils " << myCount << " times!"<< std::endl;            
          correct = false;
       }
       
@@ -1036,7 +1033,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    if(printPencils) printPencilsFunc(pencils,dimension,myRank);
 
    if(!checkPencils(localPropagatedCells, pencils)) {
-      throw;
+      abort();
    }
    
    // // Remove duplicates
