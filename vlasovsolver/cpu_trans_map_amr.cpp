@@ -650,7 +650,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
                 const uint dimension,
                 vector<CellID> &seedIds) {
 
-   const bool debug = false;
+   const bool debug = true;
    int myRank;
    if (debug) MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    
@@ -671,8 +671,8 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
             // the distance in indices between this cell and its neighbor.
             auto nbrIndices = mpiGrid.mapping.get_indices(nbrPair.first);
 
-            // If a neighbor is non-local or across a periodic boundary, then we use this
-            // cell as a seed for pencils
+            // If a neighbor is non-local, across a periodic boundary, or in non-periodic boundary layer 1
+            // then we use this cell as a seed for pencils
             if ( abs ( myIndices[dimension] - nbrIndices[dimension] ) >
                  pow(2,mpiGrid.get_maximum_refinement_level()) ||
                  !mpiGrid.is_local(nbrPair.first) ||
@@ -691,7 +691,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
          }
       }
 
-      if (addToSeedIds) {
+      if ( addToSeedIds && mpiGrid[celli]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ) {
          seedIds.push_back(celli);
       }
 
@@ -950,7 +950,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                       const Realv dt,
                       const uint popID) {
 
-   const bool printPencils = false;
+   const bool printPencils = true;
    const bool printTargets = false;
    Realv dvz,vz_min;  
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
