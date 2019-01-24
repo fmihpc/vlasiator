@@ -483,9 +483,12 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
          }
 
          if ( std::any_of(endIds.begin(), endIds.end(), [nextNeighbor](uint i){return i == nextNeighbor;}) ||
-              grid[nextNeighbor]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
-              ( grid[nextNeighbor]->sysBoundaryLayer == 2 &&
-                grid[nextNeighbor]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY ) )  {
+              grid[nextNeighbor]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY )  {
+              //!do_translate_cell(grid[nextNeighbor])) {
+              // grid[nextNeighbor]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
+              // ( grid[nextNeighbor]->sysBoundaryLayer == 2 &&
+              //   grid[nextNeighbor]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY ) )  {
+            
             nextNeighbor = INVALID_CELLID;
          } else {
             ids.push_back(nextNeighbor);
@@ -536,7 +539,8 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
 }
 
 //void propagatePencil(Vec dr[], Vec values, Vec z_translation, uint blocks_per_dim ) {
-void propagatePencil(Vec* dz, Vec* values, const uint dimension, const uint blockGID, const Realv dt,
+void propagatePencil(Vec* dz, Vec* values, const uint dimension,
+                     const uint blockGID, const Realv dt,
                      const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID> &vmesh, const uint lengthOfPencil) {
 
    // Get velocity data from vmesh that we need later to calculate the translation
@@ -559,9 +563,10 @@ void propagatePencil(Vec* dz, Vec* values, const uint dimension, const uint bloc
       targetValues[i] = Vec(0.0);
       
    }
+   
    // Go from 0 to length here to propagate all the cells in the pencil
-   for (uint i = 0; i < lengthOfPencil; i++){
-
+   for (uint i = 0; i < lengthOfPencil; i++){      
+      
       // The source array is padded by VLASOV_STENCIL_WIDTH on both sides.
       uint i_source   = i + VLASOV_STENCIL_WIDTH;
       
@@ -645,7 +650,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
                 const uint dimension,
                 vector<CellID> &seedIds) {
 
-   const bool debug = false;
+   const bool debug = true;
    int myRank;
    if (debug) MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    
@@ -671,9 +676,14 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
             if ( abs ( myIndices[dimension] - nbrIndices[dimension] ) >
                  pow(2,mpiGrid.get_maximum_refinement_level()) ||
                  !mpiGrid.is_local(nbrPair.first) ||
-                 mpiGrid[nbrPair.first]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
-                 ( mpiGrid[nbrPair.first]->sysBoundaryLayer == 2 &&
-                   mpiGrid[nbrPair.first]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY ) )  {
+                 ( mpiGrid[nbrPair.first]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY &&
+                   mpiGrid[nbrPair.first]->sysBoundaryLayer == 1 ) )  {
+
+                 // !do_translate_cell(mpiGrid[nbrPair.first])) {
+
+                 // mpiGrid[nbrPair.first]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
+                 // ( mpiGrid[nbrPair.first]->sysBoundaryLayer == 2 &&
+                 //   mpiGrid[nbrPair.first]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY ) )  {
 
                addToSeedIds = true;
                
@@ -874,18 +884,23 @@ void check_ghost_cells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
    }
 }
 
-bool checkPencils(const std::vector<CellID> &cells, const setOfPencils& pencils) {
+bool checkPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                  const std::vector<CellID> &cells, const setOfPencils& pencils) {
 
    bool correct = true;
 
    for (auto id : cells) {
 
-      int myCount = std::count(pencils.ids.begin(), pencils.ids.end(), id);
+      if (mpiGrid[id]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY )  {
+      
+         int myCount = std::count(pencils.ids.begin(), pencils.ids.end(), id);
+         
+         if( myCount == 0 || (myCount != 1 && myCount % 4 != 0)) {        
+            
+            std::cerr << "ERROR: Cell ID " << id << " Appears in pencils " << myCount << " times!"<< std::endl;            
+            correct = false;
+         }
 
-      if( myCount == 0 || (myCount != 1 && myCount % 4 != 0)) {        
-
-         std::cerr << "ERROR: Cell ID " << id << " Appears in pencils " << myCount << " times!"<< std::endl;            
-         correct = false;
       }
       
    }
@@ -935,7 +950,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                       const Realv dt,
                       const uint popID) {
 
-   const bool printPencils = false;
+   const bool printPencils = true;
    const bool printTargets = false;
    Realv dvz,vz_min;  
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
@@ -1032,7 +1047,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
 
    if(printPencils) printPencilsFunc(pencils,dimension,myRank);
 
-   if(!checkPencils(localPropagatedCells, pencils)) {
+   if(!checkPencils(mpiGrid, localPropagatedCells, pencils)) {
       abort();
    }
    
@@ -1108,7 +1123,8 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
             // Compute spatial neighbors for target cells.
             // For targets we need the local cells, plus a padding of 1 cell at both ends
             std::vector<SpatialCell*> targetCells(pencils.sumOfLengths + pencils.N * 2 );
-
+            //std::vector<bool> targetsValid(pencils.sumOfLengths + 2 * pencils.N) = false;
+            
             computeSpatialTargetCellsForPencils(mpiGrid, pencils, dimension, targetCells.data());           
 
             // Loop over pencils
@@ -1124,13 +1140,6 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                std::vector<SpatialCell*> sourceCells(sourceLength);
 
                computeSpatialSourceCellsForPencil(mpiGrid, pencils, pencili, dimension, sourceCells.data());
-
-               // std::cout << "Source cells for pencil " << pencili << ", rank " << myRank << ": ";
-               // for (auto cell : sourceCells) {
-               //    std::cout << cell->parameters[CellParams::CELLID] << " ";
-               // }
-               // std::cout << std::endl;
-
 
                // dz is the cell size in the direction of the pencil
                Vec dz[sourceCells.size()];
@@ -1251,18 +1260,16 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                   
                   uint GID = celli + totalTargetLength; 
                   SpatialCell* spatial_cell = targetCells[GID];
+
+                  const vmesh::LocalID blockLID = spatial_cell->get_velocity_block_local_id(blockGID, popID);
                   
-                  if(spatial_cell == NULL) {
+                  if(spatial_cell == NULL ||
+                     spatial_cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY ||
+                     blockLID == vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) {
                      // Invalid target spatial cell
                      continue;
                   }
                   
-                  const vmesh::LocalID blockLID = spatial_cell->get_velocity_block_local_id(blockGID, popID);
-                  if (blockLID == vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) {
-                     // Invalid local id.
-                     continue;
-                  }
-
                   Realf* blockData = spatial_cell->get_data(blockLID, popID);
 
                   // areaRatio is the reatio of the cross-section of the spatial cell to the cross-section of the pencil.
@@ -1273,16 +1280,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                      blockData[i] += targetBlockData[GID * WID3 + i] * areaRatio;
                      // checksum += targetBlockData[GID * WID3 + i] * areaRatio;
                   }
-
-                  
-                  // cout << "Rank " << myRank;
-                  // cout << ", pencil " << pencili;
-                  // cout << ", cell " << spatial_cell->parameters[CellParams::CELLID];
-                  // cout << ", dimension " << dimension;
-                  // cout << ", areaRatio " << areaRatio;
-                  // cout << ", checksum = " << checksum;
-                  // cout << endl;
-
+                 
                }
 
                totalTargetLength += targetLength;

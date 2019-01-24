@@ -160,18 +160,6 @@ struct setOfPencils {
    }
 };
 
-void compute_spatial_source_cells_for_pencil(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                             setOfPencils pencils,
-                                             const uint iPencil,
-                                             const uint dimension,
-                                             SpatialCell **sourceCells);
-
-
-void compute_spatial_target_cells_for_pencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                              setOfPencils& pencils,
-                                              const uint dimension,
-                                              SpatialCell **targetCells);
-
 CellID selectNeighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> &grid,
                       CellID id, int dimension, uint path);
 
