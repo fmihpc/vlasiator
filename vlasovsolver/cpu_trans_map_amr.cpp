@@ -225,7 +225,7 @@ void computeSpatialTargetCellsForPencils(const dccrg::Dccrg<SpatialCell,dccrg::C
       } else if ( pencils.path[iPencil][refLvl] < frontNeighborIds.size() ) {
          targetCells[GID] = mpiGrid[frontNeighborIds.at(pencils.path[iPencil][refLvl])];
       }
-
+      
       refLvl = mpiGrid.get_refinement_level(ids.back());
 
       if (backNeighborIds.size() == 1) {
@@ -233,10 +233,18 @@ void computeSpatialTargetCellsForPencils(const dccrg::Dccrg<SpatialCell,dccrg::C
       } else if ( pencils.path[iPencil][refLvl] < backNeighborIds.size() ) {
          targetCells[GID + L + 1] = mpiGrid[backNeighborIds.at(pencils.path[iPencil][refLvl])];
       }
-      
+           
       // Incerment global id by L + 2 ghost cells.
       GID += (L + 2);
    }
+
+   for (uint i = 0; i < GID; ++i) {
+
+      if (targetCells[i]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY ) {
+         targetCells[i] = NULL;
+      }
+   }
+
 }
 
 CellID selectNeighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> &grid,
@@ -483,11 +491,11 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
          }
 
          if ( std::any_of(endIds.begin(), endIds.end(), [nextNeighbor](uint i){return i == nextNeighbor;}) ||
-              grid[nextNeighbor]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY )  {
-              //!do_translate_cell(grid[nextNeighbor])) {
-              // grid[nextNeighbor]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
-              // ( grid[nextNeighbor]->sysBoundaryLayer == 2 &&
-              //   grid[nextNeighbor]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY ) )  {
+              !do_translate_cell(grid[nextNeighbor])) {
+            // grid[nextNeighbor]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY )  {
+            // grid[nextNeighbor]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
+            // ( grid[nextNeighbor]->sysBoundaryLayer == 2 &&
+            //   grid[nextNeighbor]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY ) )  {
             
             nextNeighbor = INVALID_CELLID;
          } else {
@@ -676,22 +684,21 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
             if ( abs ( myIndices[dimension] - nbrIndices[dimension] ) >
                  pow(2,mpiGrid.get_maximum_refinement_level()) ||
                  !mpiGrid.is_local(nbrPair.first) ||
-                 ( mpiGrid[nbrPair.first]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY &&
-                   mpiGrid[nbrPair.first]->sysBoundaryLayer == 1 ) )  {
-
-                 // !do_translate_cell(mpiGrid[nbrPair.first])) {
-
-                 // mpiGrid[nbrPair.first]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
-                 // ( mpiGrid[nbrPair.first]->sysBoundaryLayer == 2 &&
-                 //   mpiGrid[nbrPair.first]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY ) )  {
-
+                 !do_translate_cell(mpiGrid[nbrPair.first]) ) {              
+                  
+                  // ( mpiGrid[nbrPair.first]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY &&
+                  //   mpiGrid[nbrPair.first]->sysBoundaryLayer == 1 ) )  {
+                  
+                  // mpiGrid[nbrPair.first]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
+                  // ( mpiGrid[nbrPair.first]->sysBoundaryLayer == 2 &&
+                  //   mpiGrid[nbrPair.first]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY ) )  {
+                  
                addToSeedIds = true;
-               
             }
          }
       }
 
-      if ( addToSeedIds && mpiGrid[celli]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ) {
+      if ( addToSeedIds ) {
          seedIds.push_back(celli);
       }
 
@@ -1200,8 +1207,8 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
             // At this point the data is saved in targetVecData so we can reset the spatial cells
 
             for (auto *spatial_cell: targetCells) {
-               // Check for system boundary
-               if(spatial_cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+               // Check for null and system boundary
+               if (spatial_cell && spatial_cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
                   // Get local velocity block id
                   const vmesh::LocalID blockLID = spatial_cell->get_velocity_block_local_id(blockGID, popID);
                   // Check for invalid id
@@ -1259,28 +1266,28 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                for ( uint celli = 0; celli < targetLength; celli++ ) {
                   
                   uint GID = celli + totalTargetLength; 
-                  SpatialCell* spatial_cell = targetCells[GID];
+                  SpatialCell* targetCell = targetCells[GID];
 
-                  const vmesh::LocalID blockLID = spatial_cell->get_velocity_block_local_id(blockGID, popID);
+                  if(targetCell) {
                   
-                  if(spatial_cell == NULL ||
-                     spatial_cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY ||
-                     blockLID == vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) {
-                     // Invalid target spatial cell
-                     continue;
-                  }
-                  
-                  Realf* blockData = spatial_cell->get_data(blockLID, popID);
+                     const vmesh::LocalID blockLID = targetCell->get_velocity_block_local_id(blockGID, popID);
 
-                  // areaRatio is the reatio of the cross-section of the spatial cell to the cross-section of the pencil.
-                  Realf areaRatio = pow(pow(2,spatial_cell->SpatialCell::parameters[CellParams::REFINEMENT_LEVEL] - pencils.path[pencili].size()),2);;
-
-                  // Realf checksum = 0.0;
-                  for(int i = 0; i < WID3 ; i++) {
-                     blockData[i] += targetBlockData[GID * WID3 + i] * areaRatio;
-                     // checksum += targetBlockData[GID * WID3 + i] * areaRatio;
+                     if( blockLID == vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID() ) {
+                        // Invalid target spatial cell
+                        continue;
+                     }
+                     
+                     Realf* blockData = targetCell->get_data(blockLID, popID);
+                     
+                     // areaRatio is the reatio of the cross-section of the spatial cell to the cross-section of the pencil.
+                     Realf areaRatio = pow(pow(2,targetCell->SpatialCell::parameters[CellParams::REFINEMENT_LEVEL] - pencils.path[pencili].size()),2);;
+                     
+                     // Realf checksum = 0.0;
+                     for(int i = 0; i < WID3 ; i++) {
+                        blockData[i] += targetBlockData[GID * WID3 + i] * areaRatio;
+                        // checksum += targetBlockData[GID * WID3 + i] * areaRatio;
+                     }
                   }
-                 
                }
 
                totalTargetLength += targetLength;
