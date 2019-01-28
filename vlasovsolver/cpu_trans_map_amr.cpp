@@ -1333,167 +1333,137 @@ void update_remote_mapping_contribution(
 
       SpatialCell *ccell = mpiGrid[c];
 
-      // Initialize number of blocks to 0 and block data to a default value
+      // Initialize number of blocks to 0 and block data to a default value.
       // We need the default for 1 to 1 communications
       if(ccell) {
          for (uint i = 0; i < MAX_FACE_NEIGHBORS_PER_DIM; ++i) {
-            //ccell->neighbor_block_data[i] = ccell->get_data(popID);
-            //ccell->neighbor_number_of_blocks[i] = 0;
-            
-            ccell->neighbor_number_of_blocks[i] = ccell->get_number_of_velocity_blocks(popID);
-            ccell->neighbor_block_data[i] =
-               (Realf*) aligned_malloc(ccell->neighbor_number_of_blocks[i] * WID3 * sizeof(Realf), 64);
-            for (uint j = 0; j < ccell->neighbor_number_of_blocks[i] * WID3; ++j) {
-               ccell->neighbor_block_data[i][j] = 0.0;
-            }
+            ccell->neighbor_block_data[i] = ccell->get_data(popID);
+            ccell->neighbor_number_of_blocks[i] = 0;
          }
-      } 
+      }
    }
 
+   for (auto c : local_cells) {
+
+      SpatialCell *ccell = mpiGrid[c];
+
+      if(ccell) {
+
+         // Initialize number of blocks to 0 and block data to a default value.
+         for (uint i = 0; i < MAX_FACE_NEIGHBORS_PER_DIM; ++i) {
+            ccell->neighbor_block_data[i] = ccell->get_data(popID);
+            ccell->neighbor_number_of_blocks[i] = 0;
+         }
+      }
+   }
+   
    set<CellID> allNeighbors;
+   int neighborhood = getNeighborhood(dimension,1);
    
    for (auto c : local_cells) {
       
       SpatialCell *ccell = mpiGrid[c];
-      
-      int neighborhood = getNeighborhood(dimension,1);
-      auto* nbrPairVector = mpiGrid.get_neighbors_of(c, neighborhood);
 
-      // Initialize to empty vectors, add default values at the end.
+      if (!ccell) {
+         continue;
+      }
+      
+      auto* nbrPairVector = mpiGrid.get_neighbors_of(c, neighborhood);     
       
       // neighbors in the positive direction
       vector<CellID> p_nbrs;
       // neighbors on the negative direction
       vector<CellID> n_nbrs;
-
-      auto myRefLvl = mpiGrid.get_refinement_level(c);
-      bool sameRefinementAsNeighbors = true;
       
       // Collect neighbors on the positive and negative sides into separate lists
       for (auto nbrPair : *nbrPairVector) {
          
          if (nbrPair.second.at(dimension) == direction) {
-            p_nbrs.push_back(nbrPair.first);
-            
-            if(mpiGrid.get_refinement_level(nbrPair.first) != myRefLvl) {
-               sameRefinementAsNeighbors = false;
-            }
-
+            p_nbrs.push_back(nbrPair.first);            
          }
-
+         
          if (nbrPair.second.at(dimension) == -direction) {
             n_nbrs.push_back(nbrPair.first);
-
-            // if(mpiGrid.get_refinement_level(nbrPair.first) != myRefLvl) {
-            //    sameRefinementAsNeighbors = false;
-            // }
-
          }
-      }
-      
-      //      int maxNeighborSize = max(p_nbrs.size(),n_nbrs.size());
-      
-      for (uint i = 0; i < MAX_FACE_NEIGHBORS_PER_DIM; ++i) {
-         // if(sameRefinementAsNeighbors) {
-         //    //if(maxNeighborSize == 1) {
-         //    // Initialize number of blocks to 0 and block data to a default value
-         //    ccell->neighbor_block_data[i] = ccell->get_data(popID);
-         //    ccell->neighbor_number_of_blocks[i] = 0;
-         // } else {
-            // Initialize number of blocks to the number of blocks in this cell (neighbors should have same number)
-            // and the block data to 0. We need to do this to make multi-process communications work.
-            ccell->neighbor_number_of_blocks[i] = ccell->get_number_of_velocity_blocks(popID);
-            ccell->neighbor_block_data[i] =
-               (Realf*) aligned_malloc(ccell->neighbor_number_of_blocks[i] * WID3 * sizeof(Realf), 64);
-            for (uint j = 0; j < ccell->neighbor_number_of_blocks[i] * WID3; ++j) {
-               ccell->neighbor_block_data[i][j] = 0.0;
-            }
-         // }
-      }
+      }     
 
       if (all_of(nbrPairVector->begin(), nbrPairVector->end(),
                  [mpiGrid](pair<int,array<int,4> > p){return mpiGrid.is_local(p.first);})) {
          // Only local neighbors, move on.
          continue;
-      }
-
-
-      // Find out which cell in the list of siblings this cell is. That will determine which
-      // neighbor_block_data gets stored as the transferBuffer.
-      auto myIndices = mpiGrid.mapping.get_indices(c);
-      auto allSiblings = mpiGrid.get_all_children(mpiGrid.get_parent(c));
-      vector<CellID> siblings;
-      
-      for (auto sibling : allSiblings) {
-         auto indices = mpiGrid.mapping.get_indices(sibling);
-         if(indices[dimension] == myIndices[dimension]) {
-            siblings.push_back(sibling);
-         }
-      }
-
-      auto myLocation = std::find(siblings.begin(),siblings.end(),c);
+      }      
 
       uint nSiblings = 1;
       uint sendIndex = 0;
       uint recvIndex = 0;
-      uint bufferSize = 1;
-      if(myLocation != siblings.end()) {
-         nSiblings = 4;
-         sendIndex = std::distance(siblings.begin(), myLocation);
-         recvIndex = std::distance(siblings.begin(), myLocation);
-         bufferSize = 4;
+
+      auto myIndices = mpiGrid.mapping.get_indices(c);
+      auto myParent = mpiGrid.get_parent(c);
+
+      // Find out which cell in the list of siblings this cell is. That will determine which
+      // neighbor_block_data element gets allocated and read after the communication.
+      if( c != myParent) {
+         auto allSiblings = mpiGrid.get_all_children(myParent);
+         vector<CellID> siblings;
+      
+         for (auto sibling : allSiblings) {
+            auto indices = mpiGrid.mapping.get_indices(sibling);
+            if(indices[dimension] == myIndices[dimension]) {
+               siblings.push_back(sibling);
+            }
+         }
+
+         auto myLocation = std::find(siblings.begin(),siblings.end(),c);
+
+         if(myLocation != siblings.end()) {
+            nSiblings = siblings.size();
+            sendIndex = std::distance(siblings.begin(), myLocation);
+            recvIndex = std::distance(siblings.begin(), myLocation);
+         }
       }
       
       // ccell adds a neighbor_block_data block for each neighbor in the positive direction to its local data
       for (uint i_nbr = 0; i_nbr < p_nbrs.size(); ++i_nbr) {         
-
-         CellID nbr = p_nbrs[i_nbr];
          
-         if (nbr != INVALID_CELLID && !mpiGrid.is_local(nbr) && do_translate_cell(ccell)
-             && allNeighbors.find(nbr) == allNeighbors.end()) {
-            
+         CellID nbr = p_nbrs[i_nbr];
+         //Send data in nbr target array that we just mapped to, if
+         // 1) it is a valid target,
+         // 2) the source cell in center was translated,
+         if(nbr != INVALID_CELLID && do_translate_cell(ccell)) {
+         
             SpatialCell *pcell = mpiGrid[nbr];
-            
-            if(pcell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-               //Send data in nbr target array that we just mapped to if 1) it is a valid target,
-               //2) is remote cell, 3) the source cell in center was translated, 4) it is not a boundary cell?
-               //5) We have not already sent data from this rank to this cell.
 
-               allNeighbors.insert(nbr);
-               
+            // 3) it is not a boundary cell,
+            if(pcell && pcell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+
                if(nSiblings == 1 && p_nbrs.size() == 4) {
                   sendIndex = i_nbr;
                }
-               
-               ccell->neighbor_block_data.at(sendIndex) = pcell->get_data(popID);
+
                ccell->neighbor_number_of_blocks.at(sendIndex) = pcell->get_number_of_velocity_blocks(popID);
-               send_cells.push_back(nbr);
-               
-               // Realf checksum1 = 0.0;
-               // Realf checksum2 = 0.0;
-               // Realf checksum3 = 0.0;
-               // Realf checksum4 = 0.0;
-               // for(unsigned int vCell = 0; vCell < VELOCITY_BLOCK_LENGTH * ccell->get_number_of_velocity_blocks(popID); ++vCell) {
-               //    checksum1 += ccell->neighbor_block_data[0][vCell];
-               //    checksum2 += ccell->neighbor_block_data[1][vCell];
-               //    checksum3 += ccell->neighbor_block_data[2][vCell];
-               //    checksum4 += ccell->neighbor_block_data[3][vCell];
-               // }
-               
-               // cout << "Rank " << myRank;
-               // cout << ", dimension " << dimension;
-               // cout << ", direction " << direction;
-               // cout << ": Cell " << c;
-               // cout << " sending to " << nbr << " index is " << sendIndex << " sums are ";
-               // cout << checksum1 << ", ";
-               // cout << checksum2 << ", ";
-               // cout << checksum3 << ", ";
-               // cout << checksum4 << ", ";
-               // cout << endl;
+
+               if(!mpiGrid.is_local(nbr) && allNeighbors.find(nbr) == allNeighbors.end()) {
+                  // 4a) Cell is remote,
+                  // 5a) We have not already sent data from this rank to this cell.
+                  
+                  allNeighbors.insert(nbr);
+                                    
+                  ccell->neighbor_block_data.at(sendIndex) = pcell->get_data(popID);
+                  send_cells.push_back(nbr);
+               } else {
+                  // 4b) Set neighbor_number_of_blocks for local cells with remote siblings
+                  // 5b) Set neighbor_number_of_blocks for cells whose local siblings have already sent data
+
+                  ccell->neighbor_block_data.at(sendIndex) =
+                     (Realf*) aligned_malloc(ccell->neighbor_number_of_blocks.at(sendIndex) * WID3 * sizeof(Realf), 64);
+                  for (uint j = 0; j < ccell->neighbor_number_of_blocks.at(sendIndex) * WID3; ++j) {
+                     ccell->neighbor_block_data[sendIndex][j] = 0.0;
+                  }                  
+               }               
             }
          }
       }
-
+      
       for (uint i_nbr = 0; i_nbr < n_nbrs.size(); ++i_nbr) {         
 
          CellID nbr = n_nbrs[i_nbr];
@@ -1506,35 +1476,54 @@ void update_remote_mapping_contribution(
 
             SpatialCell *ncell = mpiGrid[nbr];
 
-            // There are three possibilities for how we receive data
+            // Check for null pointer
+            if(!ncell) {
+               continue;
+            }
+            
+            // There are four possibilities for how we receive data
             // 1) sibling of 1 receiving from sibling of 1
-            //      Receiving cell reads from 0th element of receiveBuffer
+            //      Receiving cell reads from 0th element of neighbor_block_data
             // 2) sibling of 4 receiving from sibling of 1
-            //      Receiving cell reads the element from receiveBuffer equal to their sibling index
+            //      Receiving cell reads from recveIndex'th element of neighbor_block_data
             // 3) sibling of 1 receiving from sibling of 4
-            //      Receiving cell reads all elements from receiveBuffer that have data from remote neighbors
-                        
-            if(nSiblings == 1 && n_nbrs.size() == 4) {
+            //      Receiving cell reads all elements from neighbor_block_data that have data from remote neighbors
+            // 4) sibling of 4 receiving from sibling of 4
+            //      Receiving cell reads from recvIndex'th element of neighbor_block_data
+
+            // This covers options 1 & 4
+            if(mpiGrid.get_refinement_level(nbr) == mpiGrid.get_refinement_level(c)) {
+               
+               // Allocate memory for one sibling. Each cell will send/receive with the previously calculated recvIndex.
+               ncell->neighbor_number_of_blocks.at(recvIndex) = ccell->get_number_of_velocity_blocks(popID);
+               ncell->neighbor_block_data.at(recvIndex) =
+                  (Realf*) aligned_malloc(ncell->neighbor_number_of_blocks.at(recvIndex) * WID3 * sizeof(Realf), 64);
+               
+            } else if(nSiblings == 4 && n_nbrs.size() == 1) {
+               
+               // Allocate memory for each sibling to receive all the data sent by ncell. Use the
+               // recvIndex that was previously calculated
+               
+               for (uint i_buf = 0; i_buf < MAX_FACE_NEIGHBORS_PER_DIM; ++i_buf) {
+                  ncell->neighbor_number_of_blocks.at(i_buf) = ccell->get_number_of_velocity_blocks(popID);
+                  ncell->neighbor_block_data.at(i_buf) =
+                     (Realf*) aligned_malloc(ncell->neighbor_number_of_blocks.at(i_buf) * WID3 * sizeof(Realf), 64);
+               }
+               
+            } else if(nSiblings == 1 && n_nbrs.size() == 4) {
+               
+               // Each remote neighbor will allocate memory for the data it's about to receive at recvIndex = i_nbr.
+               
                recvIndex = i_nbr;
-               bufferSize = 4;
-            }
-
-            // We have to allocate memory for each sibling to receive all the data sent by ncell.
-            // There should be either 1 or 4 siblings, if there is only 1 sibling, the other receive
-            // blocks will remain at number_of_blocks = 0 as initialized.
-            for (uint i_buf = 0; i_buf < bufferSize; ++i_buf) {
-               ncell->neighbor_number_of_blocks.at(i_buf) = ccell->get_number_of_velocity_blocks(popID);
-               ncell->neighbor_block_data.at(i_buf) =
-                  (Realf*) aligned_malloc(ncell->neighbor_number_of_blocks.at(i_buf) * WID3 * sizeof(Realf), 64);
-
-               // for (uint j = 0; j < ccell->neighbor_number_of_blocks[i_buf] * WID3; ++j) {
-               //    ncell->neighbor_block_data[i_buf][j] = 0.0;
-               // }
-            }
+               ncell->neighbor_number_of_blocks.at(recvIndex) = ccell->get_number_of_velocity_blocks(popID);
+               ncell->neighbor_block_data.at(recvIndex) =
+                  (Realf*) aligned_malloc(ncell->neighbor_number_of_blocks.at(recvIndex) * WID3 * sizeof(Realf), 64);
+            }            
             
             receive_cells.push_back(c);
             receive_origin_cells.push_back(nbr);
             receive_origin_index.push_back(recvIndex);
+            
          }
       }
    }
@@ -1565,11 +1554,14 @@ void update_remote_mapping_contribution(
       for (size_t c = 0; c < receive_cells.size(); ++c) {
          SpatialCell* receive_cell = mpiGrid[receive_cells[c]];
          SpatialCell* origin_cell = mpiGrid[receive_origin_cells[c]];
+
+         if(!receive_cell || !origin_cell) {
+            continue;
+         }
          
          Realf *blockData = receive_cell->get_data(popID);
          Realf *neighborData = origin_cell->neighbor_block_data[receive_origin_index[c]];
-
-         int numReceiveCells = count(receive_cells.begin(), receive_cells.end(), receive_cells[c]);
+         
          // Realf checksum = 0.0;
          // Realf checksum1 = 0.0;
          // Realf checksum2 = 0.0;
