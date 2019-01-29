@@ -658,7 +658,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
                 const uint dimension,
                 vector<CellID> &seedIds) {
 
-   const bool debug = true;
+   const bool debug = false;
    int myRank;
    if (debug) MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    
@@ -957,7 +957,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                       const Realv dt,
                       const uint popID) {
 
-   const bool printPencils = true;
+   const bool printPencils = false;
    const bool printTargets = false;
    Realv dvz,vz_min;  
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
@@ -1400,15 +1400,16 @@ void update_remote_mapping_contribution(
       uint nSiblings = 1;
       uint sendIndex = 0;
       uint recvIndex = 0;
+      vector<CellID> siblings;
 
       auto myIndices = mpiGrid.mapping.get_indices(c);
       auto myParent = mpiGrid.get_parent(c);
 
       // Find out which cell in the list of siblings this cell is. That will determine which
       // neighbor_block_data element gets allocated and read after the communication.
+      
       if( c != myParent) {
          auto allSiblings = mpiGrid.get_all_children(myParent);
-         vector<CellID> siblings;
       
          for (auto sibling : allSiblings) {
             auto indices = mpiGrid.mapping.get_indices(sibling);
@@ -1524,10 +1525,13 @@ void update_remote_mapping_contribution(
                
                   // Allocate memory for each sibling to receive all the data sent by ncell. 
                
-                  for (uint i_buf = 0; i_buf < MAX_FACE_NEIGHBORS_PER_DIM; ++i_buf) {
-                     ncell->neighbor_number_of_blocks.at(i_buf) = ccell->get_number_of_velocity_blocks(popID);
-                     ncell->neighbor_block_data.at(i_buf) =
-                        (Realf*) aligned_malloc(ncell->neighbor_number_of_blocks.at(i_buf) * WID3 * sizeof(Realf), 64);
+                  for (uint i_sib = 0; i_sib < MAX_FACE_NEIGHBORS_PER_DIM; ++i_sib) {
+
+                     auto* scell = mpiGrid[siblings.at(i_sib)];
+                     
+                     ncell->neighbor_number_of_blocks.at(i_sib) = scell->get_number_of_velocity_blocks(popID);
+                     ncell->neighbor_block_data.at(i_sib) =
+                        (Realf*) aligned_malloc(ncell->neighbor_number_of_blocks.at(i_sib) * WID3 * sizeof(Realf), 64);
                   }
                
                } else if(nSiblings == 1 && n_nbrs.size() == 4) {
