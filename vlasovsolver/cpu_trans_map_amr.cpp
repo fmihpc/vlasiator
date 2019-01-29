@@ -664,8 +664,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
    
    int neighborhood = getNeighborhood(dimension,1);
    
-   //#pragma omp parallel for      
-   for(auto celli: localPropagatedCells) {
+   for(auto celli : localPropagatedCells) {
 
       auto myIndices = mpiGrid.mapping.get_indices(celli);
       
@@ -1328,10 +1327,6 @@ void update_remote_mapping_contribution(
    //normalize
    if(direction > 0) direction = 1;
    if(direction < 0) direction = -1;
-
-   MPI_Barrier(MPI_COMM_WORLD);
-   cout << "Updating remote neighbors, direction = " << direction << endl;
-   MPI_Barrier(MPI_COMM_WORLD);
    
    for (auto c : remote_cells) {
 
@@ -1574,10 +1569,9 @@ void update_remote_mapping_contribution(
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    
-   //#pragma omp parallel
-   //{
-   std::vector<Realf> receive_cells_sums;
-      //reduce data: sum received data in the data array to 
+#pragma omp parallel
+   {
+      // Reduce data: sum received data in the data array to 
       // the target grid in the temporary block container
       for (size_t c = 0; c < receive_cells.size(); ++c) {
          SpatialCell* receive_cell = mpiGrid[receive_cells[c]];
@@ -1590,41 +1584,22 @@ void update_remote_mapping_contribution(
          Realf *blockData = receive_cell->get_data(popID);
          Realf *neighborData = origin_cell->neighbor_block_data[receive_origin_index[c]];
          
-         // Realf checksum1 = 0.0;
-         // Realf checksum2 = 0.0;
-         // Realf checksum3 = 0.0;
-         // Realf checksum4 = 0.0;
-         
-         //#pragma omp for 
+#pragma omp for 
          for(unsigned int vCell = 0; vCell < VELOCITY_BLOCK_LENGTH * receive_cell->get_number_of_velocity_blocks(popID); ++vCell) {
-            // checksum1 += origin_cell->neighbor_block_data[0][vCell];
-            // checksum2 += origin_cell->neighbor_block_data[1][vCell];
-            // checksum3 += origin_cell->neighbor_block_data[2][vCell];
-            // checksum4 += origin_cell->neighbor_block_data[3][vCell];
             blockData[vCell] += neighborData[vCell];
          }
-         // //         receive_cells_sums.push_back(checksum);
-         // cout << "Rank " << myRank << ": cell " << receive_cells[c] << " receiving from " << receive_origin_cells[c] << ". Checksums: ";
-         // cout << checksum1 << ", ";
-         // cout << checksum2 << ", ";
-         // cout << checksum3 << ", ";
-         // cout << checksum4 << ".";
-         // cout << " Index is " << receive_origin_index[c] << endl;
       }
-      
-      // MPI_Barrier(MPI_COMM_WORLD);
-      // cout << endl;
       
       // send cell data is set to zero. This is to avoid double copy if
       // one cell is the neighbor on bot + and - side to the same process
       for (size_t c = 0; c < send_cells.size(); ++c) {
          SpatialCell* spatial_cell = mpiGrid[send_cells[c]];
          Realf * blockData = spatial_cell->get_data(popID);         
-         //#pragma omp for nowait
+#pragma omp for nowait
          for(unsigned int vCell = 0; vCell < VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(popID); ++vCell) {
             // copy received target data to temporary array where target data is stored.
             blockData[vCell] = 0;
          }
       }
-      //}
+   }
 }
