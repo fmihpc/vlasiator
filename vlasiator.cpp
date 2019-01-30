@@ -948,7 +948,7 @@ int main(int argn,char* args[]) {
       //Re-loadbalance if needed
       //TODO - add LB measure and do LB if it exceeds threshold
       #warning Re-loadbalance has been disabled temporarily for amr debugging
-      if(((P::tstep % P::rebalanceInterval == 0 && P::tstep > P::tstep_min) || overrideRebalanceNow) && false) {
+      if(((P::tstep % P::rebalanceInterval == 0 && P::tstep > P::tstep_min) || overrideRebalanceNow)) {
          logFile << "(LB): Start load balance, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
          balanceLoad(mpiGrid, sysBoundaries);
          addTimedBarrier("barrier-end-load-balance");
@@ -1007,7 +1007,7 @@ int main(int argn,char* args[]) {
                technicalGrid. setGridCoupling(fsgridId, myRank);
             }
          }
-         cout << endl;
+         // cout << endl;
          if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ <<  endl;
          
          perBGrid.      finishGridCoupling();
