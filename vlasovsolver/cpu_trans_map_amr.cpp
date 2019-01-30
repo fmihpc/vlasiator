@@ -1393,7 +1393,7 @@ void update_remote_mapping_contribution(
       }     
 
       // if (all_of(nbrPairVector->begin(), nbrPairVector->end(),
-      //            [mpiGrid](pair<int,array<int,4> > p){return mpiGrid.is_local(p.first);})) {
+      //            [&mpiGrid](pair<int,array<int,4> > p){return mpiGrid.is_local(p.first);})) {
       //    // Only local neighbors, move on.
       //    continue;
       // }      
@@ -1428,7 +1428,8 @@ void update_remote_mapping_contribution(
          }
       }
 
-      if (!all_of(p_nbrs.begin(), p_nbrs.end(),[mpiGrid](CellID i){return mpiGrid.is_local(i);})) {
+      // Set up sends if any neighbor cells in p_nbrs are non-local.
+      if (!all_of(p_nbrs.begin(), p_nbrs.end(),[&mpiGrid](CellID i){return mpiGrid.is_local(i);})) {
 
          // ccell adds a neighbor_block_data block for each neighbor in the positive direction to its local data
          for (uint i_nbr = 0; i_nbr < p_nbrs.size(); ++i_nbr) {
@@ -1485,7 +1486,8 @@ void update_remote_mapping_contribution(
          }
       }
 
-      if (!all_of(n_nbrs.begin(), n_nbrs.end(),[mpiGrid](CellID i){return mpiGrid.is_local(i);})) {
+      // Set up receives if any neighbor cells in n_nbrs are non-local.
+      if (!all_of(n_nbrs.begin(), n_nbrs.end(),[&mpiGrid](CellID i){return mpiGrid.is_local(i);})) {
       
          for (uint i_nbr = 0; i_nbr < n_nbrs.size(); ++i_nbr) {         
 
