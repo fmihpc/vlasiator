@@ -1090,15 +1090,14 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    }
    // ****************************************************************************
    
-   int t1 = phiprof::initializeTimer("mappingAndStore");
+   int t1 = phiprof::initializeTimer("mapping");
+   int t2 = phiprof::initializeTimer("store");
    
 #pragma omp parallel
    {
       // Loop over velocity space blocks. Thread this loop (over vspace blocks) with OpenMP.    
 #pragma omp for schedule(guided)
-      for(uint blocki = 0; blocki < unionOfBlocks.size(); blocki++){
-         
-         phiprof::start(t1);
+      for(uint blocki = 0; blocki < unionOfBlocks.size(); blocki++) {         
 
          // Get global id of the velocity block
          vmesh::GlobalID blockGID = unionOfBlocks[blocki];
@@ -1106,12 +1105,14 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
          velocity_block_indices_t block_indices;
          uint8_t vRefLevel;
          vmesh.getIndices(blockGID,vRefLevel, block_indices[0],
-                          block_indices[1], block_indices[2]);      
+                          block_indices[1], block_indices[2]);
          
          // Loop over sets of pencils
          // This loop only has one iteration for now
          for ( auto pencils: pencilSets ) {
 
+            phiprof::start(t1);
+            
             std::vector<Realf> targetBlockData((pencils.sumOfLengths + 2 * pencils.N) * WID3);
             // Allocate vectorized targetvecdata sum(lengths of pencils)*WID3 / VECL)
             // Add padding by 2 for each pencil
@@ -1202,6 +1203,9 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                // dealloc source data -- Should be automatic since it's declared in this loop iteration?
             }
 
+            phiprof::stop(t1);
+            phiprof::start(t2);
+            
             // reset blocks in all non-sysboundary neighbor spatial cells for this block id
             // At this point the data is saved in targetVecData so we can reset the spatial cells
 
@@ -1293,6 +1297,8 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                
                // dealloc target data -- Should be automatic again?
             }
+
+            phiprof::stop(t2);
          }
       }
    }
