@@ -124,7 +124,7 @@ void initializeGrid(
 
 
    MPI_Barrier(comm);
-   if(project.refineSpatialCells(mpiGrid)) {
+   if(P::amrMaxSpatialRefLevel > 0 && project.refineSpatialCells(mpiGrid)) {
       recalculateLocalCellsCache();
    }
    MPI_Barrier(comm);
