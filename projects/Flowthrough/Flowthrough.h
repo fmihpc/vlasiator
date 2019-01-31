@@ -56,6 +56,7 @@ namespace projects {
                            creal& dvx, creal& dvy, creal& dvz,
                            const uint popID
                           ) const;
+      bool refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const;
       virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
       virtual Real calcPhaseSpaceDensity(
                                          creal& x, creal& y, creal& z,

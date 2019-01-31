@@ -466,12 +466,10 @@ namespace projects {
       xyz_mid[2] = (P::zmax + P::zmin) / 2.0;
 
       std::vector<bool> refineSuccess;
-
-      int boxHalfWidth = 5;
       
-      for (double x = xyz_mid[0] - boxHalfWidth * P::dx_ini; x <= xyz_mid[0] + boxHalfWidth * P::dx_ini; x += P::dx_ini) {
-         for (double y = xyz_mid[1] - boxHalfWidth * P::dy_ini; y <= xyz_mid[1] + boxHalfWidth * P::dy_ini; y += P::dy_ini) {
-            for (double z = xyz_mid[2] - boxHalfWidth * P::dz_ini; z <= xyz_mid[2] + boxHalfWidth * P::dz_ini; z += P::dz_ini) {
+      for (double x = xyz_mid[0] - P::amrBoxHalfWidth * P::dx_ini; x <= xyz_mid[0] + P::amrBoxHalfWidth * P::dx_ini; x += P::dx_ini) {
+         for (double y = xyz_mid[1] - P::amrBoxHalfWidth * P::dy_ini; y <= xyz_mid[1] + P::amrBoxHalfWidth * P::dy_ini; y += P::dy_ini) {
+            for (double z = xyz_mid[2] - P::amrBoxHalfWidth * P::dz_ini; z <= xyz_mid[2] + P::amrBoxHalfWidth * P::dz_ini; z += P::dz_ini) {
                auto xyz = xyz_mid;
                xyz[0] = x;
                xyz[1] = y;

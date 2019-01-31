@@ -137,6 +137,7 @@ struct Parameters {
                                            * The value must be larger than amrCoarsenLimit.*/
    static std::string amrVelRefCriterion; /**< Name of the velocity block refinement criterion function.*/
    static int amrMaxSpatialRefLevel;
+   static int amrBoxHalfWidth;
 
    /*! \brief Add the global parameters.
     * 
