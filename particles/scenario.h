@@ -154,6 +154,8 @@ struct InjectionScenario : Scenario {
   bool * fs_hasmet_tbn;
   bool * fs_hasmet_flipmu;
 
+  int particlespertimestep;
+
   ParticleContainer initialParticles(Field& E, Field& B, Field& V, Field& R);
   void beforePush(ParticleContainer& particles, Interpolated_Field& E, Interpolated_Field& B, Interpolated_Field& V, Interpolated_Field& R);
   void newTimestep(int input_file_counter, int step, double time, ParticleContainer& particles, Interpolated_Field& E, Interpolated_Field& B,

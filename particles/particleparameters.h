@@ -91,6 +91,7 @@ struct ParticleParameters {
    static Real injection_tbn_meet;     /*!< injection scenario: Shock-normal angle value to assume particle meets shock */
    // No parameter required for flipmu calculation
 
+   static Real injection_end_time;     /*!< Time at which initialisation of particles should end */
    static Real injection_r_bound_ds;   /*!< injection scenario: Downstream transmission boundary radial distance in metres */
    static Real injection_r_bound_us;   /*!< injection scenario: Upstream reflection boundary radial distance in metres */
    static Real injection_x_bound_ds;   /*!< injection scenario: discard boundary X-coordinate in metres */

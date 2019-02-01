@@ -91,6 +91,7 @@ Real P::injection_rho_meet;
 Real P::injection_TNBS_meet;
 Real P::injection_Mms_meet;
 Real P::injection_tbn_meet;
+Real P::injection_end_time;
 Real P::injection_r_bound_ds;
 Real P::injection_r_bound_us;
 Real P::injection_x_bound_ds;
@@ -209,6 +210,8 @@ bool ParticleParameters::addParameters() {
 		       "injection scenario: Magnetosonic Mach number for meeting shock", 1.);
    Readparameters::add("particles.injection_tbn_meet",
 		       "injection scenario: Theta_Bn value for meeting shock", 6.6e6);
+   Readparameters::add("particles.injection_end_time",
+		       "injection scenario: Time at which initialisation of particles ends", 0);
    Readparameters::add("particles.injection_r_bound_ds",
 		       "injection scenario: Downstream transmission boundary radial distance in metres", 6.371e6);
    Readparameters::add("particles.injection_r_bound_us",
@@ -341,6 +344,7 @@ bool ParticleParameters::getParameters() {
    Readparameters::get("particles.injection_TNBS_meet", P::injection_TNBS_meet);
    Readparameters::get("particles.injection_Mms_meet", P::injection_Mms_meet);
    Readparameters::get("particles.injection_tbn_meet", P::injection_tbn_meet);
+   Readparameters::get("particles.injection_end_time", P::injection_end_time);
    Readparameters::get("particles.injection_r_bound_ds", P::injection_r_bound_ds);
    Readparameters::get("particles.injection_r_bound_us", P::injection_r_bound_us);
    Readparameters::get("particles.injection_x_bound_ds", P::injection_x_bound_ds);

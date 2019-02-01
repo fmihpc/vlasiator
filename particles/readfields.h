@@ -189,12 +189,13 @@ bool readNextTimestep(const std::string& filename_pattern, double t, int step, F
 	}
 
 	/* Calculate Magnetosonic velocity */
-	std::string pressure_name("Pressure");
-	std::vector<double> pressure_buffer = readFieldData(r,pressure_name,1u);
-	for(unsigned int i=0; i<pressure_buffer.size(); i++) {	  
+	std::string pressure_name("PTensorDiagonal");
+	std::vector<double> pressure_buffer = readFieldData(r,pressure_name,3u);
+	for(unsigned int i=0; i<Rhobuffer.size(); i++) {	  
 	  Real Bmag2 = std::pow(Bbuffer[3*i],2) + std::pow(Bbuffer[3*i+1],2) + std::pow(Bbuffer[3*i+2],2);
 	  Real va2 = Bmag2/(1.25663706144e-6 * 1.672622e-27 * Rhobuffer[i]);
-	  Real vs2 = (pressure_buffer[i] * (5./3.))/( 1.672622e-27 * Rhobuffer[i] );
+	  Real pressure = (1./3.)*(pressure_buffer[3*i]+pressure_buffer[3*i+1]+pressure_buffer[3*i+2]);
+	  Real vs2 = (pressure * (5./3.))/( 1.672622e-27 * Rhobuffer[i] );
 	  vmsbuffer.push_back( sqrt(va2 + vs2) );
 	}
 
@@ -280,7 +281,7 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, Field& R, bo
 
    std::string rhonbs_name("RhoNonBackstream");
    std::string ptdnbs_name("PTensorNonBackstreamDiagonal");
-   std::string pressure_name("Pressure");
+   std::string pressure_name("PTensorDiagonal");
 
    if(doV) {
      name = "rho_v";
@@ -291,7 +292,7 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, Field& R, bo
      rho_buffer = readFieldData(r,rho_name,1u);
      ptdnbs_buffer = readFieldData(r,ptdnbs_name,3u);
      rhonbs_buffer = readFieldData(r,rhonbs_name,1u);   
-     pressure_buffer = readFieldData(r,pressure_name,1u);
+     pressure_buffer = readFieldData(r,pressure_name,3u);
    }
 
    /* Coordinate Boundaries */
@@ -407,8 +408,9 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, Field& R, bo
 	Rtgt[1] = ((ptdnbs_buffer[3*i]+ptdnbs_buffer[3*i+1]+ptdnbs_buffer[3*i+2])*(1./3.)) / ((1.+rhonbs_buffer[i])*1.38065e-23);
 	// Magnetosonic speed
 	Real Bmag2 = std::pow(Bbuffer[3*i],2) + std::pow(Bbuffer[3*i+1],2) + std::pow(Bbuffer[3*i+2],2);
-	Real va2 = Bmag2/(1.25663706144e-6 * 1.672622e-27 * Rhobuffer[i]);
-	Real vs2 = (pressure_buffer[i] * (5./3.))/( 1.672622e-27 * Rhobuffer[i] );
+	Real va2 = Bmag2/(1.25663706144e-6 * 1.672622e-27 * rho_buffer[i]);
+	Real pressure = (1./3.)*(pressure_buffer[3*i]+pressure_buffer[3*i+1]+pressure_buffer[3*i+2]);	
+	Real vs2 = (pressure * (5./3.))/( 1.672622e-27 * rho_buffer[i] );
         Rtgt[2] = sqrt(va2 + vs2);
       }
    }
