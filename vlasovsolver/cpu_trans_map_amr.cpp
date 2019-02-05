@@ -1365,6 +1365,8 @@ void update_remote_mapping_contribution(
    set<CellID> allNeighbors;
    int neighborhood = getNeighborhood(dimension,1);
    
+   vector<Realf*> allocatedPointers;
+
    for (auto c : local_cells) {
       
       SpatialCell *ccell = mpiGrid[c];
@@ -1479,6 +1481,7 @@ void update_remote_mapping_contribution(
                ccell->neighbor_number_of_blocks.at(sendIndex) = mpiGrid[nbr]->get_number_of_velocity_blocks(popID);
                ccell->neighbor_block_data.at(sendIndex) =
                   (Realf*) aligned_malloc(ccell->neighbor_number_of_blocks.at(sendIndex) * WID3 * sizeof(Realf), 64);
+               allocatedPointers.push_back(ccell->neighbor_block_data.at(sendIndex));
                for (uint j = 0; j < ccell->neighbor_number_of_blocks.at(sendIndex) * WID3; ++j) {
                   ccell->neighbor_block_data[sendIndex][j] = 0.0;
                }
@@ -1523,6 +1526,7 @@ void update_remote_mapping_contribution(
                   ncell->neighbor_number_of_blocks.at(recvIndex) = ccell->get_number_of_velocity_blocks(popID);
                   ncell->neighbor_block_data.at(recvIndex) =
                      (Realf*) aligned_malloc(ncell->neighbor_number_of_blocks.at(recvIndex) * WID3 * sizeof(Realf), 64);
+                  allocatedPointers.push_back(ncell->neighbor_block_data.at(recvIndex));
                
                } else if(nSiblings == 4 && n_nbrs.size() == 1) {
                
@@ -1535,6 +1539,7 @@ void update_remote_mapping_contribution(
                      ncell->neighbor_number_of_blocks.at(i_sib) = scell->get_number_of_velocity_blocks(popID);
                      ncell->neighbor_block_data.at(i_sib) =
                         (Realf*) aligned_malloc(ncell->neighbor_number_of_blocks.at(i_sib) * WID3 * sizeof(Realf), 64);
+                     allocatedPointers.push_back(ncell->neighbor_block_data.at(recvIndex));
                   }
                
                } else if(nSiblings == 1 && n_nbrs.size() == 4) {
@@ -1545,7 +1550,8 @@ void update_remote_mapping_contribution(
                   ncell->neighbor_number_of_blocks.at(recvIndex) = ccell->get_number_of_velocity_blocks(popID);
                   ncell->neighbor_block_data.at(recvIndex) =
                      (Realf*) aligned_malloc(ncell->neighbor_number_of_blocks.at(recvIndex) * WID3 * sizeof(Realf), 64);
-               }            
+                  allocatedPointers.push_back(ncell->neighbor_block_data.at(recvIndex));
+               }
             
                receive_cells.push_back(c);
                receive_origin_cells.push_back(nbr);
@@ -1610,4 +1616,11 @@ void update_remote_mapping_contribution(
          }
       }
    }
+
+   for (auto p : allocatedPointers) {
+      
+      aligned_free(p);
+
+   }
+
 }
