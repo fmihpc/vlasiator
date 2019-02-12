@@ -825,7 +825,7 @@ namespace spatial_cell {
          datatype = MPI_BYTE;
       }
 
-      const bool printMpiDatatype = true;
+      const bool printMpiDatatype = false;
       if(printMpiDatatype) {
          int mpiSize;
          int myRank;
