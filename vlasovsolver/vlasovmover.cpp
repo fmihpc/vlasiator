@@ -76,11 +76,9 @@ void calculateSpatialTranslation(
 
     int trans_timer;
     bool localTargetGridGenerated = false;
-    const bool printLines = false;
     
     int myRank;
     MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-    if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
     
     // ------------- SLICE - map dist function in Z --------------- //
    if(P::zcells_ini > 1){
@@ -101,8 +99,6 @@ void calculateSpatialTranslation(
       phiprof::stop("update_remote-z");
 
    }
-
-   if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
    
    // ------------- SLICE - map dist function in X --------------- //
    if(P::xcells_ini > 1){     
@@ -125,11 +121,8 @@ void calculateSpatialTranslation(
       update_remote_mapping_contribution(mpiGrid, 0,-1,popID);
       phiprof::stop("update_remote-x");
 
-      if(printLines)      cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
    }
 
-   if(printLines)   cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
-   
    // ------------- SLICE - map dist function in Y --------------- //
    if(P::ycells_ini > 1) {
       
@@ -335,15 +328,10 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    typedef Parameters P;
    const vector<CellID>& cells = getLocalCells();
 
-   const bool printLines = false;
-   
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-   if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__;
-   if(printLines) cout << " " << dt << " " << P::tstep << endl;
    
    if (dt == 0.0 && P::tstep > 0) {
-      if(printLines)      cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
       
       // Even if acceleration is turned off we need to adjust velocity blocks 
       // because the boundary conditions may have altered the velocity space, 
@@ -352,13 +340,10 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
          adjustVelocityBlocks(mpiGrid, cells, true, popID);
       }
 
-      if(printLines)      cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
       goto momentCalculation;
    }
    phiprof::start("semilag-acc");
     
-   if(printLines)   cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
-   
    // Accelerate all particle species
     for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
        int maxSubcycles=0;
@@ -391,10 +376,8 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
           }
        }
 
-       if(printLines)       cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
        // Compute global maximum for number of subcycles
        MPI_Allreduce(&maxSubcycles, &globalMaxSubcycles, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
-       if(printLines)       cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
        
        // substep global max times
        for(uint step=0; step<(uint)globalMaxSubcycles; ++step) {
