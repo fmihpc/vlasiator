@@ -404,22 +404,20 @@ int main(int argn,char* args[]) {
 
    const int fsGridSize = (fsGridDimensions[0] + 4) * (fsGridDimensions[1] + 4) * (fsGridDimensions[2] + 4);
    // setting to 0, values greater than 2^21 cause overflows on cray-mpich
-   const int tagOffset = 0;
-   int tagId = 0;
    
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> perBGrid(fsGridDimensions, comm, periodicity, tagOffset * tagId++);
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> perBDt2Grid(fsGridDimensions, comm, periodicity, tagOffset * tagId++);
-   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> EGrid(fsGridDimensions, comm, periodicity, tagOffset * tagId++);
-   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> EDt2Grid(fsGridDimensions, comm, periodicity, tagOffset * tagId++);
-   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2> EHallGrid(fsGridDimensions, comm, periodicity, tagOffset * tagId++);
-   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2> EGradPeGrid(fsGridDimensions, comm, periodicity, tagOffset * tagId++);
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> momentsGrid(fsGridDimensions, comm, periodicity, tagOffset * tagId++);
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> momentsDt2Grid(fsGridDimensions, comm, periodicity, tagOffset * tagId++);
-   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> dPerBGrid(fsGridDimensions, comm, periodicity, tagOffset * tagId++);
-   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> dMomentsGrid(fsGridDimensions, comm, periodicity, tagOffset * tagId++);
-   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2> BgBGrid(fsGridDimensions, comm, periodicity, tagOffset * tagId++);
-   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> volGrid(fsGridDimensions, comm, periodicity, tagOffset * tagId++);
-   FsGrid< fsgrids::technical, 2> technicalGrid(fsGridDimensions, comm, periodicity, tagOffset * tagId);
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> perBGrid(fsGridDimensions, comm, periodicity);
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> perBDt2Grid(fsGridDimensions, comm, periodicity);
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> EGrid(fsGridDimensions, comm, periodicity);
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> EDt2Grid(fsGridDimensions, comm, periodicity);
+   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2> EHallGrid(fsGridDimensions, comm, periodicity);
+   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2> EGradPeGrid(fsGridDimensions, comm, periodicity);
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> momentsGrid(fsGridDimensions, comm, periodicity);
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> momentsDt2Grid(fsGridDimensions, comm, periodicity);
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> dPerBGrid(fsGridDimensions, comm, periodicity);
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> dMomentsGrid(fsGridDimensions, comm, periodicity);
+   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2> BgBGrid(fsGridDimensions, comm, periodicity);
+   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> volGrid(fsGridDimensions, comm, periodicity);
+   FsGrid< fsgrids::technical, 2> technicalGrid(fsGridDimensions, comm, periodicity);
    // Set DX,DY and DZ
    // TODO: This is currently just taking the values from cell 1, and assuming them to be
    // constant throughout the simulation.
