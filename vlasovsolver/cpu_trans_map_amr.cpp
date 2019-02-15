@@ -1343,7 +1343,7 @@ void update_remote_mapping_contribution(
    int direction,
    const uint popID) {
    
-   const vector<CellID> local_cells = mpiGrid.get_cells();
+   vector<CellID> local_cells = mpiGrid.get_cells();
    const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_NEIGHBORHOOD_ID);
    vector<CellID> receive_cells;
    set<CellID> send_cells;
@@ -1419,6 +1419,13 @@ void update_remote_mapping_contribution(
    vector<Realf*> receiveBuffers;
    vector<Realf*> sendBuffers;
 
+   // Sort local cells.
+   // This is done to make sure that when receiving data, a refined neighbor will overwrite a less-refined neighbor
+   // on the same rank. This is done because a non-refined neighbor, if such exist simultaneously with a refined neighbor
+   // is a non-face neighbor and therefore does not store the received data, but can screw up the block count.
+   // The sending rank will only consider face neighbors when determining the number of blocks it will send.
+   std::sort(local_cells.begin(), local_cells.end());
+   
    for (auto c : local_cells) {
       
       SpatialCell *ccell = mpiGrid[c];
@@ -1584,6 +1591,7 @@ void update_remote_mapping_contribution(
                   receive_origin_index.push_back(recvIndex);
                   
                }
+               
             } // closes (nbr != INVALID_CELLID && !mpiGrid.is_local(nbr) && ...)
             
          } // closes for(uint i_nbr = 0; i_nbr < nbrs_of.size(); ++i_nbr)
