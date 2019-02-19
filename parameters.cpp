@@ -230,9 +230,12 @@ bool Parameters::addParameters(){
    Readparameters::add("AMR.refine_limit","If the refinement criterion function returns a larger value than this, block is refined",(Realf)1.0);
    Readparameters::add("AMR.coarsen_limit","If the refinement criterion function returns a smaller value than this, block can be coarsened",(Realf)0.5);
    Readparameters::add("AMR.max_spatial_level","Maximum spatial mesh refinement level",(uint)1);
-   Readparameters::add("AMR.box_half_width_x","Half width of the box around origin that is refined (for testing)",(uint)1);
-   Readparameters::add("AMR.box_half_width_y","Half width of the box around origin that is refined (for testing)",(uint)1);
-   Readparameters::add("AMR.box_half_width_z","Half width of the box around origin that is refined (for testing)",(uint)1);
+   Readparameters::add("AMR.box_half_width_x","Half width of the box that is refined (for testing)",(uint)1);
+   Readparameters::add("AMR.box_half_width_y","Half width of the box that is refined (for testing)",(uint)1);
+   Readparameters::add("AMR.box_half_width_z","Half width of the box that is refined (for testing)",(uint)1);
+   Readparameters::add("AMR.box_center_x","x coordinate of the center of the box that is refined (for testing)",(uint)1);
+   Readparameters::add("AMR.box_center_y","y coordinate of the center of the box that is refined (for testing)",(uint)1);
+   Readparameters::add("AMR.box_center_z","z coordinate of the center of the box that is refined (for testing)",(uint)1);
    return true;
 }
 
