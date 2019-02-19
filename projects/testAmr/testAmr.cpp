@@ -263,15 +263,13 @@ namespace projects {
 
       // cout << "I am at line " << __LINE__ << " of " << __FILE__ <<  endl;
      if(myRank == MASTER_RANK) std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
-      
-      std::array<double,3> xyz_mid;
-      xyz_mid[0] = (P::xmax + P::xmin) / 2.0;
-      xyz_mid[1] = (P::ymax + P::ymin) / 2.0;
-      xyz_mid[2] = (P::zmax + P::zmin) / 2.0;
-      
-      for (double x = xyz_mid[0] - P::amrBoxHalfWidth * P::dx_ini; x <= xyz_mid[0] + P::amrBoxHalfWidth * P::dx_ini; x += P::dx_ini) {
-         for (double y = xyz_mid[1] - P::amrBoxHalfWidth * P::dy_ini; y <= xyz_mid[1] + P::amrBoxHalfWidth * P::dy_ini; y += P::dy_ini) {
-            auto xyz = xyz_mid;
+
+      std::vector<bool> refineSuccess;
+
+      for (double x = P::amrBoxCenterX - P::amrBoxHalfWidthX * P::dx_ini; x <= P::amrBoxCenterX + P::amrBoxHalfWidthX * P::dx_ini; x += P::dx_ini) {
+         for (double y = P::amrBoxCenterY - P::amrBoxHalfWidthY * P::dy_ini; y <= P::amrBoxCenterY + P::amrBoxHalfWidthY * P::dy_ini; y += P::dy_ini) {
+     
+            std::array<double,3> xyz;           
             xyz[0] = x;
             xyz[1] = y;
             //std::cout << "Trying to refine at " << xyz[0] << ", " << xyz[1] << ", " << xyz[2] << std::endl;

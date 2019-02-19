@@ -137,7 +137,12 @@ Realf P::amrRefineLimit = 1.0;
 Realf P::amrCoarsenLimit = 0.5;
 string P::amrVelRefCriterion = "";
 int P::amrMaxSpatialRefLevel = 1;
-int P::amrBoxHalfWidth = 5;
+int P::amrBoxHalfWidthX = 1;
+int P::amrBoxHalfWidthY = 1;
+int P::amrBoxHalfWidthZ = 1;
+Realf P::amrBoxCenterX = 0.0;
+Realf P::amrBoxCenterY = 0.0;
+Realf P::amrBoxCenterZ = 0.0;
 
 bool Parameters::addParameters(){
    //the other default parameters we read through the add/get interface
@@ -225,7 +230,9 @@ bool Parameters::addParameters(){
    Readparameters::add("AMR.refine_limit","If the refinement criterion function returns a larger value than this, block is refined",(Realf)1.0);
    Readparameters::add("AMR.coarsen_limit","If the refinement criterion function returns a smaller value than this, block can be coarsened",(Realf)0.5);
    Readparameters::add("AMR.max_spatial_level","Maximum spatial mesh refinement level",(uint)1);
-   Readparameters::add("AMR.box_half_width","Half width of the box around origin that is refined (for testing)",(uint)5);
+   Readparameters::add("AMR.box_half_width_x","Half width of the box around origin that is refined (for testing)",(uint)1);
+   Readparameters::add("AMR.box_half_width_y","Half width of the box around origin that is refined (for testing)",(uint)1);
+   Readparameters::add("AMR.box_half_width_z","Half width of the box around origin that is refined (for testing)",(uint)1);
    return true;
 }
 
@@ -380,7 +387,12 @@ bool Parameters::getParameters(){
    }
    Readparameters::get("AMR.max_velocity_level",P::amrMaxVelocityRefLevel);
    Readparameters::get("AMR.max_spatial_level",P::amrMaxSpatialRefLevel);
-   Readparameters::get("AMR.box_half_width",P::amrBoxHalfWidth);
+   Readparameters::get("AMR.box_half_width_x",P::amrBoxHalfWidthX);
+   Readparameters::get("AMR.box_half_width_y",P::amrBoxHalfWidthY);
+   Readparameters::get("AMR.box_half_width_z",P::amrBoxHalfWidthZ);
+   Readparameters::get("AMR.box_center_x",P::amrBoxCenterX);
+   Readparameters::get("AMR.box_center_y",P::amrBoxCenterY);
+   Readparameters::get("AMR.box_center_z",P::amrBoxCenterZ);
    Readparameters::get("AMR.vel_refinement_criterion",P::amrVelRefCriterion);
    Readparameters::get("AMR.refine_limit",P::amrRefineLimit);
    Readparameters::get("AMR.coarsen_limit",P::amrCoarsenLimit);
