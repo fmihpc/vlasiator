@@ -1418,13 +1418,6 @@ void update_remote_mapping_contribution(
    
    vector<Realf*> receiveBuffers;
    vector<Realf*> sendBuffers;
-
-   // Sort local cells.
-   // This is done to make sure that when receiving data, a refined neighbor will overwrite a less-refined neighbor
-   // on the same rank. This is done because a non-refined neighbor, if such exist simultaneously with a refined neighbor
-   // is a non-face neighbor and therefore does not store the received data, but can screw up the block count.
-   // The sending rank will only consider face neighbors when determining the number of blocks it will send.
-   std::sort(local_cells.begin(), local_cells.end());
    
    for (auto c : local_cells) {
       
@@ -1542,15 +1535,56 @@ void update_remote_mapping_contribution(
                  3) Ref_nbr >  Ref_c     , index = nbr sibling index
                  4) Ref_nbr <  Ref_c     , index = c   sibling index
                 */
-               
+                                             
                if(mpiGrid.get_refinement_level(nbr) >= mpiGrid.get_refinement_level(c)) {
-                  recvIndex = get_sibling_index(mpiGrid,nbr);
-               } else if (mpiGrid.get_refinement_level(c) >  mpiGrid.get_refinement_level(nbr)) {
-                  recvIndex = mySiblingIndex;
-               }
-                              
-               if(mpiGrid.get_refinement_level(nbr) < mpiGrid.get_refinement_level(c)) {
 
+                  // Allocate memory for one sibling at recvIndex.
+                  
+                  recvIndex = get_sibling_index(mpiGrid,nbr);
+
+                  SpatialCell* scell = NULL;
+                  
+                  if (abs(nbrPair.second.at(dimension)) != 1) {
+                     
+                     // nbr is not face neighbor to c --> we are not receiving data mapped to c but to its face neighbor.
+                     // This happens because DCCRG does not allow defining neighborhoods with face neighbors only.
+                     // Figure out who is the face neighbor that nbr maps its data to, then get its number of blocks,
+                     // if it is a remote neighbor to nbr.
+                     
+                     auto myIndices = mpiGrid.mapping.get_indices(nbr);
+                     for (auto localNbrPair : *nbrOfPairVector) {
+                        auto nbrIndices = mpiGrid.mapping.get_indices(localNbrPair.first);
+                        int i1 = (dimension + 1) % 3;
+                        int i2 = (dimension + 2) % 3;
+                        if(myIndices.at(i1) == nbrIndices.at(i1)
+                           && myIndices.at(i2) == nbrIndices.at(i2)
+                           && abs(localNbrPair.second.at(dimension)) == 1
+                           && mpiGrid.get_process(nbr) != mpiGrid.get_process(localNbrPair.first)) {
+
+                           scell = mpiGrid[localNbrPair.first];
+
+                        }
+                     }
+                  }
+                  
+                  if(scell) {
+
+                     ncell->neighbor_number_of_blocks.at(recvIndex) = scell->get_number_of_velocity_blocks(popID);
+                     
+                  } else {
+                     
+                     ncell->neighbor_number_of_blocks.at(recvIndex) = ccell->get_number_of_velocity_blocks(popID);
+                  }
+                  
+                  // ncell->neighbor_number_of_blocks.at(recvIndex) = ccell->get_number_of_velocity_blocks(popID);
+                  ncell->neighbor_block_data.at(recvIndex) =
+                     (Realf*) aligned_malloc(ncell->neighbor_number_of_blocks.at(recvIndex) * WID3 * sizeof(Realf), 64);
+                  receiveBuffers.push_back(ncell->neighbor_block_data.at(recvIndex));
+                  
+               } else {
+
+                  recvIndex = mySiblingIndex;
+                  
                   auto mySiblings = mpiGrid.get_all_children(mpiGrid.get_parent(c));
                   auto myIndices = mpiGrid.mapping.get_indices(c);
                   
@@ -1573,13 +1607,7 @@ void update_remote_mapping_contribution(
                         receiveBuffers.push_back(ncell->neighbor_block_data.at(i_sib));
                      } 
                   } 
-               } else {
-
-                  // Allocate memory for one sibling at the previously calculated recvIndex.
-                  ncell->neighbor_number_of_blocks.at(recvIndex) = ccell->get_number_of_velocity_blocks(popID);
-                  ncell->neighbor_block_data.at(recvIndex) =
-                     (Realf*) aligned_malloc(ncell->neighbor_number_of_blocks.at(recvIndex) * WID3 * sizeof(Realf), 64);
-                  receiveBuffers.push_back(ncell->neighbor_block_data.at(recvIndex));
+                  
                }
 
                // Only nearest neighbors (nbrpair.second(dimension) == 1 are added to the
@@ -1599,12 +1627,16 @@ void update_remote_mapping_contribution(
       } // closes if(!all_of(nbrs_of.begin(), nbrs_of.end(),[&mpiGrid](CellID i){return mpiGrid.is_local(i);}))
       
    } // closes for (auto c : local_cells) {
+
+   MPI_Barrier(MPI_COMM_WORLD);
    
    // Do communication
    SpatialCell::setCommunicatedSpecies(popID);
    SpatialCell::set_mpi_transfer_type(Transfer::NEIGHBOR_VEL_BLOCK_DATA);
    mpiGrid.update_copies_of_remote_neighbors(neighborhood);
 
+   MPI_Barrier(MPI_COMM_WORLD);
+   
    // Reduce data: sum received data in the data array to 
    // the target grid in the temporary block container   
    //#pragma omp parallel
