@@ -428,8 +428,10 @@ void setupTechnicalFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
 
                            // not strictly necessary but logically we should not consider the cell itself
                            // among its neighbors.
-                           if( ix == 0 && iy == 0 && iz == 0) continue;
-                              
+                           if( ix == 0 && iy == 0 && iz == 0 || !technicalGrid.get(x+ix,y+iy,z+iz)) {
+                              continue;
+                           }
+                           
                            // in the first layer, boundary cell belongs if it has a non-boundary neighbor
                            if(layer == 1 && technicalGrid.get(x+ix,y+iy,z+iz)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
                               belongsToLayer = true;
