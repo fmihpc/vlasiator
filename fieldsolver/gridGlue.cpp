@@ -387,7 +387,69 @@ void setupTechnicalFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
 
    technicalGrid.finishTransfersIn();
 
+   auto localSize = technicalGrid.getLocalSize();
+   
    // Add layer calculation here. Include diagonals +-1.
+
+   // Initialize layer flags to 0.
+   for (int x = 0; x < localSize[0]; ++x) {
+      for (int y = 0; y < localSize[1]; ++y) {
+         for (int z = 0; z < localSize[2]; ++z) {
+            technicalGrid.get(x,y,z)->sysBoundaryLayer = 0;
+         }
+      }
+   }   
+
+   // begin with layer 1
+   int layer = 0;
+   bool noCellsInLayer = false;
+   const int MAX_NUMBER_OF_BOUNDARY_LAYERS = localSize[0]*localSize[1]*localSize[2];
+
+   // loop through layers until an empty layer is encountered
+   while(!noCellsInLayer && layer < MAX_NUMBER_OF_BOUNDARY_LAYERS) {
+      noCellsInLayer = true;
+      layer++;
+      
+      // loop through all cells in grid
+      for (int x = 0; x < localSize[0]; ++x) {
+         for (int y = 0; y < localSize[1]; ++y) {
+            for (int z = 0; z < localSize[2]; ++z) {
+               
+               // examine all cells that belong to a boundary and have their layer set to the initial value 0
+               if(technicalGrid.get(x,y,z)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY &&
+                  technicalGrid.get(x,y,z)->sysBoundaryLayer == 0) {
+                  
+                  bool belongsToLayer = false;
+
+                  // loop through all neighbors (including diagonals)
+                  for (int ix = -1; ix <= 1; ++ix) {
+                     for (int iy = -1; iy <= 1; ++iy) {
+                        for (int iz = -1; iz <= 1; ++iz) {
+
+                           // not strictly necessary but logically we should not consider the cell itself
+                           // among its neighbors.
+                           if( ix == 0 && iy == 0 && iz == 0) continue;
+                              
+                           // in the first layer, boundary cell belongs if it has a non-boundary neighbor
+                           if(layer == 1 && technicalGrid.get(x+ix,y+iy,z+iz)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+                              belongsToLayer = true;
+                                 
+                              // in all other layers, boundary cell belongs if it has a neighbor in the previous layer
+                           } else if (layer > 1 && technicalGrid.get(x+ix,y+iy,z+iz)->sysBoundaryLayer == layer - 1) {
+                              belongsToLayer = true;
+                           }
+                        }
+                     }
+                  }
+                  if (belongsToLayer) {
+                     technicalGrid.get(x,y,z)->sysBoundaryLayer = layer;
+                     noCellsInLayer = false;
+                  }
+               }               
+            }
+         }
+      }
+   }
 }
 
 void getFsGridMaxDt(FsGrid< fsgrids::technical, 2>& technicalGrid,
@@ -422,17 +484,21 @@ void getFsGridMaxDt(FsGrid< fsgrids::technical, 2>& technicalGrid,
       auto cellParams = mpiGrid[dccrgId]->get_cell_parameters();
       
       // Calculate the number of fsgrid cells we need to average into the current dccrg cell
-      int nCells = pow(pow(2,mpiGrid.mapping.get_maximum_refinement_level() - mpiGrid.mapping.get_refinement_level(dccrgId)),3);
+      int nCells = pow(pow(2,mpiGrid.get_maximum_refinement_level() - mpiGrid.get_refinement_level(dccrgId)),3);
 
       cellParams[CellParams::MAXFDT] = std::numeric_limits<Real>::max();
       //cellParams[CellParams::FSGRID_RANK] = 0;
       //cellParams[CellParams::FSGRID_BOUNDARYTYPE] = 0;
 
       for (int iCell = 0; iCell < nCells; ++iCell) {
-
+                 
          fsgrids::technical* thisCellData = transferBufferPointer[i] + iCell;
+
+         if (thisCellData->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY || thisCellData->sysBoundaryLayer == 1) {
          
-         cellParams[CellParams::MAXFDT] = std::min(cellParams[CellParams::MAXFDT],thisCellData->maxFsDt);         
+            cellParams[CellParams::MAXFDT] = std::min(cellParams[CellParams::MAXFDT],thisCellData->maxFsDt);
+            
+         }
          
          //TODO: Implement something for FSGRID_RANK and FSGRID_BOUNDARYTYPE
          //cellParams[CellParams::FSGRID_RANK] = thisCellData->fsGridRank;

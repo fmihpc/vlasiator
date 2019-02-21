@@ -495,6 +495,8 @@ int main(int argn,char* args[]) {
    setupTechnicalFsGrid(mpiGrid, cells, technicalGrid);
    technicalGrid.updateGhostCells();
 
+   technicalGrid.debugOutput([](const fsgrids::technical& a)->void{cerr << a.sysBoundaryLayer << " ";});
+   
    // WARNING this means moments and dt2 moments are the same here.
    feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid,false);
    feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid,false);
