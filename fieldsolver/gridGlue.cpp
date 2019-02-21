@@ -445,7 +445,11 @@ void setupTechnicalFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
                   }
                   if (belongsToLayer) {
                      technicalGrid.get(x,y,z)->sysBoundaryLayer = layer;
+                     if (layer > 1) {
+                        technicalGrid.get(x,y,z)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE;
+                     }
                      noCellsInLayer = false;
+                     //std::cout << "boundary layer at " << x << ", " << y << ", " << z << " = " << layer << std::endl;
                   }
                }               
             }
