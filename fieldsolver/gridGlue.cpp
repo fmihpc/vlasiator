@@ -350,7 +350,37 @@ void getDerivativesFromFsGrid(FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>,
 
    }
 }
-    
+
+bool belongsToLayer(const int layer, const int x, const int y, const int z,
+                    FsGrid< fsgrids::technical, 2>& technicalGrid) {
+
+   bool belongs = false;
+   
+   // loop through all neighbors (including diagonals)
+   for (int ix = -1; ix <= 1; ++ix) {
+      for (int iy = -1; iy <= 1; ++iy) {
+         for (int iz = -1; iz <= 1; ++iz) {
+            
+            // not strictly necessary but logically we should not consider the cell itself
+            // among its neighbors.
+            if( ix == 0 && iy == 0 && iz == 0 || !technicalGrid.get(x+ix,y+iy,z+iz)) {
+               continue;
+            }
+            
+            if(layer == 1 && technicalGrid.get(x+ix,y+iy,z+iz)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+               // in the first layer, boundary cell belongs if it has a non-boundary neighbor
+               belongs = true;
+               
+            } else if (layer > 1 && technicalGrid.get(x+ix,y+iy,z+iz)->sysBoundaryLayer == layer - 1) {
+               // in all other layers, boundary cell belongs if it has a neighbor in the previous layer
+               belongs = true;
+            }
+         }
+      }
+   }
+
+   return belongs;
+}
 
 void setupTechnicalFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const std::vector<CellID>& cells, FsGrid< fsgrids::technical, 2>& technicalGrid) {
@@ -391,7 +421,7 @@ void setupTechnicalFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    
    // Add layer calculation here. Include diagonals +-1.
 
-   // Initialize layer flags to 0.
+   // Initialize boundary layer flags to 0.
    for (int x = 0; x < localSize[0]; ++x) {
       for (int y = 0; y < localSize[1]; ++y) {
          for (int z = 0; z < localSize[2]; ++z) {
@@ -419,39 +449,17 @@ void setupTechnicalFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
                if(technicalGrid.get(x,y,z)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY &&
                   technicalGrid.get(x,y,z)->sysBoundaryLayer == 0) {
                   
-                  bool belongsToLayer = false;
-
-                  // loop through all neighbors (including diagonals)
-                  for (int ix = -1; ix <= 1; ++ix) {
-                     for (int iy = -1; iy <= 1; ++iy) {
-                        for (int iz = -1; iz <= 1; ++iz) {
-
-                           // not strictly necessary but logically we should not consider the cell itself
-                           // among its neighbors.
-                           if( ix == 0 && iy == 0 && iz == 0 || !technicalGrid.get(x+ix,y+iy,z+iz)) {
-                              continue;
-                           }
-                           
-                           // in the first layer, boundary cell belongs if it has a non-boundary neighbor
-                           if(layer == 1 && technicalGrid.get(x+ix,y+iy,z+iz)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-                              belongsToLayer = true;
-                                 
-                              // in all other layers, boundary cell belongs if it has a neighbor in the previous layer
-                           } else if (layer > 1 && technicalGrid.get(x+ix,y+iy,z+iz)->sysBoundaryLayer == layer - 1) {
-                              belongsToLayer = true;
-                           }
-                        }
-                     }
-                  }
-                  if (belongsToLayer) {
+                  if (belongsToLayer(layer, x, y, z, technicalGrid)) {
+                     
                      technicalGrid.get(x,y,z)->sysBoundaryLayer = layer;
+                     
                      if (layer > 1) {
                         technicalGrid.get(x,y,z)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE;
                      }
                      noCellsInLayer = false;
-                     //std::cout << "boundary layer at " << x << ", " << y << ", " << z << " = " << layer << std::endl;
+                     std::cout << "boundary layer at " << x << ", " << y << ", " << z << " = " << layer << std::endl;
                   }
-               }               
+               }
             }
          }
       }
