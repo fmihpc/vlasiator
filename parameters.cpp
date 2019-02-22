@@ -136,7 +136,7 @@ uint P::amrMaxVelocityRefLevel = 0;
 Realf P::amrRefineLimit = 1.0;
 Realf P::amrCoarsenLimit = 0.5;
 string P::amrVelRefCriterion = "";
-int P::amrMaxSpatialRefLevel = 1;
+int P::amrMaxSpatialRefLevel = 0;
 int P::amrBoxHalfWidthX = 1;
 int P::amrBoxHalfWidthY = 1;
 int P::amrBoxHalfWidthZ = 1;
@@ -229,7 +229,7 @@ bool Parameters::addParameters(){
    Readparameters::add("AMR.max_velocity_level","Maximum velocity mesh refinement level",(uint)0);
    Readparameters::add("AMR.refine_limit","If the refinement criterion function returns a larger value than this, block is refined",(Realf)1.0);
    Readparameters::add("AMR.coarsen_limit","If the refinement criterion function returns a smaller value than this, block can be coarsened",(Realf)0.5);
-   Readparameters::add("AMR.max_spatial_level","Maximum spatial mesh refinement level",(uint)1);
+   Readparameters::add("AMR.max_spatial_level","Maximum spatial mesh refinement level",(uint)0);
    Readparameters::add("AMR.box_half_width_x","Half width of the box that is refined (for testing)",(uint)1);
    Readparameters::add("AMR.box_half_width_y","Half width of the box that is refined (for testing)",(uint)1);
    Readparameters::add("AMR.box_half_width_z","Half width of the box that is refined (for testing)",(uint)1);
