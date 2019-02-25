@@ -462,14 +462,19 @@ namespace projects {
       
       std::vector<bool> refineSuccess;
 
-      for (double x = P::amrBoxCenterX - P::amrBoxHalfWidthX * P::dx_ini; x <= P::amrBoxCenterX + P::amrBoxHalfWidthX * P::dx_ini; x += P::dx_ini) {
-         for (double y = P::amrBoxCenterY - P::amrBoxHalfWidthY * P::dy_ini; y <= P::amrBoxCenterY + P::amrBoxHalfWidthY * P::dy_ini; y += P::dy_ini) {
-            for (double z = P::amrBoxCenterZ - P::amrBoxHalfWidthZ * P::dz_ini; z <= P::amrBoxCenterZ + P::amrBoxHalfWidthZ * P::dz_ini; z += P::dz_ini) {
+      // for (double x = P::amrBoxCenterX - P::amrBoxHalfWidthX * P::dx_ini; x <= P::amrBoxCenterX + P::amrBoxHalfWidthX * P::dx_ini; x += P::dx_ini) {
+      //    for (double y = P::amrBoxCenterY - P::amrBoxHalfWidthY * P::dy_ini; y <= P::amrBoxCenterY + P::amrBoxHalfWidthY * P::dy_ini; y += P::dy_ini) {
+      //       for (double z = P::amrBoxCenterZ - P::amrBoxHalfWidthZ * P::dz_ini; z <= P::amrBoxCenterZ + P::amrBoxHalfWidthZ * P::dz_ini; z += P::dz_ini) {
+
+      for (int i = 0; i < 2 * P::amrBoxHalfWidthX; ++i) {
+         for (int j = 0; j < 2 * P::amrBoxHalfWidthY; ++j) {
+            for (int k = 0; k < 2 * P::amrBoxHalfWidthZ; ++k) {
      
                std::array<double,3> xyz;
-               xyz[0] = x;
-               xyz[1] = y;
-               xyz[2] = z;
+               xyz[0] = P::amrBoxCenterX + (0.5 + i - P::amrBoxHalfWidthX) * P::dx_ini;
+               xyz[1] = P::amrBoxCenterY + (0.5 + j - P::amrBoxHalfWidthY) * P::dy_ini;
+               xyz[2] = P::amrBoxCenterZ + (0.5 + k - P::amrBoxHalfWidthZ) * P::dz_ini;
+               
                CellID myCell = mpiGrid.get_existing_cell(xyz);
                if (mpiGrid.refine_completely_at(xyz)) {
                   std::cout << "Rank " << myRank << " is refining cell " << myCell << std::endl;

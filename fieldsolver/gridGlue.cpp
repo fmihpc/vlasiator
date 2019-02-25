@@ -370,10 +370,12 @@ bool belongsToLayer(const int layer, const int x, const int y, const int z,
             if(layer == 1 && technicalGrid.get(x+ix,y+iy,z+iz)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
                // in the first layer, boundary cell belongs if it has a non-boundary neighbor
                belongs = true;
+               return belongs;
                
             } else if (layer > 1 && technicalGrid.get(x+ix,y+iy,z+iz)->sysBoundaryLayer == layer - 1) {
                // in all other layers, boundary cell belongs if it has a neighbor in the previous layer
                belongs = true;
+               return belongs;
             }
          }
       }
@@ -432,12 +434,12 @@ void setupTechnicalFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
 
    // begin with layer 1
    int layer = 0;
-   bool noCellsInLayer = false;
+   bool emptyLayer = false;
    const int MAX_NUMBER_OF_BOUNDARY_LAYERS = localSize[0]*localSize[1]*localSize[2];
 
    // loop through layers until an empty layer is encountered
-   while(!noCellsInLayer && layer < MAX_NUMBER_OF_BOUNDARY_LAYERS) {
-      noCellsInLayer = true;
+   while(!emptyLayer && layer < MAX_NUMBER_OF_BOUNDARY_LAYERS) {
+      emptyLayer = true;
       layer++;
       
       // loop through all cells in grid
@@ -456,14 +458,27 @@ void setupTechnicalFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
                      if (layer > 1) {
                         technicalGrid.get(x,y,z)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE;
                      }
-                     noCellsInLayer = false;
-                     std::cout << "boundary layer at " << x << ", " << y << ", " << z << " = " << layer << std::endl;
+                     emptyLayer = false;
                   }
                }
             }
          }
       }
    }
+
+   // for (int x = 0; x < localSize[0]; ++x) {
+   //    for (int y = 0; y < localSize[1]; ++y) {
+   //       for (int z = 0; z < localSize[2]; ++z) {
+   //          std::cout << "boundary layer+flag at " << x << ", " << y << ", " << z << " = ";
+   //          std::cout << technicalGrid.get(x,y,z)->sysBoundaryLayer;
+   //          std::cout << " ";
+   //          std::cout << technicalGrid.get(x,y,z)->sysBoundaryFlag;
+   //       }
+   //    }
+   // }   
+
+   
+   abort();
 }
 
 void getFsGridMaxDt(FsGrid< fsgrids::technical, 2>& technicalGrid,
