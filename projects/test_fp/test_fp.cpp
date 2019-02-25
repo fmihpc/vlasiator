@@ -270,20 +270,13 @@ namespace projects {
 
       // cout << "I am at line " << __LINE__ << " of " << __FILE__ <<  endl;
      if(myRank == MASTER_RANK) std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
-      
-      std::array<double,3> xyz_mid;
-      xyz_mid[0] = (P::xmax + P::xmin) / 2.0;
-      xyz_mid[1] = (P::ymax + P::ymin) / 2.0;
-      xyz_mid[2] = (P::zmax + P::zmin) / 2.0;
 
-      std::vector<bool> refineSuccess;
 
-      int boxHalfWidth = 1;
-      
-      for (double x = xyz_mid[0] - boxHalfWidth * P::dx_ini; x <= xyz_mid[0] + boxHalfWidth * P::dx_ini; x += P::dx_ini) {
-         for (double y = xyz_mid[1] - boxHalfWidth * P::dy_ini; y <= xyz_mid[1] + boxHalfWidth * P::dy_ini; y += P::dy_ini) {
-            for (double z = xyz_mid[2] - boxHalfWidth * P::dz_ini; z <= xyz_mid[2] + boxHalfWidth * P::dz_ini; z += P::dz_ini) {
-               auto xyz = xyz_mid;
+      for (double x = P::amrBoxCenterX - P::amrBoxHalfWidthX * P::dx_ini; x <= P::amrBoxCenterX + P::amrBoxHalfWidthX * P::dx_ini; x += 0.99 * P::dx_ini) {
+         for (double y = P::amrBoxCenterY - P::amrBoxHalfWidthY * P::dy_ini; y <= P::amrBoxCenterY + P::amrBoxHalfWidthY * P::dy_ini; y += 0.99 * P::dy_ini) {
+            for (double z = P::amrBoxCenterZ - P::amrBoxHalfWidthZ * P::dz_ini; z <= P::amrBoxCenterZ + P::amrBoxHalfWidthZ * P::dz_ini; z += 0.99 * P::dz_ini) {
+     
+               std::array<double,3> xyz;
                xyz[0] = x;
                xyz[1] = y;
                xyz[2] = z;
@@ -294,6 +287,7 @@ namespace projects {
             }
          }
       }
+
       std::vector<CellID> refinedCells = mpiGrid.stop_refining(true);      
       if(myRank == MASTER_RANK) std::cout << "Finished first level of refinement" << endl;
       if(refinedCells.size() > 0) {
@@ -302,7 +296,7 @@ namespace projects {
 	  std::cout << cellid << " ";
 	}
 	std::cout << endl;
-      }
+      }      
                   
       mpiGrid.balance_load();
 
