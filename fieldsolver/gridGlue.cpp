@@ -432,24 +432,21 @@ void setupTechnicalFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
       }
    }   
 
-   // begin with layer 1
-   int layer = 0;
-   bool emptyLayer = false;
-   const int MAX_NUMBER_OF_BOUNDARY_LAYERS = localSize[0]*localSize[1]*localSize[2];
+   // In dccrg initialization the max number of boundary layers is set to 3.
+   const int MAX_NUMBER_OF_BOUNDARY_LAYERS = 3 * (mpiGrid.get_maximum_refinement_level() + 1);
 
-   // loop through layers until an empty layer is encountered
-   while(!emptyLayer && layer < MAX_NUMBER_OF_BOUNDARY_LAYERS) {
-      emptyLayer = true;
-      layer++;
+   // loop through max number of layers
+   for(layer = 1, layer <= MAX_NUMBER_OF_BOUNDARY_LAYERS, ++layer) {
       
       // loop through all cells in grid
       for (int x = 0; x < localSize[0]; ++x) {
          for (int y = 0; y < localSize[1]; ++y) {
             for (int z = 0; z < localSize[2]; ++z) {
                
-               // examine all cells that belong to a boundary and have their layer set to the initial value 0
-               if(technicalGrid.get(x,y,z)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY &&
-                  technicalGrid.get(x,y,z)->sysBoundaryLayer == 0) {
+               // for the first layer, consider all cells that belong to a boundary, for other layers
+               // consider all cells that have not yet been labeled.
+               if((layer == 1 && technicalGrid.get(x,y,z)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) ||
+                  (layer > 1 && technicalGrid.get(x,y,z)->sysBoundaryLayer == 0)) {
                   
                   if (belongsToLayer(layer, x, y, z, technicalGrid)) {
                      
@@ -458,7 +455,6 @@ void setupTechnicalFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
                      if (layer > 1) {
                         technicalGrid.get(x,y,z)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE;
                      }
-                     emptyLayer = false;
                   }
                }
             }
@@ -476,9 +472,7 @@ void setupTechnicalFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    //       }
    //    }
    // }   
-
-   
-   abort();
+  
 }
 
 void getFsGridMaxDt(FsGrid< fsgrids::technical, 2>& technicalGrid,
