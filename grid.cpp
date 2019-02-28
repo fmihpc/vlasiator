@@ -163,6 +163,24 @@ void initializeGrid(
 
    phiprof::stop("Classify cells (sys boundary conditions)");
 
+   // Check refined cells do not touch boundary cells
+   phiprof::start("Check refined cells do not touch boundaries");
+   for (auto cellId : mpiGrid.get_cells()) {
+      SpatialCell* cell = mpiGrid[cellId];
+      if(cell &&
+         mpiGrid.get_refinement_level(cellId) > 0 &&
+         (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
+          cell->sysBoundaryLayer > 0)) {
+         cerr << "(MAIN) ERROR: Boundary cell " << cellId;
+         cerr << " (sysBoundaryFlag = " << cell->sysBoundaryFlag;
+         cerr << ", sysBoundaryLayer = " << cell->sysBoundaryLayer;
+         cerr << ") has refinement level " << mpiGrid.get_refinement_level(cellId);
+         cerr << endl;
+         exit(1);
+      }         
+   }
+   phiprof::stop("Check refined cells do not touch boundaries");
+   
    if (P::isRestart) {
       logFile << "Restart from "<< P::restartFileName << std::endl << writeVerbose;
       phiprof::start("Read restart");

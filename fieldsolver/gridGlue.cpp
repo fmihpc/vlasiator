@@ -436,7 +436,7 @@ void setupTechnicalFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    const int MAX_NUMBER_OF_BOUNDARY_LAYERS = 3 * (mpiGrid.get_maximum_refinement_level() + 1);
 
    // loop through max number of layers
-   for(layer = 1, layer <= MAX_NUMBER_OF_BOUNDARY_LAYERS, ++layer) {
+   for(uint layer = 1; layer <= MAX_NUMBER_OF_BOUNDARY_LAYERS; ++layer) {
       
       // loop through all cells in grid
       for (int x = 0; x < localSize[0]; ++x) {
