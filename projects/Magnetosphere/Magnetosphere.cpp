@@ -52,6 +52,11 @@ namespace projects {
       RP::add("Magnetosphere.dipoleType","0: Normal 3D dipole, 1: line-dipole for 2D polar simulations, 2: line-dipole with mirror, 3: 3D dipole with mirror", 0);
       RP::add("Magnetosphere.dipoleMirrorLocationX","x-coordinate of dipole Mirror", -1.0);
 
+      RP::add("Magnetosphere.refine_L2radius","Radius of L2-refined sphere", 9.5565e7); // 15 RE
+      RP::add("Magnetosphere.refine_L2tailthick","Thickness of L2-refined tail region", 3.1855e7); // 5 RE
+      RP::add("Magnetosphere.refine_L1radius","Radius of L1-refined sphere", 1.59275e8); // 25 RE
+      RP::add("Magnetosphere.refine_L1tailthick","Thickness of L1-refined tail region", 6.371e7); // 10 RE
+
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
@@ -121,6 +126,24 @@ namespace projects {
          exit(1);
       }
       if(!Readparameters::get("ionosphere.geometry", this->ionosphereGeometry)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+
+
+      if(!Readparameters::get("Magnetosphere.refine_L2radius", this->refine_L2radius)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("Magnetosphere.refine_L2tailthick", this->refine_L2tailthick)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("Magnetosphere.refine_L1radius", this->refine_L1radius)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("Magnetosphere.refine_L1tailthick", this->refine_L1tailthick)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
@@ -457,33 +480,84 @@ namespace projects {
 
      // mpiGrid.set_maximum_refinement_level(std::min(this->maxSpatialRefinementLevel, mpiGrid.mapping.get_maximum_refinement_level()));
 
+     std::vector<CellID> refinedCells;
+
       // cout << "I am at line " << __LINE__ << " of " << __FILE__ <<  endl;
      if(myRank == MASTER_RANK) std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
       
-      std::vector<bool> refineSuccess;
-
-      // for (double x = P::amrBoxCenterX - P::amrBoxHalfWidthX * P::dx_ini; x <= P::amrBoxCenterX + P::amrBoxHalfWidthX * P::dx_ini; x += P::dx_ini) {
-      //    for (double y = P::amrBoxCenterY - P::amrBoxHalfWidthY * P::dy_ini; y <= P::amrBoxCenterY + P::amrBoxHalfWidthY * P::dy_ini; y += P::dy_ini) {
-      //       for (double z = P::amrBoxCenterZ - P::amrBoxHalfWidthZ * P::dz_ini; z <= P::amrBoxCenterZ + P::amrBoxHalfWidthZ * P::dz_ini; z += P::dz_ini) {
-
-      for (int i = 0; i < 2 * P::amrBoxHalfWidthX; ++i) {
-         for (int j = 0; j < 2 * P::amrBoxHalfWidthY; ++j) {
-            for (int k = 0; k < 2 * P::amrBoxHalfWidthZ; ++k) {
+      // Calculate regions for refinement      
+      if (P::amrMaxSpatialRefLevel > 0) {
+	// L1 refinement. Does not touch a 2-cell thick (at L0) boundary layer.
+	for (uint i = 2; i < P::xcells_ini-2; ++i) {
+	  for (uint j = 2; j < P::ycells_ini-2; ++j) {
+	    for (uint k = 2; k < P::zcells_ini-2; ++k) {
      
-               std::array<double,3> xyz;
-               xyz[0] = P::amrBoxCenterX + (0.5 + i - P::amrBoxHalfWidthX) * P::dx_ini;
-               xyz[1] = P::amrBoxCenterY + (0.5 + j - P::amrBoxHalfWidthY) * P::dy_ini;
-               xyz[2] = P::amrBoxCenterZ + (0.5 + k - P::amrBoxHalfWidthZ) * P::dz_ini;
-               
-               CellID myCell = mpiGrid.get_existing_cell(xyz);
-               if (mpiGrid.refine_completely_at(xyz)) {
-                  std::cout << "Rank " << myRank << " is refining cell " << myCell << std::endl;
-               }
+	      std::array<double,3> xyz;
+	      xyz[0] = P::xmin + (i+0.5)*P::dx_ini;
+	      xyz[1] = P::ymin + (j+0.5)*P::dy_ini;
+	      xyz[2] = P::zmin + (k+0.5)*P::dz_ini;
+	      
+	      Real radius2 = (xyz[0]*xyz[0]+xyz[1]*xyz[1]+xyz[2]*xyz[2]);
+	      // Check if cell is within L1 sphere, or within L1 tail slice
+	      if ((radius2 < refine_L1radius*refine_L1radius) ||
+		  ((xyz[0] < 0) && (std::abs(xyz[1]) < refine_L1radius) && 
+		   (std::abs(xyz[2])<refine_L1tailthick)))
+		{
+		CellID myCell = mpiGrid.get_existing_cell(xyz);
+		// Check if the cell is tagged as do not compute
+		if (mpiGrid[myCell]->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE) {
+		  if (mpiGrid.refine_completely_at(xyz)) {
+		    std::cout << "Rank " << myRank << " is refining cell " << myCell << std::endl;
+		  }		  
+		}
+	      }
             }
-         }
+	  }
+	}
       }
-      std::vector<CellID> refinedCells = mpiGrid.stop_refining(true);      
+      refinedCells = mpiGrid.stop_refining(true);      
       if(myRank == MASTER_RANK) std::cout << "Finished first level of refinement" << endl;
+      if(refinedCells.size() > 0) {
+	std::cout << "Refined cells produced by rank " << myRank << " are: ";
+	for (auto cellid : refinedCells) {
+	  std::cout << cellid << " ";
+	}
+	std::cout << endl;
+      }
+
+      if (P::amrMaxSpatialRefLevel > 1) {
+	// L2 refinement. Does not touch a 5-cell thick (at L1) boundary layer.
+	// This means a boundary width of 2 L0 cells and one L1 cell in between
+	// as a buffer
+	for (uint i = 5; i < 2*P::xcells_ini-5; ++i) {
+	  for (uint j = 5; j < 2*P::ycells_ini-5; ++j) {
+	    for (uint k = 5; k < 2*P::zcells_ini-5; ++k) {
+     
+	      std::array<double,3> xyz;
+	      xyz[0] = P::xmin + (i+0.5)*0.5*P::dx_ini;
+	      xyz[1] = P::ymin + (j+0.5)*0.5*P::dy_ini;
+	      xyz[2] = P::zmin + (k+0.5)*0.5*P::dz_ini;
+	      
+	      Real radius2 = (xyz[0]*xyz[0]+xyz[1]*xyz[1]+xyz[2]*xyz[2]);
+	      // Check if cell is within L1 sphere, or within L1 tail slice
+	      if ((radius2 < refine_L2radius*refine_L2radius) ||
+		  ((xyz[0] < 0) && (std::abs(xyz[1]) < refine_L2radius) && 
+		   (std::abs(xyz[2])<refine_L2tailthick)))
+		{
+		CellID myCell = mpiGrid.get_existing_cell(xyz);
+		// Check if the cell is tagged as do not compute
+		if (mpiGrid[myCell]->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE) {
+		  if (mpiGrid.refine_completely_at(xyz)) {
+		    std::cout << "Rank " << myRank << " is refining cell " << myCell << std::endl;
+		  }		  
+		}
+	      }
+            }
+	  }
+	}
+      }
+      refinedCells = mpiGrid.stop_refining(true);      
+      if(myRank == MASTER_RANK) std::cout << "Finished second level of refinement" << endl;
       if(refinedCells.size() > 0) {
 	std::cout << "Refined cells produced by rank " << myRank << " are: ";
 	for (auto cellid : refinedCells) {
