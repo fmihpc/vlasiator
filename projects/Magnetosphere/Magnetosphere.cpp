@@ -455,16 +455,9 @@ namespace projects {
      int myRank;       
      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
-     // mpiGrid.set_maximum_refinement_level(std::min(this->maxSpatialRefinementLevel, mpiGrid.mapping.get_maximum_refinement_level()));
-
-      // cout << "I am at line " << __LINE__ << " of " << __FILE__ <<  endl;
      if(myRank == MASTER_RANK) std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
       
       std::vector<bool> refineSuccess;
-
-      // for (double x = P::amrBoxCenterX - P::amrBoxHalfWidthX * P::dx_ini; x <= P::amrBoxCenterX + P::amrBoxHalfWidthX * P::dx_ini; x += P::dx_ini) {
-      //    for (double y = P::amrBoxCenterY - P::amrBoxHalfWidthY * P::dy_ini; y <= P::amrBoxCenterY + P::amrBoxHalfWidthY * P::dy_ini; y += P::dy_ini) {
-      //       for (double z = P::amrBoxCenterZ - P::amrBoxHalfWidthZ * P::dz_ini; z <= P::amrBoxCenterZ + P::amrBoxHalfWidthZ * P::dz_ini; z += P::dz_ini) {
 
       for (int i = 0; i < 2 * P::amrBoxHalfWidthX; ++i) {
          for (int j = 0; j < 2 * P::amrBoxHalfWidthY; ++j) {
