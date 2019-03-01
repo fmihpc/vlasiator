@@ -325,6 +325,53 @@ bool SysBoundary::initSysBoundaries(
    return success;
 }
 
+bool SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
+
+   // Set is used to avoid storing duplicates - each cell only needs to be checked once
+   std::set<CellID> innerBoundaryCells;
+   std::set<CellID> outerBoundaryCells;
+
+   // Collect cells by sysboundarytype
+   for (auto cellId : mpiGrid.get_cells()) {
+      SpatialCell* cell = mpiGrid[cellId];
+      if (cell->sysBoundaryFlag == sysboundarytype::IONOSPHERE) {
+         innerBoundaryCells.insert(cellId);
+         if (cell->sysBoundaryLayer == 1) {
+            // Add non-boundary neighbors of layer 1 cells
+            auto* nbrPairVector = mpiGrid.get_neighbors_of(cellId,FULL_NEIGHBORHOOD_ID);
+            for (auto nbrPair : *nbrPairVector) {
+               innerBoundaryCells.insert(nbrPair.first);
+            }
+         }
+      } else if (cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY &&
+                 cell->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE) {
+         outerBoundaryCells.insert(cellId);
+         // Add non-boundary neighbors of outer boundary cells
+         auto* nbrPairVector = mpiGrid.get_neighbors_of(cellId,FULL_NEIGHBORHOOD_ID);
+         for (auto nbrPair : *nbrPairVector) {
+            outerBoundaryCells.insert(nbrPair.first);
+         }
+      }      
+   }
+
+   int refLvl0 = mpiGrid.get_refinement_level(*innerBoundaryCells.begin());
+   for (auto cellId : innerBoundaryCells) {
+      if (mpiGrid.get_refinement_level(cellId) != refLvl0) {
+         return false;
+      }
+   }
+
+   refLvl0 = mpiGrid.get_refinement_level(*outerBoundaryCells.begin());
+   for (auto cellId : outerBoundaryCells) {
+      if (mpiGrid.get_refinement_level(cellId) != refLvl0) {
+         return false;
+      }
+   }
+   
+   return true;
+}
+
+
 /*!\brief Classify all simulation cells with respect to the system boundary conditions.
  * 
  * Loops through all cells and and for each assigns the correct sysBoundaryFlag depending on
