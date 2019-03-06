@@ -230,13 +230,47 @@ bool readNBlocks(vlsv::ParallelReader& file,const std::string& meshName,
    // (This is *not* the physical coordinate bounding box.)
    uint64_t bbox[6];
    uint64_t* bbox_ptr = bbox;
-   list<pair<string,string> > attribs;
-   attribs.push_back(make_pair("mesh",meshName));
-   if (file.read("MESH_BBOX",attribs,0,6,bbox_ptr,false) == false) return false;
+   list<pair<string,string> > attribsIn;
+   map<string,string> attribsOut;
+   attribsIn.push_back(make_pair("mesh",meshName));
 
-   // Resize the output vector and init to zero values
-   const uint64_t N_spatialCells = bbox[0]*bbox[1]*bbox[2];
+   // Read number of domains and domain sizes
+   uint64_t N_domains;
+   file.getArrayAttributes("MESH_DOMAIN_SIZES",attribsIn,attribsOut);
+   auto it = attribsOut.find("arraysize");
+   if (it == attribsOut.end()) {
+      cerr << "VLSV\t\t ERROR: Array 'MESH_DOMAIN_SIZES' XML tag does not have attribute 'arraysize'" << endl;
+      return false;
+   } else {
+      cerr << "VLSV\t\t Mesh has " << it->second << " domains" << endl;
+      N_domains = atoi(it->second.c_str());
+   }
+
+   uint64_t N_spatialCells = 0;
+
+   if(N_domains == 1) {
+
+      if (file.read("MESH_BBOX",attribsIn,0,6,bbox_ptr,false) == false) return false;
+      
+      // Resize the output vector and init to zero values
+      N_spatialCells = bbox[0]*bbox[1]*bbox[2];
+
+   } else {
+
+      int64_t* domainInfo = NULL;
+      if (file.read("MESH_DOMAIN_SIZES",attribsIn,0,N_domains,domainInfo) == false) return false;
+
+      for (uint i_domain = 0; i_domain < N_domains; ++i_domain) {
+         
+         N_spatialCells += domainInfo[2*i_domain];
+
+      }
+
+   }
+
    nBlocks.resize(N_spatialCells);
+
+
    #pragma omp parallel for
    for (size_t i=0; i<nBlocks.size(); ++i) nBlocks[i] = 0;
 
@@ -250,12 +284,12 @@ bool readNBlocks(vlsv::ParallelReader& file,const std::string& meshName,
    // to all processes, and add the values to nBlocks
    uint64_t* buffer = new uint64_t[N_spatialCells];
    for (set<string>::const_iterator s=speciesNames.begin(); s!=speciesNames.end(); ++s) {      
-      attribs.clear();
-      attribs.push_back(make_pair("mesh",meshName));
-      attribs.push_back(make_pair("name",*s));
-      if (file.getArrayInfo("BLOCKSPERCELL",attribs,arraySize,vectorSize,dataType,byteSize) == false) return false;
+      attribsIn.clear();
+      attribsIn.push_back(make_pair("mesh",meshName));
+      attribsIn.push_back(make_pair("name",*s));
+      if (file.getArrayInfo("BLOCKSPERCELL",attribsIn,arraySize,vectorSize,dataType,byteSize) == false) return false;
 
-      if (file.read("BLOCKSPERCELL",attribs,0,arraySize,buffer) == false) {
+      if (file.read("BLOCKSPERCELL",attribsIn,0,arraySize,buffer) == false) {
          delete [] buffer; buffer = NULL;
          return false;
       }
@@ -873,6 +907,8 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       success = readNBlocks(file,meshName,nBlocks,MASTER_RANK,MPI_COMM_WORLD);
    }
 
+   exitOnError(success,"1 (RESTART) Cell migration failed",MPI_COMM_WORLD);
+
    //make sure all cells are empty, we will anyway overwrite everything and 
    // in that case moving cells is easier...
      {
@@ -908,14 +944,16 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          mpiGrid.pin(fileCells[i],newCellProcess);
       }
    }
-   
-   //Do initial load balance based on pins. Need to transfer at least sysboundaryflags
+
    SpatialCell::set_mpi_transfer_type(Transfer::ALL_SPATIAL_DATA);
-   mpiGrid.balance_load(false);
+
+   const bool useZoltan = false;
+
+   //Do initial load balance based on pins. Need to transfer at least sysboundaryflags
+   mpiGrid.balance_load(useZoltan);
 
    //update list of local gridcells
    recalculateLocalCellsCache();
-   //getObjectWrapper().meshData.reallocate();
 
    //get new list of local gridcells
    const vector<CellID>& gridCells = getLocalCells();
@@ -925,17 +963,66 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       mpiGrid.unpin(gridCells[i]);
    }
 
-   // Check for errors, has migration succeeded
-   if (localCells != gridCells.size() ) {
-      success=false;
-   }
-   if (success == true) {
-      for (uint64_t i=localCellStartOffset; i<localCellStartOffset+localCells; ++i) {
-         if(mpiGrid.is_local(fileCells[i]) == false) success = false;
+   exitOnError(success,"(RESTART) 2 Cell migration failed",MPI_COMM_WORLD);
+
+   int refCount = 0;
+   int refinedBdryCount = 0;
+   int coarseBdryCount = 0;
+   int totalCount = 0;
+   for (auto cellid : gridCells) {
+      SpatialCell* cell = mpiGrid[cellid];
+      if(mpiGrid.is_local(cellid)) {
+         refCount += mpiGrid.get_refinement_level(cellid);
+         if(cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+            if(mpiGrid.get_refinement_level(cellid) > 0) {
+               refinedBdryCount++;
+            } else {
+               coarseBdryCount++;
+            }
+         }
+         totalCount++;
       }
    }
 
-   exitOnError(success,"(RESTART) Cell migration failed",MPI_COMM_WORLD);
+   // Check for errors, has migration succeeded
+   if (localCells != gridCells.size() ) {
+      success=false;
+      cout << "Size check FAILED:  rank "<< myRank << ", localCells = " << localCells << " gridCells.size() = " << gridCells.size();
+   }  else {
+      cout << "Size check SUCCESS: rank "<< myRank << ", localCells = " << localCells << " gridCells.size() = " << gridCells.size();
+   }
+   cout << " numberOfRefinedBoundaryCells = " << refinedBdryCount;
+   cout << " numberOfCoarseBoundaryCells = " << coarseBdryCount;
+   cout << endl;
+
+//    MPI_Barrier(MPI_COMM_WORLD);
+
+//    for (int i = 0; i < processes; ++i) {
+//       MPI_Barrier(MPI_COMM_WORLD);
+//       if(i == myRank) {
+//          cout << "List of cellids for rank " << myRank << ": ";
+//          for (auto cellid : gridCells) {
+//             if(mpiGrid.is_local(cellid)) {
+//                cout << cellid << " ";
+//             }
+//          }
+//          cout << endl;
+//          cout << endl;
+//       } 
+//       MPI_Barrier(MPI_COMM_WORLD);
+//    }
+
+   exitOnError(success,"(RESTART) 3 Cell migration failed",MPI_COMM_WORLD);
+
+   if (success == true) {
+      for (uint64_t i=localCellStartOffset; i<localCellStartOffset+localCells; ++i) {
+         if(mpiGrid.is_local(fileCells[i]) == false) {
+            success = false;
+         }
+      }
+   }
+
+   exitOnError(success,"(RESTART) Cell 4 migration failed",MPI_COMM_WORLD);
 
    // Set cell coordinates based on cfg (mpigrid) information
    for (size_t i=0; i<gridCells.size(); ++i) {
