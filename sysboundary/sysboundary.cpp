@@ -331,39 +331,49 @@ bool SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::
    std::set<CellID> innerBoundaryCells;
    std::set<CellID> outerBoundaryCells;
 
+   int innerBoundaryRefLvl = -1;
+   int outerBoundaryRefLvl = -1;
+   
    // Collect cells by sysboundarytype
    for (auto cellId : mpiGrid.get_cells()) {
       SpatialCell* cell = mpiGrid[cellId];
-      if (cell->sysBoundaryFlag == sysboundarytype::IONOSPHERE) {
-         innerBoundaryCells.insert(cellId);
-         if (cell->sysBoundaryLayer == 1) {
-            // Add non-boundary neighbors of layer 1 cells
+      if(cell) {
+         if (cell->sysBoundaryFlag == sysboundarytype::IONOSPHERE) {
+            innerBoundaryCells.insert(cellId);
+            innerBoundaryRefLvl = mpiGrid.get_refinement_level(cellId);
+            if (cell->sysBoundaryLayer == 1) {
+               // Add non-boundary neighbors of layer 1 cells
+               auto* nbrPairVector = mpiGrid.get_neighbors_of(cellId,FULL_NEIGHBORHOOD_ID);
+               for (auto nbrPair : *nbrPairVector) {
+                  if(nbrPair.first != INVALID_CELLID) {
+                     innerBoundaryCells.insert(nbrPair.first);
+                  }
+               }
+            }
+         } else if (cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY &&
+                    cell->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE) {
+            outerBoundaryCells.insert(cellId);
+            outerBoundaryRefLvl = mpiGrid.get_refinement_level(cellId);
+            // Add non-boundary neighbors of outer boundary cells
             auto* nbrPairVector = mpiGrid.get_neighbors_of(cellId,FULL_NEIGHBORHOOD_ID);
             for (auto nbrPair : *nbrPairVector) {
-               innerBoundaryCells.insert(nbrPair.first);
+               if(nbrPair.first != INVALID_CELLID) {
+                  outerBoundaryCells.insert(nbrPair.first);
+               }
             }
          }
-      } else if (cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY &&
-                 cell->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE) {
-         outerBoundaryCells.insert(cellId);
-         // Add non-boundary neighbors of outer boundary cells
-         auto* nbrPairVector = mpiGrid.get_neighbors_of(cellId,FULL_NEIGHBORHOOD_ID);
-         for (auto nbrPair : *nbrPairVector) {
-            outerBoundaryCells.insert(nbrPair.first);
-         }
-      }      
+      }
    }
 
-   int refLvl0 = mpiGrid.get_refinement_level(*innerBoundaryCells.begin());
    for (auto cellId : innerBoundaryCells) {
-      if (mpiGrid.get_refinement_level(cellId) != refLvl0) {
+      if (cellId != INVALID_CELLID && mpiGrid.get_refinement_level(cellId) != innerBoundaryRefLvl) {
          return false;
       }
    }
 
-   refLvl0 = mpiGrid.get_refinement_level(*outerBoundaryCells.begin());
    for (auto cellId : outerBoundaryCells) {
-      if (mpiGrid.get_refinement_level(cellId) != refLvl0) {
+      if (cellId != INVALID_CELLID && mpiGrid.get_refinement_level(cellId) != outerBoundaryRefLvl) {
+         // cout << "Failed refinement check " << cellId << " " << mpiGrid.get_refinement_level(cellId) << " "<< outerBoundaryRefLvl << endl;
          return false;
       }
    }
