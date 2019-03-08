@@ -227,27 +227,25 @@ namespace projects {
       centerPoints.push_back(point);
       return centerPoints;
    }
-   
-   bool Flowthrough::refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
 
-     int myRank;
+   bool Flowthrough::refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
+ 
+     int myRank;       
      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
-     // mpiGrid.set_maximum_refinement_level(std::min(this->maxSpatialRefinementLevel, mpiGrid.mapping.get_maximum_refinement_level()));
-
-      // cout << "I am at line " << __LINE__ << " of " << __FILE__ <<  endl;
      if(myRank == MASTER_RANK) std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
-
-      std::vector<bool> refineSuccess;
       
-      for (double x = P::amrBoxCenterX - P::amrBoxHalfWidthX * P::dx_ini; x <= P::amrBoxCenterX + P::amrBoxHalfWidthX * P::dx_ini; x += P::dx_ini) {
-         for (double y = P::amrBoxCenterY - P::amrBoxHalfWidthY * P::dy_ini; y <= P::amrBoxCenterY + P::amrBoxHalfWidthY * P::dy_ini; y += P::dy_ini) {
-            for (double z = P::amrBoxCenterZ - P::amrBoxHalfWidthZ * P::dz_ini; z <= P::amrBoxCenterZ + P::amrBoxHalfWidthZ * P::dz_ini; z += P::dz_ini) {
+      std::vector<bool> refineSuccess;
+
+      for (int i = 0; i < 2 * P::amrBoxHalfWidthX; ++i) {
+         for (int j = 0; j < 2 * P::amrBoxHalfWidthY; ++j) {
+            for (int k = 0; k < 2 * P::amrBoxHalfWidthZ; ++k) {
      
                std::array<double,3> xyz;
-               xyz[0] = x;
-               xyz[1] = y;
-               xyz[2] = z;
+               xyz[0] = P::amrBoxCenterX + (0.5 + i - P::amrBoxHalfWidthX) * P::dx_ini;
+               xyz[1] = P::amrBoxCenterY + (0.5 + j - P::amrBoxHalfWidthY) * P::dy_ini;
+               xyz[2] = P::amrBoxCenterZ + (0.5 + k - P::amrBoxHalfWidthZ) * P::dz_ini;
+               
                CellID myCell = mpiGrid.get_existing_cell(xyz);
                if (mpiGrid.refine_completely_at(xyz)) {
                   std::cout << "Rank " << myRank << " is refining cell " << myCell << std::endl;
@@ -255,18 +253,49 @@ namespace projects {
             }
          }
       }
-      std::vector<CellID> refinedCells = mpiGrid.stop_refining(true);
+      std::vector<CellID> refinedCells = mpiGrid.stop_refining(true);      
       if(myRank == MASTER_RANK) std::cout << "Finished first level of refinement" << endl;
       if(refinedCells.size() > 0) {
-        std::cout << "Refined cells produced by rank " << myRank << " are: ";
-        for (auto cellid : refinedCells) {
-          std::cout << cellid << " ";
-        }
-        std::cout << endl;
+	std::cout << "Refined cells produced by rank " << myRank << " are: ";
+	for (auto cellid : refinedCells) {
+	  std::cout << cellid << " ";
+	}
+	std::cout << endl;
       }
-
+                  
       mpiGrid.balance_load();
 
+      if(mpiGrid.get_maximum_refinement_level() > 1) {
+
+         for (int i = 0; i < 0.5 * P::amrBoxHalfWidthX; ++i) {
+            for (int j = 0; j < 0.5 * P::amrBoxHalfWidthY; ++j) {
+               for (int k = 0; k < 0.5 * P::amrBoxHalfWidthZ; ++k) {
+                  
+                  std::array<double,3> xyz;
+                  xyz[0] = P::amrBoxCenterX + (0.5 + i - 0.5 * P::amrBoxHalfWidthX) * P::dx_ini;
+                  xyz[1] = P::amrBoxCenterY + (0.5 + j - 0.5 * P::amrBoxHalfWidthY) * P::dy_ini;
+                  xyz[2] = P::amrBoxCenterZ + (0.5 + k - 0.5 * P::amrBoxHalfWidthZ) * P::dz_ini;
+                  
+                  CellID myCell = mpiGrid.get_existing_cell(xyz);
+                  if (mpiGrid.refine_completely_at(xyz)) {
+                     std::cout << "Rank " << myRank << " is refining cell " << myCell << std::endl;
+                  }
+               }
+            }
+         }
+         
+         std::vector<CellID> refinedCells = mpiGrid.stop_refining(true);      
+         if(myRank == MASTER_RANK) std::cout << "Finished second level of refinement" << endl;
+         if(refinedCells.size() > 0) {
+            std::cout << "Refined cells produced by rank " << myRank << " are: ";
+            for (auto cellid : refinedCells) {
+               std::cout << cellid << " ";
+            }
+            std::cout << endl;
+         }                  
+         mpiGrid.balance_load();
+      }
+      
       return true;
    }
 

@@ -491,6 +491,9 @@ namespace projects {
 	for (uint i = 2; i < P::xcells_ini-2; ++i) {
 	  for (uint j = 2; j < P::ycells_ini-2; ++j) {
 	    for (uint k = 2; k < P::zcells_ini-2; ++k) {
+      // for (int i = 0; i < 2 * P::amrBoxHalfWidthX; ++i) {
+      //    for (int j = 0; j < 2 * P::amrBoxHalfWidthY; ++j) {
+      //       for (int k = 0; k < 2 * P::amrBoxHalfWidthZ; ++k) {
      
 	      std::array<double,3> xyz;
 	      xyz[0] = P::xmin + (i+0.5)*P::dx_ini;

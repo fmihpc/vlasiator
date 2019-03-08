@@ -436,7 +436,7 @@ void setupTechnicalFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    const int MAX_NUMBER_OF_BOUNDARY_LAYERS = 3 * (mpiGrid.get_maximum_refinement_level() + 1);
 
    // loop through max number of layers
-   for(layer = 1, layer <= MAX_NUMBER_OF_BOUNDARY_LAYERS, ++layer) {
+   for(uint layer = 1; layer <= MAX_NUMBER_OF_BOUNDARY_LAYERS; ++layer) {
       
       // loop through all cells in grid
       for (int x = 0; x < localSize[0]; ++x) {
@@ -471,8 +471,8 @@ void setupTechnicalFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    //          std::cout << technicalGrid.get(x,y,z)->sysBoundaryFlag;
    //       }
    //    }
-   // }   
-  
+   // }     
+   //abort();
 }
 
 void getFsGridMaxDt(FsGrid< fsgrids::technical, 2>& technicalGrid,
@@ -537,17 +537,17 @@ Map from dccrg cell id to fsgrid global cell ids when they aren't identical (ie.
 std::vector<CellID> mapDccrgIdToFsGridGlobalID(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 					       CellID dccrgID) {
 
-   const auto cellLength = mpiGrid.mapping.get_cell_length_in_indices(dccrgID);
-   const auto gridLength = mpiGrid.length.get();
    const auto maxRefLvl  = mpiGrid.get_maximum_refinement_level();
+   const auto refLvl = mpiGrid.get_refinement_level(dccrgID);
+   const auto cellLength = pow(2,maxRefLvl-refLvl);
    const auto topLeftIndices = mpiGrid.mapping.get_indices(dccrgID);
    std::array<int,3> indices;
    std::vector<std::array<int,3>> allIndices;
 
    std::array<int,3> fsgridDims;
-   fsgridDims[0] = P::xcells_ini * (mpiGrid.get_maximum_refinement_level() + 1);
-   fsgridDims[1] = P::ycells_ini * (mpiGrid.get_maximum_refinement_level() + 1);
-   fsgridDims[2] = P::zcells_ini * (mpiGrid.get_maximum_refinement_level() + 1);
+   fsgridDims[0] = P::xcells_ini * pow(2,mpiGrid.get_maximum_refinement_level());
+   fsgridDims[1] = P::ycells_ini * pow(2,mpiGrid.get_maximum_refinement_level());
+   fsgridDims[2] = P::zcells_ini * pow(2,mpiGrid.get_maximum_refinement_level());
    
    for (uint k = 0; k < cellLength; ++k) {
       for (uint j = 0; j < cellLength; ++j) {

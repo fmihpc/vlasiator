@@ -163,6 +163,16 @@ void initializeGrid(
 
    phiprof::stop("Classify cells (sys boundary conditions)");
 
+   // Check refined cells do not touch boundary cells
+   phiprof::start("Check boundary refinement");
+
+   if(!sysBoundaries.checkRefinement(mpiGrid)) {
+      cerr << "(MAIN) ERROR: Boundary cells must have identical refinement level " << endl;
+      exit(1);
+   }
+         
+   phiprof::stop("Check boundary refinement");
+   
    if (P::isRestart) {
       logFile << "Restart from "<< P::restartFileName << std::endl << writeVerbose;
       phiprof::start("Read restart");
