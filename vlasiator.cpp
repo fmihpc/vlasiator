@@ -401,9 +401,6 @@ int main(int argn,char* args[]) {
    std::array<bool,3> periodicity{mpiGrid.topology.is_periodic(0),
                                   mpiGrid.topology.is_periodic(1),
                                   mpiGrid.topology.is_periodic(2)};
-
-   const int fsGridSize = (fsGridDimensions[0] + 4) * (fsGridDimensions[1] + 4) * (fsGridDimensions[2] + 4);
-   // setting to 0, values greater than 2^21 cause overflows on cray-mpich
    
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> perBGrid(fsGridDimensions, comm, periodicity);
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> perBDt2Grid(fsGridDimensions, comm, periodicity);
