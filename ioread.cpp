@@ -907,8 +907,6 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       success = readNBlocks(file,meshName,nBlocks,MASTER_RANK,MPI_COMM_WORLD);
    }
 
-   exitOnError(success,"1 (RESTART) Cell migration failed",MPI_COMM_WORLD);
-
    //make sure all cells are empty, we will anyway overwrite everything and 
    // in that case moving cells is easier...
      {
@@ -947,10 +945,8 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 
    SpatialCell::set_mpi_transfer_type(Transfer::ALL_SPATIAL_DATA);
 
-   const bool useZoltan = false;
-
    //Do initial load balance based on pins. Need to transfer at least sysboundaryflags
-   mpiGrid.balance_load(useZoltan);
+   mpiGrid.balance_load(false);
 
    //update list of local gridcells
    recalculateLocalCellsCache();
@@ -963,56 +959,10 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       mpiGrid.unpin(gridCells[i]);
    }
 
-   exitOnError(success,"(RESTART) 2 Cell migration failed",MPI_COMM_WORLD);
-
-   int refCount = 0;
-   int refinedBdryCount = 0;
-   int coarseBdryCount = 0;
-   int totalCount = 0;
-   for (auto cellid : gridCells) {
-      SpatialCell* cell = mpiGrid[cellid];
-      if(mpiGrid.is_local(cellid)) {
-         refCount += mpiGrid.get_refinement_level(cellid);
-         if(cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
-            if(mpiGrid.get_refinement_level(cellid) > 0) {
-               refinedBdryCount++;
-            } else {
-               coarseBdryCount++;
-            }
-         }
-         totalCount++;
-      }
-   }
-
    // Check for errors, has migration succeeded
    if (localCells != gridCells.size() ) {
       success=false;
-      cout << "Size check FAILED:  rank "<< myRank << ", localCells = " << localCells << " gridCells.size() = " << gridCells.size();
-   }  else {
-      cout << "Size check SUCCESS: rank "<< myRank << ", localCells = " << localCells << " gridCells.size() = " << gridCells.size();
-   }
-   cout << " numberOfRefinedBoundaryCells = " << refinedBdryCount;
-   cout << " numberOfCoarseBoundaryCells = " << coarseBdryCount;
-   cout << endl;
-
-//    MPI_Barrier(MPI_COMM_WORLD);
-
-//    for (int i = 0; i < processes; ++i) {
-//       MPI_Barrier(MPI_COMM_WORLD);
-//       if(i == myRank) {
-//          cout << "List of cellids for rank " << myRank << ": ";
-//          for (auto cellid : gridCells) {
-//             if(mpiGrid.is_local(cellid)) {
-//                cout << cellid << " ";
-//             }
-//          }
-//          cout << endl;
-//          cout << endl;
-//       } 
-//       MPI_Barrier(MPI_COMM_WORLD);
-//    }
-
-   exitOnError(success,"(RESTART) 3 Cell migration failed",MPI_COMM_WORLD);
+   } 
 
    if (success == true) {
       for (uint64_t i=localCellStartOffset; i<localCellStartOffset+localCells; ++i) {
@@ -1022,7 +972,7 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       }
    }
 
-   exitOnError(success,"(RESTART) Cell 4 migration failed",MPI_COMM_WORLD);
+   exitOnError(success,"(RESTART) Cell migration failed",MPI_COMM_WORLD);
 
    // Set cell coordinates based on cfg (mpigrid) information
    for (size_t i=0; i<gridCells.size(); ++i) {
