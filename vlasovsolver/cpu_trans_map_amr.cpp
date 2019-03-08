@@ -362,7 +362,8 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
 
       vector<CellID> localIndices;
       auto indices = grid.mapping.get_indices(id);
-      auto length = grid.mapping.get_cell_length_in_indices(grid.mapping.get_level_0_parent(id));
+      //auto length = grid.mapping.get_cell_length_in_indices(grid.mapping.get_level_0_parent(id));
+      int length = pow(2,grid.get_maximum_refinement_level() - grid.get_refinement_level(id));
       for (auto index : indices) {
          localIndices.push_back(index % length);
       }
