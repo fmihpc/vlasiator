@@ -509,9 +509,9 @@ namespace projects {
 		CellID myCell = mpiGrid.get_existing_cell(xyz);
 		// Check if the cell is tagged as do not compute
 		if (mpiGrid[myCell]->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE) {
-		  if (mpiGrid.refine_completely_at(xyz)) {
-		    std::cout << "Rank " << myRank << " is refining cell " << myCell << std::endl;
-		  }		  
+		  if (!mpiGrid.refine_completely_at(xyz)) {
+                     std::cerr << "ERROR: Failed to refine cell " << myCell << endl;
+		  }
 		}
 	      }
             }
@@ -521,11 +521,7 @@ namespace projects {
       refinedCells = mpiGrid.stop_refining(true);      
       if(myRank == MASTER_RANK) std::cout << "Finished first level of refinement" << endl;
       if(refinedCells.size() > 0) {
-	std::cout << "Refined cells produced by rank " << myRank << " are: ";
-	for (auto cellid : refinedCells) {
-	  std::cout << cellid << " ";
-	}
-	std::cout << endl;
+         std::cout << "Rank " << myRank << " refined " << refinedCells.size() << " cells. " << std::endl;
       }
 
       if (P::amrMaxSpatialRefLevel > 1) {
@@ -550,8 +546,8 @@ namespace projects {
 		CellID myCell = mpiGrid.get_existing_cell(xyz);
 		// Check if the cell is tagged as do not compute
 		if (mpiGrid[myCell]->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE) {
-		  if (mpiGrid.refine_completely_at(xyz)) {
-		    std::cout << "Rank " << myRank << " is refining cell " << myCell << std::endl;
+		  if (!mpiGrid.refine_completely_at(xyz)) {
+                     std::cerr << "ERROR: Failed to refine cell " << myCell << endl;
 		  }		  
 		}
 	      }
@@ -562,13 +558,9 @@ namespace projects {
       refinedCells = mpiGrid.stop_refining(true);      
       if(myRank == MASTER_RANK) std::cout << "Finished second level of refinement" << endl;
       if(refinedCells.size() > 0) {
-	std::cout << "Refined cells produced by rank " << myRank << " are: ";
-	for (auto cellid : refinedCells) {
-	  std::cout << cellid << " ";
-	}
-	std::cout << endl;
+         std::cout << "Rank " << myRank << " refined " << refinedCells.size() << " cells. " << std::endl;
       }
-                  
+
       mpiGrid.balance_load();
 
       return true;
