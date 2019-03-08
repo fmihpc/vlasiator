@@ -471,8 +471,8 @@ void setupTechnicalFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    //          std::cout << technicalGrid.get(x,y,z)->sysBoundaryFlag;
    //       }
    //    }
-   // }   
-  
+   // }     
+   //abort();
 }
 
 void getFsGridMaxDt(FsGrid< fsgrids::technical, 2>& technicalGrid,
