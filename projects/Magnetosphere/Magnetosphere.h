@@ -80,6 +80,12 @@ namespace projects {
       Real dipoleScalingFactor;
       Real dipoleMirrorLocationX;
       uint dipoleType;
+
+      Real refine_L2radius;
+      Real refine_L2tailthick;
+      Real refine_L1radius;
+      Real refine_L1tailthick;
+
       std::vector<MagnetosphereSpeciesParameters> speciesParams;
    }; // class Magnetosphere
 } // namespace projects
