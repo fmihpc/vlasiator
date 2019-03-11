@@ -507,12 +507,9 @@ namespace projects {
 		   (std::abs(xyz[2])<refine_L1tailthick)))
 		{
 		CellID myCell = mpiGrid.get_existing_cell(xyz);
-		// Check if the cell is tagged as do not compute
-		if (mpiGrid[myCell]->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE) {
-		  if (!mpiGrid.refine_completely_at(xyz)) {
-                     std::cerr << "ERROR: Failed to refine cell " << myCell << endl;
-		  }
-		}
+                if (!mpiGrid.refine_completely_at(xyz)) {
+                   std::cerr << "ERROR: Failed to refine cell " << myCell << endl;
+                }
 	      }
             }
 	  }
