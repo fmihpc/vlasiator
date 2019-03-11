@@ -233,9 +233,9 @@ bool Parameters::addParameters(){
    Readparameters::add("AMR.box_half_width_x","Half width of the box that is refined (for testing)",(uint)1);
    Readparameters::add("AMR.box_half_width_y","Half width of the box that is refined (for testing)",(uint)1);
    Readparameters::add("AMR.box_half_width_z","Half width of the box that is refined (for testing)",(uint)1);
-   Readparameters::add("AMR.box_center_x","x coordinate of the center of the box that is refined (for testing)",(uint)1);
-   Readparameters::add("AMR.box_center_y","y coordinate of the center of the box that is refined (for testing)",(uint)1);
-   Readparameters::add("AMR.box_center_z","z coordinate of the center of the box that is refined (for testing)",(uint)1);
+   Readparameters::add("AMR.box_center_x","x coordinate of the center of the box that is refined (for testing)",0.0);
+   Readparameters::add("AMR.box_center_y","y coordinate of the center of the box that is refined (for testing)",0.0);
+   Readparameters::add("AMR.box_center_z","z coordinate of the center of the box that is refined (for testing)",0.0);
    return true;
 }
 
