@@ -358,7 +358,10 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
    // use the order or the children of the parent cell to figure out which
    // corner we are in.
    // Maybe you could use physical coordinates here?
-   if( startingRefLvl > path.size() ) {
+
+   int startingPathSize = path.size();
+   auto it = path.end();
+   if( startingRefLvl > startingPathSize ) {
 
       CellID myId = startingId;
       
@@ -384,12 +387,7 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
             step = 3;
          }
 
-         if(path.size() == 0) {
-            path.push_back(step);
-         } else {
-            auto it = path.end();
-            path.insert(it - 1, step);
-         }
+         it = path.insert(it, step);
 
          myId = parentId;
       }
