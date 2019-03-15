@@ -349,7 +349,7 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
    CellID nextNeighbor;
    CellID id = startingId;
    uint startingRefLvl = grid.get_refinement_level(id);
-
+   bool periodic = false;   
    if( ids.size() == 0 )
       ids.push_back(startingId);
 
@@ -360,51 +360,40 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
    // Maybe you could use physical coordinates here?
    if( startingRefLvl > path.size() ) {
 
-      vector<CellID> localIndices;
-      auto indices = grid.mapping.get_indices(id);
-      //auto length = grid.mapping.get_cell_length_in_indices(grid.mapping.get_level_0_parent(id));
-      int length = pow(2,grid.get_maximum_refinement_level() - grid.get_refinement_level(id));
-      for (auto index : indices) {
-         localIndices.push_back(index % length);
-      }
+      CellID myId = startingId;
       
-      for ( uint i = path.size(); i < startingRefLvl; i++) {         
+      for ( uint i = path.size(); i < startingRefLvl; ++i) {
 
-         vector<CellID> localIndicesOnRefLvl;
+         CellID parentId = grid.get_parent(myId);
          
-         for ( auto lid : localIndices ) {
-            localIndicesOnRefLvl.push_back( lid  / pow(2, startingRefLvl - (i + 1) ));
-         }
+         auto myCoords = grid.get_center(myId);
+         auto parentCoords = grid.get_center(parentId);
 
-         int i1 = 0;
-         int i2 = 0;
+         int ix = (dimension + 1) % 3;
+         int iy = (dimension + 2) % 3;
+
+         int step = -1;
          
-         switch( dimension ) {
-         case 0:
-            i1 = localIndicesOnRefLvl.at(1);
-            i2 = localIndicesOnRefLvl.at(2);
-            break;
-         case 1:
-            i1 = localIndicesOnRefLvl.at(0);
-            i2 = localIndicesOnRefLvl.at(2);
-            break;
-         case 2:
-            i1 = localIndicesOnRefLvl.at(0);
-            i2 = localIndicesOnRefLvl.at(1);
-            break;
+         if        (myCoords.at(ix) < parentCoords.at(ix) && myCoords.at(iy) < parentCoords.at(iy)) {
+            step = 0;
+         } else if (myCoords.at(ix) > parentCoords.at(ix) && myCoords.at(iy) < parentCoords.at(iy)) {
+            step = 1;
+         } else if (myCoords.at(ix) < parentCoords.at(ix) && myCoords.at(iy) > parentCoords.at(iy)) {
+            step = 2;
+         } else if (myCoords.at(ix) > parentCoords.at(ix) && myCoords.at(iy) > parentCoords.at(iy)) {
+            step = 3;
          }
 
-         if( i1 > 1 || i2 > 1) {
-            std::cout << __FILE__ << " " << __LINE__ << " Something went wrong, i1 = " << i1 << ", i2 = " << i2 << std::endl;
+         if(path.size() == 0) {
+            path.push_back(step);
+         } else {
+            auto it = path.end();
+            path.insert(it - 1, step);
          }
 
-         path.push_back(i1 + 2 * i2);
+         myId = parentId;
       }
    }
-
-   id = startingId;
-
-   bool periodic = false;
    
    while (id != INVALID_CELLID) {
 
@@ -510,34 +499,11 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
    // Get the x,y - coordinates of the pencil (in the direction perpendicular to the pencil)
    const auto coordinates = grid.get_center(ids[0]);
    double x,y;
-   uint ix,iy,iz;
+   uint ix,iy;
+
+   ix = (dimension + 1) % 3;
+   iy = (dimension + 2) % 3;
       
-   switch(dimension) {
-   case 0: 
-      ix = 1;
-      iy = 2;
-      iz = 0;
-      break;
-   
-   case 1: 
-      ix = 2;
-      iy = 0;
-      iz = 1;
-      break;
-   
-   case 2: 
-      ix = 0;
-      iy = 1;
-      iz = 2;
-      break;
-   
-   default: 
-      ix = 0;
-      iy = 1;
-      iz = 2;
-      break;   
-   }
-   
    x = coordinates[ix];
    y = coordinates[iy];
 
@@ -902,7 +868,7 @@ bool checkPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       
          int myCount = std::count(pencils.ids.begin(), pencils.ids.end(), id);
          
-         if( myCount == 0 || (myCount != 1 && myCount % 4 != 0)) {        
+         if( myCount == 0 ) {
             
             std::cerr << "ERROR: Cell ID " << id << " Appears in pencils " << myCount << " times!"<< std::endl;            
             correct = false;
