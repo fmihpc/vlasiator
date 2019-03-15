@@ -1302,7 +1302,7 @@ int get_sibling_index(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
   \par dimension: 0,1,2 for x,y,z
   \par direction: 1 for + dir, -1 for - dir
 */
-void update_remote_mapping_contribution(
+void update_remote_mapping_contribution_amr(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const uint dimension,
    int direction,
@@ -1353,7 +1353,7 @@ void update_remote_mapping_contribution(
    }
 
    // MPI_Barrier(MPI_COMM_WORLD);
-   // cout << "begin update_remote_mapping_contribution, dimension = " << dimension << ", direction = " << direction << endl;
+   // cout << "begin update_remote_mapping_contribution_amr, dimension = " << dimension << ", direction = " << direction << endl;
    // MPI_Barrier(MPI_COMM_WORLD);
 
    // Initialize remote cells
@@ -1664,7 +1664,7 @@ void update_remote_mapping_contribution(
    }
 
    // MPI_Barrier(MPI_COMM_WORLD);
-   // cout << "end update_remote_mapping_contribution, dimension = " << dimension << ", direction = " << direction << endl;
+   // cout << "end update_remote_mapping_contribution_amr, dimension = " << dimension << ", direction = " << direction << endl;
    // MPI_Barrier(MPI_COMM_WORLD);
 
 }

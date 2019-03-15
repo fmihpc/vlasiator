@@ -94,8 +94,8 @@ void calculateSpatialTranslation(
 
       trans_timer=phiprof::initializeTimer("update_remote-z","MPI");
       phiprof::start("update_remote-z");
-      update_remote_mapping_contribution(mpiGrid, 2,+1,popID);
-      update_remote_mapping_contribution(mpiGrid, 2,-1,popID);
+      update_remote_mapping_contribution_amr(mpiGrid, 2,+1,popID);
+      update_remote_mapping_contribution_amr(mpiGrid, 2,-1,popID);
       phiprof::stop("update_remote-z");
 
    }
@@ -117,8 +117,8 @@ void calculateSpatialTranslation(
 
       trans_timer=phiprof::initializeTimer("update_remote-x","MPI");
       phiprof::start("update_remote-x");
-      update_remote_mapping_contribution(mpiGrid, 0,+1,popID);
-      update_remote_mapping_contribution(mpiGrid, 0,-1,popID);
+      update_remote_mapping_contribution_amr(mpiGrid, 0,+1,popID);
+      update_remote_mapping_contribution_amr(mpiGrid, 0,-1,popID);
       phiprof::stop("update_remote-x");
 
    }
@@ -140,8 +140,8 @@ void calculateSpatialTranslation(
       
       trans_timer=phiprof::initializeTimer("update_remote-y","MPI");
       phiprof::start("update_remote-y");
-      update_remote_mapping_contribution(mpiGrid, 1,+1,popID);
-      update_remote_mapping_contribution(mpiGrid, 1,-1,popID);
+      update_remote_mapping_contribution_amr(mpiGrid, 1,+1,popID);
+      update_remote_mapping_contribution_amr(mpiGrid, 1,-1,popID);
       phiprof::stop("update_remote-y");
      
    }
