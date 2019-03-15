@@ -267,9 +267,9 @@ namespace projects {
 
       if(mpiGrid.get_maximum_refinement_level() > 1) {
 
-         for (int i = 0; i < 0.5 * P::amrBoxHalfWidthX; ++i) {
-            for (int j = 0; j < 0.5 * P::amrBoxHalfWidthY; ++j) {
-               for (int k = 0; k < 0.5 * P::amrBoxHalfWidthZ; ++k) {
+         for (int i = 0; i < P::amrBoxHalfWidthX; ++i) {
+            for (int j = 0; j < P::amrBoxHalfWidthY; ++j) {
+               for (int k = 0; k < P::amrBoxHalfWidthZ; ++k) {
                   
                   std::array<double,3> xyz;
                   xyz[0] = P::amrBoxCenterX + (0.5 + i - 0.5 * P::amrBoxHalfWidthX) * P::dx_ini;
