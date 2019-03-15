@@ -96,24 +96,25 @@ struct setOfPencils {
       return idsOut;
    }
 
-   // Split one pencil into four pencils covering the same space.
+   // Split one pencil into up to four pencils covering the same space.
    // dx and dy are the dimensions of the original pencil.
    void split(const uint myPencilId, const Realv dx, const Realv dy) {
 
-      auto ids = getIds(myPencilId);     
+      auto myIds = this->getIds(myPencilId);
 
       // Find paths that members of this pencil may have in other pencils (can happen)
       // so that we don't add duplicates.
       std::vector<int> existingSteps;
-      for (uint theirPencilId = 0; theirPencilId < N; ++theirPencilId) {
+      
+      for (uint theirPencilId = 0; theirPencilId < this->N; ++theirPencilId) {
          if(theirPencilId == myPencilId) continue;
-         auto theirIds = getIds(theirPencilId);
+         auto theirIds = this->getIds(theirPencilId);
          for (auto theirId : theirIds) {
-            for (auto myId : ids) {
+            for (auto myId : myIds) {
                if (myId == theirId) {
-                  auto theirPath = path.at(theirPencilId);
-                  auto myPath = path.at(myPencilId);
-                  auto theirStep = theirPath.at(myPath.size());
+                  std::vector<uint> theirPath = this->path.at(theirPencilId);
+                  std::vector<uint> myPath = this->path.at(myPencilId);
+                  uint theirStep = theirPath.at(myPath.size());
                   existingSteps.push_back(theirStep);
                }
             }
