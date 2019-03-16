@@ -517,9 +517,8 @@ namespace projects {
         if(myRank == MASTER_RANK) std::cout << "Finished first level of refinement" << endl;
         if(refinedCells.size() > 0) {
            std::cout << "Rank " << myRank << " refined " << refinedCells.size() << " cells. " << std::endl;
-           
-           mpiGrid.balance_load();
         }
+        mpiGrid.balance_load();
       }
 
       if (P::amrMaxSpatialRefLevel > 1) {
