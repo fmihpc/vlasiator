@@ -157,7 +157,7 @@ struct setOfPencils {
          } else {
             auto myPath = copy_of_path;
             myPath.push_back(step);
-            addPencil(ids, myX, myY, periodic.at(myPencilId), myPath);
+            addPencil(myIds, myX, myY, periodic.at(myPencilId), myPath);
          }
       }
    }
