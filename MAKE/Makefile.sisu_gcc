@@ -45,7 +45,7 @@ FLAGS =
 
 #GNU flags:
 CC_BRAND = gcc
-CC_BRAND_VERSION = 5.1.0
+CC_BRAND_VERSION = 6.2.0
 CXXFLAGS += -g -O2 -static -funroll-loops -std=c++11 -W -Wall -Wno-unused -fabi-version=0 -mavx2 
 testpackage: CXXFLAGS = -g -fopenmp -funroll-loops -std=c++0x -fabi-version=0  -mavx
 
@@ -58,7 +58,7 @@ LIB_MPI = -lgomp
 
 #======== Libraries ===========
 
-MPT_VERSION = 7.2.6
+MPT_VERSION = 7.5.1
 JEMALLOC_VERSION = 4.0.4
 LIBRARY_PREFIX = /proj/vlasov/libraries
 

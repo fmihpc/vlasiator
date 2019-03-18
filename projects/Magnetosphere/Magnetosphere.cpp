@@ -485,15 +485,16 @@ namespace projects {
       // cout << "I am at line " << __LINE__ << " of " << __FILE__ <<  endl;
      if(myRank == MASTER_RANK) std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
       
+     const int bw = 2 * VLASOV_STENCIL_WIDTH;
+     const int bw2 = bw + VLASOV_STENCIL_WIDTH;
+
       // Calculate regions for refinement      
       if (P::amrMaxSpatialRefLevel > 0) {
+
 	// L1 refinement. Does not touch a 2-cell thick (at L0) boundary layer.
-	for (uint i = 2; i < P::xcells_ini-2; ++i) {
-	  for (uint j = 2; j < P::ycells_ini-2; ++j) {
-	    for (uint k = 2; k < P::zcells_ini-2; ++k) {
-      // for (int i = 0; i < 2 * P::amrBoxHalfWidthX; ++i) {
-      //    for (int j = 0; j < 2 * P::amrBoxHalfWidthY; ++j) {
-      //       for (int k = 0; k < 2 * P::amrBoxHalfWidthZ; ++k) {
+	for (uint i = bw; i < P::xcells_ini-bw; ++i) {
+	  for (uint j = bw; j < P::ycells_ini-bw; ++j) {
+	    for (uint k = bw; k < P::zcells_ini-bw; ++k) {
      
 	      std::array<double,3> xyz;
 	      xyz[0] = P::xmin + (i+0.5)*P::dx_ini;
@@ -507,58 +508,54 @@ namespace projects {
 		   (std::abs(xyz[2])<refine_L1tailthick)))
 		{
 		CellID myCell = mpiGrid.get_existing_cell(xyz);
-                if (!mpiGrid.refine_completely_at(xyz)) {
-                   std::cerr << "ERROR: Failed to refine cell " << myCell << endl;
-                }
+                mpiGrid.refine_completely(myCell);
 	      }
             }
 	  }
 	}
-      }
-      refinedCells = mpiGrid.stop_refining(true);      
-      if(myRank == MASTER_RANK) std::cout << "Finished first level of refinement" << endl;
-      if(refinedCells.size() > 0) {
-         std::cout << "Rank " << myRank << " refined " << refinedCells.size() << " cells. " << std::endl;
+        refinedCells = mpiGrid.stop_refining(true);      
+        if(myRank == MASTER_RANK) std::cout << "Finished first level of refinement" << endl;
+        if(refinedCells.size() > 0) {
+           std::cout << "Rank " << myRank << " refined " << refinedCells.size() << " cells. " << std::endl;
+        }
+        mpiGrid.balance_load();
       }
 
       if (P::amrMaxSpatialRefLevel > 1) {
+
 	// L2 refinement. Does not touch a 5-cell thick (at L1) boundary layer.
 	// This means a boundary width of 2 L0 cells and one L1 cell in between
 	// as a buffer
-	for (uint i = 5; i < 2*P::xcells_ini-5; ++i) {
-	  for (uint j = 5; j < 2*P::ycells_ini-5; ++j) {
-	    for (uint k = 5; k < 2*P::zcells_ini-5; ++k) {
+         for (uint i = 2*bw2; i < 2*(P::xcells_ini-bw2); ++i) {
+            for (uint j = 2*bw2; j < 2*(P::ycells_ini-bw2); ++j) {
+               for (uint k = 2*bw2; k < 2*(P::zcells_ini-bw2); ++k) {
      
-	      std::array<double,3> xyz;
-	      xyz[0] = P::xmin + (i+0.5)*0.5*P::dx_ini;
-	      xyz[1] = P::ymin + (j+0.5)*0.5*P::dy_ini;
-	      xyz[2] = P::zmin + (k+0.5)*0.5*P::dz_ini;
-	      
-	      Real radius2 = (xyz[0]*xyz[0]+xyz[1]*xyz[1]+xyz[2]*xyz[2]);
-	      // Check if cell is within L1 sphere, or within L1 tail slice
-	      if ((radius2 < refine_L2radius*refine_L2radius) ||
-		  ((xyz[0] < 0) && (std::abs(xyz[1]) < refine_L2radius) && 
-		   (std::abs(xyz[2])<refine_L2tailthick)))
-		{
-		CellID myCell = mpiGrid.get_existing_cell(xyz);
+                  std::array<double,3> xyz;
+                  xyz[0] = P::xmin + (i+0.5)*0.5*P::dx_ini;
+                  xyz[1] = P::ymin + (j+0.5)*0.5*P::dy_ini;
+                  xyz[2] = P::zmin + (k+0.5)*0.5*P::dz_ini;
+                  
+                  Real radius2 = (xyz[0]*xyz[0]+xyz[1]*xyz[1]+xyz[2]*xyz[2]);
+                  // Check if cell is within L1 sphere, or within L1 tail slice
+                  if ((radius2 < refine_L2radius*refine_L2radius) ||
+                      ((xyz[0] < 0) && (std::abs(xyz[1]) < refine_L2radius) && 
+                       (std::abs(xyz[2])<refine_L2tailthick)))
+                     {
+                        CellID myCell = mpiGrid.get_existing_cell(xyz);
 		// Check if the cell is tagged as do not compute
-		if (mpiGrid[myCell]->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE) {
-		  if (!mpiGrid.refine_completely_at(xyz)) {
-                     std::cerr << "ERROR: Failed to refine cell " << myCell << endl;
-		  }		  
-		}
-	      }
+                        mpiGrid.refine_completely(myCell);
+                     }
+               }
             }
-	  }
-	}
-      }
-      refinedCells = mpiGrid.stop_refining(true);      
-      if(myRank == MASTER_RANK) std::cout << "Finished second level of refinement" << endl;
-      if(refinedCells.size() > 0) {
-         std::cout << "Rank " << myRank << " refined " << refinedCells.size() << " cells. " << std::endl;
-      }
+         }
+         refinedCells = mpiGrid.stop_refining(true);      
+         if(myRank == MASTER_RANK) std::cout << "Finished second level of refinement" << endl;
+         if(refinedCells.size() > 0) {
+            std::cout << "Rank " << myRank << " refined " << refinedCells.size() << " cells. " << std::endl;
+         }
 
-      mpiGrid.balance_load();
+         mpiGrid.balance_load();
+      }
 
       return true;
    }

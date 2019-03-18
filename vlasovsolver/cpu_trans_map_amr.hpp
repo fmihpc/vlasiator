@@ -114,8 +114,10 @@ struct setOfPencils {
                if (myId == theirId) {
                   std::vector<uint> theirPath = this->path.at(theirPencilId);
                   std::vector<uint> myPath = this->path.at(myPencilId);
-                  uint theirStep = theirPath.at(myPath.size());
-                  existingSteps.push_back(theirStep);
+                  if(theirPath.size() > myPath.size()) {
+                     uint theirStep = theirPath.at(myPath.size());
+                     existingSteps.push_back(theirStep);
+                  }
                }
             }
          }

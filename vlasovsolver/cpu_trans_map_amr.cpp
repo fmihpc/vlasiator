@@ -841,8 +841,8 @@ void check_ghost_cells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
          dy = mpiGrid[ids[0]]->SpatialCell::parameters[CellParams::DZ];
          break;
       case 1:
-         dx = mpiGrid[ids[0]]->SpatialCell::parameters[CellParams::DX];
-         dy = mpiGrid[ids[0]]->SpatialCell::parameters[CellParams::DZ];
+         dx = mpiGrid[ids[0]]->SpatialCell::parameters[CellParams::DZ];
+         dy = mpiGrid[ids[0]]->SpatialCell::parameters[CellParams::DX];
          break;
       case 2:
          dx = mpiGrid[ids[0]]->SpatialCell::parameters[CellParams::DX];
