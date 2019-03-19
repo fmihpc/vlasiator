@@ -65,7 +65,7 @@ LIB_VLSV = -L$(LIBRARY_PREFIX)/Development/vlsv -lvlsv
 INC_SILO = -I$(LIBRARY_PREFIX)/include
 LIB_SILO = -L$(LIBRARY_PREFIX)/lib -lsilo
 
-INC_DCCRG = -I$(LIBRARY_PREFIX)/include
+INC_DCCRG = -I$(LIBRARY_PREFIX)/Codes/dccrg
 
 INC_FSGRID = -I$(LIBRARY_PREFIX)/Development/fsgrid
 
