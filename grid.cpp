@@ -123,11 +123,18 @@ void initializeGrid(
       .set_geometry(geom_params);
 
 
-   MPI_Barrier(comm);
+   phiprof::start("Initialize system boundary conditions");
+   if(sysBoundaries.initSysBoundaries(project, P::t_min) == false) {
+      if (myRank == MASTER_RANK) cerr << "Error in initialising the system boundaries." << endl;
+      exit(1);
+   }
+   phiprof::stop("Initialize system boundary conditions");
+
+   phiprof::start("Refine spatial cells");
    if(P::amrMaxSpatialRefLevel > 0 && project.refineSpatialCells(mpiGrid)) {
       recalculateLocalCellsCache();
    }
-   MPI_Barrier(comm);
+   phiprof::stop("Refine spatial cells");
 
    // Init velocity mesh on all cells
    initVelocityGridGeometry(mpiGrid);   
@@ -146,13 +153,6 @@ void initializeGrid(
    phiprof::start("Set spatial cell coordinates");
    initSpatialCellCoordinates(mpiGrid);
    phiprof::stop("Set spatial cell coordinates");
-
-   phiprof::start("Initialize system boundary conditions");
-   if(sysBoundaries.initSysBoundaries(project, P::t_min) == false) {
-      if (myRank == MASTER_RANK) cerr << "Error in initialising the system boundaries." << endl;
-      exit(1);
-   }
-   phiprof::stop("Initialize system boundary conditions");
 
    // Initialise system boundary conditions (they need the initialised positions!!)
    phiprof::start("Classify cells (sys boundary conditions)");
