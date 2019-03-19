@@ -80,15 +80,15 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
    }
    
    // Insert pointers for neighbors of ids.front() and ids.back()
-   auto* frontNbrPairs = mpiGrid.get_neighbors_of(ids.front(), neighborhood);
-   auto* backNbrPairs  = mpiGrid.get_neighbors_of(ids.back(),  neighborhood);
+   const auto* frontNbrPairs = mpiGrid.get_neighbors_of(ids.front(), neighborhood);
+   const auto* backNbrPairs  = mpiGrid.get_neighbors_of(ids.back(),  neighborhood);
 
    int maxRefLvl = mpiGrid.get_maximum_refinement_level();
    int iSrc = 0;
       
    // Create list of unique distances in the negative direction from the first cell in pencil
    std::set< int > distances;
-   for (auto nbrPair : *frontNbrPairs) {
+   for (const auto nbrPair : *frontNbrPairs) {
       if(nbrPair.second[dimension] < 0) {
          distances.insert(nbrPair.second[dimension]);
       }
@@ -101,7 +101,7 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
    for (auto it = ibeg; it != distances.end(); ++it) {
       // Collect all neighbors at distance *it to a vector
       std::vector< CellID > neighbors;
-      for (auto nbrPair : *frontNbrPairs) {
+      for (const auto nbrPair : *frontNbrPairs) {
          int distanceInRefinedCells = nbrPair.second[dimension];
          if(distanceInRefinedCells == *it) neighbors.push_back(nbrPair.first);
       }
@@ -118,7 +118,7 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
    iSrc = L + VLASOV_STENCIL_WIDTH;
    distances.clear();
    // Create list of unique distances in the positive direction from the last cell in pencil
-   for (auto nbrPair : *backNbrPairs) {
+   for (const auto nbrPair : *backNbrPairs) {
       if(nbrPair.second[dimension] > 0) {
          distances.insert(nbrPair.second[dimension]);
       }
@@ -132,7 +132,7 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
          
       // Collect all neighbors at distance *it to a vector
       std::vector< CellID > neighbors;
-      for (auto nbrPair : *backNbrPairs) {
+      for (const auto nbrPair : *backNbrPairs) {
          int distanceInRefinedCells = nbrPair.second[dimension];
          if(distanceInRefinedCells == *it) neighbors.push_back(nbrPair.first);
       }
@@ -197,7 +197,7 @@ void computeSpatialTargetCellsForPencils(const dccrg::Dccrg<SpatialCell,dccrg::C
       // std::cout << frontNbrPairs->front().first << " ";
       // std::cout << backNbrPairs->back().first << std::endl;
       vector <CellID> frontNeighborIds;
-      for( auto nbrPair: *frontNbrPairs ) {
+      for( const auto nbrPair: *frontNbrPairs ) {
          if (nbrPair.second.at(dimension) == -1) {
             frontNeighborIds.push_back(nbrPair.first);
          }
@@ -208,7 +208,7 @@ void computeSpatialTargetCellsForPencils(const dccrg::Dccrg<SpatialCell,dccrg::C
       }
       
       vector <CellID> backNeighborIds;
-      for( auto nbrPair: *backNbrPairs ) {
+      for( const auto nbrPair: *backNbrPairs ) {
          if (nbrPair.second.at(dimension) == 1) {
             backNeighborIds.push_back(nbrPair.first);
          }
@@ -804,13 +804,13 @@ void check_ghost_cells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
       const auto* frontNeighbors = mpiGrid.get_neighbors_of(ids.front(),neighborhoodId);
       const auto* backNeighbors  = mpiGrid.get_neighbors_of(ids.back() ,neighborhoodId);
 
-      for (auto nbrPair: *frontNeighbors) {
+      for (const auto nbrPair: *frontNeighbors) {
 	//if((nbrPair.second[dimension] + 1) / pow(2,mpiGrid.get_refinement_level(nbrPair.first)) == -offset) {
 	maxNbrRefLvl = max(maxNbrRefLvl,mpiGrid.mapping.get_refinement_level(nbrPair.first));
 	//}
       }
          
-      for (auto nbrPair: *backNeighbors) {
+      for (const auto nbrPair: *backNeighbors) {
 	//if((nbrPair.second[dimension] + 1) / pow(2,mpiGrid.get_refinement_level(nbrPair.first)) == offset) {
 	maxNbrRefLvl = max(maxNbrRefLvl,mpiGrid.get_refinement_level(nbrPair.first));
 	//}
@@ -1405,7 +1405,7 @@ void update_remote_mapping_contribution_amr(
                   [&mpiGrid](pair<CellID,array<int,4>> i){return mpiGrid.is_local(i.first);})) {
 
          // ccell adds a neighbor_block_data block for each neighbor in the positive direction to its local data
-         for (auto nbrPair : *nbrToPairVector) {
+         for (const auto nbrPair : *nbrToPairVector) {
          
             bool initBlocksForEmptySiblings = false;
             CellID nbr = nbrPair.first;
@@ -1443,7 +1443,7 @@ void update_remote_mapping_contribution_amr(
                      
                      auto *allNbrs = mpiGrid.get_neighbors_of(c, FULL_NEIGHBORHOOD_ID);
                      bool faceNeighbor = false;
-                     for (auto nbrPair : *allNbrs) {
+                     for (const auto nbrPair : *allNbrs) {
                         if(nbrPair.first == nbr && abs(nbrPair.second.at(dimension)) == 1) {
                            faceNeighbor = true;
                         }
@@ -1477,7 +1477,7 @@ void update_remote_mapping_contribution_amr(
                   [&mpiGrid](pair<CellID,array<int,4>> i){return mpiGrid.is_local(i.first);})) {
 
          // ccell adds a neighbor_block_data block for each neighbor in the positive direction to its local data
-         for (auto nbrPair : *nbrOfPairVector) {     
+         for (const auto nbrPair : *nbrOfPairVector) {     
 
             CellID nbr = nbrPair.first;
          
