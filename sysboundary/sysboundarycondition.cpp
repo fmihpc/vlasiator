@@ -797,7 +797,6 @@ namespace SBC {
    ) {
       const std::array<int,3> closestCell = getTheClosestNonsysboundaryCell(technicalGrid, i, j, k);
       
-      #ifndef NDEBUG
       const std::array<int32_t, 3> gid = technicalGrid.getGlobalIndices(i, j, k);
       const std::array<int32_t, 3> ngid = technicalGrid.getGlobalIndices(closestCell[0], closestCell[1], closestCell[2]);
 
@@ -810,6 +809,8 @@ namespace SBC {
          // we don't care what happens in them since they have no effect on the Vlasov solver.
          return perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBX+component);
       }
+
+      #ifndef NDEBUG
       
       if ( technicalGrid.get(closestCell[0], closestCell[1], closestCell[2]) == nullptr ) {
          stringstream ss;
