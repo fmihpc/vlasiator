@@ -34,7 +34,7 @@ FIELDSOLVER ?= londrillo_delzanna
 COMPFLAGS += -DPROFILE
 
 #Add -DNDEBUG to turn debugging off. If debugging is enabled performance will degrade significantly
-COMPFLAGS += -DDEBUG
+COMPFLAGS += -DNDEBUG
 # CXXFLAGS += -DDEBUG_SOLVERS
 # CXXFLAGS += -DDEBUG_IONOSPHERE
 
