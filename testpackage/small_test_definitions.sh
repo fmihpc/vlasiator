@@ -82,7 +82,7 @@ variable_components[8]="0 0 1 2 0 1 2 0 1 2"
 test_name[9]="Magnetosphere_polar_small"
 comparison_vlsv[9]="bulk.0000001.vlsv"
 comparison_phiprof[9]="phiprof_0.txt"
-variable_names[9]="proton/rho proton/V proton/V proton/V B B B E E E protons"
+variable_names[9]="proton/rho proton/V proton/V proton/V B B B E E E protons proton/VNonBackstream proton/PTensorNonBackstreamDiagonal"
 variable_components[9]="0 0 1 2 0 1 2 0 1 2"
 
 # Field solver test

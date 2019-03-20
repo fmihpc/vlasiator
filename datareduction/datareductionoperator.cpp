@@ -911,6 +911,7 @@ namespace DRO {
       V[0] = 0;
       V[1] = 0;
       V[2] = 0;
+      Real n = 0;
       # pragma omp parallel
       {
          Real thread_nvx_sum = 0.0;
@@ -956,16 +957,22 @@ namespace DRO {
             }
          } // for-loop over velocity blocks
 
-         // Accumulate contributions coming from this velocity block
+         // Accumulate contributions coming from this velocity block.
          // If multithreading / OpenMP is used, 
          // these updates need to be atomic:
          # pragma omp critical
          {
-            V[0] += thread_nvx_sum / thread_n_sum;
-            V[1] += thread_nvy_sum / thread_n_sum;
-            V[2] += thread_nvz_sum / thread_n_sum;
+            V[0] += thread_nvx_sum;
+            V[1] += thread_nvy_sum;
+            V[2] += thread_nvz_sum;
+            n += thread_n_sum;
          }
       }
+
+      // Finally, divide n*V by V.
+      V[0]/=n;
+      V[1]/=n;
+      V[2]/=n;
       return;
    }
 
