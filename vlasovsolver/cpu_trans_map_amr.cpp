@@ -239,8 +239,7 @@ void computeSpatialTargetCellsForPencils(const dccrg::Dccrg<SpatialCell,dccrg::C
    }
 
    for (uint i = 0; i < GID; ++i) {
-
-      if (targetCells[i]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY ) {
+      if (targetCells[i] && targetCells[i]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY ) {
          targetCells[i] = NULL;
       }
    }
