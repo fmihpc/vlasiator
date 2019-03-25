@@ -76,11 +76,9 @@ void calculateSpatialTranslation(
 
     int trans_timer;
     bool localTargetGridGenerated = false;
-    const bool printLines = false;
     
     int myRank;
     MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-    if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
     
     // ------------- SLICE - map dist function in Z --------------- //
    if(P::zcells_ini > 1){
@@ -96,13 +94,11 @@ void calculateSpatialTranslation(
 
       trans_timer=phiprof::initializeTimer("update_remote-z","MPI");
       phiprof::start("update_remote-z");
-      update_remote_mapping_contribution(mpiGrid, 2,+1,popID);
-      update_remote_mapping_contribution(mpiGrid, 2,-1,popID);
+      update_remote_mapping_contribution_amr(mpiGrid, 2,+1,popID);
+      update_remote_mapping_contribution_amr(mpiGrid, 2,-1,popID);
       phiprof::stop("update_remote-z");
 
    }
-
-   if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
    
    // ------------- SLICE - map dist function in X --------------- //
    if(P::xcells_ini > 1){     
@@ -121,129 +117,37 @@ void calculateSpatialTranslation(
 
       trans_timer=phiprof::initializeTimer("update_remote-x","MPI");
       phiprof::start("update_remote-x");
-      update_remote_mapping_contribution(mpiGrid, 0,+1,popID);
-      update_remote_mapping_contribution(mpiGrid, 0,-1,popID);
+      update_remote_mapping_contribution_amr(mpiGrid, 0,+1,popID);
+      update_remote_mapping_contribution_amr(mpiGrid, 0,-1,popID);
       phiprof::stop("update_remote-x");
 
-      if(printLines)      cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
    }
 
-   if(printLines)   cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
-   
    // ------------- SLICE - map dist function in Y --------------- //
    if(P::ycells_ini > 1) {
-
-      std::vector<Realf> sum_local_initial;;
-      std::vector<Realf> sum_local_before_trans;
-      std::vector<Realf> sum_local_after_trans;
-      std::vector<Realf> sum_local_after_update;
-      std::vector<Realf> sum_remote_initial;
-      std::vector<Realf> sum_remote_before_trans;
-      std::vector<Realf> sum_remote_after_trans;
-      std::vector<Realf> sum_remote_after_update;
       
       trans_timer=phiprof::initializeTimer("transfer-stencil-data-y","MPI");
       phiprof::start(trans_timer);
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
-
-      // for (auto c : local_propagated_cells) {
-      //    Realf sum = 0.0;
-      //    SpatialCell* spatial_cell = mpiGrid[c];
-      //    Realf *blockData = spatial_cell->get_data(popID);
-      //    for(unsigned int vCell = 0; vCell < VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(popID); ++vCell) {
-      //       sum += blockData[vCell];
-      //    }
-      //    sum_local_initial.push_back(sum);              
-      // }
-      // for (auto c : remoteTargetCellsy) {
-      //    Realf sum = 0.0;
-      //    SpatialCell* spatial_cell = mpiGrid[c];
-      //    Realf *blockData = spatial_cell->get_data(popID);
-      //    for(unsigned int vCell = 0; vCell < VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(popID); ++vCell) {
-      //       sum += blockData[vCell];
-      //    }
-      //    sum_remote_initial.push_back(sum);              
-      // }
       
       mpiGrid.set_send_single_cells(false);
       mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);
       phiprof::stop(trans_timer);
-
-      // for (auto c : local_propagated_cells) {
-      //    Realf sum = 0.0;
-      //    SpatialCell* spatial_cell = mpiGrid[c];
-      //    Realf *blockData = spatial_cell->get_data(popID);
-      //    for(unsigned int vCell = 0; vCell < VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(popID); ++vCell) {
-      //       sum += blockData[vCell];
-      //    }
-      //    sum_local_before_trans.push_back(sum);              
-      // }
-      // for (auto c : remoteTargetCellsy) {
-      //    Realf sum = 0.0;
-      //    SpatialCell* spatial_cell = mpiGrid[c];
-      //    Realf *blockData = spatial_cell->get_data(popID);
-      //    for(unsigned int vCell = 0; vCell < VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(popID); ++vCell) {
-      //       sum += blockData[vCell];
-      //    }
-      //    sum_remote_before_trans.push_back(sum);              
-      // }
       
       phiprof::start("compute-mapping-y");      
       trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsy, 1,dt,popID); // map along y//
       phiprof::stop("compute-mapping-y");
-
-      // for (auto c : local_propagated_cells) {
-      //    Realf sum = 0.0;
-      //    SpatialCell* spatial_cell = mpiGrid[c];
-      //    Realf *blockData = spatial_cell->get_data(popID);
-      //    for(unsigned int vCell = 0; vCell < VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(popID); ++vCell) {
-      //       sum += blockData[vCell];
-      //    }
-      //    sum_local_after_trans.push_back(sum);
-      // }
-      // for (auto c : remoteTargetCellsy) {
-      //    Realf sum = 0.0;
-      //    SpatialCell* spatial_cell = mpiGrid[c];
-      //    Realf *blockData = spatial_cell->get_data(popID);
-      //    for(unsigned int vCell = 0; vCell < VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(popID); ++vCell) {
-      //       sum += blockData[vCell];
-      //    }
-      //    sum_remote_after_trans.push_back(sum);              
-      // }
-      
-      // MPI_Barrier(MPI_COMM_WORLD);
       
       trans_timer=phiprof::initializeTimer("update_remote-y","MPI");
       phiprof::start("update_remote-y");
-      update_remote_mapping_contribution(mpiGrid, 1,+1,popID);
-      update_remote_mapping_contribution(mpiGrid, 1,-1,popID);
+      update_remote_mapping_contribution_amr(mpiGrid, 1,+1,popID);
+      update_remote_mapping_contribution_amr(mpiGrid, 1,-1,popID);
       phiprof::stop("update_remote-y");
-
-      // for (auto c : local_propagated_cells) {
-      //    Realf sum = 0.0;
-      //    SpatialCell* spatial_cell = mpiGrid[c];
-      //    Realf *blockData = spatial_cell->get_data(popID);
-      //    for(unsigned int vCell = 0; vCell < VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(popID); ++vCell) {
-      //       sum += blockData[vCell];
-      //    }
-      //    sum_local_after_update.push_back(sum);              
-      // }
-      // for (auto c : remoteTargetCellsy) {
-      //    Realf sum = 0.0;
-      //    SpatialCell* spatial_cell = mpiGrid[c];
-      //    Realf *blockData = spatial_cell->get_data(popID);
-      //    for(unsigned int vCell = 0; vCell < VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(popID); ++vCell) {
-      //       sum += blockData[vCell];
-      //    }
-      //    sum_remote_after_update.push_back(sum);              
-      // }
-
-      
-      // MPI_Barrier(MPI_COMM_WORLD);
+     
    }
 
    // MPI_Barrier(MPI_COMM_WORLD);
-   //   bailout(true, "", __FILE__, __LINE__);
+   // bailout(true, "", __FILE__, __LINE__);
 }
 
 /*!
@@ -424,15 +328,10 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    typedef Parameters P;
    const vector<CellID>& cells = getLocalCells();
 
-   const bool printLines = false;
-   
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-   if(printLines) cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__;
-   if(printLines) cout << " " << dt << " " << P::tstep << endl;
    
    if (dt == 0.0 && P::tstep > 0) {
-      if(printLines)      cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
       
       // Even if acceleration is turned off we need to adjust velocity blocks 
       // because the boundary conditions may have altered the velocity space, 
@@ -441,13 +340,10 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
          adjustVelocityBlocks(mpiGrid, cells, true, popID);
       }
 
-      if(printLines)      cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
       goto momentCalculation;
    }
    phiprof::start("semilag-acc");
     
-   if(printLines)   cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
-   
    // Accelerate all particle species
     for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
        int maxSubcycles=0;
@@ -480,10 +376,8 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
           }
        }
 
-       if(printLines)       cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
        // Compute global maximum for number of subcycles
        MPI_Allreduce(&maxSubcycles, &globalMaxSubcycles, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
-       if(printLines)       cout << "I am process " << myRank << " at line " << __LINE__ << " of " << __FILE__ << endl;
        
        // substep global max times
        for(uint step=0; step<(uint)globalMaxSubcycles; ++step) {

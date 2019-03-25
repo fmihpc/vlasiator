@@ -94,6 +94,7 @@ namespace projects {
       Real magYPertAbsAmp;
       Real magZPertAbsAmp;
       Real lambda;
+      int maxSpatialRefinementLevel;
       uint nVelocitySamples;
       std::vector<testAmrSpeciesParameters> speciesParams;
 

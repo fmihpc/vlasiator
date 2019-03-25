@@ -57,6 +57,12 @@ namespace spatial_cell {
       for (unsigned int i = 0; i < bvolderivatives::N_BVOL_DERIVATIVES; i++) {
          this->derivativesBVOL[i]=0;
       }
+
+      for (unsigned int i = 0; i < MAX_NEIGHBORS_PER_DIM; ++i) {
+         this->neighbor_number_of_blocks[i] = 0;
+         this->neighbor_block_data[i] = NULL;
+      }
+      
       //is transferred by default
       this->mpiTransferEnabled=true;
       
@@ -643,7 +649,7 @@ namespace spatial_cell {
             * neighbor. The values of neighbor_block_data
             * and neighbor_number_of_blocks should be set in
             * solver.*/
-            for ( int i = 0; i < MAX_FACE_NEIGHBORS_PER_DIM; ++i) {
+            for ( int i = 0; i < MAX_NEIGHBORS_PER_DIM; ++i) {
                displacements.push_back((uint8_t*) this->neighbor_block_data[i] - (uint8_t*) this);               
                block_lengths.push_back(sizeof(Realf) * VELOCITY_BLOCK_LENGTH * this->neighbor_number_of_blocks[i]);
             }
@@ -825,7 +831,11 @@ namespace spatial_cell {
          int myRank;
          MPI_Type_size(datatype,&mpiSize);
          MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-         cout << myRank << " get_mpi_datatype: " << cellID << " " << sender_rank << " " << receiver_rank << " " << mpiSize << endl;
+         cout << myRank << " get_mpi_datatype: " << cellID << " " << sender_rank << " " << receiver_rank << " " << mpiSize << ", Nblocks = " << populations[activePopID].N_blocks << ", nbr Nblocks =";
+         for (uint i = 0; i < MAX_NEIGHBORS_PER_DIM; ++i) {
+            cout << " " << this->neighbor_number_of_blocks[i];
+         }
+         cout << endl;
       }
       
       return std::make_tuple(address,count,datatype);
@@ -1411,8 +1421,10 @@ namespace spatial_cell {
     * @return True on success.*/
    bool SpatialCell::shrink_to_fit() {
       bool success = true;
+      return success;
+
       for (size_t p=0; p<populations.size(); ++p) {
-         const size_t amount 
+         const uint64_t amount 
             = 2 + populations[p].blockContainer.size() 
             * populations[p].blockContainer.getBlockAllocationFactor();
          

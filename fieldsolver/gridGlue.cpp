@@ -350,7 +350,39 @@ void getDerivativesFromFsGrid(FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>,
 
    }
 }
-    
+
+bool belongsToLayer(const int layer, const int x, const int y, const int z,
+                    FsGrid< fsgrids::technical, 2>& technicalGrid) {
+
+   bool belongs = false;
+   
+   // loop through all neighbors (including diagonals)
+   for (int ix = -1; ix <= 1; ++ix) {
+      for (int iy = -1; iy <= 1; ++iy) {
+         for (int iz = -1; iz <= 1; ++iz) {
+            
+            // not strictly necessary but logically we should not consider the cell itself
+            // among its neighbors.
+            if( ix == 0 && iy == 0 && iz == 0 || !technicalGrid.get(x+ix,y+iy,z+iz)) {
+               continue;
+            }
+            
+            if(layer == 1 && technicalGrid.get(x+ix,y+iy,z+iz)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+               // in the first layer, boundary cell belongs if it has a non-boundary neighbor
+               belongs = true;
+               return belongs;
+               
+            } else if (layer > 1 && technicalGrid.get(x+ix,y+iy,z+iz)->sysBoundaryLayer == layer - 1) {
+               // in all other layers, boundary cell belongs if it has a neighbor in the previous layer
+               belongs = true;
+               return belongs;
+            }
+         }
+      }
+   }
+
+   return belongs;
+}
 
 void setupTechnicalFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const std::vector<CellID>& cells, FsGrid< fsgrids::technical, 2>& technicalGrid) {
@@ -367,7 +399,8 @@ void setupTechnicalFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
       fsgrids::technical* thisCellData = &transferBuffer[i];
       // Data needs to be collected from some different places for this grid.
       thisCellData->sysBoundaryFlag = mpiGrid[cells[i]]->sysBoundaryFlag;
-      thisCellData->sysBoundaryLayer = mpiGrid[cells[i]]->sysBoundaryLayer;
+      // Remove boundary layer copy here
+      // thisCellData->sysBoundaryLayer = mpiGrid[cells[i]]->sysBoundaryLayer;
       thisCellData->maxFsDt = std::numeric_limits<Real>::max();        
    }
 
@@ -384,8 +417,62 @@ void setupTechnicalFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
       }
    }
 
-
    technicalGrid.finishTransfersIn();
+
+   auto localSize = technicalGrid.getLocalSize();
+   
+   // Add layer calculation here. Include diagonals +-1.
+
+   // Initialize boundary layer flags to 0.
+   for (int x = 0; x < localSize[0]; ++x) {
+      for (int y = 0; y < localSize[1]; ++y) {
+         for (int z = 0; z < localSize[2]; ++z) {
+            technicalGrid.get(x,y,z)->sysBoundaryLayer = 0;
+         }
+      }
+   }   
+
+   // In dccrg initialization the max number of boundary layers is set to 3.
+   const int MAX_NUMBER_OF_BOUNDARY_LAYERS = 3 * (mpiGrid.get_maximum_refinement_level() + 1);
+
+   // loop through max number of layers
+   for(uint layer = 1; layer <= MAX_NUMBER_OF_BOUNDARY_LAYERS; ++layer) {
+      
+      // loop through all cells in grid
+      for (int x = 0; x < localSize[0]; ++x) {
+         for (int y = 0; y < localSize[1]; ++y) {
+            for (int z = 0; z < localSize[2]; ++z) {
+               
+               // for the first layer, consider all cells that belong to a boundary, for other layers
+               // consider all cells that have not yet been labeled.
+               if((layer == 1 && technicalGrid.get(x,y,z)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) ||
+                  (layer > 1 && technicalGrid.get(x,y,z)->sysBoundaryLayer == 0)) {
+                  
+                  if (belongsToLayer(layer, x, y, z, technicalGrid)) {
+                     
+                     technicalGrid.get(x,y,z)->sysBoundaryLayer = layer;
+                     
+                     if (layer > 1) {
+                        technicalGrid.get(x,y,z)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE;
+                     }
+                  }
+               }
+            }
+         }
+      }
+   }
+
+   // for (int x = 0; x < localSize[0]; ++x) {
+   //    for (int y = 0; y < localSize[1]; ++y) {
+   //       for (int z = 0; z < localSize[2]; ++z) {
+   //          std::cout << "boundary layer+flag at " << x << ", " << y << ", " << z << " = ";
+   //          std::cout << technicalGrid.get(x,y,z)->sysBoundaryLayer;
+   //          std::cout << " ";
+   //          std::cout << technicalGrid.get(x,y,z)->sysBoundaryFlag;
+   //       }
+   //    }
+   // }     
+   //abort();
 }
 
 void getFsGridMaxDt(FsGrid< fsgrids::technical, 2>& technicalGrid,
@@ -420,17 +507,21 @@ void getFsGridMaxDt(FsGrid< fsgrids::technical, 2>& technicalGrid,
       auto cellParams = mpiGrid[dccrgId]->get_cell_parameters();
       
       // Calculate the number of fsgrid cells we need to average into the current dccrg cell
-      int nCells = pow(pow(2,mpiGrid.mapping.get_maximum_refinement_level() - mpiGrid.mapping.get_refinement_level(dccrgId)),3);
+      int nCells = pow(pow(2,mpiGrid.get_maximum_refinement_level() - mpiGrid.get_refinement_level(dccrgId)),3);
 
       cellParams[CellParams::MAXFDT] = std::numeric_limits<Real>::max();
       //cellParams[CellParams::FSGRID_RANK] = 0;
       //cellParams[CellParams::FSGRID_BOUNDARYTYPE] = 0;
 
       for (int iCell = 0; iCell < nCells; ++iCell) {
-
+                 
          fsgrids::technical* thisCellData = transferBufferPointer[i] + iCell;
+
+         if (thisCellData->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY || thisCellData->sysBoundaryLayer == 1) {
          
-         cellParams[CellParams::MAXFDT] = std::min(cellParams[CellParams::MAXFDT],thisCellData->maxFsDt);         
+            cellParams[CellParams::MAXFDT] = std::min(cellParams[CellParams::MAXFDT],thisCellData->maxFsDt);
+            
+         }
          
          //TODO: Implement something for FSGRID_RANK and FSGRID_BOUNDARYTYPE
          //cellParams[CellParams::FSGRID_RANK] = thisCellData->fsGridRank;
@@ -446,17 +537,17 @@ Map from dccrg cell id to fsgrid global cell ids when they aren't identical (ie.
 std::vector<CellID> mapDccrgIdToFsGridGlobalID(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 					       CellID dccrgID) {
 
-   const auto cellLength = mpiGrid.mapping.get_cell_length_in_indices(dccrgID);
-   const auto gridLength = mpiGrid.length.get();
    const auto maxRefLvl  = mpiGrid.get_maximum_refinement_level();
+   const auto refLvl = mpiGrid.get_refinement_level(dccrgID);
+   const auto cellLength = pow(2,maxRefLvl-refLvl);
    const auto topLeftIndices = mpiGrid.mapping.get_indices(dccrgID);
    std::array<int,3> indices;
    std::vector<std::array<int,3>> allIndices;
 
    std::array<int,3> fsgridDims;
-   fsgridDims[0] = P::xcells_ini * (mpiGrid.get_maximum_refinement_level() + 1);
-   fsgridDims[1] = P::ycells_ini * (mpiGrid.get_maximum_refinement_level() + 1);
-   fsgridDims[2] = P::zcells_ini * (mpiGrid.get_maximum_refinement_level() + 1);
+   fsgridDims[0] = P::xcells_ini * pow(2,mpiGrid.get_maximum_refinement_level());
+   fsgridDims[1] = P::ycells_ini * pow(2,mpiGrid.get_maximum_refinement_level());
+   fsgridDims[2] = P::zcells_ini * pow(2,mpiGrid.get_maximum_refinement_level());
    
    for (uint k = 0; k < cellLength; ++k) {
       for (uint j = 0; j < cellLength; ++j) {

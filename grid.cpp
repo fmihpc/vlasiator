@@ -123,11 +123,11 @@ void initializeGrid(
       .set_geometry(geom_params);
 
 
-   MPI_Barrier(comm);
-   if(project.refineSpatialCells(mpiGrid)) {
+   phiprof::start("Refine spatial cells");
+   if(P::amrMaxSpatialRefLevel > 0 && project.refineSpatialCells(mpiGrid)) {
       recalculateLocalCellsCache();
    }
-   MPI_Barrier(comm);
+   phiprof::stop("Refine spatial cells");
 
    // Init velocity mesh on all cells
    initVelocityGridGeometry(mpiGrid);   
@@ -153,7 +153,7 @@ void initializeGrid(
       exit(1);
    }
    phiprof::stop("Initialize system boundary conditions");
-
+   
    // Initialise system boundary conditions (they need the initialised positions!!)
    phiprof::start("Classify cells (sys boundary conditions)");
    if(sysBoundaries.classifyCells(mpiGrid) == false) {
@@ -163,6 +163,16 @@ void initializeGrid(
 
    phiprof::stop("Classify cells (sys boundary conditions)");
 
+   // Check refined cells do not touch boundary cells
+   phiprof::start("Check boundary refinement");
+
+   if(!sysBoundaries.checkRefinement(mpiGrid)) {
+      cerr << "(MAIN) ERROR: Boundary cells must have identical refinement level " << endl;
+      exit(1);
+   }
+         
+   phiprof::stop("Check boundary refinement");
+   
    if (P::isRestart) {
       logFile << "Restart from "<< P::restartFileName << std::endl << writeVerbose;
       phiprof::start("Read restart");
@@ -505,7 +515,8 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
       const auto* neighbors = mpiGrid.get_neighbors_of(cell_id, NEAREST_NEIGHBORHOOD_ID);
       vector<SpatialCell*> neighbor_ptrs;
       neighbor_ptrs.reserve(neighbors->size());
-      for ( pair<CellID, array<int,4>> nbrPair : *neighbors) {
+
+      for ( const auto& nbrPair : *neighbors) {
          CellID neighbor_id = nbrPair.first;
          if (neighbor_id == 0 || neighbor_id == cell_id) {
             continue;
@@ -656,17 +667,28 @@ void updateRemoteVelocityBlockLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
    const std::vector<uint64_t> incoming_cells
       = mpiGrid.get_remote_cells_on_process_boundary(DIST_FUNC_NEIGHBORHOOD_ID);
    #pragma omp parallel for
+
    for (unsigned int i=0; i<incoming_cells.size(); ++i) {
-      uint64_t cell_id = incoming_cells[i];
-      SpatialCell* cell = mpiGrid[cell_id];
-      if (cell == NULL) {
-         cerr << __FILE__ << ":" << __LINE__
-              << " No data for spatial cell " << cell_id
-              << endl;
-         abort();
-      }      
-      cell->prepare_to_receive_blocks(popID);
-   }
+     uint64_t cell_id = incoming_cells[i];
+     SpatialCell* cell = mpiGrid[cell_id];
+     if (cell == NULL) {
+       for (const auto& cell: mpiGrid.local_cells) {
+	 if (cell.id == cell_id) {
+	   cerr << __FILE__ << ":" << __LINE__ << std::endl;
+	   abort();
+	 }
+	 for (const auto& neighbor: cell.neighbors_of) {
+	   if (neighbor.id == cell_id) {
+	     cerr << __FILE__ << ":" << __LINE__ << std::endl;
+	     abort();
+	   }
+	 }
+       }
+       continue;
+     }
+     cell->prepare_to_receive_blocks(popID);
+   } 
+
    phiprof::stop("Preparing receives", incoming_cells.size(), "SpatialCells");
 }
 
@@ -943,7 +965,9 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,c
                
          // Iterate over all spatial neighbors
          // for (size_t n=0; n<neighbors->size(); ++n) {
-         for (pair<CellID,array<int,4> > nbrPair : *neighbors) {
+
+         for (const auto& nbrPair : *neighbors) {
+
             // CellID nbrCellID = (*neighbors)[n];
             CellID nbrCellID = nbrPair.first;
             const SpatialCell* nbr = mpiGrid[nbrCellID];
