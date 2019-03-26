@@ -1505,9 +1505,11 @@ void update_remote_mapping_contribution_amr(
                   
                   recvIndex = get_sibling_index(mpiGrid,nbr);
 
-                  SpatialCell* scell = NULL;
+                  ncell->neighbor_number_of_blocks.at(recvIndex) = ccell->get_number_of_velocity_blocks(popID);                 
                   
                   if (abs(nbrPair.second.at(dimension)) != 1) {
+
+                     SpatialCell* scell = NULL;
                      
                      // nbr is not face neighbor to c --> we are not receiving data mapped to c but to its face neighbor.
                      // This happens because DCCRG does not allow defining neighborhoods with face neighbors only.
@@ -1528,19 +1530,18 @@ void update_remote_mapping_contribution_amr(
 
                         }
                      }
-                  }
-                  
-                  if(scell) {
-
-                     ncell->neighbor_number_of_blocks.at(recvIndex) = scell->get_number_of_velocity_blocks(popID);
                      
-                  } else {
-                     
-                     //ncell->neighbor_number_of_blocks.at(recvIndex) = ccell->get_number_of_velocity_blocks(popID);
-                     ncell->neighbor_number_of_blocks.at(recvIndex) = 0;
+                     if(scell) {
+                        // We found a face neighbor that is remote to nbr. Use it's number of blocks to receive the message from nbr.
+                        ncell->neighbor_number_of_blocks.at(recvIndex) = scell->get_number_of_velocity_blocks(popID);
+                        
+                     } else {
+                        // We did not find a face neighbor that is remote to nbr (ie. all nbr's face neighbors are local). Set message size to 0.
+                        ncell->neighbor_number_of_blocks.at(recvIndex) = 0;
+                     }                                          
                   }
+                                    
                   
-                  // ncell->neighbor_number_of_blocks.at(recvIndex) = ccell->get_number_of_velocity_blocks(popID);
                   ncell->neighbor_block_data.at(recvIndex) =
                      (Realf*) aligned_malloc(ncell->neighbor_number_of_blocks.at(recvIndex) * WID3 * sizeof(Realf), 64);
                   receiveBuffers.push_back(ncell->neighbor_block_data.at(recvIndex));
