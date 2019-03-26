@@ -1445,13 +1445,11 @@ void update_remote_mapping_contribution_amr(
                         }
                      }
                      if (faceNeighbor) {
+                        ccell->neighbor_number_of_blocks.at(sendIndex) = pcell->get_number_of_velocity_blocks(popID);
+                        ccell->neighbor_block_data.at(sendIndex) = pcell->get_data(popID);
                         send_cells.insert(nbr);
                      }
-
-                     
-                     ccell->neighbor_number_of_blocks.at(sendIndex) = pcell->get_number_of_velocity_blocks(popID);
-                     ccell->neighbor_block_data.at(sendIndex) = pcell->get_data(popID);
-                                          
+                                                               
                   } else {
                      ccell->neighbor_number_of_blocks.at(sendIndex) = mpiGrid[nbr]->get_number_of_velocity_blocks(popID);
                      ccell->neighbor_block_data.at(sendIndex) =
@@ -1538,7 +1536,8 @@ void update_remote_mapping_contribution_amr(
                      
                   } else {
                      
-                     ncell->neighbor_number_of_blocks.at(recvIndex) = ccell->get_number_of_velocity_blocks(popID);
+                     //ncell->neighbor_number_of_blocks.at(recvIndex) = ccell->get_number_of_velocity_blocks(popID);
+                     ncell->neighbor_number_of_blocks.at(recvIndex) = 0;
                   }
                   
                   // ncell->neighbor_number_of_blocks.at(recvIndex) = ccell->get_number_of_velocity_blocks(popID);
