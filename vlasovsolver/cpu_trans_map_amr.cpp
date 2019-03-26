@@ -1435,10 +1435,7 @@ void update_remote_mapping_contribution_amr(
                if(pcell && pcell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
                   
                   if(send_cells.find(nbr) == send_cells.end()) {
-                     // 5a) We have not already sent data from this rank to this cell.                     
-                     
-                     ccell->neighbor_number_of_blocks.at(sendIndex) = pcell->get_number_of_velocity_blocks(popID);
-                     ccell->neighbor_block_data.at(sendIndex) = pcell->get_data(popID);
+                     // 5a) We have not already sent data from this rank to this cell.
                      
                      auto *allNbrs = mpiGrid.get_neighbors_of(c, FULL_NEIGHBORHOOD_ID);
                      bool faceNeighbor = false;
@@ -1450,7 +1447,11 @@ void update_remote_mapping_contribution_amr(
                      if (faceNeighbor) {
                         send_cells.insert(nbr);
                      }
+
                      
+                     ccell->neighbor_number_of_blocks.at(sendIndex) = pcell->get_number_of_velocity_blocks(popID);
+                     ccell->neighbor_block_data.at(sendIndex) = pcell->get_data(popID);
+                                          
                   } else {
                      ccell->neighbor_number_of_blocks.at(sendIndex) = mpiGrid[nbr]->get_number_of_velocity_blocks(popID);
                      ccell->neighbor_block_data.at(sendIndex) =
