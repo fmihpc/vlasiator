@@ -325,9 +325,9 @@ Record for each cell which processes own one or more of its face neighbors
  */
 void setFaceNeighborRanks( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) {
 
-   const auto cells = mpiGrid.get_cells();
+   const auto& cells = mpiGrid.get_cells();
 
-   for (const auto cellid : cells) {
+   for (const auto& cellid : cells) {
       
       if (cellid == INVALID_CELLID) continue;
       
@@ -337,9 +337,9 @@ void setFaceNeighborRanks( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
       cell->face_neighbor_processes.clear();
       
-      const auto faceNeighbors = mpiGrid.get_face_neighbors_of(cellid);
+      const auto& faceNeighbors = mpiGrid.get_face_neighbors_of(cellid);
 
-      for (const auto nbr : faceNeighbors) {
+      for (const auto& nbr : faceNeighbors) {
 
          cell->face_neighbor_processes.insert(mpiGrid.get_process(nbr.first));
          
