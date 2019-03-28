@@ -74,7 +74,7 @@ done > .allowed_prefixes
 #long one-liner. First remove comments, then add prefix to each name and only print if line is not empty
 cat $cfg |  grep -v "^[ ]*#" |gawk '{if ( $1 ~ /\[/) {prefix=substr($1,2,length($1)-2);prefix=sprintf("%s.",prefix);} else if(NF>0) printf("%s%s\n",prefix,$0)}' > .cfg_variables
 
-$mpirun_cmd $vlasiator --help | grep "^  " | tr "\n" " " | sed 's/--/\n/g' | sed -e 's/ \+/ /g' > .vlasiator_variables
+$mpirun_cmd $vlasiator --help | grep "^  " | tr "\n" " " | sed 's/--/\n/g' | sed -e 's/ \+/ /g' | grep -v -e '^ \?$' > .vlasiator_variables
 
 
 # Replace <population> with loaded populations
