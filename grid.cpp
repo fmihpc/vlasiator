@@ -138,6 +138,7 @@ void initializeGrid(
    if (myRank == MASTER_RANK) logFile << "(INIT): Starting initial load balance." << endl << writeVerbose;
    mpiGrid.balance_load();
    recalculateLocalCellsCache();
+   setFaceNeighborRanks( mpiGrid );
    phiprof::stop("Initial load-balancing");
    
    if (myRank == MASTER_RANK) logFile << "(INIT): Set initial state." << endl << writeVerbose;
@@ -335,13 +336,13 @@ void setFaceNeighborRanks( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
       if (!cell) continue;
 
-      cell->face_neighbor_processes.clear();
+      cell->face_neighbor_ranks.clear();
       
       const auto& faceNeighbors = mpiGrid.get_face_neighbors_of(cellid);
 
       for (const auto& nbr : faceNeighbors) {
 
-         cell->face_neighbor_processes.insert(mpiGrid.get_process(nbr.first));
+         cell->face_neighbor_ranks.insert(mpiGrid.get_process(nbr.first));
          
       }      
    }
