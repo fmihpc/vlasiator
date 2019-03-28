@@ -327,7 +327,7 @@ Record for each cell which processes own one or more of its face neighbors
 void setFaceNeighborRanks( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) {
 
    const auto& cells = mpiGrid.get_cells();
-
+   // TODO: Try a #pragma omp parallel for
    for (const auto& cellid : cells) {
       
       if (cellid == INVALID_CELLID) continue;
