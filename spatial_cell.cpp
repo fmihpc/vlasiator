@@ -34,7 +34,7 @@
 using namespace std;
 
 namespace spatial_cell {
-   int SpatialCell::activePopID = -1;
+   int SpatialCell::activePopID = 0;
    uint64_t SpatialCell::mpi_transfer_type = 0;
    bool SpatialCell::mpiTransferAtSysBoundaries = false;
 
@@ -74,6 +74,7 @@ namespace spatial_cell {
          const species::Species& spec = getObjectWrapper().particleSpecies[popID];
          populations[popID].vmesh.initialize(spec.velocityMesh);
          populations[popID].velocityBlockMinValue = spec.sparseMinValue;
+         populations[popID].N_blocks = 0;
       }
    }
 
@@ -838,11 +839,13 @@ namespace spatial_cell {
          int myRank;
          MPI_Type_size(datatype,&mpiSize);
          MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-         cout << myRank << " get_mpi_datatype: " << cellID << " " << sender_rank << " " << receiver_rank << " " << mpiSize << ", Nblocks = " << populations[activePopID].N_blocks << ", nbr Nblocks =";
-         for (uint i = 0; i < MAX_NEIGHBORS_PER_DIM; ++i) {
-            cout << " " << this->neighbor_number_of_blocks[i];
+         if (this->face_neighbor_ranks.find(receiver_rank) != this->face_neighbor_ranks.end()) {
+            cout << myRank << " get_mpi_datatype: " << cellID << " " << sender_rank << " " << receiver_rank << " " << mpiSize << ", Nblocks = " << populations[activePopID].N_blocks << ", nbr Nblocks =";
+            for (uint i = 0; i < MAX_NEIGHBORS_PER_DIM; ++i) {
+               cout << " " << this->neighbor_number_of_blocks[i];
+            }
+            cout << endl;
          }
-         cout << endl;
       }
       
       return std::make_tuple(address,count,datatype);
