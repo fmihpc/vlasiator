@@ -320,6 +320,32 @@ void initSpatialCellCoordinates(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
    }
 }
 
+/*
+Record for each cell which processes own one or more of its face neighbors
+ */
+void setFaceNeighborRanks( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) {
+
+   const auto cells = mpiGrid.get_cells();
+
+   for (const auto cellid : cells) {
+      
+      if (cellid == INVALID_CELLID) continue;
+      
+      SpatialCell* cell = mpiGrid[cellid];
+
+      if (!cell) continue;
+
+      cell->face_neighbor_processes.clear();
+      
+      const auto faceNeighbors = mpiGrid.get_face_neighbors_of(cellid);
+
+      for (const auto nbr : faceNeighbors) {
+
+         cell->face_neighbor_processes.insert(mpiGrid.get_process(nbr.first));
+         
+      }      
+   }
+}
 
 void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, SysBoundary& sysBoundaries){
    // Invalidate cached cell lists
@@ -467,6 +493,11 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
       }
    }
 
+   // Record ranks of face neighbors
+   phiprof::start("set face neighbor ranks");   
+   setFaceNeighborRanks( mpiGrid );
+   phiprof::stop("set face neighbor ranks");
+   
    phiprof::stop("Init solvers");   
    phiprof::stop("Balancing load");
 }
