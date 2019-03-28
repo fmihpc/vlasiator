@@ -649,9 +649,16 @@ namespace spatial_cell {
             * neighbor. The values of neighbor_block_data
             * and neighbor_number_of_blocks should be set in
             * solver.*/
-            for ( int i = 0; i < MAX_NEIGHBORS_PER_DIM; ++i) {
-               displacements.push_back((uint8_t*) this->neighbor_block_data[i] - (uint8_t*) this);               
-               block_lengths.push_back(sizeof(Realf) * VELOCITY_BLOCK_LENGTH * this->neighbor_number_of_blocks[i]);
+
+            // Transfer only to ranks that contain face neighbors
+            // this->neighbor_number_of_blocks has been initialized to 0, on other ranks it can stay that way.
+            if (this->face_neighbor_ranks.find(receiver_rank) != this->face_neighbor_ranks.end()) {
+               
+               for ( int i = 0; i < MAX_NEIGHBORS_PER_DIM; ++i) {
+                  displacements.push_back((uint8_t*) this->neighbor_block_data[i] - (uint8_t*) this);               
+                  block_lengths.push_back(sizeof(Realf) * VELOCITY_BLOCK_LENGTH * this->neighbor_number_of_blocks[i]);
+               }
+               
             }
          }
 
