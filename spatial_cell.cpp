@@ -653,7 +653,8 @@ namespace spatial_cell {
 
             // Send this data only to ranks that contain face neighbors
             // this->neighbor_number_of_blocks has been initialized to 0, on other ranks it can stay that way.
-            if ( receiving || this->face_neighbor_ranks.find(receiver_rank) != this->face_neighbor_ranks.end()) {
+            const set<int>& ranks = this->face_neighbor_ranks[neighborhood];
+            if ( receiving || ranks.find(receiver_rank) != ranks.end()) {
                
                for ( int i = 0; i < MAX_NEIGHBORS_PER_DIM; ++i) {
                   displacements.push_back((uint8_t*) this->neighbor_block_data[i] - (uint8_t*) this);               
@@ -841,14 +842,15 @@ namespace spatial_cell {
          MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
          cout << myRank << " get_mpi_datatype: " << cellID << " " << sender_rank << " " << receiver_rank << " " << mpiSize << ", Nblocks = " << populations[activePopID].N_blocks << ", nbr Nblocks =";
          for (uint i = 0; i < MAX_NEIGHBORS_PER_DIM; ++i) {
-            if ( receiving || this->face_neighbor_ranks.find(receiver_rank) != this->face_neighbor_ranks.end()) {
+            const set<int>& ranks = this->face_neighbor_ranks[neighborhood];
+            if ( receiving || ranks.find(receiver_rank) != ranks.end()) {
                cout << " " << this->neighbor_number_of_blocks[i];
             } else {
                cout << " " << 0;
             }
          }
          cout << " face_neighbor_ranks =";
-         for (const auto& rank : this->face_neighbor_ranks) {
+         for (const auto& rank : this->face_neighbor_ranks[neighborhood]) {
             cout << " " << rank;
          }
          cout << endl;         
