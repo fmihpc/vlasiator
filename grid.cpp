@@ -138,6 +138,7 @@ void initializeGrid(
    if (myRank == MASTER_RANK) logFile << "(INIT): Starting initial load balance." << endl << writeVerbose;
    mpiGrid.balance_load();
    recalculateLocalCellsCache();
+   setFaceNeighborRanks( mpiGrid );
    phiprof::stop("Initial load-balancing");
    
    if (myRank == MASTER_RANK) logFile << "(INIT): Set initial state." << endl << writeVerbose;
@@ -320,6 +321,57 @@ void initSpatialCellCoordinates(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
    }
 }
 
+/*
+Record for each cell which processes own one or more of its face neighbors
+ */
+void setFaceNeighborRanks( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) {
+
+   const auto& cells = mpiGrid.get_cells();
+   // TODO: Try a #pragma omp parallel for
+   for (const auto& cellid : cells) {
+      
+      if (cellid == INVALID_CELLID) continue;
+      
+      SpatialCell* cell = mpiGrid[cellid];
+
+      if (!cell) continue;
+
+      cell->face_neighbor_ranks.clear();
+      
+      const auto& faceNeighbors = mpiGrid.get_face_neighbors_of(cellid);
+
+      for (const auto& nbr : faceNeighbors) {
+
+         int neighborhood;
+
+         // We store rank numbers into a map that has neighborhood ids as its key values.
+         
+         switch (nbr.second) {
+         case -3:
+            neighborhood = SHIFT_M_Z_NEIGHBORHOOD_ID;
+            break;
+         case -2:
+            neighborhood = SHIFT_M_Y_NEIGHBORHOOD_ID;
+            break;
+         case -1: 
+            neighborhood = SHIFT_M_X_NEIGHBORHOOD_ID;
+            break;
+         case +1: 
+            neighborhood = SHIFT_P_X_NEIGHBORHOOD_ID;
+            break;
+         case +2:
+            neighborhood = SHIFT_P_Y_NEIGHBORHOOD_ID;
+            break;
+         case +3:
+            neighborhood = SHIFT_P_Z_NEIGHBORHOOD_ID;
+            break;
+         }
+
+         cell->face_neighbor_ranks[neighborhood].insert(mpiGrid.get_process(nbr.first));
+         
+      }      
+   }
+}
 
 void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, SysBoundary& sysBoundaries){
    // Invalidate cached cell lists
@@ -467,6 +519,11 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
       }
    }
 
+   // Record ranks of face neighbors
+   phiprof::start("set face neighbor ranks");   
+   setFaceNeighborRanks( mpiGrid );
+   phiprof::stop("set face neighbor ranks");
+   
    phiprof::stop("Init solvers");   
    phiprof::stop("Balancing load");
 }

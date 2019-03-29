@@ -34,7 +34,7 @@
 using namespace std;
 
 namespace spatial_cell {
-   int SpatialCell::activePopID = -1;
+   int SpatialCell::activePopID = 0;
    uint64_t SpatialCell::mpi_transfer_type = 0;
    bool SpatialCell::mpiTransferAtSysBoundaries = false;
 
@@ -74,6 +74,7 @@ namespace spatial_cell {
          const species::Species& spec = getObjectWrapper().particleSpecies[popID];
          populations[popID].vmesh.initialize(spec.velocityMesh);
          populations[popID].velocityBlockMinValue = spec.sparseMinValue;
+         populations[popID].N_blocks = 0;
       }
    }
 
@@ -649,9 +650,17 @@ namespace spatial_cell {
             * neighbor. The values of neighbor_block_data
             * and neighbor_number_of_blocks should be set in
             * solver.*/
-            for ( int i = 0; i < MAX_NEIGHBORS_PER_DIM; ++i) {
-               displacements.push_back((uint8_t*) this->neighbor_block_data[i] - (uint8_t*) this);               
-               block_lengths.push_back(sizeof(Realf) * VELOCITY_BLOCK_LENGTH * this->neighbor_number_of_blocks[i]);
+
+            // Send this data only to ranks that contain face neighbors
+            // this->neighbor_number_of_blocks has been initialized to 0, on other ranks it can stay that way.
+            const set<int>& ranks = this->face_neighbor_ranks[neighborhood];
+            if ( receiving || ranks.find(receiver_rank) != ranks.end()) {
+               
+               for ( int i = 0; i < MAX_NEIGHBORS_PER_DIM; ++i) {
+                  displacements.push_back((uint8_t*) this->neighbor_block_data[i] - (uint8_t*) this);               
+                  block_lengths.push_back(sizeof(Realf) * VELOCITY_BLOCK_LENGTH * this->neighbor_number_of_blocks[i]);
+               }
+               
             }
          }
 
@@ -833,9 +842,18 @@ namespace spatial_cell {
          MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
          cout << myRank << " get_mpi_datatype: " << cellID << " " << sender_rank << " " << receiver_rank << " " << mpiSize << ", Nblocks = " << populations[activePopID].N_blocks << ", nbr Nblocks =";
          for (uint i = 0; i < MAX_NEIGHBORS_PER_DIM; ++i) {
-            cout << " " << this->neighbor_number_of_blocks[i];
+            const set<int>& ranks = this->face_neighbor_ranks[neighborhood];
+            if ( receiving || ranks.find(receiver_rank) != ranks.end()) {
+               cout << " " << this->neighbor_number_of_blocks[i];
+            } else {
+               cout << " " << 0;
+            }
          }
-         cout << endl;
+         cout << " face_neighbor_ranks =";
+         for (const auto& rank : this->face_neighbor_ranks[neighborhood]) {
+            cout << " " << rank;
+         }
+         cout << endl;         
       }
       
       return std::make_tuple(address,count,datatype);
