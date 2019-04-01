@@ -31,10 +31,10 @@ then
 fi
 
 
-# Extract the project name to filter out these options below
+# Extract the project name to filter out these options below.
 project=$( cat $cfg | grep "^project" | cut --delimiter="=" -f 2 | tr -d " " )
 
-# Extract the loaded system boundaries to filter out these options below
+# Extract the loaded system boundaries to filter out these options below.
 boundaries=""
 if [[ $( grep "^boundary" $cfg | grep Ionosphere | wc -l ) -eq 1 ]]
 then
@@ -51,7 +51,7 @@ then
    boundaries=$boundaries" outflow"
 fi
 
-# Extract the populations to filter out these options below
+# Extract the populations to filter out these options below.
 populations=$( cat $cfg | grep "^ParticlePopulations" | cut --delimiter="=" -f 2 | tr -d " " )
 
 for pop in $populations
@@ -71,13 +71,14 @@ do
 done > .allowed_prefixes
 
 
-#long one-liner. First remove comments, then add prefix to each name and only print if line is not empty
+# Long one-liner. First remove comments, then add prefix to each name and only print if line is not empty.
 cat $cfg |  grep -v "^[ ]*#" |gawk '{if ( $1 ~ /\[/) {prefix=substr($1,2,length($1)-2);prefix=sprintf("%s.",prefix);} else if(NF>0) printf("%s%s\n",prefix,$0)}' > .cfg_variables
 
 $mpirun_cmd $vlasiator --help | grep "^  " | tr "\n" " " | sed 's/--/\n/g' | sed -e 's/ \+/ /g' | grep -v -e '^ \?$' > .vlasiator_variables
 
 
-# Replace <population> with loaded populations
+# Replace <population> with loaded populations.
+# Protect special characters which otherwise (don't) trip grep in the last line of the loop.
 cat .vlasiator_variables | grep "\<population\>" | while read opt
 do
    option_line=""
@@ -98,15 +99,19 @@ do
    sed .vlasiator_variables -i'' -e "s/${opt_protected}/${option_line}/g"
 done
 
-
+# Extract option names.
 cat .vlasiator_variables | gawk '{print $1}'|sort -u >.vlasiator_variable_names
+# Extract default values
 cat .vlasiator_variables | gawk '{if( substr($3,1,2)=="(=") { print $1,$3}  else{ print $1}}'|sort -u >.vlasiator_variable_names_default_val
+# Extract option names from cfg.
 cat .cfg_variables | gawk '{print $1}'|sort -u >.cfg_variable_names
 
 
 # Process output and diagnostic variables
+# Extract them.
 cat .cfg_variables | grep "variables.output" | sort -u > .cfg_output_variable_names
 cat .cfg_variables | grep "variables.diagnostic" | sort -u > .cfg_diagnostic_variable_names
+# Use the intentional : character to extract the end of the help output which contains the list of variables for output and diagnostic.
 cat .vlasiator_variables | grep "variables.output" | cut --delimiter=":" -f 2 | sed 's/^ //' | sed 's/ $//' | sed 's/ /\n/g' | sed 's/^/variables.output = /g' | sort -u > .vlasiator_output_variable_names
 cat .vlasiator_variables | grep "variables.diagnostic" | cut --delimiter=":" -f 2 | sed 's/^ //' | sed 's/ $//' | sed 's/ /\n/g' | sed 's/^/variables.diagnostic = /g' | sort -u > .vlasiator_diagnostic_variable_names
 
