@@ -267,14 +267,14 @@ namespace projects {
 
       if(mpiGrid.get_maximum_refinement_level() > 1) {
 
-         for (int i = 0; i < P::amrBoxHalfWidthX; ++i) {
-            for (int j = 0; j < P::amrBoxHalfWidthY; ++j) {
-               for (int k = 0; k < P::amrBoxHalfWidthZ; ++k) {
+         for (int i = 0; i < 2 * P::amrBoxHalfWidthX; ++i) {
+            for (int j = 0; j < 2 * P::amrBoxHalfWidthY; ++j) {
+               for (int k = 0; k < 2 * P::amrBoxHalfWidthZ; ++k) {
                   
                   std::array<double,3> xyz;
-                  xyz[0] = P::amrBoxCenterX + (0.5 + i - 0.5 * P::amrBoxHalfWidthX) * P::dx_ini;
-                  xyz[1] = P::amrBoxCenterY + (0.5 + j - 0.5 * P::amrBoxHalfWidthY) * P::dy_ini;
-                  xyz[2] = P::amrBoxCenterZ + (0.5 + k - 0.5 * P::amrBoxHalfWidthZ) * P::dz_ini;
+                  xyz[0] = P::amrBoxCenterX + 0.5 * (0.5 + i - P::amrBoxHalfWidthX) * P::dx_ini;
+                  xyz[1] = P::amrBoxCenterY + 0.5 * (0.5 + j - P::amrBoxHalfWidthY) * P::dy_ini;
+                  xyz[2] = P::amrBoxCenterZ + 0.5 * (0.5 + k - P::amrBoxHalfWidthZ) * P::dz_ini;
                   
                   CellID myCell = mpiGrid.get_existing_cell(xyz);
                   if (mpiGrid.refine_completely_at(xyz)) {
