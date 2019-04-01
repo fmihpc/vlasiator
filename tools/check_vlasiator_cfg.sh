@@ -65,7 +65,7 @@ done
 
 
 # List of prefixes to allow (excludes all but the active project's project options)
-for prefix in $project $boundaries $population_prefixes AMR bailout boundaries fieldsolver gridbuilder io loadBalance Project_common restart sparse variables vlasovsolver
+for prefix in $project $boundaries $population_prefixes AMR bailout boundaries fieldsolver gridbuilder io loadBalance Project_common restart variables vlasovsolver
 do
    echo "${prefix}\."
 done > .allowed_prefixes
@@ -87,12 +87,14 @@ do
       option=${option//\//\\/}
       option=${option//\[/\\[}
       option=${option//\]/\\]}
+      option=${option//\*/\\*}
       option_line+=${option}"\n"
    done
    option_line=${option_line%"\n"}
    opt_protected=${opt//\//\\/}
    opt_protected=${opt_protected//\[/\\[}
    opt_protected=${opt_protected//\]/\\]}
+   opt_protected=${opt_protected//\*/\\*}
    sed .vlasiator_variables -i'' -e "s/${opt_protected}/${option_line}/g"
 done
 
