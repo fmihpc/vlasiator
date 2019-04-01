@@ -697,7 +697,7 @@ int main(int argn,char* args[]) {
       if(printCells) cout << "Cell " << cell << " rho = " << rho << " x: " << x << " y: " << y << " z: " << z << endl;
    }
    if(printSums) {
-      cout << "Rank " << myRank << ", nSum = " << nSum << endl;   
+      cout << "Rank " << myRank << ", Local sum = " << nSum << endl;   
       Real globalSum = 0.0;
       MPI_Reduce(&nSum, &globalSum, 1, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
       MPI_Barrier(MPI_COMM_WORLD);
