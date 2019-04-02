@@ -1576,30 +1576,10 @@ void update_remote_mapping_contribution_amr(
          Realf *blockData = receive_cell->get_data(popID);
          Realf *neighborData = origin_cell->neighbor_block_data[receive_origin_index[c]];
 
-         // cout << "Rank " << myRank << ", dim " << dimension << ", dir " << direction;
-         // cout << ". Neighbor data of remote cell " << receive_origin_cells[c] << " is added to local cell " << receive_cells[c];
-         // cout << " with index " << receive_origin_index[c];
-
-         Realf checksum = 0.0;
-         
          //#pragma omp for 
          for(uint vCell = 0; vCell < VELOCITY_BLOCK_LENGTH * receive_cell->get_number_of_velocity_blocks(popID); ++vCell) {
             blockData[vCell] += neighborData[vCell];
-            checksum += neighborData[vCell];
          }
-
-         //cout << ". Sum is " << checksum << endl;
-
-         // array<Realf,8> allChecksums = {};
-         // cout << ". Sums are ";         
-         // for (uint i = 0; i < MAX_NEIGHBORS_PER_DIM; ++i) {
-         //    neighborData = origin_cell->neighbor_block_data[i];
-         //    for(uint vCell = 0; vCell < VELOCITY_BLOCK_LENGTH * receive_cell->get_number_of_velocity_blocks(popID); ++vCell) {
-         //       allChecksums[i] += neighborData[vCell];
-         //    }
-         //    cout << allChecksums[i] << " ";
-         // }
-         // cout << endl;
       }
       
       // send cell data is set to zero. This is to avoid double copy if
