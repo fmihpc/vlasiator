@@ -515,9 +515,11 @@ namespace projects {
 	}
         refinedCells = mpiGrid.stop_refining(true);      
         if(myRank == MASTER_RANK) std::cout << "Finished first level of refinement" << endl;
+#ifndef NDEBUG
         if(refinedCells.size() > 0) {
            std::cout << "Rank " << myRank << " refined " << refinedCells.size() << " cells. " << std::endl;
         }
+#endif
         mpiGrid.balance_load();
       }
 
@@ -550,9 +552,11 @@ namespace projects {
          }
          refinedCells = mpiGrid.stop_refining(true);      
          if(myRank == MASTER_RANK) std::cout << "Finished second level of refinement" << endl;
+#ifndef NDEBUG
          if(refinedCells.size() > 0) {
             std::cout << "Rank " << myRank << " refined " << refinedCells.size() << " cells. " << std::endl;
          }
+#endif
 
          mpiGrid.balance_load();
       }

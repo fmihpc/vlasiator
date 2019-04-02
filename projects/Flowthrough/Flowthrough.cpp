@@ -248,13 +248,16 @@ namespace projects {
                
                CellID myCell = mpiGrid.get_existing_cell(xyz);
                if (mpiGrid.refine_completely_at(xyz)) {
+#ifndef NDEBUG
                   std::cout << "Rank " << myRank << " is refining cell " << myCell << std::endl;
+#endif
                }
             }
          }
       }
       std::vector<CellID> refinedCells = mpiGrid.stop_refining(true);      
       if(myRank == MASTER_RANK) std::cout << "Finished first level of refinement" << endl;
+#ifndef NDEBUG
       if(refinedCells.size() > 0) {
 	std::cout << "Refined cells produced by rank " << myRank << " are: ";
 	for (auto cellid : refinedCells) {
@@ -262,6 +265,7 @@ namespace projects {
 	}
 	std::cout << endl;
       }
+#endif
                   
       mpiGrid.balance_load();
 
@@ -278,7 +282,9 @@ namespace projects {
                   
                   CellID myCell = mpiGrid.get_existing_cell(xyz);
                   if (mpiGrid.refine_completely_at(xyz)) {
+#ifndef NDEBUG
                      std::cout << "Rank " << myRank << " is refining cell " << myCell << std::endl;
+#endif
                   }
                }
             }
@@ -286,13 +292,15 @@ namespace projects {
          
          std::vector<CellID> refinedCells = mpiGrid.stop_refining(true);      
          if(myRank == MASTER_RANK) std::cout << "Finished second level of refinement" << endl;
+#ifndef NDEBUG
          if(refinedCells.size() > 0) {
             std::cout << "Refined cells produced by rank " << myRank << " are: ";
             for (auto cellid : refinedCells) {
                std::cout << cellid << " ";
             }
             std::cout << endl;
-         }                  
+         }
+#endif
          mpiGrid.balance_load();
       }
       
