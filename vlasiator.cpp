@@ -82,10 +82,10 @@ bool globalflags::balanceLoad = 0;
 ObjectWrapper objectWrapper;
 
 void addTimedBarrier(string name){
-#ifdef NDEBUG
-//let's not do  a barrier
-   return; 
-#endif
+//#ifdef NDEBUG
+// //let's not do  a barrier
+//   return; 
+//#endif
    int bt=phiprof::initializeTimer(name,"Barriers","MPI");
    phiprof::start(bt);
    MPI_Barrier(MPI_COMM_WORLD);
