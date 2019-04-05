@@ -89,7 +89,11 @@ void calculateSpatialTranslation(
       phiprof::stop(trans_timer);
 
       phiprof::start("compute-mapping-z");
-      trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsz, 2, dt,popID); // map along z//
+      if(P::amrMaxSpatialRefLevel = 0) {
+         trans_map_1d(mpiGrid,local_propagated_cells, remoteTargetCellsz, 2, dt,popID); // map along z//
+      } else {
+         trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsz, 2, dt,popID); // map along z//
+      }
       phiprof::stop("compute-mapping-z");
 
       trans_timer=phiprof::initializeTimer("update_remote-z","MPI");
@@ -112,7 +116,11 @@ void calculateSpatialTranslation(
       phiprof::stop(trans_timer);
       
       phiprof::start("compute-mapping-x");
-      trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsx, 0,dt,popID); // map along x//
+      if(P::amrMaxSpatialRefLevel = 0) {
+         trans_map_1d(mpiGrid,local_propagated_cells, remoteTargetCellsx, 0,dt,popID); // map along x//
+      } else {
+         trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsx, 0,dt,popID); // map along x//
+      }
       phiprof::stop("compute-mapping-x");
 
       trans_timer=phiprof::initializeTimer("update_remote-x","MPI");
@@ -134,8 +142,12 @@ void calculateSpatialTranslation(
       mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);
       phiprof::stop(trans_timer);
       
-      phiprof::start("compute-mapping-y");      
-      trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsy, 1,dt,popID); // map along y//
+      phiprof::start("compute-mapping-y");
+      if(P::amrMaxSpatialRefLevel = 0) {
+         trans_map_1d(mpiGrid,local_propagated_cells, remoteTargetCellsy, 1,dt,popID); // map along y//
+      } else {
+         trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsy, 1,dt,popID); // map along y//      
+      }
       phiprof::stop("compute-mapping-y");
       
       trans_timer=phiprof::initializeTimer("update_remote-y","MPI");
