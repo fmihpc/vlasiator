@@ -89,7 +89,7 @@ void calculateSpatialTranslation(
       phiprof::stop(trans_timer);
 
       phiprof::start("compute-mapping-z");
-      if(P::amrMaxSpatialRefLevel = 0) {
+      if(P::amrMaxSpatialRefLevel == 0) {
          trans_map_1d(mpiGrid,local_propagated_cells, remoteTargetCellsz, 2, dt,popID); // map along z//
       } else {
          trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsz, 2, dt,popID); // map along z//
@@ -98,7 +98,7 @@ void calculateSpatialTranslation(
 
       trans_timer=phiprof::initializeTimer("update_remote-z","MPI");
       phiprof::start("update_remote-z");
-      if(P::amrMaxSpatialRefLevel = 0) {
+      if(P::amrMaxSpatialRefLevel == 0) {
          update_remote_mapping_contribution(mpiGrid, 2,+1,popID);
          update_remote_mapping_contribution(mpiGrid, 2,-1,popID);
       } else {
@@ -121,7 +121,7 @@ void calculateSpatialTranslation(
       phiprof::stop(trans_timer);
       
       phiprof::start("compute-mapping-x");
-      if(P::amrMaxSpatialRefLevel = 0) {
+      if(P::amrMaxSpatialRefLevel == 0) {
          trans_map_1d(mpiGrid,local_propagated_cells, remoteTargetCellsx, 0,dt,popID); // map along x//
       } else {
          trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsx, 0,dt,popID); // map along x//
@@ -130,7 +130,7 @@ void calculateSpatialTranslation(
 
       trans_timer=phiprof::initializeTimer("update_remote-x","MPI");
       phiprof::start("update_remote-x");
-      if(P::amrMaxSpatialRefLevel = 0) {
+      if(P::amrMaxSpatialRefLevel == 0) {
          update_remote_mapping_contribution(mpiGrid, 0,+1,popID);
          update_remote_mapping_contribution(mpiGrid, 0,-1,popID);
       } else {
@@ -153,7 +153,7 @@ void calculateSpatialTranslation(
       phiprof::stop(trans_timer);
       
       phiprof::start("compute-mapping-y");
-      if(P::amrMaxSpatialRefLevel = 0) {
+      if(P::amrMaxSpatialRefLevel == 0) {
          trans_map_1d(mpiGrid,local_propagated_cells, remoteTargetCellsy, 1,dt,popID); // map along y//
       } else {
          trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsy, 1,dt,popID); // map along y//      
@@ -162,7 +162,7 @@ void calculateSpatialTranslation(
       
       trans_timer=phiprof::initializeTimer("update_remote-y","MPI");
       phiprof::start("update_remote-y");
-      if(P::amrMaxSpatialRefLevel = 0) {
+      if(P::amrMaxSpatialRefLevel == 0) {
          update_remote_mapping_contribution(mpiGrid, 1,+1,popID);
          update_remote_mapping_contribution(mpiGrid, 1,-1,popID);
       } else {
