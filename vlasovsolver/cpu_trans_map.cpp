@@ -653,6 +653,10 @@ void update_remote_mapping_contribution(
    int myRank;
    
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+
+   // MPI_Barrier(MPI_COMM_WORLD);
+   // cout << "begin update_remote_mapping_contribution, dimension = " << dimension << ", direction = " << direction << endl;
+   // MPI_Barrier(MPI_COMM_WORLD);
    
    //normalize
    if(direction > 0) direction = 1;
@@ -683,48 +687,21 @@ void update_remote_mapping_contribution(
          }
          ccell->neighbor_number_of_blocks.at(i) = 0;
       }
-      CellID p_ngbr,m_ngbr;
-      // switch (dimension) {
-      // case 0:
-      //    //p_ngbr is target, if in boundaries then it is not updated
-      //    p_ngbr=get_spatial_neighbor(mpiGrid, local_cells[c], false, direction, 0, 0);
-      //    //m_ngbr is source, first boundary layer is propagated so that it flows into system
-      //    m_ngbr=get_spatial_neighbor(mpiGrid, local_cells[c], true, -direction, 0, 0); 
-      //    break;
-      // case 1:
-      //    //p_ngbr is target, if in boundaries then it is not update
-      //    p_ngbr=get_spatial_neighbor(mpiGrid, local_cells[c], false, 0, direction, 0);
-      //    //m_ngbr is source, first boundary layer is propagated so that it flows into system
-      //    m_ngbr=get_spatial_neighbor(mpiGrid, local_cells[c], true, 0, -direction, 0); 
-      //    break;
-      // case 2:
-      //    //p_ngbr is target, if in boundaries then it is not update
-      //    p_ngbr=get_spatial_neighbor(mpiGrid, local_cells[c], false, 0, 0, direction);
-      //    //m_ngbr is source, first boundary layer is propagated so that it flows into system
-      //    m_ngbr=get_spatial_neighbor(mpiGrid, local_cells[c], true, 0, 0, -direction); 
-      //    break;
-      // default:
-      //    cerr << "Dimension wrong at (impossible!) "<< __FILE__ <<":" << __LINE__<<endl;
-      //    exit(1);
-      //    break;
-      // }
+      CellID p_ngbr = INVALID_CELLID;
+      CellID m_ngbr = INVALID_CELLID;
 
-      int neighborhood = 0;
-      switch (dimension) {
-      case 0:
-         neighborhood = VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID;
-         break;
-      case 1:
-         neighborhood = VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID;
-         break;
-      case 2:
-         neighborhood = VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID;
-         break;
-      }     
-      auto NbrPairVector = mpiGrid.get_neighbors_of(local_cells[c], neighborhood);
-      m_ngbr = NbrPairVector->front().first;
-      p_ngbr = NbrPairVector->back().first;
+      const auto faceNbrs = mpiGrid.get_face_neighbors_of(local_cells[c]);
+      
+      for (const auto nbr : faceNbrs) {
+         if(nbr.second == ((int)dimension + 1) * direction) {
+            p_ngbr = nbr.first;
+         }
 
+         if(nbr.second == -1 * ((int)dimension + 1) * direction) {
+            m_ngbr = nbr.first;
+         }
+      }
+      
       //internal cell, not much to do
       if (mpiGrid.is_local(p_ngbr) && mpiGrid.is_local(m_ngbr)) continue;
 
@@ -808,5 +785,10 @@ void update_remote_mapping_contribution(
    for (size_t c=0; c < receiveBuffers.size(); ++c) {
       aligned_free(receiveBuffers[c]);
    }
+
+   // MPI_Barrier(MPI_COMM_WORLD);
+   // cout << "end update_remote_mapping_contribution, dimension = " << dimension << ", direction = " << direction << endl;
+   // MPI_Barrier(MPI_COMM_WORLD);
+
 }
 
