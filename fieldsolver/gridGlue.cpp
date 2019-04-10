@@ -424,6 +424,7 @@ void setupTechnicalFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    // Add layer calculation here. Include diagonals +-1.
 
    // Initialize boundary layer flags to 0.
+#pragma omp parallel for collapse(3)
    for (int x = 0; x < localSize[0]; ++x) {
       for (int y = 0; y < localSize[1]; ++y) {
          for (int z = 0; z < localSize[2]; ++z) {
