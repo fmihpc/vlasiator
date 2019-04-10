@@ -399,22 +399,24 @@ int main(int argn,char* args[]) {
                                                convert<int>(P::zcells_ini) * pow(2,P::amrMaxSpatialRefLevel)};
 
    std::array<bool,3> periodicity{mpiGrid.topology.is_periodic(0),
-                                  mpiGrid.topology.is_periodic(1),
-                                  mpiGrid.topology.is_periodic(2)};
+                                 mpiGrid.topology.is_periodic(1),
+                                 mpiGrid.topology.is_periodic(2)};
    
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> perBGrid(fsGridDimensions, comm, periodicity);
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> perBDt2Grid(fsGridDimensions, comm, periodicity);
-   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> EGrid(fsGridDimensions, comm, periodicity);
-   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> EDt2Grid(fsGridDimensions, comm, periodicity);
-   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2> EHallGrid(fsGridDimensions, comm, periodicity);
-   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2> EGradPeGrid(fsGridDimensions, comm, periodicity);
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> momentsGrid(fsGridDimensions, comm, periodicity);
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> momentsDt2Grid(fsGridDimensions, comm, periodicity);
-   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> dPerBGrid(fsGridDimensions, comm, periodicity);
-   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> dMomentsGrid(fsGridDimensions, comm, periodicity);
-   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2> BgBGrid(fsGridDimensions, comm, periodicity);
-   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> volGrid(fsGridDimensions, comm, periodicity);
-   FsGrid< fsgrids::technical, 2> technicalGrid(fsGridDimensions, comm, periodicity);
+   FsGridCouplingInformation gridCoupling;
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> perBGrid(fsGridDimensions, comm, periodicity,gridCoupling);
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> perBDt2Grid(fsGridDimensions, comm, periodicity,gridCoupling);
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> EGrid(fsGridDimensions, comm, periodicity,gridCoupling);
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> EDt2Grid(fsGridDimensions, comm, periodicity,gridCoupling);
+   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2> EHallGrid(fsGridDimensions, comm, periodicity,gridCoupling);
+   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2> EGradPeGrid(fsGridDimensions, comm, periodicity,gridCoupling);
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> momentsGrid(fsGridDimensions, comm, periodicity,gridCoupling);
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> momentsDt2Grid(fsGridDimensions, comm, periodicity,gridCoupling);
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> dPerBGrid(fsGridDimensions, comm, periodicity,gridCoupling);
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> dMomentsGrid(fsGridDimensions, comm, periodicity,gridCoupling);
+   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2> BgBGrid(fsGridDimensions, comm, periodicity,gridCoupling);
+   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> volGrid(fsGridDimensions, comm, periodicity,gridCoupling);
+   FsGrid< fsgrids::technical, 2> technicalGrid(fsGridDimensions, comm, periodicity,gridCoupling);
+
    // Set DX,DY and DZ
    // TODO: This is currently just taking the values from cell 1, and assuming them to be
    // constant throughout the simulation.
@@ -431,19 +433,10 @@ int main(int argn,char* args[]) {
    phiprof::start("Initial fsgrid coupling");
    const std::vector<CellID>& cells = getLocalCells();
    
-   perBGrid.      setupForGridCoupling();   
-   perBDt2Grid.   setupForGridCoupling();      
-   EGrid.         setupForGridCoupling();
-   EDt2Grid.      setupForGridCoupling();
-   EHallGrid.     setupForGridCoupling();
-   EGradPeGrid.   setupForGridCoupling();
-   momentsGrid.   setupForGridCoupling();
-   momentsDt2Grid.setupForGridCoupling();
-   dPerBGrid.     setupForGridCoupling();
-   dMomentsGrid.  setupForGridCoupling();
-   BgBGrid.       setupForGridCoupling();
-   volGrid.       setupForGridCoupling();
-   technicalGrid. setupForGridCoupling();
+   // Couple FSGrids to mpiGrid. Note that the coupling information is shared
+   // between them.
+   technicalGrid.setupForGridCoupling(cells.size());
+
    
    // Each dccrg cell may have to communicate with multiple fsgrid cells, if they are on a lower refinement level.
    // Calculate the corresponding fsgrid ids for each dccrg cell and set coupling for each fsgrid id.
@@ -452,35 +445,12 @@ int main(int argn,char* args[]) {
 
       for (auto fsgridId : fsgridIds) {
          
-         perBGrid.      setGridCoupling(fsgridId, myRank);         
-         perBDt2Grid.   setGridCoupling(fsgridId, myRank);         
-         EGrid.         setGridCoupling(fsgridId, myRank);
-         EDt2Grid.      setGridCoupling(fsgridId, myRank);
-         EHallGrid.     setGridCoupling(fsgridId, myRank);
-         EGradPeGrid.   setGridCoupling(fsgridId, myRank);
-         momentsGrid.   setGridCoupling(fsgridId, myRank);
-         momentsDt2Grid.setGridCoupling(fsgridId, myRank);
-         dPerBGrid.     setGridCoupling(fsgridId, myRank);
-         dMomentsGrid.  setGridCoupling(fsgridId, myRank);
-         BgBGrid.       setGridCoupling(fsgridId, myRank);
-         volGrid.       setGridCoupling(fsgridId, myRank);
          technicalGrid. setGridCoupling(fsgridId, myRank);
       }
    }
    
-   perBGrid.      finishGridCoupling();
-   perBDt2Grid.   finishGridCoupling();
-   EGrid.         finishGridCoupling();
-   EDt2Grid.      finishGridCoupling();
-   EHallGrid.     finishGridCoupling();
-   EGradPeGrid.   finishGridCoupling();
-   momentsGrid.   finishGridCoupling();
-   momentsDt2Grid.finishGridCoupling();
-   dPerBGrid.     finishGridCoupling();
-   dMomentsGrid.  finishGridCoupling();
-   BgBGrid.       finishGridCoupling();
-   volGrid.       finishGridCoupling();
    technicalGrid. finishGridCoupling();
+
    phiprof::stop("Initial fsgrid coupling");
 
    // Transfer initial field configuration into the FsGrids
@@ -918,19 +888,7 @@ int main(int argn,char* args[]) {
 //          for(auto id : cells) cout << id << " ";
 //          cout << endl;
          
-         perBGrid.      setupForGridCoupling();
-         perBDt2Grid.   setupForGridCoupling();        
-         EGrid.         setupForGridCoupling();
-         EDt2Grid.      setupForGridCoupling();
-         EHallGrid.     setupForGridCoupling();
-         EGradPeGrid.   setupForGridCoupling();
-         momentsGrid.   setupForGridCoupling();
-         momentsDt2Grid.setupForGridCoupling();
-         dPerBGrid.     setupForGridCoupling();
-         dMomentsGrid.  setupForGridCoupling();
-         BgBGrid.       setupForGridCoupling();
-         volGrid.       setupForGridCoupling();
-         technicalGrid. setupForGridCoupling();
+         technicalGrid. setupForGridCoupling(cells.size());
          
          // Each dccrg cell may have to communicate with multiple fsgrid cells, if they are on a lower refinement level.
          // Calculate the corresponding fsgrid ids for each dccrg cell and set coupling for each fsgrid id.
@@ -938,35 +896,11 @@ int main(int argn,char* args[]) {
             const auto fsgridIds = mapDccrgIdToFsGridGlobalID(mpiGrid, dccrgId);
             for (auto& fsgridId : fsgridIds) {
                
-               perBGrid.      setGridCoupling(fsgridId, myRank);
-               perBDt2Grid.   setGridCoupling(fsgridId, myRank);               
-               EGrid.         setGridCoupling(fsgridId, myRank);
-               EDt2Grid.      setGridCoupling(fsgridId, myRank);
-               EHallGrid.     setGridCoupling(fsgridId, myRank);
-               EGradPeGrid.   setGridCoupling(fsgridId, myRank);
-               momentsGrid.   setGridCoupling(fsgridId, myRank);
-               momentsDt2Grid.setGridCoupling(fsgridId, myRank);
-               dPerBGrid.     setGridCoupling(fsgridId, myRank);
-               dMomentsGrid.  setGridCoupling(fsgridId, myRank);
-               BgBGrid.       setGridCoupling(fsgridId, myRank);               
-               volGrid.       setGridCoupling(fsgridId, myRank);
                technicalGrid. setGridCoupling(fsgridId, myRank);
             }
          }
          // cout << endl;
          
-         perBGrid.      finishGridCoupling();
-         perBDt2Grid.   finishGridCoupling();
-         EGrid.         finishGridCoupling();
-         EDt2Grid.      finishGridCoupling();
-         EHallGrid.     finishGridCoupling();
-         EGradPeGrid.   finishGridCoupling();
-         momentsGrid.   finishGridCoupling();
-         momentsDt2Grid.finishGridCoupling();
-         dPerBGrid.     finishGridCoupling();
-         dMomentsGrid.  finishGridCoupling();
-         BgBGrid.       finishGridCoupling();
-         volGrid.       finishGridCoupling();
          technicalGrid. finishGridCoupling();
          phiprof::stop("fsgrid-recouple-after-lb");
 

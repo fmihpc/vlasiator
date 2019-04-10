@@ -172,8 +172,8 @@ namespace projects {
                break;
             case TestCase:
                rhoFactor = 1.0;
-               if (x < 0.31 * (P::xmax - P::xmin) &&
-                   y < 0.31 * (P::ymax - P::ymin)) {
+               if (x < P::xmin + 0.31 * (P::xmax - P::xmin) &&
+                   y < P::ymin + 0.31 * (P::ymax - P::ymin)) {
                   rhoFactor = 3.0;
                }
                break;
