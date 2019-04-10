@@ -38,7 +38,10 @@ namespace projects {
       virtual bool initialize(void);
       static void addParameters(void);
       virtual void getParameters(void);
-      virtual void setCellBackgroundField(spatial_cell::SpatialCell* cell);
+      virtual void setProjectBackgroundField(
+         FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+         FsGrid< fsgrids::technical, 2>& technicalGrid
+      );
     protected:
       Real getDistribValue(
                            creal& x,creal& y, creal& z,

@@ -109,13 +109,16 @@ namespace projects {
       cellParams[CellParams::PERBZ   ] = 0.0;
    }
 
-   void VelocityBox::setCellBackgroundField(SpatialCell* cell) {
-     ConstantField bgField;
+   void VelocityBox::setProjectBackgroundField(
+      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+      FsGrid< fsgrids::technical, 2>& technicalGrid
+   ) {
+      ConstantField bgField;
       bgField.initialize(this->Bx,
                          this->By,
                          this->Bz);
       
-      setBackgroundField(bgField,cell->parameters.data(), cell->derivatives.data(),cell->derivativesBVOL.data());
+      setBackgroundField(bgField, BgBGrid);
    }
    
 }// namespace projects

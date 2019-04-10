@@ -105,8 +105,11 @@ namespace projects {
       return result;
    }
    
-   void test_fp::setCellBackgroundField(spatial_cell::SpatialCell *cell) const {
-      setBackgroundFieldToZero(cell->parameters.data(), cell->derivatives.data(),cell->derivativesBVOL.data());
+   void test_fp::setProjectBackgroundField(
+      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+      FsGrid< fsgrids::technical, 2>& technicalGrid
+   ) {
+      setBackgroundFieldToZero(BgBGrid);
    }
    
    void test_fp::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {

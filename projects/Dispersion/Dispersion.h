@@ -51,7 +51,10 @@ namespace projects {
       virtual bool initialize(void);
       static void addParameters(void);
       virtual void getParameters(void);
-      virtual void setCellBackgroundField(spatial_cell::SpatialCell* cell) const;
+      virtual void setProjectBackgroundField(
+         FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+         FsGrid< fsgrids::technical, 2>& technicalGrid
+      );
       virtual void hook(
          cuint& stage,
          const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid

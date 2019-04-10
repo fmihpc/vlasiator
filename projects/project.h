@@ -26,6 +26,7 @@
 #include "../spatial_cell.hpp"
 #include <dccrg.hpp>
 #include <dccrg_cartesian_geometry.hpp>
+#include "fsgrid.hpp"
 
 namespace projects {
    class Project {
@@ -52,11 +53,15 @@ namespace projects {
       
       bool initialized();
       
-      /*! set background field, should set it for all cells.
+      /*! set background field on the background field fsgrid.
        * Currently this function is only called during the initialization.
-       * NOTE: This function is called inside parallel region so it must be declared as const.
-       * @param cell Pointer to the spatial cell.*/
-      virtual void setCellBackgroundField(spatial_cell::SpatialCell* cell) const;
+       * @param BgBGrid Background field fsgrid
+       * @param technicalGrid Technical fsgrid
+       */
+      virtual void setProjectBackgroundField(
+         FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+         FsGrid< fsgrids::technical, 2>& technicalGrid
+      );
       
       /*! Setup data structures for subsequent setCell calls.
        * This will most likely be empty for most projects, except for some advanced

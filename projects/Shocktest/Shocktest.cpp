@@ -222,11 +222,13 @@ namespace projects {
    }
    
 
-   /*! Base class sets zero background field */
-   void Shocktest::setCellBackgroundField(SpatialCell* cell) {
+   void Shocktest::setProjectBackgroundField(
+      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+      FsGrid< fsgrids::technical, 2>& technicalGrid
+   ) {
       ConstantField bgField;
       bgField.initialize(0,0,0); //bg bx, by,bz
-      setBackgroundField(bgField,cell->parameters.data(), cell->derivatives.data(),cell->derivativesBVOL.data());
+      setBackgroundField(bgField, BgBGrid);
    }
 
 } // Namespace projects

@@ -183,12 +183,6 @@ void initializeGrid(
       }
       phiprof::stop("Read restart");
       const vector<CellID>& cells = getLocalCells();
-      //set background field, FIXME should be read in from restart
-      #pragma omp parallel for schedule(dynamic)
-      for (size_t i=0; i<cells.size(); ++i) {
-         SpatialCell* cell = mpiGrid[cells[i]];
-         project.setCellBackgroundField(cell);
-      }
    
       //initial state for sys-boundary cells, will skip those not set to be reapplied at restart
       phiprof::start("Apply system boundary conditions state");
@@ -211,13 +205,10 @@ void initializeGrid(
 
       // Allow the project to set up data structures for it's setCell calls
       project.setupBeforeSetCell(cells);
-
+      
       #pragma omp parallel for schedule(dynamic)
       for (size_t i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
-         phiprof::start("setCellBackgroundField");
-         project.setCellBackgroundField(cell);
-         phiprof::stop("setCellBackgroundField");
          phiprof::start("setCell");
          if (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
             project.setCell(cell);

@@ -52,7 +52,10 @@ namespace projects {
       Real getCorrectNumberDensity(spatial_cell::SpatialCell* cell,const uint popID) const;
       virtual void getParameters();
       virtual bool initialize();
-      virtual void setCellBackgroundField(spatial_cell::SpatialCell* cell) const;
+      virtual void setProjectBackgroundField(
+         FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+         FsGrid< fsgrids::technical, 2>& technicalGrid
+      );
                 
    protected:
       uint popID;

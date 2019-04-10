@@ -178,13 +178,16 @@ namespace projects {
       cellParams[CellParams::PERBZ] = this->magZPertAbsAmp * (0.5 - getRandomNumber(cell));
    }
 
-   void Fluctuations::setCellBackgroundField(SpatialCell* cell) const {
+   void Fluctuations::setProjectBackgroundField(
+      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+      FsGrid< fsgrids::technical, 2>& technicalGrid
+   ) {
       ConstantField bgField;
       bgField.initialize(this->BX0,
                          this->BY0,
                          this->BZ0);
 
-      setBackgroundField(bgField,cell->parameters.data(), cell->derivatives.data(),cell->derivativesBVOL.data());
+      setBackgroundField(bgField, BgBGrid);
    }
    
    std::vector<std::array<Real, 3> > Fluctuations::getV0(

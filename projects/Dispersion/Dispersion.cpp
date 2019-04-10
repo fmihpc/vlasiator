@@ -254,12 +254,15 @@ namespace projects {
 
    }
    
-   void Dispersion::setCellBackgroundField(SpatialCell* cell) const {
+   void Dispersion::setProjectBackgroundField(
+      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+      FsGrid< fsgrids::technical, 2>& technicalGrid
+   ) {
       ConstantField bgField;
       bgField.initialize(this->B0 * cos(this->angleXY) * cos(this->angleXZ),
                          this->B0 * sin(this->angleXY) * cos(this->angleXZ),
                          this->B0 * sin(this->angleXZ));
                          
-      setBackgroundField(bgField,cell->parameters.data(), cell->derivatives.data(),cell->derivativesBVOL.data());
+      setBackgroundField(bgField, BgBGrid);
    }
 } // namespace projects

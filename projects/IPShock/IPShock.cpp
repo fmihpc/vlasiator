@@ -491,8 +491,11 @@ namespace projects {
     return a;
   }
 
-  void IPShock::setCellBackgroundField(spatial_cell::SpatialCell* cell) const {
-     setBackgroundFieldToZero(cell->parameters.data(), cell->derivatives.data(),cell->derivativesBVOL.data());
+  void IPShock::setProjectBackgroundField(
+     FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+     FsGrid< fsgrids::technical, 2>& technicalGrid
+  ) {
+     setBackgroundFieldToZero(BgBGrid);
   }
 
 }//namespace projects

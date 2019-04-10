@@ -72,7 +72,10 @@ namespace projects {
       return true;
    }
    
-   void PoissonTest::setCellBackgroundField(SpatialCell* cell) {
+   void PoissonTest::setProjectBackgroundField(
+      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+      FsGrid< fsgrids::technical, 2>& technicalGrid
+   ) {
 
    }
    

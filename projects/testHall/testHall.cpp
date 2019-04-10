@@ -92,7 +92,7 @@ namespace projects {
          exp(- mass * (pow(vx + 0.5 * dvx - this->VX0, 2.0) + pow(vy + 0.5 * dvy - this->VY0, 2.0) + pow(vz + 0.5 * dvz - this->VZ0, 2.0)) / (2.0 * kb * this->TEMPERATURE)));
    }
    
-//    void TestHall::setCellBackgroundField(SpatialCell *cell){
+//    void TestHall::setProjectBackgroundField(SpatialCell *cell){
 //       Dipole bgField;
 //       bgField.initialize(8e15 *this->dipoleScalingFactor,this->dipoleTilt); //set dipole moment
 //       if(cell->sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN && this->noDipoleInSW) {

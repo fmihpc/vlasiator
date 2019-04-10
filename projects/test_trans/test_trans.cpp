@@ -136,10 +136,13 @@ namespace projects {
       cellParams[CellParams::PERBZ   ] = 0.0;
    }
    
-   void test_trans::setCellBackgroundField(SpatialCell* cell) const {
+   void test_trans::setProjectBackgroundField(
+      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+      FsGrid< fsgrids::technical, 2>& technicalGrid
+   ) {
       ConstantField bgField;
       bgField.initialize(0.0,0.0,1e-9);
-      setBackgroundField(bgField,cell->parameters.data(), cell->derivatives.data(),cell->derivativesBVOL.data());
+      setBackgroundField(bgField, BgBGrid);
    }
 
 }// namespace projects

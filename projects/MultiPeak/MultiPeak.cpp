@@ -229,13 +229,16 @@ namespace projects {
       rhoRnd = 0.5 - getRandomNumber(cell);
    }
 
-   void MultiPeak::setCellBackgroundField(SpatialCell* cell) const {
+   void MultiPeak::setProjectBackgroundField(
+      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+      FsGrid< fsgrids::technical, 2>& technicalGrid
+   ) {
       ConstantField bgField;
       bgField.initialize(this->Bx,
                          this->By,
                          this->Bz);
       
-      setBackgroundField(bgField,cell->parameters.data(), cell->derivatives.data(),cell->derivativesBVOL.data());
+      setBackgroundField(bgField, BgBGrid);
    }
    
    std::vector<std::array<Real, 3> > MultiPeak::getV0(

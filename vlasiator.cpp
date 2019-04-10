@@ -372,27 +372,8 @@ int main(int argn,char* args[]) {
    // Add AMR refinement criterias:
    amr_ref_criteria::addRefinementCriteria();
 
-   // Initialize grid.  After initializeGrid local cells have dist
-   // functions, and B fields set. Cells have also been classified for
-   // the various sys boundary conditions.  All remote cells have been
-   // created. All spatial date computed this far is up to date for
-   // FULL_NEIGHBORHOOD. Block lists up to date for
-   // VLASOV_SOLVER_NEIGHBORHOOD (but dist function has not been communicated)
-   phiprof::start("Init grid");
-   //dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> mpiGrid;
-   initializeGrid(argn,args,mpiGrid,sysBoundaries,*project);
-   isSysBoundaryCondDynamic = sysBoundaries.isDynamic();
-
-   phiprof::stop("Init grid");
-   
-   // Initialize data reduction operators. This should be done elsewhere in order to initialize 
-   // user-defined operators:
-   phiprof::start("Init DROs");
-   DataReducer outputReducer, diagnosticReducer;
-   initializeDataReducers(&outputReducer, &diagnosticReducer);
-   phiprof::stop("Init DROs");  
-   
    // Initialize simplified Fieldsolver grids.
+   // Needs to be done here already ad the background field will be set right away, before going to initializeGrid even
    phiprof::start("Init fieldsolver grids");
    const std::array<int,3> fsGridDimensions = {convert<int>(P::xcells_ini) * pow(2,P::amrMaxSpatialRefLevel),
                                                convert<int>(P::ycells_ini) * pow(2,P::amrMaxSpatialRefLevel),
@@ -429,7 +410,39 @@ int main(int argn,char* args[]) {
    perBGrid.DZ = perBDt2Grid.DZ = EGrid.DZ = EDt2Grid.DZ = EHallGrid.DZ = EGradPeGrid.DZ = momentsGrid.DZ
       = momentsDt2Grid.DZ = dPerBGrid.DZ = dMomentsGrid.DZ = BgBGrid.DZ = volGrid.DZ = technicalGrid.DZ
       = P::dz_ini * pow(2,-P::amrMaxSpatialRefLevel);
+   // Set the physical start (lower left corner) X, Y, Z
+   perBGrid.physicalGlobalStart = perBDt2Grid.physicalGlobalStart = EGrid.physicalGlobalStart = EDt2Grid.physicalGlobalStart
+      = EHallGrid.physicalGlobalStart = EGradPeGrid.physicalGlobalStart = momentsGrid.physicalGlobalStart
+      = momentsDt2Grid.physicalGlobalStart = dPerBGrid.physicalGlobalStart = dMomentsGrid.physicalGlobalStart
+      = BgBGrid.physicalGlobalStart = volGrid.physicalGlobalStart = technicalGrid.physicalGlobalStart
+      = {P::xmin, P::ymin, P::zmin};
    phiprof::stop("Init fieldsolver grids");
+   
+   // Initialize grid.  After initializeGrid local cells have dist
+   // functions, and B fields set. Cells have also been classified for
+   // the various sys boundary conditions.  All remote cells have been
+   // created. All spatial date computed this far is up to date for
+   // FULL_NEIGHBORHOOD. Block lists up to date for
+   // VLASOV_SOLVER_NEIGHBORHOOD (but dist function has not been communicated)
+   phiprof::start("Init grid");
+   
+   phiprof::start("setCellBackgroundField");
+   project->setProjectBackgroundField(BgBGrid, technicalGrid);
+   phiprof::stop("setCellBackgroundField");
+   
+   //dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> mpiGrid;
+   initializeGrid(argn,args,mpiGrid,sysBoundaries,*project);
+   isSysBoundaryCondDynamic = sysBoundaries.isDynamic();
+   
+   phiprof::stop("Init grid");
+   
+   // Initialize data reduction operators. This should be done elsewhere in order to initialize 
+   // user-defined operators:
+   phiprof::start("Init DROs");
+   DataReducer outputReducer, diagnosticReducer;
+   initializeDataReducers(&outputReducer, &diagnosticReducer);
+   phiprof::stop("Init DROs");  
+   
    phiprof::start("Initial fsgrid coupling");
    const std::vector<CellID>& cells = getLocalCells();
    

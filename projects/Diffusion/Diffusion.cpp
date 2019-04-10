@@ -133,9 +133,12 @@ namespace projects {
 
    }
 
-   void Diffusion::setCellBackgroundField(SpatialCell* cell) {
+   void Diffusion::setProjectBackgroundField(
+      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+      FsGrid< fsgrids::technical, 2>& technicalGrid
+   ) {
       ConstantField bgField;
       bgField.initialize(0,0,this->B0); //bg bx, by,bz
-      setBackgroundField(bgField,cell->parameters.data(), cell->derivatives.data(),cell->derivativesBVOL.data());
+      setBackgroundField(bgField, BgBGrid);
    }
 } // namespace projects

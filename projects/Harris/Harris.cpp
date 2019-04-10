@@ -166,8 +166,11 @@ namespace projects {
       return V0;
    }
 
-   void Harris::setCellBackgroundField(SpatialCell *cell) const {
-      setBackgroundFieldToZero(cell->parameters.data(), cell->derivatives.data(),cell->derivativesBVOL.data());
+   void Harris::setProjectBackgroundField(
+      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+      FsGrid< fsgrids::technical, 2>& technicalGrid
+   ) {
+      setBackgroundFieldToZero(BgBGrid);
    }
 
 } // namespace projects
