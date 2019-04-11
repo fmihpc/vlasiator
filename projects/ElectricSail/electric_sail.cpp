@@ -212,6 +212,7 @@ namespace projects {
     * NOTE: This is only called in grid.cpp:initializeGrid.
     */
    void ElectricSail::setProjectBField(
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
       FsGrid< fsgrids::technical, 2>& technicalGrid
    ) {
