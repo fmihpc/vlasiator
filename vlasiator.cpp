@@ -418,23 +418,50 @@ int main(int argn,char* args[]) {
       = {P::xmin, P::ymin, P::zmin};
    phiprof::stop("Init fieldsolver grids");
    
+   phiprof::start("Initial fsgrid coupling");
+   const std::vector<CellID>& cells = getLocalCells();
+   
+   // Couple FSGrids to mpiGrid. Note that the coupling information is shared
+   // between them.
+   technicalGrid.setupForGridCoupling(cells.size());
+   
+   
+   // Each dccrg cell may have to communicate with multiple fsgrid cells, if they are on a lower refinement level.
+   // Calculate the corresponding fsgrid ids for each dccrg cell and set coupling for each fsgrid id.
+   for(auto& dccrgId : cells) {
+      const auto fsgridIds = mapDccrgIdToFsGridGlobalID(mpiGrid, dccrgId);
+      
+      for (auto fsgridId : fsgridIds) {
+         
+         technicalGrid.setGridCoupling(fsgridId, myRank);
+      }
+   }
+   
+   technicalGrid.finishGridCoupling();
+   phiprof::stop("Initial fsgrid coupling");
+   
    // Initialize grid.  After initializeGrid local cells have dist
    // functions, and B fields set. Cells have also been classified for
    // the various sys boundary conditions.  All remote cells have been
    // created. All spatial date computed this far is up to date for
    // FULL_NEIGHBORHOOD. Block lists up to date for
    // VLASOV_SOLVER_NEIGHBORHOOD (but dist function has not been communicated)
-   phiprof::start("Init grid");
-   
-   phiprof::start("setCellBackgroundField");
-   project->setProjectBackgroundField(BgBGrid, technicalGrid);
-   phiprof::stop("setCellBackgroundField");
-   
-   //dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> mpiGrid;
-   initializeGrid(argn,args,mpiGrid,sysBoundaries,*project);
+   phiprof::start("Init grids");
+   initializeGrids(
+      argn,
+      args,
+      mpiGrid,
+      perBGrid,
+      perBDt2Grid,
+      BgBGrid,
+      momentsGrid,
+      momentsDt2Grid,
+      technicalGrid,
+      sysBoundaries,
+      *project
+   );
    isSysBoundaryCondDynamic = sysBoundaries.isDynamic();
-   
-   phiprof::stop("Init grid");
+   phiprof::stop("Init grids");
    
    // Initialize data reduction operators. This should be done elsewhere in order to initialize 
    // user-defined operators:
@@ -443,45 +470,12 @@ int main(int argn,char* args[]) {
    initializeDataReducers(&outputReducer, &diagnosticReducer);
    phiprof::stop("Init DROs");  
    
-   phiprof::start("Initial fsgrid coupling");
-   const std::vector<CellID>& cells = getLocalCells();
-   
-   // Couple FSGrids to mpiGrid. Note that the coupling information is shared
-   // between them.
-   technicalGrid.setupForGridCoupling(cells.size());
 
    
-   // Each dccrg cell may have to communicate with multiple fsgrid cells, if they are on a lower refinement level.
-   // Calculate the corresponding fsgrid ids for each dccrg cell and set coupling for each fsgrid id.
-   for(auto& dccrgId : cells) {
-      const auto fsgridIds = mapDccrgIdToFsGridGlobalID(mpiGrid, dccrgId);
-
-      for (auto fsgridId : fsgridIds) {
-         
-         technicalGrid. setGridCoupling(fsgridId, myRank);
-      }
-   }
    
-   technicalGrid. finishGridCoupling();
-
-   phiprof::stop("Initial fsgrid coupling");
-
-   // Transfer initial field configuration into the FsGrids
-   feedFieldDataIntoFsGrid<fsgrids::N_BFIELD>(mpiGrid,cells,CellParams::PERBX,perBGrid);
-
-   getBgFieldsAndDerivativesFromFsGrid(BgBGrid, mpiGrid, cells);
-   BgBGrid.updateGhostCells();
-
-   setupTechnicalFsGrid(mpiGrid, cells, technicalGrid);
-   technicalGrid.updateGhostCells();
-
-   // if(myRank == MASTER_RANK) {
-   //    technicalGrid.debugOutput([](const fsgrids::technical& a)->void{cerr << a.sysBoundaryLayer << " ";});
-   // }
    
-   // WARNING this means moments and dt2 moments are the same here.
-   feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid,false);
-   feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid,false);
+   
+
 
    phiprof::start("Init field propagator");
    if (

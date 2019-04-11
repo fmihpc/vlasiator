@@ -38,6 +38,7 @@
 #include "datareduction/datareducer.h"
 #include "sysboundary/sysboundary.h"
 #include "fieldsolver/fs_common.h"
+#include "fieldsolver/gridGlue.hpp"
 #include "projects/project.h"
 #include "iowrite.h"
 #include "ioread.h"
@@ -81,10 +82,16 @@ void writeVelMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) 
    ++counter;
 }
 
-void initializeGrid(
+void initializeGrids(
    int argn,
    char **argc,
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBDt2Grid,
+   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsDt2Grid,
+   FsGrid< fsgrids::technical, 2>& technicalGrid,
    SysBoundary& sysBoundaries,
    Project& project
 ) {
@@ -130,8 +137,10 @@ void initializeGrid(
    phiprof::stop("Refine spatial cells");
 
    // Init velocity mesh on all cells
-   initVelocityGridGeometry(mpiGrid);   
+   initVelocityGridGeometry(mpiGrid);
    initializeStencils(mpiGrid);
+   
+   const vector<CellID>& cells = getLocalCells();
    
    mpiGrid.set_partitioning_option("IMBALANCE_TOL", P::loadBalanceTolerance);
    phiprof::start("Initial load-balancing");
@@ -161,17 +170,14 @@ void initializeGrid(
       cerr << "(MAIN) ERROR: System boundary conditions were not set correctly." << endl;
       exit(1);
    }
-
    phiprof::stop("Classify cells (sys boundary conditions)");
 
    // Check refined cells do not touch boundary cells
    phiprof::start("Check boundary refinement");
-
    if(!sysBoundaries.checkRefinement(mpiGrid)) {
       cerr << "(MAIN) ERROR: Boundary cells must have identical refinement level " << endl;
       exit(1);
    }
-         
    phiprof::stop("Check boundary refinement");
    
    if (P::isRestart) {
@@ -182,7 +188,6 @@ void initializeGrid(
          exit(1);
       }
       phiprof::stop("Read restart");
-      const vector<CellID>& cells = getLocalCells();
    
       //initial state for sys-boundary cells, will skip those not set to be reapplied at restart
       phiprof::start("Apply system boundary conditions state");
@@ -201,20 +206,19 @@ void initializeGrid(
       //  -Background field on all cells
       //  -Perturbed fields and ion distribution function in non-sysboundary cells
       // Each initialization has to be independent to avoid threading problems 
-      const vector<CellID>& cells = getLocalCells();
 
       // Allow the project to set up data structures for it's setCell calls
       project.setupBeforeSetCell(cells);
       
+      phiprof::start("setCell");
       #pragma omp parallel for schedule(dynamic)
       for (size_t i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
-         phiprof::start("setCell");
          if (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
             project.setCell(cell);
          }
-         phiprof::stop("setCell");
       }
+      phiprof::stop("setCell");
 
       // Initial state for sys-boundary cells
       phiprof::stop("Apply initial state");
@@ -255,6 +259,15 @@ void initializeGrid(
       phiprof::stop("Init moments");
  */
    }
+   
+   phiprof::start("setupTechnicalFsGrid");
+   setupTechnicalFsGrid(mpiGrid, cells, technicalGrid);
+   technicalGrid.updateGhostCells();
+   phiprof::stop("setupTechnicalFsGrid");
+   
+   phiprof::start("setProjectBackgroundField");
+   project.setProjectBackgroundField(BgBGrid, technicalGrid);
+   phiprof::stop("setProjectBackgroundField");
 
    // Init mesh data container
    if (getObjectWrapper().meshData.initialize("SpatialGrid") == false) {
@@ -281,7 +294,19 @@ void initializeGrid(
       calculateInitialVelocityMoments(mpiGrid);
       phiprof::stop("Init moments");
    }
-
+   
+   phiprof::start("Finish fsgrid setup");
+   // Transfer initial field configuration into the FsGrids
+   feedFieldDataIntoFsGrid<fsgrids::N_BFIELD>(mpiGrid,cells,CellParams::PERBX,perBGrid);
+   
+   getBgFieldsAndDerivativesFromFsGrid(BgBGrid, mpiGrid, cells);
+   BgBGrid.updateGhostCells();
+   
+   // WARNING this means moments and dt2 moments are the same here.
+   feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid,false);
+   feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid,false);
+   phiprof::stop("Finish fsgrid setup");
+   
    phiprof::stop("Set initial state");
 }
 
