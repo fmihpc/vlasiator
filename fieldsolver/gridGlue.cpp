@@ -249,7 +249,6 @@ void getBgFieldsAndDerivativesFromFsGrid(
 
 void getDerivativesFromFsGrid(FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2>& dperbGrid,
                           FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dmomentsGrid,
-                          FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& bgbfieldGrid,
                           dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                           const std::vector<CellID>& cells) {
 
@@ -257,15 +256,12 @@ void getDerivativesFromFsGrid(FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>,
    int nCellsOnMaxRefLvl = getNumberOfCellsOnMaxRefLvl(mpiGrid, cells);
    std::vector< std::array<Real, fsgrids::dperb::N_DPERB> > dperbTransferBuffer(nCellsOnMaxRefLvl);
    std::vector< std::array<Real, fsgrids::dmoments::N_DMOMENTS> > dmomentsTransferBuffer(nCellsOnMaxRefLvl);
-   std::vector< std::array<Real, fsgrids::bgbfield::N_BGB> > bgbfieldTransferBuffer(nCellsOnMaxRefLvl);
    
    std::vector< std::array<Real, fsgrids::dperb::N_DPERB>*> dperbTransferBufferPointer;
    std::vector< std::array<Real, fsgrids::dmoments::N_DMOMENTS>*> dmomentsTransferBufferPointer;
-   std::vector< std::array<Real, fsgrids::bgbfield::N_BGB>*> bgbfieldTransferBufferPointer;
    
    dperbGrid.setupForTransferOut(nCellsOnMaxRefLvl);
    dmomentsGrid.setupForTransferOut(nCellsOnMaxRefLvl);
-   bgbfieldGrid.setupForTransferOut(nCellsOnMaxRefLvl);
    
    int k = 0;
    for (auto dccrgId : cells) {
@@ -275,7 +271,6 @@ void getDerivativesFromFsGrid(FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>,
       // Store a pointer to the first fsgrid cell that maps to each dccrg Id
       dperbTransferBufferPointer.push_back(&dperbTransferBuffer[k]);
       dmomentsTransferBufferPointer.push_back(&dmomentsTransferBuffer[k]);
-      bgbfieldTransferBufferPointer.push_back(&bgbfieldTransferBuffer[k]);
 
       for (auto fsgridId : fsgridIds) {
       
@@ -283,19 +278,15 @@ void getDerivativesFromFsGrid(FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>,
          dperbGrid.transferDataOut(fsgridId, dperbCellData);
          std::array<Real, fsgrids::dmoments::N_DMOMENTS>* dmomentsCellData = &dmomentsTransferBuffer[k];
          dmomentsGrid.transferDataOut(fsgridId, dmomentsCellData);
-         std::array<Real, fsgrids::bgbfield::N_BGB>* bgbfieldCellData = &bgbfieldTransferBuffer[k++];
-         bgbfieldGrid.transferDataOut(fsgridId, bgbfieldCellData);
       }
    }
    
    // Do the transfer
    dperbGrid.finishTransfersOut();
    dmomentsGrid.finishTransfersOut();
-   bgbfieldGrid.finishTransfersOut();
 
    std::vector<std::pair<int,int>> iDmoments;
    std::vector<std::pair<int,int>> iDperb;
-   std::vector<std::pair<int,int>> iBgbfield;
    iDmoments.reserve(24);
    iDmoments.push_back(std::make_pair(fieldsolver::drhomdx, fsgrids::dmoments::drhomdx));
    iDmoments.push_back(std::make_pair(fieldsolver::drhomdy, fsgrids::dmoments::drhomdy));
@@ -338,14 +329,6 @@ void getDerivativesFromFsGrid(FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>,
    iDperb.push_back(std::make_pair(fieldsolver::dPERBxdyz, fsgrids::dperb::dPERBxdyz));
    iDperb.push_back(std::make_pair(fieldsolver::dPERBydxz, fsgrids::dperb::dPERBydxz));
    iDperb.push_back(std::make_pair(fieldsolver::dPERBzdxy, fsgrids::dperb::dPERBzdxy));
-
-   iBgbfield.reserve(6);
-   iBgbfield.push_back(std::make_pair(fieldsolver::dBGBxdy, fsgrids::bgbfield::dBGBxdy));
-   iBgbfield.push_back(std::make_pair(fieldsolver::dBGBxdz, fsgrids::bgbfield::dBGBxdz));
-   iBgbfield.push_back(std::make_pair(fieldsolver::dBGBydx, fsgrids::bgbfield::dBGBydx));
-   iBgbfield.push_back(std::make_pair(fieldsolver::dBGBydz, fsgrids::bgbfield::dBGBydz));
-   iBgbfield.push_back(std::make_pair(fieldsolver::dBGBzdx, fsgrids::bgbfield::dBGBzdx));
-   iBgbfield.push_back(std::make_pair(fieldsolver::dBGBzdy, fsgrids::bgbfield::dBGBzdy));
    
    // Distribute data from the transfer buffers back into the appropriate mpiGrid places
    #pragma omp parallel for
@@ -359,7 +342,6 @@ void getDerivativesFromFsGrid(FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>,
 
       for (auto j : iDmoments) mpiGrid[dccrgId]->derivatives[j.first] = 0.0;
       for (auto j : iDperb   ) mpiGrid[dccrgId]->derivatives[j.first] = 0.0;
-      for (auto j : iBgbfield) mpiGrid[dccrgId]->derivatives[j.first] = 0.0;
       
       for(int iCell = 0; iCell < nCells; ++iCell) {
          // The fsgrid cells that cover the i'th dccrg cell are pointed at by
@@ -368,16 +350,13 @@ void getDerivativesFromFsGrid(FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>,
          
          std::array<Real, fsgrids::dperb::N_DPERB>* dperb    = dperbTransferBufferPointer[i] + iCell;
          std::array<Real, fsgrids::dmoments::N_DMOMENTS>* dmoments = dmomentsTransferBufferPointer[i] + iCell;
-         std::array<Real, fsgrids::bgbfield::N_BGB>* bgbfield = bgbfieldTransferBufferPointer[i] + iCell;
       
          for (auto j : iDmoments) mpiGrid[dccrgId]->derivatives[j.first] += dmoments->at(j.second);
          for (auto j : iDperb   ) mpiGrid[dccrgId]->derivatives[j.first] += dperb   ->at(j.second);
-         for (auto j : iBgbfield) mpiGrid[dccrgId]->derivatives[j.first] += bgbfield->at(j.second);
       }
 
       for (auto j : iDmoments) mpiGrid[dccrgId]->derivatives[j.first] /= nCells;
       for (auto j : iDperb   ) mpiGrid[dccrgId]->derivatives[j.first] /= nCells;
-      for (auto j : iBgbfield) mpiGrid[dccrgId]->derivatives[j.first] /= nCells;
 
    }
 }

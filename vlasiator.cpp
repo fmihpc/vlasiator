@@ -563,7 +563,7 @@ int main(int argn,char* args[]) {
       getFieldDataFromFsGrid<fsgrids::N_EFIELD>(EGrid,mpiGrid,cells,CellParams::EX);
       getFieldDataFromFsGrid<fsgrids::N_EHALL>(EHallGrid,mpiGrid,cells,CellParams::EXHALL_000_100);
       getFieldDataFromFsGrid<fsgrids::N_EGRADPE>(EGradPeGrid,mpiGrid,cells,CellParams::EXGRADPE);
-      getDerivativesFromFsGrid(dPerBGrid, dMomentsGrid, BgBGrid, mpiGrid, cells);
+      getDerivativesFromFsGrid(dPerBGrid, dMomentsGrid, mpiGrid, cells);
       phiprof::stop("fsgrid-coupling-out");
       
       if (myRank == MASTER_RANK)
@@ -791,7 +791,7 @@ int main(int argn,char* args[]) {
                   }
                   if (*it == "derivs") {
                      phiprof::start("fsgrid-coupling-out");
-                     getDerivativesFromFsGrid(dPerBGrid, dMomentsGrid, BgBGrid, mpiGrid, cells);
+                     getDerivativesFromFsGrid(dPerBGrid, dMomentsGrid, mpiGrid, cells);
                      phiprof::stop("fsgrid-coupling-out");
                   }
                }
