@@ -163,22 +163,15 @@ namespace projects {
          (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
       
       setRandomSeed(cellID);
-
-      cellParams[CellParams::EX   ] = 0.0;
-      cellParams[CellParams::EY   ] = 0.0;
-      cellParams[CellParams::EZ   ] = 0.0;
       
       this->rndRho=getRandomNumber();
       this->rndVel[0]=getRandomNumber();
       this->rndVel[1]=getRandomNumber();
       this->rndVel[2]=getRandomNumber();
-      
-      cellParams[CellParams::PERBX] = this->magXPertAbsAmp * (0.5 - getRandomNumber());
-      cellParams[CellParams::PERBY] = this->magYPertAbsAmp * (0.5 - getRandomNumber());
-      cellParams[CellParams::PERBZ] = this->magZPertAbsAmp * (0.5 - getRandomNumber());
    }
 
    void Fluctuations::setProjectBField(
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
       FsGrid< fsgrids::technical, 2>& technicalGrid
    ) {
@@ -188,6 +181,24 @@ namespace projects {
                          this->BZ0);
 
       setBackgroundField(bgField, BgBGrid);
+      
+      const auto localSize = BgBGrid.getLocalSize();
+      
+      #pragma omp parallel for collapse(3)
+      for (int x = 0; x < localSize[0]; ++x) {
+         for (int y = 0; y < localSize[1]; ++y) {
+            for (int z = 0; z < localSize[2]; ++z) {
+               std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
+               const int64_t cellid = perBGrid.GlobalIDForCoords(x, y, z);
+               
+               setRandomSeed(cellid);
+               
+               cell->at(fsgrids::bfield::PERBX) = this->magXPertAbsAmp * (0.5 - getRandomNumber());
+               cell->at(fsgrids::bfield::PERBY) = this->magYPertAbsAmp * (0.5 - getRandomNumber());
+               cell->at(fsgrids::bfield::PERBZ) = this->magZPertAbsAmp * (0.5 - getRandomNumber());
+            }
+         }
+      }
    }
    
    std::vector<std::array<Real, 3> > Fluctuations::getV0(
