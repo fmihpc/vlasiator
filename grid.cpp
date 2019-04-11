@@ -97,7 +97,7 @@ void initializeGrids(
 ) {
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-
+   
    // Init Zoltan:
    float zoltanVersion;
    if (Zoltan_Initialize(argn,argc,&zoltanVersion) != ZOLTAN_OK) {
@@ -135,12 +135,10 @@ void initializeGrids(
       recalculateLocalCellsCache();
    }
    phiprof::stop("Refine spatial cells");
-
+   
    // Init velocity mesh on all cells
    initVelocityGridGeometry(mpiGrid);
    initializeStencils(mpiGrid);
-   
-   const vector<CellID>& cells = getLocalCells();
    
    mpiGrid.set_partitioning_option("IMBALANCE_TOL", P::loadBalanceTolerance);
    phiprof::start("Initial load-balancing");
@@ -148,6 +146,7 @@ void initializeGrids(
    mpiGrid.balance_load();
    recalculateLocalCellsCache();
    setFaceNeighborRanks( mpiGrid );
+   const vector<CellID>& cells = getLocalCells();
    phiprof::stop("Initial load-balancing");
    
    if (myRank == MASTER_RANK) logFile << "(INIT): Set initial state." << endl << writeVerbose;
@@ -156,7 +155,7 @@ void initializeGrids(
    phiprof::start("Set spatial cell coordinates");
    initSpatialCellCoordinates(mpiGrid);
    phiprof::stop("Set spatial cell coordinates");
-
+   
    phiprof::start("Initialize system boundary conditions");
    if(sysBoundaries.initSysBoundaries(project, P::t_min) == false) {
       if (myRank == MASTER_RANK) cerr << "Error in initialising the system boundaries." << endl;
@@ -219,7 +218,7 @@ void initializeGrids(
          }
       }
       phiprof::stop("setCell");
-
+      
       // Initial state for sys-boundary cells
       phiprof::stop("Apply initial state");
       phiprof::start("Apply system boundary conditions state");
@@ -228,7 +227,7 @@ void initializeGrids(
          exit(1);
       }
       phiprof::stop("Apply system boundary conditions state");
-
+      
       for (size_t i=0; i<cells.size(); ++i) {
          mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = 0;
       }
@@ -260,15 +259,6 @@ void initializeGrids(
  */
    }
    
-   phiprof::start("setupTechnicalFsGrid");
-   setupTechnicalFsGrid(mpiGrid, cells, technicalGrid);
-   technicalGrid.updateGhostCells();
-   phiprof::stop("setupTechnicalFsGrid");
-   
-   phiprof::start("setProjectBackgroundField");
-   project.setProjectBackgroundField(BgBGrid, technicalGrid);
-   phiprof::stop("setProjectBackgroundField");
-
    // Init mesh data container
    if (getObjectWrapper().meshData.initialize("SpatialGrid") == false) {
       cerr << "(Grid) Failed to initialize mesh data container in " << __FILE__ << ":" << __LINE__ << endl;
@@ -277,14 +267,14 @@ void initializeGrids(
    
    //Balance load before we transfer all data below
    balanceLoad(mpiGrid, sysBoundaries);
-
+   
    phiprof::initializeTimer("Fetch Neighbour data","MPI");
    phiprof::start("Fetch Neighbour data");
    // update complete cell spatial data for full stencil (
    SpatialCell::set_mpi_transfer_type(Transfer::ALL_SPATIAL_DATA);
    mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
    phiprof::stop("Fetch Neighbour data");
-
+   
    if (P::isRestart == false) {
       // Apply boundary conditions so that we get correct initial moments
       sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid,Parameters::t);
@@ -294,6 +284,35 @@ void initializeGrids(
       calculateInitialVelocityMoments(mpiGrid);
       phiprof::stop("Init moments");
    }
+   
+   phiprof::start("Initial fsgrid coupling");
+   // Couple FSGrids to mpiGrid. Note that the coupling information is shared
+   // between them.
+   technicalGrid.setupForGridCoupling(cells.size());
+   
+   // Each dccrg cell may have to communicate with multiple fsgrid cells, if they are on a lower refinement level.
+   // Calculate the corresponding fsgrid ids for each dccrg cell and set coupling for each fsgrid id.
+   for(auto& dccrgId : cells) {
+      const auto fsgridIds = mapDccrgIdToFsGridGlobalID(mpiGrid, dccrgId);
+      
+      for (auto fsgridId : fsgridIds) {
+         
+         technicalGrid.setGridCoupling(fsgridId, myRank);
+      }
+   }
+   
+   technicalGrid.finishGridCoupling();
+   phiprof::stop("Initial fsgrid coupling");
+   
+   phiprof::start("setupTechnicalFsGrid");
+   setupTechnicalFsGrid(mpiGrid, cells, technicalGrid);
+   
+   technicalGrid.updateGhostCells();
+   phiprof::stop("setupTechnicalFsGrid");
+   
+   phiprof::start("setProjectBackgroundField");
+   project.setProjectBackgroundField(BgBGrid, technicalGrid);
+   phiprof::stop("setProjectBackgroundField");
    
    phiprof::start("Finish fsgrid setup");
    // Transfer initial field configuration into the FsGrids

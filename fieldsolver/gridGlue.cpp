@@ -399,7 +399,7 @@ void setupTechnicalFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
 
    int nCells = getNumberOfCellsOnMaxRefLvl(mpiGrid, cells);   
    technicalGrid.setupForTransferIn(nCells);
-
+   
    // Setup transfer buffers
    std::vector< fsgrids::technical > transferBuffer(cells.size());
    
@@ -413,7 +413,7 @@ void setupTechnicalFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
       // thisCellData->sysBoundaryLayer = mpiGrid[cells[i]]->sysBoundaryLayer;
       thisCellData->maxFsDt = std::numeric_limits<Real>::max();        
    }
-
+   
    for(uint i = 0; i < cells.size(); ++i) {
       
       const auto fsgridIds = mapDccrgIdToFsGridGlobalID(mpiGrid, cells[i]);
@@ -426,9 +426,9 @@ void setupTechnicalFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
          technicalGrid.transferDataIn(fsgridId,&transferBuffer[i]);
       }
    }
-
+   
    technicalGrid.finishTransfersIn();
-
+   
    auto localSize = technicalGrid.getLocalSize();
    
    // Add layer calculation here. Include diagonals +-1.
@@ -442,7 +442,7 @@ void setupTechnicalFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
          }
       }
    }   
-
+   
    // In dccrg initialization the max number of boundary layers is set to 3.
    const int MAX_NUMBER_OF_BOUNDARY_LAYERS = 3 * (mpiGrid.get_maximum_refinement_level() + 1);
 

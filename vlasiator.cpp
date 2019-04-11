@@ -418,28 +418,6 @@ int main(int argn,char* args[]) {
       = {P::xmin, P::ymin, P::zmin};
    phiprof::stop("Init fieldsolver grids");
    
-   phiprof::start("Initial fsgrid coupling");
-   const std::vector<CellID>& cells = getLocalCells();
-   
-   // Couple FSGrids to mpiGrid. Note that the coupling information is shared
-   // between them.
-   technicalGrid.setupForGridCoupling(cells.size());
-   
-   
-   // Each dccrg cell may have to communicate with multiple fsgrid cells, if they are on a lower refinement level.
-   // Calculate the corresponding fsgrid ids for each dccrg cell and set coupling for each fsgrid id.
-   for(auto& dccrgId : cells) {
-      const auto fsgridIds = mapDccrgIdToFsGridGlobalID(mpiGrid, dccrgId);
-      
-      for (auto fsgridId : fsgridIds) {
-         
-         technicalGrid.setGridCoupling(fsgridId, myRank);
-      }
-   }
-   
-   technicalGrid.finishGridCoupling();
-   phiprof::stop("Initial fsgrid coupling");
-   
    // Initialize grid.  After initializeGrid local cells have dist
    // functions, and B fields set. Cells have also been classified for
    // the various sys boundary conditions.  All remote cells have been
@@ -461,6 +439,9 @@ int main(int argn,char* args[]) {
       *project
    );
    isSysBoundaryCondDynamic = sysBoundaries.isDynamic();
+   
+   const std::vector<CellID>& cells = getLocalCells();
+   
    phiprof::stop("Init grids");
    
    // Initialize data reduction operators. This should be done elsewhere in order to initialize 
@@ -470,13 +451,6 @@ int main(int argn,char* args[]) {
    initializeDataReducers(&outputReducer, &diagnosticReducer);
    phiprof::stop("Init DROs");  
    
-
-   
-   
-   
-   
-
-
    phiprof::start("Init field propagator");
    if (
       initializeFieldPropagator(
