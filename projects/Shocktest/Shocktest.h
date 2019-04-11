@@ -62,7 +62,7 @@ namespace projects {
                            creal& dvx, creal& dvy, creal& dvz,
                            const uint popID
                           ) const;
-      virtual void setProjectBackgroundField(
+      virtual void setProjectBField(
          FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
          FsGrid< fsgrids::technical, 2>& technicalGrid
       );

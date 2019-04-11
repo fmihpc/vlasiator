@@ -58,7 +58,7 @@ namespace projects {
        * @param BgBGrid Background field fsgrid
        * @param technicalGrid Technical fsgrid
        */
-      virtual void setProjectBackgroundField(
+      virtual void setProjectBField(
          FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
          FsGrid< fsgrids::technical, 2>& technicalGrid
       );

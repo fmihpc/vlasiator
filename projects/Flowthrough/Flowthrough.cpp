@@ -209,7 +209,7 @@ namespace projects {
       cellParams[CellParams::PERBZ] = 0.;
    }
 
-   void Flowthrough::setProjectBackgroundField(
+   void Flowthrough::setProjectBField(
       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
       FsGrid< fsgrids::technical, 2>& technicalGrid
    ) {

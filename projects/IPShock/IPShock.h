@@ -62,7 +62,7 @@ namespace projects {
          static void addParameters(void);
          virtual void getParameters(void);
 
-         virtual void setProjectBackgroundField(
+         virtual void setProjectBField(
             FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
             FsGrid< fsgrids::technical, 2>& technicalGrid
          );

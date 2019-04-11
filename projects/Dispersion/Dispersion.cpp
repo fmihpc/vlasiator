@@ -254,7 +254,7 @@ namespace projects {
 
    }
    
-   void Dispersion::setProjectBackgroundField(
+   void Dispersion::setProjectBField(
       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
       FsGrid< fsgrids::technical, 2>& technicalGrid
    ) {

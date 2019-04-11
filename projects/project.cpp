@@ -183,7 +183,7 @@ namespace projects {
    bool Project::initialized() {return baseClassInitialized;}
 
    /*! Print a warning message to stderr and abort, one should not use the base class functions. */
-   void Project::setProjectBackgroundField(
+   void Project::setProjectBField(
       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
       FsGrid< fsgrids::technical, 2>& technicalGrid
    ) {

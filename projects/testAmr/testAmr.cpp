@@ -230,7 +230,7 @@ namespace projects {
       rhoRnd = 0.5 - getRandomNumber(cell);
    }
 
-   void testAmr::setProjectBackgroundField(
+   void testAmr::setProjectBField(
       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
       FsGrid< fsgrids::technical, 2>& technicalGrid
    ) {

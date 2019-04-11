@@ -211,12 +211,12 @@ namespace projects {
     * 
     * NOTE: This is only called in grid.cpp:initializeGrid.
     */
-   void ElectricSail::setProjectBackgroundField(
+   void ElectricSail::setProjectBField(
       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
       FsGrid< fsgrids::technical, 2>& technicalGrid
    ) {
 #warning this is not supported at the moment, needs to be ported to fsgrid
-      std::cerr << "ERROR: ElectricSail::setProjectBackgroundField is not ported to fsgrid! Aborting." << std::endl;
+      std::cerr << "ERROR: ElectricSail::setProjectBField is not ported to fsgrid! Aborting." << std::endl;
       abort();
 //       Real X  = cell->parameters[CellParams::XCRD];
 //       Real Y  = cell->parameters[CellParams::YCRD];

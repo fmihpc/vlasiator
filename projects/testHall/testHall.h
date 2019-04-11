@@ -35,7 +35,7 @@ namespace projects {
          virtual bool initialize(void);
          static void addParameters(void);
          virtual void getParameters(void);
-//          virtual void setProjectBackgroundField(SpatialCell* cell);
+//          virtual void setProjectBField(SpatialCell* cell);
       virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
          virtual Real calcPhaseSpaceDensity(
             creal& x, creal& y, creal& z,

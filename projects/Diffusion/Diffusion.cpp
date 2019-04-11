@@ -133,7 +133,7 @@ namespace projects {
 
    }
 
-   void Diffusion::setProjectBackgroundField(
+   void Diffusion::setProjectBField(
       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
       FsGrid< fsgrids::technical, 2>& technicalGrid
    ) {

@@ -310,9 +310,9 @@ void initializeGrids(
    technicalGrid.updateGhostCells();
    phiprof::stop("setupTechnicalFsGrid");
    
-   phiprof::start("setProjectBackgroundField");
-   project.setProjectBackgroundField(BgBGrid, technicalGrid);
-   phiprof::stop("setProjectBackgroundField");
+   phiprof::start("setProjectBField");
+   project.setProjectBField(BgBGrid, technicalGrid);
+   phiprof::stop("setProjectBField");
    
    phiprof::start("Finish fsgrid setup");
    // Transfer initial field configuration into the FsGrids

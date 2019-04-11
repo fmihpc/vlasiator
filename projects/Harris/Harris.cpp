@@ -166,7 +166,7 @@ namespace projects {
       return V0;
    }
 
-   void Harris::setProjectBackgroundField(
+   void Harris::setProjectBField(
       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
       FsGrid< fsgrids::technical, 2>& technicalGrid
    ) {

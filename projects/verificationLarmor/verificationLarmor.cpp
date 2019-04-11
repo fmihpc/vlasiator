@@ -127,7 +127,7 @@ namespace projects {
       cellParams[CellParams::PERBZ   ] = 0.0;
    }
 
-   void verificationLarmor::setProjectBackgroundField(
+   void verificationLarmor::setProjectBField(
       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
       FsGrid< fsgrids::technical, 2>& technicalGrid
    ) {

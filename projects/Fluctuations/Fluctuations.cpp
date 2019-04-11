@@ -178,7 +178,7 @@ namespace projects {
       cellParams[CellParams::PERBZ] = this->magZPertAbsAmp * (0.5 - getRandomNumber(cell));
    }
 
-   void Fluctuations::setProjectBackgroundField(
+   void Fluctuations::setProjectBField(
       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
       FsGrid< fsgrids::technical, 2>& technicalGrid
    ) {

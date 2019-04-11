@@ -105,7 +105,7 @@ namespace projects {
       return result;
    }
    
-   void test_fp::setProjectBackgroundField(
+   void test_fp::setProjectBField(
       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
       FsGrid< fsgrids::technical, 2>& technicalGrid
    ) {

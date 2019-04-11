@@ -491,7 +491,7 @@ namespace projects {
     return a;
   }
 
-  void IPShock::setProjectBackgroundField(
+  void IPShock::setProjectBField(
      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
      FsGrid< fsgrids::technical, 2>& technicalGrid
   ) {

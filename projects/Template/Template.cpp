@@ -71,7 +71,7 @@ namespace projects {
       exp(- physicalconstants::MASS_PROTON * ((vx-Vx0)*(vx-Vx0) + (vy-Vy0)*(vy-Vy0) + (vz-Vz0)*(vz-Vz0)) / (2.0 * physicalconstants::K_B * T));
    }
    
-   void Template::setProjectBackgroundField(
+   void Template::setProjectBField(
       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
       FsGrid< fsgrids::technical, 2>& technicalGrid
    ) {
