@@ -469,7 +469,7 @@ int main(int argn,char* args[]) {
    // Transfer initial field configuration into the FsGrids
    feedFieldDataIntoFsGrid<fsgrids::N_BFIELD>(mpiGrid,cells,CellParams::PERBX,perBGrid);
 
-   feedBgFieldsIntoFsGrid(mpiGrid,cells,BgBGrid);
+   getBgFieldsAndDerivativesFromFsGrid(BgBGrid, mpiGrid, cells);
    BgBGrid.updateGhostCells();
 
    setupTechnicalFsGrid(mpiGrid, cells, technicalGrid);

@@ -30,6 +30,19 @@ void getVolumeFieldsFromFsGrid(FsGrid< std::array<Real, fsgrids::volfields::N_VO
                            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                            const std::vector<CellID>& cells);
 
+/*! Copy background B fields and store them into DCCRG
+ * \param mpiGrid The DCCRG grid carrying fields.
+ * \param cells List of local cells
+ * \param BgBGrid Background field fsgrid
+ *
+ * This function assumes that proper grid coupling has been set up.
+ */
+void getBgFieldsAndDerivativesFromFsGrid(
+   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   const std::vector<CellID>& cells
+);
+
 /*! Copy field derivatives from the appropriate FsGrids and store them back into DCCRG
  *
  * This should only be neccessary for debugging.
@@ -60,20 +73,6 @@ void setupTechnicalFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
 void getFsGridMaxDt(FsGrid< fsgrids::technical, 2>& technicalGrid,
       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const std::vector<CellID>& cells);
-
-/*! Transfer background fields into the appropriate FsGrid structure
- *  This requires separate handling, since the source data is not lying
- *  continuous in memory on the DCCRG side.
- *
- * \param mpiGrid The DCCRG grid carrying fieldparam data
- * \param cells List of local cells
- * \param targetGrid Fieldsolver grid for these quantities
- *
- * This function assumes that proper grid coupling has been set up.
- */
-void feedBgFieldsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-    const std::vector<CellID>& cells,
-    FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid);
 
 int getNumberOfCellsOnMaxRefLvl(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                 const std::vector<CellID>& cells);
