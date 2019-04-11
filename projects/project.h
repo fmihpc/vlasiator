@@ -146,7 +146,7 @@ namespace projects {
       /*!
        Get random number between 0 and 1.0. One should always first initialize the rng.
        */
-      Real getRandomNumber(spatial_cell::SpatialCell* cell) const;
+      Real getRandomNumber() const;
          
       void printPopulations();
       
@@ -158,7 +158,7 @@ namespace projects {
        * 
        \param seedModified d. Seed is based on the seed read in from cfg + the seedModifier parameter                                   
        */
-      void setRandomSeed(spatial_cell::SpatialCell* cell,uint64_t seedModifier) const;
+      void setRandomSeed(uint64_t seedModifier) const;
       /*!
        Set random seed (thread-safe) that is always the same for
        this particular cellID. Can be used to make reproducible

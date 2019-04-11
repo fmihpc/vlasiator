@@ -162,20 +162,20 @@ namespace projects {
          (int) ((y - Parameters::ymin) / dy) * Parameters::xcells_ini +
          (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
       
-      setRandomSeed(cell,cellID);
+      setRandomSeed(cellID);
 
       cellParams[CellParams::EX   ] = 0.0;
       cellParams[CellParams::EY   ] = 0.0;
       cellParams[CellParams::EZ   ] = 0.0;
       
-      this->rndRho=getRandomNumber(cell);
-      this->rndVel[0]=getRandomNumber(cell);
-      this->rndVel[1]=getRandomNumber(cell);
-      this->rndVel[2]=getRandomNumber(cell);
+      this->rndRho=getRandomNumber();
+      this->rndVel[0]=getRandomNumber();
+      this->rndVel[1]=getRandomNumber();
+      this->rndVel[2]=getRandomNumber();
       
-      cellParams[CellParams::PERBX] = this->magXPertAbsAmp * (0.5 - getRandomNumber(cell));
-      cellParams[CellParams::PERBY] = this->magYPertAbsAmp * (0.5 - getRandomNumber(cell));
-      cellParams[CellParams::PERBZ] = this->magZPertAbsAmp * (0.5 - getRandomNumber(cell));
+      cellParams[CellParams::PERBX] = this->magXPertAbsAmp * (0.5 - getRandomNumber());
+      cellParams[CellParams::PERBY] = this->magYPertAbsAmp * (0.5 - getRandomNumber());
+      cellParams[CellParams::PERBZ] = this->magZPertAbsAmp * (0.5 - getRandomNumber());
    }
 
    void Fluctuations::setProjectBField(

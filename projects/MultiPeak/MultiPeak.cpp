@@ -222,11 +222,11 @@ namespace projects {
          cellParams[CellParams::PERBZ] = this->dBz*cos(2.0 * M_PI * cellParams[CellParams::XCRD] / this->lambda);
       }
 
-      cellParams[CellParams::PERBX] += this->magXPertAbsAmp * (0.5 - getRandomNumber(cell));
-      cellParams[CellParams::PERBY] += this->magYPertAbsAmp * (0.5 - getRandomNumber(cell));
-      cellParams[CellParams::PERBZ] += this->magZPertAbsAmp * (0.5 - getRandomNumber(cell));
+      cellParams[CellParams::PERBX] += this->magXPertAbsAmp * (0.5 - getRandomNumber());
+      cellParams[CellParams::PERBY] += this->magYPertAbsAmp * (0.5 - getRandomNumber());
+      cellParams[CellParams::PERBZ] += this->magZPertAbsAmp * (0.5 - getRandomNumber());
 
-      rhoRnd = 0.5 - getRandomNumber(cell);
+      rhoRnd = 0.5 - getRandomNumber();
    }
 
    void MultiPeak::setProjectBField(

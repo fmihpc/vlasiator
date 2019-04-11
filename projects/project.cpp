@@ -465,7 +465,7 @@ namespace projects {
    /** Get random number between 0 and 1.0. One should always first initialize the rng.
     * @param cell Spatial cell.
     * @return Uniformly distributed random number between 0 and 1.*/
-   Real Project::getRandomNumber(spatial_cell::SpatialCell* cell) const {
+   Real Project::getRandomNumber() const {
 #ifdef _AIX
       int64_t rndInt;
       random_r(&rndInt, &rngDataBuffer);
@@ -483,7 +483,7 @@ namespace projects {
      \param seedModifier d. Seed is based on the seed read in from cfg + the seedModifier parameter
    */
 
-   void Project::setRandomSeed(spatial_cell::SpatialCell* cell,CellID seedModifier) const {
+   void Project::setRandomSeed(CellID seedModifier) const {
       memset(&(this->rngDataBuffer), 0, sizeof(this->rngDataBuffer));
 #ifdef _AIX
       initstate_r(this->seed+seedModifier, &(this->rngStateBuffer[0]), 256, NULL, &(this->rngDataBuffer));
@@ -510,7 +510,7 @@ namespace projects {
       const CellID cellID = (int) ((x - Parameters::xmin) / dx) +
          (int) ((y - Parameters::ymin) / dy) * Parameters::xcells_ini +
          (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
-      setRandomSeed(cell,cellID);
+      setRandomSeed(cellID);
    }
 
    /*

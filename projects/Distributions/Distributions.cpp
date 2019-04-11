@@ -158,12 +158,12 @@ namespace projects {
          cellParams[CellParams::PERBZ] = this->dBz*cos(2.0 * M_PI * cellParams[CellParams::XCRD] / this->lambda);
       }
 
-      cellParams[CellParams::PERBX] += this->magXPertAbsAmp * (0.5 - getRandomNumber(cell));
-      cellParams[CellParams::PERBY] += this->magYPertAbsAmp * (0.5 - getRandomNumber(cell));
-      cellParams[CellParams::PERBZ] += this->magZPertAbsAmp * (0.5 - getRandomNumber(cell));
+      cellParams[CellParams::PERBX] += this->magXPertAbsAmp * (0.5 - getRandomNumber());
+      cellParams[CellParams::PERBY] += this->magYPertAbsAmp * (0.5 - getRandomNumber());
+      cellParams[CellParams::PERBZ] += this->magZPertAbsAmp * (0.5 - getRandomNumber());
 
       for (uint i=0; i<2; i++) {
-         this->rhoRnd[i] = this->rho[i] + this->rhoPertAbsAmp[i] * (0.5 - getRandomNumber(cell));
+         this->rhoRnd[i] = this->rho[i] + this->rhoPertAbsAmp[i] * (0.5 - getRandomNumber());
       }
    }
 
