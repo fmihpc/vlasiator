@@ -249,15 +249,11 @@ namespace projects {
    }
    
    /*! Magnetosphere does not set any extra perturbed B. */
-   void Magnetosphere::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
-      Real* cellParams = cell->get_cell_parameters();
-      cellParams[CellParams::PERBX] = 0.0;
-      cellParams[CellParams::PERBY] = 0.0;
-      cellParams[CellParams::PERBZ] = 0.0;
-   }
+   void Magnetosphere::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
 
    /* set 0-centered dipole */
    void Magnetosphere::setProjectBField(
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
       FsGrid< fsgrids::technical, 2>& technicalGrid
    ) {
@@ -297,7 +293,7 @@ namespace projects {
                
       }
       
-      auto localSize = BgBGrid.getLocalSize();
+      const auto localSize = BgBGrid.getLocalSize();
       
 #pragma omp parallel
       {
