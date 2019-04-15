@@ -499,13 +499,13 @@ namespace projects {
 
      \param  cellParams The cell parameters list in each spatial cell
    */
-   void Project::setRandomCellSeed(spatial_cell::SpatialCell* cell,const Real* const cellParams) const {
-      const creal x = cellParams[CellParams::XCRD];
-      const creal y = cellParams[CellParams::YCRD];
-      const creal z = cellParams[CellParams::ZCRD];
-      const creal dx = cellParams[CellParams::DX];
-      const creal dy = cellParams[CellParams::DY];
-      const creal dz = cellParams[CellParams::DZ];
+   void Project::setRandomCellSeed(spatial_cell::SpatialCell* cell) const {
+      const creal x = cell->parameters[CellParams::XCRD];
+      const creal y = cell->parameters[CellParams::YCRD];
+      const creal z = cell->parameters[CellParams::ZCRD];
+      const creal dx = cell->parameters[CellParams::DX];
+      const creal dy = cell->parameters[CellParams::DY];
+      const creal dz = cell->parameters[CellParams::DZ];
       
       const CellID cellID = (int) ((x - Parameters::xmin) / dx) +
          (int) ((y - Parameters::ymin) / dy) * Parameters::xcells_ini +

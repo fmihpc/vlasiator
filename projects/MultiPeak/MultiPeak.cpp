@@ -213,8 +213,7 @@ namespace projects {
    }
 
    void MultiPeak::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
-      Real* cellParams = cell->get_cell_parameters();
-      setRandomCellSeed(cell,cellParams);
+      setRandomCellSeed(cell);
       rhoRnd = 0.5 - getRandomNumber();
    }
 

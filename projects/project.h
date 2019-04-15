@@ -163,10 +163,8 @@ namespace projects {
        Set random seed (thread-safe) that is always the same for
        this particular cellID. Can be used to make reproducible
        simulations that do not depend on number of processes or threads.
-       * 
-       \param  cellParams The cell parameters list in each spatial cell
        */
-      void setRandomCellSeed(spatial_cell::SpatialCell* cell,const Real* const cellParams) const;
+      void setRandomCellSeed(spatial_cell::SpatialCell* cell) const;
       
     private:
       uint seed;

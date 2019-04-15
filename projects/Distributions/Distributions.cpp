@@ -150,8 +150,7 @@ namespace projects {
    }
 
    void Distributions::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
-      Real* cellParams = cell->get_cell_parameters();
-      setRandomCellSeed(cell,cellParams);
+      setRandomCellSeed(cell);
       for (uint i=0; i<2; i++) {
          this->rhoRnd[i] = this->rho[i] + this->rhoPertAbsAmp[i] * (0.5 - getRandomNumber());
       }
