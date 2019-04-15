@@ -53,12 +53,15 @@ namespace projects {
       
       bool initialized();
       
-      /*! set background field on the background field fsgrid.
-       * Currently this function is only called during the initialization.
-       * @param BgBGrid Background field fsgrid
-       * @param technicalGrid Technical fsgrid
+      /** Set the background and perturbed magnetic fields for this project.
+       * \param perBGrid Grid on which values of the perturbed field can be set if needed.
+       * \param BgBGrid Grid on which values for the background field can be set if needed, e.g. using the background field functions.
+       * \param technicalGrid Technical fsgrid, available if some of its data is necessary.
+       * 
+       * \sa setBackgroundField, setBackgroundFieldToZero
        */
       virtual void setProjectBField(
+         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
          FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
          FsGrid< fsgrids::technical, 2>& technicalGrid
       );
@@ -100,19 +103,14 @@ namespace projects {
        */
       void setVelocitySpace(const uint popID,spatial_cell::SpatialCell* cell) const;
          
-      /** Calculate parameters for the given spatial cell at the given time.
-       * Here you need to set values for the following array indices:
-       * CellParams::PERBX, CellParams::PERBY, and CellParams::PERBZ
-       * Set the following only if the field solver is not turned on and not initialising
-       * (if it is turned off, by default it will still compute the self-consistent values from RHO, RHO_V, B):
-       * CellParams::EX, CellParams::EY, CellParams::EZ
+      /** Calculate potentially needed parameters for the given spatial cell at the given time.
        * 
        * Currently this function is only called during initialization.
        * 
        * The following array indices contain the coordinates of the "lower left corner" of the cell: 
        * CellParams::XCRD, CellParams::YCRD, and CellParams::ZCRD.
        * The cell size is given in the following array indices: CellParams::DX, CellParams::DY, and CellParams::DZ.
-       * @param cellParams Array containing cell parameters.
+       * @param cell Pointer to the spatial cell to be handled.
        * @param t The current value of time. This is passed as a convenience. If you need more detailed information 
        * of the state of the simulation, you can read it from Parameters.
        */

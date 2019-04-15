@@ -184,6 +184,7 @@ namespace projects {
 
    /*! Print a warning message to stderr and abort, one should not use the base class functions. */
    void Project::setProjectBField(
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
       FsGrid< fsgrids::technical, 2>& technicalGrid
    ) {

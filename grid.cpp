@@ -311,13 +311,11 @@ void initializeGrids(
    phiprof::stop("setupTechnicalFsGrid");
    
    phiprof::start("setProjectBField");
-   project.setProjectBField(BgBGrid, technicalGrid);
+   project.setProjectBField(perBGrid, BgBGrid, technicalGrid);
    phiprof::stop("setProjectBField");
    
    phiprof::start("Finish fsgrid setup");
-   // Transfer initial field configuration into the FsGrids
-   feedFieldDataIntoFsGrid<fsgrids::N_BFIELD>(mpiGrid,cells,CellParams::PERBX,perBGrid);
-   
+   getFieldDataFromFsGrid<fsgrids::N_BFIELD>(perBGrid, mpiGrid, cells, CellParams::PERBX);
    getBgFieldsAndDerivativesFromFsGrid(BgBGrid, mpiGrid, cells);
    BgBGrid.updateGhostCells();
    
