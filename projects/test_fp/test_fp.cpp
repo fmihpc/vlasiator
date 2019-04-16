@@ -138,21 +138,21 @@ namespace projects {
                      if (y >= -dy && y <= dy)
                         if (z >= -dz && z <= dz)
                            cell->at(fsgrids::bfield::PERBX) = this->B0 * areaFactor;
-                        break;
+                     break;
                   case BYCASE:
                      cell->at(fsgrids::bfield::PERBY) = 0.1 * this->B0 * areaFactor;
                      //areaFactor = (CellParams::DX * CellParams::DZ) / (dx * dz);
                      if (x >= -dx && x <= dx)
                         if (z >= -dz && z <= dz)
                            cell->at(fsgrids::bfield::PERBY) = this->B0 * areaFactor;
-                        break;
+                     break;
                   case BZCASE:
                      cell->at(fsgrids::bfield::PERBZ) = 0.1 * this->B0 * areaFactor;
                      //areaFactor = (CellParams::DX * CellParams::DY) / (dx * dy);
                      if (x >= -dx && x <= dx)
                         if (y >= -dy && y <= dy)
                            cell->at(fsgrids::bfield::PERBZ) = this->B0 * areaFactor;
-                        break;
+                     break;
                   case BALLCASE:
                      cell->at(fsgrids::bfield::PERBX) = 0.1 * this->B0 * areaFactor;
                      cell->at(fsgrids::bfield::PERBY) = 0.1 * this->B0 * areaFactor;
@@ -163,13 +163,13 @@ namespace projects {
                      if (y >= -dy && y <= dy)
                         if (z >= -dz && z <= dz)
                            cell->at(fsgrids::bfield::PERBX) = this->B0 * areaFactor;
-                        if (x >= -dx && x <= dx)
-                           if (z >= -dz && z <= dz)
-                              cell->at(fsgrids::bfield::PERBY) = this->B0 * areaFactor;
-                           if (x >= -dx && x <= dx)
-                              if (y >= -dy && y <= dy)
-                                 cell->at(fsgrids::bfield::PERBZ) = this->B0 * areaFactor;
-                              break;
+                     if (x >= -dx && x <= dx)
+                        if (z >= -dz && z <= dz)
+                           cell->at(fsgrids::bfield::PERBY) = this->B0 * areaFactor;
+                     if (x >= -dx && x <= dx)
+                        if (y >= -dy && y <= dy)
+                           cell->at(fsgrids::bfield::PERBZ) = this->B0 * areaFactor;
+                     break;
                }
             }
          }
