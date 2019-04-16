@@ -155,13 +155,13 @@ namespace SBC {
       cint k,
       cuint component
    ) {
-      creal dx = EGrid.DX;
-      creal dy = EGrid.DY;
-      creal dz = EGrid.DZ;
+      creal dx = Parameters::dx_ini;
+      creal dy = Parameters::dy_ini;
+      creal dz = Parameters::dz_ini;
       const std::array<int, 3> globalIndices = EGrid.getGlobalIndices(i,j,k);
-      creal x = (convert<Real>(globalIndices[0])+0.5)*dx + Parameters::xmin;
-      creal y = (convert<Real>(globalIndices[1])+0.5)*dy + Parameters::ymin;
-      creal z = (convert<Real>(globalIndices[2])+0.5)*dz + Parameters::zmin;
+      creal x = (convert<Real>(globalIndices[0])+0.5)*EGrid.DX + Parameters::xmin;
+      creal y = (convert<Real>(globalIndices[1])+0.5)*EGrid.DY + Parameters::ymin;
+      creal z = (convert<Real>(globalIndices[2])+0.5)*EGrid.DZ + Parameters::zmin;
       
       bool isThisCellOnAFace[6];
       determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz);
