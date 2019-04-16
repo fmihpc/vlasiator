@@ -315,8 +315,8 @@ void initializeGrids(
    phiprof::stop("setProjectBField");
    
    phiprof::start("Finish fsgrid setup");
-   getFieldDataFromFsGrid<fsgrids::N_BFIELD>(perBGrid, mpiGrid, cells, CellParams::PERBX);
-   getBgFieldsAndDerivativesFromFsGrid(BgBGrid, mpiGrid, cells);
+   getFieldDataFromFsGrid<fsgrids::N_BFIELD>(perBGrid, technicalGrid, mpiGrid, cells, CellParams::PERBX);
+   getBgFieldsAndDerivativesFromFsGrid(BgBGrid, technicalGrid, mpiGrid, cells);
    BgBGrid.updateGhostCells();
    
    // WARNING this means moments and dt2 moments are the same here.
@@ -436,11 +436,11 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    mpiGrid.initialize_balance_load(true);
    phiprof::stop("dccrg.initialize_balance_load");
 
-   const std::unordered_set<uint64_t>& incoming_cells = mpiGrid.get_cells_added_by_balance_load();
-   std::vector<uint64_t> incoming_cells_list (incoming_cells.begin(),incoming_cells.end()); 
+   const std::unordered_set<CellID>& incoming_cells = mpiGrid.get_cells_added_by_balance_load();
+   std::vector<CellID> incoming_cells_list (incoming_cells.begin(),incoming_cells.end()); 
 
-   const std::unordered_set<uint64_t>& outgoing_cells = mpiGrid.get_cells_removed_by_balance_load();
-   std::vector<uint64_t> outgoing_cells_list (outgoing_cells.begin(),outgoing_cells.end()); 
+   const std::unordered_set<CellID>& outgoing_cells = mpiGrid.get_cells_removed_by_balance_load();
+   std::vector<CellID> outgoing_cells_list (outgoing_cells.begin(),outgoing_cells.end()); 
    
    /*transfer cells in parts to preserve memory*/
    phiprof::start("Data transfers");
@@ -448,7 +448,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    for (uint64_t transfer_part=0; transfer_part<num_part_transfers; transfer_part++) {
       //Set transfers on/off for the incoming cells in this transfer set and prepare for receive
       for (unsigned int i=0;i<incoming_cells_list.size();i++){
-         uint64_t cell_id=incoming_cells_list[i];
+         CellID cell_id=incoming_cells_list[i];
          SpatialCell* cell = mpiGrid[cell_id];
          if (cell_id%num_part_transfers!=transfer_part) {
             cell->set_mpi_transfer_enabled(false);
@@ -459,7 +459,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
       
       //Set transfers on/off for the outgoing cells in this transfer set
       for (unsigned int i=0; i<outgoing_cells_list.size(); i++) {
-         uint64_t cell_id=outgoing_cells_list[i];
+         CellID cell_id=outgoing_cells_list[i];
          SpatialCell* cell = mpiGrid[cell_id];
          if (cell_id%num_part_transfers!=transfer_part) {
             cell->set_mpi_transfer_enabled(false);
@@ -480,7 +480,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
       
          int receives = 0;
          for (unsigned int i=0; i<incoming_cells_list.size(); i++) {
-            uint64_t cell_id=incoming_cells_list[i];
+            CellID cell_id=incoming_cells_list[i];
             SpatialCell* cell = mpiGrid[cell_id];
             if (cell_id % num_part_transfers == transfer_part) {
                receives++;
@@ -505,7 +505,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
 
          // Free memory for cells that have been sent (the block data)
          for (unsigned int i=0;i<outgoing_cells_list.size();i++){
-            uint64_t cell_id=outgoing_cells_list[i];
+            CellID cell_id=outgoing_cells_list[i];
             SpatialCell* cell = mpiGrid[cell_id];
             
             // Free memory of this cell as it has already been transferred, 
@@ -663,7 +663,7 @@ void shrink_to_fit_grid_data(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
 void report_grid_memory_consumption(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
    /*now report memory consumption into logfile*/
    const vector<CellID>& cells = getLocalCells();
-   const std::vector<uint64_t> remote_cells = mpiGrid.get_remote_cells_on_process_boundary();   
+   const std::vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary();   
    int rank,n_procs;
    MPI_Comm_size(MPI_COMM_WORLD, &n_procs);
    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
