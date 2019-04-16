@@ -520,7 +520,7 @@ int main(int argn,char* args[]) {
    
    phiprof::start("getVolumeFieldsFromFsGrid");
    // These should be done by initializeFieldPropagator() if the propagation is turned off.
-   getVolumeFieldsFromFsGrid(volGrid, mpiGrid, cells);
+   getVolumeFieldsFromFsGrid(volGrid, technicalGrid, mpiGrid, cells);
    phiprof::stop("getVolumeFieldsFromFsGrid");
 
    // Save restart data
@@ -1034,10 +1034,10 @@ int main(int argn,char* args[]) {
             P::fieldSolverSubcycles
          );
 
-         phiprof::start("fsgrid-coupling-out");
+         phiprof::start("getVolumeFieldsFromFsGrid");
          // Copy results back from fsgrid.
-         getVolumeFieldsFromFsGrid(volGrid, mpiGrid, cells);
-         phiprof::stop("fsgrid-coupling-out");
+         getVolumeFieldsFromFsGrid(volGrid, technicalGrid, mpiGrid, cells);
+         phiprof::stop("getVolumeFieldsFromFsGrid");
          phiprof::stop("Propagate Fields",cells.size(),"SpatialCells");
          addTimedBarrier("barrier-after-field-solver");
       }

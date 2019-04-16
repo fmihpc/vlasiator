@@ -78,30 +78,38 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 }
 
 
-void getVolumeFieldsFromFsGrid(FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volumeFieldsGrid,
-                           dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                           const std::vector<CellID>& cells) {
-
-
+void getVolumeFieldsFromFsGrid(
+   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volumeFieldsGrid,
+   FsGrid< fsgrids::technical, 2>& technicalGrid,
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   const std::vector<CellID>& cells
+) {
    // Setup transfer buffers
    int nCells = getNumberOfCellsOnMaxRefLvl(mpiGrid, cells);
-   std::vector< std::array<Real, fsgrids::volfields::N_VOL> > transferBuffer(nCells);
-   std::vector< std::array<Real, fsgrids::volfields::N_VOL>*> transferBufferPointer;
-
+   std::vector< std::array<Real, fsgrids::volfields::N_VOL> > transferBufferVolFields(nCells);
+   std::vector< std::array<Real, fsgrids::volfields::N_VOL>*> transferBufferPointerVolFields;
+   std::vector< fsgrids::technical > transferBufferTechnical(nCells);
+   std::vector< fsgrids::technical*> transferBufferPointerTechnical;
+   
    // Setup transfer pointers
    volumeFieldsGrid.setupForTransferOut(nCells);
    int k = 0;
    for(auto dccrgId : cells) {
       const auto fsgridIds = mapDccrgIdToFsGridGlobalID(mpiGrid, dccrgId);
       // Store a pointer to the first fsgrid cell that maps to each dccrg Id
-      transferBufferPointer.push_back(&transferBuffer[k]);
+      transferBufferPointerVolFields.push_back(&transferBufferVolFields[k]);
+      transferBufferPointerTechnical.push_back(&transferBufferTechnical[k]);
       for (auto fsgridId : fsgridIds) {
-         std::array<Real, fsgrids::volfields::N_VOL>* thisCellData = &transferBuffer[k++];
-         volumeFieldsGrid.transferDataOut(fsgridId, thisCellData);
+         std::array<Real, fsgrids::volfields::N_VOL>* thisCellDataVolFields = &transferBufferVolFields[k];
+         volumeFieldsGrid.transferDataOut(fsgridId, thisCellDataVolFields);
+         fsgrids::technical* thisCellDataTechnical = &transferBufferTechnical[k];
+         technicalGrid.transferDataOut(fsgridId, thisCellDataTechnical);
+         k++;
       }
    }
    // Do the transfer
    volumeFieldsGrid.finishTransfersOut();
+   technicalGrid.finishTransfersOut();
 
    // Build a list of index pairs to cellparams and fsgrid
    std::vector<std::pair<int,int>> iCellParams;
@@ -124,14 +132,17 @@ void getVolumeFieldsFromFsGrid(FsGrid< std::array<Real, fsgrids::volfields::N_VO
    iDerivativesBVOL.push_back(std::make_pair(bvolderivatives::dPERBZVOLdy, fsgrids::volfields::dPERBZVOLdy));
    
    // Distribute data from the transfer buffer back into the appropriate mpiGrid places
+   // Disregard DO_NOT_COMPUTE cells
    #pragma omp parallel for
    for(uint i = 0; i < cells.size(); ++i) {
 
       int dccrgId = cells[i];
       auto cellParams = mpiGrid[dccrgId]->get_cell_parameters();
 
-      // Calculate the number of fsgrid cells we need to average into the current dccrg cell
+      // Calculate the number of fsgrid cells we loop through
       int nCells = pow(pow(2,mpiGrid.mapping.get_maximum_refinement_level() - mpiGrid.mapping.get_refinement_level(dccrgId)),3);
+      // Count the number of fsgrid cells we need to average into the current dccrg cell
+      int nCellsToSum = 0;
 
       // TODO: Could optimize here by adding a separate branch for nCells == 1 with direct assignment of the value
       // Could also do the average in a temporary value and only access grid structure once.
@@ -139,21 +150,30 @@ void getVolumeFieldsFromFsGrid(FsGrid< std::array<Real, fsgrids::volfields::N_VO
       // Initialize values to 0
       for (auto j : iCellParams)      cellParams[j.first]                        = 0.0;
       for (auto j : iDerivativesBVOL) mpiGrid[dccrgId]->derivativesBVOL[j.first] = 0.0;
-                  
+      
       for(int iCell = 0; iCell < nCells; ++iCell) {
          // The fsgrid cells that cover the i'th dccrg cell are pointed at by
-         // transferBufferPointer[i] ... transferBufferPointer[i] + nCell. We want to average
-         // over all of them to get the value for the dccrg cell
-         std::array<Real, fsgrids::volfields::N_VOL>* thisCellData = transferBufferPointer[i] + iCell;
-
-         for (auto j : iCellParams)      cellParams[j.first]                        += thisCellData->at(j.second);
-         for (auto j : iDerivativesBVOL) mpiGrid[dccrgId]->derivativesBVOL[j.first] += thisCellData->at(j.second);
+         // transferBufferPointer[i] ... transferBufferPointer[i] + nCell.
+         // We want to average over those who are not DO_NOT_COMPUTE to get the value for the dccrg cell
+         if ((transferBufferPointerTechnical[i] + iCell)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+            continue;
+         } else {
+            nCellsToSum++;
+            
+            std::array<Real, fsgrids::volfields::N_VOL>* thisCellData = transferBufferPointerVolFields[i] + iCell;
+            
+            for (auto j : iCellParams)      cellParams[j.first]                        += thisCellData->at(j.second);
+            for (auto j : iDerivativesBVOL) mpiGrid[dccrgId]->derivativesBVOL[j.first] += thisCellData->at(j.second);
+         }
       }
-
-      // Divide by the number of cells to get the average
-      for (auto j : iCellParams)      cellParams[j.first]                        /= nCells;
-      for (auto j : iDerivativesBVOL) mpiGrid[dccrgId]->derivativesBVOL[j.first] /= nCells;
-
+      
+      std::cout << dccrgId << " " << nCellsToSum << std::endl;
+      
+      if (nCellsToSum > 0) {
+         // Divide by the number of cells to get the average
+         for (auto j : iCellParams)      cellParams[j.first]                        /= nCellsToSum;
+         for (auto j : iDerivativesBVOL) mpiGrid[dccrgId]->derivativesBVOL[j.first] /= nCellsToSum;
+      }
    }
 }
 
@@ -464,7 +484,7 @@ void setupTechnicalFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
                      
                      technicalGrid.get(x,y,z)->sysBoundaryLayer = layer;
                      
-                     if (layer > 1) {
+                     if (layer > 2 && technicalGrid.get(x,y,z)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
                         technicalGrid.get(x,y,z)->sysBoundaryFlag = sysboundarytype::DO_NOT_COMPUTE;
                      }
                   }
