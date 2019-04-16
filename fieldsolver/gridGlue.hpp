@@ -79,42 +79,6 @@ void getFsGridMaxDt(FsGrid< fsgrids::technical, 2>& technicalGrid,
 int getNumberOfCellsOnMaxRefLvl(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                 const std::vector<CellID>& cells);
 
-/*! Transfer field data from DCCRG cellparams into the appropriate FsGrid structure
- * \param mpiGrid The DCCRG grid carrying fieldparam data
- * \param cells List of local cells
- * \param index Index into the cellparams array from which to copy
- * \param targetGrid Fieldsolver grid for these quantities
- *
- * The cellparams with indices from index to index+numFields are copied over, and
- * have to be continuous in memory.
- *
- * This function assumes that proper grid coupling has been set up.
- */
-template< unsigned int numFields > void feedFieldDataIntoFsGrid(
-      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const std::vector<CellID>& cells, int cellParamsIndex, 
-      FsGrid< std::array<Real, numFields>, 2>& targetGrid) {
-   
-   int nCells = getNumberOfCellsOnMaxRefLvl(mpiGrid, cells);
-   targetGrid.setupForTransferIn(nCells);
-
-   int myRank;
-   MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-
-   for(CellID dccrgId : cells) {
-     const auto fsgridIds = mapDccrgIdToFsGridGlobalID(mpiGrid, dccrgId);
-     // TODO: This assumes that the field data are lying continuous in memory.
-     // Check definition of CellParams in common.h if unsure.
-     std::array<Real, numFields>* cellDataPointer = reinterpret_cast<std::array<Real, numFields>*>(
-                                                     &(mpiGrid[dccrgId]->get_cell_parameters()[cellParamsIndex]));
-     for (auto fsgridId : fsgridIds) {
-       targetGrid.transferDataIn(fsgridId, cellDataPointer);
-     }
-   }
-
-   targetGrid.finishTransfersIn();
-}
-
 
 /*! Transfer field data from an FsGrid back into the appropriate CellParams slot in DCCRG 
  * \param sourceGrid Fieldsolver grid for these quantities
