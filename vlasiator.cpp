@@ -372,6 +372,8 @@ int main(int argn,char* args[]) {
    // Add AMR refinement criterias:
    amr_ref_criteria::addRefinementCriteria();
 
+   report_process_memory_consumption("b4 grid");
+
    // Initialize grid.  After initializeGrid local cells have dist
    // functions, and B fields set. Cells have also been classified for
    // the various sys boundary conditions.  All remote cells have been
@@ -385,6 +387,8 @@ int main(int argn,char* args[]) {
 
    phiprof::stop("Init grid");
    
+   report_process_memory_consumption("after grid");
+
    // Initialize data reduction operators. This should be done elsewhere in order to initialize 
    // user-defined operators:
    phiprof::start("Init DROs");
@@ -469,6 +473,8 @@ int main(int argn,char* args[]) {
    // WARNING this means moments and dt2 moments are the same here.
    feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid,false);
    feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid,false);
+
+   report_process_memory_consumption("after fsgrid");
 
    phiprof::start("Init field propagator");
    if (
@@ -618,7 +624,7 @@ int main(int argn,char* args[]) {
    if (myRank == MASTER_RANK) logFile << "(MAIN): Starting main simulation loop." << endl << writeVerbose;
    
    phiprof::start("report-memory-consumption");
-   report_process_memory_consumption();
+   report_process_memory_consumption("init");
    phiprof::stop("report-memory-consumption");
    
    unsigned int computedCells=0;
@@ -713,7 +719,7 @@ int main(int argn,char* args[]) {
          beforeSimulationTime=P::t;
          beforeStep=P::tstep;
          //report_grid_memory_consumption(mpiGrid);
-         report_process_memory_consumption();
+         report_process_memory_consumption("step");
       }
       logFile << writeVerbose;
       phiprof::stop("logfile-io");

@@ -35,7 +35,7 @@ uint64_t get_node_free_memory();
 /*! Measures memory consumption and writes it into logfile. Collective
  *  operation on MPI_COMM_WORLD
  */
-void report_process_memory_consumption();
+void report_process_memory_consumption(const char* message);
 
 /*! Alligned malloc, could be done using aligned_alloc*/
 inline void * aligned_malloc(size_t size,std::size_t align) {

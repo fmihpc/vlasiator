@@ -103,7 +103,7 @@ uint64_t get_node_free_memory(){
 
 /*! Measures memory consumption and writes it into logfile. Collective operation on MPI_COMM_WORLD
  */
-void report_process_memory_consumption(){
+void report_process_memory_consumption(const char* message){
    /*Report memory consumption into logfile*/
 
    char nodename[MPI_MAX_PROCESSOR_NAME]; 
@@ -154,8 +154,8 @@ void report_process_memory_consumption(){
          MPI_Reduce(node_mem_papi, sum_mem_papi, 2, MPI_DOUBLE, MPI_SUM, 0, interComm);
          MPI_Reduce(node_mem_papi, min_mem_papi, 2, MPI_DOUBLE, MPI_MIN, 0, interComm);
          MPI_Reduce(node_mem_papi, max_mem_papi, 2, MPI_DOUBLE, MPI_MAX, 0, interComm);
-         logFile << "(MEM) Resident per node (avg, min, max): " << sum_mem_papi[1]/nNodes/GiB << " " << min_mem_papi[1]/GiB << " "  << max_mem_papi[1]/GiB << endl;
-         logFile << "(MEM) High water mark per node (GiB) avg: " << sum_mem_papi[0]/nNodes/GiB << " min: " << min_mem_papi[0]/GiB << " max: "  << max_mem_papi[0]/GiB <<
+         logFile << message << " (MEM) Resident per node (avg, min, max): " << sum_mem_papi[1]/nNodes/GiB << " " << min_mem_papi[1]/GiB << " "  << max_mem_papi[1]/GiB << endl;
+         logFile << message << " (MEM) High water mark per node (GiB) avg: " << sum_mem_papi[0]/nNodes/GiB << " min: " << min_mem_papi[0]/GiB << " max: "  << max_mem_papi[0]/GiB <<
             " sum (TiB): " << sum_mem_papi[0]/TiB << " on "<< nNodes << " nodes" << endl;
          
          bailout(max_mem_papi[0]/GiB > Parameters::bailout_max_memory, "Memory high water mark per node exceeds bailout threshold", __FILE__, __LINE__);

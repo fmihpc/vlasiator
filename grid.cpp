@@ -123,11 +123,15 @@ void initializeGrid(
       .set_geometry(geom_params);
 
 
+   report_process_memory_consumption("grid: after initialize");
+
    phiprof::start("Refine spatial cells");
    if(P::amrMaxSpatialRefLevel > 0 && project.refineSpatialCells(mpiGrid)) {
       recalculateLocalCellsCache();
    }
    phiprof::stop("Refine spatial cells");
+
+   report_process_memory_consumption("grid: after refine");
 
    // Init velocity mesh on all cells
    initVelocityGridGeometry(mpiGrid);   
@@ -143,6 +147,8 @@ void initializeGrid(
    }
    phiprof::stop("Initial load-balancing");
    
+   report_process_memory_consumption("grid: after LB");
+
    if (myRank == MASTER_RANK) logFile << "(INIT): Set initial state." << endl << writeVerbose;
    phiprof::start("Set initial state");
 
@@ -166,16 +172,20 @@ void initializeGrid(
 
    phiprof::stop("Classify cells (sys boundary conditions)");
 
+   report_process_memory_consumption("grid: after boundary");
+
    // Check refined cells do not touch boundary cells
    phiprof::start("Check boundary refinement");
 
-   if(!sysBoundaries.checkRefinement(mpiGrid)) {
+   if(P::amrMaxSpatialRefLevel > 0 && !sysBoundaries.checkRefinement(mpiGrid)) {
       cerr << "(MAIN) ERROR: Boundary cells must have identical refinement level " << endl;
       exit(1);
    }
          
    phiprof::stop("Check boundary refinement");
    
+   report_process_memory_consumption("grid: after check refinement");
+
    if (P::isRestart) {
       logFile << "Restart from "<< P::restartFileName << std::endl << writeVerbose;
       phiprof::start("Read restart");
@@ -201,6 +211,8 @@ void initializeGrid(
       phiprof::stop("Apply system boundary conditions state");
    }
    
+   report_process_memory_consumption("grid: before initial state");
+
    if (!P::isRestart) {
       //Initial state based on project, background field in all cells
       //and other initial values in non-sysboundary cells
@@ -214,6 +226,8 @@ void initializeGrid(
       // Allow the project to set up data structures for it's setCell calls
       project.setupBeforeSetCell(cells);
 
+      report_process_memory_consumption("grid: before setCell");
+
       #pragma omp parallel for schedule(dynamic)
       for (size_t i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
@@ -226,6 +240,8 @@ void initializeGrid(
          }
          phiprof::stop("setCell");
       }
+
+      report_process_memory_consumption("grid: after setCell");
 
       // Initial state for sys-boundary cells
       phiprof::stop("Apply initial state");
@@ -267,14 +283,20 @@ void initializeGrid(
  */
    }
 
+   report_process_memory_consumption("grid: after initial state");
+
    // Init mesh data container
    if (getObjectWrapper().meshData.initialize("SpatialGrid") == false) {
       cerr << "(Grid) Failed to initialize mesh data container in " << __FILE__ << ":" << __LINE__ << endl;
       exit(1);
    }
    
+   report_process_memory_consumption("grid: before 2nd LB");
+
    //Balance load before we transfer all data below
    balanceLoad(mpiGrid, sysBoundaries);
+
+   report_process_memory_consumption("grid: after 2nd LB");
 
    phiprof::initializeTimer("Fetch Neighbour data","MPI");
    phiprof::start("Fetch Neighbour data");
