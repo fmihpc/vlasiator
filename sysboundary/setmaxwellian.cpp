@@ -156,7 +156,7 @@ namespace SBC {
                                     popID,
                                     rho,
                                     T,
-                                    counter*cell.get_velocity_grid_block_size(popID,refLevel)[0], 0.0, 0.0
+                                    VX0 + counter*cell.get_velocity_grid_block_size(popID,refLevel)[0], VY0, VZ0
                                    )
              ||
              counter > vblocks_ini[0]
@@ -287,9 +287,9 @@ namespace SBC {
                                                      popID,
                                                      rho,
                                                      T,
-                                                     vxCell + 0.5*dvxCell,
-                                                     vyCell + 0.5*dvyCell,
-                                                     vzCell + 0.5*dvzCell
+                                                     vxCell + 0.5*dvxCell - Vx,
+                                                     vyCell + 0.5*dvyCell - Vy,
+                                                     vzCell + 0.5*dvzCell - Vz
                                                     );
                }
                
