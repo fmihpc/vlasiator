@@ -650,9 +650,8 @@ void update_remote_mapping_contribution(
    vector<CellID> send_cells;
    vector<Realf*> receiveBuffers;
 
-   int myRank;
-   
-   MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+//    int myRank;   
+//    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
    // MPI_Barrier(MPI_COMM_WORLD);
    // cout << "begin update_remote_mapping_contribution, dimension = " << dimension << ", direction = " << direction << endl;
