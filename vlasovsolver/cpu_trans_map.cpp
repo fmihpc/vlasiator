@@ -638,7 +638,6 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
   \par direction: 1 for + dir, -1 for - dir
 */
 
-/*
 void update_remote_mapping_contribution(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const uint dimension,
@@ -651,9 +650,12 @@ void update_remote_mapping_contribution(
    vector<CellID> send_cells;
    vector<Realf*> receiveBuffers;
 
-   int myRank;
-   
-   MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+//    int myRank;   
+//    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+
+   // MPI_Barrier(MPI_COMM_WORLD);
+   // cout << "begin update_remote_mapping_contribution, dimension = " << dimension << ", direction = " << direction << endl;
+   // MPI_Barrier(MPI_COMM_WORLD);
    
    //normalize
    if(direction > 0) direction = 1;
@@ -661,8 +663,14 @@ void update_remote_mapping_contribution(
    for (size_t c=0; c<remote_cells.size(); ++c) {
       SpatialCell *ccell = mpiGrid[remote_cells[c]];
       //default values, to avoid any extra sends and receives
-      ccell->neighbor_block_data = ccell->get_data(popID);
-      ccell->neighbor_number_of_blocks = 0;
+      for (uint i = 0; i < MAX_NEIGHBORS_PER_DIM; ++i) {
+         if(i == 0) {
+            ccell->neighbor_block_data.at(i) = ccell->get_data(popID);
+         } else {
+            ccell->neighbor_block_data.at(i) = NULL;
+         }
+         ccell->neighbor_number_of_blocks.at(i) = 0;
+      }
    }
 
    //TODO: prepare arrays, make parallel by avoidin push_back and by checking also for other stuff
@@ -670,50 +678,29 @@ void update_remote_mapping_contribution(
 
       SpatialCell *ccell = mpiGrid[local_cells[c]];
       //default values, to avoid any extra sends and receives
-      ccell->neighbor_block_data = ccell->get_data(popID);
-      ccell->neighbor_number_of_blocks = 0;
-      CellID p_ngbr,m_ngbr;
-      // switch (dimension) {
-      // case 0:
-      //    //p_ngbr is target, if in boundaries then it is not updated
-      //    p_ngbr=get_spatial_neighbor(mpiGrid, local_cells[c], false, direction, 0, 0);
-      //    //m_ngbr is source, first boundary layer is propagated so that it flows into system
-      //    m_ngbr=get_spatial_neighbor(mpiGrid, local_cells[c], true, -direction, 0, 0); 
-      //    break;
-      // case 1:
-      //    //p_ngbr is target, if in boundaries then it is not update
-      //    p_ngbr=get_spatial_neighbor(mpiGrid, local_cells[c], false, 0, direction, 0);
-      //    //m_ngbr is source, first boundary layer is propagated so that it flows into system
-      //    m_ngbr=get_spatial_neighbor(mpiGrid, local_cells[c], true, 0, -direction, 0); 
-      //    break;
-      // case 2:
-      //    //p_ngbr is target, if in boundaries then it is not update
-      //    p_ngbr=get_spatial_neighbor(mpiGrid, local_cells[c], false, 0, 0, direction);
-      //    //m_ngbr is source, first boundary layer is propagated so that it flows into system
-      //    m_ngbr=get_spatial_neighbor(mpiGrid, local_cells[c], true, 0, 0, -direction); 
-      //    break;
-      // default:
-      //    cerr << "Dimension wrong at (impossible!) "<< __FILE__ <<":" << __LINE__<<endl;
-      //    exit(1);
-      //    break;
-      // }
+      for (uint i = 0; i < MAX_NEIGHBORS_PER_DIM; ++i) {
+         if(i == 0) {
+            ccell->neighbor_block_data.at(i) = ccell->get_data(popID);
+         } else {
+            ccell->neighbor_block_data.at(i) = NULL;
+         }
+         ccell->neighbor_number_of_blocks.at(i) = 0;
+      }
+      CellID p_ngbr = INVALID_CELLID;
+      CellID m_ngbr = INVALID_CELLID;
 
-      int neighborhood = 0;
-      switch (dimension) {
-      case 0:
-         neighborhood = VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID;
-         break;
-      case 1:
-         neighborhood = VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID;
-         break;
-      case 2:
-         neighborhood = VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID;
-         break;
-      }     
-      auto NbrPairVector = mpiGrid.get_neighbors_of(local_cells[c], neighborhood);
-      m_ngbr = NbrPairVector->front().first;
-      p_ngbr = NbrPairVector->back().first;
+      const auto faceNbrs = mpiGrid.get_face_neighbors_of(local_cells[c]);
+      
+      for (const auto nbr : faceNbrs) {
+         if(nbr.second == ((int)dimension + 1) * direction) {
+            p_ngbr = nbr.first;
+         }
 
+         if(nbr.second == -1 * ((int)dimension + 1) * direction) {
+            m_ngbr = nbr.first;
+         }
+      }
+      
       //internal cell, not much to do
       if (mpiGrid.is_local(p_ngbr) && mpiGrid.is_local(m_ngbr)) continue;
 
@@ -728,8 +715,8 @@ void update_remote_mapping_contribution(
             //mapped to if 1) it is a valid target,
             //2) is remote cell, 3) if the source cell in center was
             //translated
-            ccell->neighbor_block_data = pcell->get_data(popID);
-            ccell->neighbor_number_of_blocks = pcell->get_number_of_velocity_blocks(popID);
+            ccell->neighbor_block_data[0] = pcell->get_data(popID);
+            ccell->neighbor_number_of_blocks[0] = pcell->get_number_of_velocity_blocks(popID);
             send_cells.push_back(p_ngbr);
          }
       if (m_ngbr != INVALID_CELLID &&
@@ -738,11 +725,11 @@ void update_remote_mapping_contribution(
          //Receive data that mcell mapped to ccell to this local cell
          //data array, if 1) m is a valid source cell, 2) center cell is to be updated (normal cell) 3) m is remote
          //we will here allocate a receive buffer, since we need to aggregate values
-         mcell->neighbor_number_of_blocks = ccell->get_number_of_velocity_blocks(popID);
-         mcell->neighbor_block_data = (Realf*) aligned_malloc(mcell->neighbor_number_of_blocks * WID3 * sizeof(Realf), 64);
+         mcell->neighbor_number_of_blocks[0] = ccell->get_number_of_velocity_blocks(popID);
+         mcell->neighbor_block_data[0] = (Realf*) aligned_malloc(mcell->neighbor_number_of_blocks[0] * WID3 * sizeof(Realf), 64);
          
          receive_cells.push_back(local_cells[c]);
-         receiveBuffers.push_back(mcell->neighbor_block_data);
+         receiveBuffers.push_back(mcell->neighbor_block_data[0]);
       }
    }
 
@@ -797,7 +784,10 @@ void update_remote_mapping_contribution(
    for (size_t c=0; c < receiveBuffers.size(); ++c) {
       aligned_free(receiveBuffers[c]);
    }
-}
 
-*/
+   // MPI_Barrier(MPI_COMM_WORLD);
+   // cout << "end update_remote_mapping_contribution, dimension = " << dimension << ", direction = " << direction << endl;
+   // MPI_Barrier(MPI_COMM_WORLD);
+
+}
 
