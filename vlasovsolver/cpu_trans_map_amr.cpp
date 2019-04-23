@@ -1318,8 +1318,8 @@ void update_remote_mapping_contribution_amr(
    int neighborhood = 0;
 
    // For debugging
-   int myRank;
-   MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+//    int myRank;
+//    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    
    //normalize and set neighborhoods
    if(direction > 0) {

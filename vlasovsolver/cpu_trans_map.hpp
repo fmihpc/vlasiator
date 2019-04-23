@@ -51,11 +51,11 @@ bool trans_map_1d(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_
                   const uint dimension,
                   const Realv dt,
                   const uint popID);
-// void update_remote_mapping_contribution(dccrg::Dccrg<spatial_cell::SpatialCell,
-//                                         dccrg::Cartesian_Geometry>& mpiGrid,
-//                                         const uint dimension,
-//                                         int direction,
-//                                         const uint popID);
+void update_remote_mapping_contribution(dccrg::Dccrg<spatial_cell::SpatialCell,
+                                        dccrg::Cartesian_Geometry>& mpiGrid,
+                                        const uint dimension,
+                                        int direction,
+                                        const uint popID);
 
 void compute_spatial_source_neighbors(const dccrg::Dccrg<SpatialCell,
                                       dccrg::Cartesian_Geometry>& mpiGrid,
