@@ -202,17 +202,16 @@ namespace projects {
       }
    }
 
-   void Flowthrough::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
-      Real* cellParams = cell->get_cell_parameters();
-      cellParams[CellParams::PERBX] = 0.;
-      cellParams[CellParams::PERBY] = 0.;
-      cellParams[CellParams::PERBZ] = 0.;
-   }
+   void Flowthrough::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
 
-   void Flowthrough::setCellBackgroundField(spatial_cell::SpatialCell* cell) const {
+   void Flowthrough::setProjectBField(
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+      FsGrid< fsgrids::technical, 2>& technicalGrid
+   ) {
       ConstantField bgField;
       bgField.initialize(Bx,By,Bz); //bg bx, by,bz      
-      setBackgroundField(bgField,cell->parameters.data(), cell->derivatives.data(),cell->derivativesBVOL.data());
+      setBackgroundField(bgField, BgBGrid);
    }
    
    std::vector<std::array<Real, 3> > Flowthrough::getV0(

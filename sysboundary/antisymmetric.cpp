@@ -128,7 +128,7 @@ namespace SBC {
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       Project &project
    ) {
-      vector<uint64_t> cells = mpiGrid.get_cells();
+      vector<CellID> cells = mpiGrid.get_cells();
       #pragma omp parallel for
       for (uint i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];

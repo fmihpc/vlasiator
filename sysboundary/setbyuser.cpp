@@ -128,13 +128,13 @@ namespace SBC {
       cuint& component
    ) {
       Real result = 0.0;
-      creal dx = perBGrid.DX;
-      creal dy = perBGrid.DY;
-      creal dz = perBGrid.DZ;
+      creal dx = Parameters::dx_ini;
+      creal dy = Parameters::dy_ini;
+      creal dz = Parameters::dz_ini;
       const std::array<int, 3> globalIndices = technicalGrid.getGlobalIndices(i,j,k);
-      creal x = (convert<Real>(globalIndices[0])+0.5)*dx + Parameters::xmin;
-      creal y = (convert<Real>(globalIndices[1])+0.5)*dy + Parameters::ymin;
-      creal z = (convert<Real>(globalIndices[2])+0.5)*dz + Parameters::zmin;
+      creal x = (convert<Real>(globalIndices[0])+0.5)*technicalGrid.DX + Parameters::xmin;
+      creal y = (convert<Real>(globalIndices[1])+0.5)*technicalGrid.DY + Parameters::ymin;
+      creal z = (convert<Real>(globalIndices[2])+0.5)*technicalGrid.DZ + Parameters::zmin;
       
       bool isThisCellOnAFace[6];
       determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, true);
