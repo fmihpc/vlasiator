@@ -453,7 +453,7 @@ void setupTechnicalFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
                      technicalGrid.get(x,y,z)->sysBoundaryLayer = layer;
                      
                      if (layer > 1) {
-                        technicalGrid.get(x,y,z)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE;
+                        technicalGrid.get(x,y,z)->sysBoundaryFlag = sysboundarytype::DO_NOT_COMPUTE;
                      }
                   }
                }
@@ -462,17 +462,18 @@ void setupTechnicalFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
       }
    }
 
-   // for (int x = 0; x < localSize[0]; ++x) {
-   //    for (int y = 0; y < localSize[1]; ++y) {
-   //       for (int z = 0; z < localSize[2]; ++z) {
-   //          std::cout << "boundary layer+flag at " << x << ", " << y << ", " << z << " = ";
-   //          std::cout << technicalGrid.get(x,y,z)->sysBoundaryLayer;
-   //          std::cout << " ";
-   //          std::cout << technicalGrid.get(x,y,z)->sysBoundaryFlag;
-   //       }
-   //    }
-   // }     
-   //abort();
+//    for (int x = 0; x < localSize[0]; ++x) {
+//       for (int y = 0; y < localSize[1]; ++y) {
+//          for (int z = 0; z < localSize[2]; ++z) {
+//             std::cout << "boundary layer+flag at " << x << ", " << y << ", " << z << " = ";
+//             std::cout << technicalGrid.get(x,y,z)->sysBoundaryLayer;
+//             std::cout << " ";
+//             std::cout << technicalGrid.get(x,y,z)->sysBoundaryFlag;
+//             std::cout << std::endl;
+//          }
+//       }
+//    }     
+//    abort();
 }
 
 void getFsGridMaxDt(FsGrid< fsgrids::technical, 2>& technicalGrid,
