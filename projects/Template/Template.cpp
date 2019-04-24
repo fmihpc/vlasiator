@@ -71,14 +71,14 @@ namespace projects {
       exp(- physicalconstants::MASS_PROTON * ((vx-Vx0)*(vx-Vx0) + (vy-Vy0)*(vy-Vy0) + (vz-Vz0)*(vz-Vz0)) / (2.0 * physicalconstants::K_B * T));
    }
    
-   void Template::setCellBackgroundField(SpatialCell *cell){
+   void Template::setProjectBField(
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+      FsGrid< fsgrids::technical, 2>& technicalGrid
+   ) {
       Dipole bgField;
       bgField.initialize(8e15, 0.0, 0.0, 0.0, 0.0); //set dipole moment and location
-      if(cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
-         setBackgroundFieldToZero(cell->parameters.data(), cell->derivatives.data(),cell->derivativesBVOL.data());
-      } else {
-         setBackgroundField(bgField,cell->parameters.data(), cell->derivatives.data(),cell->derivativesBVOL.data());
-      }
+      setBackgroundField(bgField, BgBGrid);
    }
    
    vector<std::array<Real, 3>> Template::getV0(

@@ -134,25 +134,7 @@ namespace projects {
       
    }
    
-   void Harris::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
-      Real* cellParams = cell->get_cell_parameters();
-      creal x = cellParams[CellParams::XCRD];
-      creal dx = cellParams[CellParams::DX];
-      creal y = cellParams[CellParams::YCRD];
-      creal dy = cellParams[CellParams::DY];
-      creal z = cellParams[CellParams::ZCRD];
-      creal dz = cellParams[CellParams::DZ];
-      
-      cellParams[CellParams::EX   ] = 0.0;
-      cellParams[CellParams::EY   ] = 0.0;
-      cellParams[CellParams::EZ   ] = 0.0;
-      cellParams[CellParams::PERBX   ] = this->BX0 * tanh((y + 0.5 * dy) / this->SCA_LAMBDA);
-      cellParams[CellParams::PERBY   ] = this->BY0 * tanh((z + 0.5 * dz) / this->SCA_LAMBDA);
-      cellParams[CellParams::PERBZ   ] = this->BZ0 * tanh((x + 0.5 * dx) / this->SCA_LAMBDA);
-      cellParams[CellParams::BGBX   ] = 0.0;
-      cellParams[CellParams::BGBY   ] = 0.0;
-      cellParams[CellParams::BGBZ   ] = 0.0;
-   }
+   void Harris::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
    
    vector<std::array<Real, 3>> Harris::getV0(
       creal x,
@@ -166,8 +148,28 @@ namespace projects {
       return V0;
    }
 
-   void Harris::setCellBackgroundField(SpatialCell *cell) const {
-      setBackgroundFieldToZero(cell->parameters.data(), cell->derivatives.data(),cell->derivativesBVOL.data());
+   void Harris::setProjectBField(
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+      FsGrid< fsgrids::technical, 2>& technicalGrid
+   ) {
+      setBackgroundFieldToZero(BgBGrid);
+      
+      auto localSize = perBGrid.getLocalSize();
+      
+      #pragma omp parallel for collapse(3)
+      for (int x = 0; x < localSize[0]; ++x) {
+         for (int y = 0; y < localSize[1]; ++y) {
+            for (int z = 0; z < localSize[2]; ++z) {
+               const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
+               std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
+               
+               cell->at(fsgrids::bfield::PERBX) = this->BX0 * tanh((xyz[1] + 0.5 * perBGrid.DY) / this->SCA_LAMBDA);
+               cell->at(fsgrids::bfield::PERBY) = this->BY0 * tanh((xyz[2] + 0.5 * perBGrid.DZ) / this->SCA_LAMBDA);
+               cell->at(fsgrids::bfield::PERBZ) = this->BZ0 * tanh((xyz[0] + 0.5 * perBGrid.DX) / this->SCA_LAMBDA);
+            }
+         }
+      }
    }
 
 } // namespace projects

@@ -183,7 +183,11 @@ namespace projects {
    bool Project::initialized() {return baseClassInitialized;}
 
    /*! Print a warning message to stderr and abort, one should not use the base class functions. */
-   void Project::setCellBackgroundField(SpatialCell* cell) const {
+   void Project::setProjectBField(
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+      FsGrid< fsgrids::technical, 2>& technicalGrid
+   ) {
       int rank;
       MPI_Comm_rank(MPI_COMM_WORLD,&rank);
       if (rank == MASTER_RANK) {
@@ -462,7 +466,7 @@ namespace projects {
    /** Get random number between 0 and 1.0. One should always first initialize the rng.
     * @param cell Spatial cell.
     * @return Uniformly distributed random number between 0 and 1.*/
-   Real Project::getRandomNumber(spatial_cell::SpatialCell* cell) const {
+   Real Project::getRandomNumber() const {
 #ifdef _AIX
       int64_t rndInt;
       random_r(&rndInt, &rngDataBuffer);
@@ -480,7 +484,7 @@ namespace projects {
      \param seedModifier d. Seed is based on the seed read in from cfg + the seedModifier parameter
    */
 
-   void Project::setRandomSeed(spatial_cell::SpatialCell* cell,CellID seedModifier) const {
+   void Project::setRandomSeed(CellID seedModifier) const {
       memset(&(this->rngDataBuffer), 0, sizeof(this->rngDataBuffer));
 #ifdef _AIX
       initstate_r(this->seed+seedModifier, &(this->rngStateBuffer[0]), 256, NULL, &(this->rngDataBuffer));
@@ -496,18 +500,18 @@ namespace projects {
 
      \param  cellParams The cell parameters list in each spatial cell
    */
-   void Project::setRandomCellSeed(spatial_cell::SpatialCell* cell,const Real* const cellParams) const {
-      const creal x = cellParams[CellParams::XCRD];
-      const creal y = cellParams[CellParams::YCRD];
-      const creal z = cellParams[CellParams::ZCRD];
-      const creal dx = cellParams[CellParams::DX];
-      const creal dy = cellParams[CellParams::DY];
-      const creal dz = cellParams[CellParams::DZ];
+   void Project::setRandomCellSeed(spatial_cell::SpatialCell* cell) const {
+      const creal x = cell->parameters[CellParams::XCRD];
+      const creal y = cell->parameters[CellParams::YCRD];
+      const creal z = cell->parameters[CellParams::ZCRD];
+      const creal dx = cell->parameters[CellParams::DX];
+      const creal dy = cell->parameters[CellParams::DY];
+      const creal dz = cell->parameters[CellParams::DZ];
       
       const CellID cellID = (int) ((x - Parameters::xmin) / dx) +
          (int) ((y - Parameters::ymin) / dy) * Parameters::xcells_ini +
          (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
-      setRandomSeed(cell,cellID);
+      setRandomSeed(cellID);
    }
 
    /*
