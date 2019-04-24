@@ -145,7 +145,10 @@ void initializeGrids(
    if (myRank == MASTER_RANK) logFile << "(INIT): Starting initial load balance." << endl << writeVerbose;
    mpiGrid.balance_load();
    recalculateLocalCellsCache();
-   setFaceNeighborRanks( mpiGrid );
+
+   if(P::amrMaxSpatialRefLevel > 0) {
+      setFaceNeighborRanks( mpiGrid );
+   }
    const vector<CellID>& cells = getLocalCells();
    phiprof::stop("Initial load-balancing");
    
