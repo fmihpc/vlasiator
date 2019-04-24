@@ -312,16 +312,19 @@ void initializeGrids(
    
    phiprof::start("setProjectBField");
    project.setProjectBField(perBGrid, BgBGrid, technicalGrid);
+   perBGrid.updateGhostCells();
+   BgBGrid.updateGhostCells();
    phiprof::stop("setProjectBField");
    
    phiprof::start("Finish fsgrid setup");
    getFieldDataFromFsGrid<fsgrids::N_BFIELD>(perBGrid, technicalGrid, mpiGrid, cells, CellParams::PERBX);
    getBgFieldsAndDerivativesFromFsGrid(BgBGrid, technicalGrid, mpiGrid, cells);
-   BgBGrid.updateGhostCells();
    
    // WARNING this means moments and dt2 moments are the same here.
    feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid,false);
    feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid,false);
+   momentsGrid.updateGhostCells();
+   momentsDt2Grid.updateGhostCells();
    phiprof::stop("Finish fsgrid setup");
    
    phiprof::stop("Set initial state");

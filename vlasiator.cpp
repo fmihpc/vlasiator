@@ -520,6 +520,8 @@ int main(int argn,char* args[]) {
    
    phiprof::start("getVolumeFieldsFromFsGrid");
    // These should be done by initializeFieldPropagator() if the propagation is turned off.
+   volGrid.updateGhostCells();
+   technicalGrid.updateGhostCells();
    getVolumeFieldsFromFsGrid(volGrid, technicalGrid, mpiGrid, cells);
    phiprof::stop("getVolumeFieldsFromFsGrid");
 
@@ -942,7 +944,6 @@ int main(int argn,char* args[]) {
 
       phiprof::start("Propagate");
       //Propagate the state of simulation forward in time by dt:
-      
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
          phiprof::start("Update system boundaries (Vlasov pre-translation)");
          sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid, P::t+0.5*P::dt); 
@@ -1036,6 +1037,8 @@ int main(int argn,char* args[]) {
 
          phiprof::start("getVolumeFieldsFromFsGrid");
          // Copy results back from fsgrid.
+         volGrid.updateGhostCells();
+         technicalGrid.updateGhostCells();
          getVolumeFieldsFromFsGrid(volGrid, technicalGrid, mpiGrid, cells);
          phiprof::stop("getVolumeFieldsFromFsGrid");
          phiprof::stop("Propagate Fields",cells.size(),"SpatialCells");
