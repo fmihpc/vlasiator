@@ -213,9 +213,12 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
 }
 
-void getVolumeFieldsFromFsGrid(FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volumeFieldsGrid,
-                           dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                           const std::vector<CellID>& cells) {
+void getVolumeFieldsFromFsGrid(
+   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volumeFieldsGrid,
+   FsGrid< fsgrids::technical, 2>& technicalGrid,
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   const std::vector<CellID>& cells
+) {
 
   const int fieldsToCommunicate = 12;
   struct Average {
@@ -254,7 +257,7 @@ void getVolumeFieldsFromFsGrid(FsGrid< std::array<Real, fsgrids::volfields::N_VO
   for (auto const &rcv : onDccrgMapRemoteProcess){
     int remoteRank = rcv.first; 
     int count = rcv.second.size();
-    auto& receiveBuffer=receiveData[remoteRank];
+    auto& receiveBuffer=receivedData[remoteRank];
 
     receiveBuffer.resize(count);
     MPI_Irecv(receiveBuffer.data(), count * sizeof(Average),
@@ -279,55 +282,56 @@ void getVolumeFieldsFromFsGrid(FsGrid< std::array<Real, fsgrids::volfields::N_VO
     for(auto const dccrgCell: snd.second){
       //loop over dccrg cells to which we shall send data for this remoteRank
       auto const &fsgridCells = onFsgridMapCells[dccrgCell];
-      for (auto const fsgridCell: fsgridCells){
-	//loop over fsgrid cells for which we compute the average that is sent to dccrgCell on rank remoteRank
-	sendBuffer[ii].sum[0] + = //work in progress, start to add stuff here;
-	sendBuffer[ii].cells++;   
-	
-
-	/*
-	iCellParams.push_back(std::make_pair(CellParams::PERBXVOL, fsgrids::volfields::PERBXVOL));
-   iCellParams.push_back(std::make_pair(CellParams::PERBYVOL, fsgrids::volfields::PERBYVOL));
-   iCellParams.push_back(std::make_pair(CellParams::PERBZVOL, fsgrids::volfields::PERBZVOL));
-   iCellParams.push_back(std::make_pair(CellParams::EXVOL,    fsgrids::volfields::EXVOL));
-   iCellParams.push_back(std::make_pair(CellParams::EYVOL,    fsgrids::volfields::EYVOL));
-   iCellParams.push_back(std::make_pair(CellParams::EZVOL,    fsgrids::volfields::EZVOL));
-
-   // Build lists of index pairs to dccrg and fsgrid
-   std::vector<std::pair<int,int>> iDerivativesBVOL;
-   iDerivativesBVOL.reserve(6);
-   iDerivativesBVOL.push_back(std::make_pair(bvolderivatives::dPERBXVOLdy, fsgrids::volfields::dPERBXVOLdy));
-   iDerivativesBVOL.push_back(std::make_pair(bvolderivatives::dPERBXVOLdz, fsgrids::volfields::dPERBXVOLdz));
-   iDerivativesBVOL.push_back(std::make_pair(bvolderivatives::dPERBYVOLdx, fsgrids::volfields::dPERBYVOLdx));
-   iDerivativesBVOL.push_back(std::make_pair(bvolderivatives::dPERBYVOLdz, fsgrids::volfields::dPERBYVOLdz));
-   iDerivativesBVOL.push_back(std::make_pair(bvolderivatives::dPERBZVOLdx, fsgrids::volfields::dPERBZVOLdx));
-   iDerivativesBVOL.push_back(std::make_pair(bvolderivatives::dPERBZVOLdy, fsgrids::volfields::dPERBZVOLdy));
-	*/
+      // Initialise send buffer values to 0
+      for(int idx=0; idx<fieldsToCommunicate; idx++) {
+        sendBuffer[ii].sums[idx] = 0;
+        sendBuffer[ii].cells=0;
       }
-      ii+=fieldsToCommunicate;
+      for (auto const fsgridCell: fsgridCells){
+        //loop over fsgrid cells for which we compute the average that is sent to dccrgCell on rank remoteRank
+        if(technicalGrid.get(fsgridCell)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+           continue;
+        }
+        std::array<Real, fsgrids::volfields::N_VOL> * cell = volumeFieldsGrid.get(fsgridCell);
+        
+        sendBuffer[ii].sums[0 ] += cell->at(fsgrids::volfields::PERBXVOL);
+        sendBuffer[ii].sums[1 ] += cell->at(fsgrids::volfields::PERBYVOL);
+        sendBuffer[ii].sums[2 ] += cell->at(fsgrids::volfields::PERBZVOL);
+        sendBuffer[ii].sums[3 ] += cell->at(fsgrids::volfields::EXVOL);
+        sendBuffer[ii].sums[4 ] += cell->at(fsgrids::volfields::EYVOL);
+        sendBuffer[ii].sums[5 ] += cell->at(fsgrids::volfields::EZVOL);
+        sendBuffer[ii].sums[6 ] += cell->at(fsgrids::volfields::dPERBXVOLdy);
+        sendBuffer[ii].sums[7 ] += cell->at(fsgrids::volfields::dPERBXVOLdz);
+        sendBuffer[ii].sums[8 ] += cell->at(fsgrids::volfields::dPERBXVOLdx);
+        sendBuffer[ii].sums[9 ] += cell->at(fsgrids::volfields::dPERBXVOLdz);
+        sendBuffer[ii].sums[10] += cell->at(fsgrids::volfields::dPERBXVOLdx);
+        sendBuffer[ii].sums[11] += cell->at(fsgrids::volfields::dPERBXVOLdy);
+        sendBuffer[ii].cells++;
+      }
+      ii++;
       
     }
-    receivedData[process].resize(count * fsgrids::moments::N_MOMENTS);
-    MPI_Irecv(receivedData[process].data(), count * fsgrids::moments::N_MOMENTS * sizeof(Real),
-	      MPI_BYTE, process, 1, MPI_COMM_WORLD,&(receiveRequests[ii++]));
+    
   }
   
-  
   //post sends
-  sendRequests.resize(onFsgridMapRemoteProcess.size());  
+  sendRequests.resize(onFsgridMapRemoteProcess.size());
   ii=0;
 
   for(auto const &sends: onFsgridMapRemoteProcess){
     int process = sends.first;
     int count = sends.second.size();
-    senddData[process].resize(count * fsgrids::moments::N_MOMENTS);
-    MPI_Irecv(senddData[process].data(), count * fsgrids::moments::N_MOMENTS * sizeof(Real),
+    senddData[process].resize(count * sizeof(Average));
+    MPI_Irecv(senddData[process].data(), count * sizeof(Average),
 	      MPI_BYTE, process, 1, MPI_COMM_WORLD,&(sendRequests[ii++]));
   }
-
-
+  
+  MPI_Waitall(receiveRequests.size(), receiveRequests.data(), MPI_STATUSES_IGNORE);
+  
   //handle receives, compute the weighted average of these
-
+  
+  MPI_Waitall(sendRequests.size(), sendRequests.data(), MPI_STATUSES_IGNORE);
+  
 }
 
 
