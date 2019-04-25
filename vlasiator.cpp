@@ -375,6 +375,7 @@ int main(int argn,char* args[]) {
    // Initialize simplified Fieldsolver grids.
    // Needs to be done here already ad the background field will be set right away, before going to initializeGrid even
    phiprof::start("Init fieldsolver grids");
+
    const std::array<int,3> fsGridDimensions = {convert<int>(P::xcells_ini) * pow(2,P::amrMaxSpatialRefLevel),
                                                convert<int>(P::ycells_ini) * pow(2,P::amrMaxSpatialRefLevel),
                                                convert<int>(P::zcells_ini) * pow(2,P::amrMaxSpatialRefLevel)};
@@ -866,10 +867,6 @@ int main(int argn,char* args[]) {
          phiprof::start("fsgrid-recouple-after-lb");
          
          const vector<CellID>& cells = getLocalCells();
-
-//          cout << "Reloadbalance: Local cells are: ";
-//          for(auto id : cells) cout << id << " ";
-//          cout << endl;
          
          technicalGrid. setupForGridCoupling(cells.size());
          
@@ -885,6 +882,7 @@ int main(int argn,char* args[]) {
          // cout << endl;
          
          technicalGrid. finishGridCoupling();
+
          phiprof::stop("fsgrid-recouple-after-lb");
 
          overrideRebalanceNow = false;
