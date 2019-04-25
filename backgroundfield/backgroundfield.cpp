@@ -59,7 +59,7 @@ void setBackgroundField(
    
    auto localSize = BgBGrid.getLocalSize();
    
-   #pragma omp parallel for collapse(3)
+   // Do not thread this blindly, the bgFunction.set* calls below are not thread-safe at the moment.
    for (int x = 0; x < localSize[0]; ++x) {
       for (int y = 0; y < localSize[1]; ++y) {
          for (int z = 0; z < localSize[2]; ++z) {
