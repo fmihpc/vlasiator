@@ -82,40 +82,7 @@ template <typename T, int stencil> void computeCoupling(dccrg::Dccrg<SpatialCell
        int process = momentsGrid.getTaskForGlobalID(fsCellID).first; //process on fsgrid
        onDccrgMapRemoteProcess[process].insert(dccrgCells[i]); //add to map
      }    
-
   }
-  
-  //debug
-  // int rank, nProcs;
-  // int dRank=1;
-  // MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  // MPI_Comm_size(MPI_COMM_WORLD, &nProcs);
-   
-  // if(rank==dRank){
-  //   for ( auto const &msg: onDccrgMapRemoteProcess)  {
-  //     printf("SND %d => %d :\n", rank, msg.first);
-  //     for ( auto const &id: msg.second)  {
-  // 	printf(" %ld ", id);
-  //     }
-  //     printf("\n");
-  //   }
-  // }
-  // MPI_Barrier(MPI_COMM_WORLD);
-  // for(int r = 0; r < nProcs; r++){
-  //   if(rank == r){
-  //     for ( auto const &msg: onFsgridMapRemoteProcess)  {
-  // 	if (msg.first == dRank) {
-  // 	  printf("RCV %d => %d :\n", msg.first, rank);
-  // 	  for ( auto const &id: msg.second)  {
-  // 	    printf(" %ld ", id);
-  // 	  }
-  // 	  printf("\n");
-  // 	}
-  //     }
-  //   }
-  //   MPI_Barrier(MPI_COMM_WORLD);
-  // }
-
 }
 
 void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
@@ -256,6 +223,9 @@ void getVolumeFieldsFromFsGrid(
   // send buffers  to each process
   std::map<int, std::vector<Average> > sendData;
 
+  // map where we finally aggregate result for each local dccrg cell
+  std::map<CellID, Average> aggregatedResult;
+
   //list of requests
   std::vector<MPI_Request> sendRequests;
   std::vector<MPI_Request> receiveRequests;
@@ -276,13 +246,6 @@ void getVolumeFieldsFromFsGrid(
     MPI_Irecv(receiveBuffer.data(), count * sizeof(Average),
 		 MPI_BYTE, remoteRank, 1, MPI_COMM_WORLD,&(receiveRequests[ii++]));
   }
-  
-
-    /*
-  onDccrgMapRemoteProcess   maps fsgrid processes (key) => set of dccrg cellIDs owned by current rank that map to  the fsgrid cells owned by fsgrid process (val)
-  onFsgridMapRemoteProcess  maps dccrg processes  (key) => set of dccrg cellIDs owned by dccrg-process that map to current rank fsgrid cells 
-  onFsgridMapCells          maps remote dccrg CellIDs to local fsgrid cells
-  */
 
   //compute average and weight for each field that we want to send to dccrg grid
   for(auto const &snd: onFsgridMapRemoteProcess){
@@ -334,7 +297,6 @@ void getVolumeFieldsFromFsGrid(
 
   //Aggregate receives, compute the weighted average of these
   ii=0;
-  std::map<CellID, Average> aggregatedResult;
   for (auto const &rcv : onDccrgMapRemoteProcess){
     int remoteRank = rcv.first; 
     std::vector<Average>& receiveBuffer=receivedData[remoteRank];
@@ -346,114 +308,46 @@ void getVolumeFieldsFromFsGrid(
   }
   
   
-  //TODO store in dccrg
-  
-
+  //Store data in dccrg
+  for (auto const &cellAggregate : aggregatedResult) {
+    auto cellParams = mpiGrid[cellAggregate.first]->get_cell_parameters();    
+    if ( cellAggregate.second.cells > 0) {
+      cellParams[CellParams::BGBX] = cellAggregate.second.sums[0] / cellAggregate.second.cells;
+      cellParams[CellParams::BGBY] = cellAggregate.second.sums[1] / cellAggregate.second.cells;
+      cellParams[CellParams::BGBZ] = cellAggregate.second.sums[2] / cellAggregate.second.cells;	  
+      cellParams[CellParams::BGBXVOL] = cellAggregate.second.sums[3] / cellAggregate.second.cells;
+      cellParams[CellParams::BGBYVOL] = cellAggregate.second.sums[4] / cellAggregate.second.cells;
+      cellParams[CellParams::BGBZVOL] = cellAggregate.second.sums[5] / cellAggregate.second.cells;  
+      mpiGrid[cellAggregate.first]->derivativesBVOL[fieldsolver::dBGBxdy] = cellAggregate.second.sums[6] / cellAggregate.second.cells;
+      mpiGrid[cellAggregate.first]->derivativesBVOL[fieldsolver::dBGBxdz] = cellAggregate.second.sums[7] / cellAggregate.second.cells;
+      mpiGrid[cellAggregate.first]->derivativesBVOL[fieldsolver::dBGBydx] = cellAggregate.second.sums[8] / cellAggregate.second.cells;
+      mpiGrid[cellAggregate.first]->derivativesBVOL[fieldsolver::dBGBydz] = cellAggregate.second.sums[9] / cellAggregate.second.cells;  
+      mpiGrid[cellAggregate.first]->derivativesBVOL[fieldsolver::dBGBzdx] = cellAggregate.second.sums[10] / cellAggregate.second.cells;
+      mpiGrid[cellAggregate.first]->derivativesBVOL[fieldsolver::dBGBzdy] = cellAggregate.second.sums[11] / cellAggregate.second.cells;  
+    }
+    else{
+      // This could happpen if all fsgrid cells are do not compute
+      cellParams[CellParams::BGBX] = 0;
+      cellParams[CellParams::BGBY] = 0;
+      cellParams[CellParams::BGBZ] = 0;
+      cellParams[CellParams::BGBXVOL] = 0; 
+      cellParams[CellParams::BGBYVOL] = 0;
+      cellParams[CellParams::BGBZVOL] = 0;
+      mpiGrid[cellAggregate.first]->derivativesBVOL[fieldsolver::dBGBxdy] = 0;
+      mpiGrid[cellAggregate.first]->derivativesBVOL[fieldsolver::dBGBxdz] = 0; 
+      mpiGrid[cellAggregate.first]->derivativesBVOL[fieldsolver::dBGBydx] = 0;
+      mpiGrid[cellAggregate.first]->derivativesBVOL[fieldsolver::dBGBydz] = 0;
+      mpiGrid[cellAggregate.first]->derivativesBVOL[fieldsolver::dBGBzdx] = 0;
+      mpiGrid[cellAggregate.first]->derivativesBVOL[fieldsolver::dBGBzdy] = 0;
+    }
+  }
   
   MPI_Waitall(sendRequests.size(), sendRequests.data(), MPI_STATUSES_IGNORE);
   
 }
+  
 
 
-
-
-void getVolumeFieldsFromFsGridOld(
-   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volumeFieldsGrid,
-   FsGrid< fsgrids::technical, 2>& technicalGrid,
-   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   const std::vector<CellID>& cells
-) {
-   // Setup transfer buffers
-   cint nCellsOnMaxRefLvl = getNumberOfCellsOnMaxRefLvl(mpiGrid, cells);
-   std::vector< std::array<Real, fsgrids::volfields::N_VOL> > transferBufferVolFields(nCellsOnMaxRefLvl);
-   std::vector< std::array<Real, fsgrids::volfields::N_VOL>*> transferBufferPointerVolFields;
-   std::vector< fsgrids::technical > transferBufferTechnical(nCellsOnMaxRefLvl);
-   std::vector< fsgrids::technical*> transferBufferPointerTechnical;
-   
-   // Setup transfer pointers
-   volumeFieldsGrid.setupForTransferOut(nCellsOnMaxRefLvl);
-   technicalGrid.setupForTransferOut(nCellsOnMaxRefLvl);
-   int k = 0;
-   for(auto dccrgId : cells) {
-      const auto fsgridIds = mapDccrgIdToFsGridGlobalID(mpiGrid, dccrgId);
-      // Store a pointer to the first fsgrid cell that maps to each dccrg Id
-      transferBufferPointerVolFields.push_back(&transferBufferVolFields[k]);
-      transferBufferPointerTechnical.push_back(&transferBufferTechnical[k]);
-      for (auto fsgridId : fsgridIds) {
-         std::array<Real, fsgrids::volfields::N_VOL>* thisCellDataVolFields = &transferBufferVolFields[k];
-         volumeFieldsGrid.transferDataOut(fsgridId, thisCellDataVolFields);
-         fsgrids::technical* thisCellDataTechnical = &transferBufferTechnical[k];
-         technicalGrid.transferDataOut(fsgridId, thisCellDataTechnical);
-         k++;
-      }
-   }
-   // Do the transfer
-   volumeFieldsGrid.finishTransfersOut();
-   technicalGrid.finishTransfersOut();
-
-   // Build a list of index pairs to cellparams and fsgrid
-   std::vector<std::pair<int,int>> iCellParams;
-   iCellParams.reserve(6);
-   iCellParams.push_back(std::make_pair(CellParams::PERBXVOL, fsgrids::volfields::PERBXVOL));
-   iCellParams.push_back(std::make_pair(CellParams::PERBYVOL, fsgrids::volfields::PERBYVOL));
-   iCellParams.push_back(std::make_pair(CellParams::PERBZVOL, fsgrids::volfields::PERBZVOL));
-   iCellParams.push_back(std::make_pair(CellParams::EXVOL,    fsgrids::volfields::EXVOL));
-   iCellParams.push_back(std::make_pair(CellParams::EYVOL,    fsgrids::volfields::EYVOL));
-   iCellParams.push_back(std::make_pair(CellParams::EZVOL,    fsgrids::volfields::EZVOL));
-
-   // Build lists of index pairs to dccrg and fsgrid
-   std::vector<std::pair<int,int>> iDerivativesBVOL;
-   iDerivativesBVOL.reserve(6);
-   iDerivativesBVOL.push_back(std::make_pair(bvolderivatives::dPERBXVOLdy, fsgrids::volfields::dPERBXVOLdy));
-   iDerivativesBVOL.push_back(std::make_pair(bvolderivatives::dPERBXVOLdz, fsgrids::volfields::dPERBXVOLdz));
-   iDerivativesBVOL.push_back(std::make_pair(bvolderivatives::dPERBYVOLdx, fsgrids::volfields::dPERBYVOLdx));
-   iDerivativesBVOL.push_back(std::make_pair(bvolderivatives::dPERBYVOLdz, fsgrids::volfields::dPERBYVOLdz));
-   iDerivativesBVOL.push_back(std::make_pair(bvolderivatives::dPERBZVOLdx, fsgrids::volfields::dPERBZVOLdx));
-   iDerivativesBVOL.push_back(std::make_pair(bvolderivatives::dPERBZVOLdy, fsgrids::volfields::dPERBZVOLdy));
-   
-   // Distribute data from the transfer buffer back into the appropriate mpiGrid places
-   // Disregard DO_NOT_COMPUTE cells
-   #pragma omp parallel for
-   for(uint i = 0; i < cells.size(); ++i) {
-
-      const CellID dccrgId = cells[i];
-      auto cellParams = mpiGrid[dccrgId]->get_cell_parameters();
-
-      // Calculate the number of fsgrid cells we loop through
-      cint nCells = pow(pow(2,mpiGrid.mapping.get_maximum_refinement_level() - mpiGrid.mapping.get_refinement_level(dccrgId)),3);
-      // Count the number of fsgrid cells we need to average into the current dccrg cell
-      int nCellsToSum = 0;
-
-      // TODO: Could optimize here by adding a separate branch for nCells == 1 with direct assignment of the value
-      // Could also do the average in a temporary value and only access grid structure once.
-      
-      // Initialize values to 0
-      for (auto j : iCellParams)      cellParams[j.first]                        = 0.0;
-      for (auto j : iDerivativesBVOL) mpiGrid[dccrgId]->derivativesBVOL[j.first] = 0.0;
-      
-      for(int iCell = 0; iCell < nCells; ++iCell) {
-         // The fsgrid cells that cover the i'th dccrg cell are pointed at by
-         // transferBufferPointer[i] ... transferBufferPointer[i] + nCell.
-         // We want to average over those who are not DO_NOT_COMPUTE to get the value for the dccrg cell
-         if ((transferBufferPointerTechnical[i] + iCell)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
-            continue;
-         } else {
-            nCellsToSum++;
-            
-            std::array<Real, fsgrids::volfields::N_VOL>* thisCellData = transferBufferPointerVolFields[i] + iCell;
-            
-            for (auto j : iCellParams)      cellParams[j.first]                        += thisCellData->at(j.second);
-            for (auto j : iDerivativesBVOL) mpiGrid[dccrgId]->derivativesBVOL[j.first] += thisCellData->at(j.second);
-         }
-      }
-      
-      if (nCellsToSum > 0) {
-         // Divide by the number of cells to get the average
-         for (auto j : iCellParams)      cellParams[j.first]                        /= nCellsToSum;
-         for (auto j : iDerivativesBVOL) mpiGrid[dccrgId]->derivativesBVOL[j.first] /= nCellsToSum;
-      }
-   }
-}
 
 
 void getBgFieldsAndDerivativesFromFsGrid(
