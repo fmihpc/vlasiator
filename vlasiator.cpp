@@ -493,6 +493,13 @@ int main(int argn,char* args[]) {
    }
    phiprof::stop("Init field propagator");
 
+   vlsv::Writer fsgridtestwriter;
+   fsgridtestwriter.open("fsgridtest.vlsv", MPI_COMM_WORLD, 0, MPI_INFO_NULL);
+   momentsGrid.createVlsvMesh(fsgridtestwriter,"fsgrid");
+
+   std::function<double(std::array<double, 8ul>&)> rhoWriter = [](std::array<double, 8ul>& cell)->double{return cell[fsgrids::RHOM];};
+   momentsGrid.vlsvOutputVariable(fsgridtestwriter, rhoWriter, "fsgrid", "rhom");
+   
    // Initialize Poisson solver (if used)
    if (P::propagatePotential == true) {
       phiprof::start("Init Poisson solver");
