@@ -499,6 +499,9 @@ int main(int argn,char* args[]) {
 
    std::function<double(std::array<double, 8ul>&)> rhoWriter = [](std::array<double, 8ul>& cell)->double{return cell[fsgrids::RHOM];};
    momentsGrid.vlsvOutputVariable(fsgridtestwriter, rhoWriter, "fsgrid", "rhom");
+   fsgridtestwriter.close();
+   std::cerr<< "Fsgrid output written." << std::endl;
+   exit(1);
    
    // Initialize Poisson solver (if used)
    if (P::propagatePotential == true) {
