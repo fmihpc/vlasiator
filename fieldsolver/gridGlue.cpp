@@ -193,6 +193,7 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
   
   MPI_Waitall(receiveRequests.size(), receiveRequests.data(), MPI_STATUSES_IGNORE);
+
   for(auto const &receives: onFsgridMapRemoteProcess){
     int process = receives.first; //data received from this process
     Real* receiveBuffer = receivedData[process].data(); // data received from process
@@ -224,7 +225,19 @@ void getVolumeFieldsFromFsGrid(
   struct Average {
     Real sums[fieldsToCommunicate];
     int cells;
-  }
+    Average()  {
+      cells = 0;
+      for(int i = 0; i < fieldsToCommunicate; i++){
+	sums[i] = 0;
+      }
+    }
+    Average operator+=(const Average& rhs) {
+      this->cells += rhs.cells;
+      for(int i = 0; i < fieldsToCommunicate; i++){
+	this->sums[i] += rhs.sums[i];
+      }
+    }
+  };
 
     
   int ii;
@@ -249,7 +262,7 @@ void getVolumeFieldsFromFsGrid(
 
   
   //computeCoupling
-  computeCoupling(mpiGrid, cells, momentsGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells);
+  computeCoupling(mpiGrid, cells, volumeFieldsGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells);
 
   //post receives
   ii=0;
@@ -258,7 +271,7 @@ void getVolumeFieldsFromFsGrid(
     int remoteRank = rcv.first; 
     int count = rcv.second.size();
     auto& receiveBuffer=receivedData[remoteRank];
-
+    
     receiveBuffer.resize(count);
     MPI_Irecv(receiveBuffer.data(), count * sizeof(Average),
 		 MPI_BYTE, remoteRank, 1, MPI_COMM_WORLD,&(receiveRequests[ii++]));
@@ -277,23 +290,17 @@ void getVolumeFieldsFromFsGrid(
     int count = snd.second.size();
     auto& sendBuffer = sendData[remoteRank];
     sendBuffer.resize(count);
-    int ii=0;
     
+    ii=0;
     for(auto const dccrgCell: snd.second){
       //loop over dccrg cells to which we shall send data for this remoteRank
       auto const &fsgridCells = onFsgridMapCells[dccrgCell];
-      // Initialise send buffer values to 0
-      for(int idx=0; idx<fieldsToCommunicate; idx++) {
-        sendBuffer[ii].sums[idx] = 0;
-        sendBuffer[ii].cells=0;
-      }
       for (auto const fsgridCell: fsgridCells){
         //loop over fsgrid cells for which we compute the average that is sent to dccrgCell on rank remoteRank
         if(technicalGrid.get(fsgridCell)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
            continue;
         }
-        std::array<Real, fsgrids::volfields::N_VOL> * cell = volumeFieldsGrid.get(fsgridCell);
-        
+        std::array<Real, fsgrids::volfields::N_VOL> * cell = volumeFieldsGrid.get(fsgridCell);	
         sendBuffer[ii].sums[0 ] += cell->at(fsgrids::volfields::PERBXVOL);
         sendBuffer[ii].sums[1 ] += cell->at(fsgrids::volfields::PERBYVOL);
         sendBuffer[ii].sums[2 ] += cell->at(fsgrids::volfields::PERBZVOL);
@@ -302,33 +309,46 @@ void getVolumeFieldsFromFsGrid(
         sendBuffer[ii].sums[5 ] += cell->at(fsgrids::volfields::EZVOL);
         sendBuffer[ii].sums[6 ] += cell->at(fsgrids::volfields::dPERBXVOLdy);
         sendBuffer[ii].sums[7 ] += cell->at(fsgrids::volfields::dPERBXVOLdz);
-        sendBuffer[ii].sums[8 ] += cell->at(fsgrids::volfields::dPERBXVOLdx);
-        sendBuffer[ii].sums[9 ] += cell->at(fsgrids::volfields::dPERBXVOLdz);
-        sendBuffer[ii].sums[10] += cell->at(fsgrids::volfields::dPERBXVOLdx);
-        sendBuffer[ii].sums[11] += cell->at(fsgrids::volfields::dPERBXVOLdy);
+        sendBuffer[ii].sums[8 ] += cell->at(fsgrids::volfields::dPERBYVOLdx);
+        sendBuffer[ii].sums[9 ] += cell->at(fsgrids::volfields::dPERBYVOLdz);
+        sendBuffer[ii].sums[10] += cell->at(fsgrids::volfields::dPERBZVOLdx);
+        sendBuffer[ii].sums[11] += cell->at(fsgrids::volfields::dPERBZVOLdy);
         sendBuffer[ii].cells++;
       }
       ii++;
-      
     }
-    
   }
   
   //post sends
   sendRequests.resize(onFsgridMapRemoteProcess.size());
   ii=0;
-
   for(auto const &sends: onFsgridMapRemoteProcess){
-    int process = sends.first;
+    int remoteRank = sends.first;
     int count = sends.second.size();
-    senddData[process].resize(count * sizeof(Average));
-    MPI_Irecv(senddData[process].data(), count * sizeof(Average),
-	      MPI_BYTE, process, 1, MPI_COMM_WORLD,&(sendRequests[ii++]));
+    MPI_Isend(sendData[remoteRank].data(), count * sizeof(Average),
+	     MPI_BYTE, remoteRank, 1, MPI_COMM_WORLD,&(sendRequests[ii++]));
   }
   
   MPI_Waitall(receiveRequests.size(), receiveRequests.data(), MPI_STATUSES_IGNORE);
+
+
+  //Aggregate receives, compute the weighted average of these
+  ii=0;
+  std::map<CellID, Average> aggregatedResult;
+  for (auto const &rcv : onDccrgMapRemoteProcess){
+    int remoteRank = rcv.first; 
+    std::vector<Average>& receiveBuffer=receivedData[remoteRank];
+    ii=0;
+    for (CellID dccrgCell: rcv.second ) {
+      //aggregate result. Average strct has operator += and a constructor
+      aggregatedResult[dccrgCell] += receiveBuffer[ii++];
+    }
+  }
   
-  //handle receives, compute the weighted average of these
+  
+  //TODO store in dccrg
+  
+
   
   MPI_Waitall(sendRequests.size(), sendRequests.data(), MPI_STATUSES_IGNORE);
   
