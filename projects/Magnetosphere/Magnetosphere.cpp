@@ -58,6 +58,11 @@ namespace projects {
       RP::add("Magnetosphere.refine_L1radius","Radius of L1-refined sphere", 1.59275e8); // 25 RE
       RP::add("Magnetosphere.refine_L1tailthick","Thickness of L1-refined tail region", 6.371e7); // 10 RE
 
+      RP::add("Magnetosphere.dipoleTiltPhi","Magnitude of dipole tilt in radians", 0.0);
+      RP::add("Magnetosphere.dipoleTiltTheta","Direction of dipole tilt from Sun-Earth-line in radians", 0.0);
+      RP::add("Magnetosphere.dipoleRadiusFull","Radius up to which dipole is at full strength, in metres", 1.59275e8); // 25 RE
+      RP::add("Magnetosphere.dipoleRadiusFull","Radius after which dipole is at zero strength, in metres", 1.9113e8); // 30 RE
+
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
@@ -149,6 +154,22 @@ namespace projects {
          exit(1);
       }
 
+      if(!Readparameters::get("Magnetosphere.dipoleTiltPhi", this->dipoleTiltPhi)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("Magnetosphere.dipoleTiltTheta", this->dipoleTiltTheta)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("Magnetosphere.dipoleRadiusFull", this->dipoleRadiusFull)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("Magnetosphere.dipoleRadiusZero", this->dipoleRadiusZero)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
@@ -259,6 +280,7 @@ namespace projects {
    ) {
       Dipole bgFieldDipole;
       LineDipole bgFieldLineDipole;
+      VectorDipole bgVectorDipole;
 
       // The hardcoded constants of dipole and line dipole moments are obtained
       // from Daldorff et al (2014), see
@@ -286,8 +308,12 @@ namespace projects {
                //Append mirror dipole                
                bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, this->dipoleMirrorLocationX, 0.0, 0.0, 0.0 );//mirror
                setBackgroundField(bgFieldDipole, BgBGrid, true);
+               break; 
+            case 4:  // Vector potential dipole, vanishes after a given radius
+	       bgVectorDipole.initialize(126.2e6 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, this->dipoleTiltPhi, this->dipoleTiltTheta, this->dipoleRadiusFull, this->dipoleRadiusZero );
+               setBackgroundField(bgVectorDipole, BgBGrid);
                break;
-               
+              
             default:
                setBackgroundFieldToZero(BgBGrid);
                
