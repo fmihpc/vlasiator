@@ -124,3 +124,18 @@ comparison_vlsv[15]="fullf.0000001.vlsv"
 comparison_phiprof[15]="phiprof_0.txt"
 variable_names[15]="proton/rho proton/V proton/V proton/V B B B E E E protons"
 variable_components[15]="0 0 1 2 0 1 2 0 1 2"
+
+##AMR tests
+# translation test
+test_name[16]="transtest_amr"
+comparison_vlsv[3]="fullf.0000001.vlsv"
+comparison_phiprof[3]="phiprof_0.txt"
+variable_names[3]="proton/rho proton/V proton/V proton/V protons"
+variable_components[3]="0 0 1 2"
+
+# Flowthrough test
+test_name[17]="Flowthrough_amr"
+comparison_vlsv[12]="bulk.0000001.vlsv"
+comparison_phiprof[12]="phiprof_0.txt"
+variable_names[12]="proton/rho proton/V proton/V proton/V B B B E E E"
+variable_components[12]="0 0 1 2 0 1 2 0 1 2"
