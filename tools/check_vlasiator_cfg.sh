@@ -1,7 +1,6 @@
 #!/bin/bash
 
-mpirun_cmd="aprun -n 1"
-#mpirun_cmd="mpirun -np 1"
+mpirun_cmd=$(which aprun && echo "aprun" || echo "mpirun")
 vlasiator=$1
 cfg=$2
 
@@ -75,7 +74,7 @@ done > .allowed_prefixes
 #long one-liner. First remove comments, then add prefix to each name and only print if line is not empty
 cat $cfg |  grep -v "^[ ]*#" |gawk '{if ( $1 ~ /\[/) {prefix=substr($1,2,length($1)-2);prefix=sprintf("%s.",prefix);} else if(NF>0) printf("%s%s\n",prefix,$0)}' > .cfg_variables
 
-$mpirun_cmd $vlasiator --help | grep "\-\-" | sed 's/--//g'  > .vlasiator_variables
+$mpirun_cmd $vlasiator --help | grep "^  " | tr "\n" " " | sed 's/--/\n/g' | sed -e 's/ \+/ /g' > .vlasiator_variables
 
 
 # Replace <population> with loaded populations
@@ -103,6 +102,12 @@ cat .vlasiator_variables | gawk '{if( substr($3,1,2)=="(=") { print $1,$3}  else
 cat .cfg_variables | gawk '{print $1}'|sort -u >.cfg_variable_names
 
 
+# Process output and diagnostic variables
+cat .cfg_variables | grep "variables.output" | sort -u > .cfg_output_variable_names
+cat .cfg_variables | grep "variables.diagnostic" | sort -u > .cfg_diagnostic_variable_names
+cat .vlasiator_variables | grep "variables.output" | cut --delimiter=":" -f 2 | sed 's/^ //' | sed 's/ $//' | sed 's/ /\n/g' | sed 's/^/variables.output = /g' | sort -u > .vlasiator_output_variable_names
+cat .vlasiator_variables | grep "variables.diagnostic" | cut --delimiter=":" -f 2 | sed 's/^ //' | sed 's/ $//' | sed 's/ /\n/g' | sed 's/^/variables.diagnostic = /g' | sort -u > .vlasiator_diagnostic_variable_names
+
 echo "------------------------------------------------------------------------------------------------------------"
 echo "Available unused options"
 echo "------------------------------------------------------------------------------------------------------------"
@@ -123,4 +128,32 @@ else
 fi
 
 
-rm .cfg_variables .cfg_variable_names .vlasiator_variables .vlasiator_variable_names .allowed_prefixes .unused_variables  .vlasiator_variable_names_default_val
+echo "------------------------------------------------------------------------------------------------------------"
+echo "Available unused output and diagnostic variables"
+echo "------------------------------------------------------------------------------------------------------------"
+comm -23 .vlasiator_output_variable_names .cfg_output_variable_names
+comm -23 .vlasiator_diagnostic_variable_names .cfg_diagnostic_variable_names
+echo "------------------------------------------------------------------------------------------------------------"
+
+output=$( comm -13 .vlasiator_output_variable_names .cfg_output_variable_names )
+diagnostic=$( comm -13 .vlasiator_diagnostic_variable_names .cfg_diagnostic_variable_names )
+if [ ${#output} -ne 0 ] || [ ${#diagnostic} -ne 0 ]
+then
+   echo "Invalid output or diagnostic variables"
+   echo "------------------------------------------------------------------------------------------------------------"
+   if [ ${#output} -ne 0 ]
+   then
+      comm -13 .vlasiator_output_variable_names .cfg_output_variable_names
+   fi
+   if [ ${#diagnostic} -ne 0 ]
+   then
+      comm -13 .vlasiator_diagnostic_variable_names .cfg_diagnostic_variable_names
+   fi
+   echo "------------------------------------------------------------------------------------------------------------"
+else
+   echo "No invalid output or diagnostic variables"
+fi
+
+
+
+rm .cfg_variables .cfg_variable_names .vlasiator_variables .vlasiator_variable_names .allowed_prefixes .unused_variables  .vlasiator_variable_names_default_val .cfg_output_variable_names .cfg_diagnostic_variable_names .vlasiator_diagnostic_variable_names .vlasiator_output_variable_names
