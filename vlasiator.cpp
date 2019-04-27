@@ -92,7 +92,8 @@ void addTimedBarrier(string name){
    phiprof::stop(bt);
 }
 
-bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,Real &newDt, bool &isChanged) {
+bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+			FsGrid< fsgrids::technical, 2>& technicalGrid, Real &newDt, bool &isChanged) {
    
    phiprof::start("compute-timestep");
    //compute maximum time-step, this cannot be done at the first
@@ -150,7 +151,6 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
            (cell->sysBoundaryLayer == 1 && cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY )) {
          //spatial fluxes computed also for boundary cells
          dtMaxLocal[0]=min(dtMaxLocal[0], cell->parameters[CellParams::MAXRDT]);
-         dtMaxLocal[2]=min(dtMaxLocal[2], cell->parameters[CellParams::MAXFDT]);
       }
 
       if (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY && cell->parameters[CellParams::MAXVDT] != 0) {
@@ -158,6 +158,23 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          dtMaxLocal[1]=min(dtMaxLocal[1], cell->parameters[CellParams::MAXVDT]);
       }
    }
+   
+   //compute max dt for fieldsolver
+   const std::array<int, 3> gridDims(technicalGrid.getLocalSize());
+   for (int k=0; k<gridDims[2]; k++) {
+     for (int j=0; j<gridDims[1]; j++) {
+       for (int i=0; i<gridDims[0]; i++) {
+	 fsgrids::technical* cell = technicalGrid.get(i,j,k);
+	 if ( cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
+	      (cell->sysBoundaryLayer == 1 && cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY )) {
+	   dtMaxLocal[2]=min(dtMaxLocal[2], cell->maxFsDt);
+	 }
+       }
+     }
+   }
+
+
+   
    MPI_Allreduce(&(dtMaxLocal[0]), &(dtMaxGlobal[0]), 3, MPI_Type<Real>(), MPI_MIN, MPI_COMM_WORLD);
    
    //If any of the solvers are disabled there should be no limits in timespace from it
@@ -568,9 +585,7 @@ int main(int argn,char* args[]) {
    if (P::isRestart == false) {
       //compute new dt
       phiprof::start("compute-dt");
-      getFsGridMaxDt(technicalGrid, mpiGrid, cells);
-
-      computeNewTimeStep(mpiGrid,newDt,dtIsChanged);
+      computeNewTimeStep(mpiGrid, technicalGrid, newDt, dtIsChanged);
       if (P::dynamicTimestep == true && dtIsChanged == true) {
          // Only actually update the timestep if dynamicTimestep is on
          P::dt=newDt;
@@ -904,8 +919,7 @@ int main(int argn,char* args[]) {
       //simulation loop
       // FIXME what if dt changes at a restart??
       if(P::dynamicTimestep  && P::tstep > P::tstep_min) {
-         getFsGridMaxDt(technicalGrid, mpiGrid, cells);
-         computeNewTimeStep(mpiGrid,newDt,dtIsChanged);
+         computeNewTimeStep(mpiGrid, technicalGrid, newDt, dtIsChanged);
          addTimedBarrier("barrier-check-dt");
          if(dtIsChanged) {
             phiprof::start("update-dt");
