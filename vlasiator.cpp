@@ -519,12 +519,12 @@ int main(int argn,char* args[]) {
       phiprof::stop("compute-dt");
    }
    
-   phiprof::start("getVolumeFieldsFromFsGrid");
+   phiprof::start("getFieldsFromFsGrid");
    // These should be done by initializeFieldPropagator() if the propagation is turned off.
    volGrid.updateGhostCells();
    technicalGrid.updateGhostCells();
-   getVolumeFieldsFromFsGrid(volGrid, technicalGrid, mpiGrid, cells);
-   phiprof::stop("getVolumeFieldsFromFsGrid");
+   getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, technicalGrid, mpiGrid, cells);
+   phiprof::stop("getFieldsFromFsGrid");
 
    // Save restart data
    if (P::writeInitialState) {
@@ -1033,12 +1033,12 @@ int main(int argn,char* args[]) {
             P::fieldSolverSubcycles
          );
 
-         phiprof::start("getVolumeFieldsFromFsGrid");
+         phiprof::start("getFieldsFromFsGrid");
          // Copy results back from fsgrid.
          volGrid.updateGhostCells();
          technicalGrid.updateGhostCells();
-         getVolumeFieldsFromFsGrid(volGrid, technicalGrid, mpiGrid, cells);
-         phiprof::stop("getVolumeFieldsFromFsGrid");
+	 getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, technicalGrid, mpiGrid, cells);
+	 phiprof::stop("getFieldsFromFsGrid");
          phiprof::stop("Propagate Fields",cells.size(),"SpatialCells");
          addTimedBarrier("barrier-after-field-solver");
       }
