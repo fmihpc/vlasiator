@@ -156,13 +156,44 @@ namespace SBC {
       
       return true;
    }
+
+   Real getR(creal x,creal y,creal z, uint geometry, Real center[3]) {
+
+      Real r;
+      
+      switch(geometry) {
+      case 0:
+         // infinity-norm, result is a diamond/square with diagonals aligned on the axes in 2D
+         r = fabs(x-center[0]) + fabs(y-center[1]) + fabs(z-center[2]);
+         break;
+      case 1:
+         // 1-norm, result is is a grid-aligned square in 2D
+         r = max(max(fabs(x-center[0]), fabs(y-center[1])), fabs(z-center[2]));
+         break;
+      case 2:
+         // 2-norm (Cartesian), result is a circle in 2D
+         r = sqrt((x-center[0])*(x-center[0]) + (y-center[1])*(y-center[1]) + (z-center[2])*(z-center[2]));
+         break;
+      case 3:
+         // 2-norm (Cartesian) cylinder aligned on y-axis
+         r = sqrt((x-center[0])*(x-center[0]) + (z-center[2])*(z-center[2]));
+         break;
+      default:
+         std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1 or 2." << std::endl;
+         abort();
+      }
+
+      return r;
+   }
    
-   bool Ionosphere::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
+   bool Ionosphere::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                      FsGrid< fsgrids::technical, 2> & technicalGrid) {
       vector<CellID> cells = mpiGrid.get_cells();
       for(uint i=0; i<cells.size(); i++) {
          if(mpiGrid[cells[i]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
             continue;
          }
+         
          creal* const cellParams = &(mpiGrid[cells[i]]->parameters[0]);
          creal dx = cellParams[CellParams::DX];
          creal dy = cellParams[CellParams::DY];
@@ -170,34 +201,39 @@ namespace SBC {
          creal x = cellParams[CellParams::XCRD] + 0.5*dx;
          creal y = cellParams[CellParams::YCRD] + 0.5*dy;
          creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
-         Real r;
          
-         switch(this->geometry) {
-            case 0:
-               // infinity-norm, result is a diamond/square with diagonals aligned on the axes in 2D
-               r = fabs(x-center[0]) + fabs(y-center[1]) + fabs(z-center[2]);
-               break;
-            case 1:
-               // 1-norm, result is is a grid-aligned square in 2D
-               r = max(max(fabs(x-center[0]), fabs(y-center[1])), fabs(z-center[2]));
-               break;
-            case 2:
-               // 2-norm (Cartesian), result is a circle in 2D
-               r = sqrt((x-center[0])*(x-center[0]) + (y-center[1])*(y-center[1]) + (z-center[2])*(z-center[2]));
-               break;
-            case 3:
-               // 2-norm (Cartesian) cylinder aligned on y-axis
-               r = sqrt((x-center[0])*(x-center[0]) + (z-center[2])*(z-center[2]));
-               break;
-            default:
-               std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1 or 2." << std::endl;
-               abort();
-         }
-         
-         if(r < this->radius) {
+         if(getR(x,y,z,this->geometry,this->center) < this->radius) {
             mpiGrid[cells[i]]->sysBoundaryFlag = this->getIndex();
          }
       }
+
+            // Assign boundary flags to local fsgrid cells
+      const std::array<int, 3> gridDims(technicalGrid.getLocalSize());  
+      for (int k=0; k<gridDims[2]; k++) {
+         for (int j=0; j<gridDims[1]; j++) {
+            for (int i=0; i<gridDims[0]; i++) {
+               const auto& coords = technicalGrid.getPhysicalCoords(i,j,k);
+               const SpatialCell* cell = mpiGrid[mpiGrid.get_existing_cell(coords)];
+               if(cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+                  continue;
+               }
+               
+               creal* const cellParams = &(cell->parameters[0]);
+               creal dx = cellParams[CellParams::DX] / pow(2,P::amrMaxSpatialRefLevel);
+               creal dy = cellParams[CellParams::DY] / pow(2,P::amrMaxSpatialRefLevel);
+               creal dz = cellParams[CellParams::DZ] / pow(2,P::amrMaxSpatialRefLevel);
+               creal x = coords[0] + 0.5 * dx;
+               creal y = coords[1] + 0.5 * dy;
+               creal z = coords[2] + 0.5 * dz;
+
+               if(getR(x,y,z,this->geometry,this->center) < this->radius) {
+                  technicalGrid.get(i,j,k)->sysBoundaryFlag = this->getIndex();
+               }
+
+            }
+         }
+      }
+
       return true;
    }
 

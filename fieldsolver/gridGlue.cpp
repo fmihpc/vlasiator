@@ -659,7 +659,8 @@ void setupTechnicalFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
 
       fsgrids::technical* thisCellData = &transferBuffer[i];
       // Data needs to be collected from some different places for this grid.
-      thisCellData->sysBoundaryFlag = mpiGrid[cells[i]]->sysBoundaryFlag;
+      // Boundary flags are now set on fsgrid in assignSysBoundary
+      // thisCellData->sysBoundaryFlag = mpiGrid[cells[i]]->sysBoundaryFlag;
       // Remove boundary layer copy here
       // thisCellData->sysBoundaryLayer = mpiGrid[cells[i]]->sysBoundaryLayer;
       thisCellData->maxFsDt = std::numeric_limits<Real>::max();        

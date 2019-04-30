@@ -389,7 +389,8 @@ bool SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::
  * 
  * \param mpiGrid Grid
  */
-bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
+bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                FsGrid< fsgrids::technical, 2> & technicalGrid) {
    bool success = true;
    vector<CellID> cells = mpiGrid.get_cells();
    
@@ -405,7 +406,7 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
    */
    list<SBC::SysBoundaryCondition*>::iterator it;
    for (it = sysBoundaries.begin(); it != sysBoundaries.end(); it++) {
-      success = success && (*it)->assignSysBoundary(mpiGrid);
+      success = success && (*it)->assignSysBoundary(mpiGrid,technicalGrid);
    }
 
    // communicate boundary assignments (sysBoundaryFlag and
