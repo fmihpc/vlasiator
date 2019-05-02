@@ -347,7 +347,7 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
    const bool debug = false;
    CellID nextNeighbor;
    CellID id = startingId;
-   uint startingRefLvl = grid.get_refinement_level(id);
+   int startingRefLvl = grid.get_refinement_level(id);
    bool periodic = false;   
    if( ids.size() == 0 )
       ids.push_back(startingId);
@@ -364,7 +364,7 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
 
       CellID myId = startingId;
       
-      for ( uint i = path.size(); i < startingRefLvl; ++i) {
+      for ( int i = path.size(); i < startingRefLvl; ++i) {
 
          CellID parentId = grid.get_parent(myId);
          
