@@ -81,7 +81,6 @@ namespace spatial_cell {
    SpatialCell::SpatialCell(const SpatialCell& other):
      sysBoundaryFlag(other.sysBoundaryFlag),
      sysBoundaryLayer(other.sysBoundaryLayer),
-     sysBoundaryLayerNew(other.sysBoundaryLayerNew),
      velocity_block_with_content_list(other.velocity_block_with_content_list),
      velocity_block_with_no_content_list(other.velocity_block_with_no_content_list),
      initialized(other.initialized),
@@ -792,8 +791,6 @@ namespace spatial_cell {
             block_lengths.push_back(sizeof(uint));
             displacements.push_back((uint8_t*) &(this->sysBoundaryLayer) - (uint8_t*) this);
             block_lengths.push_back(sizeof(uint));
-            displacements.push_back((uint8_t*) &(this->sysBoundaryLayerNew) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(int));
          }
          
          if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_PARAMETERS) !=0) {
