@@ -307,12 +307,6 @@ void initializeGrids(
    technicalGrid.finishGridCoupling();
    phiprof::stop("Initial fsgrid coupling");
    
-   phiprof::start("setupTechnicalFsGrid");
-   setupTechnicalFsGrid(mpiGrid, cells, technicalGrid);
-   
-   technicalGrid.updateGhostCells();
-   phiprof::stop("setupTechnicalFsGrid");
-   
    phiprof::start("setProjectBField");
    project.setProjectBField(perBGrid, BgBGrid, technicalGrid);
    perBGrid.updateGhostCells();

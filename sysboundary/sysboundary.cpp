@@ -382,6 +382,39 @@ bool SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::
 }
 
 
+bool belongsToLayer(const int layer, const int x, const int y, const int z,
+                    FsGrid< fsgrids::technical, 2>& technicalGrid) {
+   
+   bool belongs = false;
+   
+   // loop through all neighbors (including diagonals)
+   for (int ix = -1; ix <= 1; ++ix) {
+      for (int iy = -1; iy <= 1; ++iy) {
+         for (int iz = -1; iz <= 1; ++iz) {
+            
+            // not strictly necessary but logically we should not consider the cell itself
+            // among its neighbors.
+            if( ix == 0 && iy == 0 && iz == 0 || !technicalGrid.get(x+ix,y+iy,z+iz)) {
+               continue;
+            }
+            
+            if(layer == 1 && technicalGrid.get(x+ix,y+iy,z+iz)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+               // in the first layer, boundary cell belongs if it has a non-boundary neighbor
+               belongs = true;
+               return belongs;
+               
+            } else if (layer > 1 && technicalGrid.get(x+ix,y+iy,z+iz)->sysBoundaryLayer == layer - 1) {
+               // in all other layers, boundary cell belongs if it has a neighbor in the previous layer
+               belongs = true;
+               return belongs;
+            }
+         }
+      }
+   }
+   
+   return belongs;
+}
+
 /*!\brief Classify all simulation cells with respect to the system boundary conditions.
  * 
  * Loops through all cells and and for each assigns the correct sysBoundaryFlag depending on
@@ -393,11 +426,23 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
                                 FsGrid< fsgrids::technical, 2> & technicalGrid) {
    bool success = true;
    vector<CellID> cells = mpiGrid.get_cells();
+   auto localSize = technicalGrid.getLocalSize();
    
    /*set all cells to default value, not_sysboundary*/
    for(uint i=0; i<cells.size(); i++) {
       mpiGrid[cells[i]]->sysBoundaryFlag = sysboundarytype::NOT_SYSBOUNDARY;
    }
+   #pragma omp parallel for collapse(3)
+   for (int x = 0; x < localSize[0]; ++x) {
+      for (int y = 0; y < localSize[1]; ++y) {
+         for (int z = 0; z < localSize[2]; ++z) {
+            technicalGrid.get(x,y,z)->sysBoundaryFlag = sysboundarytype::NOT_SYSBOUNDARY;
+            technicalGrid.get(x,y,z)->sysBoundaryLayer = 0;
+            technicalGrid.get(x,y,z)->maxFsDt = std::numeric_limits<Real>::max();
+         }
+      }
+   }
+   
    /*
      loop through sysboundaries and let all sysboundaries set in local
    cells if they are part of which sysboundary (cell location needs to
@@ -408,78 +453,14 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
    for (it = sysBoundaries.begin(); it != sysBoundaries.end(); it++) {
       success = success && (*it)->assignSysBoundary(mpiGrid,technicalGrid);
    }
+   
 
    // communicate boundary assignments (sysBoundaryFlag and
    // sysBoundaryLayer communicated)
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
    mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
 
-   // Compute distances to system boundaries according to the new classification
-   for (size_t c=0; c<cells.size(); ++c) {
-      bool hasNormalNbrs = false;
-      bool hasBndryNbrs  = false;
-      /*const vector<CellID>* nbrs = mpiGrid.get_neighbors_of(cells[c],SYSBOUNDARIES_NEIGHBORHOOD_ID);
-      for (size_t n=0; n<nbrs->size(); ++n) {
-         if ((*nbrs)[n] == 0) continue;
-         if (mpiGrid[(*nbrs)[n]]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) hasNormalNbrs = true;
-         if (mpiGrid[(*nbrs)[n]]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) hasBndryNbrs  = true;
-      }*/
 
-      Real xmin = mpiGrid[cells[c]]->get_cell_parameters()[CellParams::XCRD];
-      Real ymin = mpiGrid[cells[c]]->get_cell_parameters()[CellParams::YCRD];
-      Real zmin = mpiGrid[cells[c]]->get_cell_parameters()[CellParams::ZCRD];
-      Real dx   = mpiGrid[cells[c]]->get_cell_parameters()[CellParams::DX];
-      Real dy   = mpiGrid[cells[c]]->get_cell_parameters()[CellParams::DY];
-      Real dz   = mpiGrid[cells[c]]->get_cell_parameters()[CellParams::DZ];
-
-      Real x_cen = xmin + 0.5*dx;
-      Real y_cen = ymin + 0.5*dy;
-      Real z_cen = zmin + 0.5*dz;
-
-      Real x_bndr = 900.0;
-      Real y_bndr = 700.0;
-
-      bool xoutside = false;
-      bool youtside = false;
-      if (x_cen < -x_bndr) xoutside = true;
-      if (x_cen > +x_bndr) xoutside = true;
-      if (y_cen < -y_bndr) youtside = true;
-      if (y_cen > +y_bndr) youtside = true;
-      if (xoutside == true || youtside == true) mpiGrid[cells[c]]->sysBoundaryLayerNew = -2;
-      else                                      mpiGrid[cells[c]]->sysBoundaryLayerNew = +2;
-
-      if (x_cen <= -x_bndr && x_cen+0.6*dx > -x_bndr && youtside == false) mpiGrid[cells[c]]->sysBoundaryLayerNew = -1;
-      if (x_cen >= +x_bndr && x_cen-0.6*dx < +x_bndr && youtside == false) mpiGrid[cells[c]]->sysBoundaryLayerNew = -1;
-      if (x_cen >= -x_bndr && x_cen-0.6*dx < -x_bndr && youtside == false) mpiGrid[cells[c]]->sysBoundaryLayerNew = +1;
-      if (x_cen <= +x_bndr && x_cen+0.6*dx > +x_bndr && youtside == false) mpiGrid[cells[c]]->sysBoundaryLayerNew = +1;
-      
-      if (y_cen <= -y_bndr && y_cen+0.6*dy > -y_bndr && xoutside == false) mpiGrid[cells[c]]->sysBoundaryLayerNew = -1;
-      if (y_cen >= +y_bndr && y_cen-0.6*dy < +y_bndr && xoutside == false) mpiGrid[cells[c]]->sysBoundaryLayerNew = -1;
-      if (y_cen >= -y_bndr && y_cen-0.6*dy < -y_bndr && xoutside == false) mpiGrid[cells[c]]->sysBoundaryLayerNew = +1;
-      if (y_cen <= +y_bndr && y_cen+0.6*dy > +y_bndr && xoutside == false) mpiGrid[cells[c]]->sysBoundaryLayerNew = +1;
-      
-      if (   (x_cen <= -x_bndr && x_cen+0.6*dx > -x_bndr)
-          && (y_cen <= -y_bndr && y_cen+0.6*dy > -y_bndr)) mpiGrid[cells[c]]->sysBoundaryLayerNew = -1;
-      if (   (x_cen <= -x_bndr && x_cen+0.6*dx > -x_bndr)
-          && (y_cen >= +y_bndr && y_cen-0.6*dy < +y_bndr)) mpiGrid[cells[c]]->sysBoundaryLayerNew = -1;
-      if (   (x_cen >= +x_bndr && x_cen-0.6*dx < +x_bndr)
-          && (y_cen <= -y_bndr && y_cen+0.6*dy > -y_bndr)) mpiGrid[cells[c]]->sysBoundaryLayerNew = -1;
-      if (   (x_cen >= +x_bndr && x_cen-0.6*dx < +x_bndr)
-          && (y_cen >= +y_bndr && y_cen-0.6*dy < +y_bndr)) mpiGrid[cells[c]]->sysBoundaryLayerNew = -1;
-      
-      /*
-      if (mpiGrid[cells[c]]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
-         // Cell inside system boundary, if it touches the interface it gets value -1.
-         // Otherwise it gets value -2.
-         if (hasNormalNbrs == true) mpiGrid[cells[c]]->sysBoundaryLayerNew = -1;
-         else mpiGrid[cells[c]]->sysBoundaryLayerNew = -2;
-      } else {
-         // Cell inside simulation domain, if it touches the interface it gets value +2.
-         // Otherwise it gets value +2.
-         if (hasBndryNbrs == true) mpiGrid[cells[c]]->sysBoundaryLayerNew = 1;
-         else mpiGrid[cells[c]]->sysBoundaryLayerNew = 2;
-      }*/
-   }
 
    // set distance 1 cells to boundary cells, that have neighbors which are normal cells
    for(uint i=0; i<cells.size(); i++) {
@@ -539,6 +520,41 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
    // boundary local communication patterns.
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
    mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
+   
+   
+   // Now the layers need to be set on fsgrid too
+   // In dccrg initialization the max number of boundary layers is set to 3.
+   const int MAX_NUMBER_OF_BOUNDARY_LAYERS = 3 * pow(2,mpiGrid.get_maximum_refinement_level());
+   
+   // loop through max number of layers
+   for(uint layer = 1; layer <= MAX_NUMBER_OF_BOUNDARY_LAYERS; ++layer) {
+      
+      // loop through all cells in grid
+      #pragma omp parallel for collapse(3)
+      for (int x = 0; x < localSize[0]; ++x) {
+         for (int y = 0; y < localSize[1]; ++y) {
+            for (int z = 0; z < localSize[2]; ++z) {
+               
+               // for the first layer, consider all cells that belong to a boundary, for other layers
+               // consider all cells that have not yet been labeled.
+               if((layer == 1 && technicalGrid.get(x,y,z)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) ||
+                  (layer > 1 && technicalGrid.get(x,y,z)->sysBoundaryLayer == 0)) {
+                  
+                  if (belongsToLayer(layer, x, y, z, technicalGrid)) {
+                     
+                     technicalGrid.get(x,y,z)->sysBoundaryLayer = layer;
+                     
+                     if (layer > 2 && technicalGrid.get(x,y,z)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+                        technicalGrid.get(x,y,z)->sysBoundaryFlag = sysboundarytype::DO_NOT_COMPUTE;
+                     }
+                  }
+               }
+            }
+         }
+      }
+   }
+   
+   technicalGrid.updateGhostCells();
    
    return success;
 }
