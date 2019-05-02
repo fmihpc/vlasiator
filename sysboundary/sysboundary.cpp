@@ -394,7 +394,7 @@ bool belongsToLayer(const int layer, const int x, const int y, const int z,
             
             // not strictly necessary but logically we should not consider the cell itself
             // among its neighbors.
-            if( ix == 0 && iy == 0 && iz == 0 || !technicalGrid.get(x+ix,y+iy,z+iz)) {
+            if( ( ix == 0 && iy == 0 && iz == 0 ) || !technicalGrid.get(x+ix,y+iy,z+iz)) {
                continue;
             }
             
@@ -522,7 +522,7 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
    
    // Now the layers need to be set on fsgrid too
    // In dccrg initialization the max number of boundary layers is set to 3.
-   const int MAX_NUMBER_OF_BOUNDARY_LAYERS = 3 * pow(2,mpiGrid.get_maximum_refinement_level());
+   const uint MAX_NUMBER_OF_BOUNDARY_LAYERS = 3 * pow(2,mpiGrid.get_maximum_refinement_level());
    
    // loop through max number of layers
    for(uint layer = 1; layer <= MAX_NUMBER_OF_BOUNDARY_LAYERS; ++layer) {
