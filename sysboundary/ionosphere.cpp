@@ -207,13 +207,22 @@ namespace SBC {
          }
       }
 
-            // Assign boundary flags to local fsgrid cells
+      const auto inv2powMaxRefLvl = pow(2,-P::amrMaxSpatialRefLevel);
+      
+      // Assign boundary flags to local fsgrid cells
       const std::array<int, 3> gridDims(technicalGrid.getLocalSize());  
       for (int k=0; k<gridDims[2]; k++) {
          for (int j=0; j<gridDims[1]; j++) {
             for (int i=0; i<gridDims[0]; i++) {
                const auto& coords = technicalGrid.getPhysicalCoords(i,j,k);
-               const auto refLvl = mpiGrid.get_refinement_level(mpiGrid.get_existing_cell(coords));
+               
+               // Shift to the center of the fsgrid cell
+               auto cellCenterCoords = coords;
+               cellCenterCoords[0] += 0.5 * P::dx_ini * inv2powMaxRefLvl;
+               cellCenterCoords[1] += 0.5 * P::dy_ini * inv2powMaxRefLvl;
+               cellCenterCoords[2] += 0.5 * P::dz_ini * inv2powMaxRefLvl;              
+               const auto refLvl = mpiGrid.get_refinement_level(mpiGrid.get_existing_cell(cellCenterCoords));
+
                if(refLvl == -1) {
                   cerr << "Error, could not get refinement level of remote DCCRG cell " << __FILE__ << " " << __LINE__ << endl;
                }
@@ -221,11 +230,8 @@ namespace SBC {
                creal dx = P::dx_ini * pow(2,-refLvl);
                creal dy = P::dy_ini * pow(2,-refLvl);
                creal dz = P::dz_ini * pow(2,-refLvl);
-               creal x = coords[0] + 0.5 * P::dx_ini * pow(2,-P::amrMaxSpatialRefLevel);
-               creal y = coords[1] + 0.5 * P::dy_ini * pow(2,-P::amrMaxSpatialRefLevel);
-               creal z = coords[2] + 0.5 * P::dz_ini * pow(2,-P::amrMaxSpatialRefLevel);
 
-               if(getR(x,y,z,this->geometry,this->center) < this->radius) {
+               if(getR(cellCenterCoords[0],cellCenterCoords[1],cellCenterCoords[2],this->geometry,this->center) < this->radius) {
                   technicalGrid.get(i,j,k)->sysBoundaryFlag = this->getIndex();
                }
 

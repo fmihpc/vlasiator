@@ -115,7 +115,7 @@ namespace SBC {
          // Comparison of the array defining which faces to use and the 
          // array telling on which faces this cell is
          doAssign = false;
-         for (uint j=0; j<6; j++) doAssign = doAssign || (facesToProcess[j] && isThisCellOnAFace[j]);
+         for (int j=0; j<6; j++) doAssign = doAssign || (facesToProcess[j] && isThisCellOnAFace[j]);
          if (doAssign) {
             uint flag = getIndex();
             //if (x <  Parameters::xmin + 2*Parameters::dx_ini) flag = sysboundarytype::DO_NOT_COMPUTE;
@@ -126,13 +126,21 @@ namespace SBC {
          }
       }
 
-         // Assign boundary flags to local fsgrid cells
+      const auto inv2powMaxRefLvl = pow(2,-P::amrMaxSpatialRefLevel);
+      
+      // Assign boundary flags to local fsgrid cells
       const std::array<int, 3> gridDims(technicalGrid.getLocalSize());  
       for (int k=0; k<gridDims[2]; k++) {
          for (int j=0; j<gridDims[1]; j++) {
             for (int i=0; i<gridDims[0]; i++) {
                const auto& coords = technicalGrid.getPhysicalCoords(i,j,k);
-               const auto refLvl = mpiGrid.get_refinement_level(mpiGrid.get_existing_cell(coords));
+
+               // Shift to the center of the fsgrid cell
+               auto cellCenterCoords = coords;
+               cellCenterCoords[0] += 0.5 * P::dx_ini * inv2powMaxRefLvl;
+               cellCenterCoords[1] += 0.5 * P::dy_ini * inv2powMaxRefLvl;
+               cellCenterCoords[2] += 0.5 * P::dz_ini * inv2powMaxRefLvl;
+               const auto refLvl = mpiGrid.get_refinement_level(mpiGrid.get_existing_cell(cellCenterCoords));
                if(refLvl == -1) {
                   cerr << "Error, could not get refinement level of remote DCCRG cell " << __FILE__ << " " << __LINE__ << endl;
                }
@@ -140,17 +148,14 @@ namespace SBC {
                creal dx = P::dx_ini * pow(2,-refLvl);
                creal dy = P::dy_ini * pow(2,-refLvl);
                creal dz = P::dz_ini * pow(2,-refLvl);
-               creal x = coords[0] + 0.5 * P::dx_ini * pow(2,-P::amrMaxSpatialRefLevel);
-               creal y = coords[1] + 0.5 * P::dy_ini * pow(2,-P::amrMaxSpatialRefLevel);
-               creal z = coords[2] + 0.5 * P::dz_ini * pow(2,-P::amrMaxSpatialRefLevel);
 
                isThisCellOnAFace.fill(false);
                doAssign = false;
-               
-               determineFace(isThisCellOnAFace.data(), x, y, z, dx, dy, dz);
-               for(uint j=0; j<6; j++) doAssign = doAssign || (facesToProcess[j] && isThisCellOnAFace[j]);
+
+               determineFace(isThisCellOnAFace.data(), cellCenterCoords[0], cellCenterCoords[1], cellCenterCoords[2], dx, dy, dz);
+               for(int iface=0; iface<6; iface++) doAssign = doAssign || (facesToProcess[iface] && isThisCellOnAFace[iface]);
                if(doAssign) {
-                  if (y < Parameters::ymin+Parameters::dy_ini) {
+                  if (cellCenterCoords[1] < Parameters::ymin+Parameters::dy_ini) {
                      technicalGrid.get(i,j,k)->sysBoundaryFlag = sysboundarytype::DO_NOT_COMPUTE;
                   } else {
                      technicalGrid.get(i,j,k)->sysBoundaryFlag = this->getIndex();
