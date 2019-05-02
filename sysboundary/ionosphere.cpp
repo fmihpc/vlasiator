@@ -213,18 +213,17 @@ namespace SBC {
          for (int j=0; j<gridDims[1]; j++) {
             for (int i=0; i<gridDims[0]; i++) {
                const auto& coords = technicalGrid.getPhysicalCoords(i,j,k);
-               const SpatialCell* cell = mpiGrid[mpiGrid.get_existing_cell(coords)];
-               if(cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
-                  continue;
+               const auto refLvl = mpiGrid.get_refinement_level(mpiGrid.get_existing_cell(coords));
+               if(refLvl == -1) {
+                  cerr << "Error, could not get refinement level of remote DCCRG cell " << __FILE__ << " " << __LINE__ << endl;
                }
-               
-               creal* const cellParams = &(cell->parameters[0]);
-               creal dx = cellParams[CellParams::DX] / pow(2,P::amrMaxSpatialRefLevel);
-               creal dy = cellParams[CellParams::DY] / pow(2,P::amrMaxSpatialRefLevel);
-               creal dz = cellParams[CellParams::DZ] / pow(2,P::amrMaxSpatialRefLevel);
-               creal x = coords[0] + 0.5 * dx;
-               creal y = coords[1] + 0.5 * dy;
-               creal z = coords[2] + 0.5 * dz;
+
+               creal dx = P::dx_ini * pow(2,-refLvl);
+               creal dy = P::dy_ini * pow(2,-refLvl);
+               creal dz = P::dz_ini * pow(2,-refLvl);
+               creal x = coords[0] + 0.5 * P::dx_ini * pow(2,-P::amrMaxSpatialRefLevel);
+               creal y = coords[1] + 0.5 * P::dy_ini * pow(2,-P::amrMaxSpatialRefLevel);
+               creal z = coords[2] + 0.5 * P::dz_ini * pow(2,-P::amrMaxSpatialRefLevel);
 
                if(getR(x,y,z,this->geometry,this->center) < this->radius) {
                   technicalGrid.get(i,j,k)->sysBoundaryFlag = this->getIndex();
