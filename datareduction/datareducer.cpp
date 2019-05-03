@@ -160,7 +160,22 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       }
       if(*it == "FsGridRank") {
          // Map of spatial decomposition of the FsGrid into MPI ranks
-         outputReducer->addOperator(new DRO::FsGridRank);
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("FsGridRank",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2>& dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volGrid,
+							 FsGrid< fsgrids::technical, 2>& technicalGrid)->std::vector<double> {
+							
+						std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+						std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2],technicalGrid.getRank());
+						}
+						));
          continue;
       }
       if(*it == "BoundaryType") {
@@ -569,4 +584,27 @@ bool DataReducer::writeData(const unsigned int& operatorID,
       return false;
    }
    return writingOperator->writeData(mpiGrid,cells,meshName,vlsvWriter);
+}
+
+/** Write all data thet the given DataReductionOperator wants to obtain from fsgrid into the output file.
+ */
+bool DataReducer::writeFsGridData(
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2>& dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volGrid,
+                      FsGrid< fsgrids::technical, 2>& technicalGrid, const std::string& meshName, const unsigned int operatorID, vlsv::Writer& vlsvWriter) {
+   
+   if (operatorID >= operators.size()) return false;
+   DRO::DataReductionOperatorFsGrid* DROf = dynamic_cast<DRO::DataReductionOperatorFsGrid*>(operators[operatorID]);
+   if(!DROf) {
+      return false;
+   } else {
+      return DROf->writeFsGridData(perBGrid, EGrid, EHallGrid, EGradPeGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, volGrid, technicalGrid, meshName, vlsvWriter);
+   }
 }

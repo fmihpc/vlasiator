@@ -112,9 +112,47 @@ namespace DRO {
       return true;
    }
 
+   std::string DataReductionOperatorFsGrid::getName() const {return variableName;}
+   bool DataReductionOperatorFsGrid::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize = sizeof(double);
+      vectorSize = 1;
+      return true;
+   }
+   //bool DataReductionOperatorFsGrid::reduceData(const SpatialCell* cell,char* buffer) {
+	//	// This returns false, since it will handle writing itself in writeFsGridData below.
+   //   return false;
+   //}
+   bool DataReductionOperatorFsGrid::setSpatialCell(const SpatialCell* cell) {
+      return true;
+   }
 
+   
+   bool DataReductionOperatorFsGrid::writeFsGridData(
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2>& dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volGrid,
+                      FsGrid< fsgrids::technical, 2>& technicalGrid, const std::string& meshName, vlsv::Writer& vlsvWriter) {
 
+      std::map<std::string,std::string> attribs;
+      attribs["mesh"]=meshName;
+      attribs["name"]=variableName;
 
+      std::vector<double> varBuffer =
+         lambda(perBGrid,EGrid,EHallGrid,EGradPeGrid,momentsGrid,dPerBGrid,dMomentsGrid,BgBGrid,volGrid,technicalGrid);
+      if(vlsvWriter.writeArray("VARIABLE",attribs, "float", varBuffer.size(), 1, sizeof(double), reinterpret_cast<const char*>(varBuffer.data())) == false) {
+         string message = "The DataReductionOperator " + this->getName() + " failed to write it's data.";
+         bailout(true, message, __FILE__, __LINE__);
+      }
+
+      return true;
+   }
    
    DataReductionOperatorDerivatives::DataReductionOperatorDerivatives(const std::string& name,const unsigned int parameterIndex,const unsigned int vectorSize):
    DataReductionOperatorCellParams(name,parameterIndex,vectorSize) {
@@ -236,30 +274,6 @@ namespace DRO {
       return true;
    }
    
-   //FsGrid cartcomm mpi rank
-   FsGridRank::FsGridRank(): DataReductionOperator() { }
-   FsGridRank::~FsGridRank() { }
-   
-   bool FsGridRank::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-      dataType = "int";
-      dataSize = sizeof(int);
-      vectorSize = 1;
-      return true;
-   }
-   
-   std::string FsGridRank::getName() const {return "FSgrid_rank";}
-   
-   bool FsGridRank::reduceData(const SpatialCell* cell,char* buffer) {
-      const char* ptr = reinterpret_cast<const char*>(&fsgridRank);
-      for (uint i=0; i<sizeof(int); ++i) buffer[i] = ptr[i];
-      return true;
-   }
-   
-   bool FsGridRank::setSpatialCell(const SpatialCell* cell) {
-      fsgridRank = cell->get_cell_parameters()[CellParams::FSGRID_RANK];
-      return true;
-   }
-
    //FsGrids idea of what the boundaryType ist
    FsGridBoundaryType::FsGridBoundaryType(): DataReductionOperator() { }
    FsGridBoundaryType::~FsGridBoundaryType() { }
