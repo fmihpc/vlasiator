@@ -48,7 +48,8 @@ namespace SBC {
       return true;
    }
    
-   bool DoNotCompute::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& ) {
+   bool DoNotCompute::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&,
+                                        FsGrid< fsgrids::technical, 2> & technicalGrid) {
       return true;
    }
    

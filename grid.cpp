@@ -168,7 +168,7 @@ void initializeGrids(
    
    // Initialise system boundary conditions (they need the initialised positions!!)
    phiprof::start("Classify cells (sys boundary conditions)");
-   if(sysBoundaries.classifyCells(mpiGrid) == false) {
+   if(sysBoundaries.classifyCells(mpiGrid,technicalGrid) == false) {
       cerr << "(MAIN) ERROR: System boundary conditions were not set correctly." << endl;
       exit(1);
    }
@@ -306,12 +306,6 @@ void initializeGrids(
    
    technicalGrid.finishGridCoupling();
    phiprof::stop("Initial fsgrid coupling");
-   
-   phiprof::start("setupTechnicalFsGrid");
-   setupTechnicalFsGrid(mpiGrid, cells, technicalGrid);
-   
-   technicalGrid.updateGhostCells();
-   phiprof::stop("setupTechnicalFsGrid");
    
    phiprof::start("setProjectBField");
    project.setProjectBField(perBGrid, BgBGrid, technicalGrid);
