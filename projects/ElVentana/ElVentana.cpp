@@ -62,11 +62,6 @@ namespace projects {
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
 
-         //RP::add(pop + "_ElVentana.rho", "Number density (m^-3)", 0.0);
-         //RP::add(pop + "_ElVentana.T", "Temperature (K)", 0.0);
-         //RP::add(pop + "_ElVentana.VX0", "Initial bulk velocity in x-direction", 0.0);
-         //RP::add(pop + "_ElVentana.VY0", "Initial bulk velocity in y-direction", 0.0);
-         //RP::add(pop + "_ElVentana.VZ0", "Initial bulk velocity in z-direction", 0.0);
          RP::add(pop + "_ElVentana.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
          RP::add(pop + "_ElVentana.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
       }
@@ -246,18 +241,10 @@ namespace projects {
              pressure_T[j] = cell->parameters[CellParams::P_11+j];
           }
           temperature = (pressure_T[0] + pressure_T[1] + pressure_T[2]) / (3.*physicalconstants::K_B * density);
-          //if (x < 72.e+6 && z > 0. && z < 1.e+6 && popID==1) {
-          //   cout << " P11, cellID = " << pressure_T[0] << " "
-          //        << cellID << " " << density << endl;
-          //}
           const std::array<Real, 3> v0 = this->getV0(x, y, z, popID)[0];
           distvalue = initRho * pow(mass / (2.0 * M_PI * physicalconstants::K_B * temperature), 1.5) *
               exp(- mass * ( pow(vx - v0[0], 2.0) + pow(vy - v0[1], 2.0) + pow(vz - v0[2], 2.0) ) /
               (2.0 * physicalconstants::K_B * temperature));
-          //if (x < 72.e+6 && z > 0. && z < 1e+6 ) {
-          //cout << "popID, temperature, V0x, distvalue = " << popID << " "
-          //     << temperature << " " << v0[0] << " " << distvalue << endl;
-          //}  
           return distvalue;
       } else {
           return 0;
@@ -389,15 +376,8 @@ namespace projects {
       uint filexcells, fileycells, filezcells;
       list<pair<string,string> > attribs;
       uint64_t arraySize, byteSize, fileOffset;
-      //uint64_t vectorSize;
       vlsv::datatype::type dataType;
       int k;
-      //const double MiB = pow(2,20);
-      //const double GiB = pow(2,30);
-      // PAPI variables
-      //PAPI_dmem_info_t dmem;
-      //PAPI_get_dmem_info(&dmem);
-      //double mem_papi[2] = {};
 
       // Attempt to open VLSV file for reading:
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
@@ -449,25 +429,6 @@ namespace projects {
 
       // Check if cell size from file is the same as from new grid!!
       
-      /*attribs.push_back(make_pair("mesh","SpatialGrid"));
-      attribs.push_back(make_pair("name","perturbed_B"));
-      if (this->vlsvPReader.getArrayInfo("VARIABLE",attribs,arraySize,this->vecsizeperturbed_B,dataType,byteSize) == false) {
-         logFile << "(START)  ERROR: Failed to read perturbed_B array info" << endl << write;
-         exit(1);
-      }
-      bufferSize = this->vecsizeperturbed_B*
-      buffer=new Real[this->vecsizeperturbed_B];
-      if (this->vlsvPReader.readArray("VARIABLE", attribs, fileOffset, 1, (char *)buffer) == false ) {
-         logFile << "(START)  ERROR: Failed to read perturbed_B"  << endl << write;
-         exit(1);
-      }
-      for (uint j=0; j<vecsizeperturbed_B; j++) {
-         mpiGrid[cells[i]]->parameters[CellParams::PERBX+j] = buffer[j];
-      }
-      delete[] buffer;
-      attribs.pop_back();
-      attribs.pop_back();
-      */
       this->vlsvParaReader.close();
 
       if (this->vlsvSerialReader.open(filename) == false) {
@@ -482,16 +443,6 @@ namespace projects {
 
 
       for (uint64_t i=0; i<cells.size(); i++) {
-         //if (i%100 == 0) {
-         //   cout << "Reading variables in cell before setCell " << i << " of " << cells.size() << endl;
-         //   if (myRank == MASTER_RANK) {
-         //      mem_papi[0] = dmem.high_water_mark * 1024;
-         //      mem_papi[1] = dmem.resident * 1024;
-         //      cout << "(MEM) Resident memory per process is " << mem_papi[1]/MiB << " MB" << endl;
-         //      cout << "(MEM) High water mark memory per process is " << mem_papi[0]/MiB << " MB" << endl;
-         //   }
-            //report_process_memory_consumption();
-         //}  
          SpatialCell* cell = mpiGrid[cells[i]];
          creal x = cell->parameters[CellParams::XCRD];
          creal y = cell->parameters[CellParams::YCRD];
@@ -508,7 +459,6 @@ namespace projects {
             }
          }
          
-         //cout << "Test(j): oldcellID X fileOffset .. " << fileOffset << " " << oldcellID << "  " << fileCellsID[k] << endl;  
          attribs.push_back(make_pair("mesh","SpatialGrid"));
          attribs.push_back(make_pair("name","perturbed_B"));
          if (this->vlsvSerialReader.getArrayInfo("VARIABLE",attribs,arraySize,this->vecsizeperturbed_B,dataType,byteSize) == false) {
@@ -620,52 +570,8 @@ namespace projects {
          attribs.pop_back();
          attribs.pop_back();
 
-         /*attribs.push_back(make_pair("mesh","SpatialGrid"));
-         attribs.push_back(make_pair("name","max_v_dt"));
-         //if (this->vlsvPReader.getArrayInfo("VARIABLE",attribs,arraySize,this->vecsizepressure,dataType,byteSize) == false) {
-         //   logFile << "(START)  ERROR: Failed to read pressure array info" << endl << write;
-         //   exit(1);
-         //}
-         buffer=new Real[1];
-         if (this->vlsvPReader.readArray("VARIABLE", attribs, fileOffset, 1, (char *)buffer) == false ) {
-            logFile << "(START)  ERROR: Failed to read max_v_dt"  << endl << write;
-            exit(1);
-         }
-         mpiGrid[cells[i]]->parameters[CellParams::MAXVDT] = buffer[0];
-         delete[] buffer;
-         attribs.pop_back();
-         
-         attribs.push_back(make_pair("name","max_r_dt"));
-         buffer=new Real[1];
-         if (this->vlsvPReader.readArray("VARIABLE", attribs, fileOffset, 1, (char *)buffer) == false ) {
-            logFile << "(START)  ERROR: Failed to read max_r_dt"  << endl << write;
-            exit(1);
-         }
-         mpiGrid[cells[i]]->parameters[CellParams::MAXRDT] = buffer[0];
-         delete[] buffer;
-         attribs.pop_back();
-         
-         attribs.push_back(make_pair("name","max_fields_dt"));
-         buffer=new Real[1];
-         if (this->vlsvPReader.readArray("VARIABLE", attribs, fileOffset, 1, (char *)buffer) == false ) {
-            logFile << "(START)  ERROR: Failed to read max_fields_dt"  << endl << write;
-            exit(1);
-         }
-         mpiGrid[cells[i]]->parameters[CellParams::MAXFDT] = buffer[0];
-         delete[] buffer;
-         attribs.pop_back();
-         attribs.pop_back();*/
       }
       newmpiGrid = &mpiGrid;
-      //cout << "MAXVDT = " << (*newmpiGrid)[cells[0]]->parameters[CellParams::MAXVDT] << endl;
-      //for (size_t i=0; i<cells.size(); i++) {
-      //    for ( int j=0; j<(int)vecsizepressure; j++) {
-      //        int k = 3*i+j;
-      //        cout << k << " pressure is " << this->filepressure[k] << endl;
-      //    }
-      //}
-
-      //cout << "filepressure = " << this->filepressure[0] << " "  << this->filepressure[1] << " " << this->filepressure[2] << " " << endl;
       this->vlsvSerialReader.close();
    }
 
@@ -680,19 +586,6 @@ namespace projects {
       cell->parameters[CellParams::EYJE] = 0;
       cell->parameters[CellParams::EZJE] = 0;
 
-      //if (myRank == MASTER_RANK) {
-          //for(uint j=0;j<this->vecsizeperturbed_B;j++){
-          //   cellParams[CellParams::PERBX+j]=this->fileperturbed_B[cellID*this->vecsizeperturbed_B+j];
-             //mpiGrid[cell]->parameters[cellParamsIndex+j]=buffer[i*vectorSize+j];
-             //cout << " perturbed_B in " << __FILE__ << " " << cellParams[CellParams::PERBX+j] << endl;
-          //}
-
-          /*cellParams[CellParams::RHOM] = cellParams[CellParams::RHOM]*physicalconstants::MASS_ELECTRON/physicalconstants::MASS_PROTON; //This only works if the original population is protons.
-          cellParams[CellParams::RHOQ] = -cellParams[CellParams::RHOQ]; //This only works if the original population is protons.
-          cellParams[CellParams::RHOM_DT2] = cellParams[CellParams::RHOM]*physicalconstants::MASS_ELECTRON/physicalconstants::MASS_PROTON; //This only works if the original population is protons.
-          cellParams[CellParams::RHOQ_DT2] = -cellParams[CellParams::RHOQ]; //This only works if the original population is protons.
-          */
-      //}
    }
 
 
