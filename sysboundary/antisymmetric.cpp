@@ -125,8 +125,6 @@ namespace SBC {
             mpiGrid[cells[c]]->sysBoundaryFlag = flag;
          }
       }
-
-      const auto inv2powMaxRefLvl = pow(2,-P::amrMaxSpatialRefLevel);
       
       // Assign boundary flags to local fsgrid cells
       const std::array<int, 3> gridDims(technicalGrid.getLocalSize());  
@@ -137,9 +135,9 @@ namespace SBC {
 
                // Shift to the center of the fsgrid cell
                auto cellCenterCoords = coords;
-               cellCenterCoords[0] += 0.5 * P::dx_ini * inv2powMaxRefLvl;
-               cellCenterCoords[1] += 0.5 * P::dy_ini * inv2powMaxRefLvl;
-               cellCenterCoords[2] += 0.5 * P::dz_ini * inv2powMaxRefLvl;
+               cellCenterCoords[0] += 0.5 * technicalGrid.DX;
+               cellCenterCoords[1] += 0.5 * technicalGrid.DY;
+               cellCenterCoords[2] += 0.5 * technicalGrid.DZ;
                const auto refLvl = mpiGrid.get_refinement_level(mpiGrid.get_existing_cell(cellCenterCoords));
                if(refLvl == -1) {
                   cerr << "Error, could not get refinement level of remote DCCRG cell " << __FILE__ << " " << __LINE__ << endl;
