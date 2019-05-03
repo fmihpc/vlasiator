@@ -119,10 +119,13 @@ namespace DRO {
       vectorSize = 1;
       return true;
    }
-   //bool DataReductionOperatorFsGrid::reduceData(const SpatialCell* cell,char* buffer) {
-	//	// This returns false, since it will handle writing itself in writeFsGridData below.
-   //   return false;
-   //}
+   bool DataReductionOperatorFsGrid::reduceData(const SpatialCell* cell,char* buffer) {
+      // This returns false, since it will handle writing itself in writeFsGridData below.
+      return false;
+   }
+   bool DataReductionOperatorFsGrid::reduceDiagnostic(const SpatialCell* cell,Real * result) {
+      return false;
+   }
    bool DataReductionOperatorFsGrid::setSpatialCell(const SpatialCell* cell) {
       return true;
    }

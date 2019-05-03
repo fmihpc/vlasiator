@@ -94,9 +94,11 @@ namespace DRO {
 
       public:
          DataReductionOperatorFsGrid(const std::string& name, ReductionLambda l) : DataReductionOperator(),lambda(l),variableName(name) {};
-			virtual std::string getName() const;
-			virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
-			virtual bool setSpatialCell(const SpatialCell* cell);
+	 virtual std::string getName() const;
+	 virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+	 virtual bool setSpatialCell(const SpatialCell* cell);
+	 virtual bool reduceData(const SpatialCell* cell,char* buffer);
+	 virtual bool reduceDiagnostic(const SpatialCell* cell,Real * result);
          virtual bool writeFsGridData(
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,

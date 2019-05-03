@@ -825,7 +825,7 @@ bool writeFsGridMetadata(FsGrid< fsgrids::technical, 2>& technicalGrid, vlsv::Wr
 	std::array<uint64_t, 6> boundaryBox({globalSize[0], globalSize[1], globalSize[2],
 			1,1,1});
 
-	if(rank == 0) {
+	if(technicalGrid.getRank() == 0) {
 		const unsigned int arraySize = 6;
 		const unsigned int vectorSize = 1;
 		std::cerr << "Writing MESH_BBOX" << std::endl;
@@ -840,17 +840,17 @@ bool writeFsGridMetadata(FsGrid< fsgrids::technical, 2>& technicalGrid, vlsv::Wr
 	// visit to create a cartesian grid out of.
 	std::vector<double> xNodeCoordinates(globalSize[0]+1);
 	for(uint64_t i=0; i<globalSize[0]+1; i++) {
-		xNodeCoordinates[i] = technicalGrid.getPhyicalCoords(i,0,0)[0];
+		xNodeCoordinates[i] = technicalGrid.getPhysicalCoords(i,0,0)[0];
 	}
 	std::vector<double> yNodeCoordinates(globalSize[1]+1);
 	for(uint64_t i=0; i<globalSize[1]+1; i++) {
-		yNodeCoordinates[i] = technicalGrid.getPhyicalCoords(0,i,0)[1];
+		yNodeCoordinates[i] = technicalGrid.getPhysicalCoords(0,i,0)[1];
 	}
 	std::vector<double> zNodeCoordinates(globalSize[2]+1);
 	for(uint64_t i=0; i<globalSize[2]+1; i++) {
-		zNodeCoordinates[i] = technicalGrid.getPhyicalCoords(0,0,i)[2];
+		zNodeCoordinates[i] = technicalGrid.getPhysicalCoords(0,0,i)[2];
 	}
-	if(rank == 0) {
+	if(technicalGrid.getRank() == 0) {
 		std::cerr << "Writing MESH_NODE_CRDS" << std::endl;
 		// Write this data only on rank 0 
 		vlsvWriter.writeArray("MESH_NODE_CRDS_X", xmlAttributes, globalSize[0]+1, 1, xNodeCoordinates.data());
@@ -871,6 +871,7 @@ bool writeFsGridMetadata(FsGrid< fsgrids::technical, 2>& technicalGrid, vlsv::Wr
 	vlsvWriter.writeArray("MESH_GHOST_LOCALIDS", xmlAttributes, 0, 1, &dummyghost);
 
 	// Write cell "globalID" numbers, which are just the global array indices.
+	std::array<int32_t,3>& localSize = technicalGrid.getLocalSize();
 	std::vector<uint64_t> globalIds(localSize[0]*localSize[1]*localSize[2]);
 	int i=0;
 	for(int z=0; z<localSize[2]; z++) {
@@ -894,9 +895,13 @@ bool writeFsGridMetadata(FsGrid< fsgrids::technical, 2>& technicalGrid, vlsv::Wr
 	xmlAttributes.clear();
 	xmlAttributes["name"] = meshName;
 	xmlAttributes["type"] = vlsv::mesh::STRING_UCD_MULTI;
-	if(P::xperiodic) { xmlAttributes["xperiodic"] = "yes"; } else { xmlAttributes["xperiodic"] = "no"; }
-	if(P::yperiodic) { xmlAttributes["yperiodic"] = "yes"; } else { xmlAttributes["yperiodic"] = "no"; }
-	if(P::zperiodic) { xmlAttributes["zperiodic"] = "yes"; } else { xmlAttributes["zperiodic"] = "no"; }
+	// TODO: Dummy values, fix by getting actual periodicity from fsgrid
+	xmlAttributes["xperiodic"]="no";
+	xmlAttributes["yperiodic"]="no";
+	xmlAttributes["zperiodic"]="no";
+	//if(P::xperiodic) { xmlAttributes["xperiodic"] = "yes"; } else { xmlAttributes["xperiodic"] = "no"; }
+	//if(P::yperiodic) { xmlAttributes["yperiodic"] = "yes"; } else { xmlAttributes["yperiodic"] = "no"; }
+	//if(P::zperiodic) { xmlAttributes["zperiodic"] = "yes"; } else { xmlAttributes["zperiodic"] = "no"; }
 
 	std::cerr << "Writing MESH" << std::endl;
 	vlsvWriter.writeArray("MESH", xmlAttributes, globalIds.size(), 1, globalIds.data());
