@@ -200,8 +200,8 @@ namespace projects {
          // Reading the new format (multipop) restart file
          density = cell->parameters[CellParams::RHOM]
               / physicalconstants::MASS_PROTON; // FIXME: Where can I find either the species name or its mass in the StartFile?.
-      } else if (this->vecsizemoments ==4) {
-         // Reading the old format restart file
+      } else if (this->vecsizemoments == 4 || this->vecsizemoments == 1)  {
+         // Reading the old format restart file or a bulk file
          density = cell->parameters[CellParams::RHOM]; // This is already the number density!
       } else {
          cout << "Could not identify restart file format for file: " << this->StartFile << endl;
@@ -309,7 +309,7 @@ namespace projects {
       // Return the values calculated from the start value in each cell
       const ElVentanaSpeciesParameters& sP = this->speciesParams[popID];
       vector<std::array<Real, 3>> V0;
-      std::array<Real, 3> v = {{0.0, 0.0, 0.0 }};
+      std::array<Real, 3> v = {{0.0, 0.0, 0.0}};
       CellID cellID;
       
       cellID = findCellIDXYZ(x, y, z);
@@ -320,7 +320,7 @@ namespace projects {
           v[1] = cell->parameters[CellParams::VY];
           v[2] = cell->parameters[CellParams::VZ];
       } else {
-         // Reading the old format restart file
+         // Reading the old format restart file or from bulk file
           v[0] = cell->parameters[CellParams::VX] / cell->parameters[CellParams::RHOM];
           v[1] = cell->parameters[CellParams::VY] / cell->parameters[CellParams::RHOM];
           v[2] = cell->parameters[CellParams::VZ] / cell->parameters[CellParams::RHOM];
@@ -383,6 +383,7 @@ namespace projects {
       vector<CellID> fileCellsID; /*< CellIds for all cells in file*/
       int myRank,processes;
       const string filename = this->StartFile;
+      int isbulk = 0;
       Real filexmin, fileymin, filezmin, filexmax, fileymax, filezmax, filedx, filedy, filedz;
       Real *buffer;
       uint filexcells, fileycells, filezcells;
@@ -474,6 +475,12 @@ namespace projects {
          exit(1);
       }
 
+      if (filename.find("/bulk.") != string::npos) { 
+         // It is a bulk file
+         isbulk = 1; // Hard setting for now...
+      }
+
+
       for (uint64_t i=0; i<cells.size(); i++) {
          //if (i%100 == 0) {
          //   cout << "Reading variables in cell before setCell " << i << " of " << cells.size() << endl;
@@ -521,32 +528,46 @@ namespace projects {
          attribs.pop_back();
           
          attribs.push_back(make_pair("mesh","SpatialGrid"));
-         attribs.push_back(make_pair("name","background_B"));
+         if (isbulk == 1) {
+            attribs.push_back(make_pair("name","B"));
+         } else {
+            attribs.push_back(make_pair("name","background_B"));
+         }
          if (this->vlsvSerialReader.getArrayInfo("VARIABLE",attribs,arraySize,this->vecsizebackground_B,dataType,byteSize) == false) {
-            logFile << "(START)  ERROR: Failed to read background_B array info" << endl << write;
+            logFile << "(START)  ERROR: Failed to read background_B (or B in case of bulk file) array info" << endl << write; 
             exit(1);
          }
          buffer=new Real[this->vecsizebackground_B];
          if (this->vlsvSerialReader.readArray("VARIABLE", attribs, fileOffset, 1, (char *)buffer) == false ) {
-            logFile << "(START)  ERROR: Failed to read background_B"  << endl << write;
+            logFile << "(START)  ERROR: Failed to read background_B (or B in case of bulk file)"  << endl << write;
             exit(1);
          }
-         for (uint j=0; j<vecsizebackground_B; j++) {
-            mpiGrid[cells[i]]->parameters[CellParams::BGBX+j] = buffer[j];
+         if (isbulk == 1) {
+            for (uint j=0; j<vecsizebackground_B; j++) {
+               mpiGrid[cells[i]]->parameters[CellParams::BGBX+j] = buffer[j] - mpiGrid[cells[i]]->parameters[CellParams::PERBX+j]; 
+            }
+         } else {
+            for (uint j=0; j<vecsizebackground_B; j++) {
+               mpiGrid[cells[i]]->parameters[CellParams::BGBX+j] = buffer[j];
+            }
          }
          delete[] buffer;
          attribs.pop_back();
          attribs.pop_back();
          
          attribs.push_back(make_pair("mesh","SpatialGrid"));
-         attribs.push_back(make_pair("name","moments"));
+         if (isbulk == 1) {
+            attribs.push_back(make_pair("name","rho"));
+         } else {
+            attribs.push_back(make_pair("name","moments"));
+         }
          if (this->vlsvSerialReader.getArrayInfo("VARIABLE",attribs,arraySize,this->vecsizemoments,dataType,byteSize) == false) {
-            logFile << "(START)  ERROR: Failed to read moments array info" << endl << write;
+            logFile << "(START)  ERROR: Failed to read moments (or rho in case of bulk file) array info" << endl << write;
             exit(1);
          }
          buffer=new Real[this->vecsizemoments];
          if (this->vlsvSerialReader.readArray("VARIABLE", attribs, fileOffset, 1, (char *)buffer) == false ) {
-            logFile << "(START)  ERROR: Failed to read moments"  << endl << write;
+            logFile << "(START)  ERROR: Failed to read moments (or rho in case of bulk file)"  << endl << write;
             exit(1);
          }
          for (uint j=0; j<vecsizemoments; j++) {
@@ -556,15 +577,40 @@ namespace projects {
          attribs.pop_back();
          attribs.pop_back();
          
+         if (isbulk == 1) {
+             attribs.push_back(make_pair("mesh","SpatialGrid"));
+             attribs.push_back(make_pair("name","rho_v"));
+             // Borrowing the vecsizepressure here. It will be overwritten in the next call of this function.
+             if (this->vlsvSerialReader.getArrayInfo("VARIABLE",attribs,arraySize,this->vecsizepressure,dataType,byteSize) == false) { 
+                logFile << "(START)  ERROR: Failed to read rho_v array info" << endl << write;
+                exit(1);
+             }
+             buffer=new Real[this->vecsizepressure];
+             if (this->vlsvSerialReader.readArray("VARIABLE", attribs, fileOffset, 1, (char *)buffer) == false ) {
+                logFile << "(START)  ERROR: Failed to read rho_v"  << endl << write;
+                exit(1);
+             }
+             for (uint j=0; j<vecsizepressure; j++) {
+                mpiGrid[cells[i]]->parameters[CellParams::VX+j] = buffer[j];
+             }
+             delete[] buffer;
+             attribs.pop_back();
+             attribs.pop_back();
+         }
+         
          attribs.push_back(make_pair("mesh","SpatialGrid"));
-         attribs.push_back(make_pair("name","pressure"));
+         if (isbulk == 1) {
+            attribs.push_back(make_pair("name","PTensorDiagonal"));
+         } else {
+            attribs.push_back(make_pair("name","pressure"));
+         }
          if (this->vlsvSerialReader.getArrayInfo("VARIABLE",attribs,arraySize,this->vecsizepressure,dataType,byteSize) == false) {
-            logFile << "(START)  ERROR: Failed to read pressure array info" << endl << write;
+            logFile << "(START)  ERROR: Failed to read pressure (or PTensorDiagonal in case of bulk file) array info" << endl << write;
             exit(1);
          }
          buffer=new Real[this->vecsizepressure];
          if (this->vlsvSerialReader.readArray("VARIABLE", attribs, fileOffset, 1, (char *)buffer) == false ) {
-            logFile << "(START)  ERROR: Failed to read pressure"  << endl << write;
+            logFile << "(START)  ERROR: Failed to read pressure (or PTensorDiagonal in case of bulk file)"  << endl << write;
             exit(1);
          }
          for (uint j=0; j<vecsizepressure; j++) {
