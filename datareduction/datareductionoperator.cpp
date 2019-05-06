@@ -1476,4 +1476,125 @@ namespace DRO {
    bool VariableEffectiveSparsityThreshold::setSpatialCell(const spatial_cell::SpatialCell* cell) {
       return true;
    }
+
+
+   // Precipitation directional differential number flux
+   VariablePrecipitationDiffFlux::VariablePrecipitationDiffFlux(cuint _popID): DataReductionOperator(),popID(_popID) {
+      popName = getObjectWrapper().particleSpecies[popID].name;
+      emin = 0.1;    // keV
+      emax = 100.0;  // keV
+      nChannels = 16; // number of energy channels, logarithmically spaced between emin and emax
+      cosAngle = cos(10.*M_PI/180.0); // cosine of fixed loss cone angle
+      for (int i=0; i<nChannels; i++){
+         channels.push_back(emin * pow(emax/emin,float(i/(nChannels-1))));
+      }
+   }
+   VariablePrecipitationDiffFlux::~VariablePrecipitationDiffFlux() { }
+   
+   std::string VariablePrecipitationDiffFlux::getName() const {return popName + "/PrecipitationDiffFlux";}
+   
+   bool VariablePrecipitationDiffFlux::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize =  sizeof(Real);
+      vectorSize = nChannels; //Number of energy channels
+      return true;
+   }
+   
+   bool VariablePrecipitationDiffFlux::reduceData(const SpatialCell* cell,char* buffer) {
+
+      dataDiffFlux.assign(nChannels,0.0);
+
+      std::vector<Real> sumWeights(nChannels,0.0);
+
+      std::array<Real,3> B;
+      B[0] = cell->parameters[CellParams::PERBXVOL] +  cell->parameters[CellParams::BGBXVOL];
+      B[1] = cell->parameters[CellParams::PERBYVOL] +  cell->parameters[CellParams::BGBYVOL];
+      B[2] = cell->parameters[CellParams::PERBZVOL] +  cell->parameters[CellParams::BGBZVOL];
+
+      // Unit B-field direction
+      creal normB = sqrt(B[0]*B[0] + B[1]*B[1] + B[2]*B[2]);
+      std::array<Real,3> b_unit;
+      for (uint i=0; i<3; i++){
+         B[i] /= normB;
+      }
+
+      // If southern hemisphere, loss cone is around -B
+      if (cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ] < 0.0){
+         for (uint i=0; i<3; i++){
+            B[i] = -B[i];
+         }
+      }
+      
+
+      # pragma omp parallel
+      {
+         std::vector<Real> thread_lossCone_sum(nChannels,0.0);
+         std::vector<Real> thread_count(nChannels,0.0);
+         
+         const Real* parameters  = cell->get_block_parameters(popID);
+         const Realf* block_data = cell->get_data(popID);
+         
+         # pragma omp for
+         for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); n++) {
+	    for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
+	       const Real VX 
+		 =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
+		 + (i + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
+	       const Real VY 
+		 =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] 
+		 + (j + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
+	       const Real VZ 
+		 =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] 
+		 + (k + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+
+	       const Real DV3 
+		 = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]
+		 * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY] 
+		 * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+
+               const Real normV = sqrt(VX*VX + VY*VY + VZ*VZ);
+               const Real VdotB_norm = (B[0]*VX + B[1]*VY + B[2]*VZ)/normV;
+               Real countAndGate = floor(VdotB_norm/cosAngle);  // gate function: 0 outside loss cone, 1 inside
+               countAndGate = max(0.,countAndGate);
+               const Real energy = 0.5 * getObjectWrapper().particleSpecies[popID].mass * normV*normV / physicalconstants::CHARGE * 1e-3; // in keV
+
+               // Find the correct energy bin number to update
+               int binNumber = round((log(energy) - log(emin)) / log(emax/emin) * (nChannels-1));
+               binNumber = max(binNumber,0); // anything < emin goes to the lowest channel
+               binNumber = min(binNumber,nChannels-1); // anything > emax goes to the highest channel
+
+	       thread_lossCone_sum[binNumber] += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)] * countAndGate * normV*normV * DV3;
+	       thread_count[binNumber] += countAndGate * DV3;
+            }
+         }
+         for (int i=0; i<nChannels; i++){
+            thread_lossCone_sum[i] *= 1.0 / getObjectWrapper().particleSpecies[popID].mass * physicalconstants::CHARGE * 1.0e-4; // cm-2 s-1 sr-1 ev-1
+         }
+
+         // Accumulate contributions coming from this velocity block to the 
+         // spatial cell velocity moments. If multithreading / OpenMP is used, 
+         // these updates need to be atomic:
+         # pragma omp critical
+         {
+            for (int i=0; i<nChannels; i++) {
+               dataDiffFlux[i] += thread_lossCone_sum[i];
+               sumWeights[i] += thread_count[i];
+            }
+         }
+      }
+
+      for (int i=0; i<nChannels; i++) {
+         if (sumWeights[i] != 0) {
+            dataDiffFlux[i] /= sumWeights[i];
+         }
+      }
+
+      const char* ptr = reinterpret_cast<const char*>(dataDiffFlux.data());
+      for (uint i = 0; i < nChannels*sizeof(Real); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+   
+   bool VariablePrecipitationDiffFlux::setSpatialCell(const SpatialCell* cell) {
+      return true;
+   }
 } // namespace DRO

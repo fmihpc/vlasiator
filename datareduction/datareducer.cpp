@@ -251,6 +251,13 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          }
          continue;
       }
+      if(*it == "populations_PrecipitationDiffFlux") {
+         // Per-population precipitation directional differential number flux
+         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+            outputReducer->addOperator(new DRO::VariablePrecipitationDiffFlux(i));
+         }
+         continue;
+      }
       if(*it == "derivs") {
          // Derivatives of all quantities that might be of interest
          outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("drhomdx",fieldsolver::drhomdx,1));
