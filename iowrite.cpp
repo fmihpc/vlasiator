@@ -828,7 +828,6 @@ bool writeFsGridMetadata(FsGrid< fsgrids::technical, 2>& technicalGrid, vlsv::Wr
 	if(technicalGrid.getRank() == 0) {
 		const unsigned int arraySize = 6;
 		const unsigned int vectorSize = 1;
-		std::cerr << "Writing MESH_BBOX" << std::endl;
 		vlsvWriter.writeArray("MESH_BBOX", xmlAttributes, arraySize, vectorSize, &boundaryBox[0]);
 	} else {
 		const unsigned int arraySize = 0;
@@ -851,7 +850,6 @@ bool writeFsGridMetadata(FsGrid< fsgrids::technical, 2>& technicalGrid, vlsv::Wr
 		zNodeCoordinates[i] = technicalGrid.getPhysicalCoords(0,0,i)[2];
 	}
 	if(technicalGrid.getRank() == 0) {
-		std::cerr << "Writing MESH_NODE_CRDS" << std::endl;
 		// Write this data only on rank 0 
 		vlsvWriter.writeArray("MESH_NODE_CRDS_X", xmlAttributes, globalSize[0]+1, 1, xNodeCoordinates.data());
 		vlsvWriter.writeArray("MESH_NODE_CRDS_Y", xmlAttributes, globalSize[1]+1, 1, yNodeCoordinates.data());
@@ -888,7 +886,6 @@ bool writeFsGridMetadata(FsGrid< fsgrids::technical, 2>& technicalGrid, vlsv::Wr
 
 	// writeDomainSizes
 	std::array<uint32_t,2> meshDomainSize({globalIds.size(), 0});
-	std::cerr << "Writing MESH_DOMAIN_SIZES" << std::endl;
 	vlsvWriter.writeArray("MESH_DOMAIN_SIZES", xmlAttributes, 1, 2, &meshDomainSize[0]);
 
 	// Finally, write mesh object itself.
@@ -903,7 +900,6 @@ bool writeFsGridMetadata(FsGrid< fsgrids::technical, 2>& technicalGrid, vlsv::Wr
 	//if(P::yperiodic) { xmlAttributes["yperiodic"] = "yes"; } else { xmlAttributes["yperiodic"] = "no"; }
 	//if(P::zperiodic) { xmlAttributes["zperiodic"] = "yes"; } else { xmlAttributes["zperiodic"] = "no"; }
 
-	std::cerr << "Writing MESH" << std::endl;
 	vlsvWriter.writeArray("MESH", xmlAttributes, globalIds.size(), 1, globalIds.data());
 
    return true;
