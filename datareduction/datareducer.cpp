@@ -170,11 +170,11 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dMomentsGrid,
                       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volGrid,
-							 FsGrid< fsgrids::technical, 2>& technicalGrid)->std::vector<double>&& {
+							 FsGrid< fsgrids::technical, 2>& technicalGrid)->std::vector<double> {
 							
 						std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
 						std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2],technicalGrid.getRank());
-						return std::move(retval);
+						return retval;
 						}
 						));
          continue;

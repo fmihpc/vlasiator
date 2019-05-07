@@ -77,7 +77,7 @@ namespace DRO {
    class DataReductionOperatorFsGrid : public DataReductionOperator {
 
       public:
-        typedef std::function<std::vector<double>&&(
+        typedef std::function<std::vector<double>(
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
                       FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
