@@ -149,7 +149,10 @@ namespace DRO {
 
       std::vector<double> varBuffer =
          lambda(perBGrid,EGrid,EHallGrid,EGradPeGrid,momentsGrid,dPerBGrid,dMomentsGrid,BgBGrid,volGrid,technicalGrid);
-      if(vlsvWriter.writeArray("VARIABLE",attribs, "float", varBuffer.size(), 1, sizeof(double), reinterpret_cast<const char*>(varBuffer.data())) == false) {
+      
+      std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+      int vectorSize = varBuffer.size() / (gridSize[0]*gridSize[1]*gridSize[2]);
+      if(vlsvWriter.writeArray("VARIABLE",attribs, "float", gridSize[0]*gridSize[1]*gridSize[2], vectorSize, sizeof(double), reinterpret_cast<const char*>(varBuffer.data())) == false) {
          string message = "The DataReductionOperator " + this->getName() + " failed to write it's data.";
          bailout(true, message, __FILE__, __LINE__);
       }
