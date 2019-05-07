@@ -371,6 +371,36 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::BoundaryLayer);
          continue;
       }
+      if(*it == "FsGridBoundaryLayer") {
+         // Type of boundarycells as stored in FSGrid
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("FsGridBoundaryLayer",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2>& dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volGrid,
+                                                         FsGrid< fsgrids::technical, 2>& technicalGrid)->std::vector<double> {
+                                                        
+                                                std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+                                                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+                                                // Iterate through fsgrid cells and extract boundary flag
+                                                for(int z=0; z<gridSize[2]; z++) {
+                                                  for(int y=0; y<gridSize[1]; y++) {
+                                                    for(int x=0; x<gridSize[0]; x++) {
+                                                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = technicalGrid.get(x,y,z)->sysBoundaryLayer;
+                                                    }
+                                                  }
+                                                }
+                                                return retval;
+                                                }
+                                                ));
+         continue;
+      }
       if (*it == "populations_Blocks") {
          // Per-population velocity space block counts
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
