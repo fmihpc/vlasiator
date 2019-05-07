@@ -280,30 +280,6 @@ namespace DRO {
       return true;
    }
    
-   //FsGrids idea of what the boundaryType ist
-   FsGridBoundaryType::FsGridBoundaryType(): DataReductionOperator() { }
-   FsGridBoundaryType::~FsGridBoundaryType() { }
-   
-   bool FsGridBoundaryType::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-      dataType = "int";
-      dataSize = sizeof(int);
-      vectorSize = 1;
-      return true;
-   }
-   
-   std::string FsGridBoundaryType::getName() const {return "FSgrid_boundaryType";}
-   
-   bool FsGridBoundaryType::reduceData(const SpatialCell* cell,char* buffer) {
-      const char* ptr = reinterpret_cast<const char*>(&fsgridBoundaryType);
-      for (uint i=0; i<sizeof(int); ++i) buffer[i] = ptr[i];
-      return true;
-   }
-   
-   bool FsGridBoundaryType::setSpatialCell(const SpatialCell* cell) {
-      fsgridBoundaryType = cell->get_cell_parameters()[CellParams::FSGRID_BOUNDARYTYPE];
-      return true;
-   }
-
    // BoundaryType
    BoundaryType::BoundaryType(): DataReductionOperator() { }
    BoundaryType::~BoundaryType() { }
