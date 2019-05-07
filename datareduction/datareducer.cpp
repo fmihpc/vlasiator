@@ -140,10 +140,41 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                                                 ));
          continue;
       }
-      //if(*it == "PerturbedB") { // Fluctuating magnetic field part
-      //   outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("perturbed_B",CellParams::PERBX,3));
-      //   continue;
-      //}
+      if(*it == "PerturbedB") { // Fluctuating magnetic field part
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("perturbed_B",CellParams::PERBX,3));
+         continue;
+      }
+      if(*it == "fs_E") { // Bulk electric field at Yee-lattice locations
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fs_E",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2>& dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volGrid,
+                                                         FsGrid< fsgrids::technical, 2>& technicalGrid)->std::vector<double> {
+                                                        
+                                                std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+                                                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]*3);
+
+                                                // Iterate through fsgrid cells and extract boundary flag
+                                                for(int z=0; z<gridSize[2]; z++) {
+                                                  for(int y=0; y<gridSize[1]; y++) {
+                                                    for(int x=0; x<gridSize[0]; x++) {
+                                                        retval[3*(gridSize[1]*gridSize[0]*z + gridSize[0]*y + x)] =     (*EGrid.get(x,y,z))[fsgrids::EX];
+                                                        retval[3*(gridSize[1]*gridSize[0]*z + gridSize[0]*y + x) + 1] = (*EGrid.get(x,y,z))[fsgrids::EY];
+                                                        retval[3*(gridSize[1]*gridSize[0]*z + gridSize[0]*y + x) + 2] = (*EGrid.get(x,y,z))[fsgrids::EZ];
+                                                    }
+                                                  }
+                                                }
+                                                return retval;
+                                                }
+                                                ));
+         continue;
+      }
       if(*it == "E") { // Bulk electric field at Yee-lattice locations
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("E",CellParams::EX,3));
          continue;
