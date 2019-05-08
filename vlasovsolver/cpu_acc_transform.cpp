@@ -207,9 +207,6 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
 	rotation_pivot[0]-= EJEperpperB * (unit_B[1]*unit_EJEperp[2] - unit_B[2]*unit_EJEperp[1]);
 	rotation_pivot[1]-= EJEperpperB * (unit_B[2]*unit_EJEperp[0] - unit_B[0]*unit_EJEperp[2]);
 	rotation_pivot[2]-= EJEperpperB * (unit_B[0]*unit_EJEperp[1] - unit_B[1]*unit_EJEperp[0]);
-
-	// Store EfromJe after whole substep
-	EfromJe += dEJEt*0.5*substeps_dt;
       }
 
       // add to transform matrix the small rotation around  pivot
@@ -222,6 +219,21 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       if (getObjectWrapper().particleSpecies[popID].charge < 0) {
 	// Perform B-parallel acceleration from EJE field
 	total_transform=Translation<Real,3>( (getObjectWrapper().particleSpecies[popID].charge/getObjectWrapper().particleSpecies[popID].mass) * EfromJe_parallel * substeps_dt) * total_transform;
+      }
+
+      /* The alternative to decomposing the EJE field into parallel and perpendicular components is to
+	 treat it a simple acceleration term. This acceleration was found by integrating over
+	 the time-varying electric field. */
+      /*
+	if (getObjectWrapper().particleSpecies[popID].charge < 0) {
+	   total_transform=Translation<Real,3>( (getObjectWrapper().particleSpecies[popID].charge/getObjectWrapper().particleSpecies[popID].mass) * 
+	   (EfromJe + 0.5*substeps_dt*dEJEt) * substeps_dt) * total_transform;
+	}
+      */
+
+      // Store EfromJe after whole substep
+      if (getObjectWrapper().particleSpecies[popID].charge < 0) {
+	EfromJe += dEJEt*0.5*substeps_dt;
       }
 
       // Electron pressure gradient term (this is still untested and might also need to be decomposed into perp and parallel portions)

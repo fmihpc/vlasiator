@@ -1063,6 +1063,18 @@ int main(int argn,char* args[]) {
       //           }
       //       }
       //       }
+
+      // Initialize EJE fields
+      const vector<CellID>& cells = getLocalCells(); 
+      #pragma omp parallel for
+      for (size_t c=0; c<cells.size(); ++c) {
+	const CellID cellID = cells[c];
+	SpatialCell* SC = mpiGrid[cellID];
+	SC->parameters[CellParams::EXJE] = 0.;
+	SC->parameters[CellParams::EYJE] = 0.;
+	SC->parameters[CellParams::EZJE] = 0.;
+      }
+
 	phiprof::start("Velocity-space");
       if ( P::propagateVlasovAcceleration ) {
          calculateAcceleration(mpiGrid,P::dt);
