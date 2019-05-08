@@ -60,8 +60,8 @@ namespace projects {
 
       RP::add("Magnetosphere.dipoleTiltPhi","Magnitude of dipole tilt in radians", 0.0);
       RP::add("Magnetosphere.dipoleTiltTheta","Direction of dipole tilt from Sun-Earth-line in radians", 0.0);
-      RP::add("Magnetosphere.dipoleRadiusFull","Radius up to which dipole is at full strength, in metres", 1.59275e8); // 25 RE
-      RP::add("Magnetosphere.dipoleRadiusFull","Radius after which dipole is at zero strength, in metres", 1.9113e8); // 30 RE
+      RP::add("Magnetosphere.dipoleXFull","X-coordinate up to which dipole is at full strength, in metres", 9.5565e7); // 15 RE
+      RP::add("Magnetosphere.dipoleXFull","X-coordinate after which dipole is at zero strength, in metres", 1.9113e8); // 30 RE
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
@@ -162,11 +162,11 @@ namespace projects {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
-      if(!Readparameters::get("Magnetosphere.dipoleRadiusFull", this->dipoleRadiusFull)) {
+      if(!Readparameters::get("Magnetosphere.dipoleXFull", this->dipoleXFull)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
-      if(!Readparameters::get("Magnetosphere.dipoleRadiusZero", this->dipoleRadiusZero)) {
+      if(!Readparameters::get("Magnetosphere.dipoleXZero", this->dipoleXZero)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
@@ -310,7 +310,7 @@ namespace projects {
                setBackgroundField(bgFieldDipole, BgBGrid, true);
                break; 
             case 4:  // Vector potential dipole, vanishes after a given radius
-	       bgVectorDipole.initialize(126.2e6 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, this->dipoleTiltPhi, this->dipoleTiltTheta, this->dipoleRadiusFull, this->dipoleRadiusZero );
+	       bgVectorDipole.initialize(126.2e6 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, this->dipoleTiltPhi, this->dipoleTiltTheta, this->dipoleXFull, this->dipoleXZero );
                setBackgroundField(bgVectorDipole, BgBGrid);
                break;
               

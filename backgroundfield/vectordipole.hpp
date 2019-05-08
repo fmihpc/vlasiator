@@ -35,13 +35,13 @@ private:
    bool initialized;
    double q[3];      // Dipole moment; set to (0,0,moment) for z-aligned
    double center[3]; // Coordinates where the dipole sits; set to (0,0,0)
-   double radius[2]; // Radial extents of full and zero dipole
+   double xlimit[2]; // X-coodrinate extents of full and zero dipole
 public:
    
    VectorDipole(){
       this->initialized = false;
    }
-  void initialize(const double moment,const double center_x, const double center_y, const double center_z, const double tilt_angle_phi, const double tilt_angle_theta, const double radius_f, const double radius_z);
+  void initialize(const double moment,const double center_x, const double center_y, const double center_z, const double tilt_angle_phi, const double tilt_angle_theta, const double xlimit_f, const double xlimit_z);
    virtual double call(double x, double y, double z) const;  
    virtual ~Dipole() {}
 };
