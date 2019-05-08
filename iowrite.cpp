@@ -815,94 +815,90 @@ bool writeMeshBoundingBox( Writer & vlsvWriter,
  */
 bool writeFsGridMetadata(FsGrid< fsgrids::technical, 2>& technicalGrid, vlsv::Writer& vlsvWriter) {
 
-	std::map<std::string, std::string> xmlAttributes;
-   const std::string meshName="fsgrid";
-	xmlAttributes["mesh"] = meshName;
+  std::map<std::string, std::string> xmlAttributes;
+  const std::string meshName="fsgrid";
+  xmlAttributes["mesh"] = meshName;
 
-	//The visit plugin expects MESH_BBOX as a keyword. We only write one
-	//from the first rank.
-   std::array<int32_t, 3>& globalSize = technicalGrid.getGlobalSize();
-	std::array<uint64_t, 6> boundaryBox({globalSize[0], globalSize[1], globalSize[2],
-			1,1,1});
+  //The visit plugin expects MESH_BBOX as a keyword. We only write one
+  //from the first rank.
+  std::array<int32_t, 3>& globalSize = technicalGrid.getGlobalSize();
+  std::array<uint64_t, 6> boundaryBox({globalSize[0], globalSize[1], globalSize[2],
+      1,1,1});
 
-	if(technicalGrid.getRank() == 0) {
-		const unsigned int arraySize = 6;
-		const unsigned int vectorSize = 1;
-		vlsvWriter.writeArray("MESH_BBOX", xmlAttributes, arraySize, vectorSize, &boundaryBox[0]);
-	} else {
-		const unsigned int arraySize = 0;
-		const unsigned int vectorSize = 1;
-		vlsvWriter.writeArray("MESH_BBOX", xmlAttributes, arraySize, vectorSize, &boundaryBox);
-	}
+  if(technicalGrid.getRank() == 0) {
+    const unsigned int arraySize = 6;
+    const unsigned int vectorSize = 1;
+    vlsvWriter.writeArray("MESH_BBOX", xmlAttributes, arraySize, vectorSize, &boundaryBox[0]);
+  } else {
+    const unsigned int arraySize = 0;
+    const unsigned int vectorSize = 1;
+    vlsvWriter.writeArray("MESH_BBOX", xmlAttributes, arraySize, vectorSize, &boundaryBox);
+  }
 
-	// Write three 1-dimensional arrays of node coordinates (x,y,z) for
-	// visit to create a cartesian grid out of.
-	std::vector<double> xNodeCoordinates(globalSize[0]+1);
-	for(uint64_t i=0; i<globalSize[0]+1; i++) {
-		xNodeCoordinates[i] = technicalGrid.getPhysicalCoords(i,0,0)[0];
-	}
-	std::vector<double> yNodeCoordinates(globalSize[1]+1);
-	for(uint64_t i=0; i<globalSize[1]+1; i++) {
-		yNodeCoordinates[i] = technicalGrid.getPhysicalCoords(0,i,0)[1];
-	}
-	std::vector<double> zNodeCoordinates(globalSize[2]+1);
-	for(uint64_t i=0; i<globalSize[2]+1; i++) {
-		zNodeCoordinates[i] = technicalGrid.getPhysicalCoords(0,0,i)[2];
-	}
-	if(technicalGrid.getRank() == 0) {
-		// Write this data only on rank 0 
-		vlsvWriter.writeArray("MESH_NODE_CRDS_X", xmlAttributes, globalSize[0]+1, 1, xNodeCoordinates.data());
-		vlsvWriter.writeArray("MESH_NODE_CRDS_Y", xmlAttributes, globalSize[1]+1, 1, yNodeCoordinates.data());
-		vlsvWriter.writeArray("MESH_NODE_CRDS_Z", xmlAttributes, globalSize[2]+1, 1, zNodeCoordinates.data());
+  // Write three 1-dimensional arrays of node coordinates (x,y,z) for
+  // visit to create a cartesian grid out of.
+  std::vector<double> xNodeCoordinates(globalSize[0]+1);
+  for(uint64_t i=0; i<globalSize[0]+1; i++) {
+    xNodeCoordinates[i] = technicalGrid.getPhysicalCoords(i,0,0)[0];
+  }
+  std::vector<double> yNodeCoordinates(globalSize[1]+1);
+  for(uint64_t i=0; i<globalSize[1]+1; i++) {
+    yNodeCoordinates[i] = technicalGrid.getPhysicalCoords(0,i,0)[1];
+  }
+  std::vector<double> zNodeCoordinates(globalSize[2]+1);
+  for(uint64_t i=0; i<globalSize[2]+1; i++) {
+    zNodeCoordinates[i] = technicalGrid.getPhysicalCoords(0,0,i)[2];
+  }
+  if(technicalGrid.getRank() == 0) {
+    // Write this data only on rank 0 
+    vlsvWriter.writeArray("MESH_NODE_CRDS_X", xmlAttributes, globalSize[0]+1, 1, xNodeCoordinates.data());
+    vlsvWriter.writeArray("MESH_NODE_CRDS_Y", xmlAttributes, globalSize[1]+1, 1, yNodeCoordinates.data());
+    vlsvWriter.writeArray("MESH_NODE_CRDS_Z", xmlAttributes, globalSize[2]+1, 1, zNodeCoordinates.data());
 
-	} else {
+  } else {
 
-		// The others just write an empty dummy
-		vlsvWriter.writeArray("MESH_NODE_CRDS_X", xmlAttributes, 0, 1, xNodeCoordinates.data());
-		vlsvWriter.writeArray("MESH_NODE_CRDS_Y", xmlAttributes, 0, 1, yNodeCoordinates.data());
-		vlsvWriter.writeArray("MESH_NODE_CRDS_Z", xmlAttributes, 0, 1, zNodeCoordinates.data());
-	}
+    // The others just write an empty dummy
+    vlsvWriter.writeArray("MESH_NODE_CRDS_X", xmlAttributes, 0, 1, xNodeCoordinates.data());
+    vlsvWriter.writeArray("MESH_NODE_CRDS_Y", xmlAttributes, 0, 1, yNodeCoordinates.data());
+    vlsvWriter.writeArray("MESH_NODE_CRDS_Z", xmlAttributes, 0, 1, zNodeCoordinates.data());
+  }
 
-	// Dummy ghost info
-	int dummyghost=0;
-	vlsvWriter.writeArray("MESH_GHOST_DOMAINS", xmlAttributes, 0, 1, &dummyghost);
-	vlsvWriter.writeArray("MESH_GHOST_LOCALIDS", xmlAttributes, 0, 1, &dummyghost);
+  // Dummy ghost info
+  int dummyghost=0;
+  vlsvWriter.writeArray("MESH_GHOST_DOMAINS", xmlAttributes, 0, 1, &dummyghost);
+  vlsvWriter.writeArray("MESH_GHOST_LOCALIDS", xmlAttributes, 0, 1, &dummyghost);
 
-	// Write cell "globalID" numbers, which are just the global array indices.
-	std::array<int32_t,3>& localSize = technicalGrid.getLocalSize();
-	std::vector<uint64_t> globalIds(localSize[0]*localSize[1]*localSize[2]);
-	int i=0;
-	for(int z=0; z<localSize[2]; z++) {
-		for(int y=0; y<localSize[1]; y++) {
-			for(int x=0; x<localSize[0]; x++) {
-				std::array<int32_t,3> globalIndex = technicalGrid.getGlobalIndices(x,y,z);
-				globalIds[i++] = globalIndex[2]*globalSize[0]*globalSize[1]+
-					globalIndex[1]*globalSize[0] +
-					globalIndex[0];
-			}
-		}
-	}
+  // Write cell "globalID" numbers, which are just the global array indices.
+  std::array<int32_t,3>& localSize = technicalGrid.getLocalSize();
+  std::vector<uint64_t> globalIds(localSize[0]*localSize[1]*localSize[2]);
+  int i=0;
+  for(int z=0; z<localSize[2]; z++) {
+    for(int y=0; y<localSize[1]; y++) {
+      for(int x=0; x<localSize[0]; x++) {
+        std::array<int32_t,3> globalIndex = technicalGrid.getGlobalIndices(x,y,z);
+        globalIds[i++] = globalIndex[2]*globalSize[0]*globalSize[1]+
+          globalIndex[1]*globalSize[0] +
+          globalIndex[0];
+      }
+    }
+  }
 
 
-	// writeDomainSizes
-	std::array<uint32_t,2> meshDomainSize({globalIds.size(), 0});
-	vlsvWriter.writeArray("MESH_DOMAIN_SIZES", xmlAttributes, 1, 2, &meshDomainSize[0]);
+  // writeDomainSizes
+  std::array<uint32_t,2> meshDomainSize({globalIds.size(), 0});
+  vlsvWriter.writeArray("MESH_DOMAIN_SIZES", xmlAttributes, 1, 2, &meshDomainSize[0]);
 
-	// Finally, write mesh object itself.
-	xmlAttributes.clear();
-	xmlAttributes["name"] = meshName;
-	xmlAttributes["type"] = vlsv::mesh::STRING_UCD_MULTI;
-	// TODO: Dummy values, fix by getting actual periodicity from fsgrid
-	xmlAttributes["xperiodic"]="no";
-	xmlAttributes["yperiodic"]="no";
-	xmlAttributes["zperiodic"]="no";
-	//if(P::xperiodic) { xmlAttributes["xperiodic"] = "yes"; } else { xmlAttributes["xperiodic"] = "no"; }
-	//if(P::yperiodic) { xmlAttributes["yperiodic"] = "yes"; } else { xmlAttributes["yperiodic"] = "no"; }
-	//if(P::zperiodic) { xmlAttributes["zperiodic"] = "yes"; } else { xmlAttributes["zperiodic"] = "no"; }
+  // Finally, write mesh object itself.
+  xmlAttributes.clear();
+  xmlAttributes["name"] = meshName;
+  xmlAttributes["type"] = vlsv::mesh::STRING_UCD_MULTI;
+  xmlAttributes["xperiodic"]=technicalGrid.getPeriodic()[0]?"yes":"no";
+  xmlAttributes["yperiodic"]=technicalGrid.getPeriodic()[1]?"yes":"no";
+  xmlAttributes["zperiodic"]=technicalGrid.getPeriodic()[2]?"yes":"no";
 
-	vlsvWriter.writeArray("MESH", xmlAttributes, globalIds.size(), 1, globalIds.data());
+  vlsvWriter.writeArray("MESH", xmlAttributes, globalIds.size(), 1, globalIds.data());
 
-   return true;
+  return true;
 }
 
 /** This function writes the velocity space.
