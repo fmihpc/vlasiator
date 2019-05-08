@@ -19,19 +19,20 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
                            FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid,
                            bool dt2=false);
 
-/*! Copy field solver result (Volume-averaged fields) and store them back into DCCRG
+/*! Copy field solver result (VOLB, VOLE, VOLPERB derivatives, gradpe) and store them back into DCCRG
  * \param mpiGrid The DCCRG grid carrying fields.
  * \param cells List of local cells
  * \param volumeFieldsGrid Fieldsolver grid for these quantities
  *
  * This function assumes that proper grid coupling has been set up.
  */
-void getVolumeFieldsFromFsGrid(
-   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volumeFieldsGrid,
-   FsGrid< fsgrids::technical, 2>& technicalGrid,
-   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   const std::vector<CellID>& cells
-);
+void getFieldsFromFsGrid(FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volumeFieldsGrid,
+			 FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+			 FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
+			 FsGrid< fsgrids::technical, 2>& technicalGrid,
+			 dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+			 const std::vector<CellID>& cells
+			 );
 
 /*! Copy background B fields and store them into DCCRG
  * \param mpiGrid The DCCRG grid carrying fields.
@@ -59,26 +60,6 @@ void getDerivativesFromFsGrid(
    const std::vector<CellID>& cells
 );
 
-/*! Transfer data into technical grid (boundary info etc.)
- * \param mpiGrid The DCCRG grid carrying rho, rhoV and P
- * \param cells List of local cells
- * \param technicalGrid the target Fieldsolver grid for this information
- *
- * This function assumes that proper grid coupling has been set up.
- */
-void setupTechnicalFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const std::vector<CellID>& cells, FsGrid< fsgrids::technical, 2>& technicalGrid);
-
-/*! Transfer max timestep data from technical grid back into DCCRG.
- * \param technicalGrid the target Fieldsolver grid for this information
- * \param mpiGrid The DCCRG grid carrying rho, rhoV and P
- * \param cells List of local cells
- *
- * This function assumes that proper grid coupling has been set up.
- */
-void getFsGridMaxDt(FsGrid< fsgrids::technical, 2>& technicalGrid,
-      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const std::vector<CellID>& cells);
 
 int getNumberOfCellsOnMaxRefLvl(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                 const std::vector<CellID>& cells);
