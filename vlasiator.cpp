@@ -1045,37 +1045,18 @@ int main(int argn,char* args[]) {
       if (P::propagatePotential == true) {
          poisson::solve(mpiGrid);
       }
-      // EJE field calculations are now done within cpu_acc_transform.cpp
-      //       {
-      //       // Add electric field due to electron current
-      //       const vector<CellID>& cells = getLocalCells(); 
-      //       #pragma omp parallel for
-      //       for (size_t c=0; c<cells.size(); ++c) {
-      //           const CellID cellID = cells[c];
-      //           SpatialCell* SC = mpiGrid[cellID];
-      // 	  for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-      // 	    SC->parameters[CellParams::EXJE] += -getObjectWrapper().particleSpecies[popID].charge *
-      // 	      SC->get_population(popID).RHO * SC->get_population(popID).V[0] * P::dt / physicalconstants::EPS_0;
-      // 	    SC->parameters[CellParams::EYJE] += -getObjectWrapper().particleSpecies[popID].charge *
-      // 	      SC->get_population(popID).RHO * SC->get_population(popID).V[1] * P::dt / physicalconstants::EPS_0;
-      // 	    SC->parameters[CellParams::EZJE] += -getObjectWrapper().particleSpecies[popID].charge *
-      // 	      SC->get_population(popID).RHO * SC->get_population(popID).V[2] * P::dt / physicalconstants::EPS_0;
-      //           }
-      //       }
-      //       }
-
       // Initialize EJE fields
       const vector<CellID>& cells = getLocalCells(); 
       #pragma omp parallel for
       for (size_t c=0; c<cells.size(); ++c) {
-	const CellID cellID = cells[c];
-	SpatialCell* SC = mpiGrid[cellID];
-	SC->parameters[CellParams::EXJE] = 0.;
-	SC->parameters[CellParams::EYJE] = 0.;
-	SC->parameters[CellParams::EZJE] = 0.;
+         const CellID cellID = cells[c];
+         SpatialCell* SC = mpiGrid[cellID];
+         SC->parameters[CellParams::EXJE] = 0.;
+         SC->parameters[CellParams::EYJE] = 0.;
+         SC->parameters[CellParams::EZJE] = 0.;
       }
 
-	phiprof::start("Velocity-space");
+      phiprof::start("Velocity-space");
       if ( P::propagateVlasovAcceleration ) {
          calculateAcceleration(mpiGrid,P::dt);
          addTimedBarrier("barrier-after-ad just-blocks");

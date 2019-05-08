@@ -116,7 +116,17 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
                                          spatial_cell->parameters[CellParams::VY_V],
                                          spatial_cell->parameters[CellParams::VZ_V]);
 
-   // compute total transformation
+   Real lightest_species_mass = 99999999999999.;                                                                       
+   for (uint popID2=0; popID2<getObjectWrapper().particleSpecies.size(); ++popID2) {                                                                     
+      if(getObjectWrapper().particleSpecies[popID2].charge < 0 && getObjectWrapper().particleSpecies[popID2].mass < lightest_species_mass) {
+         lightest_species_mass = getObjectWrapper().particleSpecies[popID2].mass;                                         
+         bulk_velocity(0,0) = spatial_cell->get_population(popID2).V_V[0];
+         bulk_velocity(1,0) = spatial_cell->get_population(popID2).V_V[1];                                                     
+         bulk_velocity(2,0) = spatial_cell->get_population(popID2).V_V[2];                                                     
+      }  
+   }  
+
+    // compute total transformation
    Transform<Real,3,Affine> total_transform(Matrix<Real, 4, 4>::Identity()); //CONTINUE
 
    if (Parameters::propagatePotential == true) {
@@ -167,9 +177,12 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       /* include lorentzHallTerm (we should include, always)      
 	 This performs a transformation into a frame where the newly generated motional
 	 electric field cancels out the Hall electric field  */
-      rotation_pivot[0]-= hallPrefactor*(dBZdy - dBYdz);
-      rotation_pivot[1]-= hallPrefactor*(dBXdz - dBZdx);
-      rotation_pivot[2]-= hallPrefactor*(dBYdx - dBXdy);
+    
+      // For the electron run, since we use the electron bulk velocity, the Hall term should not be used
+      //include lorentzHallTerm (we should include, always)      
+      //rotation_pivot[0]-= hallPrefactor*(dBZdy - dBYdz);
+      //rotation_pivot[1]-= hallPrefactor*(dBXdz - dBZdx);
+      //rotation_pivot[2]-= hallPrefactor*(dBYdx - dBXdy);
 
       // Calculate EJE only for the electron population
       if (getObjectWrapper().particleSpecies[popID].charge < 0) {
