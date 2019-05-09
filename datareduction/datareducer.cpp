@@ -259,7 +259,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          continue;
       }
       if(*it == "fg_V") { // Overall effective bulk density defining the center-of-mass frame from all populations
-         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_background_B",[](
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_V",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
                       FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
@@ -573,7 +573,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::VariableBVol);
          continue;
       }
-      if(*it == "fg_volB") { // Static (typically dipole) magnetic field part
+      if(*it == "fg_VolB") { // Static (typically dipole) magnetic field part
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_volB",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
