@@ -216,43 +216,6 @@ namespace DRO {
       return true;
    }
 
-
-
-
-   //------------------ total B --------------------------------------- 
-   VariableB::VariableB(): DataReductionOperator() { }
-   VariableB::~VariableB() { }
-   
-   bool VariableB::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-      dataType = "float";
-      dataSize =  sizeof(Real);
-      vectorSize = 3;
-      return true;
-   }
-   
-   std::string VariableB::getName() const {return "B";}
-   
-   bool VariableB::reduceData(const SpatialCell* cell,char* buffer) {
-      const char* ptr = reinterpret_cast<const char*>(B);
-      for (uint i = 0; i < 3*sizeof(Real); ++i) buffer[i] = ptr[i];
-      return true;
-   }
-   
-   bool VariableB::setSpatialCell(const SpatialCell* cell) {
-      B[0] = cell->parameters[CellParams::PERBX] +  cell->parameters[CellParams::BGBX];
-      B[1] = cell->parameters[CellParams::PERBY] +  cell->parameters[CellParams::BGBY];
-      B[2] = cell->parameters[CellParams::PERBZ] +  cell->parameters[CellParams::BGBZ];
-      if(std::isinf(B[0]) || std::isnan(B[0]) ||
-         std::isinf(B[1]) || std::isnan(B[1]) ||
-         std::isinf(B[2]) || std::isnan(B[2])
-      ) {
-         string message = "The DataReductionOperator " + this->getName() + " returned a nan or an inf.";
-         bailout(true, message, __FILE__, __LINE__);
-      }
-      return true;
-   }
-   
-   
    //MPI rank
    MPIrank::MPIrank(): DataReductionOperator() { }
    MPIrank::~MPIrank() { }

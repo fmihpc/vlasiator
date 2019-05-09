@@ -70,10 +70,6 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          ));
          continue;
       }
-      if(*it == "vg_B") { // Bulk magnetic field at Yee-Lattice locations
-         outputReducer->addOperator(new DRO::VariableB);
-         continue;
-      }
       if(*it == "fg_BackgroundB" || *it == "BackgroundB") { // Static (typically dipole) magnetic field part
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_background_B",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
@@ -173,10 +169,6 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                return retval;
          }
          ));
-         continue;
-      }
-      if(*it == "vg_E") { // Bulk electric field at Yee-lattice locations
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("E",CellParams::EX,3));
          continue;
       }
       if(*it == "vg_Rhom" || *it == "Rhom") { // Overall mass density (summed over all populations)

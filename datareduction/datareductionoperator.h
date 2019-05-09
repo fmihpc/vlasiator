@@ -202,21 +202,6 @@ namespace DRO {
       std::string popName;
    };
    
-   class VariableB: public DataReductionOperator {
-   public:
-      VariableB();
-      virtual ~VariableB();
-      
-      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
-      virtual std::string getName() const;
-      virtual bool reduceData(const SpatialCell* cell,char* buffer);
-      virtual bool setSpatialCell(const SpatialCell* cell);
-      
-   protected:
-      Real B[3];
-   };
-
-      
    class VariableBVol: public DataReductionOperator {
    public:
       VariableBVol();
