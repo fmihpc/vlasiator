@@ -1046,7 +1046,6 @@ int main(int argn,char* args[]) {
          poisson::solve(mpiGrid);
       }
       // Initialize EJE fields
-      const vector<CellID>& cells = getLocalCells(); 
       #pragma omp parallel for
       for (size_t c=0; c<cells.size(); ++c) {
          const CellID cellID = cells[c];

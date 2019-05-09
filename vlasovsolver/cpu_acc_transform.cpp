@@ -186,40 +186,41 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
 
       // Calculate EJE only for the electron population
       if (getObjectWrapper().particleSpecies[popID].charge < 0) {
- 	 // First find the current electron moments, this results in leapfrog-like propagation of EJE
-	 Eigen::Matrix<Real,3,1> electronVcurr(total_transform*electronV);	
-	 /* Calculate electrostatic field derivative via current
-	    using the substep-transformed electron bulkV and exising other population bulkVs */
-	 for (uint popID_EJE=0; popID_EJE<getObjectWrapper().particleSpecies.size(); ++popID_EJE) {
-	    if (getObjectWrapper().particleSpecies[popID_EJE].charge < 0) {
-	       dEJEt[0] += -getObjectWrapper().particleSpecies[popID_EJE].charge *spatialcell->get_population(popID_EJE).RHO
-		  * electronVcurr[0] / physicalconstants::EPS_0;
-	       dEJEt[1] += -getObjectWrapper().particleSpecies[popID_EJE].charge *spatialcell->get_population(popID_EJE).RHO
-		  * electronVcurr[1] / physicalconstants::EPS_0;
-	       dEJEt[2] += -getObjectWrapper().particleSpecies[popID_EJE].charge *spatialcell->get_population(popID_EJE).RHO
-		  * electronVcurr[2] / physicalconstants::EPS_0;
-	    } else {
-	       dEJEt[0] += -getObjectWrapper().particleSpecies[popID_EJE].charge *spatialcell->get_population(popID_EJE).RHO
-		  * spatialcell->get_population(popID_EJE).V[0] / physicalconstants::EPS_0;
-	       dEJEt[1] += -getObjectWrapper().particleSpecies[popID_EJE].charge *spatialcell->get_population(popID_EJE).RHO
-		  * spatialcell->get_population(popID_EJE).V[1] / physicalconstants::EPS_0;
-	       dEJEt[2] += -getObjectWrapper().particleSpecies[popID_EJE].charge *spatialcell->get_population(popID_EJE).RHO
-		  * spatialcell->get_population(popID_EJE).V[2] / physicalconstants::EPS_0;
-	    }
-	 }
-	 // Increment EfromJe with derivative times half of substep to get representative field throughout integration step
-	 EfromJe += dEJEt*0.5*substeps_dt;
-	 // Find B-perpendicular and B-parallel components of EfromJe
-	 Eigen::Matrix<Real,3,1> EfromJe_parallel(EfromJe*unit_B);
-	 Eigen::Matrix<Real,3,1> EfromJe_perpendicular(EfromJe-EfromJe_parallel);
-	 Eigen::Matrix<Real,3,1> unit_EJEperp(EfromJe_perpendicular.normalized());
-	
-	 // Add pivot transformation to negate component of EfromJe perpendicular to B
-	 // Vnorm = Bnorm cross Enorm
-	 Real EJEperpperB = EfromJe_perpendicular.norm() / B.norm();
-	 rotation_pivot[0]-= EJEperpperB * (unit_B[1]*unit_EJEperp[2] - unit_B[2]*unit_EJEperp[1]);
-	 rotation_pivot[1]-= EJEperpperB * (unit_B[2]*unit_EJEperp[0] - unit_B[0]*unit_EJEperp[2]);
-	 rotation_pivot[2]-= EJEperpperB * (unit_B[0]*unit_EJEperp[1] - unit_B[1]*unit_EJEperp[0]);
+         // First find the current electron moments, this results in leapfrog-like propagation of EJE
+         Eigen::Matrix<Real,3,1> electronVcurr(total_transform*electronV);	
+         /* Calculate electrostatic field derivative via current
+            using the substep-transformed electron bulkV and exising other population bulkVs */
+         for (uint popID_EJE=0; popID_EJE<getObjectWrapper().particleSpecies.size(); ++popID_EJE) {
+            if (getObjectWrapper().particleSpecies[popID_EJE].charge < 0) {
+               dEJEt[0] += -getObjectWrapper().particleSpecies[popID_EJE].charge *spatial_cell->get_population(popID_EJE).RHO
+               * electronVcurr[0] / physicalconstants::EPS_0;
+               dEJEt[1] += -getObjectWrapper().particleSpecies[popID_EJE].charge *spatial_cell->get_population(popID_EJE).RHO
+               * electronVcurr[1] / physicalconstants::EPS_0;
+               dEJEt[2] += -getObjectWrapper().particleSpecies[popID_EJE].charge *spatial_cell->get_population(popID_EJE).RHO
+               * electronVcurr[2] / physicalconstants::EPS_0;
+            } else {
+               dEJEt[0] += -getObjectWrapper().particleSpecies[popID_EJE].charge *spatial_cell->get_population(popID_EJE).RHO
+               * spatial_cell->get_population(popID_EJE).V[0] / physicalconstants::EPS_0;
+               dEJEt[1] += -getObjectWrapper().particleSpecies[popID_EJE].charge *spatial_cell->get_population(popID_EJE).RHO
+               * spatial_cell->get_population(popID_EJE).V[1] / physicalconstants::EPS_0;
+               dEJEt[2] += -getObjectWrapper().particleSpecies[popID_EJE].charge *spatial_cell->get_population(popID_EJE).RHO
+               * spatial_cell->get_population(popID_EJE).V[2] / physicalconstants::EPS_0;
+            }         
+         }
+
+         // Increment EfromJe with derivative times half of substep to get representative field throughout integration step
+         EfromJe += dEJEt*0.5*substeps_dt;
+         // Find B-perpendicular and B-parallel components of EfromJe
+         Eigen::Matrix<Real,3,1> EfromJe_parallel(EfromJe.dot(unit_B)*unit_B);
+         Eigen::Matrix<Real,3,1> EfromJe_perpendicular(EfromJe-EfromJe_parallel);
+         Eigen::Matrix<Real,3,1> unit_EJEperp(EfromJe_perpendicular.normalized());
+
+         // Add pivot transformation to negate component of EfromJe perpendicular to B
+         // Vnorm = Bnorm cross Enorm
+         Real EJEperpperB = EfromJe_perpendicular.norm() / B.norm();
+         rotation_pivot[0]-= EJEperpperB * (unit_B[1]*unit_EJEperp[2] - unit_B[2]*unit_EJEperp[1]);
+         rotation_pivot[1]-= EJEperpperB * (unit_B[2]*unit_EJEperp[0] - unit_B[0]*unit_EJEperp[2]);
+         rotation_pivot[2]-= EJEperpperB * (unit_B[0]*unit_EJEperp[1] - unit_B[1]*unit_EJEperp[0]);
       }
 
       // add to transform matrix the small rotation around  pivot
@@ -229,30 +230,32 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       total_transform = AngleAxis<Real>(substeps_radians,unit_B)*total_transform;
       total_transform = Translation<Real,3>(rotation_pivot)*total_transform;
 
+      Eigen::Matrix<Real,3,1> EfromJe_parallel(EfromJe.dot(unit_B)*unit_B);
       if (getObjectWrapper().particleSpecies[popID].charge < 0) {
-	 // Perform B-parallel acceleration from EJE field
-	 total_transform=Translation<Real,3>( (getObjectWrapper().particleSpecies[popID].charge/getObjectWrapper().particleSpecies[popID].mass) * 
-					      EfromJe_parallel * substeps_dt) * total_transform;
+         // Perform B-parallel acceleration from EJE field
+         total_transform=Translation<Real,3>( (getObjectWrapper().particleSpecies[popID].charge/getObjectWrapper().particleSpecies[popID].mass) * 
+         EfromJe_parallel * substeps_dt) * total_transform;
       }
 
       /* The alternative to decomposing the EJE field into parallel and perpendicular components is to
-	 treat it a simple acceleration term. This acceleration was found by integrating over
-	 the time-varying electric field. */
+         treat it a simple acceleration term. This acceleration was found by integrating over
+         the time-varying electric field. */
       /*
-	if (getObjectWrapper().particleSpecies[popID].charge < 0) {
-	total_transform=Translation<Real,3>( (getObjectWrapper().particleSpecies[popID].charge/getObjectWrapper().particleSpecies[popID].mass) * 
-	EfromJe * substeps_dt) * total_transform;
-	}
+      if (getObjectWrapper().particleSpecies[popID].charge < 0) {
+         total_transform=Translation<Real,3>( (getObjectWrapper().particleSpecies[popID].charge/getObjectWrapper().particleSpecies[popID].mass) * 
+         EfromJe * substeps_dt) * total_transform;
+      }
       */
 
       // Store EfromJe after whole substep
       if (getObjectWrapper().particleSpecies[popID].charge < 0) {
-	 EfromJe += dEJEt*0.5*substeps_dt;
+         EfromJe += dEJEt*0.5*substeps_dt;
       }
 
       // Electron pressure gradient term (this is still untested and might also need to be decomposed into perp and parallel portions)
       if(Parameters::ohmGradPeTerm > 0) {
-	 total_transform=Translation<Real,3>( (fabs(getObjectWrapper().particleSpecies[popID].charge)/getObjectWrapper().particleSpecies[popID].mass) * EgradPe * substeps_dt) * total_transform;
+         total_transform=Translation<Real,3>( (fabs(getObjectWrapper().particleSpecies[popID].charge)/getObjectWrapper().particleSpecies[popID].mass) * 
+         EgradPe * substeps_dt) * total_transform;
       }
    }
 
