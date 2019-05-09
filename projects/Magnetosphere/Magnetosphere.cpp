@@ -309,7 +309,7 @@ namespace projects {
                bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, this->dipoleMirrorLocationX, 0.0, 0.0, 0.0 );//mirror
                setBackgroundField(bgFieldDipole, BgBGrid, true);
                break; 
-            case 4:  // Vector potential dipole, vanishes after a given radius
+            case 4:  // Vector potential dipole, vanishes after a given x-coordinate
 	       bgVectorDipole.initialize(126.2e6 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, this->dipoleTiltPhi, this->dipoleTiltTheta, this->dipoleXFull, this->dipoleXZero );
                setBackgroundField(bgVectorDipole, BgBGrid);
                break;

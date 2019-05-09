@@ -28,18 +28,20 @@ def polar_computeFluxUp(BX,BY,BZ, dxdydz):
     flux = np.zeros_like(BX)
     sizes = np.array(BX.shape)
     tmp_flux=0.
+    flux[sizes[0]-1,0,0] = tmp_flux
 
-    # First fill the z=0 cells
-    for x in np.arange(sizes[0]-1,-1,-1):
+    # First fill the z=0 cells in the -x direction
+    for x in np.arange(sizes[0]-2,-1,-1):
         tmp_flux -= BZ[x,0,0] * dxdydz[0]
         flux[x,0,0] = tmp_flux
 
-    # Now, for each row, integrate in z-direction.
+    # Now, for each column, integrate in +z-direction.
     for x in np.arange(sizes[0]):
-         tmp_flux = flux[x,0,0]
-         for z in np.arange(1,sizes[2]):
-             tmp_flux -= BX[x,0,z]*dxdydz[2]
-             flux[x,0,z] = tmp_flux
+        tmp_flux = flux[x,0,0]
+        for z in np.arange(1,sizes[2]):
+            tmp_flux -= BX[x,0,z]*dxdydz[2]
+            flux[x,0,z] = tmp_flux
+
     return flux
 
    # Calculate fluxfunction by integrating along +z boundary first,
@@ -49,23 +51,25 @@ def polar_computeFluxDown(BX,BY,BZ,dxdydz):
     flux = np.zeros_like(BX)
     sizes = np.array(BX.shape)
     tmp_flux=0.
+    flux[sizes[0]-1,0,0] = tmp_flux
 
-    # Calculate flux-difference between bottom and top edge
-    # of +x boundary (so that values are consistent with computeFluxUp)
-    for z in np.arange(sizes[2]):
+    # First fill the x=xmax cells in the +z direction
+    for z in np.arange(1,sizes[2]):
         tmp_flux -= BX[sizes[0]-1,0,z]*dxdydz[2]
+        flux[sizes[0]-1,0,z] = tmp_flux
 
-    # First, fill the z=max - 1 cells
-    for x in np.arange(sizes[0]-1,-1,-1):
+    # Then fill the z=max - 1 cells
+    for x in np.arange(sizes[0]-2,-1,-1):
         tmp_flux -= BZ[x,0,sizes[2]-1] * dxdydz[0]
         flux[x,0,sizes[2]-1] = tmp_flux
 
-    # Now, for each row, integrate in -z-direction.
-    for x in np.arange(sizes[0]):
+    # Now, for each column, integrate in -z-direction.
+    for x in np.arange(sizes[0]-1):
          tmp_flux = flux[x,0,sizes[2]-1]
-         for z in np.arange(sizes[2]-1,0,-1):
+         for z in np.arange(sizes[2]-2,-1,-1):
              tmp_flux += BX[x,0,z]*dxdydz[2]
              flux[x,0,z] = tmp_flux
+
     return flux
 
 
@@ -75,19 +79,49 @@ def polar_computeFluxLeft(BX,BY,BZ,dxdydz):
     flux = np.zeros_like(BX)
     sizes = np.array(BX.shape)
     tmp_flux=0.
-    bottom_right_flux=0.
+    flux[sizes[0]-1,0,0] = tmp_flux
 
-    # First calculate flux difference to bottom right corner
-    # Now, for each row, integrate in -z-direction.
+    # First fill the x=xmax cells in the +z direction
+    for z in np.arange(1,sizes[2]):
+        tmp_flux -= BX[sizes[0]-1,0,z]*dxdydz[2]
+        flux[sizes[0]-1,0,z] = tmp_flux
+
+    # Now, for each row, integrate in -x-direction.
     for z in np.arange(0,sizes[2]):
-        bottom_right_flux -= BX[sizes[0]-1,0,z] * dxdydz[2]
-
-        tmp_flux = bottom_right_flux
-        for x in np.arange(sizes[0]-1,-1,-1):
+        tmp_flux = flux[sizes[0]-1,0,z]
+        for x in np.arange(sizes[0]-2,-1,-1):
             tmp_flux -= BZ[x,0,z] * dxdydz[0]
             flux[x,0,z] = tmp_flux
             
     return flux
+
+# Calculate fluxfunction by integrating along +x from the left boundary
+def polar_computeFluxRight(BX,BY,BZ,dxdydz):
+    # Create fluxfunction-field to be the same shape as B
+    flux = np.zeros_like(BX)
+    sizes = np.array(BX.shape)
+    tmp_flux=0.
+    flux[sizes[0]-1,0,0] = tmp_flux
+
+    # First fill the z=0 cells in the -x direction
+    for x in np.arange(sizes[0]-2,-1,-1):
+        tmp_flux -= BZ[x,0,0]*dxdydz[0]
+        flux[x,0,0] = tmp_flux
+
+    # Then fill the x=0 cells in the +z direction
+    for z in np.arange(1,sizes[2]):
+        tmp_flux -= BX[x,0,0]*dxdydz[2]
+        flux[0,0,z] = tmp_flux
+
+    # Now, for each row, integrate in +x-direction.
+    for z in np.arange(1,sizes[2]):
+        tmp_flux = flux[0,0,z]
+        for x in np.arange(1,sizes[0]):
+            tmp_flux += BZ[x,0,z] * dxdydz[0]
+            flux[x,0,z] = tmp_flux
+
+    return flux
+
 
 # namespace Equatorialplane {
 #    # Calculate fluxfunction by integrating along -y boundary first,
@@ -199,8 +233,16 @@ def polar_computeFluxLeft(BX,BY,BZ,dxdydz):
 def median3(a, b, c):
     return max(min(a,b), min(max(a,b),c))
 
+def median4(a, b, c, d):
+    # This actually drops the largest and smallest value and returns the mean of the remaining two
+    l = [a,b,c,d]
+    l.sort()
+    return np.mean(l[1:3])
 
-def calculate(BX,BY,BZ, dxdydz, dir=None):
+def mean4(a, b, c, d):
+    return np.mean([a,b,c,d])
+
+def calculate(BX,BY,BZ, dxdydz):
     sizes = np.array(BX.shape)
 
     if True: # polar plane        
@@ -218,12 +260,52 @@ def calculate(BX,BY,BZ, dxdydz, dir=None):
                 a = fluxUp[x,y,z]
                 b = fluxDown[x,y,z]
                 c = fluxLeft[x,y,z]
-                if dir==None:
-                    fluxUp[x,y,z] = median3(a,b,c)
-                elif dir=="down":
-                    fluxUp[x,y,z] = b
-                elif dir=="left":
-                    fluxUp[x,y,z] = c
-                    
+                fluxUp[x,y,z] = median3(a,b,c)
+    return fluxUp
 
+
+def calculate4(BX,BY,BZ, dxdydz):
+    sizes = np.array(BX.shape)
+
+    if True: # polar plane        
+        fluxUp = polar_computeFluxUp(BX,BY,BZ,dxdydz)
+        fluxDown = polar_computeFluxDown(BX,BY,BZ,dxdydz)
+        fluxLeft = polar_computeFluxLeft(BX,BY,BZ,dxdydz)
+        fluxRight = polar_computeFluxRight(BX,BY,BZ,dxdydz)
+    # else:
+    #     fluxUp = Equatorialplane::computeFluxUp(B)
+    #     fluxDown = Equatorialplane::computeFluxDown(B)
+    #     fluxLeft = Equatorialplane::computeFluxLeft(B)
+
+    for x in np.arange(sizes[0]):
+        for y in np.arange(sizes[1]):
+            for z in np.arange(sizes[2]):
+                a = fluxUp[x,y,z]
+                b = fluxDown[x,y,z]
+                c = fluxLeft[x,y,z]
+                d = fluxRight[x,y,z]
+                fluxUp[x,y,z] = median4(a,b,c,d)
+    return fluxUp
+
+def calculate4mean(BX,BY,BZ, dxdydz):
+    sizes = np.array(BX.shape)
+
+    if True: # polar plane        
+        fluxUp = polar_computeFluxUp(BX,BY,BZ,dxdydz)
+        fluxDown = polar_computeFluxDown(BX,BY,BZ,dxdydz)
+        fluxLeft = polar_computeFluxLeft(BX,BY,BZ,dxdydz)
+        fluxRight = polar_computeFluxRight(BX,BY,BZ,dxdydz)
+    # else:
+    #     fluxUp = Equatorialplane::computeFluxUp(B)
+    #     fluxDown = Equatorialplane::computeFluxDown(B)
+    #     fluxLeft = Equatorialplane::computeFluxLeft(B)
+
+    for x in np.arange(sizes[0]):
+        for y in np.arange(sizes[1]):
+            for z in np.arange(sizes[2]):
+                a = fluxUp[x,y,z]
+                b = fluxDown[x,y,z]
+                c = fluxLeft[x,y,z]
+                d = fluxRight[x,y,z]
+                fluxUp[x,y,z] = mean4(a,b,c,d)
     return fluxUp

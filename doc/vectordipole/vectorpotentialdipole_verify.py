@@ -36,6 +36,10 @@ import fieldmodels
     
     If arg2 is present, the code also calculates verification of derivative terms.
 
+    Generates plots of magnetic field components for different dipole models along cuts through the
+    simulation domain. For derivative analysis, calculates the derivatives along said cuts analytically
+    and numerically and outputs the ratio.
+
 ''' 
 
 if len(sys.argv)!=1:
@@ -48,9 +52,11 @@ if len(sys.argv)!=2:
 else:
    calcderivatives=False
 
+plotmagnitude=False
+
 plt.switch_backend('Agg')  
 
-outfilename = "./vecpotdip_verify_"+str(testset)+".pdf"
+outfilename = "./vecpotdip_verify_"+str(testset)+".png"
 
 RE=6371000.
 #RE=1
@@ -77,7 +83,12 @@ elif testset==3:
    line_theta = 45.
    line_start = np.array([-3,-3,-3])
 elif testset==4:
-   tilt_angle_phi = 5.
+   tilt_angle_phi = 10
+   tilt_angle_theta = 0.
+   line_theta = 0.
+   line_start = np.array([0,0,0])
+elif testset==5:
+   tilt_angle_phi = 10
    tilt_angle_theta = 45.
    line_theta = 0.
    line_start = np.array([0,0,0])
@@ -139,19 +150,23 @@ for i in range(nsubplots):
          B3[j,k] = B2[j,k] + mdip.get_old(xv[j],yv[j],zv[j],0,k,0)
          B4[j,k] = dip.get_ldp(xv[j],yv[j],zv[j],0,k,0)
          B4[j,k] = B4[j,k] + mdip.get_ldp(xv[j],yv[j],zv[j],0,k,0)
-      B1[j,3] = np.linalg.norm(B1[j,0:3])
-      B2[j,3] = np.linalg.norm(B2[j,0:3])
-      B3[j,3] = np.linalg.norm(B3[j,0:3])
-      B4[j,3] = np.linalg.norm(B4[j,0:3])
+      if plotmagnitude is True:
+         B1[j,3] = np.linalg.norm(B1[j,0:3])
+         B2[j,3] = np.linalg.norm(B2[j,0:3])
+         B3[j,3] = np.linalg.norm(B3[j,0:3])
+         B4[j,3] = np.linalg.norm(B4[j,0:3])
 
    colors=['r','k','b','magenta']
    coords = ['x','y','z','mag']
 
-   for k in range(4):
+   plotrange = range(3)
+   if plotmagnitude is True:
+      plotrange = range(4)
+   for k in plotrange:
       ax.plot(radiiRE, B1[:,k], c=colors[k], linestyle='-', linewidth=linewidth, label='vectorpot B'+coords[k], zorder=-10)
       ax.plot(radiiRE, B2[:,k], c=colors[k], linestyle='--', linewidth=linewidth, label='regular B'+coords[k])
       ax.plot(radiiRE, B3[:,k], c=colors[k], linestyle=':', linewidth=linewidth, label='reg+mirror B'+coords[k])
-      if tilt_angle_phi==0:
+      if tilt_angle_phi<epsilon:
          ax.plot(radiiRE, B4[:,k], c=colors[k], linestyle='-.', linewidth=linewidth, label='line+mirror B'+coords[k])
             
    ax.set_xlabel(r"$r$ [$r_\mathrm{E}$]", fontsize=fontsize)
@@ -170,8 +185,8 @@ for i in range(nsubplots):
       ylims[1] =  1e-4
    ax.set_ylim(ylims)
 
-handles, labels = axes[0].get_legend_handles_labels()
-axes[0].legend(handles, labels, fontsize=fontsize)
+handles, labels = axes[-1].get_legend_handles_labels()
+axes[-1].legend(handles, labels, fontsize=fontsize)
 
 fig.savefig(outfilename)
 plt.close()
@@ -195,7 +210,7 @@ if calcderivatives:
          fig.add_subplot(nsubplots,1,i+1)
       axes = fig.get_axes()
 
-      fig.suptitle(r"Profiles starting from ("+str(line_start[0])+","+str(line_start[1])+","+str(line_start[2])+") [RE] with dipole tilt $\Phi="+str(int(tilt_angle_phi))+"$, $\Theta="+str(int(tilt_angle_theta))+"$", fontsize=fontsize)
+      fig.suptitle(r"Numerical and analytical derivative ratios, profiles starting from ("+str(line_start[0])+","+str(line_start[1])+","+str(line_start[2])+") [RE] with dipole tilt $\Phi="+str(int(tilt_angle_phi))+"$, $\Theta="+str(int(tilt_angle_theta))+"$", fontsize=fontsize)
 
       for i in range(nsubplots):
          print("derivatives subplot ",i)
@@ -227,9 +242,9 @@ if calcderivatives:
                # d/dx
                if kkk==0:
                   cdbx=(dip.getX(xv[j]+step2*RE,yv[j],zv[j],0,k,0) - dip.getX(xv[j]-step2*RE,yv[j],zv[j],0,k,0))/(2*step2*RE)
-                  if abs(cdbx) > 0:
+                  if abs(cdbx) > epsilon*B1[j,k]:
                      dB1[j,k,0] = dB1[j,k,0]/cdbx
-                  elif (abs(cdbx)<epsilon) and (abs(dB1[j,k,0])<epsilon):
+                  elif (abs(cdbx)<epsilon*B1[j,k]) and (abs(dB1[j,k,0])<epsilon*B1[j,k]):
                      dB1[j,k,0] = None
                   else:
                      dB1[j,k,0] = 0
@@ -237,9 +252,9 @@ if calcderivatives:
                         dB1[j,k,0] = None
 
                   cdbx=(dip.get_old(xv[j]+step2*RE,yv[j],zv[j],0,k,0) - dip.get_old(xv[j]-step2*RE,yv[j],zv[j],0,k,0))/(2*step2*RE)
-                  if abs(cdbx) > 0:
+                  if abs(cdbx) > epsilon*B2[j,k]:
                      dB2[j,k,0] = dB2[j,k,0]/cdbx
-                  elif (abs(cdbx)<epsilon) and (abs(dB2[j,k,0])<epsilon):
+                  elif (abs(cdbx)<epsilon*B2[j,k]) and (abs(dB2[j,k,0])<epsilon*B2[j,k]):
                      dB2[j,k,0] = None
                   else:
                      dB2[j,k,0] = 0
@@ -247,9 +262,9 @@ if calcderivatives:
                         dB2[j,k,0] = None
 
                   cdbx=(dip.get_old(xv[j]+step2*RE,yv[j],zv[j],0,k,0)+mdip.get_old(xv[j]+step2*RE,yv[j],zv[j],0,k,0) - dip.get_old(xv[j]-step2*RE,yv[j],zv[j],0,k,0) - mdip.get_old(xv[j]-step2*RE,yv[j],zv[j],0,k,0))/(2*step2*RE)
-                  if abs(cdbx) > 0:
+                  if abs(cdbx) > epsilon*B3[j,k]:
                      dB3[j,k,0] = dB3[j,k,0]/cdbx
-                  elif (abs(cdbx)<epsilon) and (abs(dB3[j,k,0])<epsilon):
+                  elif (abs(cdbx)<epsilon*B3[j,k]) and (abs(dB3[j,k,0])<epsilon*B3[j,k]):
                      dB3[j,k,0] = None
                   else:
                      dB3[j,k,0] = 0
@@ -257,9 +272,9 @@ if calcderivatives:
                         dB3[j,k,0] = None
 
                   cdbx=(dip.get_ldp(xv[j]+step2*RE,yv[j],zv[j],0,k,0)+mdip.get_ldp(xv[j]+step2*RE,yv[j],zv[j],0,k,0) - dip.get_ldp(xv[j]-step2*RE,yv[j],zv[j],0,k,0) - mdip.get_ldp(xv[j]-step2*RE,yv[j],zv[j],0,k,0))/(2*step2*RE)
-                  if abs(cdbx) > 0:
+                  if abs(cdbx) > epsilon*B4[j,k]:
                      dB4[j,k,0] = dB4[j,k,0]/cdbx
-                  elif (abs(cdbx)<epsilon) and (abs(dB4[j,k,0])<epsilon):
+                  elif (abs(cdbx)<epsilon*B4[j,k]) and (abs(dB4[j,k,0])<epsilon*B4[j,k]):
                      dB4[j,k,0] = None
                   else:
                      dB4[j,k,0] = 0
@@ -269,9 +284,9 @@ if calcderivatives:
                # d/dy
                if kkk==1:
                   cdby=(dip.getX(xv[j],yv[j]+step2*RE,zv[j],0,k,0) - dip.getX(xv[j],yv[j]-step2*RE,zv[j],0,k,0))/(2*step2*RE)
-                  if abs(cdby) > 0:
+                  if abs(cdby) > epsilon*B1[j,k]:
                      dB1[j,k,1] = dB1[j,k,1]/cdby
-                  elif (abs(cdby)<epsilon) and (abs(dB1[j,k,1])<epsilon):
+                  elif (abs(cdby)<epsilon*B1[j,k]) and (abs(dB1[j,k,1])<epsilon*B1[j,k]):
                      dB1[j,k,1] = None
                   else:
                      dB1[j,k,1] = 0
@@ -279,9 +294,9 @@ if calcderivatives:
                         dB1[j,k,1] = None
 
                   cdby=(dip.get_old(xv[j],yv[j]+step2*RE,zv[j],0,k,0) - dip.get_old(xv[j],yv[j]-step2*RE,zv[j],0,k,0))/(2*step2*RE)
-                  if abs(cdby) > 0:
+                  if abs(cdby) > epsilon*B2[j,k]:
                      dB2[j,k,1] = dB2[j,k,1]/cdby
-                  elif (abs(cdby)<epsilon) and (abs(dB2[j,k,1])<epsilon):
+                  elif (abs(cdby)<epsilon*B2[j,k]) and (abs(dB2[j,k,1])<epsilon*B2[j,k]):
                      dB2[j,k,1] = None
                   else:
                      dB2[j,k,1] = 0
@@ -289,9 +304,9 @@ if calcderivatives:
                         dB2[j,k,1] = None
 
                   cdby=(dip.get_old(xv[j],yv[j]+step2*RE,zv[j],0,k,0)+mdip.get_old(xv[j],yv[j]+step2*RE,zv[j],0,k,0) - dip.get_old(xv[j],yv[j]-step2*RE,zv[j],0,k,0) - mdip.get_old(xv[j],yv[j]-step2*RE,zv[j],0,k,0))/(2*step2*RE)
-                  if abs(cdby) > 0:
+                  if abs(cdby) > epsilon*B3[j,k]:
                      dB3[j,k,1] = dB3[j,k,1]/cdby
-                  elif (abs(cdby)<epsilon) and (abs(dB3[j,k,1])<epsilon):
+                  elif (abs(cdby)<epsilon*B3[j,k]) and (abs(dB3[j,k,1])<epsilon*B3[j,k]):
                      dB3[j,k,1] = None
                   else:
                      dB3[j,k,1] = 0
@@ -299,9 +314,9 @@ if calcderivatives:
                         dB3[j,k,1] = None
 
                   cdby=(dip.get_ldp(xv[j],yv[j]+step2*RE,zv[j],0,k,0)+mdip.get_ldp(xv[j],yv[j]+step2*RE,zv[j],0,k,0) - dip.get_ldp(xv[j],yv[j]-step2*RE,zv[j],0,k,0) - mdip.get_ldp(xv[j],yv[j]-step2*RE,zv[j],0,k,0))/(2*step2*RE)
-                  if abs(cdby) > 0:
+                  if abs(cdby) > epsilon*B4[j,k]:
                      dB4[j,k,1] = dB4[j,k,1]/cdby
-                  elif (abs(cdby)<epsilon) and (abs(dB4[j,k,1])<epsilon):
+                  elif (abs(cdby)<epsilon*B4[j,k]) and (abs(dB4[j,k,1])<epsilon*B4[j,k]):
                      dB4[j,k,1] = None
                   else:
                      dB4[j,k,1] = 0
@@ -311,9 +326,9 @@ if calcderivatives:
                # d/dz
                if kkk==2:
                   cdbz=(dip.getX(xv[j],yv[j],zv[j]+step2*RE,0,k,0) - dip.getX(xv[j],yv[j],zv[j]-step2*RE,0,k,0))/(2*step2*RE)
-                  if abs(cdbz) > 0:
+                  if abs(cdbz) > epsilon*B1[j,k]:
                      dB1[j,k,2] = dB1[j,k,2]/cdbz
-                  elif (abs(cdbz)<epsilon) and (abs(dB1[j,k,2])<epsilon):
+                  elif (abs(cdbz)<epsilon*B1[j,k]) and (abs(dB1[j,k,2])<epsilon*B1[j,k]):
                      dB1[j,k,2] = None
                   else:
                      dB1[j,k,2] = 0
@@ -321,9 +336,9 @@ if calcderivatives:
                         dB1[j,k,2] = None
 
                   cdbz=(dip.get_old(xv[j],yv[j],zv[j]+step2*RE,0,k,0) - dip.get_old(xv[j],yv[j],zv[j]-step2*RE,0,k,0))/(2*step2*RE)
-                  if abs(cdbz) > 0:
+                  if abs(cdbz) > epsilon*B2[j,k]:
                      dB2[j,k,2] = dB2[j,k,2]/cdbz
-                  elif (abs(cdbz)<epsilon) and (abs(dB2[j,k,2])<epsilon):
+                  elif (abs(cdbz)<epsilon*B2[j,k]) and (abs(dB2[j,k,2])<epsilon*B2[j,k]):
                      dB2[j,k,2] = None
                   else:
                      dB2[j,k,2] = 0
@@ -331,9 +346,9 @@ if calcderivatives:
                         dB2[j,k,2] = None
 
                   cdbz=(dip.get_old(xv[j],yv[j],zv[j]+step2*RE,0,k,0)+mdip.get_old(xv[j],yv[j],zv[j]+step2*RE,0,k,0) - dip.get_old(xv[j],yv[j],zv[j]-step2*RE,0,k,0) - mdip.get_old(xv[j],yv[j],zv[j]-step2*RE,0,k,0))/(2*step2*RE)
-                  if abs(cdbz) > 0:
+                  if abs(cdbz) > epsilon*B3[j,k]:
                      dB3[j,k,2] = dB3[j,k,2]/cdbz
-                  elif (abs(cdbz)<epsilon) and (abs(dB3[j,k,2])<epsilon):
+                  elif (abs(cdbz)<epsilon*B3[j,k]) and (abs(dB3[j,k,2])<epsilon*B3[j,k]):
                      dB3[j,k,2] = None
                   else:
                      dB3[j,k,2] = 0
@@ -341,9 +356,9 @@ if calcderivatives:
                         dB3[j,k,2] = None
 
                   cdbz=(dip.get_ldp(xv[j],yv[j],zv[j]+step2*RE,0,k,0)+mdip.get_ldp(xv[j],yv[j],zv[j]+step2*RE,0,k,0) - dip.get_ldp(xv[j],yv[j],zv[j]-step2*RE,0,k,0) - mdip.get_ldp(xv[j],yv[j],zv[j]-step2*RE,0,k,0))/(2*step2*RE)
-                  if abs(cdbz) > 0:
+                  if abs(cdbz) > epsilon*B4[j,k]:
                      dB4[j,k,2] = dB4[j,k,2]/cdbz
-                  elif (abs(cdbz)<epsilon) and (abs(dB4[j,k,2])<epsilon):
+                  elif (abs(cdbz)<epsilon*B4[j,k]) and (abs(dB4[j,k,2])<epsilon*B4[j,k]):
                      dB4[j,k,2] = None
                   else:
                      dB4[j,k,2] = 0
@@ -379,7 +394,7 @@ if calcderivatives:
             ax.plot(radiiRE, dB1[:,k,kkk], c=colors[k], linestyle='-', linewidth=linewidth, label='vectorpot dB'+coords[k]+'/d'+coords[kkk])
             ax.plot(radiiRE, dB2[:,k,kkk], c=colors[k], linestyle='--', linewidth=linewidth, label='regular dB'+coords[k]+'/d'+coords[kkk])
             ax.plot(radiiRE, dB3[:,k,kkk], c=colors[k], linestyle=':', linewidth=linewidth, label='reg+mirror dB'+coords[k]+'/d'+coords[kkk])
-            if tilt_angle_phi==0:
+            if tilt_angle_phi<epsilon:
                ax.plot(radiiRE, dB4[:,k,kkk], c=colors[k], linestyle='-.', linewidth=linewidth, label='line+mirror dB'+coords[k]+'/d'+coords[kkk])        
 
                ax.text(0.2,0.08,r"profile with $\theta="+str(int(line_theta[i]*180./math.pi))+"$, $\phi="+str(int(line_phi[i]*180./math.pi))+"$",transform=ax.transAxes, bbox=dict(facecolor='white', alpha=0.7), fontsize=fontsize)
@@ -397,8 +412,8 @@ if calcderivatives:
          for item in ax.get_yticklabels():
             item.set_fontsize(fontsize)
 
-         handles, labels = axes[0].get_legend_handles_labels()
-         axes[0].legend(handles, labels, fontsize=fontsize)
+      handles, labels = axes[-1].get_legend_handles_labels()
+      axes[-1].legend(handles, labels, fontsize=fontsize).set_zorder(10)
 
       fig.savefig(outfilename[:-4]+"_d"+coords[kkk]+outfilename[-4:])
       plt.close()
