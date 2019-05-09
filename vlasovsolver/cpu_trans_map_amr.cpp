@@ -1332,10 +1332,14 @@ int get_sibling_index(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
 }
 
 /* This function communicates the mapping on process boundaries, and then updates the data to their correct values.
+ * When sending data between neighbors of different refinement levels, special care has to be taken to ensure that
+ * The sending and receiving ranks allocate the correct size arrays for neighbor_block_data.
+ * This is partially due to DCCRG defining neighborhood size relative to the host cell. For details, see 
+ * https://github.com/fmihpc/dccrg/issues/12
  *
  * @param mpiGrid DCCRG grid object
  * @param dimension Spatial dimension
- * @param direction Direction of communication (+-)
+ * @param direction Direction of communication (+ or -)
  * @param popId Particle population ID
  */
 void update_remote_mapping_contribution_amr(
