@@ -551,7 +551,9 @@ namespace SBC {
       std::vector< std::array<int, 3> > closestCells = getAllClosestNonsysboundaryCells(technicalGrid, i,j,k);
       if (closestCells.size() == 1 && closestCells[0][0] == std::numeric_limits<int>::min() ) {
          std::cerr << __FILE__ << ":" << __LINE__ << ":" << "No closest cells found!" << std::endl;
-         abort();
+	 // mismatch on fsgrid and mpigrid?
+         //abort();
+	 return 0;
       }
       
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> * bGrid;

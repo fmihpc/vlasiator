@@ -24,6 +24,7 @@
 #define DATAREDUCER_H
 
 #include <vector>
+#include "fsgrid.hpp"
 
 #include "../spatial_cell.hpp"
 #include "datareductionoperator.h"
@@ -54,6 +55,17 @@ class DataReducer {
                   const std::vector<CellID>& cells,const std::string& meshName,
                   vlsv::Writer& vlsvWriter);
    bool writeParameters(const unsigned int& operatorID, vlsv::Writer& vlsvWriter);
+   bool writeFsGridData(
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2>& dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volGrid,
+                      FsGrid< fsgrids::technical, 2>& technicalGrid, const std::string& meshName, const unsigned int operatorID, vlsv::Writer& vlsvWriter);
 
  private:
    /** Private copy-constructor to prevent copying the class.
