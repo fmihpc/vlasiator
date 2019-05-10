@@ -169,7 +169,7 @@ bool ObjectWrapper::getParameters() {
       
       const Real EPSILON = 1.e-25;
       if (species.SolarWindEnergy < EPSILON) {
-	 species.SolarWindEnergy = 0.5 * species.mass * species.SolarWindEnergy * species.SolarWindEnergy;
+	 species.SolarWindEnergy = 0.5 * species.mass * species.SolarWindSpeed * species.SolarWindSpeed;
       }
    }
 
