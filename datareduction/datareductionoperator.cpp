@@ -1496,11 +1496,12 @@ namespace DRO {
             EDensity[2] += thread_E2_sum;
          }
 
-	 // Store energy density in units eV/cm^3 instead of Joules per m^3
-	 EDensity[0] *= 1.0e-6/physicalconstants::CHARGE;
-	 EDensity[1] *= 1.0e-6/physicalconstants::CHARGE;
-	 EDensity[2] *= 1.0e-6/physicalconstants::CHARGE;
       }
+      // Store energy density in units eV/cm^3 instead of Joules per m^3
+      EDensity[0] *= (1.0e-6)/physicalconstants::CHARGE;
+      EDensity[1] *= (1.0e-6)/physicalconstants::CHARGE;
+      EDensity[2] *= (1.0e-6)/physicalconstants::CHARGE;
+
       const char* ptr = reinterpret_cast<const char*>(&EDensity);
       for (uint i = 0; i < 3*sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
@@ -1517,9 +1518,13 @@ namespace DRO {
    }
    
    bool VariableEnergyDensity::writeParameters(vlsv::Writer& vlsvWriter) {
-      if( vlsvWriter.writeParameter("EnergyDensityESW", &solarwindenergy) == false ) { return false; }
-      if( vlsvWriter.writeParameter("EnergyDensityELimit1", &E1limit) == false ) { return false; }
-      if( vlsvWriter.writeParameter("EnergyDensityELimit2", &E2limit) == false ) { return false; }
+      // Output energies in in eV
+      Real swe = solarwindenergy/physicalconstants::CHARGE;
+      Real e1l = E1limit/physicalconstants::CHARGE;
+      Real e2l = E2limit/physicalconstants::CHARGE;
+      if( vlsvWriter.writeParameter("EnergyDensityESW", &swe) == false ) { return false; }
+      if( vlsvWriter.writeParameter("EnergyDensityELimit1", &e1l) == false ) { return false; }
+      if( vlsvWriter.writeParameter("EnergyDensityELimit2", &e2l) == false ) { return false; }
       return true;
    }
 
