@@ -70,6 +70,12 @@ bool ObjectWrapper::addPopulationParameters() {
      Readparameters::add(pop + "_backstream.vy", "Center coordinate for the maxwellian distribution. Used for calculating the backstream moments.", 0.0);
      Readparameters::add(pop + "_backstream.vz", "Center coordinate for the maxwellian distribution. Used for calculating the backstream moments.", 0.0);
      Readparameters::add(pop + "_backstream.radius", "Radius of the maxwellian distribution. Used for calculating the backstream moments. If set to 0 (default), the backstream/non-backstream DROs are skipped.", 0.0);
+
+     // Energy density parameters
+     Readparameters::add(pop + "_energydensity.limit1", "Lower limit of second bin for energy density, given in units of solar wind ram energy.", 5.0);
+     Readparameters::add(pop + "_energydensity.limit2", "Lower limit of third bin for energy density, given in units of solar wind ram energy.", 10.0);
+     Readparameters::add(pop + "_energydensity.solarwindspeed", "Incoming solar wind velocity magnitude. Used for calculating energy densities.", 0.0);
+     Readparameters::add(pop + "_energydensity.solarwindenergy", "Incoming solar wind ram energy. Used for calculating energy densities.", 0.0);
   }
 
   return true;
@@ -154,6 +160,17 @@ bool ObjectWrapper::getParameters() {
       Readparameters::get(pop + "_backstream.vx", species.backstreamV[0]);
       Readparameters::get(pop + "_backstream.vy", species.backstreamV[1]);
       Readparameters::get(pop + "_backstream.vz", species.backstreamV[2]);
+
+      //Get energy density parameters
+      Readparameters::get(pop + "_energydensity.limit1", species.EnergyDensityLimit1);
+      Readparameters::get(pop + "_energydensity.limit2", species.EnergyDensityLimit2);
+      Readparameters::get(pop + "_energydensity.solarwindenergy", species.SolarWindEnergy);
+      Readparameters::get(pop + "_energydensity.solarwindspeed", species.SolarWindSpeed);
+      
+      const Real EPSILON = 1.e-25;
+      if (species.SolarWindEnergy < EPSILON) {
+	 species.SolarWindEnergy = 0.5 * species.mass * species.SolarWindEnergy * species.SolarWindEnergy;
+      }
    }
 
    return true;
