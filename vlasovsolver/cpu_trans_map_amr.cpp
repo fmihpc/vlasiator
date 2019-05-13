@@ -14,14 +14,12 @@ using namespace spatial_cell;
 // ordinary space [- VLASOV_STENCIL_WIDTH to VLASOV_STENCIL_WIDTH],
 // i,j,k are the cell ids inside on block (i in vector elements).
 // Vectors with same i,j,k coordinates, but in different spatial cells, are consequtive
-//#define i_trans_ps_blockv(j, k, b_k)  ( (b_k + VLASOV_STENCIL_WIDTH ) + ( (((j) * WID + (k) * WID2)/VECL)  * ( 1 + 2 * VLASOV_STENCIL_WIDTH) ) )
 #define i_trans_ps_blockv(planeVectorIndex, planeIndex, blockIndex) ( (blockIndex) + VLASOV_STENCIL_WIDTH  +  ( (planeVectorIndex) + (planeIndex) * VEC_PER_PLANE ) * ( 1 + 2 * VLASOV_STENCIL_WIDTH)  )
 
 // indices in padded target block, which is of type Vec with VECL
 // element sin each vector. b_k is the block index in z direction in
 // ordinary space, i,j,k are the cell ids inside on block (i in vector
 // elements).
-//#define i_trans_pt_blockv(j, k, b_k) ( ( (j) * WID + (k) * WID2 + ((b_k) + 1 ) * WID3) / VECL )
 #define i_trans_pt_blockv(planeVectorIndex, planeIndex, blockIndex)  ( planeVectorIndex + planeIndex * VEC_PER_PLANE + (blockIndex + 1) * VEC_PER_BLOCK)
 
 #define i_trans_ps_blockv_pencil(planeVectorIndex, planeIndex, blockIndex, lengthOfPencil) ( (blockIndex) + VLASOV_STENCIL_WIDTH  +  ( (planeVectorIndex) + (planeIndex) * VEC_PER_PLANE ) * ( lengthOfPencil + 2 * VLASOV_STENCIL_WIDTH) )
@@ -206,7 +204,6 @@ void computeSpatialTargetCellsForPencils(const dccrg::Dccrg<SpatialCell,dccrg::C
    // Loop over pencils
    for(uint iPencil = 0; iPencil < pencils.N; iPencil++){
       
-      // L = length of the pencil iPencil
       int L = pencils.lengthOfPencils[iPencil];
       vector<CellID> ids = pencils.getIds(iPencil);
       
@@ -339,8 +336,10 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
 
    const bool debug = false;
    CellID nextNeighbor;
+
    CellID id = seedId;
-   uint startingRefLvl = grid.get_refinement_level(id);
+   int startingRefLvl = grid.get_refinement_level(id);
+
    bool periodic = false;   
    if( ids.size() == 0 )
       ids.push_back(seedId);
@@ -356,7 +355,7 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
 
       CellID myId = seedId;
       
-      for ( uint i = path.size(); i < startingRefLvl; ++i) {
+      for ( int i = path.size(); i < startingRefLvl; ++i) {
 
          CellID parentId = grid.get_parent(myId);
          
@@ -442,7 +441,6 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
                if ( i == 3 ) {
 	    
                   // This builder continues with neighbor 3
-                  //ids.push_back(nextNeighbor);
                   path = myPath;
 	    
                } else {
@@ -497,6 +495,7 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
    return pencils;
   
 }
+
 
 /* Propagate a given velocity block in all spatial cells of a pencil by a time step dt using a PPM reconstruction.
  *
@@ -655,7 +654,6 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
                  pow(2,mpiGrid.get_maximum_refinement_level()) ||
                  !mpiGrid.is_local(nbrPair.first) ||
                  !do_translate_cell(mpiGrid[nbrPair.first]) ) {              
-                                    
                addToSeedIds = true;
             }
          }
@@ -808,15 +806,11 @@ void check_ghost_cells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
       const auto* backNeighbors  = mpiGrid.get_neighbors_of(ids.back() ,neighborhoodId);
 
       for (const auto nbrPair: *frontNeighbors) {
-	//if((nbrPair.second[dimension] + 1) / pow(2,mpiGrid.get_refinement_level(nbrPair.first)) == -offset) {
 	maxNbrRefLvl = max(maxNbrRefLvl,mpiGrid.mapping.get_refinement_level(nbrPair.first));
-	//}
       }
          
       for (const auto nbrPair: *backNeighbors) {
-	//if((nbrPair.second[dimension] + 1) / pow(2,mpiGrid.get_refinement_level(nbrPair.first)) == offset) {
 	maxNbrRefLvl = max(maxNbrRefLvl,mpiGrid.get_refinement_level(nbrPair.first));
-	//}
       }
 
       if (maxNbrRefLvl > maxPencilRefLvl) {
@@ -1053,9 +1047,6 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       abort();
    }
    
-   // // Remove duplicates
-   // removeDuplicates(pencils);
-   
    // Add the final set of pencils to the pencilSets - vector.
    // Only one set is created for now but we retain support for multiple sets
    pencilSets.push_back(pencils);
@@ -1126,7 +1117,6 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
             // Compute spatial neighbors for target cells.
             // For targets we need the local cells, plus a padding of 1 cell at both ends
             std::vector<SpatialCell*> targetCells(pencils.sumOfLengths + pencils.N * 2 );
-            //std::vector<bool> targetsValid(pencils.sumOfLengths + 2 * pencils.N) = false;
             
             computeSpatialTargetCellsForPencils(mpiGrid, pencils, dimension, targetCells.data());           
 
@@ -1284,7 +1274,6 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                      // Realf checksum = 0.0;
                      for(int i = 0; i < WID3 ; i++) {
                         blockData[i] += targetBlockData[GID * WID3 + i] * areaRatio;
-                        // checksum += targetBlockData[GID * WID3 + i] * areaRatio;
                      }
                   }
                }
