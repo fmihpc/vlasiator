@@ -366,8 +366,7 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       //Reduce data ( return false if the operation fails )
       if (dataReducer.reduceData(mpiGrid[cells[cell]],dataReducerIndex,varBuffer + cell*vectorSize*dataSize) == false){
          success = false;
-         logFile << "(MAIN) writeGrid: ERROR datareductionoperator '" << dataReducer.getName(dataReducerIndex) <<
-            "' returned false!" << endl << writeVerbose;
+         // Note that this is not an error (anymore), since fsgrid reducers will return false here.
       }
    }
    if( success ) {
