@@ -29,7 +29,6 @@
    #define DEBUG_FSOLVER
 #endif
 
-namespace fs = fieldsolver;
 namespace pc = physicalconstants;
 using namespace std;
 
