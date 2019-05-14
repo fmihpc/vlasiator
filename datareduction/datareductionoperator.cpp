@@ -1597,4 +1597,10 @@ namespace DRO {
    bool VariablePrecipitationDiffFlux::setSpatialCell(const SpatialCell* cell) {
       return true;
    }
+
+   bool VariablePrecipitation::writeParameters(vlsv::Writer& vlsvWriter) {
+      for (int i=0; i<nChannels; i++) {
+         if( vlsvWriter.writeParameter("PrecipitationCentreEnergy"+std::to_string(i), &channels[i]) == false ) { return false; }
+      }
+      return true;
 } // namespace DRO

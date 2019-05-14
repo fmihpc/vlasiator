@@ -70,6 +70,11 @@ bool ObjectWrapper::addPopulationParameters() {
      Readparameters::add(pop + "_backstream.vy", "Center coordinate for the maxwellian distribution. Used for calculating the backstream moments.", 0.0);
      Readparameters::add(pop + "_backstream.vz", "Center coordinate for the maxwellian distribution. Used for calculating the backstream moments.", 0.0);
      Readparameters::add(pop + "_backstream.radius", "Radius of the maxwellian distribution. Used for calculating the backstream moments. If set to 0 (default), the backstream/non-backstream DROs are skipped.", 0.0);
+
+     // Precipitation parameters
+     Readparameters::add(pop + "_precipitation.nChannels", "Number of energy channels for precipitation differential flux evaluation", 16);
+     Readparameters::add(pop + "_precipitation.emin", "Lowest energy channel (in keV) for precipitation differential flux evaluation", 0.1);
+     Readparameters::add(pop + "_precipitation.emax", "Highest energy channel (in keV) for precipitation differential flux evaluation", 100.0);
   }
 
   return true;

@@ -491,7 +491,7 @@ namespace DRO {
       bool doSkip;
    };
    
-   class VariableEffectiveSparsityThreshold: public DataReductionOperator {
+   class VariableEffectiveSparsityThreshold: public DataReductionOperatorHasParameters {
    public:
       VariableEffectiveSparsityThreshold(cuint popID);
       virtual ~VariableEffectiveSparsityThreshold();
@@ -517,6 +517,7 @@ namespace DRO {
       virtual std::string getName() const;
       virtual bool reduceData(const SpatialCell* cell,char* buffer);
       virtual bool setSpatialCell(const SpatialCell* cell);
+      virtual bool writeParameters(vlsv::Writer& vlsvWriter);
       
    protected:
       uint popID;
