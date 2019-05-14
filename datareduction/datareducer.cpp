@@ -742,7 +742,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< fsgrids::technical, 2>& technicalGrid)->std::vector<double> {
 
                std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
-               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]*3);
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                // Iterate through fsgrid cells and extract total BVOL
                for(int z=0; z<gridSize[2]; z++) {
@@ -768,7 +768,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< fsgrids::technical, 2>& technicalGrid)->std::vector<double> {
 
                std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
-               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]*3);
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                // Iterate through fsgrid cells and extract total BVOL
                for(int z=0; z<gridSize[2]; z++) {
@@ -794,7 +794,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< fsgrids::technical, 2>& technicalGrid)->std::vector<double> {
 
                std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
-               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]*3);
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                // Iterate through fsgrid cells and extract total BVOL
                for(int z=0; z<gridSize[2]; z++) {
@@ -820,7 +820,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< fsgrids::technical, 2>& technicalGrid)->std::vector<double> {
 
                std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
-               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]*3);
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                // Iterate through fsgrid cells and extract total BVOL
                for(int z=0; z<gridSize[2]; z++) {
@@ -846,7 +846,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< fsgrids::technical, 2>& technicalGrid)->std::vector<double> {
 
                std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
-               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]*3);
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                // Iterate through fsgrid cells and extract total BVOL
                for(int z=0; z<gridSize[2]; z++) {
@@ -872,7 +872,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< fsgrids::technical, 2>& technicalGrid)->std::vector<double> {
 
                std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
-               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]*3);
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                // Iterate through fsgrid cells and extract total BVOL
                for(int z=0; z<gridSize[2]; z++) {
