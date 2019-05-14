@@ -330,9 +330,13 @@ namespace spatial_cell {
       uint64_t ioLocalCellId;                                                 /**< Local cell ID used for IO, not needed elsewhere 
                                                                                * and thus not being kept up-to-date.*/
       //vmesh::LocalID mpi_number_of_blocks;                                    /**< Number of blocks in mpi_velocity_block_list.*/
-      Realf* neighbor_block_data;                                             /**< Pointers for translation operator. We can point to neighbor
+      //Realf* neighbor_block_data;                                             /**< Pointers for translation operator. We can point to neighbor
+      //                                                                         * cell block data. We do not allocate memory for the pointer.*/
+      //vmesh::LocalID neighbor_number_of_blocks;
+      std::array<Realf*,MAX_NEIGHBORS_PER_DIM> neighbor_block_data;       /**< Pointers for translation operator. We can point to neighbor
                                                                                * cell block data. We do not allocate memory for the pointer.*/
-      vmesh::LocalID neighbor_number_of_blocks;
+      std::array<vmesh::LocalID,MAX_NEIGHBORS_PER_DIM> neighbor_number_of_blocks;
+      std::map<int,std::set<int>> face_neighbor_ranks;
       uint sysBoundaryFlag;                                                   /**< What type of system boundary does the cell belong to. 
                                                                                * Enumerated in the sysboundarytype namespace's enum.*/
       uint sysBoundaryLayer;                                                  /**< Layers counted from closest systemBoundary. If 0 then it has not 
@@ -347,6 +351,7 @@ namespace spatial_cell {
       static uint64_t mpi_transfer_type;                                      /**< Which data is transferred by the mpi datatype given by spatial cells.*/
       static bool mpiTransferAtSysBoundaries;                                 /**< Do we only transfer data at boundaries (true), or in the whole system (false).*/
 
+      //SpatialCell& operator=(const SpatialCell& other);
     private:
       //SpatialCell& operator=(const SpatialCell&);
       
@@ -1890,11 +1895,30 @@ namespace spatial_cell {
       #endif
       return populations[popID].vmesh.hasGrandParent(blockGID);
    }
+
+   // inline SpatialCell& SpatialCell::operator=(const SpatialCell& other) {
+   //    this->sysBoundaryFlag = other.sysBoundaryFlag;
+   //    this->sysBoundaryLayer = other.sysBoundaryLayer;
+   //    this->sysBoundaryLayerNew = other.sysBoundaryLayerNew;
+   //    this->velocity_block_with_content_list = other.velocity_block_with_content_list;
+   //    this->velocity_block_with_no_content_list = other.velocity_block_with_no_content_list;
+   //    this->initialized = other.initialized;
+   //    this->mpiTransferEnabled = other.mpiTransferEnabled;      
+   //    this->parameters = other.parameters;
+   //    this->derivatives = other.derivatives;
+   //    this->derivativesBVOL = other.derivativesBVOL;      
+   //    this->null_block_data = other.null_block_data;
+   //    this->populations = other.populations;
+   //    this->face_neighbor_ranks = other.face_neighbor_ranks;
+   
+   //    return *this;
+   // }
    
    // inline SpatialCell& SpatialCell::operator=(const SpatialCell&) { 
    //    return *this;
    // }
 
+   
 } // namespaces
 
 #endif

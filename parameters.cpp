@@ -136,6 +136,13 @@ uint P::amrMaxVelocityRefLevel = 0;
 Realf P::amrRefineLimit = 1.0;
 Realf P::amrCoarsenLimit = 0.5;
 string P::amrVelRefCriterion = "";
+int P::amrMaxSpatialRefLevel = 0;
+int P::amrBoxHalfWidthX = 1;
+int P::amrBoxHalfWidthY = 1;
+int P::amrBoxHalfWidthZ = 1;
+Realf P::amrBoxCenterX = 0.0;
+Realf P::amrBoxCenterY = 0.0;
+Realf P::amrBoxCenterZ = 0.0;
 
 bool Parameters::addParameters(){
    //the other default parameters we read through the add/get interface
@@ -210,7 +217,8 @@ bool Parameters::addParameters(){
    
 // Output variable parameters
    // NOTE Do not remove the : before the list of variable names as this is parsed by tools/check_vlasiator_cfg.sh
-   Readparameters::addComposing("variables.output", "List of data reduction operators (DROs) to add to the grid file output. Each variable to be added has to be on a new line output = XXX. Available (20190320): B BackgroundB PerturbedB E Rhom Rhoq populations_Rho V populations_V populations_moments_Backstream populations_moments_NonBackstream populations_EffectiveSparsityThreshold populations_RhoLossAdjust LBweight MaxVdt MaxRdt populations_MaxVdt populations_MaxRdt MaxFieldsdt MPIrank FsGridRank FsGridBoundaryType BoundaryType BoundaryLayer populations_Blocks fSaved populations_accSubcycles VolE HallE GradPeE VolB BackgroundVolB PerturbedVolB Pressure populations_PTensor derivs BVOLderivs GridCoordinates Potential BackgroundVolE ChargeDensity PotentialError MeshData");
+   Readparameters::addComposing("variables.output", "List of data reduction operators (DROs) to add to the grid file output.  Each variable to be added has to be on a new line output = XXX.  Available (20190514): B fg_B BackgroundB vg_BackgroundB fg_BackgroundB PerturbedB vg_PerturbedB fg_PerturbedB E fg_E Rhom vg_Rhom fg_Rhom Rhoq vg_Rhoq fg_Rhoq populations_Rho V vg_V fg_V populations_V populations_moments_Backstream populations_moments_NonBackstream populations_EffectiveSparsityThreshold populations_RhoLossAdjust populations_EnergyDensity populations_PrecipitationFlux LBweight MaxVdt MaxRdt populations_MaxVdt populations_MaxRdt MaxFieldsdt MPIrank vg_rank FsGridRank fg_rank FsGridBoundaryType BoundaryType vg_BoundaryType fg_BoundaryType BoundaryLayer vg_BoundaryLayer fg_BoundaryLayer populations_Blocks fSaved populations_accSubcycles VolE vg_VolE fg_VolE HallE GradPeE VolB vg_VolB fg_VolB BackgroundVolB PerturbedVolB Pressure vg_Pressure fg_Pressure populations_PTensor derivs BVOLderivs GridCoordinates Potential BackgroundVolE ChargeDensity PotentialError MeshData");
+
    // NOTE Do not remove the : before the list of variable names as this is parsed by tools/check_vlasiator_cfg.sh
    Readparameters::addComposing("variables.diagnostic", "List of data reduction operators (DROs) to add to the diagnostic runtime output. Each variable to be added has to be on a new line diagnostic = XXX.  Available (20190320): FluxB FluxE populations_Blocks Rhom populations_RhoLossAdjust LBweight populations_MaxVdt MaxVdt populations_MaxRdt MaxRdt MaxFieldsdt populations_MaxDistributionFunction populations_MinDistributionFunction");
 
@@ -224,6 +232,13 @@ bool Parameters::addParameters(){
    Readparameters::add("AMR.max_velocity_level","Maximum velocity mesh refinement level",(uint)0);
    Readparameters::add("AMR.refine_limit","If the refinement criterion function returns a larger value than this, block is refined",(Realf)1.0);
    Readparameters::add("AMR.coarsen_limit","If the refinement criterion function returns a smaller value than this, block can be coarsened",(Realf)0.5);
+   Readparameters::add("AMR.max_spatial_level","Maximum spatial mesh refinement level",(uint)0);
+   Readparameters::add("AMR.box_half_width_x","Half width of the box that is refined (for testing)",(uint)1);
+   Readparameters::add("AMR.box_half_width_y","Half width of the box that is refined (for testing)",(uint)1);
+   Readparameters::add("AMR.box_half_width_z","Half width of the box that is refined (for testing)",(uint)1);
+   Readparameters::add("AMR.box_center_x","x coordinate of the center of the box that is refined (for testing)",0.0);
+   Readparameters::add("AMR.box_center_y","y coordinate of the center of the box that is refined (for testing)",0.0);
+   Readparameters::add("AMR.box_center_z","z coordinate of the center of the box that is refined (for testing)",0.0);
    return true;
 }
 
@@ -377,6 +392,13 @@ bool Parameters::getParameters(){
       P::zmax = 1;
    }
    Readparameters::get("AMR.max_velocity_level",P::amrMaxVelocityRefLevel);
+   Readparameters::get("AMR.max_spatial_level",P::amrMaxSpatialRefLevel);
+   Readparameters::get("AMR.box_half_width_x",P::amrBoxHalfWidthX);
+   Readparameters::get("AMR.box_half_width_y",P::amrBoxHalfWidthY);
+   Readparameters::get("AMR.box_half_width_z",P::amrBoxHalfWidthZ);
+   Readparameters::get("AMR.box_center_x",P::amrBoxCenterX);
+   Readparameters::get("AMR.box_center_y",P::amrBoxCenterY);
+   Readparameters::get("AMR.box_center_z",P::amrBoxCenterZ);
    Readparameters::get("AMR.vel_refinement_criterion",P::amrVelRefCriterion);
    Readparameters::get("AMR.refine_limit",P::amrRefineLimit);
    Readparameters::get("AMR.coarsen_limit",P::amrCoarsenLimit);

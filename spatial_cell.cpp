@@ -34,7 +34,7 @@
 using namespace std;
 
 namespace spatial_cell {
-   int SpatialCell::activePopID = -1;
+   int SpatialCell::activePopID = 0;
    uint64_t SpatialCell::mpi_transfer_type = 0;
    bool SpatialCell::mpiTransferAtSysBoundaries = false;
 
@@ -57,6 +57,12 @@ namespace spatial_cell {
       for (unsigned int i = 0; i < bvolderivatives::N_BVOL_DERIVATIVES; i++) {
          this->derivativesBVOL[i]=0;
       }
+
+      for (unsigned int i = 0; i < MAX_NEIGHBORS_PER_DIM; ++i) {
+         this->neighbor_number_of_blocks[i] = 0;
+         this->neighbor_block_data[i] = NULL;
+      }
+      
       //is transferred by default
       this->mpiTransferEnabled=true;
       
@@ -68,39 +74,23 @@ namespace spatial_cell {
          const species::Species& spec = getObjectWrapper().particleSpecies[popID];
          populations[popID].vmesh.initialize(spec.velocityMesh);
          populations[popID].velocityBlockMinValue = spec.sparseMinValue;
+         populations[popID].N_blocks = 0;
       }
    }
 
-   // SpatialCell::SpatialCell(const SpatialCell& other):
-   //   sysBoundaryFlag(other.sysBoundaryFlag),
-   //   sysBoundaryLayer(other.sysBoundaryLayer),
-   //   sysBoundaryLayerNew(other.sysBoundaryLayerNew),
-   //   velocity_block_with_content_list(other.velocity_block_with_content_list),
-   //   velocity_block_with_no_content_list(other.velocity_block_with_no_content_list),
-   //   initialized(other.initialized),
-   //   mpiTransferEnabled(other.mpiTransferEnabled),
-   //   populations(other.populations),
-   //   parameters(other.parameters),
-   //   derivatives(other.derivatives),
-   //   derivativesBVOL(other.derivativesBVOL),
-   //   null_block_data(std::array<Realf,WID3> {}) {
-
-   //      // //copy parameters
-   //      // for(unsigned int i=0;i< CellParams::N_SPATIAL_CELL_PARAMS;i++){
-   //      //    parameters[i]=other.parameters[i];
-   //      // }
-   //      // //copy derivatives
-   //      // for(unsigned int i=0;i< fieldsolver::N_SPATIAL_CELL_DERIVATIVES;i++){
-   //      //    derivatives[i]=other.derivatives[i];
-   //      // }
-   //      // //copy BVOL derivatives
-   //      // for(unsigned int i=0;i< bvolderivatives::N_BVOL_DERIVATIVES;i++){
-   //      //    derivativesBVOL[i]=other.derivativesBVOL[i];
-   //      // }        
-   //      // //set null block data
-   //      // for (unsigned int i=0; i<WID3; ++i) null_block_data[i] = 0.0;
-   // }
-
+   SpatialCell::SpatialCell(const SpatialCell& other):
+     sysBoundaryFlag(other.sysBoundaryFlag),
+     sysBoundaryLayer(other.sysBoundaryLayer),
+     velocity_block_with_content_list(other.velocity_block_with_content_list),
+     velocity_block_with_no_content_list(other.velocity_block_with_no_content_list),
+     initialized(other.initialized),
+     mpiTransferEnabled(other.mpiTransferEnabled),
+     populations(other.populations),
+     parameters(other.parameters),
+     derivatives(other.derivatives),
+     derivativesBVOL(other.derivativesBVOL),
+     null_block_data(std::array<Realf,WID3> {}) {
+   }
 
    /** Adds "important" and removes "unimportant" velocity blocks
     * to/from this cell.
@@ -658,9 +648,19 @@ namespace spatial_cell {
             /*We are actually transferring the data of a
             * neighbor. The values of neighbor_block_data
             * and neighbor_number_of_blocks should be set in
-            * solver.*/               
-            displacements.push_back((uint8_t*) this->neighbor_block_data - (uint8_t*) this);               
-            block_lengths.push_back(sizeof(Realf) * VELOCITY_BLOCK_LENGTH* this->neighbor_number_of_blocks);
+            * solver.*/
+
+            // Send this data only to ranks that contain face neighbors
+            // this->neighbor_number_of_blocks has been initialized to 0, on other ranks it can stay that way.
+            const set<int>& ranks = this->face_neighbor_ranks[neighborhood];
+            if ( P::amrMaxSpatialRefLevel == 0 || receiving || ranks.find(receiver_rank) != ranks.end()) {
+               
+               for ( int i = 0; i < MAX_NEIGHBORS_PER_DIM; ++i) {
+                  displacements.push_back((uint8_t*) this->neighbor_block_data[i] - (uint8_t*) this);               
+                  block_lengths.push_back(sizeof(Realf) * VELOCITY_BLOCK_LENGTH * this->neighbor_number_of_blocks[i]);
+               }
+               
+            }
          }
 
          // send  spatial cell parameters
@@ -791,8 +791,6 @@ namespace spatial_cell {
             block_lengths.push_back(sizeof(uint));
             displacements.push_back((uint8_t*) &(this->sysBoundaryLayer) - (uint8_t*) this);
             block_lengths.push_back(sizeof(uint));
-            displacements.push_back((uint8_t*) &(this->sysBoundaryLayerNew) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(int));
          }
          
          if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_PARAMETERS) !=0) {
@@ -833,6 +831,28 @@ namespace spatial_cell {
          datatype = MPI_BYTE;
       }
 
+      const bool printMpiDatatype = false;
+      if(printMpiDatatype) {
+         int mpiSize;
+         int myRank;
+         MPI_Type_size(datatype,&mpiSize);
+         MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+         cout << myRank << " get_mpi_datatype: " << cellID << " " << sender_rank << " " << receiver_rank << " " << mpiSize << ", Nblocks = " << populations[activePopID].N_blocks << ", nbr Nblocks =";
+         for (uint i = 0; i < MAX_NEIGHBORS_PER_DIM; ++i) {
+            const set<int>& ranks = this->face_neighbor_ranks[neighborhood];
+            if ( receiving || ranks.find(receiver_rank) != ranks.end()) {
+               cout << " " << this->neighbor_number_of_blocks[i];
+            } else {
+               cout << " " << 0;
+            }
+         }
+         cout << " face_neighbor_ranks =";
+         for (const auto& rank : this->face_neighbor_ranks[neighborhood]) {
+            cout << " " << rank;
+         }
+         cout << endl;         
+      }
+      
       return std::make_tuple(address,count,datatype);
    }
    
@@ -1416,8 +1436,10 @@ namespace spatial_cell {
     * @return True on success.*/
    bool SpatialCell::shrink_to_fit() {
       bool success = true;
+      return success;
+
       for (size_t p=0; p<populations.size(); ++p) {
-         const size_t amount 
+         const uint64_t amount 
             = 2 + populations[p].blockContainer.size() 
             * populations[p].blockContainer.getBlockAllocationFactor();
          

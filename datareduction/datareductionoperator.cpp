@@ -112,9 +112,53 @@ namespace DRO {
       return true;
    }
 
+   std::string DataReductionOperatorFsGrid::getName() const {return variableName;}
+   bool DataReductionOperatorFsGrid::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize = sizeof(double);
+      vectorSize = 1;
+      return true;
+   }
+   bool DataReductionOperatorFsGrid::reduceData(const SpatialCell* cell,char* buffer) {
+      // This returns false, since it will handle writing itself in writeFsGridData below.
+      return false;
+   }
+   bool DataReductionOperatorFsGrid::reduceDiagnostic(const SpatialCell* cell,Real * result) {
+      return false;
+   }
+   bool DataReductionOperatorFsGrid::setSpatialCell(const SpatialCell* cell) {
+      return true;
+   }
 
+   
+   bool DataReductionOperatorFsGrid::writeFsGridData(
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2>& dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volGrid,
+                      FsGrid< fsgrids::technical, 2>& technicalGrid, const std::string& meshName, vlsv::Writer& vlsvWriter) {
 
+      std::map<std::string,std::string> attribs;
+      attribs["mesh"]=meshName;
+      attribs["name"]=variableName;
 
+      std::vector<double> varBuffer =
+         lambda(perBGrid,EGrid,EHallGrid,EGradPeGrid,momentsGrid,dPerBGrid,dMomentsGrid,BgBGrid,volGrid,technicalGrid);
+      
+      std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+      int vectorSize = varBuffer.size() / (gridSize[0]*gridSize[1]*gridSize[2]);
+      if(vlsvWriter.writeArray("VARIABLE",attribs, "float", gridSize[0]*gridSize[1]*gridSize[2], vectorSize, sizeof(double), reinterpret_cast<const char*>(varBuffer.data())) == false) {
+         string message = "The DataReductionOperator " + this->getName() + " failed to write it's data.";
+         bailout(true, message, __FILE__, __LINE__);
+      }
+
+      return true;
+   }
    
    DataReductionOperatorDerivatives::DataReductionOperatorDerivatives(const std::string& name,const unsigned int parameterIndex,const unsigned int vectorSize):
    DataReductionOperatorCellParams(name,parameterIndex,vectorSize) {
@@ -172,43 +216,6 @@ namespace DRO {
       return true;
    }
 
-
-
-
-   //------------------ total B --------------------------------------- 
-   VariableB::VariableB(): DataReductionOperator() { }
-   VariableB::~VariableB() { }
-   
-   bool VariableB::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-      dataType = "float";
-      dataSize =  sizeof(Real);
-      vectorSize = 3;
-      return true;
-   }
-   
-   std::string VariableB::getName() const {return "B";}
-   
-   bool VariableB::reduceData(const SpatialCell* cell,char* buffer) {
-      const char* ptr = reinterpret_cast<const char*>(B);
-      for (uint i = 0; i < 3*sizeof(Real); ++i) buffer[i] = ptr[i];
-      return true;
-   }
-   
-   bool VariableB::setSpatialCell(const SpatialCell* cell) {
-      B[0] = cell->parameters[CellParams::PERBX] +  cell->parameters[CellParams::BGBX];
-      B[1] = cell->parameters[CellParams::PERBY] +  cell->parameters[CellParams::BGBY];
-      B[2] = cell->parameters[CellParams::PERBZ] +  cell->parameters[CellParams::BGBZ];
-      if(std::isinf(B[0]) || std::isnan(B[0]) ||
-         std::isinf(B[1]) || std::isnan(B[1]) ||
-         std::isinf(B[2]) || std::isnan(B[2])
-      ) {
-         string message = "The DataReductionOperator " + this->getName() + " returned a nan or an inf.";
-         bailout(true, message, __FILE__, __LINE__);
-      }
-      return true;
-   }
-   
-   
    //MPI rank
    MPIrank::MPIrank(): DataReductionOperator() { }
    MPIrank::~MPIrank() { }
@@ -236,54 +243,6 @@ namespace DRO {
       return true;
    }
    
-   //FsGrid cartcomm mpi rank
-   FsGridRank::FsGridRank(): DataReductionOperator() { }
-   FsGridRank::~FsGridRank() { }
-   
-   bool FsGridRank::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-      dataType = "int";
-      dataSize = sizeof(int);
-      vectorSize = 1;
-      return true;
-   }
-   
-   std::string FsGridRank::getName() const {return "FSgrid_rank";}
-   
-   bool FsGridRank::reduceData(const SpatialCell* cell,char* buffer) {
-      const char* ptr = reinterpret_cast<const char*>(&fsgridRank);
-      for (uint i=0; i<sizeof(int); ++i) buffer[i] = ptr[i];
-      return true;
-   }
-   
-   bool FsGridRank::setSpatialCell(const SpatialCell* cell) {
-      fsgridRank = cell->get_cell_parameters()[CellParams::FSGRID_RANK];
-      return true;
-   }
-
-   //FsGrids idea of what the boundaryType ist
-   FsGridBoundaryType::FsGridBoundaryType(): DataReductionOperator() { }
-   FsGridBoundaryType::~FsGridBoundaryType() { }
-   
-   bool FsGridBoundaryType::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-      dataType = "int";
-      dataSize = sizeof(int);
-      vectorSize = 1;
-      return true;
-   }
-   
-   std::string FsGridBoundaryType::getName() const {return "FSgrid_boundaryType";}
-   
-   bool FsGridBoundaryType::reduceData(const SpatialCell* cell,char* buffer) {
-      const char* ptr = reinterpret_cast<const char*>(&fsgridBoundaryType);
-      for (uint i=0; i<sizeof(int); ++i) buffer[i] = ptr[i];
-      return true;
-   }
-   
-   bool FsGridBoundaryType::setSpatialCell(const SpatialCell* cell) {
-      fsgridBoundaryType = cell->get_cell_parameters()[CellParams::FSGRID_BOUNDARYTYPE];
-      return true;
-   }
-
    // BoundaryType
    BoundaryType::BoundaryType(): DataReductionOperator() { }
    BoundaryType::~BoundaryType() { }
@@ -1477,14 +1436,14 @@ namespace DRO {
       return true;
    }
 
-
    // Precipitation directional differential number flux
-   VariablePrecipitationDiffFlux::VariablePrecipitationDiffFlux(cuint _popID): DataReductionOperator(),popID(_popID) {
+   VariablePrecipitationDiffFlux::VariablePrecipitationDiffFlux(cuint _popID): DataReductionOperatorHasParameters(),popID(_popID) {
       popName = getObjectWrapper().particleSpecies[popID].name;
-      emin = 0.1;    // keV
-      emax = 100.0;  // keV
-      nChannels = 16; // number of energy channels, logarithmically spaced between emin and emax
       cosAngle = cos(10.*M_PI/180.0); // cosine of fixed loss cone angle
+
+      emin = getObjectWrapper().particleSpecies[popID].emin;    // keV
+      emax = getObjectWrapper().particleSpecies[popID].emax;  // keV
+      nChannels = getObjectWrapper().particleSpecies[popID].nChannels; // number of energy channels, logarithmically spaced between emin and emax
       for (int i=0; i<nChannels; i++){
          channels.push_back(emin * pow(emax/emin,float(i/(nChannels-1))));
       }
@@ -1524,7 +1483,6 @@ namespace DRO {
             B[i] = -B[i];
          }
       }
-      
 
       # pragma omp parallel
       {
@@ -1603,4 +1561,95 @@ namespace DRO {
          if( vlsvWriter.writeParameter("PrecipitationCentreEnergy"+std::to_string(i), &channels[i]) == false ) { return false; }
       }
       return true;
+   }
+
+
+
+
+   VariableEnergyDensity::VariableEnergyDensity(cuint _popID): DataReductionOperatorHasParameters(),popID(_popID) {
+      popName = getObjectWrapper().particleSpecies[popID].name;
+   }
+   VariableEnergyDensity::~VariableEnergyDensity() { }
+   
+   std::string VariableEnergyDensity::getName() const {return popName + "/EnergyDensity";}
+   
+   bool VariableEnergyDensity::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize =  sizeof(Real);
+      vectorSize = 3; // This is not components, but rather total energy density, density over E1, and density over E2
+      return true;
+   }
+   
+   bool VariableEnergyDensity::reduceData(const SpatialCell* cell,char* buffer) {
+      const Real HALF = 0.5;
+      # pragma omp parallel
+      {
+         Real thread_E0_sum = 0.0;
+         Real thread_E1_sum = 0.0;
+         Real thread_E2_sum = 0.0;
+         
+         const Real* parameters  = cell->get_block_parameters(popID);
+         const Realf* block_data = cell->get_data(popID);
+        
+         # pragma omp for
+         for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); n++) {
+	    const Real DV3 
+	       = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]
+	       * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY] 
+	       * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+
+	    for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
+	       const Real VX 
+		 =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
+		 + (i + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
+	       const Real VY 
+		 =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] 
+		 + (j + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
+	       const Real VZ 
+		 =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] 
+		 + (k + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+                     
+	       const Real ENERGY = (VX*VX + VY*VY + VZ*VZ) * HALF * getObjectWrapper().particleSpecies[popID].mass;
+	       thread_E0_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * ENERGY * DV3;
+	       if (ENERGY > E1limit) thread_E1_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * ENERGY * DV3;
+	       if (ENERGY > E2limit) thread_E2_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * ENERGY * DV3;
+            }
+         }
+            EDensity[0] += thread_E0_sum;
+            EDensity[1] += thread_E1_sum;
+            EDensity[2] += thread_E2_sum;
+         }
+
+      }
+      // Store energy density in units eV/cm^3 instead of Joules per m^3
+      EDensity[0] *= (1.0e-6)/physicalconstants::CHARGE;
+      EDensity[1] *= (1.0e-6)/physicalconstants::CHARGE;
+      EDensity[2] *= (1.0e-6)/physicalconstants::CHARGE;
+
+      const char* ptr = reinterpret_cast<const char*>(&EDensity);
+      for (uint i = 0; i < 3*sizeof(Real); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+   
+   bool VariableEnergyDensity::setSpatialCell(const SpatialCell* cell) {
+      for(int i = 0; i < 3; i++) {
+	 EDensity[i] = 0.0;
+      }
+      solarwindenergy = getObjectWrapper().particleSpecies[popID].SolarWindEnergy;
+      E1limit = solarwindenergy * getObjectWrapper().particleSpecies[popID].EnergyDensityLimit1;
+      E2limit = solarwindenergy * getObjectWrapper().particleSpecies[popID].EnergyDensityLimit2;
+      return true;
+   }
+   
+   bool VariableEnergyDensity::writeParameters(vlsv::Writer& vlsvWriter) {
+      // Output energies in eV
+      Real swe = solarwindenergy/physicalconstants::CHARGE;
+      Real e1l = E1limit/physicalconstants::CHARGE;
+      Real e2l = E2limit/physicalconstants::CHARGE;
+      if( vlsvWriter.writeParameter("EnergyDensityESW", &swe) == false ) { return false; }
+      if( vlsvWriter.writeParameter("EnergyDensityELimit1", &e1l) == false ) { return false; }
+      if( vlsvWriter.writeParameter("EnergyDensityELimit2", &e2l) == false ) { return false; }
+      return true;
+   }
+
 } // namespace DRO

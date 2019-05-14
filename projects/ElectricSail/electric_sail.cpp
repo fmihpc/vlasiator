@@ -210,86 +210,92 @@ namespace projects {
    /**
     * 
     * NOTE: This is only called in grid.cpp:initializeGrid.
-    * NOTE: This function must be thread-safe.
     */
-   void ElectricSail::setCellBackgroundField(SpatialCell* cell) const {
-      Real X  = cell->parameters[CellParams::XCRD];
-      Real Y  = cell->parameters[CellParams::YCRD];
-      Real Z  = cell->parameters[CellParams::ZCRD];
-      Real DX = cell->parameters[CellParams::DX];
-      Real DY = cell->parameters[CellParams::DY];
-      Real DZ = cell->parameters[CellParams::DZ];
-
-      cell->parameters[CellParams::RHOQ_EXT] = 0;
-      Real pos[3];
-      pos[0] = cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX];
-      pos[1] = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];
-      pos[2] = cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ];
-
-      Real factor = 1.0;
-      if (timeDependentCharge == true) {
-         factor = max((Real)0.0,(Real)1.0+(Parameters::t-tetherChargeRiseTime)/tetherChargeRiseTime);
-         factor = min((Real)1.0,factor);
-      }
-
-      if (useBackgroundField == false) {
-         Real rad = sqrt(pos[0]*pos[0]+pos[1]*pos[1]+pos[2]*pos[2]);
-         Real D3 = cell->parameters[CellParams::DX]*cell->parameters[CellParams::DY];
-         if (rad <= 5) cell->parameters[CellParams::RHOQ_EXT] = 0.25*factor*tetherUnitCharge/D3/physicalconstants::EPS_0;
-         
-         cell->parameters[CellParams::BGEXVOL] = 0;
-         cell->parameters[CellParams::BGEYVOL] = 0;
-         cell->parameters[CellParams::BGEZVOL] = 0;
-         return;
-      }
-       
-      cell->parameters[CellParams::RHOQ_EXT] = 0;
-
-      const Real EPSILON = 1e-30;
-      uint N = 1;
-      int N3_sum = 0;
-      Real E_vol[3] = {0,0,0};
-      
-      bool ok = false;
-      do {
-         Real E_current[3] = {0,0,0};
-
-         const Real DX_N = DX / N;
-         const Real DY_N = DY / N;
-         const Real DZ_N = DZ / N;
-
-         // Sample E using N points
-         Real E_dummy[3] = {0,0,0};
-         for (uint k=0; k<N; ++k) for (uint j=0; j<N; ++j) for (uint i=0; i<N; ++i) {
-            Real x[3];
-            x[0] = X + 0.5*DX_N + i*DX_N;
-            x[1] = Y + 0.5*DY_N + j*DY_N;
-            x[2] = Z + 0.5*DZ_N + k*DZ_N;
-
-            tetherElectricField(x,E_dummy);
-            E_current[0] += E_dummy[0];
-            E_current[1] += E_dummy[1];
-            E_current[1] += E_dummy[2];
-         }
-
-         // Check if the current estimate of volume-averaged E is good enough
-         Real delta = 0;
-         delta = max(delta,(E_current[0]-E_vol[0])/(E_current[0]+EPSILON));
-         delta = max(delta,(E_current[1]-E_vol[1])/(E_current[1]+EPSILON));
-         delta = max(delta,(E_current[2]-E_vol[2])/(E_current[2]+EPSILON));
-         if (delta < poisson::Poisson::minRelativePotentialChange) ok = true;
-         if (N >= poisson::Poisson::maxIterations) ok = true;
-
-         // Add new E values to accumulated sums
-         for (int i=0; i<3; ++i) E_vol[i] += E_current[i];
-         N3_sum += N*N*N;
-         ++N;
-      } while (ok == false);
-      
-      // Store the computed volume-average
-      cell->parameters[CellParams::BGEXVOL] = E_vol[0] / N3_sum;
-      cell->parameters[CellParams::BGEYVOL] = E_vol[1] / N3_sum;
-      cell->parameters[CellParams::BGEZVOL] = E_vol[2] / N3_sum;
+   void ElectricSail::setProjectBField(
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+      FsGrid< fsgrids::technical, 2>& technicalGrid
+   ) {
+#warning this is not supported at the moment, needs to be ported to fsgrid
+      std::cerr << "ERROR: ElectricSail::setProjectBField is not ported to fsgrid! Aborting." << std::endl;
+      abort();
+//       Real X  = cell->parameters[CellParams::XCRD];
+//       Real Y  = cell->parameters[CellParams::YCRD];
+//       Real Z  = cell->parameters[CellParams::ZCRD];
+//       Real DX = cell->parameters[CellParams::DX];
+//       Real DY = cell->parameters[CellParams::DY];
+//       Real DZ = cell->parameters[CellParams::DZ];
+// 
+//       cell->parameters[CellParams::RHOQ_EXT] = 0;
+//       Real pos[3];
+//       pos[0] = cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX];
+//       pos[1] = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];
+//       pos[2] = cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ];
+// 
+//       Real factor = 1.0;
+//       if (timeDependentCharge == true) {
+//          factor = max((Real)0.0,(Real)1.0+(Parameters::t-tetherChargeRiseTime)/tetherChargeRiseTime);
+//          factor = min((Real)1.0,factor);
+//       }
+// 
+//       if (useBackgroundField == false) {
+//          Real rad = sqrt(pos[0]*pos[0]+pos[1]*pos[1]+pos[2]*pos[2]);
+//          Real D3 = cell->parameters[CellParams::DX]*cell->parameters[CellParams::DY];
+//          if (rad <= 5) cell->parameters[CellParams::RHOQ_EXT] = 0.25*factor*tetherUnitCharge/D3/physicalconstants::EPS_0;
+//          
+//          cell->parameters[CellParams::BGEXVOL] = 0;
+//          cell->parameters[CellParams::BGEYVOL] = 0;
+//          cell->parameters[CellParams::BGEZVOL] = 0;
+//          return;
+//       }
+//        
+//       cell->parameters[CellParams::RHOQ_EXT] = 0;
+// 
+//       const Real EPSILON = 1e-30;
+//       uint N = 1;
+//       int N3_sum = 0;
+//       Real E_vol[3] = {0,0,0};
+//       
+//       bool ok = false;
+//       do {
+//          Real E_current[3] = {0,0,0};
+// 
+//          const Real DX_N = DX / N;
+//          const Real DY_N = DY / N;
+//          const Real DZ_N = DZ / N;
+// 
+//          // Sample E using N points
+//          Real E_dummy[3] = {0,0,0};
+//          for (uint k=0; k<N; ++k) for (uint j=0; j<N; ++j) for (uint i=0; i<N; ++i) {
+//             Real x[3];
+//             x[0] = X + 0.5*DX_N + i*DX_N;
+//             x[1] = Y + 0.5*DY_N + j*DY_N;
+//             x[2] = Z + 0.5*DZ_N + k*DZ_N;
+// 
+//             tetherElectricField(x,E_dummy);
+//             E_current[0] += E_dummy[0];
+//             E_current[1] += E_dummy[1];
+//             E_current[1] += E_dummy[2];
+//          }
+// 
+//          // Check if the current estimate of volume-averaged E is good enough
+//          Real delta = 0;
+//          delta = max(delta,(E_current[0]-E_vol[0])/(E_current[0]+EPSILON));
+//          delta = max(delta,(E_current[1]-E_vol[1])/(E_current[1]+EPSILON));
+//          delta = max(delta,(E_current[2]-E_vol[2])/(E_current[2]+EPSILON));
+//          if (delta < poisson::Poisson::minRelativePotentialChange) ok = true;
+//          if (N >= poisson::Poisson::maxIterations) ok = true;
+// 
+//          // Add new E values to accumulated sums
+//          for (int i=0; i<3; ++i) E_vol[i] += E_current[i];
+//          N3_sum += N*N*N;
+//          ++N;
+//       } while (ok == false);
+//       
+//       // Store the computed volume-average
+//       cell->parameters[CellParams::BGEXVOL] = E_vol[0] / N3_sum;
+//       cell->parameters[CellParams::BGEYVOL] = E_vol[1] / N3_sum;
+//       cell->parameters[CellParams::BGEZVOL] = E_vol[2] / N3_sum;
 
    }
 

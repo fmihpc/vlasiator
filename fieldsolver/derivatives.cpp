@@ -88,13 +88,13 @@ void calculateDerivatives(
       #ifdef DEBUG_SOLVERS
       if (leftMoments->at(fsgrids::moments::RHOM) <= 0) {
          std::cerr << __FILE__ << ":" << __LINE__
-            << (leftMoments->at(fsgrids::moments::RHOM) < 0 ? " Negative" : " Zero") << " density in spatial cell " << leftNbrID
+            << (leftMoments->at(fsgrids::moments::RHOM) < 0 ? " Negative" : " Zero") << " density in spatial cell " //<< leftNbrID
             << std::endl;
          abort();
       }
-      if (rightMoments->at(fsgrids::moments::RHOM) <= 0) {
+      if (rghtMoments->at(fsgrids::moments::RHOM) <= 0) {
          std::cerr << __FILE__ << ":" << __LINE__
-            << (rightMoments->at(fsgrids::moments::RHOM) < 0 ? " Negative" : " Zero") << " density in spatial cell " << rightNbrID
+            << (rghtMoments->at(fsgrids::moments::RHOM) < 0 ? " Negative" : " Zero") << " density in spatial cell " //<< rightNbrID
             << std::endl;
          abort();
       }

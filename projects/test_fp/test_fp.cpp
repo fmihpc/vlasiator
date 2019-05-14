@@ -105,59 +105,81 @@ namespace projects {
       return result;
    }
    
-   void test_fp::setCellBackgroundField(spatial_cell::SpatialCell *cell) const {
-      setBackgroundFieldToZero(cell->parameters.data(), cell->derivatives.data(),cell->derivativesBVOL.data());
+   void test_fp::setProjectBField(
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+      FsGrid< fsgrids::technical, 2>& technicalGrid
+   ) {
+      setBackgroundFieldToZero(BgBGrid);
+      
+      auto localSize = perBGrid.getLocalSize();
+      
+      creal dx = perBGrid.DX * 3.5;
+      creal dy = perBGrid.DY * 3.5;
+      creal dz = perBGrid.DZ * 3.5;
+      
+      Real areaFactor = 1.0;
+      
+      #pragma omp parallel for collapse(3)
+      for (int x = 0; x < localSize[0]; ++x) {
+         for (int y = 0; y < localSize[1]; ++y) {
+            for (int z = 0; z < localSize[2]; ++z) {
+               const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
+               std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
+               
+               creal x = xyz[0] + 0.5 * perBGrid.DX;
+               creal y = xyz[1] + 0.5 * perBGrid.DY;
+               creal z = xyz[2] + 0.5 * perBGrid.DZ;
+               
+               switch (this->CASE) {
+                  case BXCASE:         
+                     cell->at(fsgrids::bfield::PERBX) = 0.1 * this->B0 * areaFactor;
+                     //areaFactor = (CellParams::DY * CellParams::DZ) / (dy * dz);
+                     if (y >= -dy && y <= dy)
+                        if (z >= -dz && z <= dz)
+                           cell->at(fsgrids::bfield::PERBX) = this->B0 * areaFactor;
+                     break;
+                  case BYCASE:
+                     cell->at(fsgrids::bfield::PERBY) = 0.1 * this->B0 * areaFactor;
+                     //areaFactor = (CellParams::DX * CellParams::DZ) / (dx * dz);
+                     if (x >= -dx && x <= dx)
+                        if (z >= -dz && z <= dz)
+                           cell->at(fsgrids::bfield::PERBY) = this->B0 * areaFactor;
+                     break;
+                  case BZCASE:
+                     cell->at(fsgrids::bfield::PERBZ) = 0.1 * this->B0 * areaFactor;
+                     //areaFactor = (CellParams::DX * CellParams::DY) / (dx * dy);
+                     if (x >= -dx && x <= dx)
+                        if (y >= -dy && y <= dy)
+                           cell->at(fsgrids::bfield::PERBZ) = this->B0 * areaFactor;
+                     break;
+                  case BALLCASE:
+                     cell->at(fsgrids::bfield::PERBX) = 0.1 * this->B0 * areaFactor;
+                     cell->at(fsgrids::bfield::PERBY) = 0.1 * this->B0 * areaFactor;
+                     cell->at(fsgrids::bfield::PERBZ) = 0.1 * this->B0 * areaFactor;
+                     
+                     //areaFactor = (CellParams::DX * CellParams::DY) / (dx * dy);
+                     
+                     if (y >= -dy && y <= dy)
+                        if (z >= -dz && z <= dz)
+                           cell->at(fsgrids::bfield::PERBX) = this->B0 * areaFactor;
+                     if (x >= -dx && x <= dx)
+                        if (z >= -dz && z <= dz)
+                           cell->at(fsgrids::bfield::PERBY) = this->B0 * areaFactor;
+                     if (x >= -dx && x <= dx)
+                        if (y >= -dy && y <= dy)
+                           cell->at(fsgrids::bfield::PERBZ) = this->B0 * areaFactor;
+                     break;
+               }
+            }
+         }
+      }
    }
    
    void test_fp::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
-      Real* cellParams = cell->get_cell_parameters();
-      cellParams[CellParams::EX   ] = 0.0;
-      cellParams[CellParams::EY   ] = 0.0;
-      cellParams[CellParams::EZ   ] = 0.0;
-      cellParams[CellParams::PERBX   ] = 0.0;
-      cellParams[CellParams::PERBY   ] = 0.0;
-      cellParams[CellParams::PERBZ   ] = 0.0;
       
       typedef Parameters P;
-      creal dx = cellParams[CellParams::DX];
-      creal x = cellParams[CellParams::XCRD] + 0.5 * dx;
-      creal y = cellParams[CellParams::YCRD] + 0.5 * cellParams[CellParams::DY];
-      creal z = cellParams[CellParams::ZCRD] + 0.5 * cellParams[CellParams::DZ];
       
-      switch (this->CASE) {
-      case BXCASE:
-         cellParams[CellParams::PERBX] = 0.1 * this->B0;
-         if (y >= -3.5 * dx && y <= 3.5 * dx)
-           if (z >= -3.5 * dx && z <= 3.5 * dx)
-             cellParams[CellParams::PERBX] = this->B0;
-         break;
-      case BYCASE:
-         cellParams[CellParams::PERBY] = 0.1 * this->B0;
-         if (x >= -3.5 * dx && x <= 3.5 * dx)
-           if (z >= -3.5 * dx && z <= 3.5 * dx)
-             cellParams[CellParams::PERBY] = this->B0;
-         break;
-      case BZCASE:
-         cellParams[CellParams::PERBZ] = 0.1 * this->B0;
-         if (x >= -3.5 * dx && x <= 3.5 * dx)
-           if (y >= -3.5 * dx && y <= 3.5 * dx)
-             cellParams[CellParams::PERBZ] = this->B0;
-         break;
-       case BALLCASE:
-         cellParams[CellParams::PERBX] = 0.1 * this->B0;
-         cellParams[CellParams::PERBY] = 0.1 * this->B0;
-         cellParams[CellParams::PERBZ] = 0.1 * this->B0;
-         if (y >= -3.5 * dx && y <= 3.5 * dx)
-           if (z >= -3.5 * dx && z <= 3.5 * dx)
-             cellParams[CellParams::PERBX] = this->B0;
-         if (x >= -3.5 * dx && x <= 3.5 * dx)
-           if (z >= -3.5 * dx && z <= 3.5 * dx)
-             cellParams[CellParams::PERBY] = this->B0;
-         if (x >= -3.5 * dx && x <= 3.5 * dx)
-           if (y >= -3.5 * dx && y <= 3.5 * dx)
-             cellParams[CellParams::PERBZ] = this->B0;
-         break;
-      }
    }
    
    vector<std::array<Real, 3>> test_fp::getV0(
@@ -250,4 +272,58 @@ namespace projects {
       
       return this->getV0(x,y,z,dx,dy,dz,popID);
    }
+
+   bool test_fp::refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
+ 
+     int myRank;       
+     MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+
+     // mpiGrid.set_maximum_refinement_level(std::min(this->maxSpatialRefinementLevel, mpiGrid.mapping.get_maximum_refinement_level()));
+
+      // cout << "I am at line " << __LINE__ << " of " << __FILE__ <<  endl;
+     if(myRank == MASTER_RANK) std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
+
+
+      for (double x = P::amrBoxCenterX - P::amrBoxHalfWidthX * P::dx_ini; x <= P::amrBoxCenterX + P::amrBoxHalfWidthX * P::dx_ini; x += 0.99 * P::dx_ini) {
+         for (double y = P::amrBoxCenterY - P::amrBoxHalfWidthY * P::dy_ini; y <= P::amrBoxCenterY + P::amrBoxHalfWidthY * P::dy_ini; y += 0.99 * P::dy_ini) {
+            for (double z = P::amrBoxCenterZ - P::amrBoxHalfWidthZ * P::dz_ini; z <= P::amrBoxCenterZ + P::amrBoxHalfWidthZ * P::dz_ini; z += 0.99 * P::dz_ini) {
+     
+               std::array<double,3> xyz;
+               xyz[0] = x;
+               xyz[1] = y;
+               xyz[2] = z;
+               CellID myCell = mpiGrid.get_existing_cell(xyz);
+               if (mpiGrid.refine_completely_at(xyz)) {
+                  std::cout << "Rank " << myRank << " is refining cell " << myCell << std::endl;
+               }
+            }
+         }
+      }
+
+      std::vector<CellID> refinedCells = mpiGrid.stop_refining(true);      
+      if(myRank == MASTER_RANK) std::cout << "Finished first level of refinement" << endl;
+      if(refinedCells.size() > 0) {
+	std::cout << "Refined cells produced by rank " << myRank << " are: ";
+	for (auto cellid : refinedCells) {
+	  std::cout << cellid << " ";
+	}
+	std::cout << endl;
+      }      
+                  
+      mpiGrid.balance_load();
+
+//       auto cells = mpiGrid.get_cells();           
+//       if(cells.empty()) {
+//          std::cout << "Rank " << myRank << " has no cells!" << std::endl;
+//       } else {
+//          std::cout << "Cells on rank " << myRank << ": ";
+//          for (auto c : cells) {
+//             std::cout << c << " ";
+//          }
+//          std::cout << std::endl;
+//       }
+
+      return true;
+   }
+
 }// namespace projects

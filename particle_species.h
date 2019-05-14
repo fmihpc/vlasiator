@@ -59,7 +59,7 @@ namespace species {
 
       Real backstreamRadius;           /*!< Radius of sphere to split the distribution into backstreaming and non-backstreaming. 0 (default in cfg) disables the DRO. */
       std::array<Real, 3> backstreamV; /*!< Centre of sphere to split the distribution into backstreaming and non-backstreaming. 0 (default in cfg) disables the DRO. */
-      
+
       Real EnergyDensityLimit1;   /*!< Lower bound for second Energy density bin in units of solar wind ram energy. Default 5. */
       Real EnergyDensityLimit2;   /*!< Lower bound forthird Energy density bin in units of solar wind ram energy. Default 10. */
       Real SolarWindEnergy;       /*!< Solar wind ram energy, used for calculating energy density bins. Default value of 0 attempts to use SolarWindSpeed instead.  */

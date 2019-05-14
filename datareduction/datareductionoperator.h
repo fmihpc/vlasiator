@@ -29,6 +29,7 @@
 #include <dccrg.hpp>
 #include <dccrg_cartesian_geometry.hpp>
 
+#include "fsgrid.hpp"
 #include "../definitions.h"
 #include "../spatial_cell.hpp"
 #include "../parameters.h"
@@ -71,6 +72,50 @@ namespace DRO {
       virtual bool writeData(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                              const std::vector<CellID>& cells,const std::string& meshName,
                              vlsv::Writer& vlsvWriter) = 0;
+   };
+
+   class DataReductionOperatorHasParameters: public DataReductionOperator {
+   public:
+      DataReductionOperatorHasParameters() : DataReductionOperator() {};
+      virtual bool writeParameters(vlsv::Writer& vlsvWriter) = 0;
+   };
+
+   class DataReductionOperatorFsGrid : public DataReductionOperator {
+
+      public:
+        typedef std::function<std::vector<double>(
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2>& dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volGrid,
+                      FsGrid< fsgrids::technical, 2>& technicalGrid)> ReductionLambda;
+      private:
+         ReductionLambda lambda;
+         std::string variableName;
+
+      public:
+         DataReductionOperatorFsGrid(const std::string& name, ReductionLambda l) : DataReductionOperator(),lambda(l),variableName(name) {};
+	 virtual std::string getName() const;
+	 virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+	 virtual bool setSpatialCell(const SpatialCell* cell);
+	 virtual bool reduceData(const SpatialCell* cell,char* buffer);
+	 virtual bool reduceDiagnostic(const SpatialCell* cell,Real * result);
+         virtual bool writeFsGridData(
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2>& dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volGrid,
+                      FsGrid< fsgrids::technical, 2>& technicalGrid, const std::string& meshName, vlsv::Writer& vlsvWriter);
    };
 
    class DataReductionOperatorCellParams: public DataReductionOperator {
@@ -116,36 +161,6 @@ namespace DRO {
    protected:
       Real rank;
       int mpiRank;
-   };
-
-   class FsGridRank: public DataReductionOperator {
-   public:
-      FsGridRank();
-      virtual ~FsGridRank();
-      
-      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
-      virtual std::string getName() const;
-      virtual bool reduceData(const SpatialCell* cell,char* buffer);
-      virtual bool setSpatialCell(const SpatialCell* cell);
-      
-   protected:
-      Real rank;
-      int fsgridRank;
-   };
-
-   class FsGridBoundaryType: public DataReductionOperator {
-   public:
-      FsGridBoundaryType();
-      virtual ~FsGridBoundaryType();
-      
-      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
-      virtual std::string getName() const;
-      virtual bool reduceData(const SpatialCell* cell,char* buffer);
-      virtual bool setSpatialCell(const SpatialCell* cell);
-      
-   protected:
-      Real rank;
-      int fsgridBoundaryType;
    };
    
    class BoundaryType: public DataReductionOperator {
@@ -193,21 +208,6 @@ namespace DRO {
       std::string popName;
    };
    
-   class VariableB: public DataReductionOperator {
-   public:
-      VariableB();
-      virtual ~VariableB();
-      
-      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
-      virtual std::string getName() const;
-      virtual bool reduceData(const SpatialCell* cell,char* buffer);
-      virtual bool setSpatialCell(const SpatialCell* cell);
-      
-   protected:
-      Real B[3];
-   };
-
-      
    class VariableBVol: public DataReductionOperator {
    public:
       VariableBVol();
@@ -506,9 +506,29 @@ namespace DRO {
       uint popID;
       std::string popName;
    };
+
+   class VariableEnergyDensity: public DataReductionOperatorHasParameters {
+   public:
+      VariableEnergyDensity(cuint popID);
+      virtual ~VariableEnergyDensity();
+
+      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual std::string getName() const;
+      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool setSpatialCell(const SpatialCell* cell);
+      virtual bool writeParameters(vlsv::Writer& vlsvWriter);
+
+   protected:
+      uint popID;
+      std::string popName;
+      Real EDensity[3];
+      Real solarwindenergy;
+      Real E1limit;
+      Real E2limit;
+   };
    
    // Precipitation directional differential number flux
-   class VariablePrecipitationDiffFlux: public DataReductionOperator {
+   class VariablePrecipitationDiffFlux: public DataReductionOperatorHasParameters {
    public:
       VariablePrecipitationDiffFlux(cuint popID);
       virtual ~VariablePrecipitationDiffFlux();

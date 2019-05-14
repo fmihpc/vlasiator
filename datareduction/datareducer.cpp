@@ -36,28 +36,205 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
    for (it = P::outputVariableList.begin();
         it != P::outputVariableList.end();
         it++) {
-      if(*it == "B") { // Bulk magnetic field at Yee-Lattice locations
-         outputReducer->addOperator(new DRO::VariableB);
+      if(*it == "fg_B" || *it == "B") { // Bulk magnetic field at Yee-Lattice locations
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_B",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2>& dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volGrid,
+                      FsGrid< fsgrids::technical, 2>& technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]*3);
+
+               // Iterate through fsgrid cells and extract total magnetic field
+               for(int z=0; z<gridSize[2]; z++) {
+                 for(int y=0; y<gridSize[1]; y++) {
+                   for(int x=0; x<gridSize[0]; x++) {
+                     retval[3*(gridSize[1]*gridSize[0]*z + gridSize[0]*y + x)] =     (*BgBGrid.get(x,y,z))[fsgrids::BGBX]
+                     + (*perBGrid.get(x,y,z))[fsgrids::PERBX];
+                     retval[3*(gridSize[1]*gridSize[0]*z + gridSize[0]*y + x) + 1] = (*BgBGrid.get(x,y,z))[fsgrids::BGBY]
+                       + (*perBGrid.get(x,y,z))[fsgrids::PERBY];
+                     retval[3*(gridSize[1]*gridSize[0]*z + gridSize[0]*y + x) + 2] = (*BgBGrid.get(x,y,z))[fsgrids::BGBZ]
+                       + (*perBGrid.get(x,y,z))[fsgrids::PERBZ];
+                   }
+                 }
+               }
+               return retval;
+         }
+         ));
          continue;
       }
-      if(*it == "BackgroundB") { // Static (typically dipole) magnetic field part
+      if(*it == "fg_BackgroundB" || *it == "BackgroundB") { // Static (typically dipole) magnetic field part
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_background_B",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2>& dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volGrid,
+                      FsGrid< fsgrids::technical, 2>& technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]*3);
+
+               // Iterate through fsgrid cells and extract background B
+               for(int z=0; z<gridSize[2]; z++) {
+                 for(int y=0; y<gridSize[1]; y++) {
+                   for(int x=0; x<gridSize[0]; x++) {
+                     retval[3*(gridSize[1]*gridSize[0]*z + gridSize[0]*y + x)] =     (*BgBGrid.get(x,y,z))[fsgrids::BGBX];
+                     retval[3*(gridSize[1]*gridSize[0]*z + gridSize[0]*y + x) + 1] = (*BgBGrid.get(x,y,z))[fsgrids::BGBY];
+                     retval[3*(gridSize[1]*gridSize[0]*z + gridSize[0]*y + x) + 2] = (*BgBGrid.get(x,y,z))[fsgrids::BGBZ];
+                   }
+                 }
+               }
+               return retval;
+         }
+         ));
+         continue;
+      }
+      if(*it == "vg_BackgroundB") { // Static (typically dipole) magnetic field part
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("background_B",CellParams::BGBX,3));
          continue;
       }
-      if(*it == "PerturbedB") { // Fluctuating magnetic field part
+      if(*it == "fg_PerturbedB" || *it == "PerturbedB") { // Fluctuating magnetic field part
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_perturbed_B",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2>& dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volGrid,
+                      FsGrid< fsgrids::technical, 2>& technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]*3);
+
+               // Iterate through fsgrid cells and extract values
+               for(int z=0; z<gridSize[2]; z++) {
+                 for(int y=0; y<gridSize[1]; y++) {
+                   for(int x=0; x<gridSize[0]; x++) {
+                     retval[3*(gridSize[1]*gridSize[0]*z + gridSize[0]*y + x)] =     (*perBGrid.get(x,y,z))[fsgrids::PERBX];
+                     retval[3*(gridSize[1]*gridSize[0]*z + gridSize[0]*y + x) + 1] = (*perBGrid.get(x,y,z))[fsgrids::PERBY];
+                     retval[3*(gridSize[1]*gridSize[0]*z + gridSize[0]*y + x) + 2] = (*perBGrid.get(x,y,z))[fsgrids::PERBZ];
+                   }
+                 }
+               }
+               return retval;
+         }
+         ));
+         continue;
+      }
+      if(*it == "vg_PerturbedB") { // Fluctuating magnetic field part
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("perturbed_B",CellParams::PERBX,3));
          continue;
       }
-      if(*it == "E") { // Bulk electric field at Yee-lattice locations
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("E",CellParams::EX,3));
+      if(*it == "fg_E" || *it== "E") { // Bulk electric field at Yee-lattice locations
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_E",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2>& dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volGrid,
+                      FsGrid< fsgrids::technical, 2>& technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]*3);
+
+               // Iterate through fsgrid cells and extract E values
+               for(int z=0; z<gridSize[2]; z++) {
+                 for(int y=0; y<gridSize[1]; y++) {
+                   for(int x=0; x<gridSize[0]; x++) {
+                     retval[3*(gridSize[1]*gridSize[0]*z + gridSize[0]*y + x)] =     (*EGrid.get(x,y,z))[fsgrids::EX];
+                     retval[3*(gridSize[1]*gridSize[0]*z + gridSize[0]*y + x) + 1] = (*EGrid.get(x,y,z))[fsgrids::EY];
+                     retval[3*(gridSize[1]*gridSize[0]*z + gridSize[0]*y + x) + 2] = (*EGrid.get(x,y,z))[fsgrids::EZ];
+                   }
+                 }
+               }
+               return retval;
+         }
+         ));
          continue;
       }
-      if(*it == "Rhom") { // Overall mass density (summed over all populations)
+      if(*it == "vg_Rhom" || *it == "Rhom") { // Overall mass density (summed over all populations)
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("rhom",CellParams::RHOM,1));
          continue;
       }
-      if(*it == "Rhoq") { // Overall charge density (summed over all populations)
+      if(*it == "fg_Rhom") { // Overall mass density (summed over all populations)
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_rhom",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2>& dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volGrid,
+                      FsGrid< fsgrids::technical, 2>& technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract rho valuesg
+               for(int z=0; z<gridSize[2]; z++) {
+                 for(int y=0; y<gridSize[1]; y++) {
+                   for(int x=0; x<gridSize[0]; x++) {
+                     retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = (*momentsGrid.get(x,y,z))[fsgrids::RHOM];
+                   }
+                 }
+               }
+               return retval;
+         }
+         ));
+         continue;
+      }
+      if(*it == "vg_Rhoq" || *it == "Rhoq") { // Overall charge density (summed over all populations)
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("rhoq",CellParams::RHOQ,1));
+         continue;
+      }
+      if(*it == "fg_Rhoq") { // Overall charge density (summed over all populations)
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_rhoq",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2>& dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volGrid,
+                      FsGrid< fsgrids::technical, 2>& technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract charge density
+               for(int z=0; z<gridSize[2]; z++) {
+                 for(int y=0; y<gridSize[1]; y++) {
+                   for(int x=0; x<gridSize[0]; x++) {
+                     retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = (*momentsGrid.get(x,y,z))[fsgrids::RHOQ];
+                   }
+                 }
+               }
+               return retval;
+         }
+         ));
          continue;
       }
       if(*it == "populations_Rho") { // Per-population particle number density
@@ -69,8 +246,39 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          continue;
       }
       
-      if(*it == "V") { // Overall effective bulk density defining the center-of-mass frame from all populations
+      if(*it == "V" || *it == "vg_V") { // Overall effective bulk density defining the center-of-mass frame from all populations
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("V",CellParams::VX,3));
+         continue;
+      }
+      if(*it == "fg_V") { // Overall effective bulk density defining the center-of-mass frame from all populations
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_V",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2>& dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volGrid,
+                      FsGrid< fsgrids::technical, 2>& technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]*3);
+
+               // Iterate through fsgrid cells and extract bulk Velocity
+               for(int z=0; z<gridSize[2]; z++) {
+                 for(int y=0; y<gridSize[1]; y++) {
+                   for(int x=0; x<gridSize[0]; x++) {
+                     retval[3*(gridSize[1]*gridSize[0]*z + gridSize[0]*y + x)] =     (*momentsGrid.get(x,y,z))[fsgrids::VX];
+                     retval[3*(gridSize[1]*gridSize[0]*z + gridSize[0]*y + x) + 1] = (*momentsGrid.get(x,y,z))[fsgrids::VY];
+                     retval[3*(gridSize[1]*gridSize[0]*z + gridSize[0]*y + x) + 2] = (*momentsGrid.get(x,y,z))[fsgrids::VZ];
+                   }
+                 }
+               }
+               return retval;
+         }
+         ));
          continue;
       }
       if(*it == "populations_V") { // Per population bulk velocities
@@ -115,7 +323,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          }
          continue;
       }
-      if(*it == "LBweight") {
+      if(*it == "LBweight" || *it == "vg_LBweight") {
          // Load balance metric for LB debugging
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("LB_weight",CellParams::LBWEIGHTCOUNTER,1));
          continue;
@@ -148,34 +356,144 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          }
          continue;
       }
-      if(*it == "MaxFieldsdt") {
-         // Maximum timestep constraint as calculated by the fieldsolver
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("max_fields_dt",CellParams::MAXFDT,1));
+      if(*it == "populations_EnergyDensity") {
+         // Per-population energy density in three energy ranges
+         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+            outputReducer->addOperator(new DRO::VariableEnergyDensity(i));
+         }
          continue;
       }
-      if(*it == "MPIrank") {
+      if(*it == "populations_PrecipitationFlux") {
+         // Per-population precipitation differential flux
+         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+            outputReducer->addOperator(new DRO::VariablePrecipitationDiffFlux(i));
+         }
+         continue;
+      }
+      if(*it == "MaxFieldsdt" || *it == "fg_MaxFieldsdt") {
+         // Maximum timestep constraint as calculated by the fieldsolver
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("MaxFieldsdt",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2>& dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volGrid,
+                      FsGrid< fsgrids::technical, 2>& technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract field solver timestep limit
+               for(int z=0; z<gridSize[2]; z++) {
+                 for(int y=0; y<gridSize[1]; y++) {
+                   for(int x=0; x<gridSize[0]; x++) {
+                     retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = technicalGrid.get(x,y,z)->maxFsDt;
+                   }
+                 }
+               }
+               return retval;
+         }
+         ));
+         continue;
+      }
+      if(*it == "MPIrank" || *it == "vg_rank") {
          // Map of spatial decomposition of the DCCRG grid into MPI ranks
          outputReducer->addOperator(new DRO::MPIrank);
          continue;
       }
-      if(*it == "FsGridRank") {
+      if(*it == "FsGridRank" || *it == "fg_rank") {
          // Map of spatial decomposition of the FsGrid into MPI ranks
-         outputReducer->addOperator(new DRO::FsGridRank);
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("FsGridRank",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2>& dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volGrid,
+                      FsGrid< fsgrids::technical, 2>& technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2],technicalGrid.getRank());
+               return retval;
+             }
+         ));
          continue;
       }
-      if(*it == "BoundaryType") {
+      if(*it == "BoundaryType" || *it == "vg_BoundaryType") {
          // Type of boundarycells
          outputReducer->addOperator(new DRO::BoundaryType);
          continue;
       }
-      if(*it == "FsGridBoundaryType") {
+      if(*it == "fg_BoundaryType") {
          // Type of boundarycells as stored in FSGrid
-         outputReducer->addOperator(new DRO::FsGridBoundaryType);
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("FsGridBoundaryType",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2>& dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volGrid,
+                      FsGrid< fsgrids::technical, 2>& technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                 for(int y=0; y<gridSize[1]; y++) {
+                   for(int x=0; x<gridSize[0]; x++) {
+                     retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = technicalGrid.get(x,y,z)->sysBoundaryFlag;
+                   }
+                 }
+               }
+               return retval;
+         }
+         ));
          continue;
       }
-      if(*it == "BoundaryLayer") {
+      if(*it == "BoundaryLayer" || *it == "vg_BoundaryLayer") {
          // For boundaries with multiple layers: layer count per cell
          outputReducer->addOperator(new DRO::BoundaryLayer);
+         continue;
+      }
+      if(*it == "fg_BoundaryLayer") {
+         // Type of boundarycells as stored in FSGrid
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("FsGridBoundaryLayer",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2>& dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volGrid,
+                      FsGrid< fsgrids::technical, 2>& technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary layer
+               for(int z=0; z<gridSize[2]; z++) {
+                 for(int y=0; y<gridSize[1]; y++) {
+                   for(int x=0; x<gridSize[0]; x++) {
+                     retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = technicalGrid.get(x,y,z)->sysBoundaryLayer;
+                   }
+                 }
+               }
+               return retval;
+         }
+         ));
          continue;
       }
       if (*it == "populations_Blocks") {
@@ -199,9 +517,40 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          }
          continue;
       }
-      if(*it == "VolE") {
+      if(*it == "VolE" || *it == "vg_VolE") {
          // Volume-averaged E field
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("E_vol",CellParams::EXVOL,3));
+         continue;
+      }
+      if(*it == "fg_VolE") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_volB",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2>& dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volGrid,
+                      FsGrid< fsgrids::technical, 2>& technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]*3);
+
+               // Iterate through fsgrid cells and extract EVOL
+               for(int z=0; z<gridSize[2]; z++) {
+                 for(int y=0; y<gridSize[1]; y++) {
+                   for(int x=0; x<gridSize[0]; x++) {
+                     retval[3*(gridSize[1]*gridSize[0]*z + gridSize[0]*y + x)] =  + (*volGrid.get(x,y,z))[fsgrids::EXVOL];
+                     retval[3*(gridSize[1]*gridSize[0]*z + gridSize[0]*y + x) + 1] = + (*volGrid.get(x,y,z))[fsgrids::EYVOL];
+                     retval[3*(gridSize[1]*gridSize[0]*z + gridSize[0]*y + x) + 2] = + (*volGrid.get(x,y,z))[fsgrids::EZVOL];
+                   }
+                 }
+               }
+               return retval;
+         }
+         ));
          continue;
       }
       if(*it == "HallE") {
@@ -225,9 +574,43 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EGRADPE",CellParams::EXGRADPE,3));
          continue;
       }
-      if(*it == "VolB") {
+      if(*it == "VolB" || *it == "vg_VolB") {
          // Volume-averaged magnetic field
          outputReducer->addOperator(new DRO::VariableBVol);
+         continue;
+      }
+      if(*it == "fg_VolB") { // Static (typically dipole) magnetic field part
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_volB",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2>& dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volGrid,
+                      FsGrid< fsgrids::technical, 2>& technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]*3);
+
+               // Iterate through fsgrid cells and extract total BVOL
+               for(int z=0; z<gridSize[2]; z++) {
+                 for(int y=0; y<gridSize[1]; y++) {
+                   for(int x=0; x<gridSize[0]; x++) {
+                     retval[3*(gridSize[1]*gridSize[0]*z + gridSize[0]*y + x)] =     (*BgBGrid.get(x,y,z))[fsgrids::BGBXVOL]
+                     + (*volGrid.get(x,y,z))[fsgrids::PERBXVOL];
+                     retval[3*(gridSize[1]*gridSize[0]*z + gridSize[0]*y + x) + 1] = (*BgBGrid.get(x,y,z))[fsgrids::BGBYVOL]
+                       + (*volGrid.get(x,y,z))[fsgrids::PERBYVOL];
+                     retval[3*(gridSize[1]*gridSize[0]*z + gridSize[0]*y + x) + 2] = (*BgBGrid.get(x,y,z))[fsgrids::BGBZVOL]
+                       + (*volGrid.get(x,y,z))[fsgrids::PERBZVOL];
+                   }
+                 }
+               }
+               return retval;
+         }
+         ));
          continue;
       }
       if(*it == "BackgroundVolB") {
@@ -238,9 +621,40 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("PERB_vol",CellParams::PERBXVOL,3));
          continue;
       }
-      if(*it == "Pressure") {
+      if(*it == "Pressure" || *it== "vg_Pressure") {
          // Overall scalar pressure from all populations
          outputReducer->addOperator(new DRO::VariablePressureSolver);
+         continue;
+      }
+      if(*it == "fg_Pressure") {
+         // Overall scalar pressure from all populations
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_Pressure",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2>& dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volGrid,
+                      FsGrid< fsgrids::technical, 2>& technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                 for(int y=0; y<gridSize[1]; y++) {
+                   for(int x=0; x<gridSize[0]; x++) {
+                     auto& moments=(*momentsGrid.get(x,y,z));
+                     retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = 1./3. * (moments[fsgrids::P_11] + moments[fsgrids::P_22] + moments[fsgrids::P_33]);
+                   }
+                 }
+               }
+               return retval;
+         }
+         ));
          continue;
       }
       if(*it == "populations_PTensor") {
@@ -524,6 +938,14 @@ bool DataReducer::handlesWriting(const unsigned int& operatorID) const {
    return dynamic_cast<DRO::DataReductionOperatorHandlesWriting*>(operators[operatorID]) != nullptr;
 }
 
+/** Ask a DataReductionOperator if it wants to write parameters to the vlsv file header
+ * @param operatorID ID number of the DataReductionOperator.
+ * @return If true, then VLSVWriter should be passed to the DataReductionOperator.*/
+bool DataReducer::hasParameters(const unsigned int& operatorID) const {
+   if (operatorID >= operators.size()) return false;
+   return dynamic_cast<DRO::DataReductionOperatorHasParameters*>(operators[operatorID]) != nullptr;
+}
+
 /** Request a DataReductionOperator to calculate its output data and to write it to the given buffer.
  * @param cell Pointer to spatial cell whose data is to be reduced.
  * @param operatorID ID number of the applied DataReductionOperator.
@@ -576,4 +998,39 @@ bool DataReducer::writeData(const unsigned int& operatorID,
       return false;
    }
    return writingOperator->writeData(mpiGrid,cells,meshName,vlsvWriter);
+}
+
+/** Write parameters related to given DataReductionOperator to the output file.
+ * @param operatorID ID number of the selected DataReductionOperator.
+ * @param vlsvWriter VLSV file writer that has output file open.
+ * @return If true, DataReductionOperator wrote its parameters successfully.*/
+bool DataReducer::writeParameters(const unsigned int& operatorID, vlsv::Writer& vlsvWriter) {
+   if (operatorID >= operators.size()) return false;
+   DRO::DataReductionOperatorHasParameters* parameterOperator = dynamic_cast<DRO::DataReductionOperatorHasParameters*>(operators[operatorID]);
+   if(parameterOperator == nullptr) {
+      return false;
+   }
+   return parameterOperator->writeParameters(vlsvWriter);
+}
+/** Write all data thet the given DataReductionOperator wants to obtain from fsgrid into the output file.
+ */
+bool DataReducer::writeFsGridData(
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2>& dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volGrid,
+                      FsGrid< fsgrids::technical, 2>& technicalGrid, const std::string& meshName, const unsigned int operatorID, vlsv::Writer& vlsvWriter) {
+   
+   if (operatorID >= operators.size()) return false;
+   DRO::DataReductionOperatorFsGrid* DROf = dynamic_cast<DRO::DataReductionOperatorFsGrid*>(operators[operatorID]);
+   if(!DROf) {
+      return false;
+   } else {
+      return DROf->writeFsGridData(perBGrid, EGrid, EHallGrid, EGradPeGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, volGrid, technicalGrid, meshName, vlsvWriter);
+   }
 }

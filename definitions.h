@@ -129,4 +129,8 @@ typedef Realf (*AmrVelRefinement)(const Realf* velBlock);
    #define  VLASOV_STENCIL_WIDTH 3
 #endif
 
+// Max number of face neighbors per dimension with AMR
+#define MAX_NEIGHBORS_PER_DIM 8
+#define MAX_FACE_NEIGHBORS_PER_DIM 4
+
 #endif

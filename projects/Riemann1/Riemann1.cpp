@@ -97,7 +97,6 @@ namespace projects {
       exp(- physicalconstants::MASS_PROTON * (pow(vx - this->Vx[side], 2.0) + pow(vy - this->Vy[side], 2.0) + pow(vz - this->Vz[side], 2.0)) / (2.0 * physicalconstants::K_B * this->T[side]));
    }
 
-
    Real Riemann1::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
       creal d_x = dx / (this->nSpaceSamples-1);
       creal d_y = dy / (this->nSpaceSamples-1);
@@ -118,31 +117,48 @@ namespace projects {
       return avg / pow(this->nSpaceSamples, 3.0) / pow(this->nVelocitySamples, 3.0);
    }
 
-
-   void Riemann1::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
-      Real* cellParams = cell->get_cell_parameters();
-      creal x = cellParams[CellParams::XCRD];
-      creal dx = cellParams[CellParams::DX];
+   void Riemann1::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
+   
+   void Riemann1::setProjectBField(
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+      FsGrid< fsgrids::technical, 2>& technicalGrid
+   ) {
+      setBackgroundFieldToZero(BgBGrid);
       
-      Real Bxavg, Byavg, Bzavg;
-      Bxavg = Byavg = Bzavg = 0.0;
-      Real d_x = dx / (this->nSpaceSamples - 1);
+      auto localSize = perBGrid.getLocalSize();
       
-      for (uint i=0; i<this->nSpaceSamples; ++i)
-         for (uint j=0; j<this->nSpaceSamples; ++j)
-            for (uint k=0; k<this->nSpaceSamples; ++k) {
-               Bxavg += ((x + i * d_x) < 0.0) ? this->Bx[this->LEFT] : this->Bx[this->RIGHT];
-               Byavg += ((x + i * d_x) < 0.0) ? this->By[this->LEFT] : this->By[this->RIGHT];
-               Bzavg += ((x + i * d_x) < 0.0) ? this->Bz[this->LEFT] : this->Bz[this->RIGHT];
+      #pragma omp parallel for collapse(3)
+      for (int x = 0; x < localSize[0]; ++x) {
+         for (int y = 0; y < localSize[1]; ++y) {
+            for (int z = 0; z < localSize[2]; ++z) {
+               const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
+               std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
+               
+               Real Bxavg, Byavg, Bzavg;
+               Bxavg = Byavg = Bzavg = 0.0;
+               if(this->nSpaceSamples > 1) {
+                  Real d_x = perBGrid.DX / (this->nSpaceSamples - 1);
+                  Real d_z = perBGrid.DZ / (this->nSpaceSamples - 1);
+                  for (uint i=0; i<this->nSpaceSamples; ++i) {
+                     for (uint k=0; k<this->nSpaceSamples; ++k) {
+                        Bxavg += ((xyz[0] + i * d_x) < 0.0) ? this->Bx[this->LEFT] : this->Bx[this->RIGHT];
+                        Byavg += ((xyz[0] + i * d_x) < 0.0) ? this->By[this->LEFT] : this->By[this->RIGHT];
+                        Bzavg += ((xyz[0] + i * d_x) < 0.0) ? this->Bz[this->LEFT] : this->Bz[this->RIGHT];
+                     }
+                  }
+                  cuint nPts = pow(this->nSpaceSamples, 3.0);
+                  
+                  cell->at(fsgrids::bfield::PERBX) = Bxavg / nPts;
+                  cell->at(fsgrids::bfield::PERBY) = Byavg / nPts;
+                  cell->at(fsgrids::bfield::PERBZ) = Bzavg / nPts;
+               } else {
+                  cell->at(fsgrids::bfield::PERBX) = (xyz[0] < 0.0) ? this->Bx[this->LEFT] : this->Bx[this->RIGHT];
+                  cell->at(fsgrids::bfield::PERBY) = (xyz[0] < 0.0) ? this->By[this->LEFT] : this->By[this->RIGHT];
+                  cell->at(fsgrids::bfield::PERBZ) = (xyz[0] < 0.0) ? this->Bz[this->LEFT] : this->Bz[this->RIGHT];
+               }
+            }
          }
-      cuint nPts = pow(this->nSpaceSamples, 3.0);
-      
-      cellParams[CellParams::EX   ] = 0.0;
-      cellParams[CellParams::EY   ] = 0.0;
-      cellParams[CellParams::EZ   ] = 0.0;
-      //FIXME, this field could also be in background field, but a simple bgfield class would then need to be defined, also, first derivatives are not so well defined for a step...
-      cellParams[CellParams::PERBX   ] = Bxavg / nPts;
-      cellParams[CellParams::PERBY   ] = Byavg / nPts;
-      cellParams[CellParams::PERBZ   ] = Bzavg / nPts;
+      }
    }
 }

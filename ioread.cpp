@@ -230,13 +230,47 @@ bool readNBlocks(vlsv::ParallelReader& file,const std::string& meshName,
    // (This is *not* the physical coordinate bounding box.)
    uint64_t bbox[6];
    uint64_t* bbox_ptr = bbox;
-   list<pair<string,string> > attribs;
-   attribs.push_back(make_pair("mesh",meshName));
-   if (file.read("MESH_BBOX",attribs,0,6,bbox_ptr,false) == false) return false;
+   list<pair<string,string> > attribsIn;
+   map<string,string> attribsOut;
+   attribsIn.push_back(make_pair("mesh",meshName));
 
-   // Resize the output vector and init to zero values
-   const uint64_t N_spatialCells = bbox[0]*bbox[1]*bbox[2];
+   // Read number of domains and domain sizes
+   uint64_t N_domains;
+   file.getArrayAttributes("MESH_DOMAIN_SIZES",attribsIn,attribsOut);
+   auto it = attribsOut.find("arraysize");
+   if (it == attribsOut.end()) {
+      cerr << "VLSV\t\t ERROR: Array 'MESH_DOMAIN_SIZES' XML tag does not have attribute 'arraysize'" << endl;
+      return false;
+   } else {
+      cerr << "VLSV\t\t Mesh has " << it->second << " domains" << endl;
+      N_domains = atoi(it->second.c_str());
+   }
+
+   uint64_t N_spatialCells = 0;
+
+   if(N_domains == 1) {
+
+      if (file.read("MESH_BBOX",attribsIn,0,6,bbox_ptr,false) == false) return false;
+      
+      // Resize the output vector and init to zero values
+      N_spatialCells = bbox[0]*bbox[1]*bbox[2];
+
+   } else {
+
+      int64_t* domainInfo = NULL;
+      if (file.read("MESH_DOMAIN_SIZES",attribsIn,0,N_domains,domainInfo) == false) return false;
+
+      for (uint i_domain = 0; i_domain < N_domains; ++i_domain) {
+         
+         N_spatialCells += domainInfo[2*i_domain];
+
+      }
+
+   }
+
    nBlocks.resize(N_spatialCells);
+
+
    #pragma omp parallel for
    for (size_t i=0; i<nBlocks.size(); ++i) nBlocks[i] = 0;
 
@@ -250,12 +284,12 @@ bool readNBlocks(vlsv::ParallelReader& file,const std::string& meshName,
    // to all processes, and add the values to nBlocks
    uint64_t* buffer = new uint64_t[N_spatialCells];
    for (set<string>::const_iterator s=speciesNames.begin(); s!=speciesNames.end(); ++s) {      
-      attribs.clear();
-      attribs.push_back(make_pair("mesh",meshName));
-      attribs.push_back(make_pair("name",*s));
-      if (file.getArrayInfo("BLOCKSPERCELL",attribs,arraySize,vectorSize,dataType,byteSize) == false) return false;
+      attribsIn.clear();
+      attribsIn.push_back(make_pair("mesh",meshName));
+      attribsIn.push_back(make_pair("name",*s));
+      if (file.getArrayInfo("BLOCKSPERCELL",attribsIn,arraySize,vectorSize,dataType,byteSize) == false) return false;
 
-      if (file.read("BLOCKSPERCELL",attribs,0,arraySize,buffer) == false) {
+      if (file.read("BLOCKSPERCELL",attribsIn,0,arraySize,buffer) == false) {
          delete [] buffer; buffer = NULL;
          return false;
       }
@@ -908,14 +942,14 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          mpiGrid.pin(fileCells[i],newCellProcess);
       }
    }
-   
-   //Do initial load balance based on pins. Need to transfer at least sysboundaryflags
+
    SpatialCell::set_mpi_transfer_type(Transfer::ALL_SPATIAL_DATA);
+
+   //Do initial load balance based on pins. Need to transfer at least sysboundaryflags
    mpiGrid.balance_load(false);
 
    //update list of local gridcells
    recalculateLocalCellsCache();
-   //getObjectWrapper().meshData.reallocate();
 
    //get new list of local gridcells
    const vector<CellID>& gridCells = getLocalCells();
@@ -928,10 +962,13 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    // Check for errors, has migration succeeded
    if (localCells != gridCells.size() ) {
       success=false;
-   }
+   } 
+
    if (success == true) {
       for (uint64_t i=localCellStartOffset; i<localCellStartOffset+localCells; ++i) {
-         if(mpiGrid.is_local(fileCells[i]) == false) success = false;
+         if(mpiGrid.is_local(fileCells[i]) == false) {
+            success = false;
+         }
       }
    }
 

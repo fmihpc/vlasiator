@@ -75,6 +75,12 @@ bool ObjectWrapper::addPopulationParameters() {
      Readparameters::add(pop + "_precipitation.nChannels", "Number of energy channels for precipitation differential flux evaluation", 16);
      Readparameters::add(pop + "_precipitation.emin", "Lowest energy channel (in keV) for precipitation differential flux evaluation", 0.1);
      Readparameters::add(pop + "_precipitation.emax", "Highest energy channel (in keV) for precipitation differential flux evaluation", 100.0);
+
+     // Energy density parameters
+     Readparameters::add(pop + "_energydensity.limit1", "Lower limit of second bin for energy density, given in units of solar wind ram energy.", 5.0);
+     Readparameters::add(pop + "_energydensity.limit2", "Lower limit of third bin for energy density, given in units of solar wind ram energy.", 10.0);
+     Readparameters::add(pop + "_energydensity.solarwindspeed", "Incoming solar wind velocity magnitude. Used for calculating energy densities.", 0.0);
+     Readparameters::add(pop + "_energydensity.solarwindenergy", "Incoming solar wind ram energy. Used for calculating energy densities.", 0.0);
   }
 
   return true;
@@ -159,6 +165,22 @@ bool ObjectWrapper::getParameters() {
       Readparameters::get(pop + "_backstream.vx", species.backstreamV[0]);
       Readparameters::get(pop + "_backstream.vy", species.backstreamV[1]);
       Readparameters::get(pop + "_backstream.vz", species.backstreamV[2]);
+
+      //Get energy density parameters
+      Readparameters::get(pop + "_energydensity.limit1", species.EnergyDensityLimit1);
+      Readparameters::get(pop + "_energydensity.limit2", species.EnergyDensityLimit2);
+      Readparameters::get(pop + "_energydensity.solarwindenergy", species.SolarWindEnergy);
+      Readparameters::get(pop + "_energydensity.solarwindspeed", species.SolarWindSpeed);
+      
+      const Real EPSILON = 1.e-25;
+      if (species.SolarWindEnergy < EPSILON) {
+	 species.SolarWindEnergy = 0.5 * species.mass * species.SolarWindSpeed * species.SolarWindSpeed;
+      }
+
+      // Precipitation parameters
+      Readparameters::get(pop + "_precipitation.nChannels", species.nChannels);
+      Readparameters::get(pop + "_precipitation.emin", species.emin);
+      Readparameters::get(pop + "_precipitation.emax", species.emax);
    }
 
    return true;

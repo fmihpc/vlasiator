@@ -104,7 +104,9 @@ namespace poisson {
             spatial_cell::SpatialCell* cell = mpiGrid[cells[c]];
             
             if (Poisson::timeDependentBackground == true) {
-               getObjectWrapper().project->setCellBackgroundField(cell);
+#warning this is not supported at the moment
+               abort();
+//                getObjectWrapper().project->setCellBackgroundField(cell);
             }
 
             cell->parameters[CellParams::PHI] = 0;
@@ -119,7 +121,9 @@ namespace poisson {
             spatial_cell::SpatialCell* cell = mpiGrid[cells[c]];
 
             if (Poisson::timeDependentBackground == true) {
-               getObjectWrapper().project->setCellBackgroundField(cell);
+               #warning this is not supported at the moment
+               abort();
+//               getObjectWrapper().project->setCellBackgroundField(cell);
             }
 
             cell->parameters[CellParams::EXVOL] = cell->parameters[CellParams::BGEXVOL];

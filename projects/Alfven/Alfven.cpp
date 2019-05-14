@@ -168,4 +168,45 @@ namespace projects {
       cellParams[CellParams::PERBY   ] = this->B0 * sin(this->ALPHA) + this->A_MAG * this->B0 * cos(this->ALPHA) * dByavg / nPts;
       cellParams[CellParams::PERBZ   ] = this->B0 * this->A_MAG * dBzavg / nPts;
    }
+   
+   void Alfven::setProjectBField(
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+      FsGrid< fsgrids::technical, 2>& technicalGrid
+   ) {
+      auto localSize = perBGrid.getLocalSize();
+      
+#pragma omp parallel for collapse(3)
+      for (int x = 0; x < localSize[0]; ++x) {
+         for (int y = 0; y < localSize[1]; ++y) {
+            for (int z = 0; z < localSize[2]; ++z) {
+               const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
+               std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
+               
+               Real dBxavg, dByavg, dBzavg;
+               dBxavg = dByavg = dBzavg = 0.0;
+               Real d_x = perBGrid.DX / (this->nSpaceSamples - 1);
+               Real d_y = perBGrid.DY / (this->nSpaceSamples - 1);
+               
+               for (uint i=0; i<this->nSpaceSamples; ++i) {
+                  for (uint j=0; j<this->nSpaceSamples; ++j) {
+                     for (uint k=0; k<this->nSpaceSamples; ++k) {
+                        Real ksi = ((xyz[0] + i * d_x)  * cos(this->ALPHA) + (xyz[1] + j * d_y) * sin(this->ALPHA)) / this->WAVELENGTH;
+                        dBxavg += sin(2.0 * M_PI * ksi);
+                        dByavg += sin(2.0 * M_PI * ksi);
+                        dBzavg += cos(2.0 * M_PI * ksi);
+                     }
+                  }
+               }
+               
+               cuint nPts = pow(this->nSpaceSamples, 3.0);
+               cell->at(fsgrids::bfield::PERBX) = this->B0 * cos(this->ALPHA) - this->A_MAG * this->B0 * sin(this->ALPHA) * dBxavg / nPts;
+               cell->at(fsgrids::bfield::PERBY) = this->B0 * sin(this->ALPHA) + this->A_MAG * this->B0 * cos(this->ALPHA) * dByavg / nPts;
+               cell->at(fsgrids::bfield::PERBZ) = this->B0 * this->A_MAG * dBzavg / nPts;
+               
+            }
+         }
+      }
+   }
+   
 } // namespace projects
