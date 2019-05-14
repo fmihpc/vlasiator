@@ -30,6 +30,7 @@
 #include <cmath>
 #include <sstream>
 #include <ctime>
+#include <cstring>
 #include <array>
 #include <algorithm>
 #include <limits>
@@ -826,7 +827,7 @@ bool writeFsGridMetadata(FsGrid< fsgrids::technical, 2>& technicalGrid, vlsv::Wr
   //The visit plugin expects MESH_BBOX as a keyword. We only write one
   //from the first rank.
   std::array<int32_t, 3>& globalSize = technicalGrid.getGlobalSize();
-  std::array<uint64_t, 6> boundaryBox({globalSize[0], globalSize[1], globalSize[2],
+  std::array<int64_t, 6> boundaryBox({globalSize[0], globalSize[1], globalSize[2],
       1,1,1});
 
   if(technicalGrid.getRank() == 0) {
@@ -842,15 +843,15 @@ bool writeFsGridMetadata(FsGrid< fsgrids::technical, 2>& technicalGrid, vlsv::Wr
   // Write three 1-dimensional arrays of node coordinates (x,y,z) for
   // visit to create a cartesian grid out of.
   std::vector<double> xNodeCoordinates(globalSize[0]+1);
-  for(uint64_t i=0; i<globalSize[0]+1; i++) {
+  for(int64_t i=0; i<globalSize[0]+1; i++) {
     xNodeCoordinates[i] = technicalGrid.getPhysicalCoords(i,0,0)[0];
   }
   std::vector<double> yNodeCoordinates(globalSize[1]+1);
-  for(uint64_t i=0; i<globalSize[1]+1; i++) {
+  for(int64_t i=0; i<globalSize[1]+1; i++) {
     yNodeCoordinates[i] = technicalGrid.getPhysicalCoords(0,i,0)[1];
   }
   std::vector<double> zNodeCoordinates(globalSize[2]+1);
-  for(uint64_t i=0; i<globalSize[2]+1; i++) {
+  for(int64_t i=0; i<globalSize[2]+1; i++) {
     zNodeCoordinates[i] = technicalGrid.getPhysicalCoords(0,0,i)[2];
   }
   if(technicalGrid.getRank() == 0) {
@@ -1271,6 +1272,9 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    //Write domain sizes:
    if( writeDomainSizes( vlsvWriter, meshName, local_cells.size(), ghost_cells.size() ) == false ) return false;
 
+   //Write FSGrid metadata
+   if( writeFsGridMetadata( technicalGrid, vlsvWriter ) == false ) return false;
+
    phiprof::stop("metadataIO");
    phiprof::start("reduceddataIO");   
    //write out DROs we need for restarts
@@ -1291,6 +1295,108 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    restartReducer.addOperator(new DRO::MPIrank);
    restartReducer.addOperator(new DRO::BoundaryType);
    restartReducer.addOperator(new DRO::BoundaryLayer);
+
+   // Fsgrid Reducers
+   restartReducer.addOperator(new DRO::DataReductionOperatorFsGrid("fg_EFIELD",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2>& dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volGrid,
+                      FsGrid< fsgrids::technical, 2>& technicalGrid)->std::vector<double> {
+            std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+            std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]*fsgrids::efield::N_EFIELD);
+            int index=0;
+            for(int z=0; z<gridSize[2]; z++) {
+               for(int y=0; y<gridSize[1]; y++) {
+                  for(int x=0; x<gridSize[0]; x++) {
+                     std::memcpy(&retval[index], EGrid.get(x,y,z), sizeof(double)*fsgrids::efield::N_EFIELD);
+                     index += fsgrids::efield::N_EFIELD;
+                  }
+              }
+            }
+            return retval;
+         }
+   ));
+   restartReducer.addOperator(new DRO::DataReductionOperatorFsGrid("fg_PERB",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2>& dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volGrid,
+                      FsGrid< fsgrids::technical, 2>& technicalGrid)->std::vector<double> {
+            std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+            std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]*fsgrids::bfield::N_BFIELD);
+            int index=0;
+            for(int z=0; z<gridSize[2]; z++) {
+               for(int y=0; y<gridSize[1]; y++) {
+                  for(int x=0; x<gridSize[0]; x++) {
+                     std::memcpy(&retval[index], perBGrid.get(x,y,z), sizeof(double)*fsgrids::bfield::N_BFIELD);
+                     index += fsgrids::bfield::N_BFIELD;
+                  }
+              }
+            }
+            return retval;
+         }
+   ));
+   restartReducer.addOperator(new DRO::DataReductionOperatorFsGrid("fg_BGB",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2>& dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volGrid,
+                      FsGrid< fsgrids::technical, 2>& technicalGrid)->std::vector<double> {
+            std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+            std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]*fsgrids::bgbfield::N_BGB);
+            int index=0;
+            for(int z=0; z<gridSize[2]; z++) {
+               for(int y=0; y<gridSize[1]; y++) {
+                  for(int x=0; x<gridSize[0]; x++) {
+                     std::memcpy(&retval[index], BgBGrid.get(x,y,z), sizeof(double)*fsgrids::bgbfield::N_BGB);
+                     index += fsgrids::bgbfield::N_BGB;
+                  }
+              }
+            }
+            return retval;
+         }
+   ));
+   restartReducer.addOperator(new DRO::DataReductionOperatorFsGrid("fg_DPERB",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2>& dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volGrid,
+                      FsGrid< fsgrids::technical, 2>& technicalGrid)->std::vector<double> {
+            std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+            std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]*fsgrids::dperb::N_DPERB);
+            int index=0;
+            for(int z=0; z<gridSize[2]; z++) {
+               for(int y=0; y<gridSize[1]; y++) {
+                  for(int x=0; x<gridSize[0]; x++) {
+                     std::memcpy(&retval[index], perBGrid.get(x,y,z), sizeof(double)*fsgrids::dperb::N_DPERB);
+                     index += fsgrids::dperb::N_DPERB;
+                  }
+              }
+            }
+            return retval;
+         }
+   ));
    
    //Write necessary variables:
    const bool writeAsFloat = false;
