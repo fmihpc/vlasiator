@@ -527,3 +527,129 @@ class dipole(object):
        return 0 # dummy, but prevents gcc from yelling
 
 
+
+
+
+
+
+
+
+
+
+
+
+class IMFpotential(object):
+   ''' Class generating a scaling vector potential for the inflow IMF
+   '''
+   # The vector potential for a constant field is defined as
+   # A = 0.5 * B cross r
+
+   def __init__(self, radius_z=10, radius_f=40, IMF=[0.,0.,-5.e-9]):
+      self.radius = np.zeros(2)# // X-extents of zero and full field
+      self.radius[0]=radius_z*RE
+      self.radius[1]=radius_f*RE
+      self.IMF = IMF
+
+   def set_IMF(self, radius_z=10, radius_f=40, IMF=[0.,0.,-5.e-9]):
+      self.radius[0]=radius_z*RE
+      self.radius[1]=radius_f*RE
+      self.IMF = IMF
+
+   def get(self, x,y,z,derivative,fComponent,dComponent):
+      r = np.zeros(3)
+      r[0]= x
+      r[1]= y
+      r[2]= z
+
+      # Simple constant fields outside variation zone
+      if(x<self.radius[0]):
+           return 0.0
+      if(x>self.radius[1]):
+         if derivative==0:
+            return self.IMF[fComponent]
+         else:
+            return 0.0
+      
+      A = np.zeros(3)
+      A[0] = 0.5*(self.IMF[1]*r[2] - self.IMF[2]*r[1])
+      A[1] = 0.5*(self.IMF[2]*r[0] - self.IMF[0]*r[2])
+      A[2] = 0.5*(self.IMF[0]*r[1] - self.IMF[1]*r[0])
+
+      B = self.IMF[fComponent]
+
+      # Coordinate within smootherstep function
+      Sx = (x-self.radius[0])/(self.radius[1]-self.radius[0])
+      Sx2 = Sx*Sx
+      # Smootherstep and its x-derivative
+      S2 = 6.*Sx2*Sx2*Sx - 15.*Sx2*Sx2 + 10.*Sx2*Sx
+      dS2dx = (30.*Sx2*Sx2 - 60.*Sx2*Sx + 30.*Sx2)/(self.radius[1]-self.radius[0])
+
+      # Cartesian derivatives of S2
+      dS2cart=np.zeros(3)
+      dS2cart[0] = dS2dx
+      dS2cart[1] = 0.
+      dS2cart[2] = 0.
+
+
+      if(derivative == 0):
+         #    The scaled magnetic field is
+         #    B'(r) = del cross A'(r)
+         #          =(NRL)= S2(Sx) del cross A(r) + del S2(Sx) cross A(r)
+         #                = S2(Sx) B(r)           + del S2(Sx) cross A(r)
+
+         delS2crossA=np.zeros(3)
+         delS2crossA[0] = 0.#dS2cart[1]*A[2] - dS2cart[2]*A[1]
+         delS2crossA[1] = - dS2cart[0]*A[2] #dS2cart[2]*A[0] - dS2cart[0]*A[2]
+         delS2crossA[2] = dS2cart[0]*A[1] #- dS2cart[1]*A[0]
+
+         return S2*B + delS2crossA[fComponent]
+         
+      elif(derivative == 1):
+         # Regular derivative of B
+         delB = 0.
+
+         # Calculate del Ax, del Ay, del Az
+         delAx=np.zeros(3)
+         delAy=np.zeros(3)
+         delAz=np.zeros(3)
+         delAx[0] = 0.
+         delAx[1] = -0.5*self.IMF[2]
+         delAx[2] =  0.5*self.IMF[1]
+         delAy[0] =  0.5*self.IMF[2]
+         delAy[1] = 0.0
+         delAy[2] = -0.5*self.IMF[0]
+         delAz[0] = -0.5*self.IMF[1]
+         delAz[1] =  0.5*self.IMF[0]
+         delAz[2] = 0.0
+         
+         #ddidS2dr = 60.*(2.*Sx2*Sx - 3.*Sx2 + Sx)/(r2*(radius[1]-radius[0])*(radius[1]-radius[0]))
+         ddxdS2dx = 60.*(2.*Sx2*Sx - 3.*Sx2 + Sx)/((self.radius[1]-self.radius[0])*(self.radius[1]-self.radius[0]))
+
+         # Calculate del (dS2/dx), del (dS2/dy), del (dS2/dz)
+         deldS2dx=np.zeros(3)
+         deldS2dy=np.zeros(3)
+         deldS2dz=np.zeros(3)
+         deldS2dx[0] = ddxdS2dx
+         deldS2dx[1] = 0.
+         deldS2dx[2] = 0.
+         
+         # Calculate del(del S2(Sx) cross A)@i=x, del(del S2(Sx) cross A)@i=y, del(del S2(Sx) cross A)@i=z
+         ddS2crossA=np.zeros([3,3])
+         
+         # derivatives of X-directional field
+         ddS2crossA[0][0] = deldS2dy[0]*A[2] + dS2cart[1]*delAz[0] - deldS2dz[0]*A[1] - dS2cart[2]*delAy[0]
+         ddS2crossA[0][1] = deldS2dy[1]*A[2] + dS2cart[1]*delAz[1] - deldS2dz[1]*A[1] - dS2cart[2]*delAy[1]
+         ddS2crossA[0][2] = deldS2dy[2]*A[2] + dS2cart[1]*delAz[2] - deldS2dz[2]*A[1] - dS2cart[2]*delAy[2]
+         # derivatives of Y-directional field
+         ddS2crossA[1][0] = deldS2dz[0]*A[0] + dS2cart[2]*delAx[0] - deldS2dx[0]*A[2] - dS2cart[0]*delAz[0]
+         ddS2crossA[1][1] = deldS2dz[1]*A[0] + dS2cart[2]*delAx[1] - deldS2dx[1]*A[2] - dS2cart[0]*delAz[1]
+         ddS2crossA[1][2] = deldS2dz[2]*A[0] + dS2cart[2]*delAx[2] - deldS2dx[2]*A[2] - dS2cart[0]*delAz[2]
+         # derivatives of Z-directional field
+         ddS2crossA[2][0] = deldS2dx[0]*A[1] + dS2cart[0]*delAy[0] - deldS2dy[0]*A[0] - dS2cart[1]*delAx[0]
+         ddS2crossA[2][1] = deldS2dx[1]*A[1] + dS2cart[0]*delAy[1] - deldS2dy[1]*A[0] - dS2cart[1]*delAx[1]
+         ddS2crossA[2][2] = deldS2dx[2]*A[1] + dS2cart[0]*delAy[2] - deldS2dy[2]*A[0] - dS2cart[1]*delAx[2]
+         
+         return S2*delB + dS2cart[dComponent]*B + ddS2crossA[fComponent][dComponent]
+      
+      print("ERROR")
+      return 0#; // dummy, but prevents gcc from yelling
