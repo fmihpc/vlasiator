@@ -547,11 +547,11 @@ int main(int argn,char* args[]) {
    if (P::writeInitialState) {
       phiprof::start("write-initial-state");
       phiprof::start("fsgrid-coupling-out");
-      // getFieldDataFromFsGrid<fsgrids::N_BFIELD>(perBGrid,technicalGrid,mpiGrid,cells,CellParams::PERBX);
-      // getFieldDataFromFsGrid<fsgrids::N_EFIELD>(EGrid,technicalGrid,mpiGrid,cells,CellParams::EX);
-      // getFieldDataFromFsGrid<fsgrids::N_EHALL>(EHallGrid,technicalGrid,mpiGrid,cells,CellParams::EXHALL_000_100);
-      // getFieldDataFromFsGrid<fsgrids::N_EGRADPE>(EGradPeGrid,technicalGrid,mpiGrid,cells,CellParams::EXGRADPE);
-      // getDerivativesFromFsGrid(dPerBGrid, dMomentsGrid, technicalGrid, mpiGrid, cells);
+      getFieldDataFromFsGrid<fsgrids::N_BFIELD>(perBGrid,technicalGrid,mpiGrid,cells,CellParams::PERBX);
+      getFieldDataFromFsGrid<fsgrids::N_EFIELD>(EGrid,technicalGrid,mpiGrid,cells,CellParams::EX);
+      getFieldDataFromFsGrid<fsgrids::N_EHALL>(EHallGrid,technicalGrid,mpiGrid,cells,CellParams::EXHALL_000_100);
+      getFieldDataFromFsGrid<fsgrids::N_EGRADPE>(EGradPeGrid,technicalGrid,mpiGrid,cells,CellParams::EXGRADPE);
+      getDerivativesFromFsGrid(dPerBGrid, dMomentsGrid, technicalGrid, mpiGrid, cells);
       phiprof::stop("fsgrid-coupling-out");
       
       if (myRank == MASTER_RANK)
@@ -735,16 +735,14 @@ int main(int argn,char* args[]) {
               it != P::diagnosticVariableList.end();
          it++) {
             if (*it == "FluxB") {
-               if(myRank == MASTER_RANK) cerr << __FILE__ << " " << __LINE__ << "ERROR: Diagnostic output from FsGrid is no longer supported!" << endl;
-               // phiprof::start("fsgrid-coupling-out");
-               // getFieldDataFromFsGrid<fsgrids::N_BFIELD>(perBGrid,technicalGrid,mpiGrid,cells,CellParams::PERBX);
-               // phiprof::stop("fsgrid-coupling-out");
-            }            
+               phiprof::start("fsgrid-coupling-out");
+               getFieldDataFromFsGrid<fsgrids::N_BFIELD>(perBGrid,technicalGrid,mpiGrid,cells,CellParams::PERBX);
+               phiprof::stop("fsgrid-coupling-out");
+            }
             if (*it == "FluxE") {
-               if(myRank == MASTER_RANK) cerr << __FILE__ << " " << __LINE__ << "ERROR: Diagnostic output from FsGrid is no longer supported!" << endl;
-               // phiprof::start("fsgrid-coupling-out");
-               // getFieldDataFromFsGrid<fsgrids::N_EFIELD>(EGrid,technicalGrid,mpiGrid,cells,CellParams::EX);
-               // phiprof::stop("fsgrid-coupling-out");
+               phiprof::start("fsgrid-coupling-out");
+               getFieldDataFromFsGrid<fsgrids::N_EFIELD>(EGrid,technicalGrid,mpiGrid,cells,CellParams::EX);
+               phiprof::stop("fsgrid-coupling-out");
             }
          }
          
@@ -760,42 +758,42 @@ int main(int argn,char* args[]) {
       // write system, loop through write classes
       for (uint i = 0; i < P::systemWriteTimeInterval.size(); i++) {
          if (P::systemWriteTimeInterval[i] >= 0.0 &&
-             P::t >= P::systemWrites[i] * P::systemWriteTimeInterval[i] - DT_EPSILON) {
-         //    if (extractFsGridFields) {
-         //       vector<string>::const_iterator it;
-         //       for (it = P::outputVariableList.begin();
-         //            it != P::outputVariableList.end();
-         //       it++) {
-         //          if (*it == "B" ||
-         //              *it == "PerturbedB"
-         //          ) {
-         //             phiprof::start("fsgrid-coupling-out");
-         //             getFieldDataFromFsGrid<fsgrids::N_BFIELD>(perBGrid,technicalGrid,mpiGrid,cells,CellParams::PERBX);
-         //             phiprof::stop("fsgrid-coupling-out");
-         //          }
-         //          if (*it == "E") {
-         //             phiprof::start("fsgrid-coupling-out");
-         //             getFieldDataFromFsGrid<fsgrids::N_EFIELD>(EGrid,technicalGrid,mpiGrid,cells,CellParams::EX);
-         //             phiprof::stop("fsgrid-coupling-out");
-         //          }
-         //          if (*it == "HallE") {
-         //             phiprof::start("fsgrid-coupling-out");
-         //             getFieldDataFromFsGrid<fsgrids::N_EHALL>(EHallGrid,technicalGrid,mpiGrid,cells,CellParams::EXHALL_000_100);
-         //             phiprof::stop("fsgrid-coupling-out");
-         //          }
-         //          if (*it == "GradPeE") {
-         //             phiprof::start("fsgrid-coupling-out");
-         //             getFieldDataFromFsGrid<fsgrids::N_EGRADPE>(EGradPeGrid,technicalGrid,mpiGrid,cells,CellParams::EXGRADPE);
-         //             phiprof::stop("fsgrid-coupling-out");
-         //          }
-         //          if (*it == "derivs") {
-         //             phiprof::start("fsgrid-coupling-out");
-         //             getDerivativesFromFsGrid(dPerBGrid, dMomentsGrid, technicalGrid, mpiGrid, cells);
-         //             phiprof::stop("fsgrid-coupling-out");
-         //          }
-         //       }
-         //       extractFsGridFields = false;
-         //    }
+                 P::t >= P::systemWrites[i] * P::systemWriteTimeInterval[i] - DT_EPSILON) {
+            if (extractFsGridFields) {
+               vector<string>::const_iterator it;
+               for (it = P::outputVariableList.begin();
+                    it != P::outputVariableList.end();
+               it++) {
+                  if (*it == "B" ||
+                      *it == "PerturbedB"
+                  ) {
+                     phiprof::start("fsgrid-coupling-out");
+                     getFieldDataFromFsGrid<fsgrids::N_BFIELD>(perBGrid,technicalGrid,mpiGrid,cells,CellParams::PERBX);
+                     phiprof::stop("fsgrid-coupling-out");
+                  }
+                  if (*it == "E") {
+                     phiprof::start("fsgrid-coupling-out");
+                     getFieldDataFromFsGrid<fsgrids::N_EFIELD>(EGrid,technicalGrid,mpiGrid,cells,CellParams::EX);
+                     phiprof::stop("fsgrid-coupling-out");
+                  }
+                  if (*it == "HallE") {
+                     phiprof::start("fsgrid-coupling-out");
+                     getFieldDataFromFsGrid<fsgrids::N_EHALL>(EHallGrid,technicalGrid,mpiGrid,cells,CellParams::EXHALL_000_100);
+                     phiprof::stop("fsgrid-coupling-out");
+                  }
+                  if (*it == "GradPeE") {
+                     phiprof::start("fsgrid-coupling-out");
+                     getFieldDataFromFsGrid<fsgrids::N_EGRADPE>(EGradPeGrid,technicalGrid,mpiGrid,cells,CellParams::EXGRADPE);
+                     phiprof::stop("fsgrid-coupling-out");
+                  }
+                  if (*it == "derivs") {
+                     phiprof::start("fsgrid-coupling-out");
+                     getDerivativesFromFsGrid(dPerBGrid, dMomentsGrid, technicalGrid, mpiGrid, cells);
+                     phiprof::stop("fsgrid-coupling-out");
+                  }
+               }
+               extractFsGridFields = false;
+            }
             
             phiprof::start("write-system");
             logFile << "(IO): Writing spatial cell and reduced system data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
