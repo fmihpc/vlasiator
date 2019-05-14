@@ -317,7 +317,7 @@ namespace spatial_cell {
 
       // Member variables //
       //Real derivatives[fieldsolver::N_SPATIAL_CELL_DERIVATIVES];              /**< Derivatives of bulk variables in this spatial cell.*/
-      std::array<Real, fieldsolver::N_SPATIAL_CELL_DERIVATIVES> derivatives;    /**< Derivatives of bulk variables in this spatial cell.*/
+      //std::array<Real, fieldsolver::N_SPATIAL_CELL_DERIVATIVES> derivatives;    /**< Derivatives of bulk variables in this spatial cell.*/
       //Real derivativesBVOL[bvolderivatives::N_BVOL_DERIVATIVES];                /**< Derivatives of BVOL needed by the acceleration. 
       //                                                                           * Separate array because it does not need to be communicated.*/
       std::array<Real, bvolderivatives::N_BVOL_DERIVATIVES> derivativesBVOL;    /**< Derivatives of BVOL needed by the acceleration.            
