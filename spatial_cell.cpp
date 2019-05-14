@@ -675,11 +675,11 @@ namespace spatial_cell {
             block_lengths.push_back(sizeof(Real) * 3);
          }
          
-         // send  BGBX BGBY BGBZ
-         if ((SpatialCell::mpi_transfer_type & Transfer::CELL_BGB)!=0){
-            displacements.push_back((uint8_t*) &(this->parameters[CellParams::BGBX]) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(Real) * 3);
-         }
+//          // send  BGBX BGBY BGBZ
+//          if ((SpatialCell::mpi_transfer_type & Transfer::CELL_BGB)!=0){
+//             displacements.push_back((uint8_t*) &(this->parameters[CellParams::BGBX]) - (uint8_t*) this);
+//             block_lengths.push_back(sizeof(Real) * 3);
+//          }
          
          // send  BGBXVOL BGBYVOL BGBZVOL PERBXVOL PERBYVOL PERBZVOL
          if ((SpatialCell::mpi_transfer_type & Transfer::CELL_BVOL)!=0){
