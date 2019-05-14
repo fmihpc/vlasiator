@@ -509,7 +509,7 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
    for (int x = 0; x < localSize[0]; ++x) {
       for (int y = 0; y < localSize[1]; ++y) {
          for (int z = 0; z < localSize[2]; ++z) {
-            if (technicalGrid.get(x,y,z)->sysBoundaryLayer == 0 && technicalGrid.get(x,y,z)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+            if (technicalGrid.get(x,y,z)->sysBoundaryLayer == 0 && technicalGrid.get(x,y,z)->sysBoundaryFlag == sysboundarytype::IONOSPHERE) {
                technicalGrid.get(x,y,z)->sysBoundaryFlag = sysboundarytype::DO_NOT_COMPUTE;
             }
          }
