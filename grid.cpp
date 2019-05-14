@@ -993,16 +993,6 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    neighborhood.clear();
    neighborhood.push_back({{0, 0, -1}});
    mpiGrid.add_neighborhood(SHIFT_P_Z_NEIGHBORHOOD_ID, neighborhood);
-   
-   // Add face neighbors, needed for Poisson solver
-   neighborhood.clear();
-   neighborhood.push_back({{-1, 0, 0}});
-   neighborhood.push_back({{+1, 0, 0}});
-   neighborhood.push_back({{ 0,-1, 0}});
-   neighborhood.push_back({{ 0,+1, 0}});
-   neighborhood.push_back({{ 0, 0,-1}});
-   neighborhood.push_back({{ 0, 0,+1}});
-   mpiGrid.add_neighborhood(POISSON_NEIGHBORHOOD_ID, neighborhood);
 }
 
 bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const uint popID) {

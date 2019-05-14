@@ -187,7 +187,7 @@ DEPS_VLSVMOVER_AMR = ${DEPS_CELL} vlasovsolver_amr/vlasovmover.cpp vlasovsolver_
 OBJS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipole.o constantfield.o integratefunction.o \
 	datareducer.o datareductionoperator.o dro_populations.o amr_refinement_criteria.o\
 	donotcompute.o ionosphere.o outflow.o setbyuser.o setmaxwellian.o\
-	sysboundary.o sysboundarycondition.o project_boundary.o particle_species.o\
+	sysboundary.o sysboundarycondition.o particle_species.o\
 	project.o projectTriAxisSearch.o read_gaussian_population.o\
 	Alfven.o Diffusion.o Dispersion.o Distributions.o Firehose.o\
 	Flowthrough.o Fluctuations.o Harris.o KHB.o Larmor.o Magnetosphere.o MultiPeak.o\
@@ -277,9 +277,6 @@ ionosphere.o: ${DEPS_SYSBOUND} sysboundary/ionosphere.h sysboundary/ionosphere.c
 
 mesh_data_container.o: ${DEPS_COMMON} mesh_data_container.h mesh_data.h
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c mesh_data_container.cpp ${INC_VLSV} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_FSGRID}
-
-project_boundary.o: ${DEPS_SYSBOUND} sysboundary/project_boundary.h sysboundary/project_boundary.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c sysboundary/project_boundary.cpp ${INC_DCCRG} ${INC_FSGRID} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN} ${INC_VLSV}
 
 outflow.o: ${DEPS_COMMON} sysboundary/outflow.h sysboundary/outflow.cpp projects/project.h projects/project.cpp fieldsolver/ldz_magnetic_field.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c sysboundary/outflow.cpp ${INC_FSGRID} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
