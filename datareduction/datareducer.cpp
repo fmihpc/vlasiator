@@ -924,7 +924,7 @@ bool DataReducer::handlesWriting(const unsigned int& operatorID) const {
    return dynamic_cast<DRO::DataReductionOperatorHandlesWriting*>(operators[operatorID]) != nullptr;
 }
 
-/** Ask a DataReductionOperator if it wants to write parameterdas to the vlsv file header
+/** Ask a DataReductionOperator if it wants to write parameters to the vlsv file header
  * @param operatorID ID number of the DataReductionOperator.
  * @return If true, then VLSVWriter should be passed to the DataReductionOperator.*/
 bool DataReducer::hasParameters(const unsigned int& operatorID) const {
