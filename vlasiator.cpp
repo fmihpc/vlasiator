@@ -452,6 +452,8 @@ int main(int argn,char* args[]) {
       BgBGrid,
       momentsGrid,
       momentsDt2Grid,
+      EGradPeGrid,
+      volGrid,
       technicalGrid,
       sysBoundaries,
       *project
@@ -546,13 +548,13 @@ int main(int argn,char* args[]) {
    // Save restart data
    if (P::writeInitialState) {
       phiprof::start("write-initial-state");
-      phiprof::start("fsgrid-coupling-out");
-      getFieldDataFromFsGrid<fsgrids::N_BFIELD>(perBGrid,technicalGrid,mpiGrid,cells,CellParams::PERBX);
-      getFieldDataFromFsGrid<fsgrids::N_EFIELD>(EGrid,technicalGrid,mpiGrid,cells,CellParams::EX);
-      getFieldDataFromFsGrid<fsgrids::N_EHALL>(EHallGrid,technicalGrid,mpiGrid,cells,CellParams::EXHALL_000_100);
-      getFieldDataFromFsGrid<fsgrids::N_EGRADPE>(EGradPeGrid,technicalGrid,mpiGrid,cells,CellParams::EXGRADPE);
-      getDerivativesFromFsGrid(dPerBGrid, dMomentsGrid, technicalGrid, mpiGrid, cells);
-      phiprof::stop("fsgrid-coupling-out");
+      //      phiprof::start("fsgrid-coupling-out");
+      // getFieldDataFromFsGrid<fsgrids::N_BFIELD>(perBGrid,technicalGrid,mpiGrid,cells,CellParams::PERBX);
+      // getFieldDataFromFsGrid<fsgrids::N_EFIELD>(EGrid,technicalGrid,mpiGrid,cells,CellParams::EX);
+      // getFieldDataFromFsGrid<fsgrids::N_EHALL>(EHallGrid,technicalGrid,mpiGrid,cells,CellParams::EXHALL_000_100);
+      // getFieldDataFromFsGrid<fsgrids::N_EGRADPE>(EGradPeGrid,technicalGrid,mpiGrid,cells,CellParams::EXGRADPE);
+      // getDerivativesFromFsGrid(dPerBGrid, dMomentsGrid, technicalGrid, mpiGrid, cells);
+      //      phiprof::stop("fsgrid-coupling-out");
       
       if (myRank == MASTER_RANK)
          logFile << "(IO): Writing initial state to disk, tstep = "  << endl << writeVerbose;
@@ -914,22 +916,22 @@ int main(int argn,char* args[]) {
          // Re-couple fsgrids to updated grid situation
          phiprof::start("fsgrid-recouple-after-lb");
          
-         const vector<CellID>& cells = getLocalCells();
+//          const vector<CellID>& cells = getLocalCells();
          
-         technicalGrid. setupForGridCoupling(cells.size());
+//          technicalGrid. setupForGridCoupling(cells.size());
          
-         // Each dccrg cell may have to communicate with multiple fsgrid cells, if they are on a lower refinement level.
-         // Calculate the corresponding fsgrid ids for each dccrg cell and set coupling for each fsgrid id.
-         for(auto& dccrgId : cells) {
-            const auto fsgridIds = mapDccrgIdToFsGridGlobalID(mpiGrid, dccrgId);
-            for (auto& fsgridId : fsgridIds) {
+//          // Each dccrg cell may have to communicate with multiple fsgrid cells, if they are on a lower refinement level.
+//          // Calculate the corresponding fsgrid ids for each dccrg cell and set coupling for each fsgrid id.
+//          for(auto& dccrgId : cells) {
+//             const auto fsgridIds = mapDccrgIdToFsGridGlobalID(mpiGrid, dccrgId);
+//             for (auto& fsgridId : fsgridIds) {
                
-               technicalGrid. setGridCoupling(fsgridId, myRank);
-            }
-         }
-         // cout << endl;
+//                technicalGrid. setGridCoupling(fsgridId, myRank);
+//             }
+//          }
+//          // cout << endl;
          
-         technicalGrid. finishGridCoupling();
+//          technicalGrid. finishGridCoupling();
 
          phiprof::stop("fsgrid-recouple-after-lb");
 

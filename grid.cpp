@@ -91,6 +91,8 @@ void initializeGrids(
    FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
    FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsGrid,
    FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsDt2Grid,
+   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2> & EGradPeGrid,
+   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volGrid,
    FsGrid< fsgrids::technical, 2>& technicalGrid,
    SysBoundary& sysBoundaries,
    Project& project
@@ -313,6 +315,13 @@ void initializeGrids(
    BgBGrid.updateGhostCells();
    phiprof::stop("setProjectBField");
    
+   phiprof::start("getFieldsFromFsGrid");
+   // These should be done by initializeFieldPropagator() if the propagation is turned off.
+   volGrid.updateGhostCells();
+   technicalGrid.updateGhostCells();
+   getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, technicalGrid, mpiGrid, cells);
+   phiprof::stop("getFieldsFromFsGrid");
+
    phiprof::start("Finish fsgrid setup");
    getFieldDataFromFsGrid<fsgrids::N_BFIELD>(perBGrid, technicalGrid, mpiGrid, cells, CellParams::PERBX);
    getBgFieldsAndDerivativesFromFsGrid(BgBGrid, technicalGrid, mpiGrid, cells);
