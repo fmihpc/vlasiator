@@ -316,10 +316,6 @@ namespace spatial_cell {
       //random_data* get_rng_data_buffer();
 
       // Member variables //
-      //Real derivatives[fieldsolver::N_SPATIAL_CELL_DERIVATIVES];              /**< Derivatives of bulk variables in this spatial cell.*/
-      //std::array<Real, fieldsolver::N_SPATIAL_CELL_DERIVATIVES> derivatives;    /**< Derivatives of bulk variables in this spatial cell.*/
-      //Real derivativesBVOL[bvolderivatives::N_BVOL_DERIVATIVES];                /**< Derivatives of BVOL needed by the acceleration. 
-      //                                                                           * Separate array because it does not need to be communicated.*/
       std::array<Real, bvolderivatives::N_BVOL_DERIVATIVES> derivativesBVOL;    /**< Derivatives of BVOL needed by the acceleration.            
                                                                                  * Separate array because it does not need to be communicated.*/
       //Real parameters[CellParams::N_SPATIAL_CELL_PARAMS];                     /**< Bulk variables in this spatial cell.*/

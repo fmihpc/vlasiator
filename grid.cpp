@@ -289,26 +289,7 @@ void initializeGrids(
       calculateInitialVelocityMoments(mpiGrid);
       phiprof::stop("Init moments");
    }
-   
-   // phiprof::start("Initial fsgrid coupling");
-   // // Couple FSGrids to mpiGrid. Note that the coupling information is shared
-   // // between them.
-   // technicalGrid.setupForGridCoupling(cells.size());
-   
-   // // Each dccrg cell may have to communicate with multiple fsgrid cells, if they are on a lower refinement level.
-   // // Calculate the corresponding fsgrid ids for each dccrg cell and set coupling for each fsgrid id.
-   // for(auto& dccrgId : cells) {
-   //    const auto fsgridIds = mapDccrgIdToFsGridGlobalID(mpiGrid, dccrgId);
       
-   //    for (auto fsgridId : fsgridIds) {
-         
-   //       technicalGrid.setGridCoupling(fsgridId, myRank);
-   //    }
-   // }
-   
-   // technicalGrid.finishGridCoupling();
-   // phiprof::stop("Initial fsgrid coupling");
-   
    phiprof::start("setProjectBField");
    project.setProjectBField(perBGrid, BgBGrid, technicalGrid);
    perBGrid.updateGhostCells();
@@ -323,8 +304,6 @@ void initializeGrids(
    phiprof::stop("getFieldsFromFsGrid");
 
    phiprof::start("Finish fsgrid setup");
-   // getFieldDataFromFsGrid<fsgrids::N_BFIELD>(perBGrid, technicalGrid, mpiGrid, cells, CellParams::PERBX);
-   // getBgFieldsAndDerivativesFromFsGrid(BgBGrid, technicalGrid, mpiGrid, cells);
    
    // WARNING this means moments and dt2 moments are the same here.
    feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid,false);
