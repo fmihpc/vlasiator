@@ -1438,6 +1438,9 @@ namespace DRO {
 
    VariableEnergyDensity::VariableEnergyDensity(cuint _popID): DataReductionOperatorHasParameters(),popID(_popID) {
       popName = getObjectWrapper().particleSpecies[popID].name;
+      solarwindenergy = getObjectWrapper().particleSpecies[popID].SolarWindEnergy;
+      E1limit = solarwindenergy * getObjectWrapper().particleSpecies[popID].EnergyDensityLimit1;
+      E2limit = solarwindenergy * getObjectWrapper().particleSpecies[popID].EnergyDensityLimit2;
    }
    VariableEnergyDensity::~VariableEnergyDensity() { }
    
@@ -1452,6 +1455,11 @@ namespace DRO {
    
    bool VariableEnergyDensity::reduceData(const SpatialCell* cell,char* buffer) {
       const Real HALF = 0.5;
+
+      for(int i = 0; i < 3; i++) {
+	 EDensity[i] = 0.0;
+      }
+
       # pragma omp parallel
       {
          Real thread_E0_sum = 0.0;
@@ -1508,12 +1516,6 @@ namespace DRO {
    }
    
    bool VariableEnergyDensity::setSpatialCell(const SpatialCell* cell) {
-      for(int i = 0; i < 3; i++) {
-	 EDensity[i] = 0.0;
-      }
-      solarwindenergy = getObjectWrapper().particleSpecies[popID].SolarWindEnergy;
-      E1limit = solarwindenergy * getObjectWrapper().particleSpecies[popID].EnergyDensityLimit1;
-      E2limit = solarwindenergy * getObjectWrapper().particleSpecies[popID].EnergyDensityLimit2;
       return true;
    }
    
@@ -1522,9 +1524,10 @@ namespace DRO {
       Real swe = solarwindenergy/physicalconstants::CHARGE;
       Real e1l = E1limit/physicalconstants::CHARGE;
       Real e2l = E2limit/physicalconstants::CHARGE;
-      if( vlsvWriter.writeParameter("EnergyDensityESW", &swe) == false ) { return false; }
-      if( vlsvWriter.writeParameter("EnergyDensityELimit1", &e1l) == false ) { return false; }
-      if( vlsvWriter.writeParameter("EnergyDensityELimit2", &e2l) == false ) { return false; }
+
+      if( vlsvWriter.writeParameter(popName+"_EnergyDensityESW", &swe) == false ) { return false; }
+      if( vlsvWriter.writeParameter(popName+"_EnergyDensityELimit1", &e1l) == false ) { return false; }
+      if( vlsvWriter.writeParameter(popName+"_EnergyDensityELimit2", &e2l) == false ) { return false; }
       return true;
    }
 
