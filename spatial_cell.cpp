@@ -47,12 +47,7 @@ namespace spatial_cell {
       for (unsigned int i = 0; i < CellParams::N_SPATIAL_CELL_PARAMS; i++) {
          this->parameters[i]=0.0;
       }
-      
-      // // reset spatial cell derivatives
-      // for (unsigned int i = 0; i < fieldsolver::N_SPATIAL_CELL_DERIVATIVES; i++) {
-      //    this->derivatives[i]=0;
-      // }
-      
+            
       // reset BVOL derivatives
       for (unsigned int i = 0; i < bvolderivatives::N_BVOL_DERIVATIVES; i++) {
          this->derivativesBVOL[i]=0;
@@ -87,7 +82,6 @@ namespace spatial_cell {
      mpiTransferEnabled(other.mpiTransferEnabled),
      populations(other.populations),
      parameters(other.parameters),
-     //     derivatives(other.derivatives),
      derivativesBVOL(other.derivativesBVOL),
      null_block_data(std::array<Realf,WID3> {}) {
    }
