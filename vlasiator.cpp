@@ -849,28 +849,6 @@ int main(int argn,char* args[]) {
          logFile << "(LB): ... done!"  << endl << writeVerbose;
          P::prepareForRebalance = false;
 
-         // Re-couple fsgrids to updated grid situation
-         phiprof::start("fsgrid-recouple-after-lb");
-         
-//          const vector<CellID>& cells = getLocalCells();
-         
-//          technicalGrid. setupForGridCoupling(cells.size());
-         
-//          // Each dccrg cell may have to communicate with multiple fsgrid cells, if they are on a lower refinement level.
-//          // Calculate the corresponding fsgrid ids for each dccrg cell and set coupling for each fsgrid id.
-//          for(auto& dccrgId : cells) {
-//             const auto fsgridIds = mapDccrgIdToFsGridGlobalID(mpiGrid, dccrgId);
-//             for (auto& fsgridId : fsgridIds) {
-               
-//                technicalGrid. setGridCoupling(fsgridId, myRank);
-//             }
-//          }
-//          // cout << endl;
-         
-//          technicalGrid. finishGridCoupling();
-
-         phiprof::stop("fsgrid-recouple-after-lb");
-
          overrideRebalanceNow = false;
       }
       
