@@ -93,7 +93,8 @@ namespace projects {
       Real dipoleTiltPhi;
       Real dipoleTiltTheta;
       Real dipoleXFull;
-      Real dipoleXNone;
+      Real dipoleXZero;
+      Real dipoleInflowB[3];
 
       std::vector<MagnetosphereSpeciesParameters> speciesParams;
    }; // class Magnetosphere

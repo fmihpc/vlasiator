@@ -31,6 +31,7 @@
 #include "../../backgroundfield/constantfield.hpp"
 #include "../../backgroundfield/dipole.hpp"
 #include "../../backgroundfield/linedipole.hpp"
+#include "../../backgroundfield/vectordipole.hpp"
 #include "../../object_wrapper.h"
 
 #include "Magnetosphere.h"
@@ -61,7 +62,10 @@ namespace projects {
       RP::add("Magnetosphere.dipoleTiltPhi","Magnitude of dipole tilt in radians", 0.0);
       RP::add("Magnetosphere.dipoleTiltTheta","Direction of dipole tilt from Sun-Earth-line in radians", 0.0);
       RP::add("Magnetosphere.dipoleXFull","X-coordinate up to which dipole is at full strength, in metres", 9.5565e7); // 15 RE
-      RP::add("Magnetosphere.dipoleXFull","X-coordinate after which dipole is at zero strength, in metres", 1.9113e8); // 30 RE
+      RP::add("Magnetosphere.dipoleXZero","X-coordinate after which dipole is at zero strength, in metres", 1.9113e8); // 30 RE
+      RP::add("Magnetosphere.dipoleInflowBX","Inflow magnetic field Bx component to which the vector potential dipole converges. Default is none.", 0.0);
+      RP::add("Magnetosphere.dipoleInflowBY","Inflow magnetic field By component to which the vector potential dipole converges. Default is none.", 0.0);
+      RP::add("Magnetosphere.dipoleInflowBZ","Inflow magnetic field Bz component to which the vector potential dipole converges. Default is none.", 0.0);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
@@ -167,6 +171,18 @@ namespace projects {
          exit(1);
       }
       if(!Readparameters::get("Magnetosphere.dipoleXZero", this->dipoleXZero)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("Magnetosphere.dipoleInflowBX", this->dipoleInflowB[0])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("Magnetosphere.dipoleInflowBY", this->dipoleInflowB[1])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("Magnetosphere.dipoleInflowBZ", this->dipoleInflowB[2])) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
@@ -309,14 +325,12 @@ namespace projects {
                bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, this->dipoleMirrorLocationX, 0.0, 0.0, 0.0 );//mirror
                setBackgroundField(bgFieldDipole, BgBGrid, true);
                break; 
-            case 4:  // Vector potential dipole, vanishes after a given x-coordinate
-	       bgVectorDipole.initialize(126.2e6 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, this->dipoleTiltPhi, this->dipoleTiltTheta, this->dipoleXFull, this->dipoleXZero );
+            case 4:  // Vector potential dipole, vanishes or optionally scales to static inflow value after a given x-coordinate
+	       bgVectorDipole.initialize(126.2e6 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, this->dipoleTiltPhi, this->dipoleTiltTheta, this->dipoleXFull, this->dipoleXZero, this->dipoleInflowB[0], this->dipoleInflowB[1], this->dipoleInflowB[2]);
                setBackgroundField(bgVectorDipole, BgBGrid);
-               break;
-              
+               break;              
             default:
                setBackgroundFieldToZero(BgBGrid);
-               
       }
       
       const auto localSize = BgBGrid.getLocalSize();
