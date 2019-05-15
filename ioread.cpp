@@ -242,7 +242,6 @@ bool readNBlocks(vlsv::ParallelReader& file,const std::string& meshName,
       cerr << "VLSV\t\t ERROR: Array 'MESH_DOMAIN_SIZES' XML tag does not have attribute 'arraysize'" << endl;
       return false;
    } else {
-      cerr << "VLSV\t\t Mesh has " << it->second << " domains" << endl;
       N_domains = atoi(it->second.c_str());
    }
 
