@@ -215,7 +215,7 @@ bool Parameters::addParameters(){
    
 // Output variable parameters
    // NOTE Do not remove the : before the list of variable names as this is parsed by tools/check_vlasiator_cfg.sh
-   Readparameters::addComposing("variables.output", "List of data reduction operators (DROs) to add to the grid file output.  Each variable to be added has to be on a new line output = XXX.  "+
+   Readparameters::addComposing("variables.output", std::string()+"List of data reduction operators (DROs) to add to the grid file output.  Each variable to be added has to be on a new line output = XXX.  "+
 				"Available (20190514): "+
 				"B fg_B BackgroundB vg_BackgroundB fg_BackgroundB PerturbedB vg_PerturbedB fg_PerturbedB "+
 				"E fg_E "+
@@ -235,7 +235,7 @@ bool Parameters::addParameters(){
 				"GridCoordinates BackgroundVolE MeshData");
 
    // NOTE Do not remove the : before the list of variable names as this is parsed by tools/check_vlasiator_cfg.sh
-   Readparameters::addComposing("variables.diagnostic", "List of data reduction operators (DROs) to add to the diagnostic runtime output. Each variable to be added has to be on a new line diagnostic = XXX.  "+
+   Readparameters::addComposing("variables.diagnostic", std::string()+"List of data reduction operators (DROs) to add to the diagnostic runtime output. Each variable to be added has to be on a new line diagnostic = XXX.  "+
 				"Available (20190320): "+
 				"FluxB FluxE "+
 				"populations_Blocks "+
