@@ -41,22 +41,16 @@ void updateAccelerationMaxdt(
    SpatialCell* spatial_cell,
    const uint popID) 
 {
-   if (Parameters::propagatePotential == true) {
-      #warning Electric acceleration works for Poisson only atm
-      spatial_cell->set_max_v_dt(popID,numeric_limits<Real>::max());
-   }
-   else {
-      const Real Bx = spatial_cell->parameters[CellParams::BGBXVOL]+spatial_cell->parameters[CellParams::PERBXVOL];
-      const Real By = spatial_cell->parameters[CellParams::BGBYVOL]+spatial_cell->parameters[CellParams::PERBYVOL];
-      const Real Bz = spatial_cell->parameters[CellParams::BGBZVOL]+spatial_cell->parameters[CellParams::PERBZVOL];
-      const Eigen::Matrix<Real,3,1> B(Bx,By,Bz);
-      const Real B_mag = B.norm() + 1e-30;      
-      const Real gyro_period = 2 * M_PI * getObjectWrapper().particleSpecies[popID].mass
-         / (getObjectWrapper().particleSpecies[popID].charge * B_mag);
+   const Real Bx = spatial_cell->parameters[CellParams::BGBXVOL]+spatial_cell->parameters[CellParams::PERBXVOL];
+   const Real By = spatial_cell->parameters[CellParams::BGBYVOL]+spatial_cell->parameters[CellParams::PERBYVOL];
+   const Real Bz = spatial_cell->parameters[CellParams::BGBZVOL]+spatial_cell->parameters[CellParams::PERBZVOL];
+   const Eigen::Matrix<Real,3,1> B(Bx,By,Bz);
+   const Real B_mag = B.norm() + 1e-30;      
+   const Real gyro_period = 2 * M_PI * getObjectWrapper().particleSpecies[popID].mass
+      / (getObjectWrapper().particleSpecies[popID].charge * B_mag);
 
-      // Set maximum timestep limit for this cell, based on a maximum allowed rotation angle
-      spatial_cell->set_max_v_dt(popID,fabs(gyro_period)*(P::maxSlAccelerationRotation/360.0));
-   }
+   // Set maximum timestep limit for this cell, based on a maximum allowed rotation angle
+   spatial_cell->set_max_v_dt(popID,fabs(gyro_period)*(P::maxSlAccelerationRotation/360.0));
 }
 
 
@@ -117,20 +111,6 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
 
    // compute total transformation
    Transform<Real,3,Affine> total_transform(Matrix<Real, 4, 4>::Identity()); //CONTINUE
-
-   if (Parameters::propagatePotential == true) {
-   #warning Electric acceleration works for Poisson only atm
-      Real* E = &(spatial_cell->parameters[CellParams::EXVOL]);
-
-      const Real q_per_m = getObjectWrapper().particleSpecies[popID].charge 
-                         / getObjectWrapper().particleSpecies[popID].mass;
-      const Real CONST = q_per_m * dt;
-      total_transform(0,3) = CONST * E[0];
-      total_transform(1,3) = CONST * E[1];
-      total_transform(2,3) = CONST * E[2];
-      return total_transform;
-   } // if (Parameters::propagatePotential == true) 
-
 
    unsigned int bulk_velocity_substeps; // in this many substeps we iterate forward bulk velocity when the complete transformation is computed (0.1 deg per substep).
    bulk_velocity_substeps = fabs(dt) / fabs(gyro_period*(0.1/360.0));

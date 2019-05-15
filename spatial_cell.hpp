@@ -115,11 +115,9 @@ namespace spatial_cell {
       const uint64_t CELL_HALL_TERM           = (1ull<<24);
       const uint64_t CELL_P                   = (1ull<<25);
       const uint64_t CELL_PDT2                = (1ull<<26);
-      const uint64_t CELL_RHOQ_TOT            = (1ull<<27);
-      const uint64_t CELL_PHI                 = (1ull<<28);
-      const uint64_t POP_METADATA             = (1ull<<29);
-      const uint64_t RANDOMGEN                = (1ull<<30);
-      const uint64_t CELL_GRADPE_TERM         = (1ull<<31);
+      const uint64_t POP_METADATA             = (1ull<<27);
+      const uint64_t RANDOMGEN                = (1ull<<28);
+      const uint64_t CELL_GRADPE_TERM         = (1ull<<29);
       //all data
       const uint64_t ALL_DATA =
       CELL_PARAMETERS

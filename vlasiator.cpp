@@ -45,7 +45,6 @@
 #include "sysboundary/sysboundary.h"
 
 #include "fieldsolver/fs_common.h"
-#include "poisson_solver/poisson_solver.h"
 #include "projects/project.h"
 #include "grid.h"
 #include "iowrite.h"
@@ -492,16 +491,6 @@ int main(int argn,char* args[]) {
       exit(1);
    }
    phiprof::stop("Init field propagator");
-
-   // Initialize Poisson solver (if used)
-   if (P::propagatePotential == true) {
-      phiprof::start("Init Poisson solver");
-      if (poisson::initialize(mpiGrid) == false) {
-         logFile << "(MAIN): Poisson solver did not initialize correctly!" << endl << writeVerbose;
-         exit(1);
-      }
-      phiprof::stop("Init Poisson solver");
-   }
 
    // Free up memory:
    readparameters.finalize();
@@ -1090,10 +1079,6 @@ int main(int argn,char* args[]) {
          addTimedBarrier("barrier-after-field-solver");
       }
 
-      if (P::propagatePotential == true) {
-         poisson::solve(mpiGrid);
-      }
-
       phiprof::start("Velocity-space");
       if ( P::propagateVlasovAcceleration ) {
          calculateAcceleration(mpiGrid,P::dt);
@@ -1147,9 +1132,6 @@ int main(int argn,char* args[]) {
    phiprof::start("Finalization");
    if (P::propagateField ) { 
       finalizeFieldPropagator();
-   }
-   if (P::propagatePotential == true) {
-      poisson::finalize();
    }
    if (myRank == MASTER_RANK) {
       if (doBailout > 0) {
