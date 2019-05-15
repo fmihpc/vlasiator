@@ -718,17 +718,6 @@ int main(int argn,char* args[]) {
 
 // Check whether diagnostic output has to be produced
       if (P::diagnosticInterval != 0 && P::tstep % P::diagnosticInterval == 0) {
-         vector<string>::const_iterator it;
-         for (it = P::diagnosticVariableList.begin();
-              it != P::diagnosticVariableList.end();
-         it++) {
-            if (*it == "FluxB") {
-               if(myRank == MASTER_RANK) cerr << __FILE__ << " " << __LINE__ << "ERROR: Diagnostic output from FsGrid is no longer supported!" << endl;
-            }            
-            if (*it == "FluxE") {
-               if(myRank == MASTER_RANK) cerr << __FILE__ << " " << __LINE__ << "ERROR: Diagnostic output from FsGrid is no longer supported!" << endl;
-            }
-         }
          
          phiprof::start("diagnostic-io");
          if (writeDiagnostic(mpiGrid, diagnosticReducer) == false) {
