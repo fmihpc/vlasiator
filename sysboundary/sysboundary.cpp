@@ -474,6 +474,8 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
    // In dccrg initialization the max number of boundary layers is set to 3.
    const uint MAX_NUMBER_OF_BOUNDARY_LAYERS = 3 * pow(2,mpiGrid.get_maximum_refinement_level());
    
+   technicalGrid.updateGhostCells();
+   
    // loop through max number of layers
    for(uint layer = 1; layer <= MAX_NUMBER_OF_BOUNDARY_LAYERS; ++layer) {
       
@@ -495,11 +497,13 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
                      if (layer > 2 && technicalGrid.get(x,y,z)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
                         technicalGrid.get(x,y,z)->sysBoundaryFlag = sysboundarytype::DO_NOT_COMPUTE;
                      }
+                     
                   }
                }
             }
          }
       }
+      technicalGrid.updateGhostCells();
    }
    
    // One more pass to make sure, in particular if the ionosphere is wide enough
