@@ -35,8 +35,6 @@
 #include "ionosphere.h"
 #include "outflow.h"
 #include "setmaxwellian.h"
-#include "antisymmetric.h"
-#include "project_boundary.h"
 
 using namespace std;
 using namespace spatial_cell;
@@ -87,8 +85,6 @@ void SysBoundary::addParameters() {
    SBC::Ionosphere::addParameters();
    SBC::Outflow::addParameters();
    SBC::SetMaxwellian::addParameters();
-   SBC::Antisymmetric::addParameters();
-   SBC::ProjectBoundary::addParameters();
 }
 
 /*!\brief Get this class' parameters.
@@ -264,52 +260,6 @@ bool SysBoundary::initSysBoundaries(
          if((faces[4] || faces[5]) && P::zcells_ini < 5) {
             if(myRank == MASTER_RANK) cerr << "You load Maxwellian system boundary conditions on the z+ or z- face but there is not enough cells in that direction to make sense." << endl;
             exit(1);
-         }
-      }
-      if (*it == "Antisymmetric") {
-         if (addSysBoundary(new SBC::Antisymmetric,project,t) == false) {
-            if (myRank == MASTER_RANK) cerr << "Error in adding Antisymmetric boundary condition." << endl;
-            success = false;
-         }
-         isThisDynamic = isThisDynamic | getSysBoundary(sysboundarytype::ANTISYMMETRIC)->isDynamic();
-         bool faces[6];
-         getSysBoundary(sysboundarytype::ANTISYMMETRIC)->getFaces(&faces[0]);
-         if ((faces[0] || faces[1]) && isPeriodic[0]) {
-            if (myRank == MASTER_RANK) {
-               cerr << "You set boundaries.periodic_x = yes and load Outflow system boundary";
-               cerr << "conditions on the x+ or x- face, are you sure this is correct?" << endl;
-            }
-         }
-         if ((faces[2] || faces[3]) && isPeriodic[1]) {
-            if (myRank == MASTER_RANK) {
-               cerr << "You set boundaries.periodic_y = yes and load Outflow system boundary";
-               cerr << "conditions on the y+ or y- face, are you sure this is correct?" << endl;
-            }
-         }
-         if ((faces[4] || faces[5]) && isPeriodic[2]) {
-            if (myRank == MASTER_RANK) {
-               cerr << "You set boundaries.periodic_z = yes and load Outflow system boundary";
-               cerr << "conditions on the z+ or z- face, are you sure this is correct?" << endl;
-            }
-         }
-      }
-      if(*it == "ProjectBoundary") {
-         if (this->addSysBoundary(new SBC::ProjectBoundary, project, t) == false) {
-            if(myRank == MASTER_RANK) cerr << "Error in adding ProjectBoundary boundary." << endl;
-            success = false;
-         }
-         isThisDynamic = isThisDynamic|
-         this->getSysBoundary(sysboundarytype::PROJECT)->isDynamic();
-         bool faces[6];
-         this->getSysBoundary(sysboundarytype::PROJECT)->getFaces(&faces[0]);
-         if((faces[0] || faces[1]) && isPeriodic[0]) {
-            if(myRank == MASTER_RANK) cerr << "You set boundaries.periodic_x = yes and load ProjectBoundary system boundary conditions on the x+ or x- face, are you sure this is correct?" << endl;
-         }
-         if((faces[2] || faces[3]) && isPeriodic[1]) {
-            if(myRank == MASTER_RANK) cerr << "You set boundaries.periodic_y = yes and load ProjectBoundary system boundary conditions on the y+ or y- face, are you sure this is correct?" << endl;
-         }
-         if((faces[4] || faces[5]) && isPeriodic[2]) {
-            if(myRank == MASTER_RANK) cerr << "You set boundaries.periodic_z = yes and load ProjectBoundary system boundary conditions on the z+ or z- face, are you sure this is correct?" << endl;
          }
       }
    }
@@ -524,6 +474,8 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
    // In dccrg initialization the max number of boundary layers is set to 3.
    const uint MAX_NUMBER_OF_BOUNDARY_LAYERS = 3 * pow(2,mpiGrid.get_maximum_refinement_level());
    
+   technicalGrid.updateGhostCells();
+   
    // loop through max number of layers
    for(uint layer = 1; layer <= MAX_NUMBER_OF_BOUNDARY_LAYERS; ++layer) {
       
@@ -545,8 +497,24 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
                      if (layer > 2 && technicalGrid.get(x,y,z)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
                         technicalGrid.get(x,y,z)->sysBoundaryFlag = sysboundarytype::DO_NOT_COMPUTE;
                      }
+                     
                   }
                }
+            }
+         }
+      }
+      technicalGrid.updateGhostCells();
+   }
+   
+   // One more pass to make sure, in particular if the ionosphere is wide enough
+   // there is remaining cells of IONOSPHERE type inside the max layers gone through previously.
+   // This last pass now gets rid of them.
+   #pragma omp parallel for collapse(3)
+   for (int x = 0; x < localSize[0]; ++x) {
+      for (int y = 0; y < localSize[1]; ++y) {
+         for (int z = 0; z < localSize[2]; ++z) {
+            if (technicalGrid.get(x,y,z)->sysBoundaryLayer == 0 && technicalGrid.get(x,y,z)->sysBoundaryFlag == sysboundarytype::IONOSPHERE) {
+               technicalGrid.get(x,y,z)->sysBoundaryFlag = sysboundarytype::DO_NOT_COMPUTE;
             }
          }
       }
