@@ -310,6 +310,7 @@ namespace SBC {
                      perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBX) = templateB[iface][0];
                      perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBY) = templateB[iface][1];
                      perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBZ) = templateB[iface][2];
+                     break;
                   }
                }
             }
