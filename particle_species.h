@@ -68,6 +68,7 @@ namespace species {
       int nChannels;              /*!< Number of energy channels for precipitation differential flux evaluation. Default 16. */
       Real emin;                  /*!< Lowest energy channel (in keV) for precipitation differential flux evaluation. Default 0.1. */
       Real emax;                  /*!< Highest energy channel (in keV) for precipitation differential flux evaluation. Default 100. */
+      Real lossConeAngle;         /*!< Fixed loss cone opening angle (in deg) for precipitation differential flux evaluation. Default 10. */
 
        Species();
        Species(const Species& other);

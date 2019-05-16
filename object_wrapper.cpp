@@ -75,6 +75,7 @@ bool ObjectWrapper::addPopulationParameters() {
      Readparameters::add(pop + "_precipitation.nChannels", "Number of energy channels for precipitation differential flux evaluation", 16);
      Readparameters::add(pop + "_precipitation.emin", "Lowest energy channel (in keV) for precipitation differential flux evaluation", 0.1);
      Readparameters::add(pop + "_precipitation.emax", "Highest energy channel (in keV) for precipitation differential flux evaluation", 100.0);
+     Readparameters::add(pop + "_precipitation.lossConeAngle", "Fixed loss cone opening angle (in deg) for precipitation differential flux evaluation", 10.0);
 
      // Energy density parameters
      Readparameters::add(pop + "_energydensity.limit1", "Lower limit of second bin for energy density, given in units of solar wind ram energy.", 5.0);
@@ -177,10 +178,11 @@ bool ObjectWrapper::getParameters() {
 	 species.SolarWindEnergy = 0.5 * species.mass * species.SolarWindSpeed * species.SolarWindSpeed;
       }
 
-      // Precipitation parameters
+      // Get precipitation parameters
       Readparameters::get(pop + "_precipitation.nChannels", species.nChannels);
       Readparameters::get(pop + "_precipitation.emin", species.emin);
       Readparameters::get(pop + "_precipitation.emax", species.emax);
+      Readparameters::get(pop + "_precipitation.lossConeAngle", species.lossConeAngle);
    }
 
    return true;

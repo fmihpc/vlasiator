@@ -1436,11 +1436,17 @@ namespace DRO {
       return true;
    }
 
-   // Precipitation directional differential number flux
+   /*! \brief Precipitation directional differential number flux
+    * Evaluation of the precipitating differential flux (per population).
+    * In a selected number (default: 16) of logarithmically spaced energy bins, the average of
+    *      V*V/mass
+    * is calculated within the loss cone of fixed angular opening (default: 10 deg).
+    * The differential flux is converted in part. / cm^2 / s / sr / eV (unit used by observers).
+    * Parameters that can be set in cfg file: nChannels, emin [keV], emax [keV], lossConeAngle [deg]
+    */
    VariablePrecipitationDiffFlux::VariablePrecipitationDiffFlux(cuint _popID): DataReductionOperatorHasParameters(),popID(_popID) {
       popName = getObjectWrapper().particleSpecies[popID].name;
-      cosAngle = cos(10.*M_PI/180.0); // cosine of fixed loss cone angle
-
+      lossConeAngle = getObjectWrapper().particleSpecies[popID].lossConeAngle; // deg
       emin = getObjectWrapper().particleSpecies[popID].emin;    // keV
       emax = getObjectWrapper().particleSpecies[popID].emax;  // keV
       nChannels = getObjectWrapper().particleSpecies[popID].nChannels; // number of energy channels, logarithmically spaced between emin and emax
@@ -1469,6 +1475,8 @@ namespace DRO {
       B[0] = cell->parameters[CellParams::PERBXVOL] +  cell->parameters[CellParams::BGBXVOL];
       B[1] = cell->parameters[CellParams::PERBYVOL] +  cell->parameters[CellParams::BGBYVOL];
       B[2] = cell->parameters[CellParams::PERBZVOL] +  cell->parameters[CellParams::BGBZVOL];
+
+      Real cosAngle = cos(lossConeAngle*M_PI/180.0); // cosine of fixed loss cone angle
 
       // Unit B-field direction
       creal normB = sqrt(B[0]*B[0] + B[1]*B[1] + B[2]*B[2]);
@@ -1525,9 +1533,7 @@ namespace DRO {
 	       thread_count[binNumber] += countAndGate * DV3;
             }
          }
-         for (int i=0; i<nChannels; i++){
-            thread_lossCone_sum[i] *= 1.0 / getObjectWrapper().particleSpecies[popID].mass * physicalconstants::CHARGE * 1.0e-4; // cm-2 s-1 sr-1 ev-1
-         }
+ //TODO           thread_lossCone_sum[i] *= 1.0 / getObjectWrapper().particleSpecies[popID].mass * physicalconstants::CHARGE * 1.0e-4; // cm-2 s-1 sr-1 ev-1
 
          // Accumulate contributions coming from this velocity block to the 
          // spatial cell velocity moments. If multithreading / OpenMP is used, 

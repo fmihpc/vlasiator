@@ -544,7 +544,7 @@ namespace DRO {
       std::string popName;
       int nChannels;
       Real emin, emax;
-      Real cosAngle;
+      Real lossConeAngle;
       std::vector<Real> channels, dataDiffFlux;
    };
 } // namespace DRO
