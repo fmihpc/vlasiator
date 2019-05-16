@@ -106,6 +106,10 @@ namespace projects {
       if(hook::END_OF_TIME_STEP == stage) {
          int myRank;
          MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+
+         cerr << "Warning, this function does virtually nothing, since B and E are not updated in DCCRG cell params since May 2019" << endl;
+         cerr << "If this is undersirable to you, please implement writing the fields out of fsgrid objects" << endl;
+
          vector<Real> localRhom(P::xcells_ini, 0.0),
                      outputRhom(P::xcells_ini, 0.0),
                      localPerBx(P::xcells_ini, 0.0),
@@ -122,13 +126,13 @@ namespace projects {
                      outputEz(P::xcells_ini, 0.0);
          for(uint i=0; i<Parameters::localCells.size(); i++) {
             if(Parameters::localCells[i] <= P::xcells_ini) {
-               localPerBx[Parameters::localCells[i] - 1] = mpiGrid[Parameters::localCells[i]]->parameters[CellParams::PERBX];
-               localPerBy[Parameters::localCells[i] - 1] = mpiGrid[Parameters::localCells[i]]->parameters[CellParams::PERBY];
-               localPerBz[Parameters::localCells[i] - 1] = mpiGrid[Parameters::localCells[i]]->parameters[CellParams::PERBZ];
+//                localPerBx[Parameters::localCells[i] - 1] = mpiGrid[Parameters::localCells[i]]->parameters[CellParams::PERBX];
+//                localPerBy[Parameters::localCells[i] - 1] = mpiGrid[Parameters::localCells[i]]->parameters[CellParams::PERBY];
+//                localPerBz[Parameters::localCells[i] - 1] = mpiGrid[Parameters::localCells[i]]->parameters[CellParams::PERBZ];
                localRhom[Parameters::localCells[i] - 1] = mpiGrid[Parameters::localCells[i]]->parameters[CellParams::RHOM];
-               localEx[Parameters::localCells[i] - 1] = mpiGrid[Parameters::localCells[i]]->parameters[CellParams::EX];
-               localEy[Parameters::localCells[i] - 1] = mpiGrid[Parameters::localCells[i]]->parameters[CellParams::EY];
-               localEz[Parameters::localCells[i] - 1] = mpiGrid[Parameters::localCells[i]]->parameters[CellParams::EZ];
+//                localEx[Parameters::localCells[i] - 1] = mpiGrid[Parameters::localCells[i]]->parameters[CellParams::EX];
+//                localEy[Parameters::localCells[i] - 1] = mpiGrid[Parameters::localCells[i]]->parameters[CellParams::EY];
+//                localEz[Parameters::localCells[i] - 1] = mpiGrid[Parameters::localCells[i]]->parameters[CellParams::EZ];
             }
          }
          
