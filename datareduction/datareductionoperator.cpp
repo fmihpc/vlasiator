@@ -1567,12 +1567,18 @@ namespace DRO {
       for (int i=0; i<nChannels; i++) {
          if( vlsvWriter.writeParameter("PrecipitationCentreEnergy"+std::to_string(i), &channels[i]) == false ) { return false; }
       }
+      if( vlsvWriter.writeParameter("LossConeAngle", &lossConeAngle) == false ) { return false; }
       return true;
    }
 
 
 
-
+   /*! \brief Energy density
+    * Calculates the energy density of particles in three bins: total energy density, above E1limit*solar wind energy, and above E2limit*solar wind energy
+    * Energy densities are given in eV/cm^3.
+    * Parameters that can be set in cfg file under [{species}_energydensity]: solarwindspeed [m/s], solarwindenergy [eV], limit1 [scalar], limit2 [scalar].
+    * The energy thresholds are saved in bulk files as EnergyDensityESW, EnergyDensityELimit1, EnergyDensityELimit.
+    */
    VariableEnergyDensity::VariableEnergyDensity(cuint _popID): DataReductionOperatorHasParameters(),popID(_popID) {
       popName = getObjectWrapper().particleSpecies[popID].name;
    }
@@ -1621,7 +1627,13 @@ namespace DRO {
 	       if (ENERGY > E1limit) thread_E1_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * ENERGY * DV3;
 	       if (ENERGY > E2limit) thread_E2_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * ENERGY * DV3;
             }
+         }
 
+         // Accumulate contributions coming from this velocity block to the 
+         // spatial cell velocity moments. If multithreading / OpenMP is used, 
+         // these updates need to be atomic:
+         # pragma omp critical
+         {
             EDensity[0] += thread_E0_sum;
             EDensity[1] += thread_E1_sum;
             EDensity[2] += thread_E2_sum;
