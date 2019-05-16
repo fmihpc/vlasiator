@@ -246,8 +246,6 @@ bool Parameters::addParameters(){
 				"populations_MaxVdt MaxVdt populations_MaxRdt MaxRdt MaxFieldsdt "+
 				"populations_MaxDistributionFunction populations_MinDistributionFunction");
 
-   Readparameters::addComposing("variables.diagnostic", "List of data reduction operators (DROs) to add to the diagnostic runtime output. Each variable to be added has to be on a new line diagnostic = XXX.  Available (20190320): FluxB FluxE populations_Blocks Rhom populations_RhoLossAdjust LBweight populations_MaxVdt MaxVdt populations_MaxRdt MaxRdt MaxFieldsdt populations_MaxDistributionFunction populations_MinDistributionFunction");
-
    // bailout parameters
    Readparameters::add("bailout.write_restart", "If 1, write a restart file on bailout. Gets reset when sending a STOP (1) or a KILL (0).", true);
    Readparameters::add("bailout.min_dt", "Minimum time step below which bailout occurs (s).", 1e-6);
