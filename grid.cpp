@@ -195,7 +195,7 @@ void initializeGrids(
    
       //initial state for sys-boundary cells, will skip those not set to be reapplied at restart
       phiprof::start("Apply system boundary conditions state");
-      if (sysBoundaries.applyInitialState(mpiGrid, project) == false) {
+      if (sysBoundaries.applyInitialState(mpiGrid, perBGrid, project) == false) {
          cerr << " (MAIN) ERROR: System boundary conditions initial state was not applied correctly." << endl;
          exit(1);
       }
@@ -227,7 +227,7 @@ void initializeGrids(
       // Initial state for sys-boundary cells
       phiprof::stop("Apply initial state");
       phiprof::start("Apply system boundary conditions state");
-      if (sysBoundaries.applyInitialState(mpiGrid, project) == false) {
+      if (sysBoundaries.applyInitialState(mpiGrid, perBGrid, project) == false) {
          cerr << " (MAIN) ERROR: System boundary conditions initial state was not applied correctly." << endl;
          exit(1);
       }

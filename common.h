@@ -130,23 +130,11 @@ namespace CellParams {
       DX,     /*!< Grid separation in x-coordinate.*/
       DY,     /*!< Grid separation in y-coordinate.*/
       DZ,     /*!< Grid separation in z-coordinate.*/
-      EX,     /*!< Total electric field x-component, averaged over cell edge. Used to propagate BX,BY,BZ.*/
-      EY,     /*!< Total wlectric field y-component, averaged over cell edge. Used to propagate BX,BY,BZ.*/
-      EZ,     /*!< Total electric field z-component, averaged over cell edge. Used to propagate BX,BY,BZ.*/
-      PERBX,  /*!< Perturbed Magnetic field x-component, averaged over cell x-face. Propagated by field solver.*/
-      PERBY,  /*!< Perturbed Magnetic field y-component, averaged over cell y-face. Propagated by field solver.*/
-      PERBZ,  /*!< Perturbed Magnetic field z-component, averaged over cell z-face. Propagated by field solver.*/
       RHOM,    /*!< Total mass density. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       VX,  /*!< Vx. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       VY,  /*!< Vy. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       VZ,  /*!< Vz. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       RHOQ,    /*!< Total charge density. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
-      EX_DT2,    /*!< Intermediate step value for RK2 time stepping in field solver.*/
-      EY_DT2,    /*!< Intermediate step value for RK2 time stepping in field solver.*/
-      EZ_DT2,    /*!< Intermediate step value for RK2 time stepping in field solver.*/
-      PERBX_DT2, /*!< Intermediate step value for PERBX for RK2 time stepping in field solver.*/
-      PERBY_DT2, /*!< Intermediate step value for PERBY for RK2 time stepping in field solver.*/
-      PERBZ_DT2, /*!< Intermediate step value for PERBZ for RK2 time stepping in field solver.*/
       RHOM_DT2,    /*!< Total mass density. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       VX_DT2,  /*!< Vx. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       VY_DT2,  /*!< Vy. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/

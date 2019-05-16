@@ -168,6 +168,7 @@ namespace SBC {
    
    bool Antisymmetric::applyInitialState(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
       Project &project
    ) {
       vector<CellID> cells = mpiGrid.get_cells();

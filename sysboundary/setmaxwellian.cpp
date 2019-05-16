@@ -210,6 +210,7 @@ namespace SBC {
     */
    void SetMaxwellian::generateTemplateCell(
       spatial_cell::SpatialCell& templateCell,
+      Real B[3],
       int inputDataIndex,
       creal& t
    ) {
@@ -304,26 +305,12 @@ namespace SBC {
          templateCell.adjustSingleCellVelocityBlocks(popID);
       } // for-loop over particle species
       
-      templateCell.parameters[CellParams::PERBX] = Bx;
-      templateCell.parameters[CellParams::PERBY] = By;
-      templateCell.parameters[CellParams::PERBZ] = Bz;
+      B[0] = Bx;
+      B[1] = By;
+      B[2] = Bz;
       
       calculateCellMoments(&templateCell,true,true);
       
-      if(!this->isThisDynamic) {
-         // WARNING Time-independence assumed here.
-         templateCell.parameters[CellParams::RHOM_DT2] = templateCell.parameters[CellParams::RHOM];
-         templateCell.parameters[CellParams::VX_DT2] = templateCell.parameters[CellParams::VX];
-         templateCell.parameters[CellParams::VY_DT2] = templateCell.parameters[CellParams::VY];
-         templateCell.parameters[CellParams::VZ_DT2] = templateCell.parameters[CellParams::VZ];
-         templateCell.parameters[CellParams::RHOQ_DT2] = templateCell.parameters[CellParams::RHOQ];
-         templateCell.parameters[CellParams::PERBX_DT2] = templateCell.parameters[CellParams::PERBX];
-         templateCell.parameters[CellParams::PERBY_DT2] = templateCell.parameters[CellParams::PERBY];
-         templateCell.parameters[CellParams::PERBZ_DT2] = templateCell.parameters[CellParams::PERBZ];
-      } else {
-         cerr << "ERROR: this is not dynamic in time, please code it!" << endl;
-         abort();
-      }
    }
    
    string SetMaxwellian::getName() const {return "SetMaxwellian";}

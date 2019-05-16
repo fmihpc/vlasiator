@@ -674,31 +674,7 @@ namespace spatial_cell {
             displacements.push_back((uint8_t*) &(this->parameters[CellParams::BGBXVOL]) - (uint8_t*) this);
             block_lengths.push_back(sizeof(Real) * 6);
          }
-         
-         // send  EX, EY EZ
-         if ((SpatialCell::mpi_transfer_type & Transfer::CELL_E)!=0){
-            displacements.push_back((uint8_t*) &(this->parameters[CellParams::EX]) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(Real) * 3);
-         }
-         
-         // send  EX_DT2, EY_DT2, EZ_DT2
-         if ((SpatialCell::mpi_transfer_type & Transfer::CELL_EDT2)!=0){
-            displacements.push_back((uint8_t*) &(this->parameters[CellParams::EX_DT2]) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(Real) * 3);
-         }
-         
-         // send  PERBX, PERBY, PERBZ
-         if ((SpatialCell::mpi_transfer_type & Transfer::CELL_PERB)!=0){
-            displacements.push_back((uint8_t*) &(this->parameters[CellParams::PERBX]) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(Real) * 3);
-         }
-         
-         // send  PERBX_DT2, PERBY_DT2, PERBZ_DT2
-         if ((SpatialCell::mpi_transfer_type & Transfer::CELL_PERBDT2)!=0){
-            displacements.push_back((uint8_t*) &(this->parameters[CellParams::PERBX_DT2]) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(Real) * 3);
-         }
-         
+                  
          // send RHOM, VX, VY, VZ
          if ((SpatialCell::mpi_transfer_type & Transfer::CELL_RHOM_V)!=0){
             displacements.push_back((uint8_t*) &(this->parameters[CellParams::RHOM]) - (uint8_t*) this);
