@@ -314,10 +314,6 @@ namespace spatial_cell {
       //random_data* get_rng_data_buffer();
 
       // Member variables //
-      //Real derivatives[fieldsolver::N_SPATIAL_CELL_DERIVATIVES];              /**< Derivatives of bulk variables in this spatial cell.*/
-      std::array<Real, fieldsolver::N_SPATIAL_CELL_DERIVATIVES> derivatives;    /**< Derivatives of bulk variables in this spatial cell.*/
-      //Real derivativesBVOL[bvolderivatives::N_BVOL_DERIVATIVES];                /**< Derivatives of BVOL needed by the acceleration. 
-      //                                                                           * Separate array because it does not need to be communicated.*/
       std::array<Real, bvolderivatives::N_BVOL_DERIVATIVES> derivativesBVOL;    /**< Derivatives of BVOL needed by the acceleration.            
                                                                                  * Separate array because it does not need to be communicated.*/
       //Real parameters[CellParams::N_SPATIAL_CELL_PARAMS];                     /**< Bulk variables in this spatial cell.*/
@@ -1613,7 +1609,6 @@ namespace spatial_cell {
       size += velocity_block_with_content_list.size() * sizeof(vmesh::GlobalID);
       size += velocity_block_with_no_content_list.size() * sizeof(vmesh::GlobalID);
       size += CellParams::N_SPATIAL_CELL_PARAMS * sizeof(Real);
-      size += fieldsolver::N_SPATIAL_CELL_DERIVATIVES * sizeof(Real);
       size += bvolderivatives::N_BVOL_DERIVATIVES * sizeof(Real);
 
       for (size_t p=0; p<populations.size(); ++p) {
@@ -1639,7 +1634,6 @@ namespace spatial_cell {
       capacity += velocity_block_with_content_list.capacity()  * sizeof(vmesh::GlobalID);
       capacity += velocity_block_with_no_content_list.capacity()  * sizeof(vmesh::GlobalID);
       capacity += CellParams::N_SPATIAL_CELL_PARAMS * sizeof(Real);
-      capacity += fieldsolver::N_SPATIAL_CELL_DERIVATIVES * sizeof(Real);
       capacity += bvolderivatives::N_BVOL_DERIVATIVES * sizeof(Real);
       
       for (size_t p=0; p<populations.size(); ++p) {

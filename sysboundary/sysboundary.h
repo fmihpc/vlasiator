@@ -72,6 +72,7 @@ class SysBoundary {
                       FsGrid< fsgrids::technical, 2> & technicalGrid);
    bool applyInitialState(
                           dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
                           Project& project
                          );
    void applySysBoundaryVlasovConditions(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, creal& t);

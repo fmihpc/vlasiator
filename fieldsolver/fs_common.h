@@ -60,7 +60,6 @@ const Real ZERO    = 0.0;
 static creal EPS = 1.0e-30;
 
 using namespace std;
-using namespace fieldsolver;
 
 bool initializeFieldPropagator(
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,

@@ -47,12 +47,7 @@ namespace spatial_cell {
       for (unsigned int i = 0; i < CellParams::N_SPATIAL_CELL_PARAMS; i++) {
          this->parameters[i]=0.0;
       }
-      
-      // reset spatial cell derivatives
-      for (unsigned int i = 0; i < fieldsolver::N_SPATIAL_CELL_DERIVATIVES; i++) {
-         this->derivatives[i]=0;
-      }
-      
+            
       // reset BVOL derivatives
       for (unsigned int i = 0; i < bvolderivatives::N_BVOL_DERIVATIVES; i++) {
          this->derivativesBVOL[i]=0;
@@ -87,7 +82,6 @@ namespace spatial_cell {
      mpiTransferEnabled(other.mpiTransferEnabled),
      populations(other.populations),
      parameters(other.parameters),
-     derivatives(other.derivatives),
      derivativesBVOL(other.derivativesBVOL),
      null_block_data(std::array<Realf,WID3> {}) {
    }
@@ -674,43 +668,13 @@ namespace spatial_cell {
             displacements.push_back((uint8_t*) &(this->parameters[CellParams::DX]) - (uint8_t*) this);
             block_lengths.push_back(sizeof(Real) * 3);
          }
-         
-         // send  BGBX BGBY BGBZ
-         if ((SpatialCell::mpi_transfer_type & Transfer::CELL_BGB)!=0){
-            displacements.push_back((uint8_t*) &(this->parameters[CellParams::BGBX]) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(Real) * 3);
-         }
-         
+                  
          // send  BGBXVOL BGBYVOL BGBZVOL PERBXVOL PERBYVOL PERBZVOL
          if ((SpatialCell::mpi_transfer_type & Transfer::CELL_BVOL)!=0){
             displacements.push_back((uint8_t*) &(this->parameters[CellParams::BGBXVOL]) - (uint8_t*) this);
             block_lengths.push_back(sizeof(Real) * 6);
          }
-         
-         // send  EX, EY EZ
-         if ((SpatialCell::mpi_transfer_type & Transfer::CELL_E)!=0){
-            displacements.push_back((uint8_t*) &(this->parameters[CellParams::EX]) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(Real) * 3);
-         }
-         
-         // send  EX_DT2, EY_DT2, EZ_DT2
-         if ((SpatialCell::mpi_transfer_type & Transfer::CELL_EDT2)!=0){
-            displacements.push_back((uint8_t*) &(this->parameters[CellParams::EX_DT2]) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(Real) * 3);
-         }
-         
-         // send  PERBX, PERBY, PERBZ
-         if ((SpatialCell::mpi_transfer_type & Transfer::CELL_PERB)!=0){
-            displacements.push_back((uint8_t*) &(this->parameters[CellParams::PERBX]) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(Real) * 3);
-         }
-         
-         // send  PERBX_DT2, PERBY_DT2, PERBZ_DT2
-         if ((SpatialCell::mpi_transfer_type & Transfer::CELL_PERBDT2)!=0){
-            displacements.push_back((uint8_t*) &(this->parameters[CellParams::PERBX_DT2]) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(Real) * 3);
-         }
-         
+                  
          // send RHOM, VX, VY, VZ
          if ((SpatialCell::mpi_transfer_type & Transfer::CELL_RHOM_V)!=0){
             displacements.push_back((uint8_t*) &(this->parameters[CellParams::RHOM]) - (uint8_t*) this);
@@ -735,12 +699,6 @@ namespace spatial_cell {
             block_lengths.push_back(sizeof(Real));
          }
          
-         // send  spatial cell derivatives
-         if ((SpatialCell::mpi_transfer_type & Transfer::CELL_DERIVATIVES)!=0){
-            displacements.push_back((uint8_t*) &(this->derivatives[0]) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(Real) * fieldsolver::N_SPATIAL_CELL_DERIVATIVES);
-         }
-         
          // send  spatial cell BVOL derivatives
          if ((SpatialCell::mpi_transfer_type & Transfer::CELL_BVOL_DERIVATIVES)!=0){
             displacements.push_back((uint8_t*) &(this->derivativesBVOL[0]) - (uint8_t*) this);
@@ -752,11 +710,6 @@ namespace spatial_cell {
             block_lengths.push_back(sizeof(uint64_t));
          }
          
-         // send Hall term components
-         if ((SpatialCell::mpi_transfer_type & Transfer::CELL_HALL_TERM)!=0){
-            displacements.push_back((uint8_t*) &(this->parameters[CellParams::EXHALL_000_100]) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(Real) * 12);
-         }
          // send electron pressure gradient term components
          if ((SpatialCell::mpi_transfer_type & Transfer::CELL_GRADPE_TERM)!=0){
             displacements.push_back((uint8_t*) &(this->parameters[CellParams::EXGRADPE]) - (uint8_t*) this);

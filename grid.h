@@ -41,6 +41,8 @@ void initializeGrids(
    FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
    FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsGrid,
    FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsDt2Grid,
+   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2> & EGradPeGrid,
+   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volGrid,
    FsGrid< fsgrids::technical, 2>& technicalGrid,
    SysBoundary& sysBoundaries,
    Project& project

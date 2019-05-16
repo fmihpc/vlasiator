@@ -159,17 +159,6 @@ namespace DRO {
 
       return true;
    }
-   
-   DataReductionOperatorDerivatives::DataReductionOperatorDerivatives(const std::string& name,const unsigned int parameterIndex,const unsigned int vectorSize):
-   DataReductionOperatorCellParams(name,parameterIndex,vectorSize) {
-
-   }
-   //a version with derivatives, this is the only function that is different
-   bool DataReductionOperatorDerivatives::setSpatialCell(const SpatialCell* cell) {
-      data  = &(cell->derivatives[_parameterIndex]);
-      return true;
-   }
-
 
    DataReductionOperatorBVOLDerivatives::DataReductionOperatorBVOLDerivatives(const std::string& name,const unsigned int parameterIndex,const unsigned int vectorSize):
    DataReductionOperatorCellParams(name,parameterIndex,vectorSize) {
@@ -499,107 +488,7 @@ namespace DRO {
       averageVZ = cell-> parameters[CellParams::VZ];
       for(int i = 0; i < 3; i++) PTensor[i] = 0.0;
       return true;
-   }
-   
-   // Integrated divergence of magnetic field
-   // Integral of div B over the simulation volume =
-   // Integral of flux of B on simulation volume surface
-   DiagnosticFluxB::DiagnosticFluxB(): DataReductionOperator() { }
-   DiagnosticFluxB::~DiagnosticFluxB() { }
-   
-   std::string DiagnosticFluxB::getName() const {return "FluxB";}
-   
-   bool DiagnosticFluxB::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-      dataType = "float";
-      dataSize =  sizeof(Real);
-      vectorSize = 1;
-      return true;
-   }
-   
-   bool DiagnosticFluxB::reduceDiagnostic(const SpatialCell* cell,Real * result) {
-      creal x = cell->parameters[CellParams::XCRD];
-      creal dx = cell->parameters[CellParams::DX];
-      creal y = cell->parameters[CellParams::YCRD];
-      creal dy = cell->parameters[CellParams::DY];
-      creal z = cell->parameters[CellParams::ZCRD];
-      creal dz = cell->parameters[CellParams::DZ];
-      creal cx = x + 0.5 * dx;
-      creal cy = y + 0.5 * dy;
-      creal cz = z + 0.5 * dz;
-      
-      Real value = 0.0;
-      if(cx > Parameters::xmax - 2.0 * dx && cx < Parameters::xmax - dx) {
-         value += cell->parameters[CellParams::PERBX];
-      } else if (cx < Parameters::xmin + 2.0 * dx && cx > Parameters::xmin + dx) {
-         value += -1.0*cell->parameters[CellParams::PERBX];
-      }
-      if(cy > Parameters::ymax - 2.0 * dy && cy < Parameters::ymax - dy) {
-         value += cell->parameters[CellParams::PERBY];
-      } else if (cy < Parameters::ymin + 2.0 * dy && cy > Parameters::ymin + dy) {
-         value += -1.0*cell->parameters[CellParams::PERBY];
-      }
-      if(cz > Parameters::zmax - 2.0 * dz && cz < Parameters::zmax - dz) {
-         value += cell->parameters[CellParams::PERBZ];
-      } else if (cz < Parameters::zmin + 2.0 * dz && cz > Parameters::zmin + dz) {
-         value += -1.0*cell->parameters[CellParams::PERBZ];
-      }
-      *result = value;
-      
-      return true;
-   }
-   
-   bool DiagnosticFluxB::setSpatialCell(const SpatialCell* cell) {return true;}
-   
-   
-   
-   // YK Integrated divergence of electric field
-   // Integral of div E over the simulation volume =
-   // Integral of flux of E on simulation volume surface
-   DiagnosticFluxE::DiagnosticFluxE(): DataReductionOperator() { }
-   DiagnosticFluxE::~DiagnosticFluxE() { }
-   
-   std::string DiagnosticFluxE::getName() const {return "FluxE";}
-   
-   bool DiagnosticFluxE::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-      dataType = "float";
-      dataSize =  sizeof(Real);
-      vectorSize = 1;
-      return true;
-   }
-   
-   bool DiagnosticFluxE::reduceDiagnostic(const SpatialCell* cell,Real * result) {
-      creal x = cell->parameters[CellParams::XCRD];
-      creal dx = cell->parameters[CellParams::DX];
-      creal y = cell->parameters[CellParams::YCRD];
-      creal dy = cell->parameters[CellParams::DY];
-      creal z = cell->parameters[CellParams::ZCRD];
-      creal dz = cell->parameters[CellParams::DZ];
-      creal cx = x + 0.5 * dx;
-      creal cy = y + 0.5 * dy;
-      creal cz = z + 0.5 * dz;
-      
-      Real value = 0.0;
-      if(cx > Parameters::xmax - 2.0 * dx && cx < Parameters::xmax - dx) {
-         value += cell->parameters[CellParams::EX];
-      } else if (cx < Parameters::xmin + 2.0 * dx && cx > Parameters::xmin + dx) {
-         value += -1.0*cell->parameters[CellParams::EX];
-      }
-      if(cy > Parameters::ymax - 2.0 * dy && cy < Parameters::ymax - dy) {
-         value += cell->parameters[CellParams::EY];
-      } else if (cy < Parameters::ymin + 2.0 * dy && cy > Parameters::ymin + dy) {
-         value += -1.0*cell->parameters[CellParams::EY];
-      }
-      if(cz > Parameters::zmax - 2.0 * dz && cz < Parameters::zmax - dz) {
-         value += cell->parameters[CellParams::EZ];
-      } else if (cz < Parameters::zmin + 2.0 * dz && cz > Parameters::zmin + dz) {
-         value += -1.0*cell->parameters[CellParams::EZ];
-      }
-      *result = value;
-      
-      return true;
-   }
-   
-   bool DiagnosticFluxE::setSpatialCell(const SpatialCell* cell) {return true;}
+   }   
    
    // YK maximum value of the distribution function
    MaxDistributionFunction::MaxDistributionFunction(cuint _popID): DataReductionOperator(),popID(_popID) {
