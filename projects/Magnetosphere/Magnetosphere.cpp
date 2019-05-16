@@ -326,7 +326,7 @@ namespace projects {
                setBackgroundField(bgFieldDipole, BgBGrid, true);
                break; 
             case 4:  // Vector potential dipole, vanishes or optionally scales to static inflow value after a given x-coordinate
-	       bgVectorDipole.initialize(126.2e6 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, this->dipoleTiltPhi, this->dipoleTiltTheta, this->dipoleXFull, this->dipoleXZero, this->dipoleInflowB[0], this->dipoleInflowB[1], this->dipoleInflowB[2]);
+	       bgVectorDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, this->dipoleTiltPhi, this->dipoleTiltTheta, this->dipoleXFull, this->dipoleXZero, this->dipoleInflowB[0], this->dipoleInflowB[1], this->dipoleInflowB[2]);
                setBackgroundField(bgVectorDipole, BgBGrid);
                break;              
             default:
