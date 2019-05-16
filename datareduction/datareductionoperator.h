@@ -491,7 +491,7 @@ namespace DRO {
       bool doSkip;
    };
    
-   class VariableEffectiveSparsityThreshold: public DataReductionOperatorHasParameters {
+   class VariableEffectiveSparsityThreshold: public DataReductionOperator {
    public:
       VariableEffectiveSparsityThreshold(cuint popID);
       virtual ~VariableEffectiveSparsityThreshold();

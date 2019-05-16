@@ -1556,7 +1556,7 @@ namespace DRO {
       return true;
    }
 
-   bool VariablePrecipitation::writeParameters(vlsv::Writer& vlsvWriter) {
+   bool VariablePrecipitationDiffFlux::writeParameters(vlsv::Writer& vlsvWriter) {
       for (int i=0; i<nChannels; i++) {
          if( vlsvWriter.writeParameter("PrecipitationCentreEnergy"+std::to_string(i), &channels[i]) == false ) { return false; }
       }
@@ -1614,7 +1614,7 @@ namespace DRO {
 	       if (ENERGY > E1limit) thread_E1_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * ENERGY * DV3;
 	       if (ENERGY > E2limit) thread_E2_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * ENERGY * DV3;
             }
-         }
+
             EDensity[0] += thread_E0_sum;
             EDensity[1] += thread_E1_sum;
             EDensity[2] += thread_E2_sum;
