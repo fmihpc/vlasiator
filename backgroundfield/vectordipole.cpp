@@ -44,8 +44,9 @@ void VectorDipole::initialize(const double moment,const double center_x, const d
 
    // Scale dipole as a function of x-coordinate
    xlimit[0]=xlimit_f; // Full dipole when x < xlimit_f
-   xlimit[1]=xlimit_z; // Zero field when x > xlimit_z
+   xlimit[1]=xlimit_z; // Zero dipole when x > xlimit_z
 
+   // Going from xlimit_f to xlimit_z, scale in IMF B-field
    IMF[0]=IMF_Bx;
    IMF[1]=IMF_By;
    IMF[2]=IMF_Bz;
