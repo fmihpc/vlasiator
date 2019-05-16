@@ -215,10 +215,34 @@ bool Parameters::addParameters(){
    
 // Output variable parameters
    // NOTE Do not remove the : before the list of variable names as this is parsed by tools/check_vlasiator_cfg.sh
+   Readparameters::addComposing("variables.output", std::string()+"List of data reduction operators (DROs) to add to the grid file output.  Each variable to be added has to be on a new line output = XXX.  "+
+				"Available (20190514): "+
+				"B fg_B BackgroundB vg_BackgroundB fg_BackgroundB PerturbedB vg_PerturbedB fg_PerturbedB "+
+				"E fg_E "+
+				"Rhom vg_Rhom fg_Rhom Rhoq vg_Rhoq fg_Rhoq populations_Rho "+
+				"V vg_V fg_V populations_V "+
+				"populations_moments_Backstream populations_moments_NonBackstream "+
+				"populations_EffectiveSparsityThreshold populations_RhoLossAdjust "+
+				"populations_EnergyDensity "+
+				"LBweight MaxVdt MaxRdt populations_MaxVdt populations_MaxRdt MaxFieldsdt "+
+				"MPIrank vg_rank FsGridRank fg_rank "+
+				"FsGridBoundaryType BoundaryType vg_BoundaryType fg_BoundaryType BoundaryLayer vg_BoundaryLayer fg_BoundaryLayer "+
+				"populations_Blocks fSaved "+
+				"populations_accSubcycles "+
+				"VolE vg_VolE fg_VolE HallE GradPeE VolB vg_VolB fg_VolB BackgroundVolB PerturbedVolB "+
+				"Pressure vg_Pressure fg_Pressure populations_PTensor "+
+				"derivs BVOLderivs "+
+				"GridCoordinates BackgroundVolE MeshData");
 
-   Readparameters::addComposing("variables.output", "List of data reduction operators (DROs) to add to the grid file output.  Each variable to be added has to be on a new line output = XXX.  Available (20190514): B fg_B BackgroundB vg_BackgroundB fg_BackgroundB PerturbedB vg_PerturbedB fg_PerturbedB E fg_E Rhom vg_Rhom fg_Rhom Rhoq vg_Rhoq fg_Rhoq populations_Rho V vg_V fg_V populations_V populations_moments_Backstream populations_moments_NonBackstream populations_EffectiveSparsityThreshold populations_RhoLossAdjust LBweight MaxVdt MaxRdt populations_MaxVdt populations_MaxRdt MaxFieldsdt MPIrank vg_rank FsGridRank fg_rank FsGridBoundaryType BoundaryType vg_BoundaryType fg_BoundaryType BoundaryLayer vg_BoundaryLayer fg_BoundaryLayer populations_Blocks fSaved populations_accSubcycles VolE vg_VolE fg_VolE HallE GradPeE VolB vg_VolB fg_VolB BackgroundVolB PerturbedVolB Pressure vg_Pressure fg_Pressure populations_PTensor derivs BVOLderivs GridCoordinates BackgroundVolE MeshData");
    // NOTE Do not remove the : before the list of variable names as this is parsed by tools/check_vlasiator_cfg.sh
-   Readparameters::addComposing("variables.diagnostic", "List of data reduction operators (DROs) to add to the diagnostic runtime output. Each variable to be added has to be on a new line diagnostic = XXX.  Available (20190320): FluxB FluxE populations_Blocks Rhom populations_RhoLossAdjust LBweight populations_MaxVdt MaxVdt populations_MaxRdt MaxRdt MaxFieldsdt populations_MaxDistributionFunction populations_MinDistributionFunction");
+   Readparameters::addComposing("variables.diagnostic", std::string()+"List of data reduction operators (DROs) to add to the diagnostic runtime output. Each variable to be added has to be on a new line diagnostic = XXX.  "+
+				"Available (20190320): "+
+				"FluxB FluxE "+
+				"populations_Blocks "+
+				"Rhom populations_RhoLossAdjust "+
+				"LBweight "+
+				"populations_MaxVdt MaxVdt populations_MaxRdt MaxRdt MaxFieldsdt "+
+				"populations_MaxDistributionFunction populations_MinDistributionFunction");
 
    // bailout parameters
    Readparameters::add("bailout.write_restart", "If 1, write a restart file on bailout. Gets reset when sending a STOP (1) or a KILL (0).", true);

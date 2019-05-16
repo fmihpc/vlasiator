@@ -423,6 +423,11 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       phiprof::stop("writeFsGrid");
    }
    
+   // Check if the DataReducer wants to write paramters to the output file
+   if (dataReducer.hasParameters(dataReducerIndex) == true) {
+      success = dataReducer.writeParameters(dataReducerIndex,vlsvWriter);
+   }
+
    delete[] varBuffer;
    varBuffer = NULL;
    phiprof::stop("DRO_"+variableName);

@@ -356,6 +356,13 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          }
          continue;
       }
+      if(*it == "populations_EnergyDensity") {
+         // Per-population energy density in three energy ranges
+         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+            outputReducer->addOperator(new DRO::VariableEnergyDensity(i));
+         }
+         continue;
+      }
       if(*it == "MaxFieldsdt" || *it == "fg_MaxFieldsdt") {
          // Maximum timestep constraint as calculated by the fieldsolver
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("MaxFieldsdt",[](
@@ -1055,6 +1062,14 @@ bool DataReducer::handlesWriting(const unsigned int& operatorID) const {
    return dynamic_cast<DRO::DataReductionOperatorHandlesWriting*>(operators[operatorID]) != nullptr;
 }
 
+/** Ask a DataReductionOperator if it wants to write parameters to the vlsv file header
+ * @param operatorID ID number of the DataReductionOperator.
+ * @return If true, then VLSVWriter should be passed to the DataReductionOperator.*/
+bool DataReducer::hasParameters(const unsigned int& operatorID) const {
+   if (operatorID >= operators.size()) return false;
+   return dynamic_cast<DRO::DataReductionOperatorHasParameters*>(operators[operatorID]) != nullptr;
+}
+
 /** Request a DataReductionOperator to calculate its output data and to write it to the given buffer.
  * @param cell Pointer to spatial cell whose data is to be reduced.
  * @param operatorID ID number of the applied DataReductionOperator.
@@ -1109,6 +1124,18 @@ bool DataReducer::writeData(const unsigned int& operatorID,
    return writingOperator->writeData(mpiGrid,cells,meshName,vlsvWriter);
 }
 
+/** Write parameters related to given DataReductionOperator to the output file.
+ * @param operatorID ID number of the selected DataReductionOperator.
+ * @param vlsvWriter VLSV file writer that has output file open.
+ * @return If true, DataReductionOperator wrote its parameters successfully.*/
+bool DataReducer::writeParameters(const unsigned int& operatorID, vlsv::Writer& vlsvWriter) {
+   if (operatorID >= operators.size()) return false;
+   DRO::DataReductionOperatorHasParameters* parameterOperator = dynamic_cast<DRO::DataReductionOperatorHasParameters*>(operators[operatorID]);
+   if(parameterOperator == nullptr) {
+      return false;
+   }
+   return parameterOperator->writeParameters(vlsvWriter);
+}
 /** Write all data thet the given DataReductionOperator wants to obtain from fsgrid into the output file.
  */
 bool DataReducer::writeFsGridData(

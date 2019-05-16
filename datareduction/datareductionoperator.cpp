@@ -1435,4 +1435,100 @@ namespace DRO {
    bool VariableEffectiveSparsityThreshold::setSpatialCell(const spatial_cell::SpatialCell* cell) {
       return true;
    }
+
+   VariableEnergyDensity::VariableEnergyDensity(cuint _popID): DataReductionOperatorHasParameters(),popID(_popID) {
+      popName = getObjectWrapper().particleSpecies[popID].name;
+      solarwindenergy = getObjectWrapper().particleSpecies[popID].SolarWindEnergy;
+      E1limit = solarwindenergy * getObjectWrapper().particleSpecies[popID].EnergyDensityLimit1;
+      E2limit = solarwindenergy * getObjectWrapper().particleSpecies[popID].EnergyDensityLimit2;
+   }
+   VariableEnergyDensity::~VariableEnergyDensity() { }
+   
+   std::string VariableEnergyDensity::getName() const {return popName + "/EnergyDensity";}
+   
+   bool VariableEnergyDensity::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize =  sizeof(Real);
+      vectorSize = 3; // This is not components, but rather total energy density, density over E1, and density over E2
+      return true;
+   }
+   
+   bool VariableEnergyDensity::reduceData(const SpatialCell* cell,char* buffer) {
+      const Real HALF = 0.5;
+
+      for(int i = 0; i < 3; i++) {
+	 EDensity[i] = 0.0;
+      }
+
+      # pragma omp parallel
+      {
+         Real thread_E0_sum = 0.0;
+         Real thread_E1_sum = 0.0;
+         Real thread_E2_sum = 0.0;
+         
+         const Real* parameters  = cell->get_block_parameters(popID);
+         const Realf* block_data = cell->get_data(popID);
+        
+         # pragma omp for
+         for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); n++) {
+	    const Real DV3 
+	       = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]
+	       * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY] 
+	       * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+
+	    for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
+	       const Real VX 
+		 =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
+		 + (i + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
+	       const Real VY 
+		 =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] 
+		 + (j + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
+	       const Real VZ 
+		 =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] 
+		 + (k + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+                     
+	       const Real ENERGY = (VX*VX + VY*VY + VZ*VZ) * HALF * getObjectWrapper().particleSpecies[popID].mass;
+	       thread_E0_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * ENERGY * DV3;
+	       if (ENERGY > E1limit) thread_E1_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * ENERGY * DV3;
+	       if (ENERGY > E2limit) thread_E2_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * ENERGY * DV3;
+            }
+         }
+
+         // Accumulate contributions coming from this velocity block to the 
+         // spatial cell velocity moments. If multithreading / OpenMP is used, 
+         // these updates need to be atomic:
+         # pragma omp critical
+         {
+            EDensity[0] += thread_E0_sum;
+            EDensity[1] += thread_E1_sum;
+            EDensity[2] += thread_E2_sum;
+         }
+
+      }
+      // Store energy density in units eV/cm^3 instead of Joules per m^3
+      EDensity[0] *= (1.0e-6)/physicalconstants::CHARGE;
+      EDensity[1] *= (1.0e-6)/physicalconstants::CHARGE;
+      EDensity[2] *= (1.0e-6)/physicalconstants::CHARGE;
+
+      const char* ptr = reinterpret_cast<const char*>(&EDensity);
+      for (uint i = 0; i < 3*sizeof(Real); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+   
+   bool VariableEnergyDensity::setSpatialCell(const SpatialCell* cell) {
+      return true;
+   }
+   
+   bool VariableEnergyDensity::writeParameters(vlsv::Writer& vlsvWriter) {
+      // Output energies in in eV
+      Real swe = solarwindenergy/physicalconstants::CHARGE;
+      Real e1l = E1limit/physicalconstants::CHARGE;
+      Real e2l = E2limit/physicalconstants::CHARGE;
+
+      if( vlsvWriter.writeParameter(popName+"_EnergyDensityESW", &swe) == false ) { return false; }
+      if( vlsvWriter.writeParameter(popName+"_EnergyDensityELimit1", &e1l) == false ) { return false; }
+      if( vlsvWriter.writeParameter(popName+"_EnergyDensityELimit2", &e2l) == false ) { return false; }
+      return true;
+   }
+
 } // namespace DRO
