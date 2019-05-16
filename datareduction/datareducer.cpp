@@ -538,7 +538,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          ));
          continue;
       }
-      if(*it == "fg_HallE") {
+      if(*it == "HallE" || *it == "fg_HallE") {
          for(int index=0; index<fsgrids::N_EHALL; index++) {
             std::string reducer_name = "fg_HallE" + std::to_string(index);
             outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(reducer_name,[index](
