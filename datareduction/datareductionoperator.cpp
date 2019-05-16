@@ -1576,8 +1576,12 @@ namespace DRO {
    /*! \brief Energy density
     * Calculates the energy density of particles in three bins: total energy density, above E1limit*solar wind energy, and above E2limit*solar wind energy
     * Energy densities are given in eV/cm^3.
-    * Parameters that can be set in cfg file under [{species}_energydensity]: solarwindspeed [m/s], solarwindenergy [eV], limit1 [scalar], limit2 [scalar].
-    * The energy thresholds are saved in bulk files as EnergyDensityESW, EnergyDensityELimit1, EnergyDensityELimit.
+    * Parameters that can be set in cfg file under [{species}_energydensity]: 
+    *    - solarwindspeed [m/s], 
+    *    - solarwindenergy [eV], 
+    *    - limit1 [scalar, default: 5.], 
+    *    - limit2 [scalar, default: 10.].
+    * The energy thresholds are saved in bulk files (in eV) as parameters: EnergyDensityESW, EnergyDensityELimit1, EnergyDensityELimit.
     */
    VariableEnergyDensity::VariableEnergyDensity(cuint _popID): DataReductionOperatorHasParameters(),popID(_popID) {
       popName = getObjectWrapper().particleSpecies[popID].name;
