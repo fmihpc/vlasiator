@@ -630,17 +630,11 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(*it == "BVOLderivs") {
          // Volume-averaged derivatives
          outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("dPERBXVOLdy",bvolderivatives::dPERBXVOLdy,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("dBGBXVOLdy",bvolderivatives::dBGBXVOLdy,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("dPERBXVOLdz",bvolderivatives::dPERBXVOLdz,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("dBGBXVOLdz",bvolderivatives::dBGBXVOLdz,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("dPERBYVOLdx",bvolderivatives::dPERBYVOLdx,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("dBGBYVOLdx",bvolderivatives::dBGBYVOLdx,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("dPERBYVOLdz",bvolderivatives::dPERBYVOLdz,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("dBGBYVOLdz",bvolderivatives::dBGBYVOLdz,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("dPERBZVOLdx",bvolderivatives::dPERBZVOLdx,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("dBGBZVOLdx",bvolderivatives::dBGBZVOLdx,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("dPERBZVOLdy",bvolderivatives::dPERBZVOLdy,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("dBGBZVOLdy",bvolderivatives::dBGBZVOLdy,1));
          continue;
       }
       if(*it == "vg_GridCoordinates") {
