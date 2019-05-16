@@ -531,6 +531,10 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          ));
          continue;
       }
+      if(*it == "fg_HallE") {
+         // TODO: Add outputreducer to get EHALL from fsgrid
+         continue;
+      }
       if(*it =="GradPeE") {
          // Electron pressure gradient contribution to the generalized ohm's law
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EGRADPE",CellParams::EXGRADPE,3));
