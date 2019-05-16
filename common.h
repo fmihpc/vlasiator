@@ -195,12 +195,6 @@ namespace CellParams {
  */
 namespace bvolderivatives {
    enum {
-/*       dBGBXVOLdy, */
-/*       dBGBXVOLdz, */
-/*       dBGBYVOLdx, */
-/*       dBGBYVOLdz, */
-/*       dBGBZVOLdx, */
-/*       dBGBZVOLdy, */
       dPERBXVOLdy,
       dPERBXVOLdz,
       dPERBYVOLdx,
