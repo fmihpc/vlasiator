@@ -101,10 +101,6 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          ));
          continue;
       }
-      // if(*it == "vg_BackgroundB") { // Static (typically dipole) magnetic field part
-      //    outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("background_B",CellParams::BGBX,3));
-      //    continue;
-      // }
       if(*it == "fg_PerturbedB" || *it == "PerturbedB") { // Fluctuating magnetic field part
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_perturbed_B",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
@@ -134,10 +130,6 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                return retval;
          }
          ));
-         continue;
-      }
-      if(*it == "vg_PerturbedB") { // Fluctuating magnetic field part
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("perturbed_B",CellParams::PERBX,3));
          continue;
       }
       if(*it == "fg_E" || *it== "E") { // Bulk electric field at Yee-lattice locations
