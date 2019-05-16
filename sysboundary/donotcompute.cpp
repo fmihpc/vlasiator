@@ -65,15 +65,6 @@ namespace SBC {
          if(cell->sysBoundaryFlag != this->getIndex()) continue;
 
          //TODO: Set fields on B grid to 0         
-//          cell->parameters[CellParams::PERBX] = 0.0;
-//          cell->parameters[CellParams::PERBY] = 0.0;
-//          cell->parameters[CellParams::PERBZ] = 0.0;
-//          cell->parameters[CellParams::PERBX_DT2] = 0.0;
-//          cell->parameters[CellParams::PERBY_DT2] = 0.0;
-//          cell->parameters[CellParams::PERBZ_DT2] = 0.0;
-//          cell->parameters[CellParams::EX] = 0.0;
-//          cell->parameters[CellParams::EY] = 0.0;
-//          cell->parameters[CellParams::EZ] = 0.0;
          cell->parameters[CellParams::RHOM] = 0.0;
          cell->parameters[CellParams::VX] = 0.0;
          cell->parameters[CellParams::VY] = 0.0;
