@@ -667,7 +667,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< fsgrids::technical, 2>& technicalGrid)->std::vector<double> {
 
                std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
-               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]*3);
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                // Iterate through fsgrid cells and extract total BVOL
                for(int z=0; z<gridSize[2]; z++) {
@@ -693,7 +693,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< fsgrids::technical, 2>& technicalGrid)->std::vector<double> {
 
                std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
-               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]*3);
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                // Iterate through fsgrid cells and extract total BVOL
                for(int z=0; z<gridSize[2]; z++) {
@@ -719,7 +719,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< fsgrids::technical, 2>& technicalGrid)->std::vector<double> {
 
                std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
-               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]*3);
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                // Iterate through fsgrid cells and extract total BVOL
                for(int z=0; z<gridSize[2]; z++) {
@@ -745,7 +745,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< fsgrids::technical, 2>& technicalGrid)->std::vector<double> {
 
                std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
-               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]*3);
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                // Iterate through fsgrid cells and extract total BVOL
                for(int z=0; z<gridSize[2]; z++) {
@@ -771,7 +771,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< fsgrids::technical, 2>& technicalGrid)->std::vector<double> {
 
                std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
-               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]*3);
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                // Iterate through fsgrid cells and extract total BVOL
                for(int z=0; z<gridSize[2]; z++) {
@@ -797,7 +797,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< fsgrids::technical, 2>& technicalGrid)->std::vector<double> {
 
                std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
-               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]*3);
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                // Iterate through fsgrid cells and extract total BVOL
                for(int z=0; z<gridSize[2]; z++) {
@@ -810,27 +810,6 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                return retval;
          }
          ));
-         continue;
-      }
-      
-      if (*it == "Potential") {
-         // Poisson soler potential
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("poisson/potential",CellParams::PHI,1));
-         continue;
-      }
-      if (*it == "BackgroundVolE") {
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("poisson/BGE_vol",CellParams::BGEXVOL,3));
-         continue;
-      }
-      if (*it == "ChargeDensity") {
-         // Poisson-solver charge density
-         // TODO: This is redundant with Rhoq
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("poisson/rho_q",CellParams::RHOQ_TOT,1));
-         continue;
-      }
-      if (*it == "PotentialError") {
-         // Poisson solver convergence measure
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("poisson/pot_error",CellParams::PHI_TMP,1));
          continue;
       }
       if (*it == "MeshData") {
