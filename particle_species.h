@@ -59,10 +59,21 @@ namespace species {
 
       Real backstreamRadius;           /*!< Radius of sphere to split the distribution into backstreaming and non-backstreaming. 0 (default in cfg) disables the DRO. */
       std::array<Real, 3> backstreamV; /*!< Centre of sphere to split the distribution into backstreaming and non-backstreaming. 0 (default in cfg) disables the DRO. */
+     
+      Real EnergyDensityLimit1;   /*!< Lower bound for second Energy density bin in units of solar wind ram energy. Default 5. */
+      Real EnergyDensityLimit2;   /*!< Lower bound forthird Energy density bin in units of solar wind ram energy. Default 10. */
+      Real SolarWindEnergy;       /*!< Solar wind ram energy, used for calculating energy density bins. Default value of 0 attempts to use SolarWindSpeed instead.  */
+      Real SolarWindSpeed;        /*!< Solar wind speed, used for calculating energy density bins if solar wind ram energy wasn't given. Default 0. */
+
+      int precipitationNChannels;              /*!< Number of energy channels for precipitation differential flux evaluation. Default 16. */
+      Real precipitationEmin;                  /*!< Lowest energy channel (in keV) for precipitation differential flux evaluation. Default 0.1. */
+      Real precipitationEmax;                  /*!< Highest energy channel (in keV) for precipitation differential flux evaluation. Default 100. */
+      Real precipitationLossConeAngle;         /*!< Fixed loss cone opening angle (in deg) for precipitation differential flux evaluation. Default 10. */
+
       
-       Species();
-       Species(const Species& other);
-       ~Species();
+      Species();
+      Species(const Species& other);
+      ~Species();
     };
 
 } // namespace species

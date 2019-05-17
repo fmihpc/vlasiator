@@ -73,6 +73,12 @@ namespace DRO {
                              vlsv::Writer& vlsvWriter) = 0;
    };
 
+   class DataReductionOperatorHasParameters: public DataReductionOperator {
+   public:
+   DataReductionOperatorHasParameters() : DataReductionOperator() {};
+     virtual bool writeParameters(vlsv::Writer& vlsvWriter) = 0;
+   };
+
    class DataReductionOperatorCellParams: public DataReductionOperator {
    public:
       DataReductionOperatorCellParams(const std::string& name,const unsigned int parameterIndex,const unsigned int vectorSize);
@@ -505,6 +511,48 @@ namespace DRO {
    protected:
       uint popID;
       std::string popName;
+   };
+
+
+   class VariableEnergyDensity: public DataReductionOperatorHasParameters {
+   public:
+      VariableEnergyDensity(cuint popID);
+      virtual ~VariableEnergyDensity();
+
+      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual std::string getName() const;
+      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool setSpatialCell(const SpatialCell* cell);
+      virtual bool writeParameters(vlsv::Writer& vlsvWriter);
+
+   protected:
+      uint popID;
+      std::string popName;
+      Real EDensity[3];
+      Real solarwindenergy;
+      Real E1limit;
+      Real E2limit;
+   };
+
+   // Precipitation directional differential number flux
+   class VariablePrecipitationDiffFlux: public DataReductionOperatorHasParameters {
+   public:
+      VariablePrecipitationDiffFlux(cuint popID);
+      virtual ~VariablePrecipitationDiffFlux();
+
+      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual std::string getName() const;
+      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool setSpatialCell(const SpatialCell* cell);
+      virtual bool writeParameters(vlsv::Writer& vlsvWriter);
+
+   protected:
+      uint popID;
+      std::string popName;
+      int nChannels;
+      Real emin, emax;
+      Real lossConeAngle;
+      std::vector<Real> channels, dataDiffFlux;
    };
    
 } // namespace DRO
