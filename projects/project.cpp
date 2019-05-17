@@ -33,7 +33,6 @@
 #include "Diffusion/Diffusion.h"
 #include "Dispersion/Dispersion.h"
 #include "Distributions/Distributions.h"
-#include "ElectricSail/electric_sail.h"
 #include "Firehose/Firehose.h"
 #include "Flowthrough/Flowthrough.h"
 #include "Fluctuations/Fluctuations.h"
@@ -55,7 +54,6 @@
 #include "../backgroundfield/backgroundfield.h"
 #include "../backgroundfield/constantfield.hpp"
 #include "Shocktest/Shocktest.h"
-#include "Poisson/poisson_test.h"
 
 using namespace std;
 
@@ -111,7 +109,6 @@ namespace projects {
       projects::Diffusion::addParameters();
       projects::Dispersion::addParameters();
       projects::Distributions::addParameters();
-      projects::ElectricSail::addParameters();
       projects::Firehose::addParameters();
       projects::Flowthrough::addParameters();
       projects::Fluctuations::addParameters();
@@ -131,7 +128,6 @@ namespace projects {
       projects::test_trans::addParameters();
       projects::verificationLarmor::addParameters();
       projects::Shocktest::addParameters();
-      projects::PoissonTest::addParameters();
       RP::add("Project_common.seed", "Seed for the RNG", 42);
       
    }
@@ -546,9 +542,6 @@ Project* createProject() {
    if(Parameters::projectName == "Distributions") {
       rvalue = new projects::Distributions;
    }
-   if (Parameters::projectName == "ElectricSail") {
-      return new projects::ElectricSail;
-   }
    if(Parameters::projectName == "Firehose") {
       rvalue = new projects::Firehose;
    }
@@ -605,9 +598,6 @@ Project* createProject() {
    }
    if(Parameters::projectName == "Shocktest") {
       rvalue = new projects::Shocktest;
-   }
-   if (Parameters::projectName == "PoissonTest") {
-      rvalue = new projects::PoissonTest;
    }
    if (rvalue == NULL) {
       cerr << "Unknown project name!" << endl;

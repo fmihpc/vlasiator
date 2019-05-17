@@ -160,13 +160,6 @@ namespace projects {
       }
       cuint nPts = pow(this->nSpaceSamples, 3.0);
       
-      cellParams[CellParams::EX   ] = 0.0;
-      cellParams[CellParams::EY   ] = 0.0;
-      cellParams[CellParams::EZ   ] = 0.0;
-      //Field below could laso be set as background field
-      cellParams[CellParams::PERBX   ] = this->B0 * cos(this->ALPHA) - this->A_MAG * this->B0 * sin(this->ALPHA) * dBxavg / nPts;
-      cellParams[CellParams::PERBY   ] = this->B0 * sin(this->ALPHA) + this->A_MAG * this->B0 * cos(this->ALPHA) * dByavg / nPts;
-      cellParams[CellParams::PERBZ   ] = this->B0 * this->A_MAG * dBzavg / nPts;
    }
    
    void Alfven::setProjectBField(

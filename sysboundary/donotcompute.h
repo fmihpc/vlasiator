@@ -52,6 +52,7 @@ namespace SBC {
                                      FsGrid< fsgrids::technical, 2> & technicalGrid);
       virtual bool applyInitialState(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
          Project &project
       );
       virtual std::string getName() const;

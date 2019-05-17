@@ -101,10 +101,6 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          ));
          continue;
       }
-      if(*it == "vg_BackgroundB") { // Static (typically dipole) magnetic field part
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("background_B",CellParams::BGBX,3));
-         continue;
-      }
       if(*it == "fg_PerturbedB" || *it == "PerturbedB") { // Fluctuating magnetic field part
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_perturbed_B",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
@@ -134,10 +130,6 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                return retval;
          }
          ));
-         continue;
-      }
-      if(*it == "vg_PerturbedB") { // Fluctuating magnetic field part
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("perturbed_B",CellParams::PERBX,3));
          continue;
       }
       if(*it == "fg_E" || *it== "E") { // Bulk electric field at Yee-lattice locations
@@ -553,20 +545,8 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          ));
          continue;
       }
-      if(*it == "HallE") {
-         // 12 corner components of the hall-effect contribution to the electric field
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EXHALL_000_100",CellParams::EXHALL_000_100,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EXHALL_001_101",CellParams::EXHALL_001_101,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EXHALL_010_110",CellParams::EXHALL_010_110,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EXHALL_011_111",CellParams::EXHALL_011_111,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EYHALL_000_010",CellParams::EYHALL_000_010,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EYHALL_001_011",CellParams::EYHALL_001_011,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EYHALL_100_110",CellParams::EYHALL_100_110,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EYHALL_101_111",CellParams::EYHALL_101_111,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EZHALL_000_001",CellParams::EZHALL_000_001,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EZHALL_010_011",CellParams::EZHALL_010_011,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EZHALL_100_101",CellParams::EZHALL_100_101,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EZHALL_110_111",CellParams::EZHALL_110_111,1));
+      if(*it == "fg_HallE") {
+         // TODO: Add outputreducer to get EHALL from fsgrid
          continue;
       }
       if(*it =="GradPeE") {
@@ -665,102 +645,183 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          }
          continue;
       }
-      if(*it == "derivs") {
-         // Derivatives of all quantities that might be of interest
-         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("drhomdx",fieldsolver::drhomdx,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("drhomdy",fieldsolver::drhomdy,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("drhomdz",fieldsolver::drhomdz,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("drhoqdx",fieldsolver::drhoqdx,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("drhoqdy",fieldsolver::drhoqdy,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("drhoqdz",fieldsolver::drhoqdz,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dp11dx",fieldsolver::dp11dx,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dp22dx",fieldsolver::dp22dx,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dp33dx",fieldsolver::dp33dx,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dp11dy",fieldsolver::dp11dy,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dp22dy",fieldsolver::dp22dy,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dp33dy",fieldsolver::dp33dy,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dp11dz",fieldsolver::dp11dz,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dp22dz",fieldsolver::dp22dz,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dp33dz",fieldsolver::dp33dz,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dPERBxdy",fieldsolver::dPERBxdy,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dBGBxdy",fieldsolver::dBGBxdy,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dPERBxdz",fieldsolver::dPERBxdz,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dBGBxdz",fieldsolver::dBGBxdz,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dPERBydx",fieldsolver::dPERBydx,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dBGBydx",fieldsolver::dBGBydx,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dPERBydz",fieldsolver::dPERBydz,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dBGBydz",fieldsolver::dBGBydz,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dPERBzdx",fieldsolver::dPERBzdx,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dBGBzdx",fieldsolver::dBGBzdx,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dPERBzdy",fieldsolver::dPERBzdy,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dBGBzdy",fieldsolver::dBGBzdy,1));
-         if(Parameters::ohmHallTerm == 2) {
-            outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dPERBxdyy",fieldsolver::dPERBxdyy,1));
-            outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dPERBxdzz",fieldsolver::dPERBxdzz,1));
-            outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dPERBydxx",fieldsolver::dPERBydxx,1));
-            outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dPERBydzz",fieldsolver::dPERBydzz,1));
-            outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dPERBzdxx",fieldsolver::dPERBzdxx,1));
-            outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dPERBzdyy",fieldsolver::dPERBzdyy,1));
-            outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dPERBxdyz",fieldsolver::dPERBxdyz,1));
-            outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dPERBydxz",fieldsolver::dPERBydxz,1));
-            outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dPERBzdxy",fieldsolver::dPERBzdxy,1));
-         }
-         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dVxdx",fieldsolver::dVxdx,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dVxdy",fieldsolver::dVxdy,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dVxdz",fieldsolver::dVxdz,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dVydx",fieldsolver::dVydx,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dVydy",fieldsolver::dVydy,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dVydz",fieldsolver::dVydz,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dVzdx",fieldsolver::dVzdx,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dVzdy",fieldsolver::dVzdy,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dVzdz",fieldsolver::dVzdz,1));
-         continue;
-      }
       if(*it == "BVOLderivs") {
          // Volume-averaged derivatives
          outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("dPERBXVOLdy",bvolderivatives::dPERBXVOLdy,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("dBGBXVOLdy",bvolderivatives::dBGBXVOLdy,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("dPERBXVOLdz",bvolderivatives::dPERBXVOLdz,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("dBGBXVOLdz",bvolderivatives::dBGBXVOLdz,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("dPERBYVOLdx",bvolderivatives::dPERBYVOLdx,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("dBGBYVOLdx",bvolderivatives::dBGBYVOLdx,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("dPERBYVOLdz",bvolderivatives::dPERBYVOLdz,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("dBGBYVOLdz",bvolderivatives::dBGBYVOLdz,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("dPERBZVOLdx",bvolderivatives::dPERBZVOLdx,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("dBGBZVOLdx",bvolderivatives::dBGBZVOLdx,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("dPERBZVOLdy",bvolderivatives::dPERBZVOLdy,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("dBGBZVOLdy",bvolderivatives::dBGBZVOLdy,1));
          continue;
       }
-      if(*it == "GridCoordinates") {
+      if(*it == "vg_GridCoordinates") {
          // Spatial coordinates for each cell
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("X",CellParams::XCRD,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("Y",CellParams::YCRD,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("Z",CellParams::ZCRD,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("DX",CellParams::DX,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("DY",CellParams::DY,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("DZ",CellParams::DZ,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_X",CellParams::XCRD,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_Y",CellParams::YCRD,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_Z",CellParams::ZCRD,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_DX",CellParams::DX,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_DY",CellParams::DY,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_DZ",CellParams::DZ,1));
          continue;
       }
-      
-      if (*it == "Potential") {
-         // Poisson soler potential
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("poisson/potential",CellParams::PHI,1));
-         continue;
-      }
-      if (*it == "BackgroundVolE") {
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("poisson/BGE_vol",CellParams::BGEXVOL,3));
-         continue;
-      }
-      if (*it == "ChargeDensity") {
-         // Poisson-solver charge density
-         // TODO: This is redundant with Rhoq
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("poisson/rho_q",CellParams::RHOQ_TOT,1));
-         continue;
-      }
-      if (*it == "PotentialError") {
-         // Poisson solver convergence measure
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("poisson/pot_error",CellParams::PHI_TMP,1));
+      if(*it == "fg_GridCoordinates") { 
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_X",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2>& dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volGrid,
+                      FsGrid< fsgrids::technical, 2>& technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract total BVOL
+               for(int z=0; z<gridSize[2]; z++) {
+                 for(int y=0; y<gridSize[1]; y++) {
+                   for(int x=0; x<gridSize[0]; x++) {
+                     retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = technicalGrid.getPhysicalCoords(x,y,z)[0];
+                   }
+                 }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_Y",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2>& dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volGrid,
+                      FsGrid< fsgrids::technical, 2>& technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract total BVOL
+               for(int z=0; z<gridSize[2]; z++) {
+                 for(int y=0; y<gridSize[1]; y++) {
+                   for(int x=0; x<gridSize[0]; x++) {
+                     retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = technicalGrid.getPhysicalCoords(x,y,z)[1];
+                   }
+                 }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_Z",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2>& dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volGrid,
+                      FsGrid< fsgrids::technical, 2>& technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract total BVOL
+               for(int z=0; z<gridSize[2]; z++) {
+                 for(int y=0; y<gridSize[1]; y++) {
+                   for(int x=0; x<gridSize[0]; x++) {
+                     retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = technicalGrid.getPhysicalCoords(x,y,z)[2];
+                   }
+                 }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_DX",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2>& dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volGrid,
+                      FsGrid< fsgrids::technical, 2>& technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract total BVOL
+               for(int z=0; z<gridSize[2]; z++) {
+                 for(int y=0; y<gridSize[1]; y++) {
+                   for(int x=0; x<gridSize[0]; x++) {
+                     retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = technicalGrid.DX;
+                   }
+                 }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_DY",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2>& dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volGrid,
+                      FsGrid< fsgrids::technical, 2>& technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract total BVOL
+               for(int z=0; z<gridSize[2]; z++) {
+                 for(int y=0; y<gridSize[1]; y++) {
+                   for(int x=0; x<gridSize[0]; x++) {
+                     retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = technicalGrid.DY;
+                   }
+                 }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_DZ",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2>& dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volGrid,
+                      FsGrid< fsgrids::technical, 2>& technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract total BVOL
+               for(int z=0; z<gridSize[2]; z++) {
+                 for(int y=0; y<gridSize[1]; y++) {
+                   for(int x=0; x<gridSize[0]; x++) {
+                     retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = technicalGrid.DZ;
+                   }
+                 }
+               }
+               return retval;
+         }
+         ));
          continue;
       }
       if (*it == "MeshData") {
@@ -780,16 +841,6 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
    for (it = P::diagnosticVariableList.begin();
         it != P::diagnosticVariableList.end();
         it++) {
-      if(*it == "FluxB") {
-         // Overall magnetic flux through the simulation plane
-         diagnosticReducer->addOperator(new DRO::DiagnosticFluxB);
-         continue;
-      }
-      if(*it == "FluxE") {
-         // Overall electric flux through the simulation plane
-         diagnosticReducer->addOperator(new DRO::DiagnosticFluxE);
-         continue;
-      }
       if (*it == "populations_Blocks") {
          // Per-population total block counts
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {

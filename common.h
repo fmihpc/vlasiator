@@ -130,26 +130,11 @@ namespace CellParams {
       DX,     /*!< Grid separation in x-coordinate.*/
       DY,     /*!< Grid separation in y-coordinate.*/
       DZ,     /*!< Grid separation in z-coordinate.*/
-      EX,     /*!< Total electric field x-component, averaged over cell edge. Used to propagate BX,BY,BZ.*/
-      EY,     /*!< Total wlectric field y-component, averaged over cell edge. Used to propagate BX,BY,BZ.*/
-      EZ,     /*!< Total electric field z-component, averaged over cell edge. Used to propagate BX,BY,BZ.*/
-      BGBX,   /*!< Background magnetic field x-component, averaged over cell x-face.*/
-      BGBY,   /*!< Background magnetic field x-component, averaged over cell x-face.*/
-      BGBZ,   /*!< Background magnetic field x-component, averaged over cell x-face.*/
-      PERBX,  /*!< Perturbed Magnetic field x-component, averaged over cell x-face. Propagated by field solver.*/
-      PERBY,  /*!< Perturbed Magnetic field y-component, averaged over cell y-face. Propagated by field solver.*/
-      PERBZ,  /*!< Perturbed Magnetic field z-component, averaged over cell z-face. Propagated by field solver.*/
       RHOM,    /*!< Total mass density. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       VX,  /*!< Vx. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       VY,  /*!< Vy. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       VZ,  /*!< Vz. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       RHOQ,    /*!< Total charge density. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
-      EX_DT2,    /*!< Intermediate step value for RK2 time stepping in field solver.*/
-      EY_DT2,    /*!< Intermediate step value for RK2 time stepping in field solver.*/
-      EZ_DT2,    /*!< Intermediate step value for RK2 time stepping in field solver.*/
-      PERBX_DT2, /*!< Intermediate step value for PERBX for RK2 time stepping in field solver.*/
-      PERBY_DT2, /*!< Intermediate step value for PERBY for RK2 time stepping in field solver.*/
-      PERBZ_DT2, /*!< Intermediate step value for PERBZ for RK2 time stepping in field solver.*/
       RHOM_DT2,    /*!< Total mass density. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       VX_DT2,  /*!< Vx. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       VY_DT2,  /*!< Vy. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
@@ -164,18 +149,6 @@ namespace CellParams {
       EXVOL,     /*!< Ex averaged over spatial cell.*/
       EYVOL,     /*!< Ey averaged over spatial cell.*/
       EZVOL,     /*!< Ez averaged over spatial cell.*/
-      EXHALL_000_100,   /*!< Hall term x averaged along x on -y/-z edge of spatial cell.*/
-      EYHALL_000_010,   /*!< Hall term y averaged along y on -x/-z edge of spatial cell.*/
-      EZHALL_000_001,   /*!< Hall term z averaged along z on -x/-y edge of spatial cell.*/
-      EYHALL_100_110,   /*!< Hall term y averaged along y on +x/-z edge of spatial cell.*/
-      EZHALL_100_101,   /*!< Hall term z averaged along z on +x/-y edge of spatial cell.*/
-      EXHALL_010_110,   /*!< Hall term x averaged along x on +y/-z edge of spatial cell.*/
-      EZHALL_010_011,   /*!< Hall term z averaged along z on +y/-x edge of spatial cell.*/
-      EZHALL_110_111,   /*!< Hall term z averaged along z on +x/+y edge of spatial cell.*/
-      EXHALL_001_101,   /*!< Hall term x averaged along x on -y/+z edge of spatial cell.*/
-      EYHALL_001_011,   /*!< Hall term y averaged along y on -x/+z edge of spatial cell.*/
-      EYHALL_101_111,   /*!< Hall term y averaged along y on +x/+z edge of spatial cell.*/
-      EXHALL_011_111,   /*!< Hall term x averaged along x on +y/+z edge of spatial cell.*/
       EXGRADPE,         /*!< Electron pressure gradient term x.*/
       EYGRADPE,         /*!< Electron pressure gradient term y.*/
       EZGRADPE,         /*!< Electron pressure gradient term z.*/
@@ -208,89 +181,11 @@ namespace CellParams {
       MAXFDT,             /*!< maximum timestep allowed in ordinary space by fieldsolver for this cell**/
       LBWEIGHTCOUNTER,    /*!< Counter for storing compute time weights needed by the load balancing**/
       ISCELLSAVINGF,      /*!< Value telling whether a cell is saving its distribution function when partial f data is written out. */
-      PHI,        /*!< Electrostatic potential.*/
-      PHI_TMP,    /*!< Temporary electrostatic potential.*/
-      RHOQ_TOT,   /*!< Total charge density, summed over all particle populations.*/
-      RHOQ_EXT,   /*<! External charge density.*/
-      BGEXVOL,    /*!< Background electric field averaged over spatial cell, x-component.*/
-      BGEYVOL,    /*!< Background electric field averaged over spatial cell, y-component.*/
-      BGEZVOL,    /*!< Background electric field averaged over spatial cell, z-component.*/
       FSGRID_RANK, /*!< Rank of this cell in the FsGrid cartesian communicator */
       FSGRID_BOUNDARYTYPE, /*!< Boundary type of this cell, as stored in the fsGrid */
       CELLID, /*! < DCCRG cell index */
       REFINEMENT_LEVEL, /*! < Refinement level */
       N_SPATIAL_CELL_PARAMS
-   };
-}
-
-/*! Namespace fieldsolver contains indices into arrays which store 
- * variables required by the field solver. These quantities are derivatives 
- * of variables described in namespace CellParams.
- * Do not change the order of variables unless you know what you are doing: 
- * in several places the size of cpu_derivatives array in cell_spatial is calculated 
- * as fieldsolver::dVzdz+1.
- */
-namespace fieldsolver {
-   enum {
-      drhomdx,    /*!< Derivative of volume-averaged mass density to x-direction. */
-      drhomdy,    /*!< Derivative of volume-averaged mass density to y-direction. */
-      drhomdz,    /*!< Derivative of volume-averaged mass density to z-direction. */
-      drhoqdx,    /*!< Derivative of volume-averaged charge density to x-direction. */
-      drhoqdy,    /*!< Derivative of volume-averaged charge density to y-direction. */
-      drhoqdz,    /*!< Derivative of volume-averaged charge density to z-direction. */
-      dBGBxdy,     /*!< Derivative of face-averaged Bx to y-direction. */
-      dBGBxdz,     /*!< Derivative of face-averaged Bx to z-direction. */
-      dBGBydx,     /*!< Derivative of face-averaged By to x-direction. */
-      dBGBydz,     /*!< Derivative of face-averaged By to z-direction. */
-      dBGBzdx,     /*!< Derivative of face-averaged Bz to x-direction. */
-      dBGBzdy,     /*!< Derivative of face-averaged Bz to y-direction. */
-      dPERBxdy,     /*!< Derivative of face-averaged Bx to y-direction. */
-      dPERBxdz,     /*!< Derivative of face-averaged Bx to z-direction. */
-      dPERBydx,     /*!< Derivative of face-averaged By to x-direction. */
-      dPERBydz,     /*!< Derivative of face-averaged By to z-direction. */
-      dPERBzdx,     /*!< Derivative of face-averaged Bz to x-direction. */
-      dPERBzdy,     /*!< Derivative of face-averaged Bz to y-direction. */
-      // Insert for Hall term
-      // NOTE 2nd derivatives of BGBn are not needed as curl(dipole) = 0.0
-      // will change if BGB is not curl-free
-//       dBGBxdyy,     /*!< Second derivative of face-averaged Bx to yy-direction. */
-//       dBGBxdzz,     /*!< Second derivative of face-averaged Bx to zz-direction. */
-//       dBGBxdyz,     /*!< Second derivative of face-averaged Bx to yz-direction. */
-//       dBGBydxx,     /*!< Second derivative of face-averaged By to xx-direction. */
-//       dBGBydzz,     /*!< Second derivative of face-averaged By to zz-direction. */
-//       dBGBydxz,     /*!< Second derivative of face-averaged By to xz-direction. */
-//       dBGBzdxx,     /*!< Second derivative of face-averaged Bz to xx-direction. */
-//       dBGBzdyy,     /*!< Second derivative of face-averaged Bz to yy-direction. */
-//       dBGBzdxy,     /*!< Second derivative of face-averaged Bz to xy-direction. */
-      dPERBxdyy,     /*!< Second derivative of face-averaged Bx to yy-direction. */
-      dPERBxdzz,     /*!< Second derivative of face-averaged Bx to zz-direction. */
-      dPERBxdyz,     /*!< Second derivative of face-averaged Bx to yz-direction. */
-      dPERBydxx,     /*!< Second derivative of face-averaged By to xx-direction. */
-      dPERBydzz,     /*!< Second derivative of face-averaged By to zz-direction. */
-      dPERBydxz,     /*!< Second derivative of face-averaged By to xz-direction. */
-      dPERBzdxx,     /*!< Second derivative of face-averaged Bz to xx-direction. */
-      dPERBzdyy,     /*!< Second derivative of face-averaged Bz to yy-direction. */
-      dPERBzdxy,     /*!< Second derivative of face-averaged Bz to xy-direction. */
-      dp11dx,        /*!< Derivative of P_11 to x direction. */
-      dp11dy,        /*!< Derivative of P_11 to x direction. */
-      dp11dz,        /*!< Derivative of P_11 to x direction. */
-      dp22dx,        /*!< Derivative of P_22 to y direction. */
-      dp22dy,        /*!< Derivative of P_22 to y direction. */
-      dp22dz,        /*!< Derivative of P_22 to y direction. */
-      dp33dx,        /*!< Derivative of P_33 to z direction. */
-      dp33dy,        /*!< Derivative of P_33 to z direction. */
-      dp33dz,        /*!< Derivative of P_33 to z direction. */
-      // End of insert for Hall term
-      dVxdx,     /*!< Derivative of volume-averaged Vx to x-direction. */
-      dVxdy,     /*!< Derivative of volume-averaged Vx to y-direction. */
-      dVxdz,     /*!< Derivative of volume-averaged Vx to z-direction. */
-      dVydx,     /*!< Derivative of volume-averaged Vy to x-direction. */
-      dVydy,     /*!< Derivative of volume-averaged Vy to y-direction. */
-      dVydz,     /*!< Derivative of volume-averaged Vy to z-direction. */
-      dVzdx,     /*!< Derivative of volume-averaged Vz to x-direction. */
-      dVzdy,     /*!< Derivative of volume-averaged Vz to y-direction. */
-      dVzdz,     /*!< Derivative of volume-averaged Vz to z-direction. */
-      N_SPATIAL_CELL_DERIVATIVES
    };
 }
 
@@ -300,12 +195,6 @@ namespace fieldsolver {
  */
 namespace bvolderivatives {
    enum {
-      dBGBXVOLdy,
-      dBGBXVOLdz,
-      dBGBYVOLdx,
-      dBGBYVOLdz,
-      dBGBZVOLdx,
-      dBGBZVOLdy,
       dPERBXVOLdy,
       dPERBXVOLdz,
       dPERBYVOLdx,
@@ -493,9 +382,6 @@ namespace sysboundarytype {
       IONOSPHERE,       /*!< Initially a perfectly conducting sphere. */
       OUTFLOW,          /*!< No fixed conditions on the fields and distribution function. */
       SET_MAXWELLIAN,   /*!< Set Maxwellian boundary condition, i.e. set fields and distribution function. */
-      ANTISYMMETRIC,    /*!< System is antisymmetric wrt. to the boundary.*/
-      PROJECT,         /*!< Simulated project's setCell and setCellBackgroundField functions are used 
-                        * to set the boundary conditions.*/
       N_SYSBOUNDARY_CONDITIONS
    };
 }

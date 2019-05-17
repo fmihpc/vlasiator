@@ -89,7 +89,7 @@ std::vector<std::pair<std::string,std::string>> P::systemWriteHints;
 
 Real P::saveRestartWalltimeInterval = -1.0;
 uint P::exitAfterRestarts = numeric_limits<uint>::max();
-uint64_t P::vlsvBufferSize;
+uint64_t P::vlsvBufferSize = 0;
 int P::restartStripeFactor = -1;
 string P::restartWritePath = string("");
 
@@ -99,7 +99,6 @@ bool P::recalculateStencils = true;
 bool P::propagateVlasovAcceleration = true;
 bool P::propagateVlasovTranslation = true;
 bool P::propagateField = true;
-bool P::propagatePotential = false;
 
 bool P::dynamicTimestep = true;
 
@@ -162,18 +161,17 @@ bool Parameters::addParameters(){
 
    Readparameters::add("io.restart_walltime_interval","Save the complete simulation in given walltime intervals. Negative values disable writes.",-1.0);
    Readparameters::add("io.number_of_restarts","Exit the simulation after certain number of walltime-based restarts.",numeric_limits<uint>::max());
-   Readparameters::add("io.vlsv_buffer_size", "Buffer size passed to VLSV writer (bytes, up to uint64_t)", 1024*1024*1024);
+   Readparameters::add("io.vlsv_buffer_size", "Buffer size passed to VLSV writer (bytes, up to uint64_t), default 0 as this is sensible on sisu", 0);
    Readparameters::add("io.write_restart_stripe_factor","Stripe factor for restart writing.", -1);
    Readparameters::add("io.write_as_float","If true, write in floats instead of doubles", false);
    Readparameters::add("io.restart_write_path", "Path to the location where restart files should be written. Defaults to the local directory, also if the specified destination is not writeable.", string("./"));
    
-   Readparameters::add("propagate_potential","Propagate electrostatic potential during the simulation",false);
    Readparameters::add("propagate_field","Propagate magnetic field during the simulation",true);
    Readparameters::add("propagate_vlasov_acceleration","Propagate distribution functions during the simulation in velocity space. If false, it is propagated with zero length timesteps.",true);
    Readparameters::add("propagate_vlasov_translation","Propagate distribution functions during the simulation in ordinary space. If false, it is propagated with zero length timesteps.",true);
    Readparameters::add("dynamic_timestep","If true,  timestep is set based on  CFL limits (default on)",true);
    Readparameters::add("hallMinimumRho", "Minimum rho value used for the Hall and electron pressure gradient terms in the Lorentz force and in the field solver. Default is very low and has no effect in practice.", 1.0);
-   Readparameters::add("project", "Specify the name of the project to use. Supported to date (20150610): Alfven Diffusion Dispersion Distributions Firehose Flowthrough Fluctuations Harris KHB Larmor Magnetosphere Multipeak PoissonTest Riemann1 Shock Shocktest Template test_fp testHall test_trans VelocityBox verificationLarmor", string(""));
+   Readparameters::add("project", "Specify the name of the project to use. Supported to date (20150610): Alfven Diffusion Dispersion Distributions Firehose Flowthrough Fluctuations Harris KHB Larmor Magnetosphere Multipeak Riemann1 Shock Shocktest Template test_fp testHall test_trans VelocityBox verificationLarmor", string(""));
 
    Readparameters::add("restart.filename","Restart from this vlsv file. No restart if empty file.",string(""));
    
@@ -376,7 +374,6 @@ bool Parameters::getParameters(){
    }
 
    Readparameters::get("propagate_field",P::propagateField);
-   Readparameters::get("propagate_potential",P::propagatePotential);
    Readparameters::get("propagate_vlasov_acceleration",P::propagateVlasovAcceleration);
    Readparameters::get("propagate_vlasov_translation",P::propagateVlasovTranslation);
    Readparameters::get("dynamic_timestep",P::dynamicTimestep);

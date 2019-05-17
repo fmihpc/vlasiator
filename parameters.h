@@ -92,7 +92,6 @@ struct Parameters {
    static bool recalculateStencils; /*!< If true, MPI stencils should be recalculated because of load balancing.*/
    
    static bool propagateField;      /*!< If true, magnetic field is propagated during the simulation.*/
-   static bool propagatePotential;  /*!< If true, electrostatic potential is solved during the simulation.*/
    static bool propagateVlasovAcceleration;     /*!< If true, distribution function is propagated in velocity space during the simulation.*/
    static bool propagateVlasovTranslation;      /*!< If true, distribution function is propagated in ordinary space during the simulation.*/
 
