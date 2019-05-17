@@ -1331,14 +1331,14 @@ namespace DRO {
     *      V*V/mass
     * is calculated within the loss cone of fixed angular opening (default: 10 deg).
     * The differential flux is converted in part. / cm^2 / s / sr / eV (unit used by observers).
-    * Parameters that can be set in cfg file under [{species}_precipitation]: nChannels, emin [keV], emax [keV], lossConeAngle [deg]
+    * Parameters that can be set in cfg file under [{species}_precipitation]: nChannels, emin [eV], emax [eV], lossConeAngle [deg]
     * The energy channels are saved in bulk files as PrecipitationCentreEnergy{channel_number}.
     */
    VariablePrecipitationDiffFlux::VariablePrecipitationDiffFlux(cuint _popID): DataReductionOperatorHasParameters(),popID(_popID) {
       popName = getObjectWrapper().particleSpecies[popID].name;
-      lossConeAngle = getObjectWrapper().particleSpecies[popID].precipitatioLossConeAngle; // deg
-      emin = getObjectWrapper().particleSpecies[popID].precipitationEmin;    // keV
-      emax = getObjectWrapper().particleSpecies[popID].precipitationEmax;    // keV
+      lossConeAngle = getObjectWrapper().particleSpecies[popID].precipitationLossConeAngle; // deg
+      emin = getObjectWrapper().particleSpecies[popID].precipitationEmin;    // already converted to SI
+      emax = getObjectWrapper().particleSpecies[popID].precipitationEmax;    // already converted to SI
       nChannels = getObjectWrapper().particleSpecies[popID].precipitationNChannels; // number of energy channels, logarithmically spaced between emin and emax
       for (int i=0; i<nChannels; i++){
          channels.push_back(emin * pow(emax/emin,float(i)/(nChannels-1)));
@@ -1412,7 +1412,7 @@ namespace DRO {
                const Real VdotB_norm = (B[0]*VX + B[1]*VY + B[2]*VZ)/normV;
                Real countAndGate = floor(VdotB_norm/cosAngle);  // gate function: 0 outside loss cone, 1 inside
                countAndGate = max(0.,countAndGate);
-               const Real energy = 0.5 * getObjectWrapper().particleSpecies[popID].mass * normV*normV / physicalconstants::CHARGE * 1e-3; // in keV
+               const Real energy = 0.5 * getObjectWrapper().particleSpecies[popID].mass * normV*normV; // in SI
 
                // Find the correct energy bin number to update
                int binNumber = round((log(energy) - log(emin)) / log(emax/emin) * (nChannels-1));
@@ -1439,7 +1439,7 @@ namespace DRO {
       // Averaging within each bin and conversion to unit of part. cm-2 s-1 sr-1 ev-1
       for (int i=0; i<nChannels; i++) {
          if (sumWeights[i] != 0) {
-            dataDiffFlux[i] *= 1.0 / getObjectWrapper().particleSpecies[popID].mass * physicalconstants::CHARGE * 1.0e-4 / sumWeights[i];
+            dataDiffFlux[i] *= 1.0 / (getObjectWrapper().particleSpecies[popID].mass * sumWeights[i]) * physicalconstants::CHARGE * 1.0e-4;
          }
       }
 
@@ -1454,9 +1454,10 @@ namespace DRO {
 
    bool VariablePrecipitationDiffFlux::writeParameters(vlsv::Writer& vlsvWriter) {
       for (int i=0; i<nChannels; i++) {
-         if( vlsvWriter.writeParameter("PrecipitationCentreEnergy"+std::to_string(i), &channels[i]) == false ) { return false; }
+	 const Real channelev = channels[i]/physicalconstants::CHARGE; // in eV
+         if( vlsvWriter.writeParameter(popName+"_PrecipitationCentreEnergy"+std::to_string(i), &channelev) == false ) { return false; }
       }
-      if( vlsvWriter.writeParameter("LossConeAngle", &lossConeAngle) == false ) { return false; }
+      if( vlsvWriter.writeParameter(popName+"_LossConeAngle", &lossConeAngle) == false ) { return false; }
       return true;
    }
 

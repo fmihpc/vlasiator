@@ -73,8 +73,8 @@ bool ObjectWrapper::addPopulationParameters() {
 
      // Precipitation parameters
      Readparameters::add(pop + "_precipitation.nChannels", "Number of energy channels for precipitation differential flux evaluation", 16);
-     Readparameters::add(pop + "_precipitation.emin", "Lowest energy channel (in keV) for precipitation differential flux evaluation", 0.1);
-     Readparameters::add(pop + "_precipitation.emax", "Highest energy channel (in keV) for precipitation differential flux evaluation", 100.0);
+     Readparameters::add(pop + "_precipitation.emin", "Lowest energy channel (in eV) for precipitation differential flux evaluation", 0.1);
+     Readparameters::add(pop + "_precipitation.emax", "Highest energy channel (in eV) for precipitation differential flux evaluation", 100.0);
      Readparameters::add(pop + "_precipitation.lossConeAngle", "Fixed loss cone opening angle (in deg) for precipitation differential flux evaluation", 10.0);
 
      // Energy density parameters
@@ -186,6 +186,9 @@ bool ObjectWrapper::getParameters() {
       Readparameters::get(pop + "_precipitation.emin", species.precipitationEmin);
       Readparameters::get(pop + "_precipitation.emax", species.precipitationEmax);
       Readparameters::get(pop + "_precipitation.lossConeAngle", species.precipitationLossConeAngle);
+      // Convert from eV to SI units
+      species.precipitationEmin = species.precipitationEmin*physicalconstants::CHARGE;
+      species.precipitationEmax = species.precipitationEmax*physicalconstants::CHARGE;
    }
 
    return true;
