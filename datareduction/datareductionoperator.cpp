@@ -1336,10 +1336,10 @@ namespace DRO {
     */
    VariablePrecipitationDiffFlux::VariablePrecipitationDiffFlux(cuint _popID): DataReductionOperatorHasParameters(),popID(_popID) {
       popName = getObjectWrapper().particleSpecies[popID].name;
-      lossConeAngle = getObjectWrapper().particleSpecies[popID].lossConeAngle; // deg
-      emin = getObjectWrapper().particleSpecies[popID].emin;    // keV
-      emax = getObjectWrapper().particleSpecies[popID].emax;    // keV
-      nChannels = getObjectWrapper().particleSpecies[popID].nChannels; // number of energy channels, logarithmically spaced between emin and emax
+      lossConeAngle = getObjectWrapper().particleSpecies[popID].precipitatioLossConeAngle; // deg
+      emin = getObjectWrapper().particleSpecies[popID].precipitationEmin;    // keV
+      emax = getObjectWrapper().particleSpecies[popID].precipitationEmax;    // keV
+      nChannels = getObjectWrapper().particleSpecies[popID].precipitationNChannels; // number of energy channels, logarithmically spaced between emin and emax
       for (int i=0; i<nChannels; i++){
          channels.push_back(emin * pow(emax/emin,float(i)/(nChannels-1)));
       }

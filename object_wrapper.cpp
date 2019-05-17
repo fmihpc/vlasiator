@@ -80,8 +80,8 @@ bool ObjectWrapper::addPopulationParameters() {
      // Energy density parameters
      Readparameters::add(pop + "_energydensity.limit1", "Lower limit of second bin for energy density, given in units of solar wind ram energy.", 5.0);
      Readparameters::add(pop + "_energydensity.limit2", "Lower limit of third bin for energy density, given in units of solar wind ram energy.", 10.0);
-     Readparameters::add(pop + "_energydensity.solarwindspeed", "Incoming solar wind velocity magnitude. Used for calculating energy densities.", 0.0);
-     Readparameters::add(pop + "_energydensity.solarwindenergy", "Incoming solar wind ram energy. Used for calculating energy densities.", 0.0);
+     Readparameters::add(pop + "_energydensity.solarwindspeed", "Incoming solar wind velocity magnitude in m/s. Used for calculating energy densities.", 0.0);
+     Readparameters::add(pop + "_energydensity.solarwindenergy", "Incoming solar wind ram energy in eV. Used for calculating energy densities.", 0.0);
   }
 
   return true;
@@ -175,14 +175,15 @@ bool ObjectWrapper::getParameters() {
       
       const Real EPSILON = 1.e-25;
       if (species.SolarWindEnergy < EPSILON) {
-	 species.SolarWindEnergy = 0.5 * species.mass * species.SolarWindSpeed * species.SolarWindSpeed;
+	 // Calculate energy and convert it into eV
+	 species.SolarWindEnergy = 0.5 * species.mass * species.SolarWindSpeed * species.SolarWindSpeed/physicalconstants::CHARGE;
       }
 
       // Get precipitation parameters
-      Readparameters::get(pop + "_precipitation.nChannels", species.nChannels);
-      Readparameters::get(pop + "_precipitation.emin", species.emin);
-      Readparameters::get(pop + "_precipitation.emax", species.emax);
-      Readparameters::get(pop + "_precipitation.lossConeAngle", species.lossConeAngle);
+      Readparameters::get(pop + "_precipitation.nChannels", species.precipitationNChannels);
+      Readparameters::get(pop + "_precipitation.emin", species.precipitationEmin);
+      Readparameters::get(pop + "_precipitation.emax", species.precipitationEmax);
+      Readparameters::get(pop + "_precipitation.lossConeAngle", species.precipitationLossConeAngle);
    }
 
    return true;
