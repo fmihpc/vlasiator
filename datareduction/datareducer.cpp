@@ -161,7 +161,8 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             outputReducer->addOperator(new DRO::VariablePrecipitationDiffFlux(i));
          }
          continue;
-      }      if(*it == "MaxFieldsdt") {
+      }
+      if(*it == "MaxFieldsdt") {
          // Maximum timestep constraint as calculated by the fieldsolver
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("max_fields_dt",CellParams::MAXFDT,1));
          continue;
