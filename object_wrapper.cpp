@@ -175,8 +175,10 @@ bool ObjectWrapper::getParameters() {
       
       const Real EPSILON = 1.e-25;
       if (species.SolarWindEnergy < EPSILON) {
-	 // Calculate energy and convert it into eV
-	 species.SolarWindEnergy = 0.5 * species.mass * species.SolarWindSpeed * species.SolarWindSpeed/physicalconstants::CHARGE;
+	 // Energy stored internally in SI units
+	 species.SolarWindEnergy = 0.5 * species.mass * species.SolarWindSpeed * species.SolarWindSpeed;
+      } else {
+	 species.SolarWindEnergy = species.SolarWindEnergy*physicalconstants::CHARGE;
       }
 
       // Get precipitation parameters

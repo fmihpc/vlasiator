@@ -1460,8 +1460,6 @@ namespace DRO {
       return true;
    }
 
-
-
    /*! \brief Energy density
     * Calculates the energy density of particles in three bins: total energy density, above E1limit*solar wind energy, and above E2limit*solar wind energy
     * Energy densities are given in eV/cm^3.
@@ -1470,10 +1468,14 @@ namespace DRO {
     *    - solarwindenergy [eV], 
     *    - limit1 [scalar, default: 5.], 
     *    - limit2 [scalar, default: 10.].
-    * The energy thresholds are saved in bulk files (in eV) as parameters: EnergyDensityESW, EnergyDensityELimit1, EnergyDensityELimit.
+    * The energy thresholds are saved in bulk files as parameters: 
+    *    - EnergyDensityESW (in eV),
+    *    - EnergyDensityELimit1 (as scalar multiplier of EnergyDensityESW),
+    *    - EnergyDensityELimit2 (as scalar multiplier of EnergyDensityESW).
     */
    VariableEnergyDensity::VariableEnergyDensity(cuint _popID): DataReductionOperatorHasParameters(),popID(_popID) {
       popName = getObjectWrapper().particleSpecies[popID].name;
+      // Store internally in SI units
       solarwindenergy = getObjectWrapper().particleSpecies[popID].SolarWindEnergy;
       E1limit = solarwindenergy * getObjectWrapper().particleSpecies[popID].EnergyDensityLimit1;
       E2limit = solarwindenergy * getObjectWrapper().particleSpecies[popID].EnergyDensityLimit2;
@@ -1541,7 +1543,7 @@ namespace DRO {
          }
 
       }
-      // Store energy density in units eV/cm^3 instead of Joules per m^3
+      // Output energy density in units eV/cm^3 instead of Joules per m^3
       EDensity[0] *= (1.0e-6)/physicalconstants::CHARGE;
       EDensity[1] *= (1.0e-6)/physicalconstants::CHARGE;
       EDensity[2] *= (1.0e-6)/physicalconstants::CHARGE;
@@ -1556,10 +1558,11 @@ namespace DRO {
    }
    
    bool VariableEnergyDensity::writeParameters(vlsv::Writer& vlsvWriter) {
-      // Output energies in eV
+      // Output solar wind energy in eV
       Real swe = solarwindenergy/physicalconstants::CHARGE;
-      Real e1l = E1limit/physicalconstants::CHARGE;
-      Real e2l = E2limit/physicalconstants::CHARGE;
+      // Output other bin limits as multipliers
+      Real e1l = getObjectWrapper().particleSpecies[popID].EnergyDensityLimit1;
+      Real e2l = getObjectWrapper().particleSpecies[popID].EnergyDensityLimit2;
 
       if( vlsvWriter.writeParameter(popName+"_EnergyDensityESW", &swe) == false ) { return false; }
       if( vlsvWriter.writeParameter(popName+"_EnergyDensityELimit1", &e1l) == false ) { return false; }
