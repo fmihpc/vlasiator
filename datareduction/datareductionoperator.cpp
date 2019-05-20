@@ -1476,4 +1476,248 @@ namespace DRO {
    bool VariableEffectiveSparsityThreshold::setSpatialCell(const spatial_cell::SpatialCell* cell) {
       return true;
    }
+
+   /*! \brief Precipitation directional differential number flux
+    * Evaluation of the precipitating differential flux (per population).
+    * In a selected number (default: 16) of logarithmically spaced energy bins, the average of
+    *      V*V/mass
+    * is calculated within the loss cone of fixed angular opening (default: 10 deg).
+    * The differential flux is converted in part. / cm^2 / s / sr / eV (unit used by observers).
+    * Parameters that can be set in cfg file under [{species}_precipitation]: nChannels, emin [eV], emax [eV], lossConeAngle [deg]
+    * The energy channels are saved in bulk files as PrecipitationCentreEnergy{channel_number}.
+    */
+   VariablePrecipitationDiffFlux::VariablePrecipitationDiffFlux(cuint _popID): DataReductionOperatorHasParameters(),popID(_popID) {
+      popName = getObjectWrapper().particleSpecies[popID].name;
+      lossConeAngle = getObjectWrapper().particleSpecies[popID].precipitationLossConeAngle; // deg
+      emin = getObjectWrapper().particleSpecies[popID].precipitationEmin;    // already converted to SI
+      emax = getObjectWrapper().particleSpecies[popID].precipitationEmax;    // already converted to SI
+      nChannels = getObjectWrapper().particleSpecies[popID].precipitationNChannels; // number of energy channels, logarithmically spaced between emin and emax
+      for (int i=0; i<nChannels; i++){
+         channels.push_back(emin * pow(emax/emin,float(i)/(nChannels-1)));
+      }
+   }
+   VariablePrecipitationDiffFlux::~VariablePrecipitationDiffFlux() { }
+
+   std::string VariablePrecipitationDiffFlux::getName() const {return popName + "/PrecipitationDiffFlux";}
+
+   bool VariablePrecipitationDiffFlux::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize =  sizeof(Real);
+      vectorSize = nChannels; //Number of energy channels
+      return true;
+   }
+
+   bool VariablePrecipitationDiffFlux::reduceData(const SpatialCell* cell,char* buffer) {
+
+      dataDiffFlux.assign(nChannels,0.0);
+
+      std::vector<Real> sumWeights(nChannels,0.0);
+
+      std::array<Real,3> B;
+      B[0] = cell->parameters[CellParams::PERBXVOL] +  cell->parameters[CellParams::BGBXVOL];
+      B[1] = cell->parameters[CellParams::PERBYVOL] +  cell->parameters[CellParams::BGBYVOL];
+      B[2] = cell->parameters[CellParams::PERBZVOL] +  cell->parameters[CellParams::BGBZVOL];
+
+      Real cosAngle = cos(lossConeAngle*M_PI/180.0); // cosine of fixed loss cone angle
+
+      // Unit B-field direction
+      creal normB = sqrt(B[0]*B[0] + B[1]*B[1] + B[2]*B[2]);
+      std::array<Real,3> b_unit;
+      for (uint i=0; i<3; i++){
+         B[i] /= normB;
+      }
+
+      // If southern hemisphere, loss cone is around -B
+      if (cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ] < 0.0){
+         for (uint i=0; i<3; i++){
+            B[i] = -B[i];
+         }
+      }
+
+      # pragma omp parallel
+      {
+	 std::vector<Real> thread_lossCone_sum(nChannels,0.0);
+	 std::vector<Real> thread_count(nChannels,0.0);
+
+         const Real* parameters  = cell->get_block_parameters(popID);
+         const Realf* block_data = cell->get_data(popID);
+
+         # pragma omp for
+         for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); n++) {
+	    for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
+	       const Real VX 
+		  =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
+		  + (i + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
+	       const Real VY 
+		  =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] 
+		  + (j + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
+	       const Real VZ 
+		  =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] 
+		  + (k + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+	       
+	       const Real DV3 
+		  = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]
+		  * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY] 
+		  * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+	       
+	       const Real normV = sqrt(VX*VX + VY*VY + VZ*VZ);
+	       const Real VdotB_norm = (B[0]*VX + B[1]*VY + B[2]*VZ)/normV;
+	       Real countAndGate = floor(VdotB_norm/cosAngle);  // gate function: 0 outside loss cone, 1 inside
+	       countAndGate = max(0.,countAndGate);
+	       const Real energy = 0.5 * getObjectWrapper().particleSpecies[popID].mass * normV*normV; // in SI
+	       
+	       // Find the correct energy bin number to update
+	       int binNumber = round((log(energy) - log(emin)) / log(emax/emin) * (nChannels-1));
+	       binNumber = max(binNumber,0); // anything < emin goes to the lowest channel
+	       binNumber = min(binNumber,nChannels-1); // anything > emax goes to the highest channel
+	       
+	       thread_lossCone_sum[binNumber] += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)] * countAndGate * normV*normV * DV3;
+	       thread_count[binNumber] += countAndGate * DV3;
+	    }
+         }
+	 
+         // Accumulate contributions coming from this velocity block to the 
+         // spatial cell velocity moments. If multithreading / OpenMP is used, 
+         // these updates need to be atomic:
+         # pragma omp critical
+         {
+            for (int i=0; i<nChannels; i++) {
+               dataDiffFlux[i] += thread_lossCone_sum[i];
+               sumWeights[i] += thread_count[i];
+            }
+         }
+      }
+
+      // Averaging within each bin and conversion to unit of part. cm-2 s-1 sr-1 ev-1
+      for (int i=0; i<nChannels; i++) {
+         if (sumWeights[i] != 0) {
+            dataDiffFlux[i] *= 1.0 / (getObjectWrapper().particleSpecies[popID].mass * sumWeights[i]) * physicalconstants::CHARGE * 1.0e-4;
+         }
+      }
+
+      const char* ptr = reinterpret_cast<const char*>(dataDiffFlux.data());
+      for (uint i = 0; i < nChannels*sizeof(Real); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+
+   bool VariablePrecipitationDiffFlux::setSpatialCell(const SpatialCell* cell) {
+      return true;
+   }
+
+   bool VariablePrecipitationDiffFlux::writeParameters(vlsv::Writer& vlsvWriter) {
+      for (int i=0; i<nChannels; i++) {
+	 const Real channelev = channels[i]/physicalconstants::CHARGE; // in eV
+         if( vlsvWriter.writeParameter(popName+"_PrecipitationCentreEnergy"+std::to_string(i), &channelev) == false ) { return false; }
+      }
+      if( vlsvWriter.writeParameter(popName+"_LossConeAngle", &lossConeAngle) == false ) { return false; }
+      return true;
+   }
+
+   /*! \brief Energy density
+    * Calculates the energy density of particles in three bins: total energy density, above E1limit*solar wind energy, and above E2limit*solar wind energy
+    * Energy densities are given in eV/cm^3.
+    * Parameters that can be set in cfg file under [{species}_energydensity]: 
+    *    - solarwindspeed [m/s], 
+    *    - solarwindenergy [eV], 
+    *    - limit1 [scalar, default: 5.], 
+    *    - limit2 [scalar, default: 10.].
+    * The energy thresholds are saved in bulk files as parameters: 
+    *    - EnergyDensityESW (in eV),
+    *    - EnergyDensityELimit1 (as scalar multiplier of EnergyDensityESW),
+    *    - EnergyDensityELimit2 (as scalar multiplier of EnergyDensityESW).
+    */
+
+   VariableEnergyDensity::VariableEnergyDensity(cuint _popID): DataReductionOperatorHasParameters(),popID(_popID) {
+      popName = getObjectWrapper().particleSpecies[popID].name;
+      // Store internally in SI units
+      solarwindenergy = getObjectWrapper().particleSpecies[popID].SolarWindEnergy;
+      E1limit = solarwindenergy * getObjectWrapper().particleSpecies[popID].EnergyDensityLimit1;
+      E2limit = solarwindenergy * getObjectWrapper().particleSpecies[popID].EnergyDensityLimit2;
+   }
+   VariableEnergyDensity::~VariableEnergyDensity() { }
+   
+   std::string VariableEnergyDensity::getName() const {return popName + "/EnergyDensity";}
+   
+   bool VariableEnergyDensity::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize =  sizeof(Real);
+      vectorSize = 3; // This is not components, but rather total energy density, density over E1, and density over E2
+      return true;
+   }
+   
+   bool VariableEnergyDensity::reduceData(const SpatialCell* cell,char* buffer) {
+      const Real HALF = 0.5;
+      for(int i = 0; i < 3; i++) {
+	 EDensity[i] = 0.0;
+      }
+      # pragma omp parallel
+      {
+         Real thread_E0_sum = 0.0;
+         Real thread_E1_sum = 0.0;
+         Real thread_E2_sum = 0.0;
+         
+         const Real* parameters  = cell->get_block_parameters(popID);
+         const Realf* block_data = cell->get_data(popID);
+        
+         # pragma omp for
+         for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); n++) {
+	    const Real DV3 
+	       = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]
+	       * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY] 
+	       * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+	    for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
+	       const Real VX 
+		  =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
+		  + (i + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
+	       const Real VY 
+		  =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] 
+		  + (j + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
+	       const Real VZ 
+		  =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] 
+		  + (k + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+	       
+	       const Real ENERGY = (VX*VX + VY*VY + VZ*VZ) * HALF * getObjectWrapper().particleSpecies[popID].mass;
+	       thread_E0_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * ENERGY * DV3;
+	       if (ENERGY > E1limit) thread_E1_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * ENERGY * DV3;
+	       if (ENERGY > E2limit) thread_E2_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * ENERGY * DV3;
+	    }
+         }
+         // Accumulate contributions coming from this velocity block to the 
+         // spatial cell velocity moments. If multithreading / OpenMP is used, 
+         // these updates need to be atomic:
+         # pragma omp critical
+         {
+            EDensity[0] += thread_E0_sum;
+            EDensity[1] += thread_E1_sum;
+            EDensity[2] += thread_E2_sum;
+         }
+
+      }
+      // Output energy density in units eV/cm^3 instead of Joules per m^3
+      EDensity[0] *= (1.0e-6)/physicalconstants::CHARGE;
+      EDensity[1] *= (1.0e-6)/physicalconstants::CHARGE;
+      EDensity[2] *= (1.0e-6)/physicalconstants::CHARGE;
+      const char* ptr = reinterpret_cast<const char*>(&EDensity);
+      for (uint i = 0; i < 3*sizeof(Real); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+   
+   bool VariableEnergyDensity::setSpatialCell(const SpatialCell* cell) {
+      return true;
+   }
+
+   bool VariableEnergyDensity::writeParameters(vlsv::Writer& vlsvWriter) {
+      // Output solar wind energy in eV
+      Real swe = solarwindenergy/physicalconstants::CHARGE;
+      // Output other bin limits as multipliers
+      Real e1l = getObjectWrapper().particleSpecies[popID].EnergyDensityLimit1;
+      Real e2l = getObjectWrapper().particleSpecies[popID].EnergyDensityLimit2;
+
+      if( vlsvWriter.writeParameter(popName+"_EnergyDensityESW", &swe) == false ) { return false; }
+      if( vlsvWriter.writeParameter(popName+"_EnergyDensityELimit1", &e1l) == false ) { return false; }
+      if( vlsvWriter.writeParameter(popName+"_EnergyDensityELimit2", &e2l) == false ) { return false; }
+      return true;
+   }
+
+
 } // namespace DRO

@@ -45,6 +45,7 @@ class DataReducer {
                           unsigned int& dataSize,unsigned int& vectorSize) const;
    std::string getName(const unsigned int& operatorID) const;
    bool handlesWriting(const unsigned int& operatorID) const;
+   bool hasParameters(const unsigned int& operatorID) const;
    bool reduceData(const SpatialCell* cell,const unsigned int& operatorID,char* buffer);
    bool reduceDiagnostic(const SpatialCell* cell,const unsigned int& operatorID,Real * result);
    unsigned int size() const;
@@ -52,6 +53,7 @@ class DataReducer {
                   const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                   const std::vector<CellID>& cells,const std::string& meshName,
                   vlsv::Writer& vlsvWriter);
+   bool writeParameters(const unsigned int& operatorID, vlsv::Writer& vlsvWriter);
 
  private:
    /** Private copy-constructor to prevent copying the class.
