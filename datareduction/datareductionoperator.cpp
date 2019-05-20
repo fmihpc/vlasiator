@@ -159,17 +159,6 @@ namespace DRO {
 
       return true;
    }
-   
-   DataReductionOperatorDerivatives::DataReductionOperatorDerivatives(const std::string& name,const unsigned int parameterIndex,const unsigned int vectorSize):
-   DataReductionOperatorCellParams(name,parameterIndex,vectorSize) {
-
-   }
-   //a version with derivatives, this is the only function that is different
-   bool DataReductionOperatorDerivatives::setSpatialCell(const SpatialCell* cell) {
-      data  = &(cell->derivatives[_parameterIndex]);
-      return true;
-   }
-
 
    DataReductionOperatorBVOLDerivatives::DataReductionOperatorBVOLDerivatives(const std::string& name,const unsigned int parameterIndex,const unsigned int vectorSize):
    DataReductionOperatorCellParams(name,parameterIndex,vectorSize) {
@@ -499,107 +488,7 @@ namespace DRO {
       averageVZ = cell-> parameters[CellParams::VZ];
       for(int i = 0; i < 3; i++) PTensor[i] = 0.0;
       return true;
-   }
-   
-   // Integrated divergence of magnetic field
-   // Integral of div B over the simulation volume =
-   // Integral of flux of B on simulation volume surface
-   DiagnosticFluxB::DiagnosticFluxB(): DataReductionOperator() { }
-   DiagnosticFluxB::~DiagnosticFluxB() { }
-   
-   std::string DiagnosticFluxB::getName() const {return "FluxB";}
-   
-   bool DiagnosticFluxB::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-      dataType = "float";
-      dataSize =  sizeof(Real);
-      vectorSize = 1;
-      return true;
-   }
-   
-   bool DiagnosticFluxB::reduceDiagnostic(const SpatialCell* cell,Real * result) {
-      creal x = cell->parameters[CellParams::XCRD];
-      creal dx = cell->parameters[CellParams::DX];
-      creal y = cell->parameters[CellParams::YCRD];
-      creal dy = cell->parameters[CellParams::DY];
-      creal z = cell->parameters[CellParams::ZCRD];
-      creal dz = cell->parameters[CellParams::DZ];
-      creal cx = x + 0.5 * dx;
-      creal cy = y + 0.5 * dy;
-      creal cz = z + 0.5 * dz;
-      
-      Real value = 0.0;
-      if(cx > Parameters::xmax - 2.0 * dx && cx < Parameters::xmax - dx) {
-         value += cell->parameters[CellParams::PERBX];
-      } else if (cx < Parameters::xmin + 2.0 * dx && cx > Parameters::xmin + dx) {
-         value += -1.0*cell->parameters[CellParams::PERBX];
-      }
-      if(cy > Parameters::ymax - 2.0 * dy && cy < Parameters::ymax - dy) {
-         value += cell->parameters[CellParams::PERBY];
-      } else if (cy < Parameters::ymin + 2.0 * dy && cy > Parameters::ymin + dy) {
-         value += -1.0*cell->parameters[CellParams::PERBY];
-      }
-      if(cz > Parameters::zmax - 2.0 * dz && cz < Parameters::zmax - dz) {
-         value += cell->parameters[CellParams::PERBZ];
-      } else if (cz < Parameters::zmin + 2.0 * dz && cz > Parameters::zmin + dz) {
-         value += -1.0*cell->parameters[CellParams::PERBZ];
-      }
-      *result = value;
-      
-      return true;
-   }
-   
-   bool DiagnosticFluxB::setSpatialCell(const SpatialCell* cell) {return true;}
-   
-   
-   
-   // YK Integrated divergence of electric field
-   // Integral of div E over the simulation volume =
-   // Integral of flux of E on simulation volume surface
-   DiagnosticFluxE::DiagnosticFluxE(): DataReductionOperator() { }
-   DiagnosticFluxE::~DiagnosticFluxE() { }
-   
-   std::string DiagnosticFluxE::getName() const {return "FluxE";}
-   
-   bool DiagnosticFluxE::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-      dataType = "float";
-      dataSize =  sizeof(Real);
-      vectorSize = 1;
-      return true;
-   }
-   
-   bool DiagnosticFluxE::reduceDiagnostic(const SpatialCell* cell,Real * result) {
-      creal x = cell->parameters[CellParams::XCRD];
-      creal dx = cell->parameters[CellParams::DX];
-      creal y = cell->parameters[CellParams::YCRD];
-      creal dy = cell->parameters[CellParams::DY];
-      creal z = cell->parameters[CellParams::ZCRD];
-      creal dz = cell->parameters[CellParams::DZ];
-      creal cx = x + 0.5 * dx;
-      creal cy = y + 0.5 * dy;
-      creal cz = z + 0.5 * dz;
-      
-      Real value = 0.0;
-      if(cx > Parameters::xmax - 2.0 * dx && cx < Parameters::xmax - dx) {
-         value += cell->parameters[CellParams::EX];
-      } else if (cx < Parameters::xmin + 2.0 * dx && cx > Parameters::xmin + dx) {
-         value += -1.0*cell->parameters[CellParams::EX];
-      }
-      if(cy > Parameters::ymax - 2.0 * dy && cy < Parameters::ymax - dy) {
-         value += cell->parameters[CellParams::EY];
-      } else if (cy < Parameters::ymin + 2.0 * dy && cy > Parameters::ymin + dy) {
-         value += -1.0*cell->parameters[CellParams::EY];
-      }
-      if(cz > Parameters::zmax - 2.0 * dz && cz < Parameters::zmax - dz) {
-         value += cell->parameters[CellParams::EZ];
-      } else if (cz < Parameters::zmin + 2.0 * dz && cz > Parameters::zmin + dz) {
-         value += -1.0*cell->parameters[CellParams::EZ];
-      }
-      *result = value;
-      
-      return true;
-   }
-   
-   bool DiagnosticFluxE::setSpatialCell(const SpatialCell* cell) {return true;}
+   }   
    
    // YK maximum value of the distribution function
    MaxDistributionFunction::MaxDistributionFunction(cuint _popID): DataReductionOperator(),popID(_popID) {
@@ -1435,4 +1324,100 @@ namespace DRO {
    bool VariableEffectiveSparsityThreshold::setSpatialCell(const spatial_cell::SpatialCell* cell) {
       return true;
    }
+
+   VariableEnergyDensity::VariableEnergyDensity(cuint _popID): DataReductionOperatorHasParameters(),popID(_popID) {
+      popName = getObjectWrapper().particleSpecies[popID].name;
+      solarwindenergy = getObjectWrapper().particleSpecies[popID].SolarWindEnergy;
+      E1limit = solarwindenergy * getObjectWrapper().particleSpecies[popID].EnergyDensityLimit1;
+      E2limit = solarwindenergy * getObjectWrapper().particleSpecies[popID].EnergyDensityLimit2;
+   }
+   VariableEnergyDensity::~VariableEnergyDensity() { }
+   
+   std::string VariableEnergyDensity::getName() const {return popName + "/EnergyDensity";}
+   
+   bool VariableEnergyDensity::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize =  sizeof(Real);
+      vectorSize = 3; // This is not components, but rather total energy density, density over E1, and density over E2
+      return true;
+   }
+   
+   bool VariableEnergyDensity::reduceData(const SpatialCell* cell,char* buffer) {
+      const Real HALF = 0.5;
+
+      for(int i = 0; i < 3; i++) {
+	 EDensity[i] = 0.0;
+      }
+
+      # pragma omp parallel
+      {
+         Real thread_E0_sum = 0.0;
+         Real thread_E1_sum = 0.0;
+         Real thread_E2_sum = 0.0;
+         
+         const Real* parameters  = cell->get_block_parameters(popID);
+         const Realf* block_data = cell->get_data(popID);
+        
+         # pragma omp for
+         for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); n++) {
+	    const Real DV3 
+	       = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]
+	       * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY] 
+	       * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+
+	    for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
+	       const Real VX 
+		 =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
+		 + (i + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
+	       const Real VY 
+		 =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] 
+		 + (j + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
+	       const Real VZ 
+		 =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] 
+		 + (k + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+                     
+	       const Real ENERGY = (VX*VX + VY*VY + VZ*VZ) * HALF * getObjectWrapper().particleSpecies[popID].mass;
+	       thread_E0_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * ENERGY * DV3;
+	       if (ENERGY > E1limit) thread_E1_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * ENERGY * DV3;
+	       if (ENERGY > E2limit) thread_E2_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * ENERGY * DV3;
+            }
+         }
+
+         // Accumulate contributions coming from this velocity block to the 
+         // spatial cell velocity moments. If multithreading / OpenMP is used, 
+         // these updates need to be atomic:
+         # pragma omp critical
+         {
+            EDensity[0] += thread_E0_sum;
+            EDensity[1] += thread_E1_sum;
+            EDensity[2] += thread_E2_sum;
+         }
+
+      }
+      // Store energy density in units eV/cm^3 instead of Joules per m^3
+      EDensity[0] *= (1.0e-6)/physicalconstants::CHARGE;
+      EDensity[1] *= (1.0e-6)/physicalconstants::CHARGE;
+      EDensity[2] *= (1.0e-6)/physicalconstants::CHARGE;
+
+      const char* ptr = reinterpret_cast<const char*>(&EDensity);
+      for (uint i = 0; i < 3*sizeof(Real); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+   
+   bool VariableEnergyDensity::setSpatialCell(const SpatialCell* cell) {
+      return true;
+   }
+   
+   bool VariableEnergyDensity::writeParameters(vlsv::Writer& vlsvWriter) {
+      // Output energies in in eV
+      Real swe = solarwindenergy/physicalconstants::CHARGE;
+      Real e1l = E1limit/physicalconstants::CHARGE;
+      Real e2l = E2limit/physicalconstants::CHARGE;
+
+      if( vlsvWriter.writeParameter(popName+"_EnergyDensityESW", &swe) == false ) { return false; }
+      if( vlsvWriter.writeParameter(popName+"_EnergyDensityELimit1", &e1l) == false ) { return false; }
+      if( vlsvWriter.writeParameter(popName+"_EnergyDensityELimit2", &e2l) == false ) { return false; }
+      return true;
+   }
+
 } // namespace DRO

@@ -282,6 +282,7 @@ namespace SBC {
    
    bool Outflow::applyInitialState(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
       Project &project
    ) {
       const vector<CellID>& cells = getLocalCells();

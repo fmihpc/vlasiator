@@ -91,6 +91,8 @@ void initializeGrids(
    FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
    FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsGrid,
    FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsDt2Grid,
+   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2> & EGradPeGrid,
+   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volGrid,
    FsGrid< fsgrids::technical, 2>& technicalGrid,
    SysBoundary& sysBoundaries,
    Project& project
@@ -193,7 +195,7 @@ void initializeGrids(
    
       //initial state for sys-boundary cells, will skip those not set to be reapplied at restart
       phiprof::start("Apply system boundary conditions state");
-      if (sysBoundaries.applyInitialState(mpiGrid, project) == false) {
+      if (sysBoundaries.applyInitialState(mpiGrid, perBGrid, project) == false) {
          cerr << " (MAIN) ERROR: System boundary conditions initial state was not applied correctly." << endl;
          exit(1);
       }
@@ -225,7 +227,7 @@ void initializeGrids(
       // Initial state for sys-boundary cells
       phiprof::stop("Apply initial state");
       phiprof::start("Apply system boundary conditions state");
-      if (sysBoundaries.applyInitialState(mpiGrid, project) == false) {
+      if (sysBoundaries.applyInitialState(mpiGrid, perBGrid, project) == false) {
          cerr << " (MAIN) ERROR: System boundary conditions initial state was not applied correctly." << endl;
          exit(1);
       }
@@ -287,35 +289,21 @@ void initializeGrids(
       calculateInitialVelocityMoments(mpiGrid);
       phiprof::stop("Init moments");
    }
-   
-   phiprof::start("Initial fsgrid coupling");
-   // Couple FSGrids to mpiGrid. Note that the coupling information is shared
-   // between them.
-   technicalGrid.setupForGridCoupling(cells.size());
-   
-   // Each dccrg cell may have to communicate with multiple fsgrid cells, if they are on a lower refinement level.
-   // Calculate the corresponding fsgrid ids for each dccrg cell and set coupling for each fsgrid id.
-   for(auto& dccrgId : cells) {
-      const auto fsgridIds = mapDccrgIdToFsGridGlobalID(mpiGrid, dccrgId);
       
-      for (auto fsgridId : fsgridIds) {
-         
-         technicalGrid.setGridCoupling(fsgridId, myRank);
-      }
-   }
-   
-   technicalGrid.finishGridCoupling();
-   phiprof::stop("Initial fsgrid coupling");
-   
    phiprof::start("setProjectBField");
    project.setProjectBField(perBGrid, BgBGrid, technicalGrid);
    perBGrid.updateGhostCells();
    BgBGrid.updateGhostCells();
    phiprof::stop("setProjectBField");
    
+   phiprof::start("getFieldsFromFsGrid");
+   // These should be done by initializeFieldPropagator() if the propagation is turned off.
+   volGrid.updateGhostCells();
+   technicalGrid.updateGhostCells();
+   getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, technicalGrid, mpiGrid, cells);
+   phiprof::stop("getFieldsFromFsGrid");
+
    phiprof::start("Finish fsgrid setup");
-   getFieldDataFromFsGrid<fsgrids::N_BFIELD>(perBGrid, technicalGrid, mpiGrid, cells, CellParams::PERBX);
-   getBgFieldsAndDerivativesFromFsGrid(BgBGrid, technicalGrid, mpiGrid, cells);
    
    // WARNING this means moments and dt2 moments are the same here.
    feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid,false);
