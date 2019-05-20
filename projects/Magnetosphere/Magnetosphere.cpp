@@ -290,7 +290,7 @@ namespace projects {
 
    /* set 0-centered dipole */
    void Magnetosphere::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
       FsGrid< fsgrids::technical, 2>& technicalGrid
    ) {
@@ -332,9 +332,9 @@ namespace projects {
                setBackgroundField(bgFieldDipole, BgBGrid);
 	       // Difference into perBgrid
 	       bgFieldDipole.initialize(-8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );
-               setBackgroundField(bgFieldDipole, perBGrid);
+               setPerturbedField(bgFieldDipole, perBGrid);
 	       bgVectorDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, this->dipoleTiltPhi*3.14159/180., this->dipoleTiltTheta*3.14159/180., this->dipoleXFull, this->dipoleXZero, this->dipoleInflowB[0], this->dipoleInflowB[1], this->dipoleInflowB[2]);
-               setBackgroundField(bgVectorDipole, perBGrid, true);
+               setPerturbedField(bgVectorDipole, perBGrid, true);
                break;              
             default:
                setBackgroundFieldToZero(BgBGrid);
