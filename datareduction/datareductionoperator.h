@@ -57,13 +57,26 @@ namespace DRO {
       virtual ~DataReductionOperator();
       
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const = 0;
+      virtual bool getUnitMetadata(std::string& _unit,std::string& _unitLaTeX,std::string& _variableLaTeX,Real _unitConversion) {
+	unit = _unit;
+	unitLaTeX = _unitLaTeX;
+	unitConversion = _unitConversion;
+	variableLaTeX = _variableLaTeX;
+	return true;
+      };
+      virtual bool setUnitMetadata(std::string& _unit,std::string& _unitLaTeX,std::string& _variableLaTeX,Real _unitConversion) unit(_unit),unitLaTeX(_unitLaTeX),unitConversion(_unitConversion),variableLaTeX(_variableLaTeX) const = 0;
+
       virtual std::string getName() const = 0;
       virtual bool reduceData(const SpatialCell* cell,char* buffer);
       virtual bool reduceDiagnostic(const SpatialCell* cell,Real * result);
       virtual bool setSpatialCell(const SpatialCell* cell) = 0;
       
    protected:
-   
+      std::string _unit;
+      std::string _unitLaTeX;
+      std::string _variableLaTeX;
+      Real _unitConversion;
+      
    };
 
    class DataReductionOperatorHandlesWriting: public DataReductionOperator {

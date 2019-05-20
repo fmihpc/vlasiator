@@ -70,7 +70,6 @@ namespace DRO {
       return false;
    }
 
-
    DataReductionOperatorCellParams::DataReductionOperatorCellParams(const std::string& name,const unsigned int parameterIndex,const unsigned int _vectorSize):
    DataReductionOperator() {
       vectorSize=_vectorSize;
@@ -85,7 +84,7 @@ namespace DRO {
       _vectorSize = vectorSize;
       return true;
    }
-   
+
    std::string DataReductionOperatorCellParams::getName() const {return variableName;}
    
    bool DataReductionOperatorCellParams::reduceData(const SpatialCell* cell,char* buffer) {
@@ -129,7 +128,6 @@ namespace DRO {
    bool DataReductionOperatorFsGrid::setSpatialCell(const SpatialCell* cell) {
       return true;
    }
-
    
    bool DataReductionOperatorFsGrid::writeFsGridData(
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,

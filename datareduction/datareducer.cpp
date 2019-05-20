@@ -36,6 +36,12 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
    for (it = P::outputVariableList.begin();
         it != P::outputVariableList.end();
         it++) {
+
+      /* Note: Each data reducer generation should be followed by a call to setUnitMetaData
+	 with the following arguments:
+	 unit, unit in LaTeX formulation, variable in LaTeX formulation, conversion factor
+      */
+
       if(*it == "fg_B" || *it == "B") { // Bulk magnetic field at Yee-Lattice locations
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_B",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
@@ -66,9 +72,10 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                  }
                }
                return retval;
-         }
-         ));
-         continue;
+	 }
+	 ));
+         outputReducer.back()->setUnitMetaData("T","$\mathrm{T}$","$B$",1.0);
+         continue;	 
       }
       if(*it == "fg_BackgroundB" || *it == "BackgroundB") { // Static (typically dipole) magnetic field part
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_background_B",[](
@@ -99,6 +106,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                return retval;
          }
          ));
+	 outputReducer.back()->setUnitMetaData("T","$\mathrm{T}$","$B_\mathrm{bg}$",1.0);
          continue;
       }
       if(*it == "fg_PerturbedB" || *it == "PerturbedB") { // Fluctuating magnetic field part
@@ -130,6 +138,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                return retval;
          }
          ));
+	 outputReducer.back()->setUnitMetaData("T","$\mathrm{T}$","$B_\mathrm{per}$",1.0);
          continue;
       }
       if(*it == "fg_E" || *it== "E") { // Bulk electric field at Yee-lattice locations
@@ -161,10 +170,12 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                return retval;
          }
          ));
+	 outputReducer.back()->setUnitMetaData("V/m","$\mathrm{V}\,\mathrm{m}^{-1}$","$E$",1.0);
          continue;
       }
       if(*it == "vg_Rhom" || *it == "Rhom") { // Overall mass density (summed over all populations)
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("rhom",CellParams::RHOM,1));
+	 outputReducer.back()->setUnitMetaData("kg/m^3","$\mathrm{kg}\,\mathrm{m}^{-3}$","$\rho_\mathrm{m}$",1.0);
          continue;
       }
       if(*it == "fg_Rhom") { // Overall mass density (summed over all populations)
@@ -194,10 +205,12 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                return retval;
          }
          ));
+	 outputReducer.back()->setUnitMetaData("kg/m^3","$\mathrm{kg}\,\mathrm{m}^{-3}$","$\rho_\mathrm{m}$",1.0);
          continue;
       }
       if(*it == "vg_Rhoq" || *it == "Rhoq") { // Overall charge density (summed over all populations)
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("rhoq",CellParams::RHOQ,1));
+	 outputReducer.back()->setUnitMetaData("C/m^3","$\mathrm{C}\,\mathrm{m}^{-3}$","$\rho_\mathrm{q}$",1.0);
          continue;
       }
       if(*it == "fg_Rhoq") { // Overall charge density (summed over all populations)
@@ -227,6 +240,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                return retval;
          }
          ));
+	 outputReducer.back()->setUnitMetaData("C/m^3","$\mathrm{C}\,\mathrm{m}^{-3}$","$\rho_\mathrm{q}$",1.0);
          continue;
       }
       if(*it == "populations_Rho") { // Per-population particle number density
@@ -234,12 +248,14 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             species::Species& species=getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
             outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + "/rho", i, offsetof(spatial_cell::Population, RHO), 1));
+	    outputReducer.back()->setUnitMetaData("1/m^3","$\mathrm{m}^{-3}$","$\n_\mathrm{"+pop+"}$",1.0);
          }
          continue;
       }
       
       if(*it == "V" || *it == "vg_V") { // Overall effective bulk density defining the center-of-mass frame from all populations
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("V",CellParams::VX,3));
+	 outputReducer.back()->setUnitMetaData("m/s","$\mathrm{m}\,\mathrm{s}^{-1}$","$V$",1.0);
          continue;
       }
       if(*it == "fg_V") { // Overall effective bulk density defining the center-of-mass frame from all populations
@@ -271,6 +287,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                return retval;
          }
          ));
+	 outputReducer.back()->setUnitMetaData("m/s","$\mathrm{m}\,\mathrm{s}^{-1}$","$V$",1.0);
          continue;
       }
       if(*it == "populations_V") { // Per population bulk velocities
@@ -278,24 +295,33 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             species::Species& species=getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
             outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + "/V", i, offsetof(spatial_cell::Population, V), 3));
+	    outputReducer.back()->setUnitMetaData("m/s","$\mathrm{m}\,\mathrm{s}^{-1}$","$V_\mathrm{"+pop+"}$",1.0);
          }
          continue;
       }
       if(*it == "populations_moments_Backstream") { // Per-population moments of the backstreaming part
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             outputReducer->addOperator(new DRO::VariableRhoBackstream(i));
+	    outputReducer.back()->setUnitMetaData("1/m^3","$\mathrm{m}^{-3}$","$n_\mathrm{"+pop+",st}$",1.0);
             outputReducer->addOperator(new DRO::VariableVBackstream(i));
+	    outputReducer.back()->setUnitMetaData("m/s","$\mathrm{m}\,\mathrm{s}^{-1}$","$V_\mathrm{"+pop+",st}$",1.0);
             outputReducer->addOperator(new DRO::VariablePTensorBackstreamDiagonal(i));
+	    outputReducer.back()->setUnitMetaData("Pa","$\mathrm{Pa}$","$\mathcal{P}_\mathrm{"+pop+",st}$",1.0);
             outputReducer->addOperator(new DRO::VariablePTensorBackstreamOffDiagonal(i));
+	    outputReducer.back()->setUnitMetaData("Pa","$\mathrm{Pa}$","$\mathcal{\tilde{P}}_\mathrm{"+pop+",st}$",1.0);
          }
          continue;
       }
       if(*it == "populations_moments_NonBackstream") { // Per-population moments of the non-backstreaming (thermal?) part.
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             outputReducer->addOperator(new DRO::VariableRhoNonBackstream(i));
+	    outputReducer.back()->setUnitMetaData("1/m^3","$\mathrm{m}^{-3}$","$n_\mathrm{"+pop+",th}$",1.0);
             outputReducer->addOperator(new DRO::VariableVNonBackstream(i));
+	    outputReducer.back()->setUnitMetaData("m/s","$\mathrm{m}\,\mathrm{s}^{-1}$","$V_\mathrm{"+pop+",th}$",1.0);
             outputReducer->addOperator(new DRO::VariablePTensorNonBackstreamDiagonal(i));
+	    outputReducer.back()->setUnitMetaData("Pa","$\mathrm{Pa}$","$\mathcal{P}_\mathrm{"+pop+",th}$",1.0);
             outputReducer->addOperator(new DRO::VariablePTensorNonBackstreamOffDiagonal(i));
+	    outputReducer.back()->setUnitMetaData("Pa","$\mathrm{Pa}$","$\mathcal{\tilde{P}}_\mathrm{"+pop+",th}$",1.0);
          }
          continue;
       }
@@ -303,6 +329,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          // Effective sparsity threshold affecting each cell, if dynamic threshould algorithm is used
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             outputReducer->addOperator(new DRO::VariableEffectiveSparsityThreshold(i));
+	    outputReducer.back()->setUnitMetaData("s^3/m^6","$\mathrm{m}^{-6}\,\mathrm{s}^{3}$","$f_\mathrm{"+pop+",min}$",1.0);
          }
          continue;
       }
@@ -312,17 +339,20 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             species::Species& species=getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
             outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + "/rho_loss_adjust", i, offsetof(spatial_cell::Population, RHOLOSSADJUST), 1));
+	    outputReducer.back()->setUnitMetaData("1/m^3","$\mathrm{m}^{-3}$","$\Delta_\mathrm{loss} n_\mathrm{"+pop+"}$",1.0);
          }
          continue;
       }
       if(*it == "LBweight" || *it == "vg_LBweight") {
          // Load balance metric for LB debugging
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("LB_weight",CellParams::LBWEIGHTCOUNTER,1));
+	 outputReducer.back()->setUnitMetaData("","","$\mathrm{LB weight}$",0.0);
          continue;
       }
       if(*it == "MaxVdt") {
          // Overall maximum timestep constraint as calculated by the velocity space vlasov update
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("max_v_dt",CellParams::MAXVDT,1));
+	 outputReducer.back()->setUnitMetaData("s","$\mathrm{s}$","$\Delta t_\mathrm{V,max}$",1.0);
          continue;
       }
       if(*it == "populations_MaxVdt") {
@@ -331,12 +361,14 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             species::Species& species=getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
             outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + "/MaxVdt", i, offsetof(spatial_cell::Population, max_dt[1]), 1));
+	    outputReducer.back()->setUnitMetaData("s","$\mathrm{s}$","$\Delta t_\mathrm{"+pop+",V,max}$",1.0);
          }
          continue;
       }
       if(*it == "MaxRdt") {
          // Overall maximum timestep constraint as calculated by the real space vlasov update
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("max_r_dt",CellParams::MAXRDT,1));
+	 outputReducer.back()->setUnitMetaData("s","$\mathrm{s}$","$\Delta t_\mathrm{R,max}$",1.0);
          continue;
       }
       if(*it == "populations_MaxRdt") {
@@ -345,6 +377,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             species::Species& species=getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
             outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + "/MaxRdt", i, offsetof(spatial_cell::Population, max_dt[0]), 1));
+	    outputReducer.back()->setUnitMetaData("s","$\mathrm{s}$","$\Delta t_\mathrm{"+pop+",R,max}$",1.0);
          }
          continue;
       }
@@ -352,9 +385,13 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          // Per-population energy density in three energy ranges
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             outputReducer->addOperator(new DRO::VariableEnergyDensity(i));
+	    outputReducer.back()->setUnitMetaData("eV/cm^3","$\mathrm{eV}\,\mathrm{cm}^{-3}$","$U_\mathrm{"+pop+"}$",(1.0e-6)/physicalconstants::CHARGE);
          }
          continue;
       }
+
+      // For precipitation:
+      // outputReducer.back()->setUnitMetaData("1/(cm^2 sr s eV)","$\mathrm{cm}^{-2}\,\mathrm{sr}^{-1}\,\mathrm{s}^{-1}\,\mathrm{eV}^{-1}$","$\mathcal{F}_\mathrm{"+pop+"}$",(1.0e-4)*physicalconstants::CHARGE);
       if(*it == "MaxFieldsdt" || *it == "fg_MaxFieldsdt") {
          // Maximum timestep constraint as calculated by the fieldsolver
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("MaxFieldsdt",[](
@@ -383,11 +420,13 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                return retval;
          }
          ));
+	 outputReducer.back()->setUnitMetaData("s","$\mathrm{s}$","$\Delta t_\mathrm{f,max}$",1.0);
          continue;
       }
       if(*it == "MPIrank" || *it == "vg_rank") {
          // Map of spatial decomposition of the DCCRG grid into MPI ranks
          outputReducer->addOperator(new DRO::MPIrank);
+	 outputReducer.back()->setUnitMetaData("","","$\mathrm{MPI rank}$",0.0);
          continue;
       }
       if(*it == "FsGridRank" || *it == "fg_rank") {
@@ -409,11 +448,13 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                return retval;
              }
          ));
+	 outputReducer.back()->setUnitMetaData("","","$\mathrm{fGrid rank}$",0.0);
          continue;
       }
       if(*it == "BoundaryType" || *it == "vg_BoundaryType") {
          // Type of boundarycells
          outputReducer->addOperator(new DRO::BoundaryType);
+	 outputReducer.back()->setUnitMetaData("","","$\mathrm{vGrid Boundary type}$",0.0);
          continue;
       }
       if(*it == "fg_BoundaryType") {
@@ -444,11 +485,13 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                return retval;
          }
          ));
+	 outputReducer.back()->setUnitMetaData("","","$\mathrm{fGrid Boundary type}$",0.0);
          continue;
       }
       if(*it == "BoundaryLayer" || *it == "vg_BoundaryLayer") {
          // For boundaries with multiple layers: layer count per cell
          outputReducer->addOperator(new DRO::BoundaryLayer);
+	 outputReducer.back()->setUnitMetaData("","","$\mathrm{vGrid Boundary layer}$",0.0);
          continue;
       }
       if(*it == "fg_BoundaryLayer") {
@@ -479,18 +522,21 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                return retval;
          }
          ));
+	 outputReducer.back()->setUnitMetaData("","","$\mathrm{fGrid Boundary layer}$",0.0);
          continue;
       }
       if (*it == "populations_Blocks") {
          // Per-population velocity space block counts
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             outputReducer->addOperator(new DRO::Blocks(i));
+	    outputReducer.back()->setUnitMetaData("","","$\mathrm{"pop+" blocks}$",0.0);
          }
          continue;
       }
       if(*it == "fSaved") {
          // Boolean marker whether a velocity space is saved in a given spatial cell
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("fSaved",CellParams::ISCELLSAVINGF,1));
+	 outputReducer.back()->setUnitMetaData("","","$f(v)_\mathrm{"+pop+" saved}$",0.0);
          continue;
       }
       if(*it == "populations_accSubcycles") {
@@ -499,12 +545,14 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             species::Species& species=getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
             outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<uint>(pop + "/acc_subcycles", i, offsetof(spatial_cell::Population, ACCSUBCYCLES), 1));
+	    outputReducer.back()->setUnitMetaData("","","$\mathrm{"pop+" Acc subcycles}$",0.0);
          }
          continue;
       }
       if(*it == "VolE" || *it == "vg_VolE") {
          // Volume-averaged E field
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("E_vol",CellParams::EXVOL,3));
+	 outputReducer.back()->setUnitMetaData("V/m","$\mathrm{V}\,\mathrm{m}^{-1}$","$E_\mathrm{vol,vg}$",1.0);
          continue;
       }
       if(*it == "fg_VolE") {
@@ -536,20 +584,24 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                return retval;
          }
          ));
+	 outputReducer.back()->setUnitMetaData("V/m","$\mathrm{V}\,\mathrm{m}^{-1}$","$E_\mathrm{vol,fg}$",1.0);
          continue;
       }
       if(*it == "fg_HallE") {
          // TODO: Add outputreducer to get EHALL from fsgrid
+	 // outputReducer.back()->setUnitMetaData("V/m","$\mathrm{V}\,\mathrm{m}^{-1}$","$E_\mathrm{Hall}$",1.0);
          continue;
       }
       if(*it =="GradPeE") {
          // Electron pressure gradient contribution to the generalized ohm's law
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EGRADPE",CellParams::EXGRADPE,3));
+	 outputReducer.back()->setUnitMetaData("V/m","$\mathrm{V}\,\mathrm{m}^{-1}$","$E_{\del P_\mathrm{e}}$",1.0);
          continue;
       }
       if(*it == "VolB" || *it == "vg_VolB") {
          // Volume-averaged magnetic field
          outputReducer->addOperator(new DRO::VariableBVol);
+	 outputReducer.back()->setUnitMetaData("T","$\mathrm{T}$","$B_\mathrm{vol,vg}$",1.0);
          continue;
       }
       if(*it == "fg_VolB") { // Static (typically dipole) magnetic field part
@@ -584,19 +636,23 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                return retval;
          }
          ));
+	 outputReducer.back()->setUnitMetaData("T","$\mathrm{T}$","$B_\mathrm{vol,fg}$",1.0);
          continue;
       }
       if(*it == "BackgroundVolB") {
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGB_vol",CellParams::BGBXVOL,3));
+	 outputReducer.back()->setUnitMetaData("T","$\mathrm{T}$","$B_\mathrm{vol,vg,bg}$",1.0);
          continue;
       }
       if(*it == "PerturbedVolB") {
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("PERB_vol",CellParams::PERBXVOL,3));
+	 outputReducer.back()->setUnitMetaData("T","$\mathrm{T}$","$B_\mathrm{vol,vg,per}$",1.0);
          continue;
       }
       if(*it == "Pressure" || *it== "vg_Pressure") {
          // Overall scalar pressure from all populations
          outputReducer->addOperator(new DRO::VariablePressureSolver);
+	 outputReducer.back()->setUnitMetaData("Pa","$\mathrm{Pa}$","$P_\mathrm{solver}$",1.0);
          continue;
       }
       if(*it == "fg_Pressure") {
@@ -628,34 +684,49 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                return retval;
          }
          ));
+	 outputReducer.back()->setUnitMetaData("Pa","$\mathrm{Pa}$","$P_\mathrm{fg}$",1.0);
          continue;
       }
       if(*it == "populations_PTensor") {
          // Per-population pressure tensor, stored as diagonal and offdiagonal components
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             outputReducer->addOperator(new DRO::VariablePTensorDiagonal(i));
+	    outputReducer.back()->setUnitMetaData("Pa","$\mathrm{Pa}$","$\mathcal{P}_\mathrm{"+pop+"}$",1.0);
             outputReducer->addOperator(new DRO::VariablePTensorOffDiagonal(i));
+	    outputReducer.back()->setUnitMetaData("Pa","$\mathrm{Pa}$","$\mathcal{\tilde{P}}_\mathrm{"+pop+"}$",1.0);
          }
          continue;
       }
       if(*it == "BVOLderivs") {
          // Volume-averaged derivatives
          outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("dPERBXVOLdy",bvolderivatives::dPERBXVOLdy,1));
+	 outputReducer.back()->setUnitMetaData("T/m","$\mathrm{T}\,\mathrm{m}^{-1}$","$\Delta B_{X,\mathrm{per,vol,vg}} (\Delta Y)^{-1}$",1.0);
          outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("dPERBXVOLdz",bvolderivatives::dPERBXVOLdz,1));
+	 outputReducer.back()->setUnitMetaData("T/m","$\mathrm{T}\,\mathrm{m}^{-1}$","$\Delta B_{X,\mathrm{per,vol,vg}} (\Delta Z)^{-1}$",1.0);
          outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("dPERBYVOLdx",bvolderivatives::dPERBYVOLdx,1));
+	 outputReducer.back()->setUnitMetaData("T/m","$\mathrm{T}\,\mathrm{m}^{-1}$","$\Delta B_{Y,\mathrm{per,vol,vg}} (\Delta X)^{-1}$",1.0);
          outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("dPERBYVOLdz",bvolderivatives::dPERBYVOLdz,1));
+	 outputReducer.back()->setUnitMetaData("T/m","$\mathrm{T}\,\mathrm{m}^{-1}$","$\Delta B_{Y,\mathrm{per,vol,vg}} (\Delta Z)^{-1}$",1.0);
          outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("dPERBZVOLdx",bvolderivatives::dPERBZVOLdx,1));
+	 outputReducer.back()->setUnitMetaData("T/m","$\mathrm{T}\,\mathrm{m}^{-1}$","$\Delta B_{Z,\mathrm{per,vol,vg}} (\Delta X)^{-1}$",1.0);
          outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("dPERBZVOLdy",bvolderivatives::dPERBZVOLdy,1));
+	 outputReducer.back()->setUnitMetaData("T/m","$\mathrm{T}\,\mathrm{m}^{-1}$","$\Delta B_{Z,\mathrm{per,vol,vg}} (\Delta Y)^{-1}$",1.0);
          continue;
       }
       if(*it == "vg_GridCoordinates") {
          // Spatial coordinates for each cell
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_X",CellParams::XCRD,1));
+	 outputReducer.back()->setUnitMetaData("m","$\mathrm{m}$","$X_\mathrm{vg}$",1.0);
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_Y",CellParams::YCRD,1));
+	 outputReducer.back()->setUnitMetaData("m","$\mathrm{m}$","$Y_\mathrm{vg}$",1.0);
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_Z",CellParams::ZCRD,1));
+	 outputReducer.back()->setUnitMetaData("m","$\mathrm{m}$","$Z_\mathrm{vg}$",1.0);
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_DX",CellParams::DX,1));
+	 outputReducer.back()->setUnitMetaData("m","$\mathrm{m}$","$\delta X_\mathrm{vg}$",1.0);
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_DY",CellParams::DY,1));
+	 outputReducer.back()->setUnitMetaData("m","$\mathrm{m}$","$\delta Y_\mathrm{vg}$",1.0);
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_DZ",CellParams::DZ,1));
+	 outputReducer.back()->setUnitMetaData("m","$\mathrm{m}$","$\delta Z_\mathrm{vg}$",1.0);
          continue;
       }
       if(*it == "fg_GridCoordinates") { 
@@ -685,6 +756,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                return retval;
          }
          ));
+	 outputReducer.back()->setUnitMetaData("m","$\mathrm{m}$","$X_\mathrm{fg}$",1.0);
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_Y",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
@@ -711,6 +783,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                return retval;
          }
          ));
+	 outputReducer.back()->setUnitMetaData("m","$\mathrm{m}$","$Y_\mathrm{fg}$",1.0);
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_Z",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
@@ -737,6 +810,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                return retval;
          }
          ));
+	 outputReducer.back()->setUnitMetaData("m","$\mathrm{m}$","$Z_\mathrm{fg}$",1.0);
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_DX",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
@@ -763,6 +837,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                return retval;
          }
          ));
+	 outputReducer.back()->setUnitMetaData("m","$\mathrm{m}$","$\delta X_\mathrm{fg}$",1.0);
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_DY",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
@@ -789,6 +864,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                return retval;
          }
          ));
+	 outputReducer.back()->setUnitMetaData("m","$\mathrm{m}$","$\delta Y_\mathrm{fg}$",1.0);
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_DZ",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
@@ -815,10 +891,12 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                return retval;
          }
          ));
+	 outputReducer.back()->setUnitMetaData("m","$\mathrm{m}$","$\delta Z_\mathrm{fg}$",1.0);
          continue;
       }
       if (*it == "MeshData") {
          outputReducer->addOperator(new DRO::VariableMeshData);
+	 outputReducer.back()->setUnitMetaData("","","\mathrm{Mesh data}$",0.0);
          continue;
       }
       // After all the continue; statements one should never land here.
@@ -964,6 +1042,18 @@ std::string DataReducer::getName(const unsigned int& operatorID) const {
 bool DataReducer::getDataVectorInfo(const unsigned int& operatorID,std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
    if (operatorID >= operators.size()) return false;
    return operators[operatorID]->getDataVectorInfo(dataType,dataSize,vectorSize);
+}
+
+/** Get metadata on the unit of data calculated by the given DataReductionOperator.
+ * @param operatorID ID number of the DataReductionOperator whose output unit metadata is requested.
+ * @param unit Physical unit of variable
+ * @param unitLaTeX Physical unit of variable, written using LaTeX notation
+ * @param unitConversion Floating point value of conversion factor to SI units
+ * @return If true, DataReductionOperator was found and it returned sensible values.
+ */
+bool DataReducer::getUnitMetadata(const unsigned int& operatorID,std::string& unit,std::string& unitLaTeX,std::string& variableLaTeX,Real& unitConversion) const {
+   if (operatorID >= operators.size()) return false;
+   return operators[operatorID]->getUnitMetadata(unit, unitLaTeX, variableLaTeX, unitConversion);
 }
 
 /** Ask a DataReductionOperator if it wants to take care of writing the data 
