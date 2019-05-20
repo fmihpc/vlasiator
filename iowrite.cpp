@@ -345,7 +345,7 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    }
 
    // Request variable unit metadata: unit, latex-formatted unit, and conversion factor to SI
-   if (dataReducer.getUnitMetadata(dataReducerIndex,unitString,unitStringLaTeX,variableStringLaTeX, unitConversionFactor) == false) {
+   if (dataReducer.getMetadata(dataReducerIndex,unitString,unitStringLaTeX,variableStringLaTeX,unitConversionFactor) == false) {
       cerr << "ERROR when requesting unit metadata from DRO " << dataReducerIndex << endl;
       phiprof::stop("DRO_"+variableName);
       return false;

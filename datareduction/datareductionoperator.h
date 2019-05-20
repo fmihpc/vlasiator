@@ -58,13 +58,19 @@ namespace DRO {
       
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const = 0;
       virtual bool getUnitMetadata(std::string& _unit,std::string& _unitLaTeX,std::string& _variableLaTeX,Real _unitConversion) {
+	_unit=unit;
+	_unitLaTeX=unitLaTeX;
+	_unitConversion=unitConversion;
+	_variableLaTeX=variableLaTeX;
+	return true;
+      };
+      virtual bool setUnitMetadata(std::string& _unit,std::string& _unitLaTeX,std::string& _variableLaTeX,Real _unitConversion) {
 	unit = _unit;
 	unitLaTeX = _unitLaTeX;
 	unitConversion = _unitConversion;
 	variableLaTeX = _variableLaTeX;
 	return true;
-      };
-      virtual bool setUnitMetadata(std::string& _unit,std::string& _unitLaTeX,std::string& _variableLaTeX,Real _unitConversion) unit(_unit),unitLaTeX(_unitLaTeX),unitConversion(_unitConversion),variableLaTeX(_variableLaTeX) const = 0;
+      }
 
       virtual std::string getName() const = 0;
       virtual bool reduceData(const SpatialCell* cell,char* buffer);
@@ -72,10 +78,10 @@ namespace DRO {
       virtual bool setSpatialCell(const SpatialCell* cell) = 0;
       
    protected:
-      std::string _unit;
-      std::string _unitLaTeX;
-      std::string _variableLaTeX;
-      Real _unitConversion;
+      std::string unit;
+      std::string unitLaTeX;
+      std::string variableLaTeX;
+      Real unitConversion;
       
    };
 
