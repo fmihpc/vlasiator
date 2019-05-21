@@ -223,7 +223,7 @@ bool Parameters::addParameters(){
 				"V vg_V fg_V populations_V "+
 				"populations_moments_Backstream populations_moments_NonBackstream "+
 				"populations_EffectiveSparsityThreshold populations_RhoLossAdjust "+
-				"populations_EnergyDensity "+
+				"populations_EnergyDensity populations_PrecipitationFlux "+
 				"LBweight MaxVdt MaxRdt populations_MaxVdt populations_MaxRdt MaxFieldsdt "+
 				"MPIrank vg_rank FsGridRank fg_rank "+
 				"FsGridBoundaryType BoundaryType vg_BoundaryType fg_BoundaryType FsGridBoundaryLayer BoundaryLayer vg_BoundaryLayer fg_BoundaryLayer "+

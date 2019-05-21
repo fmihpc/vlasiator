@@ -546,6 +546,26 @@ namespace DRO {
       Real E2limit;
    };
    
+   // Precipitation directional differential number flux
+   class VariablePrecipitationDiffFlux: public DataReductionOperatorHasParameters {
+   public:
+      VariablePrecipitationDiffFlux(cuint popID);
+      virtual ~VariablePrecipitationDiffFlux();
+      
+      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual std::string getName() const;
+      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool setSpatialCell(const SpatialCell* cell);
+      virtual bool writeParameters(vlsv::Writer& vlsvWriter);
+      
+   protected:
+      uint popID;
+      std::string popName;
+      int nChannels;
+      Real emin, emax;
+      Real lossConeAngle;
+      std::vector<Real> channels, dataDiffFlux;
+   };
 } // namespace DRO
 
 #endif
