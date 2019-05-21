@@ -415,7 +415,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          }
          continue;
       }
-      if(lowercase == "maxfieldsdt" || lowercase == "fg_maxfieldsdt") {
+      if(lowercase == "maxfieldsdt" || lowercase == "fg_maxfieldsdt" || lowercase == "fg_maxdt_fieldsolver") {
          // Maximum timestep constraint as calculated by the fieldsolver
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_maxdt_fieldsolver",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
@@ -740,7 +740,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 	 outputReducer->addMetadata(outputReducer->size()-1,"Pa","$\\mathrm{Pa}$","$P_\\mathrm{fg}$","1.0");
          continue;
       }
-      if(lowercase == "populations_ptensor") {
+      if(lowercase == "populations_ptensor" || lowercase == "populations_vg_ptensor") {
          // Per-population pressure tensor, stored as diagonal and offdiagonal components
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];
@@ -752,7 +752,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          }
          continue;
       }
-      if(lowercase == "bvolderivs" || lowercase == "b_vol_derivatives" || lowercase == "b_vol_derivs") {
+      if(lowercase == "bvolderivs" || lowercase == "b_vol_derivs" || lowercase == "b_vol_derivatives") {
          // Volume-averaged derivatives
          outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("vg_dperbxvoldy",bvolderivatives::dPERBXVOLdy,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("vg_dperbxvoldz",bvolderivatives::dPERBXVOLdz,1));
@@ -956,7 +956,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("rhom",CellParams::RHOM,1));
          continue;
       }
-      if(lowercase == "populations_rholossadjust" || lowercase == "populations_vg_rho_loss_adjust" || lowercase == "populations_rho_loss_adjust") {
+      if(lowercase == "populations_rholossadjust" || lowercase == "populations_rho_loss_adjust") {
          // Per-particle overall lost particle number
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];
@@ -969,19 +969,19 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       //   diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("rho_loss_velocity_boundary",CellParams::RHOLOSSVELBOUNDARY,1));
       //   continue;
       //}
-      if(lowercase == "lbweight" || lowercase == "") {
+      if(lowercase == "lbweight" || lowercase == "loadbalance_weight") {
          diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("loadbalance_weight",CellParams::LBWEIGHTCOUNTER,1));
          continue;
       }
-      if(lowercase == "maxvdt") {
+      if(lowercase == "maxvdt" || lowercase == "maxdt_acceleration") {
          diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("maxdt_acceleration",CellParams::MAXVDT,1));
          continue;
       }
-      if(lowercase == "maxrdt") {
+      if(lowercase == "maxrdt" || lowercase == "maxdt_translation") {
          diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("maxdt_translation",CellParams::MAXRDT,1));
          continue;
       }
-      if(lowercase == "maxfieldsdt") {
+      if(lowercase == "maxfieldsdt" || lowercase == "maxdt_fieldsolver") {
          diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("maxdt_fieldsolver",CellParams::MAXFDT,1));
          continue;
       }
@@ -997,7 +997,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          }
          continue;
       }
-      if(lowercase == "populations_maxrdt") {
+      if(lowercase == "populations_maxrdt" || lowercase == "populations_maxdt_translation") {
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
@@ -1005,7 +1005,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          }
          continue;
       }
-      if(lowercase == "populations_maxvdt") {
+      if(lowercase == "populations_maxvdt" || lowercase == "populations_maxdt_acceleration") {
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
