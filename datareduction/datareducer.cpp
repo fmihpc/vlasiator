@@ -402,6 +402,8 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(*it == "populations_PrecipitationFlux") {
          // Per-population precipitation differential flux
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+            species::Species& species=getObjectWrapper().particleSpecies[i];
+            const std::string& pop = species.name;
             outputReducer->addOperator(new DRO::VariablePrecipitationDiffFlux(i));
 	    std::stringstream conversion;
 	    conversion << (1.0e-4)*physicalconstants::CHARGE;
@@ -606,11 +608,6 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 	 outputReducer->addMetadata(outputReducer->size()-1,"V/m","$\\mathrm{V}\\,\\mathrm{m}^{-1}$","$E_\\mathrm{vol,fg}$","1.0");
          continue;
       }
-<<<<<<< HEAD
-      if(*it == "fg_HallE") {
-         // TODO: Add outputreducer to get EHALL from fsgrid
-	 // outputReducer->addMetadata(outputReducer->size()-1,"V/m","$\\mathrm{V}\\,\\mathrm{m}^{-1}$","$E_\\mathrm{Hall}$","1.0");
-=======
       if(*it == "HallE" || *it == "fg_HallE") {
          for(int index=0; index<fsgrids::N_EHALL; index++) {
             std::string reducer_name = "fg_HallE" + std::to_string(index);
@@ -640,8 +637,8 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                   return retval;
             }
             ));
+	    outputReducer->addMetadata(outputReducer->size()-1,"V/m","$\\mathrm{V}\\,\\mathrm{m}^{-1}$","$E_\\mathrm{Hall}$","1.0");
          }
->>>>>>> dev
          continue;
       }
       if(*it =="GradPeE") {
