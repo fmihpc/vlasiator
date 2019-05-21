@@ -469,7 +469,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 	 outputReducer->addMetadata(outputReducer->size()-1,"","","$\\mathrm{vGrid Boundary type}$","");
          continue;
       }
-      if(*it == "fg_BoundaryType") {
+      if(*it == "FsGridBoundaryType" || *it == "fg_BoundaryType") {
          // Type of boundarycells as stored in FSGrid
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("FsGridBoundaryType",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
@@ -506,7 +506,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 	 outputReducer->addMetadata(outputReducer->size()-1,"","","$\\mathrm{vGrid Boundary layer}$","");
          continue;
       }
-      if(*it == "fg_BoundaryLayer") {
+      if(*it == "FsGridBoundaryLayer" || *it == "fg_BoundaryLayer") {
          // Type of boundarycells as stored in FSGrid
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("FsGridBoundaryLayer",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
