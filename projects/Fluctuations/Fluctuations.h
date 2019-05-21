@@ -68,6 +68,7 @@ namespace projects {
          creal& vx, creal& vy, creal& vz,
          creal& dvx, creal& dvy, creal& dvz,const uint popID
       ) const;
+      bool refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const;
       
       Real BX0;
       Real BY0;
