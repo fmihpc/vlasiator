@@ -57,14 +57,14 @@ namespace DRO {
       virtual ~DataReductionOperator();
       
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const = 0;
-      virtual bool getUnitMetadata(std::string& _unit,std::string& _unitLaTeX,std::string& _variableLaTeX,Real _unitConversion) {
+      virtual bool getUnitMetadata(std::string& _unit,std::string& _unitLaTeX,std::string& _variableLaTeX,std::string& _unitConversion) {
 	_unit=unit;
 	_unitLaTeX=unitLaTeX;
 	_unitConversion=unitConversion;
 	_variableLaTeX=variableLaTeX;
 	return true;
       };
-      virtual bool setUnitMetadata(std::string& _unit,std::string& _unitLaTeX,std::string& _variableLaTeX,Real _unitConversion) {
+      virtual bool setUnitMetadata(std::string& _unit,std::string& _unitLaTeX,std::string& _variableLaTeX,std::string& _unitConversion) {
 	unit = _unit;
 	unitLaTeX = _unitLaTeX;
 	unitConversion = _unitConversion;
@@ -81,7 +81,7 @@ namespace DRO {
       std::string unit;
       std::string unitLaTeX;
       std::string variableLaTeX;
-      Real unitConversion;
+      std::string unitConversion;
       
    };
 

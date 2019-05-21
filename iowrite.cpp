@@ -318,9 +318,8 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                       int dataReducerIndex,
                       Writer& vlsvWriter){
    map<string,string> attribs;
-   string variableName,dataType,unitString,unitStringLaTeX, variableStringLaTeX;
+   string variableName,dataType,unitString,unitStringLaTeX, variableStringLaTeX, unitConversionFactor;
    bool success=true;
-   Real unitConversionFactor;
 
    const string meshName = "SpatialGrid";
    variableName = dataReducer.getName(dataReducerIndex);
