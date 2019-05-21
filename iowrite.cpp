@@ -893,6 +893,11 @@ bool writeFsGridMetadata(FsGrid< fsgrids::technical, 2>& technicalGrid, vlsv::Wr
   std::array<uint32_t,2> meshDomainSize({globalIds.size(), 0});
   vlsvWriter.writeArray("MESH_DOMAIN_SIZES", xmlAttributes, 1, 2, &meshDomainSize[0]);
 
+  // how many MPI ranks we wrote from
+  int size;
+  MPI_Comm_size(MPI_COMM_WORLD, &size);
+  vlsvWriter.writeParameter("numWritingRanks", &size);
+
   // Finally, write mesh object itself.
   xmlAttributes.clear();
   xmlAttributes["name"] = meshName;
