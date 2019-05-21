@@ -355,6 +355,13 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          }
          continue;
       }
+      if(*it == "populations_PrecipitationFlux") {
+         // Per-population precipitation differential flux
+         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+            outputReducer->addOperator(new DRO::VariablePrecipitationDiffFlux(i));
+         }
+         continue;
+      }
       if(*it == "MaxFieldsdt" || *it == "fg_MaxFieldsdt") {
          // Maximum timestep constraint as calculated by the fieldsolver
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("MaxFieldsdt",[](
