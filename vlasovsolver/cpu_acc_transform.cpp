@@ -23,11 +23,11 @@
 #include "../object_wrapper.h"
 #include "cpu_moments.h"
 #include "cpu_acc_transform.hpp"
+#include <fstream>
 
 using namespace std;
 using namespace spatial_cell;
 using namespace Eigen;
-
 
 
 /*!
@@ -169,11 +169,21 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
      }
    }
 
+   ofstream substepFile;
+   substepFile.open ("substep_test.txt", ios::app);
+   //if (int(spatial_cell->parameters[CellParams::CELLID]) % 500 == 0) {
+   //   substepFile << " CellID, substeps = " << spatial_cell->parameters[CellParams::CELLID] << " \t" << bulk_velocity_substeps << endl; 
+   //   substepFile << " popID, charge = " << popID << " \t" << getObjectWrapper().particleSpecies[popID].charge << endl; 
+   //}
    for (uint i=0; i<bulk_velocity_substeps; ++i) {
       // rotation origin is the point through which we place our rotation axis (direction of which is unitB).
       // first add bulk velocity (using the total transform computed this far.
       Eigen::Matrix<Real,3,1> rotation_pivot(total_transform*bulk_velocity);
-      
+      if (getObjectWrapper().particleSpecies[popID].charge < 0 && int(spatial_cell->parameters[CellParams::CELLID]) % 9500 == 0) {
+         substepFile << " substep: " << i << endl;
+         substepFile << " rotation_pivot matrix at 1 :\n" << rotation_pivot << endl;
+      }
+
       /* include lorentzHallTerm (we should include, always)      
 	 This performs a transformation into a frame where the newly generated motional
 	 electric field cancels out the Hall electric field  */
@@ -183,9 +193,14 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       //rotation_pivot[0]-= hallPrefactor*(dBZdy - dBYdz);
       //rotation_pivot[1]-= hallPrefactor*(dBXdz - dBZdx);
       //rotation_pivot[2]-= hallPrefactor*(dBYdx - dBXdy);
+      if (getObjectWrapper().particleSpecies[popID].charge < 0 && int(spatial_cell->parameters[CellParams::CELLID]) % 9500 == 0) {
+         substepFile << " CellID: " << spatial_cell->parameters[CellParams::CELLID] << endl;
+         substepFile << " electronV: \n" << electronV << endl;
+         substepFile << " substeps_dt, dt: " << substeps_dt << "\t" << dt << endl;
+      }
 
       // Calculate EJE only for the electron population
-      if (getObjectWrapper().particleSpecies[popID].charge < 0) {
+      if (getObjectWrapper().particleSpecies[popID].charge < 0 && substeps_dt > 0) {
          // First find the current electron moments, this results in leapfrog-like propagation of EJE
          Eigen::Matrix<Real,3,1> electronVcurr(total_transform*electronV);	
          /* Calculate electrostatic field derivative via current
@@ -215,12 +230,27 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
          Eigen::Matrix<Real,3,1> EfromJe_perpendicular(EfromJe-EfromJe_parallel);
          Eigen::Matrix<Real,3,1> unit_EJEperp(EfromJe_perpendicular.normalized());
 
+         if (getObjectWrapper().particleSpecies[popID].charge < 0 && int(spatial_cell->parameters[CellParams::CELLID]) % 9500 == 0) {
+            substepFile << " EfromJe: \n" << EfromJe << endl;
+            substepFile << " EfromJe_parallel: \n" << EfromJe_parallel << endl;
+            substepFile << " EfromJe_perpendicular: \n" << EfromJe_perpendicular << endl;
+            substepFile << " unit_EJEperp: \n" << unit_EJEperp << endl;
+            substepFile << " electronVcurr: \n" << electronVcurr << endl;
+            substepFile << " dEJEt: \n" << dEJEt << endl;
+         }
+
          // Add pivot transformation to negate component of EfromJe perpendicular to B
-         // Vnorm = Bnorm cross Enorm
+         // Vnorm = Enorm cross Bnorm
          Real EJEperpperB = EfromJe_perpendicular.norm() / B.norm();
-         rotation_pivot[0]-= EJEperpperB * (unit_B[1]*unit_EJEperp[2] - unit_B[2]*unit_EJEperp[1]);
-         rotation_pivot[1]-= EJEperpperB * (unit_B[2]*unit_EJEperp[0] - unit_B[0]*unit_EJEperp[2]);
-         rotation_pivot[2]-= EJEperpperB * (unit_B[0]*unit_EJEperp[1] - unit_B[1]*unit_EJEperp[0]);
+         //rotation_pivot[0]-= EJEperpperB * (unit_B[1]*unit_EJEperp[2] - unit_B[2]*unit_EJEperp[1]);
+         //rotation_pivot[1]-= EJEperpperB * (unit_B[2]*unit_EJEperp[0] - unit_B[0]*unit_EJEperp[2]);
+         //rotation_pivot[2]-= EJEperpperB * (unit_B[0]*unit_EJEperp[1] - unit_B[1]*unit_EJEperp[0]);
+         rotation_pivot[0]-= EJEperpperB * (unit_EJEperp[1]*unit_B[2] - unit_EJEperp[2]*unit_B[1]);
+         rotation_pivot[1]-= EJEperpperB * (unit_EJEperp[2]*unit_B[0] - unit_EJEperp[0]*unit_B[2]);
+         rotation_pivot[2]-= EJEperpperB * (unit_EJEperp[0]*unit_B[1] - unit_EJEperp[1]*unit_B[0]);
+         if (getObjectWrapper().particleSpecies[popID].charge < 0 && int(spatial_cell->parameters[CellParams::CELLID]) % 9500 == 0) {
+            substepFile << " rotation_pivot matrix at 2 :\n" << rotation_pivot << endl;
+         }
       }
 
       // add to transform matrix the small rotation around  pivot
@@ -258,6 +288,7 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
          EgradPe * substeps_dt) * total_transform;
       }
    }
+   substepFile.close();
 
    // Update EJE in CELLPARAMS
    spatial_cell->parameters[CellParams::EXJE] = EfromJe[0];
