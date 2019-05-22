@@ -521,8 +521,7 @@ void propagatePencil(Vec* dz, Vec* values, const uint dimension,
    const uint nTargetNeighborsPerPencil = 1;
 
    // Vector buffer where we write data, initialized to 0*/
-   std::vector<Vec, aligned_allocator<Vec,64>> targetValues;
-   targetValues.reserve((lengthOfPencil + 2 * nTargetNeighborsPerPencil) * WID3 / VECL);
+   std::vector<Vec, aligned_allocator<Vec,64>> targetValues((lengthOfPencil + 2 * nTargetNeighborsPerPencil) * WID3 / VECL);
    
    for (uint i = 0; i < (lengthOfPencil + 2 * nTargetNeighborsPerPencil) * WID3 / VECL; i++) {
       
@@ -1102,8 +1101,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
             std::vector<Realf> targetBlockData((pencils.sumOfLengths + 2 * pencils.N) * WID3);
             // Allocate vectorized targetvecdata sum(lengths of pencils)*WID3 / VECL)
             // Add padding by 2 for each pencil
-            std::vector<Vec, aligned_allocator<Vec,64>> targetVecData;
-            targetVecData.reserve((pencils.sumOfLengths + 2 * pencils.N) * WID3 / VECL);
+            std::vector<Vec, aligned_allocator<Vec,64>> targetVecData((pencils.sumOfLengths + 2 * pencils.N) * WID3 / VECL);
             
             // Initialize targetvecdata to 0
             for( uint i = 0; i < (pencils.sumOfLengths + 2 * pencils.N) * WID3 / VECL; i++ ) {
@@ -1135,8 +1133,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                computeSpatialSourceCellsForPencil(mpiGrid, pencils, pencili, dimension, sourceCells.data());
 
                // dz is the cell size in the direction of the pencil
-               std::vector<Vec, aligned_allocator<Vec,64>> dz;
-               dz.reserve(sourceLength);
+               std::vector<Vec, aligned_allocator<Vec,64>> dz(sourceLength);
                uint i = 0;
                for(auto cell: sourceCells) {
                   switch (dimension) {
@@ -1156,8 +1153,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
 
                // Allocate source data: sourcedata<length of pencil * WID3)
                // Add padding by 2 * VLASOV_STENCIL_WIDTH
-               std::vector<Vec, aligned_allocator<Vec,64>> sourceVecData;
-               sourceVecData.reserve(sourceLength * WID3 / VECL);
+               std::vector<Vec, aligned_allocator<Vec,64>> sourceVecData(sourceLength * WID3 / VECL);
 
                // load data(=> sourcedata) / (proper xy reconstruction in future)
                copy_trans_block_data_amr(sourceCells.data(), blockGID, L, sourceVecData.data(),
