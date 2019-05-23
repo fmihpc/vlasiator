@@ -793,8 +793,8 @@ template<unsigned long int N> bool readFsGridVariable(
       logFile << "(RESTART)  ERROR: Failed to read " << endl << write;
       return false;
    }
-   if(! (dataType == vlsv::datatype::type::FLOAT && byteSize == sizeof(double))) {
-      logFile << "(RESTART)  ERROR: Attempting to read fsgrid variable " << variableName << ", but it is not a double dataset." << endl << write;
+   if(! (dataType == vlsv::datatype::type::FLOAT && byteSize == sizeof(Real))) {
+      logFile << "(RESTART)  ERROR: Attempting to read fsgrid variable " << variableName << ", but it is not in the same floating point format as the simulation expects (" << byteSize*8 << " bits instead of " << sizeof(Real)*8 << ")." << endl << write;
       return false;
    }
 
@@ -817,16 +817,16 @@ template<unsigned long int N> bool readFsGridVariable(
       size_t localStartOffset = 0;
       for(int task = 0; task < myRank; task++) {
          std::array<int32_t,3> thatTasksSize;
-         thatTasksSize[0] = targetGrid.calcLocalSize(globalSize[0], decomposition[0], task%decomposition[0]);
-         thatTasksSize[1] = targetGrid.calcLocalSize(globalSize[1], decomposition[1], (task/decomposition[0])%decomposition[1]);
-         thatTasksSize[2] = targetGrid.calcLocalSize(globalSize[2], decomposition[2], (task/decomposition[0])/decomposition[1]);
+         thatTasksSize[0] = targetGrid.calcLocalSize(globalSize[0], decomposition[0], task/decomposition[2]/decomposition[1]);
+         thatTasksSize[1] = targetGrid.calcLocalSize(globalSize[1], decomposition[1], (task/decomposition[2])%decomposition[1]);
+         thatTasksSize[2] = targetGrid.calcLocalSize(globalSize[2], decomposition[2], task%decomposition[2]);
          localStartOffset += thatTasksSize[0] * thatTasksSize[1] * thatTasksSize[2];
       }
      
       // Read into buffer
-      std::vector<double> buffer(storageSize*N);
+      std::vector<Real> buffer(storageSize*N);
 
-      if(file.readArray("VARIABLE",attribs, localStartOffset*N, storageSize, (char*)buffer.data()) == false) {
+      if(file.readArray("VARIABLE",attribs, localStartOffset, storageSize, (char*)buffer.data()) == false) {
          logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
          return false;
       }
@@ -836,7 +836,7 @@ template<unsigned long int N> bool readFsGridVariable(
       for(int z=0; z<localSize[2]; z++) {
          for(int y=0; y<localSize[1]; y++) {
             for(int x=0; x<localSize[0]; x++) {
-               memcpy(targetGrid.get(x,y,z), &buffer[index], N*sizeof(double));
+               memcpy(targetGrid.get(x,y,z), &buffer[index], N*sizeof(Real));
                index += N;
             }
          }
@@ -1099,7 +1099,6 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    if(readScalarParameter(file,"numWritingRanks",fsgridInputRanks, MASTER_RANK, MPI_COMM_WORLD) == false) {
       exitOnError(false, "(RESTART) FSGrid writing rank number not found in restart file", MPI_COMM_WORLD);
    }
-   success = readFsGridVariable(file, "fg_BGB", fsgridInputRanks, BgBGrid);
    success = readFsGridVariable(file, "fg_PERB", fsgridInputRanks, perBGrid);
 
    success = file.close();
