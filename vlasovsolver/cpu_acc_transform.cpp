@@ -143,9 +143,9 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
    } // if (Parameters::propagatePotential == true) 
 
    // in this many substeps we iterate forward bulk velocity when the complete transformation is computed (0.1 deg per substep).
-   unsigned int bulk_velocity_substeps; 
-   bulk_velocity_substeps = fabs(dt) / fabs(gyro_period*(0.1/360.0));
-   if (bulk_velocity_substeps < 1) bulk_velocity_substeps=1;
+   unsigned int bulk_velocity_substeps = 500; 
+   //bulk_velocity_substeps = fabs(dt) / fabs(gyro_period*(0.1/360.0));
+   //if (bulk_velocity_substeps < 1) bulk_velocity_substeps=1;
 
    const Real substeps_radians = -(2.0*M_PI*dt/gyro_period)/bulk_velocity_substeps; // how many radians each substep is.
    const Real substeps_dt=dt/bulk_velocity_substeps; /*!< how many s each substep is*/
@@ -179,7 +179,8 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       // rotation origin is the point through which we place our rotation axis (direction of which is unitB).
       // first add bulk velocity (using the total transform computed this far.
       Eigen::Matrix<Real,3,1> rotation_pivot(total_transform*bulk_velocity);
-      if (getObjectWrapper().particleSpecies[popID].charge < 0 && int(spatial_cell->parameters[CellParams::CELLID]) % 9500 == 0) {
+      if (getObjectWrapper().particleSpecies[popID].charge < 0 && int(spatial_cell->parameters[CellParams::CELLID]) % 9500 == 0 && 
+              i == 100) {
          substepFile << " substep: " << i << endl;
          substepFile << " rotation_pivot matrix at 1 :\n" << rotation_pivot << endl;
       }
@@ -193,7 +194,8 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       //rotation_pivot[0]-= hallPrefactor*(dBZdy - dBYdz);
       //rotation_pivot[1]-= hallPrefactor*(dBXdz - dBZdx);
       //rotation_pivot[2]-= hallPrefactor*(dBYdx - dBXdy);
-      if (getObjectWrapper().particleSpecies[popID].charge < 0 && int(spatial_cell->parameters[CellParams::CELLID]) % 9500 == 0) {
+      if (getObjectWrapper().particleSpecies[popID].charge < 0 && int(spatial_cell->parameters[CellParams::CELLID]) % 9500 == 0 &&
+              i == 100) {
          substepFile << " CellID: " << spatial_cell->parameters[CellParams::CELLID] << endl;
          substepFile << " electronV: \n" << electronV << endl;
          substepFile << " substeps_dt, dt: " << substeps_dt << "\t" << dt << endl;
@@ -230,7 +232,8 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
          Eigen::Matrix<Real,3,1> EfromJe_perpendicular(EfromJe-EfromJe_parallel);
          Eigen::Matrix<Real,3,1> unit_EJEperp(EfromJe_perpendicular.normalized());
 
-         if (getObjectWrapper().particleSpecies[popID].charge < 0 && int(spatial_cell->parameters[CellParams::CELLID]) % 9500 == 0) {
+         if (getObjectWrapper().particleSpecies[popID].charge < 0 && int(spatial_cell->parameters[CellParams::CELLID]) % 9500 == 0 &&
+                 i == 100) {
             substepFile << " EfromJe: \n" << EfromJe << endl;
             substepFile << " EfromJe_parallel: \n" << EfromJe_parallel << endl;
             substepFile << " EfromJe_perpendicular: \n" << EfromJe_perpendicular << endl;
@@ -248,7 +251,8 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
          rotation_pivot[0]-= EJEperpperB * (unit_EJEperp[1]*unit_B[2] - unit_EJEperp[2]*unit_B[1]);
          rotation_pivot[1]-= EJEperpperB * (unit_EJEperp[2]*unit_B[0] - unit_EJEperp[0]*unit_B[2]);
          rotation_pivot[2]-= EJEperpperB * (unit_EJEperp[0]*unit_B[1] - unit_EJEperp[1]*unit_B[0]);
-         if (getObjectWrapper().particleSpecies[popID].charge < 0 && int(spatial_cell->parameters[CellParams::CELLID]) % 9500 == 0) {
+         if (getObjectWrapper().particleSpecies[popID].charge < 0 && int(spatial_cell->parameters[CellParams::CELLID]) % 9500 == 0 &&
+                 i == 100) {
             substepFile << " rotation_pivot matrix at 2 :\n" << rotation_pivot << endl;
          }
       }
