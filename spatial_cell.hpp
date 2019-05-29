@@ -102,22 +102,21 @@ namespace spatial_cell {
       const uint64_t CELL_EDT2                = (1ull<<11);
       const uint64_t CELL_PERB                = (1ull<<12);
       const uint64_t CELL_PERBDT2             = (1ull<<13);
-      const uint64_t CELL_BGB                 = (1ull<<14);
-      const uint64_t CELL_RHOM_V              = (1ull<<15);
-      const uint64_t CELL_RHOMDT2_VDT2        = (1ull<<16);
-      const uint64_t CELL_RHOQ                = (1ull<<17);
-      const uint64_t CELL_RHOQDT2             = (1ull<<18);
-      const uint64_t CELL_BVOL                = (1ull<<19);
-      const uint64_t CELL_BVOL_DERIVATIVES    = (1ull<<20);
-      const uint64_t CELL_DIMENSIONS          = (1ull<<21);
-      const uint64_t CELL_IOLOCALCELLID       = (1ull<<22);
-      const uint64_t NEIGHBOR_VEL_BLOCK_DATA  = (1ull<<23);
-      const uint64_t CELL_HALL_TERM           = (1ull<<24);
-      const uint64_t CELL_P                   = (1ull<<25);
-      const uint64_t CELL_PDT2                = (1ull<<26);
-      const uint64_t POP_METADATA             = (1ull<<27);
-      const uint64_t RANDOMGEN                = (1ull<<28);
-      const uint64_t CELL_GRADPE_TERM         = (1ull<<29);
+      const uint64_t CELL_RHOM_V              = (1ull<<14);
+      const uint64_t CELL_RHOMDT2_VDT2        = (1ull<<15);
+      const uint64_t CELL_RHOQ                = (1ull<<16);
+      const uint64_t CELL_RHOQDT2             = (1ull<<17);
+      const uint64_t CELL_BVOL                = (1ull<<18);
+      const uint64_t CELL_BVOL_DERIVATIVES    = (1ull<<19);
+      const uint64_t CELL_DIMENSIONS          = (1ull<<20);
+      const uint64_t CELL_IOLOCALCELLID       = (1ull<<21);
+      const uint64_t NEIGHBOR_VEL_BLOCK_DATA  = (1ull<<22);
+      const uint64_t CELL_HALL_TERM           = (1ull<<23);
+      const uint64_t CELL_P                   = (1ull<<24);
+      const uint64_t CELL_PDT2                = (1ull<<25);
+      const uint64_t POP_METADATA             = (1ull<<26);
+      const uint64_t RANDOMGEN                = (1ull<<27);
+      const uint64_t CELL_GRADPE_TERM         = (1ull<<28);
       //all data
       const uint64_t ALL_DATA =
       CELL_PARAMETERS
