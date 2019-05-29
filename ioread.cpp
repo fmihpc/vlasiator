@@ -242,7 +242,6 @@ bool readNBlocks(vlsv::ParallelReader& file,const std::string& meshName,
       cerr << "VLSV\t\t ERROR: Array 'MESH_DOMAIN_SIZES' XML tag does not have attribute 'arraysize'" << endl;
       return false;
    } else {
-      cerr << "VLSV\t\t Mesh has " << it->second << " domains" << endl;
       N_domains = atoi(it->second.c_str());
    }
 
@@ -778,6 +777,80 @@ bool readCellParamsVariable(
    return false;
 }
 
+template<unsigned long int N> bool readFsGridVariable(
+   vlsv::ParallelReader& file, const string& variableName, int numWritingRanks, FsGrid<std::array<Real, N>,2>& targetGrid) {
+
+   uint64_t arraySize;
+   uint64_t vectorSize;
+   vlsv::datatype::type dataType;
+   uint64_t byteSize;
+   list<pair<string,string> > attribs;
+   
+   attribs.push_back(make_pair("name",variableName));
+   attribs.push_back(make_pair("mesh","fsgrid"));
+
+   if (file.getArrayInfo("VARIABLE",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
+      logFile << "(RESTART)  ERROR: Failed to read " << endl << write;
+      return false;
+   }
+   if(! (dataType == vlsv::datatype::type::FLOAT && byteSize == sizeof(Real))) {
+      logFile << "(RESTART)  ERROR: Attempting to read fsgrid variable " << variableName << ", but it is not in the same floating point format as the simulation expects (" << byteSize*8 << " bits instead of " << sizeof(Real)*8 << ")." << endl << write;
+      return false;
+   }
+
+   // Are we restarting from the same number of tasks, or a different number?
+   int size, myRank;
+   MPI_Comm_size(MPI_COMM_WORLD, &size);
+   MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+   if(size == numWritingRanks) {
+      // Easy case: same number of tasks => slurp it in.
+      std::array<int32_t,3>& localSize = targetGrid.getLocalSize();
+      std::array<int32_t,3>& globalSize = targetGrid.getGlobalSize();
+
+      std::array<int,3> decomposition;
+      targetGrid.computeDomainDecomposition(globalSize, size, decomposition);
+
+      // Determine our tasks storage size
+      size_t storageSize = localSize[0]*localSize[1]*localSize[2];
+
+      // Determine offset in file by summing up all the previous tasks' sizes.
+      size_t localStartOffset = 0;
+      for(int task = 0; task < myRank; task++) {
+         std::array<int32_t,3> thatTasksSize;
+         thatTasksSize[0] = targetGrid.calcLocalSize(globalSize[0], decomposition[0], task/decomposition[2]/decomposition[1]);
+         thatTasksSize[1] = targetGrid.calcLocalSize(globalSize[1], decomposition[1], (task/decomposition[2])%decomposition[1]);
+         thatTasksSize[2] = targetGrid.calcLocalSize(globalSize[2], decomposition[2], task%decomposition[2]);
+         localStartOffset += thatTasksSize[0] * thatTasksSize[1] * thatTasksSize[2];
+      }
+      
+      // Read into buffer
+      std::vector<Real> buffer(storageSize*N);
+
+      if(file.readArray("VARIABLE",attribs, localStartOffset, storageSize, (char*)buffer.data()) == false) {
+         logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
+         return false;
+      }
+      
+      // Assign buffer into fsgrid
+      int index=0;
+      for(int z=0; z<localSize[2]; z++) {
+         for(int y=0; y<localSize[1]; y++) {
+            for(int x=0; x<localSize[0]; x++) {
+               memcpy(targetGrid.get(x,y,z), &buffer[index], N*sizeof(Real));
+               index += N;
+            }
+         }
+      }
+      
+   } else {
+      logFile << "(RESTART)  ERROR: Attempting to restart from different number of tasks, this is not supported yet." << endl << write;
+      return false;
+   }
+   
+   targetGrid.updateGhostCells();
+   return true;
+}
+
 /*! A function for reading parameters, e.g., 'timestep'.
  \param file VLSV parallel reader with a file open.
  \param name Name of the parameter.
@@ -829,6 +902,9 @@ bool checkScalarParameter(vlsv::ParallelReader& file,const string& name,T correc
  \sa readGrid
  */
 bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
+      FsGrid< fsgrids::technical, 2>& technicalGrid,
                    const std::string& name) {
    vector<CellID> fileCells; /*< CellIds for all cells in file*/
    vector<size_t> nBlocks;/*< Number of blocks for all cells in file*/
@@ -1017,6 +1093,17 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    }
    phiprof::stop("readBlockData");
 
+   mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
+   
+   // Read fsgrid data back in
+   int fsgridInputRanks=0;
+   if(readScalarParameter(file,"numWritingRanks",fsgridInputRanks, MASTER_RANK, MPI_COMM_WORLD) == false) {
+      exitOnError(false, "(RESTART) FSGrid writing rank number not found in restart file", MPI_COMM_WORLD);
+   }
+   
+   success = readFsGridVariable(file, "fg_PERB", fsgridInputRanks, perBGrid);
+   success = readFsGridVariable(file, "fg_E", fsgridInputRanks, EGrid);
+   
    success = file.close();
    phiprof::stop("readGrid");
 
@@ -1031,7 +1118,10 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 \param name Name of the restart file e.g. "restart.00052.vlsv"
 */
 bool readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
+      FsGrid< fsgrids::technical, 2>& technicalGrid,
               const std::string& name){
    //Check the vlsv version from the file:
-   return exec_readGrid(mpiGrid,name);
+   return exec_readGrid(mpiGrid,perBGrid,EGrid,technicalGrid,name);
 }

@@ -153,7 +153,7 @@ namespace DRO {
       std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
       int vectorSize = varBuffer.size() / (gridSize[0]*gridSize[1]*gridSize[2]);
       if(vlsvWriter.writeArray("VARIABLE",attribs, "float", gridSize[0]*gridSize[1]*gridSize[2], vectorSize, sizeof(double), reinterpret_cast<const char*>(varBuffer.data())) == false) {
-         string message = "The DataReductionOperator " + this->getName() + " failed to write it's data.";
+         string message = "The DataReductionOperator " + this->getName() + " failed to write its data.";
          bailout(true, message, __FILE__, __LINE__);
       }
 
