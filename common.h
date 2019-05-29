@@ -146,9 +146,6 @@ namespace CellParams {
       PERBXVOL,  /*!< perturbed magnetic field  PERBX averaged over spatial cell.*/
       PERBYVOL,  /*!< perturbed magnetic field  PERBY averaged over spatial cell.*/
       PERBZVOL,  /*!< perturbed magnetic field  PERBZ averaged over spatial cell.*/
-      EXVOL,     /*!< Ex averaged over spatial cell.*/
-      EYVOL,     /*!< Ey averaged over spatial cell.*/
-      EZVOL,     /*!< Ez averaged over spatial cell.*/
       EXGRADPE,         /*!< Electron pressure gradient term x.*/
       EYGRADPE,         /*!< Electron pressure gradient term y.*/
       EZGRADPE,         /*!< Electron pressure gradient term z.*/
@@ -350,9 +347,6 @@ namespace fsgrids {
       PERBXVOL,  /*!< perturbed magnetic field  PERBX averaged over spatial cell.*/
       PERBYVOL,  /*!< perturbed magnetic field  PERBY averaged over spatial cell.*/
       PERBZVOL,  /*!< perturbed magnetic field  PERBZ averaged over spatial cell.*/
-      EXVOL,     /*!< Ex averaged over spatial cell.*/
-      EYVOL,     /*!< Ey averaged over spatial cell.*/
-      EZVOL,     /*!< Ez averaged over spatial cell.*/
       dPERBXVOLdy,
       dPERBXVOLdz,
       dPERBYVOLdx,

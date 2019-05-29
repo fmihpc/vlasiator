@@ -1322,11 +1322,12 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                      std::memcpy(&retval[index], EGrid.get(x,y,z), sizeof(Real)*fsgrids::efield::N_EFIELD);
                      index += fsgrids::efield::N_EFIELD;
                   }
-              }
+               }
             }
             return retval;
          }
    ));
+   
    restartReducer.addOperator(new DRO::DataReductionOperatorFsGrid("fg_PERB",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
@@ -1347,7 +1348,7 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                      std::memcpy(&retval[index], perBGrid.get(x,y,z), sizeof(Real)*fsgrids::bfield::N_BFIELD);
                      index += fsgrids::bfield::N_BFIELD;
                   }
-              }
+               }
             }
             return retval;
          }

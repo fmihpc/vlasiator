@@ -87,10 +87,10 @@ void initializeGrids(
    char **argc,
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
-   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
    FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
    FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsGrid,
    FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsDt2Grid,
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
    FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2> & EGradPeGrid,
    FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volGrid,
    FsGrid< fsgrids::technical, 2>& technicalGrid,
@@ -278,6 +278,7 @@ void initializeGrids(
    // update complete cell spatial data for full stencil (
    SpatialCell::set_mpi_transfer_type(Transfer::ALL_SPATIAL_DATA);
    mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
+   
    phiprof::stop("Fetch Neighbour data");
    
    if (P::isRestart == false) {
@@ -289,27 +290,25 @@ void initializeGrids(
       calculateInitialVelocityMoments(mpiGrid);
       phiprof::stop("Init moments");
    }
-      
+   
    phiprof::start("setProjectBField");
    project.setProjectBField(perBGrid, BgBGrid, technicalGrid);
    perBGrid.updateGhostCells();
    BgBGrid.updateGhostCells();
+   EGrid.updateGhostCells();
    phiprof::stop("setProjectBField");
    
-   phiprof::start("getFieldsFromFsGrid");
-   // These should be done by initializeFieldPropagator() if the propagation is turned off.
-   volGrid.updateGhostCells();
-   technicalGrid.updateGhostCells();
-   getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, technicalGrid, mpiGrid, cells);
-   phiprof::stop("getFieldsFromFsGrid");
-
    phiprof::start("Finish fsgrid setup");
-   
-   // WARNING this means moments and dt2 moments are the same here.
    feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid,false);
-   feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid,false);
+   if(!P::isRestart) {
+      // WARNING this means moments and dt2 moments are the same here at t=0, which is a feature so far.
+      feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid,false);
+   } else {
+      feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid,true);
+   }
    momentsGrid.updateGhostCells();
    momentsDt2Grid.updateGhostCells();
+   technicalGrid.updateGhostCells(); // This needs to be done at some point
    phiprof::stop("Finish fsgrid setup");
    
    phiprof::stop("Set initial state");

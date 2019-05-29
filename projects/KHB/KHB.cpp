@@ -160,35 +160,37 @@ namespace projects {
    ) {
       setBackgroundFieldToZero(BgBGrid);
       
-      auto localSize = perBGrid.getLocalSize();
-      
-      #pragma omp parallel for collapse(3)
-      for (int x = 0; x < localSize[0]; ++x) {
-         for (int y = 0; y < localSize[1]; ++y) {
-            for (int z = 0; z < localSize[2]; ++z) {
-               const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
-               std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
-               
-               Real Bxavg, Byavg, Bzavg;
-               Bxavg = Byavg = Bzavg = 0.0;
-               if(this->nSpaceSamples > 1) {
-                  Real d_x = perBGrid.DX / (this->nSpaceSamples - 1);
-                  Real d_z = perBGrid.DZ / (this->nSpaceSamples - 1);
-                  for (uint i=0; i<this->nSpaceSamples; ++i) {
-                     for (uint k=0; k<this->nSpaceSamples; ++k) {
-                        Bxavg += profile(this->Bx[this->BOTTOM], this->Bx[this->TOP], xyz[0]+i*d_x, xyz[2]+k*d_z);
-                        Byavg += profile(this->By[this->BOTTOM], this->By[this->TOP], xyz[0]+i*d_x, xyz[2]+k*d_z);
-                        Bzavg += profile(this->Bz[this->BOTTOM], this->Bz[this->TOP], xyz[0]+i*d_x, xyz[2]+k*d_z);
+      if(!P::isRestart) {
+         auto localSize = perBGrid.getLocalSize();
+         
+         #pragma omp parallel for collapse(3)
+         for (int x = 0; x < localSize[0]; ++x) {
+            for (int y = 0; y < localSize[1]; ++y) {
+               for (int z = 0; z < localSize[2]; ++z) {
+                  const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
+                  std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
+                  
+                  Real Bxavg, Byavg, Bzavg;
+                  Bxavg = Byavg = Bzavg = 0.0;
+                  if(this->nSpaceSamples > 1) {
+                     Real d_x = perBGrid.DX / (this->nSpaceSamples - 1);
+                     Real d_z = perBGrid.DZ / (this->nSpaceSamples - 1);
+                     for (uint i=0; i<this->nSpaceSamples; ++i) {
+                        for (uint k=0; k<this->nSpaceSamples; ++k) {
+                           Bxavg += profile(this->Bx[this->BOTTOM], this->Bx[this->TOP], xyz[0]+i*d_x, xyz[2]+k*d_z);
+                           Byavg += profile(this->By[this->BOTTOM], this->By[this->TOP], xyz[0]+i*d_x, xyz[2]+k*d_z);
+                           Bzavg += profile(this->Bz[this->BOTTOM], this->Bz[this->TOP], xyz[0]+i*d_x, xyz[2]+k*d_z);
+                        }
                      }
+                     cuint nPts = pow(this->nSpaceSamples, 2.0);
+                     cell->at(fsgrids::bfield::PERBX) = Bxavg / nPts;
+                     cell->at(fsgrids::bfield::PERBY) = Byavg / nPts;
+                     cell->at(fsgrids::bfield::PERBZ) = Bzavg / nPts;
+                  } else {
+                     cell->at(fsgrids::bfield::PERBX) = profile(this->Bx[this->BOTTOM], this->Bx[this->TOP], xyz[0]+0.5*perBGrid.DX, xyz[2]+0.5*perBGrid.DZ);
+                     cell->at(fsgrids::bfield::PERBY) = profile(this->By[this->BOTTOM], this->By[this->TOP], xyz[0]+0.5*perBGrid.DX, xyz[2]+0.5*perBGrid.DZ);
+                     cell->at(fsgrids::bfield::PERBZ) = profile(this->Bz[this->BOTTOM], this->Bz[this->TOP], xyz[0]+0.5*perBGrid.DX, xyz[2]+0.5*perBGrid.DZ);
                   }
-                  cuint nPts = pow(this->nSpaceSamples, 2.0);
-                  cell->at(fsgrids::bfield::PERBX) = Bxavg / nPts;
-                  cell->at(fsgrids::bfield::PERBY) = Byavg / nPts;
-                  cell->at(fsgrids::bfield::PERBZ) = Bzavg / nPts;
-               } else {
-                  cell->at(fsgrids::bfield::PERBX) = profile(this->Bx[this->BOTTOM], this->Bx[this->TOP], xyz[0]+0.5*perBGrid.DX, xyz[2]+0.5*perBGrid.DZ);
-                  cell->at(fsgrids::bfield::PERBY) = profile(this->By[this->BOTTOM], this->By[this->TOP], xyz[0]+0.5*perBGrid.DX, xyz[2]+0.5*perBGrid.DZ);
-                  cell->at(fsgrids::bfield::PERBZ) = profile(this->Bz[this->BOTTOM], this->Bz[this->TOP], xyz[0]+0.5*perBGrid.DX, xyz[2]+0.5*perBGrid.DZ);
                }
             }
          }

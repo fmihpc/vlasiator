@@ -822,7 +822,7 @@ template<unsigned long int N> bool readFsGridVariable(
          thatTasksSize[2] = targetGrid.calcLocalSize(globalSize[2], decomposition[2], task%decomposition[2]);
          localStartOffset += thatTasksSize[0] * thatTasksSize[1] * thatTasksSize[2];
       }
-     
+      
       // Read into buffer
       std::vector<Real> buffer(storageSize*N);
 
@@ -830,7 +830,7 @@ template<unsigned long int N> bool readFsGridVariable(
          logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
          return false;
       }
-
+      
       // Assign buffer into fsgrid
       int index=0;
       for(int z=0; z<localSize[2]; z++) {
@@ -846,6 +846,8 @@ template<unsigned long int N> bool readFsGridVariable(
       logFile << "(RESTART)  ERROR: Attempting to restart from different number of tasks, this is not supported yet." << endl << write;
       return false;
    }
+   
+   targetGrid.updateGhostCells();
    return true;
 }
 
@@ -1091,14 +1093,17 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    }
    phiprof::stop("readBlockData");
 
+   mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
+   
    // Read fsgrid data back in
    int fsgridInputRanks=0;
    if(readScalarParameter(file,"numWritingRanks",fsgridInputRanks, MASTER_RANK, MPI_COMM_WORLD) == false) {
       exitOnError(false, "(RESTART) FSGrid writing rank number not found in restart file", MPI_COMM_WORLD);
    }
+   
    success = readFsGridVariable(file, "fg_PERB", fsgridInputRanks, perBGrid);
    success = readFsGridVariable(file, "fg_E", fsgridInputRanks, EGrid);
-
+   
    success = file.close();
    phiprof::stop("readGrid");
 
