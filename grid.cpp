@@ -187,7 +187,7 @@ void initializeGrids(
    if (P::isRestart) {
       logFile << "Restart from "<< P::restartFileName << std::endl << writeVerbose;
       phiprof::start("Read restart");
-      if (readGrid(mpiGrid,perBGrid,EGrid,EGradPeGrid,momentsGrid,BgBGrid,volGrid,technicalGrid,P::restartFileName) == false) {
+      if (readGrid(mpiGrid,perBGrid,EGrid,technicalGrid,P::restartFileName) == false) {
          logFile << "(MAIN) ERROR: restarting failed" << endl;
          exit(1);
       }
