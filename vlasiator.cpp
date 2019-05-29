@@ -444,8 +444,6 @@ int main(int argn,char* args[]) {
       args,
       mpiGrid,
       perBGrid,
-      perBDt2Grid,
-      dPerBGrid,
       BgBGrid,
       momentsGrid,
       momentsDt2Grid,
