@@ -385,8 +385,8 @@ namespace projects {
          setBackgroundField(bgConstantField, BgBGrid, true);
       }
    }
-      
-      
+   
+   
    Real Magnetosphere::getDistribValue(
            creal& x,creal& y,creal& z,
            creal& vx,creal& vy,creal& vz,

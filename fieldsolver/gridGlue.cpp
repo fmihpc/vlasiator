@@ -273,9 +273,6 @@ void getFieldsFromFsGrid(
         sendBuffer[ii].sums[0 ] += volcell->at(fsgrids::volfields::PERBXVOL);
         sendBuffer[ii].sums[1 ] += volcell->at(fsgrids::volfields::PERBYVOL);
         sendBuffer[ii].sums[2 ] += volcell->at(fsgrids::volfields::PERBZVOL);
-        sendBuffer[ii].sums[3 ] += volcell->at(fsgrids::volfields::EXVOL);
-        sendBuffer[ii].sums[4 ] += volcell->at(fsgrids::volfields::EYVOL);
-        sendBuffer[ii].sums[5 ] += volcell->at(fsgrids::volfields::EZVOL);
         sendBuffer[ii].sums[6 ] += volcell->at(fsgrids::volfields::dPERBXVOLdy) / technicalGrid.DY;
         sendBuffer[ii].sums[7 ] += volcell->at(fsgrids::volfields::dPERBXVOLdz) / technicalGrid.DZ;
         sendBuffer[ii].sums[8 ] += volcell->at(fsgrids::volfields::dPERBYVOLdx) / technicalGrid.DX;
@@ -326,10 +323,7 @@ void getFieldsFromFsGrid(
     if ( cellAggregate.second.cells > 0) {
       cellParams[CellParams::PERBXVOL] = cellAggregate.second.sums[0] / cellAggregate.second.cells;
       cellParams[CellParams::PERBYVOL] = cellAggregate.second.sums[1] / cellAggregate.second.cells;
-      cellParams[CellParams::PERBZVOL] = cellAggregate.second.sums[2] / cellAggregate.second.cells;	  
-      cellParams[CellParams::EXVOL]    = cellAggregate.second.sums[3] / cellAggregate.second.cells;
-      cellParams[CellParams::EYVOL]    = cellAggregate.second.sums[4] / cellAggregate.second.cells;
-      cellParams[CellParams::EZVOL]    = cellAggregate.second.sums[5] / cellAggregate.second.cells;	  
+      cellParams[CellParams::PERBZVOL] = cellAggregate.second.sums[2] / cellAggregate.second.cells;
       mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBXVOLdy] = cellAggregate.second.sums[6] / cellAggregate.second.cells;
       mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBXVOLdz] = cellAggregate.second.sums[7] / cellAggregate.second.cells;
       mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBYVOLdx] = cellAggregate.second.sums[8] / cellAggregate.second.cells;
@@ -348,9 +342,6 @@ void getFieldsFromFsGrid(
       cellParams[CellParams::PERBXVOL] = 0;
       cellParams[CellParams::PERBYVOL] = 0;
       cellParams[CellParams::PERBZVOL] = 0;
-      cellParams[CellParams::EXVOL]    = 0;
-      cellParams[CellParams::EYVOL]    = 0;
-      cellParams[CellParams::EZVOL]    = 0;
       mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBXVOLdy] = 0;
       mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBXVOLdz] = 0;
       mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBYVOLdx] = 0;

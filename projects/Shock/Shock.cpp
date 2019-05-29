@@ -151,18 +151,20 @@ namespace projects {
    ) {
       setBackgroundFieldToZero(BgBGrid);
       
-      auto localSize = perBGrid.getLocalSize();
-      
-      #pragma omp parallel for collapse(3)
-      for (int x = 0; x < localSize[0]; ++x) {
-         for (int y = 0; y < localSize[1]; ++y) {
-            for (int z = 0; z < localSize[2]; ++z) {
-               const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
-               std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
-               
-               cell->at(fsgrids::bfield::PERBX) = 0.0;
-               cell->at(fsgrids::bfield::PERBY) = 0.0;
-               cell->at(fsgrids::bfield::PERBZ) = this->BZ0*(3.0 + 2.0*tanh((xyz[1] - Parameters::ymax/2.0)/(this->Sharp_Y*Parameters::ymax)));
+      if(!P::isRestart) {
+         auto localSize = perBGrid.getLocalSize();
+         
+#pragma omp parallel for collapse(3)
+         for (int x = 0; x < localSize[0]; ++x) {
+            for (int y = 0; y < localSize[1]; ++y) {
+               for (int z = 0; z < localSize[2]; ++z) {
+                  const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
+                  std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
+                  
+                  cell->at(fsgrids::bfield::PERBX) = 0.0;
+                  cell->at(fsgrids::bfield::PERBY) = 0.0;
+                  cell->at(fsgrids::bfield::PERBZ) = this->BZ0*(3.0 + 2.0*tanh((xyz[1] - Parameters::ymax/2.0)/(this->Sharp_Y*Parameters::ymax)));
+               }
             }
          }
       }

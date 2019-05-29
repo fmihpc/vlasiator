@@ -318,6 +318,9 @@ namespace SBC {
          templateCell.parameters[CellParams::VY_DT2] = templateCell.parameters[CellParams::VY];
          templateCell.parameters[CellParams::VZ_DT2] = templateCell.parameters[CellParams::VZ];
          templateCell.parameters[CellParams::RHOQ_DT2] = templateCell.parameters[CellParams::RHOQ];
+         templateCell.parameters[CellParams::P_11_DT2] = templateCell.parameters[CellParams::P_11];
+         templateCell.parameters[CellParams::P_22_DT2] = templateCell.parameters[CellParams::P_22];
+         templateCell.parameters[CellParams::P_33_DT2] = templateCell.parameters[CellParams::P_33];
       } else {
          cerr << "ERROR: this is not dynamic in time, please code it!" << endl;
          abort();

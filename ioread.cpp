@@ -822,7 +822,7 @@ template<unsigned long int N> bool readFsGridVariable(
          thatTasksSize[2] = targetGrid.calcLocalSize(globalSize[2], decomposition[2], task%decomposition[2]);
          localStartOffset += thatTasksSize[0] * thatTasksSize[1] * thatTasksSize[2];
       }
-     
+      
       // Read into buffer
       std::vector<Real> buffer(storageSize*N);
 
@@ -830,7 +830,7 @@ template<unsigned long int N> bool readFsGridVariable(
          logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
          return false;
       }
-
+      
       // Assign buffer into fsgrid
       int index=0;
       for(int z=0; z<localSize[2]; z++) {
@@ -846,6 +846,8 @@ template<unsigned long int N> bool readFsGridVariable(
       logFile << "(RESTART)  ERROR: Attempting to restart from different number of tasks, this is not supported yet." << endl << write;
       return false;
    }
+   
+   targetGrid.updateGhostCells();
    return true;
 }
 
@@ -902,6 +904,10 @@ bool checkScalarParameter(vlsv::ParallelReader& file,const string& name,T correc
 bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
+      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
+      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid,
+      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volGrid,
       FsGrid< fsgrids::technical, 2>& technicalGrid,
                    const std::string& name) {
    vector<CellID> fileCells; /*< CellIds for all cells in file*/
@@ -1091,14 +1097,17 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    }
    phiprof::stop("readBlockData");
 
+   mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
+   
    // Read fsgrid data back in
    int fsgridInputRanks=0;
    if(readScalarParameter(file,"numWritingRanks",fsgridInputRanks, MASTER_RANK, MPI_COMM_WORLD) == false) {
       exitOnError(false, "(RESTART) FSGrid writing rank number not found in restart file", MPI_COMM_WORLD);
    }
+   
    success = readFsGridVariable(file, "fg_PERB", fsgridInputRanks, perBGrid);
    success = readFsGridVariable(file, "fg_E", fsgridInputRanks, EGrid);
-
+   
    success = file.close();
    phiprof::stop("readGrid");
 
@@ -1115,8 +1124,12 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 bool readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
+      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
+      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid,
+      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volGrid,
       FsGrid< fsgrids::technical, 2>& technicalGrid,
               const std::string& name){
    //Check the vlsv version from the file:
-   return exec_readGrid(mpiGrid,perBGrid,EGrid,technicalGrid,name);
+   return exec_readGrid(mpiGrid,perBGrid,EGrid,EGradPeGrid,momentsGrid,BgBGrid,volGrid,technicalGrid,name);
 }
