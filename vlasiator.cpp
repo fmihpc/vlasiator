@@ -285,9 +285,6 @@ int main(int argn,char* args[]) {
    Real newDt;
    bool dtIsChanged;
    
-   const bool printCells = false;
-   const bool printSums  = false;
-   
 // Init MPI:
    int required=MPI_THREAD_FUNNELED;
    int provided;
@@ -448,9 +445,11 @@ int main(int argn,char* args[]) {
       mpiGrid,
       perBGrid,
       perBDt2Grid,
+      dPerBGrid,
       BgBGrid,
       momentsGrid,
       momentsDt2Grid,
+      EGrid,
       EGradPeGrid,
       volGrid,
       technicalGrid,
@@ -470,29 +469,10 @@ int main(int argn,char* args[]) {
    initializeDataReducers(&outputReducer, &diagnosticReducer);
    phiprof::stop("Init DROs");  
    
-   phiprof::start("Init field propagator");
-   if (
-      initializeFieldPropagator(
-         perBGrid,
-         perBDt2Grid,
-         EGrid,
-         EDt2Grid,
-         EHallGrid,
-         EGradPeGrid,
-         momentsGrid,
-         momentsDt2Grid,
-         dPerBGrid,
-         dMomentsGrid,
-         BgBGrid,
-         volGrid,
-         technicalGrid,
-         sysBoundaries
-      ) == false
-   ) {
-      logFile << "(MAIN): Field propagator did not initialize correctly!" << endl << writeVerbose;
-      exit(1);
-   }
-   phiprof::stop("Init field propagator");
+   phiprof::start("getFieldsFromFsGrid");
+   volGrid.updateGhostCells();
+   getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, technicalGrid, mpiGrid, cells);
+   phiprof::stop("getFieldsFromFsGrid");
 
    // Free up memory:
    readparameters.finalize();
@@ -639,32 +619,11 @@ int main(int argn,char* args[]) {
    double beforeTime = MPI_Wtime();
    double beforeSimulationTime=P::t_min;
    double beforeStep=P::tstep_min;
-
-   Real nSum = 0.0;
-   for(auto cell: cells) {
-      creal rho = mpiGrid[cell]->parameters[CellParams::RHOM_R];
-      creal dx = mpiGrid[cell]->parameters[CellParams::DX];
-      creal dy = mpiGrid[cell]->parameters[CellParams::DY];
-      creal dz = mpiGrid[cell]->parameters[CellParams::DZ];
-      creal x = mpiGrid[cell]->parameters[CellParams::XCRD];
-      creal y = mpiGrid[cell]->parameters[CellParams::YCRD];
-      creal z = mpiGrid[cell]->parameters[CellParams::ZCRD];
-      
-      nSum += rho*dx*dy*dz;
-      if(printCells) cout << "Cell " << cell << " rho = " << rho << " x: " << x << " y: " << y << " z: " << z << endl;
-   }
-   if(printSums) {
-      cout << "Rank " << myRank << ", Local sum = " << nSum << endl;   
-      Real globalSum = 0.0;
-      MPI_Reduce(&nSum, &globalSum, 1, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
-      MPI_Barrier(MPI_COMM_WORLD);
-      if(myRank == MASTER_RANK) cout << " Global sum = " << globalSum << endl;
-   }
    
    while(P::tstep <= P::tstep_max  &&
          P::t-P::dt <= P::t_max+DT_EPSILON &&
          wallTimeRestartCounter <= P::exitAfterRestarts) {
-
+      
       addTimedBarrier("barrier-loop-start");
       
       phiprof::start("IO");
@@ -716,7 +675,6 @@ int main(int argn,char* args[]) {
          phiprof::stop("diagnostic-io");
       }
 
-      bool extractFsGridFields = true;
       // write system, loop through write classes
       for (uint i = 0; i < P::systemWriteTimeInterval.size(); i++) {
          if (P::systemWriteTimeInterval[i] >= 0.0 &&
@@ -891,7 +849,7 @@ int main(int argn,char* args[]) {
             mpiGrid[cells[c]]->get_cell_parameters()[CellParams::LBWEIGHTCOUNTER] = 0;
          }
       }
-
+      
       phiprof::start("Propagate");
       //Propagate the state of simulation forward in time by dt:
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
@@ -908,30 +866,9 @@ int main(int argn,char* args[]) {
       } else {
          calculateSpatialTranslation(mpiGrid,0.0);
       }
-
-      Real nSum = 0.0;
-      for(auto cell: cells) {
-         creal rho = mpiGrid[cell]->parameters[CellParams::RHOM_R];
-         creal dx = mpiGrid[cell]->parameters[CellParams::DX];
-         creal dy = mpiGrid[cell]->parameters[CellParams::DY];
-         creal dz = mpiGrid[cell]->parameters[CellParams::DZ];
-         creal x = mpiGrid[cell]->parameters[CellParams::XCRD];
-         creal y = mpiGrid[cell]->parameters[CellParams::YCRD];
-         creal z = mpiGrid[cell]->parameters[CellParams::ZCRD];
-         
-         nSum += rho*dx*dy*dz;
-         if(printCells) cout << "Cell " << cell << " rho = " << rho << " x: " << x << " y: " << y << " z: " << z << endl;
-      }
-      if(printSums) {
-         cout << "Rank " << myRank << ", Local sum = " << nSum << endl;
-         Real globalSum = 0.0;
-         MPI_Reduce(&nSum, &globalSum, 1, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
-         MPI_Barrier(MPI_COMM_WORLD);
-         if(printSums && myRank == MASTER_RANK) cout << " Global sum = " << globalSum << endl;
-      }
       
       phiprof::stop("Spatial-space",computedCells,"Cells");
-
+      
       phiprof::start("Compute interp moments");
       calculateInterpolatedVelocityMoments(
          mpiGrid,
@@ -945,7 +882,7 @@ int main(int argn,char* args[]) {
          CellParams::P_33_DT2
       );
       phiprof::stop("Compute interp moments");
-
+      
       // Apply boundary conditions      
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
          phiprof::start("Update system boundaries (Vlasov post-translation)");
@@ -953,7 +890,7 @@ int main(int argn,char* args[]) {
          phiprof::stop("Update system boundaries (Vlasov post-translation)");
          addTimedBarrier("barrier-boundary-conditions");
       }
-
+      
       // Propagate fields forward in time by dt. This needs to be done before the
       // moments for t + dt are computed (field uses t and t+0.5dt)
       if (P::propagateField) {
@@ -965,7 +902,7 @@ int main(int argn,char* args[]) {
          feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid,false);
          feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid,true);
          phiprof::stop("fsgrid-coupling-in");
-
+         
          propagateFields(
             perBGrid,
             perBDt2Grid,
@@ -989,12 +926,12 @@ int main(int argn,char* args[]) {
          // Copy results back from fsgrid.
          volGrid.updateGhostCells();
          technicalGrid.updateGhostCells();
-	 getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, technicalGrid, mpiGrid, cells);
-	 phiprof::stop("getFieldsFromFsGrid");
+         getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, technicalGrid, mpiGrid, cells);
+         phiprof::stop("getFieldsFromFsGrid");
          phiprof::stop("Propagate Fields",cells.size(),"SpatialCells");
          addTimedBarrier("barrier-after-field-solver");
       }
-
+      
       phiprof::start("Velocity-space");
       if ( P::propagateVlasovAcceleration ) {
          calculateAcceleration(mpiGrid,P::dt);

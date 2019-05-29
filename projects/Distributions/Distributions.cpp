@@ -168,27 +168,29 @@ namespace projects {
       
       setBackgroundField(bgField, BgBGrid);
       
-      const auto localSize = BgBGrid.getLocalSize();
-      
+      if(!P::isRestart) {
+         const auto localSize = BgBGrid.getLocalSize();
+         
 #pragma omp parallel for collapse(3)
-      for (int x = 0; x < localSize[0]; ++x) {
-         for (int y = 0; y < localSize[1]; ++y) {
-            for (int z = 0; z < localSize[2]; ++z) {
-               std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
-               const int64_t cellid = perBGrid.GlobalIDForCoords(x, y, z);
-               const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
-               
-               setRandomSeed(cellid);
-               
-               if (this->lambda != 0.0) {
-                  cell->at(fsgrids::bfield::PERBX) = this->dBx*cos(2.0 * M_PI * xyz[0] / this->lambda);
-                  cell->at(fsgrids::bfield::PERBY) = this->dBy*sin(2.0 * M_PI * xyz[0] / this->lambda);
-                  cell->at(fsgrids::bfield::PERBZ) = this->dBz*cos(2.0 * M_PI * xyz[0] / this->lambda);
-               }
+         for (int x = 0; x < localSize[0]; ++x) {
+            for (int y = 0; y < localSize[1]; ++y) {
+               for (int z = 0; z < localSize[2]; ++z) {
+                  std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
+                  const int64_t cellid = perBGrid.GlobalIDForCoords(x, y, z);
+                  const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
+                  
+                  setRandomSeed(cellid);
+                  
+                  if (this->lambda != 0.0) {
+                     cell->at(fsgrids::bfield::PERBX) = this->dBx*cos(2.0 * M_PI * xyz[0] / this->lambda);
+                     cell->at(fsgrids::bfield::PERBY) = this->dBy*sin(2.0 * M_PI * xyz[0] / this->lambda);
+                     cell->at(fsgrids::bfield::PERBZ) = this->dBz*cos(2.0 * M_PI * xyz[0] / this->lambda);
+                  }
 
-               cell->at(fsgrids::bfield::PERBX) += this->magXPertAbsAmp * (0.5 - getRandomNumber());
-               cell->at(fsgrids::bfield::PERBY) += this->magYPertAbsAmp * (0.5 - getRandomNumber());
-               cell->at(fsgrids::bfield::PERBZ) += this->magZPertAbsAmp * (0.5 - getRandomNumber());
+                  cell->at(fsgrids::bfield::PERBX) += this->magXPertAbsAmp * (0.5 - getRandomNumber());
+                  cell->at(fsgrids::bfield::PERBY) += this->magYPertAbsAmp * (0.5 - getRandomNumber());
+                  cell->at(fsgrids::bfield::PERBZ) += this->magZPertAbsAmp * (0.5 - getRandomNumber());
+               }
             }
          }
       }

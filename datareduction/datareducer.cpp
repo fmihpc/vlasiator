@@ -39,6 +39,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(*it == "fg_B" || *it == "B") { // Bulk magnetic field at Yee-Lattice locations
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_B",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBDt2Grid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
                       FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
                       FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
@@ -73,6 +74,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(*it == "fg_BackgroundB" || *it == "BackgroundB") { // Static (typically dipole) magnetic field part
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_background_B",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBDt2Grid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
                       FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
                       FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
@@ -104,6 +106,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(*it == "fg_PerturbedB" || *it == "PerturbedB") { // Fluctuating magnetic field part
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_perturbed_B",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBDt2Grid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
                       FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
                       FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
@@ -135,6 +138,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(*it == "fg_E" || *it== "E") { // Bulk electric field at Yee-lattice locations
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_E",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBDt2Grid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
                       FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
                       FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
@@ -170,6 +174,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(*it == "fg_Rhom") { // Overall mass density (summed over all populations)
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_rhom",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBDt2Grid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
                       FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
                       FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
@@ -203,6 +208,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(*it == "fg_Rhoq") { // Overall charge density (summed over all populations)
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_rhoq",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBDt2Grid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
                       FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
                       FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
@@ -245,6 +251,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(*it == "fg_V") { // Overall effective bulk density defining the center-of-mass frame from all populations
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_V",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBDt2Grid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
                       FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
                       FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
@@ -366,6 +373,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          // Maximum timestep constraint as calculated by the fieldsolver
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("MaxFieldsdt",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBDt2Grid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
                       FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
                       FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
@@ -401,6 +409,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          // Map of spatial decomposition of the FsGrid into MPI ranks
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("FsGridRank",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBDt2Grid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
                       FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
                       FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
@@ -427,6 +436,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          // Type of boundarycells as stored in FSGrid
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("FsGridBoundaryType",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBDt2Grid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
                       FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
                       FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
@@ -462,6 +472,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          // Type of boundarycells as stored in FSGrid
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("FsGridBoundaryLayer",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBDt2Grid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
                       FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
                       FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
@@ -517,6 +528,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(*it == "fg_VolE") {
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_volB",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBDt2Grid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
                       FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
                       FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
@@ -550,6 +562,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             std::string reducer_name = "fg_HallE" + std::to_string(index);
             outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(reducer_name,[index](
                          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBDt2Grid,
                          FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
                          FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
                          FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
@@ -590,6 +603,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(*it == "fg_VolB") { // Static (typically dipole) magnetic field part
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_volB",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBDt2Grid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
                       FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
                       FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
@@ -638,6 +652,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          // Overall scalar pressure from all populations
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_Pressure",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBDt2Grid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
                       FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
                       FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
@@ -696,6 +711,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(*it == "fg_GridCoordinates") { 
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_X",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBDt2Grid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
                       FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
                       FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
@@ -722,6 +738,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          ));
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_Y",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBDt2Grid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
                       FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
                       FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
@@ -748,6 +765,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          ));
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_Z",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBDt2Grid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
                       FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
                       FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
@@ -774,6 +792,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          ));
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_DX",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBDt2Grid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
                       FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
                       FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
@@ -791,6 +810,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          ));
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_DY",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBDt2Grid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
                       FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
                       FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
@@ -808,6 +828,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          ));
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_DZ",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBDt2Grid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
                       FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
                       FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
@@ -1061,6 +1082,7 @@ bool DataReducer::writeParameters(const unsigned int& operatorID, vlsv::Writer& 
  */
 bool DataReducer::writeFsGridData(
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBDt2Grid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
                       FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
                       FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
@@ -1076,6 +1098,6 @@ bool DataReducer::writeFsGridData(
    if(!DROf) {
       return false;
    } else {
-      return DROf->writeFsGridData(perBGrid, EGrid, EHallGrid, EGradPeGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, volGrid, technicalGrid, meshName, vlsvWriter);
+      return DROf->writeFsGridData(perBGrid, perBDt2Grid, EGrid, EHallGrid, EGradPeGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, volGrid, technicalGrid, meshName, vlsvWriter);
    }
 }

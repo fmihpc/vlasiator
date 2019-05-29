@@ -84,14 +84,57 @@ bool initializeFieldPropagator(
       // Assuming B is known, calculate derivatives and upwinded edge-E. Exchange derivatives 
       // and edge-E:s between neighbouring processes and calculate volume-averaged E,B fields.
       bool communicateMomentsDerivatives = true;
-      calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER1, true);
       
-      if(P::ohmGradPeTerm > 0) {
-         calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER1);
-         communicateMomentsDerivatives = false;
-      }
-      // derivatives, gradPe and volume B are needed also in cases where propagateFields is false.
-      if(P::propagateField) {
+      if(!P::isRestart) {
+         calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER1, true);
+         
+         if(P::ohmGradPeTerm > 0) {
+            calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER1);
+            communicateMomentsDerivatives = false;
+         }
+         // derivatives, gradPe and volume B are needed also in cases where propagateFields is false.
+         if(P::propagateField) {
+            if(P::ohmHallTerm > 0) {
+               calculateHallTermSimple(
+                  perBGrid,
+                  perBDt2Grid,
+                  EHallGrid,
+                  momentsGrid,
+                  momentsDt2Grid,
+                  dPerBGrid,
+                  dMomentsGrid,
+                  BgBGrid,
+                  technicalGrid,
+                  sysBoundaries,
+                  RK_ORDER1,
+                  communicateMomentsDerivatives
+               );
+            }
+            calculateUpwindedElectricFieldSimple(
+               perBGrid,
+               perBDt2Grid,
+               EGrid,
+               EDt2Grid,
+               EHallGrid,
+               EGradPeGrid,
+               momentsGrid,
+               momentsDt2Grid,
+               dPerBGrid,
+               dMomentsGrid,
+               BgBGrid,
+               technicalGrid,
+               sysBoundaries,
+               RK_ORDER1
+            );
+         }
+         calculateVolumeAveragedFields(perBGrid,EGrid,dPerBGrid,volGrid,technicalGrid);
+         calculateBVOLDerivativesSimple(volGrid, technicalGrid, sysBoundaries);
+      } else {
+         calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP2, true);
+         if(P::ohmGradPeTerm > 0) {
+            calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP2);
+            communicateMomentsDerivatives = false;
+         }
          if(P::ohmHallTerm > 0) {
             calculateHallTermSimple(
                perBGrid,
@@ -104,7 +147,7 @@ bool initializeFieldPropagator(
                BgBGrid,
                technicalGrid,
                sysBoundaries,
-               RK_ORDER1,
+               RK_ORDER2_STEP2,
                communicateMomentsDerivatives
             );
          }
@@ -122,12 +165,9 @@ bool initializeFieldPropagator(
             BgBGrid,
             technicalGrid,
             sysBoundaries,
-            RK_ORDER1
+            RK_ORDER2_STEP2
          );
       }
-      calculateVolumeAveragedFields(perBGrid,EGrid,dPerBGrid,volGrid,technicalGrid);
-      calculateBVOLDerivativesSimple(volGrid, technicalGrid, sysBoundaries);
-      
       return true;
       }
 

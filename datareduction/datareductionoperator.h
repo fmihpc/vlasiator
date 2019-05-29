@@ -85,6 +85,7 @@ namespace DRO {
       public:
         typedef std::function<std::vector<double>(
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBDt2Grid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
                       FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
                       FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
@@ -107,6 +108,7 @@ namespace DRO {
 	 virtual bool reduceDiagnostic(const SpatialCell* cell,Real * result);
          virtual bool writeFsGridData(
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBDt2Grid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
                       FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
                       FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
