@@ -133,7 +133,6 @@ namespace DRO {
    
    bool DataReductionOperatorFsGrid::writeFsGridData(
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
-                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBDt2Grid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
                       FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
                       FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
@@ -149,7 +148,7 @@ namespace DRO {
       attribs["name"]=variableName;
 
       std::vector<double> varBuffer =
-         lambda(perBGrid,perBDt2Grid,EGrid,EHallGrid,EGradPeGrid,momentsGrid,dPerBGrid,dMomentsGrid,BgBGrid,volGrid,technicalGrid);
+         lambda(perBGrid,EGrid,EHallGrid,EGradPeGrid,momentsGrid,dPerBGrid,dMomentsGrid,BgBGrid,volGrid,technicalGrid);
       
       std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
       int vectorSize = varBuffer.size() / (gridSize[0]*gridSize[1]*gridSize[2]);
