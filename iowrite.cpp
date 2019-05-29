@@ -1312,14 +1312,14 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                       FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dMomentsGrid,
                       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volGrid,
-                      FsGrid< fsgrids::technical, 2>& technicalGrid)->std::vector<double> {
+                      FsGrid< fsgrids::technical, 2>& technicalGrid)->std::vector<Real> {
             std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
-            std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]*fsgrids::bfield::N_BFIELD);
+            std::vector<Real> retval(gridSize[0]*gridSize[1]*gridSize[2]*fsgrids::bfield::N_BFIELD);
             int index=0;
             for(int z=0; z<gridSize[2]; z++) {
                for(int y=0; y<gridSize[1]; y++) {
                   for(int x=0; x<gridSize[0]; x++) {
-                     std::memcpy(&retval[index], perBGrid.get(x,y,z), sizeof(double)*fsgrids::bfield::N_BFIELD);
+                     std::memcpy(&retval[index], perBGrid.get(x,y,z), sizeof(Real)*fsgrids::bfield::N_BFIELD);
                      index += fsgrids::bfield::N_BFIELD;
                   }
               }
