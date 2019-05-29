@@ -1302,7 +1302,7 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    restartReducer.addOperator(new DRO::BoundaryLayer);
 
    // Fsgrid Reducers
-   restartReducer.addOperator(new DRO::DataReductionOperatorFsGrid("fg_EFIELD",[](
+   restartReducer.addOperator(new DRO::DataReductionOperatorFsGrid("fg_E",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
                       FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,

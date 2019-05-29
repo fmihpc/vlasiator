@@ -1097,7 +1097,7 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       exitOnError(false, "(RESTART) FSGrid writing rank number not found in restart file", MPI_COMM_WORLD);
    }
    success = readFsGridVariable(file, "fg_PERB", fsgridInputRanks, perBGrid);
-   success = readFsGridVariable(file, "fg_EFIELD", fsgridInputRanks, EGrid);
+   success = readFsGridVariable(file, "fg_E", fsgridInputRanks, EGrid);
 
    success = file.close();
    phiprof::stop("readGrid");
