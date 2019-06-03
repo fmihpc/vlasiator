@@ -194,12 +194,6 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
 					std::vector<CellID> ids, uint dimension, 
 					std::vector<uint> path);
 
-void get_seed_ids(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                  const std::vector<CellID> &localPropagatedCells,
-                  const uint dimension,
-                  std::vector<CellID> &seedIds);
-
-
 bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                   const std::vector<CellID>& localPropagatedCells,
                   const std::vector<CellID>& remoteTargetCells,
