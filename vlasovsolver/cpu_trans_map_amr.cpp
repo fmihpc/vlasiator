@@ -508,8 +508,7 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
  */
 void propagatePencil(Vec* dz, Vec* values, const uint dimension,
                      const uint blockGID, const Realv dt,
-                     const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID> &vmesh, const uint lengthOfPencil,
-                     const bool debug) {
+                     const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID> &vmesh, const uint lengthOfPencil) {
 
    // Get velocity data from vmesh that we need later to calculate the translation
    velocity_block_indices_t block_indices;
@@ -542,12 +541,6 @@ void propagatePencil(Vec* dz, Vec* values, const uint dimension,
 
          const Realv cell_vz = (block_indices[dimension] * WID + k + 0.5) * dvz + vz_min; //cell centered velocity
          const Vec z_translation = cell_vz * dt / dz[i_source]; // how much it moved in time dt (reduced units)
-
-         if(debug) {
-
-            cout << "i = " << i << ", k = " << k << ", cell_vz = " << cell_vz << endl;
-
-         }
 
          // Determine direction of translation
          // part of density goes here (cell index change along spatial direcion)
@@ -875,7 +868,7 @@ bool checkPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       
          int myCount = std::count(pencils.ids.begin(), pencils.ids.end(), id);
          
-         if( myCount == 0 ) {
+         if( myCount == 0) {
             
             std::cerr << "ERROR: Cell ID " << id << " Appears in pencils " << myCount << " times!"<< std::endl;            
             correct = false;
@@ -952,8 +945,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                       const Realv dt,
                       const uint popID) {
 
-   const bool printPencils = true;
-   const bool printTargets = false;
+   const bool printPencils = false;
    Realv dvz,vz_min;  
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
    unsigned char  cellid_transpose[WID3]; /*< defines the transpose for the solver internal (transposed) id: i + j*WID + k*WID2 to actual one*/
@@ -965,7 +957,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    }
 
    int myRank;
-   if(printTargets || printPencils) MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+   if(printPencils) MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    
    // Vector with all cell ids
    vector<CellID> allCells(localPropagatedCells);
@@ -1128,8 +1120,6 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
 
                computeSpatialSourceCellsForPencil(mpiGrid, pencils, pencili, dimension, sourceCells.data());
 
-               cout << "Rank " << myRank << ", Source cells for pencil " << pencili << ": ";
-
                // dz is the cell size in the direction of the pencil
                std::vector<Vec, aligned_allocator<Vec,64>> dz(sourceLength);
                for(uint i = 0; i < sourceCells.size(); ++i) {
@@ -1144,16 +1134,8 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                      dz[i] = sourceCells[i]->SpatialCell::parameters[CellParams::DZ];
                      break;
                   }
-
-                  if(sourceCells[i]) {
-                     cout << sourceCells[i]->SpatialCell::parameters[CellParams::CELLID] << " ";
-                  } else {
-                     cout << "NULL ";
-                  }
                }
 
-               cout << endl;
-                             
                // Allocate source data: sourcedata<length of pencil * WID3)
                // Add padding by 2 * VLASOV_STENCIL_WIDTH
                std::vector<Vec, aligned_allocator<Vec,64>> sourceVecData(sourceLength * WID3 / VECL);
@@ -1162,11 +1144,9 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                copy_trans_block_data_amr(sourceCells.data(), blockGID, L, sourceVecData.data(),
                                          cellid_transpose, popID);
 
-               const bool debug = false;
-
                // Dz and sourceVecData are both padded by VLASOV_STENCIL_WIDTH
                // Dz has 1 value/cell, sourceVecData has WID3 values/cell
-               propagatePencil(dz.data(), sourceVecData.data(), dimension, blockGID, dt, vmesh, L, debug);
+               propagatePencil(dz.data(), sourceVecData.data(), dimension, blockGID, dt, vmesh, L);
 
                // sourceVecData => targetBlockData[this pencil])
 
