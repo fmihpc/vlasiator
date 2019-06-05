@@ -289,6 +289,12 @@ void initializeGrids(
       phiprof::start("Init moments");
       calculateInitialVelocityMoments(mpiGrid);
       phiprof::stop("Init moments");
+   } else {
+      phiprof::start("Init moments");
+      for (size_t i=0; i<cells.size(); ++i) {
+         calculateCellMoments(mpiGrid[cells[i]], true);
+      }
+      phiprof::stop("Init moments");
    }
    
    phiprof::start("setProjectBField");
