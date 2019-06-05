@@ -103,7 +103,6 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
    const auto* backNbrPairs  = mpiGrid.get_neighbors_of(ids.back(),  neighborhood);
 
    int maxRefLvl = mpiGrid.get_maximum_refinement_level();
-   int iSrc = 0;
       
    // Create list of unique distances in the negative direction from the first cell in pencil
    std::set< int > distances;
@@ -113,11 +112,13 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
       }
    }
 
-   // Iterate through distances for VLASOV_STENCIL_WIDTH elements starting from the largest distance.
+
+   int iSrc = VLASOV_STENCIL_WIDTH - 1;
+   // Iterate through distances for VLASOV_STENCIL_WIDTH elements starting from the smallest distance.
    // Distances are negative here so largest distance has smallest value
-   auto ibeg = distances.begin();
-   std::advance(ibeg, distances.size() - VLASOV_STENCIL_WIDTH);
-   for (auto it = ibeg; it != distances.end(); ++it) {
+   auto irend = distances.rbegin();
+   std::advance(irend, std::min((int)distances.size(), VLASOV_STENCIL_WIDTH));
+   for (auto it = distances.rbegin(); it != irend; ++it) {
       // Collect all neighbors at distance *it to a vector
       std::vector< CellID > neighbors;
       for (const auto nbrPair : *frontNbrPairs) {
@@ -128,9 +129,9 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
       int refLvl = mpiGrid.get_refinement_level(ids.front());
       
       if (neighbors.size() == 1) {
-         sourceCells[iSrc++] = mpiGrid[neighbors.at(0)];
+         sourceCells[iSrc--] = mpiGrid[neighbors.at(0)];
       } else if ( pencils.path[iPencil][refLvl] < neighbors.size() ) {
-         sourceCells[iSrc++] = mpiGrid[neighbors.at(pencils.path[iPencil][refLvl])];
+         sourceCells[iSrc--] = mpiGrid[neighbors.at(pencils.path[iPencil][refLvl])];
       }
    }
 
@@ -146,9 +147,9 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
    // Iterate through distances for VLASOV_STENCIL_WIDTH elements starting from the smallest distance.
    // Distances are positive here so smallest distance has smallest value.
    auto iend = distances.begin();
-   std::advance(iend,VLASOV_STENCIL_WIDTH);
+   std::advance(iend,std::min((int)distances.size(), VLASOV_STENCIL_WIDTH));
    for (auto it = distances.begin(); it != iend; ++it) {
-         
+      
       // Collect all neighbors at distance *it to a vector
       std::vector< CellID > neighbors;
       for (const auto nbrPair : *backNbrPairs) {
@@ -165,7 +166,7 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
       }
    }
 
-   /*loop to neative side and replace all invalid cells with the closest good cell*/
+   /*loop to negative side and replace all invalid cells with the closest good cell*/
    SpatialCell* lastGoodCell = mpiGrid[ids.front()];
    for(int i = VLASOV_STENCIL_WIDTH - 1; i >= 0 ;i--){
       if(sourceCells[i] == NULL) 
@@ -531,7 +532,7 @@ void propagatePencil(Vec* dz, Vec* values, const uint dimension,
    }
    
    // Go from 0 to length here to propagate all the cells in the pencil
-   for (uint i = 0; i < lengthOfPencil; i++){      
+   for (uint i = 0; i < lengthOfPencil; i++){
       
       // The source array is padded by VLASOV_STENCIL_WIDTH on both sides.
       uint i_source   = i + VLASOV_STENCIL_WIDTH;
@@ -867,7 +868,7 @@ bool checkPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       
          int myCount = std::count(pencils.ids.begin(), pencils.ids.end(), id);
          
-         if( myCount == 0 ) {
+         if( myCount == 0) {
             
             std::cerr << "ERROR: Cell ID " << id << " Appears in pencils " << myCount << " times!"<< std::endl;            
             correct = false;
@@ -945,7 +946,6 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                       const uint popID) {
 
    const bool printPencils = false;
-   const bool printTargets = false;
    Realv dvz,vz_min;  
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
    unsigned char  cellid_transpose[WID3]; /*< defines the transpose for the solver internal (transposed) id: i + j*WID + k*WID2 to actual one*/
@@ -957,7 +957,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    }
 
    int myRank;
-   if(printTargets || printPencils) MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+   if(printPencils) MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    
    // Vector with all cell ids
    vector<CellID> allCells(localPropagatedCells);
@@ -1133,7 +1133,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                   case(2):
                      dz[i] = sourceCells[i]->SpatialCell::parameters[CellParams::DZ];
                      break;
-                  }                 
+                  }
                }
 
                // Allocate source data: sourcedata<length of pencil * WID3)
@@ -1579,7 +1579,7 @@ void update_remote_mapping_contribution_amr(
       }
    }
 
-   for (auto p : receiveBuffers) {      
+   for (auto p : receiveBuffers) {
       aligned_free(p);
    }
    for (auto p : sendBuffers) {      

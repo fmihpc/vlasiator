@@ -178,7 +178,7 @@ CellID selectNeighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> 
 void propagatePencil(Vec* dz, Vec* values, const uint dimension, const uint blockGID,
                      const Realv dt,
                      const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID> &vmesh,
-                     const uint lengthOfPencil, bool debugflag);
+                     const uint lengthOfPencil);
 
 void copy_trans_block_data_amr(
     SpatialCell** source_neighbors,
