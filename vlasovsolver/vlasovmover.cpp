@@ -81,7 +81,7 @@ void calculateSpatialTranslation(
     MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
     
     // ------------- SLICE - map dist function in Z --------------- //
-   if(P::zcells_ini > 1 && true){
+   if(P::zcells_ini > 1){
       trans_timer=phiprof::initializeTimer("transfer-stencil-data-z","MPI");
       phiprof::start(trans_timer);
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
@@ -110,7 +110,7 @@ void calculateSpatialTranslation(
    }
    
    // ------------- SLICE - map dist function in X --------------- //
-   if(P::xcells_ini > 1 && true){     
+   if(P::xcells_ini > 1){
       
       trans_timer=phiprof::initializeTimer("transfer-stencil-data-x","MPI");
       phiprof::start(trans_timer);
@@ -142,7 +142,7 @@ void calculateSpatialTranslation(
    }
 
    // ------------- SLICE - map dist function in Y --------------- //
-   if(P::ycells_ini > 1 && true) {
+   if(P::ycells_ini > 1) {
       
       trans_timer=phiprof::initializeTimer("transfer-stencil-data-y","MPI");
       phiprof::start(trans_timer);
