@@ -119,7 +119,10 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       const Real dy = cell->parameters[CellParams::DY];
       const Real dz = cell->parameters[CellParams::DZ];
       
+      cell->parameters[CellParams::MAXRDT] = numeric_limits<Real>::max();
+      
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         cell->set_max_r_dt(popID,numeric_limits<Real>::max());
          vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
          const Real* blockParams = blockContainer.getParameters();
          const Real EPS = numeric_limits<Real>::min()*1000;
@@ -161,15 +164,15 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    //compute max dt for fieldsolver
    const std::array<int, 3> gridDims(technicalGrid.getLocalSize());
    for (int k=0; k<gridDims[2]; k++) {
-     for (int j=0; j<gridDims[1]; j++) {
-       for (int i=0; i<gridDims[0]; i++) {
-	 fsgrids::technical* cell = technicalGrid.get(i,j,k);
-	 if ( cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
-	      (cell->sysBoundaryLayer == 1 && cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY )) {
-	   dtMaxLocal[2]=min(dtMaxLocal[2], cell->maxFsDt);
-	 }
-       }
-     }
+      for (int j=0; j<gridDims[1]; j++) {
+         for (int i=0; i<gridDims[0]; i++) {
+            fsgrids::technical* cell = technicalGrid.get(i,j,k);
+            if ( cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
+                (cell->sysBoundaryLayer == 1 && cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY )) {
+               dtMaxLocal[2]=min(dtMaxLocal[2], cell->maxFsDt);
+            }
+         }
+      }
    }
 
 
@@ -557,9 +560,7 @@ int main(int argn,char* args[]) {
          P::dt=newDt;
       }
       phiprof::stop("compute-dt");
-   }
-
-   if (!P::isRestart) {      
+      
       //go forward by dt/2 in V, initializes leapfrog split. In restarts the
       //the distribution function is already propagated forward in time by dt/2
       phiprof::start("propagate-velocity-space-dt/2");
