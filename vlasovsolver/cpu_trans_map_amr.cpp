@@ -103,7 +103,6 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
    const auto* backNbrPairs  = mpiGrid.get_neighbors_of(ids.back(),  neighborhood);
 
    int maxRefLvl = mpiGrid.get_maximum_refinement_level();
-   int iSrc = 0;
       
    // Create list of unique distances in the negative direction from the first cell in pencil
    std::set< int > distances;
@@ -113,11 +112,13 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
       }
    }
 
-   // Iterate through distances for VLASOV_STENCIL_WIDTH elements starting from the largest distance.
+
+   int iSrc = VLASOV_STENCIL_WIDTH - 1;
+   // Iterate through distances for VLASOV_STENCIL_WIDTH elements starting from the smallest distance.
    // Distances are negative here so largest distance has smallest value
-   auto ibeg = distances.begin();
-   std::advance(ibeg, distances.size() - VLASOV_STENCIL_WIDTH);
-   for (auto it = ibeg; it != distances.end(); ++it) {
+   auto irend = distances.rbegin();
+   std::advance(irend, VLASOV_STENCIL_WIDTH);
+   for (auto it = distances.rbegin(); it != irend; ++it) {
       // Collect all neighbors at distance *it to a vector
       std::vector< CellID > neighbors;
       for (const auto nbrPair : *frontNbrPairs) {
@@ -128,9 +129,9 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
       int refLvl = mpiGrid.get_refinement_level(ids.front());
       
       if (neighbors.size() == 1) {
-         sourceCells[iSrc++] = mpiGrid[neighbors.at(0)];
+         sourceCells[iSrc--] = mpiGrid[neighbors.at(0)];
       } else if ( pencils.path[iPencil][refLvl] < neighbors.size() ) {
-         sourceCells[iSrc++] = mpiGrid[neighbors.at(pencils.path[iPencil][refLvl])];
+         sourceCells[iSrc--] = mpiGrid[neighbors.at(pencils.path[iPencil][refLvl])];
       }
    }
 
@@ -148,7 +149,7 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
    auto iend = distances.begin();
    std::advance(iend,VLASOV_STENCIL_WIDTH);
    for (auto it = distances.begin(); it != iend; ++it) {
-         
+      
       // Collect all neighbors at distance *it to a vector
       std::vector< CellID > neighbors;
       for (const auto nbrPair : *backNbrPairs) {
@@ -507,7 +508,8 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
  */
 void propagatePencil(Vec* dz, Vec* values, const uint dimension,
                      const uint blockGID, const Realv dt,
-                     const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID> &vmesh, const uint lengthOfPencil) {
+                     const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID> &vmesh, const uint lengthOfPencil,
+                     const bool debug) {
 
    // Get velocity data from vmesh that we need later to calculate the translation
    velocity_block_indices_t block_indices;
@@ -531,7 +533,7 @@ void propagatePencil(Vec* dz, Vec* values, const uint dimension,
    }
    
    // Go from 0 to length here to propagate all the cells in the pencil
-   for (uint i = 0; i < lengthOfPencil; i++){      
+   for (uint i = 0; i < lengthOfPencil; i++){
       
       // The source array is padded by VLASOV_STENCIL_WIDTH on both sides.
       uint i_source   = i + VLASOV_STENCIL_WIDTH;
@@ -540,6 +542,12 @@ void propagatePencil(Vec* dz, Vec* values, const uint dimension,
 
          const Realv cell_vz = (block_indices[dimension] * WID + k + 0.5) * dvz + vz_min; //cell centered velocity
          const Vec z_translation = cell_vz * dt / dz[i_source]; // how much it moved in time dt (reduced units)
+
+         if(debug) {
+
+            cout << "i = " << i << ", k = " << k << ", cell_vz = " << cell_vz << endl;
+
+         }
 
          // Determine direction of translation
          // part of density goes here (cell index change along spatial direcion)
@@ -944,7 +952,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                       const Realv dt,
                       const uint popID) {
 
-   const bool printPencils = false;
+   const bool printPencils = true;
    const bool printTargets = false;
    Realv dvz,vz_min;  
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
@@ -1120,6 +1128,8 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
 
                computeSpatialSourceCellsForPencil(mpiGrid, pencils, pencili, dimension, sourceCells.data());
 
+               cout << "Rank " << myRank << ", Source cells for pencil " << pencili << ": ";
+
                // dz is the cell size in the direction of the pencil
                std::vector<Vec, aligned_allocator<Vec,64>> dz(sourceLength);
                for(uint i = 0; i < sourceCells.size(); ++i) {
@@ -1133,9 +1143,17 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                   case(2):
                      dz[i] = sourceCells[i]->SpatialCell::parameters[CellParams::DZ];
                      break;
-                  }                 
+                  }
+
+                  if(sourceCells[i]) {
+                     cout << sourceCells[i]->SpatialCell::parameters[CellParams::CELLID] << " ";
+                  } else {
+                     cout << "NULL ";
+                  }
                }
 
+               cout << endl;
+                             
                // Allocate source data: sourcedata<length of pencil * WID3)
                // Add padding by 2 * VLASOV_STENCIL_WIDTH
                std::vector<Vec, aligned_allocator<Vec,64>> sourceVecData(sourceLength * WID3 / VECL);
@@ -1144,9 +1162,11 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                copy_trans_block_data_amr(sourceCells.data(), blockGID, L, sourceVecData.data(),
                                          cellid_transpose, popID);
 
+               const bool debug = false;
+
                // Dz and sourceVecData are both padded by VLASOV_STENCIL_WIDTH
                // Dz has 1 value/cell, sourceVecData has WID3 values/cell
-               propagatePencil(dz.data(), sourceVecData.data(), dimension, blockGID, dt, vmesh, L);
+               propagatePencil(dz.data(), sourceVecData.data(), dimension, blockGID, dt, vmesh, L, debug);
 
                // sourceVecData => targetBlockData[this pencil])
 
@@ -1579,7 +1599,7 @@ void update_remote_mapping_contribution_amr(
       }
    }
 
-   for (auto p : receiveBuffers) {      
+   for (auto p : receiveBuffers) {
       aligned_free(p);
    }
    for (auto p : sendBuffers) {      
