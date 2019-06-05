@@ -117,7 +117,7 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
    // Iterate through distances for VLASOV_STENCIL_WIDTH elements starting from the smallest distance.
    // Distances are negative here so largest distance has smallest value
    auto irend = distances.rbegin();
-   std::advance(irend, VLASOV_STENCIL_WIDTH);
+   std::advance(irend, std::min((int)distances.size(), VLASOV_STENCIL_WIDTH));
    for (auto it = distances.rbegin(); it != irend; ++it) {
       // Collect all neighbors at distance *it to a vector
       std::vector< CellID > neighbors;
@@ -147,7 +147,7 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
    // Iterate through distances for VLASOV_STENCIL_WIDTH elements starting from the smallest distance.
    // Distances are positive here so smallest distance has smallest value.
    auto iend = distances.begin();
-   std::advance(iend,VLASOV_STENCIL_WIDTH);
+   std::advance(iend,std::min((int)distances.size(), VLASOV_STENCIL_WIDTH));
    for (auto it = distances.begin(); it != iend; ++it) {
       
       // Collect all neighbors at distance *it to a vector
@@ -166,7 +166,7 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
       }
    }
 
-   /*loop to neative side and replace all invalid cells with the closest good cell*/
+   /*loop to negative side and replace all invalid cells with the closest good cell*/
    SpatialCell* lastGoodCell = mpiGrid[ids.front()];
    for(int i = VLASOV_STENCIL_WIDTH - 1; i >= 0 ;i--){
       if(sourceCells[i] == NULL) 
