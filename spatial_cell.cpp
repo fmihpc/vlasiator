@@ -650,7 +650,7 @@ namespace spatial_cell {
             if ( P::amrMaxSpatialRefLevel == 0 || receiving || ranks.find(receiver_rank) != ranks.end()) {
                
                for ( int i = 0; i < MAX_NEIGHBORS_PER_DIM; ++i) {
-                  displacements.push_back((uint8_t*) this->neighbor_block_data[i] - (uint8_t*) this);               
+                  displacements.push_back((uint8_t*) this->neighbor_block_data[i] - (uint8_t*) this);
                   block_lengths.push_back(sizeof(Realf) * VELOCITY_BLOCK_LENGTH * this->neighbor_number_of_blocks[i]);
                }
                

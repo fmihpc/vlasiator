@@ -903,12 +903,13 @@ void printPencilsFunc(const setOfPencils& pencils, const uint dimension, const i
    std::cout << "I am rank " << myRank << ", I have " << pencils.N << " pencils along dimension " << dimension << ":\n";
    MPI_Barrier(MPI_COMM_WORLD);
    if(myRank == MASTER_RANK) {
-      std::cout << "N, mpirank, (x, y): indices {path} " << std::endl;
+      std::cout << "t, N, mpirank, (x, y): indices {path} " << std::endl;
       std::cout << "-----------------------------------------------------------------" << std::endl;
    }
    MPI_Barrier(MPI_COMM_WORLD);
    for (uint i = 0; i < pencils.N; i++) {
       iend += pencils.lengthOfPencils[i];
+      std::cout << P::t << ", ";
       std::cout << i << ", ";
       std::cout << myRank << ", ";
       std::cout << "(" << pencils.x[i] << ", " << pencils.y[i] << "): ";
@@ -953,7 +954,6 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                       const uint popID) {
 
    const bool printPencils = true;
-   const bool printTargets = false;
    Realv dvz,vz_min;  
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
    unsigned char  cellid_transpose[WID3]; /*< defines the transpose for the solver internal (transposed) id: i + j*WID + k*WID2 to actual one*/
@@ -965,7 +965,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    }
 
    int myRank;
-   if(printTargets || printPencils) MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+   if(printPencils) MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    
    // Vector with all cell ids
    vector<CellID> allCells(localPropagatedCells);
@@ -1107,7 +1107,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
             phiprof::start(t1);
             
             std::vector<Realf> targetBlockData((pencils.sumOfLengths + 2 * pencils.N) * WID3);
-
+            
             // Compute spatial neighbors for target cells.
             // For targets we need the local cells, plus a padding of 1 cell at both ends
             std::vector<SpatialCell*> targetCells(pencils.sumOfLengths + pencils.N * 2 );
@@ -1127,9 +1127,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                std::vector<SpatialCell*> sourceCells(sourceLength);
 
                computeSpatialSourceCellsForPencil(mpiGrid, pencils, pencili, dimension, sourceCells.data());
-
-               cout << "Rank " << myRank << ", Source cells for pencil " << pencili << ": ";
-
+               
                // dz is the cell size in the direction of the pencil
                std::vector<Vec, aligned_allocator<Vec,64>> dz(sourceLength);
                for(uint i = 0; i < sourceCells.size(); ++i) {
@@ -1144,16 +1142,8 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                      dz[i] = sourceCells[i]->SpatialCell::parameters[CellParams::DZ];
                      break;
                   }
-
-                  if(sourceCells[i]) {
-                     cout << sourceCells[i]->SpatialCell::parameters[CellParams::CELLID] << " ";
-                  } else {
-                     cout << "NULL ";
-                  }
                }
-
-               cout << endl;
-                             
+               
                // Allocate source data: sourcedata<length of pencil * WID3)
                // Add padding by 2 * VLASOV_STENCIL_WIDTH
                std::vector<Vec, aligned_allocator<Vec,64>> sourceVecData(sourceLength * WID3 / VECL);
