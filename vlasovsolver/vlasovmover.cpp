@@ -110,7 +110,7 @@ void calculateSpatialTranslation(
    }
    
    // ------------- SLICE - map dist function in X --------------- //
-   if(P::xcells_ini > 1){     
+   if(P::xcells_ini > 1){
       
       trans_timer=phiprof::initializeTimer("transfer-stencil-data-x","MPI");
       phiprof::start(trans_timer);

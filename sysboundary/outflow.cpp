@@ -324,6 +324,9 @@ namespace SBC {
             cell->parameters[CellParams::VX_DT2] = cell->parameters[CellParams::VX];
             cell->parameters[CellParams::VY_DT2] = cell->parameters[CellParams::VY];
             cell->parameters[CellParams::VZ_DT2] = cell->parameters[CellParams::VZ];
+            cell->parameters[CellParams::P_11_DT2] = cell->parameters[CellParams::P_11];
+            cell->parameters[CellParams::P_22_DT2] = cell->parameters[CellParams::P_22];
+            cell->parameters[CellParams::P_33_DT2] = cell->parameters[CellParams::P_33];
          }
       }
       return true;

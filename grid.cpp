@@ -538,13 +538,17 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
          exit(1);
       }
    }
-
-   // Record ranks of face neighbors
-   phiprof::start("set face neighbor ranks");   
-   setFaceNeighborRanks( mpiGrid );
-   phiprof::stop("set face neighbor ranks");
    
-   phiprof::stop("Init solvers");   
+   phiprof::stop("Init solvers");
+   
+   // Record ranks of face neighbors
+   if(P::amrMaxSpatialRefLevel > 0) {
+      phiprof::start("set face neighbor ranks");
+      setFaceNeighborRanks( mpiGrid );
+      phiprof::stop("set face neighbor ranks");
+   }
+   
+   
    phiprof::stop("Balancing load");
 }
 
