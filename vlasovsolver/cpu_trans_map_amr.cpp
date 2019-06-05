@@ -903,13 +903,12 @@ void printPencilsFunc(const setOfPencils& pencils, const uint dimension, const i
    std::cout << "I am rank " << myRank << ", I have " << pencils.N << " pencils along dimension " << dimension << ":\n";
    MPI_Barrier(MPI_COMM_WORLD);
    if(myRank == MASTER_RANK) {
-      std::cout << "t, N, mpirank, (x, y): indices {path} " << std::endl;
+      std::cout << "N, mpirank, (x, y): indices {path} " << std::endl;
       std::cout << "-----------------------------------------------------------------" << std::endl;
    }
    MPI_Barrier(MPI_COMM_WORLD);
    for (uint i = 0; i < pencils.N; i++) {
       iend += pencils.lengthOfPencils[i];
-      std::cout << P::t << ", ";
       std::cout << i << ", ";
       std::cout << myRank << ", ";
       std::cout << "(" << pencils.x[i] << ", " << pencils.y[i] << "): ";
@@ -953,7 +952,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                       const Realv dt,
                       const uint popID) {
 
-   const bool printPencils = true;
+   const bool printPencils = false;
    Realv dvz,vz_min;  
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
    unsigned char  cellid_transpose[WID3]; /*< defines the transpose for the solver internal (transposed) id: i + j*WID + k*WID2 to actual one*/
