@@ -872,7 +872,7 @@ template<unsigned long int N> bool readFsGridVariable(
 
       // Iterate through tasks and find their overlap with our domain.
       size_t fileOffset = 0;
-      for(int task = 0; task < myRank; task++) {
+      for(int task = 0; task < numWritingRanks; task++) {
          std::array<int32_t,3> thatTasksSize;
          std::array<int32_t,3> thatTasksStart;
          thatTasksSize[0] = targetGrid.calcLocalSize(globalSize[0], fileDecomposition[0], task/fileDecomposition[2]/fileDecomposition[1]);
@@ -883,26 +883,19 @@ template<unsigned long int N> bool readFsGridVariable(
          thatTasksStart[1] = targetGrid.calcLocalStart(globalSize[1], fileDecomposition[1], (task/fileDecomposition[2])%fileDecomposition[1]);
          thatTasksStart[2] = targetGrid.calcLocalStart(globalSize[2], fileDecomposition[2], task%fileDecomposition[2]);
 
-         // AABB intersection test
-         if(thatTasksStart[0] + thatTasksSize[0] >= localStart[0] &&
-               thatTasksStart[1] + thatTasksSize[1] >= localStart[1] &&
-               thatTasksStart[2] + thatTasksSize[2] >= localStart[2] &&
-               thatTasksStart[0] < localStart[0] + localSize[0] &&
-               thatTasksStart[1] < localStart[1] + localSize[1] &&
-               thatTasksStart[2] < localStart[2] + localSize[2]) {
+         // Iterate through overlap area
+         std::array<int,3> overlapStart,overlapEnd;
+         overlapStart[0] = max(localStart[0],thatTasksStart[0]);
+         overlapStart[1] = max(localStart[1],thatTasksStart[1]);
+         overlapStart[2] = max(localStart[2],thatTasksStart[2]);
 
-            // Iterate through overlap area
-            std::array<int,3> overlapStart,overlapEnd;
-            overlapStart[0] = max(localStart[0],thatTasksStart[0]);
-            overlapStart[1] = max(localStart[1],thatTasksStart[1]);
-            overlapStart[2] = max(localStart[2],thatTasksStart[2]);
+         overlapEnd[0] = min(localStart[0]+localSize[0], thatTasksStart[0]+thatTasksSize[0]);
+         overlapEnd[1] = min(localStart[1]+localSize[1], thatTasksStart[1]+thatTasksSize[1]);
+         overlapEnd[2] = min(localStart[2]+localSize[2], thatTasksStart[2]+thatTasksSize[2]);
 
-            overlapEnd[0] = min(localStart[0]+localSize[0], thatTasksStart[0]+thatTasksSize[0]);
-            overlapEnd[1] = min(localStart[1]+localSize[1], thatTasksStart[1]+thatTasksSize[1]);
-            overlapEnd[2] = min(localStart[2]+localSize[2], thatTasksStart[2]+thatTasksSize[2]);
-
-            // Read continuous stripes in x direction.
-            int stripeSize = overlapEnd[0]-overlapStart[0];
+         // Read continuous stripes in x direction.
+         int stripeSize = overlapEnd[0]-overlapStart[0];
+         if(stripeSize > 0) {
             for(int z=overlapStart[2]; z<overlapEnd[2]; z++) {
                for(int y=overlapStart[1]; y<overlapEnd[1]; y++) {
                   int index = (z - thatTasksStart[2]) * thatTasksSize[0]*thatTasksSize[1]
@@ -912,6 +905,7 @@ template<unsigned long int N> bool readFsGridVariable(
                   // Read into buffer
                   std::vector<Real> buffer(stripeSize*N);
 
+                  // TODO: Should these be multireads instead? And/or can this be parallelized?
                   if(file.readArray("VARIABLE",attribs, fileOffset + index, stripeSize, (char*)buffer.data()) == false) {
                      logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
                      return false;
