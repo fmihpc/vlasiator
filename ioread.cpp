@@ -848,7 +848,9 @@ template<unsigned long int N> bool readFsGridVariable(
    } else {
 
       // More difficult case: different number of tasks.
-      // In this case, our own fsgrid domain overlaps (potentially many) domains in the file, and needs to be read in stripes.
+      // In this case, our own fsgrid domain overlaps (potentially many) domains in the file.
+      // We read the whole source rank into a temporary buffer, and transfer the overlapping
+      // part.
       //
       // +------------+----------------+
       // |            |                |
@@ -867,8 +869,6 @@ template<unsigned long int N> bool readFsGridVariable(
       // Determine the decomposition in the file and the one in RAM for our restart
       std::array<int,3> fileDecomposition;
       targetGrid.computeDomainDecomposition(globalSize, numWritingRanks, fileDecomposition);
-      std::array<int,3> ramDecomposition;
-      targetGrid.computeDomainDecomposition(globalSize, size, ramDecomposition);
 
       // Iterate through tasks and find their overlap with our domain.
       size_t fileOffset = 0;
@@ -884,7 +884,7 @@ template<unsigned long int N> bool readFsGridVariable(
          thatTasksStart[2] = targetGrid.calcLocalStart(globalSize[2], fileDecomposition[2], task%fileDecomposition[2]);
 
          // Iterate through overlap area
-         std::array<int,3> overlapStart,overlapEnd;
+         std::array<int,3> overlapStart,overlapEnd,overlapSize;
          overlapStart[0] = max(localStart[0],thatTasksStart[0]);
          overlapStart[1] = max(localStart[1],thatTasksStart[1]);
          overlapStart[2] = max(localStart[2],thatTasksStart[2]);
@@ -893,9 +893,12 @@ template<unsigned long int N> bool readFsGridVariable(
          overlapEnd[1] = min(localStart[1]+localSize[1], thatTasksStart[1]+thatTasksSize[1]);
          overlapEnd[2] = min(localStart[2]+localSize[2], thatTasksStart[2]+thatTasksSize[2]);
 
-         // Read continuous stripes in x direction.
-         int stripeSize = overlapEnd[0]-overlapStart[0];
-         if(stripeSize > 0) {
+         overlapSize[0] = max(overlapEnd[0]-overlapStart[0],0);
+         overlapSize[1] = max(overlapEnd[1]-overlapStart[1],0);
+         overlapSize[2] = max(overlapEnd[2]-overlapStart[2],0);
+
+         // Read every source rank that we have an overlap with.
+         if(overlapSize[0]*overlapSize[1]*overlapSize[2] > 0) {
             // Read into buffer
             std::vector<Real> buffer(thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N);
 
@@ -904,16 +907,16 @@ template<unsigned long int N> bool readFsGridVariable(
                logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
                return false;
             }
+
+            // Copy continuous stripes in x direction.
             for(int z=overlapStart[2]; z<overlapEnd[2]; z++) {
                for(int y=overlapStart[1]; y<overlapEnd[1]; y++) {
-                  int index = (z - thatTasksStart[2]) * thatTasksSize[0]*thatTasksSize[1]
-                     + (y - thatTasksStart[1]) * thatTasksSize[0]
-                     + (overlapStart[0] - thatTasksStart[0]);
-
-		  fprintf(stderr, "<%i> Reading a stripe from task %i\n", myRank, task);
-
                   for(int x=overlapStart[0]; x<overlapEnd[0]; x++) {
-                     memcpy(targetGrid.get(x - localStart[0], y - localStart[1], z - localStart[2]), &buffer[index + x-overlapStart[0]], N*sizeof(Real));
+                     int index = (z - thatTasksStart[2]) * thatTasksSize[0]*thatTasksSize[1]
+                        + (y - thatTasksStart[1]) * thatTasksSize[0]
+                        + (x - thatTasksStart[0]);
+
+                     memcpy(targetGrid.get(x - localStart[0], y - localStart[1], z - localStart[2]), &buffer[index*N], N*sizeof(Real));
                   }
                }
             }
@@ -926,8 +929,6 @@ template<unsigned long int N> bool readFsGridVariable(
          fileOffset += thatTasksSize[0] * thatTasksSize[1] * thatTasksSize[2];
       }
    }
-
-   fprintf(stderr, "<%i> done reading fsgrid %s\n", myRank, variableName.c_str());
 
    targetGrid.updateGhostCells();
    return true;
