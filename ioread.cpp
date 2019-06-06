@@ -896,32 +896,39 @@ template<unsigned long int N> bool readFsGridVariable(
          // Read continuous stripes in x direction.
          int stripeSize = overlapEnd[0]-overlapStart[0];
          if(stripeSize > 0) {
+            // Read into buffer
+            std::vector<Real> buffer(thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N);
+
+            // TODO: Should these be multireads instead? And/or can this be parallelized?
+            if(file.readArray("VARIABLE",attribs, fileOffset, thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2], (char*)buffer.data()) == false) {
+               logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
+               return false;
+            }
             for(int z=overlapStart[2]; z<overlapEnd[2]; z++) {
                for(int y=overlapStart[1]; y<overlapEnd[1]; y++) {
                   int index = (z - thatTasksStart[2]) * thatTasksSize[0]*thatTasksSize[1]
                      + (y - thatTasksStart[1]) * thatTasksSize[0]
                      + (overlapStart[0] - thatTasksStart[0]);
 
-                  // Read into buffer
-                  std::vector<Real> buffer(stripeSize*N);
-
-                  // TODO: Should these be multireads instead? And/or can this be parallelized?
-                  if(file.readArray("VARIABLE",attribs, fileOffset + index, stripeSize, (char*)buffer.data()) == false) {
-                     logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
-                     return false;
-                  }
+		  fprintf(stderr, "<%i> Reading a stripe from task %i\n", myRank, task);
 
                   for(int x=overlapStart[0]; x<overlapEnd[0]; x++) {
-                     memcpy(targetGrid.get(x - localStart[0], y - localStart[1], z - localStart[2]), &buffer[x-overlapStart[0]], N*sizeof(Real));
+                     memcpy(targetGrid.get(x - localStart[0], y - localStart[1], z - localStart[2]), &buffer[index + x-overlapStart[0]], N*sizeof(Real));
                   }
                }
             }
+         } else {
+            // Even though this task doesn't need to be read from, we participate in collective IO with a zero-read.
+            char dummy;
+            file.readArray("VARIABLE",attribs, fileOffset, 0, &dummy);
          }
 
          fileOffset += thatTasksSize[0] * thatTasksSize[1] * thatTasksSize[2];
       }
    }
-   
+
+   fprintf(stderr, "<%i> done reading fsgrid %s\n", myRank, variableName.c_str());
+
    targetGrid.updateGhostCells();
    return true;
 }
