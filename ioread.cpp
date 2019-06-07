@@ -802,16 +802,19 @@ template<unsigned long int N> bool readFsGridVariable(
    int size, myRank;
    MPI_Comm_size(MPI_COMM_WORLD, &size);
    MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+
+   std::array<int32_t,3>& localSize = targetGrid.getLocalSize();
+   std::array<int32_t,3>& localStart = targetGrid.getLocalStart();
+   std::array<int32_t,3>& globalSize = targetGrid.getGlobalSize();
+
+   // Determine our tasks storage size
+   size_t storageSize = localSize[0]*localSize[1]*localSize[2];
+
    if(size == numWritingRanks) {
       // Easy case: same number of tasks => slurp it in.
-      std::array<int32_t,3>& localSize = targetGrid.getLocalSize();
-      std::array<int32_t,3>& globalSize = targetGrid.getGlobalSize();
-
+      //
       std::array<int,3> decomposition;
       targetGrid.computeDomainDecomposition(globalSize, size, decomposition);
-
-      // Determine our tasks storage size
-      size_t storageSize = localSize[0]*localSize[1]*localSize[2];
 
       // Determine offset in file by summing up all the previous tasks' sizes.
       size_t localStartOffset = 0;
@@ -843,10 +846,90 @@ template<unsigned long int N> bool readFsGridVariable(
       }
       
    } else {
-      logFile << "(RESTART)  ERROR: Attempting to restart from different number of tasks, this is not supported yet." << endl << write;
-      return false;
+
+      // More difficult case: different number of tasks.
+      // In this case, our own fsgrid domain overlaps (potentially many) domains in the file.
+      // We read the whole source rank into a temporary buffer, and transfer the overlapping
+      // part.
+      //
+      // +------------+----------------+
+      // |            |                |
+      // |    . . . . . . . . . . . .  |
+      // |    .<----->|<----------->.  |
+      // |    .<----->|<----------->.  |
+      // |    .<----->|<----------->.  |
+      // +----+-------+-------------+--|
+      // |    .<----->|<----------->.  |
+      // |    .<----->|<----------->.  |
+      // |    .<----->|<----------->.  |
+      // |    . . . . . . . . . . . .  |
+      // |            |                |
+      // +------------+----------------+
+
+      // Determine the decomposition in the file and the one in RAM for our restart
+      std::array<int,3> fileDecomposition;
+      targetGrid.computeDomainDecomposition(globalSize, numWritingRanks, fileDecomposition);
+
+      // Iterate through tasks and find their overlap with our domain.
+      size_t fileOffset = 0;
+      for(int task = 0; task < numWritingRanks; task++) {
+         std::array<int32_t,3> thatTasksSize;
+         std::array<int32_t,3> thatTasksStart;
+         thatTasksSize[0] = targetGrid.calcLocalSize(globalSize[0], fileDecomposition[0], task/fileDecomposition[2]/fileDecomposition[1]);
+         thatTasksSize[1] = targetGrid.calcLocalSize(globalSize[1], fileDecomposition[1], (task/fileDecomposition[2])%fileDecomposition[1]);
+         thatTasksSize[2] = targetGrid.calcLocalSize(globalSize[2], fileDecomposition[2], task%fileDecomposition[2]);
+
+         thatTasksStart[0] = targetGrid.calcLocalStart(globalSize[0], fileDecomposition[0], task/fileDecomposition[2]/fileDecomposition[1]);
+         thatTasksStart[1] = targetGrid.calcLocalStart(globalSize[1], fileDecomposition[1], (task/fileDecomposition[2])%fileDecomposition[1]);
+         thatTasksStart[2] = targetGrid.calcLocalStart(globalSize[2], fileDecomposition[2], task%fileDecomposition[2]);
+
+         // Iterate through overlap area
+         std::array<int,3> overlapStart,overlapEnd,overlapSize;
+         overlapStart[0] = max(localStart[0],thatTasksStart[0]);
+         overlapStart[1] = max(localStart[1],thatTasksStart[1]);
+         overlapStart[2] = max(localStart[2],thatTasksStart[2]);
+
+         overlapEnd[0] = min(localStart[0]+localSize[0], thatTasksStart[0]+thatTasksSize[0]);
+         overlapEnd[1] = min(localStart[1]+localSize[1], thatTasksStart[1]+thatTasksSize[1]);
+         overlapEnd[2] = min(localStart[2]+localSize[2], thatTasksStart[2]+thatTasksSize[2]);
+
+         overlapSize[0] = max(overlapEnd[0]-overlapStart[0],0);
+         overlapSize[1] = max(overlapEnd[1]-overlapStart[1],0);
+         overlapSize[2] = max(overlapEnd[2]-overlapStart[2],0);
+
+         // Read every source rank that we have an overlap with.
+         if(overlapSize[0]*overlapSize[1]*overlapSize[2] > 0) {
+            // Read into buffer
+            std::vector<Real> buffer(thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N);
+
+            // TODO: Should these be multireads instead? And/or can this be parallelized?
+            if(file.readArray("VARIABLE",attribs, fileOffset, thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2], (char*)buffer.data()) == false) {
+               logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
+               return false;
+            }
+
+            // Copy continuous stripes in x direction.
+            for(int z=overlapStart[2]; z<overlapEnd[2]; z++) {
+               for(int y=overlapStart[1]; y<overlapEnd[1]; y++) {
+                  for(int x=overlapStart[0]; x<overlapEnd[0]; x++) {
+                     int index = (z - thatTasksStart[2]) * thatTasksSize[0]*thatTasksSize[1]
+                        + (y - thatTasksStart[1]) * thatTasksSize[0]
+                        + (x - thatTasksStart[0]);
+
+                     memcpy(targetGrid.get(x - localStart[0], y - localStart[1], z - localStart[2]), &buffer[index*N], N*sizeof(Real));
+                  }
+               }
+            }
+         } else {
+            // Even though this task doesn't need to be read from, we participate in collective IO with a zero-read.
+            char dummy;
+            file.readArray("VARIABLE",attribs, fileOffset, 0, &dummy);
+         }
+
+         fileOffset += thatTasksSize[0] * thatTasksSize[1] * thatTasksSize[2];
+      }
    }
-   
+
    targetGrid.updateGhostCells();
    return true;
 }
