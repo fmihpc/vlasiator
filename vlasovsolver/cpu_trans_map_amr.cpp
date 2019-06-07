@@ -68,6 +68,8 @@ int getNeighborhood(const uint dimension, const uint stencil) {
    
 }
 
+
+
 /* Get pointers to spatial cells that are considered source cells for a pencil.
  * Source cells are cells that the pencil reads data from to compute polynomial
  * fits that are used for propagation in the vlasov solver. All cells included
@@ -496,6 +498,8 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
   
 }
 
+#pragma GCC optimize "O0"
+
 /* Propagate a given velocity block in all spatial cells of a pencil by a time step dt using a PPM reconstruction.
  *
  * @param dz Width of spatial cells in the direction of the pencil, vector datatype
@@ -611,6 +615,8 @@ void propagatePencil(Vec* dz, Vec* values, const uint dimension,
       }
    }  
 }
+
+#pragma GCC reset_options
 
 /* Determine which cells in the local DCCRG mesh should be starting points for pencils.
  * If a neighbor cell is non-local, across a periodic boundary, or in non-periodic boundary layer 1
