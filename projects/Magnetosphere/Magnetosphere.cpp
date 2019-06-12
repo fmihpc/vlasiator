@@ -31,6 +31,7 @@
 #include "../../backgroundfield/constantfield.hpp"
 #include "../../backgroundfield/dipole.hpp"
 #include "../../backgroundfield/linedipole.hpp"
+#include "../../backgroundfield/vectordipole.hpp"
 #include "../../object_wrapper.h"
 
 #include "Magnetosphere.h"
@@ -57,6 +58,14 @@ namespace projects {
       RP::add("Magnetosphere.refine_L2tailthick","Thickness of L2-refined tail region", 3.1855e7); // 5 RE
       RP::add("Magnetosphere.refine_L1radius","Radius of L1-refined sphere", 1.59275e8); // 25 RE
       RP::add("Magnetosphere.refine_L1tailthick","Thickness of L1-refined tail region", 6.371e7); // 10 RE
+
+      RP::add("Magnetosphere.dipoleTiltPhi","Magnitude of dipole tilt, in degrees", 0.0);
+      RP::add("Magnetosphere.dipoleTiltTheta","Direction of dipole tilt from Sun-Earth-line, in degrees", 0.0);
+      RP::add("Magnetosphere.dipoleXFull","X-coordinate up to which dipole is at full strength, in metres", 9.5565e7); // 15 RE
+      RP::add("Magnetosphere.dipoleXZero","X-coordinate after which dipole is at zero strength, in metres", 1.9113e8); // 30 RE
+      RP::add("Magnetosphere.dipoleInflowBX","Inflow magnetic field Bx component to which the vector potential dipole converges. Default is none.", 0.0);
+      RP::add("Magnetosphere.dipoleInflowBY","Inflow magnetic field By component to which the vector potential dipole converges. Default is none.", 0.0);
+      RP::add("Magnetosphere.dipoleInflowBZ","Inflow magnetic field Bz component to which the vector potential dipole converges. Default is none.", 0.0);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
@@ -149,6 +158,34 @@ namespace projects {
          exit(1);
       }
 
+      if(!Readparameters::get("Magnetosphere.dipoleTiltPhi", this->dipoleTiltPhi)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("Magnetosphere.dipoleTiltTheta", this->dipoleTiltTheta)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("Magnetosphere.dipoleXFull", this->dipoleXFull)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("Magnetosphere.dipoleXZero", this->dipoleXZero)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("Magnetosphere.dipoleInflowBX", this->dipoleInflowB[0])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("Magnetosphere.dipoleInflowBY", this->dipoleInflowB[1])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("Magnetosphere.dipoleInflowBZ", this->dipoleInflowB[2])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
@@ -253,12 +290,13 @@ namespace projects {
 
    /* set 0-centered dipole */
    void Magnetosphere::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
       FsGrid< fsgrids::technical, 2>& technicalGrid
    ) {
       Dipole bgFieldDipole;
       LineDipole bgFieldLineDipole;
+      VectorDipole bgVectorDipole;
 
       // The hardcoded constants of dipole and line dipole moments are obtained
       // from Daldorff et al (2014), see
@@ -286,11 +324,20 @@ namespace projects {
                //Append mirror dipole                
                bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, this->dipoleMirrorLocationX, 0.0, 0.0, 0.0 );//mirror
                setBackgroundField(bgFieldDipole, BgBGrid, true);
-               break;
-               
+               break; 
+            case 4:  // Vector potential dipole, vanishes or optionally scales to static inflow value after a given x-coordinate
+	       // What we in fact do is we place the regular dipole in the background field, and the
+	       // corrective terms in the perturbed field. This maintains the BGB as curl-free.
+	       bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );//set dipole moment
+               setBackgroundField(bgFieldDipole, BgBGrid);
+	       // Difference into perBgrid
+	       bgFieldDipole.initialize(-8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );
+               setPerturbedField(bgFieldDipole, perBGrid);
+	       bgVectorDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, this->dipoleTiltPhi*3.14159/180., this->dipoleTiltTheta*3.14159/180., this->dipoleXFull, this->dipoleXZero, this->dipoleInflowB[0], this->dipoleInflowB[1], this->dipoleInflowB[2]);
+               setPerturbedField(bgVectorDipole, perBGrid, true);
+               break;              
             default:
                setBackgroundFieldToZero(BgBGrid);
-               
       }
       
       const auto localSize = BgBGrid.getLocalSize();
