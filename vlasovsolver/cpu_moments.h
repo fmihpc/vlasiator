@@ -45,7 +45,7 @@ void blockVelocitySecondMoments(const Realf* avgs,const Real* blockParams,
                                 const REAL v[3],
                                 REAL* array);
 
-void calculateMoments_R_maxdt(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+void calculateMoments_R(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                               const std::vector<CellID>& cells,
                               const bool& computeSecond);
 

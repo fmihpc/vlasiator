@@ -204,15 +204,11 @@ void calculateSpatialTranslation(
    // If dt=0 we are either initializing or distribution functions are not translated. 
    // In both cases go to the end of this function and calculate the moments.
    if (dt == 0.0) goto momentCalculation;
-
-   //   std::cout << "I am at line " << __LINE__ << " of " << __FILE__ << std::endl;
    
    phiprof::start("compute_cell_lists");
    remoteTargetCellsx = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID);
    remoteTargetCellsy = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID);
    remoteTargetCellsz = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID);
-
-   //   std::cout << "I am at line " << __LINE__ << " of " << __FILE__ << std::endl;
     
     // Figure out which spatial cells are translated, 
     // result independent of particle species.
@@ -221,8 +217,6 @@ void calculateSpatialTranslation(
           local_propagated_cells.push_back(localCells[c]);
        }
     }
-
-    //   std::cout << "I am at line " << __LINE__ << " of " << __FILE__ << std::endl;
     
    // Figure out target spatial cells, result
    // independent of particle species.
@@ -232,8 +226,6 @@ void calculateSpatialTranslation(
       }
    }
    phiprof::stop("compute_cell_lists");
-
-   //   std::cout << "I am at line " << __LINE__ << " of " << __FILE__ << std::endl;
    
    // Translate all particle species
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
@@ -246,23 +238,12 @@ void calculateSpatialTranslation(
                                   remoteTargetCellsz,dt,popID);
       phiprof::stop(profName);
    }
-
-   //   std::cout << "I am at line " << __LINE__ << " of " << __FILE__ << std::endl;
    
    // Mapping complete, update moments and maximum dt limits //
 momentCalculation:
-   calculateMoments_R_maxdt(mpiGrid,localCells,true);
-
-   //   std::cout << "I am at line " << __LINE__ << " of " << __FILE__ << std::endl;
+   calculateMoments_R(mpiGrid,localCells,true);
    
-   Real minDT = 1e300;
-   for (size_t c=0; c<localCells.size(); ++c) {
-      if (mpiGrid[localCells[c]]->parameters[CellParams::MAXRDT] < minDT) 
-         minDT = mpiGrid[localCells[c]]->parameters[CellParams::MAXRDT];
-   }
-
-   //   std::cout << "I am at line " << __LINE__ << " of " << __FILE__ << std::endl;
-   phiprof::stop("semilag-trans");   
+   phiprof::stop("semilag-trans");
 }
 
 /*
