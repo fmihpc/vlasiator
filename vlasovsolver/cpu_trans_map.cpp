@@ -300,7 +300,6 @@ void copy_trans_block_data(
             }
          }
       } else {
-         uint cellid=0;
          for (uint k=0; k<WID; ++k) {
             for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++) {
                values[i_trans_ps_blockv(planeVector, k, b)] = Vec(0);
@@ -341,16 +340,15 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    std::vector<SpatialCell*> allCellsPointer(allCells.size());
    std::vector<SpatialCell*> sourceNeighbors(localPropagatedCells.size() * nSourceNeighborsPerCell);
    std::vector<SpatialCell*> targetNeighbors(3 * localPropagatedCells.size() );
-
    
 #pragma omp parallel for
-   for(uint celli = 0; celli < allCells.size(); celli++){         
+   for(uint celli = 0; celli < allCells.size(); celli++){
       allCellsPointer[celli] = mpiGrid[allCells[celli]];
    }
    
    
 #pragma omp parallel for
-   for(uint celli = 0; celli < localPropagatedCells.size(); celli++){         
+   for(uint celli = 0; celli < localPropagatedCells.size(); celli++){
          // compute spatial neighbors, separately for targets and source. In
          // source cells we have a wider stencil and take into account
          // boundaries. For targets we only have actual cells as we do not
@@ -393,7 +391,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    switch (dimension) {
    case 0:
       dz = P::dx_ini;
-      z_min = P::xmin;      
+      z_min = P::xmin;
       // set values in array that is used to convert block indices 
       // to global ID using a dot product.
       cell_indices_to_id[0]=WID2;
@@ -444,7 +442,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    
    
 #pragma omp parallel 
-   {      
+   {
       std::vector<Realf> targetBlockData(3 * localPropagatedCells.size() * WID3);
       std::vector<bool> targetsValid(localPropagatedCells.size());
       std::vector<vmesh::LocalID> allCellsBlockLocalID(allCells.size());
@@ -515,7 +513,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
                   z_2 = 1.0;
                }
                
-               for (uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++) {         
+               for (uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++) {
                   //compute reconstruction
 #ifdef TRANS_SEMILAG_PLM
                   Vec a[3];

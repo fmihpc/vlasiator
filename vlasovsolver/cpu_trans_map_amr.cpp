@@ -342,7 +342,7 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
    CellID nextNeighbor;
    CellID id = seedId;
    int startingRefLvl = grid.get_refinement_level(id);
-   bool periodic = false;   
+   bool periodic = false;
    if( ids.size() == 0 )
       ids.push_back(seedId);
 
@@ -813,11 +813,11 @@ void check_ghost_cells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
       const auto* backNeighbors  = mpiGrid.get_neighbors_of(ids.back() ,neighborhoodId);
 
       for (const auto nbrPair: *frontNeighbors) {
-	maxNbrRefLvl = max(maxNbrRefLvl,mpiGrid.mapping.get_refinement_level(nbrPair.first));
+         maxNbrRefLvl = max(maxNbrRefLvl,mpiGrid.get_refinement_level(nbrPair.first));
       }
          
       for (const auto nbrPair: *backNeighbors) {
-	maxNbrRefLvl = max(maxNbrRefLvl,mpiGrid.get_refinement_level(nbrPair.first));
+         maxNbrRefLvl = max(maxNbrRefLvl,mpiGrid.get_refinement_level(nbrPair.first));
       }
 
       if (maxNbrRefLvl > maxPencilRefLvl) {
@@ -904,14 +904,16 @@ void printPencilsFunc(const setOfPencils& pencils, const uint dimension, const i
    std::cout << "I am rank " << myRank << ", I have " << pencils.N << " pencils along dimension " << dimension << ":\n";
    MPI_Barrier(MPI_COMM_WORLD);
    if(myRank == MASTER_RANK) {
-      std::cout << "N, mpirank, (x, y): indices {path} " << std::endl;
+      std::cout << "t, N, mpirank, dimension (x, y): indices {path} " << std::endl;
       std::cout << "-----------------------------------------------------------------" << std::endl;
    }
    MPI_Barrier(MPI_COMM_WORLD);
    for (uint i = 0; i < pencils.N; i++) {
       iend += pencils.lengthOfPencils[i];
+      std::cout << P::t << ", ";
       std::cout << i << ", ";
       std::cout << myRank << ", ";
+      std::cout << dimension << ", ";
       std::cout << "(" << pencils.x[i] << ", " << pencils.y[i] << "): ";
       for (auto j = pencils.ids.begin() + ibeg; j != pencils.ids.begin() + iend; ++j) {
          std::cout << *j << " ";
@@ -954,10 +956,8 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                       const uint popID) {
 
    const bool printPencils = false;
-   Realv dvz,vz_min;  
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
    unsigned char  cellid_transpose[WID3]; /*< defines the transpose for the solver internal (transposed) id: i + j*WID + k*WID2 to actual one*/
-   const uint blocks_per_dim = 1;
    // return if there's no cells to propagate
    if(localPropagatedCells.size() == 0) {
       cout << "Returning because of no cells" << endl;
@@ -1057,22 +1057,20 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    // Only one set is created for now but we retain support for multiple sets
    pencilSets.push_back(pencils);
    
-   const uint8_t VMESH_REFLEVEL = 0;
-   
    // Get a pointer to the velocity mesh of the first spatial cell
-   const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = allCellsPointer[0]->get_velocity_mesh(popID);   
+   const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = allCellsPointer[0]->get_velocity_mesh(popID);
       
    // Get a unique sorted list of blockids that are in any of the
    // propagated cells. First use set for this, then add to vector (may not
    // be the most nice way to do this and in any case we could do it along
    // dimension for data locality reasons => copy acc map column code, TODO: FIXME
    // TODO: Do this separately for each pencil?
-   std::unordered_set<vmesh::GlobalID> unionOfBlocksSet;    
+   std::unordered_set<vmesh::GlobalID> unionOfBlocksSet;
    
    for(auto cell : allCellsPointer) {
-      vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = cell->get_velocity_mesh(popID);
-      for (vmesh::LocalID block_i=0; block_i< vmesh.size(); ++block_i) {
-         unionOfBlocksSet.insert(vmesh.getGlobalID(block_i));
+      vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& cvmesh = cell->get_velocity_mesh(popID);
+      for (vmesh::LocalID block_i=0; block_i< cvmesh.size(); ++block_i) {
+         unionOfBlocksSet.insert(cvmesh.getGlobalID(block_i));
       }
    }
    
@@ -1088,9 +1086,9 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    
 #pragma omp parallel
    {
-      // Loop over velocity space blocks. Thread this loop (over vspace blocks) with OpenMP.    
+      // Loop over velocity space blocks. Thread this loop (over vspace blocks) with OpenMP.
 #pragma omp for schedule(guided)
-      for(uint blocki = 0; blocki < unionOfBlocks.size(); blocki++) {         
+      for(uint blocki = 0; blocki < unionOfBlocks.size(); blocki++) {
 
          // Get global id of the velocity block
          vmesh::GlobalID blockGID = unionOfBlocks[blocki];
@@ -1112,8 +1110,20 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
             // For targets we need the local cells, plus a padding of 1 cell at both ends
             std::vector<SpatialCell*> targetCells(pencils.sumOfLengths + pencils.N * 2 );
             
-            computeSpatialTargetCellsForPencils(mpiGrid, pencils, dimension, targetCells.data());           
-
+            computeSpatialTargetCellsForPencils(mpiGrid, pencils, dimension, targetCells.data());
+            
+//             cout << P::t << " Rank " << myRank << ", dimension " << dimension << ", target cells: ";
+            
+//             for(uint i = 0; i < targetCells.size(); ++i) {
+//                if(targetCells[i]) {
+//                   cout << targetCells[i]->SpatialCell::parameters[CellParams::CELLID] << " ";
+//                } else {
+//                   cout << "NULL ";
+//                }
+//             }
+            
+//             cout << endl;
+            
             // Loop over pencils
             uint totalTargetLength = 0;
             for(uint pencili = 0; pencili < pencils.N; ++pencili){
@@ -1128,21 +1138,32 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
 
                computeSpatialSourceCellsForPencil(mpiGrid, pencils, pencili, dimension, sourceCells.data());
                
+//                cout << P::t << " Rank " << myRank << ", dimension " << dimension << ", source cells for pencil " << pencili << ": ";
+               
                // dz is the cell size in the direction of the pencil
                std::vector<Vec, aligned_allocator<Vec,64>> dz(sourceLength);
                for(uint i = 0; i < sourceCells.size(); ++i) {
                   switch (dimension) {
                   case(0):
-                     dz[i] = sourceCells[i]->SpatialCell::parameters[CellParams::DX];
-                     break;                  
+                     dz[i] = sourceCells[i]->parameters[CellParams::DX];
+                     break;
                   case(1):
-                     dz[i] = sourceCells[i]->SpatialCell::parameters[CellParams::DY];
-                     break;                  
+                     dz[i] = sourceCells[i]->parameters[CellParams::DY];
+                     break;
                   case(2):
-                     dz[i] = sourceCells[i]->SpatialCell::parameters[CellParams::DZ];
+                     dz[i] = sourceCells[i]->parameters[CellParams::DZ];
                      break;
                   }
+                  
+//                   if(sourceCells[i]) {
+//                      cout << sourceCells[i]->SpatialCell::parameters[CellParams::CELLID] << " ";
+//                   } else {
+//                      cout << "NULL ";
+//                   }
+                  
                }
+               
+//                cout << endl;
                
                // Allocate source data: sourcedata<length of pencil * WID3)
                // Add padding by 2 * VLASOV_STENCIL_WIDTH
@@ -1176,7 +1197,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                            targetBlockData[(totalTargetLength + icell) * WID3 +
                                            cellid_transpose[iv + planeVector * VECL + k * WID2]]
                               = vector[iv];
-                        }                                             
+                        }
                      }
                   }
                }
@@ -1354,7 +1375,7 @@ void update_remote_mapping_contribution_amr(
       // We need the default for 1 to 1 communications
       if(ccell) {
          for (uint i = 0; i < MAX_NEIGHBORS_PER_DIM; ++i) {
-            ccell->neighbor_block_data[i] = ccell->get_data(popID);
+            ccell->neighbor_block_data.at(i) = ccell->get_data(popID);
             ccell->neighbor_number_of_blocks[i] = 0;
          }
       }
@@ -1366,7 +1387,7 @@ void update_remote_mapping_contribution_amr(
       if(ccell) {
          // Initialize number of blocks to 0 and neighbor block data pointer to the local block data pointer
          for (uint i = 0; i < MAX_NEIGHBORS_PER_DIM; ++i) {
-            ccell->neighbor_block_data[i] = ccell->get_data(popID);
+            ccell->neighbor_block_data.at(i) = ccell->get_data(popID);
             ccell->neighbor_number_of_blocks[i] = 0;
          }
       }
@@ -1406,8 +1427,6 @@ void update_remote_mapping_contribution_amr(
 
          // ccell adds a neighbor_block_data block for each neighbor in the positive direction to its local data
          for (const auto nbr : p_nbrs) {
-         
-            bool initBlocksForEmptySiblings = false;
             
             //Send data in nbr target array that we just mapped to, if
             // 1) it is a valid target,
@@ -1425,9 +1444,9 @@ void update_remote_mapping_contribution_amr(
                
                if(mpiGrid.get_refinement_level(c) >= mpiGrid.get_refinement_level(nbr)) {
                   sendIndex = mySiblingIndex;
-               } else if (mpiGrid.get_refinement_level(nbr) >  mpiGrid.get_refinement_level(c)) {
+               } else {
                   sendIndex = get_sibling_index(mpiGrid,nbr);
-               }               
+               }
             
                SpatialCell *pcell = mpiGrid[nbr];
                
@@ -1453,7 +1472,7 @@ void update_remote_mapping_contribution_amr(
                         (Realf*) aligned_malloc(ccell->neighbor_number_of_blocks.at(sendIndex) * WID3 * sizeof(Realf), 64);
                      sendBuffers.push_back(ccell->neighbor_block_data.at(sendIndex));
                      for (uint j = 0; j < ccell->neighbor_number_of_blocks.at(sendIndex) * WID3; ++j) {
-                        ccell->neighbor_block_data[sendIndex][j] = 0.0;
+                        ccell->neighbor_block_data.at(sendIndex)[j] = 0.0;
                         
                      } // closes for(uint j = 0; j < ccell->neighbor_number_of_blocks.at(sendIndex) * WID3; ++j)
                      
@@ -1471,7 +1490,7 @@ void update_remote_mapping_contribution_amr(
       if (!all_of(n_nbrs.begin(), n_nbrs.end(), [&mpiGrid](CellID i){return mpiGrid.is_local(i);})) {
 
          // ccell adds a neighbor_block_data block for each neighbor in the positive direction to its local data
-         for (const auto nbr : n_nbrs) {     
+         for (const auto nbr : n_nbrs) {
          
             if (nbr != INVALID_CELLID && !mpiGrid.is_local(nbr) &&
                 ccell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
@@ -1499,7 +1518,7 @@ void update_remote_mapping_contribution_amr(
                   
                   recvIndex = get_sibling_index(mpiGrid,nbr);
 
-                  ncell->neighbor_number_of_blocks.at(recvIndex) = ccell->get_number_of_velocity_blocks(popID);                  
+                  ncell->neighbor_number_of_blocks.at(recvIndex) = ccell->get_number_of_velocity_blocks(popID);
                   ncell->neighbor_block_data.at(recvIndex) =
                      (Realf*) aligned_malloc(ncell->neighbor_number_of_blocks.at(recvIndex) * WID3 * sizeof(Realf), 64);
                   receiveBuffers.push_back(ncell->neighbor_block_data.at(recvIndex));
@@ -1534,7 +1553,7 @@ void update_remote_mapping_contribution_amr(
                
                receive_cells.push_back(c);
                receive_origin_cells.push_back(nbr);
-               receive_origin_index.push_back(recvIndex);                 
+               receive_origin_index.push_back(recvIndex);
                
             } // closes (nbr != INVALID_CELLID && !mpiGrid.is_local(nbr) && ...)
             
@@ -1578,7 +1597,7 @@ void update_remote_mapping_contribution_amr(
       // one cell is the neighbor on bot + and - side to the same process
       for (auto c : send_cells) {
          SpatialCell* spatial_cell = mpiGrid[c];
-         Realf * blockData = spatial_cell->get_data(popID);         
+         Realf * blockData = spatial_cell->get_data(popID);
          //#pragma omp for nowait
          for(unsigned int vCell = 0; vCell < VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(popID); ++vCell) {
             // copy received target data to temporary array where target data is stored.
@@ -1590,7 +1609,7 @@ void update_remote_mapping_contribution_amr(
    for (auto p : receiveBuffers) {
       aligned_free(p);
    }
-   for (auto p : sendBuffers) {      
+   for (auto p : sendBuffers) {
       aligned_free(p);
    }
 
