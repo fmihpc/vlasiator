@@ -643,7 +643,9 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
 
       auto myIndices = mpiGrid.mapping.get_indices(celli);
       
-      bool addToSeedIds = false;
+#warning This forces single-cell pencils!
+      // FIXME TODO Tuomas look at this! BUG
+      bool addToSeedIds = true;
       // Returns all neighbors as (id, direction-dimension) pair pointers.
       for ( const auto nbrPair : *(mpiGrid.get_neighbors_of(celli, neighborhood)) ) {
          
