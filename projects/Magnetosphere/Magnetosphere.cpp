@@ -330,11 +330,13 @@ namespace projects {
 	       // corrective terms in the perturbed field. This maintains the BGB as curl-free.
 	       bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );//set dipole moment
                setBackgroundField(bgFieldDipole, BgBGrid);
-	       // Difference into perBgrid
-	       bgFieldDipole.initialize(-8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );
-               setPerturbedField(bgFieldDipole, perBGrid);
-	       bgVectorDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, this->dipoleTiltPhi*3.14159/180., this->dipoleTiltTheta*3.14159/180., this->dipoleXFull, this->dipoleXZero, this->dipoleInflowB[0], this->dipoleInflowB[1], this->dipoleInflowB[2]);
-               setPerturbedField(bgVectorDipole, perBGrid, true);
+	       // Difference into perBgrid, only if not restarting
+	       if (P::isRestart == false) {
+		  bgFieldDipole.initialize(-8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );
+		  setPerturbedField(bgFieldDipole, perBGrid);
+		  bgVectorDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, this->dipoleTiltPhi*3.14159/180., this->dipoleTiltTheta*3.14159/180., this->dipoleXFull, this->dipoleXZero, this->dipoleInflowB[0], this->dipoleInflowB[1], this->dipoleInflowB[2]);
+		  setPerturbedField(bgVectorDipole, perBGrid, true);
+	       }
                break;              
             default:
                setBackgroundFieldToZero(BgBGrid);
