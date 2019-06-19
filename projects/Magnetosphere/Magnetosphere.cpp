@@ -641,14 +641,14 @@ namespace projects {
          
          if (refine_L3radius < refine_L2radius && refine_L3radius > ionosphereRadius) {
             // L3 refinement.
-            for (uint i = 2*bw2; i < 2*(P::xcells_ini-bw2); ++i) {
-               for (uint j = 2*bw2; j < 2*(P::ycells_ini-bw2); ++j) {
-                  for (uint k = 2*bw2; k < 2*(P::zcells_ini-bw2); ++k) {
+            for (uint i = 2*bw2; i < 4*P::xcells_ini-2*bw2; ++i) {
+               for (uint j = 2*bw2; j < 4*P::ycells_ini-2*bw2; ++j) {
+                  for (uint k = 2*bw2; k < 4*P::zcells_ini-2*bw2; ++k) {
                      
                      std::array<double,3> xyz;
-                     xyz[0] = P::xmin + (i+0.5)*0.5*P::dx_ini;
-                     xyz[1] = P::ymin + (j+0.5)*0.5*P::dy_ini;
-                     xyz[2] = P::zmin + (k+0.5)*0.5*P::dz_ini;
+                     xyz[0] = P::xmin + (i+0.5)*0.25*P::dx_ini;
+                     xyz[1] = P::ymin + (j+0.5)*0.25*P::dy_ini;
+                     xyz[2] = P::zmin + (k+0.5)*0.25*P::dz_ini;
                      
                      Real radius2 = (xyz[0]*xyz[0]+xyz[1]*xyz[1]+xyz[2]*xyz[2]);
                      // Check if cell is within L1 sphere, or within L1 tail slice
