@@ -377,6 +377,7 @@ namespace SBC {
                   propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, false, false, true);
                   break;
                default:
+                  cerr << "ERROR: outflow boundary tried to propagate nonsensical magnetic field component " << component << endl;
                   break;
             }
             if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {

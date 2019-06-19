@@ -576,6 +576,7 @@ namespace SBC {
                   propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, false, false, true);
                   break;
                default:
+                  cerr << "ERROR: ionosphere boundary tried to propagate nonsensical magnetic field component " << component << endl;
                   break;
             }
             return bGrid->get(i,j,k)->at(fsgrids::bfield::PERBX + component);
