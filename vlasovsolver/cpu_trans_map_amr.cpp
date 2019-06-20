@@ -882,6 +882,27 @@ bool checkPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       
    }
 
+   for (int ipencil = 0; ipencil < pencils.N; ++ipencil) {
+
+      auto ids = pencils.getIds(ipencil);
+
+      for (auto id : ids) {
+
+         int myCount = std::count(pencils.ids.begin(), pencils.ids.end(), id);
+         int nPencilsThroughThisCell = pow(pow(2,pencils.path[ipencil].size()),2);
+
+         if (myCount > nPencilsThroughThisCell) {
+
+            std::cerr << "ERROR: Cell ID " << id << " Appears in pencils " << myCount << " times!"<< std::endl;
+            std::cerr << "       It should not appear more than " << nPencilsThroughThisCell << " times." << std::endl;
+            correct = false;
+
+         }
+
+      }
+
+   }
+
    return correct;
    
 }
