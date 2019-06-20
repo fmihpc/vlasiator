@@ -24,6 +24,7 @@
 #include "cpu_moments.h"
 #include "cpu_acc_transform.hpp"
 #include <fstream>
+//#include <cstdlib>
 
 using namespace std;
 using namespace spatial_cell;
@@ -104,6 +105,10 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
    const Real gyro_period
      = 2 * M_PI * getObjectWrapper().particleSpecies[popID].mass
      / (getObjectWrapper().particleSpecies[popID].charge * B_mag);
+   const Real plasma_period
+     = 2 * M_PI * sqrt(physicalconstants::EPS_0 * getObjectWrapper().particleSpecies[popID].mass / 
+     getObjectWrapper().particleSpecies[popID].charge /
+     getObjectWrapper().particleSpecies[popID].charge / spatial_cell->get_population(popID).RHO ); 
 
    // scale rho for hall term, if user requests
    const Real EPSILON = 1e10 * numeric_limits<Real>::min();
@@ -143,11 +148,15 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
    } // if (Parameters::propagatePotential == true) 
 
    // in this many substeps we iterate forward bulk velocity when the complete transformation is computed (0.1 deg per substep).
-   unsigned int bulk_velocity_substeps = 500; 
-   //bulk_velocity_substeps = fabs(dt) / fabs(gyro_period*(0.1/360.0));
-   //if (bulk_velocity_substeps < 1) bulk_velocity_substeps=1;
-
+   unsigned int bulk_velocity_substeps; 
+   unsigned int bulk_velocity_substeps_2; 
+   bulk_velocity_substeps = fabs(dt) / fabs(gyro_period*(0.01/360.0));
+   bulk_velocity_substeps_2 = fabs(dt) / fabs(plasma_period*(0.001));
+   if (bulk_velocity_substeps_2 > bulk_velocity_substeps ) bulk_velocity_substeps = bulk_velocity_substeps_2;
+   if (bulk_velocity_substeps < 1) bulk_velocity_substeps=1;
+      
    const Real substeps_radians = -(2.0*M_PI*dt/gyro_period)/bulk_velocity_substeps; // how many radians each substep is.
+   //const Real substeps_radians = -(2.0*M_PI*dt/plasma_period)/bulk_velocity_substeps; // how many radians each substep is.
    const Real substeps_dt=dt/bulk_velocity_substeps; /*!< how many s each substep is*/
    Eigen::Matrix<Real,3,1> EgradPe(
       spatial_cell->parameters[CellParams::EXGRADPE],
@@ -157,33 +166,50 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       spatial_cell->parameters[CellParams::EXJE],
       spatial_cell->parameters[CellParams::EYJE],
       spatial_cell->parameters[CellParams::EZJE]);
-   Eigen::Matrix<Real,3,1> dEJEt(0.,0.,0.);
 
    // Store the original electron bulk velocity
    Eigen::Matrix<Real,3,1> electronV(0.,0.,0.);
    for (uint popID_EJE=0; popID_EJE<getObjectWrapper().particleSpecies.size(); ++popID_EJE) {
      if (getObjectWrapper().particleSpecies[popID_EJE].charge < 0) {
-       electronV[0] = spatial_cell->get_population(popID_EJE).V[0];
-       electronV[1] = spatial_cell->get_population(popID_EJE).V[1];
-       electronV[2] = spatial_cell->get_population(popID_EJE).V[2];
+       electronV[0] = spatial_cell->get_population(popID_EJE).V_V[0];
+       electronV[1] = spatial_cell->get_population(popID_EJE).V_V[1];
+       electronV[2] = spatial_cell->get_population(popID_EJE).V_V[2];
      }
    }
-
+   
    ofstream substepFile;
    substepFile.open ("substep_test.txt", ios::app);
+   if (dt > gyro_period) {
+      substepFile << " bulk_velocity_substeps = " << bulk_velocity_substeps << endl;
+      substepFile << " dt: " << dt << endl;
+   //substepFile << " substeps_radians: " << substeps_radians << endl;
+      substepFile << " gyro and plasma periods: " << gyro_period << "\t" << plasma_period << endl;
+      substepFile << " CellID: " << spatial_cell->parameters[CellParams::CELLID] << endl;
+      substepFile << " N: " << floor(dt/gyro_period) << endl;
+      substepFile << endl;
+   }
+
+      
+   bool RKN = true; 
    //if (int(spatial_cell->parameters[CellParams::CELLID]) % 500 == 0) {
    //   substepFile << " CellID, substeps = " << spatial_cell->parameters[CellParams::CELLID] << " \t" << bulk_velocity_substeps << endl; 
    //   substepFile << " popID, charge = " << popID << " \t" << getObjectWrapper().particleSpecies[popID].charge << endl; 
    //}
    for (uint i=0; i<bulk_velocity_substeps; ++i) {
+      Eigen::Matrix<Real,3,1> dEJEt(0.,0.,0.);
+      Eigen::Matrix<Real,3,1> V0(0.,0.,0.);
+      Eigen::Matrix<Real,3,1> k1(0.,0.,0.);
+      Eigen::Matrix<Real,3,1> k3(0.,0.,0.);
+      //Eigen::Matrix<Real,3,1> k3(0.,0.,0.);
       // rotation origin is the point through which we place our rotation axis (direction of which is unitB).
       // first add bulk velocity (using the total transform computed this far.
       Eigen::Matrix<Real,3,1> rotation_pivot(total_transform*bulk_velocity);
-      if (getObjectWrapper().particleSpecies[popID].charge < 0 && int(spatial_cell->parameters[CellParams::CELLID]) % 9500 == 0 && 
-              i == 100) {
-         substepFile << " substep: " << i << endl;
-         substepFile << " rotation_pivot matrix at 1 :\n" << rotation_pivot << endl;
-      }
+      //if (getObjectWrapper().particleSpecies[popID].charge < 0 && int(spatial_cell->parameters[CellParams::CELLID]) == 1 && 
+      //        i % 1000 == 0) {
+      //   substepFile << " substep: " << i << endl;
+      //   substepFile << " popID:   " << popID << endl;
+      //   substepFile << " rotation_pivot matrix at 1 :\n" << rotation_pivot << endl;
+      //}
 
       /* include lorentzHallTerm (we should include, always)      
 	 This performs a transformation into a frame where the newly generated motional
@@ -194,66 +220,93 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       //rotation_pivot[0]-= hallPrefactor*(dBZdy - dBYdz);
       //rotation_pivot[1]-= hallPrefactor*(dBXdz - dBZdx);
       //rotation_pivot[2]-= hallPrefactor*(dBYdx - dBXdy);
-      if (getObjectWrapper().particleSpecies[popID].charge < 0 && int(spatial_cell->parameters[CellParams::CELLID]) % 9500 == 0 &&
-              i == 100) {
-         substepFile << " CellID: " << spatial_cell->parameters[CellParams::CELLID] << endl;
-         substepFile << " electronV: \n" << electronV << endl;
-         substepFile << " substeps_dt, dt: " << substeps_dt << "\t" << dt << endl;
-      }
+      //if (getObjectWrapper().particleSpecies[popID].charge < 0 && int(spatial_cell->parameters[CellParams::CELLID]) == 1 &&
+      //        i % 1000 == 0) {
+      //   substepFile << " CellID: " << spatial_cell->parameters[CellParams::CELLID] << endl;
+      //   substepFile << " electronV: \n" << electronV << endl;
+      //   substepFile << " substeps_dt, dt: " << substeps_dt << "\t" << dt << endl;
+      //   substepFile << " " << endl;
+      //}
 
       // Calculate EJE only for the electron population
       if (getObjectWrapper().particleSpecies[popID].charge < 0 && substeps_dt > 0) {
          // First find the current electron moments, this results in leapfrog-like propagation of EJE
-         Eigen::Matrix<Real,3,1> electronVcurr(total_transform*electronV);	
-         /* Calculate electrostatic field derivative via current
-            using the substep-transformed electron bulkV and exising other population bulkVs */
-         for (uint popID_EJE=0; popID_EJE<getObjectWrapper().particleSpecies.size(); ++popID_EJE) {
-            if (getObjectWrapper().particleSpecies[popID_EJE].charge < 0) {
-               dEJEt[0] += -getObjectWrapper().particleSpecies[popID_EJE].charge *spatial_cell->get_population(popID_EJE).RHO
-               * electronVcurr[0] / physicalconstants::EPS_0;
-               dEJEt[1] += -getObjectWrapper().particleSpecies[popID_EJE].charge *spatial_cell->get_population(popID_EJE).RHO
-               * electronVcurr[1] / physicalconstants::EPS_0;
-               dEJEt[2] += -getObjectWrapper().particleSpecies[popID_EJE].charge *spatial_cell->get_population(popID_EJE).RHO
-               * electronVcurr[2] / physicalconstants::EPS_0;
-            } else {
-               dEJEt[0] += -getObjectWrapper().particleSpecies[popID_EJE].charge *spatial_cell->get_population(popID_EJE).RHO
-               * spatial_cell->get_population(popID_EJE).V[0] / physicalconstants::EPS_0;
-               dEJEt[1] += -getObjectWrapper().particleSpecies[popID_EJE].charge *spatial_cell->get_population(popID_EJE).RHO
-               * spatial_cell->get_population(popID_EJE).V[1] / physicalconstants::EPS_0;
-               dEJEt[2] += -getObjectWrapper().particleSpecies[popID_EJE].charge *spatial_cell->get_population(popID_EJE).RHO
-               * spatial_cell->get_population(popID_EJE).V[2] / physicalconstants::EPS_0;
-            }         
+         Eigen::Matrix<Real,3,1> electronVcurr(total_transform*electronV);
+         if (RKN) { // Use second order solver or...
+            for (uint popID_EJE=0; popID_EJE<getObjectWrapper().particleSpecies.size(); ++popID_EJE) {
+               if (getObjectWrapper().particleSpecies[popID_EJE].charge < 0) {
+                  V0[0] += electronVcurr[0];
+                  V0[1] += electronVcurr[1];
+                  V0[2] += electronVcurr[2];
+               } else {
+                  V0[0] += spatial_cell->get_population(popID_EJE).V_V[0];
+                  V0[1] += spatial_cell->get_population(popID_EJE).V_V[1];
+                  V0[2] += spatial_cell->get_population(popID_EJE).V_V[2];
+               }         
+            }
+            k1 = -pow(getObjectWrapper().particleSpecies[popID].charge,2.)*spatial_cell->get_population(popID).RHO
+               / getObjectWrapper().particleSpecies[popID].mass / physicalconstants::EPS_0 * V0;
+            k3 = -pow(getObjectWrapper().particleSpecies[popID].charge,2.)*spatial_cell->get_population(popID).RHO
+               / getObjectWrapper().particleSpecies[popID].mass / physicalconstants::EPS_0 
+               * (V0 + 2./3.*substeps_dt*EfromJe*getObjectWrapper().particleSpecies[popID].charge/getObjectWrapper().particleSpecies[popID].mass
+               + 2./9.*pow(substeps_dt,2.)*k1);
+            dEJEt = getObjectWrapper().particleSpecies[popID].mass/getObjectWrapper().particleSpecies[popID].charge
+                    * substeps_dt/4. * (k1 + 3*k3); 
+ 
+         } else {  // Use simple Eulerian solver
+             /* Calculate electrostatic field derivative via current
+                using the substep-transformed electron bulkV and exising other population bulkVs */
+             for (uint popID_EJE=0; popID_EJE<getObjectWrapper().particleSpecies.size(); ++popID_EJE) {
+                if (getObjectWrapper().particleSpecies[popID_EJE].charge < 0) {
+                   //dEJEt = -getObjectWrapper().particleSpecies[popID_EJE].charge *spatial_cell->get_population(popID_EJE).RHO
+                   //        * electronVcurr / physicalconstants::EPS_0; 
+                   dEJEt[0] += -getObjectWrapper().particleSpecies[popID_EJE].charge *spatial_cell->get_population(popID_EJE).RHO
+                   * electronVcurr[0] / physicalconstants::EPS_0;
+                   dEJEt[1] += -getObjectWrapper().particleSpecies[popID_EJE].charge *spatial_cell->get_population(popID_EJE).RHO
+                   * electronVcurr[1] / physicalconstants::EPS_0;
+                   dEJEt[2] += -getObjectWrapper().particleSpecies[popID_EJE].charge *spatial_cell->get_population(popID_EJE).RHO
+                   * electronVcurr[2] / physicalconstants::EPS_0;
+                } else {
+                   //dEJEt = -getObjectWrapper().particleSpecies[popID_EJE].charge *spatial_cell->get_population(popID_EJE).RHO
+                   //        * spatial_cell->get_population(popID_EJE).V_V / physicalconstants::EPS_0; 
+                   dEJEt[0] += -getObjectWrapper().particleSpecies[popID_EJE].charge *spatial_cell->get_population(popID_EJE).RHO
+                   * spatial_cell->get_population(popID_EJE).V_V[0] / physicalconstants::EPS_0;
+                   dEJEt[1] += -getObjectWrapper().particleSpecies[popID_EJE].charge *spatial_cell->get_population(popID_EJE).RHO
+                   * spatial_cell->get_population(popID_EJE).V_V[1] / physicalconstants::EPS_0;
+                   dEJEt[2] += -getObjectWrapper().particleSpecies[popID_EJE].charge *spatial_cell->get_population(popID_EJE).RHO
+                   * spatial_cell->get_population(popID_EJE).V_V[2] / physicalconstants::EPS_0;
+                }         
+             }
          }
 
-         // Increment EfromJe with derivative times half of substep to get representative field throughout integration step
-         EfromJe += dEJEt*0.5*substeps_dt;
-         // Find B-perpendicular and B-parallel components of EfromJe
-         Eigen::Matrix<Real,3,1> EfromJe_parallel(EfromJe.dot(unit_B)*unit_B);
-         Eigen::Matrix<Real,3,1> EfromJe_perpendicular(EfromJe-EfromJe_parallel);
-         Eigen::Matrix<Real,3,1> unit_EJEperp(EfromJe_perpendicular.normalized());
+         if (!RKN) { 
+             // Increment EfromJe with derivative times half of substep to get representative field throughout integration step
+             EfromJe += dEJEt*0.5*substeps_dt;
+             // Find B-perpendicular and B-parallel components of EfromJe
+             Eigen::Matrix<Real,3,1> EfromJe_parallel(EfromJe.dot(unit_B)*unit_B);
+             Eigen::Matrix<Real,3,1> EfromJe_perpendicular(EfromJe-EfromJe_parallel);
+             Eigen::Matrix<Real,3,1> unit_EJEperp(EfromJe_perpendicular.normalized());
 
-         if (getObjectWrapper().particleSpecies[popID].charge < 0 && int(spatial_cell->parameters[CellParams::CELLID]) % 9500 == 0 &&
-                 i == 100) {
-            substepFile << " EfromJe: \n" << EfromJe << endl;
-            substepFile << " EfromJe_parallel: \n" << EfromJe_parallel << endl;
-            substepFile << " EfromJe_perpendicular: \n" << EfromJe_perpendicular << endl;
-            substepFile << " unit_EJEperp: \n" << unit_EJEperp << endl;
-            substepFile << " electronVcurr: \n" << electronVcurr << endl;
-            substepFile << " dEJEt: \n" << dEJEt << endl;
-         }
+             // Add pivot transformation to negate component of EfromJe perpendicular to B
+             // Vnorm = Bnorm cross Enorm
+             Real EJEperpperB = EfromJe_perpendicular.norm() / B.norm();
+             rotation_pivot[0]-= EJEperpperB * (unit_B[1]*unit_EJEperp[2] - unit_B[2]*unit_EJEperp[1]);
+             rotation_pivot[1]-= EJEperpperB * (unit_B[2]*unit_EJEperp[0] - unit_B[0]*unit_EJEperp[2]);
+             rotation_pivot[2]-= EJEperpperB * (unit_B[0]*unit_EJEperp[1] - unit_B[1]*unit_EJEperp[0]);
 
-         // Add pivot transformation to negate component of EfromJe perpendicular to B
-         // Vnorm = Enorm cross Bnorm
-         Real EJEperpperB = EfromJe_perpendicular.norm() / B.norm();
-         //rotation_pivot[0]-= EJEperpperB * (unit_B[1]*unit_EJEperp[2] - unit_B[2]*unit_EJEperp[1]);
-         //rotation_pivot[1]-= EJEperpperB * (unit_B[2]*unit_EJEperp[0] - unit_B[0]*unit_EJEperp[2]);
-         //rotation_pivot[2]-= EJEperpperB * (unit_B[0]*unit_EJEperp[1] - unit_B[1]*unit_EJEperp[0]);
-         rotation_pivot[0]-= EJEperpperB * (unit_EJEperp[1]*unit_B[2] - unit_EJEperp[2]*unit_B[1]);
-         rotation_pivot[1]-= EJEperpperB * (unit_EJEperp[2]*unit_B[0] - unit_EJEperp[0]*unit_B[2]);
-         rotation_pivot[2]-= EJEperpperB * (unit_EJEperp[0]*unit_B[1] - unit_EJEperp[1]*unit_B[0]);
-         if (getObjectWrapper().particleSpecies[popID].charge < 0 && int(spatial_cell->parameters[CellParams::CELLID]) % 9500 == 0 &&
-                 i == 100) {
-            substepFile << " rotation_pivot matrix at 2 :\n" << rotation_pivot << endl;
+             //if (getObjectWrapper().particleSpecies[popID].charge < 0 && int(spatial_cell->parameters[CellParams::CELLID]) == 1 &&
+             //        i % 1000 == 0) {
+             //   substepFile << " rotation_pivot matrix at 2 :\n" << rotation_pivot << endl;
+             //   substepFile << " EJEperpperB :\n" << EJEperpperB << endl;
+                //substepFile << " EfromJe: \n" << EfromJe << endl;
+                //substepFile << " EfromJe_parallel: \n" << EfromJe_parallel << endl;
+                //substepFile << " EfromJe_perpendicular: \n" << EfromJe_perpendicular << endl;
+                //substepFile << " unit_EJEperp: \n" << unit_EJEperp << endl;
+                //substepFile << " electronVcurr: \n" << electronVcurr << endl;
+                //substepFile << " dEJEt: \n" << dEJEt << endl;
+                //substepFile << " substeps_radians: \n" << substeps_radians << endl;
+             //   substepFile << " " << endl;
+             //}
          }
       }
 
@@ -265,25 +318,32 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       total_transform = Translation<Real,3>(rotation_pivot)*total_transform;
 
       Eigen::Matrix<Real,3,1> EfromJe_parallel(EfromJe.dot(unit_B)*unit_B);
-      if (getObjectWrapper().particleSpecies[popID].charge < 0) {
-         // Perform B-parallel acceleration from EJE field
-         total_transform=Translation<Real,3>( (getObjectWrapper().particleSpecies[popID].charge/getObjectWrapper().particleSpecies[popID].mass) * 
-         EfromJe_parallel * substeps_dt) * total_transform;
-      }
 
       /* The alternative to decomposing the EJE field into parallel and perpendicular components is to
          treat it a simple acceleration term. This acceleration was found by integrating over
          the time-varying electric field. */
-      /*
+      
       if (getObjectWrapper().particleSpecies[popID].charge < 0) {
-         total_transform=Translation<Real,3>( (getObjectWrapper().particleSpecies[popID].charge/getObjectWrapper().particleSpecies[popID].mass) * 
-         EfromJe * substeps_dt) * total_transform;
+         if (RKN) {
+            total_transform=Translation<Real,3>( (getObjectWrapper().particleSpecies[popID].charge/getObjectWrapper().particleSpecies[popID].mass) * 
+                            EfromJe * substeps_dt + (k1 + k3)*substeps_dt/4.) * total_transform;
+         // If using the Eulerian scheme, then the rotation algorithm is used and only the parallel nudge is required
+         } else {
+            // Perform B-parallel acceleration from EJE field
+            total_transform=Translation<Real,3>( (getObjectWrapper().particleSpecies[popID].charge/getObjectWrapper().particleSpecies[popID].mass) * 
+                            EfromJe_parallel * substeps_dt) * total_transform;
+         //   total_transform=Translation<Real,3>( (getObjectWrapper().particleSpecies[popID].charge/getObjectWrapper().particleSpecies[popID].mass) * 
+         //                   EfromJe * substeps_dt) * total_transform;
+         }
       }
-      */
 
       // Store EfromJe after whole substep
       if (getObjectWrapper().particleSpecies[popID].charge < 0) {
-         EfromJe += dEJEt*0.5*substeps_dt;
+         if (RKN) {
+            EfromJe += dEJEt*substeps_dt;
+         } else {
+            EfromJe += dEJEt*0.5*substeps_dt;
+         }
       }
 
       // Electron pressure gradient term (this is still untested and might also need to be decomposed into perp and parallel portions)
