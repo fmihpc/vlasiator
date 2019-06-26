@@ -934,28 +934,39 @@ bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          }
          // Cell lines selection
          // Determine cellID's 3D indices
-         lineX =  (cells[i]-1) % P::xcells_ini;
-         lineY = ((cells[i]-1) / P::xcells_ini) % P::ycells_ini;
-         lineZ = ((cells[i]-1) /(P::xcells_ini *  P::ycells_ini)) % P::zcells_ini;
-         // Check that indices are in correct intersection at least in one plane
-         if ((P::systemWriteDistributionWriteXlineStride[index] > 0 &&
-              P::systemWriteDistributionWriteYlineStride[index] > 0 &&
-              lineX % P::systemWriteDistributionWriteXlineStride[index] == 0 &&
-              lineY % P::systemWriteDistributionWriteYlineStride[index] == 0)
-             &&
-             (P::systemWriteDistributionWriteYlineStride[index] > 0 &&
-              P::systemWriteDistributionWriteZlineStride[index] > 0 &&
-              lineY % P::systemWriteDistributionWriteYlineStride[index] == 0 &&
-              lineZ % P::systemWriteDistributionWriteZlineStride[index] == 0)
-             &&
-             (P::systemWriteDistributionWriteZlineStride[index] > 0 &&
-              P::systemWriteDistributionWriteXlineStride[index] > 0 &&
-              lineZ % P::systemWriteDistributionWriteZlineStride[index] == 0 &&
-              lineX % P::systemWriteDistributionWriteXlineStride[index] == 0)
-         ) {
-            velSpaceCells.push_back(cells[i]);
-            mpiGrid[cells[i]]->parameters[CellParams::ISCELLSAVINGF] = 1.0;
-         }
+	 
+	 // Loop over AMR levels
+	 for (uint AMR = 0; AMR <= P::amrMaxSpatialRefLevel; AMR++) {
+	    uint AMRP = AMR+1;
+	    uint startindex = (AMR*P::xcells_ini)*(AMR*P::ycells_ini)*(AMR*P::zcells_ini)+1;
+	    uint endindex = (AMRP*P::xcells_ini)*(AMRP*P::ycells_ini)*(AMRP*P::zcells_ini)+1;
+	  
+	    // If cell belongs to this AMR level, find indices
+	    if ((cells[i]>=startindex)&&(cells[i]<endindex)) {
+	       lineX =  (cells[i]-startindex) % (AMRP*P::xcells_ini);
+	       lineY = ((cells[i]-startindex) / (AMRP*P::xcells_ini)) % (AMRP*P::ycells_ini);
+	       lineZ = ((cells[i]-startindex) /((AMRP*P::xcells_ini) *  (AMRP*P::ycells_ini))) % (AMRP*P::zcells_ini);
+	       // Check that indices are in correct intersection at least in one plane
+	       if ((P::systemWriteDistributionWriteXlineStride[index] > 0 &&
+		    P::systemWriteDistributionWriteYlineStride[index] > 0 &&
+		    lineX % P::systemWriteDistributionWriteXlineStride[index] == 0 &&
+		    lineY % P::systemWriteDistributionWriteYlineStride[index] == 0)
+		   &&
+		   (P::systemWriteDistributionWriteYlineStride[index] > 0 &&
+		    P::systemWriteDistributionWriteZlineStride[index] > 0 &&
+		    lineY % P::systemWriteDistributionWriteYlineStride[index] == 0 &&
+		    lineZ % P::systemWriteDistributionWriteZlineStride[index] == 0)
+		   &&
+		   (P::systemWriteDistributionWriteZlineStride[index] > 0 &&
+		    P::systemWriteDistributionWriteXlineStride[index] > 0 &&
+		    lineZ % P::systemWriteDistributionWriteZlineStride[index] == 0 &&
+		    lineX % P::systemWriteDistributionWriteXlineStride[index] == 0)
+		   ) {
+		  velSpaceCells.push_back(cells[i]);
+		  mpiGrid[cells[i]]->parameters[CellParams::ISCELLSAVINGF] = 1.0;
+	       }
+	    }
+	 }
       }
 
       uint64_t numVelSpaceCells;
