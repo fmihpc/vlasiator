@@ -936,16 +936,19 @@ bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          // Determine cellID's 3D indices
 	 
 	 // Loop over AMR levels
+	 uint startindex=1;
+	 uint endindex=1;
 	 for (uint AMR = 0; AMR <= P::amrMaxSpatialRefLevel; AMR++) {
-	    uint AMRP = AMR+1;
-	    uint startindex = (AMR*P::xcells_ini)*(AMR*P::ycells_ini)*(AMR*P::zcells_ini)+1;
-	    uint endindex = (AMRP*P::xcells_ini)*(AMRP*P::ycells_ini)*(AMRP*P::zcells_ini)+1;
+	    uint AMRm = std::floor(std::pow(2,AMR));
+	    uint cellsthislevel = (AMRm*P::xcells_ini)*(AMRm*P::ycells_ini)*(AMRm*P::zcells_ini);
+	    startindex = endindex;
+	    endindex = endindex + cellsthislevel;
 	  
 	    // If cell belongs to this AMR level, find indices
 	    if ((cells[i]>=startindex)&&(cells[i]<endindex)) {
-	       lineX =  (cells[i]-startindex) % (AMRP*P::xcells_ini);
-	       lineY = ((cells[i]-startindex) / (AMRP*P::xcells_ini)) % (AMRP*P::ycells_ini);
-	       lineZ = ((cells[i]-startindex) /((AMRP*P::xcells_ini) *  (AMRP*P::ycells_ini))) % (AMRP*P::zcells_ini);
+	       lineX =  (cells[i]-startindex) % (AMRm*P::xcells_ini);
+	       lineY = ((cells[i]-startindex) / (AMRm*P::xcells_ini)) % (AMRm*P::ycells_ini);
+	       lineZ = ((cells[i]-startindex) /((AMRm*P::xcells_ini) *  (AMRm*P::ycells_ini))) % (AMRm*P::zcells_ini);
 	       // Check that indices are in correct intersection at least in one plane
 	       if ((P::systemWriteDistributionWriteXlineStride[index] > 0 &&
 		    P::systemWriteDistributionWriteYlineStride[index] > 0 &&
