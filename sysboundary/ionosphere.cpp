@@ -33,6 +33,7 @@
 #include "../vlasovmover.h"
 #include "../fieldsolver/fs_common.h"
 #include "../fieldsolver/fs_limiters.h"
+#include "../fieldsolver/ldz_magnetic_field.hpp"
 #include "../common.h"
 #include "../object_wrapper.h"
 
@@ -554,6 +555,35 @@ namespace SBC {
          bGrid = &perBDt2Grid;
       }
       
+      // Easy case: in case we are neighboured by a non-sysboundary cell, we still solve the
+      // fields normally here.
+      cuint sysBoundaryLayer = technicalGrid.get(i,j,k)->sysBoundaryLayer;
+      if(sysBoundaryLayer == 1) {
+         cint neigh_i=i + ((component==0)?-1:0);
+         cint neigh_j=j + ((component==1)?-1:0);
+         cint neigh_k=k + ((component==2)?-1:0);
+         cuint neighborSysBoundaryFlag = technicalGrid.get(neigh_i, neigh_j, neigh_k)->sysBoundaryFlag;
+
+         if (neighborSysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+            switch(component) {
+               case 0:
+                  propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, true, false, false);
+                  break;
+               case 1:
+                  propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, false, true, false);
+                  break;
+               case 2:
+                  propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, false, false, true);
+                  break;
+               default:
+                  cerr << "ERROR: ionosphere boundary tried to propagate nonsensical magnetic field component " << component << endl;
+                  break;
+            }
+            return bGrid->get(i,j,k)->at(fsgrids::bfield::PERBX + component);
+         }
+      }
+
+      // Otherwise:
       // Sum perturbed B component over all nearest NOT_SYSBOUNDARY neighbours
       std::array<Real, 3> averageB = {{ 0.0 }};
       for (uint it = 0; it < closestCells.size(); it++) {
