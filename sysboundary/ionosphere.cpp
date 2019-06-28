@@ -584,31 +584,32 @@ namespace SBC {
       }
 
       // Otherwise:
-//       // Sum perturbed B component over all nearest NOT_SYSBOUNDARY neighbours
-//       std::array<Real, 3> averageB = {{ 0.0 }};
-//       for (uint it = 0; it < closestCells.size(); it++) {
-//          #ifdef DEBUG_IONOSPHERE
-//          if (technicalGrid.get(closestCells[it][0],closestCells[it][1],closestCells[it][2])->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
-//             stringstream ss;
-//             ss << "ERROR, ionosphere cell (" << i << "," << j << "," << k << ") uses value from sysboundary nbr (" << closestCells[it][0] << "," << closestCells[it][1] << "," << closestCells[it][2] << " in " << __FILE__ << ":" << __LINE__ << endl;
-//             cerr << ss.str();
-//             exit(1);
-//          }
-//          #endif
-//          averageB[0] += bGrid->get(closestCells[it][0], closestCells[it][1], closestCells[it][2])->at(fsgrids::bfield::PERBX);
-//          averageB[1] += bGrid->get(closestCells[it][0], closestCells[it][1], closestCells[it][2])->at(fsgrids::bfield::PERBY);
-//          averageB[2] += bGrid->get(closestCells[it][0], closestCells[it][1], closestCells[it][2])->at(fsgrids::bfield::PERBZ);
-//       }
+      // Sum perturbed B component over all nearest NOT_SYSBOUNDARY neighbours
+      /****
+      std::array<Real, 3> averageB = {{ 0.0 }};
+      for (uint it = 0; it < closestCells.size(); it++) {
+         #ifdef DEBUG_IONOSPHERE
+         if (technicalGrid.get(closestCells[it][0],closestCells[it][1],closestCells[it][2])->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+            stringstream ss;
+            ss << "ERROR, ionosphere cell (" << i << "," << j << "," << k << ") uses value from sysboundary nbr (" << closestCells[it][0] << "," << closestCells[it][1] << "," << closestCells[it][2] << " in " << __FILE__ << ":" << __LINE__ << endl;
+            cerr << ss.str();
+            exit(1);
+         }
+         #endif
+         averageB[0] += bGrid->get(closestCells[it][0], closestCells[it][1], closestCells[it][2])->at(fsgrids::bfield::PERBX);
+         averageB[1] += bGrid->get(closestCells[it][0], closestCells[it][1], closestCells[it][2])->at(fsgrids::bfield::PERBY);
+         averageB[2] += bGrid->get(closestCells[it][0], closestCells[it][1], closestCells[it][2])->at(fsgrids::bfield::PERBZ);
+      }
 
-//       // Average and project to normal direction
-//       std::array<Real, 3> normalDirection = fieldSolverGetNormalDirection(technicalGrid, i, j, k);
-//       for(uint i=0; i<3; i++) {
-//          averageB[i] *= normalDirection[i] / closestCells.size();
-//       }
-//       // Return (B.n)*normalVector[component]
-//       return (averageB[0]+averageB[1]+averageB[2])*normalDirection[component];
+      // Average and project to normal direction
+      std::array<Real, 3> normalDirection = fieldSolverGetNormalDirection(technicalGrid, i, j, k);
+      for(uint i=0; i<3; i++) {
+         averageB[i] *= normalDirection[i] / closestCells.size();
+      }
+      // Return (B.n)*normalVector[component]
+      return (averageB[0]+averageB[1]+averageB[2])*normalDirection[component];
+      ***/
 
-      // Otherwise
       // Copy each face B-field from the cell on the other side of it
       switch(component) {
          case 0:
