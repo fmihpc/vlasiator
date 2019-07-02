@@ -574,44 +574,6 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          }
          continue;
       }
-      if(lowercase == "vole" || lowercase == "vg_vole" || lowercase == "evol" || lowercase == "vg_e_vol" || lowercase == "e_vol") {
-         // Volume-averaged E field
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_e_vol",CellParams::EXVOL,3));
-	 outputReducer->addMetadata(outputReducer->size()-1,"V/m","$\\mathrm{V}\\,\\mathrm{m}^{-1}$","$E_\\mathrm{vol,vg}$","1.0");
-         continue;
-      }
-      if(lowercase == "fg_vole" || lowercase == "fg_e_vol" || lowercase == "fg_evol") {
-         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_e_vol",[](
-                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
-                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
-                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
-                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
-                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid,
-                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2>& dPerBGrid,
-                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dMomentsGrid,
-                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
-                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volGrid,
-                      FsGrid< fsgrids::technical, 2>& technicalGrid)->std::vector<double> {
-
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
-               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]*3);
-
-               // Iterate through fsgrid cells and extract EVOL
-               for(int z=0; z<gridSize[2]; z++) {
-                  for(int y=0; y<gridSize[1]; y++) {
-                     for(int x=0; x<gridSize[0]; x++) {
-                        retval[3*(gridSize[1]*gridSize[0]*z + gridSize[0]*y + x)] =  + (*volGrid.get(x,y,z))[fsgrids::EXVOL];
-                        retval[3*(gridSize[1]*gridSize[0]*z + gridSize[0]*y + x) + 1] = + (*volGrid.get(x,y,z))[fsgrids::EYVOL];
-                        retval[3*(gridSize[1]*gridSize[0]*z + gridSize[0]*y + x) + 2] = + (*volGrid.get(x,y,z))[fsgrids::EZVOL];
-                     }
-                  }
-               }
-               return retval;
-         }
-         ));
-	 outputReducer->addMetadata(outputReducer->size()-1,"V/m","$\\mathrm{V}\\,\\mathrm{m}^{-1}$","$E_\\mathrm{vol,fg}$","1.0");
-         continue;
-      }
       if(lowercase == "halle" || lowercase == "fg_halle" || lowercase == "fg_e_hall") {
          for(int index=0; index<fsgrids::N_EHALL; index++) {
             std::string reducer_name = "fg_e_hall_" + std::to_string(index);
