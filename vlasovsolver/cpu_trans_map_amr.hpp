@@ -28,6 +28,7 @@
 #include "../common.h"
 #include "../spatial_cell.hpp"
 
+
 struct setOfPencils {
 
    uint N; // Number of pencils in the set
@@ -172,13 +173,17 @@ struct setOfPencils {
    }
 };
 
+ 
 CellID selectNeighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> &grid,
                       CellID id, int dimension, uint path);
+
 
 void propagatePencil(Vec* dz, Vec* values, const uint dimension, const uint blockGID,
                      const Realv dt,
                      const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID> &vmesh,
-                     const uint lengthOfPencil, bool debugflag);
+                     const uint lengthOfPencil);
+
+
 
 void copy_trans_block_data_amr(
     SpatialCell** source_neighbors,
@@ -194,18 +199,13 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
 					std::vector<CellID> ids, uint dimension, 
 					std::vector<uint> path);
 
-void get_seed_ids(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                  const std::vector<CellID> &localPropagatedCells,
-                  const uint dimension,
-                  std::vector<CellID> &seedIds);
-
-
 bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                   const std::vector<CellID>& localPropagatedCells,
                   const std::vector<CellID>& remoteTargetCells,
                   const uint dimension,
                   const Realv dt,
                   const uint popID);
+
 
 void update_remote_mapping_contribution_amr(dccrg::Dccrg<spatial_cell::SpatialCell,
                                             dccrg::Cartesian_Geometry>& mpiGrid,

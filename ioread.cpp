@@ -242,7 +242,6 @@ bool readNBlocks(vlsv::ParallelReader& file,const std::string& meshName,
       cerr << "VLSV\t\t ERROR: Array 'MESH_DOMAIN_SIZES' XML tag does not have attribute 'arraysize'" << endl;
       return false;
    } else {
-      cerr << "VLSV\t\t Mesh has " << it->second << " domains" << endl;
       N_domains = atoi(it->second.c_str());
    }
 
@@ -778,6 +777,163 @@ bool readCellParamsVariable(
    return false;
 }
 
+template<unsigned long int N> bool readFsGridVariable(
+   vlsv::ParallelReader& file, const string& variableName, int numWritingRanks, FsGrid<std::array<Real, N>,2>& targetGrid) {
+
+   uint64_t arraySize;
+   uint64_t vectorSize;
+   vlsv::datatype::type dataType;
+   uint64_t byteSize;
+   list<pair<string,string> > attribs;
+   
+   attribs.push_back(make_pair("name",variableName));
+   attribs.push_back(make_pair("mesh","fsgrid"));
+
+   if (file.getArrayInfo("VARIABLE",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
+      logFile << "(RESTART)  ERROR: Failed to read " << endl << write;
+      return false;
+   }
+   if(! (dataType == vlsv::datatype::type::FLOAT && byteSize == sizeof(Real))) {
+      logFile << "(RESTART)  ERROR: Attempting to read fsgrid variable " << variableName << ", but it is not in the same floating point format as the simulation expects (" << byteSize*8 << " bits instead of " << sizeof(Real)*8 << ")." << endl << write;
+      return false;
+   }
+
+   // Are we restarting from the same number of tasks, or a different number?
+   int size, myRank;
+   MPI_Comm_size(MPI_COMM_WORLD, &size);
+   MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+
+   std::array<int32_t,3>& localSize = targetGrid.getLocalSize();
+   std::array<int32_t,3>& localStart = targetGrid.getLocalStart();
+   std::array<int32_t,3>& globalSize = targetGrid.getGlobalSize();
+
+   // Determine our tasks storage size
+   size_t storageSize = localSize[0]*localSize[1]*localSize[2];
+
+   if(size == numWritingRanks) {
+      // Easy case: same number of tasks => slurp it in.
+      //
+      std::array<int,3> decomposition;
+      targetGrid.computeDomainDecomposition(globalSize, size, decomposition);
+
+      // Determine offset in file by summing up all the previous tasks' sizes.
+      size_t localStartOffset = 0;
+      for(int task = 0; task < myRank; task++) {
+         std::array<int32_t,3> thatTasksSize;
+         thatTasksSize[0] = targetGrid.calcLocalSize(globalSize[0], decomposition[0], task/decomposition[2]/decomposition[1]);
+         thatTasksSize[1] = targetGrid.calcLocalSize(globalSize[1], decomposition[1], (task/decomposition[2])%decomposition[1]);
+         thatTasksSize[2] = targetGrid.calcLocalSize(globalSize[2], decomposition[2], task%decomposition[2]);
+         localStartOffset += thatTasksSize[0] * thatTasksSize[1] * thatTasksSize[2];
+      }
+      
+      // Read into buffer
+      std::vector<Real> buffer(storageSize*N);
+
+      if(file.readArray("VARIABLE",attribs, localStartOffset, storageSize, (char*)buffer.data()) == false) {
+         logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
+         return false;
+      }
+      
+      // Assign buffer into fsgrid
+      int index=0;
+      for(int z=0; z<localSize[2]; z++) {
+         for(int y=0; y<localSize[1]; y++) {
+            for(int x=0; x<localSize[0]; x++) {
+               memcpy(targetGrid.get(x,y,z), &buffer[index], N*sizeof(Real));
+               index += N;
+            }
+         }
+      }
+      
+   } else {
+
+      // More difficult case: different number of tasks.
+      // In this case, our own fsgrid domain overlaps (potentially many) domains in the file.
+      // We read the whole source rank into a temporary buffer, and transfer the overlapping
+      // part.
+      //
+      // +------------+----------------+
+      // |            |                |
+      // |    . . . . . . . . . . . .  |
+      // |    .<----->|<----------->.  |
+      // |    .<----->|<----------->.  |
+      // |    .<----->|<----------->.  |
+      // +----+-------+-------------+--|
+      // |    .<----->|<----------->.  |
+      // |    .<----->|<----------->.  |
+      // |    .<----->|<----------->.  |
+      // |    . . . . . . . . . . . .  |
+      // |            |                |
+      // +------------+----------------+
+
+      // Determine the decomposition in the file and the one in RAM for our restart
+      std::array<int,3> fileDecomposition;
+      targetGrid.computeDomainDecomposition(globalSize, numWritingRanks, fileDecomposition);
+
+      // Iterate through tasks and find their overlap with our domain.
+      size_t fileOffset = 0;
+      for(int task = 0; task < numWritingRanks; task++) {
+         std::array<int32_t,3> thatTasksSize;
+         std::array<int32_t,3> thatTasksStart;
+         thatTasksSize[0] = targetGrid.calcLocalSize(globalSize[0], fileDecomposition[0], task/fileDecomposition[2]/fileDecomposition[1]);
+         thatTasksSize[1] = targetGrid.calcLocalSize(globalSize[1], fileDecomposition[1], (task/fileDecomposition[2])%fileDecomposition[1]);
+         thatTasksSize[2] = targetGrid.calcLocalSize(globalSize[2], fileDecomposition[2], task%fileDecomposition[2]);
+
+         thatTasksStart[0] = targetGrid.calcLocalStart(globalSize[0], fileDecomposition[0], task/fileDecomposition[2]/fileDecomposition[1]);
+         thatTasksStart[1] = targetGrid.calcLocalStart(globalSize[1], fileDecomposition[1], (task/fileDecomposition[2])%fileDecomposition[1]);
+         thatTasksStart[2] = targetGrid.calcLocalStart(globalSize[2], fileDecomposition[2], task%fileDecomposition[2]);
+
+         // Iterate through overlap area
+         std::array<int,3> overlapStart,overlapEnd,overlapSize;
+         overlapStart[0] = max(localStart[0],thatTasksStart[0]);
+         overlapStart[1] = max(localStart[1],thatTasksStart[1]);
+         overlapStart[2] = max(localStart[2],thatTasksStart[2]);
+
+         overlapEnd[0] = min(localStart[0]+localSize[0], thatTasksStart[0]+thatTasksSize[0]);
+         overlapEnd[1] = min(localStart[1]+localSize[1], thatTasksStart[1]+thatTasksSize[1]);
+         overlapEnd[2] = min(localStart[2]+localSize[2], thatTasksStart[2]+thatTasksSize[2]);
+
+         overlapSize[0] = max(overlapEnd[0]-overlapStart[0],0);
+         overlapSize[1] = max(overlapEnd[1]-overlapStart[1],0);
+         overlapSize[2] = max(overlapEnd[2]-overlapStart[2],0);
+
+         // Read every source rank that we have an overlap with.
+         if(overlapSize[0]*overlapSize[1]*overlapSize[2] > 0) {
+            // Read into buffer
+            std::vector<Real> buffer(thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N);
+
+            // TODO: Should these be multireads instead? And/or can this be parallelized?
+            if(file.readArray("VARIABLE",attribs, fileOffset, thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2], (char*)buffer.data()) == false) {
+               logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
+               return false;
+            }
+
+            // Copy continuous stripes in x direction.
+            for(int z=overlapStart[2]; z<overlapEnd[2]; z++) {
+               for(int y=overlapStart[1]; y<overlapEnd[1]; y++) {
+                  for(int x=overlapStart[0]; x<overlapEnd[0]; x++) {
+                     int index = (z - thatTasksStart[2]) * thatTasksSize[0]*thatTasksSize[1]
+                        + (y - thatTasksStart[1]) * thatTasksSize[0]
+                        + (x - thatTasksStart[0]);
+
+                     memcpy(targetGrid.get(x - localStart[0], y - localStart[1], z - localStart[2]), &buffer[index*N], N*sizeof(Real));
+                  }
+               }
+            }
+         } else {
+            // Even though this task doesn't need to be read from, we participate in collective IO with a zero-read.
+            char dummy;
+            file.readArray("VARIABLE",attribs, fileOffset, 0, &dummy);
+         }
+
+         fileOffset += thatTasksSize[0] * thatTasksSize[1] * thatTasksSize[2];
+      }
+   }
+
+   targetGrid.updateGhostCells();
+   return true;
+}
+
 /*! A function for reading parameters, e.g., 'timestep'.
  \param file VLSV parallel reader with a file open.
  \param name Name of the parameter.
@@ -829,6 +985,9 @@ bool checkScalarParameter(vlsv::ParallelReader& file,const string& name,T correc
  \sa readGrid
  */
 bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
+      FsGrid< fsgrids::technical, 2>& technicalGrid,
                    const std::string& name) {
    vector<CellID> fileCells; /*< CellIds for all cells in file*/
    vector<size_t> nBlocks;/*< Number of blocks for all cells in file*/
@@ -1017,6 +1176,17 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    }
    phiprof::stop("readBlockData");
 
+   mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
+   
+   // Read fsgrid data back in
+   int fsgridInputRanks=0;
+   if(readScalarParameter(file,"numWritingRanks",fsgridInputRanks, MASTER_RANK, MPI_COMM_WORLD) == false) {
+      exitOnError(false, "(RESTART) FSGrid writing rank number not found in restart file", MPI_COMM_WORLD);
+   }
+   
+   success = readFsGridVariable(file, "fg_PERB", fsgridInputRanks, perBGrid);
+   success = readFsGridVariable(file, "fg_E", fsgridInputRanks, EGrid);
+   
    success = file.close();
    phiprof::stop("readGrid");
 
@@ -1031,7 +1201,10 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 \param name Name of the restart file e.g. "restart.00052.vlsv"
 */
 bool readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
+      FsGrid< fsgrids::technical, 2>& technicalGrid,
               const std::string& name){
    //Check the vlsv version from the file:
-   return exec_readGrid(mpiGrid,name);
+   return exec_readGrid(mpiGrid,perBGrid,EGrid,technicalGrid,name);
 }

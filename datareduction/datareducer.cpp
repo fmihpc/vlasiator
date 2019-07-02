@@ -762,7 +762,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
-               // Iterate through fsgrid cells and extract X coordinateL
+               // Iterate through fsgrid cells and extract X coordinate
                for(int z=0; z<gridSize[2]; z++) {
                   for(int y=0; y<gridSize[1]; y++) {
                      for(int x=0; x<gridSize[0]; x++) {

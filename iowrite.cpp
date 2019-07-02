@@ -30,6 +30,7 @@
 #include <cmath>
 #include <sstream>
 #include <ctime>
+#include <cstring>
 #include <array>
 #include <algorithm>
 #include <limits>
@@ -837,7 +838,7 @@ bool writeFsGridMetadata(FsGrid< fsgrids::technical, 2>& technicalGrid, vlsv::Wr
   //The visit plugin expects MESH_BBOX as a keyword. We only write one
   //from the first rank.
   std::array<int32_t, 3>& globalSize = technicalGrid.getGlobalSize();
-  std::array<uint64_t, 6> boundaryBox({globalSize[0], globalSize[1], globalSize[2],
+  std::array<int64_t, 6> boundaryBox({globalSize[0], globalSize[1], globalSize[2],
       1,1,1});
 
   if(technicalGrid.getRank() == 0) {
@@ -853,15 +854,15 @@ bool writeFsGridMetadata(FsGrid< fsgrids::technical, 2>& technicalGrid, vlsv::Wr
   // Write three 1-dimensional arrays of node coordinates (x,y,z) for
   // visit to create a cartesian grid out of.
   std::vector<double> xNodeCoordinates(globalSize[0]+1);
-  for(uint64_t i=0; i<globalSize[0]+1; i++) {
+  for(int64_t i=0; i<globalSize[0]+1; i++) {
     xNodeCoordinates[i] = technicalGrid.getPhysicalCoords(i,0,0)[0];
   }
   std::vector<double> yNodeCoordinates(globalSize[1]+1);
-  for(uint64_t i=0; i<globalSize[1]+1; i++) {
+  for(int64_t i=0; i<globalSize[1]+1; i++) {
     yNodeCoordinates[i] = technicalGrid.getPhysicalCoords(0,i,0)[1];
   }
   std::vector<double> zNodeCoordinates(globalSize[2]+1);
-  for(uint64_t i=0; i<globalSize[2]+1; i++) {
+  for(int64_t i=0; i<globalSize[2]+1; i++) {
     zNodeCoordinates[i] = technicalGrid.getPhysicalCoords(0,0,i)[2];
   }
   if(technicalGrid.getRank() == 0) {
@@ -903,6 +904,11 @@ bool writeFsGridMetadata(FsGrid< fsgrids::technical, 2>& technicalGrid, vlsv::Wr
   std::array<uint32_t,2> meshDomainSize({globalIds.size(), 0});
   vlsvWriter.writeArray("MESH_DOMAIN_SIZES", xmlAttributes, 1, 2, &meshDomainSize[0]);
 
+  // how many MPI ranks we wrote from
+  int size;
+  MPI_Comm_size(MPI_COMM_WORLD, &size);
+  vlsvWriter.writeParameter("numWritingRanks", &size);
+
   // Finally, write mesh object itself.
   xmlAttributes.clear();
   xmlAttributes["name"] = meshName;
@@ -939,28 +945,42 @@ bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          }
          // Cell lines selection
          // Determine cellID's 3D indices
-         lineX =  (cells[i]-1) % P::xcells_ini;
-         lineY = ((cells[i]-1) / P::xcells_ini) % P::ycells_ini;
-         lineZ = ((cells[i]-1) /(P::xcells_ini *  P::ycells_ini)) % P::zcells_ini;
-         // Check that indices are in correct intersection at least in one plane
-         if ((P::systemWriteDistributionWriteXlineStride[index] > 0 &&
-              P::systemWriteDistributionWriteYlineStride[index] > 0 &&
-              lineX % P::systemWriteDistributionWriteXlineStride[index] == 0 &&
-              lineY % P::systemWriteDistributionWriteYlineStride[index] == 0)
-             &&
-             (P::systemWriteDistributionWriteYlineStride[index] > 0 &&
-              P::systemWriteDistributionWriteZlineStride[index] > 0 &&
-              lineY % P::systemWriteDistributionWriteYlineStride[index] == 0 &&
-              lineZ % P::systemWriteDistributionWriteZlineStride[index] == 0)
-             &&
-             (P::systemWriteDistributionWriteZlineStride[index] > 0 &&
-              P::systemWriteDistributionWriteXlineStride[index] > 0 &&
-              lineZ % P::systemWriteDistributionWriteZlineStride[index] == 0 &&
-              lineX % P::systemWriteDistributionWriteXlineStride[index] == 0)
-         ) {
-            velSpaceCells.push_back(cells[i]);
-            mpiGrid[cells[i]]->parameters[CellParams::ISCELLSAVINGF] = 1.0;
-         }
+	 
+	 // Loop over AMR levels
+	 uint startindex=1;
+	 uint endindex=1;
+	 for (uint AMR = 0; AMR <= P::amrMaxSpatialRefLevel; AMR++) {
+	    uint AMRm = std::floor(std::pow(2,AMR));
+	    uint cellsthislevel = (AMRm*P::xcells_ini)*(AMRm*P::ycells_ini)*(AMRm*P::zcells_ini);
+	    startindex = endindex;
+	    endindex = endindex + cellsthislevel;
+	  
+	    // If cell belongs to this AMR level, find indices
+	    if ((cells[i]>=startindex)&&(cells[i]<endindex)) {
+	       lineX =  (cells[i]-startindex) % (AMRm*P::xcells_ini);
+	       lineY = ((cells[i]-startindex) / (AMRm*P::xcells_ini)) % (AMRm*P::ycells_ini);
+	       lineZ = ((cells[i]-startindex) /((AMRm*P::xcells_ini) *  (AMRm*P::ycells_ini))) % (AMRm*P::zcells_ini);
+	       // Check that indices are in correct intersection at least in one plane
+	       if ((P::systemWriteDistributionWriteXlineStride[index] > 0 &&
+		    P::systemWriteDistributionWriteYlineStride[index] > 0 &&
+		    lineX % P::systemWriteDistributionWriteXlineStride[index] == 0 &&
+		    lineY % P::systemWriteDistributionWriteYlineStride[index] == 0)
+		   &&
+		   (P::systemWriteDistributionWriteYlineStride[index] > 0 &&
+		    P::systemWriteDistributionWriteZlineStride[index] > 0 &&
+		    lineY % P::systemWriteDistributionWriteYlineStride[index] == 0 &&
+		    lineZ % P::systemWriteDistributionWriteZlineStride[index] == 0)
+		   &&
+		   (P::systemWriteDistributionWriteZlineStride[index] > 0 &&
+		    P::systemWriteDistributionWriteXlineStride[index] > 0 &&
+		    lineZ % P::systemWriteDistributionWriteZlineStride[index] == 0 &&
+		    lineX % P::systemWriteDistributionWriteXlineStride[index] == 0)
+		   ) {
+		  velSpaceCells.push_back(cells[i]);
+		  mpiGrid[cells[i]]->parameters[CellParams::ISCELLSAVINGF] = 1.0;
+	       }
+	    }
+	 }
       }
 
       uint64_t numVelSpaceCells;
@@ -1282,6 +1302,9 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    //Write domain sizes:
    if( writeDomainSizes( vlsvWriter, meshName, local_cells.size(), ghost_cells.size() ) == false ) return false;
 
+   //Write FSGrid metadata
+   if( writeFsGridMetadata( technicalGrid, vlsvWriter ) == false ) return false;
+
    phiprof::stop("metadataIO");
    phiprof::start("reduceddataIO");   
    //write out DROs we need for restarts
@@ -1302,6 +1325,59 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    restartReducer.addOperator(new DRO::MPIrank);
    restartReducer.addOperator(new DRO::BoundaryType);
    restartReducer.addOperator(new DRO::BoundaryLayer);
+
+   // Fsgrid Reducers
+   restartReducer.addOperator(new DRO::DataReductionOperatorFsGrid("fg_E",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2>& dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volGrid,
+                      FsGrid< fsgrids::technical, 2>& technicalGrid)->std::vector<Real> {
+            std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+            std::vector<Real> retval(gridSize[0]*gridSize[1]*gridSize[2]*fsgrids::efield::N_EFIELD);
+            int index=0;
+            for(int z=0; z<gridSize[2]; z++) {
+               for(int y=0; y<gridSize[1]; y++) {
+                  for(int x=0; x<gridSize[0]; x++) {
+                     std::memcpy(&retval[index], EGrid.get(x,y,z), sizeof(Real)*fsgrids::efield::N_EFIELD);
+                     index += fsgrids::efield::N_EFIELD;
+                  }
+               }
+            }
+            return retval;
+         }
+   ));
+   
+   restartReducer.addOperator(new DRO::DataReductionOperatorFsGrid("fg_PERB",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2>& dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volGrid,
+                      FsGrid< fsgrids::technical, 2>& technicalGrid)->std::vector<Real> {
+            std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+            std::vector<Real> retval(gridSize[0]*gridSize[1]*gridSize[2]*fsgrids::bfield::N_BFIELD);
+            int index=0;
+            for(int z=0; z<gridSize[2]; z++) {
+               for(int y=0; y<gridSize[1]; y++) {
+                  for(int x=0; x<gridSize[0]; x++) {
+                     std::memcpy(&retval[index], perBGrid.get(x,y,z), sizeof(Real)*fsgrids::bfield::N_BFIELD);
+                     index += fsgrids::bfield::N_BFIELD;
+                  }
+               }
+            }
+            return retval;
+         }
+   ));
    
    //Write necessary variables:
    const bool writeAsFloat = false;

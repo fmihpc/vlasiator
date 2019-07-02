@@ -442,56 +442,58 @@ namespace projects {
      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
      FsGrid< fsgrids::technical, 2>& technicalGrid
   ) {
-     setBackgroundFieldToZero(BgBGrid);
-     
-     auto localSize = perBGrid.getLocalSize();
-     
-     #pragma omp parallel for collapse(3)
-     for (int x = 0; x < localSize[0]; ++x) {
-        for (int y = 0; y < localSize[1]; ++y) {
-           for (int z = 0; z < localSize[2]; ++z) {
-              const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
-              std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
-              
-              /* Maintain all values in BPERT for simplicity */
-              Real KB = physicalconstants::K_B;
-              Real mu0 = physicalconstants::MU_0;
-              Real adiab = 5./3.;
-              
-              // Interpolate density between upstream and downstream
-              // All other values are calculated from jump conditions
-              Real MassDensity = 0.;
-              Real MassDensityU = 0.;
-              Real EffectiveVu0 = 0.;
-              for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-                 const IPShockSpeciesParameters& sP = speciesParams[i];
-                 Real mass = getObjectWrapper().particleSpecies[i].mass;
-                 
-                 MassDensity += mass * interpolate(sP.DENSITYu,sP.DENSITYd, xyz[0]);
-                 MassDensityU += mass * sP.DENSITYu;
-                 EffectiveVu0 += sP.V0u[0] * mass * sP.DENSITYu;
-              }
-              EffectiveVu0 /= MassDensityU;
-              
-              // Solve tangential components for B and V
-              Real VX = MassDensityU * EffectiveVu0 / MassDensity;
-              Real BX = this->B0u[0];
-              Real MAsq = std::pow((EffectiveVu0/this->B0u[0]), 2) * MassDensityU * mu0;
-              Real Btang = this->B0utangential * (MAsq - 1.0)/(MAsq*VX/EffectiveVu0 -1.0);
-              Real Vtang = VX * Btang / BX;
-              
-              /* Reconstruct Y and Z components using cos(phi) values and signs. Tangential variables are always positive. */
-              Real BY = abs(Btang) * this->Bucosphi * this->Byusign;
-              Real BZ = abs(Btang) * sqrt(1. - this->Bucosphi * this->Bucosphi) * this->Bzusign;
-              //Real VY = Vtang * this->Vucosphi * this->Vyusign;
-              //Real VZ = Vtang * sqrt(1. - this->Vucosphi * this->Vucosphi) * this->Vzusign;
-              
-              cell->at(fsgrids::bfield::PERBX) = BX;
-              cell->at(fsgrids::bfield::PERBY) = BY;
-              cell->at(fsgrids::bfield::PERBZ) = BZ;
-           }
-        }
-     }
-  }
+      setBackgroundFieldToZero(BgBGrid);
+      
+      if(!P::isRestart) {
+         auto localSize = perBGrid.getLocalSize();
+      
+#pragma omp parallel for collapse(3)
+         for (int x = 0; x < localSize[0]; ++x) {
+            for (int y = 0; y < localSize[1]; ++y) {
+               for (int z = 0; z < localSize[2]; ++z) {
+                  const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
+                  std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
+                  
+                  /* Maintain all values in BPERT for simplicity */
+                  Real KB = physicalconstants::K_B;
+                  Real mu0 = physicalconstants::MU_0;
+                  Real adiab = 5./3.;
+                  
+                  // Interpolate density between upstream and downstream
+                  // All other values are calculated from jump conditions
+                  Real MassDensity = 0.;
+                  Real MassDensityU = 0.;
+                  Real EffectiveVu0 = 0.;
+                  for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+                     const IPShockSpeciesParameters& sP = speciesParams[i];
+                     Real mass = getObjectWrapper().particleSpecies[i].mass;
+                     
+                     MassDensity += mass * interpolate(sP.DENSITYu,sP.DENSITYd, xyz[0]);
+                     MassDensityU += mass * sP.DENSITYu;
+                     EffectiveVu0 += sP.V0u[0] * mass * sP.DENSITYu;
+                  }
+                  EffectiveVu0 /= MassDensityU;
+                  
+                  // Solve tangential components for B and V
+                  Real VX = MassDensityU * EffectiveVu0 / MassDensity;
+                  Real BX = this->B0u[0];
+                  Real MAsq = std::pow((EffectiveVu0/this->B0u[0]), 2) * MassDensityU * mu0;
+                  Real Btang = this->B0utangential * (MAsq - 1.0)/(MAsq*VX/EffectiveVu0 -1.0);
+                  Real Vtang = VX * Btang / BX;
+                  
+                  /* Reconstruct Y and Z components using cos(phi) values and signs. Tangential variables are always positive. */
+                  Real BY = abs(Btang) * this->Bucosphi * this->Byusign;
+                  Real BZ = abs(Btang) * sqrt(1. - this->Bucosphi * this->Bucosphi) * this->Bzusign;
+                  //Real VY = Vtang * this->Vucosphi * this->Vyusign;
+                  //Real VZ = Vtang * sqrt(1. - this->Vucosphi * this->Vucosphi) * this->Vzusign;
+                  
+                  cell->at(fsgrids::bfield::PERBX) = BX;
+                  cell->at(fsgrids::bfield::PERBY) = BY;
+                  cell->at(fsgrids::bfield::PERBZ) = BZ;
+               }
+            }
+         }
+      }
+   }
 
 }//namespace projects

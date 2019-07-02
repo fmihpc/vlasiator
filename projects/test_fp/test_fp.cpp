@@ -112,64 +112,66 @@ namespace projects {
    ) {
       setBackgroundFieldToZero(BgBGrid);
       
-      auto localSize = perBGrid.getLocalSize();
-      
-      creal dx = perBGrid.DX * 3.5;
-      creal dy = perBGrid.DY * 3.5;
-      creal dz = perBGrid.DZ * 3.5;
-      
-      Real areaFactor = 1.0;
-      
-      #pragma omp parallel for collapse(3)
-      for (int x = 0; x < localSize[0]; ++x) {
-         for (int y = 0; y < localSize[1]; ++y) {
-            for (int z = 0; z < localSize[2]; ++z) {
-               const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
-               std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
-               
-               creal x = xyz[0] + 0.5 * perBGrid.DX;
-               creal y = xyz[1] + 0.5 * perBGrid.DY;
-               creal z = xyz[2] + 0.5 * perBGrid.DZ;
-               
-               switch (this->CASE) {
-                  case BXCASE:         
-                     cell->at(fsgrids::bfield::PERBX) = 0.1 * this->B0 * areaFactor;
-                     //areaFactor = (CellParams::DY * CellParams::DZ) / (dy * dz);
-                     if (y >= -dy && y <= dy)
-                        if (z >= -dz && z <= dz)
-                           cell->at(fsgrids::bfield::PERBX) = this->B0 * areaFactor;
-                     break;
-                  case BYCASE:
-                     cell->at(fsgrids::bfield::PERBY) = 0.1 * this->B0 * areaFactor;
-                     //areaFactor = (CellParams::DX * CellParams::DZ) / (dx * dz);
-                     if (x >= -dx && x <= dx)
-                        if (z >= -dz && z <= dz)
-                           cell->at(fsgrids::bfield::PERBY) = this->B0 * areaFactor;
-                     break;
-                  case BZCASE:
-                     cell->at(fsgrids::bfield::PERBZ) = 0.1 * this->B0 * areaFactor;
-                     //areaFactor = (CellParams::DX * CellParams::DY) / (dx * dy);
-                     if (x >= -dx && x <= dx)
+      if(!P::isRestart) {
+         auto localSize = perBGrid.getLocalSize();
+         
+         creal dx = perBGrid.DX * 3.5;
+         creal dy = perBGrid.DY * 3.5;
+         creal dz = perBGrid.DZ * 3.5;
+         
+         Real areaFactor = 1.0;
+         
+         #pragma omp parallel for collapse(3)
+         for (int x = 0; x < localSize[0]; ++x) {
+            for (int y = 0; y < localSize[1]; ++y) {
+               for (int z = 0; z < localSize[2]; ++z) {
+                  const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
+                  std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
+                  
+                  creal x = xyz[0] + 0.5 * perBGrid.DX;
+                  creal y = xyz[1] + 0.5 * perBGrid.DY;
+                  creal z = xyz[2] + 0.5 * perBGrid.DZ;
+                  
+                  switch (this->CASE) {
+                     case BXCASE:         
+                        cell->at(fsgrids::bfield::PERBX) = 0.1 * this->B0 * areaFactor;
+                        //areaFactor = (CellParams::DY * CellParams::DZ) / (dy * dz);
                         if (y >= -dy && y <= dy)
-                           cell->at(fsgrids::bfield::PERBZ) = this->B0 * areaFactor;
-                     break;
-                  case BALLCASE:
-                     cell->at(fsgrids::bfield::PERBX) = 0.1 * this->B0 * areaFactor;
-                     cell->at(fsgrids::bfield::PERBY) = 0.1 * this->B0 * areaFactor;
-                     cell->at(fsgrids::bfield::PERBZ) = 0.1 * this->B0 * areaFactor;
-                     
-                     //areaFactor = (CellParams::DX * CellParams::DY) / (dx * dy);
-                     
-                     if (y >= -dy && y <= dy)
-                        if (z >= -dz && z <= dz)
-                           cell->at(fsgrids::bfield::PERBX) = this->B0 * areaFactor;
-                     if (x >= -dx && x <= dx)
-                        if (z >= -dz && z <= dz)
-                           cell->at(fsgrids::bfield::PERBY) = this->B0 * areaFactor;
-                     if (x >= -dx && x <= dx)
+                           if (z >= -dz && z <= dz)
+                              cell->at(fsgrids::bfield::PERBX) = this->B0 * areaFactor;
+                        break;
+                     case BYCASE:
+                        cell->at(fsgrids::bfield::PERBY) = 0.1 * this->B0 * areaFactor;
+                        //areaFactor = (CellParams::DX * CellParams::DZ) / (dx * dz);
+                        if (x >= -dx && x <= dx)
+                           if (z >= -dz && z <= dz)
+                              cell->at(fsgrids::bfield::PERBY) = this->B0 * areaFactor;
+                        break;
+                     case BZCASE:
+                        cell->at(fsgrids::bfield::PERBZ) = 0.1 * this->B0 * areaFactor;
+                        //areaFactor = (CellParams::DX * CellParams::DY) / (dx * dy);
+                        if (x >= -dx && x <= dx)
+                           if (y >= -dy && y <= dy)
+                              cell->at(fsgrids::bfield::PERBZ) = this->B0 * areaFactor;
+                        break;
+                     case BALLCASE:
+                        cell->at(fsgrids::bfield::PERBX) = 0.1 * this->B0 * areaFactor;
+                        cell->at(fsgrids::bfield::PERBY) = 0.1 * this->B0 * areaFactor;
+                        cell->at(fsgrids::bfield::PERBZ) = 0.1 * this->B0 * areaFactor;
+                        
+                        //areaFactor = (CellParams::DX * CellParams::DY) / (dx * dy);
+                        
                         if (y >= -dy && y <= dy)
-                           cell->at(fsgrids::bfield::PERBZ) = this->B0 * areaFactor;
-                     break;
+                           if (z >= -dz && z <= dz)
+                              cell->at(fsgrids::bfield::PERBX) = this->B0 * areaFactor;
+                        if (x >= -dx && x <= dx)
+                           if (z >= -dz && z <= dz)
+                              cell->at(fsgrids::bfield::PERBY) = this->B0 * areaFactor;
+                        if (x >= -dx && x <= dx)
+                           if (y >= -dy && y <= dy)
+                              cell->at(fsgrids::bfield::PERBZ) = this->B0 * areaFactor;
+                        break;
+                  }
                }
             }
          }
