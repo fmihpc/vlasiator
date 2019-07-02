@@ -86,13 +86,13 @@ namespace projects {
       uint dipoleType;
 
       //Real refine_L3radius;
-      Real refine_L3_nosewidth;
-      Real refine_L3_nosexmin;
-      Real refine_L3_nosexmax;
-      Real refine_L3_tailheight;
-      Real refine_L3_tailwidth;
-      Real refine_L3_tailxmin;
-      Real refine_L3_tailxmax;
+      Real refine_L3nosewidth;
+      Real refine_L3nosexmin;
+      Real refine_L3nosexmax;
+      Real refine_L3tailheight;
+      Real refine_L3tailwidth;
+      Real refine_L3tailxmin;
+      Real refine_L3tailxmax;
 
       Real refine_L2radius;
       Real refine_L2tailthick;

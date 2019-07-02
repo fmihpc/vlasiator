@@ -55,13 +55,13 @@ namespace projects {
       RP::add("Magnetosphere.dipoleMirrorLocationX","x-coordinate of dipole Mirror", -1.0);
 
       //RP::add("Magnetosphere.refine_L3radius","Radius of L3-refined sphere", 6.371e7); // 10 RE
-      RP::add("Magnetosphere.refine_L3_nosewidth","Width of nose L3-refined box, in y and x", 5.0e7); // 10 RE
-      RP::add("Magnetosphere.refine_L3_nosexmin","Low x-value of nose L3-refined box", 5.0e7); //
-      RP::add("Magnetosphere.refine_L3_nosexmax","High x-value of nose L3-refined box", 10.0e7); //
-      RP::add("Magnetosphere.refine_L3_tailheight","Height in +-z of tail L3-refined box", 1.0e7); //
-      RP::add("Magnetosphere.refine_L3_tailwidth","Width in +-y of tail L3-refined box", 5.0e7); // 10 RE
-      RP::add("Magnetosphere.refine_L3_tailxmin","Low x-value of tail L3-refined box", -20.0e7); // 10 RE
-      RP::add("Magnetosphere.refine_L3_tailxmax","High x-value of tail L3-refined box", -5.0e7); // 10 RE
+      RP::add("Magnetosphere.refine_L3nosewidth","Width of nose L3-refined box, in y and x", 5.0e7); // 10 RE
+      RP::add("Magnetosphere.refine_L3nosexmin","Low x-value of nose L3-refined box", 5.0e7); //
+      RP::add("Magnetosphere.refine_L3nosexmax","High x-value of nose L3-refined box", 10.0e7); //
+      RP::add("Magnetosphere.refine_L3tailheight","Height in +-z of tail L3-refined box", 1.0e7); //
+      RP::add("Magnetosphere.refine_L3tailwidth","Width in +-y of tail L3-refined box", 5.0e7); // 10 RE
+      RP::add("Magnetosphere.refine_L3tailxmin","Low x-value of tail L3-refined box", -20.0e7); // 10 RE
+      RP::add("Magnetosphere.refine_L3tailxmax","High x-value of tail L3-refined box", -5.0e7); // 10 RE
       
       RP::add("Magnetosphere.refine_L2radius","Radius of L2-refined sphere", 9.5565e7); // 15 RE
       RP::add("Magnetosphere.refine_L2tailthick","Thickness of L2-refined tail region", 3.1855e7); // 5 RE
@@ -676,7 +676,7 @@ namespace projects {
      
      if (P::amrMaxSpatialRefLevel > 2) {
 	
-	if (refine_L3radius < refine_L2radius && refine_L3radius > ionosphereRadius) {
+	//	if (refine_L3radius < refine_L2radius && refine_L3radius > ionosphereRadius) {
 	   // L3 refinement.
 	   for (uint i = bw3; i < 4*P::xcells_ini-bw3; ++i) {
 	      for (uint j = bw3; j < 4*P::ycells_ini-bw3; ++j) {
@@ -697,8 +697,8 @@ namespace projects {
 // 		       }
 
 		    // Check if cell is within the nose box
-		    if ((xyz[0]>refine_L3_nosexmin) && (xyz[0]<refine_L3_nosexmax) &&
-			(abs(xyz[1])<refine_L3_nosewidth) && (abs(xyz[2])<refine_L3_nosewidth))
+		    if ((xyz[0]>refine_L3nosexmin) && (xyz[0]<refine_L3nosexmax) &&
+			(abs(xyz[1])<refine_L3nosewidth) && (abs(xyz[2])<refine_L3nosewidth))
 		       {
 			  CellID myCell = mpiGrid.get_existing_cell(xyz);
 			  // Check if the cell is tagged as do not compute
@@ -707,8 +707,8 @@ namespace projects {
 		       }
 
 		    // Check if cell is within the tail box
-		    if ((xyz[0]>refine_L3_tailxmin) && (xyz[0]<refine_L3_tailxmax) &&
-			(abs(xyz[1])<refine_L3_tailwidth) && (abs(xyz[2])<refine_L3_tailheight))
+		    if ((xyz[0]>refine_L3tailxmin) && (xyz[0]<refine_L3tailxmax) &&
+			(abs(xyz[1])<refine_L3tailwidth) && (abs(xyz[2])<refine_L3tailheight))
 		       {
 			  CellID myCell = mpiGrid.get_existing_cell(xyz);
 			  // Check if the cell is tagged as do not compute
@@ -728,10 +728,10 @@ namespace projects {
 #endif
 	   
 	   mpiGrid.balance_load();
-	} else {
+        } else {
 	   std::cout << "Skipping third level of refinement because the radius is larger than the 2nd level radius or smaller than the ionosphere radius." << std::endl;
-	}
-     }
+        }
+     //}
      
      return true;
    }
