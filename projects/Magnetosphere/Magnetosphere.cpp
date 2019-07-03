@@ -54,10 +54,8 @@ namespace projects {
       RP::add("Magnetosphere.dipoleType","0: Normal 3D dipole, 1: line-dipole for 2D polar simulations, 2: line-dipole with mirror, 3: 3D dipole with mirror", 0);
       RP::add("Magnetosphere.dipoleMirrorLocationX","x-coordinate of dipole Mirror", -1.0);
 
-      //RP::add("Magnetosphere.refine_L3radius","Radius of L3-refined sphere", 6.371e7); // 10 RE
-      RP::add("Magnetosphere.refine_L3nosewidth","Width of nose L3-refined box, in y and x", 5.0e7); // 10 RE
+      RP::add("Magnetosphere.refine_L3radius","Radius of L3-refined sphere", 6.371e7); // 10 RE
       RP::add("Magnetosphere.refine_L3nosexmin","Low x-value of nose L3-refined box", 5.0e7); //
-      RP::add("Magnetosphere.refine_L3nosexmax","High x-value of nose L3-refined box", 10.0e7); //
       RP::add("Magnetosphere.refine_L3tailheight","Height in +-z of tail L3-refined box", 1.0e7); //
       RP::add("Magnetosphere.refine_L3tailwidth","Width in +-y of tail L3-refined box", 5.0e7); // 10 RE
       RP::add("Magnetosphere.refine_L3tailxmin","Low x-value of tail L3-refined box", -20.0e7); // 10 RE
@@ -150,19 +148,11 @@ namespace projects {
       }
 
 
-//       if(!Readparameters::get("Magnetosphere.refine_L3radius", this->refine_L3radius)) {
-//          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-//          exit(1);
-//       }
-      if(!Readparameters::get("Magnetosphere.refine_L3nosewidth", this->refine_L3nosewidth)) {
+      if(!Readparameters::get("Magnetosphere.refine_L3radius", this->refine_L3radius)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
       if(!Readparameters::get("Magnetosphere.refine_L3nosexmin", this->refine_L3nosexmin)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!Readparameters::get("Magnetosphere.refine_L3nosexmax", this->refine_L3nosexmax)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
@@ -677,7 +667,7 @@ namespace projects {
      if (P::amrMaxSpatialRefLevel > 2) {
 	
 	//	if (refine_L3radius < refine_L2radius && refine_L3radius > ionosphereRadius) {
-	   // L3 refinement.
+	// L3 refinement.
 	   for (uint i = bw3; i < 4*P::xcells_ini-bw3; ++i) {
 	      for (uint j = bw3; j < 4*P::ycells_ini-bw3; ++j) {
 		 for (uint k = bw3; k < 4*P::zcells_ini-bw3; ++k) {
@@ -687,7 +677,7 @@ namespace projects {
 		    xyz[1] = P::ymin + (j+0.5)*0.25*P::dy_ini;
 		    xyz[2] = P::zmin + (k+0.5)*0.25*P::dz_ini;
                     
-// 		    Real radius2 = (xyz[0]*xyz[0]+xyz[1]*xyz[1]+xyz[2]*xyz[2]);
+ 		    Real radius2 = (xyz[0]*xyz[0]+xyz[1]*xyz[1]+xyz[2]*xyz[2]);
 // 		    // Check if cell is within L1 sphere, or within L1 tail slice
 // 		    if (radius2 < refine_L3radius*refine_L3radius)
 // 		       {
@@ -696,14 +686,12 @@ namespace projects {
 // 			  mpiGrid.refine_completely(myCell);
 // 		       }
 
-		    // Check if cell is within the nose box
-		    if ((xyz[0]>refine_L3nosexmin) && (xyz[0]<refine_L3nosexmax) &&
-			(abs(xyz[1])<refine_L3nosewidth) && (abs(xyz[2])<refine_L3nosewidth))
+		    // Check if cell is within the nose cap
+		    if ((xyz[0]>refine_L3nosexmin) && (radius2<refine_L3radius*refine_L3radius))
 		       {
 			  CellID myCell = mpiGrid.get_existing_cell(xyz);
 			  // Check if the cell is tagged as do not compute
-			  mpiGrid.refine_completely(myCell);
-			  
+			  mpiGrid.refine_completely(myCell);			  
 		       }
 
 		    // Check if cell is within the tail box
@@ -713,7 +701,6 @@ namespace projects {
 			  CellID myCell = mpiGrid.get_existing_cell(xyz);
 			  // Check if the cell is tagged as do not compute
 			  mpiGrid.refine_completely(myCell);
-			  
 		       }
 
  		 }
