@@ -359,54 +359,41 @@ namespace SBC {
       determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, true);
       
       cuint sysBoundaryLayer = technicalGrid.get(i,j,k)->sysBoundaryLayer;
+      if(sysBoundaryLayer == 1) {
+         cint neigh_i=i + ((component==0)?-1:0);
+         cint neigh_j=j + ((component==1)?-1:0);
+         cint neigh_k=k + ((component==2)?-1:0);
+         cuint neighborSysBoundaryFlag = technicalGrid.get(neigh_i, neigh_j, neigh_k)->sysBoundaryFlag;
       
-      if (sysBoundaryLayer == 1
-         && isThisCellOnAFace[0]                            // we are on the face
-         && this->facesToProcess[0]                         // we are supposed to do this face
-         && !this->facesToSkipFields[0]                     // we are not supposed to skip fields on this face
-         && component == 0                                  // we do the component normal to this face
-         && !(isThisCellOnAFace[2] || isThisCellOnAFace[3] || isThisCellOnAFace[4] || isThisCellOnAFace[5]) // we are not in a corner
-      ) {
-         propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, true, false, false);
-         if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-            fieldValue = perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBX + component);
-         } else {
-            fieldValue = perBDt2Grid.get(i,j,k)->at(fsgrids::bfield::PERBX + component);
-         }
-      } else if (sysBoundaryLayer == 1
-         && isThisCellOnAFace[2]                            // we are on the face
-         && this->facesToProcess[2]                         // we are supposed to do this face
-         && !this->facesToSkipFields[2]                     // we are not supposed to skip fields on this face
-         && component == 1                                  // we do the component normal to this face
-         && !(isThisCellOnAFace[0] || isThisCellOnAFace[1] || isThisCellOnAFace[4] || isThisCellOnAFace[5]) // we are not in a corner
-      ) {
-         propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, false, true, false);
-         if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-            fieldValue = perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBX + component);
-         } else {
-            fieldValue = perBDt2Grid.get(i,j,k)->at(fsgrids::bfield::PERBX + component);
-         }
-      } else if (sysBoundaryLayer == 1
-         && isThisCellOnAFace[4]                            // we are on the face
-         && this->facesToProcess[4]                         // we are supposed to do this face
-         && !this->facesToSkipFields[4]                     // we are not supposed to skip fields on this face
-         && component == 2                                  // we do the component normal to this face
-         && !(isThisCellOnAFace[0] || isThisCellOnAFace[1] || isThisCellOnAFace[2] || isThisCellOnAFace[3]) // we are not in a corner
-      ) {
-         propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, false, false, true);
-         if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-            fieldValue = perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBX + component);
-         } else {
-            fieldValue = perBDt2Grid.get(i,j,k)->at(fsgrids::bfield::PERBX + component);
-         }
-      } else {
-         if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-            fieldValue = fieldBoundaryCopyFromExistingFaceNbrMagneticField(perBGrid, technicalGrid, i, j, k, component);
-         } else {
-            fieldValue = fieldBoundaryCopyFromExistingFaceNbrMagneticField(perBDt2Grid, technicalGrid, i, j, k, component);
+         if (neighborSysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+            switch(component) {
+               case 0:
+                  propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, true, false, false);
+                  break;
+               case 1:
+                  propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, false, true, false);
+                  break;
+               case 2:
+                  propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, false, false, true);
+                  break;
+               default:
+                  cerr << "ERROR: outflow boundary tried to propagate nonsensical magnetic field component " << component << endl;
+                  break;
+            }
+            if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+               fieldValue = perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBX + component);
+            } else {
+               fieldValue = perBDt2Grid.get(i,j,k)->at(fsgrids::bfield::PERBX + component);
+            }
+            return fieldValue;
          }
       }
-      
+
+      if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+         fieldValue = fieldBoundaryCopyFromExistingFaceNbrMagneticField(perBGrid, technicalGrid, i, j, k, component);
+      } else {
+         fieldValue = fieldBoundaryCopyFromExistingFaceNbrMagneticField(perBDt2Grid, technicalGrid, i, j, k, component);
+      }
       return fieldValue;
    }
 
