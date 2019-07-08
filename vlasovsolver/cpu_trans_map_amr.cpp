@@ -520,12 +520,10 @@ void propagatePencil(Vec* dz, Vec* values, const uint dimension,
    Realv vz_min = vmesh.getMeshMinLimits()[dimension];
 
    // Now compute coefficients using renormalized dz, dzn
-   //std::vector<Realf> dzn(lengthOfPencil);
    std::vector<Vec,aligned_allocator<Vec,64>> dzn(lengthOfPencil);
    for(uint idz=0; idz < lengthOfPencil; ++idz) {
       dzn[idz] = dz[idz] / P::dx_ini; // normalize all directions based on dx_ini for simplicity
    }
-   //Vec dzn = dz / P::dx_ini;
 
    // Assuming 1 neighbor in the target array because of the CFL condition
    // In fact propagating to > 1 neighbor will give an error
