@@ -520,14 +520,10 @@ void propagatePencil(Vec* dz, Vec* values, const uint dimension,
    Realv vz_min = vmesh.getMeshMinLimits()[dimension];
 
    // Now compute coefficients using renormalized dz, dzn
-   Realf dzn = (Realf*)aligned_malloc(sizeof(Realf),lengthOfPencil);
-   for (uint idz=0; idz < lengthOfPencil; ++idz) {
-      dzn[idz] = (Realf)dz[idz]/P::dx_ini; // normalize all directions based on dx_ini for simplicity
-   }  
-   //const std::vector<Vec, aligned_allocator<Vec,64>> *dzn(dz->size());
-   //auto maxdz = *max_element(std::begin(dz), std:end(dz)); // max_element returns an iterator
-   //auto *dzn = std::transform(std::begin(dz), std::end(dz), std::begin(dz), [maxdz](auto& c){return c/maxdz;});
-
+   std::vector<Realf> dzn(lengthOfPencil);
+   for(uint idz=0; idz < lengthOfPencil; ++idz) {
+      dzn[idz] = (Realf)(dz[idz] / P::dx_ini); // normalize all directions based on dx_ini for simplicity
+   }
    
    // Assuming 1 neighbor in the target array because of the CFL condition
    // In fact propagating to > 1 neighbor will give an error
@@ -580,7 +576,7 @@ void propagatePencil(Vec* dz, Vec* values, const uint dimension,
             // Dz: is a padded array, pointer can point to the beginning, i + VLASOV_STENCIL_WIDTH will get the right cell.
             // values: transpose function adds VLASOV_STENCIL_WIDTH to the block index, therefore we substract it here, then
             // i + VLASOV_STENCIL_WIDTH will point to the right cell. Complicated! Why! Sad! MVGA!	    
-            compute_ppm_coeff_nonuniform(dzn,
+            compute_ppm_coeff_nonuniform(dzn.data(),
                                          values + i_trans_ps_blockv_pencil(planeVector, k, i-VLASOV_STENCIL_WIDTH, lengthOfPencil),
                                          h4, VLASOV_STENCIL_WIDTH, a);
             
