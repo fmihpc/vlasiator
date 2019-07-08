@@ -215,34 +215,62 @@ bool Parameters::addParameters(){
    
 // Output variable parameters
    // NOTE Do not remove the : before the list of variable names as this is parsed by tools/check_vlasiator_cfg.sh
-   Readparameters::addComposing("variables.output", std::string()+"List of data reduction operators (DROs) to add to the grid file output.  Each variable to be added has to be on a new line output = XXX.  "+
-				"Available (20190514): "+
-				"B fg_B BackgroundB vg_BackgroundB fg_BackgroundB PerturbedB vg_PerturbedB fg_PerturbedB "+
-				"E fg_E "+
-				"Rhom vg_Rhom fg_Rhom Rhoq vg_Rhoq fg_Rhoq populations_Rho "+
-				"V vg_V fg_V populations_V "+
+   Readparameters::addComposing("variables.output", std::string()+"List of data reduction operators (DROs) to add to the grid file output.  Each variable to be added has to be on a new line output = XXX. Names are case insensitive.  "+
+				"Available (20190521): "+
+				"fg_b fg_b_background fg_b_perturbed fg_e "+
+				"vg_rhom vg_rhoq populations_vg_rho "+
+				"fg_rhom fg_rhoq "+
+				"vg_v fg_v populations_vg_v "+
+				"populations_vg_moments_thermal populations_vg_moments_nonthermal "+
+				"populations_vg_effectivesparsitythreshold populations_vg_rho_loss_adjust "+
+				"populations_vg_energydensity populations_vg_precipitationdifferentialflux "+
+				"vg_maxdt_acceleration vg_maxdt_translation populations_vg_maxdt_acceleration populations_vg_maxdt_translation "+
+				"fg_maxdt_fieldsolver "+
+				"vg_rank fg_rank vg_loadbalance_weight "+
+				"vg_boundarytype fg_boundarytype vg_boundarylayer fg_boundarylayer "+
+				"populations_vg_blocks vg_f_saved "+
+				"populations_vg_acceleration_subcycles "+
+				"fg_e_hall vg_e_gradpe fg_b_vol vg_b_vol vg_b_background_vol vg_b_perturbed_vol "+
+				"vg_pressure fg_pressure populations_vg_ptensor "+
+				"b_vol_derivatives "+
+				"vg_gridcoordinates fg_gridcoordinates meshdata");
+
+   Readparameters::addComposing("variables_deprecated.output", std::string()+"List of deprecated names for data reduction operators (DROs). Names are case insensitive. "+
+				"Available (20190521): "+
+				"B BackgroundB fg_BackgroundB PerturbedB fg_PerturbedB "+
+				"E "+
+				"Rhom Rhoq populations_Rho "+
+				"V populations_V "+
 				"populations_moments_Backstream populations_moments_NonBackstream "+
-				"populations_EffectiveSparsityThreshold populations_RhoLossAdjust "+
-				"populations_EnergyDensity populations_PrecipitationFlux "+
-				"LBweight MaxVdt MaxRdt populations_MaxVdt populations_MaxRdt MaxFieldsdt "+
-				"MPIrank vg_rank FsGridRank fg_rank "+
-				"FsGridBoundaryType BoundaryType vg_BoundaryType fg_BoundaryType BoundaryLayer vg_BoundaryLayer fg_BoundaryLayer "+
-				"populations_Blocks fSaved "+
-				"populations_accSubcycles "+
-				"VolE vg_VolE fg_VolE HallE GradPeE VolB vg_VolB fg_VolB BackgroundVolB PerturbedVolB "+
+				"populations_moments_thermal populations_moments_nonthermal "+
+				"populations_minvalue populations_EffectiveSparsityThreshold populations_RhoLossAdjust populations_rho_loss_adjust"+
+				"populations_EnergyDensity populations_PrecipitationFlux populations_precipitationdifferentialflux"+
+				"LBweight vg_lbweight vg_loadbalanceweight MaxVdt MaxRdt populations_MaxVdt populations_MaxRdt "+
+				"populations_maxdt_acceleration populations_maxdt_translation MaxFieldsdt fg_maxfieldsdt"+
+				"MPIrank FsGridRank "+
+				"FsGridBoundaryType BoundaryType FsGridBoundaryLayer BoundaryLayer "+
+				"populations_Blocks fSaved vg_fsaved"+
+				"populations_accSubcycles populations_acceleration_subcycles"+
+				"HallE fg_HallE GradPeE e_gradpe VolB vg_VolB fg_VolB B_vol Bvol vg_Bvol fg_volB fg_Bvol"+
+				"BackgroundVolB PerturbedVolB "+
 				"Pressure vg_Pressure fg_Pressure populations_PTensor "+
-				"derivs BVOLderivs "+
-				"GridCoordinates BackgroundVolE MeshData");
+				"BVOLderivs b_vol_derivs");
 
    // NOTE Do not remove the : before the list of variable names as this is parsed by tools/check_vlasiator_cfg.sh
-   Readparameters::addComposing("variables.diagnostic", std::string()+"List of data reduction operators (DROs) to add to the diagnostic runtime output. Each variable to be added has to be on a new line diagnostic = XXX.  "+
+   Readparameters::addComposing("variables.diagnostic", std::string()+"List of data reduction operators (DROs) to add to the diagnostic runtime output. Each variable to be added has to be on a new line diagnostic = XXX. Names are case insensitive. "+
 				"Available (20190320): "+
-				"FluxB FluxE "+
-				"populations_Blocks "+
-				"Rhom populations_RhoLossAdjust "+
-				"LBweight "+
-				"populations_MaxVdt MaxVdt populations_MaxRdt MaxRdt MaxFieldsdt "+
-				"populations_MaxDistributionFunction populations_MinDistributionFunction");
+				"populations_blocks "+
+				"rhom populations_rho_loss_adjust"+
+				"loadbalance_weight"+
+				"maxdt_acceleration maxdt_translation populations_maxdt_acceleration populations_maxdt_translation "+
+				"maxdt_fieldsolver "+
+				"populations_maxdistributionfunction populations_mindistributionfunction");
+
+   Readparameters::addComposing("variables_deprecated.diagnostic", std::string()+"List of deprecated data reduction operators (DROs) to add to the diagnostic runtime output. Names are case insensitive. "+
+				"Available (20190320): "+
+				"populations_rholossadjust"+
+				"LBweight"+
+				"populations_MaxVdt MaxVdt populations_MaxRdt MaxRdt MaxFieldsdt");
 
    // bailout parameters
    Readparameters::add("bailout.write_restart", "If 1, write a restart file on bailout. Gets reset when sending a STOP (1) or a KILL (0).", true);

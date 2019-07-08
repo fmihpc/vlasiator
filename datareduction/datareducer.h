@@ -44,6 +44,9 @@ class DataReducer {
    bool addOperator(DRO::DataReductionOperator* op);
    bool getDataVectorInfo(const unsigned int& operatorID,std::string& dataType,
                           unsigned int& dataSize,unsigned int& vectorSize) const;
+   bool addMetadata(const unsigned int operatorID,std::string unit,std::string unitLaTeX,std::string variableLaTeX,std::string unitConversion);
+   bool getMetadata(const unsigned int& operatorID,std::string& unit,std::string& unitLaTeX,std::string& variableLaTeX,std::string& unitConversion) const;
+
    std::string getName(const unsigned int& operatorID) const;
    bool handlesWriting(const unsigned int& operatorID) const;
    bool hasParameters(const unsigned int& operatorID) const;

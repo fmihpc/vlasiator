@@ -319,7 +319,7 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                       int dataReducerIndex,
                       Writer& vlsvWriter){
    map<string,string> attribs;
-   string variableName,dataType;
+   string variableName,dataType,unitString,unitStringLaTeX, variableStringLaTeX, unitConversionFactor;
    bool success=true;
 
    const string meshName = "SpatialGrid";
@@ -343,7 +343,18 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       phiprof::stop("DRO_"+variableName);
       return false;
    }
-   
+
+   // Request variable unit metadata: unit, latex-formatted unit, and conversion factor to SI
+   if (dataReducer.getMetadata(dataReducerIndex,unitString,unitStringLaTeX,variableStringLaTeX,unitConversionFactor) == false) {
+      cerr << "ERROR when requesting unit metadata from DRO " << dataReducerIndex << endl;
+      phiprof::stop("DRO_"+variableName);
+      return false;
+   }
+   attribs["unit"]=unitString;
+   attribs["unitLaTeX"]=unitStringLaTeX;
+   attribs["unitConversion"]=unitConversionFactor;
+   attribs["variableLaTeX"]=variableStringLaTeX;
+
    // If DRO has a vector size of 0 it means this DRO should not write out anything. This is used e.g. for DROs we want only for certain populations.
    if (vectorSize == 0) {
       phiprof::stop("DRO_"+variableName);
