@@ -1,0 +1,118 @@
+RCB_l1 RCB_longp
+
+marbat@sisu-login3:/wrk/marbat/test_flowthrough2> aprun -n 1 ./vlsvdiff_DP
+RCB_l1p/bulk.0000364.vlsv RCB_longp/bulk.0000364.vlsv proton/vg_rho 0
+INFO Reading in two files.
+Statistics on file: size 182 min = 2e+06 max = 2.52632e+06 average =
+2.44627e+06 standard deviation 11203.7
+Statistics on file: size 182 min = 2e+06 max = 2.52609e+06 average =
+2.4462e+06 standard deviation 11199.2
+The absolute 0-distance between both datasets is 2343.68
+The relative 0-distance between both datasets is 0.000927705
+The average-shifted absolute 0-distance between both datasets is 2271.22
+The average-shifted relative 0-distance between both datasets is 0.000899025
+The absolute 1-distance between both datasets is 120999
+The relative 1-distance between both datasets is 0.000271772
+The average-shifted absolute 1-distance between both datasets is 123709
+The average-shifted relative 1-distance between both datasets is 0.000277859
+The absolute 2-distance between both datasets is 11967
+The relative 2-distance between both datasets is 0.000361932
+The average-shifted absolute 2-distance between both datasets is 11927
+The average-shifted relative 2-distance between both datasets is 0.000360723
+
+
+RCB_l1p RCB_dev
+
+marbat@sisu-login3:/wrk/marbat/test_flowthrough2> aprun -n 1 ./vlsvdiff_DP
+RCB_l1p/bulk.0000364.vlsv RCB_dev/bulk.0000364.vlsv proton/vg_rho 0
+INFO Reading in two files.
+Statistics on file: size 182 min = 2e+06 max = 2.52632e+06 average =
+2.44627e+06 standard deviation 11203.7
+Statistics on file: size 182 min = 2e+06 max = 2.52632e+06 average =
+2.44628e+06 standard deviation 11203.9
+The absolute 0-distance between both datasets is 34.302
+The relative 0-distance between both datasets is 1.35779e-05
+The average-shifted absolute 0-distance between both datasets is 28.1023
+The average-shifted relative 0-distance between both datasets is 1.11238e-05
+The absolute 1-distance between both datasets is 1927.97
+The relative 1-distance between both datasets is 4.33036e-06
+The average-shifted absolute 1-distance between both datasets is 1569.91
+The average-shifted relative 1-distance between both datasets is 3.52614e-06
+The absolute 2-distance between both datasets is 187.23
+The relative 2-distance between both datasets is 5.66261e-06
+The average-shifted absolute 2-distance between both datasets is 143.656
+The average-shifted relative 2-distance between both datasets is 4.34474e-06
+
+
+
+RCB_longp  RCB_dev
+
+marbat@sisu-login3:/wrk/marbat/test_flowthrough2> aprun -n 1 ./vlsvdiff_DP
+RCB_longp/bulk.0000364.vlsv RCB_dev/bulk.0000364.vlsv proton/vg_rho 0
+INFO Reading in two files.
+Statistics on file: size 182 min = 2e+06 max = 2.52609e+06 average =
+2.4462e+06 standard deviation 11199.2
+Statistics on file: size 182 min = 2e+06 max = 2.52632e+06 average =
+2.44628e+06 standard deviation 11203.9
+The absolute 0-distance between both datasets is 2334.89
+The relative 0-distance between both datasets is 0.000924309
+The average-shifted absolute 0-distance between both datasets is 2253.54
+The average-shifted relative 0-distance between both datasets is 0.000892103
+The absolute 1-distance between both datasets is 120315
+The relative 1-distance between both datasets is 0.000270243
+The average-shifted absolute 1-distance between both datasets is 123338
+The average-shifted relative 1-distance between both datasets is 0.000277034
+The absolute 2-distance between both datasets is 11934.2
+The relative 2-distance between both datasets is 0.000360951
+The average-shifted absolute 2-distance between both datasets is 11883.6
+The average-shifted relative 2-distance between both datasets is 0.000359422
+
+
+
+RCB_dev RCB_devlong
+
+marbat@sisu-login3:/wrk/marbat/test_flowthrough2> aprun -n 1 ./vlsvdiff_DP
+RCB_dev/bulk.0000364.vlsv RCB_devlong/bulk.0000364.vlsv proton/vg_rho 0
+INFO Reading in two files.
+Statistics on file: size 182 min = 2e+06 max = 2.52632e+06 average =
+2.44628e+06 standard deviation 11203.9
+Statistics on file: size 182 min = 2e+06 max = 2.52606e+06 average =
+2.44617e+06 standard deviation 11198.1
+The absolute 0-distance between both datasets is 2666.03
+The relative 0-distance between both datasets is 0.0010553
+The average-shifted absolute 0-distance between both datasets is 2555.61
+The average-shifted relative 0-distance between both datasets is 0.0010116
+The absolute 1-distance between both datasets is 132166
+The relative 1-distance between both datasets is 0.000296855
+The average-shifted absolute 1-distance between both datasets is 136189
+The average-shifted relative 1-distance between both datasets is 0.00030589
+The absolute 2-distance between both datasets is 13217.2
+The relative 2-distance between both datasets is 0.000399743
+The average-shifted absolute 2-distance between both datasets is 13133
+The average-shifted relative 2-distance between both datasets is 0.000397196
+
+
+RCB_longp RCB_devlong
+
+marbat@sisu-login3:/wrk/marbat/test_flowthrough2> aprun -n 1 ./vlsvdiff_DP
+RCB_longp/bulk.0000364.vlsv RCB_devlong
+/bulk.0000364.vlsv proton/vg_rho 0
+INFO Reading in two files.
+Statistics on file: size 182 min = 2e+06 max = 2.52609e+06 average =
+2.4462e+06 standard deviation 11199.2
+Statistics on file: size 182 min = 2e+06 max = 2.52606e+06 average =
+2.44617e+06 standard deviation 11198.1
+The absolute 0-distance between both datasets is 700.801
+The relative 0-distance between both datasets is 0.000277425
+The average-shifted absolute 0-distance between both datasets is 671.737
+The average-shifted relative 0-distance between both datasets is 0.000265919
+The absolute 1-distance between both datasets is 15561.9
+The relative 1-distance between both datasets is 3.49543e-05
+The average-shifted absolute 1-distance between both datasets is 15539.4
+The average-shifted relative 1-distance between both datasets is 3.49036e-05
+The absolute 2-distance between both datasets is 1853.63
+The relative 2-distance between both datasets is 5.60633e-05
+The average-shifted absolute 2-distance between both datasets is 1811.69
+The average-shifted relative 2-distance between both datasets is 5.47947e-05
+Application 8957464 resources: utime ~0s, stime ~0s, Rss ~83616, inblocks
+~18640, outblocks ~34570
