@@ -54,7 +54,7 @@ namespace projects {
       RP::add("Magnetosphere.dipoleType","0: Normal 3D dipole, 1: line-dipole for 2D polar simulations, 2: line-dipole with mirror, 3: 3D dipole with mirror", 0);
       RP::add("Magnetosphere.dipoleMirrorLocationX","x-coordinate of dipole Mirror", -1.0);
 
-      RP::add("Magnetosphere.refine_L3radius","Radius of L3-refined sphere", 6.371e7); // 10 RE
+      RP::add("Magnetosphere.refine_L3radius","Radius of L3-refined sphere or cap", 6.371e7); // 10 RE
       RP::add("Magnetosphere.refine_L3nosexmin","Low x-value of nose L3-refined box", 5.0e7); //
       RP::add("Magnetosphere.refine_L3tailheight","Height in +-z of tail L3-refined box", 1.0e7); //
       RP::add("Magnetosphere.refine_L3tailwidth","Width in +-y of tail L3-refined box", 5.0e7); // 10 RE
@@ -625,7 +625,7 @@ namespace projects {
 	   std::cout << "Rank " << myRank << " refined " << refinedCells.size() << " cells. " << std::endl;
 	}
 #endif
-	mpiGrid.balance_load();
+	//mpiGrid.balance_load();
      }
      
      if (P::amrMaxSpatialRefLevel > 1) {
@@ -661,12 +661,10 @@ namespace projects {
 	}
 #endif
 	
-	mpiGrid.balance_load();
+	//mpiGrid.balance_load();
      }
      
      if (P::amrMaxSpatialRefLevel > 2) {
-	
-	//	if (refine_L3radius < refine_L2radius && refine_L3radius > ionosphereRadius) {
 	// L3 refinement.
 	   for (uint i = bw3; i < 4*P::xcells_ini-bw3; ++i) {
 	      for (uint j = bw3; j < 4*P::ycells_ini-bw3; ++j) {
@@ -714,12 +712,14 @@ namespace projects {
 	   }
 #endif
 	   
-	   mpiGrid.balance_load();
-        } else {
-	   std::cout << "Skipping third level of refinement because the radius is larger than the 2nd level radius or smaller than the ionosphere radius." << std::endl;
-        }
-     //}
-     
+	   //mpiGrid.balance_load();
+     }
+
+     // Do load balance only once at end
+     if (P::amrMaxSpatialRefLevel > 0) {
+	mpiGrid.balance_load();
+     }
+
      return true;
    }
    
