@@ -519,11 +519,11 @@ void propagatePencil(Vec* dz, Vec* values, const uint dimension,
    Realv dvz = vmesh.getCellSize(refLevel)[dimension];
    Realv vz_min = vmesh.getMeshMinLimits()[dimension];
 
-   // Now compute coefficients using renormalized dz, dzn
-   std::vector<Vec,aligned_allocator<Vec,64>> dzn(lengthOfPencil);
-   for(uint idz=0; idz < lengthOfPencil; ++idz) {
-      dzn[idz] = dz[idz] / P::dx_ini; // normalize all directions based on dx_ini for simplicity
-   }
+//    // Now compute coefficients using renormalized dz, dzn
+//    std::vector<Vec,aligned_allocator<Vec,64>> dzn(lengthOfPencil);
+//    for(uint idz=0; idz < lengthOfPencil; ++idz) {
+//       dzn[idz] = dz[idz] / P::dx_ini; // normalize all directions based on dx_ini for simplicity
+//    }
 
    // Assuming 1 neighbor in the target array because of the CFL condition
    // In fact propagating to > 1 neighbor will give an error
@@ -548,7 +548,7 @@ void propagatePencil(Vec* dz, Vec* values, const uint dimension,
       for (uint k = 0; k < WID; ++k) {
 
          const Realv cell_vz = (block_indices[dimension] * WID + k + 0.5) * dvz + vz_min; //cell centered velocity
-         const Vec z_translation = cell_vz * dt / dz[i_source]; // how much it moved in time dt (reduced units)
+         const Vec z_translation = cell_vz * dt / (dz[i_source] * P::dx_ini); // how much it moved in time dt (reduced units)
 
          // Determine direction of translation
          // part of density goes here (cell index change along spatial direcion)
@@ -576,7 +576,7 @@ void propagatePencil(Vec* dz, Vec* values, const uint dimension,
             // Dz: is a padded array, pointer can point to the beginning, i + VLASOV_STENCIL_WIDTH will get the right cell.
             // values: transpose function adds VLASOV_STENCIL_WIDTH to the block index, therefore we substract it here, then
             // i + VLASOV_STENCIL_WIDTH will point to the right cell. Complicated! Why! Sad! MVGA!	    
-            compute_ppm_coeff_nonuniform(dzn.data(),
+            compute_ppm_coeff_nonuniform(dz, // dzn.data()
                                          values + i_trans_ps_blockv_pencil(planeVector, k, i-VLASOV_STENCIL_WIDTH, lengthOfPencil),
                                          h4, VLASOV_STENCIL_WIDTH, a);
             
@@ -647,7 +647,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
       
 #warning This forces single-cell pencils!
       // FIXME TODO Tuomas look at this! BUG
-      bool addToSeedIds = true;
+      bool addToSeedIds = false;
       // Returns all neighbors as (id, direction-dimension) pair pointers.
       for ( const auto nbrPair : *(mpiGrid.get_neighbors_of(celli, neighborhood)) ) {
          
@@ -1168,13 +1168,13 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                for(uint i = 0; i < sourceCells.size(); ++i) {
                   switch (dimension) {
                   case(0):
-                     dz[i] = sourceCells[i]->parameters[CellParams::DX];
+                     dz[i] = sourceCells[i]->parameters[CellParams::DX]/ P::dx_ini;
                      break;
                   case(1):
-                     dz[i] = sourceCells[i]->parameters[CellParams::DY];
+                     dz[i] = sourceCells[i]->parameters[CellParams::DY]/ P::dx_ini;
                      break;
                   case(2):
-                     dz[i] = sourceCells[i]->parameters[CellParams::DZ];
+                     dz[i] = sourceCells[i]->parameters[CellParams::DZ]/ P::dx_ini;
                      break;
                   }
                   
