@@ -313,6 +313,7 @@ namespace spatial_cell {
       //random_data* get_rng_data_buffer();
 
       // Member variables //
+      std::vector<spatial_cell::Population> populations;                        /**< Particle population variables.*/
       std::array<Real, bvolderivatives::N_BVOL_DERIVATIVES> derivativesBVOL;    /**< Derivatives of BVOL needed by the acceleration.            
                                                                                  * Separate array because it does not need to be communicated.*/
       //Real parameters[CellParams::N_SPATIAL_CELL_PARAMS];                     /**< Bulk variables in this spatial cell.*/
@@ -366,7 +367,6 @@ namespace spatial_cell {
                                                                                  * NOTE: Do not call the get-functions using this mesh as object
                                                                                  * before you have set the correct meshID using setMesh function.*/
       vmesh::VelocityBlockContainer<vmesh::LocalID> blockContainerTemp;
-      std::vector<spatial_cell::Population> populations;                        /**< Particle population variables.*/
    };
 
    /****************************

@@ -882,7 +882,7 @@ bool checkPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       
    }
 
-   for (int ipencil = 0; ipencil < pencils.N; ++ipencil) {
+   for (uint ipencil = 0; ipencil < pencils.N; ++ipencil) {
 
       auto ids = pencils.getIds(ipencil);
 

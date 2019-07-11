@@ -901,7 +901,7 @@ bool writeFsGridMetadata(FsGrid< fsgrids::technical, 2>& technicalGrid, vlsv::Wr
 
 
   // writeDomainSizes
-  std::array<uint32_t,2> meshDomainSize({globalIds.size(), 0});
+  std::array<uint32_t,2> meshDomainSize({(uint32_t)globalIds.size(), 0});
   vlsvWriter.writeArray("MESH_DOMAIN_SIZES", xmlAttributes, 1, 2, &meshDomainSize[0]);
 
   // how many MPI ranks we wrote from
@@ -949,7 +949,7 @@ bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 	 // Loop over AMR levels
 	 uint startindex=1;
 	 uint endindex=1;
-	 for (uint AMR = 0; AMR <= P::amrMaxSpatialRefLevel; AMR++) {
+	 for (int AMR = 0; AMR <= P::amrMaxSpatialRefLevel; AMR++) {
 	    uint AMRm = std::floor(std::pow(2,AMR));
 	    uint cellsthislevel = (AMRm*P::xcells_ini)*(AMRm*P::ycells_ini)*(AMRm*P::zcells_ini);
 	    startindex = endindex;

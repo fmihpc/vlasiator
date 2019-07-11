@@ -392,9 +392,9 @@ int main(int argn,char* args[]) {
    // Needs to be done here already ad the background field will be set right away, before going to initializeGrid even
    phiprof::start("Init fieldsolver grids");
 
-   const std::array<int,3> fsGridDimensions = {convert<int>(P::xcells_ini) * pow(2,P::amrMaxSpatialRefLevel),
-                                               convert<int>(P::ycells_ini) * pow(2,P::amrMaxSpatialRefLevel),
-                                               convert<int>(P::zcells_ini) * pow(2,P::amrMaxSpatialRefLevel)};
+   const std::array<int,3> fsGridDimensions = {convert<int>(P::xcells_ini) * (1<<P::amrMaxSpatialRefLevel),
+                                               convert<int>(P::ycells_ini) * (1<<P::amrMaxSpatialRefLevel),
+                                               convert<int>(P::zcells_ini) * (1<<P::amrMaxSpatialRefLevel)};
 
    std::array<bool,3> periodicity{sysBoundaries.isBoundaryPeriodic(0),
                                   sysBoundaries.isBoundaryPeriodic(1),
@@ -783,7 +783,6 @@ int main(int argn,char* args[]) {
       
       //Re-loadbalance if needed
       //TODO - add LB measure and do LB if it exceeds threshold
-      #warning Re-loadbalance has been disabled temporarily for amr debugging
       if(((P::tstep % P::rebalanceInterval == 0 && P::tstep > P::tstep_min) || overrideRebalanceNow)) {
          logFile << "(LB): Start load balance, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
          balanceLoad(mpiGrid, sysBoundaries);

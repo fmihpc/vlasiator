@@ -613,17 +613,20 @@ namespace SBC {
       // Copy each face B-field from the cell on the other side of it
       switch(component) {
          case 0:
-	    return bGrid->get(i-1,j,k)->at(fsgrids::bfield::PERBX + component);
+                 return bGrid->get(i-1,j,k)->at(fsgrids::bfield::PERBX + component);
          case 1:
-	    return bGrid->get(i,j-1,k)->at(fsgrids::bfield::PERBX + component);
+                 return bGrid->get(i,j-1,k)->at(fsgrids::bfield::PERBX + component);
          case 2:
-	    return bGrid->get(i,j,k-1)->at(fsgrids::bfield::PERBX + component);
+                 return bGrid->get(i,j,k-1)->at(fsgrids::bfield::PERBX + component);
          default:
-	    cerr << "ERROR: ionosphere boundary tried to copy nonsensical magnetic field component " << component << endl;
-	    break;
+                 cerr << "ERROR: ionosphere boundary tried to copy nonsensical magnetic field component " << component << endl;
+                 break;
       }
       
 
+      // Under normal conditions, this should never be reached
+      // (but is still here to squelch compiler warnings)
+      return bGrid->get(i,j,k)->at(fsgrids::bfield::PERBX + component);
    }
 
    void Ionosphere::fieldSolverBoundaryCondElectricField(
