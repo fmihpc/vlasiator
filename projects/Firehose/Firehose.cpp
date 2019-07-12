@@ -105,7 +105,7 @@ namespace projects {
       }
    }
 
-   Real Firehose::profile(creal top, creal bottom, creal x) const {
+   Real Firehose::profile(creal top, creal x) const {
       return top * (1.0 + this->amp*cos(2.0*M_PI*x/this->lambda));
    }
 
@@ -118,7 +118,7 @@ namespace projects {
       creal mass = getObjectWrapper().particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
       
-      Real Vx = profile(sP.Vx[1],sP.Vx[1], x);
+      Real Vx = profile(sP.Vx[1], x);
       
       return
       sP.rho[1] * pow(mass / (2.0 * M_PI * kb * sP.Tx[1]), 1.5) *

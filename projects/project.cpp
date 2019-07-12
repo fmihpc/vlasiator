@@ -62,39 +62,6 @@ extern Logger logFile;
 char projects::Project::rngStateBuffer[256];
 random_data projects::Project::rngDataBuffer;
 
-/** Struct for creating a new velocity mesh.
- * The values are read from the configuration file and 
- * copied to ObjectWrapper::velocityMeshes.*/
-struct VelocityMeshParams {
-   vector<string> name;
-   vector<double> vx_min;
-   vector<double> vy_min;
-   vector<double> vz_min;
-   vector<double> vx_max;
-   vector<double> vy_max;
-   vector<double> vz_max;
-   vector<vmesh::LocalID> vx_length;
-   vector<vmesh::LocalID> vy_length;
-   vector<vmesh::LocalID> vz_length;
-   vector<unsigned int> maxRefLevels;
-   
-   void resize(const size_t& size) {
-      name.resize(1);
-      vx_min.resize(1);
-      vy_min.resize(1);
-      vz_min.resize(1);
-      vx_max.resize(1);
-      vy_max.resize(1);
-      vz_max.resize(1);
-      vx_length.resize(1);
-      vy_length.resize(1);
-      vz_length.resize(1);
-      maxRefLevels.resize(1);
-   }
-};
-
-static VelocityMeshParams* velMeshParams = NULL;
-
 namespace projects {
    Project::Project() { 
       baseClassInitialized = false;
@@ -135,28 +102,6 @@ namespace projects {
    void Project::getParameters() {
       typedef Readparameters RP;
       RP::get("Project_common.seed", this->seed);
-
-
-      // Note that configuration files need to be re-parsed after this.
-
-      //RP::get("ParticlePopulation.charge",popCharges);
-      //RP::get("ParticlePopulation.mass_units",popMassUnits);
-      //RP::get("ParticlePopulation.mass",popMasses);
-      //RP::get("ParticlePopulation.sparse_min_value",popSparseMinValue);
-      //RP::get("ParticlePopulation.mesh",popMeshNames);
-
-      //if (velMeshParams == NULL) velMeshParams = new VelocityMeshParams();
-      //RP::get("velocitymesh.name",velMeshParams->name);
-      //RP::get("velocitymesh.vx_min",velMeshParams->vx_min);
-      //RP::get("velocitymesh.vy_min",velMeshParams->vy_min);
-      //RP::get("velocitymesh.vz_min",velMeshParams->vz_min);
-      //RP::get("velocitymesh.vx_max",velMeshParams->vx_max);
-      //RP::get("velocitymesh.vy_max",velMeshParams->vy_max);
-      //RP::get("velocitymesh.vz_max",velMeshParams->vz_max);
-      //RP::get("velocitymesh.vx_length",velMeshParams->vx_length);
-      //RP::get("velocitymesh.vy_length",velMeshParams->vy_length);
-      //RP::get("velocitymesh.vz_length",velMeshParams->vz_length);
-      //RP::get("velocitymesh.max_refinement_level",velMeshParams->maxRefLevels);
    }
 
    /** Initialize the Project. Velocity mesh and particle population 
@@ -165,8 +110,6 @@ namespace projects {
     * NOTE: Each project must call this function!
     * @return If true, particle species and velocity meshes were created successfully.*/
    bool Project::initialize() {
-      typedef Readparameters RP;
-      
       // Basic error checking
       bool success = true;
 
@@ -364,7 +307,6 @@ namespace projects {
          const vmesh::LocalID endIndex   = cell->get_number_of_velocity_blocks(popID);
          for (vmesh::LocalID blockLID=startIndex; blockLID<endIndex; ++blockLID) {
             vector<vmesh::GlobalID> nbrs;
-            int32_t refLevelDifference;
             const vmesh::GlobalID blockGID = vmesh.getGlobalID(blockLID);
 
             // Fetch block data and nearest neighbors
@@ -388,7 +330,7 @@ namespace projects {
          // Loop over blocks in map insertedBlocks and recalculate 
          // values of distribution functions
          for (map<vmesh::GlobalID,vmesh::LocalID>::const_iterator it=insertedBlocks.begin(); it!=insertedBlocks.end(); ++it) {
-            const vmesh::GlobalID blockGID = it->first;
+            //const vmesh::GlobalID blockGID = it->first;
             const vmesh::LocalID blockLID = it->second;
             const Real maxValue = setVelocityBlock(cell,blockLID,popID);
             if (maxValue <= getObjectWrapper().particleSpecies[popID].sparseMinValue) 
@@ -536,9 +478,9 @@ namespace projects {
                xyz[1] = P::amrBoxCenterY + (0.5 + j - P::amrBoxHalfWidthY) * P::dy_ini;
                xyz[2] = P::amrBoxCenterZ + (0.5 + k - P::amrBoxHalfWidthZ) * P::dz_ini;
                
-               CellID myCell = mpiGrid.get_existing_cell(xyz);
                if (mpiGrid.refine_completely_at(xyz)) {
                   #ifndef NDEBUG
+                  CellID myCell = mpiGrid.get_existing_cell(xyz);
                   std::cout << "Rank " << myRank << " is refining cell " << myCell << std::endl;
                   #endif
                }
@@ -570,9 +512,9 @@ namespace projects {
                   xyz[1] = P::amrBoxCenterY + 0.5 * (0.5 + j - P::amrBoxHalfWidthY) * P::dy_ini;
                   xyz[2] = P::amrBoxCenterZ + 0.5 * (0.5 + k - P::amrBoxHalfWidthZ) * P::dz_ini;
                   
-                  CellID myCell = mpiGrid.get_existing_cell(xyz);
                   if (mpiGrid.refine_completely_at(xyz)) {
                      #ifndef NDEBUG
+                     CellID myCell = mpiGrid.get_existing_cell(xyz);
                      std::cout << "Rank " << myRank << " is refining cell " << myCell << std::endl;
                      #endif
                   }
