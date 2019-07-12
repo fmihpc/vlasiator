@@ -83,7 +83,7 @@ namespace projects {
    }
 
    Real Diffusion::getDistribValue(
-      creal& x,creal& y,creal& z,
+      creal& x,creal& y,creal& z __attribute__((unused)),
       creal& vx,creal& vy,creal& vz,
       const uint popID
    ) const {
@@ -119,12 +119,12 @@ namespace projects {
       return avg / (sP.nSpaceSamples*sP.nSpaceSamples*sP.nSpaceSamples) / (sP.nVelocitySamples*sP.nVelocitySamples*sP.nVelocitySamples);
    }
    
-   void Diffusion::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
+   void Diffusion::calcCellParameters(spatial_cell::SpatialCell* cell __attribute__((unused)),creal& t __attribute__((unused))) { }
 
    void Diffusion::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid __attribute__((unused)),
       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
-      FsGrid< fsgrids::technical, 2>& technicalGrid
+      FsGrid< fsgrids::technical, 2>& technicalGrid __attribute__((unused))
    ) {
       ConstantField bgField;
       bgField.initialize(0,0,this->B0); //bg bx, by,bz

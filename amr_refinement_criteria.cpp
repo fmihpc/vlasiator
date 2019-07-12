@@ -38,7 +38,7 @@ namespace amr_ref_criteria {
    
    Base* relDiffMaker() {return new RelativeDifference;}
    
-   void Base::evaluate(const Realf* velBlost,Realf* result,const uint popID) {
+   void Base::evaluate(const Realf* velBlost __attribute__((unused)),Realf* result,const uint popID __attribute__((unused))) {
       for (uint i=0; i<WID3; ++i) result[i] = 0.0;
    }
 
@@ -110,7 +110,7 @@ namespace amr_ref_criteria {
       return df;
    }
 
-   bool RelativeDifference::initialize(const std::string& configRegion) {
+   bool RelativeDifference::initialize(const std::string& configRegion __attribute__((unused))) {
       //df_max = 8.0;
       df_max = 1.0;
       return true;

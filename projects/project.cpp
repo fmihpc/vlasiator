@@ -180,9 +180,9 @@ namespace projects {
 
    /*! Print a warning message to stderr and abort, one should not use the base class functions. */
    void Project::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
-      FsGrid< fsgrids::technical, 2>& technicalGrid
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid __attribute__((unused)),
+      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid __attribute__((unused)),
+      FsGrid< fsgrids::technical, 2>& technicalGrid __attribute__((unused))
    ) {
       int rank;
       MPI_Comm_rank(MPI_COMM_WORLD,&rank);
@@ -193,11 +193,11 @@ namespace projects {
    }
    
    void Project::hook(
-      cuint& stage,
-      const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
+      cuint& stage __attribute__((unused)),
+      const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid __attribute__((unused))
    ) const { }
 
-   void Project::setupBeforeSetCell(const std::vector<CellID>& cells) {
+   void Project::setupBeforeSetCell(const std::vector<CellID>& cells __attribute__((unused))) {
       // Dummy implementation.
       return;
    }
@@ -411,7 +411,7 @@ namespace projects {
    /** Check if the project wants to rescale densities.
     * @param popID ID of the particle species.
     * @return If true, rescaleDensity is called for this species.*/
-   bool Project::rescalesDensity(const uint popID) const {
+   bool Project::rescalesDensity(const uint popID __attribute__((unused))) const {
       return false;
    }
 
@@ -441,7 +441,7 @@ namespace projects {
    }
 
    /*! Print a warning message to stderr and abort, one should not use the base class functions. */
-   void Project::calcCellParameters(SpatialCell* cell, creal& t) {
+   void Project::calcCellParameters(SpatialCell* cell __attribute__((unused)), creal& t __attribute__((unused))) {
       int rank;
       MPI_Comm_rank(MPI_COMM_WORLD,&rank);
       if (rank == MASTER_RANK) {
@@ -453,7 +453,7 @@ namespace projects {
    /*!
      Get random number between 0 and 1.0. One should always first initialize the rng.
    */
-   Real Project::getCorrectNumberDensity(spatial_cell::SpatialCell* cell,const uint popID) const {
+   Real Project::getCorrectNumberDensity(spatial_cell::SpatialCell* cell __attribute__((unused)),const uint popID __attribute__((unused))) const {
       cerr << "ERROR: Project::getCorrectNumberDensity called instead of derived class function!" << endl;
       exit(1);
       return 0.0;

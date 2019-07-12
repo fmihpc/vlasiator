@@ -126,7 +126,7 @@ namespace projects {
    Real Distributions::getDistribValue(
       creal& x, creal& y, creal& z,
       creal& vx, creal& vy, creal& vz,
-      const uint popID
+      const uint popID __attribute__((unused))
    ) const {
       Real value = 0.0;
       creal relx = x/(Parameters::xmax - Parameters::xmin);
@@ -149,7 +149,7 @@ namespace projects {
       return getDistribValue(x+0.5*dx, y+0.5*dy,z+0.5*dz,vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, popID);
    }
 
-   void Distributions::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
+   void Distributions::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t __attribute__((unused))) {
       setRandomCellSeed(cell);
       for (uint i=0; i<2; i++) {
          this->rhoRnd[i] = this->rho[i] + this->rhoPertAbsAmp[i] * (0.5 - getRandomNumber());
@@ -159,7 +159,7 @@ namespace projects {
    void Distributions::setProjectBField(
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
-      FsGrid< fsgrids::technical, 2>& technicalGrid
+      FsGrid< fsgrids::technical, 2>& technicalGrid __attribute__((unused))
    ) {
       ConstantField bgField;
       bgField.initialize(this->Bx,
@@ -200,7 +200,7 @@ namespace projects {
       creal x,
       creal y,
       creal z,
-      const uint popID
+      const uint popID __attribute__((unused))
    ) const {
       vector<std::array<Real, 3>> centerPoints;
       creal relx = x/(Parameters::xmax - Parameters::xmin);

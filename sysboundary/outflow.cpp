@@ -169,8 +169,8 @@ namespace SBC {
    }
    
    bool Outflow::initSysBoundary(
-      creal& t,
-      Project &project
+      creal& t __attribute__((unused)),
+      Project &project __attribute__((unused))
    ) {
       /* The array of bool describes which of the x+, x-, y+, y-, z+, z- faces are to have outflow system boundary conditions.
        * A true indicates the corresponding face will have outflow.
@@ -282,7 +282,7 @@ namespace SBC {
    
    bool Outflow::applyInitialState(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid __attribute__((unused)),
       Project &project
    ) {
       const vector<CellID>& cells = getLocalCells();
@@ -455,7 +455,7 @@ namespace SBC {
       cint i,
       cint j,
       cint k,
-      cuint& RKCase,
+      cuint& RKCase __attribute__((unused)),
       cuint& component
    ) {
       this->setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, component);

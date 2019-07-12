@@ -110,9 +110,9 @@ namespace projects {
    }
 
    Real Firehose::getDistribValue(
-      creal& x, creal& y,
+      creal& x, creal& y __attribute__((unused)),
       creal& vx, creal& vy, creal& vz,
-      creal& dvx, creal& dvy, creal& dvz,
+      creal& dvx __attribute__((unused)), creal& dvy __attribute__((unused)), creal& dvz __attribute__((unused)),
       const uint popID) const  {
       const FirehoseSpeciesParameters& sP = speciesParams[popID];
       creal mass = getObjectWrapper().particleSpecies[popID].mass;
@@ -131,7 +131,10 @@ namespace projects {
    //           pow(vz - this->Vz[2], 2.0) / (2.0 * kb * this->Tz[2]))); 
    }
 
-   Real Firehose::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
+   Real Firehose::calcPhaseSpaceDensity(creal& x, creal& y, creal& z __attribute__((unused)),
+         creal& dx, creal& dy, creal& dz __attribute__((unused)),
+         creal& vx, creal& vy, creal& vz,
+         creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
       const FirehoseSpeciesParameters& sP = speciesParams[popID];
       creal d_x = dx / (sP.nSpaceSamples-1);
       creal d_y = dy / (sP.nSpaceSamples-1);
@@ -151,12 +154,12 @@ namespace projects {
       return avg / pow(sP.nSpaceSamples, 2.0) /  pow(sP.nVelocitySamples, 3.0);
    }
 
-   void Firehose::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
+   void Firehose::calcCellParameters(spatial_cell::SpatialCell* cell __attribute__((unused)),creal& t __attribute__((unused))) { }
    
    void Firehose::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid __attribute__((unused)),
       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
-      FsGrid< fsgrids::technical, 2>& technicalGrid
+      FsGrid< fsgrids::technical, 2>& technicalGrid __attribute__((unused))
    ) {
       ConstantField bgField;
       bgField.initialize(this->Bx,

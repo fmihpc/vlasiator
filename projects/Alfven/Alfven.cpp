@@ -100,7 +100,9 @@ namespace projects {
 
    /*Real calcPhaseSpaceDensity(creal& z,creal& x,creal& y,creal& dz,creal& dx,creal& dy,
                creal& vz,creal& vx,creal& vy,creal& dvz,creal& dvx,creal& dvy) {*/
-   Real Alfven::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
+   Real Alfven::getDistribValue(creal& x, creal& y, creal& z __attribute__((unused)),
+         creal& vx, creal& vy, creal& vz,
+         creal& dvx __attribute__((unused)), creal& dvy __attribute__((unused)), creal& dvz __attribute__((unused)),const uint popID) const {
       const AlfvenSpeciesParameters& sP = speciesParams[popID];
       creal mass = getObjectWrapper().particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
@@ -138,7 +140,7 @@ namespace projects {
       return avg / pow(this->nSpaceSamples, 3.0) / pow(sP.nVelocitySamples, 3.0);
    }
    
-   void Alfven::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
+   void Alfven::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t __attribute__((unused))) {
       Real* cellParams = cell->get_cell_parameters();
       creal x = cellParams[CellParams::XCRD];
       creal dx = cellParams[CellParams::DX];
@@ -158,14 +160,14 @@ namespace projects {
          dByavg += sin(2.0 * M_PI * ksi);
          dBzavg += cos(2.0 * M_PI * ksi);
       }
-      cuint nPts = pow(this->nSpaceSamples, 3.0);
+      //cuint nPts = pow(this->nSpaceSamples, 3.0);
       
    }
    
    void Alfven::setProjectBField(
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
-      FsGrid< fsgrids::technical, 2>& technicalGrid
+      FsGrid< fsgrids::technical, 2>& technicalGrid __attribute__((unused))
    ) {
       setBackgroundFieldToZero(BgBGrid);
       

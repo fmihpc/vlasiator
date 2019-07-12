@@ -147,7 +147,8 @@ namespace projects {
       }
    }
 
-   Real Flowthrough::getDistribValue(creal& x,creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const {
+   Real Flowthrough::getDistribValue(creal& x,creal& y, creal& z, creal& vx, creal& vy, creal& vz,
+         creal& dvx __attribute__((unused)), creal& dvy __attribute__((unused)), creal& dvz __attribute((unused)), const uint popID) const {
 
       Real mass = getObjectWrapper().particleSpecies[popID].mass;
       const FlowthroughSpeciesParameters& sP = speciesParams[popID];
@@ -202,12 +203,12 @@ namespace projects {
       }
    }
 
-   void Flowthrough::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
+   void Flowthrough::calcCellParameters(spatial_cell::SpatialCell* cell __attribute__((unused)),creal& t __attribute__((unused))) { }
 
    void Flowthrough::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid __attribute__((unused)),
       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
-      FsGrid< fsgrids::technical, 2>& technicalGrid
+      FsGrid< fsgrids::technical, 2>& technicalGrid __attribute__((unused))
    ) {
       ConstantField bgField;
       bgField.initialize(Bx,By,Bz); //bg bx, by,bz      
@@ -215,9 +216,9 @@ namespace projects {
    }
    
    std::vector<std::array<Real, 3> > Flowthrough::getV0(
-      creal x,
-      creal y,
-      creal z,
+      creal x __attribute__((unused)),
+      creal y __attribute__((unused)),
+      creal z __attribute__((unused)),
       const uint popID
    ) const {
       const FlowthroughSpeciesParameters& sP = speciesParams[popID];
