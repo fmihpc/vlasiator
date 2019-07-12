@@ -574,7 +574,7 @@ bool SysBoundary::applyInitialState(
  */
 void SysBoundary::applySysBoundaryVlasovConditions(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   creal& t
+   creal& t __attribute__((unused))
 ) {
    if(sysBoundaries.size()==0) {
       return; //no system boundaries

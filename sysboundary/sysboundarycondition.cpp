@@ -334,7 +334,7 @@ namespace SBC {
    void SysBoundaryCondition::copyCellData(
             SpatialCell* from,
             SpatialCell* to,
-            bool allowBlockAdjustment,
+            bool allowBlockAdjustment __attribute__((unused)),
             const bool& copyMomentsOnly,
             const uint popID
    ) {
@@ -446,12 +446,6 @@ namespace SBC {
             const Realf* fromData = incomingCell->get_data(popID);
             for (vmesh::LocalID incBlockLID=0; incBlockLID<incomingCell->get_number_of_velocity_blocks(popID); ++incBlockLID) {
                // Check where cells are
-               creal vxBlock = blockParameters[BlockParams::VXCRD];
-               creal vyBlock = blockParameters[BlockParams::VYCRD];
-               creal vzBlock = blockParameters[BlockParams::VZCRD];
-               creal dvxCell = blockParameters[BlockParams::DVX];
-               creal dvyCell = blockParameters[BlockParams::DVY];
-               creal dvzCell = blockParameters[BlockParams::DVZ];
                
                // Global ID of the block containing incoming data
                vmesh::GlobalID incBlockGID = incomingCell->get_velocity_block_global_id(incBlockLID,popID);

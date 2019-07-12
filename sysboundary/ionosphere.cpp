@@ -145,7 +145,7 @@ namespace SBC {
    }
    
    bool Ionosphere::initSysBoundary(
-      creal& t,
+      creal& t __attribute__((unused)),
       Project &project
    ) {
       getParameters();
@@ -234,8 +234,8 @@ namespace SBC {
 
    bool Ionosphere::applyInitialState(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
-      Project &project
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid __attribute__((unused)),
+      Project &project __attribute__((unused))
    ) {
       vector<CellID> cells = mpiGrid.get_cells();
       #pragma omp parallel for
@@ -687,7 +687,7 @@ namespace SBC {
       cint i,
       cint j,
       cint k,
-      cuint& RKCase,
+      cuint& RKCase __attribute__((unused)),
       cuint& component
    ) {
       this->setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, component);
@@ -706,9 +706,9 @@ namespace SBC {
    }
    
    void Ionosphere::vlasovBoundaryCondition(
-      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID,
-      const uint popID
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid __attribute__((unused)),
+      const CellID& cellID __attribute__((unused)),
+      const uint popID __attribute__((unused))
    ) {
 //       phiprof::start("vlasovBoundaryCondition (Ionosphere)");
 //       const SpatialCell * cell = mpiGrid[cellID];
@@ -720,7 +720,7 @@ namespace SBC {
     * NOTE: This function must initialize all particle species!
     * @param project
     */
-   void Ionosphere::generateTemplateCell(Project &project) {
+   void Ionosphere::generateTemplateCell(Project &project __attribute__((unused))) {
       // WARNING not 0.0 here or the dipole() function fails miserably.
       templateCell.sysBoundaryFlag = this->getIndex();
       templateCell.sysBoundaryLayer = 1;
@@ -748,12 +748,12 @@ namespace SBC {
             creal dvyCell = block_parameters[BlockParams::DVY];
             creal dvzCell = block_parameters[BlockParams::DVZ];
 
-            creal x = templateCell.parameters[CellParams::XCRD];
-            creal y = templateCell.parameters[CellParams::YCRD];
-            creal z = templateCell.parameters[CellParams::ZCRD];
-            creal dx = templateCell.parameters[CellParams::DX];
-            creal dy = templateCell.parameters[CellParams::DY];
-            creal dz = templateCell.parameters[CellParams::DZ];
+            //creal x = templateCell.parameters[CellParams::XCRD];
+            //creal y = templateCell.parameters[CellParams::YCRD];
+            //creal z = templateCell.parameters[CellParams::ZCRD];
+            //creal dx = templateCell.parameters[CellParams::DX];
+            //creal dy = templateCell.parameters[CellParams::DY];
+            //creal dz = templateCell.parameters[CellParams::DZ];
          
             // Calculate volume average of distrib. function for each cell in the block.
             for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {

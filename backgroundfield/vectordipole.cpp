@@ -259,12 +259,12 @@ double VectorDipole::call( double x, double y, double z) const
       //delAx[2] = (-3./(r2*r2*r1))*(q[1]*r[2]-q[2]*r[1])*r[2] +q[1]/(r2*r1);
 
       // Calculate del IMFAx, del IMFAy, del IMFAz
+      //double IMFdelAx[3];
       double IMFdelAy[3];
-      double IMFdelAx[3];
       double IMFdelAz[3];
-      IMFdelAx[0] = 0.;
-      IMFdelAx[1] = -0.5*IMF[2];
-      IMFdelAx[2] =  0.5*IMF[1];
+      //IMFdelAx[0] = 0.;
+      //IMFdelAx[1] = -0.5*IMF[2];
+      //IMFdelAx[2] =  0.5*IMF[1];
       IMFdelAy[0] =  0.5*IMF[2];
       IMFdelAy[1] = 0.0;
       IMFdelAy[2] = -0.5*IMF[0];

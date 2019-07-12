@@ -49,7 +49,7 @@ namespace SBC {
    
    bool SetByUser::initSysBoundary(
       creal& t,
-      Project &project
+      Project &project __attribute__((unused))
    ) {
       /* The array of bool describes which of the x+, x-, y+, y-, z+, z- faces are to have user-set system boundary conditions.
        * A true indicates the corresponding face will have user-set system boundary conditions.
@@ -145,7 +145,7 @@ namespace SBC {
    bool SetByUser::applyInitialState(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
-      Project &project
+      Project &project __attribute__((unused))
    ) {
       bool success = true;
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
@@ -157,16 +157,16 @@ namespace SBC {
    }
    
    Real SetByUser::fieldSolverBoundaryCondMagneticField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBDt2Grid,
-      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
-      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EDt2Grid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid __attribute__((unused)),
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBDt2Grid __attribute__((unused)),
+      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid __attribute__((unused)),
+      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EDt2Grid __attribute__((unused)),
       FsGrid< fsgrids::technical, 2> & technicalGrid,
       cint i,
       cint j,
       cint k,
-      creal& dt,
-      cuint& RKCase,
+      creal& dt __attribute__((unused)),
+      cuint& RKCase __attribute__((unused)),
       cuint& component
    ) {
       Real result = 0.0;
@@ -248,7 +248,7 @@ namespace SBC {
       cint i,
       cint j,
       cint k,
-      cuint& RKCase,
+      cuint& RKCase __attribute__((unused)),
       cuint& component
    ) {
       this->setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, component);
@@ -265,9 +265,9 @@ namespace SBC {
    }
 
    void SetByUser::vlasovBoundaryCondition(
-      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID,
-      const uint popID
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid __attribute__((unused)),
+      const CellID& cellID __attribute__((unused)),
+      const uint popID __attribute__((unused))
    ) {
       // No need to do anything in this function, as the propagators do not touch the distribution function   
    }
@@ -467,7 +467,6 @@ namespace SBC {
    bool SetByUser::generateTemplateCells(creal& t) {
       #pragma omp parallel for
       for(uint i=0; i<6; i++) {
-         int index;
          if(facesToProcess[i]) {
             generateTemplateCell(templateCells[i], templateB[i], i, t);
          }

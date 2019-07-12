@@ -60,59 +60,59 @@ namespace SBC {
 
       // Explicit warning functions to inform the user if a doNotCompute cell gets computed
       virtual Real fieldSolverBoundaryCondMagneticField(
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBDt2Grid,
-         FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
-         FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EDt2Grid,
-         FsGrid< fsgrids::technical, 2> & technicalGrid,
-         cint i,
-         cint j,
-         cint k,
-         creal& dt,
-         cuint& RKCase,
-         cuint& component
+         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid __attribute__((unused)),
+         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBDt2Grid __attribute__((unused)),
+         FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid __attribute__((unused)),
+         FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EDt2Grid __attribute__((unused)),
+         FsGrid< fsgrids::technical, 2> & technicalGrid __attribute__((unused)),
+         cint i __attribute__((unused)),
+         cint j __attribute__((unused)),
+         cint k __attribute__((unused)),
+         creal& dt __attribute__((unused)),
+         cuint& RKCase __attribute__((unused)),
+         cuint& component __attribute__((unused))
       ) { std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondMagneticField called!" << std::endl; return 0.;}
       virtual void fieldSolverBoundaryCondElectricField(
-         FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
-         cint i,
-         cint j,
-         cint k,
-         cuint component
+         FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid __attribute__((unused)),
+         cint i __attribute__((unused)),
+         cint j __attribute__((unused)),
+         cint k __attribute__((unused)),
+         cuint component __attribute__((unused))
       ) { std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondElectricField called!" << std::endl;}
       virtual void fieldSolverBoundaryCondHallElectricField(
-         FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2> & EHallGrid,
-         cint i,
-         cint j,
-         cint k,
-         cuint component
+         FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2> & EHallGrid __attribute__((unused)),
+         cint i __attribute__((unused)),
+         cint j __attribute__((unused)),
+         cint k __attribute__((unused)),
+         cuint component __attribute__((unused))
       ) { std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondHallElectricField called!" << std::endl;}
       virtual void fieldSolverBoundaryCondGradPeElectricField(
-         FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2> & EGradPeGrid,
-         cint i,
-         cint j,
-         cint k,
-         cuint component
+         FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2> & EGradPeGrid __attribute__((unused)),
+         cint i __attribute__((unused)),
+         cint j __attribute__((unused)),
+         cint k __attribute__((unused)),
+         cuint component __attribute__((unused))
       ) { std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondGradPeElectricField called!" << std::endl;}
       virtual void fieldSolverBoundaryCondDerivatives(
-         FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
-         FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> & dMomentsGrid,
-         cint i,
-         cint j,
-         cint k,
-         cuint& RKCase,
-         cuint& component
+         FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid __attribute__((unused)),
+         FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> & dMomentsGrid __attribute__((unused)),
+         cint i __attribute__((unused)),
+         cint j __attribute__((unused)),
+         cint k __attribute__((unused)),
+         cuint& RKCase __attribute__((unused)),
+         cuint& component __attribute__((unused))
       ) { std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondDerivatives called!" << std::endl;}
       virtual void fieldSolverBoundaryCondBVOLDerivatives(
-         FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volGrid,
-         cint i,
-         cint j,
-         cint k,
-         cuint& component
+         FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volGrid __attribute__((unused)),
+         cint i __attribute__((unused)),
+         cint j __attribute__((unused)),
+         cint k __attribute__((unused)),
+         cuint& component __attribute__((unused))
       ) { std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondBVOLDerivatives called!" << std::endl;}
       virtual void vlasovBoundaryCondition(
-          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-          const CellID& cellID,
-          const uint popID
+          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid __attribute__((unused)),
+          const CellID& cellID __attribute__((unused)),
+          const uint popID __attribute__((unused))
       ) { std::cerr << "ERROR: DoNotCompute::vlasovBoundaryCondition called!" << std::endl;}
    };
 }

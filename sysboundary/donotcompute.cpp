@@ -40,8 +40,8 @@ namespace SBC {
    void DoNotCompute::getParameters() { }
    
    bool DoNotCompute::initSysBoundary(
-      creal& t,
-      Project &project
+      creal& t __attribute__((unused)),
+      Project &project __attribute__((unused))
    ) {
       precedence = 0;
       isThisDynamic = false;
@@ -49,13 +49,13 @@ namespace SBC {
    }
    
    bool DoNotCompute::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&,
-                                        FsGrid< fsgrids::technical, 2> & technicalGrid) {
+                                        FsGrid< fsgrids::technical, 2> & technicalGrid __attribute__((unused))) {
       return true;
    }
    
    bool DoNotCompute::applyInitialState(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid __attribute__((unused)),
       Project&
    ) {
       vector<CellID> cells = mpiGrid.get_cells();

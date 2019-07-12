@@ -49,7 +49,7 @@ namespace DRO {
     * @param buffer Buffer in which the reduced data is written.
     * @return If true, DataReductionOperator reduced data successfully.
     */
-   bool DataReductionOperator::reduceData(const SpatialCell* cell,char* buffer) {
+   bool DataReductionOperator::reduceData(const SpatialCell* cell __attribute__((unused)),char* buffer __attribute__((unused))) {
       cerr << "ERROR: DataReductionOperator::reduceData called instead of derived class function! (variable" <<
                getName() << ")" << endl;
       cerr << "       Did you use a diagnostic reducer for writing bulk data?" << endl;
@@ -63,7 +63,7 @@ namespace DRO {
     * @param buffer Buffer in which the reduced data is written.
     * @return If true, DataReductionOperator reduced data successfully.
     */
-   bool DataReductionOperator::reduceDiagnostic(const SpatialCell* cell,Real* result) {
+   bool DataReductionOperator::reduceDiagnostic(const SpatialCell* cell __attribute__((unused)),Real* result __attribute__((unused))) {
       cerr << "ERROR: DataReductionOperator::reduceData called instead of derived class function! (variable " <<
               getName() << ")" << endl;
       cerr << "       Did you use a bulk reducer for writing diagnostic data?" << endl;
@@ -87,7 +87,7 @@ namespace DRO {
 
    std::string DataReductionOperatorCellParams::getName() const {return variableName;}
    
-   bool DataReductionOperatorCellParams::reduceData(const SpatialCell* cell,char* buffer) {
+   bool DataReductionOperatorCellParams::reduceData(const SpatialCell* cell __attribute__((unused)),char* buffer) {
       const char* ptr = reinterpret_cast<const char*>(data);
       for (uint i = 0; i < vectorSize*sizeof(Real); ++i){
          buffer[i] = ptr[i];
@@ -95,7 +95,7 @@ namespace DRO {
       return true;
    }
    
-   bool DataReductionOperatorCellParams::reduceDiagnostic(const SpatialCell* cell,Real* buffer){
+   bool DataReductionOperatorCellParams::reduceDiagnostic(const SpatialCell* cell __attribute__((unused)),Real* buffer){
       //If vectorSize is >1 it still works, we just give the first value and no other ones..
       *buffer=data[0];
       return true;
@@ -118,14 +118,14 @@ namespace DRO {
       vectorSize = 1;
       return true;
    }
-   bool DataReductionOperatorFsGrid::reduceData(const SpatialCell* cell,char* buffer) {
+   bool DataReductionOperatorFsGrid::reduceData(const SpatialCell* cell __attribute__((unused)),char* buffer __attribute__((unused))) {
       // This returns false, since it will handle writing itself in writeFsGridData below.
       return false;
    }
-   bool DataReductionOperatorFsGrid::reduceDiagnostic(const SpatialCell* cell,Real * result) {
+   bool DataReductionOperatorFsGrid::reduceDiagnostic(const SpatialCell* cell __attribute__((unused)),Real * result __attribute__((unused))) {
       return false;
    }
-   bool DataReductionOperatorFsGrid::setSpatialCell(const SpatialCell* cell) {
+   bool DataReductionOperatorFsGrid::setSpatialCell(const SpatialCell* cell __attribute__((unused))) {
       return true;
    }
    
@@ -187,7 +187,7 @@ namespace DRO {
    
    std::string VariableBVol::getName() const {return "vg_b_vol";}
    
-   bool VariableBVol::reduceData(const SpatialCell* cell,char* buffer) {
+   bool VariableBVol::reduceData(const SpatialCell* cell __attribute__((unused)),char* buffer) {
       const char* ptr = reinterpret_cast<const char*>(B);
       for (uint i = 0; i < 3*sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
@@ -220,13 +220,13 @@ namespace DRO {
    
    std::string MPIrank::getName() const {return "vg_rank";}
    
-   bool MPIrank::reduceData(const SpatialCell* cell,char* buffer) {
+   bool MPIrank::reduceData(const SpatialCell* cell __attribute__((unused)),char* buffer) {
       const char* ptr = reinterpret_cast<const char*>(&mpiRank);
       for (uint i = 0; i < sizeof(int); ++i) buffer[i] = ptr[i];
       return true;
    }
    
-   bool MPIrank::setSpatialCell(const SpatialCell* cell) {
+   bool MPIrank::setSpatialCell(const SpatialCell* cell __attribute__((unused))) {
       int intRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&intRank);
       rank = 1.0*intRank;
@@ -247,7 +247,7 @@ namespace DRO {
    
    std::string BoundaryType::getName() const {return "vg_boundarytype";}
    
-   bool BoundaryType::reduceData(const SpatialCell* cell,char* buffer) {
+   bool BoundaryType::reduceData(const SpatialCell* cell __attribute__((unused)),char* buffer) {
       const char* ptr = reinterpret_cast<const char*>(&boundaryType);
       for (uint i = 0; i < sizeof(int); ++i) buffer[i] = ptr[i];
       return true;
@@ -272,7 +272,7 @@ namespace DRO {
    
    std::string BoundaryLayer::getName() const {return "vg_boundarylayer";}
    
-   bool BoundaryLayer::reduceData(const SpatialCell* cell,char* buffer) {
+   bool BoundaryLayer::reduceData(const SpatialCell* cell __attribute__((unused)),char* buffer) {
       const char* ptr = reinterpret_cast<const char*>(&boundaryLayer);
       for (uint i = 0; i < sizeof(int); ++i) buffer[i] = ptr[i];
       return true;
@@ -298,13 +298,13 @@ namespace DRO {
    
    std::string Blocks::getName() const {return popName + "/vg_blocks";}
    
-   bool Blocks::reduceData(const SpatialCell* cell,char* buffer) {
+   bool Blocks::reduceData(const SpatialCell* cell __attribute__((unused)),char* buffer) {
       const char* ptr = reinterpret_cast<const char*>(&nBlocks);
       for (uint i = 0; i < sizeof(int); ++i) buffer[i] = ptr[i];
       return true;
    }
    
-   bool Blocks::reduceDiagnostic(const SpatialCell* cell,Real* buffer) {
+   bool Blocks::reduceDiagnostic(const SpatialCell* cell __attribute__((unused)),Real* buffer) {
       *buffer = 1.0 * nBlocks;
       return true;
    }
@@ -327,7 +327,7 @@ namespace DRO {
       return true;
    }
    
-   bool VariablePressureSolver::reduceData(const SpatialCell* cell,char* buffer) {
+   bool VariablePressureSolver::reduceData(const SpatialCell* cell __attribute__((unused)),char* buffer) {
       const char* ptr = reinterpret_cast<const char*>(&Pressure);
       for (uint i = 0; i < sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
@@ -541,7 +541,7 @@ namespace DRO {
       return true;
    }
    
-   bool MaxDistributionFunction::setSpatialCell(const SpatialCell* cell) {
+   bool MaxDistributionFunction::setSpatialCell(const SpatialCell* cell __attribute__((unused))) {
       return true;
    }
    
@@ -595,7 +595,7 @@ namespace DRO {
       return true;
    }
    
-   bool MinDistributionFunction::setSpatialCell(const SpatialCell* cell) {
+   bool MinDistributionFunction::setSpatialCell(const SpatialCell* cell __attribute__((unused))) {
       return true;
    }
 
@@ -717,7 +717,6 @@ namespace DRO {
 
    //Calculates rho thermal or rho non-thermal
    static void rhoNonthermalCalculation( const SpatialCell * cell, const bool calculateNonthermal, cuint popID, Real & rho ) {
-      const Real HALF = 0.5;
       # pragma omp parallel
       {
          Real thread_n_sum = 0.0;
@@ -956,14 +955,14 @@ namespace DRO {
    
    std::string VariableMeshData::getName() const {return "vg_meshdata";}
    
-   bool VariableMeshData::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+   bool VariableMeshData::getDataVectorInfo(std::string& dataType __attribute__((unused)),unsigned int& dataSize __attribute__((unused)),unsigned int& vectorSize __attribute__((unused))) const {
       return true;
    }
    
-   bool VariableMeshData::setSpatialCell(const SpatialCell* cell) {return true;}
+   bool VariableMeshData::setSpatialCell(const SpatialCell* cell __attribute__((unused))) {return true;}
    
-   bool VariableMeshData::writeData(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                    const std::vector<CellID>& cells,const std::string& meshName,
+   bool VariableMeshData::writeData(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid __attribute__((unused)),
+                                    const std::vector<CellID>& cells __attribute__((unused)),const std::string& meshName,
                                     vlsv::Writer& vlsvWriter) {
       bool success = true;
       for (size_t i = 0; i < getObjectWrapper().meshData.size(); ++i) {
@@ -1016,7 +1015,7 @@ namespace DRO {
       return true;
    }
    
-   bool VariableRhoNonthermal::setSpatialCell(const SpatialCell* cell) {
+   bool VariableRhoNonthermal::setSpatialCell(const SpatialCell* cell __attribute__((unused))) {
       RhoNonthermal = 0.0;
       return true;
    }
@@ -1045,7 +1044,7 @@ namespace DRO {
       return true;
    }
    
-   bool VariableRhoThermal::setSpatialCell(const SpatialCell* cell) {
+   bool VariableRhoThermal::setSpatialCell(const SpatialCell* cell __attribute__((unused))) {
       RhoThermal = 0.0;
       return true;
    }
@@ -1076,7 +1075,7 @@ namespace DRO {
       return true;
    }
    
-   bool VariableVNonthermal::setSpatialCell(const SpatialCell* cell) {
+   bool VariableVNonthermal::setSpatialCell(const SpatialCell* cell __attribute__((unused))) {
       // Initialize values
       for( uint i = 0; i < 3; ++i ) {
          VNonthermal[i] = 0.0;
@@ -1110,7 +1109,7 @@ namespace DRO {
       return true;
    }
    
-   bool VariableVThermal::setSpatialCell(const SpatialCell* cell) {
+   bool VariableVThermal::setSpatialCell(const SpatialCell* cell __attribute__((unused))) {
       // Initialize values
       for( uint i = 0; i < 3; ++i ) {
          VThermal[i] = 0.0;
@@ -1230,7 +1229,6 @@ namespace DRO {
       const bool calculateNonthermal = true;
       //Calculate and save:
       PTensorOffDiagonalNonthermalCalculations( cell, calculateNonthermal, averageVX, averageVY, averageVZ, popID, PTensor );
-      const uint vectorSize = 3;
       //Input data into buffer
       const char* ptr = reinterpret_cast<const char*>(&PTensor);
       for (uint i = 0; i < 3*sizeof(Real); ++i) buffer[i] = ptr[i];
@@ -1270,7 +1268,6 @@ namespace DRO {
       const bool calculateNonthermal = false;
       //Calculate and save:
       PTensorOffDiagonalNonthermalCalculations( cell, calculateNonthermal, averageVX, averageVY, averageVZ, popID, PTensor );
-      const uint vectorSize = 3;
       //Input data into buffer
       const char* ptr = reinterpret_cast<const char*>(&PTensor);
       for (uint i = 0; i < 3*sizeof(Real); ++i) buffer[i] = ptr[i];
@@ -1318,7 +1315,7 @@ namespace DRO {
       return true;
    }
 
-   bool VariableEffectiveSparsityThreshold::setSpatialCell(const spatial_cell::SpatialCell* cell) {
+   bool VariableEffectiveSparsityThreshold::setSpatialCell(const spatial_cell::SpatialCell* cell __attribute__((unused))) {
       return true;
    }
 
@@ -1367,7 +1364,6 @@ namespace DRO {
 
       // Unit B-field direction
       creal normB = sqrt(B[0]*B[0] + B[1]*B[1] + B[2]*B[2]);
-      std::array<Real,3> b_unit;
       for (uint i=0; i<3; i++){
          B[i] /= normB;
       }
@@ -1445,7 +1441,7 @@ namespace DRO {
       return true;
    }
    
-   bool VariablePrecipitationDiffFlux::setSpatialCell(const SpatialCell* cell) {
+   bool VariablePrecipitationDiffFlux::setSpatialCell(const SpatialCell* cell __attribute__((unused))) {
       return true;
    }
 
@@ -1551,7 +1547,7 @@ namespace DRO {
       return true;
    }
    
-   bool VariableEnergyDensity::setSpatialCell(const SpatialCell* cell) {
+   bool VariableEnergyDensity::setSpatialCell(const SpatialCell* cell __attribute__((unused))) {
       return true;
    }
    
