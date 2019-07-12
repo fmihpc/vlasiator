@@ -404,9 +404,9 @@ namespace SBC {
          Real readParam;
          ret = 0;
          if ( typeid( readParam ) == typeid(double) ) {
-            for(uint i=0; i<nParams; i++) ret += fscanf(fp, "%lf", &readParam);
+            for(uint i=0; i<nParams; i++) ret += fscanf(fp, "%lf", (double*)&readParam);
          } else if( typeid( readParam ) == typeid(float) ) {
-            for(uint i=0; i<nParams; i++) ret += fscanf(fp, "%f", &readParam);
+            for(uint i=0; i<nParams; i++) ret += fscanf(fp, "%f", (float*)&readParam);
          } else {
             assert( typeid( readParam ) == typeid(float) || typeid( readParam ) == typeid(double) );
             
@@ -431,9 +431,9 @@ namespace SBC {
             Real readParam;
             int ret;
             if ( typeid( readParam ) == typeid(double) ) {
-               ret = fscanf(fp,"%lf",&readParam);
+               ret = fscanf(fp,"%lf",(double*)&readParam);
             } else if( typeid( readParam ) == typeid(float) ) {
-               ret = fscanf(fp,"%f",&readParam);
+               ret = fscanf(fp,"%f",(float*)&readParam);
             } else {
                assert( typeid( readParam ) == typeid(float) || typeid( readParam ) == typeid(double) ); 
             }
