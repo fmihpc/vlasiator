@@ -60,9 +60,8 @@ namespace projects {
          // VX search
          search = true;
          counter = 0;
-         #warning TODO: add SpatialCell::getVelocityBlockMinValue() in place of sparseMinValue
          while (search) {
-            if (0.1 * getObjectWrapper().particleSpecies[popID].sparseMinValue >
+            if (0.1 * cell->getVelocityBlockMinValue(popID) >
                 calcPhaseSpaceDensity(x,
                                       y,
                                       z,

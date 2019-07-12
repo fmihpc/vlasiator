@@ -150,8 +150,7 @@ namespace SBC {
       const vmesh::LocalID* vblocks_ini = cell.get_velocity_grid_length(popID,refLevel);
 
       while (search) {
-         #warning TODO: add SpatialCell::getVelocityBlockMinValue() in place of sparseMinValue?
-         if (0.1 * getObjectWrapper().particleSpecies[popID].sparseMinValue > 
+         if (0.1 * cell.getVelocityBlockMinValue(popID) >
              maxwellianDistribution(
                                     popID,
                                     rho,
