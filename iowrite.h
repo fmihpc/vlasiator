@@ -76,7 +76,6 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volGrid,
       FsGrid< fsgrids::technical, 2>& technicalGrid,
-                  DataReducer& dataReducer,
                   const std::string& name,
                   const uint& fileIndex,
                   const int& stripe);
@@ -94,6 +93,6 @@ bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
                         vlsv::Writer& vlsvWriter,int index,const std::vector<uint64_t>& cells);
 
 bool writeVelocityDistributionData(vlsv::Writer& vlsvWriter,dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                   const std::vector<uint64_t>& cells,MPI_Comm comm);
+                                   const std::vector<uint64_t>& cells);
 
 #endif

@@ -59,7 +59,6 @@ using namespace phiprof;
 
 extern Logger logFile, diagnostic;
 
-void initVelocityGridGeometry(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 void initSpatialCellCoordinates(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 
@@ -76,7 +75,7 @@ void writeVelMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) 
    
    vlsv::Writer vlsvWriter;
    vlsvWriter.open(fname.str(),MPI_COMM_WORLD,0,MPI_INFO_NULL);
-   writeVelocityDistributionData(vlsvWriter,mpiGrid,cells,MPI_COMM_WORLD);
+   writeVelocityDistributionData(vlsvWriter,mpiGrid,cells);
    vlsvWriter.close();
    
    ++counter;
@@ -91,8 +90,6 @@ void initializeGrids(
    FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsGrid,
    FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsDt2Grid,
    FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
-   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2> & EGradPeGrid,
-   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volGrid,
    FsGrid< fsgrids::technical, 2>& technicalGrid,
    SysBoundary& sysBoundaries,
    Project& project
@@ -138,8 +135,12 @@ void initializeGrids(
    }
    phiprof::stop("Refine spatial cells");
    
-   // Init velocity mesh on all cells
-   initVelocityGridGeometry(mpiGrid);
+   // Velocity mesh(es) are created in parameters.cpp, here we just 
+   // trigger the initialization of static variables in vmesh::VelocityMesh class.
+   SpatialCell dummy;
+   dummy.initialize_mesh();
+
+   // Build communication stencils
    initializeStencils(mpiGrid);
    
    mpiGrid.set_partitioning_option("IMBALANCE_TOL", P::loadBalanceTolerance);
@@ -187,7 +188,7 @@ void initializeGrids(
    if (P::isRestart) {
       logFile << "Restart from "<< P::restartFileName << std::endl << writeVerbose;
       phiprof::start("Read restart");
-      if (readGrid(mpiGrid,perBGrid,EGrid,technicalGrid,P::restartFileName) == false) {
+      if (readGrid(mpiGrid,perBGrid,EGrid,P::restartFileName) == false) {
          logFile << "(MAIN) ERROR: restarting failed" << endl;
          exit(1);
       }
@@ -318,14 +319,6 @@ void initializeGrids(
    phiprof::stop("Finish fsgrid setup");
    
    phiprof::stop("Set initial state");
-}
-
-// initialize velocity grid of spatial cells before creating cells in dccrg.initialize
-void initVelocityGridGeometry(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid){
-   // Velocity mesh(es) are created in parameters.cpp, here we just 
-   // trigger the initialization of static variables in vmesh::VelocityMesh class.
-   SpatialCell dummy;
-   dummy.initialize_mesh();
 }
 
 void initSpatialCellCoordinates(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
@@ -1000,8 +993,6 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,c
 
    phiprof::start("mesh validation (init)");
          
-   bool internallyValid = false;
-      
    // First make sure that all cells local to this process have a valid mesh.
    // After the mesh is internally valid, we will update mesh structures 
    // with remote neighbors for as many times as needed.

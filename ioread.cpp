@@ -210,13 +210,11 @@ bool readCellIds(vlsv::ParallelReader & file,
  * The value is used to calculate an initial load balance after restart.
  * @param file Some vlsv reader with a file open (can be old or new vlsv reader)
  * @param nBlocks Vector for holding information on cells and the number of blocks in them -- this function saves data here
- * @param masterRank The master rank of this process (Vlasiator uses masterRank = 0 and so it should be the default)
- * @param comm MPI comm
  * @return Returns true if the operation was successful
  @ @see exec_readGrid
 */
 bool readNBlocks(vlsv::ParallelReader& file,const std::string& meshName,
-                 std::vector<size_t>& nBlocks,int masterRank,MPI_Comm comm) {
+                 std::vector<size_t>& nBlocks) {
    bool success = true;
 
    // Get info on array containing cell IDs:
@@ -331,7 +329,6 @@ bool _readBlockData(
 ) {   
    uint64_t arraySize;
    uint64_t avgVectorSize;
-   uint64_t cellParamsVectorSize;
    vlsv::datatype::type dataType;
    uint64_t byteSize;
    list<pair<string,string> > avgAttribs;
@@ -943,7 +940,9 @@ template<unsigned long int N> bool readFsGridVariable(
  \return Returns true if the operation is successful. */
 template <typename T>
 bool readScalarParameter(vlsv::ParallelReader& file,string name,T& value,int masterRank,MPI_Comm comm) {
-   if (file.readParameter(name,value) == false) {
+   int myRank;
+   MPI_Comm_rank(comm, &myRank);
+   if (file.readParameter(name,value) == false && myRank == masterRank) {
       logFile << "(RESTART) ERROR: Failed to read parameter '" << name << "' value in ";
       logFile << __FILE__ << ":" << __LINE__ << endl << write;
       return false;
@@ -987,7 +986,6 @@ bool checkScalarParameter(vlsv::ParallelReader& file,const string& name,T correc
 bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
-      FsGrid< fsgrids::technical, 2>& technicalGrid,
                    const std::string& name) {
    vector<CellID> fileCells; /*< CellIds for all cells in file*/
    vector<size_t> nBlocks;/*< Number of blocks for all cells in file*/
@@ -1063,7 +1061,7 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    // Read the total number of velocity blocks in each spatial cell.
    // Note that this is a sum over all existing particle species.
    if (success == true) {
-      success = readNBlocks(file,meshName,nBlocks,MASTER_RANK,MPI_COMM_WORLD);
+      success = readNBlocks(file,meshName,nBlocks);
    }
 
    //make sure all cells are empty, we will anyway overwrite everything and 
@@ -1203,8 +1201,7 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 bool readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
-      FsGrid< fsgrids::technical, 2>& technicalGrid,
               const std::string& name){
    //Check the vlsv version from the file:
-   return exec_readGrid(mpiGrid,perBGrid,EGrid,technicalGrid,name);
+   return exec_readGrid(mpiGrid,perBGrid,EGrid,name);
 }
