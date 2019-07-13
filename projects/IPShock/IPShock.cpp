@@ -339,13 +339,13 @@ namespace projects {
 
   Real IPShock::getDistribValue(creal& x, creal& y, creal& z, 
 				creal& vx, creal& vy, creal& vz, 
-				creal& dvx, creal& dvy, creal& dvz,
+				creal& dvx __attribute__((unused)), creal& dvy __attribute__((unused)), creal& dvz __attribute__((unused)),
         const uint popID) const {
 
     Real mass = getObjectWrapper().particleSpecies[popID].mass;
     Real KB = physicalconstants::K_B;
     Real mu0 = physicalconstants::MU_0;
-    Real adiab = 5./3.;
+    //Real adiab = 5./3.;
     const IPShockSpeciesParameters& sP = this->speciesParams[popID];
 
     // Interpolate density between upstream and downstream
@@ -421,7 +421,7 @@ namespace projects {
     }
   }
   
-  void IPShock::calcCellParameters(spatial_cell::SpatialCell* cell, creal& t) { }
+  void IPShock::calcCellParameters(spatial_cell::SpatialCell* cell __attribute__((unused)), creal& t __attribute__((unused))) { }
 
   Real IPShock::interpolate(Real upstream, Real downstream, Real x) const {
     Real coord = 0.5 + x/this->Shockwidth; //Now shock will be from 0 to 1
@@ -440,7 +440,7 @@ namespace projects {
   void IPShock::setProjectBField(
      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
-     FsGrid< fsgrids::technical, 2>& technicalGrid
+     FsGrid< fsgrids::technical, 2>& technicalGrid __attribute__((unused))
   ) {
       setBackgroundFieldToZero(BgBGrid);
       
@@ -455,9 +455,9 @@ namespace projects {
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
                   
                   /* Maintain all values in BPERT for simplicity */
-                  Real KB = physicalconstants::K_B;
+                  //Real KB = physicalconstants::K_B;
                   Real mu0 = physicalconstants::MU_0;
-                  Real adiab = 5./3.;
+                  //Real adiab = 5./3.;
                   
                   // Interpolate density between upstream and downstream
                   // All other values are calculated from jump conditions
@@ -479,7 +479,7 @@ namespace projects {
                   Real BX = this->B0u[0];
                   Real MAsq = std::pow((EffectiveVu0/this->B0u[0]), 2) * MassDensityU * mu0;
                   Real Btang = this->B0utangential * (MAsq - 1.0)/(MAsq*VX/EffectiveVu0 -1.0);
-                  Real Vtang = VX * Btang / BX;
+                  //Real Vtang = VX * Btang / BX;
                   
                   /* Reconstruct Y and Z components using cos(phi) values and signs. Tangential variables are always positive. */
                   Real BY = abs(Btang) * this->Bucosphi * this->Byusign;

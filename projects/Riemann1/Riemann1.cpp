@@ -90,7 +90,10 @@ namespace projects {
       RP::get("Riemann.nVelocitySamples", this->nVelocitySamples);
    }
 
-   Real Riemann1::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const {
+   Real Riemann1::getDistribValue(creal& x, creal& y __attribute__((unused)), creal& z __attribute__((unused)),
+         creal& vx, creal& vy, creal& vz,
+         creal& dvx __attribute__((unused)), creal& dvy __attribute__((unused)), creal& dvz __attribute__((unused)),
+         const uint popID __attribute__((unused))) const {
       cint side = (x < 0.0) ? this->LEFT : this->RIGHT;
       
       return this->rho[side] * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B * this->T[side]), 1.5) *
@@ -117,12 +120,12 @@ namespace projects {
       return avg / pow(this->nSpaceSamples, 3.0) / pow(this->nVelocitySamples, 3.0);
    }
 
-   void Riemann1::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
+   void Riemann1::calcCellParameters(spatial_cell::SpatialCell* cell __attribute__((unused)),creal& t __attribute__((unused))) { }
    
    void Riemann1::setProjectBField(
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
-      FsGrid< fsgrids::technical, 2>& technicalGrid
+      FsGrid< fsgrids::technical, 2>& technicalGrid __attribute__((unused))
    ) {
       setBackgroundFieldToZero(BgBGrid);
       
@@ -140,7 +143,7 @@ namespace projects {
                   Bxavg = Byavg = Bzavg = 0.0;
                   if(this->nSpaceSamples > 1) {
                      Real d_x = perBGrid.DX / (this->nSpaceSamples - 1);
-                     Real d_z = perBGrid.DZ / (this->nSpaceSamples - 1);
+                     //Real d_z = perBGrid.DZ / (this->nSpaceSamples - 1);
                      for (uint i=0; i<this->nSpaceSamples; ++i) {
                         for (uint k=0; k<this->nSpaceSamples; ++k) {
                            Bxavg += ((xyz[0] + i * d_x) < 0.0) ? this->Bx[this->LEFT] : this->Bx[this->RIGHT];

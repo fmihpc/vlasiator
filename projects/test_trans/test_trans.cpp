@@ -68,7 +68,7 @@ namespace projects {
 
    Real test_trans::calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,
                                           creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz,
-                                          const uint popID) const {
+                                          const uint popID __attribute__((unused))) const {
       //Please use even number of cells in velocity and real space
       Real xyz[3];
       Real vxyz[3];
@@ -126,12 +126,12 @@ namespace projects {
       return 0.0;
    }
 
-   void test_trans::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
+   void test_trans::calcCellParameters(spatial_cell::SpatialCell* cell __attribute__((unused)),creal& t __attribute__((unused))) { }
    
    void test_trans::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid __attribute__((unused)),
       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
-      FsGrid< fsgrids::technical, 2>& technicalGrid
+      FsGrid< fsgrids::technical, 2>& technicalGrid __attribute__((unused))
    ) {
       ConstantField bgField;
       bgField.initialize(0.0,0.0,1e-9);

@@ -80,10 +80,10 @@ namespace projects {
    }
    
    Real TestHall::calcPhaseSpaceDensity(
-      creal& x,creal& y,creal& z,
-      creal& dx,creal& dy,creal& dz,
+      creal& x __attribute__((unused)),creal& y __attribute__((unused)),creal& z __attribute__((unused)),
+      creal& dx __attribute__((unused)),creal& dy __attribute__((unused)),creal& dz __attribute__((unused)),
       creal& vx,creal& vy,creal& vz,
-      creal& dvx,creal& dvy,creal& dvz,const uint popID
+      creal& dvx,creal& dvy,creal& dvz,const uint popID __attribute__((unused))
    ) const {
       creal mass = physicalconstants::MASS_PROTON;
       creal kb = physicalconstants::K_B;
@@ -92,7 +92,7 @@ namespace projects {
          exp(- mass * (pow(vx + 0.5 * dvx - this->VX0, 2.0) + pow(vy + 0.5 * dvy - this->VY0, 2.0) + pow(vz + 0.5 * dvz - this->VZ0, 2.0)) / (2.0 * kb * this->TEMPERATURE)));
    }
    
-   void TestHall::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
+   void TestHall::calcCellParameters(spatial_cell::SpatialCell* cell __attribute__((unused)),creal& t __attribute__((unused))) { }
       
 //       creal r = sqrt((x+Dx)*(x+Dx) + (y+Dy)*(y+Dy));
 //       creal theta = atan2(y+Dy, x+Dx);
@@ -133,7 +133,7 @@ namespace projects {
    void TestHall::setProjectBField(
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
-      FsGrid< fsgrids::technical, 2>& technicalGrid
+      FsGrid< fsgrids::technical, 2>& technicalGrid __attribute__((unused))
    ) {
       setBackgroundFieldToZero(BgBGrid);
       

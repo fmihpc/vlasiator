@@ -77,7 +77,7 @@ namespace projects {
       RP::get("VelocityBox.Bz", this->Bz);
    }
 
-  Real VelocityBox::getDistribValue(creal& vx, creal& vy, creal& vz, const uint popID) const {
+  Real VelocityBox::getDistribValue(creal& vx, creal& vy, creal& vz, const uint popID __attribute__((unused))) const {
      if (vx >= this->Vx[0] && vx <= this->Vx[1] &&
          vy >= this->Vy[0] && vy <= this->Vy[1] &&
          vz >= this->Vz[0] && vz <= this->Vz[1])
@@ -89,8 +89,8 @@ namespace projects {
 
 
   Real VelocityBox::calcPhaseSpaceDensity(
-     creal& x, creal& y, creal& z,
-     creal& dx, creal& dy, creal& dz,
+     creal& x __attribute__((unused)), creal& y __attribute__((unused)), creal& z __attribute__((unused)),
+     creal& dx __attribute__((unused)), creal& dy __attribute__((unused)), creal& dz __attribute__((unused)),
      creal& vx, creal& vy, creal& vz,
      creal& dvx, creal& dvy, creal& dvz,const uint popID
   ) const {
@@ -99,12 +99,12 @@ namespace projects {
 
 
   
-   void VelocityBox::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
+   void VelocityBox::calcCellParameters(spatial_cell::SpatialCell* cell __attribute__((unused)),creal& t __attribute__((unused))) { }
 
    void VelocityBox::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid __attribute__((unused)),
       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
-      FsGrid< fsgrids::technical, 2>& technicalGrid
+      FsGrid< fsgrids::technical, 2>& technicalGrid __attribute__((unused))
    ) {
       ConstantField bgField;
       bgField.initialize(this->Bx,

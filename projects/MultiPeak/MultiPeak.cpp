@@ -126,7 +126,8 @@ namespace projects {
       else if (densModelString == "testcase") densityModel = TestCase;
    }
 
-   Real MultiPeak::getDistribValue(creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
+   Real MultiPeak::getDistribValue(creal& vx, creal& vy, creal& vz, 
+         creal& dvx __attribute__((unused)), creal& dvy __attribute__((unused)), creal& dvz __attribute__((unused)),const uint popID) const {
       const MultiPeakSpeciesParameters& sP = speciesParams[popID];
       creal mass = getObjectWrapper().particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
@@ -144,9 +145,11 @@ namespace projects {
       return value;
    }
 
-   Real MultiPeak::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, 
-                                         creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,
-                                         const uint popID) const {
+   Real MultiPeak::calcPhaseSpaceDensity(creal& x, creal& y, creal& z __attribute__((unused)),
+         creal& dx __attribute__((unused)), creal& dy __attribute__((unused)), creal& dz __attribute__((unused)), 
+         creal& vx, creal& vy, creal& vz,
+         creal& dvx, creal& dvy, creal& dvz,
+         const uint popID) const {
       // Iterative sampling of the distribution function. Keep track of the 
       // accumulated volume average over the iterations. When the next 
       // iteration improves the average by less than 1%, return the value.
@@ -155,8 +158,6 @@ namespace projects {
       uint N = nVelocitySamples; // Start by using nVelocitySamples
       int N3_sum = 0;           // Sum of sampling points used so far
 
-      const MultiPeakSpeciesParameters& sP = speciesParams[popID];
-                                            
       #warning TODO: Replace getObjectWrapper().particleSpecies[popID].sparseMinValue with SpatialCell::getVelocityBlockMinValue(popID)
       const Real avgLimit = 0.01*getObjectWrapper().particleSpecies[popID].sparseMinValue;
       do {
@@ -212,7 +213,7 @@ namespace projects {
       return avgTotal / N3_sum;
    }
 
-   void MultiPeak::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
+   void MultiPeak::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t __attribute__((unused))) {
       setRandomCellSeed(cell);
       rhoRnd = 0.5 - getRandomNumber();
    }
@@ -220,7 +221,7 @@ namespace projects {
    void MultiPeak::setProjectBField(
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
-      FsGrid< fsgrids::technical, 2>& technicalGrid
+      FsGrid< fsgrids::technical, 2>& technicalGrid __attribute__((unused))
    ) {
       ConstantField bgField;
       bgField.initialize(this->Bx,
@@ -257,9 +258,9 @@ namespace projects {
    }
    
    std::vector<std::array<Real, 3> > MultiPeak::getV0(
-                                                creal x,
-                                                creal y,
-                                                creal z,
+                                                creal x __attribute__((unused)),
+                                                creal y __attribute__((unused)),
+                                                creal z __attribute__((unused)),
                                                 const uint popID
                                                ) const {
       const MultiPeakSpeciesParameters& sP = speciesParams[popID];

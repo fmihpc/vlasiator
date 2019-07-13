@@ -84,7 +84,7 @@ namespace projects {
       RP::get("Larmor.Scale_y", this->SCA_Y);
     }
 
-    Real Larmor::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, const uint popID) const {
+    Real Larmor::getDistribValue(creal& x, creal& y, creal& z __attribute__((unused)), creal& vx, creal& vy, creal& vz, const uint popID) const {
       creal kb = physicalconstants::K_B;
       creal mass = getObjectWrapper().particleSpecies[popID].mass;
       
@@ -138,12 +138,12 @@ namespace projects {
    }
 
 
-   void Larmor::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
+   void Larmor::calcCellParameters(spatial_cell::SpatialCell* cell __attribute__((unused)),creal& t __attribute__((unused))) { }
 
     void Larmor::setProjectBField(
-       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid __attribute__((unused)),
        FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
-       FsGrid< fsgrids::technical, 2>& technicalGrid
+       FsGrid< fsgrids::technical, 2>& technicalGrid __attribute__((unused))
     ) {
       ConstantField bgField;
       bgField.initialize(this->BX0,

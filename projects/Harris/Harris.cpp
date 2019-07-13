@@ -82,9 +82,9 @@ namespace projects {
    }
    
    Real Harris::getDistribValue(
-      creal& x,creal& y, creal& z,
+      creal& x,creal& y __attribute__((unused)), creal& z __attribute__((unused)),
       creal& vx, creal& vy, creal& vz,
-      creal& dvx, creal& dvy, creal& dvz,
+      creal& dvx __attribute__((unused)), creal& dvy __attribute__((unused)), creal& dvz __attribute__((unused)),
       const uint popID
    ) const {
 
@@ -134,13 +134,13 @@ namespace projects {
       
    }
    
-   void Harris::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
+   void Harris::calcCellParameters(spatial_cell::SpatialCell* cell __attribute__((unused)),creal& t __attribute__((unused))) { }
    
    vector<std::array<Real, 3>> Harris::getV0(
-      creal x,
-      creal y,
-      creal z,
-      const uint popID
+      creal x __attribute__((unused)),
+      creal y __attribute__((unused)),
+      creal z __attribute__((unused)),
+      const uint popID __attribute__((unused))
    ) const {
       vector<std::array<Real, 3>> V0;
       std::array<Real, 3> v = {{0.0, 0.0, 0.0 }};
@@ -151,7 +151,7 @@ namespace projects {
    void Harris::setProjectBField(
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
-      FsGrid< fsgrids::technical, 2>& technicalGrid
+      FsGrid< fsgrids::technical, 2>& technicalGrid __attribute__((unused))
    ) {
       setBackgroundFieldToZero(BgBGrid);
       

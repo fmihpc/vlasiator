@@ -88,7 +88,8 @@ namespace projects {
       RP::get("Shock.Sharp_Y", this->Sharp_Y);
    }
 
-   Real Shock::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, const uint popID) const {
+   Real Shock::getDistribValue(creal& x __attribute__((unused)), creal& y __attribute__((unused)), creal& z __attribute__((unused)),
+         creal& vx, creal& vy, creal& vz, const uint popID __attribute__((unused))) const {
       creal kb = physicalconstants::K_B;
       creal mass = physicalconstants::MASS_PROTON;
       return exp(- mass * ((vx-this->VX0)*(vx-this->VX0) + (vy-this->VY0)*(vy-this->VY0)+ (vz-this->VZ0)*(vz-this->VZ0)) / (2.0 * kb * this->TEMPERATURE));
@@ -142,12 +143,12 @@ namespace projects {
       }
    }
 
-   void Shock::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
+   void Shock::calcCellParameters(spatial_cell::SpatialCell* cell __attribute__((unused)),creal& t __attribute__((unused))) { }
    
    void Shock::setProjectBField(
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
-      FsGrid< fsgrids::technical, 2>& technicalGrid
+      FsGrid< fsgrids::technical, 2>& technicalGrid __attribute__((unused))
    ) {
       setBackgroundFieldToZero(BgBGrid);
       

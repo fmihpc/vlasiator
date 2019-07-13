@@ -60,7 +60,10 @@ namespace projects {
       return Project::initialize();
    }
 
-   Real Template::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
+   Real Template::calcPhaseSpaceDensity(creal& x, creal& y, creal& z,
+         creal& dx __attribute__((unused)), creal& dy __attribute__((unused)), creal& dz __attribute__((unused)),
+         creal& vx, creal& vy, creal& vz,
+         creal& dvx __attribute__((unused)), creal& dvy __attribute__((unused)), creal& dvz __attribute__((unused)),const uint popID) const {
       creal rho = 1.0;
       creal T = 1.0;
       const std::array<Real, 3> V0 = this->getV0(x, y, z, popID)[0];
@@ -72,9 +75,9 @@ namespace projects {
    }
    
    void Template::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid __attribute__((unused)),
       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
-      FsGrid< fsgrids::technical, 2>& technicalGrid
+      FsGrid< fsgrids::technical, 2>& technicalGrid __attribute__((unused))
    ) {
       Dipole bgField;
       bgField.initialize(8e15, 0.0, 0.0, 0.0, 0.0); //set dipole moment and location
@@ -83,9 +86,9 @@ namespace projects {
    
    vector<std::array<Real, 3>> Template::getV0(
       creal x,
-      creal y,
-      creal z,
-      const uint popID
+      creal y __attribute__((unused)),
+      creal z __attribute__((unused)),
+      const uint popID __attribute__((unused))
    ) const {
       vector<std::array<Real, 3>> centerPoints;
       std::array<Real, 3> point {{0.0, 0.0, 0.0}};

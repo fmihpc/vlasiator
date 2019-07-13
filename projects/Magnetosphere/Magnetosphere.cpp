@@ -318,7 +318,7 @@ namespace projects {
    }
    
    /*! Magnetosphere does not set any extra perturbed B. */
-   void Magnetosphere::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
+   void Magnetosphere::calcCellParameters(spatial_cell::SpatialCell* cell __attribute__((unused)),creal& t __attribute__((unused))) { }
 
    /* set 0-centered dipole */
    void Magnetosphere::setProjectBField(
@@ -471,7 +471,7 @@ namespace projects {
    Real Magnetosphere::getDistribValue(
            creal& x,creal& y,creal& z,
            creal& vx,creal& vy,creal& vz,
-           creal& dvx,creal& dvy,creal& dvz,
+           creal& dvx __attribute__((unused)),creal& dvy __attribute__((unused)),creal& dvz __attribute__((unused)),
            const uint popID) const
    {
       const MagnetosphereSpeciesParameters& sP = this->speciesParams[popID];
