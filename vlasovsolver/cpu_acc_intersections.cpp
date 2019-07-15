@@ -67,7 +67,7 @@ Intersection z coordinate for (i,j,k) is: intersection + i * intersection_di + j
 \param intersection_dk Change in z-coordinate for a change in k index of 1 */
 void compute_intersections_1st(
         const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
-        const Transform<Real,3,Affine>& bwd_transform,const Transform<Real,3,Affine>& fwd_transform,
+        const Transform<Real,3,Affine>& bwd_transform,const Transform<Real,3,Affine>& fwd_transform __attribute__((unused)),
         uint dimension,const uint8_t& refLevel,
         Real& intersection,Real& intersection_di,Real& intersection_dj,Real& intersection_dk) {
     
@@ -180,7 +180,7 @@ void compute_intersections_1st(
   \param intersection_dk Change in x-coordinate for a change in k index of 1*/
 void compute_intersections_2nd(
         const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
-        const Transform<Real,3,Affine>& bwd_transform,const Transform<Real,3,Affine>& fwd_transform,
+        const Transform<Real,3,Affine>& bwd_transform,const Transform<Real,3,Affine>& fwd_transform __attribute__((unused)),
         uint dimension,const uint8_t& refLevel,
         Real& intersection,Real& intersection_di,Real& intersection_dj,Real& intersection_dk){
        
@@ -309,7 +309,7 @@ void compute_intersections_2nd(
   euclidian y goes from vy_min to vy_max, this is mapped to wherever y plane is in lagrangian.*/
 void compute_intersections_3rd(
     const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
-    const Transform<Real,3,Affine>& bwd_transform,const Transform<Real,3,Affine>& fwd_transform,
+    const Transform<Real,3,Affine>& bwd_transform,const Transform<Real,3,Affine>& fwd_transform __attribute__((unused)),
     uint dimension,const uint8_t& refLevel,
     Real& intersection,Real& intersection_di,Real& intersection_dj,Real& intersection_dk) {
     

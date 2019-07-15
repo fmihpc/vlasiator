@@ -160,7 +160,7 @@ namespace vmesh {
    }
    
    template<typename GID,typename LID> inline
-   bool VelocityMesh<GID,LID>::coarsenAllowed(const GID& globalID) const {
+   bool VelocityMesh<GID,LID>::coarsenAllowed(const GID& globalID __attribute__((unused))) const {
       return false;
    }
    
@@ -620,7 +620,7 @@ namespace vmesh {
    }
    
    template<typename GID,typename LID> inline
-   bool VelocityMesh<GID,LID>::refine(const GID& globalID,std::set<GID>& erasedBlocks,std::map<GID,LID>& insertedBlocks) {
+   bool VelocityMesh<GID,LID>::refine(const GID& globalID __attribute__((unused)),std::set<GID>& erasedBlocks __attribute__((unused)),std::map<GID,LID>& insertedBlocks __attribute__((unused))) {
       return false;
    }
 

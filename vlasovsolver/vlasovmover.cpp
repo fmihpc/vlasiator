@@ -65,9 +65,9 @@ creal EPSILON = 1.0e-25;
  */
 void calculateSpatialTranslation(
         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-        const vector<CellID>& localCells,
+        const vector<CellID>& localCells __attribute__((unused)),
         const vector<CellID>& local_propagated_cells,
-        const vector<CellID>& local_target_cells,
+        const vector<CellID>& local_target_cells __attribute__((unused)),
         const vector<CellID>& remoteTargetCellsx,
         const vector<CellID>& remoteTargetCellsy,
         const vector<CellID>& remoteTargetCellsz,
