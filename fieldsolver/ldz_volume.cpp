@@ -33,7 +33,6 @@ using namespace std;
 
 void calculateVolumeAveragedFields(
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
-   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
    FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
    FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volGrid,
    FsGrid< fsgrids::technical, 2> & technicalGrid
