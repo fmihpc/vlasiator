@@ -58,16 +58,16 @@ template <typename T, int stencil> void computeCoupling(dccrg::Dccrg<SpatialCell
   for (int k=0; k<gridDims[2]; k++) {
     for (int j=0; j<gridDims[1]; j++) {
       for (int i=0; i<gridDims[0]; i++) {
-	const std::array<int, 3> globalIndices = momentsGrid.getGlobalIndices(i,j,k);
-	const dccrg::Types<3>::indices_t  indices = {{(uint64_t)globalIndices[0],
-						      (uint64_t)globalIndices[1],
-						      (uint64_t)globalIndices[2]}}; //cast to avoid warnings
-	CellID dccrgCell = mpiGrid.get_existing_cell(indices, 0, mpiGrid.mapping.get_maximum_refinement_level());
-	int process = mpiGrid.get_process(dccrgCell);
-	int64_t  fsgridLid = momentsGrid.LocalIDForCoords(i,j,k);
-	int64_t  fsgridGid = momentsGrid.GlobalIDForCoords(i,j,k);
-	onFsgridMapRemoteProcess[process].insert(dccrgCell); //cells are ordered (sorted) in set
-	onFsgridMapCells[dccrgCell].push_back(fsgridLid);
+         const std::array<int, 3> globalIndices = momentsGrid.getGlobalIndices(i,j,k);
+         const dccrg::Types<3>::indices_t  indices = {{(uint64_t)globalIndices[0],
+            (uint64_t)globalIndices[1],
+            (uint64_t)globalIndices[2]}}; //cast to avoid warnings
+         CellID dccrgCell = mpiGrid.get_existing_cell(indices, 0, mpiGrid.mapping.get_maximum_refinement_level());
+         int process = mpiGrid.get_process(dccrgCell);
+         int64_t  fsgridLid = momentsGrid.LocalIDForCoords(i,j,k);
+         //int64_t  fsgridGid = momentsGrid.GlobalIDForCoords(i,j,k);
+         onFsgridMapRemoteProcess[process].insert(dccrgCell); //cells are ordered (sorted) in set
+         onFsgridMapCells[dccrgCell].push_back(fsgridLid);
       }
     }
   }
@@ -81,7 +81,7 @@ template <typename T, int stencil> void computeCoupling(dccrg::Dccrg<SpatialCell
      for (auto const &fsCellID : fsCells) {
        int process = momentsGrid.getTaskForGlobalID(fsCellID).first; //process on fsgrid
        onDccrgMapRemoteProcess[process].insert(dccrgCells[i]); //add to map
-     }    
+     }
   }
 }
 
@@ -120,7 +120,7 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
     int count = receives.second.size();
     receivedData[process].resize(count * fsgrids::moments::N_MOMENTS);
     MPI_Irecv(receivedData[process].data(), count * fsgrids::moments::N_MOMENTS * sizeof(Real),
-	      MPI_BYTE, process, 1, MPI_COMM_WORLD,&(receiveRequests[ii++]));
+          MPI_BYTE, process, 1, MPI_COMM_WORLD,&(receiveRequests[ii++]));
   }
   
   // Launch sends
@@ -133,28 +133,28 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
       //Collect data to send for this dccrg cell
       auto cellParams = mpiGrid[sendCell]->get_cell_parameters();
       if(!dt2) {
-        sendBuffer.push_back(cellParams[CellParams::RHOM]);
-	sendBuffer.push_back(cellParams[CellParams::RHOQ]);
-	sendBuffer.push_back(cellParams[CellParams::VX]);
-	sendBuffer.push_back(cellParams[CellParams::VY]);
-        sendBuffer.push_back(cellParams[CellParams::VZ]);
-	sendBuffer.push_back(cellParams[CellParams::P_11]);
-	sendBuffer.push_back(cellParams[CellParams::P_22]);
-        sendBuffer.push_back(cellParams[CellParams::P_33]);
+         sendBuffer.push_back(cellParams[CellParams::RHOM]);
+         sendBuffer.push_back(cellParams[CellParams::RHOQ]);
+         sendBuffer.push_back(cellParams[CellParams::VX]);
+         sendBuffer.push_back(cellParams[CellParams::VY]);
+         sendBuffer.push_back(cellParams[CellParams::VZ]);
+         sendBuffer.push_back(cellParams[CellParams::P_11]);
+         sendBuffer.push_back(cellParams[CellParams::P_22]);
+         sendBuffer.push_back(cellParams[CellParams::P_33]);
       } else {
-        sendBuffer.push_back(cellParams[CellParams::RHOM_DT2]);
-	sendBuffer.push_back(cellParams[CellParams::RHOQ_DT2]);
-	sendBuffer.push_back(cellParams[CellParams::VX_DT2]);
-	sendBuffer.push_back(cellParams[CellParams::VY_DT2]);
-        sendBuffer.push_back(cellParams[CellParams::VZ_DT2]);
-	sendBuffer.push_back(cellParams[CellParams::P_11_DT2]);
-	sendBuffer.push_back(cellParams[CellParams::P_22_DT2]);
-        sendBuffer.push_back(cellParams[CellParams::P_33_DT2]);
+         sendBuffer.push_back(cellParams[CellParams::RHOM_DT2]);
+         sendBuffer.push_back(cellParams[CellParams::RHOQ_DT2]);
+         sendBuffer.push_back(cellParams[CellParams::VX_DT2]);
+         sendBuffer.push_back(cellParams[CellParams::VY_DT2]);
+         sendBuffer.push_back(cellParams[CellParams::VZ_DT2]);
+         sendBuffer.push_back(cellParams[CellParams::P_11_DT2]);
+         sendBuffer.push_back(cellParams[CellParams::P_22_DT2]);
+         sendBuffer.push_back(cellParams[CellParams::P_33_DT2]);
       }
     }
     int count = sendBuffer.size(); //note, compared to receive this includes all elements to be sent
-    MPI_Isend(sendBuffer.data(), sendBuffer.size() * sizeof(Real),
-	      MPI_BYTE, targetProc, 1, MPI_COMM_WORLD,&(sendRequests[ii]));
+    MPI_Isend(sendBuffer.data(), count * sizeof(Real),
+          MPI_BYTE, targetProc, 1, MPI_COMM_WORLD,&(sendRequests[ii]));
     ii++;
   }
 
@@ -167,10 +167,10 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
     for(auto const &cell: receives.second){ //loop over cellids (dccrg) for receive
       // this part heavily relies on both sender and receiver having cellids sorted!
       for(auto lid: onFsgridMapCells[cell]){
-	std::array<Real, fsgrids::moments::N_MOMENTS> * fsgridData = momentsGrid.get(lid);
-	for(int l = 0; l < fsgrids::moments::N_MOMENTS; l++)   {
-	  fsgridData->at(l) = receiveBuffer[l];
-	}
+         std::array<Real, fsgrids::moments::N_MOMENTS> * fsgridData = momentsGrid.get(lid);
+         for(int l = 0; l < fsgrids::moments::N_MOMENTS; l++)   {
+            fsgridData->at(l) = receiveBuffer[l];
+         }
       }
       
       receiveBuffer+=fsgrids::moments::N_MOMENTS;
@@ -198,18 +198,18 @@ void getFieldsFromFsGrid(
     Average()  {
       cells = 0;
       for(int i = 0; i < fieldsToCommunicate; i++){
-	sums[i] = 0;
+         sums[i] = 0;
       }
     }
     Average operator+=(const Average& rhs) {
       this->cells += rhs.cells;
       for(int i = 0; i < fieldsToCommunicate; i++){
-	this->sums[i] += rhs.sums[i];
+         this->sums[i] += rhs.sums[i];
       }
     }
   };
 
-    
+
   int ii;
   //sorted list of dccrg cells. cells is typicall already sorted, but just to make sure....
   std::vector<CellID> dccrgCells = cells;
