@@ -76,7 +76,6 @@ uint getAccelerationSubcycles(SpatialCell* spatial_cell, Real dt, const uint pop
  * @param spatial_cell Spatial cell containing the accelerated population.
  * @param popID ID of the accelerated particle species.
  * @param vmesh Velocity mesh.
- * @param blockContainer Velocity block data container.
  * @param map_order Order in which vx,vy,vz mappings are performed. 
  * @param dt Time step of one subcycle.
 */
@@ -88,7 +87,6 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
    double t1 = MPI_Wtime();
 
    vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh    = spatial_cell->get_velocity_mesh(popID);
-   vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks(popID);
 
    // compute transform, forward in time and backward in time
    phiprof::start("compute-transform");

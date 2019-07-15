@@ -104,8 +104,6 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
    const auto* frontNbrPairs = mpiGrid.get_neighbors_of(ids.front(), neighborhood);
    const auto* backNbrPairs  = mpiGrid.get_neighbors_of(ids.back(),  neighborhood);
 
-   int maxRefLvl = mpiGrid.get_maximum_refinement_level();
-      
    // Create list of unique distances in the negative direction from the first cell in pencil
    std::set< int > distances;
    for (const auto nbrPair : *frontNbrPairs) {

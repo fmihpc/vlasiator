@@ -75,7 +75,6 @@ void calculateSpatialTranslation(
         const uint popID) {
 
     int trans_timer;
-    bool localTargetGridGenerated = false;
     
     int myRank;
     MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
@@ -190,7 +189,6 @@ void calculateSpatialTranslation(
 void calculateSpatialTranslation(
         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
         creal dt) {
-   typedef Parameters P;
    
    phiprof::start("semilag-trans");
 
