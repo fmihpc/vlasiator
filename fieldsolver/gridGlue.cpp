@@ -73,7 +73,7 @@ template <typename T, int stencil> void computeCoupling(dccrg::Dccrg<SpatialCell
   }
 
   // Compute where to send data and what to send
-  for(int i=0; i< dccrgCells.size(); i++) {
+  for(uint i=0; i< dccrgCells.size(); i++) {
      //compute to which processes this cell maps
      std::vector<CellID> fsCells = mapDccrgIdToFsGridGlobalID(mpiGrid, dccrgCells[i]);
 
