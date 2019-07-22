@@ -63,6 +63,11 @@ namespace projects {
     RP::add("IPShock.BZ0d", "Downstream mag. field value (T)", 3.0e-9);
     RP::add("IPShock.Width", "Shock Width (m)", 50000);
 
+    RP::add("IPShock.AMR_L1width", "L1 AMR region width (m)", 0);
+    RP::add("IPShock.AMR_L2width", "L2 AMR region width (m)", 0);
+    RP::add("IPShock.AMR_L3width", "L3 AMR region width (m)", 0);
+    RP::add("IPShock.AMR_L4width", "L4 AMR region width (m)", 0);
+
     // Per-population parameters
     for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
        const std::string& pop = getObjectWrapper().particleSpecies[i].name;
@@ -116,6 +121,23 @@ namespace projects {
       exit(1);
     }
     if(!RP::get("IPShock.Width", this->Shockwidth)) {
+       if(myRank == MASTER_RANK) std::cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << std::endl;
+       exit(1);
+    }
+
+    if(!RP::get("IPShock.AMR_L1width", this->AMR_L1width)) {
+       if(myRank == MASTER_RANK) std::cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << std::endl;
+       exit(1);
+    }
+    if(!RP::get("IPShock.AMR_L2width", this->AMR_L2width)) {
+       if(myRank == MASTER_RANK) std::cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << std::endl;
+       exit(1);
+    }
+    if(!RP::get("IPShock.AMR_L3width", this->AMR_L3width)) {
+       if(myRank == MASTER_RANK) std::cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << std::endl;
+       exit(1);
+    }
+    if(!RP::get("IPShock.AMR_L4width", this->AMR_L4width)) {
        if(myRank == MASTER_RANK) std::cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << std::endl;
        exit(1);
     }
@@ -494,6 +516,122 @@ namespace projects {
             }
          }
       }
+   }
+
+
+   bool IPShock::refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
+ 
+     int myRank;       
+     MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+
+     std::vector<CellID> refinedCells;
+
+     if(myRank == MASTER_RANK) std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
+      
+     // Leave boundary cells and a bit of safety margin
+//      const int bw = 2* VLASOV_STENCIL_WIDTH;
+//      const int bw2 = 2*(bw + VLASOV_STENCIL_WIDTH);
+//      const int bw3 = 2*(bw2 + VLASOV_STENCIL_WIDTH);
+
+     // Calculate regions for refinement
+     if (P::amrMaxSpatialRefLevel > 0) {
+	// L1 refinement.
+	for (uint i = 0; i < P::xcells_ini; ++i) {
+	   for (uint j = 0; j < P::ycells_ini; ++j) {
+	      for (uint k = 0; k < P::zcells_ini; ++k) {
+
+		 std::array<double,3> xyz;
+		 xyz[0] = P::xmin + (i+0.5)*P::dx_ini;
+		 xyz[1] = P::ymin + (j+0.5)*P::dy_ini;
+		 xyz[2] = P::zmin + (k+0.5)*P::dz_ini;
+
+		 if (abs(xyz[0]) < AMR_L1width)
+		    {
+		       CellID myCell = mpiGrid.get_existing_cell(xyz);
+		       mpiGrid.refine_completely(myCell);
+		    }
+	      }
+	   }
+	}
+	refinedCells = mpiGrid.stop_refining(true);      
+	if(myRank == MASTER_RANK) std::cout << "Finished first level of refinement" << endl;
+	mpiGrid.balance_load();
+     }
+
+     if (P::amrMaxSpatialRefLevel > 1) {
+	// L2 refinement.
+	for (uint i = 0; i < 2*P::xcells_ini; ++i) {
+	   for (uint j = 0; j < 2*P::ycells_ini; ++j) {
+	      for (uint k = 0; k < 2*P::zcells_ini; ++k) {
+
+		 std::array<double,3> xyz;
+		 xyz[0] = P::xmin + (i+0.5)*0.5*P::dx_ini;
+		 xyz[1] = P::ymin + (j+0.5)*0.5*P::dy_ini;
+		 xyz[2] = P::zmin + (k+0.5)*0.5*P::dz_ini;
+
+		 if (abs(xyz[0]) < AMR_L2width)
+		    {
+		       CellID myCell = mpiGrid.get_existing_cell(xyz);
+		       mpiGrid.refine_completely(myCell);
+		    }
+	      }
+	   }
+	}
+	refinedCells = mpiGrid.stop_refining(true);      
+	if(myRank == MASTER_RANK) std::cout << "Finished second level of refinement" << endl;
+	mpiGrid.balance_load();
+     }
+
+     if (P::amrMaxSpatialRefLevel > 2) {
+	// L3 refinement.
+	for (uint i = 0; i < 4*P::xcells_ini; ++i) {
+	   for (uint j = 0; j < 4*P::ycells_ini; ++j) {
+	      for (uint k = 0; k < 4*P::zcells_ini; ++k) {
+
+		 std::array<double,3> xyz;
+		 xyz[0] = P::xmin + (i+0.5)*0.25*P::dx_ini;
+		 xyz[1] = P::ymin + (j+0.5)*0.25*P::dy_ini;
+		 xyz[2] = P::zmin + (k+0.5)*0.25*P::dz_ini;
+
+		 if (abs(xyz[0]) < AMR_L3width)
+		    {
+		       CellID myCell = mpiGrid.get_existing_cell(xyz);
+		       mpiGrid.refine_completely(myCell);
+		    }
+	      }
+	   }
+	}
+	refinedCells = mpiGrid.stop_refining(true);      
+	if(myRank == MASTER_RANK) std::cout << "Finished third level of refinement" << endl;
+	mpiGrid.balance_load();
+     }
+
+     if (P::amrMaxSpatialRefLevel > 3) {
+	// L4 refinement.
+	for (uint i = 0; i < 8*P::xcells_ini; ++i) {
+	   for (uint j = 0; j < 8*P::ycells_ini; ++j) {
+	      for (uint k = 0; k < 8*P::zcells_ini; ++k) {
+
+		 std::array<double,3> xyz;
+		 xyz[0] = P::xmin + (i+0.5)*0.125*P::dx_ini;
+		 xyz[1] = P::ymin + (j+0.5)*0.125*P::dy_ini;
+		 xyz[2] = P::zmin + (k+0.5)*0.125*P::dz_ini;
+
+		 if (abs(xyz[0]) < AMR_L4width)
+		    {
+		       CellID myCell = mpiGrid.get_existing_cell(xyz);
+		       mpiGrid.refine_completely(myCell);
+		    }
+	      }
+	   }
+	}
+	refinedCells = mpiGrid.stop_refining(true);      
+	if(myRank == MASTER_RANK) std::cout << "Finished fourth level of refinement" << endl;
+	mpiGrid.balance_load();
+     }
+
+     
+     return true;
    }
 
 }//namespace projects
