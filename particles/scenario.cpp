@@ -57,15 +57,39 @@ ParticleContainer distributionScenario::initialParticles(Field& E, Field& B, Fie
 
    Vec3d vpos(ParticleParameters::init_x, ParticleParameters::init_y, ParticleParameters::init_z);
 
-   /* Look up builk velocity in the V-field */
+   // Look up bulk velocity in the V-field 
    Vec3d bulk_vel = V(vpos);
+   // Lookup B vector
+   Vec3d Bval = B(vpos);
+
+   // Build velocity space coordinate axes
+   Vec3d velspace_x, velspace_y, velspace_z;
+   if(ParticleParameters::vel_BcrossVframe) {
+     // BxV frame
+     velspace_x = normalize_vector(B);
+     velspace_y = normalize_vector(cross(B,v));
+     velspace_z = normalize_vector(cross(B,velspace,y));
+   } else {
+     // Cartesian simulation frame
+     velspace_x = Vec3d(1,0,0);
+     velspace_y = Vec3d(0,1,0);
+     velspace_z = Vec3d(0,0,1);
+   }
 
    for(unsigned int i=0; i< ParticleParameters::num_particles; i++) {
-      /* Create a particle with velocity drawn from the given distribution ... */
+      // Create a particle with velocity drawn from the given distribution ...
       Particle p = velocity_distribution->next_particle();
-      /* Shift it by the bulk velocity ... */
+
+      // Potentially give it a drift velocity
+      p.v[0] += ParticleParameters::parallelDriftVel;
+      p.v[1] += ParticleParameters::perpDriftVel1;
+      p.v[2] += ParticleParameters::perpDriftVel2;
+
+      // Rotate it into the chosen coordinate frame
+      p.v = p.v[0] * velspace_x + p.v[1] * velspace_y + p.v[2] * velspace_z;
+      // Shift it by the bulk velocity ...
       p.v += bulk_vel;
-      /* And put it in place. */
+      // And put it in place.
       p.x=vpos;
       particles.push_back(p);
    }

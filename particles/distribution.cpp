@@ -32,8 +32,28 @@ Maxwell_Boltzmann::Maxwell_Boltzmann(std::default_random_engine& _rand) : Distri
    Real kT = ParticleParameters::temperature * PhysicalConstantsSI::k;
    velocity_distribution=std::normal_distribution<Real>(0.,sqrt(kT/mass));
 }
+Particle Maxwell_Boltzmann::next_particle() {
+   Vec3d v(velocity_distribution(rand), velocity_distribution(rand), velocity_distribution(rand));
+
+   return Particle(mass, charge, Vec3d(0.), v);
+}
 Monoenergetic::Monoenergetic(std::default_random_engine& _rand) : Distribution(_rand) {
    vel = ParticleParameters::particle_vel;
+}
+TriMaxwellian:TriMaxwellian(std::default_random_engine& _rand) : Distribution(_rand) {
+
+   using P = ParticleParameters;
+
+   vParallel = std::normal_distribution<Real>(0,sqrt(P::parallelTemperature * PhysicalConstantsSI::k / mass));
+   vPerp1 = std::normal_distribution<Real>(0,sqrt(P::perpTemperature1 * PhysicalConstantsSI::k / mass));
+   vPerp2 = std::normal_distribution<Real>(0,sqrt(P::perpTemperature2 * PhysicalConstantsSI::k / mass));
+}
+Particle TriMaxwellian::next_particle() {
+   Vec3d v(vParallel(rand), vPerp1(rand), vPerp2(rand));
+
+
+
+   return Particle(mass, charge, Vec3d(0.), v);
 }
 
 double Kappa::find_v_for_r(double rand) {
@@ -80,8 +100,3 @@ Kappa2::Kappa2(std::default_random_engine& _rand) : Kappa(_rand) {
 }
 
 
-Particle Maxwell_Boltzmann::next_particle() {
-   Vec3d v(velocity_distribution(rand), velocity_distribution(rand), velocity_distribution(rand));
-
-   return Particle(mass, charge, Vec3d(0.), v);
-}

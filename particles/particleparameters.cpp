@@ -97,8 +97,15 @@ bool ParticleParameters::addParameters() {
    Readparameters::add("particles.random_seed", "Random seed for particle creation.",1);
    Readparameters::add("particles.distribution", "Type of distribution function to sample particles from.",
          std::string("maxwell"));
+   Readparameters::add("particles.vel_BcrossVframe", "Whether velocities should be initialized in a B,BxV,BxBxV frame", false);
    Readparameters::add("particles.temperature", "Temperature of the particle distribution",1e6);
    Readparameters::add("particles.particle_vel", "Initial velocity of the particles (in the plasma rest frame)",0);
+   Readparameters::add("particles.parallelTemperature","Initial parallel velocity of the particles (for triMaxwellian",1e6);
+   Readparameters::add("particles.perpTemperature1","Initial temperature in BxV direction of the particles",1e6);
+   Readparameters::add("particles.perpTemperature2","Initial temperature in BxBxV direction of the particles",1e6);
+   Readparameters::add("particles.parallelDriftVel","Initial particle drift velocities in B direction",0);
+   Readparameters::add("particles.perpDriftVel1","Initial particle drift velocities in BxV direction",0);
+   Readparameters::add("particles.perpDriftVel2","Initial particle drift velocities in BxBxV direction",0);
    Readparameters::add("particles.mass", "Mass of the test particles",PhysicalConstantsSI::mp);
    Readparameters::add("particles.charge", "Charge of the test particles",PhysicalConstantsSI::e);
 
@@ -186,6 +193,7 @@ bool ParticleParameters::getParameters() {
    distribution_lookup["monoenergetic"]=&createDistribution<Monoenergetic>;
    distribution_lookup["kappa2"]=&createDistribution<Kappa2>;
    distribution_lookup["kappa6"]=&createDistribution<Kappa6>;
+   distribution_lookip["trimaxwellian"]=&createDistribution<TriMaxwellian>;
 
    if(distribution_lookup.find(distribution_name) == distribution_lookup.end()) {
       std::cerr << "Error: particles.distribution value \"" << distribution_name
@@ -195,8 +203,15 @@ bool ParticleParameters::getParameters() {
       P::distribution = distribution_lookup[distribution_name];
    }
 
+   Readparameters::get("particles.vel_BcrossVframe",P::vel_BcrossVframe);
    Readparameters::get("particles.temperature",P::temperature);
    Readparameters::get("particles.particle_vel",P::particle_vel);
+   Readparameters::get("particles.parallelTemperature",P::parallelTemperature);
+   Readparameters::get("particles.perpTemperature1",P::perpTemperature1);
+   Readparameters::get("particles.perpTemperature2",P::perpTemperature2);
+   Readparameters::get("particles.parallelDriftVel",P::parallelDriftVel);
+   Readparameters::get("particles.perpDriftVel1",P::perpDriftVel1);
+   Readparameters::get("particles.perpDriftVel2",P::perpDriftVel2);
 
    // Boundaries
    std::map<std::string, Boundary*(*)(int)> boundaryLookup;
