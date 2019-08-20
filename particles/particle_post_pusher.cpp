@@ -39,7 +39,7 @@
 
 int main(int argc, char** argv) {
 
-   MPI::Init(argc, argv);
+   MPI_Init(&argc, &argv);
 
    /* Parse commandline and config*/
    Readparameters parameters(argc, argv, MPI_COMM_WORLD);
@@ -47,6 +47,7 @@ int main(int argc, char** argv) {
    parameters.parse(false);  // Parse parameters and don't require run_config
    if(!ParticleParameters::getParameters()) {
       std::cerr << "Parsing parameters failed, aborting." << std::endl;
+      std::cerr << "Did you add a --run_config=file.cfg parameter?" << std::endl;
       return 1;
    }
 
@@ -176,6 +177,6 @@ int main(int argc, char** argv) {
 
    std::cerr << std::endl;
 
-   MPI::Finalize();
+   MPI_Finalize();
    return 0;
 }
