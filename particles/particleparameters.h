@@ -77,7 +77,7 @@ struct ParticleParameters {
    static Distribution* (*distribution)(std::default_random_engine&); /*!< Type of distribution from which to sample the particles */
    static Real temperature; /*!< Initial particle temperature (for distributions where a temperature is meaningful) */
    static Real particle_vel; /*!< Initial particle velocity (for distributions with a single initial velocity) */
-   static vel_BcrossVframe; /*!< Whether velocities should be initialized in a B,BxV,BxBxV frame */
+   static bool vel_BcrossVframe; /*!< Whether velocities should be initialized in a B,BxV,BxBxV frame */
    static Real parallelTemperature; /*!< Initial particle temperature along the background field direction (for triMaxwellian) */
    static Real perpTemperature1; /*!< Initial particle temperature in perp1 direction (for triMaxwellian) */
    static Real perpTemperature2; /*!< Initial particle temperatuer in perp2 direction (for triMaxwellian) */

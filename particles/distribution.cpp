@@ -40,7 +40,7 @@ Particle Maxwell_Boltzmann::next_particle() {
 Monoenergetic::Monoenergetic(std::default_random_engine& _rand) : Distribution(_rand) {
    vel = ParticleParameters::particle_vel;
 }
-TriMaxwellian:TriMaxwellian(std::default_random_engine& _rand) : Distribution(_rand) {
+TriMaxwellian::TriMaxwellian(std::default_random_engine& _rand) : Distribution(_rand) {
 
    using P = ParticleParameters;
 

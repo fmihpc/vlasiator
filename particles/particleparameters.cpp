@@ -48,6 +48,13 @@ std::default_random_engine::result_type P::random_seed = 1;
 Distribution* (*P::distribution)(std::default_random_engine&) = NULL;
 Real P::temperature = 1e6;
 Real P::particle_vel = 0;
+Real P::parallelTemperature = 1e6;
+Real P::perpTemperature1 = 1e6;
+Real P::perpTemperature2 = 1e6;
+Real P::parallelDriftVel = 0;
+Real P::perpDriftVel1 =0;
+Real P::perpDriftVel2 =0;
+bool P::vel_BcrossVframe = false;
 Real P::mass = PhysicalConstantsSI::mp;
 Real P::charge = PhysicalConstantsSI::e;
 
@@ -193,7 +200,7 @@ bool ParticleParameters::getParameters() {
    distribution_lookup["monoenergetic"]=&createDistribution<Monoenergetic>;
    distribution_lookup["kappa2"]=&createDistribution<Kappa2>;
    distribution_lookup["kappa6"]=&createDistribution<Kappa6>;
-   distribution_lookip["trimaxwellian"]=&createDistribution<TriMaxwellian>;
+   distribution_lookup["trimaxwellian"]=&createDistribution<TriMaxwellian>;
 
    if(distribution_lookup.find(distribution_name) == distribution_lookup.end()) {
       std::cerr << "Error: particles.distribution value \"" << distribution_name

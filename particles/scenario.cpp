@@ -66,9 +66,9 @@ ParticleContainer distributionScenario::initialParticles(Field& E, Field& B, Fie
    Vec3d velspace_x, velspace_y, velspace_z;
    if(ParticleParameters::vel_BcrossVframe) {
      // BxV frame
-     velspace_x = normalize_vector(B);
-     velspace_y = normalize_vector(cross(B,v));
-     velspace_z = normalize_vector(cross(B,velspace,y));
+     velspace_x = normalize_vector(Bval);
+     velspace_y = normalize_vector(cross_product(Bval,bulk_vel));
+     velspace_z = normalize_vector(cross_product(Bval,velspace_y));
    } else {
      // Cartesian simulation frame
      velspace_x = Vec3d(1,0,0);
@@ -81,9 +81,7 @@ ParticleContainer distributionScenario::initialParticles(Field& E, Field& B, Fie
       Particle p = velocity_distribution->next_particle();
 
       // Potentially give it a drift velocity
-      p.v[0] += ParticleParameters::parallelDriftVel;
-      p.v[1] += ParticleParameters::perpDriftVel1;
-      p.v[2] += ParticleParameters::perpDriftVel2;
+      p.v += Vec3d(ParticleParameters::parallelDriftVel,ParticleParameters::perpDriftVel1,ParticleParameters::perpDriftVel2);
 
       // Rotate it into the chosen coordinate frame
       p.v = p.v[0] * velspace_x + p.v[1] * velspace_y + p.v[2] * velspace_z;
