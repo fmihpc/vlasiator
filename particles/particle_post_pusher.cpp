@@ -137,6 +137,11 @@ int main(int argc, char** argv) {
          Eval = cur_E(particles[i].x);
          Bval = cur_B(particles[i].x);
 
+         if(dt < 0) {
+           // If propagating backwards in time, flip B-field pseudovector
+           Bval *= -1;
+         }
+
          /* Push them around */
          particles[i].push(Bval,Eval,dt);
 
