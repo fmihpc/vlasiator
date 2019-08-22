@@ -53,6 +53,8 @@ struct ParticleParameters {
    static Boundary* boundary_behaviour_y; /*!< What to do with particles that reach the y boundary */
    static Boundary* boundary_behaviour_z; /*!< What to do with particles that reach the z boundary */
 
+   static Real inner_boundary_radius; /*!< Absorbing inner boundary radius, if any */
+
    static Real precip_inner_boundary; /*!< Distance of the inner boundary from the coordinate centre (meters) */
    static Real precip_start_x; /*!< X-Coordinate at which precipitation injection starts (meters) */
    static Real precip_stop_x; /*!< X-Coordinate at which precipitation injection stops (meters) */

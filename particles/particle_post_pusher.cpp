@@ -163,6 +163,9 @@ int main(int argc, char** argv) {
          if(!ParticleParameters::boundary_behaviour_z->handleParticle(*i)) {
             do_erase = true;
          }
+	 if(vector_length(i->x) > ParticleParameters::inner_boundary_radius) {
+            do_erase = true;
+         }
          if(do_erase) {
             particles.erase(i);
          } else {

@@ -62,6 +62,8 @@ Boundary* P::boundary_behaviour_x = NULL;
 Boundary* P::boundary_behaviour_y = NULL;
 Boundary* P::boundary_behaviour_z = NULL;
 
+Real P::inner_boundary_radius = 0.;
+
 Real P::precip_inner_boundary;
 Real P::precip_start_x;
 Real P::precip_stop_x;
@@ -122,6 +124,8 @@ bool ParticleParameters::addParameters() {
          "What to do with particles that reach the y boundaries (DELETE/REFLECT/PERIODIC)",std::string("PERIODIC"));
    Readparameters::add("particles.boundary_behaviour_z",
          "What to do with particles that reach the z boundaries (DELETE/REFLECT/PERIODIC)",std::string("PERIODIC"));
+
+   Readparameters::add("particles.inner_boundary_radius", "Absorbing inner boundary radius, if any.",0.);
 
    // Parameters for the precipitation mode
    Readparameters::add("particles.inner_boundary", "Distance of the inner boundary from the coordinate centre (meters)",
@@ -250,6 +254,7 @@ bool ParticleParameters::getParameters() {
    } else {
       P::boundary_behaviour_z = boundaryLookup[tempstring](2);
    }
+   Readparameters::get("particles.inner_boundary_radius", P::inner_boundary_radius);
 
    Readparameters::get("particles.inner_boundary", P::precip_inner_boundary);
    Readparameters::get("particles.precipitation_start_x", P::precip_start_x);
