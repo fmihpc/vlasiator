@@ -189,6 +189,9 @@ bool ParticleParameters::getParameters() {
    Readparameters::get("particles.rho_field_name",P::rho_field_name);
    Readparameters::get("particles.divide_rhov_by_rho",P::divide_rhov_by_rho);
 
+   Readparameters::get("particles.mass", P::mass);
+   Readparameters::get("particles.charge", P::charge);
+
    Readparameters::get("particles.random_seed",P::random_seed);
 
    /* Look up particle distribution generator */
