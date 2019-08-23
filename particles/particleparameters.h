@@ -40,6 +40,7 @@ struct ParticleParameters {
    static Real init_z; /*!< Particle starting point, z-coordinate */
 
    static Real dt; /*!< Particle pusher timestep */
+   static int propagation_direction; /*!< dt > 0 : positive direction +1; dt < 0 : negative direction -1. */
    static Real start_time; /*!< Simulation time at which the particles are injected */
    static Real end_time;  /*!< Simulation time at which the particle-simulation should be stopped */
    static Real input_dt; /*!< Time interval between input files */

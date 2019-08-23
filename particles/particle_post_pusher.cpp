@@ -57,7 +57,7 @@ int main(int argc, char** argv) {
    std::string filename_pattern = ParticleParameters::input_filename_pattern;
    char filename_buffer[256];
 
-   const int input_file_counter = (dt > 0) ?
+   int input_file_counter = (ParticleParameters::propagation_direction == 1) ?
       floor(ParticleParameters::start_time / ParticleParameters::input_dt) :
       ceil(ParticleParameters::start_time / ParticleParameters::input_dt);
    Field E[2],B[2],V;
@@ -109,11 +109,11 @@ int main(int argc, char** argv) {
 
       bool newfile;
       /* Load newer fields, if neccessary */
-      if (dt > 0) {
+      if (ParticleParameters::propagation_direction > 0) {
          newfile = readNextTimestep(
             filename_pattern,
             ParticleParameters::start_time + step*dt,
-            sign(dt),
+            ParticleParameters::propagation_direction,
             E[0], E[1],
             B[0], B[1],
             V,
@@ -124,7 +124,7 @@ int main(int argc, char** argv) {
          newfile = readNextTimestep(
             filename_pattern,
             ParticleParameters::start_time + step*dt,
-            sign(dt),
+            ParticleParameters::propagation_direction,
             E[1], E[0],
             B[1], B[0],
             V,
@@ -138,7 +138,7 @@ int main(int argc, char** argv) {
 
       // If a new timestep has been opened, add a new bunch of particles
       if(newfile) {
-         scenario->newTimestep(input_file_counter, sign(dt), step*dt, particles, cur_E, cur_B, V);
+         scenario->newTimestep(input_file_counter, step, step*dt, particles, cur_E, cur_B, V);
       }
 
       scenario->beforePush(particles,cur_E,cur_B,V);
@@ -193,7 +193,7 @@ int main(int argc, char** argv) {
          }
       }
 
-      scenario->afterPush(sign(dt), step*dt, particles, cur_E, cur_B, V);
+      scenario->afterPush(step, step*dt, particles, cur_E, cur_B, V);
 
       /* Draw progress bar */
       if((step % (maxsteps/71))==0) {

@@ -36,6 +36,7 @@ Real P::init_y = 0;
 Real P::init_z = 0;
 
 Real P::dt = 0;
+int  P::propagation_direction = 0;
 Real P::input_dt = 1;
 Real P::start_time = 0;
 Real P::end_time = 0;
@@ -194,6 +195,7 @@ bool ParticleParameters::getParameters() {
       std::cerr << "ERROR: The sign of particles.dt and the order of particles.start_time and particles.end_time do not match." << std::endl;
       return false;
    }
+   propagation_direction = (dt < 0) ? -1 : 1;
    Readparameters::get("particles.V_field_name",P::V_field_name);
    Readparameters::get("particles.rho_field_name",P::rho_field_name);
    Readparameters::get("particles.divide_rhov_by_rho",P::divide_rhov_by_rho);
