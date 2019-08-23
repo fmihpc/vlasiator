@@ -86,7 +86,7 @@ ParticleContainer distributionScenario::initialParticles(Field& E, Field& B, Fie
       // Rotate it into the chosen coordinate frame
       p.v = p.v[0] * velspace_x + p.v[1] * velspace_y + p.v[2] * velspace_z;
       // Shift it by the bulk velocity ...
-      p.v += bulk_vel;
+//      p.v += bulk_vel;
       // And put it in place.
       p.x=vpos;
       particles.push_back(p);
@@ -102,7 +102,8 @@ void distributionScenario::newTimestep(int input_file_counter, int step, double 
 
    char filename_buffer[256];
 
-   snprintf(filename_buffer,256, ParticleParameters::output_filename_pattern.c_str(),input_file_counter-1);
+   // /!\ Go one step opposite to the propagation time direction
+   snprintf(filename_buffer,256, ParticleParameters::output_filename_pattern.c_str(),input_file_counter - ParticleParameters::propagation_direction);
    writeParticles(particles, filename_buffer);
 }
 
@@ -177,8 +178,9 @@ void precipitationScenario::newTimestep(int input_file_counter, int step, double
 
    // Write out the state
    char filename_buffer[256];
-
-   snprintf(filename_buffer,256, ParticleParameters::output_filename_pattern.c_str(),input_file_counter-1);
+   
+   // /!\ Go one step opposite to the propagation time direction
+   snprintf(filename_buffer,256, ParticleParameters::output_filename_pattern.c_str(),input_file_counter - ParticleParameters::propagation_direction);
    writeParticles(particles, filename_buffer);
 }
 
@@ -259,8 +261,9 @@ void shockReflectivityScenario::newTimestep(int input_file_counter, int step, do
 
    // Write out the state
    char filename_buffer[256];
-
-   snprintf(filename_buffer,256, ParticleParameters::output_filename_pattern.c_str(),input_file_counter-1);
+   
+   // /!\ Go one step opposite to the propagation time direction
+   snprintf(filename_buffer,256, ParticleParameters::output_filename_pattern.c_str(),input_file_counter - ParticleParameters::propagation_direction);
    writeParticles(particles, filename_buffer);
 }
 
@@ -367,7 +370,8 @@ void ipShockScenario::newTimestep(int input_file_counter, int step, double time,
 
    char filename_buffer[256];
 
-   snprintf(filename_buffer,256, ParticleParameters::output_filename_pattern.c_str(),input_file_counter-1);
+   // /!\ Go one step opposite to the propagation time direction
+   snprintf(filename_buffer,256, ParticleParameters::output_filename_pattern.c_str(),input_file_counter - ParticleParameters::propagation_direction);
    writeParticles(particles, filename_buffer); //Generates VLSV file
 }
 

@@ -104,14 +104,14 @@ std::vector<double> readFieldData(Reader& r, std::string& name, unsigned int num
  * Return value: true if a new file was read, otherwise false.
  */
 template <class Reader>
-bool readNextTimestep(const std::string& filename_pattern, double t, int step, Field& E0, Field& E1,
+bool readNextTimestep(const std::string& filename_pattern, double t, int direction, Field& E0, Field& E1,
       Field& B0, Field& B1, Field& V, bool doV, int& input_file_counter) {
 
    char filename_buffer[256];
    bool retval = false;
 
-   while(t < E0.time || t>= E1.time) {
-      input_file_counter += step;
+   while ( t*direction < E0.time*direction || t*direction >= E1.time*direction ) {
+      input_file_counter += direction;
 
       E0=E1;
       B0=B1;
@@ -120,17 +120,17 @@ bool readNextTimestep(const std::string& filename_pattern, double t, int step, F
       /* Open next file */
       Reader r;
       r.open(filename_buffer);
-      double t;
-      if(!r.readParameter("time",t)) {
-         if(!r.readParameter("t",t)) {
+      double t_file;
+      if(!r.readParameter("time",t_file)) {
+         if(!r.readParameter("t",t_file)) {
             std::cerr << "Time parameter in file " << filename_buffer << " is neither 't' nor 'time'. Bad file format?"
                << std::endl;
             exit(1);
          }
       }
 
-      E1.time = t;
-      B1.time = t;
+      E1.time = t_file;
+      B1.time = t_file;
 
       uint64_t cells[3];
       r.readParameter("xcells_ini",cells[0]);

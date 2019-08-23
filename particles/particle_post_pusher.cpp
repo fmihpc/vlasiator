@@ -64,7 +64,9 @@ int main(int argc, char** argv) {
    
    std::cerr << "Loading first file with index " << input_file_counter << std::endl;
    
-   snprintf(filename_buffer,256,filename_pattern.c_str(),input_file_counter-1);
+   // /!\ Go one step opposite to the propagation time direction
+   snprintf(filename_buffer,256,filename_pattern.c_str(),input_file_counter - ParticleParameters::propagation_direction);
+   
    E[0].dimension[0] = E[1].dimension[0] = B[0].dimension[0] = B[1].dimension[0] = V.dimension[0] = ParticleParameters::boundary_behaviour_x;
    E[0].dimension[1] = E[1].dimension[1] = B[0].dimension[1] = B[1].dimension[1] = V.dimension[1] = ParticleParameters::boundary_behaviour_y;
    E[0].dimension[2] = E[1].dimension[2] = B[0].dimension[2] = B[1].dimension[2] = V.dimension[2] = ParticleParameters::boundary_behaviour_z;
@@ -159,7 +161,7 @@ int main(int argc, char** argv) {
 
          if(dt < 0) {
            // If propagating backwards in time, flip B-field pseudovector
-           Bval *= -1;
+//            Bval *= -1;
          }
 
          /* Push them around */
@@ -183,7 +185,7 @@ int main(int argc, char** argv) {
          if(!ParticleParameters::boundary_behaviour_z->handleParticle(*i)) {
             do_erase = true;
          }
-         if(vector_length(i->x) > ParticleParameters::inner_boundary_radius) {
+         if(vector_length(i->x) < ParticleParameters::inner_boundary_radius) {
             do_erase = true;
          }
          if(do_erase) {
@@ -196,9 +198,9 @@ int main(int argc, char** argv) {
       scenario->afterPush(step, step*dt, particles, cur_E, cur_B, V);
 
       /* Draw progress bar */
-      if((step % (maxsteps/71))==0) {
-         std::cerr << "=";
-      }
+//       if((step % (maxsteps/71))==0) {
+//          std::cerr << "=";
+//       }
    }
 
    scenario->finalize(particles,E[1],B[1],V);
