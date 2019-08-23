@@ -189,6 +189,11 @@ bool ParticleParameters::getParameters() {
       std::cerr << "Error end_time == start_time! Won't do anything (and will probably crash now)." << std::endl;
       return false;
    }
+   if((P::dt > 0 && P::end_time < P::start_time) ||
+      (P::dt < 0 && P::end_time > P::start_time)) {
+      std::cerr << "ERROR: The sign of particles.dt and the order of particles.start_time and particles.end_time do not match." << std::endl;
+      return false;
+   }
    Readparameters::get("particles.V_field_name",P::V_field_name);
    Readparameters::get("particles.rho_field_name",P::rho_field_name);
    Readparameters::get("particles.divide_rhov_by_rho",P::divide_rhov_by_rho);

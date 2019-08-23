@@ -57,10 +57,13 @@ int main(int argc, char** argv) {
    std::string filename_pattern = ParticleParameters::input_filename_pattern;
    char filename_buffer[256];
 
-   int input_file_counter=floor(ParticleParameters::start_time / ParticleParameters::input_dt);
+   const int input_file_counter = (dt > 0) ?
+      floor(ParticleParameters::start_time / ParticleParameters::input_dt) :
+      ceil(ParticleParameters::start_time / ParticleParameters::input_dt);
    Field E[2],B[2],V;
-   std::cerr << "Loading first file with index " << ParticleParameters::start_time / ParticleParameters::input_dt
-      << std::endl;
+   
+   std::cerr << "Loading first file with index " << input_file_counter << std::endl;
+   
    snprintf(filename_buffer,256,filename_pattern.c_str(),input_file_counter-1);
    E[0].dimension[0] = E[1].dimension[0] = B[0].dimension[0] = B[1].dimension[0] = V.dimension[0] = ParticleParameters::boundary_behaviour_x;
    E[0].dimension[1] = E[1].dimension[1] = B[0].dimension[1] = B[1].dimension[1] = V.dimension[1] = ParticleParameters::boundary_behaviour_y;
@@ -92,9 +95,8 @@ int main(int argc, char** argv) {
    ParticleParameters::boundary_behaviour_z->setExtent(B[0].dimension[2]->min, B[0].dimension[2]->max, B[0].dimension[2]->cells);
 
    /* Init particles */
-   double dt=ParticleParameters::dt;
-   double maxtime=ParticleParameters::end_time - ParticleParameters::start_time;
-   int maxsteps = maxtime/dt;
+   const double dt=ParticleParameters::dt;
+   int maxsteps = (ParticleParameters::end_time - ParticleParameters::start_time)/dt;
 
    Scenario* scenario = createScenario(ParticleParameters::mode);
    ParticleContainer particles = scenario->initialParticles(E[0],B[0],V);
@@ -107,12 +109,28 @@ int main(int argc, char** argv) {
 
       bool newfile;
       /* Load newer fields, if neccessary */
-      if(step >= 0) {
-         newfile = readNextTimestep(filename_pattern, ParticleParameters::start_time + step*dt, 1,E[0], E[1],
-               B[0], B[1], V, scenario->needV, input_file_counter);
+      if (dt > 0) {
+         newfile = readNextTimestep(
+            filename_pattern,
+            ParticleParameters::start_time + step*dt,
+            sign(dt),
+            E[0], E[1],
+            B[0], B[1],
+            V,
+            scenario->needV,
+            input_file_counter
+         );
       } else {
-         newfile = readNextTimestep(filename_pattern, ParticleParameters::start_time + step*dt, -1,E[1], E[0],
-               B[1], B[0], V, scenario->needV, input_file_counter);
+         newfile = readNextTimestep(
+            filename_pattern,
+            ParticleParameters::start_time + step*dt,
+            sign(dt),
+            E[1], E[0],
+            B[1], B[0],
+            V,
+            scenario->needV,
+            input_file_counter
+         );
       }
 
       Interpolated_Field cur_E(E[0],E[1],ParticleParameters::start_time + step*dt);
@@ -120,7 +138,7 @@ int main(int argc, char** argv) {
 
       // If a new timestep has been opened, add a new bunch of particles
       if(newfile) {
-         scenario->newTimestep(input_file_counter, step, step*dt, particles, cur_E, cur_B, V);
+         scenario->newTimestep(input_file_counter, sign(dt), step*dt, particles, cur_E, cur_B, V);
       }
 
       scenario->beforePush(particles,cur_E,cur_B,V);
@@ -165,7 +183,7 @@ int main(int argc, char** argv) {
          if(!ParticleParameters::boundary_behaviour_z->handleParticle(*i)) {
             do_erase = true;
          }
-	 if(vector_length(i->x) > ParticleParameters::inner_boundary_radius) {
+         if(vector_length(i->x) > ParticleParameters::inner_boundary_radius) {
             do_erase = true;
          }
          if(do_erase) {
@@ -175,7 +193,7 @@ int main(int argc, char** argv) {
          }
       }
 
-      scenario->afterPush(step, step*dt, particles, cur_E, cur_B, V);
+      scenario->afterPush(sign(dt), step*dt, particles, cur_E, cur_B, V);
 
       /* Draw progress bar */
       if((step % (maxsteps/71))==0) {
