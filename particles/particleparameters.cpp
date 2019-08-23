@@ -95,7 +95,7 @@ bool ParticleParameters::addParameters() {
    Readparameters::add("particles.init_y", "Particle starting point, y-coordinate (meters).", 0);
    Readparameters::add("particles.init_z", "Particle starting point, z-coordinate (meters).", 0);
 
-   Readparameters::add("particles.dt", "Particle pusher timestep",0);
+   Readparameters::add("particles.dt", "Particle pusher timestep. Positive: forward propagation. Negative: backward propagation.", 0);
    Readparameters::add("particles.input_dt", "Time spacing (seconds) of input files",1.);
    Readparameters::add("particles.start_time", "Simulation time (seconds) for particle start.",0);
    Readparameters::add("particles.end_time", "Simulation time (seconds) at which particle simulation stops.",0);

@@ -45,6 +45,8 @@ int main(int argc, char** argv) {
    Readparameters parameters(argc, argv, MPI_COMM_WORLD);
    ParticleParameters::addParameters();
    parameters.parse(false);  // Parse parameters and don't require run_config
+   parameters.helpMessage();
+   
    if(!ParticleParameters::getParameters()) {
       std::cerr << "Parsing parameters failed, aborting." << std::endl;
       std::cerr << "Did you add a --run_config=file.cfg parameter?" << std::endl;
