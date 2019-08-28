@@ -301,6 +301,7 @@ void initSpatialCellCoordinates(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
       mpiGrid[cells[i]]->parameters[CellParams::DX  ] = cell_length[0];
       mpiGrid[cells[i]]->parameters[CellParams::DY  ] = cell_length[1];
       mpiGrid[cells[i]]->parameters[CellParams::DZ  ] = cell_length[2];
+      mpiGrid[cells[i]]->parameters[CellParams::CELLID] = cells[i];
    }
 }
 

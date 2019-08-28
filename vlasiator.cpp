@@ -675,7 +675,7 @@ int main(int argn,char* args[]) {
           P::tstep % (P::diagnosticInterval*10) == 0 &&
           P::tstep-P::tstep_min >0) {
 
-         phiprof::print(MPI_COMM_WORLD,"phiprof");
+         //phiprof::print(MPI_COMM_WORLD,"phiprof");
          
          double currentTime=MPI_Wtime();
          double timePerStep=double(currentTime  - beforeTime) / (P::tstep-beforeStep);
@@ -1135,7 +1135,7 @@ int main(int argn,char* args[]) {
    phiprof::stop("Finalization");
    phiprof::stop("main");
    
-   phiprof::print(MPI_COMM_WORLD,"phiprof");
+  // phiprof::print(MPI_COMM_WORLD,"phiprof");
    
    if (myRank == MASTER_RANK) logFile << "(MAIN): Exiting." << endl << writeVerbose;
    logFile.close();
