@@ -244,9 +244,9 @@ inline void compute_filtered_face_values_derivatives(const Vec * const values,ui
    
    Vec slope_abs,slope_sign;
    // scale values closer to 1 for more accurate slope limiter calculation
-   const real scale = 1./threshold
+   const Realv scale = 1./threshold;
    slope_limiter(values[k -1]*scale, values[k]*scale, values[k + 1]*scale, slope_abs, slope_sign);
-   slope_abs = slope_abs*scale;
+   slope_abs = slope_abs*threshold;
 
    //check for extrema, flatten if it is
    Vecb is_extrema = (slope_abs == Vec(0.0));
@@ -303,9 +303,9 @@ inline void compute_filtered_face_values(const Vec * const values,uint k, face_e
    }
    Vec slope_abs,slope_sign;
    // scale values closer to 1 for more accurate slope limiter calculation
-   const real scale = 1./threshold
+   const Realv scale = 1./threshold;
    slope_limiter(values[k -1]*scale, values[k]*scale, values[k + 1]*scale, slope_abs, slope_sign);
-   slope_abs = slope_abs*scale;
+   slope_abs = slope_abs*threshold;
    
    //check for extrema, flatten if it is
    Vecb is_extrema = (slope_abs == Vec(0.0));
