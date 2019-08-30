@@ -212,7 +212,8 @@ inline void compute_h3_left_face_derivative(const Vec * const values, uint k, Ve
   3) Makes sure face slopes are consistent with PLM slope
 */
 inline void compute_filtered_face_values_derivatives(const Vec * const values,uint k, face_estimate_order order,
-                                                        Vec &fv_l, Vec &fv_r, Vec &fd_l, Vec &fd_r){   
+						     Vec &fv_l, Vec &fv_r, Vec &fd_l, Vec &fd_r,
+						     const Real threshold){
 
    switch(order){
        case h4:
@@ -242,8 +243,11 @@ inline void compute_filtered_face_values_derivatives(const Vec * const values,ui
    }
    
    Vec slope_abs,slope_sign;
-   slope_limiter(values[k -1], values[k], values[k + 1], slope_abs, slope_sign);
-   
+   // scale values closer to 1 for more accurate slope limiter calculation
+   const real scale = 1./threshold
+   slope_limiter(values[k -1]*scale, values[k]*scale, values[k + 1]*scale, slope_abs, slope_sign);
+   slope_abs = slope_abs*scale;
+
    //check for extrema, flatten if it is
    Vecb is_extrema = (slope_abs == Vec(0.0));
    if(horizontal_or(is_extrema)) {
@@ -278,7 +282,7 @@ inline void compute_filtered_face_values_derivatives(const Vec * const values,ui
   2) Makes face values bounded
   3) Makes sure face slopes are consistent with PLM slope
 */
-inline void compute_filtered_face_values(const Vec * const values,uint k, face_estimate_order order, Vec &fv_l, Vec &fv_r){   
+inline void compute_filtered_face_values(const Vec * const values,uint k, face_estimate_order order, Vec &fv_l, Vec &fv_r, const Real threshold){
    switch(order){
        case h4:
           compute_h4_left_face_value(values, k, fv_l);
@@ -298,7 +302,10 @@ inline void compute_filtered_face_values(const Vec * const values,uint k, face_e
           break;
    }
    Vec slope_abs,slope_sign;
-   slope_limiter(values[k -1], values[k], values[k + 1], slope_abs, slope_sign);
+   // scale values closer to 1 for more accurate slope limiter calculation
+   const real scale = 1./threshold
+   slope_limiter(values[k -1]*scale, values[k]*scale, values[k + 1]*scale, slope_abs, slope_sign);
+   slope_abs = slope_abs*scale;
    
    //check for extrema, flatten if it is
    Vecb is_extrema = (slope_abs == Vec(0.0));
