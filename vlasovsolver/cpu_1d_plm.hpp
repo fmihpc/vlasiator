@@ -40,9 +40,9 @@ The factor 2.0 is in the polynom to ease integration, then integral is a[0]*t + 
 
 inline void compute_plm_coeff(const Vec * const values, uint k, Vec a[2], const Real threshold){
    // scale values closer to 1 for more accurate slope limiter calculation
-  const real scale = 1./threshold
-  const Vec d_cv=slope_limiter(values[k - 1]*scale, values[k]*scale, values[k + 1]*scale);
-  a[0] = values[k]*scale - d_cv * 0.5;
+  const Realv scale = 1./threshold;
+  const Vec d_cv=slope_limiter(values[k - 1]*scale, values[k]*scale, values[k + 1]*scale)*threshold;
+  a[0] = values[k] - d_cv * 0.5;
   a[1] = d_cv * 0.5;
 }
 
