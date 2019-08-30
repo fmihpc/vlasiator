@@ -10,6 +10,9 @@
 #include <boost/random/variate_generator.hpp>
 #include <iostream>
 
+#define cell_pop_threshold 1.e-15
+// In vlasiator, called via spatial_cell->getVelocityBlockMinValue(popID)
+
 /*print all values in the vector valued values array. In this array
   there are blocks_per_dim blocks with a width of WID*/
 void print_values(int step, Vec *values, uint blocks_per_dim, Real v_min, Real dv){
@@ -73,7 +76,7 @@ void propagate(Vec dr[], Vec values[], Real z_translation, uint blocks_per_dim )
          // Compute polynomial coefficients
          Vec a[3];
          //compute_ppm_coeff_nonuniform(dr, values, h4, gid + target_scell_index, a);
-         compute_ppm_coeff_nonuniform(dr, values, h4, gid, a);
+         compute_ppm_coeff_nonuniform(dr, values, h4, gid, a, cell_pop_threshold);
          
          // Compute integral
          const Vec ngbr_target_density =
@@ -116,7 +119,7 @@ void print_reconstruction(int step, Vec dr[], Vec values[], uint  blocks_per_dim
 #ifdef ACC_SEMILAG_PPM
          Vec a[3];
          //compute_ppm_coeff(               values, h4, (k_block + 1) * WID + k_cell, a);
-         compute_ppm_coeff_nonuniform(dr, values, h4, (k_block + 1) * WID + k_cell, a);
+         compute_ppm_coeff_nonuniform(dr, values, h4, (k_block + 1) * WID + k_cell, a, cell_pop_threshold);
 #endif     
       
          int iend = k_block * WID + k_cell;
