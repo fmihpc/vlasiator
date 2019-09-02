@@ -59,7 +59,7 @@ VEC8F_AGNER
 //user Agner's AVX2 optimized datatypes, double precision accuracy
 #include "vectorclass.h"
 typedef Vec4d Vec;
-typedef Vec4i Veci;
+typedef Vec4q Veci;
 typedef Vec4db Vecb;
 typedef double Realv;
 #define to_realv(v) to_double(v)
