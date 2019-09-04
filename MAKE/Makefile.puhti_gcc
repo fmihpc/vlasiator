@@ -24,7 +24,7 @@ endif
 #======== Allocator =========
 #Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
 #Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
-CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+#CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
 
 #======= Compiler and compilation flags =========
@@ -46,7 +46,7 @@ FLAGS =
 #GNU flags:
 CC_BRAND = gcc
 CC_BRAND_VERSION = 9.1.0
-CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -fabi-version=0 -march=native -mavx2 -mfma
+CXXFLAGS += -g -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -fabi-version=0 -march=native -mavx2 -mfma
 testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++17 -fabi-version=0  -mavx2 -mfma
 
 MATHFLAGS = -ffast-math
@@ -71,8 +71,8 @@ LIB_BOOST = -lboost_program_options
 INC_ZOLTAN = -I$(LIBRARY_PREFIX)/hpcx-mpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/zoltan/3.8/include
 LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/hpcx-mpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/zoltan/3.8/lib -lzoltan
 
-INC_JEMALLOC = -I$(LIBRARY_PREFIX)/hpcx-mpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/jemalloc/$(JEMALLOC_VERSION)/include
-LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/hpcx-mpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/jemalloc/$(JEMALLOC_VERSION)/lib -ljemalloc -Wl,-rpath=$(LIBRARY_PREFIX)/hpcx-mpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/jemalloc/$(JEMALLOC_VERSION)/lib
+#INC_JEMALLOC = -I$(LIBRARY_PREFIX)/hpcx-mpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/jemalloc/$(JEMALLOC_VERSION)/include
+#LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/hpcx-mpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/jemalloc/$(JEMALLOC_VERSION)/lib -ljemalloc -Wl,-rpath=$(LIBRARY_PREFIX)/hpcx-mpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/jemalloc/$(JEMALLOC_VERSION)/lib
 
 INC_VLSV = -I$(LIBRARY_PREFIX)/hpcx-mpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/vlsv
 LIB_VLSV = -L$(LIBRARY_PREFIX)/hpcx-mpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/vlsv -lvlsv
