@@ -22,7 +22,7 @@ run_tests=( 1 2 3 4 5 6 7 8 9 10 11 12 13 14)
 test_name[1]="acctest_2_maxw_500k_100k_20kms_10deg"
 comparison_vlsv[1]="fullf.0000001.vlsv"
 comparison_phiprof[1]="phiprof_0.txt"
-variable_names[1]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v protons"
+variable_names[1]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v proton"
 variable_components[1]="0 0 1 2"
 single_cell[1]=1
 
@@ -30,7 +30,7 @@ single_cell[1]=1
 test_name[2]="acctest_3_substeps"
 comparison_vlsv[2]="fullf.0000001.vlsv"
 comparison_phiprof[2]="phiprof_0.txt"
-variable_names[2]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v protons"
+variable_names[2]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v proton"
 variable_components[2]="0 0 1 2"
 single_cell[2]=1
 
@@ -38,7 +38,7 @@ single_cell[2]=1
 test_name[3]="transtest_2_maxw_500k_100k_20kms_20x20"
 comparison_vlsv[3]="fullf.0000001.vlsv"
 comparison_phiprof[3]="phiprof_0.txt"
-variable_names[3]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v protons"
+variable_names[3]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v proton"
 variable_components[3]="0 0 1 2"
 
 test_name[4]="acctest_4_helium"
@@ -52,7 +52,7 @@ single_cell[4]=1
 test_name[5]="acctest_5_proton_antiproton"
 comparison_vlsv[5]="fullf.0000001.vlsv"
 comparison_phiprof[5]="phiprof_0.txt"
-variable_names[5]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v protons"
+variable_names[5]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v proton"
 variable_components[5]="0 0 1 2"
 single_cell[5]=1
 
@@ -72,15 +72,15 @@ variable_components[7]="0 0 1 2 0 1 2 0 1 2"
 test_name[8]="Magnetosphere_small"
 comparison_vlsv[8]="bulk.0000001.vlsv"
 comparison_phiprof[8]="phiprof_0.txt"
-variable_names[8]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b fg_b fg_b fg_e fg_e fg_e protons"
+variable_names[8]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b fg_b fg_b fg_e fg_e fg_e proton"
 variable_components[8]="0 0 1 2 0 1 2 0 1 2"
 
 #Very small polar magnetosphere, with subcycling in ACC or FS
 test_name[9]="Magnetosphere_polar_small"
 comparison_vlsv[9]="bulk.0000001.vlsv"
 comparison_phiprof[9]="phiprof_0.txt"
-variable_names[9]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b fg_b fg_b fg_e fg_e fg_e protons proton/vg_v_nonthermal proton/vg_ptensor_nonthermal_diagonal"
-variable_components[9]="0 0 1 2 0 1 2 0 1 2"
+variable_names[9]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b fg_b fg_b fg_e fg_e fg_e proton/vg_v_nonthermal proton/vg_v_nonthermal proton/vg_v_nonthermal proton/vg_ptensor_nonthermal_diagonal proton/vg_ptensor_nonthermal_diagonal proton/vg_ptensor_nonthermal_diagonal proton"
+variable_components[9]="0 0 1 2 0 1 2 0 1 2 0 1 2 0 1 2"
 
 # Field solver test
 test_name[10]="test_fp_fsolver_only_3D"
@@ -119,7 +119,7 @@ variable_components[14]="0 0 1 2 0 1 2 0 1 2"
 test_name[15]="Selfgen_Waves_Periodic"
 comparison_vlsv[15]="fullf.0000001.vlsv"
 comparison_phiprof[15]="phiprof_0.txt"
-variable_names[15]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b fg_b fg_b fg_e fg_e fg_e protons"
+variable_names[15]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b fg_b fg_b fg_e fg_e fg_e proton"
 variable_components[15]="0 0 1 2 0 1 2 0 1 2"
 
 ##AMR tests
@@ -127,7 +127,7 @@ variable_components[15]="0 0 1 2 0 1 2 0 1 2"
 test_name[16]="transtest_amr"
 comparison_vlsv[3]="fullf.0000001.vlsv"
 comparison_phiprof[3]="phiprof_0.txt"
-variable_names[3]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v protons"
+variable_names[3]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v proton"
 variable_components[3]="0 0 1 2"
 
 # Flowthrough test
