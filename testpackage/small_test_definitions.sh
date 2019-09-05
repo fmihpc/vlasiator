@@ -21,8 +21,7 @@ run_tests=( 1 2 3 4 5 6 7 8 9 10 11 12 13 14)
 # acceleration test
 test_name[1]="acctest_2_maxw_500k_100k_20kms_10deg"
 comparison_vlsv[1]="fullf.0000001.vlsv"
-#only one process does anything -> in _1 phiprof here
-comparison_phiprof[1]="phiprof_1.txt"
+comparison_phiprof[1]="phiprof_0.txt"
 variable_names[1]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v protons"
 variable_components[1]="0 0 1 2"
 single_cell[1]=1
@@ -30,8 +29,7 @@ single_cell[1]=1
 # acceleration test w/ substepping
 test_name[2]="acctest_3_substeps"
 comparison_vlsv[2]="fullf.0000001.vlsv"
-#only one process does anything -> in _1 phiprof here
-comparison_phiprof[2]="phiprof_1.txt"
+comparison_phiprof[2]="phiprof_0.txt"
 variable_names[2]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v protons"
 variable_components[2]="0 0 1 2"
 single_cell[2]=1
@@ -45,7 +43,7 @@ variable_components[3]="0 0 1 2"
 
 test_name[4]="acctest_4_helium"
 comparison_vlsv[4]="fullf.0000001.vlsv"
-comparison_phiprof[4]="phiprof_1.txt"
+comparison_phiprof[4]="phiprof_0.txt"
 variable_names[4]="helium/vg_rho helium/vg_v helium/vg_v helium/vg_v"
 variable_components[4]="0 0 1 2"
 single_cell[4]=1
@@ -53,8 +51,7 @@ single_cell[4]=1
 # Gyration test with protons and antiprotons
 test_name[5]="acctest_5_proton_antiproton"
 comparison_vlsv[5]="fullf.0000001.vlsv"
-#only one process does anything -> in _1 phiprof here
-comparison_phiprof[5]="phiprof_1.txt"
+comparison_phiprof[5]="phiprof_0.txt"
 variable_names[5]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v protons"
 variable_components[5]="0 0 1 2"
 single_cell[5]=1
