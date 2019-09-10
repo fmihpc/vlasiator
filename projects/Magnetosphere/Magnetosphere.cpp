@@ -374,7 +374,7 @@ namespace projects {
                setBackgroundFieldToZero(BgBGrid);
       }
       
-      const auto localSize = BgBGrid.getLocalSize();
+      const auto localSize = BgBGrid.getLocalSize().data();
       
 #pragma omp parallel
       {
