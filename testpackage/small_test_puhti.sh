@@ -3,11 +3,12 @@
 #SBATCH --job-name=testpackage
 #SBATCH --account=project_2000203
 #SBATCH --partition=small
-#SBATCH --ntasks=2
-#SBATH --mem-per-cpu=4000
+#SBATCH --ntasks=8
+#SBATCH --nodes=1
+#SBATCH --mem-per-cpu=4000
 
 ht=1                   #hyper threads per physical core, can only be 1
-t=3                   #threads per process
+t=5                   #threads per process
 
 #Compute and set  stuff, do not change
 if [ -z $SLURM_NNODES ]
@@ -19,7 +20,7 @@ else
 fi
 
 #sisu has 2 x 12 cores
-cores_per_node=24
+cores_per_node=40
 #Change PBS parameters above + the ones here
 total_units=$(echo $nodes $cores_per_node $ht | gawk '{print $1*$2*$3}')
 units_per_node=$(echo $cores_per_node $ht | gawk '{print $1*$2}')
@@ -54,7 +55,7 @@ create_verification_files=1
 #folder for all reference data 
 reference_dir="/scratch/project_2000203/testpackage_data"
 #compare agains which revision
-reference_revision="c36241b84ce8179f7491ebf2a94c377d7279e8c9__DACC_SEMILAG_PQM__DTRANS_SEMILAG_PPM__DDP__DDPF__DVEC4D_AGNER"
+reference_revision="current"
 
 
 

@@ -10,10 +10,10 @@ LNK = mpic++
 
 ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
 #Single-precision        
-	VECTORCLASS = VEC8F_AGNER
+	VECTORCLASS = VEC16F_AGNER
 else
 #Double-precision
-	VECTORCLASS = VEC4D_AGNER
+	VECTORCLASS = VEC8D_AGNER
 endif
 
 #======== PAPI ==========
@@ -24,7 +24,7 @@ endif
 #======== Allocator =========
 #Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
 #Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
-#CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
 
 #======= Compiler and compilation flags =========
@@ -39,18 +39,18 @@ endif
 #                         errors that come up when using 
 #                         mpi.h in c++ on Cray
 
-CXXFLAGS = 
+CXXFLAGS = -DMAX_VECTOR_SIZE=512
 
 FLAGS = 
 
 #GNU flags:
 CC_BRAND = intel
 CC_BRAND_VERSION = 19.0.4
-CXXFLAGS += -traceback -g -O3 -qopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -fabi-version=0 -march=native -mavx2 -mfma
-testpackage: CXXFLAGS = -g -traceback -O2 -qopenmp -funroll-loops -std=c++17 -fabi-version=0  -mavx2 -mfma
+CXXFLAGS += -traceback -g -O3 -qopenmp -std=c++17 -W -Wall -Wno-unused -xHost -ipo -qopt-zmm-usage=high 
+testpackage: CXXFLAGS = -g -traceback -O2 -qopenmp -std=c++17 -W -Wno-unused -xHost -ipo
 
 MATHFLAGS = -ffast-math
-LDFLAGS = -qopenmp -lifcore
+LDFLAGS = -qopenmp -lifcore -ipo
 LIB_MPI = 
 
 # BOOST_VERSION = current trilinos version
