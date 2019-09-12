@@ -434,331 +434,421 @@ void calculateEdgeElectricFieldX(
    FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> & dMomentsGrid,
    FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2> & BgBGrid,
    FsGrid< fsgrids::technical, 2> & technicalGrid,
-   cint i,
+   cint i_start, cint i_end,
    cint j,
    cint k,
    cint& RKCase
 ) {
    #ifdef DEBUG_FSOLVER
    bool ok = true;
-   if (technicalGrid.get(i,j,k) == NULL) ok = false;
-   if (technicalGrid.get(i,j-1,k) == NULL) ok = false;
-   if (technicalGrid.get(i,j-1,k-1) == NULL) ok = false;
-   if (technicalGrid.get(i,j,k-1) == NULL) ok = false;
+   for(int i=i_start; i<i_end; i++) {
+      if (technicalGrid.get(i,j,k) == NULL) ok = false;
+      if (technicalGrid.get(i,j-1,k) == NULL) ok = false;
+      if (technicalGrid.get(i,j-1,k-1) == NULL) ok = false;
+      if (technicalGrid.get(i,j,k-1) == NULL) ok = false;
+   }
    if (ok == false) {
       cerr << "NULL pointer in " << __FILE__ << ":" << __LINE__ << std::endl;
       exit(1);
    }
    #endif
 
+   // Pencil length
+   const int N = i_end-i_start;
+
    // An edge has four neighbouring spatial cells. Calculate
    // electric field in each of the four cells per edge.
-   Real ay_pos,ay_neg;              // Max. characteristic velocities to y-direction
-   Real az_pos,az_neg;              // Max. characteristic velocities to z-direction
-   Real Vy0,Vz0;                    // Reconstructed V
-   Real vA, vS, vW;                 // Alfven, sound, whistler speed
+   Real ay_pos[N],ay_neg[N];              // Max. characteristic velocities to y-direction
+   Real az_pos[N],az_neg[N];              // Max. characteristic velocities to z-direction
+   Real Vy0[N],Vz0[N];                    // Reconstructed V
    Real maxV = 0.0;                 // Max velocity for CFL purposes
-   Real c_y, c_z;                   // Wave speeds to yz-directions
 
    // Get values at all four neighbours, result is written to SW.
-   std::array<Real, fsgrids::bfield::N_BFIELD> * perb_SW = perBGrid.get(i  ,j  ,k  );
-   std::array<Real, fsgrids::bfield::N_BFIELD> * perb_SE = perBGrid.get(i  ,j-1,k  );
-   std::array<Real, fsgrids::bfield::N_BFIELD> * perb_NE = perBGrid.get(i  ,j-1,k-1);
-   std::array<Real, fsgrids::bfield::N_BFIELD> * perb_NW = perBGrid.get(i  ,j  ,k-1);
-   std::array<Real, fsgrids::bgbfield::N_BGB> * bgb_SW = BgBGrid.get(i,j  ,k  );
-   std::array<Real, fsgrids::bgbfield::N_BGB> * bgb_SE = BgBGrid.get(i,j-1,k  );
-   std::array<Real, fsgrids::bgbfield::N_BGB> * bgb_NE = BgBGrid.get(i,j-1,k-1);
-   std::array<Real, fsgrids::bgbfield::N_BGB> * bgb_NW = BgBGrid.get(i,j  ,k-1);
-   std::array<Real, fsgrids::moments::N_MOMENTS> * moments_SW = momentsGrid.get(i  ,j  ,k  );
-   std::array<Real, fsgrids::moments::N_MOMENTS> * moments_SE = momentsGrid.get(i  ,j-1,k  );
-   std::array<Real, fsgrids::moments::N_MOMENTS> * moments_NE = momentsGrid.get(i  ,j-1,k-1);
-   std::array<Real, fsgrids::moments::N_MOMENTS> * moments_NW = momentsGrid.get(i  ,j  ,k-1);
-   std::array<Real, fsgrids::dmoments::N_DMOMENTS> * dmoments_SW = dMomentsGrid.get(i  ,j  ,k  );
-   std::array<Real, fsgrids::dmoments::N_DMOMENTS> * dmoments_SE = dMomentsGrid.get(i  ,j-1,k  );
-   std::array<Real, fsgrids::dmoments::N_DMOMENTS> * dmoments_NE = dMomentsGrid.get(i  ,j-1,k-1);
-   std::array<Real, fsgrids::dmoments::N_DMOMENTS> * dmoments_NW = dMomentsGrid.get(i  ,j  ,k-1);
-   std::array<Real, fsgrids::dperb::N_DPERB> * dperb_SW = dPerBGrid.get(i  ,j  ,k  );
-   std::array<Real, fsgrids::dperb::N_DPERB> * dperb_SE = dPerBGrid.get(i  ,j-1,k  );
-   std::array<Real, fsgrids::dperb::N_DPERB> * dperb_NE = dPerBGrid.get(i  ,j-1,k-1);
-   std::array<Real, fsgrids::dperb::N_DPERB> * dperb_NW = dPerBGrid.get(i  ,j  ,k-1);
+   // Note: since we *know* our pencil values are lying compact in x, we are
+   // directly indexing into these pointers.
+   std::array<Real, fsgrids::bfield::N_BFIELD> * perb_SW = perBGrid.get(i_start,j  ,k  );
+   std::array<Real, fsgrids::bfield::N_BFIELD> * perb_SE = perBGrid.get(i_start,j-1,k  );
+   std::array<Real, fsgrids::bfield::N_BFIELD> * perb_NE = perBGrid.get(i_start,j-1,k-1);
+   std::array<Real, fsgrids::bfield::N_BFIELD> * perb_NW = perBGrid.get(i_start,j  ,k-1);
+   std::array<Real, fsgrids::bgbfield::N_BGB> * bgb_SW = BgBGrid.get(i_start,j  ,k  );
+   std::array<Real, fsgrids::bgbfield::N_BGB> * bgb_SE = BgBGrid.get(i_start,j-1,k  );
+   std::array<Real, fsgrids::bgbfield::N_BGB> * bgb_NE = BgBGrid.get(i_start,j-1,k-1);
+   std::array<Real, fsgrids::bgbfield::N_BGB> * bgb_NW = BgBGrid.get(i_start,j  ,k-1);
+   std::array<Real, fsgrids::moments::N_MOMENTS> * moments_SW = momentsGrid.get(i_start,j  ,k  );
+   std::array<Real, fsgrids::moments::N_MOMENTS> * moments_SE = momentsGrid.get(i_start,j-1,k  );
+   std::array<Real, fsgrids::moments::N_MOMENTS> * moments_NE = momentsGrid.get(i_start,j-1,k-1);
+   std::array<Real, fsgrids::moments::N_MOMENTS> * moments_NW = momentsGrid.get(i_start,j  ,k-1);
+   std::array<Real, fsgrids::dmoments::N_DMOMENTS> * dmoments_SW = dMomentsGrid.get(i_start,j  ,k  );
+   std::array<Real, fsgrids::dmoments::N_DMOMENTS> * dmoments_SE = dMomentsGrid.get(i_start,j-1,k  );
+   std::array<Real, fsgrids::dmoments::N_DMOMENTS> * dmoments_NE = dMomentsGrid.get(i_start,j-1,k-1);
+   std::array<Real, fsgrids::dmoments::N_DMOMENTS> * dmoments_NW = dMomentsGrid.get(i_start,j  ,k-1);
+   std::array<Real, fsgrids::dperb::N_DPERB> * dperb_SW = dPerBGrid.get(i_start,j  ,k  );
+   std::array<Real, fsgrids::dperb::N_DPERB> * dperb_SE = dPerBGrid.get(i_start,j-1,k  );
+   std::array<Real, fsgrids::dperb::N_DPERB> * dperb_NE = dPerBGrid.get(i_start,j-1,k-1);
+   std::array<Real, fsgrids::dperb::N_DPERB> * dperb_NW = dPerBGrid.get(i_start,j  ,k-1);
    
-   std::array<Real, fsgrids::efield::N_EFIELD> * efield_SW = EGrid.get(i,j,k);
+   std::array<Real, fsgrids::efield::N_EFIELD> * efield_SW = EGrid.get(i_start,j,k);
    
-   Real By_S, Bz_W, Bz_E, By_N, perBy_S, perBz_W, perBz_E, perBy_N;
-   Real minRhom = std::numeric_limits<Real>::max();
-   Real maxRhom = std::numeric_limits<Real>::min();
+   Real By_S[N], Bz_W[N], Bz_E[N], By_N[N], perBy_S[N], perBz_W[N], perBz_E[N], perBy_N[N];
+   Real minRhom[N], maxRhom[N]; 
+   Real dBydx_S[N],dBydz_S[N],dBzdx_W[N],dBzdy_W[N],dBzdx_E[N],dBzdy_E[N],dBydx_N[N],dBydz_N[N],dperBydz_S[N],dperBydz_N[N],dperBzdy_W[N],dperBzdy_E[N];
+   Real Ex_SW[N], Ex_NW[N], Ex_SE[N], Ex_NE[N];
 
-   By_S = perb_SW->at(fsgrids::bfield::PERBY)+bgb_SW->at(fsgrids::bgbfield::BGBY);
-   Bz_W = perb_SW->at(fsgrids::bfield::PERBZ)+bgb_SW->at(fsgrids::bgbfield::BGBZ);
-   Bz_E = perb_SE->at(fsgrids::bfield::PERBZ)+bgb_SE->at(fsgrids::bgbfield::BGBZ);
-   By_N = perb_NW->at(fsgrids::bfield::PERBY)+bgb_NW->at(fsgrids::bgbfield::BGBY);
-   perBy_S = perb_SW->at(fsgrids::bfield::PERBY);
-   perBz_W = perb_SW->at(fsgrids::bfield::PERBZ);
-   perBz_E = perb_SE->at(fsgrids::bfield::PERBZ);
-   perBy_N = perb_NW->at(fsgrids::bfield::PERBY);
-   Vy0  = moments_SW->at(fsgrids::moments::VY);
-   Vz0  = moments_SW->at(fsgrids::moments::VZ);
-   minRhom = min(minRhom,
-       min(moments_SW->at(fsgrids::moments::RHOM),
-         min(moments_SE->at(fsgrids::moments::RHOM),
-           min(moments_NW->at(fsgrids::moments::RHOM),
-             moments_NE->at(fsgrids::moments::RHOM))
-           )
-         )
-       );
-   maxRhom = max(maxRhom,
-       max(moments_SW->at(fsgrids::moments::RHOM),
-         max(moments_SE->at(fsgrids::moments::RHOM),
-           max(moments_NW->at(fsgrids::moments::RHOM),
-             moments_NE->at(fsgrids::moments::RHOM))
-           )
-         )
-       );
+   // Load pencil data
+   for(int i=0; i<N; i++) {
+      By_S[i] = perb_SW[i].data()[fsgrids::bfield::PERBY]+bgb_SW[i].data()[fsgrids::bgbfield::BGBY];
+      Bz_W[i] = perb_SW[i].data()[fsgrids::bfield::PERBZ]+bgb_SW[i].data()[fsgrids::bgbfield::BGBZ];
+      Bz_E[i] = perb_SE[i].data()[fsgrids::bfield::PERBZ]+bgb_SE[i].data()[fsgrids::bgbfield::BGBZ];
+      By_N[i] = perb_NW[i].data()[fsgrids::bfield::PERBY]+bgb_NW[i].data()[fsgrids::bgbfield::BGBY];
+      perBy_S[i] = perb_SW[i].data()[fsgrids::bfield::PERBY];
+      perBz_W[i] = perb_SW[i].data()[fsgrids::bfield::PERBZ];
+      perBz_E[i] = perb_SE[i].data()[fsgrids::bfield::PERBZ];
+      perBy_N[i] = perb_NW[i].data()[fsgrids::bfield::PERBY];
+      Vy0[i]  = moments_SW[i].data()[fsgrids::moments::VY];
+      Vz0[i]  = moments_SW[i].data()[fsgrids::moments::VZ];
    
-   creal dBydx_S = dperb_SW->at(fsgrids::dperb::dPERBydx) + bgb_SW->at(fsgrids::bgbfield::dBGBydx);
-   creal dBydz_S = dperb_SW->at(fsgrids::dperb::dPERBydz) + bgb_SW->at(fsgrids::bgbfield::dBGBydz);
-   creal dBzdx_W = dperb_SW->at(fsgrids::dperb::dPERBzdx) + bgb_SW->at(fsgrids::bgbfield::dBGBzdx);
-   creal dBzdy_W = dperb_SW->at(fsgrids::dperb::dPERBzdy) + bgb_SW->at(fsgrids::bgbfield::dBGBzdy);
-   creal dBzdx_E = dperb_SE->at(fsgrids::dperb::dPERBzdx) + bgb_SE->at(fsgrids::bgbfield::dBGBzdx);
-   creal dBzdy_E = dperb_SE->at(fsgrids::dperb::dPERBzdy) + bgb_SE->at(fsgrids::bgbfield::dBGBzdy);
-   creal dBydx_N = dperb_NW->at(fsgrids::dperb::dPERBydx) + bgb_NW->at(fsgrids::bgbfield::dBGBydx);
-   creal dBydz_N = dperb_NW->at(fsgrids::dperb::dPERBydz) + bgb_NW->at(fsgrids::bgbfield::dBGBydz);
-   creal dperBydz_S = dperb_SW->at(fsgrids::dperb::dPERBydz);
-   creal dperBydz_N = dperb_NW->at(fsgrids::dperb::dPERBydz);
-   creal dperBzdy_W = dperb_SW->at(fsgrids::dperb::dPERBzdy);
-   creal dperBzdy_E = dperb_SE->at(fsgrids::dperb::dPERBzdy);
+      dBydx_S[i] = dperb_SW[i].data()[fsgrids::dperb::dPERBydx] + bgb_SW[i].data()[fsgrids::bgbfield::dBGBydx];
+      dBydz_S[i] = dperb_SW[i].data()[fsgrids::dperb::dPERBydz] + bgb_SW[i].data()[fsgrids::bgbfield::dBGBydz];
+      dBzdx_W[i] = dperb_SW[i].data()[fsgrids::dperb::dPERBzdx] + bgb_SW[i].data()[fsgrids::bgbfield::dBGBzdx];
+      dBzdy_W[i] = dperb_SW[i].data()[fsgrids::dperb::dPERBzdy] + bgb_SW[i].data()[fsgrids::bgbfield::dBGBzdy];
+      dBzdx_E[i] = dperb_SE[i].data()[fsgrids::dperb::dPERBzdx] + bgb_SE[i].data()[fsgrids::bgbfield::dBGBzdx];
+      dBzdy_E[i] = dperb_SE[i].data()[fsgrids::dperb::dPERBzdy] + bgb_SE[i].data()[fsgrids::bgbfield::dBGBzdy];
+      dBydx_N[i] = dperb_NW[i].data()[fsgrids::dperb::dPERBydx] + bgb_NW[i].data()[fsgrids::bgbfield::dBGBydx];
+      dBydz_N[i] = dperb_NW[i].data()[fsgrids::dperb::dPERBydz] + bgb_NW[i].data()[fsgrids::bgbfield::dBGBydz];
+      dperBydz_S[i] = dperb_SW[i].data()[fsgrids::dperb::dPERBydz];
+      dperBydz_N[i] = dperb_NW[i].data()[fsgrids::dperb::dPERBydz];
+      dperBzdy_W[i] = dperb_SW[i].data()[fsgrids::dperb::dPERBzdy];
+      dperBzdy_E[i] = dperb_SE[i].data()[fsgrids::dperb::dPERBzdy];
+   }
+   for(int i=0; i<N; i++) {
+      minRhom[i] = min(std::numeric_limits<Real>::max(),
+            min(moments_SW[i].data()[fsgrids::moments::RHOM],
+               min(moments_SE[i].data()[fsgrids::moments::RHOM],
+                  min(moments_NW[i].data()[fsgrids::moments::RHOM],
+                     moments_NE[i].data()[fsgrids::moments::RHOM])
+                  )
+               )
+            );
+      maxRhom[i] = max(std::numeric_limits<Real>::min(),
+            max(moments_SW[i].data()[fsgrids::moments::RHOM],
+               max(moments_SE[i].data()[fsgrids::moments::RHOM],
+                  max(moments_NW[i].data()[fsgrids::moments::RHOM],
+                     moments_NE[i].data()[fsgrids::moments::RHOM])
+                  )
+               )
+            );
+   }
 
    // Ex and characteristic speeds on this cell:
    // 1st order terms:
-   Real Ex_SW = By_S*Vz0 - Bz_W*Vy0;
+   for(int i=0; i<N; i++) {
+      Ex_SW[i] = By_S[i]*Vz0[i] - Bz_W[i]*Vy0[i];
+   }
 
    // Resistive term
    if (Parameters::resistivity > 0) {
-     Ex_SW += Parameters::resistivity *
-       sqrt((bgb_SW->at(fsgrids::bgbfield::BGBX)+perb_SW->at(fsgrids::bfield::PERBX))*
-            (bgb_SW->at(fsgrids::bgbfield::BGBX)+perb_SW->at(fsgrids::bfield::PERBX)) +
-            (bgb_SW->at(fsgrids::bgbfield::BGBY)+perb_SW->at(fsgrids::bfield::PERBY))*
-            (bgb_SW->at(fsgrids::bgbfield::BGBY)+perb_SW->at(fsgrids::bfield::PERBY)) +
-            (bgb_SW->at(fsgrids::bgbfield::BGBZ)+perb_SW->at(fsgrids::bfield::PERBZ))*
-            (bgb_SW->at(fsgrids::bgbfield::BGBZ)+perb_SW->at(fsgrids::bfield::PERBZ))
-           ) /
-       moments_SW->at(fsgrids::moments::RHOQ) /
-       physicalconstants::MU_0 *
-       (dperb_SW->at(fsgrids::dperb::dPERBzdy)/technicalGrid.DY - dperb_SW->at(fsgrids::dperb::dPERBydz)/technicalGrid.DZ);
+      for(int i=0; i<N; i++) {
+         Ex_SW[i] += Parameters::resistivity *
+            sqrt((bgb_SW[i].data()[fsgrids::bgbfield::BGBX]+perb_SW[i].data()[fsgrids::bfield::PERBX])*
+                  (bgb_SW[i].data()[fsgrids::bgbfield::BGBX]+perb_SW[i].data()[fsgrids::bfield::PERBX]) +
+                  By_S[i]*By_S[i] + Bz_W[i]*Bz_W[i]
+                ) /
+            moments_SW[i].data()[fsgrids::moments::RHOQ] /
+            physicalconstants::MU_0 *
+            (dperb_SW[i].data()[fsgrids::dperb::dPERBzdy]/technicalGrid.DY - dperb_SW[i].data()[fsgrids::dperb::dPERBydz]/technicalGrid.DZ);
+      }
    }
    
    // Hall term
    if(Parameters::ohmHallTerm > 0) {
-      Ex_SW += EHallGrid.get(i,j,k)->at(fsgrids::ehall::EXHALL_000_100);
+      auto EH=EHallGrid.get(i_start,j,k);
+      for(int i=0; i<N; i++) {
+         Ex_SW[i] += EH[i].data()[fsgrids::ehall::EXHALL_000_100];
+      }
    }
    
    // Electron pressure gradient term
    if(Parameters::ohmGradPeTerm > 0) {
-      Ex_SW += EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EXGRADPE);
+      auto EGP=EGradPeGrid.get(i_start,j-1,k);
+      for(int i=0; i<N; i++) {
+         Ex_SW[i] += EGP[i].data()[fsgrids::egradpe::EXGRADPE];
+      }
    }
 
    #ifndef FS_1ST_ORDER_SPACE
-      // 2nd order terms:
-      Ex_SW += +HALF*((By_S - HALF*dBydz_S)*(-dmoments_SW->at(fsgrids::dmoments::dVzdy) - dmoments_SW->at(fsgrids::dmoments::dVzdz)) - dBydz_S*Vz0 + SIXTH*dBydx_S*dmoments_SW->at(fsgrids::dmoments::dVzdx));
-      Ex_SW += -HALF*((Bz_W - HALF*dBzdy_W)*(-dmoments_SW->at(fsgrids::dmoments::dVydy) - dmoments_SW->at(fsgrids::dmoments::dVydz)) - dBzdy_W*Vy0 + SIXTH*dBzdx_W*dmoments_SW->at(fsgrids::dmoments::dVydx));
+   // 2nd order terms:
+   for(int i=0; i<N; i++) {
+      Ex_SW[i] += +HALF*((By_S[i] - HALF*dBydz_S[i])*(-dmoments_SW[i].data()[fsgrids::dmoments::dVzdy] - dmoments_SW[i].data()[fsgrids::dmoments::dVzdz]) - dBydz_S[i]*Vz0[i] + SIXTH*dBydx_S[i]*dmoments_SW[i].data()[fsgrids::dmoments::dVzdx]);
+      Ex_SW[i] += -HALF*((Bz_W[i] - HALF*dBzdy_W[i])*(-dmoments_SW[i].data()[fsgrids::dmoments::dVydy] - dmoments_SW[i].data()[fsgrids::dmoments::dVydz]) - dBzdy_W[i]*Vy0[i] + SIXTH*dBzdx_W[i]*dmoments_SW[i].data()[fsgrids::dmoments::dVydx]);
+   }
    #endif
-   calculateWaveSpeedYZ(
-      perBGrid,
-      momentsGrid,
-      dPerBGrid,
-      dMomentsGrid,
-      BgBGrid,
-      i  , j, k,
-      i+1, j, k,
-      By_S, Bz_W, dBydx_S, dBydz_S, dBzdx_W, dBzdy_W, MINUS, MINUS, minRhom, maxRhom, vA, vS, vW
-   );
-   c_y = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
-   c_z = c_y;
-   ay_neg   = max(ZERO,-Vy0 + c_y);
-   ay_pos   = max(ZERO,+Vy0 + c_y);
-   az_neg   = max(ZERO,-Vz0 + c_z);
-   az_pos   = max(ZERO,+Vz0 + c_z);
-   maxV = max(maxV, calculateCflSpeed(Vy0, Vz0, vA, vS, vW));
+
+   // TODO: Vectorize this
+   for(int i=0; i<N; i++) {
+      Real vA, vS, vW;                 // Alfven, sound, whistler speed
+      Real c_y, c_z;                   // Wave speeds to yz-directions
+      calculateWaveSpeedYZ(
+         perBGrid,
+         momentsGrid,
+         dPerBGrid,
+         dMomentsGrid,
+         BgBGrid,
+         i_start+i  , j, k,
+         i_start+i+1, j, k,
+         By_S[i], Bz_W[i], dBydx_S[i], dBydz_S[i], dBzdx_W[i], dBzdy_W[i], MINUS, MINUS, minRhom[i], maxRhom[i], vA, vS, vW
+      );
+      c_y = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
+      c_z = c_y;
+      ay_neg[i]   = max(ZERO,-Vy0[i] + c_y);
+      ay_pos[i]   = max(ZERO,+Vy0[i] + c_y);
+      az_neg[i]   = max(ZERO,-Vz0[i] + c_z);
+      az_pos[i]   = max(ZERO,+Vz0[i] + c_z);
+      maxV = max(maxV, calculateCflSpeed(Vy0[i], Vz0[i], vA, vS, vW));
+   }
 
    // Ex and characteristic speeds on j-1 neighbour:
-   Vy0  = moments_SE->at(fsgrids::moments::VY);
-   Vz0  = moments_SE->at(fsgrids::moments::VZ);
-   
+   for(int i=0; i<N; i++) {
+      Vy0[i]  = moments_SE[i].data()[fsgrids::moments::VY];
+      Vz0[i]  = moments_SE[i].data()[fsgrids::moments::VZ];
+   } 
+
    // 1st order terms:
-   Real Ex_SE = By_S*Vz0 - Bz_E*Vy0;
-   
+   for(int i=0; i<N; i++) {
+      Ex_SE[i] = By_S[i]*Vz0[i] - Bz_E[i]*Vy0[i];
+   }
+
    // Resistive term
    if (Parameters::resistivity > 0) {
-     Ex_SE += Parameters::resistivity *
-       sqrt((bgb_SE->at(fsgrids::bgbfield::BGBX)+perb_SE->at(fsgrids::bfield::PERBX))*
-            (bgb_SE->at(fsgrids::bgbfield::BGBX)+perb_SE->at(fsgrids::bfield::PERBX)) +
-            (bgb_SE->at(fsgrids::bgbfield::BGBY)+perb_SE->at(fsgrids::bfield::PERBY))*
-            (bgb_SE->at(fsgrids::bgbfield::BGBY)+perb_SE->at(fsgrids::bfield::PERBY)) +
-            (bgb_SE->at(fsgrids::bgbfield::BGBZ)+perb_SE->at(fsgrids::bfield::PERBZ))*
-            (bgb_SE->at(fsgrids::bgbfield::BGBZ)+perb_SE->at(fsgrids::bfield::PERBZ))
-           ) /
-       moments_SE->at(fsgrids::moments::RHOQ) /
-       physicalconstants::MU_0 *
-       (dperb_SE->at(fsgrids::dperb::dPERBzdy)/technicalGrid.DY - dperb_SE->at(fsgrids::dperb::dPERBydz)/technicalGrid.DZ);
+      for(int i=0; i<N; i++) {
+        Ex_SE[i] += Parameters::resistivity *
+          sqrt((bgb_SE[i].data()[fsgrids::bgbfield::BGBX]+perb_SE[i].data()[fsgrids::bfield::PERBX])*
+               (bgb_SE[i].data()[fsgrids::bgbfield::BGBX]+perb_SE[i].data()[fsgrids::bfield::PERBX]) +
+               (bgb_SE[i].data()[fsgrids::bgbfield::BGBY]+perb_SE[i].data()[fsgrids::bfield::PERBY])*
+               (bgb_SE[i].data()[fsgrids::bgbfield::BGBY]+perb_SE[i].data()[fsgrids::bfield::PERBY]) +
+               (bgb_SE[i].data()[fsgrids::bgbfield::BGBZ]+perb_SE[i].data()[fsgrids::bfield::PERBZ])*
+               (bgb_SE[i].data()[fsgrids::bgbfield::BGBZ]+perb_SE[i].data()[fsgrids::bfield::PERBZ])
+              ) /
+          moments_SE[i].data()[fsgrids::moments::RHOQ] /
+          physicalconstants::MU_0 *
+          (dperb_SE[i].data()[fsgrids::dperb::dPERBzdy]/technicalGrid.DY - dperb_SE[i].data()[fsgrids::dperb::dPERBydz]/technicalGrid.DZ);
+      }
    }
 
    // Hall term
    if(Parameters::ohmHallTerm > 0) {
-      Ex_SE += EHallGrid.get(i,j-1,k)->at(fsgrids::ehall::EXHALL_010_110);
+      auto EH=EHallGrid.get(i_start,j-1,k);
+      for(int i=0; i<N; i++) {
+         Ex_SE[i] += EH[i].data()[fsgrids::ehall::EXHALL_010_110];
+      }
    }
    
    // Electron pressure gradient term
    if(Parameters::ohmGradPeTerm > 0) {
-      Ex_SE += EGradPeGrid.get(i,j-1,k)->at(fsgrids::egradpe::EXGRADPE);
+      auto EGP=EGradPeGrid.get(i_start,j-1,k);
+      for(int i=0; i<N; i++) {
+         Ex_SE[i] += EGP[i].data()[fsgrids::egradpe::EXGRADPE];
+      }
    }
    
    #ifndef FS_1ST_ORDER_SPACE
-      // 2nd order terms:
-      Ex_SE += +HALF*((By_S - HALF*dBydz_S)*(+dmoments_SE->at(fsgrids::dmoments::dVzdy) - dmoments_SE->at(fsgrids::dmoments::dVzdz)) - dBydz_S*Vz0 + SIXTH*dBydx_S*dmoments_SE->at(fsgrids::dmoments::dVzdx));
-      Ex_SE += -HALF*((Bz_E + HALF*dBzdy_E)*(+dmoments_SE->at(fsgrids::dmoments::dVydy) - dmoments_SE->at(fsgrids::dmoments::dVydz)) + dBzdy_E*Vy0 + SIXTH*dBzdx_E*dmoments_SE->at(fsgrids::dmoments::dVydx));
+   // 2nd order terms:
+   for(int i=0; i<N; i++) {
+      Ex_SE[i] += +HALF*((By_S[i] - HALF*dBydz_S[i])*(+dmoments_SE[i].data()[fsgrids::dmoments::dVzdy] - dmoments_SE[i].data()[fsgrids::dmoments::dVzdz]) - dBydz_S[i]*Vz0[i] + SIXTH*dBydx_S[i]*dmoments_SE[i].data()[fsgrids::dmoments::dVzdx]);
+      Ex_SE[i] += -HALF*((Bz_E[i] + HALF*dBzdy_E[i])*(+dmoments_SE[i].data()[fsgrids::dmoments::dVydy] - dmoments_SE[i].data()[fsgrids::dmoments::dVydz]) + dBzdy_E[i]*Vy0[i] + SIXTH*dBzdx_E[i]*dmoments_SE[i].data()[fsgrids::dmoments::dVydx]);
+   }
    #endif
-   
-   calculateWaveSpeedYZ(
-      perBGrid,
-      momentsGrid,
-      dPerBGrid,
-      dMomentsGrid,
-      BgBGrid,
-      i  , j-1, k,
-      i+1, j-1, k,
-      By_S, Bz_E, dBydx_S, dBydz_S, dBzdx_E, dBzdy_E, PLUS, MINUS, minRhom, maxRhom, vA, vS, vW
-   );
-   c_y = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
-   c_z = c_y;
-   ay_neg   = max(ay_neg,-Vy0 + c_y);
-   ay_pos   = max(ay_pos,+Vy0 + c_y);
-   az_neg   = max(az_neg,-Vz0 + c_z);
-   az_pos   = max(az_pos,+Vz0 + c_z);
-   maxV = max(maxV, calculateCflSpeed(Vy0, Vz0, vA, vS, vW));
+  
+   //TODO: Vectorize this
+   for(int i=0; i<N; i++) {
+      Real vA, vS, vW;                 // Alfven, sound, whistler speed
+      Real c_y, c_z;                   // Wave speeds to yz-directions
+      calculateWaveSpeedYZ(
+         perBGrid,
+         momentsGrid,
+         dPerBGrid,
+         dMomentsGrid,
+         BgBGrid,
+         i_start+i  , j-1, k,
+         i_start+i+1, j-1, k,
+         By_S[i], Bz_E[i], dBydx_S[i], dBydz_S[i], dBzdx_E[i], dBzdy_E[i], PLUS, MINUS, minRhom[i], maxRhom[i], vA, vS, vW
+      );
+      c_y = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
+      c_z = c_y;
+      ay_neg[i]   = max(ay_neg[i],-Vy0[i] + c_y);
+      ay_pos[i]   = max(ay_pos[i],+Vy0[i] + c_y);
+      az_neg[i]   = max(az_neg[i],-Vz0[i] + c_z);
+      az_pos[i]   = max(az_pos[i],+Vz0[i] + c_z);
+      maxV = max(maxV, calculateCflSpeed(Vy0[i], Vz0[i], vA, vS, vW));
+   }
 
    // Ex and characteristic speeds on k-1 neighbour:
-   Vy0  = moments_NW->at(fsgrids::moments::VY);
-   Vz0  = moments_NW->at(fsgrids::moments::VZ);
+   for(int i=0; i<N; i++) {
+      Vy0[i]  = moments_NW[i].data()[fsgrids::moments::VY];
+      Vz0[i]  = moments_NW[i].data()[fsgrids::moments::VZ];
+   }
    
    // 1st order terms:
-   Real Ex_NW    = By_N*Vz0 - Bz_W*Vy0;
+   for(int i=0; i<N; i++) {
+      Ex_NW[i]  = By_N[i]*Vz0[i] - Bz_W[i]*Vy0[i];
+   }
    
    // Resistive term
    if (Parameters::resistivity > 0) {
-     Ex_NW += Parameters::resistivity *
-       sqrt((bgb_NW->at(fsgrids::bgbfield::BGBX)+perb_NW->at(fsgrids::bfield::PERBX))*
-            (bgb_NW->at(fsgrids::bgbfield::BGBX)+perb_NW->at(fsgrids::bfield::PERBX)) +
-            (bgb_NW->at(fsgrids::bgbfield::BGBY)+perb_NW->at(fsgrids::bfield::PERBY))*
-            (bgb_NW->at(fsgrids::bgbfield::BGBY)+perb_NW->at(fsgrids::bfield::PERBY)) +
-            (bgb_NW->at(fsgrids::bgbfield::BGBZ)+perb_NW->at(fsgrids::bfield::PERBZ))*
-            (bgb_NW->at(fsgrids::bgbfield::BGBZ)+perb_NW->at(fsgrids::bfield::PERBZ))
-           ) /
-       moments_NW->at(fsgrids::moments::RHOQ) /
-       physicalconstants::MU_0 *
-       (dperb_NW->at(fsgrids::dperb::dPERBzdy)/technicalGrid.DY - dperb_NW->at(fsgrids::dperb::dPERBydz)/technicalGrid.DZ);
+      for(int i=0; i<N; i++) {
+        Ex_NW[i] += Parameters::resistivity *
+          sqrt((bgb_NW[i].data()[fsgrids::bgbfield::BGBX]+perb_NW[i].data()[fsgrids::bfield::PERBX])*
+               (bgb_NW[i].data()[fsgrids::bgbfield::BGBX]+perb_NW[i].data()[fsgrids::bfield::PERBX]) +
+               (bgb_NW[i].data()[fsgrids::bgbfield::BGBY]+perb_NW[i].data()[fsgrids::bfield::PERBY])*
+               (bgb_NW[i].data()[fsgrids::bgbfield::BGBY]+perb_NW[i].data()[fsgrids::bfield::PERBY]) +
+               (bgb_NW[i].data()[fsgrids::bgbfield::BGBZ]+perb_NW[i].data()[fsgrids::bfield::PERBZ])*
+               (bgb_NW[i].data()[fsgrids::bgbfield::BGBZ]+perb_NW[i].data()[fsgrids::bfield::PERBZ])
+              ) /
+          moments_NW[i].data()[fsgrids::moments::RHOQ] /
+          physicalconstants::MU_0 *
+          (dperb_NW[i].data()[fsgrids::dperb::dPERBzdy]/technicalGrid.DY - dperb_NW[i].data()[fsgrids::dperb::dPERBydz]/technicalGrid.DZ);
+      }
    }
    
    // Hall term
    if(Parameters::ohmHallTerm > 0) {
-      Ex_NW += EHallGrid.get(i,j,k-1)->at(fsgrids::ehall::EXHALL_001_101);
+      auto EH=EHallGrid.get(i_start,j-1,k);
+      for(int i=0; i<N; i++) {
+         Ex_NW[i] += EH[i].data()[fsgrids::ehall::EXHALL_001_101];
+      }
    }
    
    // Electron pressure gradient term
    if(Parameters::ohmGradPeTerm > 0) {
-      Ex_NW += EGradPeGrid.get(i,j,k-1)->at(fsgrids::egradpe::EXGRADPE);
+      auto EGP=EGradPeGrid.get(i_start,j-1,k);
+      for(int i=0; i<N; i++) {
+         Ex_NW[i] += EGP[i].data()[fsgrids::egradpe::EXGRADPE];
+      }
    }
    
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
-      Ex_NW += +HALF*((By_N + HALF*dBydz_N)*(-dmoments_NW->at(fsgrids::dmoments::dVzdy) + dmoments_NW->at(fsgrids::dmoments::dVzdz)) + dBydz_N*Vz0 + SIXTH*dBydx_N*dmoments_NW->at(fsgrids::dmoments::dVzdx));
-      Ex_NW += -HALF*((Bz_W - HALF*dBzdy_W)*(-dmoments_NW->at(fsgrids::dmoments::dVydy) + dmoments_NW->at(fsgrids::dmoments::dVydz)) - dBzdy_W*Vy0 + SIXTH*dBzdx_W*dmoments_NW->at(fsgrids::dmoments::dVydx));
+      for(int i=0; i<N; i++) {
+         Ex_NW[i] += +HALF*((By_N[i] + HALF*dBydz_N[i])*(-dmoments_NW[i].data()[fsgrids::dmoments::dVzdy] + dmoments_NW[i].data()[fsgrids::dmoments::dVzdz]) + dBydz_N[i]*Vz0[i] + SIXTH*dBydx_N[i]*dmoments_NW[i].data()[fsgrids::dmoments::dVzdx]);
+         Ex_NW[i] += -HALF*((Bz_W[i] - HALF*dBzdy_W[i])*(-dmoments_NW[i].data()[fsgrids::dmoments::dVydy] + dmoments_NW[i].data()[fsgrids::dmoments::dVydz]) - dBzdy_W[i]*Vy0[i] + SIXTH*dBzdx_W[i]*dmoments_NW[i].data()[fsgrids::dmoments::dVydx]);
+      }
    #endif
    
-   calculateWaveSpeedYZ(
-      perBGrid,
-      momentsGrid,
-      dPerBGrid,
-      dMomentsGrid,
-      BgBGrid,
-      i  , j, k-1,
-      i+1, j, k-1,
-      By_N, Bz_W, dBydx_N, dBydz_N, dBzdx_W, dBzdy_W, MINUS, PLUS, minRhom, maxRhom, vA, vS, vW
-   );
-   c_y = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
-   c_z = c_y;
-   ay_neg   = max(ay_neg,-Vy0 + c_y);
-   ay_pos   = max(ay_pos,+Vy0 + c_y);
-   az_neg   = max(az_neg,-Vz0 + c_z);
-   az_pos   = max(az_pos,+Vz0 + c_z);
-   maxV = max(maxV, calculateCflSpeed(Vy0, Vz0, vA, vS, vW));
+   // TODO: Vectorize this
+   for(int i=0; i<N; i++) {
+      Real vA, vS, vW;                 // Alfven, sound, whistler speed
+      Real c_y, c_z;                   // Wave speeds to yz-directions
+      calculateWaveSpeedYZ(
+         perBGrid,
+         momentsGrid,
+         dPerBGrid,
+         dMomentsGrid,
+         BgBGrid,
+         i_start+i  , j, k-1,
+         i_start+i+1, j, k-1,
+         By_N[i], Bz_W[i], dBydx_N[i], dBydz_N[i], dBzdx_W[i], dBzdy_W[i], MINUS, PLUS, minRhom[i], maxRhom[i], vA, vS, vW
+      );
+      c_y = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
+      c_z = c_y;
+      ay_neg[i]   = max(ay_neg[i],-Vy0[i] + c_y);
+      ay_pos[i]   = max(ay_pos[i],+Vy0[i] + c_y);
+      az_neg[i]   = max(az_neg[i],-Vz0[i] + c_z);
+      az_pos[i]   = max(az_pos[i],+Vz0[i] + c_z);
+      maxV = max(maxV, calculateCflSpeed(Vy0[i], Vz0[i], vA, vS, vW));
+   }
 
    // Ex and characteristic speeds on j-1,k-1 neighbour:
-   Vy0 = moments_NE->at(fsgrids::moments::VY);
-   Vz0 = moments_NE->at(fsgrids::moments::VZ);
+   for(int i=0; i<N; i++) {
+      Vy0[i] = moments_NE[i].data()[fsgrids::moments::VY];
+      Vz0[i] = moments_NE[i].data()[fsgrids::moments::VZ];
+   }
    
    // 1st order terms:
-   Real Ex_NE    = By_N*Vz0 - Bz_E*Vy0;
+   for(int i=0; i<N; i++) {
+      Ex_NE[i]    = By_N[i]*Vz0[i] - Bz_E[i]*Vy0[i];
+   }
 
    // Resistive term
    if (Parameters::resistivity > 0) {
-      Ex_NE += Parameters::resistivity *
-               sqrt((bgb_NE->at(fsgrids::bgbfield::BGBX)+perb_NE->at(fsgrids::bfield::PERBX))*
-                    (bgb_NE->at(fsgrids::bgbfield::BGBX)+perb_NE->at(fsgrids::bfield::PERBX)) +
-                    (bgb_NE->at(fsgrids::bgbfield::BGBY)+perb_NE->at(fsgrids::bfield::PERBY))*
-                    (bgb_NE->at(fsgrids::bgbfield::BGBY)+perb_NE->at(fsgrids::bfield::PERBY)) +
-                    (bgb_NE->at(fsgrids::bgbfield::BGBZ)+perb_NE->at(fsgrids::bfield::PERBZ))*
-                    (bgb_NE->at(fsgrids::bgbfield::BGBZ)+perb_NE->at(fsgrids::bfield::PERBZ))
-                   ) /
-               moments_NE->at(fsgrids::moments::RHOQ) /
-               physicalconstants::MU_0 *
-               (dperb_NE->at(fsgrids::dperb::dPERBzdy)/technicalGrid.DY - dperb_NE->at(fsgrids::dperb::dPERBydz)/technicalGrid.DZ);
+      for(int i=0; i<N; i++) {
+         Ex_NE[i] += Parameters::resistivity *
+                  sqrt((bgb_NE[i].data()[fsgrids::bgbfield::BGBX]+perb_NE[i].data()[fsgrids::bfield::PERBX])*
+                       (bgb_NE[i].data()[fsgrids::bgbfield::BGBX]+perb_NE[i].data()[fsgrids::bfield::PERBX]) +
+                       (bgb_NE[i].data()[fsgrids::bgbfield::BGBY]+perb_NE[i].data()[fsgrids::bfield::PERBY])*
+                       (bgb_NE[i].data()[fsgrids::bgbfield::BGBY]+perb_NE[i].data()[fsgrids::bfield::PERBY]) +
+                       (bgb_NE[i].data()[fsgrids::bgbfield::BGBZ]+perb_NE[i].data()[fsgrids::bfield::PERBZ])*
+                       (bgb_NE[i].data()[fsgrids::bgbfield::BGBZ]+perb_NE[i].data()[fsgrids::bfield::PERBZ])
+                      ) /
+                  moments_NE[i].data()[fsgrids::moments::RHOQ] /
+                  physicalconstants::MU_0 *
+                  (dperb_NE[i].data()[fsgrids::dperb::dPERBzdy]/technicalGrid.DY - dperb_NE[i].data()[fsgrids::dperb::dPERBydz]/technicalGrid.DZ);
+      }
    }
 
    // Hall term
    if(Parameters::ohmHallTerm > 0) {
-      Ex_NE += EHallGrid.get(i,j-1,k-1)->at(fsgrids::ehall::EXHALL_011_111);
+      auto EH=EHallGrid.get(i_start,j-1,k);
+      for(int i=0; i<N; i++) {
+         Ex_NE[i] += EH[i].data()[fsgrids::ehall::EXHALL_011_111];
+      }
    }
    
    // Electron pressure gradient term
    if(Parameters::ohmGradPeTerm > 0) {
-      Ex_NE += EGradPeGrid.get(i,j-1,k-1)->at(fsgrids::egradpe::EXGRADPE);
+      auto EGP=EGradPeGrid.get(i_start,j-1,k);
+      for(int i=0; i<N; i++) {
+         Ex_NE[i] += EGP[i].data()[fsgrids::egradpe::EXGRADPE];
+      }
    }
    
    #ifndef FS_1ST_ORDER_SPACE
-      // 2nd order terms:
-      Ex_NE += +HALF*((By_N + HALF*dBydz_N)*(+dmoments_NE->at(fsgrids::dmoments::dVzdy) + dmoments_NE->at(fsgrids::dmoments::dVzdz)) + dBydz_N*Vz0 + SIXTH*dBydx_N*dmoments_NE->at(fsgrids::dmoments::dVzdx));
-      Ex_NE += -HALF*((Bz_E + HALF*dBzdy_E)*(+dmoments_NE->at(fsgrids::dmoments::dVydy) + dmoments_NE->at(fsgrids::dmoments::dVydz)) + dBzdy_E*Vy0 + SIXTH*dBzdx_E*dmoments_NE->at(fsgrids::dmoments::dVydx));
+   // 2nd order terms:
+   for(int i=0; i<N; i++) {
+      Ex_NE[i] += +HALF*((By_N[i] + HALF*dBydz_N[i])*(+dmoments_NE[i].data()[fsgrids::dmoments::dVzdy] + dmoments_NE[i].data()[fsgrids::dmoments::dVzdz]) + dBydz_N[i]*Vz0[i] + SIXTH*dBydx_N[i]*dmoments_NE[i].data()[fsgrids::dmoments::dVzdx]);
+      Ex_NE[i] += -HALF*((Bz_E[i] + HALF*dBzdy_E[i])*(+dmoments_NE[i].data()[fsgrids::dmoments::dVydy] + dmoments_NE[i].data()[fsgrids::dmoments::dVydz]) + dBzdy_E[i]*Vy0[i] + SIXTH*dBzdx_E[i]*dmoments_NE[i].data()[fsgrids::dmoments::dVydx]);
+   }
    #endif
    
-   calculateWaveSpeedYZ(
-      perBGrid,
-      momentsGrid,
-      dPerBGrid,
-      dMomentsGrid,
-      BgBGrid,
-      i  ,j-1,k-1,
-      i+1,j-1,k-1,
-      By_N, Bz_E, dBydx_N, dBydz_N, dBzdx_E, dBzdy_E, PLUS, PLUS, minRhom, maxRhom, vA, vS, vW
-   );
-   c_y = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
-   c_z = c_y;
-   ay_neg   = max(ay_neg,-Vy0 + c_y);
-   ay_pos   = max(ay_pos,+Vy0 + c_y);
-   az_neg   = max(az_neg,-Vz0 + c_z);
-   az_pos   = max(az_pos,+Vz0 + c_z);
-   maxV = max(maxV, calculateCflSpeed(Vy0, Vz0, vA, vS, vW));
+   // TODO: Vectorize this
+   for(int i=0; i<N; i++) {
+      Real vA, vS, vW;                 // Alfven, sound, whistler speed
+      Real c_y, c_z;                   // Wave speeds to yz-directions
+      calculateWaveSpeedYZ(
+         perBGrid,
+         momentsGrid,
+         dPerBGrid,
+         dMomentsGrid,
+         BgBGrid,
+         i_start+i  ,j-1,k-1,
+         i_start+i+1,j-1,k-1,
+         By_N[i], Bz_E[i], dBydx_N[i], dBydz_N[i], dBzdx_E[i], dBzdy_E[i], PLUS, PLUS, minRhom[i], maxRhom[i], vA, vS, vW
+      );
+      c_y = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
+      c_z = c_y;
+      ay_neg[i]   = max(ay_neg[i],-Vy0[i] + c_y);
+      ay_pos[i]   = max(ay_pos[i],+Vy0[i] + c_y);
+      az_neg[i]   = max(az_neg[i],-Vz0[i] + c_z);
+      az_pos[i]   = max(az_pos[i],+Vz0[i] + c_z);
+      maxV = max(maxV, calculateCflSpeed(Vy0[i], Vz0[i], vA, vS, vW));
+   }
+
    // Calculate properly upwinded edge-averaged Ex:
-   efield_SW->at(fsgrids::efield::EX)  = ay_pos*az_pos*Ex_NE + ay_pos*az_neg*Ex_SE + ay_neg*az_pos*Ex_NW + ay_neg*az_neg*Ex_SW;
-   efield_SW->at(fsgrids::efield::EX) /= ((ay_pos+ay_neg)*(az_pos+az_neg)+EPS);
+   for(int i=0; i<N; i++) {
+      efield_SW[i].data()[fsgrids::efield::EX]  = ay_pos[i]*az_pos[i]*Ex_NE[i] + ay_pos[i]*az_neg[i]*Ex_SE[i] + ay_neg[i]*az_pos[i]*Ex_NW[i] + ay_neg[i]*az_neg[i]*Ex_SW[i];
+      efield_SW[i].data()[fsgrids::efield::EX] /= ((ay_pos[i]+ay_neg[i])*(az_pos[i]+az_neg[i])+EPS);
+   }
    if (Parameters::fieldSolverDiffusiveEterms) {
 #ifdef FS_1ST_ORDER_SPACE
       // 1st order diffusive terms:
-      efield_SW->at(fsgrids::efield::EX) -= az_pos*az_neg/(az_pos+az_neg+EPS)*(perBy_S-perBy_N);
-      efield_SW->at(fsgrids::efield::EX) += ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*(perBz_W-perBz_E);
+      for(int i=0; i<N; i++) {
+         efield_SW[i].data()[fsgrids::efield::EX] -= az_pos[i]*az_neg[i]/(az_pos[i]+az_neg[i]+EPS)*(perBy_S[i]-perBy_N[i]);
+         efield_SW[i].data()[fsgrids::efield::EX] += ay_pos[i]*ay_neg[i]/(ay_pos[i]+ay_neg[i]+EPS)*(perBz_W[i]-perBz_E[i]);
+      }
 #else
       // 2nd     order diffusive terms
-      efield_SW->at(fsgrids::efield::EX) -= az_pos*az_neg/(az_pos+az_neg+EPS)*((perBy_S-HALF*dperBydz_S) - (perBy_N+HALF*dperBydz_N));
-      efield_SW->at(fsgrids::efield::EX) += ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*((perBz_W-HALF*dperBzdy_W) - (perBz_E+HALF*dperBzdy_E));
+      for(int i=0; i<N; i++) {
+         efield_SW[i].data()[fsgrids::efield::EX] -= az_pos[i]*az_neg[i]/(az_pos[i]+az_neg[i]+EPS)*((perBy_S[i]-HALF*dperBydz_S[i]) - (perBy_N[i]+HALF*dperBydz_N[i]));
+         efield_SW[i].data()[fsgrids::efield::EX] += ay_pos[i]*ay_neg[i]/(ay_pos[i]+ay_neg[i]+EPS)*((perBz_W[i]-HALF*dperBzdy_W[i]) - (perBz_E[i]+HALF*dperBzdy_E[i]));
+      }
 #endif
    }
    
@@ -768,7 +858,9 @@ void calculateEdgeElectricFieldX(
       min_dx=min(min_dx,technicalGrid.DY);
       min_dx=min(min_dx,technicalGrid.DZ);
       //update max allowed timestep for field propagation in this cell, which is the minimum of CFL=1 timesteps
-      if (maxV != ZERO) technicalGrid.get(i,j,k)->maxFsDt = min(technicalGrid.get(i,j,k)->maxFsDt,min_dx/maxV);
+      for(int i=0; i<N; i++) {
+         if (maxV != ZERO) technicalGrid.get(i_start+i,j,k)[i].maxFsDt = min(technicalGrid.get(i_start+i,j,k)[i].maxFsDt,min_dx/maxV);
+      }
    }
 }
 
@@ -1521,105 +1613,242 @@ void calculateElectricField(
    FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> & dMomentsGrid,
    FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2> & BgBGrid,
    FsGrid< fsgrids::technical, 2> & technicalGrid,
-   cint i,
+   cint i_start, cint i_end,
    cint j,
    cint k,
    SysBoundary& sysBoundaries,
    cint& RKCase
 ) {
-   cuint cellSysBoundaryFlag = technicalGrid.get(i,j,k)->sysBoundaryFlag;
-   
-   if (cellSysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) return;
-   
-   cuint cellSysBoundaryLayer = technicalGrid.get(i,j,k)->sysBoundaryLayer;
-   
-   if ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) && (cellSysBoundaryLayer > 1)) {
-      // Sysboundary level 2+ cells
-      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, 0);
-      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, 1);
-      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, 2);
-   } else {
-      // Regular cells
-      // OR level 1 cells whose Ex-component is adjacent to a regular cell
-      if((cellSysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) ||
-	 ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
-	  (technicalGrid.get(i  ,j-1,k  )->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
-	   technicalGrid.get(i  ,j  ,k-1)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
-	   technicalGrid.get(i  ,j-1,k-1)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY))
-	 ) {
-	 calculateEdgeElectricFieldX(
-				     perBGrid,
-				     EGrid,
-				     EHallGrid,
-				     EGradPeGrid,
-				     momentsGrid,
-				     dPerBGrid,
-				     dMomentsGrid,
-				     BgBGrid,
-				     technicalGrid,
-				     i,
-				     j,
-				     k,
-				     RKCase
-				     );
+
+   // Build continuous pencilss of cells with same sysboundary behaviour.
+   enum pencil_solve_type { SOLVE, BOUNDARY, SKIP, UNKNOWN};
+   pencil_solve_type current_pencil_type = UNKNOWN;
+   int current_pencil_start = i_start;
+   int current_pencil_stop = -1;
+
+   // ------ EX - solving -----
+   for(int i=i_start; i<i_end; i++) {
+      pencil_solve_type current_cell_type = UNKNOWN;
+      cuint cellSysBoundaryFlag = technicalGrid.get(i,j,k)->sysBoundaryFlag;
+      cuint cellSysBoundaryLayer = technicalGrid.get(i,j,k)->sysBoundaryLayer;
+
+      if(cellSysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+         // DO_NOT_COMPUTE cells
+         current_cell_type = SKIP;
+      } else if ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) && ((cellSysBoundaryLayer > 1) || ( 
+            technicalGrid.get(i  ,j-1,k  )->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY &&
+            technicalGrid.get(i  ,j  ,k-1)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY &&
+            technicalGrid.get(i  ,j-1,k-1)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY ))) {
+
+         // Proper boundary cells, with the exception of level one cells that have a regular neighbour
+         current_cell_type = BOUNDARY;
       } else {
-	 // level 1 cells whose Ex-component is not adjacent to a regular cell
-	 sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, 0);
+
+         // "Regular" cells.
+         current_cell_type = SOLVE;
       }
-      // Regular cells
-      // OR level 1 cells whose Ey-component is adjacent to a regular cell
-      if((cellSysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) ||
-	 ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
-	  (technicalGrid.get(i-1,j  ,k  )->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
-	   technicalGrid.get(i  ,j  ,k-1)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
-	   technicalGrid.get(i-1,j  ,k-1)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY))
-	 ) {
-	 calculateEdgeElectricFieldY(
-				     perBGrid,
-				     EGrid,
-				     EHallGrid,
-				     EGradPeGrid,
-				     momentsGrid,
-				     dPerBGrid,
-				     dMomentsGrid,
-				     BgBGrid,
-				     technicalGrid,
-				     i,
-				     j,
-				     k,
-				     RKCase
-				     );
+
+
+      if(current_pencil_type == UNKNOWN) {
+         current_pencil_type = current_cell_type;
+      }
+      // If the next cell is the same type as the one before, add to the pencil and continue
+      if(current_cell_type == current_pencil_type) {
+         current_pencil_stop = i+1;
+         if(i != i_end-1) {
+            continue;
+         }
+      }
+
+      // If not, complete the pencil (and solve with the appropriate type):
+      switch(current_pencil_type) {
+         case SKIP:
+            // Easiest case: DO_NOT_COMPUTE cells simply get skipped
+            break;
+         case BOUNDARY:
+            // TODO: vectorize this, too
+            for(int pencil_i=current_pencil_start; pencil_i < current_pencil_stop; pencil_i++) {
+               sysBoundaries.getSysBoundary(technicalGrid.get(pencil_i,j,k)->sysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, pencil_i, j, k, 0);
+            }
+            break;
+         case SOLVE:
+            // Actually solve the E-fields here
+            calculateEdgeElectricFieldX(
+                  perBGrid,
+                  EGrid,
+                  EHallGrid,
+                  EGradPeGrid,
+                  momentsGrid,
+                  dPerBGrid,
+                  dMomentsGrid,
+                  BgBGrid,
+                  technicalGrid,
+                  current_pencil_start, current_pencil_stop,
+                  j,
+                  k,
+                  RKCase
+                  );
+            break;
+      }
+
+      // Start new pencil.
+      current_pencil_type = current_cell_type;
+      current_pencil_start=i;
+      current_pencil_stop=i+1;
+   }
+   
+   // ------ EY - solving -----
+   current_pencil_type = UNKNOWN;
+   current_pencil_start = i_start;
+   current_pencil_stop = -1;
+   for(int i=i_start; i<i_end; i++) {
+      pencil_solve_type current_cell_type = UNKNOWN;
+      cuint cellSysBoundaryFlag = technicalGrid.get(i,j,k)->sysBoundaryFlag;
+      cuint cellSysBoundaryLayer = technicalGrid.get(i,j,k)->sysBoundaryLayer;
+
+      if(cellSysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+         // DO_NOT_COMPUTE cells
+         current_cell_type = SKIP;
+      } else if ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) && ((cellSysBoundaryLayer > 1) || ( 
+            technicalGrid.get(i-1,j  ,k  )->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY &&
+            technicalGrid.get(i  ,j  ,k-1)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY &&
+            technicalGrid.get(i-1,j  ,k-1)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY ))) {
+
+         // Proper boundary cells, with the exception of level one cells that have a regular neighbour
+         current_cell_type = BOUNDARY;
       } else {
-	 // level 1 cells whose Ey-component is not adjacent to a regular cell
-	 sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, 1);
+
+         // "Regular" cells.
+         current_cell_type = SOLVE;
       }
-      // Regular cells
-      // OR level 1 cells whose Ey-component is adjacent to a regular cell
-      if((cellSysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) ||
-	  ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
-	  (technicalGrid.get(i-1,j  ,k  )->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
-	   technicalGrid.get(i  ,j-1,k  )->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
-	   technicalGrid.get(i-1,j-1,k  )->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY))
-	 ) {
-	 calculateEdgeElectricFieldZ(
-				     perBGrid,
-				     EGrid,
-				     EHallGrid,
-				     EGradPeGrid,
-				     momentsGrid,
-				     dPerBGrid,
-				     dMomentsGrid,
-				     BgBGrid,
-				     technicalGrid,
-				     i,
-				     j,
-				     k,
-				     RKCase
-				     );
+
+
+      if(current_pencil_type == UNKNOWN) {
+         current_pencil_type = current_cell_type;
+      }
+      // If the next cell is the same type as the one before, add to the pencil and continue
+      if(current_cell_type == current_pencil_type) {
+         current_pencil_stop = i+1;
+         if(i != i_end-1) {
+            continue;
+         }
+      }
+
+      // If not, complete the pencil (and solve with the appropriate type):
+      switch(current_pencil_type) {
+         case SKIP:
+            // Easiest case: DO_NOT_COMPUTE cells simply get skipped
+            break;
+         case BOUNDARY:
+            // TODO: vectorize this, too
+            for(int pencil_i=current_pencil_start; pencil_i < current_pencil_stop; pencil_i++) {
+               sysBoundaries.getSysBoundary(technicalGrid.get(pencil_i,j,k)->sysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, pencil_i, j, k, 1);
+            }
+            break;
+         case SOLVE:
+            // Actually solve the E-fields here
+            // TODO: vectorize this
+            for(int pencil_i=current_pencil_start; pencil_i < current_pencil_stop; pencil_i++) {
+               calculateEdgeElectricFieldY(
+                     perBGrid,
+                     EGrid,
+                     EHallGrid,
+                     EGradPeGrid,
+                     momentsGrid,
+                     dPerBGrid,
+                     dMomentsGrid,
+                     BgBGrid,
+                     technicalGrid,
+                     pencil_i,
+                     j,
+                     k,
+                     RKCase
+                     );
+            }
+            break;
+      }
+
+      // Start new pencil.
+      current_pencil_type = current_cell_type;
+      current_pencil_start=i;
+      current_pencil_stop=i+1;
+   }
+
+   // ------ EZ - solving -----
+   current_pencil_type = UNKNOWN;
+   current_pencil_start = i_start;
+   current_pencil_stop = -1;
+   for(int i=i_start; i<i_end; i++) {
+      pencil_solve_type current_cell_type = UNKNOWN;
+      cuint cellSysBoundaryFlag = technicalGrid.get(i,j,k)->sysBoundaryFlag;
+      cuint cellSysBoundaryLayer = technicalGrid.get(i,j,k)->sysBoundaryLayer;
+
+      if(cellSysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+         // DO_NOT_COMPUTE cells
+         current_cell_type = SKIP;
+      } else if ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) && ((cellSysBoundaryLayer > 1) || ( 
+            technicalGrid.get(i-1,j  ,k  )->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY &&
+            technicalGrid.get(i  ,j-1,k  )->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY &&
+            technicalGrid.get(i-1,j-1,k  )->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY ))) {
+
+         // Proper boundary cells, with the exception of level one cells that have a regular neighbour
+         current_cell_type = BOUNDARY;
       } else {
-	 // level 1 cells whose Ez-component is not adjacent to a regular cell
-	 sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, 2);
+
+         // "Regular" cells.
+         current_cell_type = SOLVE;
       }
+
+
+      if(current_pencil_type == UNKNOWN) {
+         current_pencil_type = current_cell_type;
+      }
+      // If the next cell is the same type as the one before, add to the pencil and continue
+      if(current_cell_type == current_pencil_type) {
+         current_pencil_stop = i+1;
+         if(i != i_end-1) {
+            continue;
+         }
+      }
+
+      // If not, complete the pencil (and solve with the appropriate type):
+      switch(current_pencil_type) {
+         case SKIP:
+            // Easiest case: DO_NOT_COMPUTE cells simply get skipped
+            break;
+         case BOUNDARY:
+            // TODO: vectorize this, too
+            for(int pencil_i=current_pencil_start; pencil_i < current_pencil_stop; pencil_i++) {
+               sysBoundaries.getSysBoundary(technicalGrid.get(pencil_i,j,k)->sysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, pencil_i, j, k, 2);
+            }
+            break;
+         case SOLVE:
+            // Actually solve the E-fields here
+            // TODO: vectorize this
+            for(int pencil_i=current_pencil_start; pencil_i < current_pencil_stop; pencil_i++) {
+               calculateEdgeElectricFieldZ(
+                     perBGrid,
+                     EGrid,
+                     EHallGrid,
+                     EGradPeGrid,
+                     momentsGrid,
+                     dPerBGrid,
+                     dMomentsGrid,
+                     BgBGrid,
+                     technicalGrid,
+                     pencil_i,
+                     j,
+                     k,
+                     RKCase
+                     );
+            }
+            break;
+      }
+
+      // Start new pencil.
+      current_pencil_type = current_cell_type;
+      current_pencil_start=i;
+      current_pencil_stop=i+1;
    }
 }
 
@@ -1683,12 +1912,11 @@ void calculateUpwindedElectricFieldSimple(
    // Calculate upwinded electric field on inner cells
    timer=phiprof::initializeTimer("Compute cells");
    phiprof::start(timer);
-   #pragma omp parallel for collapse(3)
+   #pragma omp parallel for collapse(2)
    for (int k=0; k<gridDims[2]; k++) {
       for (int j=0; j<gridDims[1]; j++) {
-         for (int i=0; i<gridDims[0]; i++) {
-            if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-               calculateElectricField(
+         if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+            calculateElectricField(
                   perBGrid,
                   EGrid,
                   EHallGrid,
@@ -1698,14 +1926,14 @@ void calculateUpwindedElectricFieldSimple(
                   dMomentsGrid,
                   BgBGrid,
                   technicalGrid,
-                  i,
+                  0, gridDims[0],
                   j,
                   k,
                   sysBoundaries,
                   RKCase
-               );
-            } else { // RKCase == RK_ORDER2_STEP1
-               calculateElectricField(
+                  );
+         } else { // RKCase == RK_ORDER2_STEP1
+            calculateElectricField(
                   perBDt2Grid,
                   EDt2Grid,
                   EHallGrid,
@@ -1715,13 +1943,12 @@ void calculateUpwindedElectricFieldSimple(
                   dMomentsGrid,
                   BgBGrid,
                   technicalGrid,
-                  i,
+                  0, gridDims[0],
                   j,
                   k,
                   sysBoundaries,
                   RKCase
-               );
-            }
+                  );
          }
       }
    }
