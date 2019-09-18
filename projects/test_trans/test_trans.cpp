@@ -126,20 +126,16 @@ namespace projects {
       return 0.0;
    }
 
-   void test_trans::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
-      Real* cellParams = cell->get_cell_parameters();
-      cellParams[CellParams::EX   ] = 0.0;
-      cellParams[CellParams::EY   ] = 0.0;
-      cellParams[CellParams::EZ   ] = 0.0;
-      cellParams[CellParams::PERBX   ] = 0.0;
-      cellParams[CellParams::PERBY   ] = 0.0;
-      cellParams[CellParams::PERBZ   ] = 0.0;
-   }
+   void test_trans::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
    
-   void test_trans::setCellBackgroundField(SpatialCell* cell) const {
+   void test_trans::setProjectBField(
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+      FsGrid< fsgrids::technical, 2>& technicalGrid
+   ) {
       ConstantField bgField;
       bgField.initialize(0.0,0.0,1e-9);
-      setBackgroundField(bgField,cell->parameters, cell->derivatives,cell->derivativesBVOL);
+      setBackgroundField(bgField, BgBGrid);
    }
 
 }// namespace projects

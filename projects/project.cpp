@@ -49,13 +49,13 @@
 #include "IPShock/IPShock.h"
 #include "Template/Template.h"
 #include "test_fp/test_fp.h"
+#include "testAmr/testAmr.h"
 #include "testHall/testHall.h"
 #include "test_trans/test_trans.h"
 #include "verificationLarmor/verificationLarmor.h"
 #include "../backgroundfield/backgroundfield.h"
 #include "../backgroundfield/constantfield.hpp"
 #include "Shocktest/Shocktest.h"
-#include "Poisson/poisson_test.h"
 
 using namespace std;
 
@@ -127,11 +127,11 @@ namespace projects {
       projects::IPShock::addParameters();
       projects::Template::addParameters();
       projects::test_fp::addParameters();
+      projects::testAmr::addParameters();
       projects::TestHall::addParameters();
       projects::test_trans::addParameters();
       projects::verificationLarmor::addParameters();
       projects::Shocktest::addParameters();
-      projects::PoissonTest::addParameters();
       RP::add("Project_common.seed", "Seed for the RNG", 42);
       
    }
@@ -183,7 +183,11 @@ namespace projects {
    bool Project::initialized() {return baseClassInitialized;}
 
    /*! Print a warning message to stderr and abort, one should not use the base class functions. */
-   void Project::setCellBackgroundField(SpatialCell* cell) const {
+   void Project::setProjectBField(
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+      FsGrid< fsgrids::technical, 2>& technicalGrid
+   ) {
       int rank;
       MPI_Comm_rank(MPI_COMM_WORLD,&rank);
       if (rank == MASTER_RANK) {
@@ -463,7 +467,7 @@ namespace projects {
    /** Get random number between 0 and 1.0. One should always first initialize the rng.
     * @param cell Spatial cell.
     * @return Uniformly distributed random number between 0 and 1.*/
-   Real Project::getRandomNumber(spatial_cell::SpatialCell* cell) const {
+   Real Project::getRandomNumber() const {
 #ifdef _AIX
       int64_t rndInt;
       random_r(&rndInt, &rngDataBuffer);
@@ -481,7 +485,7 @@ namespace projects {
      \param seedModifier d. Seed is based on the seed read in from cfg + the seedModifier parameter
    */
 
-   void Project::setRandomSeed(spatial_cell::SpatialCell* cell,CellID seedModifier) const {
+   void Project::setRandomSeed(CellID seedModifier) const {
       memset(&(this->rngDataBuffer), 0, sizeof(this->rngDataBuffer));
 #ifdef _AIX
       initstate_r(this->seed+seedModifier, &(this->rngStateBuffer[0]), 256, NULL, &(this->rngDataBuffer));
@@ -497,18 +501,105 @@ namespace projects {
 
      \param  cellParams The cell parameters list in each spatial cell
    */
-   void Project::setRandomCellSeed(spatial_cell::SpatialCell* cell,const Real* const cellParams) const {
-      const creal x = cellParams[CellParams::XCRD];
-      const creal y = cellParams[CellParams::YCRD];
-      const creal z = cellParams[CellParams::ZCRD];
-      const creal dx = cellParams[CellParams::DX];
-      const creal dy = cellParams[CellParams::DY];
-      const creal dz = cellParams[CellParams::DZ];
+   void Project::setRandomCellSeed(spatial_cell::SpatialCell* cell) const {
+      const creal x = cell->parameters[CellParams::XCRD];
+      const creal y = cell->parameters[CellParams::YCRD];
+      const creal z = cell->parameters[CellParams::ZCRD];
+      const creal dx = cell->parameters[CellParams::DX];
+      const creal dy = cell->parameters[CellParams::DY];
+      const creal dz = cell->parameters[CellParams::DZ];
       
       const CellID cellID = (int) ((x - Parameters::xmin) / dx) +
          (int) ((y - Parameters::ymin) / dy) * Parameters::xcells_ini +
          (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
-      setRandomSeed(cell,cellID);
+      setRandomSeed(cellID);
+   }
+
+   /*
+     Refine cells of mpiGrid. Each project that wants refinement shoudl implement this function. 
+     Base class function prints a warning and does nothing.
+    */
+   bool Project::refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
+      int myRank;
+      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+      if (myRank == MASTER_RANK) {
+         cerr << "(Project.cpp) Base class 'refineSpatialCells' in " << __FILE__ << ":" << __LINE__ << " called. Make sure that this is correct." << endl;
+      }
+      
+      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+      
+      if(myRank == MASTER_RANK) std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
+      
+      std::vector<bool> refineSuccess;
+      
+      for (int i = 0; i < 2 * P::amrBoxHalfWidthX; ++i) {
+         for (int j = 0; j < 2 * P::amrBoxHalfWidthY; ++j) {
+            for (int k = 0; k < 2 * P::amrBoxHalfWidthZ; ++k) {
+               
+               std::array<double,3> xyz;
+               xyz[0] = P::amrBoxCenterX + (0.5 + i - P::amrBoxHalfWidthX) * P::dx_ini;
+               xyz[1] = P::amrBoxCenterY + (0.5 + j - P::amrBoxHalfWidthY) * P::dy_ini;
+               xyz[2] = P::amrBoxCenterZ + (0.5 + k - P::amrBoxHalfWidthZ) * P::dz_ini;
+               
+               CellID myCell = mpiGrid.get_existing_cell(xyz);
+               if (mpiGrid.refine_completely_at(xyz)) {
+                  #ifndef NDEBUG
+                  std::cout << "Rank " << myRank << " is refining cell " << myCell << std::endl;
+                  #endif
+               }
+            }
+         }
+      }
+      std::vector<CellID> refinedCells = mpiGrid.stop_refining(true);
+      if(myRank == MASTER_RANK) std::cout << "Finished first level of refinement" << endl;
+      #ifndef NDEBUG
+      if(refinedCells.size() > 0) {
+         std::cout << "Refined cells produced by rank " << myRank << " are: ";
+         for (auto cellid : refinedCells) {
+            std::cout << cellid << " ";
+         }
+         std::cout << endl;
+      }
+      #endif
+      
+      mpiGrid.balance_load();
+      
+      if(mpiGrid.get_maximum_refinement_level() > 1) {
+         
+         for (int i = 0; i < 2 * P::amrBoxHalfWidthX; ++i) {
+            for (int j = 0; j < 2 * P::amrBoxHalfWidthY; ++j) {
+               for (int k = 0; k < 2 * P::amrBoxHalfWidthZ; ++k) {
+                  
+                  std::array<double,3> xyz;
+                  xyz[0] = P::amrBoxCenterX + 0.5 * (0.5 + i - P::amrBoxHalfWidthX) * P::dx_ini;
+                  xyz[1] = P::amrBoxCenterY + 0.5 * (0.5 + j - P::amrBoxHalfWidthY) * P::dy_ini;
+                  xyz[2] = P::amrBoxCenterZ + 0.5 * (0.5 + k - P::amrBoxHalfWidthZ) * P::dz_ini;
+                  
+                  CellID myCell = mpiGrid.get_existing_cell(xyz);
+                  if (mpiGrid.refine_completely_at(xyz)) {
+                     #ifndef NDEBUG
+                     std::cout << "Rank " << myRank << " is refining cell " << myCell << std::endl;
+                     #endif
+                  }
+               }
+            }
+         }
+         
+         std::vector<CellID> refinedCells = mpiGrid.stop_refining(true);      
+         if(myRank == MASTER_RANK) std::cout << "Finished second level of refinement" << endl;
+         #ifndef NDEBUG
+         if(refinedCells.size() > 0) {
+            std::cout << "Refined cells produced by rank " << myRank << " are: ";
+            for (auto cellid : refinedCells) {
+               std::cout << cellid << " ";
+            }
+            std::cout << endl;
+         }
+         #endif
+         mpiGrid.balance_load();
+      }
+         
+         return true;
    }
    
 Project* createProject() {
@@ -577,6 +668,9 @@ Project* createProject() {
    if(Parameters::projectName == "test_fp") {
       rvalue = new projects::test_fp;
    }
+   if(Parameters::projectName == "testAmr") {
+      rvalue = new projects::testAmr;
+   }
    if(Parameters::projectName == "testHall") {
       rvalue = new projects::TestHall;
    }
@@ -588,9 +682,6 @@ Project* createProject() {
    }
    if(Parameters::projectName == "Shocktest") {
       rvalue = new projects::Shocktest;
-   }
-   if (Parameters::projectName == "PoissonTest") {
-      rvalue = new projects::PoissonTest;
    }
    if (rvalue == NULL) {
       cerr << "Unknown project name!" << endl;

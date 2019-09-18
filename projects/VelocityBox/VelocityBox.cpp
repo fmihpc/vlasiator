@@ -99,23 +99,19 @@ namespace projects {
 
 
   
-   void VelocityBox::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
-      Real* cellParams = cell->get_cell_parameters();
-      cellParams[CellParams::EX   ] = 0.0;
-      cellParams[CellParams::EY   ] = 0.0;
-      cellParams[CellParams::EZ   ] = 0.0;
-      cellParams[CellParams::PERBX   ] = 0.0;
-      cellParams[CellParams::PERBY   ] = 0.0;
-      cellParams[CellParams::PERBZ   ] = 0.0;
-   }
+   void VelocityBox::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
 
-   void VelocityBox::setCellBackgroundField(SpatialCell* cell) {
-     ConstantField bgField;
+   void VelocityBox::setProjectBField(
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+      FsGrid< fsgrids::technical, 2>& technicalGrid
+   ) {
+      ConstantField bgField;
       bgField.initialize(this->Bx,
                          this->By,
                          this->Bz);
       
-      setBackgroundField(bgField,cell->parameters, cell->derivatives,cell->derivativesBVOL);
+      setBackgroundField(bgField, BgBGrid);
    }
    
 }// namespace projects

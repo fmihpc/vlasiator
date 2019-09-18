@@ -53,84 +53,6 @@
 #include "fs_limiters.h"
 #include "mpiconversion.h"
 
-
-bool initializeFieldPropagator(
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBDt2Grid,
-   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
-   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EDt2Grid,
-   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2> & EHallGrid,
-   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2> & EGradPeGrid,
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsGrid,
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsDt2Grid,
-   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
-   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> & dMomentsGrid,
-   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2> & BgBGrid,
-   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volGrid,
-   FsGrid< fsgrids::technical, 2> & technicalGrid,
-   SysBoundary& sysBoundaries
-) {
-   // Checking that spatial cells are cubic, otherwise field solver is incorrect (cf. derivatives in E, Hall term)
-   if((abs((technicalGrid.DX-technicalGrid.DY)/technicalGrid.DX) > 0.001) ||
-      (abs((technicalGrid.DX-technicalGrid.DZ)/technicalGrid.DX) > 0.001) ||
-      (abs((technicalGrid.DY-technicalGrid.DZ)/technicalGrid.DY) > 0.001)) {
-         std::cerr << "WARNING: Your spatial cells seem not to be cubic. However the field solver is assuming them to be. Use at your own risk and responsibility!" << std::endl;
-      }
-      
-      // Assume static background field, they are not communicated here
-      // but are assumed to be ok after each load balance as that
-      // communicates all spatial data
-      
-      // Assumin B is known, calculate derivatives and upwinded edge-E. Exchange derivatives 
-      // and edge-E:s between neighbouring processes and calculate volume-averaged E,B fields.
-      bool communicateMomentsDerivatives = true;
-      calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER1, true);
-      
-      if(P::ohmGradPeTerm > 0) {
-         calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER1);
-         communicateMomentsDerivatives = false;
-      }
-      // derivatives, gradPe and volume B are needed also in cases where propagateFields is false.
-      if(P::propagateField) {
-         if(P::ohmHallTerm > 0) {
-            calculateHallTermSimple(
-               perBGrid,
-               perBDt2Grid,
-               EHallGrid,
-               momentsGrid,
-               momentsDt2Grid,
-               dPerBGrid,
-               dMomentsGrid,
-               BgBGrid,
-               technicalGrid,
-               sysBoundaries,
-               RK_ORDER1,
-               communicateMomentsDerivatives
-            );
-         }
-         calculateUpwindedElectricFieldSimple(
-            perBGrid,
-            perBDt2Grid,
-            EGrid,
-            EDt2Grid,
-            EHallGrid,
-            EGradPeGrid,
-            momentsGrid,
-            momentsDt2Grid,
-            dPerBGrid,
-            dMomentsGrid,
-            BgBGrid,
-            technicalGrid,
-            sysBoundaries,
-            RK_ORDER1
-         );
-      }
-      calculateVolumeAveragedFields(perBGrid,EGrid,dPerBGrid,volGrid,technicalGrid);
-      calculateBVOLDerivativesSimple(volGrid, technicalGrid, sysBoundaries);
-      
-      return true;
-      }
-
 /*! Re-initialize field propagator after rebalance. E, BGB, RHO, RHO_V,
  cell_dimensions, sysboundaryflag need to be up to date for the
  extended neighborhood
@@ -149,7 +71,11 @@ bool finalizeFieldPropagator() {
 
 /*! \brief Top-level field propagation function.
  * 
- * Propagates the magnetic field, computes the derivatives and the upwinded electric field, then computes the volume-averaged field values. Takes care of the Runge-Kutta iteration at the top level, the functions called get as an argument the element from the enum defining the current stage and handle their job correspondingly.
+ * Propagates the magnetic field, computes the derivatives and the upwinded
+ * electric field, then computes the volume-averaged field values. Takes care
+ * of the Runge-Kutta iteration at the top level, the functions called get as
+ * an argument the element from the enum defining the current stage and handle
+ * their job correspondingly.
  * 
  * \param dt Length of the time step
  * \param subcycles Number of subcycles to compute.
@@ -326,6 +252,7 @@ bool propagateFields(
          // In case of subcycling, we decided to go for a blunt Runge-Kutta subcycling even though e.g. moments are not going along.
          // Result of the Summer of Debugging 2016, the behaviour in wave dispersion was much improved with this.
          propagateMagneticFieldSimple(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, sysBoundaries, subcycleDt, RK_ORDER2_STEP1);
+         
          // We need to calculate derivatives of the moments at every substep, but they only
          // need to be communicated in the first one.
          calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP1, (subcycleCount==0));
@@ -367,6 +294,7 @@ bool propagateFields(
          );
          
          propagateMagneticFieldSimple(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, sysBoundaries, subcycleDt, RK_ORDER2_STEP2);
+         
          // We need to calculate derivatives of the moments at every substep, but they only
          // need to be communicated in the first one.
          calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP2, (subcycleCount==0));

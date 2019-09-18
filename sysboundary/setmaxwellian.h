@@ -59,7 +59,7 @@ namespace SBC {
       virtual uint getIndex() const;
       
    protected:
-      void generateTemplateCell(spatial_cell::SpatialCell& templateCell, int inputDataIndex, creal& t);
+      void generateTemplateCell(spatial_cell::SpatialCell& templateCell, Real B[3], int inputDataIndex, creal& t);
       
       Real maxwellianDistribution(const uint popID,
          creal& rho, creal& T, creal& vx, creal& vy, creal& vz

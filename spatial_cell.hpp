@@ -102,24 +102,21 @@ namespace spatial_cell {
       const uint64_t CELL_EDT2                = (1ull<<11);
       const uint64_t CELL_PERB                = (1ull<<12);
       const uint64_t CELL_PERBDT2             = (1ull<<13);
-      const uint64_t CELL_BGB                 = (1ull<<14);
-      const uint64_t CELL_RHOM_V              = (1ull<<15);
-      const uint64_t CELL_RHOMDT2_VDT2        = (1ull<<16);
-      const uint64_t CELL_RHOQ                = (1ull<<17);
-      const uint64_t CELL_RHOQDT2             = (1ull<<18);
-      const uint64_t CELL_BVOL                = (1ull<<19);
-      const uint64_t CELL_BVOL_DERIVATIVES    = (1ull<<20);
-      const uint64_t CELL_DIMENSIONS          = (1ull<<21);
-      const uint64_t CELL_IOLOCALCELLID       = (1ull<<22);
-      const uint64_t NEIGHBOR_VEL_BLOCK_DATA  = (1ull<<23);
-      const uint64_t CELL_HALL_TERM           = (1ull<<24);
-      const uint64_t CELL_P                   = (1ull<<25);
-      const uint64_t CELL_PDT2                = (1ull<<26);
-      const uint64_t CELL_RHOQ_TOT            = (1ull<<27);
-      const uint64_t CELL_PHI                 = (1ull<<28);
-      const uint64_t POP_METADATA             = (1ull<<29);
-      const uint64_t RANDOMGEN                = (1ull<<30);
-      const uint64_t CELL_GRADPE_TERM         = (1ull<<31);
+      const uint64_t CELL_RHOM_V              = (1ull<<14);
+      const uint64_t CELL_RHOMDT2_VDT2        = (1ull<<15);
+      const uint64_t CELL_RHOQ                = (1ull<<16);
+      const uint64_t CELL_RHOQDT2             = (1ull<<17);
+      const uint64_t CELL_BVOL                = (1ull<<18);
+      const uint64_t CELL_BVOL_DERIVATIVES    = (1ull<<19);
+      const uint64_t CELL_DIMENSIONS          = (1ull<<20);
+      const uint64_t CELL_IOLOCALCELLID       = (1ull<<21);
+      const uint64_t NEIGHBOR_VEL_BLOCK_DATA  = (1ull<<22);
+      const uint64_t CELL_HALL_TERM           = (1ull<<23);
+      const uint64_t CELL_P                   = (1ull<<24);
+      const uint64_t CELL_PDT2                = (1ull<<25);
+      const uint64_t POP_METADATA             = (1ull<<26);
+      const uint64_t RANDOMGEN                = (1ull<<27);
+      const uint64_t CELL_GRADPE_TERM         = (1ull<<28);
       //all data
       const uint64_t ALL_DATA =
       CELL_PARAMETERS
@@ -316,18 +313,23 @@ namespace spatial_cell {
       //random_data* get_rng_data_buffer();
 
       // Member variables //
-      Real derivatives[fieldsolver::N_SPATIAL_CELL_DERIVATIVES];              /**< Derivatives of bulk variables in this spatial cell.*/
-      Real derivativesBVOL[bvolderivatives::N_BVOL_DERIVATIVES];              /**< Derivatives of BVOL needed by the acceleration. 
-                                                                               * Separate array because it does not need to be communicated.*/
-      Real parameters[CellParams::N_SPATIAL_CELL_PARAMS];                     /**< Bulk variables in this spatial cell.*/
-      Realf null_block_data[WID3];
+      std::array<Real, bvolderivatives::N_BVOL_DERIVATIVES> derivativesBVOL;    /**< Derivatives of BVOL needed by the acceleration.            
+                                                                                 * Separate array because it does not need to be communicated.*/
+      //Real parameters[CellParams::N_SPATIAL_CELL_PARAMS];                     /**< Bulk variables in this spatial cell.*/
+      std::array<Real, CellParams::N_SPATIAL_CELL_PARAMS> parameters;
+      //Realf null_block_data[WID3];
+      std::array<Realf, WID3> null_block_data;
 
       uint64_t ioLocalCellId;                                                 /**< Local cell ID used for IO, not needed elsewhere 
                                                                                * and thus not being kept up-to-date.*/
       //vmesh::LocalID mpi_number_of_blocks;                                    /**< Number of blocks in mpi_velocity_block_list.*/
-      Realf* neighbor_block_data;                                             /**< Pointers for translation operator. We can point to neighbor
+      //Realf* neighbor_block_data;                                             /**< Pointers for translation operator. We can point to neighbor
+      //                                                                         * cell block data. We do not allocate memory for the pointer.*/
+      //vmesh::LocalID neighbor_number_of_blocks;
+      std::array<Realf*,MAX_NEIGHBORS_PER_DIM> neighbor_block_data;       /**< Pointers for translation operator. We can point to neighbor
                                                                                * cell block data. We do not allocate memory for the pointer.*/
-      vmesh::LocalID neighbor_number_of_blocks;
+      std::array<vmesh::LocalID,MAX_NEIGHBORS_PER_DIM> neighbor_number_of_blocks;
+      std::map<int,std::set<int>> face_neighbor_ranks;
       uint sysBoundaryFlag;                                                   /**< What type of system boundary does the cell belong to. 
                                                                                * Enumerated in the sysboundarytype namespace's enum.*/
       uint sysBoundaryLayer;                                                  /**< Layers counted from closest systemBoundary. If 0 then it has not 
@@ -342,8 +344,9 @@ namespace spatial_cell {
       static uint64_t mpi_transfer_type;                                      /**< Which data is transferred by the mpi datatype given by spatial cells.*/
       static bool mpiTransferAtSysBoundaries;                                 /**< Do we only transfer data at boundaries (true), or in the whole system (false).*/
 
+      //SpatialCell& operator=(const SpatialCell& other);
     private:
-      SpatialCell& operator=(const SpatialCell&);
+      //SpatialCell& operator=(const SpatialCell&);
       
       bool compute_block_has_content(const vmesh::GlobalID& block,const uint popID) const;
       void merge_values_recursive(const uint popID,vmesh::GlobalID parentGID,vmesh::GlobalID blockGID,uint8_t refLevel,bool recursive,const Realf* data,
@@ -414,7 +417,7 @@ namespace spatial_cell {
             
             if (nbrIDs.size() > 0) {     // This block has at least one existing neighbor
                if (refLevelDiff == -1) { // Neighbor is one level coarser, interpolate
-                  if (nbrIDs[0] == invalid_local_id()) ptr = null_block_data; // (this check might not be necessary here)
+                  if (nbrIDs[0] == invalid_local_id()) ptr = null_block_data.data(); // (this check might not be necessary here)
                   else ptr = src + nbrIDs[0]*WID3;
                   for (uint32_t i=0; i<PAD; ++i) for (uint32_t k=0; k<WID; ++k) for (uint32_t j=0; j<WID; ++j) {
                      pos[0] = crd + i;
@@ -424,7 +427,7 @@ namespace spatial_cell {
                   }
                   cellSizeFractions[(i_nbr_off+1)/2] = 2.0;
                } else if (refLevelDiff == 0) { // Neighbor at same level, copy data
-                  if (nbrIDs[0] == invalid_local_id()) ptr = null_block_data; // (this check might not be necessary here)
+                  if (nbrIDs[0] == invalid_local_id()) ptr = null_block_data.data(); // (this check might not be necessary here)
                   else ptr = src + nbrIDs[0]*WID3;
                   uint32_t i_src = 0;
                   if (i_nbr_off < 0) i_src = WID-PAD;
@@ -436,7 +439,7 @@ namespace spatial_cell {
                   for (uint32_t i=0; i<PAD; ++i) for (uint32_t k=0; k<WID; ++k) for (uint32_t j=0; j<WID; ++j) {
                      
                      int index = (k/2)*2 + j/2;
-                     if (nbrIDs[index] == invalid_local_id()) ptr = null_block_data;
+                     if (nbrIDs[index] == invalid_local_id()) ptr = null_block_data.data();
                      else ptr = src + nbrIDs[index]*WID3;
                      
                      pos[0] = crd + i;
@@ -475,7 +478,7 @@ namespace spatial_cell {
             
             if (nbrIDs.size() > 0) {     // This block has at least one existing neighbor
                if (refLevelDiff == -1) { // Neighbor is one level coarser, interpolate
-                  if (nbrIDs[0] == invalid_local_id()) ptr = null_block_data; // (this check might not be necessary here)
+                  if (nbrIDs[0] == invalid_local_id()) ptr = null_block_data.data(); // (this check might not be necessary here)
                   else ptr = src + nbrIDs[0]*WID3;
                   for (uint32_t j=0; j<PAD; ++j) for (uint32_t k=0; k<WID; ++k) for (uint32_t i=0; i<WID; ++i) {
                      pos[0] = 2*(i_block%2) + i/2 + 0.5;
@@ -485,7 +488,7 @@ namespace spatial_cell {
                   }
                   cellSizeFractions[(j_nbr_off+1)/2] = 2.0;
                } else if (refLevelDiff == 0) { // Neighbor at same level, copy data
-                  if (nbrIDs[0] == invalid_local_id()) ptr = null_block_data; // (this check might not be necessary here)
+                  if (nbrIDs[0] == invalid_local_id()) ptr = null_block_data.data(); // (this check might not be necessary here)
                   else ptr = src + nbrIDs[0]*WID3;
                   uint32_t j_src = 0;
                   if (j_nbr_off < 0) j_src = WID-PAD;
@@ -498,7 +501,7 @@ namespace spatial_cell {
                      // Iterate over the four neighbors. If the neighbor does not exist, 
                      // interpolate values from the null block
                      int index = (k/2)*2 + i/2;
-                     if (nbrIDs[index] == invalid_local_id()) ptr = null_block_data;
+                     if (nbrIDs[index] == invalid_local_id()) ptr = null_block_data.data();
                      else ptr = src + nbrIDs[index]*WID3;
                      
                      pos[0] = 2*(i%2) + 1;
@@ -537,7 +540,7 @@ namespace spatial_cell {
             
             if (nbrIDs.size() > 0) {     // This block has at least one existing neighbor
                if (refLevelDiff == -1) { // Neighbor is one level coarser, interpolate
-                  if (nbrIDs[0] == invalid_local_id()) ptr = null_block_data; // (this check might not be necessary here)
+                  if (nbrIDs[0] == invalid_local_id()) ptr = null_block_data.data(); // (this check might not be necessary here)
                   else ptr = src + nbrIDs[0]*WID3;
                   for (uint32_t k=0; k<PAD; ++k) for (uint32_t j=0; j<WID; ++j) for (uint32_t i=0; i<WID; ++i) {
                      pos[0] = 2*(i_block%2) + i/2 + 0.5;
@@ -547,7 +550,7 @@ namespace spatial_cell {
                   }
                   cellSizeFractions[(k_nbr_off+1)/2] = 2.0;
                } else if (refLevelDiff == 0) { // Neighbor at same level, copy data
-                  if (nbrIDs[0] == invalid_local_id()) ptr = null_block_data; // (this check might not be necessary here)
+                  if (nbrIDs[0] == invalid_local_id()) ptr = null_block_data.data(); // (this check might not be necessary here)
                   else ptr = src + nbrIDs[0]*WID3;
                   uint32_t k_src = 0;
                   if (k_nbr_off < 0) k_src = WID-PAD;
@@ -560,7 +563,7 @@ namespace spatial_cell {
                      // Iterate over the four neighbors. If the neighbor does not exist, 
                      // interpolate values from the null block
                      int index = (j/2)*2 + i/2;
-                     if (nbrIDs[index] == invalid_local_id()) ptr = null_block_data;
+                     if (nbrIDs[index] == invalid_local_id()) ptr = null_block_data.data();
                      else ptr = src + nbrIDs[index]*WID3;
                      
                      pos[0] = 2*(i%2) + 1;
@@ -620,7 +623,7 @@ namespace spatial_cell {
 
          if (nbrIDs.size() > 0) {
             if (refLevelDiff == -1) { // nbr one level coarser, interpolate
-               if (nbrIDs[0] == invalid_local_id()) ptr = null_block_data;
+               if (nbrIDs[0] == invalid_local_id()) ptr = null_block_data.data();
                else ptr = src + nbrIDs[0]*WID3;
                for (uint32_t i=0; i<PAD; ++i) for (uint32_t k=0; k<WID; ++k) for (uint32_t j=0; j<WID; ++j) {
                   pos[0] = crd + i;
@@ -629,7 +632,7 @@ namespace spatial_cell {
                   array[vblock::padIndex<PAD>(i_trgt+i,j+PAD,k+PAD)] = vblock::interp_yz<vblock::interpmethod::NGP>(pos,ptr);
                }
             } else if (refLevelDiff == 0) { // nbr at same level, simple data copy
-               if (nbrIDs[0] == invalid_local_id()) ptr = null_block_data;
+               if (nbrIDs[0] == invalid_local_id()) ptr = null_block_data.data();
                else ptr = src + nbrIDs[0]*WID3;
                uint32_t i_src = 0;
                if (i_nbr_off < 0) i_src = WID-PAD;
@@ -639,7 +642,7 @@ namespace spatial_cell {
             } else if (refLevelDiff == +1) { // nbr one level more refined, interpolate from four neighbors
                for (uint32_t i=0; i<PAD; ++i) for (uint32_t k=0; k<WID; ++k) for (uint32_t j=0; j<WID; ++j) {
                   int index = (k/2)*2 + j/2;
-                  if (nbrIDs[index] == invalid_local_id()) ptr = null_block_data;
+                  if (nbrIDs[index] == invalid_local_id()) ptr = null_block_data.data();
                   else ptr = src + nbrIDs[index]*WID3;
 
                   pos[0] = crd + i;
@@ -667,7 +670,7 @@ namespace spatial_cell {
          
          if (nbrIDs.size() > 0) {
             if (refLevelDiff == -1) { // nbr one level coarser, interpolate
-               if (nbrIDs[0] == invalid_local_id()) ptr = null_block_data;
+               if (nbrIDs[0] == invalid_local_id()) ptr = null_block_data.data();
                else ptr = src + nbrIDs[0]*WID3;
                for (uint32_t j=0; j<PAD; ++j) for (uint32_t k=0; k<WID; ++k) for (uint32_t i=0; i<WID; ++i) {
                   pos[0] = 2*(i_block%2) + i/2 + 0.5;
@@ -676,7 +679,7 @@ namespace spatial_cell {
                   array[vblock::padIndex<PAD>(i+PAD,j_trgt+j,k+PAD)] = vblock::interp_xz<vblock::interpmethod::NGP>(pos,ptr);
                }
             } else if (refLevelDiff == 0) { // nbr at same level, simple data copy
-               if (nbrIDs[0] == invalid_local_id()) ptr = null_block_data;
+               if (nbrIDs[0] == invalid_local_id()) ptr = null_block_data.data();
                else ptr = src + nbrIDs[0]*WID3;
                uint32_t j_src = 0;
                if (j_nbr_off < 0) j_src = WID-PAD;
@@ -686,7 +689,7 @@ namespace spatial_cell {
             } else if (refLevelDiff == +1) { // nbr one level more refined, interpolate from four neighbors
                for (uint32_t j=0; j<PAD; ++j) for (uint32_t k=0; k<WID; ++k) for (uint32_t i=0; i<WID; ++i) {
                   int index = (k/2)*2 + i/2;
-                  if (nbrIDs[index] == invalid_local_id()) ptr = null_block_data;
+                  if (nbrIDs[index] == invalid_local_id()) ptr = null_block_data.data();
                   else ptr = src + nbrIDs[index]*WID3;
 
                   pos[0] = 2*(i%2) + 1;
@@ -714,7 +717,7 @@ namespace spatial_cell {
          
          if (nbrIDs.size() > 0) {
             if (refLevelDiff == -1) { // nbr one level coarser, interpolate
-               if (nbrIDs[0] == invalid_local_id()) ptr = null_block_data;
+               if (nbrIDs[0] == invalid_local_id()) ptr = null_block_data.data();
                else ptr = src + nbrIDs[0]*WID3;
                for (uint32_t k=0; k<PAD; ++k) for (uint32_t j=0; j<WID; ++j) for (uint32_t i=0; i<WID; ++i) {
                   pos[0] = 2*(i_block%2) + i/2 + 0.5;
@@ -723,7 +726,7 @@ namespace spatial_cell {
                   array[vblock::padIndex<PAD>(i+PAD,j+PAD,k_trgt+k)] = vblock::interp_xy<vblock::interpmethod::NGP>(pos,ptr);
                }
             } else if (refLevelDiff == 0) { // nbr at same level, simple data copy
-               if (nbrIDs[0] == invalid_local_id()) ptr = null_block_data;
+               if (nbrIDs[0] == invalid_local_id()) ptr = null_block_data.data();
                else ptr = src + nbrIDs[0]*WID3;
                uint32_t k_src = 0;
                if (k_nbr_off < 0) k_src = WID-PAD;
@@ -733,7 +736,7 @@ namespace spatial_cell {
             } else if (refLevelDiff == +1) { // nbr one level more refined, interpolate from four neighbors
                for (uint32_t k=0; k<PAD; ++k) for (uint32_t j=0; j<WID; ++j) for (uint32_t i=0; i<WID; ++i) {
                   int index = (j/2)*2 + i/2;
-                  if (nbrIDs[index] == invalid_local_id()) ptr = null_block_data;
+                  if (nbrIDs[index] == invalid_local_id()) ptr = null_block_data.data();
                   else ptr = src + nbrIDs[index]*WID3;
                   
                   pos[0] = 2*(i%2) + 1;
@@ -796,7 +799,7 @@ namespace spatial_cell {
          exit(1);
       }
       #endif
-      if (blockLID == vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) return null_block_data;
+      if (blockLID == vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) return null_block_data.data();
       return populations[popID].blockContainer.getData(blockLID);
    }
    
@@ -813,7 +816,7 @@ namespace spatial_cell {
          exit(1);
       }
       #endif
-      if (blockLID == vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) return null_block_data;
+      if (blockLID == vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) return null_block_data.data();
       return populations[popID].blockContainer.getData(blockLID);
    }
 
@@ -872,11 +875,11 @@ namespace spatial_cell {
    }
    
    inline Real* SpatialCell::get_cell_parameters() {
-       return parameters;
+      return parameters.data();
    }
 
    inline const Real* SpatialCell::get_cell_parameters() const {
-      return parameters;
+      return parameters.data();
    }
 
    inline uint8_t SpatialCell::get_maximum_refinement_level(const uint popID) {
@@ -1605,7 +1608,6 @@ namespace spatial_cell {
       size += velocity_block_with_content_list.size() * sizeof(vmesh::GlobalID);
       size += velocity_block_with_no_content_list.size() * sizeof(vmesh::GlobalID);
       size += CellParams::N_SPATIAL_CELL_PARAMS * sizeof(Real);
-      size += fieldsolver::N_SPATIAL_CELL_DERIVATIVES * sizeof(Real);
       size += bvolderivatives::N_BVOL_DERIVATIVES * sizeof(Real);
 
       for (size_t p=0; p<populations.size(); ++p) {
@@ -1631,7 +1633,6 @@ namespace spatial_cell {
       capacity += velocity_block_with_content_list.capacity()  * sizeof(vmesh::GlobalID);
       capacity += velocity_block_with_no_content_list.capacity()  * sizeof(vmesh::GlobalID);
       capacity += CellParams::N_SPATIAL_CELL_PARAMS * sizeof(Real);
-      capacity += fieldsolver::N_SPATIAL_CELL_DERIVATIVES * sizeof(Real);
       capacity += bvolderivatives::N_BVOL_DERIVATIVES * sizeof(Real);
       
       for (size_t p=0; p<populations.size(); ++p) {
@@ -1885,11 +1886,30 @@ namespace spatial_cell {
       #endif
       return populations[popID].vmesh.hasGrandParent(blockGID);
    }
-   
-   inline SpatialCell& SpatialCell::operator=(const SpatialCell&) { 
-      return *this;
-   }
 
+   // inline SpatialCell& SpatialCell::operator=(const SpatialCell& other) {
+   //    this->sysBoundaryFlag = other.sysBoundaryFlag;
+   //    this->sysBoundaryLayer = other.sysBoundaryLayer;
+   //    this->sysBoundaryLayerNew = other.sysBoundaryLayerNew;
+   //    this->velocity_block_with_content_list = other.velocity_block_with_content_list;
+   //    this->velocity_block_with_no_content_list = other.velocity_block_with_no_content_list;
+   //    this->initialized = other.initialized;
+   //    this->mpiTransferEnabled = other.mpiTransferEnabled;      
+   //    this->parameters = other.parameters;
+   //    this->derivatives = other.derivatives;
+   //    this->derivativesBVOL = other.derivativesBVOL;      
+   //    this->null_block_data = other.null_block_data;
+   //    this->populations = other.populations;
+   //    this->face_neighbor_ranks = other.face_neighbor_ranks;
+   
+   //    return *this;
+   // }
+   
+   // inline SpatialCell& SpatialCell::operator=(const SpatialCell&) { 
+   //    return *this;
+   // }
+
+   
 } // namespaces
 
 #endif

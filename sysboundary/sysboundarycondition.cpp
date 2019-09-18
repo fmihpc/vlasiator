@@ -797,9 +797,21 @@ namespace SBC {
    ) {
       const std::array<int,3> closestCell = getTheClosestNonsysboundaryCell(technicalGrid, i, j, k);
       
-      #ifndef NDEBUG
       const std::array<int32_t, 3> gid = technicalGrid.getGlobalIndices(i, j, k);
       const std::array<int32_t, 3> ngid = technicalGrid.getGlobalIndices(closestCell[0], closestCell[1], closestCell[2]);
+
+      if (closestCell[0] == std::numeric_limits<int>::min()) {
+         //cerr << "(" << gid[0] << "," << gid[1] << "," << gid[2] << ")" << __FILE__ << ":" << __LINE__ << ": No closest cell found!" << endl;
+         //abort();
+
+         // When mpiGrid is refined, the fsgrid boundary layer has a width greater than 2. In this case,
+         // the boundary cells that do not find a non-boundary neighbor just keep their original value,
+         // we don't care what happens in them since they have no effect on the Vlasov solver.
+         return perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBX+component);
+      }
+
+      #ifndef NDEBUG
+      
       if ( technicalGrid.get(closestCell[0], closestCell[1], closestCell[2]) == nullptr ) {
          stringstream ss;
          ss << "ERROR, cell (" << gid[0] << "," << gid[1] << "," << gid[2] << ") tries to access invalid sysboundary nbr (" << ngid[0] << "," << ngid[1] << "," << ngid[2] << ") in " << __FILE__ << ":" << __LINE__ << endl;
@@ -814,10 +826,6 @@ namespace SBC {
          exit(1);
       }
       
-      if (closestCell[0] == std::numeric_limits<int>::min()) {
-         cerr << "(" << gid[0] << "," << gid[1] << "," << gid[2] << ")" << __FILE__ << ":" << __LINE__ << ": No closest cell found!" << endl;
-         abort();
-      }
       #endif
       
       return perBGrid.get(closestCell[0], closestCell[1], closestCell[2])->at(fsgrids::bfield::PERBX+component);

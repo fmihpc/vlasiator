@@ -156,7 +156,7 @@ namespace SBC {
                                     popID,
                                     rho,
                                     T,
-                                    counter*cell.get_velocity_grid_block_size(popID,refLevel)[0], 0.0, 0.0
+                                    VX0 + counter*cell.get_velocity_grid_block_size(popID,refLevel)[0], VY0, VZ0
                                    )
              ||
              counter > vblocks_ini[0]
@@ -210,6 +210,7 @@ namespace SBC {
     */
    void SetMaxwellian::generateTemplateCell(
       spatial_cell::SpatialCell& templateCell,
+      Real B[3],
       int inputDataIndex,
       creal& t
    ) {
@@ -287,9 +288,9 @@ namespace SBC {
                                                      popID,
                                                      rho,
                                                      T,
-                                                     vxCell + 0.5*dvxCell,
-                                                     vyCell + 0.5*dvyCell,
-                                                     vzCell + 0.5*dvzCell
+                                                     vxCell + 0.5*dvxCell - Vx,
+                                                     vyCell + 0.5*dvyCell - Vy,
+                                                     vzCell + 0.5*dvzCell - Vz
                                                     );
                }
                
@@ -304,9 +305,9 @@ namespace SBC {
          templateCell.adjustSingleCellVelocityBlocks(popID);
       } // for-loop over particle species
       
-      templateCell.parameters[CellParams::PERBX] = Bx;
-      templateCell.parameters[CellParams::PERBY] = By;
-      templateCell.parameters[CellParams::PERBZ] = Bz;
+      B[0] = Bx;
+      B[1] = By;
+      B[2] = Bz;
       
       calculateCellMoments(&templateCell,true,true);
       
@@ -317,13 +318,14 @@ namespace SBC {
          templateCell.parameters[CellParams::VY_DT2] = templateCell.parameters[CellParams::VY];
          templateCell.parameters[CellParams::VZ_DT2] = templateCell.parameters[CellParams::VZ];
          templateCell.parameters[CellParams::RHOQ_DT2] = templateCell.parameters[CellParams::RHOQ];
-         templateCell.parameters[CellParams::PERBX_DT2] = templateCell.parameters[CellParams::PERBX];
-         templateCell.parameters[CellParams::PERBY_DT2] = templateCell.parameters[CellParams::PERBY];
-         templateCell.parameters[CellParams::PERBZ_DT2] = templateCell.parameters[CellParams::PERBZ];
+         templateCell.parameters[CellParams::P_11_DT2] = templateCell.parameters[CellParams::P_11];
+         templateCell.parameters[CellParams::P_22_DT2] = templateCell.parameters[CellParams::P_22];
+         templateCell.parameters[CellParams::P_33_DT2] = templateCell.parameters[CellParams::P_33];
       } else {
          cerr << "ERROR: this is not dynamic in time, please code it!" << endl;
          abort();
       }
+
    }
    
    string SetMaxwellian::getName() const {return "SetMaxwellian";}

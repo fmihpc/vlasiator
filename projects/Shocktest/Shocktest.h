@@ -62,7 +62,11 @@ namespace projects {
                            creal& dvx, creal& dvy, creal& dvz,
                            const uint popID
                           ) const;
-      virtual void setCellBackgroundField(spatial_cell::SpatialCell* cell);
+      virtual void setProjectBField(
+         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+         FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+         FsGrid< fsgrids::technical, 2>& technicalGrid
+      );
       
       virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
       virtual Real calcPhaseSpaceDensity(

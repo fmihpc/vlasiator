@@ -89,7 +89,7 @@ std::vector<std::pair<std::string,std::string>> P::systemWriteHints;
 
 Real P::saveRestartWalltimeInterval = -1.0;
 uint P::exitAfterRestarts = numeric_limits<uint>::max();
-uint64_t P::vlsvBufferSize;
+uint64_t P::vlsvBufferSize = 0;
 int P::restartStripeFactor = -1;
 string P::restartWritePath = string("");
 
@@ -99,7 +99,6 @@ bool P::recalculateStencils = true;
 bool P::propagateVlasovAcceleration = true;
 bool P::propagateVlasovTranslation = true;
 bool P::propagateField = true;
-bool P::propagatePotential = false;
 
 bool P::dynamicTimestep = true;
 
@@ -136,6 +135,13 @@ uint P::amrMaxVelocityRefLevel = 0;
 Realf P::amrRefineLimit = 1.0;
 Realf P::amrCoarsenLimit = 0.5;
 string P::amrVelRefCriterion = "";
+int P::amrMaxSpatialRefLevel = 0;
+int P::amrBoxHalfWidthX = 1;
+int P::amrBoxHalfWidthY = 1;
+int P::amrBoxHalfWidthZ = 1;
+Realf P::amrBoxCenterX = 0.0;
+Realf P::amrBoxCenterY = 0.0;
+Realf P::amrBoxCenterZ = 0.0;
 
 bool Parameters::addParameters(){
    //the other default parameters we read through the add/get interface
@@ -155,18 +161,17 @@ bool Parameters::addParameters(){
 
    Readparameters::add("io.restart_walltime_interval","Save the complete simulation in given walltime intervals. Negative values disable writes.",-1.0);
    Readparameters::add("io.number_of_restarts","Exit the simulation after certain number of walltime-based restarts.",numeric_limits<uint>::max());
-   Readparameters::add("io.vlsv_buffer_size", "Buffer size passed to VLSV writer (bytes, up to uint64_t)", 1024*1024*1024);
+   Readparameters::add("io.vlsv_buffer_size", "Buffer size passed to VLSV writer (bytes, up to uint64_t), default 0 as this is sensible on sisu", 0);
    Readparameters::add("io.write_restart_stripe_factor","Stripe factor for restart writing.", -1);
    Readparameters::add("io.write_as_float","If true, write in floats instead of doubles", false);
    Readparameters::add("io.restart_write_path", "Path to the location where restart files should be written. Defaults to the local directory, also if the specified destination is not writeable.", string("./"));
    
-   Readparameters::add("propagate_potential","Propagate electrostatic potential during the simulation",false);
    Readparameters::add("propagate_field","Propagate magnetic field during the simulation",true);
    Readparameters::add("propagate_vlasov_acceleration","Propagate distribution functions during the simulation in velocity space. If false, it is propagated with zero length timesteps.",true);
    Readparameters::add("propagate_vlasov_translation","Propagate distribution functions during the simulation in ordinary space. If false, it is propagated with zero length timesteps.",true);
    Readparameters::add("dynamic_timestep","If true,  timestep is set based on  CFL limits (default on)",true);
    Readparameters::add("hallMinimumRho", "Minimum rho value used for the Hall and electron pressure gradient terms in the Lorentz force and in the field solver. Default is very low and has no effect in practice.", 1.0);
-   Readparameters::add("project", "Specify the name of the project to use. Supported to date (20150610): Alfven Diffusion Dispersion Distributions Firehose Flowthrough Fluctuations Harris KHB Larmor Magnetosphere Multipeak PoissonTest Riemann1 Shock Shocktest Template test_fp testHall test_trans VelocityBox verificationLarmor", string(""));
+   Readparameters::add("project", "Specify the name of the project to use. Supported to date (20150610): Alfven Diffusion Dispersion Distributions Firehose Flowthrough Fluctuations Harris KHB Larmor Magnetosphere Multipeak Riemann1 Shock Shocktest Template test_fp testHall test_trans VelocityBox verificationLarmor", string(""));
 
    Readparameters::add("restart.filename","Restart from this vlsv file. No restart if empty file.",string(""));
    
@@ -209,8 +214,63 @@ bool Parameters::addParameters(){
    Readparameters::add("loadBalance.rebalanceInterval", "Load rebalance interval (steps)", 10);
    
 // Output variable parameters
-   Readparameters::addComposing("variables.output", "List of data reduction operators (DROs) to add to the grid file output. Each variable to be added has to be on a new line output = XXX. Available are (20180525) B BackgroundB PerturbedB E Rhom Rhoq populations_Rho V populations_V populations_moments_Backstream populations_moments_NonBackstream populations_EffectiveSparsityThreshold populations_RhoLossAdjust LBweight MaxVdt MaxRdt populations_MaxVdt populations_MaxRdt MaxFieldsdt MPIrank FsGridRank FsGridBoundaryType BoundaryType BoundaryLayer populations_Blocks fSaved populations_accSubcycles VolE EJE HallE GradPeE VolB BackgroundVolB PerturbedVolB Pressure populations_PTensor derivs BVOLderivs GridCoordinates Potential BackgroundVolE ChargeDensity PotentialError MeshData");
-   Readparameters::addComposing("variables.diagnostic", "List of data reduction operators (DROs) to add to the diagnostic runtime output. Each variable to be added has to be on a new line diagnostic = XXX.  Available (20180525) are FluxB FluxE populations_Blocks Rhom populations_RhoLossAdjust LBweight MaxVdt MaxRdt MaxFieldsdt populations_MaxDistributionFunction populations_MinDistributionFunction.");
+   // NOTE Do not remove the : before the list of variable names as this is parsed by tools/check_vlasiator_cfg.sh
+   Readparameters::addComposing("variables.output", std::string()+"List of data reduction operators (DROs) to add to the grid file output.  Each variable to be added has to be on a new line output = XXX. Names are case insensitive.  "+
+				"Available (20190521): "+
+				"fg_b fg_b_background fg_b_perturbed fg_e "+
+				"vg_rhom vg_rhoq populations_vg_rho "+
+				"fg_rhom fg_rhoq "+
+				"vg_v fg_v populations_vg_v "+
+				"populations_vg_moments_thermal populations_vg_moments_nonthermal "+
+				"populations_vg_effectivesparsitythreshold populations_vg_rho_loss_adjust "+
+				"populations_vg_energydensity populations_vg_precipitationdifferentialflux "+
+				"vg_maxdt_acceleration vg_maxdt_translation populations_vg_maxdt_acceleration populations_vg_maxdt_translation "+
+				"fg_maxdt_fieldsolver "+
+				"vg_rank fg_rank vg_loadbalance_weight "+
+				"vg_boundarytype fg_boundarytype vg_boundarylayer fg_boundarylayer "+
+				"populations_vg_blocks vg_f_saved "+
+				"populations_vg_acceleration_subcycles "+
+				"fg_e_hall vg_e_gradpe fg_b_vol vg_b_vol vg_b_background_vol vg_b_perturbed_vol "+
+				"vg_pressure fg_pressure populations_vg_ptensor "+
+				"b_vol_derivatives "+
+				"vg_gridcoordinates fg_gridcoordinates meshdata");
+
+   Readparameters::addComposing("variables_deprecated.output", std::string()+"List of deprecated names for data reduction operators (DROs). Names are case insensitive. "+
+				"Available (20190521): "+
+				"B BackgroundB fg_BackgroundB PerturbedB fg_PerturbedB "+
+				"E "+
+				"Rhom Rhoq populations_Rho "+
+				"V populations_V "+
+				"populations_moments_Backstream populations_moments_NonBackstream "+
+				"populations_moments_thermal populations_moments_nonthermal "+
+				"populations_minvalue populations_EffectiveSparsityThreshold populations_RhoLossAdjust populations_rho_loss_adjust"+
+				"populations_EnergyDensity populations_PrecipitationFlux populations_precipitationdifferentialflux"+
+				"LBweight vg_lbweight vg_loadbalanceweight MaxVdt MaxRdt populations_MaxVdt populations_MaxRdt "+
+				"populations_maxdt_acceleration populations_maxdt_translation MaxFieldsdt fg_maxfieldsdt"+
+				"MPIrank FsGridRank "+
+				"FsGridBoundaryType BoundaryType FsGridBoundaryLayer BoundaryLayer "+
+				"populations_Blocks fSaved vg_fsaved"+
+				"populations_accSubcycles populations_acceleration_subcycles"+
+				"HallE fg_HallE GradPeE e_gradpe VolB vg_VolB fg_VolB B_vol Bvol vg_Bvol fg_volB fg_Bvol"+
+				"BackgroundVolB PerturbedVolB "+
+				"Pressure vg_Pressure fg_Pressure populations_PTensor "+
+				"BVOLderivs b_vol_derivs");
+
+   // NOTE Do not remove the : before the list of variable names as this is parsed by tools/check_vlasiator_cfg.sh
+   Readparameters::addComposing("variables.diagnostic", std::string()+"List of data reduction operators (DROs) to add to the diagnostic runtime output. Each variable to be added has to be on a new line diagnostic = XXX. Names are case insensitive. "+
+				"Available (20190320): "+
+				"populations_blocks "+
+				"rhom populations_rho_loss_adjust"+
+				"loadbalance_weight"+
+				"maxdt_acceleration maxdt_translation populations_maxdt_acceleration populations_maxdt_translation "+
+				"maxdt_fieldsolver "+
+				"populations_maxdistributionfunction populations_mindistributionfunction");
+
+   Readparameters::addComposing("variables_deprecated.diagnostic", std::string()+"List of deprecated data reduction operators (DROs) to add to the diagnostic runtime output. Names are case insensitive. "+
+				"Available (20190320): "+
+				"populations_rholossadjust"+
+				"LBweight"+
+				"populations_MaxVdt MaxVdt populations_MaxRdt MaxRdt MaxFieldsdt");
 
    // bailout parameters
    Readparameters::add("bailout.write_restart", "If 1, write a restart file on bailout. Gets reset when sending a STOP (1) or a KILL (0).", true);
@@ -222,6 +282,13 @@ bool Parameters::addParameters(){
    Readparameters::add("AMR.max_velocity_level","Maximum velocity mesh refinement level",(uint)0);
    Readparameters::add("AMR.refine_limit","If the refinement criterion function returns a larger value than this, block is refined",(Realf)1.0);
    Readparameters::add("AMR.coarsen_limit","If the refinement criterion function returns a smaller value than this, block can be coarsened",(Realf)0.5);
+   Readparameters::add("AMR.max_spatial_level","Maximum spatial mesh refinement level",(uint)0);
+   Readparameters::add("AMR.box_half_width_x","Half width of the box that is refined (for testing)",(uint)1);
+   Readparameters::add("AMR.box_half_width_y","Half width of the box that is refined (for testing)",(uint)1);
+   Readparameters::add("AMR.box_half_width_z","Half width of the box that is refined (for testing)",(uint)1);
+   Readparameters::add("AMR.box_center_x","x coordinate of the center of the box that is refined (for testing)",0.0);
+   Readparameters::add("AMR.box_center_y","y coordinate of the center of the box that is refined (for testing)",0.0);
+   Readparameters::add("AMR.box_center_z","z coordinate of the center of the box that is refined (for testing)",0.0);
    return true;
 }
 
@@ -335,7 +402,6 @@ bool Parameters::getParameters(){
    }
 
    Readparameters::get("propagate_field",P::propagateField);
-   Readparameters::get("propagate_potential",P::propagatePotential);
    Readparameters::get("propagate_vlasov_acceleration",P::propagateVlasovAcceleration);
    Readparameters::get("propagate_vlasov_translation",P::propagateVlasovTranslation);
    Readparameters::get("dynamic_timestep",P::dynamicTimestep);
@@ -375,6 +441,13 @@ bool Parameters::getParameters(){
       P::zmax = 1;
    }
    Readparameters::get("AMR.max_velocity_level",P::amrMaxVelocityRefLevel);
+   Readparameters::get("AMR.max_spatial_level",P::amrMaxSpatialRefLevel);
+   Readparameters::get("AMR.box_half_width_x",P::amrBoxHalfWidthX);
+   Readparameters::get("AMR.box_half_width_y",P::amrBoxHalfWidthY);
+   Readparameters::get("AMR.box_half_width_z",P::amrBoxHalfWidthZ);
+   Readparameters::get("AMR.box_center_x",P::amrBoxCenterX);
+   Readparameters::get("AMR.box_center_y",P::amrBoxCenterY);
+   Readparameters::get("AMR.box_center_z",P::amrBoxCenterZ);
    Readparameters::get("AMR.vel_refinement_criterion",P::amrVelRefCriterion);
    Readparameters::get("AMR.refine_limit",P::amrRefineLimit);
    Readparameters::get("AMR.coarsen_limit",P::amrCoarsenLimit);

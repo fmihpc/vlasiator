@@ -149,19 +149,18 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
 }
 
 /** Calculate zeroth, first, and (possibly) second bulk velocity moments for the 
- * given spatial cell. Additionally, for each species, calculate the maximum 
- * spatial time step so that CFL(spatial)=1. The calculated moments include 
+ * given spatial cell. The calculated moments include 
  * contributions from all existing particle populations. The calculated moments 
  * are stored to SpatialCell::parameters in _R variables. This function is AMR safe.
  * @param mpiGrid Parallel grid library.
  * @param cells Vector containing the spatial cells to be calculated.
  * @param computeSecond If true, second velocity moments are calculated.*/
-void calculateMoments_R_maxdt(
+void calculateMoments_R(
         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
         const std::vector<CellID>& cells,
         const bool& computeSecond) {
  
-    phiprof::start("compute-moments-n-maxdt");
+    phiprof::start("compute-moments-n");
     creal HALF = 0.5;
 
     for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
@@ -275,7 +274,7 @@ void calculateMoments_R_maxdt(
 
    // Compute second moments only if requested.
    if (computeSecond == false) {
-      phiprof::stop("compute-moments-n-maxdt");
+      phiprof::stop("compute-moments-n");
       return;
    }
 
@@ -321,7 +320,7 @@ void calculateMoments_R_maxdt(
       }
    } // for-loop over particle species
 
-   phiprof::stop("compute-moments-n-maxdt");
+   phiprof::stop("compute-moments-n");
 }
 
 /** Calculate zeroth, first, and (possibly) second bulk velocity moments for the 

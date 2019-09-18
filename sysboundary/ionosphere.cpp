@@ -33,6 +33,7 @@
 #include "../vlasovmover.h"
 #include "../fieldsolver/fs_common.h"
 #include "../fieldsolver/fs_limiters.h"
+#include "../fieldsolver/ldz_magnetic_field.hpp"
 #include "../common.h"
 #include "../object_wrapper.h"
 
@@ -156,13 +157,44 @@ namespace SBC {
       
       return true;
    }
+
+   Real getR(creal x,creal y,creal z, uint geometry, Real center[3]) {
+
+      Real r;
+      
+      switch(geometry) {
+      case 0:
+         // infinity-norm, result is a diamond/square with diagonals aligned on the axes in 2D
+         r = fabs(x-center[0]) + fabs(y-center[1]) + fabs(z-center[2]);
+         break;
+      case 1:
+         // 1-norm, result is is a grid-aligned square in 2D
+         r = max(max(fabs(x-center[0]), fabs(y-center[1])), fabs(z-center[2]));
+         break;
+      case 2:
+         // 2-norm (Cartesian), result is a circle in 2D
+         r = sqrt((x-center[0])*(x-center[0]) + (y-center[1])*(y-center[1]) + (z-center[2])*(z-center[2]));
+         break;
+      case 3:
+         // 2-norm (Cartesian) cylinder aligned on y-axis
+         r = sqrt((x-center[0])*(x-center[0]) + (z-center[2])*(z-center[2]));
+         break;
+      default:
+         std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1 or 2." << std::endl;
+         abort();
+      }
+
+      return r;
+   }
    
-   bool Ionosphere::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
+   bool Ionosphere::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                      FsGrid< fsgrids::technical, 2> & technicalGrid) {
       vector<CellID> cells = mpiGrid.get_cells();
       for(uint i=0; i<cells.size(); i++) {
          if(mpiGrid[cells[i]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
             continue;
          }
+         
          creal* const cellParams = &(mpiGrid[cells[i]]->parameters[0]);
          creal dx = cellParams[CellParams::DX];
          creal dy = cellParams[CellParams::DY];
@@ -170,42 +202,42 @@ namespace SBC {
          creal x = cellParams[CellParams::XCRD] + 0.5*dx;
          creal y = cellParams[CellParams::YCRD] + 0.5*dy;
          creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
-         Real r;
          
-         switch(this->geometry) {
-            case 0:
-               // infinity-norm, result is a diamond/square with diagonals aligned on the axes in 2D
-               r = fabs(x-center[0]) + fabs(y-center[1]) + fabs(z-center[2]);
-               break;
-            case 1:
-               // 1-norm, result is is a grid-aligned square in 2D
-               r = max(max(fabs(x-center[0]), fabs(y-center[1])), fabs(z-center[2]));
-               break;
-            case 2:
-               // 2-norm (Cartesian), result is a circle in 2D
-               r = sqrt((x-center[0])*(x-center[0]) + (y-center[1])*(y-center[1]) + (z-center[2])*(z-center[2]));
-               break;
-            case 3:
-               // 2-norm (Cartesian) cylinder aligned on y-axis
-               r = sqrt((x-center[0])*(x-center[0]) + (z-center[2])*(z-center[2]));
-               break;
-            default:
-               std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1 or 2." << std::endl;
-               abort();
-         }
-         
-         if(r < this->radius) {
+         if(getR(x,y,z,this->geometry,this->center) < this->radius) {
             mpiGrid[cells[i]]->sysBoundaryFlag = this->getIndex();
          }
       }
+
+      // Assign boundary flags to local fsgrid cells
+      const std::array<int, 3> gridDims(technicalGrid.getLocalSize());  
+      for (int k=0; k<gridDims[2]; k++) {
+         for (int j=0; j<gridDims[1]; j++) {
+            for (int i=0; i<gridDims[0]; i++) {
+               const auto& coords = technicalGrid.getPhysicalCoords(i,j,k);
+               
+               // Shift to the center of the fsgrid cell
+               auto cellCenterCoords = coords;
+               cellCenterCoords[0] += 0.5 * technicalGrid.DX;
+               cellCenterCoords[1] += 0.5 * technicalGrid.DY;
+               cellCenterCoords[2] += 0.5 * technicalGrid.DZ;
+
+               if(getR(cellCenterCoords[0],cellCenterCoords[1],cellCenterCoords[2],this->geometry,this->center) < this->radius) {
+                  technicalGrid.get(i,j,k)->sysBoundaryFlag = this->getIndex();
+               }
+
+            }
+         }
+      }
+
       return true;
    }
 
    bool Ionosphere::applyInitialState(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
       Project &project
    ) {
-      vector<uint64_t> cells = mpiGrid.get_cells();
+      vector<CellID> cells = mpiGrid.get_cells();
       #pragma omp parallel for
       for (uint i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
@@ -523,7 +555,37 @@ namespace SBC {
          bGrid = &perBDt2Grid;
       }
       
+      // Easy case: in case we are neighboured by a non-sysboundary cell, we still solve the
+      // fields normally here.
+      cuint sysBoundaryLayer = technicalGrid.get(i,j,k)->sysBoundaryLayer;
+      if(sysBoundaryLayer == 1) {
+         cint neigh_i=i + ((component==0)?-1:0);
+         cint neigh_j=j + ((component==1)?-1:0);
+         cint neigh_k=k + ((component==2)?-1:0);
+         cuint neighborSysBoundaryFlag = technicalGrid.get(neigh_i, neigh_j, neigh_k)->sysBoundaryFlag;
+
+         if (neighborSysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+            switch(component) {
+               case 0:
+                  propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, true, false, false);
+                  break;
+               case 1:
+                  propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, false, true, false);
+                  break;
+               case 2:
+                  propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, false, false, true);
+                  break;
+               default:
+                  cerr << "ERROR: ionosphere boundary tried to propagate nonsensical magnetic field component " << component << endl;
+                  break;
+            }
+            return bGrid->get(i,j,k)->at(fsgrids::bfield::PERBX + component);
+         }
+      }
+
+      // Otherwise:
       // Sum perturbed B component over all nearest NOT_SYSBOUNDARY neighbours
+      /****
       std::array<Real, 3> averageB = {{ 0.0 }};
       for (uint it = 0; it < closestCells.size(); it++) {
          #ifdef DEBUG_IONOSPHERE
@@ -544,9 +606,24 @@ namespace SBC {
       for(uint i=0; i<3; i++) {
          averageB[i] *= normalDirection[i] / closestCells.size();
       }
-
       // Return (B.n)*normalVector[component]
       return (averageB[0]+averageB[1]+averageB[2])*normalDirection[component];
+      ***/
+
+      // Copy each face B-field from the cell on the other side of it
+      switch(component) {
+         case 0:
+	    return bGrid->get(i-1,j,k)->at(fsgrids::bfield::PERBX + component);
+         case 1:
+	    return bGrid->get(i,j-1,k)->at(fsgrids::bfield::PERBX + component);
+         case 2:
+	    return bGrid->get(i,j,k-1)->at(fsgrids::bfield::PERBX + component);
+         default:
+	    cerr << "ERROR: ionosphere boundary tried to copy nonsensical magnetic field component " << component << endl;
+	    break;
+      }
+      
+
    }
 
    void Ionosphere::fieldSolverBoundaryCondElectricField(
@@ -723,6 +800,9 @@ namespace SBC {
       templateCell.parameters[CellParams::VY_DT2] = templateCell.parameters[CellParams::VY];
       templateCell.parameters[CellParams::VZ_DT2] = templateCell.parameters[CellParams::VZ];
       templateCell.parameters[CellParams::RHOQ_DT2] = templateCell.parameters[CellParams::RHOQ];
+      templateCell.parameters[CellParams::P_11_DT2] = templateCell.parameters[CellParams::P_11];
+      templateCell.parameters[CellParams::P_22_DT2] = templateCell.parameters[CellParams::P_22];
+      templateCell.parameters[CellParams::P_33_DT2] = templateCell.parameters[CellParams::P_33];
    }
    
    Real Ionosphere::shiftedMaxwellianDistribution(

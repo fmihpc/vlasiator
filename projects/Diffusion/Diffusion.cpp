@@ -119,23 +119,15 @@ namespace projects {
       return avg / (sP.nSpaceSamples*sP.nSpaceSamples*sP.nSpaceSamples) / (sP.nVelocitySamples*sP.nVelocitySamples*sP.nVelocitySamples);
    }
    
-   void Diffusion::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
-      Real* cellParams = cell->get_cell_parameters();
-      creal x = cellParams[CellParams::XCRD];
-      creal dx = cellParams[CellParams::DX];
-      
-      cellParams[CellParams::EX   ] = 0.0;
-      cellParams[CellParams::EY   ] = 0.0;
-      cellParams[CellParams::EZ   ] = 0.0;
-      cellParams[CellParams::PERBX   ] = 0.0;
-      cellParams[CellParams::PERBY   ] = 0.0;
-      cellParams[CellParams::PERBZ   ] = 0.0;
+   void Diffusion::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
 
-   }
-
-   void Diffusion::setCellBackgroundField(SpatialCell* cell) {
+   void Diffusion::setProjectBField(
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+      FsGrid< fsgrids::technical, 2>& technicalGrid
+   ) {
       ConstantField bgField;
       bgField.initialize(0,0,this->B0); //bg bx, by,bz
-      setBackgroundField(bgField,cell->parameters, cell->derivatives,cell->derivativesBVOL);
+      setBackgroundField(bgField, BgBGrid);
    }
 } // namespace projects

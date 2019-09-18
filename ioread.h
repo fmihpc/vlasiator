@@ -38,6 +38,9 @@
 \param name Name of the restart file e.g. "restart.00052.vlsv"
 */
 bool readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
+      FsGrid< fsgrids::technical, 2>& technicalGrid,
               const std::string& name);
 
 /*!

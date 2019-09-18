@@ -106,61 +106,25 @@ namespace projects {
       if(hook::END_OF_TIME_STEP == stage) {
          int myRank;
          MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+
+         cerr << "Warning, this function does virtually nothing, since B and E are not updated in DCCRG cell params since PR#405" << endl;
+         cerr << "If this is undersirable to you, please implement writing the fields out of fsgrid objects" << endl;
+
          vector<Real> localRhom(P::xcells_ini, 0.0),
-                     outputRhom(P::xcells_ini, 0.0),
-                     localPerBx(P::xcells_ini, 0.0),
-                     outputPerBx(P::xcells_ini, 0.0),
-                     localPerBy(P::xcells_ini, 0.0),
-                     outputPerBy(P::xcells_ini, 0.0),
-                     localPerBz(P::xcells_ini, 0.0),
-                     outputPerBz(P::xcells_ini, 0.0),
-                     localEx(P::xcells_ini, 0.0),
-                     outputEx(P::xcells_ini, 0.0),
-                     localEy(P::xcells_ini, 0.0),
-                     outputEy(P::xcells_ini, 0.0),
-                     localEz(P::xcells_ini, 0.0),
-                     outputEz(P::xcells_ini, 0.0);
+            outputRhom(P::xcells_ini, 0.0);
+
          for(uint i=0; i<Parameters::localCells.size(); i++) {
             if(Parameters::localCells[i] <= P::xcells_ini) {
-               localPerBx[Parameters::localCells[i] - 1] = mpiGrid[Parameters::localCells[i]]->parameters[CellParams::PERBX];
-               localPerBy[Parameters::localCells[i] - 1] = mpiGrid[Parameters::localCells[i]]->parameters[CellParams::PERBY];
-               localPerBz[Parameters::localCells[i] - 1] = mpiGrid[Parameters::localCells[i]]->parameters[CellParams::PERBZ];
                localRhom[Parameters::localCells[i] - 1] = mpiGrid[Parameters::localCells[i]]->parameters[CellParams::RHOM];
-               localEx[Parameters::localCells[i] - 1] = mpiGrid[Parameters::localCells[i]]->parameters[CellParams::EX];
-               localEy[Parameters::localCells[i] - 1] = mpiGrid[Parameters::localCells[i]]->parameters[CellParams::EY];
-               localEz[Parameters::localCells[i] - 1] = mpiGrid[Parameters::localCells[i]]->parameters[CellParams::EZ];
             }
          }
          
-         MPI_Reduce(&(localPerBx[0]), &(outputPerBx[0]), P::xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
-         MPI_Reduce(&(localPerBy[0]), &(outputPerBy[0]), P::xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
-         MPI_Reduce(&(localPerBz[0]), &(outputPerBz[0]), P::xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
-         MPI_Reduce(&(localEx[0]), &(outputEx[0]), P::xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
-         MPI_Reduce(&(localEy[0]), &(outputEy[0]), P::xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
-         MPI_Reduce(&(localEz[0]), &(outputEz[0]), P::xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
          MPI_Reduce(&(localRhom[0]), &(outputRhom[0]), P::xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
          
          if(myRank == MASTER_RANK) {
             FILE* outputFile = fopen("perBxt.bin", "ab");
-            fwrite(&(outputPerBx[0]), sizeof(outputPerBx[0]), P::xcells_ini, outputFile);
-            fclose(outputFile);
-            outputFile = fopen("perByt.bin", "ab");
-            fwrite(&(outputPerBy[0]), sizeof(outputPerBy[0]), P::xcells_ini, outputFile);
-            fclose(outputFile);
-            outputFile = fopen("perBzt.bin", "ab");
-            fwrite(&(outputPerBz[0]), sizeof(outputPerBz[0]), P::xcells_ini, outputFile);
-            fclose(outputFile);
             outputFile = fopen("rhomt.bin", "ab");
             fwrite(&(outputRhom[0]), sizeof(outputRhom[0]), P::xcells_ini, outputFile);
-            fclose(outputFile);
-            outputFile = fopen("Ext.bin", "ab");
-            fwrite(&(outputEx[0]), sizeof(outputEx[0]), P::xcells_ini, outputFile);
-            fclose(outputFile);
-            outputFile = fopen("Eyt.bin", "ab");
-            fwrite(&(outputEy[0]), sizeof(outputEy[0]), P::xcells_ini, outputFile);
-            fclose(outputFile);
-            outputFile = fopen("Ezt.bin", "ab");
-            fwrite(&(outputEz[0]), sizeof(outputEz[0]), P::xcells_ini, outputFile);
             fclose(outputFile);
          }
       }
@@ -231,35 +195,50 @@ namespace projects {
          (int) ((y - Parameters::ymin) / dy) * Parameters::xcells_ini +
          (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
 
-      setRandomSeed(cell,cellID);
-
-      cellParams[CellParams::EX   ] = 0.0;
-      cellParams[CellParams::EY   ] = 0.0;
-      cellParams[CellParams::EZ   ] = 0.0;
+      setRandomSeed(cellID);
       
-      this->rndRho=getRandomNumber(cell);
+      this->rndRho=getRandomNumber();
       
-      this->rndVel[0]=getRandomNumber(cell);
-      this->rndVel[1]=getRandomNumber(cell);
-      this->rndVel[2]=getRandomNumber(cell);
-
-      Real rndBuffer[3];
-      rndBuffer[0]=getRandomNumber(cell);
-      rndBuffer[1]=getRandomNumber(cell);
-      rndBuffer[2]=getRandomNumber(cell);
-
-      cellParams[CellParams::PERBX] = this->magXPertAbsAmp * (0.5 - rndBuffer[0]);
-      cellParams[CellParams::PERBY] = this->magYPertAbsAmp * (0.5 - rndBuffer[1]);
-      cellParams[CellParams::PERBZ] = this->magZPertAbsAmp * (0.5 - rndBuffer[2]);
-
+      this->rndVel[0]=getRandomNumber();
+      this->rndVel[1]=getRandomNumber();
+      this->rndVel[2]=getRandomNumber();
    }
    
-   void Dispersion::setCellBackgroundField(SpatialCell* cell) const {
+   void Dispersion::setProjectBField(
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+      FsGrid< fsgrids::technical, 2>& technicalGrid
+   ) {
       ConstantField bgField;
       bgField.initialize(this->B0 * cos(this->angleXY) * cos(this->angleXZ),
                          this->B0 * sin(this->angleXY) * cos(this->angleXZ),
                          this->B0 * sin(this->angleXZ));
                          
-      setBackgroundField(bgField,cell->parameters, cell->derivatives,cell->derivativesBVOL);
+      setBackgroundField(bgField, BgBGrid);
+      
+      if(!P::isRestart) {
+         const auto localSize = BgBGrid.getLocalSize().data();
+         
+#pragma omp parallel for collapse(3)
+         for (int x = 0; x < localSize[0]; ++x) {
+            for (int y = 0; y < localSize[1]; ++y) {
+               for (int z = 0; z < localSize[2]; ++z) {
+                  std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
+                  const int64_t cellid = perBGrid.GlobalIDForCoords(x, y, z);
+                  
+                  setRandomSeed(cellid);
+                  
+                  Real rndBuffer[3];
+                  rndBuffer[0]=getRandomNumber();
+                  rndBuffer[1]=getRandomNumber();
+                  rndBuffer[2]=getRandomNumber();
+                  
+                  cell->at(fsgrids::bfield::PERBX) = this->magXPertAbsAmp * (0.5 - rndBuffer[0]);
+                  cell->at(fsgrids::bfield::PERBY) = this->magYPertAbsAmp * (0.5 - rndBuffer[1]);
+                  cell->at(fsgrids::bfield::PERBZ) = this->magZPertAbsAmp * (0.5 - rndBuffer[2]);
+               }
+            }
+         }
+      }
    }
 } // namespace projects

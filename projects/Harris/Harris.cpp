@@ -202,8 +202,30 @@ namespace projects {
       return V0;
    }
 
-   void Harris::setCellBackgroundField(SpatialCell *cell) const {
-      setBackgroundFieldToZero(cell->parameters, cell->derivatives,cell->derivativesBVOL);
+   void Harris::setProjectBField(
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+      FsGrid< fsgrids::technical, 2>& technicalGrid
+   ) {
+      setBackgroundFieldToZero(BgBGrid);
+      
+      if(!P::isRestart) {
+         auto localSize = perBGrid.getLocalSize().data();
+         
+         #pragma omp parallel for collapse(3)
+         for (int x = 0; x < localSize[0]; ++x) {
+            for (int y = 0; y < localSize[1]; ++y) {
+               for (int z = 0; z < localSize[2]; ++z) {
+                  const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
+                  std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
+                  
+                  cell->at(fsgrids::bfield::PERBX) = this->BX0 * tanh((xyz[1] + 0.5 * perBGrid.DY) / this->SCA_LAMBDA);
+                  cell->at(fsgrids::bfield::PERBY) = this->BY0 * tanh((xyz[2] + 0.5 * perBGrid.DZ) / this->SCA_LAMBDA);
+                  cell->at(fsgrids::bfield::PERBZ) = this->BZ0 * tanh((xyz[0] + 0.5 * perBGrid.DX) / this->SCA_LAMBDA);
+               }
+            }
+         }
+      }
    }
 
 } // namespace projects
