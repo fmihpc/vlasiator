@@ -574,30 +574,11 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          }
          continue;
       }
-      if(*it == "VolE") {
-         // Volume-averaged E field
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("E_vol",CellParams::EXVOL,3));
-         continue;
-      }
       if(*it == "EJE") {
          // Volume-averaged E field
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EJE",CellParams::EXJE,3));
          continue;
       }
-      if(*it == "HallE") {
-         // 12 corner components of the hall-effect contribution to the electric field
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EXHALL_000_100",CellParams::EXHALL_000_100,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EXHALL_001_101",CellParams::EXHALL_001_101,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EXHALL_010_110",CellParams::EXHALL_010_110,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EXHALL_011_111",CellParams::EXHALL_011_111,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EYHALL_000_010",CellParams::EYHALL_000_010,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EYHALL_001_011",CellParams::EYHALL_001_011,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EYHALL_100_110",CellParams::EYHALL_100_110,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EYHALL_101_111",CellParams::EYHALL_101_111,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EZHALL_000_001",CellParams::EZHALL_000_001,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EZHALL_010_011",CellParams::EZHALL_010_011,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EZHALL_100_101",CellParams::EZHALL_100_101,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EZHALL_110_111",CellParams::EZHALL_110_111,1));
       if(lowercase == "halle" || lowercase == "fg_halle" || lowercase == "fg_e_hall") {
          for(int index=0; index<fsgrids::N_EHALL; index++) {
             std::string reducer_name = "fg_e_hall_" + std::to_string(index);

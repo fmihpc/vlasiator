@@ -188,7 +188,6 @@ namespace CellParams {
       BGEXVOL,    /*!< Background electric field averaged over spatial cell, x-component.*/
       BGEYVOL,    /*!< Background electric field averaged over spatial cell, y-component.*/
       BGEZVOL,    /*!< Background electric field averaged over spatial cell, z-component.*/
-      CELLID,     /*!< DCCRG cell index.*/
       FSGRID_RANK, /*!< Rank of this cell in the FsGrid cartesian communicator */
       FSGRID_BOUNDARYTYPE, /*!< Boundary type of this cell, as stored in the fsGrid */
       CELLID, /*! < DCCRG cell index */

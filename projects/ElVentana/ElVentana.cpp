@@ -58,6 +58,7 @@ namespace projects {
       RP::add("ElVentana.WindowZ_max", "Section boundary (Z-direction) of the domain contained in the StartFile to be selected (meters).",1.8e7);
       RP::add("ElVentana.dipoleScalingFactor","Scales the field strength of the magnetic dipole compared to Earths.", 1.0);
       RP::add("ElVentana.dipoleType","0: Normal 3D dipole, 1: line-dipole for 2D polar simulations", 0);
+      RP::add("ElVentana.noDipoleInSW", "If set to 1, the dipole magnetic field is not set in the solar wind inflow cells. Default 0.", 0.0);
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
@@ -71,6 +72,7 @@ namespace projects {
       Project::getParameters();
       
       int myRank;
+      Real dummy;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
       typedef Readparameters RP;
       if(!RP::get("ElVentana.StartFile", this->StartFile)) {
@@ -129,6 +131,11 @@ namespace projects {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
+      if(!RP::get("ElVentana.noDipoleInSW", dummy)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      this->noDipoleInSW = dummy == 1 ? true:false;
 
 
       // Per-population parameters
@@ -471,7 +478,7 @@ namespace projects {
             exit(1);
          }
          for (uint j=0; j<vecsizeperturbed_B; j++) {
-            mpiGrid[cells[i]]->parameters[CellParams::PERBX+j] = buffer[j];
+            mpiGrid[cells[i]]->parameters[CellParams::PERBXVOL+j] = buffer[j];
          }
          delete[] buffer;
          attribs.pop_back();
@@ -494,11 +501,11 @@ namespace projects {
          }
          if (isbulk == 1) {
             for (uint j=0; j<vecsizebackground_B; j++) {
-               mpiGrid[cells[i]]->parameters[CellParams::BGBX+j] = buffer[j] - mpiGrid[cells[i]]->parameters[CellParams::PERBX+j]; 
+               mpiGrid[cells[i]]->parameters[CellParams::BGBXVOL+j] = buffer[j] - mpiGrid[cells[i]]->parameters[CellParams::PERBXVOL+j]; 
             }
          } else {
             for (uint j=0; j<vecsizebackground_B; j++) {
-               mpiGrid[cells[i]]->parameters[CellParams::BGBX+j] = buffer[j];
+               mpiGrid[cells[i]]->parameters[CellParams::BGBXVOL+j] = buffer[j];
             }
          }
          delete[] buffer;
@@ -589,68 +596,165 @@ namespace projects {
    }
 
 
-   void ElVentana::setCellBackgroundField(SpatialCell *cell) const {
+   /* set 0-centered dipole */
+   void ElVentana::setProjectBField(
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+      FsGrid< fsgrids::technical, 2>& technicalGrid
+   ) {
+
+   //void ElVentana::setCellBackgroundField(SpatialCell *cell) const {
 
       //setBackgroundFieldToZero(cell->parameters, cell->derivatives,cell->derivativesBVOL);
-      if(cell->sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN) {
-         setBackgroundFieldToZero(cell->parameters, cell->derivatives,cell->derivativesBVOL);
-      }
-      else {
-         Dipole bgFieldDipole;
-         LineDipole bgFieldLineDipole;
+      //if(cell->sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN) {
+         //setBackgroundFieldToZero(cell->parameters, cell->derivatives,cell->derivativesBVOL);
+      //   setBackgroundFieldToZero(BgBGrid);
+      //}
+      //else {
+     Dipole bgFieldDipole;
+     LineDipole bgFieldLineDipole;
 
-         // The hardcoded constants of dipole and line dipole moments are obtained
-         // from Daldorff et al (2014), see
-         // https://github.com/fmihpc/vlasiator/issues/20 for a derivation of the
-         // values used here.
-         switch(this->dipoleType) {
-             case 0:
-                bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );//set dipole moment
-                setBackgroundField(bgFieldDipole,cell->parameters, cell->derivatives,cell->derivativesBVOL);
-                break;
-             case 1:
-                bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor, 0.0, 0.0, 0.0 );//set dipole moment     
-                setBackgroundField(bgFieldLineDipole,cell->parameters, cell->derivatives,cell->derivativesBVOL);
-                break;
-             /*case 2:
-                bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor, 0.0, 0.0, 0.0 );//set dipole moment     
-                setBackgroundField(bgFieldLineDipole,cell->parameters, cell->derivatives,cell->derivativesBVOL);
-                //Append mirror dipole
-                bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor, this->dipoleMirrorLocationX, 0.0, 0.0 );
-                setBackgroundField(bgFieldLineDipole,cell->parameters, cell->derivatives,cell->derivativesBVOL, true);
-                break;
-             case 3:
-                bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );//set dipole moment
-                setBackgroundField(bgFieldDipole,cell->parameters, cell->derivatives,cell->derivativesBVOL);
-                //Append mirror dipole                
-                bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, this->dipoleMirrorLocationX, 0.0, 0.0, 0.0 );//mirror
-                setBackgroundField(bgFieldDipole,cell->parameters, cell->derivatives,cell->derivativesBVOL, true);
-                break; */
-                
-             default:
-                setBackgroundFieldToZero(cell->parameters, cell->derivatives,cell->derivativesBVOL);
-                
-         }
-      }
+     // The hardcoded constants of dipole and line dipole moments are obtained
+     // from Daldorff et al (2014), see
+     // https://github.com/fmihpc/vlasiator/issues/20 for a derivation of the
+     // values used here.
+     switch(this->dipoleType) {
+	 case 0:
+	    bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );//set dipole moment
+	    // setBackgroundField(bgFieldDipole,cell->parameters, cell->derivatives,cell->derivativesBVOL);
+	    setBackgroundField(bgFieldDipole,BgBGrid);
+	    break;
+	 case 1:
+	    bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor, 0.0, 0.0, 0.0 );//set dipole moment     
+	    //setBackgroundField(bgFieldLineDipole,cell->parameters, cell->derivatives,cell->derivativesBVOL);
+	    setBackgroundField(bgFieldLineDipole,BgBGrid);
+	    break;
+	 /*case 2:
+	    bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor, 0.0, 0.0, 0.0 );//set dipole moment     
+	    setBackgroundField(bgFieldLineDipole,cell->parameters, cell->derivatives,cell->derivativesBVOL);
+	    //Append mirror dipole
+	    bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor, this->dipoleMirrorLocationX, 0.0, 0.0 );
+	    setBackgroundField(bgFieldLineDipole,cell->parameters, cell->derivatives,cell->derivativesBVOL, true);
+	    break;
+	 case 3:
+	    bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );//set dipole moment
+	    setBackgroundField(bgFieldDipole,cell->parameters, cell->derivatives,cell->derivativesBVOL);
+	    //Append mirror dipole                
+	    bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, this->dipoleMirrorLocationX, 0.0, 0.0, 0.0 );//mirror
+	    setBackgroundField(bgFieldDipole,cell->parameters, cell->derivatives,cell->derivativesBVOL, true);
+	    break; */
+	    
+	 default:
+	    setBackgroundFieldToZero(BgBGrid);
+	    
+     }
+      //}
+
+      const auto localSize = BgBGrid.getLocalSize().data();
       
+#pragma omp parallel
+      {
+         //Force field to zero in the perpendicular direction for 2D (1D) simulations. Otherwise we have unphysical components.
+         if(P::xcells_ini==1) {
+#pragma omp for collapse(3)
+            for (int x = 0; x < localSize[0]; ++x) {
+               for (int y = 0; y < localSize[1]; ++y) {
+                  for (int z = 0; z < localSize[2]; ++z) {
+                     std::array<Real, fsgrids::bgbfield::N_BGB>* cell = BgBGrid.get(x, y, z);
+                     cell->at(fsgrids::bgbfield::BGBX)=0;
+                     cell->at(fsgrids::bgbfield::BGBXVOL)=0.0;
+                     cell->at(fsgrids::bgbfield::dBGBydx)=0.0;
+                     cell->at(fsgrids::bgbfield::dBGBzdx)=0.0;
+                     cell->at(fsgrids::bgbfield::dBGBxdy)=0.0;
+                     cell->at(fsgrids::bgbfield::dBGBxdz)=0.0;
+                     cell->at(fsgrids::bgbfield::dBGBYVOLdx)=0.0;
+                     cell->at(fsgrids::bgbfield::dBGBZVOLdx)=0.0;
+                     cell->at(fsgrids::bgbfield::dBGBXVOLdy)=0.0;
+                     cell->at(fsgrids::bgbfield::dBGBXVOLdz)=0.0;
+                  }
+               }
+            }
+         }
+         if(P::ycells_ini==1) {
+            /*2D simulation in x and z. Set By and derivatives along Y, and derivatives of By to zero*/
+#pragma omp for collapse(3)
+            for (int x = 0; x < localSize[0]; ++x) {
+               for (int y = 0; y < localSize[1]; ++y) {
+                  for (int z = 0; z < localSize[2]; ++z) {
+                     std::array<Real, fsgrids::bgbfield::N_BGB>* cell = BgBGrid.get(x, y, z);
+                     cell->at(fsgrids::bgbfield::BGBY)=0.0;
+                     cell->at(fsgrids::bgbfield::BGBYVOL)=0.0;
+                     cell->at(fsgrids::bgbfield::dBGBxdy)=0.0;
+                     cell->at(fsgrids::bgbfield::dBGBzdy)=0.0;
+                     cell->at(fsgrids::bgbfield::dBGBydx)=0.0;
+                     cell->at(fsgrids::bgbfield::dBGBydz)=0.0;
+                     cell->at(fsgrids::bgbfield::dBGBXVOLdy)=0.0;
+                     cell->at(fsgrids::bgbfield::dBGBZVOLdy)=0.0;
+                     cell->at(fsgrids::bgbfield::dBGBYVOLdx)=0.0;
+                     cell->at(fsgrids::bgbfield::dBGBYVOLdz)=0.0;
+                  }
+               }
+            }
+         }
+         if(P::zcells_ini==1) {
+#pragma omp for collapse(3)
+            for (int x = 0; x < localSize[0]; ++x) {
+               for (int y = 0; y < localSize[1]; ++y) {
+                  for (int z = 0; z < localSize[2]; ++z) {
+                     std::array<Real, fsgrids::bgbfield::N_BGB>* cell = BgBGrid.get(x, y, z);
+                     cell->at(fsgrids::bgbfield::BGBX)=0;
+                     cell->at(fsgrids::bgbfield::BGBY)=0;
+                     cell->at(fsgrids::bgbfield::BGBYVOL)=0.0;
+                     cell->at(fsgrids::bgbfield::BGBXVOL)=0.0;
+                     cell->at(fsgrids::bgbfield::dBGBxdy)=0.0;
+                     cell->at(fsgrids::bgbfield::dBGBxdz)=0.0;
+                     cell->at(fsgrids::bgbfield::dBGBydx)=0.0;
+                     cell->at(fsgrids::bgbfield::dBGBydz)=0.0;
+                     cell->at(fsgrids::bgbfield::dBGBXVOLdy)=0.0;
+                     cell->at(fsgrids::bgbfield::dBGBXVOLdz)=0.0;
+                     cell->at(fsgrids::bgbfield::dBGBYVOLdx)=0.0;
+                     cell->at(fsgrids::bgbfield::dBGBYVOLdz)=0.0;
+                  }
+               }
+            }
+         }
+         
+         // Remove dipole from inflow cells if this is requested
+         if(this->noDipoleInSW) {
+#pragma omp for collapse(3)
+            for (int x = 0; x < localSize[0]; ++x) {
+               for (int y = 0; y < localSize[1]; ++y) {
+                  for (int z = 0; z < localSize[2]; ++z) {
+                     if(technicalGrid.get(x, y, z)->sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN ) {
+                        for (int i = 0; i < fsgrids::bgbfield::N_BGB; ++i) {
+                           BgBGrid.get(x,y,z)->at(i) = 0;
+                        }
+                     }
+                  }
+               }
+            }
+         }
+      } // end of omp parallel region
+      // Superimpose constant background field if needed
+   }
 
-      //Force field to zero in the perpendicular direction for 2D (1D) simulations. Otherwise we have unphysical components.
+/*      //Force field to zero in the perpendicular direction for 2D (1D) simulations. Otherwise we have unphysical components.
       if(P::xcells_ini==1) {
-         cell->parameters[CellParams::BGBX]=0;
-         cell->parameters[CellParams::BGBXVOL]=0.0;
-         cell->derivatives[fieldsolver::dBGBydx]=0.0;
-         cell->derivatives[fieldsolver::dBGBzdx]=0.0;
-         cell->derivatives[fieldsolver::dBGBxdy]=0.0;
-         cell->derivatives[fieldsolver::dBGBxdz]=0.0;
-         cell->derivativesBVOL[bvolderivatives::dBGBYVOLdx]=0.0;
-         cell->derivativesBVOL[bvolderivatives::dBGBZVOLdx]=0.0;
-         cell->derivativesBVOL[bvolderivatives::dBGBXVOLdy]=0.0;
-         cell->derivativesBVOL[bvolderivatives::dBGBXVOLdz]=0.0;
+	 //cell->parameters[CellParams::BGBX]=0;
+	 cell->parameters[CellParams::BGBXVOL]=0.0;
+	 cell->derivatives[fieldsolver::dBGBydx]=0.0;
+	 cell->derivatives[fieldsolver::dBGBzdx]=0.0;
+	 cell->derivatives[fieldsolver::dBGBxdy]=0.0;
+	 cell->derivatives[fieldsolver::dBGBxdz]=0.0;
+	 cell->derivativesBVOL[bvolderivatives::dBGBYVOLdx]=0.0;
+	 cell->derivativesBVOL[bvolderivatives::dBGBZVOLdx]=0.0;
+	 cell->derivativesBVOL[bvolderivatives::dBGBXVOLdy]=0.0;
+	 cell->derivativesBVOL[bvolderivatives::dBGBXVOLdz]=0.0;
       }
       
       if(P::ycells_ini==1) {
          //2D simulation in x and z. Set By and derivatives along Y, and derivatives of By to zero//
-         cell->parameters[CellParams::BGBY]=0.0;
+         //cell->parameters[CellParams::BGBY]=0.0;
          cell->parameters[CellParams::BGBYVOL]=0.0;
          cell->derivatives[fieldsolver::dBGBxdy]=0.0;
          cell->derivatives[fieldsolver::dBGBzdy]=0.0;
@@ -662,8 +766,8 @@ namespace projects {
          cell->derivativesBVOL[bvolderivatives::dBGBYVOLdz]=0.0;
       }
       if(P::zcells_ini==1) {
-         cell->parameters[CellParams::BGBX]=0;
-         cell->parameters[CellParams::BGBY]=0;
+         //cell->parameters[CellParams::BGBX]=0;
+         //cell->parameters[CellParams::BGBY]=0;
          cell->parameters[CellParams::BGBYVOL]=0.0;
          cell->parameters[CellParams::BGBXVOL]=0.0;
          cell->derivatives[fieldsolver::dBGBxdy]=0.0;
@@ -676,6 +780,7 @@ namespace projects {
          cell->derivativesBVOL[bvolderivatives::dBGBYVOLdz]=0.0;
       }
    }
+*/
   
    CellID ElVentana::findCellID(SpatialCell *cell) const {
       Real* cellParams = cell->get_cell_parameters();

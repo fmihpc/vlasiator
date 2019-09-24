@@ -33,7 +33,6 @@
 #include "Diffusion/Diffusion.h"
 #include "Dispersion/Dispersion.h"
 #include "Distributions/Distributions.h"
-#include "ElectricSail/electric_sail.h"
 #include "ElVentana/ElVentana.h"
 #include "Firehose/Firehose.h"
 #include "Flowthrough/Flowthrough.h"
@@ -111,7 +110,6 @@ namespace projects {
       projects::Diffusion::addParameters();
       projects::Dispersion::addParameters();
       projects::Distributions::addParameters();
-      projects::ElectricSail::addParameters();
       projects::ElVentana::addParameters();
       projects::Firehose::addParameters();
       projects::Flowthrough::addParameters();
@@ -619,9 +617,6 @@ Project* createProject() {
    }
    if(Parameters::projectName == "Distributions") {
       rvalue = new projects::Distributions;
-   }
-   if (Parameters::projectName == "ElectricSail") {
-      return new projects::ElectricSail;
    }
    if (Parameters::projectName == "ElVentana") {
       return new projects::ElVentana;

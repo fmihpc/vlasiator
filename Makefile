@@ -134,7 +134,6 @@ DEPS_PROJECTS =	projects/project.h projects/project.cpp \
 		projects/Diffusion/Diffusion.h projects/Diffusion/Diffusion.cpp \
 		projects/Dispersion/Dispersion.h projects/Dispersion/Dispersion.cpp \
 		projects/Distributions/Distributions.h projects/Distributions/Distributions.cpp \
-		projects/ElectricSail/electric_sail.h projects/ElectricSail/electric_sail.cpp \
 		projects/ElVentana/ElVentana.h projects/ElVentana/ElVentana.cpp \
 		projects/Firehose/Firehose.h projects/Firehose/Firehose.cpp \
 		projects/Flowthrough/Flowthrough.h projects/Flowthrough/Flowthrough.cpp \
@@ -191,7 +190,7 @@ OBJS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipo
 	donotcompute.o ionosphere.o outflow.o setbyuser.o setmaxwellian.o\
 	sysboundary.o sysboundarycondition.o particle_species.o\
 	project.o projectTriAxisSearch.o read_gaussian_population.o\
-	Alfven.o Diffusion.o Dispersion.o Distributions.o electric_sail.o ElVentana.o Firehose.o Flowthrough.o Fluctuations.o Harris.o KHB.o \
+	Alfven.o Diffusion.o Dispersion.o Distributions.o ElVentana.o Firehose.o Flowthrough.o Fluctuations.o Harris.o KHB.o \
         Larmor.o Magnetosphere.o MultiPeak.o VelocityBox.o Riemann1.o Shock.o Template.o test_fp.o testAmr.o testHall.o test_trans.o \
 	IPShock.o object_wrapper.o\
 	verificationLarmor.o Shocktest.o grid.o ioread.o iowrite.o vlasiator.o logger.o\
@@ -314,7 +313,7 @@ Distributions.o: ${DEPS_COMMON} projects/Distributions/Distributions.h projects/
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/Distributions/Distributions.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN} ${INC_FSGRID}
 
 ElVentana.o: ${DEPS_COMMON} projects/ElVentana/ElVentana.h projects/ElVentana/ElVentana.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/ElVentana/ElVentana.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN} ${INC_VLSV}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/ElVentana/ElVentana.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN} ${INC_VLSV} ${INC_FSGRID}
 
 Firehose.o: ${DEPS_COMMON} projects/Firehose/Firehose.h projects/Firehose/Firehose.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/Firehose/Firehose.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN} ${INC_FSGRID}
@@ -374,7 +373,7 @@ Shocktest.o: ${DEPS_COMMON} projects/Shocktest/Shocktest.h projects/Shocktest/Sh
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/Shocktest/Shocktest.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN} ${INC_FSGRID}
 
 project.o: ${DEPS_COMMON} $(DEPS_PROJECTS)
-	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/project.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN} ${INC_VECTORCLASS} ${INC_FSGRID}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/project.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN} ${INC_VECTORCLASS} ${INC_FSGRID} ${INC_VLSV}
 
 projectTriAxisSearch.o: ${DEPS_COMMON} $(DEPS_PROJECTS) projects/projectTriAxisSearch.h projects/projectTriAxisSearch.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/projectTriAxisSearch.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN} ${INC_FSGRID}

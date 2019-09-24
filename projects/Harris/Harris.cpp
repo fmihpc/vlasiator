@@ -147,40 +147,8 @@ namespace projects {
       
    }
    
-   void Harris::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
-      Real* cellParams = cell->get_cell_parameters();
-      creal x = cellParams[CellParams::XCRD];
-      creal dx = cellParams[CellParams::DX];
-      creal y = cellParams[CellParams::YCRD];
-      creal dy = cellParams[CellParams::DY];
-      creal z = cellParams[CellParams::ZCRD];
-      creal dz = cellParams[CellParams::DZ];
-      
-      //creal noise_par;
-      //srand(1234);
-      CellID cellID = (int) ((x - Parameters::xmin) / dx) +
-         (int) ((y - Parameters::ymin) / dy) * Parameters::xcells_ini +
-         (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
-
-      setRandomSeed(cell,cellID);
-      Real rndBuffer[3];
-      rndBuffer[0]=getRandomNumber(cell);
-      rndBuffer[1]=getRandomNumber(cell);
-      rndBuffer[2]=getRandomNumber(cell);
-
-      
-      cellParams[CellParams::EX   ] = 0.0;
-      cellParams[CellParams::EY   ] = 0.0;
-      cellParams[CellParams::EZ   ] = 0.0;
-      //cellParams[CellParams::PERBX   ] = this->BX0 * tanh((z + 0.5 * dz) / this->SCA_LAMBDA) + 0.01*BX0*(-1. + 2.*rand()/(double)RAND_MAX);
-      cellParams[CellParams::PERBX   ] = this->BX0 * tanh((z + 0.5 * dz) / this->SCA_LAMBDA) + this->magXPertAbsAmp * (0.5 - rndBuffer[0]);
-      cellParams[CellParams::PERBY   ] = this->BY0 * tanh((z + 0.5 * dz) / this->SCA_LAMBDA) + this->magYPertAbsAmp * (0.5 - rndBuffer[1]);
-      cellParams[CellParams::PERBZ   ] = this->BZ0 * tanh((z + 0.5 * dz) / this->SCA_LAMBDA) + this->magZPertAbsAmp * (0.5 - rndBuffer[2]);
-
-      cellParams[CellParams::BGBX   ] = 0.0;
-      cellParams[CellParams::BGBY   ] = 0.0;
-      cellParams[CellParams::BGBZ   ] = 0.0;
-   }
+   void Harris::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
+   
    
    vector<std::array<Real, 3>> Harris::getV0(
       creal x,

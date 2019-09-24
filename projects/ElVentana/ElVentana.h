@@ -23,8 +23,8 @@
 #ifndef ELVENTANA_H
 #define ELVENTANA_H
 
-#include <vlsv_reader_parallel.h>
-#include <vlsv_reader.h>
+#include "vlsv_reader_parallel.h"
+#include "vlsv_reader.h"
 
 #include "../../definitions.h"
 #include "../projectTriAxisSearch.h"
@@ -53,6 +53,11 @@ namespace projects {
       static void addParameters(void);
       virtual void getParameters(void);
       virtual void setCellBackgroundField(spatial_cell::SpatialCell* cell) const;
+      virtual void setProjectBField(
+         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+         FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+         FsGrid< fsgrids::technical, 2>& technicalGrid
+      );
       virtual Real calcPhaseSpaceDensity(
                                          creal& x, creal& y, creal& z,
                                          creal& dx, creal& dy, creal& dz,
@@ -78,6 +83,7 @@ namespace projects {
                                                      ) const;
 
       dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry> *newmpiGrid = NULL;
+      bool noDipoleInSW;
       Real WindowX[2];
       Real WindowY[2];
       Real WindowZ[2];
