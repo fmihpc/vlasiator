@@ -128,19 +128,6 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
     // compute total transformation
    Transform<Real,3,Affine> total_transform(Matrix<Real, 4, 4>::Identity()); //CONTINUE
 
-   if (Parameters::propagatePotential == true) {
-   #warning Electric acceleration works for Poisson only atm
-      Real* E = &(spatial_cell->parameters[CellParams::EXVOL]);
-
-      const Real q_per_m = getObjectWrapper().particleSpecies[popID].charge 
-                         / getObjectWrapper().particleSpecies[popID].mass;
-      const Real CONST = q_per_m * dt;
-      total_transform(0,3) = CONST * E[0];
-      total_transform(1,3) = CONST * E[1];
-      total_transform(2,3) = CONST * E[2];
-      return total_transform;
-   } // if (Parameters::propagatePotential == true) 
-
    // in this many substeps we iterate forward bulk velocity when the complete transformation is computed (0.1 deg per substep).
    unsigned int bulk_velocity_substeps; 
    unsigned int bulk_velocity_substeps_2; 

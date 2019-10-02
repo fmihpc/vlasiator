@@ -603,7 +603,7 @@ namespace projects {
       FsGrid< fsgrids::technical, 2>& technicalGrid
    ) {
 
-   //void ElVentana::setCellBackgroundField(SpatialCell *cell) const {
+   //void ElVentana::setCellBackgroundField(SpatialCell* cell) const {
 
       //setBackgroundFieldToZero(cell->parameters, cell->derivatives,cell->derivativesBVOL);
       //if(cell->sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN) {

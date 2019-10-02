@@ -502,11 +502,6 @@ int main(int argn,char* args[]) {
             sysBoundaries, 0.0, 1.0
          );
       }
-      phiprof::start("getVolumeFieldsFromFsGrid");
-      // These should be done by initializeFieldPropagator() if the propagation is turned off.
-      getVolumeFieldsFromFsGrid(volGrid, mpiGrid, cells);
-      phiprof::stop("getVolumeFieldsFromFsGrid");
-      
       calculateSpatialTranslation(mpiGrid,0.0);
       calculateAcceleration(mpiGrid,0.0);
       
@@ -647,7 +642,7 @@ int main(int argn,char* args[]) {
           P::tstep % (P::diagnosticInterval*10) == 0 &&
           P::tstep-P::tstep_min >0) {
 
-         //phiprof::print(MPI_COMM_WORLD,"phiprof");
+         phiprof::print(MPI_COMM_WORLD,"phiprof");
          
          double currentTime=MPI_Wtime();
          double timePerStep=double(currentTime  - beforeTime) / (P::tstep-beforeStep);
@@ -935,9 +930,6 @@ int main(int argn,char* args[]) {
          addTimedBarrier("barrier-after-field-solver");
       }
 
-      if (P::propagatePotential == true) {
-         poisson::solve(mpiGrid);
-      }
       // Initialize EJE fields
       #pragma omp parallel for
       for (size_t c=0; c<cells.size(); ++c) {
@@ -1026,7 +1018,7 @@ int main(int argn,char* args[]) {
    phiprof::stop("Finalization");
    phiprof::stop("main");
    
-  // phiprof::print(MPI_COMM_WORLD,"phiprof");
+   phiprof::print(MPI_COMM_WORLD,"phiprof");
    
    if (myRank == MASTER_RANK) logFile << "(MAIN): Exiting." << endl << writeVerbose;
    logFile.close();
