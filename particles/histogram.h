@@ -49,7 +49,8 @@ class Histogram1D
             return;
          }
 
-         MPI::COMM_WORLD.Allreduce(bins,targetbins,num_bins,MPI::DOUBLE,MPI_SUM);
+         MPI_Allreduce(bins,targetbins,num_bins,MPI_DOUBLE,MPI_SUM, MPI_COMM_WORLD);
+
 
          /* Throw away the old bins. */
          delete[] bins;
@@ -150,7 +151,7 @@ class Histogram2D
             return;
          }
 
-         MPI::COMM_WORLD.Allreduce(bins, targetbins, num_bins[0] * num_bins[1], MPI::DOUBLE, MPI_SUM);
+         MPI_Allreduce(bins,targetbins, num_bins[0] * num_bins[1], MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
          /* Throw away the old bins. */
          delete[] bins;
@@ -398,7 +399,7 @@ class Histogram3D
             return;
          }
 
-         MPI::COMM_WORLD.Allreduce(bins, targetbins, num_bins[0] * num_bins[1] * num_bins[2], MPI::FLOAT, MPI_SUM);
+         MPI_Allreduce(bins, targetbins, num_bins[0] * num_bins[1] * num_bins[2], MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
 
          /* Throw away the old bins. */
          delete[] bins;

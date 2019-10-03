@@ -39,14 +39,17 @@
 
 int main(int argc, char** argv) {
 
-   MPI::Init(argc, argv);
+   MPI_Init(&argc, &argv);
 
    /* Parse commandline and config*/
    Readparameters parameters(argc, argv, MPI_COMM_WORLD);
    ParticleParameters::addParameters();
    parameters.parse(false);  // Parse parameters and don't require run_config
+   parameters.helpMessage();
+   
    if(!ParticleParameters::getParameters()) {
       std::cerr << "Parsing parameters failed, aborting." << std::endl;
+      std::cerr << "Did you add a --run_config=file.cfg parameter?" << std::endl;
       return 1;
    }
 
@@ -54,14 +57,20 @@ int main(int argc, char** argv) {
    std::string filename_pattern = ParticleParameters::input_filename_pattern;
    char filename_buffer[256];
 
-   int input_file_counter=floor(ParticleParameters::start_time / ParticleParameters::input_dt);
+   int input_file_counter = (ParticleParameters::propagation_direction == 1) ?
+      floor(ParticleParameters::start_time / ParticleParameters::input_dt) :
+      ceil(ParticleParameters::start_time / ParticleParameters::input_dt);
    Field E[2],B[2],V[2],R[2];
-   std::cerr << "Loading first file with index " << ParticleParameters::start_time / ParticleParameters::input_dt
-      << std::endl;
-   snprintf(filename_buffer,256,filename_pattern.c_str(),input_file_counter-1);
+   
+   std::cerr << "Loading first file with index " << input_file_counter << std::endl;
+   
+   // /!\ Go one step opposite to the propagation time direction
+   snprintf(filename_buffer,256,filename_pattern.c_str(),input_file_counter - ParticleParameters::propagation_direction);
+
    E[0].dimension[0] = E[1].dimension[0] = B[0].dimension[0] = B[1].dimension[0] = V[0].dimension[0] = V[1].dimension[0] = R[0].dimension[0] = R[1].dimension[0] = ParticleParameters::boundary_behaviour_x;
    E[0].dimension[1] = E[1].dimension[1] = B[0].dimension[1] = B[1].dimension[1] = V[0].dimension[1] = V[1].dimension[1] = R[0].dimension[1] = R[1].dimension[1] = ParticleParameters::boundary_behaviour_y;
    E[0].dimension[2] = E[1].dimension[2] = B[0].dimension[2] = B[1].dimension[2] = V[0].dimension[2] = V[1].dimension[2] = R[0].dimension[2] = R[1].dimension[2] = ParticleParameters::boundary_behaviour_z;
+
    readfields(filename_buffer,E[1],B[1],V[1], R[1]);
    E[0]=E[1]; B[0]=B[1]; V[0]=V[1];  R[0]=R[1];
 
@@ -92,9 +101,8 @@ int main(int argc, char** argv) {
    ParticleParameters::boundary_behaviour_z->setExtent(B[0].dimension[2]->min, B[0].dimension[2]->max, B[0].dimension[2]->cells);
 
    /* Init particles */
-   double dt=ParticleParameters::dt;
-   double maxtime=ParticleParameters::end_time - ParticleParameters::start_time;
-   int maxsteps = maxtime/dt;
+   const double dt=ParticleParameters::dt;
+   int maxsteps = (ParticleParameters::end_time - ParticleParameters::start_time)/dt;
    Real filetime = ParticleParameters::start_time;    /* for use in static fields */
 
    Scenario* scenario = createScenario(ParticleParameters::mode);
@@ -119,46 +127,60 @@ int main(int argc, char** argv) {
 
    /* Push them around */
    for(int step=0; step<maxsteps; step++) {
-     
-     bool newfile = false;
-     if (!ParticleParameters::staticfields) {
-       /* Load newer fields, if neccessary */
-       if(step >= 0) {
-	 newfile = readNextTimestep(filename_pattern, ParticleParameters::start_time + step*dt, 1,E[0], E[1],
-				    B[0], B[1], V[0], V[1], R[0], R[1], scenario->needV, scenario->needRho, input_file_counter);
-       } else {
-	 newfile = readNextTimestep(filename_pattern, ParticleParameters::start_time + step*dt, -1,E[1], E[0],
-				    B[1], B[0], V[0], V[1], R[0], R[1], scenario->needV, scenario->needRho, input_file_counter);
-       }
-
-       cur_E.setfields(E[0],E[1],ParticleParameters::start_time + step*dt);
-       cur_B.setfields(B[0],B[1],ParticleParameters::start_time + step*dt);       
-       cur_V.setfields(V[0],V[1],ParticleParameters::start_time + step*dt);       
-       cur_R.setfields(R[0],R[1],ParticleParameters::start_time + step*dt);       
-     } else {
-       if (ParticleParameters::start_time + step*dt > filetime) {
-	 if (step >= 0) {
-	   input_file_counter += 1;
+      bool newfile = false;
+      if (!ParticleParameters::staticfields) {
+	 /* Load newer fields, if neccessary */
+	 if (ParticleParameters::propagation_direction > 0) {
+	    newfile = readNextTimestep(
+				       filename_pattern,
+				       ParticleParameters::start_time + step*dt,
+				       ParticleParameters::propagation_direction,
+				       E[0], E[1],
+				       B[0], B[1], 
+				       V[0], V[1], 
+				       R[0], R[1], 
+				       scenario->needV, scenario->needRho, 
+				       input_file_counter
+				       );
 	 } else {
-	   input_file_counter += -1;
+	    newfile = readNextTimestep(
+				       filename_pattern,
+				       ParticleParameters::start_time + step*dt,
+				       ParticleParameters::propagation_direction,
+				       E[1], E[0],
+				       B[1], B[0], 
+				       V[1], V[0], 
+				       R[1], R[0], 
+				       scenario->needV, scenario->needRho, 				      
+				       input_file_counter
+				       );
 	 }
-	 filetime = input_file_counter * ParticleParameters::input_dt;
-	 newfile = true;
-       }
-     }
-     // If a new timestep has been opened, add a new bunch of particles
-     if(newfile) {
-       if (!ParticleParameters::staticfields) {
-	 std::cerr << "New file " << input_file_counter<<" step "<< step<<" time "<< step*dt<<std::endl;
-       } else {
-	 std::cerr << "Static fields new file " << input_file_counter<<" step "<< step<<" time "<< step*dt<<std::endl;
-       }
-       //std::cerr << "   fields "<<ParticleParameters::staticfields<<std::endl;
-
-       scenario->newTimestep(input_file_counter, step, step*dt, particles, cur_E, cur_B, cur_V, cur_R);
-     }
-
-     scenario->beforePush(particles,cur_E,cur_B,cur_V, cur_R);
+	 
+	 cur_E.setfields(E[0],E[1],ParticleParameters::start_time + step*dt);
+	 cur_B.setfields(B[0],B[1],ParticleParameters::start_time + step*dt);       
+	 cur_V.setfields(V[0],V[1],ParticleParameters::start_time + step*dt);       
+	 cur_R.setfields(R[0],R[1],ParticleParameters::start_time + step*dt);       
+      } else {
+	 if (ParticleParameters::start_time + step*dt > filetime) {
+	    if (ParticleParameters::propagation_direction > 0) {
+	       input_file_counter += 1;
+	    } else {
+	       input_file_counter += -1;
+	    }
+	    filetime = input_file_counter * ParticleParameters::input_dt;
+	    newfile = true;
+	 }
+      }
+      // If a new timestep has been opened, add a new bunch of particles
+      if(newfile) {
+	 if (!ParticleParameters::staticfields) {
+	    std::cerr << "New file " << input_file_counter<<" step "<< step<<" time "<< step*dt<<std::endl;
+	 } else {
+	    std::cerr << "Static fields new file " << input_file_counter<<" step "<< step<<" time "<< step*dt<<std::endl;
+	 }
+         scenario->newTimestep(input_file_counter, step, step*dt, particles, cur_E, cur_B, cur_V, cur_R);
+      }
+      scenario->beforePush(particles,cur_E,cur_B,cur_V, cur_R);
 
 #pragma omp parallel for
       for(unsigned int i=0; i< particles.size(); i++) {
@@ -174,6 +196,11 @@ int main(int argc, char** argv) {
          Eval = cur_E(particles[i].x);
          Bval = cur_B(particles[i].x);
 	 //std::cerr<<"Eval "<<Eval[0]<<" "<<Eval[1]<<" "<<Eval[2]<<"Bval "<<Bval[0]<<" "<<Bval[1]<<" "<<Bval[2]<<std::endl;
+
+         if(dt < 0) {
+           // If propagating backwards in time, flip B-field pseudovector
+//            Bval *= -1;
+         }
 
          /* Push them around */
          particles[i].push(Bval,Eval,dt);
@@ -196,6 +223,9 @@ int main(int argc, char** argv) {
          if(!ParticleParameters::boundary_behaviour_z->handleParticle(*i)) {
             do_erase = true;
          }
+         if(vector_length(i->x) < ParticleParameters::inner_boundary_radius) {
+            do_erase = true;
+         }
          if(do_erase) {
             particles.erase(i);
          } else {
@@ -206,15 +236,15 @@ int main(int argc, char** argv) {
       scenario->afterPush(step, step*dt, particles, cur_E, cur_B, cur_V, cur_R);
 
       /* Draw progress bar */
-      if((step % (maxsteps/71))==0) {
-         std::cerr << "=";
-      }
+//       if((step % (maxsteps/71))==0) {
+//          std::cerr << "=";
+//       }
    }
 
    scenario->finalize(particles,E[1],B[1],V[1],R[1]);
 
    std::cerr << std::endl;
 
-   MPI::Finalize();
+   MPI_Finalize();
    return 0;
 }

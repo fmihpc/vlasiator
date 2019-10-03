@@ -36,10 +36,14 @@ Real P::init_y = 0;
 Real P::init_z = 0;
 
 Real P::dt = 0;
+int  P::propagation_direction = 0;
 Real P::input_dt = 1;
 Real P::start_time = 0;
 Real P::end_time = 0;
 uint64_t P::num_particles = 0;
+std::string P::V_field_name = "V";
+std::string P::rho_field_name = "rho";
+bool P::divide_rhov_by_rho = false;
 
 bool P::staticfields = 0;
 
@@ -47,12 +51,21 @@ std::default_random_engine::result_type P::random_seed = 1;
 Distribution* (*P::distribution)(std::default_random_engine&) = NULL;
 Real P::temperature = 1e6;
 Real P::particle_vel = 0;
+Real P::parallelTemperature = 1e6;
+Real P::perpTemperature1 = 1e6;
+Real P::perpTemperature2 = 1e6;
+Real P::parallelDriftVel = 0;
+Real P::perpDriftVel1 =0;
+Real P::perpDriftVel2 =0;
+bool P::vel_BcrossVframe = false;
 Real P::mass = PhysicalConstantsSI::mp;
 Real P::charge = PhysicalConstantsSI::e;
 
 Boundary* P::boundary_behaviour_x = NULL;
 Boundary* P::boundary_behaviour_y = NULL;
 Boundary* P::boundary_behaviour_z = NULL;
+
+Real P::inner_boundary_radius = 0.;
 
 Real P::precip_inner_boundary;
 Real P::precip_start_x;
@@ -113,16 +126,26 @@ bool ParticleParameters::addParameters() {
    Readparameters::add("particles.init_y", "Particle starting point, y-coordinate (meters).", 0);
    Readparameters::add("particles.init_z", "Particle starting point, z-coordinate (meters).", 0);
 
-   Readparameters::add("particles.dt", "Particle pusher timestep",0);
+   Readparameters::add("particles.dt", "Particle pusher timestep. Positive: forward propagation. Negative: backward propagation.", 0);
    Readparameters::add("particles.input_dt", "Time spacing (seconds) of input files",1.);
    Readparameters::add("particles.start_time", "Simulation time (seconds) for particle start.",0);
    Readparameters::add("particles.end_time", "Simulation time (seconds) at which particle simulation stops.",0);
    Readparameters::add("particles.num_particles", "Number of particles to simulate.",10000);
+   Readparameters::add("particles.V_field_name", "Name of the Velocity data set in the input files", "V");
+   Readparameters::add("particles.rho_field_name", "Name of the Density data set in the input files", "rho");
+   Readparameters::add("particles.divide_rhov_by_rho", "Do the input file store rho_v and rho separately?", false);
    Readparameters::add("particles.random_seed", "Random seed for particle creation.",1);
    Readparameters::add("particles.distribution", "Type of distribution function to sample particles from.",
          std::string("maxwell"));
+   Readparameters::add("particles.vel_BcrossVframe", "Whether velocities should be initialized in a B,BxV,BxBxV frame", false);
    Readparameters::add("particles.temperature", "Temperature of the particle distribution",1e6);
    Readparameters::add("particles.particle_vel", "Initial velocity of the particles (in the plasma rest frame)",0);
+   Readparameters::add("particles.parallelTemperature","Initial parallel velocity of the particles (for triMaxwellian",1e6);
+   Readparameters::add("particles.perpTemperature1","Initial temperature in BxV direction of the particles",1e6);
+   Readparameters::add("particles.perpTemperature2","Initial temperature in BxBxV direction of the particles",1e6);
+   Readparameters::add("particles.parallelDriftVel","Initial particle drift velocities in B direction",0);
+   Readparameters::add("particles.perpDriftVel1","Initial particle drift velocities in BxV direction",0);
+   Readparameters::add("particles.perpDriftVel2","Initial particle drift velocities in BxBxV direction",0);
    Readparameters::add("particles.mass", "Mass of the test particles",PhysicalConstantsSI::mp);
    Readparameters::add("particles.charge", "Charge of the test particles",PhysicalConstantsSI::e);
 
@@ -134,6 +157,8 @@ bool ParticleParameters::addParameters() {
          "What to do with particles that reach the y boundaries (DELETE/REFLECT/PERIODIC)",std::string("PERIODIC"));
    Readparameters::add("particles.boundary_behaviour_z",
          "What to do with particles that reach the z boundaries (DELETE/REFLECT/PERIODIC)",std::string("PERIODIC"));
+
+   Readparameters::add("particles.inner_boundary_radius", "Absorbing inner boundary radius, if any.",0.);
 
    // Parameters for the precipitation mode
    Readparameters::add("particles.inner_boundary", "Distance of the inner boundary from the coordinate centre (meters)",
@@ -249,10 +274,22 @@ bool ParticleParameters::getParameters() {
    Readparameters::get("particles.start_time",P::start_time);
    Readparameters::get("particles.end_time",P::end_time);
    Readparameters::get("particles.num_particles",P::num_particles);
-   if(P::dt == 0 || P::end_time <= P::start_time) {
-      std::cerr << "Error end_time <= start_time! Won't do anything (and will probably crash now)." << std::endl;
+   if(P::dt == 0 || P::end_time == P::start_time) {
+      std::cerr << "Error end_time == start_time! Won't do anything (and will probably crash now)." << std::endl;
       return false;
    }
+   if((P::dt > 0 && P::end_time < P::start_time) ||
+      (P::dt < 0 && P::end_time > P::start_time)) {
+      std::cerr << "ERROR: The sign of particles.dt and the order of particles.start_time and particles.end_time do not match." << std::endl;
+      return false;
+   }
+   propagation_direction = (dt < 0) ? -1 : 1;
+   Readparameters::get("particles.V_field_name",P::V_field_name);
+   Readparameters::get("particles.rho_field_name",P::rho_field_name);
+   Readparameters::get("particles.divide_rhov_by_rho",P::divide_rhov_by_rho);
+
+   Readparameters::get("particles.mass", P::mass);
+   Readparameters::get("particles.charge", P::charge);
 
    Readparameters::get("particles.staticfields",P::staticfields);
 
@@ -267,6 +304,7 @@ bool ParticleParameters::getParameters() {
    distribution_lookup["monoenergetic"]=&createDistribution<Monoenergetic>;
    distribution_lookup["kappa2"]=&createDistribution<Kappa2>;
    distribution_lookup["kappa6"]=&createDistribution<Kappa6>;
+   distribution_lookup["trimaxwellian"]=&createDistribution<TriMaxwellian>;
 
    if(distribution_lookup.find(distribution_name) == distribution_lookup.end()) {
       std::cerr << "Error: particles.distribution value \"" << distribution_name
@@ -276,8 +314,15 @@ bool ParticleParameters::getParameters() {
       P::distribution = distribution_lookup[distribution_name];
    }
 
+   Readparameters::get("particles.vel_BcrossVframe",P::vel_BcrossVframe);
    Readparameters::get("particles.temperature",P::temperature);
    Readparameters::get("particles.particle_vel",P::particle_vel);
+   Readparameters::get("particles.parallelTemperature",P::parallelTemperature);
+   Readparameters::get("particles.perpTemperature1",P::perpTemperature1);
+   Readparameters::get("particles.perpTemperature2",P::perpTemperature2);
+   Readparameters::get("particles.parallelDriftVel",P::parallelDriftVel);
+   Readparameters::get("particles.perpDriftVel1",P::perpDriftVel1);
+   Readparameters::get("particles.perpDriftVel2",P::perpDriftVel2);
 
    // Boundaries
    std::map<std::string, Boundary*(*)(int)> boundaryLookup;
@@ -306,6 +351,7 @@ bool ParticleParameters::getParameters() {
    } else {
       P::boundary_behaviour_z = boundaryLookup[tempstring](2);
    }
+   Readparameters::get("particles.inner_boundary_radius", P::inner_boundary_radius);
 
    Readparameters::get("particles.inner_boundary", P::precip_inner_boundary);
    Readparameters::get("particles.precipitation_start_x", P::precip_start_x);

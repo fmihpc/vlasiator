@@ -34,6 +34,8 @@
 extern std::string B_field_name;
 extern std::string E_field_name;
 extern std::string rho_name;
+extern std::string V_field_name;
+extern bool do_divide_by_rho;
 
 /* Read the cellIDs into an array */
 std::vector<uint64_t> readCellIds(vlsvinterface::Reader& r);
@@ -114,14 +116,14 @@ std::vector<double> readFieldData(Reader& r, std::string& name, unsigned int num
  * Return value: true if a new file was read, otherwise false.
  */
 template <class Reader>
-bool readNextTimestep(const std::string& filename_pattern, double t, int step, Field& E0, Field& E1,
+bool readNextTimestep(const std::string& filename_pattern, double t, int direction, Field& E0, Field& E1,
 		      Field& B0, Field& B1, Field& V0, Field& V1, Field& R0, Field& R1, bool doV, bool doRho, int& input_file_counter) {
 
    char filename_buffer[256];
    bool retval = false;
 
-   while(t < E0.time || t>= E1.time) {
-      input_file_counter += step;
+   while ( t*direction < E0.time*direction || t*direction >= E1.time*direction ) {
+      input_file_counter += direction;
 
       E0=E1;
       B0=B1;
@@ -130,17 +132,17 @@ bool readNextTimestep(const std::string& filename_pattern, double t, int step, F
       /* Open next file */
       Reader r;
       r.open(filename_buffer);
-      double t;
-      if(!r.readParameter("time",t)) {
-         if(!r.readParameter("t",t)) {
+      double t_file;
+      if(!r.readParameter("time",t_file)) {
+         if(!r.readParameter("t",t_file)) {
             std::cerr << "Time parameter in file " << filename_buffer << " is neither 't' nor 'time'. Bad file format?"
                << std::endl;
             exit(1);
          }
       }
 
-      E1.time = t;
-      B1.time = t;
+      E1.time = t_file;
+      B1.time = t_file;
 
       uint64_t cells[3];
       r.readParameter("xcells_ini",cells[0]);
@@ -161,15 +163,17 @@ bool readNextTimestep(const std::string& filename_pattern, double t, int step, F
       if(doV) {
 	V0=V1;
 	V1.time = t;
-	// TODO: This bit doesn't support newer file formats properly. Or multipop?
-	name = "rho_v";
-	std::vector<double> rho_v_buffer = readFieldData(r,name,3u);
-	std::vector<double> rho_buffer = readFieldData(r,rho_name,1u);
-	for(unsigned int i=0; i<rho_buffer.size(); i++) {
-	  Vbuffer.push_back(rho_v_buffer[3*i] / rho_buffer[i]);
-	  Vbuffer.push_back(rho_v_buffer[3*i+1] / rho_buffer[i]);
-	  Vbuffer.push_back(rho_v_buffer[3*i+2] / rho_buffer[i]);
-	}
+        name = ParticleParameters::V_field_name;
+        std::vector<double> rho_v_buffer = readFieldData(r,name,3u);
+        if(ParticleParameters::divide_rhov_by_rho) {
+          name = ParticleParameters::rho_field_name;
+          std::vector<double> rho_buffer = readFieldData(r,name,1u);
+          for(unsigned int i=0; i<rho_buffer.size(); i++) {
+            Vbuffer.push_back(rho_v_buffer[3*i] / rho_buffer[i]);
+            Vbuffer.push_back(rho_v_buffer[3*i+1] / rho_buffer[i]);
+            Vbuffer.push_back(rho_v_buffer[3*i+2] / rho_buffer[i]);
+          }
+        }
       }
 
       if(doRho) {
@@ -284,9 +288,12 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, Field& R, bo
    std::string pressure_name("PTensorDiagonal");
 
    if(doV) {
-     name = "rho_v";
+     name = ParticleParameters::V_field_name;
      rho_v_buffer = readFieldData(r,name,3u);
-     rho_buffer = readFieldData(r,rho_name,1u);
+     if(ParticleParameters::divide_rhov_by_rho) {
+       name = ParticleParameters::rho_field_name;
+       rho_buffer = readFieldData(r,name,1u);
+     }
    }
    if(doRho) {
      rho_buffer = readFieldData(r,rho_name,1u);
@@ -322,12 +329,12 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, Field& R, bo
    /* Allocate space for the actual field structures */
    E.data.resize(4*cells[0]*cells[1]*cells[2]);
    B.data.resize(4*cells[0]*cells[1]*cells[2]);
-	 if(doV) {
-		 V.data.resize(4*cells[0]*cells[1]*cells[2]);
-	 }
-	 if(doRho) {
-		 R.data.resize(4*cells[0]*cells[1]*cells[2]);
-	 }
+   if(doV) {
+     V.data.resize(4*cells[0]*cells[1]*cells[2]);
+   }
+   if(doRho) {
+     R.data.resize(4*cells[0]*cells[1]*cells[2]);
+   }
 
    /* Sanity-check stored data sizes */
    if(3*cellIds.size() != Bbuffer.size()) {
@@ -351,12 +358,17 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, Field& R, bo
            << std::endl;
         exit(1);
      }
-   }
-   if(doRho) {
-     if(cellIds.size() != rho_buffer.size()) {
+     if(ParticleParameters::divide_rhov_by_rho && cellIds.size() != rho_buffer.size()) {
         std::cerr << "cellIDs.size (" << cellIds.size() << ") != rho_buffer.size (" << rho_buffer.size() << ")!"
            << std::endl;
         exit(1);
+     }
+   }
+   if(doRho) {
+     if(cellIds.size() != rho_buffer.size()) {
+       std::cerr << "cellIDs.size (" << cellIds.size() << ") != rho_buffer.size (" << rho_buffer.size() << ")!"
+		 << std::endl;
+       exit(1);
      }
    }
 
@@ -397,9 +409,15 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, Field& R, bo
 
       if(doV) {
         double* Vtgt = V.getCellRef(x,y,z);
-        Vtgt[0] = rho_v_buffer[3*i] / rho_buffer[i];
-        Vtgt[1] = rho_v_buffer[3*i+1] / rho_buffer[i];
-        Vtgt[2] = rho_v_buffer[3*i+2] / rho_buffer[i];
+        if(ParticleParameters::divide_rhov_by_rho) {
+          Vtgt[0] = rho_v_buffer[3*i] / rho_buffer[i];
+          Vtgt[1] = rho_v_buffer[3*i+1] / rho_buffer[i];
+          Vtgt[2] = rho_v_buffer[3*i+2] / rho_buffer[i];
+        } else {
+          Vtgt[0] = rho_v_buffer[3*i];
+          Vtgt[1] = rho_v_buffer[3*i+1];
+          Vtgt[2] = rho_v_buffer[3*i+2];
+        }
       }
       if(doRho) {
         double* Rtgt = R.getCellRef(x,y,z);

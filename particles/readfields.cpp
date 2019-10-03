@@ -27,6 +27,7 @@
 #include "readfields.h"
 #include "vectorclass.h"
 #include "vector3d.h"
+#include "particleparameters.h"
 #include "../definitions.h"
 
 /* Debugging image output */
