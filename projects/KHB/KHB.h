@@ -42,13 +42,20 @@ namespace projects {
                                          creal& x, creal& y, creal& z,
                                          creal& dx, creal& dy, creal& dz,
                                          creal& vx, creal& vy, creal& vz,
-                                         creal& dvx, creal& dvy, creal& dvz,const int& popID
-                                        );
+                                         creal& dvx, creal& dvy, creal& dvz,
+                                         const uint popID
+                                        ) const;
+      virtual void setProjectBField(
+         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+         FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+         FsGrid< fsgrids::technical, 2>& technicalGrid
+      );
     protected:
       Real getDistribValue(
                            creal& x, creal& z,
-                           creal& vx, creal& vy, creal& vz);
-      Real profile(creal top, creal bottom, creal x, creal z);
+                           creal& vx, creal& vy, creal& vz,
+                           const uint popID) const;
+      Real profile(creal top, creal bottom, creal x, creal z) const;
       
       enum {
          TOP,

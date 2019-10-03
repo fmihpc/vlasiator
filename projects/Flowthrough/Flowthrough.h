@@ -30,6 +30,15 @@
 #include "../projectTriAxisSearch.h"
 
 namespace projects {
+
+   struct FlowthroughSpeciesParameters {
+      Real rho;
+      Real T;
+      Real V0[3];
+      uint nSpaceSamples;
+      uint nVelocitySamples;
+   };
+
    class Flowthrough: public TriAxisSearch {
     public:
       Flowthrough();
@@ -38,38 +47,40 @@ namespace projects {
       virtual bool initialize(void);
       static void addParameters(void);
       virtual void getParameters(void);
-      void setCellBackgroundField(spatial_cell::SpatialCell* cell) const;
+      virtual void setProjectBField(
+         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+         FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+         FsGrid< fsgrids::technical, 2>& technicalGrid
+      );
 
     protected:
       Real getDistribValue(
                            creal& x,creal& y, creal& z,
                            creal& vx, creal& vy, creal& vz,
-                           creal& dvx, creal& dvy, creal& dvz
+                           creal& dvx, creal& dvy, creal& dvz,
+                           const uint popID
                           ) const;
       virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
       virtual Real calcPhaseSpaceDensity(
                                          creal& x, creal& y, creal& z,
                                          creal& dx, creal& dy, creal& dz,
                                          creal& vx, creal& vy, creal& vz,
-                                         creal& dvx, creal& dvy, creal& dvz,const int& popID
+                                         creal& dvx, creal& dvy, creal& dvz,const uint popID
                                         ) const;
       virtual std::vector<std::array<Real, 3> > getV0(
                                                       creal x,
                                                       creal y,
-                                                      creal z
+                                                      creal z,
+                                                      const uint popID
                                                      ) const;
 
       bool emptyBox;               /**< If true, then the simulation domain is empty initially 
                                     * and matter will flow in only through the boundaries.*/
 
-      Real rho;
-      Real T;
-      Real V0[3];
       Real Bx;
       Real By;
       Real Bz;
-      uint nSpaceSamples;
-      uint nVelocitySamples;
+      std::vector<FlowthroughSpeciesParameters> speciesParams;
    }; // class Flowthrough
 } // namespace projects
 

@@ -27,6 +27,18 @@
 #include "../projectTriAxisSearch.h"
 
 namespace projects {
+
+   struct MagnetosphereSpeciesParameters {
+      Real rho;
+      Real T;
+      Real V0[3];
+      Real ionosphereV0[3];
+      Real ionosphereRho;
+      Real ionosphereTaperRadius;
+      uint nSpaceSamples;
+      uint nVelocitySamples;
+   };
+
    class Magnetosphere: public TriAxisSearch {
     public:
       Magnetosphere();
@@ -35,44 +47,63 @@ namespace projects {
       virtual bool initialize(void);
       static void addParameters(void);
       virtual void getParameters(void);
-      virtual void setCellBackgroundField(spatial_cell::SpatialCell* cell) const;
+      virtual void setProjectBField(
+         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+         FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+         FsGrid< fsgrids::technical, 2>& technicalGrid
+      );
       virtual Real calcPhaseSpaceDensity(
                                          creal& x, creal& y, creal& z,
                                          creal& dx, creal& dy, creal& dz,
                                          creal& vx, creal& vy, creal& vz,
                                          creal& dvx, creal& dvy, creal& dvz,
-                                         const int& popID
+                                         const uint popID
                                         ) const;
       
     protected:
       Real getDistribValue(
                            creal& x,creal& y, creal& z,
                            creal& vx, creal& vy, creal& vz,
-                           creal& dvx, creal& dvy, creal& dvz
+                           creal& dvx, creal& dvy, creal& dvz,
+                           const uint popID
                           ) const;
+      bool refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const;
       virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
       virtual std::vector<std::array<Real, 3> > getV0(
                                                       creal x,
                                                       creal y,
-                                                      creal z
+                                                      creal z,
+                                                      const uint popID
                                                      ) const;
       
-      Real T;
-      Real tailRho;
-      Real V0[3];
-      Real ionosphereV0[3];
       Real constBgB[3];
       bool noDipoleInSW;
-      Real ionosphereRho;
       Real ionosphereRadius;
-      Real ionosphereTaperRadius;
       uint ionosphereGeometry;
       Real center[3];
       Real dipoleScalingFactor;
       Real dipoleMirrorLocationX;
       uint dipoleType;
-      uint nSpaceSamples;
-      uint nVelocitySamples;
+
+      Real refine_L3radius;
+      Real refine_L3nosexmin;
+      Real refine_L3tailheight;
+      Real refine_L3tailwidth;
+      Real refine_L3tailxmin;
+      Real refine_L3tailxmax;
+
+      Real refine_L2radius;
+      Real refine_L2tailthick;
+      Real refine_L1radius;
+      Real refine_L1tailthick;
+
+      Real dipoleTiltPhi;
+      Real dipoleTiltTheta;
+      Real dipoleXFull;
+      Real dipoleXZero;
+      Real dipoleInflowB[3];
+
+      std::vector<MagnetosphereSpeciesParameters> speciesParams;
    }; // class Magnetosphere
 } // namespace projects
 

@@ -69,7 +69,7 @@ template<typename T> inline T MClimiter(const T& left,const T& cent,const T& rig
 }
 
 template<typename T> inline T superbee(const T& left,const T& cent,const T& right) {
-   const T HALF = 0.5; 
+   const T HALF = 0.5;
    
    const T back = cent-left;
    const T forw = right-cent;
@@ -105,20 +105,6 @@ template<typename T> inline T vanLeer(const T& left,const T& cent,const T& right
     */
 }
 
-template<typename T> inline T limiter(const T& l_rho_v,const T& l_rho,
-                               const T& c_rho_v,const T& c_rho,
-                               const T& r_rho_v,const T& r_rho) {
-   T left = l_rho_v / l_rho;
-   if (l_rho <= 0) left = 0.0;
-   
-   T cent = c_rho_v / c_rho;
-   if (c_rho <= 0) cent = 0.0;
-   
-   T rght = r_rho_v / r_rho;
-   if (r_rho <= 0) rght = 0.0;
-
-   return vanLeer(left,cent,rght);
-}
 
 template<typename T> inline T limiter(const T& left,const T& cent,const T& rght) {
    return vanLeer(left,cent,rght);

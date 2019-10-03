@@ -29,6 +29,7 @@
 #include "../../readparameters.h"
 #include "../../backgroundfield/backgroundfield.h"
 #include "../../backgroundfield/constantfield.hpp"
+#include "../../object_wrapper.h"
 
 #include "test_trans.h"
 
@@ -55,6 +56,11 @@ namespace projects {
       Project::getParameters();
       
       typedef Readparameters RP;
+
+      if(getObjectWrapper().particleSpecies.size() > 1) {
+         std::cerr << "The selected project does not support multiple particle populations! Aborting in " << __FILE__ << " line " << __LINE__ << std::endl;
+         abort();
+      }
       RP::get("test_trans.cellPosition", this->cellPosition);
       RP::get("test_trans.peakValue" ,peakValue);
    }
@@ -62,7 +68,7 @@ namespace projects {
 
    Real test_trans::calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,
                                           creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz,
-                                          const int& popID) const {
+                                          const uint popID) const {
       //Please use even number of cells in velocity and real space
       Real xyz[3];
       Real vxyz[3];
@@ -120,20 +126,16 @@ namespace projects {
       return 0.0;
    }
 
-   void test_trans::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
-      Real* cellParams = cell->get_cell_parameters();
-      cellParams[CellParams::EX   ] = 0.0;
-      cellParams[CellParams::EY   ] = 0.0;
-      cellParams[CellParams::EZ   ] = 0.0;
-      cellParams[CellParams::PERBX   ] = 0.0;
-      cellParams[CellParams::PERBY   ] = 0.0;
-      cellParams[CellParams::PERBZ   ] = 0.0;
-   }
+   void test_trans::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
    
-   void test_trans::setCellBackgroundField(SpatialCell* cell) const {
+   void test_trans::setProjectBField(
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+      FsGrid< fsgrids::technical, 2>& technicalGrid
+   ) {
       ConstantField bgField;
       bgField.initialize(0.0,0.0,1e-9);
-      setBackgroundField(bgField,cell->parameters, cell->derivatives,cell->derivativesBVOL);
+      setBackgroundField(bgField, BgBGrid);
    }
 
 }// namespace projects

@@ -37,7 +37,11 @@ namespace projects {
       virtual bool initialize(void);
       static void addParameters(void);
       virtual void getParameters(void);
-      void setCellBackgroundField(spatial_cell::SpatialCell* cell) const;
+      virtual void setProjectBField(
+         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+         FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+         FsGrid< fsgrids::technical, 2>& technicalGrid
+      );
 
    protected:
       Real getDistribValue(creal& vx, creal& vy, creal& vz);
@@ -47,7 +51,7 @@ namespace projects {
          creal& dx, creal& dy, creal& dz,
          creal& vx, creal& vy, creal& vz,
          creal& dvx, creal& dvy, creal& dvz,
-         const int& popID
+         const uint popID
       ) const;
       Real cellPosition;
       Real peakValue;

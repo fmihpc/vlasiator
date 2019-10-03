@@ -28,6 +28,7 @@
 #include "../../readparameters.h"
 #include "../../backgroundfield/backgroundfield.h"
 #include "../../backgroundfield/dipole.hpp"
+#include "../../object_wrapper.h"
 
 #include "testHall.h"
 
@@ -63,6 +64,11 @@ namespace projects {
    void TestHall::getParameters(){
       Project::getParameters();
       typedef Readparameters RP;
+
+      if(getObjectWrapper().particleSpecies.size() > 1) {
+         std::cerr << "The selected project does not support multiple particle populations! Aborting in " << __FILE__ << " line " << __LINE__ << std::endl;
+         abort();
+      }
       RP::get("TestHall.BX0", this->BX0);
       RP::get("TestHall.BY0", this->BY0);
       RP::get("TestHall.BZ0", this->BZ0);
@@ -77,8 +83,8 @@ namespace projects {
       creal& x,creal& y,creal& z,
       creal& dx,creal& dy,creal& dz,
       creal& vx,creal& vy,creal& vz,
-      creal& dvx,creal& dvy,creal& dvz,const int& popID
-   ) {
+      creal& dvx,creal& dvy,creal& dvz,const uint popID
+   ) const {
       creal mass = physicalconstants::MASS_PROTON;
       creal kb = physicalconstants::K_B;
       
@@ -86,73 +92,7 @@ namespace projects {
          exp(- mass * (pow(vx + 0.5 * dvx - this->VX0, 2.0) + pow(vy + 0.5 * dvy - this->VY0, 2.0) + pow(vz + 0.5 * dvz - this->VZ0, 2.0)) / (2.0 * kb * this->TEMPERATURE)));
    }
    
-//    void TestHall::setCellBackgroundField(SpatialCell *cell){
-//       Dipole bgField;
-//       bgField.initialize(8e15 *this->dipoleScalingFactor,this->dipoleTilt); //set dipole moment
-//       if(cell->sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN && this->noDipoleInSW) {
-//          setBackgroundFieldToZero(cell->parameters, cell->derivatives,cell->derivativesBVOL);
-//       } else {
-//          setBackgroundField(bgField,cell->parameters, cell->derivatives,cell->derivativesBVOL);
-//       }
-//       
-//       cell->parameters[CellParams::EX   ] = 0.0;
-//       cell->parameters[CellParams::EY   ] = 0.0;
-//       cell->parameters[CellParams::EZ   ] = 0.0;
-//       cell->parameters[CellParams::PERBX  ] = cell->parameters[CellParams::BGBX];
-//       cell->parameters[CellParams::BGBX   ] = 0.0;
-//       cell->parameters[CellParams::BGBXVOL] = 0.0;
-//       cell->parameters[CellParams::PERBY  ] = cell->parameters[CellParams::BGBY];
-//       cell->parameters[CellParams::BGBY   ] = 0.0;
-//       cell->parameters[CellParams::BGBYVOL] = 0.0;
-//       cell->parameters[CellParams::PERBZ  ] = cell->parameters[CellParams::BGBZ];
-//       cell->parameters[CellParams::BGBZ   ] = 0.0;
-//       cell->parameters[CellParams::BGBZVOL] = 0.0;
-//       
-//       cell->derivatives[fieldsolver::dBGBydx]=0.0;
-//       cell->derivatives[fieldsolver::dBGBzdx]=0.0;
-//       cell->derivatives[fieldsolver::dBGBxdy]=0.0;
-//       cell->derivatives[fieldsolver::dBGBxdz]=0.0;
-//       cell->derivativesBVOL[bvolderivatives::dBGBYVOLdx]=0.0;
-//       cell->derivativesBVOL[bvolderivatives::dBGBZVOLdx]=0.0;
-//       cell->derivativesBVOL[bvolderivatives::dBGBXVOLdy]=0.0;
-//       cell->derivativesBVOL[bvolderivatives::dBGBXVOLdz]=0.0;
-//       cell->derivatives[fieldsolver::dBGBxdy]=0.0;
-//       cell->derivatives[fieldsolver::dBGBzdy]=0.0;
-//       cell->derivatives[fieldsolver::dBGBydx]=0.0;
-//       cell->derivatives[fieldsolver::dBGBydz]=0.0;
-//       cell->derivativesBVOL[bvolderivatives::dBGBXVOLdy]=0.0;
-//       cell->derivativesBVOL[bvolderivatives::dBGBZVOLdy]=0.0;
-//       cell->derivativesBVOL[bvolderivatives::dBGBYVOLdx]=0.0;
-//       cell->derivativesBVOL[bvolderivatives::dBGBYVOLdz]=0.0;
-//       cell->derivatives[fieldsolver::dBGBxdy]=0.0;
-//       cell->derivatives[fieldsolver::dBGBxdz]=0.0;
-//       cell->derivatives[fieldsolver::dBGBydx]=0.0;
-//       cell->derivatives[fieldsolver::dBGBydz]=0.0;
-//       cell->derivativesBVOL[bvolderivatives::dBGBXVOLdy]=0.0;
-//       cell->derivativesBVOL[bvolderivatives::dBGBXVOLdz]=0.0;
-//       cell->derivativesBVOL[bvolderivatives::dBGBYVOLdx]=0.0;
-//       cell->derivativesBVOL[bvolderivatives::dBGBYVOLdz]=0.0;
-//       
-//       for(uint component=0; component<3; component++) {
-//          if(this->constBgB[component] != 0.0) {
-//             cell->parameters[CellParams::BGBX+component] += this->constBgB[component];
-//             cell->parameters[CellParams::BGBXVOL+component] += this->constBgB[component];
-//          }
-//       }
-//    }
-//    
-   void TestHall::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
-      Real* cellParams = cell->get_cell_parameters();
-      creal x = cellParams[CellParams::XCRD];
-      creal dx = cellParams[CellParams::DX];
-      creal y = cellParams[CellParams::YCRD];
-      creal dy = cellParams[CellParams::DY];
-      creal z = cellParams[CellParams::ZCRD];
-      creal dz = cellParams[CellParams::DZ];
-      
-      creal Dx = 0.5*dx;
-      creal Dy = 0.5*dy;
-      creal Dz = 0.5*dz;
+   void TestHall::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
       
 //       creal r = sqrt((x+Dx)*(x+Dx) + (y+Dy)*(y+Dy));
 //       creal theta = atan2(y+Dy, x+Dx);
@@ -168,9 +108,9 @@ namespace projects {
 //       cellParams[CellParams::PERBY] = this->BY0 * z;
 //       cellParams[CellParams::PERBZ] = this->BZ0 * x;
       
-      cellParams[CellParams::PERBX] = this->BX0 * cos(2.0*M_PI * 1.0 * x / (P::xmax - P::xmin)) * cos(2.0*M_PI * 1.0 * y / (P::ymax - P::ymin)) * cos(2.0*M_PI * 1.0 * z / (P::zmax - P::zmin));
-      cellParams[CellParams::PERBY] = this->BY0 * cos(2.0*M_PI * 1.0 * x / (P::xmax - P::xmin)) * cos(2.0*M_PI * 1.0 * y / (P::ymax - P::ymin)) * cos(2.0*M_PI * 1.0 * z / (P::zmax - P::zmin));
-      cellParams[CellParams::PERBZ] = this->BZ0 * cos(2.0*M_PI * 1.0 * x / (P::xmax - P::xmin)) * cos(2.0*M_PI * 1.0 * y / (P::ymax - P::ymin)) * cos(2.0*M_PI * 1.0 * z / (P::zmax - P::zmin));
+//       cellParams[CellParams::PERBX] = this->BX0 * cos(2.0*M_PI * 1.0 * x / (P::xmax - P::xmin)) * cos(2.0*M_PI * 1.0 * y / (P::ymax - P::ymin)) * cos(2.0*M_PI * 1.0 * z / (P::zmax - P::zmin));
+//       cellParams[CellParams::PERBY] = this->BY0 * cos(2.0*M_PI * 1.0 * x / (P::xmax - P::xmin)) * cos(2.0*M_PI * 1.0 * y / (P::ymax - P::ymin)) * cos(2.0*M_PI * 1.0 * z / (P::zmax - P::zmin));
+//       cellParams[CellParams::PERBZ] = this->BZ0 * cos(2.0*M_PI * 1.0 * x / (P::xmax - P::xmin)) * cos(2.0*M_PI * 1.0 * y / (P::ymax - P::ymin)) * cos(2.0*M_PI * 1.0 * z / (P::zmax - P::zmin));
       
 //       cellParams[CellParams::PERBX] = -1.0*(y+Dy) / ((x+Dx)*(x+Dx) + (y+Dy)*(y+Dy));
 //       cellParams[CellParams::PERBY] = (x+Dx) / ((x+Dx)*(x+Dx) + (y+Dy)*(y+Dy));
@@ -189,5 +129,31 @@ namespace projects {
 //       cellParams[CellParams::PERBX   ] = this->BX0 * (x+0.5*Dx)*(y+0.5*Dy)*(z+0.5*Dz);
 //       cellParams[CellParams::PERBY   ] = this->BY0 * (x+0.5*Dx)*(y+0.5*Dy)*(z+0.5*Dz)*(x+0.5*Dx)*(y+0.5*Dy)*(z+0.5*Dz);
 //       cellParams[CellParams::PERBZ   ] = this->BZ0 * (x+0.5*Dx)*(y+0.5*Dy)*(z+0.5*Dz)*(x+0.5*Dx)*(y+0.5*Dy)*(z+0.5*Dz)*(x+0.5*Dx)*(y+0.5*Dy)*(z+0.5*Dz);
+   
+   void TestHall::setProjectBField(
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+      FsGrid< fsgrids::technical, 2>& technicalGrid
+   ) {
+      setBackgroundFieldToZero(BgBGrid);
+      
+      if(!P::isRestart) {
+         auto localSize = perBGrid.getLocalSize();
+         
+#pragma omp parallel for collapse(3)
+         for (int x = 0; x < localSize[0]; ++x) {
+            for (int y = 0; y < localSize[1]; ++y) {
+               for (int z = 0; z < localSize[2]; ++z) {
+                  const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
+                  std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
+                  
+                  cell->at(fsgrids::bfield::PERBX) = this->BX0 * cos(2.0*M_PI * 1.0 * xyz[0] / (P::xmax - P::xmin)) * cos(2.0*M_PI * 1.0 * xyz[1] / (P::ymax - P::ymin)) * cos(2.0*M_PI * 1.0 * xyz[2] / (P::zmax - P::zmin));
+                  cell->at(fsgrids::bfield::PERBY) = this->BY0 * cos(2.0*M_PI * 1.0 * xyz[0] / (P::xmax - P::xmin)) * cos(2.0*M_PI * 1.0 * xyz[1] / (P::ymax - P::ymin)) * cos(2.0*M_PI * 1.0 * xyz[2] / (P::zmax - P::zmin));
+                  cell->at(fsgrids::bfield::PERBZ) = this->BZ0 * cos(2.0*M_PI * 1.0 * xyz[0] / (P::xmax - P::xmin)) * cos(2.0*M_PI * 1.0 * xyz[1] / (P::ymax - P::ymin)) * cos(2.0*M_PI * 1.0 * xyz[2] / (P::zmax - P::zmin));
+               }
+            }
+         }
+      }
    }
+   
 } // namespace projects

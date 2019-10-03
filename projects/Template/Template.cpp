@@ -60,10 +60,10 @@ namespace projects {
       return Project::initialize();
    }
 
-   Real Template::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const int& popID) {
+   Real Template::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
       creal rho = 1.0;
       creal T = 1.0;
-      const std::array<Real, 3> V0 = this->getV0(x, y, z)[0];
+      const std::array<Real, 3> V0 = this->getV0(x, y, z, popID)[0];
       creal Vx0 = V0[0];
       creal Vy0 = V0[1];
       creal Vz0 = V0[2];
@@ -71,20 +71,21 @@ namespace projects {
       exp(- physicalconstants::MASS_PROTON * ((vx-Vx0)*(vx-Vx0) + (vy-Vy0)*(vy-Vy0) + (vz-Vz0)*(vz-Vz0)) / (2.0 * physicalconstants::K_B * T));
    }
    
-   void Template::setCellBackgroundField(SpatialCell *cell){
+   void Template::setProjectBField(
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+      FsGrid< fsgrids::technical, 2>& technicalGrid
+   ) {
       Dipole bgField;
       bgField.initialize(8e15, 0.0, 0.0, 0.0, 0.0); //set dipole moment and location
-      if(cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
-         setBackgroundFieldToZero(cell->parameters, cell->derivatives,cell->derivativesBVOL);
-      } else {
-         setBackgroundField(bgField,cell->parameters, cell->derivatives,cell->derivativesBVOL);
-      }
+      setBackgroundField(bgField, BgBGrid);
    }
    
    vector<std::array<Real, 3>> Template::getV0(
       creal x,
       creal y,
-      creal z
+      creal z,
+      const uint popID
    ) const {
       vector<std::array<Real, 3>> centerPoints;
       std::array<Real, 3> point {{0.0, 0.0, 0.0}};

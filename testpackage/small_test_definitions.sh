@@ -16,66 +16,126 @@ run_dir="run"
 test_dir="tests"
 
 # choose tests to run
-run_tests=( 1 2 3 4 5 6 7 8 9 10 11)
+run_tests=( 1 2 3 4 5 6 7 8 9 10 11 12 13 14)
 
 # acceleration test
 test_name[1]="acctest_2_maxw_500k_100k_20kms_10deg"
 comparison_vlsv[1]="fullf.0000001.vlsv"
 #only one process does anything -> in _1 phiprof here
 comparison_phiprof[1]="phiprof_1.txt"
+variable_names[1]="proton/rho proton/V proton/V proton/V protons"
+variable_components[1]="0 0 1 2"
+single_cell[1]=1
 
 # acceleration test w/ substepping
 test_name[2]="acctest_3_substeps"
 comparison_vlsv[2]="fullf.0000001.vlsv"
 #only one process does anything -> in _1 phiprof here
 comparison_phiprof[2]="phiprof_1.txt"
+variable_names[2]="proton/rho proton/V proton/V proton/V protons"
+variable_components[2]="0 0 1 2"
+single_cell[2]=1
 
 # translation test
 test_name[3]="transtest_2_maxw_500k_100k_20kms_20x20"
 comparison_vlsv[3]="fullf.0000001.vlsv"
 comparison_phiprof[3]="phiprof_0.txt"
+variable_names[3]="proton/rho proton/V proton/V proton/V protons"
+variable_components[3]="0 0 1 2"
+
+test_name[4]="acctest_4_helium"
+comparison_vlsv[4]="fullf.0000001.vlsv"
+comparison_phiprof[4]="phiprof_1.txt"
+variable_names[4]="helium/rho helium/V helium/V helium/V"
+variable_components[4]="0 0 1 2"
+single_cell[4]=1
+
+# Gyration test with protons and antiprotons
+test_name[5]="acctest_5_proton_antiproton"
+comparison_vlsv[5]="fullf.0000001.vlsv"
+#only one process does anything -> in _1 phiprof here
+comparison_phiprof[5]="phiprof_1.txt"
+variable_names[5]="proton/rho proton/V proton/V proton/V protons"
+variable_components[5]="0 0 1 2"
+single_cell[5]=1
+
+# Restart tests. Writing and reading
+test_name[6]="restart_write"
+comparison_vlsv[6]="bulk.0000001.vlsv"
+comparison_phiprof[6]="phiprof_0.txt"
+variable_names[6]="proton/rho proton/V proton/V proton/V B B B E E E"
+variable_components[6]="0 0 1 2 0 1 2 0 1 2"
+test_name[7]="restart_read"
+comparison_vlsv[7]="initial-grid.0000000.vlsv"
+comparison_phiprof[7]="phiprof_0.txt"
+variable_names[7]="proton/rho proton/V proton/V proton/V B B B E E E"
+variable_components[7]="0 0 1 2 0 1 2 0 1 2"
 
 #Very small ecliptic magnetosphere, no subcycling in ACC or FS
-test_name[4]="Magnetosphere_small"
-comparison_vlsv[4]="bulk.0000001.vlsv"
-comparison_phiprof[4]="phiprof_0.txt"
-
-#Very small polar magnetosphere, with subcycling in ACC or FS
-test_name[5]="Magnetosphere_polar_small"
-comparison_vlsv[5]="bulk.0000001.vlsv"
-comparison_phiprof[5]="phiprof_0.txt"
-
-# Field solver test
-test_name[6]="test_fp_fsolver_only_3D"
-comparison_vlsv[6]="fullf.0000001.vlsv"
-comparison_phiprof[6]="phiprof_0.txt"
-
-# Field solver test w/ subcycles
-test_name[7]="test_fp_substeps"
-comparison_vlsv[7]="fullf.0000001.vlsv"
-comparison_phiprof[7]="phiprof_0.txt"
-
-# Flowthrough tests
-test_name[8]="Flowthrough_trans_periodic"
+test_name[8]="Magnetosphere_small"
 comparison_vlsv[8]="bulk.0000001.vlsv"
 comparison_phiprof[8]="phiprof_0.txt"
+variable_names[8]="proton/rho proton/V proton/V proton/V B B B E E E protons"
+variable_components[8]="0 0 1 2 0 1 2 0 1 2"
 
-test_name[9]="Flowthrough_x_inflow_y_outflow"
+#Very small polar magnetosphere, with subcycling in ACC or FS
+test_name[9]="Magnetosphere_polar_small"
 comparison_vlsv[9]="bulk.0000001.vlsv"
 comparison_phiprof[9]="phiprof_0.txt"
+variable_names[9]="proton/rho proton/V proton/V proton/V B B B E E E protons proton/VNonBackstream proton/PTensorNonBackstreamDiagonal"
+variable_components[9]="0 0 1 2 0 1 2 0 1 2"
 
-test_name[10]="Flowthrough_x_inflow_y_outflow_acc"
-comparison_vlsv[10]="bulk.0000001.vlsv"
+# Field solver test
+test_name[10]="test_fp_fsolver_only_3D"
+comparison_vlsv[10]="fullf.0000001.vlsv"
 comparison_phiprof[10]="phiprof_0.txt"
+variable_names[10]="B B B E E E"
+variable_components[10]="0 1 2 0 1 2"
 
-# Self-consistent wave generation test
-test_name[11]="Selfgen_Waves_Periodic"
+# Field solver test w/ subcycles
+test_name[11]="test_fp_substeps"
 comparison_vlsv[11]="fullf.0000001.vlsv"
 comparison_phiprof[11]="phiprof_0.txt"
+variable_names[11]="B B B E E E"
+variable_components[11]="0 1 2 0 1 2"
 
-# define here the variables you want to be tested
-variables_name=( "rho" "rho_v" "rho_v" "rho_v" "B" "B" "B" "E" "E" "E" "proton" )
-# and the corresponding components to variables, 
-variables_components=( 0 0 1 2 0 1 2 0 1 2 0)
-#arrays variables_name and variables_components should have same number of elements, e.g., 4th variable is variables_name[4] variables_components[4]=  
+# Flowthrough tests
+test_name[12]="Flowthrough_trans_periodic"
+comparison_vlsv[12]="bulk.0000001.vlsv"
+comparison_phiprof[12]="phiprof_0.txt"
+variable_names[12]="proton/rho proton/V proton/V proton/V B B B E E E"
+variable_components[12]="0 0 1 2 0 1 2 0 1 2"
 
+test_name[13]="Flowthrough_x_inflow_y_outflow"
+comparison_vlsv[13]="bulk.0000001.vlsv"
+comparison_phiprof[13]="phiprof_0.txt"
+variable_names[13]="proton/rho proton/V proton/V proton/V B B B E E E"
+variable_components[13]="0 0 1 2 0 1 2 0 1 2"
+
+test_name[14]="Flowthrough_x_inflow_y_outflow_acc"
+comparison_vlsv[14]="bulk.0000001.vlsv"
+comparison_phiprof[14]="phiprof_0.txt"
+variable_names[14]="proton/rho proton/V proton/V proton/V B B B E E E"
+variable_components[14]="0 0 1 2 0 1 2 0 1 2"
+
+# Self-consistent wave generation test
+test_name[15]="Selfgen_Waves_Periodic"
+comparison_vlsv[15]="fullf.0000001.vlsv"
+comparison_phiprof[15]="phiprof_0.txt"
+variable_names[15]="proton/rho proton/V proton/V proton/V B B B E E E protons"
+variable_components[15]="0 0 1 2 0 1 2 0 1 2"
+
+##AMR tests
+# translation test
+test_name[16]="transtest_amr"
+comparison_vlsv[3]="fullf.0000001.vlsv"
+comparison_phiprof[3]="phiprof_0.txt"
+variable_names[3]="proton/rho proton/V proton/V proton/V protons"
+variable_components[3]="0 0 1 2"
+
+# Flowthrough test
+test_name[17]="Flowthrough_amr"
+comparison_vlsv[12]="bulk.0000001.vlsv"
+comparison_phiprof[12]="phiprof_0.txt"
+variable_names[12]="proton/rho proton/V proton/V proton/V B B B E E E"
+variable_components[12]="0 0 1 2 0 1 2 0 1 2"

@@ -25,7 +25,7 @@
 #include <cmath>
 #include "../../backgroundfield/backgroundfield.h"
 #include "../../backgroundfield/constantfield.hpp"
-
+#include "../../object_wrapper.h"
 
 #include "Shocktest.h"
 #include "../../spatial_cell.hpp"
@@ -70,6 +70,11 @@ namespace projects {
    
    void Shocktest::getParameters(){
       Project::getParameters();
+
+      if(getObjectWrapper().particleSpecies.size() > 1) {
+         std::cerr << "The selected project does not support multiple particle populations! Aborting in " << __FILE__ << " line " << __LINE__ << std::endl;
+         abort();
+      }
       this->rho[this->LEFT] = {NAN};
       this->T[this->LEFT] = {NAN};
       this->Vx[this->LEFT] = {NAN};
@@ -110,7 +115,7 @@ namespace projects {
       RP::get("Shocktest.nVelocitySamples", this->nVelocitySamples);
    }
    
-   Real Shocktest::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
+   Real Shocktest::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const {
       creal mass = physicalconstants::MASS_PROTON;
       creal kb = physicalconstants::K_B;
       
@@ -133,8 +138,9 @@ namespace projects {
    vector<std::array<Real, 3>> Shocktest::getV0(
       creal x,
       creal y,
-      creal z
-   ) {
+      creal z,
+      const uint popID
+   ) const {
       vector<std::array<Real, 3>> centerPoints;
       cint side = (x < 0.0) ? this->LEFT : this->RIGHT;
       std::array<Real, 3> V0 {{this->Vx[side], this->Vy[side], this->Vz[side]}};
@@ -158,7 +164,7 @@ namespace projects {
     * @return The volume average of the distribution function in the given phase space cell.
     * The physical unit of this quantity is 1 / (m^3 (m/s)^3).
     */
-   Real Shocktest::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const int& popID) {   
+   Real Shocktest::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {   
       creal d_x = dx / (this->nSpaceSamples-1);
       creal d_y = dy / (this->nSpaceSamples-1);
       creal d_z = dz / (this->nSpaceSamples-1);
@@ -173,54 +179,61 @@ namespace projects {
                   for (uint vj=0; vj<this->nVelocitySamples; ++vj)
                      for (uint vk=0; vk<this->nVelocitySamples; ++vk)
                      {
-                        avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz);
+                        avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz, popID);
                      }
       return avg / pow(this->nSpaceSamples, 3.0) / pow(this->nVelocitySamples, 3.0);
    }
    
    /** Calculate parameters for the given spatial cell at the given time.
-    * Here you need to set values for the following array indices:
-    * CellParams::EX, CellParams::EY, CellParams::EZ, CellParams::BX, CellParams::BY, and CellParams::BZ.
-    * 
-    * The following array indices contain the coordinates of the "lower left corner" of the cell: 
-    * CellParams::XCRD, CellParams::YCRD, and CellParams::ZCRD.
-    * The cell size is given in the following array indices: CellParams::DX, CellParams::DY, and CellParams::DZ.
     * @param cellParams Array containing cell parameters.
     * @param t The current value of time. This is passed as a convenience. If you need more detailed information 
     * of the state of the simulation, you can read it from Parameters.
     */
-   void Shocktest::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
-      Real* cellParams = cell->get_cell_parameters();
-      creal x = cellParams[CellParams::XCRD];
-      creal dx = cellParams[CellParams::DX];
-      
-      Real Bxavg, Byavg, Bzavg;
-      Bxavg = Byavg = Bzavg = 0.0;
-      Real d_x = dx / (this->nSpaceSamples - 1);
-      
-      for (uint i=0; i<this->nSpaceSamples; ++i)
-         for (uint j=0; j<this->nSpaceSamples; ++j)
-            for (uint k=0; k<this->nSpaceSamples; ++k) {
-               Bxavg += ((x + i * d_x) < 0.0) ? this->Bx[this->LEFT] : this->Bx[this->RIGHT];
-               Byavg += ((x + i * d_x) < 0.0) ? this->By[this->LEFT] : this->By[this->RIGHT];
-               Bzavg += ((x + i * d_x) < 0.0) ? this->Bz[this->LEFT] : this->Bz[this->RIGHT];
-      }
-      cuint nPts = pow(this->nSpaceSamples, 3.0);
-      
-      cellParams[CellParams::EX   ] = 0.0;
-      cellParams[CellParams::EY   ] = 0.0;
-      cellParams[CellParams::EZ   ] = 0.0;
-      cellParams[CellParams::PERBX   ] = Bxavg / nPts;
-      cellParams[CellParams::PERBY   ] = Byavg / nPts;
-      cellParams[CellParams::PERBZ   ] = Bzavg / nPts;
-   }
+   void Shocktest::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
    
-
-   /*! Base class sets zero background field */
-   void Shocktest::setCellBackgroundField(SpatialCell* cell) {
-      ConstantField bgField;
-      bgField.initialize(0,0,0); //bg bx, by,bz
-      setBackgroundField(bgField,cell->parameters, cell->derivatives,cell->derivativesBVOL);
+   void Shocktest::setProjectBField(
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+      FsGrid< fsgrids::technical, 2>& technicalGrid
+   ) {
+      setBackgroundFieldToZero(BgBGrid);
+      
+      if(!P::isRestart) {
+         auto localSize = perBGrid.getLocalSize();
+         
+         #pragma omp parallel for collapse(3)
+         for (int x = 0; x < localSize[0]; ++x) {
+            for (int y = 0; y < localSize[1]; ++y) {
+               for (int z = 0; z < localSize[2]; ++z) {
+                  const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
+                  std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
+                  
+                  Real Bxavg, Byavg, Bzavg;
+                  Bxavg = Byavg = Bzavg = 0.0;
+                  if(this->nSpaceSamples > 1) {
+                     Real d_x = perBGrid.DX / (this->nSpaceSamples - 1);
+                     Real d_z = perBGrid.DZ / (this->nSpaceSamples - 1);
+                     for (uint i=0; i<this->nSpaceSamples; ++i) {
+                        for (uint k=0; k<this->nSpaceSamples; ++k) {
+                           Bxavg += ((xyz[0] + i * d_x) < 0.0) ? this->Bx[this->LEFT] : this->Bx[this->RIGHT];
+                           Byavg += ((xyz[0] + i * d_x) < 0.0) ? this->By[this->LEFT] : this->By[this->RIGHT];
+                           Bzavg += ((xyz[0] + i * d_x) < 0.0) ? this->Bz[this->LEFT] : this->Bz[this->RIGHT];
+                        }
+                     }
+                     cuint nPts = pow(this->nSpaceSamples, 3.0);
+                     
+                     cell->at(fsgrids::bfield::PERBX) = Bxavg / nPts;
+                     cell->at(fsgrids::bfield::PERBY) = Byavg / nPts;
+                     cell->at(fsgrids::bfield::PERBZ) = Bzavg / nPts;
+                  } else {
+                     cell->at(fsgrids::bfield::PERBX) = (xyz[0] < 0.0) ? this->Bx[this->LEFT] : this->Bx[this->RIGHT];
+                     cell->at(fsgrids::bfield::PERBY) = (xyz[0] < 0.0) ? this->By[this->LEFT] : this->By[this->RIGHT];
+                     cell->at(fsgrids::bfield::PERBZ) = (xyz[0] < 0.0) ? this->Bz[this->LEFT] : this->Bz[this->RIGHT];
+                  }
+               }
+            }
+         }
+      }
    }
 
 } // Namespace projects

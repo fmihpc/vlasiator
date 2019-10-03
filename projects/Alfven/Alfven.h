@@ -27,6 +27,14 @@
 #include "../project.h"
 
 namespace projects {
+
+   struct AlfvenSpeciesParameters {
+      Real rho;
+      Real T;
+      Real A_VEL;
+      uint nVelocitySamples;
+   };
+
    class Alfven: public Project {
     public:
       Alfven();
@@ -35,33 +43,37 @@ namespace projects {
       virtual bool initialize(void);
       static void addParameters(void);
       virtual void getParameters(void);
+      virtual void setProjectBField(
+         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+         FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+         FsGrid< fsgrids::technical, 2>& technicalGrid
+      );
       
     protected:
       Real getDistribValue(
                            creal& x,creal& y, creal& z,
                            creal& vx, creal& vy, creal& vz,
-                           creal& dvx, creal& dvy, creal& dvz,const int& popID
-                          );
+                           creal& dvx, creal& dvy, creal& dvz,
+                           const uint popID
+                          ) const;
       virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
       virtual Real calcPhaseSpaceDensity(
                                          creal& x, creal& y, creal& z,
                                          creal& dx, creal& dy, creal& dz,
                                          creal& vx, creal& vy, creal& vz,
-                                         creal& dvx, creal& dvy, creal& dvz,const int& popID
-                                        );
+                                         creal& dvx, creal& dvy, creal& dvz,
+                                         const uint popID
+                                        ) const;
       
       Real B0;
       Real Bx_guiding;
       Real By_guiding;
       Real Bz_guiding;
-      Real DENSITY;
       Real ALPHA;
       Real WAVELENGTH;
-      Real TEMPERATURE;
-      Real A_VEL;
       Real A_MAG;
       uint nSpaceSamples;
-      uint nVelocitySamples;
+      std::vector<AlfvenSpeciesParameters> speciesParams;
    } ; // class Alfven
 } // namespace projects
 

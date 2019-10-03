@@ -58,6 +58,11 @@ inline void compute_ppm_coeff(const Vec * const values, face_estimate_order orde
    a[0] = m_face;
    a[1] = 3.0 * values[k] - 2.0 * m_face - p_face;
    a[2] = (m_face + p_face - 2.0 * values[k]);
+
+   //std::cout << "value = " << values[k][0] << ", m_face = " << m_face[0] << ", p_face = " << p_face[0] << "\n";
+   //std::cout << values[k][0] - m_face[0] << ", " << values[k][0] - p_face[0] << "\n";
+
+   //std::cout << values[k][0] << " " << m_face[0] << " " << p_face[0] << "\n";
 }
 
 #endif

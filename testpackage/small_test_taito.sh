@@ -41,6 +41,7 @@ umask 007
 echo "Running $exec on $tasks mpi tasks, with $t threads per task on $nodes nodes ($ht threads per physical core)"
 #command for running stuff
 run_command="srun"
+small_run_command="srun -n 1"
 run_command_tools="srun -n 1"
 
 #get baseddir from PBS_O_WORKDIR if set (batch job), otherwise go to current folder

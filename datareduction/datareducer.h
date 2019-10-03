@@ -24,6 +24,7 @@
 #define DATAREDUCER_H
 
 #include <vector>
+#include "fsgrid.hpp"
 
 #include "../spatial_cell.hpp"
 #include "datareductionoperator.h"
@@ -43,15 +44,31 @@ class DataReducer {
    bool addOperator(DRO::DataReductionOperator* op);
    bool getDataVectorInfo(const unsigned int& operatorID,std::string& dataType,
                           unsigned int& dataSize,unsigned int& vectorSize) const;
+   bool addMetadata(const unsigned int operatorID,std::string unit,std::string unitLaTeX,std::string variableLaTeX,std::string unitConversion);
+   bool getMetadata(const unsigned int& operatorID,std::string& unit,std::string& unitLaTeX,std::string& variableLaTeX,std::string& unitConversion) const;
+
    std::string getName(const unsigned int& operatorID) const;
    bool handlesWriting(const unsigned int& operatorID) const;
+   bool hasParameters(const unsigned int& operatorID) const;
    bool reduceData(const SpatialCell* cell,const unsigned int& operatorID,char* buffer);
-   bool reduceData(const SpatialCell* cell,const unsigned int& operatorID,Real * result);
+   bool reduceDiagnostic(const SpatialCell* cell,const unsigned int& operatorID,Real * result);
    unsigned int size() const;
    bool writeData(const unsigned int& operatorID,
                   const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                   const std::vector<CellID>& cells,const std::string& meshName,
                   vlsv::Writer& vlsvWriter);
+   bool writeParameters(const unsigned int& operatorID, vlsv::Writer& vlsvWriter);
+   bool writeFsGridData(
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2>& dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volGrid,
+                      FsGrid< fsgrids::technical, 2>& technicalGrid, const std::string& meshName, const unsigned int operatorID, vlsv::Writer& vlsvWriter);
 
  private:
    /** Private copy-constructor to prevent copying the class.

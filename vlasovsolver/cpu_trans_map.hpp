@@ -28,18 +28,50 @@
 #include "../common.h"
 #include "../spatial_cell.hpp"
 
-void clearTargetGrid(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-        const std::vector<CellID>& cells);
-void createTargetGrid(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-        const std::vector<CellID>& cells,const int& popID);
+void compute_spatial_source_neighbors(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                      const CellID& cellID,const uint dimension,SpatialCell **neighbors);
+void compute_spatial_target_neighbors(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                      const CellID& cellID,const uint dimension,SpatialCell **neighbors);
+void copy_trans_block_data(SpatialCell** source_neighbors,const vmesh::GlobalID blockGID,
+                           Vec* values,const unsigned char* const cellid_transpose,const uint popID);
+CellID get_spatial_neighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                            const CellID& cellID,const bool include_first_boundary_layer,
+                            const int spatial_di,const int spatial_dj,const int spatial_dk);
+SpatialCell* get_spatial_neighbor_pointer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                          const CellID& cellID,const bool include_first_boundary_layer,
+                                          const int spatial_di,const int spatial_dj,const int spatial_dk);
+void store_trans_block_data(SpatialCell** target_neighbors,const vmesh::GlobalID blockGID,
+                            Vec* __restrict__ target_values,
+                            const unsigned char* const cellid_transpose,const uint popID);
+
 bool do_translate_cell(spatial_cell::SpatialCell* SC);
-void swapTargetSourceGrid(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-        const std::vector<CellID>& cells,const int& popID);
 bool trans_map_1d(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-        const CellID cellID,const uint dimension,const Realv dt,const int& popID);
-void update_remote_mapping_contribution(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-        const uint dimension,int direction,const int& popID);
-void zeroTargetGrid(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-        const std::vector<CellID>& cells);
+                  const std::vector<CellID>& localPropagatedCells,
+                  const std::vector<CellID>& remoteTargetCells,
+                  const uint dimension,
+                  const Realv dt,
+                  const uint popID);
+void update_remote_mapping_contribution(dccrg::Dccrg<spatial_cell::SpatialCell,
+                                        dccrg::Cartesian_Geometry>& mpiGrid,
+                                        const uint dimension,
+                                        int direction,
+                                        const uint popID);
+
+void compute_spatial_source_neighbors(const dccrg::Dccrg<SpatialCell,
+                                      dccrg::Cartesian_Geometry>& mpiGrid,
+                                      const CellID& cellID,
+                                      const uint dimension,
+                                      SpatialCell **neighbors);
+
+void compute_spatial_target_neighbors(const dccrg::Dccrg<SpatialCell,
+                                      dccrg::Cartesian_Geometry>& mpiGrid,
+                                      const CellID& cellID,
+                                      const uint dimension,
+                                      SpatialCell **neighbors);
+void copy_trans_block_data(SpatialCell** source_neighbors,
+                           const vmesh::GlobalID blockGID,
+                           Vec* values,
+                           const unsigned char* const cellid_transpose,
+                           const uint popID);
 
 #endif

@@ -67,6 +67,12 @@ namespace projects {
    void KHB::getParameters() {
       Project::getParameters();
       typedef Readparameters RP;
+
+      if(getObjectWrapper().particleSpecies.size() > 1) {
+         std::cerr << "The selected project does not support multiple particle populations! Aborting in " << __FILE__ << " line " << __LINE__ << std::endl;
+         abort();
+      }
+
       RP::get("KHB.rho1", this->rho[this->TOP]);
       RP::get("KHB.rho2", this->rho[this->BOTTOM]);
       RP::get("KHB.T1", this->T[this->TOP]);
@@ -92,7 +98,7 @@ namespace projects {
    }
    
    
-   Real KHB::profile(creal top, creal bottom, creal x, creal z) {
+   Real KHB::profile(creal top, creal bottom, creal x, creal z) const {
       if(top == bottom) {
          return top;
       }
@@ -105,7 +111,7 @@ namespace projects {
       }
    }
    
-   Real KHB::getDistribValue(creal& x, creal& z, creal& vx, creal& vy, creal& vz){
+   Real KHB::getDistribValue(creal& x, creal& z, creal& vx, creal& vy, creal& vz, const uint popID) const {
       creal mass = physicalconstants::MASS_PROTON;
       creal kb = physicalconstants::K_B;
       Real rho = profile(this->rho[this->BOTTOM], this->rho[this->TOP], x, z);
@@ -118,7 +124,7 @@ namespace projects {
       exp(- mass * (pow(vx - Vx, 2.0) + pow(vy - Vy, 2.0) + pow(vz - Vz, 2.0)) / (2.0 * kb * T));
    }
 
-   Real KHB::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const int& popID) {   
+   Real KHB::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {   
       creal d_x = dx / (this->nSpaceSamples-1);
       creal d_z = dz / (this->nSpaceSamples-1);
       creal d_vx = dvx / (this->nVelocitySamples-1);
@@ -127,7 +133,7 @@ namespace projects {
       Real avg = 0.0;
       uint samples=0;
 
-      Real middleValue=getDistribValue(x+0.5*dx, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz);
+      Real middleValue=getDistribValue(x+0.5*dx, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, popID);
       if (middleValue < 0.000001*getObjectWrapper().particleSpecies[popID].sparseMinValue) {
          return middleValue; //abort, this will not be accepted anyway
       }
@@ -138,38 +144,57 @@ namespace projects {
             for (uint vi=0; vi<this->nVelocitySamples; ++vi)
                for (uint vj=0; vj<this->nVelocitySamples; ++vj)
                   for (uint vk=0; vk<this->nVelocitySamples; ++vk){
-                     avg +=getDistribValue(x+i*d_x, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz);
+                     avg +=getDistribValue(x+i*d_x, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, popID);
                      samples++;
                   }
       return avg / samples;
    }
    
 
-   void KHB::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
-      Real* cellParams = cell->get_cell_parameters();
-      cellParams[CellParams::EX   ] = 0.0;
-      cellParams[CellParams::EY   ] = 0.0;
-      cellParams[CellParams::EZ   ] = 0.0;
-      creal x = cellParams[CellParams::XCRD];
-      creal dx = cellParams[CellParams::DX];
-      creal z = cellParams[CellParams::ZCRD];
-      creal dz = cellParams[CellParams::DZ];
+   void KHB::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
+   
+   void KHB::setProjectBField(
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+      FsGrid< fsgrids::technical, 2>& technicalGrid
+   ) {
+      setBackgroundFieldToZero(BgBGrid);
       
-      Real Bxavg, Byavg, Bzavg;
-      Bxavg = Byavg = Bzavg = 0.0;
-      Real d_x = dx / (this->nSpaceSamples - 1);
-      Real d_z = dz / (this->nSpaceSamples - 1);
-      for (uint i=0; i<this->nSpaceSamples; ++i)
-         for (uint k=0; k<this->nSpaceSamples; ++k) {
-            Bxavg += profile(this->Bx[this->BOTTOM], this->Bx[this->TOP], x+i*d_x, z+k*d_z);
-            Byavg += profile(this->By[this->BOTTOM], this->By[this->TOP], x+i*d_x, z+k*d_z);
-            Bzavg += profile(this->Bz[this->BOTTOM], this->Bz[this->TOP], x+i*d_x, z+k*d_z);
+      if(!P::isRestart) {
+         auto localSize = perBGrid.getLocalSize();
+         
+         #pragma omp parallel for collapse(3)
+         for (int x = 0; x < localSize[0]; ++x) {
+            for (int y = 0; y < localSize[1]; ++y) {
+               for (int z = 0; z < localSize[2]; ++z) {
+                  const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
+                  std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
+                  
+                  Real Bxavg, Byavg, Bzavg;
+                  Bxavg = Byavg = Bzavg = 0.0;
+                  if(this->nSpaceSamples > 1) {
+                     Real d_x = perBGrid.DX / (this->nSpaceSamples - 1);
+                     Real d_z = perBGrid.DZ / (this->nSpaceSamples - 1);
+                     for (uint i=0; i<this->nSpaceSamples; ++i) {
+                        for (uint k=0; k<this->nSpaceSamples; ++k) {
+                           Bxavg += profile(this->Bx[this->BOTTOM], this->Bx[this->TOP], xyz[0]+i*d_x, xyz[2]+k*d_z);
+                           Byavg += profile(this->By[this->BOTTOM], this->By[this->TOP], xyz[0]+i*d_x, xyz[2]+k*d_z);
+                           Bzavg += profile(this->Bz[this->BOTTOM], this->Bz[this->TOP], xyz[0]+i*d_x, xyz[2]+k*d_z);
+                        }
+                     }
+                     cuint nPts = pow(this->nSpaceSamples, 2.0);
+                     cell->at(fsgrids::bfield::PERBX) = Bxavg / nPts;
+                     cell->at(fsgrids::bfield::PERBY) = Byavg / nPts;
+                     cell->at(fsgrids::bfield::PERBZ) = Bzavg / nPts;
+                  } else {
+                     cell->at(fsgrids::bfield::PERBX) = profile(this->Bx[this->BOTTOM], this->Bx[this->TOP], xyz[0]+0.5*perBGrid.DX, xyz[2]+0.5*perBGrid.DZ);
+                     cell->at(fsgrids::bfield::PERBY) = profile(this->By[this->BOTTOM], this->By[this->TOP], xyz[0]+0.5*perBGrid.DX, xyz[2]+0.5*perBGrid.DZ);
+                     cell->at(fsgrids::bfield::PERBZ) = profile(this->Bz[this->BOTTOM], this->Bz[this->TOP], xyz[0]+0.5*perBGrid.DX, xyz[2]+0.5*perBGrid.DZ);
+                  }
+               }
+            }
          }
-      cuint nPts = pow(this->nSpaceSamples, 2.0);
-      
-      cellParams[CellParams::PERBX   ] = Bxavg / nPts;
-      cellParams[CellParams::PERBY   ] = Byavg / nPts;
-      cellParams[CellParams::PERBZ   ] = Bzavg / nPts;
+      }
    }
-
+   
 } // namespace projects

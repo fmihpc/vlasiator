@@ -57,18 +57,19 @@ struct Readparameters {
 
     
     static bool finalize();
-    static bool helpMessage();
+    static void helpMessage();
     static bool versionMessage();
     static bool isInitialized();
-    static bool parse(bool needsRunConfig=true);
+    static bool parse(const bool needsRunConfig=true);
+   
+   static bool helpRequested;
    
 private:
     static int argc;                  /**< How many entries argv contains.*/
     static char** argv;              /**< Pointer to char* array containing command line parameters.*/
     static int rank;
     static MPI_Comm comm;
-
-  
+   
     /** Private default constructor to prevent incorrect initialization.*/
     Readparameters();
     static bool addDefaultParameters();

@@ -166,7 +166,7 @@ void print_reconstruction(int step, Vec values[], uint  blocks_per_dim, Real v_m
                           uint i_block, uint j_block, uint j_cell,
                           Real intersection, Real intersection_di, Real intersection_dj, Real intersection_dk){
   char name[256];
-  sprintf(name,"reconstructions_%03d.dat",step);
+  sprintf(name,"reconstructions_%05d.dat",step);
   FILE* fp=fopen(name,"w");
 
   
@@ -263,7 +263,7 @@ int main(void) {
   Real intersection_dj = 0.0 * dv; //does not matter here, fixed j.
 
   
-  const int iterations = 10000;
+  const int iterations = 1000;
 
    /*clear target & values array*/
   for (uint k=0; k<WID* (blocks_per_dim + 2); ++k){ 
@@ -281,7 +281,7 @@ int main(void) {
   }
 */
   Real T = 500000;
-  Real rho = 1.0e6;
+  Real rho = 1.0e18;
   for(int i=0; i < blocks_per_dim * WID; i++){
      Real v=v_min + i*dv;
      values[i + WID] = rho * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B * T), 1.5) *
@@ -296,15 +296,17 @@ int main(void) {
 
  clock_t t = clock();
 /*loop over propagations*/
- for(int step = 0; step < iterations; step++){
+ for(int step = 0; step <= iterations; step++){
    propagate(values, blocks_per_dim, v_min, dv,
              i_block, j_block, j_cell,
              intersection, intersection_di, intersection_dj, intersection_dk);
+   if (step % 10 == 0)
+     print_reconstruction(step, values, blocks_per_dim, v_min, dv,
+			  i_block, j_block, j_cell,
+			  intersection, intersection_di, intersection_dj, intersection_dk);
+   
  }
  printf("\nTime per iteration: %12.15g\n", ((double)(clock() - t)/CLOCKS_PER_SEC)/iterations);
 
 // print_values(iterations,values,blocks_per_dim, v_min, dv);
- print_reconstruction(iterations, values, blocks_per_dim, v_min, dv,
-                      i_block, j_block, j_cell,
-                      intersection, intersection_di, intersection_dj, intersection_dk);
 }
