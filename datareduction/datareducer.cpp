@@ -907,16 +907,6 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
    for (it = P::diagnosticVariableList.begin();
         it != P::diagnosticVariableList.end();
         it++) {
-      //if(*it == "FluxB") {
-      //   // Overall magnetic flux through the simulation plane
-      //   diagnosticReducer->addOperator(new DRO::DiagnosticFluxB);
-      //   continue;
-      //}
-      //if(*it == "FluxE") {
-      //   // Overall electric flux through the simulation plane
-      //   diagnosticReducer->addOperator(new DRO::DiagnosticFluxE);
-      //   continue;
-      //}
       if(*it == "EJE") {
          // E field from electron current
          diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("EJE",CellParams::EXJE,3));

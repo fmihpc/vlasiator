@@ -58,8 +58,6 @@ namespace species {
       Real sparseDynamicMinValue2;     /*!< The maximum value for the minValue*/
       bool isTestSpecies = false;      /* Is this species being used as a test-particle species?*/
       bool propagateSpecies = true;    /* Is this species going to be translated and accelerated? */
-      Real backstreamRadius;           /*!< Radius of sphere to split the distribution into backstreaming and non-backstreaming. 0 (default in cfg) disables the DRO. */
-      std::array<Real, 3> backstreamV; /*!< Centre of sphere to split the distribution into backstreaming and non-backstreaming. 0 (default in cfg) disables the DRO. */
       
       Real thermalRadius;           /*!< Radius of sphere to split the distribution into thermal and suprathermal. 0 (default in cfg) disables the DRO. */
       std::array<Real, 3> thermalV; /*!< Centre of sphere to split the distribution into thermal and suprathermal. 0 (default in cfg) disables the DRO. */
