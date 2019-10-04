@@ -120,13 +120,13 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
    Eigen::Matrix<Real,3,1> electronV(0.,0.,0.);
    if (getObjectWrapper().particleSpecies[popID].mass < 0.5*physicalconstants::MASS_PROTON) {
       smallparticle = true;
-      bulk_velocity(0,0) = spatial_cell->get_population(popID2).V_V[0];
-      bulk_velocity(1,0) = spatial_cell->get_population(popID2).V_V[1];                                                     
-      bulk_velocity(2,0) = spatial_cell->get_population(popID2).V_V[2];                                                     
+      bulk_velocity(0,0) = spatial_cell->get_population(popID).V_V[0];
+      bulk_velocity(1,0) = spatial_cell->get_population(popID).V_V[1];                                                     
+      bulk_velocity(2,0) = spatial_cell->get_population(popID).V_V[2];                                                     
       // Store the original electron bulk velocity
-      electronV[0] = spatial_cell->get_population(popID_EJE).V_V[0];
-      electronV[1] = spatial_cell->get_population(popID_EJE).V_V[1];
-      electronV[2] = spatial_cell->get_population(popID_EJE).V_V[2];
+      electronV[0] = spatial_cell->get_population(popID).V_V[0];
+      electronV[1] = spatial_cell->get_population(popID).V_V[1];
+      electronV[2] = spatial_cell->get_population(popID).V_V[2];
    }  
 
     // compute total transformation
