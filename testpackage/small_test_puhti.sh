@@ -1,5 +1,5 @@
 #!/bin/bash -l
-#SBATCH --time=00:30:00
+#SBATCH --time=01:30:00
 #SBATCH --job-name=testpackage
 #SBATCH --account=project_2000203
 #SBATCH --partition=small
@@ -49,7 +49,7 @@ cd  $base_dir
 
 #If 1, the reference vlsv files are generated
 # if 0 then we check the v1
-create_verification_files=1
+create_verification_files=0
 
 
 #folder for all reference data 
