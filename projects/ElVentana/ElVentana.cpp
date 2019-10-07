@@ -49,6 +49,9 @@ namespace projects {
    void ElVentana::addParameters() {
       typedef Readparameters RP;
       
+      RP::add("ElVentana.constBgBX", "Constant flat Bx component in the whole simulation box. Default is none.", 0.0);
+      RP::add("ElVentana.constBgBY", "Constant flat By component in the whole simulation box. Default is none.", 0.0);
+      RP::add("ElVentana.constBgBZ", "Constant flat Bz component in the whole simulation box. Default is none.", 0.0);
       RP::add("ElVentana.StartFile", "Restart file to be used to read the fields and population parameters.", "restart.0000000.vlsv");
       RP::add("ElVentana.WindowX_min", "Section boundary (X-direction) of the domain contained in the StartFile to be selected (meters).",6.0e7);
       RP::add("ElVentana.WindowX_max", "Section boundary (X-direction) of the domain contained in the StartFile to be selected (meters).",7.8e7);
@@ -75,6 +78,18 @@ namespace projects {
       Real dummy;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
       typedef Readparameters RP;
+      if(!RP::get("ElVentana.constBgBX", this->constBgB[0])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!RP::get("ElVentana.constBgBY", this->constBgB[1])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!RP::get("ElVentana.constBgBZ", this->constBgB[2])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
       if(!RP::get("ElVentana.StartFile", this->StartFile)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
@@ -167,10 +182,6 @@ namespace projects {
             if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
             exit(1);
          }
-         if(!RP::get(pop + "_ionosphere.taperRadius", sP.ionosphereTaperRadius)) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-            exit(1);
-         }
 
          speciesParams.push_back(sP);
       }
@@ -200,11 +211,12 @@ namespace projects {
       SpatialCell *cell = (*newmpiGrid)[cellID];
       if (this->vecsizemoments == 5) {
          // Reading the new format (multipop) restart file
-         density = cell->parameters[CellParams::RHOM]
-              / physicalconstants::MASS_PROTON; // FIXME: Where can I find either the species name or its mass in the StartFile?.
+         density = cell->parameters[CellParams::RHOM] / physicalconstants::MASS_PROTON; 
+	 // FIXME: Where can I find either the species name or its mass in the StartFile?.
       } else if (this->vecsizemoments == 4 || this->vecsizemoments == 1)  {
          // Reading the old format restart file or a bulk file
-         density = cell->parameters[CellParams::RHOM]; // This is already the number density!
+         density = cell->parameters[CellParams::RHOM];
+	 // This is already the number density, not mass density!
       } else {
          cout << "Could not identify restart file format for file: " << this->StartFile << endl;
          exit(1);
@@ -233,15 +245,14 @@ namespace projects {
       }
       
       initRho = density;
-      if(radius < sP.ionosphereTaperRadius) {
-         // sine tapering
-         initRho = density - (density-sP.ionosphereRho)*0.5*(1.0+sin(M_PI*(radius-this->ionosphereRadius)/(sP.ionosphereTaperRadius-this->ionosphereRadius)+0.5*M_PI));
-         if(radius < this->ionosphereRadius) {
-            // Just to be safe, there are observed cases where this failed.
-            initRho = sP.ionosphereRho;
-         }
+      if(radius < this->ionosphereRadius) {
+	 // Just to be safe, there are observed cases where this failed.
+	 initRho = sP.ionosphereRho;
       }
-      
+
+      // Defines the distribution function as a drifting maxwellian based on read values.
+      // Assumes thus that the input pressure, bulk velocity, and density are from
+      // a proton-only run and can be directly converted to electrons.
       if (density > 0.) {
           std::array<Real, 3> pressure_T;
           for(uint j=0;j<this->vecsizepressure;j++){
@@ -326,7 +337,7 @@ namespace projects {
            v[1] > getObjectWrapper().velocityMeshes[popID].meshMaxLimits[1] ||
            v[2] < getObjectWrapper().velocityMeshes[popID].meshMinLimits[2] ||
            v[2] > getObjectWrapper().velocityMeshes[popID].meshMaxLimits[2] ) {
-         cout << "ABORTING!!! Bulk velocity read from StartFile is outside the velocity space boundaries. " << endl;
+         cerr << "ABORTING!!! Bulk velocity read from StartFile is outside the velocity space boundaries. " << endl;
          exit(1);
       }  
 
@@ -354,17 +365,9 @@ namespace projects {
             abort();
       }
       
-      if(radius < sP.ionosphereTaperRadius) {
-         // sine tapering
-         Real q=0.5*(1.0-sin(M_PI*(radius-this->ionosphereRadius)/(sP.ionosphereTaperRadius-this->ionosphereRadius)+0.5*M_PI));
-         
-         for(uint i=0; i<3; i++) {
-            v[i]=q*(v[i]-ionosphereV0[i])+ionosphereV0[i];
-            if(radius < this->ionosphereRadius) {
-               // Just to be safe, there are observed cases where this failed.
-               v[i] = ionosphereV0[i];
-            }
-         }
+      if(radius < this->ionosphereRadius) {
+	 // Just to be safe, there are observed cases where this failed.
+	 v[i] = ionosphereV0[i];
       }
 
       V0.push_back(v);
@@ -434,8 +437,8 @@ namespace projects {
       filedy = (fileymax - fileymin)/fileycells;
       filedz = (filezmax - filezmin)/filezcells;
 
-      // Check if cell size from file is the same as from new grid!!
-      
+      // Check if cell size from file is the same as from new grid!! 
+    
       this->vlsvParaReader.close();
 
       if (this->vlsvSerialReader.open(filename) == false) {
@@ -443,11 +446,17 @@ namespace projects {
          exit(1);
       }
 
-      if (filename.find("/bulk.") != string::npos) { 
-         // It is a bulk file
-         isbulk = 1; // Hard setting for now...
+      // Check file type
+      std::list<std::string> variableNames;
+      std::string gridname("SpatialGrid");
+      this->vlsvParaReader.getVariableNames(gridname,variableNames);
+      if(find(variableNames.begin(), variableNames.end(), std::string("moments"))!=variableNames.end()) {
+	 // Moments were found, i.e. it's a restart file
+	 isbulk = 0;
+      } else {
+	 // It is a bulk file
+         isbulk = 1;
       }
-
 
       for (uint64_t i=0; i<cells.size(); i++) {
          SpatialCell* cell = mpiGrid[cells[i]];
@@ -465,7 +474,12 @@ namespace projects {
                 break;
             }
          }
-         
+
+	 // NOTE: This section assumes that the magnetic field values are saved on the spatial
+	 // (vlasov) grid, instead of FSgrid. FSgrid input reading isn't supported yet.
+	 // Also assumes the perturbed_B values have been saved to the bulk files. If
+	 // Perturbed_B is missing, it could perhaps be reconstructed from total B and
+	 // the analytically calculated background fields.
          attribs.push_back(make_pair("mesh","SpatialGrid"));
          attribs.push_back(make_pair("name","perturbed_B"));
          if (this->vlsvSerialReader.getArrayInfo("VARIABLE",attribs,arraySize,this->vecsizeperturbed_B,dataType,byteSize) == false) {
@@ -511,7 +525,9 @@ namespace projects {
          delete[] buffer;
          attribs.pop_back();
          attribs.pop_back();
-         
+
+	 // The following sections are not multipop-safe. Multipop-handling can probably be added via the
+	 // variableNames list (see detection of bulk / restart files)
          attribs.push_back(make_pair("mesh","SpatialGrid"));
          if (isbulk == 1) {
             attribs.push_back(make_pair("name","rho"));
@@ -582,7 +598,6 @@ namespace projects {
       this->vlsvSerialReader.close();
    }
 
-   /*! Magnetosphere does not set any extra perturbed B. */
    void ElVentana::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
       // Find a formula to calculate cellID in START file corresponding to cellID in this function,
       // which comes from mpiGrid, i.e. the new grid. Then read specific parameters from the file and
@@ -604,13 +619,13 @@ namespace projects {
    ) {
 
    //void ElVentana::setCellBackgroundField(SpatialCell* cell) const {
-
       //setBackgroundFieldToZero(cell->parameters, cell->derivatives,cell->derivativesBVOL);
       //if(cell->sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN) {
          //setBackgroundFieldToZero(cell->parameters, cell->derivatives,cell->derivativesBVOL);
       //   setBackgroundFieldToZero(BgBGrid);
       //}
       //else {
+
      Dipole bgFieldDipole;
      LineDipole bgFieldLineDipole;
 
@@ -629,26 +644,21 @@ namespace projects {
 	    //setBackgroundField(bgFieldLineDipole,cell->parameters, cell->derivatives,cell->derivativesBVOL);
 	    setBackgroundField(bgFieldLineDipole,BgBGrid);
 	    break;
-	 /*case 2:
+	 case 2:
 	    bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor, 0.0, 0.0, 0.0 );//set dipole moment     
 	    setBackgroundField(bgFieldLineDipole,cell->parameters, cell->derivatives,cell->derivativesBVOL);
-	    //Append mirror dipole
-	    bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor, this->dipoleMirrorLocationX, 0.0, 0.0 );
-	    setBackgroundField(bgFieldLineDipole,cell->parameters, cell->derivatives,cell->derivativesBVOL, true);
+	    // Ignore mirror dipole for ElVentana runs. Could be added here if needed.
 	    break;
 	 case 3:
 	    bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );//set dipole moment
 	    setBackgroundField(bgFieldDipole,cell->parameters, cell->derivatives,cell->derivativesBVOL);
-	    //Append mirror dipole                
-	    bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, this->dipoleMirrorLocationX, 0.0, 0.0, 0.0 );//mirror
-	    setBackgroundField(bgFieldDipole,cell->parameters, cell->derivatives,cell->derivativesBVOL, true);
-	    break; */
-	    
+	    // Ignore mirror dipole for ElVentana runs. Could be added here if needed.
+	    break;
+	 //case 4, vector potential dipole is not yet supported.
 	 default:
 	    setBackgroundFieldToZero(BgBGrid);
 	    
      }
-      //}
 
       const auto localSize = BgBGrid.getLocalSize().data();
       
@@ -736,51 +746,13 @@ namespace projects {
          }
       } // end of omp parallel region
       // Superimpose constant background field if needed
+      if(this->constBgB[0] != 0.0 || this->constBgB[1] != 0.0 || this->constBgB[2] != 0.0) {
+         ConstantField bgConstantField;
+         bgConstantField.initialize(this->constBgB[0], this->constBgB[1], this->constBgB[2]);
+         setBackgroundField(bgConstantField, BgBGrid, true);
+      }
    }
 
-/*      //Force field to zero in the perpendicular direction for 2D (1D) simulations. Otherwise we have unphysical components.
-      if(P::xcells_ini==1) {
-	 //cell->parameters[CellParams::BGBX]=0;
-	 cell->parameters[CellParams::BGBXVOL]=0.0;
-	 cell->derivatives[fieldsolver::dBGBydx]=0.0;
-	 cell->derivatives[fieldsolver::dBGBzdx]=0.0;
-	 cell->derivatives[fieldsolver::dBGBxdy]=0.0;
-	 cell->derivatives[fieldsolver::dBGBxdz]=0.0;
-	 cell->derivativesBVOL[bvolderivatives::dBGBYVOLdx]=0.0;
-	 cell->derivativesBVOL[bvolderivatives::dBGBZVOLdx]=0.0;
-	 cell->derivativesBVOL[bvolderivatives::dBGBXVOLdy]=0.0;
-	 cell->derivativesBVOL[bvolderivatives::dBGBXVOLdz]=0.0;
-      }
-      
-      if(P::ycells_ini==1) {
-         //2D simulation in x and z. Set By and derivatives along Y, and derivatives of By to zero//
-         //cell->parameters[CellParams::BGBY]=0.0;
-         cell->parameters[CellParams::BGBYVOL]=0.0;
-         cell->derivatives[fieldsolver::dBGBxdy]=0.0;
-         cell->derivatives[fieldsolver::dBGBzdy]=0.0;
-         cell->derivatives[fieldsolver::dBGBydx]=0.0;
-         cell->derivatives[fieldsolver::dBGBydz]=0.0;
-         cell->derivativesBVOL[bvolderivatives::dBGBXVOLdy]=0.0;
-         cell->derivativesBVOL[bvolderivatives::dBGBZVOLdy]=0.0;
-         cell->derivativesBVOL[bvolderivatives::dBGBYVOLdx]=0.0;
-         cell->derivativesBVOL[bvolderivatives::dBGBYVOLdz]=0.0;
-      }
-      if(P::zcells_ini==1) {
-         //cell->parameters[CellParams::BGBX]=0;
-         //cell->parameters[CellParams::BGBY]=0;
-         cell->parameters[CellParams::BGBYVOL]=0.0;
-         cell->parameters[CellParams::BGBXVOL]=0.0;
-         cell->derivatives[fieldsolver::dBGBxdy]=0.0;
-         cell->derivatives[fieldsolver::dBGBxdz]=0.0;
-         cell->derivatives[fieldsolver::dBGBydx]=0.0;
-         cell->derivatives[fieldsolver::dBGBydz]=0.0;
-         cell->derivativesBVOL[bvolderivatives::dBGBXVOLdy]=0.0;
-         cell->derivativesBVOL[bvolderivatives::dBGBXVOLdz]=0.0;
-         cell->derivativesBVOL[bvolderivatives::dBGBYVOLdx]=0.0;
-         cell->derivativesBVOL[bvolderivatives::dBGBYVOLdz]=0.0;
-      }
-   }
-*/
   
    CellID ElVentana::findCellID(SpatialCell *cell) const {
       Real* cellParams = cell->get_cell_parameters();

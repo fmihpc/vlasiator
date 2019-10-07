@@ -181,13 +181,6 @@ namespace CellParams {
       MAXFDT,             /*!< maximum timestep allowed in ordinary space by fieldsolver for this cell**/
       LBWEIGHTCOUNTER,    /*!< Counter for storing compute time weights needed by the load balancing**/
       ISCELLSAVINGF,      /*!< Value telling whether a cell is saving its distribution function when partial f data is written out. */
-      PHI,        /*!< Electrostatic potential.*/
-      PHI_TMP,    /*!< Temporary electrostatic potential.*/
-      RHOQ_TOT,   /*!< Total charge density, summed over all particle populations.*/
-      RHOQ_EXT,   /*<! External charge density.*/
-      BGEXVOL,    /*!< Background electric field averaged over spatial cell, x-component.*/
-      BGEYVOL,    /*!< Background electric field averaged over spatial cell, y-component.*/
-      BGEZVOL,    /*!< Background electric field averaged over spatial cell, z-component.*/
       FSGRID_RANK, /*!< Rank of this cell in the FsGrid cartesian communicator */
       FSGRID_BOUNDARYTYPE, /*!< Boundary type of this cell, as stored in the fsGrid */
       CELLID, /*! < DCCRG cell index */

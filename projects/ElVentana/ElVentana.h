@@ -38,7 +38,6 @@ namespace projects {
       Real V0[3];
       Real ionosphereV0[3];
       Real ionosphereRho;
-      Real ionosphereTaperRadius;
       uint nSpaceSamples;
       uint nVelocitySamples;
    };
@@ -83,6 +82,7 @@ namespace projects {
                                                      ) const;
 
       dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry> *newmpiGrid = NULL;
+      Real constBgB[3];
       bool noDipoleInSW;
       Real WindowX[2];
       Real WindowY[2];

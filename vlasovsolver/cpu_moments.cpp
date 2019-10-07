@@ -186,10 +186,6 @@ void calculateMoments_R(
               const Real dy = cell->parameters[CellParams::DY];
               const Real dz = cell->parameters[CellParams::DZ];
 
-              // Reset spatial max DT
-              if (popID == 0) cell->parameters[CellParams::MAXRDT] = numeric_limits<Real>::max();
-              cell->set_max_r_dt(popID,numeric_limits<Real>::max());
-
               vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
               if (blockContainer.size() == 0) continue;
               const Realf* data       = blockContainer.getData();
@@ -218,29 +214,6 @@ void calculateMoments_R(
 
               // Calculate species' contribution to first velocity moments
               for (vmesh::LocalID blockLID=0; blockLID<blockContainer.size(); ++blockLID) {
-                 // compute maximum dt. Algorithm has a CFL condition, since it
-                 // is written only for the case where we have a stencil
-                 // supporting max translation of one cell
-                 const Real EPS = numeric_limits<Real>::min()*1000;
-                 for (unsigned int i=0; i<WID;i+=WID-1) {
-                    const Real Vx 
-                      = blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::VXCRD] 
-                      + (i+HALF)*blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::DVX]
-                      + EPS;
-                    const Real Vy 
-                      = blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::VYCRD] 
-                      + (i+HALF)*blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::DVY]
-                      + EPS;
-                        const Real Vz 
-                      = blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::VZCRD]
-                      + (i+HALF)*blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::DVZ]
-                      + EPS;
-
-                    const Real dt_max_cell = min(dx/fabs(Vx),min(dy/fabs(Vy),dz/fabs(Vz)));
-                    cell->parameters[CellParams::MAXRDT] = min(dt_max_cell,cell->parameters[CellParams::MAXRDT]);
-                    cell->set_max_r_dt(popID,min(dt_max_cell,cell->get_max_r_dt(popID)));
-                 }
-
                  blockVelocityFirstMoments(data+blockLID*WID3,
                                            blockParams+blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS,
                                            array);

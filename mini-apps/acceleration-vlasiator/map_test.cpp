@@ -5,8 +5,9 @@
 #include "vlasovsolver/cpu_1d_ppm.hpp"
 #include "vlasovsolver/cpu_1d_plm.hpp"
 
-#define cell_pop_threshold 1.e-15
-// In vlasiator, called via spatial_cell->getVelocityBlockMinValue(popID)
+#define fluxlimiter_scaling 1.e-15
+// A rescaling value in order to ensure good behaviour of flux limiters (especially for electrons).
+// In vlasiator, the value fed here defaults to the threshold value spatial_cell->getVelocityBlockMinValue(popID)
 
 
 /*print all values in the vector valued values array. In this array
@@ -60,15 +61,15 @@ void propagate(Vec values[], uint  blocks_per_dim, Real v_min, Real dv,
 
 #ifdef ACC_SEMILAG_PLM
       Vec a[2];
-      compute_plm_coeff(values, (k_block + 1) * WID + k_cell , a, cell_pop_threshold);
+      compute_plm_coeff(values, (k_block + 1) * WID + k_cell , a, fluxlimiter_scaling);
 #endif
 #ifdef ACC_SEMILAG_PPM
       Vec a[3];
-      compute_ppm_coeff(values, h6, (k_block + 1) * WID + k_cell , a, cell_pop_threshold);
+      compute_ppm_coeff(values, h6, (k_block + 1) * WID + k_cell , a, fluxlimiter_scaling);
 #endif
 #ifdef ACC_SEMILAG_PQM
       Vec a[5];
-      compute_pqm_coeff(values, h8,  (k_block + 1) * WID + k_cell , a, cell_pop_threshold);
+      compute_pqm_coeff(values, h8,  (k_block + 1) * WID + k_cell , a, fluxlimiter_scaling);
 #endif
 
 
@@ -199,15 +200,15 @@ void print_reconstruction(int step, Vec values[], uint  blocks_per_dim, Real v_m
     for (uint k_cell=0; k_cell<WID; ++k_cell){ 
 #ifdef ACC_SEMILAG_PLM
       Vec a[2];
-      compute_plm_coeff(values, (k_block + 1) * WID + k_cell , a, cell_pop_threshold);
+      compute_plm_coeff(values, (k_block + 1) * WID + k_cell , a, fluxlimiter_scaling);
 #endif
 #ifdef ACC_SEMILAG_PPM
       Vec a[3];
-      compute_ppm_coeff(values, h6, (k_block + 1) * WID + k_cell , a, cell_pop_threshold);
+      compute_ppm_coeff(values, h6, (k_block + 1) * WID + k_cell , a, fluxlimiter_scaling);
 #endif
 #ifdef ACC_SEMILAG_PQM
       Vec a[5];
-      compute_pqm_coeff(values, h8, (k_block + 1) * WID + k_cell , a, cell_pop_threshold);
+      compute_pqm_coeff(values, h8, (k_block + 1) * WID + k_cell , a, fluxlimiter_scaling);
 #endif
 
       Vec v_l = v_min + (k_block * WID + k_cell) * dv;
