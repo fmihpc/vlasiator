@@ -28,6 +28,7 @@
 #include "../../common.h"
 #include "../../readparameters.h"
 #include "../../backgroundfield/backgroundfield.h"
+#include "../../backgroundfield/constantfield.hpp"
 #include "../../backgroundfield/dipole.hpp"
 #include "../../backgroundfield/linedipole.hpp"
 #include "../../object_wrapper.h"
@@ -38,6 +39,8 @@
 #endif
 
 #include "ElVentana.h"
+// #include "vlsv_reader.h"
+// #include "../../tools/vlsvreaderinterface.h"
 
 using namespace std;
 using namespace spatial_cell;
@@ -367,7 +370,9 @@ namespace projects {
       
       if(radius < this->ionosphereRadius) {
 	 // Just to be safe, there are observed cases where this failed.
-	 v[i] = ionosphereV0[i];
+	 for (uint64_t i=0; i<3; i++) {
+	    v[i] = ionosphereV0[i];
+	 }
       }
 
       V0.push_back(v);
@@ -446,16 +451,24 @@ namespace projects {
          exit(1);
       }
 
-      // Check file type
+      // Check file type... couldn't get the VLSVreader interface to work yet
+      /*      vlsvinterface::Reader interfacer;
+      interfacer.open(filename);
       std::list<std::string> variableNames;
       std::string gridname("SpatialGrid");
-      this->vlsvParaReader.getVariableNames(gridname,variableNames);
+      interfacer.getVariableNames(gridname,variableNames);
+      interfacer.close();
       if(find(variableNames.begin(), variableNames.end(), std::string("moments"))!=variableNames.end()) {
 	 // Moments were found, i.e. it's a restart file
 	 isbulk = 0;
       } else {
 	 // It is a bulk file
          isbulk = 1;
+	 } */
+
+      if (filename.find("/bulk.") != string::npos) { 
+         // It is a bulk file
+         isbulk = 1; // Hard setting for now...
       }
 
       for (uint64_t i=0; i<cells.size(); i++) {
@@ -646,12 +659,12 @@ namespace projects {
 	    break;
 	 case 2:
 	    bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor, 0.0, 0.0, 0.0 );//set dipole moment     
-	    setBackgroundField(bgFieldLineDipole,cell->parameters, cell->derivatives,cell->derivativesBVOL);
+	    setBackgroundField(bgFieldLineDipole,BgBGrid);
 	    // Ignore mirror dipole for ElVentana runs. Could be added here if needed.
 	    break;
 	 case 3:
 	    bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );//set dipole moment
-	    setBackgroundField(bgFieldDipole,cell->parameters, cell->derivatives,cell->derivativesBVOL);
+	    setBackgroundField(bgFieldDipole,BgBGrid);
 	    // Ignore mirror dipole for ElVentana runs. Could be added here if needed.
 	    break;
 	 //case 4, vector potential dipole is not yet supported.
