@@ -1,5 +1,5 @@
 #!/bin/bash -l
-#SBATCH --time=01:30:00
+#SBATCH --time=02:30:00
 #SBATCH --job-name=testpackage
 #SBATCH --account=project_2000203
 #SBATCH --partition=small
