@@ -8,7 +8,8 @@ def updatecfg(infile, verbose=False):
         'backstream': 'thermal',
     }
 
-    delete = ['fluxb', 'fluxe', 'populations_rholossvelboundary', 'rholossvelboundary', 'vole']
+    delete = ['fluxb', 'fluxe', 'populations_rholossvelboundary', 'rholossvelboundary', 
+              'vole', 'potential', 'backgroundvole', 'chargedensity', 'potentialerror', 'meshdata']
 
     replace = {
         # First deal with some ancient pre-multipop variables
