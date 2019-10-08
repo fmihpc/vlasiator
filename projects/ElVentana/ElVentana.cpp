@@ -466,7 +466,7 @@ namespace projects {
          isbulk = 1;
 	 } */
 
-      if (filename.find("/bulk.") != string::npos) { 
+      if (filename.find("bulk.") != string::npos) { 
          // It is a bulk file
          isbulk = 1; // Hard setting for now...
       }
