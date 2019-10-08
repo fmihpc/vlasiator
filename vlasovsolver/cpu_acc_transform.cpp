@@ -134,7 +134,7 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
 
    // in this many substeps we iterate forward bulk velocity when the complete transformation is computed (0.1 deg per substep).
    unsigned int bulk_velocity_substeps; 
-   bulk_velocity_substeps = fabs(dt) / fabs(gyro_period*(0.01/360.0));
+   bulk_velocity_substeps = fabs(dt) / fabs(gyro_period*(0.1/360.0));
    if (smallparticle) {
       unsigned int bulk_velocity_substeps_2; 
       bulk_velocity_substeps_2 = fabs(dt) / fabs(plasma_period/10.);
