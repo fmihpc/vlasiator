@@ -574,9 +574,10 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          }
          continue;
       }
-      if(*it == "EJE") {
+      if(lowercase == "eje" || lowercase == "vg_eje") {
          // Volume-averaged E field
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EJE",CellParams::EXJE,3));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_eje",CellParams::EXJE,3));
+	 outputReducer->addMetadata(outputReducer->size()-1,"V/m","$\\mathrm{V}\\,\\mathrm{m}^{-1}$","$EJE$","1.0");
          continue;
       }
       if(lowercase == "halle" || lowercase == "fg_halle" || lowercase == "fg_e_hall") {
