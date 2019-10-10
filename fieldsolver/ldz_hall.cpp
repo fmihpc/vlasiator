@@ -762,10 +762,18 @@ void calculateHallTerm(
       3 // Reconstruction order of the fields after Balsara 2009, 2 used for general B, 3 used here for 2nd-order Hall term
    );
 
-   if ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) && (cellSysBoundaryLayer != 1)) {
-      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, 0);
-      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, 1);
-      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, 2);
+   if (  (cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY && cellSysBoundaryLayer != 1)
+      || (cellSysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY && cellSysBoundaryLayer < 4)
+   ) {
+      if (cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+         sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, 0);
+         sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, 1);
+         sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, 2);
+      } else {
+         for (uint n = 0; n<fsgrids::ehall::N_EHALL; n++) {
+            EHallGrid.get(i,j,k)->at(fsgrids::ehall::EXHALL_000_100+n) = 0.0;
+         }
+      }
    } else {
       calculateEdgeHallTermXComponents(perBGrid, EHallGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, perturbedCoefficients, i, j, k);
       calculateEdgeHallTermYComponents(perBGrid, EHallGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, perturbedCoefficients, i, j, k);
