@@ -65,21 +65,21 @@ LIBRARY_PREFIX = /projappl/project_2000203/libraries
 
 #compiled libraries
 INC_BOOST = -I$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/boost/include
-LIB_BOOST = -L$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/boost/lib -lboost_program_options -Wl,-rpath=$(LIBRARY_PREFIX)/hpcx-mpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/boost/lib
+LIB_BOOST = -L$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/boost/lib -lboost_program_options -Wl,-rpath=$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/boost/lib
 
 INC_ZOLTAN = -I$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/zoltan/3.8/include
 LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/zoltan/3.8/lib -lzoltan
 
 INC_JEMALLOC = -I$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/jemalloc/$(JEMALLOC_VERSION)/include
-LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/jemalloc/$(JEMALLOC_VERSION)/lib -ljemalloc -Wl,-rpath=$(LIBRARY_PREFIX)/hpcx-mpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/jemalloc/$(JEMALLOC_VERSION)/lib
+LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/jemalloc/$(JEMALLOC_VERSION)/lib -ljemalloc -Wl,-rpath=$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/jemalloc/$(JEMALLOC_VERSION)/lib
 
 INC_VLSV = -I$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/vlsv
 LIB_VLSV = -L$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/vlsv -lvlsv
 
-LIB_PROFILE = -L$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof/lib -lphiprof -lgfortran -Wl,-rpath=$(LIBRARY_PREFIX)/hpcx-mpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof/lib
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof/lib -lphiprof -lgfortran -Wl,-rpath=$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof/lib
 INC_PROFILE = -I$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof/include 
 
-#LIB_PAPI = -L$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/papi/lib -lpapi -Wl,-rpath=$(LIBRARY_PREFIX)/hpcx-mpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/papi/lib
+#LIB_PAPI = -L$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/papi/lib -lpapi -Wl,-rpath=$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/papi/lib
 #INC_PAPI = -I$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/papi/include
 
 
