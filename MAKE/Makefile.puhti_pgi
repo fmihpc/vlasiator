@@ -10,10 +10,10 @@ LNK = mpic++
 
 ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
 #Single-precision        
-	VECTORCLASS = VEC4F_AGNER
+	VECTORCLASS = VEC4F_FALLBACK
 else
 #Double-precision
-	VECTORCLASS = VEC2D_AGNER
+	VECTORCLASS = VEC4D_FALLBACK
 endif
 
 #======== PAPI ==========
@@ -39,15 +39,13 @@ endif
 #                         errors that come up when using 
 #                         mpi.h in c++ on Cray
 
-CXXFLAGS += -DMAX_VECTOR_SIZE=256
-
 FLAGS = 
 
 #GNU flags:
 CC_BRAND = pgi
 CC_BRAND_VERSION = 19.7
-CXXFLAGS += -traceback -g -O3 -acc -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1
-testpackage: CXXFLAGS += -g -traceback -O2 -qopenmp -std=c++17 -W -Wno-unused -xHost -ipo
+CXXFLAGS += -g -O3 -acc -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -Minfo=accel
+testpackage: CXXFLAGS += -g -O2 -acc -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -Minfo=accel
 
 MATHFLAGS =
 LDFLAGS = -O3 -acc -g
