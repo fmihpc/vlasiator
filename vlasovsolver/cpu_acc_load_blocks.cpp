@@ -159,6 +159,38 @@ for dimension in range(0, 2):
          values[i_pcolumnv_b(0, 2, block_k, n_blocks)] = gather16d<2 ,18 ,34 ,50 ,6 ,22 ,38 ,54 ,10 ,26 ,42 ,58 ,14 ,30 ,46 ,62>(data);
          values[i_pcolumnv_b(0, 3, block_k, n_blocks)] = gather16d<3 ,19 ,35 ,51 ,7 ,23 ,39 ,55 ,11 ,27 ,43 ,59 ,15 ,31 ,47 ,63>(data);
    #endif //VEC16D_AGNER
+   #if defined(VEC4D_FALLBACK) || defined(VEC4F_FALLBACK) || defined(VEC8F_FALLBACK) || defined(VEC8D_FALLBACK)
+	 //if dimension == 0:
+	 uint cell_indices_to_id[3];
+	 cell_indices_to_id[0]=WID2;
+	 cell_indices_to_id[1]=WID;
+	 cell_indices_to_id[2]=1;
+	 Realv blockValues[WID3];  
+	 uint offset = 0;
+	 unsigned char cellid_transpose[WID3]; 
+	 /*< defines the transpose for the solver internal (transposed) id: i + j*WID + k*WID2 to actual one*/
+	 // init plane_index_to_id.
+	 for (uint k=0; k<WID; ++k) {
+	    for (uint j=0; j<WID; ++j) {
+	       for (uint i=0; i<WID; ++i) {
+	          const uint cell = i * cell_indices_to_id[0] + j * cell_indices_to_id[1] + k * cell_indices_to_id[2];
+	          cellid_transpose[ i + j * WID + k * WID2] = cell;
+               }
+            }
+         } 
+	 //  Copy volume averages of this block, taking into account the dimension shifting
+         for (uint i=0; i<WID3; ++i) {
+            blockValues[i] = data[cellid_transpose[i]];
+         }
+         // now load values into the actual values table..
+         for (uint k=0; k<WID; ++k) {
+            for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){
+               // load data from blockValues which already has shifted dimensions
+               values[i_pcolumnv_b(planeVector, k, block_k, n_blocks)].load(blockValues + offset);
+               offset += VECL;
+            }
+         }
+   #endif
          //zero old output data
          for (uint i=0; i<WID3; ++i) {
             data[i]=0;
@@ -236,6 +268,38 @@ for dimension in range(0, 2):
          values[i_pcolumnv_b(0, 2, block_k, n_blocks)] = gather16d<8 ,9 ,10 ,11 ,24 ,25 ,26 ,27 ,40 ,41 ,42 ,43 ,56 ,57 ,58 ,59>(data);
          values[i_pcolumnv_b(0, 3, block_k, n_blocks)] = gather16d<12 ,13 ,14 ,15 ,28 ,29 ,30 ,31 ,44 ,45 ,46 ,47 ,60 ,61 ,62 ,63>(data);
    #endif //VEC16D_AGNER
+   #if defined(VEC4D_FALLBACK) || defined(VEC4F_FALLBACK) || defined(VEC8F_FALLBACK) || defined(VEC8D_FALLBACK)
+	 //if dimension == 1:    
+	 uint cell_indices_to_id[3];
+	 cell_indices_to_id[0]=1;
+	 cell_indices_to_id[1]=WID2;
+	 cell_indices_to_id[2]=WID;
+	 Realv blockValues[WID3];  
+	 uint offset = 0;
+	 unsigned char cellid_transpose[WID3]; 
+	 /*< defines the transpose for the solver internal (transposed) id: i + j*WID + k*WID2 to actual one*/
+	 // init plane_index_to_id.
+	 for (uint k=0; k<WID; ++k) {
+	    for (uint j=0; j<WID; ++j) {
+	       for (uint i=0; i<WID; ++i) {
+	          const uint cell = i * cell_indices_to_id[0] + j * cell_indices_to_id[1] + k * cell_indices_to_id[2];
+	          cellid_transpose[ i + j * WID + k * WID2] = cell;
+               }
+            }
+         } 
+	 //  Copy volume averages of this block, taking into account the dimension shifting
+         for (uint i=0; i<WID3; ++i) {
+            blockValues[i] = data[cellid_transpose[i]];
+         }
+         // now load values into the actual values table..
+         for (uint k=0; k<WID; ++k) {
+            for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){
+               // load data from blockValues which already has shifted dimensions
+               values[i_pcolumnv_b(planeVector, k, block_k, n_blocks)].load(blockValues + offset);
+               offset += VECL;
+            }
+         }
+   #endif
          //zero old output data
          for (uint i=0; i<WID3; ++i) {
             data[i]=0;
