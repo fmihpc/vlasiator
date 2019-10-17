@@ -22,7 +22,7 @@ endif
 #======== PAPI ==========
 #Add PAPI_MEM define to use papi to report memory consumption?
 #CXXFLAGS +=  -DPAPI_MEM
-
+CXXFLAGS += -DMAX_VECTOR_LENGTH=256
 
 #======== Allocator =========
 #Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
@@ -71,8 +71,8 @@ LIB_BOOST = -L$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VE
 INC_ZOLTAN = -I$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/zoltan/3.8/include
 LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/zoltan/3.8/lib -lzoltan
 
-INC_JEMALLOC = -I$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/jemalloc/$(JEMALLOC_VERSION)/include
-LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/jemalloc/$(JEMALLOC_VERSION)/lib -ljemalloc -Wl,-rpath=$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/jemalloc/$(JEMALLOC_VERSION)/lib
+#INC_JEMALLOC = -I$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/jemalloc/$(JEMALLOC_VERSION)/include
+#LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/jemalloc/$(JEMALLOC_VERSION)/lib -ljemalloc -Wl,-rpath=$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/jemalloc/$(JEMALLOC_VERSION)/lib
 
 INC_VLSV = -I$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/vlsv
 LIB_VLSV = -L$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/vlsv -lvlsv
