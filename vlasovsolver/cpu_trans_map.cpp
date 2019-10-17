@@ -21,7 +21,7 @@
  */
 
 #include <algorithm>
-#include <cmath>
+#include <math.h>
 #include <utility>
 
 #ifdef _OPENMP

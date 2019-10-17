@@ -26,7 +26,7 @@
 #include <iostream>
 #include "vec.h"
 #include "algorithm"
-#include "cmath"
+#include "math.h"
 #include "cpu_slope_limiters.hpp"
 
 using namespace std;
@@ -38,6 +38,7 @@ t=(v-v_{i-0.5})/dv where v_{i-0.5} is the left face of a cell
 The factor 2.0 is in the polynom to ease integration, then integral is a[0]*t + a[1]*t**2
 */
 
+#pragma acc routine(compute_plm_coeff) seq
 inline void compute_plm_coeff(const Vec * const values, uint k, Vec a[2]){
   const Vec d_cv=slope_limiter(values[k - 1], values[k], values[k + 1]);
   a[0] = values[k] - d_cv * 0.5;

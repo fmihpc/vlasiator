@@ -152,6 +152,7 @@ inline void filter_pqm_monotonicity(Vec *values, uint k, Vec &fv_l, Vec &fv_r, V
 //   White, Laurent, and Alistair Adcroft. “A High-Order Finite Volume Remapping Scheme for Nonuniform Grids: The Piecewise Quartic Method (PQM).” Journal of Computational Physics 227, no. 15 (July 2008): 7394–7422. doi:10.1016/j.jcp.2008.04.026.
 // */
 
+#pragma acc routine(compute_pqm_coeff) seq
 inline void compute_pqm_coeff(Vec *values, face_estimate_order order, uint k, Vec a[5]){
    Vec fv_l; /*left face value*/
    Vec fv_r; /*right face value*/
