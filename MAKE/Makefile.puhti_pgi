@@ -47,11 +47,11 @@ FLAGS =
 #GNU flags:
 CC_BRAND = pgi
 CC_BRAND_VERSION = 19.7
-CXXFLAGS += -g -O3 -acc -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -Minfo=accel
+CXXFLAGS += -g -O3 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -Minfo=accel -ta=tesla:lineinfo,keepbin,keepgpu,keepptx
 testpackage: CXXFLAGS += -g -O2 -acc -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -Minfo=accel
 
 MATHFLAGS =
-LDFLAGS = -O3 -acc -g
+LDFLAGS = -O3 -g  -ta=tesla:lineinfo,keepbin,keepgpu,keepptx
 LIB_MPI = 
 
 # BOOST_VERSION = current trilinos version
@@ -77,7 +77,7 @@ LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_V
 INC_VLSV = -I$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/vlsv
 LIB_VLSV = -L$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/vlsv -lvlsv
 
-LIB_PROFILE = -L$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof_nvtx/lib -lphiprof -lgfortran -Wl,-rpath=$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof_nvtx/lib
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof_nvtx/lib -lphiprof -lgfortran -Wl,-rpath=$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof_nvtx/lib -L$(CUDA_INSTALL_ROOT)/lib64 -lnvToolsExt
 INC_PROFILE = -I$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof_nvtx/include 
 
 #LIB_PAPI = -L$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/papi/lib -lpapi -Wl,-rpath=$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/papi/lib
