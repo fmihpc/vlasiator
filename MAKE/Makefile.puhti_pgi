@@ -47,11 +47,11 @@ FLAGS =
 #GNU flags:
 CC_BRAND = pgi
 CC_BRAND_VERSION = 19.7
-CXXFLAGS += -g -O3 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -Minfo=accel -ta=tesla:lineinfo,keepbin,keepgpu,keepptx
+CXXFLAGS += -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -Minfo=accel -ta=tesla:lineinfo,keepbin,keepgpu,keepptx -Manno -g
 testpackage: CXXFLAGS += -g -O2 -acc -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -Minfo=accel
 
 MATHFLAGS =
-LDFLAGS = -O3 -g  -ta=tesla:lineinfo,keepbin,keepgpu,keepptx
+LDFLAGS = -O2 -g  -ta=tesla:lineinfo,keepbin,keepgpu,keepptx
 LIB_MPI = 
 
 # BOOST_VERSION = current trilinos version

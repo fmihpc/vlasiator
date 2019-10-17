@@ -334,6 +334,9 @@ bool map_1d(SpatialCell* spatial_cell,
          columnMinBlockK.push_back(firstBlockIndexK);
          columnMaxBlockK.push_back(lastBlockIndexK);
       }
+      int* columnMinBlockKp = columnMinBlockK.data();
+      int* columnMaxBlockKp = columnMaxBlockK.data();
+      #pragma acc enter data copyin(columnMinBlockKp[:columnMinBlockK.size()], columnMaxBlockKp[:columnMaxBlockK.size()]) async
 
       //now add target blocks that do not yet exist and remove source blocks
       //that are not target blocks
@@ -361,7 +364,8 @@ bool map_1d(SpatialCell* spatial_cell,
       removing blocks*/
       // Upload velocity space to GPU
       Realf* blockData = blockContainer.getData();
-      #pragma acc enter data copyin(blockData[:blockContainer.size()*WID3])
+      #pragma acc enter data copyin(blockData[:blockContainer.size()*WID3]) async
+
       for (int blockK = 0; blockK < MAX_BLOCKS_PER_DIM; blockK++){
          if(isTargetBlock[blockK])  {
             const int targetBlock =
@@ -373,7 +377,7 @@ bool map_1d(SpatialCell* spatial_cell,
             blockIndexToBlockDataIndex[blockK] = tblockLID*WID3;
          }
       }
-      #pragma acc enter data copyin(blockIndexToBlockDataIndex[:MAX_BLOCKS_PER_DIM]) copyin(values[:(3 * ( MAX_BLOCKS_PER_DIM / 2 + 1)) * WID3 / VECL])
+      #pragma acc enter data copyin(blockIndexToBlockDataIndex[:MAX_BLOCKS_PER_DIM]) copyin(values[:(3 * ( MAX_BLOCKS_PER_DIM / 2 + 1)) * WID3 / VECL]) async
       
       // loop over columns in set and do the mapping
       valuesColumnOffset = 0; //offset to values array for data in a column in this set
@@ -397,10 +401,8 @@ bool map_1d(SpatialCell* spatial_cell,
              Note that the i dimension is vectorized, and thus there are no loops over i
          */
 
-         int* columnMinBlockKp = columnMinBlockK.data();
-         int* columnMaxBlockKp = columnMaxBlockK.data();
-         //#pragma acc kernels present(blockIndexToBlockDataIndex[:MAX_BLOCKS_PER_DIM], blockData[:blockContainer.size()*WID3])
-         {
+         #pragma acc wait
+         #pragma acc parallel loop present(blockData[:blockContainer.size()*WID3]) present(blockIndexToBlockDataIndex[:MAX_BLOCKS_PER_DIM],values[:(3 * ( MAX_BLOCKS_PER_DIM / 2 + 1)) * WID3 / VECL]) present(columnMinBlockKp[:columnMinBlockK.size()], columnMaxBlockKp[:columnMaxBlockK.size()])
             for (uint j = 0; j < WID; j += VECL/WID){ 
                // create vectors with the i and j indices in the vector position on the plane.
                #if VECL == 4       
@@ -475,8 +477,7 @@ bool map_1d(SpatialCell* spatial_cell,
                }
                
                // loop through all blocks in column and compute the mapping as integrals.
-               //#pragma acc loop
-               #pragma acc parallel loop present(blockData[:blockContainer.size()*WID3]) copyin(target_block_index_common) present(blockIndexToBlockDataIndex[:MAX_BLOCKS_PER_DIM],values[:(3 * ( MAX_BLOCKS_PER_DIM / 2 + 1)) * WID3 / VECL]) copyin(cell_indices_to_id[:3]) copyin(columnMinBlockKp[:columnMinBlockK.size()], columnMaxBlockKp[:columnMaxBlockK.size()])
+               #pragma acc loop
                for (uint k=0; k < WID * n_cblocks; ++k ){
                   // Compute reconstructions 
                   // values + i_pcolumnv(n_cblocks, -1, j, 0) is the starting point of the column data for fixed j
@@ -524,7 +525,7 @@ bool map_1d(SpatialCell* spatial_cell,
                      const int blockK = gk/WID;
                      const int gk_mod_WID = (gk - blockK * WID);
                      //the block of the Lagrangian cell to which we map
-                     const int target_block(target_block_index_common + blockK * block_indices_to_id[2]);
+                     //const int target_block(target_block_index_common + blockK * block_indices_to_id[2]);
                      
                      //cell indices in the target block  (TODO: to be replaced by
                      //compile time generated scatter write operation)
@@ -559,14 +560,14 @@ bool map_1d(SpatialCell* spatial_cell,
                      //TODO replace by vector version & scatter & gather operation
                      
                      
-                     //if(dimension == 2) {
-                     //   Realf* targetDataPointer = blockData + blockIndexToBlockDataIndex[blockK] + j * cell_indices_to_id[1] + gk_mod_WID * cell_indices_to_id[2];
-                     //   Vec targetData;
-                     //   targetData.load_a(targetDataPointer);
-                     //   targetData += target_density_r - target_density_l;                  
-                     //   targetData.store_a(targetDataPointer);
-                     //}
-                     //else{
+                     if(dimension == 2) {
+                        Realf* targetDataPointer = blockData + blockIndexToBlockDataIndex[blockK] + j * cell_indices_to_id[1] + gk_mod_WID * cell_indices_to_id[2];
+                        Vec targetData;
+                        targetData.load_a(targetDataPointer);
+                        targetData += target_density_r - target_density_l;                  
+                        targetData.store_a(targetDataPointer);
+                     }
+                     else{
                         // total value of integrand
                         const Vec target_density = target_density_r - target_density_l;                  
    #pragma ivdep
@@ -576,18 +577,17 @@ bool map_1d(SpatialCell* spatial_cell,
                            // do the conversion from Realv to Realf here, faster than doing it in accumulation
                            const Realf tval = target_density[target_i];
                            const uint tcell = target_cell[target_i];
-                           (blockData + blockIndexToBlockDataIndex[blockK])[tcell] += tval;
+                           (&blockData[blockIndexToBlockDataIndex[blockK]])[tcell] += tval;
                         }  // for-loop over vector elements
-                     //}
+                     }
                      
                   } // for loop over target k-indices of current source block
                } // for-loop over source blocks
             } //for loop over j index
-         } // openacc kernels section
          valuesColumnOffset += (n_cblocks + 2) * (WID3/VECL) ;// there are WID3/VECL elements of type Vec per block    
       } //for loop over columns
 
-      #pragma acc exit data copyout(blockData[:blockContainer.size()*WID3]) delete(blockIndexToBlockDataIndex[:MAX_BLOCKS_PER_DIM],values[:(3 * ( MAX_BLOCKS_PER_DIM / 2 + 1)) * WID3 / VECL])
+      #pragma acc exit data copyout(blockData[:blockContainer.size()*WID3]) delete(blockIndexToBlockDataIndex[:MAX_BLOCKS_PER_DIM],values[:(3 * ( MAX_BLOCKS_PER_DIM / 2 + 1)) * WID3 / VECL]) delete(columnMinBlockKp[:columnMinBlockK.size()], columnMaxBlockKp[:columnMaxBlockK.size()])
       
    }
    delete [] blocks;
