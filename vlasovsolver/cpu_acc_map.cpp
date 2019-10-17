@@ -396,6 +396,9 @@ bool map_1d(SpatialCell* spatial_cell,
           
              Note that the i dimension is vectorized, and thus there are no loops over i
          */
+
+         int* columnMinBlockKp = columnMinBlockK.data();
+         int* columnMaxBlockKp = columnMaxBlockK.data();
          //#pragma acc kernels present(blockIndexToBlockDataIndex[:MAX_BLOCKS_PER_DIM], blockData[:blockContainer.size()*WID3])
          {
             for (uint j = 0; j < WID; j += VECL/WID){ 
@@ -471,9 +474,9 @@ bool map_1d(SpatialCell* spatial_cell,
                   }
                }
                
-               
                // loop through all blocks in column and compute the mapping as integrals.
-               #pragma acc parallel loop present(blockData[:blockContainer.size()*WID3]) copyin(target_block_index_common) present(blockIndexToBlockDataIndex[:MAX_BLOCKS_PER_DIM],values[:(3 * ( MAX_BLOCKS_PER_DIM / 2 + 1)) * WID3 / VECL])
+               //#pragma acc loop
+               #pragma acc parallel loop present(blockData[:blockContainer.size()*WID3]) copyin(target_block_index_common) present(blockIndexToBlockDataIndex[:MAX_BLOCKS_PER_DIM],values[:(3 * ( MAX_BLOCKS_PER_DIM / 2 + 1)) * WID3 / VECL]) copyin(cell_indices_to_id[:3]) copyin(columnMinBlockKp[:columnMinBlockK.size()], columnMaxBlockKp[:columnMaxBlockK.size()])
                for (uint k=0; k < WID * n_cblocks; ++k ){
                   // Compute reconstructions 
                   // values + i_pcolumnv(n_cblocks, -1, j, 0) is the starting point of the column data for fixed j
@@ -512,11 +515,11 @@ bool map_1d(SpatialCell* spatial_cell,
                   //account limits of target column
                   #define my_min(x,y) ((x < y)?(x):(y))
                   #define my_max(x,y) ((x < y)?(y):(x))
-                  int minGk = my_max(int(lagrangian_gk_l[minGkIndex]), int(columnMinBlockK[columnIndex] * WID));
-                  int maxGk = my_min(int(lagrangian_gk_r[maxGkIndex]), int((columnMaxBlockK[columnIndex] + 1) * WID - 1));
+                  int minGk = my_max(int(lagrangian_gk_l[minGkIndex]), int(columnMinBlockKp[columnIndex] * WID));
+                  int maxGk = my_min(int(lagrangian_gk_r[maxGkIndex]), int((columnMaxBlockKp[columnIndex] + 1) * WID - 1));
 
                   //#pragma acc parallel loop present(blockData[:blockContainer.size()*WID3]) copyin(target_block_index_common,a, v_r, v_l) seq
-                  #pragma acc loop seq
+                  #pragma acc loop
                   for(int gk = minGk; gk <= maxGk; gk++){ 
                      const int blockK = gk/WID;
                      const int gk_mod_WID = (gk - blockK * WID);
