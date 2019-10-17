@@ -336,6 +336,7 @@ namespace projects {
          }
 
          const Real maxValue = setVelocityBlock(cell,blockLID,popID);
+         #warning TODO: add SpatialCell::getVelocityBlockMinValue() in place of sparseMinValue
          if (maxValue < getObjectWrapper().particleSpecies[popID].sparseMinValue) removeList.push_back(blockGID);
       }
 
@@ -391,6 +392,7 @@ namespace projects {
             const vmesh::GlobalID blockGID = it->first;
             const vmesh::LocalID blockLID = it->second;
             const Real maxValue = setVelocityBlock(cell,blockLID,popID);
+            #warning TODO: add SpatialCell::getVelocityBlockMinValue() in place of sparseMinValue
             if (maxValue <= getObjectWrapper().particleSpecies[popID].sparseMinValue) 
               removeList.push_back(it->first);
          }
