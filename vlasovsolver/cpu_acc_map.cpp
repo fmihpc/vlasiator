@@ -497,9 +497,9 @@ bool map_1d(SpatialCell* spatial_cell,
                   // set the initial value for the integrand at the boundary at v = 0 
                   // (in reduced cell units), this will be shifted to target_density_1, see below.
                   Vec target_density_r(0.0);
-                  // v_l, v_r are the left and right velocity coordinates of source cell. Left is the old right.
-                  Vec v_r = ((WID * block_indices_begin[2]) * dv + v_min)  + k* dv;
-                  Vec v_l = v_r; 
+                  // v_l, v_r are the left and right velocity coordinates of source cell.
+                  Vec v_r = v_r0  + (k+1)* dv;
+                  Vec v_l = v_r0  + k* dv; 
 
                   // left(l) and right(r) k values (global index) in the target
                   // Lagrangian grid, the intersecting cells. Again old right is new left.
