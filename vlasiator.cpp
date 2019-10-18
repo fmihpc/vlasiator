@@ -310,6 +310,7 @@ int main(int argn,char* args[]) {
    MPI_Comm comm = MPI_COMM_WORLD;
    MPI_Comm_rank(comm,&myRank);
 
+#ifdef _OPENACC
    MPI_Comm shared;
    int localRank, localSize, nGpus;
    MPI_Comm_split_type(comm, MPI_COMM_TYPE_SHARED, 0, MPI_INFO_NULL, &shared);
@@ -317,6 +318,7 @@ int main(int argn,char* args[]) {
    MPI_Comm_rank(shared, &localRank);
    nGpus = acc_get_num_devices(acc_device_nvidia);
    acc_set_device_num(localRank % nGpus, acc_get_device_type());
+#endif
 
    SysBoundary sysBoundaries;
    bool isSysBoundaryCondDynamic;
