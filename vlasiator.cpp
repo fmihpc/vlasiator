@@ -311,6 +311,8 @@ int main(int argn,char* args[]) {
    MPI_Comm_rank(comm,&myRank);
 
 #ifdef _OPENACC
+   // Sharing GPUs:
+   // Requires "nvidia-cuda-mps-control -d" before and "echo quit | nvidia-cuda-mps-control" after the srun command.
    MPI_Comm shared;
    int localRank, localSize, nGpus;
    MPI_Comm_split_type(comm, MPI_COMM_TYPE_SHARED, 0, MPI_INFO_NULL, &shared);
