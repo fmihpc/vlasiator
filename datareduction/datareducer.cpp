@@ -26,7 +26,6 @@
 #include "datareducer.h"
 #include "../common.h"
 #include "dro_populations.h"
-#include <boost/algorithm/string.hpp>    
 using namespace std;
 
 void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosticReducer)
@@ -44,7 +43,8 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       */
 
       // Sidestep mixed case errors
-      const std::string lowercase = boost::algorithm::to_lower_copy(*it);
+      std::string lowercase = *it;
+      for(auto& c : lowercase) c = tolower(c);
       
       if(lowercase == "fg_b" || lowercase == "b") { // Bulk magnetic field at Yee-Lattice locations
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_b",[](
@@ -252,7 +252,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             species::Species& species=getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
             outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + "/vg_rho", i, offsetof(spatial_cell::Population, RHO), 1));
-	    outputReducer->addMetadata(outputReducer->size()-1,"1/m^3","$\\mathrm{m}^{-3}$","$\\n_\\mathrm{"+pop+"}$","1.0");
+	    outputReducer->addMetadata(outputReducer->size()-1,"1/m^3","$\\mathrm{m}^{-3}$","$n_\\mathrm{"+pop+"}$","1.0");
          }
          continue;
       }
@@ -904,7 +904,8 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
         it++) {
 
       // Sidestep mixed case errors
-      const std::string lowercase = boost::algorithm::to_lower_copy(*it);
+      std::string lowercase = *it;
+      for(auto& c : lowercase) c = tolower(c);
 
       if(lowercase == "populations_blocks" || lowercase == "populations_vg_blocks") {
          // Per-population total block counts
