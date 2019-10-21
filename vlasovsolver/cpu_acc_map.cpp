@@ -222,6 +222,7 @@ bool map_1d(SpatialCell* spatial_cell,
       size_t targetBlockOffsets[MAX_BLOCKS_PER_DIM]; // Target data array offsets
       int nblocks;                // Number of blocks in this column
       int minBlockK,maxBlockK;    // Column parallel coordinate limits
+      int kBegin;                 // Actual un-sheared starting block index
       int i,j;                    // Blocks' perpendicular coordinates
    } columns[totalColumns];
 
@@ -253,12 +254,8 @@ bool map_1d(SpatialCell* spatial_cell,
    // Calculate target column extents
    for( uint setIndex=0; setIndex< setColumnOffsets.size(); ++setIndex) {
 
-      bool isTargetBlock[MAX_BLOCKS_PER_DIM];
-      bool isSourceBlock[MAX_BLOCKS_PER_DIM];
-      for(int i=0; i< MAX_BLOCKS_PER_DIM; i++) {
-         isTargetBlock[i] = false;
-         isSourceBlock[i] = false;
-      }
+      bool isTargetBlock[MAX_BLOCKS_PER_DIM]= {false};
+      bool isSourceBlock[MAX_BLOCKS_PER_DIM]= {false};
 
       /*need x,y coordinate of this column set of blocks, take it from first
         block in first column*/
@@ -355,6 +352,7 @@ bool map_1d(SpatialCell* spatial_cell,
          // Set columns' transverse coordinates
          columns[columnIndex].i = setFirstBlockIndices[0];
          columns[columnIndex].j = setFirstBlockIndices[1];
+         columns[columnIndex].kBegin = firstBlockIndices[2];
 
          //store also for each column firstBlockIndexK, and lastBlockIndexK
          columns[columnIndex].minBlockK = firstBlockIndexK;
@@ -466,7 +464,7 @@ bool map_1d(SpatialCell* spatial_cell,
           * shifting of values as we go through all blocks in
           * order. See comments where they are shifted for
           * explanations of their meaning*/
-         Vec v_r0((WID * columns[column].minBlockK) * dv + v_min);
+         Vec v_r0((WID * columns[column].kBegin) * dv + v_min);
          Vec lagrangian_v_r0((v_r0-intersection_min)/intersection_dk);
 
          // compute location of min and max, this does not change for one
