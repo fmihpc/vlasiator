@@ -150,9 +150,11 @@ namespace projects {
    }
 
    void Distributions::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
-      setRandomCellSeed(cell);
+      char rngStateBuffer[256];
+      random_data rngDataBuffer;
+      setRandomCellSeed(cell,rngStateBuffer,&rngDataBuffer);
       for (uint i=0; i<2; i++) {
-         this->rhoRnd[i] = this->rho[i] + this->rhoPertAbsAmp[i] * (0.5 - getRandomNumber());
+         this->rhoRnd[i] = this->rho[i] + this->rhoPertAbsAmp[i] * (0.5 - getRandomNumber(&rngDataBuffer));
       }
    }
 
@@ -179,7 +181,9 @@ namespace projects {
                   const int64_t cellid = perBGrid.GlobalIDForCoords(x, y, z);
                   const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
                   
-                  setRandomSeed(cellid);
+		  char rngStateBuffer[256];
+		  random_data rngDataBuffer;
+		  setRandomSeed(cellid,rngStateBuffer,&rngDataBuffer);
                   
                   if (this->lambda != 0.0) {
                      cell->at(fsgrids::bfield::PERBX) = this->dBx*cos(2.0 * M_PI * xyz[0] / this->lambda);
@@ -187,9 +191,9 @@ namespace projects {
                      cell->at(fsgrids::bfield::PERBZ) = this->dBz*cos(2.0 * M_PI * xyz[0] / this->lambda);
                   }
 
-                  cell->at(fsgrids::bfield::PERBX) += this->magXPertAbsAmp * (0.5 - getRandomNumber());
-                  cell->at(fsgrids::bfield::PERBY) += this->magYPertAbsAmp * (0.5 - getRandomNumber());
-                  cell->at(fsgrids::bfield::PERBZ) += this->magZPertAbsAmp * (0.5 - getRandomNumber());
+                  cell->at(fsgrids::bfield::PERBX) += this->magXPertAbsAmp * (0.5 - getRandomNumber(&rngDataBuffer));
+                  cell->at(fsgrids::bfield::PERBY) += this->magYPertAbsAmp * (0.5 - getRandomNumber(&rngDataBuffer));
+                  cell->at(fsgrids::bfield::PERBZ) += this->magZPertAbsAmp * (0.5 - getRandomNumber(&rngDataBuffer));
                }
             }
          }
