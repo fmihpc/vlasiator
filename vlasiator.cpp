@@ -32,6 +32,10 @@
    #include <omp.h>
 #endif
 
+#ifdef _OPENACC
+   #include "openacc.h"
+#endif
+
 #include <fsgrid.hpp>
 
 #include "vlasovmover.h"
@@ -305,6 +309,19 @@ int main(int argn,char* args[]) {
    
    MPI_Comm comm = MPI_COMM_WORLD;
    MPI_Comm_rank(comm,&myRank);
+
+#ifdef _OPENACC
+   // Sharing GPUs:
+   // Requires "nvidia-cuda-mps-control -d" before and "echo quit | nvidia-cuda-mps-control" after the srun command.
+   MPI_Comm shared;
+   int localRank, localSize, nGpus;
+   MPI_Comm_split_type(comm, MPI_COMM_TYPE_SHARED, 0, MPI_INFO_NULL, &shared);
+   MPI_Comm_size(shared, &localSize);
+   MPI_Comm_rank(shared, &localRank);
+   nGpus = acc_get_num_devices(acc_device_nvidia);
+   acc_set_device_num(localRank % nGpus, acc_get_device_type());
+#endif
+
    SysBoundary sysBoundaries;
    bool isSysBoundaryCondDynamic;
    
