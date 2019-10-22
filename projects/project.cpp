@@ -59,9 +59,6 @@ using namespace std;
 
 extern Logger logFile;
 
-char projects::Project::rngStateBuffer[256];
-random_data projects::Project::rngDataBuffer;
-
 /** Struct for creating a new velocity mesh.
  * The values are read from the configuration file and 
  * copied to ObjectWrapper::velocityMeshes.*/
@@ -93,7 +90,7 @@ struct VelocityMeshParams {
    }
 };
 
-static VelocityMeshParams* velMeshParams = NULL;
+//static VelocityMeshParams* velMeshParams = NULL;
 
 namespace projects {
    Project::Project() { 
@@ -365,7 +362,7 @@ namespace projects {
          const vmesh::LocalID endIndex   = cell->get_number_of_velocity_blocks(popID);
          for (vmesh::LocalID blockLID=startIndex; blockLID<endIndex; ++blockLID) {
             vector<vmesh::GlobalID> nbrs;
-            int32_t refLevelDifference;
+            //int32_t refLevelDifference;
             const vmesh::GlobalID blockGID = vmesh.getGlobalID(blockLID);
 
             // Fetch block data and nearest neighbors
@@ -453,7 +450,7 @@ namespace projects {
    }
    
    /*!
-     Get random number between 0 and 1.0. One should always first initialize the rng.
+     Get correct number density base class function?
    */
    Real Project::getCorrectNumberDensity(spatial_cell::SpatialCell* cell,const uint popID) const {
       cerr << "ERROR: Project::getCorrectNumberDensity called instead of derived class function!" << endl;
@@ -462,43 +459,43 @@ namespace projects {
    }
 
    /** Get random number between 0 and 1.0. One should always first initialize the rng.
-    * @param cell Spatial cell.
+    * @param rngDataBuffer struct of type random_data
     * @return Uniformly distributed random number between 0 and 1.*/
-   Real Project::getRandomNumber() const {
+   Real Project::getRandomNumber(random_data* rngDataBuffer) const {
 #ifdef _AIX
       int64_t rndInt;
-      random_r(&rndInt, &rngDataBuffer);
+      random_r(&rndInt, rngDataBuffer);
 #else
       int32_t rndInt;
-      random_r(&rngDataBuffer, &rndInt);
+      random_r(rngDataBuffer, &rndInt);
 #endif
       Real rnd = (Real) rndInt / RAND_MAX;
       return rnd;
    }
 
-   /*!  Set random seed (thread-safe). Seed is based on the seed read
-     in from cfg + the seedModifier parameter
-
-     \param seedModifier d. Seed is based on the seed read in from cfg + the seedModifier parameter
+   /** Set random seed (thread-safe). Seed is based on the seed read
+    *  in from cfg + the seedModifier parameter
+    * @param seedModifier CellID value to use as seed modifier
+    * @param rngStateBuffer buffer where random number values are kept
+    * @param rngDataBuffer struct of type random_data
    */
-
-   void Project::setRandomSeed(CellID seedModifier) const {
-      memset(&(this->rngDataBuffer), 0, sizeof(this->rngDataBuffer));
+   void Project::setRandomSeed(CellID seedModifier, char* rngStateBuffer, random_data* rngDataBuffer) const {
+      memset(rngDataBuffer, 0, sizeof(rngDataBuffer));
 #ifdef _AIX
-      initstate_r(this->seed+seedModifier, &(this->rngStateBuffer[0]), 256, NULL, &(this->rngDataBuffer));
+      initstate_r(this->seed+seedModifier, rngStateBuffer, 256, NULL, rngDataBuffer);
 #else
-      initstate_r(this->seed+seedModifier, &(this->rngStateBuffer[0]), 256, &(this->rngDataBuffer));
+      initstate_r(this->seed+seedModifier, rngStateBuffer, 256, rngDataBuffer);
 #endif
    }
 
-   /*!
-     Set random seed (thread-safe) that is always the same for
-     this particular cellID. Can be used to make reproducible
-     simulations that do not depend on number of processes or threads.
-
-     \param  cellParams The cell parameters list in each spatial cell
+   /** Set random seed (thread-safe) that is always the same for
+    * this particular cellID. Can be used to make reproducible
+    * simulations that do not depend on number of processes or threads.
+    * @param cell SpatialCell used to infer CellID value to use as seed modifier
+    * @param rngStateBuffer buffer where random number values are kept
+    * @param rngDataBuffer struct of type random_data
    */
-   void Project::setRandomCellSeed(spatial_cell::SpatialCell* cell) const {
+   void Project::setRandomCellSeed(spatial_cell::SpatialCell* cell, char* rngStateBuffer, random_data* rngDataBuffer) const {
       const creal x = cell->parameters[CellParams::XCRD];
       const creal y = cell->parameters[CellParams::YCRD];
       const creal z = cell->parameters[CellParams::ZCRD];
@@ -509,7 +506,7 @@ namespace projects {
       const CellID cellID = (int) ((x - Parameters::xmin) / dx) +
          (int) ((y - Parameters::ymin) / dy) * Parameters::xcells_ini +
          (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
-      setRandomSeed(cellID);
+      setRandomSeed(cellID, rngStateBuffer, rngDataBuffer);
    }
 
    /*

@@ -162,12 +162,14 @@ namespace projects {
          (int) ((y - Parameters::ymin) / dy) * Parameters::xcells_ini +
          (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
       
-      setRandomSeed(cellID);
+      char rngStateBuffer[256];
+      random_data rngDataBuffer;
+      setRandomCellSeed(cell,rngStateBuffer,&rngDataBuffer);
       
-      this->rndRho=getRandomNumber();
-      this->rndVel[0]=getRandomNumber();
-      this->rndVel[1]=getRandomNumber();
-      this->rndVel[2]=getRandomNumber();
+      this->rndRho=getRandomNumber(&rngDataBuffer);
+      this->rndVel[0]=getRandomNumber(&rngDataBuffer);
+      this->rndVel[1]=getRandomNumber(&rngDataBuffer);
+      this->rndVel[2]=getRandomNumber(&rngDataBuffer);
    }
 
    void Fluctuations::setProjectBField(
@@ -192,11 +194,13 @@ namespace projects {
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
                   const int64_t cellid = perBGrid.GlobalIDForCoords(x, y, z);
                   
-                  setRandomSeed(cellid);
+		  char rngStateBuffer[256];
+		  random_data rngDataBuffer;
+		  setRandomSeed(cellid,rngStateBuffer,&rngDataBuffer);
                   
-                  cell->at(fsgrids::bfield::PERBX) = this->magXPertAbsAmp * (0.5 - getRandomNumber());
-                  cell->at(fsgrids::bfield::PERBY) = this->magYPertAbsAmp * (0.5 - getRandomNumber());
-                  cell->at(fsgrids::bfield::PERBZ) = this->magZPertAbsAmp * (0.5 - getRandomNumber());
+                  cell->at(fsgrids::bfield::PERBX) = this->magXPertAbsAmp * (0.5 - getRandomNumber(&rngDataBuffer));
+                  cell->at(fsgrids::bfield::PERBY) = this->magYPertAbsAmp * (0.5 - getRandomNumber(&rngDataBuffer));
+                  cell->at(fsgrids::bfield::PERBZ) = this->magZPertAbsAmp * (0.5 - getRandomNumber(&rngDataBuffer));
                }
             }
          }

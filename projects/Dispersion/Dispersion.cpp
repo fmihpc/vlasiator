@@ -183,25 +183,15 @@ namespace projects {
    }
 
    void Dispersion::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
-      Real* cellParams = cell->get_cell_parameters();
-      creal x = cellParams[CellParams::XCRD];
-      creal dx = cellParams[CellParams::DX];
-      creal y = cellParams[CellParams::YCRD];
-      creal dy = cellParams[CellParams::DY];
-      creal z = cellParams[CellParams::ZCRD];
-      creal dz = cellParams[CellParams::DZ];
+      char rngStateBuffer[256];
+      random_data rngDataBuffer;
+      setRandomCellSeed(cell,rngStateBuffer,&rngDataBuffer);
       
-      CellID cellID = (int) ((x - Parameters::xmin) / dx) +
-         (int) ((y - Parameters::ymin) / dy) * Parameters::xcells_ini +
-         (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
-
-      setRandomSeed(cellID);
+      this->rndRho=getRandomNumber(&rngDataBuffer);
       
-      this->rndRho=getRandomNumber();
-      
-      this->rndVel[0]=getRandomNumber();
-      this->rndVel[1]=getRandomNumber();
-      this->rndVel[2]=getRandomNumber();
+      this->rndVel[0]=getRandomNumber(&rngDataBuffer);
+      this->rndVel[1]=getRandomNumber(&rngDataBuffer);
+      this->rndVel[2]=getRandomNumber(&rngDataBuffer);
    }
    
    void Dispersion::setProjectBField(
@@ -226,12 +216,14 @@ namespace projects {
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
                   const int64_t cellid = perBGrid.GlobalIDForCoords(x, y, z);
                   
-                  setRandomSeed(cellid);
+		  char rngStateBuffer[256];
+		  random_data rngDataBuffer;
+                  setRandomSeed(cellid,rngStateBuffer,&rngDataBuffer);
                   
                   Real rndBuffer[3];
-                  rndBuffer[0]=getRandomNumber();
-                  rndBuffer[1]=getRandomNumber();
-                  rndBuffer[2]=getRandomNumber();
+                  rndBuffer[0]=getRandomNumber(&rngDataBuffer);
+                  rndBuffer[1]=getRandomNumber(&rngDataBuffer);
+                  rndBuffer[2]=getRandomNumber(&rngDataBuffer);
                   
                   cell->at(fsgrids::bfield::PERBX) = this->magXPertAbsAmp * (0.5 - rndBuffer[0]);
                   cell->at(fsgrids::bfield::PERBY) = this->magYPertAbsAmp * (0.5 - rndBuffer[1]);
