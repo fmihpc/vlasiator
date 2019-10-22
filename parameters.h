@@ -143,6 +143,8 @@ struct Parameters {
    static Realf amrBoxCenterY;
    static Realf amrBoxCenterZ;
 
+   static int openaccQueueNum;
+
    /*! \brief Add the global parameters.
     * 
     * This function adds all the parameters that are loaded at a global level.

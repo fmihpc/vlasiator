@@ -132,7 +132,7 @@ bool map_1d(SpatialCell* spatial_cell,
    if(vmesh.size() == 0 )
       return true;
 
-   const int NUM_ASYNC_QUEUES=8;
+   const int NUM_ASYNC_QUEUES=P::openaccQueueNum;
    const int openacc_async_queue_id = (int)(spatial_cell->parameters[CellParams::CELLID]) % NUM_ASYNC_QUEUES;
 
    // Velocity grid refinement level, has no effect but is

@@ -143,6 +143,8 @@ Realf P::amrBoxCenterX = 0.0;
 Realf P::amrBoxCenterY = 0.0;
 Realf P::amrBoxCenterZ = 0.0;
 
+int P::openaccQueueNum = 8;
+
 bool Parameters::addParameters(){
    //the other default parameters we read through the add/get interface
    Readparameters::add("io.diagnostic_write_interval", "Write diagnostic output every arg time steps",numeric_limits<uint>::max());
@@ -289,6 +291,7 @@ bool Parameters::addParameters(){
    Readparameters::add("AMR.box_center_x","x coordinate of the center of the box that is refined (for testing)",0.0);
    Readparameters::add("AMR.box_center_y","y coordinate of the center of the box that is refined (for testing)",0.0);
    Readparameters::add("AMR.box_center_z","z coordinate of the center of the box that is refined (for testing)",0.0);
+   Readparameters::add("openacc.queueNum", "Number of openACC queues to spread async calculations over",8);
    return true;
 }
 
@@ -524,6 +527,8 @@ bool Parameters::getParameters(){
    Readparameters::get("bailout.write_restart", P::bailout_write_restart);
    Readparameters::get("bailout.min_dt", P::bailout_min_dt);
    Readparameters::get("bailout.max_memory", P::bailout_max_memory);
+
+   Readparameters::get("openacc.queueNum",P::openaccQueueNum);
 
    for (size_t s=0; s<P::systemWriteName.size(); ++s) P::systemWrites.push_back(0);
    
