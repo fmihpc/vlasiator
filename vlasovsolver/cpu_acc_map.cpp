@@ -132,6 +132,8 @@ bool map_1d(SpatialCell* spatial_cell,
    if(vmesh.size() == 0 )
       return true;
 
+   const int NUM_ASYNC_QUEUES=8;
+   const int openacc_async_queue_id = (int)(spatial_cell->parameters[CellParams::CELLID]) % NUM_ASYNC_QUEUES;
 
    // Velocity grid refinement level, has no effect but is
    // needed in some vmesh::VelocityMesh function calls.
@@ -200,6 +202,9 @@ bool map_1d(SpatialCell* spatial_cell,
    std::vector<uint> setColumnOffsets;
    std::vector<uint> setNumColumns;
 
+   // Make sure any previous velocity space updates have finished for this cell
+   #pragma acc wait(openacc_async_queue_id)
+
    sortBlocklistByDimension(vmesh, dimension, blocks,
                             columnBlockOffsets, columnNumBlocks,
                             setColumnOffsets, setNumColumns);
@@ -249,7 +254,7 @@ bool map_1d(SpatialCell* spatial_cell,
    // Now the velocity space has been emptied and all data is lying in the value array
    // (TODO: Double-check this for consistency?)
    // Upload that to the GPU.
-   #pragma acc enter data copyin(values[:valuesSizeRequired]) async
+   #pragma acc enter data copyin(values[:valuesSizeRequired]) async(openacc_async_queue_id)
 
    // Calculate target column extents
    for( uint setIndex=0; setIndex< setColumnOffsets.size(); ++setIndex) {
@@ -386,8 +391,8 @@ bool map_1d(SpatialCell* spatial_cell,
    // Create empty velocity space on the GPU and fill it with zeros
    Realf* blockData = blockContainer.getData();
    size_t blockDataSize = blockContainer.size();
-   #pragma acc enter data create(blockData[:blockDataSize*WID3]) async
-   #pragma acc parallel loop present(blockData[:blockDataSize*WID3]) async
+   #pragma acc enter data create(blockData[:blockDataSize*WID3]) async(openacc_async_queue_id)
+   #pragma acc parallel loop present(blockData[:blockDataSize*WID3]) async(openacc_async_queue_id)
    for( int cell=0; cell < blockDataSize*WID3; cell++) {
       blockData[cell] = 0;
    }
@@ -412,7 +417,7 @@ bool map_1d(SpatialCell* spatial_cell,
    }
 
    // loop over columns in set and do the mapping
-   #pragma acc parallel loop copyin(columns[:totalColumns]) present(blockData[:blockContainer.size()*WID3], values[:valuesSizeRequired]) async
+   #pragma acc parallel loop copyin(columns[:totalColumns]) present(blockData[:blockContainer.size()*WID3], values[:valuesSizeRequired]) async(openacc_async_queue_id)
    for( uint column=0; column < totalColumns; column++) {
 
       // i,j,k are relative to the order in which we copied data to the values array.
@@ -533,12 +538,11 @@ bool map_1d(SpatialCell* spatial_cell,
 
                #pragma acc loop
                // Run along the column and perform the polynomial reconstruction
-               for(int gk = minGk; gk <= maxGk; gk++){
-               //for(int gk = columns[column].minBlockK * WID; gk <= columns[column].maxBlockK * WID; gk++) {
-               //
-               //   if(gk < minGk || gk > maxGk) {
-               //      continue;
-               //   }
+               //for(int gk = minGk; gk <= maxGk; gk++){
+               for(int gk = columns[column].minBlockK * WID; gk <= columns[column].maxBlockK * WID; gk++) {
+                  if(gk < minGk || gk > maxGk) {
+                     continue;
+                  }
                
                   const int blockK = gk/WID;
                   const int gk_mod_WID = (gk - blockK * WID);
@@ -590,7 +594,7 @@ bool map_1d(SpatialCell* spatial_cell,
                      const Vec target_density = target_density_r - target_density_l;
    #pragma ivdep
    #pragma GCC ivdep
-                     #pragma acc loop seq
+                     #pragma acc loop vector
                      for (int target_i=0; target_i < VECL; ++target_i) {
                         // do the conversion from Realv to Realf here, faster than doing it in accumulation
                         const Realf tval = target_density[target_i];
@@ -603,9 +607,7 @@ bool map_1d(SpatialCell* spatial_cell,
          } //for loop over j index
    } //for loop over columns
 
-   #pragma acc exit data copyout(blockData[:blockContainer.size()*WID3]) delete(columns[:totalColumns]) delete(values[:valuesSizeRequired]) async
-
-   #pragma acc wait
+   #pragma acc exit data copyout(blockData[:blockContainer.size()*WID3]) delete(columns[:totalColumns]) delete(values[:valuesSizeRequired]) async(openacc_async_queue_id)
 
    delete [] blocks;
    return true;

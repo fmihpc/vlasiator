@@ -272,48 +272,53 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
    // Calculated moments are stored in the "_V" variables.
    calculateMoments_V(mpiGrid, propagatedCells, false);
 
-   // Semi-Lagrangian acceleration for those cells which are subcycled
-   #pragma omp parallel for schedule(dynamic,1)
-   for (size_t c=0; c<propagatedCells.size(); ++c) {
-      const CellID cellID = propagatedCells[c];
-      const Real maxVdt = mpiGrid[cellID]->get_max_v_dt(popID);
-      
-      //compute subcycle dt. The length is maxVdt on all steps
-      //except the last one. This is to keep the neighboring
-      //spatial cells in sync, so that two neighboring cells with
-      //different number of subcycles have similar timesteps,
-      //except that one takes an additional short step. This keeps
-      //spatial block neighbors as much in sync as possible for
-      //adjust blocks.
-      Real subcycleDt;
-      if( (step + 1) * maxVdt > dt) {
-         subcycleDt = max(dt - step * maxVdt, 0.0);
-      } else{
-         subcycleDt = maxVdt;
-      }
-
-      //generate pseudo-random order which is always the same irrespective of parallelization, restarts, etc.
-      char rngStateBuffer[256];
-      random_data rngDataBuffer;
-
-      // set seed, initialise generator and get value. The order is the same
-      // for all cells, but varies with timestep.
-      memset(&(rngDataBuffer), 0, sizeof(rngDataBuffer));
-      #ifdef _AIX
-         initstate_r(P::tstep, &(rngStateBuffer[0]), 256, NULL, &(rngDataBuffer));
-         int64_t rndInt;
-         random_r(&rndInt, &rngDataBuffer);
-      #else
-         initstate_r(P::tstep, &(rngStateBuffer[0]), 256, &(rngDataBuffer));
-         int32_t rndInt;
-         random_r(&rngDataBuffer, &rndInt);
-      #endif
+   // Semi-Lagrangian acceleration for those cells which are subcycled,
+   // dimension-by-dimension
+   for (int order_step=0; order_step<3; order_step++) {
+      #pragma omp parallel for schedule(dynamic,1)
+      for (size_t c=0; c<propagatedCells.size(); ++c) {
+         const CellID cellID = propagatedCells[c];
+         const Real maxVdt = mpiGrid[cellID]->get_max_v_dt(popID);
          
-      uint map_order=rndInt%3;
-      phiprof::start("cell-semilag-acc");
-      cpu_accelerate_cell(mpiGrid[cellID],popID,map_order,subcycleDt);
-      phiprof::stop("cell-semilag-acc");
+         //compute subcycle dt. The length is maxVdt on all steps
+         //except the last one. This is to keep the neighboring
+         //spatial cells in sync, so that two neighboring cells with
+         //different number of subcycles have similar timesteps,
+         //except that one takes an additional short step. This keeps
+         //spatial block neighbors as much in sync as possible for
+         //adjust blocks.
+         Real subcycleDt;
+         if( (step + 1) * maxVdt > dt) {
+            subcycleDt = max(dt - step * maxVdt, 0.0);
+         } else{
+            subcycleDt = maxVdt;
+         }
+
+         //generate pseudo-random order which is always the same irrespective of parallelization, restarts, etc.
+         char rngStateBuffer[256];
+         random_data rngDataBuffer;
+
+         // set seed, initialise generator and get value. The order is the same
+         // for all cells, but varies with timestep.
+         memset(&(rngDataBuffer), 0, sizeof(rngDataBuffer));
+         #ifdef _AIX
+            initstate_r(P::tstep, &(rngStateBuffer[0]), 256, NULL, &(rngDataBuffer));
+            int64_t rndInt;
+            random_r(&rndInt, &rngDataBuffer);
+         #else
+            initstate_r(P::tstep, &(rngStateBuffer[0]), 256, &(rngDataBuffer));
+            int32_t rndInt;
+            random_r(&rngDataBuffer, &rndInt);
+         #endif
+            
+         uint map_order=rndInt%3;
+         phiprof::start("cell-semilag-acc");
+         cpu_accelerate_cell(mpiGrid[cellID],popID,map_order,order_step,subcycleDt);
+         phiprof::stop("cell-semilag-acc");
+      }
    }
+   // Wait for all of the async GPU stuff to be done before continuing
+   #pragma acc wait
 
    //global adjust after each subcycle to keep number of blocks managable. Even the ones not
    //accelerating anyore participate. It is important to keep

@@ -28,14 +28,16 @@
 
 */
 
-// Prefetching does nothing in the fallback vectorclass.
+// Prefetching does nothing in the fallback vectorclass, if no system implementation
+// is available
+#ifndef _mm_prefetch
 #define _mm_prefetch(...)
+#endif
 
 
 template <class T>
 class Vec4Simple {
 public:
-   const int len = 4;
    T val[4] __attribute__((aligned(32)));
    // donot initi v
    Vec4Simple() { }
