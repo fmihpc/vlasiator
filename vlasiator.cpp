@@ -319,7 +319,9 @@ int main(int argn,char* args[]) {
    MPI_Comm_size(shared, &localSize);
    MPI_Comm_rank(shared, &localRank);
    nGpus = acc_get_num_devices(acc_device_nvidia);
-   acc_set_device_num(localRank % nGpus, acc_get_device_type());
+   if ( nGpus > 0 ) {
+      acc_set_device_num(localRank % nGpus, acc_get_device_type());
+   }
 #endif
 
    SysBoundary sysBoundaries;
