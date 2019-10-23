@@ -316,9 +316,9 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
          cpu_accelerate_cell(mpiGrid[cellID],popID,map_order,order_step,subcycleDt);
          phiprof::stop("cell-semilag-acc");
       }
+      // Wait for all of the async GPU stuff to be done before continuing
+      #pragma acc wait
    }
-   // Wait for all of the async GPU stuff to be done before continuing
-   #pragma acc wait
 
    //global adjust after each subcycle to keep number of blocks managable. Even the ones not
    //accelerating anyore participate. It is important to keep
