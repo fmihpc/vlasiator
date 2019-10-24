@@ -49,7 +49,7 @@ using namespace vlsv;
 namespace po = boost::program_options;
 
 // If set to true, vlsvextract writes some debugging info to stderr
-static bool runDebug = true;
+static bool runDebug = false;
 
 bool NodeComp::operator()(const NodeCrd<double>& a, const NodeCrd<double>& b) const {
    double EPS = 0.5e-3 * (fabs(a.z) + fabs(b.z));
