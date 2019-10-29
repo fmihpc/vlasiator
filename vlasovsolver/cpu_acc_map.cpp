@@ -202,9 +202,6 @@ bool map_1d(SpatialCell* spatial_cell,
    std::vector<uint> setColumnOffsets;
    std::vector<uint> setNumColumns;
 
-   // Make sure any previous velocity space updates have finished for this cell
-   #pragma acc wait(openacc_async_queue_id)
-
    sortBlocklistByDimension(vmesh, dimension, blocks,
                             columnBlockOffsets, columnNumBlocks,
                             setColumnOffsets, setNumColumns);
