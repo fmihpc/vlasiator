@@ -24,6 +24,7 @@
 #include <math.h>
 #include <algorithm>
 #include <utility>
+#include <omp.h>
 
 #include "vec.h"
 #include "cpu_acc_sort_blocks.hpp"
@@ -133,7 +134,8 @@ bool map_1d(SpatialCell* spatial_cell,
       return true;
 
    const int NUM_ASYNC_QUEUES=P::openaccQueueNum;
-   const int openacc_async_queue_id = (int)(spatial_cell->parameters[CellParams::CELLID]) % NUM_ASYNC_QUEUES;
+   int openacc_async_queue_id = (int)(spatial_cell->parameters[CellParams::CELLID]) % NUM_ASYNC_QUEUES;
+   openacc_async_queue_id += omp_get_thread_num() * NUM_ASYNC_QUEUES;
 
    // Velocity grid refinement level, has no effect but is
    // needed in some vmesh::VelocityMesh function calls.
