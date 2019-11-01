@@ -21,7 +21,7 @@ endif
 
 #======== PAPI ==========
 #Add PAPI_MEM define to use papi to report memory consumption?
-#CXXFLAGS +=  -DPAPI_MEM
+CXXFLAGS +=  -DPAPI_MEM
 CXXFLAGS += -DMAX_VECTOR_LENGTH=256
 
 #======== Allocator =========
@@ -80,7 +80,7 @@ LIB_VLSV = -L$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VER
 LIB_PROFILE = -L$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof_nvtx/lib -lphiprof -lgfortran -Wl,-rpath=$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof_nvtx/lib -L$(CUDA_INSTALL_ROOT)/lib64 -lnvToolsExt
 INC_PROFILE = -I$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof_nvtx/include 
 
-#LIB_PAPI = -L$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/papi/lib -lpapi -Wl,-rpath=$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/papi/lib
+LIB_PAPI = -L/appl/opt/papi/gcc-4.8.5/5.7.0/lib -lpapi 
 #INC_PAPI = -I$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/papi/include
 
 
