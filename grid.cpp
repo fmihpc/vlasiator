@@ -211,7 +211,7 @@ void initializeGrids(
       // Each initialization has to be independent to avoid threading problems 
 
       // Allow the project to set up data structures for it's setCell calls
-      project.setupBeforeSetCell(cells, mpiGrid);
+      project.setupBeforeSetCell(cells, mpiGrid, perBGrid);
 
       phiprof::start("setCell");
       #pragma omp parallel for schedule(dynamic)

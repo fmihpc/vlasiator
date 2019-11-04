@@ -72,7 +72,8 @@ namespace projects {
        * \param cells Local cellIDs of this task.
        */
       virtual void setupBeforeSetCell(const std::vector<CellID>& cells,
-                   dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
+				      dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+				      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid);
 
       /*!\brief Set the perturbed fields and distribution of a cell according to the default simulation settings.
        * This is used for the NOT_SYSBOUNDARY cells and some other system boundary conditions (e.g. Outflow).

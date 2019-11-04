@@ -19,6 +19,19 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
                            FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid,
                            bool dt2=false);
 
+
+/*! Take input perturbed B-field values from DCCRG grid and put them into the Fieldsolver grid. Used by the ElVentana project.
+ * \param mpiGrid The DCCRG grid carrying PERBXVOL, PERBYVOL, PERBZVOL (actually contain face-average values)
+ * \param cells List of local cells
+ * \param perBGrid Fieldsolver grid for these quantities
+ *
+ * This function assumes that proper grid coupling has been set up.
+ */
+void feedPerBIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+			const std::vector<CellID>& cells,
+			FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid);
+
+
 /*! Copy field solver result (VOLB, VOLE, VOLPERB derivatives, gradpe) and store them back into DCCRG
  * \param mpiGrid The DCCRG grid carrying fields.
  * \param cells List of local cells

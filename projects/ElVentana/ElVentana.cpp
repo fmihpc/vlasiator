@@ -34,6 +34,7 @@
 #include "../../object_wrapper.h"
 #include "../../ioread.h"
 #include "../../memoryallocation.h"
+#include "../../fieldsolver/gridGlue.hpp"
 #ifdef PAPI_MEM
 #include "papi.h"
 #endif
@@ -381,7 +382,8 @@ namespace projects {
 
    /* Function to read relevant variables and store them to be read when each cell is being setup */
    void ElVentana::setupBeforeSetCell(const std::vector<CellID>& cells, 
-        dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {  
+				      dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+				      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid) {  
       vector<CellID> fileCellsID; /*< CellIds for all cells in file*/
       int myRank,processes;
       const string filename = this->StartFile;
@@ -493,6 +495,8 @@ namespace projects {
 	 // Also assumes the perturbed_B values have been saved to the bulk files. If
 	 // Perturbed_B is missing, it could perhaps be reconstructed from total B and
 	 // the analytically calculated background fields.
+	 //
+	 // The values are face-averages, not cell-averages, but are temporarily read into PERBXVOL anyway.
          attribs.push_back(make_pair("mesh","SpatialGrid"));
          attribs.push_back(make_pair("name","perturbed_B"));
          if (this->vlsvSerialReader.getArrayInfo("VARIABLE",attribs,arraySize,this->vecsizeperturbed_B,dataType,byteSize) == false) {
@@ -510,34 +514,39 @@ namespace projects {
          delete[] buffer;
          attribs.pop_back();
          attribs.pop_back();
-          
-         attribs.push_back(make_pair("mesh","SpatialGrid"));
-         if (isbulk == 1) {
-            attribs.push_back(make_pair("name","B"));
-         } else {
-            attribs.push_back(make_pair("name","background_B"));
-         }
-         if (this->vlsvSerialReader.getArrayInfo("VARIABLE",attribs,arraySize,this->vecsizebackground_B,dataType,byteSize) == false) {
-            logFile << "(START)  ERROR: Failed to read background_B (or B in case of bulk file) array info" << endl << write; 
-            exit(1);
-         }
-         buffer=new Real[this->vecsizebackground_B];
-         if (this->vlsvSerialReader.readArray("VARIABLE", attribs, fileOffset, 1, (char *)buffer) == false ) {
-            logFile << "(START)  ERROR: Failed to read background_B (or B in case of bulk file)"  << endl << write;
-            exit(1);
-         }
-         if (isbulk == 1) {
-            for (uint j=0; j<vecsizebackground_B; j++) {
-               mpiGrid[cells[i]]->parameters[CellParams::BGBXVOL+j] = buffer[j] - mpiGrid[cells[i]]->parameters[CellParams::PERBXVOL+j]; 
-            }
-         } else {
-            for (uint j=0; j<vecsizebackground_B; j++) {
-               mpiGrid[cells[i]]->parameters[CellParams::BGBXVOL+j] = buffer[j];
-            }
-         }
-         delete[] buffer;
-         attribs.pop_back();
-         attribs.pop_back();
+     
+	 // Communicate the perturbed B-fields read from the start file over to FSgrid
+	 feedPerBIntoFsGrid(mpiGrid, cells, perBGrid);
+	 
+	 // The background fields are initialized directly on FSgrid and are not read in.
+	 //
+         // attribs.push_back(make_pair("mesh","SpatialGrid"));
+         // if (isbulk == 1) {
+         //    attribs.push_back(make_pair("name","B"));
+         // } else {
+         //    attribs.push_back(make_pair("name","background_B"));
+         // }
+         // if (this->vlsvSerialReader.getArrayInfo("VARIABLE",attribs,arraySize,this->vecsizebackground_B,dataType,byteSize) == false) {
+         //    logFile << "(START)  ERROR: Failed to read background_B (or B in case of bulk file) array info" << endl << write; 
+         //    exit(1);
+         // }
+         // buffer=new Real[this->vecsizebackground_B];
+         // if (this->vlsvSerialReader.readArray("VARIABLE", attribs, fileOffset, 1, (char *)buffer) == false ) {
+         //    logFile << "(START)  ERROR: Failed to read background_B (or B in case of bulk file)"  << endl << write;
+         //    exit(1);
+         // }
+         // if (isbulk == 1) {
+         //    for (uint j=0; j<vecsizebackground_B; j++) {
+         //       mpiGrid[cells[i]]->parameters[CellParams::BGBXVOL+j] = buffer[j] - mpiGrid[cells[i]]->parameters[CellParams::PERBXVOL+j]; 
+         //    }
+         // } else {
+         //    for (uint j=0; j<vecsizebackground_B; j++) {
+         //       mpiGrid[cells[i]]->parameters[CellParams::BGBXVOL+j] = buffer[j];
+         //    }
+         // }
+         // delete[] buffer;
+         // attribs.pop_back();
+         // attribs.pop_back();
 
 	 // The following sections are not multipop-safe. Multipop-handling can probably be added via the
 	 // variableNames list (see detection of bulk / restart files)
@@ -764,6 +773,8 @@ namespace projects {
          bgConstantField.initialize(this->constBgB[0], this->constBgB[1], this->constBgB[2]);
          setBackgroundField(bgConstantField, BgBGrid, true);
       }
+
+      // Perturbed B-field is set in setupBeforeSetCell
    }
 
   
