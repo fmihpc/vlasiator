@@ -228,7 +228,8 @@ bool map_1d(SpatialCell* spatial_cell,
       int minBlockK,maxBlockK;    // Column parallel coordinate limits
       int kBegin;                 // Actual un-sheared starting block index
       int i,j;                    // Blocks' perpendicular coordinates
-   } columns[totalColumns];
+   }* columns;
+   columns = new Column[totalColumns];
 
    // Iterate through all identified columns and shovel them into the values array.
    uint valuesColumnOffset = 0; //offset to values array for data in a column in this set
@@ -609,6 +610,7 @@ bool map_1d(SpatialCell* spatial_cell,
    #pragma acc exit data copyout(blockData[:blockContainer.size()*WID3]) delete(columns[:totalColumns]) delete(values[:valuesSizeRequired]) async(openacc_async_queue_id)
 
    delete [] blocks;
+   delete [] columns;
    return true;
 }
 
