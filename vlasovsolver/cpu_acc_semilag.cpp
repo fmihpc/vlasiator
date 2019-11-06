@@ -86,7 +86,8 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
                          const uint popID,     
                          const uint map_order,
                          const uint order_step,
-                         const Real& dt) {
+                         const Real& dt,
+                         const bool useAccelerator) {
    double t1 = MPI_Wtime();
 
    vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh    = spatial_cell->get_velocity_mesh(popID);
@@ -116,9 +117,9 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
                                     intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk);
           phiprof::stop("compute-intersections");
           phiprof::start("compute-mapping");
-          if(order_step==0) map_1d(spatial_cell, popID, intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk,0); // map along x
-          if(order_step==1) map_1d(spatial_cell, popID, intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk,1); // map along y
-          if(order_step==2) map_1d(spatial_cell, popID, intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk,2); // map along z
+          if(order_step==0) map_1d(spatial_cell, popID, intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk,0, useAccelerator); // map along x
+          if(order_step==1) map_1d(spatial_cell, popID, intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk,1, useAccelerator); // map along y
+          if(order_step==2) map_1d(spatial_cell, popID, intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk,2, useAccelerator); // map along z
           phiprof::stop("compute-mapping");
           break;
           
@@ -133,9 +134,9 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
                                     intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk);
           phiprof::stop("compute-intersections");
           phiprof::start("compute-mapping");
-          if(order_step==0) map_1d(spatial_cell, popID, intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk,1); // map along y
-          if(order_step==1) map_1d(spatial_cell, popID, intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk,2); // map along z
-          if(order_step==2) map_1d(spatial_cell, popID, intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk,0); // map along x
+          if(order_step==0) map_1d(spatial_cell, popID, intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk,1, useAccelerator); // map along y
+          if(order_step==1) map_1d(spatial_cell, popID, intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk,2, useAccelerator); // map along z
+          if(order_step==2) map_1d(spatial_cell, popID, intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk,0, useAccelerator); // map along x
           phiprof::stop("compute-mapping");
           break;
 
@@ -150,9 +151,9 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
                                     intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk);
           phiprof::stop("compute-intersections");
           phiprof::start("compute-mapping");
-          if(order_step==0) map_1d(spatial_cell, popID, intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk,2); // map along z
-          if(order_step==1) map_1d(spatial_cell, popID, intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk,0); // map along x
-          if(order_step==2) map_1d(spatial_cell, popID, intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk,1); // map along y
+          if(order_step==0) map_1d(spatial_cell, popID, intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk,2, useAccelerator); // map along z
+          if(order_step==1) map_1d(spatial_cell, popID, intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk,0, useAccelerator); // map along x
+          if(order_step==2) map_1d(spatial_cell, popID, intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk,1, useAccelerator); // map along y
           phiprof::stop("compute-mapping");
           break;
    }

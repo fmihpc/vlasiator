@@ -36,7 +36,8 @@ void cpu_accelerate_cell(
         const uint popID,
         const uint map_order,
         const uint order_step,
-        const Real& dt);
+        const Real& dt,
+        const bool useAccelerator = false);
 
 #endif
 

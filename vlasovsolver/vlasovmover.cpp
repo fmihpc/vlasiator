@@ -312,8 +312,12 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
          #endif
             
          uint map_order=rndInt%3;
+
+         // If we are the "first" thread, we get to use the accelerator.
+         bool isThreadZero = omp_get_thread_num() == 0;
+
          phiprof::start("cell-semilag-acc");
-         cpu_accelerate_cell(mpiGrid[cellID],popID,map_order,order_step,subcycleDt);
+         cpu_accelerate_cell(mpiGrid[cellID],popID,map_order,order_step,subcycleDt,isThreadZero);
          phiprof::stop("cell-semilag-acc");
       }
       // Wait for all of the async GPU stuff to be done before continuing
