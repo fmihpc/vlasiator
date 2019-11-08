@@ -137,7 +137,7 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
    bulk_velocity_substeps = fabs(dt) / fabs(gyro_period*(0.1/360.0));
    if (smallparticle) {
       unsigned int bulk_velocity_substeps_2; 
-      bulk_velocity_substeps_2 = fabs(dt) / fabs(plasma_period/10.);
+      bulk_velocity_substeps_2 = fabs(dt) / fabs(plasma_period/3600.);
       bulk_velocity_substeps =  bulk_velocity_substeps_2 > bulk_velocity_substeps ? bulk_velocity_substeps_2 : bulk_velocity_substeps;
    }
    if (bulk_velocity_substeps < 1) bulk_velocity_substeps=1;
