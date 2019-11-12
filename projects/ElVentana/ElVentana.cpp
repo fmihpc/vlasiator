@@ -401,44 +401,44 @@ namespace projects {
       MPI_Comm_size(MPI_COMM_WORLD,&processes);
       MPI_Info mpiInfo = MPI_INFO_NULL;
       if (this->vlsvParaReader.open(filename,MPI_COMM_WORLD,MASTER_RANK,mpiInfo) == false) {
-         cout << "Could not open file: " << filename << endl;
+         if(myRank == MASTER_RANK) cout << "Could not open file: " << filename << endl;
          exit(1);
       }
       if (readCellIds(this->vlsvParaReader,fileCellsID,MASTER_RANK,MPI_COMM_WORLD) == false) {
-          cout << "Could not read cell IDs." << endl;
+          if(myRank == MASTER_RANK) cout << "Could not read cell IDs." << endl;
           exit(1);
       }
       MPI_Bcast(&(fileCellsID[0]),fileCellsID.size(),MPI_UINT64_T,MASTER_RANK,MPI_COMM_WORLD);
       
-      cout << "Trying to read parameters from file... " << endl;
+      if(myRank == MASTER_RANK) cout << "Trying to read parameters from file... " << endl;
       if (this->vlsvParaReader.readParameter("xmin", filexmin) == false) {
-          cout << " Could not read parameter xmin. " << endl;
+          if(myRank == MASTER_RANK) cout << " Could not read parameter xmin. " << endl;
           exit(1);}
       if (this->vlsvParaReader.readParameter("ymin", fileymin) == false) {
-          cout << " Could not read parameter ymin. " << endl;
+          if(myRank == MASTER_RANK) cout << " Could not read parameter ymin. " << endl;
           exit(1);}
       if (this->vlsvParaReader.readParameter("zmin", filezmin) == false) {
-          cout << " Could not read parameter zmin. " << endl;
+          if(myRank == MASTER_RANK) cout << " Could not read parameter zmin. " << endl;
           exit(1);}
       if (this->vlsvParaReader.readParameter("xmax", filexmax) == false) {
-          cout << " Could not read parameter xmax. " << endl;
+          if(myRank == MASTER_RANK) cout << " Could not read parameter xmax. " << endl;
           exit(1);}
       if (this->vlsvParaReader.readParameter("ymax", fileymax) == false) {
-          cout << " Could not read parameter ymax. " << endl;
+          if(myRank == MASTER_RANK) cout << " Could not read parameter ymax. " << endl;
           exit(1);}
       if (this->vlsvParaReader.readParameter("zmax", filezmax) == false) {
-          cout << " Could not read parameter zmax. " << endl;
+          if(myRank == MASTER_RANK) cout << " Could not read parameter zmax. " << endl;
           exit(1);}
       if (this->vlsvParaReader.readParameter("xcells_ini", filexcells) == false) {
-          cout << " Could not read parameter xcells_ini. " << endl;
+          if(myRank == MASTER_RANK) cout << " Could not read parameter xcells_ini. " << endl;
           exit(1);}
       if (this->vlsvParaReader.readParameter("ycells_ini", fileycells) == false) {
-          cout << " Could not read parameter ycells_ini. " << endl;
+          if(myRank == MASTER_RANK) cout << " Could not read parameter ycells_ini. " << endl;
           exit(1);}
       if (this->vlsvParaReader.readParameter("zcells_ini", filezcells) == false) {
-          cout << " Could not read parameter zcells_ini. " << endl;
+          if(myRank == MASTER_RANK) cout << " Could not read parameter zcells_ini. " << endl;
           exit(1);}
-      cout << "All parameters read." << endl;
+      if(myRank == MASTER_RANK) cout << "All parameters read." << endl;
 
       filedx = (filexmax - filexmin)/filexcells;
       filedy = (fileymax - fileymin)/fileycells;
@@ -449,7 +449,7 @@ namespace projects {
       this->vlsvParaReader.close();
 
       if (this->vlsvSerialReader.open(filename) == false) {
-         cout << "Could not open file: " << filename << endl;
+         if(myRank == MASTER_RANK) cout << "Could not open file: " << filename << endl;
          exit(1);
       }
 
@@ -500,12 +500,12 @@ namespace projects {
          attribs.push_back(make_pair("mesh","SpatialGrid"));
          attribs.push_back(make_pair("name","perturbed_B"));
          if (this->vlsvSerialReader.getArrayInfo("VARIABLE",attribs,arraySize,this->vecsizeperturbed_B,dataType,byteSize) == false) {
-            logFile << "(START)  ERROR: Failed to read perturbed_B array info" << endl << write;
+            if(myRank == MASTER_RANK) logFile << "(START)  ERROR: Failed to read perturbed_B array info" << endl << write;
             exit(1);
          }
          buffer=new Real[this->vecsizeperturbed_B];
          if (this->vlsvSerialReader.readArray("VARIABLE", attribs, fileOffset, 1, (char *)buffer) == false ) {
-            logFile << "(START)  ERROR: Failed to read perturbed_B"  << endl << write;
+            if(myRank == MASTER_RANK) logFile << "(START)  ERROR: Failed to read perturbed_B"  << endl << write;
             exit(1);
          }
          for (uint j=0; j<vecsizeperturbed_B; j++) {
@@ -514,39 +514,36 @@ namespace projects {
          delete[] buffer;
          attribs.pop_back();
          attribs.pop_back();
-     
-	 // Communicate the perturbed B-fields read from the start file over to FSgrid
-	 feedPerBIntoFsGrid(mpiGrid, cells, perBGrid);
-	 
+      
 	 // The background fields are initialized directly on FSgrid and are not read in.
 	 //
-         // attribs.push_back(make_pair("mesh","SpatialGrid"));
-         // if (isbulk == 1) {
-         //    attribs.push_back(make_pair("name","B"));
-         // } else {
-         //    attribs.push_back(make_pair("name","background_B"));
-         // }
-         // if (this->vlsvSerialReader.getArrayInfo("VARIABLE",attribs,arraySize,this->vecsizebackground_B,dataType,byteSize) == false) {
-         //    logFile << "(START)  ERROR: Failed to read background_B (or B in case of bulk file) array info" << endl << write; 
-         //    exit(1);
-         // }
-         // buffer=new Real[this->vecsizebackground_B];
-         // if (this->vlsvSerialReader.readArray("VARIABLE", attribs, fileOffset, 1, (char *)buffer) == false ) {
-         //    logFile << "(START)  ERROR: Failed to read background_B (or B in case of bulk file)"  << endl << write;
-         //    exit(1);
-         // }
-         // if (isbulk == 1) {
-         //    for (uint j=0; j<vecsizebackground_B; j++) {
-         //       mpiGrid[cells[i]]->parameters[CellParams::BGBXVOL+j] = buffer[j] - mpiGrid[cells[i]]->parameters[CellParams::PERBXVOL+j]; 
-         //    }
-         // } else {
-         //    for (uint j=0; j<vecsizebackground_B; j++) {
-         //       mpiGrid[cells[i]]->parameters[CellParams::BGBXVOL+j] = buffer[j];
-         //    }
-         // }
-         // delete[] buffer;
-         // attribs.pop_back();
-         // attribs.pop_back();
+         attribs.push_back(make_pair("mesh","SpatialGrid"));
+         if (isbulk == 1) {
+            attribs.push_back(make_pair("name","B"));
+         } else {
+            attribs.push_back(make_pair("name","background_B"));
+         }
+         if (this->vlsvSerialReader.getArrayInfo("VARIABLE",attribs,arraySize,this->vecsizebackground_B,dataType,byteSize) == false) {
+            logFile << "(START)  ERROR: Failed to read background_B (or B in case of bulk file) array info" << endl << write; 
+            exit(1);
+         }
+         buffer=new Real[this->vecsizebackground_B];
+         if (this->vlsvSerialReader.readArray("VARIABLE", attribs, fileOffset, 1, (char *)buffer) == false ) {
+            logFile << "(START)  ERROR: Failed to read background_B (or B in case of bulk file)"  << endl << write;
+            exit(1);
+         }
+         if (isbulk == 1) {
+            for (uint j=0; j<vecsizebackground_B; j++) {
+               mpiGrid[cells[i]]->parameters[CellParams::BGBXVOL+j] = buffer[j] - mpiGrid[cells[i]]->parameters[CellParams::PERBXVOL+j]; 
+            }
+         } else {
+            for (uint j=0; j<vecsizebackground_B; j++) {
+               mpiGrid[cells[i]]->parameters[CellParams::BGBXVOL+j] = buffer[j];
+            }
+         }
+         delete[] buffer;
+         attribs.pop_back();
+         attribs.pop_back();
 
 	 // The following sections are not multipop-safe. Multipop-handling can probably be added via the
 	 // variableNames list (see detection of bulk / restart files)
@@ -557,12 +554,12 @@ namespace projects {
             attribs.push_back(make_pair("name","moments"));
          }
          if (this->vlsvSerialReader.getArrayInfo("VARIABLE",attribs,arraySize,this->vecsizemoments,dataType,byteSize) == false) {
-            logFile << "(START)  ERROR: Failed to read moments (or rho in case of bulk file) array info" << endl << write;
+            if(myRank == MASTER_RANK) logFile << "(START)  ERROR: Failed to read moments (or rho in case of bulk file) array info" << endl << write;
             exit(1);
          }
          buffer=new Real[this->vecsizemoments];
          if (this->vlsvSerialReader.readArray("VARIABLE", attribs, fileOffset, 1, (char *)buffer) == false ) {
-            logFile << "(START)  ERROR: Failed to read moments (or rho in case of bulk file)"  << endl << write;
+            if(myRank == MASTER_RANK) logFile << "(START)  ERROR: Failed to read moments (or rho in case of bulk file)"  << endl << write;
             exit(1);
          }
          for (uint j=0; j<vecsizemoments; j++) {
@@ -577,12 +574,12 @@ namespace projects {
              attribs.push_back(make_pair("name","rho_v"));
              // Borrowing the vecsizepressure here. It will be overwritten in the next call of this function.
              if (this->vlsvSerialReader.getArrayInfo("VARIABLE",attribs,arraySize,this->vecsizepressure,dataType,byteSize) == false) { 
-                logFile << "(START)  ERROR: Failed to read rho_v array info" << endl << write;
+                if(myRank == MASTER_RANK) logFile << "(START)  ERROR: Failed to read rho_v array info" << endl << write;
                 exit(1);
              }
              buffer=new Real[this->vecsizepressure];
              if (this->vlsvSerialReader.readArray("VARIABLE", attribs, fileOffset, 1, (char *)buffer) == false ) {
-                logFile << "(START)  ERROR: Failed to read rho_v"  << endl << write;
+                if(myRank == MASTER_RANK) logFile << "(START)  ERROR: Failed to read rho_v"  << endl << write;
                 exit(1);
              }
              for (uint j=0; j<vecsizepressure; j++) {
@@ -600,12 +597,12 @@ namespace projects {
             attribs.push_back(make_pair("name","pressure"));
          }
          if (this->vlsvSerialReader.getArrayInfo("VARIABLE",attribs,arraySize,this->vecsizepressure,dataType,byteSize) == false) {
-            logFile << "(START)  ERROR: Failed to read pressure (or PTensorDiagonal in case of bulk file) array info" << endl << write;
+            if(myRank == MASTER_RANK) logFile << "(START)  ERROR: Failed to read pressure (or PTensorDiagonal in case of bulk file) array info" << endl << write;
             exit(1);
          }
          buffer=new Real[this->vecsizepressure];
          if (this->vlsvSerialReader.readArray("VARIABLE", attribs, fileOffset, 1, (char *)buffer) == false ) {
-            logFile << "(START)  ERROR: Failed to read pressure (or PTensorDiagonal in case of bulk file)"  << endl << write;
+            if(myRank == MASTER_RANK) logFile << "(START)  ERROR: Failed to read pressure (or PTensorDiagonal in case of bulk file)"  << endl << write;
             exit(1);
          }
          for (uint j=0; j<vecsizepressure; j++) {
@@ -616,6 +613,10 @@ namespace projects {
          attribs.pop_back();
 
       }
+
+      // Communicate the perturbed B-fields read from the start file over to FSgrid
+      feedPerBIntoFsGrid(mpiGrid, cells, perBGrid, volGrid);
+
       newmpiGrid = &mpiGrid;
       this->vlsvSerialReader.close();
    }

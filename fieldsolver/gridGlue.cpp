@@ -183,8 +183,8 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
 /* Specialized function only used by ElVentana project */
 void feedPerBIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                           const std::vector<CellID>& cells,
-                           FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid) {
+			const std::vector<CellID>& cells,
+			FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid) {
 
   int ii;
   //sorted list of dccrg cells. cells is typicall already sorted, but just to make sure....
