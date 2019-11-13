@@ -191,7 +191,7 @@ void getFieldsFromFsGrid(
 ) {
   // TODO: solver only needs bgb + PERB, we could combine them
   
-  const int fieldsToCommunicate = 18;
+  const int fieldsToCommunicate = 21;
   struct Average {
     Real sums[fieldsToCommunicate];
     int cells;
@@ -285,7 +285,9 @@ void getFieldsFromFsGrid(
         sendBuffer[ii].sums[15] += egradpecell->at(fsgrids::egradpe::EXGRADPE);
         sendBuffer[ii].sums[16] += egradpecell->at(fsgrids::egradpe::EYGRADPE);
         sendBuffer[ii].sums[17] += egradpecell->at(fsgrids::egradpe::EZGRADPE);
-	
+	sendBuffer[ii].sums[18] += volcell->at(fsgrids::volfields::EXVOL);
+	sendBuffer[ii].sums[19] += volcell->at(fsgrids::volfields::EYVOL);
+	sendBuffer[ii].sums[20] += volcell->at(fsgrids::volfields::EZVOL);
         sendBuffer[ii].cells++;
       }
       ii++;
@@ -319,7 +321,7 @@ void getFieldsFromFsGrid(
   
   //Store data in dccrg
   for (auto const &cellAggregate : aggregatedResult) {
-    auto cellParams = mpiGrid[cellAggregate.first]->get_cell_parameters();    
+    auto cellParams = mpiGrid[cellAggregate.first]->get_cell_parameters();
     if ( cellAggregate.second.cells > 0) {
       cellParams[CellParams::PERBXVOL] = cellAggregate.second.sums[0] / cellAggregate.second.cells;
       cellParams[CellParams::PERBYVOL] = cellAggregate.second.sums[1] / cellAggregate.second.cells;
@@ -332,10 +334,13 @@ void getFieldsFromFsGrid(
       mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBZVOLdy] = cellAggregate.second.sums[11] / cellAggregate.second.cells;
       cellParams[CellParams::BGBXVOL]  = cellAggregate.second.sums[12] / cellAggregate.second.cells;
       cellParams[CellParams::BGBYVOL]  = cellAggregate.second.sums[13] / cellAggregate.second.cells;
-      cellParams[CellParams::BGBZVOL]  = cellAggregate.second.sums[14] / cellAggregate.second.cells;  
+      cellParams[CellParams::BGBZVOL]  = cellAggregate.second.sums[14] / cellAggregate.second.cells;
       cellParams[CellParams::EXGRADPE] = cellAggregate.second.sums[15] / cellAggregate.second.cells;
       cellParams[CellParams::EYGRADPE] = cellAggregate.second.sums[16] / cellAggregate.second.cells;
-      cellParams[CellParams::EZGRADPE] = cellAggregate.second.sums[17] / cellAggregate.second.cells;	  
+      cellParams[CellParams::EZGRADPE] = cellAggregate.second.sums[17] / cellAggregate.second.cells;
+      cellParams[CellParams::EXVOL] = cellAggregate.second.sums[18] / cellAggregate.second.cells;
+      cellParams[CellParams::EYVOL] = cellAggregate.second.sums[19] / cellAggregate.second.cells;
+      cellParams[CellParams::EZVOL] = cellAggregate.second.sums[20] / cellAggregate.second.cells;
     }
     else{
       // This could happpen if all fsgrid cells are do not compute
@@ -354,6 +359,9 @@ void getFieldsFromFsGrid(
       cellParams[CellParams::EXGRADPE] = 0;
       cellParams[CellParams::EYGRADPE] = 0;
       cellParams[CellParams::EZGRADPE] = 0;
+      cellParams[CellParams::EXVOL] = 0;
+      cellParams[CellParams::EYVOL] = 0;
+      cellParams[CellParams::EZVOL] = 0;
     }
   }
   
