@@ -261,7 +261,7 @@ bool Parameters::addParameters(){
    // NOTE Do not remove the : before the list of variable names as this is parsed by tools/check_vlasiator_cfg.sh
    Readparameters::addComposing("variables.diagnostic", std::string()+"List of data reduction operators (DROs) to add to the diagnostic runtime output. Each variable to be added has to be on a new line diagnostic = XXX. Names are case insensitive. "+
 				"Available (20190320): "+
-				"populations_blocks "+
+				"populations_vg_blocks "+
 				"rhom populations_rho_loss_adjust"+
 				"loadbalance_weight"+
 				"maxdt_acceleration maxdt_translation populations_maxdt_acceleration populations_maxdt_translation "+
