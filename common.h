@@ -171,6 +171,9 @@ namespace CellParams {
       P_11_V,   /*!< P_xx component after propagation in velocity space */
       P_22_V,   /*!< P_yy component after propagation in velocity space */
       P_33_V,   /*!< P_zz component after propagation in velocity space */
+      EXVOL,    /*!< Volume electric field averaged over spatial cell, x-component.*/
+      EYVOL,    /*!< Volume electric field averaged over spatial cell, y-component.*/
+      EZVOL,    /*!< Volume electric field averaged over spatial cell, z-component.*/
       MAXVDT,             /*!< maximum timestep allowed in velocity space for this cell, 
                            * this is the max allowed timestep over all particle species.*/
       MAXRDT,             /*!< maximum timestep allowed in ordinary space for this cell,
@@ -353,6 +356,9 @@ namespace fsgrids {
       dPERBYVOLdz,
       dPERBZVOLdx,
       dPERBZVOLdy,
+      EXVOL,   /*!< volume-averaged electric field x component */
+      EYVOL,   /*!< volume-averaged electric field y component */
+      EZVOL,   /*!< volume-averaged electric field z component */
       N_VOL
    };
    
