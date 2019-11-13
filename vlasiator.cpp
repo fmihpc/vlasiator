@@ -470,11 +470,6 @@ int main(int argn,char* args[]) {
    initializeDataReducers(&outputReducer, &diagnosticReducer);
    phiprof::stop("Init DROs");  
    
-   phiprof::start("getFieldsFromFsGrid");
-   volGrid.updateGhostCells();
-   getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, technicalGrid, mpiGrid, cells);
-   phiprof::stop("getFieldsFromFsGrid");
-
    // Free up memory:
    readparameters.finalize();
 
@@ -550,6 +545,11 @@ int main(int argn,char* args[]) {
 
       phiprof::stop("write-initial-state");
    }
+
+   phiprof::start("getFieldsFromFsGrid");
+   volGrid.updateGhostCells();
+   getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, technicalGrid, mpiGrid, cells);
+   phiprof::stop("getFieldsFromFsGrid");
 
    if (P::isRestart == false) {
       //compute new dt
