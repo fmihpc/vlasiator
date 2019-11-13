@@ -66,12 +66,14 @@ namespace projects {
       RP::add("ElVentana.dipoleScalingFactor","Scales the field strength of the magnetic dipole compared to Earths.", 1.0);
       RP::add("ElVentana.dipoleType","0: Normal 3D dipole, 1: line-dipole for 2D polar simulations", 0);
       RP::add("ElVentana.noDipoleInSW", "If set to 1, the dipole magnetic field is not set in the solar wind inflow cells. Default 0.", 0.0);
+
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
 
          RP::add(pop + "_ElVentana.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
          RP::add(pop + "_ElVentana.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
+         RP::add(pop + "_ElVentana.Temperatureratio", "Scale temperature from input values. Default 1. (Set to 1/4 for electrons)", 1.0);
       }
    }
    
@@ -170,6 +172,10 @@ namespace projects {
             if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
             exit(1);
          }
+         if(!RP::get(pop + "_ElVentana.Temperatureratio", sP.Temperatureratio)) {
+            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
+            exit(1);
+         }
          if(!RP::get(pop + "_ionosphere.rho", sP.ionosphereRho)) {
             if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
             exit(1);
@@ -263,6 +269,8 @@ namespace projects {
              pressure_T[j] = cell->parameters[CellParams::P_11+j];
           }
           temperature = (pressure_T[0] + pressure_T[1] + pressure_T[2]) / (3.*physicalconstants::K_B * density);
+	  // Scale temperatures from input values. For electrons, this should be about 1/4, for protons, 1
+	  temperature = temperature * sP.Temperatureratio;
           const std::array<Real, 3> v0 = this->getV0(x, y, z, popID)[0];
           distvalue = initRho * pow(mass / (2.0 * M_PI * physicalconstants::K_B * temperature), 1.5) *
               exp(- mass * ( pow(vx - v0[0], 2.0) + pow(vy - v0[1], 2.0) + pow(vz - v0[2], 2.0) ) /
@@ -615,7 +623,7 @@ namespace projects {
       }
 
       // Communicate the perturbed B-fields read from the start file over to FSgrid
-      feedPerBIntoFsGrid(mpiGrid, cells, perBGrid, volGrid);
+      feedPerBIntoFsGrid(mpiGrid, cells, perBGrid);
 
       newmpiGrid = &mpiGrid;
       this->vlsvSerialReader.close();

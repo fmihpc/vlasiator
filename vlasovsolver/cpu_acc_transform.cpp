@@ -101,8 +101,7 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
      / (getObjectWrapper().particleSpecies[popID].charge * B_mag);
    const Real plasma_period
      = 2 * M_PI * sqrt(physicalconstants::EPS_0 * getObjectWrapper().particleSpecies[popID].mass / 
-     getObjectWrapper().particleSpecies[popID].charge /
-     getObjectWrapper().particleSpecies[popID].charge / spatial_cell->get_population(popID).RHO ); 
+		       spatial_cell->get_population(popID).RHO)/getObjectWrapper().particleSpecies[popID].charge; 
 
    // scale rho for hall term, if user requests
    const Real EPSILON = 1e10 * numeric_limits<Real>::min();

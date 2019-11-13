@@ -40,6 +40,7 @@ namespace projects {
       Real ionosphereRho;
       uint nSpaceSamples;
       uint nVelocitySamples;
+      Real Temperatureratio;
    };
 
    class ElVentana: public TriAxisSearch {
