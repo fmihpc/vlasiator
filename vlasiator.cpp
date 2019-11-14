@@ -491,6 +491,7 @@ int main(int argn,char* args[]) {
 		   technicalGrid,
 		   sysBoundaries, 0.0, 1.0
 		   );
+
    phiprof::start("getFieldsFromFsGrid");
    volGrid.updateGhostCells();
    getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, technicalGrid, mpiGrid, cells);
@@ -547,11 +548,6 @@ int main(int argn,char* args[]) {
 
       phiprof::stop("write-initial-state");
    }
-
-   phiprof::start("getFieldsFromFsGrid");
-   volGrid.updateGhostCells();
-   getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, technicalGrid, mpiGrid, cells);
-   phiprof::stop("getFieldsFromFsGrid");
 
    if (P::isRestart == false) {
       //compute new dt
