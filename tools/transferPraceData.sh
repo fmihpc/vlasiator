@@ -392,7 +392,7 @@ elif [ $machine == "localhost-rp" ]
 then
     server=localhost
     method=rsync
-    export RSYNC_RSH="ssh -p 1234"
+    export RSYNC_RSH="ssh -p 1235"
 else
     echo "Allowed server values are Hermit, Hazelhen-r, Hazelhen-ds, Abel, Sisu-g, Sisu-r, Sisu-ds, localhost-dd, localhost-rp"
     exit 1
