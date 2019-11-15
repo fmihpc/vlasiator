@@ -230,7 +230,7 @@ namespace projects {
       setBackgroundField(bgField, BgBGrid);
       
       if(!P::isRestart) {
-         auto localSize = perBGrid.getLocalSize();
+         auto localSize = perBGrid.getLocalSize().data();
          
 #pragma omp parallel for collapse(3)
          for (int x = 0; x < localSize[0]; ++x) {

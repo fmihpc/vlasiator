@@ -20,7 +20,6 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include <boost/assign/list_of.hpp>
 #include <cstdlib>
 #include <iostream>
 #include <iomanip> // for setprecision()
