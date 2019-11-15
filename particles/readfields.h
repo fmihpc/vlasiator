@@ -34,7 +34,7 @@
 extern std::string B_field_name;
 extern std::string E_field_name;
 extern std::string rho_name;
-extern std::string V_field_name;
+//extern std::string V_field_name;
 extern bool do_divide_by_rho;
 
 /* Read the cellIDs into an array */
@@ -76,6 +76,7 @@ static void detect_field_names(Reader& r) {
       std::cerr << "Error, could not identify plasma density variable." << std::endl;
       exit(1);
    }
+   std::cerr << "Rho variable detected as "<<rho_name << std::endl;
 
 }
 
@@ -289,6 +290,7 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, Field& R, bo
 
    if(doV) {
      name = ParticleParameters::V_field_name;
+
      rho_v_buffer = readFieldData(r,name,3u);
      if(ParticleParameters::divide_rhov_by_rho) {
        name = ParticleParameters::rho_field_name;
