@@ -638,7 +638,7 @@ namespace projects {
 	   std::cout << "Rank " << myRank << " refined " << refinedCells.size() << " cells. " << std::endl;
 	}
 #endif
-	//mpiGrid.balance_load();
+	mpiGrid.balance_load();
      }
      
      if (P::amrMaxSpatialRefLevel > 1) {
@@ -674,7 +674,7 @@ namespace projects {
 	}
 #endif
 	
-	//mpiGrid.balance_load();
+	mpiGrid.balance_load();
      }
      
      if (P::amrMaxSpatialRefLevel > 2) {
@@ -725,7 +725,7 @@ namespace projects {
 	   }
 #endif
 	   
-	   //mpiGrid.balance_load();
+	   mpiGrid.balance_load();
      }
 
      if (P::amrMaxSpatialRefLevel > 3) {
@@ -760,13 +760,7 @@ namespace projects {
 	   }
 #endif
 	   
-	   //mpiGrid.balance_load();
-     }
-
-
-     // Do load balance only once at end
-     if (P::amrMaxSpatialRefLevel > 0) {
-	mpiGrid.balance_load();
+	   mpiGrid.balance_load();
      }
 
      return true;
