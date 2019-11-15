@@ -1017,7 +1017,7 @@ bool convertVelocityBlocks2(
    bool success = true;
    if (popNames.size() > 0) {
       for (set<string>::iterator it=popNames.begin(); it!=popNames.end(); ++it) {
-         if (runDebug == true) cerr << "Population '" << *it << "'" << endl;
+         if (runDebug == true) cerr << "Population '" << *it << "' meshName '" << meshName << "'" << endl;
          if (vlsvReader.setCellsWithBlocks(meshName,*it) == false) {success = false; continue;}
          if (convertVelocityBlocks2(vlsvReader,fname,meshName,cellStruct,cellID,rotate,plasmaFrame,out,*it) == false) success = false;
       }
@@ -1738,16 +1738,9 @@ void extractDistribution( const string & fileName, const UserOptions & mainOptio
    T vlsvReader;
    // Open VLSV file and read mesh names:
    vlsvReader.open(fileName);
-   list<string> meshNames;
+   const string meshName = "SpatialGrid";
    const string tagName = "MESH";
    const string attributeName = "name";
-   
-   // Get spatial mesh names
-   if (vlsvReader.getMeshNames(meshNames) == false) {
-      cout << "\t file '" << fileName << "' not compatible" << endl;
-      vlsvReader.close();
-      return;
-   }
    
    //Sets cell variables (for cell geometry) -- used in getCellIdFromCoords function
    CellStructure cellStruct;
@@ -1892,25 +1885,23 @@ void extractDistribution( const string & fileName, const UserOptions & mainOptio
 
       // Extract velocity grid from VLSV file, if possible, and write as vlsv file:
       bool velGridExtracted = true;
-      for (list<string>::const_iterator it2 = meshNames.begin(); it2 != meshNames.end(); ++it2) {
-         //slice disabled by default, enable for specific testing. TODO: add command line interface for enabling it
-         //convertSlicedVelocityMesh(vlsvReader,outputSliceName,*it2,cellStruct);
-         if (convertVelocityBlocks2(vlsvReader, outputFilePath, *it2, cellStruct, cellID, mainOptions.rotateVectors, mainOptions.plasmaFrame ) == false) {
-            velGridExtracted = false;
+      //slice disabled by default, enable for specific testing. TODO: add command line interface for enabling it
+      //convertSlicedVelocityMesh(vlsvReader,outputSliceName,*it2,cellStruct);
+      if (convertVelocityBlocks2(vlsvReader, outputFilePath, meshName, cellStruct, cellID, mainOptions.rotateVectors, mainOptions.plasmaFrame ) == false) {
+         velGridExtracted = false;
+      } else {
+         //Display message for the user:
+         if( mainOptions.getCellIdFromLine ) {
+            //Extracting multiple cell ids:
+            //Display how mant extracted and how many more to go:
+            int moreToGo = cellIdList.size() - extractNum;
+            //Display message
+            cout << "Extracted num. " << extractNum << ", " << moreToGo << " more to go" << endl;
+            //Move to the next extraction number
+            ++extractNum;
          } else {
-            //Display message for the user:
-            if( mainOptions.getCellIdFromLine ) {
-               //Extracting multiple cell ids:
-               //Display how mant extracted and how many more to go:
-               int moreToGo = cellIdList.size() - extractNum;
-               //Display message
-               cout << "Extracted num. " << extractNum << ", " << moreToGo << " more to go" << endl;
-               //Move to the next extraction number
-               ++extractNum;
-            } else {
-               //Single cell id:
-               cout << "\t extracted from '" << fileName << "'" << endl;
-            }
+            //Single cell id:
+            cout << "\t extracted from '" << fileName << "'" << endl;
          }
       }
 

@@ -113,7 +113,7 @@ namespace projects {
       setBackgroundFieldToZero(BgBGrid);
       
       if(!P::isRestart) {
-         auto localSize = perBGrid.getLocalSize();
+         auto localSize = perBGrid.getLocalSize().data();
          
          creal dx = perBGrid.DX * 3.5;
          creal dy = perBGrid.DY * 3.5;

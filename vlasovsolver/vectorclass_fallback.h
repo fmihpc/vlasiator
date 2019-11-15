@@ -28,7 +28,8 @@
 
 */
 
-
+// Prefetching does nothing in the fallback vectorclass.
+#define _mm_prefetch(...)
 
 
 template <class T>
@@ -258,6 +259,17 @@ static inline Vec4Simple<T> operator / (const Vec4Simple<T> &l, const S &r)
    );
 }
 
+template <class T, class S>
+static inline Vec4Simple<T> operator / (const S &r, const Vec4Simple<T> &l )
+{
+   return Vec4Simple<T>(
+      r/l.val[0],
+      r/l.val[1],
+      r/l.val[2],
+      r/l.val[3]
+   );
+}
+
 template <class T>
 static inline  Vec4Simple<T> & operator += (Vec4Simple<T> &l, const Vec4Simple<T> &r){
    l=l+r;
@@ -317,6 +329,38 @@ static inline Vec4Simple<bool> operator == (const Vec4Simple<T> &l, const Vec4Si
    );
 }
 
+template <class T, class S>
+static inline Vec4Simple<bool> operator == (const Vec4Simple<T> &l, const S& r)
+{
+   return Vec4Simple<bool>(
+      l.val[0] == r,
+      l.val[1] == r,
+      l.val[2] == r,
+      l.val[3] == r
+   );
+}
+
+template <class T, class S>
+static inline Vec4Simple<bool> operator != (const Vec4Simple<T> &l, const S& r)
+{
+   return Vec4Simple<bool>(
+      l.val[0] != r,
+      l.val[1] != r,
+      l.val[2] != r,
+      l.val[3] != r
+   );
+}
+
+template <class T>
+static inline Vec4Simple<bool> operator ! (const Vec4Simple<T> &l)
+{
+   return Vec4Simple<bool>(
+      !l.val[0],
+      !l.val[1],
+      !l.val[2],
+      !l.val[3]
+   );
+}
 
 
 template <class T>
@@ -967,6 +1011,20 @@ static inline Vec8Simple<bool> operator == (const Vec8Simple<T> &l, const Vec8Si
    );
 }
 
+template <class T, class S>
+static inline Vec8Simple<bool> operator == (const Vec8Simple<T> &l, const S &r)
+{
+   return Vec8Simple<bool>(
+      l.val[0] == S,
+      l.val[1] == S,
+      l.val[2] == S,
+      l.val[3] == S,
+      l.val[4] == S,
+      l.val[5] == S,
+      l.val[6] == S,
+      l.val[7] == S
+   );
+}
 
 
 template <class T>
