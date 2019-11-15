@@ -10,8 +10,10 @@
 #include <boost/random/variate_generator.hpp>
 #include <iostream>
 
-#define cell_pop_threshold 1.e-15
-// In vlasiator, called via spatial_cell->getVelocityBlockMinValue(popID)
+const int fluxlimiterscalingfactor=1.e-15;
+// Used for better calculation of flux limiters at extreme values.
+// In vlasiator, the value of spatial_cell->getVelocityBlockMinValue(popID)
+// is used here.
 
 /*print all values in the vector valued values array. In this array
   there are blocks_per_dim blocks with a width of WID*/
@@ -76,7 +78,7 @@ void propagate(Vec dr[], Vec values[], Real z_translation, uint blocks_per_dim )
          // Compute polynomial coefficients
          Vec a[3];
          //compute_ppm_coeff_nonuniform(dr, values, h4, gid + target_scell_index, a);
-         compute_ppm_coeff_nonuniform(dr, values, h4, gid, a, cell_pop_threshold);
+         compute_ppm_coeff_nonuniform(dr, values, h4, gid, a, fluxlimiterscalingfactor);
          
          // Compute integral
          const Vec ngbr_target_density =
@@ -119,7 +121,7 @@ void print_reconstruction(int step, Vec dr[], Vec values[], uint  blocks_per_dim
 #ifdef ACC_SEMILAG_PPM
          Vec a[3];
          //compute_ppm_coeff(               values, h4, (k_block + 1) * WID + k_cell, a);
-         compute_ppm_coeff_nonuniform(dr, values, h4, (k_block + 1) * WID + k_cell, a, cell_pop_threshold);
+         compute_ppm_coeff_nonuniform(dr, values, h4, (k_block + 1) * WID + k_cell, a, fluxlimiterscalingfactor);
 #endif     
       
          int iend = k_block * WID + k_cell;
