@@ -33,6 +33,8 @@
 
 extern std::string B_field_name;
 extern std::string E_field_name;
+extern std::string V_field_name;
+extern bool do_divide_by_rho;
 
 /* Read the cellIDs into an array */
 std::vector<uint64_t> readCellIds(vlsvinterface::Reader& r);
@@ -143,14 +145,16 @@ bool readNextTimestep(const std::string& filename_pattern, double t, int step, F
       std::vector<double> Ebuffer = readFieldData(r,name,3u);
       std::vector<double> Vbuffer;
       if(doV) {
-        name = "rho_v";
+        name = ParticleParameters::V_field_name;
         std::vector<double> rho_v_buffer = readFieldData(r,name,3u);
-        name = "rho";
-        std::vector<double> rho_buffer = readFieldData(r,name,1u);
-        for(unsigned int i=0; i<rho_buffer.size(); i++) {
-          Vbuffer.push_back(rho_v_buffer[3*i] / rho_buffer[i]);
-          Vbuffer.push_back(rho_v_buffer[3*i+1] / rho_buffer[i]);
-          Vbuffer.push_back(rho_v_buffer[3*i+2] / rho_buffer[i]);
+        if(ParticleParameters::divide_rhov_by_rho) {
+          name = ParticleParameters::rho_field_name;
+          std::vector<double> rho_buffer = readFieldData(r,name,1u);
+          for(unsigned int i=0; i<rho_buffer.size(); i++) {
+            Vbuffer.push_back(rho_v_buffer[3*i] / rho_buffer[i]);
+            Vbuffer.push_back(rho_v_buffer[3*i+1] / rho_buffer[i]);
+            Vbuffer.push_back(rho_v_buffer[3*i+2] / rho_buffer[i]);
+          }
         }
       }
 
@@ -224,10 +228,12 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, bool doV=tru
 
    std::vector<double> rho_v_buffer,rho_buffer;
    if(doV) {
-     name = "rho_v";
+     name = ParticleParameters::V_field_name;
      rho_v_buffer = readFieldData(r,name,3u);
-     name = "rho";
-     rho_buffer = readFieldData(r,name,1u);
+     if(ParticleParameters::divide_rhov_by_rho) {
+       name = ParticleParameters::rho_field_name;
+       rho_buffer = readFieldData(r,name,1u);
+     }
    }
 
    /* Coordinate Boundaries */
@@ -253,9 +259,9 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, bool doV=tru
    /* Allocate space for the actual field structures */
    E.data.resize(4*cells[0]*cells[1]*cells[2]);
    B.data.resize(4*cells[0]*cells[1]*cells[2]);
-	 if(doV) {
-		 V.data.resize(4*cells[0]*cells[1]*cells[2]);
-	 }
+   if(doV) {
+     V.data.resize(4*cells[0]*cells[1]*cells[2]);
+   }
 
    /* Sanity-check stored data sizes */
    if(3*cellIds.size() != Bbuffer.size()) {
@@ -274,7 +280,7 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, bool doV=tru
            << std::endl;
         exit(1);
      }
-     if(cellIds.size() != rho_buffer.size()) {
+     if(ParticleParameters::divide_rhov_by_rho && cellIds.size() != rho_buffer.size()) {
         std::cerr << "cellIDs.size (" << cellIds.size() << ") != rho_buffer.size (" << Ebuffer.size() << ")!"
            << std::endl;
         exit(1);
@@ -318,9 +324,15 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, bool doV=tru
 
       if(doV) {
         double* Vtgt = V.getCellRef(x,y,z);
-        Vtgt[0] = rho_v_buffer[3*i] / rho_buffer[i];
-        Vtgt[1] = rho_v_buffer[3*i+1] / rho_buffer[i];
-        Vtgt[2] = rho_v_buffer[3*i+2] / rho_buffer[i];
+        if(ParticleParameters::divide_rhov_by_rho) {
+          Vtgt[0] = rho_v_buffer[3*i] / rho_buffer[i];
+          Vtgt[1] = rho_v_buffer[3*i+1] / rho_buffer[i];
+          Vtgt[2] = rho_v_buffer[3*i+2] / rho_buffer[i];
+        } else {
+          Vtgt[0] = rho_v_buffer[3*i];
+          Vtgt[1] = rho_v_buffer[3*i+1];
+          Vtgt[2] = rho_v_buffer[3*i+2];
+        }
       }
    }
 

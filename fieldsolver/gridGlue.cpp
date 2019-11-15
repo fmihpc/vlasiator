@@ -198,13 +198,13 @@ void getFieldsFromFsGrid(
     Average()  {
       cells = 0;
       for(int i = 0; i < fieldsToCommunicate; i++){
-	sums[i] = 0;
+         sums[i] = 0;
       }
     }
     Average operator+=(const Average& rhs) {
       this->cells += rhs.cells;
       for(int i = 0; i < fieldsToCommunicate; i++){
-	this->sums[i] += rhs.sums[i];
+         this->sums[i] += rhs.sums[i];
       }
     }
   };

@@ -376,7 +376,7 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
                                 FsGrid< fsgrids::technical, 2> & technicalGrid) {
    bool success = true;
    vector<CellID> cells = mpiGrid.get_cells();
-   auto localSize = technicalGrid.getLocalSize();
+   auto localSize = technicalGrid.getLocalSize().data();
    
    /*set all cells to default value, not_sysboundary*/
    for(uint i=0; i<cells.size(); i++) {

@@ -440,7 +440,11 @@ bool map_1d(SpatialCell* spatial_cell,
              * explanations of their meaning*/
             Vec v_r((WID * block_indices_begin[2]) * dv + v_min);
             Vec lagrangian_v_r((v_r-intersection_min)/intersection_dk);
+#if VECTORCLASS_H >= 20000
+            Veci lagrangian_gk_r=truncatei(lagrangian_v_r);
+#else
             Veci lagrangian_gk_r=truncate_to_int(lagrangian_v_r);
+#endif
 
             /*compute location of min and max, this does not change for one
              * column (or even for this set of intersections, and can be used
@@ -492,12 +496,16 @@ bool map_1d(SpatialCell* spatial_cell,
                // left(l) and right(r) k values (global index) in the target
                // Lagrangian grid, the intersecting cells. Again old right is new left.
                const Veci lagrangian_gk_l = lagrangian_gk_r;
+#if VECTORCLASS_H >= 20000
+               lagrangian_gk_r = truncatei((v_r-intersection_min)/intersection_dk);
+#else
                lagrangian_gk_r = truncate_to_int((v_r-intersection_min)/intersection_dk);
+#endif
                
                //limits in lagrangian k for target column. Also take into
                //account limits of target column
-               int minGk = std::max(lagrangian_gk_l[minGkIndex], int(columnMinBlockK[columnIndex] * WID));
-               int maxGk = std::min(lagrangian_gk_r[maxGkIndex], int((columnMaxBlockK[columnIndex] + 1) * WID - 1));
+               int minGk = std::max(int(lagrangian_gk_l[minGkIndex]), int(columnMinBlockK[columnIndex] * WID));
+               int maxGk = std::min(int(lagrangian_gk_r[maxGkIndex]), int((columnMaxBlockK[columnIndex] + 1) * WID - 1));
                
                for(int gk = minGk; gk <= maxGk; gk++){ 
                   const int blockK = gk/WID;
