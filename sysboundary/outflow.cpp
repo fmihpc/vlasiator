@@ -345,50 +345,8 @@ namespace SBC {
       cuint& RKCase,
       cuint& component
    ) {
-      Real fieldValue = -1.0;
+      Real fieldValue;
       
-      creal dx =Parameters::dx_ini;
-      creal dy =Parameters::dy_ini;
-      creal dz =Parameters::dz_ini;
-      const std::array<int, 3> globalIndices = technicalGrid.getGlobalIndices(i,j,k);
-      creal x = (convert<Real>(globalIndices[0])+0.5)*technicalGrid.DX + Parameters::xmin;
-      creal y = (convert<Real>(globalIndices[1])+0.5)*technicalGrid.DY + Parameters::ymin;
-      creal z = (convert<Real>(globalIndices[2])+0.5)*technicalGrid.DZ + Parameters::zmin;
-      
-      bool isThisCellOnAFace[6];
-      determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, true);
-      
-      cuint sysBoundaryLayer = technicalGrid.get(i,j,k)->sysBoundaryLayer;
-      if(sysBoundaryLayer == 1) {
-         cint neigh_i=i + ((component==0)?-1:0);
-         cint neigh_j=j + ((component==1)?-1:0);
-         cint neigh_k=k + ((component==2)?-1:0);
-         cuint neighborSysBoundaryFlag = technicalGrid.get(neigh_i, neigh_j, neigh_k)->sysBoundaryFlag;
-      
-         if (neighborSysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-            switch(component) {
-               case 0:
-                  propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, true, false, false);
-                  break;
-               case 1:
-                  propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, false, true, false);
-                  break;
-               case 2:
-                  propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, false, false, true);
-                  break;
-               default:
-                  cerr << "ERROR: outflow boundary tried to propagate nonsensical magnetic field component " << component << endl;
-                  break;
-            }
-            if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-               fieldValue = perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBX + component);
-            } else {
-               fieldValue = perBDt2Grid.get(i,j,k)->at(fsgrids::bfield::PERBX + component);
-            }
-            return fieldValue;
-         }
-      }
-
       if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
          fieldValue = fieldBoundaryCopyFromExistingFaceNbrMagneticField(perBGrid, technicalGrid, i, j, k, component);
       } else {

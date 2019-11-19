@@ -191,8 +191,17 @@ void propagateSysBoundaryMagneticField(
       bGrid = perBDt2Grid.get(i,j,k);
    }
    cuint sysBoundaryFlag = technicalGrid.get(i,j,k)->sysBoundaryFlag;
+   cuint sysBoundaryLayer = technicalGrid.get(i,j,k)->sysBoundaryLayer;
+   
    for (uint component = 0; component < 3; component++) {
-      bGrid->at(fsgrids::bfield::PERBX + component) = sysBoundaries.getSysBoundary(sysBoundaryFlag)->fieldSolverBoundaryCondMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, i, j, k, dt, RKCase, component);
+      cint neigh_i=i + ((component==0)?-1:0);
+      cint neigh_j=j + ((component==1)?-1:0);
+      cint neigh_k=k + ((component==2)?-1:0);
+      cuint neighborSysBoundaryFlag = technicalGrid.get(neigh_i, neigh_j, neigh_k)->sysBoundaryFlag;
+      
+      if (neighborSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) { // Complement to propagateMagneticFieldSimple main loop
+         bGrid->at(fsgrids::bfield::PERBX + component) = sysBoundaries.getSysBoundary(sysBoundaryFlag)->fieldSolverBoundaryCondMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, i, j, k, dt, RKCase, component);
+      }
    }
 }
 
@@ -231,17 +240,48 @@ void propagateMagneticFieldSimple(
    timer=phiprof::initializeTimer("Compute cells");
    phiprof::start(timer);
    
-   #pragma omp parallel for collapse(3)
+   #pragma omp parallel for collapse(3) schedule(dynamic,1)
    for (int k=0; k<gridDims[2]; k++) {
       for (int j=0; j<gridDims[1]; j++) {
          for (int i=0; i<gridDims[0]; i++) {
 
             // Set the fsgrid rank in the technical grid
+            // FIXME Why is this done repeatedly here? Yann can't remember (20191119).
             technicalGrid.get(i,j,k)->fsGridRank=technicalGrid.getRank();
 
-            if(technicalGrid.get(i,j,k)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) continue;
-            // Propagate B on all local cells:
-            propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase);
+            if(technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+               // Propagate B on all local cells on all faces:
+               propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, true, true, true);
+            } else {
+               // Easy case: in case we are neighboured by a non-sysboundary cell, we still solve the
+               // fields normally here.
+               cuint sysBoundaryLayer = technicalGrid.get(i,j,k)->sysBoundaryLayer;
+               if(sysBoundaryLayer == 1) {
+                  for (uint component = 0; component < 3; component++) {
+                     cint neigh_i=i + ((component==0)?-1:0);
+                     cint neigh_j=j + ((component==1)?-1:0);
+                     cint neigh_k=k + ((component==2)?-1:0);
+                     cuint neighborSysBoundaryFlag = technicalGrid.get(neigh_i, neigh_j, neigh_k)->sysBoundaryFlag;
+                     
+                     if (neighborSysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) { // Complement to propagateSysBoundaryMagneticField
+                        switch(component) {
+                           case 0:
+                              propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, true, false, false);
+                              break;
+                           case 1:
+                              propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, false, true, false);
+                              break;
+                           case 2:
+                              propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, false, false, true);
+                              break;
+                           default:
+                              cerr << "ERROR: ionosphere boundary tried to propagate nonsensical magnetic field component " << component << endl;
+                              break;
+                        }
+                     }
+                  }
+               }
+            }
          }
       }
    }
