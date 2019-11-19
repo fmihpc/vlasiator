@@ -206,6 +206,7 @@ void getFieldsFromFsGrid(
       for(int i = 0; i < fieldsToCommunicate; i++){
          this->sums[i] += rhs.sums[i];
       }
+    return *this;
     }
   };
 

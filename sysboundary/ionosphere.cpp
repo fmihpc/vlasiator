@@ -620,6 +620,7 @@ namespace SBC {
 	    return bGrid->get(i,j,k-1)->at(fsgrids::bfield::PERBX + component);
          default:
 	    cerr << "ERROR: ionosphere boundary tried to copy nonsensical magnetic field component " << component << endl;
+            return 0.0;
 	    break;
       }
       
