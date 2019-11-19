@@ -38,6 +38,7 @@ namespace SBC {
       Real rho;
       Real V0[3];
       Real T;
+      Real fluffiness;
       uint nSpaceSamples;
       uint nVelocitySamples;
    };
