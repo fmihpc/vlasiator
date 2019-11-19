@@ -249,7 +249,24 @@ namespace SBC {
          cerr << __FILE__ << ":" << __LINE__ << ": No closest cell found!" << endl;
          abort();
       }
-      averageCellData(mpiGrid, closestCells, mpiGrid[cellID],popID);
+      averageCellData(mpiGrid, closestCells, mpiGrid[cellID], popID);
+   }
+   
+   /*! Function used to average and copy the distribution and moments from all the close sysboundarytype::NOT_SYSBOUNDARY cells.
+    * \param mpiGrid Grid
+    * \param cellID The cell's ID.
+    */
+   void SysBoundaryCondition::vlasovBoundaryCopyFromAllCloseNbrs(
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      const CellID& cellID,const uint popID
+   ) {
+      const std::vector<CellID> closeCells = getAllCloseNonsysboundaryCells(cellID);
+      
+      if(closeCells[0] == INVALID_CELLID) {
+         cerr << __FILE__ << ":" << __LINE__ << ": No close cell found!" << endl;
+         abort();
+      }
+      averageCellData(mpiGrid, closeCells, mpiGrid[cellID], popID);
    }
    
    /*! Function used to copy the distribution from (one of) the closest sysboundarytype::NOT_SYSBOUNDARY cell but limiting to values no higher than where it can flow into. Moments are recomputed.
@@ -419,7 +436,6 @@ namespace SBC {
          for (size_t i=0; i<numberOfCells; i++) {
             const SpatialCell* incomingCell = mpiGrid[cellList[i]];
             
-            // WARNING Time-independence assumed here. _R and _V not copied, as boundary conditions cells should not set/use them
             if (popID == 0) {
                to->parameters[CellParams::RHOM_DT2] += factor*incomingCell->parameters[CellParams::RHOM_DT2];
                to->parameters[CellParams::VX_DT2] += factor*incomingCell->parameters[CellParams::VX_DT2];
@@ -630,6 +646,8 @@ namespace SBC {
          const CellID cellId = *it;
          std::vector<CellID> & closestCells = allClosestNonsysboundaryCells[cellId];
          closestCells.clear();
+         std::vector<CellID> & closeCells = allCloseNonsysboundaryCells[cellId];
+         closeCells.clear();
          std::array<SpatialCell*,27> & flowtoCells = allFlowtoCells[cellId];
          flowtoCells.fill(NULL);
          uint dist = numeric_limits<uint>::max();
@@ -650,6 +668,12 @@ namespace SBC {
                         if(d2 < 4 && i != 0 && j != 0 && k != 0) {
                            flowtoCells.at(i + 3*j + 9*k + 13) = mpiGrid[cell];
                         }
+                        if(mpiGrid[cellId]->sysBoundaryLayer == 1 && abs(i) < 2 && abs(j) < 2 && abs(k) < 2) {
+                           closeCells.push_back(cell);
+                        }
+                        if(mpiGrid[cellId]->sysBoundaryLayer == 2) {
+                           closeCells.push_back(cell);
+                        }
                      }
                   }
                }
@@ -668,6 +692,7 @@ namespace SBC {
                   }
                }
          if(closestCells.size() == 0) closestCells.push_back(INVALID_CELLID);
+         if(closeCells.size() == 0) closeCells.push_back(INVALID_CELLID);
       }
       return true;
    }
@@ -755,6 +780,17 @@ namespace SBC {
    ) {
       std::vector<CellID> & closestCells = allClosestNonsysboundaryCells.at(cellID);
       return closestCells;
+   }
+   
+   /*! Get the cellIDs of all the close cells of type NOT_SYSBOUNDARY.
+    * \param cellID ID of the cell to start look from.
+    * \return The vector of cell indices of those cells
+    */
+   std::vector<CellID> & SysBoundaryCondition::getAllCloseNonsysboundaryCells(
+      const CellID& cellID
+   ) {
+      std::vector<CellID> & closeCells = allCloseNonsysboundaryCells.at(cellID);
+      return closeCells;
    }
    
    /*! Get the cellIDs of all flowto cells (cells into which the velocity distribution can flow and which is of type NOT_SYSBOUNDARY).

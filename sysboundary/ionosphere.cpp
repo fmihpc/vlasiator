@@ -680,10 +680,9 @@ namespace SBC {
       const CellID& cellID,
       const uint popID
    ) {
-//       phiprof::start("vlasovBoundaryCondition (Ionosphere)");
-//       const SpatialCell * cell = mpiGrid[cellID];
-//       this->vlasovBoundaryCopyFromAllClosestNbrs(mpiGrid, cellID);
-//       phiprof::stop("vlasovBoundaryCondition (Ionosphere)");
+      phiprof::start("vlasovBoundaryCondition (Ionosphere)");
+      this->vlasovBoundaryCopyFromAllCloseNbrs(mpiGrid, cellID, popID);
+      phiprof::stop("vlasovBoundaryCondition (Ionosphere)");
    }
 
    /**
