@@ -124,7 +124,8 @@ namespace SBC {
       virtual void vlasovBoundaryCondition(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const CellID& cellID,
-         const uint popID
+         const uint popID,
+         const bool calculate_V_moments
       );
       
       virtual std::string getName() const;

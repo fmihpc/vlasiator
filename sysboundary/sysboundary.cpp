@@ -29,6 +29,7 @@
 
 #include "../grid.h"
 #include "../object_wrapper.h"
+#include "../vlasovsolver/cpu_moments.h"
 
 #include "sysboundary.h"
 #include "donotcompute.h"
@@ -574,7 +575,8 @@ bool SysBoundary::applyInitialState(
  */
 void SysBoundary::applySysBoundaryVlasovConditions(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   creal& t
+   creal& t,
+   const bool calculate_V_moments // if true, compute into _V, false into _R moments so that the interpolated ones can be done for layer 1 boundaries
 ) {
    if(sysBoundaries.size()==0) {
       return; //no system boundaries
@@ -609,7 +611,12 @@ void SysBoundary::applySysBoundaryVlasovConditions(
       #pragma omp parallel for
       for (uint i=0; i<localCells.size(); i++) {
          cuint sysBoundaryType = mpiGrid[localCells[i]]->sysBoundaryFlag;
-         this->getSysBoundary(sysBoundaryType)->vlasovBoundaryCondition(mpiGrid,localCells[i],popID);
+         this->getSysBoundary(sysBoundaryType)->vlasovBoundaryCondition(mpiGrid,localCells[i],popID,calculate_V_moments);
+      }
+      if (calculate_V_moments) {
+         calculateMoments_V(mpiGrid, localCells, true);
+      } else {
+         calculateMoments_R(mpiGrid, localCells, true);
       }
       phiprof::stop(timer);
    
@@ -626,7 +633,12 @@ void SysBoundary::applySysBoundaryVlasovConditions(
       #pragma omp parallel for
       for (uint i=0; i<boundaryCells.size(); i++) {
          cuint sysBoundaryType = mpiGrid[boundaryCells[i]]->sysBoundaryFlag;
-         this->getSysBoundary(sysBoundaryType)->vlasovBoundaryCondition(mpiGrid, boundaryCells[i],popID);
+         this->getSysBoundary(sysBoundaryType)->vlasovBoundaryCondition(mpiGrid, boundaryCells[i],popID,calculate_V_moments);
+      }
+      if (calculate_V_moments) {
+         calculateMoments_V(mpiGrid, boundaryCells, true);
+      } else {
+         calculateMoments_R(mpiGrid, boundaryCells, true);
       }
       phiprof::stop(timer);
 

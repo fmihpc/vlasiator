@@ -443,28 +443,26 @@ void calculateInterpolatedVelocityMoments(
 ) {
    const vector<CellID>& cells = getLocalCells();
    
-   //Iterate through all local cells (excl. system boundary cells):
+   //Iterate through all local cells
     #pragma omp parallel for
    for (size_t c=0; c<cells.size(); ++c) {
       const CellID cellID = cells[c];
       SpatialCell* SC = mpiGrid[cellID];
-      if(SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-         SC->parameters[cp_rhom  ] = 0.5* ( SC->parameters[CellParams::RHOM_R] + SC->parameters[CellParams::RHOM_V] );
-         SC->parameters[cp_vx] = 0.5* ( SC->parameters[CellParams::VX_R] + SC->parameters[CellParams::VX_V] );
-         SC->parameters[cp_vy] = 0.5* ( SC->parameters[CellParams::VY_R] + SC->parameters[CellParams::VY_V] );
-         SC->parameters[cp_vz] = 0.5* ( SC->parameters[CellParams::VZ_R] + SC->parameters[CellParams::VZ_V] );
-         SC->parameters[cp_rhoq  ] = 0.5* ( SC->parameters[CellParams::RHOQ_R] + SC->parameters[CellParams::RHOQ_V] );
-         SC->parameters[cp_p11]   = 0.5* ( SC->parameters[CellParams::P_11_R] + SC->parameters[CellParams::P_11_V] );
-         SC->parameters[cp_p22]   = 0.5* ( SC->parameters[CellParams::P_22_R] + SC->parameters[CellParams::P_22_V] );
-         SC->parameters[cp_p33]   = 0.5* ( SC->parameters[CellParams::P_33_R] + SC->parameters[CellParams::P_33_V] );
+      SC->parameters[cp_rhom  ] = 0.5* ( SC->parameters[CellParams::RHOM_R] + SC->parameters[CellParams::RHOM_V] );
+      SC->parameters[cp_vx] = 0.5* ( SC->parameters[CellParams::VX_R] + SC->parameters[CellParams::VX_V] );
+      SC->parameters[cp_vy] = 0.5* ( SC->parameters[CellParams::VY_R] + SC->parameters[CellParams::VY_V] );
+      SC->parameters[cp_vz] = 0.5* ( SC->parameters[CellParams::VZ_R] + SC->parameters[CellParams::VZ_V] );
+      SC->parameters[cp_rhoq  ] = 0.5* ( SC->parameters[CellParams::RHOQ_R] + SC->parameters[CellParams::RHOQ_V] );
+      SC->parameters[cp_p11]   = 0.5* ( SC->parameters[CellParams::P_11_R] + SC->parameters[CellParams::P_11_V] );
+      SC->parameters[cp_p22]   = 0.5* ( SC->parameters[CellParams::P_22_R] + SC->parameters[CellParams::P_22_V] );
+      SC->parameters[cp_p33]   = 0.5* ( SC->parameters[CellParams::P_33_R] + SC->parameters[CellParams::P_33_V] );
 
-         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-            spatial_cell::Population& pop = SC->get_population(popID);
-            pop.RHO = 0.5 * ( pop.RHO_R + pop.RHO_V );
-            for(int i=0; i<3; i++) {
-               pop.V[i] = 0.5 * ( pop.V_R[i] + pop.V_V[i] );
-               pop.P[i]    = 0.5 * ( pop.P_R[i] + pop.P_V[i] );
-            }
+      for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         spatial_cell::Population& pop = SC->get_population(popID);
+         pop.RHO = 0.5 * ( pop.RHO_R + pop.RHO_V );
+         for(int i=0; i<3; i++) {
+            pop.V[i] = 0.5 * ( pop.V_R[i] + pop.V_V[i] );
+            pop.P[i]    = 0.5 * ( pop.P_R[i] + pop.P_V[i] );
          }
       }
    }

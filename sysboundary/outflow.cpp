@@ -437,7 +437,8 @@ namespace SBC {
    void Outflow::vlasovBoundaryCondition(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
-      const uint popID
+      const uint popID,
+      const bool calculate_V_moments
    ) {
 //      phiprof::start("vlasovBoundaryCondition (Outflow)");
       
@@ -461,16 +462,16 @@ namespace SBC {
                   break;
                case vlasovscheme::COPY:
                   if (cell->sysBoundaryLayer == 1) {
-                     vlasovBoundaryCopyFromTheClosestNbr(mpiGrid,cellID,false,popID);
+                     vlasovBoundaryCopyFromTheClosestNbr(mpiGrid,cellID,false,popID,calculate_V_moments);
                   } else {
-                     vlasovBoundaryCopyFromTheClosestNbr(mpiGrid,cellID,true,popID);
+                     vlasovBoundaryCopyFromTheClosestNbr(mpiGrid,cellID,true,popID,calculate_V_moments);
                   }
                   break;
                case vlasovscheme::LIMIT:
                   if (cell->sysBoundaryLayer == 1) {
                      vlasovBoundaryCopyFromTheClosestNbrAndLimit(mpiGrid,cellID,popID);
                   } else {
-                     vlasovBoundaryCopyFromTheClosestNbr(mpiGrid,cellID,true,popID);
+                     vlasovBoundaryCopyFromTheClosestNbr(mpiGrid,cellID,true,popID,calculate_V_moments);
                   }
                   break;
                default:

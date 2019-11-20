@@ -694,7 +694,8 @@ namespace SBC {
    void Ionosphere::vlasovBoundaryCondition(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
-      const uint popID
+      const uint popID,
+      const bool calculate_V_moments
    ) {
       phiprof::start("vlasovBoundaryCondition (Ionosphere)");
       this->vlasovBoundaryFluffyCopyFromAllCloseNbrs(mpiGrid, cellID, popID, this->speciesParams[popID].fluffiness);
@@ -783,14 +784,22 @@ namespace SBC {
       calculateCellMoments(&templateCell,true,true);
 
       // WARNING Time-independence assumed here. Normal moments computed in setProjectCell
-      templateCell.parameters[CellParams::RHOM_DT2] = templateCell.parameters[CellParams::RHOM];
-      templateCell.parameters[CellParams::VX_DT2] = templateCell.parameters[CellParams::VX];
-      templateCell.parameters[CellParams::VY_DT2] = templateCell.parameters[CellParams::VY];
-      templateCell.parameters[CellParams::VZ_DT2] = templateCell.parameters[CellParams::VZ];
-      templateCell.parameters[CellParams::RHOQ_DT2] = templateCell.parameters[CellParams::RHOQ];
-      templateCell.parameters[CellParams::P_11_DT2] = templateCell.parameters[CellParams::P_11];
-      templateCell.parameters[CellParams::P_22_DT2] = templateCell.parameters[CellParams::P_22];
-      templateCell.parameters[CellParams::P_33_DT2] = templateCell.parameters[CellParams::P_33];
+      templateCell.parameters[CellParams::RHOM_R] = templateCell.parameters[CellParams::RHOM];
+      templateCell.parameters[CellParams::VX_R] = templateCell.parameters[CellParams::VX];
+      templateCell.parameters[CellParams::VY_R] = templateCell.parameters[CellParams::VY];
+      templateCell.parameters[CellParams::VZ_R] = templateCell.parameters[CellParams::VZ];
+      templateCell.parameters[CellParams::RHOQ_R] = templateCell.parameters[CellParams::RHOQ];
+      templateCell.parameters[CellParams::P_11_R] = templateCell.parameters[CellParams::P_11];
+      templateCell.parameters[CellParams::P_22_R] = templateCell.parameters[CellParams::P_22];
+      templateCell.parameters[CellParams::P_33_R] = templateCell.parameters[CellParams::P_33];
+      templateCell.parameters[CellParams::RHOM_V] = templateCell.parameters[CellParams::RHOM];
+      templateCell.parameters[CellParams::VX_V] = templateCell.parameters[CellParams::VX];
+      templateCell.parameters[CellParams::VY_V] = templateCell.parameters[CellParams::VY];
+      templateCell.parameters[CellParams::VZ_V] = templateCell.parameters[CellParams::VZ];
+      templateCell.parameters[CellParams::RHOQ_V] = templateCell.parameters[CellParams::RHOQ];
+      templateCell.parameters[CellParams::P_11_V] = templateCell.parameters[CellParams::P_11];
+      templateCell.parameters[CellParams::P_22_V] = templateCell.parameters[CellParams::P_22];
+      templateCell.parameters[CellParams::P_33_V] = templateCell.parameters[CellParams::P_33];
    }
    
    Real Ionosphere::shiftedMaxwellianDistribution(
@@ -862,8 +871,8 @@ namespace SBC {
    }
 
    void Ionosphere::setCellFromTemplate(SpatialCell* cell,const uint popID) {
-      //Copy, and allow to change blocks
-      copyCellData(&templateCell,cell,true,false,popID);
+      copyCellData(&templateCell,cell,false,popID,true); // copy also vdf, _V
+      copyCellData(&templateCell,cell,true,popID,false); // don't copy vdf again but copy _R now
    }
 
    std::string Ionosphere::getName() const {return "Ionosphere";}

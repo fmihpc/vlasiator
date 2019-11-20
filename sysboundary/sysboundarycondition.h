@@ -148,7 +148,8 @@ namespace SBC {
         virtual void vlasovBoundaryCondition(
             const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const CellID& cellID,
-            const uint popID
+            const uint popID,
+            const bool calculate_V_moments
         )=0;
 
          virtual void getFaces(bool* faces);
@@ -175,9 +176,9 @@ namespace SBC {
          void copyCellData(
             SpatialCell *from,
             SpatialCell *to,
-            bool allowBlockAdjustment,
             const bool& copyMomentsOnly,
-            const uint popID
+            const uint popID,
+            const bool calculate_V_moments
          );
          void averageCellData(
             const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
@@ -211,7 +212,8 @@ namespace SBC {
             const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const CellID& cellID,
             const bool& copyMomentsOnly,
-            const uint popID
+            const uint popID,
+            const bool calculate_V_moments
          );
          void vlasovBoundaryCopyFromTheClosestNbrAndLimit(
                const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,

@@ -223,7 +223,8 @@ namespace SBC {
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const CellID& cellID,
          const bool& copyMomentsOnly,
-         const uint popID
+         const uint popID,
+         const bool calculate_V_moments
    ) {
       const CellID closestCell = getTheClosestNonsysboundaryCell(cellID);
       
@@ -231,8 +232,8 @@ namespace SBC {
          cerr << __FILE__ << ":" << __LINE__ << ": No closest cell found!" << endl;
          abort();
       }
-      //Do not allow block adjustment, the block structure when calling vlasovBoundaryCondition should be static
-      copyCellData(mpiGrid[closestCell],mpiGrid[cellID],false, copyMomentsOnly, popID);
+      
+      copyCellData(mpiGrid[closestCell],mpiGrid[cellID], copyMomentsOnly, popID, calculate_V_moments);
    }
    
    /*! Function used to average and copy the distribution and moments from all the closest sysboundarytype::NOT_SYSBOUNDARY cells.
@@ -340,7 +341,6 @@ namespace SBC {
             }
          }
       }
-      calculateCellMoments(to,true,true);
    }
    
    /*! Function used to copy the distribution and moments from one cell to another. In layer 2, copy only the moments.
@@ -351,45 +351,49 @@ namespace SBC {
    void SysBoundaryCondition::copyCellData(
             SpatialCell* from,
             SpatialCell* to,
-            bool allowBlockAdjustment,
             const bool& copyMomentsOnly,
-            const uint popID
+            const uint popID,
+            const bool calculate_V_moments
    ) {
-      // WARNING Time-independence assumed here. _R and _V not copied, 
-      // as boundary conditions cells should not set/use them.
       if (popID == 0) {
-         to->parameters[CellParams::RHOM_DT2] = from->parameters[CellParams::RHOM_DT2];
-         to->parameters[CellParams::VX_DT2] = from->parameters[CellParams::VX_DT2];
-         to->parameters[CellParams::VY_DT2] = from->parameters[CellParams::VY_DT2];
-         to->parameters[CellParams::VZ_DT2] = from->parameters[CellParams::VZ_DT2];
-         to->parameters[CellParams::RHOQ_DT2] = from->parameters[CellParams::RHOQ_DT2];
-         to->parameters[CellParams::P_11_DT2] = from->parameters[CellParams::P_11_DT2];
-         to->parameters[CellParams::P_22_DT2] = from->parameters[CellParams::P_22_DT2];
-         to->parameters[CellParams::P_33_DT2] = from->parameters[CellParams::P_33_DT2];
-         to->parameters[CellParams::RHOM] = from->parameters[CellParams::RHOM];
-         to->parameters[CellParams::VX] = from->parameters[CellParams::VX];
-         to->parameters[CellParams::VY] = from->parameters[CellParams::VY];
-         to->parameters[CellParams::VZ] = from->parameters[CellParams::VZ];
-         to->parameters[CellParams::RHOQ] = from->parameters[CellParams::RHOQ];
-         to->parameters[CellParams::P_11] = from->parameters[CellParams::P_11];
-         to->parameters[CellParams::P_22] = from->parameters[CellParams::P_22];
-         to->parameters[CellParams::P_33] = from->parameters[CellParams::P_33];
+         if (calculate_V_moments) {
+            to->parameters[CellParams::RHOM_V] = from->parameters[CellParams::RHOM_V];
+            to->parameters[CellParams::VX_V] = from->parameters[CellParams::VX_V];
+            to->parameters[CellParams::VY_V] = from->parameters[CellParams::VY_V];
+            to->parameters[CellParams::VZ_V] = from->parameters[CellParams::VZ_V];
+            to->parameters[CellParams::RHOQ_V] = from->parameters[CellParams::RHOQ_V];
+            to->parameters[CellParams::P_11_V] = from->parameters[CellParams::P_11_V];
+            to->parameters[CellParams::P_22_V] = from->parameters[CellParams::P_22_V];
+            to->parameters[CellParams::P_33_V] = from->parameters[CellParams::P_33_V];
+         } else {
+            to->parameters[CellParams::RHOM_R] = from->parameters[CellParams::RHOM_R];
+            to->parameters[CellParams::VX_R] = from->parameters[CellParams::VX_R];
+            to->parameters[CellParams::VY_R] = from->parameters[CellParams::VY_R];
+            to->parameters[CellParams::VZ_R] = from->parameters[CellParams::VZ_R];
+            to->parameters[CellParams::RHOQ_R] = from->parameters[CellParams::RHOQ_R];
+            to->parameters[CellParams::P_11_R] = from->parameters[CellParams::P_11_R];
+            to->parameters[CellParams::P_22_R] = from->parameters[CellParams::P_22_R];
+            to->parameters[CellParams::P_33_R] = from->parameters[CellParams::P_33_R];
+         }
       }
       
        if(to->sysBoundaryLayer == 1 && !copyMomentsOnly) { // Do this only for the first layer, the other layers do not need this. Do only if copyMomentsOnly is false.
          to->set_population(from->get_population(popID), popID);
       } else {
-         to->get_population(popID).RHO = from->get_population(popID).RHO;
-         to->get_population(popID).RHO_R = from->get_population(popID).RHO_R;
-         to->get_population(popID).RHO_V = from->get_population(popID).RHO_V;
+         if (calculate_V_moments) {
+            to->get_population(popID).RHO_V = from->get_population(popID).RHO_V;
+         } else {
+            to->get_population(popID).RHO_R = from->get_population(popID).RHO_R;
+         }
+         
          for (uint i=0; i<3; i++) {
-            to->get_population(popID).V[i] = from->get_population(popID).V[i];
-            to->get_population(popID).V_R[i] = from->get_population(popID).V_R[i];
-            to->get_population(popID).V_V[i] = from->get_population(popID).V_V[i];
-            to->get_population(popID).P[i] = from->get_population(popID).P[i];
-            to->get_population(popID).P_R[i] = from->get_population(popID).P_R[i];
-            to->get_population(popID).P_V[i] = from->get_population(popID).P_V[i];
-            
+            if (calculate_V_moments) {
+               to->get_population(popID).V_V[i] = from->get_population(popID).V_V[i];
+               to->get_population(popID).P_V[i] = from->get_population(popID).P_V[i];
+            } else {
+               to->get_population(popID).V_R[i] = from->get_population(popID).V_R[i];
+               to->get_population(popID).P_R[i] = from->get_population(popID).P_R[i];
+            }
          }
       }
    }
@@ -410,26 +414,6 @@ namespace SBC {
    ) {
       const size_t numberOfCells = cellList.size();
       creal factor = fluffiness / convert<Real>(numberOfCells);
-
-      // Rescale moments
-      if (popID == 0) {
-         to->parameters[CellParams::RHOM_DT2] *= 1.0 - fluffiness;
-         to->parameters[CellParams::VX_DT2]   *= 1.0 - fluffiness;
-         to->parameters[CellParams::VY_DT2]   *= 1.0 - fluffiness;
-         to->parameters[CellParams::VZ_DT2]   *= 1.0 - fluffiness;
-         to->parameters[CellParams::RHOQ_DT2] *= 1.0 - fluffiness;
-         to->parameters[CellParams::P_11_DT2] *= 1.0 - fluffiness;
-         to->parameters[CellParams::P_22_DT2] *= 1.0 - fluffiness;
-         to->parameters[CellParams::P_33_DT2] *= 1.0 - fluffiness;
-         to->parameters[CellParams::RHOM]     *= 1.0 - fluffiness;
-         to->parameters[CellParams::VX]       *= 1.0 - fluffiness;
-         to->parameters[CellParams::VY]       *= 1.0 - fluffiness;
-         to->parameters[CellParams::VZ]       *= 1.0 - fluffiness;
-         to->parameters[CellParams::RHOQ]     *= 1.0 - fluffiness;
-         to->parameters[CellParams::P_11]     *= 1.0 - fluffiness;
-         to->parameters[CellParams::P_22]     *= 1.0 - fluffiness;
-         to->parameters[CellParams::P_33]     *= 1.0 - fluffiness;
-      }
       
       if (to->sysBoundaryLayer == 1) {
          // Rescale own vspace
@@ -449,25 +433,6 @@ namespace SBC {
       for (size_t i=0; i<numberOfCells; i++) {
          const SpatialCell* incomingCell = mpiGrid[cellList[i]];
          
-         if (popID == 0) {
-            to->parameters[CellParams::RHOM_DT2] += factor*incomingCell->parameters[CellParams::RHOM_DT2];
-            to->parameters[CellParams::VX_DT2] += factor*incomingCell->parameters[CellParams::VX_DT2];
-            to->parameters[CellParams::VY_DT2] += factor*incomingCell->parameters[CellParams::VY_DT2];
-            to->parameters[CellParams::VZ_DT2] += factor*incomingCell->parameters[CellParams::VZ_DT2];
-            to->parameters[CellParams::RHOQ_DT2] += factor*incomingCell->parameters[CellParams::RHOQ_DT2];
-            to->parameters[CellParams::P_11_DT2] += factor*incomingCell->parameters[CellParams::P_11_DT2];
-            to->parameters[CellParams::P_22_DT2] += factor*incomingCell->parameters[CellParams::P_22_DT2];
-            to->parameters[CellParams::P_33_DT2] += factor*incomingCell->parameters[CellParams::P_33_DT2];
-            to->parameters[CellParams::RHOM] += factor*incomingCell->parameters[CellParams::RHOM];
-            to->parameters[CellParams::VX] += factor*incomingCell->parameters[CellParams::VX];
-            to->parameters[CellParams::VY] += factor*incomingCell->parameters[CellParams::VY];
-            to->parameters[CellParams::VZ] += factor*incomingCell->parameters[CellParams::VZ];
-            to->parameters[CellParams::RHOQ] += factor*incomingCell->parameters[CellParams::RHOQ];
-            to->parameters[CellParams::P_11] += factor*incomingCell->parameters[CellParams::P_11];
-            to->parameters[CellParams::P_22] += factor*incomingCell->parameters[CellParams::P_22];
-            to->parameters[CellParams::P_33] += factor*incomingCell->parameters[CellParams::P_33];
-         }
-
          // Do this only for the first layer, the other layers do not need this.
          if (to->sysBoundaryLayer != 1) continue;
 

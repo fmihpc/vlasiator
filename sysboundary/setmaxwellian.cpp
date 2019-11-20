@@ -313,14 +313,22 @@ namespace SBC {
       
       if(!this->isThisDynamic) {
          // WARNING Time-independence assumed here.
-         templateCell.parameters[CellParams::RHOM_DT2] = templateCell.parameters[CellParams::RHOM];
-         templateCell.parameters[CellParams::VX_DT2] = templateCell.parameters[CellParams::VX];
-         templateCell.parameters[CellParams::VY_DT2] = templateCell.parameters[CellParams::VY];
-         templateCell.parameters[CellParams::VZ_DT2] = templateCell.parameters[CellParams::VZ];
-         templateCell.parameters[CellParams::RHOQ_DT2] = templateCell.parameters[CellParams::RHOQ];
-         templateCell.parameters[CellParams::P_11_DT2] = templateCell.parameters[CellParams::P_11];
-         templateCell.parameters[CellParams::P_22_DT2] = templateCell.parameters[CellParams::P_22];
-         templateCell.parameters[CellParams::P_33_DT2] = templateCell.parameters[CellParams::P_33];
+         templateCell.parameters[CellParams::RHOM_R] = templateCell.parameters[CellParams::RHOM];
+         templateCell.parameters[CellParams::VX_R] = templateCell.parameters[CellParams::VX];
+         templateCell.parameters[CellParams::VY_R] = templateCell.parameters[CellParams::VY];
+         templateCell.parameters[CellParams::VZ_R] = templateCell.parameters[CellParams::VZ];
+         templateCell.parameters[CellParams::RHOQ_R] = templateCell.parameters[CellParams::RHOQ];
+         templateCell.parameters[CellParams::P_11_R] = templateCell.parameters[CellParams::P_11];
+         templateCell.parameters[CellParams::P_22_R] = templateCell.parameters[CellParams::P_22];
+         templateCell.parameters[CellParams::P_33_R] = templateCell.parameters[CellParams::P_33];
+         templateCell.parameters[CellParams::RHOM_V] = templateCell.parameters[CellParams::RHOM];
+         templateCell.parameters[CellParams::VX_V] = templateCell.parameters[CellParams::VX];
+         templateCell.parameters[CellParams::VY_V] = templateCell.parameters[CellParams::VY];
+         templateCell.parameters[CellParams::VZ_V] = templateCell.parameters[CellParams::VZ];
+         templateCell.parameters[CellParams::RHOQ_V] = templateCell.parameters[CellParams::RHOQ];
+         templateCell.parameters[CellParams::P_11_V] = templateCell.parameters[CellParams::P_11];
+         templateCell.parameters[CellParams::P_22_V] = templateCell.parameters[CellParams::P_22];
+         templateCell.parameters[CellParams::P_33_V] = templateCell.parameters[CellParams::P_33];
       } else {
          cerr << "ERROR: this is not dynamic in time, please code it!" << endl;
          abort();
