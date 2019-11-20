@@ -194,13 +194,17 @@ void propagateSysBoundaryMagneticField(
    cuint sysBoundaryLayer = technicalGrid.get(i,j,k)->sysBoundaryLayer;
    
    for (uint component = 0; component < 3; component++) {
-      cint neigh_i=i + ((component==0)?-1:0);
-      cint neigh_j=j + ((component==1)?-1:0);
-      cint neigh_k=k + ((component==2)?-1:0);
-      cuint neighborSysBoundaryFlag = technicalGrid.get(neigh_i, neigh_j, neigh_k)->sysBoundaryFlag;
-      
-      if (neighborSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) { // Complement to propagateMagneticFieldSimple main loop
+      if (sysBoundaryFlag != 1) {
          bGrid->at(fsgrids::bfield::PERBX + component) = sysBoundaries.getSysBoundary(sysBoundaryFlag)->fieldSolverBoundaryCondMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, i, j, k, dt, RKCase, component);
+      } else {
+         cint neigh_i=i + ((component==0)?-1:0);
+         cint neigh_j=j + ((component==1)?-1:0);
+         cint neigh_k=k + ((component==2)?-1:0);
+         uint neighborSysBoundaryFlag = technicalGrid.get(neigh_i, neigh_j, neigh_k)->sysBoundaryFlag;
+         
+         if (neighborSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) { // Complement to propagateMagneticFieldSimple main loop
+            bGrid->at(fsgrids::bfield::PERBX + component) = sysBoundaries.getSysBoundary(sysBoundaryFlag)->fieldSolverBoundaryCondMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, i, j, k, dt, RKCase, component);
+         }
       }
    }
 }
