@@ -194,7 +194,7 @@ void propagateSysBoundaryMagneticField(
    cuint sysBoundaryLayer = technicalGrid.get(i,j,k)->sysBoundaryLayer;
    
    for (uint component = 0; component < 3; component++) {
-      if (sysBoundaryFlag != 1) {
+      if (sysBoundaryLayer != 1) {
          bGrid->at(fsgrids::bfield::PERBX + component) = sysBoundaries.getSysBoundary(sysBoundaryFlag)->fieldSolverBoundaryCondMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, i, j, k, dt, RKCase, component);
       } else {
          cint neigh_i=i + ((component==0)?-1:0);
@@ -261,28 +261,11 @@ void propagateMagneticFieldSimple(
                // fields normally here.
                cuint sysBoundaryLayer = technicalGrid.get(i,j,k)->sysBoundaryLayer;
                if(sysBoundaryLayer == 1) {
-                  for (uint component = 0; component < 3; component++) {
-                     cint neigh_i=i + ((component==0)?-1:0);
-                     cint neigh_j=j + ((component==1)?-1:0);
-                     cint neigh_k=k + ((component==2)?-1:0);
-                     cuint neighborSysBoundaryFlag = technicalGrid.get(neigh_i, neigh_j, neigh_k)->sysBoundaryFlag;
-                     
-                     if (neighborSysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) { // Complement to propagateSysBoundaryMagneticField
-                        switch(component) {
-                           case 0:
-                              propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, true, false, false);
-                              break;
-                           case 1:
-                              propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, false, true, false);
-                              break;
-                           case 2:
-                              propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, false, false, true);
-                              break;
-                           default:
-                              cerr << "ERROR: ionosphere boundary tried to propagate nonsensical magnetic field component " << component << endl;
-                              break;
-                        }
-                     }
+                  bool prop_x = (technicalGrid.get(i-1,j,k)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY);
+                  bool prop_y = (technicalGrid.get(i,j-1,k)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY);
+                  bool prop_z = (technicalGrid.get(i,j,k-1)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY);
+                  if (prop_x || prop_y || prop_z) {
+                     propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, prop_x, prop_y, prop_z);
                   }
                }
             }
