@@ -588,20 +588,31 @@ namespace SBC {
       return (averageB[0]+averageB[1]+averageB[2])*normalDirection[component];
       ***/
 
-      // Copy each face B-field from the cell on the other side of it
+      // Copy each face B-field from the cell in the simulation cell direction
+      // NOTE This might misbehave if OUTFLOW crosses IONOSPHERE, which was supported prior to 201911 but was never really used.
       switch(component) {
          case 0:
-            return bGrid->get(i-1,j,k)->at(fsgrids::bfield::PERBX + component);
+            if (technicalGrid.get(i-1,j,k)->sysBoundaryLayer==1) {
+               return bGrid->get(i-1,j,k)->at(fsgrids::bfield::PERBX + component);
+            } else { // Is sysboundarylayer 2, read from opposite direction
+               return bGrid->get(i+1,j,k)->at(fsgrids::bfield::PERBX + component);
+            }
          case 1:
-            return bGrid->get(i,j-1,k)->at(fsgrids::bfield::PERBX + component);
+            if (technicalGrid.get(i,j-1,k)->sysBoundaryLayer==1) {
+               return bGrid->get(i,j-1,k)->at(fsgrids::bfield::PERBX + component);
+            } else { // Is sysboundarylayer 2, read from opposite direction
+               return bGrid->get(i,j+1,k)->at(fsgrids::bfield::PERBX + component);
+            }
          case 2:
-            return bGrid->get(i,j,k-1)->at(fsgrids::bfield::PERBX + component);
+            if (technicalGrid.get(i,j,k-1)->sysBoundaryLayer==1) {
+               return bGrid->get(i,j,k-1)->at(fsgrids::bfield::PERBX + component);
+            } else { // Is sysboundarylayer 2, read from opposite direction
+               return bGrid->get(i,j,k+1)->at(fsgrids::bfield::PERBX + component);
+            }
          default:
             cerr << "ERROR: ionosphere boundary tried to copy nonsensical magnetic field component " << component << endl;
             return 0.0;
       }
-      
-
    }
 
    void Ionosphere::fieldSolverBoundaryCondElectricField(
