@@ -698,7 +698,7 @@ namespace SBC {
       const bool calculate_V_moments
    ) {
       phiprof::start("vlasovBoundaryCondition (Ionosphere)");
-      this->vlasovBoundaryFluffyCopyFromAllCloseNbrs(mpiGrid, cellID, popID, this->speciesParams[popID].fluffiness);
+      this->vlasovBoundaryFluffyCopyFromAllCloseNbrs(mpiGrid, cellID, popID, calculate_V_moments, this->speciesParams[popID].fluffiness);
       phiprof::stop("vlasovBoundaryCondition (Ionosphere)");
    }
 

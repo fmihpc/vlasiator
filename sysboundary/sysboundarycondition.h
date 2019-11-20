@@ -185,6 +185,7 @@ namespace SBC {
             std::vector<CellID> cellList,
             SpatialCell *to,
             const uint popID,
+            const bool calculate_V_moments,
             creal fluffiness = 0
          );
          std::array<SpatialCell*,27> & getFlowtoCells(
@@ -223,12 +224,14 @@ namespace SBC {
          void vlasovBoundaryCopyFromAllClosestNbrs(
             const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const CellID& cellID,
-            const uint popID
+            const uint popID,
+            const bool calculate_V_moments
          );
          void vlasovBoundaryFluffyCopyFromAllCloseNbrs(
             const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const CellID& cellID,
             const uint popID,
+            const bool calculate_V_moments,
             creal fluffiness
          );
          void vlasovBoundaryReflect(
