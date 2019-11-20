@@ -22,7 +22,7 @@
 #ifndef CPU_ACC_INTERSECTIONS_H
 #define CPU_ACC_INTERSECTIONS_H
 
-#include <Core> // Eigen
+#include <Eigen/Core>
 
 #include "../definitions.h"
 #include "../spatial_cell.hpp"
