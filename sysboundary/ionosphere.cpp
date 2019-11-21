@@ -554,64 +554,132 @@ namespace SBC {
          bGrid = &perBDt2Grid;
       }
       
-
-      // Otherwise:
-      // Sum perturbed B component over all nearest NOT_SYSBOUNDARY neighbours
-      /****
-      std::vector< std::array<int, 3> > closestCells = getAllClosestNonsysboundaryCells(technicalGrid, i,j,k);
-      if (closestCells.size() == 1 && closestCells[0][0] == std::numeric_limits<int>::min() ) {
-         std::cerr << __FILE__ << ":" << __LINE__ << ":" << "No closest cells found!" << std::endl;
-         abort();
-      }
-      
-      std::array<Real, 3> averageB = {{ 0.0 }};
-      for (uint it = 0; it < closestCells.size(); it++) {
-         #ifdef DEBUG_IONOSPHERE
-         if (technicalGrid.get(closestCells[it][0],closestCells[it][1],closestCells[it][2])->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
-            stringstream ss;
-            ss << "ERROR, ionosphere cell (" << i << "," << j << "," << k << ") uses value from sysboundary nbr (" << closestCells[it][0] << "," << closestCells[it][1] << "," << closestCells[it][2] << " in " << __FILE__ << ":" << __LINE__ << endl;
-            cerr << ss.str();
-            exit(1);
+      if (technicalGrid.get(i,j,k)->sysBoundaryLayer == 1) {
+         switch(component) {
+            case 0:
+               if (  technicalGrid.get(i-1,j,k)->sysBoundaryLayer==1 && technicalGrid.get(i-2,j,k)->sysBoundaryFlag==sysboundarytype::NOT_SYSBOUNDARY
+                  && technicalGrid.get(i+1,j,k)->sysBoundaryFlag==sysboundarytype::NOT_SYSBOUNDARY
+               ) {
+                  return 0.5 * (bGrid->get(i-1,j,k)->at(fsgrids::bfield::PERBX) + bGrid->get(i+1,j,k)->at(fsgrids::bfield::PERBX));
+               } else if (technicalGrid.get(i-1,j,k)->sysBoundaryLayer==1 && technicalGrid.get(i-2,j,k)->sysBoundaryFlag==sysboundarytype::NOT_SYSBOUNDARY) {
+                  return bGrid->get(i-1,j,k)->at(fsgrids::bfield::PERBX);
+               } else if (technicalGrid.get(i+1,j,k)->sysBoundaryFlag==sysboundarytype::NOT_SYSBOUNDARY) {
+                  return bGrid->get(i+1,j,k)->at(fsgrids::bfield::PERBX);
+               } else {
+                  Real retval = 0.0;
+                  uint nCells = 0;
+                  if (technicalGrid.get(i,j-1,k)->sysBoundaryLayer==1 && technicalGrid.get(i-1,j-1,k)->sysBoundaryFlag==sysboundarytype::NOT_SYSBOUNDARY) {
+                     retval += bGrid->get(i,j-1,k)->at(fsgrids::bfield::PERBX);
+                     nCells++;
+                  }
+                  if (technicalGrid.get(i,j+1,k)->sysBoundaryLayer==1 && technicalGrid.get(i-1,j+1,k)->sysBoundaryFlag==sysboundarytype::NOT_SYSBOUNDARY) {
+                     retval += bGrid->get(i,j+1,k)->at(fsgrids::bfield::PERBX);
+                     nCells++;
+                  }
+                  if (technicalGrid.get(i,j,k-1)->sysBoundaryLayer==1 && technicalGrid.get(i-1,j,k-1)->sysBoundaryFlag==sysboundarytype::NOT_SYSBOUNDARY) {
+                     retval += bGrid->get(i,j,k-1)->at(fsgrids::bfield::PERBX);
+                     nCells++;
+                  }
+                  if (technicalGrid.get(i,j,k+1)->sysBoundaryLayer==1 && technicalGrid.get(i-1,j,k+1)->sysBoundaryFlag==sysboundarytype::NOT_SYSBOUNDARY) {
+                     retval += bGrid->get(i,j,k+1)->at(fsgrids::bfield::PERBX);
+                     nCells++;
+                  }
+                  if (nCells == 0) {
+                     cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
+                     return 0.0;
+                  }
+                  return retval / nCells;
+               }
+            case 1:
+               if (  technicalGrid.get(i,j-1,k)->sysBoundaryLayer==1 && technicalGrid.get(i,j-2,k)->sysBoundaryFlag==sysboundarytype::NOT_SYSBOUNDARY
+                  && technicalGrid.get(i,j+1,k)->sysBoundaryFlag==sysboundarytype::NOT_SYSBOUNDARY
+               ) {
+                  return 0.5 * (bGrid->get(i,j-1,k)->at(fsgrids::bfield::PERBY) + bGrid->get(i,j+1,k)->at(fsgrids::bfield::PERBY));
+               } else if (technicalGrid.get(i,j-1,k)->sysBoundaryLayer==1 && technicalGrid.get(i,j-2,k)->sysBoundaryFlag==sysboundarytype::NOT_SYSBOUNDARY) {
+                  return bGrid->get(i,j-1,k)->at(fsgrids::bfield::PERBY);
+               } else if (technicalGrid.get(i,j+1,k)->sysBoundaryFlag==sysboundarytype::NOT_SYSBOUNDARY) {
+                  return bGrid->get(i,j+1,k)->at(fsgrids::bfield::PERBY);
+               } else {
+                  Real retval = 0.0;
+                  uint nCells = 0;
+                  if (technicalGrid.get(i-1,j,k)->sysBoundaryLayer==1 && technicalGrid.get(i-1,j-1,k)->sysBoundaryFlag==sysboundarytype::NOT_SYSBOUNDARY) {
+                     retval += bGrid->get(i-1,j,k)->at(fsgrids::bfield::PERBY);
+                     nCells++;
+                  }
+                  if (technicalGrid.get(i+1,j,k)->sysBoundaryLayer==1 && technicalGrid.get(i+1,j-1,k)->sysBoundaryFlag==sysboundarytype::NOT_SYSBOUNDARY) {
+                     retval += bGrid->get(i+1,j,k)->at(fsgrids::bfield::PERBY);
+                     nCells++;
+                  }
+                  if (technicalGrid.get(i,j,k-1)->sysBoundaryLayer==1 && technicalGrid.get(i,j-1,k-1)->sysBoundaryFlag==sysboundarytype::NOT_SYSBOUNDARY) {
+                     retval += bGrid->get(i,j,k-1)->at(fsgrids::bfield::PERBY);
+                     nCells++;
+                  }
+                  if (technicalGrid.get(i,j,k+1)->sysBoundaryLayer==1 && technicalGrid.get(i,j-1,k+1)->sysBoundaryFlag==sysboundarytype::NOT_SYSBOUNDARY) {
+                     retval += bGrid->get(i,j,k+1)->at(fsgrids::bfield::PERBY);
+                     nCells++;
+                  }
+                  if (nCells == 0) {
+                     cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
+                     return 0.0;
+                  }
+                  return retval / nCells;
+               }
+            case 2:
+               if (  technicalGrid.get(i,j,k-1)->sysBoundaryLayer==1 && technicalGrid.get(i,j,k-2)->sysBoundaryFlag==sysboundarytype::NOT_SYSBOUNDARY
+                  && technicalGrid.get(i,j,k+1)->sysBoundaryFlag==sysboundarytype::NOT_SYSBOUNDARY
+               ) {
+                  return 0.5 * (bGrid->get(i,j,k-1)->at(fsgrids::bfield::PERBZ) + bGrid->get(i,j,k+1)->at(fsgrids::bfield::PERBZ));
+               } else if (technicalGrid.get(i,j,k-1)->sysBoundaryLayer==1 && technicalGrid.get(i,j,k-2)->sysBoundaryFlag==sysboundarytype::NOT_SYSBOUNDARY) {
+                  return bGrid->get(i,j,k-1)->at(fsgrids::bfield::PERBZ);
+               } else if (technicalGrid.get(i,j,k+1)->sysBoundaryFlag==sysboundarytype::NOT_SYSBOUNDARY) {
+                  return bGrid->get(i,j,k+1)->at(fsgrids::bfield::PERBZ);
+               } else {
+                  Real retval = 0.0;
+                  uint nCells = 0;
+                  if (technicalGrid.get(i-1,j,k)->sysBoundaryLayer==1 && technicalGrid.get(i-1,j,k-1)->sysBoundaryFlag==sysboundarytype::NOT_SYSBOUNDARY) {
+                     retval += bGrid->get(i-1,j,k)->at(fsgrids::bfield::PERBZ);
+                     nCells++;
+                  }
+                  if (technicalGrid.get(i+1,j,k)->sysBoundaryLayer==1 && technicalGrid.get(i+1,j,k-1)->sysBoundaryFlag==sysboundarytype::NOT_SYSBOUNDARY) {
+                     retval += bGrid->get(i+1,j,k)->at(fsgrids::bfield::PERBZ);
+                     nCells++;
+                  }
+                  if (technicalGrid.get(i,j-1,k)->sysBoundaryLayer==1 && technicalGrid.get(i,j-1,k-1)->sysBoundaryFlag==sysboundarytype::NOT_SYSBOUNDARY) {
+                     retval += bGrid->get(i,j-1,k)->at(fsgrids::bfield::PERBZ);
+                     nCells++;
+                  }
+                  if (technicalGrid.get(i,j+1,k)->sysBoundaryLayer==1 && technicalGrid.get(i,j+1,k-1)->sysBoundaryFlag==sysboundarytype::NOT_SYSBOUNDARY) {
+                     retval += bGrid->get(i,j+1,k)->at(fsgrids::bfield::PERBZ);
+                     nCells++;
+                  }
+                  if (nCells == 0) {
+                     cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
+                     return 0.0;
+                  }
+                  return retval / nCells;
+               }
+            default:
+               cerr << "ERROR: ionosphere boundary tried to copy nonsensical magnetic field component " << component << endl;
+               return 0.0;
          }
-         #endif
-         averageB[0] += bGrid->get(closestCells[it][0], closestCells[it][1], closestCells[it][2])->at(fsgrids::bfield::PERBX);
-         averageB[1] += bGrid->get(closestCells[it][0], closestCells[it][1], closestCells[it][2])->at(fsgrids::bfield::PERBY);
-         averageB[2] += bGrid->get(closestCells[it][0], closestCells[it][1], closestCells[it][2])->at(fsgrids::bfield::PERBZ);
-      }
-
-      // Average and project to normal direction
-      std::array<Real, 3> normalDirection = fieldSolverGetNormalDirection(technicalGrid, i, j, k);
-      for(uint i=0; i<3; i++) {
-         averageB[i] *= normalDirection[i] / closestCells.size();
-      }
-      // Return (B.n)*normalVector[component]
-      return (averageB[0]+averageB[1]+averageB[2])*normalDirection[component];
-      ***/
-
-      // Copy each face B-field from the cell in the simulation cell direction
-      // NOTE This might misbehave if OUTFLOW crosses IONOSPHERE, which was supported prior to 201911 but was never really used.
-      switch(component) {
-         case 0:
-            if (technicalGrid.get(i-1,j,k)->sysBoundaryLayer==1) {
-               return bGrid->get(i-1,j,k)->at(fsgrids::bfield::PERBX + component);
-            } else { // Is sysboundarylayer 2, read from opposite direction
-               return bGrid->get(i+1,j,k)->at(fsgrids::bfield::PERBX + component);
+      } else { // L2 cells
+         Real retval = 0.0;
+         uint nCells = 0;
+         for (uint a=-1; a<2; a++) {
+            for (uint b=-1; b<2; b++) {
+               for (uint c=0; c<2; c++) {
+                  if (technicalGrid.get(a,b,c)->sysBoundaryLayer == 1) {
+                     retval += bGrid->get(a,b,c)->at(fsgrids::bfield::PERBX + component);
+                     nCells++;
+                  }
+               }
             }
-         case 1:
-            if (technicalGrid.get(i,j-1,k)->sysBoundaryLayer==1) {
-               return bGrid->get(i,j-1,k)->at(fsgrids::bfield::PERBX + component);
-            } else { // Is sysboundarylayer 2, read from opposite direction
-               return bGrid->get(i,j+1,k)->at(fsgrids::bfield::PERBX + component);
-            }
-         case 2:
-            if (technicalGrid.get(i,j,k-1)->sysBoundaryLayer==1) {
-               return bGrid->get(i,j,k-1)->at(fsgrids::bfield::PERBX + component);
-            } else { // Is sysboundarylayer 2, read from opposite direction
-               return bGrid->get(i,j,k+1)->at(fsgrids::bfield::PERBX + component);
-            }
-         default:
-            cerr << "ERROR: ionosphere boundary tried to copy nonsensical magnetic field component " << component << endl;
+         }
+         if (nCells == 0) {
+            cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
             return 0.0;
+         }
+         return retval / nCells;
       }
    }
 
