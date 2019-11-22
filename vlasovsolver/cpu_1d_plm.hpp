@@ -38,8 +38,10 @@ t=(v-v_{i-0.5})/dv where v_{i-0.5} is the left face of a cell
 The factor 2.0 is in the polynom to ease integration, then integral is a[0]*t + a[1]*t**2
 */
 
-inline void compute_plm_coeff(const Vec * const values, uint k, Vec a[2]){
-  const Vec d_cv=slope_limiter(values[k - 1], values[k], values[k + 1]);
+inline void compute_plm_coeff(const Vec * const values, uint k, Vec a[2], const Realv threshold){
+   // scale values closer to 1 for more accurate slope limiter calculation
+  const Realv scale = 1./threshold;
+  const Vec d_cv=slope_limiter(values[k - 1]*scale, values[k]*scale, values[k + 1]*scale)*threshold;
   a[0] = values[k] - d_cv * 0.5;
   a[1] = d_cv * 0.5;
 }

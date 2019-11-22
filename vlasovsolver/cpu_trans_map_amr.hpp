@@ -181,7 +181,7 @@ CellID selectNeighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> 
 void propagatePencil(Vec* dz, Vec* values, const uint dimension, const uint blockGID,
                      const Realv dt,
                      const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID> &vmesh,
-                     const uint lengthOfPencil);
+                     const uint lengthOfPencil, const Realv threshold);
 
 
 
