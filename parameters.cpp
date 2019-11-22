@@ -230,6 +230,7 @@ bool Parameters::addParameters(){
 				"vg_boundarytype fg_boundarytype vg_boundarylayer fg_boundarylayer "+
 				"populations_vg_blocks vg_f_saved "+
 				"populations_vg_acceleration_subcycles "+
+				"vg_e_vol fg_e_vol "+
 				"fg_e_hall vg_e_gradpe fg_b_vol vg_b_vol vg_b_background_vol vg_b_perturbed_vol "+
 				"vg_pressure fg_pressure populations_vg_ptensor "+
 				"b_vol_derivatives "+
@@ -251,6 +252,7 @@ bool Parameters::addParameters(){
 				"FsGridBoundaryType BoundaryType FsGridBoundaryLayer BoundaryLayer "+
 				"populations_Blocks fSaved vg_fsaved"+
 				"populations_accSubcycles populations_acceleration_subcycles"+
+				"VolE vg_VolE Evol E_vol fg_VolE fg_Evol "+
 				"HallE fg_HallE GradPeE e_gradpe VolB vg_VolB fg_VolB B_vol Bvol vg_Bvol fg_volB fg_Bvol"+
 				"BackgroundVolB PerturbedVolB "+
 				"Pressure vg_Pressure fg_Pressure populations_PTensor "+
@@ -259,7 +261,7 @@ bool Parameters::addParameters(){
    // NOTE Do not remove the : before the list of variable names as this is parsed by tools/check_vlasiator_cfg.sh
    Readparameters::addComposing("variables.diagnostic", std::string()+"List of data reduction operators (DROs) to add to the diagnostic runtime output. Each variable to be added has to be on a new line diagnostic = XXX. Names are case insensitive. "+
 				"Available (20190320): "+
-				"populations_blocks "+
+				"populations_vg_blocks "+
 				"rhom populations_rho_loss_adjust"+
 				"loadbalance_weight"+
 				"maxdt_acceleration maxdt_translation populations_maxdt_acceleration populations_maxdt_translation "+
