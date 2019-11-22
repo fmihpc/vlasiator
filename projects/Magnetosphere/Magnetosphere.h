@@ -85,6 +85,9 @@ namespace projects {
       Real dipoleMirrorLocationX;
       uint dipoleType;
 
+      Real refine_L4radius;
+      Real refine_L4nosexmin;
+
       Real refine_L3radius;
       Real refine_L3nosexmin;
       Real refine_L3tailheight;
