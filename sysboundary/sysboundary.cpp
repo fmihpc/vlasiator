@@ -390,6 +390,8 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
             technicalGrid.get(x,y,z)->sysBoundaryFlag = sysboundarytype::NOT_SYSBOUNDARY;
             technicalGrid.get(x,y,z)->sysBoundaryLayer = 0;
             technicalGrid.get(x,y,z)->maxFsDt = std::numeric_limits<Real>::max();
+            // Set the fsgrid rank in the technical grid
+            technicalGrid.get(x,y,z)->fsGridRank=technicalGrid.getRank();
          }
       }
    }
@@ -516,6 +518,64 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
          for (int z = 0; z < localSize[2]; ++z) {
             if (technicalGrid.get(x,y,z)->sysBoundaryLayer == 0 && technicalGrid.get(x,y,z)->sysBoundaryFlag == sysboundarytype::IONOSPHERE) {
                technicalGrid.get(x,y,z)->sysBoundaryFlag = sysboundarytype::DO_NOT_COMPUTE;
+            }
+         }
+      }
+   }
+   
+   technicalGrid.updateGhostCells();
+   
+   const std::array<int,3> fsGridDimensions = {convert<int>(P::xcells_ini) * pow(2,P::amrMaxSpatialRefLevel),
+      convert<int>(P::ycells_ini) * pow(2,P::amrMaxSpatialRefLevel),
+      convert<int>(P::zcells_ini) * pow(2,P::amrMaxSpatialRefLevel)};
+   
+   // One pass to setup the bit mask to know which components the field solver should propagate.
+   #pragma omp parallel for collapse(3)
+   for (int x = 0; x < localSize[0]; ++x) {
+      for (int y = 0; y < localSize[1]; ++y) {
+         for (int z = 0; z < localSize[2]; ++z) {
+            technicalGrid.get(x,y,z)->SOLVE = 0;
+            
+            std::array<int32_t, 3> globalIndices = technicalGrid.getGlobalIndices(x,y,z);
+            
+            if (  globalIndices[0] == 0 || globalIndices[0] == fsGridDimensions[0]-1
+               || globalIndices[1] == 0 || globalIndices[1] == fsGridDimensions[1]-1
+               || globalIndices[2] == 0 || globalIndices[2] == fsGridDimensions[2]-1
+            ) {
+               continue;
+            }
+            if (technicalGrid.get(x,y,z)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+               technicalGrid.get(x,y,z)->SOLVE = technicalGrid.get(x,y,z)->SOLVE | compute::BX;
+               technicalGrid.get(x,y,z)->SOLVE = technicalGrid.get(x,y,z)->SOLVE | compute::BY;
+               technicalGrid.get(x,y,z)->SOLVE = technicalGrid.get(x,y,z)->SOLVE | compute::BZ;
+               technicalGrid.get(x,y,z)->SOLVE = technicalGrid.get(x,y,z)->SOLVE | compute::EX;
+               technicalGrid.get(x,y,z)->SOLVE = technicalGrid.get(x,y,z)->SOLVE | compute::EY;
+               technicalGrid.get(x,y,z)->SOLVE = technicalGrid.get(x,y,z)->SOLVE | compute::EZ;
+            } else {
+               if (technicalGrid.get(x-1,y,z)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+                  technicalGrid.get(x,y,z)->SOLVE = technicalGrid.get(x,y,z)->SOLVE | compute::BX;
+                  technicalGrid.get(x,y,z)->SOLVE = technicalGrid.get(x,y,z)->SOLVE | compute::EY;
+                  technicalGrid.get(x,y,z)->SOLVE = technicalGrid.get(x,y,z)->SOLVE | compute::EZ;
+               }
+               if (technicalGrid.get(x,y-1,z)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+                  technicalGrid.get(x,y,z)->SOLVE = technicalGrid.get(x,y,z)->SOLVE | compute::BY;
+                  technicalGrid.get(x,y,z)->SOLVE = technicalGrid.get(x,y,z)->SOLVE | compute::EX;
+                  technicalGrid.get(x,y,z)->SOLVE = technicalGrid.get(x,y,z)->SOLVE | compute::EZ;
+               }
+               if (technicalGrid.get(x,y,z-1)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+                  technicalGrid.get(x,y,z)->SOLVE = technicalGrid.get(x,y,z)->SOLVE | compute::BZ;
+                  technicalGrid.get(x,y,z)->SOLVE = technicalGrid.get(x,y,z)->SOLVE | compute::EX;
+                  technicalGrid.get(x,y,z)->SOLVE = technicalGrid.get(x,y,z)->SOLVE | compute::EY;
+               }
+               if (technicalGrid.get(x-1,y-1,z)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+                  technicalGrid.get(x,y,z)->SOLVE = technicalGrid.get(x,y,z)->SOLVE | compute::EZ;
+               }
+               if (technicalGrid.get(x-1,y,z-1)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+                  technicalGrid.get(x,y,z)->SOLVE = technicalGrid.get(x,y,z)->SOLVE | compute::EY;
+               }
+               if (technicalGrid.get(x,y-1,z-1)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+                  technicalGrid.get(x,y,z)->SOLVE = technicalGrid.get(x,y,z)->SOLVE | compute::EX;
+               }
             }
          }
       }
