@@ -585,6 +585,19 @@ namespace SBC {
                      nCells++;
                   }
                   if (nCells == 0) {
+                     for (int a=i-1; a<i+2; a++) {
+                        for (int b=j-1; b<j+2; b++) {
+                           for (int c=k-1; c<k+2; c++) {
+                              // TODO should be check over "has this cell solved the component"
+                              if (technicalGrid.get(a,b,c)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+                                 retval += bGrid->get(a,b,c)->at(fsgrids::bfield::PERBX);
+                                 nCells++;
+                              }
+                           }
+                        }
+                     }
+                  }
+                  if (nCells == 0) {
                      cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
                      return 0.0;
                   }
@@ -617,6 +630,19 @@ namespace SBC {
                   if (technicalGrid.get(i,j,k+1)->sysBoundaryLayer==1 && technicalGrid.get(i,j-1,k+1)->sysBoundaryFlag==sysboundarytype::NOT_SYSBOUNDARY) {
                      retval += bGrid->get(i,j,k+1)->at(fsgrids::bfield::PERBY);
                      nCells++;
+                  }
+                  if (nCells == 0) {
+                     for (int a=i-1; a<i+2; a++) {
+                        for (int b=j-1; b<j+2; b++) {
+                           for (int c=k-1; c<k+2; c++) {
+                              // TODO should be check over "has this cell solved the component"
+                              if (technicalGrid.get(a,b,c)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+                                 retval += bGrid->get(a,b,c)->at(fsgrids::bfield::PERBY);
+                                 nCells++;
+                              }
+                           }
+                        }
+                     }
                   }
                   if (nCells == 0) {
                      cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
@@ -653,6 +679,19 @@ namespace SBC {
                      nCells++;
                   }
                   if (nCells == 0) {
+                     for (int a=i-1; a<i+2; a++) {
+                        for (int b=j-1; b<j+2; b++) {
+                           for (int c=k-1; c<k+2; c++) {
+                              // TODO should be check over "has this cell solved the component"
+                              if (technicalGrid.get(a,b,c)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+                                 retval += bGrid->get(a,b,c)->at(fsgrids::bfield::PERBZ);
+                                 nCells++;
+                              }
+                           }
+                        }
+                     }
+                  }
+                  if (nCells == 0) {
                      cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
                      return 0.0;
                   }
@@ -665,9 +704,9 @@ namespace SBC {
       } else { // L2 cells
          Real retval = 0.0;
          uint nCells = 0;
-         for (uint a=-1; a<2; a++) {
-            for (uint b=-1; b<2; b++) {
-               for (uint c=0; c<2; c++) {
+         for (int a=i-1; a<i+2; a++) {
+            for (int b=j-1; b<j+2; b++) {
+               for (int c=k-1; c<k+2; c++) {
                   if (technicalGrid.get(a,b,c)->sysBoundaryLayer == 1) {
                      retval += bGrid->get(a,b,c)->at(fsgrids::bfield::PERBX + component);
                      nCells++;
