@@ -525,9 +525,7 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
    
    technicalGrid.updateGhostCells();
    
-   const std::array<int,3> fsGridDimensions = {convert<int>(P::xcells_ini) * pow(2,P::amrMaxSpatialRefLevel),
-      convert<int>(P::ycells_ini) * pow(2,P::amrMaxSpatialRefLevel),
-      convert<int>(P::zcells_ini) * pow(2,P::amrMaxSpatialRefLevel)};
+   const std::array<int,3> fsGridDimensions = technicalGrid.getGlobalSize();
    
    // One pass to setup the bit mask to know which components the field solver should propagate.
    #pragma omp parallel for collapse(3)
@@ -538,9 +536,9 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
             
             std::array<int32_t, 3> globalIndices = technicalGrid.getGlobalIndices(x,y,z);
             
-            if (  globalIndices[0] == 0 || globalIndices[0] == fsGridDimensions[0]-1
-               || globalIndices[1] == 0 || globalIndices[1] == fsGridDimensions[1]-1
-               || globalIndices[2] == 0 || globalIndices[2] == fsGridDimensions[2]-1
+            if (  ((globalIndices[0] == 0 || globalIndices[0] == fsGridDimensions[0]-1) && fsGridDimensions[0] > 1)
+               || ((globalIndices[1] == 0 || globalIndices[1] == fsGridDimensions[1]-1) && fsGridDimensions[1] > 1)
+               || ((globalIndices[2] == 0 || globalIndices[2] == fsGridDimensions[2]-1) && fsGridDimensions[2] > 1)
             ) {
                continue;
             }
