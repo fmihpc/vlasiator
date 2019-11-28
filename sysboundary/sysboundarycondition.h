@@ -176,7 +176,7 @@ namespace SBC {
          void copyCellData(
             SpatialCell *from,
             SpatialCell *to,
-            const bool& copyMomentsOnly,
+            const bool copyMomentsOnly,
             const uint popID,
             const bool calculate_V_moments
          );

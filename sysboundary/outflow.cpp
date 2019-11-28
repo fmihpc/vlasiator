@@ -461,18 +461,10 @@ namespace SBC {
                case vlasovscheme::NONE:
                   break;
                case vlasovscheme::COPY:
-                  if (cell->sysBoundaryLayer == 1) {
-                     vlasovBoundaryCopyFromTheClosestNbr(mpiGrid,cellID,false,popID,calculate_V_moments);
-                  } else {
-                     vlasovBoundaryCopyFromTheClosestNbr(mpiGrid,cellID,true,popID,calculate_V_moments);
-                  }
+                  vlasovBoundaryCopyFromTheClosestNbr(mpiGrid,cellID,false,popID,calculate_V_moments);
                   break;
                case vlasovscheme::LIMIT:
-                  if (cell->sysBoundaryLayer == 1) {
-                     vlasovBoundaryCopyFromTheClosestNbrAndLimit(mpiGrid,cellID,popID);
-                  } else {
-                     vlasovBoundaryCopyFromTheClosestNbr(mpiGrid,cellID,true,popID,calculate_V_moments);
-                  }
+                  vlasovBoundaryCopyFromTheClosestNbrAndLimit(mpiGrid,cellID,popID);
                   break;
                default:
                   std::cerr << __FILE__ << ":" << __LINE__ << "ERROR: invalid Outflow Vlasov scheme!" << std::endl;

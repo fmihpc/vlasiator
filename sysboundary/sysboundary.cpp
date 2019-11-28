@@ -605,8 +605,6 @@ bool SysBoundary::applyInitialState(
       if(                                                        // This is to skip the reapplication
          Parameters::isRestart == true                           // When not restarting
          && (*it)->doApplyUponRestart() == false                 // When reapplicaiton is not requested
-         && (*it)->getIndex() != sysboundarytype::IONOSPHERE     // But this is to force it when we have either IONOSPHERE
-         && (*it)->getIndex() != sysboundarytype::SET_MAXWELLIAN // or SET_MAXWELLIAN as otherwise the POP_METADA are not properly set
       ) {
          continue;
       }
@@ -634,7 +632,7 @@ bool SysBoundary::applyInitialState(
 void SysBoundary::applySysBoundaryVlasovConditions(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    creal& t,
-   const bool calculate_V_moments // if true, compute into _V, false into _R moments so that the interpolated ones can be done for layer 1 boundaries
+   const bool calculate_V_moments // if true, compute into _V, false into _R moments so that the interpolated ones can be done
 ) {
    if(sysBoundaries.size()==0) {
       return; //no system boundaries

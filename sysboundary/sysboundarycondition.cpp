@@ -343,15 +343,14 @@ namespace SBC {
       }
    }
    
-   /*! Function used to copy the distribution and moments from one cell to another. In layer 2, copy only the moments.
+   /*! Function used to copy the distribution and moments from one cell to another.
     * \param from Pointer to parent cell to copy from.
     * \param to Pointer to destination cell.
-    * \param allowBlockAdjustment If true, blocks can be created or destroyed. If false, only blocks existing in the destination cell are copied.
     */
    void SysBoundaryCondition::copyCellData(
             SpatialCell* from,
             SpatialCell* to,
-            const bool& copyMomentsOnly,
+            const bool copyMomentsOnly,
             const uint popID,
             const bool calculate_V_moments
    ) {
@@ -377,7 +376,7 @@ namespace SBC {
          }
       }
       
-       if(to->sysBoundaryLayer == 1 && !copyMomentsOnly) { // Do this only for the first layer, the other layers do not need this. Do only if copyMomentsOnly is false.
+       if(!copyMomentsOnly) { // Do this only if copyMomentsOnly is false.
          to->set_population(from->get_population(popID), popID);
       } else {
          if (calculate_V_moments) {
@@ -399,8 +398,6 @@ namespace SBC {
    }
    
    /*! Take a list of cells and set the destination cell distribution function to the average of the list's cells'.
-    *  For layer 1 the whole distribution function is copied.
-    *  For layer >1, only moments are copied
     * \param mpiGrid Grid
     * \param cellList Vector of cells to copy from.
     * \param to Pointer to cell in which to set the averaged distribution.
@@ -416,131 +413,45 @@ namespace SBC {
       const size_t numberOfCells = cellList.size();
       creal factor = fluffiness / convert<Real>(numberOfCells);
       
-      if (to->sysBoundaryLayer == 1) {
-         // Rescale own vspace
-         const Realf* toData = to->get_data(popID);
-         for (vmesh::LocalID toBlockLID=0; toBlockLID<to->get_number_of_velocity_blocks(popID); ++toBlockLID) {
-            // Pointer to target block data
-            Realf* toData = to->get_data(toBlockLID,popID);
-            
-            // Add values from source cells
-            for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
-               toData[cellIndex(ic,jc,kc)] *= 1.0 - fluffiness;
-            }
-            toData += SIZE_VELBLOCK;
-         } // for-loop over velocity blocks
-      } else {
-         // Rescale moments
-         if (popID == 0) {
-            if (calculate_V_moments) {
-               to->parameters[CellParams::RHOM_V]     *= 1.0 - fluffiness;
-               to->parameters[CellParams::VX_V]       *= 1.0 - fluffiness;
-               to->parameters[CellParams::VY_V]       *= 1.0 - fluffiness;
-               to->parameters[CellParams::VZ_V]       *= 1.0 - fluffiness;
-               to->parameters[CellParams::RHOQ_V]     *= 1.0 - fluffiness;
-               to->parameters[CellParams::P_11_V]     *= 1.0 - fluffiness;
-               to->parameters[CellParams::P_22_V]     *= 1.0 - fluffiness;
-               to->parameters[CellParams::P_33_V]     *= 1.0 - fluffiness;
-            } else {
-               to->parameters[CellParams::RHOM_R] *= 1.0 - fluffiness;
-               to->parameters[CellParams::VX_R]   *= 1.0 - fluffiness;
-               to->parameters[CellParams::VY_R]   *= 1.0 - fluffiness;
-               to->parameters[CellParams::VZ_R]   *= 1.0 - fluffiness;
-               to->parameters[CellParams::RHOQ_R] *= 1.0 - fluffiness;
-               to->parameters[CellParams::P_11_R] *= 1.0 - fluffiness;
-               to->parameters[CellParams::P_22_R] *= 1.0 - fluffiness;
-               to->parameters[CellParams::P_33_R] *= 1.0 - fluffiness;
-            }
-         }
+
+      // Rescale own vspace
+      const Realf* toData = to->get_data(popID);
+      for (vmesh::LocalID toBlockLID=0; toBlockLID<to->get_number_of_velocity_blocks(popID); ++toBlockLID) {
+         // Pointer to target block data
+         Realf* toData = to->get_data(toBlockLID,popID);
          
-         Population & pop = to->get_population(popID);
-         if(calculate_V_moments) {
-            pop.RHO_V  *= 1.0 - fluffiness;
-            pop.V_V[0] *= 1.0 - fluffiness;
-            pop.V_V[1] *= 1.0 - fluffiness;
-            pop.V_V[2] *= 1.0 - fluffiness;
-            pop.P_V[0] *= 1.0 - fluffiness;
-            pop.P_V[1] *= 1.0 - fluffiness;
-            pop.P_V[2] *= 1.0 - fluffiness;
-         } else {
-            pop.RHO_R  *= 1.0 - fluffiness;
-            pop.V_R[0] *= 1.0 - fluffiness;
-            pop.V_R[1] *= 1.0 - fluffiness;
-            pop.V_R[2] *= 1.0 - fluffiness;
-            pop.P_R[0] *= 1.0 - fluffiness;
-            pop.P_R[1] *= 1.0 - fluffiness;
-            pop.P_R[2] *= 1.0 - fluffiness;
+         // Add values from source cells
+         for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
+            toData[cellIndex(ic,jc,kc)] *= 1.0 - fluffiness;
          }
-      }
+         toData += SIZE_VELBLOCK;
+      } // for-loop over velocity blocks
+
       
       for (size_t i=0; i<numberOfCells; i++) {
          const SpatialCell* incomingCell = mpiGrid[cellList[i]];
 
-         if (to->sysBoundaryLayer == 1) {
-            const Realf* fromData = incomingCell->get_data(popID);
-            for (vmesh::LocalID incBlockLID=0; incBlockLID<incomingCell->get_number_of_velocity_blocks(popID); ++incBlockLID) {
-               // Global ID of the block containing incoming data
-               vmesh::GlobalID incBlockGID = incomingCell->get_velocity_block_global_id(incBlockLID,popID);
-               
-               // Get local ID of the target block. If the block doesn't exist, create it.
-               vmesh::GlobalID toBlockLID = to->get_velocity_block_local_id(incBlockGID,popID);
-               if (toBlockLID == SpatialCell::invalid_local_id()) {
-                  to->add_velocity_block(incBlockGID,popID);
-                  toBlockLID = to->get_velocity_block_local_id(incBlockGID,popID);
-               }
-               
-               // Pointer to target block data
-               Realf* toData = to->get_data(toBlockLID,popID);
-
-               // Add values from source cells
-               for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
-                  toData[cellIndex(ic,jc,kc)] += factor*fromData[cellIndex(ic,jc,kc)];
-               }
-               fromData += SIZE_VELBLOCK;
-            } // for-loop over velocity blocks
-         } else {
-            if (popID == 0) {
-               if (calculate_V_moments) {
-                  to->parameters[CellParams::RHOM_V] += factor*incomingCell->parameters[CellParams::RHOM_V];
-                  to->parameters[CellParams::VX_V] += factor*incomingCell->parameters[CellParams::VX_V];
-                  to->parameters[CellParams::VY_V] += factor*incomingCell->parameters[CellParams::VY_V];
-                  to->parameters[CellParams::VZ_V] += factor*incomingCell->parameters[CellParams::VZ_V];
-                  to->parameters[CellParams::RHOQ_V] += factor*incomingCell->parameters[CellParams::RHOQ_V];
-                  to->parameters[CellParams::P_11_V] += factor*incomingCell->parameters[CellParams::P_11_V];
-                  to->parameters[CellParams::P_22_V] += factor*incomingCell->parameters[CellParams::P_22_V];
-                  to->parameters[CellParams::P_33_V] += factor*incomingCell->parameters[CellParams::P_33_V];
-               } else {
-                  to->parameters[CellParams::RHOM_R] += factor*incomingCell->parameters[CellParams::RHOM_V];
-                  to->parameters[CellParams::VX_R] += factor*incomingCell->parameters[CellParams::VX_R];
-                  to->parameters[CellParams::VY_R] += factor*incomingCell->parameters[CellParams::VY_R];
-                  to->parameters[CellParams::VZ_R] += factor*incomingCell->parameters[CellParams::VZ_R];
-                  to->parameters[CellParams::RHOQ_R] += factor*incomingCell->parameters[CellParams::RHOQ_R];
-                  to->parameters[CellParams::P_11_R] += factor*incomingCell->parameters[CellParams::P_11_R];
-                  to->parameters[CellParams::P_22_R] += factor*incomingCell->parameters[CellParams::P_22_R];
-                  to->parameters[CellParams::P_33_R] += factor*incomingCell->parameters[CellParams::P_33_R];
-               }
+         const Realf* fromData = incomingCell->get_data(popID);
+         for (vmesh::LocalID incBlockLID=0; incBlockLID<incomingCell->get_number_of_velocity_blocks(popID); ++incBlockLID) {
+            // Global ID of the block containing incoming data
+            vmesh::GlobalID incBlockGID = incomingCell->get_velocity_block_global_id(incBlockLID,popID);
+            
+            // Get local ID of the target block. If the block doesn't exist, create it.
+            vmesh::GlobalID toBlockLID = to->get_velocity_block_local_id(incBlockGID,popID);
+            if (toBlockLID == SpatialCell::invalid_local_id()) {
+               to->add_velocity_block(incBlockGID,popID);
+               toBlockLID = to->get_velocity_block_local_id(incBlockGID,popID);
             }
             
-            Population & pop = to->get_population(popID);
-            const Population & fromPop = incomingCell->get_population(popID);
-            if(calculate_V_moments) {
-               pop.RHO_V  += factor*fromPop.RHO_V ;
-               pop.V_V[0] += factor*fromPop.V_V[0];
-               pop.V_V[1] += factor*fromPop.V_V[1];
-               pop.V_V[2] += factor*fromPop.V_V[2];
-               pop.P_V[0] += factor*fromPop.P_V[0];
-               pop.P_V[1] += factor*fromPop.P_V[1];
-               pop.P_V[2] += factor*fromPop.P_V[2];
-            } else {
-               pop.RHO_R  += factor*fromPop.RHO_R ;
-               pop.V_R[0] += factor*fromPop.V_R[0];
-               pop.V_R[1] += factor*fromPop.V_R[1];
-               pop.V_R[2] += factor*fromPop.V_R[2];
-               pop.P_R[0] += factor*fromPop.P_R[0];
-               pop.P_R[1] += factor*fromPop.P_R[1];
-               pop.P_R[2] += factor*fromPop.P_R[2];
+            // Pointer to target block data
+            Realf* toData = to->get_data(toBlockLID,popID);
+
+            // Add values from source cells
+            for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
+               toData[cellIndex(ic,jc,kc)] += factor*fromData[cellIndex(ic,jc,kc)];
             }
-         }
+            fromData += SIZE_VELBLOCK;
+         } // for-loop over velocity blocks
       }
    }
 
