@@ -527,7 +527,7 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
    
    const std::array<int,3> fsGridDimensions = technicalGrid.getGlobalSize();
    
-   // One pass to setup the bit mask to know which components the field solver should propagate.
+   // One pass to setup the bit field to know which components the field solver should propagate.
    #pragma omp parallel for collapse(3)
    for (int x = 0; x < localSize[0]; ++x) {
       for (int y = 0; y < localSize[1]; ++y) {

@@ -233,8 +233,8 @@ void propagateMagneticFieldSimple(
    for (int k=0; k<gridDims[2]; k++) {
       for (int j=0; j<gridDims[1]; j++) {
          for (int i=0; i<gridDims[0]; i++) {
-            cuint mask = technicalGrid.get(i,j,k)->SOLVE;
-            propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, ((mask & compute::BX) == compute::BX), ((mask & compute::BY) == compute::BY), ((mask & compute::BZ) == compute::BZ));
+            cuint bitfield = technicalGrid.get(i,j,k)->SOLVE;
+            propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, ((bitfield & compute::BX) == compute::BX), ((bitfield & compute::BY) == compute::BY), ((bitfield & compute::BZ) == compute::BZ));
          }
       }
    }
@@ -265,16 +265,16 @@ void propagateMagneticFieldSimple(
    for (int k=0; k<gridDims[2]; k++) {
       for (int j=0; j<gridDims[1]; j++) {
          for (int i=0; i<gridDims[0]; i++) {
-            cuint mask = technicalGrid.get(i,j,k)->SOLVE;
+            cuint bitfield = technicalGrid.get(i,j,k)->SOLVE;
             // L1 pass
             if (technicalGrid.get(i,j,k)->sysBoundaryLayer == 1) {
-               if ((mask & compute::BX) != compute::BX) {
+               if ((bitfield & compute::BX) != compute::BX) {
                   propagateSysBoundaryMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, i, j, k, sysBoundaries, dt, RKCase, 0);
                }
-               if ((mask & compute::BY) != compute::BY) {
+               if ((bitfield & compute::BY) != compute::BY) {
                   propagateSysBoundaryMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, i, j, k, sysBoundaries, dt, RKCase, 1);
                }
-               if ((mask & compute::BZ) != compute::BZ) {
+               if ((bitfield & compute::BZ) != compute::BZ) {
                   propagateSysBoundaryMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, i, j, k, sysBoundaries, dt, RKCase, 2);
                }
             }

@@ -1531,9 +1531,9 @@ void calculateElectricField(
    
    if (cellSysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) return;
    
-   cuint mask = technicalGrid.get(i,j,k)->SOLVE;
+   cuint bitfield = technicalGrid.get(i,j,k)->SOLVE;
    
-   if ((mask & compute::EX) == compute::EX) {
+   if ((bitfield & compute::EX) == compute::EX) {
       calculateEdgeElectricFieldX(
          perBGrid,
          EGrid,
@@ -1553,7 +1553,7 @@ void calculateElectricField(
       sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, 0);
    }
    
-   if ((mask & compute::EY) == compute::EY) {
+   if ((bitfield & compute::EY) == compute::EY) {
       calculateEdgeElectricFieldY(
          perBGrid,
          EGrid,
@@ -1573,7 +1573,7 @@ void calculateElectricField(
       sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, 1);
    }
    
-   if ((mask & compute::EZ) == compute::EZ) {
+   if ((bitfield & compute::EZ) == compute::EZ) {
       calculateEdgeElectricFieldZ(
          perBGrid,
          EGrid,
