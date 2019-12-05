@@ -105,6 +105,7 @@ bool P::dynamicTimestep = true;
 Real P::maxWaveVelocity = 0.0;
 uint P::maxFieldSolverSubcycles = 0.0;
 int P::maxSlAccelerationSubcycles = 0.0;
+bool P::ResolvePlasmaPeriod = false;
 Real P::resistivity = NAN;
 bool P::fieldSolverDiffusiveEterms = true;
 uint P::ohmHallTerm = 0;
@@ -207,6 +208,7 @@ bool Parameters::addParameters(){
    Readparameters::add("vlasovsolver.maxSlAccelerationSubcycles","Maximum number of subcycles for acceleration",1);
    Readparameters::add("vlasovsolver.maxCFL","The maximum CFL limit for vlasov propagation in ordinary space. Used to set timestep if dynamic_timestep is true.",0.99);
    Readparameters::add("vlasovsolver.minCFL","The minimum CFL limit for vlasov propagation in ordinary space. Used to set timestep if dynamic_timestep is true.",0.8);
+   Readparameters::add("vlasovsolver.ResolvePlasmaPeriod","Require semi-lagrangian solver to resolve plasma oscillation (default false)",false);
 
    // Load balancing parameters
    Readparameters::add("loadBalance.algorithm", "Load balancing algorithm to be used", string("RCB"));
@@ -500,6 +502,7 @@ bool Parameters::getParameters(){
    Readparameters::get("vlasovsolver.maxSlAccelerationSubcycles",P::maxSlAccelerationSubcycles);
    Readparameters::get("vlasovsolver.maxCFL",P::vlasovSolverMaxCFL);
    Readparameters::get("vlasovsolver.minCFL",P::vlasovSolverMinCFL);
+   Readparameters::get("vlasovsolver.ResolvePlasmaPeriod",P::ResolvePlasmaPeriod);
 
    
    // Get load balance parameters

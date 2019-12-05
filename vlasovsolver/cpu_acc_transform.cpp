@@ -47,11 +47,20 @@ void updateAccelerationMaxdt(
    const Real Bz = spatial_cell->parameters[CellParams::BGBZVOL]+spatial_cell->parameters[CellParams::PERBZVOL];
    const Eigen::Matrix<Real,3,1> B(Bx,By,Bz);
    const Real B_mag = B.norm() + 1e-30;      
-   const Real gyro_period = 2 * M_PI * getObjectWrapper().particleSpecies[popID].mass
-      / (getObjectWrapper().particleSpecies[popID].charge * B_mag);
+   const Real gyro_period = fabs(2 * M_PI * getObjectWrapper().particleSpecies[popID].mass
+				 / (getObjectWrapper().particleSpecies[popID].charge * B_mag));
 
    // Set maximum timestep limit for this cell, based on a maximum allowed rotation angle
    spatial_cell->set_max_v_dt(popID,fabs(gyro_period)*(P::maxSlAccelerationRotation/360.0));
+   
+   // Constrain Vlasov solver with plasma frequency?
+   if P::ResolvePlasmaPeriod {
+       const Real plasma_period
+	 = fabs(2 * M_PI * sqrt(physicalconstants::EPS_0 * getObjectWrapper().particleSpecies[popID].mass / 
+				spatial_cell->get_population(popID).RHO)/getObjectWrapper().particleSpecies[popID].charge); 
+       Real smallest = gyro_period < plasma_period ? gyro_period : plasma_period;
+       spatial_cell->set_max_v_dt(popID,smallest*(P::maxSlAccelerationRotation/360.0));
+     }
 }
 
 
@@ -97,11 +106,11 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
    }
 
    const Real gyro_period
-     = 2 * M_PI * getObjectWrapper().particleSpecies[popID].mass
-     / (getObjectWrapper().particleSpecies[popID].charge * B_mag);
+     = fabs(2 * M_PI * getObjectWrapper().particleSpecies[popID].mass
+	    / (getObjectWrapper().particleSpecies[popID].charge * B_mag));
    const Real plasma_period
-     = 2 * M_PI * sqrt(physicalconstants::EPS_0 * getObjectWrapper().particleSpecies[popID].mass / 
-		       spatial_cell->get_population(popID).RHO)/getObjectWrapper().particleSpecies[popID].charge; 
+     = fabs(2 * M_PI * sqrt(physicalconstants::EPS_0 * getObjectWrapper().particleSpecies[popID].mass / 
+			    spatial_cell->get_population(popID).RHO)/getObjectWrapper().particleSpecies[popID].charge); 
 
    // scale rho for hall term, if user requests
    const Real EPSILON = 1e10 * numeric_limits<Real>::min();
@@ -119,9 +128,6 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
    Eigen::Matrix<Real,3,1> electronV(0.,0.,0.);
    if (getObjectWrapper().particleSpecies[popID].mass < 0.5*physicalconstants::MASS_PROTON) {
       smallparticle = true;
-      bulk_velocity(0,0) = spatial_cell->get_population(popID).V_V[0];
-      bulk_velocity(1,0) = spatial_cell->get_population(popID).V_V[1];                                                     
-      bulk_velocity(2,0) = spatial_cell->get_population(popID).V_V[2];                                                     
       // Store the original electron bulk velocity
       electronV[0] = spatial_cell->get_population(popID).V_V[0];
       electronV[1] = spatial_cell->get_population(popID).V_V[1];
@@ -129,20 +135,20 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
    }  
 
     // compute total transformation
-   Transform<Real,3,Affine> total_transform(Matrix<Real, 4, 4>::Identity()); //CONTINUE
+   Transform<Real,3,Affine> total_transform(Matrix<Real, 4, 4>::Identity());
 
-   // in this many substeps we iterate forward bulk velocity when the complete transformation is computed (0.1 deg per substep).
-   unsigned int bulk_velocity_substeps; 
-   bulk_velocity_substeps = fabs(dt) / fabs(gyro_period*(0.1/360.0));
+   // in this many substeps we iterate forward when the complete transformation is computed (0.1 deg per substep).
+   unsigned int transformation_substeps; 
+   transformation_substeps = fabs(dt) / fabs(gyro_period*(0.1/360.0));
    if (smallparticle) {
-      unsigned int bulk_velocity_substeps_2; 
-      bulk_velocity_substeps_2 = fabs(dt) / fabs(plasma_period/3600.);
-      bulk_velocity_substeps =  bulk_velocity_substeps_2 > bulk_velocity_substeps ? bulk_velocity_substeps_2 : bulk_velocity_substeps;
+      unsigned int transformation_substeps_2; 
+      transformation_substeps_2 = fabs(dt) / fabs(plasma_period*(0.1/360.0));
+      transformation_substeps = transformation_substeps_2 > transformation_substeps ? transformation_substeps_2 : transformation_substeps;
    }
-   if (bulk_velocity_substeps < 1) bulk_velocity_substeps=1;
+   if (transformation_substeps < 1) transformation_substeps=1;
       
-   const Real substeps_radians = -(2.0*M_PI*dt/gyro_period)/bulk_velocity_substeps; // how many radians each substep is.
-   const Real substeps_dt=dt/bulk_velocity_substeps; /*!< how many s each substep is*/
+   const Real substeps_radians = -(2.0*M_PI*dt/gyro_period)/transformation_substeps; // how many radians each substep is.
+   const Real substeps_dt=dt/transformation_substeps; /*!< how many s each substep is*/
    Eigen::Matrix<Real,3,1> EgradPe(
       spatial_cell->parameters[CellParams::EXGRADPE],
       spatial_cell->parameters[CellParams::EYGRADPE],
@@ -156,7 +162,7 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
      ofstream substepFile;
      substepFile.open ("substep_test.txt", ios::app);
      if (dt > 0.001*fabs(gyro_period)) {
-     substepFile << " bulk_velocity_substeps = " << bulk_velocity_substeps << endl;
+     substepFile << " transformation_substeps = " << transformation_substeps << endl;
      substepFile << " dt: " << dt << endl;
      substepFile << " substeps_radians: " << substeps_radians << endl;
      substepFile << " gyro and plasma periods: " << fabs(gyro_period) << "\t" << plasma_period << endl;
@@ -172,7 +178,7 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
    const Real h = substeps_dt;
 
    bool RKN = true; 
-   for (uint i=0; i<bulk_velocity_substeps; ++i) {
+   for (uint i=0; i<transformation_substeps; ++i) {
       Eigen::Matrix<Real,3,1> dEJEt(0.,0.,0.);
       Eigen::Matrix<Real,3,1> Je(0.,0.,0.);
       Eigen::Matrix<Real,3,1> Ji(0.,0.,0.);
@@ -199,9 +205,10 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       if ((smallparticle) && (substeps_dt > 0)) {
 	 // First find the current electron moments, this results in leapfrog-like propagation of EJE
 	 Eigen::Matrix<Real,3,1> electronVcurr(total_transform*electronV);
+
 	 if (RKN) { // Use second order solver or...
             for (uint popID_EJE=0; popID_EJE<getObjectWrapper().particleSpecies.size(); ++popID_EJE) {
-               if (getObjectWrapper().particleSpecies[popID_EJE].charge > 0) {
+               if (getObjectWrapper().particleSpecies[popID_EJE].mass > 0.5*physicalconstants::MASS_PROTON) {
                   Ji[0] += getObjectWrapper().particleSpecies[popID_EJE].charge * spatial_cell->get_population(popID_EJE).RHO 
 		     * spatial_cell->get_population(popID_EJE).V_V[0];
                   Ji[1] += getObjectWrapper().particleSpecies[popID_EJE].charge * spatial_cell->get_population(popID_EJE).RHO 
@@ -217,6 +224,7 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
 		     * electronVcurr[2];
                }         
             }
+
             // This is a traditional RK4 integrator 
             const Eigen::Matrix<Real,3,1> beta  = -q / mass / physicalconstants::EPS_0 * Ji;
             const Real alpha = pow(q, 2.)  / mass / physicalconstants::EPS_0 * rho;
@@ -313,21 +321,21 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       total_transform = AngleAxis<Real>(substeps_radians,unit_B)*total_transform;
       total_transform = Translation<Real,3>(rotation_pivot)*total_transform;
       
-      if (smallparticle) {
-	 Eigen::Matrix<Real,3,1> EfromJe_parallel(EfromJe.dot(unit_B)*unit_B);
-	  
+      if (smallparticle) {	  
 	 if (RKN) {
 	    total_transform=Translation<Real,3>( (getObjectWrapper().particleSpecies[popID].charge/
 						  getObjectWrapper().particleSpecies[popID].mass) * 
 						 EfromJe * substeps_dt ) * total_transform;
+	    // TODO FIXME should this use deltaV instead of EfromJE?
+
 	    //total_transform=Translation<Real,3>( (getObjectWrapper().particleSpecies[popID].charge/
 	    //   getObjectWrapper().particleSpecies[popID].mass) * 
 	    //   EfromJe * substeps_dt + (k1 + k3) * substeps_dt / 4.) * total_transform;
 
 	 } else {
 	    // If using the Eulerian scheme, then the rotation algorithm is used
-	    // and only the parallel nudge is required:
-	    // Perform B-parallel acceleration from EJE field
+	    // and only the B-parallel nudge from EJE is required:
+	    Eigen::Matrix<Real,3,1> EfromJe_parallel(EfromJe.dot(unit_B)*unit_B);
 	    total_transform=Translation<Real,3>( (getObjectWrapper().particleSpecies[popID].charge/
 						  getObjectWrapper().particleSpecies[popID].mass) * 
 						 EfromJe_parallel * substeps_dt) * total_transform;
@@ -338,6 +346,8 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
 	    //total_transform=Translation<Real,3>( (getObjectWrapper().particleSpecies[popID].charge/
 	    //   getObjectWrapper().particleSpecies[popID].mass) * 
 	    //   EfromJe * substeps_dt) * total_transform;
+
+	    // Update the stored EJE value to match the end of the step
 	    EfromJe += dEJEt*0.5*substeps_dt;
 	 }
       }
