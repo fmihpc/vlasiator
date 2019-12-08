@@ -1,5 +1,4 @@
-# For Yann's laptop
-
+#Kostis Papadakis
 #======== Vectorization ==========
 #Set vector backend type for vlasov solvers, sets precision and length.
 #NOTE this has to have the same precision as the distribution function define (DISTRIBUTION_FP_PRECISION)
