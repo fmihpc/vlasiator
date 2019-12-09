@@ -105,6 +105,7 @@ struct Parameters {
    
    static Real maxSlAccelerationRotation; /*!< Maximum rotation in acceleration for semilagrangian solver*/
    static int maxSlAccelerationSubcycles; /*!< Maximum number of subcycles in acceleration*/
+   static bool ResolvePlasmaPeriod; /*!< Should the plasma period be considered in calculating dt*/
    
    static Real hallMinimumRhom;  /*!< Minimum mass density value used in the field solver.*/
    static Real hallMinimumRhoq;  /*!< Minimum charge density value used for the Hall and electron pressure gradient terms in the Lorentz force and in the field solver.*/

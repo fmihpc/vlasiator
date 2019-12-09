@@ -54,7 +54,7 @@ void updateAccelerationMaxdt(
    spatial_cell->set_max_v_dt(popID,fabs(gyro_period)*(P::maxSlAccelerationRotation/360.0));
    
    // Constrain Vlasov solver with plasma frequency?
-   if P::ResolvePlasmaPeriod {
+   if (P::ResolvePlasmaPeriod) {
        const Real plasma_period
 	 = fabs(2 * M_PI * sqrt(physicalconstants::EPS_0 * getObjectWrapper().particleSpecies[popID].mass / 
 				spatial_cell->get_population(popID).RHO)/getObjectWrapper().particleSpecies[popID].charge); 
@@ -215,29 +215,43 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
 		     * spatial_cell->get_population(popID_EJE).V_V[1];
                   Ji[2] += getObjectWrapper().particleSpecies[popID_EJE].charge * spatial_cell->get_population(popID_EJE).RHO 
 		     * spatial_cell->get_population(popID_EJE).V_V[2];
-               } else { // Here we assume there is no more than one negatively charged popoulation (FIXME)
+               }
+	       /* Je not needed
+		 else { // Here we assume there is no more than one negatively charged popoulation (FIXME)
                   Je[0] += getObjectWrapper().particleSpecies[popID_EJE].charge * spatial_cell->get_population(popID_EJE).RHO
 		     * electronVcurr[0];
                   Je[1] += getObjectWrapper().particleSpecies[popID_EJE].charge * spatial_cell->get_population(popID_EJE).RHO 
 		     * electronVcurr[1];
                   Je[2] += getObjectWrapper().particleSpecies[popID_EJE].charge * spatial_cell->get_population(popID_EJE).RHO 
 		     * electronVcurr[2];
-               }         
+		     } */      
             }
+	    // Now account for current requirement from curl of B
+	    /*
+	    Ji[0] += (dBZdy - dBYdz)/physicalconstants::MU_0;
+	    Ji[1] += (dBXdz - dBZdx)/physicalconstants::MU_0;
+	    Ji[2] += (dBYdx - dBXdy)/physicalconstants::MU_0;
+	    */
 
             // This is a traditional RK4 integrator 
+	    // In effect, it runs two RK4 integrators in parallel, one for velocity, one for electric field
             const Eigen::Matrix<Real,3,1> beta  = -q / mass / physicalconstants::EPS_0 * Ji;
-            const Real alpha = pow(q, 2.)  / mass / physicalconstants::EPS_0 * rho;
-            k11 = h * q / mass * EfromJe;
-            k12 = h * (beta - alpha * electronVcurr);
-            k21 = h * (q / mass * EfromJe + k12/2);
-            k22 = h * (beta - alpha * (electronVcurr + k11/2)); 
-            k31 = h * (q / mass * EfromJe + k22/2);
-            k32 = h * (beta - alpha * (electronVcurr + k21/2)); 
-            k41 = h * (q / mass * EfromJe + k32);
-            k42 = h * (beta - alpha * (electronVcurr + k31));
-            deltaV = (k11 + 2*k21 + 2*k31 + k41) / 6.; 
-            EfromJe += mass / q * (k12 + 2*k22 + 2*k32 + k42) / 6.; 
+            const Real alpha = -pow(q, 2.) * rho / mass / physicalconstants::EPS_0;
+	    // derivative estimates for acceleration and field changes at start of step
+            k11 = h * q / mass * EfromJe;  // h * dv/dt
+            k12 = h * (beta + alpha * electronVcurr); // h * (-q/m eps) * J_tot  ==  h * d^2 v / dt^2 == (q/m) dE/dt
+
+            k21 = h * (q / mass * EfromJe + k12/2); // estimate acceleration using k12 field estimate (at half interval)
+            k22 = h * (beta + alpha * (electronVcurr + k11/2)); // estimate field change using k11 current estimate (at half interval)
+
+            k31 = h * (q / mass * EfromJe + k22/2); // estimate acceleration using k22 field estimate (at half interval)
+            k32 = h * (beta + alpha * (electronVcurr + k21/2)); // estimate field change using k21 current estimate (at half interval)
+
+            k41 = h * (q / mass * EfromJe + k32); // estimate acceleration using k32 field estimate (at full interval)
+            k42 = h * (beta + alpha * (electronVcurr + k31)); // estimate field change using k31 current estimate (at full interval)
+	    
+            deltaV = (k11 + 2*k21 + 2*k31 + k41) / 6.; // Finally update velocity based on weighted acceleration estimate
+	    EfromJe += mass / q * (k12 + 2*k22 + 2*k32 + k42) / 6.; // And update fields based on weighted velocity (current) estimate
             
             /* This RKN solver did not work
 	       k1 = -getObjectWrapper().particleSpecies[popID].charge / getObjectWrapper().particleSpecies[popID].mass 
@@ -322,34 +336,34 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       total_transform = Translation<Real,3>(rotation_pivot)*total_transform;
       
       if (smallparticle) {	  
-	 if (RKN) {
-	    total_transform=Translation<Real,3>( (getObjectWrapper().particleSpecies[popID].charge/
-						  getObjectWrapper().particleSpecies[popID].mass) * 
-						 EfromJe * substeps_dt ) * total_transform;
-	    // TODO FIXME should this use deltaV instead of EfromJE?
-
-	    //total_transform=Translation<Real,3>( (getObjectWrapper().particleSpecies[popID].charge/
-	    //   getObjectWrapper().particleSpecies[popID].mass) * 
-	    //   EfromJe * substeps_dt + (k1 + k3) * substeps_dt / 4.) * total_transform;
-
-	 } else {
-	    // If using the Eulerian scheme, then the rotation algorithm is used
-	    // and only the B-parallel nudge from EJE is required:
-	    Eigen::Matrix<Real,3,1> EfromJe_parallel(EfromJe.dot(unit_B)*unit_B);
-	    total_transform=Translation<Real,3>( (getObjectWrapper().particleSpecies[popID].charge/
-						  getObjectWrapper().particleSpecies[popID].mass) * 
-						 EfromJe_parallel * substeps_dt) * total_transform;
-
-	    /* The alternative to decomposing the EJE field into parallel and perpendicular components is to
-	       treat it a simple acceleration term. This acceleration was found by integrating over
-	       the time-varying electric field. */
-	    //total_transform=Translation<Real,3>( (getObjectWrapper().particleSpecies[popID].charge/
-	    //   getObjectWrapper().particleSpecies[popID].mass) * 
-	    //   EfromJe * substeps_dt) * total_transform;
-
-	    // Update the stored EJE value to match the end of the step
-	    EfromJe += dEJEt*0.5*substeps_dt;
-	 }
+	if (RKN) {
+	  // total_transform=Translation<Real,3>( (getObjectWrapper().particleSpecies[popID].charge/
+	  // 					getObjectWrapper().particleSpecies[popID].mass) * 
+	  // 				       EfromJe * substeps_dt ) * total_transform;
+	  // Now actually use the properly propagated deltaV 
+	  total_transform=Translation<Real,3>(deltaV) * total_transform;
+	  
+	  //total_transform=Translation<Real,3>( (getObjectWrapper().particleSpecies[popID].charge/
+	  //   getObjectWrapper().particleSpecies[popID].mass) * 
+	  //   EfromJe * substeps_dt + (k1 + k3) * substeps_dt / 4.) * total_transform;	  
+	} else {
+	  // If using the Eulerian scheme, then the rotation algorithm is used
+	  // and only the B-parallel nudge from EJE is required:
+	  Eigen::Matrix<Real,3,1> EfromJe_parallel(EfromJe.dot(unit_B)*unit_B);
+	  total_transform=Translation<Real,3>( (getObjectWrapper().particleSpecies[popID].charge/
+						getObjectWrapper().particleSpecies[popID].mass) * 
+					       EfromJe_parallel * substeps_dt) * total_transform;
+	  
+	  /* The alternative to decomposing the EJE field into parallel and perpendicular components is to
+	     treat it a simple acceleration term. This acceleration was found by integrating over
+	     the time-varying electric field. */
+	  //total_transform=Translation<Real,3>( (getObjectWrapper().particleSpecies[popID].charge/
+	  //   getObjectWrapper().particleSpecies[popID].mass) * 
+	  //   EfromJe * substeps_dt) * total_transform;
+	  
+	  // Update the stored EJE value to match the end of the step
+	  EfromJe += dEJEt*0.5*substeps_dt;
+	}
       }
       
       // if (getObjectWrapper().particleSpecies[popID].charge < 0 && 
