@@ -47,20 +47,21 @@ void updateAccelerationMaxdt(
    const Real Bz = spatial_cell->parameters[CellParams::BGBZVOL]+spatial_cell->parameters[CellParams::PERBZVOL];
    const Eigen::Matrix<Real,3,1> B(Bx,By,Bz);
    const Real B_mag = B.norm() + 1e-30;      
-   const Real gyro_period = fabs(2 * M_PI * getObjectWrapper().particleSpecies[popID].mass
-				 / (getObjectWrapper().particleSpecies[popID].charge * B_mag));
+   const Real gyro_period = 2 * M_PI * getObjectWrapper().particleSpecies[popID].mass
+      / (getObjectWrapper().particleSpecies[popID].charge * B_mag);
 
    // Set maximum timestep limit for this cell, based on a maximum allowed rotation angle
    spatial_cell->set_max_v_dt(popID,fabs(gyro_period)*(P::maxSlAccelerationRotation/360.0));
    
    // Constrain Vlasov solver with plasma frequency?
-   if (P::ResolvePlasmaPeriod) {
-       const Real plasma_period
-	 = fabs(2 * M_PI * sqrt(physicalconstants::EPS_0 * getObjectWrapper().particleSpecies[popID].mass / 
-				spatial_cell->get_population(popID).RHO)/getObjectWrapper().particleSpecies[popID].charge); 
-       Real smallest = gyro_period < plasma_period ? gyro_period : plasma_period;
-       spatial_cell->set_max_v_dt(popID,smallest*(P::maxSlAccelerationRotation/360.0));
-     }
+   // if (P::ResolvePlasmaPeriod) {
+   //   Real rho = 1.e-10 > spatial_cell->get_population(popID).RHO ? 1.e-10 : spatial_cell->get_population(popID).RHO;
+   //   const Real plasma_period
+   //     = fabs(2 * M_PI * sqrt(physicalconstants::EPS_0 * getObjectWrapper().particleSpecies[popID].mass / 
+   // 			      rho)/getObjectWrapper().particleSpecies[popID].charge); 
+   //   Real smallest = gyro_period < plasma_period ? gyro_period : plasma_period;
+   //   spatial_cell->set_max_v_dt(popID,smallest*(P::maxSlAccelerationRotation/360.0));
+   //   }
 }
 
 
@@ -106,11 +107,11 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
    }
 
    const Real gyro_period
-     = fabs(2 * M_PI * getObjectWrapper().particleSpecies[popID].mass
-	    / (getObjectWrapper().particleSpecies[popID].charge * B_mag));
+     = 2 * M_PI * getObjectWrapper().particleSpecies[popID].mass
+     / (getObjectWrapper().particleSpecies[popID].charge * B_mag);
    const Real plasma_period
-     = fabs(2 * M_PI * sqrt(physicalconstants::EPS_0 * getObjectWrapper().particleSpecies[popID].mass / 
-			    spatial_cell->get_population(popID).RHO)/getObjectWrapper().particleSpecies[popID].charge); 
+     = 2 * M_PI * sqrt(physicalconstants::EPS_0 * getObjectWrapper().particleSpecies[popID].mass / 
+		       spatial_cell->get_population(popID).RHO)/getObjectWrapper().particleSpecies[popID].charge; 
 
    // scale rho for hall term, if user requests
    const Real EPSILON = 1e10 * numeric_limits<Real>::min();
@@ -208,7 +209,8 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
 
 	 if (RKN) { // Use second order solver or...
             for (uint popID_EJE=0; popID_EJE<getObjectWrapper().particleSpecies.size(); ++popID_EJE) {
-               if (getObjectWrapper().particleSpecies[popID_EJE].mass > 0.5*physicalconstants::MASS_PROTON) {
+	      //if (getObjectWrapper().particleSpecies[popID_EJE].mass > 0.5*physicalconstants::MASS_PROTON) {
+	      if (getObjectWrapper().particleSpecies[popID_EJE].charge > 0) {
                   Ji[0] += getObjectWrapper().particleSpecies[popID_EJE].charge * spatial_cell->get_population(popID_EJE).RHO 
 		     * spatial_cell->get_population(popID_EJE).V_V[0];
                   Ji[1] += getObjectWrapper().particleSpecies[popID_EJE].charge * spatial_cell->get_population(popID_EJE).RHO 
@@ -235,24 +237,39 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
 
             // This is a traditional RK4 integrator 
 	    // In effect, it runs two RK4 integrators in parallel, one for velocity, one for electric field
-            const Eigen::Matrix<Real,3,1> beta  = -q / mass / physicalconstants::EPS_0 * Ji;
-            const Real alpha = -pow(q, 2.) * rho / mass / physicalconstants::EPS_0;
+            //const Eigen::Matrix<Real,3,1> beta  = -q * Ji / (mass * physicalconstants::EPS_0);
+            //const Real alpha = -pow(q, 2.) * rho / (mass * physicalconstants::EPS_0);
 	    // derivative estimates for acceleration and field changes at start of step
-            k11 = h * q / mass * EfromJe;  // h * dv/dt
-            k12 = h * (beta + alpha * electronVcurr); // h * (-q/m eps) * J_tot  ==  h * d^2 v / dt^2 == (q/m) dE/dt
+            // k11 = h * q / mass * EfromJe;  // h * dv/dt
+            // k12 = h * (beta + alpha * electronVcurr); // h * (-q/m eps) * J_tot  ==  h * d^2 v / dt^2 == (q/m) dE/dt
 
-            k21 = h * (q / mass * EfromJe + k12/2); // estimate acceleration using k12 field estimate (at half interval)
-            k22 = h * (beta + alpha * (electronVcurr + k11/2)); // estimate field change using k11 current estimate (at half interval)
+            // k21 = h * (q / mass * EfromJe + k12/2); // estimate acceleration using k12 field estimate (at half interval)
+            // k22 = h * (beta + alpha * (electronVcurr + k11/2)); // estimate field change using k11 current estimate (at half interval)
 
-            k31 = h * (q / mass * EfromJe + k22/2); // estimate acceleration using k22 field estimate (at half interval)
-            k32 = h * (beta + alpha * (electronVcurr + k21/2)); // estimate field change using k21 current estimate (at half interval)
+            // k31 = h * (q / mass * EfromJe + k22/2); // estimate acceleration using k22 field estimate (at half interval)
+            // k32 = h * (beta + alpha * (electronVcurr + k21/2)); // estimate field change using k21 current estimate (at half interval)
 
-            k41 = h * (q / mass * EfromJe + k32); // estimate acceleration using k32 field estimate (at full interval)
-            k42 = h * (beta + alpha * (electronVcurr + k31)); // estimate field change using k31 current estimate (at full interval)
+            // k41 = h * (q / mass * EfromJe + k32); // estimate acceleration using k32 field estimate (at full interval)
+            // k42 = h * (beta + alpha * (electronVcurr + k31)); // estimate field change using k31 current estimate (at full interval)
 	    
-            deltaV = (k11 + 2*k21 + 2*k31 + k41) / 6.; // Finally update velocity based on weighted acceleration estimate
-	    EfromJe += mass / q * (k12 + 2*k22 + 2*k32 + k42) / 6.; // And update fields based on weighted velocity (current) estimate
+            // deltaV = (k11 + 2*k21 + 2*k31 + k41) / 6.; // Finally update velocity based on weighted acceleration estimate
+	    // EfromJe += mass / q * (k12 + 2*k22 + 2*k32 + k42) / 6.; // And update fields based on weighted velocity (current) estimate
             
+
+
+	    const Eigen::Matrix<Real,3,1> beta  = -q / mass / physicalconstants::EPS_0 * Ji;
+	    const Real alpha = pow(q, 2.)  / mass / physicalconstants::EPS_0 * rho;
+	    k11 = h * q / mass * EfromJe;
+	    k12 = h * (beta - alpha * electronVcurr);
+	    k21 = h * (q / mass * EfromJe + k12/2);
+	    k22 = h * (beta - alpha * (electronVcurr + k11/2)); 
+	    k31 = h * (q / mass * EfromJe + k22/2);
+	    k32 = h * (beta - alpha * (electronVcurr + k21/2)); 
+	    k41 = h * (q / mass * EfromJe + k32);
+	    k42 = h * (beta - alpha * (electronVcurr + k31));
+	    deltaV = (k11 + 2*k21 + 2*k31 + k41) / 6.; 
+	    EfromJe += mass / q * (k12 + 2*k22 + 2*k32 + k42) / 6.; 
+
             /* This RKN solver did not work
 	       k1 = -getObjectWrapper().particleSpecies[popID].charge / getObjectWrapper().particleSpecies[popID].mass 
 	       / physicalconstants::EPS_0 * (Ji + Je);
@@ -337,11 +354,11 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       
       if (smallparticle) {	  
 	if (RKN) {
-	  // total_transform=Translation<Real,3>( (getObjectWrapper().particleSpecies[popID].charge/
-	  // 					getObjectWrapper().particleSpecies[popID].mass) * 
-	  // 				       EfromJe * substeps_dt ) * total_transform;
+	  total_transform=Translation<Real,3>( (getObjectWrapper().particleSpecies[popID].charge/
+	   					getObjectWrapper().particleSpecies[popID].mass) * 
+	   				       EfromJe * substeps_dt ) * total_transform;
 	  // Now actually use the properly propagated deltaV 
-	  total_transform=Translation<Real,3>(deltaV) * total_transform;
+	  //total_transform=Translation<Real,3>(deltaV) * total_transform;
 	  
 	  //total_transform=Translation<Real,3>( (getObjectWrapper().particleSpecies[popID].charge/
 	  //   getObjectWrapper().particleSpecies[popID].mass) * 

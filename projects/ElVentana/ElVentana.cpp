@@ -272,6 +272,7 @@ namespace projects {
 	  // Scale temperatures from input values. For electrons, this should be about 1/4, for protons, 1
 	  temperature = temperature * sP.Temperatureratio;
           const std::array<Real, 3> v0 = this->getV0(x, y, z, popID)[0];
+	  // TODO: Calculate correct base v0 for electrons from proton population and curl of B
           distvalue = initRho * pow(mass / (2.0 * M_PI * physicalconstants::K_B * temperature), 1.5) *
               exp(- mass * ( pow(vx - v0[0], 2.0) + pow(vy - v0[1], 2.0) + pow(vz - v0[2], 2.0) ) /
               (2.0 * physicalconstants::K_B * temperature));
@@ -624,6 +625,12 @@ namespace projects {
 
       // Communicate the perturbed B-fields read from the start file over to FSgrid
       feedPerBIntoFsGrid(mpiGrid, cells, perBGrid);
+
+      // TODO: calculate volumetric B and curl of volB already here
+      // volB requires perturbed B and its derivatives already 
+      //    calculateVolumeAveragedFields(perBGrid,EGrid,dPerBGrid,volGrid,technicalGrid);
+      //    calculateBVOLDerivativesSimple(volGrid, technicalGrid, sysBoundaries);
+
 
       newmpiGrid = &mpiGrid;
       this->vlsvSerialReader.close();
