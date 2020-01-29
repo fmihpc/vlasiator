@@ -849,22 +849,22 @@ int main(int argn,char* args[]) {
       
       phiprof::start("Propagate");
       //Propagate the state of simulation forward in time by dt:
-      if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
-         phiprof::start("Update system boundaries (Vlasov pre-translation)");
-         sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid, P::t+0.5*P::dt); 
-         phiprof::stop("Update system boundaries (Vlasov pre-translation)");
-         addTimedBarrier("barrier-boundary-conditions");
-      }
       
       phiprof::start("Spatial-space");
-      
       if( P::propagateVlasovTranslation) {
          calculateSpatialTranslation(mpiGrid,P::dt);
       } else {
          calculateSpatialTranslation(mpiGrid,0.0);
       }
-      
       phiprof::stop("Spatial-space",computedCells,"Cells");
+      
+      // Apply boundary conditions
+      if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
+         phiprof::start("Update system boundaries (Vlasov post-translation)");
+         sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid, P::t+0.5*P::dt, false);
+         phiprof::stop("Update system boundaries (Vlasov post-translation)");
+         addTimedBarrier("barrier-boundary-conditions");
+      }
       
       phiprof::start("Compute interp moments");
       calculateInterpolatedVelocityMoments(
@@ -879,14 +879,6 @@ int main(int argn,char* args[]) {
          CellParams::P_33_DT2
       );
       phiprof::stop("Compute interp moments");
-      
-      // Apply boundary conditions      
-      if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
-         phiprof::start("Update system boundaries (Vlasov post-translation)");
-         sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid, P::t+0.5*P::dt); 
-         phiprof::stop("Update system boundaries (Vlasov post-translation)");
-         addTimedBarrier("barrier-boundary-conditions");
-      }
       
       // Propagate fields forward in time by dt. This needs to be done before the
       // moments for t + dt are computed (field uses t and t+0.5dt)
@@ -937,10 +929,16 @@ int main(int argn,char* args[]) {
          //zero step to set up moments _v
          calculateAcceleration(mpiGrid, 0.0);
       }
-
       phiprof::stop("Velocity-space",computedCells,"Cells");
       addTimedBarrier("barrier-after-acceleration");
-
+      
+      if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
+         phiprof::start("Update system boundaries (Vlasov post-acceleration)");
+         sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid, P::t+0.5*P::dt, true);
+         phiprof::stop("Update system boundaries (Vlasov post-acceleration)");
+         addTimedBarrier("barrier-boundary-conditions");
+      }
+      
       phiprof::start("Compute interp moments");
       // *here we compute rho and rho_v for timestep t + dt, so next
       // timestep * //
