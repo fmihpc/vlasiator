@@ -411,27 +411,27 @@ namespace projects {
                }
             }
          }
-         if(P::ycells_ini==1) {
-            /*2D simulation in x and z. Set By and derivatives along Y, and derivatives of By to zero*/
-#pragma omp for collapse(3)
-            for (int x = 0; x < localSize[0]; ++x) {
-               for (int y = 0; y < localSize[1]; ++y) {
-                  for (int z = 0; z < localSize[2]; ++z) {
-                     std::array<Real, fsgrids::bgbfield::N_BGB>* cell = BgBGrid.get(x, y, z);
-                     cell->at(fsgrids::bgbfield::BGBY)=0.0;
-                     cell->at(fsgrids::bgbfield::BGBYVOL)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBxdy)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBzdy)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBydx)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBydz)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBXVOLdy)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBZVOLdy)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBYVOLdx)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBYVOLdz)=0.0;
-                  }
-               }
-            }
-         }
+//          if(P::ycells_ini==1) {
+//             /*2D simulation in x and z. Set By and derivatives along Y, and derivatives of By to zero*/
+// #pragma omp for collapse(3)
+//             for (int x = 0; x < localSize[0]; ++x) {
+//                for (int y = 0; y < localSize[1]; ++y) {
+//                   for (int z = 0; z < localSize[2]; ++z) {
+//                      std::array<Real, fsgrids::bgbfield::N_BGB>* cell = BgBGrid.get(x, y, z);
+//                      cell->at(fsgrids::bgbfield::BGBY)=0.0;
+//                      cell->at(fsgrids::bgbfield::BGBYVOL)=0.0;
+//                      cell->at(fsgrids::bgbfield::dBGBxdy)=0.0;
+//                      cell->at(fsgrids::bgbfield::dBGBzdy)=0.0;
+//                      cell->at(fsgrids::bgbfield::dBGBydx)=0.0;
+//                      cell->at(fsgrids::bgbfield::dBGBydz)=0.0;
+//                      cell->at(fsgrids::bgbfield::dBGBXVOLdy)=0.0;
+//                      cell->at(fsgrids::bgbfield::dBGBZVOLdy)=0.0;
+//                      cell->at(fsgrids::bgbfield::dBGBYVOLdx)=0.0;
+//                      cell->at(fsgrids::bgbfield::dBGBYVOLdz)=0.0;
+//                   }
+//                }
+//             }
+//          }
          if(P::zcells_ini==1) {
 #pragma omp for collapse(3)
             for (int x = 0; x < localSize[0]; ++x) {
