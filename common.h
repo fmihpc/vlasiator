@@ -367,6 +367,7 @@ namespace fsgrids {
       int sysBoundaryLayer; /*!< System boundary layer index. */
       Real maxFsDt;         /*!< maximum timestep allowed in ordinary space by fieldsolver for this cell**/
       int fsGridRank;       /*!< Rank in the fsGrids cartesian coordinator */
+      uint SOLVE;           /*!< Bit mask to determine whether a given cell should solve E or B components. */
    };
    
 }
@@ -384,6 +385,15 @@ namespace sysboundarytype {
       SET_MAXWELLIAN,   /*!< Set Maxwellian boundary condition, i.e. set fields and distribution function. */
       N_SYSBOUNDARY_CONDITIONS
    };
+}
+
+namespace compute {
+   const uint BX = (1 << 0); // 1
+   const uint BY = (1 << 1); // 2
+   const uint BZ = (1 << 2); // 4
+   const uint EX = (1 << 3); // 8
+   const uint EY = (1 << 4); // 16
+   const uint EZ = (1 << 5); // 32
 }
 
 /*! Steps in Runge-Kutta methods */

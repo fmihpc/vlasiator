@@ -33,20 +33,15 @@ using namespace std;
  * all existing particle populations. This function is AMR safe.
  * @param cell Spatial cell.
  * @param computeSecond If true, second velocity moments are calculated.
- * @param doNotSkip If false, DO_NOT_COMPUTE cells, or boundary cells of layer larger than 1, are skipped.*/
+ * @param doNotSkip If false, DO_NOT_COMPUTE cells are skipped.*/
 void calculateCellMoments(spatial_cell::SpatialCell* cell,
                           const bool& computeSecond,
                           const bool& doNotSkip) {
 
     // if doNotSkip == true then the first clause is false and we will never return,
     // i.e. always compute, otherwise we skip DO_NOT_COMPUTE cells
-    // or boundary cells of layer larger than 1.
     bool skipMoments = false;
-    if (!doNotSkip &&
-        (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
-        (cell->sysBoundaryLayer != 1  &&
-         cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY))
-        ) {
+    if (!doNotSkip && cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
         skipMoments = true;
     }
 
@@ -161,6 +156,10 @@ void calculateMoments_R(
        for (size_t c=0; c<cells.size(); ++c) {
           SpatialCell* cell = mpiGrid[cells[c]];
           
+          if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+             continue;
+          }
+          
           // Clear old moments to zero value
           if (popID == 0) {
              cell->parameters[CellParams::RHOM_R  ] = 0.0;
@@ -227,6 +226,9 @@ void calculateMoments_R(
     #pragma omp parallel for
     for (size_t c=0; c<cells.size(); ++c) {
        SpatialCell* cell = mpiGrid[cells[c]];
+       if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+          continue;
+       }
        cell->parameters[CellParams::VX_R] = divideIfNonZero(cell->parameters[CellParams::VX_R], cell->parameters[CellParams::RHOM_R]);
        cell->parameters[CellParams::VY_R] = divideIfNonZero(cell->parameters[CellParams::VY_R], cell->parameters[CellParams::RHOM_R]);
        cell->parameters[CellParams::VZ_R] = divideIfNonZero(cell->parameters[CellParams::VZ_R], cell->parameters[CellParams::RHOM_R]);
@@ -242,7 +244,11 @@ void calculateMoments_R(
       #pragma omp parallel for
       for (size_t c=0; c<cells.size(); ++c) {
          SpatialCell* cell = mpiGrid[cells[c]];
-       
+         
+         if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+            continue;
+         }
+         
          vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
          if (blockContainer.size() == 0) continue;
          const Realf* data       = blockContainer.getData();
@@ -299,6 +305,10 @@ void calculateMoments_V(
       for (size_t c=0; c<cells.size(); ++c) {
          SpatialCell* cell = mpiGrid[cells[c]];
          
+         if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+            continue;
+         }
+         
          // Clear old moments to zero value
          if (popID == 0) {
              cell->parameters[CellParams::RHOM_V  ] = 0.0;
@@ -347,6 +357,9 @@ void calculateMoments_V(
    #pragma omp parallel for
    for (size_t c=0; c<cells.size(); ++c) {
       SpatialCell* cell = mpiGrid[cells[c]];
+      if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+         continue;
+      }
       cell->parameters[CellParams::VX_V] = divideIfNonZero(cell->parameters[CellParams::VX_V], cell->parameters[CellParams::RHOM_V]);
       cell->parameters[CellParams::VY_V] = divideIfNonZero(cell->parameters[CellParams::VY_V], cell->parameters[CellParams::RHOM_V]);
       cell->parameters[CellParams::VZ_V] = divideIfNonZero(cell->parameters[CellParams::VZ_V], cell->parameters[CellParams::RHOM_V]);
@@ -362,6 +375,10 @@ void calculateMoments_V(
       #pragma omp parallel for
       for (size_t c=0; c<cells.size(); ++c) {
          SpatialCell* cell = mpiGrid[cells[c]];
+         
+         if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+            continue;
+         }
 
          vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
          if (blockContainer.size() == 0) continue;

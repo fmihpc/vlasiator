@@ -267,7 +267,8 @@ namespace SBC {
    void SetByUser::vlasovBoundaryCondition(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
-      const uint popID
+      const uint popID,
+      const bool calculate_V_moments
    ) {
       // No need to do anything in this function, as the propagators do not touch the distribution function   
    }
@@ -339,7 +340,8 @@ namespace SBC {
          
          for(uint i=0; i<6; i++) {
             if(facesToProcess[i] && isThisCellOnAFace[i]) {
-               copyCellData(&templateCells[i], cell,true,false,popID);
+               copyCellData(&templateCells[i], cell,false,popID,true); // copy also vdf, _V
+               copyCellData(&templateCells[i], cell,true,popID,false); // don't copy vdf again but copy _R now
                break; // This effectively sets the precedence of faces through the order of faces.
             }
          }
