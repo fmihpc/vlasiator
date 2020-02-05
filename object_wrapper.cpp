@@ -65,11 +65,11 @@ bool ObjectWrapper::addPopulationParameters() {
      RP::add(pop + "_vspace.vz_length","Initial number of velocity blocks in vz-direction.",1);
      RP::add(pop + "_vspace.max_refinement_level","Maximum allowed mesh refinement level.", 1);
      
-     // Backstreaming parameters
-     Readparameters::add(pop + "_backstream.vx", "Center coordinate for the maxwellian distribution. Used for calculating the backstream moments.", -500000.0);
-     Readparameters::add(pop + "_backstream.vy", "Center coordinate for the maxwellian distribution. Used for calculating the backstream moments.", 0.0);
-     Readparameters::add(pop + "_backstream.vz", "Center coordinate for the maxwellian distribution. Used for calculating the backstream moments.", 0.0);
-     Readparameters::add(pop + "_backstream.radius", "Radius of the maxwellian distribution. Used for calculating the backstream moments. If set to 0 (default), the backstream/non-backstream DROs are skipped.", 0.0);
+     // Thermal / suprathermal parameters
+     Readparameters::add(pop + "_thermal.vx", "Center coordinate for the maxwellian distribution. Used for calculating the suprathermal moments.", -500000.0);
+     Readparameters::add(pop + "_thermal.vy", "Center coordinate for the maxwellian distribution. Used for calculating the suprathermal moments.", 0.0);
+     Readparameters::add(pop + "_thermal.vz", "Center coordinate for the maxwellian distribution. Used for calculating the suprathermal moments.", 0.0);
+     Readparameters::add(pop + "_thermal.radius", "Radius of the maxwellian distribution. Used for calculating the suprathermal moments. If set to 0 (default), the thermal/suprathermal DROs are skipped.", 0.0);
 
      // Precipitation parameters
      Readparameters::add(pop + "_precipitation.nChannels", "Number of energy channels for precipitation differential flux evaluation", 16);
@@ -160,20 +160,19 @@ bool ObjectWrapper::getParameters() {
       RP::get(pop + "_vspace.max_refinement_level",maxRefLevel);
       vMesh.refLevelMaxAllowed = maxRefLevel;
 
-
-      //Get backstream/non-backstream moments parameters
-      Readparameters::get(pop + "_backstream.radius", species.backstreamRadius);
-      Readparameters::get(pop + "_backstream.vx", species.backstreamV[0]);
-      Readparameters::get(pop + "_backstream.vy", species.backstreamV[1]);
-      Readparameters::get(pop + "_backstream.vz", species.backstreamV[2]);
-
+      
+      //Get thermal / suprathermal moments parameters
+      Readparameters::get(pop + "_thermal.radius", species.thermalRadius);
+      Readparameters::get(pop + "_thermal.vx", species.thermalV[0]);
+      Readparameters::get(pop + "_thermal.vy", species.thermalV[1]);
+      Readparameters::get(pop + "_thermal.vz", species.thermalV[2]);
 
       //Get energy density parameters
       Readparameters::get(pop + "_energydensity.limit1", species.EnergyDensityLimit1);
       Readparameters::get(pop + "_energydensity.limit2", species.EnergyDensityLimit2);
       Readparameters::get(pop + "_energydensity.solarwindenergy", species.SolarWindEnergy);
       Readparameters::get(pop + "_energydensity.solarwindspeed", species.SolarWindSpeed);
-
+      
       const Real EPSILON = 1.e-25;
       if (species.SolarWindEnergy < EPSILON) {
 	 // Energy stored internally in SI units
@@ -190,9 +189,6 @@ bool ObjectWrapper::getParameters() {
       // Convert from eV to SI units
       species.precipitationEmin = species.precipitationEmin*physicalconstants::CHARGE;
       species.precipitationEmax = species.precipitationEmax*physicalconstants::CHARGE;
-
-
-
    }
 
    return true;

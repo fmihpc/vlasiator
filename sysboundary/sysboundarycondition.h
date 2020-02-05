@@ -65,9 +65,12 @@ namespace SBC {
             creal& t,
             Project &project
          )=0;
-         virtual bool assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid)=0;
+         virtual bool assignSysBoundary(dccrg::Dccrg<SpatialCell,
+                                        dccrg::Cartesian_Geometry>& mpiGrid,
+                                        FsGrid< fsgrids::technical, 2> & technicalGrid)=0;
          virtual bool applyInitialState(
             const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+            FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
             Project &project
          )=0;
          virtual Real fieldSolverBoundaryCondMagneticField(
@@ -145,7 +148,8 @@ namespace SBC {
         virtual void vlasovBoundaryCondition(
             const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const CellID& cellID,
-            const uint popID
+            const uint popID,
+            const bool calculate_V_moments
         )=0;
 
          virtual void getFaces(bool* faces);
@@ -172,15 +176,17 @@ namespace SBC {
          void copyCellData(
             SpatialCell *from,
             SpatialCell *to,
-            bool allowBlockAdjustment,
-            const bool& copyMomentsOnly,
-            const uint popID
+            const bool copyMomentsOnly,
+            const uint popID,
+            const bool calculate_V_moments
          );
          void averageCellData(
             const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             std::vector<CellID> cellList,
             SpatialCell *to,
-            const uint popID
+            const uint popID,
+            const bool calculate_V_moments,
+            creal fluffiness = 0
          );
          std::array<SpatialCell*,27> & getFlowtoCells(
                const CellID& cellID
@@ -207,7 +213,8 @@ namespace SBC {
             const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const CellID& cellID,
             const bool& copyMomentsOnly,
-            const uint popID
+            const uint popID,
+            const bool calculate_V_moments
          );
          void vlasovBoundaryCopyFromTheClosestNbrAndLimit(
                const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
@@ -217,7 +224,15 @@ namespace SBC {
          void vlasovBoundaryCopyFromAllClosestNbrs(
             const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const CellID& cellID,
-            const uint popID
+            const uint popID,
+            const bool calculate_V_moments
+         );
+         void vlasovBoundaryFluffyCopyFromAllCloseNbrs(
+            const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+            const CellID& cellID,
+            const uint popID,
+            const bool calculate_V_moments,
+            creal fluffiness
          );
          void vlasovBoundaryReflect(
             const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
@@ -254,6 +269,9 @@ namespace SBC {
          std::vector<CellID> & getAllClosestNonsysboundaryCells(
             const CellID& cellID
          );
+         std::vector<CellID> & getAllCloseNonsysboundaryCells(
+            const CellID& cellID
+         );
          Real fieldBoundaryCopyFromExistingFaceNbrMagneticField(
             FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
             FsGrid< fsgrids::technical, 2> & technicalGrid,
@@ -271,6 +289,8 @@ namespace SBC {
          bool isPeriodic[3];
          /*! Map of closest nonsysboundarycells. Used in getAllClosestNonsysboundaryCells. */
          std::unordered_map<CellID, std::vector<CellID>> allClosestNonsysboundaryCells;
+         /*! Map of close nonsysboundarycells. Used in getAllCloseNonsysboundaryCells. */
+         std::unordered_map<CellID, std::vector<CellID>> allCloseNonsysboundaryCells;
       
          /*! Array of cells into which the distribution function can flow. Used in getAllFlowtoCells. Cells into which one cannot flow are set to INVALID_CELLID. */
          std::unordered_map<CellID, std::array<SpatialCell*, 27>> allFlowtoCells;

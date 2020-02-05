@@ -102,24 +102,21 @@ namespace spatial_cell {
       const uint64_t CELL_EDT2                = (1ull<<11);
       const uint64_t CELL_PERB                = (1ull<<12);
       const uint64_t CELL_PERBDT2             = (1ull<<13);
-      const uint64_t CELL_BGB                 = (1ull<<14);
-      const uint64_t CELL_RHOM_V              = (1ull<<15);
-      const uint64_t CELL_RHOMDT2_VDT2        = (1ull<<16);
-      const uint64_t CELL_RHOQ                = (1ull<<17);
-      const uint64_t CELL_RHOQDT2             = (1ull<<18);
-      const uint64_t CELL_BVOL                = (1ull<<19);
-      const uint64_t CELL_BVOL_DERIVATIVES    = (1ull<<20);
-      const uint64_t CELL_DIMENSIONS          = (1ull<<21);
-      const uint64_t CELL_IOLOCALCELLID       = (1ull<<22);
-      const uint64_t NEIGHBOR_VEL_BLOCK_DATA  = (1ull<<23);
-      const uint64_t CELL_HALL_TERM           = (1ull<<24);
-      const uint64_t CELL_P                   = (1ull<<25);
-      const uint64_t CELL_PDT2                = (1ull<<26);
-      const uint64_t CELL_RHOQ_TOT            = (1ull<<27);
-      const uint64_t CELL_PHI                 = (1ull<<28);
-      const uint64_t POP_METADATA             = (1ull<<29);
-      const uint64_t RANDOMGEN                = (1ull<<30);
-      const uint64_t CELL_GRADPE_TERM         = (1ull<<31);
+      const uint64_t CELL_RHOM_V              = (1ull<<14);
+      const uint64_t CELL_RHOMDT2_VDT2        = (1ull<<15);
+      const uint64_t CELL_RHOQ                = (1ull<<16);
+      const uint64_t CELL_RHOQDT2             = (1ull<<17);
+      const uint64_t CELL_BVOL                = (1ull<<18);
+      const uint64_t CELL_BVOL_DERIVATIVES    = (1ull<<19);
+      const uint64_t CELL_DIMENSIONS          = (1ull<<20);
+      const uint64_t CELL_IOLOCALCELLID       = (1ull<<21);
+      const uint64_t NEIGHBOR_VEL_BLOCK_DATA  = (1ull<<22);
+      const uint64_t CELL_HALL_TERM           = (1ull<<23);
+      const uint64_t CELL_P                   = (1ull<<24);
+      const uint64_t CELL_PDT2                = (1ull<<25);
+      const uint64_t POP_METADATA             = (1ull<<26);
+      const uint64_t RANDOMGEN                = (1ull<<27);
+      const uint64_t CELL_GRADPE_TERM         = (1ull<<28);
       //all data
       const uint64_t ALL_DATA =
       CELL_PARAMETERS
@@ -316,10 +313,6 @@ namespace spatial_cell {
       //random_data* get_rng_data_buffer();
 
       // Member variables //
-      //Real derivatives[fieldsolver::N_SPATIAL_CELL_DERIVATIVES];              /**< Derivatives of bulk variables in this spatial cell.*/
-      std::array<Real, fieldsolver::N_SPATIAL_CELL_DERIVATIVES> derivatives;    /**< Derivatives of bulk variables in this spatial cell.*/
-      //Real derivativesBVOL[bvolderivatives::N_BVOL_DERIVATIVES];                /**< Derivatives of BVOL needed by the acceleration. 
-      //                                                                           * Separate array because it does not need to be communicated.*/
       std::array<Real, bvolderivatives::N_BVOL_DERIVATIVES> derivativesBVOL;    /**< Derivatives of BVOL needed by the acceleration.            
                                                                                  * Separate array because it does not need to be communicated.*/
       //Real parameters[CellParams::N_SPATIAL_CELL_PARAMS];                     /**< Bulk variables in this spatial cell.*/
@@ -330,9 +323,13 @@ namespace spatial_cell {
       uint64_t ioLocalCellId;                                                 /**< Local cell ID used for IO, not needed elsewhere 
                                                                                * and thus not being kept up-to-date.*/
       //vmesh::LocalID mpi_number_of_blocks;                                    /**< Number of blocks in mpi_velocity_block_list.*/
-      Realf* neighbor_block_data;                                             /**< Pointers for translation operator. We can point to neighbor
+      //Realf* neighbor_block_data;                                             /**< Pointers for translation operator. We can point to neighbor
+      //                                                                         * cell block data. We do not allocate memory for the pointer.*/
+      //vmesh::LocalID neighbor_number_of_blocks;
+      std::array<Realf*,MAX_NEIGHBORS_PER_DIM> neighbor_block_data;       /**< Pointers for translation operator. We can point to neighbor
                                                                                * cell block data. We do not allocate memory for the pointer.*/
-      vmesh::LocalID neighbor_number_of_blocks;
+      std::array<vmesh::LocalID,MAX_NEIGHBORS_PER_DIM> neighbor_number_of_blocks;
+      std::map<int,std::set<int>> face_neighbor_ranks;
       uint sysBoundaryFlag;                                                   /**< What type of system boundary does the cell belong to. 
                                                                                * Enumerated in the sysboundarytype namespace's enum.*/
       uint sysBoundaryLayer;                                                  /**< Layers counted from closest systemBoundary. If 0 then it has not 
@@ -347,6 +344,7 @@ namespace spatial_cell {
       static uint64_t mpi_transfer_type;                                      /**< Which data is transferred by the mpi datatype given by spatial cells.*/
       static bool mpiTransferAtSysBoundaries;                                 /**< Do we only transfer data at boundaries (true), or in the whole system (false).*/
 
+      //SpatialCell& operator=(const SpatialCell& other);
     private:
       //SpatialCell& operator=(const SpatialCell&);
       
@@ -1610,7 +1608,6 @@ namespace spatial_cell {
       size += velocity_block_with_content_list.size() * sizeof(vmesh::GlobalID);
       size += velocity_block_with_no_content_list.size() * sizeof(vmesh::GlobalID);
       size += CellParams::N_SPATIAL_CELL_PARAMS * sizeof(Real);
-      size += fieldsolver::N_SPATIAL_CELL_DERIVATIVES * sizeof(Real);
       size += bvolderivatives::N_BVOL_DERIVATIVES * sizeof(Real);
 
       for (size_t p=0; p<populations.size(); ++p) {
@@ -1636,7 +1633,6 @@ namespace spatial_cell {
       capacity += velocity_block_with_content_list.capacity()  * sizeof(vmesh::GlobalID);
       capacity += velocity_block_with_no_content_list.capacity()  * sizeof(vmesh::GlobalID);
       capacity += CellParams::N_SPATIAL_CELL_PARAMS * sizeof(Real);
-      capacity += fieldsolver::N_SPATIAL_CELL_DERIVATIVES * sizeof(Real);
       capacity += bvolderivatives::N_BVOL_DERIVATIVES * sizeof(Real);
       
       for (size_t p=0; p<populations.size(); ++p) {
@@ -1890,11 +1886,30 @@ namespace spatial_cell {
       #endif
       return populations[popID].vmesh.hasGrandParent(blockGID);
    }
+
+   // inline SpatialCell& SpatialCell::operator=(const SpatialCell& other) {
+   //    this->sysBoundaryFlag = other.sysBoundaryFlag;
+   //    this->sysBoundaryLayer = other.sysBoundaryLayer;
+   //    this->sysBoundaryLayerNew = other.sysBoundaryLayerNew;
+   //    this->velocity_block_with_content_list = other.velocity_block_with_content_list;
+   //    this->velocity_block_with_no_content_list = other.velocity_block_with_no_content_list;
+   //    this->initialized = other.initialized;
+   //    this->mpiTransferEnabled = other.mpiTransferEnabled;      
+   //    this->parameters = other.parameters;
+   //    this->derivatives = other.derivatives;
+   //    this->derivativesBVOL = other.derivativesBVOL;      
+   //    this->null_block_data = other.null_block_data;
+   //    this->populations = other.populations;
+   //    this->face_neighbor_ranks = other.face_neighbor_ranks;
+   
+   //    return *this;
+   // }
    
    // inline SpatialCell& SpatialCell::operator=(const SpatialCell&) { 
    //    return *this;
    // }
 
+   
 } // namespaces
 
 #endif

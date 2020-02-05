@@ -33,20 +33,15 @@ using namespace std;
  * all existing particle populations. This function is AMR safe.
  * @param cell Spatial cell.
  * @param computeSecond If true, second velocity moments are calculated.
- * @param doNotSkip If false, DO_NOT_COMPUTE cells, or boundary cells of layer larger than 1, are skipped.*/
+ * @param doNotSkip If false, DO_NOT_COMPUTE cells are skipped.*/
 void calculateCellMoments(spatial_cell::SpatialCell* cell,
                           const bool& computeSecond,
                           const bool& doNotSkip) {
 
     // if doNotSkip == true then the first clause is false and we will never return,
     // i.e. always compute, otherwise we skip DO_NOT_COMPUTE cells
-    // or boundary cells of layer larger than 1.
     bool skipMoments = false;
-    if (!doNotSkip &&
-        (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
-        (cell->sysBoundaryLayer != 1  &&
-         cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY))
-        ) {
+    if (!doNotSkip && cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
         skipMoments = true;
     }
 
@@ -142,25 +137,28 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
 }
 
 /** Calculate zeroth, first, and (possibly) second bulk velocity moments for the 
- * given spatial cell. Additionally, for each species, calculate the maximum 
- * spatial time step so that CFL(spatial)=1. The calculated moments include 
+ * given spatial cell. The calculated moments include 
  * contributions from all existing particle populations. The calculated moments 
  * are stored to SpatialCell::parameters in _R variables. This function is AMR safe.
  * @param mpiGrid Parallel grid library.
  * @param cells Vector containing the spatial cells to be calculated.
  * @param computeSecond If true, second velocity moments are calculated.*/
-void calculateMoments_R_maxdt(
+void calculateMoments_R(
         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
         const std::vector<CellID>& cells,
         const bool& computeSecond) {
  
-    phiprof::start("compute-moments-n-maxdt");
+    phiprof::start("compute-moments-n");
     creal HALF = 0.5;
 
     for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
        #pragma omp parallel for
        for (size_t c=0; c<cells.size(); ++c) {
           SpatialCell* cell = mpiGrid[cells[c]];
+          
+          if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+             continue;
+          }
           
           // Clear old moments to zero value
           if (popID == 0) {
@@ -177,10 +175,6 @@ void calculateMoments_R_maxdt(
           const Real dx = cell->parameters[CellParams::DX];
           const Real dy = cell->parameters[CellParams::DY];
           const Real dz = cell->parameters[CellParams::DZ];
-
-          // Reset spatial max DT
-          if (popID == 0) cell->parameters[CellParams::MAXRDT] = numeric_limits<Real>::max();
-          cell->set_max_r_dt(popID,numeric_limits<Real>::max());
 
           vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
           if (blockContainer.size() == 0) continue;
@@ -209,32 +203,9 @@ void calculateMoments_R_maxdt(
 
           // Calculate species' contribution to first velocity moments
           for (vmesh::LocalID blockLID=0; blockLID<blockContainer.size(); ++blockLID) {
-             // compute maximum dt. Algorithm has a CFL condition, since it
-             // is written only for the case where we have a stencil
-             // supporting max translation of one cell
-             const Real EPS = numeric_limits<Real>::min()*1000;
-             for (unsigned int i=0; i<WID;i+=WID-1) {
-                const Real Vx 
-                  = blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::VXCRD] 
-                  + (i+HALF)*blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::DVX]
-                  + EPS;
-                const Real Vy 
-                  = blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::VYCRD] 
-                  + (i+HALF)*blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::DVY]
-                  + EPS;
-                    const Real Vz 
-                  = blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::VZCRD]
-                  + (i+HALF)*blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::DVZ]
-                  + EPS;
-
-                const Real dt_max_cell = min(dx/fabs(Vx),min(dy/fabs(Vy),dz/fabs(Vz)));
-                cell->parameters[CellParams::MAXRDT] = min(dt_max_cell,cell->parameters[CellParams::MAXRDT]);
-                cell->set_max_r_dt(popID,min(dt_max_cell,cell->get_max_r_dt(popID)));
-             }
-
-             blockVelocityFirstMoments(data+blockLID*WID3,
-                                       blockParams+blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS,
-                                       array);
+            blockVelocityFirstMoments(data+blockLID*WID3,
+                                      blockParams+blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS,
+                                      array);
           } // for-loop over velocity blocks
 
           // Store species' contribution to bulk velocity moments
@@ -255,6 +226,9 @@ void calculateMoments_R_maxdt(
     #pragma omp parallel for
     for (size_t c=0; c<cells.size(); ++c) {
        SpatialCell* cell = mpiGrid[cells[c]];
+       if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+          continue;
+       }
        cell->parameters[CellParams::VX_R] = divideIfNonZero(cell->parameters[CellParams::VX_R], cell->parameters[CellParams::RHOM_R]);
        cell->parameters[CellParams::VY_R] = divideIfNonZero(cell->parameters[CellParams::VY_R], cell->parameters[CellParams::RHOM_R]);
        cell->parameters[CellParams::VZ_R] = divideIfNonZero(cell->parameters[CellParams::VZ_R], cell->parameters[CellParams::RHOM_R]);
@@ -262,7 +236,7 @@ void calculateMoments_R_maxdt(
 
    // Compute second moments only if requested.
    if (computeSecond == false) {
-      phiprof::stop("compute-moments-n-maxdt");
+      phiprof::stop("compute-moments-n");
       return;
    }
 
@@ -270,7 +244,11 @@ void calculateMoments_R_maxdt(
       #pragma omp parallel for
       for (size_t c=0; c<cells.size(); ++c) {
          SpatialCell* cell = mpiGrid[cells[c]];
-       
+         
+         if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+            continue;
+         }
+         
          vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
          if (blockContainer.size() == 0) continue;
          const Realf* data       = blockContainer.getData();
@@ -303,7 +281,7 @@ void calculateMoments_R_maxdt(
       } // for-loop over spatial cells
    } // for-loop over particle species
 
-   phiprof::stop("compute-moments-n-maxdt");
+   phiprof::stop("compute-moments-n");
 }
 
 /** Calculate zeroth, first, and (possibly) second bulk velocity moments for the 
@@ -326,6 +304,10 @@ void calculateMoments_V(
       #pragma omp parallel for
       for (size_t c=0; c<cells.size(); ++c) {
          SpatialCell* cell = mpiGrid[cells[c]];
+         
+         if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+            continue;
+         }
          
          // Clear old moments to zero value
          if (popID == 0) {
@@ -375,6 +357,9 @@ void calculateMoments_V(
    #pragma omp parallel for
    for (size_t c=0; c<cells.size(); ++c) {
       SpatialCell* cell = mpiGrid[cells[c]];
+      if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+         continue;
+      }
       cell->parameters[CellParams::VX_V] = divideIfNonZero(cell->parameters[CellParams::VX_V], cell->parameters[CellParams::RHOM_V]);
       cell->parameters[CellParams::VY_V] = divideIfNonZero(cell->parameters[CellParams::VY_V], cell->parameters[CellParams::RHOM_V]);
       cell->parameters[CellParams::VZ_V] = divideIfNonZero(cell->parameters[CellParams::VZ_V], cell->parameters[CellParams::RHOM_V]);
@@ -390,6 +375,10 @@ void calculateMoments_V(
       #pragma omp parallel for
       for (size_t c=0; c<cells.size(); ++c) {
          SpatialCell* cell = mpiGrid[cells[c]];
+         
+         if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+            continue;
+         }
 
          vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
          if (blockContainer.size() == 0) continue;

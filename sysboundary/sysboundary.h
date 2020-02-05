@@ -67,12 +67,15 @@ class SysBoundary {
                           Project& project,
                           creal& t
                          );
-   bool classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
+   bool checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
+   bool classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                      FsGrid< fsgrids::technical, 2> & technicalGrid);
    bool applyInitialState(
                           dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
                           Project& project
                          );
-   void applySysBoundaryVlasovConditions(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, creal& t);
+   void applySysBoundaryVlasovConditions(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, creal& t, const bool calculate_V_moments);
    unsigned int size() const;
    SBC::SysBoundaryCondition* getSysBoundary(cuint sysBoundaryType) const;
    bool isDynamic() const;

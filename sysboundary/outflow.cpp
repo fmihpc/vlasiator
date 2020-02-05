@@ -214,11 +214,17 @@ namespace SBC {
       return true;
    }
    
-   bool Outflow::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
+   bool Outflow::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                   FsGrid< fsgrids::technical, 2> & technicalGrid) {
+
+      bool doAssign;
+      std::array<bool,6> isThisCellOnAFace;
+      
+      // Assign boundary flags to local DCCRG cells
       vector<CellID> cells = mpiGrid.get_cells();
-      for(uint i = 0; i < cells.size(); i++) {
-         if(mpiGrid[cells[i]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
-         creal* const cellParams = &(mpiGrid[cells[i]]->parameters[0]);
+      for(const auto& dccrgId : cells) {
+         if(mpiGrid[dccrgId]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
+         creal* const cellParams = &(mpiGrid[dccrgId]->parameters[0]);
          creal dx = cellParams[CellParams::DX];
          creal dy = cellParams[CellParams::DY];
          creal dz = cellParams[CellParams::DZ];
@@ -226,21 +232,57 @@ namespace SBC {
          creal y = cellParams[CellParams::YCRD] + 0.5*dy;
          creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
          
-         bool isThisCellOnAFace[6];
-         determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz);
+         isThisCellOnAFace.fill(false);
+         determineFace(isThisCellOnAFace.data(), x, y, z, dx, dy, dz);
          
          // Comparison of the array defining which faces to use and the array telling on which faces this cell is
-         bool doAssign = false;
-         for(uint j=0; j<6; j++) doAssign = doAssign || (facesToProcess[j] && isThisCellOnAFace[j]);
+         doAssign = false;
+         for(int j=0; j<6; j++) doAssign = doAssign || (facesToProcess[j] && isThisCellOnAFace[j]);
          if(doAssign) {
-            mpiGrid[cells[i]]->sysBoundaryFlag = this->getIndex();
+            mpiGrid[dccrgId]->sysBoundaryFlag = this->getIndex();
+         }         
+      }
+      
+      // Assign boundary flags to local fsgrid cells
+      const std::array<int, 3> gridDims(technicalGrid.getLocalSize());  
+      for (int k=0; k<gridDims[2]; k++) {
+         for (int j=0; j<gridDims[1]; j++) {
+            for (int i=0; i<gridDims[0]; i++) {
+               const auto& coords = technicalGrid.getPhysicalCoords(i,j,k);
+
+               // Shift to the center of the fsgrid cell
+               auto cellCenterCoords = coords;
+               cellCenterCoords[0] += 0.5 * technicalGrid.DX;
+               cellCenterCoords[1] += 0.5 * technicalGrid.DY;
+               cellCenterCoords[2] += 0.5 * technicalGrid.DZ;
+               const auto refLvl = mpiGrid.get_refinement_level(mpiGrid.get_existing_cell(cellCenterCoords));
+
+               if(refLvl == -1) {
+                  cerr << "Error, could not get refinement level of remote DCCRG cell " << __FILE__ << " " << __LINE__ << endl;
+               }
+               
+               creal dx = P::dx_ini * pow(2,-refLvl);
+               creal dy = P::dy_ini * pow(2,-refLvl);
+               creal dz = P::dz_ini * pow(2,-refLvl);
+
+               isThisCellOnAFace.fill(false);
+               doAssign = false;
+
+               determineFace(isThisCellOnAFace.data(), cellCenterCoords[0], cellCenterCoords[1], cellCenterCoords[2], dx, dy, dz);
+               for(int iface=0; iface<6; iface++) doAssign = doAssign || (facesToProcess[iface] && isThisCellOnAFace[iface]);
+               if(doAssign) {
+                  technicalGrid.get(i,j,k)->sysBoundaryFlag = this->getIndex();
+               }
+            }
          }
       }
+      
       return true;
    }
    
    bool Outflow::applyInitialState(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
       Project &project
    ) {
       const vector<CellID>& cells = getLocalCells();
@@ -282,6 +324,9 @@ namespace SBC {
             cell->parameters[CellParams::VX_DT2] = cell->parameters[CellParams::VX];
             cell->parameters[CellParams::VY_DT2] = cell->parameters[CellParams::VY];
             cell->parameters[CellParams::VZ_DT2] = cell->parameters[CellParams::VZ];
+            cell->parameters[CellParams::P_11_DT2] = cell->parameters[CellParams::P_11];
+            cell->parameters[CellParams::P_22_DT2] = cell->parameters[CellParams::P_22];
+            cell->parameters[CellParams::P_33_DT2] = cell->parameters[CellParams::P_33];
          }
       }
       return true;
@@ -300,68 +345,13 @@ namespace SBC {
       cuint& RKCase,
       cuint& component
    ) {
-      Real fieldValue = -1.0;
+      Real fieldValue;
       
-      creal dx =technicalGrid.DX;
-      creal dy =technicalGrid.DY;
-      creal dz =technicalGrid.DZ;
-      const std::array<int, 3> globalIndices = technicalGrid.getGlobalIndices(i,j,k);
-      creal x = (convert<Real>(globalIndices[0])+0.5)*dx + Parameters::xmin;
-      creal y = (convert<Real>(globalIndices[1])+0.5)*dy + Parameters::ymin;
-      creal z = (convert<Real>(globalIndices[2])+0.5)*dz + Parameters::zmin;
-      
-      bool isThisCellOnAFace[6];
-      determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, true);
-      
-      cuint sysBoundaryLayer = technicalGrid.get(i,j,k)->sysBoundaryLayer;
-      
-      if (sysBoundaryLayer == 1
-         && isThisCellOnAFace[0]                            // we are on the face
-         && this->facesToProcess[0]                         // we are supposed to do this face
-         && !this->facesToSkipFields[0]                     // we are not supposed to skip fields on this face
-         && component == 0                                  // we do the component normal to this face
-         && !(isThisCellOnAFace[2] || isThisCellOnAFace[3] || isThisCellOnAFace[4] || isThisCellOnAFace[5]) // we are not in a corner
-      ) {
-         propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, true, false, false);
-         if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-            fieldValue = perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBX + component);
-         } else {
-            fieldValue = perBDt2Grid.get(i,j,k)->at(fsgrids::bfield::PERBX + component);
-         }
-      } else if (sysBoundaryLayer == 1
-         && isThisCellOnAFace[2]                            // we are on the face
-         && this->facesToProcess[2]                         // we are supposed to do this face
-         && !this->facesToSkipFields[2]                     // we are not supposed to skip fields on this face
-         && component == 1                                  // we do the component normal to this face
-         && !(isThisCellOnAFace[0] || isThisCellOnAFace[1] || isThisCellOnAFace[4] || isThisCellOnAFace[5]) // we are not in a corner
-      ) {
-         propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, false, true, false);
-         if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-            fieldValue = perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBX + component);
-         } else {
-            fieldValue = perBDt2Grid.get(i,j,k)->at(fsgrids::bfield::PERBX + component);
-         }
-      } else if (sysBoundaryLayer == 1
-         && isThisCellOnAFace[4]                            // we are on the face
-         && this->facesToProcess[4]                         // we are supposed to do this face
-         && !this->facesToSkipFields[4]                     // we are not supposed to skip fields on this face
-         && component == 2                                  // we do the component normal to this face
-         && !(isThisCellOnAFace[0] || isThisCellOnAFace[1] || isThisCellOnAFace[2] || isThisCellOnAFace[3]) // we are not in a corner
-      ) {
-         propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, false, false, true);
-         if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-            fieldValue = perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBX + component);
-         } else {
-            fieldValue = perBDt2Grid.get(i,j,k)->at(fsgrids::bfield::PERBX + component);
-         }
+      if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+         fieldValue = fieldBoundaryCopyFromExistingFaceNbrMagneticField(perBGrid, technicalGrid, i, j, k, component);
       } else {
-         if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-            fieldValue = fieldBoundaryCopyFromExistingFaceNbrMagneticField(perBGrid, technicalGrid, i, j, k, component);
-         } else {
-            fieldValue = fieldBoundaryCopyFromExistingFaceNbrMagneticField(perBDt2Grid, technicalGrid, i, j, k, component);
-         }
+         fieldValue = fieldBoundaryCopyFromExistingFaceNbrMagneticField(perBDt2Grid, technicalGrid, i, j, k, component);
       }
-      
       return fieldValue;
    }
 
@@ -447,7 +437,8 @@ namespace SBC {
    void Outflow::vlasovBoundaryCondition(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
-      const uint popID
+      const uint popID,
+      const bool calculate_V_moments
    ) {
 //      phiprof::start("vlasovBoundaryCondition (Outflow)");
       
@@ -470,18 +461,10 @@ namespace SBC {
                case vlasovscheme::NONE:
                   break;
                case vlasovscheme::COPY:
-                  if (cell->sysBoundaryLayer == 1) {
-                     vlasovBoundaryCopyFromTheClosestNbr(mpiGrid,cellID,false,popID);
-                  } else {
-                     vlasovBoundaryCopyFromTheClosestNbr(mpiGrid,cellID,true,popID);
-                  }
+                  vlasovBoundaryCopyFromTheClosestNbr(mpiGrid,cellID,false,popID,calculate_V_moments);
                   break;
                case vlasovscheme::LIMIT:
-                  if (cell->sysBoundaryLayer == 1) {
-                     vlasovBoundaryCopyFromTheClosestNbrAndLimit(mpiGrid,cellID,popID);
-                  } else {
-                     vlasovBoundaryCopyFromTheClosestNbr(mpiGrid,cellID,true,popID);
-                  }
+                  vlasovBoundaryCopyFromTheClosestNbrAndLimit(mpiGrid,cellID,popID);
                   break;
                default:
                   std::cerr << __FILE__ << ":" << __LINE__ << "ERROR: invalid Outflow Vlasov scheme!" << std::endl;

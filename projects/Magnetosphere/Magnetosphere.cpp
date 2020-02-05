@@ -28,8 +28,10 @@
 #include "../../common.h"
 #include "../../readparameters.h"
 #include "../../backgroundfield/backgroundfield.h"
+#include "../../backgroundfield/constantfield.hpp"
 #include "../../backgroundfield/dipole.hpp"
 #include "../../backgroundfield/linedipole.hpp"
+#include "../../backgroundfield/vectordipole.hpp"
 #include "../../object_wrapper.h"
 
 #include "Magnetosphere.h"
@@ -51,6 +53,29 @@ namespace projects {
       RP::add("Magnetosphere.dipoleScalingFactor","Scales the field strength of the magnetic dipole compared to Earths.", 1.0);
       RP::add("Magnetosphere.dipoleType","0: Normal 3D dipole, 1: line-dipole for 2D polar simulations, 2: line-dipole with mirror, 3: 3D dipole with mirror", 0);
       RP::add("Magnetosphere.dipoleMirrorLocationX","x-coordinate of dipole Mirror", -1.0);
+
+      RP::add("Magnetosphere.refine_L4radius","Radius of L3-refined sphere or cap", 6.0e7);
+      RP::add("Magnetosphere.refine_L4nosexmin","Low x-value of nose L3-refined box", 5.5e7);
+
+      RP::add("Magnetosphere.refine_L3radius","Radius of L3-refined sphere or cap", 6.371e7); // 10 RE
+      RP::add("Magnetosphere.refine_L3nosexmin","Low x-value of nose L3-refined box", 5.0e7); //
+      RP::add("Magnetosphere.refine_L3tailheight","Height in +-z of tail L3-refined box", 1.0e7); //
+      RP::add("Magnetosphere.refine_L3tailwidth","Width in +-y of tail L3-refined box", 5.0e7); // 10 RE
+      RP::add("Magnetosphere.refine_L3tailxmin","Low x-value of tail L3-refined box", -20.0e7); // 10 RE
+      RP::add("Magnetosphere.refine_L3tailxmax","High x-value of tail L3-refined box", -5.0e7); // 10 RE
+      
+      RP::add("Magnetosphere.refine_L2radius","Radius of L2-refined sphere", 9.5565e7); // 15 RE
+      RP::add("Magnetosphere.refine_L2tailthick","Thickness of L2-refined tail region", 3.1855e7); // 5 RE
+      RP::add("Magnetosphere.refine_L1radius","Radius of L1-refined sphere", 1.59275e8); // 25 RE
+      RP::add("Magnetosphere.refine_L1tailthick","Thickness of L1-refined tail region", 6.371e7); // 10 RE
+
+      RP::add("Magnetosphere.dipoleTiltPhi","Magnitude of dipole tilt, in degrees", 0.0);
+      RP::add("Magnetosphere.dipoleTiltTheta","Direction of dipole tilt from Sun-Earth-line, in degrees", 0.0);
+      RP::add("Magnetosphere.dipoleXFull","X-coordinate up to which dipole is at full strength, in metres", 9.5565e7); // 15 RE
+      RP::add("Magnetosphere.dipoleXZero","X-coordinate after which dipole is at zero strength, in metres", 1.9113e8); // 30 RE
+      RP::add("Magnetosphere.dipoleInflowBX","Inflow magnetic field Bx component to which the vector potential dipole converges. Default is none.", 0.0);
+      RP::add("Magnetosphere.dipoleInflowBY","Inflow magnetic field By component to which the vector potential dipole converges. Default is none.", 0.0);
+      RP::add("Magnetosphere.dipoleInflowBZ","Inflow magnetic field Bz component to which the vector potential dipole converges. Default is none.", 0.0);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
@@ -125,6 +150,86 @@ namespace projects {
          exit(1);
       }
 
+
+      if(!Readparameters::get("Magnetosphere.refine_L4radius", this->refine_L4radius)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("Magnetosphere.refine_L4nosexmin", this->refine_L4nosexmin)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+
+      if(!Readparameters::get("Magnetosphere.refine_L3radius", this->refine_L3radius)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("Magnetosphere.refine_L3nosexmin", this->refine_L3nosexmin)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("Magnetosphere.refine_L3tailwidth", this->refine_L3tailwidth)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("Magnetosphere.refine_L3tailheight", this->refine_L3tailheight)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("Magnetosphere.refine_L3tailxmin", this->refine_L3tailxmin)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("Magnetosphere.refine_L3tailxmax", this->refine_L3tailxmax)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+
+      if(!Readparameters::get("Magnetosphere.refine_L2radius", this->refine_L2radius)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("Magnetosphere.refine_L2tailthick", this->refine_L2tailthick)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("Magnetosphere.refine_L1radius", this->refine_L1radius)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("Magnetosphere.refine_L1tailthick", this->refine_L1tailthick)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+
+      if(!Readparameters::get("Magnetosphere.dipoleTiltPhi", this->dipoleTiltPhi)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("Magnetosphere.dipoleTiltTheta", this->dipoleTiltTheta)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("Magnetosphere.dipoleXFull", this->dipoleXFull)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("Magnetosphere.dipoleXZero", this->dipoleXZero)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("Magnetosphere.dipoleInflowBX", this->dipoleInflowB[0])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("Magnetosphere.dipoleInflowBY", this->dipoleInflowB[1])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("Magnetosphere.dipoleInflowBZ", this->dipoleInflowB[2])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
@@ -225,123 +330,156 @@ namespace projects {
    }
    
    /*! Magnetosphere does not set any extra perturbed B. */
-   void Magnetosphere::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
-      Real* cellParams = cell->get_cell_parameters();
-      cellParams[CellParams::PERBX] = 0.0;
-      cellParams[CellParams::PERBY] = 0.0;
-      cellParams[CellParams::PERBZ] = 0.0;
-   }
+   void Magnetosphere::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
 
    /* set 0-centered dipole */
-   void Magnetosphere::setCellBackgroundField(SpatialCell *cell) const {
-      if(cell->sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN && this->noDipoleInSW) {
-         setBackgroundFieldToZero(cell->parameters.data(), cell->derivatives.data(),cell->derivativesBVOL.data());
-      }
-      else {
-         Dipole bgFieldDipole;
-         LineDipole bgFieldLineDipole;
+   void Magnetosphere::setProjectBField(
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+      FsGrid< fsgrids::technical, 2>& technicalGrid
+   ) {
+      Dipole bgFieldDipole;
+      LineDipole bgFieldLineDipole;
+      VectorDipole bgVectorDipole;
 
-         // The hardcoded constants of dipole and line dipole moments are obtained
-         // from Daldorff et al (2014), see
-         // https://github.com/fmihpc/vlasiator/issues/20 for a derivation of the
-         // values used here.
-         switch(this->dipoleType) {
-             case 0:
-                bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );//set dipole moment
-                setBackgroundField(bgFieldDipole,cell->parameters.data(), cell->derivatives.data(),cell->derivativesBVOL.data());
-                break;
-             case 1:
-                bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor, 0.0, 0.0, 0.0 );//set dipole moment     
-                setBackgroundField(bgFieldLineDipole,cell->parameters.data(), cell->derivatives.data(),cell->derivativesBVOL.data());
-                break;
-             case 2:
-                bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor, 0.0, 0.0, 0.0 );//set dipole moment     
-                setBackgroundField(bgFieldLineDipole,cell->parameters.data(), cell->derivatives.data(),cell->derivativesBVOL.data());
-                //Append mirror dipole
-                bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor, this->dipoleMirrorLocationX, 0.0, 0.0 );
-                setBackgroundField(bgFieldLineDipole,cell->parameters.data(), cell->derivatives.data(),cell->derivativesBVOL.data(), true);
-                break;
-             case 3:
-                bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );//set dipole moment
-                setBackgroundField(bgFieldDipole,cell->parameters.data(), cell->derivatives.data(),cell->derivativesBVOL.data());
-                //Append mirror dipole                
-                bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, this->dipoleMirrorLocationX, 0.0, 0.0, 0.0 );//mirror
-                setBackgroundField(bgFieldDipole,cell->parameters.data(), cell->derivatives.data(),cell->derivativesBVOL.data(), true);
-                break;
-                
-             default:
-                setBackgroundFieldToZero(cell->parameters.data(), cell->derivatives.data(),cell->derivativesBVOL.data());
-                
+      // The hardcoded constants of dipole and line dipole moments are obtained
+      // from Daldorff et al (2014), see
+      // https://github.com/fmihpc/vlasiator/issues/20 for a derivation of the
+      // values used here.
+      switch(this->dipoleType) {
+            case 0:
+               bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );//set dipole moment
+               setBackgroundField(bgFieldDipole, BgBGrid);
+               break;
+            case 1:
+               bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor, 0.0, 0.0, 0.0 );//set dipole moment     
+               setBackgroundField(bgFieldLineDipole, BgBGrid);
+               break;
+            case 2:
+               bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor, 0.0, 0.0, 0.0 );//set dipole moment     
+               setBackgroundField(bgFieldLineDipole, BgBGrid);
+               //Append mirror dipole
+               bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor, this->dipoleMirrorLocationX, 0.0, 0.0 );
+               setBackgroundField(bgFieldLineDipole, BgBGrid, true);
+               break;
+            case 3:
+               bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );//set dipole moment
+               setBackgroundField(bgFieldDipole, BgBGrid);
+               //Append mirror dipole                
+               bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, this->dipoleMirrorLocationX, 0.0, 0.0, 0.0 );//mirror
+               setBackgroundField(bgFieldDipole, BgBGrid, true);
+               break; 
+            case 4:  // Vector potential dipole, vanishes or optionally scales to static inflow value after a given x-coordinate
+	       // What we in fact do is we place the regular dipole in the background field, and the
+	       // corrective terms in the perturbed field. This maintains the BGB as curl-free.
+	       bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );//set dipole moment
+               setBackgroundField(bgFieldDipole, BgBGrid);
+	       // Difference into perBgrid, only if not restarting
+	       if (P::isRestart == false) {
+		  bgFieldDipole.initialize(-8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );
+		  setPerturbedField(bgFieldDipole, perBGrid);
+		  bgVectorDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, this->dipoleTiltPhi*3.14159/180., this->dipoleTiltTheta*3.14159/180., this->dipoleXFull, this->dipoleXZero, this->dipoleInflowB[0], this->dipoleInflowB[1], this->dipoleInflowB[2]);
+		  setPerturbedField(bgVectorDipole, perBGrid, true);
+	       }
+               break;              
+            default:
+               setBackgroundFieldToZero(BgBGrid);
+      }
+      
+      const auto localSize = BgBGrid.getLocalSize().data();
+      
+#pragma omp parallel
+      {
+         //Force field to zero in the perpendicular direction for 2D (1D) simulations. Otherwise we have unphysical components.
+         if(P::xcells_ini==1) {
+#pragma omp for collapse(3)
+            for (int x = 0; x < localSize[0]; ++x) {
+               for (int y = 0; y < localSize[1]; ++y) {
+                  for (int z = 0; z < localSize[2]; ++z) {
+                     std::array<Real, fsgrids::bgbfield::N_BGB>* cell = BgBGrid.get(x, y, z);
+                     cell->at(fsgrids::bgbfield::BGBX)=0;
+                     cell->at(fsgrids::bgbfield::BGBXVOL)=0.0;
+                     cell->at(fsgrids::bgbfield::dBGBydx)=0.0;
+                     cell->at(fsgrids::bgbfield::dBGBzdx)=0.0;
+                     cell->at(fsgrids::bgbfield::dBGBxdy)=0.0;
+                     cell->at(fsgrids::bgbfield::dBGBxdz)=0.0;
+                     cell->at(fsgrids::bgbfield::dBGBYVOLdx)=0.0;
+                     cell->at(fsgrids::bgbfield::dBGBZVOLdx)=0.0;
+                     cell->at(fsgrids::bgbfield::dBGBXVOLdy)=0.0;
+                     cell->at(fsgrids::bgbfield::dBGBXVOLdz)=0.0;
+                  }
+               }
+            }
          }
-      }
-      
-
-      //Force field to zero in the perpendicular direction for 2D (1D) simulations. Otherwise we have unphysical components.
-      if(P::xcells_ini==1) {
-         cell->parameters[CellParams::BGBX]=0;
-         cell->parameters[CellParams::BGBXVOL]=0.0;
-         cell->derivatives[fieldsolver::dBGBydx]=0.0;
-         cell->derivatives[fieldsolver::dBGBzdx]=0.0;
-         cell->derivatives[fieldsolver::dBGBxdy]=0.0;
-         cell->derivatives[fieldsolver::dBGBxdz]=0.0;
-         cell->derivativesBVOL[bvolderivatives::dBGBYVOLdx]=0.0;
-         cell->derivativesBVOL[bvolderivatives::dBGBZVOLdx]=0.0;
-         cell->derivativesBVOL[bvolderivatives::dBGBXVOLdy]=0.0;
-         cell->derivativesBVOL[bvolderivatives::dBGBXVOLdz]=0.0;
-      }
-      
-      if(P::ycells_ini==1) {
-         /*2D simulation in x and z. Set By and derivatives along Y, and derivatives of By to zero*/
-         cell->parameters[CellParams::BGBY]=0.0;
-         cell->parameters[CellParams::BGBYVOL]=0.0;
-         cell->derivatives[fieldsolver::dBGBxdy]=0.0;
-         cell->derivatives[fieldsolver::dBGBzdy]=0.0;
-         cell->derivatives[fieldsolver::dBGBydx]=0.0;
-         cell->derivatives[fieldsolver::dBGBydz]=0.0;
-         cell->derivativesBVOL[bvolderivatives::dBGBXVOLdy]=0.0;
-         cell->derivativesBVOL[bvolderivatives::dBGBZVOLdy]=0.0;
-         cell->derivativesBVOL[bvolderivatives::dBGBYVOLdx]=0.0;
-         cell->derivativesBVOL[bvolderivatives::dBGBYVOLdz]=0.0;
-      }
-      if(P::zcells_ini==1) {
-         cell->parameters[CellParams::BGBX]=0;
-         cell->parameters[CellParams::BGBY]=0;
-         cell->parameters[CellParams::BGBYVOL]=0.0;
-         cell->parameters[CellParams::BGBXVOL]=0.0;
-         cell->derivatives[fieldsolver::dBGBxdy]=0.0;
-         cell->derivatives[fieldsolver::dBGBxdz]=0.0;
-         cell->derivatives[fieldsolver::dBGBydx]=0.0;
-         cell->derivatives[fieldsolver::dBGBydz]=0.0;
-         cell->derivativesBVOL[bvolderivatives::dBGBXVOLdy]=0.0;
-         cell->derivativesBVOL[bvolderivatives::dBGBXVOLdz]=0.0;
-         cell->derivativesBVOL[bvolderivatives::dBGBYVOLdx]=0.0;
-         cell->derivativesBVOL[bvolderivatives::dBGBYVOLdz]=0.0;
-      }
-      for(uint component=0; component<3; component++) {
-         if(this->constBgB[component] != 0.0) {
-            cell->parameters[CellParams::BGBX+component] += this->constBgB[component];
-            cell->parameters[CellParams::BGBXVOL+component] += this->constBgB[component];
+         if(P::ycells_ini==1) {
+            /*2D simulation in x and z. Set By and derivatives along Y, and derivatives of By to zero*/
+#pragma omp for collapse(3)
+            for (int x = 0; x < localSize[0]; ++x) {
+               for (int y = 0; y < localSize[1]; ++y) {
+                  for (int z = 0; z < localSize[2]; ++z) {
+                     std::array<Real, fsgrids::bgbfield::N_BGB>* cell = BgBGrid.get(x, y, z);
+                     cell->at(fsgrids::bgbfield::BGBY)=0.0;
+                     cell->at(fsgrids::bgbfield::BGBYVOL)=0.0;
+                     cell->at(fsgrids::bgbfield::dBGBxdy)=0.0;
+                     cell->at(fsgrids::bgbfield::dBGBzdy)=0.0;
+                     cell->at(fsgrids::bgbfield::dBGBydx)=0.0;
+                     cell->at(fsgrids::bgbfield::dBGBydz)=0.0;
+                     cell->at(fsgrids::bgbfield::dBGBXVOLdy)=0.0;
+                     cell->at(fsgrids::bgbfield::dBGBZVOLdy)=0.0;
+                     cell->at(fsgrids::bgbfield::dBGBYVOLdx)=0.0;
+                     cell->at(fsgrids::bgbfield::dBGBYVOLdz)=0.0;
+                  }
+               }
+            }
          }
+         if(P::zcells_ini==1) {
+#pragma omp for collapse(3)
+            for (int x = 0; x < localSize[0]; ++x) {
+               for (int y = 0; y < localSize[1]; ++y) {
+                  for (int z = 0; z < localSize[2]; ++z) {
+                     std::array<Real, fsgrids::bgbfield::N_BGB>* cell = BgBGrid.get(x, y, z);
+                     cell->at(fsgrids::bgbfield::BGBX)=0;
+                     cell->at(fsgrids::bgbfield::BGBY)=0;
+                     cell->at(fsgrids::bgbfield::BGBYVOL)=0.0;
+                     cell->at(fsgrids::bgbfield::BGBXVOL)=0.0;
+                     cell->at(fsgrids::bgbfield::dBGBxdy)=0.0;
+                     cell->at(fsgrids::bgbfield::dBGBxdz)=0.0;
+                     cell->at(fsgrids::bgbfield::dBGBydx)=0.0;
+                     cell->at(fsgrids::bgbfield::dBGBydz)=0.0;
+                     cell->at(fsgrids::bgbfield::dBGBXVOLdy)=0.0;
+                     cell->at(fsgrids::bgbfield::dBGBXVOLdz)=0.0;
+                     cell->at(fsgrids::bgbfield::dBGBYVOLdx)=0.0;
+                     cell->at(fsgrids::bgbfield::dBGBYVOLdz)=0.0;
+                  }
+               }
+            }
+         }
+         
+         // Remove dipole from inflow cells if this is requested
+         if(this->noDipoleInSW) {
+#pragma omp for collapse(3)
+            for (int x = 0; x < localSize[0]; ++x) {
+               for (int y = 0; y < localSize[1]; ++y) {
+                  for (int z = 0; z < localSize[2]; ++z) {
+                     if(technicalGrid.get(x, y, z)->sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN ) {
+                        for (int i = 0; i < fsgrids::bgbfield::N_BGB; ++i) {
+                           BgBGrid.get(x,y,z)->at(i) = 0;
+                        }
+                     }
+                  }
+               }
+            }
+         }
+      } // end of omp parallel region
+      // Superimpose constant background field if needed
+      if(this->constBgB[0] != 0.0 || this->constBgB[1] != 0.0 || this->constBgB[2] != 0.0) {
+         ConstantField bgConstantField;
+         bgConstantField.initialize(this->constBgB[0], this->constBgB[1], this->constBgB[2]);
+         setBackgroundField(bgConstantField, BgBGrid, true);
       }
-      
-//       // FIXME TESTING HACK to be used when one wants to get the "zero" Hall field from the dipole
-//       cell->parameters[CellParams::PERBX] = cell->parameters[CellParams::BGBX];
-//       cell->parameters[CellParams::PERBXVOL] = cell->parameters[CellParams::BGBXVOL];
-//       cell->parameters[CellParams::BGBX] = 0.0;
-//       cell->parameters[CellParams::BGBXVOL] = 0.0;
-//       cell->parameters[CellParams::PERBY] = cell->parameters[CellParams::BGBY];
-//       cell->parameters[CellParams::PERBYVOL] = cell->parameters[CellParams::BGBYVOL];
-//       cell->parameters[CellParams::BGBY] = 0.0;
-//       cell->parameters[CellParams::BGBYVOL] = 0.0;
-//       cell->parameters[CellParams::PERBZ] = cell->parameters[CellParams::BGBY];
-//       cell->parameters[CellParams::PERBZVOL] = cell->parameters[CellParams::BGBZVOL];
-//       cell->parameters[CellParams::BGBZ] = 0.0;
-//       cell->parameters[CellParams::BGBZVOL] = 0.0;
-//       // END OF TESTING HACK
-      
    }
-      
-      
+   
+   
    Real Magnetosphere::getDistribValue(
            creal& x,creal& y,creal& z,
            creal& vx,creal& vy,creal& vz,
@@ -448,6 +586,184 @@ namespace projects {
       
       centerPoints.push_back(V0);
       return centerPoints;
+   }
+
+   bool Magnetosphere::refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
+ 
+     int myRank;       
+     MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+
+     // mpiGrid.set_maximum_refinement_level(std::min(this->maxSpatialRefinementLevel, mpiGrid.mapping.get_maximum_refinement_level()));
+
+     std::vector<CellID> refinedCells;
+
+      // cout << "I am at line " << __LINE__ << " of " << __FILE__ <<  endl;
+     if(myRank == MASTER_RANK) std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
+      
+     // Leave boundary cells and a bit of safety margin
+     const int bw = 2* VLASOV_STENCIL_WIDTH;
+     const int bw2 = 2*(bw + VLASOV_STENCIL_WIDTH);
+     const int bw3 = 2*(bw2 + VLASOV_STENCIL_WIDTH);
+     const int bw4 = 2*(bw3 + VLASOV_STENCIL_WIDTH);
+
+     // Calculate regions for refinement
+     if (P::amrMaxSpatialRefLevel > 0) {
+
+	// L1 refinement.
+	for (uint i = bw; i < P::xcells_ini-bw; ++i) {
+	   for (uint j = bw; j < P::ycells_ini-bw; ++j) {
+	      for (uint k = bw; k < P::zcells_ini-bw; ++k) {
+		 
+		 std::array<double,3> xyz;
+		 xyz[0] = P::xmin + (i+0.5)*P::dx_ini;
+		 xyz[1] = P::ymin + (j+0.5)*P::dy_ini;
+		 xyz[2] = P::zmin + (k+0.5)*P::dz_ini;
+                 
+		 Real radius2 = (xyz[0]*xyz[0]+xyz[1]*xyz[1]+xyz[2]*xyz[2]);
+		 // Check if cell is within L1 sphere, or within L1 tail slice
+		 if ((radius2 < refine_L1radius*refine_L1radius) ||
+                     ((xyz[0] < 0) && (std::abs(xyz[1]) < refine_L1radius) && 
+		      (std::abs(xyz[2])<refine_L1tailthick)))
+		    {
+		       CellID myCell = mpiGrid.get_existing_cell(xyz);
+		       mpiGrid.refine_completely(myCell);
+		    }
+	      }
+	   }
+	}
+	refinedCells = mpiGrid.stop_refining(true);      
+	if(myRank == MASTER_RANK) std::cout << "Finished first level of refinement" << endl;
+#ifndef NDEBUG
+	if(refinedCells.size() > 0) {
+	   std::cout << "Rank " << myRank << " refined " << refinedCells.size() << " cells. " << std::endl;
+	}
+#endif
+	mpiGrid.balance_load();
+     }
+     
+     if (P::amrMaxSpatialRefLevel > 1) {
+	
+	// L2 refinement.
+	for (uint i = bw2; i < 2*P::xcells_ini-bw2; ++i) {
+	   for (uint j = bw2; j < 2*P::ycells_ini-bw2; ++j) {
+	      for (uint k = bw2; k < 2*P::zcells_ini-bw2; ++k) {
+		 
+		 std::array<double,3> xyz;
+		 xyz[0] = P::xmin + (i+0.5)*0.5*P::dx_ini;
+		 xyz[1] = P::ymin + (j+0.5)*0.5*P::dy_ini;
+		 xyz[2] = P::zmin + (k+0.5)*0.5*P::dz_ini;
+                 
+		 Real radius2 = (xyz[0]*xyz[0]+xyz[1]*xyz[1]+xyz[2]*xyz[2]);
+		 // Check if cell is within L1 sphere, or within L1 tail slice
+		 if ((radius2 < refine_L2radius*refine_L2radius) ||
+		     ((xyz[0] < 0) && (std::abs(xyz[1]) < refine_L2radius) && 
+		      (std::abs(xyz[2])<refine_L2tailthick)))
+		    {
+		       CellID myCell = mpiGrid.get_existing_cell(xyz);
+		       // Check if the cell is tagged as do not compute
+		       mpiGrid.refine_completely(myCell);
+		    }
+	      }
+	   }
+	}
+	refinedCells = mpiGrid.stop_refining(true);
+	if(myRank == MASTER_RANK) std::cout << "Finished second level of refinement" << endl;
+#ifndef NDEBUG
+	if(refinedCells.size() > 0) {
+	   std::cout << "Rank " << myRank << " refined " << refinedCells.size() << " cells. " << std::endl;
+	}
+#endif
+	
+	mpiGrid.balance_load();
+     }
+     
+     if (P::amrMaxSpatialRefLevel > 2) {
+	// L3 refinement.
+	   for (uint i = bw3; i < 4*P::xcells_ini-bw3; ++i) {
+	      for (uint j = bw3; j < 4*P::ycells_ini-bw3; ++j) {
+		 for (uint k = bw3; k < 4*P::zcells_ini-bw3; ++k) {
+		    
+		    std::array<double,3> xyz;
+		    xyz[0] = P::xmin + (i+0.5)*0.25*P::dx_ini;
+		    xyz[1] = P::ymin + (j+0.5)*0.25*P::dy_ini;
+		    xyz[2] = P::zmin + (k+0.5)*0.25*P::dz_ini;
+                    
+ 		    Real radius2 = (xyz[0]*xyz[0]+xyz[1]*xyz[1]+xyz[2]*xyz[2]);
+// 		    // Check if cell is within L1 sphere, or within L1 tail slice
+// 		    if (radius2 < refine_L3radius*refine_L3radius)
+// 		       {
+// 			  CellID myCell = mpiGrid.get_existing_cell(xyz);
+// 			  // Check if the cell is tagged as do not compute
+// 			  mpiGrid.refine_completely(myCell);
+// 		       }
+
+		    // Check if cell is within the nose cap
+		    if ((xyz[0]>refine_L3nosexmin) && (radius2<refine_L3radius*refine_L3radius))
+		       {
+			  CellID myCell = mpiGrid.get_existing_cell(xyz);
+			  // Check if the cell is tagged as do not compute
+			  mpiGrid.refine_completely(myCell);			  
+		       }
+
+		    // Check if cell is within the tail box
+		    if ((xyz[0]>refine_L3tailxmin) && (xyz[0]<refine_L3tailxmax) &&
+			(abs(xyz[1])<refine_L3tailwidth) && (abs(xyz[2])<refine_L3tailheight))
+		       {
+			  CellID myCell = mpiGrid.get_existing_cell(xyz);
+			  // Check if the cell is tagged as do not compute
+			  mpiGrid.refine_completely(myCell);
+		       }
+
+ 		 }
+	      }
+	   }
+	   refinedCells = mpiGrid.stop_refining(true);
+	   if(myRank == MASTER_RANK) std::cout << "Finished third level of refinement" << endl;
+#ifndef NDEBUG
+	   if(refinedCells.size() > 0) {
+	      std::cout << "Rank " << myRank << " refined " << refinedCells.size() << " cells. " << std::endl;
+	   }
+#endif
+	   
+	   mpiGrid.balance_load();
+     }
+
+     if (P::amrMaxSpatialRefLevel > 3) {
+	// L4 refinement.
+	   for (uint i = bw4; i < 8*P::xcells_ini-bw4; ++i) {
+	      for (uint j = bw4; j < 8*P::ycells_ini-bw4; ++j) {
+		 for (uint k = bw4; k < 8*P::zcells_ini-bw4; ++k) {
+		    
+		    std::array<double,3> xyz;
+		    xyz[0] = P::xmin + (i+0.5)*0.125*P::dx_ini;
+		    xyz[1] = P::ymin + (j+0.5)*0.125*P::dy_ini;
+		    xyz[2] = P::zmin + (k+0.5)*0.125*P::dz_ini;
+                    
+ 		    Real radius2 = (xyz[0]*xyz[0]+xyz[1]*xyz[1]+xyz[2]*xyz[2]);
+
+		    // Check if cell is within the nose cap
+		    if ((xyz[0]>refine_L4nosexmin) && (radius2<refine_L4radius*refine_L4radius))
+		       {
+			  CellID myCell = mpiGrid.get_existing_cell(xyz);
+			  // Check if the cell is tagged as do not compute
+			  mpiGrid.refine_completely(myCell);			  
+		       }
+
+ 		 }
+	      }
+	   }
+	   refinedCells = mpiGrid.stop_refining(true);
+	   if(myRank == MASTER_RANK) std::cout << "Finished fourth level of refinement" << endl;
+#ifndef NDEBUG
+	   if(refinedCells.size() > 0) {
+	      std::cout << "Rank " << myRank << " refined " << refinedCells.size() << " cells. " << std::endl;
+	   }
+#endif
+	   
+	   mpiGrid.balance_load();
+     }
+
+     return true;
    }
    
 } // namespace projects

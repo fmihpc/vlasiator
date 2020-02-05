@@ -45,6 +45,9 @@ struct ParticleParameters {
    static Real input_dt; /*!< Time interval between input files */
 
    static uint64_t num_particles; /*!< Number of particles to generate */
+   static std::string V_field_name; /*!< Name of the Velocity data set to read */
+   static std::string rho_field_name; /*!< Name of the Density data set to read */
+   static bool divide_rhov_by_rho; /*!< Does the file store rho_v and rho separately? */
 
    static Boundary* boundary_behaviour_x; /*!< What to do with particles that reach the x boundary */
    static Boundary* boundary_behaviour_y; /*!< What to do with particles that reach the y boundary */

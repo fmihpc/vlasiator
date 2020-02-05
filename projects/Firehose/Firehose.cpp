@@ -27,6 +27,7 @@
 #include "../../common.h"
 #include "../../readparameters.h"
 #include "../../backgroundfield/backgroundfield.h"
+#include "../../backgroundfield/constantfield.hpp"
 #include "../../object_wrapper.h"
 
 #include "Firehose.h"
@@ -150,10 +151,19 @@ namespace projects {
       return avg / pow(sP.nSpaceSamples, 2.0) /  pow(sP.nVelocitySamples, 3.0);
    }
 
-   void Firehose::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
-      Real* cellParams = cell->get_cell_parameters();
-      cellParams[CellParams::PERBX   ] = this->Bx;
-      cellParams[CellParams::PERBY   ] = this->By;
-      cellParams[CellParams::PERBZ   ] = this->Bz;
+   void Firehose::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
+   
+   void Firehose::setProjectBField(
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+      FsGrid< fsgrids::technical, 2>& technicalGrid
+   ) {
+      ConstantField bgField;
+      bgField.initialize(this->Bx,
+                         this->By,
+                         this->Bz);
+      
+      setBackgroundField(bgField, BgBGrid);
    }
+   
 } // namespace projects
