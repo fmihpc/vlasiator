@@ -78,7 +78,11 @@ namespace SBC {
       return success;
    }
    
-   bool SetByUser::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
+   bool SetByUser::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                     FsGrid< fsgrids::technical, 2> & technicalGrid) {
+      bool doAssign;
+      std::array<bool,6> isThisCellOnAFace;
+
       vector<CellID> cells = mpiGrid.get_cells();
       for(uint i = 0; i < cells.size(); i++) {
          if(mpiGrid[cells[i]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
@@ -90,26 +94,64 @@ namespace SBC {
          creal y = cellParams[CellParams::YCRD] + 0.5*dy;
          creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
          
-         bool isThisCellOnAFace[6];
-         determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz);
+         isThisCellOnAFace.fill(false);
+         determineFace(isThisCellOnAFace.data(), x, y, z, dx, dy, dz);
          // Comparison of the array defining which faces to use and the array telling on which faces this cell is
-         bool doAssign = false;
-         for(uint j=0; j<6; j++) doAssign = doAssign || (facesToProcess[j] && isThisCellOnAFace[j]);
+         doAssign = false;
+         for(int j=0; j<6; j++) doAssign = doAssign || (facesToProcess[j] && isThisCellOnAFace[j]);
          if(doAssign) {
             mpiGrid[cells[i]]->sysBoundaryFlag = this->getIndex();
          }
       }
+      
+      // Assign boundary flags to local fsgrid cells
+      const std::array<int, 3> gridDims(technicalGrid.getLocalSize());
+      for (int k=0; k<gridDims[2]; k++) {
+         for (int j=0; j<gridDims[1]; j++) {
+            for (int i=0; i<gridDims[0]; i++) {
+               const auto coords = technicalGrid.getPhysicalCoords(i,j,k);
+
+               
+               // Shift to the center of the fsgrid cell
+               auto cellCenterCoords = coords;
+               cellCenterCoords[0] += 0.5 * technicalGrid.DX;
+               cellCenterCoords[1] += 0.5 * technicalGrid.DY;
+               cellCenterCoords[2] += 0.5 * technicalGrid.DZ;
+               const auto refLvl = mpiGrid.get_refinement_level(mpiGrid.get_existing_cell(cellCenterCoords));
+
+               if(refLvl == -1) {
+                  cerr << "Error, could not get refinement level of remote DCCRG cell " << __FILE__ << " " << __LINE__ << endl;
+               }
+
+               creal dx = P::dx_ini * pow(2,-refLvl);
+               creal dy = P::dy_ini * pow(2,-refLvl);
+               creal dz = P::dz_ini * pow(2,-refLvl);
+               
+               isThisCellOnAFace.fill(false);
+               doAssign = false;
+
+               determineFace(isThisCellOnAFace.data(), cellCenterCoords[0], cellCenterCoords[1], cellCenterCoords[2], dx, dy, dz);
+               for(int iface=0; iface<6; iface++) doAssign = doAssign || (facesToProcess[iface] && isThisCellOnAFace[iface]);
+               if(doAssign) {
+                  technicalGrid.get(i,j,k)->sysBoundaryFlag = this->getIndex();
+               }
+            }
+         }
+      }
+
       return true;
    }
    
    bool SetByUser::applyInitialState(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
       Project &project
    ) {
       bool success = true;
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-         if (setCellsFromTemplate(mpiGrid, popID) == false) success = false;
+         if (!setCellsFromTemplate(mpiGrid, popID)) success = false;
       }
+      if (!setBFromTemplate(mpiGrid, perBGrid)) success = false;
       
       return success;
    }
@@ -128,20 +170,20 @@ namespace SBC {
       cuint& component
    ) {
       Real result = 0.0;
-      creal dx = perBGrid.DX;
-      creal dy = perBGrid.DY;
-      creal dz = perBGrid.DZ;
+      creal dx = Parameters::dx_ini;
+      creal dy = Parameters::dy_ini;
+      creal dz = Parameters::dz_ini;
       const std::array<int, 3> globalIndices = technicalGrid.getGlobalIndices(i,j,k);
-      creal x = (convert<Real>(globalIndices[0])+0.5)*dx + Parameters::xmin;
-      creal y = (convert<Real>(globalIndices[1])+0.5)*dy + Parameters::ymin;
-      creal z = (convert<Real>(globalIndices[2])+0.5)*dz + Parameters::zmin;
+      creal x = (convert<Real>(globalIndices[0])+0.5)*technicalGrid.DX + Parameters::xmin;
+      creal y = (convert<Real>(globalIndices[1])+0.5)*technicalGrid.DY + Parameters::ymin;
+      creal z = (convert<Real>(globalIndices[2])+0.5)*technicalGrid.DZ + Parameters::zmin;
       
       bool isThisCellOnAFace[6];
       determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, true);
 
       for (uint i=0; i<6; i++) {
          if (isThisCellOnAFace[i]) {
-            result = templateCells[i].parameters[CellParams::PERBX + component];
+            result = templateB[i][component];
             break; // This effectively sets the precedence of faces through the order of faces.
          }
       }
@@ -225,11 +267,60 @@ namespace SBC {
    void SetByUser::vlasovBoundaryCondition(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
-      const uint popID
+      const uint popID,
+      const bool calculate_V_moments
    ) {
       // No need to do anything in this function, as the propagators do not touch the distribution function   
    }
    
+   bool SetByUser::setBFromTemplate(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid) {
+
+      std::array<bool,6> isThisCellOnAFace;
+      const std::array<int, 3> gridDims(perBGrid.getLocalSize());
+
+      for (int k=0; k<gridDims[2]; k++) {
+         for (int j=0; j<gridDims[1]; j++) {
+            for (int i=0; i<gridDims[0]; i++) {
+               const auto coords = perBGrid.getPhysicalCoords(i,j,k);
+               
+               // TODO: This code up to determineFace() should be in a separate function, it gets called in a lot of places.
+               // Shift to the center of the fsgrid cell
+               auto cellCenterCoords = coords;
+               cellCenterCoords[0] += 0.5 * perBGrid.DX;
+               cellCenterCoords[1] += 0.5 * perBGrid.DY;
+               cellCenterCoords[2] += 0.5 * perBGrid.DZ;
+
+               const auto refLvl = mpiGrid.get_refinement_level(mpiGrid.get_existing_cell(cellCenterCoords));
+
+               if(refLvl == -1) {
+                  cerr << "Error, could not get refinement level of remote DCCRG cell " << __FILE__ << " " << __LINE__ << endl;
+                  return false;
+               }
+
+               creal dx = P::dx_ini * pow(2,-refLvl);
+               creal dy = P::dy_ini * pow(2,-refLvl);
+               creal dz = P::dz_ini * pow(2,-refLvl);
+               
+               isThisCellOnAFace.fill(false);
+
+               determineFace(isThisCellOnAFace.data(), cellCenterCoords[0], cellCenterCoords[1], cellCenterCoords[2], dx, dy, dz);
+
+               for(uint iface=0; iface < 6; iface++) {
+                  if(facesToProcess[iface] && isThisCellOnAFace[iface]) {
+                     perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBX) = templateB[iface][0];
+                     perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBY) = templateB[iface][1];
+                     perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBZ) = templateB[iface][2];
+                     break;
+                  }
+               }
+            }
+         }
+      }
+      return true;
+   }
+
+
    bool SetByUser::setCellsFromTemplate(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const uint popID) {
       vector<CellID> cells = mpiGrid.get_cells();
       #pragma omp parallel for
@@ -249,14 +340,8 @@ namespace SBC {
          
          for(uint i=0; i<6; i++) {
             if(facesToProcess[i] && isThisCellOnAFace[i]) {
-               if (popID == 0) {
-                  cell->parameters[CellParams::PERBX] = templateCells[i].parameters[CellParams::PERBX];
-                  cell->parameters[CellParams::PERBY] = templateCells[i].parameters[CellParams::PERBY];
-                  cell->parameters[CellParams::PERBZ] = templateCells[i].parameters[CellParams::PERBZ];
-               
-               }
-
-               copyCellData(&templateCells[i], cell,true,false,popID);
+               copyCellData(&templateCells[i], cell,false,popID,true); // copy also vdf, _V
+               copyCellData(&templateCells[i], cell,true,popID,false); // don't copy vdf again but copy _R now
                break; // This effectively sets the precedence of faces through the order of faces.
             }
          }
@@ -386,7 +471,7 @@ namespace SBC {
       for(uint i=0; i<6; i++) {
          int index;
          if(facesToProcess[i]) {
-            generateTemplateCell(templateCells[i], i, t);
+            generateTemplateCell(templateCells[i], templateB[i], i, t);
          }
       }
       return true;

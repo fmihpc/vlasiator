@@ -48,12 +48,14 @@ namespace SBC {
       return true;
    }
    
-   bool DoNotCompute::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& ) {
+   bool DoNotCompute::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&,
+                                        FsGrid< fsgrids::technical, 2> & technicalGrid) {
       return true;
    }
    
    bool DoNotCompute::applyInitialState(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
       Project&
    ) {
       vector<CellID> cells = mpiGrid.get_cells();
@@ -61,16 +63,8 @@ namespace SBC {
       for (size_t i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
          if(cell->sysBoundaryFlag != this->getIndex()) continue;
-         
-         cell->parameters[CellParams::PERBX] = 0.0;
-         cell->parameters[CellParams::PERBY] = 0.0;
-         cell->parameters[CellParams::PERBZ] = 0.0;
-         cell->parameters[CellParams::PERBX_DT2] = 0.0;
-         cell->parameters[CellParams::PERBY_DT2] = 0.0;
-         cell->parameters[CellParams::PERBZ_DT2] = 0.0;
-         cell->parameters[CellParams::EX] = 0.0;
-         cell->parameters[CellParams::EY] = 0.0;
-         cell->parameters[CellParams::EZ] = 0.0;
+
+         //TODO: Set fields on B grid to 0         
          cell->parameters[CellParams::RHOM] = 0.0;
          cell->parameters[CellParams::VX] = 0.0;
          cell->parameters[CellParams::VY] = 0.0;

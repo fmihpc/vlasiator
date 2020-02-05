@@ -20,7 +20,6 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include <boost/assign/list_of.hpp>
 #include <cstdlib>
 #include <iostream>
 #include <iomanip> // for setprecision()
@@ -38,6 +37,7 @@
 #include "datareduction/datareducer.h"
 #include "sysboundary/sysboundary.h"
 #include "fieldsolver/fs_common.h"
+#include "fieldsolver/gridGlue.hpp"
 #include "projects/project.h"
 #include "iowrite.h"
 #include "ioread.h"
@@ -62,7 +62,6 @@ void initVelocityGridGeometry(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry
 void initSpatialCellCoordinates(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 
-#warning This is for testing, can be removed later
 void writeVelMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
    const vector<CellID>& cells = getLocalCells();
    
@@ -82,16 +81,24 @@ void writeVelMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) 
    ++counter;
 }
 
-void initializeGrid(
+void initializeGrids(
    int argn,
    char **argc,
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsDt2Grid,
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
+   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2> & EGradPeGrid,
+   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volGrid,
+   FsGrid< fsgrids::technical, 2>& technicalGrid,
    SysBoundary& sysBoundaries,
    Project& project
 ) {
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-
+   
    // Init Zoltan:
    float zoltanVersion;
    if (Zoltan_Initialize(argn,argc,&zoltanVersion) != ZOLTAN_OK) {
@@ -113,29 +120,25 @@ void initializeGrid(
    geom_params.level_0_cell_length[1] = P::dy_ini;
    geom_params.level_0_cell_length[2] = P::dz_ini;
    
-   // mpiGrid.initialize(
-   //    grid_length,
-   //    comm,
-   //    &P::loadBalanceAlgorithm[0],
-   //    neighborhood_size, // neighborhood size
-   //    0, // maximum refinement level
-   //    sysBoundaries.isBoundaryPeriodic(0),
-   //    sysBoundaries.isBoundaryPeriodic(1),
-   //    sysBoundaries.isBoundaryPeriodic(2)
-   // );
-
    mpiGrid.set_initial_length(grid_length)
       .set_load_balancing_method(&P::loadBalanceAlgorithm[0])
       .set_neighborhood_length(neighborhood_size)
-      .set_maximum_refinement_level(0)
+      .set_maximum_refinement_level(P::amrMaxSpatialRefLevel)
       .set_periodic(sysBoundaries.isBoundaryPeriodic(0),
                     sysBoundaries.isBoundaryPeriodic(1),
                     sysBoundaries.isBoundaryPeriodic(2))
       .initialize(comm)
       .set_geometry(geom_params);
+
+
+   phiprof::start("Refine spatial cells");
+   if(P::amrMaxSpatialRefLevel > 0 && project.refineSpatialCells(mpiGrid)) {
+      recalculateLocalCellsCache();
+   }
+   phiprof::stop("Refine spatial cells");
    
    // Init velocity mesh on all cells
-   initVelocityGridGeometry(mpiGrid);   
+   initVelocityGridGeometry(mpiGrid);
    initializeStencils(mpiGrid);
    
    mpiGrid.set_partitioning_option("IMBALANCE_TOL", P::loadBalanceTolerance);
@@ -143,11 +146,16 @@ void initializeGrid(
    if (myRank == MASTER_RANK) logFile << "(INIT): Starting initial load balance." << endl << writeVerbose;
    mpiGrid.balance_load();
    recalculateLocalCellsCache();
+
+   if(P::amrMaxSpatialRefLevel > 0) {
+      setFaceNeighborRanks( mpiGrid );
+   }
+   const vector<CellID>& cells = getLocalCells();
    phiprof::stop("Initial load-balancing");
    
    if (myRank == MASTER_RANK) logFile << "(INIT): Set initial state." << endl << writeVerbose;
    phiprof::start("Set initial state");
-   
+
    phiprof::start("Set spatial cell coordinates");
    initSpatialCellCoordinates(mpiGrid);
    phiprof::stop("Set spatial cell coordinates");
@@ -161,32 +169,32 @@ void initializeGrid(
    
    // Initialise system boundary conditions (they need the initialised positions!!)
    phiprof::start("Classify cells (sys boundary conditions)");
-   if(sysBoundaries.classifyCells(mpiGrid) == false) {
+   if(sysBoundaries.classifyCells(mpiGrid,technicalGrid) == false) {
       cerr << "(MAIN) ERROR: System boundary conditions were not set correctly." << endl;
       exit(1);
    }
-
    phiprof::stop("Classify cells (sys boundary conditions)");
 
+   // Check refined cells do not touch boundary cells
+   phiprof::start("Check boundary refinement");
+   if(!sysBoundaries.checkRefinement(mpiGrid)) {
+      cerr << "(MAIN) ERROR: Boundary cells must have identical refinement level " << endl;
+      exit(1);
+   }
+   phiprof::stop("Check boundary refinement");
+   
    if (P::isRestart) {
       logFile << "Restart from "<< P::restartFileName << std::endl << writeVerbose;
       phiprof::start("Read restart");
-      if (readGrid(mpiGrid,P::restartFileName) == false) {
+      if (readGrid(mpiGrid,perBGrid,EGrid,technicalGrid,P::restartFileName) == false) {
          logFile << "(MAIN) ERROR: restarting failed" << endl;
          exit(1);
       }
       phiprof::stop("Read restart");
-      const vector<CellID>& cells = getLocalCells();
-      //set background field, FIXME should be read in from restart
-      #pragma omp parallel for schedule(dynamic)
-      for (size_t i=0; i<cells.size(); ++i) {
-         SpatialCell* cell = mpiGrid[cells[i]];
-         project.setCellBackgroundField(cell);
-      }
    
       //initial state for sys-boundary cells, will skip those not set to be reapplied at restart
       phiprof::start("Apply system boundary conditions state");
-      if (sysBoundaries.applyInitialState(mpiGrid, project) == false) {
+      if (sysBoundaries.applyInitialState(mpiGrid, perBGrid, project) == false) {
          cerr << " (MAIN) ERROR: System boundary conditions initial state was not applied correctly." << endl;
          exit(1);
       }
@@ -201,33 +209,29 @@ void initializeGrid(
       //  -Background field on all cells
       //  -Perturbed fields and ion distribution function in non-sysboundary cells
       // Each initialization has to be independent to avoid threading problems 
-      const vector<CellID>& cells = getLocalCells();
 
       // Allow the project to set up data structures for it's setCell calls
       project.setupBeforeSetCell(cells);
-
+      
+      phiprof::start("setCell");
       #pragma omp parallel for schedule(dynamic)
       for (size_t i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
-         phiprof::start("setCellBackgroundField");
-         project.setCellBackgroundField(cell);
-         phiprof::stop("setCellBackgroundField");
-         phiprof::start("setCell");
          if (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
             project.setCell(cell);
          }
-         phiprof::stop("setCell");
       }
-
+      phiprof::stop("setCell");
+      
       // Initial state for sys-boundary cells
       phiprof::stop("Apply initial state");
       phiprof::start("Apply system boundary conditions state");
-      if (sysBoundaries.applyInitialState(mpiGrid, project) == false) {
+      if (sysBoundaries.applyInitialState(mpiGrid, perBGrid, project) == false) {
          cerr << " (MAIN) ERROR: System boundary conditions initial state was not applied correctly." << endl;
          exit(1);
       }
       phiprof::stop("Apply system boundary conditions state");
-
+      
       for (size_t i=0; i<cells.size(); ++i) {
          mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = 0;
       }
@@ -258,7 +262,7 @@ void initializeGrid(
       phiprof::stop("Init moments");
  */
    }
-
+   
    // Init mesh data container
    if (getObjectWrapper().meshData.initialize("SpatialGrid") == false) {
       cerr << "(Grid) Failed to initialize mesh data container in " << __FILE__ << ":" << __LINE__ << endl;
@@ -267,24 +271,51 @@ void initializeGrid(
    
    //Balance load before we transfer all data below
    balanceLoad(mpiGrid, sysBoundaries);
-
+   
    phiprof::initializeTimer("Fetch Neighbour data","MPI");
    phiprof::start("Fetch Neighbour data");
    // update complete cell spatial data for full stencil (
    SpatialCell::set_mpi_transfer_type(Transfer::ALL_SPATIAL_DATA);
    mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
+   
    phiprof::stop("Fetch Neighbour data");
-
+   
    if (P::isRestart == false) {
       // Apply boundary conditions so that we get correct initial moments
-      sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid,Parameters::t);
+      sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid,Parameters::t, true); // It doesn't matter here whether we put _R or _V moments
       
       //compute moments, and set them  in RHO* and RHO_*_DT2. If restart, they are already read in
       phiprof::start("Init moments");
       calculateInitialVelocityMoments(mpiGrid);
       phiprof::stop("Init moments");
+   } else {
+      phiprof::start("Init moments");
+      for (size_t i=0; i<cells.size(); ++i) {
+         calculateCellMoments(mpiGrid[cells[i]], true);
+      }
+      phiprof::stop("Init moments");
    }
-
+   
+   phiprof::start("setProjectBField");
+   project.setProjectBField(perBGrid, BgBGrid, technicalGrid);
+   perBGrid.updateGhostCells();
+   BgBGrid.updateGhostCells();
+   EGrid.updateGhostCells();
+   phiprof::stop("setProjectBField");
+   
+   phiprof::start("Finish fsgrid setup");
+   feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid,false);
+   if(!P::isRestart) {
+      // WARNING this means moments and dt2 moments are the same here at t=0, which is a feature so far.
+      feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid,false);
+   } else {
+      feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid,true);
+   }
+   momentsGrid.updateGhostCells();
+   momentsDt2Grid.updateGhostCells();
+   technicalGrid.updateGhostCells(); // This needs to be done at some point
+   phiprof::stop("Finish fsgrid setup");
+   
    phiprof::stop("Set initial state");
 }
 
@@ -309,9 +340,63 @@ void initSpatialCellCoordinates(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
       mpiGrid[cells[i]]->parameters[CellParams::DX  ] = cell_length[0];
       mpiGrid[cells[i]]->parameters[CellParams::DY  ] = cell_length[1];
       mpiGrid[cells[i]]->parameters[CellParams::DZ  ] = cell_length[2];
+
+      mpiGrid[cells[i]]->parameters[CellParams::CELLID] = cells[i];
+      mpiGrid[cells[i]]->parameters[CellParams::REFINEMENT_LEVEL] = mpiGrid.get_refinement_level(cells[i]);
    }
 }
 
+/*
+Record for each cell which processes own one or more of its face neighbors
+ */
+void setFaceNeighborRanks( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) {
+
+   const auto& cells = mpiGrid.get_cells();
+   // TODO: Try a #pragma omp parallel for
+   for (const auto& cellid : cells) {
+      
+      if (cellid == INVALID_CELLID) continue;
+      
+      SpatialCell* cell = mpiGrid[cellid];
+
+      if (!cell) continue;
+
+      cell->face_neighbor_ranks.clear();
+      
+      const auto& faceNeighbors = mpiGrid.get_face_neighbors_of(cellid);
+
+      for (const auto& nbr : faceNeighbors) {
+
+         int neighborhood;
+
+         // We store rank numbers into a map that has neighborhood ids as its key values.
+         
+         switch (nbr.second) {
+         case -3:
+            neighborhood = SHIFT_M_Z_NEIGHBORHOOD_ID;
+            break;
+         case -2:
+            neighborhood = SHIFT_M_Y_NEIGHBORHOOD_ID;
+            break;
+         case -1: 
+            neighborhood = SHIFT_M_X_NEIGHBORHOOD_ID;
+            break;
+         case +1: 
+            neighborhood = SHIFT_P_X_NEIGHBORHOOD_ID;
+            break;
+         case +2:
+            neighborhood = SHIFT_P_Y_NEIGHBORHOOD_ID;
+            break;
+         case +3:
+            neighborhood = SHIFT_P_Z_NEIGHBORHOOD_ID;
+            break;
+         }
+
+         cell->face_neighbor_ranks[neighborhood].insert(mpiGrid.get_process(nbr.first));
+         
+      }      
+   }
+}
 
 void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, SysBoundary& sysBoundaries){
    // Invalidate cached cell lists
@@ -343,11 +428,11 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    mpiGrid.initialize_balance_load(true);
    phiprof::stop("dccrg.initialize_balance_load");
 
-   const std::unordered_set<uint64_t>& incoming_cells = mpiGrid.get_cells_added_by_balance_load();
-   std::vector<uint64_t> incoming_cells_list (incoming_cells.begin(),incoming_cells.end()); 
+   const std::unordered_set<CellID>& incoming_cells = mpiGrid.get_cells_added_by_balance_load();
+   std::vector<CellID> incoming_cells_list (incoming_cells.begin(),incoming_cells.end()); 
 
-   const std::unordered_set<uint64_t>& outgoing_cells = mpiGrid.get_cells_removed_by_balance_load();
-   std::vector<uint64_t> outgoing_cells_list (outgoing_cells.begin(),outgoing_cells.end()); 
+   const std::unordered_set<CellID>& outgoing_cells = mpiGrid.get_cells_removed_by_balance_load();
+   std::vector<CellID> outgoing_cells_list (outgoing_cells.begin(),outgoing_cells.end()); 
    
    /*transfer cells in parts to preserve memory*/
    phiprof::start("Data transfers");
@@ -355,7 +440,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    for (uint64_t transfer_part=0; transfer_part<num_part_transfers; transfer_part++) {
       //Set transfers on/off for the incoming cells in this transfer set and prepare for receive
       for (unsigned int i=0;i<incoming_cells_list.size();i++){
-         uint64_t cell_id=incoming_cells_list[i];
+         CellID cell_id=incoming_cells_list[i];
          SpatialCell* cell = mpiGrid[cell_id];
          if (cell_id%num_part_transfers!=transfer_part) {
             cell->set_mpi_transfer_enabled(false);
@@ -366,7 +451,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
       
       //Set transfers on/off for the outgoing cells in this transfer set
       for (unsigned int i=0; i<outgoing_cells_list.size(); i++) {
-         uint64_t cell_id=outgoing_cells_list[i];
+         CellID cell_id=outgoing_cells_list[i];
          SpatialCell* cell = mpiGrid[cell_id];
          if (cell_id%num_part_transfers!=transfer_part) {
             cell->set_mpi_transfer_enabled(false);
@@ -387,7 +472,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
       
          int receives = 0;
          for (unsigned int i=0; i<incoming_cells_list.size(); i++) {
-            uint64_t cell_id=incoming_cells_list[i];
+            CellID cell_id=incoming_cells_list[i];
             SpatialCell* cell = mpiGrid[cell_id];
             if (cell_id % num_part_transfers == transfer_part) {
                receives++;
@@ -412,7 +497,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
 
          // Free memory for cells that have been sent (the block data)
          for (unsigned int i=0;i<outgoing_cells_list.size();i++){
-            uint64_t cell_id=outgoing_cells_list[i];
+            CellID cell_id=outgoing_cells_list[i];
             SpatialCell* cell = mpiGrid[cell_id];
             
             // Free memory of this cell as it has already been transferred, 
@@ -458,8 +543,17 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
          exit(1);
       }
    }
-
-   phiprof::stop("Init solvers");   
+   
+   phiprof::stop("Init solvers");
+   
+   // Record ranks of face neighbors
+   if(P::amrMaxSpatialRefLevel > 0) {
+      phiprof::start("set face neighbor ranks");
+      setFaceNeighborRanks( mpiGrid );
+      phiprof::stop("set face neighbor ranks");
+   }
+   
+   
    phiprof::stop("Balancing load");
 }
 
@@ -507,6 +601,7 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
       const auto* neighbors = mpiGrid.get_neighbors_of(cell_id, NEAREST_NEIGHBORHOOD_ID);
       vector<SpatialCell*> neighbor_ptrs;
       neighbor_ptrs.reserve(neighbors->size());
+
       for ( const auto& nbrPair : *neighbors) {
          CellID neighbor_id = nbrPair.first;
          if (neighbor_id == 0 || neighbor_id == cell_id) {
@@ -564,7 +659,7 @@ void shrink_to_fit_grid_data(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
 void report_grid_memory_consumption(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
    /*now report memory consumption into logfile*/
    const vector<CellID>& cells = getLocalCells();
-   const std::vector<uint64_t> remote_cells = mpiGrid.get_remote_cells_on_process_boundary();   
+   const std::vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary();   
    int rank,n_procs;
    MPI_Comm_size(MPI_COMM_WORLD, &n_procs);
    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -658,17 +753,28 @@ void updateRemoteVelocityBlockLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
    const std::vector<uint64_t> incoming_cells
       = mpiGrid.get_remote_cells_on_process_boundary(DIST_FUNC_NEIGHBORHOOD_ID);
    #pragma omp parallel for
+
    for (unsigned int i=0; i<incoming_cells.size(); ++i) {
-      uint64_t cell_id = incoming_cells[i];
-      SpatialCell* cell = mpiGrid[cell_id];
-      if (cell == NULL) {
-         cerr << __FILE__ << ":" << __LINE__
-              << " No data for spatial cell " << cell_id
-              << endl;
-         abort();
-      }      
-      cell->prepare_to_receive_blocks(popID);
-   }
+     uint64_t cell_id = incoming_cells[i];
+     SpatialCell* cell = mpiGrid[cell_id];
+     if (cell == NULL) {
+       for (const auto& cell: mpiGrid.local_cells) {
+	 if (cell.id == cell_id) {
+	   cerr << __FILE__ << ":" << __LINE__ << std::endl;
+	   abort();
+	 }
+	 for (const auto& neighbor: cell.neighbors_of) {
+	   if (neighbor.id == cell_id) {
+	     cerr << __FILE__ << ":" << __LINE__ << std::endl;
+	     abort();
+	   }
+	 }
+       }
+       continue;
+     }
+     cell->prepare_to_receive_blocks(popID);
+   } 
+
    phiprof::stop("Preparing receives", incoming_cells.size(), "SpatialCells");
 }
 
@@ -883,16 +989,6 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    neighborhood.clear();
    neighborhood.push_back({{0, 0, -1}});
    mpiGrid.add_neighborhood(SHIFT_P_Z_NEIGHBORHOOD_ID, neighborhood);
-   
-   // Add face neighbors, needed for Poisson solver
-   neighborhood.clear();
-   neighborhood.push_back({{-1, 0, 0}});
-   neighborhood.push_back({{+1, 0, 0}});
-   neighborhood.push_back({{ 0,-1, 0}});
-   neighborhood.push_back({{ 0,+1, 0}});
-   neighborhood.push_back({{ 0, 0,-1}});
-   neighborhood.push_back({{ 0, 0,+1}});
-   mpiGrid.add_neighborhood(POISSON_NEIGHBORHOOD_ID, neighborhood);
 }
 
 bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const uint popID) {
@@ -945,7 +1041,9 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,c
                
          // Iterate over all spatial neighbors
          // for (size_t n=0; n<neighbors->size(); ++n) {
+
          for (const auto& nbrPair : *neighbors) {
+
             // CellID nbrCellID = (*neighbors)[n];
             CellID nbrCellID = nbrPair.first;
             const SpatialCell* nbr = mpiGrid[nbrCellID];

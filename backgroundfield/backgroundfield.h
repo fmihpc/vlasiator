@@ -25,18 +25,27 @@
 
 #include "fieldfunction.hpp"
 #include "../definitions.h"
+#include "../common.h"
+#include "fsgrid.hpp"
+
 void setBackgroundField(
    FieldFunction& bgFunction,
-   Real* cellParams,
-   Real* faceDerivatives,
-   Real* volumeDerivatives,
+   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
    bool append=false
 );
 
 void setBackgroundFieldToZero(
-   Real* cellParams,
-   Real* faceDerivatives,
-   Real* volumeDerivatives
+   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid
+);
+
+void setPerturbedField(
+   FieldFunction& bgFunction,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+   bool append=false
+);
+
+void setPerturbedFieldToZero(
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid
 );
 
 #endif

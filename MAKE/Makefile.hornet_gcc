@@ -1,15 +1,31 @@
 CMP = CC
-LNK = CC 
-#-Wl,--allow-multiple-definition
+LNK = CC
 
-not_parallel_tools: CMP = g++
-not_parallel_tools: LNK = g++
+#======== Vectorization ==========
+#Set vector backend type for vlasov solvers, sets precision and length. 
+#Options: 
+# AVX:      VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
+# AVX512:   VEC8D_AGNER, VEC16F_AGNER
+# Fallback: VEC4D_FALLBACK, VEC4F_FALLBACK, VEC8F_FALLBACK
 
-#-DNO_WRITE_AT_ALL:  Define to disable write at all to 
-#                    avoid memleak (much slower IO)
-#-DMPICH_IGNORE_CXX_SEEK: Ignores some multiple definition 
-#                         errors that come up when using 
-#                         mpi.h in c++ on Cray
+ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
+#Single-precision        
+        VECTORCLASS = VEC16F_AGNER
+else
+#Double-precision
+        VECTORCLASS = VEC8D_AGNER
+endif
+
+#======== PAPI ==========
+#Add PAPI_MEM define to use papi to report memory consumption?
+CXXFLAGS +=  -DPAPI_MEM
+
+
+#======== Allocator =========
+#Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
+#Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
+CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+
 
 CXXFLAGS = -DMPICH_IGNORE_CXX_SEEK
 
@@ -22,35 +38,35 @@ FLAGS =
 
 #GNU flags:
 CC_BRAND = gcc
-CC_BRAND_VERSION = 5.2.0
-CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++0x -W -Wall -Wno-unused -fabi-version=0 -mavx2 
-#CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++0x -W -Wall -Wno-unused -fabi-version=0 -mavx
+CC_BRAND_VERSION = 8.3.0
+CXXFLAGS += -g -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -fabi-version=0 -mavx2 -Wall -Wpedantic
+#CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -fabi-version=0 -mavx
 not_parallel_tools: CXXFLAGS += -march=native -mno-avx2 -mavx 
-testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++0x -fabi-version=0 
+testpackage: CXXFLAGS = -g -O2 -fopenmp -funroll-loops -std=c++17 -fabi-version=0 
 not_parallel_tools: CC_BRAND_VERSION = 4.9.2-noavx2
 
 MATHFLAGS = -ffast-math
 LDFLAGS =
 LIB_MPI = -lgomp
 
-BOOST_VERSION = 1.56.0
-MPT_VERSION = 7.1.3
-ZOLTAN_VERSION = 3.8
-SILO_VERSION = 4.9.1
-JEMALLOC_VERSION = 4.0.4
-LIBRARY_PREFIX = /zhome/academic/HLRS/pri/iprurgan/vlasiator/libraries
+BOOST_VERSION = 
+MPT_VERSION = 7.7.6
+ZOLTAN_VERSION = 
+SILO_VERSION = 
+JEMALLOC_VERSION = 5.2.1
+LIBRARY_PREFIX = /zhome/academic/HLRS/pri/ipryakem/libraries
 
 
 #compiled libraries
 
-INC_BOOST = -I$(LIBRARY_PREFIX)/mpich2/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/boost/$(BOOST_VERSION)/include
-LIB_BOOST = -L$(LIBRARY_PREFIX)/mpich2/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/boost/$(BOOST_VERSION)/lib -lboost_program_options
+INC_BOOST = -I$(CRAY_TRILINOS_PREFIX_DIR)/include/boost
+LIB_BOOST = -L$(CRAY_TRILINOS_PREFIX_DIR)/lib -lboost_program_options
 
-INC_ZOLTAN = -I$(LIBRARY_PREFIX)/mpich2/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/zoltan/$(ZOLTAN_VERSION)/include
-LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/mpich2/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/zoltan/$(ZOLTAN_VERSION)/lib -lzoltan
+INC_ZOLTAN = -I$(CRAY_TRILINOS_PREFIX_DIR)/include
+LIB_ZOLTAN = -L$(CRAY_TRILINOS_PREFIX_DIR)/lib -lzoltan
 
-INC_SILO = -I$(LIBRARY_PREFIX)/mpich2/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/silo/$(SILO_VERSION)/include
-LIB_SILO = -L$(LIBRARY_PREFIX)/mpich2/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/silo/$(SILO_VERSION)/lib -lsilo
+#INC_SILO = -I$(LIBRARY_PREFIX)/mpich2/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/silo/$(SILO_VERSION)/include
+#LIB_SILO = -L$(LIBRARY_PREFIX)/mpich2/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/silo/$(SILO_VERSION)/lib -lsilo
 
 INC_JEMALLOC = -I$(LIBRARY_PREFIX)/mpich2/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/jemalloc/$(JEMALLOC_VERSION)/include
 LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/mpich2/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/jemalloc/$(JEMALLOC_VERSION)/lib -ljemalloc
@@ -58,17 +74,15 @@ LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/mpich2/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_
 INC_VLSV = -I$(LIBRARY_PREFIX)/mpich2/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/vlsv
 LIB_VLSV = -L$(LIBRARY_PREFIX)/mpich2/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/vlsv -lvlsv
 
-
 LIB_PROFILE = -L$(LIBRARY_PREFIX)/mpich2/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof/lib -lphiprof
-#LIB_PROFILE = $(LIBRARY_PREFIX)/mpich2/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof/lib/libphiprof.a
 INC_PROFILE = -I$(LIBRARY_PREFIX)/mpich2/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof/include
 
 #header libraries
 
-INC_EIGEN = -I$(LIBRARY_PREFIX)/eigen/
+INC_EIGEN = -I$(LIBRARY_PREFIX)/
 INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg/
-INC_FSGRID = -I/zhome/academic/HLRS/pri/ipryakem/fsgrid/
-INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/vectorclass
+INC_FSGRID = -I$(LIBRARY_PREFIX)/fsgrid/
+INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/vectorclass-version1
 
 
 

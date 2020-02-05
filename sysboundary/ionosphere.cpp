@@ -33,6 +33,7 @@
 #include "../vlasovmover.h"
 #include "../fieldsolver/fs_common.h"
 #include "../fieldsolver/fs_limiters.h"
+#include "../fieldsolver/ldz_magnetic_field.hpp"
 #include "../common.h"
 #include "../object_wrapper.h"
 
@@ -66,6 +67,7 @@ namespace SBC {
          Readparameters::add(pop + "_ionosphere.VX0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", 0.0);
          Readparameters::add(pop + "_ionosphere.VY0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", 0.0);
          Readparameters::add(pop + "_ionosphere.VZ0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", 0.0);
+         Readparameters::add(pop + "_ionosphere.fluffiness", "Inertia of boundary smoothing when copying neighbour's moments and velocity distributions (0=completely constant boundaries, 1=neighbours are interpolated immediately).", 0);
       }
    }
    
@@ -126,6 +128,10 @@ namespace SBC {
            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
            exit(1);
         }
+        if(!Readparameters::get(pop + "_ionosphere.fluffiness", sP.fluffiness)) {
+           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
+           exit(1);
+        }
         if(!Readparameters::get(pop + "_Magnetosphere.T", sP.T)) {
            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
            exit(1);
@@ -156,13 +162,44 @@ namespace SBC {
       
       return true;
    }
+
+   Real getR(creal x,creal y,creal z, uint geometry, Real center[3]) {
+
+      Real r;
+      
+      switch(geometry) {
+      case 0:
+         // infinity-norm, result is a diamond/square with diagonals aligned on the axes in 2D
+         r = fabs(x-center[0]) + fabs(y-center[1]) + fabs(z-center[2]);
+         break;
+      case 1:
+         // 1-norm, result is is a grid-aligned square in 2D
+         r = max(max(fabs(x-center[0]), fabs(y-center[1])), fabs(z-center[2]));
+         break;
+      case 2:
+         // 2-norm (Cartesian), result is a circle in 2D
+         r = sqrt((x-center[0])*(x-center[0]) + (y-center[1])*(y-center[1]) + (z-center[2])*(z-center[2]));
+         break;
+      case 3:
+         // 2-norm (Cartesian) cylinder aligned on y-axis
+         r = sqrt((x-center[0])*(x-center[0]) + (z-center[2])*(z-center[2]));
+         break;
+      default:
+         std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1 or 2." << std::endl;
+         abort();
+      }
+
+      return r;
+   }
    
-   bool Ionosphere::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
+   bool Ionosphere::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                      FsGrid< fsgrids::technical, 2> & technicalGrid) {
       vector<CellID> cells = mpiGrid.get_cells();
       for(uint i=0; i<cells.size(); i++) {
          if(mpiGrid[cells[i]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
             continue;
          }
+         
          creal* const cellParams = &(mpiGrid[cells[i]]->parameters[0]);
          creal dx = cellParams[CellParams::DX];
          creal dy = cellParams[CellParams::DY];
@@ -170,42 +207,42 @@ namespace SBC {
          creal x = cellParams[CellParams::XCRD] + 0.5*dx;
          creal y = cellParams[CellParams::YCRD] + 0.5*dy;
          creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
-         Real r;
          
-         switch(this->geometry) {
-            case 0:
-               // infinity-norm, result is a diamond/square with diagonals aligned on the axes in 2D
-               r = fabs(x-center[0]) + fabs(y-center[1]) + fabs(z-center[2]);
-               break;
-            case 1:
-               // 1-norm, result is is a grid-aligned square in 2D
-               r = max(max(fabs(x-center[0]), fabs(y-center[1])), fabs(z-center[2]));
-               break;
-            case 2:
-               // 2-norm (Cartesian), result is a circle in 2D
-               r = sqrt((x-center[0])*(x-center[0]) + (y-center[1])*(y-center[1]) + (z-center[2])*(z-center[2]));
-               break;
-            case 3:
-               // 2-norm (Cartesian) cylinder aligned on y-axis
-               r = sqrt((x-center[0])*(x-center[0]) + (z-center[2])*(z-center[2]));
-               break;
-            default:
-               std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1 or 2." << std::endl;
-               abort();
-         }
-         
-         if(r < this->radius) {
+         if(getR(x,y,z,this->geometry,this->center) < this->radius) {
             mpiGrid[cells[i]]->sysBoundaryFlag = this->getIndex();
          }
       }
+
+      // Assign boundary flags to local fsgrid cells
+      const std::array<int, 3> gridDims(technicalGrid.getLocalSize());  
+      for (int k=0; k<gridDims[2]; k++) {
+         for (int j=0; j<gridDims[1]; j++) {
+            for (int i=0; i<gridDims[0]; i++) {
+               const auto& coords = technicalGrid.getPhysicalCoords(i,j,k);
+               
+               // Shift to the center of the fsgrid cell
+               auto cellCenterCoords = coords;
+               cellCenterCoords[0] += 0.5 * technicalGrid.DX;
+               cellCenterCoords[1] += 0.5 * technicalGrid.DY;
+               cellCenterCoords[2] += 0.5 * technicalGrid.DZ;
+
+               if(getR(cellCenterCoords[0],cellCenterCoords[1],cellCenterCoords[2],this->geometry,this->center) < this->radius) {
+                  technicalGrid.get(i,j,k)->sysBoundaryFlag = this->getIndex();
+               }
+
+            }
+         }
+      }
+
       return true;
    }
 
    bool Ionosphere::applyInitialState(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
       Project &project
    ) {
-      vector<uint64_t> cells = mpiGrid.get_cells();
+      vector<CellID> cells = mpiGrid.get_cells();
       #pragma omp parallel for
       for (uint i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
@@ -509,12 +546,6 @@ namespace SBC {
       cuint& RKCase,
       cuint& component
    ) {
-      std::vector< std::array<int, 3> > closestCells = getAllClosestNonsysboundaryCells(technicalGrid, i,j,k);
-      if (closestCells.size() == 1 && closestCells[0][0] == std::numeric_limits<int>::min() ) {
-         std::cerr << __FILE__ << ":" << __LINE__ << ":" << "No closest cells found!" << std::endl;
-         abort();
-      }
-      
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> * bGrid;
       
       if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -523,30 +554,169 @@ namespace SBC {
          bGrid = &perBDt2Grid;
       }
       
-      // Sum perturbed B component over all nearest NOT_SYSBOUNDARY neighbours
-      std::array<Real, 3> averageB = {{ 0.0 }};
-      for (uint it = 0; it < closestCells.size(); it++) {
-         #ifdef DEBUG_IONOSPHERE
-         if (technicalGrid.get(closestCells[it][0],closestCells[it][1],closestCells[it][2])->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
-            stringstream ss;
-            ss << "ERROR, ionosphere cell (" << i << "," << j << "," << k << ") uses value from sysboundary nbr (" << closestCells[it][0] << "," << closestCells[it][1] << "," << closestCells[it][2] << " in " << __FILE__ << ":" << __LINE__ << endl;
-            cerr << ss.str();
-            exit(1);
+      if (technicalGrid.get(i,j,k)->sysBoundaryLayer == 1) {
+         switch(component) {
+            case 0:
+               if (  ((technicalGrid.get(i-1,j,k)->SOLVE & compute::BX) == compute::BX)
+                  && ((technicalGrid.get(i+1,j,k)->SOLVE & compute::BX) == compute::BX)
+               ) {
+                  return 0.5 * (bGrid->get(i-1,j,k)->at(fsgrids::bfield::PERBX) + bGrid->get(i+1,j,k)->at(fsgrids::bfield::PERBX));
+               } else if ((technicalGrid.get(i-1,j,k)->SOLVE & compute::BX) == compute::BX) {
+                  return bGrid->get(i-1,j,k)->at(fsgrids::bfield::PERBX);
+               } else if ((technicalGrid.get(i+1,j,k)->SOLVE & compute::BX) == compute::BX) {
+                  return bGrid->get(i+1,j,k)->at(fsgrids::bfield::PERBX);
+               } else {
+                  Real retval = 0.0;
+                  uint nCells = 0;
+                  if ((technicalGrid.get(i,j-1,k)->SOLVE & compute::BX) == compute::BX) {
+                     retval += bGrid->get(i,j-1,k)->at(fsgrids::bfield::PERBX);
+                     nCells++;
+                  }
+                  if ((technicalGrid.get(i,j+1,k)->SOLVE & compute::BX) == compute::BX) {
+                     retval += bGrid->get(i,j+1,k)->at(fsgrids::bfield::PERBX);
+                     nCells++;
+                  }
+                  if ((technicalGrid.get(i,j,k-1)->SOLVE & compute::BX) == compute::BX) {
+                     retval += bGrid->get(i,j,k-1)->at(fsgrids::bfield::PERBX);
+                     nCells++;
+                  }
+                  if ((technicalGrid.get(i,j,k+1)->SOLVE & compute::BX) == compute::BX) {
+                     retval += bGrid->get(i,j,k+1)->at(fsgrids::bfield::PERBX);
+                     nCells++;
+                  }
+                  if (nCells == 0) {
+                     for (int a=i-1; a<i+2; a++) {
+                        for (int b=j-1; b<j+2; b++) {
+                           for (int c=k-1; c<k+2; c++) {
+                              if ((technicalGrid.get(a,b,c)->SOLVE & compute::BX) == compute::BX) {
+                                 retval += bGrid->get(a,b,c)->at(fsgrids::bfield::PERBX);
+                                 nCells++;
+                              }
+                           }
+                        }
+                     }
+                  }
+                  if (nCells == 0) {
+                     cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
+                     return 0.0;
+                  }
+                  return retval / nCells;
+               }
+            case 1:
+               if (  (technicalGrid.get(i,j-1,k)->SOLVE & compute::BY) == compute::BY
+                  && (technicalGrid.get(i,j+1,k)->SOLVE & compute::BY) == compute::BY
+               ) {
+                  return 0.5 * (bGrid->get(i,j-1,k)->at(fsgrids::bfield::PERBY) + bGrid->get(i,j+1,k)->at(fsgrids::bfield::PERBY));
+               } else if ((technicalGrid.get(i,j-1,k)->SOLVE & compute::BY) == compute::BY) {
+                  return bGrid->get(i,j-1,k)->at(fsgrids::bfield::PERBY);
+               } else if ((technicalGrid.get(i,j+1,k)->SOLVE & compute::BY) == compute::BY) {
+                  return bGrid->get(i,j+1,k)->at(fsgrids::bfield::PERBY);
+               } else {
+                  Real retval = 0.0;
+                  uint nCells = 0;
+                  if ((technicalGrid.get(i-1,j,k)->SOLVE & compute::BY) == compute::BY) {
+                     retval += bGrid->get(i-1,j,k)->at(fsgrids::bfield::PERBY);
+                     nCells++;
+                  }
+                  if ((technicalGrid.get(i+1,j,k)->SOLVE & compute::BY) == compute::BY) {
+                     retval += bGrid->get(i+1,j,k)->at(fsgrids::bfield::PERBY);
+                     nCells++;
+                  }
+                  if ((technicalGrid.get(i,j,k-1)->SOLVE & compute::BY) == compute::BY) {
+                     retval += bGrid->get(i,j,k-1)->at(fsgrids::bfield::PERBY);
+                     nCells++;
+                  }
+                  if ((technicalGrid.get(i,j,k+1)->SOLVE & compute::BY) == compute::BY) {
+                     retval += bGrid->get(i,j,k+1)->at(fsgrids::bfield::PERBY);
+                     nCells++;
+                  }
+                  if (nCells == 0) {
+                     for (int a=i-1; a<i+2; a++) {
+                        for (int b=j-1; b<j+2; b++) {
+                           for (int c=k-1; c<k+2; c++) {
+                              if ((technicalGrid.get(a,b,c)->SOLVE & compute::BY) == compute::BY) {
+                                 retval += bGrid->get(a,b,c)->at(fsgrids::bfield::PERBY);
+                                 nCells++;
+                              }
+                           }
+                        }
+                     }
+                  }
+                  if (nCells == 0) {
+                     cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
+                     return 0.0;
+                  }
+                  return retval / nCells;
+               }
+            case 2:
+               if (  (technicalGrid.get(i,j,k-1)->SOLVE & compute::BZ) == compute::BZ
+                  && (technicalGrid.get(i,j,k+1)->SOLVE & compute::BZ) == compute::BZ
+               ) {
+                  return 0.5 * (bGrid->get(i,j,k-1)->at(fsgrids::bfield::PERBZ) + bGrid->get(i,j,k+1)->at(fsgrids::bfield::PERBZ));
+               } else if ((technicalGrid.get(i,j,k-1)->SOLVE & compute::BZ) == compute::BZ) {
+                  return bGrid->get(i,j,k-1)->at(fsgrids::bfield::PERBZ);
+               } else if ((technicalGrid.get(i,j,k+1)->SOLVE & compute::BZ) == compute::BZ) {
+                  return bGrid->get(i,j,k+1)->at(fsgrids::bfield::PERBZ);
+               } else {
+                  Real retval = 0.0;
+                  uint nCells = 0;
+                  if ((technicalGrid.get(i-1,j,k)->SOLVE & compute::BZ) == compute::BZ) {
+                     retval += bGrid->get(i-1,j,k)->at(fsgrids::bfield::PERBZ);
+                     nCells++;
+                  }
+                  if ((technicalGrid.get(i+1,j,k)->SOLVE & compute::BZ) == compute::BZ) {
+                     retval += bGrid->get(i+1,j,k)->at(fsgrids::bfield::PERBZ);
+                     nCells++;
+                  }
+                  if ((technicalGrid.get(i,j-1,k)->SOLVE & compute::BZ) == compute::BZ) {
+                     retval += bGrid->get(i,j-1,k)->at(fsgrids::bfield::PERBZ);
+                     nCells++;
+                  }
+                  if ((technicalGrid.get(i,j+1,k)->SOLVE & compute::BZ) == compute::BZ) {
+                     retval += bGrid->get(i,j+1,k)->at(fsgrids::bfield::PERBZ);
+                     nCells++;
+                  }
+                  if (nCells == 0) {
+                     for (int a=i-1; a<i+2; a++) {
+                        for (int b=j-1; b<j+2; b++) {
+                           for (int c=k-1; c<k+2; c++) {
+                              if ((technicalGrid.get(a,b,c)->SOLVE & compute::BZ) == compute::BZ) {
+                                 retval += bGrid->get(a,b,c)->at(fsgrids::bfield::PERBZ);
+                                 nCells++;
+                              }
+                           }
+                        }
+                     }
+                  }
+                  if (nCells == 0) {
+                     cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
+                     return 0.0;
+                  }
+                  return retval / nCells;
+               }
+            default:
+               cerr << "ERROR: ionosphere boundary tried to copy nonsensical magnetic field component " << component << endl;
+               return 0.0;
          }
-         #endif
-         averageB[0] += bGrid->get(closestCells[it][0], closestCells[it][1], closestCells[it][2])->at(fsgrids::bfield::PERBX);
-         averageB[1] += bGrid->get(closestCells[it][0], closestCells[it][1], closestCells[it][2])->at(fsgrids::bfield::PERBY);
-         averageB[2] += bGrid->get(closestCells[it][0], closestCells[it][1], closestCells[it][2])->at(fsgrids::bfield::PERBZ);
+      } else { // L2 cells
+         Real retval = 0.0;
+         uint nCells = 0;
+         for (int a=i-1; a<i+2; a++) {
+            for (int b=j-1; b<j+2; b++) {
+               for (int c=k-1; c<k+2; c++) {
+                  if (technicalGrid.get(a,b,c)->sysBoundaryLayer == 1) {
+                     retval += bGrid->get(a,b,c)->at(fsgrids::bfield::PERBX + component);
+                     nCells++;
+                  }
+               }
+            }
+         }
+         if (nCells == 0) {
+            cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
+            return 0.0;
+         }
+         return retval / nCells;
       }
-
-      // Average and project to normal direction
-      std::array<Real, 3> normalDirection = fieldSolverGetNormalDirection(technicalGrid, i, j, k);
-      for(uint i=0; i<3; i++) {
-         averageB[i] *= normalDirection[i] / closestCells.size();
-      }
-
-      // Return (B.n)*normalVector[component]
-      return (averageB[0]+averageB[1]+averageB[2])*normalDirection[component];
    }
 
    void Ionosphere::fieldSolverBoundaryCondElectricField(
@@ -628,12 +798,12 @@ namespace SBC {
    void Ionosphere::vlasovBoundaryCondition(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
-      const uint popID
+      const uint popID,
+      const bool calculate_V_moments
    ) {
-//       phiprof::start("vlasovBoundaryCondition (Ionosphere)");
-//       const SpatialCell * cell = mpiGrid[cellID];
-//       this->vlasovBoundaryCopyFromAllClosestNbrs(mpiGrid, cellID);
-//       phiprof::stop("vlasovBoundaryCondition (Ionosphere)");
+      phiprof::start("vlasovBoundaryCondition (Ionosphere)");
+      this->vlasovBoundaryFluffyCopyFromAllCloseNbrs(mpiGrid, cellID, popID, calculate_V_moments, this->speciesParams[popID].fluffiness);
+      phiprof::stop("vlasovBoundaryCondition (Ionosphere)");
    }
 
    /**
@@ -718,11 +888,22 @@ namespace SBC {
       calculateCellMoments(&templateCell,true,true);
 
       // WARNING Time-independence assumed here. Normal moments computed in setProjectCell
-      templateCell.parameters[CellParams::RHOM_DT2] = templateCell.parameters[CellParams::RHOM];
-      templateCell.parameters[CellParams::VX_DT2] = templateCell.parameters[CellParams::VX];
-      templateCell.parameters[CellParams::VY_DT2] = templateCell.parameters[CellParams::VY];
-      templateCell.parameters[CellParams::VZ_DT2] = templateCell.parameters[CellParams::VZ];
-      templateCell.parameters[CellParams::RHOQ_DT2] = templateCell.parameters[CellParams::RHOQ];
+      templateCell.parameters[CellParams::RHOM_R] = templateCell.parameters[CellParams::RHOM];
+      templateCell.parameters[CellParams::VX_R] = templateCell.parameters[CellParams::VX];
+      templateCell.parameters[CellParams::VY_R] = templateCell.parameters[CellParams::VY];
+      templateCell.parameters[CellParams::VZ_R] = templateCell.parameters[CellParams::VZ];
+      templateCell.parameters[CellParams::RHOQ_R] = templateCell.parameters[CellParams::RHOQ];
+      templateCell.parameters[CellParams::P_11_R] = templateCell.parameters[CellParams::P_11];
+      templateCell.parameters[CellParams::P_22_R] = templateCell.parameters[CellParams::P_22];
+      templateCell.parameters[CellParams::P_33_R] = templateCell.parameters[CellParams::P_33];
+      templateCell.parameters[CellParams::RHOM_V] = templateCell.parameters[CellParams::RHOM];
+      templateCell.parameters[CellParams::VX_V] = templateCell.parameters[CellParams::VX];
+      templateCell.parameters[CellParams::VY_V] = templateCell.parameters[CellParams::VY];
+      templateCell.parameters[CellParams::VZ_V] = templateCell.parameters[CellParams::VZ];
+      templateCell.parameters[CellParams::RHOQ_V] = templateCell.parameters[CellParams::RHOQ];
+      templateCell.parameters[CellParams::P_11_V] = templateCell.parameters[CellParams::P_11];
+      templateCell.parameters[CellParams::P_22_V] = templateCell.parameters[CellParams::P_22];
+      templateCell.parameters[CellParams::P_33_V] = templateCell.parameters[CellParams::P_33];
    }
    
    Real Ionosphere::shiftedMaxwellianDistribution(
@@ -794,8 +975,8 @@ namespace SBC {
    }
 
    void Ionosphere::setCellFromTemplate(SpatialCell* cell,const uint popID) {
-      //Copy, and allow to change blocks
-      copyCellData(&templateCell,cell,true,false,popID);
+      copyCellData(&templateCell,cell,false,popID,true); // copy also vdf, _V
+      copyCellData(&templateCell,cell,true,popID,false); // don't copy vdf again but copy _R now
    }
 
    std::string Ionosphere::getName() const {return "Ionosphere";}

@@ -40,6 +40,9 @@ Real P::input_dt = 1;
 Real P::start_time = 0;
 Real P::end_time = 0;
 uint64_t P::num_particles = 0;
+std::string P::V_field_name = "V";
+std::string P::rho_field_name = "rho";
+bool P::divide_rhov_by_rho = false;
 
 std::default_random_engine::result_type P::random_seed = 1;
 Distribution* (*P::distribution)(std::default_random_engine&) = NULL;
@@ -88,6 +91,9 @@ bool ParticleParameters::addParameters() {
    Readparameters::add("particles.start_time", "Simulation time (seconds) for particle start.",0);
    Readparameters::add("particles.end_time", "Simulation time (seconds) at which particle simulation stops.",0);
    Readparameters::add("particles.num_particles", "Number of particles to simulate.",10000);
+   Readparameters::add("particles.V_field_name", "Name of the Velocity data set in the input files", "V");
+   Readparameters::add("particles.rho_field_name", "Name of the Density data set in the input files", "rho");
+   Readparameters::add("particles.divide_rhov_by_rho", "Do the input file store rho_v and rho separately?", false);
    Readparameters::add("particles.random_seed", "Random seed for particle creation.",1);
    Readparameters::add("particles.distribution", "Type of distribution function to sample particles from.",
          std::string("maxwell"));
@@ -161,10 +167,13 @@ bool ParticleParameters::getParameters() {
    Readparameters::get("particles.start_time",P::start_time);
    Readparameters::get("particles.end_time",P::end_time);
    Readparameters::get("particles.num_particles",P::num_particles);
-   if(P::dt == 0 || P::end_time <= P::start_time) {
-      std::cerr << "Error end_time <= start_time! Won't do anything (and will probably crash now)." << std::endl;
+   if(P::dt == 0 || P::end_time == P::start_time) {
+      std::cerr << "Error end_time == start_time! Won't do anything (and will probably crash now)." << std::endl;
       return false;
    }
+   Readparameters::get("particles.V_field_name",P::V_field_name);
+   Readparameters::get("particles.rho_field_name",P::rho_field_name);
+   Readparameters::get("particles.divide_rhov_by_rho",P::divide_rhov_by_rho);
 
    Readparameters::get("particles.random_seed",P::random_seed);
 

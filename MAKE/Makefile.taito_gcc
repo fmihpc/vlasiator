@@ -1,5 +1,5 @@
-CMP = mpiCC
-LNK = mpiCC
+CMP = mpic++
+LNK = mpic++
 
 #======== Vectorization ==========
 #Set vector backend type for vlasov solvers, sets precision and length. 
@@ -46,11 +46,11 @@ FLAGS =
 #GNU flags:
 CC_BRAND = gcc
 CC_BRAND_VERSION = 4.9.3
-CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++0x -W -Wall -Wno-unused -fabi-version=0 -mavx2 
+CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++0x -W -Wall -Wno-unused -fabi-version=0 -mavx
 testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++0x -fabi-version=0  -mavx
 
 MATHFLAGS = -ffast-math
-LDFLAGS = -lrt
+LDFLAGS = -lrt -lgfortran
 LIB_MPI = -lgomp
 
 # BOOST_VERSION = current trilinos version
@@ -58,7 +58,7 @@ LIB_MPI = -lgomp
 #
 #======== Libraries ===========
 
-MPT_VERSION = 1.10.2
+MPT_VERSION = 3.1.3
 JEMALLOC_VERSION = 4.0.4
 LIBRARY_PREFIX = /proj/vlasov/libraries
 
@@ -72,12 +72,14 @@ LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/taito/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_B
 
 INC_JEMALLOC = -I$(LIBRARY_PREFIX)/taito/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/jemalloc/$(JEMALLOC_VERSION)/include
 LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/taito/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/jemalloc/$(JEMALLOC_VERSION)/lib -ljemalloc
+LDFLAGS += -Wl,-rpath=$(LIBRARY_PREFIX)/taito/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/jemalloc/$(JEMALLOC_VERSION)/lib
 
 INC_VLSV = -I$(LIBRARY_PREFIX)/taito/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/vlsv
 LIB_VLSV = -L$(LIBRARY_PREFIX)/taito/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/vlsv -lvlsv
 
 LIB_PROFILE = -L$(LIBRARY_PREFIX)/taito/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof/2.0/lib -lphiprof
 INC_PROFILE = -I$(LIBRARY_PREFIX)/taito/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof/2.0/include
+LDFLAGS += -Wl,-rpath=$(LIBRARY_PREFIX)/taito/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof/2.0/lib 
 
 #LIB_PAPI = -L$(LIBRARY_PREFIX)/taito/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/papi/5.5.0/lib -lpapi
 #INC_PAPI = -I$(LIBRARY_PREFIX)/taito/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/papi/5.5.0/include

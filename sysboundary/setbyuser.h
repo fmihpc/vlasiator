@@ -68,9 +68,11 @@ namespace SBC {
          creal& t,
          Project &project
       );
-      virtual bool assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
+      virtual bool assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                     FsGrid< fsgrids::technical, 2> & technicalGrid);
       virtual bool applyInitialState(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
          Project &project
       );
       virtual Real fieldSolverBoundaryCondMagneticField(
@@ -126,7 +128,8 @@ namespace SBC {
       virtual void vlasovBoundaryCondition(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const CellID& cellID,
-         const uint popID
+         const uint popID,
+         const bool calculate_V_moments
       );
       
       virtual void getFaces(bool* faces);
@@ -140,13 +143,16 @@ namespace SBC {
       void interpolate(const int inputDataIndex, const uint popID, creal t, Real* outputData);
       
       bool generateTemplateCells(creal& t);
-      virtual void generateTemplateCell(spatial_cell::SpatialCell& templateCell, int inputDataIndex, creal& t) = 0;
+      virtual void generateTemplateCell(spatial_cell::SpatialCell& templateCell, Real B[3], int inputDataIndex, creal& t) = 0;
       bool setCellsFromTemplate(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const uint popID);
+      bool setBFromTemplate(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                            FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid);
       
       /*! Array of bool telling which faces are going to be processed by the system boundary condition.*/
       bool facesToProcess[6];
       /*! Array of template spatial cells replicated over the corresponding simulation volume face. Only the template for an active face is actually being touched at all by the code. */
       spatial_cell::SpatialCell templateCells[6];
+      Real templateB[6][3];
       /*! List of faces on which user-set boundary conditions are to be applied ([xyz][+-]). */
       std::vector<std::string> faceList;
 

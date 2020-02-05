@@ -29,7 +29,6 @@
    #define DEBUG_FSOLVER
 #endif
 
-namespace fs = fieldsolver;
 namespace pc = physicalconstants;
 using namespace std;
 
@@ -1532,13 +1531,9 @@ void calculateElectricField(
    
    if (cellSysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) return;
    
-   cuint cellSysBoundaryLayer = technicalGrid.get(i,j,k)->sysBoundaryLayer;
+   cuint bitfield = technicalGrid.get(i,j,k)->SOLVE;
    
-   if ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) && (cellSysBoundaryLayer != 1)) {
-      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, 0);
-      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, 1);
-      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, 2);
-   } else {
+   if ((bitfield & compute::EX) == compute::EX) {
       calculateEdgeElectricFieldX(
          perBGrid,
          EGrid,
@@ -1554,6 +1549,11 @@ void calculateElectricField(
          k,
          RKCase
       );
+   } else {
+      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, 0);
+   }
+   
+   if ((bitfield & compute::EY) == compute::EY) {
       calculateEdgeElectricFieldY(
          perBGrid,
          EGrid,
@@ -1569,6 +1569,11 @@ void calculateElectricField(
          k,
          RKCase
       );
+   } else {
+      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, 1);
+   }
+   
+   if ((bitfield & compute::EZ) == compute::EZ) {
       calculateEdgeElectricFieldZ(
          perBGrid,
          EGrid,
@@ -1584,6 +1589,8 @@ void calculateElectricField(
          k,
          RKCase
       );
+   } else {
+      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, 2);
    }
 }
 
