@@ -135,6 +135,7 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
       if(!dt2) {
         sendBuffer.push_back(cellParams[CellParams::RHOM]);
 	sendBuffer.push_back(cellParams[CellParams::RHOQ]);
+	sendBuffer.push_back(cellParams[CellParams::RHOQE]);
 	sendBuffer.push_back(cellParams[CellParams::VX]);
 	sendBuffer.push_back(cellParams[CellParams::VY]);
         sendBuffer.push_back(cellParams[CellParams::VZ]);
@@ -144,6 +145,7 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
       } else {
         sendBuffer.push_back(cellParams[CellParams::RHOM_DT2]);
 	sendBuffer.push_back(cellParams[CellParams::RHOQ_DT2]);
+	sendBuffer.push_back(cellParams[CellParams::RHOQE_DT2]);
 	sendBuffer.push_back(cellParams[CellParams::VX_DT2]);
 	sendBuffer.push_back(cellParams[CellParams::VY_DT2]);
         sendBuffer.push_back(cellParams[CellParams::VZ_DT2]);

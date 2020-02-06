@@ -698,6 +698,18 @@ namespace spatial_cell {
             displacements.push_back((uint8_t*) &(this->parameters[CellParams::RHOQ_DT2]) - (uint8_t*) this);
             block_lengths.push_back(sizeof(Real));
          }
+
+         // send RHOQE, uses duplicate of RHOQ transfer flag
+         if ((SpatialCell::mpi_transfer_type & Transfer::CELL_RHOQ)!=0){
+            displacements.push_back((uint8_t*) &(this->parameters[CellParams::RHOQE]) - (uint8_t*) this);
+            block_lengths.push_back(sizeof(Real));
+         }
+         
+         // send RHOQE_DT2, uses duplicate of RHOQ_DT2 transfer flag
+         if ((SpatialCell::mpi_transfer_type & Transfer::CELL_RHOQDT2)!=0){
+            displacements.push_back((uint8_t*) &(this->parameters[CellParams::RHOQE_DT2]) - (uint8_t*) this);
+            block_lengths.push_back(sizeof(Real));
+         }
          
          // send  spatial cell BVOL derivatives
          if ((SpatialCell::mpi_transfer_type & Transfer::CELL_BVOL_DERIVATIVES)!=0){
