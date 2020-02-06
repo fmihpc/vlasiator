@@ -98,8 +98,12 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
               cell->parameters[CellParams::VX] += array[1]*mass;
               cell->parameters[CellParams::VY] += array[2]*mass;
               cell->parameters[CellParams::VZ] += array[3]*mass;
-              cell->parameters[CellParams::RHOQ  ] += array[0]*charge;
+	      cell->parameters[CellParams::RHOQ  ] += array[0]*charge;
           }
+	  /* RHOQE is accumulated for test species as well. This is only used for calculating
+	     electric field due to charge imbalance in electron runs. */
+	  cell->parameters[CellParams::RHOQE  ] += array[0]*charge;
+	  
        } // for-loop over particle species
        
        cell->parameters[CellParams::VX] = divideIfNonZero(cell->parameters[CellParams::VX], cell->parameters[CellParams::RHOM]);
@@ -233,6 +237,10 @@ void calculateMoments_R(
                   cell->parameters[CellParams::VZ_R] += array[3]*mass;
                   cell->parameters[CellParams::RHOQ_R  ] += array[0]*charge;
               }
+	      /* RHOQE is accumulated for test species as well. This is only used for calculating
+		 electric field due to charge imbalance in electron runs. */
+	      cell->parameters[CellParams::RHOQE_R  ] += array[0]*charge;
+
            } // for-loop over spatial cells
        }
     } // for-loop over particle species
@@ -362,6 +370,10 @@ void calculateMoments_V(
              cell->parameters[CellParams::VZ_V] += array[3]*mass;
              cell->parameters[CellParams::RHOQ_V  ] += array[0]*charge;
          }
+	  /* RHOQE is accumulated for test species as well. This is only used for calculating
+	     electric field due to charge imbalance in electron runs. */
+	 cell->parameters[CellParams::RHOQE_V  ] += array[0]*charge;
+
       } // for-loop over spatial cells
    } // for-loop over particle species
    

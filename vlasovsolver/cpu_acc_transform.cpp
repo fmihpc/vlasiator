@@ -158,6 +158,11 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       spatial_cell->parameters[CellParams::EXJE],
       spatial_cell->parameters[CellParams::EYJE],
       spatial_cell->parameters[CellParams::EZJE]);
+   // Calculate E from charge density imbalance
+   Eigen::Matrix<Real,3,1> Efromrq(
+      spatial_cell->parameters[dmoments::droqedx],
+      spatial_cell->parameters[dmoments::droqedy],
+      spatial_cell->parameters[dmoments::droqedz]);
 
   /* 
      ofstream substepFile;
@@ -229,27 +234,25 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
 		     } */      
             }
 	    // Now account for current requirement from curl of B
-	    /*
 	    Ji[0] += (dBZdy - dBYdz)/physicalconstants::MU_0;
 	    Ji[1] += (dBXdz - dBZdx)/physicalconstants::MU_0;
 	    Ji[2] += (dBYdx - dBXdy)/physicalconstants::MU_0;
-	    */
 
             // This is a traditional RK4 integrator 
 	    // In effect, it runs two RK4 integrators in parallel, one for velocity, one for electric field
             const Eigen::Matrix<Real,3,1> beta  = -q * Ji / (mass * physicalconstants::EPS_0);
             const Real alpha = -pow(q, 2.) * rho / (mass * physicalconstants::EPS_0);
 	    // derivative estimates for acceleration and field changes at start of step
-            k11 = h * q / mass * EfromJe;  // h * dv/dt
+            k11 = h * q / mass * (EfromJe+Efromrq);  // h * dv/dt
             k12 = h * (beta + alpha * electronVcurr); // h * (-q/m eps) * J_tot  ==  h * d^2 v / dt^2 == (q/m) dE/dt
 
-            k21 = h * (q / mass * EfromJe + k12/2); // estimate acceleration using k12 field estimate (at half interval)
+            k21 = h * (q / mass * (EfromJe+Efromrq) + k12/2); // estimate acceleration using k12 field estimate (at half interval)
             k22 = h * (beta + alpha * (electronVcurr + k11/2)); // estimate field change using k11 current estimate (at half interval)
 
-            k31 = h * (q / mass * EfromJe + k22/2); // estimate acceleration using k22 field estimate (at half interval)
+            k31 = h * (q / mass * (EfromJe+Efromrq) + k22/2); // estimate acceleration using k22 field estimate (at half interval)
             k32 = h * (beta + alpha * (electronVcurr + k21/2)); // estimate field change using k21 current estimate (at half interval)
 
-            k41 = h * (q / mass * EfromJe + k32); // estimate acceleration using k32 field estimate (at full interval)
+            k41 = h * (q / mass * (EfromJe+Efromrq) + k32); // estimate acceleration using k32 field estimate (at full interval)
             k42 = h * (beta + alpha * (electronVcurr + k31)); // estimate field change using k31 current estimate (at full interval)
 	    
             deltaV = (k11 + 2*k21 + 2*k31 + k41) / 6.; // Finally update velocity based on weighted acceleration estimate
