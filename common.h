@@ -154,6 +154,9 @@ namespace CellParams {
       EXJE,             /*!< Electric field from electron current term x.*/
       EYJE,             /*!< Electric field from electron current term y.*/
       EZJE,             /*!< Electric field from electron current term z.*/
+      ERHOQX,           /*!< Electric field from e- charge separation term x.*/
+      ERHOQY,           /*!< Electric field from e- charge separation term y.*/
+      ERHOQZ,           /*!< Electric field from e- charge separation term z.*/
       RHOM_R,     /*!< RHO after propagation in ordinary space*/
       VX_R,   /*!< VX after propagation in ordinary space*/
       VY_R,   /*!< VY after propagation in ordinary space*/
@@ -270,6 +273,7 @@ namespace fsgrids {
    enum moments {
       RHOM, /*!< Overall mass density. Calculated by Vlasov propagator, used to propagate fields.*/
       RHOQ, /*!< Overall charge density. Calculated by Vlasov propagator, used to propagate fields.*/
+      RHOQE, /*!< Electron charge density. Calculated from e- test particles, used to even out e- charge imbalances .*/
       VX,   /*!< Vx. Calculated by Vlasov propagator, used to propagate fields.*/
       VY,   /*!< Vy. Calculated by Vlasov propagator, used to propagate fields.*/
       VZ,   /*!< Vz. Calculated by Vlasov propagator, used to propagate fields.*/
@@ -323,6 +327,9 @@ namespace fsgrids {
       dVzdx,     /*!< Derivative of volume-averaged Vz to x-direction. */
       dVzdy,     /*!< Derivative of volume-averaged Vz to y-direction. */
       dVzdz,     /*!< Derivative of volume-averaged Vz to z-direction. */
+      RHOQEx,    /*!< Cell-averaged Ex field from charge imbalance. Move these to some other place? */
+      RHOQEy,    /*!< Cell-averaged Ey field from charge imbalance. Move these to some other place? */
+      RHOQEz,    /*!< Cell-averaged Ez field from charge imbalance. Move these to some other place? */
       N_DMOMENTS
    };
    

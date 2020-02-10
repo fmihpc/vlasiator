@@ -160,9 +160,9 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       spatial_cell->parameters[CellParams::EZJE]);
    // Calculate E from charge density imbalance
    Eigen::Matrix<Real,3,1> Efromrq(
-      spatial_cell->parameters[dmoments::droqedx],
-      spatial_cell->parameters[dmoments::droqedy],
-      spatial_cell->parameters[dmoments::droqedz]);
+      spatial_cell->parameters[CellParams::ERHOQX],
+      spatial_cell->parameters[CellParams::ERHOQY],
+      spatial_cell->parameters[CellParams::ERHOQZ]);
 
   /* 
      ofstream substepFile;
