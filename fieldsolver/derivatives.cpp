@@ -28,7 +28,7 @@
 
 /*! \brief Low-level spatial derivatives calculation.
  * 
- * For the cell with ID cellID calculate the spatial derivatives or apply the derivative boundary conditions defined in project.h. Uses RHO, V[XYZ] and B[XYZ] in the first-order time accuracy method and in the second step of the second-order method, and RHO_DT2, V[XYZ]1 and B[XYZ]1 in the first step of the second-order method.
+ * For the cell with ID cellID calculate the spatial derivatives or apply the derivative boundary conditions defined in project.h. Uses RHO, V[XYZ] and B[XYZ] in the first-order time accuracy method and in the second step of the second-order method, and RHO_DT2, V[XYZ]1 and B[XYZ]1 in the first step of the second-order method. Includes calculating charge-separation E field for test electrons.
  * \param i,j,k fsGrid cell coordinates for the current cell
  * \param perBGrid fsGrid holding the perturbed B quantities
  * \param momentsGrid fsGrid holding the moment quantities
@@ -56,9 +56,13 @@ void calculateDerivatives(
    std::array<Real, fsgrids::dmoments::N_DMOMENTS> * dMoments = dMomentsGrid.get(i,j,k);
 
    // PQN electric field factors: Eiii = Erhoqk_iii Qdx/eps; with all constants inset
-   Real Erhoqk_100 = 0.0470811 * pow3(technicalGrid.DX)*technicalGrid.DX / physicalconstants::EPS_0;
-   Real Erhoqk_110 = 0.0284809 * pow3(technicalGrid.DX)*technicalGrid.DX / physicalconstants::EPS_0;
-   Real Erhoqk_111 = 0.0154994 * pow3(technicalGrid.DX)*technicalGrid.DX / physicalconstants::EPS_0;
+   const Real Erhoqk_100 = 0.0470811 * pow3(technicalGrid.DX)*technicalGrid.DX / physicalconstants::EPS_0;
+   const Real Erhoqk_110 = 0.0284809 * pow3(technicalGrid.DX)*technicalGrid.DX / physicalconstants::EPS_0;
+   const Real Erhoqk_111 = 0.0154994 * pow3(technicalGrid.DX)*technicalGrid.DX / physicalconstants::EPS_0;
+   // Zero RHOQ electric fields, accumulated during the rest of this call
+   dMoments->at(fsgrids::dmoments::RHOQEx) = 0.0;
+   dMoments->at(fsgrids::dmoments::RHOQEy) = 0.0;
+   dMoments->at(fsgrids::dmoments::RHOQEz) = 0.0;
 
    // Get boundary flag for the cell:
    cuint sysBoundaryFlag  = technicalGrid.get(i,j,k)->sysBoundaryFlag;
@@ -140,10 +144,6 @@ void calculateDerivatives(
         dPerB->at(fsgrids::dperb::dPERBzdxx) = leftPerB->at(fsgrids::bfield::PERBZ) + rghtPerB->at(fsgrids::bfield::PERBZ) - 2.0*centPerB->at(fsgrids::bfield::PERBZ);
       }
 
-      dMoments->at(fsgrids::dmoments::RHOQEx) += Erhoqk_100 * (
-                                                                leftMoments->at(fsgrids::moments::RHOQ) + leftMoments->at(fsgrids::moments::RHOQE) -
-                                                                rghtMoments->at(fsgrids::moments::RHOQ) - rghtMoments->at(fsgrids::moments::RHOQE)
-                                                               );
 
    } else {
       // Boundary conditions handle derivatives.
@@ -152,6 +152,17 @@ void calculateDerivatives(
       } else {
          sysBoundaries.getSysBoundary(sysBoundaryFlag)->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, i, j, k, RKCase, 0);
       }
+   }
+
+   // Ex for electron charge separation  
+   if ((sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) || (sysBoundaryLayer == 1)) {
+
+      leftMoments = momentsGrid.get(i-1,j,k);
+      rghtMoments = momentsGrid.get(i+1,j,k);
+      dMoments->at(fsgrids::dmoments::RHOQEx) += Erhoqk_100 * (
+                                                                leftMoments->at(fsgrids::moments::RHOQE) -
+                                                                rghtMoments->at(fsgrids::moments::RHOQE)
+                                                               );
    }
 
    // Calculate y-derivatives (is not TVD for AMR mesh):
@@ -182,10 +193,6 @@ void calculateDerivatives(
          dPerB->at(fsgrids::dperb::dPERBzdyy) = leftPerB->at(fsgrids::bfield::PERBZ) + rghtPerB->at(fsgrids::bfield::PERBZ) - 2.0*centPerB->at(fsgrids::bfield::PERBZ);
       }
 
-      dMoments->at(fsgrids::dmoments::RHOQEy) += Erhoqk_100 * (
-                                                                leftMoments->at(fsgrids::moments::RHOQ) + leftMoments->at(fsgrids::moments::RHOQE) -
-                                                                rghtMoments->at(fsgrids::moments::RHOQ) - rghtMoments->at(fsgrids::moments::RHOQE)
-                                                                );
    } else {
       // Boundary conditions handle derivatives.
       if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
@@ -194,7 +201,19 @@ void calculateDerivatives(
          sysBoundaries.getSysBoundary(sysBoundaryFlag)->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, i, j, k, RKCase, 1);
       }
    }
-   
+ 
+   // Ey for electron charge separation  
+   if ((sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) || (sysBoundaryLayer == 1)) {
+
+      leftMoments = momentsGrid.get(i,j-1,k);
+      rghtMoments = momentsGrid.get(i,j+1,k);
+      dMoments->at(fsgrids::dmoments::RHOQEy) += Erhoqk_100 * (
+                                                                leftMoments->at(fsgrids::moments::RHOQE) -
+                                                                rghtMoments->at(fsgrids::moments::RHOQE)
+                                                               );
+   }
+
+
    // Calculate z-derivatives (is not TVD for AMR mesh):
    if ((sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) || (sysBoundaryLayer == 1)) {
       
@@ -222,10 +241,6 @@ void calculateDerivatives(
         dPerB->at(fsgrids::dperb::dPERBydzz) = leftPerB->at(fsgrids::bfield::PERBY) + rghtPerB->at(fsgrids::bfield::PERBY) - 2.0*centPerB->at(fsgrids::bfield::PERBY);
       }
       
-      dMoments->at(fsgrids::dmoments::RHOQEz) += Erhoqk_100 * (
-                                                                leftMoments->at(fsgrids::moments::RHOQ) + leftMoments->at(fsgrids::moments::RHOQE) -
-                                                                rghtMoments->at(fsgrids::moments::RHOQ) - rghtMoments->at(fsgrids::moments::RHOQE)
-                                                               );
    } else {
       // Boundary conditions handle derivatives.
       if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
@@ -235,6 +250,18 @@ void calculateDerivatives(
       }
    }
    
+   // Ez for electron charge separation  
+   if ((sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) || (sysBoundaryLayer == 1)) {
+
+      leftMoments = momentsGrid.get(i,j,k-1);
+      rghtMoments = momentsGrid.get(i,j,k+1);
+      dMoments->at(fsgrids::dmoments::RHOQEz) += Erhoqk_100 * (
+                                                                leftMoments->at(fsgrids::moments::RHOQE) -
+                                                                rghtMoments->at(fsgrids::moments::RHOQE)
+                                                               );
+   }
+
+
    if (Parameters::ohmHallTerm < 2 || sysBoundaryLayer == 1) {
       dPerB->at(fsgrids::dperb::dPERBxdyz) = 0.0;
       dPerB->at(fsgrids::dperb::dPERBydxz) = 0.0;
@@ -299,115 +326,109 @@ void calculateDerivatives(
    }
 
    // Calculate mixed step E field contributions for PQN E field
-   // xy
-   dbotLeft = momentsGrid.get(i-1,j-1,k);
-   dbotRght = momentsGrid.get(i+1,j-1,k);
-   dtopLeft = momentsGrid.get(i-1,j+1,k);
-   dtopRght = momentsGrid.get(i+1,j+1,k);
+   // nb. no momentsGrid calls in the previous mixed derivatives calls
+   if ((sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) || (sysBoundaryLayer == 1)) {
 
-   dMoments->at(fsgrids::dmoments::RHOQEx) += Erhoqk_110 * (
-                                                             dbotLeft->at(fsgrids::moments::RHOQ) + dbotLeft->at(fsgrids::moments::RHOQE) -
-                                                             dbotRght->at(fsgrids::moments::RHOQ) - dbotRght->at(fsgrids::moments::RHOQE) +
-                                                             dtopLeft->at(fsgrids::moments::RHOQ) + dtopLeft->at(fsgrids::moments::RHOQE) -
-                                                             dtopRght->at(fsgrids::moments::RHOQ) - dtopRght->at(fsgrids::moments::RHOQE)
-                                                            );
-   dMoments->at(fsgrids::dmoments::RHOQEy) += Erhoqk_110 * (
-                                                             dbotLeft->at(fsgrids::moments::RHOQ) + dbotLeft->at(fsgrids::moments::RHOQE) +
-                                                             dbotRght->at(fsgrids::moments::RHOQ) + dbotRght->at(fsgrids::moments::RHOQE) -
-                                                             dtopLeft->at(fsgrids::moments::RHOQ) - dtopLeft->at(fsgrids::moments::RHOQE) -
-                                                             dtopRght->at(fsgrids::moments::RHOQ) - dtopRght->at(fsgrids::moments::RHOQE)
-                                                            );
-  
+      // xy
+      dbotLeft = momentsGrid.get(i-1,j-1,k);
+      dbotRght = momentsGrid.get(i+1,j-1,k);
+      dtopLeft = momentsGrid.get(i-1,j+1,k);
+      dtopRght = momentsGrid.get(i+1,j+1,k);
 
-   // yz
-   dbotLeft = momentsGrid.get(i,j-1,k-1);
-   dbotRght = momentsGrid.get(i,j+1,k-1);
-   dtopLeft = momentsGrid.get(i,j-1,k+1);
-   dtopRght = momentsGrid.get(i,j+1,k+1);
-
-   dMoments->at(fsgrids::dmoments::RHOQEy) += Erhoqk_110 * (
-                                                             dbotLeft->at(fsgrids::moments::RHOQ) + dbotLeft->at(fsgrids::moments::RHOQE) -
-                                                             dbotRght->at(fsgrids::moments::RHOQ) - dbotRght->at(fsgrids::moments::RHOQE) +
-                                                             dtopLeft->at(fsgrids::moments::RHOQ) + dtopLeft->at(fsgrids::moments::RHOQE) -
-                                                             dtopRght->at(fsgrids::moments::RHOQ) - dtopRght->at(fsgrids::moments::RHOQE)
-                                                            );
-   dMoments->at(fsgrids::dmoments::RHOQEz) += Erhoqk_110 * (
-                                                             dbotLeft->at(fsgrids::moments::RHOQ) + dbotLeft->at(fsgrids::moments::RHOQE) +
-                                                             dbotRght->at(fsgrids::moments::RHOQ) + dbotRght->at(fsgrids::moments::RHOQE) -
-                                                             dtopLeft->at(fsgrids::moments::RHOQ) - dtopLeft->at(fsgrids::moments::RHOQE) -
-                                                             dtopRght->at(fsgrids::moments::RHOQ) - dtopRght->at(fsgrids::moments::RHOQE)
-                                                            );
-
-   // xz
-
-   dbotLeft = momentsGrid.get(i-1,j,k-1);
-   dbotRght = momentsGrid.get(i+1,j,k-1);
-   dtopLeft = momentsGrid.get(i-1,j,k+1);
-   dtopRght = momentsGrid.get(i+1,j,k+1);
-
-   dMoments->at(fsgrids::dmoments::RHOQEx) += Erhoqk_110 * (
-                                                             dbotLeft->at(fsgrids::moments::RHOQ) + dbotLeft->at(fsgrids::moments::RHOQE) -
-                                                             dbotRght->at(fsgrids::moments::RHOQ) - dbotRght->at(fsgrids::moments::RHOQE) +
-                                                             dtopLeft->at(fsgrids::moments::RHOQ) + dtopLeft->at(fsgrids::moments::RHOQE) -
-                                                             dtopRght->at(fsgrids::moments::RHOQ) - dtopRght->at(fsgrids::moments::RHOQE)
-                                                            );
-   dMoments->at(fsgrids::dmoments::RHOQEz) += Erhoqk_110 * (
-                                                             dbotLeft->at(fsgrids::moments::RHOQ) + dbotLeft->at(fsgrids::moments::RHOQE) +
-                                                             dbotRght->at(fsgrids::moments::RHOQ) + dbotRght->at(fsgrids::moments::RHOQE) -
-                                                             dtopLeft->at(fsgrids::moments::RHOQ) - dtopLeft->at(fsgrids::moments::RHOQE) -
-                                                             dtopRght->at(fsgrids::moments::RHOQ) - dtopRght->at(fsgrids::moments::RHOQE)
-                                                            );
-
-   // corners... NB ordering of top-bottom/left-right/back-front
-   dbotLeftBack = momentsGrid.get(i-1,j-1,k-1);
-   dbotLeftFrnt = momentsGrid.get(i-1,j-1,k+1);
-   dbotRghtBack = momentsGrid.get(i-1,j+1,k-1);
-   dbotRghtFrnt = momentsGrid.get(i-1,j+1,k+1);
-   dtopLeftBack = momentsGrid.get(i-1,j-1,k-1);
-   dtopLeftFrnt = momentsGrid.get(i-1,j-1,k+1);
-   dtopRghtBack = momentsGrid.get(i-1,j+1,k-1);
-   dtopRghtFrnt = momentsGrid.get(i-1,j+1,k+1);
-
-   Real qBotLeftBack = dbotLeftBack->at(fsgrids::moments::RHOQ) + dbotLeftBack->at(fsgrids::moments::RHOQE);
-   Real qBotLeftFrnt = dbotLeftFrnt->at(fsgrids::moments::RHOQ) + dbotLeftFrnt->at(fsgrids::moments::RHOQE);
-   Real qBotRghtBack = dbotRghtBack->at(fsgrids::moments::RHOQ) + dbotRghtBack->at(fsgrids::moments::RHOQE);
-   Real qBotRghtFrnt = dbotRghtFrnt->at(fsgrids::moments::RHOQ) + dbotRghtFrnt->at(fsgrids::moments::RHOQE);
-   Real qTopLeftBack = dtopLeftBack->at(fsgrids::moments::RHOQ) + dtopLeftBack->at(fsgrids::moments::RHOQE);
-   Real qTopLeftFrnt = dtopLeftFrnt->at(fsgrids::moments::RHOQ) + dtopLeftFrnt->at(fsgrids::moments::RHOQE);
-   Real qTopRghtBack = dtopRghtBack->at(fsgrids::moments::RHOQ) + dtopRghtBack->at(fsgrids::moments::RHOQE);
-   Real qTopRghtFrnt = dtopRghtFrnt->at(fsgrids::moments::RHOQ) + dtopRghtFrnt->at(fsgrids::moments::RHOQE);
+      dMoments->at(fsgrids::dmoments::RHOQEx) += Erhoqk_110 * (
+            dbotLeft->at(fsgrids::moments::RHOQE) -
+            dbotRght->at(fsgrids::moments::RHOQE) +
+            dtopLeft->at(fsgrids::moments::RHOQE) -
+            dtopRght->at(fsgrids::moments::RHOQE)
+            );
+      dMoments->at(fsgrids::dmoments::RHOQEy) += Erhoqk_110 * (
+            dbotLeft->at(fsgrids::moments::RHOQE) +
+            dbotRght->at(fsgrids::moments::RHOQE) -
+            dtopLeft->at(fsgrids::moments::RHOQE) -
+            dtopRght->at(fsgrids::moments::RHOQE)
+            );
 
 
-   dMoments->at(fsgrids::dmoments::RHOQEx) += Erhoqk_111 * (
-                                                               qBotLeftBack
-                                                             + qBotLeftFrnt
-                                                             + qBotRghtBack
-                                                             + qBotRghtFrnt
-                                                             - qTopLeftBack
-                                                             - qTopLeftFrnt
-                                                             - qTopRghtBack
-                                                             - qTopRghtFrnt
-                                                             );
-   dMoments->at(fsgrids::dmoments::RHOQEy) += Erhoqk_111 * (
-                                                               qBotLeftBack
-                                                             + qBotLeftFrnt
-                                                             - qBotRghtBack
-                                                             - qBotRghtFrnt
-                                                             + qTopLeftBack
-                                                             + qTopLeftFrnt
-                                                             - qTopRghtBack
-                                                             - qTopRghtFrnt
-                                                             );
-   dMoments->at(fsgrids::dmoments::RHOQEz) += Erhoqk_111 * (
-                                                               qBotLeftBack
-                                                             - qBotLeftFrnt
-                                                             + qBotRghtBack
-                                                             - qBotRghtFrnt
-                                                             + qTopLeftBack
-                                                             - qTopLeftFrnt
-                                                             + qTopRghtBack
-                                                             - qTopRghtFrnt
-                                                             );
+      // yz
+      dbotLeft = momentsGrid.get(i,j-1,k-1);
+      dbotRght = momentsGrid.get(i,j+1,k-1);
+      dtopLeft = momentsGrid.get(i,j-1,k+1);
+      dtopRght = momentsGrid.get(i,j+1,k+1);
+
+      dMoments->at(fsgrids::dmoments::RHOQEy) += Erhoqk_110 * (
+            dbotLeft->at(fsgrids::moments::RHOQE) -
+            dbotRght->at(fsgrids::moments::RHOQE) +
+            dtopLeft->at(fsgrids::moments::RHOQE) -
+            dtopRght->at(fsgrids::moments::RHOQE)
+            );
+      dMoments->at(fsgrids::dmoments::RHOQEz) += Erhoqk_110 * (
+            dbotLeft->at(fsgrids::moments::RHOQE) +
+            dbotRght->at(fsgrids::moments::RHOQE) -
+            dtopLeft->at(fsgrids::moments::RHOQE) -
+            dtopRght->at(fsgrids::moments::RHOQE)
+            );
+
+      // xz
+
+      dbotLeft = momentsGrid.get(i-1,j,k-1);
+      dbotRght = momentsGrid.get(i+1,j,k-1);
+      dtopLeft = momentsGrid.get(i-1,j,k+1);
+      dtopRght = momentsGrid.get(i+1,j,k+1);
+
+      dMoments->at(fsgrids::dmoments::RHOQEx) += Erhoqk_110 * (
+            dbotLeft->at(fsgrids::moments::RHOQE) -
+            dbotRght->at(fsgrids::moments::RHOQE) +
+            dtopLeft->at(fsgrids::moments::RHOQE) -
+            dtopRght->at(fsgrids::moments::RHOQE)
+            );
+      dMoments->at(fsgrids::dmoments::RHOQEz) += Erhoqk_110 * (
+            dbotLeft->at(fsgrids::moments::RHOQE) +
+            dbotRght->at(fsgrids::moments::RHOQE) -
+            dtopLeft->at(fsgrids::moments::RHOQE) -
+            dtopRght->at(fsgrids::moments::RHOQE)
+            );
+
+      // corners... NB ordering of top-bottom/left-right/back-front
+      dbotLeftBack = momentsGrid.get(i-1,j-1,k-1);
+      dbotLeftFrnt = momentsGrid.get(i-1,j-1,k+1);
+      dbotRghtBack = momentsGrid.get(i-1,j+1,k-1);
+      dbotRghtFrnt = momentsGrid.get(i-1,j+1,k+1);
+      dtopLeftBack = momentsGrid.get(i-1,j-1,k-1);
+      dtopLeftFrnt = momentsGrid.get(i-1,j-1,k+1);
+      dtopRghtBack = momentsGrid.get(i-1,j+1,k-1);
+      dtopRghtFrnt = momentsGrid.get(i-1,j+1,k+1);
+
+      dMoments->at(fsgrids::dmoments::RHOQEx) += Erhoqk_111 * (
+              dbotLeftBack->at(fsgrids::moments::RHOQE)
+            + dbotLeftFrnt->at(fsgrids::moments::RHOQE)
+            + dbotRghtBack->at(fsgrids::moments::RHOQE)
+            + dbotRghtFrnt->at(fsgrids::moments::RHOQE)
+            - dtopLeftBack->at(fsgrids::moments::RHOQE)
+            - dtopLeftFrnt->at(fsgrids::moments::RHOQE)
+            - dtopRghtBack->at(fsgrids::moments::RHOQE)
+            - dtopRghtFrnt->at(fsgrids::moments::RHOQE)
+            );
+      dMoments->at(fsgrids::dmoments::RHOQEy) += Erhoqk_111 * (
+              dbotLeftBack->at(fsgrids::moments::RHOQE)
+            + dbotLeftFrnt->at(fsgrids::moments::RHOQE)
+            - dbotRghtBack->at(fsgrids::moments::RHOQE)
+            - dbotRghtFrnt->at(fsgrids::moments::RHOQE)
+            + dtopLeftBack->at(fsgrids::moments::RHOQE)
+            + dtopLeftFrnt->at(fsgrids::moments::RHOQE)
+            - dtopRghtBack->at(fsgrids::moments::RHOQE)
+            - dtopRghtFrnt->at(fsgrids::moments::RHOQE)
+            );
+      dMoments->at(fsgrids::dmoments::RHOQEz) += Erhoqk_111 * (
+              dbotLeftBack->at(fsgrids::moments::RHOQE)
+            - dbotLeftFrnt->at(fsgrids::moments::RHOQE)
+            + dbotRghtBack->at(fsgrids::moments::RHOQE)
+            - dbotRghtFrnt->at(fsgrids::moments::RHOQE)
+            + dtopLeftBack->at(fsgrids::moments::RHOQE)
+            - dtopLeftFrnt->at(fsgrids::moments::RHOQE)
+            + dtopRghtBack->at(fsgrids::moments::RHOQE)
+            - dtopRghtFrnt->at(fsgrids::moments::RHOQE)
+            );
+   }
 
 }
 

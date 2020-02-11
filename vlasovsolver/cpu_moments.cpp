@@ -57,6 +57,7 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
         cell->parameters[CellParams::VY] = 0.0;
         cell->parameters[CellParams::VZ] = 0.0;
         cell->parameters[CellParams::RHOQ  ] = 0.0;
+        cell->parameters[CellParams::RHOQE ] = 0.0;
         cell->parameters[CellParams::P_11] = 0.0;
         cell->parameters[CellParams::P_22] = 0.0;
         cell->parameters[CellParams::P_33] = 0.0;

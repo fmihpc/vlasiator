@@ -619,6 +619,18 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 	 outputReducer->addMetadata(outputReducer->size()-1,"V/m","$\\mathrm{V}\\,\\mathrm{m}^{-1}$","$E_{\\del P_\\mathrm{e}}$","1.0");
          continue;
       }
+
+
+      if(lowercase == "rhoqe" || lowercase == "vg_rhoqe") {
+         // Volume-averaged E field
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_erhoqe",CellParams::ERHOQX,3));
+	      outputReducer->addMetadata(outputReducer->size()-1,"V/m","$\\mathrm{V}\\,\\mathrm{m}^{-1}$","$ERHOQ$","1.0");
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_rhoqe",CellParams::RHOQE,1));
+         outputReducer->addMetadata(outputReducer->size()-1,"C/m^3","$\\mathrm{C}\\,\\mathrm{m}^{-3}$","$\\rho_\\mathrm{qe}$","1.0");
+
+         continue;
+      }
+
       if(lowercase == "volb" || lowercase == "vg_volb" || lowercase == "b_vol" || lowercase == "bvol" || lowercase == "vg_bvol" || lowercase == "vg_b_vol") {
          // Volume-averaged magnetic field
          outputReducer->addOperator(new DRO::VariableBVol);
