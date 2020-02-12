@@ -42,6 +42,7 @@ void feedPerBIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 void getFieldsFromFsGrid(FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volumeFieldsGrid,
 			 FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
 			 FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
+                         FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& DMomentsGrid,
 			 FsGrid< fsgrids::technical, 2>& technicalGrid,
 			 dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 			 const std::vector<CellID>& cells
