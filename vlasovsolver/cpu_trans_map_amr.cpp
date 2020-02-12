@@ -976,6 +976,8 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                       const uint dimension,
                       const Realv dt,
                       const uint popID) {
+   
+   phiprof::start("setup");
 
    const bool printPencils = false;
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
@@ -1111,8 +1113,15 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    }
    // ****************************************************************************
    
+   phiprof::stop("setup");
+   
    int t1 = phiprof::initializeTimer("mapping");
    int t2 = phiprof::initializeTimer("store");
+   
+   int tComputeTarget;
+   int tComputeSource;
+   int tCopy;
+   int tPropagate;
    
 #pragma omp parallel
    {
@@ -1134,13 +1143,20 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
 
             phiprof::start(t1);
             
+            tComputeTarget = phiprof::initializeTimer("computeSpatialTargetCellsForPencils");
+//             tComputeSource = phiprof::initializeTimer("computeSpatialSourceCellsForPencil");
+//             tCopy          = phiprof::initializeTimer("copy_trans_block_data_amr");
+//             tPropagate     = phiprof::initializeTimer("propagatePencil");
+            
             std::vector<Realf> targetBlockData((pencils.sumOfLengths + 2 * pencils.N) * WID3);
             
             // Compute spatial neighbors for target cells.
             // For targets we need the local cells, plus a padding of 1 cell at both ends
             std::vector<SpatialCell*> targetCells(pencils.sumOfLengths + pencils.N * 2 );
             
+            phiprof::start(tComputeTarget);
             computeSpatialTargetCellsForPencils(mpiGrid, pencils, dimension, targetCells.data());
+            phiprof::stop(tComputeTarget);
             
 //             cout << P::t << " Rank " << myRank << ", dimension " << dimension << ", target cells: ";
             
@@ -1166,7 +1182,9 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                // source cells we have a wider stencil and take into account boundaries.
                std::vector<SpatialCell*> sourceCells(sourceLength);
 
+//                phiprof::start(tComputeSource);
                computeSpatialSourceCellsForPencil(mpiGrid, pencils, pencili, dimension, sourceCells.data());
+//                phiprof::stop(tComputeSource);
                
 //                cout << P::t << " Rank " << myRank << ", dimension " << dimension << ", source cells for pencil " << pencili << ": ";
                
@@ -1200,12 +1218,16 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                std::vector<Vec, aligned_allocator<Vec,64>> sourceVecData(sourceLength * WID3 / VECL);
 
                // load data(=> sourcedata) / (proper xy reconstruction in future)
+//                phiprof::start(tCopy);
                copy_trans_block_data_amr(sourceCells.data(), blockGID, L, sourceVecData.data(),
                                          cellid_transpose, popID);
+//                phiprof::stop(tCopy);
 
                // Dz and sourceVecData are both padded by VLASOV_STENCIL_WIDTH
                // Dz has 1 value/cell, sourceVecData has WID3 values/cell
+//                phiprof::start(tPropagate);
                propagatePencil(dz.data(), sourceVecData.data(), dimension, blockGID, dt, vmesh, L, sourceCells[0]->getVelocityBlockMinValue(popID));
+//                phiprof::stop(tPropagate);
 
                // sourceVecData => targetBlockData[this pencil])
 

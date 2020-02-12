@@ -309,15 +309,11 @@ void calculateSpatialTranslation(
       phiprof::stop(profName);
    }
    
-   // Mapping complete, update moments and maximum dt limits //
-momentCalculation:
-   calculateMoments_R(mpiGrid,localCells,true);
-   
    if (Parameters::prepareForRebalance == true) {
       if(P::amrMaxSpatialRefLevel == 0) {
          const double deltat = (MPI_Wtime() - t1) / local_propagated_cells.size();
          for (size_t c=0; c<local_propagated_cells.size(); ++c) {
-            mpiGrid[local_propagated_cells[c]]->parameters[CellParams::LBWEIGHTCOUNTER] += (MPI_Wtime() - t1);
+            mpiGrid[local_propagated_cells[c]]->parameters[CellParams::LBWEIGHTCOUNTER] += deltat;
          }
       } else {
          const double deltat = MPI_Wtime() - t1;
@@ -326,6 +322,10 @@ momentCalculation:
          }
       }
    }
+   
+   // Mapping complete, update moments and maximum dt limits //
+momentCalculation:
+   calculateMoments_R(mpiGrid,localCells,true);
    
    phiprof::stop("semilag-trans");
 }
