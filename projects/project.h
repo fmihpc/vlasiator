@@ -69,11 +69,15 @@ namespace projects {
       /*! Setup data structures for subsequent setCell calls.
        * This will most likely be empty for most projects, except for some advanced
        * data juggling ones (like restart from a subset of a larger run)
+       * The function is first called with haveDerivatives=false. If the function returns
+       * haveDerivatives=true, FSgrid communication and derivative calculation is initiated, after
+       * which the function is called again with haveDerivatives=true.
        * \param cells Local cellIDs of this task.
        */
       virtual void setupBeforeSetCell(const std::vector<CellID>& cells,
 				      dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-				      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid);
+				      bool needCurl);
+				      //FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid);
 
       /*!\brief Set the perturbed fields and distribution of a cell according to the default simulation settings.
        * This is used for the NOT_SYSBOUNDARY cells and some other system boundary conditions (e.g. Outflow).

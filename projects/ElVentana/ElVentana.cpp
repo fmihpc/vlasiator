@@ -392,7 +392,8 @@ namespace projects {
    /* Function to read relevant variables and store them to be read when each cell is being setup */
    void ElVentana::setupBeforeSetCell(const std::vector<CellID>& cells, 
 				      dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-				      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid) {  
+				      bool needCurl) {
+				      //FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid) {  
       vector<CellID> fileCellsID; /*< CellIds for all cells in file*/
       int myRank,processes;
       const string filename = this->StartFile;
@@ -623,14 +624,10 @@ namespace projects {
 
       }
 
-      // Communicate the perturbed B-fields read from the start file over to FSgrid
-      feedPerBIntoFsGrid(mpiGrid, cells, perBGrid);
-
-      // TODO: calculate volumetric B and curl of volB already here
-      // volB requires perturbed B and its derivatives already 
-      //    calculateVolumeAveragedFields(perBGrid,EGrid,dPerBGrid,volGrid,technicalGrid);
-      //    calculateBVOLDerivativesSimple(volGrid, technicalGrid, sysBoundaries);
-
+      if (needCurl==true) {
+	 // second time calling this function: B-field volumetric derivatives are now available
+	 // Now we can calculate required current density to uphold simulation field and set electron flow velocity accordingly
+      }
 
       newmpiGrid = &mpiGrid;
       this->vlsvSerialReader.close();
