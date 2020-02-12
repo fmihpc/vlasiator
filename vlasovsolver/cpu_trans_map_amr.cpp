@@ -972,7 +972,7 @@ void printPencilsFunc(const setOfPencils& pencils, const uint dimension, const i
 bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                       const vector<CellID>& localPropagatedCells,
                       const vector<CellID>& remoteTargetCells,
-                      std::vector<uint64_t>& nPencils,
+                      std::vector<uint>& nPencils,
                       const uint dimension,
                       const Realv dt,
                       const uint popID) {
@@ -1077,7 +1077,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    
    if (Parameters::prepareForRebalance == true) {
       for (uint i=0; i<localPropagatedCells.size(); i++) {
-         int myPencilCount = std::count(pencils.ids.begin(), pencils.ids.end(), localPropagatedCells[i]);
+         cuint myPencilCount = std::count(pencils.ids.begin(), pencils.ids.end(), localPropagatedCells[i]);
          nPencils[i] += myPencilCount;
          nPencils[nPencils.size()-1] += myPencilCount;
       }
