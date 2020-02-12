@@ -494,6 +494,7 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
 
    pencils.addPencil(ids,x,y,periodic,path);
    
+   // TODO why do we have both return value and the argument modified in place? Could be made consistent.
    return pencils;
   
 }
@@ -862,8 +863,11 @@ void check_ghost_cells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
  * @param cells Local spatial cells
  * @param pencils Pencil data struct
  */
-bool checkPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                  const std::vector<CellID> &cells, const setOfPencils& pencils) {
+bool checkPencils(
+   const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   const std::vector<CellID> &cells,
+   const setOfPencils& pencils
+) {
 
    bool correct = true;
 
@@ -884,13 +888,12 @@ bool checkPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    }
 
    for (int ipencil = 0; ipencil < pencils.N; ++ipencil) {
-
+      cint nPencilsThroughThisCell = pow(pow(2,pencils.path[ipencil].size()),2);
       auto ids = pencils.getIds(ipencil);
-
+      
       for (auto id : ids) {
 
-         int myCount = std::count(pencils.ids.begin(), pencils.ids.end(), id);
-         int nPencilsThroughThisCell = pow(pow(2,pencils.path[ipencil].size()),2);
+         cint myCount = std::count(pencils.ids.begin(), pencils.ids.end(), id);
 
          if (myCount > nPencilsThroughThisCell) {
 
@@ -969,6 +972,7 @@ void printPencilsFunc(const setOfPencils& pencils, const uint dimension, const i
 bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                       const vector<CellID>& localPropagatedCells,
                       const vector<CellID>& remoteTargetCells,
+                      std::vector<uint64_t>& nPencils,
                       const uint dimension,
                       const Realv dt,
                       const uint popID) {
@@ -1069,6 +1073,14 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
 
    if(!checkPencils(mpiGrid, localPropagatedCells, pencils)) {
       abort();
+   }
+   
+   if (Parameters::prepareForRebalance == true) {
+      for (uint i=0; i<localPropagatedCells.size(); i++) {
+         int myPencilCount = std::count(pencils.ids.begin(), pencils.ids.end(), localPropagatedCells[i]);
+         nPencils[i] += myPencilCount;
+         nPencils[nPencils.size()-1] += myPencilCount;
+      }
    }
    
    // Add the final set of pencils to the pencilSets - vector.
