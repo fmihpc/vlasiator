@@ -1057,27 +1057,27 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    vector<uint> path;
 
    // Output vectors for ready pencils
-   setOfPencils pencils;
+   setOfPencils pencilSet;
    vector<setOfPencils> pencilSets;
 
    for (const auto seedId : seedIds) {
       // Construct pencils from the seedIds into a set of pencils.
-      pencils = buildPencilsWithNeighbors(mpiGrid, pencils, seedId, ids, dimension, path, seedIds);
+      pencilSet = buildPencilsWithNeighbors(mpiGrid, pencilSet, seedId, ids, dimension, path, seedIds);
    }   
    
    // Check refinement of two ghost cells on each end of each pencil
-   check_ghost_cells(mpiGrid,pencils,dimension);
+   check_ghost_cells(mpiGrid,pencilSet,dimension);
    // ****************************************************************************   
 
-   if(printPencils) printPencilsFunc(pencils,dimension,myRank);
+   if(printPencils) printPencilsFunc(pencilSet,dimension,myRank);
 
-   if(!checkPencils(mpiGrid, localPropagatedCells, pencils)) {
+   if(!checkPencils(mpiGrid, localPropagatedCells, pencilSet)) {
       abort();
    }
    
    if (Parameters::prepareForRebalance == true) {
       for (uint i=0; i<localPropagatedCells.size(); i++) {
-         cuint myPencilCount = std::count(pencils.ids.begin(), pencils.ids.end(), localPropagatedCells[i]);
+         cuint myPencilCount = std::count(pencilSet.ids.begin(), pencilSet.ids.end(), localPropagatedCells[i]);
          nPencils[i] += myPencilCount;
          nPencils[nPencils.size()-1] += myPencilCount;
       }
@@ -1085,7 +1085,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    
    // Add the final set of pencils to the pencilSets - vector.
    // Only one set is created for now but we retain support for multiple sets
-   pencilSets.push_back(pencils);
+   pencilSets.push_back(pencilSet);
    
    // Get a pointer to the velocity mesh of the first spatial cell
    const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = allCellsPointer[0]->get_velocity_mesh(popID);
