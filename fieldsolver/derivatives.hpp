@@ -39,6 +39,10 @@ void calculateDerivativesSimple(
    cint& RKCase,
    const bool communicateMoments);
 
+void calculateDerivativesOnlyPerB(
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
+   FsGrid< fsgrids::technical, 2> & technicalGrid);
 
 void calculateBVOLDerivativesSimple(
    FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volGrid,

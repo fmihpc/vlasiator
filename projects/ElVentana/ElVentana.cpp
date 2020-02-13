@@ -272,14 +272,41 @@ namespace projects {
 	  // Scale temperatures from input values. For electrons, this should be about 1/4, for protons, 1
 	  temperature = temperature * sP.Temperatureratio;
           const std::array<Real, 3> v0 = this->getV0(x, y, z, popID)[0];
-	  // TODO: Calculate correct base v0 for electrons from proton population and curl of B
-          distvalue = initRho * pow(mass / (2.0 * M_PI * physicalconstants::K_B * temperature), 1.5) *
-              exp(- mass * ( pow(vx - v0[0], 2.0) + pow(vy - v0[1], 2.0) + pow(vz - v0[2], 2.0) ) /
-              (2.0 * physicalconstants::K_B * temperature));
-          return distvalue;
+	  if (mass > 0.5*physicalconstants::MASS_PROTON) {
+	     // protons
+	     distvalue = initRho * pow(mass / (2.0 * M_PI * physicalconstants::K_B * temperature), 1.5) *
+		exp(- mass * ( pow(vx - v0[0], 2.0) + pow(vy - v0[1], 2.0) + pow(vz - v0[2], 2.0) ) /
+		    (2.0 * physicalconstants::K_B * temperature));
+	     return distvalue;
+	  } else {
+	     // electrons: assume that we have only protons and electrons as active populations
+	     const std::array<Real, 3> Ji = v0 * initRho * physicalconstants::CHARGE;
+	     // Now account for current requirement from curl of B
+	     const Real dBXdy = spatial_cell->derivativesBVOL[bvolderivatives::dPERBXVOLdy];
+	     const Real dBXdz = spatial_cell->derivativesBVOL[bvolderivatives::dPERBXVOLdz];
+	     const Real dBYdx = spatial_cell->derivativesBVOL[bvolderivatives::dPERBYVOLdx];
+	     const Real dBYdz = spatial_cell->derivativesBVOL[bvolderivatives::dPERBYVOLdz];
+	     const Real dBZdx = spatial_cell->derivativesBVOL[bvolderivatives::dPERBZVOLdx];
+	     const Real dBZdy = spatial_cell->derivativesBVOL[bvolderivatives::dPERBZVOLdy];
+	     std::array<Real, 3> Jreq;
+	     Jreq[0] = (dBZdy - dBYdz)/physicalconstants::MU_0;
+	     Jreq[1] = (dBXdz - dBZdx)/physicalconstants::MU_0;
+	     Jreq[2] = (dBYdx - dBXdy)/physicalconstants::MU_0;
+	     // Total required current density Jreq = Ji + Je
+	     // Electron velocity is Jreq/(density*charge)
+	     std::array<Real, 3> ve;
+	     ve = -(Jreq - Ji)/(initRho*physicalconstants::CHARGE);
+
+	     distvalue = initRho * pow(mass / (2.0 * M_PI * physicalconstants::K_B * temperature), 1.5) *
+		exp(- mass * ( pow(vx - ve[0], 2.0) + pow(vy - ve[1], 2.0) + pow(vz - ve[2], 2.0) ) /
+		    (2.0 * physicalconstants::K_B * temperature));
+	     return distvalue;
+	  }
       } else {
           return 0;
       }
+
+
    }
 
 
@@ -393,7 +420,6 @@ namespace projects {
    void ElVentana::setupBeforeSetCell(const std::vector<CellID>& cells, 
 				      dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 				      bool needCurl) {
-				      //FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid) {  
       vector<CellID> fileCellsID; /*< CellIds for all cells in file*/
       int myRank,processes;
       const string filename = this->StartFile;
@@ -406,48 +432,49 @@ namespace projects {
       vlsv::datatype::type dataType;
       int k;
 
+      // Read densities, velocities, pressures and magnetic fields from VLSV file
       // Attempt to open VLSV file for reading:
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
       MPI_Comm_size(MPI_COMM_WORLD,&processes);
       MPI_Info mpiInfo = MPI_INFO_NULL;
       if (this->vlsvParaReader.open(filename,MPI_COMM_WORLD,MASTER_RANK,mpiInfo) == false) {
-         if(myRank == MASTER_RANK) cout << "Could not open file: " << filename << endl;
-         exit(1);
+	 if(myRank == MASTER_RANK) cout << "Could not open file: " << filename << endl;
+	 exit(1);
       }
       if (readCellIds(this->vlsvParaReader,fileCellsID,MASTER_RANK,MPI_COMM_WORLD) == false) {
-          if(myRank == MASTER_RANK) cout << "Could not read cell IDs." << endl;
-          exit(1);
+	 if(myRank == MASTER_RANK) cout << "Could not read cell IDs." << endl;
+	 exit(1);
       }
       MPI_Bcast(&(fileCellsID[0]),fileCellsID.size(),MPI_UINT64_T,MASTER_RANK,MPI_COMM_WORLD);
       
       if(myRank == MASTER_RANK) cout << "Trying to read parameters from file... " << endl;
       if (this->vlsvParaReader.readParameter("xmin", filexmin) == false) {
-          if(myRank == MASTER_RANK) cout << " Could not read parameter xmin. " << endl;
-          exit(1);}
+	 if(myRank == MASTER_RANK) cout << " Could not read parameter xmin. " << endl;
+	 exit(1);}
       if (this->vlsvParaReader.readParameter("ymin", fileymin) == false) {
-          if(myRank == MASTER_RANK) cout << " Could not read parameter ymin. " << endl;
-          exit(1);}
+	 if(myRank == MASTER_RANK) cout << " Could not read parameter ymin. " << endl;
+	 exit(1);}
       if (this->vlsvParaReader.readParameter("zmin", filezmin) == false) {
-          if(myRank == MASTER_RANK) cout << " Could not read parameter zmin. " << endl;
-          exit(1);}
+	 if(myRank == MASTER_RANK) cout << " Could not read parameter zmin. " << endl;
+	 exit(1);}
       if (this->vlsvParaReader.readParameter("xmax", filexmax) == false) {
-          if(myRank == MASTER_RANK) cout << " Could not read parameter xmax. " << endl;
-          exit(1);}
+	 if(myRank == MASTER_RANK) cout << " Could not read parameter xmax. " << endl;
+	 exit(1);}
       if (this->vlsvParaReader.readParameter("ymax", fileymax) == false) {
-          if(myRank == MASTER_RANK) cout << " Could not read parameter ymax. " << endl;
-          exit(1);}
+	 if(myRank == MASTER_RANK) cout << " Could not read parameter ymax. " << endl;
+	 exit(1);}
       if (this->vlsvParaReader.readParameter("zmax", filezmax) == false) {
-          if(myRank == MASTER_RANK) cout << " Could not read parameter zmax. " << endl;
-          exit(1);}
+	 if(myRank == MASTER_RANK) cout << " Could not read parameter zmax. " << endl;
+	 exit(1);}
       if (this->vlsvParaReader.readParameter("xcells_ini", filexcells) == false) {
-          if(myRank == MASTER_RANK) cout << " Could not read parameter xcells_ini. " << endl;
-          exit(1);}
+	 if(myRank == MASTER_RANK) cout << " Could not read parameter xcells_ini. " << endl;
+	 exit(1);}
       if (this->vlsvParaReader.readParameter("ycells_ini", fileycells) == false) {
-          if(myRank == MASTER_RANK) cout << " Could not read parameter ycells_ini. " << endl;
-          exit(1);}
+	 if(myRank == MASTER_RANK) cout << " Could not read parameter ycells_ini. " << endl;
+	 exit(1);}
       if (this->vlsvParaReader.readParameter("zcells_ini", filezcells) == false) {
-          if(myRank == MASTER_RANK) cout << " Could not read parameter zcells_ini. " << endl;
-          exit(1);}
+	 if(myRank == MASTER_RANK) cout << " Could not read parameter zcells_ini. " << endl;
+	 exit(1);}
       if(myRank == MASTER_RANK) cout << "All parameters read." << endl;
 
       filedx = (filexmax - filexmin)/filexcells;
@@ -459,46 +486,46 @@ namespace projects {
       this->vlsvParaReader.close();
 
       if (this->vlsvSerialReader.open(filename) == false) {
-         if(myRank == MASTER_RANK) cout << "Could not open file: " << filename << endl;
-         exit(1);
+	 if(myRank == MASTER_RANK) cout << "Could not open file: " << filename << endl;
+	 exit(1);
       }
 
       // Check file type... couldn't get the VLSVreader interface to work yet
       /*      vlsvinterface::Reader interfacer;
-      interfacer.open(filename);
-      std::list<std::string> variableNames;
-      std::string gridname("SpatialGrid");
-      interfacer.getVariableNames(gridname,variableNames);
-      interfacer.close();
-      if(find(variableNames.begin(), variableNames.end(), std::string("moments"))!=variableNames.end()) {
-	 // Moments were found, i.e. it's a restart file
-	 isbulk = 0;
-      } else {
-	 // It is a bulk file
-         isbulk = 1;
-	 } */
+	      interfacer.open(filename);
+	      std::list<std::string> variableNames;
+	      std::string gridname("SpatialGrid");
+	      interfacer.getVariableNames(gridname,variableNames);
+	      interfacer.close();
+	      if(find(variableNames.begin(), variableNames.end(), std::string("moments"))!=variableNames.end()) {
+	      // Moments were found, i.e. it's a restart file
+	      isbulk = 0;
+	      } else {
+	      // It is a bulk file
+	      isbulk = 1;
+	      } */
 
       if (filename.find("bulk.") != string::npos) { 
-         // It is a bulk file
-         isbulk = 1; // Hard setting for now...
+	 // It is a bulk file
+	 isbulk = 1; // Hard setting for now...
       }
 
       for (uint64_t i=0; i<cells.size(); i++) {
-         SpatialCell* cell = mpiGrid[cells[i]];
-         creal x = cell->parameters[CellParams::XCRD];
-         creal y = cell->parameters[CellParams::YCRD];
-         creal z = cell->parameters[CellParams::ZCRD];
-         // Calculate cellID in old grid
-         CellID oldcellID = 1 + (int) ((x - filexmin) / filedx) + (int) ((y - fileymin) / filedy) * filexcells +
-            (int) ((z - filezmin) / filedz) * filexcells * fileycells;
-         // Calculate fileoffset corresponding to old cellID
-         for (uint64_t j=0; j<fileCellsID.size(); j++) {
-            if (fileCellsID[j] == oldcellID) {
-                fileOffset = j;
-                k = j;
-                break;
-            }
-         }
+	 SpatialCell* cell = mpiGrid[cells[i]];
+	 creal x = cell->parameters[CellParams::XCRD];
+	 creal y = cell->parameters[CellParams::YCRD];
+	 creal z = cell->parameters[CellParams::ZCRD];
+	 // Calculate cellID in old grid
+	 CellID oldcellID = 1 + (int) ((x - filexmin) / filedx) + (int) ((y - fileymin) / filedy) * filexcells +
+	    (int) ((z - filezmin) / filedz) * filexcells * fileycells;
+	 // Calculate fileoffset corresponding to old cellID
+	 for (uint64_t j=0; j<fileCellsID.size(); j++) {
+	    if (fileCellsID[j] == oldcellID) {
+	       fileOffset = j;
+	       k = j;
+	       break;
+	    }
+	 }
 
 	 // NOTE: This section assumes that the magnetic field values are saved on the spatial
 	 // (vlasov) grid, instead of FSgrid. FSgrid input reading isn't supported yet.
@@ -507,130 +534,128 @@ namespace projects {
 	 // the analytically calculated background fields.
 	 //
 	 // The values are face-averages, not cell-averages, but are temporarily read into PERBXVOL anyway.
-         attribs.push_back(make_pair("mesh","SpatialGrid"));
-         attribs.push_back(make_pair("name","perturbed_B"));
-         if (this->vlsvSerialReader.getArrayInfo("VARIABLE",attribs,arraySize,this->vecsizeperturbed_B,dataType,byteSize) == false) {
-            if(myRank == MASTER_RANK) logFile << "(START)  ERROR: Failed to read perturbed_B array info" << endl << write;
-            exit(1);
-         }
-         buffer=new Real[this->vecsizeperturbed_B];
-         if (this->vlsvSerialReader.readArray("VARIABLE", attribs, fileOffset, 1, (char *)buffer) == false ) {
-            if(myRank == MASTER_RANK) logFile << "(START)  ERROR: Failed to read perturbed_B"  << endl << write;
-            exit(1);
-         }
-         for (uint j=0; j<vecsizeperturbed_B; j++) {
-            mpiGrid[cells[i]]->parameters[CellParams::PERBXVOL+j] = buffer[j];
-         }
-         delete[] buffer;
-         attribs.pop_back();
-         attribs.pop_back();
+	 attribs.push_back(make_pair("mesh","SpatialGrid"));
+	 attribs.push_back(make_pair("name","perturbed_B"));
+	 if (this->vlsvSerialReader.getArrayInfo("VARIABLE",attribs,arraySize,this->vecsizeperturbed_B,dataType,byteSize) == false) {
+	    if(myRank == MASTER_RANK) logFile << "(START)  ERROR: Failed to read perturbed_B array info" << endl << write;
+	    exit(1);
+	 }
+	 buffer=new Real[this->vecsizeperturbed_B];
+	 if (this->vlsvSerialReader.readArray("VARIABLE", attribs, fileOffset, 1, (char *)buffer) == false ) {
+	    if(myRank == MASTER_RANK) logFile << "(START)  ERROR: Failed to read perturbed_B"  << endl << write;
+	    exit(1);
+	 }
+	 for (uint j=0; j<vecsizeperturbed_B; j++) {
+	    mpiGrid[cells[i]]->parameters[CellParams::PERBXVOL+j] = buffer[j];
+	 }
+	 delete[] buffer;
+	 attribs.pop_back();
+	 attribs.pop_back();
       
 	 // The background fields are initialized directly on FSgrid and are not read in.
 	 //
-         attribs.push_back(make_pair("mesh","SpatialGrid"));
-         if (isbulk == 1) {
-            attribs.push_back(make_pair("name","B"));
-         } else {
-            attribs.push_back(make_pair("name","background_B"));
-         }
-         if (this->vlsvSerialReader.getArrayInfo("VARIABLE",attribs,arraySize,this->vecsizebackground_B,dataType,byteSize) == false) {
-            logFile << "(START)  ERROR: Failed to read background_B (or B in case of bulk file) array info" << endl << write; 
-            exit(1);
-         }
-         buffer=new Real[this->vecsizebackground_B];
-         if (this->vlsvSerialReader.readArray("VARIABLE", attribs, fileOffset, 1, (char *)buffer) == false ) {
-            logFile << "(START)  ERROR: Failed to read background_B (or B in case of bulk file)"  << endl << write;
-            exit(1);
-         }
-         if (isbulk == 1) {
-            for (uint j=0; j<vecsizebackground_B; j++) {
-               mpiGrid[cells[i]]->parameters[CellParams::BGBXVOL+j] = buffer[j] - mpiGrid[cells[i]]->parameters[CellParams::PERBXVOL+j]; 
-            }
-         } else {
-            for (uint j=0; j<vecsizebackground_B; j++) {
-               mpiGrid[cells[i]]->parameters[CellParams::BGBXVOL+j] = buffer[j];
-            }
-         }
-         delete[] buffer;
-         attribs.pop_back();
-         attribs.pop_back();
+	 attribs.push_back(make_pair("mesh","SpatialGrid"));
+	 if (isbulk == 1) {
+	    attribs.push_back(make_pair("name","B"));
+	 } else {
+	    attribs.push_back(make_pair("name","background_B"));
+	 }
+	 if (this->vlsvSerialReader.getArrayInfo("VARIABLE",attribs,arraySize,this->vecsizebackground_B,dataType,byteSize) == false) {
+	    logFile << "(START)  ERROR: Failed to read background_B (or B in case of bulk file) array info" << endl << write; 
+	    exit(1);
+	 }
+	 buffer=new Real[this->vecsizebackground_B];
+	 if (this->vlsvSerialReader.readArray("VARIABLE", attribs, fileOffset, 1, (char *)buffer) == false ) {
+	    logFile << "(START)  ERROR: Failed to read background_B (or B in case of bulk file)"  << endl << write;
+	    exit(1);
+	 }
+	 if (isbulk == 1) {
+	    for (uint j=0; j<vecsizebackground_B; j++) {
+	       mpiGrid[cells[i]]->parameters[CellParams::BGBXVOL+j] = buffer[j] - mpiGrid[cells[i]]->parameters[CellParams::PERBXVOL+j]; 
+	    }
+	 } else {
+	    for (uint j=0; j<vecsizebackground_B; j++) {
+	       mpiGrid[cells[i]]->parameters[CellParams::BGBXVOL+j] = buffer[j];
+	    }
+	 }
+	 delete[] buffer;
+	 attribs.pop_back();
+	 attribs.pop_back();
 
 	 // The following sections are not multipop-safe. Multipop-handling can probably be added via the
 	 // variableNames list (see detection of bulk / restart files)
-         attribs.push_back(make_pair("mesh","SpatialGrid"));
-         if (isbulk == 1) {
-            attribs.push_back(make_pair("name","rho"));
-         } else {
-            attribs.push_back(make_pair("name","moments"));
-         }
-         if (this->vlsvSerialReader.getArrayInfo("VARIABLE",attribs,arraySize,this->vecsizemoments,dataType,byteSize) == false) {
-            if(myRank == MASTER_RANK) logFile << "(START)  ERROR: Failed to read moments (or rho in case of bulk file) array info" << endl << write;
-            exit(1);
-         }
-         buffer=new Real[this->vecsizemoments];
-         if (this->vlsvSerialReader.readArray("VARIABLE", attribs, fileOffset, 1, (char *)buffer) == false ) {
-            if(myRank == MASTER_RANK) logFile << "(START)  ERROR: Failed to read moments (or rho in case of bulk file)"  << endl << write;
-            exit(1);
-         }
-         for (uint j=0; j<vecsizemoments; j++) {
-            mpiGrid[cells[i]]->parameters[CellParams::RHOM+j] = buffer[j];
-         }
-         delete[] buffer;
-         attribs.pop_back();
-         attribs.pop_back();
+	 attribs.push_back(make_pair("mesh","SpatialGrid"));
+	 if (isbulk == 1) {
+	    attribs.push_back(make_pair("name","rho"));
+	 } else {
+	    attribs.push_back(make_pair("name","moments"));
+	 }
+	 if (this->vlsvSerialReader.getArrayInfo("VARIABLE",attribs,arraySize,this->vecsizemoments,dataType,byteSize) == false) {
+	    if(myRank == MASTER_RANK) logFile << "(START)  ERROR: Failed to read moments (or rho in case of bulk file) array info" << endl << write;
+	    exit(1);
+	 }
+	 buffer=new Real[this->vecsizemoments];
+	 if (this->vlsvSerialReader.readArray("VARIABLE", attribs, fileOffset, 1, (char *)buffer) == false ) {
+	    if(myRank == MASTER_RANK) logFile << "(START)  ERROR: Failed to read moments (or rho in case of bulk file)"  << endl << write;
+	    exit(1);
+	 }
+	 for (uint j=0; j<vecsizemoments; j++) {
+	    mpiGrid[cells[i]]->parameters[CellParams::RHOM+j] = buffer[j];
+	 }
+	 delete[] buffer;
+	 attribs.pop_back();
+	 attribs.pop_back();
          
-         if (isbulk == 1) {
-             attribs.push_back(make_pair("mesh","SpatialGrid"));
-             attribs.push_back(make_pair("name","rho_v"));
-             // Borrowing the vecsizepressure here. It will be overwritten in the next call of this function.
-             if (this->vlsvSerialReader.getArrayInfo("VARIABLE",attribs,arraySize,this->vecsizepressure,dataType,byteSize) == false) { 
-                if(myRank == MASTER_RANK) logFile << "(START)  ERROR: Failed to read rho_v array info" << endl << write;
-                exit(1);
-             }
-             buffer=new Real[this->vecsizepressure];
-             if (this->vlsvSerialReader.readArray("VARIABLE", attribs, fileOffset, 1, (char *)buffer) == false ) {
-                if(myRank == MASTER_RANK) logFile << "(START)  ERROR: Failed to read rho_v"  << endl << write;
-                exit(1);
-             }
-             for (uint j=0; j<vecsizepressure; j++) {
-                mpiGrid[cells[i]]->parameters[CellParams::VX+j] = buffer[j];
-             }
-             delete[] buffer;
-             attribs.pop_back();
-             attribs.pop_back();
-         }
+	 if (isbulk == 1) {
+	    attribs.push_back(make_pair("mesh","SpatialGrid"));
+	    attribs.push_back(make_pair("name","rho_v"));
+	    // Borrowing the vecsizepressure here. It will be overwritten in the next call of this function.
+	    if (this->vlsvSerialReader.getArrayInfo("VARIABLE",attribs,arraySize,this->vecsizepressure,dataType,byteSize) == false) { 
+	       if(myRank == MASTER_RANK) logFile << "(START)  ERROR: Failed to read rho_v array info" << endl << write;
+	       exit(1);
+	    }
+	    buffer=new Real[this->vecsizepressure];
+	    if (this->vlsvSerialReader.readArray("VARIABLE", attribs, fileOffset, 1, (char *)buffer) == false ) {
+	       if(myRank == MASTER_RANK) logFile << "(START)  ERROR: Failed to read rho_v"  << endl << write;
+	       exit(1);
+	    }
+	    for (uint j=0; j<vecsizepressure; j++) {
+	       mpiGrid[cells[i]]->parameters[CellParams::VX+j] = buffer[j];
+	    }
+	    delete[] buffer;
+	    attribs.pop_back();
+	    attribs.pop_back();
+	 }
          
-         attribs.push_back(make_pair("mesh","SpatialGrid"));
-         if (isbulk == 1) {
-            attribs.push_back(make_pair("name","PTensorDiagonal"));
-         } else {
-            attribs.push_back(make_pair("name","pressure"));
-         }
-         if (this->vlsvSerialReader.getArrayInfo("VARIABLE",attribs,arraySize,this->vecsizepressure,dataType,byteSize) == false) {
-            if(myRank == MASTER_RANK) logFile << "(START)  ERROR: Failed to read pressure (or PTensorDiagonal in case of bulk file) array info" << endl << write;
-            exit(1);
-         }
-         buffer=new Real[this->vecsizepressure];
-         if (this->vlsvSerialReader.readArray("VARIABLE", attribs, fileOffset, 1, (char *)buffer) == false ) {
-            if(myRank == MASTER_RANK) logFile << "(START)  ERROR: Failed to read pressure (or PTensorDiagonal in case of bulk file)"  << endl << write;
-            exit(1);
-         }
-         for (uint j=0; j<vecsizepressure; j++) {
-            mpiGrid[cells[i]]->parameters[CellParams::P_11+j] = buffer[j];
-         }
-         delete[] buffer;
-         attribs.pop_back();
-         attribs.pop_back();
+	 attribs.push_back(make_pair("mesh","SpatialGrid"));
+	 if (isbulk == 1) {
+	    attribs.push_back(make_pair("name","PTensorDiagonal"));
+	 } else {
+	    attribs.push_back(make_pair("name","pressure"));
+	 }
+	 if (this->vlsvSerialReader.getArrayInfo("VARIABLE",attribs,arraySize,this->vecsizepressure,dataType,byteSize) == false) {
+	    if(myRank == MASTER_RANK) logFile << "(START)  ERROR: Failed to read pressure (or PTensorDiagonal in case of bulk file) array info" << endl << write;
+	    exit(1);
+	 }
+	 buffer=new Real[this->vecsizepressure];
+	 if (this->vlsvSerialReader.readArray("VARIABLE", attribs, fileOffset, 1, (char *)buffer) == false ) {
+	    if(myRank == MASTER_RANK) logFile << "(START)  ERROR: Failed to read pressure (or PTensorDiagonal in case of bulk file)"  << endl << write;
+	    exit(1);
+	 }
+	 for (uint j=0; j<vecsizepressure; j++) {
+	    mpiGrid[cells[i]]->parameters[CellParams::P_11+j] = buffer[j];
+	 }
+	 delete[] buffer;
+	 attribs.pop_back();
+	 attribs.pop_back();
 
-      }
-
-      if (needCurl==true) {
-	 // second time calling this function: B-field volumetric derivatives are now available
-	 // Now we can calculate required current density to uphold simulation field and set electron flow velocity accordingly
       }
 
       newmpiGrid = &mpiGrid;
       this->vlsvSerialReader.close();
+
+      // Let initializeGrid know that this project needs the Curl of B
+      needCurl = true;
    }
 
    void ElVentana::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
@@ -642,6 +667,10 @@ namespace projects {
       cell->parameters[CellParams::EXJE] = 0;
       cell->parameters[CellParams::EYJE] = 0;
       cell->parameters[CellParams::EZJE] = 0;
+      // Now we need a different cellparam for electrons?
+      for (uint j=0; j<vecsizepressure; j++) {
+	 mpiGrid[cells[i]]->parameters[CellParams::VX+j] = buffer[j];
+      }
 
    }
 

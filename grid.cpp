@@ -217,34 +217,12 @@ void initializeGrids(
 	 // Communicate the perturbed B-fields read from the start file over to FSgrid
 	 feedPerBIntoFsGrid(mpiGrid, cells, perBGrid);
 	 perBGrid.updateGhostCells();
-	 // Calculate derivatives
-	 const int* gridDims = &technicalGrid.getLocalSize()[0];
-	 const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
-	 // Calculate derivatives
-#pragma omp parallel for collapse(3)
-	 for (int k=0; k<gridDims[2]; k++) {
-	    for (int j=0; j<gridDims[1]; j++) {
-               for (int i=0; i<gridDims[0]; i++) {
-	 if (technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
-	 if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-	 calculateDerivatives(i,j,k, perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RKCase);
-            } else {
-               calculateDerivatives(i,j,k, perBDt2Grid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RKCase);
-            }
-         }
-      }
-   }
-
-         calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP2, (subcycleCount==0));
-
-	 
-	 calculateVolumeAveragedFields(perBGrid,EGrid,dPerBGrid,volGrid,technicalGrid);
+	 // Calculate volumetric derivatives of B for curl
+         calculateDerivativesOnlyPerB(perBGrid, dPerBGrid, technicalGrid);
+	 calculateVolumeAveragedFields(perBGrid, EGrid, dPerBGrid,volGrid,technicalGrid);
 	 calculateBVOLDerivativesSimple(volGrid, technicalGrid, sysBoundaries);
-
-
-	 
-	 // Call the function again, now volB derivatives are available
-	 project.setupBeforeSetCell(cells, mpiGrid, needCurl);
+	 // Gather values back to mpiGrid
+	 getdBvolFieldsFromFsGrid(volGrid, technicalGrid, mpiGrid, cells);	 
       }
 
       phiprof::start("setCell");

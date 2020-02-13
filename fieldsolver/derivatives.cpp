@@ -431,6 +431,57 @@ void calculateDerivatives(
 
 }
 
+/*! \brief Low-level spatial derivatives calculation.
+ * 
+ * As calculateDerivatives, but only calculates for perB and ignores RK case
+ * (used during simulation initialization)
+ */
+void calculateDerivativesOnlyPerB(
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
+   FsGrid< fsgrids::technical, 2> & technicalGrid,
+) {
+
+   const int* gridDims = &technicalGrid.getLocalSize()[0];
+   // Calculate derivatives
+   //#pragma omp parallel for collapse(3)
+   for (int k=0; k<gridDims[2]; k++) {
+      for (int j=0; j<gridDims[1]; j++) {
+	 for (int i=0; i<gridDims[0]; i++) {
+	    cuint sysBoundaryFlag  = technicalGrid.get(i,j,k)->sysBoundaryFlag;
+	    cuint sysBoundaryLayer = technicalGrid.get(i,j,k)->sysBoundaryLayer;
+	    if (sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
+	    if (sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) continue;
+
+	    std::array<Real, fsgrids::dperb::N_DPERB> * dPerB = dPerBGrid.get(i,j,k);
+	    std::array<Real, fsgrids::bfield::N_BFIELD> * leftPerB = NULL;
+	    std::array<Real, fsgrids::bfield::N_BFIELD> * centPerB = perBGrid.get(i,j,k);
+	    std::array<Real, fsgrids::bfield::N_BFIELD>  * rghtPerB = NULL;
+
+	    // Calculate x-derivatives
+	    leftPerB = perBGrid.get(i-1,j,k);
+	    rghtPerB = perBGrid.get(i+1,j,k);
+	    dPerB->at(fsgrids::dperb::dPERBydx)  = limiter(leftPerB->at(fsgrids::bfield::PERBY),centPerB->at(fsgrids::bfield::PERBY),rghtPerB->at(fsgrids::bfield::PERBY));
+	    dPerB->at(fsgrids::dperb::dPERBzdx)  = limiter(leftPerB->at(fsgrids::bfield::PERBZ),centPerB->at(fsgrids::bfield::PERBZ),rghtPerB->at(fsgrids::bfield::PERBZ));
+
+	    // Calculate y-derivatives
+	    leftPerB = perBGrid.get(i,j-1,k);
+	    rghtPerB = perBGrid.get(i,j+1,k);
+	    dPerB->at(fsgrids::dperb::dPERBxdy)  = limiter(leftPerB->at(fsgrids::bfield::PERBX),centPerB->at(fsgrids::bfield::PERBX),rghtPerB->at(fsgrids::bfield::PERBX));
+	    dPerB->at(fsgrids::dperb::dPERBzdy)  = limiter(leftPerB->at(fsgrids::bfield::PERBZ),centPerB->at(fsgrids::bfield::PERBZ),rghtPerB->at(fsgrids::bfield::PERBZ));
+
+	    // Calculate z-derivatives
+	    leftPerB = perBGrid.get(i,j,k-1);
+	    rghtPerB = perBGrid.get(i,j,k+1);     
+	    dPerB->at(fsgrids::dperb::dPERBxdz)  = limiter(leftPerB->at(fsgrids::bfield::PERBX),centPerB->at(fsgrids::bfield::PERBX),rghtPerB->at(fsgrids::bfield::PERBX));
+	    dPerB->at(fsgrids::dperb::dPERBydz)  = limiter(leftPerB->at(fsgrids::bfield::PERBY),centPerB->at(fsgrids::bfield::PERBY),rghtPerB->at(fsgrids::bfield::PERBY)); 
+	 }
+      }
+   }      
+
+}
+
+
 
 /*! \brief High-level derivative calculation wrapper function.
  * 
