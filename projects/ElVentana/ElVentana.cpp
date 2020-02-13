@@ -280,14 +280,17 @@ namespace projects {
 	     return distvalue;
 	  } else {
 	     // electrons: assume that we have only protons and electrons as active populations
-	     const std::array<Real, 3> Ji = v0 * initRho * physicalconstants::CHARGE;
+	     std::array<Real, 3> Ji;
+	     Ji[0] = v0[0] * initRho * physicalconstants::CHARGE;
+	     Ji[1] = v0[1] * initRho * physicalconstants::CHARGE;
+	     Ji[2] = v0[2] * initRho * physicalconstants::CHARGE;
 	     // Now account for current requirement from curl of B
-	     const Real dBXdy = spatial_cell->derivativesBVOL[bvolderivatives::dPERBXVOLdy];
-	     const Real dBXdz = spatial_cell->derivativesBVOL[bvolderivatives::dPERBXVOLdz];
-	     const Real dBYdx = spatial_cell->derivativesBVOL[bvolderivatives::dPERBYVOLdx];
-	     const Real dBYdz = spatial_cell->derivativesBVOL[bvolderivatives::dPERBYVOLdz];
-	     const Real dBZdx = spatial_cell->derivativesBVOL[bvolderivatives::dPERBZVOLdx];
-	     const Real dBZdy = spatial_cell->derivativesBVOL[bvolderivatives::dPERBZVOLdy];
+	     const Real dBXdy = cell->derivativesBVOL[bvolderivatives::dPERBXVOLdy];
+	     const Real dBXdz = cell->derivativesBVOL[bvolderivatives::dPERBXVOLdz];
+	     const Real dBYdx = cell->derivativesBVOL[bvolderivatives::dPERBYVOLdx];
+	     const Real dBYdz = cell->derivativesBVOL[bvolderivatives::dPERBYVOLdz];
+	     const Real dBZdx = cell->derivativesBVOL[bvolderivatives::dPERBZVOLdx];
+	     const Real dBZdy = cell->derivativesBVOL[bvolderivatives::dPERBZVOLdy];
 	     std::array<Real, 3> Jreq;
 	     Jreq[0] = (dBZdy - dBYdz)/physicalconstants::MU_0;
 	     Jreq[1] = (dBXdz - dBZdx)/physicalconstants::MU_0;
@@ -295,7 +298,9 @@ namespace projects {
 	     // Total required current density Jreq = Ji + Je
 	     // Electron velocity is Jreq/(density*charge)
 	     std::array<Real, 3> ve;
-	     ve = -(Jreq - Ji)/(initRho*physicalconstants::CHARGE);
+	     ve[0] = -(Jreq[0] - Ji[0])/(initRho*physicalconstants::CHARGE);
+	     ve[1] = -(Jreq[1] - Ji[1])/(initRho*physicalconstants::CHARGE);
+	     ve[2] = -(Jreq[2] - Ji[2])/(initRho*physicalconstants::CHARGE);
 
 	     distvalue = initRho * pow(mass / (2.0 * M_PI * physicalconstants::K_B * temperature), 1.5) *
 		exp(- mass * ( pow(vx - ve[0], 2.0) + pow(vy - ve[1], 2.0) + pow(vz - ve[2], 2.0) ) /
@@ -667,10 +672,6 @@ namespace projects {
       cell->parameters[CellParams::EXJE] = 0;
       cell->parameters[CellParams::EYJE] = 0;
       cell->parameters[CellParams::EZJE] = 0;
-      // Now we need a different cellparam for electrons?
-      for (uint j=0; j<vecsizepressure; j++) {
-	 mpiGrid[cells[i]]->parameters[CellParams::VX+j] = buffer[j];
-      }
 
    }
 

@@ -43,6 +43,9 @@
 #include "ioread.h"
 #include "object_wrapper.h"
 
+#include "fieldsolver/ldz_volume.hpp"
+#include "fieldsolver/derivatives.hpp"
+
 #ifdef PAPI_MEM
 #include "papi.h" 
 #endif 
@@ -86,6 +89,7 @@ void initializeGrids(
    char **argc,
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
    FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
    FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsGrid,
    FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsDt2Grid,
