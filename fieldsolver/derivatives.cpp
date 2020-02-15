@@ -434,7 +434,7 @@ void calculateDerivatives(
 /*! \brief Low-level spatial derivatives calculation.
  * 
  * As calculateDerivatives, but only calculates for perB and ignores RK case
- * (used during simulation initialization)
+ * (used during simulation initialization for ElVentana projet)
  */
 void calculateDerivativesOnlyPerB(
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
@@ -444,7 +444,7 @@ void calculateDerivativesOnlyPerB(
 
    const int* gridDims = &technicalGrid.getLocalSize()[0];
    // Calculate derivatives
-   //#pragma omp parallel for collapse(3)
+   #pragma omp parallel for collapse(3)
    for (int k=0; k<gridDims[2]; k++) {
       for (int j=0; j<gridDims[1]; j++) {
 	 for (int i=0; i<gridDims[0]; i++) {

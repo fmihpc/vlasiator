@@ -76,7 +76,7 @@ namespace projects {
        */
       virtual void setupBeforeSetCell(const std::vector<CellID>& cells,
 				      dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-				      bool needCurl);
+				      bool& needCurl);
 				      //FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid);
 
       /*!\brief Set the perturbed fields and distribution of a cell according to the default simulation settings.

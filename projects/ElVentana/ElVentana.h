@@ -67,7 +67,7 @@ namespace projects {
                                         ) const;
       virtual void setupBeforeSetCell(const std::vector<CellID>& cells,
 				      dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-				      bool needCurl);
+				      bool& needCurl);
 
     protected:
       Real getDistribValue(

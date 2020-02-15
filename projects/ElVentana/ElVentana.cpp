@@ -260,6 +260,9 @@ namespace projects {
 	 initRho = sP.ionosphereRho;
       }
 
+      int myRank;
+      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+
       // Defines the distribution function as a drifting maxwellian based on read values.
       // Assumes thus that the input pressure, bulk velocity, and density are from
       // a proton-only run and can be directly converted to electrons.
@@ -292,16 +295,23 @@ namespace projects {
 	     const Real dBZdx = cell->derivativesBVOL[bvolderivatives::dPERBZVOLdx];
 	     const Real dBZdy = cell->derivativesBVOL[bvolderivatives::dPERBZVOLdy];
 	     std::array<Real, 3> Jreq;
-	     Jreq[0] = (dBZdy - dBYdz)/physicalconstants::MU_0;
-	     Jreq[1] = (dBXdz - dBZdx)/physicalconstants::MU_0;
-	     Jreq[2] = (dBYdx - dBXdy)/physicalconstants::MU_0;
+	     Jreq[0] = (dBYdz - dBZdy)/physicalconstants::MU_0;
+	     Jreq[1] = (dBZdx - dBXdz)/physicalconstants::MU_0;
+	     Jreq[2] = (dBXdy - dBYdx)/physicalconstants::MU_0;
 	     // Total required current density Jreq = Ji + Je
-	     // Electron velocity is Jreq/(density*charge)
+	     // Electron velocity is Je/(density*charge)
 	     std::array<Real, 3> ve;
-	     ve[0] = -(Jreq[0] - Ji[0])/(initRho*physicalconstants::CHARGE);
-	     ve[1] = -(Jreq[1] - Ji[1])/(initRho*physicalconstants::CHARGE);
-	     ve[2] = -(Jreq[2] - Ji[2])/(initRho*physicalconstants::CHARGE);
+	     ve[0] = (Jreq[0] - Ji[0])/(initRho*getObjectWrapper().particleSpecies[popID].charge);
+	     ve[1] = (Jreq[1] - Ji[1])/(initRho*getObjectWrapper().particleSpecies[popID].charge);
+	     ve[2] = (Jreq[2] - Ji[2])/(initRho*getObjectWrapper().particleSpecies[popID].charge);
 
+	     /*
+	     if(myRank == MASTER_RANK) {
+		std::cerr << "cid " << cellID << " Ji" << Ji[0] << " " << Ji[1] << " " << Ji[2] << std::endl;
+		std::cerr << "cid " << cellID << " Jreq" << Jreq[0] << " " << Jreq[1] << " " << Jreq[2] << std::endl;
+		std::cerr << "cid " << cellID << " Je" << Jreq[0] - Ji[0] << " " << Jreq[1] - Ji[1] << " " << Jreq[2] - Ji[2] << std::endl;
+		std::cerr << "cid " << cellID << " ve" << ve[0] << " " << ve[1] << " " << ve[2] << std::endl;
+		}*/
 	     distvalue = initRho * pow(mass / (2.0 * M_PI * physicalconstants::K_B * temperature), 1.5) *
 		exp(- mass * ( pow(vx - ve[0], 2.0) + pow(vy - ve[1], 2.0) + pow(vz - ve[2], 2.0) ) /
 		    (2.0 * physicalconstants::K_B * temperature));
@@ -424,7 +434,7 @@ namespace projects {
    /* Function to read relevant variables and store them to be read when each cell is being setup */
    void ElVentana::setupBeforeSetCell(const std::vector<CellID>& cells, 
 				      dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-				      bool needCurl) {
+				      bool& needCurl) {
       vector<CellID> fileCellsID; /*< CellIds for all cells in file*/
       int myRank,processes;
       const string filename = this->StartFile;

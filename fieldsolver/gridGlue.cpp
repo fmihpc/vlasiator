@@ -291,6 +291,7 @@ void getFieldsFromFsGrid(
       for(int i = 0; i < fieldsToCommunicate; i++){
          this->sums[i] += rhs.sums[i];
       }
+      return *this;
     }
   };
 
@@ -510,6 +511,7 @@ void getdBvolFieldsFromFsGrid(
       for(int i = 0; i < fieldsToCommunicate; i++){
          this->sums[i] += rhs.sums[i];
       }
+      return *this;
     }
   };
     
@@ -619,6 +621,7 @@ void getdBvolFieldsFromFsGrid(
       mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBYVOLdz] = cellAggregate.second.sums[3] / cellAggregate.second.cells;
       mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBZVOLdx] = cellAggregate.second.sums[4] / cellAggregate.second.cells;
       mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBZVOLdy] = cellAggregate.second.sums[5] / cellAggregate.second.cells;
+      //std::cerr << "aggregate " << cellAggregate.second.sums[0] << " " << cellAggregate.second.sums[1] << " " << cellAggregate.second.sums[2] << " " << cellAggregate.second.sums[3] << " " << cellAggregate.second.sums[4] << " " << cellAggregate.second.sums[5] << " " << cellAggregate.second.cells << std::endl;
     }
     else{
       // This could happpen if all fsgrid cells are do not compute

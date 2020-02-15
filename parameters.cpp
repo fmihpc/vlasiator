@@ -228,7 +228,7 @@ bool Parameters::addParameters(){
 				"populations_vg_energydensity populations_vg_precipitationdifferentialflux "+
 				"vg_maxdt_acceleration vg_maxdt_translation populations_vg_maxdt_acceleration populations_vg_maxdt_translation "+
 				"fg_maxdt_fieldsolver "+
-				"vg_eje"+
+				"vg_eje vg_rhoqe "+
 				"vg_rank fg_rank vg_loadbalance_weight "+
 				"vg_boundarytype fg_boundarytype vg_boundarylayer fg_boundarylayer "+
 				"populations_vg_blocks vg_f_saved "+
@@ -244,6 +244,7 @@ bool Parameters::addParameters(){
 				"E "+
 				"Rhom Rhoq populations_Rho "+
 				"V populations_V "+
+				"eje rhoqe "+
 				"populations_moments_Backstream populations_moments_NonBackstream "+
 				"populations_moments_thermal populations_moments_nonthermal "+
 				"populations_minvalue populations_EffectiveSparsityThreshold populations_RhoLossAdjust populations_rho_loss_adjust"+
