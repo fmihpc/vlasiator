@@ -367,6 +367,7 @@ namespace fsgrids {
       int sysBoundaryLayer; /*!< System boundary layer index. */
       Real maxFsDt;         /*!< maximum timestep allowed in ordinary space by fieldsolver for this cell**/
       int fsGridRank;       /*!< Rank in the fsGrids cartesian coordinator */
+      int RefLevel;
    };
    
 }

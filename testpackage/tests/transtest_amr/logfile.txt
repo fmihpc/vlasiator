@@ -1,74 +1,74 @@
-Mon Feb 17 14:33:35 2020 
-(MAIN) Starting simulation with 2 MPI processes and 8 OpenMP threads per process
+Mon Feb 17 16:50:25 2020 
+(MAIN) Starting simulation with 1 MPI processes and 8 OpenMP threads per process
 
-Mon Feb 17 14:33:35 2020 
+Mon Feb 17 16:50:25 2020 
 	 Zoltan 3.83 initialized successfully
 
-Mon Feb 17 14:33:37 2020 
+Mon Feb 17 16:50:27 2020 
 (INIT): Starting initial load balance.
 
-Mon Feb 17 14:33:37 2020 
+Mon Feb 17 16:50:28 2020 
 (INIT): Set initial state.
 
-Mon Feb 17 14:33:38 2020 
+Mon Feb 17 16:50:29 2020 
 (IO): Writing initial state to disk, tstep = 
 
-Mon Feb 17 14:33:38 2020 
-(writeGrid) Wrote 2.55182 MB in 0.0374379 seconds, approximate data rate is 68.1614 MB/s
+Mon Feb 17 16:50:29 2020 
+(writeGrid) Wrote 2.53529 MB in 0.00241456 seconds, approximate data rate is 1.05 GB/s
 (TIMESTEP) New dt = 0.0372917 computed on step 0 at 0s   Maximum possible dt (not including  vlasovsolver CFL 0.8-0.99 or fieldsolver CFL 0.4-0.5) in {r, v, BE} was 0.0416667 1.79769e+308 1.79769e+308  Including subcycling { v, BE}  was 1.79769e+308 1.79769e+308 
 
-Mon Feb 17 14:33:39 2020 
+Mon Feb 17 16:50:29 2020 
 (MAIN): Starting main simulation loop.
 
-Mon Feb 17 14:33:39 2020 
+Mon Feb 17 16:50:29 2020 
 ---------- tstep = 0 t = 0 dt = 0.0372917 FS cycles = 1 ----------
 
-Mon Feb 17 14:33:39 2020 
+Mon Feb 17 16:50:29 2020 
 (IO): Writing spatial cell and reduced system data to disk, tstep = 0 t = 0
 
-Mon Feb 17 14:33:39 2020 
-(writeGrid) Wrote 2.55182 MB in 0.038527 seconds, approximate data rate is 66.2344 MB/s
+Mon Feb 17 16:50:29 2020 
+(writeGrid) Wrote 2.53529 MB in 0.00251417 seconds, approximate data rate is 1.0084 GB/s
 (IO): .... done!
 
-Mon Feb 17 14:33:39 2020 
+Mon Feb 17 16:50:30 2020 
 ---------- tstep = 1 t = 0.0372917 dt = 0.0372917 FS cycles = 1 ----------
 
-Mon Feb 17 14:33:40 2020 
+Mon Feb 17 16:50:31 2020 
 ---------- tstep = 2 t = 0.0745833 dt = 0.0372917 FS cycles = 1 ----------
 
-Mon Feb 17 14:33:40 2020 
+Mon Feb 17 16:50:32 2020 
 ---------- tstep = 3 t = 0.111875 dt = 0.0372917 FS cycles = 1 ----------
 
-Mon Feb 17 14:33:41 2020 
+Mon Feb 17 16:50:33 2020 
 ---------- tstep = 4 t = 0.149167 dt = 0.0372917 FS cycles = 1 ----------
 
-Mon Feb 17 14:33:41 2020 
+Mon Feb 17 16:50:34 2020 
 ---------- tstep = 5 t = 0.186458 dt = 0.0372917 FS cycles = 1 ----------
 
-Mon Feb 17 14:33:42 2020 
+Mon Feb 17 16:50:35 2020 
 ---------- tstep = 6 t = 0.22375 dt = 0.0372917 FS cycles = 1 ----------
 
-Mon Feb 17 14:33:43 2020 
+Mon Feb 17 16:50:35 2020 
 ---------- tstep = 7 t = 0.261042 dt = 0.0372917 FS cycles = 1 ----------
 
-Mon Feb 17 14:33:43 2020 
+Mon Feb 17 16:50:36 2020 
 ---------- tstep = 8 t = 0.298333 dt = 0.0372917 FS cycles = 1 ----------
 
-Mon Feb 17 14:33:44 2020 
+Mon Feb 17 16:50:37 2020 
 ---------- tstep = 9 t = 0.335625 dt = 0.0372917 FS cycles = 1 ----------
 
-Mon Feb 17 14:33:45 2020 
+Mon Feb 17 16:50:38 2020 
 ---------- tstep = 10 t = 0.372917 dt = 0.0372917 FS cycles = 1 ----------
-(TIME) current walltime/step 0.623409 s
-(TIME) current walltime/simusecond 16.7171 s
-(TIME) Estimated completion time is Mon Feb 17 14:33:45 2020
+(TIME) current walltime/step 0.8611 s
+(TIME) current walltime/simusecond 23.091 s
+(TIME) Estimated completion time is Mon Feb 17 16:50:38 2020
 
 
-Mon Feb 17 14:33:45 2020 
+Mon Feb 17 16:50:38 2020 
 (MAIN): All timesteps calculated.
-	 (TIME) total run time 6.23603 s, total simulated time 0.372917 s
-	 (TIME) seconds per timestep 0.623603, seconds per simulated second 16.7223
+	 (TIME) total run time 8.61275 s, total simulated time 0.372917 s
+	 (TIME) seconds per timestep 0.861275, seconds per simulated second 23.0956
 
-Mon Feb 17 14:33:45 2020 
+Mon Feb 17 16:50:38 2020 
 (MAIN): Exiting.
 

@@ -63,7 +63,8 @@ template <typename T, int stencil> void computeCoupling(dccrg::Dccrg<SpatialCell
 						      (uint64_t)globalIndices[1],
 						      (uint64_t)globalIndices[2]}}; //cast to avoid warnings
 	CellID dccrgCell = mpiGrid.get_existing_cell(indices, 0, mpiGrid.mapping.get_maximum_refinement_level());
-	int process = mpiGrid.get_process(dccrgCell);
+  
+  int process = mpiGrid.get_process(dccrgCell);
 	int64_t  fsgridLid = momentsGrid.LocalIDForCoords(i,j,k);
 	int64_t  fsgridGid = momentsGrid.GlobalIDForCoords(i,j,k);
 	onFsgridMapRemoteProcess[process].insert(dccrgCell); //cells are ordered (sorted) in set
@@ -89,6 +90,8 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
                            const std::vector<CellID>& cells,
                            FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid,
                            FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& swapGrid,
+                           FsGrid< fsgrids::technical, 2>& technicalGrid,
+
                            bool dt2 /*=false*/) {
 
   int ii;
@@ -191,100 +194,103 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
 
 
-    // kernel weights for neighbors
-    float weightC,weightL,weightR=1/3;
+// kernel weights for neighbors
+float weightC,weightL,weightR=1/3;
+  
+int blurPasses = 1; //-(refLevel-4)
+
+for (int blurPass = 1; blurPass <= blurPasses; blurPass++)
+
+{
 
 
+  for (int kk = 0; kk < mntDims[2]; kk++)
+  {
+    for (int jj = 0; jj < mntDims[1]; jj++)
+    {
+      for (int ii = 0; ii < mntDims[0]; ii++)
+      {
 
+        std::cout << technicalGrid.get(ii, jj, kk)->RefLevel-technicalGrid.get(ii+1, jj, kk)->RefLevel << std::endl;
+        // Get Arrays
+        Grid = momentsGrid.get(ii, jj, kk);
+        GridL = momentsGrid.get(ii - 1, jj, kk);
+        GridR = momentsGrid.get(ii + 1, jj, kk);
+        swap = swapGrid.get(ii, jj, kk);
 
-    int blurPasses=1;
-
-  for (int blurPass =1; blurPass <= blurPasses; blurPass++){
-    
-
-    for (int kk=0; kk<mntDims[2]; kk++){
-      for (int jj=0; jj<mntDims[1]; jj++){
-        for (int ii=0; ii<mntDims[0]; ii++){
-
-          // Get Arrays
-          Grid=momentsGrid.get(ii,jj,kk);
-          GridL=momentsGrid.get(ii-1,jj,kk);
-          GridR=momentsGrid.get(ii+1,jj,kk);
-          swap=swapGrid.get(ii,jj,kk);
-          
-          //Blur
-          swap->at(fsgrids::moments::RHOM) = weightC * Grid->at(fsgrids::moments::RHOM) + weightL*GridL->at(fsgrids::moments::RHOM) + weightR*GridR->at(fsgrids::moments::RHOM);
-          swap->at(fsgrids::moments::RHOQ) = weightC * Grid->at(fsgrids::moments::RHOQ) + weightL*GridL->at(fsgrids::moments::RHOQ) + weightR*GridR->at(fsgrids::moments::RHOQ);
-          swap->at(fsgrids::moments::VX)   = weightC * Grid->at(fsgrids::moments::VX)   + weightL*GridL->at(fsgrids::moments::VX)   + weightR*GridR->at(fsgrids::moments::VX);
-          swap->at(fsgrids::moments::VY)   = weightC * Grid->at(fsgrids::moments::VY)   + weightL*GridL->at(fsgrids::moments::VY)   + weightR*GridR->at(fsgrids::moments::VY);
-          swap->at(fsgrids::moments::VZ)   = weightC * Grid->at(fsgrids::moments::VZ)   + weightL*GridL->at(fsgrids::moments::VZ)   + weightR*GridR->at(fsgrids::moments::VZ);
-          swap->at(fsgrids::moments::P_11) = weightC * Grid->at(fsgrids::moments::P_11) + weightL*GridL->at(fsgrids::moments::P_11) + weightR*GridR->at(fsgrids::moments::P_11);
-          swap->at(fsgrids::moments::P_22) = weightC * Grid->at(fsgrids::moments::P_22) + weightL*GridL->at(fsgrids::moments::P_22) + weightR*GridR->at(fsgrids::moments::P_22);
-          swap->at(fsgrids::moments::P_33) = weightC * Grid->at(fsgrids::moments::P_33) + weightL*GridL->at(fsgrids::moments::P_33) + weightR*GridR->at(fsgrids::moments::P_33);
-              
-        }
+        //Blur
+        swap->at(fsgrids::moments::RHOM) = weightC * Grid->at(fsgrids::moments::RHOM) + weightL * GridL->at(fsgrids::moments::RHOM) + weightR * GridR->at(fsgrids::moments::RHOM);
+        swap->at(fsgrids::moments::RHOQ) = weightC * Grid->at(fsgrids::moments::RHOQ) + weightL * GridL->at(fsgrids::moments::RHOQ) + weightR * GridR->at(fsgrids::moments::RHOQ);
+        swap->at(fsgrids::moments::VX) = weightC * Grid->at(fsgrids::moments::VX) + weightL * GridL->at(fsgrids::moments::VX) + weightR * GridR->at(fsgrids::moments::VX);
+        swap->at(fsgrids::moments::VY) = weightC * Grid->at(fsgrids::moments::VY) + weightL * GridL->at(fsgrids::moments::VY) + weightR * GridR->at(fsgrids::moments::VY);
+        swap->at(fsgrids::moments::VZ) = weightC * Grid->at(fsgrids::moments::VZ) + weightL * GridL->at(fsgrids::moments::VZ) + weightR * GridR->at(fsgrids::moments::VZ);
+        swap->at(fsgrids::moments::P_11) = weightC * Grid->at(fsgrids::moments::P_11) + weightL * GridL->at(fsgrids::moments::P_11) + weightR * GridR->at(fsgrids::moments::P_11);
+        swap->at(fsgrids::moments::P_22) = weightC * Grid->at(fsgrids::moments::P_22) + weightL * GridL->at(fsgrids::moments::P_22) + weightR * GridR->at(fsgrids::moments::P_22);
+        swap->at(fsgrids::moments::P_33) = weightC * Grid->at(fsgrids::moments::P_33) + weightL * GridL->at(fsgrids::moments::P_33) + weightR * GridR->at(fsgrids::moments::P_33);
       }
     }
-    momentsGrid.updateGhostCells();
-    swapGrid.updateGhostCells();
+  }
+  momentsGrid.updateGhostCells();
+  swapGrid.updateGhostCells();
 
+  // Y Dimension Pass
+  for (int kk = 0; kk < mntDims[2]; kk++)
+  {
+    for (int ii = 0; ii < mntDims[0]; ii++)
+    {
+      for (int jj = 0; jj < mntDims[1]; jj++)
+      {
 
+        // Get Arrays
+        Grid = swapGrid.get(ii, jj, kk);
+        GridL = swapGrid.get(ii, jj - 1, kk);
+        GridR = swapGrid.get(ii, jj + 1, kk);
+        swap = momentsGrid.get(ii, jj, kk);
 
-    // Y Dimension Pass    
-    for (int kk=0; kk<mntDims[2]; kk++){
-      for (int ii=0; ii<mntDims[0]; ii++){
-        for (int jj=0; jj<mntDims[1]; jj++){
-          
-          // Get Arrays
-          Grid=swapGrid.get(ii,jj,kk);
-          GridL=swapGrid.get(ii,jj-1,kk);
-          GridR=swapGrid.get(ii,jj+1,kk);
-          swap=momentsGrid.get(ii,jj,kk);
-          
-          //Blur 
-          swap->at(fsgrids::moments::RHOM) = weightC * Grid->at(fsgrids::moments::RHOM) + weightL*GridL->at(fsgrids::moments::RHOM) + weightR*GridR->at(fsgrids::moments::RHOM);
-          swap->at(fsgrids::moments::RHOQ) = weightC * Grid->at(fsgrids::moments::RHOQ) + weightL*GridL->at(fsgrids::moments::RHOQ) + weightR*GridR->at(fsgrids::moments::RHOQ);
-          swap->at(fsgrids::moments::VX)   = weightC * Grid->at(fsgrids::moments::VX)   + weightL*GridL->at(fsgrids::moments::VX)   + weightR*GridR->at(fsgrids::moments::VX);
-          swap->at(fsgrids::moments::VY)   = weightC * Grid->at(fsgrids::moments::VY)   + weightL*GridL->at(fsgrids::moments::VY)   + weightR*GridR->at(fsgrids::moments::VY);
-          swap->at(fsgrids::moments::VZ)   = weightC * Grid->at(fsgrids::moments::VZ)   + weightL*GridL->at(fsgrids::moments::VZ)   + weightR*GridR->at(fsgrids::moments::VZ);
-          swap->at(fsgrids::moments::P_11) = weightC * Grid->at(fsgrids::moments::P_11) + weightL*GridL->at(fsgrids::moments::P_11) + weightR*GridR->at(fsgrids::moments::P_11);
-          swap->at(fsgrids::moments::P_22) = weightC * Grid->at(fsgrids::moments::P_22) + weightL*GridL->at(fsgrids::moments::P_22) + weightR*GridR->at(fsgrids::moments::P_22);
-          swap->at(fsgrids::moments::P_33) = weightC * Grid->at(fsgrids::moments::P_33) + weightL*GridL->at(fsgrids::moments::P_33) + weightR*GridR->at(fsgrids::moments::P_33);
-              
-        }
+        //Blur
+        swap->at(fsgrids::moments::RHOM) = weightC * Grid->at(fsgrids::moments::RHOM) + weightL * GridL->at(fsgrids::moments::RHOM) + weightR * GridR->at(fsgrids::moments::RHOM);
+        swap->at(fsgrids::moments::RHOQ) = weightC * Grid->at(fsgrids::moments::RHOQ) + weightL * GridL->at(fsgrids::moments::RHOQ) + weightR * GridR->at(fsgrids::moments::RHOQ);
+        swap->at(fsgrids::moments::VX) = weightC * Grid->at(fsgrids::moments::VX) + weightL * GridL->at(fsgrids::moments::VX) + weightR * GridR->at(fsgrids::moments::VX);
+        swap->at(fsgrids::moments::VY) = weightC * Grid->at(fsgrids::moments::VY) + weightL * GridL->at(fsgrids::moments::VY) + weightR * GridR->at(fsgrids::moments::VY);
+        swap->at(fsgrids::moments::VZ) = weightC * Grid->at(fsgrids::moments::VZ) + weightL * GridL->at(fsgrids::moments::VZ) + weightR * GridR->at(fsgrids::moments::VZ);
+        swap->at(fsgrids::moments::P_11) = weightC * Grid->at(fsgrids::moments::P_11) + weightL * GridL->at(fsgrids::moments::P_11) + weightR * GridR->at(fsgrids::moments::P_11);
+        swap->at(fsgrids::moments::P_22) = weightC * Grid->at(fsgrids::moments::P_22) + weightL * GridL->at(fsgrids::moments::P_22) + weightR * GridR->at(fsgrids::moments::P_22);
+        swap->at(fsgrids::moments::P_33) = weightC * Grid->at(fsgrids::moments::P_33) + weightL * GridL->at(fsgrids::moments::P_33) + weightR * GridR->at(fsgrids::moments::P_33);
       }
     }
-    momentsGrid.updateGhostCells();
-    swapGrid.updateGhostCells();
+  }
+  momentsGrid.updateGhostCells();
+  swapGrid.updateGhostCells();
 
-    // Z Dimension Pass   
-    for (int ii=0; ii<mntDims[0]; ii++){
-      for (int jj=0; jj<mntDims[1]; jj++){
-        for (int kk = 0; kk < mntDims[2]; kk++){
-          
-          // Get Arrays
-          Grid=momentsGrid.get(ii,jj,kk);
-          GridL=momentsGrid.get(ii,jj,kk-1);
-          GridR=momentsGrid.get(ii,jj,kk+1);
-          swap=swapGrid.get(ii,jj,kk);
-          
-          //Blur
-          swap->at(fsgrids::moments::RHOM) = weightC * Grid->at(fsgrids::moments::RHOM) + weightL*GridL->at(fsgrids::moments::RHOM) + weightR*GridR->at(fsgrids::moments::RHOM);
-          swap->at(fsgrids::moments::RHOQ) = weightC * Grid->at(fsgrids::moments::RHOQ) + weightL*GridL->at(fsgrids::moments::RHOQ) + weightR*GridR->at(fsgrids::moments::RHOQ);
-          swap->at(fsgrids::moments::VX)   = weightC * Grid->at(fsgrids::moments::VX)   + weightL*GridL->at(fsgrids::moments::VX)   + weightR*GridR->at(fsgrids::moments::VX);
-          swap->at(fsgrids::moments::VY)   = weightC * Grid->at(fsgrids::moments::VY)   + weightL*GridL->at(fsgrids::moments::VY)   + weightR*GridR->at(fsgrids::moments::VY);
-          swap->at(fsgrids::moments::VZ)   = weightC * Grid->at(fsgrids::moments::VZ)   + weightL*GridL->at(fsgrids::moments::VZ)   + weightR*GridR->at(fsgrids::moments::VZ);
-          swap->at(fsgrids::moments::P_11) = weightC * Grid->at(fsgrids::moments::P_11) + weightL*GridL->at(fsgrids::moments::P_11) + weightR*GridR->at(fsgrids::moments::P_11);
-          swap->at(fsgrids::moments::P_22) = weightC * Grid->at(fsgrids::moments::P_22) + weightL*GridL->at(fsgrids::moments::P_22) + weightR*GridR->at(fsgrids::moments::P_22);
-          swap->at(fsgrids::moments::P_33) = weightC * Grid->at(fsgrids::moments::P_33) + weightL*GridL->at(fsgrids::moments::P_33) + weightR*GridR->at(fsgrids::moments::P_33);
-              
-        }
+  // Z Dimension Pass
+  for (int ii = 0; ii < mntDims[0]; ii++)
+  {
+    for (int jj = 0; jj < mntDims[1]; jj++)
+    {
+      for (int kk = 0; kk < mntDims[2]; kk++)
+      {
+
+        // Get Arrays
+        Grid = momentsGrid.get(ii, jj, kk);
+        GridL = momentsGrid.get(ii, jj, kk - 1);
+        GridR = momentsGrid.get(ii, jj, kk + 1);
+        swap = swapGrid.get(ii, jj, kk);
+
+        //Blur
+        swap->at(fsgrids::moments::RHOM) = weightC * Grid->at(fsgrids::moments::RHOM) + weightL * GridL->at(fsgrids::moments::RHOM) + weightR * GridR->at(fsgrids::moments::RHOM);
+        swap->at(fsgrids::moments::RHOQ) = weightC * Grid->at(fsgrids::moments::RHOQ) + weightL * GridL->at(fsgrids::moments::RHOQ) + weightR * GridR->at(fsgrids::moments::RHOQ);
+        swap->at(fsgrids::moments::VX) = weightC * Grid->at(fsgrids::moments::VX) + weightL * GridL->at(fsgrids::moments::VX) + weightR * GridR->at(fsgrids::moments::VX);
+        swap->at(fsgrids::moments::VY) = weightC * Grid->at(fsgrids::moments::VY) + weightL * GridL->at(fsgrids::moments::VY) + weightR * GridR->at(fsgrids::moments::VY);
+        swap->at(fsgrids::moments::VZ) = weightC * Grid->at(fsgrids::moments::VZ) + weightL * GridL->at(fsgrids::moments::VZ) + weightR * GridR->at(fsgrids::moments::VZ);
+        swap->at(fsgrids::moments::P_11) = weightC * Grid->at(fsgrids::moments::P_11) + weightL * GridL->at(fsgrids::moments::P_11) + weightR * GridR->at(fsgrids::moments::P_11);
+        swap->at(fsgrids::moments::P_22) = weightC * Grid->at(fsgrids::moments::P_22) + weightL * GridL->at(fsgrids::moments::P_22) + weightR * GridR->at(fsgrids::moments::P_22);
+        swap->at(fsgrids::moments::P_33) = weightC * Grid->at(fsgrids::moments::P_33) + weightL * GridL->at(fsgrids::moments::P_33) + weightR * GridR->at(fsgrids::moments::P_33);
       }
     }
+  }
 
-
-    momentsGrid.updateGhostCells();
-    swapGrid.updateGhostCells();
+  momentsGrid.updateGhostCells();
+  swapGrid.updateGhostCells();
     
   // Filtered Moments are now Stored in swapGrid so we move them back to momentsGrid
     for (int ii = 0; ii < mntDims[0]; ii++){

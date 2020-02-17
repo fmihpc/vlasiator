@@ -18,6 +18,7 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
                            const std::vector<CellID>& cells,
                            FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid,
                            FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& swapGrid,
+                           FsGrid< fsgrids::technical, 2>& technicalGrid,
                            bool dt2=false);
 
 /*! Copy field solver result (VOLB, VOLE, VOLPERB derivatives, gradpe) and store them back into DCCRG
