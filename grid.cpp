@@ -88,6 +88,7 @@ void initializeGrids(
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
    FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
    FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & swapGrid,
    FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsDt2Grid,
    FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
    FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2> & EGradPeGrid,
@@ -174,6 +175,7 @@ void initializeGrids(
       exit(1);
    }
    phiprof::stop("Classify cells (sys boundary conditions)");
+
 
    // Check refined cells do not touch boundary cells
    phiprof::start("Check boundary refinement");
@@ -304,12 +306,12 @@ void initializeGrids(
    phiprof::stop("setProjectBField");
    
    phiprof::start("Finish fsgrid setup");
-   feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid,false);
+   feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid, swapGrid, false);
    if(!P::isRestart) {
       // WARNING this means moments and dt2 moments are the same here at t=0, which is a feature so far.
-      feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid,false);
+      feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid, swapGrid, false);
    } else {
-      feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid,true);
+      feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid, swapGrid, true);
    }
    momentsGrid.updateGhostCells();
    momentsDt2Grid.updateGhostCells();

@@ -1,0 +1,53 @@
+Thu Feb 13 13:34:53 2020 
+(MAIN) Starting simulation with 1 MPI processes and 8 OpenMP threads per process
+
+Thu Feb 13 13:34:53 2020 
+	 Zoltan 3.83 initialized successfully
+
+Thu Feb 13 13:34:55 2020 
+(INIT): Starting initial load balance.
+
+Thu Feb 13 13:34:55 2020 
+(INIT): Set initial state.
+
+Thu Feb 13 13:34:56 2020 
+(TIMESTEP) New dt = 8.08962e+307 computed on step 0 at 0s   Maximum possible dt (not including  vlasovsolver CFL 0.8-0.99 or fieldsolver CFL 0.4-0.5) in {r, v, BE} was 1.79769e+308 1.79769e+308 1.79769e+308  Including subcycling { v, BE}  was 1.79769e+308 1.79769e+308 
+
+Thu Feb 13 13:34:56 2020 
+(MAIN): Starting main simulation loop.
+
+Thu Feb 13 13:34:56 2020 
+---------- tstep = 0 t = 0 dt = 8.08962e+307 FS cycles = 1 ----------
+
+Thu Feb 13 13:34:56 2020 
+(IO): Writing spatial cell and reduced system data to disk, tstep = 0 t = 0
+
+Thu Feb 13 13:34:56 2020 
+(writeGrid) Wrote 577.232 kB in 0.000415494 seconds, approximate data rate is 1.38927 GB/s
+(IO): .... done!
+
+Thu Feb 13 13:34:56 2020 
+---------- tstep = 1 t = 8.08962e+307 dt = 8.08962e+307 FS cycles = 1 ----------
+
+Thu Feb 13 13:34:56 2020 
+(IO): Writing spatial cell and reduced system data to disk, tstep = 1 t = 8.08962e+307
+
+Thu Feb 13 13:34:56 2020 
+(writeGrid) Wrote 577.232 kB in 0.000405363 seconds, approximate data rate is 1.42399 GB/s
+(IO): .... done!
+
+Thu Feb 13 13:34:56 2020 
+(IO): Writing restart data to disk, tstep = 1 t = 8.08962e+307
+
+Thu Feb 13 13:34:56 2020 
+(writeGrid) Wrote 3.17623 MB in 0.00189929 seconds, approximate data rate is 1.67232 GB/s
+(IO): .... done!
+
+Thu Feb 13 13:34:56 2020 
+(MAIN): All timesteps calculated.
+	 (TIME) total run time 0.0350031 s, total simulated time 8.08962e+307 s
+	 (TIME) seconds per timestep 0.0350031, seconds per simulated second 4.32691e-310
+
+Thu Feb 13 13:34:56 2020 
+(MAIN): Exiting.
+

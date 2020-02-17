@@ -408,6 +408,8 @@ int main(int argn,char* args[]) {
    FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2> EHallGrid(fsGridDimensions, comm, periodicity,gridCoupling);
    FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2> EGradPeGrid(fsGridDimensions, comm, periodicity,gridCoupling);
    FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> momentsGrid(fsGridDimensions, comm, periodicity,gridCoupling);
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> swapGrid(fsGridDimensions, comm, periodicity,gridCoupling);
+
    FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> momentsDt2Grid(fsGridDimensions, comm, periodicity,gridCoupling);
    FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> dPerBGrid(fsGridDimensions, comm, periodicity,gridCoupling);
    FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> dMomentsGrid(fsGridDimensions, comm, periodicity,gridCoupling);
@@ -449,6 +451,7 @@ int main(int argn,char* args[]) {
       perBGrid,
       BgBGrid,
       momentsGrid,
+      swapGrid,
       momentsDt2Grid,
       EGrid,
       EGradPeGrid,
@@ -896,8 +899,8 @@ int main(int argn,char* args[]) {
          phiprof::start("fsgrid-coupling-in");
          // Copy moments over into the fsgrid.
          //setupTechnicalFsGrid(mpiGrid, cells, technicalGrid);
-         feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid,false);
-         feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid,true);
+         feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid,swapGrid,false);
+         feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid, swapGrid, true);
          phiprof::stop("fsgrid-coupling-in");
          
          propagateFields(
