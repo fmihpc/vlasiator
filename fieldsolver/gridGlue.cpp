@@ -221,6 +221,7 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
   {
 
+    #pragma omp parallel for collapse(3)
     for (int kk = 0; kk < mntDims[2]; kk++)
     {
       for (int jj = 0; jj < mntDims[1]; jj++)
@@ -277,7 +278,7 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
     swapGrid.updateGhostCells();
 
     // Y Dimension Pass
-
+    #pragma omp parallel for collapse(3)
     for (int kk = 0; kk < mntDims[2]; kk++)
     {
       for (int ii = 0; ii < mntDims[0]; ii++)
@@ -334,7 +335,7 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
     swapGrid.updateGhostCells();
 
     // Z Dimension Pas
-
+    #pragma omp parallel for collapse(3)
     for (int jj = 0; jj < mntDims[1]; jj++)
     {
       for (int ii = 0; ii < mntDims[0]; ii++)
