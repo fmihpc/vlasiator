@@ -2,6 +2,7 @@
 *.vlsv
 *.silo
 *.o
+vscode/
 version.cpp
 \#*\#
 *~
