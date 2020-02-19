@@ -73,10 +73,14 @@ void calculateSpatialTranslation(
         const vector<CellID>& remoteTargetCellsz,
         vector<uint>& nPencils,
         creal dt,
-        const uint popID) {
+        const uint popID,
+        Real &time
+) {
 
     int trans_timer;
     bool localTargetGridGenerated = false;
+    
+    double t1;
     
     int myRank;
     MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
@@ -99,6 +103,7 @@ void calculateSpatialTranslation(
       MPI_Barrier(MPI_COMM_WORLD);
       phiprof::stop(bt);
 
+      t1 = MPI_Wtime();
       phiprof::start("compute-mapping-z");
       if(P::amrMaxSpatialRefLevel == 0) {
          trans_map_1d(mpiGrid,local_propagated_cells, remoteTargetCellsz, 2, dt,popID); // map along z//
@@ -106,6 +111,7 @@ void calculateSpatialTranslation(
          trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsz, nPencils, 2, dt,popID); // map along z//
       }
       phiprof::stop("compute-mapping-z");
+      time += MPI_Wtime() - t1;
 
       bt=phiprof::initializeTimer("barrier-trans-pre-update_remote-z","Barriers","MPI");
       phiprof::start(bt);
@@ -146,6 +152,7 @@ void calculateSpatialTranslation(
       MPI_Barrier(MPI_COMM_WORLD);
       phiprof::stop(bt);
 
+      t1 = MPI_Wtime();
       phiprof::start("compute-mapping-x");
       if(P::amrMaxSpatialRefLevel == 0) {
          trans_map_1d(mpiGrid,local_propagated_cells, remoteTargetCellsx, 0,dt,popID); // map along x//
@@ -153,6 +160,7 @@ void calculateSpatialTranslation(
          trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsx, nPencils, 0,dt,popID); // map along x//
       }
       phiprof::stop("compute-mapping-x");
+      time += MPI_Wtime() - t1;
 
       bt=phiprof::initializeTimer("barrier-trans-pre-update_remote-x","Barriers","MPI");
       phiprof::start(bt);
@@ -193,6 +201,7 @@ void calculateSpatialTranslation(
       MPI_Barrier(MPI_COMM_WORLD);
       phiprof::stop(bt);
 
+      t1 = MPI_Wtime();
       phiprof::start("compute-mapping-y");
       if(P::amrMaxSpatialRefLevel == 0) {
          trans_map_1d(mpiGrid,local_propagated_cells, remoteTargetCellsy, 1,dt,popID); // map along y//
@@ -200,6 +209,7 @@ void calculateSpatialTranslation(
          trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsy, nPencils, 1,dt,popID); // map along y//      
       }
       phiprof::stop("compute-mapping-y");
+      time += MPI_Wtime() - t1;
       
       bt=phiprof::initializeTimer("barrier-trans-pre-update_remote-y","Barriers","MPI");
       phiprof::start(bt);
@@ -254,6 +264,7 @@ void calculateSpatialTranslation(
    vector<CellID> local_propagated_cells;
    vector<CellID> local_target_cells;
    vector<uint> nPencils;
+   Real time=0.0;
    
    // If dt=0 we are either initializing or distribution functions are not translated. 
    // In both cases go to the end of this function and calculate the moments.
@@ -304,21 +315,22 @@ void calculateSpatialTranslation(
          remoteTargetCellsz,
          nPencils,
          dt,
-         popID
+         popID,
+         time
       );
       phiprof::stop(profName);
    }
    
    if (Parameters::prepareForRebalance == true) {
       if(P::amrMaxSpatialRefLevel == 0) {
-         const double deltat = (MPI_Wtime() - t1) / local_propagated_cells.size();
-         for (size_t c=0; c<local_propagated_cells.size(); ++c) {
-            mpiGrid[local_propagated_cells[c]]->parameters[CellParams::LBWEIGHTCOUNTER] += deltat;
+//          const double deltat = (MPI_Wtime() - t1) / local_propagated_cells.size();
+         for (size_t c=0; c<localCells.size(); ++c) {
+            mpiGrid[localCells[c]]->parameters[CellParams::LBWEIGHTCOUNTER] += time / localCells.size();
          }
       } else {
-         const double deltat = MPI_Wtime() - t1;
-         for (size_t c=0; c<local_propagated_cells.size(); ++c) {
-            mpiGrid[local_propagated_cells[c]]->parameters[CellParams::LBWEIGHTCOUNTER] += deltat * (Real) nPencils[c] / (Real) nPencils[nPencils.size()-1];
+//          const double deltat = MPI_Wtime() - t1;
+         for (size_t c=0; c<localCells.size(); ++c) {
+            mpiGrid[localCells[c]]->parameters[CellParams::LBWEIGHTCOUNTER] += time / localCells.size();
          }
       }
    }
