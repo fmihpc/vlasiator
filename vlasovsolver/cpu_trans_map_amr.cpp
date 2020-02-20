@@ -509,10 +509,17 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
  * @param vmesh Velocity mesh object
  * @param lengthOfPencil Number of cells in the pencil
  */
-void propagatePencil(Vec* dz, Vec* values, const uint dimension,
-                     const uint blockGID, const Realv dt,
-                     const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID> &vmesh,
-		     const uint lengthOfPencil, const Realv threshold) {
+void propagatePencil(
+   Vec* dz,
+   Vec* values,
+   std::vector<Vec, aligned_allocator<Vec,64>> & targetValues, // thread-owned aligned-allocated
+   const uint dimension,
+   const uint blockGID,
+   const Realv dt,
+   const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID> &vmesh,
+   const uint lengthOfPencil,
+   const Realv threshold
+) {
 
    // Get velocity data from vmesh that we need later to calculate the translation
    velocity_block_indices_t block_indices;
@@ -523,10 +530,9 @@ void propagatePencil(Vec* dz, Vec* values, const uint dimension,
    
    // Assuming 1 neighbor in the target array because of the CFL condition
    // In fact propagating to > 1 neighbor will give an error
+   // Also defined in the calling function for the allocation of targetValues
    const uint nTargetNeighborsPerPencil = 1;
 
-   // Vector buffer where we write data, initialized to 0*/
-   std::vector<Vec, aligned_allocator<Vec,64>> targetValues((lengthOfPencil + 2 * nTargetNeighborsPerPencil) * WID3 / VECL);
    
    for (uint i = 0; i < (lengthOfPencil + 2 * nTargetNeighborsPerPencil) * WID3 / VECL; i++) {
       
@@ -1143,6 +1149,10 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    computeSpatialTargetCellsForPencils(mpiGrid, pencils, dimension, targetCells.data());
    phiprof::stop("computeSpatialTargetCellsForPencils");
    
+   // Assuming 1 neighbor in the target array because of the CFL condition
+   // In fact propagating to > 1 neighbor will give an error
+   const uint nTargetNeighborsPerPencil = 1;
+   
    phiprof::stop("setup");
    
    int t1 = phiprof::initializeTimer("mapping");
@@ -1152,6 +1162,15 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    {
       // declarations for variables needed by the threads
       std::vector<Realf, aligned_allocator<Realf, 64>> targetBlockData((pencils.sumOfLengths + 2 * pencils.N) * WID3);
+      
+      // Allocate aligned vectors which are needed once per pencil to avoid reallocating once per block loop + pencil loop iteration
+      std::vector< std::vector<Vec, aligned_allocator<Vec,64>> > pencilTargetValues;
+      
+      for(uint pencili = 0; pencili < pencils.N; ++pencili) {
+         // Vector buffer where we write data, initialized to 0*/
+         std::vector<Vec, aligned_allocator<Vec,64>> targetValues((pencils.lengthOfPencils[pencili] + 2 * nTargetNeighborsPerPencil) * WID3 / VECL);
+         pencilTargetValues.push_back(targetValues);
+      }
       
       // Loop over velocity space blocks. Thread this loop (over vspace blocks) with OpenMP.
 #pragma omp for schedule(guided)
@@ -1194,7 +1213,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
 
                // Dz and sourceVecData are both padded by VLASOV_STENCIL_WIDTH
                // Dz has 1 value/cell, sourceVecData has WID3 values/cell
-               propagatePencil(dz.data(), sourceVecData.data(), dimension, blockGID, dt, vmesh, L, sourceCells[0]->getVelocityBlockMinValue(popID));
+               propagatePencil(dz.data(), sourceVecData.data(), pencilTargetValues[pencili], dimension, blockGID, dt, vmesh, L, sourceCells[0]->getVelocityBlockMinValue(popID));
 
                // sourceVecData => targetBlockData[this pencil])
 
