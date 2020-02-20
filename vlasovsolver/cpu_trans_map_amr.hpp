@@ -171,14 +171,6 @@ struct setOfPencils {
 CellID selectNeighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> &grid,
                       CellID id, int dimension, uint path);
 
-
-void propagatePencil(Vec* dz, Vec* values, const uint dimension, const uint blockGID,
-                     const Realv dt,
-                     const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID> &vmesh,
-                     const uint lengthOfPencil, const Realv threshold);
-
-
-
 void copy_trans_block_data_amr(
     SpatialCell** source_neighbors,
     const vmesh::GlobalID blockGID,
