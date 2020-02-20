@@ -1140,10 +1140,6 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
 
             phiprof::start(t1);
             
-            std::vector<Realf> targetBlockData((pencils.sumOfLengths + 2 * pencils.N) * WID3);
-            
-
-            
             // Loop over pencils
             uint totalTargetLength = 0;
             for(uint pencili = 0; pencili < pencils.N; ++pencili){
