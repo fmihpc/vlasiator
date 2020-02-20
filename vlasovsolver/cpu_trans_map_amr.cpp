@@ -1108,15 +1108,17 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    }
    // ****************************************************************************
    
+   // Compute spatial neighbors for target cells.
+   // For targets we need the local cells, plus a padding of 1 cell at both ends
+   phiprof::start("computeSpatialTargetCellsForPencils");
+   std::vector<SpatialCell*> targetCells(pencils.sumOfLengths + pencils.N * 2 );
+   computeSpatialTargetCellsForPencils(mpiGrid, pencils, dimension, targetCells.data());
+   phiprof::stop("computeSpatialTargetCellsForPencils");
+   
    phiprof::stop("setup");
    
    int t1 = phiprof::initializeTimer("mapping");
    int t2 = phiprof::initializeTimer("store");
-   
-   int tComputeTarget;
-   int tComputeSource;
-   int tCopy;
-   int tPropagate;
    
 #pragma omp parallel
    {
@@ -1129,32 +1131,9 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
 
             phiprof::start(t1);
             
-            tComputeTarget = phiprof::initializeTimer("computeSpatialTargetCellsForPencils");
-//             tComputeSource = phiprof::initializeTimer("computeSpatialSourceCellsForPencil");
-//             tCopy          = phiprof::initializeTimer("copy_trans_block_data_amr");
-//             tPropagate     = phiprof::initializeTimer("propagatePencil");
-            
             std::vector<Realf> targetBlockData((pencils.sumOfLengths + 2 * pencils.N) * WID3);
             
-            // Compute spatial neighbors for target cells.
-            // For targets we need the local cells, plus a padding of 1 cell at both ends
-            std::vector<SpatialCell*> targetCells(pencils.sumOfLengths + pencils.N * 2 );
-            
-            phiprof::start(tComputeTarget);
-            computeSpatialTargetCellsForPencils(mpiGrid, pencils, dimension, targetCells.data());
-            phiprof::stop(tComputeTarget);
-            
-//             cout << P::t << " Rank " << myRank << ", dimension " << dimension << ", target cells: ";
-            
-//             for(uint i = 0; i < targetCells.size(); ++i) {
-//                if(targetCells[i]) {
-//                   cout << targetCells[i]->SpatialCell::parameters[CellParams::CELLID] << " ";
-//                } else {
-//                   cout << "NULL ";
-//                }
-//             }
-            
-//             cout << endl;
+
             
             // Loop over pencils
             uint totalTargetLength = 0;
@@ -1168,9 +1147,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                // source cells we have a wider stencil and take into account boundaries.
                std::vector<SpatialCell*> sourceCells(sourceLength);
 
-//                phiprof::start(tComputeSource);
-               computeSpatialSourceCellsForPencil(mpiGrid, pencils, pencili, dimension, sourceCells.data());
-//                phiprof::stop(tComputeSource);
+               computeSpatialSourceCellsForPencil(mpiGrid, pencils, pencili, dimension, sourceCells.data()/*, sourceCellIds*/);
                
 //                cout << P::t << " Rank " << myRank << ", dimension " << dimension << ", source cells for pencil " << pencili << ": ";
                
@@ -1185,16 +1162,12 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                std::vector<Vec, aligned_allocator<Vec,64>> sourceVecData(sourceLength * WID3 / VECL);
 
                // load data(=> sourcedata) / (proper xy reconstruction in future)
-//                phiprof::start(tCopy);
                copy_trans_block_data_amr(sourceCells.data(), blockGID, L, sourceVecData.data(),
                                          cellid_transpose, popID);
-//                phiprof::stop(tCopy);
 
                // Dz and sourceVecData are both padded by VLASOV_STENCIL_WIDTH
                // Dz has 1 value/cell, sourceVecData has WID3 values/cell
-//                phiprof::start(tPropagate);
                propagatePencil(dz.data(), sourceVecData.data(), dimension, blockGID, dt, vmesh, L, sourceCells[0]->getVelocityBlockMinValue(popID));
-//                phiprof::stop(tPropagate);
 
                // sourceVecData => targetBlockData[this pencil])
 
