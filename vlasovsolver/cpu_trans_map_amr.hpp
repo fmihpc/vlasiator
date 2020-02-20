@@ -35,6 +35,7 @@ struct setOfPencils {
    uint sumOfLengths;
    std::vector< uint > lengthOfPencils; // Lengths of pencils
    std::vector< CellID > ids; // List of cells
+   std::vector< uint > idsStart; // List of where a pencil's CellIDs start in the ids array
    std::vector< Realv > x,y; // x,y - position
    std::vector< bool > periodic;
    std::vector< std::vector<uint> > path; // Path taken through refinement levels
@@ -50,6 +51,7 @@ struct setOfPencils {
       N++;
       sumOfLengths += idsIn.size();
       lengthOfPencils.push_back(idsIn.size());
+      idsStart.push_back(ids.size());
       ids.insert(ids.end(),idsIn.begin(),idsIn.end());
       x.push_back(xIn);
       y.push_back(yIn);
@@ -64,36 +66,28 @@ struct setOfPencils {
       periodic.erase(periodic.begin() + pencilId);
       path.erase(path.begin() + pencilId);
 
-      CellID ibeg = 0;
-      for (uint i = 0; i < pencilId; ++i) {
-         ibeg += lengthOfPencils[i];
-      }
+      uint ibeg = idsStart[pencilId];
       ids.erase(ids.begin() + ibeg, ids.begin() + ibeg + lengthOfPencils[pencilId]);
+      idsStart.erase(idsStart.begin() + pencilId);
 
       N--;
       sumOfLengths -= lengthOfPencils[pencilId];
       lengthOfPencils.erase(lengthOfPencils.begin() + pencilId);
          
    }
-   
-   std::vector<CellID> getIds(const uint pencilId) const {
 
-      std::vector<CellID> idsOut;
+   std::vector<CellID> getIds(const uint pencilId) const {
       
       if (pencilId > N) {
-         return idsOut;
+         std::vector<CellID> idsEmpty;
+         return idsEmpty;
       }
-
-      CellID ibeg = 0;
-      for (uint i = 0; i < pencilId; i++) {
-         ibeg += lengthOfPencils[i];
-      }
-      CellID iend = ibeg + lengthOfPencils[pencilId];
-    
-      for (uint i = ibeg; i < iend; i++) {
-         idsOut.push_back(ids[i]);
-      }
-
+      
+      // Use vector range constructor
+      std::vector<CellID>::const_iterator ibeg = ids.begin() + idsStart[pencilId];
+      std::vector<CellID>::const_iterator iend = ibeg + lengthOfPencils[pencilId];
+      std::vector<CellID> idsOut(ibeg, iend);
+      
       return idsOut;
    }
 
