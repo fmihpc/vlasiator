@@ -1255,7 +1255,16 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                      Realf* blockData = targetCell->get_data(blockLID, popID);
                      
                      // areaRatio is the reatio of the cross-section of the spatial cell to the cross-section of the pencil.
-                     Realf areaRatio = pow(pow(2,targetCell->SpatialCell::parameters[CellParams::REFINEMENT_LEVEL] - pencils.path[pencili].size()),2);
+                     int diff = targetCell->SpatialCell::parameters[CellParams::REFINEMENT_LEVEL] - pencils.path[pencili].size();
+                     int ratio;
+                     Realf areaRatio;
+                     if(diff>=0) {
+                        ratio = 1 << diff;
+                        areaRatio = ratio*ratio;
+                     } else {
+                        ratio = 1 << -diff;
+                        areaRatio = 1.0 / (ratio*ratio);
+                     }
                      
                      for(int i = 0; i < WID3 ; i++) {
                         blockData[i] += targetBlockData[GID * WID3 + i] * areaRatio;
