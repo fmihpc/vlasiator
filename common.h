@@ -226,147 +226,178 @@ namespace bvolderivatives {
  * back and forth.
  */
 namespace fsgrids {
-   enum bfield {
-      PERBX,  /*!< Perturbed Magnetic field x-component, averaged over cell x-face. Propagated by field solver.*/
-      PERBY,  /*!< Perturbed Magnetic field y-component, averaged over cell y-face. Propagated by field solver.*/
-      PERBZ,  /*!< Perturbed Magnetic field z-component, averaged over cell z-face. Propagated by field solver.*/
-      N_BFIELD
-   };
-   
-   enum efield {
-      EX,     /*!< Total electric field x-component, averaged over cell edge. Used to propagate BX,BY,BZ.*/
-      EY,     /*!< Total electric field y-component, averaged over cell edge. Used to propagate BX,BY,BZ.*/
-      EZ,     /*!< Total electric field z-component, averaged over cell edge. Used to propagate BX,BY,BZ.*/
-      N_EFIELD
-   };
-   
-   enum ehall {
-      EXHALL_000_100,   /*!< Hall term x averaged along x on -y/-z edge of spatial cell.*/
-      EYHALL_000_010,   /*!< Hall term y averaged along y on -x/-z edge of spatial cell.*/
-      EZHALL_000_001,   /*!< Hall term z averaged along z on -x/-y edge of spatial cell.*/
-      EYHALL_100_110,   /*!< Hall term y averaged along y on +x/-z edge of spatial cell.*/
-      EZHALL_100_101,   /*!< Hall term z averaged along z on +x/-y edge of spatial cell.*/
-      EXHALL_010_110,   /*!< Hall term x averaged along x on +y/-z edge of spatial cell.*/
-      EZHALL_010_011,   /*!< Hall term z averaged along z on +y/-x edge of spatial cell.*/
-      EZHALL_110_111,   /*!< Hall term z averaged along z on +x/+y edge of spatial cell.*/
-      EXHALL_001_101,   /*!< Hall term x averaged along x on -y/+z edge of spatial cell.*/
-      EYHALL_001_011,   /*!< Hall term y averaged along y on -x/+z edge of spatial cell.*/
-      EYHALL_101_111,   /*!< Hall term y averaged along y on +x/+z edge of spatial cell.*/
-      EXHALL_011_111,   /*!< Hall term x averaged along x on +y/+z edge of spatial cell.*/
-      N_EHALL
-   };
-   
-   enum egradpe {
-      EXGRADPE,         /*!< Electron pressure gradient term x.*/
-      EYGRADPE,         /*!< Electron pressure gradient term y.*/
-      EZGRADPE,         /*!< Electron pressure gradient term z.*/
-      N_EGRADPE
-   };
-   
-   enum moments {
-      RHOM, /*!< Overall mass density. Calculated by Vlasov propagator, used to propagate fields.*/
-      RHOQ, /*!< Overall charge density. Calculated by Vlasov propagator, used to propagate fields.*/
-      VX,   /*!< Vx. Calculated by Vlasov propagator, used to propagate fields.*/
-      VY,   /*!< Vy. Calculated by Vlasov propagator, used to propagate fields.*/
-      VZ,   /*!< Vz. Calculated by Vlasov propagator, used to propagate fields.*/
-      P_11, /*!< Pressure P_xx component, computed by Vlasov propagator. */
-      P_22, /*!< Pressure P_yy component, computed by Vlasov propagator. */
-      P_33, /*!< Pressure P_zz component, computed by Vlasov propagator. */
-      N_MOMENTS
-   };
-   
-   enum dperb {
-      dPERBxdy,     /*!< Derivative of face-averaged Bx to y-direction. */
-      dPERBxdz,     /*!< Derivative of face-averaged Bx to z-direction. */
-      dPERBydx,     /*!< Derivative of face-averaged By to x-direction. */
-      dPERBydz,     /*!< Derivative of face-averaged By to z-direction. */
-      dPERBzdx,     /*!< Derivative of face-averaged Bz to x-direction. */
-      dPERBzdy,     /*!< Derivative of face-averaged Bz to y-direction. */
-      dPERBxdyy,     /*!< Second derivative of face-averaged Bx to yy-direction. */
-      dPERBxdzz,     /*!< Second derivative of face-averaged Bx to zz-direction. */
-      dPERBxdyz,     /*!< Second derivative of face-averaged Bx to yz-direction. */
-      dPERBydxx,     /*!< Second derivative of face-averaged By to xx-direction. */
-      dPERBydzz,     /*!< Second derivative of face-averaged By to zz-direction. */
-      dPERBydxz,     /*!< Second derivative of face-averaged By to xz-direction. */
-      dPERBzdxx,     /*!< Second derivative of face-averaged Bz to xx-direction. */
-      dPERBzdyy,     /*!< Second derivative of face-averaged Bz to yy-direction. */
-      dPERBzdxy,     /*!< Second derivative of face-averaged Bz to xy-direction. */
-      N_DPERB
-   };
-   
-   enum dmoments {
-      drhomdx,    /*!< Derivative of mass density to x-direction. */
-      drhomdy,    /*!< Derivative of mass density to y-direction. */
-      drhomdz,    /*!< Derivative of mass density to z-direction. */
-      drhoqdx,    /*!< Derivative of charge density to x-direction. */
-      drhoqdy,    /*!< Derivative of charge density to y-direction. */
-      drhoqdz,    /*!< Derivative of charge density to z-direction. */
-      dp11dx,        /*!< Derivative of P_11 to x direction. */
-      dp11dy,        /*!< Derivative of P_11 to x direction. */
-      dp11dz,        /*!< Derivative of P_11 to x direction. */
-      dp22dx,        /*!< Derivative of P_22 to y direction. */
-      dp22dy,        /*!< Derivative of P_22 to y direction. */
-      dp22dz,        /*!< Derivative of P_22 to y direction. */
-      dp33dx,        /*!< Derivative of P_33 to z direction. */
-      dp33dy,        /*!< Derivative of P_33 to z direction. */
-      dp33dz,        /*!< Derivative of P_33 to z direction. */
-      dVxdx,     /*!< Derivative of volume-averaged Vx to x-direction. */
-      dVxdy,     /*!< Derivative of volume-averaged Vx to y-direction. */
-      dVxdz,     /*!< Derivative of volume-averaged Vx to z-direction. */
-      dVydx,     /*!< Derivative of volume-averaged Vy to x-direction. */
-      dVydy,     /*!< Derivative of volume-averaged Vy to y-direction. */
-      dVydz,     /*!< Derivative of volume-averaged Vy to z-direction. */
-      dVzdx,     /*!< Derivative of volume-averaged Vz to x-direction. */
-      dVzdy,     /*!< Derivative of volume-averaged Vz to y-direction. */
-      dVzdz,     /*!< Derivative of volume-averaged Vz to z-direction. */
-      N_DMOMENTS
-   };
-   
-   // NOTE This contains the BGB derivatives as they do not change either
-   enum bgbfield {
-      BGBX,   /*!< Background magnetic field x-component, averaged over cell x-face.*/
-      BGBY,   /*!< Background magnetic field x-component, averaged over cell x-face.*/
-      BGBZ,   /*!< Background magnetic field x-component, averaged over cell x-face.*/
-      BGBXVOL,   /*!< background magnetic field averaged over spatial cell.*/
-      BGBYVOL,   /*!< background magnetic field averaged over spatial cell.*/
-      BGBZVOL,   /*!< background magnetic field averaged over spatial cell.*/
-      dBGBxdy,     /*!< Derivative of face-averaged Bx to y-direction. */
-      dBGBxdz,     /*!< Derivative of face-averaged Bx to z-direction. */
-      dBGBydx,     /*!< Derivative of face-averaged By to x-direction. */
-      dBGBydz,     /*!< Derivative of face-averaged By to z-direction. */
-      dBGBzdx,     /*!< Derivative of face-averaged Bz to x-direction. */
-      dBGBzdy,     /*!< Derivative of face-averaged Bz to y-direction. */
-      dBGBXVOLdy,
-      dBGBXVOLdz,
-      dBGBYVOLdx,
-      dBGBYVOLdz,
-      dBGBZVOLdx,
-      dBGBZVOLdy,
-      N_BGB
-   };
-   
-   // NOTE This contains the PERBVOL derivatives
-   enum volfields {
-      PERBXVOL,  /*!< perturbed magnetic field  PERBX averaged over spatial cell.*/
-      PERBYVOL,  /*!< perturbed magnetic field  PERBY averaged over spatial cell.*/
-      PERBZVOL,  /*!< perturbed magnetic field  PERBZ averaged over spatial cell.*/
-      dPERBXVOLdy,
-      dPERBXVOLdz,
-      dPERBYVOLdx,
-      dPERBYVOLdz,
-      dPERBZVOLdx,
-      dPERBZVOLdy,
-      EXVOL,   /*!< volume-averaged electric field x component */
-      EYVOL,   /*!< volume-averaged electric field y component */
-      EZVOL,   /*!< volume-averaged electric field z component */
-      N_VOL
-   };
-   
-   struct technical {
-      int sysBoundaryFlag;  /*!< System boundary flags. */
-      int sysBoundaryLayer; /*!< System boundary layer index. */
-      Real maxFsDt;         /*!< maximum timestep allowed in ordinary space by fieldsolver for this cell**/
-      int fsGridRank;       /*!< Rank in the fsGrids cartesian coordinator */
+
+enum pml
+{
+   PGI2,
+   PGI3,
+   PFI1,
+   PFI2,
+   PFI3,
+   PGJ2,
+   PGJ3,
+   PFJ1,
+   PFJ2,
+   PFJ3,
+   PGK2,
+   PGK3,
+   PFK1,
+   PFK2,
+   PFK3,
+   N_PML 
+};
+
+enum bfield
+{
+   PERBX, /*!< Perturbed Magnetic field x-component, averaged over cell x-face. Propagated by field solver.*/
+   PERBY, /*!< Perturbed Magnetic field y-component, averaged over cell y-face. Propagated by field solver.*/
+   PERBZ, /*!< Perturbed Magnetic field z-component, averaged over cell z-face. Propagated by field solver.*/
+   N_BFIELD
+};
+
+enum efield
+{
+   EX, /*!< Total electric field x-component, averaged over cell edge. Used to propagate BX,BY,BZ.*/
+   EY, /*!< Total electric field y-component, averaged over cell edge. Used to propagate BX,BY,BZ.*/
+   EZ, /*!< Total electric field z-component, averaged over cell edge. Used to propagate BX,BY,BZ.*/
+   N_EFIELD
+};
+
+enum ehall
+{
+   EXHALL_000_100, /*!< Hall term x averaged along x on -y/-z edge of spatial cell.*/
+   EYHALL_000_010, /*!< Hall term y averaged along y on -x/-z edge of spatial cell.*/
+   EZHALL_000_001, /*!< Hall term z averaged along z on -x/-y edge of spatial cell.*/
+   EYHALL_100_110, /*!< Hall term y averaged along y on +x/-z edge of spatial cell.*/
+   EZHALL_100_101, /*!< Hall term z averaged along z on +x/-y edge of spatial cell.*/
+   EXHALL_010_110, /*!< Hall term x averaged along x on +y/-z edge of spatial cell.*/
+   EZHALL_010_011, /*!< Hall term z averaged along z on +y/-x edge of spatial cell.*/
+   EZHALL_110_111, /*!< Hall term z averaged along z on +x/+y edge of spatial cell.*/
+   EXHALL_001_101, /*!< Hall term x averaged along x on -y/+z edge of spatial cell.*/
+   EYHALL_001_011, /*!< Hall term y averaged along y on -x/+z edge of spatial cell.*/
+   EYHALL_101_111, /*!< Hall term y averaged along y on +x/+z edge of spatial cell.*/
+   EXHALL_011_111, /*!< Hall term x averaged along x on +y/+z edge of spatial cell.*/
+   N_EHALL
+};
+
+enum egradpe
+{
+   EXGRADPE, /*!< Electron pressure gradient term x.*/
+   EYGRADPE, /*!< Electron pressure gradient term y.*/
+   EZGRADPE, /*!< Electron pressure gradient term z.*/
+   N_EGRADPE
+};
+
+enum moments
+{
+   RHOM, /*!< Overall mass density. Calculated by Vlasov propagator, used to propagate fields.*/
+   RHOQ, /*!< Overall charge density. Calculated by Vlasov propagator, used to propagate fields.*/
+   VX,   /*!< Vx. Calculated by Vlasov propagator, used to propagate fields.*/
+   VY,   /*!< Vy. Calculated by Vlasov propagator, used to propagate fields.*/
+   VZ,   /*!< Vz. Calculated by Vlasov propagator, used to propagate fields.*/
+   P_11, /*!< Pressure P_xx component, computed by Vlasov propagator. */
+   P_22, /*!< Pressure P_yy component, computed by Vlasov propagator. */
+   P_33, /*!< Pressure P_zz component, computed by Vlasov propagator. */
+   N_MOMENTS
+};
+
+enum dperb
+{
+   dPERBxdy,  /*!< Derivative of face-averaged Bx to y-direction. */
+   dPERBxdz,  /*!< Derivative of face-averaged Bx to z-direction. */
+   dPERBydx,  /*!< Derivative of face-averaged By to x-direction. */
+   dPERBydz,  /*!< Derivative of face-averaged By to z-direction. */
+   dPERBzdx,  /*!< Derivative of face-averaged Bz to x-direction. */
+   dPERBzdy,  /*!< Derivative of face-averaged Bz to y-direction. */
+   dPERBxdyy, /*!< Second derivative of face-averaged Bx to yy-direction. */
+   dPERBxdzz, /*!< Second derivative of face-averaged Bx to zz-direction. */
+   dPERBxdyz, /*!< Second derivative of face-averaged Bx to yz-direction. */
+   dPERBydxx, /*!< Second derivative of face-averaged By to xx-direction. */
+   dPERBydzz, /*!< Second derivative of face-averaged By to zz-direction. */
+   dPERBydxz, /*!< Second derivative of face-averaged By to xz-direction. */
+   dPERBzdxx, /*!< Second derivative of face-averaged Bz to xx-direction. */
+   dPERBzdyy, /*!< Second derivative of face-averaged Bz to yy-direction. */
+   dPERBzdxy, /*!< Second derivative of face-averaged Bz to xy-direction. */
+   N_DPERB
+};
+
+enum dmoments
+{
+   drhomdx, /*!< Derivative of mass density to x-direction. */
+   drhomdy, /*!< Derivative of mass density to y-direction. */
+   drhomdz, /*!< Derivative of mass density to z-direction. */
+   drhoqdx, /*!< Derivative of charge density to x-direction. */
+   drhoqdy, /*!< Derivative of charge density to y-direction. */
+   drhoqdz, /*!< Derivative of charge density to z-direction. */
+   dp11dx,  /*!< Derivative of P_11 to x direction. */
+   dp11dy,  /*!< Derivative of P_11 to x direction. */
+   dp11dz,  /*!< Derivative of P_11 to x direction. */
+   dp22dx,  /*!< Derivative of P_22 to y direction. */
+   dp22dy,  /*!< Derivative of P_22 to y direction. */
+   dp22dz,  /*!< Derivative of P_22 to y direction. */
+   dp33dx,  /*!< Derivative of P_33 to z direction. */
+   dp33dy,  /*!< Derivative of P_33 to z direction. */
+   dp33dz,  /*!< Derivative of P_33 to z direction. */
+   dVxdx,   /*!< Derivative of volume-averaged Vx to x-direction. */
+   dVxdy,   /*!< Derivative of volume-averaged Vx to y-direction. */
+   dVxdz,   /*!< Derivative of volume-averaged Vx to z-direction. */
+   dVydx,   /*!< Derivative of volume-averaged Vy to x-direction. */
+   dVydy,   /*!< Derivative of volume-averaged Vy to y-direction. */
+   dVydz,   /*!< Derivative of volume-averaged Vy to z-direction. */
+   dVzdx,   /*!< Derivative of volume-averaged Vz to x-direction. */
+   dVzdy,   /*!< Derivative of volume-averaged Vz to y-direction. */
+   dVzdz,   /*!< Derivative of volume-averaged Vz to z-direction. */
+   N_DMOMENTS
+};
+
+// NOTE This contains the BGB derivatives as they do not change either
+enum bgbfield
+{
+   BGBX,    /*!< Background magnetic field x-component, averaged over cell x-face.*/
+   BGBY,    /*!< Background magnetic field x-component, averaged over cell x-face.*/
+   BGBZ,    /*!< Background magnetic field x-component, averaged over cell x-face.*/
+   BGBXVOL, /*!< background magnetic field averaged over spatial cell.*/
+   BGBYVOL, /*!< background magnetic field averaged over spatial cell.*/
+   BGBZVOL, /*!< background magnetic field averaged over spatial cell.*/
+   dBGBxdy, /*!< Derivative of face-averaged Bx to y-direction. */
+   dBGBxdz, /*!< Derivative of face-averaged Bx to z-direction. */
+   dBGBydx, /*!< Derivative of face-averaged By to x-direction. */
+   dBGBydz, /*!< Derivative of face-averaged By to z-direction. */
+   dBGBzdx, /*!< Derivative of face-averaged Bz to x-direction. */
+   dBGBzdy, /*!< Derivative of face-averaged Bz to y-direction. */
+   dBGBXVOLdy,
+   dBGBXVOLdz,
+   dBGBYVOLdx,
+   dBGBYVOLdz,
+   dBGBZVOLdx,
+   dBGBZVOLdy,
+   N_BGB
+};
+
+// NOTE This contains the PERBVOL derivatives
+enum volfields
+{
+   PERBXVOL, /*!< perturbed magnetic field  PERBX averaged over spatial cell.*/
+   PERBYVOL, /*!< perturbed magnetic field  PERBY averaged over spatial cell.*/
+   PERBZVOL, /*!< perturbed magnetic field  PERBZ averaged over spatial cell.*/
+   dPERBXVOLdy,
+   dPERBXVOLdz,
+   dPERBYVOLdx,
+   dPERBYVOLdz,
+   dPERBZVOLdx,
+   dPERBZVOLdy,
+   EXVOL, /*!< volume-averaged electric field x component */
+   EYVOL, /*!< volume-averaged electric field y component */
+   EZVOL, /*!< volume-averaged electric field z component */
+   N_VOL
+};
+
+struct technical
+{
+   int sysBoundaryFlag;  /*!< System boundary flags. */
+   int sysBoundaryLayer; /*!< System boundary layer index. */
+   Real maxFsDt;         /*!< maximum timestep allowed in ordinary space by fieldsolver for this cell**/
+   int fsGridRank;       /*!< Rank in the fsGrids cartesian coordinator */
    };
    
 }

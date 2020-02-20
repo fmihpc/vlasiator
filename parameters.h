@@ -92,6 +92,9 @@ struct Parameters {
    static bool recalculateStencils; /*!< If true, MPI stencils should be recalculated because of load balancing.*/
    
    static bool propagateField;      /*!< If true, magnetic field is propagated during the simulation.*/
+   static int pmlWidthX;            /*!< Sets the PML width at the 2 doundaries in the X dimension*/
+   static int pmlWidthY;            /*!< Sets the PML width at the 2 doundaries in the Y dimension*/
+   static int pmlWidthZ;            /*!< Sets the PML width at the 2 doundaries in the Z dimension*/
    static bool propagateVlasovAcceleration;     /*!< If true, distribution function is propagated in velocity space during the simulation.*/
    static bool propagateVlasovTranslation;      /*!< If true, distribution function is propagated in ordinary space during the simulation.*/
 
