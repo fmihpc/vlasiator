@@ -1055,18 +1055,40 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    phiprof::stop("getSeedIds");
    
    phiprof::start("buildPencils");
-   // Empty vectors for internal use of buildPencilsWithNeighbors. Could be default values but
-   // default vectors are complicated. Should overload buildPencilsWithNeighbors like suggested here
-   // https://stackoverflow.com/questions/3147274/c-default-argument-for-vectorint
-   vector<CellID> ids;
-   vector<uint> path;
 
    // Output vectors for ready pencils
    setOfPencils pencils;
    
-   for (const auto seedId : seedIds) {
-      // Construct pencils from the seedIds into a set of pencils.
-      pencils = buildPencilsWithNeighbors(mpiGrid, pencils, seedId, ids, dimension, path, seedIds);
+#pragma omp parallel
+   {
+      // Empty vectors for internal use of buildPencilsWithNeighbors. Could be default values but
+      // default vectors are complicated. Should overload buildPencilsWithNeighbors like suggested here
+      // https://stackoverflow.com/questions/3147274/c-default-argument-for-vectorint
+      vector<CellID> ids;
+      vector<uint> path;
+      // thread-internal pencil set to be accumulated at the end
+      setOfPencils thread_pencils;
+      // iterators used in the accumulation
+      std::vector<CellID>::iterator ibeg, iend;
+      
+#pragma omp for schedule(guided)
+      for (uint i=0; i<seedIds.size(); i++) {
+         cuint seedId = seedIds[i];
+         // Construct pencils from the seedIds into a set of pencils.
+         thread_pencils = buildPencilsWithNeighbors(mpiGrid, thread_pencils, seedId, ids, dimension, path, seedIds);
+      }
+      
+      // accumulate thread results in global set of pencils
+#pragma omp critical
+      {
+         for (uint i=0; i<thread_pencils.N; i++) {
+            // Use vector range constructor
+            ibeg = thread_pencils.ids.begin() + thread_pencils.idsStart[i];
+            iend = ibeg + thread_pencils.lengthOfPencils[i];
+            std::vector<CellID> pencilIds(ibeg, iend);
+            pencils.addPencil(pencilIds,thread_pencils.x[i],thread_pencils.y[i],thread_pencils.periodic[i],thread_pencils.path[i]);
+         }
+      }
    }
    
    // Check refinement of two ghost cells on each end of each pencil
