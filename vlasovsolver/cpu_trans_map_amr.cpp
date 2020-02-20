@@ -1128,6 +1128,9 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    
 #pragma omp parallel
    {
+      // declarations for variables needed by the threads
+      std::vector<Realf, aligned_allocator<Realf, 64>> targetBlockData((pencils.sumOfLengths + 2 * pencils.N) * WID3);
+      
       // Loop over velocity space blocks. Thread this loop (over vspace blocks) with OpenMP.
 #pragma omp for schedule(guided)
       for(uint blocki = 0; blocki < unionOfBlocks.size(); blocki++) {
