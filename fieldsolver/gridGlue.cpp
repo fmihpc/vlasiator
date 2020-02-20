@@ -95,7 +95,6 @@ template <typename T, int stencil> void computeCoupling(dccrg::Dccrg<SpatialCell
 void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                            const std::vector<CellID>& cells,
                            FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid,
-                           FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& swapGrid,
                            FsGrid< fsgrids::technical, 2>& technicalGrid,
 
                            bool dt2 /*=false*/) {
@@ -199,28 +198,34 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
   std::array<Real,fsgrids::moments::N_MOMENTS> *GridR1;
   std::array<Real,fsgrids::moments::N_MOMENTS> *GridR2;
   std::array<Real,fsgrids::moments::N_MOMENTS> *swap;
-
+  auto swapGrid= momentsGrid;
+ 
 
   /*Kernel Weights are fractional numbers 
 
               std::array weights[i]
     weight= ---------------------------
-                2*refLevel+1
+                2*halfStencilWidht+1
 
   and are calculated as shown above while iterating over each dimensions
   The numerator is calculated filling the weights array
   and the denominator depends only on the stencil width. 
   */
-  float weightC, weightL1, weightL2, weightR1, weightR2;
+  Real weightC, weightL1, weightL2, weightR1, weightR2;
+  int maxRefLevel = mpiGrid.mapping.get_maximum_refinement_level();
+  int minRefLevel = 0;
+  const int maxStencilWidth=5;
   int blurPasses = 3;
   int refLevel;
-  std::array<int, 5> weights;
+  int halfStencilWidth;
+  std::array<int, maxStencilWidth> weights;
   weights.fill(0);
 
-  for (int blurPass = 1; blurPass <= blurPasses; blurPass++)
 
+  for (int blurPass = 1; blurPass <= blurPasses; blurPass++)
   {
 
+    // X Dimension Pass
     #pragma omp parallel for collapse(3)
     for (int kk = 0; kk < mntDims[2]; kk++)
     {
@@ -231,34 +236,43 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
           // Dont filter if in max resolution region
           refLevel = technicalGrid.get(ii, jj, kk)->RefLevel;
-          if (refLevel == 0)
+          if (refLevel == maxRefLevel)
           {
-            continue;
+                        continue;
           }
 
+          // Set 5 point stencil for a set refinement level and below
+          if (refLevel<=minRefLevel+1)
+            {
+              halfStencilWidth=2;              
+            }
+          else{
+              halfStencilWidth=1;
+          } 
+
           // Calculate Numerator
-          for (int index = 0; index < refLevel; index++)
+          for (int index = 0; index < halfStencilWidth; index++)
           {
             weights.at(2 + index) = 1;
             weights.at(2 - index) = 1;
           }
           // Calculate Denominator
-          int weightDenominator = 2 * refLevel + 1;
+          int weightDenominator = 2 * halfStencilWidth + 1;
 
           // Calculate Weights
           weightL2 = weights.at(0) / weightDenominator;
           weightL1 = weights.at(1) / weightDenominator;
-          weightC = weights.at(2) / weightDenominator;
+          weightC  = weights.at(2) / weightDenominator;
           weightR1 = weights.at(3) / weightDenominator;
           weightR2 = weights.at(4) / weightDenominator;
 
           // Get Arrays
-          Grid = momentsGrid.get(ii, jj, kk);
+          Grid   = momentsGrid.get(ii, jj, kk);
           GridL1 = momentsGrid.get(ii - 1, jj, kk);
           GridL2 = momentsGrid.get(ii - 2, jj, kk);
           GridR1 = momentsGrid.get(ii + 1, jj, kk);
           GridR2 = momentsGrid.get(ii + 2, jj, kk);
-          swap = swapGrid.get(ii, jj, kk);
+          swap   = swapGrid.get(ii, jj, kk);
 
           //Blur
           swap->at(fsgrids::moments::RHOM) = weightC * Grid->at(fsgrids::moments::RHOM) + weightL1 * GridL1->at(fsgrids::moments::RHOM) + weightL2 * GridL2->at(fsgrids::moments::RHOM) + weightR1 * GridR1->at(fsgrids::moments::RHOM) + weightR2 * GridR2->at(fsgrids::moments::RHOM);
@@ -286,21 +300,31 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
         for (int jj = 0; jj < mntDims[1]; jj++)
         {
 
+
           // Dont filter if in max resolution region
           refLevel = technicalGrid.get(ii, jj, kk)->RefLevel;
-          if (refLevel == 0)
+          if (refLevel == maxRefLevel)
           {
             continue;
           }
 
+          // Set 5 point stencil for a set refinement level and below
+          if (refLevel<=minRefLevel+1)
+            {
+              halfStencilWidth=2;              
+            }
+          else{
+              halfStencilWidth=1;
+          } 
+
           // Calculate Numerator
-          for (int index = 0; index < refLevel; index++)
+          for (int index = 0; index < halfStencilWidth; index++)
           {
             weights.at(2 + index) = 1;
             weights.at(2 - index) = 1;
           }
           // Calculate Denominator
-          int weightDenominator = 2 * refLevel + 1;
+          int weightDenominator = 2 * halfStencilWidth + 1;
 
           // Calculate Weights
           weightL2 = weights.at(0) / weightDenominator;
@@ -345,19 +369,28 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
           // Dont filter if in max resolution region
           refLevel = technicalGrid.get(ii, jj, kk)->RefLevel;
-          if (refLevel == 0)
+          if (refLevel == maxRefLevel)
           {
             continue;
           }
 
+          // Set 5 point stencil for a set refinement level and below
+          if (refLevel<=minRefLevel+1)
+            {
+              halfStencilWidth=2;              
+            }
+          else{
+              halfStencilWidth=1;
+          } 
+
           // Calculate Numerator
-          for (int index = 0; index < refLevel; index++)
+          for (int index = 0; index < halfStencilWidth; index++)
           {
             weights.at(2 + index) = 1;
             weights.at(2 - index) = 1;
           }
           // Calculate Denominator
-          int weightDenominator = 2 * refLevel + 1;
+          int weightDenominator = 2 * halfStencilWidth + 1;
 
           // Calculate Weights
           weightL2 = weights.at(0) / weightDenominator;
@@ -581,18 +614,6 @@ void getFieldsFromFsGrid(
   }
   
   MPI_Waitall(sendRequests.size(), sendRequests.data(), MPI_STATUSES_IGNORE);
-  
-
-
-
-
-
-
-
-
-
-
-
 }
 
 /*
