@@ -198,14 +198,13 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
   std::array<Real,fsgrids::moments::N_MOMENTS> *GridR1;
   std::array<Real,fsgrids::moments::N_MOMENTS> *GridR2;
   std::array<Real,fsgrids::moments::N_MOMENTS> *swap;
-  auto swapGrid= momentsGrid;
- 
+  FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, 2> swapGrid = momentsGrid;
 
   /*Kernel Weights are fractional numbers 
 
               std::array weights[i]
     weight= ---------------------------
-                2*halfStencilWidht+1
+                2*halfStencilWidth+1
 
   and are calculated as shown above while iterating over each dimensions
   The numerator is calculated filling the weights array
@@ -218,7 +217,8 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
   int blurPasses = 3;
   int refLevel;
   int halfStencilWidth;
-  std::array<int, maxStencilWidth> weights;
+  int switchPoint=1;
+  std::array<Real, maxStencilWidth> weights;
   weights.fill(0);
 
 
@@ -242,7 +242,7 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
           }
 
           // Set 5 point stencil for a set refinement level and below
-          if (refLevel<=minRefLevel+1)
+          if (refLevel<=minRefLevel+switchPoint)
             {
               halfStencilWidth=2;              
             }
@@ -309,7 +309,7 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
           }
 
           // Set 5 point stencil for a set refinement level and below
-          if (refLevel<=minRefLevel+1)
+          if (refLevel<=minRefLevel+switchPoint)
             {
               halfStencilWidth=2;              
             }
@@ -375,7 +375,7 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
           }
 
           // Set 5 point stencil for a set refinement level and below
-          if (refLevel<=minRefLevel+1)
+          if (refLevel<=minRefLevel+switchPoint)
             {
               halfStencilWidth=2;              
             }
