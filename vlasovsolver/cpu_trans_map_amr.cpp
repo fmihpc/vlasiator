@@ -1191,27 +1191,8 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                // dz is the cell size in the direction of the pencil
                std::vector<Vec, aligned_allocator<Vec,64>> dz(sourceLength);
                for(uint i = 0; i < sourceCells.size(); ++i) {
-                  switch (dimension) {
-                  case(0):
-                     dz[i] = sourceCells[i]->parameters[CellParams::DX];
-                     break;
-                  case(1):
-                     dz[i] = sourceCells[i]->parameters[CellParams::DY];
-                     break;
-                  case(2):
-                     dz[i] = sourceCells[i]->parameters[CellParams::DZ];
-                     break;
-                  }
-                  
-//                   if(sourceCells[i]) {
-//                      cout << sourceCells[i]->SpatialCell::parameters[CellParams::CELLID] << " ";
-//                   } else {
-//                      cout << "NULL ";
-//                   }
-                  
+                  dz[i] = sourceCells[i]->parameters[CellParams::DX+dimension];
                }
-               
-//                cout << endl;
                
                // Allocate source data: sourcedata<length of pencil * WID3)
                // Add padding by 2 * VLASOV_STENCIL_WIDTH
