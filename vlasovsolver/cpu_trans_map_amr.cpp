@@ -1049,9 +1049,12 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
 
    // compute pencils => set of pencils (shared datastructure)
    
+   phiprof::start("getSeedIds");
    vector<CellID> seedIds;
    getSeedIds(mpiGrid, localPropagatedCells, dimension, seedIds);
+   phiprof::stop("getSeedIds");
    
+   phiprof::start("buildPencils");
    // Empty vectors for internal use of buildPencilsWithNeighbors. Could be default values but
    // default vectors are complicated. Should overload buildPencilsWithNeighbors like suggested here
    // https://stackoverflow.com/questions/3147274/c-default-argument-for-vectorint
@@ -1064,7 +1067,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    for (const auto seedId : seedIds) {
       // Construct pencils from the seedIds into a set of pencils.
       pencils = buildPencilsWithNeighbors(mpiGrid, pencils, seedId, ids, dimension, path, seedIds);
-   }   
+   }
    
    // Check refinement of two ghost cells on each end of each pencil
    check_ghost_cells(mpiGrid,pencils,dimension);
@@ -1083,10 +1086,12 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
          nPencils[nPencils.size()-1] += myPencilCount;
       }
    }
+   phiprof::stop("buildPencils");
    
    // Get a pointer to the velocity mesh of the first spatial cell
    const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = allCellsPointer[0]->get_velocity_mesh(popID);
-      
+   
+   phiprof::start("buildBlockList");
    // Get a unique sorted list of blockids that are in any of the
    // propagated cells. First use set for this, then add to vector (may not
    // be the most nice way to do this and in any case we could do it along
@@ -1106,6 +1111,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    for(const auto blockGID:  unionOfBlocksSet) {
       unionOfBlocks.push_back(blockGID);
    }
+   phiprof::stop("buildBlockList");
    // ****************************************************************************
    
    // Compute spatial neighbors for target cells.
