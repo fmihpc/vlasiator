@@ -26,7 +26,7 @@
 #include "pml.h"
 #include <cstdlib>
 #include <iostream>
-#include <iomanip> /
+#include <iomanip> 
 #include <cmath>
 #include <sstream>
 #include <ctime>
@@ -37,6 +37,13 @@
 #include "../parameters.h"
  
 
+
+bool ME(){
+
+   std::cout<<"HELLO"<<std::endl;
+   return true;
+} 
+
 bool buildPMLGrids(
     FsGrid<std::array<Real, fsgrids::pml::N_PML>, 2> &pmlGrid)
 
@@ -46,6 +53,7 @@ bool buildPMLGrids(
 
     /*----------Building the PML Block-------*/
 
+
     /*----Get PML Array and Domain Size-----*/
     std::array<Real, fsgrids::pml::N_PML> *pmlValue;
     std::array<Real, fsgrids::pml::N_PML> *pmlValueR;
@@ -53,9 +61,10 @@ bool buildPMLGrids(
     const int *pmlDims = &pmlGrid.getLocalSize()[0];
     const int *globalDims = &pmlGrid.getGlobalSize()[0];
 
+
     /*-----Initially set all arrays to one-----*/
     /*Iterate over domain and set the PML arrays to 1.0 thus not affecting the fieldsolver*/ 
-
+   // std::cout<<pmlDims[0]<<std::endl;
     #pragma omp parallel for collapse(3)
     for (int kk = 0; kk < pmlDims[2]; kk++){
         for (int jj = 0; jj < pmlDims[1]; jj++){
@@ -81,13 +90,14 @@ bool buildPMLGrids(
         }
     }
 
- bool enable=false;
+
+
+ bool enable=true;
 
    if (enable==true){
       int start=2;
       Real xnum , xd;
       Real xxn,xn;
-      
       
       // Attentuation Along the X-Dimension
        #pragma omp parallel for collapse(3)
@@ -110,7 +120,7 @@ bool buildPMLGrids(
 
                   xxn =xnum/xd;
                   xn =0.33*(xxn*xxn*xxn);
-
+                  // std::cout<<xxn<<std::endl;
                   pmlValue->at(fsgrids::pml::PGI2)=1/(1+xn);
                   pmlValue->at(fsgrids::pml::PGI3)=(1-xn)/(1+xn);
                   

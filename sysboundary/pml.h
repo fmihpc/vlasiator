@@ -26,7 +26,10 @@
 #include "../definitions.h"
 #include "../common.h"
 
-bool buildPMLGrid(
+
+bool ME();
+
+bool buildPMLGrids(
     FsGrid<std::array<Real, fsgrids::pml::N_PML>, 2> & pmlGrid
 
 );

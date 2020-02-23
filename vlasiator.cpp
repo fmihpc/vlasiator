@@ -43,7 +43,7 @@
 #include "spatial_cell.hpp"
 #include "datareduction/datareducer.h"
 #include "sysboundary/sysboundary.h"
-
+#include "sysboundary/pml.h"
 #include "fieldsolver/fs_common.h"
 #include "projects/project.h"
 #include "grid.h"
@@ -464,6 +464,16 @@ int main(int argn,char* args[]) {
    
    phiprof::stop("Init grids");
    
+   /*Initialize PML Grid*/
+   phiprof::start("Init PML Grid");
+   buildPMLGrids(
+      pmlGrid
+   );
+
+   phiprof::stop("Init PML Grid");
+
+
+
    // Initialize data reduction operators. This should be done elsewhere in order to initialize 
    // user-defined operators:
    phiprof::start("Init DROs");
@@ -490,6 +500,7 @@ int main(int argn,char* args[]) {
 		   BgBGrid,
 		   volGrid,
 		   technicalGrid,
+         pmlGrid,
 		   sysBoundaries, 0.0, 1.0
 		   );
 
@@ -915,6 +926,7 @@ int main(int argn,char* args[]) {
             BgBGrid,
             volGrid,
             technicalGrid,
+            pmlGrid,
             sysBoundaries,
             P::dt,
             P::fieldSolverSubcycles
