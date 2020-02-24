@@ -71,7 +71,7 @@ void propagateMagneticField(
    std::array<Real, fsgrids::efield::N_EFIELD> * EGrid2;
    std::array<Real, fsgrids::bfield::N_BFIELD> * perBDt2Grid0;
    
-   // Allocare array for PML
+   // Get PML Array
    std::array<Real, fsgrids::pml::N_PML> * pmlGrid0;
    
 
