@@ -194,10 +194,10 @@ OBJS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipo
 	Flowthrough.o Fluctuations.o Harris.o KHB.o Larmor.o Magnetosphere.o MultiPeak.o\
 	VelocityBox.o Riemann1.o Shock.o Template.o test_fp.o testAmr.o testHall.o test_trans.o\
 	IPShock.o object_wrapper.o\
-	verificationLarmor.o Shocktest.o grid.o ioread.o iowrite.o vlasiator.o logger.o\
+	verificationLarmor.o Shocktest.o grid.o	pml.o ioread.o iowrite.o vlasiator.o logger.o\
 	common.o parameters.o readparameters.o spatial_cell.o mesh_data_container.o\
 	vlasovmover.o $(FIELDSOLVER).o fs_common.o fs_limiters.o gridGlue.o\
-	pml.o
+	
 
 # Add Vlasov solver objects (depend on mesh: AMR or non-AMR)
 ifeq ($(MESH),AMR)
@@ -480,7 +480,7 @@ vlscommon.o:  $(DEPS_COMMON)  vlscommon.h vlscommon.cpp
 object_wrapper.o:  $(DEPS_COMMON)  object_wrapper.h object_wrapper.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c object_wrapper.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_FSGRID}
 
-pml.o:	${DEPS_COMMON} parameters.h	sysboundary/pml.h
+pml.o:	sysboundary/pml.h
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c sysboundary/pml.cpp ${INC_FSGRID}
 
 # Make executable

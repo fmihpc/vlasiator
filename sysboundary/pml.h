@@ -19,6 +19,7 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+
 #ifndef PML_H
 #define PML_H
 
@@ -27,10 +28,8 @@
 #include "../common.h"
 
 
-bool ME();
-
 bool buildPMLGrids(
-    FsGrid<std::array<Real, fsgrids::pml::N_PML>, 2> & pmlGrid
+    FsGrid<std::array<Real, fsgrids::pml::N_PML>, 2> &pmlGrid
 
 );
 

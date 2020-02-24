@@ -188,9 +188,9 @@ bool Parameters::addParameters(){
    Readparameters::add("gridbuilder.x_length","Number of cells in x-direction in initial grid.","");
    Readparameters::add("gridbuilder.y_length","Number of cells in y-direction in initial grid.","");
    Readparameters::add("gridbuilder.z_length","Number of cells in z-direction in initial grid.","");
-   Readparameters::add("gridbuilder.PML_Width_X", "Width of PML areas in X.", "");
-   Readparameters::add("gridbuilder.PML_Width_Y", "Width of PML areas in Y.", "");
-   Readparameters::add("gridbuilder.PML_Width_Z", "Width of PML areas in Z.", "");
+   Readparameters::add("PML.WidthX", "Width of PML areas in X.", "");
+   Readparameters::add("PML.WidthY", "Width of PML areas in Y.", "");
+   Readparameters::add("PML.WidthZ", "Width of PML areas in Z.", "");
 
    Readparameters::add("gridbuilder.dt","Initial timestep in seconds.",0.0);
 
@@ -448,9 +448,9 @@ bool Parameters::getParameters(){
       P::zmin = 0;
       P::zmax = 1;
    }
-   Readparameters::get("gridbuilder.PML_Width_X", P::pmlWidthX);
-   Readparameters::get("gridbuilder.PML_Width_Y", P::pmlWidthY);
-   Readparameters::get("gridbuilder.PML_Width_Z", P::pmlWidthZ);
+   Readparameters::get("PML.WidthX", P::pmlWidthX);
+   Readparameters::get("PML.WidthY", P::pmlWidthY);
+   Readparameters::get("PML.WidthZ", P::pmlWidthZ);
    Readparameters::get("AMR.max_velocity_level",P::amrMaxVelocityRefLevel);
    Readparameters::get("AMR.max_spatial_level",P::amrMaxSpatialRefLevel);
    Readparameters::get("AMR.box_half_width_x",P::amrBoxHalfWidthX);
