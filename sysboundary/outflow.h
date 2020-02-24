@@ -71,18 +71,18 @@ namespace SBC {
          Project &project
       );
       virtual Real fieldSolverBoundaryCondMagneticField(
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBDt2Grid,
-         FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
-         FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EDt2Grid,
-         FsGrid< fsgrids::technical, 2> & technicalGrid,
-         cint i,
-         cint j,
-         cint k,
-         creal& dt,
-         cuint& RKCase,
-         cuint& component
-      );
+          FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid,
+          FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBDt2Grid,
+          FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, 2> &EGrid,
+          FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, 2> &EDt2Grid,
+          FsGrid<std::array<Real, fsgrids::pml::N_PML>, 2> &pmlGrid,
+          FsGrid<fsgrids::technical, 2> &technicalGrid,
+          cint i,
+          cint j,
+          cint k,
+          creal &dt,
+          cuint &RKCase,
+          cuint &component);
       virtual void fieldSolverBoundaryCondElectricField(
          FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
          cint i,

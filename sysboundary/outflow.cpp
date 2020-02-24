@@ -333,18 +333,19 @@ namespace SBC {
    }
 
    Real Outflow::fieldSolverBoundaryCondMagneticField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBDt2Grid,
-      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
-      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EDt2Grid,
-      FsGrid< fsgrids::technical, 2> & technicalGrid,
-      cint i,
-      cint j,
-      cint k,
-      creal& dt,
-      cuint& RKCase,
-      cuint& component
-   ) {
+       FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid,
+       FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBDt2Grid,
+       FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, 2> &EGrid,
+       FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, 2> &EDt2Grid,
+       FsGrid<std::array<Real, fsgrids::pml::N_PML>, 2> &pmlGrid,
+       FsGrid<fsgrids::technical, 2> &technicalGrid,
+       cint i,
+       cint j,
+       cint k,
+       creal &dt,
+       cuint &RKCase,
+       cuint &component)
+   {
       Real fieldValue = -1.0;
       
       creal dx =Parameters::dx_ini;
@@ -368,13 +369,13 @@ namespace SBC {
          if (neighborSysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
             switch(component) {
                case 0:
-                  propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, true, false, false);
+                  propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid,pmlGrid, i, j, k, dt, RKCase, true, false, false);
                   break;
                case 1:
-                  propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, false, true, false);
+                  propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid,pmlGrid, i, j, k, dt, RKCase, false, true, false);
                   break;
                case 2:
-                  propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, false, false, true);
+                  propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid,pmlGrid, i, j, k, dt, RKCase, false, false, true);
                   break;
                default:
                   cerr << "ERROR: outflow boundary tried to propagate nonsensical magnetic field component " << component << endl;

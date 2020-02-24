@@ -26,7 +26,8 @@ AR ?= ar
 FIELDSOLVER ?= londrillo_delzanna
 #Add -DFS_1ST_ORDER_SPACE or -DFS_1ST_ORDER_TIME to make the field solver first-order in space or time
 # COMPFLAGS += -DFS_1ST_ORDER_SPACE
-# COMPFLAGS += -DFS_1ST_ORDER_TIME
+# COMPFLAGS += -DFS_1ST_ORDER_TIME 
+COMPFLAGS += -DFS_1ST_ORDER_TIME 
 
 
 
@@ -452,9 +453,6 @@ vlasiator.o: ${DEPS_COMMON} readparameters.h parameters.h ${DEPS_PROJECTS} grid.
 grid.o:  ${DEPS_COMMON} parameters.h ${DEPS_PROJECTS} ${DEPS_CELL} grid.cpp grid.h  sysboundary/sysboundary.h
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c grid.cpp ${INC_MPI} ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV} ${INC_PAPI}
 
-pml.o:	${DEPS_COMMON} parameters.h	sysboundary/pml.h
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c sysboundary/pml.cpp ${INC_FSGRID}
-
 ioread.o:  ${DEPS_COMMON} parameters.h  ${DEPS_CELL} ioread.cpp ioread.h 
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c ioread.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV} ${INC_FSGRID}
 
@@ -481,6 +479,9 @@ vlscommon.o:  $(DEPS_COMMON)  vlscommon.h vlscommon.cpp
 
 object_wrapper.o:  $(DEPS_COMMON)  object_wrapper.h object_wrapper.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c object_wrapper.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_FSGRID}
+
+pml.o:	${DEPS_COMMON} parameters.h	sysboundary/pml.h
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c sysboundary/pml.cpp ${INC_FSGRID}
 
 # Make executable
 vlasiator: $(OBJS) $(OBJS_FSOLVER)

@@ -432,7 +432,7 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
    mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
 
    /*Compute distances*/
-   uint maxLayers=3;//max(max(P::xcells_ini, P::ycells_ini), P::zcells_ini);
+   uint maxLayers=22;//max(max(P::xcells_ini, P::ycells_ini), P::zcells_ini);
    for(uint layer=1;layer<maxLayers;layer++){
       for(uint i=0; i<cells.size(); i++) {
          if(mpiGrid[cells[i]]->sysBoundaryLayer==0){

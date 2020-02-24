@@ -33,6 +33,7 @@ void propagateMagneticField(
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBDt2Grid,
    FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
    FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EDt2Grid,
+   FsGrid<std::array<Real, fsgrids::pml::N_PML>, 2> &pmlGrid,
    cint i,
    cint j,
    cint k,
@@ -50,6 +51,7 @@ void propagateMagneticFieldSimple(
    FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EDt2Grid,
    FsGrid< fsgrids::technical, 2> & technicalGrid,
    SysBoundary& sysBoundaries,
+   FsGrid<std::array<Real, fsgrids::pml::N_PML>, 2> &pmlGrid,
    creal& dt,
    cint& RKCase
 );
