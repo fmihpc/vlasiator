@@ -1167,7 +1167,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       // Allocate aligned vectors which are needed once per pencil to avoid reallocating once per block loop + pencil loop iteration
       std::vector<std::vector<Vec, aligned_allocator<Vec,64>>> pencilTargetValues;
       std::vector<std::vector<Vec, aligned_allocator<Vec,64>>> pencilSourceVecData;
-      
+      std::vector<std::vector<Vec, aligned_allocator<Vec,64>>> pencildz;
       
       for(uint pencili = 0; pencili < pencils.N; ++pencili) {
          
@@ -1181,13 +1181,20 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
          // Add padding by 2 * VLASOV_STENCIL_WIDTH
          std::vector<Vec, aligned_allocator<Vec,64>> sourceVecData(sourceLength * WID3 / VECL);
          pencilSourceVecData.push_back(sourceVecData);
-         
+
          // Compute spatial neighbors for the source cells of the pencil. In
          // source cells we have a wider stencil and take into account boundaries.
          std::vector<SpatialCell*> sourceCells(sourceLength);
          //                std::vector<CellID> sourceCellIds(sourceLength);
          computeSpatialSourceCellsForPencil(mpiGrid, pencils, pencili, dimension, sourceCells.data()/*, sourceCellIds*/);
          pencilSourceCells.push_back(sourceCells);
+
+         // dz is the cell size in the direction of the pencil
+         std::vector<Vec, aligned_allocator<Vec,64>> dz(sourceLength);
+         for(uint i = 0; i < sourceCells.size(); ++i) {
+            dz[i] = sourceCells[i]->parameters[CellParams::DX+dimension];
+         }
+         pencildz.push_back(dz);
       }
       
       // Loop over velocity space blocks. Thread this loop (over vspace blocks) with OpenMP.
@@ -1207,20 +1214,14 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                int L = pencils.lengthOfPencils[pencili];
                uint targetLength = L + 2;
                uint sourceLength = L + 2 * VLASOV_STENCIL_WIDTH;
-               
-               // dz is the cell size in the direction of the pencil
-               std::vector<Vec, aligned_allocator<Vec,64>> dz(sourceLength);
-               for(uint i = 0; i < pencilSourceCells[pencili].size(); ++i) {
-                  dz[i] = pencilSourceCells[pencili][i]->parameters[CellParams::DX+dimension];
-               }
-               
+                              
                // load data(=> sourcedata) / (proper xy reconstruction in future)
                copy_trans_block_data_amr(pencilSourceCells[pencili].data(), blockGID, L, pencilSourceVecData[pencili].data(),
                                          cellid_transpose, popID);
 
                // Dz and sourceVecData are both padded by VLASOV_STENCIL_WIDTH
                // Dz has 1 value/cell, sourceVecData has WID3 values/cell
-               propagatePencil(dz.data(), pencilSourceVecData[pencili].data(), pencilTargetValues[pencili].data(), dimension, blockGID, dt, vmesh, L, pencilSourceCells[pencili][0]->getVelocityBlockMinValue(popID));
+               propagatePencil(pencildz[pencili].data(), pencilSourceVecData[pencili].data(), pencilTargetValues[pencili].data(), dimension, blockGID, dt, vmesh, L, pencilSourceCells[pencili][0]->getVelocityBlockMinValue(popID));
 
                // sourceVecData => targetBlockData[this pencil])
 
