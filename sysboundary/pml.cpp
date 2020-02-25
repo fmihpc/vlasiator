@@ -54,24 +54,6 @@ bool buildPMLGrids(
    const int *pmlDims = &pmlGrid.getLocalSize()[0];
    const int *globalDims = &pmlGrid.getGlobalSize()[0];
 
-
-
-   /*Read PLM faces to build*/
-   std::vector<std::string> thisSpeciesFaceList;
-   Readparameters::get("PML.face", thisSpeciesFaceList) ;
-   bool Xp, Xm, Yp, Ym, Zp, Zm;
-   Xp=Xm=Yp=Ym=Zp=Zm=true;
-
-   // for (auto& face : thisSpeciesFaceList){
-   // if(face == "x+") {Xp = true;}      //set face to true  
-   // if(face == "x-") {Xm = true;}      //set face to true
-   // if(face == "y+") {Yp = true;}      //set face to true
-   // if(face == "y-") {Ym = true;}      //set face to true
-   // if(face == "z+") {Zp = true;}      //set face to true
-   // if(face == "z-") {Zm = true;}      //set face to true  
-   // std::cout<<face<<std::endl;
-   // }   
-
     /*-----Initially set all arrays to one-----*/
     /*Iterate over domain and set the PML arrays to 1.0 thus not affecting the fieldsolver*/ 
    //  #pragma omp parallel for collapse(3)
@@ -113,13 +95,13 @@ bool buildPMLGrids(
          pos=pmlGrid.getGlobalIndices(ii,jj,kk);
 
          
-         if (Xm ==true && pos[0]>=start && pos[0]<=P::pmlWidthX+start){
+         if (pos[0]>=start && pos[0]<=P::pmlWidthXm+start){
             
             // Get Local  Arrays
             pmlValue = pmlGrid.get(ii, jj, kk);
 
-            xnum =P::pmlWidthX-pos[0] +start;
-            xd = P::pmlWidthX;
+            xnum =P::pmlWidthXm-pos[0] +start;
+            xd = P::pmlWidthXm;
             xxn =xnum/xd;
             xn =0.33*(xxn*xxn*xxn);
             pmlValue->at(fsgrids::pml::PGI2)=1/(1+xn);
@@ -133,13 +115,13 @@ bool buildPMLGrids(
       
 
       
-         if (Xp ==true && pos[0]>=globalDims[0]-start- P::pmlWidthX && pos[0] <=globalDims[0]-start){
+         if (pos[0]>=globalDims[0]-start- P::pmlWidthXp && pos[0] <=globalDims[0]-start){
          
             // Get Local  Arrays
             pmlValue = pmlGrid.get(ii, jj, kk);
 
-            xnum =start+ P::pmlWidthX-(globalDims[0]- pos[0]);
-            xd = P::pmlWidthX;               
+            xnum =start+ P::pmlWidthXp-(globalDims[0]- pos[0]);
+            xd = P::pmlWidthXp;               
             xxn =xnum/xd;
             xn =0.33*(xxn*xxn*xxn);
             pmlValue->at(fsgrids::pml::PGI2)=1/(1+xn);
@@ -166,13 +148,13 @@ bool buildPMLGrids(
          
          
          
-         if (Ym ==true && pos[1]>=start && pos[1]<=P::pmlWidthY+start ){
+         if (pos[1]>=start && pos[1]<=P::pmlWidthYm+start ){
             
             // Get Local  Arrays
             pmlValue = pmlGrid.get(ii, jj, kk);
 
-            xnum =P::pmlWidthY-pos[1]+start;
-            xd = P::pmlWidthY;
+            xnum =P::pmlWidthYm-pos[1]+start;
+            xd = P::pmlWidthYm;
             xxn =xnum/xd;
             xn =0.33*(xxn*xxn*xxn);
             pmlValue->at(fsgrids::pml::PGJ2)=1/(1+xn);
@@ -186,13 +168,13 @@ bool buildPMLGrids(
             }  
       
       
-         if (Yp ==true && pos[1]>=globalDims[1]-start- P::pmlWidthY && pos[1] <=globalDims[1]-start){
+         if (pos[1]>=globalDims[1]-start- P::pmlWidthYp && pos[1] <=globalDims[1]-start){
          
             // Get Local  Arrays
             pmlValue = pmlGrid.get(ii, jj, kk);
 
-            xnum =start+P::pmlWidthY-(globalDims[1]- pos[1]);
-            xd = P::pmlWidthY;
+            xnum =start+P::pmlWidthYp-(globalDims[1]- pos[1]);
+            xd = P::pmlWidthYp;
             xxn =xnum/xd;
             xn =0.33*(xxn*xxn*xxn);
             pmlValue->at(fsgrids::pml::PGJ2)=1/(1+xn);
@@ -219,13 +201,13 @@ bool buildPMLGrids(
             pos=pmlGrid.getGlobalIndices(ii,jj,kk);
             
          
-            if ( Zm ==true &&   pos[2]>=start && pos[2]<=P::pmlWidthZ+start ){
+            if (pos[2]>=start && pos[2]<=P::pmlWidthZm+start ){
                
                // Get Local  Arrays
                pmlValue = pmlGrid.get(ii, jj, kk);
 
-               xnum =P::pmlWidthZ-pos[2]+start;
-               xd = P::pmlWidthZ;
+               xnum =P::pmlWidthZm-pos[2]+start;
+               xd = P::pmlWidthZm;
                xxn =xnum/xd;
                xn =0.33*(xxn*xxn*xxn);
                pmlValue->at(fsgrids::pml::PGK2)=1/(1+xn);
@@ -239,13 +221,13 @@ bool buildPMLGrids(
                }  
          
 
-            if (Zp ==true && pos[2]>=globalDims[2]-start- P::pmlWidthZ && pos[2] <=globalDims[2]-start){
+            if (pos[2]>=globalDims[2]-start- P::pmlWidthZp && pos[2] <=globalDims[2]-start){
             
                // Get Local  Arrays
                pmlValue = pmlGrid.get(ii, jj, kk);
 
-               xnum =start+P::pmlWidthZ-(globalDims[2]- pos[2]);
-               xd = P::pmlWidthZ;
+               xnum =start+P::pmlWidthZp-(globalDims[2]- pos[2]);
+               xd = P::pmlWidthZp;
                xxn =xnum/xd;
                xn =0.33*(xxn*xxn*xxn);
                pmlValue->at(fsgrids::pml::PGK2)=1/(1+xn);
