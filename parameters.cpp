@@ -454,12 +454,12 @@ bool Parameters::getParameters(){
       P::zmin = 0;
       P::zmax = 1;
    }
-   Readparameters::get("PML.WidthX+", P::pmlWidthXp);
-   Readparameters::get("PML.WidthY+", P::pmlWidthYp);
-   Readparameters::get("PML.WidthZ+", P::pmlWidthZp);
-   Readparameters::get("PML.WidthX-", P::pmlWidthXm);
-   Readparameters::get("PML.WidthY-", P::pmlWidthYm);
-   Readparameters::get("PML.WidthZ-", P::pmlWidthZm);
+   Readparameters::get("PML.WidthXp", P::pmlWidthXp);
+   Readparameters::get("PML.WidthYp", P::pmlWidthYp);
+   Readparameters::get("PML.WidthZp", P::pmlWidthZp);
+   Readparameters::get("PML.WidthXm", P::pmlWidthXm);
+   Readparameters::get("PML.WidthYm", P::pmlWidthYm);
+   Readparameters::get("PML.WidthZm", P::pmlWidthZm);
    Readparameters::get("AMR.max_velocity_level",P::amrMaxVelocityRefLevel);
    Readparameters::get("AMR.max_spatial_level",P::amrMaxSpatialRefLevel);
    Readparameters::get("AMR.box_half_width_x",P::amrBoxHalfWidthX);
