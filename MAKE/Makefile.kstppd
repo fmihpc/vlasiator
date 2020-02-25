@@ -47,7 +47,7 @@ MATHFLAGS = -ffast-math
 LDFLAGS = -L $(HOME)/lib
 LIB_MPI = -lgomp
 
-
+CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 #======== Libraries ===========
 
 LIBRARY_PREFIX = $(HOME)

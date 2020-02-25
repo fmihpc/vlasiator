@@ -59,20 +59,22 @@ bool buildPMLGrids(
    /*Read PLM faces to build*/
    std::vector<std::string> thisSpeciesFaceList;
    Readparameters::get("PML.face", thisSpeciesFaceList) ;
-   bool Xp, Xm, Yp, Ym, Zp, Zm = false;
-   for (auto &face : thisSpeciesFaceList){
-   if(face == "x+") {Xp = true;}      //set face to true  
-   if(face == "x-") {Xm = true;}      //set face to true
-   if(face == "y+") {Yp = true;}      //set face to true
-   if(face == "y-") {Ym = true;}      //set face to true
-   if(face == "z+") {Zp = true;}      //set face to true
-   if(face == "z-") {Zm = true;}      //set face to true  
-   }   
+   bool Xp, Xm, Yp, Ym, Zp, Zm;
+   Xp=Xm=Yp=Ym=Zp=Zm=true;
 
+   // for (auto& face : thisSpeciesFaceList){
+   // if(face == "x+") {Xp = true;}      //set face to true  
+   // if(face == "x-") {Xm = true;}      //set face to true
+   // if(face == "y+") {Yp = true;}      //set face to true
+   // if(face == "y-") {Ym = true;}      //set face to true
+   // if(face == "z+") {Zp = true;}      //set face to true
+   // if(face == "z-") {Zm = true;}      //set face to true  
+   // std::cout<<face<<std::endl;
+   // }   
 
     /*-----Initially set all arrays to one-----*/
     /*Iterate over domain and set the PML arrays to 1.0 thus not affecting the fieldsolver*/ 
-    #pragma omp parallel for collapse(3)
+   //  #pragma omp parallel for collapse(3)
     for (int kk = 0; kk < pmlDims[2]; kk++){
         for (int jj = 0; jj < pmlDims[1]; jj++){
             for (int ii = 0; ii < pmlDims[0]; ii++){
@@ -102,7 +104,7 @@ bool buildPMLGrids(
    Real xxn, xn;
 
    // Attentuation Along the X-Dimension
-   #pragma omp parallel for collapse(3)
+  // #pragma omp parallel for collapse(3)
    for (int kk = 0; kk < pmlDims[2] ; kk++){
       for (int jj = 0; jj < pmlDims[1]; jj++){
          for (int ii = 0; ii <pmlDims[0]; ii++){
@@ -156,7 +158,7 @@ bool buildPMLGrids(
 
 
 // Attentuation Along the Y-Dimension
-   #pragma omp parallel for collapse(3)
+ //  #pragma omp parallel for collapse(3)
    for (int kk = 0; kk < pmlDims[2] ; kk++){
       for (int ii = 0; ii < pmlDims[0]; ii++){
          for (int jj = 0; jj <pmlDims[1]; jj++){
@@ -213,7 +215,7 @@ bool buildPMLGrids(
 
 
    //Attentuation Along the Z-Dimension
-   #pragma omp parallel for collapse(3)
+   //#pragma omp parallel for collapse(3)
    for (int jj = 0; jj < pmlDims[1]; jj++){
       for (int ii = 0; ii < pmlDims[0]; ii++){
          for (int kk = 0; kk < pmlDims[2]; kk++){
@@ -265,7 +267,7 @@ bool buildPMLGrids(
                }         
             }
          }
-      }  
+      } 
    }  
 
    // Update Ghost Cells
