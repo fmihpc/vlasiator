@@ -191,12 +191,12 @@ bool Parameters::addParameters(){
    Readparameters::add("gridbuilder.x_length","Number of cells in x-direction in initial grid.","");
    Readparameters::add("gridbuilder.y_length","Number of cells in y-direction in initial grid.","");
    Readparameters::add("gridbuilder.z_length","Number of cells in z-direction in initial grid.","");
-   Readparameters::add("PML.WidthX+", "Width of PML areas in X.", "0");
-   Readparameters::add("PML.WidthY+", "Width of PML areas in Y.", "0");
-   Readparameters::add("PML.WidthZ+", "Width of PML areas in Z.", "0");
-   Readparameters::add("PML.WidthX-", "Width of PML areas in X.", "0");
-   Readparameters::add("PML.WidthY-", "Width of PML areas in Y.", "0");
-   Readparameters::add("PML.WidthZ-", "Width of PML areas in Z.", "0");
+   Readparameters::add("PML.WidthXp", "Width of PML areas in X.", "0");
+   Readparameters::add("PML.WidthYp", "Width of PML areas in Y.", "0");
+   Readparameters::add("PML.WidthZp", "Width of PML areas in Z.", "0");
+   Readparameters::add("PML.WidthXm", "Width of PML areas in X.", "0");
+   Readparameters::add("PML.WidthYm", "Width of PML areas in Y.", "0");
+   Readparameters::add("PML.WidthZm", "Width of PML areas in Z.", "0");
 
    Readparameters::add("gridbuilder.dt","Initial timestep in seconds.",0.0);
 

@@ -84,7 +84,12 @@ bool buildPMLGrids(
 
    Real xnum, xd;
    Real xxn, xn;
-   // printf("Xp=5d")
+   printf("Xp=%d\n",P::pmlWidthXp);
+   printf("Xm=%d\n",P::pmlWidthXm);
+   printf("Yp=%d\n",P::pmlWidthYp);
+   printf("Ym=%d\n",P::pmlWidthYm);
+   printf("Zp=%d\n",P::pmlWidthZp);
+   printf("Zm=%d\n",P::pmlWidthZm);
    // Attentuation Along the X-Dimension
   // #pragma omp parallel for collapse(3)
    for (int kk = 0; kk < pmlDims[2] ; kk++){
