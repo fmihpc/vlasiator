@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "*.f90": "fortran-modern",
+        "array": "cpp",
+        "string_view": "cpp"
+    }
+}
