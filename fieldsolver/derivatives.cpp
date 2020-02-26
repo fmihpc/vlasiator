@@ -56,9 +56,12 @@ void calculateDerivatives(
    std::array<Real, fsgrids::dmoments::N_DMOMENTS> * dMoments = dMomentsGrid.get(i,j,k);
 
    // Pseudo-Quasi-Neutral (PQN) electric field factors: Eiii = Erhoqk_iii Qdx/eps; with all constants inset
-   const Real Erhoqk_100 = 0.0470811 * pow3(technicalGrid.DX)*technicalGrid.DX / physicalconstants::EPS_0;
-   const Real Erhoqk_110 = 0.0284809 * pow3(technicalGrid.DX)*technicalGrid.DX / physicalconstants::EPS_0;
-   const Real Erhoqk_111 = 0.0154994 * pow3(technicalGrid.DX)*technicalGrid.DX / physicalconstants::EPS_0;
+   // const Real Erhoqk_100 = 0.0470811 * pow3(technicalGrid.DX)*technicalGrid.DX / physicalconstants::EPS_0;
+   // const Real Erhoqk_110 = 0.0284809 * pow3(technicalGrid.DX)*technicalGrid.DX / physicalconstants::EPS_0;
+   // const Real Erhoqk_111 = 0.0154994 * pow3(technicalGrid.DX)*technicalGrid.DX / physicalconstants::EPS_0;
+   const Real Erhoqk_100 = 0.0470811 * technicalGrid.DX / physicalconstants::EPS_0;
+   const Real Erhoqk_110 = 0.0284809 * technicalGrid.DX / physicalconstants::EPS_0;
+   const Real Erhoqk_111 = 0.0154994 * technicalGrid.DX / physicalconstants::EPS_0;
    // Zero RHOQ electric fields, accumulated during the rest of this call
    dMoments->at(fsgrids::dmoments::RHOQEx) = 0.0;
    dMoments->at(fsgrids::dmoments::RHOQEy) = 0.0;

@@ -42,6 +42,7 @@
 #include "ElVentana.h"
 // #include "vlsv_reader.h"
 // #include "../../tools/vlsvreaderinterface.h"
+//#include <boost/math/special_functions/bessel.hpp>
 
 using namespace std;
 using namespace spatial_cell;
@@ -265,21 +266,23 @@ namespace projects {
 
       // Defines the distribution function as a drifting maxwellian based on read values.
       // Assumes thus that the input pressure, bulk velocity, and density are from
-      // a proton-only run and can be directly converted to electrons.
-      if (density > 0.) {
+      // a proton-only run and can be converted to electrons (by comparing with curl of B)
+      if (initRho > 0.) {
           std::array<Real, 3> pressure_T;
           for(uint j=0;j<this->vecsizepressure;j++){
              pressure_T[j] = cell->parameters[CellParams::P_11+j];
           }
-          temperature = (pressure_T[0] + pressure_T[1] + pressure_T[2]) / (3.*physicalconstants::K_B * density);
+          temperature = (pressure_T[0] + pressure_T[1] + pressure_T[2]) / (3.*physicalconstants::K_B * initRho);
 	  // Scale temperatures from input values. For electrons, this should be about 1/4, for protons, 1
 	  temperature = temperature * sP.Temperatureratio;
           const std::array<Real, 3> v0 = this->getV0(x, y, z, popID)[0];
 	  if (mass > 0.5*physicalconstants::MASS_PROTON) {
-	     // protons
+	     // protons, regular Maxwell-Boltzmann distribution
 	     distvalue = initRho * pow(mass / (2.0 * M_PI * physicalconstants::K_B * temperature), 1.5) *
 		exp(- mass * ( pow(vx - v0[0], 2.0) + pow(vy - v0[1], 2.0) + pow(vz - v0[2], 2.0) ) /
 		    (2.0 * physicalconstants::K_B * temperature));
+	     //if(myRank == MASTER_RANK) std::cerr << "Pdist " << distvalue << std::endl;
+	     if((cellID>1450)&&(cellID<1460)) std::cerr << "Pdist " << distvalue << std::endl;
 	     return distvalue;
 	  } else {
 	     // electrons: assume that we have only protons and electrons as active populations
@@ -312,9 +315,35 @@ namespace projects {
 		std::cerr << "cid " << cellID << " Je" << Jreq[0] - Ji[0] << " " << Jreq[1] - Ji[1] << " " << Jreq[2] - Ji[2] << std::endl;
 		std::cerr << "cid " << cellID << " ve" << ve[0] << " " << ve[1] << " " << ve[2] << std::endl;
 		}*/
-	     distvalue = initRho * pow(mass / (2.0 * M_PI * physicalconstants::K_B * temperature), 1.5) *
+	     
+	     /* distvalue = initRho * pow(mass / (2.0 * M_PI * physicalconstants::K_B * temperature), 1.5) *
 		exp(- mass * ( pow(vx - ve[0], 2.0) + pow(vy - ve[1], 2.0) + pow(vz - ve[2], 2.0) ) /
 		    (2.0 * physicalconstants::K_B * temperature));
+	     */
+
+	     /* Try Maxwell-Jüttner relativistic distribution */
+	     
+	     Real theta = physicalconstants::K_B * temperature /(mass*physicalconstants::light*physicalconstants::light);
+	     ve[0] -= vx;
+	     ve[1] -= vy;
+	     ve[2] -= vz;
+	     Real vpc2 = (ve[0]*ve[0]+ve[1]*ve[1]+ve[2]*ve[2])/(physicalconstants::light*physicalconstants::light);
+	     Real gamma2 = 1.0/(1.-vpc2);
+	     Real gamma = sqrt(gamma2);
+	     Real beta = sqrt(vpc2);
+	     Real vv = sqrt(ve[0]*ve[0]+ve[1]*ve[1]+ve[2]*ve[2]);
+	     //Real K2 = boost::math::cyl_bessel_k((Real)2.0, (Real)(1./theta)); // Apparently need to use K2 i.e. cylindrical
+	     Real K2 = std::cyl_bessel_k(2.0, 1./theta); // Apparently need to use K2 i.e. cylindrical
+	     Real mom = gamma*mass*vv;
+	     Real mom_p = mass*(vv+0.5*dvx)/sqrt(1.-pow((vv+0.5*dvx)/physicalconstants::light,2));
+	     Real mom_m = mass*(vv-0.5*dvx)/sqrt(1.-pow((vv-0.5*dvx)/physicalconstants::light,2));
+	     //distvalue = initRho * (gamma2*beta/(theta*K2))*exp(-gamma/theta);
+	     distvalue = (initRho / (4.0*M_PI*pow(mass*physicalconstants::light,3.0)*theta*K2) )*exp(-gamma/theta);
+	     // convert from per momentum to per velocity
+	     distvalue *= (M_PI*4./3.)*(pow(mom_p,3)-pow(mom_m,3))/(pow(vv+0.5*dvx,3)-pow(vv-0.5*dvx,3));
+	     //if(myRank == MASTER_RANK) std::cerr << "Edist " << distvalue << std::endl;
+	     if((cellID>1450)&&(cellID<1460)) std::cerr << "Edist " << distvalue << std::endl;
+	     
 	     return distvalue;
 	  }
       } else {
@@ -332,31 +361,26 @@ namespace projects {
       creal& dvx,creal& dvy,creal& dvz,const uint popID
    ) const {
       const ElVentanaSpeciesParameters& sP = speciesParams[popID];
-      if((sP.nSpaceSamples > 1) && (sP.nVelocitySamples > 1)) {
-         creal d_x = dx / (sP.nSpaceSamples-1);
-         creal d_y = dy / (sP.nSpaceSamples-1);
-         creal d_z = dz / (sP.nSpaceSamples-1);
-         creal d_vx = dvx / (sP.nVelocitySamples-1);
-         creal d_vy = dvy / (sP.nVelocitySamples-1);
-         creal d_vz = dvz / (sP.nVelocitySamples-1);
-         
-         Real avg = 0.0;
-         // #pragma omp parallel for collapse(6) reduction(+:avg)
-         // WARNING No threading here if calling functions are already threaded
-         for (uint i=0; i<sP.nSpaceSamples; ++i)
-            for (uint j=0; j<sP.nSpaceSamples; ++j)
-               for (uint k=0; k<sP.nSpaceSamples; ++k)
-                  for (uint vi=0; vi<sP.nVelocitySamples; ++vi)
-                     for (uint vj=0; vj<sP.nVelocitySamples; ++vj)
-                        for (uint vk=0; vk<sP.nVelocitySamples; ++vk) {
-                           avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz, popID);
-                        }
-         return avg /
+      creal d_x = dx / (2*sP.nSpaceSamples);
+      creal d_y = dy / (2*sP.nSpaceSamples);
+      creal d_z = dz / (2*sP.nSpaceSamples);
+      creal d_vx = dvx / (2*sP.nVelocitySamples);
+      creal d_vy = dvy / (2*sP.nVelocitySamples);
+      creal d_vz = dvz / (2*sP.nVelocitySamples);
+      Real avg = 0.0;         
+      // #pragma omp parallel for collapse(6) reduction(+:avg)
+      // WARNING No threading here if calling functions are already threaded
+      for (uint i=0; i<sP.nSpaceSamples; ++i)
+	 for (uint j=0; j<sP.nSpaceSamples; ++j)
+	    for (uint k=0; k<sP.nSpaceSamples; ++k)
+	       for (uint vi=0; vi<sP.nVelocitySamples; ++vi)
+		  for (uint vj=0; vj<sP.nVelocitySamples; ++vj)
+		     for (uint vk=0; vk<sP.nVelocitySamples; ++vk) {
+			avg += getDistribValue(x+(1+2*i)*d_x, y+(1+2*j)*d_y, z+(1+2*k)*d_z, vx+(1+2*vi)*d_vx, vy+(1+2*vj)*d_vy, vz+(1+2*vk)*d_vz, 2*d_vx, 2*d_vy, 2*d_vz, popID);
+		     }
+      return avg /
          (sP.nSpaceSamples*sP.nSpaceSamples*sP.nSpaceSamples) /
          (sP.nVelocitySamples*sP.nVelocitySamples*sP.nVelocitySamples);
-      } else {
-         return getDistribValue(x+0.5*dx, y+0.5*dy, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, dvx, dvy, dvz, popID);
-      }
    }    
 
    vector<std::array<Real, 3>> ElVentana::getV0(

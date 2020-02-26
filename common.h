@@ -441,6 +441,7 @@ namespace physicalconstants {
    const Real MASS_ELECTRON = 9.10938188e-31; /**< Electron rest mass, units: kg.*/
    const Real MASS_PROTON = 1.67262158e-27; /*!< Proton rest mass, units: kg.*/
    const Real R_E = 6.3712e6; /*!< radius of the Earth, units: m. */
+   const Real light = 2.99792458e8; /*!< speed of light in units m/s. */
 }
 
 const std::vector<CellID>& getLocalCells();
