@@ -1,6 +1,6 @@
 /*
  * This file is part of Vlasiator.
- * Copyright 2010-2016 Finnish Meteorological Institute
+ * Copyright 2010-2020 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
  * at http://www.physics.helsinki.fi/vlasiator/
@@ -42,6 +42,70 @@ namespace SBC {
       uint nSpaceSamples;
       uint nVelocitySamples;
    };
+
+   // Ionosphere finite element grid
+   struct SphericalTriGrid {
+
+      static const int MAX_TOUCHING_ELEMENTS = 6; // Maximum number of elements touching one node
+      static const int MAX_DEPENDING_NODES = 9;   // Maximum number of depending nodes
+
+      // One finite element, spanned between 3 nodes
+      struct Element {
+         int refLevel;
+         std::array<uint32_t, 3> corners;                 // Node indices in the corners of this element
+         std::array<int32_t, 4> children = {-1,-1,-1,-1}; // Indices of the child elements (-1 = no child)
+      };
+      std::vector<Element> elements;
+
+      // One grid node
+      struct Node {
+         // Elements touching this node
+         uint numTouchingElements;
+         std::array<uint32_t, MAX_TOUCHING_ELEMENTS> touchingElements;
+   
+         // List of nodes the current node depends on (max 9)
+         uint numDepNodes;
+         std::array<uint32_t, MAX_DEPENDING_NODES> dependingNodes;
+
+         std::array<Real, 3> xi; // Coordinates of the node
+         std::array<Real, 3> dXi; // Stretch values
+         std::array<Real, MAX_DEPENDING_NODES> depCoeffs; // Dependency coefficients
+         std::array<Real, MAX_DEPENDING_NODES> depCoeffsT; // Transposed ependency coefficient
+
+         std::array<Real, N_IONOSPHERE_PARAMETERS> parameters; // Parameters carried by the node, see common.h
+      };
+      std::vector<Node> nodes;
+
+      void offset_FAC();                  // Offset field aligned currents to get overall zero current
+      void normalizeRadius(Node& n, Real R); // Scale all coordinates onto sphere with radius R
+      void updateConnectivity();          // Re-link elements and nodes
+      void initializeTetrahedron();       // Initialize grid as a base tetrahedron
+      void initializeIcosahedron();       // Initialize grid as a base icosahedron
+      int32_t findElementNeighbour(uint32_t e, int n1, int n2);
+      void subdivideElement(uint32_t e);  // Subdivide mesh within element e
+
+      Real elementArea(uint32_t elementIndex) {
+         //Vec3d a = nodes[elements[elementIndex].corners[0]].xi;
+         //Vec3d b = nodes[elements[elementIndex].corners[1]].xi;
+         //Vec3d c = nodes[elements[elementIndex].corners[2]].xi;
+
+         //return 0.5 * norm(cross(b-c,c-a));
+         return 1;
+      }
+
+      Real nodeNeighbourArea(uint32_t nodeIndex) { // Summed area of all touching elements
+
+         Node& n = nodes[nodeIndex];
+         Real area=0;
+
+         for(uint i=0; i<n.numTouchingElements; i++) {
+            area += elementArea(n.touchingElements[i]);
+         }
+         return area;
+      }
+   };
+
+   extern SphericalTriGrid ionosphereGrid;
 
    /*!\brief Ionosphere is a class applying ionospheric boundary conditions.
     * 

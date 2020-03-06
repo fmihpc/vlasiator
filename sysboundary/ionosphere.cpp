@@ -45,6 +45,309 @@
 #endif
 
 namespace SBC {
+
+   // Ionosphere finite element grid
+   SphericalTriGrid ionosphereGrid;
+   
+   // Offset field aligned currents so their sum is 0
+   void SphericalTriGrid::offset_FAC() {
+      Real sum=0.;
+
+      for(uint n = 0; n<nodes.size(); n++) {
+         sum += nodes[n].parameters[ionosphereParameters::SOURCE];
+      }
+
+      sum /= nodes.size();
+
+      for(uint n = 0; n<nodes.size(); n++) {
+         nodes[n].parameters[ionosphereParameters::SOURCE] -= sum;
+      }
+   }
+
+   // Scale all nodes' coordinates so that they are situated on a spherical
+   // shell with radius R
+   void SphericalTriGrid::normalizeRadius(Node& n, Real R) {
+      Real L = sqrt(n.xi[0]*n.xi[0] + n.xi[1]*n.xi[1] + n.xi[2]*n.xi[2]);
+      for(int c=0; c<3; c++) {
+         n.xi[c] *= R/L;
+      }
+   }
+
+   // Regenerate linking information between nodes and elements
+   void SphericalTriGrid::updateConnectivity() {
+
+      for(uint n=0; n<nodes.size(); n++) {
+         nodes[n].numTouchingElements=0;
+
+         for(uint e=0; e<elements.size(); e++) {
+            for(int c=0; c<3; c++) {
+               if(elements[e].corners[c] == n) {
+                  nodes[n].touchingElements[nodes[n].numTouchingElements++]=e;
+               }
+            }
+         }
+      }
+   }
+
+   // Initialize base grid as a tetrahedron
+   void SphericalTriGrid::initializeTetrahedron() {
+      const static std::array<uint32_t, 3> seedElements[4] = {
+         {0,1,2},{0,2,4},{0,3,1},{1,3,2}};
+      const static std::array<Real, 3> nodeCoords[4] = {
+         {0,0,1.73205},
+         {0,1.63299,-0.57735},
+         {-1.41421,-0.816497,-0.57735},
+         {1.41421,-0.816497,-0.57735}};
+
+      // Create nodes
+      for(int n=0; n<4; n++) {
+         Node newNode;
+         newNode.xi = nodeCoords[n];
+         normalizeRadius(newNode,physicalconstants::R_E);
+         nodes.push_back(newNode);
+      }
+
+      // Create elements
+      for(int i=0; i<4; i++) {
+         Element newElement;
+         newElement.corners = seedElements[i];
+         elements.push_back(newElement);
+      }
+
+      // Linke elements to nodes
+      updateConnectivity();
+   }
+
+   // Initialize base grid as a icosahedron
+   void SphericalTriGrid::initializeIcosahedron() {
+      const static std::array<uint32_t, 3> seedElements[20] = {
+         { 0, 2, 1}, { 0, 3, 2}, { 0, 4, 3}, { 0, 5, 4},
+         { 0, 1, 5}, { 1, 2, 6}, { 2, 3, 7}, { 3, 4, 8},
+         { 4, 5,9}, { 5, 1,10}, { 6, 2, 7}, { 7, 3, 8},
+         { 8, 4,9}, {9, 5,10}, {10, 1, 6}, { 6, 7,11},
+         { 7, 8,11}, { 8,9,11}, {9,10,11}, {10, 6,11}};
+      const static std::array<Real, 3> nodeCoords[12] = {
+         {        0,        0,  1.17557}, {  1.05146,        0, 0.525731},
+			{  0.32492,      1.0, 0.525731}, {-0.850651, 0.618034, 0.525731},
+			{-0.850651,-0.618034, 0.525731}, {  0.32492,     -1.0, 0.525731},
+			{ 0.850651, 0.618034,-0.525731}, { -0.32492,      1.0,-0.525731},
+			{ -1.05146,        0,-0.525731}, { -0.32492,     -1.0,-0.525731},
+			{ 0.850651,-0.618034,-0.525731}, {        0,        0, -1.17557}};
+
+      // Create nodes
+      for(int n=0; n<12; n++) {
+         Node newNode;
+         newNode.xi = nodeCoords[n];
+         normalizeRadius(newNode, physicalconstants::R_E);
+         nodes.push_back(newNode);
+      }
+
+      // Create elements
+      for(int i=0; i<20; i++) {
+         Element newElement;
+         newElement.corners = seedElements[i];
+         elements.push_back(newElement);
+      }
+
+      // Linke elements to nodes
+      updateConnectivity();
+   }
+
+   // Find the neighbouring element of the one with index e, that is sharing the
+   // two corner nodes n1 and n2
+   //
+   //            2 . . . . . . . .*        
+   //           /  \             .
+   //          /    \   neigh   .
+   //         /      \   bour  .
+   //        /   e    \       .
+   //       /          \     .
+   //      /            \   .
+   //     /              \ . 
+   //    0----------------1 
+   //
+   int32_t SphericalTriGrid::findElementNeighbour(uint32_t e, int n1, int n2) {
+      Element& el = elements[e];
+
+      Node& node1 = nodes[el.corners[n1]];
+      Node& node2 = nodes[el.corners[n2]];
+
+      for(uint n1e=0; n1e<node1.numTouchingElements; n1e++) {
+         if(node1.touchingElements[n1e] == e) continue; // Skip ourselves.
+
+         for(uint n2e=0; n2e<node2.numTouchingElements; n2e++) {
+            if(node1.touchingElements[n1e] == node2.touchingElements[n2e]) {
+               return node1.touchingElements[n1e];
+            }
+         }
+      }
+
+      // No neighbour found => Apparently, the neighbour is refined and doesn't
+      // exist at this scale. Good enough for us.
+      return -1;
+   }
+
+   // Subdivide mesh within element e
+   // The element gets replaced by four new ones:
+   //
+   //            2                      2
+   //           /  \                   /  \
+   //          /    \                 / 2  \
+   //         /      \               /      \
+   //        /        \     ==>     2--------1
+   //       /          \           / \  3  /  \
+   //      /            \         / 0 \   / 1  \
+   //     /              \       /     \ /      \
+   //    0----------------1     0-------0--------1
+   //
+   // And three new nodes get created at the interfaces,
+   // unless they already exist.
+   void SphericalTriGrid::subdivideElement(uint32_t e) {
+
+      Element& parentElement = elements[e];
+
+      if(parentElement.children[0] != -1) {
+         logFile << "(IONOSPHERE) ERROR: trying to subdivide element " << e 
+            << ", which already has children (" << parentElement.children[0]  << ", " 
+            << parentElement.children[1] << ", " 
+            << parentElement.children[2] << ", " 
+            << parentElement.children[3] << ")" << endl << write;
+         abort();
+      }
+
+      // 4 new elements
+      std::array<Element,4> newElements;
+      for(int i=0; i<4; i++) {
+         newElements[i].refLevel = parentElement.refLevel + 1;
+         parentElement.children[i] = elements.size() + i;
+      }
+
+      // (up to) 3 new nodes
+      std::array<uint32_t,3> edgeNodes;
+      for(int i=0; i<3; i++) { // Iterate over the edges of the triangle
+
+         // Taking the two nodes on that edge
+         Node& n1 = nodes[parentElement.corners[i]];
+         Node& n2 = nodes[parentElement.corners[(i+1)%3]];
+
+         // Find the neighbour in that direction
+         int32_t ne = findElementNeighbour(e, i, (i+1)%3);
+
+         if(ne == -1) { // Neighbour is refined already, node should already exist.
+
+            // Find it.
+            int32_t insertedNode = -1;
+
+            // First assemble a list of candidates from all elements touching
+            // that corner at the next refinement level
+            std::set<uint32_t> candidates;
+            for(uint en=0; en< n1.numTouchingElements; en++) {
+               if(elements[en].refLevel == parentElement.refLevel + 1) {
+                  for(int k=0; k<3; k++) {
+                     candidates.emplace(elements[en].corners[k]);
+                  }
+               }
+            }
+            // Then match that list from the second corner
+            for(uint en=0; en< n2.numTouchingElements; en++) {
+               if(elements[en].refLevel == parentElement.refLevel + 1) {
+                  for(int k=0; k<3; k++) {
+                     if(candidates.count(elements[en].corners[k]) > 0) {
+                        insertedNode = elements[en].corners[k];
+                     }
+                  }
+               }
+            }
+            if(insertedNode == -1) {
+               logFile << "(IONOSPHERE) Warning: did not find neighbouring split node when trying to refine "
+                  << "element " << e << " on edge " << i << " with nodes (" << parentElement.corners[0]
+                  << ", " << parentElement.corners[1] << ", " << parentElement.corners[2] << ")" << endl << write;
+               insertedNode = 0;
+            }
+
+            // Double-check that this node currently has 4 touching elements
+            if(nodes[insertedNode].numTouchingElements != 4) {
+               logFile << "(IONOSPHERE) Warning: mesh topology screwup when refining: node "
+                  << insertedNode << " is touching " << nodes[insertedNode].numTouchingElements
+                  << " elements, should be 4." << endl << write;
+            }
+
+
+            // Replace the reference to the parent element with the centre child
+            for(uint en=0; en < nodes[insertedNode].numTouchingElements; en++) {
+               if(nodes[insertedNode].touchingElements[en] == e) {
+                  nodes[insertedNode].touchingElements[en] = elements.size() + 3;
+                  break;
+               }
+            }
+            // Add the other 2
+            nodes[insertedNode].touchingElements[4] = elements.size() + i;
+            nodes[insertedNode].touchingElements[5] = elements.size() + (i+1)%3;
+
+            // Now that node touches 6 elements.
+            nodes[insertedNode].numTouchingElements=6;
+
+            edgeNodes[i] = insertedNode;
+
+         } else {       // Neighbour is not refined, add a node here.
+            Node newNode;
+
+            // Node coordinates are in the middle of the two parents
+            for(int c=0; c<3; c++) {
+               newNode.xi[c] = 0.5 * (n1.xi[c] + n2.xi[c]);
+            }
+            // Renormalize to sit on the circle
+            // TODO: Make this radius a parameter
+            normalizeRadius(newNode, physicalconstants::R_E);
+
+            // This node has four touching elements: the old neighbour and 3 of the new ones
+            newNode.numTouchingElements = 4;
+            newNode.touchingElements[0] = ne;
+            newNode.touchingElements[1] = elements.size() + 3;
+            newNode.touchingElements[2] = elements.size() + i;
+            newNode.touchingElements[3] = elements.size() + (i+1)%3;
+
+            nodes.push_back(newNode);
+            edgeNodes[i] = nodes.size()-1;
+         }
+      }
+
+      // Now set the corners of the new elements
+      newElements[0].corners[0] = parentElement.corners[0];
+      newElements[0].corners[1] = edgeNodes[0];
+      newElements[0].corners[2] = edgeNodes[2];
+      newElements[1].corners[0] = edgeNodes[0];
+      newElements[1].corners[1] = parentElement.corners[1];
+      newElements[1].corners[2] = edgeNodes[1];
+      newElements[2].corners[0] = edgeNodes[2];
+      newElements[2].corners[1] = edgeNodes[1];
+      newElements[2].corners[2] = parentElement.corners[2];
+      newElements[3].corners[0] = edgeNodes[0];
+      newElements[3].corners[1] = edgeNodes[1];
+      newElements[3].corners[2] = edgeNodes[2];
+
+      // And references of the corners are replaced to point
+      // to the new child elements
+      for(int n=0; n<3; n++) {
+         Node& cornerNode = nodes[parentElement.corners[n]];
+         for(uint i=0; i< cornerNode.numTouchingElements; i++) {
+            if(cornerNode.touchingElements[i] == e) {
+               cornerNode.touchingElements[i] = elements.size() + n;
+            }
+         }
+      }
+
+      // Insert the new elements at the end of the list
+      for(int i=0; i<4; i++) {
+         elements.push_back(newElements[i]);
+      }
+   }
+
+
+
+
+   // Actual ionosphere object implementation
+
    Ionosphere::Ionosphere(): SysBoundaryCondition() { }
    
    Ionosphere::~Ionosphere() { }
@@ -156,6 +459,12 @@ namespace SBC {
       getParameters();
       isThisDynamic = false;
 
+      ionosphereGrid.initializeIcosahedron();
+      //for(int i=0; i< 20; i++) {
+      //   ionosphereGrid.subdivideElement(i);
+      //}
+      ionosphereGrid.subdivideElement(0);
+
       // iniSysBoundary is only called once, generateTemplateCell must 
       // init all particle species
       generateTemplateCell(project);
@@ -163,7 +472,7 @@ namespace SBC {
       return true;
    }
 
-   Real getR(creal x,creal y,creal z, uint geometry, Real center[3]) {
+   static Real getR(creal x,creal y,creal z, uint geometry, Real center[3]) {
 
       Real r;
       

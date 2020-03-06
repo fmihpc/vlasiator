@@ -163,7 +163,7 @@ namespace SBC {
       return true;
    }
 
-   Real getR(creal x,creal y,creal z, uint geometry, Real center[3]) {
+   static Real getR(creal x,creal y,creal z, uint geometry, Real center[3]) {
 
       Real r;
       

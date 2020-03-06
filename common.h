@@ -374,6 +374,24 @@ namespace fsgrids {
    
 }
 
+// Ionosphere node parameters
+enum ionosphereParameters {
+	SOURCE,    /*!< Field aligned current source term */
+	SIGMAP,    /*!< Petersen conductivity tensor */
+   SIGMAH,    /*!< Hall conductivity tensor */
+	PRECIP,    /*!< Precipitation */
+	BX1,       
+   BY1,
+   BZ1,
+	SOLUTION, 
+   BEST_SOLUTION,
+	RESIDUAL, 
+   RRESIDUAL,
+	ZPARAM, ZZPARAM,
+	PPPARAM, PPARAM,
+   N_IONOSPHERE_PARAMETERS
+};
+
 /*! The namespace sysboundarytype contains the identification index of the boundary condition types applied to a cell,
  * it is stored in SpatialCell::sysBoundaryFlag and used by the BoundaryCondition class' functions to determine what type of BC to apply to a cell.
  * At least for the workings of vlasovmover_leveque.cpp the order of the first two entries should not be changed.
@@ -382,9 +400,10 @@ namespace sysboundarytype {
    enum {
       DO_NOT_COMPUTE,   /*!< E.g. cells within the ionospheric outer radius should not be computed at all. */
       NOT_SYSBOUNDARY,  /*!< Cells within the simulation domain are not boundary cells. */
-      IONOSPHERE,       /*!< Initially a perfectly conducting sphere. */
+      IONOSPHERE,       /*!< Ionospheric current model */
       OUTFLOW,          /*!< No fixed conditions on the fields and distribution function. */
       SET_MAXWELLIAN,   /*!< Set Maxwellian boundary condition, i.e. set fields and distribution function. */
+      CONDUCTINGSPHERE, /*!< A perfectly conducting sphere as the simple inner boundary */
       N_SYSBOUNDARY_CONDITIONS
    };
 }

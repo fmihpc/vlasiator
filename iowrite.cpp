@@ -42,6 +42,7 @@
 #include "logger.h"
 #include "vlasovmover.h"
 #include "object_wrapper.h"
+#include "sysboundary/ionosphere.h"
 
 using namespace std;
 using namespace phiprof;
@@ -922,6 +923,76 @@ bool writeFsGridMetadata(FsGrid< fsgrids::technical, 2>& technicalGrid, vlsv::Wr
   return true;
 }
 
+/** Writes the mesh metadata for Visit to read the Ionosphere grid and its variables.
+ */
+bool writeIonosphereGridMetadata(vlsv::Writer& vlsvWriter) {
+
+  std::map<std::string, std::string> xmlAttributes;
+  const std::string meshName="ionosphere";
+  xmlAttributes["mesh"] = meshName;
+
+  // the MESH_BBOX for unstructured meshes needs to be present, but isn't really being used.
+  size_t globalSize = SBC::ionosphereGrid.nodes.size();
+  std::array<int64_t, 6> boundaryBox({globalSize, 1, 1,
+      1,1,1});
+
+  //if(technicalGrid.getRank() == 0) {
+    const unsigned int arraySize = 6;
+    const unsigned int vectorSize = 1;
+    vlsvWriter.writeArray("MESH_BBOX", xmlAttributes, arraySize, vectorSize, &boundaryBox[0]);
+  //} else {
+  //  const unsigned int arraySize = 0;
+  //  const unsigned int vectorSize = 1;
+  //  vlsvWriter.writeArray("MESH_BBOX", xmlAttributes, arraySize, vectorSize, &boundaryBox);
+  //}
+
+  // Write node coordinates
+  std::vector<std::array<double, 3>> nodeCoordinates(globalSize);
+  for(int64_t i=0; i<globalSize; i++) {
+    nodeCoordinates[i] = SBC::ionosphereGrid.nodes[i].xi;
+  }
+  //if(technicalGrid.getRank() == 0) {
+    // Write this data only on rank 0 
+    vlsvWriter.writeArray("MESH_NODE_CRDS", xmlAttributes, globalSize*3, 1, nodeCoordinates.data());
+  //} else {
+  //  // The others just write an empty dummy
+  //  vlsvWriter.writeArray("MESH_NODE_CRDS", xmlAttributes, 0, 1, xNodeCoordinates.data());
+  //}
+
+  // Dummy ghost info
+  //int dummyghost=0;
+  //vlsvWriter.writeArray("MESH_GHOST_DOMAINS", xmlAttributes, 0, 1, &dummyghost);
+  //vlsvWriter.writeArray("MESH_GHOST_LOCALIDS", xmlAttributes, 0, 1, &dummyghost);
+
+  // Write cell connectivity information - which elements touch which nodes.
+  struct VlsvMeshData {
+     uint32_t cell_type = 1; // Tell visit this is a triangle
+     uint32_t num_nodes = 3; // It has three corners.
+     std::array<uint32_t, 3> nodes; // The corner data
+  };
+  std::vector<VlsvMeshData> meshData;
+  for(uint i=0; i<SBC::ionosphereGrid.elements.size(); i++) {
+     VlsvMeshData thisElement;
+     thisElement.nodes = SBC::ionosphereGrid.elements[i].corners;
+     meshData.push_back(thisElement);
+  }
+
+  // Finally, write mesh object itself.
+  xmlAttributes.clear();
+  xmlAttributes["name"] = meshName;
+  xmlAttributes["type"] = vlsv::mesh::STRING_UCD_GENERIC_MULTI;
+
+  //if(technicalGrid.getRank() == 0) {
+    // Write this data only on rank 0 
+     vlsvWriter.writeArray("MESH", xmlAttributes, meshData.size()*7, 1, meshData.data());
+  //} else {
+  //   vlsvWriter.writeArray("MESH", xmlAttributes, 0, 1, meshData.data());
+  //}
+
+  return true;
+
+}
+
 /** This function writes the velocity space.
  * @param mpiGrid Vlasiator's grid.
  * @param vlsvWriter some vlsv writer with a file open.
@@ -1172,6 +1243,9 @@ bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 
    //Write FSGrid metadata
    if( writeFsGridMetadata( technicalGrid, vlsvWriter ) == false ) return false;
+
+   //Write Ionosphere Grid
+   if( writeIonosphereGridMetadata( vlsvWriter ) == false ) return false;
    
    phiprof::stop("metadataIO");
    phiprof::start("velocityspaceIO");
