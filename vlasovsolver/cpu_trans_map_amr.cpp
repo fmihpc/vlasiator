@@ -706,7 +706,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
  * @param cellid_transpose
  * @param popID ID of the particle species.
  */
-void copy_trans_block_data_amr(
+bool copy_trans_block_data_amr(
     SpatialCell** source_neighbors,
     const vmesh::GlobalID blockGID,
     int lengthOfPencil,
@@ -717,6 +717,8 @@ void copy_trans_block_data_amr(
    // Allocate data pointer for all blocks in pencil. Pad on both ends by VLASOV_STENCIL_WIDTH
    Realf* blockDataPointer[lengthOfPencil + 2 * VLASOV_STENCIL_WIDTH];   
 
+   int nonEmptyBlocks = 0;
+
    for (int b = -VLASOV_STENCIL_WIDTH; b < lengthOfPencil + VLASOV_STENCIL_WIDTH; b++) {
       // Get cell pointer and local block id
       SpatialCell* srcCell = source_neighbors[b + VLASOV_STENCIL_WIDTH];
@@ -725,6 +727,7 @@ void copy_trans_block_data_amr(
       if (blockLID != srcCell->invalid_local_id()) {
          // Get data pointer
          blockDataPointer[b + VLASOV_STENCIL_WIDTH] = srcCell->get_data(blockLID,popID);
+         nonEmptyBlocks++;
          // //prefetch storage pointers to L1
          // _mm_prefetch((char *)(blockDataPointer[b + VLASOV_STENCIL_WIDTH]), _MM_HINT_T0);
          // _mm_prefetch((char *)(blockDataPointer[b + VLASOV_STENCIL_WIDTH]) + 64, _MM_HINT_T0);
@@ -741,6 +744,10 @@ void copy_trans_block_data_amr(
       } else {
          blockDataPointer[b + VLASOV_STENCIL_WIDTH] = NULL;
       }
+   }
+   
+   if(nonEmptyBlocks == 0) {
+      return false;
    }
    
    //  Copy volume averages of this block from all spatial cells:
@@ -776,6 +783,7 @@ void copy_trans_block_data_amr(
          }
       }
    }
+   return true;
 }
 
 /* Check whether the ghost cells around the pencil contain higher refinement than the pencil does.
@@ -1216,8 +1224,13 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                uint sourceLength = L + 2 * VLASOV_STENCIL_WIDTH;
                               
                // load data(=> sourcedata) / (proper xy reconstruction in future)
-               copy_trans_block_data_amr(pencilSourceCells[pencili].data(), blockGID, L, pencilSourceVecData[pencili].data(),
+               bool pencil_has_data = copy_trans_block_data_amr(pencilSourceCells[pencili].data(), blockGID, L, pencilSourceVecData[pencili].data(),
                                          cellid_transpose, popID);
+
+               if(!pencil_has_data) {
+                  totalTargetLength += targetLength;
+                  continue;
+               }
 
                // Dz and sourceVecData are both padded by VLASOV_STENCIL_WIDTH
                // Dz has 1 value/cell, sourceVecData has WID3 values/cell

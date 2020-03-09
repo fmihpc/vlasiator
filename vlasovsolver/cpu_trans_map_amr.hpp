@@ -167,23 +167,6 @@ struct setOfPencils {
    }
 };
 
- 
-CellID selectNeighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> &grid,
-                      CellID id, int dimension, uint path);
-
-void copy_trans_block_data_amr(
-    SpatialCell** source_neighbors,
-    const vmesh::GlobalID blockGID,
-    int lengthOfPencil,
-    Vec* values,
-    const unsigned char* const cellid_transpose,
-    const uint popID);
-
-
-setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> &grid, 
-					setOfPencils &pencils, CellID startingId,
-					std::vector<CellID> ids, uint dimension, 
-					std::vector<uint> path);
 
 bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                   const std::vector<CellID>& localPropagatedCells,
