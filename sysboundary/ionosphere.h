@@ -67,8 +67,8 @@ namespace SBC {
          uint numDepNodes;
          std::array<uint32_t, MAX_DEPENDING_NODES> dependingNodes;
 
-         std::array<Real, 3> xi; // Coordinates of the node
-         std::array<Real, 3> dXi; // Stretch values
+         std::array<Real, 3> xi = {0,0,0}; // Coordinates of the node
+         std::array<Real, 3> dXi;          // Stretch values
          std::array<Real, MAX_DEPENDING_NODES> depCoeffs; // Dependency coefficients
          std::array<Real, MAX_DEPENDING_NODES> depCoeffsT; // Transposed ependency coefficient
 

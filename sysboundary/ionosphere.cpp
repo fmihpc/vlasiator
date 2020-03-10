@@ -92,7 +92,7 @@ namespace SBC {
    // Initialize base grid as a tetrahedron
    void SphericalTriGrid::initializeTetrahedron() {
       const static std::array<uint32_t, 3> seedElements[4] = {
-         {0,1,2},{0,2,4},{0,3,1},{1,3,2}};
+         {1,2,3},{1,3,4},{1,4,2},{2,4,3}};
       const static std::array<Real, 3> nodeCoords[4] = {
          {0,0,1.73205},
          {0,1.63299,-0.57735},
@@ -100,6 +100,9 @@ namespace SBC {
          {1.41421,-0.816497,-0.57735}};
 
       // Create nodes
+      // One logical center node to build visualization mesh domains from
+      nodes.push_back(Node());
+      // Additional nodes from table
       for(int n=0; n<4; n++) {
          Node newNode;
          newNode.xi = nodeCoords[n];
@@ -121,11 +124,11 @@ namespace SBC {
    // Initialize base grid as a icosahedron
    void SphericalTriGrid::initializeIcosahedron() {
       const static std::array<uint32_t, 3> seedElements[20] = {
-         { 0, 2, 1}, { 0, 3, 2}, { 0, 4, 3}, { 0, 5, 4},
-         { 0, 1, 5}, { 1, 2, 6}, { 2, 3, 7}, { 3, 4, 8},
-         { 4, 5,9}, { 5, 1,10}, { 6, 2, 7}, { 7, 3, 8},
-         { 8, 4,9}, {9, 5,10}, {10, 1, 6}, { 6, 7,11},
-         { 7, 8,11}, { 8,9,11}, {9,10,11}, {10, 6,11}};
+         { 1, 3, 2}, { 1, 4, 3}, { 1, 5, 4}, { 1, 6, 5},
+         { 1, 2, 6}, { 2, 3, 7}, { 3, 4, 8}, { 4, 5, 9},
+         { 5, 6,10}, { 6, 2,11}, { 7, 3, 8}, { 8, 4, 9},
+         { 9, 5,10}, {10, 6,11}, {11, 2, 7}, { 7, 8,12},
+         { 8, 9,12}, { 9,10,12}, {10,11,12}, {11, 7,12}};
       const static std::array<Real, 3> nodeCoords[12] = {
          {        0,        0,  1.17557}, {  1.05146,        0, 0.525731},
 			{  0.32492,      1.0, 0.525731}, {-0.850651, 0.618034, 0.525731},
@@ -135,6 +138,9 @@ namespace SBC {
 			{ 0.850651,-0.618034,-0.525731}, {        0,        0, -1.17557}};
 
       // Create nodes
+      // One logical center node to build visualization mesh domains from
+      nodes.push_back(Node());
+      // Additional nodes from table
       for(int n=0; n<12; n++) {
          Node newNode;
          newNode.xi = nodeCoords[n];
@@ -242,18 +248,18 @@ namespace SBC {
             // that corner at the next refinement level
             std::set<uint32_t> candidates;
             for(uint en=0; en< n1.numTouchingElements; en++) {
-               if(elements[en].refLevel == parentElement.refLevel + 1) {
+               if(elements[n1.touchingElements[en]].refLevel == parentElement.refLevel + 1) {
                   for(int k=0; k<3; k++) {
-                     candidates.emplace(elements[en].corners[k]);
+                     candidates.emplace(elements[n1.touchingElements[en]].corners[k]);
                   }
                }
             }
             // Then match that list from the second corner
             for(uint en=0; en< n2.numTouchingElements; en++) {
-               if(elements[en].refLevel == parentElement.refLevel + 1) {
+               if(elements[n2.touchingElements[en]].refLevel == parentElement.refLevel + 1) {
                   for(int k=0; k<3; k++) {
-                     if(candidates.count(elements[en].corners[k]) > 0) {
-                        insertedNode = elements[en].corners[k];
+                     if(candidates.count(elements[n2.touchingElements[en]].corners[k]) > 0) {
+                        insertedNode = elements[n2.touchingElements[en]].corners[k];
                      }
                   }
                }
@@ -459,11 +465,15 @@ namespace SBC {
       getParameters();
       isThisDynamic = false;
 
+      //ionosphereGrid.initializeTetrahedron();
+      //ionosphereGrid.subdivideElement(0);
+      //ionosphereGrid.subdivideElement(1);
+      //ionosphereGrid.subdivideElement(2);
+      //ionosphereGrid.subdivideElement(3);
       ionosphereGrid.initializeIcosahedron();
-      //for(int i=0; i< 20; i++) {
-      //   ionosphereGrid.subdivideElement(i);
-      //}
-      ionosphereGrid.subdivideElement(0);
+      for(int i=0; i< 20; i++) {
+         ionosphereGrid.subdivideElement(i);
+      }
 
       // iniSysBoundary is only called once, generateTemplateCell must 
       // init all particle species
