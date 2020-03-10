@@ -439,7 +439,7 @@ namespace projects {
       
       const Real correctSum = getCorrectNumberDensity(cell,popID);
       const Real ratio = correctSum / sum;
-      
+      //std::cerr<<"ratio "<<ratio<<" mass "<<getObjectWrapper().particleSpecies[popID].mass<<std::endl;
       for (size_t i=0; i<cell->get_number_of_velocity_blocks(popID)*WID3; ++i) {
          data[i] *= ratio;
       }

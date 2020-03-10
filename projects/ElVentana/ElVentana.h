@@ -69,6 +69,10 @@ namespace projects {
 				      dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 				      bool& needCurl);
 
+      virtual Real getCorrectNumberDensity(spatial_cell::SpatialCell* cell,const uint popID) const;
+      virtual bool rescalesDensity(const uint popID) const;
+      //void rescaleDensity(spatial_cell::SpatialCell* cell,const uint popID) const;
+
     protected:
       Real getDistribValue(
                            creal& x,creal& y, creal& z,

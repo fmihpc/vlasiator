@@ -571,6 +571,16 @@ int main(int argn,char* args[]) {
       }
       phiprof::stop("propagate-velocity-space-dt/2");
 
+      // Initialize EJE fields
+      #pragma omp parallel for
+      for (size_t c=0; c<cells.size(); ++c) {
+         const CellID cellID = cells[c];
+         SpatialCell* SC = mpiGrid[cellID];
+         SC->parameters[CellParams::EXJE] = 0.;
+         SC->parameters[CellParams::EYJE] = 0.;
+         SC->parameters[CellParams::EZJE] = 0.;
+      }
+
    }
    
    phiprof::stop("Initialization");
@@ -927,16 +937,6 @@ int main(int argn,char* args[]) {
          phiprof::stop("getFieldsFromFsGrid");
          phiprof::stop("Propagate Fields",cells.size(),"SpatialCells");
          addTimedBarrier("barrier-after-field-solver");
-      }
-
-      // Initialize EJE fields
-      #pragma omp parallel for
-      for (size_t c=0; c<cells.size(); ++c) {
-         const CellID cellID = cells[c];
-         SpatialCell* SC = mpiGrid[cellID];
-         SC->parameters[CellParams::EXJE] = 0.;
-         SC->parameters[CellParams::EYJE] = 0.;
-         SC->parameters[CellParams::EZJE] = 0.;
       }
 
       phiprof::start("Velocity-space");

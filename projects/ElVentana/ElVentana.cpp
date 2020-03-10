@@ -205,6 +205,55 @@ namespace projects {
       return success;
    }
 
+   bool ElVentana::rescalesDensity(const uint popID) const {
+      //Real mass = getObjectWrapper().particleSpecies[popID].mass;
+      //if (mass < 0.5*physicalconstants::MASS_PROTON) return true;
+      // Don't scale non-electron populations
+      return false;
+      //return true;
+   }
+
+   Real ElVentana::getCorrectNumberDensity(spatial_cell::SpatialCell* cell,const uint popID) const {
+      Real mass = getObjectWrapper().particleSpecies[popID].mass;
+      Real density = 0.0;
+      //if (mass < 0.5*physicalconstants::MASS_PROTON) {
+      if (this->vecsizemoments == 5) {
+	 // Reading the new format (multipop) restart file
+	 density = cell->parameters[CellParams::RHOQ] / physicalconstants::CHARGE; 
+	 // FIXME: Where can I find either the species name or its mass in the StartFile?.
+      } else if (this->vecsizemoments == 4 || this->vecsizemoments == 1)  {
+	 // Reading the old format restart file or a bulk file
+	 density = cell->parameters[CellParams::RHOM];
+	 // This is already the number density, not mass density!
+      } else {
+	 cout << "Could not identify restart file format for file: " << this->StartFile << endl;
+	 exit(1);
+      }
+      //}
+      return density;
+      // 	 Real rho = 0.0;
+      // 	 Real chargee = 0.0;
+
+
+      // 	 for (uint popID2=0; popID2<getObjectWrapper().particleSpecies.size(); ++popID2) {
+      // 	    mass = getObjectWrapper().particleSpecies[popID2].mass;
+      // 	    chargee = getObjectWrapper().particleSpecies[popID2].charge/physicalconstants::CHARGE;
+
+
+      // 	    if ( mass> 0.5*physicalconstants::MASS_PROTON) {
+      // 	       if (chargee<1.2) {
+      // 		  rho += cell->get_population(popID2).RHO;
+      // 	       } else {
+      // 		  rho += cell->get_population(popID2).RHO*chargee;
+      // 	       }
+      // 	    }
+      // 	 }
+      // 	 return rho;
+      // }
+      // return cell->get_population(popID).RHO;
+   }
+
+
    Real ElVentana::getDistribValue(
       creal& x,creal& y, creal& z,
       creal& vx, creal& vy, creal& vz,
@@ -282,7 +331,7 @@ namespace projects {
 		exp(- mass * ( pow(vx - v0[0], 2.0) + pow(vy - v0[1], 2.0) + pow(vz - v0[2], 2.0) ) /
 		    (2.0 * physicalconstants::K_B * temperature));
 	     //if(myRank == MASTER_RANK) std::cerr << "Pdist " << distvalue << std::endl;
-	     if((cellID>1450)&&(cellID<1460)) std::cerr << "Pdist " << distvalue << std::endl;
+	     //if((cellID>1450)&&(cellID<1460)) std::cerr << "Pdist " << distvalue << std::endl;
 	     return distvalue;
 	  } else {
 	     // electrons: assume that we have only protons and electrons as active populations
@@ -316,13 +365,12 @@ namespace projects {
 		std::cerr << "cid " << cellID << " ve" << ve[0] << " " << ve[1] << " " << ve[2] << std::endl;
 		}*/
 	     
-	     /* distvalue = initRho * pow(mass / (2.0 * M_PI * physicalconstants::K_B * temperature), 1.5) *
+	     distvalue = initRho * pow(mass / (2.0 * M_PI * physicalconstants::K_B * temperature), 1.5) *
 		exp(- mass * ( pow(vx - ve[0], 2.0) + pow(vy - ve[1], 2.0) + pow(vz - ve[2], 2.0) ) /
 		    (2.0 * physicalconstants::K_B * temperature));
-	     */
-
-	     /* Try Maxwell-Jüttner relativistic distribution */
 	     
+	     /* Try Maxwell-Jüttner relativistic distribution */
+	     /*
 	     Real theta = physicalconstants::K_B * temperature /(mass*physicalconstants::light*physicalconstants::light);
 	     ve[0] -= vx;
 	     ve[1] -= vy;
@@ -342,8 +390,8 @@ namespace projects {
 	     // convert from per momentum to per velocity
 	     distvalue *= (M_PI*4./3.)*(pow(mom_p,3)-pow(mom_m,3))/(pow(vv+0.5*dvx,3)-pow(vv-0.5*dvx,3));
 	     //if(myRank == MASTER_RANK) std::cerr << "Edist " << distvalue << std::endl;
-	     if((cellID>1450)&&(cellID<1460)) std::cerr << "Edist " << distvalue << std::endl;
-	     
+	     //if((cellID>1450)&&(cellID<1460)) std::cerr << "Edist " << distvalue << std::endl;
+	     */
 	     return distvalue;
 	  }
       } else {
