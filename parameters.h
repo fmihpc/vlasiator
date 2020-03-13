@@ -98,6 +98,7 @@ struct Parameters {
    static int pmlWidthXm;            /*!< Sets the PML width at the  boundaries in the X dimension*/
    static int pmlWidthYm;            /*!< Sets the PML width at the  boundaries in the Y dimension*/
    static int pmlWidthZm;            /*!< Sets the PML width at the  boundaries in the Z dimension*/
+   static int pmlStart;  
    static bool propagateVlasovAcceleration;     /*!< If true, distribution function is propagated in velocity space during the simulation.*/
    static bool propagateVlasovTranslation;      /*!< If true, distribution function is propagated in ordinary space during the simulation.*/
 

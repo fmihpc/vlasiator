@@ -58,6 +58,7 @@ int P::pmlWidthZp = 0;
 int P::pmlWidthXm = 0;
 int P::pmlWidthYm = 0;
 int P::pmlWidthZm = 0;
+int P::pmlStart = 0;
 
 uint P::xcells_ini = numeric_limits<uint>::max();
 uint P::ycells_ini = numeric_limits<uint>::max();
@@ -197,6 +198,7 @@ bool Parameters::addParameters(){
    Readparameters::add("PML.WidthXm", "Width of PML areas in X.", "0");
    Readparameters::add("PML.WidthYm", "Width of PML areas in Y.", "0");
    Readparameters::add("PML.WidthZm", "Width of PML areas in Z.", "0");
+   Readparameters::add("PML.Start", "Width of PML areas in Z.", "2");
 
    Readparameters::add("gridbuilder.dt","Initial timestep in seconds.",0.0);
 
@@ -460,6 +462,7 @@ bool Parameters::getParameters(){
    Readparameters::get("PML.WidthXm", P::pmlWidthXm);
    Readparameters::get("PML.WidthYm", P::pmlWidthYm);
    Readparameters::get("PML.WidthZm", P::pmlWidthZm);
+   Readparameters::get("PML.Start", P::pmlStart);
    Readparameters::get("AMR.max_velocity_level",P::amrMaxVelocityRefLevel);
    Readparameters::get("AMR.max_spatial_level",P::amrMaxSpatialRefLevel);
    Readparameters::get("AMR.box_half_width_x",P::amrBoxHalfWidthX);

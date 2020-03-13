@@ -49,7 +49,7 @@ bool buildPMLGrids(
 
    /*----Get PML Array and Domain Size-----*/
    std::array<Real, fsgrids::pml::N_PML> *pmlValue;
-   int start = 2;   /*don't judge will change it */
+   int start = P::pmlStart; /*don't judge will change it */
    std::array<int32_t, 3> pos;
    const int *pmlDims = &pmlGrid.getLocalSize()[0];
    const int *globalDims = &pmlGrid.getGlobalSize()[0];
@@ -81,15 +81,13 @@ bool buildPMLGrids(
         }
     }
 
-
+   Real smax=2;
+   int m=3;
    Real xnum, xd;
    Real xxn, xn;
-   // printf("Xp=%d\n",P::pmlWidthXp);
-   // printf("Xm=%d\n",P::pmlWidthXm);
-   // printf("Yp=%d\n",P::pmlWidthYp);
-   // printf("Ym=%d\n",P::pmlWidthYm);
-   // printf("Zp=%d\n",P::pmlWidthZp);
-   // printf("Zm=%d\n",P::pmlWidthZm);
+   // smax = (m+ 1) / (150 * 3.14 * 1 *(2e4)/30 );
+
+
    // Attentuation Along the X-Dimension
   // #pragma omp parallel for collapse(3)
    for (int kk = 0; kk < pmlDims[2] ; kk++){
@@ -109,12 +107,14 @@ bool buildPMLGrids(
             // xnum =P::pmlWidthXm-pos[0];
             xd = P::pmlWidthXm;
             xxn =xnum/xd;
-            xn =0.33*(xxn*xxn*xxn);
+            // xn =smax*(xxn*xxn*xxn);
+            xn=smax*pow(xxn,m);
             pmlValue->at(fsgrids::pml::PGI2)=1/(1+xn);
             pmlValue->at(fsgrids::pml::PGI3)=(1-xn)/(1+xn);
 
             xxn=(xnum-0.5)/xd;
-            xn=0.25*(xxn*xxn*xxn);
+            // xn=smax*(xxn*xxn*xxn);
+            xn = smax * pow(xxn, m);
             pmlValue->at(fsgrids::pml::PFI1)=xn;
             pmlValue->at(fsgrids::pml::PFI2)=1/(1+xn);
             pmlValue->at(fsgrids::pml::PFI3)=(1-xn)/(1+xn);
@@ -132,15 +132,16 @@ bool buildPMLGrids(
             // xnum = P::pmlWidthXp - (globalDims[0] - pos[0]);
             xd = P::pmlWidthXp;               
             xxn =xnum/xd;
-            xn =0.33*(xxn*xxn*xxn);
+            // xn =smax*(xxn*xxn*xxn);
+            xn = smax * pow(xxn, m);
+            // printf("KK=%d,xnum=%f,xxn=%f,xn=%f\n",kk,xnum,xxn,xn);
             pmlValue->at(fsgrids::pml::PGI2)=1/(1+xn);
             pmlValue->at(fsgrids::pml::PGI3)=(1-xn)/(1+xn);
 
 
-         
-
             xxn=(xnum-0.5)/xd;
-            xn=0.25*(xxn*xxn*xxn);
+            // xn=smax*(xxn*xxn*xxn);
+            xn = smax * pow(xxn, m);
             pmlValue->at(fsgrids::pml::PFI1)=xn;
             pmlValue->at(fsgrids::pml::PFI2)=1/(1+xn);
             pmlValue->at(fsgrids::pml::PFI3)=(1-xn)/(1+xn);
@@ -149,6 +150,7 @@ bool buildPMLGrids(
          }
       }
    }
+
 
 
 // Attentuation Along the Y-Dimension
@@ -170,11 +172,13 @@ bool buildPMLGrids(
             xnum =P::pmlWidthYm-pos[1]+start;
             xd = P::pmlWidthYm;
             xxn =xnum/xd;
-            xn =0.33*(xxn*xxn*xxn);
+            // xn =smax*(xxn*xxn*xxn);
+            xn = smax * pow(xxn, m);
             pmlValue->at(fsgrids::pml::PGJ2)=1/(1+xn);
             pmlValue->at(fsgrids::pml::PGJ3)=(1-xn)/(1+xn);
             xxn=(xnum-0.5)/xd;
-            xn=0.25*(xxn*xxn*xxn);
+            // xn=smax*(xxn*xxn*xxn);
+            xn = smax * pow(xxn, m);
             pmlValue->at(fsgrids::pml::PFJ1)=xn;
             pmlValue->at(fsgrids::pml::PFJ2)=1/(1+xn);
             pmlValue->at(fsgrids::pml::PFJ3)=(1-xn)/(1+xn);
@@ -190,11 +194,13 @@ bool buildPMLGrids(
             xnum =start+P::pmlWidthYp-(globalDims[1]- pos[1]);
             xd = P::pmlWidthYp;
             xxn =xnum/xd;
-            xn =0.33*(xxn*xxn*xxn);
+            // xn =smax*(xxn*xxn*xxn);
+            xn = smax * pow(xxn, m);
             pmlValue->at(fsgrids::pml::PGJ2)=1/(1+xn);
             pmlValue->at(fsgrids::pml::PGJ3)=(1-xn)/(1+xn);
             xxn=(xnum-0.5)/xd;
-            xn=0.25*(xxn*xxn*xxn);
+            // xn=smax*(xxn*xxn*xxn);
+            xn = smax * pow(xxn, m);
             pmlValue->at(fsgrids::pml::PFJ1)=xn;
             pmlValue->at(fsgrids::pml::PFJ2)=1/(1+xn);
             pmlValue->at(fsgrids::pml::PFJ3)=(1-xn)/(1+xn);
@@ -223,11 +229,13 @@ bool buildPMLGrids(
                xnum =P::pmlWidthZm-pos[2]+start;
                xd = P::pmlWidthZm;
                xxn =xnum/xd;
-               xn =0.33*(xxn*xxn*xxn);
+               // xn =smax*(xxn*xxn*xxn);
+               xn = smax * pow(xxn, m);
                pmlValue->at(fsgrids::pml::PGK2)=1/(1+xn);
                pmlValue->at(fsgrids::pml::PGK3)=(1-xn)/(1+xn);
                xxn=(xnum-0.5)/xd;
-               xn=0.25*(xxn*xxn*xxn);
+               // xn=smax*(xxn*xxn*xxn);
+               xn = smax * pow(xxn, m);
                pmlValue->at(fsgrids::pml::PFK1)=xn;
                pmlValue->at(fsgrids::pml::PFK2)=1/(1+xn);
                pmlValue->at(fsgrids::pml::PFK3)=(1-xn)/(1+xn);
@@ -243,11 +251,13 @@ bool buildPMLGrids(
                xnum =start+P::pmlWidthZp-(globalDims[2]- pos[2]);
                xd = P::pmlWidthZp;
                xxn =xnum/xd;
-               xn =0.33*(xxn*xxn*xxn);
+               // xn =smax*(xxn*xxn*xxn);
+               xn = smax * pow(xxn, m);
                pmlValue->at(fsgrids::pml::PGK2)=1/(1+xn);
                pmlValue->at(fsgrids::pml::PGK3)=(1-xn)/(1+xn);
                xxn=(xnum-0.5)/xd;
-               xn=0.25*(xxn*xxn*xxn);
+               // xn=smax*(xxn*xxn*xxn);
+               xn = smax * pow(xxn, m);
                pmlValue->at(fsgrids::pml::PFK1)=xn;
                pmlValue->at(fsgrids::pml::PFK2)=1/(1+xn);
                pmlValue->at(fsgrids::pml::PFK3)=(1-xn)/(1+xn);
