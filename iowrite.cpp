@@ -434,6 +434,11 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       phiprof::start("writeFsGrid");
       success = dataReducer.writeFsGridData(perBGrid,EGrid,EHallGrid,EGradPeGrid,momentsGrid,dPerBGrid,dMomentsGrid,BgBGrid,volGrid, technicalGrid, "fsgrid", dataReducerIndex, vlsvWriter, writeAsFloat);
       phiprof::stop("writeFsGrid");
+
+      // Or maybe it will be writing ionosphere data?
+      phiprof::start("writeIonosphere");
+      success |= dataReducer.writeIonosphereGridData(SBC::ionosphereGrid, "ionosphere", dataReducerIndex, vlsvWriter);
+      phiprof::stop("writeIonosphere");
    }
    
    // Check if the DataReducer wants to write paramters to the output file

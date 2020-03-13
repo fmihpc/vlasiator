@@ -282,7 +282,7 @@ namespace SBC {
             // Replace the reference to the parent element with the centre child
             for(uint en=0; en < nodes[insertedNode].numTouchingElements; en++) {
                if(nodes[insertedNode].touchingElements[en] == e) {
-                  nodes[insertedNode].touchingElements[en] = elements.size() + 3;
+                  //nodes[insertedNode].touchingElements[en] = elements.size() + 3;
                   break;
                }
             }
@@ -309,7 +309,7 @@ namespace SBC {
             // This node has four touching elements: the old neighbour and 3 of the new ones
             newNode.numTouchingElements = 4;
             newNode.touchingElements[0] = ne;
-            newNode.touchingElements[1] = elements.size() + 3;
+            newNode.touchingElements[1] = e;
             newNode.touchingElements[2] = elements.size() + i;
             newNode.touchingElements[3] = elements.size() + (i+1)%3;
 
@@ -343,8 +343,10 @@ namespace SBC {
          }
       }
 
-      // Insert the new elements at the end of the list
-      for(int i=0; i<4; i++) {
+      // The center element replaces the original one
+      elements[e] = newElements[3];
+      // Insert the other new elements at the end of the list
+      for(int i=0; i<3; i++) {
          elements.push_back(newElements[i]);
       }
    }
@@ -470,10 +472,30 @@ namespace SBC {
       //ionosphereGrid.subdivideElement(1);
       //ionosphereGrid.subdivideElement(2);
       //ionosphereGrid.subdivideElement(3);
+
       ionosphereGrid.initializeIcosahedron();
-      for(int i=0; i< 20; i++) {
-         ionosphereGrid.subdivideElement(i);
-      }
+      auto refineBetweenLatitudes = [](Real phi1, Real phi2) -> void {
+         uint numElems=ionosphereGrid.elements.size();
+
+         for(int i=0; i< numElems; i++) {
+            Real mean_z = 0;
+            mean_z  = ionosphereGrid.nodes[ionosphereGrid.elements[i].corners[0]].xi[2];
+            mean_z += ionosphereGrid.nodes[ionosphereGrid.elements[i].corners[1]].xi[2];
+            mean_z += ionosphereGrid.nodes[ionosphereGrid.elements[i].corners[2]].xi[2];
+            mean_z /= 3.;
+
+            if(fabs(mean_z) > sin(phi1 * M_PI / 180.) * physicalconstants::R_E &&
+                  fabs(mean_z) < sin(phi2 * M_PI / 180.) * physicalconstants::R_E) {
+               //logFile << "Subdividing element " << i << " again" << endl << write;
+               ionosphereGrid.subdivideElement(i);
+            }
+         }
+      };
+
+      // TODO: Make these parameters
+      refineBetweenLatitudes(0, 90); // Refine everything once
+      refineBetweenLatitudes(30, 90); // Refine high latitudes again
+      refineBetweenLatitudes(50, 80); // Refine auroral region again
 
       // iniSysBoundary is only called once, generateTemplateCell must 
       // init all particle species

@@ -927,6 +927,29 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 	 outputReducer->addMetadata(outputReducer->size()-1,"","","\\mathrm{Mesh data}$","");
          continue;
       }
+      if(lowercase == "ig_latitude") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereGrid("ig_latitude", [](
+                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
+                  
+                     std::vector<Real> retval(grid.elements.size());
+
+                     for(uint i=0; i<grid.elements.size(); i++) {
+
+                        Real z = 0;
+                        // TODO: This is geographic latitude. Should it be magnetic?
+                        for(int corner=0; corner <3; corner++) {
+                           z+= grid.nodes[grid.elements[i].corners[corner]].xi[2];
+                        }
+                        z /= 3.;
+
+                        retval[i] = acos(z/physicalconstants::R_E) / M_PI * 180.;
+                     }
+
+                     return retval;
+                  }));
+         outputReducer->addMetadata(outputReducer->size()-1, "Degrees", "$^\\circ$", "L", "");
+         continue;
+      }
       // After all the continue; statements one should never land here.
       int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
@@ -1208,4 +1231,18 @@ bool DataReducer::writeFsGridData(
    } else {
       return DROf->writeFsGridData(perBGrid, EGrid, EHallGrid, EGradPeGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, volGrid, technicalGrid, meshName, vlsvWriter, writeAsFloat);
    }
+}
+
+bool DataReducer::writeIonosphereGridData(
+                     SBC::SphericalTriGrid& grid, const std::string& meshName,
+                     const unsigned int operatorID, vlsv::Writer& vlsvWriter) {
+
+   if (operatorID >= operators.size()) return false;
+   DRO::DataReductionOperatorIonosphereGrid* DROi = dynamic_cast<DRO::DataReductionOperatorIonosphereGrid*>(operators[operatorID]);
+   if(!DROi) {
+      return false;
+   } else {
+      return DROi->writeIonosphereData(grid, vlsvWriter);
+   }
+   
 }
