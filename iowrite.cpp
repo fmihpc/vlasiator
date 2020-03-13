@@ -964,9 +964,9 @@ bool writeIonosphereGridMetadata(vlsv::Writer& vlsvWriter) {
   // Write node coordinates
   std::vector<double> nodeCoordinates(3*SBC::ionosphereGrid.nodes.size());
   for(int64_t i=0; i<SBC::ionosphereGrid.nodes.size(); i++) {
-    nodeCoordinates[3*i] = SBC::ionosphereGrid.nodes[i].xi[0];
-    nodeCoordinates[3*i+1] = SBC::ionosphereGrid.nodes[i].xi[1];
-    nodeCoordinates[3*i+2] = SBC::ionosphereGrid.nodes[i].xi[2];
+    nodeCoordinates[3*i] = SBC::ionosphereGrid.nodes[i].x[0];
+    nodeCoordinates[3*i+1] = SBC::ionosphereGrid.nodes[i].x[1];
+    nodeCoordinates[3*i+2] = SBC::ionosphereGrid.nodes[i].x[2];
   }
   if(rank == 0) {
     // Write this data only on rank 0 

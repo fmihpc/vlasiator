@@ -28,6 +28,7 @@
 #include "../readparameters.h"
 #include "../spatial_cell.hpp"
 #include "sysboundarycondition.h"
+#include "../backgroundfield/fieldfunction.hpp"
 
 using namespace projects;
 using namespace std;
@@ -54,6 +55,9 @@ namespace SBC {
          int refLevel;
          std::array<uint32_t, 3> corners;                 // Node indices in the corners of this element
          std::array<int32_t, 4> children = {-1,-1,-1,-1}; // Indices of the child elements (-1 = no child)
+         std::array<Real, 3> upmappedCentre;              // Coordinates the cell barycentre maps to
+         // List of fsgrid cells to couple to (and their strengths)
+         std::vector<std::pair<std::array<int,3>, Real>> fsgridCellCoupling;
       };
       std::vector<Element> elements;
 
@@ -67,8 +71,8 @@ namespace SBC {
          uint numDepNodes;
          std::array<uint32_t, MAX_DEPENDING_NODES> dependingNodes;
 
-         std::array<Real, 3> xi = {0,0,0}; // Coordinates of the node
-         std::array<Real, 3> dXi;          // Stretch values
+         std::array<Real, 3> x = {0,0,0}; // Coordinates of the node
+         std::array<Real, 3> xMapped = {0,0,0}; // Coordinates mapped along fieldlines into simulation domain
          std::array<Real, MAX_DEPENDING_NODES> depCoeffs; // Dependency coefficients
          std::array<Real, MAX_DEPENDING_NODES> depCoeffsT; // Transposed ependency coefficient
 
@@ -83,14 +87,49 @@ namespace SBC {
       void initializeIcosahedron();       // Initialize grid as a base icosahedron
       int32_t findElementNeighbour(uint32_t e, int n1, int n2);
       void subdivideElement(uint32_t e);  // Subdivide mesh within element e
+      void calculateFsgridCoupling(FsGrid< fsgrids::technical, 2> & technicalGrid, FieldFunction& dipole);     // Link each element to fsgrid cells for coupling
 
+      // Returns the surface area of one element on the sphere
       Real elementArea(uint32_t elementIndex) {
-         //Vec3d a = nodes[elements[elementIndex].corners[0]].xi;
-         //Vec3d b = nodes[elements[elementIndex].corners[1]].xi;
-         //Vec3d c = nodes[elements[elementIndex].corners[2]].xi;
+         const std::array<Real, 3>& a = nodes[elements[elementIndex].corners[0]].x;
+         const std::array<Real, 3>& b = nodes[elements[elementIndex].corners[1]].x;
+         const std::array<Real, 3>& c = nodes[elements[elementIndex].corners[2]].x;
 
-         //return 0.5 * norm(cross(b-c,c-a));
-         return 1;
+         // Two edges e1 = b-c,  e2 = c-a
+         std::array<Real, 3> e1{b[0]-c[0], b[1]-c[1],b[2]-c[2]};
+         std::array<Real, 3> e2{c[0]-a[0], c[1]-a[1],c[2]-a[2]};
+         // Area vector A = cross(e1 e2)
+         std::array<Real, 3> area{ e1[1]*e2[2] - e1[2]*e2[1],
+                                   e1[2]*e2[0] - e1[0]*e2[2],
+                                   e1[0]*e2[1] - e1[1]*e2[0]};
+         
+         return 0.5 * sqrt( area[0]*area[0] + area[1]*area[1] + area[2]*area[2] );
+      }
+
+      // Returns the projected surface area of one element, mapped up along the magnetic field to
+      // the simulation boundary. If one of the nodes maps nowhere, returns 0.
+      Real mappedElementArea(uint32_t elementIndex) {
+         const std::array<Real, 3>& a = nodes[elements[elementIndex].corners[0]].xMapped;
+         const std::array<Real, 3>& b = nodes[elements[elementIndex].corners[1]].xMapped;
+         const std::array<Real, 3>& c = nodes[elements[elementIndex].corners[2]].xMapped;
+
+         // Check if any node maps to zero
+         if( sqrt( a[0]*a[0] + a[1]*a[1] + a[2]*a[2] ) == 0 ||
+               sqrt( b[0]*b[0] + b[1]*b[1] + b[2]*b[2] ) == 0 ||
+               sqrt( c[0]*c[0] + c[1]*c[1] + c[2]*c[2] ) == 0) {
+
+            return 0;
+         }
+
+         // Two edges e1 = b-c,  e2 = c-a
+         std::array<Real, 3> e1{b[0]-c[0], b[1]-c[1],b[2]-c[2]};
+         std::array<Real, 3> e2{c[0]-a[0], c[1]-a[1],c[2]-a[2]};
+         // Area vector A = cross(e1 e2)
+         std::array<Real, 3> area{ e1[1]*e2[2] - e1[2]*e2[1],
+                                   e1[2]*e2[0] - e1[0]*e2[2],
+                                   e1[0]*e2[1] - e1[1]*e2[0]};
+         
+         return 0.5 * sqrt( area[0]*area[0] + area[1]*area[1] + area[2]*area[2] );
       }
 
       Real nodeNeighbourArea(uint32_t nodeIndex) { // Summed area of all touching elements
@@ -218,6 +257,11 @@ namespace SBC {
       Real VX0;
       Real VY0;
       Real VZ0;
+
+      std::string baseShape; // Basic mesh shape (icosahedron / tetrahedron)
+      // Boundaries of refinement latitude bands
+      std::vector<Real> refineMinLatitudes;
+      std::vector<Real> refineMaxLatitudes;
       
       uint nSpaceSamples;
       uint nVelocitySamples;

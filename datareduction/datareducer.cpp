@@ -938,7 +938,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                         Real z = 0;
                         // TODO: This is geographic latitude. Should it be magnetic?
                         for(int corner=0; corner <3; corner++) {
-                           z+= grid.nodes[grid.elements[i].corners[corner]].xi[2];
+                           z+= grid.nodes[grid.elements[i].corners[corner]].x[2];
                         }
                         z /= 3.;
 
@@ -948,6 +948,53 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                      return retval;
                   }));
          outputReducer->addMetadata(outputReducer->size()-1, "Degrees", "$^\\circ$", "L", "");
+         continue;
+      }
+      if(lowercase == "ig_cellarea") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereGrid("ig_cellarea", [](
+                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
+                  
+                     std::vector<Real> retval(grid.elements.size());
+
+                     for(uint i=0; i<grid.elements.size(); i++) {
+                        retval[i] = grid.elementArea(i);
+                     }
+
+                     return retval;
+                     }));
+         outputReducer->addMetadata(outputReducer->size()-1, "m^2", "$\\mathrm{m}^2$", "$A_m$", "1.0");
+         continue;
+      }
+      if(lowercase == "ig_upmappedarea") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereGrid("ig_upmappedarea", [](
+                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
+                  
+                     std::vector<Real> retval(grid.elements.size());
+
+                     for(uint i=0; i<grid.elements.size(); i++) {
+                        retval[i] = grid.mappedElementArea(i);
+                     }
+
+                     return retval;
+                     }));
+         outputReducer->addMetadata(outputReducer->size()-1, "m^2", "$\\mathrm{m}^2$", "$A_m$", "1.0");
+         continue;
+      }
+      if(lowercase == "ig_upmappedcellcoords") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereGrid("ig_upmappedcellcoords", [](
+                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
+                  
+                     std::vector<Real> retval(grid.elements.size()*3);
+
+                     for(uint i=0; i<grid.elements.size(); i++) {
+                        retval[3*i] = grid.elements[i].upmappedCentre[0];
+                        retval[3*i+1] = grid.elements[i].upmappedCentre[1];
+                        retval[3*i+2] = grid.elements[i].upmappedCentre[2];
+                     }
+
+                     return retval;
+                     }));
+         outputReducer->addMetadata(outputReducer->size()-1, "m", "m", "$x_\\text{mapped}$", "1.0");
          continue;
       }
       // After all the continue; statements one should never land here.

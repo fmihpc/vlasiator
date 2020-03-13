@@ -67,9 +67,9 @@ namespace SBC {
    // Scale all nodes' coordinates so that they are situated on a spherical
    // shell with radius R
    void SphericalTriGrid::normalizeRadius(Node& n, Real R) {
-      Real L = sqrt(n.xi[0]*n.xi[0] + n.xi[1]*n.xi[1] + n.xi[2]*n.xi[2]);
+      Real L = sqrt(n.x[0]*n.x[0] + n.x[1]*n.x[1] + n.x[2]*n.x[2]);
       for(int c=0; c<3; c++) {
-         n.xi[c] *= R/L;
+         n.x[c] *= R/L;
       }
    }
 
@@ -105,7 +105,7 @@ namespace SBC {
       // Additional nodes from table
       for(int n=0; n<4; n++) {
          Node newNode;
-         newNode.xi = nodeCoords[n];
+         newNode.x = nodeCoords[n];
          normalizeRadius(newNode,physicalconstants::R_E);
          nodes.push_back(newNode);
       }
@@ -143,7 +143,7 @@ namespace SBC {
       // Additional nodes from table
       for(int n=0; n<12; n++) {
          Node newNode;
-         newNode.xi = nodeCoords[n];
+         newNode.x = nodeCoords[n];
          normalizeRadius(newNode, physicalconstants::R_E);
          nodes.push_back(newNode);
       }
@@ -300,7 +300,7 @@ namespace SBC {
 
             // Node coordinates are in the middle of the two parents
             for(int c=0; c<3; c++) {
-               newNode.xi[c] = 0.5 * (n1.xi[c] + n2.xi[c]);
+               newNode.x[c] = 0.5 * (n1.x[c] + n2.x[c]);
             }
             // Renormalize to sit on the circle
             // TODO: Make this radius a parameter
@@ -352,6 +352,139 @@ namespace SBC {
    }
 
 
+   /* Calculate mapping between ionospheric cells and fsGrid cells.
+    * To do so, the magnetic field lines are traced from all mesh nodes and all cell barycenters outwards
+    * until a non-boundary cell is encountered. Their proportional coupling values are recorded in the grid
+    * elements.
+    */
+   void SphericalTriGrid::calculateFsgridCoupling( FsGrid< fsgrids::technical, 2> & technicalGrid, FieldFunction& dipole ) {
+
+      dipole.setDerivative(0);
+
+      // Helper function to trace magnetic fieldlines in the given dipole field
+      // TODO: Implement something better than euler step
+      auto stepFieldline = [](std::array<Real, 3>& x, std::array<Real, 3>& v, FieldFunction& dipole, Real stepsize) -> void {
+
+            // Get field direction
+            for(int c=0; c<3; c++) {
+               dipole.setComponent((coordinate)c);
+               v[c] = dipole.call(x[0],x[1],x[2]);
+            }
+
+            // Normalize
+            for(int c=0; c<3; c++) {
+               v[c] = v[c] / sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
+            }
+
+            // Make sure motion is outwards. Flip v if dot(x,v) < 0
+            if(v[0]*x[0] + v[1]*x[1] + v[2]*x[2] < 0) {
+               v[0]*=-1;
+               v[1]*=-1;
+               v[2]*=-1;
+            }
+
+            for(int c=0; c<3; c++) {
+               x[c] += stepsize * v[c];
+            }
+      };
+
+
+      // Trace node coordinates outwards until a non-sysboundary cell is encountered
+      for(uint n=0; n<nodes.size(); n++) {
+
+         Node& no = nodes[n];
+
+         std::array<Real, 3> x = no.x;
+         std::array<Real, 3> v;
+         while( sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]) < 60e6 ) { //TODO: Un-hardcode limit
+            
+            stepFieldline(x,v,dipole, 100e3); // TODO: Hardcoded stepsize of 100 km. Change!
+
+            // Look up the fsgrid cell beloinging to these coordinates
+            std::array<int, 3> fsgridCell;
+            for(int c=0; c<3; c++) {
+               fsgridCell[c] = (x[c] - technicalGrid.physicalGlobalStart[c]) / technicalGrid.DX;
+            }
+            fsgridCell = technicalGrid.globalToLocal(fsgridCell[0], fsgridCell[1], fsgridCell[2]);
+
+            // If the field line is no longer moving outwards but horizontally (88 degrees), abort.
+            if(fabs(x[0]*v[0]+x[1]*v[1]+x[2]*v[2])/sqrt(x[0]*x[0]+x[1]*x[1]+x[2]*x[2]) < cos(88. / 180. * M_PI)) {
+               break;
+            }
+
+            // Not inside the local domain, skip and continue.
+            if(fsgridCell[0] == -1) {
+               continue;
+            }
+
+            if(technicalGrid.get(fsgridCell[0], fsgridCell[1], fsgridCell[2])->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+
+               // Cell found, add associations.
+               for(uint e=0; e<no.numTouchingElements; e++) {
+                  elements[no.touchingElements[e]].fsgridCellCoupling.push_back({fsgridCell, .5/3}); // Coupling factor is .5 for the corners, divided by 3 corners.
+               }
+
+               // Store the cells mapped coordinates
+               no.xMapped = x;
+
+               break;
+            }
+
+         }
+      }
+
+
+      // Trace some more fieldlines, from the elements' centre points
+
+      for(uint e=0; e<elements.size(); e++) {
+
+         Element& el = elements[e];
+
+         // Calculate element barycentre coordinates
+         std::array<Real, 3> barycentre;
+         for(int c=0; c<3; c++) {
+            for(int corner=0; corner<3; corner++) {
+               barycentre[c] += nodes[el.corners[corner]].x[c];
+            }
+            barycentre[c] /= 3.;
+         }
+
+         // Trace fieldline barycenters upwards until a non-sysboundary cell is encountered
+         std::array<Real, 3> x = barycentre;
+         std::array<Real, 3> v;
+         while( sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]) < 60e6 ) {
+            
+            stepFieldline(x,v,dipole, 100e3); // TODO: Hardcoded stepsize of 100 km. Change!
+
+            // Look up the fsgrid cell beloinging to these coordinates
+            std::array<int, 3> fsgridCell;
+            for(int c=0; c<3; c++) {
+               fsgridCell[c] = (x[c] - technicalGrid.physicalGlobalStart[c]) / technicalGrid.DX;
+            }
+            fsgridCell = technicalGrid.globalToLocal(fsgridCell[0], fsgridCell[1], fsgridCell[2]);
+
+            // If the field line is no longer moving outwards but horizontally (88 degrees), abort.
+            if(fabs(x[0]*v[0]+x[1]*v[1]+x[2]*v[2])/sqrt(x[0]*x[0]+x[1]*x[1]+x[2]*x[2]) < cos(88. / 180. * M_PI)) {
+               break;
+            }
+
+            // Not inside the local domain, skip and continue.
+            if(fsgridCell[0] == -1) {
+               continue;
+            }
+
+            if(technicalGrid.get(fsgridCell[0], fsgridCell[1], fsgridCell[2])->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+
+               // Cell found, add association.
+               el.fsgridCellCoupling.push_back({fsgridCell, .5}); // Coupling factor is .5 for the centre of the cell
+               // Store upmapped coordinates
+               el.upmappedCentre = x;
+               break;
+            }
+         }
+      }
+
+   }
 
 
    // Actual ionosphere object implementation
@@ -368,6 +501,9 @@ namespace SBC {
       Readparameters::add("ionosphere.geometry", "Select the geometry of the ionosphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm (circle, DEFAULT), 3: 2-norm cylinder aligned with y-axis, use with polar plane/line dipole.", 2);
       Readparameters::add("ionosphere.precedence", "Precedence value of the ionosphere system boundary condition (integer), the higher the stronger.", 2);
       Readparameters::add("ionosphere.reapplyUponRestart", "If 0 (default), keep going with the state existing in the restart file. If 1, calls again applyInitialState. Can be used to change boundary condition behaviour during a run.", 0);
+      Readparameters::add("ionosphere.baseShape", "Select the seed mesh geometry for the spherical ionosphere grid. Options are: tetrahedron, icosahedron.",std::string("icosahedron"));
+      Readparameters::addComposing("ionosphere.refineMinLatitude", "Refine the grid polewards of the given latitude. Multiple of these lines can be given for successive refinement, paired up with refineMaxLatitude lines.");
+      Readparameters::addComposing("ionosphere.refineMaxLatitude", "Refine the grid equatorwards of the given latitude. Multiple of these lines can be given for successive refinement, paired up with refineMinLatitude lines.");
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
@@ -414,6 +550,18 @@ namespace SBC {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       };
+      if(!Readparameters::get("ionosphere.baseShape",baseShape)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("ionosphere.refineMinLatitude",refineMinLatitudes)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("ionosphere.refineMaxLatitude",refineMaxLatitudes)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
       this->applyUponRestart = false;
       if(reapply == 1) {
          this->applyUponRestart = true;
@@ -467,35 +615,47 @@ namespace SBC {
       getParameters();
       isThisDynamic = false;
 
-      //ionosphereGrid.initializeTetrahedron();
-      //ionosphereGrid.subdivideElement(0);
-      //ionosphereGrid.subdivideElement(1);
-      //ionosphereGrid.subdivideElement(2);
-      //ionosphereGrid.subdivideElement(3);
-
-      ionosphereGrid.initializeIcosahedron();
+      if(baseShape == "icosahedron") {
+         ionosphereGrid.initializeIcosahedron();
+      } else if(baseShape == "tetrahedron") {
+         ionosphereGrid.initializeTetrahedron();
+      } else {
+         logFile << "(IONOSPHERE) Unknown mesh base shape \"" << baseShape << "\". Aborting." << endl << write;
+         abort();
+      }
       auto refineBetweenLatitudes = [](Real phi1, Real phi2) -> void {
          uint numElems=ionosphereGrid.elements.size();
 
-         for(int i=0; i< numElems; i++) {
+         for(uint i=0; i< numElems; i++) {
             Real mean_z = 0;
-            mean_z  = ionosphereGrid.nodes[ionosphereGrid.elements[i].corners[0]].xi[2];
-            mean_z += ionosphereGrid.nodes[ionosphereGrid.elements[i].corners[1]].xi[2];
-            mean_z += ionosphereGrid.nodes[ionosphereGrid.elements[i].corners[2]].xi[2];
+            mean_z  = ionosphereGrid.nodes[ionosphereGrid.elements[i].corners[0]].x[2];
+            mean_z += ionosphereGrid.nodes[ionosphereGrid.elements[i].corners[1]].x[2];
+            mean_z += ionosphereGrid.nodes[ionosphereGrid.elements[i].corners[2]].x[2];
             mean_z /= 3.;
 
-            if(fabs(mean_z) > sin(phi1 * M_PI / 180.) * physicalconstants::R_E &&
-                  fabs(mean_z) < sin(phi2 * M_PI / 180.) * physicalconstants::R_E) {
-               //logFile << "Subdividing element " << i << " again" << endl << write;
+            if(fabs(mean_z) >= sin(phi1 * M_PI / 180.) * physicalconstants::R_E &&
+                  fabs(mean_z) <= sin(phi2 * M_PI / 180.) * physicalconstants::R_E) {
                ionosphereGrid.subdivideElement(i);
             }
          }
       };
 
-      // TODO: Make these parameters
-      refineBetweenLatitudes(0, 90); // Refine everything once
-      refineBetweenLatitudes(30, 90); // Refine high latitudes again
-      refineBetweenLatitudes(50, 80); // Refine auroral region again
+      // Refine the mesh between the given latitudes
+      for(int i=0; i< max(refineMinLatitudes.size(), refineMaxLatitudes.size()); i++) {
+         Real lmin;
+         if(i < refineMinLatitudes.size()) {
+            lmin = refineMinLatitudes[i];
+         } else {
+            lmin = 0.;
+         }
+         Real lmax;
+         if(i < refineMaxLatitudes.size()) {
+            lmax = refineMaxLatitudes[i];
+         } else {
+            lmax = 90.;
+         }
+         refineBetweenLatitudes(lmin, lmax);
+      }
 
       // iniSysBoundary is only called once, generateTemplateCell must 
       // init all particle species
