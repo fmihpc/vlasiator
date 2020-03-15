@@ -210,7 +210,7 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       } // For the electron run, since we use the electron bulk velocity, the Hall term should not be used
       
       // Calculate EJE only for the electron population
-      if ((smallparticle) && (substeps_dt > 0)) {
+      if ((smallparticle) && (fabs(substeps_dt) > 1e-20)) {
 	 // First find the current electron moments, this results in leapfrog-like propagation of EJE
 	 Eigen::Matrix<Real,3,1> electronVcurr(total_transform*electronV);
 
