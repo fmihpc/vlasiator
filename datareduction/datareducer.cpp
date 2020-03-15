@@ -578,6 +578,8 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          // Volume-averaged E field
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_eje",CellParams::EXJE,3));
 	 outputReducer->addMetadata(outputReducer->size()-1,"V/m","$\\mathrm{V}\\,\\mathrm{m}^{-1}$","$EJE$","1.0");
+	 continue;
+      }
       if(lowercase == "vole" || lowercase == "vg_vole" || lowercase == "evol" || lowercase == "vg_e_vol" || lowercase == "e_vol") {
          // Volume-averaged E field
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_e_vol",CellParams::EXVOL,3));
@@ -656,14 +658,12 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          continue;
       }
 
-
       if(lowercase == "rhoqe" || lowercase == "vg_rhoqe") {
          // Volume-averaged E field
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_erhoqe",CellParams::ERHOQX,3));
 	      outputReducer->addMetadata(outputReducer->size()-1,"V/m","$\\mathrm{V}\\,\\mathrm{m}^{-1}$","$E_{\\rho_q}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_rhoqe",CellParams::RHOQE,1));
          outputReducer->addMetadata(outputReducer->size()-1,"C/m^3","$\\mathrm{C}\\,\\mathrm{m}^{-3}$","$\\rho_\\mathrm{qe}$","1.0");
-
          continue;
       }
 
