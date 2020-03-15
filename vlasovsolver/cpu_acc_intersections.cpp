@@ -29,7 +29,7 @@
 //#include <boost/unordered_map.hpp>
 //#include <boost/unordered_set.hpp>
 
-#include <Geometry> //Eigen
+#include <Eigen/Geometry>
 
 #include "../common.h"
 #include "../spatial_cell.hpp"

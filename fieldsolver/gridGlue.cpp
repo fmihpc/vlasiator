@@ -291,7 +291,7 @@ void getFieldsFromFsGrid(
       for(int i = 0; i < fieldsToCommunicate; i++){
          this->sums[i] += rhs.sums[i];
       }
-      return *this;
+    return *this;
     }
   };
 
@@ -372,11 +372,12 @@ void getFieldsFromFsGrid(
         sendBuffer[ii].sums[15] += egradpecell->at(fsgrids::egradpe::EXGRADPE);
         sendBuffer[ii].sums[16] += egradpecell->at(fsgrids::egradpe::EYGRADPE);
         sendBuffer[ii].sums[17] += egradpecell->at(fsgrids::egradpe::EZGRADPE);
-        sendBuffer[ii].sums[18] += dmomentscell->at(fsgrids::dmoments::RHOQEx);
-        sendBuffer[ii].sums[19] += dmomentscell->at(fsgrids::dmoments::RHOQEy);
-        sendBuffer[ii].sums[20] += dmomentscell->at(fsgrids::dmoments::RHOQEz);
-
-	
+	sendBuffer[ii].sums[18] += volcell->at(fsgrids::volfields::EXVOL);
+	sendBuffer[ii].sums[19] += volcell->at(fsgrids::volfields::EYVOL);
+	sendBuffer[ii].sums[20] += volcell->at(fsgrids::volfields::EZVOL);
+        sendBuffer[ii].sums[21] += dmomentscell->at(fsgrids::dmoments::RHOQEx);
+        sendBuffer[ii].sums[22] += dmomentscell->at(fsgrids::dmoments::RHOQEy);
+        sendBuffer[ii].sums[23] += dmomentscell->at(fsgrids::dmoments::RHOQEz);
         sendBuffer[ii].cells++;
       }
       ii++;
@@ -410,7 +411,7 @@ void getFieldsFromFsGrid(
   
   //Store data in dccrg
   for (auto const &cellAggregate : aggregatedResult) {
-    auto cellParams = mpiGrid[cellAggregate.first]->get_cell_parameters();    
+    auto cellParams = mpiGrid[cellAggregate.first]->get_cell_parameters();
     if ( cellAggregate.second.cells > 0) {
       cellParams[CellParams::PERBXVOL] = cellAggregate.second.sums[0] / cellAggregate.second.cells;
       cellParams[CellParams::PERBYVOL] = cellAggregate.second.sums[1] / cellAggregate.second.cells;
@@ -423,14 +424,16 @@ void getFieldsFromFsGrid(
       mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBZVOLdy] = cellAggregate.second.sums[11] / cellAggregate.second.cells;
       cellParams[CellParams::BGBXVOL]  = cellAggregate.second.sums[12] / cellAggregate.second.cells;
       cellParams[CellParams::BGBYVOL]  = cellAggregate.second.sums[13] / cellAggregate.second.cells;
-      cellParams[CellParams::BGBZVOL]  = cellAggregate.second.sums[14] / cellAggregate.second.cells;  
+      cellParams[CellParams::BGBZVOL]  = cellAggregate.second.sums[14] / cellAggregate.second.cells;
       cellParams[CellParams::EXGRADPE] = cellAggregate.second.sums[15] / cellAggregate.second.cells;
       cellParams[CellParams::EYGRADPE] = cellAggregate.second.sums[16] / cellAggregate.second.cells;
-      cellParams[CellParams::EZGRADPE] = cellAggregate.second.sums[17] / cellAggregate.second.cells;	  
-      cellParams[CellParams::ERHOQX]   = cellAggregate.second.sums[18] / cellAggregate.second.cells;
-      cellParams[CellParams::ERHOQY]   = cellAggregate.second.sums[19] / cellAggregate.second.cells;
-      cellParams[CellParams::ERHOQZ]   = cellAggregate.second.sums[20] / cellAggregate.second.cells;
-
+      cellParams[CellParams::EZGRADPE] = cellAggregate.second.sums[17] / cellAggregate.second.cells;
+      cellParams[CellParams::EXVOL] = cellAggregate.second.sums[18] / cellAggregate.second.cells;
+      cellParams[CellParams::EYVOL] = cellAggregate.second.sums[19] / cellAggregate.second.cells;
+      cellParams[CellParams::EZVOL] = cellAggregate.second.sums[20] / cellAggregate.second.cells;
+      cellParams[CellParams::ERHOQX]   = cellAggregate.second.sums[21] / cellAggregate.second.cells;
+      cellParams[CellParams::ERHOQY]   = cellAggregate.second.sums[22] / cellAggregate.second.cells;
+      cellParams[CellParams::ERHOQZ]   = cellAggregate.second.sums[23] / cellAggregate.second.cells;
     }
     else{
       // This could happpen if all fsgrid cells are do not compute
@@ -449,6 +452,9 @@ void getFieldsFromFsGrid(
       cellParams[CellParams::EXGRADPE] = 0;
       cellParams[CellParams::EYGRADPE] = 0;
       cellParams[CellParams::EZGRADPE] = 0;
+      cellParams[CellParams::EXVOL] = 0;
+      cellParams[CellParams::EYVOL] = 0;
+      cellParams[CellParams::EZVOL] = 0;
       cellParams[CellParams::ERHOQX]   = 0;
       cellParams[CellParams::ERHOQY]   = 0;
       cellParams[CellParams::ERHOQZ]   = 0;

@@ -23,8 +23,8 @@
 #ifndef CPU_ACC_TRANSFORM_H
 #define CPU_ACC_TRANSFORM_H
 
-#include <Geometry> // Eigen
-#include <Core> // Eigen
+#include <Eigen/Geometry>
+#include <Eigen/Core>
 
 #include "../common.h"
 #include "../spatial_cell.hpp"

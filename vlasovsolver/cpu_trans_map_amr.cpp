@@ -510,7 +510,8 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
  */
 void propagatePencil(Vec* dz, Vec* values, const uint dimension,
                      const uint blockGID, const Realv dt,
-                     const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID> &vmesh, const uint lengthOfPencil) {
+                     const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID> &vmesh,
+		     const uint lengthOfPencil, const Realv threshold) {
 
    // Get velocity data from vmesh that we need later to calculate the translation
    velocity_block_indices_t block_indices;
@@ -572,7 +573,7 @@ void propagatePencil(Vec* dz, Vec* values, const uint dimension,
             // i + VLASOV_STENCIL_WIDTH will point to the right cell. Complicated! Why! Sad! MVGA!
             compute_ppm_coeff_nonuniform(dz,
                                          values + i_trans_ps_blockv_pencil(planeVector, k, i-VLASOV_STENCIL_WIDTH, lengthOfPencil),
-                                         h4, VLASOV_STENCIL_WIDTH, a);
+                                         h4, VLASOV_STENCIL_WIDTH, a, threshold);
             
             // Compute integral
             const Vec ngbr_target_density =
@@ -1192,7 +1193,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
 
                // Dz and sourceVecData are both padded by VLASOV_STENCIL_WIDTH
                // Dz has 1 value/cell, sourceVecData has WID3 values/cell
-               propagatePencil(dz.data(), sourceVecData.data(), dimension, blockGID, dt, vmesh, L);
+               propagatePencil(dz.data(), sourceVecData.data(), dimension, blockGID, dt, vmesh, L, sourceCells[0]->getVelocityBlockMinValue(popID));
 
                // sourceVecData => targetBlockData[this pencil])
 

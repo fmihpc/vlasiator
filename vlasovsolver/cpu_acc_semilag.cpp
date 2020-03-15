@@ -24,8 +24,8 @@
 #include <cmath>
 #include <utility>
 
-#include <Geometry> // Eigen
-#include <Core> // Eigen
+#include <Eigen/Geometry>
+#include <Eigen/Core>
 
 #include "cpu_acc_semilag.hpp"
 #include "cpu_acc_transform.hpp"

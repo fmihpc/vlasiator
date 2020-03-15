@@ -181,6 +181,9 @@ namespace CellParams {
       P_11_V,   /*!< P_xx component after propagation in velocity space */
       P_22_V,   /*!< P_yy component after propagation in velocity space */
       P_33_V,   /*!< P_zz component after propagation in velocity space */
+      EXVOL,    /*!< Volume electric field averaged over spatial cell, x-component.*/
+      EYVOL,    /*!< Volume electric field averaged over spatial cell, y-component.*/
+      EZVOL,    /*!< Volume electric field averaged over spatial cell, z-component.*/
       MAXVDT,             /*!< maximum timestep allowed in velocity space for this cell, 
                            * this is the max allowed timestep over all particle species.*/
       MAXRDT,             /*!< maximum timestep allowed in ordinary space for this cell,
@@ -367,6 +370,9 @@ namespace fsgrids {
       dPERBYVOLdz,
       dPERBZVOLdx,
       dPERBZVOLdy,
+      EXVOL,   /*!< volume-averaged electric field x component */
+      EYVOL,   /*!< volume-averaged electric field y component */
+      EZVOL,   /*!< volume-averaged electric field z component */
       N_VOL
    };
    
@@ -375,6 +381,7 @@ namespace fsgrids {
       int sysBoundaryLayer; /*!< System boundary layer index. */
       Real maxFsDt;         /*!< maximum timestep allowed in ordinary space by fieldsolver for this cell**/
       int fsGridRank;       /*!< Rank in the fsGrids cartesian coordinator */
+      uint SOLVE;           /*!< Bit mask to determine whether a given cell should solve E or B components. */
    };
    
 }
@@ -392,6 +399,15 @@ namespace sysboundarytype {
       SET_MAXWELLIAN,   /*!< Set Maxwellian boundary condition, i.e. set fields and distribution function. */
       N_SYSBOUNDARY_CONDITIONS
    };
+}
+
+namespace compute {
+   const uint BX = (1 << 0); // 1
+   const uint BY = (1 << 1); // 2
+   const uint BZ = (1 << 2); // 4
+   const uint EX = (1 << 3); // 8
+   const uint EY = (1 << 4); // 16
+   const uint EZ = (1 << 5); // 32
 }
 
 /*! Steps in Runge-Kutta methods */

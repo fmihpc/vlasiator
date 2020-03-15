@@ -298,7 +298,7 @@ void initializeGrids(
    
    if (P::isRestart == false) {
       // Apply boundary conditions so that we get correct initial moments
-      sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid,Parameters::t);
+      sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid,Parameters::t, true); // It doesn't matter here whether we put _R or _V moments
       
       //compute moments, and set them  in RHO* and RHO_*_DT2. If restart, they are already read in
       phiprof::start("Init moments");

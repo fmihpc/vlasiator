@@ -39,7 +39,7 @@ FLAGS =
 #GNU flags:
 CC_BRAND = gcc
 CC_BRAND_VERSION = 8.3.0
-CXXFLAGS += -g -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -fabi-version=0 -mavx2
+CXXFLAGS += -g -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -fabi-version=0 -mavx2 -Wall -Wpedantic
 #CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -fabi-version=0 -mavx
 not_parallel_tools: CXXFLAGS += -march=native -mno-avx2 -mavx 
 testpackage: CXXFLAGS = -g -O2 -fopenmp -funroll-loops -std=c++17 -fabi-version=0 
@@ -79,7 +79,7 @@ INC_PROFILE = -I$(LIBRARY_PREFIX)/mpich2/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_V
 
 #header libraries
 
-INC_EIGEN = -I$(LIBRARY_PREFIX)/Eigen/
+INC_EIGEN = -I$(LIBRARY_PREFIX)/
 INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg/
 INC_FSGRID = -I$(LIBRARY_PREFIX)/fsgrid/
 INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/vectorclass-version1
