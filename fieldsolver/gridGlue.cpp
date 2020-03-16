@@ -276,7 +276,7 @@ void getFieldsFromFsGrid(
 ) {
   // TODO: solver only needs bgb + PERB, we could combine them
   
-  const int fieldsToCommunicate = 21;
+  const int fieldsToCommunicate = 24;
   struct Average {
     Real sums[fieldsToCommunicate];
     int cells;
