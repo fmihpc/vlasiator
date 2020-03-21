@@ -926,6 +926,36 @@ int main(int argn,char* args[]) {
          phiprof::stop("Propagate Fields",cells.size(),"SpatialCells");
          addTimedBarrier("barrier-after-field-solver");
       }
+
+      // Map some data down into the ionosphere for testing
+      for(uint e=0; e<SBC::ionosphereGrid.elements.size(); e++) {
+         SBC::SphericalTriGrid::Element& el = SBC::ionosphereGrid.elements[e];
+         for(int i=0; i< el.fsgridCellCoupling.size(); i++) {
+
+            std::array<int,3> fsc = el.fsgridCellCoupling[i].first;
+
+            // Calc rotB
+            // TODO: Centered differences?
+            std::array<Real, 3> rotB;
+            rotB[0] = (perBGrid.get(fsc[0],fsc[1],fsc[2])->at(fsgrids::PERBY) - perBGrid.get(fsc[0],fsc[1],fsc[2]-1)->at(fsgrids::PERBY)
+                  + perBGrid.get(fsc[0],fsc[1],fsc[2])->at(fsgrids::PERBZ) - perBGrid.get(fsc[0],fsc[1]-1,fsc[2])->at(fsgrids::PERBZ)) / perBGrid.DX;
+            rotB[1] = (perBGrid.get(fsc[0],fsc[1],fsc[2])->at(fsgrids::PERBX) - perBGrid.get(fsc[0],fsc[1],fsc[2]-1)->at(fsgrids::PERBX)
+                  + perBGrid.get(fsc[0],fsc[1],fsc[2])->at(fsgrids::PERBZ) - perBGrid.get(fsc[0]-1,fsc[1],fsc[2])->at(fsgrids::PERBZ)) / perBGrid.DX;
+            rotB[2] = (perBGrid.get(fsc[0],fsc[1],fsc[2])->at(fsgrids::PERBX) - perBGrid.get(fsc[0],fsc[1]-1,fsc[2])->at(fsgrids::PERBX)
+                  + perBGrid.get(fsc[0],fsc[1],fsc[2])->at(fsgrids::PERBY) - perBGrid.get(fsc[0]-1,fsc[1],fsc[2])->at(fsgrids::PERBY)) / perBGrid.DX;
+
+            // Dot with background (dipole) B
+            std::array<Real, 3> B({BgBGrid.get(fsc[0],fsc[1],fsc[2])->at(fsgrids::BGBX),
+                  BgBGrid.get(fsc[0],fsc[1],fsc[2])->at(fsgrids::BGBY),
+                  BgBGrid.get(fsc[0],fsc[1],fsc[2])->at(fsgrids::BGBZ)});
+            Real Bnorm = 1./sqrt(B[0]*B[0]+B[1]*B[1]+B[2]*B[2]);
+            // Yielding the field-aligned current
+            Real FAC = Bnorm * (B[0]*rotB[0] + B[1]*rotB[1] + B[2]*rotB[2]);
+
+            // Store as the element's source value.
+            el.parameters[ionosphereParameters::SOURCE] = FAC;
+         }
+      }
       
       phiprof::start("Velocity-space");
       if ( P::propagateVlasovAcceleration ) {
