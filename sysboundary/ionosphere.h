@@ -55,9 +55,11 @@ namespace SBC {
          int refLevel;
          std::array<uint32_t, 3> corners;                 // Node indices in the corners of this element
          std::array<int32_t, 4> children = {-1,-1,-1,-1}; // Indices of the child elements (-1 = no child)
-         std::array<Real, 3> upmappedCentre;              // Coordinates the cell barycentre maps to
+         std::array<Real, 3> upmappedCentre = {0,0,0};    // Coordinates the cell barycentre maps to
          // List of fsgrid cells to couple to (and their strengths)
          std::vector<std::pair<std::array<int,3>, Real>> fsgridCellCoupling;
+
+         std::array<Real, N_IONOSPHERE_PARAMETERS> parameters = {0}; // Parameters carried by the element, see common.h
       };
       std::vector<Element> elements;
 
@@ -75,8 +77,6 @@ namespace SBC {
          std::array<Real, 3> xMapped = {0,0,0}; // Coordinates mapped along fieldlines into simulation domain
          std::array<Real, MAX_DEPENDING_NODES> depCoeffs; // Dependency coefficients
          std::array<Real, MAX_DEPENDING_NODES> depCoeffsT; // Transposed ependency coefficient
-
-         std::array<Real, N_IONOSPHERE_PARAMETERS> parameters; // Parameters carried by the node, see common.h
       };
       std::vector<Node> nodes;
 
@@ -87,7 +87,7 @@ namespace SBC {
       void initializeIcosahedron();       // Initialize grid as a base icosahedron
       int32_t findElementNeighbour(uint32_t e, int n1, int n2);
       void subdivideElement(uint32_t e);  // Subdivide mesh within element e
-      void calculateFsgridCoupling(FsGrid< fsgrids::technical, 2> & technicalGrid, FieldFunction& dipole);     // Link each element to fsgrid cells for coupling
+      void calculateFsgridCoupling(FsGrid< fsgrids::technical, 2> & technicalGrid, FieldFunction& dipole, Real radius);     // Link each element to fsgrid cells for coupling
 
       // Returns the surface area of one element on the sphere
       Real elementArea(uint32_t elementIndex) {

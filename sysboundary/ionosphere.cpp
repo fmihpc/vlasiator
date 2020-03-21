@@ -50,19 +50,19 @@ namespace SBC {
    SphericalTriGrid ionosphereGrid;
    
    // Offset field aligned currents so their sum is 0
-   void SphericalTriGrid::offset_FAC() {
-      Real sum=0.;
+   //void SphericalTriGrid::offset_FAC() {
+   //   Real sum=0.;
 
-      for(uint n = 0; n<nodes.size(); n++) {
-         sum += nodes[n].parameters[ionosphereParameters::SOURCE];
-      }
+   //   for(uint n = 0; n<nodes.size(); n++) {
+   //      sum += nodes[n].parameters[ionosphereParameters::SOURCE];
+   //   }
 
-      sum /= nodes.size();
+   //   sum /= nodes.size();
 
-      for(uint n = 0; n<nodes.size(); n++) {
-         nodes[n].parameters[ionosphereParameters::SOURCE] -= sum;
-      }
-   }
+   //   for(uint n = 0; n<nodes.size(); n++) {
+   //      nodes[n].parameters[ionosphereParameters::SOURCE] -= sum;
+   //   }
+   //}
 
    // Scale all nodes' coordinates so that they are situated on a spherical
    // shell with radius R
@@ -357,35 +357,37 @@ namespace SBC {
     * until a non-boundary cell is encountered. Their proportional coupling values are recorded in the grid
     * elements.
     */
-   void SphericalTriGrid::calculateFsgridCoupling( FsGrid< fsgrids::technical, 2> & technicalGrid, FieldFunction& dipole ) {
-
-      dipole.setDerivative(0);
+   void SphericalTriGrid::calculateFsgridCoupling( FsGrid< fsgrids::technical, 2> & technicalGrid, FieldFunction& dipole, Real couplingRadius) {
 
       // Helper function to trace magnetic fieldlines in the given dipole field
       // TODO: Implement something better than euler step
       auto stepFieldline = [](std::array<Real, 3>& x, std::array<Real, 3>& v, FieldFunction& dipole, Real stepsize) -> void {
 
-            // Get field direction
-            for(int c=0; c<3; c++) {
-               dipole.setComponent((coordinate)c);
-               v[c] = dipole.call(x[0],x[1],x[2]);
-            }
+         // Get field direction
+         dipole.setDerivative(0);
+         dipole.setComponent(X);
+         v[0] = dipole.call(x[0],x[1],x[2]);
+         dipole.setComponent(Y);
+         v[1] = dipole.call(x[0],x[1],x[2]);
+         dipole.setComponent(Z);
+         v[2] = dipole.call(x[0],x[1],x[2]);
 
-            // Normalize
-            for(int c=0; c<3; c++) {
-               v[c] = v[c] / sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
-            }
+         // Normalize
+         Real norm = 1. / sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
+         for(int c=0; c<3; c++) {
+            v[c] = v[c] * norm;
+         }
 
-            // Make sure motion is outwards. Flip v if dot(x,v) < 0
-            if(v[0]*x[0] + v[1]*x[1] + v[2]*x[2] < 0) {
-               v[0]*=-1;
-               v[1]*=-1;
-               v[2]*=-1;
-            }
+         // Make sure motion is outwards. Flip v if dot(x,v) < 0
+         if(v[0]*x[0] + v[1]*x[1] + v[2]*x[2] < 0) {
+            v[0]*=-1;
+            v[1]*=-1;
+            v[2]*=-1;
+         }
 
-            for(int c=0; c<3; c++) {
-               x[c] += stepsize * v[c];
-            }
+         for(int c=0; c<3; c++) {
+            x[c] += stepsize * v[c];
+         }
       };
 
 
@@ -395,8 +397,8 @@ namespace SBC {
          Node& no = nodes[n];
 
          std::array<Real, 3> x = no.x;
-         std::array<Real, 3> v;
-         while( sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]) < 60e6 ) { //TODO: Un-hardcode limit
+         std::array<Real, 3> v({0,0,0});
+         while( sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]) < 1.5*couplingRadius ) {
             
             stepFieldline(x,v,dipole, 100e3); // TODO: Hardcoded stepsize of 100 km. Change!
 
@@ -441,7 +443,7 @@ namespace SBC {
          Element& el = elements[e];
 
          // Calculate element barycentre coordinates
-         std::array<Real, 3> barycentre;
+         std::array<Real, 3> barycentre({0,0,0});
          for(int c=0; c<3; c++) {
             for(int corner=0; corner<3; corner++) {
                barycentre[c] += nodes[el.corners[corner]].x[c];
@@ -451,8 +453,8 @@ namespace SBC {
 
          // Trace fieldline barycenters upwards until a non-sysboundary cell is encountered
          std::array<Real, 3> x = barycentre;
-         std::array<Real, 3> v;
-         while( sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]) < 60e6 ) {
+         std::array<Real, 3> v({0,0,0});
+         while( sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]) < 1.5*couplingRadius ) {
             
             stepFieldline(x,v,dipole, 100e3); // TODO: Hardcoded stepsize of 100 km. Change!
 
@@ -480,6 +482,19 @@ namespace SBC {
                // Store upmapped coordinates
                el.upmappedCentre = x;
                break;
+            }
+         }
+
+         // Consolidate the cells mapping contributions into one list.
+         for(int i=0; i< el.fsgridCellCoupling.size(); i++) {
+            std::array<int, 3> cell1 = el.fsgridCellCoupling[i].first;
+            for(int j=el.fsgridCellCoupling.size()-1; j>i; j--) {
+               std::array<int, 3> cell2 = el.fsgridCellCoupling[j].first;
+
+               if(cell1[0] == cell2[0] && cell1[1] == cell2[1] && cell1[2] == cell2[2]) {
+                  el.fsgridCellCoupling[i].second += el.fsgridCellCoupling[j].second;
+                  el.fsgridCellCoupling.erase(el.fsgridCellCoupling.begin() + j);
+               }
             }
          }
       }

@@ -997,6 +997,21 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1, "m", "m", "$x_\\text{mapped}$", "1.0");
          continue;
       }
+      if(lowercase == "ig_fac") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereGrid("ig_fac", [](
+                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
+                  
+                     std::vector<Real> retval(grid.elements.size());
+
+                     for(uint i=0; i<grid.elements.size(); i++) {
+                        retval[i] = grid.elements[i].parameters[ionosphereParameters::SOURCE];
+                     }
+
+                     return retval;
+                     }));
+         outputReducer->addMetadata(outputReducer->size()-1, "A/m^2", "$\\mathrm{A m}^{-2}$", "$I_\\text{FAC}$", "1.0");
+         continue;
+      }
       // After all the continue; statements one should never land here.
       int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
