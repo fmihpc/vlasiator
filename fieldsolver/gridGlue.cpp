@@ -349,7 +349,7 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
     for (int jj = 2; jj < mntDims[1]-2; jj++){
       for (int ii = 2; ii < mntDims[0]-2; ii++){
         for (int kk = 2; kk < mntDims[2]-2; kk++){
-
+          
           // Dont filter if in max resolution region
           refLevel = technicalGrid.get(ii, jj, kk)->RefLevel;
           if (refLevel == maxRefLevel){
