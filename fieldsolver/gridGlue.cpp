@@ -225,8 +225,8 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
     // X Dimension Pass
     // #pragma omp parallel for collapse(3)
-    for (int kk = 2; kk < mntDims[2]-2; kk++){
-      for (int jj = 2; jj < mntDims[1]-2; jj++){
+    for (int kk = 0; kk < mntDims[2]; kk++){
+      for (int jj = 0; jj < mntDims[1]; jj++){
         for (int ii = 2; ii < mntDims[0]-2; ii++){
 
           // Dont filter if in max resolution region
@@ -285,8 +285,8 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
     // Y Dimension Pass
     // #pragma omp parallel for collapse(3)
-    for (int kk = 2; kk < mntDims[2]-2; kk++){
-      for (int ii = 2; ii < mntDims[0]-2; ii++){
+    for (int kk = 0; kk < mntDims[2]; kk++){
+      for (int ii = 0; ii < mntDims[0]; ii++){
         for (int jj = 2; jj < mntDims[1]-2; jj++){
 
 
@@ -346,8 +346,8 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
     // Z Dimension Pass
     // #pragma omp parallel for collapse(3)
-    for (int jj = 2; jj < mntDims[1]-2; jj++){
-      for (int ii = 2; ii < mntDims[0]-2; ii++){
+    for (int jj = 0; jj < mntDims[1]; jj++){
+      for (int ii = 0; ii < mntDims[0]; ii++){
         for (int kk = 2; kk < mntDims[2]-2; kk++){
           
           // Dont filter if in max resolution region
