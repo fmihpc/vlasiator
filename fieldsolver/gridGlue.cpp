@@ -220,9 +220,9 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
   int switchPoint=1;
   std::array<Real, maxStencilWidth> weights;
   weights.fill(0);
+  momentsGrid.updateGhostCells();
 
   for (int blurPass = 1; blurPass <= blurPasses; blurPass++){
-
     // X Dimension Pass
     // #pragma omp parallel for collapse(3)
     for (int kk = 0; kk < mntDims[2]; kk++){
@@ -235,7 +235,7 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
           {
             continue;
           }
-
+          
           // Set 5 point stencil for a set refinement level and below
           // if (refLevel<=minRefLevel+switchPoint){
           //     halfStencilWidth=2;              
@@ -319,7 +319,7 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
           // Calculate Weights
           weightL2 = weights.at(0) / weightDenominator;
           weightL1 = weights.at(1) / weightDenominator;
-          weightC = weights.at(2) / weightDenominator;
+          weightC  = weights.at(2) / weightDenominator;
           weightR1 = weights.at(3) / weightDenominator;
           weightR2 = weights.at(4) / weightDenominator;
 
@@ -426,9 +426,9 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
           //Copy
           cell->at(fsgrids::moments::RHOM) =  swap->at(fsgrids::moments::RHOM) ;
           cell->at(fsgrids::moments::RHOQ) =  swap->at(fsgrids::moments::RHOQ) ;
-          cell->at(fsgrids::moments::VX) =  swap->at(fsgrids::moments::VX) ;
-          cell->at(fsgrids::moments::VY) =  swap->at(fsgrids::moments::VY) ;
-          cell->at(fsgrids::moments::VZ) =  swap->at(fsgrids::moments::VZ) ;
+          cell->at(fsgrids::moments::VX)   =  swap->at(fsgrids::moments::VX) ;
+          cell->at(fsgrids::moments::VY)   =  swap->at(fsgrids::moments::VY) ;
+          cell->at(fsgrids::moments::VZ)   =  swap->at(fsgrids::moments::VZ) ;
           cell->at(fsgrids::moments::P_11) =  swap->at(fsgrids::moments::P_11) ;
           cell->at(fsgrids::moments::P_22) =  swap->at(fsgrids::moments::P_22) ;
           cell->at(fsgrids::moments::P_33) =  swap->at(fsgrids::moments::P_33) ;
