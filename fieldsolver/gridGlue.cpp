@@ -191,6 +191,7 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
   // ---------------------------------------------------------------------------------
   // Boxcar Smoothening
+  momentsGrid.updateGhostCells();
   const int *mntDims= &momentsGrid.getLocalSize()[0];
   std::array<Real,fsgrids::moments::N_MOMENTS> *cell;
   std::array<Real,fsgrids::moments::N_MOMENTS> *cellL1;
@@ -220,7 +221,7 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
   int switchPoint=1;
   std::array<Real, maxStencilWidth> weights;
   weights.fill(0);
-  momentsGrid.updateGhostCells();
+  
 
   for (int blurPass = 1; blurPass <= blurPasses; blurPass++){
     // X Dimension Pass
