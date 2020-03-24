@@ -227,12 +227,13 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
     // #pragma omp parallel for collapse(3)
     for (int kk = 0; kk < mntDims[2]; kk++){
       for (int jj = 0; jj < mntDims[1]; jj++){
-        for (int ii = 2; ii < mntDims[0]-2; ii++){
+        for (int ii = 0; ii < mntDims[0]; ii++){
 
           // Dont filter if in max resolution region
           refLevel = technicalGrid.get(ii, jj, kk)->RefLevel;
-          if (refLevel == maxRefLevel){
-                        continue;
+          if (refLevel == maxRefLevel || technicalGrid.get(ii, jj, kk)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE)
+          {
+            continue;
           }
 
           // Set 5 point stencil for a set refinement level and below
@@ -287,12 +288,12 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
     // #pragma omp parallel for collapse(3)
     for (int kk = 0; kk < mntDims[2]; kk++){
       for (int ii = 0; ii < mntDims[0]; ii++){
-        for (int jj = 2; jj < mntDims[1]-2; jj++){
+        for (int jj = 0; jj < mntDims[1]; jj++){
 
 
           // Dont filter if in max resolution region
           refLevel = technicalGrid.get(ii, jj, kk)->RefLevel;
-          if (refLevel == maxRefLevel){
+          if (refLevel == maxRefLevel || technicalGrid.get(ii, jj, kk)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE){
             continue;
           }
 
@@ -348,14 +349,14 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
     // #pragma omp parallel for collapse(3)
     for (int jj = 0; jj < mntDims[1]; jj++){
       for (int ii = 0; ii < mntDims[0]; ii++){
-        for (int kk = 2; kk < mntDims[2]-2; kk++){
+        for (int kk = 0; kk < mntDims[2]; kk++){
           
           // Dont filter if in max resolution region
           refLevel = technicalGrid.get(ii, jj, kk)->RefLevel;
-          if (refLevel == maxRefLevel){
+          if (refLevel == maxRefLevel || technicalGrid.get(ii, jj, kk)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE){
             continue;
           }
-
+          
           // Set 5 point stencil for a set refinement level and below
           if (refLevel<=minRefLevel+switchPoint){
               halfStencilWidth=2;              
@@ -417,6 +418,12 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
           //Copy
           cell->at(fsgrids::moments::RHOM) =  swap->at(fsgrids::moments::RHOM) ;
+          cell->at(fsgrids::moments::RHOQ) =  swap->at(fsgrids::moments::RHOQ) ;
+          cell->at(fsgrids::moments::VX) =  swap->at(fsgrids::moments::VX) ;
+          cell->at(fsgrids::moments::VY) =  swap->at(fsgrids::moments::VY) ;
+          cell->at(fsgrids::moments::P_11) =  swap->at(fsgrids::moments::P_11) ;
+          cell->at(fsgrids::moments::P_22) =  swap->at(fsgrids::moments::P_22) ;
+          cell->at(fsgrids::moments::P_33) =  swap->at(fsgrids::moments::P_33) ;
 
         }
       }
