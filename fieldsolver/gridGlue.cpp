@@ -214,7 +214,7 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
   int maxRefLevel = mpiGrid.mapping.get_maximum_refinement_level();
   int minRefLevel = 0;
   const int maxStencilWidth=5;
-  int blurPasses = 3;
+  int blurPasses = 1;
   int refLevel;
   int halfStencilWidth;
   int switchPoint=1;
@@ -237,15 +237,16 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
           }
 
           // Set 5 point stencil for a set refinement level and below
-          if (refLevel<=minRefLevel+switchPoint){
-              halfStencilWidth=2;              
-            }
-          else{
-              halfStencilWidth=1;
-          } 
-
+          // if (refLevel<=minRefLevel+switchPoint){
+          //     halfStencilWidth=2;              
+          //   }
+          // else{
+          //     halfStencilWidth=1;
+          // }
+          halfStencilWidth = 1;
+          
           // Calculate Numerator
-          for (int index = 0; index < halfStencilWidth; index++){
+          for (int index = 0; index <=halfStencilWidth; index++){
             weights.at(2 + index) = 1;
             weights.at(2 - index) = 1;
           }
@@ -299,15 +300,16 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
           }
 
           // Set 5 point stencil for a set refinement level and below
-          if (refLevel<=minRefLevel+switchPoint){
-              halfStencilWidth=2;              
-            }
-          else{
-              halfStencilWidth=1;
-          } 
+          // if (refLevel<=minRefLevel+switchPoint){
+          //     halfStencilWidth=2;              
+          //   }
+          // else{
+          //     halfStencilWidth=1;
+          // }
+          halfStencilWidth = 1;
 
           // Calculate Numerator
-          for (int index = 0; index < halfStencilWidth; index++){
+          for (int index = 0; index <=halfStencilWidth; index++){
             weights.at(2 + index) = 1;
             weights.at(2 - index) = 1;
           }
@@ -360,15 +362,16 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
           }
           
           // Set 5 point stencil for a set refinement level and below
-          if (refLevel<=minRefLevel+switchPoint){
-              halfStencilWidth=2;              
-            }
-          else{
-              halfStencilWidth=1;
-          } 
+          // if (refLevel<=minRefLevel+switchPoint){
+          //     halfStencilWidth=2;              
+          //   }
+          // else{
+          //     halfStencilWidth=1;
+          // } 
+          halfStencilWidth=1;
 
           // Calculate Numerator
-          for (int index = 0; index < halfStencilWidth; index++)
+          for (int index = 0; index <= halfStencilWidth; index++)
           {
             weights.at(2 + index) = 1;
             weights.at(2 - index) = 1;
@@ -382,6 +385,7 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
           weightC = weights.at(2) / weightDenominator;
           weightR1 = weights.at(3) / weightDenominator;
           weightR2 = weights.at(4) / weightDenominator;
+
 
           // Get Arrays
           cell = momentsGrid.get(ii, jj, kk);
