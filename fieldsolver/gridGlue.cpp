@@ -238,13 +238,13 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
           }
           
           // Set 5 point stencil for a set refinement level and below
-          // if (refLevel<=minRefLevel+switchPoint){
-          //     halfStencilWidth=2;              
-          //   }
-          // else{
-          //     halfStencilWidth=1;
-          // }
-          halfStencilWidth = 1;
+          if (refLevel>=switchPoint){
+              halfStencilWidth=2;              
+            }
+          else{
+              halfStencilWidth=1;
+          }
+          // halfStencilWidth = 1;
           
           // Calculate Numerator
           for (int index = 0; index <=halfStencilWidth; index++){
@@ -301,13 +301,13 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
           }
 
           // Set 5 point stencil for a set refinement level and below
-          // if (refLevel<=minRefLevel+switchPoint){
-          //     halfStencilWidth=2;              
-          //   }
-          // else{
-          //     halfStencilWidth=1;
-          // }
-          halfStencilWidth = 1;
+          if (refLevel>=switchPoint){
+              halfStencilWidth=2;              
+            }
+          else{
+              halfStencilWidth=1;
+          }
+          // halfStencilWidth = 1;
 
           // Calculate Numerator
           for (int index = 0; index <=halfStencilWidth; index++){
@@ -363,13 +363,13 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
           }
           
           // Set 5 point stencil for a set refinement level and below
-          // if (refLevel<=minRefLevel+switchPoint){
-          //     halfStencilWidth=2;              
-          //   }
-          // else{
-          //     halfStencilWidth=1;
-          // } 
-          halfStencilWidth=1;
+          if (refLevel>=switchPoint){
+              halfStencilWidth=2;              
+            }
+          else{
+              halfStencilWidth=1;
+           }
+          // halfStencilWidth=1;
 
           // Calculate Numerator
           for (int index = 0; index <= halfStencilWidth; index++)
