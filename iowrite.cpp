@@ -936,7 +936,7 @@ bool writeIonosphereGridMetadata(vlsv::Writer& vlsvWriter) {
   const std::string meshName="ionosphere";
   xmlAttributes["mesh"] = meshName;
   int rank;
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  MPI_Comm_rank(SBC::ionosphereGrid.communicator, &rank);
 
   // the MESH_BBOX for unstructured meshes needs to be present, but isn't really being used.
   std::array<int64_t, 6> boundaryBox({1, 1, 1,

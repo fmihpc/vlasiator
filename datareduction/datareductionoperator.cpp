@@ -179,24 +179,24 @@ namespace DRO {
       return true;
    }
 
-   std::string DataReductionOperatorIonosphereGrid::getName() const {return variableName;}
-   bool DataReductionOperatorIonosphereGrid::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+   std::string DataReductionOperatorIonosphereElement::getName() const {return variableName;}
+   bool DataReductionOperatorIonosphereElement::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
       dataSize = sizeof(double);
       vectorSize = 1;
       return true;
    }
-   bool DataReductionOperatorIonosphereGrid::reduceData(const SpatialCell* cell,char* buffer) {
+   bool DataReductionOperatorIonosphereElement::reduceData(const SpatialCell* cell,char* buffer) {
       // This returns false, since it will handle writing itself in writeIonosphereGridData below.
       return false;
    }
-   bool DataReductionOperatorIonosphereGrid::reduceDiagnostic(const SpatialCell* cell,Real * result) {
+   bool DataReductionOperatorIonosphereElement::reduceDiagnostic(const SpatialCell* cell,Real * result) {
       return false;
    }
-   bool DataReductionOperatorIonosphereGrid::setSpatialCell(const SpatialCell* cell) {
+   bool DataReductionOperatorIonosphereElement::setSpatialCell(const SpatialCell* cell) {
       return true;
    }
-   bool DataReductionOperatorIonosphereGrid::writeIonosphereData(SBC::SphericalTriGrid&
+   bool DataReductionOperatorIonosphereElement::writeIonosphereData(SBC::SphericalTriGrid&
             grid, vlsv::Writer& vlsvWriter) {
 
       std::map<std::string,std::string> attribs;
@@ -212,6 +212,47 @@ namespace DRO {
       std::array<int32_t, 3> gridSize{grid.elements.size(), 1,1};
       int vectorSize = varBuffer.size() / grid.elements.size();
       if(vlsvWriter.writeArray("VARIABLE", attribs, "float", grid.elements.size(), vectorSize, sizeof(Real), reinterpret_cast<const char*>(varBuffer.data())) == false) {
+         string message = "The DataReductionOperator " + this->getName() + " failed to write its data.";
+         bailout(true, message, __FILE__, __LINE__);
+      }
+
+      return true;
+   }
+
+   std::string DataReductionOperatorIonosphereNode::getName() const {return variableName;}
+   bool DataReductionOperatorIonosphereNode::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize = sizeof(double);
+      vectorSize = 1;
+      return true;
+   }
+   bool DataReductionOperatorIonosphereNode::reduceData(const SpatialCell* cell,char* buffer) {
+      // This returns false, since it will handle writing itself in writeIonosphereGridData below.
+      return false;
+   }
+   bool DataReductionOperatorIonosphereNode::reduceDiagnostic(const SpatialCell* cell,Real * result) {
+      return false;
+   }
+   bool DataReductionOperatorIonosphereNode::setSpatialCell(const SpatialCell* cell) {
+      return true;
+   }
+   bool DataReductionOperatorIonosphereNode::writeIonosphereData(SBC::SphericalTriGrid&
+            grid, vlsv::Writer& vlsvWriter) {
+
+      std::map<std::string,std::string> attribs;
+      attribs["mesh"]="ionosphere";
+      attribs["name"]=variableName;
+      attribs["centering"]= "node"; // <-- this tells visit the variable is node-centered
+      attribs["unit"]=unit;
+      attribs["unitLaTeX"]=unitLaTeX;
+      attribs["unitConversion"]=unitConversion;
+      attribs["variableLaTeX"]=variableLaTeX;
+
+      std::vector<Real> varBuffer = lambda(grid);
+
+      std::array<int32_t, 3> gridSize{grid.nodes.size(), 1,1};
+      int vectorSize = varBuffer.size() / grid.nodes.size();
+      if(vlsvWriter.writeArray("VARIABLE", attribs, "float", grid.nodes.size(), vectorSize, sizeof(Real), reinterpret_cast<const char*>(varBuffer.data())) == false) {
          string message = "The DataReductionOperator " + this->getName() + " failed to write its data.";
          bailout(true, message, __FILE__, __LINE__);
       }

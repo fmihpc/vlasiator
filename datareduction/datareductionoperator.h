@@ -140,7 +140,8 @@ namespace DRO {
                       const bool writeAsFloat=false);
    };
 
-   class DataReductionOperatorIonosphereGrid : public DataReductionOperator {
+   // Generic (lambda-based) datareducer for ionosphere grid element-centered data
+   class DataReductionOperatorIonosphereElement : public DataReductionOperator {
       public:
          typedef std::function<std::vector<Real>(SBC::SphericalTriGrid& grid)> ReductionLambda;
       private:
@@ -148,7 +149,25 @@ namespace DRO {
          std::string variableName;
 
       public:
-         DataReductionOperatorIonosphereGrid(const std::string& name, ReductionLambda l): DataReductionOperator(), lambda(l),variableName(name) {};
+         DataReductionOperatorIonosphereElement(const std::string& name, ReductionLambda l): DataReductionOperator(), lambda(l),variableName(name) {};
+         virtual std::string getName() const;
+         virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+         virtual bool setSpatialCell(const SpatialCell* cell);
+         virtual bool reduceData(const SpatialCell* cell,char* buffer);
+         virtual bool reduceDiagnostic(const SpatialCell* cell,Real * result);
+         virtual bool writeIonosphereData(SBC::SphericalTriGrid& grid, vlsv::Writer& vlsvWriter);
+   };
+   
+   // Generic (lambda-based) datareducer for ionosphere grid node-centered data
+   class DataReductionOperatorIonosphereNode : public DataReductionOperator {
+      public:
+         typedef std::function<std::vector<Real>(SBC::SphericalTriGrid& grid)> ReductionLambda;
+      private:
+         ReductionLambda lambda;
+         std::string variableName;
+
+      public:
+         DataReductionOperatorIonosphereNode(const std::string& name, ReductionLambda l): DataReductionOperator(), lambda(l),variableName(name) {};
          virtual std::string getName() const;
          virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
          virtual bool setSpatialCell(const SpatialCell* cell);
