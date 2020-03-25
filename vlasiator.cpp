@@ -558,6 +558,16 @@ int main(int argn,char* args[]) {
    }
 
    if (P::isRestart == false) {
+      // Initialize EJE fields
+      #pragma omp parallel for
+      for (size_t c=0; c<cells.size(); ++c) {
+         const CellID cellID = cells[c];
+         SpatialCell* SC = mpiGrid[cellID];
+         SC->parameters[CellParams::EXJE] = 0.;
+         SC->parameters[CellParams::EYJE] = 0.;
+         SC->parameters[CellParams::EZJE] = 0.;
+      }
+
       //compute new dt
       phiprof::start("compute-dt");
       computeNewTimeStep(mpiGrid, technicalGrid, newDt, dtIsChanged);
@@ -577,16 +587,6 @@ int main(int argn,char* args[]) {
          calculateAcceleration(mpiGrid, 0.0);
       }
       phiprof::stop("propagate-velocity-space-dt/2");
-
-      // Initialize EJE fields
-      #pragma omp parallel for
-      for (size_t c=0; c<cells.size(); ++c) {
-         const CellID cellID = cells[c];
-         SpatialCell* SC = mpiGrid[cellID];
-         SC->parameters[CellParams::EXJE] = 0.;
-         SC->parameters[CellParams::EYJE] = 0.;
-         SC->parameters[CellParams::EZJE] = 0.;
-      }
 
    }
    

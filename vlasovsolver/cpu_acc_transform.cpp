@@ -133,25 +133,26 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       electronV[0] = spatial_cell->get_population(popID).V_V[0];
       electronV[1] = spatial_cell->get_population(popID).V_V[1];
       electronV[2] = spatial_cell->get_population(popID).V_V[2];
-   }  
-   if ( (spatial_cell->parameters[CellParams::CELLID]>1405) && (spatial_cell->parameters[CellParams::CELLID]<1410) ) {
-      std::cerr << spatial_cell->parameters[CellParams::CELLID] << " electron V_V 0 " << spatial_cell->get_population(popID).V_V[0] << endl;
-      std::cerr << spatial_cell->parameters[CellParams::CELLID] << " electron V_V 1 " << spatial_cell->get_population(popID).V_V[1] << endl;
-      std::cerr << spatial_cell->parameters[CellParams::CELLID] << " electron V_V 2 " << spatial_cell->get_population(popID).V_V[2] << endl;
-      std::cerr << spatial_cell->parameters[CellParams::CELLID] << " EJE 0 " << spatial_cell->parameters[CellParams::EXJE] << endl;
-      std::cerr << spatial_cell->parameters[CellParams::CELLID] << " EJE 1 " << spatial_cell->parameters[CellParams::EYJE] << endl;
-      std::cerr << spatial_cell->parameters[CellParams::CELLID] << " EJE 2 " << spatial_cell->parameters[CellParams::EZJE] << endl;
-      std::cerr << spatial_cell->parameters[CellParams::CELLID] << " B 0 " << Bx << endl;
-      std::cerr << spatial_cell->parameters[CellParams::CELLID] << " B 1 " << By << endl;
-      std::cerr << spatial_cell->parameters[CellParams::CELLID] << " B 2 " << Bz << endl;
+      /*
+      if ( (spatial_cell->parameters[CellParams::CELLID]>1408) && (spatial_cell->parameters[CellParams::CELLID]<1410) ) {
+	std::cerr << spatial_cell->parameters[CellParams::CELLID] << " electron V_V 0 " << spatial_cell->get_population(popID).V_V[0] << endl;
+	std::cerr << spatial_cell->parameters[CellParams::CELLID] << " electron V_V 1 " << spatial_cell->get_population(popID).V_V[1] << endl;
+	std::cerr << spatial_cell->parameters[CellParams::CELLID] << " electron V_V 2 " << spatial_cell->get_population(popID).V_V[2] << endl;
+	std::cerr << spatial_cell->parameters[CellParams::CELLID] << " EJE 0 " << spatial_cell->parameters[CellParams::EXJE] << endl;
+	std::cerr << spatial_cell->parameters[CellParams::CELLID] << " EJE 1 " << spatial_cell->parameters[CellParams::EYJE] << endl;
+	std::cerr << spatial_cell->parameters[CellParams::CELLID] << " EJE 2 " << spatial_cell->parameters[CellParams::EZJE] << endl;
+	std::cerr << spatial_cell->parameters[CellParams::CELLID] << " B 0 " << Bx << endl;
+	std::cerr << spatial_cell->parameters[CellParams::CELLID] << " B 1 " << By << endl;
+	std::cerr << spatial_cell->parameters[CellParams::CELLID] << " B 2 " << Bz << endl;
 
-      std::cerr << spatial_cell->parameters[CellParams::CELLID] << " dBXdy " << dBXdy << endl;
-      std::cerr << spatial_cell->parameters[CellParams::CELLID] << " dBXdz " << dBXdz << endl;
-      std::cerr << spatial_cell->parameters[CellParams::CELLID] << " dBYdx " << dBYdx << endl;
-      std::cerr << spatial_cell->parameters[CellParams::CELLID] << " dBYdz " << dBYdz << endl;
-      std::cerr << spatial_cell->parameters[CellParams::CELLID] << " dBZdx " << dBZdx << endl;
-      std::cerr << spatial_cell->parameters[CellParams::CELLID] << " dBZdy " << dBZdy << endl;
-   }
+	std::cerr << spatial_cell->parameters[CellParams::CELLID] << " dBXdy " << dBXdy << endl;
+	std::cerr << spatial_cell->parameters[CellParams::CELLID] << " dBXdz " << dBXdz << endl;
+	std::cerr << spatial_cell->parameters[CellParams::CELLID] << " dBYdx " << dBYdx << endl;
+	std::cerr << spatial_cell->parameters[CellParams::CELLID] << " dBYdz " << dBYdz << endl;
+	std::cerr << spatial_cell->parameters[CellParams::CELLID] << " dBZdx " << dBZdx << endl;
+	std::cerr << spatial_cell->parameters[CellParams::CELLID] << " dBZdy " << dBZdy << endl;
+	}*/
+   }  
 
     // compute total transformation
    Transform<Real,3,Affine> total_transform(Matrix<Real, 4, 4>::Identity());
@@ -245,10 +246,11 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
                   Ji[2] += getObjectWrapper().particleSpecies[popID_EJE].charge * spatial_cell->get_population(popID_EJE).RHO 
 		     * spatial_cell->get_population(popID_EJE).V_R[2];
                }
-	      if ( (spatial_cell->parameters[CellParams::CELLID]>1405) && (spatial_cell->parameters[CellParams::CELLID]<1410) ) {
+	      /*
+	      if ( (spatial_cell->parameters[CellParams::CELLID]>1408) && (spatial_cell->parameters[CellParams::CELLID]<1410) ) {
 		 std::cerr << "step " << i << " popid " << popID_EJE << " rho " << spatial_cell->get_population(popID_EJE).RHO << endl;
 		 std::cerr <<  "popid " << popID_EJE << " V_R " << spatial_cell->get_population(popID_EJE).V_R[0] << " " << spatial_cell->get_population(popID_EJE).V_R[1] << " " << spatial_cell->get_population(popID_EJE).V_R[2] << endl;
-	      }
+	      }*/
 	       /* Je not needed
 		 else { // Here we assume there is no more than one negatively charged popoulation (FIXME)
                   Je[0] += getObjectWrapper().particleSpecies[popID_EJE].charge * spatial_cell->get_population(popID_EJE).RHO
