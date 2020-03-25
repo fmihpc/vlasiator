@@ -936,7 +936,11 @@ bool writeIonosphereGridMetadata(vlsv::Writer& vlsvWriter) {
   const std::string meshName="ionosphere";
   xmlAttributes["mesh"] = meshName;
   int rank;
-  MPI_Comm_rank(SBC::ionosphereGrid.communicator, &rank);
+  if(SBC::ionosphereGrid.isCouplingToCells) {
+    MPI_Comm_rank(SBC::ionosphereGrid.communicator, &rank);
+  } else {
+    rank = -1;
+  }
 
   // the MESH_BBOX for unstructured meshes needs to be present, but isn't really being used.
   std::array<int64_t, 6> boundaryBox({1, 1, 1,
@@ -949,16 +953,24 @@ bool writeIonosphereGridMetadata(vlsv::Writer& vlsvWriter) {
   } else {
     const unsigned int arraySize = 0;
     const unsigned int vectorSize = 1;
-    vlsvWriter.writeArray("MESH_BBOX", xmlAttributes, arraySize, vectorSize, &boundaryBox);
+    vlsvWriter.writeArray("MESH_BBOX", xmlAttributes, arraySize, vectorSize, &boundaryBox[0]);
   }
   
   // write DomainSizes
   std::array<uint32_t,4> meshDomainSize({SBC::ionosphereGrid.elements.size(), 0, SBC::ionosphereGrid.nodes.size(), 0});
-  vlsvWriter.writeArray("MESH_DOMAIN_SIZES", xmlAttributes, 1, 4, &meshDomainSize[0]);
+  if(rank == 0) {
+    vlsvWriter.writeArray("MESH_DOMAIN_SIZES", xmlAttributes, 1, 4, &meshDomainSize[0]);
+  } else {
+    vlsvWriter.writeArray("MESH_DOMAIN_SIZES", xmlAttributes, 0, 4, &meshDomainSize[0]);
+  }
 
   // write Offset arrays (no offset here, since we're writing only from a single task)
   std::array<uint32_t, 2> meshOffsets({SBC::ionosphereGrid.elements.size()*5, SBC::ionosphereGrid.nodes.size()});
-  vlsvWriter.writeArray("MESH_OFFSETS", xmlAttributes, 1, 2, &meshOffsets[0]);
+  if(rank == 0) {
+    vlsvWriter.writeArray("MESH_OFFSETS", xmlAttributes, 1, 2, &meshOffsets[0]);
+  } else {
+    vlsvWriter.writeArray("MESH_OFFSETS", xmlAttributes, 0, 2, &meshOffsets[0]);
+  }
 
 
   // Write node coordinates
@@ -973,7 +985,7 @@ bool writeIonosphereGridMetadata(vlsv::Writer& vlsvWriter) {
     vlsvWriter.writeArray("MESH_NODE_CRDS", xmlAttributes, SBC::ionosphereGrid.nodes.size(), 3, nodeCoordinates.data());
   } else {
     // The others just write an empty dummy
-    vlsvWriter.writeArray("MESH_NODE_CRDS", xmlAttributes, 0, 1, nodeCoordinates.data());
+    vlsvWriter.writeArray("MESH_NODE_CRDS", xmlAttributes, 0, 3, nodeCoordinates.data());
   }
 
 
@@ -1002,9 +1014,9 @@ bool writeIonosphereGridMetadata(vlsv::Writer& vlsvWriter) {
 
   if(rank == 0) {
     // Write this data only on rank 0 
-     vlsvWriter.writeArray("MESH", xmlAttributes, meshData.size(), 1, meshData.data());
+    vlsvWriter.writeArray("MESH", xmlAttributes, meshData.size(), 1, meshData.data());
   } else {
-     vlsvWriter.writeArray("MESH", xmlAttributes, 0, 1, meshData.data());
+    vlsvWriter.writeArray("MESH", xmlAttributes, 0, 1, meshData.data());
   }
 
   return true;

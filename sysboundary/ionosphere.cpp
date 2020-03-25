@@ -352,10 +352,10 @@ namespace SBC {
    }
 
 
-   /* Calculate mapping between ionospheric cells and fsGrid cells.
-    * To do so, the magnetic field lines are traced from all mesh nodes and all cell barycenters outwards
-    * until a non-boundary cell is encountered. Their proportional coupling values are recorded in the grid
-    * elements.
+   /* Calculate mapping between ionospheric nodes and fsGrid cells.
+    * To do so, the magnetic field lines are traced from all mesh nodes
+    * outwards until a non-boundary cell is encountered. Their proportional
+    * coupling values are recorded in the grid nodes.
     */
    void SphericalTriGrid::calculateFsgridCoupling( FsGrid< fsgrids::technical, 2> & technicalGrid, FieldFunction& dipole, Real couplingRadius) {
 
@@ -421,10 +421,11 @@ namespace SBC {
 
             if(technicalGrid.get(fsgridCell[0], fsgridCell[1], fsgridCell[2])->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
 
-               // Cell found, add associations.
-               for(uint e=0; e<no.numTouchingElements; e++) {
-                  elements[no.touchingElements[e]].fsgridCellCoupling.push_back({fsgridCell, .5/3}); // Coupling factor is .5 for the corners, divided by 3 corners.
-               }
+               // Cell found, add association.
+               isCouplingToCells = true;
+
+               // TODO: Add interpolation factors for neighbours
+               no.fsgridCellCoupling.push_back({fsgridCell, 1.}); 
 
                // Store the cells mapped coordinates
                no.xMapped = x;
@@ -477,25 +478,9 @@ namespace SBC {
 
             if(technicalGrid.get(fsgridCell[0], fsgridCell[1], fsgridCell[2])->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
 
-               // Cell found, add association.
-               el.fsgridCellCoupling.push_back({fsgridCell, .5}); // Coupling factor is .5 for the centre of the cell
                // Store upmapped coordinates
                el.upmappedCentre = x;
                break;
-            }
-         }
-
-         // Consolidate the cells mapping contributions into one list.
-         for(int i=0; i< el.fsgridCellCoupling.size(); i++) {
-            isCouplingToCells = true;
-            std::array<int, 3> cell1 = el.fsgridCellCoupling[i].first;
-            for(int j=el.fsgridCellCoupling.size()-1; j>i; j--) {
-               std::array<int, 3> cell2 = el.fsgridCellCoupling[j].first;
-
-               if(cell1[0] == cell2[0] && cell1[1] == cell2[1] && cell1[2] == cell2[2]) {
-                  el.fsgridCellCoupling[i].second += el.fsgridCellCoupling[j].second;
-                  el.fsgridCellCoupling.erase(el.fsgridCellCoupling.begin() + j);
-               }
             }
          }
       }
@@ -513,7 +498,7 @@ namespace SBC {
 
    // Transport field-aligned currents down from the simulation cells to the ionosphere
    void SphericalTriGrid::mapDownFAC(
-       FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> dPerBGrid(fsGridDimensions, comm, periodicity,gridCoupling);
+       FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> dPerBGrid,
        FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2> & BgBGrid) {
 
      // Tasks that don't have anything to couple to can skip this process outright.
@@ -521,21 +506,23 @@ namespace SBC {
        return;
      }
 
-     for(uint e=0; e<SBC::ionosphereGrid.elements.size(); e++) {
-       SBC::SphericalTriGrid::Element& el = SBC::ionosphereGrid.elements[e];
-       for(int i=0; i< el.fsgridCellCoupling.size(); i++) {
+     // Create zeroed-out FAC input array
+     std::vector<double> FACinput(nodes.size());
 
-         std::array<int,3> fsc = el.fsgridCellCoupling[i].first;
+     // Map all coupled nodes down into it
+     for(uint n=0; n<nodes.size(); n++) {
+       for(int i=0; i< nodes[n].fsgridCellCoupling.size(); i++) {
+
+         std::array<int,3> fsc = nodes[n].fsgridCellCoupling[i].first;
 
          // Calc rotB
-         // TODO: Centered differences?
          std::array<Real, 3> rotB;
-         rotB[0] = (perBGrid.get(fsc[0],fsc[1],fsc[2])->at(fsgrids::PERBY) - perBGrid.get(fsc[0],fsc[1],fsc[2]-1)->at(fsgrids::PERBY)
-             + perBGrid.get(fsc[0],fsc[1],fsc[2])->at(fsgrids::PERBZ) - perBGrid.get(fsc[0],fsc[1]-1,fsc[2])->at(fsgrids::PERBZ)) / perBGrid.DX;
-         rotB[1] = (perBGrid.get(fsc[0],fsc[1],fsc[2])->at(fsgrids::PERBX) - perBGrid.get(fsc[0],fsc[1],fsc[2]-1)->at(fsgrids::PERBX)
-             + perBGrid.get(fsc[0],fsc[1],fsc[2])->at(fsgrids::PERBZ) - perBGrid.get(fsc[0]-1,fsc[1],fsc[2])->at(fsgrids::PERBZ)) / perBGrid.DX;
-         rotB[2] = (perBGrid.get(fsc[0],fsc[1],fsc[2])->at(fsgrids::PERBX) - perBGrid.get(fsc[0],fsc[1]-1,fsc[2])->at(fsgrids::PERBX)
-             + perBGrid.get(fsc[0],fsc[1],fsc[2])->at(fsgrids::PERBY) - perBGrid.get(fsc[0]-1,fsc[1],fsc[2])->at(fsgrids::PERBY)) / perBGrid.DX;
+         rotB[0] = (dPerBGrid.get(fsc[0],fsc[1],fsc[2])->at(fsgrids::dPERBydz)
+             - dPerBGrid.get(fsc[0],fsc[1],fsc[2])->at(fsgrids::dPERBzdy)) / dPerBGrid.DX;
+         rotB[1] = (dPerBGrid.get(fsc[0],fsc[1],fsc[2])->at(fsgrids::dPERBzdx) 
+             - dPerBGrid.get(fsc[0],fsc[1],fsc[2])->at(fsgrids::dPERBxdz)) / dPerBGrid.DX;
+         rotB[2] = (dPerBGrid.get(fsc[0],fsc[1],fsc[2])->at(fsgrids::dPERBxdy)
+             - dPerBGrid.get(fsc[0],fsc[1],fsc[2])->at(fsgrids::dPERBydx)) / dPerBGrid.DX;
 
          // Dot with background (dipole) B
          std::array<Real, 3> B({BgBGrid.get(fsc[0],fsc[1],fsc[2])->at(fsgrids::BGBX),
@@ -543,11 +530,19 @@ namespace SBC {
              BgBGrid.get(fsc[0],fsc[1],fsc[2])->at(fsgrids::BGBZ)});
          Real Bnorm = 1./sqrt(B[0]*B[0]+B[1]*B[1]+B[2]*B[2]);
          // Yielding the field-aligned current
-         Real FAC = Bnorm * (B[0]*rotB[0] + B[1]*rotB[1] + B[2]*rotB[2]);
+         Real FAC = Bnorm * (B[0]*rotB[0] + B[1]*rotB[1] + B[2]*rotB[2]) / physicalconstants::MU_0;
 
-         // Store as the element's source value.
-         el.parameters[ionosphereParameters::SOURCE] = FAC;
+         FACinput[n] = FAC;
        }
+     }
+
+     // Allreduce on the ionosphere communicator
+     std::vector<double> FACsum(nodes.size());
+     MPI_Allreduce(&FACinput[0], &FACsum[0], nodes.size(), MPI_DOUBLE, MPI_SUM, communicator);
+
+     for(uint n=0; n<nodes.size(); n++) {
+       // Store as the node's source value.
+       nodes[n].parameters[ionosphereParameters::SOURCE] = FACsum[n];
      }
    }
 

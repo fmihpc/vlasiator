@@ -207,13 +207,23 @@ namespace DRO {
       attribs["unitConversion"]=unitConversion;
       attribs["variableLaTeX"]=variableLaTeX;
 
-      std::vector<Real> varBuffer = lambda(grid);
+      // Only task 0 of the ionosphere communicator writes
+      int rank = -1;
+      if(grid.isCouplingToCells) {
+        MPI_Comm_rank(grid.communicator,&rank);
+      }
+      if(rank == 0) {
+        std::vector<Real> varBuffer = lambda(grid);
 
-      std::array<int32_t, 3> gridSize{grid.elements.size(), 1,1};
-      int vectorSize = varBuffer.size() / grid.elements.size();
-      if(vlsvWriter.writeArray("VARIABLE", attribs, "float", grid.elements.size(), vectorSize, sizeof(Real), reinterpret_cast<const char*>(varBuffer.data())) == false) {
-         string message = "The DataReductionOperator " + this->getName() + " failed to write its data.";
-         bailout(true, message, __FILE__, __LINE__);
+        std::array<int32_t, 3> gridSize{grid.elements.size(), 1,1};
+        int vectorSize = varBuffer.size() / grid.elements.size();
+        if(vlsvWriter.writeArray("VARIABLE", attribs, "float", grid.elements.size(), vectorSize, sizeof(Real), reinterpret_cast<const char*>(varBuffer.data())) == false) {
+          string message = "The DataReductionOperator " + this->getName() + " failed to write its data.";
+          bailout(true, message, __FILE__, __LINE__);
+        }
+      } else {
+        // Dummy write
+        vlsvWriter.writeArray("VARIABLE", attribs, "float", 0, 1, sizeof(Real), nullptr);
       }
 
       return true;
@@ -248,13 +258,23 @@ namespace DRO {
       attribs["unitConversion"]=unitConversion;
       attribs["variableLaTeX"]=variableLaTeX;
 
-      std::vector<Real> varBuffer = lambda(grid);
+      // Only task 0 of the ionosphere communicator writes
+      int rank = -1;
+      if(grid.isCouplingToCells) {
+        MPI_Comm_rank(grid.communicator,&rank);
+      }
+      if(rank == 0) {
+        std::vector<Real> varBuffer = lambda(grid);
 
-      std::array<int32_t, 3> gridSize{grid.nodes.size(), 1,1};
-      int vectorSize = varBuffer.size() / grid.nodes.size();
-      if(vlsvWriter.writeArray("VARIABLE", attribs, "float", grid.nodes.size(), vectorSize, sizeof(Real), reinterpret_cast<const char*>(varBuffer.data())) == false) {
-         string message = "The DataReductionOperator " + this->getName() + " failed to write its data.";
-         bailout(true, message, __FILE__, __LINE__);
+        std::array<int32_t, 3> gridSize{grid.nodes.size(), 1,1};
+        int vectorSize = varBuffer.size() / grid.nodes.size();
+        if(vlsvWriter.writeArray("VARIABLE", attribs, "float", grid.nodes.size(), vectorSize, sizeof(Real), reinterpret_cast<const char*>(varBuffer.data())) == false) {
+          string message = "The DataReductionOperator " + this->getName() + " failed to write its data.";
+          bailout(true, message, __FILE__, __LINE__);
+        }
+      } else {
+        // Dummy write
+        vlsvWriter.writeArray("VARIABLE", attribs, "float", 0, 1, sizeof(Real), nullptr);
       }
 
       return true;

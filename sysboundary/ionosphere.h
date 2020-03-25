@@ -57,9 +57,7 @@ namespace SBC {
          std::array<int32_t, 4> children = {-1,-1,-1,-1}; // Indices of the child elements (-1 = no child)
          std::array<Real, 3> upmappedCentre = {0,0,0};    // Coordinates the cell barycentre maps to
          // List of fsgrid cells to couple to (and their strengths)
-         std::vector<std::pair<std::array<int,3>, Real>> fsgridCellCoupling;
 
-         std::array<Real, N_IONOSPHERE_PARAMETERS> parameters = {0}; // Parameters carried by the element, see common.h
       };
       std::vector<Element> elements;
 
@@ -77,6 +75,9 @@ namespace SBC {
          std::array<Real, 3> xMapped = {0,0,0}; // Coordinates mapped along fieldlines into simulation domain
          std::array<Real, MAX_DEPENDING_NODES> depCoeffs; // Dependency coefficients
          std::array<Real, MAX_DEPENDING_NODES> depCoeffsT; // Transposed ependency coefficient
+
+         std::array<Real, N_IONOSPHERE_PARAMETERS> parameters = {0}; // Parameters carried by the node, see common.h
+         std::vector<std::pair<std::array<int,3>, Real>> fsgridCellCoupling;
       };
       std::vector<Node> nodes;
 
@@ -93,7 +94,7 @@ namespace SBC {
       void subdivideElement(uint32_t e);  // Subdivide mesh within element e
       void calculateFsgridCoupling(FsGrid< fsgrids::technical, 2> & technicalGrid, FieldFunction& dipole, Real radius);     // Link each element to fsgrid cells for coupling
       void mapDownFAC(
-          FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> dPerBGrid(fsGridDimensions, comm, periodicity,gridCoupling);
+          FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> dPerBGrid,
           FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2> & BgBGrid);  // Map field-aligned currents down from the simulation boundary onto this grid
 
       // Returns the surface area of one element on the sphere
