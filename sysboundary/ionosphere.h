@@ -80,6 +80,10 @@ namespace SBC {
       };
       std::vector<Node> nodes;
 
+      MPI_Comm communicator;             // The communicator internally used to solve
+      int rank = -1;
+      bool isCouplingToCells;             // True for any rank that actually couples to the outer simulation
+
       void offset_FAC();                  // Offset field aligned currents to get overall zero current
       void normalizeRadius(Node& n, Real R); // Scale all coordinates onto sphere with radius R
       void updateConnectivity();          // Re-link elements and nodes
@@ -88,6 +92,9 @@ namespace SBC {
       int32_t findElementNeighbour(uint32_t e, int n1, int n2);
       void subdivideElement(uint32_t e);  // Subdivide mesh within element e
       void calculateFsgridCoupling(FsGrid< fsgrids::technical, 2> & technicalGrid, FieldFunction& dipole, Real radius);     // Link each element to fsgrid cells for coupling
+      void mapDownFAC(
+          FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> dPerBGrid(fsGridDimensions, comm, periodicity,gridCoupling);
+          FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2> & BgBGrid);  // Map field-aligned currents down from the simulation boundary onto this grid
 
       // Returns the surface area of one element on the sphere
       Real elementArea(uint32_t elementIndex) {

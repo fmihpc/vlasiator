@@ -124,18 +124,18 @@ namespace SBC {
    // Initialize base grid as a icosahedron
    void SphericalTriGrid::initializeIcosahedron() {
       const static std::array<uint32_t, 3> seedElements[20] = {
-         { 1, 3, 2}, { 1, 4, 3}, { 1, 5, 4}, { 1, 6, 5},
-         { 1, 2, 6}, { 2, 3, 7}, { 3, 4, 8}, { 4, 5, 9},
-         { 5, 6,10}, { 6, 2,11}, { 7, 3, 8}, { 8, 4, 9},
-         { 9, 5,10}, {10, 6,11}, {11, 2, 7}, { 7, 8,12},
-         { 8, 9,12}, { 9,10,12}, {10,11,12}, {11, 7,12}};
+        { 1, 3, 2}, { 1, 4, 3}, { 1, 5, 4}, { 1, 6, 5},
+        { 1, 2, 6}, { 2, 3, 7}, { 3, 4, 8}, { 4, 5, 9},
+        { 5, 6,10}, { 6, 2,11}, { 7, 3, 8}, { 8, 4, 9},
+        { 9, 5,10}, {10, 6,11}, {11, 2, 7}, { 7, 8,12},
+        { 8, 9,12}, { 9,10,12}, {10,11,12}, {11, 7,12}};
       const static std::array<Real, 3> nodeCoords[12] = {
-         {        0,        0,  1.17557}, {  1.05146,        0, 0.525731},
-			{  0.32492,      1.0, 0.525731}, {-0.850651, 0.618034, 0.525731},
-			{-0.850651,-0.618034, 0.525731}, {  0.32492,     -1.0, 0.525731},
-			{ 0.850651, 0.618034,-0.525731}, { -0.32492,      1.0,-0.525731},
-			{ -1.05146,        0,-0.525731}, { -0.32492,     -1.0,-0.525731},
-			{ 0.850651,-0.618034,-0.525731}, {        0,        0, -1.17557}};
+        {        0,        0,  1.17557}, {  1.05146,        0, 0.525731},
+        {  0.32492,      1.0, 0.525731}, {-0.850651, 0.618034, 0.525731},
+        {-0.850651,-0.618034, 0.525731}, {  0.32492,     -1.0, 0.525731},
+        { 0.850651, 0.618034,-0.525731}, { -0.32492,      1.0,-0.525731},
+        { -1.05146,        0,-0.525731}, { -0.32492,     -1.0,-0.525731},
+        { 0.850651,-0.618034,-0.525731}, {        0,        0, -1.17557}};
 
       // Create nodes
       // One logical center node to build visualization mesh domains from
@@ -487,6 +487,7 @@ namespace SBC {
 
          // Consolidate the cells mapping contributions into one list.
          for(int i=0; i< el.fsgridCellCoupling.size(); i++) {
+            isCouplingToCells = true;
             std::array<int, 3> cell1 = el.fsgridCellCoupling[i].first;
             for(int j=el.fsgridCellCoupling.size()-1; j>i; j--) {
                std::array<int, 3> cell2 = el.fsgridCellCoupling[j].first;
@@ -499,6 +500,55 @@ namespace SBC {
          }
       }
 
+      // Now generate the subcommunicator to solve the ionosphere only on those ranks that actually couple
+      // to simulation cells
+      if(isCouplingToCells) {
+        MPI_Comm_split(MPI_COMM_WORLD, 1, technicalGrid.getRank(), &communicator);
+        rank = MPI_Comm_rank(communicator, &rank);
+      } else {
+        MPI_Comm_split(MPI_COMM_WORLD, MPI_UNDEFINED, 0, &communicator); // All other ranks are staying out of the communicator.
+        rank = -1;
+      }
+   }
+
+   // Transport field-aligned currents down from the simulation cells to the ionosphere
+   void SphericalTriGrid::mapDownFAC(
+       FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> dPerBGrid(fsGridDimensions, comm, periodicity,gridCoupling);
+       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2> & BgBGrid) {
+
+     // Tasks that don't have anything to couple to can skip this process outright.
+     if(!isCouplingToCells) {
+       return;
+     }
+
+     for(uint e=0; e<SBC::ionosphereGrid.elements.size(); e++) {
+       SBC::SphericalTriGrid::Element& el = SBC::ionosphereGrid.elements[e];
+       for(int i=0; i< el.fsgridCellCoupling.size(); i++) {
+
+         std::array<int,3> fsc = el.fsgridCellCoupling[i].first;
+
+         // Calc rotB
+         // TODO: Centered differences?
+         std::array<Real, 3> rotB;
+         rotB[0] = (perBGrid.get(fsc[0],fsc[1],fsc[2])->at(fsgrids::PERBY) - perBGrid.get(fsc[0],fsc[1],fsc[2]-1)->at(fsgrids::PERBY)
+             + perBGrid.get(fsc[0],fsc[1],fsc[2])->at(fsgrids::PERBZ) - perBGrid.get(fsc[0],fsc[1]-1,fsc[2])->at(fsgrids::PERBZ)) / perBGrid.DX;
+         rotB[1] = (perBGrid.get(fsc[0],fsc[1],fsc[2])->at(fsgrids::PERBX) - perBGrid.get(fsc[0],fsc[1],fsc[2]-1)->at(fsgrids::PERBX)
+             + perBGrid.get(fsc[0],fsc[1],fsc[2])->at(fsgrids::PERBZ) - perBGrid.get(fsc[0]-1,fsc[1],fsc[2])->at(fsgrids::PERBZ)) / perBGrid.DX;
+         rotB[2] = (perBGrid.get(fsc[0],fsc[1],fsc[2])->at(fsgrids::PERBX) - perBGrid.get(fsc[0],fsc[1]-1,fsc[2])->at(fsgrids::PERBX)
+             + perBGrid.get(fsc[0],fsc[1],fsc[2])->at(fsgrids::PERBY) - perBGrid.get(fsc[0]-1,fsc[1],fsc[2])->at(fsgrids::PERBY)) / perBGrid.DX;
+
+         // Dot with background (dipole) B
+         std::array<Real, 3> B({BgBGrid.get(fsc[0],fsc[1],fsc[2])->at(fsgrids::BGBX),
+             BgBGrid.get(fsc[0],fsc[1],fsc[2])->at(fsgrids::BGBY),
+             BgBGrid.get(fsc[0],fsc[1],fsc[2])->at(fsgrids::BGBZ)});
+         Real Bnorm = 1./sqrt(B[0]*B[0]+B[1]*B[1]+B[2]*B[2]);
+         // Yielding the field-aligned current
+         Real FAC = Bnorm * (B[0]*rotB[0] + B[1]*rotB[1] + B[2]*rotB[2]);
+
+         // Store as the element's source value.
+         el.parameters[ionosphereParameters::SOURCE] = FAC;
+       }
+     }
    }
 
 
