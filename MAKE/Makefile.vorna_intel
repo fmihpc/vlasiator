@@ -50,7 +50,7 @@ CXXFLAGS += -g -O3 -qopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -mavx
 testpackage: CXXFLAGS = -g -O2 -qopenmp -funroll-loops -std=c++0x  -mavx
 
 MATHFLAGS = -ffast-math
-LDFLAGS = -lrt -lgfortran -std=c++17 -liomp5
+LDFLAGS = -lrt -std=c++17 -liomp5
 LIB_MPI = -lgomp
 
 # BOOST_VERSION = current trilinos version
