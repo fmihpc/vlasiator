@@ -82,6 +82,12 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
    const Real By = spatial_cell->parameters[CellParams::BGBYVOL]+spatial_cell->parameters[CellParams::PERBYVOL];
    const Real Bz = spatial_cell->parameters[CellParams::BGBZVOL]+spatial_cell->parameters[CellParams::PERBZVOL];
 
+   if (getObjectWrapper().particleSpecies[popID].mass < 0.5*physicalconstants::MASS_PROTON) {
+     if ( (spatial_cell->parameters[CellParams::CELLID]>140) && (spatial_cell->parameters[CellParams::CELLID]<142) ) {
+       std::cerr << " ---------- dt "<<dt<<" ------------- " <<std::endl;
+     }
+   }
+
    // perturbed field
    //const Real perBx = spatial_cell->parameters[CellParams::PERBXVOL];
    //const Real perBy = spatial_cell->parameters[CellParams::PERBYVOL];
@@ -133,8 +139,8 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       electronV[0] = spatial_cell->get_population(popID).V_V[0];
       electronV[1] = spatial_cell->get_population(popID).V_V[1];
       electronV[2] = spatial_cell->get_population(popID).V_V[2];
-      /*
-      if ( (spatial_cell->parameters[CellParams::CELLID]>1408) && (spatial_cell->parameters[CellParams::CELLID]<1410) ) {
+      
+      if ( (spatial_cell->parameters[CellParams::CELLID]>140) && (spatial_cell->parameters[CellParams::CELLID]<142) ) {
 	std::cerr << spatial_cell->parameters[CellParams::CELLID] << " electron V_V 0 " << spatial_cell->get_population(popID).V_V[0] << endl;
 	std::cerr << spatial_cell->parameters[CellParams::CELLID] << " electron V_V 1 " << spatial_cell->get_population(popID).V_V[1] << endl;
 	std::cerr << spatial_cell->parameters[CellParams::CELLID] << " electron V_V 2 " << spatial_cell->get_population(popID).V_V[2] << endl;
@@ -151,7 +157,7 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
 	std::cerr << spatial_cell->parameters[CellParams::CELLID] << " dBYdz " << dBYdz << endl;
 	std::cerr << spatial_cell->parameters[CellParams::CELLID] << " dBZdx " << dBZdx << endl;
 	std::cerr << spatial_cell->parameters[CellParams::CELLID] << " dBZdy " << dBZdy << endl;
-	}*/
+	}
    }  
 
     // compute total transformation
@@ -163,7 +169,7 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
    //
    if (smallparticle) {
       unsigned int transformation_substeps_2; 
-      transformation_substeps_2 = fabs(dt / plasma_period*(0.1/360.0));
+      transformation_substeps_2 = fabs(dt) / plasma_period*(0.1/360.0);
       transformation_substeps = transformation_substeps_2 > transformation_substeps ? transformation_substeps_2 : transformation_substeps;
 
     /*ofstream substepFile;
@@ -182,7 +188,7 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
    if (transformation_substeps < 1) transformation_substeps=1;
       
    const Real substeps_radians = -(2.0*M_PI*dt/gyro_period)/transformation_substeps; // how many radians each substep is.
-   const Real substeps_dt=dt/transformation_substeps; /*!< how many s each substep is*/
+   const Real substeps_dt=dt/(Real)transformation_substeps; /*!< how many s each substep is*/
    Eigen::Matrix<Real,3,1> EgradPe(
       spatial_cell->parameters[CellParams::EXGRADPE],
       spatial_cell->parameters[CellParams::EYGRADPE],
@@ -198,15 +204,20 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
    //    spatial_cell->parameters[CellParams::ERHOQZ]);
    
    Eigen::Matrix<Real,3,1> Efromrq(0.0, 0.0, 0.0);
-
    
-      
    const Real q = getObjectWrapper().particleSpecies[popID].charge;
    const Real mass = getObjectWrapper().particleSpecies[popID].mass;
    const Real rho = spatial_cell->get_population(popID).RHO;
    const Real h = substeps_dt;
 
    bool RKN = true; 
+   
+   if (smallparticle) {
+     if ( (spatial_cell->parameters[CellParams::CELLID]>140) && (spatial_cell->parameters[CellParams::CELLID]<142) ) {
+       std::cerr << "substeps "<<transformation_substeps<<" substep_dt "<< substeps_dt <<std::endl;
+     }
+   }
+     
    for (uint i=0; i<transformation_substeps; ++i) {
       Eigen::Matrix<Real,3,1> dEJEt(0.,0.,0.);
       Eigen::Matrix<Real,3,1> Je(0.,0.,0.);
@@ -215,7 +226,7 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       //Eigen::Matrix<Real,3,1> k3(0.,0.,0.);
       Eigen::Matrix<Real,3,1> k11, k12, k21, k22;
       Eigen::Matrix<Real,3,1> k31, k32, k41, k42;
-      Eigen::Matrix<Real,3,1> deltaV; 
+      Eigen::Matrix<Real,3,1> deltaV(0.,0.,0.); 
       
       // rotation origin is the point through which we place our rotation axis (direction of which is unitB).
       // first add bulk velocity (using the total transform computed this far.
@@ -246,11 +257,11 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
                   Ji[2] += getObjectWrapper().particleSpecies[popID_EJE].charge * spatial_cell->get_population(popID_EJE).RHO 
 		     * spatial_cell->get_population(popID_EJE).V_R[2];
                }
-	      /*
-	      if ( (spatial_cell->parameters[CellParams::CELLID]>1408) && (spatial_cell->parameters[CellParams::CELLID]<1410) ) {
+	      
+	      if ( (spatial_cell->parameters[CellParams::CELLID]>140) && (spatial_cell->parameters[CellParams::CELLID]<142) ) {
 		 std::cerr << "step " << i << " popid " << popID_EJE << " rho " << spatial_cell->get_population(popID_EJE).RHO << endl;
 		 std::cerr <<  "popid " << popID_EJE << " V_R " << spatial_cell->get_population(popID_EJE).V_R[0] << " " << spatial_cell->get_population(popID_EJE).V_R[1] << " " << spatial_cell->get_population(popID_EJE).V_R[2] << endl;
-	      }*/
+	      }
 	       /* Je not needed
 		 else { // Here we assume there is no more than one negatively charged popoulation (FIXME)
                   Je[0] += getObjectWrapper().particleSpecies[popID_EJE].charge * spatial_cell->get_population(popID_EJE).RHO
