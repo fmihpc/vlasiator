@@ -39,7 +39,7 @@ CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 #                         errors that come up when using 
 #                         mpi.h in c++ on Cray
 
-CXXFLAGS = -DMPICH_IGNORE_CXX_SEEK
+CXXFLAGS += -DMPICH_IGNORE_CXX_SEEK
 
 FLAGS = 
 
@@ -47,7 +47,7 @@ FLAGS =
 CC_BRAND = gcc
 CC_BRAND_VERSION = 7.3.0
 CXXFLAGS += -g -O3 -qopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -mavx
-testpackage: CXXFLAGS = -g -O2 -qopenmp -funroll-loops -std=c++0x  -mavx
+testpackage: CXXFLAGS += -g -O2 -qopenmp -funroll-loops -std=c++0x  -mavx
 
 MATHFLAGS = -ffast-math
 LDFLAGS = -lrt -std=c++17 -liomp5
