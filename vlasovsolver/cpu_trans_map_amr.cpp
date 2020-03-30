@@ -1148,16 +1148,17 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    phiprof::stop("buildBlockList");
    // ****************************************************************************
    
-   // Compute spatial neighbors for target cells.
-   // For targets we need the local cells, plus a padding of 1 cell at both ends
-   phiprof::start("computeSpatialTargetCellsForPencils");
-   std::vector<SpatialCell*> targetCells(pencils.sumOfLengths + pencils.N * 2 );
-   computeSpatialTargetCellsForPencils(mpiGrid, pencils, dimension, targetCells.data());
-   phiprof::stop("computeSpatialTargetCellsForPencils");
-   
    // Assuming 1 neighbor in the target array because of the CFL condition
    // In fact propagating to > 1 neighbor will give an error
    const uint nTargetNeighborsPerPencil = 1;
+   
+   // Compute spatial neighbors for target cells.
+   // For targets we need the local cells, plus a padding of 1 cell at both ends
+   phiprof::start("computeSpatialTargetCellsForPencils");
+   std::vector<SpatialCell*> targetCells(pencils.sumOfLengths + pencils.N * 2 * nTargetNeighborsPerPencil );
+   computeSpatialTargetCellsForPencils(mpiGrid, pencils, dimension, targetCells.data());
+   phiprof::stop("computeSpatialTargetCellsForPencils");
+   
    
    phiprof::stop("setup");
    
@@ -1167,7 +1168,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
 #pragma omp parallel
    {
       // declarations for variables needed by the threads
-      std::vector<Realf, aligned_allocator<Realf, WID3>> targetBlockData((pencils.sumOfLengths + 2 * pencils.N) * WID3);
+      std::vector<Realf, aligned_allocator<Realf, WID3>> targetBlockData((pencils.sumOfLengths + 2 * nTargetNeighborsPerPencil * pencils.N) * WID3);
       std::vector<std::vector<SpatialCell*>> pencilSourceCells;
       
       // Allocate aligned vectors which are needed once per pencil to avoid reallocating once per block loop + pencil loop iteration
@@ -1218,7 +1219,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
 //             for ( auto pencili : unionOfBlocksMapToPencilIds.at(blockGID) ) {
                
                int L = pencils.lengthOfPencils[pencili];
-               uint targetLength = L + 2;
+               uint targetLength = L + 2 * nTargetNeighborsPerPencil;
                uint sourceLength = L + 2 * VLASOV_STENCIL_WIDTH;
                               
                // load data(=> sourcedata) / (proper xy reconstruction in future)
@@ -1294,7 +1295,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
             totalTargetLength = 0;
             for(uint pencili = 0; pencili < pencils.N; pencili++){
                
-               uint targetLength = pencils.lengthOfPencils[pencili] + 2;
+               uint targetLength = pencils.lengthOfPencils[pencili] + 2 * nTargetNeighborsPerPencil;
                
                // store values from targetBlockData array to the actual blocks
                // Loop over cells in the pencil, including the padded cells of the target array
