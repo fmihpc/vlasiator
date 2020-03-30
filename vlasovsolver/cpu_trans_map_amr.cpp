@@ -1167,13 +1167,13 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
 #pragma omp parallel
    {
       // declarations for variables needed by the threads
-      std::vector<Realf, aligned_allocator<Realf, 64>> targetBlockData((pencils.sumOfLengths + 2 * pencils.N) * WID3);
+      std::vector<Realf, aligned_allocator<Realf, WID3>> targetBlockData((pencils.sumOfLengths + 2 * pencils.N) * WID3);
       std::vector<std::vector<SpatialCell*>> pencilSourceCells;
       
       // Allocate aligned vectors which are needed once per pencil to avoid reallocating once per block loop + pencil loop iteration
-      std::vector<std::vector<Vec, aligned_allocator<Vec,64>>> pencilTargetValues;
-      std::vector<std::vector<Vec, aligned_allocator<Vec,64>>> pencilSourceVecData;
-      std::vector<std::vector<Vec, aligned_allocator<Vec,64>>> pencildz;
+      std::vector<std::vector<Vec, aligned_allocator<Vec,WID3>>> pencilTargetValues;
+      std::vector<std::vector<Vec, aligned_allocator<Vec,WID3>>> pencilSourceVecData;
+      std::vector<std::vector<Vec, aligned_allocator<Vec,WID3>>> pencildz;
       
       for(uint pencili = 0; pencili < pencils.N; ++pencili) {
          
@@ -1181,11 +1181,11 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
          cuint sourceLength = L + 2 * VLASOV_STENCIL_WIDTH;
          
          // Vector buffer where we write data, initialized to 0*/
-         std::vector<Vec, aligned_allocator<Vec,64>> targetValues((L + 2 * nTargetNeighborsPerPencil) * WID3 / VECL);
+         std::vector<Vec, aligned_allocator<Vec,WID3>> targetValues((L + 2 * nTargetNeighborsPerPencil) * WID3 / VECL);
          pencilTargetValues.push_back(targetValues);
          // Allocate source data: sourcedata<length of pencil * WID3)
          // Add padding by 2 * VLASOV_STENCIL_WIDTH
-         std::vector<Vec, aligned_allocator<Vec,64>> sourceVecData(sourceLength * WID3 / VECL);
+         std::vector<Vec, aligned_allocator<Vec,WID3>> sourceVecData(sourceLength * WID3 / VECL);
          pencilSourceVecData.push_back(sourceVecData);
 
          // Compute spatial neighbors for the source cells of the pencil. In
@@ -1196,7 +1196,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
          pencilSourceCells.push_back(sourceCells);
 
          // dz is the cell size in the direction of the pencil
-         std::vector<Vec, aligned_allocator<Vec,64>> dz(sourceLength);
+         std::vector<Vec, aligned_allocator<Vec,WID3>> dz(sourceLength);
          for(uint i = 0; i < sourceCells.size(); ++i) {
             dz[i] = sourceCells[i]->parameters[CellParams::DX+dimension];
          }
