@@ -971,10 +971,6 @@ void printPencilsFunc(const setOfPencils& pencils, const uint dimension, const i
  * This function uses 1-cell wide pencils to update cells in-place to avoid allocating large
  * temporary buffers.
  *
- *  This function can, and should be, safely called in a parallel
- *  OpenMP region (as long as it does only one dimension per parallel
- *  refion). It is safe as each thread only computes certain blocks (blockID%tnum_threads = thread_num)
- *
  * @param [in] mpiGrid DCCRG grid object
  * @param [in] localPropagatedCells List of local cells that get propagated
  * ie. not boundary or DO_NOT_COMPUTE
@@ -1047,18 +1043,6 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       break;
    }
            
-   // init cellid_transpose
-   for (uint k=0; k<WID; ++k) {
-      for (uint j=0; j<WID; ++j) {
-         for (uint i=0; i<WID; ++i) {
-            const uint cell =
-               i * cell_indices_to_id[0] +
-               j * cell_indices_to_id[1] +
-               k * cell_indices_to_id[2];
-            cellid_transpose[ i + j * WID + k * WID2] = cell;
-         }
-      }
-   }
    // ****************************************************************************
 
    // compute pencils => set of pencils (shared datastructure)
@@ -1101,6 +1085,20 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
             iend = ibeg + thread_pencils.lengthOfPencils[i];
             std::vector<CellID> pencilIds(ibeg, iend);
             pencils.addPencil(pencilIds,thread_pencils.x[i],thread_pencils.y[i],thread_pencils.periodic[i],thread_pencils.path[i]);
+         }
+      }
+
+      // init cellid_transpose (moved here to take advantage of the omp parallel region)
+#pragma omp for collapse(3)
+      for (uint k=0; k<WID; ++k) {
+         for (uint j=0; j<WID; ++j) {
+            for (uint i=0; i<WID; ++i) {
+               const uint cell =
+                  i * cell_indices_to_id[0] +
+                  j * cell_indices_to_id[1] +
+                  k * cell_indices_to_id[2];
+               cellid_transpose[ i + j * WID + k * WID2] = cell;
+            }
          }
       }
    }
