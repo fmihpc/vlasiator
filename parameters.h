@@ -142,6 +142,7 @@ struct Parameters {
    static Realf amrBoxCenterX;
    static Realf amrBoxCenterY;
    static Realf amrBoxCenterZ;
+   static int blurPasses;
 
    /*! \brief Add the global parameters.
     * 

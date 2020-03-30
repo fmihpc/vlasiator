@@ -212,10 +212,10 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
   and the denominator depends only on the stencil width. 
   */
   Real weightC, weightL1, weightL2, weightR1, weightR2;
-  int maxRefLevel = mpiGrid.mapping.get_maximum_refinement_level();
-  int minRefLevel = 0;
+  const int maxRefLevel = mpiGrid.mapping.get_maximum_refinement_level();
+  const int minRefLevel = 0;
   const int maxStencilWidth=5;
-  int blurPasses = 1;
+  int blurPasses = P::blurPasses;  //will change and use P::blurPasses for loops beneath
   int refLevel;
   int halfStencilWidth;
   int switchPoint=1;
@@ -238,13 +238,13 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
           }
           
           // Set 5 point stencil for a set refinement level and below
-          if (refLevel>=switchPoint){
-              halfStencilWidth=2;              
-            }
-          else{
-              halfStencilWidth=1;
-          }
-          // halfStencilWidth = 1;
+          // if (refLevel>=switchPoint){
+          //     halfStencilWidth=2;              
+          //   }
+          // else{
+          //     halfStencilWidth=1;
+          // }
+          halfStencilWidth = 1;
           
           // Calculate Numerator
           for (int index = 0; index <=halfStencilWidth; index++){
@@ -301,13 +301,13 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
           }
 
           // Set 5 point stencil for a set refinement level and below
-          if (refLevel>=switchPoint){
-              halfStencilWidth=2;              
-            }
-          else{
-              halfStencilWidth=1;
-          }
-          // halfStencilWidth = 1;
+          // if (refLevel>=switchPoint){
+          //     halfStencilWidth=2;              
+          //   }
+          // else{
+          //     halfStencilWidth=1;
+          // }
+          halfStencilWidth = 1;
 
           // Calculate Numerator
           for (int index = 0; index <=halfStencilWidth; index++){
@@ -363,13 +363,13 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
           }
           
           // Set 5 point stencil for a set refinement level and below
-          if (refLevel>=switchPoint){
-              halfStencilWidth=2;              
-            }
-          else{
-              halfStencilWidth=1;
-           }
-          // halfStencilWidth=1;
+          // if (refLevel>=switchPoint){
+          //     halfStencilWidth=2;              
+          //   }
+          // else{
+          //     halfStencilWidth=1;
+          //  }
+          halfStencilWidth=1;
 
           // Calculate Numerator
           for (int index = 0; index <= halfStencilWidth; index++)
