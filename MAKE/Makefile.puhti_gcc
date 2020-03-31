@@ -16,16 +16,6 @@ else
 	VECTORCLASS = VEC8D_AGNER
 endif
 
-#======== PAPI ==========
-#Add PAPI_MEM define to use papi to report memory consumption?
-#CXXFLAGS +=  -DPAPI_MEM
-
-
-#======== Allocator =========
-#Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
-#Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
-CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
-
 
 #======= Compiler and compilation flags =========
 # NOTES on compiler flags:
@@ -42,7 +32,7 @@ FLAGS =
 CC_BRAND = gcc
 CC_BRAND_VERSION = 9.1.0
 CXXFLAGS += -g -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -fabi-version=0 -march=native -mfma -mavx512f
-testpackage: CXXFLAGS += -O2 -fopenmp -funroll-loops -std=c++17 -fabi-version=0 -mfma
+testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++17 -fabi-version=0 -mfma
 
 MATHFLAGS = -ffast-math
 LDFLAGS = -lrt
@@ -56,6 +46,17 @@ LIB_MPI = -lgomp
 MPT_VERSION = 2.4.0
 JEMALLOC_VERSION = 5.2.1
 LIBRARY_PREFIX = /projappl/project_2000203/libraries
+
+
+#======== PAPI ==========
+#Add PAPI_MEM define to use papi to report memory consumption?
+#CXXFLAGS +=  -DPAPI_MEM
+
+
+#======== Allocator =========
+#Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
+#Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
+CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
 
 #compiled libraries
