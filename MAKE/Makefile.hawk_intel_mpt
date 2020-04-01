@@ -13,7 +13,7 @@ ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
         VECTORCLASS = VEC8F_AGNER
 else
 #Double-precision
-        VECTORCLASS = VEC8D_AGNER
+        VECTORCLASS = VEC4D_AGNER
 endif
 
 FLAGS = 
@@ -27,7 +27,7 @@ FLAGS =
 CC_BRAND = intel
 CC_BRAND_VERSION = 19.1.0
 CXXFLAGS += -traceback -g -O3 -qopenmp -std=c++14 -W -Wall -Wno-unused -march=core-avx2 -qopt-zmm-usage=high
-testpackage: CXXFLAGS = -g -traceback -O2 -qopenmp -std=c++17 -W -Wno-unused -xHost -ipo
+testpackage: CXXFLAGS = -g -traceback -O2 -qopenmp -std=c++14 -W -Wno-unused -march=core-avx2
 not_parallel_tools: CXXFLAGS += -march=native -mno-avx2 -mavx 
 not_parallel_tools: CC_BRAND_VERSION = 4.9.2-noavx2
 
@@ -73,6 +73,9 @@ LIB_VLSV = -L$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAN
 
 LIB_PROFILE = -L$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof/lib -lphiprof
 INC_PROFILE = -I$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof/include
+
+INC_PAPI = -I/opt/hlrs/spack/rev-003_2020-03-03/papi/5.7.0-intel-19.1.0-afazikxh/include
+LIB_PAPI = -L/opt/hlrs/spack/rev-003_2020-03-03/papi/5.7.0-intel-19.1.0-afazikxh/lib -lpapi
 
 #header libraries
 
