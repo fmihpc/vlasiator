@@ -41,6 +41,7 @@ void feedPerBIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
  * This function assumes that proper grid coupling has been set up.
  */
 void getdBvolFieldsFromFsGrid(FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volumeFieldsGrid,
+			 FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
 			 FsGrid< fsgrids::technical, 2>& technicalGrid,
 			 dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 			 const std::vector<CellID>& cells

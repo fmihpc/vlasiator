@@ -219,14 +219,17 @@ void initializeGrids(
       project.setupBeforeSetCell(cells, mpiGrid, needCurl);
       if (needCurl==true) {
 	 // Communicate the perturbed B-fields read from the start file over to FSgrid
+	 technicalGrid.updateGhostCells(); // This needs to be done at some point
 	 feedPerBIntoFsGrid(mpiGrid, cells, perBGrid);
 	 perBGrid.updateGhostCells();
 	 // Calculate volumetric derivatives of B for curl
          calculateDerivativesOnlyPerB(perBGrid, dPerBGrid, technicalGrid);
+	 dPerBGrid.updateGhostCells();
 	 calculateVolumeAveragedFields(perBGrid, EGrid, dPerBGrid,volGrid,technicalGrid);
+	 volGrid.updateGhostCells();
 	 calculateBVOLDerivativesSimple(volGrid, technicalGrid, sysBoundaries);
 	 // Gather values back to mpiGrid
-	 getdBvolFieldsFromFsGrid(volGrid, technicalGrid, mpiGrid, cells);	 
+	 getdBvolFieldsFromFsGrid(volGrid, BgBGrid, technicalGrid, mpiGrid, cells);	 
       }
 
       phiprof::start("setCell");

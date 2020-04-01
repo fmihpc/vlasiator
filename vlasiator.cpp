@@ -907,6 +907,8 @@ int main(int argn,char* args[]) {
          //setupTechnicalFsGrid(mpiGrid, cells, technicalGrid);
          feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid,false);
          feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid,true);
+	 momentsGrid.updateGhostCells();
+	 momentsDt2Grid.updateGhostCells();
          phiprof::stop("fsgrid-coupling-in");
          
          propagateFields(

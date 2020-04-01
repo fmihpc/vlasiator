@@ -452,7 +452,6 @@ void calculateDerivativesOnlyPerB(
       for (int j=0; j<gridDims[1]; j++) {
 	 for (int i=0; i<gridDims[0]; i++) {
 	    cuint sysBoundaryFlag  = technicalGrid.get(i,j,k)->sysBoundaryFlag;
-	    cuint sysBoundaryLayer = technicalGrid.get(i,j,k)->sysBoundaryLayer;
 	    if (sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
 	    if (sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) continue;
 
