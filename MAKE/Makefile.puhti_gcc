@@ -10,21 +10,11 @@ LNK = mpic++
 
 ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
 #Single-precision        
-	VECTORCLASS = VEC8F_AGNER
+	VECTORCLASS = VEC16F_AGNER
 else
 #Double-precision
-	VECTORCLASS = VEC4D_AGNER
+	VECTORCLASS = VEC8D_AGNER
 endif
-
-#======== PAPI ==========
-#Add PAPI_MEM define to use papi to report memory consumption?
-#CXXFLAGS +=  -DPAPI_MEM
-
-
-#======== Allocator =========
-#Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
-#Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
-#CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
 
 #======= Compiler and compilation flags =========
@@ -35,19 +25,14 @@ endif
 
 #-DNO_WRITE_AT_ALL:  Define to disable write at all to 
 #                    avoid memleak (much slower IO)
-#-DMPICH_IGNORE_CXX_SEEK: Ignores some multiple definition 
-#                         errors that come up when using 
-#                         mpi.h in c++ on Cray
-
-CXXFLAGS = -DMPICH_IGNORE_CXX_SEEK
 
 FLAGS = 
 
 #GNU flags:
 CC_BRAND = gcc
 CC_BRAND_VERSION = 9.1.0
-CXXFLAGS += -g -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -fabi-version=0 -march=native -mavx2 -mfma
-testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++17 -fabi-version=0  -mavx2 -mfma
+CXXFLAGS += -g -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -fabi-version=0 -march=native -mfma -mavx512f
+testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++17 -fabi-version=0 -mfma
 
 MATHFLAGS = -ffast-math
 LDFLAGS = -lrt
@@ -63,6 +48,17 @@ JEMALLOC_VERSION = 5.2.1
 LIBRARY_PREFIX = /projappl/project_2000203/libraries
 
 
+#======== PAPI ==========
+#Add PAPI_MEM define to use papi to report memory consumption?
+#CXXFLAGS +=  -DPAPI_MEM
+
+
+#======== Allocator =========
+#Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
+#Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
+CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+
+
 #compiled libraries
 #INC_BOOST = -I$(LIBRARY_PREFIX)/hpcx-mpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/boost/1.61.0/include/
 #LIB_BOOST = -L$(LIBRARY_PREFIX)/hpcx-mpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/boost/1.61.0/lib -lboost_program_options
@@ -71,8 +67,8 @@ LIB_BOOST = -lboost_program_options
 INC_ZOLTAN = -I$(LIBRARY_PREFIX)/hpcx-mpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/zoltan/3.8/include
 LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/hpcx-mpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/zoltan/3.8/lib -lzoltan
 
-#INC_JEMALLOC = -I$(LIBRARY_PREFIX)/hpcx-mpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/jemalloc/$(JEMALLOC_VERSION)/include
-#LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/hpcx-mpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/jemalloc/$(JEMALLOC_VERSION)/lib -ljemalloc -Wl,-rpath=$(LIBRARY_PREFIX)/hpcx-mpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/jemalloc/$(JEMALLOC_VERSION)/lib
+INC_JEMALLOC = -I$(LIBRARY_PREFIX)/hpcx-mpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/jemalloc/$(JEMALLOC_VERSION)/include
+LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/hpcx-mpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/jemalloc/$(JEMALLOC_VERSION)/lib -ljemalloc -Wl,-rpath=$(LIBRARY_PREFIX)/hpcx-mpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/jemalloc/$(JEMALLOC_VERSION)/lib
 
 INC_VLSV = -I$(LIBRARY_PREFIX)/hpcx-mpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/vlsv
 LIB_VLSV = -L$(LIBRARY_PREFIX)/hpcx-mpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/vlsv -lvlsv
