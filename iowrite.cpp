@@ -935,7 +935,7 @@ bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       vector<uint64_t> velSpaceCells;
       int lineX, lineY, lineZ;
       Real shellRadiusSquare;
-      Real cellX, cellY, cellZ, halfDX, halfDY, halfDZ;
+      Real cellX, cellY, cellZ, DX, DY, DZ;
       Real minRCornerSquare,maxRCornerSquare,rCornerSquare;
       for (uint i = 0; i < cells.size(); i++) {
          mpiGrid[cells[i]]->parameters[CellParams::ISCELLSAVINGF] = 0.0;
@@ -992,38 +992,38 @@ bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             cellX = mpiGrid[cells[i]]->parameters[CellParams::XCRD];
             cellY = mpiGrid[cells[i]]->parameters[CellParams::YCRD];
             cellZ = mpiGrid[cells[i]]->parameters[CellParams::ZCRD];
-            halfDX = 0.5*mpiGrid[cells[i]]->parameters[CellParams::DX];
-            halfDY = 0.5*mpiGrid[cells[i]]->parameters[CellParams::DY];
-            halfDZ = 0.5*mpiGrid[cells[i]]->parameters[CellParams::DZ];
+            DX = mpiGrid[cells[i]]->parameters[CellParams::DX];
+            DY = mpiGrid[cells[i]]->parameters[CellParams::DY];
+            DZ = mpiGrid[cells[i]]->parameters[CellParams::DZ];
             // First corner
-            minRCornerSquare = (cellX + halfDX) * (cellX + halfDX) + (cellY + halfDY) * (cellY + halfDY) + (cellZ + halfDZ) * (cellZ + halfDZ);
+            minRCornerSquare = cellX * cellX + cellY * cellY + cellZ * cellZ;
             maxRCornerSquare = minRCornerSquare;
             // Second corner
-            rCornerSquare = (cellX - halfDX) * (cellX - halfDX) + (cellY + halfDY) * (cellY + halfDY) + (cellZ + halfDZ) * (cellZ + halfDZ);
+            rCornerSquare = (cellX + DX) * (cellX + DX) + cellY * cellY + cellZ * cellZ;
             if (rCornerSquare > maxRCornerSquare) {maxRCornerSquare = rCornerSquare;}
             if (rCornerSquare < minRCornerSquare) {minRCornerSquare = rCornerSquare;}
             // Third corner
-            rCornerSquare = (cellX + halfDX) * (cellX + halfDX) + (cellY - halfDY) * (cellY - halfDY) + (cellZ + halfDZ) * (cellZ + halfDZ);
+            rCornerSquare = cellX * cellX + (cellY + DY) * (cellY + DY) + cellZ * cellZ;
             if (rCornerSquare > maxRCornerSquare) {maxRCornerSquare = rCornerSquare;}
             if (rCornerSquare < minRCornerSquare) {minRCornerSquare = rCornerSquare;}
             // Fourth corner
-            rCornerSquare = (cellX - halfDX) * (cellX - halfDX) + (cellY - halfDY) * (cellY - halfDY) + (cellZ + halfDZ) * (cellZ + halfDZ);
+            rCornerSquare = (cellX + DX) * (cellX + DX) + (cellY + DY) * (cellY + DY) + cellZ * cellZ;
             if (rCornerSquare > maxRCornerSquare) {maxRCornerSquare = rCornerSquare;}
             if (rCornerSquare < minRCornerSquare) {minRCornerSquare = rCornerSquare;}
             // Fifth corner
-            rCornerSquare = (cellX + halfDX) * (cellX + halfDX) + (cellY + halfDY) * (cellY + halfDY) + (cellZ - halfDZ) * (cellZ - halfDZ);
+            rCornerSquare = cellX * cellX + cellY * cellY + (cellZ + DZ) * (cellZ + DZ);
             if (rCornerSquare > maxRCornerSquare) {maxRCornerSquare = rCornerSquare;}
             if (rCornerSquare < minRCornerSquare) {minRCornerSquare = rCornerSquare;}
             // Sixth corner
-            rCornerSquare = (cellX - halfDX) * (cellX - halfDX) + (cellY + halfDY) * (cellY + halfDY) + (cellZ - halfDZ) * (cellZ - halfDZ);
+            rCornerSquare = (cellX + DX) * (cellX + DX) + cellY * cellY + (cellZ + DZ) * (cellZ + DZ);
             if (rCornerSquare > maxRCornerSquare) {maxRCornerSquare = rCornerSquare;}
             if (rCornerSquare < minRCornerSquare) {minRCornerSquare = rCornerSquare;}
             // Seventh corner
-            rCornerSquare = (cellX + halfDX) * (cellX + halfDX) + (cellY - halfDY) * (cellY - halfDY) + (cellZ - halfDZ) * (cellZ - halfDZ);
+            rCornerSquare = cellX * cellX + (cellY + DY) * (cellY + DY) + (cellZ + DZ) * (cellZ + DZ);
             if (rCornerSquare > maxRCornerSquare) {maxRCornerSquare = rCornerSquare;}
             if (rCornerSquare < minRCornerSquare) {minRCornerSquare = rCornerSquare;}
             // Eighth corner
-            rCornerSquare = (cellX - halfDX) * (cellX - halfDX) + (cellY - halfDY) * (cellY - halfDY) + (cellZ - halfDZ) * (cellZ - halfDZ);
+            rCornerSquare = (cellX + DX) * (cellX + DX) + (cellY + DY) * (cellY + DY) + (cellZ + DZ) * (cellZ + DZ);
             if (rCornerSquare > maxRCornerSquare) {maxRCornerSquare = rCornerSquare;}
             if (rCornerSquare < minRCornerSquare) {minRCornerSquare = rCornerSquare;}
             if (minRCornerSquare <= shellRadiusSquare && maxRCornerSquare > shellRadiusSquare) {
