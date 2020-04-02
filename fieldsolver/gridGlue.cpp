@@ -226,70 +226,69 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
   for (int blurPass = 1; blurPass <= P::blurPasses; blurPass++){
 
-   // // Blurring Pass
-    phiprof::start("BlurPass");
-   // #pragma omp parallel for collapse(3)
-    for (int kk = 0; kk < mntDims[2]; kk++){
-      for (int jj = 0; jj < mntDims[1]; jj++){
-        for (int ii = 0; ii < mntDims[0]; ii++){
-         
-          // Dont filter if in max resolution region
-          int refLevel = technicalGrid.get(ii, jj, kk)->RefLevel;
-          if (refLevel == maxRefLevel || technicalGrid.get(ii, jj, kk)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE)
-            {
-              continue;
-            }
+  // Blurring Pass
+  phiprof::start("BlurPass");
+  // #pragma omp parallel for collapse(3)
+  for (int kk = 0; kk < mntDims[2]; kk++){
+    for (int jj = 0; jj < mntDims[1]; jj++){
+      for (int ii = 0; ii < mntDims[0]; ii++){
+        
+        // Dont filter if in max resolution region
+        int refLevel = technicalGrid.get(ii, jj, kk)->RefLevel;
+        if (refLevel == maxRefLevel || technicalGrid.get(ii, jj, kk)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE)
+          {
+            continue;
+          }
 
-          for (int a=0; a<stencilWidth; a++){
-            for (int b=0; b<stencilWidth; b++){
-              for (int c=0; c<stencilWidth; c++){
-                   
-
-
-                int xn=ii+a-kernelOffset;
-                int yn=jj+b-kernelOffset;
-                int zn=kk+c-kernelOffset;
-
-                cell = momentsGrid.get(xn, yn, zn);
-                swap = swapGrid.get(xn, yn, zn);
-
-                for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
-                    
-                  swap->at(e)+=cell->at(e) * kernel[a][b][c];
+        for (int a=0; a<stencilWidth; a++){
+          for (int b=0; b<stencilWidth; b++){
+            for (int c=0; c<stencilWidth; c++){
+                  
 
 
-                }
+              int xn=ii+a-kernelOffset;
+              int yn=jj+b-kernelOffset;
+              int zn=kk+c-kernelOffset;
+
+              cell = momentsGrid.get(xn, yn, zn);
+              swap = swapGrid.get(xn, yn, zn);
+
+              for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
+                  
+                swap->at(e)+=cell->at(e) * kernel[a][b][c];
+
+
               }
             }
           }
         }
       }
     }
-    phiprof::stop("BlurPass");
+  }
+    
+  phiprof::stop("BlurPass");
 
-    phiprof::start("GhostUpdate");
-    swapGrid.updateGhostCells();
-    phiprof::stop("GhostUpdate");
 
-    //  Copy swapGrid back to momentsGrid
-    phiprof::start("Swap->Moments");
-    // #pragma omp parallel for collapse(4)
-    for (int ii = 0; ii < mntDims[0]; ii++){
-      for (int jj = 0; jj < mntDims[1]; jj++){
-        for (int kk = 0; kk < mntDims[2]; kk++){
-          for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e){
+  //  Copy swapGrid back to momentsGrid
+  phiprof::start("Swap->Moments");
+  // #pragma omp parallel for collapse(4)
+  for (int ii = 0; ii < mntDims[0]; ii++){
+    for (int jj = 0; jj < mntDims[1]; jj++){
+      for (int kk = 0; kk < mntDims[2]; kk++){
+        for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e){
 
-            // Get Arrays
-            cell = momentsGrid.get(ii, jj, kk);
-            swap = swapGrid.get(ii, jj, kk);
+          // Get Arrays
+          cell = momentsGrid.get(ii, jj, kk);
+          swap = swapGrid.get(ii, jj, kk);
 
-            //Copy
-            cell->at(e) = swap->at(e);
+          //Copy
+          cell->at(e) = swap->at(e);
 
-          }
         }
       }
     }
+  }
+
   phiprof::stop("Swap->Moments");
 
   phiprof::start("GhostUpdate");
@@ -298,7 +297,7 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
   }
 
-phiprof::stop("BoxCar Filtering");
+  phiprof::stop("BoxCar Filtering");
 
 }
 

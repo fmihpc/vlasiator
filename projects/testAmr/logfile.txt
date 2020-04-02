@@ -1,6 +1,0 @@
-Mon Feb 17 14:24:52 2020 
-(MAIN) Starting simulation with 1 MPI processes and 8 OpenMP threads per process
-
-Mon Feb 17 14:24:53 2020 
-	 Zoltan 3.83 initialized successfully
-
