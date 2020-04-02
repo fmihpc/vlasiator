@@ -368,7 +368,7 @@ namespace fsgrids {
       Real maxFsDt;         /*!< maximum timestep allowed in ordinary space by fieldsolver for this cell**/
       int fsGridRank;       /*!< Rank in the fsGrids cartesian coordinator */
       uint SOLVE;           /*!< Bit mask to determine whether a given cell should solve E or B components. */
-      int RefLevel;           /*AMR Refinement Level*/
+      int refLevel;         /*!<AMR Refinement Level*/
    };
    
 }

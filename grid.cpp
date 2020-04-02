@@ -216,7 +216,7 @@ void initializeGrids(
             const dccrg::Types<3>::indices_t  indices = {{(uint64_t)mapIndices[0],(uint64_t)mapIndices[1],(uint64_t)mapIndices[2]}}; //cast to avoid warnings
             CellID dccrgCellID2 = mpiGrid.get_existing_cell(indices, 0, mpiGrid.mapping.get_maximum_refinement_level());
             int amrLevel= mpiGrid.get_refinement_level(dccrgCellID2);
-            technicalGrid.get(i, j, k)-> RefLevel =amrLevel ;
+            technicalGrid.get(i, j, k)-> refLevel =amrLevel ;
          }
       }
    }
