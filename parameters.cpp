@@ -338,7 +338,7 @@ bool Parameters::getParameters(){
    maxSize = max(maxSize, P::systemWriteDistributionWriteXlineStride.size());
    maxSize = max(maxSize, P::systemWriteDistributionWriteYlineStride.size());
    maxSize = max(maxSize, P::systemWriteDistributionWriteZlineStride.size());
-   maxSize = max(maxSize, P::systemWriteDistributionShellRadius.size());
+   maxSize = max(maxSize, P::systemWriteDistributionWriteShellRadius.size());
    if ( P::systemWriteTimeInterval.size() != maxSize) {
       if(myRank == MASTER_RANK) {
          cerr << "ERROR io.system_write_t_interval should be defined for all file types." << endl;

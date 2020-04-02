@@ -989,12 +989,12 @@ bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          // Loop over spherical shells at defined distances
          for (uint ishell = 0; ishell < P::systemWriteDistributionWriteShellRadius.size(); ishell++) {
             shellRadiusSquare = P::systemWriteDistributionWriteShellRadius[ishell] * P::systemWriteDistributionWriteShellRadius[ishell];
-            cellX = cells[i]->parameters[CellParams::XCRD];
-            cellY = cells[i]->parameters[CellParams::YCRD];
-            cellZ = cells[i]->parameters[CellParams::ZCRD];
-            halfDX = 0.5*cells[i]->parameters[CellParams::DX];
-            halfDY = 0.5*cells[i]->parameters[CellParams::DY];
-            halfDZ = 0.5*cells[i]->parameters[CellParams::DZ];
+            cellX = mpiGrid[cells[i]]->parameters[CellParams::XCRD];
+            cellY = mpiGrid[cells[i]]->parameters[CellParams::YCRD];
+            cellZ = mpiGrid[cells[i]]->parameters[CellParams::ZCRD];
+            halfDX = 0.5*mpiGrid[cells[i]]->parameters[CellParams::DX];
+            halfDY = 0.5*mpiGrid[cells[i]]->parameters[CellParams::DY];
+            halfDZ = 0.5*mpiGrid[cells[i]]->parameters[CellParams::DZ];
             // First corner
             minRCornerSquare = (cellX + halfDX) * (cellX + halfDX) + (cellY + halfDY) * (cellY + halfDY) + (cellZ + halfDZ) * (cellZ + halfDZ);
             maxRCornerSquare = minRCornerSquare;
