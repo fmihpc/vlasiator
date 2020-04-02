@@ -1531,95 +1531,66 @@ void calculateElectricField(
    
    if (cellSysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) return;
    
-   cuint cellSysBoundaryLayer = technicalGrid.get(i,j,k)->sysBoundaryLayer;
+   cuint bitfield = technicalGrid.get(i,j,k)->SOLVE;
    
-   if ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) && (cellSysBoundaryLayer > 1)) {
-      // Sysboundary level 2+ cells
-      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, 0);
-      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, 1);
-      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, 2);
+   if ((bitfield & compute::EX) == compute::EX) {
+      calculateEdgeElectricFieldX(
+         perBGrid,
+         EGrid,
+         EHallGrid,
+         EGradPeGrid,
+         momentsGrid,
+         dPerBGrid,
+         dMomentsGrid,
+         BgBGrid,
+         technicalGrid,
+         i,
+         j,
+         k,
+         RKCase
+      );
    } else {
-      // Regular cells
-      // OR level 1 cells whose Ex-component is adjacent to a regular cell
-      if((cellSysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) ||
-	 ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
-	  (technicalGrid.get(i  ,j-1,k  )->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
-	   technicalGrid.get(i  ,j  ,k-1)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
-	   technicalGrid.get(i  ,j-1,k-1)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY))
-	 ) {
-	 calculateEdgeElectricFieldX(
-				     perBGrid,
-				     EGrid,
-				     EHallGrid,
-				     EGradPeGrid,
-				     momentsGrid,
-				     dPerBGrid,
-				     dMomentsGrid,
-				     BgBGrid,
-				     technicalGrid,
-				     i,
-				     j,
-				     k,
-				     RKCase
-				     );
-      } else {
-	 // level 1 cells whose Ex-component is not adjacent to a regular cell
-	 sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, 0);
-      }
-      // Regular cells
-      // OR level 1 cells whose Ey-component is adjacent to a regular cell
-      if((cellSysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) ||
-	 ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
-	  (technicalGrid.get(i-1,j  ,k  )->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
-	   technicalGrid.get(i  ,j  ,k-1)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
-	   technicalGrid.get(i-1,j  ,k-1)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY))
-	 ) {
-	 calculateEdgeElectricFieldY(
-				     perBGrid,
-				     EGrid,
-				     EHallGrid,
-				     EGradPeGrid,
-				     momentsGrid,
-				     dPerBGrid,
-				     dMomentsGrid,
-				     BgBGrid,
-				     technicalGrid,
-				     i,
-				     j,
-				     k,
-				     RKCase
-				     );
-      } else {
-	 // level 1 cells whose Ey-component is not adjacent to a regular cell
-	 sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, 1);
-      }
-      // Regular cells
-      // OR level 1 cells whose Ey-component is adjacent to a regular cell
-      if((cellSysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) ||
-	  ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
-	  (technicalGrid.get(i-1,j  ,k  )->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
-	   technicalGrid.get(i  ,j-1,k  )->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
-	   technicalGrid.get(i-1,j-1,k  )->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY))
-	 ) {
-	 calculateEdgeElectricFieldZ(
-				     perBGrid,
-				     EGrid,
-				     EHallGrid,
-				     EGradPeGrid,
-				     momentsGrid,
-				     dPerBGrid,
-				     dMomentsGrid,
-				     BgBGrid,
-				     technicalGrid,
-				     i,
-				     j,
-				     k,
-				     RKCase
-				     );
-      } else {
-	 // level 1 cells whose Ez-component is not adjacent to a regular cell
-	 sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, 2);
-      }
+      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, 0);
+   }
+   
+   if ((bitfield & compute::EY) == compute::EY) {
+      calculateEdgeElectricFieldY(
+         perBGrid,
+         EGrid,
+         EHallGrid,
+         EGradPeGrid,
+         momentsGrid,
+         dPerBGrid,
+         dMomentsGrid,
+         BgBGrid,
+         technicalGrid,
+         i,
+         j,
+         k,
+         RKCase
+      );
+   } else {
+      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, 1);
+   }
+   
+   if ((bitfield & compute::EZ) == compute::EZ) {
+      calculateEdgeElectricFieldZ(
+         perBGrid,
+         EGrid,
+         EHallGrid,
+         EGradPeGrid,
+         momentsGrid,
+         dPerBGrid,
+         dMomentsGrid,
+         BgBGrid,
+         technicalGrid,
+         i,
+         j,
+         k,
+         RKCase
+      );
+   } else {
+      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, 2);
    }
 }
 
