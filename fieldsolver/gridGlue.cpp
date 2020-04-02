@@ -189,256 +189,116 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
   MPI_Waitall(sendRequests.size(), sendRequests.data(), MPI_STATUSES_IGNORE);
 
-  // ---------------------------------------------------------------------------------
-  // Boxcar Smoothening
-  momentsGrid.updateGhostCells();
-  const int *mntDims= &momentsGrid.getLocalSize()[0];
-  std::array<Real,fsgrids::moments::N_MOMENTS> *cell;
-  std::array<Real,fsgrids::moments::N_MOMENTS> *cellL1;
-  std::array<Real,fsgrids::moments::N_MOMENTS> *cellL2;
-  std::array<Real,fsgrids::moments::N_MOMENTS> *cellR1;
-  std::array<Real,fsgrids::moments::N_MOMENTS> *cellR2;
+
+
+
+
+  /*----------------------Filtering------------------------*/
+  phiprof::start("BoxCar Filtering");
+
+  // Kernel Matrix-- Needs to be precomputed in memory and not recomputed at every call
+  Real kernel[3][3][3];
+
+  for (int i =0; i<3; i++){
+    for (int j =0; j<3; j++){
+      for (int k =0; k<3; k++){
+        
+        kernel[i][j][k]=1.0/27.0;  //normalized for 27 neighbours.
+        
+      }
+    }
+  }
+
+
+  phiprof::start("GhostUpdate");
+  momentsGrid.updateGhostCells(); //update ghost zones
+  phiprof::stop("GhostUpdate");
+
+  int stencilWidth = sizeof( kernel) / sizeof( kernel[0]); //get the stnecil width
+  int kernelOffset= stencilWidth/3; //this is the kernel offset -int
+  const int *mntDims= &momentsGrid.getLocalSize()[0];   //get local size for each proc.
+  FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, 2> swapGrid = momentsGrid;  //swap array 
+  std::array<Real, fsgrids::moments::N_MOMENTS> *cell;  
   std::array<Real,fsgrids::moments::N_MOMENTS> *swap;
-  FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, 2> swapGrid = momentsGrid;
-
-  /*Kernel Weights are fractional numbers 
-
-              std::array weights[i]
-    weight= ---------------------------
-                2*halfStencilWidth+1
-
-  and are calculated as shown above while iterating over each dimensions
-  The numerator is calculated filling the weights array
-  and the denominator depends only on the stencil width. 
-  */
-  Real weightC, weightL1, weightL2, weightR1, weightR2;
   const int maxRefLevel = mpiGrid.mapping.get_maximum_refinement_level();
-  const int minRefLevel = 0;
-  const int maxStencilWidth=5;
-  int blurPasses = P::blurPasses;  //will change and use P::blurPasses for loops beneath
-  int refLevel;
-  int halfStencilWidth;
-  int switchPoint=1;
-  std::array<Real, maxStencilWidth> weights;
-  weights.fill(0);
-  
 
-  for (int blurPass = 1; blurPass <= blurPasses; blurPass++){
-    // X Dimension Pass
-    // #pragma omp parallel for collapse(3)
+
+
+  for (int blurPass = 1; blurPass <= P::blurPasses; blurPass++){
+
+   // // Blurring Pass
+    phiprof::start("BlurPass");
+   // #pragma omp parallel for collapse(3)
     for (int kk = 0; kk < mntDims[2]; kk++){
       for (int jj = 0; jj < mntDims[1]; jj++){
         for (int ii = 0; ii < mntDims[0]; ii++){
-
+         
           // Dont filter if in max resolution region
-          refLevel = technicalGrid.get(ii, jj, kk)->RefLevel;
+          int refLevel = technicalGrid.get(ii, jj, kk)->RefLevel;
           if (refLevel == maxRefLevel || technicalGrid.get(ii, jj, kk)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE)
-          {
-            continue;
+            {
+              continue;
+            }
+
+          for (int a=0; a<stencilWidth; a++){
+            for (int b=0; b<stencilWidth; b++){
+              for (int c=0; c<stencilWidth; c++){
+                   
+
+
+                int xn=ii+a-kernelOffset;
+                int yn=jj+b-kernelOffset;
+                int zn=kk+c-kernelOffset;
+
+                cell = momentsGrid.get(xn, yn, zn);
+                swap = swapGrid.get(xn, yn, zn);
+
+                for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
+                    
+                  swap->at(e)+=cell->at(e) * kernel[a][b][c];
+
+
+                }
+              }
+            }
           }
-          
-          // Set 5 point stencil for a set refinement level and below
-          // if (refLevel>=switchPoint){
-          //     halfStencilWidth=2;              
-          //   }
-          // else{
-          //     halfStencilWidth=1;
-          // }
-          halfStencilWidth = 1;
-          
-          // Calculate Numerator
-          for (int index = 0; index <=halfStencilWidth; index++){
-            weights.at(2 + index) = 1;
-            weights.at(2 - index) = 1;
-          }
-          // Calculate Denominator
-          int weightDenominator = 2 * halfStencilWidth + 1;
-
-          // Calculate Weights
-          weightL2 = weights.at(0) / weightDenominator;
-          weightL1 = weights.at(1) / weightDenominator;
-          weightC  = weights.at(2) / weightDenominator;
-          weightR1 = weights.at(3) / weightDenominator;
-          weightR2 = weights.at(4) / weightDenominator;
-
-          // Get Arrays
-          cell   = momentsGrid.get(ii, jj, kk);
-          cellL1 = momentsGrid.get(ii - 1, jj, kk);
-          cellL2 = momentsGrid.get(ii - 2, jj, kk);
-          cellR1 = momentsGrid.get(ii + 1, jj, kk);
-          cellR2 = momentsGrid.get(ii + 2, jj, kk);
-          swap   = swapGrid.get(ii, jj, kk);
-
-          //Blur
-          swap->at(fsgrids::moments::RHOM) = weightC * cell->at(fsgrids::moments::RHOM) + weightL1 * cellL1->at(fsgrids::moments::RHOM) + weightL2 * cellL2->at(fsgrids::moments::RHOM) + weightR1 * cellR1->at(fsgrids::moments::RHOM) + weightR2 * cellR2->at(fsgrids::moments::RHOM);
-          swap->at(fsgrids::moments::RHOQ) = weightC * cell->at(fsgrids::moments::RHOQ) + weightL1 * cellL1->at(fsgrids::moments::RHOQ) + weightL2 * cellL2->at(fsgrids::moments::RHOQ) + weightR1 * cellR1->at(fsgrids::moments::RHOQ) + weightR2 * cellR2->at(fsgrids::moments::RHOQ);
-          swap->at(fsgrids::moments::VX) = weightC * cell->at(fsgrids::moments::VX) + weightL1 * cellL1->at(fsgrids::moments::VX) + weightL2 * cellL2->at(fsgrids::moments::VX) + weightR1 * cellR1->at(fsgrids::moments::VX) + weightR2 * cellR2->at(fsgrids::moments::VX);
-          swap->at(fsgrids::moments::VY) = weightC * cell->at(fsgrids::moments::VY) + weightL1 * cellL1->at(fsgrids::moments::VY) + weightL2 * cellL2->at(fsgrids::moments::VY) + weightR1 * cellR1->at(fsgrids::moments::VY) + weightR2 * cellR2->at(fsgrids::moments::VY);
-          swap->at(fsgrids::moments::VZ) = weightC * cell->at(fsgrids::moments::VZ) + weightL1 * cellL1->at(fsgrids::moments::VZ) + weightL2 * cellL2->at(fsgrids::moments::VZ) + weightR1 * cellR1->at(fsgrids::moments::VZ) + weightR2 * cellR2->at(fsgrids::moments::VZ);
-          swap->at(fsgrids::moments::P_11) = weightC * cell->at(fsgrids::moments::P_11) + weightL1 * cellL1->at(fsgrids::moments::P_11) + weightL2 * cellL2->at(fsgrids::moments::P_11) + weightR1 * cellR1->at(fsgrids::moments::P_11) + weightR2 * cellR2->at(fsgrids::moments::P_11);
-          swap->at(fsgrids::moments::P_22) = weightC * cell->at(fsgrids::moments::P_22) + weightL1 * cellL1->at(fsgrids::moments::P_22) + weightL2 * cellL2->at(fsgrids::moments::P_22) + weightR1 * cellR1->at(fsgrids::moments::P_22) + weightR2 * cellR2->at(fsgrids::moments::P_22);
-          swap->at(fsgrids::moments::P_33) = weightC * cell->at(fsgrids::moments::P_33) + weightL1 * cellL1->at(fsgrids::moments::P_33) + weightL2 * cellL2->at(fsgrids::moments::P_33) + weightR1 * cellR1->at(fsgrids::moments::P_33) + weightR2 * cellR2->at(fsgrids::moments::P_33);
-
-          // Reset Weights
-          weights.fill(0);
         }
       }
     }
-    momentsGrid.updateGhostCells();
+    phiprof::stop("BlurPass");
+
+    phiprof::start("GhostUpdate");
     swapGrid.updateGhostCells();
-
-    // Y Dimension Pass
-    // #pragma omp parallel for collapse(3)
-    for (int kk = 0; kk < mntDims[2]; kk++){
-      for (int ii = 0; ii < mntDims[0]; ii++){
-        for (int jj = 0; jj < mntDims[1]; jj++){
-
-
-          // Dont filter if in max resolution region
-          refLevel = technicalGrid.get(ii, jj, kk)->RefLevel;
-          if (refLevel == maxRefLevel || technicalGrid.get(ii, jj, kk)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE){
-            continue;
-          }
-
-          // Set 5 point stencil for a set refinement level and below
-          // if (refLevel>=switchPoint){
-          //     halfStencilWidth=2;              
-          //   }
-          // else{
-          //     halfStencilWidth=1;
-          // }
-          halfStencilWidth = 1;
-
-          // Calculate Numerator
-          for (int index = 0; index <=halfStencilWidth; index++){
-            weights.at(2 + index) = 1;
-            weights.at(2 - index) = 1;
-          }
-          // Calculate Denominator
-          int weightDenominator = 2 * halfStencilWidth + 1;
-
-          // Calculate Weights
-          weightL2 = weights.at(0) / weightDenominator;
-          weightL1 = weights.at(1) / weightDenominator;
-          weightC  = weights.at(2) / weightDenominator;
-          weightR1 = weights.at(3) / weightDenominator;
-          weightR2 = weights.at(4) / weightDenominator;
-
-          // Get Arrays
-          cell = swapGrid.get(ii, jj, kk);
-          cellL1 = swapGrid.get(ii, jj - 1, kk);
-          cellL2 = swapGrid.get(ii, jj - 2, kk);
-          cellR1 = swapGrid.get(ii, jj + 1, kk);
-          cellR2 = swapGrid.get(ii, jj + 2, kk);
-          swap = momentsGrid.get(ii, jj, kk);
-
-          //Blur
-          swap->at(fsgrids::moments::RHOM) = weightC * cell->at(fsgrids::moments::RHOM) + weightL1 * cellL1->at(fsgrids::moments::RHOM) + weightL2 * cellL2->at(fsgrids::moments::RHOM) + weightR1 * cellR1->at(fsgrids::moments::RHOM) + weightR2 * cellR2->at(fsgrids::moments::RHOM);
-          swap->at(fsgrids::moments::RHOQ) = weightC * cell->at(fsgrids::moments::RHOQ) + weightL1 * cellL1->at(fsgrids::moments::RHOQ) + weightL2 * cellL2->at(fsgrids::moments::RHOQ) + weightR1 * cellR1->at(fsgrids::moments::RHOQ) + weightR2 * cellR2->at(fsgrids::moments::RHOQ);
-          swap->at(fsgrids::moments::VX) = weightC * cell->at(fsgrids::moments::VX) + weightL1 * cellL1->at(fsgrids::moments::VX) + weightL2 * cellL2->at(fsgrids::moments::VX) + weightR1 * cellR1->at(fsgrids::moments::VX) + weightR2 * cellR2->at(fsgrids::moments::VX);
-          swap->at(fsgrids::moments::VY) = weightC * cell->at(fsgrids::moments::VY) + weightL1 * cellL1->at(fsgrids::moments::VY) + weightL2 * cellL2->at(fsgrids::moments::VY) + weightR1 * cellR1->at(fsgrids::moments::VY) + weightR2 * cellR2->at(fsgrids::moments::VY);
-          swap->at(fsgrids::moments::VZ) = weightC * cell->at(fsgrids::moments::VZ) + weightL1 * cellL1->at(fsgrids::moments::VZ) + weightL2 * cellL2->at(fsgrids::moments::VZ) + weightR1 * cellR1->at(fsgrids::moments::VZ) + weightR2 * cellR2->at(fsgrids::moments::VZ);
-          swap->at(fsgrids::moments::P_11) = weightC * cell->at(fsgrids::moments::P_11) + weightL1 * cellL1->at(fsgrids::moments::P_11) + weightL2 * cellL2->at(fsgrids::moments::P_11) + weightR1 * cellR1->at(fsgrids::moments::P_11) + weightR2 * cellR2->at(fsgrids::moments::P_11);
-          swap->at(fsgrids::moments::P_22) = weightC * cell->at(fsgrids::moments::P_22) + weightL1 * cellL1->at(fsgrids::moments::P_22) + weightL2 * cellL2->at(fsgrids::moments::P_22) + weightR1 * cellR1->at(fsgrids::moments::P_22) + weightR2 * cellR2->at(fsgrids::moments::P_22);
-          swap->at(fsgrids::moments::P_33) = weightC * cell->at(fsgrids::moments::P_33) + weightL1 * cellL1->at(fsgrids::moments::P_33) + weightL2 * cellL2->at(fsgrids::moments::P_33) + weightR1 * cellR1->at(fsgrids::moments::P_33) + weightR2 * cellR2->at(fsgrids::moments::P_33);
-
-          // Reset Weights
-          weights.fill(0);
-        }
-      }
-    }
-    momentsGrid.updateGhostCells();
-    swapGrid.updateGhostCells();
-
-    // Z Dimension Pass
-    // #pragma omp parallel for collapse(3)
-    for (int jj = 0; jj < mntDims[1]; jj++){
-      for (int ii = 0; ii < mntDims[0]; ii++){
-        for (int kk = 0; kk < mntDims[2]; kk++){
-          
-          // Dont filter if in max resolution region
-          refLevel = technicalGrid.get(ii, jj, kk)->RefLevel;
-          if (refLevel == maxRefLevel || technicalGrid.get(ii, jj, kk)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE){
-            continue;
-          }
-          
-          // Set 5 point stencil for a set refinement level and below
-          // if (refLevel>=switchPoint){
-          //     halfStencilWidth=2;              
-          //   }
-          // else{
-          //     halfStencilWidth=1;
-          //  }
-          halfStencilWidth=1;
-
-          // Calculate Numerator
-          for (int index = 0; index <= halfStencilWidth; index++)
-          {
-            weights.at(2 + index) = 1;
-            weights.at(2 - index) = 1;
-          }
-          // Calculate Denominator
-          int weightDenominator = 2 * halfStencilWidth + 1;
-
-          // Calculate Weights
-          weightL2 = weights.at(0) / weightDenominator;
-          weightL1 = weights.at(1) / weightDenominator;
-          weightC = weights.at(2) / weightDenominator;
-          weightR1 = weights.at(3) / weightDenominator;
-          weightR2 = weights.at(4) / weightDenominator;
-
-
-          // Get Arrays
-          cell = momentsGrid.get(ii, jj, kk);
-          cellL1 = momentsGrid.get(ii, jj, kk - 1);
-          cellL2 = momentsGrid.get(ii, jj, kk - 2);
-          cellR1 = momentsGrid.get(ii, jj, kk + 1);
-          cellR2 = momentsGrid.get(ii, jj, kk + 2);
-          swap = swapGrid.get(ii, jj, kk);
-
-          //Blur
-          swap->at(fsgrids::moments::RHOM) = weightC * cell->at(fsgrids::moments::RHOM) + weightL1 * cellL1->at(fsgrids::moments::RHOM) + weightL2 * cellL2->at(fsgrids::moments::RHOM) + weightR1 * cellR1->at(fsgrids::moments::RHOM) + weightR2 * cellR2->at(fsgrids::moments::RHOM);
-          swap->at(fsgrids::moments::RHOQ) = weightC * cell->at(fsgrids::moments::RHOQ) + weightL1 * cellL1->at(fsgrids::moments::RHOQ) + weightL2 * cellL2->at(fsgrids::moments::RHOQ) + weightR1 * cellR1->at(fsgrids::moments::RHOQ) + weightR2 * cellR2->at(fsgrids::moments::RHOQ);
-          swap->at(fsgrids::moments::VX) = weightC * cell->at(fsgrids::moments::VX) + weightL1 * cellL1->at(fsgrids::moments::VX) + weightL2 * cellL2->at(fsgrids::moments::VX) + weightR1 * cellR1->at(fsgrids::moments::VX) + weightR2 * cellR2->at(fsgrids::moments::VX);
-          swap->at(fsgrids::moments::VY) = weightC * cell->at(fsgrids::moments::VY) + weightL1 * cellL1->at(fsgrids::moments::VY) + weightL2 * cellL2->at(fsgrids::moments::VY) + weightR1 * cellR1->at(fsgrids::moments::VY) + weightR2 * cellR2->at(fsgrids::moments::VY);
-          swap->at(fsgrids::moments::VZ) = weightC * cell->at(fsgrids::moments::VZ) + weightL1 * cellL1->at(fsgrids::moments::VZ) + weightL2 * cellL2->at(fsgrids::moments::VZ) + weightR1 * cellR1->at(fsgrids::moments::VZ) + weightR2 * cellR2->at(fsgrids::moments::VZ);
-          swap->at(fsgrids::moments::P_11) = weightC * cell->at(fsgrids::moments::P_11) + weightL1 * cellL1->at(fsgrids::moments::P_11) + weightL2 * cellL2->at(fsgrids::moments::P_11) + weightR1 * cellR1->at(fsgrids::moments::P_11) + weightR2 * cellR2->at(fsgrids::moments::P_11);
-          swap->at(fsgrids::moments::P_22) = weightC * cell->at(fsgrids::moments::P_22) + weightL1 * cellL1->at(fsgrids::moments::P_22) + weightL2 * cellL2->at(fsgrids::moments::P_22) + weightR1 * cellR1->at(fsgrids::moments::P_22) + weightR2 * cellR2->at(fsgrids::moments::P_22);
-          swap->at(fsgrids::moments::P_33) = weightC * cell->at(fsgrids::moments::P_33) + weightL1 * cellL1->at(fsgrids::moments::P_33) + weightL2 * cellL2->at(fsgrids::moments::P_33) + weightR1 * cellR1->at(fsgrids::moments::P_33) + weightR2 * cellR2->at(fsgrids::moments::P_33);
-
-          // Reset Weights
-          weights.fill(0);
-        }
-      }
-    }
-    momentsGrid.updateGhostCells();
-    swapGrid.updateGhostCells();
+    phiprof::stop("GhostUpdate");
 
     //  Copy swapGrid back to momentsGrid
-    // #pragma omp parallel for collapse(3)
+    phiprof::start("Swap->Moments");
+    // #pragma omp parallel for collapse(4)
     for (int ii = 0; ii < mntDims[0]; ii++){
       for (int jj = 0; jj < mntDims[1]; jj++){
         for (int kk = 0; kk < mntDims[2]; kk++){
+          for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e){
 
-          // Get Arrays
-          cell = momentsGrid.get(ii, jj, kk);
-          swap = swapGrid.get(ii, jj, kk);
+            // Get Arrays
+            cell = momentsGrid.get(ii, jj, kk);
+            swap = swapGrid.get(ii, jj, kk);
 
-          //Copy
-          cell->at(fsgrids::moments::RHOM) =  swap->at(fsgrids::moments::RHOM) ;
-          cell->at(fsgrids::moments::RHOQ) =  swap->at(fsgrids::moments::RHOQ) ;
-          cell->at(fsgrids::moments::VX)   =  swap->at(fsgrids::moments::VX) ;
-          cell->at(fsgrids::moments::VY)   =  swap->at(fsgrids::moments::VY) ;
-          cell->at(fsgrids::moments::VZ)   =  swap->at(fsgrids::moments::VZ) ;
-          cell->at(fsgrids::moments::P_11) =  swap->at(fsgrids::moments::P_11) ;
-          cell->at(fsgrids::moments::P_22) =  swap->at(fsgrids::moments::P_22) ;
-          cell->at(fsgrids::moments::P_33) =  swap->at(fsgrids::moments::P_33) ;
+            //Copy
+            cell->at(e) = swap->at(e);
 
+          }
         }
       }
     }
-  } 
+  phiprof::stop("Swap->Moments");
 
+  phiprof::start("GhostUpdate");
+  momentsGrid.updateGhostCells();
+  phiprof::stop("GhostUpdate");
+
+  }
+
+phiprof::stop("BoxCar Filtering");
 
 }
 
