@@ -84,7 +84,7 @@ vector<int> P::systemWriteDistributionWriteStride;
 vector<int> P::systemWriteDistributionWriteXlineStride;
 vector<int> P::systemWriteDistributionWriteYlineStride;
 vector<int> P::systemWriteDistributionWriteZlineStride;
-vector<Real> P::SystemWriteDistributionWriteShellRadius;
+vector<Real> P::systemWriteDistributionWriteShellRadius;
 vector<int> P::systemWrites;
 std::vector<std::pair<std::string,std::string>> P::systemWriteHints;
 
@@ -338,7 +338,6 @@ bool Parameters::getParameters(){
    maxSize = max(maxSize, P::systemWriteDistributionWriteXlineStride.size());
    maxSize = max(maxSize, P::systemWriteDistributionWriteYlineStride.size());
    maxSize = max(maxSize, P::systemWriteDistributionWriteZlineStride.size());
-   maxSize = max(maxSize, P::systemWriteDistributionWriteShellRadius.size());
    if ( P::systemWriteTimeInterval.size() != maxSize) {
       if(myRank == MASTER_RANK) {
          cerr << "ERROR io.system_write_t_interval should be defined for all file types." << endl;
@@ -378,12 +377,6 @@ bool Parameters::getParameters(){
    if ( P::systemWriteDistributionWriteZlineStride.size() != maxSize) {
       if(myRank == MASTER_RANK) {
          cerr << "ERROR io.system_write_distribution_zline_stride should be defined for all file types." << endl;
-      }
-      return false;
-   }
-   if ( P::systemWriteDistributionWriteShellRadius.size() != maxSize) {
-      if(myRank == MASTER_RANK) {
-         cerr << "ERROR io.system_write_distribution_shell_radius should be defined for all file types." << endl;
       }
       return false;
    }
