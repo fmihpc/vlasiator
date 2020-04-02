@@ -934,6 +934,9 @@ bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       //Compute which cells will write out their velocity space
       vector<uint64_t> velSpaceCells;
       int lineX, lineY, lineZ;
+      Real shellRadiusSquare;
+      Real cellX, cellY, cellZ, halfDX, halfDY, halfDZ;
+      Real minRCornerSquare,maxRCornerSquare,rCornerSquare;
       for (uint i = 0; i < cells.size(); i++) {
          mpiGrid[cells[i]]->parameters[CellParams::ISCELLSAVINGF] = 0.0;
          // CellID stride selection
@@ -978,9 +981,56 @@ bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 		   ) {
 		  velSpaceCells.push_back(cells[i]);
 		  mpiGrid[cells[i]]->parameters[CellParams::ISCELLSAVINGF] = 1.0;
+                  continue; // Avoid double entries in case the cell also matches following conditions.
 	       }
 	    }
 	 }
+
+         // Loop over spherical shells at defined distances
+         for (uint ishell = 0; ishell < P::systemWriteDistributionWriteShellRadius.size(); ishell++) {
+            shellRadiusSquare = P::systemWriteDistributionWriteShellRadius[ishell] * P::systemWriteDistributionWriteShellRadius[ishell];
+            cellX = cells[i]->parameters[CellParams::XCRD];
+            cellY = cells[i]->parameters[CellParams::YCRD];
+            cellZ = cells[i]->parameters[CellParams::ZCRD];
+            halfDX = 0.5*cells[i]->parameters[CellParams::DX];
+            halfDY = 0.5*cells[i]->parameters[CellParams::DY];
+            halfDZ = 0.5*cells[i]->parameters[CellParams::DZ];
+            // First corner
+            minRCornerSquare = (cellX + halfDX) * (cellX + halfDX) + (cellY + halfDY) * (cellY + halfDY) + (cellZ + halfDZ) * (cellZ + halfDZ);
+            maxRCornerSquare = minRCornerSquare;
+            // Second corner
+            rCornerSquare = (cellX - halfDX) * (cellX - halfDX) + (cellY + halfDY) * (cellY + halfDY) + (cellZ + halfDZ) * (cellZ + halfDZ);
+            if (rCornerSquare > maxRCornerSquare) {maxRCornerSquare = rCornerSquare;}
+            if (rCornerSquare < minRCornerSquare) {minRCornerSquare = rCornerSquare;}
+            // Third corner
+            rCornerSquare = (cellX + halfDX) * (cellX + halfDX) + (cellY - halfDY) * (cellY - halfDY) + (cellZ + halfDZ) * (cellZ + halfDZ);
+            if (rCornerSquare > maxRCornerSquare) {maxRCornerSquare = rCornerSquare;}
+            if (rCornerSquare < minRCornerSquare) {minRCornerSquare = rCornerSquare;}
+            // Fourth corner
+            rCornerSquare = (cellX - halfDX) * (cellX - halfDX) + (cellY - halfDY) * (cellY - halfDY) + (cellZ + halfDZ) * (cellZ + halfDZ);
+            if (rCornerSquare > maxRCornerSquare) {maxRCornerSquare = rCornerSquare;}
+            if (rCornerSquare < minRCornerSquare) {minRCornerSquare = rCornerSquare;}
+            // Fifth corner
+            rCornerSquare = (cellX + halfDX) * (cellX + halfDX) + (cellY + halfDY) * (cellY + halfDY) + (cellZ - halfDZ) * (cellZ - halfDZ);
+            if (rCornerSquare > maxRCornerSquare) {maxRCornerSquare = rCornerSquare;}
+            if (rCornerSquare < minRCornerSquare) {minRCornerSquare = rCornerSquare;}
+            // Sixth corner
+            rCornerSquare = (cellX - halfDX) * (cellX - halfDX) + (cellY + halfDY) * (cellY + halfDY) + (cellZ - halfDZ) * (cellZ - halfDZ);
+            if (rCornerSquare > maxRCornerSquare) {maxRCornerSquare = rCornerSquare;}
+            if (rCornerSquare < minRCornerSquare) {minRCornerSquare = rCornerSquare;}
+            // Seventh corner
+            rCornerSquare = (cellX + halfDX) * (cellX + halfDX) + (cellY - halfDY) * (cellY - halfDY) + (cellZ - halfDZ) * (cellZ - halfDZ);
+            if (rCornerSquare > maxRCornerSquare) {maxRCornerSquare = rCornerSquare;}
+            if (rCornerSquare < minRCornerSquare) {minRCornerSquare = rCornerSquare;}
+            // Eighth corner
+            rCornerSquare = (cellX - halfDX) * (cellX - halfDX) + (cellY - halfDY) * (cellY - halfDY) + (cellZ - halfDZ) * (cellZ - halfDZ);
+            if (rCornerSquare > maxRCornerSquare) {maxRCornerSquare = rCornerSquare;}
+            if (rCornerSquare < minRCornerSquare) {minRCornerSquare = rCornerSquare;}
+            if (minRCornerSquare <= shellRadiusSquare && maxRCornerSquare > shellRadiusSquare) {
+               velSpaceCells.push_back(cells[i]);
+               mpiGrid[cells[i]]->parameters[CellParams::ISCELLSAVINGF] = 1.0;
+            }
+         }
       }
 
       uint64_t numVelSpaceCells;

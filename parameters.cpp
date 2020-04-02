@@ -84,6 +84,7 @@ vector<int> P::systemWriteDistributionWriteStride;
 vector<int> P::systemWriteDistributionWriteXlineStride;
 vector<int> P::systemWriteDistributionWriteYlineStride;
 vector<int> P::systemWriteDistributionWriteZlineStride;
+vector<Real> P::SystemWriteDistributionWriteShellRadius;
 vector<int> P::systemWrites;
 std::vector<std::pair<std::string,std::string>> P::systemWriteHints;
 
@@ -154,6 +155,7 @@ bool Parameters::addParameters(){
    Readparameters::addComposing("io.system_write_distribution_xline_stride", "Every this many lines of cells along the x direction write out their velocity space. 0 is none. [Define for all groups.]");
    Readparameters::addComposing("io.system_write_distribution_yline_stride", "Every this many lines of cells along the y direction write out their velocity space. 0 is none. [Define for all groups.]");
    Readparameters::addComposing("io.system_write_distribution_zline_stride", "Every this many lines of cells along the z direction write out their velocity space. 0 is none. [Define for all groups.]");
+   Readparameters::addComposing("io.system_write_distribution_shell_radius", "At cells intersecting spheres with those radii centred at the origin write out their velocity space. 0 is none. [Define for all groups.]");
    Readparameters::addComposing("io.system_write_mpiio_hint_key", "MPI-IO hint key passed to the non-restart IO. Has to be matched by io.system_write_mpiio_hint_value.");
    Readparameters::addComposing("io.system_write_mpiio_hint_value", "MPI-IO hint value passed to the non-restart IO. Has to be matched by io.system_write_mpiio_hint_key.");
 
@@ -306,6 +308,7 @@ bool Parameters::getParameters(){
    Readparameters::get("io.system_write_distribution_xline_stride", P::systemWriteDistributionWriteXlineStride);
    Readparameters::get("io.system_write_distribution_yline_stride", P::systemWriteDistributionWriteYlineStride);
    Readparameters::get("io.system_write_distribution_zline_stride", P::systemWriteDistributionWriteZlineStride);
+   Readparameters::get("io.system_write_distribution_shell_radius", P::systemWriteDistributionWriteShellRadius);
    Readparameters::get("io.write_initial_state", P::writeInitialState);
    Readparameters::get("io.restart_walltime_interval", P::saveRestartWalltimeInterval);
    Readparameters::get("io.number_of_restarts", P::exitAfterRestarts);
@@ -332,6 +335,7 @@ bool Parameters::getParameters(){
    maxSize = max(maxSize, P::systemWriteDistributionWriteXlineStride.size());
    maxSize = max(maxSize, P::systemWriteDistributionWriteYlineStride.size());
    maxSize = max(maxSize, P::systemWriteDistributionWriteZlineStride.size());
+   maxSize = max(maxSize, P::systemWriteDistributionShellRadius.size());
    if ( P::systemWriteTimeInterval.size() != maxSize) {
       if(myRank == MASTER_RANK) {
          cerr << "ERROR io.system_write_t_interval should be defined for all file types." << endl;
@@ -371,6 +375,12 @@ bool Parameters::getParameters(){
    if ( P::systemWriteDistributionWriteZlineStride.size() != maxSize) {
       if(myRank == MASTER_RANK) {
          cerr << "ERROR io.system_write_distribution_zline_stride should be defined for all file types." << endl;
+      }
+      return false;
+   }
+   if ( P::systemWriteDistributionWriteShellRadius.size() != maxSize) {
+      if(myRank == MASTER_RANK) {
+         cerr << "ERROR io.system_write_distribution_shell_radius should be defined for all file types." << endl;
       }
       return false;
    }
