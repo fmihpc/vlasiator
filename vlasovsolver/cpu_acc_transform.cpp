@@ -42,11 +42,12 @@ void updateAccelerationMaxdt(
    SpatialCell* spatial_cell,
    const uint popID) 
 {
+   const Real EPSILON = 1e2 * numeric_limits<Real>::min();
    const Real Bx = spatial_cell->parameters[CellParams::BGBXVOL]+spatial_cell->parameters[CellParams::PERBXVOL];
    const Real By = spatial_cell->parameters[CellParams::BGBYVOL]+spatial_cell->parameters[CellParams::PERBYVOL];
    const Real Bz = spatial_cell->parameters[CellParams::BGBZVOL]+spatial_cell->parameters[CellParams::PERBZVOL];
    const Eigen::Matrix<Real,3,1> B(Bx,By,Bz);
-   const Real B_mag = B.norm() + 1e-30;      
+   const Real B_mag = EPSILON > B.norm() ? EPSILON : B.norm();
    const Real gyro_period = fabs(2 * M_PI * getObjectWrapper().particleSpecies[popID].mass
 				 / (getObjectWrapper().particleSpecies[popID].charge * B_mag));
 
@@ -55,7 +56,7 @@ void updateAccelerationMaxdt(
    
    // Constrain Vlasov solver with plasma frequency?
    if (P::ResolvePlasmaPeriod) {
-     Real rho = 1.e-10 > spatial_cell->get_population(popID).RHO ? 1.e-10 : spatial_cell->get_population(popID).RHO;
+     Real rho = EPSILON > spatial_cell->get_population(popID).RHO ? EPSILON : spatial_cell->get_population(popID).RHO;
      const Real plasma_period
        = fabs(2 * M_PI * sqrt(physicalconstants::EPS_0 * getObjectWrapper().particleSpecies[popID].mass / 
 			      rho)/getObjectWrapper().particleSpecies[popID].charge); 
@@ -77,6 +78,9 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
         SpatialCell* spatial_cell,
         const uint popID,
         const Real& dt) {
+
+   const Real EPSILON = 1e2 * numeric_limits<Real>::min();
+
    // total field
    const Real Bx = spatial_cell->parameters[CellParams::BGBXVOL]+spatial_cell->parameters[CellParams::PERBXVOL];
    const Real By = spatial_cell->parameters[CellParams::BGBYVOL]+spatial_cell->parameters[CellParams::PERBYVOL];
@@ -100,9 +104,9 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
    Eigen::Matrix<Real,3,1> unit_B(B.normalized());
 
    // If B equals zero then gyro_period and unit_B are NAN.
-   // Guard against that by adding epsilons:
-   const Real B_mag = B.norm() + 1e-30;
-   if (B_mag < 1e-28) {
+   // Guard against that with epsilons:
+   const Real B_mag = EPSILON > B.norm() ? EPSILON : B.norm();
+   if (B_mag < 2*EPSILON) {
       unit_B(0,0) = 0; unit_B(1,0) = 0; unit_B(2,0) = 1;
    }
 
@@ -114,8 +118,7 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
 			    spatial_cell->get_population(popID).RHO)/getObjectWrapper().particleSpecies[popID].charge);
 
    // scale rho for hall term, if user requests
-   const Real EPSILON = 1e10 * numeric_limits<Real>::min();
-   const Real rhoq = spatial_cell->parameters[CellParams::RHOQ_V] + EPSILON;
+   const Real rhoq = EPSILON > spatial_cell->parameters[CellParams::RHOQ_V] ? EPSILON : spatial_cell->parameters[CellParams::RHOQ_V];
    const Real hallRhoq =  (rhoq <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : rhoq ;
    const Real hallPrefactor = 1.0 / (physicalconstants::MU_0 * hallRhoq );
 
@@ -231,7 +234,7 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       } // For the electron run, since we use the electron bulk velocity, the Hall term should not be used
       
       // Calculate EJE only for the electron population
-      if ((smallparticle) && (fabs(substeps_dt) > 1e-20)) {
+      if ((smallparticle) && (fabs(substeps_dt) > EPSILON)) {
 	 // First find the current electron moments, this results in leapfrog-like propagation of EJE
 	 Eigen::Matrix<Real,3,1> electronVcurr(total_transform*electronV);
 

@@ -41,7 +41,7 @@
  * \sa calculateDerivativesSimple calculateBVOLDerivativesSimple calculateBVOLDerivatives
  */
 void calculateDerivatives(
-   int i,
+   cint i,
    cint j,
    cint k,
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
@@ -452,7 +452,6 @@ void calculateDerivativesOnlyPerB(
       for (int j=0; j<gridDims[1]; j++) {
 	 for (int i=0; i<gridDims[0]; i++) {
 	    cuint sysBoundaryFlag  = technicalGrid.get(i,j,k)->sysBoundaryFlag;
-	    if (sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
 	    if (sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) continue;
 
 	    std::array<Real, fsgrids::dperb::N_DPERB> * dPerB = dPerBGrid.get(i,j,k);

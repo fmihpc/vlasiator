@@ -269,7 +269,7 @@ void getFieldsFromFsGrid(
    FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volumeFieldsGrid,
    FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
    FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
-   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& DMomentsGrid,
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dMomentsGrid,
    FsGrid< fsgrids::technical, 2>& technicalGrid,
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const std::vector<CellID>& cells
@@ -355,7 +355,7 @@ void getFieldsFromFsGrid(
         std::array<Real, fsgrids::volfields::N_VOL> * volcell = volumeFieldsGrid.get(fsgridCell);
 	std::array<Real, fsgrids::bgbfield::N_BGB> * bgcell = BgBGrid.get(fsgridCell);
 	std::array<Real, fsgrids::egradpe::N_EGRADPE> * egradpecell = EGradPeGrid.get(fsgridCell);	
-        std::array<Real, fsgrids::dmoments::N_DMOMENTS> * dmomentscell = DMomentsGrid.get(fsgridCell);
+        std::array<Real, fsgrids::dmoments::N_DMOMENTS> * dmomentscell = dMomentsGrid.get(fsgridCell);
 
         sendBuffer[ii].sums[0 ] += volcell->at(fsgrids::volfields::PERBXVOL);
         sendBuffer[ii].sums[1 ] += volcell->at(fsgrids::volfields::PERBYVOL);

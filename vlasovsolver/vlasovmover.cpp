@@ -388,12 +388,6 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
            }       
            // Compute global maximum for number of subcycles
            MPI_Allreduce(&maxSubcycles, &globalMaxSubcycles, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
-           if (myRank == MASTER_RANK) {
-               if (globalMaxSubcycles > 10000) {
-                   logFile << "(MAIN) ERROR: Variable 'globalMaxSubcycles' above critical value! Aborting!" << endl;
-                   exit(1);
-               }
-           }
 
            // substep global max times
            for(uint step=0; step<(uint)globalMaxSubcycles; ++step) {

@@ -577,7 +577,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(lowercase == "eje" || lowercase == "vg_eje") {
          // Volume-averaged E field
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_eje",CellParams::EXJE,3));
-	 outputReducer->addMetadata(outputReducer->size()-1,"V/m","$\\mathrm{V}\\,\\mathrm{m}^{-1}$","$EJE$","1.0");
+         outputReducer->addMetadata(outputReducer->size()-1,"V/m","$\\mathrm{V}\\,\\mathrm{m}^{-1}$","$EJE$","1.0");
 	 continue;
       }
       if(lowercase == "vole" || lowercase == "vg_vole" || lowercase == "evol" || lowercase == "vg_e_vol" || lowercase == "e_vol") {
@@ -661,7 +661,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(lowercase == "rhoqe" || lowercase == "vg_rhoqe") {
          // Volume-averaged E field
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_erhoqe",CellParams::ERHOQX,3));
-	      outputReducer->addMetadata(outputReducer->size()-1,"V/m","$\\mathrm{V}\\,\\mathrm{m}^{-1}$","$E_{\\rho_q}$","1.0");
+         outputReducer->addMetadata(outputReducer->size()-1,"V/m","$\\mathrm{V}\\,\\mathrm{m}^{-1}$","$E_{\\rho_q}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_rhoqe",CellParams::RHOQE,1));
          outputReducer->addMetadata(outputReducer->size()-1,"C/m^3","$\\mathrm{C}\\,\\mathrm{m}^{-3}$","$\\rho_\\mathrm{qe}$","1.0");
          continue;
@@ -956,14 +956,14 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
    for (it = P::diagnosticVariableList.begin();
         it != P::diagnosticVariableList.end();
         it++) {
-      if(*it == "EJE") {
+      // Sidestep mixed case errors
+      const std::string lowercase = boost::algorithm::to_lower_copy(*it);
+
+      if(lowercase == "vg_eje" || lowercase == "eje") {
          // E field from electron current
          diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("EJE",CellParams::EXJE,3));
          continue;
       }
-
-      // Sidestep mixed case errors
-      const std::string lowercase = boost::algorithm::to_lower_copy(*it);
 
       if(lowercase == "populations_blocks" || lowercase == "populations_vg_blocks") {
          // Per-population total block counts

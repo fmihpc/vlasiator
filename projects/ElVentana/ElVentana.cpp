@@ -50,6 +50,8 @@ using namespace spatial_cell;
 namespace projects {
    ElVentana::ElVentana(): TriAxisSearch() { }
    ElVentana::~ElVentana() { }
+
+   bool ElVentana::initialize(void) {return Project::initialize();}
    
    void ElVentana::addParameters() {
       typedef Readparameters RP;
@@ -746,15 +748,7 @@ namespace projects {
    }
 
    void ElVentana::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
-      // Find a formula to calculate cellID in START file corresponding to cellID in this function,
-      // which comes from mpiGrid, i.e. the new grid. Then read specific parameters from the file and
-      // give them to the cell. The file should be open already when executing this function.
-     
-      // Initialize EJE variable
-      cell->parameters[CellParams::EXJE] = 0;
-      cell->parameters[CellParams::EYJE] = 0;
-      cell->parameters[CellParams::EZJE] = 0;
-
+      // EJE initialization to zero shouldn't be tied to this project so isn't done here anymore.
    }
 
 

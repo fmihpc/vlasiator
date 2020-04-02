@@ -204,6 +204,9 @@ void initializeGrids(
       }
       phiprof::stop("Apply system boundary conditions state");
    }
+
+   // Update technicalGrid
+   technicalGrid.updateGhostCells(); // This needs to be done at some point
    
    if (!P::isRestart) {
       //Initial state based on project, background field in all cells
@@ -219,7 +222,6 @@ void initializeGrids(
       project.setupBeforeSetCell(cells, mpiGrid, needCurl);
       if (needCurl==true) {
 	 // Communicate the perturbed B-fields read from the start file over to FSgrid
-	 technicalGrid.updateGhostCells(); // This needs to be done at some point
 	 feedPerBIntoFsGrid(mpiGrid, cells, perBGrid);
 	 perBGrid.updateGhostCells();
 	 // Calculate volumetric derivatives of B for curl
@@ -332,7 +334,6 @@ void initializeGrids(
    }
    momentsGrid.updateGhostCells();
    momentsDt2Grid.updateGhostCells();
-   technicalGrid.updateGhostCells(); // This needs to be done at some point
    phiprof::stop("Finish fsgrid setup");
    
    phiprof::stop("Set initial state");
