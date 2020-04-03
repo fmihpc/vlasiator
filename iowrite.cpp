@@ -936,7 +936,8 @@ bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       int lineX, lineY, lineZ;
       Real shellRadiusSquare;
       Real cellX, cellY, cellZ, DX, DY, DZ;
-      Real minRCornerSquare,maxRCornerSquare,rCornerSquare;
+      Real dx_rm, dx_rp, dy_rm, dy_rp, dz_rm, dz_rp;
+      Real rsquare_minus,rsquare_plus;
       for (uint i = 0; i < cells.size(); i++) {
          mpiGrid[cells[i]]->parameters[CellParams::ISCELLSAVINGF] = 0.0;
          // CellID stride selection
@@ -995,38 +996,16 @@ bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             DX = mpiGrid[cells[i]]->parameters[CellParams::DX];
             DY = mpiGrid[cells[i]]->parameters[CellParams::DY];
             DZ = mpiGrid[cells[i]]->parameters[CellParams::DZ];
-            // First corner
-            minRCornerSquare = cellX * cellX + cellY * cellY + cellZ * cellZ;
-            maxRCornerSquare = minRCornerSquare;
-            // Second corner
-            rCornerSquare = (cellX + DX) * (cellX + DX) + cellY * cellY + cellZ * cellZ;
-            if (rCornerSquare > maxRCornerSquare) {maxRCornerSquare = rCornerSquare;}
-            if (rCornerSquare < minRCornerSquare) {minRCornerSquare = rCornerSquare;}
-            // Third corner
-            rCornerSquare = cellX * cellX + (cellY + DY) * (cellY + DY) + cellZ * cellZ;
-            if (rCornerSquare > maxRCornerSquare) {maxRCornerSquare = rCornerSquare;}
-            if (rCornerSquare < minRCornerSquare) {minRCornerSquare = rCornerSquare;}
-            // Fourth corner
-            rCornerSquare = (cellX + DX) * (cellX + DX) + (cellY + DY) * (cellY + DY) + cellZ * cellZ;
-            if (rCornerSquare > maxRCornerSquare) {maxRCornerSquare = rCornerSquare;}
-            if (rCornerSquare < minRCornerSquare) {minRCornerSquare = rCornerSquare;}
-            // Fifth corner
-            rCornerSquare = cellX * cellX + cellY * cellY + (cellZ + DZ) * (cellZ + DZ);
-            if (rCornerSquare > maxRCornerSquare) {maxRCornerSquare = rCornerSquare;}
-            if (rCornerSquare < minRCornerSquare) {minRCornerSquare = rCornerSquare;}
-            // Sixth corner
-            rCornerSquare = (cellX + DX) * (cellX + DX) + cellY * cellY + (cellZ + DZ) * (cellZ + DZ);
-            if (rCornerSquare > maxRCornerSquare) {maxRCornerSquare = rCornerSquare;}
-            if (rCornerSquare < minRCornerSquare) {minRCornerSquare = rCornerSquare;}
-            // Seventh corner
-            rCornerSquare = cellX * cellX + (cellY + DY) * (cellY + DY) + (cellZ + DZ) * (cellZ + DZ);
-            if (rCornerSquare > maxRCornerSquare) {maxRCornerSquare = rCornerSquare;}
-            if (rCornerSquare < minRCornerSquare) {minRCornerSquare = rCornerSquare;}
-            // Eighth corner
-            rCornerSquare = (cellX + DX) * (cellX + DX) + (cellY + DY) * (cellY + DY) + (cellZ + DZ) * (cellZ + DZ);
-            if (rCornerSquare > maxRCornerSquare) {maxRCornerSquare = rCornerSquare;}
-            if (rCornerSquare < minRCornerSquare) {minRCornerSquare = rCornerSquare;}
-            if (minRCornerSquare <= shellRadiusSquare && maxRCornerSquare > shellRadiusSquare &&
+
+            dx_rm = cellX < 0 ? DX : 0;
+            dx_rp = cellX < 0 ? 0 : DX;
+            dy_rm = cellY < 0 ? DY : 0;
+            dy_rp = cellY < 0 ? 0 : DY;
+            dz_rm = cellZ < 0 ? DZ : 0;
+            dz_rp = cellZ < 0 ? 0 : DZ;
+            rsquare_minus = (cellX + dx_rm) * (cellX + dx_rm) + (cellY + dy_rm) * (cellY + dy_rm) + (cellZ + dz_rm) * (cellZ + dz_rm);
+            rsquare_plus  = (cellX + dx_rp) * (cellX + dx_rp) + (cellY + dy_rp) * (cellY + dy_rp) + (cellZ + dz_rp) * (cellZ + dz_rp);
+            if (rsquare_minus <= shellRadiusSquare && rsquare_plus > shellRadiusSquare &&
                 P::systemWriteDistributionWriteShellStride[ishell] > 0 && 
                 cells[i] % P::systemWriteDistributionWriteShellStride[ishell] == 0
                ) {
