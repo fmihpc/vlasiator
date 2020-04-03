@@ -164,6 +164,7 @@ void calculateMoments_R(
     creal HALF = 0.5;
 #pragma omp parallel for    
     for (size_t c=0; c<cells.size(); ++c) {
+        SpatialCell* cell = mpiGrid[cells[c]];
         // Clear old moments to zero value
         cell->parameters[CellParams::RHOM_R  ] = 0.0;
         cell->parameters[CellParams::VX_R] = 0.0;
@@ -327,6 +328,7 @@ void calculateMoments_V(
    
 #pragma omp parallel for    
     for (size_t c=0; c<cells.size(); ++c) {
+        SpatialCell* cell = mpiGrid[cells[c]];
         // Clear old moments to zero value
         cell->parameters[CellParams::RHOM_V  ] = 0.0;
 	cell->parameters[CellParams::VX_V] = 0.0;

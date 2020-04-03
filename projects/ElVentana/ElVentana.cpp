@@ -51,8 +51,6 @@ namespace projects {
    ElVentana::ElVentana(): TriAxisSearch() { }
    ElVentana::~ElVentana() { }
 
-   bool ElVentana::initialize(void) {return Project::initialize();}
-   
    void ElVentana::addParameters() {
       typedef Readparameters RP;
       
