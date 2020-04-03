@@ -36,6 +36,8 @@
 #include "../fieldsolver/ldz_magnetic_field.hpp"
 #include "../common.h"
 #include "../object_wrapper.h"
+#include "vectorclass.h"
+#include "vector3d.h"
 
 #ifndef NDEBUG
    #define DEBUG_IONOSPHERE
@@ -48,21 +50,26 @@ namespace SBC {
 
    // Ionosphere finite element grid
    SphericalTriGrid ionosphereGrid;
+
+	 // Static ionosphere member variables
+   const int SphericalTriGrid::MAX_DEPENDING_NODES;
+	 Real Ionosphere::innerRadius;
+	 int  Ionosphere::solverMaxIterations;
    
    // Offset field aligned currents so their sum is 0
-   //void SphericalTriGrid::offset_FAC() {
-   //   Real sum=0.;
+   void SphericalTriGrid::offset_FAC() {
+      Real sum=0.;
 
-   //   for(uint n = 0; n<nodes.size(); n++) {
-   //      sum += nodes[n].parameters[ionosphereParameters::SOURCE];
-   //   }
+      for(uint n = 0; n<nodes.size(); n++) {
+         sum += nodes[n].parameters[ionosphereParameters::SOURCE];
+      }
 
-   //   sum /= nodes.size();
+      sum /= nodes.size();
 
-   //   for(uint n = 0; n<nodes.size(); n++) {
-   //      nodes[n].parameters[ionosphereParameters::SOURCE] -= sum;
-   //   }
-   //}
+      for(uint n = 0; n<nodes.size(); n++) {
+         nodes[n].parameters[ionosphereParameters::SOURCE] -= sum;
+      }
+   }
 
    // Scale all nodes' coordinates so that they are situated on a spherical
    // shell with radius R
@@ -106,7 +113,7 @@ namespace SBC {
       for(int n=0; n<4; n++) {
          Node newNode;
          newNode.x = nodeCoords[n];
-         normalizeRadius(newNode,physicalconstants::R_E);
+         normalizeRadius(newNode,Ionosphere::innerRadius);
          nodes.push_back(newNode);
       }
 
@@ -144,7 +151,7 @@ namespace SBC {
       for(int n=0; n<12; n++) {
          Node newNode;
          newNode.x = nodeCoords[n];
-         normalizeRadius(newNode, physicalconstants::R_E);
+         normalizeRadius(newNode, Ionosphere::innerRadius);
          nodes.push_back(newNode);
       }
 
@@ -303,8 +310,7 @@ namespace SBC {
                newNode.x[c] = 0.5 * (n1.x[c] + n2.x[c]);
             }
             // Renormalize to sit on the circle
-            // TODO: Make this radius a parameter
-            normalizeRadius(newNode, physicalconstants::R_E);
+            normalizeRadius(newNode, Ionosphere::innerRadius);
 
             // This node has four touching elements: the old neighbour and 3 of the new ones
             newNode.numTouchingElements = 4;
@@ -453,36 +459,36 @@ namespace SBC {
          }
 
          // Trace fieldline barycenters upwards until a non-sysboundary cell is encountered
-         std::array<Real, 3> x = barycentre;
-         std::array<Real, 3> v({0,0,0});
-         while( sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]) < 1.5*couplingRadius ) {
-            
-            stepFieldline(x,v,dipole, 100e3); // TODO: Hardcoded stepsize of 100 km. Change!
+         //std::array<Real, 3> x = barycentre;
+         //std::array<Real, 3> v({0,0,0});
+         //while( sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]) < 1.5*couplingRadius ) {
+         //   
+         //   stepFieldline(x,v,dipole, 100e3); // TODO: Hardcoded stepsize of 100 km. Change!
 
-            // Look up the fsgrid cell beloinging to these coordinates
-            std::array<int, 3> fsgridCell;
-            for(int c=0; c<3; c++) {
-               fsgridCell[c] = (x[c] - technicalGrid.physicalGlobalStart[c]) / technicalGrid.DX;
-            }
-            fsgridCell = technicalGrid.globalToLocal(fsgridCell[0], fsgridCell[1], fsgridCell[2]);
+         //   // Look up the fsgrid cell beloinging to these coordinates
+         //   std::array<int, 3> fsgridCell;
+         //   for(int c=0; c<3; c++) {
+         //      fsgridCell[c] = (x[c] - technicalGrid.physicalGlobalStart[c]) / technicalGrid.DX;
+         //   }
+         //   fsgridCell = technicalGrid.globalToLocal(fsgridCell[0], fsgridCell[1], fsgridCell[2]);
 
-            // If the field line is no longer moving outwards but horizontally (88 degrees), abort.
-            if(fabs(x[0]*v[0]+x[1]*v[1]+x[2]*v[2])/sqrt(x[0]*x[0]+x[1]*x[1]+x[2]*x[2]) < cos(88. / 180. * M_PI)) {
-               break;
-            }
+         //   // If the field line is no longer moving outwards but horizontally (88 degrees), abort.
+         //   if(fabs(x[0]*v[0]+x[1]*v[1]+x[2]*v[2])/sqrt(x[0]*x[0]+x[1]*x[1]+x[2]*x[2]) < cos(88. / 180. * M_PI)) {
+         //      break;
+         //   }
 
-            // Not inside the local domain, skip and continue.
-            if(fsgridCell[0] == -1) {
-               continue;
-            }
+         //   // Not inside the local domain, skip and continue.
+         //   if(fsgridCell[0] == -1) {
+         //      continue;
+         //   }
 
-            if(technicalGrid.get(fsgridCell[0], fsgridCell[1], fsgridCell[2])->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+         //   if(technicalGrid.get(fsgridCell[0], fsgridCell[1], fsgridCell[2])->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
 
-               // Store upmapped coordinates
-               el.upmappedCentre = x;
-               break;
-            }
-         }
+         //      // Store upmapped coordinates
+         //      el.upmappedCentre = x;
+         //      break;
+         //   }
+         //}
       }
 
       // Now generate the subcommunicator to solve the ionosphere only on those ranks that actually couple
@@ -546,6 +552,337 @@ namespace SBC {
      }
    }
 
+   // Calculate grad(T) for a element basis function that is zero at corners a and b,
+   // and unity at corner c
+   std::array<Real,3> SphericalTriGrid::computeGradT(const std::array<Real, 3>& a,
+                                       const std::array<Real, 3>& b,
+                                       const std::array<Real, 3>& c) {
+
+     Vec3d av(a[0],a[1],a[2]);
+     Vec3d bv(b[0],b[1],b[2]);
+     Vec3d cv(c[0],c[1],c[2]);
+
+     Vec3d z = cross_product(bv-cv, av-cv);
+
+     Vec3d result = cross_product(z,bv-av)/dot_product( z, cross_product(av,bv) + cross_product(cv, av-bv));
+
+     return std::array<Real,3>{result[0],result[1],result[2]};
+   }
+
+   // Calculate the average sigma tensor of an element by averaging over the three nodes it touches
+   std::array<Real, 9> SphericalTriGrid::sigmaAverage(uint elementIndex) {
+
+     std::array<Real, 9> retval{0,0,0,0,0,0,0,0,0};
+
+     for(int corner=0; corner<3; corner++) {
+       Node& n = nodes[ elements[elementIndex].corners[corner] ];
+       for(int i=0; i<9; i++) {
+         retval[i] += n.parameters[ionosphereParameters::SIGMA + i] / 3.;
+       }
+     }
+
+     return retval;
+   }
+
+   // calculate integral( grd(Ti) Sigma grad(Tj) ) over the area of the given element
+   // The i and j parameters enumerate the piecewise linear element basis function
+   double SphericalTriGrid::elementIntegral(uint elementIndex, int i, int j, bool transpose) {
+
+     Element& e = elements[elementIndex];
+     const std::array<Real, 3>& c1 = nodes[e.corners[0]].x;
+     const std::array<Real, 3>& c2 = nodes[e.corners[1]].x;
+     const std::array<Real, 3>& c3 = nodes[e.corners[2]].x;
+
+     std::array<Real, 3> Ti,Tj;
+     switch(i) {
+     case 0:
+       Ti = computeGradT(c2,c3,c1);
+       break;
+     case 1:
+       Ti = computeGradT(c1,c3,c2);
+       break;
+     case 2: default:
+       Ti = computeGradT(c1,c2,c3);
+       break;
+     }
+     switch(j) {
+     case 0:
+       Tj = computeGradT(c2,c3,c1);
+       break;
+     case 1:
+       Tj = computeGradT(c1,c3,c2);
+       break;
+     case 2: default:
+       Tj = computeGradT(c1,c2,c3);
+       break;
+     }
+
+     std::array<Real, 9> sigma = sigmaAverage(elementIndex);
+
+     Real retval = 0;
+     if(transpose) {
+       for(int n=0; n<3; n++) {
+         for(int m=0; m<3; m++) {
+           retval += Ti[m] * sigma[3*n+m] * Tj[n];
+         }
+       }
+     } else {
+       for(int n=0; n<3; n++) {
+         for(int m=0; m<3; m++) {
+           retval += Ti[n] * sigma[3*n+m] * Tj[m];
+         }
+       }
+     }
+
+     return retval * elementArea(elementIndex);
+   }
+
+   // Add matrix value for the solver, linking two nodes.
+   void SphericalTriGrid::addMatrixDependency(uint node1, uint node2, Real coeff, bool transposed) {
+      
+     Node& n = nodes[node1];
+     // First check if the dependency already exists
+     for(int i=0; i<n.numDepNodes; i++) {
+       if(n.dependingNodes[i] == node2) {
+         
+         // Yup, found it, let's simply add the coefficient.
+         if(transposed) {
+           n.transposedCoeffs[i] += coeff;
+         } else {
+           n.dependingCoeffs[i] += coeff;
+         }
+         return;
+       }
+     }
+
+     // Not found, let's add it.
+     if(n.numDepNodes >= MAX_DEPENDING_NODES) {
+       logFile << "(ionosphere) Node " << node1 << " already has " << MAX_DEPENDING_NODES << " depending nodes, can't add more!" << endl << write;
+       return;
+     }
+     n.dependingNodes[n.numDepNodes] = node2;
+     if(transposed) {
+       n.dependingCoeffs[n.numDepNodes] = 0;
+       n.transposedCoeffs[n.numDepNodes] = coeff;
+     } else {
+       n.dependingCoeffs[n.numDepNodes] = coeff;
+       n.transposedCoeffs[n.numDepNodes] = 0;
+     }
+     n.numDepNodes++;
+   }
+
+   // Add solver matrix dependencies for the neighbouring nodes
+   void SphericalTriGrid::addAllMatrixDependencies(uint nodeIndex) {
+
+     for(uint t=0; t<nodes[nodeIndex].numTouchingElements; t++) {
+       int j0=-1;
+       Element& e = elements[nodes[nodeIndex].touchingElements[t]];
+
+       // Find the corner this node is touching
+       for(int c=0; c <3; c++) {
+         if(e.corners[c] == nodeIndex) {
+           j0=c;
+         }
+       }
+
+       // Special case: we are touching the middle of an edge
+       if(j0 == -1) {
+         // TODO: Implement this? Gumics doesn't.
+       } else {
+
+         // Normal case.
+         for(int c=0; c <3; c++) {
+           uint neigh=e.corners[c];
+           addMatrixDependency(nodeIndex, neigh, elementIntegral(nodes[nodeIndex].touchingElements[t], j0, c));
+           addMatrixDependency(nodeIndex, neigh, elementIntegral(nodes[nodeIndex].touchingElements[t], j0, c,true),true);
+         }
+       }
+     }
+   }
+
+   // Initialize the CG sover by assigning matrix dependency weights
+   void SphericalTriGrid::initSolver() {
+
+     // Zero out parameters
+     for(uint n=0; n<nodes.size(); n++) {
+       for(uint p=ionosphereParameters::SIGMA; p<ionosphereParameters::PPARAM; p++) {
+         Node& N=nodes[n];
+         N.parameters[p] = 0;
+       }
+     }
+
+     // Set dummy sigma matrix
+     // TODO: Replace by actual calculation
+     for(uint n=0; n<nodes.size(); n++) {
+       Node& N=nodes[n];
+       N.parameters[ionosphereParameters::SIGMA] = 1;
+       N.parameters[ionosphereParameters::SIGMA22] = 1;
+       N.parameters[ionosphereParameters::SIGMA33] = 1;
+     }
+
+     // TODO: calculate sigmas, precipitation etc.
+
+     for(uint n=0; n<nodes.size(); n++) {
+       addAllMatrixDependencies(n);
+     }
+   }
+
+   // Evaluate a nodes' neighbour parameter, averaged through the coupling
+   // matrix 
+   //
+   // -> "A times parameter"
+   Real SphericalTriGrid::Atimes(uint nodeIndex, int parameter, bool transpose) {
+     Real retval=0;
+     Node& n = nodes[nodeIndex];
+
+     if(transpose) {
+       for(int i=0; i<n.numDepNodes; i++) {
+         retval += nodes[n.dependingNodes[i]].parameters[parameter] * n.transposedCoeffs[i];
+       }
+     } else {
+       for(int i=0; i<n.numDepNodes; i++) {
+         retval += nodes[n.dependingNodes[i]].parameters[parameter] * n.dependingCoeffs[i];
+       }
+     }
+     
+     return retval;
+   }
+
+   // Evaluate a nodes' own parameter value
+   // (If preconditioning is used, this is already adjusted for self-coupling)
+   Real SphericalTriGrid::Asolve(uint nodeIndex, int parameter) {
+      
+     // TODO: Implement preconditioning
+     return nodes[nodeIndex].parameters[parameter];
+   }
+
+   // Solve the ionosphere potential using a conjugate gradient solver
+   void SphericalTriGrid::solve() {
+
+     // Ranks that don't participate in ionosphere solving skip this function outright
+     if(!isCouplingToCells) {
+       return;
+     }
+
+     int rank;
+     MPI_Comm_rank(communicator, &rank);
+     if(rank == 0) {
+       cerr << "(ionosphere) starting solve..." << endl;
+     }
+     // Calculate sourcenorm and initial residual estimate
+     Real sourcenorm = 0;
+     for(uint n=0; n<nodes.size(); n++) {
+       Node& N=nodes[n];
+       Real source = N.parameters[ionosphereParameters::SOURCE];
+       sourcenorm += source*source;
+       N.parameters[ionosphereParameters::RESIDUAL] = source - Atimes(n, ionosphereParameters::SOLUTION);
+       N.parameters[ionosphereParameters::BEST_SOLUTION] = N.parameters[ionosphereParameters::SOLUTION];
+       N.parameters[ionosphereParameters::RRESIDUAL] = N.parameters[ionosphereParameters::RESIDUAL];
+     }
+     for(uint n=0; n<nodes.size(); n++) {
+       Node& N=nodes[n];
+       N.parameters[ionosphereParameters::ZPARAM] = Asolve(n,ionosphereParameters::RESIDUAL);
+     }
+
+     // Abort if there is nothing to solve.
+     if(sourcenorm == 0) {
+       if(rank == 0) {
+       cerr << "(ionosphere) nothing to solve, skipping. " << endl;
+       }
+       return;
+     }
+     sourcenorm = sqrt(sourcenorm);
+
+     Real err = 0;
+     Real minerr = 1e30;
+     Real bkden = 1.;
+     for(int iteration =0; iteration < Ionosphere::solverMaxIterations; iteration++) { 
+
+       for(uint n=0; n<nodes.size(); n++) {
+         Node& N=nodes[n];
+         N.parameters[ionosphereParameters::ZZPARAM] = Asolve(n,ionosphereParameters::RRESIDUAL);
+       }
+
+       // Calculate bk and gradient vector p
+       Real bknum = 0;
+       for(uint n=0; n<nodes.size(); n++) {
+         Node& N=nodes[n];
+         bknum += N.parameters[ionosphereParameters::ZPARAM] * N.parameters[ionosphereParameters::RRESIDUAL];
+       }
+       if(iteration == 0) {
+         for(uint n=0; n<nodes.size(); n++) {
+           Node& N=nodes[n];
+           N.parameters[ionosphereParameters::PPARAM] = N.parameters[ionosphereParameters::ZPARAM];
+           N.parameters[ionosphereParameters::PPPARAM] = N.parameters[ionosphereParameters::ZZPARAM];
+         }
+       } else {
+         Real bk = bknum / bkden;
+         for(uint n=0; n<nodes.size(); n++) {
+           Node& N=nodes[n];
+           N.parameters[ionosphereParameters::PPARAM] *= bk;
+           N.parameters[ionosphereParameters::PPARAM] += N.parameters[ionosphereParameters::ZPARAM];
+           N.parameters[ionosphereParameters::PPPARAM] *= bk;
+           N.parameters[ionosphereParameters::PPPARAM] += N.parameters[ionosphereParameters::ZZPARAM];
+         }
+       }
+       bkden = bknum;
+       if(bkden == 0 && rank==0) {
+         cerr << "(ionosphere) New bkden = 0!" << endl;
+         bkden = 1;
+       }
+
+
+       // Calculate ak, new solution and new residual
+       Real akden = 0;
+       for(uint n=0; n<nodes.size(); n++) {
+         Node& N=nodes[n];
+         Real zparam = Atimes(n, ionosphereParameters::PPARAM);
+         N.parameters[ionosphereParameters::ZPARAM] = zparam;
+         akden += zparam * N.parameters[ionosphereParameters::PPPARAM];
+       }
+       Real ak=bknum/akden;
+
+       Real residualnorm = 0;
+       for(uint n=0; n<nodes.size(); n++) {
+         Node& N=nodes[n];
+         N.parameters[ionosphereParameters::ZZPARAM] = Atimes(n,ionosphereParameters::PPPARAM, true); 
+         N.parameters[ionosphereParameters::SOLUTION] += ak * N.parameters[ionosphereParameters::PPARAM];
+         Real newresid = N.parameters[ionosphereParameters::RESIDUAL] - ak * N.parameters[ionosphereParameters::ZPARAM];
+         N.parameters[ionosphereParameters::RESIDUAL] = newresid;
+         residualnorm += newresid * newresid;
+         N.parameters[ionosphereParameters::RRESIDUAL] -= ak * N.parameters[ionosphereParameters::ZZPARAM];
+       }
+       for(uint n=0; n<nodes.size(); n++) {
+         Node& N=nodes[n];
+         N.parameters[ionosphereParameters::ZPARAM] = Asolve(n, ionosphereParameters::RESIDUAL);
+       }
+
+       // See if this solved the potential better than before
+       err = sqrt(residualnorm)/sourcenorm;
+       if(rank == 0) {
+         cerr << "(ionosphere) Iteration " << iteration <<", error is " << err << ". " << endl;
+       }
+       if(err < minerr) {
+         for(uint n=0; n<nodes.size(); n++) {
+           Node& N=nodes[n];
+           N.parameters[ionosphereParameters::BEST_SOLUTION] = N.parameters[ionosphereParameters::SOLUTION];
+         }
+         minerr = err;
+       }
+
+       if(minerr < 1e-6) {
+         if(rank == 0) {
+           cerr << "Solved ionosphere potential after " << iteration << " iterations." << endl;
+         }
+         return;
+       }
+
+     }
+
+     if(rank == 0) {
+       cerr << "(ionosphere) Exhausted iterations. Remaining error " << err << endl;
+     }
+   }
 
    // Actual ionosphere object implementation
 
@@ -557,13 +894,15 @@ namespace SBC {
       Readparameters::add("ionosphere.centerX", "X coordinate of ionosphere center (m)", 0.0);
       Readparameters::add("ionosphere.centerY", "Y coordinate of ionosphere center (m)", 0.0);
       Readparameters::add("ionosphere.centerZ", "Z coordinate of ionosphere center (m)", 0.0);
-      Readparameters::add("ionosphere.radius", "Radius of ionosphere (m).", 1.0e7);
+      Readparameters::add("ionosphere.radius", "Radius of the inner simulation boundary (m).", 1.0e7);
+			Readparameters::add("ionosphere.innerRadius", "Radius of the ionosphere model (m).", physicalconstants::R_E + 100e3);
       Readparameters::add("ionosphere.geometry", "Select the geometry of the ionosphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm (circle, DEFAULT), 3: 2-norm cylinder aligned with y-axis, use with polar plane/line dipole.", 2);
       Readparameters::add("ionosphere.precedence", "Precedence value of the ionosphere system boundary condition (integer), the higher the stronger.", 2);
       Readparameters::add("ionosphere.reapplyUponRestart", "If 0 (default), keep going with the state existing in the restart file. If 1, calls again applyInitialState. Can be used to change boundary condition behaviour during a run.", 0);
       Readparameters::add("ionosphere.baseShape", "Select the seed mesh geometry for the spherical ionosphere grid. Options are: tetrahedron, icosahedron.",std::string("icosahedron"));
       Readparameters::addComposing("ionosphere.refineMinLatitude", "Refine the grid polewards of the given latitude. Multiple of these lines can be given for successive refinement, paired up with refineMaxLatitude lines.");
       Readparameters::addComposing("ionosphere.refineMaxLatitude", "Refine the grid equatorwards of the given latitude. Multiple of these lines can be given for successive refinement, paired up with refineMinLatitude lines.");
+			Readparameters::add("ionosphere.solverMaxIterations", "Maximum number of iterations for the conjugate gradient solver", 2000);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
@@ -614,6 +953,14 @@ namespace SBC {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
+			if(!Readparameters::get("ionosphere.solverMaxIterations", solverMaxIterations)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+			}
+			if(!Readparameters::get("ionosphere.innerRadius", innerRadius)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+			}
       if(!Readparameters::get("ionosphere.refineMinLatitude",refineMinLatitudes)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
@@ -693,8 +1040,8 @@ namespace SBC {
             mean_z += ionosphereGrid.nodes[ionosphereGrid.elements[i].corners[2]].x[2];
             mean_z /= 3.;
 
-            if(fabs(mean_z) >= sin(phi1 * M_PI / 180.) * physicalconstants::R_E &&
-                  fabs(mean_z) <= sin(phi2 * M_PI / 180.) * physicalconstants::R_E) {
+            if(fabs(mean_z) >= sin(phi1 * M_PI / 180.) * Ionosphere::innerRadius &&
+                  fabs(mean_z) <= sin(phi2 * M_PI / 180.) * Ionosphere::innerRadius) {
                ionosphereGrid.subdivideElement(i);
             }
          }

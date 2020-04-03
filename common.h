@@ -376,20 +376,29 @@ namespace fsgrids {
 
 // Ionosphere node parameters
 enum ionosphereParameters {
-	SOURCE,    /*!< Field aligned current source term */
-	SIGMAP,    /*!< Petersen conductivity tensor */
-   SIGMAH,    /*!< Hall conductivity tensor */
-	PRECIP,    /*!< Precipitation */
-	BX1,       
-   BY1,
-   BZ1,
-	SOLUTION, 
-   BEST_SOLUTION,
-	RESIDUAL, 
-   RRESIDUAL,
-	ZPARAM, ZZPARAM,
-	PPPARAM, PPARAM,
-   N_IONOSPHERE_PARAMETERS
+  SOURCE,    /*!< Field aligned current source term */
+  SIGMA,   SIGMA12, SIGMA13, 
+  SIGMA21, SIGMA22, SIGMA23, /*!< Overall conductivity tensor */
+  SIGMA31, SIGMA32, SIGMA33,
+
+  SIGMAP,   SIGMAP12, SIGMAP13, 
+  SIGMAP21, SIGMAP22, SIGMAP23, /*!< Petersen conductivity tensor */
+  SIGMAP31, SIGMAP32, SIGMAP33,
+
+  SIGMAH,   SIGMAH12, SIGMAH13, 
+  SIGMAH21, SIGMAH22, SIGMAH23, /*!< Hall conductivity tensor */
+  SIGMAH31, SIGMAH32, SIGMAH33,
+  PRECIP,    /*!< Precipitation */
+  BX1,       
+  BY1,
+  BZ1,
+  SOLUTION, /*!< Currently considered solution potential */
+  BEST_SOLUTION, /*!< Best solution found so far */
+  RESIDUAL, /*!< Residual of the current solution */
+  RRESIDUAL,
+  ZPARAM, ZZPARAM,
+  PPPARAM, PPARAM,
+  N_IONOSPHERE_PARAMETERS
 };
 
 /*! The namespace sysboundarytype contains the identification index of the boundary condition types applied to a cell,

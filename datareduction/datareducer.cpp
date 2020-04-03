@@ -980,21 +980,74 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1, "m^2", "$\\mathrm{m}^2$", "$A_m$", "1.0");
          continue;
       }
-      if(lowercase == "ig_upmappedcellcoords") {
-         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereElement("ig_upmappedcellcoords", [](
+      if(lowercase == "ig_solverinternals") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_residual", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
                   
-                     std::vector<Real> retval(grid.elements.size()*3);
+                     std::vector<Real> retval(grid.nodes.size());
 
-                     for(uint i=0; i<grid.elements.size(); i++) {
-                        retval[3*i] = grid.elements[i].upmappedCentre[0];
-                        retval[3*i+1] = grid.elements[i].upmappedCentre[1];
-                        retval[3*i+2] = grid.elements[i].upmappedCentre[2];
+                     for(uint i=0; i<grid.nodes.size(); i++) {
+                        retval[i] = grid.nodes[i].parameters[ionosphereParameters::RESIDUAL];
                      }
 
                      return retval;
                      }));
-         outputReducer->addMetadata(outputReducer->size()-1, "m", "m", "$x_\\text{mapped}$", "1.0");
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_solution", [](
+                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
+                  
+                     std::vector<Real> retval(grid.nodes.size());
+
+                     for(uint i=0; i<grid.nodes.size(); i++) {
+                        retval[i] = grid.nodes[i].parameters[ionosphereParameters::SOLUTION];
+                     }
+
+                     return retval;
+                     }));
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_p", [](
+                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
+                  
+                     std::vector<Real> retval(grid.nodes.size());
+
+                     for(uint i=0; i<grid.nodes.size(); i++) {
+                        retval[i] = grid.nodes[i].parameters[ionosphereParameters::PPARAM];
+                     }
+
+                     return retval;
+                     }));
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_pp", [](
+                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
+                  
+                     std::vector<Real> retval(grid.nodes.size());
+
+                     for(uint i=0; i<grid.nodes.size(); i++) {
+                        retval[i] = grid.nodes[i].parameters[ionosphereParameters::PPPARAM];
+                     }
+
+                     return retval;
+                     }));
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_z", [](
+                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
+                  
+                     std::vector<Real> retval(grid.nodes.size());
+
+                     for(uint i=0; i<grid.nodes.size(); i++) {
+                        retval[i] = grid.nodes[i].parameters[ionosphereParameters::ZPARAM];
+                     }
+
+                     return retval;
+                     }));
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_zz", [](
+                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
+                  
+                     std::vector<Real> retval(grid.nodes.size());
+
+                     for(uint i=0; i<grid.nodes.size(); i++) {
+                        retval[i] = grid.nodes[i].parameters[ionosphereParameters::ZZPARAM];
+                     }
+
+                     return retval;
+                     }));
+
          continue;
       }
       if(lowercase == "ig_upmappednodecoords") {

@@ -929,6 +929,9 @@ int main(int argn,char* args[]) {
 
       // Map current data down into the ionosphere
       SBC::ionosphereGrid.mapDownFAC(dPerBGrid, BgBGrid);
+
+      // Solve ionosphere
+      SBC::ionosphereGrid.solve();
       
       phiprof::start("Velocity-space");
       if ( P::propagateVlasovAcceleration ) {

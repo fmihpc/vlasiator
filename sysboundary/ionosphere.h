@@ -48,14 +48,14 @@ namespace SBC {
    struct SphericalTriGrid {
 
       static const int MAX_TOUCHING_ELEMENTS = 6; // Maximum number of elements touching one node
-      static const int MAX_DEPENDING_NODES = 9;   // Maximum number of depending nodes
+      static const int MAX_DEPENDING_NODES = 12;   // Maximum number of depending nodes
 
       // One finite element, spanned between 3 nodes
       struct Element {
          int refLevel;
          std::array<uint32_t, 3> corners;                 // Node indices in the corners of this element
          std::array<int32_t, 4> children = {-1,-1,-1,-1}; // Indices of the child elements (-1 = no child)
-         std::array<Real, 3> upmappedCentre = {0,0,0};    // Coordinates the cell barycentre maps to
+         //std::array<Real, 3> upmappedCentre = {0,0,0};    // Coordinates the cell barycentre maps to
          // List of fsgrid cells to couple to (and their strengths)
 
       };
@@ -67,9 +67,11 @@ namespace SBC {
          uint numTouchingElements;
          std::array<uint32_t, MAX_TOUCHING_ELEMENTS> touchingElements;
    
-         // List of nodes the current node depends on (max 9)
+         // List of nodes the current node depends on
          uint numDepNodes;
          std::array<uint32_t, MAX_DEPENDING_NODES> dependingNodes;
+         std::array<Real, MAX_DEPENDING_NODES> dependingCoeffs;
+         std::array<Real, MAX_DEPENDING_NODES> transposedCoeffs;
 
          std::array<Real, 3> x = {0,0,0}; // Coordinates of the node
          std::array<Real, 3> xMapped = {0,0,0}; // Coordinates mapped along fieldlines into simulation domain
@@ -93,6 +95,15 @@ namespace SBC {
       int32_t findElementNeighbour(uint32_t e, int n1, int n2);
       void subdivideElement(uint32_t e);  // Subdivide mesh within element e
       void calculateFsgridCoupling(FsGrid< fsgrids::technical, 2> & technicalGrid, FieldFunction& dipole, Real radius);     // Link each element to fsgrid cells for coupling
+
+      // Conjugate Gradient solver functions
+      void addMatrixDependency(uint node1, uint node2, Real coeff, bool transposed=false); // Add matrix value for the solver
+      void addAllMatrixDependencies(uint nodeIndex);
+      void initSolver();                 // Initialize the CG solver
+      Real Atimes(uint nodeIndex, int parameter, bool transpose=false); // Evaluate neighbour nodes' coupled parameter
+      Real Asolve(uint nodeIndex, int parameter); // Evaluate own parameter value
+      void solve();
+
       void mapDownFAC(
           FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> dPerBGrid,
           FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2> & BgBGrid);  // Map field-aligned currents down from the simulation boundary onto this grid
@@ -150,6 +161,11 @@ namespace SBC {
          }
          return area;
       }
+
+      std::array<Real,3> computeGradT(const std::array<Real, 3>& a, const std::array<Real, 3>& b, const std::array<Real, 3>& c);
+      std::array<Real, 9> sigmaAverage(uint elementIndex);
+      double elementIntegral(uint elementIndex, int i, int j, bool transpose = false);
+
    };
 
    extern SphericalTriGrid ionosphereGrid;
@@ -237,6 +253,8 @@ namespace SBC {
       
       virtual std::string getName() const;
       virtual uint getIndex() const;
+      static Real innerRadius; /*!< Radius of the ionosphere model */
+      static int solverMaxIterations; /*!< Maximum iterations of CG solver per timestep */
       
    protected:
       void generateTemplateCell(Project &project);
@@ -256,7 +274,7 @@ namespace SBC {
       );
       
       Real center[3]; /*!< Coordinates of the centre of the ionosphere. */
-      Real radius; /*!< Radius of the ionosphere. */
+      Real radius; /*!< Radius of the inner simulation boundary */
       uint geometry; /*!< Geometry of the ionosphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm (circle, DEFAULT), 3: polar-plane cylinder with line dipole. */
 
       std::vector<IonosphereSpeciesParameters> speciesParams;

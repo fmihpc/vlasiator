@@ -391,6 +391,7 @@ namespace projects {
             default:
                setBackgroundFieldToZero(BgBGrid);
       }
+      SBC::ionosphereGrid.initSolver();
       
       const auto localSize = BgBGrid.getLocalSize().data();
       
