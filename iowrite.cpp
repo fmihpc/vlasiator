@@ -1026,7 +1026,10 @@ bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             rCornerSquare = (cellX + DX) * (cellX + DX) + (cellY + DY) * (cellY + DY) + (cellZ + DZ) * (cellZ + DZ);
             if (rCornerSquare > maxRCornerSquare) {maxRCornerSquare = rCornerSquare;}
             if (rCornerSquare < minRCornerSquare) {minRCornerSquare = rCornerSquare;}
-            if (minRCornerSquare <= shellRadiusSquare && maxRCornerSquare > shellRadiusSquare) {
+            if (minRCornerSquare <= shellRadiusSquare && maxRCornerSquare > shellRadiusSquare &&
+                P::systemWriteDistributionWriteShellStride[ishell] > 0 && 
+                cells[i] % P::systemWriteDistributionWriteShellStride[ishell] == 0
+               ) {
                velSpaceCells.push_back(cells[i]);
                mpiGrid[cells[i]]->parameters[CellParams::ISCELLSAVINGF] = 1.0;
             }
