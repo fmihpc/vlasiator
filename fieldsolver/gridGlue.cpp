@@ -241,6 +241,7 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
           }
 
         // Set Cell to zero before passing filter
+        swap = swapGrid.get(ii,jj,kk);
         for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
                   
           swap->at(e)=0.0;
