@@ -240,23 +240,28 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
             continue;
           }
 
+        // Set Cell to zero before passing filter
+        for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
+                  
+          swap->at(e)=0.0;
+                
+          }
+
+
         for (int a=0; a<stencilWidth; a++){
           for (int b=0; b<stencilWidth; b++){
             for (int c=0; c<stencilWidth; c++){
                   
-
-
               int xn=ii+a-kernelOffset;
               int yn=jj+b-kernelOffset;
               int zn=kk+c-kernelOffset;
 
               cell = momentsGrid.get(xn, yn, zn);
-              swap = swapGrid.get(xn, yn, zn);
+              swap = swapGrid.get(ii,jj,kk);
 
               for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
                   
                 swap->at(e)+=cell->at(e) * kernel[a][b][c];
-
 
               }
             }
