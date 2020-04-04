@@ -29,6 +29,7 @@
 
 #include "../grid.h"
 #include "../object_wrapper.h"
+#include "../vlasovsolver/cpu_moments.h"
 
 #include "sysboundary.h"
 #include "donotcompute.h"
@@ -389,6 +390,8 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
             technicalGrid.get(x,y,z)->sysBoundaryFlag = sysboundarytype::NOT_SYSBOUNDARY;
             technicalGrid.get(x,y,z)->sysBoundaryLayer = 0;
             technicalGrid.get(x,y,z)->maxFsDt = std::numeric_limits<Real>::max();
+            // Set the fsgrid rank in the technical grid
+            technicalGrid.get(x,y,z)->fsGridRank=technicalGrid.getRank();
          }
       }
    }
@@ -522,6 +525,62 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
    
    technicalGrid.updateGhostCells();
    
+   const std::array<int,3> fsGridDimensions = technicalGrid.getGlobalSize();
+   
+   // One pass to setup the bit field to know which components the field solver should propagate.
+   #pragma omp parallel for collapse(3)
+   for (int x = 0; x < localSize[0]; ++x) {
+      for (int y = 0; y < localSize[1]; ++y) {
+         for (int z = 0; z < localSize[2]; ++z) {
+            technicalGrid.get(x,y,z)->SOLVE = 0;
+            
+            std::array<int32_t, 3> globalIndices = technicalGrid.getGlobalIndices(x,y,z);
+            
+            if (  ((globalIndices[0] == 0 || globalIndices[0] == fsGridDimensions[0]-1) && fsGridDimensions[0] > 1)
+               || ((globalIndices[1] == 0 || globalIndices[1] == fsGridDimensions[1]-1) && fsGridDimensions[1] > 1)
+               || ((globalIndices[2] == 0 || globalIndices[2] == fsGridDimensions[2]-1) && fsGridDimensions[2] > 1)
+            ) {
+               continue;
+            }
+            if (technicalGrid.get(x,y,z)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+               technicalGrid.get(x,y,z)->SOLVE = technicalGrid.get(x,y,z)->SOLVE | compute::BX;
+               technicalGrid.get(x,y,z)->SOLVE = technicalGrid.get(x,y,z)->SOLVE | compute::BY;
+               technicalGrid.get(x,y,z)->SOLVE = technicalGrid.get(x,y,z)->SOLVE | compute::BZ;
+               technicalGrid.get(x,y,z)->SOLVE = technicalGrid.get(x,y,z)->SOLVE | compute::EX;
+               technicalGrid.get(x,y,z)->SOLVE = technicalGrid.get(x,y,z)->SOLVE | compute::EY;
+               technicalGrid.get(x,y,z)->SOLVE = technicalGrid.get(x,y,z)->SOLVE | compute::EZ;
+            } else {
+               if (technicalGrid.get(x-1,y,z)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+                  technicalGrid.get(x,y,z)->SOLVE = technicalGrid.get(x,y,z)->SOLVE | compute::BX;
+                  technicalGrid.get(x,y,z)->SOLVE = technicalGrid.get(x,y,z)->SOLVE | compute::EY;
+                  technicalGrid.get(x,y,z)->SOLVE = technicalGrid.get(x,y,z)->SOLVE | compute::EZ;
+               }
+               if (technicalGrid.get(x,y-1,z)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+                  technicalGrid.get(x,y,z)->SOLVE = technicalGrid.get(x,y,z)->SOLVE | compute::BY;
+                  technicalGrid.get(x,y,z)->SOLVE = technicalGrid.get(x,y,z)->SOLVE | compute::EX;
+                  technicalGrid.get(x,y,z)->SOLVE = technicalGrid.get(x,y,z)->SOLVE | compute::EZ;
+               }
+               if (technicalGrid.get(x,y,z-1)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+                  technicalGrid.get(x,y,z)->SOLVE = technicalGrid.get(x,y,z)->SOLVE | compute::BZ;
+                  technicalGrid.get(x,y,z)->SOLVE = technicalGrid.get(x,y,z)->SOLVE | compute::EX;
+                  technicalGrid.get(x,y,z)->SOLVE = technicalGrid.get(x,y,z)->SOLVE | compute::EY;
+               }
+               if (technicalGrid.get(x-1,y-1,z)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+                  technicalGrid.get(x,y,z)->SOLVE = technicalGrid.get(x,y,z)->SOLVE | compute::EZ;
+               }
+               if (technicalGrid.get(x-1,y,z-1)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+                  technicalGrid.get(x,y,z)->SOLVE = technicalGrid.get(x,y,z)->SOLVE | compute::EY;
+               }
+               if (technicalGrid.get(x,y-1,z-1)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+                  technicalGrid.get(x,y,z)->SOLVE = technicalGrid.get(x,y,z)->SOLVE | compute::EX;
+               }
+            }
+         }
+      }
+   }
+   
+   technicalGrid.updateGhostCells();
+   
    return success;
 }
 
@@ -546,8 +605,6 @@ bool SysBoundary::applyInitialState(
       if(                                                        // This is to skip the reapplication
          Parameters::isRestart == true                           // When not restarting
          && (*it)->doApplyUponRestart() == false                 // When reapplicaiton is not requested
-         && (*it)->getIndex() != sysboundarytype::IONOSPHERE     // But this is to force it when we have either IONOSPHERE
-         && (*it)->getIndex() != sysboundarytype::SET_MAXWELLIAN // or SET_MAXWELLIAN as otherwise the POP_METADA are not properly set
       ) {
          continue;
       }
@@ -574,7 +631,8 @@ bool SysBoundary::applyInitialState(
  */
 void SysBoundary::applySysBoundaryVlasovConditions(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   creal& t
+   creal& t,
+   const bool calculate_V_moments // if true, compute into _V, false into _R moments so that the interpolated ones can be done
 ) {
    if(sysBoundaries.size()==0) {
       return; //no system boundaries
@@ -609,7 +667,12 @@ void SysBoundary::applySysBoundaryVlasovConditions(
       #pragma omp parallel for
       for (uint i=0; i<localCells.size(); i++) {
          cuint sysBoundaryType = mpiGrid[localCells[i]]->sysBoundaryFlag;
-         this->getSysBoundary(sysBoundaryType)->vlasovBoundaryCondition(mpiGrid,localCells[i],popID);
+         this->getSysBoundary(sysBoundaryType)->vlasovBoundaryCondition(mpiGrid,localCells[i],popID,calculate_V_moments);
+      }
+      if (calculate_V_moments) {
+         calculateMoments_V(mpiGrid, localCells, true);
+      } else {
+         calculateMoments_R(mpiGrid, localCells, true);
       }
       phiprof::stop(timer);
    
@@ -626,7 +689,12 @@ void SysBoundary::applySysBoundaryVlasovConditions(
       #pragma omp parallel for
       for (uint i=0; i<boundaryCells.size(); i++) {
          cuint sysBoundaryType = mpiGrid[boundaryCells[i]]->sysBoundaryFlag;
-         this->getSysBoundary(sysBoundaryType)->vlasovBoundaryCondition(mpiGrid, boundaryCells[i],popID);
+         this->getSysBoundary(sysBoundaryType)->vlasovBoundaryCondition(mpiGrid, boundaryCells[i],popID,calculate_V_moments);
+      }
+      if (calculate_V_moments) {
+         calculateMoments_V(mpiGrid, boundaryCells, true);
+      } else {
+         calculateMoments_R(mpiGrid, boundaryCells, true);
       }
       phiprof::stop(timer);
 

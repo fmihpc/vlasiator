@@ -38,6 +38,7 @@ namespace SBC {
       Real rho;
       Real V0[3];
       Real T;
+      Real fluffiness;
       uint nSpaceSamples;
       uint nVelocitySamples;
    };
@@ -123,7 +124,8 @@ namespace SBC {
       virtual void vlasovBoundaryCondition(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const CellID& cellID,
-         const uint popID
+         const uint popID,
+         const bool calculate_V_moments
       );
       
       virtual std::string getName() const;
