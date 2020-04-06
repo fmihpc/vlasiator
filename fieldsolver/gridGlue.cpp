@@ -224,7 +224,7 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
 
 
-  for (int blurPass = 1; blurPass <= P::blurPasses; blurPass++){
+  for (int blurPass = 0; blurPass < maxRefLevel; blurPass++){
 
   // Blurring Pass
   phiprof::start("BlurPass");
@@ -235,7 +235,7 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
         
         // Dont filter if in max resolution region
         int refLevel = technicalGrid.get(ii, jj, kk)->refLevel;
-        if (refLevel == maxRefLevel || technicalGrid.get(ii, jj, kk)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE)
+        if (refLevel == maxRefLevel || blurPass >=refLevel || technicalGrid.get(ii, jj, kk)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE)
           {
             continue;
           }
