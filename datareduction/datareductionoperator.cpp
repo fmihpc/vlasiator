@@ -761,7 +761,7 @@ namespace DRO {
       V[0] = 0;
       V[1] = 0;
       V[2] = 0;
-      Real n = 0;
+      Real n_sum = 0;
       # pragma omp parallel
       {
          Real thread_nvx_sum = 0.0;
@@ -788,7 +788,7 @@ namespace DRO {
             } else {
                getThermalVelocityCellIndices(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCellIndices, popID);
             }
-            // We have now fethced all of the needed velocity cell indices, so now go through them:
+            // We have now fetched all of the needed velocity cell indices, so now go through them:
             for( vector< array<uint, 3> >::const_iterator it = vCellIndices.begin(); it != vCellIndices.end(); ++it ) {
                // Get the indices of the current iterated velocity cell
                const array<uint, 3> indices = *it;
@@ -815,14 +815,14 @@ namespace DRO {
             V[0] += thread_nvx_sum;
             V[1] += thread_nvy_sum;
             V[2] += thread_nvz_sum;
-            n += thread_n_sum;
+            n_sum += thread_n_sum;
          }
       }
 
-      // Finally, divide n*V by V.
-      V[0]/=n;
-      V[1]/=n;
-      V[2]/=n;
+      // Finally, divide n_sum*V by V.
+      V[0]/=n_sum;
+      V[1]/=n_sum;
+      V[2]/=n_sum;
       return;
    }
 
