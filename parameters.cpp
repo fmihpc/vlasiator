@@ -385,8 +385,8 @@ bool Parameters::getParameters(){
    }
    if ( P::systemWriteDistributionWriteShellStride.size() != P::systemWriteDistributionWriteShellRadius.size()) {
       if(myRank == MASTER_RANK) {
-         cerr << "ERROR io.system_write_distribution_shell_stride should have the same size as " <<
-         "io.system_write_distribution_shell_radius." << endl;
+         cerr << "ERROR You should set the same number of io.system_write_distribution_shell_stride " <<
+                 "and io.system_write_distribution_shell_radius." << endl;
       }
       return false;
    }
