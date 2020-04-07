@@ -804,7 +804,6 @@ namespace SBC {
                if( technicalGrid.get(i+ii,j+jj,k+kk) // skip invalid cells returning NULL
                    && (technicalGrid.get(i+ii,j+jj,k+kk)->SOLVE & mask) == mask // Did that guy solve this component?
                    && technicalGrid.get(i+ii,j+jj,k+kk)->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE // Do not copy from there
-                   && ii != 0 && jj != 0 && kk != 0 // skip oneself!
                ) {
                   distance = min(distance, ii*ii + jj*jj + kk*kk);
                }
@@ -818,7 +817,6 @@ namespace SBC {
                if( technicalGrid.get(i+ii,j+jj,k+kk) // skip invalid cells returning NULL
                    && (technicalGrid.get(i+ii,j+jj,k+kk)->SOLVE & mask) == mask // Did that guy solve this component?
                    && technicalGrid.get(i+ii,j+jj,k+kk)->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE // Do not copy from there
-                   && ii != 0 && jj != 0 && kk != 0 // skip oneself!
                ) {
                   int d = ii*ii + jj*jj + kk*kk;
                   if( d == distance ) {
@@ -831,12 +829,9 @@ namespace SBC {
       }
 
       if(closestCells.size() == 0) {
-         // When mpiGrid is refined, the fsgrid boundary layer has a width greater than 2. In this case,
-         // the boundary cells that do not find a non-boundary neighbor just keep their original value,
-         // we don't care what happens in them since they have no effect on the Vlasov solver.
-         return perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBX+component);
+         cerr << __FILE__ << ":" << __LINE__ << ": No closest cell found!" << endl;
+         abort();
       }
-
 
       return perBGrid.get(closestCells[0][0], closestCells[0][1], closestCells[0][2])->at(fsgrids::bfield::PERBX+component);
    }
