@@ -342,13 +342,13 @@ namespace SBC {
       cuint& component
    ) {
       switch(component) {
-      case compute::BX:
+      case 0:
          return fieldBoundaryCopyFromSolvingNbrMagneticField(perBGrid, technicalGrid, i, j, k, component, compute::BX);
          break;
-      case compute::BY:
+      case 1:
          return fieldBoundaryCopyFromSolvingNbrMagneticField(perBGrid, technicalGrid, i, j, k, component, compute::BY);
          break;
-      case compute::BZ:
+      case 2:
          return fieldBoundaryCopyFromSolvingNbrMagneticField(perBGrid, technicalGrid, i, j, k, component, compute::BZ);
          break;
       default:

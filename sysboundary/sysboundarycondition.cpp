@@ -801,7 +801,11 @@ namespace SBC {
       for (int kk=-2; kk<3; kk++) {
          for (int jj=-2; jj<3; jj++) {
             for (int ii=-2; ii<3 ; ii++) {
-               if( technicalGrid.get(i+ii,j+jj,k+kk) && (technicalGrid.get(i+ii,j+jj,k+kk)->SOLVE & mask) == mask) {
+               if( technicalGrid.get(i+ii,j+jj,k+kk) // skip invalid cells returning NULL
+                   && (technicalGrid.get(i+ii,j+jj,k+kk)->SOLVE & mask) == mask // Did that guy solve this component?
+                   && technicalGrid.get(i+ii,j+jj,k+kk)->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE // Do not copy from there
+                   && ii != 0 && jj != 0 && kk != 0 // skip oneself!
+               ) {
                   distance = min(distance, ii*ii + jj*jj + kk*kk);
                }
             }
@@ -811,7 +815,11 @@ namespace SBC {
       for (int kk=-2; kk<3; kk++) {
          for (int jj=-2; jj<3; jj++) {
             for (int ii=-2; ii<3 ; ii++) {
-               if( technicalGrid.get(i+ii,j+jj,k+kk) && (technicalGrid.get(i+ii,j+jj,k+kk)->SOLVE & mask) == mask) {
+               if( technicalGrid.get(i+ii,j+jj,k+kk) // skip invalid cells returning NULL
+                   && (technicalGrid.get(i+ii,j+jj,k+kk)->SOLVE & mask) == mask // Did that guy solve this component?
+                   && technicalGrid.get(i+ii,j+jj,k+kk)->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE // Do not copy from there
+                   && ii != 0 && jj != 0 && kk != 0 // skip oneself!
+               ) {
                   int d = ii*ii + jj*jj + kk*kk;
                   if( d == distance ) {
                      std::array<int, 3> cell = {i+ii, j+jj, k+kk};
@@ -829,8 +837,6 @@ namespace SBC {
          return perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBX+component);
       }
 
-      const std::array<int32_t, 3> gid = technicalGrid.getGlobalIndices(i, j, k);
-      const std::array<int32_t, 3> ngid = technicalGrid.getGlobalIndices(closestCells[0][0], closestCells[0][1], closestCells[0][2]);
 
       return perBGrid.get(closestCells[0][0], closestCells[0][1], closestCells[0][2])->at(fsgrids::bfield::PERBX+component);
    }
