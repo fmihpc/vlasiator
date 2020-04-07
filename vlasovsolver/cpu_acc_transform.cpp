@@ -166,7 +166,7 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
    //
    if (smallparticle) {
       unsigned int transformation_substeps_2; 
-      transformation_substeps_2 = fabs(dt / plasma_period*(0.1/360.0));
+      transformation_substeps_2 = fabs(dt) / fabs(plasma_period*(0.1/360.0));
       transformation_substeps = transformation_substeps_2 > transformation_substeps ? transformation_substeps_2 : transformation_substeps;
 
     /*ofstream substepFile;
