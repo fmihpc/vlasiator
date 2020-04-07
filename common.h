@@ -397,6 +397,7 @@ namespace sysboundarytype {
       IONOSPHERE,       /*!< Initially a perfectly conducting sphere. */
       OUTFLOW,          /*!< No fixed conditions on the fields and distribution function. */
       SET_MAXWELLIAN,   /*!< Set Maxwellian boundary condition, i.e. set fields and distribution function. */
+      STATIC,           /*!< Leave fields and distribution functions to values set by project. */
       N_SYSBOUNDARY_CONDITIONS
    };
 }
