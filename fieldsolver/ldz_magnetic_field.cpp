@@ -185,13 +185,12 @@ void propagateSysBoundaryMagneticField(
    cint& RKCase,
    cuint component
 ) {
-   std::array<Real, fsgrids::bfield::N_BFIELD> * bGrid;
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> * bGrid;
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      bGrid = perBGrid.get(i,j,k);
+      perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBX + component) = sysBoundaries.getSysBoundary(technicalGrid.get(i,j,k)->sysBoundaryFlag)->fieldSolverBoundaryCondMagneticField(perBGrid, technicalGrid, i, j, k, dt, component);
    } else {
-      bGrid = perBDt2Grid.get(i,j,k);
+      perBDt2Grid.get(i,j,k)->at(fsgrids::bfield::PERBX + component) = sysBoundaries.getSysBoundary(technicalGrid.get(i,j,k)->sysBoundaryFlag)->fieldSolverBoundaryCondMagneticField(perBDt2Grid, technicalGrid, i, j, k, dt, component);
    }
-   bGrid->at(fsgrids::bfield::PERBX + component) = sysBoundaries.getSysBoundary(technicalGrid.get(i,j,k)->sysBoundaryFlag)->fieldSolverBoundaryCondMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, i, j, k, dt, RKCase, component);
 }
 
 /*! \brief High-level magnetic field propagation function.

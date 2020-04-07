@@ -334,25 +334,27 @@ namespace SBC {
 
    Real Outflow::fieldSolverBoundaryCondMagneticField(
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBDt2Grid,
-      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
-      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EDt2Grid,
       FsGrid< fsgrids::technical, 2> & technicalGrid,
       cint i,
       cint j,
       cint k,
       creal& dt,
-      cuint& RKCase,
       cuint& component
    ) {
-      Real fieldValue;
-      
-      if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-         fieldValue = fieldBoundaryCopyFromExistingFaceNbrMagneticField(perBGrid, technicalGrid, i, j, k, component);
-      } else {
-         fieldValue = fieldBoundaryCopyFromExistingFaceNbrMagneticField(perBDt2Grid, technicalGrid, i, j, k, component);
+      switch(component) {
+      case compute::BX:
+         return fieldBoundaryCopyFromSolvingNbrMagneticField(perBGrid, technicalGrid, i, j, k, component, compute::BX);
+         break;
+      case compute::BY:
+         return fieldBoundaryCopyFromSolvingNbrMagneticField(perBGrid, technicalGrid, i, j, k, component, compute::BY);
+         break;
+      case compute::BZ:
+         return fieldBoundaryCopyFromSolvingNbrMagneticField(perBGrid, technicalGrid, i, j, k, component, compute::BZ);
+         break;
+      default:
+         return 0.0;
+         break;
       }
-      return fieldValue;
    }
 
    void Outflow::fieldSolverBoundaryCondElectricField(
