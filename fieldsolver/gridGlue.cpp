@@ -235,9 +235,14 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
         
         // Dont filter if in max resolution region
         int refLevel = technicalGrid.get(ii, jj, kk)->refLevel;
-        if (refLevel == maxRefLevel || blurPass < refLevel || technicalGrid.get(ii, jj, kk)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE)
-          {
-            continue;
+
+        if (refLevel == maxRefLevel ||
+            blurPass < refLevel ||
+            technicalGrid.get(ii, jj, kk)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
+            (technicalGrid.get(ii, jj, kk)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY && technicalGrid.get(ii, jj, kk)->sysBoundaryLayer == 2)
+          )
+        {
+          continue;
           }
 
         // Set Cell to zero before passing filter
