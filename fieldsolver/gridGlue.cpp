@@ -197,25 +197,33 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
   phiprof::start("BoxCar Filtering");
 
   // Kernel Matrix-- Needs to be precomputed in memory and not recomputed at every call
-  Real kernel[3][3][3];
+  // Real kernel[3][3][3];
 
-  for (int i =0; i<3; i++){
-    for (int j =0; j<3; j++){
-      for (int k =0; k<3; k++){
+  // for (int i =0; i<3; i++){
+  //   for (int j =0; j<3; j++){
+  //     for (int k =0; k<3; k++){
         
-        kernel[i][j][k]=1.0/27.0;  //normalized for 27 neighbours.
+  //       kernel[i][j][k]=1.0/27.0;  //normalized for 27 neighbours.
         
-      }
-    }
-  }
+  //     }
+  //   }
+  // }
 
 
+  // Kernel Characteristics
+  // int stencilWidth = sizeof( kernel) / sizeof( kernel[0]); //get the stnecil width
+  // int kernelOffset= stencilWidth/3; //this is the kernel offset -int
+  int stencilWidth = 3;   // dimension size of a 3D kernel
+  int kernelOffset = 1;   // offset of 3 point stencil 3D kernel
+  Real kernelWeight= 1.0/27.0;  // 3D boxcar kernel weight
+
+
+  // Update momentsGrid Ghost Cells
   phiprof::start("GhostUpdate");
   momentsGrid.updateGhostCells(); //update ghost zones
   phiprof::stop("GhostUpdate");
 
-  int stencilWidth = sizeof( kernel) / sizeof( kernel[0]); //get the stnecil width
-  int kernelOffset= stencilWidth/3; //this is the kernel offset -int
+  // Get size of local domain and create swapGrid for filtering
   const int *mntDims= &momentsGrid.getLocalSize()[0];   //get local size for each proc.
   FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, 2> swapGrid = momentsGrid;  //swap array 
   std::array<Real, fsgrids::moments::N_MOMENTS> *cell;  
@@ -223,27 +231,29 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
   const int maxRefLevel = mpiGrid.mapping.get_maximum_refinement_level();
 
 
-
+  // Filtering Loop
   for (int blurPass = 0; blurPass < maxRefLevel; blurPass++){
 
   // Blurring Pass
   phiprof::start("BlurPass");
-  // #pragma omp parallel for collapse(3)
+  #pragma omp parallel for collapse(2)
   for (int kk = 0; kk < mntDims[2]; kk++){
     for (int jj = 0; jj < mntDims[1]; jj++){
       for (int ii = 0; ii < mntDims[0]; ii++){
         
-        // Dont filter if in max resolution region
+        //  Get refLevel level
         int refLevel = technicalGrid.get(ii, jj, kk)->refLevel;
 
+        // Skip pass
         if (refLevel == maxRefLevel ||
             blurPass < refLevel ||
             technicalGrid.get(ii, jj, kk)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
             (technicalGrid.get(ii, jj, kk)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY && technicalGrid.get(ii, jj, kk)->sysBoundaryLayer == 2)
           )
-        {
+         {
           continue;
           }
+
 
         // Set Cell to zero before passing filter
         swap = swapGrid.get(ii,jj,kk);
@@ -253,7 +263,7 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
                 
           }
 
-
+        // Perform the blur
         for (int a=0; a<stencilWidth; a++){
           for (int b=0; b<stencilWidth; b++){
             for (int c=0; c<stencilWidth; c++){
@@ -267,7 +277,8 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
               for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
                   
-                swap->at(e)+=cell->at(e) * kernel[a][b][c];
+                // swap->at(e)+=cell->at(e) * kernel[a][b][c];
+                swap->at(e)+=cell->at(e) * kernelWeight;
 
               }
             }
@@ -280,28 +291,10 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
   phiprof::stop("BlurPass");
 
 
-  //  Copy swapGrid back to momentsGrid
-  phiprof::start("Swap->Moments");
-  // #pragma omp parallel for collapse(4)
-  for (int ii = 0; ii < mntDims[0]; ii++){
-    for (int jj = 0; jj < mntDims[1]; jj++){
-      for (int kk = 0; kk < mntDims[2]; kk++){
-        for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e){
+  // Copy swapGrid back to momentsGrid
+  momentsGrid=swapGrid;
 
-          // Get Arrays 
-          cell = momentsGrid.get(ii, jj, kk);
-          swap = swapGrid.get(ii, jj, kk);
-
-          //Copy
-          cell->at(e) = swap->at(e);
-
-        }
-      }
-    }
-  }
-
-  phiprof::stop("Swap->Moments");
-
+  // Update Ghost Cells
   phiprof::start("GhostUpdate");
   momentsGrid.updateGhostCells();
   phiprof::stop("GhostUpdate");
@@ -311,6 +304,8 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
   phiprof::stop("BoxCar Filtering");
 
 }
+
+
 
 void getFieldsFromFsGrid(
    FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volumeFieldsGrid,
