@@ -157,6 +157,6 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
    }
 
    if (Parameters::prepareForRebalance == true) {
-      spatial_cell->parameters[CellParams::LBWEIGHTCOUNTER] += (MPI_Wtime() - t1);
+//       spatial_cell->parameters[CellParams::LBWEIGHTCOUNTER] += (MPI_Wtime() - t1);
    }
 }

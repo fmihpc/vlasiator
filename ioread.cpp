@@ -897,16 +897,17 @@ template<unsigned long int N> bool readFsGridVariable(
          overlapSize[1] = max(overlapEnd[1]-overlapStart[1],0);
          overlapSize[2] = max(overlapEnd[2]-overlapStart[2],0);
 
+         // Read into buffer
+         std::vector<Real> buffer(thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N);
+
+         // TODO: Should these be multireads instead? And/or can this be parallelized?
+         if(file.readArray("VARIABLE",attribs, fileOffset, thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2], (char*)buffer.data()) == false) {
+            logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
+            return false;
+         }
+
          // Read every source rank that we have an overlap with.
          if(overlapSize[0]*overlapSize[1]*overlapSize[2] > 0) {
-            // Read into buffer
-            std::vector<Real> buffer(thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N);
-
-            // TODO: Should these be multireads instead? And/or can this be parallelized?
-            if(file.readArray("VARIABLE",attribs, fileOffset, thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2], (char*)buffer.data()) == false) {
-               logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
-               return false;
-            }
 
             // Copy continuous stripes in x direction.
             for(int z=overlapStart[2]; z<overlapEnd[2]; z++) {
@@ -920,12 +921,7 @@ template<unsigned long int N> bool readFsGridVariable(
                   }
                }
             }
-         } else {
-            // Even though this task doesn't need to be read from, we participate in collective IO with a zero-read.
-            char dummy;
-            file.readArray("VARIABLE",attribs, fileOffset, 0, &dummy);
-         }
-
+         } 
          fileOffset += thatTasksSize[0] * thatTasksSize[1] * thatTasksSize[2];
       }
    }
