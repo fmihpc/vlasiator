@@ -209,26 +209,15 @@ namespace SBC {
    }
 
    Real Static::fieldSolverBoundaryCondMagneticField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBDt2Grid,
-      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
-      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EDt2Grid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & bGrid,
       FsGrid< fsgrids::technical, 2> & technicalGrid,
       cint i,
       cint j,
       cint k,
       creal& dt,
-      cuint& RKCase,
       cuint& component
    ) {
-      Real fieldValue;
-      
-      if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      	 fieldValue = perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBX+component);
-      } else {
-      	 fieldValue = perBDt2Grid.get(i,j,k)->at(fsgrids::bfield::PERBX+component);
-      }
-      return fieldValue;
+      return bGrid.get(i,j,k)->at(fsgrids::bfield::PERBX+component);
    }
 
    void Static::fieldSolverBoundaryCondElectricField(
