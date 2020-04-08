@@ -221,9 +221,11 @@ void initializeGrids(
       bool needCurl=false;
       project.setupBeforeSetCell(cells, mpiGrid, needCurl);
       if (needCurl==true) {
-	 // Communicate the perturbed B-fields read from the start file over to FSgrid
+	 // Communicate the perturbed B-fields and E-fileds read from the start file over to FSgrid
 	 feedPerBIntoFsGrid(mpiGrid, cells, perBGrid);
 	 perBGrid.updateGhostCells();
+	 feedEIntoFsGrid(mpiGrid, cells, EGrid);
+	 EGrid.updateGhostCells();
 	 // Calculate volumetric derivatives of B for curl
          calculateDerivativesOnlyPerB(perBGrid, dPerBGrid, technicalGrid);
 	 dPerBGrid.updateGhostCells();

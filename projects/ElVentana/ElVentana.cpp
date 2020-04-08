@@ -639,6 +639,29 @@ namespace projects {
 	 delete[] buffer;
 	 attribs.pop_back();
 	 attribs.pop_back();
+
+	 // NOTE: This section assumes that the electric field values are saved on the spatial
+	 // (vlasov) grid, instead of FSgrid. FSgrid input reading isn't supported yet.
+	 // Also assumes the E values have been saved to the bulk files.
+	 //
+	 // The values are edge-averages, not cell-averages, but are temporarily read into EXVOL anyway.
+	 attribs.push_back(make_pair("mesh","SpatialGrid"));
+	 attribs.push_back(make_pair("name","E"));
+	 if (this->vlsvSerialReader.getArrayInfo("VARIABLE",attribs,arraySize,this->vecsizeE,dataType,byteSize) == false) {
+	    if(myRank == MASTER_RANK) logFile << "(START)  ERROR: Failed to read E array info" << endl << write;
+	    exit(1);
+	 }
+	 buffer=new Real[this->vecsizeE];
+	 if (this->vlsvSerialReader.readArray("VARIABLE", attribs, fileOffset, 1, (char *)buffer) == false ) {
+	    if(myRank == MASTER_RANK) logFile << "(START)  ERROR: Failed to read E"  << endl << write;
+	    exit(1);
+	 }
+	 for (uint j=0; j<vecsizeE; j++) {
+	    mpiGrid[cells[i]]->parameters[CellParams::EXVOL+j] = buffer[j];
+	 }
+	 delete[] buffer;
+	 attribs.pop_back();
+	 attribs.pop_back();
       
 	 // The background fields are initialized directly on FSgrid and are not read in.
 	 //

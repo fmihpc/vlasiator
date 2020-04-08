@@ -30,6 +30,9 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 void feedPerBIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 			const std::vector<CellID>& cells,
 			FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid);
+void feedEIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+			const std::vector<CellID>& cells,
+			FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& EGrid);
 
 
 /*! Copy field solver VOLPERB derivatives and store them back into DCCRG
