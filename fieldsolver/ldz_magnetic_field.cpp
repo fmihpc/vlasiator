@@ -185,7 +185,6 @@ void propagateSysBoundaryMagneticField(
    cint& RKCase,
    cuint component
 ) {
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> * bGrid;
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBX + component) = sysBoundaries.getSysBoundary(technicalGrid.get(i,j,k)->sysBoundaryFlag)->fieldSolverBoundaryCondMagneticField(perBGrid, technicalGrid, i, j, k, dt, component);
    } else {
