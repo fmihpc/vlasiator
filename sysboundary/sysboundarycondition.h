@@ -75,15 +75,11 @@ namespace SBC {
          )=0;
          virtual Real fieldSolverBoundaryCondMagneticField(
             FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
-            FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBDt2Grid,
-            FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
-            FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EDt2Grid,
             FsGrid< fsgrids::technical, 2> & technicalGrid,
             cint i,
             cint j,
             cint k,
             creal& dt,
-            cuint& RKCase,
             cuint& component
          )=0;
          virtual void fieldSolverBoundaryCondElectricField(
@@ -272,13 +268,14 @@ namespace SBC {
          std::vector<CellID> & getAllCloseNonsysboundaryCells(
             const CellID& cellID
          );
-         Real fieldBoundaryCopyFromExistingFaceNbrMagneticField(
+         Real fieldBoundaryCopyFromSolvingNbrMagneticField(
             FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
             FsGrid< fsgrids::technical, 2> & technicalGrid,
             cint i,
             cint j,
             cint k,
-            cuint component
+            cuint component,
+            cuint mask
          );
          
          /*! Precedence value of the system boundary condition. */
