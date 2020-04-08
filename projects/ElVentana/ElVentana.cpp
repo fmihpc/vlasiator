@@ -457,16 +457,6 @@ namespace projects {
           v[1] = cell->parameters[CellParams::VY] / cell->parameters[CellParams::RHOM];
           v[2] = cell->parameters[CellParams::VZ] / cell->parameters[CellParams::RHOM];
       }
-      // Check if velocity is within the velocity space boundaries
-      if ( v[0] < getObjectWrapper().velocityMeshes[popID].meshMinLimits[0] ||
-           v[0] > getObjectWrapper().velocityMeshes[popID].meshMaxLimits[0] ||
-           v[1] < getObjectWrapper().velocityMeshes[popID].meshMinLimits[1] ||
-           v[1] > getObjectWrapper().velocityMeshes[popID].meshMaxLimits[1] ||
-           v[2] < getObjectWrapper().velocityMeshes[popID].meshMinLimits[2] ||
-           v[2] > getObjectWrapper().velocityMeshes[popID].meshMaxLimits[2] ) {
-         cerr << "ABORTING!!! Bulk velocity read from StartFile is outside the velocity space boundaries. " << endl;
-         exit(1);
-      }  
 
       std::array<Real, 3> ionosphereV0 = {{sP.ionosphereV0[0], sP.ionosphereV0[1], sP.ionosphereV0[2]}};
       Real radius;
@@ -498,6 +488,17 @@ namespace projects {
 	    v[i] = ionosphereV0[i];
 	 }
       }
+      
+      // Check if velocity is within the velocity space boundaries
+      if ( v[0] < getObjectWrapper().velocityMeshes[popID].meshMinLimits[0] ||
+           v[0] > getObjectWrapper().velocityMeshes[popID].meshMaxLimits[0] ||
+           v[1] < getObjectWrapper().velocityMeshes[popID].meshMinLimits[1] ||
+           v[1] > getObjectWrapper().velocityMeshes[popID].meshMaxLimits[1] ||
+           v[2] < getObjectWrapper().velocityMeshes[popID].meshMinLimits[2] ||
+           v[2] > getObjectWrapper().velocityMeshes[popID].meshMaxLimits[2] ) {
+         cerr << "ABORTING!!! Bulk velocity read from StartFile is outside the velocity space boundaries. " << endl;
+         exit(1);
+      }  
 
       V0.push_back(v);
       return V0;
