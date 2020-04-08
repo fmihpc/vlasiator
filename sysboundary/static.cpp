@@ -238,7 +238,7 @@ namespace SBC {
       cint k,
       cuint component
    ) { 
-     EGrid.get(i,j,k)->at(fsgrids::efield::EX+component) = 0.0;
+     //EGrid.get(i,j,k)->at(fsgrids::efield::EX+component) = 0.0;
    }
    
    void Static::fieldSolverBoundaryCondHallElectricField(
@@ -247,7 +247,8 @@ namespace SBC {
       cint j,
       cint k,
       cuint component
-   ) {  
+   ) { 
+     /*
       std::array<Real, fsgrids::ehall::N_EHALL> * cp = EHallGrid.get(i,j,k);
       switch (component) {
          case 0:
@@ -271,6 +272,7 @@ namespace SBC {
          default:
             cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
       }
+     */
    }
    
    void Static::fieldSolverBoundaryCondGradPeElectricField(
@@ -280,7 +282,7 @@ namespace SBC {
       cint k,
       cuint component
    ) {  
-      EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EXGRADPE+component) = 0.0;
+     //EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EXGRADPE+component) = 0.0;
    }
    
    void Static::fieldSolverBoundaryCondDerivatives(
@@ -292,7 +294,7 @@ namespace SBC {
       cuint& RKCase,
       cuint& component
    ) {  
-      this->setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, component);
+     //this->setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, component);
    }
    
    void Static::fieldSolverBoundaryCondBVOLDerivatives(
@@ -302,7 +304,7 @@ namespace SBC {
       cint k,
       cuint& component
    ) {  
-      this->setCellBVOLDerivativesToZero(volGrid, i, j, k, component);
+     //this->setCellBVOLDerivativesToZero(volGrid, i, j, k, component);
    }
    
    /**
