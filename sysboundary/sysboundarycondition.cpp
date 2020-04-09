@@ -785,48 +785,55 @@ namespace SBC {
       return flowtoCellsBlock;
    }
    
-   Real SysBoundaryCondition::fieldBoundaryCopyFromExistingFaceNbrMagneticField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+   Real SysBoundaryCondition::fieldBoundaryCopyFromSolvingNbrMagneticField(
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & bGrid,
       FsGrid< fsgrids::technical, 2> & technicalGrid,
       cint i,
       cint j,
       cint k,
-      cuint component
+      cuint component,
+      cuint mask
    ) {
-      const std::array<int,3> closestCell = getTheClosestNonsysboundaryCell(technicalGrid, i, j, k);
-      
-      const std::array<int32_t, 3> gid = technicalGrid.getGlobalIndices(i, j, k);
-      const std::array<int32_t, 3> ngid = technicalGrid.getGlobalIndices(closestCell[0], closestCell[1], closestCell[2]);
 
-      if (closestCell[0] == std::numeric_limits<int>::min()) {
-         //cerr << "(" << gid[0] << "," << gid[1] << "," << gid[2] << ")" << __FILE__ << ":" << __LINE__ << ": No closest cell found!" << endl;
-         //abort();
+      int distance = std::numeric_limits<int>::max();
+      std::vector< std::array<int,3> > closestCells;
 
-         // When mpiGrid is refined, the fsgrid boundary layer has a width greater than 2. In this case,
-         // the boundary cells that do not find a non-boundary neighbor just keep their original value,
-         // we don't care what happens in them since they have no effect on the Vlasov solver.
-         return perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBX+component);
+      for (int kk=-2; kk<3; kk++) {
+         for (int jj=-2; jj<3; jj++) {
+            for (int ii=-2; ii<3 ; ii++) {
+               if( technicalGrid.get(i+ii,j+jj,k+kk) // skip invalid cells returning NULL
+                   && (technicalGrid.get(i+ii,j+jj,k+kk)->SOLVE & mask) == mask // Did that guy solve this component?
+                   && technicalGrid.get(i+ii,j+jj,k+kk)->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE // Do not copy from there
+               ) {
+                  distance = min(distance, ii*ii + jj*jj + kk*kk);
+               }
+            }
+         }
       }
 
-      #ifndef NDEBUG
-      
-      if ( technicalGrid.get(closestCell[0], closestCell[1], closestCell[2]) == nullptr ) {
-         stringstream ss;
-         ss << "ERROR, cell (" << gid[0] << "," << gid[1] << "," << gid[2] << ") tries to access invalid sysboundary nbr (" << ngid[0] << "," << ngid[1] << "," << ngid[2] << ") in " << __FILE__ << ":" << __LINE__ << endl;
-         cerr << ss.str();
-         exit(1);
+      for (int kk=-2; kk<3; kk++) {
+         for (int jj=-2; jj<3; jj++) {
+            for (int ii=-2; ii<3 ; ii++) {
+               if( technicalGrid.get(i+ii,j+jj,k+kk) // skip invalid cells returning NULL
+                   && (technicalGrid.get(i+ii,j+jj,k+kk)->SOLVE & mask) == mask // Did that guy solve this component?
+                   && technicalGrid.get(i+ii,j+jj,k+kk)->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE // Do not copy from there
+               ) {
+                  int d = ii*ii + jj*jj + kk*kk;
+                  if( d == distance ) {
+                     std::array<int, 3> cell = {i+ii, j+jj, k+kk};
+                     closestCells.push_back(cell);
+                  }
+               }
+            }
+         }
       }
-      
-      if (technicalGrid.get(closestCell[0], closestCell[1], closestCell[2])->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
-         stringstream ss;
-         ss << "ERROR, cell (" << gid[0] << "," << gid[1] << "," << gid[2] << ") uses value from sysboundary nbr (" << ngid[0] << "," << ngid[1] << "," << ngid[2] << ") in " << __FILE__ << ":" << __LINE__ << endl;
-         cerr << ss.str();
-         exit(1);
+
+      if(closestCells.size() == 0) {
+         cerr << __FILE__ << ":" << __LINE__ << ": No closest cell found!" << endl;
+         abort();
       }
-      
-      #endif
-      
-      return perBGrid.get(closestCell[0], closestCell[1], closestCell[2])->at(fsgrids::bfield::PERBX+component);
+
+      return bGrid.get(closestCells[0][0], closestCells[0][1], closestCells[0][2])->at(fsgrids::bfield::PERBX+component);
    }
    
    /*! Function used in some cases to know which faces the system boundary condition is being applied to.
