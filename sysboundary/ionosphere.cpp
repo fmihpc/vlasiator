@@ -51,10 +51,9 @@ namespace SBC {
    // Ionosphere finite element grid
    SphericalTriGrid ionosphereGrid;
 
-	 // Static ionosphere member variables
-   const int SphericalTriGrid::MAX_DEPENDING_NODES;
-	 Real Ionosphere::innerRadius;
-	 int  Ionosphere::solverMaxIterations;
+   // Static ionosphere member variables
+   Real Ionosphere::innerRadius;
+   int  Ionosphere::solverMaxIterations;
    
    // Offset field aligned currents so their sum is 0
    void SphericalTriGrid::offset_FAC() {
@@ -219,20 +218,10 @@ namespace SBC {
 
       Element& parentElement = elements[e];
 
-      if(parentElement.children[0] != -1) {
-         logFile << "(IONOSPHERE) ERROR: trying to subdivide element " << e 
-            << ", which already has children (" << parentElement.children[0]  << ", " 
-            << parentElement.children[1] << ", " 
-            << parentElement.children[2] << ", " 
-            << parentElement.children[3] << ")" << endl << write;
-         abort();
-      }
-
       // 4 new elements
       std::array<Element,4> newElements;
       for(int i=0; i<4; i++) {
          newElements[i].refLevel = parentElement.refLevel + 1;
-         parentElement.children[i] = elements.size() + i;
       }
 
       // (up to) 3 new nodes
@@ -444,52 +433,51 @@ namespace SBC {
 
 
       // Trace some more fieldlines, from the elements' centre points
+      //for(uint e=0; e<elements.size(); e++) {
 
-      for(uint e=0; e<elements.size(); e++) {
+      //   Element& el = elements[e];
 
-         Element& el = elements[e];
+      //   // Calculate element barycentre coordinates
+      //   std::array<Real, 3> barycentre({0,0,0});
+      //   for(int c=0; c<3; c++) {
+      //      for(int corner=0; corner<3; corner++) {
+      //         barycentre[c] += nodes[el.corners[corner]].x[c];
+      //      }
+      //      barycentre[c] /= 3.;
+      //   }
 
-         // Calculate element barycentre coordinates
-         std::array<Real, 3> barycentre({0,0,0});
-         for(int c=0; c<3; c++) {
-            for(int corner=0; corner<3; corner++) {
-               barycentre[c] += nodes[el.corners[corner]].x[c];
-            }
-            barycentre[c] /= 3.;
-         }
+      //   // Trace fieldline barycenters upwards until a non-sysboundary cell is encountered
+      //   std::array<Real, 3> x = barycentre;
+      //   std::array<Real, 3> v({0,0,0});
+      //   while( sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]) < 1.5*couplingRadius ) {
+      //      
+      //      stepFieldline(x,v,dipole, 100e3); // TODO: Hardcoded stepsize of 100 km. Change!
 
-         // Trace fieldline barycenters upwards until a non-sysboundary cell is encountered
-         //std::array<Real, 3> x = barycentre;
-         //std::array<Real, 3> v({0,0,0});
-         //while( sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]) < 1.5*couplingRadius ) {
-         //   
-         //   stepFieldline(x,v,dipole, 100e3); // TODO: Hardcoded stepsize of 100 km. Change!
+      //      // Look up the fsgrid cell beloinging to these coordinates
+      //      std::array<int, 3> fsgridCell;
+      //      for(int c=0; c<3; c++) {
+      //         fsgridCell[c] = (x[c] - technicalGrid.physicalGlobalStart[c]) / technicalGrid.DX;
+      //      }
+      //      fsgridCell = technicalGrid.globalToLocal(fsgridCell[0], fsgridCell[1], fsgridCell[2]);
 
-         //   // Look up the fsgrid cell beloinging to these coordinates
-         //   std::array<int, 3> fsgridCell;
-         //   for(int c=0; c<3; c++) {
-         //      fsgridCell[c] = (x[c] - technicalGrid.physicalGlobalStart[c]) / technicalGrid.DX;
-         //   }
-         //   fsgridCell = technicalGrid.globalToLocal(fsgridCell[0], fsgridCell[1], fsgridCell[2]);
+      //      // If the field line is no longer moving outwards but horizontally (88 degrees), abort.
+      //      if(fabs(x[0]*v[0]+x[1]*v[1]+x[2]*v[2])/sqrt(x[0]*x[0]+x[1]*x[1]+x[2]*x[2]) < cos(88. / 180. * M_PI)) {
+      //         break;
+      //      }
 
-         //   // If the field line is no longer moving outwards but horizontally (88 degrees), abort.
-         //   if(fabs(x[0]*v[0]+x[1]*v[1]+x[2]*v[2])/sqrt(x[0]*x[0]+x[1]*x[1]+x[2]*x[2]) < cos(88. / 180. * M_PI)) {
-         //      break;
-         //   }
+      //      // Not inside the local domain, skip and continue.
+      //      if(fsgridCell[0] == -1) {
+      //         continue;
+      //      }
 
-         //   // Not inside the local domain, skip and continue.
-         //   if(fsgridCell[0] == -1) {
-         //      continue;
-         //   }
+      //      if(technicalGrid.get(fsgridCell[0], fsgridCell[1], fsgridCell[2])->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
 
-         //   if(technicalGrid.get(fsgridCell[0], fsgridCell[1], fsgridCell[2])->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-
-         //      // Store upmapped coordinates
-         //      el.upmappedCentre = x;
-         //      break;
-         //   }
-         //}
-      }
+      //         // Store upmapped coordinates
+      //         el.upmappedCentre = x;
+      //         break;
+      //      }
+      //   }
+      //}
 
       // Now generate the subcommunicator to solve the ionosphere only on those ranks that actually couple
       // to simulation cells
@@ -657,7 +645,29 @@ namespace SBC {
 
      // Not found, let's add it.
      if(n.numDepNodes >= MAX_DEPENDING_NODES) {
-       logFile << "(ionosphere) Node " << node1 << " already has " << MAX_DEPENDING_NODES << " depending nodes, can't add more!" << endl << write;
+       // This shouldn't happen (but did in tests!)
+       logFile << "(ionosphere) Node " << node1 << " already has " << MAX_DEPENDING_NODES << " depending nodes:" << endl << write;
+       logFile << "     [ ";
+       for(int i=0; i< MAX_DEPENDING_NODES; i++) {
+         logFile << n.dependingNodes[i] << ", ";
+       }
+       logFile << " ]." << endl << write;
+
+       std::set<uint> neighbourNodes;
+       for(uint e = 0; e<nodes[node1].numTouchingElements; e++) {
+         Element& E = elements[nodes[node1].touchingElements[e]];
+         for(int c=0; c<3; c++) {
+           neighbourNodes.emplace(E.corners[c]);
+         }
+       }
+       logFile << "    (it has " << nodes[node1].numTouchingElements << " neighbour elements and "
+         << neighbourNodes.size()-1 << " direct neighbour nodes:" << endl << "    [ " << write;
+       for(auto& n : neighbourNodes) {
+          if(n != node1) {
+            logFile << n << ", ";
+          }
+       }
+       logFile << "])." << endl << write;
        return;
      }
      n.dependingNodes[n.numDepNodes] = node2;
@@ -863,11 +873,18 @@ namespace SBC {
          cerr << "(ionosphere) Iteration " << iteration <<", error is " << err << ". " << endl;
        }
        if(err < minerr) {
+         // If yes, this is our new best solution
          for(uint n=0; n<nodes.size(); n++) {
            Node& N=nodes[n];
            N.parameters[ionosphereParameters::BEST_SOLUTION] = N.parameters[ionosphereParameters::SOLUTION];
          }
          minerr = err;
+       } else {
+         // If no, keep going with the best one.
+         for(uint n=0; n<nodes.size(); n++) {
+           Node& N=nodes[n];
+           N.parameters[ionosphereParameters::SOLUTION] = N.parameters[ionosphereParameters::BEST_SOLUTION];
+         }
        }
 
        if(minerr < 1e-6) {
@@ -880,7 +897,11 @@ namespace SBC {
      }
 
      if(rank == 0) {
-       cerr << "(ionosphere) Exhausted iterations. Remaining error " << err << endl;
+       cerr << "(ionosphere) Exhausted iterations. Remaining error " << minerr << endl;
+       for(uint n=0; n<nodes.size(); n++) {
+         Node& N=nodes[n];
+         N.parameters[ionosphereParameters::SOLUTION] = N.parameters[ionosphereParameters::BEST_SOLUTION];
+       }
      }
    }
 
