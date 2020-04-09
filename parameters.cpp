@@ -142,7 +142,7 @@ int P::amrBoxHalfWidthZ = 1;
 Realf P::amrBoxCenterX = 0.0;
 Realf P::amrBoxCenterY = 0.0;
 Realf P::amrBoxCenterZ = 0.0;
-int P::blurPasses = 0;
+
 
 bool Parameters::addParameters(){
    //the other default parameters we read through the add/get interface
@@ -292,8 +292,6 @@ bool Parameters::addParameters(){
    Readparameters::add("AMR.box_center_x","x coordinate of the center of the box that is refined (for testing)",0.0);
    Readparameters::add("AMR.box_center_y","y coordinate of the center of the box that is refined (for testing)",0.0);
    Readparameters::add("AMR.box_center_z","z coordinate of the center of the box that is refined (for testing)",0.0);
-   Readparameters::add("AMR.filter_passes", "AMR blur filter.", 0);
-
    return true;
 }
 
@@ -456,7 +454,6 @@ bool Parameters::getParameters(){
    Readparameters::get("AMR.vel_refinement_criterion",P::amrVelRefCriterion);
    Readparameters::get("AMR.refine_limit",P::amrRefineLimit);
    Readparameters::get("AMR.coarsen_limit",P::amrCoarsenLimit);
-   Readparameters::get("AMR.filter_passes",P::blurPasses);
    
    if (geometryString == "XY4D") P::geometry = geometry::XY4D;
    else if (geometryString == "XZ4D") P::geometry = geometry::XZ4D;
