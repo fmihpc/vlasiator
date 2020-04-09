@@ -333,7 +333,7 @@ namespace SBC {
    }
 
    Real Outflow::fieldSolverBoundaryCondMagneticField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & bGrid,
       FsGrid< fsgrids::technical, 2> & technicalGrid,
       cint i,
       cint j,
@@ -343,13 +343,13 @@ namespace SBC {
    ) {
       switch(component) {
       case 0:
-         return fieldBoundaryCopyFromSolvingNbrMagneticField(perBGrid, technicalGrid, i, j, k, component, compute::BX);
+         return fieldBoundaryCopyFromSolvingNbrMagneticField(bGrid, technicalGrid, i, j, k, component, compute::BX);
          break;
       case 1:
-         return fieldBoundaryCopyFromSolvingNbrMagneticField(perBGrid, technicalGrid, i, j, k, component, compute::BY);
+         return fieldBoundaryCopyFromSolvingNbrMagneticField(bGrid, technicalGrid, i, j, k, component, compute::BY);
          break;
       case 2:
-         return fieldBoundaryCopyFromSolvingNbrMagneticField(perBGrid, technicalGrid, i, j, k, component, compute::BZ);
+         return fieldBoundaryCopyFromSolvingNbrMagneticField(bGrid, technicalGrid, i, j, k, component, compute::BZ);
          break;
       default:
          return 0.0;
