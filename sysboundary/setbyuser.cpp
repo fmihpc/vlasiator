@@ -157,16 +157,12 @@ namespace SBC {
    }
    
    Real SetByUser::fieldSolverBoundaryCondMagneticField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBDt2Grid,
-      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
-      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EDt2Grid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & bGrid,
       FsGrid< fsgrids::technical, 2> & technicalGrid,
       cint i,
       cint j,
       cint k,
       creal& dt,
-      cuint& RKCase,
       cuint& component
    ) {
       Real result = 0.0;
