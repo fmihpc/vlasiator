@@ -145,6 +145,7 @@ Realf P::amrBoxCenterX = 0.0;
 Realf P::amrBoxCenterY = 0.0;
 Realf P::amrBoxCenterZ = 0.0;
 
+
 bool Parameters::addParameters(){
    //the other default parameters we read through the add/get interface
    Readparameters::add("io.diagnostic_write_interval", "Write diagnostic output every arg time steps",numeric_limits<uint>::max());

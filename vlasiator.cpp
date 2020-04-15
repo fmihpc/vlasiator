@@ -894,8 +894,8 @@ int main(int argn,char* args[]) {
          phiprof::start("fsgrid-coupling-in");
          // Copy moments over into the fsgrid.
          //setupTechnicalFsGrid(mpiGrid, cells, technicalGrid);
-         feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid,false);
-         feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid,true);
+         feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid, technicalGrid, false);
+         feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid, technicalGrid, true);
          phiprof::stop("fsgrid-coupling-in");
          
          propagateFields(

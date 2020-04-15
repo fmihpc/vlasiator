@@ -1,0 +1,84 @@
+#Kostis Papadakis
+#======== Vectorization ==========
+#Set vector backend type for vlasov solvers, sets precision and length.
+#NOTE this has to have the same precision as the distribution function define (DISTRIBUTION_FP_PRECISION)
+#Options:
+# AVX:	    VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
+# AVX512:   VEC8D_AGNER, VEC16F_AGNER
+# Fallback: VEC4D_FALLBACK, VEC4F_FALLBACK, VEC8F_FALLBACK
+
+ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
+#Single-precision
+	VECTORCLASS = VEC4F_FALLBACK
+else
+#Double-precision
+	VECTORCLASS = VEC4D_FALLBACK
+endif
+
+
+#======== Allocator =========
+#Use TBB malloc
+
+CMP = mpic++
+LNK = mpic++
+
+PAPI_FLAG =
+
+#======== Vectorization ==========
+#Set vector backend type for vlasov solvers, sets precision and length.
+#NOTE this has to have the same precision as the distribution function define (DISTRIBUTION_FP_PRECISION)
+#Options:
+# AVX:	    VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
+# AVX512:   VEC8D_AGNER, VEC16F_AGNER
+# Fallback: VEC4D_FALLBACK, VEC4F_FALLBACK, VEC8F_FALLBACK
+
+ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
+#Single-precision
+	VECTORCLASS = VEC8F_AGNER
+else
+#Double-precision
+	VECTORCLASS = VEC4D_AGNER
+endif
+
+FLAGS =
+#CXXFLAGS = -I $(HOME)/include  -L $(HOME)/lib -g  -funroll-loops -std=c++0x -fopenmp -W -Wall -pedantic -Wno-unused -fabi-version=0 -mavx
+CXXFLAGS = -I $(HOME)/include  -L $(HOME)/lib -O3  -funroll-loops -std=c++0x -fopenmp -W -Wall -Wno-unused -fabi-version=0 -mavx
+MATHFLAGS = -ffast-math
+LDFLAGS = -L $(HOME)/lib
+LIB_MPI = -lgomp
+
+
+#======== Libraries ===========
+
+LIBRARY_PREFIX = $(HOME)
+
+INC_VECTORCLASS=-I$(LIBRARY_PREFIX)/version1
+
+INC_BOOST = -I/usr/include/boost/
+LIB_BOOST = -L/usr/lib/x86_64-linux-gnu/ -lboost_program_options
+
+INC_ZOLTAN = -I$(LIBRARY_PREFIX)/include
+LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/lib -lzoltan
+
+INC_VLSV = -I$(LIBRARY_PREFIX)/vlsv
+LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv
+
+INC_SILO = -I$(LIBRARY_PREFIX)/include
+LIB_SILO = -L$(LIBRARY_PREFIX)/lib -lsilo
+
+INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg
+
+INC_FSGRID = -I$(LIBRARY_PREFIX)/fsgrid
+
+#INC_JEMALLOC = -I$(LIBRARY_PREFIX)/include/jemalloc
+#LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/lib -ljemalloc
+
+INC_JEMALLOC = -I/home/kostis/libraries/jemalloc
+LIB_JEMALLOC = -L/home/kostis/libraries/jemalloc/lib -ljemalloc
+
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof
+INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include
+INC_TOPO =
+
+INC_EIGEN = -I$(LIBRARY_PREFIX)/eigen-eigen-07105f7124f9
+
