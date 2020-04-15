@@ -163,7 +163,7 @@ namespace DRO {
          // Convert down to 32bit floats to save output space
          std::vector<float> varBufferFloat(varBuffer.size());
          for(int i=0; i<varBuffer.size(); i++) {
-            varBufferFloat[i] = (float)varBufferFloat[i];
+            varBufferFloat[i] = (float)varBuffer[i];
          }
          if(vlsvWriter.writeArray("VARIABLE",attribs, "float", gridSize[0]*gridSize[1]*gridSize[2], vectorSize, sizeof(float), reinterpret_cast<const char*>(varBufferFloat.data())) == false) {
             string message = "The DataReductionOperator " + this->getName() + " failed to write its data.";
