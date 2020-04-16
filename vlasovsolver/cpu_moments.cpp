@@ -177,9 +177,9 @@ void calculateMoments_R(
     }
 
     for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-        if (getObjectWrapper().particleSpecies[popID].propagateSpecies == false) {
-	    continue;
-        }
+        // if (getObjectWrapper().particleSpecies[popID].propagateSpecies == false) {
+	//     continue;
+        // }
         const Real mass = getObjectWrapper().particleSpecies[popID].mass;
         const Real charge = getObjectWrapper().particleSpecies[popID].charge;
         const bool istestspecies = getObjectWrapper().particleSpecies[popID].isTestSpecies;
@@ -263,9 +263,9 @@ void calculateMoments_R(
     }
 
     for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-        if (getObjectWrapper().particleSpecies[popID].propagateSpecies == false) {
-	    continue;
-	}
+        // if (getObjectWrapper().particleSpecies[popID].propagateSpecies == false) {
+	//     continue;
+	// }
 	const Real mass = getObjectWrapper().particleSpecies[popID].mass;
 	const bool istestspecies = getObjectWrapper().particleSpecies[popID].isTestSpecies;
 #pragma omp parallel for
@@ -342,9 +342,9 @@ void calculateMoments_V(
 
     // Loop over all particle species
     for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-        if (getObjectWrapper().particleSpecies[popID].propagateSpecies == false) {
-	    continue;
-	}
+        // if (getObjectWrapper().particleSpecies[popID].propagateSpecies == false) {
+	//     continue;
+	// }
 	const Real mass = getObjectWrapper().particleSpecies[popID].mass;
 	const Real charge = getObjectWrapper().particleSpecies[popID].charge;
 	const bool istestspecies = getObjectWrapper().particleSpecies[popID].isTestSpecies;
@@ -411,9 +411,9 @@ void calculateMoments_V(
     }
 
     for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-        if (getObjectWrapper().particleSpecies[popID].propagateSpecies == false) {
-	    continue;
-	}
+        // if (getObjectWrapper().particleSpecies[popID].propagateSpecies == false) {
+	//     continue;
+	// }
 	const Real mass = getObjectWrapper().particleSpecies[popID].mass;
 	const bool istestspecies = getObjectWrapper().particleSpecies[popID].isTestSpecies;
 #pragma omp parallel for
