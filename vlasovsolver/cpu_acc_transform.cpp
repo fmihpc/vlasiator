@@ -226,8 +226,8 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       if ((smallparticle) && (fabs(substeps_dt) > EPSILON)) {
 	 // First find the current electron moments, this results in leapfrog-like propagation of EJE
 	 Eigen::Matrix<Real,3,1> electronVcurr(total_transform*electronV);
-	 std::cerr  << EfromJe[0] << " "  << EfromJe[1] << " "  << EfromJe[2] << " " 
-		    << electronVcurr[0] << " " << electronVcurr[1] << " " << electronVcurr[2] << " " << endl;
+	 // std::cerr  << EfromJe[0] << " "  << EfromJe[1] << " "  << EfromJe[2] << " " 
+	 // 	    << electronVcurr[0] << " " << electronVcurr[1] << " " << electronVcurr[2] << " " << endl;
 	    
 	 if (RKN) { // Use second order solver or...
 	    // Now account for current requirement from curl of B
