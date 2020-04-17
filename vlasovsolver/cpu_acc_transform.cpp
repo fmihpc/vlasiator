@@ -210,6 +210,7 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
    const Real h = substeps_dt;
 
    bool RKN = true; 
+   Eigen::Matrix<Real,3,1> rotation_pivot(total_transform*bulk_velocity);
    for (uint i=0; i<transformation_substeps; ++i) {
       Eigen::Matrix<Real,3,1> dEJEt(0.,0.,0.);
       Eigen::Matrix<Real,3,1> Je(0.,0.,0.);
@@ -220,18 +221,6 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       Eigen::Matrix<Real,3,1> k31, k32, k41, k42;
       Eigen::Matrix<Real,3,1> deltaV; 
       
-      if (smallparticle) {
-	Eigen::Vector3d vvvv = total_transform.translation();
-	//std::cerr << i << " EJE " << EfromJe[0] << " "  << EfromJe[1] << " "  << EfromJe[2] << " V "
-	std::cerr  << EfromJe[0] << " "  << EfromJe[1] << " "  << EfromJe[2] << " " 
-		   << electronV[0] + vvvv[0] << " "
-		  << electronV[1] + vvvv[1]  << " "
-		  << electronV[2] + vvvv[2] << " "
-		  << endl;
-      }
-      // rotation origin is the point through which we place our rotation axis (direction of which is unitB).
-      // first add bulk velocity (using the total transform computed this far.
-      Eigen::Matrix<Real,3,1> rotation_pivot(total_transform*bulk_velocity);
       
       /* include lorentzHallTerm (we should include, always)      
 	 This performs a transformation into a frame where the newly generated motional
@@ -240,13 +229,18 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
 	 rotation_pivot[0]-= hallPrefactor*(dBZdy - dBYdz);
 	 rotation_pivot[1]-= hallPrefactor*(dBXdz - dBZdx);
 	 rotation_pivot[2]-= hallPrefactor*(dBYdx - dBXdy);
+	 // rotation origin is the point through which we place our rotation axis (direction of which is unitB).
+	 // first add bulk velocity (using the total transform computed this far.
+	 rotation_pivot = Eigen::Matrix<Real,3,1>(total_transform*bulk_velocity);
       } // For the electron run, since we use the electron bulk velocity, the Hall term should not be used
       
       // Calculate EJE only for the electron population
       if ((smallparticle) && (fabs(substeps_dt) > EPSILON)) {
 	 // First find the current electron moments, this results in leapfrog-like propagation of EJE
 	 Eigen::Matrix<Real,3,1> electronVcurr(total_transform*electronV);
-
+	 std::cerr  << EfromJe[0] << " "  << EfromJe[1] << " "  << EfromJe[2] << " " 
+		    << electronVcurr[0] << " " << electronVcurr[1] << " " << electronVcurr[2] << " " << endl;
+	    
 	 if (RKN) { // Use second order solver or...
             for (uint popID_EJE=0; popID_EJE<getObjectWrapper().particleSpecies.size(); ++popID_EJE) {
 	      if (getObjectWrapper().particleSpecies[popID_EJE].mass > 0.5*physicalconstants::MASS_PROTON) {
@@ -347,7 +341,7 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
 	    
 	    // Increment EfromJe with derivative times half of substep to get representative field throughout integration step
 	    EfromJe += dEJEt*0.5*substeps_dt;
-	    /*
+	    
 	    // Find B-perpendicular and B-parallel components of EfromJe
 	    Eigen::Matrix<Real,3,1> EfromJe_parallel(EfromJe.dot(unit_B)*unit_B);
 	    Eigen::Matrix<Real,3,1> EfromJe_perpendicular(EfromJe-EfromJe_parallel);
@@ -359,7 +353,7 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
 	    rotation_pivot[0]-= EJEperpperB * (unit_B[1]*unit_EJEperp[2] - unit_B[2]*unit_EJEperp[1]);
 	    rotation_pivot[1]-= EJEperpperB * (unit_B[2]*unit_EJEperp[0] - unit_B[0]*unit_EJEperp[2]);
 	    rotation_pivot[2]-= EJEperpperB * (unit_B[0]*unit_EJEperp[1] - unit_B[1]*unit_EJEperp[0]);
-	    */
+	    
          }
 	 
          /* if (getObjectWrapper().particleSpecies[popID].charge < 0 && int(spatial_cell->parameters[CellParams::CELLID]) == 1 &&
@@ -401,7 +395,9 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
 	  //  				       EfromJe * substeps_dt ) * total_transform;
 	  // Now actually use the properly propagated deltaV 
 	  total_transform=Translation<Real,3>(deltaV) * total_transform;
-	  
+	  //Eigen::Matrix<Real,3,1> deltaVpar(deltaV.dot(unit_B)*unit_B);
+	  //total_transform = Translation<Real,3>(deltaVpar) * total_transform;
+
 	  //total_transform=Translation<Real,3>( (getObjectWrapper().particleSpecies[popID].charge/
 	  //   getObjectWrapper().particleSpecies[popID].mass) * 
 	  //   EfromJe * substeps_dt + (k1 + k3) * substeps_dt / 4.) * total_transform;	  
