@@ -786,7 +786,7 @@ namespace SBC {
    }
    
    Real SysBoundaryCondition::fieldBoundaryCopyFromSolvingNbrMagneticField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & bGrid,
       FsGrid< fsgrids::technical, 2> & technicalGrid,
       cint i,
       cint j,
@@ -833,7 +833,7 @@ namespace SBC {
          abort();
       }
 
-      return perBGrid.get(closestCells[0][0], closestCells[0][1], closestCells[0][2])->at(fsgrids::bfield::PERBX+component);
+      return bGrid.get(closestCells[0][0], closestCells[0][1], closestCells[0][2])->at(fsgrids::bfield::PERBX+component);
    }
    
    /*! Function used in some cases to know which faces the system boundary condition is being applied to.

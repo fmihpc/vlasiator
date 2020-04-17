@@ -393,12 +393,13 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
       //spatial block neighbors as much in sync as possible for
       //adjust blocks.
       Real subcycleDt;
-      if( (step + 1) * maxVdt > dt) {
-         subcycleDt = max(dt - step * maxVdt, 0.0);
+      if( (step + 1) * maxVdt > fabs(dt)) {
+	 subcycleDt = max(fabs(dt) - step * maxVdt, 0.0);
       } else{
          subcycleDt = maxVdt;
       }
-
+      if (dt<0) subcycleDt = -subcycleDt;
+      
       //generate pseudo-random order which is always the same irrespective of parallelization, restarts, etc.
       char rngStateBuffer[256];
       random_data rngDataBuffer;

@@ -114,7 +114,11 @@ namespace DRO {
    std::string DataReductionOperatorFsGrid::getName() const {return variableName;}
    bool DataReductionOperatorFsGrid::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
-      dataSize = sizeof(double);
+      if(P::writeAsFloat==1) {
+         dataSize = sizeof(float);
+      } else {
+         dataSize = sizeof(double);
+      }
       vectorSize = 1;
       return true;
    }
@@ -151,12 +155,26 @@ namespace DRO {
 
       std::vector<double> varBuffer =
          lambda(perBGrid,EGrid,EHallGrid,EGradPeGrid,momentsGrid,dPerBGrid,dMomentsGrid,BgBGrid,volGrid,technicalGrid);
-      
+
       std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
       int vectorSize = varBuffer.size() / (gridSize[0]*gridSize[1]*gridSize[2]);
-      if(vlsvWriter.writeArray("VARIABLE",attribs, "float", gridSize[0]*gridSize[1]*gridSize[2], vectorSize, sizeof(double), reinterpret_cast<const char*>(varBuffer.data())) == false) {
-         string message = "The DataReductionOperator " + this->getName() + " failed to write its data.";
-         bailout(true, message, __FILE__, __LINE__);
+
+      if(P::writeAsFloat==1) {
+         // Convert down to 32bit floats to save output space
+         std::vector<float> varBufferFloat(varBuffer.size());
+         for(int i=0; i<varBuffer.size(); i++) {
+            varBufferFloat[i] = (float)varBuffer[i];
+         }
+         if(vlsvWriter.writeArray("VARIABLE",attribs, "float", gridSize[0]*gridSize[1]*gridSize[2], vectorSize, sizeof(float), reinterpret_cast<const char*>(varBufferFloat.data())) == false) {
+            string message = "The DataReductionOperator " + this->getName() + " failed to write its data.";
+            bailout(true, message, __FILE__, __LINE__);
+         }
+
+      } else {
+         if(vlsvWriter.writeArray("VARIABLE",attribs, "float", gridSize[0]*gridSize[1]*gridSize[2], vectorSize, sizeof(double), reinterpret_cast<const char*>(varBuffer.data())) == false) {
+            string message = "The DataReductionOperator " + this->getName() + " failed to write its data.";
+            bailout(true, message, __FILE__, __LINE__);
+         }
       }
 
       return true;

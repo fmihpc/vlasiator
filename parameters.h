@@ -145,8 +145,8 @@ struct Parameters {
    static Realf amrBoxCenterX;
    static Realf amrBoxCenterY;
    static Realf amrBoxCenterZ;
-
-   /*! \brief Add the global parameters.
+   
+    /*! \brief Add the global parameters.
     * 
     * This function adds all the parameters that are loaded at a global level.
     * More are being loaded e.g. in the projects and in the system boundary conditions.
