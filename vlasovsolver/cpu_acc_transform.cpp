@@ -118,9 +118,9 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
    const Real hallPrefactor = 1.0 / (physicalconstants::MU_0 * hallRhoq );
 
    // Bulk velocity is used to transform to a frame where the motional E-field vanishes
-   Eigen::Matrix<Real,3,1> bulk_velocity(spatial_cell->parameters[CellParams::VX_V],
-                                         spatial_cell->parameters[CellParams::VY_V],
-                                         spatial_cell->parameters[CellParams::VZ_V]);
+   Eigen::Matrix<Real,3,1> bulk_velocity(spatial_cell->parameters[CellParams::VX_R],
+                                         spatial_cell->parameters[CellParams::VY_R],
+                                         spatial_cell->parameters[CellParams::VZ_R]);
 
    // Use electron solvers for anything below half a proton mass
    bool smallparticle = false;
@@ -128,9 +128,9 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
    if (getObjectWrapper().particleSpecies[popID].mass < 0.5*physicalconstants::MASS_PROTON) {
       smallparticle = true;
       // Store the original electron bulk velocity
-      bulk_velocity(0,0) = electronV[0] = spatial_cell->get_population(popID).V_V[0];
-      bulk_velocity(1,0) = electronV[1] = spatial_cell->get_population(popID).V_V[1];
-      bulk_velocity(2,0) = electronV[2] = spatial_cell->get_population(popID).V_V[2];
+      bulk_velocity(0,0) = electronV[0] = spatial_cell->get_population(popID).V_R[0];
+      bulk_velocity(1,0) = electronV[1] = spatial_cell->get_population(popID).V_R[1];
+      bulk_velocity(2,0) = electronV[2] = spatial_cell->get_population(popID).V_R[2];
    }  
 
     // compute total transformation
@@ -193,6 +193,10 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
 	 * spatial_cell->get_population(popID_EJE).V_R[2];
      }
    }
+   // Now account for current requirement from curl of B
+   Ji[0] += (dBZdy - dBYdz)/physicalconstants::MU_0;
+   Ji[1] += (dBXdz - dBZdx)/physicalconstants::MU_0;
+   Ji[2] += (dBYdx - dBXdy)/physicalconstants::MU_0;
 
    bool RKN = true; // Select electron propagation method
    for (uint i=0; i<transformation_substeps; ++i) {
@@ -229,12 +233,7 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
 	 // std::cerr  << EfromJe[0] << " "  << EfromJe[1] << " "  << EfromJe[2] << " " 
 	 // 	    << electronVcurr[0] << " " << electronVcurr[1] << " " << electronVcurr[2] << " " << endl;
 	    
-	 if (RKN) { // Use second order solver or...
-	    // Now account for current requirement from curl of B
-	    Ji[0] += (dBZdy - dBYdz)/physicalconstants::MU_0;
-	    Ji[1] += (dBXdz - dBZdx)/physicalconstants::MU_0;
-	    Ji[2] += (dBYdx - dBXdy)/physicalconstants::MU_0;
-
+	 if (RKN) {
             // This is a traditional RK4 integrator 
 	    // In effect, it runs two RK4 integrators in parallel, one for velocity, one for electric field
 
