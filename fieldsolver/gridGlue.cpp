@@ -191,8 +191,8 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
 
 
-
-
+  if (P::amrMaxSpatialRefLevel>0) {
+ 
   /*----------------------Filtering------------------------*/
   phiprof::start("BoxCar Filtering");
 
@@ -226,8 +226,6 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
   // Get size of local domain and create swapGrid for filtering
   const int *mntDims= &momentsGrid.getLocalSize()[0];   //get local size for each proc.
   FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, 2> swapGrid = momentsGrid;  //swap array 
-  std::array<Real, fsgrids::moments::N_MOMENTS> *cell;  
-  std::array<Real,fsgrids::moments::N_MOMENTS> *swap;
   const int maxRefLevel = mpiGrid.mapping.get_maximum_refinement_level();
 
 
@@ -255,6 +253,8 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
           }
 
 
+        std::array<Real, fsgrids::moments::N_MOMENTS> *cell;  
+        std::array<Real,fsgrids::moments::N_MOMENTS> *swap;
         // Set Cell to zero before passing filter
         swap = swapGrid.get(ii,jj,kk);
         for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
@@ -301,10 +301,10 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
   }
 
-  phiprof::stop("BoxCar Filtering");
+  phiprof::stop("BoxCar Filtering");  
 
-}
-
+   }  
+ }
 
 
 void getFieldsFromFsGrid(
