@@ -192,7 +192,7 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
 
   if (P::amrMaxSpatialRefLevel>0) {
- 
+
     /*----------------------Filtering------------------------*/
     phiprof::start("BoxCar Filtering");
 
@@ -202,9 +202,9 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
     // for (int i =0; i<3; i++){
     //   for (int j =0; j<3; j++){
     //     for (int k =0; k<3; k++){
-          
+
     //       kernel[i][j][k]=1.0/27.0;  //normalized for 27 neighbours.
-          
+
     //     }
     //   }
     // }
@@ -232,79 +232,79 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
     // Filtering Loop
     for (int blurPass = 0; blurPass < maxRefLevel; blurPass++){
 
-    // Blurring Pass
-    phiprof::start("BlurPass");
-    #pragma omp parallel for collapse(2)
-    for (int kk = 0; kk < mntDims[2]; kk++){
-      for (int jj = 0; jj < mntDims[1]; jj++){
-        for (int ii = 0; ii < mntDims[0]; ii++){
-          
-          //  Get refLevel level
-          int refLevel = technicalGrid.get(ii, jj, kk)->refLevel;
+      // Blurring Pass
+      phiprof::start("BlurPass");
+      #pragma omp parallel for collapse(2)
+      for (int kk = 0; kk < mntDims[2]; kk++){
+        for (int jj = 0; jj < mntDims[1]; jj++){
+          for (int ii = 0; ii < mntDims[0]; ii++){
 
-          // Skip pass
-          if (refLevel == maxRefLevel ||
+            //  Get refLevel level
+            int refLevel = technicalGrid.get(ii, jj, kk)->refLevel;
+
+            // Skip pass
+            if (refLevel == maxRefLevel ||
               blurPass < refLevel ||
               technicalGrid.get(ii, jj, kk)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
               (technicalGrid.get(ii, jj, kk)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY && technicalGrid.get(ii, jj, kk)->sysBoundaryLayer == 2)
-            )
-          {
-            continue;
+              )
+            {
+              continue;
             }
 
 
-          std::array<Real, fsgrids::moments::N_MOMENTS> *cell;  
-          std::array<Real,fsgrids::moments::N_MOMENTS> *swap;
-          // Set Cell to zero before passing filter
-          swap = swapGrid.get(ii,jj,kk);
-          for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
-                    
-            swap->at(e)=0.0;
-                  
+            std::array<Real, fsgrids::moments::N_MOMENTS> *cell;  
+            std::array<Real,fsgrids::moments::N_MOMENTS> *swap;
+            // Set Cell to zero before passing filter
+            swap = swapGrid.get(ii,jj,kk);
+            for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
+
+              swap->at(e)=0.0;
+
             }
 
-          // Perform the blur
-          for (int a=0; a<stencilWidth; a++){
-            for (int b=0; b<stencilWidth; b++){
-              for (int c=0; c<stencilWidth; c++){
-                    
-                int xn=ii+a-kernelOffset;
-                int yn=jj+b-kernelOffset;
-                int zn=kk+c-kernelOffset;
+            // Perform the blur
+            for (int a=0; a<stencilWidth; a++){
+              for (int b=0; b<stencilWidth; b++){
+                for (int c=0; c<stencilWidth; c++){
 
-                cell = momentsGrid.get(xn, yn, zn);
-                swap = swapGrid.get(ii,jj,kk);
+                  int xn=ii+a-kernelOffset;
+                  int yn=jj+b-kernelOffset;
+                  int zn=kk+c-kernelOffset;
 
-                for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
-                    
-                  // swap->at(e)+=cell->at(e) * kernel[a][b][c];
-                  swap->at(e)+=cell->at(e) * kernelWeight;
+                  cell = momentsGrid.get(xn, yn, zn);
+                  swap = swapGrid.get(ii,jj,kk);
 
+                  for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
+
+                    // swap->at(e)+=cell->at(e) * kernel[a][b][c];
+                    swap->at(e)+=cell->at(e) * kernelWeight;
+
+                    } 
+                  }
                 }
               }
             }
           }
         }
-      }
-    }
-      
-    phiprof::stop("BlurPass");
+
+      phiprof::stop("BlurPass");
 
 
-    // Copy swapGrid back to momentsGrid
-    momentsGrid=swapGrid;
+      // Copy swapGrid back to momentsGrid
+      momentsGrid=swapGrid;
 
-    // Update Ghost Cells
-    phiprof::start("GhostUpdate");
-    momentsGrid.updateGhostCells();
-    phiprof::stop("GhostUpdate");
+      // Update Ghost Cells
+      phiprof::start("GhostUpdate");
+      momentsGrid.updateGhostCells();
+      phiprof::stop("GhostUpdate");
 
     }
 
     phiprof::stop("BoxCar Filtering");  
 
-  }  
- }
+  }   
+}
 
 
 void getFieldsFromFsGrid(
