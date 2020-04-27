@@ -143,7 +143,9 @@ namespace DRO {
                       FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dMomentsGrid,
                       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volGrid,
-                      FsGrid< fsgrids::technical, 2>& technicalGrid, const std::string& meshName, vlsv::Writer& vlsvWriter) {
+                      FsGrid< fsgrids::technical, 2>& technicalGrid, const
+                      std::string& meshName, vlsv::Writer& vlsvWriter,
+                      const bool writeAsFloat) {
 
       std::map<std::string,std::string> attribs;
       attribs["mesh"]=meshName;
@@ -159,7 +161,7 @@ namespace DRO {
       std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
       int vectorSize = varBuffer.size() / (gridSize[0]*gridSize[1]*gridSize[2]);
 
-      if(P::writeAsFloat==1) {
+      if(writeAsFloat) {
          // Convert down to 32bit floats to save output space
          std::vector<float> varBufferFloat(varBuffer.size());
          for(int i=0; i<varBuffer.size(); i++) {
