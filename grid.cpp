@@ -202,25 +202,26 @@ void initializeGrids(
       phiprof::stop("Apply system boundary conditions state");
    }
 
+  if (P::amrMaxSpatialRefLevel>0) {
+    // Map Refinement Level to FsGrid
+    phiprof::start("Map Refinement Level to FsGrid");
+    const int *localDims = &momentsGrid.getLocalSize()[0];
 
-   // Map Refinement Level to FsGrid
-   phiprof::start("Map Refinement Level to FsGrid");
-   const int *localDims = &momentsGrid.getLocalSize()[0];
-
-   // #pragma omp parallel for collapse(3)
-   for (int k=0; k<localDims[2]; k++) {
+    // #pragma omp parallel for collapse(3)
+    for (int k=0; k<localDims[2]; k++) {
       for (int j=0; j<localDims[1]; j++) {
-         for (int i=0; i<localDims[0]; i++) {
+        for (int i=0; i<localDims[0]; i++) {
 
-            const std::array<int, 3> mapIndices = momentsGrid.getGlobalIndices(i,j,k);
-            const dccrg::Types<3>::indices_t  indices = {{(uint64_t)mapIndices[0],(uint64_t)mapIndices[1],(uint64_t)mapIndices[2]}}; //cast to avoid warnings
-            CellID dccrgCellID2 = mpiGrid.get_existing_cell(indices, 0, mpiGrid.mapping.get_maximum_refinement_level());
-            int amrLevel= mpiGrid.get_refinement_level(dccrgCellID2);
-            technicalGrid.get(i, j, k)-> refLevel =amrLevel ;
-         }
+          const std::array<int, 3> mapIndices = momentsGrid.getGlobalIndices(i,j,k);
+          const dccrg::Types<3>::indices_t  indices = {{(uint64_t)mapIndices[0],(uint64_t)mapIndices[1],(uint64_t)mapIndices[2]}}; //cast to avoid warnings
+          CellID dccrgCellID2 = mpiGrid.get_existing_cell(indices, 0, mpiGrid.mapping.get_maximum_refinement_level());
+          int amrLevel= mpiGrid.get_refinement_level(dccrgCellID2);
+          technicalGrid.get(i, j, k)-> refLevel =amrLevel ;
+        }
       }
-   }
-   phiprof::stop("Map Refinement Level to FsGrid");
+    }
+    phiprof::stop("Map Refinement Level to FsGrid");
+  }
 
 
    // Update technicalGrid
