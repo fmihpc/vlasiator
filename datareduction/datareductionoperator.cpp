@@ -113,12 +113,9 @@ namespace DRO {
 
    std::string DataReductionOperatorFsGrid::getName() const {return variableName;}
    bool DataReductionOperatorFsGrid::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      // These are only set to dmmy values, as this reducer writes its own vlsv dataset anyway
       dataType = "float";
-      if(P::writeAsFloat==1) {
-         dataSize = sizeof(float);
-      } else {
-         dataSize = sizeof(double);
-      }
+      dataSize = sizeof(double);
       vectorSize = 1;
       return true;
    }
