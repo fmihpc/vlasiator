@@ -142,6 +142,12 @@ void initializeGrids(
    initializeStencils(mpiGrid);
    
    mpiGrid.set_partitioning_option("IMBALANCE_TOL", P::loadBalanceTolerance);
+   mpiGrid.set_partitioning_option("OBJ_WEIGHTS_COMPARABLE", "1");
+   mpiGrid.set_partitioning_option("RCB_MULTICRITERIA_NORM", "3");
+   /** RCB_MULTICRITERIA_NORM
+       Norm used in multicriteria algorithm; this determines how to balance the different weight constraints. Valid values are 1,2, and 3. Roughly, if the weights correspond to different phases, then the value 1 (1-norm) tries to minimize the  total time (sum over all phases) while the value 3 (max-norm) attempts to minimize the worst imbalance in any phase. The 2-norm does something in between. Try a different value if you're not happy with the balance. **/
+   mpiGrid.set_partitioning_option("OBJ_WEIGHT_DIM", "3");
+
    phiprof::start("Initial load-balancing");
    if (myRank == MASTER_RANK) logFile << "(INIT): Starting initial load balance." << endl << writeVerbose;
    mpiGrid.balance_load();
@@ -233,7 +239,9 @@ void initializeGrids(
       phiprof::stop("Apply system boundary conditions state");
       
       for (size_t i=0; i<cells.size(); ++i) {
-         mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = 0;
+         mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTERX] = 0;
+         mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTERY] = 0;
+         mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTERZ] = 0;
       }
 
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
@@ -243,10 +251,12 @@ void initializeGrids(
             validateMesh(mpiGrid,popID);
          #endif
 
-            // set initial LB metric based on number of blocks, all others
-         // will be based on time spent in acceleration
+         // set initial LB metric based on number of blocks, all others
+         // will be based on directional pencil counts
          for (size_t i=0; i<cells.size(); ++i) {
-            mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] += mpiGrid[cells[i]]->get_number_of_velocity_blocks(popID);
+            mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTERX] += mpiGrid[cells[i]]->get_number_of_velocity_blocks(popID);
+            mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTERY] += mpiGrid[cells[i]]->get_number_of_velocity_blocks(popID);
+            mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTERZ] += mpiGrid[cells[i]]->get_number_of_velocity_blocks(popID);
          }
       }
       
@@ -417,10 +427,14 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
       //Set weight. If acceleration is enabled then we use the weight
       //counter which is updated in acceleration, otherwise we just
       //use the number of blocks.
-//      if (P::propagateVlasovAcceleration) 
-      mpiGrid.set_cell_weight(cells[i], mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER]);
-//      else
-//         mpiGrid.set_cell_weight(cells[i], mpiGrid[cells[i]]->get_number_of_all_velocity_blocks());
+      //      if (P::propagateVlasovAcceleration) 
+      std::vector<double> lbthreeweight;
+      lbthreeweight.push_back(mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTERX]);
+      lbthreeweight.push_back(mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTERY]);
+      lbthreeweight.push_back(mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTERZ]);
+      mpiGrid.set_cell_weight_vector(cells[i], lbthreeweight);
+      //      else
+      //         mpiGrid.set_cell_weight(cells[i], mpiGrid[cells[i]]->get_number_of_all_velocity_blocks());
       //reset counter
       //mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = 0.0;
    }

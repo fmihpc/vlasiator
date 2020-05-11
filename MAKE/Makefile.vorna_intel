@@ -87,7 +87,8 @@ LDFLAGS += -Wl,-rpath=$(LIBRARY_PREFIX)/intel/phiprof/lib
 #header libraries
 
 INC_FSGRID = -I$(LIBRARY_PREFIX)/fsgrid/
-INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg/
+#INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg/
+INC_DCCRG = -I/proj/markusb/libraries/dccrg/
 INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/vectorclass
 
 
