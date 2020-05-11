@@ -144,7 +144,10 @@ struct Parameters {
    static Realf amrBoxCenterX;
    static Realf amrBoxCenterY;
    static Realf amrBoxCenterZ;
-   
+   static std::string blurPassString;
+   static std::vector<int> numPasses;
+   static int maxNumPasses;
+
     /*! \brief Add the global parameters.
     * 
     * This function adds all the parameters that are loaded at a global level.
