@@ -367,8 +367,23 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
        for (size_t c=0; c<cells.size(); ++c) {
           SpatialCell* SC = mpiGrid[cells[c]];
           const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = SC->get_velocity_mesh(popID);
-          // disregard boundary cells, in preparation for acceleration 
-          if (SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ) {
+          
+         creal *const cellParams = &(mpiGrid[cells[c]]->parameters[0]);
+         creal dx = cellParams[CellParams::DX];  
+         creal dy = cellParams[CellParams::DY];
+         creal dz = cellParams[CellParams::DZ];
+         creal x = cellParams[CellParams::XCRD] + 0.5*dx;
+         creal y = cellParams[CellParams::YCRD] + 0.5*dy;
+         creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
+          
+         //  bool isNotPML= x<0.5e4;
+          bool isNotPML= true;
+          
+          
+          
+          // disregard boundary cells, in preparation for acceleration
+          if (SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY && isNotPML)
+          {
              if(vmesh.size() != 0){
                 //do not propagate spatial cells with no blocks
                 propagatedCells.push_back(cells[c]);
