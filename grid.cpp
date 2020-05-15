@@ -785,7 +785,7 @@ void updateRemoteVelocityBlockLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
      uint64_t cell_id = incoming_cells[i];
      SpatialCell* cell = mpiGrid[cell_id];
      if (cell == NULL) {
-       for (const auto& cell: mpiGrid.local_cells) {
+       for (const auto& cell: mpiGrid.local_cells()) {
 	 if (cell.id == cell_id) {
 	   cerr << __FILE__ << ":" << __LINE__ << std::endl;
 	   abort();
