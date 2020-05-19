@@ -221,7 +221,20 @@ void calculateSpatialTranslation(
    // Figure out target spatial cells, result
    // independent of particle species.
    for (size_t c=0; c<localCells.size(); ++c) {
-      if (mpiGrid[localCells[c]]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+
+      creal *const cellParams = &(mpiGrid[localCells[c]]->parameters[0]);
+      creal dx = cellParams[CellParams::DX];  
+      creal dy = cellParams[CellParams::DY];
+      creal dz = cellParams[CellParams::DZ];
+      creal x = cellParams[CellParams::XCRD] + 0.5*dx;
+      creal y = cellParams[CellParams::YCRD] + 0.5*dy;
+      creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
+
+      //  bool isNotPML= x>-200.0e6;
+      bool isNotPML = true;
+
+
+      if (mpiGrid[localCells[c]]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY  && isNotPML) {
          local_target_cells.push_back(localCells[c]);
       }
    }
@@ -367,22 +380,9 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
        for (size_t c=0; c<cells.size(); ++c) {
           SpatialCell* SC = mpiGrid[cells[c]];
           const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = SC->get_velocity_mesh(popID);
-          
-         creal *const cellParams = &(mpiGrid[cells[c]]->parameters[0]);
-         creal dx = cellParams[CellParams::DX];  
-         creal dy = cellParams[CellParams::DY];
-         creal dz = cellParams[CellParams::DZ];
-         creal x = cellParams[CellParams::XCRD] + 0.5*dx;
-         creal y = cellParams[CellParams::YCRD] + 0.5*dy;
-         creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
-          
-         //  bool isNotPML= x<0.5e4;
-          bool isNotPML= true;
-          
-          
-          
+
           // disregard boundary cells, in preparation for acceleration
-          if (SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY && isNotPML)
+          if (SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)
           {
              if(vmesh.size() != 0){
                 //do not propagate spatial cells with no blocks
@@ -392,7 +392,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
              //needs to be set to somthing sensible for _all_ cells, even if
              //they are not propagated
              prepareAccelerateCell(SC, popID);
-             //update max subcycles for all cells in this process
+             //update max subcycles for all cellsz in this process
              maxSubcycles = max((int)getAccelerationSubcycles(SC, dt, popID), maxSubcycles);
              spatial_cell::Population& pop = SC->get_population(popID);
              pop.ACCSUBCYCLES = getAccelerationSubcycles(SC, dt, popID);
@@ -409,7 +409,21 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
              vector<CellID> temp;
              for (const auto& cell: propagatedCells) {
                 if (step < getAccelerationSubcycles(mpiGrid[cell], dt, popID) ) {
-                   temp.push_back(cell);
+                    
+                     creal *const cellParams = &(mpiGrid[cell]->parameters[0]);
+                     creal dx = cellParams[CellParams::DX];  
+                     creal dy = cellParams[CellParams::DY];
+                     creal dz = cellParams[CellParams::DZ];
+                     creal x = cellParams[CellParams::XCRD] + 0.5*dx;
+                     creal y = cellParams[CellParams::YCRD] + 0.5*dy;
+                     creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
+
+                     // bool isNotPML = x > -200.0e6;
+                     bool isNotPML = true;
+                     if (isNotPML){
+                        temp.push_back(cell);
+                     }
+             
                 }
              }
              

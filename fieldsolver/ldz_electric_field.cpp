@@ -434,6 +434,7 @@ void calculateEdgeElectricFieldX(
    FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> & dMomentsGrid,
    FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2> & BgBGrid,
    FsGrid< fsgrids::technical, 2> & technicalGrid,
+   FsGrid<std::array<Real, fsgrids::pml::N_PML>, 2> &pmlGrid,
    cint i,
    cint j,
    cint k,
@@ -530,7 +531,10 @@ void calculateEdgeElectricFieldX(
 
    // Ex and characteristic speeds on this cell:
    // 1st order terms:
-   Real Ex_SW = By_S*Vz0 - Bz_W*Vy0;
+   // Real Ex_SW = By_S*Vz0 - Bz_W*Vy0;
+   std::array<Real, fsgrids::pml::N_PML> *pmlGrid0;
+   pmlGrid0 = pmlGrid.get(i, j, k);
+   Real Ex_SW = pmlGrid0->at(fsgrids::pml::PGK2) * pmlGrid0->at(fsgrids::pml::PGJ2)*(By_S * Vz0 - Bz_W * Vy0);
 
    // Resistive term
    if (Parameters::resistivity > 0) {
@@ -585,8 +589,8 @@ void calculateEdgeElectricFieldX(
    Vz0  = moments_SE->at(fsgrids::moments::VZ);
    
    // 1st order terms:
-   Real Ex_SE = By_S*Vz0 - Bz_E*Vy0;
-   
+   Real Ex_SE = pmlGrid0->at(fsgrids::pml::PGK2) * pmlGrid0->at(fsgrids::pml::PGJ2) * (By_S * Vz0 - Bz_E * Vy0);
+
    // Resistive term
    if (Parameters::resistivity > 0) {
      Ex_SE += Parameters::resistivity *
@@ -641,8 +645,8 @@ void calculateEdgeElectricFieldX(
    Vz0  = moments_NW->at(fsgrids::moments::VZ);
    
    // 1st order terms:
-   Real Ex_NW    = By_N*Vz0 - Bz_W*Vy0;
-   
+   Real Ex_NW = pmlGrid0->at(fsgrids::pml::PGK2) * pmlGrid0->at(fsgrids::pml::PGJ2) * (By_N * Vz0 - Bz_W * Vy0);
+
    // Resistive term
    if (Parameters::resistivity > 0) {
      Ex_NW += Parameters::resistivity *
@@ -697,7 +701,7 @@ void calculateEdgeElectricFieldX(
    Vz0 = moments_NE->at(fsgrids::moments::VZ);
    
    // 1st order terms:
-   Real Ex_NE    = By_N*Vz0 - Bz_E*Vy0;
+   Real Ex_NE = pmlGrid0->at(fsgrids::pml::PGK2) * pmlGrid0->at(fsgrids::pml::PGJ2) * (By_N * Vz0 - Bz_E * Vy0);
 
    // Resistive term
    if (Parameters::resistivity > 0) {
@@ -792,6 +796,7 @@ void calculateEdgeElectricFieldY(
    FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> & dMomentsGrid,
    FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2> & BgBGrid,
    FsGrid< fsgrids::technical, 2> & technicalGrid,
+   FsGrid<std::array<Real, fsgrids::pml::N_PML>, 2> &pmlGrid,
    cint i,
    cint j,
    cint k,
@@ -887,8 +892,11 @@ void calculateEdgeElectricFieldY(
    
    // Ey and characteristic speeds on this cell:
    // 1st order terms:
-   Real Ey_SW  = Bz_S*Vx0 - Bx_W*Vz0;
-   
+   // Real Ey_SW  = Bz_S*Vx0 - Bx_W*Vz0;
+   std::array<Real, fsgrids::pml::N_PML> *pmlGrid0;
+   pmlGrid0 = pmlGrid.get(i, j, k);
+   Real Ey_SW = pmlGrid0->at(fsgrids::pml::PGI2) * pmlGrid0->at(fsgrids::pml::PGK2) * (Bz_S * Vx0 - Bx_W * Vz0);
+
    // Resistive term
    if (Parameters::resistivity > 0) {
       Ey_SW += Parameters::resistivity *
@@ -943,7 +951,7 @@ void calculateEdgeElectricFieldY(
    Vz0  = moments_SE->at(fsgrids::moments::VZ);
 
    // 1st order terms:
-   Real Ey_SE    = Bz_S*Vx0 - Bx_E*Vz0;
+   Real Ey_SE = pmlGrid0->at(fsgrids::pml::PGI2) * pmlGrid0->at(fsgrids::pml::PGK2) * (Bz_S * Vx0 - Bx_E * Vz0);
 
    // Resistive term
    if (Parameters::resistivity > 0) {
@@ -999,7 +1007,7 @@ void calculateEdgeElectricFieldY(
    Vx0  = moments_NW->at(fsgrids::moments::VX);
    
    // 1st order terms:
-   Real Ey_NW    = Bz_N*Vx0 - Bx_W*Vz0;
+   Real Ey_NW = pmlGrid0->at(fsgrids::pml::PGI2) * pmlGrid0->at(fsgrids::pml::PGK2) * (Bz_N * Vx0 - Bx_W * Vz0);
 
    // Resistive term
    if (Parameters::resistivity > 0) {
@@ -1055,8 +1063,8 @@ void calculateEdgeElectricFieldY(
    Vx0 = moments_NE->at(fsgrids::moments::VX);
    
    // 1st order terms:
-   Real Ey_NE    = Bz_N*Vx0 - Bx_E*Vz0;
-   
+   Real Ey_NE = pmlGrid0->at(fsgrids::pml::PGI2) * pmlGrid0->at(fsgrids::pml::PGK2) * (Bz_N * Vx0 - Bx_E * Vz0);
+
    // Resistive term
    if (Parameters::resistivity > 0) {
       Ey_NE += Parameters::resistivity *
@@ -1149,6 +1157,7 @@ void calculateEdgeElectricFieldZ(
    FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> & dMomentsGrid,
    FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2> & BgBGrid,
    FsGrid< fsgrids::technical, 2> & technicalGrid,
+   FsGrid<std::array<Real, fsgrids::pml::N_PML>, 2> &pmlGrid,
    cint i,
    cint j,
    cint k,
@@ -1246,8 +1255,11 @@ void calculateEdgeElectricFieldZ(
    
    // Ez and characteristic speeds on SW cell:
    // 1st order terms:
-   Real Ez_SW = Bx_S*Vy0 - By_W*Vx0;
-   
+   // Real Ez_SW = Bx_S*Vy0 - By_W*Vx0;
+   std::array<Real, fsgrids::pml::N_PML> *pmlGrid0;
+   pmlGrid0 = pmlGrid.get(i, j, k);
+   Real Ez_SW = pmlGrid0->at(fsgrids::pml::PGI2) * pmlGrid0->at(fsgrids::pml::PGJ2) * (Bx_S * Vy0 - By_W * Vx0);
+
    // Resistive term
    if (Parameters::resistivity > 0) {
      Ez_SW += Parameters::resistivity *
@@ -1275,6 +1287,7 @@ void calculateEdgeElectricFieldZ(
    
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
+      std::cout<<"2nd Order"<<std::endl;
       Ez_SW  += +HALF*((Bx_S - HALF*dBxdy_S)*(-dmoments_SW->at(fsgrids::dmoments::dVydx) - dmoments_SW->at(fsgrids::dmoments::dVydy)) - dBxdy_S*Vy0 + SIXTH*dBxdz_S*dmoments_SW->at(fsgrids::dmoments::dVydz));
       Ez_SW  += -HALF*((By_W - HALF*dBydx_W)*(-dmoments_SW->at(fsgrids::dmoments::dVxdx) - dmoments_SW->at(fsgrids::dmoments::dVxdy)) - dBydx_W*Vx0 + SIXTH*dBydz_W*dmoments_SW->at(fsgrids::dmoments::dVxdz));
    #endif
@@ -1304,7 +1317,8 @@ void calculateEdgeElectricFieldZ(
    Vy0  = moments_SE->at(fsgrids::moments::VY);
    
    // 1st order terms:
-   Real Ez_SE = Bx_S*Vy0 - By_E*Vx0;
+   // Real Ez_SE = (Bx_S * Vy0 - By_E * Vx0);
+   Real Ez_SE = pmlGrid0->at(fsgrids::pml::PGI2) * pmlGrid0->at(fsgrids::pml::PGJ2) * (Bx_S * Vy0 - By_E * Vx0);
 
    // Resistive term
    if (Parameters::resistivity > 0) {
@@ -1360,8 +1374,9 @@ void calculateEdgeElectricFieldZ(
    Vy0  = moments_NW->at(fsgrids::moments::VY);
    
    // 1st order terms:
-   Real Ez_NW = Bx_N*Vy0 - By_W*Vx0;
-   
+   // Real Ez_NW = pmlGrid0->(Bx_N * Vy0 - By_W * Vx0);
+   Real Ez_NW = pmlGrid0->at(fsgrids::pml::PGI2) * pmlGrid0->at(fsgrids::pml::PGJ2) * (Bx_N * Vy0 - By_W * Vx0);
+
    // Resistive term
    if (Parameters::resistivity > 0) {
       Ez_NW += Parameters::resistivity *
@@ -1416,8 +1431,8 @@ void calculateEdgeElectricFieldZ(
    Vy0  = moments_NE->at(fsgrids::moments::VY);
    
    // 1st order terms:
-   Real Ez_NE = Bx_N*Vy0 - By_E*Vx0;
-   
+   Real Ez_NE = pmlGrid0->at(fsgrids::pml::PGI2) * pmlGrid0->at(fsgrids::pml::PGJ2) * (Bx_N * Vy0 - By_E * Vx0);
+
    // Resistive term
    if (Parameters::resistivity > 0) {
       Ez_NE += Parameters::resistivity *
@@ -1521,6 +1536,7 @@ void calculateElectricField(
    FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> & dMomentsGrid,
    FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2> & BgBGrid,
    FsGrid< fsgrids::technical, 2> & technicalGrid,
+   FsGrid<std::array<Real, fsgrids::pml::N_PML>, 2> &pmlGrid,
    cint i,
    cint j,
    cint k,
@@ -1557,6 +1573,7 @@ void calculateElectricField(
 				     dMomentsGrid,
 				     BgBGrid,
 				     technicalGrid,
+                 pmlGrid,
 				     i,
 				     j,
 				     k,
@@ -1584,6 +1601,7 @@ void calculateElectricField(
 				     dMomentsGrid,
 				     BgBGrid,
 				     technicalGrid,
+                 pmlGrid,
 				     i,
 				     j,
 				     k,
@@ -1611,6 +1629,7 @@ void calculateElectricField(
 				     dMomentsGrid,
 				     BgBGrid,
 				     technicalGrid,
+                 pmlGrid,
 				     i,
 				     j,
 				     k,
@@ -1657,6 +1676,7 @@ void calculateUpwindedElectricFieldSimple(
    FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> & dMomentsGrid,
    FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2> & BgBGrid,
    FsGrid< fsgrids::technical, 2> & technicalGrid,
+   FsGrid<std::array<Real, fsgrids::pml::N_PML>, 2> &pmlGrid,
    SysBoundary& sysBoundaries,
    cint& RKCase
 ) {
@@ -1698,6 +1718,7 @@ void calculateUpwindedElectricFieldSimple(
                   dMomentsGrid,
                   BgBGrid,
                   technicalGrid,
+                  pmlGrid,
                   i,
                   j,
                   k,
@@ -1715,6 +1736,7 @@ void calculateUpwindedElectricFieldSimple(
                   dMomentsGrid,
                   BgBGrid,
                   technicalGrid,
+                  pmlGrid,
                   i,
                   j,
                   k,
