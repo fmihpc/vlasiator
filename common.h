@@ -381,17 +381,14 @@ enum ionosphereParameters {
   SIGMA21, SIGMA22, SIGMA23, /*!< Overall conductivity tensor */
   SIGMA31, SIGMA32, SIGMA33,
 
-  SIGMAP,   SIGMAP12, SIGMAP13, 
-  SIGMAP21, SIGMAP22, SIGMAP23, /*!< Petersen conductivity tensor */
-  SIGMAP31, SIGMAP32, SIGMAP33,
-
-  SIGMAH,   SIGMAH12, SIGMAH13, 
-  SIGMAH21, SIGMAH22, SIGMAH23, /*!< Hall conductivity tensor */
-  SIGMAH31, SIGMAH32, SIGMAH33,
-  PRECIP,    /*!< Precipitation */
-  BX1,       
-  BY1,
-  BZ1,
+  SIGMAP,   /*!< Scalar Pedersen conductivity */
+  SIGMAH,   /*!< Scalar Hall conductivity */
+  PRECIP,   /*!< Precipitation */
+  RHOM,     /*!< Downmapped magnetospheric plasma density */
+  PRESSURE, /*!< Downmapped scalar pressure */
+  //BX1,       
+  //BY1,
+  //BZ1,
   SOLUTION, /*!< Currently considered solution potential */
   BEST_SOLUTION, /*!< Best solution found so far */
   RESIDUAL, /*!< Residual of the current solution */

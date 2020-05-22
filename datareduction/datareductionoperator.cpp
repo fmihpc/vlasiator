@@ -215,7 +215,7 @@ namespace DRO {
       if(rank == 0) {
         std::vector<Real> varBuffer = lambda(grid);
 
-        std::array<int32_t, 3> gridSize{grid.elements.size(), 1,1};
+        std::array<int32_t, 3> gridSize{(int32_t)grid.elements.size(), 1,1};
         int vectorSize = varBuffer.size() / grid.elements.size();
         if(vlsvWriter.writeArray("VARIABLE", attribs, "float", grid.elements.size(), vectorSize, sizeof(Real), reinterpret_cast<const char*>(varBuffer.data())) == false) {
           string message = "The DataReductionOperator " + this->getName() + " failed to write its data.";
@@ -266,7 +266,7 @@ namespace DRO {
       if(rank == 0) {
         std::vector<Real> varBuffer = lambda(grid);
 
-        std::array<int32_t, 3> gridSize{grid.nodes.size(), 1,1};
+        std::array<int32_t, 3> gridSize{(int32_t)grid.nodes.size(), 1,1};
         int vectorSize = varBuffer.size() / grid.nodes.size();
         if(vlsvWriter.writeArray("VARIABLE", attribs, "float", grid.nodes.size(), vectorSize, sizeof(Real), reinterpret_cast<const char*>(varBuffer.data())) == false) {
           string message = "The DataReductionOperator " + this->getName() + " failed to write its data.";

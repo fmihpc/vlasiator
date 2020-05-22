@@ -83,10 +83,37 @@ namespace SBC {
       };
       std::vector<Node> nodes;
 
+      // Atmospheric height layers that are being integrated over
+      constexpr static int numAtmosphereLevels = 20;
+      struct AtmosphericLayer {
+         Real altitude;
+         Real nui;
+         Real density;
+         Real depth; // integrated density from the top of the atmosphere
+         Real pedersencoeff;
+         Real hallcoeff;
+      };
+      std::array<AtmosphericLayer, numAtmosphereLevels> atmosphere;
+
+      // Hardcoded constants for calculating ion production table
+      // TODO: Make these parameters?
+      constexpr static int productionNumAccEnergies = 60;
+      constexpr static int productionNumTemperatures = 60;
+      constexpr static int productionNumParticleEnergies = 100;
+      constexpr static Real productionMinAccEnergy = 0.1; // keV
+      constexpr static Real productionMaxAccEnergy = 100.; // keV
+      constexpr static Real productionMinTemperature = 0.1; // keV
+      constexpr static Real productionMaxTemperature = 100.; // keV
+      constexpr static Real ion_electron_T_ratio = 4.; // TODO: Make this a parameter (and/or find value from kinetics)
+      // Ionoisation production table
+      std::array< std::array< std::array< Real, productionNumTemperatures >, productionNumAccEnergies >, numAtmosphereLevels > productionTable;
+      Real lookupProductionValue(int heightindex, Real energy_keV, Real temperature_keV);
+
       MPI_Comm communicator;             // The communicator internally used to solve
       int rank = -1;
       bool isCouplingToCells;             // True for any rank that actually couples to the outer simulation
 
+      void readAtmosphericModelFile(const char* filename);
       void offset_FAC();                  // Offset field aligned currents to get overall zero current
       void normalizeRadius(Node& n, Real R); // Scale all coordinates onto sphere with radius R
       void updateConnectivity();          // Re-link elements and nodes
@@ -94,6 +121,7 @@ namespace SBC {
       void initializeIcosahedron();       // Initialize grid as a base icosahedron
       int32_t findElementNeighbour(uint32_t e, int n1, int n2);
       void subdivideElement(uint32_t e);  // Subdivide mesh within element e
+      void calculateConductivityTensor(const Real F10_7, const Real recombAlpha, const Real backgroundIonisation); // Update sigma tensor
       void calculateFsgridCoupling(FsGrid< fsgrids::technical, 2> & technicalGrid, FieldFunction& dipole, Real radius);     // Link each element to fsgrid cells for coupling
 
       // Conjugate Gradient solver functions
@@ -104,9 +132,12 @@ namespace SBC {
       Real Asolve(uint nodeIndex, int parameter); // Evaluate own parameter value
       void solve();
 
-      void mapDownFAC(
-          FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> dPerBGrid,
-          FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2> & BgBGrid);  // Map field-aligned currents down from the simulation boundary onto this grid
+      // Map field-aligned currents, density and pressure
+      // down from the simulation boundary onto this grid
+      void mapDownBoundaryData(
+          FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
+          FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2> & BgBGrid,
+          FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsGrid);  
 
       // Returns the surface area of one element on the sphere
       Real elementArea(uint32_t elementIndex) {
@@ -124,6 +155,9 @@ namespace SBC {
          
          return 0.5 * sqrt( area[0]*area[0] + area[1]*area[1] + area[2]*area[2] );
       }
+
+      // Calculate potential drop between ionosphere and magnetospher
+      Real getDeltaPhi(int nodeindex);
 
       // Returns the projected surface area of one element, mapped up along the magnetic field to
       // the simulation boundary. If one of the nodes maps nowhere, returns 0.
@@ -256,6 +290,10 @@ namespace SBC {
       static Real innerRadius; /*!< Radius of the ionosphere model */
       static int solverMaxIterations; /*!< Maximum iterations of CG solver per timestep */
       
+      // TODO: Make these parameters of the IonosphereGrid
+      static Real recombAlpha; // Recombination parameter, determining atmosphere ionizability (parameter)
+      static Real F10_7; // Solar 10.7 Flux value (parameter)
+      static Real backgroundIonisation; // Background ionisation due to stellar UV and cosmic rays
    protected:
       void generateTemplateCell(Project &project);
       void setCellFromTemplate(SpatialCell* cell,const uint popID);
@@ -288,6 +326,7 @@ namespace SBC {
       // Boundaries of refinement latitude bands
       std::vector<Real> refineMinLatitudes;
       std::vector<Real> refineMaxLatitudes;
+
       
       uint nSpaceSamples;
       uint nVelocitySamples;

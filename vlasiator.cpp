@@ -928,7 +928,8 @@ int main(int argn,char* args[]) {
       }
 
       // Map current data down into the ionosphere
-      SBC::ionosphereGrid.mapDownFAC(dPerBGrid, BgBGrid);
+      SBC::ionosphereGrid.mapDownBoundaryData(dPerBGrid, BgBGrid, momentsGrid);
+      SBC::ionosphereGrid.calculateConductivityTensor(SBC::Ionosphere::F10_7, SBC::Ionosphere::recombAlpha, SBC::Ionosphere::backgroundIonisation);
 
       // Solve ionosphere
       SBC::ionosphereGrid.solve();

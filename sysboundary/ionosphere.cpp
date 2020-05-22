@@ -53,6 +53,9 @@ namespace SBC {
 
    // Static ionosphere member variables
    Real Ionosphere::innerRadius;
+   Real Ionosphere::recombAlpha; // Recombination parameter, determining atmosphere ionizability (parameter)
+   Real Ionosphere::F10_7; // Solar 10.7 Flux value (parameter)
+   Real Ionosphere::backgroundIonisation; // Background ionisation due to stellar UV and cosmic rays
    int  Ionosphere::solverMaxIterations;
    
    // Offset field aligned currents so their sum is 0
@@ -347,6 +350,267 @@ namespace SBC {
    }
 
 
+   // TODO: Find a source for this
+   static Real ReesIsotropicLambda(Real x) {
+      static const Real P[7] = { -11.639, 32.1133, -30.8543, 14.6063, -6.3375, 0.6138, 1.4946};
+      Real lambda = ((((P[0] * x + P[1])*x + P[3])*x + P[4])*x +P[5])* x+P[6];
+      if(lambda < 0) {
+         return 0;
+      }
+      return lambda;
+   }
+
+   /* Read atmospheric model file in MSIS format.
+    * Based on the table data, precalculate and fill the ionisation production lookup table 
+    */
+   void SphericalTriGrid::readAtmosphericModelFile(const char* filename) {
+
+      // These are the only height values (in km) we are actually interested in
+      static const float alt[numAtmosphereLevels] = {
+         66, 68, 71, 74, 78, 82, 87, 92, 98, 104, 111,
+         118, 126, 134, 143, 152, 162, 172, 183, 194
+      };
+
+      // Open file, read in
+      ifstream in(filename);
+      int altindex = 0;
+      Real integratedDensity = 0;
+      Real prevDensity = 0;
+      Real prevAltitude = 0;
+      while(in) {
+         Real altitude, density, c1, c2, c3;
+         in >> altitude >>  c1 >> c2 >> c3 >> density; // TODO: Add a dummy at the end?
+
+         integratedDensity += (altitude - prevAltitude) *1000 * 0.5 * (density + prevDensity);
+         prevAltitude = altitude;
+         prevDensity = density;
+
+         // When we encounter one of our reference layers, record its values
+         if(altitude == alt[altindex]) {
+            AtmosphericLayer newLayer;
+            newLayer.altitude = altitude;
+            newLayer.density = density;
+            newLayer.depth = integratedDensity;
+            // TODO: Ugh, hardcoded constants. What is this?
+            newLayer.nui = 1e-16*(2*c1 + 3.8*c2 + 5*c3);
+            atmosphere[altindex++] = newLayer;
+         }
+      }
+
+      // Now we have integrated density from the bottom of the atmosphere in the depth field.
+      // Flip it around.
+      for(int h=0; h<numAtmosphereLevels; h++) {
+         atmosphere[h].depth = integratedDensity - atmosphere[h].depth;
+      }
+
+      // Calculate hall and pederson conductivity coefficient based on charge carrier density
+      const Real Bval = 5e-5; // TODO: Hardcoded B strength here?
+      const Real gyroFreq = physicalconstants::CHARGE * Bval / (31*physicalconstants::MASS_PROTON); // Oxygen gyration frequency
+      for(int h=0; h<numAtmosphereLevels; h++) {
+         Real rho = atmosphere[h].nui / gyroFreq;
+         atmosphere[h].pedersencoeff = (physicalconstants::CHARGE/Bval)*(rho/(1+rho*rho));
+         atmosphere[h].hallcoeff = rho * atmosphere[h].pedersencoeff;
+      }
+
+
+      // Energies of particles that sample the production array
+      // are logspace-distributed from 10^-1 to 10^2.3 keV
+      std::array< Real, productionNumParticleEnergies+1 > particle_energy;
+      for(int e=0; e<productionNumAccEnergies; e++) {
+         // TODO: Hardcoded constants. Make parameter?
+         particle_energy[e] = pow(10.0, -1.+e*(2.3+1.)/(productionNumParticleEnergies-1));
+      }
+      particle_energy[productionNumParticleEnergies] = 2*particle_energy[productionNumParticleEnergies-1] - particle_energy[productionNumParticleEnergies-2];
+
+      // Precalculate scattering rates
+      const Real eps_ion_keV = 0.035; // Energy required to create one ion
+      std::array< std::array< Real, numAtmosphereLevels >, productionNumParticleEnergies > scatteringRate;
+      for(int e=0;e<productionNumParticleEnergies; e++) {
+
+         // TODO: Ugh, hardcoded constants. What are these?
+         const Real electronRange = 4.3e-6 + 5.26e-5 * pow(particle_energy[e], 1.67); // kg m^-2
+         for(int h=0; h<numAtmosphereLevels; h++) {
+            const Real lambda = ReesIsotropicLambda(atmosphere[h].depth*particle_energy[e]);
+            const Real prerate = (lambda * atmosphere[h].density * particle_energy[e]) / (electronRange * eps_ion_keV);
+            scatteringRate[h][e] = max(0., prerate); // m^-1
+         }
+      }
+
+      // Fill ionisation production table
+      std::array< Real, productionNumParticleEnergies > differentialFlux; // Differential flux
+
+      for(int e=0; e<productionNumAccEnergies; e++) {
+
+         constexpr Real productionAccEnergyStep = (log10(productionMaxAccEnergy) - log10(productionMinAccEnergy)) / productionNumAccEnergies;
+         Real accenergy = pow(10., productionMinAccEnergy + e*(productionAccEnergyStep));
+
+         for(int t=0; t<productionNumTemperatures; t++) {
+            constexpr Real productionTemperatureStep = (log10(productionMaxTemperature) - log10(productionMinTemperature)) / productionNumTemperatures;
+            Real tempenergy = pow(10, productionMinTemperature + t*productionTemperatureStep);
+
+            for(int p=0; p<productionNumParticleEnergies; p++) {
+               // TODO: Kappa distribution here? Now only going for maxwellian
+               Real energyparam = (particle_energy[p]-accenergy)/tempenergy;
+
+               if(particle_energy[p] > accenergy) {
+                  differentialFlux[p] = sqrt(1. / (2. * M_PI * physicalconstants::MASS_ELECTRON)) * particle_energy[p]
+                     * (particle_energy[p+1] - particle_energy[p])* 1e3*physicalconstants::CHARGE  // dE in keV
+                     * exp(-energyparam);
+               } else {
+                  differentialFlux[p] = 0;
+               }
+            }
+            for(int h=0; h < numAtmosphereLevels; h++) {
+               productionTable[h][e][t] = 0;
+               for(int p=0; p<productionNumParticleEnergies; p++) {
+                  productionTable[h][e][t] += scatteringRate[h][p]*differentialFlux[p];
+               }
+            }
+         }
+      }
+   }
+
+   /* Calculate the field aligned potential drop between ionosphere and magnetosphere
+    * along the fieldline of the given node */
+   Real SphericalTriGrid::getDeltaPhi(int nodeindex) {
+
+      Real ne = nodes[nodeindex].parameters[ionosphereParameters::RHOM] / physicalconstants::MASS_PROTON;
+      Real fac = nodes[nodeindex].parameters[ionosphereParameters::SOURCE];
+      Real electronTemp = nodes[nodeindex].parameters[ionosphereParameters::PRESSURE] /
+         (ion_electron_T_ratio * physicalconstants::K_B * ne);
+      Real deltaPhi = physicalconstants::K_B * electronTemp / physicalconstants::CHARGE
+         * ((fac / (physicalconstants::CHARGE * ne)) 
+         * sqrt(2. * M_PI * physicalconstants::MASS_ELECTRON / (physicalconstants::K_B * electronTemp)) - 1.);
+     
+      // A positive value means an upward current (i.e. electron precipitation).
+      // A negative value quickly gets neutralized from the atmosphere.
+      if(deltaPhi < 0) {
+         deltaPhi = 0;
+      }
+
+      return deltaPhi;
+   }
+
+   /* Look up the free electron production rate in the ionosphere, given the atmospheric height index,
+    * particle energy after the ionospheric potential drop and inflowing distribution temperature */
+   Real SphericalTriGrid::lookupProductionValue(int heightindex, Real energy_keV, Real temperature_keV) {
+            Real normEnergy = log10(energy_keV) - productionMinAccEnergy / (productionMaxAccEnergy - productionMinAccEnergy);
+            if(normEnergy < 0) {
+               normEnergy = 0;
+            }
+            Real normTemperature = log10(temperature_keV) - productionMinTemperature / (productionMaxTemperature - productionMinTemperature);
+            if(normTemperature < 0) {
+               normTemperature = 0;
+            }
+
+            // Interpolation bin and parameters
+            normEnergy *= productionNumAccEnergies;
+            int energyindex = int(float(normEnergy));
+            float t = normEnergy - floor(normEnergy);
+
+            normTemperature *= productionNumTemperatures;
+            int temperatureindex = int(float(normTemperature));
+            float s = normTemperature - floor(normTemperature);
+
+            // Lookup production rate by linearly interpolating table.
+            return (productionTable[heightindex][energyindex][temperatureindex]*(1.-t) + 
+                    productionTable[heightindex][energyindex+1][temperatureindex] * t) * (1.-s) +
+                   (productionTable[heightindex][energyindex][temperatureindex+1]*(1.-t) +
+                    productionTable[heightindex][energyindex+1][temperatureindex+1] * t) * s ;
+
+   }
+
+   /* Calculate the conductivity tensor for every grid node, based on the
+    * given F10.7 photospheric flux as a solar activity proxy.
+    *
+    * This assumes the FACs have already been coupled into the grid.
+    */
+   void SphericalTriGrid::calculateConductivityTensor(const Real F10_7, const Real recombAlpha, const Real backgroundIonisation) {
+  
+
+      //precipitation()
+
+      //Calculate height-integrated conductivities and 3D electron density
+      // TODO: effdt > 0?
+      // (Then, ne += dt*(q - alpha*ne*abs(ne))
+      for(uint n=0; n<nodes.size(); n++) {
+         nodes[n].parameters[ionosphereParameters::SIGMAP] = 0;
+         nodes[n].parameters[ionosphereParameters::SIGMAH] = 0;
+         std::vector<Real> electronDensity(numAtmosphereLevels);
+
+         for(int h=1; h<numAtmosphereLevels; h++) { // Note this loop counts from 1
+            // Calculate production rate
+            Real energy_keV = max(getDeltaPhi(n)/1000., productionMinAccEnergy);
+
+            Real ne = nodes[n].parameters[ionosphereParameters::RHOM] / physicalconstants::MASS_PROTON;
+            Real electronTemp = nodes[n].parameters[ionosphereParameters::PRESSURE] /
+               (ion_electron_T_ratio * physicalconstants::K_B * ne);
+            Real temperature_keV = (physicalconstants::K_B / physicalconstants::CHARGE) / 1000. * electronTemp;
+            Real qref = ne * lookupProductionValue(h, energy_keV, temperature_keV);
+
+            // Get equilibrium electron density
+            electronDensity[h] = sqrt(qref/recombAlpha);
+
+            // Calculate conductivities
+            Real halfdx = 1000 * 0.5 * (atmosphere[h].altitude -  atmosphere[h-1].altitude);
+            Real halfCH = halfdx * 0.5 * (atmosphere[h-1].hallcoeff + atmosphere[h].hallcoeff);
+            Real halfCP = halfdx * 0.5 * (atmosphere[h-1].pedersencoeff + atmosphere[h].pedersencoeff);
+
+            nodes[n].parameters[ionosphereParameters::SIGMAP] += (electronDensity[h]+electronDensity[h-1]) * halfCP;
+            nodes[n].parameters[ionosphereParameters::SIGMAH] += (electronDensity[h]+electronDensity[h-1]) * halfCH;
+         }
+      }
+
+      // Antisymmetric tensor epsilon_ijk
+      static const char epsilon[3][3][3] = {
+         {{0,0,0},{0,0,1},{0,-1,0}},
+         {{0,0,-1},{0,0,0},{1,0,0}},
+         {{0,1,0},{-1,0,0},{0,0,0}}
+      };
+
+      // Pre-transformed F10_7 values
+      Real F10_7_p_049 = pow(F10_7, 0.49);
+      Real F10_7_p_053 = pow(F10_7, 0.53);
+
+      for(uint n=0; n<nodes.size(); n++) {
+
+         std::array<Real, 3>& x = nodes[n].x;
+         // TODO: Perform coordinate transformation here?
+
+         // Solar incidence parameter for calculating UV ionisation on the dayside
+         Real coschi = x[0] / Ionosphere::innerRadius;
+         if(coschi < 0) {
+            coschi = 0;
+         }
+         Real sigmaP_dayside = backgroundIonisation + F10_7_p_049 * (0.34 * coschi + 0.93 * sqrt(coschi));
+         Real sigmaH_dayside = backgroundIonisation + F10_7_p_053 * (0.81 * coschi + 0.52 * sqrt(coschi));
+
+         nodes[n].parameters[ionosphereParameters::SIGMAP] = sqrt( pow(nodes[n].parameters[ionosphereParameters::SIGMAP],2) + pow(sigmaP_dayside,2));
+         nodes[n].parameters[ionosphereParameters::SIGMAH] = sqrt( pow(nodes[n].parameters[ionosphereParameters::SIGMAH],2) + pow(sigmaH_dayside,2));
+
+         // Approximate B vector = radial vector
+         // TODO: Can't we easily do better than this?
+         std::array<Real, 3> b = {x[0] / Ionosphere::innerRadius, x[1] / Ionosphere::innerRadius, x[2] / Ionosphere::innerRadius};
+         if(x[2] >= 0) {
+            b[0] *= -1;
+            b[1] *= -1;
+            b[2] *= -1;
+         }
+
+         // Build conductivity tensor
+         Real sigmaP = nodes[n].parameters[ionosphereParameters::SIGMAP];
+         Real sigmaH = nodes[n].parameters[ionosphereParameters::SIGMAH];
+         for(int i=0; i<3; i++) {
+            for(int j=0; j<3; j++) {
+               nodes[n].parameters[ionosphereParameters::SIGMA + i*3 + j] = sigmaP * ((i==j? 1. : 0.) - b[i]*b[j]);
+               for(int k=0; k<3; k++) {
+                  nodes[n].parameters[ionosphereParameters::SIGMA + i*3 + j] -= sigmaH * epsilon[i][j][k]*b[k];
+               }
+            }
+         }
+      }
+   }
+
    /* Calculate mapping between ionospheric nodes and fsGrid cells.
     * To do so, the magnetic field lines are traced from all mesh nodes
     * outwards until a non-boundary cell is encountered. Their proportional
@@ -491,21 +755,24 @@ namespace SBC {
    }
 
    // Transport field-aligned currents down from the simulation cells to the ionosphere
-   void SphericalTriGrid::mapDownFAC(
-       FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> dPerBGrid,
-       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2> & BgBGrid) {
+   void SphericalTriGrid::mapDownBoundaryData(
+       FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
+       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2> & BgBGrid,
+       FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsGrid) {
 
      // Tasks that don't have anything to couple to can skip this process outright.
      if(!isCouplingToCells) {
        return;
      }
 
-     // Create zeroed-out FAC input array
+     // Create zeroed-out input arrays
      std::vector<double> FACinput(nodes.size());
+     std::vector<double> rhoInput(nodes.size());
+     std::vector<double> pressureInput(nodes.size());
 
      // Map all coupled nodes down into it
      for(uint n=0; n<nodes.size(); n++) {
-       for(int i=0; i< nodes[n].fsgridCellCoupling.size(); i++) {
+       for(uint i=0; i< nodes[n].fsgridCellCoupling.size(); i++) {
 
          std::array<int,3> fsc = nodes[n].fsgridCellCoupling[i].first;
 
@@ -527,17 +794,37 @@ namespace SBC {
          Real FAC = Bnorm * (B[0]*rotB[0] + B[1]*rotB[1] + B[2]*rotB[2]) / physicalconstants::MU_0;
 
          FACinput[n] = FAC;
+
+         rhoInput[n] = momentsGrid.get(fsc[0],fsc[1],fsc[2])->at(fsgrids::RHOM);
+         pressureInput[n] = momentsGrid.get(fsc[0],fsc[1],fsc[2])->at(fsgrids::P_11) +
+            momentsGrid.get(fsc[0],fsc[1],fsc[2])->at(fsgrids::P_22) +
+            momentsGrid.get(fsc[0],fsc[1],fsc[2])->at(fsgrids::P_33);
        }
      }
 
      // Allreduce on the ionosphere communicator
      std::vector<double> FACsum(nodes.size());
+     std::vector<double> rhoSum(nodes.size());
+     std::vector<double> pressureSum(nodes.size());
      MPI_Allreduce(&FACinput[0], &FACsum[0], nodes.size(), MPI_DOUBLE, MPI_SUM, communicator);
+     MPI_Allreduce(&rhoInput[0], &rhoSum[0], nodes.size(), MPI_DOUBLE, MPI_SUM, communicator);
+     MPI_Allreduce(&pressureInput[0], &pressureSum[0], nodes.size(), MPI_DOUBLE, MPI_SUM, communicator);
 
      for(uint n=0; n<nodes.size(); n++) {
-       // Store as the node's source value.
-       nodes[n].parameters[ionosphereParameters::SOURCE] = FACsum[n];
+
+        if(rhoSum[n] == 0) {
+           // Node couples nowhere. Assume some default values.
+           nodes[n].parameters[ionosphereParameters::SOURCE] = 0;
+           nodes[n].parameters[ionosphereParameters::RHOM] = 1e6 * physicalconstants::MASS_PROTON;
+           nodes[n].parameters[ionosphereParameters::PRESSURE] = 2.76131e-10; // This pressure value results in an electron temp of 5e6 K
+        } else {
+           // Store as the node's parameter values.
+           nodes[n].parameters[ionosphereParameters::SOURCE] = FACsum[n];
+           nodes[n].parameters[ionosphereParameters::RHOM] = rhoSum[n];
+           nodes[n].parameters[ionosphereParameters::PRESSURE] = pressureSum[n];
+        }
      }
+
    }
 
    // Calculate grad(T) for a element basis function that is zero at corners a and b,
@@ -630,7 +917,7 @@ namespace SBC {
       
      Node& n = nodes[node1];
      // First check if the dependency already exists
-     for(int i=0; i<n.numDepNodes; i++) {
+     for(uint i=0; i<n.numDepNodes; i++) {
        if(n.dependingNodes[i] == node2) {
          
          // Yup, found it, let's simply add the coefficient.
@@ -730,8 +1017,6 @@ namespace SBC {
        N.parameters[ionosphereParameters::SIGMA33] = 1;
      }
 
-     // TODO: calculate sigmas, precipitation etc.
-
      for(uint n=0; n<nodes.size(); n++) {
        addAllMatrixDependencies(n);
      }
@@ -746,11 +1031,11 @@ namespace SBC {
      Node& n = nodes[nodeIndex];
 
      if(transpose) {
-       for(int i=0; i<n.numDepNodes; i++) {
+       for(uint i=0; i<n.numDepNodes; i++) {
          retval += nodes[n.dependingNodes[i]].parameters[parameter] * n.transposedCoeffs[i];
        }
      } else {
-       for(int i=0; i<n.numDepNodes; i++) {
+       for(uint i=0; i<n.numDepNodes; i++) {
          retval += nodes[n.dependingNodes[i]].parameters[parameter] * n.dependingCoeffs[i];
        }
      }
@@ -923,7 +1208,10 @@ namespace SBC {
       Readparameters::add("ionosphere.baseShape", "Select the seed mesh geometry for the spherical ionosphere grid. Options are: tetrahedron, icosahedron.",std::string("icosahedron"));
       Readparameters::addComposing("ionosphere.refineMinLatitude", "Refine the grid polewards of the given latitude. Multiple of these lines can be given for successive refinement, paired up with refineMaxLatitude lines.");
       Readparameters::addComposing("ionosphere.refineMaxLatitude", "Refine the grid equatorwards of the given latitude. Multiple of these lines can be given for successive refinement, paired up with refineMinLatitude lines.");
-			Readparameters::add("ionosphere.solverMaxIterations", "Maximum number of iterations for the conjugate gradient solver", 2000);
+      Readparameters::add("ionosphere.recombAlpha", "Ionospheric recombination parameter (m^3/s)", 3e-13);
+      Readparameters::add("ionosphere.F10_7", "Solar 10.7 cm radio flux (W/m^2)", 1e-20);
+      Readparameters::add("ionosphere.backgroundIonisation", "Background ionoisation due to cosmic rays (mho)", 0.5);
+      Readparameters::add("ionosphere.solverMaxIterations", "Maximum number of iterations for the conjugate gradient solver", 2000);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
@@ -987,6 +1275,18 @@ namespace SBC {
          exit(1);
       }
       if(!Readparameters::get("ionosphere.refineMaxLatitude",refineMaxLatitudes)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("ionosphere.recombAlpha",recombAlpha)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("ionosphere.F10_7",F10_7)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("ionosphere.backgroundIonoisation",backgroundIonisation)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
@@ -1069,7 +1369,7 @@ namespace SBC {
       };
 
       // Refine the mesh between the given latitudes
-      for(int i=0; i< max(refineMinLatitudes.size(), refineMaxLatitudes.size()); i++) {
+      for(uint i=0; i< max(refineMinLatitudes.size(), refineMaxLatitudes.size()); i++) {
          Real lmin;
          if(i < refineMinLatitudes.size()) {
             lmin = refineMinLatitudes[i];
