@@ -222,7 +222,7 @@ void computeSpatialTargetCellsForPencils(const dccrg::Dccrg<SpatialCell,dccrg::C
       
       vector <CellID> frontNeighborIds;
       for( const auto nbrPair: *frontNbrPairs ) {
-         if (nbrPair.second.at(dimension) == -1) {
+         if (nbrPair.second.at(dimension) == 1) {
             frontNeighborIds.push_back(nbrPair.first);
          }
       }
@@ -233,7 +233,7 @@ void computeSpatialTargetCellsForPencils(const dccrg::Dccrg<SpatialCell,dccrg::C
       
       vector <CellID> backNeighborIds;
       for( const auto nbrPair: *backNbrPairs ) {
-         if (nbrPair.second.at(dimension) == 1) {
+         if (nbrPair.second.at(dimension) == -1) {
             backNeighborIds.push_back(nbrPair.first);
          }
       }
@@ -245,17 +245,17 @@ void computeSpatialTargetCellsForPencils(const dccrg::Dccrg<SpatialCell,dccrg::C
       int refLvl = mpiGrid.get_refinement_level(ids.front());
 
       if (frontNeighborIds.size() == 1) {
-         targetCells[GID] = mpiGrid[frontNeighborIds.at(0)];
+         targetCells[GID + L + 1] = mpiGrid[frontNeighborIds.at(0)];
       } else if ( pencils.path[iPencil][refLvl] < frontNeighborIds.size() ) {
-         targetCells[GID] = mpiGrid[frontNeighborIds.at(pencils.path[iPencil][refLvl])];
+         targetCells[GID + L + 1] = mpiGrid[frontNeighborIds.at(pencils.path[iPencil][refLvl])];
       }
       
       refLvl = mpiGrid.get_refinement_level(ids.back());
 
       if (backNeighborIds.size() == 1) {
-         targetCells[GID + L + 1] = mpiGrid[backNeighborIds.at(0)];
+         targetCells[GID] = mpiGrid[backNeighborIds.at(0)];
       } else if ( pencils.path[iPencil][refLvl] < backNeighborIds.size() ) {
-         targetCells[GID + L + 1] = mpiGrid[backNeighborIds.at(pencils.path[iPencil][refLvl])];
+         targetCells[GID] = mpiGrid[backNeighborIds.at(pencils.path[iPencil][refLvl])];
       }
            
       // Incerment global id by L + 2 ghost cells.
