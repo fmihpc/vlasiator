@@ -1291,7 +1291,7 @@ namespace SBC {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
-      if(!Readparameters::get("ionosphere.backgroundIonoisation",backgroundIonisation)) {
+      if(!Readparameters::get("ionosphere.backgroundIonisation",backgroundIonisation)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
