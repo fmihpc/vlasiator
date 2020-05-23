@@ -1208,6 +1208,7 @@ namespace SBC {
       Readparameters::add("ionosphere.baseShape", "Select the seed mesh geometry for the spherical ionosphere grid. Options are: tetrahedron, icosahedron.",std::string("icosahedron"));
       Readparameters::addComposing("ionosphere.refineMinLatitude", "Refine the grid polewards of the given latitude. Multiple of these lines can be given for successive refinement, paired up with refineMaxLatitude lines.");
       Readparameters::addComposing("ionosphere.refineMaxLatitude", "Refine the grid equatorwards of the given latitude. Multiple of these lines can be given for successive refinement, paired up with refineMinLatitude lines.");
+      Readparameters::add("ionosphere.atmosphericModelFile", "Filename to read the MSIS atmosphere data from (default: MSIS.dat)", "MSIS.dat");
       Readparameters::add("ionosphere.recombAlpha", "Ionospheric recombination parameter (m^3/s)", 3e-13);
       Readparameters::add("ionosphere.F10_7", "Solar 10.7 cm radio flux (W/m^2)", 1e-20);
       Readparameters::add("ionosphere.backgroundIonisation", "Background ionoisation due to cosmic rays (mho)", 0.5);
@@ -1275,6 +1276,10 @@ namespace SBC {
          exit(1);
       }
       if(!Readparameters::get("ionosphere.refineMaxLatitude",refineMaxLatitudes)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("ionosphere.atmosphericModelFile",atmosphericModelFile)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
@@ -1384,6 +1389,9 @@ namespace SBC {
          }
          refineBetweenLatitudes(lmin, lmax);
       }
+
+      // Set up ionospheric atmosphere model
+      ionosphereGrid.readAtmosphericModelFile(atmosphericModelFile.c_str());
 
       // iniSysBoundary is only called once, generateTemplateCell must 
       // init all particle species

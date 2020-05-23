@@ -323,6 +323,7 @@ namespace SBC {
       Real VZ0;
 
       std::string baseShape; // Basic mesh shape (icosahedron / tetrahedron)
+      std::string atmosphericModelFile; // MSIS data file
       // Boundaries of refinement latitude bands
       std::vector<Real> refineMinLatitudes;
       std::vector<Real> refineMaxLatitudes;
