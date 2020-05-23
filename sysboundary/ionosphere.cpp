@@ -441,11 +441,11 @@ namespace SBC {
 
       for(int e=0; e<productionNumAccEnergies; e++) {
 
-         constexpr Real productionAccEnergyStep = (log10(productionMaxAccEnergy) - log10(productionMinAccEnergy)) / productionNumAccEnergies;
+         const Real productionAccEnergyStep = (log10(productionMaxAccEnergy) - log10(productionMinAccEnergy)) / productionNumAccEnergies;
          Real accenergy = pow(10., productionMinAccEnergy + e*(productionAccEnergyStep));
 
          for(int t=0; t<productionNumTemperatures; t++) {
-            constexpr Real productionTemperatureStep = (log10(productionMaxTemperature) - log10(productionMinTemperature)) / productionNumTemperatures;
+            const Real productionTemperatureStep = (log10(productionMaxTemperature) - log10(productionMinTemperature)) / productionNumTemperatures;
             Real tempenergy = pow(10, productionMinTemperature + t*productionTemperatureStep);
 
             for(int p=0; p<productionNumParticleEnergies; p++) {
