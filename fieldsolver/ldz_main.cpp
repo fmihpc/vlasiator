@@ -159,7 +159,6 @@ bool propagateFields(
          dMomentsGrid,
          BgBGrid,
          technicalGrid,
-         pmlGrid,
          sysBoundaries,
          RK_ORDER1
       );
@@ -199,7 +198,6 @@ bool propagateFields(
          dMomentsGrid,
          BgBGrid,
          technicalGrid,
-         pmlGrid,
          sysBoundaries,
          RK_ORDER2_STEP1
       );
@@ -239,7 +237,6 @@ bool propagateFields(
          dMomentsGrid,
          BgBGrid,
          technicalGrid,
-         pmlGrid,
          sysBoundaries,
          RK_ORDER2_STEP2
       );
@@ -293,7 +290,6 @@ bool propagateFields(
             dMomentsGrid,
             BgBGrid,
             technicalGrid,
-            pmlGrid,
             sysBoundaries,
             RK_ORDER2_STEP1
          );
@@ -336,7 +332,6 @@ bool propagateFields(
             dMomentsGrid,
             BgBGrid,
             technicalGrid,
-            pmlGrid,
             sysBoundaries,
             RK_ORDER2_STEP2
          );
