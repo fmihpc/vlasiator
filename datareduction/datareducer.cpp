@@ -980,10 +980,40 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1, "m^2", "$\\mathrm{m}^2$", "$A_m$", "1.0");
          continue;
       }
+      if(lowercase == "ig_sigmap") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_sigmap", [](
+                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
+
+                     std::vector<Real> retval(grid.nodes.size());
+
+                     for(uint i=0; i<grid.nodes.size(); i++) {
+                        retval[i] = grid.nodes[i].parameters[ionosphereParameters::SIGMAP];
+                     }
+
+                     return retval;
+                     }));
+         outputReducer->addMetadata(outputReducer->size()-1, "mho", "$\\mathrm{\\mho}$", "$\\Sigma_P$", "1.0");
+         continue;
+      }
+      if(lowercase == "ig_sigmah") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_sigmah", [](
+                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
+
+                     std::vector<Real> retval(grid.nodes.size());
+
+                     for(uint i=0; i<grid.nodes.size(); i++) {
+                        retval[i] = grid.nodes[i].parameters[ionosphereParameters::SIGMAH];
+                     }
+
+                     return retval;
+                     }));
+         outputReducer->addMetadata(outputReducer->size()-1, "mho", "$\\mathrm{\\mho}$", "$\\Sigma_H$", "1.0");
+         continue;
+      }
       if(lowercase == "ig_solverinternals") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_residual", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
-                  
+
                      std::vector<Real> retval(grid.nodes.size());
 
                      for(uint i=0; i<grid.nodes.size(); i++) {
