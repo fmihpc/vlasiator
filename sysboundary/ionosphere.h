@@ -64,7 +64,7 @@ namespace SBC {
       // One grid node
       struct Node {
          // Elements touching this node
-         uint numTouchingElements;
+         uint numTouchingElements=0;
          std::array<uint32_t, MAX_TOUCHING_ELEMENTS> touchingElements;
    
          // List of nodes the current node depends on

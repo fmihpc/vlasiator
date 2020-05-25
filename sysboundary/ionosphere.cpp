@@ -1002,19 +1002,10 @@ namespace SBC {
 
      // Zero out parameters
      for(uint n=0; n<nodes.size(); n++) {
-       for(uint p=ionosphereParameters::SIGMA; p<ionosphereParameters::PPARAM; p++) {
+       for(uint p=ionosphereParameters::SOLUTION; p<ionosphereParameters::N_IONOSPHERE_PARAMETERS; p++) {
          Node& N=nodes[n];
          N.parameters[p] = 0;
        }
-     }
-
-     // Set dummy sigma matrix
-     // TODO: Replace by actual calculation
-     for(uint n=0; n<nodes.size(); n++) {
-       Node& N=nodes[n];
-       N.parameters[ionosphereParameters::SIGMA] = 1;
-       N.parameters[ionosphereParameters::SIGMA22] = 1;
-       N.parameters[ionosphereParameters::SIGMA33] = 1;
      }
 
      for(uint n=0; n<nodes.size(); n++) {
