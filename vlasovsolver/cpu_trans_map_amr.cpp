@@ -228,6 +228,10 @@ void computeSpatialTargetCellsForPencils(const dccrg::Dccrg<SpatialCell,dccrg::C
       }
 
       if (frontNeighborIds.size() == 0) {
+	 std::cerr<<"abort frontNeighborIds.size() == 0 at "<<ids.front()<<std::endl;
+	 for( const auto nbrPair: *frontNbrPairs ) {
+	    std::cerr<<ids.front()<<" dim "<<dimension<<" "<<nbrPair.first<<" "<<nbrPair.second.at(0)<<" "<<nbrPair.second.at(1)<<" "<<nbrPair.second.at(2)<<std::endl;
+	 }
          abort();
       }
       
@@ -239,6 +243,10 @@ void computeSpatialTargetCellsForPencils(const dccrg::Dccrg<SpatialCell,dccrg::C
       }
 
       if (backNeighborIds.size() == 0) {
+	 std::cerr<<"abort backNeighborIds.size() == 0 at "<<ids.back()<<std::endl;
+	 for( const auto nbrPair: *frontNbrPairs ) {
+	    std::cerr<<ids.front()<<" dim "<<dimension<<" "<<nbrPair.first<<" "<<nbrPair.second.at(0)<<" "<<nbrPair.second.at(1)<<" "<<nbrPair.second.at(2)<<std::endl;
+	 }
          abort();
       }
 
@@ -1110,6 +1118,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    if(printPencils) printPencilsFunc(pencils,dimension,myRank);
 
    if(!checkPencils(mpiGrid, localPropagatedCells, pencils)) {
+      std::cerr<<"abort checkpencils"<<std::endl;
       abort();
    }
    
