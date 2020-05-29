@@ -216,59 +216,109 @@ void computeSpatialSourceCellsForPencilWithFaces(const dccrg::Dccrg<SpatialCell,
    ngh_front.push_back(ids.front());
    ngh_back.push_back(ids.back());
    for (int ngh_i = 0; ngh_i < VLASOV_STENCIL_WIDTH; ++ngh_i) {
-     const auto frontNeighbors = mpiGrid.get_face_neighbors_of(ngh_front[0]);
-     refLvl = mpiGrid.get_refinement_level(ngh_front[0]);
-     if (frontNeighbors.size()>0) {
+     const auto frontNeighbors = mpiGrid.get_face_neighbors_of(ngh_front.front());
+     refLvl = mpiGrid.get_refinement_level(ngh_front.front());
+     if (frontNeighbors.size()!=NULL) {
        for (const auto nbr: frontNeighbors) {
 	 if(nbr.second == ((int)dimension + 1)) {
 	   neighbors.push_back(nbr.first);
 	 }
        }
-       if (neighbors.size() == 0) {
-	 std::cerr<<"abort front neighbors.size() == 0 at "<<ngh_front[0]<<std::endl;
-	 for( const auto nbrPair: frontNeighbors ) {
-	   std::cerr<<ngh_front[0]<<" dim "<<dimension<<" "<<nbrPair.first<<" "<<nbrPair.second<<std::endl;
-	 }
-	}
        if (neighbors.size() == 1) {
-	 sourceCells[VLASOV_STENCIL_WIDTH+L+ngh_i] = mpiGrid[neighbors.at(0)];
-	 ngh_front.push_back(neighbors.at(0));
+	 if (neighbors.at(0)!=NULL) {
+	   sourceCells[VLASOV_STENCIL_WIDTH+L+ngh_i] = mpiGrid[neighbors.at(0)];
+	   ngh_front.push_back(neighbors.at(0));
+	   ngh_front.erase(ngh_front.begin());
+	 } else {
+	   sourceCells[VLASOV_STENCIL_WIDTH+L+ngh_i] = mpiGrid[ngh_front.front()];
+	 }
        } else if ( pencils.path[iPencil][refLvl] < neighbors.size() ) {
-	 sourceCells[VLASOV_STENCIL_WIDTH+L+ngh_i] = mpiGrid[neighbors.at(pencils.path[iPencil][refLvl])];
-	 ngh_front.push_back(neighbors.at(pencils.path[iPencil][refLvl]));
+	 if (neighbors.at(pencils.path[iPencil][refLvl])!=NULL) {
+	   sourceCells[VLASOV_STENCIL_WIDTH+L+ngh_i] = mpiGrid[neighbors.at(pencils.path[iPencil][refLvl])];
+	   ngh_front.push_back(neighbors.at(pencils.path[iPencil][refLvl]));
+	   ngh_front.erase(ngh_front.begin());
+	 } else {
+	   sourceCells[VLASOV_STENCIL_WIDTH+L+ngh_i] = mpiGrid[ngh_front.front()];
+	 }
+	 // sourceCells[VLASOV_STENCIL_WIDTH+L+ngh_i] = mpiGrid[neighbors.at(pencils.path[iPencil][refLvl])];
+	 // ngh_front.push_back(neighbors.at(pencils.path[iPencil][refLvl]));
+	 // ngh_front.erase(ngh_front.begin());
        }
-       ngh_front.erase(ngh_front.begin());
+       if (neighbors.size() == 0) {
+	 std::cerr<<"error, found cell without any accepted face neighbors"<<std::endl;
+	 abort();
+       }
+       // if (neighbors.size() == 0) {
+       // 	 // Was already last good cell
+       // 	 sourceCells[VLASOV_STENCIL_WIDTH+L+ngh_i] = mpiGrid[ngh_front.front()];
+       // } else {
+       // 	 ngh_front.erase(ngh_front.begin());
+       // }
      } else {
-       // Was already last good cell
-       sourceCells[VLASOV_STENCIL_WIDTH+L+ngh_i] = mpiGrid[ngh_front[0]];       
+       // At edge of simulation
+       sourceCells[VLASOV_STENCIL_WIDTH+L+ngh_i] = mpiGrid[ngh_front.front()];
      }
      neighbors.clear();
-     const auto backNeighbors = mpiGrid.get_face_neighbors_of(ngh_back[0]);
-     if (backNeighbors.size()>0) {
-       refLvl = mpiGrid.get_refinement_level(ngh_back[0]);
+     const auto backNeighbors = mpiGrid.get_face_neighbors_of(ngh_back.front());
+     if (backNeighbors.size()!=NULL) {
        for (const auto nbr: backNeighbors) {
 	 if(nbr.second == (-((int)dimension + 1))) {
 	   neighbors.push_back(nbr.first);
 	 }
        }
-       if (neighbors.size() == 0) {
-	 std::cerr<<"abort back neighbors.size() == 0 at "<<ngh_back[0]<<std::endl;
-	 for( const auto nbrPair: backNeighbors ) {
-	   std::cerr<<ngh_back[0]<<" dim "<<dimension<<" "<<nbrPair.first<<" "<<nbrPair.second<<std::endl;
-	 }
-	}
        if (neighbors.size() == 1) {
-	 sourceCells[VLASOV_STENCIL_WIDTH-1-ngh_i] = mpiGrid[neighbors.at(0)];
-	 ngh_back.push_back(neighbors.at(0));
+	 if (neighbors.at(0)!=NULL) {
+	   sourceCells[VLASOV_STENCIL_WIDTH-1-ngh_i] = mpiGrid[neighbors.at(0)];
+	   ngh_back.push_back(neighbors.at(0));
+	   ngh_back.erase(ngh_back.begin());
+	 } else {
+	   sourceCells[VLASOV_STENCIL_WIDTH-1-ngh_i] = mpiGrid[ngh_back.front()];
+	 }
        } else if ( pencils.path[iPencil][refLvl] < neighbors.size() ) {
-	 sourceCells[VLASOV_STENCIL_WIDTH-1-ngh_i] = mpiGrid[neighbors.at(pencils.path[iPencil][refLvl])];
-	 ngh_back.push_back(neighbors.at(pencils.path[iPencil][refLvl]));
+	 if (neighbors.at(pencils.path[iPencil][refLvl])!=NULL) {
+	   sourceCells[VLASOV_STENCIL_WIDTH-1-ngh_i] = mpiGrid[neighbors.at(pencils.path[iPencil][refLvl])];
+	   ngh_back.push_back(neighbors.at(pencils.path[iPencil][refLvl]));
+	   ngh_back.erase(ngh_back.begin());
+	 } else {
+	   sourceCells[VLASOV_STENCIL_WIDTH-1-ngh_i] = mpiGrid[ngh_back.front()];
+	 }
+	 // sourceCells[VLASOV_STENCIL_WIDTH-1-ngh_i] = mpiGrid[neighbors.at(pencils.path[iPencil][refLvl])];
+	 // ngh_back.push_back(neighbors.at(pencils.path[iPencil][refLvl]));
+	 // ngh_back.erase(ngh_back.begin());
        }
-       ngh_back.erase(ngh_back.begin());
+       if (neighbors.size() == 0) {
+	 std::cerr<<"error, found cell without any accepted face neighbors"<<std::endl;
+	 abort();
+       }
+
+       // if (neighbors.size() == 0) {
+       // 	 // Was already last good cell
+       // 	 sourceCells[VLASOV_STENCIL_WIDTH-1-ngh_i] = mpiGrid[ngh_back.front()];       
+       // } else {
+       // 	 ngh_back.erase(ngh_back.begin());
+       // }
      } else {
-       // Was already last good cell
-       sourceCells[VLASOV_STENCIL_WIDTH-1-ngh_i] = mpiGrid[ngh_back[0]];       
-     }       
+       // At edge of simulation
+       sourceCells[VLASOV_STENCIL_WIDTH-1-ngh_i] = mpiGrid[ngh_back.front()];
+     }
+     neighbors.clear();
+   }
+
+   /*loop to negative side and replace all invalid cells with the closest good cell*/
+   SpatialCell* lastGoodCell = mpiGrid[ids.back()];
+   for(int i = VLASOV_STENCIL_WIDTH - 1; i >= 0 ;--i){
+      if(sourceCells[i] == NULL) 
+         sourceCells[i] = lastGoodCell;
+      else
+         lastGoodCell = sourceCells[i];
+   }
+   /*loop to positive side and replace all invalid cells with the closest good cell*/
+   lastGoodCell = mpiGrid[ids.front()];
+   for(int i = VLASOV_STENCIL_WIDTH + L; i < (L + 2*VLASOV_STENCIL_WIDTH); ++i){
+      if(sourceCells[i] == NULL) 
+         sourceCells[i] = lastGoodCell;
+      else
+         lastGoodCell = sourceCells[i];
    }
 }
 
@@ -370,7 +420,7 @@ void computeSpatialTargetCellsForPencils(const dccrg::Dccrg<SpatialCell,dccrg::C
  * @param [in] mpiGrid DCCRG grid object
  * @param [in] pencils pencil data struct
  * @param [in] dimension spatial dimension
- * @param [out] sourceCells pointer to an array of pointers to SpatialCell objects for the target cells
+ * @param [out] targetCells pointer to an array of pointers to SpatialCell objects for the target cells
  *
  */
 void computeSpatialTargetCellsForPencilsWithFaces(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
@@ -395,7 +445,7 @@ void computeSpatialTargetCellsForPencilsWithFaces(const dccrg::Dccrg<SpatialCell
       vector <CellID> frontNeighborIds;
       vector <CellID> backNeighborIds;
       const auto frontNeighbors = mpiGrid.get_face_neighbors_of(ids.front());
-      if (frontNeighbors.size()>0) {
+      if (frontNeighbors.size()!=NULL) {
 	for (const auto nbr: frontNeighbors) {
 	  if(nbr.second == ((int)dimension + 1)) {
 	    frontNeighborIds.push_back(nbr.first);
@@ -415,11 +465,12 @@ void computeSpatialTargetCellsForPencilsWithFaces(const dccrg::Dccrg<SpatialCell
 	  targetCells[GID + L + 1] = mpiGrid[frontNeighborIds.at(pencils.path[iPencil][refLvl])];
 	}
       } else {
-	targetCells[GID + L + 1] = NULL;
+	std::cerr<<"error, found cell without any face neighbors"<<std::endl;
       }
+      frontNeighborIds.clear();
       
       const auto backNeighbors = mpiGrid.get_face_neighbors_of(ids.back());
-      if (backNeighbors.size()>0) {
+      if (backNeighbors.size()!=NULL) {
 	for (const auto nbr: backNeighbors) {
 	  if(nbr.second == (-((int)dimension + 1))) {
 	    backNeighborIds.push_back(nbr.first);
@@ -438,11 +489,19 @@ void computeSpatialTargetCellsForPencilsWithFaces(const dccrg::Dccrg<SpatialCell
 	  targetCells[GID] = mpiGrid[backNeighborIds.at(pencils.path[iPencil][refLvl])];
 	}
       } else {
-	targetCells[GID] = NULL;
+	std::cerr<<"error, found cell without any face neighbors"<<std::endl;
       }      
+      backNeighborIds.clear();
            
       // Incerment global id by L + 2 ghost cells.
       GID += (L + 2);
+   }
+
+   // Remove any boundary cells from the list of valid targets
+   for (uint i = 0; i < GID; ++i) {
+      if (targetCells[i] && targetCells[i]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY ) {
+         targetCells[i] = NULL;
+      }
    }
 }
 
@@ -539,7 +598,7 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
       
       for ( int i = path.size(); i < startingRefLvl; ++i) {
 
-         CellID parentId = grid.get_parent(myId);
+         CellID parentId = grid.mapping.get_parent(myId);
          
          auto myCoords = grid.get_center(myId);
          auto parentCoords = grid.get_center(parentId);
@@ -1005,11 +1064,11 @@ void check_ghost_cells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
          
       // const auto* frontNeighbors = mpiGrid.get_neighbors_of(ids.front(),neighborhoodId);
       // const auto* backNeighbors  = mpiGrid.get_neighbors_of(ids.back() ,neighborhoodId);
-
+      // 
       // for (const auto nbrPair: *frontNeighbors) {
       //    maxNbrRefLvl = max(maxNbrRefLvl,mpiGrid.get_refinement_level(nbrPair.first));
       // }
-         
+      // 
       // for (const auto nbrPair: *backNeighbors) {
       //    maxNbrRefLvl = max(maxNbrRefLvl,mpiGrid.get_refinement_level(nbrPair.first));
       // }
@@ -1019,22 +1078,26 @@ void check_ghost_cells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
       ngh_back.push_back(ids.back());
       for (int ngh_i = 0; ngh_i < VLASOV_STENCIL_WIDTH; ++ngh_i) {
 	for (int ngh_fi = 0; ngh_fi < ngh_front.size(); ++ngh_fi) {
-	  const auto frontNeighbors = mpiGrid.get_face_neighbors_of(ngh_front[0]);
-	  ngh_front.erase(ngh_front.begin());
-	  for (const auto nbr: frontNeighbors) {
-	    if(nbr.second == ((int)dimension + 1)) {
-	      ngh_front.push_back(nbr.first);
-	      maxNbrRefLvl = max(maxNbrRefLvl,mpiGrid.get_refinement_level(nbr.first));
+	  const auto frontNeighbors = mpiGrid.get_face_neighbors_of(ngh_front.front());
+	  if (frontNeighbors.size() > 0) {
+	    ngh_front.erase(ngh_front.begin());
+	    for (const auto nbr: frontNeighbors) {
+	      if(nbr.second == ((int)dimension + 1)) {
+		ngh_front.push_back(nbr.first);
+		maxNbrRefLvl = max(maxNbrRefLvl,mpiGrid.get_refinement_level(nbr.first));
+	      }
 	    }
 	  }
 	}
 	for (int ngh_bi = 0; ngh_bi < ngh_back.size(); ++ngh_bi) {
-	  const auto backNeighbors = mpiGrid.get_face_neighbors_of(ngh_back[0]);
-	  ngh_back.erase(ngh_back.begin());
-	  for (const auto nbr: backNeighbors) {
-	    if(nbr.second == (-(int)dimension - 1)) {
-	      ngh_back.push_back(nbr.first);
-	      maxNbrRefLvl = max(maxNbrRefLvl,mpiGrid.get_refinement_level(nbr.first));
+	  const auto backNeighbors = mpiGrid.get_face_neighbors_of(ngh_back.front());
+	  if (backNeighbors.size() > 0) {
+	    ngh_back.erase(ngh_back.begin());
+	    for (const auto nbr: backNeighbors) {
+	      if(nbr.second == -((int)dimension + 1)) {
+		ngh_back.push_back(nbr.first);
+		maxNbrRefLvl = max(maxNbrRefLvl,mpiGrid.get_refinement_level(nbr.first));
+	      }
 	    }
 	  }
 	}
@@ -1375,7 +1438,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    int t1 = phiprof::initializeTimer("mapping");
    int t2 = phiprof::initializeTimer("store");
    
-#pragma omp parallel
+   //#pragma omp parallel
    {
       // declarations for variables needed by the threads
       std::vector<Realf, aligned_allocator<Realf, WID3>> targetBlockData((pencils.sumOfLengths + 2 * nTargetNeighborsPerPencil * pencils.N) * WID3);
@@ -1416,7 +1479,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       }
       
       // Loop over velocity space blocks. Thread this loop (over vspace blocks) with OpenMP.
-#pragma omp for schedule(guided)
+      //#pragma omp for schedule(guided)
       for(uint blocki = 0; blocki < unionOfBlocks.size(); blocki++) {
 
          // Get global id of the velocity block
@@ -1570,19 +1633,24 @@ int get_sibling_index(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
       return NO_SIBLINGS;
    }
    
-   CellID parent = mpiGrid.get_parent(cellid);
+   CellID parent = mpiGrid.mapping.get_parent(cellid);
 
    if (parent == INVALID_CELLID) {
-      return ERROR;
+      std::cerr<<"Invalid parent id"<<std::endl;
+      abort();
    }
 
    // get_all_children returns an array instead of a vector now, need to map it to a vector for find and distance
    std::array<uint64_t, 8> siblingarr = mpiGrid.mapping.get_all_children(parent);
-   vector<CellID> siblings(&siblingarr[0], &siblingarr[0] + sizeof(siblingarr) / sizeof(siblingarr[0]));
+   vector<CellID> siblings(siblingarr.begin(), siblingarr.end());
+   //vector<CellID> siblings(&siblingarr[0], &siblingarr[0] + sizeof(siblingarr) / sizeof(siblingarr[0]));
    //vector<CellID> siblings = mpiGrid.mapping.get_all_children(parent);
    auto location = std::find(siblings.begin(),siblings.end(),cellid);
    auto index = std::distance(siblings.begin(), location);
-
+   if (index>7) {
+      std::cerr<<"Invalid parent id"<<std::endl;
+      abort();
+   }
    return index;
    
 }
@@ -1807,7 +1875,7 @@ void update_remote_mapping_contribution_amr(
 
                   recvIndex = mySiblingIndex;
                   
-                  auto mySiblings = mpiGrid.mapping.get_all_children(mpiGrid.get_parent(c));
+                  auto mySiblings = mpiGrid.mapping.get_all_children(mpiGrid.mapping.get_parent(c));
                   auto myIndices = mpiGrid.mapping.get_indices(c);
                   
                   // Allocate memory for each sibling to receive all the data sent by coarser ncell. 
