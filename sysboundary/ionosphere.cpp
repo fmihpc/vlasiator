@@ -500,12 +500,12 @@ namespace SBC {
             normEnergy *= productionNumAccEnergies;
             int energyindex = int(float(normEnergy));
             if(energyindex < 0) {
-               logFile << "(ionosphere) lookupProductionValue: energyIndex < 0: energy_keV = " << energy_keV << ", index = " << energyindex << endl << write;
+               //logFile << "(ionosphere) lookupProductionValue: energyIndex < 0: energy_keV = " << energy_keV << ", index = " << energyindex << endl << write;
                energyindex = 0;
                normEnergy = 0;
             }
             if(energyindex > productionNumAccEnergies - 2) {
-               logFile << "(ionosphere) lookupProductionValue: energyIndex > " << (productionNumAccEnergies -2) << ": energy_keV = " << energy_keV << ", index = " << energyindex << endl << write;
+               //logFile << "(ionosphere) lookupProductionValue: energyIndex > " << (productionNumAccEnergies -2) << ": energy_keV = " << energy_keV << ", index = " << energyindex << endl << write;
                energyindex = productionNumAccEnergies - 2;
                normEnergy = 0;
             }
@@ -515,12 +515,12 @@ namespace SBC {
             int temperatureindex = int(float(normTemperature));
             float s = normTemperature - floor(normTemperature);
             if(temperatureindex < 0) {
-               logFile << "(ionosphere) lookupProductionValue: temperatureIndex < 0: temperature_keV = " << temperature_keV << ", index = " << temperatureindex << endl << write;
+               //logFile << "(ionosphere) lookupProductionValue: temperatureIndex < 0: temperature_keV = " << temperature_keV << ", index = " << temperatureindex << endl << write;
                temperatureindex = 0;
                normTemperature = 0;
             }
             if(temperatureindex > productionNumTemperatures - 2) {
-               logFile << "(ionosphere) lookupProductionValue: temperatureIndex > " << (productionNumTemperatures -2) << ": temperature_keV = " << temperature_keV << ", index = " << temperatureindex << endl << write;
+               //logFile << "(ionosphere) lookupProductionValue: temperatureIndex > " << (productionNumTemperatures -2) << ": temperature_keV = " << temperature_keV << ", index = " << temperatureindex << endl << write;
                temperatureindex = productionNumTemperatures - 2;
                normTemperature = 0;
             }
@@ -559,6 +559,13 @@ namespace SBC {
             Real electronTemp = nodes[n].parameters[ionosphereParameters::PRESSURE] /
                (ion_electron_T_ratio * physicalconstants::K_B * ne);
             Real temperature_keV = (physicalconstants::K_B / physicalconstants::CHARGE) / 1000. * electronTemp;
+            if(isnan(energy_keV) || isnan(temperature_keV)) {
+               logFile << "(ionosphere) NaN encountered in conductivity calculation: " << endl
+                  << "   `-> DeltaPhi     = " << getDeltaPhi(n)/1000. << " keV" << endl
+                  << "   `-> energy_keV   = " << energy_keV << endl
+                  << "   `-> ne           = " << ne << " m^-3" << endl
+                  << "   `-> electronTemp = " << electronTemp << " K" << endl << write;
+            }
             Real qref = ne * lookupProductionValue(h, energy_keV, temperature_keV);
 
             // Get equilibrium electron density
