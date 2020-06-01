@@ -499,11 +499,31 @@ namespace SBC {
             // Interpolation bin and parameters
             normEnergy *= productionNumAccEnergies;
             int energyindex = int(float(normEnergy));
+            if(energyindex < 0) {
+               logFile << "(ionosphere) lookupProductionValue: energyIndex < 0: energy_keV = " << energy_keV << ", index = " << energyindex << endl << write;
+               energyindex = 0;
+               normEnergy = 0;
+            }
+            if(energyindex > productionNumAccEnergies - 2) {
+               logFile << "(ionosphere) lookupProductionValue: energyIndex > " << (productionNumAccEnergies -2) << ": energy_keV = " << energy_keV << ", index = " << energyindex << endl << write;
+               energyindex = productionNumAccEnergies - 2;
+               normEnergy = 0;
+            }
             float t = normEnergy - floor(normEnergy);
 
             normTemperature *= productionNumTemperatures;
             int temperatureindex = int(float(normTemperature));
             float s = normTemperature - floor(normTemperature);
+            if(temperatureindex < 0) {
+               logFile << "(ionosphere) lookupProductionValue: temperatureIndex < 0: temperature_keV = " << temperature_keV << ", index = " << temperatureindex << endl << write;
+               temperatureindex = 0;
+               normTemperature = 0;
+            }
+            if(temperatureindex > productionNumTemperatures - 2) {
+               logFile << "(ionosphere) lookupProductionValue: temperatureIndex > " << (productionNumTemperatures -2) << ": temperature_keV = " << temperature_keV << ", index = " << temperatureindex << endl << write;
+               temperatureindex = productionNumTemperatures - 2;
+               normTemperature = 0;
+            }
 
             // Lookup production rate by linearly interpolating table.
             return (productionTable[heightindex][energyindex][temperatureindex]*(1.-t) + 
