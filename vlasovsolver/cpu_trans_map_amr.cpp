@@ -300,8 +300,9 @@ void computeSpatialSourceCellsForPencilWithFaces(const dccrg::Dccrg<SpatialCell,
    SpatialCell* lastGoodCell = mpiGrid[ids.back()];
    for(int i = VLASOV_STENCIL_WIDTH - 1; i >= 0 ;--i){
       if(sourceCells[i] == NULL) 
-         sourceCells[i] = lastGoodCell;
-      else
+	sourceCells[i] = lastGoodCell;
+      if (lastGoodCell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY )
+	std::cerr<<" Error found non-sysboundary back cell without accepted neigbors!"<<std::endl;else
          lastGoodCell = sourceCells[i];
    }
    /*loop to positive side and replace all invalid cells with the closest good cell*/
@@ -309,7 +310,8 @@ void computeSpatialSourceCellsForPencilWithFaces(const dccrg::Dccrg<SpatialCell,
    for(int i = VLASOV_STENCIL_WIDTH + L; i < (L + 2*VLASOV_STENCIL_WIDTH); ++i){
       if(sourceCells[i] == NULL) 
          sourceCells[i] = lastGoodCell;
-      else
+      if (lastGoodCell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY )
+	std::cerr<<" Error found non-sysboundary front cell without accepted neigbors!"<<std::endl;else
          lastGoodCell = sourceCells[i];
    }
 }
