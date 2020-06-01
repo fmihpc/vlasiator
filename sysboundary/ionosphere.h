@@ -68,7 +68,7 @@ namespace SBC {
          std::array<uint32_t, MAX_TOUCHING_ELEMENTS> touchingElements;
    
          // List of nodes the current node depends on
-         uint numDepNodes;
+         uint numDepNodes = 0;
          std::array<uint32_t, MAX_DEPENDING_NODES> dependingNodes;
          std::array<Real, MAX_DEPENDING_NODES> dependingCoeffs;
          std::array<Real, MAX_DEPENDING_NODES> transposedCoeffs;

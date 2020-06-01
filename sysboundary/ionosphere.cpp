@@ -217,6 +217,7 @@ namespace SBC {
    //
    // And three new nodes get created at the interfaces,
    // unless they already exist.
+   // The new center node (3) replaces the old parent element in place.
    void SphericalTriGrid::subdivideElement(uint32_t e) {
 
       Element& parentElement = elements[e];
@@ -277,14 +278,6 @@ namespace SBC {
                   << " elements, should be 4." << endl << write;
             }
 
-
-            // Replace the reference to the parent element with the centre child
-            for(uint en=0; en < nodes[insertedNode].numTouchingElements; en++) {
-               if(nodes[insertedNode].touchingElements[en] == e) {
-                  //nodes[insertedNode].touchingElements[en] = elements.size() + 3;
-                  break;
-               }
-            }
             // Add the other 2
             nodes[insertedNode].touchingElements[4] = elements.size() + i;
             nodes[insertedNode].touchingElements[5] = elements.size() + (i+1)%3;
@@ -307,7 +300,7 @@ namespace SBC {
             // This node has four touching elements: the old neighbour and 3 of the new ones
             newNode.numTouchingElements = 4;
             newNode.touchingElements[0] = ne;
-            newNode.touchingElements[1] = e;
+            newNode.touchingElements[1] = e; // Center element
             newNode.touchingElements[2] = elements.size() + i;
             newNode.touchingElements[3] = elements.size() + (i+1)%3;
 
@@ -914,7 +907,12 @@ namespace SBC {
 
    // Add matrix value for the solver, linking two nodes.
    void SphericalTriGrid::addMatrixDependency(uint node1, uint node2, Real coeff, bool transposed) {
-      
+     
+     // No need to bother with zero coupling
+     if(coeff == 0) {
+       return;
+     }
+
      Node& n = nodes[node1];
      // First check if the dependency already exists
      for(uint i=0; i<n.numDepNodes; i++) {
