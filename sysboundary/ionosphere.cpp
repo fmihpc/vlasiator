@@ -477,7 +477,7 @@ namespace SBC {
      
       // A positive value means an upward current (i.e. electron precipitation).
       // A negative value quickly gets neutralized from the atmosphere.
-      if(deltaPhi < 0) {
+      if(deltaPhi < 0 || isnan(deltaPhi)) {
          deltaPhi = 0;
       }
 
@@ -832,7 +832,7 @@ namespace SBC {
 
      for(uint n=0; n<nodes.size(); n++) {
 
-        if(rhoSum[n] == 0) {
+        if(rhoSum[n] == 0 || pressureSum[n] == 0) {
            // Node couples nowhere. Assume some default values.
            nodes[n].parameters[ionosphereParameters::SOURCE] = 0;
            nodes[n].parameters[ionosphereParameters::RHOM] = 1e6 * physicalconstants::MASS_PROTON;

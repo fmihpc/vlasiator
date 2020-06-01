@@ -1010,6 +1010,53 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1, "mho", "$\\mathrm{\\mho}$", "$\\Sigma_H$", "1.0");
          continue;
       }
+      if(lowercase == "ig_rhom") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_rhom", [](
+                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
+
+                     std::vector<Real> retval(grid.nodes.size());
+
+                     for(uint i=0; i<grid.nodes.size(); i++) {
+                        retval[i] = grid.nodes[i].parameters[ionosphereParameters::RHOM];
+                     }
+
+                     return retval;
+                     }));
+         outputReducer->addMetadata(outputReducer->size()-1, "kg m^-3", "$\\mathrm{kg m^{-3}}$", "$\\rho_m$", "1.0");
+         continue;
+      }
+      if(lowercase == "ig_electronTemp") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_electronTemp", [](
+                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
+
+                     std::vector<Real> retval(grid.nodes.size());
+
+                     for(uint i=0; i<grid.nodes.size(); i++) {
+                        Real ne = grid.nodes[i].parameters[ionosphereParameters::RHOM] / physicalconstants::MASS_PROTON;
+                        retval[i] = grid.nodes[i].parameters[ionosphereParameters::PRESSURE] /
+                           (grid.ion_electron_T_ratio * physicalconstants::K_B * ne);
+                     }
+
+                     return retval;
+                     }));
+         outputReducer->addMetadata(outputReducer->size()-1, "K", "$\\mathrm{K}$", "$\\T_e$", "1.0");
+         continue;
+      }
+      if(lowercase == "ig_potential") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_potential", [](
+                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
+                  
+                     std::vector<Real> retval(grid.nodes.size());
+
+                     for(uint i=0; i<grid.nodes.size(); i++) {
+                        retval[i] = grid.nodes[i].parameters[ionosphereParameters::SOLUTION];
+                     }
+
+                     return retval;
+                     }));
+         outputReducer->addMetadata(outputReducer->size()-1, "V", "$\\mathrm{V}$", "$\\phi_I$", "1.0");
+         continue;
+      }
       if(lowercase == "ig_solverinternals") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_residual", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
@@ -1018,17 +1065,6 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 
                      for(uint i=0; i<grid.nodes.size(); i++) {
                         retval[i] = grid.nodes[i].parameters[ionosphereParameters::RESIDUAL];
-                     }
-
-                     return retval;
-                     }));
-         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_solution", [](
-                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
-                  
-                     std::vector<Real> retval(grid.nodes.size());
-
-                     for(uint i=0; i<grid.nodes.size(); i++) {
-                        retval[i] = grid.nodes[i].parameters[ionosphereParameters::SOLUTION];
                      }
 
                      return retval;
