@@ -1025,8 +1025,8 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1, "kg m^-3", "$\\mathrm{kg m^{-3}}$", "$\\rho_m$", "1.0");
          continue;
       }
-      if(lowercase == "ig_electronTemp") {
-         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_electronTemp", [](
+      if(lowercase == "ig_electrontemp") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_electrontemp", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
 
                      std::vector<Real> retval(grid.nodes.size());
