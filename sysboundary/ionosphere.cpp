@@ -57,7 +57,7 @@ namespace SBC {
    Real Ionosphere::F10_7; // Solar 10.7 Flux value (parameter)
    Real Ionosphere::backgroundIonisation; // Background ionisation due to stellar UV and cosmic rays
    int  Ionosphere::solverMaxIterations;
-   
+
    // Offset field aligned currents so their sum is 0
    void SphericalTriGrid::offset_FAC() {
       Real sum=0.;
@@ -171,15 +171,15 @@ namespace SBC {
    // Find the neighbouring element of the one with index e, that is sharing the
    // two corner nodes n1 and n2
    //
-   //            2 . . . . . . . .*        
+   //            2 . . . . . . . .*
    //           /  \             .
    //          /    \   neigh   .
    //         /      \   bour  .
    //        /   e    \       .
    //       /          \     .
    //      /            \   .
-   //     /              \ . 
-   //    0----------------1 
+   //     /              \ .
+   //    0----------------1
    //
    int32_t SphericalTriGrid::findElementNeighbour(uint32_t e, int n1, int n2) {
       Element& el = elements[e];
@@ -354,7 +354,7 @@ namespace SBC {
    }
 
    /* Read atmospheric model file in MSIS format.
-    * Based on the table data, precalculate and fill the ionisation production lookup table 
+    * Based on the table data, precalculate and fill the ionisation production lookup table
     */
    void SphericalTriGrid::readAtmosphericModelFile(const char* filename) {
 
@@ -472,9 +472,9 @@ namespace SBC {
       Real electronTemp = nodes[nodeindex].parameters[ionosphereParameters::PRESSURE] /
          (ion_electron_T_ratio * physicalconstants::K_B * ne);
       Real deltaPhi = physicalconstants::K_B * electronTemp / physicalconstants::CHARGE
-         * ((fac / (physicalconstants::CHARGE * ne)) 
+         * ((fac / (physicalconstants::CHARGE * ne))
          * sqrt(2. * M_PI * physicalconstants::MASS_ELECTRON / (physicalconstants::K_B * electronTemp)) - 1.);
-     
+
       // A positive value means an upward current (i.e. electron precipitation).
       // A negative value quickly gets neutralized from the atmosphere.
       if(deltaPhi < 0 || isnan(deltaPhi)) {
@@ -526,7 +526,7 @@ namespace SBC {
             }
 
             // Lookup production rate by linearly interpolating table.
-            return (productionTable[heightindex][energyindex][temperatureindex]*(1.-t) + 
+            return (productionTable[heightindex][energyindex][temperatureindex]*(1.-t) +
                     productionTable[heightindex][energyindex+1][temperatureindex] * t) * (1.-s) +
                    (productionTable[heightindex][energyindex][temperatureindex+1]*(1.-t) +
                     productionTable[heightindex][energyindex+1][temperatureindex+1] * t) * s ;
@@ -539,7 +539,7 @@ namespace SBC {
     * This assumes the FACs have already been coupled into the grid.
     */
    void SphericalTriGrid::calculateConductivityTensor(const Real F10_7, const Real recombAlpha, const Real backgroundIonisation) {
-  
+
 
       //precipitation()
 
@@ -678,7 +678,7 @@ namespace SBC {
          std::array<Real, 3> x = no.x;
          std::array<Real, 3> v({0,0,0});
          while( sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]) < 1.5*couplingRadius ) {
-            
+
             stepFieldline(x,v,dipole, 100e3); // TODO: Hardcoded stepsize of 100 km. Change!
 
             // Look up the fsgrid cell beloinging to these coordinates
@@ -734,7 +734,7 @@ namespace SBC {
       //   std::array<Real, 3> x = barycentre;
       //   std::array<Real, 3> v({0,0,0});
       //   while( sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]) < 1.5*couplingRadius ) {
-      //      
+      //
       //      stepFieldline(x,v,dipole, 100e3); // TODO: Hardcoded stepsize of 100 km. Change!
 
       //      // Look up the fsgrid cell beloinging to these coordinates
@@ -934,7 +934,7 @@ namespace SBC {
 
    // Add matrix value for the solver, linking two nodes.
    void SphericalTriGrid::addMatrixDependency(uint node1, uint node2, Real coeff, bool transposed) {
-     
+
      // No need to bother with zero coupling
      if(coeff == 0) {
        return;
@@ -944,7 +944,7 @@ namespace SBC {
      // First check if the dependency already exists
      for(uint i=0; i<n.numDepNodes; i++) {
        if(n.dependingNodes[i] == node2) {
-         
+
          // Yup, found it, let's simply add the coefficient.
          if(transposed) {
            n.transposedCoeffs[i] += coeff;
@@ -1039,7 +1039,7 @@ namespace SBC {
    }
 
    // Evaluate a nodes' neighbour parameter, averaged through the coupling
-   // matrix 
+   // matrix
    //
    // -> "A times parameter"
    Real SphericalTriGrid::Atimes(uint nodeIndex, int parameter, bool transpose) {
@@ -1055,14 +1055,14 @@ namespace SBC {
          retval += nodes[n.dependingNodes[i]].parameters[parameter] * n.dependingCoeffs[i];
        }
      }
-     
+
      return retval;
    }
 
    // Evaluate a nodes' own parameter value
    // (If preconditioning is used, this is already adjusted for self-coupling)
    Real SphericalTriGrid::Asolve(uint nodeIndex, int parameter) {
-      
+
      // TODO: Implement preconditioning
      return nodes[nodeIndex].parameters[parameter];
    }
@@ -1107,7 +1107,7 @@ namespace SBC {
      Real err = 0;
      Real minerr = 1e30;
      Real bkden = 1.;
-     for(int iteration =0; iteration < Ionosphere::solverMaxIterations; iteration++) { 
+     for(int iteration =0; iteration < Ionosphere::solverMaxIterations; iteration++) {
 
        for(uint n=0; n<nodes.size(); n++) {
          Node& N=nodes[n];
@@ -1156,7 +1156,7 @@ namespace SBC {
        Real residualnorm = 0;
        for(uint n=0; n<nodes.size(); n++) {
          Node& N=nodes[n];
-         N.parameters[ionosphereParameters::ZZPARAM] = Atimes(n,ionosphereParameters::PPPARAM, true); 
+         N.parameters[ionosphereParameters::ZZPARAM] = Atimes(n,ionosphereParameters::PPPARAM, true);
          N.parameters[ionosphereParameters::SOLUTION] += ak * N.parameters[ionosphereParameters::PPARAM];
          Real newresid = N.parameters[ionosphereParameters::RESIDUAL] - ak * N.parameters[ionosphereParameters::ZPARAM];
          N.parameters[ionosphereParameters::RESIDUAL] = newresid;
@@ -1209,9 +1209,9 @@ namespace SBC {
    // Actual ionosphere object implementation
 
    Ionosphere::Ionosphere(): SysBoundaryCondition() { }
-   
+
    Ionosphere::~Ionosphere() { }
-   
+
    void Ionosphere::addParameters() {
       Readparameters::add("ionosphere.centerX", "X coordinate of ionosphere center (m)", 0.0);
       Readparameters::add("ionosphere.centerY", "Y coordinate of ionosphere center (m)", 0.0);
@@ -1233,7 +1233,7 @@ namespace SBC {
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
-         
+
          Readparameters::add(pop + "_ionosphere.taperRadius", "Width of the zone with a density tapering from the ionospheric value to the background (m)", 0.0);
          Readparameters::add(pop + "_ionosphere.rho", "Number density of the ionosphere (m^-3)", 1.0e6);
          Readparameters::add(pop + "_ionosphere.VX0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", 0.0);
@@ -1242,7 +1242,7 @@ namespace SBC {
          Readparameters::add(pop + "_ionosphere.fluffiness", "Inertia of boundary smoothing when copying neighbour's moments and velocity distributions (0=completely constant boundaries, 1=neighbours are interpolated immediately).", 0);
       }
    }
-   
+
    void Ionosphere::getParameters() {
       int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
@@ -1356,7 +1356,7 @@ namespace SBC {
         speciesParams.push_back(sP);
       }
    }
-   
+
    bool Ionosphere::initSysBoundary(
       creal& t,
       Project &project
@@ -1409,17 +1409,17 @@ namespace SBC {
       // Set up ionospheric atmosphere model
       ionosphereGrid.readAtmosphericModelFile(atmosphericModelFile.c_str());
 
-      // iniSysBoundary is only called once, generateTemplateCell must 
+      // iniSysBoundary is only called once, generateTemplateCell must
       // init all particle species
       generateTemplateCell(project);
-      
+
       return true;
    }
 
    static Real getR(creal x,creal y,creal z, uint geometry, Real center[3]) {
 
       Real r;
-      
+
       switch(geometry) {
       case 0:
          // infinity-norm, result is a diamond/square with diagonals aligned on the axes in 2D
@@ -1444,7 +1444,7 @@ namespace SBC {
 
       return r;
    }
-   
+
    bool Ionosphere::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                       FsGrid< fsgrids::technical, 2> & technicalGrid) {
       vector<CellID> cells = mpiGrid.get_cells();
@@ -1452,7 +1452,7 @@ namespace SBC {
          if(mpiGrid[cells[i]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
             continue;
          }
-         
+
          creal* const cellParams = &(mpiGrid[cells[i]]->parameters[0]);
          creal dx = cellParams[CellParams::DX];
          creal dy = cellParams[CellParams::DY];
@@ -1460,19 +1460,19 @@ namespace SBC {
          creal x = cellParams[CellParams::XCRD] + 0.5*dx;
          creal y = cellParams[CellParams::YCRD] + 0.5*dy;
          creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
-         
+
          if(getR(x,y,z,this->geometry,this->center) < this->radius) {
             mpiGrid[cells[i]]->sysBoundaryFlag = this->getIndex();
          }
       }
 
       // Assign boundary flags to local fsgrid cells
-      const std::array<int, 3> gridDims(technicalGrid.getLocalSize());  
+      const std::array<int, 3> gridDims(technicalGrid.getLocalSize());
       for (int k=0; k<gridDims[2]; k++) {
          for (int j=0; j<gridDims[1]; j++) {
             for (int i=0; i<gridDims[0]; i++) {
                const auto& coords = technicalGrid.getPhysicalCoords(i,j,k);
-               
+
                // Shift to the center of the fsgrid cell
                auto cellCenterCoords = coords;
                cellCenterCoords[0] += 0.5 * technicalGrid.DX;
@@ -1500,7 +1500,7 @@ namespace SBC {
       for (uint i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
          if (cell->sysBoundaryFlag != this->getIndex()) continue;
-         
+
          for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
             setCellFromTemplate(cell,popID);
       }
@@ -1515,10 +1515,10 @@ namespace SBC {
    ) {
       phiprof::start("Ionosphere::fieldSolverGetNormalDirection");
       std::array<Real, 3> normalDirection{{ 0.0, 0.0, 0.0 }};
-      
+
       static creal DIAG2 = 1.0 / sqrt(2.0);
       static creal DIAG3 = 1.0 / sqrt(3.0);
-      
+
       creal dx = technicalGrid.DX;
       creal dy = technicalGrid.DY;
       creal dz = technicalGrid.DZ;
@@ -1529,9 +1529,9 @@ namespace SBC {
       creal xsign = divideIfNonZero(x, fabs(x));
       creal ysign = divideIfNonZero(y, fabs(y));
       creal zsign = divideIfNonZero(z, fabs(z));
-      
+
       Real length = 0.0;
-      
+
       if (Parameters::xcells_ini == 1) {
          if (Parameters::ycells_ini == 1) {
             if (Parameters::zcells_ini == 1) {
@@ -1775,15 +1775,15 @@ namespace SBC {
          }
          // end of 3D
       }
-      
+
       phiprof::stop("Ionosphere::fieldSolverGetNormalDirection");
       return normalDirection;
    }
-   
+
    /*! We want here to
-    * 
+    *
     * -- Average perturbed face B from the nearest neighbours
-    * 
+    *
     * -- Retain only the normal components of perturbed face B
     */
    Real Ionosphere::fieldSolverBoundaryCondMagneticField(
@@ -1969,7 +1969,7 @@ namespace SBC {
    ) {
       EGrid.get(i,j,k)->at(fsgrids::efield::EX+component) = 0.0;
    }
-   
+
    void Ionosphere::fieldSolverBoundaryCondHallElectricField(
       FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2> & EHallGrid,
       cint i,
@@ -2001,7 +2001,7 @@ namespace SBC {
             cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
       }
    }
-   
+
    void Ionosphere::fieldSolverBoundaryCondGradPeElectricField(
       FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2> & EGradPeGrid,
       cint i,
@@ -2011,7 +2011,7 @@ namespace SBC {
    ) {
       EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EXGRADPE+component) = 0.0;
    }
-   
+
    void Ionosphere::fieldSolverBoundaryCondDerivatives(
       FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
       FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> & dMomentsGrid,
@@ -2024,7 +2024,7 @@ namespace SBC {
       this->setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, component);
       return;
    }
-   
+
    void Ionosphere::fieldSolverBoundaryCondBVOLDerivatives(
       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volGrid,
       cint i,
@@ -2035,7 +2035,7 @@ namespace SBC {
       // FIXME This should be OK as the BVOL derivatives are only used for Lorentz force JXB, which is not applied on the ionosphere cells.
       this->setCellBVOLDerivativesToZero(volGrid, i, j, k, component);
    }
-   
+
    void Ionosphere::vlasovBoundaryCondition(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
@@ -2061,13 +2061,13 @@ namespace SBC {
       templateCell.parameters[CellParams::DX] = 1;
       templateCell.parameters[CellParams::DY] = 1;
       templateCell.parameters[CellParams::DZ] = 1;
-      
+
       // Loop over particle species
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          const IonosphereSpeciesParameters& sP = this->speciesParams[popID];
          const vector<vmesh::GlobalID> blocksToInitialize = findBlocksToInitialize(templateCell,popID);
          Realf* data = templateCell.get_data(popID);
-         
+
          for (size_t i = 0; i < blocksToInitialize.size(); i++) {
             const vmesh::GlobalID blockGID = blocksToInitialize.at(i);
             const vmesh::LocalID blockLID = templateCell.get_velocity_block_local_id(blockGID,popID);
@@ -2085,7 +2085,7 @@ namespace SBC {
             creal dx = templateCell.parameters[CellParams::DX];
             creal dy = templateCell.parameters[CellParams::DY];
             creal dz = templateCell.parameters[CellParams::DZ];
-         
+
             // Calculate volume average of distrib. function for each cell in the block.
             for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
                creal vxCell = vxBlock + ic*dvxCell;
@@ -2125,7 +2125,7 @@ namespace SBC {
          // let's get rid of blocks not fulfilling the criteria here to save memory.
          templateCell.adjustSingleCellVelocityBlocks(popID);
       } // for-loop over particle species
-      
+
       calculateCellMoments(&templateCell,true,true);
 
       // WARNING Time-independence assumed here. Normal moments computed in setProjectCell
@@ -2146,12 +2146,12 @@ namespace SBC {
       templateCell.parameters[CellParams::P_22_V] = templateCell.parameters[CellParams::P_22];
       templateCell.parameters[CellParams::P_33_V] = templateCell.parameters[CellParams::P_33];
    }
-   
+
    Real Ionosphere::shiftedMaxwellianDistribution(
       const uint popID,
       creal& vx, creal& vy, creal& vz
    ) {
-      
+
       const Real MASS = getObjectWrapper().particleSpecies[popID].mass;
       const IonosphereSpeciesParameters& sP = this->speciesParams[popID];
 
@@ -2171,7 +2171,7 @@ namespace SBC {
 
       while (search) {
          #warning TODO: add SpatialCell::getVelocityBlockMinValue() in place of sparseMinValue ? (if applicable)
-         if (0.1 * getObjectWrapper().particleSpecies[popID].sparseMinValue > 
+         if (0.1 * getObjectWrapper().particleSpecies[popID].sparseMinValue >
             shiftedMaxwellianDistribution(popID,counter*cell.get_velocity_grid_block_size(popID,refLevel)[0], 0.0, 0.0)
             || counter > vblocks_ini[0]) {
             search = false;
@@ -2179,12 +2179,12 @@ namespace SBC {
          ++counter;
       }
       counter+=2;
-      Real vRadiusSquared 
+      Real vRadiusSquared
               = (Real)counter*(Real)counter
               * cell.get_velocity_grid_block_size(popID,refLevel)[0]
               * cell.get_velocity_grid_block_size(popID,refLevel)[0];
 
-      for (uint kv=0; kv<vblocks_ini[2]; ++kv) 
+      for (uint kv=0; kv<vblocks_ini[2]; ++kv)
          for (uint jv=0; jv<vblocks_ini[1]; ++jv)
             for (uint iv=0; iv<vblocks_ini[0]; ++iv) {
                vmesh::LocalID blockIndices[3];
@@ -2202,7 +2202,7 @@ namespace SBC {
                //creal vx = P::vxmin + (iv+0.5) * cell.get_velocity_grid_block_size(popID)[0]; // vx-coordinate of the centre
                //creal vy = P::vymin + (jv+0.5) * cell.get_velocity_grid_block_size(popID)[1]; // vy-
                //creal vz = P::vzmin + (kv+0.5) * cell.get_velocity_grid_block_size(popID)[2]; // vz-
-               
+
                if (blockCoords[0]*blockCoords[0] + blockCoords[1]*blockCoords[1] + blockCoords[2]*blockCoords[2] < vRadiusSquared) {
                //if (vx*vx + vy*vy + vz*vz < vRadiusSquared) {
                   // Adds velocity block to active population's velocity mesh
@@ -2221,6 +2221,6 @@ namespace SBC {
    }
 
    std::string Ionosphere::getName() const {return "Ionosphere";}
-   
+
    uint Ionosphere::getIndex() const {return sysboundarytype::IONOSPHERE;}
 }
