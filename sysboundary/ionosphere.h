@@ -135,8 +135,9 @@ namespace SBC {
       // Map field-aligned currents, density and pressure
       // down from the simulation boundary onto this grid
       void mapDownBoundaryData(
-          FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
-          FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2> & BgBGrid,
+          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+          //FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
+          //FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2> & BgBGrid,
           FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsGrid);  
 
       // Returns the surface area of one element on the sphere
@@ -161,6 +162,7 @@ namespace SBC {
 
       // Returns the projected surface area of one element, mapped up along the magnetic field to
       // the simulation boundary. If one of the nodes maps nowhere, returns 0.
+      // TODO: This should be dot(A,B)
       Real mappedElementArea(uint32_t elementIndex) {
          const std::array<Real, 3>& a = nodes[elements[elementIndex].corners[0]].xMapped;
          const std::array<Real, 3>& b = nodes[elements[elementIndex].corners[1]].xMapped;
