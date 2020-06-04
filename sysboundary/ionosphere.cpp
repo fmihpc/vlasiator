@@ -109,8 +109,6 @@ namespace SBC {
          {1.41421,-0.816497,-0.57735}};
 
       // Create nodes
-      // One logical center node to build visualization mesh domains from
-      nodes.push_back(Node());
       // Additional nodes from table
       for(int n=0; n<4; n++) {
          Node newNode;
@@ -133,11 +131,11 @@ namespace SBC {
    // Initialize base grid as a icosahedron
    void SphericalTriGrid::initializeIcosahedron() {
       const static std::array<uint32_t, 3> seedElements[20] = {
-        { 1, 3, 2}, { 1, 4, 3}, { 1, 5, 4}, { 1, 6, 5},
-        { 1, 2, 6}, { 2, 3, 7}, { 3, 4, 8}, { 4, 5, 9},
-        { 5, 6,10}, { 6, 2,11}, { 7, 3, 8}, { 8, 4, 9},
-        { 9, 5,10}, {10, 6,11}, {11, 2, 7}, { 7, 8,12},
-        { 8, 9,12}, { 9,10,12}, {10,11,12}, {11, 7,12}};
+        { 0, 2, 1}, { 0, 3, 2}, { 0, 4, 3}, { 0, 5, 4},
+        { 0, 1, 5}, { 1, 2, 6}, { 2, 3, 7}, { 3, 4, 8},
+        { 4, 5,9}, { 5, 1,10}, { 6, 2, 7}, { 7, 3, 8},
+        { 8, 4,9}, {9, 5,10}, {10, 1, 6}, { 6, 7,11},
+        { 7, 8,11}, { 8,9,11}, {9,10,11}, {10, 6,11}};
       const static std::array<Real, 3> nodeCoords[12] = {
         {        0,        0,  1.17557}, {  1.05146,        0, 0.525731},
         {  0.32492,      1.0, 0.525731}, {-0.850651, 0.618034, 0.525731},
@@ -147,8 +145,6 @@ namespace SBC {
         { 0.850651,-0.618034,-0.525731}, {        0,        0, -1.17557}};
 
       // Create nodes
-      // One logical center node to build visualization mesh domains from
-      nodes.push_back(Node());
       // Additional nodes from table
       for(int n=0; n<12; n++) {
          Node newNode;
@@ -165,6 +161,107 @@ namespace SBC {
       }
 
       // Linke elements to nodes
+      updateConnectivity();
+   }
+
+   // Spherical fibonacci base grid with arbitrary number of nodes n>8,
+   // after Keinert et al 2015
+   void SphericalTriGrid::initializeSphericalFibonacci(int n) {
+
+      // Golden ratio
+      const Real Phi = (sqrt(5) +1)/2;
+
+      auto madfrac = [](Real a, Real b) -> float {
+         return a*b-floor(a*b);
+      };
+
+      // Forward spherical fibonacci mapping with n points
+      auto SF = [madfrac,Phi](int i, int n) -> Vec3d {
+         Real phi = 2*M_PI*madfrac(i, Phi-1);
+         Real z = 1. - (2.*i +1)/n;
+         Real sinTheta = sqrt(1 - z*z);
+         return {cos(phi)*sinTheta, sin(phi)*sinTheta, z};
+      };
+
+      // Sample delaunay triangulation of the spherical fibonaccy grid around the given
+      // point and return adjacent vertices
+      auto SFDelaunayAdjacency = [SF,Phi](int j, int n) -> std::vector<int> {
+
+         Real cosTheta = 1 - (2*j+1)/n;
+         Real z = max(0., round(0.5*log(n * M_PI * sqrt(5) * (1-cosTheta*cosTheta)) / log(Phi)));
+
+         Vec3d nearestSample = SF(j,n);
+         std::vector<int> nearestSamples;
+
+         // Sample neighbourhood to find closest neighbours
+         // Magic rainbow indexing
+         for(int i=0; i<12; i++) {
+            int r = i - floor(i/6)*6;
+            int c = 5 - abs(5 - r*2) + floor((int)r/3);
+            int k = j + (i < 6 ? +1 : -1) * (int)round(pow(Phi,z+c-2)/sqrt(5.));
+
+            Vec3d currentSample = SF(k,n);
+            Vec3d nearestToCurrentSample = currentSample - nearestSample;
+            Real squaredDistance = dot_product(nearestToCurrentSample,nearestToCurrentSample);
+
+            // Early reject by invalid index and distance
+            if( k<0 || k>= n || squaredDistance > 5*4*M_PI / (sqrt(5) * n)) {
+               continue;
+            }
+
+            nearestSamples.push_back(k);
+         }
+
+         // Make it delaunay
+         int numAdjacentVertices = 0;
+         std::vector<int> adjacentVertices;
+         for(int i=0; i<(int)nearestSamples.size(); i++) {
+            int k = nearestSamples[i];
+            int kPrevious = nearestSamples[(i+nearestSamples.size()-1) % nearestSamples.size()];
+            int kNext = nearestSamples[(i+1) % nearestSamples.size()];
+
+            Vec3d currentSample = SF(k,n);
+            Vec3d previousSample = SF(kPrevious, n);
+            Vec3d nextSample = SF(kNext,n);
+
+            if(dot_product(previousSample - nextSample, previousSample - nextSample) > dot_product(currentSample - nearestSample, currentSample-nearestSample)) {
+               adjacentVertices.push_back(nearestSamples[i]);
+            }
+         }
+
+         // Special case for the pole
+         if( j == 0) {
+            adjacentVertices.pop_back();
+         }
+
+         return adjacentVertices;
+      };
+
+      // Create nodes
+      for(int i=0; i< n; i++) {
+         Node newNode;
+
+         Vec3d pos = SF(i,n);
+         newNode.x = {pos[0], pos[1], pos[2]};
+         normalizeRadius(newNode, Ionosphere::innerRadius);
+
+         nodes.push_back(newNode);
+      }
+
+      // Create elements
+      for(int i=0; i < n; i++) {
+         std::vector<int> neighbours = SFDelaunayAdjacency(i,n);
+
+         // Build a triangle fan around the neighbourhood
+         for(int j=0; j<neighbours.size(); j++) {
+            if(neighbours[j] > i) { // Only triangles in "positive" direction to avoid double cover.
+               Element newElement;
+               newElement.corners = {i, neighbours[j], neighbours[(j+1)%neighbours.size()]};
+               elements.push_back(newElement);
+            }
+         }
+      }
+
       updateConnectivity();
    }
 
@@ -1318,7 +1415,7 @@ coupling_done:
       Readparameters::add("ionosphere.geometry", "Select the geometry of the ionosphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm (circle, DEFAULT), 3: 2-norm cylinder aligned with y-axis, use with polar plane/line dipole.", 2);
       Readparameters::add("ionosphere.precedence", "Precedence value of the ionosphere system boundary condition (integer), the higher the stronger.", 2);
       Readparameters::add("ionosphere.reapplyUponRestart", "If 0 (default), keep going with the state existing in the restart file. If 1, calls again applyInitialState. Can be used to change boundary condition behaviour during a run.", 0);
-      Readparameters::add("ionosphere.baseShape", "Select the seed mesh geometry for the spherical ionosphere grid. Options are: tetrahedron, icosahedron.",std::string("icosahedron"));
+      Readparameters::add("ionosphere.baseShape", "Select the seed mesh geometry for the spherical ionosphere grid. Options are: sphericalFibonacci, tetrahedron, icosahedron.",std::string("sphericalFibonacci"));
       Readparameters::addComposing("ionosphere.refineMinLatitude", "Refine the grid polewards of the given latitude. Multiple of these lines can be given for successive refinement, paired up with refineMaxLatitude lines.");
       Readparameters::addComposing("ionosphere.refineMaxLatitude", "Refine the grid equatorwards of the given latitude. Multiple of these lines can be given for successive refinement, paired up with refineMinLatitude lines.");
       Readparameters::add("ionosphere.atmosphericModelFile", "Filename to read the MSIS atmosphere data from (default: MSIS.dat)", "MSIS.dat");
@@ -1465,6 +1562,8 @@ coupling_done:
          ionosphereGrid.initializeIcosahedron();
       } else if(baseShape == "tetrahedron") {
          ionosphereGrid.initializeTetrahedron();
+      } else if(baseShape == "sphericalFibonacci") {
+         ionosphereGrid.initializeSphericalFibonacci(128);
       } else {
          logFile << "(IONOSPHERE) Unknown mesh base shape \"" << baseShape << "\". Aborting." << endl << write;
          abort();

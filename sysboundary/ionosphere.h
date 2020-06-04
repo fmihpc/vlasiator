@@ -119,6 +119,7 @@ namespace SBC {
       void updateConnectivity();          // Re-link elements and nodes
       void initializeTetrahedron();       // Initialize grid as a base tetrahedron
       void initializeIcosahedron();       // Initialize grid as a base icosahedron
+      void initializeSphericalFibonacci(int n); // Initialize grid as a spherical fibonacci lattice
       int32_t findElementNeighbour(uint32_t e, int n1, int n2);
       void subdivideElement(uint32_t e);  // Subdivide mesh within element e
       void calculateConductivityTensor(const Real F10_7, const Real recombAlpha, const Real backgroundIonisation); // Update sigma tensor
