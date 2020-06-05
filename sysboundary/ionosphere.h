@@ -45,15 +45,15 @@ namespace SBC {
    };
 
 
-   static const int MAX_TOUCHING_ELEMENTS = 6; // Maximum number of elements touching one node
-   static const int MAX_DEPENDING_NODES = 10;   // Maximum number of depending nodes
+   static const int MAX_TOUCHING_ELEMENTS = 7; // Maximum number of elements touching one node
+   static const int MAX_DEPENDING_NODES = 12;   // Maximum number of depending nodes
 
    // Ionosphere finite element grid
    struct SphericalTriGrid {
 
       // One finite element, spanned between 3 nodes
       struct Element {
-         int refLevel;
+         int refLevel = 0;
          std::array<uint32_t, 3> corners;                 // Node indices in the corners of this element
          //std::array<Real, 3> upmappedCentre = {0,0,0};    // Coordinates the cell barycentre maps to
          // List of fsgrid cells to couple to (and their strengths)
