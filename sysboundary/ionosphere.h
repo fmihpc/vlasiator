@@ -325,7 +325,8 @@ namespace SBC {
       Real VY0;
       Real VZ0;
 
-      std::string baseShape; // Basic mesh shape (icosahedron / tetrahedron)
+      std::string baseShape; // Basic mesh shape (sphericalFibonacci / icosahedron / tetrahedron)
+      int fibonacciNodeNum;  // If spherical fibonacci: number of nodes to generate
       std::string atmosphericModelFile; // MSIS data file
       // Boundaries of refinement latitude bands
       std::vector<Real> refineMinLatitudes;
