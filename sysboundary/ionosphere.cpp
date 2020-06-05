@@ -169,7 +169,7 @@ namespace SBC {
    void SphericalTriGrid::initializeSphericalFibonacci(int n) {
 
       // Golden ratio
-      const Real Phi = (sqrt(5) +1)/2;
+      const Real Phi = (sqrt(5) +1.)/2.;
 
       auto madfrac = [](Real a, Real b) -> float {
          return a*b-floor(a*b);
@@ -177,8 +177,8 @@ namespace SBC {
 
       // Forward spherical fibonacci mapping with n points
       auto SF = [madfrac,Phi](int i, int n) -> Vec3d {
-         Real phi = 2*M_PI*madfrac(i, Phi-1);
-         Real z = 1. - (2.*i +1)/n;
+         Real phi = 2*M_PI*madfrac(i, Phi-1.);
+         Real z = 1. - (2.*i +1.)/n;
          Real sinTheta = sqrt(1 - z*z);
          return {cos(phi)*sinTheta, sin(phi)*sinTheta, z};
       };
@@ -187,8 +187,8 @@ namespace SBC {
       // point and return adjacent vertices
       auto SFDelaunayAdjacency = [SF,Phi](int j, int n) -> std::vector<int> {
 
-         Real cosTheta = 1 - (2*j+1)/n;
-         Real z = max(0., round(0.5*log(n * M_PI * sqrt(5) * (1-cosTheta*cosTheta)) / log(Phi)));
+         Real cosTheta = 1. - (2.*j+1.)/n;
+         Real z = max(0., round(0.5*log(n * M_PI * sqrt(5) * (1.-cosTheta*cosTheta)) / log(Phi)));
 
          Vec3d nearestSample = SF(j,n);
          std::vector<int> nearestSamples;
@@ -205,7 +205,7 @@ namespace SBC {
             Real squaredDistance = dot_product(nearestToCurrentSample,nearestToCurrentSample);
 
             // Early reject by invalid index and distance
-            if( k<0 || k>= n || squaredDistance > 5*4*M_PI / (sqrt(5) * n)) {
+            if( k<0 || k>= n || squaredDistance > 5.*4.*M_PI / (sqrt(5) * n)) {
                continue;
             }
 
@@ -231,7 +231,7 @@ namespace SBC {
 
          // Special case for the pole
          if( j == 0) {
-            adjacentVertices.pop_back();
+            //adjacentVertices.pop_back();
          }
 
          return adjacentVertices;
