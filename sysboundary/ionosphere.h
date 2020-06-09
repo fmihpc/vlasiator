@@ -45,8 +45,8 @@ namespace SBC {
    };
 
 
-   static const int MAX_TOUCHING_ELEMENTS = 7; // Maximum number of elements touching one node
-   static const int MAX_DEPENDING_NODES = 12;   // Maximum number of depending nodes
+   static const int MAX_TOUCHING_ELEMENTS = 11; // Maximum number of elements touching one node
+   static const int MAX_DEPENDING_NODES = 22;   // Maximum number of depending nodes
 
    // Ionosphere finite element grid
    struct SphericalTriGrid {
@@ -55,8 +55,6 @@ namespace SBC {
       struct Element {
          int refLevel = 0;
          std::array<uint32_t, 3> corners;                 // Node indices in the corners of this element
-         //std::array<Real, 3> upmappedCentre = {0,0,0};    // Coordinates the cell barycentre maps to
-         // List of fsgrid cells to couple to (and their strengths)
 
       };
       std::vector<Element> elements;
@@ -66,17 +64,15 @@ namespace SBC {
          // Elements touching this node
          uint numTouchingElements=0;
          std::array<uint32_t, MAX_TOUCHING_ELEMENTS> touchingElements;
-   
+
          // List of nodes the current node depends on
          uint numDepNodes = 0;
          std::array<uint32_t, MAX_DEPENDING_NODES> dependingNodes;
-         std::array<Real, MAX_DEPENDING_NODES> dependingCoeffs;
-         std::array<Real, MAX_DEPENDING_NODES> transposedCoeffs;
+         std::array<Real, MAX_DEPENDING_NODES> dependingCoeffs;// Dependency coefficients
+         std::array<Real, MAX_DEPENDING_NODES> transposedCoeffs; // Transposed dependency coefficient
 
          std::array<Real, 3> x = {0,0,0}; // Coordinates of the node
          std::array<Real, 3> xMapped = {0,0,0}; // Coordinates mapped along fieldlines into simulation domain
-         std::array<Real, MAX_DEPENDING_NODES> depCoeffs; // Dependency coefficients
-         std::array<Real, MAX_DEPENDING_NODES> depCoeffsT; // Transposed ependency coefficient
 
          std::array<Real, N_IONOSPHERE_PARAMETERS> parameters = {0}; // Parameters carried by the node, see common.h
          std::vector<std::pair<std::array<int,3>, Real>> fsgridCellCoupling;

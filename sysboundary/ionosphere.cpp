@@ -231,7 +231,7 @@ namespace SBC {
 
          // Special case for the pole
          if( j == 0) {
-            //adjacentVertices.pop_back();
+            adjacentVertices.pop_back();
          }
 
          return adjacentVertices;
@@ -253,10 +253,10 @@ namespace SBC {
          std::vector<int> neighbours = SFDelaunayAdjacency(i,n);
 
          // Build a triangle fan around the neighbourhood
-         for(int j=0; j<neighbours.size(); j++) {
+         for(uint j=0; j<neighbours.size(); j++) {
             if(neighbours[j] > i) { // Only triangles in "positive" direction to avoid double cover.
                Element newElement;
-               newElement.corners = {i, neighbours[j], neighbours[(j+1)%neighbours.size()]};
+               newElement.corners = {(uint)i, (uint)neighbours[j], (uint)neighbours[(j+1)%neighbours.size()]};
                elements.push_back(newElement);
             }
          }
@@ -1204,6 +1204,7 @@ coupling_done:
        // Special case: we are touching the middle of an edge
        if(j0 == -1) {
          // TODO: Implement this? Gumics doesn't.
+         // How would the elementIntegral even work?
        } else {
 
          // Normal case.
