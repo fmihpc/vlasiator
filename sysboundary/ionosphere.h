@@ -75,7 +75,7 @@ namespace SBC {
          std::array<Real, 3> xMapped = {0,0,0}; // Coordinates mapped along fieldlines into simulation domain
 
          std::array<Real, N_IONOSPHERE_PARAMETERS> parameters = {0}; // Parameters carried by the node, see common.h
-         std::vector<std::pair<std::array<int,3>, Real>> fsgridCellCoupling;
+         std::array<Real,3> fsgridCellCoupling = {0,0,0}; // Where (in fsgrid cell coordinate space) does this fieldline map?
       };
       std::vector<Node> nodes;
 
@@ -133,9 +133,10 @@ namespace SBC {
       // down from the simulation boundary onto this grid
       void mapDownBoundaryData(
           FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
-          //FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
-          //FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2> & BgBGrid,
-          FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsGrid);  
+          FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
+          FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2> & BgBGrid,
+          FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsGrid,
+          FsGrid< fsgrids::technical, 2> & technicalGrid);
 
       // Returns the surface area of one element on the sphere
       Real elementArea(uint32_t elementIndex) {

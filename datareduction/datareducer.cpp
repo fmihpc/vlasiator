@@ -1116,23 +1116,6 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 
          continue;
       }
-      if(lowercase == "ig_couplingcoeffs") {
-         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_couplingcoeffs", [](
-                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
-                  
-                     std::vector<Real> retval(grid.nodes.size());
-
-                     for(uint i=0; i<grid.nodes.size(); i++) {
-                        retval[i] = 0;
-                        for(int c = 0; c<grid.nodes[i].fsgridCellCoupling.size(); c++) {
-                           retval[i] += grid.nodes[i].fsgridCellCoupling[c].second;
-                        }
-                     }
-
-                     return retval;
-                     }));
-         continue;
-      }
       if(lowercase == "ig_upmappednodecoords") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_upmappednodecoords", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
