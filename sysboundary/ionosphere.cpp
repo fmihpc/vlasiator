@@ -855,33 +855,45 @@ namespace SBC {
         Real J = 0;
         Real area = 0;
         Real upmappedArea = 0;
+        std::array<int,3> fsc;
 
         // Iterate through the elements touching that node
         for(uint e=0; e<nodes[n].numTouchingElements; e++) {
-           //const Element& el= elements[nodes[n].touchingElements[e]];
+           const Element& el= elements[nodes[n].touchingElements[e]];
 
-           //// This element has 3 corner nodes
-           //// Get the B-values at the upmapped coordinates
+           // This element has 3 corner nodes
+           // Get the B-values at the upmapped coordinates
            //std::array< std::array< Real, 3>, 3> B = {0};
            //for(int c=0; c <3 ;c++) {
 
            //   const Node& corner = nodes[el.corners[c]];
 
-           //   for(uint i=0; i< corner.fsgridCellCoupling.size(); i++) {
+           //   // Get fsgrid coordinate of mapping
+           //   std::array<Real,3> cell = corner.fsgridCellCoupling;
+           //   for(int i=0; i<3; i++) {
+           //      fsc[i] = floor(cell[i]);
+           //   }
 
-           //      // Get fsgrid coordinate of mapping
-           //      std::array<int,3> fsc = corner.fsgridCellCoupling[i].first;
-           //      Real coupling = corner.fsgridCellCoupling[i].second;
+           //   // Local cell
+           //   std::array<int,3> lfsc = technicalGrid.globalToLocal(fsc[0],fsc[1],fsc[2]);
 
-           //      // TODO: Use volume fields here?
-           //      B[c][0] += coupling*perBGrid.get(fsc[0],fsc[1],fsc[2])->at(fsgrids::PERBX);
-           //      B[c][1] += coupling*perBGrid.get(fsc[0],fsc[1],fsc[2])->at(fsgrids::PERBY);
-           //      B[c][2] += coupling*perBGrid.get(fsc[0],fsc[1],fsc[2])->at(fsgrids::PERBZ);
+           //   for(int xoffset : {0,1}) {
+           //      for(int yoffset : {0,1}) {
+           //         for(int zoffset : {0,1}) {
+
+           //            Real coupling = abs(xoffset - (cell[0]-fsc[0])) * abs(yoffset - (cell[1]-fsc[1])) * abs(zoffset - (cell[2]-fsc[2]));
+
+           //            // TODO: Use volume fields here?
+           //            B[c][0] += coupling*perBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::PERBX);
+           //            B[c][1] += coupling*perBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::PERBY);
+           //            B[c][2] += coupling*perBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::PERBZ);
+           //         }
+           //      }
            //   }
            //}
 
-           //// Calculate rot(B) by taking the path integral around the edge of the
-           //// upmapped element
+           ////// Calculate rot(B) by taking the path integral around the edge of the
+           ////// upmapped element
            //J += B[0][0]*(nodes[el.corners[1]].xMapped[0] - nodes[el.corners[2]].xMapped[0])
            //   + B[0][1]*(nodes[el.corners[1]].xMapped[1] - nodes[el.corners[2]].xMapped[1])
            //   + B[0][2]*(nodes[el.corners[1]].xMapped[2] - nodes[el.corners[2]].xMapped[2]);
@@ -902,13 +914,17 @@ namespace SBC {
         // divide by mu0 to get J. Also divide by 3, as every
         // element will be counted from each of its corners.
         //J /= 3. * physicalconstants::MU_0;
-        //FACinput[n] = J;
+        //FACinput[n] = J / area;
+        
+        // Prevent areas from being multiply-counted
+        area /= 3.;
+        upmappedArea /= 3.;
 
-		 // Map down FAC based on magnetosphere rotB
-        std::array<int,3> fsc;
-        for(int c=0; c<3; c++) {
-           fsc[c] = floor(nodes[n].fsgridCellCoupling[c]);
-        }
+		  //// Map down FAC based on magnetosphere rotB
+        //std::array<int,3> fsc;
+        //for(int c=0; c<3; c++) {
+        //   fsc[c] = floor(nodes[n].fsgridCellCoupling[c]);
+        //}
 
         std::array<Real, 3> rotB;
         // Calc rotB
