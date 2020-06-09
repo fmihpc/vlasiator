@@ -1099,7 +1099,7 @@ namespace SBC {
      }
 
      // Not found, let's add it.
-     if(n.numDepNodes >= MAX_DEPENDING_NODES) {
+     if(n.numDepNodes >= MAX_DEPENDING_NODES-1) {
        // This shouldn't happen (but did in tests!)
        logFile << "(ionosphere) Node " << node1 << " already has " << MAX_DEPENDING_NODES << " depending nodes:" << endl << write;
        logFile << "     [ ";
@@ -1138,6 +1138,8 @@ namespace SBC {
 
    // Add solver matrix dependencies for the neighbouring nodes
    void SphericalTriGrid::addAllMatrixDependencies(uint nodeIndex) {
+
+     nodes[nodeIndex].numDepNodes = 0;
 
      for(uint t=0; t<nodes[nodeIndex].numTouchingElements; t++) {
        int j0=-1;
@@ -1367,7 +1369,7 @@ namespace SBC {
       Readparameters::add("ionosphere.centerY", "Y coordinate of ionosphere center (m)", 0.0);
       Readparameters::add("ionosphere.centerZ", "Z coordinate of ionosphere center (m)", 0.0);
       Readparameters::add("ionosphere.radius", "Radius of the inner simulation boundary (m).", 1.0e7);
-			Readparameters::add("ionosphere.innerRadius", "Radius of the ionosphere model (m).", physicalconstants::R_E + 100e3);
+      Readparameters::add("ionosphere.innerRadius", "Radius of the ionosphere model (m).", physicalconstants::R_E + 100e3);
       Readparameters::add("ionosphere.geometry", "Select the geometry of the ionosphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm (circle, DEFAULT), 3: 2-norm cylinder aligned with y-axis, use with polar plane/line dipole.", 2);
       Readparameters::add("ionosphere.precedence", "Precedence value of the ionosphere system boundary condition (integer), the higher the stronger.", 2);
       Readparameters::add("ionosphere.reapplyUponRestart", "If 0 (default), keep going with the state existing in the restart file. If 1, calls again applyInitialState. Can be used to change boundary condition behaviour during a run.", 0);
@@ -1434,14 +1436,14 @@ namespace SBC {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
-			if(!Readparameters::get("ionosphere.solverMaxIterations", solverMaxIterations)) {
+      if(!Readparameters::get("ionosphere.solverMaxIterations", solverMaxIterations)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
-			}
-			if(!Readparameters::get("ionosphere.innerRadius", innerRadius)) {
+      }
+      if(!Readparameters::get("ionosphere.innerRadius", innerRadius)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
-			}
+      }
       if(!Readparameters::get("ionosphere.refineMinLatitude",refineMinLatitudes)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
