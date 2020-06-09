@@ -1167,14 +1167,24 @@ namespace SBC {
    }
 
    // Initialize the CG sover by assigning matrix dependency weights
-   void SphericalTriGrid::initSolver() {
+   void SphericalTriGrid::initSolver(bool zeroOut) {
 
      // Zero out parameters
-     for(uint n=0; n<nodes.size(); n++) {
-       for(uint p=ionosphereParameters::SOLUTION; p<ionosphereParameters::N_IONOSPHERE_PARAMETERS; p++) {
-         Node& N=nodes[n];
-         N.parameters[p] = 0;
-       }
+     if(zeroOut) {
+        for(uint n=0; n<nodes.size(); n++) {
+           for(uint p=ionosphereParameters::SOLUTION; p<ionosphereParameters::N_IONOSPHERE_PARAMETERS; p++) {
+              Node& N=nodes[n];
+              N.parameters[p] = 0;
+           }
+        }
+     } else {
+       // Only zero the gradient states
+        for(uint n=0; n<nodes.size(); n++) {
+           for(uint p=ionosphereParameters::ZPARAM; p<ionosphereParameters::N_IONOSPHERE_PARAMETERS; p++) {
+              Node& N=nodes[n];
+              N.parameters[p] = 0;
+           }
+        }
      }
 
      for(uint n=0; n<nodes.size(); n++) {
@@ -1219,11 +1229,11 @@ namespace SBC {
        return;
      }
 
+     initSolver(false);
+
      int rank;
      MPI_Comm_rank(communicator, &rank);
-     if(rank == 0) {
-       cerr << "(ionosphere) starting solve..." << endl;
-     }
+
      // Calculate sourcenorm and initial residual estimate
      Real sourcenorm = 0;
      for(uint n=0; n<nodes.size(); n++) {
@@ -1242,7 +1252,7 @@ namespace SBC {
      // Abort if there is nothing to solve.
      if(sourcenorm == 0) {
        if(rank == 0) {
-       cerr << "(ionosphere) nothing to solve, skipping. " << endl;
+          logFile << "(ionosphere) nothing to solve, skipping. " << endl << write;
        }
        return;
      }
@@ -1282,7 +1292,6 @@ namespace SBC {
        }
        bkden = bknum;
        if(bkden == 0 && rank==0) {
-         cerr << "(ionosphere) New bkden = 0!" << endl;
          bkden = 1;
        }
 
@@ -1314,9 +1323,6 @@ namespace SBC {
 
        // See if this solved the potential better than before
        err = sqrt(residualnorm)/sourcenorm;
-       if(rank == 0) {
-         cerr << "(ionosphere) Iteration " << iteration <<", error is " << err << ". " << endl;
-       }
        if(err < minerr) {
          // If yes, this is our new best solution
          for(uint n=0; n<nodes.size(); n++) {
@@ -1333,16 +1339,16 @@ namespace SBC {
        }
 
        if(minerr < 1e-6) {
-         if(rank == 0) {
-           cerr << "Solved ionosphere potential after " << iteration << " iterations." << endl;
-         }
+         //if(rank == 0) {
+         //  cerr << "Solved ionosphere potential after " << iteration << " iterations." << endl;
+         //}
          return;
        }
 
      }
 
      if(rank == 0) {
-       cerr << "(ionosphere) Exhausted iterations. Remaining error " << minerr << endl;
+       //cerr << "(ionosphere) Exhausted iterations. Remaining error " << minerr << endl;
        for(uint n=0; n<nodes.size(); n++) {
          Node& N=nodes[n];
          N.parameters[ionosphereParameters::SOLUTION] = N.parameters[ionosphereParameters::BEST_SOLUTION];

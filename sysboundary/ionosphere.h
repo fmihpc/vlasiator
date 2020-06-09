@@ -124,7 +124,7 @@ namespace SBC {
       // Conjugate Gradient solver functions
       void addMatrixDependency(uint node1, uint node2, Real coeff, bool transposed=false); // Add matrix value for the solver
       void addAllMatrixDependencies(uint nodeIndex);
-      void initSolver();                 // Initialize the CG solver
+      void initSolver(bool zeroOut=true);  // Initialize the CG solver
       Real Atimes(uint nodeIndex, int parameter, bool transpose=false); // Evaluate neighbour nodes' coupled parameter
       Real Asolve(uint nodeIndex, int parameter); // Evaluate own parameter value
       void solve();
