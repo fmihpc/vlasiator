@@ -922,9 +922,9 @@ namespace SBC {
 
 		  //// Map down FAC based on magnetosphere rotB
         //std::array<int,3> fsc;
-        //for(int c=0; c<3; c++) {
-        //   fsc[c] = floor(nodes[n].fsgridCellCoupling[c]);
-        //}
+        for(int c=0; c<3; c++) {
+           fsc[c] = floor(nodes[n].fsgridCellCoupling[c]);
+        }
 
         std::array<Real, 3> rotB;
         // Calc rotB
