@@ -922,31 +922,6 @@ namespace SBC {
 
 		  //// Map down FAC based on magnetosphere rotB
         //std::array<int,3> fsc;
-        for(int c=0; c<3; c++) {
-           fsc[c] = floor(nodes[n].fsgridCellCoupling[c]);
-        }
-
-        std::array<Real, 3> rotB;
-        // Calc rotB
-        rotB[0] = (dPerBGrid.get(fsc[0],fsc[1],fsc[2])->at(fsgrids::dPERBydz)
-              - dPerBGrid.get(fsc[0],fsc[1],fsc[2])->at(fsgrids::dPERBzdy)) / dPerBGrid.DX;
-        rotB[1] = (dPerBGrid.get(fsc[0],fsc[1],fsc[2])->at(fsgrids::dPERBzdx)
-              - dPerBGrid.get(fsc[0],fsc[1],fsc[2])->at(fsgrids::dPERBxdz)) / dPerBGrid.DX;
-        rotB[2] = (dPerBGrid.get(fsc[0],fsc[1],fsc[2])->at(fsgrids::dPERBxdy)
-              - dPerBGrid.get(fsc[0],fsc[1],fsc[2])->at(fsgrids::dPERBydx)) / dPerBGrid.DX;
-
-        // Dot with background (dipole) B
-        std::array<Real, 3> B({BgBGrid.get(fsc[0],fsc[1],fsc[2])->at(fsgrids::BGBX),
-              BgBGrid.get(fsc[0],fsc[1],fsc[2])->at(fsgrids::BGBY),
-              BgBGrid.get(fsc[0],fsc[1],fsc[2])->at(fsgrids::BGBZ)});
-        Real Bnorm = 1./sqrt(B[0]*B[0]+B[1]*B[1]+B[2]*B[2]);
-        // Yielding the field-aligned current
-        Real FAC = Bnorm * (B[0]*rotB[0] + B[1]*rotB[1] + B[2]*rotB[2]) / physicalconstants::MU_0;
-
-        FACinput[n] += FAC;
-
-
-        // Map density and pressure down
         std::array<Real,3> cell = nodes[n].fsgridCellCoupling;
         for(int c=0; c<3; c++) {
            fsc[c] = floor(cell[c]);
@@ -954,6 +929,36 @@ namespace SBC {
 
         // Local cell
         std::array<int,3> lfsc = technicalGrid.globalToLocal(fsc[0],fsc[1],fsc[2]);
+
+        // Linearly interpolate neighbourhood
+        for(int xoffset : {0,1}) {
+           for(int yoffset : {0,1}) {
+              for(int zoffset : {0,1}) {
+
+                 Real coupling = abs(xoffset - (cell[0]-fsc[0])) * abs(yoffset - (cell[1]-fsc[1])) * abs(zoffset - (cell[2]-fsc[2]));
+                 std::array<Real, 3> rotB;
+                 // Calc rotB
+                 rotB[0] = (dPerBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBydz)
+                       - dPerBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBzdy)) / dPerBGrid.DX;
+                 rotB[1] = (dPerBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBzdx)
+                       - dPerBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBxdz)) / dPerBGrid.DX;
+                 rotB[2] = (dPerBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBxdy)
+                       - dPerBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBydx)) / dPerBGrid.DX;
+
+                 // Dot with background (dipole) B
+                 std::array<Real, 3> B({BgBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::BGBX),
+                       BgBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::BGBY),
+                       BgBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::BGBZ)});
+                 Real Bnorm = 1./sqrt(B[0]*B[0]+B[1]*B[1]+B[2]*B[2]);
+                 // Yielding the field-aligned current
+                 Real FAC = Bnorm * (B[0]*rotB[0] + B[1]*rotB[1] + B[2]*rotB[2]) / physicalconstants::MU_0;
+
+                 FACinput[n] += FAC * coupling;
+              }
+           }
+        }
+
+        // Map density and pressure down
 
         // Linearly interpolate
         for(int xoffset : {0,1}) {
