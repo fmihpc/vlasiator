@@ -50,56 +50,56 @@ namespace SBC {
    StaticIonosphere::~StaticIonosphere() { }
    
    void StaticIonosphere::addParameters() {
-      Readparameters::add("ionosphere.centerX", "X coordinate of ionosphere center (m)", 0.0);
-      Readparameters::add("ionosphere.centerY", "Y coordinate of ionosphere center (m)", 0.0);
-      Readparameters::add("ionosphere.centerZ", "Z coordinate of ionosphere center (m)", 0.0);
-      Readparameters::add("ionosphere.radius", "Radius of ionosphere (m).", 1.0e7);
-      Readparameters::add("ionosphere.geometry", "Select the geometry of the ionosphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm (circle, DEFAULT), 3: 2-norm cylinder aligned with y-axis, use with polar plane/line dipole.", 2);
-      Readparameters::add("ionosphere.precedence", "Precedence value of the ionosphere system boundary condition (integer), the higher the stronger.", 2);
-      Readparameters::add("ionosphere.reapplyUponRestart", "If 0 (default), keep going with the state existing in the restart file. If 1, calls again applyInitialState. Can be used to change boundary condition behaviour during a run.", 0);
+      Readparameters::add("staticionosphere.centerX", "X coordinate of ionosphere center (m)", 0.0);
+      Readparameters::add("staticionosphere.centerY", "Y coordinate of ionosphere center (m)", 0.0);
+      Readparameters::add("staticionosphere.centerZ", "Z coordinate of ionosphere center (m)", 0.0);
+      Readparameters::add("staticionosphere.radius", "Radius of ionosphere (m).", 1.0e7);
+      Readparameters::add("staticionosphere.geometry", "Select the geometry of the ionosphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm (circle, DEFAULT), 3: 2-norm cylinder aligned with y-axis, use with polar plane/line dipole.", 2);
+      Readparameters::add("staticionosphere.precedence", "Precedence value of the ionosphere system boundary condition (integer), the higher the stronger.", 4);
+      Readparameters::add("staticionosphere.reapplyUponRestart", "If 0 (default), keep going with the state existing in the restart file. If 1, calls again applyInitialState. Can be used to change boundary condition behaviour during a run.", 0);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
          
-         Readparameters::add(pop + "_ionosphere.taperRadius", "Width of the zone with a density tapering from the ionospheric value to the background (m)", 0.0);
-         Readparameters::add(pop + "_ionosphere.rho", "Number density of the ionosphere (m^-3)", 1.0e6);
-         Readparameters::add(pop + "_ionosphere.VX0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", 0.0);
-         Readparameters::add(pop + "_ionosphere.VY0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", 0.0);
-         Readparameters::add(pop + "_ionosphere.VZ0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", 0.0);
-         Readparameters::add(pop + "_ionosphere.fluffiness", "Inertia of boundary smoothing when copying neighbour's moments and velocity distributions (0=completely constant boundaries, 1=neighbours are interpolated immediately).", 0);
+         Readparameters::add(pop + "_staticionosphere.taperRadius", "Width of the zone with a density tapering from the ionospheric value to the background (m)", 0.0);
+         Readparameters::add(pop + "_staticionosphere.rho", "Number density of the ionosphere (m^-3)", 1.0e6);
+         Readparameters::add(pop + "_staticionosphere.VX0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", 0.0);
+         Readparameters::add(pop + "_staticionosphere.VY0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", 0.0);
+         Readparameters::add(pop + "_staticionosphere.VZ0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", 0.0);
+         Readparameters::add(pop + "_staticionosphere.fluffiness", "Inertia of boundary smoothing when copying neighbour's moments and velocity distributions (0=completely constant boundaries, 1=neighbours are interpolated immediately).", 0);
       }
    }
    
    void StaticIonosphere::getParameters() {
       int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-      if(!Readparameters::get("ionosphere.centerX", this->center[0])) {
+      if(!Readparameters::get("staticionosphere.centerX", this->center[0])) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
-      if(!Readparameters::get("ionosphere.centerY", this->center[1])) {
+      if(!Readparameters::get("staticionosphere.centerY", this->center[1])) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
-      if(!Readparameters::get("ionosphere.centerZ", this->center[2])) {
+      if(!Readparameters::get("staticionosphere.centerZ", this->center[2])) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
-      if(!Readparameters::get("ionosphere.radius", this->radius)) {
+      if(!Readparameters::get("staticionosphere.radius", this->radius)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
-      if(!Readparameters::get("ionosphere.geometry", this->geometry)) {
+      if(!Readparameters::get("staticionosphere.geometry", this->geometry)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
-      if(!Readparameters::get("ionosphere.precedence", this->precedence)) {
+      if(!Readparameters::get("staticionosphere.precedence", this->precedence)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
       uint reapply;
-      if(!Readparameters::get("ionosphere.reapplyUponRestart",reapply)) {
+      if(!Readparameters::get("staticionosphere.reapplyUponRestart",reapply)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       };
@@ -112,23 +112,23 @@ namespace SBC {
         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
         StaticIonosphereSpeciesParameters sP;
 
-        if(!Readparameters::get(pop + "_ionosphere.rho", sP.rho)) {
+        if(!Readparameters::get(pop + "_staticionosphere.rho", sP.rho)) {
            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
            exit(1);
         }
-        if(!Readparameters::get(pop + "_ionosphere.VX0", sP.V0[0])) {
+        if(!Readparameters::get(pop + "_staticionosphere.VX0", sP.V0[0])) {
            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
            exit(1);
         }
-        if(!Readparameters::get(pop + "_ionosphere.VY0", sP.V0[1])) {
+        if(!Readparameters::get(pop + "_staticionosphere.VY0", sP.V0[1])) {
            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
            exit(1);
         }
-        if(!Readparameters::get(pop + "_ionosphere.VZ0", sP.V0[2])) {
+        if(!Readparameters::get(pop + "_staticionosphere.VZ0", sP.V0[2])) {
            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
            exit(1);
         }
-        if(!Readparameters::get(pop + "_ionosphere.fluffiness", sP.fluffiness)) {
+        if(!Readparameters::get(pop + "_staticionosphere.fluffiness", sP.fluffiness)) {
            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
            exit(1);
         }
@@ -185,7 +185,7 @@ namespace SBC {
          r = sqrt((x-center[0])*(x-center[0]) + (z-center[2])*(z-center[2]));
          break;
       default:
-         std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1 or 2." << std::endl;
+         std::cerr << __FILE__ << ":" << __LINE__ << ":" << "staticionosphere.geometry has to be 0, 1 or 2." << std::endl;
          abort();
       }
 
@@ -331,7 +331,7 @@ namespace SBC {
                   normalDirection[2] = z / length;
                   break;
                default:
-                  std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1 or 2 with this grid shape." << std::endl;
+                  std::cerr << __FILE__ << ":" << __LINE__ << ":" << "staticionosphere.geometry has to be 0, 1 or 2 with this grid shape." << std::endl;
                   abort();
             }
             // end of X
@@ -378,7 +378,7 @@ namespace SBC {
                   normalDirection[2] = z / length;
                   break;
                default:
-                  std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1, 2 or 3 with this grid shape." << std::endl;
+                  std::cerr << __FILE__ << ":" << __LINE__ << ":" << "staticionosphere.geometry has to be 0, 1, 2 or 3 with this grid shape." << std::endl;
                   abort();
             }
             // end of Y
@@ -419,7 +419,7 @@ namespace SBC {
                normalDirection[1] = y / length;
                break;
             default:
-               std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1 or 2 with this grid shape." << std::endl;
+               std::cerr << __FILE__ << ":" << __LINE__ << ":" << "staticionosphere.geometry has to be 0, 1 or 2 with this grid shape." << std::endl;
                abort();
          }
          // end of Z
@@ -517,7 +517,7 @@ namespace SBC {
                normalDirection[2] = z / length;
                break;
             default:
-               std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1, 2 or 3 with this grid shape." << std::endl;
+               std::cerr << __FILE__ << ":" << __LINE__ << ":" << "staticionosphere.geometry has to be 0, 1, 2 or 3 with this grid shape." << std::endl;
                abort();
          }
          // end of 3D
@@ -528,10 +528,7 @@ namespace SBC {
    }
    
    /*! We want here to
-    * 
-    * -- Average perturbed face B from the nearest neighbours
-    * 
-    * -- Retain only the normal components of perturbed face B
+    *  DO NOTHING
     */
    Real StaticIonosphere::fieldSolverBoundaryCondMagneticField(
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & bGrid,
@@ -542,169 +539,8 @@ namespace SBC {
       creal& dt,
       cuint& component
    ) {
-      if (technicalGrid.get(i,j,k)->sysBoundaryLayer == 1) {
-         switch(component) {
-            case 0:
-               if (  ((technicalGrid.get(i-1,j,k)->SOLVE & compute::BX) == compute::BX)
-                  && ((technicalGrid.get(i+1,j,k)->SOLVE & compute::BX) == compute::BX)
-               ) {
-                  return 0.5 * (bGrid.get(i-1,j,k)->at(fsgrids::bfield::PERBX) + bGrid.get(i+1,j,k)->at(fsgrids::bfield::PERBX));
-               } else if ((technicalGrid.get(i-1,j,k)->SOLVE & compute::BX) == compute::BX) {
-                  return bGrid.get(i-1,j,k)->at(fsgrids::bfield::PERBX);
-               } else if ((technicalGrid.get(i+1,j,k)->SOLVE & compute::BX) == compute::BX) {
-                  return bGrid.get(i+1,j,k)->at(fsgrids::bfield::PERBX);
-               } else {
-                  Real retval = 0.0;
-                  uint nCells = 0;
-                  if ((technicalGrid.get(i,j-1,k)->SOLVE & compute::BX) == compute::BX) {
-                     retval += bGrid.get(i,j-1,k)->at(fsgrids::bfield::PERBX);
-                     nCells++;
-                  }
-                  if ((technicalGrid.get(i,j+1,k)->SOLVE & compute::BX) == compute::BX) {
-                     retval += bGrid.get(i,j+1,k)->at(fsgrids::bfield::PERBX);
-                     nCells++;
-                  }
-                  if ((technicalGrid.get(i,j,k-1)->SOLVE & compute::BX) == compute::BX) {
-                     retval += bGrid.get(i,j,k-1)->at(fsgrids::bfield::PERBX);
-                     nCells++;
-                  }
-                  if ((technicalGrid.get(i,j,k+1)->SOLVE & compute::BX) == compute::BX) {
-                     retval += bGrid.get(i,j,k+1)->at(fsgrids::bfield::PERBX);
-                     nCells++;
-                  }
-                  if (nCells == 0) {
-                     for (int a=i-1; a<i+2; a++) {
-                        for (int b=j-1; b<j+2; b++) {
-                           for (int c=k-1; c<k+2; c++) {
-                              if ((technicalGrid.get(a,b,c)->SOLVE & compute::BX) == compute::BX) {
-                                 retval += bGrid.get(a,b,c)->at(fsgrids::bfield::PERBX);
-                                 nCells++;
-                              }
-                           }
-                        }
-                     }
-                  }
-                  if (nCells == 0) {
-                     cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
-                     return 0.0;
-                  }
-                  return retval / nCells;
-               }
-            case 1:
-               if (  (technicalGrid.get(i,j-1,k)->SOLVE & compute::BY) == compute::BY
-                  && (technicalGrid.get(i,j+1,k)->SOLVE & compute::BY) == compute::BY
-               ) {
-                  return 0.5 * (bGrid.get(i,j-1,k)->at(fsgrids::bfield::PERBY) + bGrid.get(i,j+1,k)->at(fsgrids::bfield::PERBY));
-               } else if ((technicalGrid.get(i,j-1,k)->SOLVE & compute::BY) == compute::BY) {
-                  return bGrid.get(i,j-1,k)->at(fsgrids::bfield::PERBY);
-               } else if ((technicalGrid.get(i,j+1,k)->SOLVE & compute::BY) == compute::BY) {
-                  return bGrid.get(i,j+1,k)->at(fsgrids::bfield::PERBY);
-               } else {
-                  Real retval = 0.0;
-                  uint nCells = 0;
-                  if ((technicalGrid.get(i-1,j,k)->SOLVE & compute::BY) == compute::BY) {
-                     retval += bGrid.get(i-1,j,k)->at(fsgrids::bfield::PERBY);
-                     nCells++;
-                  }
-                  if ((technicalGrid.get(i+1,j,k)->SOLVE & compute::BY) == compute::BY) {
-                     retval += bGrid.get(i+1,j,k)->at(fsgrids::bfield::PERBY);
-                     nCells++;
-                  }
-                  if ((technicalGrid.get(i,j,k-1)->SOLVE & compute::BY) == compute::BY) {
-                     retval += bGrid.get(i,j,k-1)->at(fsgrids::bfield::PERBY);
-                     nCells++;
-                  }
-                  if ((technicalGrid.get(i,j,k+1)->SOLVE & compute::BY) == compute::BY) {
-                     retval += bGrid.get(i,j,k+1)->at(fsgrids::bfield::PERBY);
-                     nCells++;
-                  }
-                  if (nCells == 0) {
-                     for (int a=i-1; a<i+2; a++) {
-                        for (int b=j-1; b<j+2; b++) {
-                           for (int c=k-1; c<k+2; c++) {
-                              if ((technicalGrid.get(a,b,c)->SOLVE & compute::BY) == compute::BY) {
-                                 retval += bGrid.get(a,b,c)->at(fsgrids::bfield::PERBY);
-                                 nCells++;
-                              }
-                           }
-                        }
-                     }
-                  }
-                  if (nCells == 0) {
-                     cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
-                     return 0.0;
-                  }
-                  return retval / nCells;
-               }
-            case 2:
-               if (  (technicalGrid.get(i,j,k-1)->SOLVE & compute::BZ) == compute::BZ
-                  && (technicalGrid.get(i,j,k+1)->SOLVE & compute::BZ) == compute::BZ
-               ) {
-                  return 0.5 * (bGrid.get(i,j,k-1)->at(fsgrids::bfield::PERBZ) + bGrid.get(i,j,k+1)->at(fsgrids::bfield::PERBZ));
-               } else if ((technicalGrid.get(i,j,k-1)->SOLVE & compute::BZ) == compute::BZ) {
-                  return bGrid.get(i,j,k-1)->at(fsgrids::bfield::PERBZ);
-               } else if ((technicalGrid.get(i,j,k+1)->SOLVE & compute::BZ) == compute::BZ) {
-                  return bGrid.get(i,j,k+1)->at(fsgrids::bfield::PERBZ);
-               } else {
-                  Real retval = 0.0;
-                  uint nCells = 0;
-                  if ((technicalGrid.get(i-1,j,k)->SOLVE & compute::BZ) == compute::BZ) {
-                     retval += bGrid.get(i-1,j,k)->at(fsgrids::bfield::PERBZ);
-                     nCells++;
-                  }
-                  if ((technicalGrid.get(i+1,j,k)->SOLVE & compute::BZ) == compute::BZ) {
-                     retval += bGrid.get(i+1,j,k)->at(fsgrids::bfield::PERBZ);
-                     nCells++;
-                  }
-                  if ((technicalGrid.get(i,j-1,k)->SOLVE & compute::BZ) == compute::BZ) {
-                     retval += bGrid.get(i,j-1,k)->at(fsgrids::bfield::PERBZ);
-                     nCells++;
-                  }
-                  if ((technicalGrid.get(i,j+1,k)->SOLVE & compute::BZ) == compute::BZ) {
-                     retval += bGrid.get(i,j+1,k)->at(fsgrids::bfield::PERBZ);
-                     nCells++;
-                  }
-                  if (nCells == 0) {
-                     for (int a=i-1; a<i+2; a++) {
-                        for (int b=j-1; b<j+2; b++) {
-                           for (int c=k-1; c<k+2; c++) {
-                              if ((technicalGrid.get(a,b,c)->SOLVE & compute::BZ) == compute::BZ) {
-                                 retval += bGrid.get(a,b,c)->at(fsgrids::bfield::PERBZ);
-                                 nCells++;
-                              }
-                           }
-                        }
-                     }
-                  }
-                  if (nCells == 0) {
-                     cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
-                     return 0.0;
-                  }
-                  return retval / nCells;
-               }
-            default:
-               cerr << "ERROR: ionosphere boundary tried to copy nonsensical magnetic field component " << component << endl;
-               return 0.0;
-         }
-      } else { // L2 cells
-         Real retval = 0.0;
-         uint nCells = 0;
-         for (int a=i-1; a<i+2; a++) {
-            for (int b=j-1; b<j+2; b++) {
-               for (int c=k-1; c<k+2; c++) {
-                  if (technicalGrid.get(a,b,c)->sysBoundaryLayer == 1) {
-                     retval += bGrid.get(a,b,c)->at(fsgrids::bfield::PERBX + component);
-                     nCells++;
-                  }
-               }
-            }
-         }
-         if (nCells == 0) {
-            cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
-            return 0.0;
-         }
-         return retval / nCells;
-      }
+         return bGrid.get(i,j,k)->at(fsgrids::bfield::PERBX+component);
+      
    }
 
    void StaticIonosphere::fieldSolverBoundaryCondElectricField(
@@ -714,7 +550,7 @@ namespace SBC {
       cint k,
       cuint component
    ) {
-      EGrid.get(i,j,k)->at(fsgrids::efield::EX+component) = 0.0;
+//      EGrid.get(i,j,k)->at(fsgrids::efield::EX+component) = 0.0;
    }
    
    void StaticIonosphere::fieldSolverBoundaryCondHallElectricField(
@@ -724,6 +560,7 @@ namespace SBC {
       cint k,
       cuint component
    ) {
+      /*
       std::array<Real, fsgrids::ehall::N_EHALL> * cp = EHallGrid.get(i,j,k);
       switch (component) {
          case 0:
@@ -746,7 +583,7 @@ namespace SBC {
             break;
          default:
             cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
-      }
+      }*/
    }
    
    void StaticIonosphere::fieldSolverBoundaryCondGradPeElectricField(
@@ -756,7 +593,7 @@ namespace SBC {
       cint k,
       cuint component
    ) {
-      EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EXGRADPE+component) = 0.0;
+      //EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EXGRADPE+component) = 0.0;
    }
    
    void StaticIonosphere::fieldSolverBoundaryCondDerivatives(
@@ -768,7 +605,7 @@ namespace SBC {
       cuint& RKCase,
       cuint& component
    ) {
-      this->setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, component);
+     // this->setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, component);
       return;
    }
    
@@ -780,8 +617,8 @@ namespace SBC {
       cuint& component
    ) {
       // FIXME This should be OK as the BVOL derivatives are only used for Lorentz force JXB, which is not applied on the ionosphere cells.
-      // TEMPO needs BVOL derivatives.. TODO!
-      this->setCellBVOLDerivativesToZero(volGrid, i, j, k, component);
+      // TEMPO needs BVOL derivatives - so nothing
+      //this->setCellBVOLDerivativesToZero(volGrid, i, j, k, component);
    }
    
    void StaticIonosphere::vlasovBoundaryCondition(
@@ -790,9 +627,9 @@ namespace SBC {
       const uint popID,
       const bool calculate_V_moments
    ) {
-      phiprof::start("vlasovBoundaryCondition (StaticIonosphere)");
-      this->vlasovBoundaryFluffyCopyFromAllCloseNbrs(mpiGrid, cellID, popID, calculate_V_moments, this->speciesParams[popID].fluffiness);
-      phiprof::stop("vlasovBoundaryCondition (StaticIonosphere)");
+    //  phiprof::start("vlasovBoundaryCondition (StaticIonosphere)");
+    //  this->vlasovBoundaryFluffyCopyFromAllCloseNbrs(mpiGrid, cellID, popID, calculate_V_moments, this->speciesParams[popID].fluffiness);
+    //  phiprof::stop("vlasovBoundaryCondition (StaticIonosphere)");
    }
 
    /**
