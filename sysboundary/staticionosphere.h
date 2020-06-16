@@ -137,12 +137,6 @@ namespace SBC {
          SpatialCell& cell,const uint popID
       );
       
-      std::array<Real, 3> fieldSolverGetNormalDirection(
-         FsGrid< fsgrids::technical, 2> & technicalGrid,
-         cint i,
-         cint j,
-         cint k
-      );
       
       Real center[3]; /*!< Coordinates of the centre of the ionosphere. */
       Real radius; /*!< Radius of the ionosphere. */
