@@ -100,6 +100,8 @@ namespace projects {
       Real refine_L1radius;
       Real refine_L1tailthick;
 
+      bool shouldRefine;
+
       Real dipoleTiltPhi;
       Real dipoleTiltTheta;
       Real dipoleXFull;

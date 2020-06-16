@@ -69,6 +69,8 @@ namespace projects {
       RP::add("Magnetosphere.refine_L1radius","Radius of L1-refined sphere", 1.59275e8); // 25 RE
       RP::add("Magnetosphere.refine_L1tailthick","Thickness of L1-refined tail region", 6.371e7); // 10 RE
 
+      RP::add("Magnetosphere.shouldRefine", "When false, skips refinement regardless of maximum level", true)
+
       RP::add("Magnetosphere.dipoleTiltPhi","Magnitude of dipole tilt, in degrees", 0.0);
       RP::add("Magnetosphere.dipoleTiltTheta","Direction of dipole tilt from Sun-Earth-line, in degrees", 0.0);
       RP::add("Magnetosphere.dipoleXFull","X-coordinate up to which dipole is at full strength, in metres", 9.5565e7); // 15 RE
@@ -612,7 +614,7 @@ namespace projects {
       const int bw4 = 2*(bw3 + VLASOV_STENCIL_WIDTH);
 
       // Calculate regions for refinement
-      if (P::amrMaxSpatialRefLevel > 0) {
+      if (P::amrMaxSpatialRefLevel > 0 && shouldRefine) {
             // L1 refinement.
             for (uint i = bw; i < P::xcells_ini-bw; ++i) {
                for (uint j = bw; j < P::ycells_ini-bw; ++j) {
@@ -644,7 +646,7 @@ namespace projects {
             mpiGrid.balance_load();
       }
       
-      if (P::amrMaxSpatialRefLevel > 1) {
+      if (P::amrMaxSpatialRefLevel > 1 && shouldRefine) {
             // L2 refinement.
             for (uint i = bw2; i < 2*P::xcells_ini-bw2; ++i) {
                for (uint j = bw2; j < 2*P::ycells_ini-bw2; ++j) {
@@ -678,7 +680,7 @@ namespace projects {
             mpiGrid.balance_load();
       }
       
-      if (P::amrMaxSpatialRefLevel > 2) {
+      if (P::amrMaxSpatialRefLevel > 2 && shouldRefine) {
             // L3 refinement.
             for (uint i = bw3; i < 4*P::xcells_ini-bw3; ++i) {
                for (uint j = bw3; j < 4*P::ycells_ini-bw3; ++j) {
@@ -726,7 +728,7 @@ namespace projects {
             mpiGrid.balance_load();
       }
 
-      if (P::amrMaxSpatialRefLevel > 3) {
+      if (P::amrMaxSpatialRefLevel > 3 & shouldRefine) {
          // L4 refinement.
             for (uint i = bw4; i < 8*P::xcells_ini-bw4; ++i) {
                for (uint j = bw4; j < 8*P::ycells_ini-bw4; ++j) {
