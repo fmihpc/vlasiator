@@ -69,8 +69,6 @@ namespace projects {
       RP::add("Magnetosphere.refine_L1radius","Radius of L1-refined sphere", 1.59275e8); // 25 RE
       RP::add("Magnetosphere.refine_L1tailthick","Thickness of L1-refined tail region", 6.371e7); // 10 RE
 
-      RP::add("Magnetosphere.shouldRefine", "When false, skips refinement regardless of maximum level", true)
-
       RP::add("Magnetosphere.dipoleTiltPhi","Magnitude of dipole tilt, in degrees", 0.0);
       RP::add("Magnetosphere.dipoleTiltTheta","Direction of dipole tilt from Sun-Earth-line, in degrees", 0.0);
       RP::add("Magnetosphere.dipoleXFull","X-coordinate up to which dipole is at full strength, in metres", 9.5565e7); // 15 RE
@@ -605,7 +603,8 @@ namespace projects {
       std::vector<CellID> refinedCells;
 
          // cout << "I am at line " << __LINE__ << " of " << __FILE__ <<  endl;
-      if(myRank == MASTER_RANK) std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
+      if(myRank == MASTER_RANK) 
+         std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
          
       // Leave boundary cells and a bit of safety margin
       const int bw = 2* VLASOV_STENCIL_WIDTH;
@@ -613,8 +612,14 @@ namespace projects {
       const int bw3 = 2*(bw2 + VLASOV_STENCIL_WIDTH);
       const int bw4 = 2*(bw3 + VLASOV_STENCIL_WIDTH);
 
+      if (!P::shouldRefine) {
+         if (myRank == MASTER_RANK) 
+            std::cout << "Skipping refinement!" << std::endl;
+         return true;
+      }
+
       // Calculate regions for refinement
-      if (P::amrMaxSpatialRefLevel > 0 && shouldRefine) {
+      if (P::amrMaxSpatialRefLevel > 0) {
             // L1 refinement.
             for (uint i = bw; i < P::xcells_ini-bw; ++i) {
                for (uint j = bw; j < P::ycells_ini-bw; ++j) {
@@ -646,7 +651,7 @@ namespace projects {
             mpiGrid.balance_load();
       }
       
-      if (P::amrMaxSpatialRefLevel > 1 && shouldRefine) {
+      if (P::amrMaxSpatialRefLevel > 1) {
             // L2 refinement.
             for (uint i = bw2; i < 2*P::xcells_ini-bw2; ++i) {
                for (uint j = bw2; j < 2*P::ycells_ini-bw2; ++j) {
@@ -680,7 +685,7 @@ namespace projects {
             mpiGrid.balance_load();
       }
       
-      if (P::amrMaxSpatialRefLevel > 2 && shouldRefine) {
+      if (P::amrMaxSpatialRefLevel > 2) {
             // L3 refinement.
             for (uint i = bw3; i < 4*P::xcells_ini-bw3; ++i) {
                for (uint j = bw3; j < 4*P::ycells_ini-bw3; ++j) {
@@ -728,7 +733,7 @@ namespace projects {
             mpiGrid.balance_load();
       }
 
-      if (P::amrMaxSpatialRefLevel > 3 & shouldRefine) {
+      if (P::amrMaxSpatialRefLevel > 3) {
          // L4 refinement.
             for (uint i = bw4; i < 8*P::xcells_ini-bw4; ++i) {
                for (uint j = bw4; j < 8*P::ycells_ini-bw4; ++j) {
@@ -761,6 +766,7 @@ namespace projects {
             mpiGrid.balance_load();
       }
 
+      // Shouldn't the load just be balanced here in the end?
       return true;
    }
 } // namespace projects
