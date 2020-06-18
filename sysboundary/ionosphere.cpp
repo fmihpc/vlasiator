@@ -518,6 +518,7 @@ namespace SBC {
       for(int e=0;e<productionNumParticleEnergies; e++) {
 
          // TODO: Ugh, hardcoded constants. What are these?
+         // From Robinson et al 1987
          const Real electronRange = 4.3e-6 + 5.26e-5 * pow(particle_energy[e], 1.67); // kg m^-2
          for(int h=0; h<numAtmosphereLevels; h++) {
             const Real lambda = ReesIsotropicLambda(atmosphere[h].depth*particle_energy[e]);
@@ -787,7 +788,8 @@ namespace SBC {
             }
             fsgridCell = technicalGrid.globalToLocal(fsgridCell[0], fsgridCell[1], fsgridCell[2]);
 
-            // If the field line is no longer moving outwards but horizontally (88 degrees), abort.
+            // If the field line is no longer moving outwards but tangentially (88 degrees), abort.
+            // (Note that v is normalized)
             if(fabs(x[0]*v[0]+x[1]*v[1]+x[2]*v[2])/sqrt(x[0]*x[0]+x[1]*x[1]+x[2]*x[2]) < cos(88. / 180. * M_PI)) {
                break;
             }
@@ -863,34 +865,34 @@ namespace SBC {
 
            // This element has 3 corner nodes
            // Get the B-values at the upmapped coordinates
-           //std::array< std::array< Real, 3>, 3> B = {0};
-           //for(int c=0; c <3 ;c++) {
+           std::array< std::array< Real, 3>, 3> B = {0};
+           for(int c=0; c <3 ;c++) {
 
-           //   const Node& corner = nodes[el.corners[c]];
+              const Node& corner = nodes[el.corners[c]];
 
-           //   // Get fsgrid coordinate of mapping
-           //   std::array<Real,3> cell = corner.fsgridCellCoupling;
-           //   for(int i=0; i<3; i++) {
-           //      fsc[i] = floor(cell[i]);
-           //   }
+              // Get fsgrid coordinate of mapping
+              std::array<Real,3> cell = corner.fsgridCellCoupling;
+              for(int i=0; i<3; i++) {
+                 fsc[i] = floor(cell[i]);
+              }
 
-           //   // Local cell
-           //   std::array<int,3> lfsc = technicalGrid.globalToLocal(fsc[0],fsc[1],fsc[2]);
+              // Local cell
+              std::array<int,3> lfsc = technicalGrid.globalToLocal(fsc[0],fsc[1],fsc[2]);
 
-           //   for(int xoffset : {0,1}) {
-           //      for(int yoffset : {0,1}) {
-           //         for(int zoffset : {0,1}) {
+              for(int xoffset : {0,1}) {
+                 for(int yoffset : {0,1}) {
+                    for(int zoffset : {0,1}) {
 
-           //            Real coupling = abs(xoffset - (cell[0]-fsc[0])) * abs(yoffset - (cell[1]-fsc[1])) * abs(zoffset - (cell[2]-fsc[2]));
+                       Real coupling = abs(xoffset - (cell[0]-fsc[0])) * abs(yoffset - (cell[1]-fsc[1])) * abs(zoffset - (cell[2]-fsc[2]));
 
-           //            // TODO: Use volume fields here?
-           //            B[c][0] += coupling*perBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::PERBX);
-           //            B[c][1] += coupling*perBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::PERBY);
-           //            B[c][2] += coupling*perBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::PERBZ);
-           //         }
-           //      }
-           //   }
-           //}
+                       // TODO: Use volume fields here?
+                       B[c][0] += coupling*perBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::PERBX);
+                       B[c][1] += coupling*perBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::PERBY);
+                       B[c][2] += coupling*perBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::PERBZ);
+                    }
+                 }
+              }
+           }
 
            ////// Calculate rot(B) by taking the path integral around the edge of the
            ////// upmapped element
@@ -908,7 +910,12 @@ namespace SBC {
            // density and pressure bit them
            // TODO: Precalculate this?
            area += elementArea(nodes[n].touchingElements[e]);
-           upmappedArea += mappedElementArea(nodes[n].touchingElements[e]);
+
+           std::array<Real, 3> areaVector = mappedElementArea(nodes[n].touchingElements[e]);
+           std::array<Real, 3> avgB = {(B[0][0] + B[1][0] + B[2][0])/3.,
+                                       (B[0][1] + B[1][1] + B[2][1]) / 3.,
+                                       (B[0][2] + B[1][2] + B[2][2]) / 3.};
+           upmappedArea += fabs(areaVector[0] * avgB[0] + areaVector[1]*avgB[1] + areaVector[2]+avgB[2]);
         }
 
         // divide by mu0 to get J. Also divide by 3, as every
@@ -936,14 +943,15 @@ namespace SBC {
               for(int zoffset : {0,1}) {
 
                  Real coupling = abs(xoffset - (cell[0]-fsc[0])) * abs(yoffset - (cell[1]-fsc[1])) * abs(zoffset - (cell[2]-fsc[2]));
-                 std::array<Real, 3> rotB;
+
                  // Calc rotB
-                 rotB[0] = (dPerBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBydz)
-                       - dPerBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBzdy)) / dPerBGrid.DX;
-                 rotB[1] = (dPerBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBzdx)
-                       - dPerBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBxdz)) / dPerBGrid.DX;
-                 rotB[2] = (dPerBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBxdy)
-                       - dPerBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBydx)) / dPerBGrid.DX;
+                 std::array<Real, 3> rotB;
+                 rotB[0] = (dPerBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBzdy)
+                       - dPerBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBydz)) / dPerBGrid.DX;
+                 rotB[1] = (dPerBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBxdz)
+                       - dPerBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBzdx)) / dPerBGrid.DX;
+                 rotB[2] = (dPerBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBydx)
+                       - dPerBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBxdy)) / dPerBGrid.DX;
 
                  // Dot with background (dipole) B
                  std::array<Real, 3> B({BgBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::BGBX),
@@ -953,7 +961,7 @@ namespace SBC {
                  // Yielding the field-aligned current
                  Real FAC = Bnorm * (B[0]*rotB[0] + B[1]*rotB[1] + B[2]*rotB[2]) / physicalconstants::MU_0;
 
-                 FACinput[n] += FAC * coupling;
+                 FACinput[n] += FAC * coupling * upmappedArea/area;
               }
            }
         }
@@ -982,8 +990,8 @@ namespace SBC {
         }
 
         // Scale density and pressure by area ratio
-        rhoInput[n] *= upmappedArea / area;
-        pressureInput[n] *= upmappedArea / area;
+        //rhoInput[n] *= upmappedArea / area;
+        //pressureInput[n] *= upmappedArea / area;
      }
 
      // Allreduce on the ionosphere communicator

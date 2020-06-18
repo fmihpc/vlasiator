@@ -160,8 +160,8 @@ namespace SBC {
 
       // Returns the projected surface area of one element, mapped up along the magnetic field to
       // the simulation boundary. If one of the nodes maps nowhere, returns 0.
-      // TODO: This should be dot(A,B)
-      Real mappedElementArea(uint32_t elementIndex) {
+      // Returns an oriented vector, which can be dotted with B
+      std::array<Real, 3> mappedElementArea(uint32_t elementIndex) {
          const std::array<Real, 3>& a = nodes[elements[elementIndex].corners[0]].xMapped;
          const std::array<Real, 3>& b = nodes[elements[elementIndex].corners[1]].xMapped;
          const std::array<Real, 3>& c = nodes[elements[elementIndex].corners[2]].xMapped;
@@ -171,18 +171,19 @@ namespace SBC {
                sqrt( b[0]*b[0] + b[1]*b[1] + b[2]*b[2] ) == 0 ||
                sqrt( c[0]*c[0] + c[1]*c[1] + c[2]*c[2] ) == 0) {
 
-            return 0;
+            return {0,0,0};
          }
 
          // Two edges e1 = b-c,  e2 = c-a
          std::array<Real, 3> e1{b[0]-c[0], b[1]-c[1],b[2]-c[2]};
          std::array<Real, 3> e2{c[0]-a[0], c[1]-a[1],c[2]-a[2]};
          // Area vector A = cross(e1 e2)
-         std::array<Real, 3> area{ e1[1]*e2[2] - e1[2]*e2[1],
-                                   e1[2]*e2[0] - e1[0]*e2[2],
-                                   e1[0]*e2[1] - e1[1]*e2[0]};
-         
-         return 0.5 * sqrt( area[0]*area[0] + area[1]*area[1] + area[2]*area[2] );
+         std::array<Real, 3> area{ 0.5 * (e1[1]*e2[2] - e1[2]*e2[1]),
+                                   0.5 * (e1[2]*e2[0] - e1[0]*e2[2]),
+                                   0.5 * (e1[0]*e2[1] - e1[1]*e2[0])};
+        
+         return area;
+         //return 0.5 * sqrt( area[0]*area[0] + area[1]*area[1] + area[2]*area[2] );
       }
 
       Real nodeNeighbourArea(uint32_t nodeIndex) { // Summed area of all touching elements

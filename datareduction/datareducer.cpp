@@ -969,10 +969,13 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereElement("ig_upmappedarea", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
                   
-                     std::vector<Real> retval(grid.elements.size());
+                     std::vector<Real> retval(grid.elements.size()*3);
 
                      for(uint i=0; i<grid.elements.size(); i++) {
-                        retval[i] = grid.mappedElementArea(i);
+                        std::array<Real, 3> area = grid.mappedElementArea(i);
+                        retval[3*i] = area[0]; 
+                        retval[3*i+1] = area[1]; 
+                        retval[3*i+2] = area[2]; 
                      }
 
                      return retval;
