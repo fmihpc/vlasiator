@@ -3,6 +3,7 @@
 *.silo
 *.o
 vscode/
+.vscode/
 version.cpp
 \#*\#
 *~
