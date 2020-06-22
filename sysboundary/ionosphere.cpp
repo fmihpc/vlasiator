@@ -769,6 +769,7 @@ namespace SBC {
 
 
       // Trace node coordinates outwards until a non-sysboundary cell is encountered
+      #pragma omp parallel for
       for(uint n=0; n<nodes.size(); n++) {
 
          Node& no = nodes[n];
@@ -777,7 +778,11 @@ namespace SBC {
          std::array<Real, 3> v({0,0,0});
          while( sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]) < 1.5*couplingRadius ) {
 
-            stepFieldline(x,v,dipole, 100e3); // TODO: Hardcoded stepsize of 100 km. Change!
+            // Step at half FSGrid resolution TODO: Choose something better
+            Real stepSize = min(100e3, technicalGrid.DX / 2.); 
+
+            // Make one step along the fieldline
+            stepFieldline(x,v,dipole, stepSize);
 
             // Look up the fsgrid cell beloinging to these coordinates
             std::array<int, 3> fsgridCell;
@@ -852,6 +857,7 @@ namespace SBC {
      std::vector<double> pressureInput(nodes.size());
 
      // Map all coupled nodes down into it
+     #pragma omp parallel for
      for(uint n=0; n<nodes.size(); n++) {
 
         Real J = 0;
@@ -1016,6 +1022,9 @@ namespace SBC {
            nodes[n].parameters[ionosphereParameters::PRESSURE] = pressureSum[n];
         }
      }
+
+     // Make sure FACs are balanced, so that the potential doesn't start to drift
+     offset_FAC();
 
    }
 
@@ -1218,6 +1227,7 @@ namespace SBC {
         }
      }
 
+     #pragma omp parallel for
      for(uint n=0; n<nodes.size(); n++) {
        addAllMatrixDependencies(n);
      }
