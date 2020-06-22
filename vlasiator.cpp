@@ -45,6 +45,7 @@
 #include "sysboundary/sysboundary.h"
 
 #include "fieldsolver/fs_common.h"
+#include "fieldsolver/derivatives.hpp" // For electron solver PQN calculation
 #include "projects/project.h"
 #include "grid.h"
 #include "iowrite.h"
@@ -945,6 +946,21 @@ int main(int argn,char* args[]) {
          phiprof::stop("getFieldsFromFsGrid");
          phiprof::stop("Propagate Fields",cells.size(),"SpatialCells");
          addTimedBarrier("barrier-after-field-solver");
+      }
+
+      // Additional feeding of moments into fsgrid required by electron runs
+      for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+	if (getObjectWrapper().particleSpecies[popID].mass < 0.5*physicalconstants::MASS_PROTON) {
+	  phiprof::start("fsgrid-coupling-in");
+	  feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid, technicalGrid, false);
+	  feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid, technicalGrid, true);
+	  momentsGrid.updateGhostCells();
+	  momentsDt2Grid.updateGhostCells();
+	  phiprof::stop("fsgrid-coupling-in");
+
+	  calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER1, true);
+	  break;
+	}
       }
 
       phiprof::start("Velocity-space");

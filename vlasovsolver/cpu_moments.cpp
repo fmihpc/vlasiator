@@ -171,6 +171,7 @@ void calculateMoments_R(
         cell->parameters[CellParams::VY_R] = 0.0;
         cell->parameters[CellParams::VZ_R] = 0.0;
         cell->parameters[CellParams::RHOQ_R  ] = 0.0;
+        cell->parameters[CellParams::RHOQE_R  ] = 0.0;
         cell->parameters[CellParams::P_11_R] = 0.0;
         cell->parameters[CellParams::P_22_R] = 0.0;
         cell->parameters[CellParams::P_33_R] = 0.0;
@@ -335,6 +336,7 @@ void calculateMoments_V(
 	cell->parameters[CellParams::VY_V] = 0.0;
 	cell->parameters[CellParams::VZ_V] = 0.0;
 	cell->parameters[CellParams::RHOQ_V  ] = 0.0;
+	cell->parameters[CellParams::RHOQE_V  ] = 0.0;
 	cell->parameters[CellParams::P_11_V] = 0.0;
 	cell->parameters[CellParams::P_22_V] = 0.0;
 	cell->parameters[CellParams::P_33_V] = 0.0;

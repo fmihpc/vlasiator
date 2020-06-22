@@ -599,7 +599,7 @@ void calculateInitialVelocityMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_G
       SC->parameters[CellParams::VY_DT2] = SC->parameters[CellParams::VY];
       SC->parameters[CellParams::VZ_DT2] = SC->parameters[CellParams::VZ];
       SC->parameters[CellParams::RHOQ_DT2] = SC->parameters[CellParams::RHOQ];
-      SC->parameters[CellParams::RHOQE_DT2] = SC->parameters[CellParams::RHOQ];
+      SC->parameters[CellParams::RHOQE_DT2] = SC->parameters[CellParams::RHOQE];
       SC->parameters[CellParams::P_11_DT2] = SC->parameters[CellParams::P_11];
       SC->parameters[CellParams::P_22_DT2] = SC->parameters[CellParams::P_22];
       SC->parameters[CellParams::P_33_DT2] = SC->parameters[CellParams::P_33];
