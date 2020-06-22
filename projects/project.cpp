@@ -215,7 +215,8 @@ namespace projects {
          this->setVelocitySpace(p,cell);
          uint n = cell->get_number_of_velocity_blocks(p);
          if ( n < 64) {
-	   std::cerr << " WARNING!!! Low block count in this cell for population " << getObjectWrapper().particleSpecies[p].name << ". Number of velocity blocks = " << n << std::endl;
+	  // triggered by sub-ionospheric cells?
+	  // std::cerr << " WARNING!!! Low block count in this cell for population " << getObjectWrapper().particleSpecies[p].name << ". Number of velocity blocks = " << n << std::endl;
          }
       }
       //let's get rid of blocks not fulfilling the criteria here to save memory.
