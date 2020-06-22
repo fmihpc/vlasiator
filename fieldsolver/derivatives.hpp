@@ -21,6 +21,7 @@
 #define DERIVATIVES_HPP
 
 #include <vector>
+#include <array>
 
 #include "../spatial_cell.hpp"
 #include "../sysboundary/sysboundary.h"
@@ -46,5 +47,12 @@ void calculateBVOLDerivativesSimple(
    SysBoundary& sysBoundaries
 );
 
+
+void calculateScaledGradientsSimple(
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volGrid,
+   FsGrid< fsgrids::technical, 2> & technicalGrid,
+   SysBoundary& sysBoundaries
+);
 
 #endif

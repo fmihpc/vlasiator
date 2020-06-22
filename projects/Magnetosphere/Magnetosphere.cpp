@@ -767,5 +767,8 @@ namespace projects {
       // Shouldn't the load just be balanced here in the end?
       return true;
    }
+
+   bool Magnetosphere::adaptRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
+   }
 } // namespace projects
 

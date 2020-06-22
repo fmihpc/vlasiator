@@ -485,3 +485,94 @@ void calculateBVOLDerivativesSimple(
 
    phiprof::stop("Calculate volume derivatives",N_cells,"Spatial Cells");
 }
+
+/*! \brief Low-level scaled gradients calculation
+ * 
+ * For the cell with ID cellID calculate the gradients of volumetric fg variables or apply the derivative boundary conditions defined in project.h.
+ * 
+ * \param volGrid fsGrid holding the volume averaged fields
+ * \param technicalGrid fsGrid holding technical information (such as boundary types)
+ * \param i,j,k fsGrid cell coordinates for the current cell
+ * \param sysBoundaries System boundary conditions existing
+ *
+ */
+
+void calculateVolDeltas(
+   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volGrid,
+   FsGrid< fsgrids::technical, 2> & technicalGrid,
+   cint i,
+   cint j,
+   cint k,
+   SysBoundary& sysBoundaries
+) {
+   std::array<Real, fsgrids::volfields::N_VOL> * array = volGrid.get(i,j,k);
+   
+   // Calculate x-derivatives (is not TVD for AMR mesh):
+   if (technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+      std::array<auto, 6> neighbors = {
+         volGrid.get(i-1,j,k),
+         volGrid.get(i+1,j,k),
+         volGrid.get(i,j-1,k),
+         volGrid.get(i,j+1,k),
+         volGrid.get(i,j,k-1),
+         volGrid.get(i,j,k+1)
+      };
+   } else {
+      //if (technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+      //   SBC::SysBoundaryCondition::setCellBVOLDerivativesToZero(volGrid, i, j, k, 2);
+      //} else {
+      //   sysBoundaries.getSysBoundary(technicalGrid.get(i,j,k)->sysBoundaryFlag)->fieldSolverBoundaryCondBVOLDerivatives(volGrid, i, j, k, 2);
+      //}
+   }
+}
+
+
+/*! \brief High-level scaled gradient calculation wrapper function.
+ * 
+ * Calculates gradients needed for alpha everywhere in the grid
+ * 
+ * \param mpiGrid Vlasov grid variables
+ * \param volGrid fsGrid holding the volume averaged fields
+ * \param technicalGrid fsGrid holding technical information (such as boundary types)
+ * \param sysBoundaries System boundary conditions existing
+ * 
+ */
+
+void calculateScaledDeltasSimple(
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volGrid,
+   FsGrid< fsgrids::technical, 2> & technicalGrid,
+   SysBoundary& sysBoundaries
+) {
+   int timer;
+   const int* gridDims = &technicalGrid.getLocalSize()[0];
+   const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
+   
+   phiprof::start("Calculate volume gradients");
+   
+   timer=phiprof::initializeTimer("Start comm","MPI");
+   phiprof::start(timer);
+   volGrid.updateGhostCells();
+   
+   phiprof::stop(timer,N_cells,"Spatial Cells");
+   
+   
+   // Calculate derivatives
+   timer=phiprof::initializeTimer("Compute cells");
+   phiprof::start(timer);
+   
+   #pragma omp parallel for collapse(3)
+   for (int k=0; k<gridDims[2]; k++) {
+      for (int j=0; j<gridDims[1]; j++) {
+         for (int i=0; i<gridDims[0]; i++) {
+            if (technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
+            
+            calculateVolGradients(volGrid,technicalGrid,i,j,k,sysBoundaries);
+         }
+      }
+   }
+
+   phiprof::stop(timer,N_cells,"Spatial Cells");
+
+   phiprof::stop("Calculate volume gradients",N_cells,"Spatial Cells");
+}
