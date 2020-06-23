@@ -144,7 +144,7 @@ struct Parameters {
    static Realf amrBoxCenterX;
    static Realf amrBoxCenterY;
    static Realf amrBoxCenterZ;
-   static std::string blurPassString;
+   static std::vector<std::string> blurPassString;
    static std::vector<int> numPasses;
    static int maxNumPasses;
 

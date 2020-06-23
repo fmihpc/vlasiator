@@ -144,7 +144,7 @@ int P::amrBoxHalfWidthZ = 1;
 Realf P::amrBoxCenterX = 0.0;
 Realf P::amrBoxCenterY = 0.0;
 Realf P::amrBoxCenterZ = 0.0;
-std::string P::blurPassString=string("None") ;
+vector<string> P::blurPassString;
 std::vector<int> P::numPasses;
 int P::maxNumPasses=0;
 
@@ -299,7 +299,7 @@ bool Parameters::addParameters(){
    Readparameters::add("AMR.box_center_x","x coordinate of the center of the box that is refined (for testing)",0.0);
    Readparameters::add("AMR.box_center_y","y coordinate of the center of the box that is refined (for testing)",0.0);
    Readparameters::add("AMR.box_center_z","z coordinate of the center of the box that is refined (for testing)",0.0);
-   Readparameters::add("AMR.filterpasses","String to parse number of filter passes per refinement level",string("None"));
+   Readparameters::addComposing("AMR.filterpasses", std::string()+"AMR filter passes for each individual refinement level");
    return true;
 }
 
@@ -475,26 +475,29 @@ bool Parameters::getParameters(){
   /*Read Blur Passes per Refinement Level*/
    Readparameters::get("AMR.filterpasses",P::blurPassString);
    
-   if (blurPassString!="None"){
-      string tmp; 
-      stringstream ss(P::blurPassString);
-      while(getline(ss, tmp, '/')){
-         P::numPasses.push_back(std::stoi(tmp));
+   // Construct Vector of Passes used in grid.cpp
+   bool isEmpty = blurPassString.size()==0;
+   if (!isEmpty){
+
+      for (auto i : blurPassString){
+         P::numPasses.push_back(std::stoi(i));
       }
-      //Sanity Check
+
+      // Get the maximum number of filter passes
+      P::maxNumPasses = *max_element(P::numPasses.begin(), P::numPasses.end());
+
+      // Sanity Check
       if (P::numPasses.size()!=P::amrMaxSpatialRefLevel+1){
-         cerr<<"Filter Passes="<<P::numPasses.size()<<"\t"<<"AMR Max refinement level="<<P::amrMaxSpatialRefLevel<<endl;
-         cerr << "FilterPasses do not match AMR max refinement level" << __FILE__ << ":" << __LINE__ << endl;
+         cerr<<"Filter Passes="<<P::numPasses.size()<<"\t"<<"AMR Levels="<<P::amrMaxSpatialRefLevel+1<<endl;
+         cerr << "FilterPasses do not match AMR levels \t" << " in " << __FILE__ << ":" << __LINE__ << endl;
          return false;
       }
-     
-      P::maxNumPasses=*max_element(P::numPasses.begin(),P::numPasses.end());
-
+      
       if(myRank == MASTER_RANK) {
          printf("Filtering is on with max number of Passes=%d\n",P::maxNumPasses);
          int lev=0;
          for ( auto &iter : P::numPasses ){
-            printf("Ref. Level %d-->%d Passes\n",lev,iter);
+            printf("Refinement Level %d-->%d Passes\n",lev,iter);
             lev++;
          }
       }
