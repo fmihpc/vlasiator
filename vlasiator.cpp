@@ -959,6 +959,12 @@ int main(int argn,char* args[]) {
 	  phiprof::stop("fsgrid-coupling-in");
 
 	  calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER1, true);
+	  phiprof::start("getFieldsFromFsGrid");
+	  // Copy results back from fsgrid.
+	  volGrid.updateGhostCells();
+	  technicalGrid.updateGhostCells();
+	  getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, dMomentsGrid, technicalGrid, mpiGrid, cells);
+	  phiprof::stop("getFieldsFromFsGrid");
 	  break;
 	}
       }
