@@ -254,7 +254,7 @@ namespace SBC {
 
          // Build a triangle fan around the neighbourhood
          for(uint j=0; j<neighbours.size(); j++) {
-            if(neighbours[j] > i) { // Only triangles in "positive" direction to avoid double cover.
+            if(neighbours[j] > i && neighbours[(j+1)%neighbours.size()] > i) { // Only triangles in "positive" direction to avoid double cover.
                Element newElement;
                newElement.corners = {(uint)i, (uint)neighbours[j], (uint)neighbours[(j+1)%neighbours.size()]};
                elements.push_back(newElement);
