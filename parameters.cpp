@@ -483,7 +483,9 @@ bool Parameters::getParameters(){
          P::numPasses.push_back(std::stoi(i));
       }
 
-      // Get the maximum number of filter passes
+      
+      // Reverse Sort and Get the maximum number of filter passes
+      sort(numPasses.begin(), numPasses.end(), greater<int>());
       P::maxNumPasses = *max_element(P::numPasses.begin(), P::numPasses.end());
 
       // Sanity Check
@@ -494,13 +496,15 @@ bool Parameters::getParameters(){
       }
       
       if(myRank == MASTER_RANK) {
-         printf("Filtering is on with max number of Passes=%d\n",P::maxNumPasses);
+         printf("Filtering is on with max number of Passes= \t%d\n",P::maxNumPasses);
          int lev=0;
          for ( auto &iter : P::numPasses ){
             printf("Refinement Level %d-->%d Passes\n",lev,iter);
             lev++;
          }
       }
+   }else{
+      printf("Filtering is off and max number of Passes is = \t %d\n", P::maxNumPasses);
    }
 
 
