@@ -146,7 +146,6 @@ struct Parameters {
    static Realf amrBoxCenterZ;
    static std::vector<std::string> blurPassString;
    static std::vector<int> numPasses;
-   static int maxNumPasses;
 
     /*! \brief Add the global parameters.
     * 

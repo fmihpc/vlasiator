@@ -215,7 +215,8 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
     const int maxRefLevel = mpiGrid.mapping.get_maximum_refinement_level();
 
     // Filtering Loop
-    for (int blurPass = 0; blurPass < P::maxNumPasses; blurPass++){
+    int maxNumPasses = *max_element(P::numPasses.begin(), P::numPasses.end());
+    for (int blurPass = 0; blurPass < maxNumPasses; blurPass++){
 
       // Blurring Pass
       phiprof::start("BlurPass");

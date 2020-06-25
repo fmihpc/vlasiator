@@ -146,7 +146,7 @@ Realf P::amrBoxCenterY = 0.0;
 Realf P::amrBoxCenterZ = 0.0;
 vector<string> P::blurPassString;
 std::vector<int> P::numPasses;
-int P::maxNumPasses=0;
+
 
 
 bool Parameters::addParameters(){
@@ -486,7 +486,6 @@ bool Parameters::getParameters(){
       
       // Reverse Sort and Get the maximum number of filter passes
       sort(numPasses.begin(), numPasses.end(), greater<int>());
-      P::maxNumPasses = *max_element(P::numPasses.begin(), P::numPasses.end());
 
       // Sanity Check
       if (P::numPasses.size()!=P::amrMaxSpatialRefLevel+1){
@@ -496,7 +495,7 @@ bool Parameters::getParameters(){
       }
       
       if(myRank == MASTER_RANK) {
-         printf("Filtering is on with max number of Passes= \t%d\n",P::maxNumPasses);
+         printf("Filtering is on with max number of Passes= \t%d\n", *max_element(P::numPasses.begin(), P::numPasses.end()));
          int lev=0;
          for ( auto &iter : P::numPasses ){
             printf("Refinement Level %d-->%d Passes\n",lev,iter);
@@ -504,7 +503,7 @@ bool Parameters::getParameters(){
          }
       }
    }else{
-      printf("Filtering is off and max number of Passes is = \t %d\n", P::maxNumPasses);
+      printf("Filtering is off and max number of Passes is = \t %d\n", *max_element(P::numPasses.begin(), P::numPasses.end()));
    }
 
 
