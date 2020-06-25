@@ -102,7 +102,10 @@ struct Parameters {
    static Real resistivity; /*!< Resistivity in Ohm's law eta*J term. */
    static uint ohmHallTerm; /*!< Enable/choose spatial order of Hall term in Ohm's law JXB term. 0: off, 1: 1st spatial order, 2: 2nd spatial order. */
    static uint ohmGradPeTerm; /*!< Enable/choose spatial order of the electron pressure gradient term in Ohm's law. 0: off, 1: 1st spatial order. */
-   static Real electronTemperature; /*!< Constant electron temperature to be used for the electron pressure gradient term (K). */
+   static Real electronTemperature; /*!< Upstream electron temperature to be used for the electron pressure gradient term (K). */
+   static Real electronDensity; /*!< Upstream electron density to be used for the electron pressure gradient term (m^-3). */
+   static Real electronPTindex; /*!> Polytropic index for electron pressure gradient term. 0 is isobaric, 1 is isothermal, 1.667 is adiabatic electrons */
+
    static bool fieldSolverDiffusiveEterms; /*!< Enable resistive terms in the computation of E*/
    
    static Real maxSlAccelerationRotation; /*!< Maximum rotation in acceleration for semilagrangian solver*/

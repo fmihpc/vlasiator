@@ -112,6 +112,8 @@ bool P::fieldSolverDiffusiveEterms = true;
 uint P::ohmHallTerm = 0;
 uint P::ohmGradPeTerm = 0;
 Real P::electronTemperature = 0.0;
+Real P::electronDensity = 0.0;
+Real P::electronPTindex = 1.0;
 
 string P::restartFileName = string("");
 bool P::isRestart=false;
@@ -203,7 +205,9 @@ bool Parameters::addParameters(){
    Readparameters::add("fieldsolver.diffusiveEterms", "Enable diffusive terms in the computation of E",true);
    Readparameters::add("fieldsolver.ohmHallTerm", "Enable/choose spatial order of the Hall term in Ohm's law. 0: off, 1: 1st spatial order, 2: 2nd spatial order", 0);
    Readparameters::add("fieldsolver.ohmGradPeTerm", "Enable/choose spatial order of the electron pressure gradient term in Ohm's law. 0: off, 1: 1st spatial order.", 0);
-   Readparameters::add("fieldsolver.electronTemperature", "Constant electron temperature to be used for the electron pressure gradient term (K).", 0.0);
+   Readparameters::add("fieldsolver.electronTemperature", "Upstream electron temperature to be used for the electron pressure gradient term (K).", 0.0);
+   Readparameters::add("fieldsolver.electronDensity", "Upstream electron density to be used for the electron pressure gradient term (m^-3).", 0.0);
+   Readparameters::add("fieldsolver.electronPTindex", "Polytropic index for electron pressure gradient term. 0 is isobaric, 1 is isothermal, 1.667 is adiabatic electrons, ", 0.0);
    Readparameters::add("fieldsolver.maxCFL","The maximum CFL limit for field propagation. Used to set timestep if dynamic_timestep is true.",0.5);
    Readparameters::add("fieldsolver.minCFL","The minimum CFL limit for field propagation. Used to set timestep if dynamic_timestep is true.",0.4);
 
@@ -508,6 +512,8 @@ bool Parameters::getParameters(){
    Readparameters::get("fieldsolver.ohmHallTerm", P::ohmHallTerm);
    Readparameters::get("fieldsolver.ohmGradPeTerm", P::ohmGradPeTerm);
    Readparameters::get("fieldsolver.electronTemperature", P::electronTemperature);
+   Readparameters::get("fieldsolver.electronDensity", P::electronDensity);
+   Readparameters::get("fieldsolver.electronPTindex", P::electronPTindex);
    Readparameters::get("fieldsolver.maxCFL",P::fieldSolverMaxCFL);
    Readparameters::get("fieldsolver.minCFL",P::fieldSolverMinCFL);
    // Get Vlasov solver parameters
