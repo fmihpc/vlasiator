@@ -42,6 +42,7 @@
 #include "logger.h"
 #include "vlasovmover.h"
 #include "object_wrapper.h"
+#include "fieldsolver/derivatives.hpp"
 
 using namespace std;
 using namespace phiprof;
@@ -1075,6 +1076,9 @@ bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                DataReducer* dataReducer,
                const uint& index,
                const bool writeGhosts ) {
+   // Calculates derivatives
+   calculateScaledDeltasSimple(mpiGrid);
+
    double allStart = MPI_Wtime();
    bool success = true;
    int myRank;

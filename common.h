@@ -186,6 +186,12 @@ namespace CellParams {
       FSGRID_BOUNDARYTYPE, /*!< Boundary type of this cell, as stored in the fsGrid */
       CELLID, /*! < DCCRG cell index */
       REFINEMENT_LEVEL, /*! < Refinement level */
+      D_RHO,
+      D_U,
+      D_PSQ,
+      D_BSQ,
+      D_B,
+      ALPHA,
       N_SPATIAL_CELL_PARAMS
    };
 }

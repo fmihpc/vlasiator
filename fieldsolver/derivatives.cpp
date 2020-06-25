@@ -486,90 +486,121 @@ void calculateBVOLDerivativesSimple(
    phiprof::stop("Calculate volume derivatives",N_cells,"Spatial Cells");
 }
 
+std::array<Real, 3> getE(SpatialCell* cell)
+{
+   return std::array<Real, 3> { {cell->parameters[CellParams::EXVOL], cell->parameters[CellParams::EYVOL], cell->parameters[CellParams::EZVOL]} };
+}
+
+std::array<Real, 3> getPerB(SpatialCell* cell)
+{
+   return std::array<Real, 3> { {cell->parameters[CellParams::PERBXVOL], cell->parameters[CellParams::PERBYVOL], cell->parameters[CellParams::PERBZVOL]} };
+}
+
+std::array<Real, 3> getP(SpatialCell* cell)
+{
+   Real rho = cell->parameters[CellParams::RHOM];
+   return std::array<Real, 3> { {rho * cell->parameters[CellParams::VX], rho * cell->parameters[CellParams::VY], rho * cell->parameters[CellParams::VZ]} };
+}
+
+Real calculateU1(SpatialCell* cell)
+{
+   std::array<Real, 3> E = getE(cell);
+   std::array<Real, 3> B = getPerB(cell);
+   return 0.5 * (
+      physicalconstants::EPS_0 * (pow(E[0], 2) + pow(E[1], 2) + pow(E[2], 2)) + 
+      1.0/physicalconstants::MU_0 * (pow(B[0], 2) + pow(B[1], 2) + pow(B[2], 2))
+   );
+}
+
 /*! \brief Low-level scaled gradients calculation
  * 
- * For the cell with ID cellID calculate the gradients of volumetric fg variables or apply the derivative boundary conditions defined in project.h.
- * 
- * \param volGrid fsGrid holding the volume averaged fields
- * \param technicalGrid fsGrid holding technical information (such as boundary types)
- * \param i,j,k fsGrid cell coordinates for the current cell
- * \param sysBoundaries System boundary conditions existing
+ * For the cell with ID cellID calculate scaled gradients
  *
  */
 
-void calculateVolDeltas(
-   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volGrid,
-   FsGrid< fsgrids::technical, 2> & technicalGrid,
-   cint i,
-   cint j,
-   cint k,
-   SysBoundary& sysBoundaries
-) {
-   std::array<Real, fsgrids::volfields::N_VOL> * array = volGrid.get(i,j,k);
-   
-   // Calculate x-derivatives (is not TVD for AMR mesh):
-   if (technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-      std::array<auto, 6> neighbors = {
-         volGrid.get(i-1,j,k),
-         volGrid.get(i+1,j,k),
-         volGrid.get(i,j-1,k),
-         volGrid.get(i,j+1,k),
-         volGrid.get(i,j,k-1),
-         volGrid.get(i,j,k+1)
-      };
-   } else {
-      //if (technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-      //   SBC::SysBoundaryCondition::setCellBVOLDerivativesToZero(volGrid, i, j, k, 2);
-      //} else {
-      //   sysBoundaries.getSysBoundary(technicalGrid.get(i,j,k)->sysBoundaryFlag)->fieldSolverBoundaryCondBVOLDerivatives(volGrid, i, j, k, 2);
-      //}
-   }
-}
+void calculateScaledDeltas(
+   SpatialCell* cell,
+   std::vector<SpatialCell*>& neighbors)
+{
+   Real dRho = 0;
+   Real dU = 0;
+   Real dPsq = 0;
+   Real dBsq = 0;
+   Real dB = 0;
 
+   Real myRho = cell->parameters[CellParams::RHOM];
+   Real myU = calculateU1(cell);
+   std::array<Real, 3> myP = getP(cell);
+   std::array<Real, 3> myB = getPerB(cell);
+   std::array<Real, 3> myE = getE(cell);
+   for (SpatialCell* neighbor : neighbors) {
+      Real otherRho = neighbor->parameters[CellParams::RHOM];
+      Real otherU = calculateU1(neighbor);
+      Real maxU = std::max(myU, otherU);
+      std::array<Real, 3> otherP = getP(neighbor);
+      std::array<Real, 3> otherB = getPerB(neighbor);
+      std::array<Real, 3> otherE = getE(neighbor);
+      Real deltaBsq = pow(myB[0] - otherB[0], 2) + pow(myB[1] - otherB[1], 2) + pow(myB[2] - otherB[2], 2);
+
+      dRho = std::max(abs(myRho - otherRho) / 
+                     std::max(myRho, otherRho), dRho);
+      dU = std::max(abs(myU - otherU) / maxU, dU);
+      dPsq = std::max((pow(myP[0] - otherP[0], 2) + pow(myP[1] - otherP[1], 2) + pow(myP[2] - otherP[2], 2)) / (2 * myRho * maxU), dPsq);
+      dBsq = std::max(deltaBsq / (2 * physicalconstants::MU_0 * maxU), dBsq);
+      dB = std::max(sqrt(deltaBsq) / sqrt(std::max(pow(myB[0], 2) + pow(myB[1], 2) + pow(myB[2], 2), pow(otherB[0], 2) + pow(otherB[1], 2) + pow(otherB[2], 2))), dB);
+   }
+   
+   // Fug, do this better later
+   // Real alpha = std::max_element({dRho, dU, dPsq, dBsq, dB});
+   Real alpha = dRho;
+   if (dU > alpha)
+      alpha = dU;
+   if (dPsq > alpha)
+      alpha = dPsq;
+   if (dBsq > alpha)
+      alpha = dBsq;
+   if (dB > alpha)
+      alpha = dB;
+   cell->parameters[CellParams::D_RHO] = dRho;
+   cell->parameters[CellParams::D_U] = dU;
+   cell->parameters[CellParams::D_PSQ] = dPsq;
+   cell->parameters[CellParams::D_BSQ] = dBsq;
+   cell->parameters[CellParams::D_B] = dB;
+   cell->parameters[CellParams::ALPHA] = alpha;
+}
 
 /*! \brief High-level scaled gradient calculation wrapper function.
  * 
  * Calculates gradients needed for alpha everywhere in the grid
  * 
- * \param mpiGrid Vlasov grid variables
- * \param volGrid fsGrid holding the volume averaged fields
- * \param technicalGrid fsGrid holding technical information (such as boundary types)
- * \param sysBoundaries System boundary conditions existing
- * 
  */
 
-void calculateScaledDeltasSimple(
-   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volGrid,
-   FsGrid< fsgrids::technical, 2> & technicalGrid,
-   SysBoundary& sysBoundaries
-) {
+void calculateScaledDeltasSimple(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid)
+{
+   const vector<CellID>& cells = getLocalCells();
+   int N_cells = cells.size();
    int timer;
-   const int* gridDims = &technicalGrid.getLocalSize()[0];
-   const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
-   
    phiprof::start("Calculate volume gradients");
    
    timer=phiprof::initializeTimer("Start comm","MPI");
    phiprof::start(timer);
-   volGrid.updateGhostCells();
    
    phiprof::stop(timer,N_cells,"Spatial Cells");
-   
    
    // Calculate derivatives
    timer=phiprof::initializeTimer("Compute cells");
    phiprof::start(timer);
    
-   #pragma omp parallel for collapse(3)
-   for (int k=0; k<gridDims[2]; k++) {
-      for (int j=0; j<gridDims[1]; j++) {
-         for (int i=0; i<gridDims[0]; i++) {
-            if (technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
-            
-            calculateVolGradients(volGrid,technicalGrid,i,j,k,sysBoundaries);
-         }
+   #pragma omp parallel for
+   for (int i = 0; i < cells.size(); ++i) {
+   //for (CellID id : cells) {
+      CellID id = cells[i];
+      SpatialCell* cell = mpiGrid[id];
+      std::vector<SpatialCell*> neighbors;
+      for (auto neighPair : mpiGrid.get_face_neighbors_of(id)) {
+         neighbors.push_back(mpiGrid[neighPair.first]);
       }
+      calculateScaledDeltas(cell, neighbors);
    }
 
    phiprof::stop(timer,N_cells,"Spatial Cells");

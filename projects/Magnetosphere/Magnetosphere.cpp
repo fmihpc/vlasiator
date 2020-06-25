@@ -769,6 +769,7 @@ namespace projects {
    }
 
    bool Magnetosphere::adaptRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
+      return true; // For now
    }
 } // namespace projects
 

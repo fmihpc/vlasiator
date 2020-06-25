@@ -179,7 +179,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       }
       if(lowercase == "vg_rhom" || lowercase == "rhom") { // Overall mass density (summed over all populations)
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_rhom",CellParams::RHOM,1));
-	 outputReducer->addMetadata(outputReducer->size()-1,"kg/m^3","$\\mathrm{kg}\\,\\mathrm{m}^{-3}$","$\\rho_\\mathrm{m}$","1.0");
+         outputReducer->addMetadata(outputReducer->size()-1,"kg/m^3","$\\mathrm{kg}\\,\\mathrm{m}^{-3}$","$\\rho_\\mathrm{m}$","1.0");
          continue;
       }
       if(lowercase == "fg_rhom") { // Overall mass density (summed over all populations)
@@ -925,6 +925,36 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(lowercase == "meshdata") {
          outputReducer->addOperator(new DRO::VariableMeshData);
 	 outputReducer->addMetadata(outputReducer->size()-1,"","","\\mathrm{Mesh data}$","");
+         continue;
+      }
+      if(lowercase == "d_rho") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("d_rho",CellParams::D_RHO,1));
+         outputReducer->addMetadata(outputReducer->size()-1,"","","$\\frac{\\Delta \\rho}{\\hat{rho}}$","");
+         continue;
+      }
+      if(lowercase == "d_u") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("d_u",CellParams::D_U,1));
+         outputReducer->addMetadata(outputReducer->size()-1,"","","$\\frac{\\Delta \\U_1}{\\hat{U}_1}$","");
+         continue;
+      }
+      if(lowercase == "d_psq") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("d_psq",CellParams::D_PSQ,1));
+         outputReducer->addMetadata(outputReducer->size()-1,"","","$\\frac{(\\Delta P)^2}{2 \\rho \\hat{U}_1}$","");
+         continue;
+      }
+      if(lowercase == "d_bsq") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("d_bsq",CellParams::D_BSQ,1));
+         outputReducer->addMetadata(outputReducer->size()-1,"","","$\\frac{(\\Delta B_1)^2}{2 \\mu_0 \\hat{U}_1}$","");
+         continue;
+      }
+      if(lowercase == "d_b") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("d_b",CellParams::D_B,1));
+         outputReducer->addMetadata(outputReducer->size()-1,"","","$\\frac{\\abs{\\Delta B_1}}{\\hat{B}_1}$","");
+         continue;
+      }
+      if(lowercase == "alpha") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("alpha",CellParams::D_B,1));
+         outputReducer->addMetadata(outputReducer->size()-1,"","","$\\alpha$","");
          continue;
       }
       // After all the continue; statements one should never land here.
