@@ -769,7 +769,7 @@ namespace SBC {
 
 
       // Trace node coordinates outwards until a non-sysboundary cell is encountered
-      #pragma omp parallel for
+      //#pragma omp parallel for
       for(uint n=0; n<nodes.size(); n++) {
 
          Node& no = nodes[n];
@@ -857,7 +857,7 @@ namespace SBC {
      std::vector<double> pressureInput(nodes.size());
 
      // Map all coupled nodes down into it
-     #pragma omp parallel for
+     //#pragma omp parallel for
      for(uint n=0; n<nodes.size(); n++) {
 
         Real J = 0;
@@ -970,6 +970,12 @@ namespace SBC {
                  FACinput[n] += FAC * coupling * upmappedArea/area;
               }
            }
+        }
+
+        // Since we are not interested in dot(J,B), but actually just "field aligned current as a source term
+        // of whatever happens in the ionosphere", flip FAC sign on the southern hemisphere
+        if(nodes[n].x[2] < 0) {
+           FACinput[n] *= -1;
         }
 
         // Map density and pressure down
@@ -1227,7 +1233,7 @@ namespace SBC {
         }
      }
 
-     #pragma omp parallel for
+     //#pragma omp parallel for
      for(uint n=0; n<nodes.size(); n++) {
        addAllMatrixDependencies(n);
      }
@@ -1694,7 +1700,7 @@ namespace SBC {
       Project &project
    ) {
       vector<CellID> cells = mpiGrid.get_cells();
-      #pragma omp parallel for
+      //#pragma omp parallel for
       for (uint i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
          if (cell->sysBoundaryFlag != this->getIndex()) continue;
