@@ -536,18 +536,21 @@ void calculateScaledDeltas(
    for (SpatialCell* neighbor : neighbors) {
       Real otherRho = neighbor->parameters[CellParams::RHOM];
       Real otherU = calculateU1(neighbor);
-      Real maxU = std::max(myU, otherU);
       std::array<Real, 3> otherP = getP(neighbor);
       std::array<Real, 3> otherB = getPerB(neighbor);
       std::array<Real, 3> otherE = getE(neighbor);
       Real deltaBsq = pow(myB[0] - otherB[0], 2) + pow(myB[1] - otherB[1], 2) + pow(myB[2] - otherB[2], 2);
 
-      dRho = std::max(abs(myRho - otherRho) / 
-                     std::max(myRho, otherRho), dRho);
-      dU = std::max(abs(myU - otherU) / maxU, dU);
-      dPsq = std::max((pow(myP[0] - otherP[0], 2) + pow(myP[1] - otherP[1], 2) + pow(myP[2] - otherP[2], 2)) / (2 * myRho * maxU), dPsq);
-      dBsq = std::max(deltaBsq / (2 * physicalconstants::MU_0 * maxU), dBsq);
-      dB = std::max(sqrt(deltaBsq) / sqrt(std::max(pow(myB[0], 2) + pow(myB[1], 2) + pow(myB[2], 2), pow(otherB[0], 2) + pow(otherB[1], 2) + pow(otherB[2], 2))), dB);
+      // Assignment intentional
+      if (Real maxRho = std::max(myRho, otherRho))
+         dRho = std::max(abs(myRho - otherRho) / maxRho, dRho);
+      if (Real maxU = std::max(myU, otherU)) {
+         dU = std::max(abs(myU - otherU) / maxU, dU);
+         dPsq = std::max((pow(myP[0] - otherP[0], 2) + pow(myP[1] - otherP[1], 2) + pow(myP[2] - otherP[2], 2)) / (2 * myRho * maxU), dPsq);
+         dBsq = std::max(deltaBsq / (2 * physicalconstants::MU_0 * maxU), dBsq);
+      }
+      if(Real maxB = sqrt(std::max(pow(myB[0], 2) + pow(myB[1], 2) + pow(myB[2], 2), pow(otherB[0], 2) + pow(otherB[1], 2) + pow(otherB[2], 2))))
+         dB = std::max(sqrt(deltaBsq) / maxB, dB);
    }
    
    // Fug, do this better later
