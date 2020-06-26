@@ -35,6 +35,7 @@
 #include "../../object_wrapper.h"
 
 #include "Magnetosphere.h"
+#include "../../fieldsolver/derivatives.hpp"
 
 using namespace std;
 using namespace spatial_cell;
@@ -769,7 +770,48 @@ namespace projects {
    }
 
    bool Magnetosphere::adaptRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
-      return true; // For now
+   
+      int myRank;       
+      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+
+      // mpiGrid.set_maximum_refinement_level(std::min(this->maxSpatialRefinementLevel, mpiGrid.mapping.get_maximum_refinement_level()));
+
+      std::vector<CellID> refinedCells;
+
+         // cout << "I am at line " << __LINE__ << " of " << __FILE__ <<  endl;
+      if(myRank == MASTER_RANK) 
+         std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
+
+      // Leave boundary cells and a bit of safety margin
+      const int bw = 2* VLASOV_STENCIL_WIDTH;
+      const int bw2 = 2*(bw + VLASOV_STENCIL_WIDTH);
+      const int bw3 = 2*(bw2 + VLASOV_STENCIL_WIDTH);
+      const int bw4 = 2*(bw3 + VLASOV_STENCIL_WIDTH);
+
+      // Calculate regions for refinement
+      // Looping would be ideal but we can't really recalculate alpha in between
+      calculateScaledDeltasSimple(mpiGrid);
+      for (CellID id : getLocalCells()) {
+         std::array<double,3> xyz = mpiGrid.get_center(id);
+         SpatialCell* cell = mpiGrid[id];
+         int refLevel = cell->parameters[CellParams::REFINEMENT_LEVEL];
+         if (cell->parameters[CellParams::ALPHA] > 1 && refLevel < P::amrMaxSpatialRefLevel &&
+             xyz[0] > bw * pow(2, refLevel) && xyz[1] > bw * pow(2, refLevel) && xyz[2] > bw * pow(2, refLevel) &&
+             xyz[0] < pow(2, refLevel) * (P::ycells_ini-bw) && xyz[1] < pow(2, refLevel) * (P::ycells_ini-bw) && xyz[2] < pow(2, refLevel) * (P::ycells_ini-bw))
+            mpiGrid.refine_completely(id);
+      }
+
+      refinedCells = mpiGrid.stop_refining(true);      
+      if (myRank == MASTER_RANK) 
+         std::cout << "Finished re-refinement" << endl;
+      #ifndef NDEBUG
+      if(refinedCells.size() > 0)
+         std::cout << "Rank " << myRank << " refined " << refinedCells.size() << " cells. " << std::endl;
+      #endif
+      mpiGrid.balance_load();
+
+      // Shouldn't the load just be balanced here in the end?
+      return true;
    }
 } // namespace projects
 
