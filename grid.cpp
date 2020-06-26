@@ -194,7 +194,7 @@ void initializeGrids(
       phiprof::stop("Read restart");
 
       // Re-refinement here? Might BREAK EVERYTHING
-      // Not sure if all the required variables are calculated here either, might need gridGlue
+      // For now, alpha is read from the restart file
       project.adaptRefinement(mpiGrid);
       // After this, at least:
       initSpatialCellCoordinates(mpiGrid);

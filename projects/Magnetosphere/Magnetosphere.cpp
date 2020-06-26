@@ -788,9 +788,9 @@ namespace projects {
       const int bw3 = 2*(bw2 + VLASOV_STENCIL_WIDTH);
       const int bw4 = 2*(bw3 + VLASOV_STENCIL_WIDTH);
 
-      // Calculate regions for refinement
-      // Looping would be ideal but we can't really recalculate alpha in between
-      calculateScaledDeltasSimple(mpiGrid);
+      // For now, this is only called on restart
+      // We haven't used gridGlue yet so this is read from restart
+      //calculateScaledDeltasSimple(mpiGrid);
       for (CellID id : getLocalCells()) {
          std::array<double,3> xyz = mpiGrid.get_center(id);
          SpatialCell* cell = mpiGrid[id];
