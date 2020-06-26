@@ -799,6 +799,9 @@ namespace projects {
              xyz[0] > bw * pow(2, refLevel) && xyz[1] > bw * pow(2, refLevel) && xyz[2] > bw * pow(2, refLevel) &&
              xyz[0] < pow(2, refLevel) * (P::ycells_ini-bw) && xyz[1] < pow(2, refLevel) * (P::ycells_ini-bw) && xyz[2] < pow(2, refLevel) * (P::ycells_ini-bw))
             mpiGrid.refine_completely(id);
+         // Disabled for now
+         //else if (cell->parameters[CellParams::ALPHA] < 0.01 && refLevel > 0)
+         //   mpiGrid.unrefine_completely(id)
       }
 
       refinedCells = mpiGrid.stop_refining(true);      

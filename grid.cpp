@@ -192,6 +192,15 @@ void initializeGrids(
          exit(1);
       }
       phiprof::stop("Read restart");
+
+      // Re-refinement here? Might BREAK EVERYTHING
+      // Not sure if all the required variables are calculated here either, might need gridGlue
+      project.adaptRefinement(mpiGrid);
+      // After this, at least:
+      initSpatialCellCoordinates(mpiGrid);
+      // Not sure about these:
+      initVelocityGridGeometry(mpiGrid);
+      initializeStencils(mpiGrid);
    
       //initial state for sys-boundary cells, will skip those not set to be reapplied at restart
       phiprof::start("Apply system boundary conditions state");
