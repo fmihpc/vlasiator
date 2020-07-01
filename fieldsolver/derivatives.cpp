@@ -543,9 +543,9 @@ void calculateScaledDeltas(
 
       // Assignment intentional
       if (Real maxRho = std::max(myRho, otherRho))
-         dRho = std::max(abs(myRho - otherRho) / maxRho, dRho);
+         dRho = std::max(fabs(myRho - otherRho) / maxRho, dRho);
       if (Real maxU = std::max(myU, otherU)) {
-         dU = std::max(abs(myU - otherU) / maxU, dU);
+         dU = std::max(fabs(myU - otherU) / maxU, dU);
          dPsq = std::max((pow(myP[0] - otherP[0], 2) + pow(myP[1] - otherP[1], 2) + pow(myP[2] - otherP[2], 2)) / (2 * myRho * maxU), dPsq);
          dBsq = std::max(deltaBsq / (2 * physicalconstants::MU_0 * maxU), dBsq);
       }
