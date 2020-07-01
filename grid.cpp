@@ -201,6 +201,11 @@ void initializeGrids(
       // Not sure about these:
       initVelocityGridGeometry(mpiGrid);
       initializeStencils(mpiGrid);
+      setFaceNeighborRanks(mpiGrid);
+      if(!sysBoundaries.checkRefinement(mpiGrid)) {
+         cerr << "(MAIN) ERROR: Boundary cells must have identical refinement level " << endl;
+         exit(1);
+      }
    
       //initial state for sys-boundary cells, will skip those not set to be reapplied at restart
       phiprof::start("Apply system boundary conditions state");

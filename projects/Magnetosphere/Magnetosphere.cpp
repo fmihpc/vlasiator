@@ -783,10 +783,11 @@ namespace projects {
          std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
 
       // Leave boundary cells and a bit of safety margin
-      const int bw = 2* VLASOV_STENCIL_WIDTH;
-      const int bw2 = 2*(bw + VLASOV_STENCIL_WIDTH);
-      const int bw3 = 2*(bw2 + VLASOV_STENCIL_WIDTH);
-      const int bw4 = 2*(bw3 + VLASOV_STENCIL_WIDTH);
+      std::array<int, 4> bws;
+      bws[0] = 2 * VLASOV_STENCIL_WIDTH;
+      for (int i = 1; i < 4; ++i) {
+         bws[i] = 2 * (bws[i-1] + VLASOV_STENCIL_WIDTH);
+      }
 
       // For now, this is only called on restart
       // We haven't used gridGlue yet so this is read from restart
@@ -795,22 +796,27 @@ namespace projects {
          std::array<double,3> xyz = mpiGrid.get_center(id);
          SpatialCell* cell = mpiGrid[id];
          int refLevel = cell->parameters[CellParams::REFINEMENT_LEVEL];
+         std::cout << "Alpha: " << cell->parameters[CellParams::ALPHA] << endl;
          if (cell->parameters[CellParams::ALPHA] > 1 && refLevel < P::amrMaxSpatialRefLevel &&
-             xyz[0] > bw * pow(2, refLevel) && xyz[1] > bw * pow(2, refLevel) && xyz[2] > bw * pow(2, refLevel) &&
-             xyz[0] < pow(2, refLevel) * (P::ycells_ini-bw) && xyz[1] < pow(2, refLevel) * (P::ycells_ini-bw) && xyz[2] < pow(2, refLevel) * (P::ycells_ini-bw))
+             xyz[0] > bws[refLevel] && xyz[1] > bws[refLevel] && xyz[2] > bws[refLevel] &&
+             xyz[0] < pow(2, refLevel) * P::xcells_ini - bws[refLevel] && 
+             xyz[1] < pow(2, refLevel) * P::ycells_ini - bws[refLevel] && 
+             xyz[2] < pow(2, refLevel) * P::zcells_ini - bws[refLevel]) {
+            std::cout << "Refining " << id << endl;
             mpiGrid.refine_completely(id);
+         } 
          // Disabled for now
          //else if (cell->parameters[CellParams::ALPHA] < 0.01 && refLevel > 0)
          //   mpiGrid.unrefine_completely(id)
       }
 
       refinedCells = mpiGrid.stop_refining(true);      
-      if (myRank == MASTER_RANK) 
+      for (CellID id : refinedCells)
+         *mpiGrid[id] = *mpiGrid[mpiGrid.get_parent(id)];
+      if (myRank == MASTER_RANK) {
          std::cout << "Finished re-refinement" << endl;
-      #ifndef NDEBUG
-      if(refinedCells.size() > 0)
          std::cout << "Rank " << myRank << " refined " << refinedCells.size() << " cells. " << std::endl;
-      #endif
+      }
       mpiGrid.balance_load();
 
       // Shouldn't the load just be balanced here in the end?
