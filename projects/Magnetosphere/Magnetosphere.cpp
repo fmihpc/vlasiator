@@ -770,7 +770,6 @@ namespace projects {
    }
 
    bool Magnetosphere::adaptRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
-   
       int myRank;       
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
@@ -796,12 +795,12 @@ namespace projects {
          std::array<double,3> xyz = mpiGrid.get_center(id);
          SpatialCell* cell = mpiGrid[id];
          int refLevel = cell->parameters[CellParams::REFINEMENT_LEVEL];
-         std::cout << "Alpha: " << cell->parameters[CellParams::ALPHA] << endl;
          if (cell->parameters[CellParams::ALPHA] > 1 && refLevel < P::amrMaxSpatialRefLevel &&
-             xyz[0] > bws[refLevel] && xyz[1] > bws[refLevel] && xyz[2] > bws[refLevel] &&
-             xyz[0] < pow(2, refLevel) * P::xcells_ini - bws[refLevel] && 
-             xyz[1] < pow(2, refLevel) * P::ycells_ini - bws[refLevel] && 
-             xyz[2] < pow(2, refLevel) * P::zcells_ini - bws[refLevel]) {
+             fabs(xyz[0] - 2E8) < 1E7 && fabs(xyz[1]) < 1E7 && fabs(xyz[2]) < 1E7) {
+             //xyz[0] > bws[refLevel] && xyz[1] > bws[refLevel] && xyz[2] > bws[refLevel] &&
+             //xyz[0] < pow(2, refLevel) * P::xcells_ini - bws[refLevel] && 
+             //xyz[1] < pow(2, refLevel) * P::ycells_ini - bws[refLevel] && 
+             //xyz[2] < pow(2, refLevel) * P::zcells_ini - bws[refLevel]) {
             std::cout << "Refining " << id << endl;
             mpiGrid.refine_completely(id);
          } 
@@ -815,11 +814,10 @@ namespace projects {
          *mpiGrid[id] = *mpiGrid[mpiGrid.get_parent(id)];
       if (myRank == MASTER_RANK) {
          std::cout << "Finished re-refinement" << endl;
-         std::cout << "Rank " << myRank << " refined " << refinedCells.size() << " cells. " << std::endl;
       }
-      mpiGrid.balance_load();
-
-      // Shouldn't the load just be balanced here in the end?
+      if(refinedCells.size())
+         std::cout << "Rank " << myRank << " refined " << refinedCells.size() << " cells. " << std::endl;
+      //mpiGrid.balance_load();
       return true;
    }
 } // namespace projects

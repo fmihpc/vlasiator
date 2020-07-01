@@ -195,12 +195,11 @@ void initializeGrids(
 
       // Re-refinement here? Might BREAK EVERYTHING
       // For now, alpha is read from the restart file
-      project.adaptRefinement(mpiGrid);
+      if (project.adaptRefinement(mpiGrid))
+         recalculateLocalCellsCache();
       // After this, at least:
       initSpatialCellCoordinates(mpiGrid);
       // Not sure about these:
-      initVelocityGridGeometry(mpiGrid);
-      initializeStencils(mpiGrid);
       setFaceNeighborRanks(mpiGrid);
       if(!sysBoundaries.checkRefinement(mpiGrid)) {
          cerr << "(MAIN) ERROR: Boundary cells must have identical refinement level " << endl;
