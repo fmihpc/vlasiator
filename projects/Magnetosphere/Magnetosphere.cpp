@@ -784,41 +784,50 @@ namespace projects {
       // Leave boundary cells and a bit of safety margin
       // Should be same as previous function, might want to check
       std::array<int, 4> bws;
-      bws[0] = 16 * P::dx_ini * VLASOV_STENCIL_WIDTH;
+      bws[0] = 2 * VLASOV_STENCIL_WIDTH;
       for (int i = 1; i < 4; ++i) {
          //bws[i] = bws[i-1] + VLASOV_STENCIL_WIDTH;
-         bws[i] = 16 * bws[i-1];
+         bws[i] = 2 * bws[i-1];
       }
+
+      Real ibr2 = pow(ionosphereRadius + P::dx_ini * bws[0], 2);
 
       // For now, this is only called on restart
       // We haven't used gridGlue yet so this is read from restart
       //calculateScaledDeltasSimple(mpiGrid);
+
+      Real refinementTreshold = 1.0;   // For now, make into parameter later
+         
       for (CellID id : getLocalCells()) {
          std::array<double,3> xyz = mpiGrid.get_center(id);
          SpatialCell* cell = mpiGrid[id];
          int refLevel = cell->parameters[CellParams::REFINEMENT_LEVEL];
-         if (cell->parameters[CellParams::ALPHA] > 1 && refLevel < P::amrMaxSpatialRefLevel &&
-             xyz[0] > P::xmin + bws[refLevel] && xyz[1] > P::ymin + bws[refLevel] && xyz[2] > P::zmin + bws[refLevel] &&
-             xyz[0] < P::xmin + P::dx_ini * P::xcells_ini - bws[refLevel] && 
-             xyz[1] < P::ymin + P::dy_ini * P::ycells_ini - bws[refLevel] && 
-             xyz[2] < P::zmin + P::dz_ini * P::zcells_ini - bws[refLevel]) {
-             //fabs(xyz[0] - 2E8) < 1E7 && fabs(xyz[1]) < 1E7 && fabs(xyz[2]) < 1E7) {
-            //std::cout << "Refining " << id << endl;
-            mpiGrid.refine_completely(id);
+         Real r2 = pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2);
+         if (r2 < ibr || (xyz[0] > P::xmin + P::dx_ini * bws[refLevel] && 
+            xyz[0] < P::xmin + P::dx_ini * (P::xcells_ini - bws[refLevel]) && 
+            xyz[1] > P::ymin + P::dy_ini * bws[refLevel] && 
+            xyz[1] < P::ymin + P::dy_ini * (P::ycells_ini - bws[refLevel]) && 
+            xyz[2] > P::zmin + P::dz_ini * bws[refLevel] &&
+            xyz[2] < P::zmin + P::dz_ini * (P::zcells_ini - bws[refLevel]))) {
+            if (cell->parameters[CellParams::ALPHA] > refinementTreshold && refLevel < P::amrMaxSpatialRefLevel) {
+               mpiGrid.refine_completely(id);
+               cell->parameters[CellParams::ALPHA] /= 2;
+            } /* else if (cell->parameters[CellParams::ALPHA] < 0.01 && refLevel > 0) {
+               mpiGrid.unrefine_completely(id)
+            } Disabled for now */
          } 
-         // Disabled for now
-         //else if (cell->parameters[CellParams::ALPHA] < 0.01 && refLevel > 0)
-         //   mpiGrid.unrefine_completely(id)
+      }
+      refinedCells = mpiGrid.stop_refining(true);      
+      if (refinedCells.size()) {
+         for (CellID id : refinedCells)
+            *mpiGrid[id] = *mpiGrid[mpiGrid.get_parent(id)];
+         std::cout << "Rank " << myRank << " refined " << refinedCells.size() << " cells, loop " << 0 << std::endl;
       }
 
-      refinedCells = mpiGrid.stop_refining(true);      
-      for (CellID id : refinedCells)
-         *mpiGrid[id] = *mpiGrid[mpiGrid.get_parent(id)];
       if (myRank == MASTER_RANK) {
          std::cout << "Finished re-refinement" << endl;
       }
-      if(refinedCells.size())
-         std::cout << "Rank " << myRank << " refined " << refinedCells.size() << " cells. " << std::endl;
+
       //mpiGrid.balance_load(); // Breaks everything for some reason :DDD
       return true;
    }
