@@ -209,69 +209,118 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader,
       return false;
    }
 
-   //Get local cell ids:
-   vector<uint64_t> local_cells;
-   if ( vlsvReader.getCellIds( local_cells, meshName) == false ) {
-      cerr << "Failed to read cell ids at "  << __FILE__ << " " << __LINE__ << endl;
-      return false;
-   }
+   if (meshName == "SpatialGrid"){
+      //Get local cell ids:
+      vector<uint64_t> local_cells;
+      if ( vlsvReader.getCellIds( local_cells, meshName) == false ) {
+         cerr << "Failed to read cell ids at "  << __FILE__ << " " << __LINE__ << endl;
+         return false;
+       }
 
-   //Check for correct output:
-   if (local_cells.size() != variableArraySize) {
-      cerr << "ERROR array size mismatch: " << local_cells.size() << " " << variableArraySize << endl;
-   }
-   if (compToExtract + 1 > variableVectorSize) {
-      cerr << "ERROR invalid component, this variable has size " << variableVectorSize << endl;
-      abort();
-   }
-   
-   // Read the mesh array one node (of a spatial cell) at a time 
-   // and create a map which contains each cell's CellID and variable to be extracted
-   char* variableBuffer = new char[variableVectorSize*variableDataSize];
-   float* variablePtrFloat = reinterpret_cast<float*>(variableBuffer);
-   double* variablePtrDouble = reinterpret_cast<double*>(variableBuffer);
-   uint* variablePtrUint = reinterpret_cast<uint*>(variableBuffer);
-   int* variablePtrInt = reinterpret_cast<int*>(variableBuffer);
-
-   if (storeCellOrder == true) {
-      cellOrder.clear();
-   }
-   
-   orderedData->clear();
-
-   for (uint64_t i=0; i<local_cells.size(); ++i) {
-      const short int amountToReadIn = 1;
-      const uint64_t & startingReadIndex = i;
-      if (vlsvReader.readArray("VARIABLE", variableAttributes, startingReadIndex, amountToReadIn, variableBuffer) == false) {
-         cerr << "ERROR, failed to read variable '" << _varToExtract << "' at " << __FILE__ << " " << __LINE__ << endl;
-         variableSuccess = false; 
-         break;
+      //Check for correct output:
+      if (local_cells.size() != variableArraySize) {
+         cerr << "ERROR array size mismatch: " << local_cells.size() << " " << variableArraySize << endl;
       }
-      // Get the CellID
-      uint64_t & CellID = local_cells[i];
+      if (compToExtract + 1 > variableVectorSize) {
+         cerr << "ERROR invalid component, this variable has size " << variableVectorSize << endl;
+         abort();
+         }
       
-      // Get the variable value
-      Real extract = NAN;
+      // Read the mesh array one node (of a spatial cell) at a time 
+      // and create a map which contains each cell's CellID and variable to be extracted
+      char* variableBuffer = new char[variableVectorSize*variableDataSize];
+      float* variablePtrFloat = reinterpret_cast<float*>(variableBuffer);
+      double* variablePtrDouble = reinterpret_cast<double*>(variableBuffer);
+      uint* variablePtrUint = reinterpret_cast<uint*>(variableBuffer);
+      int* variablePtrInt = reinterpret_cast<int*>(variableBuffer);
 
-      switch (variableDataType) {
-         case datatype::type::FLOAT:
-            if(variableDataSize == sizeof(float)) extract = (Real)(variablePtrFloat[compToExtract]);
-            if(variableDataSize == sizeof(double)) extract = (Real)(variablePtrDouble[compToExtract]);
-            break;
-         case datatype::type::UINT:
-            extract = (Real)(variablePtrUint[compToExtract]);
-            break;
-         case datatype::type::INT:
-            extract = (Real)(variablePtrInt[compToExtract]);
-            break;
-         case datatype::type::UNKNOWN:
-            cerr << "ERROR, BAD DATATYPE AT " << __FILE__ << " " << __LINE__ << endl;
-            break;
-      }
-      // Put those into the map
-      orderedData->insert(pair<uint64_t, Real>(CellID, extract));
       if (storeCellOrder == true) {
-         cellOrder[CellID] = i;
+         cellOrder.clear();
+       }
+      
+      orderedData->clear();
+
+      for (uint64_t i=0; i<local_cells.size(); ++i) {
+         const short int amountToReadIn = 1;
+         const uint64_t & startingReadIndex = i;
+         if (vlsvReader.readArray("VARIABLE", variableAttributes, startingReadIndex, amountToReadIn, variableBuffer) == false) {
+            cerr << "ERROR, failed to read variable '" << _varToExtract << "' at " << __FILE__ << " " << __LINE__ << endl;
+            variableSuccess = false; 
+            break;
+         }
+         // Get the CellID
+         uint64_t & CellID = local_cells[i];
+         
+         // Get the variable value
+         Real extract = NAN;
+
+         switch (variableDataType) {
+            case datatype::type::FLOAT:
+               if(variableDataSize == sizeof(float)) extract = (Real)(variablePtrFloat[compToExtract]);
+               if(variableDataSize == sizeof(double)) extract = (Real)(variablePtrDouble[compToExtract]);
+               break;
+            case datatype::type::UINT:
+               extract = (Real)(variablePtrUint[compToExtract]);
+               break;
+            case datatype::type::INT:
+               extract = (Real)(variablePtrInt[compToExtract]);
+               break;
+            case datatype::type::UNKNOWN:
+               cerr << "ERROR, BAD DATATYPE AT " << __FILE__ << " " << __LINE__ << endl;
+               break;
+         }
+         // Put those into the map
+         orderedData->insert(pair<uint64_t, Real>(CellID, extract));
+         if (storeCellOrder == true) {
+            cellOrder[CellID] = i;
+         }
+       }
+  
+   }else{
+     
+      // Read the mesh array one node (of a spatial cell) at a time
+      // and create a map which contains each cell's CellID and variable to be extracted
+      char *variableBuffer = new char[variableVectorSize * variableDataSize];
+      float *variablePtrFloat = reinterpret_cast<float *>(variableBuffer);
+      double *variablePtrDouble = reinterpret_cast<double *>(variableBuffer);
+      uint *variablePtrUint = reinterpret_cast<uint *>(variableBuffer);
+      int *variablePtrInt = reinterpret_cast<int *>(variableBuffer);
+
+      orderedData->clear();
+
+      for (uint64_t i=0; i<variableArraySize; ++i){
+         const short int amountToReadIn = 1;
+         const uint64_t &startingReadIndex = i;
+       
+         if (vlsvReader.readArray("VARIABLE", variableAttributes, startingReadIndex, amountToReadIn, variableBuffer) == false){
+            cerr << "ERROR, failed to read variable '" << _varToExtract << "' at " << __FILE__ << " " << __LINE__ << endl;
+            variableSuccess = false;
+            break;
+         }
+
+         // Get the variable value
+         Real extract = NAN;
+         
+         switch (variableDataType) {
+            case datatype::type::FLOAT:
+               if(variableDataSize == sizeof(float)) extract = (Real)(variablePtrFloat[compToExtract]);
+               if(variableDataSize == sizeof(double)) extract = (Real)(variablePtrDouble[compToExtract]);
+               break;
+            case datatype::type::UINT:
+               extract = (Real)(variablePtrUint[compToExtract]);
+               break;
+            case datatype::type::INT:
+               extract = (Real)(variablePtrInt[compToExtract]);
+               break;
+            case datatype::type::UNKNOWN:
+               cerr << "ERROR, BAD DATATYPE AT " << __FILE__ << " " << __LINE__ << endl;
+               break;
+              }
+         
+         orderedData->insert(pair<uint64_t, Real>(i, extract));
+         if (storeCellOrder == true) {
+            cellOrder[i] = i;
+         }
       }
    }
 
