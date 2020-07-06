@@ -805,31 +805,37 @@ namespace projects {
       //calculateScaledDeltasSimple(mpiGrid);
 
       Real refinementTreshold = P::refineTreshold;
-         
-      for (CellID id : getLocalCells()) {
-         std::array<double,3> xyz = mpiGrid.get_center(id);
-         SpatialCell* cell = mpiGrid[id];
-         int refLevel = cell->parameters[CellParams::REFINEMENT_LEVEL];
-         Real r2 = pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2);
-         if (r2 < ibr2 || (xyz[0] > P::xmin + P::dx_ini * bws[refLevel] && 
-            xyz[0] < P::xmin + P::dx_ini * (P::xcells_ini - bws[refLevel]) && 
-            xyz[1] > P::ymin + P::dy_ini * bws[refLevel] && 
-            xyz[1] < P::ymin + P::dy_ini * (P::ycells_ini - bws[refLevel]) && 
-            xyz[2] > P::zmin + P::dz_ini * bws[refLevel] &&
-            xyz[2] < P::zmin + P::dz_ini * (P::zcells_ini - bws[refLevel]))) {
-            if (cell->parameters[CellParams::ALPHA] > refinementTreshold && refLevel < P::amrMaxSpatialRefLevel) {
-               mpiGrid.refine_completely(id);
-               cell->parameters[CellParams::ALPHA] /= 2;
-            } /* else if (cell->parameters[CellParams::ALPHA] < 0.01 && refLevel > 0) {
-               mpiGrid.unrefine_completely(id)
-            } Disabled for now */
-         } 
-      }
-      refinedCells = mpiGrid.stop_refining(true);      
-      if (refinedCells.size()) {
-         for (CellID id : refinedCells)
-            *mpiGrid[id] = *mpiGrid[mpiGrid.get_parent(id)];
-         std::cout << "Rank " << myRank << " refined " << refinedCells.size() << " cells, loop " << 0 << std::endl;
+      for (int i = 0; i < CellParams::REFINEMENT_LEVEL; ++i) {
+         for (CellID id : getLocalCells()) {
+            std::array<double,3> xyz = mpiGrid.get_center(id);
+            SpatialCell* cell = mpiGrid[id];
+            int refLevel = cell->parameters[CellParams::REFINEMENT_LEVEL];
+            Real r2 = pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2);
+            if (r2 < ibr2 || (xyz[0] > P::xmin + P::dx_ini * bws[refLevel] && 
+               xyz[0] < P::xmin + P::dx_ini * (P::xcells_ini - bws[refLevel]) && 
+               xyz[1] > P::ymin + P::dy_ini * bws[refLevel] && 
+               xyz[1] < P::ymin + P::dy_ini * (P::ycells_ini - bws[refLevel]) && 
+               xyz[2] > P::zmin + P::dz_ini * bws[refLevel] &&
+               xyz[2] < P::zmin + P::dz_ini * (P::zcells_ini - bws[refLevel]))) {
+               if (cell->parameters[CellParams::ALPHA] > refinementTreshold && refLevel < P::amrMaxSpatialRefLevel) {
+                  mpiGrid.refine_completely(id);
+                  cell->parameters[CellParams::ALPHA] /= 2;
+               } /* else if (cell->parameters[CellParams::ALPHA] < 0.01 && refLevel > 0) {
+                  mpiGrid.unrefine_completely(id)
+               } Disabled for now */
+            } 
+         }
+
+         refinedCells = mpiGrid.stop_refining(true);      
+         if (refinedCells.size()) {
+            for (CellID id : refinedCells)
+               *mpiGrid[id] = *mpiGrid[mpiGrid.get_parent(id)];
+            std::cout << "Rank " << myRank << " refined " << refinedCells.size() << " cells, loop " << i << std::endl;
+
+            refinementTreshold *= 2;
+            recalculateLocalCellsCache();
+         } else
+            break;
       }
 
       if (myRank == MASTER_RANK) {
