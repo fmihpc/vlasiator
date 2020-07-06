@@ -139,6 +139,8 @@ Realf P::amrCoarsenLimit = 0.5;
 string P::amrVelRefCriterion = "";
 int P::amrMaxSpatialRefLevel = 0;
 bool P::shouldRefine = true;
+bool P::adaptRefinement = false;
+Real P::refineTreshold = 1.0;
 int P::amrBoxHalfWidthX = 1;
 int P::amrBoxHalfWidthY = 1;
 int P::amrBoxHalfWidthZ = 1;
@@ -462,6 +464,8 @@ bool Parameters::getParameters(){
    Readparameters::get("AMR.max_velocity_level",P::amrMaxVelocityRefLevel);
    Readparameters::get("AMR.max_spatial_level",P::amrMaxSpatialRefLevel);
    Readparameters::get("AMR.should_refine",P::shouldRefine);
+   Readparameters::get("AMR.adapt_refinement",P::adaptRefinement);
+   Readparameters::get("AMR.refine_treshold",P::refineTreshold);
    Readparameters::get("AMR.box_half_width_x",P::amrBoxHalfWidthX);
    Readparameters::get("AMR.box_half_width_y",P::amrBoxHalfWidthY);
    Readparameters::get("AMR.box_half_width_z",P::amrBoxHalfWidthZ);

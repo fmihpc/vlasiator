@@ -139,6 +139,8 @@ struct Parameters {
    static std::string amrVelRefCriterion; /**< Name of the velocity block refinement criterion function.*/
    static int amrMaxSpatialRefLevel;
    static bool shouldRefine;
+   static bool adaptRefinement;
+   static Real refineTreshold;
    static int amrBoxHalfWidthX;
    static int amrBoxHalfWidthY;
    static int amrBoxHalfWidthZ;

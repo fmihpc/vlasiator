@@ -781,6 +781,12 @@ namespace projects {
       if(myRank == MASTER_RANK) 
          std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
 
+      if (!P::adaptRefinement) {
+         if (myRank == MASTER_RANK) 
+            std::cout << "Skipping refinement!" << std::endl;
+         return true;
+      }
+
       // Leave boundary cells and a bit of safety margin
       // Should be same as previous function, might want to check
       std::array<int, 4> bws;
@@ -796,14 +802,14 @@ namespace projects {
       // We haven't used gridGlue yet so this is read from restart
       //calculateScaledDeltasSimple(mpiGrid);
 
-      Real refinementTreshold = 1.0;   // For now, make into parameter later
+      Real refinementTreshold = P::refineTreshold;
          
       for (CellID id : getLocalCells()) {
          std::array<double,3> xyz = mpiGrid.get_center(id);
          SpatialCell* cell = mpiGrid[id];
          int refLevel = cell->parameters[CellParams::REFINEMENT_LEVEL];
          Real r2 = pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2);
-         if (r2 < ibr || (xyz[0] > P::xmin + P::dx_ini * bws[refLevel] && 
+         if (r2 < ibr2 || (xyz[0] > P::xmin + P::dx_ini * bws[refLevel] && 
             xyz[0] < P::xmin + P::dx_ini * (P::xcells_ini - bws[refLevel]) && 
             xyz[1] > P::ymin + P::dy_ini * bws[refLevel] && 
             xyz[1] < P::ymin + P::dy_ini * (P::ycells_ini - bws[refLevel]) && 
