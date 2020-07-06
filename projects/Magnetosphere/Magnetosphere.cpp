@@ -619,6 +619,8 @@ namespace projects {
          return true;
       }
 
+      // TODO: iterate through local cells instead of spatial coordinates
+
       // Calculate regions for refinement
       if (P::amrMaxSpatialRefLevel > 0) {
          // L1 refinement.

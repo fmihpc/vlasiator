@@ -1046,12 +1046,28 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    phiprof::start("readDatalayout");
    if (success == true) success = readCellIds(file,fileCells,MASTER_RANK,MPI_COMM_WORLD);
 
-   // Check that the cellID lists are identical in file and grid
-   if (myRank==0){
-      vector<CellID> allGridCells=mpiGrid.get_all_cells();
-      if (fileCells.size() != allGridCells.size()){
-         success=false;
+   vector<CellID>::const_iterator it = fileCells.begin();
+   int max = mpiGrid.geometry.length;
+   for (int i = 0; i < P::amrMaxSpatialRefLevel; ++i) {
+      max *= 8;
+      // fileCells is sorted
+      while (it < fileCells.end()) {
+         CellID id = *it;
+         // Checking process is unnecessary, refine_completely() already does it.
+         if (id > max)
+            break;
+         if (!mpiGrid[id])
+            mpiGrid.refine_completely(mpiGrid.get_parent(id));
+         ++it;
       }
+      mpiGrid.stop_refining();
+   }
+
+   // Check that the cellID lists are identical in file and grid
+   if (myRank==0) {
+      vector<CellID> allGridCells = mpiGrid.get_all_cells();
+      if (fileCells.size() != allGridCells.size())
+         success=false;
    }
    
    exitOnError(success,"(RESTART) Wrong number of cells in restart file",MPI_COMM_WORLD);
