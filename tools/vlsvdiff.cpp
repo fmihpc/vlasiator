@@ -208,6 +208,14 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader,
       cerr << "ERROR, failed to get array info for '" << _varToExtract << "' at " << __FILE__ << " " << __LINE__ << endl;
       return false;
    }
+  
+   // Read the mesh array one node (of a spatial cell) at a time
+   // and create a map which contains each cell's CellID and variable to be extracted
+   char *variableBuffer = new char[variableVectorSize * variableDataSize];
+   float *variablePtrFloat = reinterpret_cast<float *>(variableBuffer);
+   double *variablePtrDouble = reinterpret_cast<double *>(variableBuffer);
+   uint *variablePtrUint = reinterpret_cast<uint *>(variableBuffer);
+   int *variablePtrInt = reinterpret_cast<int *>(variableBuffer);
 
    if (meshName == "SpatialGrid"){
       //Get local cell ids:
@@ -226,14 +234,6 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader,
          abort();
          }
       
-      // Read the mesh array one node (of a spatial cell) at a time 
-      // and create a map which contains each cell's CellID and variable to be extracted
-      char* variableBuffer = new char[variableVectorSize*variableDataSize];
-      float* variablePtrFloat = reinterpret_cast<float*>(variableBuffer);
-      double* variablePtrDouble = reinterpret_cast<double*>(variableBuffer);
-      uint* variablePtrUint = reinterpret_cast<uint*>(variableBuffer);
-      int* variablePtrInt = reinterpret_cast<int*>(variableBuffer);
-
       if (storeCellOrder == true) {
          cellOrder.clear();
        }
@@ -276,15 +276,8 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader,
          }
        }
   
-   }else{
+   }else if (meshName== "fsgrid"){
      
-      // Read the mesh array one node (of a spatial cell) at a time
-      // and create a map which contains each cell's CellID and variable to be extracted
-      char *variableBuffer = new char[variableVectorSize * variableDataSize];
-      float *variablePtrFloat = reinterpret_cast<float *>(variableBuffer);
-      double *variablePtrDouble = reinterpret_cast<double *>(variableBuffer);
-      uint *variablePtrUint = reinterpret_cast<uint *>(variableBuffer);
-      int *variablePtrInt = reinterpret_cast<int *>(variableBuffer);
 
       orderedData->clear();
 
@@ -322,6 +315,9 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader,
             cellOrder[i] = i;
          }
       }
+   }else{
+    cerr<<"meshName not recognized\t" << __FILE__ << " " << __LINE__ <<endl;
+    abort();
    }
 
    if (meshSuccess == false) {
@@ -1466,6 +1462,14 @@ int main(int argn,char* args[]) {
       printHelp(defAttribs,descriptions);
       return 0;
    }
+
+
+  printf("%s\n",attributes["meshname"].c_str());
+
+
+
+
+
 
    if (argsVector.size() < 5) {
       cout << endl;
