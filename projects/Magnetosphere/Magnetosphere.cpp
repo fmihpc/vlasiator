@@ -490,6 +490,11 @@ namespace projects {
                         for (int i = 0; i < fsgrids::bgbfield::N_BGB; ++i) {
                            BgBGrid.get(x,y,z)->at(i) = 0;
                         }
+			if ( (this->dipoleType==4) && (P::isRestart == false) ) {
+			   for (int i = 0; i < fsgrids::bfield::N_BFIELD; ++i) {
+			      perBGrid.get(x,y,z)->at(i) = 0;
+			   }
+                        }
                      }
                   }
                }

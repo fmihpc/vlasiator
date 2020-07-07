@@ -74,6 +74,8 @@ struct Parameters {
    static std::vector<int> systemWriteDistributionWriteXlineStride; /*!< Every this many lines of cells along the x direction write out their velocity space in each class. */
    static std::vector<int> systemWriteDistributionWriteYlineStride; /*!< Every this many lines of cells along the y direction write out their velocity space in each class. */
    static std::vector<int> systemWriteDistributionWriteZlineStride; /*!< Every this many lines of cells along the z direction write out their velocity space in each class. */
+   static std::vector<Real> systemWriteDistributionWriteShellRadius; /*!< At cells intersecting spheres with those radii centred at the origin write out their velocity space in each class. */
+   static std::vector<int> systemWriteDistributionWriteShellStride; /*!< Every this many cells for those on selected shells write out their velocity space in each class. */
    static std::vector<int> systemWrites; /*!< How many files have been written of each class*/
    static std::vector<std::pair<std::string,std::string>> systemWriteHints; /*!< Collection of MPI-IO hints passed for non-restart IO. Pairs of key-value strings. */
    
@@ -142,8 +144,8 @@ struct Parameters {
    static Realf amrBoxCenterX;
    static Realf amrBoxCenterY;
    static Realf amrBoxCenterZ;
-
-   /*! \brief Add the global parameters.
+   
+    /*! \brief Add the global parameters.
     * 
     * This function adds all the parameters that are loaded at a global level.
     * More are being loaded e.g. in the projects and in the system boundary conditions.

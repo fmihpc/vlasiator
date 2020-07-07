@@ -127,6 +127,7 @@ namespace CellParams {
       XCRD,   /*!< x-coordinate of the bottom left corner.*/
       YCRD,   /*!< y-coordinate of the bottom left corner.*/
       ZCRD,   /*!< z-coordinate of the bottom left corner.*/
+      // DX,DY,DZ have to be consecutive.
       DX,     /*!< Grid separation in x-coordinate.*/
       DY,     /*!< Grid separation in y-coordinate.*/
       DZ,     /*!< Grid separation in z-coordinate.*/
@@ -368,6 +369,7 @@ namespace fsgrids {
       Real maxFsDt;         /*!< maximum timestep allowed in ordinary space by fieldsolver for this cell**/
       int fsGridRank;       /*!< Rank in the fsGrids cartesian coordinator */
       uint SOLVE;           /*!< Bit mask to determine whether a given cell should solve E or B components. */
+      int refLevel;         /*!<AMR Refinement Level*/
    };
    
 }
