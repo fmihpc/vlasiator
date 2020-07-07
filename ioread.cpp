@@ -1047,7 +1047,7 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    if (success == true) success = readCellIds(file,fileCells,MASTER_RANK,MPI_COMM_WORLD);
 
    vector<CellID>::const_iterator it = fileCells.begin();
-   int max = mpiGrid.geometry.length;
+   int max = P::xcells_ini * P::ycells_ini * P::zcells_ini;
    for (int i = 0; i < P::amrMaxSpatialRefLevel; ++i) {
       max *= 8;
       // fileCells is sorted

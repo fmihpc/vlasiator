@@ -795,7 +795,7 @@ namespace projects {
       bws[0] = 2 * VLASOV_STENCIL_WIDTH;
       for (int i = 1; i < 4; ++i) {
          //bws[i] = bws[i-1] + VLASOV_STENCIL_WIDTH;
-         bws[i] = 2 * bws[i-1];
+         bws[i] = 4 * bws[i-1];
       }
 
       Real ibr2 = pow(ionosphereRadius + P::dx_ini * bws[0], 2);
@@ -811,19 +811,21 @@ namespace projects {
             SpatialCell* cell = mpiGrid[id];
             int refLevel = cell->parameters[CellParams::REFINEMENT_LEVEL];
             Real r2 = pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2);
-            if (r2 < ibr2 || (xyz[0] > P::xmin + P::dx_ini * bws[refLevel] && 
+            if ((xyz[0] > P::xmin + P::dx_ini * bws[refLevel] && 
                xyz[0] < P::xmin + P::dx_ini * (P::xcells_ini - bws[refLevel]) && 
                xyz[1] > P::ymin + P::dy_ini * bws[refLevel] && 
                xyz[1] < P::ymin + P::dy_ini * (P::ycells_ini - bws[refLevel]) && 
                xyz[2] > P::zmin + P::dz_ini * bws[refLevel] &&
                xyz[2] < P::zmin + P::dz_ini * (P::zcells_ini - bws[refLevel]))) {
-               if (cell->parameters[CellParams::ALPHA] > refinementTreshold && refLevel < P::amrMaxSpatialRefLevel) {
+               if ((r2 < ibr2 || cell->parameters[CellParams::ALPHA] > refinementTreshold) && refLevel < P::amrMaxSpatialRefLevel) {
                   mpiGrid.refine_completely(id);
                   cell->parameters[CellParams::ALPHA] /= 2;
-               } /* else if (cell->parameters[CellParams::ALPHA] < 0.01 && refLevel > 0) {
+               } /* else if (r2 > ibr2 && cell->parameters[CellParams::ALPHA] < 0.01 && refLevel > 0) {
                   mpiGrid.unrefine_completely(id)
                } Disabled for now */
-            } 
+            } else {
+               // mpiGrid.dont_refine(id); // Not in our version of dccrg :)
+            }
          }
 
          refinedCells = mpiGrid.stop_refining(true);      
