@@ -520,7 +520,6 @@ void propagatePencil(
    const uint lengthOfPencil,
    const Realv threshold
 ) {
-
    // Get velocity data from vmesh that we need later to calculate the translation
    velocity_block_indices_t block_indices;
    uint8_t refLevel;
