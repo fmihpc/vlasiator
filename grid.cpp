@@ -193,14 +193,19 @@ void initializeGrids(
       }
       phiprof::stop("Read restart");
 
-      // Re-refinement here? Might BREAK EVERYTHING
       // For now, alpha is read from the restart file
+      phiprof::start("Re-refine spatial cells");
       if (project.adaptRefinement(mpiGrid))
          recalculateLocalCellsCache();
-      // After this, at least:
+      phiprof::stop("Re-refine spatial cells");
       initSpatialCellCoordinates(mpiGrid);
-      // Not sure about these:
       setFaceNeighborRanks(mpiGrid);
+
+      if(sysBoundaries.classifyCells(mpiGrid,technicalGrid) == false) {
+         cerr << "(MAIN) ERROR: System boundary conditions were not set correctly." << endl;
+         exit(1);
+      }
+
       if(!sysBoundaries.checkRefinement(mpiGrid)) {
          cerr << "(MAIN) ERROR: Boundary cells must have identical refinement level " << endl;
          exit(1);
