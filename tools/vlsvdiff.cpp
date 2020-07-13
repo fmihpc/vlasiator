@@ -29,6 +29,8 @@
  * Calling patterns are:
  * 
  * "$ vlsvdiff <file1> <file2> <Variable> <component>": Gives single-file statistics and distances between the two files given, for the variable and component given
+ 
+ * "$ vlsvdiff --diff --meshname=<Meshname> <file1> <file2> <Variable> <component>": Gives single-file statistics and distances between the two files given, for the variable and component given
  * 
  * "$ vlsvdiff <folder1> <folder2> <Variable> <component>": Gives single-file statistics and distances between pairs of files grid*.vlsv taken in alphanumeric order in the two folders given, for the variable and component given
  * 
