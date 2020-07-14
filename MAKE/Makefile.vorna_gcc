@@ -37,6 +37,7 @@ CC_BRAND = gcc
 CC_BRAND_VERSION = 8.3.0
 CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -mavx
 testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++0x  -mavx
+CXXFLAGS += -g
 
 MATHFLAGS = -ffast-math
 LDFLAGS = -lrt -lgfortran -std=c++17
