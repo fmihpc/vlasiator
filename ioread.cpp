@@ -1063,11 +1063,16 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       mpiGrid.stop_refining();
    }
 
+   std::cout << "Rank " << myRank << " done refining" << std::endl;
+
    // Check that the cellID lists are identical in file and grid
+   MPI_Barrier(MPI_COMM_WORLD);
    if (myRank==0) {
       vector<CellID> allGridCells = mpiGrid.get_all_cells();
-      if (fileCells.size() != allGridCells.size())
+      if (fileCells.size() != allGridCells.size()) {
+         std::cout << "File has " << fileCells.size() << " cells, got " << allGridCells.size() << " cells!" << std::endl;
          success=false;
+      }
    }
    
    exitOnError(success,"(RESTART) Wrong number of cells in restart file",MPI_COMM_WORLD);
