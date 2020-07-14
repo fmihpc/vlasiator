@@ -141,6 +141,7 @@ struct Parameters {
    static bool shouldRefine;
    static bool adaptRefinement;
    static Real refineTreshold;
+   static Real unrefineTreshold;
    static int amrBoxHalfWidthX;
    static int amrBoxHalfWidthY;
    static int amrBoxHalfWidthZ;
