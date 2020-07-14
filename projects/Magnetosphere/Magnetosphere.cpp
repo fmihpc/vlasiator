@@ -625,12 +625,6 @@ namespace projects {
       if(myRank == MASTER_RANK) {
          std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
       }
-         
-      // Leave boundary cells and a bit of safety margin
-      //const int bw = 2* VLASOV_STENCIL_WIDTH;
-      //const int bw2 = 2*(bw + VLASOV_STENCIL_WIDTH);
-      //const int bw3 = 2*(bw2 + VLASOV_STENCIL_WIDTH);
-      //const int bw4 = 2*(bw3 + VLASOV_STENCIL_WIDTH);
 
       std::vector<CellID> cells = getLocalCells();
       Real ibr2 = pow(ionosphereRadius + 2*P::dx_ini, 2);
@@ -678,14 +672,6 @@ namespace projects {
             if (canRefine(xyz, 0) && (inSphere || inTail)) {
                #pragma omp critical
                mpiGrid.refine_completely(id);
-            } else if (radius2 < ibr2) {   // Inside ionosphere but not refining
-               std::cout << "Something went wrong!" << std::endl;
-               if (!canRefine(xyz, 1)) {
-                  #pragma omp critical
-                  canRefine(xyz, 1, true);
-               }
-               if (!inSphere)
-                  std::cout << "Not in sphere!" << std::endl;
             }
          }
 
@@ -714,14 +700,6 @@ namespace projects {
             if (canRefine(xyz, 1) && (inSphere || inTail)) {
                #pragma omp critical
                mpiGrid.refine_completely(id);
-            } else if (radius2 < ibr2) {   // Inside ionosphere but not refining
-               std::cout << "Something went wrong!" << std::endl;
-               if (!canRefine(xyz, 1)) {
-                  #pragma omp critical
-                  canRefine(xyz, 1, true);
-               }
-               if (!inSphere)
-                  std::cout << "Not in sphere!" << std::endl;
             }
          }
          cells = mpiGrid.stop_refining();
