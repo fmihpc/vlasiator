@@ -140,8 +140,8 @@ bool exitOnError(bool success,string message,MPI_Comm comm) {
  \param masterRank The simulation's master rank id (Vlasiator uses 0, which should be the default)
  \param comm MPI comm (MPI_COMM_WORLD should be the default)
 */
-bool readCellIds(vlsv::ParallelReader & file,
-                 vector<CellID>& fileCells, const int masterRank,MPI_Comm comm){
+bool readCellIds(vlsv::ParallelReader & file, vector<CellID>& fileCells, const int masterRank,MPI_Comm comm)
+{
    // Get info on array containing cell Ids:
    uint64_t arraySize = 0;
    uint64_t vectorSize;
@@ -1044,26 +1044,37 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    checkScalarParameter(file,"zcells_ini",P::zcells_ini,MASTER_RANK,MPI_COMM_WORLD);
 
    phiprof::start("readDatalayout");
-   if (success == true) success = readCellIds(file,fileCells,MASTER_RANK,MPI_COMM_WORLD);
+   if (success) success = readCellIds(file,fileCells,MASTER_RANK,MPI_COMM_WORLD);
 
-   vector<CellID>::const_iterator it = fileCells.begin();
-   int max = P::xcells_ini * P::ycells_ini * P::zcells_ini;
-   for (int i = 0; i < P::amrMaxSpatialRefLevel; ++i) {
-      max *= 8;
-      // fileCells is sorted
-      while (it < fileCells.end()) {
-         CellID id = *it;
-         // Checking process is unnecessary, refine_completely() already does it.
-         if (id > max)
-            break;
-         if (!mpiGrid[id])
-            mpiGrid.refine_completely(mpiGrid.get_parent(id));
-         ++it;
-      }
-      mpiGrid.stop_refining();
-   }
 
-   std::cout << "Rank " << myRank << " done refining" << std::endl;
+   //vector<CellID>::const_iterator it = fileCells.begin();
+   //int max = P::xcells_ini * P::ycells_ini * P::zcells_ini;
+   //for (int i = 0; i < P::amrMaxSpatialRefLevel; ++i) {
+   //   int toRefine = 0;
+   //   max *= 8;
+   //   // fileCells is sorted
+   //   while (it < fileCells.end()) {
+   //      CellID id = *it;
+   //      // Checking process is unnecessary, refine_completely() already does it.
+   //      if (id > max) {
+   //         break;
+   //      }
+   //      if (!mpiGrid[id] && mpiGrid[mpiGrid.get_parent(id)]) {
+   //         ++toRefine;
+   //         mpiGrid.refine_completely(mpiGrid.get_parent(id));
+   //      }
+   //      ++it;
+   //   }
+   //   std::vector<CellID> cells = mpiGrid.stop_refining();
+   //   std::cout << "Rank " << myRank << " should refine " << toRefine << " cells, loop " << i << std::endl;
+   //   std::cout << "Rank " << myRank << " refined " << cells.size() << " cells, loop " << i << std::endl;
+   //}
+
+   //success = mpiGrid.load_cells(fileCells);
+   //exitOnError(success,"(RESTART) Wrong number of cells in restart file",MPI_COMM_WORLD);
+   //recalculateLocalCellsCache();
+   //initSpatialCellCoordinates(mpiGrid);
+   //setFaceNeighborRanks(mpiGrid);
 
    // Check that the cellID lists are identical in file and grid
    MPI_Barrier(MPI_COMM_WORLD);
@@ -1226,4 +1237,27 @@ bool readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
               const std::string& name){
    //Check the vlsv version from the file:
    return exec_readGrid(mpiGrid,perBGrid,EGrid,technicalGrid,name);
+}
+
+/*!
+\brief Refine the grid to be identical to the file's
+\param mpiGrid Vlasiator's grid
+\param name Name of the restart file e.g. "restart.00052.vlsv"
+*/
+bool readFileCells(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, const std::string& name)
+{
+   vector<CellID> fileCells; /*< CellIds for all cells in file*/
+   bool success = true;
+   vlsv::ParallelReader file;
+   MPI_Info mpiInfo = MPI_INFO_NULL;
+
+   // Not sure if this success business is useful at all...
+   success = file.open(name,MPI_COMM_WORLD,MASTER_RANK,mpiInfo);
+   exitOnError(success,"(READ_FILE_CELLS) Could not open file",MPI_COMM_WORLD);
+   readCellIds(file,fileCells,MASTER_RANK,MPI_COMM_WORLD);
+   success = mpiGrid.load_cells(fileCells);
+   exitOnError(success,"(READ_FILE_CELLS) Failed to refine grid",MPI_COMM_WORLD);
+   success = file.close();
+   exitOnError(success,"(READ_FILE_CELLS) Other error",MPI_COMM_WORLD);
+   return success;
 }

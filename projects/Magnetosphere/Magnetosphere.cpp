@@ -665,8 +665,7 @@ namespace projects {
             CellID id = cells[i];
             std::array<double,3> xyz = mpiGrid.get_center(id);
                      
-            Real radius2 = (xyz[0]*xyz[0]+xyz[1]*xyz[1]+xyz[2]*xyz[2]);
-            // Check if cell is within L1 sphere, or within L1 tail slice
+            Real radius2 = pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2);
             bool inSphere = radius2 < refine_L1radius*refine_L1radius;
             bool inTail = xyz[0] < 0 && fabs(xyz[1]) < refine_L1radius && fabs(xyz[2]) < refine_L1tailthick;
             if (canRefine(xyz, 0) && (inSphere || inTail)) {
@@ -693,8 +692,7 @@ namespace projects {
             CellID id = cells[i];
             std::array<double,3> xyz = mpiGrid.get_center(id);
                      
-            Real radius2 = (xyz[0]*xyz[0]+xyz[1]*xyz[1]+xyz[2]*xyz[2]);
-            // Check if cell is within L1 sphere, or within L1 tail slice
+            Real radius2 = pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2);
             bool inSphere = radius2 < pow(refine_L2radius, 2);
             bool inTail = xyz[0] < 0 && fabs(xyz[1]) < refine_L2radius && fabs(xyz[2])<refine_L2tailthick;
             if (canRefine(xyz, 1) && (inSphere || inTail)) {
@@ -720,8 +718,7 @@ namespace projects {
             CellID id = cells[i];
             std::array<double,3> xyz = mpiGrid.get_center(id);
                      
-            Real radius2 = (xyz[0]*xyz[0]+xyz[1]*xyz[1]+xyz[2]*xyz[2]);
-
+            Real radius2 = pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2);
             bool inNoseCap = (xyz[0]>refine_L3nosexmin) && (radius2<refine_L3radius*refine_L3radius);
             bool inTail = (xyz[0]>refine_L3tailxmin) && (xyz[0]<refine_L3tailxmax) && (fabs(xyz[1])<refine_L3tailwidth) && (fabs(xyz[2])<refine_L3tailheight);
             // Check if cell is within the nose cap or tail box
@@ -773,9 +770,6 @@ namespace projects {
    bool Magnetosphere::adaptRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
       int myRank;       
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-
-      // mpiGrid.set_maximum_refinement_level(std::min(this->maxSpatialRefinementLevel, mpiGrid.mapping.get_maximum_refinement_level()));
-
       if(myRank == MASTER_RANK)
          std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
 
@@ -789,9 +783,11 @@ namespace projects {
       Real ibr2 = pow(ionosphereRadius + 2*P::dx_ini, 2);
 
       // We haven't used gridGlue yet so this is read from restart
+      // Consider recalculating, the value of alpha can differ between children
       // calculateScaledDeltasSimple(mpiGrid);
       std::vector<CellID> cells = getLocalCells();
-      Real refinementTreshold = P::refineTreshold;
+      Real refineTreshold = P::refineTreshold;
+      Real unrefineTreshold = P::unrefineTreshold;
       
       for (int i = 0; i < P::amrMaxSpatialRefLevel; ++i) {
          #pragma omp parallel for
@@ -809,10 +805,10 @@ namespace projects {
                   refine = true;
                }
             } else if (canRefine(xyz, refLevel)) {
-               if (cell->parameters[CellParams::ALPHA] > refinementTreshold) {
+               if (cell->parameters[CellParams::ALPHA] > refineTreshold) {
                   refine = true;
                }
-            } /* else if (cell->parameters[CellParams::ALPHA] < 0.01 && refLevel > 0) {
+            } /* else if (cell->parameters[CellParams::ALPHA] < unrefineTreshold && refLevel > 0) {
                mpiGrid.unrefine_completely(id)
             } */ // De-refinement disabled for now, check SysBoundaryCondition::averageCellData()
 
@@ -828,14 +824,14 @@ namespace projects {
             CellID id = cells[j];
             *mpiGrid[id] = *mpiGrid[mpiGrid.get_parent(id)];
          }
-         refinementTreshold *= 2;
+         refineTreshold *= 2;
+         unrefineTreshold /= 2;
       }
 
       if (myRank == MASTER_RANK) {
          std::cout << "Finished re-refinement" << endl;
       }
 
-      recalculateLocalCellsCache();
       return true;
    }
 } // namespace projects

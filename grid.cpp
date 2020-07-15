@@ -134,9 +134,16 @@ void initializeGrids(
    phiprof::start("Refine spatial cells");
    // We need this first as well
    recalculateLocalCellsCache();
-   if(P::amrMaxSpatialRefLevel > 0 && project.refineSpatialCells(mpiGrid)) {
-      mpiGrid.balance_load();
-      recalculateLocalCellsCache();
+   if (!P::isRestart) {
+      if (P::amrMaxSpatialRefLevel > 0 && project.refineSpatialCells(mpiGrid)) {
+         mpiGrid.balance_load();
+         recalculateLocalCellsCache();
+      }
+   } else {
+      if (readFileCells(mpiGrid, P::restartFileName)) {
+         mpiGrid.balance_load();
+         recalculateLocalCellsCache();
+      }
    }
    phiprof::stop("Refine spatial cells");
    
