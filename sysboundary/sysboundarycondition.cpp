@@ -402,7 +402,7 @@ namespace SBC {
     * \param cellList Vector of cells to copy from.
     * \param to Pointer to cell in which to set the averaged distribution.
     */
-   void SysBoundaryCondition::averageCellData(
+   void averageCellData(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const std::vector<CellID> cellList,
          SpatialCell *to,

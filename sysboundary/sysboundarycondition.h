@@ -176,14 +176,6 @@ namespace SBC {
             const uint popID,
             const bool calculate_V_moments
          );
-         void averageCellData(
-            const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-            std::vector<CellID> cellList,
-            SpatialCell *to,
-            const uint popID,
-            const bool calculate_V_moments,
-            creal fluffiness = 0
-         );
          std::array<SpatialCell*,27> & getFlowtoCells(
                const CellID& cellID
          );
@@ -295,7 +287,15 @@ namespace SBC {
          bool applyUponRestart;
    };
    
-
+   // Moved outside the class since it's a helper function that doesn't require member access
+   void averageCellData (
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      std::vector<CellID> cellList,
+      SpatialCell *to,
+      const uint popID,
+      const bool calculate_V_moments,
+      creal fluffiness = 0
+   );
 
 } // namespace SBC
 
