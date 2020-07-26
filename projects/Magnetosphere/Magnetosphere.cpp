@@ -824,11 +824,45 @@ namespace projects {
          }
 
          cells = mpiGrid.stop_refining();
+         for (int j = 0; j < cells.size(); ++j) {
+            cellsCopy.push_back(*mpiGrid[cells[j]]);
+         }
+
          #pragma omp parallel for
          for (int j = 0; j < cells.size(); ++j) {
             CellID id = cells[j];
             *mpiGrid[id] = *mpiGrid[mpiGrid.get_parent(id)];
          }
+
+         std::vector<SpatialCell> cellsCopy;
+         for (CellID id : cells) {
+            cellsCopy.push_back(SpatialCell(*mpiGrid[id]));
+         }
+
+         #pragma omp parallel for
+         for (int j = 0; j < cells.size(); ++j) {
+            CellID id = cells[j];
+            std::vector<std::pair<CellID, int>> neighbours = get_face_neighbors_of(j);
+
+            // To preserve the mean, we must only consider refined cells
+            int refLevel = cells[j]->parameters[CellParams::REFINEMENT_LEVEL];
+            std::vector<CellID> refinedNeighbours;
+            for (std::pair<CellID, int> neighbour : neighbours) {
+               if (cells.contains(neighbour.first) && mpiGrid[neighbour.first]->parameters[CellParams::REFINEMENT_LEVEL] == refLevel) {
+                  refinedNeighbours.push_back(neighbour.first);
+               }
+            }
+
+            // In boxcar filter, we take the average of each of the six neighbour and the cell itself. For each missing neighbour, add the cell one more time
+            float fluffiness = (float) refinedNeighbours.size() / 7.0;
+            SBC::averageCellData(mpiGrid, refinedNeighbours, &cellsCopy[j], 0, true, fluffiness);
+         }
+
+         #pragma omp parallel for
+         for (int j = 0; j < cells.size(); ++j) {
+            *mpiGrid[j] = cellsCopy[j];
+         }
+
          refineTreshold *= 2;
          unrefineTreshold /= 2;
       }
