@@ -595,7 +595,7 @@ namespace projects {
    }
 
    bool Magnetosphere::canRefine(const std::array<double,3> xyz, const int refLevel, const bool debug = false) const {
-      const int bw = VLASOV_STENCIL_WIDTH * pow(2, refLevel + 1);
+      const int bw = 2 * VLASOV_STENCIL_WIDTH * pow(2, refLevel); // Check later if this is excessive
 
       if (debug) {
          std::cout << "Coordinates: " << xyz[0] << ", " << xyz[1] << ", " << xyz[2] << std::endl;

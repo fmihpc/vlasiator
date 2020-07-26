@@ -244,7 +244,7 @@ bool Parameters::addParameters(){
 				"vg_pressure fg_pressure populations_vg_ptensor "+
 				"b_vol_derivatives "+
 				"vg_gridcoordinates fg_gridcoordinates meshdata "+
-            "vg_drho vg_du vg_dpsq vg_dbsq vg_db vg_alpha");
+            "vg_drho vg_du vg_dpsq vg_dbsq vg_db vg_alpha vg_reflevel");
 
    Readparameters::addComposing("variables_deprecated.output", std::string()+"List of deprecated names for data reduction operators (DROs). Names are case insensitive. "+
 				"Available (20190521): "+

@@ -957,6 +957,11 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"","","$\\alpha$","");
          continue;
       }
+      if(lowercase == "vg_reflevel") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_reflevel",CellParams::REFINEMENT_LEVEL,1));
+         outputReducer->addMetadata(outputReducer->size()-1,"","","ref","");
+         continue;
+      }
       // After all the continue; statements one should never land here.
       int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
