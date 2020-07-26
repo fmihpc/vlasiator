@@ -140,6 +140,7 @@ struct Parameters {
    static int amrMaxSpatialRefLevel;
    static bool shouldRefine;
    static bool adaptRefinement;
+   static bool shouldFilter;
    static Real refineTreshold;
    static Real unrefineTreshold;
    static int amrBoxHalfWidthX;
