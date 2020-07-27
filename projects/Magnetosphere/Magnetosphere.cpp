@@ -858,7 +858,7 @@ namespace projects {
 
             #pragma omp parallel for
             for (int j = 0; j < cells.size(); ++j) {
-               *mpiGrid[j] = cellsCopy[j];
+               *mpiGrid[cells[j]] = cellsCopy[j];
             }
          }
 
