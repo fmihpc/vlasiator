@@ -595,7 +595,7 @@ namespace projects {
    }
 
    bool Magnetosphere::canRefine(const std::array<double,3> xyz, const int refLevel, const bool debug = false) const {
-      const int bw = 2 * VLASOV_STENCIL_WIDTH * pow(2, refLevel); // Check later if this is excessive
+      const int bw = (2 + refLevel) * VLASOV_STENCIL_WIDTH; // Seems to be the limit
 
       if (debug) {
          std::cout << "Coordinates: " << xyz[0] << ", " << xyz[1] << ", " << xyz[2] << std::endl;
@@ -628,6 +628,26 @@ namespace projects {
 
       std::vector<CellID> cells = getLocalCells();
       Real ibr2 = pow(ionosphereRadius + 2*P::dx_ini, 2);
+
+      // For testing whether outer boundaries are correct
+      //for (int i = 0; i < P::amrMaxSpatialRefLevel; ++i) {
+      //   #pragma omp parallel for
+      //   for (int j = 0; j < cells.size(); ++j) {
+      //      CellID id = cells[j];
+      //      std::array<double,3> xyz = mpiGrid.get_center(id);
+      //      if (canRefine(xyz, i)) {
+      //         #pragma omp critical
+      //         mpiGrid.refine_completely(id);
+      //      }
+      //   }
+
+      //   cells = mpiGrid.stop_refining();
+      //   //#ifndef NDEBUG
+      //   if (cells.size() > 0)
+      //      std::cout << "Rank " << myRank << " refined " << cells.size() << " cells to level " << i + 1 << std::endl;
+      //   //#endif
+      //}
+      //return true;
 
       if (!P::shouldRefine) {
          if (myRank == MASTER_RANK) 
@@ -723,7 +743,7 @@ namespace projects {
             bool inTail = (xyz[0]>refine_L3tailxmin) && (xyz[0]<refine_L3tailxmax) && (fabs(xyz[1])<refine_L3tailwidth) && (fabs(xyz[2])<refine_L3tailheight);
             // Check if cell is within the nose cap or tail box
             if (canRefine(xyz, 2) && (inNoseCap || inTail)) {
-               #pragma critical
+               #pragma omp critical
                mpiGrid.refine_completely(id);			  
             }
          }
@@ -764,6 +784,7 @@ namespace projects {
          }
          #endif NDEBUG
       }
+
       return true;
    }
 
