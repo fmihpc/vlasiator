@@ -595,7 +595,7 @@ namespace projects {
    }
 
    bool Magnetosphere::canRefine(const std::array<double,3> xyz, const int refLevel, const bool debug = false) const {
-      const int bw = (2 + refLevel) * VLASOV_STENCIL_WIDTH; // Seems to be the limit
+      const int bw = (2 + 1*refLevel) * VLASOV_STENCIL_WIDTH; // Seems to be the limit
 
       if (debug) {
          std::cout << "Coordinates: " << xyz[0] << ", " << xyz[1] << ", " << xyz[2] << std::endl;
@@ -628,26 +628,6 @@ namespace projects {
 
       std::vector<CellID> cells = getLocalCells();
       Real ibr2 = pow(ionosphereRadius + 2*P::dx_ini, 2);
-
-      // For testing whether outer boundaries are correct
-      //for (int i = 0; i < P::amrMaxSpatialRefLevel; ++i) {
-      //   #pragma omp parallel for
-      //   for (int j = 0; j < cells.size(); ++j) {
-      //      CellID id = cells[j];
-      //      std::array<double,3> xyz = mpiGrid.get_center(id);
-      //      if (canRefine(xyz, i)) {
-      //         #pragma omp critical
-      //         mpiGrid.refine_completely(id);
-      //      }
-      //   }
-
-      //   cells = mpiGrid.stop_refining();
-      //   //#ifndef NDEBUG
-      //   if (cells.size() > 0)
-      //      std::cout << "Rank " << myRank << " refined " << cells.size() << " cells to level " << i + 1 << std::endl;
-      //   //#endif
-      //}
-      //return true;
 
       if (!P::shouldRefine) {
          if (myRank == MASTER_RANK) 
@@ -798,7 +778,7 @@ namespace projects {
          if (myRank == MASTER_RANK)  {
             std::cout << "Skipping re-refinement!" << std::endl;
          }
-         return true;
+         return false;
       }
 
       Real ibr2 = pow(ionosphereRadius + 2*P::dx_ini, 2);
@@ -810,23 +790,27 @@ namespace projects {
       Real refineTreshold = P::refineTreshold;
       Real unrefineTreshold = P::unrefineTreshold;
       
+      // Unfortunately refLevel 2 seems like the limit
       for (int i = 0; i < P::amrMaxSpatialRefLevel; ++i) {
          #pragma omp parallel for
          for (int j = 0; j < cells.size(); ++j) {
             CellID id = cells[j];
             std::array<double,3> xyz = mpiGrid.get_center(id);
             SpatialCell* cell = mpiGrid[id];
-            int refLevel = cell->parameters[CellParams::REFINEMENT_LEVEL];
+            // Refinement level is cached in cell parameters
+            int refLevel = mpiGrid.get_refinement_level(id);
             Real r2 = pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2);
 
             bool refine = false;
             if (r2 < ibr2) {
+               // Skip refining, we shouldn't touch borders when reading restart
+               continue;
                // Keep the center a bit less refined, otherwise it's way too heavy
-               if (refLevel + 1 < P::amrMaxSpatialRefLevel) {
-                  refine = true;
-               }
-            } else if (canRefine(xyz, refLevel)) {
-               if (cell->parameters[CellParams::ALPHA] > refineTreshold) {
+               // if (refLevel < P::amrMaxSpatialRefLevel - 1) {
+               //    refine = true;
+               // }
+            } else if (cell->parameters[CellParams::ALPHA] > refineTreshold) {
+               if (canRefine(xyz, refLevel)) {
                   refine = true;
                }
             } /* else if (cell->parameters[CellParams::ALPHA] < unrefineTreshold && refLevel > 0) {

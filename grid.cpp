@@ -205,11 +205,12 @@ void initializeGrids(
 
       // For now, alpha is read from the restart file
       phiprof::start("Re-refine spatial cells");
-      if (project.adaptRefinement(mpiGrid))
-         recalculateLocalCellsCache();
-      phiprof::stop("Re-refine spatial cells");
+      //if (project.adaptRefinement(mpiGrid)) {
+      project.adaptRefinement(mpiGrid);
+      recalculateLocalCellsCache();
       initSpatialCellCoordinates(mpiGrid);
       setFaceNeighborRanks(mpiGrid);
+      phiprof::stop("Re-refine spatial cells");
 
       if(sysBoundaries.classifyCells(mpiGrid,technicalGrid) == false) {
          cerr << "(MAIN) ERROR: System boundary conditions were not set correctly." << endl;
