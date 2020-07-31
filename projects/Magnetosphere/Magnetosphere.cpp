@@ -634,7 +634,7 @@ namespace projects {
             std::cout << "Refinement disabled, only refining ionosphere!" << std::endl;
 
          // Keep the center a bit less refined, otherwise it's way too heavy
-         for (int i = 0; i < P::amrMaxSpatialRefLevel - 1; ++i) {
+         for (int i = 0; i < P::amrMaxSpatialRefLevel && i < 2; ++i) {
             #pragma omp parallel for
             for (int j = 0; j < cells.size(); ++j) {
                CellID id = cells[j];
@@ -840,10 +840,10 @@ namespace projects {
             #pragma omp parallel for
             for (int j = 0; j < cells.size(); ++j) {
                CellID id = cells[j];
-               std::vector<std::pair<CellID, int>> neighbours = mpiGrid.get_face_neighbors_of(j);
+               std::vector<std::pair<CellID, int>> neighbours = mpiGrid.get_face_neighbors_of(id);
 
                // To preserve the mean, we must only consider refined cells
-               int refLevel = mpiGrid[cells[j]]->parameters[CellParams::REFINEMENT_LEVEL];
+               int refLevel = mpiGrid[id]->parameters[CellParams::REFINEMENT_LEVEL];
                std::vector<CellID> refinedNeighbours;
                for (std::pair<CellID, int> neighbour : neighbours) {
                   if (std::find(cells.begin(), cells.end(), neighbour.first) != cells.end() && mpiGrid[neighbour.first]->parameters[CellParams::REFINEMENT_LEVEL] == refLevel) {
@@ -851,7 +851,7 @@ namespace projects {
                   }
                }
 
-               // In boxcar filter, we take the average of each of the six neighbour and the cell itself. For each missing neighbour, add the cell one more time
+               // In boxcar filter, we take the average of each of the six neighbours and the cell itself. For each missing neighbour, add the cell one more time
                float fluffiness = (float) refinedNeighbours.size() / 7.0;
                SBC::averageCellData(mpiGrid, refinedNeighbours, &cellsCopy[j], 0, true, fluffiness);
             }
