@@ -604,7 +604,7 @@ namespace projects {
          cerr << "(Project.cpp) Base class 'adaptRefinement' in " << __FILE__ << ":" << __LINE__ << " called. Function is not implemented for project." << endl;
       }
 
-      return true;
+      return false;
    }
    
 Project* createProject() {

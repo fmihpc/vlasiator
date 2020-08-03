@@ -774,7 +774,7 @@ namespace projects {
       if(myRank == MASTER_RANK)
          std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
 
-      if (!P::adaptRefinement) {
+      if (!P::adaptRefinement || P::amrMaxSpatialRefLevel < 1) {
          if (myRank == MASTER_RANK)  {
             std::cout << "Skipping re-refinement!" << std::endl;
          }

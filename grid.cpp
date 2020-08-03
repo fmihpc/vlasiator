@@ -205,11 +205,12 @@ void initializeGrids(
 
       // For now, alpha is read from the restart file
       phiprof::start("Re-refine spatial cells");
-      //if (project.adaptRefinement(mpiGrid)) {
-      project.adaptRefinement(mpiGrid);
-      recalculateLocalCellsCache();
-      initSpatialCellCoordinates(mpiGrid);
-      setFaceNeighborRanks(mpiGrid);
+      if (project.adaptRefinement(mpiGrid)) {
+         recalculateLocalCellsCache();
+         initSpatialCellCoordinates(mpiGrid);
+         setFaceNeighborRanks(mpiGrid);
+         //P::tstep = P::bailout_min_dt;   // Drop tStep as low as possible for CFL condition
+      }
       phiprof::stop("Re-refine spatial cells");
 
       if(sysBoundaries.classifyCells(mpiGrid,technicalGrid) == false) {
