@@ -790,87 +790,83 @@ namespace projects {
       Real refineTreshold = P::refineTreshold;
       Real unrefineTreshold = P::unrefineTreshold;
       
-      // Unfortunately refLevel 2 seems like the limit
-      for (int i = 0; i < P::amrMaxSpatialRefLevel; ++i) {
+      #pragma omp parallel for
+      for (int j = 0; j < cells.size(); ++j) {
+         CellID id = cells[j];
+         std::array<double,3> xyz = mpiGrid.get_center(id);
+         SpatialCell* cell = mpiGrid[id];
+         // Refinement level is cached in cell parameters
+         int refLevel = mpiGrid.get_refinement_level(id);
+         Real r2 = pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2);
+
+         bool refine = false;
+         if (r2 < ibr2) {
+            // Skip refining, we shouldn't touch borders when reading restart
+            continue;
+            // Keep the center a bit less refined, otherwise it's way too heavy
+            // if (refLevel < P::amrMaxSpatialRefLevel - 1) {
+            //    refine = true;
+            // }
+         } else if (cell->parameters[CellParams::ALPHA] > refineTreshold) {
+            if (canRefine(xyz, refLevel)) {
+               refine = true;
+            }
+         } /* else if (cell->parameters[CellParams::ALPHA] < unrefineTreshold && refLevel > 0) {
+            mpiGrid.unrefine_completely(id)
+         } */ // De-refinement disabled for now, check SysBoundaryCondition::averageCellData()
+
+         if (refine) {
+            #pragma omp critical
+            mpiGrid.refine_completely(id);
+         }
+      }
+
+      cells = mpiGrid.stop_refining();
+
+      #pragma omp parallel for
+      for (int j = 0; j < cells.size(); ++j) {
+         CellID id = cells[j];
+         *mpiGrid[id] = *mpiGrid[mpiGrid.get_parent(id)];
+         mpiGrid[id]->parameters[CellParams::ALPHA] /= 2;
+      }
+
+      if (P::shouldFilter) {
+         std::vector<SpatialCell> cellsCopy;
+         for (CellID id : cells) {
+            cellsCopy.push_back(SpatialCell(*mpiGrid[id]));
+         }
+
          #pragma omp parallel for
          for (int j = 0; j < cells.size(); ++j) {
             CellID id = cells[j];
-            std::array<double,3> xyz = mpiGrid.get_center(id);
-            SpatialCell* cell = mpiGrid[id];
-            // Refinement level is cached in cell parameters
+            std::vector<std::pair<CellID, int>> neighbours = mpiGrid.get_face_neighbors_of(id);
+
+            // To preserve the mean, we must only consider refined cells
             int refLevel = mpiGrid.get_refinement_level(id);
-            Real r2 = pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2);
-
-            bool refine = false;
-            if (r2 < ibr2) {
-               // Skip refining, we shouldn't touch borders when reading restart
-               continue;
-               // Keep the center a bit less refined, otherwise it's way too heavy
-               // if (refLevel < P::amrMaxSpatialRefLevel - 1) {
-               //    refine = true;
-               // }
-            } else if (cell->parameters[CellParams::ALPHA] > refineTreshold) {
-               if (canRefine(xyz, refLevel)) {
-                  refine = true;
+            std::vector<CellID> refinedNeighbours;
+            for (std::pair<CellID, int> neighbour : neighbours) {
+               if (std::find(cells.begin(), cells.end(), neighbour.first) != cells.end() && mpiGrid.get_refinement_level(neighbour.first) == refLevel) {
+                  refinedNeighbours.push_back(neighbour.first);
                }
-            } /* else if (cell->parameters[CellParams::ALPHA] < unrefineTreshold && refLevel > 0) {
-               mpiGrid.unrefine_completely(id)
-            } */ // De-refinement disabled for now, check SysBoundaryCondition::averageCellData()
-
-            if (refine) {
-               #pragma omp critical
-               mpiGrid.refine_completely(id);
             }
-         }
 
-         cells = mpiGrid.stop_refining();
+            // In boxcar filter, we take the average of each of the six neighbours and the cell itself. For each missing neighbour, add the cell one more time
+            float fluffiness = (float) refinedNeighbours.size() / 7.0;
+            SBC::averageCellData(mpiGrid, refinedNeighbours, &cellsCopy[j], 0, true, fluffiness);
+         }
 
          #pragma omp parallel for
          for (int j = 0; j < cells.size(); ++j) {
-            CellID id = cells[j];
-            *mpiGrid[id] = *mpiGrid[mpiGrid.get_parent(id)];
+            *mpiGrid[cells[j]] = cellsCopy[j];
          }
-
-         if (P::shouldFilter) {
-            std::vector<SpatialCell> cellsCopy;
-            for (CellID id : cells) {
-               cellsCopy.push_back(SpatialCell(*mpiGrid[id]));
-            }
-
-            #pragma omp parallel for
-            for (int j = 0; j < cells.size(); ++j) {
-               CellID id = cells[j];
-               std::vector<std::pair<CellID, int>> neighbours = mpiGrid.get_face_neighbors_of(id);
-
-               // To preserve the mean, we must only consider refined cells
-               int refLevel = mpiGrid[id]->parameters[CellParams::REFINEMENT_LEVEL];
-               std::vector<CellID> refinedNeighbours;
-               for (std::pair<CellID, int> neighbour : neighbours) {
-                  if (std::find(cells.begin(), cells.end(), neighbour.first) != cells.end() && mpiGrid[neighbour.first]->parameters[CellParams::REFINEMENT_LEVEL] == refLevel) {
-                     refinedNeighbours.push_back(neighbour.first);
-                  }
-               }
-
-               // In boxcar filter, we take the average of each of the six neighbours and the cell itself. For each missing neighbour, add the cell one more time
-               float fluffiness = (float) refinedNeighbours.size() / 7.0;
-               SBC::averageCellData(mpiGrid, refinedNeighbours, &cellsCopy[j], 0, true, fluffiness);
-            }
-
-            #pragma omp parallel for
-            for (int j = 0; j < cells.size(); ++j) {
-               *mpiGrid[cells[j]] = cellsCopy[j];
-            }
-         }
-
-         refineTreshold *= 2;
-         unrefineTreshold /= 2;
       }
 
       if (myRank == MASTER_RANK) {
          std::cout << "Finished re-refinement" << endl;
+         //std::cout << "Rank " << myRank << " finished re-refinement" << endl;
       }
 
-      return true;
+      return !cells.empty();
    }
 } // namespace projects
 

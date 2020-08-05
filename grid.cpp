@@ -193,6 +193,12 @@ void initializeGrids(
       exit(1);
    }
    phiprof::stop("Check boundary refinement");
+
+   // Init mesh data container
+   if (getObjectWrapper().meshData.initialize("SpatialGrid") == false) {
+      cerr << "(Grid) Failed to initialize mesh data container in " << __FILE__ << ":" << __LINE__ << endl;
+      exit(1);
+   }
    
    if (P::isRestart) {
       logFile << "Restart from "<< P::restartFileName << std::endl << writeVerbose;
@@ -205,23 +211,27 @@ void initializeGrids(
 
       // For now, alpha is read from the restart file
       phiprof::start("Re-refine spatial cells");
-      if (project.adaptRefinement(mpiGrid)) {
+      for (int i = 0; i < P::amrMaxSpatialRefLevel; ++i) {
+         project.adaptRefinement(mpiGrid);
          recalculateLocalCellsCache();
          initSpatialCellCoordinates(mpiGrid);
          setFaceNeighborRanks(mpiGrid);
          //P::tstep = P::bailout_min_dt;   // Drop tStep as low as possible for CFL condition
+         balanceLoad(mpiGrid, sysBoundaries);
+
+         if(sysBoundaries.classifyCells(mpiGrid,technicalGrid) == false) {
+            cerr << "(MAIN) ERROR: System boundary conditions were not set correctly." << endl;
+            exit(1);
+         }
+
+         if(!sysBoundaries.checkRefinement(mpiGrid)) {
+            cerr << "(MAIN) ERROR: Boundary cells must have identical refinement level " << endl;
+            exit(1);
+         }
       }
       phiprof::stop("Re-refine spatial cells");
 
-      if(sysBoundaries.classifyCells(mpiGrid,technicalGrid) == false) {
-         cerr << "(MAIN) ERROR: System boundary conditions were not set correctly." << endl;
-         exit(1);
-      }
-
-      if(!sysBoundaries.checkRefinement(mpiGrid)) {
-         cerr << "(MAIN) ERROR: Boundary cells must have identical refinement level " << endl;
-         exit(1);
-      }
+      std::cout << "Re-refinement done!" << std::endl;
    
       //initial state for sys-boundary cells, will skip those not set to be reapplied at restart
       phiprof::start("Apply system boundary conditions state");
@@ -320,13 +330,6 @@ void initializeGrids(
 
    }
 
-
-   // Init mesh data container
-   if (getObjectWrapper().meshData.initialize("SpatialGrid") == false) {
-      cerr << "(Grid) Failed to initialize mesh data container in " << __FILE__ << ":" << __LINE__ << endl;
-      exit(1);
-   }
-   
    //Balance load before we transfer all data below
    balanceLoad(mpiGrid, sysBoundaries);
    
@@ -372,6 +375,11 @@ void initializeGrids(
    momentsGrid.updateGhostCells();
    momentsDt2Grid.updateGhostCells();
    phiprof::stop("Finish fsgrid setup");
+
+   // Set this so CFL doesn't break
+   if(P::adaptRefinement) {
+      P::dt = P::bailout_min_dt;
+   }
    
    phiprof::stop("Set initial state");
 }
