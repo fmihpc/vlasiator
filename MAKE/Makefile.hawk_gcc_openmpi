@@ -27,7 +27,6 @@ FLAGS =
 CC_BRAND = gcc
 CC_BRAND_VERSION = 9.2.0
 CXXFLAGS += -g -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -fabi-version=0 -Wall -Wpedantic -mfma -march=native -mavx2
-#CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -fabi-version=0 -mavx
 not_parallel_tools: CXXFLAGS += -march=native -mno-avx2 -mavx 
 testpackage: CXXFLAGS = -g -O2 -fopenmp -funroll-loops -std=c++17 -fabi-version=0 
 not_parallel_tools: CC_BRAND_VERSION = 4.9.2-noavx2
@@ -40,7 +39,7 @@ BOOST_VERSION =
 #MPI_BRAND = mpt
 #MPI_VERSION = 2.22
 MPI_BRAND = openmpi
-MPI_VERSION = 4.0.3
+MPI_VERSION = 4.0.4
 ZOLTAN_VERSION = 
 SILO_VERSION = 
 JEMALLOC_VERSION = 5.2.1
@@ -60,13 +59,11 @@ CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
 #compiled libraries
 
-#INC_BOOST = -I/opt/hlrs/spack/rev-003_2020-03-03/boost/1.70.0-gcc-9.2.0-vf7vvxu2/include
-#LIB_BOOST = -L/opt/hlrs/spack/rev-003_2020-03-03/boost/1.70.0-gcc-9.2.0-vf7vvxu2/lib -lboost_program_options
-INC_BOOST = -I$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/boost/include
-LIB_BOOST = -L$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/boost/lib -lboost_program_options
+INC_BOOST = -I/opt/hlrs/spack/rev-004_2020-06-17/boost/1.70.0-gcc-9.2.0-ihlkdeae/include
+LIB_BOOST = -L/opt/hlrs/spack/rev-004_2020-06-17/boost/1.70.0-gcc-9.2.0-ihlkdeae/lib -lboost_program_options
 
-INC_ZOLTAN = -I$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/zoltan/include
-LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/zoltan/lib -lzoltan
+INC_ZOLTAN =  -I/opt/hlrs/spack/rev-004_2020-06-17/trilinos/12.14.1-gcc-9.2.0-jp6yigfc/include
+LIB_ZOLTAN =  -L/opt/hlrs/spack/rev-004_2020-06-17/trilinos/12.14.1-gcc-9.2.0-jp6yigfc/lib -lzoltan
 
 INC_JEMALLOC = -I$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/jemalloc/include
 LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/jemalloc/lib -ljemalloc
@@ -77,8 +74,8 @@ LIB_VLSV = -L$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAN
 LIB_PROFILE = -L$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof/lib -lphiprof
 INC_PROFILE = -I$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof/include
 
-INC_PAPI = -I/opt/hlrs/spack/rev-003_2020-03-03/papi/5.7.0-gcc-9.2.0-ie2ujpf4/include
-LIB_PAPI = -L/opt/hlrs/spack/rev-003_2020-03-03/papi/5.7.0-gcc-9.2.0-ie2ujpf4/lib -lpapi
+INC_PAPI = -I/opt/hlrs/spack/rev-004_2020-06-17/papi/c048e224f-gcc-9.2.0-hxfnx7kt/include
+LIB_PAPI = -L/opt/hlrs/spack/rev-004_2020-06-17/papi/c048e224f-gcc-9.2.0-hxfnx7kt/lib -lpapi
 
 #header libraries
 

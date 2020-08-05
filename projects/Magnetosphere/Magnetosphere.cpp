@@ -76,6 +76,10 @@ namespace projects {
       RP::add("Magnetosphere.dipoleInflowBX","Inflow magnetic field Bx component to which the vector potential dipole converges. Default is none.", 0.0);
       RP::add("Magnetosphere.dipoleInflowBY","Inflow magnetic field By component to which the vector potential dipole converges. Default is none.", 0.0);
       RP::add("Magnetosphere.dipoleInflowBZ","Inflow magnetic field Bz component to which the vector potential dipole converges. Default is none.", 0.0);
+      //New Parameter for zeroing out derivativeNew Parameter for zeroing out derivativess
+      RP::add("Magnetosphere.zeroOutDerivativesX","Zero Out Perpendicular components", 1.0);
+      RP::add("Magnetosphere.zeroOutDerivativesY","Zero Out Perpendicular components", 1.0);
+      RP::add("Magnetosphere.zeroOutDerivativesZ","Zero Out Perpendicular components", 1.0);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
@@ -231,6 +235,20 @@ namespace projects {
          exit(1);
       }
 
+      if(!Readparameters::get("Magnetosphere.zeroOutDerivativesX", this->zeroOutComponents[0])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+     
+      if(!Readparameters::get("Magnetosphere.zeroOutDerivativesY", this->zeroOutComponents[1])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+     
+      if(!Readparameters::get("Magnetosphere.zeroOutDerivativesZ", this->zeroOutComponents[2])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
@@ -390,8 +408,11 @@ namespace projects {
       
 #pragma omp parallel
       {
+         bool doZeroOut;
          //Force field to zero in the perpendicular direction for 2D (1D) simulations. Otherwise we have unphysical components.
-         if(P::xcells_ini==1) {
+         doZeroOut = P::xcells_ini ==1 && this->zeroOutComponents[0]==1;
+      
+         if(doZeroOut) {
 #pragma omp for collapse(3)
             for (int x = 0; x < localSize[0]; ++x) {
                for (int y = 0; y < localSize[1]; ++y) {
@@ -411,28 +432,32 @@ namespace projects {
                }
             }
          }
-         if(P::ycells_ini==1) {
-            /*2D simulation in x and z. Set By and derivatives along Y, and derivatives of By to zero*/
-#pragma omp for collapse(3)
-            for (int x = 0; x < localSize[0]; ++x) {
-               for (int y = 0; y < localSize[1]; ++y) {
-                  for (int z = 0; z < localSize[2]; ++z) {
-                     std::array<Real, fsgrids::bgbfield::N_BGB>* cell = BgBGrid.get(x, y, z);
-                     cell->at(fsgrids::bgbfield::BGBY)=0.0;
-                     cell->at(fsgrids::bgbfield::BGBYVOL)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBxdy)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBzdy)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBydx)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBydz)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBXVOLdy)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBZVOLdy)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBYVOLdx)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBYVOLdz)=0.0;
-                  }
-               }
-            }
-         }
-         if(P::zcells_ini==1) {
+            
+          doZeroOut = P::ycells_ini ==1 && this->zeroOutComponents[1]==1;
+          if(doZeroOut) {
+             /*2D simulation in x and z. Set By and derivatives along Y, and derivatives of By to zero*/
+ #pragma omp for collapse(3)
+             for (int x = 0; x < localSize[0]; ++x) {
+                for (int y = 0; y < localSize[1]; ++y) {
+                   for (int z = 0; z < localSize[2]; ++z) {
+                      std::array<Real, fsgrids::bgbfield::N_BGB>* cell = BgBGrid.get(x, y, z);
+                      cell->at(fsgrids::bgbfield::BGBY)=0.0;
+                      cell->at(fsgrids::bgbfield::BGBYVOL)=0.0;
+                      cell->at(fsgrids::bgbfield::dBGBxdy)=0.0;
+                      cell->at(fsgrids::bgbfield::dBGBzdy)=0.0;
+                      cell->at(fsgrids::bgbfield::dBGBydx)=0.0;
+                      cell->at(fsgrids::bgbfield::dBGBydz)=0.0;
+                      cell->at(fsgrids::bgbfield::dBGBXVOLdy)=0.0;
+                      cell->at(fsgrids::bgbfield::dBGBZVOLdy)=0.0;
+                      cell->at(fsgrids::bgbfield::dBGBYVOLdx)=0.0;
+                      cell->at(fsgrids::bgbfield::dBGBYVOLdz)=0.0;
+                   }
+                }
+             }
+          }
+
+         doZeroOut = P::zcells_ini ==1 && this->zeroOutComponents[2]==1;
+         if(doZeroOut) {
 #pragma omp for collapse(3)
             for (int x = 0; x < localSize[0]; ++x) {
                for (int y = 0; y < localSize[1]; ++y) {
