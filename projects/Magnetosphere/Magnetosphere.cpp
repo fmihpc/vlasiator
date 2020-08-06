@@ -828,37 +828,7 @@ namespace projects {
          CellID id = cells[j];
          *mpiGrid[id] = *mpiGrid[mpiGrid.get_parent(id)];
          mpiGrid[id]->parameters[CellParams::ALPHA] /= 2;
-      }
-
-      if (P::shouldFilter) {
-         std::vector<SpatialCell> cellsCopy;
-         for (CellID id : cells) {
-            cellsCopy.push_back(SpatialCell(*mpiGrid[id]));
-         }
-
-         #pragma omp parallel for
-         for (int j = 0; j < cells.size(); ++j) {
-            CellID id = cells[j];
-            std::vector<std::pair<CellID, int>> neighbours = mpiGrid.get_face_neighbors_of(id);
-
-            // To preserve the mean, we must only consider refined cells
-            int refLevel = mpiGrid.get_refinement_level(id);
-            std::vector<CellID> refinedNeighbours;
-            for (std::pair<CellID, int> neighbour : neighbours) {
-               if (std::find(cells.begin(), cells.end(), neighbour.first) != cells.end() && mpiGrid.get_refinement_level(neighbour.first) == refLevel) {
-                  refinedNeighbours.push_back(neighbour.first);
-               }
-            }
-
-            // In boxcar filter, we take the average of each of the six neighbours and the cell itself. For each missing neighbour, add the cell one more time
-            float fluffiness = (float) refinedNeighbours.size() / 7.0;
-            SBC::averageCellData(mpiGrid, refinedNeighbours, &cellsCopy[j], 0, true, fluffiness);
-         }
-
-         #pragma omp parallel for
-         for (int j = 0; j < cells.size(); ++j) {
-            *mpiGrid[cells[j]] = cellsCopy[j];
-         }
+         mpiGrid[id]->parameters[CellParams::RECENTLY_REFINED] = 1;
       }
 
       if (myRank == MASTER_RANK) {
@@ -867,6 +837,50 @@ namespace projects {
       }
 
       return !cells.empty();
+   }
+   
+
+   bool Magnetosphere::filterRefined( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
+      int myRank;       
+      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+
+      std::vector<CellID> cells = getLocalCells();
+      // Remove all cells not recently refined
+      //cells.erase(std::remove_if(cells.begin(), cells.end(), [mpiGrid](CellID id) { return !mpiGrid[id]->parameters[CellParams::RECENTLY_REFINED];}), cells.end());
+      std::map<CellID, SpatialCell> cellsMap;
+      for (CellID id : cells) {
+         if (mpiGrid[id]->parameters[CellParams::RECENTLY_REFINED]) {
+            cellsMap[id] = *mpiGrid[id];
+         }
+      }
+
+      for (std::pair<CellID, SpatialCell> cellPair : cellsMap) {
+         CellID id = cellPair.first;
+         std::vector<std::pair<CellID, int>> neighbours = mpiGrid.get_face_neighbors_of(id);
+
+         // To preserve the mean, we must only consider refined cells
+         int refLevel = mpiGrid.get_refinement_level(id);
+         std::vector<CellID> refinedNeighbours;
+         for (std::pair<CellID, int> neighbour : neighbours) {
+            if (mpiGrid[neighbour.first]->parameters[CellParams::RECENTLY_REFINED] && mpiGrid.get_refinement_level(neighbour.first) == refLevel) {
+               refinedNeighbours.push_back(neighbour.first);
+            }
+         }
+
+         // In boxcar filter, we take the average of each of the six neighbours and the cell itself. For each missing neighbour, add the cell one more time
+         float fluffiness = (float) refinedNeighbours.size() / 7.0;
+         SBC::averageCellData(mpiGrid, refinedNeighbours, &cellPair.second, 0, true, fluffiness);
+      }
+
+      for (std::pair<CellID, SpatialCell> cellPair : cellsMap) {
+         *mpiGrid[cellPair.first] = cellPair.second;
+      }
+
+      if (myRank == MASTER_RANK) {
+         std::cout << "Filtered refined cells!" << std::endl;
+      }
+
+      return true;
    }
 } // namespace projects
 

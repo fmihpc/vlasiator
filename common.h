@@ -192,6 +192,7 @@ namespace CellParams {
       D_BSQ,
       D_B,
       ALPHA,
+      RECENTLY_REFINED,
       N_SPATIAL_CELL_PARAMS
    };
 }

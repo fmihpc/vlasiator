@@ -217,8 +217,6 @@ void initializeGrids(
          initSpatialCellCoordinates(mpiGrid);
          setFaceNeighborRanks(mpiGrid);
          //P::tstep = P::bailout_min_dt;   // Drop tStep as low as possible for CFL condition
-         balanceLoad(mpiGrid, sysBoundaries);
-
          if(sysBoundaries.classifyCells(mpiGrid,technicalGrid) == false) {
             cerr << "(MAIN) ERROR: System boundary conditions were not set correctly." << endl;
             exit(1);
@@ -227,6 +225,20 @@ void initializeGrids(
          if(!sysBoundaries.checkRefinement(mpiGrid)) {
             cerr << "(MAIN) ERROR: Boundary cells must have identical refinement level " << endl;
             exit(1);
+         }
+
+         std::cout << "Balancing load" << std::endl;
+         // balance load, update ghost cells
+         balanceLoad(mpiGrid, sysBoundaries);
+         phiprof::start("Fetch Neighbour data");
+         std::cout << "Transferring data" << std::endl;
+         SpatialCell::set_mpi_transfer_type(Transfer::ALL_SPATIAL_DATA);
+         mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
+         phiprof::stop("Fetch Neighbour data");
+
+         std::cout << "Filtering" << std::endl;
+         if (P::shouldFilter) {
+            project.filterRefined(mpiGrid);
          }
       }
       phiprof::stop("Re-refine spatial cells");
@@ -335,10 +347,9 @@ void initializeGrids(
    
    phiprof::initializeTimer("Fetch Neighbour data","MPI");
    phiprof::start("Fetch Neighbour data");
-   // update complete cell spatial data for full stencil (
+   // update complete cell spatial data for full stencil
    SpatialCell::set_mpi_transfer_type(Transfer::ALL_SPATIAL_DATA);
    mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
-   
    phiprof::stop("Fetch Neighbour data");
    
    if (P::isRestart == false) {
