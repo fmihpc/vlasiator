@@ -135,7 +135,7 @@ do
 	indices=(${variable_components[$run]// / })
         for i in ${!variables[*]}
         do
-            if [  "${variables[$i]}" == "fg_e" ||  "${variables[$i]}" == "fg_b" ]
+            if [ "${variables[$i]}" == "fg_e" ] || [ "${variables[$i]}" == "fg_b" ]
             then
                 relativeValue=$($run_command_tools vlsvdiff_DP --meshname=fsgrid  ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables[$i]} ${indices[$i]} |grep "The relative 0-distance between both datasets" |gawk '{print $8}'  )
                 absoluteValue=$($run_command_tools vlsvdiff_DP --meshname=fsgrid  ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables[$i]} ${indices[$i]} |grep "The absolute 0-distance between both datasets" |gawk '{print $8}'  )
