@@ -213,9 +213,7 @@ void initializeGrids(
       phiprof::start("Re-refine spatial cells");
       for (int i = 0; i < P::amrMaxSpatialRefLevel; ++i) {
          project.adaptRefinement(mpiGrid);
-         recalculateLocalCellsCache();
          initSpatialCellCoordinates(mpiGrid);
-         setFaceNeighborRanks(mpiGrid);
          //P::tstep = P::bailout_min_dt;   // Drop tStep as low as possible for CFL condition
          if(sysBoundaries.classifyCells(mpiGrid,technicalGrid) == false) {
             cerr << "(MAIN) ERROR: System boundary conditions were not set correctly." << endl;
@@ -227,16 +225,13 @@ void initializeGrids(
             exit(1);
          }
 
-         std::cout << "Balancing load" << std::endl;
          // balance load, update ghost cells
          balanceLoad(mpiGrid, sysBoundaries);
-         phiprof::start("Fetch Neighbour data");
-         std::cout << "Transferring data" << std::endl;
-         SpatialCell::set_mpi_transfer_type(Transfer::ALL_SPATIAL_DATA);
-         mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
-         phiprof::stop("Fetch Neighbour data");
+         //std::cout << "Transferring data" << std::endl;
+         //SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
+         //mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
+         //phiprof::stop("Fetch Neighbour data");
 
-         std::cout << "Filtering" << std::endl;
          if (P::shouldFilter) {
             project.filterRefined(mpiGrid);
          }
@@ -345,13 +340,6 @@ void initializeGrids(
    //Balance load before we transfer all data below
    balanceLoad(mpiGrid, sysBoundaries);
    
-   phiprof::initializeTimer("Fetch Neighbour data","MPI");
-   phiprof::start("Fetch Neighbour data");
-   // update complete cell spatial data for full stencil
-   SpatialCell::set_mpi_transfer_type(Transfer::ALL_SPATIAL_DATA);
-   mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
-   phiprof::stop("Fetch Neighbour data");
-   
    if (P::isRestart == false) {
       // Apply boundary conditions so that we get correct initial moments
       sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid,Parameters::t, true); // It doesn't matter here whether we put _R or _V moments
@@ -389,6 +377,12 @@ void initializeGrids(
 
    // Set this so CFL doesn't break
    if(P::adaptRefinement) {
+      // Half-step acceleration
+      if( P::propagateVlasovAcceleration ) {
+         calculateAcceleration(mpiGrid, -0.5*P::dt + 0.5*P::bailout_min_dt);
+      } else {
+         calculateAcceleration(mpiGrid, 0.0);
+      }
       P::dt = P::bailout_min_dt;
    }
    
