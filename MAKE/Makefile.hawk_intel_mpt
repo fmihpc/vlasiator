@@ -37,7 +37,7 @@ LIB_MPI = -lgomp
 
 BOOST_VERSION = 
 MPI_BRAND = mpt
-MPI_VERSION = 2.22
+MPI_VERSION = 2.23
 ZOLTAN_VERSION = 
 SILO_VERSION = 
 JEMALLOC_VERSION = 5.2.1
@@ -74,8 +74,8 @@ LIB_VLSV = -L$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAN
 LIB_PROFILE = -L$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof/lib -lphiprof
 INC_PROFILE = -I$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof/include
 
-INC_PAPI = -I/opt/hlrs/spack/rev-003_2020-03-03/papi/5.7.0-intel-19.1.0-afazikxh/include
-LIB_PAPI = -L/opt/hlrs/spack/rev-003_2020-03-03/papi/5.7.0-intel-19.1.0-afazikxh/lib -lpapi
+INC_PAPI = -I/opt/hlrs/spack/rev-004_2020-06-17/papi/c048e224f-intel-19.1.0-wlgbb2mr/include
+LIB_PAPI = -L/opt/hlrs/spack/rev-004_2020-06-17/papi/c048e224f-intel-19.1.0-wlgbb2mr/lib -lpapi
 
 #header libraries
 
