@@ -227,10 +227,10 @@ void initializeGrids(
 
          // balance load, update ghost cells
          balanceLoad(mpiGrid, sysBoundaries);
-         //std::cout << "Transferring data" << std::endl;
-         //SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
-         //mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
-         //phiprof::stop("Fetch Neighbour data");
+         std::cout << "Transferring data" << std::endl;
+         SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
+         mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
+         std::cout << "Filtering" << std::endl;
 
          if (P::shouldFilter) {
             project.filterRefined(mpiGrid);
