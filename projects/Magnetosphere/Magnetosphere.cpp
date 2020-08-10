@@ -827,7 +827,7 @@ namespace projects {
       for (int j = 0; j < cells.size(); ++j) {
          CellID id = cells[j];
          *mpiGrid[id] = *mpiGrid[mpiGrid.get_parent(id)];
-         mpiGrid[id]->parameters[CellParams::ALPHA] /= 2;
+         mpiGrid[id]->parameters[CellParams::ALPHA] /= P::refineMultiplier;
          mpiGrid[id]->parameters[CellParams::RECENTLY_REFINED] = 1;
       }
 
