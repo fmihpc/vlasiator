@@ -835,8 +835,6 @@ namespace projects {
          std::cout << "Finished re-refinement" << endl;
       }
 
-      std::cout << "Rank " << myRank << " re-refined " << cells.size() << " cells!" << std::endl;
-
       return !cells.empty();
    }
    
@@ -848,14 +846,14 @@ namespace projects {
       std::vector<CellID> cells = getLocalCells();
       // Remove all cells not recently refined
       //cells.erase(std::remove_if(cells.begin(), cells.end(), [mpiGrid](CellID id) { return !mpiGrid[id]->parameters[CellParams::RECENTLY_REFINED];}), cells.end());
-      std::map<CellID, SpatialCell> cellsMap;
+      std::map<CellID, SpatialCell*> cellsMap;
       for (CellID id : cells) {
          if (mpiGrid[id]->parameters[CellParams::RECENTLY_REFINED]) {
-            cellsMap[id] = *mpiGrid[id];
+            cellsMap[id] = new SpatialCell(*mpiGrid[id]);
          }
       }
 
-      for (std::pair<CellID, SpatialCell> cellPair : cellsMap) {
+      for (std::pair<CellID, SpatialCell*> cellPair : cellsMap) {
          CellID id = cellPair.first;
          std::vector<std::pair<CellID, int>> neighbours = mpiGrid.get_face_neighbors_of(id);
 
@@ -868,36 +866,40 @@ namespace projects {
             }
          }
 
+         if (refinedNeighbours.size() == 3) {
+            continue;   // Simple heuristic, in these cases all neighbours are from the same parent cell, ergo are identical
+         }
+
          // In boxcar filter, we take the average of each of the six neighbours and the cell itself. For each missing neighbour, add the cell one more time
          Real fluffiness = (Real) refinedNeighbours.size() / 7.0;
          for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-            SBC::averageCellData(mpiGrid, refinedNeighbours, &cellPair.second, popID, true, fluffiness);
+            SBC::averageCellData(mpiGrid, refinedNeighbours, cellPair.second, popID, true, fluffiness);
          }
 
-         // Averaging moments:
+         // Averaging moments
+         // Not sure if this is necessary, but let's do it anyway
          for (int param = CellParams::RHOM; param < CellParams::EXVOL; ++param) {
-            if (param == CellParams::RHOQ_DT2) {
+            if (param == CellParams::BGBXVOL) {
                param = CellParams::RHOM_R;   // Skip VG stuff
             }
-            cellPair.second.parameters[param] *= (1 - fluffiness);
+            cellPair.second->parameters[param] *= (1.0 - fluffiness);
             for (CellID id : refinedNeighbours) {
-               cellPair.second.parameters[param] += mpiGrid[id]->parameters[param] / 7.0;
+               cellPair.second->parameters[param] += mpiGrid[id]->parameters[param] / 7.0;
             }
          }
       }
 
-      int copied = 0;
-      for (std::pair<CellID, SpatialCell> cellPair : cellsMap) {
-         *mpiGrid[cellPair.first] = cellPair.second;
+      for (std::pair<CellID, SpatialCell*> cellPair : cellsMap) {
+         *mpiGrid[cellPair.first] = *cellPair.second;
          mpiGrid[cellPair.first]->parameters[CellParams::RECENTLY_REFINED] = 0;
-         ++copied;
+         
+         delete cellPair.second;
+         cellPair.second = nullptr;
       }
 
       if (myRank == MASTER_RANK) {
          std::cout << "Filtered refined cells!" << std::endl;
       }
-
-      std::cout << "Rank " << myRank << " filtered " << copied << " cells!" << std::endl;
 
       return true;
    }
