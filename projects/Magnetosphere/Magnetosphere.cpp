@@ -594,16 +594,8 @@ namespace projects {
       return centerPoints;
    }
 
-   bool Magnetosphere::canRefine(const std::array<double,3> xyz, const int refLevel, const bool debug = false) const {
+   bool Magnetosphere::canRefine(const std::array<double,3> xyz, const int refLevel) const {
       const int bw = (2 + 1*refLevel) * VLASOV_STENCIL_WIDTH; // Seems to be the limit
-
-      if (debug) {
-         std::cout << "Coordinates: " << xyz[0] << ", " << xyz[1] << ", " << xyz[2] << std::endl;
-         std::cout << "Limits:" << std::endl;
-         std::cout << P::xmin + P::dx_ini * bw << " -- " << P::xmax - P::dx_ini * bw << std::endl;
-         std::cout << P::ymin + P::dy_ini * bw << " -- " << P::ymax - P::dy_ini * bw << std::endl;
-         std::cout << P::zmin + P::dz_ini * bw << " -- " << P::zmax - P::dz_ini * bw << std::endl;
-      }
 
       return refLevel < P::amrMaxSpatialRefLevel &&
              xyz[0] > P::xmin + P::dx_ini * bw && 
@@ -619,9 +611,6 @@ namespace projects {
       int myRank;       
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
-      // mpiGrid.set_maximum_refinement_level(std::min(this->maxSpatialRefinementLevel, mpiGrid.mapping.get_maximum_refinement_level()));
-
-         // cout << "I am at line " << __LINE__ << " of " << __FILE__ <<  endl;
       if(myRank == MASTER_RANK) {
          std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
       }
@@ -634,6 +623,7 @@ namespace projects {
             std::cout << "Refinement disabled, only refining ionosphere!" << std::endl;
 
          // Keep the center a bit less refined, otherwise it's way too heavy
+         // Ionosphere refinement hardcoded to max. 2 right now, consider parametrization
          for (int i = 0; i < P::amrMaxSpatialRefLevel && i < 2; ++i) {
             #pragma omp parallel for
             for (int j = 0; j < cells.size(); ++j) {
@@ -657,9 +647,8 @@ namespace projects {
          return true;
       }
 
-      // Calculate regions for refinement
+      // L1 refinement.
       if (P::amrMaxSpatialRefLevel > 0) {
-         // L1 refinement.
          #pragma omp parallel for
          for (int i = 0; i < cells.size(); ++i) {
             CellID id = cells[i];
@@ -685,8 +674,8 @@ namespace projects {
          #endif NDEBUG
       }
       
+      // L2 refinement.
       if (P::amrMaxSpatialRefLevel > 1) {
-         // L2 refinement.
          #pragma omp parallel for
          for (int i = 0; i < cells.size(); ++i) {
             CellID id = cells[i];
@@ -711,8 +700,8 @@ namespace projects {
          #endif NDEBUG
       }
       
+      // L3 refinement.
       if (P::amrMaxSpatialRefLevel > 2) {
-         // L3 refinement.
          #pragma omp parallel for
          for (int i = 0; i < cells.size(); ++i) {
             CellID id = cells[i];
@@ -721,7 +710,6 @@ namespace projects {
             Real radius2 = pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2);
             bool inNoseCap = (xyz[0]>refine_L3nosexmin) && (radius2<refine_L3radius*refine_L3radius);
             bool inTail = (xyz[0]>refine_L3tailxmin) && (xyz[0]<refine_L3tailxmax) && (fabs(xyz[1])<refine_L3tailwidth) && (fabs(xyz[2])<refine_L3tailheight);
-            // Check if cell is within the nose cap or tail box
             if (canRefine(xyz, 2) && (inNoseCap || inTail)) {
                #pragma omp critical
                mpiGrid.refine_completely(id);			  
@@ -738,8 +726,8 @@ namespace projects {
          #endif NDEBUG
       }
 
+      // L4 refinement.
       if (P::amrMaxSpatialRefLevel > 3) {
-         // L4 refinement.
          #pragma omp parallel for
          for (int i = 0; i < cells.size(); ++i) {
             CellID id = cells[i];
@@ -748,7 +736,8 @@ namespace projects {
             Real radius2 = (xyz[0]*xyz[0]+xyz[1]*xyz[1]+xyz[2]*xyz[2]);
 
             // Check if cell is within the nose cap
-            if ((xyz[0]>refine_L4nosexmin) && (radius2<refine_L4radius*refine_L4radius)) {
+            bool inNose = refine_L4nosexmin && radius2<refine_L4radius*refine_L4radius;
+            if (inNose) {
                #pragma omp critical
                mpiGrid.refine_completely(id);			  
             }
@@ -771,10 +760,11 @@ namespace projects {
    bool Magnetosphere::adaptRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
       int myRank;       
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-      if(myRank == MASTER_RANK)
+      if(myRank == MASTER_RANK) {
          std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
+      }
 
-      if (!P::adaptRefinement || P::amrMaxSpatialRefLevel < 1) {
+      if (!P::adaptRefinement) {
          if (myRank == MASTER_RANK)  {
             std::cout << "Skipping re-refinement!" << std::endl;
          }
@@ -783,9 +773,6 @@ namespace projects {
 
       Real ibr2 = pow(ionosphereRadius + 2*P::dx_ini, 2);
 
-      // We haven't used gridGlue yet so this is read from restart
-      // Consider recalculating, the value of alpha can differ between children
-      // calculateScaledDeltasSimple(mpiGrid);
       std::vector<CellID> cells = getLocalCells();
       Real refineTreshold = P::refineTreshold;
       Real unrefineTreshold = P::unrefineTreshold;
@@ -795,7 +782,6 @@ namespace projects {
          CellID id = cells[j];
          std::array<double,3> xyz = mpiGrid.get_center(id);
          SpatialCell* cell = mpiGrid[id];
-         // Refinement level is cached in cell parameters
          int refLevel = mpiGrid.get_refinement_level(id);
          Real r2 = pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2);
 
@@ -803,21 +789,11 @@ namespace projects {
          if (r2 < ibr2) {
             // Skip refining, we shouldn't touch borders when reading restart
             continue;
-            // Keep the center a bit less refined, otherwise it's way too heavy
-            // if (refLevel < P::amrMaxSpatialRefLevel - 1) {
-            //    refine = true;
-            // }
          } else if (cell->parameters[CellParams::ALPHA] > refineTreshold) {
             if (canRefine(xyz, refLevel)) {
-               refine = true;
+               #pragma omp critical
+               mpiGrid.refine_completely(id);
             }
-         } /* else if (cell->parameters[CellParams::ALPHA] < unrefineTreshold && refLevel > 0) {
-            mpiGrid.unrefine_completely(id)
-         } */ // De-refinement disabled for now, check SysBoundaryCondition::averageCellData()
-
-         if (refine) {
-            #pragma omp critical
-            mpiGrid.refine_completely(id);
          }
       }
 
@@ -838,14 +814,12 @@ namespace projects {
       return !cells.empty();
    }
    
-
+   // Consider moving this definition to Project.cpp
    bool Magnetosphere::filterRefined( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
       int myRank;       
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
       std::vector<CellID> cells = getLocalCells();
-      // Remove all cells not recently refined
-      //cells.erase(std::remove_if(cells.begin(), cells.end(), [mpiGrid](CellID id) { return !mpiGrid[id]->parameters[CellParams::RECENTLY_REFINED];}), cells.end());
       std::map<CellID, SpatialCell*> cellsMap;
       for (CellID id : cells) {
          if (mpiGrid[id]->parameters[CellParams::RECENTLY_REFINED]) {
@@ -855,7 +829,6 @@ namespace projects {
 
       for (std::pair<CellID, SpatialCell*> cellPair : cellsMap) {
          CellID id = cellPair.first;
-         //std::vector<std::pair<CellID, int>> neighbours = mpiGrid.get_face_neighbors_of(id);
          const std::vector<std::pair<CellID, std::array<int, 4>>>* neighbours = mpiGrid.get_neighbors_of(id, NEAREST_NEIGHBORHOOD_ID);
 
          // To preserve the mean, we must only consider refined cells
@@ -881,7 +854,7 @@ namespace projects {
          // Not sure if this is necessary, but let's do it anyway
          for (int param = CellParams::RHOM; param < CellParams::EXVOL; ++param) {
             if (param == CellParams::BGBXVOL) {
-               param = CellParams::RHOM_R;   // Skip VG stuff
+               param = CellParams::RHOM_R;   // Skip FG stuff
             }
             cellPair.second->parameters[param] *= (1.0 - fluffiness);
             for (CellID id : refinedNeighbours) {

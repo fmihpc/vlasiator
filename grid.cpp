@@ -211,7 +211,7 @@ void initializeGrids(
 
       // For now, alpha is read from the restart file
       phiprof::start("Re-refine spatial cells");
-      for (int i = 0; i < P::amrMaxSpatialRefLevel; ++i) {
+      for (int i = 0; P::adaptRefinement && i < P::amrMaxSpatialRefLevel; ++i) {
          project.adaptRefinement(mpiGrid);
          initSpatialCellCoordinates(mpiGrid);
          if(sysBoundaries.classifyCells(mpiGrid,technicalGrid) == false) {
@@ -226,18 +226,17 @@ void initializeGrids(
 
          // balance load, update ghost cells
          balanceLoad(mpiGrid, sysBoundaries);
-         std::cout << "Transferring data" << std::endl;
          SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
          mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
-         std::cout << "Filtering" << std::endl;
+         
 
          if (P::shouldFilter) {
             project.filterRefined(mpiGrid);
          }
+
+         // Consider recalculating alphas here. Requires fs grid to be set up and grid glue
       }
       phiprof::stop("Re-refine spatial cells");
-
-      std::cout << "Re-refinement done!" << std::endl;
    
       //initial state for sys-boundary cells, will skip those not set to be reapplied at restart
       phiprof::start("Apply system boundary conditions state");

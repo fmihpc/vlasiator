@@ -486,22 +486,34 @@ void calculateBVOLDerivativesSimple(
    phiprof::stop("Calculate volume derivatives",N_cells,"Spatial Cells");
 }
 
+/*! \brief Returns volumetric E of cell
+ *
+ */
 std::array<Real, 3> getE(SpatialCell* cell)
 {
    return std::array<Real, 3> { {cell->parameters[CellParams::EXVOL], cell->parameters[CellParams::EYVOL], cell->parameters[CellParams::EZVOL]} };
 }
 
+/*! \brief Returns perturbated volumetric B of cell
+ *
+ */
 std::array<Real, 3> getPerB(SpatialCell* cell)
 {
    return std::array<Real, 3> { {cell->parameters[CellParams::PERBXVOL], cell->parameters[CellParams::PERBYVOL], cell->parameters[CellParams::PERBZVOL]} };
 }
 
+/*! \brief Calculates momentum density of cell
+ *
+ */
 std::array<Real, 3> getP(SpatialCell* cell)
 {
    Real rho = cell->parameters[CellParams::RHOM];
    return std::array<Real, 3> { {rho * cell->parameters[CellParams::VX], rho * cell->parameters[CellParams::VY], rho * cell->parameters[CellParams::VZ]} };
 }
 
+/*! \brief Calculates EM field energy for spatial cell with only perturbated magnetic field
+ *
+ */
 Real calculateU1(SpatialCell* cell)
 {
    std::array<Real, 3> E = getE(cell);
@@ -514,10 +526,9 @@ Real calculateU1(SpatialCell* cell)
 
 /*! \brief Low-level scaled gradients calculation
  * 
- * For the cell with ID cellID calculate scaled gradients
+ * For the SpatialCell* cell and its neighbors, calculate scaled gradients and their maximum alpha
  *
  */
-
 void calculateScaledDeltas(
    SpatialCell* cell,
    std::vector<SpatialCell*>& neighbors)
@@ -553,8 +564,6 @@ void calculateScaledDeltas(
          dB = std::max(sqrt(deltaBsq) / maxB, dB);
    }
    
-   // Fug, do this better later
-   // Real alpha = std::max_element({dRho, dU, dPsq, dBsq, dB});
    Real alpha = dRho;
    if (dU > alpha)
       alpha = dU;

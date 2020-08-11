@@ -78,7 +78,7 @@ namespace projects {
                                                       const uint popID
                                                      ) const;
       
-      bool canRefine(const std::array<double,3> xyz, const int refLevel, bool debug) const;
+      bool canRefine(const std::array<double,3> xyz, const int refLevel) const;
       
       Real constBgB[3];
       bool noDipoleInSW;

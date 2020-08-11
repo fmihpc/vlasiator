@@ -84,7 +84,14 @@ namespace projects {
 
       virtual bool refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const;
 
+      /*!\brief Adapts refinement by one level according to the project. Returns true if any cells were refined, false if not.
+       * \param mpiGrid grid to refine
+       */
       virtual bool adaptRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const;
+
+      /*!\brief Boxcar filters spatial cells that were recently refined
+       * \param mpiGrid grid to filter
+       */
       virtual bool filterRefined( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const;
       
     protected:
