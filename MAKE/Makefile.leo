@@ -1,4 +1,4 @@
-# For Yann's laptop
+# For Leo's laptop
 
 #======== Vectorization ==========
 #Set vector backend type for vlasov solvers, sets precision and length. 
