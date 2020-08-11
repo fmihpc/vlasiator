@@ -1046,38 +1046,7 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    phiprof::start("readDatalayout");
    if (success) success = readCellIds(file,fileCells,MASTER_RANK,MPI_COMM_WORLD);
 
-
-   //vector<CellID>::const_iterator it = fileCells.begin();
-   //int max = P::xcells_ini * P::ycells_ini * P::zcells_ini;
-   //for (int i = 0; i < P::amrMaxSpatialRefLevel; ++i) {
-   //   int toRefine = 0;
-   //   max *= 8;
-   //   // fileCells is sorted
-   //   while (it < fileCells.end()) {
-   //      CellID id = *it;
-   //      // Checking process is unnecessary, refine_completely() already does it.
-   //      if (id > max) {
-   //         break;
-   //      }
-   //      if (!mpiGrid[id] && mpiGrid[mpiGrid.get_parent(id)]) {
-   //         ++toRefine;
-   //         mpiGrid.refine_completely(mpiGrid.get_parent(id));
-   //      }
-   //      ++it;
-   //   }
-   //   std::vector<CellID> cells = mpiGrid.stop_refining();
-   //   std::cout << "Rank " << myRank << " should refine " << toRefine << " cells, loop " << i << std::endl;
-   //   std::cout << "Rank " << myRank << " refined " << cells.size() << " cells, loop " << i << std::endl;
-   //}
-
-   //success = mpiGrid.load_cells(fileCells);
-   //exitOnError(success,"(RESTART) Wrong number of cells in restart file",MPI_COMM_WORLD);
-   //recalculateLocalCellsCache();
-   //initSpatialCellCoordinates(mpiGrid);
-   //setFaceNeighborRanks(mpiGrid);
-
    // Check that the cellID lists are identical in file and grid
-   MPI_Barrier(MPI_COMM_WORLD);
    if (myRank==0) {
       vector<CellID> allGridCells = mpiGrid.get_all_cells();
       if (fileCells.size() != allGridCells.size()) {

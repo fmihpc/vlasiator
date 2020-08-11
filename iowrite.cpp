@@ -1369,7 +1369,6 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_alpha",CellParams::ALPHA,1));
    // Consider removing these later and just outputting them if needed
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_reflevel",CellParams::REFINEMENT_LEVEL,1));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_reflevel",CellParams::REFINEMENT_LEVEL,1));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_x",CellParams::XCRD,1));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_y",CellParams::YCRD,1));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_z",CellParams::ZCRD,1));
