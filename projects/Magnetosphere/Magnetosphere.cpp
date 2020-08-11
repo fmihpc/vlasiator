@@ -855,23 +855,24 @@ namespace projects {
 
       for (std::pair<CellID, SpatialCell*> cellPair : cellsMap) {
          CellID id = cellPair.first;
-         std::vector<std::pair<CellID, int>> neighbours = mpiGrid.get_face_neighbors_of(id);
+         //std::vector<std::pair<CellID, int>> neighbours = mpiGrid.get_face_neighbors_of(id);
+         const std::vector<std::pair<CellID, std::array<int, 4>>>* neighbours = mpiGrid.get_neighbors_of(id, NEAREST_NEIGHBORHOOD_ID);
 
          // To preserve the mean, we must only consider refined cells
          int refLevel = mpiGrid.get_refinement_level(id);
          std::vector<CellID> refinedNeighbours;
-         for (std::pair<CellID, int> neighbour : neighbours) {
+         for (std::pair<CellID, std::array<int, 4>> neighbour : *neighbours) {
             if (mpiGrid[neighbour.first]->parameters[CellParams::RECENTLY_REFINED] && mpiGrid.get_refinement_level(neighbour.first) == refLevel) {
                refinedNeighbours.push_back(neighbour.first);
             }
          }
 
-         if (refinedNeighbours.size() == 3) {
+         if (refinedNeighbours.size() == 7) {
             continue;   // Simple heuristic, in these cases all neighbours are from the same parent cell, ergo are identical
          }
 
-         // In boxcar filter, we take the average of each of the six neighbours and the cell itself. For each missing neighbour, add the cell one more time
-         Real fluffiness = (Real) refinedNeighbours.size() / 7.0;
+         // In boxcar filter, we take the average of each of the neighbours and the cell itself. For each missing neighbour, add the cell one more time
+         Real fluffiness = (Real) refinedNeighbours.size() / 27.0;
          for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
             SBC::averageCellData(mpiGrid, refinedNeighbours, cellPair.second, popID, true, fluffiness);
          }
@@ -884,7 +885,7 @@ namespace projects {
             }
             cellPair.second->parameters[param] *= (1.0 - fluffiness);
             for (CellID id : refinedNeighbours) {
-               cellPair.second->parameters[param] += mpiGrid[id]->parameters[param] / 7.0;
+               cellPair.second->parameters[param] += mpiGrid[id]->parameters[param] / 27.0;
             }
          }
       }

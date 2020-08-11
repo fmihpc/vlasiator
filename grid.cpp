@@ -214,7 +214,6 @@ void initializeGrids(
       for (int i = 0; i < P::amrMaxSpatialRefLevel; ++i) {
          project.adaptRefinement(mpiGrid);
          initSpatialCellCoordinates(mpiGrid);
-         //P::tstep = P::bailout_min_dt;   // Drop tStep as low as possible for CFL condition
          if(sysBoundaries.classifyCells(mpiGrid,technicalGrid) == false) {
             cerr << "(MAIN) ERROR: System boundary conditions were not set correctly." << endl;
             exit(1);
