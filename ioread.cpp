@@ -1186,8 +1186,12 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       exitOnError(false, "(RESTART) FSGrid writing rank number not found in restart file", MPI_COMM_WORLD);
    }
    
-   if(success) { success = readFsGridVariable(file, "fg_PERB", fsgridInputRanks, perBGrid); }
-   if(success) { success = readFsGridVariable(file, "fg_E", fsgridInputRanks, EGrid); }
+   if (success) {
+      success = readFsGridVariable(file, "fg_PERB", fsgridInputRanks, perBGrid);
+   }
+   if (success) {
+      success = readFsGridVariable(file, "fg_E", fsgridInputRanks, EGrid);
+   }
    exitOnError(success,"(RESTART) Failure reading fsgrid restart variables",MPI_COMM_WORLD);
    
    success = file.close();
