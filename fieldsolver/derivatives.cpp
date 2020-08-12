@@ -601,6 +601,10 @@ void calculateScaledDeltasSimple(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    
    timer=phiprof::initializeTimer("Start comm","MPI");
    phiprof::start(timer);
+
+   // We only need nearest neighbourhood and spatial data here
+   SpatialCell::set_mpi_transfer_type(Transfer::ALL_SPATIAL_DATA);
+   mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
    
    phiprof::stop(timer,N_cells,"Spatial Cells");
    

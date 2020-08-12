@@ -228,7 +228,6 @@ void initializeGrids(
          balanceLoad(mpiGrid, sysBoundaries);
          SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
          mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
-         
 
          if (P::shouldFilter) {
             project.filterRefined(mpiGrid);
