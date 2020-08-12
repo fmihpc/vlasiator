@@ -625,14 +625,14 @@ namespace projects {
          // Keep the center a bit less refined, otherwise it's way too heavy
          // Ionosphere refinement hardcoded to max. 2 right now, consider parametrization
          for (int i = 0; i < P::amrMaxSpatialRefLevel && i < 2; ++i) {
-            #pragma omp parallel for
+            //#pragma omp parallel for
             for (int j = 0; j < cells.size(); ++j) {
                CellID id = cells[j];
                std::array<double,3> xyz = mpiGrid.get_center(id);
                SpatialCell* cell = mpiGrid[id];
                Real r2 = pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2);
                if (r2 < ibr2) {
-                  #pragma omp critical
+                  //#pragma omp critical
                   mpiGrid.refine_completely(id);
                }
             }
@@ -649,7 +649,7 @@ namespace projects {
 
       // L1 refinement.
       if (P::amrMaxSpatialRefLevel > 0) {
-         #pragma omp parallel for
+         //#pragma omp parallel for
          for (int i = 0; i < cells.size(); ++i) {
             CellID id = cells[i];
             std::array<double,3> xyz = mpiGrid.get_center(id);
@@ -658,7 +658,7 @@ namespace projects {
             bool inSphere = radius2 < refine_L1radius*refine_L1radius;
             bool inTail = xyz[0] < 0 && fabs(xyz[1]) < refine_L1radius && fabs(xyz[2]) < refine_L1tailthick;
             if (canRefine(xyz, 0) && (inSphere || inTail)) {
-               #pragma omp critical
+               //#pragma omp critical
                mpiGrid.refine_completely(id);
             }
          }
@@ -676,7 +676,7 @@ namespace projects {
       
       // L2 refinement.
       if (P::amrMaxSpatialRefLevel > 1) {
-         #pragma omp parallel for
+         //#pragma omp parallel for
          for (int i = 0; i < cells.size(); ++i) {
             CellID id = cells[i];
             std::array<double,3> xyz = mpiGrid.get_center(id);
@@ -685,7 +685,7 @@ namespace projects {
             bool inSphere = radius2 < pow(refine_L2radius, 2);
             bool inTail = xyz[0] < 0 && fabs(xyz[1]) < refine_L2radius && fabs(xyz[2])<refine_L2tailthick;
             if (canRefine(xyz, 1) && (inSphere || inTail)) {
-               #pragma omp critical
+               //#pragma omp critical
                mpiGrid.refine_completely(id);
             }
          }
@@ -702,7 +702,7 @@ namespace projects {
       
       // L3 refinement.
       if (P::amrMaxSpatialRefLevel > 2) {
-         #pragma omp parallel for
+         //#pragma omp parallel for
          for (int i = 0; i < cells.size(); ++i) {
             CellID id = cells[i];
             std::array<double,3> xyz = mpiGrid.get_center(id);
@@ -711,7 +711,7 @@ namespace projects {
             bool inNoseCap = (xyz[0]>refine_L3nosexmin) && (radius2<refine_L3radius*refine_L3radius);
             bool inTail = (xyz[0]>refine_L3tailxmin) && (xyz[0]<refine_L3tailxmax) && (fabs(xyz[1])<refine_L3tailwidth) && (fabs(xyz[2])<refine_L3tailheight);
             if (canRefine(xyz, 2) && (inNoseCap || inTail)) {
-               #pragma omp critical
+               //#pragma omp critical
                mpiGrid.refine_completely(id);			  
             }
          }
@@ -728,7 +728,7 @@ namespace projects {
 
       // L4 refinement.
       if (P::amrMaxSpatialRefLevel > 3) {
-         #pragma omp parallel for
+         //#pragma omp parallel for
          for (int i = 0; i < cells.size(); ++i) {
             CellID id = cells[i];
             std::array<double,3> xyz = mpiGrid.get_center(id);
@@ -738,7 +738,7 @@ namespace projects {
             // Check if cell is within the nose cap
             bool inNose = refine_L4nosexmin && radius2<refine_L4radius*refine_L4radius;
             if (inNose) {
-               #pragma omp critical
+               //#pragma omp critical
                mpiGrid.refine_completely(id);			  
             }
          }
@@ -777,7 +777,7 @@ namespace projects {
       Real refineTreshold = P::refineTreshold;
       Real unrefineTreshold = P::unrefineTreshold;
       
-      #pragma omp parallel for
+      //#pragma omp parallel for
       for (int j = 0; j < cells.size(); ++j) {
          CellID id = cells[j];
          std::array<double,3> xyz = mpiGrid.get_center(id);
@@ -791,7 +791,7 @@ namespace projects {
             continue;
          } else if (cell->parameters[CellParams::ALPHA] > refineTreshold) {
             if (canRefine(xyz, refLevel)) {
-               #pragma omp critical
+               //#pragma omp critical
                mpiGrid.refine_completely(id);
             }
          }
@@ -799,7 +799,7 @@ namespace projects {
 
       cells = mpiGrid.stop_refining();
 
-      #pragma omp parallel for
+      //#pragma omp parallel for
       for (int j = 0; j < cells.size(); ++j) {
          CellID id = cells[j];
          *mpiGrid[id] = *mpiGrid[mpiGrid.get_parent(id)];
