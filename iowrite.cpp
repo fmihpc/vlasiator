@@ -1365,16 +1365,8 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    restartReducer.addOperator(new DRO::MPIrank);
    restartReducer.addOperator(new DRO::BoundaryType);
    restartReducer.addOperator(new DRO::BoundaryLayer);
-   // Needed for re-adapting the mesh and checking memory use
+   // Needed for re-adapting the mesh
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_alpha",CellParams::ALPHA,1));
-   // Consider removing these later and just outputting them if needed
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_reflevel",CellParams::REFINEMENT_LEVEL,1));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_x",CellParams::XCRD,1));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_y",CellParams::YCRD,1));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_z",CellParams::ZCRD,1));
-   for (int i = 0; i < getObjectWrapper().particleSpecies.size(); ++i) {
-      restartReducer.addOperator(new DRO::Blocks(i));
-   }
 
    // Fsgrid Reducers
    restartReducer.addOperator(new DRO::DataReductionOperatorFsGrid("fg_E",[](
