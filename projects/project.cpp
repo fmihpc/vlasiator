@@ -640,7 +640,7 @@ namespace projects {
          // In boxcar filter, we take the average of each of the neighbours and the cell itself. For each missing neighbour, add the cell one more time
          Real fluffiness = (Real) refinedNeighbours.size() / 27.0;
          for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-            SBC::averageCellData(mpiGrid, refinedNeighbours, cellPair.second, popID, true, fluffiness);
+            SBC::averageCellData(mpiGrid, refinedNeighbours, cellPair.second, popID, fluffiness);
          }
 
          // Averaging moments

@@ -293,7 +293,6 @@ namespace SBC {
       std::vector<CellID> cellList,
       SpatialCell *to,
       const uint popID,
-      const bool calculate_V_moments,
       creal fluffiness = 0
    );
 

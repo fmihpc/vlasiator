@@ -250,7 +250,7 @@ namespace SBC {
          cerr << __FILE__ << ":" << __LINE__ << ": No closest cell found!" << endl;
          abort();
       }
-      averageCellData(mpiGrid, closestCells, mpiGrid[cellID], popID, calculate_V_moments);
+      averageCellData(mpiGrid, closestCells, mpiGrid[cellID], popID);
    }
    
    /*! Function used to average and copy the distribution and moments from all the close sysboundarytype::NOT_SYSBOUNDARY cells.
@@ -267,7 +267,7 @@ namespace SBC {
          cerr << __FILE__ << ":" << __LINE__ << ": No close cell found!" << endl;
          abort();
       }
-      averageCellData(mpiGrid, closeCells, mpiGrid[cellID], popID, calculate_V_moments, fluffiness);
+      averageCellData(mpiGrid, closeCells, mpiGrid[cellID], popID, fluffiness);
    }
    
    /*! Function used to copy the distribution from (one of) the closest sysboundarytype::NOT_SYSBOUNDARY cell but limiting to values no higher than where it can flow into. Moments are recomputed.
@@ -407,7 +407,6 @@ namespace SBC {
          const std::vector<CellID> cellList,
          SpatialCell *to,
          const uint popID,
-         const bool calculate_V_moments,
          creal fluffiness /* default =0.0*/
    ) {
       const size_t numberOfCells = cellList.size();
