@@ -1186,12 +1186,8 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       exitOnError(false, "(RESTART) FSGrid writing rank number not found in restart file", MPI_COMM_WORLD);
    }
    
-   if (success) {
-      success = readFsGridVariable(file, "fg_PERB", fsgridInputRanks, perBGrid);
-   }
-   if (success) {
-      success = readFsGridVariable(file, "fg_E", fsgridInputRanks, EGrid);
-   }
+   if (success) { success = readFsGridVariable(file, "fg_PERB", fsgridInputRanks, perBGrid); }
+   if (success) { success = readFsGridVariable(file, "fg_E", fsgridInputRanks, EGrid); }
    exitOnError(success,"(RESTART) Failure reading fsgrid restart variables",MPI_COMM_WORLD);
    
    success = file.close();
@@ -1231,9 +1227,11 @@ bool readFileCells(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    // Not sure if this success business is useful at all...
    success = file.open(name,MPI_COMM_WORLD,MASTER_RANK,mpiInfo);
    exitOnError(success,"(READ_FILE_CELLS) Could not open file",MPI_COMM_WORLD);
+
    readCellIds(file,fileCells,MASTER_RANK,MPI_COMM_WORLD);
    success = mpiGrid.load_cells(fileCells);
    exitOnError(success,"(READ_FILE_CELLS) Failed to refine grid",MPI_COMM_WORLD);
+
    success = file.close();
    exitOnError(success,"(READ_FILE_CELLS) Other error",MPI_COMM_WORLD);
    return success;
