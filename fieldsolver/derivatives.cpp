@@ -553,8 +553,9 @@ void calculateScaledDeltas(
       Real deltaBsq = pow(myB[0] - otherB[0], 2) + pow(myB[1] - otherB[1], 2) + pow(myB[2] - otherB[2], 2);
 
       // Assignment intentional
-      if (Real maxRho = std::max(myRho, otherRho))
+      if (Real maxRho = std::max(myRho, otherRho)) {
          dRho = std::max(fabs(myRho - otherRho) / maxRho, dRho);
+      }
       if (Real maxU = std::max(myU, otherU)) {
          dU = std::max(fabs(myU - otherU) / maxU, dU);
          dPsq = std::max((pow(myP[0] - otherP[0], 2) + pow(myP[1] - otherP[1], 2) + pow(myP[2] - otherP[2], 2)) / (2 * myRho * maxU), dPsq);
@@ -565,14 +566,18 @@ void calculateScaledDeltas(
    }
    
    Real alpha = dRho;
-   if (dU > alpha)
+   if (dU > alpha) {
       alpha = dU;
-   if (dPsq > alpha)
+   }
+   if (dPsq > alpha) {
       alpha = dPsq;
-   if (dBsq > alpha)
+   }
+   if (dBsq > alpha) {
       alpha = dBsq;
-   if (dB > alpha)
+   }
+   if (dB > alpha) {
       alpha = dB;
+   }
    cell->parameters[CellParams::D_RHO] = dRho;
    cell->parameters[CellParams::D_U] = dU;
    cell->parameters[CellParams::D_PSQ] = dPsq;
