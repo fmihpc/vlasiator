@@ -527,6 +527,8 @@ Real calculateU1(SpatialCell* cell)
 /*! \brief Low-level scaled gradients calculation
  * 
  * For the SpatialCell* cell and its neighbors, calculate scaled gradients and their maximum alpha
+ * The gradients are the same as in the GUMICS simulation, see
+ * Janhunen, P., Palmroth, M., Laitinen, T., Honkonen, I., Juusola, L., Facsko, G., & Pulkkinen, T. I. (2012). The GUMICS-4 global MHD magnetosphere-ionosphere coupling simulation. Journal of Atmospheric and Solar - Terrestrial Physics, 80, 48-59. https://doi.org/10.1016/j.jastp.2012.03.006
  *
  */
 void calculateScaledDeltas(
