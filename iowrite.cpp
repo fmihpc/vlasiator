@@ -1366,7 +1366,7 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    restartReducer.addOperator(new DRO::BoundaryType);
    restartReducer.addOperator(new DRO::BoundaryLayer);
    // Needed for re-adapting the mesh
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_alpha",CellParams::ALPHA,1));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_alpha",CellParams::AMR_ALPHA,1));
 
    // Fsgrid Reducers
    restartReducer.addOperator(new DRO::DataReductionOperatorFsGrid("fg_E",[](

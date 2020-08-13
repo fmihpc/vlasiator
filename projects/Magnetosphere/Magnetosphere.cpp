@@ -789,7 +789,7 @@ namespace projects {
          if (r2 < ibr2) {
             // Skip refining, we shouldn't touch borders when reading restart
             continue;
-         } else if (cell->parameters[CellParams::ALPHA] > refineTreshold) {
+         } else if (cell->parameters[CellParams::AMR_ALPHA] > refineTreshold) {
             if (canRefine(xyz, refLevel)) {
                //#pragma omp critical
                mpiGrid.refine_completely(id);
@@ -803,7 +803,7 @@ namespace projects {
       for (int j = 0; j < cells.size(); ++j) {
          CellID id = cells[j];
          *mpiGrid[id] = *mpiGrid[mpiGrid.get_parent(id)];
-         mpiGrid[id]->parameters[CellParams::ALPHA] /= P::refineMultiplier;
+         mpiGrid[id]->parameters[CellParams::AMR_ALPHA] /= P::refineMultiplier;
          mpiGrid[id]->parameters[CellParams::RECENTLY_REFINED] = 1;
       }
 

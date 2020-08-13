@@ -581,12 +581,12 @@ void calculateScaledDeltas(
    if (dB > alpha) {
       alpha = dB;
    }
-   cell->parameters[CellParams::D_RHO] = dRho;
-   cell->parameters[CellParams::D_U] = dU;
-   cell->parameters[CellParams::D_PSQ] = dPsq;
-   cell->parameters[CellParams::D_BSQ] = dBsq;
-   cell->parameters[CellParams::D_B] = dB;
-   cell->parameters[CellParams::ALPHA] = alpha;
+   cell->parameters[CellParams::AMR_DRHO] = dRho;
+   cell->parameters[CellParams::AMR_DU] = dU;
+   cell->parameters[CellParams::AMR_DPSQ] = dPsq;
+   cell->parameters[CellParams::AMR_DBSQ] = dBsq;
+   cell->parameters[CellParams::AMR_DB] = dB;
+   cell->parameters[CellParams::AMR_ALPHA] = alpha;
 }
 
 /*! \brief High-level scaled gradient calculation wrapper function.
