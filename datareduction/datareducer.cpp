@@ -927,38 +927,38 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 	 outputReducer->addMetadata(outputReducer->size()-1,"","","\\mathrm{Mesh data}$","");
          continue;
       }
-      if(lowercase == "vg_drho") {
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_drho",CellParams::AMR_DRHO,1));
+      if(lowercase == "vg_amr_drho") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_drho",CellParams::AMR_DRHO,1));
          outputReducer->addMetadata(outputReducer->size()-1,"","","$\\frac{\\Delta \\rho}{\\hat{rho}}$","");
          continue;
       }
-      if(lowercase == "vg_du") {
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_du",CellParams::AMR_DU,1));
+      if(lowercase == "vg_amr_du") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_du",CellParams::AMR_DU,1));
          outputReducer->addMetadata(outputReducer->size()-1,"","","$\\frac{\\Delta U_1}{\\hat{U}_1}$","");
          continue;
       }
-      if(lowercase == "vg_dpsq") {
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_dpsq",CellParams::AMR_DPSQ,1));
+      if(lowercase == "vg_amr_dpsq") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_dpsq",CellParams::AMR_DPSQ,1));
          outputReducer->addMetadata(outputReducer->size()-1,"","","$\\frac{(\\Delta P)^2}{2 \\rho \\hat{U}_1}$","");
          continue;
       }
-      if(lowercase == "vg_dbsq") {
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_dbsq",CellParams::AMR_DBSQ,1));
+      if(lowercase == "vg_amr_dbsq") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_dbsq",CellParams::AMR_DBSQ,1));
          outputReducer->addMetadata(outputReducer->size()-1,"","","$\\frac{(\\Delta B_1)^2}{2 \\mu_0 \\hat{U}_1}$","");
          continue;
       }
-      if(lowercase == "vg_db") {
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_db",CellParams::AMR_DB,1));
+      if(lowercase == "vg_amr_db") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_db",CellParams::AMR_DB,1));
          outputReducer->addMetadata(outputReducer->size()-1,"","","$\\frac{\\abs{\\Delta B_1}}{\\hat{B}_1}$","");
          continue;
       }
-      if(lowercase == "vg_alpha") {
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_alpha",CellParams::AMR_ALPHA,1));
+      if(lowercase == "vg_amr_alpha") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_alpha",CellParams::AMR_ALPHA,1));
          outputReducer->addMetadata(outputReducer->size()-1,"","","$\\alpha$","");
          continue;
       }
-      if(lowercase == "vg_reflevel") {
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_reflevel",CellParams::REFINEMENT_LEVEL,1));
+      if(lowercase == "vg_amr_reflevel") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_reflevel",CellParams::REFINEMENT_LEVEL,1));
          outputReducer->addMetadata(outputReducer->size()-1,"","","ref","");
          continue;
       }

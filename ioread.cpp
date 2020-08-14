@@ -1165,7 +1165,7 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"max_r_dt",CellParams::MAXRDT,1,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"max_fields_dt",CellParams::MAXFDT,1,mpiGrid); }
    if(success) {
-      if (!readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"vg_alpha",CellParams::AMR_ALPHA,1,mpiGrid)) {
+      if (!readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"vg_amr_alpha",CellParams::AMR_ALPHA,1,mpiGrid)) {
          std::cout << "Alpha not found in restart, re-refinement will not be possible!" << std::endl;
       }
    }
