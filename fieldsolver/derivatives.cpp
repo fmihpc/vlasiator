@@ -118,7 +118,7 @@ void calculateDerivatives(
       dPerB->at(fsgrids::dperb::dPERBzdx)  = limiter(leftPerB->at(fsgrids::bfield::PERBZ),centPerB->at(fsgrids::bfield::PERBZ),rghtPerB->at(fsgrids::bfield::PERBZ));
 
       // pres_e = const * np.power(rho_e, index)
-      dMoments->at(fsgrids::dmoments::dPedx) = Peconst * limiter(pow(leftMoments->at(fsgrids::moments::RHOQ),Parameters::electronPTindex),pow(centMoments->at(fsgrids::moments::RHOQ),Parameters::electronPTindex),pow(rghtMoments->at(fsgrids::moments::RHOQ),Parameters::electronPTindex));      
+      dMoments->at(fsgrids::dmoments::dPedx) = Peconst * limiter(pow(leftMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex),pow(centMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex),pow(rghtMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex));      
       
       if (Parameters::ohmHallTerm < 2 || sysBoundaryLayer == 1) {
         dPerB->at(fsgrids::dperb::dPERBydxx) = 0.0;
@@ -157,7 +157,7 @@ void calculateDerivatives(
       dPerB->at(fsgrids::dperb::dPERBzdy)  = limiter(leftPerB->at(fsgrids::bfield::PERBZ),centPerB->at(fsgrids::bfield::PERBZ),rghtPerB->at(fsgrids::bfield::PERBZ));
 
       // pres_e = const * np.power(rho_e, index)
-      dMoments->at(fsgrids::dmoments::dPedy) = Peconst * limiter(pow(leftMoments->at(fsgrids::moments::RHOQ),Parameters::electronPTindex),pow(centMoments->at(fsgrids::moments::RHOQ),Parameters::electronPTindex),pow(rghtMoments->at(fsgrids::moments::RHOQ),Parameters::electronPTindex));      
+      dMoments->at(fsgrids::dmoments::dPedy) = Peconst * limiter(pow(leftMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex),pow(centMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex),pow(rghtMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex));      
 
       if (Parameters::ohmHallTerm < 2 || sysBoundaryLayer == 1) {
          dPerB->at(fsgrids::dperb::dPERBxdyy) = 0.0;
@@ -197,7 +197,7 @@ void calculateDerivatives(
       dPerB->at(fsgrids::dperb::dPERBydz)  = limiter(leftPerB->at(fsgrids::bfield::PERBY),centPerB->at(fsgrids::bfield::PERBY),rghtPerB->at(fsgrids::bfield::PERBY));
 
       // pres_e = const * np.power(rho_e, index)
-      dMoments->at(fsgrids::dmoments::dPedz) = Peconst * limiter(pow(leftMoments->at(fsgrids::moments::RHOQ),Parameters::electronPTindex),pow(centMoments->at(fsgrids::moments::RHOQ),Parameters::electronPTindex),pow(rghtMoments->at(fsgrids::moments::RHOQ),Parameters::electronPTindex));      
+      dMoments->at(fsgrids::dmoments::dPedz) = Peconst * limiter(pow(leftMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex),pow(centMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex),pow(rghtMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex));      
 
       if (Parameters::ohmHallTerm < 2 || sysBoundaryLayer == 1) {
         dPerB->at(fsgrids::dperb::dPERBxdzz) = 0.0;
