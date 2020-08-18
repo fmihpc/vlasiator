@@ -972,9 +972,11 @@ namespace SBC {
            }
         }
 
-        // Since we are not interested in dot(J,B), but actually just "field aligned current as a source term
-        // of whatever happens in the ionosphere", flip FAC sign on the southern hemisphere
-        if(nodes[n].x[2] < 0) {
+
+        // By definition, a downwards current into the ionosphere has a positive FAC value,
+        // as it corresponds to positive divergence of horizontal current in the ionospheric plane.
+        // To make sure we match that.  flip FAC sign on the northern hemisphere
+        if(nodes[n].x[2] > 0) {
            FACinput[n] *= -1;
         }
 
