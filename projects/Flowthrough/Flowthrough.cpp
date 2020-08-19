@@ -227,4 +227,52 @@ namespace projects {
       return centerPoints;
    }
 
+   bool Flowthrough::adaptRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
+      int myRank;       
+      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+      if(myRank == MASTER_RANK) {
+         std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
+      }
+
+      if (!P::adaptRefinement) {
+         if (myRank == MASTER_RANK)  {
+            std::cout << "Skipping re-refinement!" << std::endl;
+         }
+         return false;
+      }
+
+      std::vector<CellID> cells = getLocalCells();
+      Real refineTreshold = P::refineTreshold;
+      Real unrefineTreshold = P::unrefineTreshold;
+      
+      //#pragma omp parallel for
+      for (int j = 0; j < cells.size(); ++j) {
+         CellID id = cells[j];
+         spatial_cell::SpatialCell* cell = mpiGrid[id];
+         int refLevel = mpiGrid.get_refinement_level(id);
+
+         if (cell->parameters[CellParams::AMR_ALPHA] > refineTreshold) {
+            mpiGrid.refine_completely(id);
+         }
+      }
+
+      cells = mpiGrid.stop_refining();
+      std::cout << cells.size() << std::endl;
+
+      //#pragma omp parallel for
+      for (int j = 0; j < cells.size(); ++j) {
+         CellID id = cells[j];
+         *mpiGrid[id] = *mpiGrid[mpiGrid.get_parent(id)];
+         mpiGrid[id]->parameters[CellParams::AMR_ALPHA] /= P::refineMultiplier;
+         mpiGrid[id]->parameters[CellParams::RECENTLY_REFINED] = 1;
+      }
+
+      if (myRank == MASTER_RANK) {
+         std::cout << "Finished re-refinement" << endl;
+      }
+
+      return !cells.empty();
+   }
+   
+
 } //namespace projects

@@ -73,6 +73,7 @@ namespace projects {
                                                       creal z,
                                                       const uint popID
                                                      ) const;
+      bool adaptRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const;
 
       bool emptyBox;               /**< If true, then the simulation domain is empty initially 
                                     * and matter will flow in only through the boundaries.*/
