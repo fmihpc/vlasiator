@@ -249,26 +249,21 @@ namespace projects {
          return false;
       }
 
-      for (int i = 0; i < 2 * P::amrBoxHalfWidthX; ++i) {
-         for (int j = 0; j < 2 * P::amrBoxHalfWidthY; ++j) {
-            for (int k = 0; k < 2 * P::amrBoxHalfWidthZ; ++k) {
-               
-               std::array<double,3> xyz;
-               xyz[0] = P::amrBoxCenterX + (0.5 + i - P::amrBoxHalfWidthX) * P::dx_ini;
-               xyz[1] = P::amrBoxCenterY + (0.5 + j - P::amrBoxHalfWidthY) * P::dy_ini;
-               xyz[2] = P::amrBoxCenterZ + (0.5 + k - P::amrBoxHalfWidthZ) * P::dz_ini;
-               
-               CellID myCell = mpiGrid.get_existing_cell(xyz);
-               if (mpiGrid.refine_completely_at(xyz)) {
-                  #ifndef NDEBUG
-                  std::cout << "Rank " << myRank << " is refining cell " << myCell << std::endl;
-                  #endif
-               }
-            }
+      std::vector<CellID> cells = mpiGrid.get_cells();
+      for (CellID id : cells) {
+         std::array<double,3> xyz = mpiGrid.get_center(id);
+         bool inBox = xyz[0] > P::amrBoxCenterX - P::amrBoxHalfWidthX * mpiGrid[id]->parameters[CellParams::DX] &&
+                      xyz[0] < P::amrBoxCenterX + P::amrBoxHalfWidthX * mpiGrid[id]->parameters[CellParams::DX] &&
+                      xyz[1] > P::amrBoxCenterY - P::amrBoxHalfWidthY * mpiGrid[id]->parameters[CellParams::DY] &&
+                      xyz[1] < P::amrBoxCenterY + P::amrBoxHalfWidthY * mpiGrid[id]->parameters[CellParams::DY] &&
+                      xyz[2] > P::amrBoxCenterZ - P::amrBoxHalfWidthZ * mpiGrid[id]->parameters[CellParams::DZ] &&
+                      xyz[2] < P::amrBoxCenterZ + P::amrBoxHalfWidthZ * mpiGrid[id]->parameters[CellParams::DZ];
+         if (inBox) {
+            mpiGrid.refine_completely(id);
          }
       }
 
-      std::vector<CellID> cells = mpiGrid.stop_refining();
+      cells = mpiGrid.stop_refining();
       std::cout << cells.size() << std::endl;
 
       //#pragma omp parallel for
