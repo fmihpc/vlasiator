@@ -227,6 +227,14 @@ namespace projects {
       return centerPoints;
    }
 
+   bool Flowthrough::canRefine(const std::array<double,3> xyz, const int refLevel) const {
+      const int bw = (2 + 1*refLevel) * VLASOV_STENCIL_WIDTH; // Seems to be the limit
+
+      return refLevel < P::amrMaxSpatialRefLevel &&
+             xyz[0] > P::xmin + P::dx_ini * bw && 
+             xyz[0] < P::xmax - P::dx_ini * bw;
+   }
+
    bool Flowthrough::adaptRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
       int myRank;       
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
@@ -241,22 +249,26 @@ namespace projects {
          return false;
       }
 
-      std::vector<CellID> cells = getLocalCells();
-      Real refineTreshold = P::refineTreshold;
-      Real unrefineTreshold = P::unrefineTreshold;
-      
-      //#pragma omp parallel for
-      for (int j = 0; j < cells.size(); ++j) {
-         CellID id = cells[j];
-         spatial_cell::SpatialCell* cell = mpiGrid[id];
-         int refLevel = mpiGrid.get_refinement_level(id);
-
-         if (cell->parameters[CellParams::AMR_ALPHA] > refineTreshold) {
-            mpiGrid.refine_completely(id);
+      for (int i = 0; i < 2 * P::amrBoxHalfWidthX; ++i) {
+         for (int j = 0; j < 2 * P::amrBoxHalfWidthY; ++j) {
+            for (int k = 0; k < 2 * P::amrBoxHalfWidthZ; ++k) {
+               
+               std::array<double,3> xyz;
+               xyz[0] = P::amrBoxCenterX + (0.5 + i - P::amrBoxHalfWidthX) * P::dx_ini;
+               xyz[1] = P::amrBoxCenterY + (0.5 + j - P::amrBoxHalfWidthY) * P::dy_ini;
+               xyz[2] = P::amrBoxCenterZ + (0.5 + k - P::amrBoxHalfWidthZ) * P::dz_ini;
+               
+               CellID myCell = mpiGrid.get_existing_cell(xyz);
+               if (mpiGrid.refine_completely_at(xyz)) {
+                  #ifndef NDEBUG
+                  std::cout << "Rank " << myRank << " is refining cell " << myCell << std::endl;
+                  #endif
+               }
+            }
          }
       }
 
-      cells = mpiGrid.stop_refining();
+      std::vector<CellID> cells = mpiGrid.stop_refining();
       std::cout << cells.size() << std::endl;
 
       //#pragma omp parallel for
