@@ -45,6 +45,7 @@
 #include "sysboundary/sysboundary.h"
 
 #include "fieldsolver/fs_common.h"
+#include "fieldsolver/derivatives.hpp" // For electron solver PQN calculation
 #include "projects/project.h"
 #include "grid.h"
 #include "iowrite.h"
@@ -899,6 +900,7 @@ int main(int argn,char* args[]) {
          CellParams::VY_DT2,
          CellParams::VZ_DT2,
          CellParams::RHOQ_DT2,
+         CellParams::RHOQE_DT2,
          CellParams::P_11_DT2,
          CellParams::P_22_DT2,
          CellParams::P_33_DT2
@@ -915,6 +917,8 @@ int main(int argn,char* args[]) {
          //setupTechnicalFsGrid(mpiGrid, cells, technicalGrid);
          feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid, technicalGrid, false);
          feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid, technicalGrid, true);
+	 momentsGrid.updateGhostCells();
+	 momentsDt2Grid.updateGhostCells();
          phiprof::stop("fsgrid-coupling-in");
          
          propagateFields(
@@ -946,6 +950,27 @@ int main(int argn,char* args[]) {
          addTimedBarrier("barrier-after-field-solver");
       }
 
+      // Additional feeding of moments into fsgrid required by electron runs
+      for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+	if (getObjectWrapper().particleSpecies[popID].mass < 0.5*physicalconstants::MASS_PROTON) {
+	  phiprof::start("fsgrid-coupling-in");
+	  feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid, technicalGrid, false);
+	  feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid, technicalGrid, true);
+	  momentsGrid.updateGhostCells();
+	  momentsDt2Grid.updateGhostCells();
+	  phiprof::stop("fsgrid-coupling-in");
+
+	  calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER1, true);
+	  phiprof::start("getFieldsFromFsGrid");
+	  // Copy results back from fsgrid.
+	  volGrid.updateGhostCells();
+	  technicalGrid.updateGhostCells();
+	  getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, dMomentsGrid, technicalGrid, mpiGrid, cells);
+	  phiprof::stop("getFieldsFromFsGrid");
+	  break;
+	}
+      }
+
       phiprof::start("Velocity-space");
       if ( P::propagateVlasovAcceleration ) {
 	 std::cerr<<"regular call "<<P::dt<<std::endl;
@@ -975,6 +1000,7 @@ int main(int argn,char* args[]) {
          CellParams::VY,
          CellParams::VZ,
          CellParams::RHOQ,
+         CellParams::RHOQE,
          CellParams::P_11,
          CellParams::P_22,
          CellParams::P_33

@@ -23,7 +23,7 @@
 /*!\file sysboundarycondition.cpp
  * \brief Implementation of the base class SysBoundaryCondition to handle system boundary cells.
  * 
- * \sa donotcompute.cpp ionosphere.cpp outflow.cpp setbyuser.cpp setmaxwellian.cpp
+ * \sa donotcompute.cpp ionosphere.cpp outflow.cpp static.cpp setbyuser.cpp setmaxwellian.cpp
  * 
  */
 

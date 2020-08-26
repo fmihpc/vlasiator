@@ -303,27 +303,24 @@ void calculateSpatialTranslation(
    
    // Translate all particle species
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-
-
-       if (getObjectWrapper().particleSpecies[popID].propagateSpecies == true) {
-          string profName = "translate "+getObjectWrapper().particleSpecies[popID].name;
-          phiprof::start(profName);
-          SpatialCell::setCommunicatedSpecies(popID);
-	  //      std::cout << "I am at line " << __LINE__ << " of " << __FILE__ << std::endl;
-          calculateSpatialTranslation(
-             mpiGrid,
-	     localCells,
-	     local_propagated_cells,
-	     local_target_cells,
-	     remoteTargetCellsx,
-	     remoteTargetCellsy,
-	     remoteTargetCellsz,
-	     nPencils,
-	     dt,
-	     popID,
-	     time
-          );
-          phiprof::stop(profName);
+      if (getObjectWrapper().particleSpecies[popID].propagateSpecies == true) {
+         string profName = "translate "+getObjectWrapper().particleSpecies[popID].name;
+         phiprof::start(profName);
+         SpatialCell::setCommunicatedSpecies(popID);
+	 calculateSpatialTranslation(
+            mpiGrid,
+	    localCells,
+	    local_propagated_cells,
+	    local_target_cells,
+	    remoteTargetCellsx,
+	    remoteTargetCellsy,
+	    remoteTargetCellsz,
+	    nPencils,
+	    dt,
+	    popID,
+	    time
+	 );
+	 phiprof::stop(profName);
       }
    }
    
@@ -496,12 +493,6 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
            }       
            // Compute global maximum for number of subcycles
            MPI_Allreduce(&maxSubcycles, &globalMaxSubcycles, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
-           if (myRank == MASTER_RANK) {
-               if (globalMaxSubcycles > 10000) {
-                   logFile << "(MAIN) ERROR: Variable 'globalMaxSubcycles' above critical value! Aborting!" << endl;
-                   exit(1);
-               }
-           }
 
            // substep global max times
            for(uint step=0; step<(uint)globalMaxSubcycles; ++step) {
@@ -556,6 +547,7 @@ void calculateInterpolatedVelocityMoments(
    const int cp_vy,
    const int cp_vz,
    const int cp_rhoq,
+   const int cp_rhoqe,
    const int cp_p11,
    const int cp_p22,
    const int cp_p33
@@ -572,6 +564,7 @@ void calculateInterpolatedVelocityMoments(
       SC->parameters[cp_vy] = 0.5* ( SC->parameters[CellParams::VY_R] + SC->parameters[CellParams::VY_V] );
       SC->parameters[cp_vz] = 0.5* ( SC->parameters[CellParams::VZ_R] + SC->parameters[CellParams::VZ_V] );
       SC->parameters[cp_rhoq  ] = 0.5* ( SC->parameters[CellParams::RHOQ_R] + SC->parameters[CellParams::RHOQ_V] );
+      SC->parameters[cp_rhoqe  ] = 0.5* ( SC->parameters[CellParams::RHOQE_R] + SC->parameters[CellParams::RHOQE_V] );
       SC->parameters[cp_p11]   = 0.5* ( SC->parameters[CellParams::P_11_R] + SC->parameters[CellParams::P_11_V] );
       SC->parameters[cp_p22]   = 0.5* ( SC->parameters[CellParams::P_22_R] + SC->parameters[CellParams::P_22_V] );
       SC->parameters[cp_p33]   = 0.5* ( SC->parameters[CellParams::P_33_R] + SC->parameters[CellParams::P_33_V] );
@@ -606,6 +599,7 @@ void calculateInitialVelocityMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_G
       SC->parameters[CellParams::VY_DT2] = SC->parameters[CellParams::VY];
       SC->parameters[CellParams::VZ_DT2] = SC->parameters[CellParams::VZ];
       SC->parameters[CellParams::RHOQ_DT2] = SC->parameters[CellParams::RHOQ];
+      SC->parameters[CellParams::RHOQE_DT2] = SC->parameters[CellParams::RHOQE];
       SC->parameters[CellParams::P_11_DT2] = SC->parameters[CellParams::P_11];
       SC->parameters[CellParams::P_22_DT2] = SC->parameters[CellParams::P_22];
       SC->parameters[CellParams::P_33_DT2] = SC->parameters[CellParams::P_33];

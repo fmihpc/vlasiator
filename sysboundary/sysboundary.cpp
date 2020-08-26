@@ -35,6 +35,8 @@
 #include "donotcompute.h"
 #include "ionosphere.h"
 #include "outflow.h"
+#include "static.h"
+#include "staticionosphere.h"
 #include "setmaxwellian.h"
 
 using namespace std;
@@ -76,7 +78,7 @@ SysBoundary::~SysBoundary() {
  * help.
  */
 void SysBoundary::addParameters() {
-   Readparameters::addComposing("boundaries.boundary", "List of boundary condition (BC) types to be used. Each boundary condition to be used has to be on a new line boundary = YYY. Available (20140113) are Outflow Ionosphere Maxwellian.");
+   Readparameters::addComposing("boundaries.boundary", "List of boundary condition (BC) types to be used. Each boundary condition to be used has to be on a new line boundary = YYY. Available (20200407) are Outflow Ionosphere Maxwellian Static.");
    Readparameters::add("boundaries.periodic_x","If 'yes' the grid is periodic in x-direction. Defaults to 'no'.","no");
    Readparameters::add("boundaries.periodic_y","If 'yes' the grid is periodic in y-direction. Defaults to 'no'.","no");
    Readparameters::add("boundaries.periodic_z","If 'yes' the grid is periodic in z-direction. Defaults to 'no'.","no");
@@ -85,6 +87,8 @@ void SysBoundary::addParameters() {
    SBC::DoNotCompute::addParameters();
    SBC::Ionosphere::addParameters();
    SBC::Outflow::addParameters();
+   SBC::Static::addParameters();
+   SBC::StaticIonosphere::addParameters();
    SBC::SetMaxwellian::addParameters();
 }
 
@@ -220,6 +224,35 @@ bool SysBoundary::initSysBoundaries(
             exit(1);
          }
       }
+      if(*it == "Static") {
+         if(this->addSysBoundary(new SBC::Static, project, t) == false) {
+            if(myRank == MASTER_RANK) cerr << "Error in adding Static boundary." << endl;
+            success = false;
+         }
+         bool faces[6];
+         this->getSysBoundary(sysboundarytype::STATIC)->getFaces(&faces[0]);
+         if((faces[0] || faces[1]) && isPeriodic[0]) {
+            if(myRank == MASTER_RANK) cerr << "You set boundaries.periodic_x = yes and load Static system boundary conditions on the x+ or x- face, are you sure this is correct?" << endl;
+         }
+         if((faces[2] || faces[3]) && isPeriodic[1]) {
+            if(myRank == MASTER_RANK) cerr << "You set boundaries.periodic_y = yes and load Static system boundary conditions on the y+ or y- face, are you sure this is correct?" << endl;
+         }
+         if((faces[4] || faces[5]) && isPeriodic[2]) {
+            if(myRank == MASTER_RANK) cerr << "You set boundaries.periodic_z = yes and load Static system boundary conditions on the z+ or z- face, are you sure this is correct?" << endl;
+         }
+         if((faces[0] || faces[1]) && P::xcells_ini < 5) {
+            if(myRank == MASTER_RANK) cerr << "You load Static system boundary conditions on the x+ or x- face but there is not enough cells in that direction to make sense." << endl;
+            exit(1);
+         }
+         if((faces[2] || faces[3]) && P::ycells_ini < 5) {
+            if(myRank == MASTER_RANK) cerr << "You load Static system boundary conditions on the y+ or y- face but there is not enough cells in that direction to make sense." << endl;
+            exit(1);
+         }
+         if((faces[4] || faces[5]) && P::zcells_ini < 5) {
+            if(myRank == MASTER_RANK) cerr << "You load Static system boundary conditions on the z+ or z- face but there is not enough cells in that direction to make sense." << endl;
+            exit(1);
+         }
+      }
       if(*it == "Ionosphere") {
          if(this->addSysBoundary(new SBC::Ionosphere, project, t) == false) {
             if(myRank == MASTER_RANK) cerr << "Error in adding Ionosphere boundary." << endl;
@@ -231,6 +264,18 @@ bool SysBoundary::initSysBoundaries(
          }
          isThisDynamic = isThisDynamic|
          this->getSysBoundary(sysboundarytype::IONOSPHERE)->isDynamic();
+      }
+      if(*it == "StaticIonosphere") {
+         if(this->addSysBoundary(new SBC::StaticIonosphere, project, t) == false) {
+            if(myRank == MASTER_RANK) cerr << "Error in adding StaticIonosphere boundary." << endl;
+            success = false;
+         }
+         if(this->addSysBoundary(new SBC::DoNotCompute, project, t) == false) {
+            if(myRank == MASTER_RANK) cerr << "Error in adding DoNotCompute boundary (for StaticIonosphere)." << endl;
+            success = false;
+         }
+         isThisDynamic = isThisDynamic|
+         this->getSysBoundary(sysboundarytype::STATICIONOSPHERE)->isDynamic();
       }
       if(*it == "Maxwellian") {
          if(this->addSysBoundary(new SBC::SetMaxwellian, project, t) == false) {
@@ -289,7 +334,7 @@ bool SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::
    for (auto cellId : mpiGrid.get_cells()) {
       SpatialCell* cell = mpiGrid[cellId];
       if(cell) {
-         if (cell->sysBoundaryFlag == sysboundarytype::IONOSPHERE) {
+         if (cell->sysBoundaryFlag == sysboundarytype::IONOSPHERE || sysboundarytype::STATICIONOSPHERE) {
             innerBoundaryCells.insert(cellId);
             innerBoundaryRefLvl = mpiGrid.get_refinement_level(cellId);
             if (cell->sysBoundaryLayer == 1) {
@@ -516,7 +561,9 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
    for (int x = 0; x < localSize[0]; ++x) {
       for (int y = 0; y < localSize[1]; ++y) {
          for (int z = 0; z < localSize[2]; ++z) {
-            if (technicalGrid.get(x,y,z)->sysBoundaryLayer == 0 && technicalGrid.get(x,y,z)->sysBoundaryFlag == sysboundarytype::IONOSPHERE) {
+            if (technicalGrid.get(x,y,z)->sysBoundaryLayer == 0 && 
+                 (technicalGrid.get(x,y,z)->sysBoundaryFlag == sysboundarytype::IONOSPHERE ||
+	          technicalGrid.get(x,y,z)->sysBoundaryFlag == sysboundarytype::STATICIONOSPHERE)) {
                technicalGrid.get(x,y,z)->sysBoundaryFlag = sysboundarytype::DO_NOT_COMPUTE;
             }
          }

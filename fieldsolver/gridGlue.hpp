@@ -31,6 +31,9 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 void feedPerBIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 			const std::vector<CellID>& cells,
 			FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid);
+void feedEIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+			const std::vector<CellID>& cells,
+			FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& EGrid);
 
 
 /*! Copy field solver VOLPERB derivatives and store them back into DCCRG
@@ -42,6 +45,7 @@ void feedPerBIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
  * This function assumes that proper grid coupling has been set up.
  */
 void getdBvolFieldsFromFsGrid(FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volumeFieldsGrid,
+			 FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
 			 FsGrid< fsgrids::technical, 2>& technicalGrid,
 			 dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 			 const std::vector<CellID>& cells
@@ -57,7 +61,7 @@ void getdBvolFieldsFromFsGrid(FsGrid< std::array<Real, fsgrids::volfields::N_VOL
 void getFieldsFromFsGrid(FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volumeFieldsGrid,
 			 FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
 			 FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
-                         FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& DMomentsGrid,
+			 FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dMomentsGrid,
 			 FsGrid< fsgrids::technical, 2>& technicalGrid,
 			 dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 			 const std::vector<CellID>& cells

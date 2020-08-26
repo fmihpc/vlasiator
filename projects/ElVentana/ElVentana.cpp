@@ -50,7 +50,7 @@ using namespace spatial_cell;
 namespace projects {
    ElVentana::ElVentana(): TriAxisSearch() { }
    ElVentana::~ElVentana() { }
-   
+
    void ElVentana::addParameters() {
       typedef Readparameters RP;
       
@@ -209,48 +209,13 @@ namespace projects {
       //Real mass = getObjectWrapper().particleSpecies[popID].mass;
       //if (mass < 0.5*physicalconstants::MASS_PROTON) return true;
       // Don't scale non-electron populations
-      return false;
-      //return true;
+      //return false;
+      return true;
    }
 
    Real ElVentana::getCorrectNumberDensity(spatial_cell::SpatialCell* cell,const uint popID) const {
-      Real mass = getObjectWrapper().particleSpecies[popID].mass;
-      Real density = 0.0;
-      //if (mass < 0.5*physicalconstants::MASS_PROTON) {
-      if (this->vecsizemoments == 5) {
-	 // Reading the new format (multipop) restart file
-	 density = cell->parameters[CellParams::RHOQ] / physicalconstants::CHARGE; 
-	 // FIXME: Where can I find either the species name or its mass in the StartFile?.
-      } else if (this->vecsizemoments == 4 || this->vecsizemoments == 1)  {
-	 // Reading the old format restart file or a bulk file
-	 density = cell->parameters[CellParams::RHOM];
-	 // This is already the number density, not mass density!
-      } else {
-	 cout << "Could not identify restart file format for file: " << this->StartFile << endl;
-	 exit(1);
-      }
-      //}
-      return density;
-      // 	 Real rho = 0.0;
-      // 	 Real chargee = 0.0;
-
-
-      // 	 for (uint popID2=0; popID2<getObjectWrapper().particleSpecies.size(); ++popID2) {
-      // 	    mass = getObjectWrapper().particleSpecies[popID2].mass;
-      // 	    chargee = getObjectWrapper().particleSpecies[popID2].charge/physicalconstants::CHARGE;
-
-
-      // 	    if ( mass> 0.5*physicalconstants::MASS_PROTON) {
-      // 	       if (chargee<1.2) {
-      // 		  rho += cell->get_population(popID2).RHO;
-      // 	       } else {
-      // 		  rho += cell->get_population(popID2).RHO*chargee;
-      // 	       }
-      // 	    }
-      // 	 }
-      // 	 return rho;
-      // }
-      // return cell->get_population(popID).RHO;
+      // This is the stored and read number density, not mass density!
+      return cell->parameters[CellParams::RHOM];
    }
 
 
@@ -263,25 +228,13 @@ namespace projects {
 
       const ElVentanaSpeciesParameters& sP = speciesParams[popID]; //Use parameters from cfg file in some cases?
       Real mass = getObjectWrapper().particleSpecies[popID].mass;
-      Real density, temperature, initRho;
+      Real temperature, initRho;
       Real radius;
       Real distvalue;
       CellID cellID;
       cellID = findCellIDXYZ(x, y, z);
       SpatialCell *cell = (*newmpiGrid)[cellID];
-      if (this->vecsizemoments == 5) {
-         // Reading the new format (multipop) restart file
-         density = cell->parameters[CellParams::RHOM] / physicalconstants::MASS_PROTON; 
-	 // FIXME: Where can I find either the species name or its mass in the StartFile?.
-      } else if (this->vecsizemoments == 4 || this->vecsizemoments == 1)  {
-         // Reading the old format restart file or a bulk file
-         density = cell->parameters[CellParams::RHOM];
-	 // This is already the number density, not mass density!
-      } else {
-         cout << "Could not identify restart file format for file: " << this->StartFile << endl;
-         exit(1);
-      }
-      
+
       switch(this->ionosphereGeometry) {
          case 0:
             // infinity-norm, result is a diamond/square with diagonals aligned on the axes in 2D
@@ -304,7 +257,8 @@ namespace projects {
             abort();
       }
       
-      initRho = density;
+      // This is the stored and read number density, not mass density!
+      initRho = cell->parameters[CellParams::RHOM];
       if(radius < this->ionosphereRadius) {
 	 // Just to be safe, there are observed cases where this failed.
 	 initRho = sP.ionosphereRho;
@@ -446,28 +400,10 @@ namespace projects {
       
       cellID = findCellIDXYZ(x, y, z);
       SpatialCell *cell = (*newmpiGrid)[cellID];
-      if (this->vecsizemoments == 5) {
-         // Reading the new format (multipop) restart file
-          v[0] = cell->parameters[CellParams::VX];
-          v[1] = cell->parameters[CellParams::VY];
-          v[2] = cell->parameters[CellParams::VZ];
-      } else {
-         // Reading the old format restart file or from bulk file
-          v[0] = cell->parameters[CellParams::VX] / cell->parameters[CellParams::RHOM];
-          v[1] = cell->parameters[CellParams::VY] / cell->parameters[CellParams::RHOM];
-          v[2] = cell->parameters[CellParams::VZ] / cell->parameters[CellParams::RHOM];
-      }
-      // Check if velocity is within the velocity space boundaries
-      if ( v[0] < getObjectWrapper().velocityMeshes[popID].meshMinLimits[0] ||
-           v[0] > getObjectWrapper().velocityMeshes[popID].meshMaxLimits[0] ||
-           v[1] < getObjectWrapper().velocityMeshes[popID].meshMinLimits[1] ||
-           v[1] > getObjectWrapper().velocityMeshes[popID].meshMaxLimits[1] ||
-           v[2] < getObjectWrapper().velocityMeshes[popID].meshMinLimits[2] ||
-           v[2] > getObjectWrapper().velocityMeshes[popID].meshMaxLimits[2] ) {
-         cerr << "ABORTING!!! Bulk velocity read from StartFile is outside the velocity space boundaries. " << endl;
-         exit(1);
-      }  
-
+      v[0] = cell->parameters[CellParams::VX];
+      v[1] = cell->parameters[CellParams::VY];
+      v[2] = cell->parameters[CellParams::VZ];
+      
       std::array<Real, 3> ionosphereV0 = {{sP.ionosphereV0[0], sP.ionosphereV0[1], sP.ionosphereV0[2]}};
       Real radius;
       switch(this->ionosphereGeometry) {
@@ -498,6 +434,17 @@ namespace projects {
 	    v[i] = ionosphereV0[i];
 	 }
       }
+      
+      // Check if velocity is within the velocity space boundaries
+      if ( v[0] < getObjectWrapper().velocityMeshes[popID].meshMinLimits[0] ||
+           v[0] > getObjectWrapper().velocityMeshes[popID].meshMaxLimits[0] ||
+           v[1] < getObjectWrapper().velocityMeshes[popID].meshMinLimits[1] ||
+           v[1] > getObjectWrapper().velocityMeshes[popID].meshMaxLimits[1] ||
+           v[2] < getObjectWrapper().velocityMeshes[popID].meshMinLimits[2] ||
+           v[2] > getObjectWrapper().velocityMeshes[popID].meshMaxLimits[2] ) {
+         cerr << "ABORTING!!! Bulk velocity read from StartFile is outside the velocity space boundaries. " << endl;
+         exit(1);
+      }  
 
       V0.push_back(v);
       return V0;
@@ -595,6 +542,7 @@ namespace projects {
       if (filename.find("bulk.") != string::npos) { 
 	 // It is a bulk file
 	 isbulk = 1; // Hard setting for now...
+	 // Could be determined by checking if a "moments" variable exists in the vlsv file?
       }
 
       for (uint64_t i=0; i<cells.size(); i++) {
@@ -634,6 +582,29 @@ namespace projects {
 	 }
 	 for (uint j=0; j<vecsizeperturbed_B; j++) {
 	    mpiGrid[cells[i]]->parameters[CellParams::PERBXVOL+j] = buffer[j];
+	 }
+	 delete[] buffer;
+	 attribs.pop_back();
+	 attribs.pop_back();
+
+	 // NOTE: This section assumes that the electric field values are saved on the spatial
+	 // (vlasov) grid, instead of FSgrid. FSgrid input reading isn't supported yet.
+	 // Also assumes the E values have been saved to the bulk files.
+	 //
+	 // The values are edge-averages, not cell-averages, but are temporarily read into EXVOL anyway.
+	 attribs.push_back(make_pair("mesh","SpatialGrid"));
+	 attribs.push_back(make_pair("name","E"));
+	 if (this->vlsvSerialReader.getArrayInfo("VARIABLE",attribs,arraySize,this->vecsizeE,dataType,byteSize) == false) {
+	    if(myRank == MASTER_RANK) logFile << "(START)  ERROR: Failed to read E array info" << endl << write;
+	    exit(1);
+	 }
+	 buffer=new Real[this->vecsizeE];
+	 if (this->vlsvSerialReader.readArray("VARIABLE", attribs, fileOffset, 1, (char *)buffer) == false ) {
+	    if(myRank == MASTER_RANK) logFile << "(START)  ERROR: Failed to read E"  << endl << write;
+	    exit(1);
+	 }
+	 for (uint j=0; j<vecsizeE; j++) {
+	    mpiGrid[cells[i]]->parameters[CellParams::EXVOL+j] = buffer[j];
 	 }
 	 delete[] buffer;
 	 attribs.pop_back();
@@ -686,34 +657,51 @@ namespace projects {
 	    if(myRank == MASTER_RANK) logFile << "(START)  ERROR: Failed to read moments (or rho in case of bulk file)"  << endl << write;
 	    exit(1);
 	 }
-	 for (uint j=0; j<vecsizemoments; j++) {
-	    mpiGrid[cells[i]]->parameters[CellParams::RHOM+j] = buffer[j];
-	 }
-	 delete[] buffer;
 	 attribs.pop_back();
 	 attribs.pop_back();
-         
-	 if (isbulk == 1) {
+
+	 // Parse zeroth and first moments data
+	 if (this->vecsizemoments == 5) {
+	    // Reading the new format (multipop) restart file (rhom, massVx, massVy, massVz, rhoq)
+	   mpiGrid[cells[i]]->parameters[CellParams::RHOM] = buffer[4] / physicalconstants::CHARGE;
+	   mpiGrid[cells[i]]->parameters[CellParams::VX] = buffer[1]/buffer[0];
+	   mpiGrid[cells[i]]->parameters[CellParams::VY] = buffer[2]/buffer[0];
+	   mpiGrid[cells[i]]->parameters[CellParams::VZ] = buffer[3]/buffer[0];
+	 } else if (this->vecsizemoments == 4) {
+	    // Reading the old format restart file (rho, Vx, Vy, Vz)
+	    for (uint j=0; j<vecsizemoments; j++) {
+	       mpiGrid[cells[i]]->parameters[CellParams::RHOM+j] = buffer[j];
+	    }	   
+	 } else if (this->vecsizemoments == 1)  {
+	   if(myRank == MASTER_RANK) cout << "Reading bulk file: " << this->StartFile << endl;
+	    // Reading a bulk file. First store number density.
+	    mpiGrid[cells[i]]->parameters[CellParams::RHOM] = buffer[0];
+
+	    // Now read rho_v in a separate read call	    
 	    attribs.push_back(make_pair("mesh","SpatialGrid"));
 	    attribs.push_back(make_pair("name","rho_v"));
-	    // Borrowing the vecsizepressure here. It will be overwritten in the next call of this function.
-	    if (this->vlsvSerialReader.getArrayInfo("VARIABLE",attribs,arraySize,this->vecsizepressure,dataType,byteSize) == false) { 
+	    if (this->vlsvSerialReader.getArrayInfo("VARIABLE",attribs,arraySize,this->vecsizebulkv,dataType,byteSize) == false) { 
 	       if(myRank == MASTER_RANK) logFile << "(START)  ERROR: Failed to read rho_v array info" << endl << write;
 	       exit(1);
 	    }
-	    buffer=new Real[this->vecsizepressure];
-	    if (this->vlsvSerialReader.readArray("VARIABLE", attribs, fileOffset, 1, (char *)buffer) == false ) {
+	    Real *bufferV=new Real[this->vecsizebulkv];
+	    if (this->vlsvSerialReader.readArray("VARIABLE", attribs, fileOffset, 1, (char *)bufferV) == false ) {
 	       if(myRank == MASTER_RANK) logFile << "(START)  ERROR: Failed to read rho_v"  << endl << write;
 	       exit(1);
 	    }
-	    for (uint j=0; j<vecsizepressure; j++) {
-	       mpiGrid[cells[i]]->parameters[CellParams::VX+j] = buffer[j];
+	    for (uint j=0; j<vecsizebulkv; j++) {
+	       mpiGrid[cells[i]]->parameters[CellParams::VX+j] = bufferV[j]/buffer[0];
 	    }
-	    delete[] buffer;
+	    delete[] bufferV;
 	    attribs.pop_back();
 	    attribs.pop_back();
+	 } else {
+	    if(myRank == MASTER_RANK) cout << "Could not identify restart file format for file: " << this->StartFile << endl;
+	    exit(1);
 	 }
-         
+	 delete[] buffer;
+
+	 // Read second velocity moments data (pressure)
 	 attribs.push_back(make_pair("mesh","SpatialGrid"));
 	 if (isbulk == 1) {
 	    attribs.push_back(make_pair("name","PTensorDiagonal"));
@@ -746,15 +734,7 @@ namespace projects {
    }
 
    void ElVentana::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
-      // Find a formula to calculate cellID in START file corresponding to cellID in this function,
-      // which comes from mpiGrid, i.e. the new grid. Then read specific parameters from the file and
-      // give them to the cell. The file should be open already when executing this function.
-     
-      // Initialize EJE variable
-      cell->parameters[CellParams::EXJE] = 0;
-      cell->parameters[CellParams::EYJE] = 0;
-      cell->parameters[CellParams::EZJE] = 0;
-
+      // EJE initialization to zero shouldn't be tied to this project so isn't done here anymore.
    }
 
 

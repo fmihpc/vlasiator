@@ -247,6 +247,38 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 	 outputReducer->addMetadata(outputReducer->size()-1,"C/m^3","$\\mathrm{C}\\,\\mathrm{m}^{-3}$","$\\rho_\\mathrm{q}$","1.0");
          continue;
       }
+
+      if(lowercase == "fg_rhoqe") { // Electron simulation charge density
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_rhoqe",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2>& EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2>& dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volGrid,
+                      FsGrid< fsgrids::technical, 2>& technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract charge density
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = (*momentsGrid.get(x,y,z))[fsgrids::RHOQE];
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+	 outputReducer->addMetadata(outputReducer->size()-1,"C/m^3","$\\mathrm{C}\\,\\mathrm{m}^{-3}$","$\\rho_\\mathrm{qe}$","1.0");
+         continue;
+      }
+
       if(lowercase == "populations_rho" || lowercase == "populations_vg_rho") { // Per-population particle number density
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];
@@ -577,7 +609,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(lowercase == "eje" || lowercase == "vg_eje") {
          // Volume-averaged E field
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_eje",CellParams::EXJE,3));
-	 outputReducer->addMetadata(outputReducer->size()-1,"V/m","$\\mathrm{V}\\,\\mathrm{m}^{-1}$","$EJE$","1.0");
+         outputReducer->addMetadata(outputReducer->size()-1,"V/m","$\\mathrm{V}\\,\\mathrm{m}^{-1}$","$EJE$","1.0");
 	 continue;
       }
       if(lowercase == "vole" || lowercase == "vg_vole" || lowercase == "evol" || lowercase == "vg_e_vol" || lowercase == "e_vol") {
@@ -661,7 +693,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(lowercase == "rhoqe" || lowercase == "vg_rhoqe") {
          // Volume-averaged E field
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_erhoqe",CellParams::ERHOQX,3));
-	      outputReducer->addMetadata(outputReducer->size()-1,"V/m","$\\mathrm{V}\\,\\mathrm{m}^{-1}$","$E_{\\rho_q}$","1.0");
+         outputReducer->addMetadata(outputReducer->size()-1,"V/m","$\\mathrm{V}\\,\\mathrm{m}^{-1}$","$E_{\\rho_q}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_rhoqe",CellParams::RHOQE,1));
          outputReducer->addMetadata(outputReducer->size()-1,"C/m^3","$\\mathrm{C}\\,\\mathrm{m}^{-3}$","$\\rho_\\mathrm{qe}$","1.0");
          continue;
@@ -956,14 +988,14 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
    for (it = P::diagnosticVariableList.begin();
         it != P::diagnosticVariableList.end();
         it++) {
-      if(*it == "EJE") {
+      // Sidestep mixed case errors
+      const std::string lowercase = boost::algorithm::to_lower_copy(*it);
+
+      if(lowercase == "vg_eje" || lowercase == "eje") {
          // E field from electron current
          diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("EJE",CellParams::EXJE,3));
          continue;
       }
-
-      // Sidestep mixed case errors
-      const std::string lowercase = boost::algorithm::to_lower_copy(*it);
 
       if(lowercase == "populations_blocks" || lowercase == "populations_vg_blocks") {
          // Per-population total block counts

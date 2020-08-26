@@ -215,9 +215,13 @@ namespace projects {
          this->setVelocitySpace(p,cell);
          uint n = cell->get_number_of_velocity_blocks(p);
          if ( n < 64) {
-            cout << " WARNING!!! Low block count in this cell for population " << getObjectWrapper().particleSpecies[p].name << ". Number of velocity blocks = " << n << endl;
+	  // triggered by sub-ionospheric cells?
+	  // std::cerr << " WARNING!!! Low block count in this cell for population " << getObjectWrapper().particleSpecies[p].name << ". Number of velocity blocks = " << n << std::endl;
          }
       }
+      //let's get rid of blocks not fulfilling the criteria here to save memory.
+      //cell->adjustSingleCellVelocityBlocks();
+
       // Passing true for the doNotSkip argument as we want to calculate 
       // the moment no matter what when this function is called.
       calculateCellMoments(cell,true,true);
@@ -621,7 +625,7 @@ Project* createProject() {
       rvalue = new projects::Distributions;
    }
    if (Parameters::projectName == "ElVentana") {
-      return new projects::ElVentana;
+      rvalue = new projects::ElVentana;
    }
    if(Parameters::projectName == "Firehose") {
       rvalue = new projects::Firehose;

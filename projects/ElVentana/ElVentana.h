@@ -98,7 +98,7 @@ namespace projects {
       std::vector<ElVentanaSpeciesParameters> speciesParams;
       vlsv::ParallelReader vlsvParaReader;
       vlsv::Reader vlsvSerialReader;
-      uint64_t vecsizeperturbed_B, vecsizebackground_B, vecsizemoments, vecsizepressure; 
+      uint64_t vecsizeperturbed_B, vecsizebackground_B, vecsizeE, vecsizemoments, vecsizebulkv, vecsizepressure; 
       CellID findCellID(spatial_cell::SpatialCell *cell) const;
       CellID findCellIDXYZ(creal x, creal y, creal z) const;
 
