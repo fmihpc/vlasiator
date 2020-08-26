@@ -510,16 +510,16 @@ int main(int argn,char* args[]) {
    phiprof::start("compute-dt");
    // Run Vlasov solver once with zero dt to initialize
    // per-cell dt limits and moments.
-   //calculateSpatialTranslation(mpiGrid,0.0);
-   //calculateAcceleration(mpiGrid,0.0);
-    
+   calculateSpatialTranslation(mpiGrid,0.0);
+   calculateAcceleration(mpiGrid,0.0);
+   /* 
    if (P::isRestart == false) {
       // Run Vlasov solver once with zero dt to initialize
       // per-cell dt limits. In restarts, we read the dt from file.
       calculateSpatialTranslation(mpiGrid,0.0);
-      std::cerr<<"restart initial moments and dt"<<std::endl;
       calculateAcceleration(mpiGrid,0.0);      
    }
+   */
    phiprof::stop("compute-dt");
 
    // Save restart data
@@ -589,7 +589,6 @@ int main(int argn,char* args[]) {
       //the distribution function is already propagated forward in time by dt/2
       phiprof::start("propagate-velocity-space-dt/2");
       if (P::propagateVlasovAcceleration) {
-	 std::cerr<<"initialize leapfrog split "<<0.5*P::dt<<std::endl;
          calculateAcceleration(mpiGrid, 0.5*P::dt);
       } else {
          //zero step to set up moments _v
@@ -844,7 +843,6 @@ int main(int argn,char* args[]) {
             //propagate velocity space back to real-time
             if( P::propagateVlasovAcceleration ) {
                // Back half dt to real time, forward by new half dt
-	       std::cerr<<"dt changed "<<-0.5*P::dt + 0.5*newDt<<std::endl;
                calculateAcceleration(mpiGrid,-0.5*P::dt + 0.5*newDt);
             }
             else {
@@ -973,7 +971,6 @@ int main(int argn,char* args[]) {
 
       phiprof::start("Velocity-space");
       if ( P::propagateVlasovAcceleration ) {
-	 std::cerr<<"regular call "<<P::dt<<std::endl;
          calculateAcceleration(mpiGrid,P::dt);
          addTimedBarrier("barrier-after-ad just-blocks");
       } else {
