@@ -26,6 +26,7 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <fstream>
 
 #include "ionosphere.h"
 #include "../projects/project.h"
@@ -176,7 +177,7 @@ namespace SBC {
       };
 
       // Forward spherical fibonacci mapping with n points
-      auto SF = [madfrac,Phi](int i, int n) -> Vec3d {
+      auto SF = [madfrac,Phi](int i, int n) -> Vec3Dd {
          Real phi = 2*M_PI*madfrac(i, Phi-1.);
          Real z = 1. - (2.*i +1.)/n;
          Real sinTheta = sqrt(1 - z*z);
@@ -190,7 +191,7 @@ namespace SBC {
          Real cosTheta = 1. - (2.*j+1.)/n;
          Real z = max(0., round(0.5*log(n * M_PI * sqrt(5) * (1.-cosTheta*cosTheta)) / log(Phi)));
 
-         Vec3d nearestSample = SF(j,n);
+         Vec3Dd nearestSample = SF(j,n);
          std::vector<int> nearestSamples;
 
          // Sample neighbourhood to find closest neighbours
@@ -200,8 +201,8 @@ namespace SBC {
             int c = 5 - abs(5 - r*2) + floor((int)r/3);
             int k = j + (i < 6 ? +1 : -1) * (int)round(pow(Phi,z+c-2)/sqrt(5.));
 
-            Vec3d currentSample = SF(k,n);
-            Vec3d nearestToCurrentSample = currentSample - nearestSample;
+            Vec3Dd currentSample = SF(k,n);
+            Vec3Dd nearestToCurrentSample = currentSample - nearestSample;
             Real squaredDistance = dot_product(nearestToCurrentSample,nearestToCurrentSample);
 
             // Early reject by invalid index and distance
@@ -220,9 +221,9 @@ namespace SBC {
             int kPrevious = nearestSamples[(i+nearestSamples.size()-1) % nearestSamples.size()];
             int kNext = nearestSamples[(i+1) % nearestSamples.size()];
 
-            Vec3d currentSample = SF(k,n);
-            Vec3d previousSample = SF(kPrevious, n);
-            Vec3d nextSample = SF(kNext,n);
+            Vec3Dd currentSample = SF(k,n);
+            Vec3Dd previousSample = SF(kPrevious, n);
+            Vec3Dd nextSample = SF(kNext,n);
 
             if(dot_product(previousSample - nextSample, previousSample - nextSample) > dot_product(currentSample - nearestSample, currentSample-nearestSample)) {
                adjacentVertices.push_back(nearestSamples[i]);
@@ -241,7 +242,7 @@ namespace SBC {
       for(int i=0; i< n; i++) {
          Node newNode;
 
-         Vec3d pos = SF(i,n);
+         Vec3Dd pos = SF(i,n);
          newNode.x = {pos[0], pos[1], pos[2]};
          normalizeRadius(newNode, Ionosphere::innerRadius);
 
@@ -728,6 +729,214 @@ namespace SBC {
          }
       }
    }
+    
+   /*Simple method to tranlate 3D to 1D indeces*/
+   int SphericalTriGrid::ijk2Index(int i , int j ,int k ,std::array<int,3>dims){
+      return i + j*dims[0] +k*dims[0]*dims[1];
+   }
+
+   void SphericalTriGrid::getOutwardBfieldDirection(FieldFunction& dipole ,std::array<Real,3>& r,std::array<Real,3>& b){
+
+       // Get field direction
+      dipole.setDerivative(0);
+      dipole.setComponent(X);
+      b[0] = dipole.call(r[0],r[1],r[2]);
+      dipole.setComponent(Y);
+      b[1] = dipole.call(r[0],r[1],r[2]);
+      dipole.setComponent(Z);
+      b[2] = dipole.call(r[0],r[1],r[2]);
+
+      // Normalize
+      Real  norm = 1. / sqrt(b[0]*b[0] + b[1]*b[1] + b[2]*b[2]);
+      for(int c=0; c<3; c++) {
+         b[c] = b[c] * norm;
+      }
+
+      // Make sure motion is outwards. Flip b if dot(r,b) < 0
+      if(b[0]*r[0] + b[1]*r[1] + b[2]*r[2] < 0) {
+         b[0]*=-1;
+         b[1]*=-1;
+         b[2]*=-1;
+      }
+   }
+
+   /*Richardson extrapolation using polynomial fitting used by the Bulirsch-Stoer Mehtod*/
+   void SphericalTriGrid::richardsonExtrapolation(int i, std::vector<Real>&table , Real& maxError, std::array<int,3>dims ){
+      std::vector<Real> errors;
+      int k;
+
+      for (int dim=0; dim<3; dim++){
+         for(k =1; k<i+1; k++){
+            
+            table.at(ijk2Index(i,k,dim,dims)) = table.at(ijk2Index(i,k-1,dim,dims))  +(table.at(ijk2Index(i,k-1,dim,dims)) -table.at(ijk2Index(i-1,k-1,dim,dims)))/(std::pow(4,i) -1);
+
+         }
+         errors.push_back( fabs(table.at(ijk2Index(k-1,k-1,dim,dims))   -  table.at(ijk2Index(k-2,k-2,dim,dims))));
+      }
+
+      maxError =*std::max_element(errors.begin(), errors.end());
+   }
+  
+   /*Modified Midpoint Method used by the Bulirsch Stoer integrations
+    * stepsize: initial step  size
+    * r: initial position 
+    * r1: new position
+    * n: number of substeps
+    * stepsize: big stepsize to use
+    * z0,zmid,z2: intermediate approximations
+    * */
+   void SphericalTriGrid::modifiedMidpointMethod(FieldFunction& dipole,std::array<Real,3> r,std::array<Real,3>& r1, Real  n , Real stepsize){
+      
+      //Allocate some memory.
+      std::array<Real,3> bunit,crd,z0,zmid,z1;
+      //Divide by number of sub steps      
+      Real h= stepsize/n;
+      Real norm;
+     
+      //First step 
+      getOutwardBfieldDirection(dipole,r,bunit);
+      z0=r;
+      z1={ r[0]+h*bunit[0], r[1]+h*bunit[1], r[2]+h*bunit[2]  };
+      getOutwardBfieldDirection(dipole,z1,bunit);
+
+      for (int m =0; m<=n; m++){
+
+         zmid= { z0[0]+2*h*bunit[0] , z0[1]+2*h*bunit[1], z0[2]+2*h*bunit[2] };
+         z0=z1;
+         z1=zmid;
+         crd = { r[0]+2.*m*h*bunit[0]  ,  r[1]+2.*m*h*bunit[1], r[2]+2.*m*h*bunit[2]};
+         getOutwardBfieldDirection(dipole,crd,bunit);
+
+      }
+      
+      //These are now are new position
+      for (int c=0; c<3; c++){
+         r1[c] = 0.5*(z0[c]+z1[c]+h*bunit[c]);
+      }
+
+   }//Midpoint Method
+
+
+   /*Bulirsch-Stoer Mehtod to trace field line to next point along it*/
+   void SphericalTriGrid::bulirshStoerStep(FieldFunction& dipole, std::array<Real, 3>& r, std::array<Real, 3>& b, Real& stepsize){
+      
+      //Factors by which the stepsize is multiplied 
+      Real shrink = 0.92;
+      Real grow = 1.25; 
+      //Max substeps for midpoint method
+      int kMax = 12;
+      //Optimal row to converge
+      int kOpt = 6;
+      const int ndim = kMax*kMax*3;
+      std::array<int,3>  dims={kMax,kMax,3};
+      std::vector<Real>table(ndim);
+      std::array<Real,3> rold,rnew,r1;
+      Real error;
+      Real eps =10.;
+      bool converged = false;
+
+      //Let's start things up with 2 substeps
+      int n =2;
+      int i;
+      //Save old state
+      rold = r;
+      //Take a first Step
+      modifiedMidpointMethod(dipole,r,r1,n,stepsize);
+
+      //Save values in table
+      for(int c =0; c<3; ++c){
+         table.at(ijk2Index(0,0,c,dims)) = r1[c];
+      }
+  
+
+      for(i=1; i<kMax; ++i){
+         //Inrement n
+         n*=2;
+         modifiedMidpointMethod(dipole,r,rnew,n,stepsize);
+
+         //Save values in table
+         for(int c =0; c<3; ++c){
+            table.at(ijk2Index(i,0,c,dims)) = rnew[c];
+         }
+
+         //Now let's Extrapolate
+         richardsonExtrapolation(i,table,error,dims);
+         //Normalize error to eps
+         error/=eps;
+
+         //If we are below eps good, let's exit
+         if (error<1.){
+            converged = true;
+            //printf("Converged at %d\n",i);
+            break;
+         }
+      }
+
+      //Step control
+      i= converged ? i:i-1;
+      if  (error>=1.  || i>kOpt){
+         stepsize*=shrink;
+      }else if (i<kOpt){
+         stepsize*=grow;
+      }else{
+         //Save values in table
+         for(int c =0; c<3; ++c){
+            r[c]=table.at(ijk2Index(i,i,c,dims));
+         }
+
+      }
+   } //Bulirsch-Stoer Step 
+
+   
+   /*Take an Euler step*/
+   void SphericalTriGrid::eulerStep(FieldFunction& dipole, std::array<Real, 3>& x, std::array<Real, 3>& v, Real& stepsize){
+
+      // Get field direction
+      dipole.setDerivative(0);
+      dipole.setComponent(X);
+      v[0] = dipole.call(x[0],x[1],x[2]);
+      dipole.setComponent(Y);
+      v[1] = dipole.call(x[0],x[1],x[2]);
+      dipole.setComponent(Z);
+      v[2] = dipole.call(x[0],x[1],x[2]);
+
+      // Normalize
+      Real norm = 1. / sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
+      for(int c=0; c<3; c++) {
+         v[c] = v[c] * norm;
+      }
+
+      // Make sure motion is outwards. Flip v if dot(x,v) < 0
+      if(v[0]*x[0] + v[1]*x[1] + v[2]*x[2] < 0) {
+         v[0]*=-1;
+         v[1]*=-1;
+         v[2]*=-1;
+      }
+
+      for(int c=0; c<3; c++) {
+         x[c] += stepsize * v[c];
+      }
+   
+   }// Euler Step 
+   
+   
+   /*Take a step along the field line*/
+   void SphericalTriGrid::stepFieldLine(std::array<Real, 3>& x, std::array<Real, 3>& v, FieldFunction& dipole, Real& stepsize, std::string method){
+
+      if (method == "Euler"){
+        
+         eulerStep(dipole, x, v,stepsize);
+
+      }else if(method == "BS"){
+        
+         bulirshStoerStep(dipole, x, v,stepsize);
+
+      }
+
+   
+   }//FL step
+
+   
 
    /* Calculate mapping between ionospheric nodes and fsGrid cells.
     * To do so, the magnetic field lines are traced from all mesh nodes
@@ -776,13 +985,13 @@ namespace SBC {
 
          std::array<Real, 3> x = no.x;
          std::array<Real, 3> v({0,0,0});
+         // Step at half FSGrid resolution TODO: Choose something better
+         Real stepSize = min(100e3, technicalGrid.DX / 2.); 
+         
          while( sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]) < 1.5*couplingRadius ) {
 
-            // Step at half FSGrid resolution TODO: Choose something better
-            Real stepSize = min(100e3, technicalGrid.DX / 2.); 
-
             // Make one step along the fieldline
-            stepFieldline(x,v,dipole, stepSize);
+            stepFieldLine(x,v,dipole, stepSize,"Euler");
 
             // Look up the fsgrid cell beloinging to these coordinates
             std::array<int, 3> fsgridCell;
@@ -1042,13 +1251,13 @@ namespace SBC {
                                        const std::array<Real, 3>& b,
                                        const std::array<Real, 3>& c) {
 
-     Vec3d av(a[0],a[1],a[2]);
-     Vec3d bv(b[0],b[1],b[2]);
-     Vec3d cv(c[0],c[1],c[2]);
+     Vec3Dd av(a[0],a[1],a[2]);
+     Vec3Dd bv(b[0],b[1],b[2]);
+     Vec3Dd cv(c[0],c[1],c[2]);
 
-     Vec3d z = cross_product(bv-cv, av-cv);
+     Vec3Dd z = cross_product(bv-cv, av-cv);
 
-     Vec3d result = cross_product(z,bv-av)/dot_product( z, cross_product(av,bv) + cross_product(cv, av-bv));
+     Vec3Dd result = cross_product(z,bv-av)/dot_product( z, cross_product(av,bv) + cross_product(cv, av-bv));
 
      return std::array<Real,3>{result[0],result[1],result[2]};
    }

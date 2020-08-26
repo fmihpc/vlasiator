@@ -120,7 +120,14 @@ namespace SBC {
       void subdivideElement(uint32_t e);  // Subdivide mesh within element e
       void calculateConductivityTensor(const Real F10_7, const Real recombAlpha, const Real backgroundIonisation); // Update sigma tensor
       void calculateFsgridCoupling(FsGrid< fsgrids::technical, 2> & technicalGrid, FieldFunction& dipole, Real radius);     // Link each element to fsgrid cells for coupling
-
+      //Field Line Tracing functions
+      int ijk2Index(int i , int j ,int k ,std::array<int,3>dims); //3D to 1D indexing 
+      void getOutwardBfieldDirection(FieldFunction& dipole ,std::array<Real,3>& r,std::array<Real,3>& b);
+      void bulirshStoerStep(FieldFunction& dipole, std::array<Real, 3>& r, std::array<Real, 3>& b, Real& stepsize); //Bulrisch Stoer step
+      void eulerStep(FieldFunction& dipole, std::array<Real, 3>& x, std::array<Real, 3>& v, Real& stepsize); //Euler step
+      void modifiedMidpointMethod(FieldFunction& dipole,std::array<Real,3> r,std::array<Real,3>& r1 , Real n , Real stepsize); // Modified Midpoint Method used by BS step
+      void richardsonExtrapolation(int i, std::vector<Real>& table , Real& maxError,std::array<int,3>dims ); //Richardson extrapolation method used by BS step
+      void stepFieldLine(std::array<Real, 3>& x, std::array<Real, 3>& v, FieldFunction& dipole, Real& stepsize,std::string method); // Handler function for field line tracing
       // Conjugate Gradient solver functions
       void addMatrixDependency(uint node1, uint node2, Real coeff, bool transposed=false); // Add matrix value for the solver
       void addAllMatrixDependencies(uint nodeIndex);
