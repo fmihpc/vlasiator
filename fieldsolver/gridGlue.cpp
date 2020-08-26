@@ -152,6 +152,9 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 	sendBuffer.push_back(cellParams[CellParams::P_11]);
 	sendBuffer.push_back(cellParams[CellParams::P_22]);
         sendBuffer.push_back(cellParams[CellParams::P_33]);
+	sendBuffer.push_back(cellParams[CellParams::P_23]);
+	sendBuffer.push_back(cellParams[CellParams::P_13]);
+        sendBuffer.push_back(cellParams[CellParams::P_12]);
       } else {
         sendBuffer.push_back(cellParams[CellParams::RHOM_DT2]);
 	sendBuffer.push_back(cellParams[CellParams::RHOQ_DT2]);
@@ -162,6 +165,9 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 	sendBuffer.push_back(cellParams[CellParams::P_11_DT2]);
 	sendBuffer.push_back(cellParams[CellParams::P_22_DT2]);
         sendBuffer.push_back(cellParams[CellParams::P_33_DT2]);
+	sendBuffer.push_back(cellParams[CellParams::P_23_DT2]);
+	sendBuffer.push_back(cellParams[CellParams::P_13_DT2]);
+        sendBuffer.push_back(cellParams[CellParams::P_12_DT2]);
       }
     }
     int count = sendBuffer.size(); //note, compared to receive this includes all elements to be sent

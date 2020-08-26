@@ -133,6 +133,9 @@ void calculateDerivatives(
       dMoments->at(fsgrids::dmoments::dp11dx) = limiter(leftMoments->at(fsgrids::moments::P_11),centMoments->at(fsgrids::moments::P_11),rghtMoments->at(fsgrids::moments::P_11));
       dMoments->at(fsgrids::dmoments::dp22dx) = limiter(leftMoments->at(fsgrids::moments::P_22),centMoments->at(fsgrids::moments::P_22),rghtMoments->at(fsgrids::moments::P_22));
       dMoments->at(fsgrids::dmoments::dp33dx) = limiter(leftMoments->at(fsgrids::moments::P_33),centMoments->at(fsgrids::moments::P_33),rghtMoments->at(fsgrids::moments::P_33));
+      dMoments->at(fsgrids::dmoments::dp23dx) = limiter(leftMoments->at(fsgrids::moments::P_23),centMoments->at(fsgrids::moments::P_23),rghtMoments->at(fsgrids::moments::P_23));
+      dMoments->at(fsgrids::dmoments::dp13dx) = limiter(leftMoments->at(fsgrids::moments::P_13),centMoments->at(fsgrids::moments::P_13),rghtMoments->at(fsgrids::moments::P_13));
+      dMoments->at(fsgrids::dmoments::dp12dx) = limiter(leftMoments->at(fsgrids::moments::P_12),centMoments->at(fsgrids::moments::P_12),rghtMoments->at(fsgrids::moments::P_12));
 
       dMoments->at(fsgrids::dmoments::dVxdx)  = limiter(leftMoments->at(fsgrids::moments::VX), centMoments->at(fsgrids::moments::VX), rghtMoments->at(fsgrids::moments::VX));
       dMoments->at(fsgrids::dmoments::dVydx)  = limiter(leftMoments->at(fsgrids::moments::VY), centMoments->at(fsgrids::moments::VY), rghtMoments->at(fsgrids::moments::VY));
@@ -181,6 +184,10 @@ void calculateDerivatives(
        dMoments->at(fsgrids::dmoments::dp11dy) = limiter(leftMoments->at(fsgrids::moments::P_11),centMoments->at(fsgrids::moments::P_11),rghtMoments->at(fsgrids::moments::P_11));
        dMoments->at(fsgrids::dmoments::dp22dy) = limiter(leftMoments->at(fsgrids::moments::P_22),centMoments->at(fsgrids::moments::P_22),rghtMoments->at(fsgrids::moments::P_22));
        dMoments->at(fsgrids::dmoments::dp33dy) = limiter(leftMoments->at(fsgrids::moments::P_33),centMoments->at(fsgrids::moments::P_33),rghtMoments->at(fsgrids::moments::P_33));
+       dMoments->at(fsgrids::dmoments::dp23dy) = limiter(leftMoments->at(fsgrids::moments::P_23),centMoments->at(fsgrids::moments::P_23),rghtMoments->at(fsgrids::moments::P_23));
+       dMoments->at(fsgrids::dmoments::dp13dy) = limiter(leftMoments->at(fsgrids::moments::P_13),centMoments->at(fsgrids::moments::P_13),rghtMoments->at(fsgrids::moments::P_13));
+       dMoments->at(fsgrids::dmoments::dp12dy) = limiter(leftMoments->at(fsgrids::moments::P_12),centMoments->at(fsgrids::moments::P_12),rghtMoments->at(fsgrids::moments::P_12));
+
        dMoments->at(fsgrids::dmoments::dVxdy)  = limiter(leftMoments->at(fsgrids::moments::VX), centMoments->at(fsgrids::moments::VX), rghtMoments->at(fsgrids::moments::VX));
        dMoments->at(fsgrids::dmoments::dVydy)  = limiter(leftMoments->at(fsgrids::moments::VY), centMoments->at(fsgrids::moments::VY), rghtMoments->at(fsgrids::moments::VY));
        dMoments->at(fsgrids::dmoments::dVzdy)  = limiter(leftMoments->at(fsgrids::moments::VZ), centMoments->at(fsgrids::moments::VZ), rghtMoments->at(fsgrids::moments::VZ));
@@ -230,6 +237,9 @@ void calculateDerivatives(
       dMoments->at(fsgrids::dmoments::dp11dz) = limiter(leftMoments->at(fsgrids::moments::P_11),centMoments->at(fsgrids::moments::P_11),rghtMoments->at(fsgrids::moments::P_11));
       dMoments->at(fsgrids::dmoments::dp22dz) = limiter(leftMoments->at(fsgrids::moments::P_22),centMoments->at(fsgrids::moments::P_22),rghtMoments->at(fsgrids::moments::P_22));
       dMoments->at(fsgrids::dmoments::dp33dz) = limiter(leftMoments->at(fsgrids::moments::P_33),centMoments->at(fsgrids::moments::P_33),rghtMoments->at(fsgrids::moments::P_33));
+      dMoments->at(fsgrids::dmoments::dp23dz) = limiter(leftMoments->at(fsgrids::moments::P_23),centMoments->at(fsgrids::moments::P_23),rghtMoments->at(fsgrids::moments::P_23));
+      dMoments->at(fsgrids::dmoments::dp13dz) = limiter(leftMoments->at(fsgrids::moments::P_13),centMoments->at(fsgrids::moments::P_13),rghtMoments->at(fsgrids::moments::P_13));
+      dMoments->at(fsgrids::dmoments::dp12dz) = limiter(leftMoments->at(fsgrids::moments::P_12),centMoments->at(fsgrids::moments::P_12),rghtMoments->at(fsgrids::moments::P_12));
       dMoments->at(fsgrids::dmoments::dVxdz)  = limiter(leftMoments->at(fsgrids::moments::VX), centMoments->at(fsgrids::moments::VX), rghtMoments->at(fsgrids::moments::VX));
       dMoments->at(fsgrids::dmoments::dVydz)  = limiter(leftMoments->at(fsgrids::moments::VY), centMoments->at(fsgrids::moments::VY), rghtMoments->at(fsgrids::moments::VY));
       dMoments->at(fsgrids::dmoments::dVzdz)  = limiter(leftMoments->at(fsgrids::moments::VZ), centMoments->at(fsgrids::moments::VZ), rghtMoments->at(fsgrids::moments::VZ));

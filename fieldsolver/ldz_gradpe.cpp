@@ -45,10 +45,17 @@ void calculateEdgeGradPeTermXComponents(
          break;
          
       case 1:
-         rhoq = momentsGrid.get(i,j,k)->at(fsgrids::moments::RHOQ);
-         hallRhoq = (rhoq <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : rhoq ;
-         EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EXGRADPE) = -physicalconstants::K_B*Parameters::electronTemperature*dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::drhoqdx) / (hallRhoq*EGradPeGrid.DX);
-         break;
+	 if (P::ResolvePlasmaPeriod==false) { // polytropic approach	  
+	    rhoq = momentsGrid.get(i,j,k)->at(fsgrids::moments::RHOQ);
+	    hallRhoq = (rhoq <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : rhoq ;
+	    EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EXGRADPE) = -physicalconstants::K_B*Parameters::electronTemperature*dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::drhoqdx) / (hallRhoq*EGradPeGrid.DX);
+	 } else { // eVlasiator
+	   EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EXGRADPE) = ( dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::dp11dx)/EGradPeGrid.DX +
+								      dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::dp12dy)/EGradPeGrid.DY +
+								      dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::dp13dx)/EGradPeGrid.DZ )
+	     / momentsGrid.get(i,j,k)->at(fsgrids::moments::RHOQE);
+	 }
+	 break;
          
       default:
          cerr << __FILE__ << ":" << __LINE__ << "You are welcome to code higher-order Hall term correction terms." << endl;
@@ -72,9 +79,16 @@ void calculateEdgeGradPeTermYComponents(
          break;
          
       case 1:
-         rhoq = momentsGrid.get(i,j,k)->at(fsgrids::moments::RHOQ);
-         hallRhoq = (rhoq <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : rhoq ;
-         EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EYGRADPE) = -physicalconstants::K_B*Parameters::electronTemperature*dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::drhoqdy) / (hallRhoq*EGradPeGrid.DY);
+	 if (P::ResolvePlasmaPeriod==false) { // polytropic approach	  
+	    rhoq = momentsGrid.get(i,j,k)->at(fsgrids::moments::RHOQ);
+	    hallRhoq = (rhoq <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : rhoq ;
+	    EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EYGRADPE) = -physicalconstants::K_B*Parameters::electronTemperature*dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::drhoqdy) / (hallRhoq*EGradPeGrid.DY);
+	 } else { // eVlasiator
+	    EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EYGRADPE) = ( dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::dp12dx)/EGradPeGrid.DX +
+								       dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::dp22dy)/EGradPeGrid.DY +
+								       dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::dp23dx)/EGradPeGrid.DZ )
+	      / momentsGrid.get(i,j,k)->at(fsgrids::moments::RHOQE);
+	 }
          break;
          
       default:
@@ -99,9 +113,16 @@ void calculateEdgeGradPeTermZComponents(
          break;
          
       case 1:
-         rhoq = momentsGrid.get(i,j,k)->at(fsgrids::moments::RHOQ);
-         hallRhoq = (rhoq <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : rhoq ;
-         EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EZGRADPE) = -physicalconstants::K_B*Parameters::electronTemperature*dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::drhoqdz) / (hallRhoq*EGradPeGrid.DZ);
+	 if (P::ResolvePlasmaPeriod==false) { // polytropic approach	  
+	    rhoq = momentsGrid.get(i,j,k)->at(fsgrids::moments::RHOQ);
+	    hallRhoq = (rhoq <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : rhoq ;
+	    EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EZGRADPE) = -physicalconstants::K_B*Parameters::electronTemperature*dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::drhoqdz) / (hallRhoq*EGradPeGrid.DZ);
+	 } else { // eVlasiator
+	    EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EZGRADPE) = ( dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::dp13dx)/EGradPeGrid.DX +
+								       dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::dp23dy)/EGradPeGrid.DY +
+								       dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::dp33dx)/EGradPeGrid.DZ )
+	      / momentsGrid.get(i,j,k)->at(fsgrids::moments::RHOQE);
+	 }
          break;
          
       default:

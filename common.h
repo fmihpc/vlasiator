@@ -173,15 +173,27 @@ namespace CellParams {
       P_11,     /*!< Pressure P_xx component, computed by Vlasov propagator. */
       P_22,     /*!< Pressure P_yy component, computed by Vlasov propagator. */
       P_33,     /*!< Pressure P_zz component, computed by Vlasov propagator. */
+      P_23,     /*!< Pressure P_yz component, computed by Vlasov propagator. */
+      P_13,     /*!< Pressure P_xz component, computed by Vlasov propagator. */
+      P_12,     /*!< Pressure P_xy component, computed by Vlasov propagator. */
       P_11_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from P_11_R and P_11_V. */
       P_22_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from P_22_R and P_22_V. */
       P_33_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from P_33_R and P_33_V. */
+      P_23_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from P_23_R and P_23_V. */
+      P_13_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from P_13_R and P_13_V. */
+      P_12_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from P_12_R and P_12_V. */
       P_11_R,   /*!< P_xx component after propagation in ordinary space */
       P_22_R,   /*!< P_yy component after propagation in ordinary space */
       P_33_R,   /*!< P_zz component after propagation in ordinary space */
+      P_23_R,   /*!< P_yz component after propagation in ordinary space */
+      P_13_R,   /*!< P_xz component after propagation in ordinary space */
+      P_12_R,   /*!< P_xy component after propagation in ordinary space */
       P_11_V,   /*!< P_xx component after propagation in velocity space */
       P_22_V,   /*!< P_yy component after propagation in velocity space */
       P_33_V,   /*!< P_zz component after propagation in velocity space */
+      P_23_V,   /*!< P_yz component after propagation in velocity space */
+      P_13_V,   /*!< P_xz component after propagation in velocity space */
+      P_12_V,   /*!< P_xy component after propagation in velocity space */
       EXVOL,    /*!< Volume electric field averaged over spatial cell, x-component.*/
       EYVOL,    /*!< Volume electric field averaged over spatial cell, y-component.*/
       EZVOL,    /*!< Volume electric field averaged over spatial cell, z-component.*/
@@ -284,6 +296,9 @@ namespace fsgrids {
       P_11, /*!< Pressure P_xx component, computed by Vlasov propagator. */
       P_22, /*!< Pressure P_yy component, computed by Vlasov propagator. */
       P_33, /*!< Pressure P_zz component, computed by Vlasov propagator. */
+      P_23, /*!< Pressure P_yz component, computed by Vlasov propagator. */
+      P_13, /*!< Pressure P_xz component, computed by Vlasov propagator. */
+      P_12, /*!< Pressure P_xy component, computed by Vlasov propagator. */
       N_MOMENTS
    };
    
@@ -322,6 +337,15 @@ namespace fsgrids {
       dp33dx,        /*!< Derivative of P_33 to z direction. */
       dp33dy,        /*!< Derivative of P_33 to z direction. */
       dp33dz,        /*!< Derivative of P_33 to z direction. */
+      dp23dx,        /*!< Derivative of P_23 to x direction. */
+      dp23dy,        /*!< Derivative of P_23 to x direction. */
+      dp23dz,        /*!< Derivative of P_23 to x direction. */
+      dp13dx,        /*!< Derivative of P_13 to y direction. */
+      dp13dy,        /*!< Derivative of P_13 to y direction. */
+      dp13dz,        /*!< Derivative of P_13 to y direction. */
+      dp12dx,        /*!< Derivative of P_12 to z direction. */
+      dp12dy,        /*!< Derivative of P_12 to z direction. */
+      dp12dz,        /*!< Derivative of P_12 to z direction. */
       dVxdx,     /*!< Derivative of volume-averaged Vx to x-direction. */
       dVxdy,     /*!< Derivative of volume-averaged Vx to y-direction. */
       dVxdz,     /*!< Derivative of volume-averaged Vx to z-direction. */
