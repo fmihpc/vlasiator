@@ -434,6 +434,13 @@ int main(int argn,char* args[]) {
       = momentsDt2Grid.physicalGlobalStart = dPerBGrid.physicalGlobalStart = dMomentsGrid.physicalGlobalStart
       = BgBGrid.physicalGlobalStart = volGrid.physicalGlobalStart = technicalGrid.physicalGlobalStart
       = {P::xmin, P::ymin, P::zmin};
+
+   // Checking that spatial cells are cubic, otherwise field solver is incorrect (cf. derivatives in E, Hall term)
+   if((abs((technicalGrid.DX-technicalGrid.DY)/technicalGrid.DX) > 0.001) ||
+      (abs((technicalGrid.DX-technicalGrid.DZ)/technicalGrid.DX) > 0.001) ||
+      (abs((technicalGrid.DY-technicalGrid.DZ)/technicalGrid.DY) > 0.001)) {
+     std::cerr << "WARNING: Your spatial cells seem not to be cubic. However the field solver is assuming them to be. Use at your own risk and responsibility!" << std::endl;
+   }
    phiprof::stop("Init fieldsolver grids");
    
    // Initialize grid.  After initializeGrid local cells have dist
@@ -799,7 +806,6 @@ int main(int argn,char* args[]) {
       
       //Re-loadbalance if needed
       //TODO - add LB measure and do LB if it exceeds threshold
-      #warning Re-loadbalance has been disabled temporarily for amr debugging
       if(((P::tstep % P::rebalanceInterval == 0 && P::tstep > P::tstep_min) || overrideRebalanceNow)) {
          logFile << "(LB): Start load balance, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
          balanceLoad(mpiGrid, sysBoundaries);
@@ -907,8 +913,8 @@ int main(int argn,char* args[]) {
          phiprof::start("fsgrid-coupling-in");
          // Copy moments over into the fsgrid.
          //setupTechnicalFsGrid(mpiGrid, cells, technicalGrid);
-         feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid,false);
-         feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid,true);
+         feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid, technicalGrid, false);
+         feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid, technicalGrid, true);
          phiprof::stop("fsgrid-coupling-in");
          
          propagateFields(

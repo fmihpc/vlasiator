@@ -142,7 +142,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                return retval;
          }
          ));
-	 outputReducer->addMetadata(outputReducer->size()-1,"T","$\\mathrm{T}$","$B_\\mathrm{per}$)","1.0");
+	 outputReducer->addMetadata(outputReducer->size()-1,"T","$\\mathrm{T}$","$B_\\mathrm{per}$","1.0");
          continue;
       }
       if(lowercase == "fg_e" || lowercase == "e") { // Bulk electric field at Yee-lattice locations
@@ -1217,13 +1217,16 @@ bool DataReducer::writeFsGridData(
                       FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dMomentsGrid,
                       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volGrid,
-                      FsGrid< fsgrids::technical, 2>& technicalGrid, const std::string& meshName, const unsigned int operatorID, vlsv::Writer& vlsvWriter) {
+                      FsGrid< fsgrids::technical, 2>& technicalGrid,
+                      const std::string& meshName, const unsigned int operatorID,
+                      vlsv::Writer& vlsvWriter,
+                      const bool writeAsFloat) {
    
    if (operatorID >= operators.size()) return false;
    DRO::DataReductionOperatorFsGrid* DROf = dynamic_cast<DRO::DataReductionOperatorFsGrid*>(operators[operatorID]);
    if(!DROf) {
       return false;
    } else {
-      return DROf->writeFsGridData(perBGrid, EGrid, EHallGrid, EGradPeGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, volGrid, technicalGrid, meshName, vlsvWriter);
+      return DROf->writeFsGridData(perBGrid, EGrid, EHallGrid, EGradPeGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, volGrid, technicalGrid, meshName, vlsvWriter, writeAsFloat);
    }
 }

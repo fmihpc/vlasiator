@@ -84,6 +84,8 @@ vector<int> P::systemWriteDistributionWriteStride;
 vector<int> P::systemWriteDistributionWriteXlineStride;
 vector<int> P::systemWriteDistributionWriteYlineStride;
 vector<int> P::systemWriteDistributionWriteZlineStride;
+vector<Real> P::systemWriteDistributionWriteShellRadius;
+vector<int> P::systemWriteDistributionWriteShellStride;
 vector<int> P::systemWrites;
 std::vector<std::pair<std::string,std::string>> P::systemWriteHints;
 
@@ -144,6 +146,7 @@ Realf P::amrBoxCenterX = 0.0;
 Realf P::amrBoxCenterY = 0.0;
 Realf P::amrBoxCenterZ = 0.0;
 
+
 bool Parameters::addParameters(){
    //the other default parameters we read through the add/get interface
    Readparameters::add("io.diagnostic_write_interval", "Write diagnostic output every arg time steps",numeric_limits<uint>::max());
@@ -155,6 +158,8 @@ bool Parameters::addParameters(){
    Readparameters::addComposing("io.system_write_distribution_xline_stride", "Every this many lines of cells along the x direction write out their velocity space. 0 is none. [Define for all groups.]");
    Readparameters::addComposing("io.system_write_distribution_yline_stride", "Every this many lines of cells along the y direction write out their velocity space. 0 is none. [Define for all groups.]");
    Readparameters::addComposing("io.system_write_distribution_zline_stride", "Every this many lines of cells along the z direction write out their velocity space. 0 is none. [Define for all groups.]");
+   Readparameters::addComposing("io.system_write_distribution_shell_radius", "At cells intersecting spheres with those radii centred at the origin write out their velocity space. 0 is none.");
+   Readparameters::addComposing("io.system_write_distribution_shell_stride", "Every this many cells for those on selected shells write out their velocity space. 0 is none.");
    Readparameters::addComposing("io.system_write_mpiio_hint_key", "MPI-IO hint key passed to the non-restart IO. Has to be matched by io.system_write_mpiio_hint_value.");
    Readparameters::addComposing("io.system_write_mpiio_hint_value", "MPI-IO hint value passed to the non-restart IO. Has to be matched by io.system_write_mpiio_hint_key.");
 
@@ -310,6 +315,8 @@ bool Parameters::getParameters(){
    Readparameters::get("io.system_write_distribution_xline_stride", P::systemWriteDistributionWriteXlineStride);
    Readparameters::get("io.system_write_distribution_yline_stride", P::systemWriteDistributionWriteYlineStride);
    Readparameters::get("io.system_write_distribution_zline_stride", P::systemWriteDistributionWriteZlineStride);
+   Readparameters::get("io.system_write_distribution_shell_radius", P::systemWriteDistributionWriteShellRadius);
+   Readparameters::get("io.system_write_distribution_shell_stride", P::systemWriteDistributionWriteShellStride);
    Readparameters::get("io.write_initial_state", P::writeInitialState);
    Readparameters::get("io.restart_walltime_interval", P::saveRestartWalltimeInterval);
    Readparameters::get("io.number_of_restarts", P::exitAfterRestarts);
@@ -375,6 +382,13 @@ bool Parameters::getParameters(){
    if ( P::systemWriteDistributionWriteZlineStride.size() != maxSize) {
       if(myRank == MASTER_RANK) {
          cerr << "ERROR io.system_write_distribution_zline_stride should be defined for all file types." << endl;
+      }
+      return false;
+   }
+   if ( P::systemWriteDistributionWriteShellStride.size() != P::systemWriteDistributionWriteShellRadius.size()) {
+      if(myRank == MASTER_RANK) {
+         cerr << "ERROR You should set the same number of io.system_write_distribution_shell_stride " <<
+                 "and io.system_write_distribution_shell_radius." << endl;
       }
       return false;
    }

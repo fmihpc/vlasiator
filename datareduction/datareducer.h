@@ -68,7 +68,10 @@ class DataReducer {
                       FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dMomentsGrid,
                       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volGrid,
-                      FsGrid< fsgrids::technical, 2>& technicalGrid, const std::string& meshName, const unsigned int operatorID, vlsv::Writer& vlsvWriter);
+                      FsGrid< fsgrids::technical, 2>& technicalGrid,
+                      const std::string& meshName, const unsigned int operatorID,
+                      vlsv::Writer& vlsvWriter,
+                      const bool writeAsFloat = false);
 
  private:
    /** Private copy-constructor to prevent copying the class.

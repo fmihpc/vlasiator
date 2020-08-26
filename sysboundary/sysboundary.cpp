@@ -536,9 +536,9 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
             
             std::array<int32_t, 3> globalIndices = technicalGrid.getGlobalIndices(x,y,z);
             
-            if (  ((globalIndices[0] == 0 || globalIndices[0] == fsGridDimensions[0]-1) && fsGridDimensions[0] > 1)
-               || ((globalIndices[1] == 0 || globalIndices[1] == fsGridDimensions[1]-1) && fsGridDimensions[1] > 1)
-               || ((globalIndices[2] == 0 || globalIndices[2] == fsGridDimensions[2]-1) && fsGridDimensions[2] > 1)
+            if (  ((globalIndices[0] == 0 || globalIndices[0] == fsGridDimensions[0]-1) && !this->isBoundaryPeriodic(0))
+               || ((globalIndices[1] == 0 || globalIndices[1] == fsGridDimensions[1]-1) && !this->isBoundaryPeriodic(1))
+               || ((globalIndices[2] == 0 || globalIndices[2] == fsGridDimensions[2]-1) && !this->isBoundaryPeriodic(2))
             ) {
                continue;
             }

@@ -179,6 +179,7 @@ void initializeGrids(
    }
    phiprof::stop("Classify cells (sys boundary conditions)");
 
+
    // Check refined cells do not touch boundary cells
    phiprof::start("Check boundary refinement");
    if(!sysBoundaries.checkRefinement(mpiGrid)) {
@@ -204,7 +205,32 @@ void initializeGrids(
       }
       phiprof::stop("Apply system boundary conditions state");
    }
-   
+
+  if (P::amrMaxSpatialRefLevel>0) {
+    // Map Refinement Level to FsGrid
+    phiprof::start("Map Refinement Level to FsGrid");
+    const int *localDims = &momentsGrid.getLocalSize()[0];
+
+    // #pragma omp parallel for collapse(3)
+    for (int k=0; k<localDims[2]; k++) {
+      for (int j=0; j<localDims[1]; j++) {
+        for (int i=0; i<localDims[0]; i++) {
+
+          const std::array<int, 3> mapIndices = momentsGrid.getGlobalIndices(i,j,k);
+          const dccrg::Types<3>::indices_t  indices = {{(uint64_t)mapIndices[0],(uint64_t)mapIndices[1],(uint64_t)mapIndices[2]}}; //cast to avoid warnings
+          CellID dccrgCellID2 = mpiGrid.get_existing_cell(indices, 0, mpiGrid.mapping.get_maximum_refinement_level());
+          int amrLevel= mpiGrid.get_refinement_level(dccrgCellID2);
+          technicalGrid.get(i, j, k)-> refLevel =amrLevel ;
+        }
+      }
+    }
+    phiprof::stop("Map Refinement Level to FsGrid");
+  }
+
+
+   // Update technicalGrid
+   technicalGrid.updateGhostCells(); // This needs to be done at some point
+
    if (!P::isRestart) {
       //Initial state based on project, background field in all cells
       //and other initial values in non-sysboundary cells
@@ -276,9 +302,11 @@ void initializeGrids(
       phiprof::start("Init moments");
       calculateInitialVelocityMoments(mpiGrid);
       phiprof::stop("Init moments");
- */
+      */
+
    }
-   
+
+
    // Init mesh data container
    if (getObjectWrapper().meshData.initialize("SpatialGrid") == false) {
       cerr << "(Grid) Failed to initialize mesh data container in " << __FILE__ << ":" << __LINE__ << endl;
@@ -320,16 +348,15 @@ void initializeGrids(
    phiprof::stop("setProjectBField");
    
    phiprof::start("Finish fsgrid setup");
-   feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid,false);
+   feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid,technicalGrid, false);
    if(!P::isRestart) {
       // WARNING this means moments and dt2 moments are the same here at t=0, which is a feature so far.
-      feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid,false);
+      feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid, technicalGrid, false);
    } else {
-      feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid,true);
+      feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid, technicalGrid, true);
    }
    momentsGrid.updateGhostCells();
    momentsDt2Grid.updateGhostCells();
-   technicalGrid.updateGhostCells(); // This needs to be done at some point
    phiprof::stop("Finish fsgrid setup");
    
    phiprof::stop("Set initial state");
