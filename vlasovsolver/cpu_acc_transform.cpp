@@ -161,20 +161,23 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       
    const Real substeps_radians = -(2.0*M_PI*dt/gyro_period)/transformation_substeps; // how many radians each substep is.
    const Real substeps_dt=dt/(Real)transformation_substeps; /*!< how many s each substep is*/
+ 
    Eigen::Matrix<Real,3,1> EgradPe(
       spatial_cell->parameters[CellParams::EXGRADPE],
       spatial_cell->parameters[CellParams::EYGRADPE],
       spatial_cell->parameters[CellParams::EZGRADPE]);
+
    Eigen::Matrix<Real,3,1> EfromJe(
       spatial_cell->parameters[CellParams::EXJE],
       spatial_cell->parameters[CellParams::EYJE],
       spatial_cell->parameters[CellParams::EZJE]);
+
    // Calculate E from charge density imbalance
-   Eigen::Matrix<Real,3,1> Efromrq(
-      spatial_cell->parameters[CellParams::ERHOQX],
-      spatial_cell->parameters[CellParams::ERHOQY],
-      spatial_cell->parameters[CellParams::ERHOQZ]);
-   //   Eigen::Matrix<Real,3,1> Efromrq(0.0, 0.0, 0.0);
+   /* Eigen::Matrix<Real,3,1> Efromrq(
+    spatial_cell->parameters[CellParams::ERHOQX],
+    spatial_cell->parameters[CellParams::ERHOQY],
+    spatial_cell->parameters[CellParams::ERHOQZ]);*/
+   Eigen::Matrix<Real,3,1> Efromrq(0.0, 0.0, 0.0);
       
    const Real q = getObjectWrapper().particleSpecies[popID].charge;
    const Real mass = getObjectWrapper().particleSpecies[popID].mass;
@@ -341,21 +344,27 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
 	  EfromJe += dEJEt*0.5*substeps_dt;
 	}
       }
+
+      /* Evaluate electron pressure gradient term. This is treated as a simple
+	 nudge so we do half before and half after the rotation */
+      if (Parameters::ohmGradPeTerm > 0) {
+	 total_transform=Translation<Real,3>( (fabs(getObjectWrapper().particleSpecies[popID].charge)
+	 				      /getObjectWrapper().particleSpecies[popID].mass) *
+	 				     EgradPe * 0.5 * substeps_dt) * total_transform;
+      }
       // add to transform matrix the small rotation around  pivot
       // when added like this, and not using *= operator, the transformations
       // are in the correct order
       total_transform = Translation<Real,3>(-rotation_pivot)*total_transform;
       total_transform = AngleAxis<Real>(substeps_radians,unit_B)*total_transform;
       total_transform = Translation<Real,3>(rotation_pivot)*total_transform;
-
-
-      // Electron pressure gradient term (this is still untested and might also need to be 
-      // decomposed into perp and parallel portions)
-      if((!smallparticle) && (Parameters::ohmGradPeTerm > 0)) {
-	total_transform=Translation<Real,3>( (fabs(getObjectWrapper().particleSpecies[popID].charge)
-					      /getObjectWrapper().particleSpecies[popID].mass) *
-					     EgradPe * substeps_dt) * total_transform;
+      /* Evaluate second half of electron pressure gradient term. */
+      if (Parameters::ohmGradPeTerm > 0) {
+	 total_transform=Translation<Real,3>( (fabs(getObjectWrapper().particleSpecies[popID].charge)
+	 				      /getObjectWrapper().particleSpecies[popID].mass) *
+	 				     EgradPe * 0.5 * substeps_dt) * total_transform;
       }
+
    }
    //substepFile.close();
    

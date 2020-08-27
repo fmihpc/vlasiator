@@ -338,13 +338,13 @@ namespace fsgrids {
       dp33dy,        /*!< Derivative of P_33 to z direction. */
       dp33dz,        /*!< Derivative of P_33 to z direction. */
       dp23dx,        /*!< Derivative of P_23 to x direction. */
-      dp23dy,        /*!< Derivative of P_23 to x direction. */
-      dp23dz,        /*!< Derivative of P_23 to x direction. */
-      dp13dx,        /*!< Derivative of P_13 to y direction. */
+      dp23dy,        /*!< Derivative of P_23 to y direction. */
+      dp23dz,        /*!< Derivative of P_23 to z direction. */
+      dp13dx,        /*!< Derivative of P_13 to x direction. */
       dp13dy,        /*!< Derivative of P_13 to y direction. */
-      dp13dz,        /*!< Derivative of P_13 to y direction. */
-      dp12dx,        /*!< Derivative of P_12 to z direction. */
-      dp12dy,        /*!< Derivative of P_12 to z direction. */
+      dp13dz,        /*!< Derivative of P_13 to z direction. */
+      dp12dx,        /*!< Derivative of P_12 to x direction. */
+      dp12dy,        /*!< Derivative of P_12 to y direction. */
       dp12dz,        /*!< Derivative of P_12 to z direction. */
       dVxdx,     /*!< Derivative of volume-averaged Vx to x-direction. */
       dVxdy,     /*!< Derivative of volume-averaged Vx to y-direction. */
