@@ -140,7 +140,7 @@ string P::amrVelRefCriterion = "";
 int P::amrMaxSpatialRefLevel = 0;
 bool P::shouldRefine = true;
 bool P::adaptRefinement = false;
-bool P::shouldFilter = true;
+bool P::shouldFilter = false;
 Real P::refineTreshold = 1.0;
 Real P::unrefineTreshold = 0.1;
 Real P::refineMultiplier = 2.0;
@@ -299,7 +299,7 @@ bool Parameters::addParameters(){
    Readparameters::add("AMR.max_spatial_level","Maximum spatial mesh refinement level",(uint)0);
    Readparameters::add("AMR.should_refine","If false, do not refine Vlasov grid regardless of max spatial level",true);
    Readparameters::add("AMR.adapt_refinement","If true, re-refine vlasov grid on restart", false);
-   Readparameters::add("AMR.should_filter","If true, filter vlasov grid with boxcar filter on restart",true);
+   Readparameters::add("AMR.should_filter","If true, filter vlasov grid with boxcar filter on restart",false);
    Readparameters::add("AMR.refine_treshold","Determines the minimum value of the refinement parameter to refine cells", 1.0);
    Readparameters::add("AMR.unrefine_treshold","Determines the maximum value of the refinement parameter to unrefine cells", 0.1);
    Readparameters::add("AMR.refine_multiplier","The value by which the refinement treshold is multiplied after each refinement pass", 2.0);
