@@ -52,7 +52,7 @@ void calculateEdgeGradPeTermXComponents(
 	 } else { // eVlasiator
 	   EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EXGRADPE) = ( dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::dp11dx)/EGradPeGrid.DX +
 								      dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::dp12dy)/EGradPeGrid.DY +
-								      dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::dp13dx)/EGradPeGrid.DZ )
+								      dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::dp13dz)/EGradPeGrid.DZ )
 	     / momentsGrid.get(i,j,k)->at(fsgrids::moments::RHOQE);
 	 }
 	 break;
@@ -86,7 +86,7 @@ void calculateEdgeGradPeTermYComponents(
 	 } else { // eVlasiator
 	    EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EYGRADPE) = ( dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::dp12dx)/EGradPeGrid.DX +
 								       dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::dp22dy)/EGradPeGrid.DY +
-								       dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::dp23dx)/EGradPeGrid.DZ )
+								       dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::dp23dz)/EGradPeGrid.DZ )
 	      / momentsGrid.get(i,j,k)->at(fsgrids::moments::RHOQE);
 	 }
          break;
@@ -120,7 +120,7 @@ void calculateEdgeGradPeTermZComponents(
 	 } else { // eVlasiator
 	    EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EZGRADPE) = ( dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::dp13dx)/EGradPeGrid.DX +
 								       dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::dp23dy)/EGradPeGrid.DY +
-								       dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::dp33dx)/EGradPeGrid.DZ )
+								       dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::dp33dz)/EGradPeGrid.DZ )
 	      / momentsGrid.get(i,j,k)->at(fsgrids::moments::RHOQE);
 	 }
          break;
