@@ -10,16 +10,16 @@ LNK = mpicxx
 
 ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
 #Single-precision        
-#	VECTORCLASS = VEC8F_AGNER
-#	INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/vectorclass-version1
-	VECTORCLASS = VEC8F_FALLBACK
-	INC_VECTORCLASS = -I$(HOME)/vlasiator/vlasovsolver
+	VECTORCLASS = VEC8F_AGNER
+	INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/vectorclass-version1
+#	VECTORCLASS = VEC8F_FALLBACK
+#	INC_VECTORCLASS = -I$(HOME)/vlasiator/vlasovsolver
 else
 #Double-precision
-#	VECTORCLASS = VEC4D_AGNER
-#	INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/vectorclass-version1
-	VECTORCLASS = VEC4D_FALLBACK
-	INC_VECTORCLASS = -I$(HOME)/vlasiator/vlasovsolver
+	VECTORCLASS = VEC4D_AGNER
+	INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/vectorclass-version1
+#	VECTORCLASS = VEC4D_FALLBACK
+#	INC_VECTORCLASS = -I$(HOME)/vlasiator/vlasovsolver
 endif
 
 FLAGS = 
