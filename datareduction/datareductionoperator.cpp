@@ -1355,7 +1355,7 @@ namespace DRO {
       emax = getObjectWrapper().particleSpecies[popID].precipitationEmax;    // already converted to SI
       nChannels = getObjectWrapper().particleSpecies[popID].precipitationNChannels; // number of energy channels, logarithmically spaced between emin and emax
       for (int i=0; i<nChannels; i++){
-         channels.push_back(emin * pow(emax/emin,float(i)/(nChannels-1)));
+         channels.push_back(emin * pow(emax/emin,(Real)i/(nChannels-1)));
       }
    }
    VariablePrecipitationDiffFlux::~VariablePrecipitationDiffFlux() { }
