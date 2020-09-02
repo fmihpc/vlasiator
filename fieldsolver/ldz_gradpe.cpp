@@ -50,9 +50,9 @@ void calculateEdgeGradPeTermXComponents(
 	    hallRhoq = (rhoq <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : rhoq ;
 	    EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EXGRADPE) = -physicalconstants::K_B*Parameters::electronTemperature*dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::drhoqdx) / (hallRhoq*EGradPeGrid.DX);
 	 } else { // eVlasiator
-	   EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EXGRADPE) = ( dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::dp11dx)/EGradPeGrid.DX +
-								      dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::dp12dy)/EGradPeGrid.DY +
-								      dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::dp13dz)/EGradPeGrid.DZ )
+	   EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EXGRADPE) = - ( dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::dp11dx)/EGradPeGrid.DX +
+									dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::dp12dy)/EGradPeGrid.DY +
+									dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::dp13dz)/EGradPeGrid.DZ )
 	     / momentsGrid.get(i,j,k)->at(fsgrids::moments::RHOQE);
 	 }
 	 break;
@@ -84,9 +84,9 @@ void calculateEdgeGradPeTermYComponents(
 	    hallRhoq = (rhoq <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : rhoq ;
 	    EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EYGRADPE) = -physicalconstants::K_B*Parameters::electronTemperature*dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::drhoqdy) / (hallRhoq*EGradPeGrid.DY);
 	 } else { // eVlasiator
-	    EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EYGRADPE) = ( dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::dp12dx)/EGradPeGrid.DX +
-								       dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::dp22dy)/EGradPeGrid.DY +
-								       dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::dp23dz)/EGradPeGrid.DZ )
+	    EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EYGRADPE) = - ( dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::dp12dx)/EGradPeGrid.DX +
+									 dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::dp22dy)/EGradPeGrid.DY +
+									 dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::dp23dz)/EGradPeGrid.DZ )
 	      / momentsGrid.get(i,j,k)->at(fsgrids::moments::RHOQE);
 	 }
          break;
@@ -118,9 +118,9 @@ void calculateEdgeGradPeTermZComponents(
 	    hallRhoq = (rhoq <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : rhoq ;
 	    EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EZGRADPE) = -physicalconstants::K_B*Parameters::electronTemperature*dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::drhoqdz) / (hallRhoq*EGradPeGrid.DZ);
 	 } else { // eVlasiator
-	    EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EZGRADPE) = ( dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::dp13dx)/EGradPeGrid.DX +
-								       dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::dp23dy)/EGradPeGrid.DY +
-								       dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::dp33dz)/EGradPeGrid.DZ )
+	    EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EZGRADPE) = - ( dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::dp13dx)/EGradPeGrid.DX +
+									 dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::dp23dy)/EGradPeGrid.DY +
+									 dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::dp33dz)/EGradPeGrid.DZ )
 	      / momentsGrid.get(i,j,k)->at(fsgrids::moments::RHOQE);
 	 }
          break;
