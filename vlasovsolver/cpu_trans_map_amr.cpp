@@ -538,6 +538,14 @@ CellID selectNeighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> 
    if (myNeighbors.size() > 1) {
       neighborIndex = path;
    }
+   // neighbor at offset    0, 1, 2, 3, 4, 5, 6, 7 is
+   // face neighbor of given cell when neighbors are in
+   // dim = 0, dir = -1      , y,  , y,  , y,  , y
+   // dim = 0, dir = +1     y,  , y,  , y,  , y,
+   // dim = 1, dir = -1      ,  , y, y,  ,  , y, y
+   // dim = 1, dir = +1     y, y,  ,  , y, y,  ,
+   // dim = 2, dir = -1      ,  ,  ,  , y, y, y, y
+   // dim = 2, dir = +1     y, y, y, y,  ,  ,  , 
    
    if (grid.is_local(myNeighbors[neighborIndex])) {
       neighbor = myNeighbors[neighborIndex];
@@ -1017,9 +1025,7 @@ bool copy_trans_block_data_amr(
 }
 
 /* Check whether the ghost cells around the pencil contain higher refinement than the pencil does.
- * If they do, the pencil must be split to match the finest refined ghost cell. This function checks
- * One neighbor pair, but takes as an argument the offset from the pencil. Call multiple times for
- * Multiple ghost cells.
+ * If they do, the pencil must be split to match the finest refined ghost cell.
  *
  * @param mpiGrid DCCRG grid object
  * @param pencils Pencil data struct
