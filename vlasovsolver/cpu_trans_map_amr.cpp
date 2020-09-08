@@ -409,8 +409,6 @@ void computeSpatialTargetCellsForPencilsWithFaces(const dccrg::Dccrg<SpatialCell
                                          const uint dimension,
                                          SpatialCell **targetCells){
 
-   int neighborhood = getNeighborhood(dimension,1);
-
    uint GID = 0;
    // Loop over pencils
    for(uint iPencil = 0; iPencil < pencils.N; iPencil++){
@@ -516,7 +514,7 @@ CellID selectNeighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> 
 
    const auto faceNbrs = grid.get_face_neighbors_of(id);
    for (const auto nbr : faceNbrs) {
-      if (nbr.second == dimension) {
+     if (nbr.second == ((int)dimension + 1)) {
 	 myNeighbors.push_back(nbr.first);
       }
    }
