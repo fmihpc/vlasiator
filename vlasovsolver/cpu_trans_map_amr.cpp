@@ -218,7 +218,7 @@ void computeSpatialSourceCellsForPencilWithFaces(const dccrg::Dccrg<SpatialCell,
    for (int ngh_i = 0; ngh_i < VLASOV_STENCIL_WIDTH; ++ngh_i) {
      const auto frontNeighbors = mpiGrid.get_face_neighbors_of(ngh_front.front());
      refLvl = mpiGrid.get_refinement_level(ngh_front.front());
-     if (frontNeighbors.size()!=0) {
+     if (frontNeighbors.size() > 0) {
        for (const auto nbr: frontNeighbors) {
 	 if(nbr.second == (-((int)dimension + 1))) {
 	   neighbors.push_back(nbr.first);
@@ -252,7 +252,7 @@ void computeSpatialSourceCellsForPencilWithFaces(const dccrg::Dccrg<SpatialCell,
      }
      neighbors.clear();
      const auto backNeighbors = mpiGrid.get_face_neighbors_of(ngh_back.front());
-     if (backNeighbors.size()!=0) {
+     if (backNeighbors.size() > 0) {
        for (const auto nbr: backNeighbors) {
 	 if(nbr.second == ((int)dimension + 1)) {
 	 neighbors.push_back(nbr.first);
@@ -426,7 +426,7 @@ void computeSpatialTargetCellsForPencilsWithFaces(const dccrg::Dccrg<SpatialCell
       vector <CellID> frontNeighborIds;
       vector <CellID> backNeighborIds;
       const auto frontNeighbors = mpiGrid.get_face_neighbors_of(ids.front());
-      if (frontNeighbors.size()==0) {
+      if (frontNeighbors.size() > 0) {
 	for (const auto nbr: frontNeighbors) {
 	  if(nbr.second == (-((int)dimension + 1))) {
 	    frontNeighborIds.push_back(nbr.first);
@@ -451,7 +451,7 @@ void computeSpatialTargetCellsForPencilsWithFaces(const dccrg::Dccrg<SpatialCell
       frontNeighborIds.clear();
 
       const auto backNeighbors = mpiGrid.get_face_neighbors_of(ids.back());
-      if (backNeighbors.size()==0) {
+      if (backNeighbors.size() > 0) {
 	for (const auto nbr: backNeighbors) {
 	  if(nbr.second == ((int)dimension + 1)) {
 	  backNeighborIds.push_back(nbr.first);
