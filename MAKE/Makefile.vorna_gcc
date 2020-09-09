@@ -81,7 +81,7 @@ INC_PROFILE = -I$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof/includ
 
 LDFLAGS += -Wl,-rpath=$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof/lib:$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/boost/lib:$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/vlsv/lib:$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/jemalloc/lib:$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/zoltan/lib   
 
-LIB_PAPI = -L$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/papi/lib -lpapi -Wl,-rpath=/proj/group/spacephysics/libraries/gcc/8.3.0/papi/lib
+LIB_PAPI = -L$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/papi/lib -lpapi -Wl,-rpath=$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/papi/lib
 INC_PAPI = -I$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/papi/include
 
 #header libraries
