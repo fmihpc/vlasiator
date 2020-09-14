@@ -861,7 +861,7 @@ namespace SBC {
          error/=Ionosphere::eps;
 
          //If we are below eps good, let's exit
-         if (error<eps){
+         if (error<1.){
             converged = true;
             break;
          }
@@ -869,7 +869,7 @@ namespace SBC {
 
       //Step control
       i= converged ? i:i-1;
-      if  (error>=eps  || i>kOpt){
+      if  (error>=1.  || i>kOpt){
          stepsize*=shrink;
        }else if (i<kOpt){
          stepsize*=grow;
