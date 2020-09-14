@@ -832,7 +832,6 @@ namespace SBC {
       Real error;
       bool converged = false;
 
-      std::cout<< Ionosphere::eps<<std::endl;
       //Let's start things up with 2 substeps
       int n =2;
       int i;
