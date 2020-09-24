@@ -759,8 +759,11 @@ void deallocateRemoteCellBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
 Updates velocity block lists between remote neighbors and prepares local
 copies of remote neighbors for receiving velocity block data.
 */
-void updateRemoteVelocityBlockLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-        const uint popID)
+void updateRemoteVelocityBlockLists(
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   const uint popID,
+   const uint neighborhood/*=DIST_FUNC_NEIGHBORHOOD_ID default*/
+)
 {
    SpatialCell::setCommunicatedSpecies(popID);
    
@@ -770,15 +773,15 @@ void updateRemoteVelocityBlockLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
    phiprof::initializeTimer("Velocity block list update","MPI");
    phiprof::start("Velocity block list update");
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE1);
-   mpiGrid.update_copies_of_remote_neighbors(DIST_FUNC_NEIGHBORHOOD_ID);
+   mpiGrid.update_copies_of_remote_neighbors(neighborhood);
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE2);
-   mpiGrid.update_copies_of_remote_neighbors(DIST_FUNC_NEIGHBORHOOD_ID);
+   mpiGrid.update_copies_of_remote_neighbors(neighborhood);
    phiprof::stop("Velocity block list update");
 
    // Prepare spatial cells for receiving velocity block data
    phiprof::start("Preparing receives");
    const std::vector<uint64_t> incoming_cells
-      = mpiGrid.get_remote_cells_on_process_boundary(DIST_FUNC_NEIGHBORHOOD_ID);
+      = mpiGrid.get_remote_cells_on_process_boundary(neighborhood);
    #pragma omp parallel for
 
    for (unsigned int i=0; i<incoming_cells.size(); ++i) {
