@@ -1090,7 +1090,7 @@ void check_ghost_cells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
 	    if (frontNeighbors.size() > 0) {
 	       ngh_front.erase(ngh_front.begin());
 	       for (const auto nbr: frontNeighbors) {
-		  if(nbr.second == ((int)dimension + 1)) {
+		  if(nbr.second == -((int)dimension + 1)) {
 		     ngh_front.push_back(nbr.first);
 		     maxNbrRefLvl = max(maxNbrRefLvl,mpiGrid.get_refinement_level(nbr.first));
 		  }
@@ -1102,7 +1102,7 @@ void check_ghost_cells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
 	    if (backNeighbors.size() > 0) {
 	       ngh_back.erase(ngh_back.begin());
 	       for (const auto nbr: backNeighbors) {
-		  if(nbr.second == -((int)dimension + 1)) {
+		  if(nbr.second == ((int)dimension + 1)) {
 		     ngh_back.push_back(nbr.first);
 		     maxNbrRefLvl = max(maxNbrRefLvl,mpiGrid.get_refinement_level(nbr.first));
 		  }
@@ -1388,10 +1388,10 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
 
    if(printPencils) printPencilsFunc(pencils,dimension,myRank);
 
-   if(!checkPencils(mpiGrid, localPropagatedCells, pencils)) {
-      std::cerr<<"abort checkpencils"<<std::endl;
-      abort();
-   }
+   // if(!checkPencils(mpiGrid, localPropagatedCells, pencils)) {
+   //    std::cerr<<"abort checkpencils"<<std::endl;
+   //    abort();
+   // }
    
    if (Parameters::prepareForRebalance == true) {
       for (uint i=0; i<localPropagatedCells.size(); i++) {
