@@ -816,7 +816,7 @@ namespace SBC {
 
 
    /*Bulirsch-Stoer Mehtod to trace field line to next point along it*/
-   void SphericalTriGrid::bulirschStoerStep(FieldFunction& dipole, std::array<Real, 3>& r, std::array<Real, 3>& b, Real& stepsize){
+   void SphericalTriGrid::bulirschStoerStep(FieldFunction& dipole, std::array<Real, 3>& r, std::array<Real, 3>& b, Real& stepsize,Real maxStepsize){
       
       //Factors by which the stepsize is multiplied 
       Real shrink = 0.92;
@@ -868,11 +868,13 @@ namespace SBC {
       }
 
       //Step control
-      i= converged ? i:i-1;
+      i = (converged) ? i:i-1;
       if  (error>=1.  || i>kOpt){
          stepsize*=shrink;
        }else if (i<kOpt){
          stepsize*=grow;
+         //Limit stepsize to maxStepsize which should be technicalGrid.DX/2
+         stepsize= (stepsize<maxStepsize ) stepsize:maxStepsize; 
       }else{
          //Save values in table
          for(int c =0; c<3; ++c){
@@ -916,7 +918,7 @@ namespace SBC {
    
    
    /*Take a step along the field line*/
-   void SphericalTriGrid::stepFieldLine(std::array<Real, 3>& x, std::array<Real, 3>& v, FieldFunction& dipole, Real& stepsize, std::string method){
+   void SphericalTriGrid::stepFieldLine(std::array<Real, 3>& x, std::array<Real, 3>& v, FieldFunction& dipole, Real& stepsize,Real maxStepsize, std::string method){
 
       if (method == "Euler"){
         
@@ -924,7 +926,7 @@ namespace SBC {
 
       }else if(method == "BS"){
         
-         bulirschStoerStep(dipole, x, v,stepsize);
+         bulirschStoerStep(dipole, x, v,stepsize,maxStepsize);
 
       }
    }//stepFieldLine
@@ -987,7 +989,7 @@ namespace SBC {
             while( sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]) < 1.5*couplingRadius ) {
 
                // Make one step along the fieldline
-               stepFieldLine(x,v,dipole, stepSize,"BS");
+               stepFieldLine(x,v,dipole, stepSize,technicalGrid.DX/2,"BS");
 
                // Look up the fsgrid cell beloinging to these coordinates
                std::array<int, 3> fsgridCell;
