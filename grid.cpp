@@ -210,32 +210,34 @@ void initializeGrids(
       phiprof::stop("Read restart");
 
       // For now, alpha is read from the restart file
-      phiprof::start("Re-refine spatial cells");
-      for (int i = 0; P::adaptRefinement && i < P::amrMaxSpatialRefLevel; ++i) {
-         project.adaptRefinement(mpiGrid);
-         initSpatialCellCoordinates(mpiGrid);
-         if(sysBoundaries.classifyCells(mpiGrid,technicalGrid) == false) {
-            cerr << "(MAIN) ERROR: System boundary conditions were not set correctly." << endl;
-            exit(1);
+      if (P::adaptRefinement) {
+         phiprof::start("Re-refine spatial cells");
+         for (int i = 0; i < P::amrMaxSpatialRefLevel; ++i) {
+            project.adaptRefinement(mpiGrid);
+            initSpatialCellCoordinates(mpiGrid);
+            if(sysBoundaries.classifyCells(mpiGrid,technicalGrid) == false) {
+               cerr << "(MAIN) ERROR: System boundary conditions were not set correctly." << endl;
+               exit(1);
+            }
+
+            if(!sysBoundaries.checkRefinement(mpiGrid)) {
+               cerr << "(MAIN) ERROR: Boundary cells must have identical refinement level " << endl;
+               exit(1);
+            }
+
+            // balance load, update ghost cells
+            balanceLoad(mpiGrid, sysBoundaries);
+            SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
+            mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
+
+            if (P::shouldFilter) {
+               project.filterRefined(mpiGrid);
+            }
+
+            // Consider recalculating alphas here. Requires fs grid to be set up and grid glue
          }
-
-         if(!sysBoundaries.checkRefinement(mpiGrid)) {
-            cerr << "(MAIN) ERROR: Boundary cells must have identical refinement level " << endl;
-            exit(1);
-         }
-
-         // balance load, update ghost cells
-         balanceLoad(mpiGrid, sysBoundaries);
-         SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
-         mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
-
-         if (P::shouldFilter) {
-            project.filterRefined(mpiGrid);
-         }
-
-         // Consider recalculating alphas here. Requires fs grid to be set up and grid glue
+         phiprof::stop("Re-refine spatial cells");
       }
-      phiprof::stop("Re-refine spatial cells");
    
       //initial state for sys-boundary cells, will skip those not set to be reapplied at restart
       phiprof::start("Apply system boundary conditions state");
