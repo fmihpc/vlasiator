@@ -952,24 +952,21 @@ int main(int argn,char* args[]) {
       }
 
       // Additional feeding of moments into fsgrid required by electron runs
-      for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-	if (getObjectWrapper().particleSpecies[popID].mass < 0.5*physicalconstants::MASS_PROTON) {
-	  phiprof::start("fsgrid-coupling-in");
-	  feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid, technicalGrid, false);
-	  feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid, technicalGrid, true);
-	  momentsGrid.updateGhostCells();
-	  momentsDt2Grid.updateGhostCells();
-	  phiprof::stop("fsgrid-coupling-in");
-
-	  calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER1, true);
-	  phiprof::start("getFieldsFromFsGrid");
-	  // Copy results back from fsgrid.
-	  volGrid.updateGhostCells();
-	  technicalGrid.updateGhostCells();
-	  getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, dMomentsGrid, technicalGrid, mpiGrid, cells);
-	  phiprof::stop("getFieldsFromFsGrid");
-	  break;
-	}
+      if (P::ResolvePlasmaPeriod==true) {
+	phiprof::start("fsgrid-coupling-in");
+	feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid, technicalGrid, false);
+	feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid, technicalGrid, true);
+	momentsGrid.updateGhostCells();
+	momentsDt2Grid.updateGhostCells();
+	phiprof::stop("fsgrid-coupling-in");
+	
+	calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER1, true);
+	phiprof::start("getFieldsFromFsGrid");
+	// Copy results back from fsgrid.
+	volGrid.updateGhostCells();
+	technicalGrid.updateGhostCells();
+	getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, dMomentsGrid, technicalGrid, mpiGrid, cells);
+	phiprof::stop("getFieldsFromFsGrid");
       }
 
       phiprof::start("Velocity-space");
