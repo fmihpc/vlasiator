@@ -45,7 +45,8 @@
 #include "sysboundary/sysboundary.h"
 
 #include "fieldsolver/fs_common.h"
-#include "fieldsolver/derivatives.hpp" // For electron solver PQN calculation
+#include "fieldsolver/derivatives.hpp" // For eVlasiator PQN calculation
+#include "fieldsolver/ldz_gradpe.hpp" // For eVlasiator gradpe calculation
 #include "projects/project.h"
 #include "grid.h"
 #include "iowrite.h"
@@ -961,6 +962,10 @@ int main(int argn,char* args[]) {
 	phiprof::stop("fsgrid-coupling-in");
 	
 	calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER1, true);
+	if(P::ohmGradPeTerm > 0){
+	  calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER1);
+	}
+
 	phiprof::start("getFieldsFromFsGrid");
 	// Copy results back from fsgrid.
 	volGrid.updateGhostCells();
