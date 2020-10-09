@@ -78,7 +78,7 @@ struct setOfPencils {
 
    std::vector<CellID> getIds(const uint pencilId) const {
       
-      if (pencilId > N) {
+      if (pencilId >= N) {
          std::vector<CellID> idsEmpty;
          return idsEmpty;
       }
