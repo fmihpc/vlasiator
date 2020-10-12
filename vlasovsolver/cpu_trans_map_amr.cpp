@@ -1367,7 +1367,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    // Output vectors for ready pencils
    setOfPencils pencils;
    
-#pragma omp parallel
+   //#pragma omp parallel
    {
       // Empty vectors for internal use of buildPencilsWithNeighbors. Could be default values but
       // default vectors are complicated. Should overload buildPencilsWithNeighbors like suggested here
@@ -1379,17 +1379,19 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       // iterators used in the accumulation
       std::vector<CellID>::iterator ibeg, iend;
       
-#pragma omp for schedule(guided)
+      //#pragma omp for schedule(guided)
       for (uint i=0; i<seedIds.size(); i++) {
+	//for (int i=seedIds.size()-1; i>=0; --i) {
          cuint seedId = seedIds[i];
          // Construct pencils from the seedIds into a set of pencils.
          thread_pencils = buildPencilsWithNeighbors(mpiGrid, thread_pencils, seedId, ids, dimension, path, seedIds);
       }
       
       // accumulate thread results in global set of pencils
-#pragma omp critical
+      //#pragma omp critical
       {
-         for (uint i=0; i<thread_pencils.N; i++) {
+	//for (uint i=0; i<thread_pencils.N; i++) {
+	for (int i=thread_pencils.N-1; i>=0; --i) {
             // Use vector range constructor
             ibeg = thread_pencils.ids.begin() + thread_pencils.idsStart[i];
             iend = ibeg + thread_pencils.lengthOfPencils[i];
@@ -1399,7 +1401,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       }
 
       // init cellid_transpose (moved here to take advantage of the omp parallel region)
-#pragma omp for collapse(3)
+      //#pragma omp for collapse(3)
       for (uint k=0; k<WID; ++k) {
          for (uint j=0; j<WID; ++j) {
             for (uint i=0; i<WID; ++i) {

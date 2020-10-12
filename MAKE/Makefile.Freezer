@@ -1,0 +1,118 @@
+CMP = mpic++
+LNK = mpic++
+
+# Markus' desktop computer
+
+#======== Vectorization ==========
+#Set vector backend type for vlasov solvers, sets precision and length. 
+#Options: 
+# AVX:	    VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
+# AVX512:   VEC8D_AGNER, VEC16F_AGNER
+# Fallback: VEC4D_FALLBACK, VEC4F_FALLBACK, VEC8F_FALLBACK
+
+ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
+#Single-precision        
+	VECTORCLASS = VEC8F_AGNER
+	INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/vectorclass
+# 	VECTORCLASS = VEC8F_FALLBACK
+#	INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/../vlasiator/vlasovsolver
+else
+#Double-precision
+#	VECTORCLASS = VEC4D_AGNER
+#	INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/vectorclass
+	VECTORCLASS = VEC4D_FALLBACK
+	INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/../vlasiator/vlasovsolver
+endif
+
+#======== PAPI ==========
+#Add PAPI_MEM define to use papi to report memory consumption?
+#CXXFLAGS +=  -DPAPI_MEM
+
+
+#======== Allocator =========
+#Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
+#Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
+#CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+
+
+#======= Compiler and compilation flags =========
+# NOTES on compiler flags:
+# CXXFLAGS is for compiler flags, they are always used
+# MATHFLAGS are for special math etc. flags, these are only applied on solver functions
+# LDFLAGS flags for linker
+
+#-DNO_WRITE_AT_ALL:  Define to disable write at all to 
+#                    avoid memleak (much slower IO)
+#-DMPICH_IGNORE_CXX_SEEK: Ignores some multiple definition 
+#                         errors that come up when using 
+#                         mpi.h in c++ on Cray
+
+#CXXFLAGS += -DMPICH_IGNORE_CXX_SEEK
+
+#FLAGS = -ggdb
+
+#GNU flags:
+CC_BRAND = gcc
+CC_BRAND_VERSION = 6.2.0
+CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++11 -W -Wall -Wno-unused -fabi-version=0 -mavx2
+
+#CXXFLAGS += -ggdb -O0 -fopenmp -funroll-loops -std=c++11 -W -Wall -Wno-unused -fabi-version=0 -mavx2
+#testpackage: CXXFLAGS = -DDEBUG -g -O2 -fopenmp -std=c++0x -fabi-version=0  -mavx -Wno-ignored-attributes -Wno-deprecated-declarations
+#testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++17 -fabi-version=0  -mavx -fno-unsafe-math-optimizations -mno-avx -mno-fma
+
+testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++17 -fabi-version=0  -mno-avx -mno-fma -fno-unsafe-math-optimizations
+
+#testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++17 -fabi-version=0  -mavx -fno-unsafe-math-optimizations
+
+MATHFLAGS = -ffast-math
+testpackage: MATHFLAGS =  -fno-unsafe-math-optimizations
+
+LDFLAGS =
+#-g -ggdb
+LIB_MPI = -lgomp -lgfortran -lpapi
+
+# BOOST_VERSION = current trilinos version
+# ZOLTAN_VERSION = current trilinos verson
+
+#======== Libraries ===========
+
+MPT_VERSION = 7.5.1
+JEMALLOC_VERSION = 4.0.4
+LIBRARY_PREFIX = /home/markusb/git/vlasiator-lib
+
+
+#compiled libraries
+# INC_BOOST = -I$(CRAY_TRILINOS_PREFIX_DIR)/include/boost
+# LIB_BOOST = -L$(CRAY_TRILINOS_PREFIX_DIR)/lib -lboost_program_options
+
+# INC_ZOLTAN = -I$(CRAY_TRILINOS_PREFIX_DIR)/include
+# LIB_ZOLTAN = -I$(CRAY_TRILINOS_PREFIX_DIR)/lib -lzoltan
+
+INC_BOOST = -I/usr/include/trilinos
+LIB_BOOST = -L/usr/include/trilinos -lboost_program_options
+
+INC_ZOLTAN = -I/usr/include/trilinos
+#LIB_ZOLTAN = -I/usr/lib/x86_64-linux-gnu -ltrilinos_zoltan
+LIB_ZOLTAN = -ltrilinos_zoltan
+USE_TRILINOS=1
+
+INC_JEMALLOC = -I$(LIBRARY_PREFIX)/jemalloc/include
+LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/jemalloc/lib -ljemalloc -Wl,-rpath=$(LIBRARY_PREFIX)/jemalloc/lib
+
+
+INC_VLSV = -I$(LIBRARY_PREFIX)/vlsv
+LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX)/vlsv/lib
+
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof -Wl,-rpath=$(LIBRARY_PREFIX)/phiprof/lib
+INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include
+
+#header libraries
+
+INC_EIGEN = -I$(LIBRARY_PREFIX)/eigen
+#INC_EIGEN = -I$(LIBRARY_PREFIX)/eigen-eigen-07105f7124f9
+#INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg
+INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg_master
+INC_FSGRID = -I$(LIBRARY_PREFIX)/fsgrid
+
+
+
