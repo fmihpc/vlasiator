@@ -685,6 +685,11 @@ void SysBoundary::applySysBoundaryVlasovConditions(
       return; //no system boundaries
    }
 
+   // eVlasiator with all-static boundaries
+   if (P::ResolvePlasmaPeriod==true) {
+     return; //no need to update information for static boundaries
+   }
+
    /*Transfer along boundaries*/
    // First the small stuff without overlapping in an extended neighbourhood:
    SpatialCell::set_mpi_transfer_type(
