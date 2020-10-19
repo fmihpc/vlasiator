@@ -1225,7 +1225,6 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    // For targets we need the local cells, plus a padding of 1 cell at both ends
    phiprof::start("computeSpatialTargetCellsForPencils");
    std::vector<SpatialCell*> targetCells(pencils.sumOfLengths + pencils.N * 2 * nTargetNeighborsPerPencil );
-   //computeSpatialTargetCellsForPencils(mpiGrid, pencils, dimension, targetCells.data());
    computeSpatialTargetCellsForPencilsWithFaces(mpiGrid, pencils, dimension, targetCells.data());
    phiprof::stop("computeSpatialTargetCellsForPencils");
    
@@ -1262,8 +1261,6 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
          // Compute spatial neighbors for the source cells of the pencil. In
          // source cells we have a wider stencil and take into account boundaries.
          std::vector<SpatialCell*> sourceCells(sourceLength);
-         //                std::vector<CellID> sourceCellIds(sourceLength);
-         //computeSpatialSourceCellsForPencil(mpiGrid, pencils, pencili, dimension, sourceCells.data());
          computeSpatialSourceCellsForPencilWithFaces(mpiGrid, pencils, pencili, dimension, sourceCells.data());
          pencilSourceCells.push_back(sourceCells);
 
