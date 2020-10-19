@@ -280,6 +280,17 @@ void propagateMagneticFieldSimple(
       }
    }
    
+   timer=phiprof::initializeTimer("MPI","MPI");
+   phiprof::start(timer);
+   if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+      // Exchange PERBX,PERBY,PERBZ with neighbours
+      perBGrid.updateGhostCells();
+   } else { // RKCase == RK_ORDER2_STEP1
+      // Exchange PERBX_DT2,PERBY_DT2,PERBZ_DT2 with neighbours
+      perBDt2Grid.updateGhostCells();
+   }
+   phiprof::stop(timer);
+
    // L2 pass
    #pragma omp parallel for collapse(3)
    for (int k=0; k<gridDims[2]; k++) {
