@@ -111,7 +111,20 @@ void initializeGrids(
    MPI_Comm comm = MPI_COMM_WORLD;
    int neighborhood_size = max(FS_STENCIL_WIDTH, VLASOV_STENCIL_WIDTH); 
    if (P::amrMaxSpatialRefLevel > 0) {
-      neighborhood_size += 1;
+      switch (VLASOV_STENCIL_WIDTH) {
+      case 1:
+         // Required cells will be included already
+         break;
+      case 2:
+	 // looking from high to low refinement: stencil 2 will only give 1 cell, so need to add 1 
+         neighborhood_size += 1;
+         break;
+      case 3:
+	 // looking from high to low refinement: stencil 3 will only give 2 cells, so need to add 2
+	 // to reach surely into the third low-refinement neighbour  
+	 neighborhood_size += 1;
+	 break;
+      }
    }
 
    const std::array<uint64_t, 3> grid_length = {{P::xcells_ini, P::ycells_ini, P::zcells_ini}};
@@ -916,7 +929,20 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    // To get two coarse neighbors from a fine cell at interfaces, the stencil size needs to be increased by one.
    int addStencilDepth = 0;
    if (P::amrMaxSpatialRefLevel > 0) {
-      addStencilDepth = 1;
+      switch (VLASOV_STENCIL_WIDTH) {
+      case 1:
+         // Required cells will be included already
+         break;
+      case 2:
+	 // looking from high to low refinement: stencil 2 will only give 1 cell, so need to add 1 
+         addStencilDepth = 1;
+         break;
+      case 3:
+	 // looking from high to low refinement: stencil 3 will only give 2 cells, so need to add 2
+	 // to reach surely into the third low-refinement neighbour  
+	 addStencilDepth = 2;
+	 break;
+      }
    }
    
    /*add face neighbors if stencil width larger than 2*/
