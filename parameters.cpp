@@ -503,6 +503,7 @@ bool Parameters::getParameters(){
          }
       }
    }else{
+      numPasses={0};
       printf("Filtering is off and max number of Passes is = \t %d\n", *max_element(P::numPasses.begin(), P::numPasses.end()));
    }
 
