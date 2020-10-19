@@ -396,7 +396,7 @@ namespace projects {
 	       if (P::isRestart == false) {
 		  bgFieldDipole.initialize(-8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );
 		  setPerturbedField(bgFieldDipole, perBGrid);
-		  bgVectorDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, this->dipoleTiltPhi*3.14159/180., this->dipoleTiltTheta*3.14159/180., this->dipoleXFull, this->dipoleXZero, this->dipoleInflowB[0], this->dipoleInflowB[1], this->dipoleInflowB[2]);
+		  bgVectorDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, this->dipoleTiltPhi*M_PI/180., this->dipoleTiltTheta*M_PI/180., this->dipoleXFull, this->dipoleXZero, this->dipoleInflowB[0], this->dipoleInflowB[1], this->dipoleInflowB[2]);
 		  setPerturbedField(bgVectorDipole, perBGrid, true);
 	       }
                break;              
