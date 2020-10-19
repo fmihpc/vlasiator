@@ -373,6 +373,7 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
    CellID id = seedId;
    int startingRefLvl = grid.get_refinement_level(id);
    bool periodic = false;
+   // If this is a new pencil (instead of being a result of a pencil being split
    if( ids.size() == 0 )
       ids.push_back(seedId);
 
@@ -381,6 +382,7 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
    // use the order or the children of the parent cell to figure out which
    // corner we are in.
 
+   std::array<double, 3> coordinates = grid.get_center(seedId);
    int startingPathSize = path.size();
    auto it = path.end();
    if( startingRefLvl > startingPathSize ) {
@@ -467,7 +469,8 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
             }
 	
             nextNeighbor = selectNeighbor(grid,id,dimension,path[refLvl - 1]);      
-	
+	    coordinates = grid.get_center(nextNeighbor);
+
          } else {
 	
             if(debug) {
@@ -490,7 +493,8 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
 	    
                   // This builder continues with neighbor 3
                   path = myPath;
-	    
+		  coordinates = grid.get_center(nextNeighbor);
+
                } else {
 	    
                   // Spawn new builders for neighbors 0,1,2
@@ -505,7 +509,7 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
       } else {
          if(debug) {
             std::cout << "I am cell " << id << ". ";
-            std::cout << " I am on refinement level 0." << std::endl;
+            std::cout << " This pencil has reached refinement level 0." << std::endl;
          }
       }// Closes if (refLvl == 0)
 
@@ -528,7 +532,6 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
    } // Closes while loop
 
    // Get the x,y - coordinates of the pencil (in the direction perpendicular to the pencil)
-   const auto coordinates = grid.get_center(ids[0]);
    double x,y;
    int ix=0,iy=0;
 
