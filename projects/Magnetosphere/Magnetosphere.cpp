@@ -631,10 +631,10 @@ namespace projects {
      if(myRank == MASTER_RANK) std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
       
      // Leave boundary cells and a bit of safety margin
-     const int bw = 2* VLASOV_STENCIL_WIDTH;
-     const int bw2 = 2*(bw + VLASOV_STENCIL_WIDTH);
-     const int bw3 = 2*(bw2 + VLASOV_STENCIL_WIDTH);
-     const int bw4 = 2*(bw3 + VLASOV_STENCIL_WIDTH);
+     const int bw = 2* (VLASOV_STENCIL_WIDTH+1);
+     const int bw2 = 2*(bw + VLASOV_STENCIL_WIDTH+1);
+     const int bw3 = 2*(bw2 + VLASOV_STENCIL_WIDTH+1);
+     const int bw4 = 2*(bw3 + VLASOV_STENCIL_WIDTH+1);
 
      // Calculate regions for refinement
      if (P::amrMaxSpatialRefLevel > 0) {
