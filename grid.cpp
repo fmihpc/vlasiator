@@ -56,6 +56,8 @@
 using namespace std;
 using namespace phiprof;
 
+int globalflags::AMRstencilWidth = VLASOV_STENCIL_WIDTH;
+
 extern Logger logFile, diagnostic;
 
 void initVelocityGridGeometry(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
@@ -122,7 +124,7 @@ void initializeGrids(
       case 3:
 	 // looking from high to low refinement: stencil 3 will only give 2 cells, so need to add 2
 	 // to reach surely into the third low-refinement neighbour  
-	 neighborhood_size += 1;
+	 neighborhood_size += 2;
 	 break;
       }
    }
@@ -945,6 +947,7 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 	 break;
       }
    }
+   globalflags::AMRstencilWidth = VLASOV_STENCIL_WIDTH+addStencilDepth;
    
    /*add face neighbors if stencil width larger than 2*/
    for (int d = 3; d <= VLASOV_STENCIL_WIDTH+addStencilDepth; d++) {
