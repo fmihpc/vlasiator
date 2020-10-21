@@ -622,8 +622,8 @@ namespace SBC {
 	 for (auto nbrPair : *nearNbrs) {
 	    if(nbrPair.first != INVALID_CELLID) {
 	       if(mpiGrid[nbrPair.first]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-		  flowtoCells.at(nbrPair.first[0]/indexstep + 3*nbrPair.first[1]/indexstep
-				 + j*nbrPair.first[2]/indexstep + 13) = mpiGrid[cell];
+		  flowtoCells.at(nbrPair.second[0]/indexstep + 3*nbrPair.second[1]/indexstep
+				 + 9*nbrPair.second[2]/indexstep + 13) = mpiGrid[nbrPair.first];
 		  //flowtoCells.at(i + 3*j + 9*k + 13) = mpiGrid[cell];
 	       }
 	    }
@@ -634,13 +634,13 @@ namespace SBC {
 	    if(nbrPair.first != INVALID_CELLID) {
 	       if(mpiGrid[nbrPair.first]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
 		  // Find distance and update closestCells
-		  d2 = nbrPair.first[0]*nbrPair.first[0] + nbrPair.first[1]*nbrPair.first[1] + nbrPair.first[2]+nbrPair.first[2];
+		  d2 = nbrPair.second[0]*nbrPair.second[0] + nbrPair.second[1]*nbrPair.second[1] + nbrPair.second[2]+nbrPair.second[2];
 		  // Only neighboring cells for L1
 		  if( (mpiGrid[cellId]->sysBoundaryLayer == 1) &&
-		      (abs(nbrPair.first[0]) <= indexstep) &&
-		      (abs(nbrPair.first[1]) <= indexstep) &&
-		      (abs(nbrPair.first[2]) <= indexstep) ) {		      
-		     closeCells.push_back(cell);
+		      (abs(nbrPair.second[0]) <= indexstep) &&
+		      (abs(nbrPair.second[1]) <= indexstep) &&
+		      (abs(nbrPair.second[2]) <= indexstep) ) {		      
+		     closeCells.push_back(nbrPair.first);
 		     if(d2 == dist) {
 		        closestCells.push_back(nbrPair.first);
 		     } else if (d2 < dist) {
@@ -651,7 +651,7 @@ namespace SBC {
 		  }
 		  // search further for L2
 		  if(mpiGrid[cellId]->sysBoundaryLayer == 2) {
-		     closeCells.push_back(cell);
+		     closeCells.push_back(nbrPair.first);
 		     if(d2 == dist) {
 		        closestCells.push_back(nbrPair.first);
 		     } else if (d2 < dist) {
