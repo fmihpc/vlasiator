@@ -72,23 +72,24 @@ namespace projects {
 
 template<typename CELLID,class CONT> bool classifyLevequeGhostCell(const SpatialCell& cell,const CELLID& cellID,const CONT& nbrs);
 
-template<typename CELLID> CELLID getNeighbour(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const CELLID& cellID,const int& i,const int& j,const int& k);
+/* template<typename CELLID> CELLID getNeighbour(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const CELLID& cellID,const int& i,const int& j,const int& k); */
 
 
 // ********************************
 // ***** TEMPLATE DEFINITIONS *****
 // ********************************
 
-template<typename CELLID> CELLID getNeighbour(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const CELLID& cellID,const int& i,const int& j,const int& k){
-    auto neighbors = mpiGrid.get_neighbors_of_at_offset(cellID, i, j, k);
-
-    //FIXME: support refined grids
-    if(neighbors.size() > 0) {
-        return neighbors[0].first;
-    } else {
-        return INVALID_CELLID;
-    }
-}
+/* template<typename CELLID> CELLID getNeighbour(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const CELLID& cellID,const int& i,const int& j,const int& k){ */
+/*     auto neighbors = mpiGrid.get_neighbors_of_at_offset(cellID, i, j, k); */
+/*     // Warning: DCCRG currently uses indexing based on greatest possible refinement level, not the current cell size. */
+    
+/*     //FIXME: support refined grids */
+/*     if(neighbors.size() > 0) { */
+/*         return neighbors[0].first; */
+/*     } else { */
+/*         return INVALID_CELLID; */
+/*     } */
+/* } */
 
 
 #endif
