@@ -634,7 +634,7 @@ namespace SBC {
 	    if(nbrPair.first != INVALID_CELLID) {
 	       if(mpiGrid[nbrPair.first]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
 		  // Find distance and update closestCells
-		  d2 = nbrPair.second[0]*nbrPair.second[0] + nbrPair.second[1]*nbrPair.second[1] + nbrPair.second[2]+nbrPair.second[2];
+		  d2 = nbrPair.second[0]*nbrPair.second[0] + nbrPair.second[1]*nbrPair.second[1] + nbrPair.second[2]*nbrPair.second[2];
 		  // Only neighboring cells for L1
 		  if( (mpiGrid[cellId]->sysBoundaryLayer == 1) &&
 		      (abs(nbrPair.second[0]) <= indexstep) &&
