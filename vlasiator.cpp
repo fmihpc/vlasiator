@@ -926,6 +926,13 @@ int main(int argn,char* args[]) {
          phiprof::stop("Propagate Fields",cells.size(),"SpatialCells");
          addTimedBarrier("barrier-after-field-solver");
       }
+
+      // Map current data down into the ionosphere
+      SBC::ionosphereGrid.mapDownBoundaryData(perBGrid, dPerBGrid, BgBGrid, momentsGrid, technicalGrid);
+      SBC::ionosphereGrid.calculateConductivityTensor(SBC::Ionosphere::F10_7, SBC::Ionosphere::recombAlpha, SBC::Ionosphere::backgroundIonisation);
+
+      // Solve ionosphere
+      SBC::ionosphereGrid.solve();
       
       phiprof::start("Velocity-space");
       if ( P::propagateVlasovAcceleration ) {

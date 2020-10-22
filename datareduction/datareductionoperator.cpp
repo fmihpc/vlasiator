@@ -179,6 +179,107 @@ namespace DRO {
       return true;
    }
 
+   std::string DataReductionOperatorIonosphereElement::getName() const {return variableName;}
+   bool DataReductionOperatorIonosphereElement::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize = sizeof(double);
+      vectorSize = 1;
+      return true;
+   }
+   bool DataReductionOperatorIonosphereElement::reduceData(const SpatialCell* cell,char* buffer) {
+      // This returns false, since it will handle writing itself in writeIonosphereGridData below.
+      return false;
+   }
+   bool DataReductionOperatorIonosphereElement::reduceDiagnostic(const SpatialCell* cell,Real * result) {
+      return false;
+   }
+   bool DataReductionOperatorIonosphereElement::setSpatialCell(const SpatialCell* cell) {
+      return true;
+   }
+   bool DataReductionOperatorIonosphereElement::writeIonosphereData(SBC::SphericalTriGrid&
+            grid, vlsv::Writer& vlsvWriter) {
+
+      std::map<std::string,std::string> attribs;
+      attribs["mesh"]="ionosphere";
+      attribs["name"]=variableName;
+      attribs["unit"]=unit;
+      attribs["unitLaTeX"]=unitLaTeX;
+      attribs["unitConversion"]=unitConversion;
+      attribs["variableLaTeX"]=variableLaTeX;
+
+      // Only task 0 of the ionosphere communicator writes
+      int rank = -1;
+      if(grid.isCouplingToCells) {
+        MPI_Comm_rank(grid.communicator,&rank);
+      }
+      if(rank == 0) {
+        std::vector<Real> varBuffer = lambda(grid);
+
+        std::array<int32_t, 3> gridSize{(int32_t)grid.elements.size(), 1,1};
+        int vectorSize = varBuffer.size() / grid.elements.size();
+        if(vlsvWriter.writeArray("VARIABLE", attribs, "float", grid.elements.size(), vectorSize, sizeof(Real), reinterpret_cast<const char*>(varBuffer.data())) == false) {
+          string message = "The DataReductionOperator " + this->getName() + " failed to write its data.";
+          bailout(true, message, __FILE__, __LINE__);
+        }
+      } else {
+        // Dummy write
+        vlsvWriter.writeArray("VARIABLE", attribs, "float", 0, 1, sizeof(Real), nullptr);
+      }
+
+      return true;
+   }
+
+   std::string DataReductionOperatorIonosphereNode::getName() const {return variableName;}
+   bool DataReductionOperatorIonosphereNode::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize = sizeof(double);
+      vectorSize = 1;
+      return true;
+   }
+   bool DataReductionOperatorIonosphereNode::reduceData(const SpatialCell* cell,char* buffer) {
+      // This returns false, since it will handle writing itself in writeIonosphereGridData below.
+      return false;
+   }
+   bool DataReductionOperatorIonosphereNode::reduceDiagnostic(const SpatialCell* cell,Real * result) {
+      return false;
+   }
+   bool DataReductionOperatorIonosphereNode::setSpatialCell(const SpatialCell* cell) {
+      return true;
+   }
+   bool DataReductionOperatorIonosphereNode::writeIonosphereData(SBC::SphericalTriGrid&
+            grid, vlsv::Writer& vlsvWriter) {
+
+      std::map<std::string,std::string> attribs;
+      attribs["mesh"]="ionosphere";
+      attribs["name"]=variableName;
+      attribs["centering"]= "node"; // <-- this tells visit the variable is node-centered
+      attribs["unit"]=unit;
+      attribs["unitLaTeX"]=unitLaTeX;
+      attribs["unitConversion"]=unitConversion;
+      attribs["variableLaTeX"]=variableLaTeX;
+
+      // Only task 0 of the ionosphere communicator writes
+      int rank = -1;
+      if(grid.isCouplingToCells) {
+        MPI_Comm_rank(grid.communicator,&rank);
+      }
+      if(rank == 0) {
+        std::vector<Real> varBuffer = lambda(grid);
+
+        std::array<int32_t, 3> gridSize{(int32_t)grid.nodes.size(), 1,1};
+        int vectorSize = varBuffer.size() / grid.nodes.size();
+        if(vlsvWriter.writeArray("VARIABLE", attribs, "float", grid.nodes.size(), vectorSize, sizeof(Real), reinterpret_cast<const char*>(varBuffer.data())) == false) {
+          string message = "The DataReductionOperator " + this->getName() + " failed to write its data.";
+          bailout(true, message, __FILE__, __LINE__);
+        }
+      } else {
+        // Dummy write
+        vlsvWriter.writeArray("VARIABLE", attribs, "float", 0, 1, sizeof(Real), nullptr);
+      }
+
+      return true;
+   }
+
    DataReductionOperatorBVOLDerivatives::DataReductionOperatorBVOLDerivatives(const std::string& name,const unsigned int parameterIndex,const unsigned int vectorSize):
    DataReductionOperatorCellParams(name,parameterIndex,vectorSize) {
       
