@@ -279,6 +279,7 @@ void propagateMagneticFieldSimple(
          }
       }
    }
+   phiprof::stop(timer);
    
    timer=phiprof::initializeTimer("MPI","MPI");
    phiprof::start(timer);
@@ -291,6 +292,8 @@ void propagateMagneticFieldSimple(
    }
    phiprof::stop(timer);
 
+   timer=phiprof::initializeTimer("Compute system boundary cells");
+   phiprof::start(timer);
    // L2 pass
    #pragma omp parallel for collapse(3)
    for (int k=0; k<gridDims[2]; k++) {
