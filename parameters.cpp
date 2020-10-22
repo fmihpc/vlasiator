@@ -146,6 +146,9 @@ int P::amrBoxHalfWidthZ = 1;
 Realf P::amrBoxCenterX = 0.0;
 Realf P::amrBoxCenterY = 0.0;
 Realf P::amrBoxCenterZ = 0.0;
+vector<string> P::blurPassString;
+std::vector<int> P::numPasses;
+
 
 
 bool Parameters::addParameters(){
@@ -300,6 +303,7 @@ bool Parameters::addParameters(){
    Readparameters::add("AMR.box_center_x","x coordinate of the center of the box that is refined (for testing)",0.0);
    Readparameters::add("AMR.box_center_y","y coordinate of the center of the box that is refined (for testing)",0.0);
    Readparameters::add("AMR.box_center_z","z coordinate of the center of the box that is refined (for testing)",0.0);
+   Readparameters::addComposing("AMR.filterpasses", std::string()+"AMR filter passes for each individual refinement level");
    return true;
 }
 
@@ -472,7 +476,43 @@ bool Parameters::getParameters(){
    Readparameters::get("AMR.vel_refinement_criterion",P::amrVelRefCriterion);
    Readparameters::get("AMR.refine_limit",P::amrRefineLimit);
    Readparameters::get("AMR.coarsen_limit",P::amrCoarsenLimit);
+  
+  /*Read Blur Passes per Refinement Level*/
+   Readparameters::get("AMR.filterpasses",P::blurPassString);
    
+   // Construct Vector of Passes used in grid.cpp
+   bool isEmpty = blurPassString.size()==0;
+   if (!isEmpty){
+
+      for (auto i : blurPassString){
+         P::numPasses.push_back(std::stoi(i));
+      }
+
+      
+      // Reverse Sort and Get the maximum number of filter passes
+      sort(numPasses.begin(), numPasses.end(), greater<int>());
+
+      // Sanity Check
+      if (P::numPasses.size()!=P::amrMaxSpatialRefLevel+1){
+         cerr<<"Filter Passes="<<P::numPasses.size()<<"\t"<<"AMR Levels="<<P::amrMaxSpatialRefLevel+1<<endl;
+         cerr << "FilterPasses do not match AMR levels \t" << " in " << __FILE__ << ":" << __LINE__ << endl;
+         return false;
+      }
+      
+      if(myRank == MASTER_RANK) {
+         printf("Filtering is on with max number of Passes= \t%d\n", *max_element(P::numPasses.begin(), P::numPasses.end()));
+         int lev=0;
+         for ( auto &iter : P::numPasses ){
+            printf("Refinement Level %d-->%d Passes\n",lev,iter);
+            lev++;
+         }
+      }
+   }else{
+      numPasses={0};
+      printf("Filtering is off and max number of Passes is = \t %d\n", *max_element(P::numPasses.begin(), P::numPasses.end()));
+   }
+
+
    if (geometryString == "XY4D") P::geometry = geometry::XY4D;
    else if (geometryString == "XZ4D") P::geometry = geometry::XZ4D;
    else if (geometryString == "XY5D") P::geometry = geometry::XY5D;
