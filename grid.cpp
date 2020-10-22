@@ -114,18 +114,20 @@ void initializeGrids(
    int neighborhood_size = max(FS_STENCIL_WIDTH, VLASOV_STENCIL_WIDTH); 
    if (P::amrMaxSpatialRefLevel > 0) {
       switch (VLASOV_STENCIL_WIDTH) {
-      case 1:
-         // Required cells will be included already
-         break;
-      case 2:
-	 // looking from high to low refinement: stencil 2 will only give 1 cell, so need to add 1 
-         neighborhood_size += 1;
-         break;
-      case 3:
-	 // looking from high to low refinement: stencil 3 will only give 2 cells, so need to add 2
-	 // to reach surely into the third low-refinement neighbour  
-	 neighborhood_size += 2;
-	 break;
+         case 1:
+            // Required cells will be included already
+            break;
+         case 2:
+            // looking from high to low refinement: stencil 2 will only give 1 cell, so need to add 1 
+            neighborhood_size += 1;
+            break;
+         case 3:
+            // looking from high to low refinement: stencil 3 will only give 2 cells, so need to add 2
+            // to reach surely into the third low-refinement neighbour  
+            neighborhood_size += 2;
+            break;
+         default:
+            std::cerr<<"Warning: unrecognized VLASOV_STENCIL_WIDTH in grid.cpp"<<std::endl;
       }
    }
 
@@ -933,18 +935,20 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    int addStencilDepth = 0;
    if (P::amrMaxSpatialRefLevel > 0) {
       switch (VLASOV_STENCIL_WIDTH) {
-      case 1:
-         // Required cells will be included already
-         break;
-      case 2:
-	 // looking from high to low refinement: stencil 2 will only give 1 cell, so need to add 1 
-         addStencilDepth = 1;
-         break;
-      case 3:
-	 // looking from high to low refinement: stencil 3 will only give 2 cells, so need to add 2
-	 // to reach surely into the third low-refinement neighbour  
-	 addStencilDepth = 2;
-	 break;
+	 case 1:
+	    // Required cells will be included already
+	    break;
+	 case 2:
+	    // looking from high to low refinement: stencil 2 will only give 1 cell, so need to add 1 
+	    addStencilDepth = 1;
+            break;
+         case 3:
+	    // looking from high to low refinement: stencil 3 will only give 2 cells, so need to add 2
+	    // to reach surely into the third low-refinement neighbour  
+            addStencilDepth = 2;
+            break;
+         default:
+            std::cerr<<"Warning: unrecognized VLASOV_STENCIL_WIDTH in grid.cpp"<<std::endl;
       }
    }
    globalflags::AMRstencilWidth = VLASOV_STENCIL_WIDTH+addStencilDepth;
