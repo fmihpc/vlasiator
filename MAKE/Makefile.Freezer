@@ -60,7 +60,7 @@ CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++11 -W -Wall -Wno-unused -fabi-ve
 #testpackage: CXXFLAGS = -DDEBUG -g -O2 -fopenmp -std=c++0x -fabi-version=0  -mavx -Wno-ignored-attributes -Wno-deprecated-declarations
 #testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++17 -fabi-version=0  -mavx -fno-unsafe-math-optimizations -mno-avx -mno-fma
 
-testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++17 -fabi-version=0  -mno-avx -mno-fma -fno-unsafe-math-optimizations
+testpackage: CXXFLAGS = -O2 -g -ggdb -fopenmp -funroll-loops -std=c++17 -fabi-version=0  -mno-avx -mno-fma -fno-unsafe-math-optimizations
 
 #testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++17 -fabi-version=0  -mavx -fno-unsafe-math-optimizations
 
