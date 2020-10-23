@@ -44,7 +44,6 @@ namespace SBC {
       uint nVelocitySamples;
    };
 
-
    static const int MAX_TOUCHING_ELEMENTS = 11; // Maximum number of elements touching one node
    static const int MAX_DEPENDING_NODES = 22;   // Maximum number of depending nodes
 
@@ -91,6 +90,11 @@ namespace SBC {
       };
       std::array<AtmosphericLayer, numAtmosphereLevels> atmosphere;
 
+      enum IonosphereCouplingMethod {
+         Euler,
+         BS
+      } couplingMethod;
+
       // Hardcoded constants for calculating ion production table
       // TODO: Make these parameters?
       constexpr static int productionNumAccEnergies = 60;
@@ -127,7 +131,7 @@ namespace SBC {
       void eulerStep(FieldFunction& dipole, std::array<Real, 3>& x, std::array<Real, 3>& v, Real& stepsize); //Euler step
       void modifiedMidpointMethod(FieldFunction& dipole,std::array<Real,3> r,std::array<Real,3>& r1 , Real n , Real stepsize); // Modified Midpoint Method used by BS step
       void richardsonExtrapolation(int i, std::vector<Real>& table , Real& maxError,std::array<int,3>dims ); //Richardson extrapolation method used by BS step
-      void stepFieldLine(std::array<Real, 3>& x, std::array<Real, 3>& v, FieldFunction& dipole, Real& stepsize,Real maxStepsize,std::string method); // Handler function for field line tracing
+      void stepFieldLine(std::array<Real, 3>& x, std::array<Real, 3>& v, FieldFunction& dipole, Real& stepsize,Real maxStepsize,IonosphereCouplingMethod method); // Handler function for field line tracing
       // Conjugate Gradient solver functions
       void addMatrixDependency(uint node1, uint node2, Real coeff, bool transposed=false); // Add matrix value for the solver
       void addAllMatrixDependencies(uint nodeIndex);
@@ -333,6 +337,7 @@ namespace SBC {
 
       std::string baseShape; // Basic mesh shape (sphericalFibonacci / icosahedron / tetrahedron)
       int fibonacciNodeNum;  // If spherical fibonacci: number of nodes to generate
+      std::string tracerString; /*!< Fieldline tracer to use for coupling ionosphere and magnetosphere */
       std::string atmosphericModelFile; // MSIS data file
       // Boundaries of refinement latitude bands
       std::vector<Real> refineMinLatitudes;

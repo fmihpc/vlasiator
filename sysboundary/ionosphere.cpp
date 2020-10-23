@@ -846,7 +846,7 @@ namespace SBC {
       }
   
       for(i=1; i<kMax; ++i){
-         //Inrement n. Each iteration doubles the number of substeps
+         //Increment n. Each iteration doubles the number of substeps
          n*=2;
          modifiedMidpointMethod(dipole,r,rnew,n,stepsize);
 
@@ -874,7 +874,7 @@ namespace SBC {
        }else if (i<kOpt){
          stepsize*=grow;
          //Limit stepsize to maxStepsize which should be technicalGrid.DX/2
-         stepsize= (stepsize<maxStepsize ) stepsize:maxStepsize; 
+         stepsize= (stepsize<maxStepsize )?stepsize:maxStepsize; 
       }else{
          //Save values in table
          for(int c =0; c<3; ++c){
@@ -918,16 +918,17 @@ namespace SBC {
    
    
    /*Take a step along the field line*/
-   void SphericalTriGrid::stepFieldLine(std::array<Real, 3>& x, std::array<Real, 3>& v, FieldFunction& dipole, Real& stepsize,Real maxStepsize, std::string method){
+   void SphericalTriGrid::stepFieldLine(std::array<Real, 3>& x, std::array<Real, 3>& v, FieldFunction& dipole, Real& stepsize,Real maxStepsize, IonosphereCouplingMethod method){
 
-      if (method == "Euler"){
-        
-         eulerStep(dipole, x, v,stepsize);
-
-      }else if(method == "BS"){
-        
-         bulirschStoerStep(dipole, x, v,stepsize,maxStepsize);
-
+      switch(method) {
+         case Euler:
+            eulerStep(dipole, x, v,stepsize);
+            break;
+         case BS:
+            bulirschStoerStep(dipole, x, v,stepsize,maxStepsize);
+            break;
+         default:
+            break;
       }
    }//stepFieldLine
 
@@ -939,41 +940,9 @@ namespace SBC {
     */
    void SphericalTriGrid::calculateFsgridCoupling( FsGrid< fsgrids::technical, 2> & technicalGrid, FieldFunction& dipole, Real couplingRadius) {
 
-      // Helper function to trace magnetic fieldlines in the given dipole field
-      // TODO: Implement something better than euler step
-      auto stepFieldline = [](std::array<Real, 3>& x, std::array<Real, 3>& v, FieldFunction& dipole, Real stepsize) -> void {
-
-         // Get field direction
-         dipole.setDerivative(0);
-         dipole.setComponent(X);
-         v[0] = dipole.call(x[0],x[1],x[2]);
-         dipole.setComponent(Y);
-         v[1] = dipole.call(x[0],x[1],x[2]);
-         dipole.setComponent(Z);
-         v[2] = dipole.call(x[0],x[1],x[2]);
-
-         // Normalize
-         Real norm = 1. / sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
-         for(int c=0; c<3; c++) {
-            v[c] = v[c] * norm;
-         }
-
-         // Make sure motion is outwards. Flip v if dot(x,v) < 0
-         if(v[0]*x[0] + v[1]*x[1] + v[2]*x[2] < 0) {
-            v[0]*=-1;
-            v[1]*=-1;
-            v[2]*=-1;
-         }
-
-         for(int c=0; c<3; c++) {
-            x[c] += stepsize * v[c];
-         }
-      };
-
-
       // Pick an initial stepsize
       Real stepSize = min(100e3, technicalGrid.DX / 2.); 
-      
+
       #pragma omp parallel firstprivate(stepSize)
       {
          // Trace node coordinates outwards until a non-sysboundary cell is encountered 
@@ -989,7 +958,7 @@ namespace SBC {
             while( sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]) < 1.5*couplingRadius ) {
 
                // Make one step along the fieldline
-               stepFieldLine(x,v,dipole, stepSize,technicalGrid.DX/2,"BS");
+               stepFieldLine(x,v,dipole, stepSize,technicalGrid.DX/2,couplingMethod);
 
                // Look up the fsgrid cell beloinging to these coordinates
                std::array<int, 3> fsgridCell;
@@ -1637,6 +1606,7 @@ namespace SBC {
       Readparameters::add("ionosphere.F10_7", "Solar 10.7 cm radio flux (W/m^2)", 1e-20);
       Readparameters::add("ionosphere.backgroundIonisation", "Background ionoisation due to cosmic rays (mho)", 0.5);
       Readparameters::add("ionosphere.solverMaxIterations", "Maximum number of iterations for the conjugate gradient solver", 2000);
+      Readparameters::add("ionosphere.fieldLineTracer", "Field line tracing method to use for coupling ionosphere and magnetosphere (options are: Euler, BS)", std::string("Euler"));
       Readparameters::add("ionosphere.tracerTolerance", "Tolerance for the Bulirsch Stoer Method", 1000);
 
       // Per-population parameters
@@ -1693,6 +1663,10 @@ namespace SBC {
          exit(1);
       }
       if(!Readparameters::get("ionosphere.solverMaxIterations", solverMaxIterations)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("ionosphere.fieldLineTracer", tracerString)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
@@ -1791,6 +1765,16 @@ namespace SBC {
          logFile << "(IONOSPHERE) Unknown mesh base shape \"" << baseShape << "\". Aborting." << endl << write;
          abort();
       }
+
+      if(tracerString == "Euler") {
+         ionosphereGrid.couplingMethod = SphericalTriGrid::Euler;
+      } else if (tracerString == "BS") {
+         ionosphereGrid.couplingMethod = SphericalTriGrid::BS;
+      } else {
+         logFile << __FILE__ << ":" << __LINE__ << " ERROR: Unknown value for ionosphere.fieldLineTracer: " << tracerString << endl;
+         abort();
+      }
+
       auto refineBetweenLatitudes = [](Real phi1, Real phi2) -> void {
          uint numElems=ionosphereGrid.elements.size();
 
