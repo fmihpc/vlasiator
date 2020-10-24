@@ -170,6 +170,7 @@ namespace SBC {
    // after Keinert et al 2015
    void SphericalTriGrid::initializeSphericalFibonacci(int n) {
 
+      phiprof::start("ionosphere-sphericalFibonacci");
       // Golden ratio
       const Real Phi = (sqrt(5) +1.)/2.;
 
@@ -265,6 +266,7 @@ namespace SBC {
       }
 
       updateConnectivity();
+      phiprof::stop("ionosphere-sphericalFibonacci");
    }
 
    // Find the neighbouring element of the one with index e, that is sharing the
@@ -319,6 +321,7 @@ namespace SBC {
    // The new center node (3) replaces the old parent element in place.
    void SphericalTriGrid::subdivideElement(uint32_t e) {
 
+      phiprof::start("ionosphere-subdivideElement");
       Element& parentElement = elements[e];
 
       // 4 new elements
@@ -439,6 +442,7 @@ namespace SBC {
       for(int i=0; i<3; i++) {
          elements.push_back(newElements[i]);
       }
+      phiprof::stop("ionosphere-subdivideElement");
    }
 
 
@@ -457,6 +461,7 @@ namespace SBC {
     */
    void SphericalTriGrid::readAtmosphericModelFile(const char* filename) {
 
+      phiprof::start("ionosphere-readAtmosphericModelFile");
       // These are the only height values (in km) we are actually interested in
       static const float alt[numAtmosphereLevels] = {
          66, 68, 71, 74, 78, 82, 87, 92, 98, 104, 111,
@@ -561,6 +566,7 @@ namespace SBC {
             }
          }
       }
+      phiprof::stop("ionosphere-readAtmosphericModelFile");
    }
 
    /* Calculate the field aligned potential drop between ionosphere and magnetosphere
@@ -640,6 +646,7 @@ namespace SBC {
     */
    void SphericalTriGrid::calculateConductivityTensor(const Real F10_7, const Real recombAlpha, const Real backgroundIonisation) {
 
+      phiprof::start("ionosphere-calculateConductivityTensor");
 
       //precipitation()
 
@@ -729,6 +736,7 @@ namespace SBC {
             }
          }
       }
+      phiprof::stop("ionosphere-readAtmosphericModelFile");
    }
     
    /*Simple method to tranlate 3D to 1D indeces*/
@@ -945,6 +953,7 @@ namespace SBC {
     */
    void SphericalTriGrid::calculateFsgridCoupling( FsGrid< fsgrids::technical, 2> & technicalGrid, FieldFunction& dipole, Real couplingRadius) {
 
+      phiprof::start("ionosphere-calculateCoupling");
       // Pick an initial stepsize
       Real stepSize = min(100e3, technicalGrid.DX / 2.); 
 
@@ -1018,6 +1027,7 @@ namespace SBC {
         MPI_Comm_split(MPI_COMM_WORLD, MPI_UNDEFINED, 0, &communicator); // All other ranks are staying out of the communicator.
         rank = -1;
       }
+      phiprof::stop("ionosphere-calculateCoupling");
    }
 
    // Transport field-aligned currents down from the simulation cells to the ionosphere
@@ -1032,6 +1042,7 @@ namespace SBC {
      if(!isCouplingToCells) {
        return;
      }
+     phiprof::start("ionosphere-mapDownMagnetosphere");
 
      // Create zeroed-out input arrays
      std::vector<double> FACinput(nodes.size());
@@ -1215,6 +1226,7 @@ namespace SBC {
 
      // Make sure FACs are balanced, so that the potential doesn't start to drift
      offset_FAC();
+     phiprof::stop("ionosphere-mapDownMagnetosphere");
 
    }
 
@@ -1399,6 +1411,7 @@ namespace SBC {
    // Initialize the CG sover by assigning matrix dependency weights
    void SphericalTriGrid::initSolver(bool zeroOut) {
 
+     phiprof::start("ionosphere-initSolver");
      // Zero out parameters
      if(zeroOut) {
         for(uint n=0; n<nodes.size(); n++) {
@@ -1421,6 +1434,7 @@ namespace SBC {
      for(uint n=0; n<nodes.size(); n++) {
        addAllMatrixDependencies(n);
      }
+     phiprof::stop("ionosphere-initSolver");
    }
 
    // Evaluate a nodes' neighbour parameter, averaged through the coupling
@@ -1459,6 +1473,7 @@ namespace SBC {
      if(!isCouplingToCells) {
        return;
      }
+     phiprof::start("ionosphere-solve");
 
      initSolver(false);
 
@@ -1573,6 +1588,7 @@ namespace SBC {
          //if(rank == 0) {
          //  cerr << "Solved ionosphere potential after " << iteration << " iterations." << endl;
          //}
+         phiprof::stop("ionosphere-solve");
          return;
        }
 
@@ -1585,6 +1601,7 @@ namespace SBC {
          N.parameters[ionosphereParameters::SOLUTION] = N.parameters[ionosphereParameters::BEST_SOLUTION];
        }
      }
+     phiprof::stop("ionosphere-solve");
    }
 
    // Actual ionosphere object implementation
