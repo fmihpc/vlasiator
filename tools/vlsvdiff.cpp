@@ -40,6 +40,7 @@
 
 
 #include <cstdlib>
+#include <exception>
 #include <iostream>
 #include <stdint.h>
 #include <cmath>
@@ -113,8 +114,9 @@ bool copyArray(vlsv::Reader& input,vlsv::Writer& output,
 
    // Figure out arraysize, vectorsize, datasize, and datatype of the copied array
    map<string,string>::const_iterator it;
+   map<string,string>::iterator it2;
    it = outputAttribs.find("arraysize"); if (it == outputAttribs.end()) return false;
-   const uint64_t arraysize = atol(it->second.c_str());
+   uint64_t arraysize = atol(it->second.c_str());
    it = outputAttribs.find("vectorsize"); if (it == outputAttribs.end()) return false;
    const uint64_t vectorsize = atol(it->second.c_str());
    it = outputAttribs.find("datasize"); if (it == outputAttribs.end()) return false;
@@ -131,6 +133,7 @@ bool copyArray(vlsv::Reader& input,vlsv::Writer& output,
       delete [] ptr; return false;
    }
 
+
    // Write array to output file
    if (output.writeArray(tagName,outputAttribs,datatype,arraysize,vectorsize,datasize,ptr) == false) {
       cerr << "ERROR: Failed to write array '" << tagName << "' in " << __FILE__ << ":" << __LINE__ << endl;
@@ -139,6 +142,23 @@ bool copyArray(vlsv::Reader& input,vlsv::Writer& output,
    
    delete [] ptr; ptr = NULL;
    return success;
+}
+
+
+bool HandleFsGrid(const string& inputFileName,vlsv::Writer& output){
+   
+   bool success=false;
+
+
+
+
+
+
+
+
+
+   return success;
+
 }
 
 /** Copy the spatial mesh from input to output.
@@ -157,21 +177,97 @@ bool cloneMesh(const string& inputFileName,vlsv::Writer& output,const string& me
    
    list<pair<string,string> > inputAttribs;
    inputAttribs.push_back(make_pair("name",meshName));
-   if (copyArray(input,output,"MESH",inputAttribs) == false) success = false;
+   //if (copyArray(input,output,"MESH",inputAttribs) == false) success = false;
 
    inputAttribs.clear();
    inputAttribs.push_back(make_pair("mesh",meshName));
    if (copyArray(input,output,"MESH_BBOX",inputAttribs) == false) success = false;
-   if (copyArray(input,output,"MESH_DOMAIN_SIZES",inputAttribs) == false) success = false;
+   //if (copyArray(input,output,"MESH_DOMAIN_SIZES",inputAttribs) == false) success = false;
    if (copyArray(input,output,"MESH_NODE_CRDS_X",inputAttribs) == false) success = false;
    if (copyArray(input,output,"MESH_NODE_CRDS_Y",inputAttribs) == false) success = false;
    if (copyArray(input,output,"MESH_NODE_CRDS_Z",inputAttribs) == false) success = false;
    if (copyArray(input,output,"MESH_GHOST_LOCALIDS",inputAttribs) == false) success = false;
    if (copyArray(input,output,"MESH_GHOST_DOMAINS",inputAttribs) == false) success = false;
 
+
    input.close();
    return success;
 }
+
+   //! Helper function: calculate position of the local coordinate space for the given dimension
+   // \param globalCells Number of cells in the global Simulation, in this dimension
+   // \param ntasks Total number of tasks in this dimension
+   // \param my_n This task's position in this dimension
+   // \return Cell number at which this task's domains cells start (actual cells, not counting ghost cells)
+   int32_t calcLocalStart(int32_t globalCells, int ntasks, int my_n) {
+      int n_per_task = globalCells / ntasks;
+      int remainder = globalCells % ntasks;
+
+      if(my_n < remainder) {
+         return my_n * (n_per_task+1);
+      } else {
+         return my_n * n_per_task + remainder;
+      }
+   }
+   //! Helper function: calculate size of the local coordinate space for the given dimension
+   // \param globalCells Number of cells in the global Simulation, in this dimension
+   // \param ntasks Total number of tasks in this dimension
+   // \param my_n This task's position in this dimension
+   // \return Nmuber of cells for this task's local domain (actual cells, not counting ghost cells)
+   int32_t calcLocalSize(int32_t globalCells, int ntasks, int my_n) {
+      int n_per_task = globalCells/ntasks;
+      int remainder = globalCells%ntasks;
+      if(my_n < remainder) {
+         return n_per_task+1;
+      } else {
+         return n_per_task;
+      }
+   }
+
+   //! Helper function to optimize decomposition of this grid over the given number of tasks
+   void computeDomainDecomposition(const std::array<int, 3>& GlobalSize, int nProcs, std::array<int,3>& processDomainDecomposition) {
+      std::array<double, 3> systemDim;
+      std::array<double, 3 > processBox;
+      double optimValue = std::numeric_limits<double>::max();
+      for(int i = 0; i < 3; i++) {
+         systemDim[i] = (double)GlobalSize[i];
+      }
+      processDomainDecomposition = {1, 1, 1};
+      for (int i = 1; i <= std::min(nProcs, GlobalSize[0]); i++) {
+         processBox[0] = std::max(systemDim[0]/i, 1.0);
+         for (int j = 1; j <= std::min(nProcs, GlobalSize[1]) ; j++) {
+            if( i * j  > nProcs )
+               break;
+            processBox[1] = std::max(systemDim[1]/j, 1.0);
+            for (int k = 1; k <= std::min(nProcs, GlobalSize[2]); k++) {
+               if( i * j * k > nProcs )
+                  break;
+               processBox[2] = std::max(systemDim[2]/k, 1.0);
+               double value = 
+                  10 * processBox[0] * processBox[1] * processBox[2] + 
+                  (i > 1 ? processBox[1] * processBox[2]: 0) +
+                  (j > 1 ? processBox[0] * processBox[2]: 0) +
+                  (k > 1 ? processBox[0] * processBox[1]: 0);
+
+               if(value < optimValue ){
+                  optimValue = value;
+                  processDomainDecomposition[0] = i;
+                  processDomainDecomposition[1] = j;
+                  processDomainDecomposition[2] = k;
+               }
+            }
+         }
+      }
+
+      if(optimValue == std::numeric_limits<double>::max() ||
+            processDomainDecomposition[0] * processDomainDecomposition[1] * processDomainDecomposition[2] != nProcs) {
+         std::cerr << "FSGrid domain decomposition failed, are you running on a prime number of tasks?" << std::endl;
+         throw std::runtime_error("FSGrid computeDomainDecomposition failed");
+      }
+   }
+
+
+
 
 /*! Extracts the dataset from the VLSV file opened by convertSILO.
  * \param vlsvReader vlsvinterface::Reader class object used to access the VLSV file
@@ -210,6 +306,14 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader,
       cerr << "ERROR, failed to get array info for '" << _varToExtract << "' at " << __FILE__ << " " << __LINE__ << endl;
       return false;
    }
+
+   //printf("Variable STATS= %d, %d, %d\n",variableArraySize,variableVectorSize,variableDataSize);
+
+
+
+
+
+   if (meshName == "SpatialGrid"){
   
    // Read the mesh array one node (of a spatial cell) at a time
    // and create a map which contains each cell's CellID and variable to be extracted
@@ -218,8 +322,6 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader,
    double *variablePtrDouble = reinterpret_cast<double *>(variableBuffer);
    uint *variablePtrUint = reinterpret_cast<uint *>(variableBuffer);
    int *variablePtrInt = reinterpret_cast<int *>(variableBuffer);
-
-   if (meshName == "SpatialGrid"){
       //Get local cell ids:
       vector<uint64_t> local_cells;
       if ( vlsvReader.getCellIds( local_cells, meshName) == false ) {
@@ -279,44 +381,89 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader,
        }
   
    }else if (meshName== "fsgrid"){
-     
+ 
+ 
+      int numtasks;
+      int xcells,ycells,zcells; 
+      vlsvReader.readParameter("numWritingRanks",numtasks);
+      vlsvReader.readParameter("xcells_ini",xcells);
+      vlsvReader.readParameter("ycells_ini",ycells);
+      vlsvReader.readParameter("zcells_ini",zcells);
+      std::array<int,3> GlobalBox={xcells,ycells,zcells};
+      std::array<int,3> thisDomainDecomp;
+      
+      //Compute Domain Decomposition Scheme for this vlsv file
+      computeDomainDecomposition(GlobalBox,numtasks,thisDomainDecomp);
 
+
+      std::array<int32_t,3> taskSize,taskStart;
+      std::array<int32_t,3> taskEnd;
+      int readOffset=0;
+      int readSize;
+      int index,my_x,my_y,my_z;
       orderedData->clear();
 
-      for (uint64_t i=0; i<variableArraySize; ++i){
-         const short int amountToReadIn = 1;
-         const uint64_t &startingReadIndex = i;
-       
-         if (vlsvReader.readArray("VARIABLE", variableAttributes, startingReadIndex, amountToReadIn, variableBuffer) == false){
-            cerr << "ERROR, failed to read variable '" << _varToExtract << "' at " << __FILE__ << " " << __LINE__ << endl;
-            variableSuccess = false;
-            break;
+      //Read into buffer
+      for (int task=0; task<numtasks; task++){
+
+         my_x=task/thisDomainDecomp[2]/thisDomainDecomp[1];
+         my_y=(task/thisDomainDecomp[2])%thisDomainDecomp[1];
+         my_z=task%thisDomainDecomp[2];
+
+      
+         taskStart[0] = calcLocalStart(GlobalBox[0], thisDomainDecomp[0] ,my_x);
+         taskStart[1] = calcLocalStart(GlobalBox[1], thisDomainDecomp[1] ,my_y);
+         taskStart[2] = calcLocalStart(GlobalBox[2], thisDomainDecomp[2] ,my_z);
+            
+         taskSize[0] = calcLocalSize(GlobalBox[0], thisDomainDecomp[0] ,my_x);
+         taskSize[1] = calcLocalSize(GlobalBox[1], thisDomainDecomp[1] ,my_y);
+         taskSize[2] = calcLocalSize(GlobalBox[2], thisDomainDecomp[2] ,my_z);
+          
+         taskEnd[0]= taskStart[0]+taskSize[0];
+         taskEnd[1]= taskStart[1]+taskSize[1];
+         taskEnd[2]= taskStart[2]+taskSize[2];
+         
+         readSize= taskSize[0] * taskSize[1] * taskSize[2];
+         std::vector<Real> readIn(variableVectorSize * variableDataSize*readSize);
+         
+
+         printf("I am task %d . I Read from %d to  %d. My scheme is = %d %d %d \n" ,task,readOffset,readOffset +readSize,thisDomainDecomp[0],thisDomainDecomp[1],thisDomainDecomp[2]);
+
+         if (vlsvReader.readArray("VARIABLE", variableAttributes, readOffset,readSize, (char*)readIn.data()) == false){
+               cerr << "ERROR, failed to read variable '" << _varToExtract << "' at " << __FILE__ << " " << __LINE__ << endl;
+               variableSuccess = false;
+               break;
+            }
+         
+         int counter2=0;
+         uint64_t globalindex;
+         int64_t counter=0;
+         for(int z=taskStart[2]; z<taskEnd[2]; z++) {
+            for(int y=taskStart[1]; y<taskEnd[1]; y++) {
+               for(int x=taskStart[0]; x<taskEnd[0]; x++) {
+
+                  //Get global index
+                  ////globalindex= x + z*xcells + y*zcells*xcells;
+                  //globalindex= z + y*zcells + x*zcells*ycells;
+                  globalindex= x + y*xcells + z*xcells*ycells;
+                  //printf("X=%d,Y=%d Z=%d --- GI=%d \n" ,x,y,z,globalindex);
+
+                  Real extract=(Real) readIn[counter+compToExtract];
+                  //printf ("I am GPNT %d and my value is VALUE %e \n",globalindex,extract);
+
+                  orderedData->insert(pair<uint64_t, Real>(globalindex, extract));
+                  counter+=variableVectorSize;
+               
+               }
+            }
          }
 
-         // Get the variable value
-         Real extract = NAN;
-         
-         switch (variableDataType) {
-            case datatype::type::FLOAT:
-               if(variableDataSize == sizeof(float)) extract = (Real)(variablePtrFloat[compToExtract]);
-               if(variableDataSize == sizeof(double)) extract = (Real)(variablePtrDouble[compToExtract]);
-               break;
-            case datatype::type::UINT:
-               extract = (Real)(variablePtrUint[compToExtract]);
-               break;
-            case datatype::type::INT:
-               extract = (Real)(variablePtrInt[compToExtract]);
-               break;
-            case datatype::type::UNKNOWN:
-               cerr << "ERROR, BAD DATATYPE AT " << __FILE__ << " " << __LINE__ << endl;
-               break;
-              }
-         
-         orderedData->insert(pair<uint64_t, Real>(i, extract));
-         if (storeCellOrder == true) {
-            cellOrder[i] = i;
-         }
+
+         readOffset+=readSize;
+
+            
       }
+         std::cout<<orderedData->size()<<std::endl;
    }else{
     cerr<<"meshName not recognized\t" << __FILE__ << " " << __LINE__ <<endl;
     abort();
@@ -452,10 +599,10 @@ bool pDistance(const map<uint, Real>& orderedData1,
    map<uint,Real> shiftedData2;
    map<uint,Real>* data2 = const_cast< map<uint,Real>* >(&orderedData2);   
 
-   if (doShiftAverage == true) {
-      shiftAverage(&orderedData1,&orderedData2,&shiftedData2);
-      data2 = &shiftedData2;
-   }
+   //if (doShiftAverage == true) {
+      //shiftAverage(&orderedData1,&orderedData2,&shiftedData2);
+      //data2 = &shiftedData2;
+   //}
 
    // Reset old values
    *absolute = 0.0;
@@ -473,8 +620,14 @@ bool pDistance(const map<uint, Real>& orderedData1,
             value = abs(it1->second - it2->second);
             *absolute = max(*absolute, value);
             length    = max(length, abs(it1->second));
-         }
-         array[cellOrder.at(it1->first)] = value;
+         
+            }
+         if (meshName=="SpatialGrid"){  
+            array[cellOrder.at(it1->first)] = value;
+         }else{   
+
+            array.at(it1->first)=value;
+            }  
       }
    } else if (p == 1) {
       for (map<uint,Real>::const_iterator it1=orderedData1.begin(); it1!=orderedData1.end(); ++it1) {
@@ -484,8 +637,13 @@ bool pDistance(const map<uint, Real>& orderedData1,
             value = abs(it1->second - it2->second);
             *absolute += value;
             length    += abs(it1->second);
-         }
-         array[cellOrder.at(it1->first)] = value;
+         
+            }
+         if (meshName=="SpatialGrid"){  
+            array[cellOrder.at(it1->first)] = value;
+         }else{   
+            array[it1->first]=value;
+            }  
       }
    } else {
       for (map<uint,Real>::const_iterator it1=orderedData1.begin(); it1!=orderedData1.end(); ++it1) {
@@ -495,8 +653,13 @@ bool pDistance(const map<uint, Real>& orderedData1,
             value = pow(abs(it1->second - it2->second), p);
             *absolute += value;
             length    += pow(abs(it1->second), p);
-         }
-         array[cellOrder.at(it1->first)] = pow(value,1.0/p);
+         
+            }
+         if (meshName=="SpatialGrid"){  
+            array[cellOrder.at(it1->first)] = pow(value,1.0/p);
+         }else{   
+            array[it1->first]=pow(value,1.0/p);
+            }  
       }
       *absolute = pow(*absolute, 1.0 / p);
       length = pow(length, 1.0 / p);
@@ -513,6 +676,8 @@ bool pDistance(const map<uint, Real>& orderedData1,
       map<string,string> attributes;
       attributes["mesh"] = meshName;
       attributes["name"] = varName;
+
+
       if (outputFile.writeArray("VARIABLE",attributes,array.size(),1,&(array[0])) == false) {
          cerr << "ERROR failed to write variable '" << varName << "' to output file in " << __FILE__ << ":" << __LINE__ << endl;
          return 1;
@@ -1265,29 +1430,64 @@ bool process2Files(const string fileName1,
 
          // Clone mesh from input file to diff file
          map<string,string>::const_iterator it = attributes.find("--meshname");
-         if (cloneMesh(fileName1,outputFile,it->second) == false) return false;
+            if (cloneMesh(fileName1,outputFile,it->second) == false) return false;
       }
 
       singleStatistics(&orderedData1, &size, &mini, &maxi, &avg, &stdev); //CONTINUE
+     
+      std::vector<uint64_t> globalIds;
+      for (const auto iter : orderedData1){
+         globalIds.push_back( iter.first   );
+         std::cout<<globalIds.back()<<std::endl;
+      }
+
+      std::array<uint32_t,2> meshDomainSize({globalIds.size(), 0});
+      map<string,string> inputAttribs,patch;
+      inputAttribs["name"]="fsgrid";
+      patch["arraysize"]="100";
+      patch["datasize"]="8";
+      patch["datatype"]="uint";
+      patch["name"]="fsgrid";
+      patch["type"]="multi_ucd";
+      patch["vectorsize"]="1";
+      patch["xperiodic"]="no";
+      patch["yperiodic"]="yes";
+      patch["zperiodic"]="yes";
+
+      outputFile.writeArray("MESH",patch,100,1,&globalIds[0]);
+
+      patch.clear();
+      patch["arraysize"]="1";
+      patch["datasize"]="4";
+      patch["datatype"]="uint";
+      patch["mesh"]="fsgrid";
+      patch["vectorsize"]="2";
+      
+      outputFile.writeArray("MESH_DOMAIN_SIZES",patch ,1,2, &meshDomainSize[0]);
+
+
+
+
+
       outputStats(&size, &mini, &maxi, &avg, &stdev, verboseOutput, false);
 
       singleStatistics(&orderedData2, &size, &mini, &maxi, &avg, &stdev);
       outputStats(&size, &mini, &maxi, &avg, &stdev, verboseOutput, false);
 
       pDistance(orderedData1, orderedData2, 0, &absolute, &relative, false, cellOrder,outputFile,attributes["--meshname"],"d0_"+varName);
-      outputDistance(0, &absolute, &relative, false, verboseOutput, false);
-      pDistance(orderedData1, orderedData2, 0, &absolute, &relative, true, cellOrder,outputFile,attributes["--meshname"],"d0_sft_"+varName);
-      outputDistance(0, &absolute, &relative, true, verboseOutput, false);
+      //outputDistance(0, &absolute, &relative, false, verboseOutput, false);*/
+      //pDistance(orderedData1, orderedData2, 0, &absolute, &relative, true, cellOrder,outputFile,attributes["--meshname"],"d0_sft_"+varName);
+      //outputDistance(0, &absolute, &relative, true, verboseOutput, false);
 
-      pDistance(orderedData1, orderedData2, 1, &absolute, &relative, false, cellOrder,outputFile,attributes["--meshname"],"d1_"+varName);
-      outputDistance(1, &absolute, &relative, false, verboseOutput, false);
-      pDistance(orderedData1, orderedData2, 1, &absolute, &relative, true, cellOrder,outputFile,attributes["--meshname"],"d1_sft_"+varName);
-      outputDistance(1, &absolute, &relative, true, verboseOutput, false);
+      //pDistance(orderedData1, orderedData2, 1, &absolute, &relative, false, cellOrder,outputFile,attributes["--meshname"],"d1_"+varName);
+      //outputDistance(1, &absolute, &relative, false, verboseOutput, false);
+      //pDistance(orderedData1, orderedData2, 1, &absolute, &relative, true, cellOrder,outputFile,attributes["--meshname"],"d1_sft_"+varName);
+      //outputDistance(1, &absolute, &relative, true, verboseOutput, false);
 
-      pDistance(orderedData1, orderedData2, 2, &absolute, &relative, false, cellOrder,outputFile,attributes["--meshname"],"d2_"+varName);
-      outputDistance(2, &absolute, &relative, false, verboseOutput, false);
-      pDistance(orderedData1, orderedData2, 2, &absolute, &relative, true, cellOrder,outputFile,attributes["--meshname"],"d2_sft_"+varName);
-      outputDistance(2, &absolute, &relative, true, verboseOutput, false);
+      //pDistance(orderedData1, orderedData2, 2, &absolute, &relative, false, cellOrder,outputFile,attributes["--meshname"],"d2_"+varName);
+      //outputDistance(2, &absolute, &relative, false, verboseOutput, false);
+      //pDistance(orderedData1, orderedData2, 2, &absolute, &relative, true, cellOrder,outputFile,attributes["--meshname"],"d2_sft_"+varName);
+      //outputDistance(2, &absolu*/te, &relative, true, verboseOutput, false);
 
       outputFile.close();
    }
