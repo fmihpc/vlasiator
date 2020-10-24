@@ -832,6 +832,9 @@ namespace SBC {
       Real error;
       bool converged = false;
 
+      //Get B field unit vector in case we don't converge yet
+      getOutwardBfieldDirection(dipole,r,b);
+
       //Let's start things up with 2 substeps
       int n =2;
       int i;
@@ -880,6 +883,8 @@ namespace SBC {
          for(int c =0; c<3; ++c){
             r[c]=table.at(ijk2Index(i,i,c,dims));
          }
+         //And also save B unit vector here
+         getOutwardBfieldDirection(dipole,r,b);
 
       }
    } //Bulirsch-Stoer Step 
