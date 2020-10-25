@@ -2,7 +2,7 @@ CMP = mpic++
 LNK = mpic++
 
 # Suggested modules for building:
-# module load pgi hpcx-mpi/2.5.0-cuda
+# module load pgi hpcx-mpi/2.5.0-cuda cuda
 
 #======== Vectorization ==========
 #Set vector backend type for vlasov solvers, sets precision and length. 

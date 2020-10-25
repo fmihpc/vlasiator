@@ -124,6 +124,8 @@ bool map_1d(SpatialCell* spatial_cell,
    vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh    = spatial_cell->get_velocity_mesh(popID);
    vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks(popID);
 
+   auto minValue = spatial_cell->getVelocityBlockMinValue(popID);
+
    //nothing to do if no blocks
    if(vmesh.size() == 0 )
       return true;
@@ -501,15 +503,15 @@ bool map_1d(SpatialCell* spatial_cell,
                // k + WID is the index where we have stored k index, WID amount of padding.
 #ifdef ACC_SEMILAG_PLM
                Vec a[2];
-               compute_plm_coeff(values + columns[column].valuesOffset + i_pcolumnv(j, 0, -1, nblocks), k + WID , a, spatial_cell->getVelocityBlockMinValue(popID));
+               compute_plm_coeff(values + columns[column].valuesOffset + i_pcolumnv(j, 0, -1, nblocks), k + WID , a, minValue);
 #endif
 #ifdef ACC_SEMILAG_PPM
                Vec a[3];
-               compute_ppm_coeff(values + columns[column].valuesOffset  + i_pcolumnv(j, 0, -1, nblocks), h4, k + WID, a, spatial_cell->getVelocityBlockMinValue(popID));
+               compute_ppm_coeff(values + columns[column].valuesOffset  + i_pcolumnv(j, 0, -1, nblocks), h4, k + WID, a, minValue);
 #endif
 #ifdef ACC_SEMILAG_PQM
                Vec a[5];
-               compute_pqm_coeff(values + columns[column].valuesOffset  + i_pcolumnv(j, 0, -1, nblocks), h8, k + WID, a, spatial_cell->getVelocityBlockMinValue(popID));
+               compute_pqm_coeff(values + columns[column].valuesOffset  + i_pcolumnv(j, 0, -1, nblocks), h8, k + WID, a, minValue);
 #endif
 
                // set the initial value for the integrand at the boundary at v = 0
@@ -692,15 +694,15 @@ bool map_1d(SpatialCell* spatial_cell,
                // k + WID is the index where we have stored k index, WID amount of padding.
 #ifdef ACC_SEMILAG_PLM
                Vec a[2];
-               compute_plm_coeff(values + columns[column].valuesOffset + i_pcolumnv(j, 0, -1, nblocks), k + WID , a, spatial_cell->getVelocityBlockMinValue(popID));
+               compute_plm_coeff(values + columns[column].valuesOffset + i_pcolumnv(j, 0, -1, nblocks), k + WID , a, minValue);
 #endif
 #ifdef ACC_SEMILAG_PPM
                Vec a[3];
-               compute_ppm_coeff(values + columns[column].valuesOffset  + i_pcolumnv(j, 0, -1, nblocks), h4, k + WID, a, spatial_cell->getVelocityBlockMinValue(popID));
+               compute_ppm_coeff(values + columns[column].valuesOffset  + i_pcolumnv(j, 0, -1, nblocks), h4, k + WID, a, minValue);
 #endif
 #ifdef ACC_SEMILAG_PQM
                Vec a[5];
-               compute_pqm_coeff(values + columns[column].valuesOffset  + i_pcolumnv(j, 0, -1, nblocks), h8, k + WID, a, spatial_cell->getVelocityBlockMinValue(popID));
+               compute_pqm_coeff(values + columns[column].valuesOffset  + i_pcolumnv(j, 0, -1, nblocks), h8, k + WID, a, minValue);
 #endif
 
                // set the initial value for the integrand at the boundary at v = 0
