@@ -66,7 +66,7 @@ git status | sed 's/\"/\\"/g' | sed 's/\\\"/\\"/g'  |gawk '{printf("%s\"%s\"%s\n
 
 echo "    cout << endl << \"----------- git diff ---------- \"<<endl;" >>version.cpp
 
-echo "    const char diff_data[] = {" >> version.cpp
+echo "    const unsigned char diff_data[] = {" >> version.cpp
 DIFF=$(git diff `git diff --name-only |grep -v generate_version.sh` | xxd -i)
 if [[ -n $DIFF ]]; then
    echo -n $DIFF >> version.cpp

@@ -24,6 +24,7 @@
 #define OBJECT_WRAPPER_H
 
 #include <vector>
+#include <string>
 
 #include "definitions.h"
 #include "item_storage.h"

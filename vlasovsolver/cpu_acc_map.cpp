@@ -501,15 +501,15 @@ bool map_1d(SpatialCell* spatial_cell,
                // k + WID is the index where we have stored k index, WID amount of padding.
 #ifdef ACC_SEMILAG_PLM
                Vec a[2];
-               compute_plm_coeff(values + columns[column].valuesOffset + i_pcolumnv(j, 0, -1, nblocks), k + WID , a);
+               compute_plm_coeff(values + columns[column].valuesOffset + i_pcolumnv(j, 0, -1, nblocks), k + WID , a, spatial_cell->getVelocityBlockMinValue(popID));
 #endif
 #ifdef ACC_SEMILAG_PPM
                Vec a[3];
-               compute_ppm_coeff(values + columns[column].valuesOffset  + i_pcolumnv(j, 0, -1, nblocks), h4, k + WID, a);
+               compute_ppm_coeff(values + columns[column].valuesOffset  + i_pcolumnv(j, 0, -1, nblocks), h4, k + WID, a, spatial_cell->getVelocityBlockMinValue(popID));
 #endif
 #ifdef ACC_SEMILAG_PQM
                Vec a[5];
-               compute_pqm_coeff(values + columns[column].valuesOffset  + i_pcolumnv(j, 0, -1, nblocks), h8, k + WID, a);
+               compute_pqm_coeff(values + columns[column].valuesOffset  + i_pcolumnv(j, 0, -1, nblocks), h8, k + WID, a, spatial_cell->getVelocityBlockMinValue(popID));
 #endif
 
                // set the initial value for the integrand at the boundary at v = 0
@@ -592,8 +592,8 @@ bool map_1d(SpatialCell* spatial_cell,
                   //else{
                      // total value of integrand
                      const Vec target_density = target_density_r - target_density_l;
-   #pragma ivdep
-   #pragma GCC ivdep
+                     #pragma ivdep
+                     //#pragma GCC ivdep
                      #pragma acc loop vector
                      for (int target_i=0; target_i < VECL; ++target_i) {
                         // do the conversion from Realv to Realf here, faster than doing it in accumulation
