@@ -153,13 +153,13 @@ inline void filter_pqm_monotonicity(Vec *values, uint k, Vec &fv_l, Vec &fv_r, V
 // */
 
 #pragma acc routine(compute_pqm_coeff) seq
-inline void compute_pqm_coeff(Vec *values, face_estimate_order order, uint k, Vec a[5]){
+inline void compute_pqm_coeff(Vec *values, face_estimate_order order, uint k, Vec a[5], const Realv threshold){
    Vec fv_l; /*left face value*/
    Vec fv_r; /*right face value*/
    Vec fd_l; /*left face derivative*/
    Vec fd_r; /*right face derivative*/
    
-   compute_filtered_face_values_derivatives(values, k, order, fv_l, fv_r, fd_l, fd_r); 
+   compute_filtered_face_values_derivatives(values, k, order, fv_l, fv_r, fd_l, fd_r, threshold);
    filter_pqm_monotonicity(values, k, fv_l, fv_r, fd_l, fd_r); 
    
    //Fit a second order polynomial for reconstruction see, e.g., White

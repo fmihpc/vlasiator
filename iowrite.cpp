@@ -431,7 +431,7 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       // If the data reducer didn't want to write dccrg data, maybe it will be happy
       // dumping data straight from fsgrid into our file.
       phiprof::start("writeFsGrid");
-      success = dataReducer.writeFsGridData(perBGrid,EGrid,EHallGrid,EGradPeGrid,momentsGrid,dPerBGrid,dMomentsGrid,BgBGrid,volGrid, technicalGrid, "fsgrid", dataReducerIndex, vlsvWriter);
+      success = dataReducer.writeFsGridData(perBGrid,EGrid,EHallGrid,EGradPeGrid,momentsGrid,dPerBGrid,dMomentsGrid,BgBGrid,volGrid, technicalGrid, "fsgrid", dataReducerIndex, vlsvWriter, writeAsFloat);
       phiprof::stop("writeFsGrid");
    }
    
@@ -934,6 +934,10 @@ bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       //Compute which cells will write out their velocity space
       vector<uint64_t> velSpaceCells;
       int lineX, lineY, lineZ;
+      Real shellRadiusSquare;
+      Real cellX, cellY, cellZ, DX, DY, DZ;
+      Real dx_rm, dx_rp, dy_rm, dy_rp, dz_rm, dz_rp;
+      Real rsquare_minus,rsquare_plus;
       for (uint i = 0; i < cells.size(); i++) {
          mpiGrid[cells[i]]->parameters[CellParams::ISCELLSAVINGF] = 0.0;
          // CellID stride selection
@@ -978,9 +982,37 @@ bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 		   ) {
 		  velSpaceCells.push_back(cells[i]);
 		  mpiGrid[cells[i]]->parameters[CellParams::ISCELLSAVINGF] = 1.0;
+                  continue; // Avoid double entries in case the cell also matches following conditions.
 	       }
 	    }
 	 }
+
+         // Loop over spherical shells at defined distances
+         for (uint ishell = 0; ishell < P::systemWriteDistributionWriteShellRadius.size(); ishell++) {
+            shellRadiusSquare = P::systemWriteDistributionWriteShellRadius[ishell] * P::systemWriteDistributionWriteShellRadius[ishell];
+            cellX = mpiGrid[cells[i]]->parameters[CellParams::XCRD];
+            cellY = mpiGrid[cells[i]]->parameters[CellParams::YCRD];
+            cellZ = mpiGrid[cells[i]]->parameters[CellParams::ZCRD];
+            DX = mpiGrid[cells[i]]->parameters[CellParams::DX];
+            DY = mpiGrid[cells[i]]->parameters[CellParams::DY];
+            DZ = mpiGrid[cells[i]]->parameters[CellParams::DZ];
+
+            dx_rm = cellX < 0 ? DX : 0;
+            dx_rp = cellX < 0 ? 0 : DX;
+            dy_rm = cellY < 0 ? DY : 0;
+            dy_rp = cellY < 0 ? 0 : DY;
+            dz_rm = cellZ < 0 ? DZ : 0;
+            dz_rp = cellZ < 0 ? 0 : DZ;
+            rsquare_minus = (cellX + dx_rm) * (cellX + dx_rm) + (cellY + dy_rm) * (cellY + dy_rm) + (cellZ + dz_rm) * (cellZ + dz_rm);
+            rsquare_plus  = (cellX + dx_rp) * (cellX + dx_rp) + (cellY + dy_rp) * (cellY + dy_rp) + (cellZ + dz_rp) * (cellZ + dz_rp);
+            if (rsquare_minus <= shellRadiusSquare && rsquare_plus > shellRadiusSquare &&
+                P::systemWriteDistributionWriteShellStride[ishell] > 0 && 
+                cells[i] % P::systemWriteDistributionWriteShellStride[ishell] == 0
+               ) {
+               velSpaceCells.push_back(cells[i]);
+               mpiGrid[cells[i]]->parameters[CellParams::ISCELLSAVINGF] = 1.0;
+            }
+         }
       }
 
       uint64_t numVelSpaceCells;
@@ -1321,7 +1353,8 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("max_v_dt",CellParams::MAXVDT,1));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("max_r_dt",CellParams::MAXRDT,1));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("max_fields_dt",CellParams::MAXFDT,1));
-   restartReducer.addOperator(new DRO::DataReductionOperatorBVOLDerivatives("Bvolume_derivatives",0,bvolderivatives::N_BVOL_DERIVATIVES));
+   restartReducer.addOperator(new DRO::VariableBVol);
+   restartReducer.addMetadata(restartReducer.size()-1,"T","$\\mathrm{T}$","$B_\\mathrm{vol,vg}$","1.0");
    restartReducer.addOperator(new DRO::MPIrank);
    restartReducer.addOperator(new DRO::BoundaryType);
    restartReducer.addOperator(new DRO::BoundaryLayer);

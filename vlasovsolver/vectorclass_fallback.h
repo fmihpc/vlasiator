@@ -952,7 +952,6 @@ static inline Vec8Simple<T> operator / (const S &l, const Vec8Simple<T> &r)
       l/r.val[5],
       l/r.val[6],
       l/r.val[7]
-      
    );
 }
 
@@ -1044,7 +1043,6 @@ static inline Vec8Simple<bool> operator == (const Vec8Simple<T> &l, const S &r)
    );
 }
 
-
 template <class T>
 static inline Vec8Simple<bool> operator != (const Vec8Simple<T> &l, const Vec8Simple<T> &r)
 {
@@ -1075,6 +1073,20 @@ static inline Vec8Simple<bool> operator != (const Vec8Simple<T> &l, const S &r)
    );
 }
 
+template <class T>
+static inline Vec8Simple<bool> operator ! (const Vec8Simple<T> &l)
+{
+   return Vec8Simple<bool>(
+      !l.val[0],
+      !l.val[1],
+      !l.val[2],
+      !l.val[3],
+      !l.val[4],
+      !l.val[5],
+      !l.val[6],
+      !l.val[7]
+   );
+}
 
 template <class T>
 static inline Vec8Simple<bool> operator > (const Vec8Simple<T> &l, const Vec8Simple<T> &r)

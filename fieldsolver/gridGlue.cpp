@@ -6,6 +6,12 @@
 #include "../common.h"
 #include "gridGlue.hpp"
 
+
+
+
+
+
+
 /*
 Calculate the number of cells on the maximum refinement level overlapping the list of dccrg cells in cells.
 */
@@ -58,16 +64,17 @@ template <typename T, int stencil> void computeCoupling(dccrg::Dccrg<SpatialCell
   for (int k=0; k<gridDims[2]; k++) {
     for (int j=0; j<gridDims[1]; j++) {
       for (int i=0; i<gridDims[0]; i++) {
-	const std::array<int, 3> globalIndices = momentsGrid.getGlobalIndices(i,j,k);
-	const dccrg::Types<3>::indices_t  indices = {{(uint64_t)globalIndices[0],
-						      (uint64_t)globalIndices[1],
-						      (uint64_t)globalIndices[2]}}; //cast to avoid warnings
-	CellID dccrgCell = mpiGrid.get_existing_cell(indices, 0, mpiGrid.mapping.get_maximum_refinement_level());
-	int process = mpiGrid.get_process(dccrgCell);
-	int64_t  fsgridLid = momentsGrid.LocalIDForCoords(i,j,k);
-	int64_t  fsgridGid = momentsGrid.GlobalIDForCoords(i,j,k);
-	onFsgridMapRemoteProcess[process].insert(dccrgCell); //cells are ordered (sorted) in set
-	onFsgridMapCells[dccrgCell].push_back(fsgridLid);
+        const std::array<int, 3> globalIndices = momentsGrid.getGlobalIndices(i,j,k);
+        const dccrg::Types<3>::indices_t  indices = {{(uint64_t)globalIndices[0],
+                        (uint64_t)globalIndices[1],
+                        (uint64_t)globalIndices[2]}}; //cast to avoid warnings
+        CellID dccrgCell = mpiGrid.get_existing_cell(indices, 0, mpiGrid.mapping.get_maximum_refinement_level());
+        
+        int process = mpiGrid.get_process(dccrgCell);
+        int64_t  fsgridLid = momentsGrid.LocalIDForCoords(i,j,k);
+        int64_t  fsgridGid = momentsGrid.GlobalIDForCoords(i,j,k);
+        onFsgridMapRemoteProcess[process].insert(dccrgCell); //cells are ordered (sorted) in set
+        onFsgridMapCells[dccrgCell].push_back(fsgridLid);
       }
     }
   }
@@ -87,7 +94,10 @@ template <typename T, int stencil> void computeCoupling(dccrg::Dccrg<SpatialCell
 
 void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                            const std::vector<CellID>& cells,
-                           FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid, bool dt2 /*=false*/) {
+                           FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid,
+                           FsGrid< fsgrids::technical, 2>& technicalGrid,
+
+                           bool dt2 /*=false*/) {
 
   int ii;
   //sorted list of dccrg cells. cells is typicall already sorted, but just to make sure....
@@ -179,7 +189,123 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
   MPI_Waitall(sendRequests.size(), sendRequests.data(), MPI_STATUSES_IGNORE);
 
+
+
+  if (P::amrMaxSpatialRefLevel>0) {
+
+    /*----------------------Filtering------------------------*/
+    phiprof::start("BoxCar Filtering");
+
+    // Kernel Matrix-- Needs to be precomputed in memory and not recomputed at every call
+    // Real kernel[3][3][3];
+
+    // for (int i =0; i<3; i++){
+    //   for (int j =0; j<3; j++){
+    //     for (int k =0; k<3; k++){
+
+    //       kernel[i][j][k]=1.0/27.0;  //normalized for 27 neighbours.
+
+    //     }
+    //   }
+    // }
+
+
+    // Kernel Characteristics
+    // int stencilWidth = sizeof( kernel) / sizeof( kernel[0]); //get the stnecil width
+    // int kernelOffset= stencilWidth/3; //this is the kernel offset -int
+    int stencilWidth = 3;   // dimension size of a 3D kernel
+    int kernelOffset = 1;   // offset of 3 point stencil 3D kernel
+    Real kernelWeight= 1.0/27.0;  // 3D boxcar kernel weight
+
+
+    // Update momentsGrid Ghost Cells
+    phiprof::start("GhostUpdate");
+    momentsGrid.updateGhostCells(); //update ghost zones
+    phiprof::stop("GhostUpdate");
+
+    // Get size of local domain and create swapGrid for filtering
+    const int *mntDims= &momentsGrid.getLocalSize()[0];   //get local size for each proc.
+    FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, 2> swapGrid = momentsGrid;  //swap array 
+    const int maxRefLevel = mpiGrid.mapping.get_maximum_refinement_level();
+
+
+    // Filtering Loop
+    for (int blurPass = 0; blurPass < maxRefLevel; blurPass++){
+
+      // Blurring Pass
+      phiprof::start("BlurPass");
+      #pragma omp parallel for collapse(2)
+      for (int kk = 0; kk < mntDims[2]; kk++){
+        for (int jj = 0; jj < mntDims[1]; jj++){
+          for (int ii = 0; ii < mntDims[0]; ii++){
+
+            //  Get refLevel level
+            int refLevel = technicalGrid.get(ii, jj, kk)->refLevel;
+
+            // Skip pass
+            if (refLevel == maxRefLevel ||
+              blurPass < refLevel ||
+              technicalGrid.get(ii, jj, kk)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
+              (technicalGrid.get(ii, jj, kk)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY && technicalGrid.get(ii, jj, kk)->sysBoundaryLayer == 2)
+              )
+            {
+              continue;
+            }
+
+
+            std::array<Real, fsgrids::moments::N_MOMENTS> *cell;  
+            std::array<Real,fsgrids::moments::N_MOMENTS> *swap;
+            // Set Cell to zero before passing filter
+            swap = swapGrid.get(ii,jj,kk);
+            for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
+
+              swap->at(e)=0.0;
+
+            }
+
+            // Perform the blur
+            for (int a=0; a<stencilWidth; a++){
+              for (int b=0; b<stencilWidth; b++){
+                for (int c=0; c<stencilWidth; c++){
+
+                  int xn=ii+a-kernelOffset;
+                  int yn=jj+b-kernelOffset;
+                  int zn=kk+c-kernelOffset;
+
+                  cell = momentsGrid.get(xn, yn, zn);
+                  swap = swapGrid.get(ii,jj,kk);
+
+                  for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
+
+                    // swap->at(e)+=cell->at(e) * kernel[a][b][c];
+                    swap->at(e)+=cell->at(e) * kernelWeight;
+
+                    } 
+                  }
+                }
+              }
+            }
+          }
+        }
+
+      phiprof::stop("BlurPass");
+
+
+      // Copy swapGrid back to momentsGrid
+      momentsGrid=swapGrid;
+
+      // Update Ghost Cells
+      phiprof::start("GhostUpdate");
+      momentsGrid.updateGhostCells();
+      phiprof::stop("GhostUpdate");
+
+    }
+
+    phiprof::stop("BoxCar Filtering");  
+
+  }   
 }
+
 
 void getFieldsFromFsGrid(
    FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volumeFieldsGrid,
@@ -191,7 +317,7 @@ void getFieldsFromFsGrid(
 ) {
   // TODO: solver only needs bgb + PERB, we could combine them
   
-  const int fieldsToCommunicate = 18;
+  const int fieldsToCommunicate = 21;
   struct Average {
     Real sums[fieldsToCommunicate];
     int cells;
@@ -206,6 +332,7 @@ void getFieldsFromFsGrid(
       for(int i = 0; i < fieldsToCommunicate; i++){
          this->sums[i] += rhs.sums[i];
       }
+    return *this;
     }
   };
 
@@ -285,7 +412,9 @@ void getFieldsFromFsGrid(
         sendBuffer[ii].sums[15] += egradpecell->at(fsgrids::egradpe::EXGRADPE);
         sendBuffer[ii].sums[16] += egradpecell->at(fsgrids::egradpe::EYGRADPE);
         sendBuffer[ii].sums[17] += egradpecell->at(fsgrids::egradpe::EZGRADPE);
-	
+	sendBuffer[ii].sums[18] += volcell->at(fsgrids::volfields::EXVOL);
+	sendBuffer[ii].sums[19] += volcell->at(fsgrids::volfields::EYVOL);
+	sendBuffer[ii].sums[20] += volcell->at(fsgrids::volfields::EZVOL);
         sendBuffer[ii].cells++;
       }
       ii++;
@@ -319,7 +448,7 @@ void getFieldsFromFsGrid(
   
   //Store data in dccrg
   for (auto const &cellAggregate : aggregatedResult) {
-    auto cellParams = mpiGrid[cellAggregate.first]->get_cell_parameters();    
+    auto cellParams = mpiGrid[cellAggregate.first]->get_cell_parameters();
     if ( cellAggregate.second.cells > 0) {
       cellParams[CellParams::PERBXVOL] = cellAggregate.second.sums[0] / cellAggregate.second.cells;
       cellParams[CellParams::PERBYVOL] = cellAggregate.second.sums[1] / cellAggregate.second.cells;
@@ -332,10 +461,13 @@ void getFieldsFromFsGrid(
       mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBZVOLdy] = cellAggregate.second.sums[11] / cellAggregate.second.cells;
       cellParams[CellParams::BGBXVOL]  = cellAggregate.second.sums[12] / cellAggregate.second.cells;
       cellParams[CellParams::BGBYVOL]  = cellAggregate.second.sums[13] / cellAggregate.second.cells;
-      cellParams[CellParams::BGBZVOL]  = cellAggregate.second.sums[14] / cellAggregate.second.cells;  
+      cellParams[CellParams::BGBZVOL]  = cellAggregate.second.sums[14] / cellAggregate.second.cells;
       cellParams[CellParams::EXGRADPE] = cellAggregate.second.sums[15] / cellAggregate.second.cells;
       cellParams[CellParams::EYGRADPE] = cellAggregate.second.sums[16] / cellAggregate.second.cells;
-      cellParams[CellParams::EZGRADPE] = cellAggregate.second.sums[17] / cellAggregate.second.cells;	  
+      cellParams[CellParams::EZGRADPE] = cellAggregate.second.sums[17] / cellAggregate.second.cells;
+      cellParams[CellParams::EXVOL] = cellAggregate.second.sums[18] / cellAggregate.second.cells;
+      cellParams[CellParams::EYVOL] = cellAggregate.second.sums[19] / cellAggregate.second.cells;
+      cellParams[CellParams::EZVOL] = cellAggregate.second.sums[20] / cellAggregate.second.cells;
     }
     else{
       // This could happpen if all fsgrid cells are do not compute
@@ -354,11 +486,13 @@ void getFieldsFromFsGrid(
       cellParams[CellParams::EXGRADPE] = 0;
       cellParams[CellParams::EYGRADPE] = 0;
       cellParams[CellParams::EZGRADPE] = 0;
+      cellParams[CellParams::EXVOL] = 0;
+      cellParams[CellParams::EYVOL] = 0;
+      cellParams[CellParams::EZVOL] = 0;
     }
   }
   
   MPI_Waitall(sendRequests.size(), sendRequests.data(), MPI_STATUSES_IGNORE);
-  
 }
 
 /*

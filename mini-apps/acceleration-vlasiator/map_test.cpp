@@ -5,6 +5,11 @@
 #include "vlasovsolver/cpu_1d_ppm.hpp"
 #include "vlasovsolver/cpu_1d_plm.hpp"
 
+const int fluxlimiterscalingfactor=1.e-15;
+// Used for better calculation of flux limiters at extreme values.
+// In vlasiator, the value of spatial_cell->getVelocityBlockMinValue(popID)
+// is used here.
+
 /*print all values in the vector valued values array. In this array
   there are blocks_per_dim blocks with a width of WID*/
 void print_values(int step, Vec *values, uint blocks_per_dim, Real v_min, Real dv){
@@ -56,15 +61,15 @@ void propagate(Vec values[], uint  blocks_per_dim, Real v_min, Real dv,
 
 #ifdef ACC_SEMILAG_PLM
       Vec a[2];
-      compute_plm_coeff(values, (k_block + 1) * WID + k_cell , a);
+      compute_plm_coeff(values, (k_block + 1) * WID + k_cell , a, fluxlimiterscalingfactor);
 #endif
 #ifdef ACC_SEMILAG_PPM
       Vec a[3];
-      compute_ppm_coeff(values, h6, (k_block + 1) * WID + k_cell , a);
+      compute_ppm_coeff(values, h6, (k_block + 1) * WID + k_cell , a, fluxlimiterscalingfactor);
 #endif
 #ifdef ACC_SEMILAG_PQM
       Vec a[5];
-      compute_pqm_coeff(values, h8,  (k_block + 1) * WID + k_cell , a);
+      compute_pqm_coeff(values, h8,  (k_block + 1) * WID + k_cell , a, fluxlimiterscalingfactor);
 #endif
 
 
@@ -195,15 +200,15 @@ void print_reconstruction(int step, Vec values[], uint  blocks_per_dim, Real v_m
     for (uint k_cell=0; k_cell<WID; ++k_cell){ 
 #ifdef ACC_SEMILAG_PLM
       Vec a[2];
-      compute_plm_coeff(values, (k_block + 1) * WID + k_cell , a);
+      compute_plm_coeff(values, (k_block + 1) * WID + k_cell , a, fluxlimiterscalingfactor);
 #endif
 #ifdef ACC_SEMILAG_PPM
       Vec a[3];
-      compute_ppm_coeff(values, h6, (k_block + 1) * WID + k_cell , a);
+      compute_ppm_coeff(values, h6, (k_block + 1) * WID + k_cell , a, fluxlimiterscalingfactor);
 #endif
 #ifdef ACC_SEMILAG_PQM
       Vec a[5];
-      compute_pqm_coeff(values, h8, (k_block + 1) * WID + k_cell , a);
+      compute_pqm_coeff(values, h8, (k_block + 1) * WID + k_cell , a, fluxlimiterscalingfactor);
 #endif
 
       Vec v_l = v_min + (k_block * WID + k_cell) * dv;

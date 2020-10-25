@@ -84,6 +84,8 @@ vector<int> P::systemWriteDistributionWriteStride;
 vector<int> P::systemWriteDistributionWriteXlineStride;
 vector<int> P::systemWriteDistributionWriteYlineStride;
 vector<int> P::systemWriteDistributionWriteZlineStride;
+vector<Real> P::systemWriteDistributionWriteShellRadius;
+vector<int> P::systemWriteDistributionWriteShellStride;
 vector<int> P::systemWrites;
 std::vector<std::pair<std::string,std::string>> P::systemWriteHints;
 
@@ -156,6 +158,8 @@ bool Parameters::addParameters(){
    Readparameters::addComposing("io.system_write_distribution_xline_stride", "Every this many lines of cells along the x direction write out their velocity space. 0 is none. [Define for all groups.]");
    Readparameters::addComposing("io.system_write_distribution_yline_stride", "Every this many lines of cells along the y direction write out their velocity space. 0 is none. [Define for all groups.]");
    Readparameters::addComposing("io.system_write_distribution_zline_stride", "Every this many lines of cells along the z direction write out their velocity space. 0 is none. [Define for all groups.]");
+   Readparameters::addComposing("io.system_write_distribution_shell_radius", "At cells intersecting spheres with those radii centred at the origin write out their velocity space. 0 is none.");
+   Readparameters::addComposing("io.system_write_distribution_shell_stride", "Every this many cells for those on selected shells write out their velocity space. 0 is none.");
    Readparameters::addComposing("io.system_write_mpiio_hint_key", "MPI-IO hint key passed to the non-restart IO. Has to be matched by io.system_write_mpiio_hint_value.");
    Readparameters::addComposing("io.system_write_mpiio_hint_value", "MPI-IO hint value passed to the non-restart IO. Has to be matched by io.system_write_mpiio_hint_key.");
 
@@ -232,6 +236,7 @@ bool Parameters::addParameters(){
 				"vg_boundarytype fg_boundarytype vg_boundarylayer fg_boundarylayer "+
 				"populations_vg_blocks vg_f_saved "+
 				"populations_vg_acceleration_subcycles "+
+				"vg_e_vol fg_e_vol "+
 				"fg_e_hall vg_e_gradpe fg_b_vol vg_b_vol vg_b_background_vol vg_b_perturbed_vol "+
 				"vg_pressure fg_pressure populations_vg_ptensor "+
 				"b_vol_derivatives "+
@@ -253,6 +258,7 @@ bool Parameters::addParameters(){
 				"FsGridBoundaryType BoundaryType FsGridBoundaryLayer BoundaryLayer "+
 				"populations_Blocks fSaved vg_fsaved"+
 				"populations_accSubcycles populations_acceleration_subcycles"+
+				"VolE vg_VolE Evol E_vol fg_VolE fg_Evol "+
 				"HallE fg_HallE GradPeE e_gradpe VolB vg_VolB fg_VolB B_vol Bvol vg_Bvol fg_volB fg_Bvol"+
 				"BackgroundVolB PerturbedVolB "+
 				"Pressure vg_Pressure fg_Pressure populations_PTensor "+
@@ -261,7 +267,7 @@ bool Parameters::addParameters(){
    // NOTE Do not remove the : before the list of variable names as this is parsed by tools/check_vlasiator_cfg.sh
    Readparameters::addComposing("variables.diagnostic", std::string()+"List of data reduction operators (DROs) to add to the diagnostic runtime output. Each variable to be added has to be on a new line diagnostic = XXX. Names are case insensitive. "+
 				"Available (20190320): "+
-				"populations_blocks "+
+				"populations_vg_blocks "+
 				"rhom populations_rho_loss_adjust"+
 				"loadbalance_weight"+
 				"maxdt_acceleration maxdt_translation populations_maxdt_acceleration populations_maxdt_translation "+
@@ -307,6 +313,8 @@ bool Parameters::getParameters(){
    Readparameters::get("io.system_write_distribution_xline_stride", P::systemWriteDistributionWriteXlineStride);
    Readparameters::get("io.system_write_distribution_yline_stride", P::systemWriteDistributionWriteYlineStride);
    Readparameters::get("io.system_write_distribution_zline_stride", P::systemWriteDistributionWriteZlineStride);
+   Readparameters::get("io.system_write_distribution_shell_radius", P::systemWriteDistributionWriteShellRadius);
+   Readparameters::get("io.system_write_distribution_shell_stride", P::systemWriteDistributionWriteShellStride);
    Readparameters::get("io.write_initial_state", P::writeInitialState);
    Readparameters::get("io.restart_walltime_interval", P::saveRestartWalltimeInterval);
    Readparameters::get("io.number_of_restarts", P::exitAfterRestarts);
@@ -372,6 +380,13 @@ bool Parameters::getParameters(){
    if ( P::systemWriteDistributionWriteZlineStride.size() != maxSize) {
       if(myRank == MASTER_RANK) {
          cerr << "ERROR io.system_write_distribution_zline_stride should be defined for all file types." << endl;
+      }
+      return false;
+   }
+   if ( P::systemWriteDistributionWriteShellStride.size() != P::systemWriteDistributionWriteShellRadius.size()) {
+      if(myRank == MASTER_RANK) {
+         cerr << "ERROR You should set the same number of io.system_write_distribution_shell_stride " <<
+                 "and io.system_write_distribution_shell_radius." << endl;
       }
       return false;
    }

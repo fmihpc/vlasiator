@@ -1,0 +1,89 @@
+CMP = mpiCC
+LNK = mpiCC
+
+#======== Vectorization ==========
+#Set vector backend type for vlasov solvers, sets precision and length. 
+#Options: 
+# AVX:      VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
+# AVX512:   VEC8D_AGNER, VEC16F_AGNER
+# Fallback: VEC4D_FALLBACK, VEC4F_FALLBACK, VEC8F_FALLBACK
+
+ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
+#Single-precision        
+        VECTORCLASS = VEC8F_AGNER
+else
+#Double-precision
+        VECTORCLASS = VEC8D_AGNER
+endif
+
+FLAGS = 
+
+# NOTES on compiler flags:
+# CXXFLAGS is for compiler flags, they are always used
+# MATHFLAGS are for special math etc. flags, these are only applied on solver functions
+# LDFLAGS flags for linker
+
+#GNU flags:
+CC_BRAND = gcc
+CC_BRAND_VERSION = 9.2.0
+CXXFLAGS += -g -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -fabi-version=0 -Wall -Wpedantic -mfma -march=native -mavx2
+not_parallel_tools: CXXFLAGS += -march=native -mno-avx2 -mavx 
+testpackage: CXXFLAGS = -g -O2 -fopenmp -funroll-loops -std=c++17 -fabi-version=0 
+not_parallel_tools: CC_BRAND_VERSION = 4.9.2-noavx2
+
+MATHFLAGS = -ffast-math
+LDFLAGS =
+LIB_MPI = -lgomp
+
+BOOST_VERSION = 
+#MPI_BRAND = mpt
+#MPI_VERSION = 2.22
+MPI_BRAND = openmpi
+MPI_VERSION = 4.0.4
+ZOLTAN_VERSION = 
+SILO_VERSION = 
+JEMALLOC_VERSION = 5.2.1
+LIBRARY_PREFIX = /zhome/academic/HLRS/pri/ipryakem/libraries
+
+
+#======== PAPI ==========
+#Add PAPI_MEM define to use papi to report memory consumption?
+CXXFLAGS +=  -DPAPI_MEM
+
+
+#======== Allocator =========
+#Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
+#Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
+CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+
+
+#compiled libraries
+
+INC_BOOST = -I/opt/hlrs/spack/rev-004_2020-06-17/boost/1.70.0-gcc-9.2.0-ihlkdeae/include
+LIB_BOOST = -L/opt/hlrs/spack/rev-004_2020-06-17/boost/1.70.0-gcc-9.2.0-ihlkdeae/lib -lboost_program_options
+
+INC_ZOLTAN =  -I/opt/hlrs/spack/rev-004_2020-06-17/trilinos/12.14.1-gcc-9.2.0-jp6yigfc/include
+LIB_ZOLTAN =  -L/opt/hlrs/spack/rev-004_2020-06-17/trilinos/12.14.1-gcc-9.2.0-jp6yigfc/lib -lzoltan
+
+INC_JEMALLOC = -I$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/jemalloc/include
+LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/jemalloc/lib -ljemalloc
+
+INC_VLSV = -I$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/vlsv
+LIB_VLSV = -L$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/vlsv -lvlsv
+
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof/lib -lphiprof
+INC_PROFILE = -I$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof/include
+
+INC_PAPI = -I/opt/hlrs/spack/rev-004_2020-06-17/papi/c048e224f-gcc-9.2.0-hxfnx7kt/include
+LIB_PAPI = -L/opt/hlrs/spack/rev-004_2020-06-17/papi/c048e224f-gcc-9.2.0-hxfnx7kt/lib -lpapi
+
+#header libraries
+
+INC_EIGEN = -I$(LIBRARY_PREFIX)/
+INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg/
+INC_FSGRID = -I$(LIBRARY_PREFIX)/fsgrid/
+INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/vectorclass-version1
+
+
+
+

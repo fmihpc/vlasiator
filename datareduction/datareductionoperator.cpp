@@ -113,6 +113,7 @@ namespace DRO {
 
    std::string DataReductionOperatorFsGrid::getName() const {return variableName;}
    bool DataReductionOperatorFsGrid::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      // These are only set to dmmy values, as this reducer writes its own vlsv dataset anyway
       dataType = "float";
       dataSize = sizeof(double);
       vectorSize = 1;
@@ -139,7 +140,9 @@ namespace DRO {
                       FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dMomentsGrid,
                       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volGrid,
-                      FsGrid< fsgrids::technical, 2>& technicalGrid, const std::string& meshName, vlsv::Writer& vlsvWriter) {
+                      FsGrid< fsgrids::technical, 2>& technicalGrid,
+                      const std::string& meshName, vlsv::Writer& vlsvWriter,
+                      const bool writeAsFloat) {
 
       std::map<std::string,std::string> attribs;
       attribs["mesh"]=meshName;
@@ -151,12 +154,26 @@ namespace DRO {
 
       std::vector<double> varBuffer =
          lambda(perBGrid,EGrid,EHallGrid,EGradPeGrid,momentsGrid,dPerBGrid,dMomentsGrid,BgBGrid,volGrid,technicalGrid);
-      
+
       std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
       int vectorSize = varBuffer.size() / (gridSize[0]*gridSize[1]*gridSize[2]);
-      if(vlsvWriter.writeArray("VARIABLE",attribs, "float", gridSize[0]*gridSize[1]*gridSize[2], vectorSize, sizeof(double), reinterpret_cast<const char*>(varBuffer.data())) == false) {
-         string message = "The DataReductionOperator " + this->getName() + " failed to write its data.";
-         bailout(true, message, __FILE__, __LINE__);
+
+      if(writeAsFloat) {
+         // Convert down to 32bit floats to save output space
+         std::vector<float> varBufferFloat(varBuffer.size());
+         for(int i=0; i<varBuffer.size(); i++) {
+            varBufferFloat[i] = (float)varBuffer[i];
+         }
+         if(vlsvWriter.writeArray("VARIABLE",attribs, "float", gridSize[0]*gridSize[1]*gridSize[2], vectorSize, sizeof(float), reinterpret_cast<const char*>(varBufferFloat.data())) == false) {
+            string message = "The DataReductionOperator " + this->getName() + " failed to write its data.";
+            bailout(true, message, __FILE__, __LINE__);
+         }
+
+      } else {
+         if(vlsvWriter.writeArray("VARIABLE",attribs, "float", gridSize[0]*gridSize[1]*gridSize[2], vectorSize, sizeof(double), reinterpret_cast<const char*>(varBuffer.data())) == false) {
+            string message = "The DataReductionOperator " + this->getName() + " failed to write its data.";
+            bailout(true, message, __FILE__, __LINE__);
+         }
       }
 
       return true;
@@ -761,7 +778,7 @@ namespace DRO {
       V[0] = 0;
       V[1] = 0;
       V[2] = 0;
-      Real n = 0;
+      Real n_sum = 0;
       # pragma omp parallel
       {
          Real thread_nvx_sum = 0.0;
@@ -788,7 +805,7 @@ namespace DRO {
             } else {
                getThermalVelocityCellIndices(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCellIndices, popID);
             }
-            // We have now fethced all of the needed velocity cell indices, so now go through them:
+            // We have now fetched all of the needed velocity cell indices, so now go through them:
             for( vector< array<uint, 3> >::const_iterator it = vCellIndices.begin(); it != vCellIndices.end(); ++it ) {
                // Get the indices of the current iterated velocity cell
                const array<uint, 3> indices = *it;
@@ -815,14 +832,14 @@ namespace DRO {
             V[0] += thread_nvx_sum;
             V[1] += thread_nvy_sum;
             V[2] += thread_nvz_sum;
-            n += thread_n_sum;
+            n_sum += thread_n_sum;
          }
       }
 
-      // Finally, divide n*V by V.
-      V[0]/=n;
-      V[1]/=n;
-      V[2]/=n;
+      // Finally, divide n_sum*V by V.
+      V[0]/=n_sum;
+      V[1]/=n_sum;
+      V[2]/=n_sum;
       return;
    }
 
@@ -1338,7 +1355,7 @@ namespace DRO {
       emax = getObjectWrapper().particleSpecies[popID].precipitationEmax;    // already converted to SI
       nChannels = getObjectWrapper().particleSpecies[popID].precipitationNChannels; // number of energy channels, logarithmically spaced between emin and emax
       for (int i=0; i<nChannels; i++){
-         channels.push_back(emin * pow(emax/emin,float(i)/(nChannels-1)));
+         channels.push_back(emin * pow(emax/emin,(Real)i/(nChannels-1)));
       }
    }
    VariablePrecipitationDiffFlux::~VariablePrecipitationDiffFlux() { }
@@ -1389,21 +1406,21 @@ namespace DRO {
          
          # pragma omp for
          for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); n++) {
-	    for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
-	       const Real VX 
-		 =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
-		 + (i + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
-	       const Real VY 
-		 =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] 
-		 + (j + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
-	       const Real VZ 
-		 =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] 
-		 + (k + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+            for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
+               const Real VX 
+                  =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
+                  + (i + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
+               const Real VY 
+                  =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] 
+                  + (j + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
+               const Real VZ 
+                  =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] 
+                  + (k + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
 
-	       const Real DV3 
-		 = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]
-		 * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY] 
-		 * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+               const Real DV3 
+                  = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]
+                  * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY] 
+                  * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
 
                const Real normV = sqrt(VX*VX + VY*VY + VZ*VZ);
                const Real VdotB_norm = (B[0]*VX + B[1]*VY + B[2]*VZ)/normV;
@@ -1416,8 +1433,8 @@ namespace DRO {
                binNumber = max(binNumber,0); // anything < emin goes to the lowest channel
                binNumber = min(binNumber,nChannels-1); // anything > emax goes to the highest channel
 
-	       thread_lossCone_sum[binNumber] += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)] * countAndGate * normV*normV * DV3;
-	       thread_count[binNumber] += countAndGate * DV3;
+               thread_lossCone_sum[binNumber] += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)] * countAndGate * normV*normV * DV3;
+               thread_count[binNumber] += countAndGate * DV3;
             }
          }
 
@@ -1451,7 +1468,7 @@ namespace DRO {
 
    bool VariablePrecipitationDiffFlux::writeParameters(vlsv::Writer& vlsvWriter) {
       for (int i=0; i<nChannels; i++) {
-	 const Real channelev = channels[i]/physicalconstants::CHARGE; // in eV
+         const Real channelev = channels[i]/physicalconstants::CHARGE; // in eV
          if( vlsvWriter.writeParameter(popName+"_PrecipitationCentreEnergy"+std::to_string(i), &channelev) == false ) { return false; }
       }
       if( vlsvWriter.writeParameter(popName+"_LossConeAngle", &lossConeAngle) == false ) { return false; }
@@ -1493,7 +1510,7 @@ namespace DRO {
       const Real HALF = 0.5;
 
       for(int i = 0; i < 3; i++) {
-	 EDensity[i] = 0.0;
+         EDensity[i] = 0.0;
       }
 
       # pragma omp parallel
@@ -1507,26 +1524,26 @@ namespace DRO {
         
          # pragma omp for
          for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); n++) {
-	    const Real DV3 
-	       = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]
-	       * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY] 
-	       * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+            const Real DV3 
+               = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]
+               * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY] 
+               * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
 
-	    for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
-	       const Real VX 
-		 =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
-		 + (i + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
-	       const Real VY 
-		 =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] 
-		 + (j + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
-	       const Real VZ 
-		 =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] 
-		 + (k + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+            for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
+               const Real VX 
+                  =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
+                  + (i + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
+               const Real VY 
+                  =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] 
+                  + (j + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
+               const Real VZ 
+                  =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] 
+                  + (k + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
                      
-	       const Real ENERGY = (VX*VX + VY*VY + VZ*VZ) * HALF * getObjectWrapper().particleSpecies[popID].mass;
-	       thread_E0_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * ENERGY * DV3;
-	       if (ENERGY > E1limit) thread_E1_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * ENERGY * DV3;
-	       if (ENERGY > E2limit) thread_E2_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * ENERGY * DV3;
+               const Real ENERGY = (VX*VX + VY*VY + VZ*VZ) * HALF * getObjectWrapper().particleSpecies[popID].mass;
+               thread_E0_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * ENERGY * DV3;
+               if (ENERGY > E1limit) thread_E1_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * ENERGY * DV3;
+               if (ENERGY > E2limit) thread_E2_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * ENERGY * DV3;
             }
          }
 

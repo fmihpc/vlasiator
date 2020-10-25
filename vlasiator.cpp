@@ -450,6 +450,13 @@ int main(int argn,char* args[]) {
       = momentsDt2Grid.physicalGlobalStart = dPerBGrid.physicalGlobalStart = dMomentsGrid.physicalGlobalStart
       = BgBGrid.physicalGlobalStart = volGrid.physicalGlobalStart = technicalGrid.physicalGlobalStart
       = {P::xmin, P::ymin, P::zmin};
+
+   // Checking that spatial cells are cubic, otherwise field solver is incorrect (cf. derivatives in E, Hall term)
+   if((abs((technicalGrid.DX-technicalGrid.DY)/technicalGrid.DX) > 0.001) ||
+      (abs((technicalGrid.DX-technicalGrid.DZ)/technicalGrid.DX) > 0.001) ||
+      (abs((technicalGrid.DY-technicalGrid.DZ)/technicalGrid.DY) > 0.001)) {
+     std::cerr << "WARNING: Your spatial cells seem not to be cubic. However the field solver is assuming them to be. Use at your own risk and responsibility!" << std::endl;
+   }
    phiprof::stop("Init fieldsolver grids");
    
    // Initialize grid.  After initializeGrid local cells have dist
@@ -487,44 +494,42 @@ int main(int argn,char* args[]) {
    initializeDataReducers(&outputReducer, &diagnosticReducer);
    phiprof::stop("Init DROs");  
    
+   // Free up memory:
+   readparameters.finalize();
+
+   // Run the field solver once with zero dt. This will initialize
+   // Fieldsolver dt limits, and also calculate volumetric B-fields.
+   propagateFields(
+		   perBGrid,
+		   perBDt2Grid,
+		   EGrid,
+		   EDt2Grid,
+		   EHallGrid,
+		   EGradPeGrid,
+		   momentsGrid,
+		   momentsDt2Grid,
+		   dPerBGrid,
+		   dMomentsGrid,
+		   BgBGrid,
+		   volGrid,
+		   technicalGrid,
+		   sysBoundaries, 0.0, 1.0
+		   );
+
    phiprof::start("getFieldsFromFsGrid");
    volGrid.updateGhostCells();
    getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, technicalGrid, mpiGrid, cells);
    phiprof::stop("getFieldsFromFsGrid");
 
-   // Free up memory:
-   readparameters.finalize();
-
    if (P::isRestart == false) {
-      // Run Vlasov solver once with zero dt to initialize
-      //per-cell dt limits. In restarts, we read the dt from file.
       phiprof::start("compute-dt");
-      
-      if(P::propagateField) {
-         propagateFields(
-            perBGrid,
-            perBDt2Grid,
-            EGrid,
-            EDt2Grid,
-            EHallGrid,
-            EGradPeGrid,
-            momentsGrid,
-            momentsDt2Grid,
-            dPerBGrid,
-            dMomentsGrid,
-            BgBGrid,
-            volGrid,
-            technicalGrid,
-            sysBoundaries, 0.0, 1.0
-         );
-      }
-      
+      // Run Vlasov solver once with zero dt to initialize
+      // per-cell dt limits. In restarts, we read the dt from file.
       calculateSpatialTranslation(mpiGrid,0.0);
-      calculateAcceleration(mpiGrid,0.0);
-      
+      calculateAcceleration(mpiGrid,0.0);      
       phiprof::stop("compute-dt");
    }
-   
+
    // Save restart data
    if (P::writeInitialState) {
       phiprof::start("write-initial-state");
@@ -800,7 +805,6 @@ int main(int argn,char* args[]) {
       
       //Re-loadbalance if needed
       //TODO - add LB measure and do LB if it exceeds threshold
-      #warning Re-loadbalance has been disabled temporarily for amr debugging
       if(((P::tstep % P::rebalanceInterval == 0 && P::tstep > P::tstep_min) || overrideRebalanceNow)) {
          logFile << "(LB): Start load balance, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
          balanceLoad(mpiGrid, sysBoundaries);
@@ -868,22 +872,22 @@ int main(int argn,char* args[]) {
       
       phiprof::start("Propagate");
       //Propagate the state of simulation forward in time by dt:
-      if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
-         phiprof::start("Update system boundaries (Vlasov pre-translation)");
-         sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid, P::t+0.5*P::dt); 
-         phiprof::stop("Update system boundaries (Vlasov pre-translation)");
-         addTimedBarrier("barrier-boundary-conditions");
-      }
       
       phiprof::start("Spatial-space");
-      
       if( P::propagateVlasovTranslation) {
          calculateSpatialTranslation(mpiGrid,P::dt);
       } else {
          calculateSpatialTranslation(mpiGrid,0.0);
       }
-      
       phiprof::stop("Spatial-space",computedCells,"Cells");
+      
+      // Apply boundary conditions
+      if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
+         phiprof::start("Update system boundaries (Vlasov post-translation)");
+         sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid, P::t+0.5*P::dt, false);
+         phiprof::stop("Update system boundaries (Vlasov post-translation)");
+         addTimedBarrier("barrier-boundary-conditions");
+      }
       
       phiprof::start("Compute interp moments");
       calculateInterpolatedVelocityMoments(
@@ -899,14 +903,6 @@ int main(int argn,char* args[]) {
       );
       phiprof::stop("Compute interp moments");
       
-      // Apply boundary conditions      
-      if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
-         phiprof::start("Update system boundaries (Vlasov post-translation)");
-         sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid, P::t+0.5*P::dt); 
-         phiprof::stop("Update system boundaries (Vlasov post-translation)");
-         addTimedBarrier("barrier-boundary-conditions");
-      }
-      
       // Propagate fields forward in time by dt. This needs to be done before the
       // moments for t + dt are computed (field uses t and t+0.5dt)
       if (P::propagateField) {
@@ -915,8 +911,8 @@ int main(int argn,char* args[]) {
          phiprof::start("fsgrid-coupling-in");
          // Copy moments over into the fsgrid.
          //setupTechnicalFsGrid(mpiGrid, cells, technicalGrid);
-         feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid,false);
-         feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid,true);
+         feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid, technicalGrid, false);
+         feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid, technicalGrid, true);
          phiprof::stop("fsgrid-coupling-in");
          
          propagateFields(
@@ -956,10 +952,16 @@ int main(int argn,char* args[]) {
          //zero step to set up moments _v
          calculateAcceleration(mpiGrid, 0.0);
       }
-
       phiprof::stop("Velocity-space",computedCells,"Cells");
       addTimedBarrier("barrier-after-acceleration");
-
+      
+      if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
+         phiprof::start("Update system boundaries (Vlasov post-acceleration)");
+         sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid, P::t+0.5*P::dt, true);
+         phiprof::stop("Update system boundaries (Vlasov post-acceleration)");
+         addTimedBarrier("barrier-boundary-conditions");
+      }
+      
       phiprof::start("Compute interp moments");
       // *here we compute rho and rho_v for timestep t + dt, so next
       // timestep * //

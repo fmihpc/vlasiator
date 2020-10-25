@@ -35,6 +35,7 @@ struct setOfPencils {
    uint sumOfLengths;
    std::vector< uint > lengthOfPencils; // Lengths of pencils
    std::vector< CellID > ids; // List of cells
+   std::vector< uint > idsStart; // List of where a pencil's CellIDs start in the ids array
    std::vector< Realv > x,y; // x,y - position
    std::vector< bool > periodic;
    std::vector< std::vector<uint> > path; // Path taken through refinement levels
@@ -50,6 +51,7 @@ struct setOfPencils {
       N++;
       sumOfLengths += idsIn.size();
       lengthOfPencils.push_back(idsIn.size());
+      idsStart.push_back(ids.size());
       ids.insert(ids.end(),idsIn.begin(),idsIn.end());
       x.push_back(xIn);
       y.push_back(yIn);
@@ -64,36 +66,28 @@ struct setOfPencils {
       periodic.erase(periodic.begin() + pencilId);
       path.erase(path.begin() + pencilId);
 
-      CellID ibeg = 0;
-      for (uint i = 0; i < pencilId; ++i) {
-         ibeg += lengthOfPencils[i];
-      }
+      uint ibeg = idsStart[pencilId];
       ids.erase(ids.begin() + ibeg, ids.begin() + ibeg + lengthOfPencils[pencilId]);
+      idsStart.erase(idsStart.begin() + pencilId);
 
       N--;
       sumOfLengths -= lengthOfPencils[pencilId];
       lengthOfPencils.erase(lengthOfPencils.begin() + pencilId);
          
    }
-   
-   std::vector<CellID> getIds(const uint pencilId) const {
 
-      std::vector<CellID> idsOut;
+   std::vector<CellID> getIds(const uint pencilId) const {
       
       if (pencilId > N) {
-         return idsOut;
+         std::vector<CellID> idsEmpty;
+         return idsEmpty;
       }
-
-      CellID ibeg = 0;
-      for (uint i = 0; i < pencilId; i++) {
-         ibeg += lengthOfPencils[i];
-      }
-      CellID iend = ibeg + lengthOfPencils[pencilId];
-    
-      for (uint i = ibeg; i < iend; i++) {
-         idsOut.push_back(ids[i]);
-      }
-
+      
+      // Use vector range constructor
+      std::vector<CellID>::const_iterator ibeg = ids.begin() + idsStart[pencilId];
+      std::vector<CellID>::const_iterator iend = ibeg + lengthOfPencils[pencilId];
+      std::vector<CellID> idsOut(ibeg, iend);
+      
       return idsOut;
    }
 
@@ -173,35 +167,11 @@ struct setOfPencils {
    }
 };
 
- 
-CellID selectNeighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> &grid,
-                      CellID id, int dimension, uint path);
-
-
-void propagatePencil(Vec* dz, Vec* values, const uint dimension, const uint blockGID,
-                     const Realv dt,
-                     const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID> &vmesh,
-                     const uint lengthOfPencil);
-
-
-
-void copy_trans_block_data_amr(
-    SpatialCell** source_neighbors,
-    const vmesh::GlobalID blockGID,
-    int lengthOfPencil,
-    Vec* values,
-    const unsigned char* const cellid_transpose,
-    const uint popID);
-
-
-setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> &grid, 
-					setOfPencils &pencils, CellID startingId,
-					std::vector<CellID> ids, uint dimension, 
-					std::vector<uint> path);
 
 bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                   const std::vector<CellID>& localPropagatedCells,
                   const std::vector<CellID>& remoteTargetCells,
+                  std::vector<uint>& nPencils,
                   const uint dimension,
                   const Realv dt,
                   const uint popID);

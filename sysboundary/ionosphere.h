@@ -38,6 +38,7 @@ namespace SBC {
       Real rho;
       Real V0[3];
       Real T;
+      Real fluffiness;
       uint nSpaceSamples;
       uint nVelocitySamples;
    };
@@ -71,16 +72,12 @@ namespace SBC {
          Project &project
       );
       virtual Real fieldSolverBoundaryCondMagneticField(
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBDt2Grid,
-         FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
-         FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EDt2Grid,
+         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & bGrid,
          FsGrid< fsgrids::technical, 2> & technicalGrid,
          cint i,
          cint j,
          cint k,
          creal& dt,
-         cuint& RKCase,
          cuint& component
       );
       virtual void fieldSolverBoundaryCondElectricField(
@@ -123,7 +120,8 @@ namespace SBC {
       virtual void vlasovBoundaryCondition(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const CellID& cellID,
-         const uint popID
+         const uint popID,
+         const bool calculate_V_moments
       );
       
       virtual std::string getName() const;
