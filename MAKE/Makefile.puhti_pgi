@@ -1,8 +1,14 @@
 CMP = mpic++
 LNK = mpic++
 
-# Suggested modules for building:
+# Suggested modules for building with PG19.7:
 # module load pgi hpcx-mpi/2.5.0-cuda cuda
+#
+# Suggested modules for building with PGI20.9:
+# module purge
+# module unuse /appl/spack/modulefiles/linux-rhel7-x86_64/Core
+# module use /appl/test/new_pgi/modulefiles/linux-rhel7-x86_64/Core/
+# module load pgi cuda openmpi papi
 
 #======== Vectorization ==========
 #Set vector backend type for vlasov solvers, sets precision and length. 
