@@ -53,7 +53,7 @@ FLAGS =
 #GNU flags:
 CC_BRAND = pgi
 CC_BRAND_VERSION = 19.7
-CXXFLAGS += -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -Minfo=accel -ta=tesla:lineinfo,keepbin,keepgpu,keepptx -Manno -g -mp
+CXXFLAGS += -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -Minfo=accel -ta=tesla:lineinfo,keepbin,keepgpu,keepptx -Manno -g -mp
 testpackage: CXXFLAGS += -g -O2 -acc -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -Minfo=accel
 
 MATHFLAGS =
