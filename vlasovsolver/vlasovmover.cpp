@@ -376,6 +376,10 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
    // Calculated moments are stored in the "_V" variables.
    calculateMoments_V(mpiGrid, propagatedCells, false);
 
+   //generate pseudo-random order which is always the same irrespective of parallelization, restarts, etc.
+   std::size_t rndInt = std::hash<uint>()(P::tstep);
+   uint map_order=rndInt%3;
+
    // Semi-Lagrangian acceleration for those cells which are subcycled,
    // dimension-by-dimension
    for (int order_step=0; order_step<3; order_step++) {
@@ -397,11 +401,7 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
          } else{
             subcycleDt = maxVdt;
          }
-
-         //generate pseudo-random order which is always the same irrespective of parallelization, restarts, etc.
-         std::size_t rndInt = std::hash<uint>()(P::tstep);
-            
-         uint map_order=rndInt%3;
+         if (dt<0) subcycleDt = -subcycleDt;
 
          // If we are the "first" thread, we get to use the accelerator.
          bool isThreadZero = omp_get_thread_num() == 0;
