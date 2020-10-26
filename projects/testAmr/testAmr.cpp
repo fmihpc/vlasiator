@@ -214,10 +214,9 @@ namespace projects {
    }
 
    void testAmr::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
-      char rngStateBuffer[256];
-      random_data rngDataBuffer;
-      setRandomCellSeed(cell,rngStateBuffer,&rngDataBuffer);
-      rhoRnd = 0.5 - getRandomNumber(&rngDataBuffer);
+      std::default_random_engine rndState;
+      setRandomCellSeed(cell,rndState);
+      rhoRnd = 0.5 - getRandomNumber(rndState);
    }
 
    void testAmr::setProjectBField(
@@ -244,19 +243,18 @@ namespace projects {
                   
                   const int64_t cellid = perBGrid.GlobalIDForCoords(x, y, z);
                   
-		  char rngStateBuffer[256];
-		  random_data rngDataBuffer;
-		  setRandomSeed(cellid,rngStateBuffer,&rngDataBuffer);
-                  
+                  std::default_random_engine rndState;
+                  setRandomSeed(cellid,rndState);
+
                   if (this->lambda != 0.0) {
                      cell->at(fsgrids::bfield::PERBX) = this->dBx*cos(2.0 * M_PI * xyz[0] / this->lambda);
                      cell->at(fsgrids::bfield::PERBY) = this->dBy*sin(2.0 * M_PI * xyz[0] / this->lambda);
                      cell->at(fsgrids::bfield::PERBZ) = this->dBz*cos(2.0 * M_PI * xyz[0] / this->lambda);
                   }
                   
-                  cell->at(fsgrids::bfield::PERBX) += this->magXPertAbsAmp * (0.5 - getRandomNumber(&rngDataBuffer));
-                  cell->at(fsgrids::bfield::PERBY) += this->magYPertAbsAmp * (0.5 - getRandomNumber(&rngDataBuffer));
-                  cell->at(fsgrids::bfield::PERBZ) += this->magZPertAbsAmp * (0.5 - getRandomNumber(&rngDataBuffer));
+                  cell->at(fsgrids::bfield::PERBX) += this->magXPertAbsAmp * (0.5 - getRandomNumber(rndState));
+                  cell->at(fsgrids::bfield::PERBY) += this->magYPertAbsAmp * (0.5 - getRandomNumber(rndState));
+                  cell->at(fsgrids::bfield::PERBZ) += this->magZPertAbsAmp * (0.5 - getRandomNumber(rndState));
                }
             }
          }

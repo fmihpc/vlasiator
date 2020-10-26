@@ -461,16 +461,8 @@ namespace projects {
    /** Get random number between 0 and 1.0. One should always first initialize the rng.
     * @param rngDataBuffer struct of type random_data
     * @return Uniformly distributed random number between 0 and 1.*/
-   Real Project::getRandomNumber(random_data* rngDataBuffer) const {
-#ifdef _AIX
-      int64_t rndInt;
-      random_r(&rndInt, rngDataBuffer);
-#else
-      int32_t rndInt;
-      random_r(rngDataBuffer, &rndInt);
-#endif
-      Real rnd = (Real) rndInt / RAND_MAX;
-      return rnd;
+   Real Project::getRandomNumber(std::default_random_engine& randGen) const {
+      return std::uniform_real_distribution<>(0,1)(randGen);
    }
 
    /** Set random seed (thread-safe). Seed is based on the seed read
@@ -479,13 +471,8 @@ namespace projects {
     * @param rngStateBuffer buffer where random number values are kept
     * @param rngDataBuffer struct of type random_data
    */
-   void Project::setRandomSeed(CellID seedModifier, char* rngStateBuffer, random_data* rngDataBuffer) const {
-      memset(rngDataBuffer, 0, sizeof(rngDataBuffer));
-#ifdef _AIX
-      initstate_r(this->seed+seedModifier, rngStateBuffer, 256, NULL, rngDataBuffer);
-#else
-      initstate_r(this->seed+seedModifier, rngStateBuffer, 256, rngDataBuffer);
-#endif
+   void Project::setRandomSeed(CellID seedModifier, std::default_random_engine& randGen) const {
+      randGen.seed(this->seed+seedModifier);
    }
 
    /** Set random seed (thread-safe) that is always the same for
@@ -495,7 +482,7 @@ namespace projects {
     * @param rngStateBuffer buffer where random number values are kept
     * @param rngDataBuffer struct of type random_data
    */
-   void Project::setRandomCellSeed(spatial_cell::SpatialCell* cell, char* rngStateBuffer, random_data* rngDataBuffer) const {
+   void Project::setRandomCellSeed(spatial_cell::SpatialCell* cell, std::default_random_engine& randGen) const {
       const creal x = cell->parameters[CellParams::XCRD];
       const creal y = cell->parameters[CellParams::YCRD];
       const creal z = cell->parameters[CellParams::ZCRD];
@@ -506,7 +493,7 @@ namespace projects {
       const CellID cellID = (int) ((x - Parameters::xmin) / dx) +
          (int) ((y - Parameters::ymin) / dy) * Parameters::xcells_ini +
          (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
-      setRandomSeed(cellID, rngStateBuffer, rngDataBuffer);
+      setRandomSeed(cellID, randGen);
    }
 
    /*

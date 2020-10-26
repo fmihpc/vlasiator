@@ -183,15 +183,14 @@ namespace projects {
    }
 
    void Dispersion::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
-      char rngStateBuffer[256];
-      random_data rngDataBuffer;
-      setRandomCellSeed(cell,rngStateBuffer,&rngDataBuffer);
+      std::default_random_engine rndState;
+      setRandomCellSeed(cell,rndState);
       
-      this->rndRho=getRandomNumber(&rngDataBuffer);
+      this->rndRho=getRandomNumber(rndState);
       
-      this->rndVel[0]=getRandomNumber(&rngDataBuffer);
-      this->rndVel[1]=getRandomNumber(&rngDataBuffer);
-      this->rndVel[2]=getRandomNumber(&rngDataBuffer);
+      this->rndVel[0]=getRandomNumber(rndState);
+      this->rndVel[1]=getRandomNumber(rndState);
+      this->rndVel[2]=getRandomNumber(rndState);
    }
    
    void Dispersion::setProjectBField(
@@ -216,14 +215,13 @@ namespace projects {
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
                   const int64_t cellid = perBGrid.GlobalIDForCoords(x, y, z);
                   
-		  char rngStateBuffer[256];
-		  random_data rngDataBuffer;
-                  setRandomSeed(cellid,rngStateBuffer,&rngDataBuffer);
+                  std::default_random_engine rndState;
+                  setRandomSeed(cellid,rndState);
                   
                   Real rndBuffer[3];
-                  rndBuffer[0]=getRandomNumber(&rngDataBuffer);
-                  rndBuffer[1]=getRandomNumber(&rngDataBuffer);
-                  rndBuffer[2]=getRandomNumber(&rngDataBuffer);
+                  rndBuffer[0]=getRandomNumber(rndState);
+                  rndBuffer[1]=getRandomNumber(rndState);
+                  rndBuffer[2]=getRandomNumber(rndState);
                   
                   cell->at(fsgrids::bfield::PERBX) = this->magXPertAbsAmp * (0.5 - rndBuffer[0]);
                   cell->at(fsgrids::bfield::PERBY) = this->magYPertAbsAmp * (0.5 - rndBuffer[1]);

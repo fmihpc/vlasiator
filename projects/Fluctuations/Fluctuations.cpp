@@ -162,14 +162,13 @@ namespace projects {
          (int) ((y - Parameters::ymin) / dy) * Parameters::xcells_ini +
          (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
       
-      char rngStateBuffer[256];
-      random_data rngDataBuffer;
-      setRandomCellSeed(cell,rngStateBuffer,&rngDataBuffer);
+      std::default_random_engine rndState;
+      setRandomCellSeed(cell,rndState);
       
-      this->rndRho=getRandomNumber(&rngDataBuffer);
-      this->rndVel[0]=getRandomNumber(&rngDataBuffer);
-      this->rndVel[1]=getRandomNumber(&rngDataBuffer);
-      this->rndVel[2]=getRandomNumber(&rngDataBuffer);
+      this->rndRho=getRandomNumber(rndState);
+      this->rndVel[0]=getRandomNumber(rndState);
+      this->rndVel[1]=getRandomNumber(rndState);
+      this->rndVel[2]=getRandomNumber(rndState);
    }
 
    void Fluctuations::setProjectBField(
@@ -194,13 +193,12 @@ namespace projects {
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
                   const int64_t cellid = perBGrid.GlobalIDForCoords(x, y, z);
                   
-		  char rngStateBuffer[256];
-		  random_data rngDataBuffer;
-		  setRandomSeed(cellid,rngStateBuffer,&rngDataBuffer);
+                  std::default_random_engine rndState;
+                  setRandomSeed(cellid,rndState);
                   
-                  cell->at(fsgrids::bfield::PERBX) = this->magXPertAbsAmp * (0.5 - getRandomNumber(&rngDataBuffer));
-                  cell->at(fsgrids::bfield::PERBY) = this->magYPertAbsAmp * (0.5 - getRandomNumber(&rngDataBuffer));
-                  cell->at(fsgrids::bfield::PERBZ) = this->magZPertAbsAmp * (0.5 - getRandomNumber(&rngDataBuffer));
+                  cell->at(fsgrids::bfield::PERBX) = this->magXPertAbsAmp * (0.5 - getRandomNumber(rndState));
+                  cell->at(fsgrids::bfield::PERBY) = this->magYPertAbsAmp * (0.5 - getRandomNumber(rndState));
+                  cell->at(fsgrids::bfield::PERBZ) = this->magZPertAbsAmp * (0.5 - getRandomNumber(rndState));
                }
             }
          }

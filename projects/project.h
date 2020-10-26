@@ -23,6 +23,7 @@
 #ifndef PROJECT_H
 #define PROJECT_H
 
+#include <random>
 #include "../spatial_cell.hpp"
 #include <dccrg.hpp>
 #include <dccrg_cartesian_geometry.hpp>
@@ -149,7 +150,7 @@ namespace projects {
       /** Get random number between 0 and 1.0. One should always first initialize the rng.
        * @param rngDataBuffer struct of type random_data
        * @return Uniformly distributed random number between 0 and 1.*/
-      Real getRandomNumber(random_data* rngDataBuffer) const;
+      Real getRandomNumber(std::default_random_engine& randGen) const;
 
       /** Set random seed (thread-safe). Seed is based on the seed read
        *  in from cfg + the seedModifier parameter
@@ -157,7 +158,7 @@ namespace projects {
        * @param rngStateBuffer buffer where random number values are kept
        * @param rngDataBuffer struct of type random_data
        */
-      void setRandomSeed(uint64_t seedModifier, char* rngStateBuffer, random_data* rngDataBuffer) const;
+      void setRandomSeed(uint64_t seedModifier, std::default_random_engine& randGen) const;
 
       /** Set random seed (thread-safe) that is always the same for
        * this particular cellID. Can be used to make reproducible
@@ -166,7 +167,7 @@ namespace projects {
        * @param rngStateBuffer buffer where random number values are kept
        * @param rngDataBuffer struct of type random_data
        */
-      void setRandomCellSeed(spatial_cell::SpatialCell* cell, char* rngStateBuffer, random_data* rngDataBuffer) const;
+      void setRandomCellSeed(spatial_cell::SpatialCell* cell, std::default_random_engine& randGen) const;
       
     private:
        uint seed;

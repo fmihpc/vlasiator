@@ -150,11 +150,10 @@ namespace projects {
    }
 
    void Distributions::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
-      char rngStateBuffer[256];
-      random_data rngDataBuffer;
-      setRandomCellSeed(cell,rngStateBuffer,&rngDataBuffer);
+      std::default_random_engine rndState;
+      setRandomCellSeed(cell,rndState);
       for (uint i=0; i<2; i++) {
-         this->rhoRnd[i] = this->rho[i] + this->rhoPertAbsAmp[i] * (0.5 - getRandomNumber(&rngDataBuffer));
+         this->rhoRnd[i] = this->rho[i] + this->rhoPertAbsAmp[i] * (0.5 - getRandomNumber(rndState));
       }
    }
 
@@ -181,9 +180,8 @@ namespace projects {
                   const int64_t cellid = perBGrid.GlobalIDForCoords(x, y, z);
                   const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
                   
-		  char rngStateBuffer[256];
-		  random_data rngDataBuffer;
-		  setRandomSeed(cellid,rngStateBuffer,&rngDataBuffer);
+                  std::default_random_engine rndState;
+                  setRandomSeed(cellid,rndState);
                   
                   if (this->lambda != 0.0) {
                      cell->at(fsgrids::bfield::PERBX) = this->dBx*cos(2.0 * M_PI * xyz[0] / this->lambda);
@@ -191,9 +189,9 @@ namespace projects {
                      cell->at(fsgrids::bfield::PERBZ) = this->dBz*cos(2.0 * M_PI * xyz[0] / this->lambda);
                   }
 
-                  cell->at(fsgrids::bfield::PERBX) += this->magXPertAbsAmp * (0.5 - getRandomNumber(&rngDataBuffer));
-                  cell->at(fsgrids::bfield::PERBY) += this->magYPertAbsAmp * (0.5 - getRandomNumber(&rngDataBuffer));
-                  cell->at(fsgrids::bfield::PERBZ) += this->magZPertAbsAmp * (0.5 - getRandomNumber(&rngDataBuffer));
+                  cell->at(fsgrids::bfield::PERBX) += this->magXPertAbsAmp * (0.5 - getRandomNumber(rndState));
+                  cell->at(fsgrids::bfield::PERBY) += this->magYPertAbsAmp * (0.5 - getRandomNumber(rndState));
+                  cell->at(fsgrids::bfield::PERBZ) += this->magZPertAbsAmp * (0.5 - getRandomNumber(rndState));
                }
             }
          }
