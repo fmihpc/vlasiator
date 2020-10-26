@@ -19,7 +19,7 @@ LNK = mpic++
 
 ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
 #Single-precision        
-	VECTORCLASS = VEC4F_FALLBACK
+	VECTORCLASS = VEC8F_FALLBACK
 else
 #Double-precision
 	VECTORCLASS = VEC4D_FALLBACK
