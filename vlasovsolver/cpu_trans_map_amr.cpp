@@ -706,7 +706,10 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
       
 #warning This forces single-cell pencils!
       bool addToSeedIds = P::transShortPencils;
-      if (addToSeedIds) continue;
+      if (addToSeedIds) {
+         seedIds.push_back(celli);
+         continue;
+      }
 
       // Returns all neighbors as (id, direction-dimension) pair pointers.
       for ( const auto nbrPair : mpiGrid.get_face_neighbors_of(celli) ) {
