@@ -615,15 +615,16 @@ namespace SBC {
          uint dist = numeric_limits<uint>::max();
 
 	 uint d2 = numeric_limits<uint>::max();
-	 uint indexstep = pow(2,P::amrMaxSpatialRefLevel - mpiGrid[cellId]->SpatialCell::parameters[CellParams::REFINEMENT_LEVEL]);
-			
+	 int indexstep = pow(2,P::amrMaxSpatialRefLevel - mpiGrid[cellId]->SpatialCell::parameters[CellParams::REFINEMENT_LEVEL]);
+	 // Note this must be int, not uint, for latter calculations
+
 	 // Find flowto cells (note, L2 cells do not have flowto cells)
 	 auto* nearNbrs = mpiGrid.get_neighbors_of(cellId, NEAREST_NEIGHBORHOOD_ID);
 	 for (auto nbrPair : *nearNbrs) {
 	    if(nbrPair.first != INVALID_CELLID) {
 	       if(mpiGrid[nbrPair.first]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-		  flowtoCells.at(nbrPair.second[0]/indexstep + 3*nbrPair.second[1]/indexstep
-				 + 9*nbrPair.second[2]/indexstep + 13) = mpiGrid[nbrPair.first];
+		  flowtoCells.at((int)(nbrPair.second[0]/indexstep) + 3*(int)(nbrPair.second[1]/indexstep)
+                                 + 9*(int)(nbrPair.second[2]/indexstep) + 13) = mpiGrid[nbrPair.first];
 		  //flowtoCells.at(i + 3*j + 9*k + 13) = mpiGrid[cell];
 	       }
 	    }

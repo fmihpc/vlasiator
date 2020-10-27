@@ -93,7 +93,7 @@ typedef Realf (*AmrVelRefinement)(const Realf* velBlock);
 
 // neighborhoods, these are initialized in grid.cpp:initializeGrid
 
-#define FIELD_SOLVER_NEIGHBORHOOD_ID 1
+//#define FIELD_SOLVER_NEIGHBORHOOD_ID 1
 #define VLASOV_SOLVER_NEIGHBORHOOD_ID 2   //up to third(PPM) neighbor in each face direction
 #define VLASOV_SOLVER_X_NEIGHBORHOOD_ID 3 //up to third(PPM) neighbor in x face directions
 #define VLASOV_SOLVER_Y_NEIGHBORHOOD_ID 4 //up to third(PPM) neighbor in y face directions
