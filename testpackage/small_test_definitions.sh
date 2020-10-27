@@ -136,3 +136,10 @@ comparison_vlsv[17]="bulk.0000001.vlsv"
 comparison_phiprof[17]="phiprof_0.txt"
 variable_names[17]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b fg_b fg_b fg_e fg_e fg_e"
 variable_components[17]="0 0 1 2 0 1 2 0 1 2"
+
+# Magnetosphere 3D
+test_name[17]="Magnetosphere_3D_small"
+comparison_vlsv[17]="bulk.0000001.vlsv"
+comparison_phiprof[17]="phiprof_0.txt"
+variable_names[17]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b fg_b fg_b fg_e fg_e fg_e"
+variable_components[17]="0 0 1 2 0 1 2 0 1 2"
