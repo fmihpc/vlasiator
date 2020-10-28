@@ -785,6 +785,7 @@ template<unsigned long int N> bool readFsGridVariable(
    vlsv::datatype::type dataType;
    uint64_t byteSize;
    list<pair<string,string> > attribs;
+   bool convertFloatType = false;
    
    attribs.push_back(make_pair("name",variableName));
    attribs.push_back(make_pair("mesh","fsgrid"));
@@ -794,8 +795,8 @@ template<unsigned long int N> bool readFsGridVariable(
       return false;
    }
    if(! (dataType == vlsv::datatype::type::FLOAT && byteSize == sizeof(Real))) {
-      logFile << "(RESTART)  ERROR: Attempting to read fsgrid variable " << variableName << ", but it is not in the same floating point format as the simulation expects (" << byteSize*8 << " bits instead of " << sizeof(Real)*8 << ")." << endl << write;
-      return false;
+      logFile << "(RESTART) Converting floating point format of fsgrid variable " << variableName << " from " << byteSize * 8 << " bits to " << sizeof(Real) * 8 << " bits." << endl << write;
+      convertFloatType = true;
    }
 
    // Are we restarting from the same number of tasks, or a different number?
@@ -829,9 +830,24 @@ template<unsigned long int N> bool readFsGridVariable(
       // Read into buffer
       std::vector<Real> buffer(storageSize*N);
 
-      if(file.readArray("VARIABLE",attribs, localStartOffset, storageSize, (char*)buffer.data()) == false) {
-         logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
-         return false;
+      if(!convertFloatType) {
+         if(file.readArray("VARIABLE",attribs, localStartOffset, storageSize, (char*)buffer.data()) == false) {
+            logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
+            return false;
+         }
+      } else {
+
+         // Read to temporary float buffer
+         std::vector<float> readBuffer(storageSize*N);
+
+         if(file.readArray("VARIABLE",attribs, localStartOffset, storageSize, (char*)readBuffer.data()) == false) {
+            logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
+            return false;
+         }
+
+         for(int i=0; i<storageSize*N; i++) {
+            buffer[i] = readBuffer[i];
+         }
       }
       
       // Assign buffer into fsgrid
@@ -900,10 +916,22 @@ template<unsigned long int N> bool readFsGridVariable(
          // Read into buffer
          std::vector<Real> buffer(thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N);
 
-         // TODO: Should these be multireads instead? And/or can this be parallelized?
-         if(file.readArray("VARIABLE",attribs, fileOffset, thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2], (char*)buffer.data()) == false) {
-            logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
-            return false;
+         if(!convertFloatType) {
+            // TODO: Should these be multireads instead? And/or can this be parallelized?
+            if(file.readArray("VARIABLE",attribs, fileOffset, thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2], (char*)buffer.data()) == false) {
+               logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
+               return false;
+            }
+         } else {
+            std::vector<float> readBuffer(thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N);
+            if(file.readArray("VARIABLE",attribs, fileOffset, thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2], (char*)readBuffer.data()) == false) {
+               logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
+               return false;
+            }
+
+            for(int i=0; i< thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N; i++) {
+               buffer[i]=readBuffer[i];
+            }
          }
 
          // Read every source rank that we have an overlap with.
