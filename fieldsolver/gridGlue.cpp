@@ -215,7 +215,16 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
     const int maxRefLevel = mpiGrid.mapping.get_maximum_refinement_level();
 
     // Filtering Loop
-    int maxNumPasses = *max_element(P::numPasses.begin(), P::numPasses.end());
+   std::vector<int>::iterator  maxNumPassesPtr;
+   int maxNumPasses;
+   maxNumPassesPtr=std::max_element(P::numPasses.begin(), P::numPasses.end());
+   if(maxNumPassesPtr != P::numPasses.end()){ 
+      maxNumPasses = *maxNumPassesPtr;
+   }else{
+      std::cerr << "Trying to dereference null pointer \t" << " in " << __FILE__ << ":" << __LINE__ << std::endl;
+      abort();
+   } 
+
     for (int blurPass = 0; blurPass < maxNumPasses; blurPass++){
 
       // Blurring Pass
