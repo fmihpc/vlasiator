@@ -130,6 +130,7 @@ void initializeGrids(
             std::cerr<<"Warning: unrecognized VLASOV_STENCIL_WIDTH in grid.cpp"<<std::endl;
       }
    }
+   globalflags::AMRstencilWidth = neighborhood_size;
 
    const std::array<uint64_t, 3> grid_length = {{P::xcells_ini, P::ycells_ini, P::zcells_ini}};
    dccrg::Cartesian_Geometry::Parameters geom_params;
@@ -952,7 +953,6 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             std::cerr<<"Warning: unrecognized VLASOV_STENCIL_WIDTH in grid.cpp"<<std::endl;
       }
    }
-   globalflags::AMRstencilWidth = VLASOV_STENCIL_WIDTH+addStencilDepth;
 
    int full_neighborhood_size = max(2, VLASOV_STENCIL_WIDTH);
    neighborhood.clear();
