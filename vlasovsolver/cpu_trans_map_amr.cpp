@@ -863,7 +863,9 @@ void check_ghost_cells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
    }
    
    std::vector<CellID> idsToSplit;
-   
+
+// Thread this loop here
+#pragma omp parallel for   
    for (uint pencili = 0; pencili < pencils.N; ++pencili) {
 
       if(pencils.periodic[pencili]) continue;
@@ -911,10 +913,14 @@ void check_ghost_cells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
          }
          // Let's avoid modifying pencils while we are looping over it. Write down the indices of pencils
          // that need to be split and split them later.
-         idsToSplit.push_back(pencili);
+#pragma omp critical
+         {
+            idsToSplit.push_back(pencili);
+         }
       }
    }
 
+// No threading here, probably more efficient to thread inside the splitting
    for (auto pencili: idsToSplit) {
 
       Realv dx = 0.0;
@@ -936,6 +942,7 @@ void check_ghost_cells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
          break;
       }
 
+// WARNING threading inside this function
       pencils.split(pencili,dx,dy);
          
    }
@@ -1173,8 +1180,11 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       }
    }
    
+   phiprof::start("check_ghost_cells");
    // Check refinement of two ghost cells on each end of each pencil
    check_ghost_cells(mpiGrid,pencils,dimension);
+   phiprof::stop("check_ghost_cells");
+
    // ****************************************************************************   
 
    if(printPencils) printPencilsFunc(pencils,dimension,myRank);
@@ -1203,20 +1213,29 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    // be the most nice way to do this and in any case we could do it along
    // dimension for data locality reasons => copy acc map column code, TODO: FIXME
    // TODO: Do this separately for each pencil?
-   std::unordered_set<vmesh::GlobalID> unionOfBlocksSet;
-   
-   for(auto cell : allCellsPointer) {
-      vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& cvmesh = cell->get_velocity_mesh(popID);
-      for (vmesh::LocalID block_i=0; block_i< cvmesh.size(); ++block_i) {
-         unionOfBlocksSet.insert(cvmesh.getGlobalID(block_i));
-      }
-   }
-   
    std::vector<vmesh::GlobalID> unionOfBlocks;
-   unionOfBlocks.reserve(unionOfBlocksSet.size());
-   for(const auto blockGID:  unionOfBlocksSet) {
-      unionOfBlocks.push_back(blockGID);
-   }
+   std::unordered_set<vmesh::GlobalID> unionOfBlocksSet;
+//   unionOfBlocks.reserve(unionOfBlocksSet.size());
+#pragma omp parallel
+   {
+      std::unordered_set<vmesh::GlobalID> thread_unionOfBlocksSet;
+      
+#pragma omp for
+      for(vector<SpatialCell*>::iterator cell = allCellsPointer.begin(); cell != allCellsPointer.end(); cell++) {
+         vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& cvmesh = (*cell)->get_velocity_mesh(popID);
+         for (vmesh::LocalID block_i=0; block_i< cvmesh.size(); ++block_i) {
+            thread_unionOfBlocksSet.insert(cvmesh.getGlobalID(block_i));
+         }
+      }
+
+#pragma omp critical
+      {
+         unionOfBlocksSet.insert(thread_unionOfBlocksSet.begin(), thread_unionOfBlocksSet.end());
+      } // pragma omp critical
+   } // pragma omp parallel
+   
+   unionOfBlocks.insert(unionOfBlocks.end(), unionOfBlocksSet.begin(), unionOfBlocksSet.end());
+   
    phiprof::stop("buildBlockList");
    // ****************************************************************************
    
