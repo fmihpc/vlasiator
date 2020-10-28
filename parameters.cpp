@@ -20,6 +20,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include <algorithm>
 #include <cstdlib>
 #include <iostream>
 #include "parameters.h"
@@ -477,6 +478,9 @@ bool Parameters::getParameters(){
    
    // Construct Vector of Passes used in grid.cpp
    bool isEmpty = blurPassString.size()==0;
+   std::vector<int>::iterator  maxNumPassesPtr;
+   int maxNumPassesInt;
+   
    if (!isEmpty){
 
       for (auto i : blurPassString){
@@ -495,7 +499,16 @@ bool Parameters::getParameters(){
       }
       
       if(myRank == MASTER_RANK) {
-         printf("Filtering is on with max number of Passes= \t%d\n", *max_element(P::numPasses.begin(), P::numPasses.end()));
+
+         maxNumPassesPtr=std::max_element(P::numPasses.begin(), P::numPasses.end());
+         if(maxNumPassesPtr != numPasses.end()){
+            maxNumPassesInt = *maxNumPassesPtr;
+         } else{
+            cerr << "Trying to dereference null pointer \t" << " in " << __FILE__ << ":" << __LINE__ << endl;
+            return false;
+         }
+
+         printf("Filtering is on with max number of Passes= \t%d\n", maxNumPassesInt);
          int lev=0;
          for ( auto &iter : P::numPasses ){
             printf("Refinement Level %d-->%d Passes\n",lev,iter);
@@ -504,7 +517,20 @@ bool Parameters::getParameters(){
       }
    }else{
       numPasses={0};
-      printf("Filtering is off and max number of Passes is = \t %d\n", *max_element(P::numPasses.begin(), P::numPasses.end()));
+      
+      if(myRank == MASTER_RANK) {
+         maxNumPassesPtr=std::max_element(P::numPasses.begin(), P::numPasses.end());
+         if(maxNumPassesPtr != numPasses.end()){
+            maxNumPassesInt = *maxNumPassesPtr;
+         } else{
+            cerr << "Trying to dereference null pointer \t" << " in " << __FILE__ << ":" << __LINE__ << endl;
+            return false;
+         }
+
+
+         printf("Filtering is off and max number of Passes is = \t %d\n", *max_element(P::numPasses.begin(), P::numPasses.end()));
+   
+      }  
    }
 
 
