@@ -1221,7 +1221,8 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       std::unordered_set<vmesh::GlobalID> thread_unionOfBlocksSet;
       
 #pragma omp for
-      for(vector<SpatialCell*>::iterator cell = allCellsPointer.begin(); cell != allCellsPointer.end(); cell++) {
+      for(unsigned int i=0; i<allCellsPointer.size(); i++) {
+         auto cell = &allCellsPointer[i];
          vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& cvmesh = (*cell)->get_velocity_mesh(popID);
          for (vmesh::LocalID block_i=0; block_i< cvmesh.size(); ++block_i) {
             thread_unionOfBlocksSet.insert(cvmesh.getGlobalID(block_i));
