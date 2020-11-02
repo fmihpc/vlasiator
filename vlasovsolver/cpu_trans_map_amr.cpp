@@ -285,7 +285,6 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
       if (neighbors.size() == 1) {
          sourceCells[iSrc--] = mpiGrid[neighbors.front()];
       } else if ( pencils.path[iPencil][refLvl] < neighbors.size() ) {
-         if (neighbors.size()==4) std::cerr<<"neighborsize4!"<<std::endl;
          //sourceCells[iSrc--] = mpiGrid[neighbors.at(pencils.path[iPencil][refLvl])];
          bool accept = false;
          sourceCells[iSrc] = NULL;
@@ -399,11 +398,9 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
       neighbors.unique();
 
       int refLvl = mpiGrid.get_refinement_level(ids.back());
-      if (neighbors.size() == 0) std::cerr<<"neigh-0"<<std::endl;
       if (neighbors.size() == 1) {
          sourceCells[iSrc++] = mpiGrid[neighbors.front()];
       } else if ( pencils.path[iPencil][refLvl] < neighbors.size() ) {
-         if (neighbors.size()==4) std::cerr<<"neighborsize4!"<<std::endl;
          //sourceCells[iSrc++] = mpiGrid[neighbors.at(pencils.path[iPencil][refLvl])];
 
          bool accept = false;
