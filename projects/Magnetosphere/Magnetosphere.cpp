@@ -640,6 +640,7 @@ namespace projects {
      if (P::amrMaxSpatialRefLevel > 0) {
 
 	// L1 refinement.
+#pragma omp parallel for collapse(3)
 	for (uint i = bw; i < P::xcells_ini-bw; ++i) {
 	   for (uint j = bw; j < P::ycells_ini-bw; ++j) {
 	      for (uint k = bw; k < P::zcells_ini-bw; ++k) {
@@ -674,6 +675,7 @@ namespace projects {
      if (P::amrMaxSpatialRefLevel > 1) {
 	
 	// L2 refinement.
+#pragma omp parallel for collapse(3)
 	for (uint i = bw2; i < 2*P::xcells_ini-bw2; ++i) {
 	   for (uint j = bw2; j < 2*P::ycells_ini-bw2; ++j) {
 	      for (uint k = bw2; k < 2*P::zcells_ini-bw2; ++k) {
@@ -709,6 +711,7 @@ namespace projects {
      
      if (P::amrMaxSpatialRefLevel > 2) {
 	// L3 refinement.
+#pragma omp parallel for collapse(3)
 	   for (uint i = bw3; i < 4*P::xcells_ini-bw3; ++i) {
 	      for (uint j = bw3; j < 4*P::ycells_ini-bw3; ++j) {
 		 for (uint k = bw3; k < 4*P::zcells_ini-bw3; ++k) {
@@ -760,6 +763,7 @@ namespace projects {
 
      if (P::amrMaxSpatialRefLevel > 3) {
 	// L4 refinement.
+#pragma omp parallel for collapse(3)
 	   for (uint i = bw4; i < 8*P::xcells_ini-bw4; ++i) {
 	      for (uint j = bw4; j < 8*P::ycells_ini-bw4; ++j) {
 		 for (uint k = bw4; k < 8*P::zcells_ini-bw4; ++k) {

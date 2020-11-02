@@ -7,7 +7,7 @@
 #include "cpu_trans_map_amr.hpp"
 #include "cpu_trans_map.hpp"
 
-// use DCCRG version 834caf23aebbb7d5176bbfa5a99216468729d3ae
+// use DCCRG version Nov 8t 2018
 
 using namespace std;
 using namespace spatial_cell;
@@ -285,13 +285,15 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
       if (neighbors.size() == 1) {
          sourceCells[iSrc--] = mpiGrid[neighbors.front()];
       } else if ( pencils.path[iPencil][refLvl] < neighbors.size() ) {
+         if (neighbors.size()==4) std::cerr<<"neighborsize4!"<<std::endl;
          //sourceCells[iSrc--] = mpiGrid[neighbors.at(pencils.path[iPencil][refLvl])];
          bool accept = false;
          sourceCells[iSrc] = NULL;
-         auto parentCoords = mpiGrid.get_center(ids.front());
+         std::array<double, 3> parentCoords = mpiGrid.get_center(ids.front());
+         std::array<double, 3> storedCoords;
          for (CellID n : neighbors) {
             //auto myCoords = mpiGrid.get_center(neighbors.at(pencils.path[iPencil][refLvl]));
-            auto myCoords = mpiGrid.get_center(n);
+            std::array<double, 3> myCoords = mpiGrid.get_center(n);
             switch (pencils.path[iPencil][refLvl]) {
                case 0:
                   if (myCoords[ix] < parentCoords[ix] && myCoords[iy] < parentCoords[iy]) accept=true;
@@ -307,10 +309,34 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
                   break;
             }
             if (accept) {
-               sourceCells[iSrc--] = mpiGrid[n];
-               break;
-            }
+               accept = false;
+               // Check to see if we've already saved a cell here:
+               if (sourceCells[iSrc] != NULL) {
+                  if (storedCoords[dimension] > myCoords[dimension]) {
+                     // Swap these
+                     auto store = sourceCells[iSrc];
+                     sourceCells[iSrc] = mpiGrid[n];
+                     // Add next one?
+                     if (iSrc-1 >= 0) {
+                        sourceCells[iSrc-1] = store;
+                        iSrc--; // Now done with this distance level
+                        break;
+                     }
+                  } else {
+                     // in correct order. Add next one?
+                     if (iSrc-1 >= 0) {
+                        sourceCells[iSrc-1] = mpiGrid[n];
+                        iSrc--; // Now done with this distance level
+                        break;
+                     }                  
+                  }
+               } else {
+                  sourceCells[iSrc] = mpiGrid[n];
+                  storedCoords = myCoords;
+               }               
+            }                        
          }
+         iSrc--; // Now done with this distance level
       } else {
          std::cerr<<"error too few neighbors for path! "<<*it<<" "<<neighbors.size() <<std::endl; 
          auto parentCoords = mpiGrid.get_center(ids.front());
@@ -377,14 +403,16 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
       if (neighbors.size() == 1) {
          sourceCells[iSrc++] = mpiGrid[neighbors.front()];
       } else if ( pencils.path[iPencil][refLvl] < neighbors.size() ) {
+         if (neighbors.size()==4) std::cerr<<"neighborsize4!"<<std::endl;
          //sourceCells[iSrc++] = mpiGrid[neighbors.at(pencils.path[iPencil][refLvl])];
 
          bool accept = false;
          sourceCells[iSrc] = NULL;
-         auto parentCoords = mpiGrid.get_center(ids.back());
+         std::array<double, 3> parentCoords = mpiGrid.get_center(ids.front());
+         std::array<double, 3> storedCoords;
          for (CellID n : neighbors) {
             //auto myCoords = mpiGrid.get_center(neighbors.at(pencils.path[iPencil][refLvl]));
-            auto myCoords = mpiGrid.get_center(n);
+            std::array<double, 3> myCoords = mpiGrid.get_center(n);
             switch (pencils.path[iPencil][refLvl]) {
                case 0:
                   if (myCoords[ix] < parentCoords[ix] && myCoords[iy] < parentCoords[iy]) accept=true;
@@ -400,11 +428,35 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
                   break;
             }
             if (accept) {
-               sourceCells[iSrc++] = mpiGrid[n];
-               break;
-            }
+               accept = false;
+               // Check to see if we've already saved a cell here:
+               if (sourceCells[iSrc] != NULL) {
+                  if (storedCoords[dimension] > myCoords[dimension]) {
+                     // Swap these
+                     auto store = sourceCells[iSrc];
+                     sourceCells[iSrc] = mpiGrid[n];
+                     // Add next one?
+                     if (iSrc+1 < L + 2*VLASOV_STENCIL_WIDTH) {
+                        sourceCells[iSrc+1] = store;
+                        iSrc++; // Now done with this distance level
+                        break;
+                     }
+                  } else {
+                     // in correct order. Add next one?
+                     if (iSrc+1 < L + 2*VLASOV_STENCIL_WIDTH) {
+                        sourceCells[iSrc+1] = mpiGrid[n];
+                        iSrc++; // Now done with this distance level
+                        break;
+                     }                  
+                  }
+               } else {
+                  sourceCells[iSrc] = mpiGrid[n];
+                  storedCoords = myCoords;
+               }               
+            }                        
          }
-         
+         iSrc++; // Now done with this distance level
+
          // auto myCoords = mpiGrid.get_center(neighbors.at(pencils.path[iPencil][refLvl]));
          // auto parentCoords = mpiGrid.get_center(ids.back());
          // int steptobe = -1;
@@ -634,7 +686,8 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
       
       for ( int i = path.size(); i < startingRefLvl; ++i) {
 
-         CellID parentId = grid.mapping.get_parent(myId);
+         //CellID parentId = grid.mapping.get_parent(myId);
+         CellID parentId = grid.get_parent(myId);
          
          auto myCoords = grid.get_center(myId);
          auto parentCoords = grid.get_center(parentId);
@@ -1686,7 +1739,8 @@ int get_sibling_index(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
       return NO_SIBLINGS;
    }
    
-   CellID parent = mpiGrid.mapping.get_parent(cellid);
+   //CellID parent = mpiGrid.mapping.get_parent(cellid);
+   CellID parent = mpiGrid.get_parent(cellid);
 
    if (parent == INVALID_CELLID) {
       std::cerr<<"Invalid parent id"<<std::endl;
@@ -1694,9 +1748,11 @@ int get_sibling_index(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
    }
 
    // get_all_children returns an array instead of a vector now, need to map it to a vector for find and distance
-   vector<CellID> siblings = mpiGrid.get_all_children(parent);
+   // std::array<uint64_t, 8> siblingarr = mpiGrid.mapping.get_all_children(parent);
+   // vector<CellID> siblings(siblingarr.begin(), siblingarr.end());
    //vector<CellID> siblings(&siblingarr[0], &siblingarr[0] + sizeof(siblingarr) / sizeof(siblingarr[0]));
    //vector<CellID> siblings = mpiGrid.mapping.get_all_children(parent);
+   vector<CellID> siblings = mpiGrid.get_all_children(parent);
    auto location = std::find(siblings.begin(),siblings.end(),cellid);
    auto index = std::distance(siblings.begin(), location);
    if (index>7) {
@@ -1927,7 +1983,8 @@ void update_remote_mapping_contribution_amr(
 
                   recvIndex = mySiblingIndex;
                   
-                  auto mySiblings = mpiGrid.get_all_children(mpiGrid.mapping.get_parent(c));
+                  // auto mySiblings = mpiGrid.mapping.get_all_children(mpiGrid.mapping.get_parent(c));
+                  auto mySiblings = mpiGrid.get_all_children(mpiGrid.get_parent(c));
                   auto myIndices = mpiGrid.mapping.get_indices(c);
                   
                   // Allocate memory for each sibling to receive all the data sent by coarser ncell. 
