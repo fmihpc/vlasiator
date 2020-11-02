@@ -67,9 +67,11 @@ CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
 LIB_BOOST= -L/opt/hlrs/spack/rev-004_2020-06-17/boost/1.70.0-gcc-9.2.0-ohuvjbhm/lib -lboost_program_options
 INC_BOOST=-L/opt/hlrs/spack/rev-004_2020-06-17/boost/1.70.0-gcc-9.2.0-ohuvjbhm/include
+#INC_BOOST =  -I$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/boost/include
+#LIB_BOOST =  -L$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/boost/lib -lboost_program_options
 
-INC_ZOLTAN = -I/opt/hlrs/spack/rev-004_2020-06-17/trilinos/12.14.1-gcc-9.2.0-jp6yigfc/include
-LIB_ZOLTAN = -L/opt/hlrs/spack/rev-004_2020-06-17/trilinos/12.14.1-gcc-9.2.0-jp6yigfc/lib -lzoltan
+INC_ZOLTAN = -I$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/zoltan/include
+LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/zoltan/lib -lzoltan
 
 INC_JEMALLOC = -I$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/jemalloc/include
 LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/jemalloc/lib -ljemalloc
@@ -86,7 +88,7 @@ LIB_PAPI = -L/opt/hlrs/spack/rev-004_2020-06-17/papi/c048e224f-gcc-9.2.0-hxfnx7k
 #header libraries
 
 INC_EIGEN = -I$(LIBRARY_PREFIX)/
-INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg/
+INC_DCCRG = -I/zhome/academic/HLRS/pri/iprurgan/vlasiator/libraries/dccrg/
 INC_FSGRID = -I$(LIBRARY_PREFIX)/fsgrid/
 
 

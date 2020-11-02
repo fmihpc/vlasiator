@@ -1694,8 +1694,7 @@ int get_sibling_index(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
    }
 
    // get_all_children returns an array instead of a vector now, need to map it to a vector for find and distance
-   std::array<uint64_t, 8> siblingarr = mpiGrid.mapping.get_all_children(parent);
-   vector<CellID> siblings(siblingarr.begin(), siblingarr.end());
+   vector<CellID> siblings = mpiGrid.get_all_children(parent);
    //vector<CellID> siblings(&siblingarr[0], &siblingarr[0] + sizeof(siblingarr) / sizeof(siblingarr[0]));
    //vector<CellID> siblings = mpiGrid.mapping.get_all_children(parent);
    auto location = std::find(siblings.begin(),siblings.end(),cellid);
@@ -1928,7 +1927,7 @@ void update_remote_mapping_contribution_amr(
 
                   recvIndex = mySiblingIndex;
                   
-                  auto mySiblings = mpiGrid.mapping.get_all_children(mpiGrid.mapping.get_parent(c));
+                  auto mySiblings = mpiGrid.get_all_children(mpiGrid.mapping.get_parent(c));
                   auto myIndices = mpiGrid.mapping.get_indices(c);
                   
                   // Allocate memory for each sibling to receive all the data sent by coarser ncell. 
