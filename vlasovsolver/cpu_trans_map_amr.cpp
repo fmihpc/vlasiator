@@ -1113,31 +1113,42 @@ void check_ghost_cells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
       int maxPencilRefLvl = pencils.path[pencili].size();
       int maxNbrRefLvl = 0;
 
-      // loop up to VLASOV_STENCIL_WIDTH face neighbors to check refinement levels
-      CellID ngh_front = ids.front();
-      CellID ngh_back = ids.back();
-      for (int ngh_i = 0; ngh_i < VLASOV_STENCIL_WIDTH; ++ngh_i) {
-	 const auto frontNeighbors = mpiGrid.get_face_neighbors_of(ngh_front);
-	 if (frontNeighbors.size() > 0) {
-	    for (const auto nbr: frontNeighbors) {
-	       if(nbr.second == -((int)dimension + 1)) {
-		  ngh_front = nbr.first;
-		  maxNbrRefLvl = max(maxNbrRefLvl,mpiGrid.get_refinement_level(nbr.first));
-		  continue;
-	       }
-	    }
-	 }
-	 const auto backNeighbors = mpiGrid.get_face_neighbors_of(ngh_back);
-	 if (backNeighbors.size() > 0) {
-	    for (const auto nbr: backNeighbors) {
-	       if(nbr.second == ((int)dimension + 1)) {
-		  ngh_back = nbr.first;
-		  maxNbrRefLvl = max(maxNbrRefLvl,mpiGrid.get_refinement_level(nbr.first));
-		  continue;
-	       }
-	    }
-	 }
+      const auto* frontNeighbors = mpiGrid.get_neighbors_of(ids.front(),neighborhoodId);
+      const auto* backNeighbors  = mpiGrid.get_neighbors_of(ids.back() ,neighborhoodId);
+
+      for (const auto nbrPair: *frontNeighbors) {
+         maxNbrRefLvl = max(maxNbrRefLvl,mpiGrid.get_refinement_level(nbrPair.first));
       }
+
+      for (const auto nbrPair: *backNeighbors) {
+         maxNbrRefLvl = max(maxNbrRefLvl,mpiGrid.get_refinement_level(nbrPair.first));
+      }
+         
+      // // loop up to VLASOV_STENCIL_WIDTH face neighbors to check refinement levels
+      // CellID ngh_front = ids.front();
+      // CellID ngh_back = ids.back();
+      // for (int ngh_i = 0; ngh_i < VLASOV_STENCIL_WIDTH; ++ngh_i) {
+      //    const auto frontNeighbors = mpiGrid.get_face_neighbors_of(ngh_front);
+      //    if (frontNeighbors.size() > 0) {
+      //       for (const auto nbr: frontNeighbors) {
+      //          if(nbr.second == -((int)dimension + 1)) {
+      //   	  ngh_front = nbr.first;
+      //   	  maxNbrRefLvl = max(maxNbrRefLvl,mpiGrid.get_refinement_level(nbr.first));
+      //   	  continue;
+      //          }
+      //       }
+      //    }
+      //    const auto backNeighbors = mpiGrid.get_face_neighbors_of(ngh_back);
+      //    if (backNeighbors.size() > 0) {
+      //       for (const auto nbr: backNeighbors) {
+      //          if(nbr.second == ((int)dimension + 1)) {
+      //   	  ngh_back = nbr.first;
+      //   	  maxNbrRefLvl = max(maxNbrRefLvl,mpiGrid.get_refinement_level(nbr.first));
+      //   	  continue;
+      //          }
+      //       }
+      //    }
+      // }
 
       if (maxNbrRefLvl > maxPencilRefLvl) {
          if(debug) {
