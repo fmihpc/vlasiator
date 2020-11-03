@@ -271,45 +271,46 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
    for (auto it = distances.begin(); it != iend; ++it) {
 
       // Collect all neighbors at distance *it to a vector
-      //std::vector< CellID > neighbors;
-      std::list< CellID > neighbors;
+      std::vector< CellID > neighbors;
+      //std::list< CellID > neighbors;
       for (const auto nbrPair : *frontNbrPairs) {
          int distanceInRefinedCells = -nbrPair.second[dimension];
          if(distanceInRefinedCells == *it) neighbors.push_back(nbrPair.first);
          //std::cerr<<"dist+"<<distanceInRefinedCells<<"/"<<*it<<std::endl;
       }
-      neighbors.unique(); // sometimes a lower-refinement cell might appear twice
+      //neighbors.unique(); // sometimes a lower-refinement cell might appear twice
+      neighbors.erase(unique(neighbors.begin(), neighbors.end()), neighbors.end());
       int refLvl = mpiGrid.get_refinement_level(ids.front());
 
       if (neighbors.size() == 1) {
          sourceCells[iSrc--] = mpiGrid[neighbors.front()];
       } else if ( pencils.path[iPencil][refLvl] < neighbors.size() ) {
-         //sourceCells[iSrc--] = mpiGrid[neighbors.at(pencils.path[iPencil][refLvl])];
-         bool accept = false;
-         std::array<double, 3> parentCoords = mpiGrid.get_center(ids.front());
-         for (CellID n : neighbors) {
-            //auto myCoords = mpiGrid.get_center(neighbors.at(pencils.path[iPencil][refLvl]));
-            std::array<double, 3> myCoords = mpiGrid.get_center(n);
-            //std::cerr<<" dim "<<dimension<<" dist "<<*it<<" path "<<pencils.path[iPencil][refLvl]<<" coords "<<myCoords[dimension]<<" "<<myCoords[ix]<<" "<<myCoords[iy]<<" in pencil "<<parentCoords[dimension]<<" "<<parentCoords[ix]<<" "<<parentCoords[iy]<<" atend? "<<sourceCells[iSrc]<<std::endl;
-            switch (pencils.path[iPencil][refLvl]) {
-               case 0:
-                  if (myCoords[ix] < parentCoords[ix] && myCoords[iy] < parentCoords[iy]) accept=true;
-                  break;
-               case 1:
-                  if (myCoords[ix] > parentCoords[ix] && myCoords[iy] < parentCoords[iy]) accept=true;
-                     break;
-               case 2:
-                  if (myCoords[ix] < parentCoords[ix] && myCoords[iy] > parentCoords[iy]) accept=true;
-                  break;
-               case 3:
-                  if (myCoords[ix] > parentCoords[ix] && myCoords[iy] > parentCoords[iy]) accept=true;
-                  break;
-            }
-            if (accept) {
-               sourceCells[iSrc--] = mpiGrid[n];
-               break;
-            }                  
-         }
+         sourceCells[iSrc--] = mpiGrid[neighbors.at(pencils.path[iPencil][refLvl])];
+         // bool accept = false;
+         // std::array<double, 3> parentCoords = mpiGrid.get_center(ids.front());
+         // for (CellID n : neighbors) {
+         //    //auto myCoords = mpiGrid.get_center(neighbors.at(pencils.path[iPencil][refLvl]));
+         //    std::array<double, 3> myCoords = mpiGrid.get_center(n);
+         //    //std::cerr<<" dim "<<dimension<<" dist "<<*it<<" path "<<pencils.path[iPencil][refLvl]<<" coords "<<myCoords[dimension]<<" "<<myCoords[ix]<<" "<<myCoords[iy]<<" in pencil "<<parentCoords[dimension]<<" "<<parentCoords[ix]<<" "<<parentCoords[iy]<<" atend? "<<sourceCells[iSrc]<<std::endl;
+         //    switch (pencils.path[iPencil][refLvl]) {
+         //       case 0:
+         //          if (myCoords[ix] < parentCoords[ix] && myCoords[iy] < parentCoords[iy]) accept=true;
+         //          break;
+         //       case 1:
+         //          if (myCoords[ix] > parentCoords[ix] && myCoords[iy] < parentCoords[iy]) accept=true;
+         //             break;
+         //       case 2:
+         //          if (myCoords[ix] < parentCoords[ix] && myCoords[iy] > parentCoords[iy]) accept=true;
+         //          break;
+         //       case 3:
+         //          if (myCoords[ix] > parentCoords[ix] && myCoords[iy] > parentCoords[iy]) accept=true;
+         //          break;
+         //    }
+         //    if (accept) {
+         //       sourceCells[iSrc--] = mpiGrid[n];
+         //       break;
+         //    }                  
+         // }
       } else {
          std::cerr<<"error too few neighbors for path! "<<*it<<" "<<neighbors.size() <<std::endl; 
          auto parentCoords = mpiGrid.get_center(ids.front());
@@ -362,47 +363,47 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
    for (auto it = distances.begin(); it != iend2; ++it) {
 
       // Collect all neighbors at distance *it to a vector
-      //std::vector< CellID > neighbors;
-      std::list< CellID > neighbors;
+      std::vector< CellID > neighbors;
+      //std::list< CellID > neighbors;
       for (const auto nbrPair : *backNbrPairs) {
          int distanceInRefinedCells = nbrPair.second[dimension];
          if(distanceInRefinedCells == *it) neighbors.push_back(nbrPair.first);
          //std::cerr<<"dist-"<<distanceInRefinedCells<<"/"<<*it<<std::endl;
       }
-      neighbors.unique(); // sometimes a lower-refinement cell might appear twice
+      //neighbors.unique(); // sometimes a lower-refinement cell might appear twice
+      neighbors.erase(unique(neighbors.begin(), neighbors.end()), neighbors.end());
 
       int refLvl = mpiGrid.get_refinement_level(ids.back());
       if (neighbors.size() == 0) std::cerr<<"neigh-0"<<std::endl;
       if (neighbors.size() == 1) {
          sourceCells[iSrc++] = mpiGrid[neighbors.front()];
       } else if ( pencils.path[iPencil][refLvl] < neighbors.size() ) {
-         //if (neighbors.size()==8) std::cerr<<"neighborsize8!"<<std::endl;
-         //sourceCells[iSrc++] = mpiGrid[neighbors.at(pencils.path[iPencil][refLvl])];
+         sourceCells[iSrc++] = mpiGrid[neighbors.at(pencils.path[iPencil][refLvl])];
 
-         bool accept = false;
-         std::array<double, 3> parentCoords = mpiGrid.get_center(ids.front());
-         for (CellID n : neighbors) {
-            //auto myCoords = mpiGrid.get_center(neighbors.at(pencils.path[iPencil][refLvl]));
-            std::array<double, 3> myCoords = mpiGrid.get_center(n);
-            switch (pencils.path[iPencil][refLvl]) {
-               case 0:
-                  if (myCoords[ix] < parentCoords[ix] && myCoords[iy] < parentCoords[iy]) accept=true;
-                  break;
-               case 1:
-                  if (myCoords[ix] > parentCoords[ix] && myCoords[iy] < parentCoords[iy]) accept=true;
-                     break;
-               case 2:
-                  if (myCoords[ix] < parentCoords[ix] && myCoords[iy] > parentCoords[iy]) accept=true;
-                  break;
-               case 3:
-                  if (myCoords[ix] > parentCoords[ix] && myCoords[iy] > parentCoords[iy]) accept=true;
-                  break;
-            }
-            if (accept) {
-               sourceCells[iSrc++] = mpiGrid[n];
-               break;
-            }                        
-         }
+         // bool accept = false;
+         // std::array<double, 3> parentCoords = mpiGrid.get_center(ids.front());
+         // for (CellID n : neighbors) {
+         //    //auto myCoords = mpiGrid.get_center(neighbors.at(pencils.path[iPencil][refLvl]));
+         //    std::array<double, 3> myCoords = mpiGrid.get_center(n);
+         //    switch (pencils.path[iPencil][refLvl]) {
+         //       case 0:
+         //          if (myCoords[ix] < parentCoords[ix] && myCoords[iy] < parentCoords[iy]) accept=true;
+         //          break;
+         //       case 1:
+         //          if (myCoords[ix] > parentCoords[ix] && myCoords[iy] < parentCoords[iy]) accept=true;
+         //             break;
+         //       case 2:
+         //          if (myCoords[ix] < parentCoords[ix] && myCoords[iy] > parentCoords[iy]) accept=true;
+         //          break;
+         //       case 3:
+         //          if (myCoords[ix] > parentCoords[ix] && myCoords[iy] > parentCoords[iy]) accept=true;
+         //          break;
+         //    }
+         //    if (accept) {
+         //       sourceCells[iSrc++] = mpiGrid[n];
+         //       break;
+         //    }                        
+         // }
 
          // auto myCoords = mpiGrid.get_center(neighbors.at(pencils.path[iPencil][refLvl]));
          // auto parentCoords = mpiGrid.get_center(ids.back());
@@ -1122,14 +1123,56 @@ void check_ghost_cells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
       const auto* frontNeighbors = mpiGrid.get_neighbors_of(ids.front(),neighborhoodId);
       const auto* backNeighbors  = mpiGrid.get_neighbors_of(ids.back() ,neighborhoodId);
 
-      for (const auto nbrPair: *frontNeighbors) {
-         maxNbrRefLvl = max(maxNbrRefLvl,mpiGrid.get_refinement_level(nbrPair.first));
+
+      // Create list of unique distances in the negative direction from the first cell in pencil
+      std::set< int > distances;
+      for (const auto nbrPair : *frontNeighbors) {
+         if(nbrPair.second[dimension] < 0) {
+            // gather positive values
+            distances.insert(-nbrPair.second[dimension]);
+         }
+      }
+      auto iend = distances.begin();
+      std::advance(iend,std::min((int)distances.size(), VLASOV_STENCIL_WIDTH));
+      for (auto it = distances.begin(); it != iend; ++it) {
+         for (const auto nbrPair : *frontNeighbors) {
+            int distanceInRefinedCells = -nbrPair.second[dimension];
+            if(distanceInRefinedCells == *it) {
+               maxNbrRefLvl = max(maxNbrRefLvl,mpiGrid.get_refinement_level(nbrPair.first));
+            }
+         }
       }
 
-      for (const auto nbrPair: *backNeighbors) {
-         maxNbrRefLvl = max(maxNbrRefLvl,mpiGrid.get_refinement_level(nbrPair.first));
+      // Create list of unique distances in the positive direction from the last cell in pencil
+      distances.clear();
+      for (const auto nbrPair : *backNeighbors) {
+         if(nbrPair.second[dimension] > 0) {
+            distances.insert(nbrPair.second[dimension]);
+         }
       }
-         
+      auto iend2 = distances.begin();
+      std::advance(iend2,std::min((int)distances.size(), VLASOV_STENCIL_WIDTH));
+      for (auto it = distances.begin(); it != iend2; ++it) {
+         for (const auto nbrPair : *backNeighbors) {
+            int distanceInRefinedCells = nbrPair.second[dimension];
+            if(distanceInRefinedCells == *it) {
+               maxNbrRefLvl = max(maxNbrRefLvl,mpiGrid.get_refinement_level(nbrPair.first));
+            }
+         }
+      }
+
+      
+      // for (const auto nbrPair: *frontNeighbors) {
+      //    maxNbrRefLvl = max(maxNbrRefLvl,mpiGrid.get_refinement_level(nbrPair.first));
+      // }
+
+      // for (const auto nbrPair: *backNeighbors) {
+      //    maxNbrRefLvl = max(maxNbrRefLvl,mpiGrid.get_refinement_level(nbrPair.first));
+      // }
+
+
+
+      
       // // loop up to VLASOV_STENCIL_WIDTH face neighbors to check refinement levels
       // CellID ngh_front = ids.front();
       // CellID ngh_back = ids.back();
