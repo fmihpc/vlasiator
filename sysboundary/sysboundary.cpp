@@ -235,7 +235,7 @@ bool SysBoundary::initSysBoundaries(
          this->getSysBoundary(sysboundarytype::IONOSPHERE)->isDynamic();
       }
       if(*it == "Conductingsphere") {
-         if(this->addSysBoundary(new SBC::Ionosphere, project, t) == false) {
+         if(this->addSysBoundary(new SBC::Conductingsphere, project, t) == false) {
             if(myRank == MASTER_RANK) cerr << "Error in adding Conductingsphere boundary." << endl;
             success = false;
          }
