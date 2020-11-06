@@ -118,6 +118,7 @@ Real P::electronTemperature = 0.0;
 string P::restartFileName = string("");
 bool P::isRestart=false;
 int P::writeAsFloat = false;
+int P::writeRestartAsFloat = false;
 string P::loadBalanceAlgorithm = string("");
 string P::loadBalanceTolerance = string("");
 uint P::rebalanceInterval = numeric_limits<uint>::max();
@@ -182,6 +183,7 @@ bool Parameters::addParameters(){
    Readparameters::add("hallMinimumRho", "Minimum rho value used for the Hall and electron pressure gradient terms in the Lorentz force and in the field solver. Default is very low and has no effect in practice.", 1.0);
    Readparameters::add("project", "Specify the name of the project to use. Supported to date (20150610): Alfven Diffusion Dispersion Distributions Firehose Flowthrough Fluctuations Harris KHB Larmor Magnetosphere Multipeak Riemann1 Shock Shocktest Template test_fp testHall test_trans VelocityBox verificationLarmor", string(""));
 
+   Readparameters::add("restart.write_as_float","If true, write restart fields in floats instead of doubles", false);
    Readparameters::add("restart.filename","Restart from this vlsv file. No restart if empty file.",string(""));
    
    Readparameters::add("gridbuilder.geometry","Simulation geometry XY4D,XZ4D,XY5D,XZ5D,XYZ6D",string("XYZ6D"));
@@ -430,6 +432,7 @@ bool Parameters::getParameters(){
    Readparameters::get("hallMinimumRho",hallRho);
    P::hallMinimumRhom = hallRho*physicalconstants::MASS_PROTON;
    P::hallMinimumRhoq = hallRho*physicalconstants::CHARGE;
+   Readparameters::get("restart.write_as_float", P::writeRestartAsFloat);
    Readparameters::get("restart.filename",P::restartFileName);
    P::isRestart=(P::restartFileName!=string(""));
 
