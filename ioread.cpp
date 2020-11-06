@@ -900,12 +900,15 @@ template<unsigned long int N> bool readFsGridVariable(
          // Read into buffer
          std::vector<Real> buffer(thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N);
 
+         phiprof::start("readArray");
          // TODO: Should these be multireads instead? And/or can this be parallelized?
          if(file.readArray("VARIABLE",attribs, fileOffset, thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2], (char*)buffer.data()) == false) {
             logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
             return false;
          }
+         phiprof::stop("readArray");
 
+         phiprof::start("memcpy");
          // Read every source rank that we have an overlap with.
          if(overlapSize[0]*overlapSize[1]*overlapSize[2] > 0) {
 
@@ -923,10 +926,12 @@ template<unsigned long int N> bool readFsGridVariable(
             }
          } 
          fileOffset += thatTasksSize[0] * thatTasksSize[1] * thatTasksSize[2];
+         phiprof::stop("memcpy");
       }
    }
-
+   phiprof::start("updateGhostCells");
    targetGrid.updateGhostCells();
+   phiprof::stop("updateGhostCells");
    return true;
 }
 
@@ -999,6 +1004,8 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 
    phiprof::start("readGrid");
 
+   phiprof::start("readScalars");
+
    vlsv::ParallelReader file;
    MPI_Info mpiInfo = MPI_INFO_NULL;
 
@@ -1042,6 +1049,8 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    checkScalarParameter(file,"xcells_ini",P::xcells_ini,MASTER_RANK,MPI_COMM_WORLD);
    checkScalarParameter(file,"ycells_ini",P::ycells_ini,MASTER_RANK,MPI_COMM_WORLD);
    checkScalarParameter(file,"zcells_ini",P::zcells_ini,MASTER_RANK,MPI_COMM_WORLD);
+
+   phiprof::stop("readScalars");
 
    phiprof::start("readDatalayout");
    if (success == true) success = readCellIds(file,fileCells,MASTER_RANK,MPI_COMM_WORLD);
@@ -1172,8 +1181,11 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    }
    phiprof::stop("readBlockData");
 
+   phiprof::start("updateMpiGridNeighbors");
    mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
+   phiprof::stop("updateMpiGridNeighbors");
    
+   phiprof::start("readFsGrid");
    // Read fsgrid data back in
    int fsgridInputRanks=0;
    if(readScalarParameter(file,"numWritingRanks",fsgridInputRanks, MASTER_RANK, MPI_COMM_WORLD) == false) {
@@ -1183,6 +1195,7 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    if(success) { success = readFsGridVariable(file, "fg_PERB", fsgridInputRanks, perBGrid); }
    if(success) { success = readFsGridVariable(file, "fg_E", fsgridInputRanks, EGrid); }
    exitOnError(success,"(RESTART) Failure reading fsgrid restart variables",MPI_COMM_WORLD);
+   phiprof::stop("readFsGrid");
    
    success = file.close();
    phiprof::stop("readGrid");
