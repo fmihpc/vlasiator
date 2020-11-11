@@ -1,0 +1,116 @@
+# Template for Vlasiator Makefile
+# The 'configure.py' python script uses this template to create the actual Makefile
+# For some reason, cannot make with multi-processors due to out of memory allocation error.
+
+# Files for conditional compilation
+
+PROBLEM_FILE = @PROBLEM_FILE@
+COORDINATES_FILE = @COORDINATES_FILE@
+RSOLVER_FILE = @RSOLVER_FILE@
+RSOLVER_DIR = @RSOLVER_DIR@
+
+# General compiler specifications
+
+CXX := @COMPILER_COMMAND@
+CPPFLAGS := @PREPROCESSOR_FLAGS@
+CXXFLAGS := @COMPILER_FLAGS@
+LDFLAGS := @LINKER_FLAGS@
+LDLIBS := @LIBRARY_FLAGS@
+
+INC_MPI := @MPI_PATH@
+INC_DCCRG := @DCCRG_PATH@
+INC_FSGRID := @FSGRID_PATH@
+INC_ZOLTAN := @ZOLTAN_PATH@
+INC_BOOST := @BOOST_PATH@
+
+# Preliminary definitions
+
+EXE_DIR := bin/
+EXECUTABLE := $(EXE_DIR)vlasiator
+SRC_FILES := $(wildcard src/*.cpp) \
+	     $(wildcard src/backgroundfield/*.cpp) \
+	     $(wildcard src/fieldsolver/*.cpp) \
+		 $(wildcard src/vlasovsolver/*.cpp) \
+		 $(wildcard src/sysboundary/*.cpp) \
+		 $(wildcard src/datareduction/*.cpp) \
+		 $(wildcard src/projects/*.cpp) \
+		 $(wildcard src/projects/Alfven/*.cpp) \
+		 $(wildcard src/projects/Diffusion/*.cpp) \
+		 $(wildcard src/projects/Dispersion/*.cpp) \
+		 $(wildcard src/projects/Distributions/*.cpp) \
+		 $(filter-out src/projects/Firehose/Firehose_save.cpp, $(wildcard src/projects/Firehose/*.cpp)) \
+		 $(wildcard src/projects/Flowthrough/*.cpp) \
+		 $(wildcard src/projects/Fluctuations/*.cpp) \
+		 $(wildcard src/projects/Harris/*.cpp) \
+		 $(wildcard src/projects/IPShock/*.cpp) \
+		 $(wildcard src/projects/KHB/*.cpp) \
+		 $(wildcard src/projects/Larmor/*.cpp) \
+		 $(wildcard src/projects/Magnetosphere/*.cpp) \
+		 $(wildcard src/projects/MultiPeak/*.cpp) \
+		 $(wildcard src/projects/Riemann1/*.cpp) \
+		 $(wildcard src/projects/Shock/*.cpp) \
+		 $(wildcard src/projects/Shocktest/*.cpp) \
+		 $(wildcard src/projects/Template/*.cpp) \
+		 $(wildcard src/projects/test_fp/*.cpp) \
+		 $(wildcard src/projects/test_trans/*.cpp) \
+		 $(wildcard src/projects/testAmr/*.cpp) \
+		 $(wildcard src/projects/testHall/*.cpp) \
+		 $(wildcard src/projects/VelocityBox/*.cpp) \
+		 $(wildcard src/projects/verificationLarmor/*.cpp) \
+
+# 		 $(wildcard src/vlasovsolver_amr/*.cpp) \
+
+OBJ_DIR := obj/
+OBJ_FILES := $(addprefix $(OBJ_DIR),$(notdir $(SRC_FILES:.cpp=.o)))
+SRC_PREFIX := src/
+SRC_DIRS := $(dir $(SRC_FILES))
+VPATH := $(SRC_DIRS)
+
+
+# Generally useful targets
+
+.PHONY : all dirs clean
+
+all : version dirs $(EXECUTABLE)
+
+objs : dirs $(OBJ_FILES)
+
+dirs : $(EXE_DIR) $(OBJ_DIR)
+
+version:
+	./generate_version.sh "$(CXX)" "${CXXFLAGS}" "${FLAGS}" "${INC_MPI}" "${INC_DCCRG}" "${INC_FSGRID}" "${INC_ZOLTAN}" "${INC_BOOST}"
+
+# For debugging variables in Makefile, e.g. by "make print-GCOV_FILES"
+
+print-%  : ; @echo $* = $($*)
+
+$(EXE_DIR):
+	mkdir -p $(EXE_DIR)
+
+$(OBJ_DIR):
+	mkdir -p $(OBJ_DIR)
+
+# Link objects into executable
+
+$(EXECUTABLE) : $(OBJ_FILES)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o $@ $(OBJ_FILES) $(LDFLAGS) $(LDLIBS)
+
+# Create objects from source files
+
+$(OBJ_DIR)%.o : %.cpp
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+
+# Cleanup
+
+clean : data
+	rm -rf $(OBJ_DIR)
+	rm -rf $(EXE_DIR)
+	rm -rf *~ */*~ */*/*~ ${EXECUTABLE} particle_post_pusher check_projects_compil_logs check_projects_cfg_logs
+
+allclean: clean cleantools
+d: data
+data:
+	rm -rf phiprof*txt restart*vlsv grid*vlsv diagnostic.txt logfile.txt src/version.cpp
+c: clean
+cleantools:
+	rm -rf vlsv2silo_${FP_PRECISION} vlsvextract_${FP_PRECISION}  vlsvdiff_${FP_PRECISION} 

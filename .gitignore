@@ -5,6 +5,7 @@
 vscode/
 .vscode/
 version.cpp
+Makefile
 \#*\#
 *~
 nbproject
