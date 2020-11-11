@@ -279,19 +279,26 @@ bool Parameters::addParameters(){
 
    // NOTE Do not remove the : before the list of variable names as this is parsed by tools/check_vlasiator_cfg.sh
    Readparameters::addComposing("variables.diagnostic", std::string()+"List of data reduction operators (DROs) to add to the diagnostic runtime output. Each variable to be added has to be on a new line diagnostic = XXX. Names are case insensitive. "+
-				"Available (20190320): "+
+				"Available (20201111): "+
 				"populations_vg_blocks "+
-				"rhom populations_rho_loss_adjust"+
-				"loadbalance_weight"+
-				"maxdt_acceleration maxdt_translation populations_maxdt_acceleration populations_maxdt_translation "+
-				"maxdt_fieldsolver "+
-				"populations_maxdistributionfunction populations_mindistributionfunction");
+				"vg_rhom populations_vg_rho_loss_adjust "+
+				"vg_loadbalance_weight "+
+				"vg_maxdt_acceleration vg_maxdt_translation "+
+				"fg_maxdt_fieldsolver "+
+                                "populations_vg_maxdt_acceleration populations_vg_maxdt_translation "+
+				"populations_vg_maxdistributionfunction populations_vg_mindistributionfunction");
 
    Readparameters::addComposing("variables_deprecated.diagnostic", std::string()+"List of deprecated data reduction operators (DROs) to add to the diagnostic runtime output. Names are case insensitive. "+
-				"Available (20190320): "+
-				"populations_rholossadjust"+
-				"LBweight"+
-				"populations_MaxVdt MaxVdt populations_MaxRdt MaxRdt MaxFieldsdt");
+				"Available (20201111): "+
+				"rhom populations_rholossadjust populations_rho_loss_adjust "+
+				"populations_blocks lbweight loadbalance_weight "+
+                                "vg_lbweight vg_loadbalanceweight "+
+                                "maxvdt maxdt_acceleration "+
+                                "maxrdt maxdt_translation "+
+				"populations_maxvdt populations_maxrdt "+
+                                "populations_maxdt_acceleration populations_maxdt_translation "+
+				"populations_maxdistributionfunction populations_mindistributionfunction "+
+                                "maxfieldsdt maxdt_fieldsolver fg_maxfieldsdt");
 
    // bailout parameters
    Readparameters::add("bailout.write_restart", "If 1, write a restart file on bailout. Gets reset when sending a STOP (1) or a KILL (0).", true);

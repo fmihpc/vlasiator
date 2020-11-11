@@ -7,7 +7,7 @@
 #include "cpu_trans_map_amr.hpp"
 #include "cpu_trans_map.hpp"
 
-// use DCCRG version Nov 8t 2018
+// use DCCRG version Nov 8th 2018
 
 using namespace std;
 using namespace spatial_cell;
@@ -110,10 +110,7 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
 
    // Create list of unique distances in the negative direction from the first cell in pencil
    std::set< int > distances;
-   //int nbrcounter=0;
    for (const auto nbrPair : *frontNbrPairs) {
-      // (nbrcounter>5) std::cerr<<"front"<<nbrcounter<<" "<<nbrPair.second[0]<<" "<<nbrPair.second[1]<<" "<<nbrPair.second[2]<<std::endl;
-      //nbrcounter++;
       if(nbrPair.second[dimension] < 0) {
          // gather positive distance values
          distances.insert(-nbrPair.second[dimension]);
@@ -963,43 +960,14 @@ void check_ghost_cells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
          if (foundcells >= VLASOV_STENCIL_WIDTH) break; // checked enough distances
       }
 
-      
+      // Old version which can check needlessly far
       // for (const auto nbrPair: *frontNeighbors) {
       //    maxNbrRefLvl = max(maxNbrRefLvl,mpiGrid.get_refinement_level(nbrPair.first));
       // }
-
       // for (const auto nbrPair: *backNeighbors) {
       //    maxNbrRefLvl = max(maxNbrRefLvl,mpiGrid.get_refinement_level(nbrPair.first));
       // }
 
-
-
-      
-      // // loop up to VLASOV_STENCIL_WIDTH face neighbors to check refinement levels
-      // CellID ngh_front = ids.front();
-      // CellID ngh_back = ids.back();
-      // for (int ngh_i = 0; ngh_i < VLASOV_STENCIL_WIDTH; ++ngh_i) {
-      //    const auto frontNeighbors = mpiGrid.get_face_neighbors_of(ngh_front);
-      //    if (frontNeighbors.size() > 0) {
-      //       for (const auto nbr: frontNeighbors) {
-      //          if(nbr.second == -((int)dimension + 1)) {
-      //   	  ngh_front = nbr.first;
-      //   	  maxNbrRefLvl = max(maxNbrRefLvl,mpiGrid.get_refinement_level(nbr.first));
-      //   	  continue;
-      //          }
-      //       }
-      //    }
-      //    const auto backNeighbors = mpiGrid.get_face_neighbors_of(ngh_back);
-      //    if (backNeighbors.size() > 0) {
-      //       for (const auto nbr: backNeighbors) {
-      //          if(nbr.second == ((int)dimension + 1)) {
-      //   	  ngh_back = nbr.first;
-      //   	  maxNbrRefLvl = max(maxNbrRefLvl,mpiGrid.get_refinement_level(nbr.first));
-      //   	  continue;
-      //          }
-      //       }
-      //    }
-      // }
 
       if (maxNbrRefLvl > maxPencilRefLvl) {
          if(debug) {
