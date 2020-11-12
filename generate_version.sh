@@ -67,8 +67,8 @@ git status | sed 's/\"/\\"/g' | sed 's/\\\"/\\"/g'  |gawk '{printf("%s\"%s\"%s\n
 echo "    cout << endl << \"----------- git diff ---------- \"<<endl;" >>src/version.cpp
 
 echo "    const char diff_data[] = {" >> src/version.cpp
-# hyzhou: I have issue here!!!
-#DIFF=$(git diff `git diff --name-only | grep -v generate_version.sh` | xxd -i)
+
+DIFF=$(git diff `git diff --name-only | grep -v generate_version.sh` | xxd -i)
 if [[ -n $DIFF ]]; then
    echo -n $DIFF >> src/version.cpp
    echo "    ,0 };" >> src/version.cpp

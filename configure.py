@@ -1,31 +1,10 @@
 #!/usr/bin/env python
 # ---------------------------------------------------------------------------------------
-# configure.py: Athena++ configuration script in python. Original version by CJW.
+# configure.py: Vlasiator configuration script in python.
 #
 # When configure.py is run, it uses the command line options and default settings to
-# create custom versions of the files Makefile and src/defs.hpp from the template files
-# Makefile.in and src/defs.hpp.in respectively.
-#
-# The following options are implememted:
-#   -h  --help        help message
-#   --prob=name       use src/pgen/name.cpp as the problem generator
-#   --coord=xxx       use xxx as the coordinate system
-#   --nghost=xxx      set NGHOST=xxx
-#   --velocityorder=x set semilag solver order for velocity space acceleration (2,3,5)
-#   --spatialorder=x  set semilag solver order for spatial acceleration (2,3,5)
-#   -debug            enable debug flags (-g -O0); override other compiler options
-#   -float            enable single precision (default double)
-#   -distfloat        enable single precision for distribution function (default double)
-#   -mpi              enable parallelization with MPI
-#   -omp              enable parallelization with OpenMP
-#   -profile          enable profiling (default on)
-#   -noprofile        disable profiling
-#   --vlsv_path=path  path to VLSV libraries (requires the VLSV library)
-#   --cxx=xxx         use xxx as the C++ compiler
-#   --cflag=string    append string whenever invoking compiler/linker
-#   --include=path    use -Ipath when compiling
-#   --lib_path=path   use -Lpath when linking
-#   --lib=xxx         use -lxxx when linking
+# create custom versions of Makefile from the template file Makefile.in.
+# Original version by CJW. Modified by Hongyang Zhou.
 # ----------------------------------------------------------------------------------------
 
 # Modules
@@ -37,8 +16,6 @@ import re
 # Set template and output filenames
 makefile_input = 'Makefile.in'
 makefile_output = 'Makefile'
-defsfile_input = 'src/defs.hpp.in'
-defsfile_output = 'src/defs.hpp'
 
 # --- Step 1. Prepare parser, add each of the arguments ------------------
 vlasiator_description = (
@@ -46,20 +23,9 @@ vlasiator_description = (
 )
 vlasiator_epilog = (
     "Full documentation of options available at "
-    "https://github.com/PrincetonUniversity/athena-public-version/wiki/Configuring"
+    "https://github.com/fmihpc/vlasiator/wiki/Installing-Vlasiator"
 )
 parser = argparse.ArgumentParser(description=vlasiator_description, epilog=vlasiator_epilog)
-
-# --prob=[name]
-pgen_directory = 'testpackage/tests'
-# set pgen_choices to list of .cpp files in src/pgen/
-pgen_choices = glob.glob(pgen_directory + '*.cpp')
-# remove test folder prefix and '.cpp' extension from each filename
-pgen_choices = [choice[len(pgen_directory):-4] for choice in pgen_choices]
-parser.add_argument('--prob',
-                    default='shock_tube',
-                    choices=pgen_choices,
-                    help='select problem generator')
 
 # --coord=[name]
 parser.add_argument(
@@ -67,28 +33,36 @@ parser.add_argument(
     default='cartesian',
     choices=[
         'cartesian',
-        'cylindrical',
-        'spherical_polar',
-        'minkowski',
-        'sinusoidal',
-        'tilted',
-        'schwarzschild',
-        'kerr-schild',
         'gr_user'],
     help='select coordinate system')
 
-# --nghost=[value]
-parser.add_argument('--nghost',
-                    default='2',
-                    help='set number of ghost zones')
+# --nx=[value]
+parser.add_argument('--nx',
+                    type=int,
+                    default=4,
+                    help='set number of cells in the block x dimension')
+
+# --ny=[value]
+parser.add_argument('--ny',
+                    type=int,
+                    default=4,
+                    help='set number of cells in the block y dimension')
+
+# --nz=[value]
+parser.add_argument('--nz',
+                    type=int,
+                    default=4,
+                    help='set number of cells in the block z dimension')
 
 # --velocityorder=[value]
 parser.add_argument('--velocityorder',
+                    type=int,
                     default=5,
                     help='set order of velocity space acceleration')
 
 # --spatialorder=[value]
 parser.add_argument('--spatialorder',
+                    type=int,
                     default=3,
                     help='set order of spatial translation')
 
@@ -141,22 +115,38 @@ parser.add_argument('--boost_path',
 # --vlsv_path=[name]
 parser.add_argument('--vlsv_path',
                     default='',
-                    help='path to VLSV libraries')
+                    help='path to VLSV library')
+
+# --vlsv_path=[name]
+parser.add_argument('--dccrg_path',
+                    default='',
+                    help='path to DCCRG library')
+
+# --phiprof_path=[name]
+parser.add_argument('--fsgrid_path',
+                    default='',
+                    help='path to fsgrid library')
 
 # --zoltan_path=[name]
 parser.add_argument('--zoltan_path',
                     default='',
-                    help='path to Zoltan libraries')
-
-# --jemalloc_path=[name]
-parser.add_argument('--jemalloc_path',
-                    default='',
-                    help='path to jemalloc libraries')
+                    help='path to Zoltan library')
 
 # --phiprof_path=[name]
 parser.add_argument('--phiprof_path',
                     default='',
-                    help='path to phiprof libraries')
+                    help='path to phiprof library')
+
+# -jemalloc
+parser.add_argument('-jemalloc',
+                    action='store_true',
+                    default=True,
+                    help='enable Jemalloc memory allocator')
+
+# --jemalloc_path=[name]
+parser.add_argument('--jemalloc_path',
+                    default='',
+                    help='path to jemalloc library')
 
 # The main choices for --cxx flag, using "ctype[-suffix]" formatting, where "ctype" is the
 # major family/suite/group of compilers and "suffix" may represent variants of the
@@ -171,7 +161,6 @@ cxx_choices = [
     'icpc-debug',
     'icpc-phi',
     'cray',
-    'bgxlc++',
     'clang++',
     'clang++-simd',
     'clang++-apple',
@@ -239,15 +228,6 @@ args = vars(parser.parse_args())
 definitions = {}
 makefile_options = {}
 makefile_options['LOADER_FLAGS'] = ''
-
-# --prob=[name] argument
-definitions['PROBLEM'] = makefile_options['PROBLEM_FILE'] = args['prob']
-
-# --coord=[name] argument
-definitions['COORDINATE_SYSTEM'] = makefile_options['COORDINATES_FILE'] = args['coord']
-
-# --nghost=[value] argument
-definitions['NUMBER_GHOST_CELLS'] = args['nghost']
 
 # --cxx=[name] argument
 if args['cxx'] == 'g++':
@@ -488,6 +468,26 @@ definitions['COMPILER_FLAGS'] = ' '.join(
     [makefile_options[opt+'_FLAGS'] for opt in
      ['PREPROCESSOR', 'COMPILER', 'LINKER', 'LIBRARY']])
 
+makefile_options['DCCRG_PATH'] = args['dccrg_path']
+makefile_options['FSGRID_PATH'] = args['fsgrid_path']
+
+# Add include paths to header-only libraries
+makefile_options['COMPILER_FLAGS'] += ' -I'+args['dccrg_path']
+makefile_options['COMPILER_FLAGS'] += ' -I'+args['fsgrid_path']
+
+makefile_options['PHIPROF_PATH'] = args['phiprof_path']
+makefile_options['BOOST_PATH'] = args['boost_path']
+makefile_options['ZOLTAN_PATH'] = args['zoltan_path']
+
+# Add lib paths
+makefile_options['LIBRARY_FLAGS'] += ' -L'+args['phiprof_path']
+makefile_options['LIBRARY_FLAGS'] += ' -L'+args['zoltan_path']
+makefile_options['LIBRARY_FLAGS'] += ' -L'+args['vlsv_path']
+makefile_options['LIBRARY_FLAGS'] += ' -L'+args['jemalloc_path']
+makefile_options['LIBRARY_FLAGS'] += ' -L'+args['boost_path']
+
+
+
 # --- Step 4. Create new files, finish up --------------------------------
 
 # Read templates
@@ -505,14 +505,15 @@ with open(makefile_output, 'w') as current_file:
 # Finish with diagnostic output
 
 print('Your Vlasiator distribution has now been configured with the following options:')
-print('  Problem generator:          ' + args['prob'])
 print('  Coordinate system:          ' + args['coord'])
 print('  Debug flags:                ' + ('ON' if args['debug'] else 'OFF'))
 print('  Linker flags:               ' + makefile_options['LINKER_FLAGS'] + ' '
       + makefile_options['LIBRARY_FLAGS'])
 print('  Floating-point precision:   ' + ('single' if args['float'] else 'double'))
 print('  Distribution precision:     ' + ('single' if args['distfloat'] else 'double'))
-print('  Number of ghost cells:      ' + args['nghost'])
+print('  Block size:                 ' + str(args['nx']) + ' ' \
+                                       + str(args['ny']) + ' ' \
+                                       + str(args['nz']))
 print('  MPI parallelism:            ' + ('ON' if args['mpi'] else 'OFF'))
 print('  OpenMP parallelism:         ' + ('ON' if args['omp'] else 'OFF'))
 print('  Semilog velocity order:     ' + str(args['velocityorder']))

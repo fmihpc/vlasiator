@@ -5,9 +5,6 @@
 # Files for conditional compilation
 
 PROBLEM_FILE = @PROBLEM_FILE@
-COORDINATES_FILE = @COORDINATES_FILE@
-RSOLVER_FILE = @RSOLVER_FILE@
-RSOLVER_DIR = @RSOLVER_DIR@
 
 # General compiler specifications
 
@@ -27,7 +24,9 @@ INC_BOOST := @BOOST_PATH@
 
 EXE_DIR := bin/
 EXECUTABLE := $(EXE_DIR)vlasiator
-SRC_FILES := $(wildcard src/*.cpp) \
+SRC_FILES := \
+		 src/version.cpp \
+		 $(wildcard src/*.cpp) \
 	     $(wildcard src/backgroundfield/*.cpp) \
 	     $(wildcard src/fieldsolver/*.cpp) \
 		 $(wildcard src/vlasovsolver/*.cpp) \
@@ -71,13 +70,13 @@ VPATH := $(SRC_DIRS)
 
 .PHONY : all dirs clean
 
-all : version dirs $(EXECUTABLE)
+all : dirs $(EXECUTABLE)
 
 objs : dirs $(OBJ_FILES)
 
 dirs : $(EXE_DIR) $(OBJ_DIR)
 
-version:
+src/version.cpp:
 	./generate_version.sh "$(CXX)" "${CXXFLAGS}" "${FLAGS}" "${INC_MPI}" "${INC_DCCRG}" "${INC_FSGRID}" "${INC_ZOLTAN}" "${INC_BOOST}"
 
 # For debugging variables in Makefile, e.g. by "make print-GCOV_FILES"
