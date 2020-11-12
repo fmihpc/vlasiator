@@ -1,11 +1,12 @@
 #!/usr/bin/env python
-# ---------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # configure.py: Vlasiator configuration script in python.
 #
-# When configure.py is run, it uses the command line options and default settings to
-# create custom versions of Makefile from the template file Makefile.in.
+# When configure.py is run, it uses the command line options and default 
+# settings to create custom versions of Makefile from the template file 
+# Makefile.in.
 # Original version by CJW. Modified by Hongyang Zhou.
-# ----------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 # Modules
 import argparse
@@ -66,11 +67,46 @@ parser.add_argument('--spatialorder',
                     default=3,
                     help='set order of spatial translation')
 
+# --field=[name]
+parser.add_argument('--field',
+                    default='londrillo_delzanna',
+                    help='select field solver')
+
+# --fieldorder=[value]
+parser.add_argument('--fieldorder',
+                    type=int,
+                    default=2,
+                    help='select field solver order')
+
+# -amr
+parser.add_argument('-amr',
+                    action='store_true',
+                    default=False,
+                    help='enable AMR in velocity space')
+
 # -debug
 parser.add_argument('-debug',
                     action='store_true',
                     default=False,
                     help='enable debug flags; override other compiler options')
+
+# -debugsolver
+parser.add_argument('-debugsolver',
+                    action='store_true',
+                    default=False,
+                    help='enable debug flags for field solver')
+
+# -debugionosphere
+parser.add_argument('-debugionosphere',
+                    action='store_true',
+                    default=False,
+                    help='enable debug flags for ionosphere module')
+
+# -debugfloat
+parser.add_argument('-debugfloat',
+                    action='store_true',
+                    default=False,
+                    help='enable catching floating point exceptions')
 
 # -float
 parser.add_argument('-float',
@@ -148,11 +184,12 @@ parser.add_argument('--jemalloc_path',
                     default='',
                     help='path to jemalloc library')
 
-# The main choices for --cxx flag, using "ctype[-suffix]" formatting, where "ctype" is the
-# major family/suite/group of compilers and "suffix" may represent variants of the
-# compiler version and/or predefined sets of compiler options. The C++ compiler front ends
-# are the main supported/documented options and are invoked on the command line, but the C
-# front ends are also acceptable selections and are mapped to the matching C++ front end:
+# The main choices for --cxx flag, using "ctype[-suffix]" formatting, where 
+# "ctype" is the major family/suite/group of compilers and "suffix" may 
+# represent variants of the compiler version and/or predefined sets of compiler
+# options. The C++ compiler front ends are the main supported/documented options
+# and are invoked on the command line, but the C front ends are also acceptable 
+# selections and are mapped to the matching C++ front end:
 # gcc -> g++, clang -> clang++, icc-> icpc
 cxx_choices = [
     'g++',
@@ -170,8 +207,6 @@ cxx_choices = [
 def c_to_cpp(arg):
     arg = arg.replace('gcc', 'g++', 1)
     arg = arg.replace('icc', 'icpc', 1)
-    if arg == 'bgxl' or arg == 'bgxlc':
-        arg = 'bgxlc++'
 
     if arg == 'clang':
         arg = 'clang++'
@@ -180,7 +215,7 @@ def c_to_cpp(arg):
     return arg
 
 
-# --cxx=[name] argument
+# --cxx=[name]
 parser.add_argument(
     '--cxx',
     default='g++',
@@ -188,12 +223,12 @@ parser.add_argument(
     choices=cxx_choices,
     help='select C++ compiler and default set of flags')
 
-# --cflag=[string] argument
+# --cflag=[string]
 parser.add_argument('--cflag',
                     default=None,
                     help='additional string of flags to append to compiler/linker calls')
 
-# --include=[name] arguments
+# --include=[name]
 parser.add_argument(
     '--include',
     default=[],
@@ -201,7 +236,7 @@ parser.add_argument(
     help=('extra path for included header files (-I<path>); can be specified multiple '
           'times'))
 
-# --lib_path=[name] arguments
+# --lib_path=[name]
 parser.add_argument(
     '--lib_path',
     default=[],
@@ -209,7 +244,7 @@ parser.add_argument(
     help=('extra path for linked library files (-L<path>); can be specified multiple '
           'times'))
 
-# --lib=[name] arguments
+# --lib=[name]
 parser.add_argument(
     '--lib',
     default=[],
@@ -299,26 +334,6 @@ if args['cxx'] == 'cray':
     makefile_options['COMPILER_FLAGS'] = '-O3 -h std=c++11 -h aggress -h vector3 -hfp3'
     makefile_options['LINKER_FLAGS'] = '-hwp -hpl=obj/lib'
     makefile_options['LIBRARY_FLAGS'] = '-lm'
-if args['cxx'] == 'bgxlc++':
-    # IBM XL C/C++ for BG/Q is NOT C++11 feature-complete as of v12.1.0.15 (2017-12-22)
-    # suppressed messages:
-    #   1500-036:  The NOSTRICT option has the potential to alter the program's semantics
-    #   1540-1401: An unknown "pragma simd" is specified
-    #   1586-083:  ld option ignored by IPA
-    #   1586-233:  Duplicate definition of symbol ignored
-    #   1586-267:  Inlining of specified subprogram failed due to the presence of a C++
-    #                exception handler
-    definitions['COMPILER_CHOICE'] = 'bgxlc++'
-    definitions['COMPILER_COMMAND'] = makefile_options['COMPILER_COMMAND'] = 'bgxlc++'
-    makefile_options['PREPROCESSOR_FLAGS'] = ''
-    makefile_options['COMPILER_FLAGS'] = (
-      '-O3 -qhot=level=1:vector -qinline=level=5:auto -qipa=level=1:noobject'
-      ' -qstrict=subnormals -qmaxmem=150000 -qlanglvl=extended0x -qsuppress=1500-036'
-      ' -qsuppress=1540-1401 -qsuppress=1586-083 -qsuppress=1586-233'
-      ' -qsuppress=1586-267'
-    )
-    makefile_options['LINKER_FLAGS'] = makefile_options['COMPILER_FLAGS']
-    makefile_options['LIBRARY_FLAGS'] = ''
 if args['cxx'] == 'clang++':
     # Clang is C++11 feature-complete since v3.3 (2013-06-17)
     definitions['COMPILER_CHOICE'] = 'clang++'
@@ -351,7 +366,7 @@ if args['float']:
 else:
     makefile_options['PREPROCESSOR_FLAGS'] += ' -DDP'
 
-# distribution function precision
+# Distribution function precision
 if args['distfloat']:
     makefile_options['PREPROCESSOR_FLAGS'] += ' -DSPF'
     makefile_options['PREPROCESSOR_FLAGS'] += ' -DVEC4F_FALLBACK' # vector backend type
@@ -361,8 +376,7 @@ else:
 
 if args['profile']:
     makefile_options['PREPROCESSOR_FLAGS'] += ' -DPROFILE'
-
-#
+ 
 if args['velocityorder'] == 2:
     makefile_options['PREPROCESSOR_FLAGS'] += ' -DACC_SEMILAG_PLM'       
 elif args['velocityorder'] == 3:
@@ -381,15 +395,32 @@ elif args['spatialorder'] == 5:
 else:
     raise SystemExit('### CONFIGURE ERROR: unknown semilag solver order for spatial translation')
 
-#Add -DNDEBUG to turn debugging off.
+# Make the field solver first-order in space and time
+if args['fieldorder'] == 1:
+    makefile_options['PREPROCESSOR_FLAGS'] += ' -DFS_1ST_ORDER_SPACE'
+    makefile_options['PREPROCESSOR_FLAGS'] += ' -DFS_1ST_ORDER_TIME'
+
+# Turn on AMR
+if args['amr']:
+    makefile_options['PREPROCESSOR_FLAGS'] += ' -DAMR'
+
+# Add -DNDEBUG to turn debugging off.
 if args['debug']:
     pass
 else:
     makefile_options['PREPROCESSOR_FLAGS'] += ' -DNDEBUG'
 
-# CXXFLAGS += -DDEBUG_SOLVERS
-# CXXFLAGS += -DDEBUG_IONOSPHERE
+# Debug for field solver
+if args['debugsolver']:
+    makefile_options['PREPROCESSOR_FLAGS'] += ' -DDEBUG_SOLVERS'
 
+# Debug for ionosphere module
+if args['debugionosphere']:
+    makefile_options['PREPROCESSOR_FLAGS'] += ' -DDEBUG_IONOSPHERE'
+
+# Catch floating point exceptions and stop execution
+if args['debugfloat']:
+    makefile_options['PREPROCESSOR_FLAGS'] += ' -DCATCH_FPE'
 
 # -debug argument
 if args['debug']:
@@ -472,19 +503,26 @@ makefile_options['DCCRG_PATH'] = args['dccrg_path']
 makefile_options['FSGRID_PATH'] = args['fsgrid_path']
 
 # Add include paths to header-only libraries
-makefile_options['COMPILER_FLAGS'] += ' -I'+args['dccrg_path']
-makefile_options['COMPILER_FLAGS'] += ' -I'+args['fsgrid_path']
+if args['dccrg_path']:
+    makefile_options['COMPILER_FLAGS'] += ' -I'+args['dccrg_path']
+if args['fsgrid_path']:
+    makefile_options['COMPILER_FLAGS'] += ' -I'+args['fsgrid_path']
 
 makefile_options['PHIPROF_PATH'] = args['phiprof_path']
 makefile_options['BOOST_PATH'] = args['boost_path']
 makefile_options['ZOLTAN_PATH'] = args['zoltan_path']
 
 # Add lib paths
-makefile_options['LIBRARY_FLAGS'] += ' -L'+args['phiprof_path']
-makefile_options['LIBRARY_FLAGS'] += ' -L'+args['zoltan_path']
-makefile_options['LIBRARY_FLAGS'] += ' -L'+args['vlsv_path']
-makefile_options['LIBRARY_FLAGS'] += ' -L'+args['jemalloc_path']
-makefile_options['LIBRARY_FLAGS'] += ' -L'+args['boost_path']
+if args['phiprof_path']:
+    makefile_options['LIBRARY_FLAGS'] += ' -L'+args['phiprof_path']
+if args['zoltan_path']:
+    makefile_options['LIBRARY_FLAGS'] += ' -L'+args['zoltan_path']
+if args['vlsv_path']:
+    makefile_options['LIBRARY_FLAGS'] += ' -L'+args['vlsv_path']
+if args['jemalloc_path']:
+    makefile_options['LIBRARY_FLAGS'] += ' -L'+args['jemalloc_path']
+if args['boost_path']:
+    makefile_options['LIBRARY_FLAGS'] += ' -L'+args['boost_path']
 
 
 
@@ -498,6 +536,10 @@ with open(makefile_input, 'r') as current_file:
 for key, val in makefile_options.items():
     makefile_template = re.sub(r'@{0}@'.format(key), val, makefile_template)
 
+# Redirect field solver folder
+if args['amr']:
+    makefile_template = re.sub('vlasovsolver', 'vlasovsolver_amr', makefile_template)
+
 # Write output files
 with open(makefile_output, 'w') as current_file:
     current_file.write(makefile_template)
@@ -506,7 +548,6 @@ with open(makefile_output, 'w') as current_file:
 
 print('Your Vlasiator distribution has now been configured with the following options:')
 print('  Coordinate system:          ' + args['coord'])
-print('  Debug flags:                ' + ('ON' if args['debug'] else 'OFF'))
 print('  Linker flags:               ' + makefile_options['LINKER_FLAGS'] + ' '
       + makefile_options['LIBRARY_FLAGS'])
 print('  Floating-point precision:   ' + ('single' if args['float'] else 'double'))
@@ -516,9 +557,12 @@ print('  Block size:                 ' + str(args['nx']) + ' ' \
                                        + str(args['nz']))
 print('  MPI parallelism:            ' + ('ON' if args['mpi'] else 'OFF'))
 print('  OpenMP parallelism:         ' + ('ON' if args['omp'] else 'OFF'))
-print('  Semilog velocity order:     ' + str(args['velocityorder']))
-print('  Semilog spatial order:      ' + str(args['spatialorder']))
+print('  Order of field solver:      ' + str(args['fieldorder']))
+print('  Order of semilog velocity:  ' + str(args['velocityorder']))
+print('  Order of semilog spatial:   ' + str(args['spatialorder']))
+print('  AMR:                        ' + ('ON' if args['amr'] else 'OFF'))
 print('  Profiler:                   ' + ('ON' if args['profile'] else 'OFF'))
+print('  Debug flags:                ' + ('ON' if args['debug'] else 'OFF'))
 print('  Compiler:                   ' + args['cxx'])
 print('  Compilation command:        ' + makefile_options['COMPILER_COMMAND'] + ' '
       + makefile_options['PREPROCESSOR_FLAGS'] + ' ' + makefile_options['COMPILER_FLAGS'])

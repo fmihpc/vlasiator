@@ -55,9 +55,7 @@ SRC_FILES := \
 		 $(wildcard src/projects/testAmr/*.cpp) \
 		 $(wildcard src/projects/testHall/*.cpp) \
 		 $(wildcard src/projects/VelocityBox/*.cpp) \
-		 $(wildcard src/projects/verificationLarmor/*.cpp) \
-
-# 		 $(wildcard src/vlasovsolver_amr/*.cpp) \
+		 $(wildcard src/projects/verificationLarmor/*.cpp)
 
 OBJ_DIR := obj/
 OBJ_FILES := $(addprefix $(OBJ_DIR),$(notdir $(SRC_FILES:.cpp=.o)))
