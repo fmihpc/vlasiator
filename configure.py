@@ -141,7 +141,7 @@ parser.set_defaults(profile=True)
 # -mpi
 parser.add_argument('-mpi',
                     action='store_true',
-                    default=False,
+                    default=True,
                     help='enable parallelization with MPI')
 
 # -omp
@@ -556,20 +556,40 @@ if args['install']:
     if not os.path.isdir("lib/dccrg"): 
         subprocess.check_call(["git", "clone", "https://github.com/fmihpc/dccrg.git"])
         subprocess.check_call(["mv", "dccrg", "lib"])
+        os.chdir("lib/dccrg")
+        subprocess.check_call(["git", "checkout", "01482cfba8"])
+        os.chdir("../..")
     if not os.path.isdir("lib/phiprof"):
         subprocess.check_call(["git", "clone", "https://github.com/fmihpc/phiprof.git"])
         subprocess.check_call(["mv", "phiprof", "lib"])
+        os.chdir("lib/phiprof/src")
+        subprocess.check_call(["make"])
+        os.chdir("../../..")
     if not os.path.isdir("lib/vlsv"):
         subprocess.check_call(["git", "clone", "https://github.com/fmihpc/vlsv.git"])
         subprocess.check_call(["mv", "vlsv", "lib"])
+        os.chdir("lib/vlsv")
+        subprocess.check_call(["make"])
+        os.chdir("../..")
+    if not os.path.isdir("lib/jemalloc"):
+        subprocess.check_call(["wget", \
+            "https://github.com/jemalloc/jemalloc/releases/download/4.0.4/jemalloc-4.0.4.tar.bz2"])
+        subprocess.check_call(["tar", "-xf", "jemalloc-4.0.4.tar.bz2"])
+        os.chdir("jemalloc-4.0.4")
+        subprocess.check_call(["./configure","--prefix="+os.getcwd()+"/jemalloc", \
+        "--with-jemalloc-prefix=je_"])
+        subprocess.check_call(["make"])
+        subprocess.check_call(["make", "install"])
+        subprocess.check_call(["mv", "jemalloc", "../lib"])
+        os.chdir("..")
     if not os.path.isdir("lib/Eigen"):
         subprocess.check_call(["wget", \
         "https://gitlab.com/libeigen/eigen/-/archive/3.2.8/eigen-3.2.8.tar.bz2"])
-        subprocess.check_call(["tar", "-xvf", "eigen-3.2.8.tar.bz2"])
+        subprocess.check_call(["tar", "-xf", "eigen-3.2.8.tar.bz2"])
         subprocess.check_call(["cp", "-r", "eigen-3.2.8/Eigen", "lib"])
         subprocess.check_call(["wget", \
         "http://cs.sandia.gov/Zoltan/Zoltan_Distributions/zoltan_distrib_v3.83.tar.gz"])
-        subprocess.check_call(["tar", "-xvf", "zoltan_distrib_v3.83.tar.gz"])
+        subprocess.check_call(["tar", "-xf", "zoltan_distrib_v3.83.tar.gz"])
         subprocess.check_call(["mkdir", "lib/zoltan"])
         os.chdir("lib/zoltan")
         subprocess.check_call(["../../Zoltan_v3.83/configure","--prefix="+os.getcwd(), \
@@ -581,7 +601,8 @@ if args['install']:
         os.chdir("../..")
 
     for f in ["add-on", "eigen-3.2.8.tar.bz2","eigen-3.2.8",\
-        "zoltan_distrib_v3.83.tar.gz", "Zoltan_v3.83"]:
+        "zoltan_distrib_v3.83.tar.gz", "Zoltan_v3.83", \
+        "jemalloc-4.0.4", "jemalloc-4.0.4.tar.bz2"]:
         subprocess.check_call(["rm", "-rf", f])
 
     # Create path names for generating version.cpp in Makefile
@@ -593,11 +614,15 @@ if args['install']:
     makefile_options['LINKER_FLAGS'] += " -Llib/zoltan/lib"
     makefile_options['LINKER_FLAGS'] += " -Llib/jemalloc/lib"
     makefile_options['LINKER_FLAGS'] += " -Llib/phiprof/lib"
+    makefile_options['LINKER_FLAGS'] += " -Llib/vlsv"
     makefile_options['COMPILER_FLAGS'] += ' -I'+"lib/vectorclass"
     makefile_options['COMPILER_FLAGS'] += ' -I'+"lib/zoltan/include"
     makefile_options['COMPILER_FLAGS'] += ' -I'+"lib/fsgrid"
     makefile_options['COMPILER_FLAGS'] += ' -I'+"lib/dccrg"
-    makefile_options['COMPILER_FLAGS'] += ' -I'+"lib/Eigen"
+    makefile_options['COMPILER_FLAGS'] += ' -I'+"lib" # Eigen
+    makefile_options['COMPILER_FLAGS'] += ' -I'+"lib/phiprof/include"
+    makefile_options['COMPILER_FLAGS'] += ' -I'+"lib/vlsv"
+    makefile_options['COMPILER_FLAGS'] += ' -I'+"lib/jemalloc/include/jemalloc"
 
     for f in ["boost_program_options", "zoltan", "vlsv", "jemalloc", "phiprof"]:
         makefile_options['LIBRARY_FLAGS'] += ' -l'+f
