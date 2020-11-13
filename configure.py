@@ -12,7 +12,8 @@
 import argparse
 import glob
 import re
-
+import subprocess
+import os
 
 # Set template and output filenames
 makefile_input = 'Makefile.in'
@@ -27,6 +28,12 @@ vlasiator_epilog = (
     "https://github.com/fmihpc/vlasiator/wiki/Installing-Vlasiator"
 )
 parser = argparse.ArgumentParser(description=vlasiator_description, epilog=vlasiator_epilog)
+
+# -amr
+parser.add_argument('-install',
+                    action='store_true',
+                    default=False,
+                    help='install all the dependencies')
 
 # --coord=[name]
 parser.add_argument(
@@ -183,6 +190,12 @@ parser.add_argument('-jemalloc',
 parser.add_argument('--jemalloc_path',
                     default='',
                     help='path to jemalloc library')
+
+# -papi
+parser.add_argument('-papi',
+                    action='store_true',
+                    default=False,
+                    help='enable Papi memory profiler')
 
 # The main choices for --cxx flag, using "ctype[-suffix]" formatting, where 
 # "ctype" is the major family/suite/group of compilers and "suffix" may 
@@ -514,19 +527,101 @@ makefile_options['ZOLTAN_PATH'] = args['zoltan_path']
 
 # Add lib paths
 if args['phiprof_path']:
-    makefile_options['LIBRARY_FLAGS'] += ' -L'+args['phiprof_path']
+    makefile_options['LINKER_FLAGS'] += ' -L'+args['phiprof_path']
 if args['zoltan_path']:
-    makefile_options['LIBRARY_FLAGS'] += ' -L'+args['zoltan_path']
+    makefile_options['LINKER_FLAGS'] += ' -L'+args['zoltan_path']
 if args['vlsv_path']:
-    makefile_options['LIBRARY_FLAGS'] += ' -L'+args['vlsv_path']
+    makefile_options['LINKER_FLAGS'] += ' -L'+args['vlsv_path']
 if args['jemalloc_path']:
-    makefile_options['LIBRARY_FLAGS'] += ' -L'+args['jemalloc_path']
+    makefile_options['LINKER_FLAGS'] += ' -L'+args['jemalloc_path']
 if args['boost_path']:
-    makefile_options['LIBRARY_FLAGS'] += ' -L'+args['boost_path']
+    makefile_options['LINKER_FLAGS'] += ' -L'+args['boost_path']
 
 
+# --- Step 4. Check dependencies -----------------------------------------
 
-# --- Step 4. Create new files, finish up --------------------------------
+# TODO: check the existence of packages in lib!
+if args['install']:
+    # Boost is skipped as it is too large to install here
+    subprocess.check_call(["mkdir", "lib"])
+    subprocess.check_call(["git", "clone", "https://github.com/vectorclass/version1.git"])
+    subprocess.check_call(["git", "clone", "https://github.com/vectorclass/add-on.git"])
+    subprocess.check_call(["cp", "add-on/vector3d/vector3d.h", "version1/"])
+    subprocess.check_call(["mv", "version1/", "lib"])
+    subprocess.check_call(["git", "clone", "https://github.com/fmihpc/fsgrid.git"])
+    subprocess.check_call(["mv", "fsgrid", "lib"])
+    subprocess.check_call(["git", "clone", "https://github.com/fmihpc/dccrg.git"])
+    subprocess.check_call(["mv", "dccrg", "lib"])
+    subprocess.check_call(["git", "clone", "https://github.com/fmihpc/phiprof.git"])
+    subprocess.check_call(["mv", "phiprof", "lib"])
+    subprocess.check_call(["git", "clone", "https://github.com/fmihpc/vlsv.git"])
+    subprocess.check_call(["mv", "vlsv", "lib"])
+    subprocess.check_call(["wget", \
+        "https://gitlab.com/libeigen/eigen/-/archive/3.2.8/eigen-3.2.8.tar.bz2"])
+    subprocess.check_call(["tar", "-xvf", "eigen-3.2.8.tar.bz2"])
+    subprocess.check_call(["cp", "-r", "eigen-3.2.8/Eigen", "lib"])
+    subprocess.check_call(["wget", \
+        "http://cs.sandia.gov/Zoltan/Zoltan_Distributions/zoltan_distrib_v3.83.tar.gz"])
+    subprocess.check_call(["tar", "-xvf", "zoltan_distrib_v3.83.tar.gz"])
+    subprocess.check_call(["mkdir", "lib/zoltan"])
+    os.chdir("lib/zoltan")
+    subprocess.check_call(["../../Zoltan_v3.83/configure","--prefix="+os.getcwd(), \
+        "--enable-mpi", "--with-mpi-compilers", "--with-gnumake", \
+        "--with-id-type=ullong"])
+    subprocess.check_call(["make", "-j", "4"])
+    subprocess.check_call(["make", "install"])
+
+    os.chdir("../..")
+
+    for f in ["add-on", "eigen-3.2.8.tar.bz2","eigen-3.2.8",\
+        "zoltan_distrib_v3.83.tar.gz", "Zoltan_v3.83"]:
+        subprocess.check_call(["rm", "-rf", f])
+    
+    args['fsgrid_path'] = "lib"
+
+    makefile_options['LINKER_FLAGS'] += "lib/zoltan/lib"
+    makefile_options['LINKER_FLAGS'] += "lib/jemalloc/lib"
+    makefile_options['LINKER_FLAGS'] += "lib/phiprof/lib"
+    makefile_options['COMPILER_FLAGS'] += ' -I'+"lib"
+    makefile_options['COMPILER_FLAGS'] += ' -I'+"lib/zoltan/include"
+    makefile_options['COMPILER_FLAGS'] += ' -I'+"lib/fsgrid"
+    makefile_options['COMPILER_FLAGS'] += ' -I'+"lib/dccrg"
+    makefile_options['COMPILER_FLAGS'] += ' -I'+"lib/Eigen"
+    for f in ["boost_program_options", "zoltan", "vlsv", "jemalloc", "phiprof"]:
+        makefile_options['LIBRARY_FLAGS'] += ' -l'+f
+
+# Check dependencies
+if any(os.path.isfile(os.path.join(p, "vectorf512.h")) for p in args['include']):
+    if not any(os.path.isfile(os.path.join(p, "vector3d.h")) for p in args['include']):
+        raise SystemExit('### CONFIGURE ERROR: vector3d.h not found!')
+else:
+    raise SystemExit('### CONFIGURE ERROR: unknown vectorclass location!')
+
+if not os.path.isfile(os.path.join(args['fsgrid_path'], "fsgrid.hpp")):
+    raise SystemExit('### CONFIGURE ERROR: unknown fsgrid location!')
+
+if not os.path.isfile(os.path.join(args['dccrg_path'], "dccrg.hpp")):
+    raise SystemExit('### CONFIGURE ERROR: unknown dccrg location!')
+
+if not os.path.isfile(os.path.join(args['boost_path'], "libboost_program_options.a")):
+    raise SystemExit('### CONFIGURE ERROR: unknown Boost location!')
+
+if not os.path.isfile(os.path.join(args['zoltan_path'], "libzoltan.a")):
+    raise SystemExit('### CONFIGURE ERROR: unknown Zoltan location!')
+
+if not os.path.isfile(os.path.join(args['vlsv_path'], "conv_mtx_vlsv")):
+    raise SystemExit('### CONFIGURE ERROR: vlsv not found or compiled!')
+
+if args['jemalloc']:
+    if not os.path.isfile(os.path.join(args['jemalloc_path'], "libjemalloc.a")):
+        raise SystemExit('### CONFIGURE ERROR: unknown jemalloc location!')
+
+if args['profile']:
+    if not os.path.isfile(os.path.join(args['phiprof_path'], "libphiprof.a")):
+        raise SystemExit('### CONFIGURE ERROR: unknown phiprof location!')
+
+
+# --- Step 5. Create new files, finish up --------------------------------
 
 # Read templates
 with open(makefile_input, 'r') as current_file:
@@ -562,6 +657,7 @@ print('  Order of semilog velocity:  ' + str(args['velocityorder']))
 print('  Order of semilog spatial:   ' + str(args['spatialorder']))
 print('  AMR:                        ' + ('ON' if args['amr'] else 'OFF'))
 print('  Profiler:                   ' + ('ON' if args['profile'] else 'OFF'))
+print('  Memory tracker:             ' + ('ON' if args['papi'] else 'OFF'))
 print('  Debug flags:                ' + ('ON' if args['debug'] else 'OFF'))
 print('  Compiler:                   ' + args['cxx'])
 print('  Compilation command:        ' + makefile_options['COMPILER_COMMAND'] + ' '
