@@ -540,85 +540,97 @@ if args['boost_path']:
 
 # --- Step 4. Check dependencies -----------------------------------------
 
-# TODO: check the existence of packages in lib!
+# Install dependencies
 if args['install']:
     # Boost is skipped as it is too large to install here
-    subprocess.check_call(["mkdir", "lib"])
-    subprocess.check_call(["git", "clone", "https://github.com/vectorclass/version1.git"])
-    subprocess.check_call(["git", "clone", "https://github.com/vectorclass/add-on.git"])
-    subprocess.check_call(["cp", "add-on/vector3d/vector3d.h", "version1/"])
-    subprocess.check_call(["mv", "version1/", "lib"])
-    subprocess.check_call(["git", "clone", "https://github.com/fmihpc/fsgrid.git"])
-    subprocess.check_call(["mv", "fsgrid", "lib"])
-    subprocess.check_call(["git", "clone", "https://github.com/fmihpc/dccrg.git"])
-    subprocess.check_call(["mv", "dccrg", "lib"])
-    subprocess.check_call(["git", "clone", "https://github.com/fmihpc/phiprof.git"])
-    subprocess.check_call(["mv", "phiprof", "lib"])
-    subprocess.check_call(["git", "clone", "https://github.com/fmihpc/vlsv.git"])
-    subprocess.check_call(["mv", "vlsv", "lib"])
-    subprocess.check_call(["wget", \
+    if not os.path.isdir("lib"):
+        subprocess.check_call(["mkdir", "lib"]) 
+    if not os.path.isdir("lib/vectorclass"):
+        subprocess.check_call(["git", "clone", "https://github.com/vectorclass/version1.git"])
+        subprocess.check_call(["git", "clone", "https://github.com/vectorclass/add-on.git"])
+        subprocess.check_call(["cp", "add-on/vector3d/vector3d.h", "version1/"])
+        subprocess.check_call(["mv", "version1", "lib/vectorclass"])
+    if not os.path.isdir("lib/fsgrid"):
+        subprocess.check_call(["git", "clone", "https://github.com/fmihpc/fsgrid.git"])
+        subprocess.check_call(["mv", "fsgrid", "lib"])
+    if not os.path.isdir("lib/dccrg"): 
+        subprocess.check_call(["git", "clone", "https://github.com/fmihpc/dccrg.git"])
+        subprocess.check_call(["mv", "dccrg", "lib"])
+    if not os.path.isdir("lib/phiprof"):
+        subprocess.check_call(["git", "clone", "https://github.com/fmihpc/phiprof.git"])
+        subprocess.check_call(["mv", "phiprof", "lib"])
+    if not os.path.isdir("lib/vlsv"):
+        subprocess.check_call(["git", "clone", "https://github.com/fmihpc/vlsv.git"])
+        subprocess.check_call(["mv", "vlsv", "lib"])
+    if not os.path.isdir("lib/Eigen"):
+        subprocess.check_call(["wget", \
         "https://gitlab.com/libeigen/eigen/-/archive/3.2.8/eigen-3.2.8.tar.bz2"])
-    subprocess.check_call(["tar", "-xvf", "eigen-3.2.8.tar.bz2"])
-    subprocess.check_call(["cp", "-r", "eigen-3.2.8/Eigen", "lib"])
-    subprocess.check_call(["wget", \
+        subprocess.check_call(["tar", "-xvf", "eigen-3.2.8.tar.bz2"])
+        subprocess.check_call(["cp", "-r", "eigen-3.2.8/Eigen", "lib"])
+        subprocess.check_call(["wget", \
         "http://cs.sandia.gov/Zoltan/Zoltan_Distributions/zoltan_distrib_v3.83.tar.gz"])
-    subprocess.check_call(["tar", "-xvf", "zoltan_distrib_v3.83.tar.gz"])
-    subprocess.check_call(["mkdir", "lib/zoltan"])
-    os.chdir("lib/zoltan")
-    subprocess.check_call(["../../Zoltan_v3.83/configure","--prefix="+os.getcwd(), \
+        subprocess.check_call(["tar", "-xvf", "zoltan_distrib_v3.83.tar.gz"])
+        subprocess.check_call(["mkdir", "lib/zoltan"])
+        os.chdir("lib/zoltan")
+        subprocess.check_call(["../../Zoltan_v3.83/configure","--prefix="+os.getcwd(), \
         "--enable-mpi", "--with-mpi-compilers", "--with-gnumake", \
         "--with-id-type=ullong"])
-    subprocess.check_call(["make", "-j", "4"])
-    subprocess.check_call(["make", "install"])
+        subprocess.check_call(["make", "-j", "4"])
+        subprocess.check_call(["make", "install"])
 
-    os.chdir("../..")
+        os.chdir("../..")
 
     for f in ["add-on", "eigen-3.2.8.tar.bz2","eigen-3.2.8",\
         "zoltan_distrib_v3.83.tar.gz", "Zoltan_v3.83"]:
         subprocess.check_call(["rm", "-rf", f])
-    
-    args['fsgrid_path'] = "lib"
 
-    makefile_options['LINKER_FLAGS'] += "lib/zoltan/lib"
-    makefile_options['LINKER_FLAGS'] += "lib/jemalloc/lib"
-    makefile_options['LINKER_FLAGS'] += "lib/phiprof/lib"
-    makefile_options['COMPILER_FLAGS'] += ' -I'+"lib"
+    # Create path names for generating version.cpp in Makefile
+    makefile_options['DCCRG_PATH'] = "lib/dccrg"
+    makefile_options['FSGRID_PATH'] = "lib/fsgrid"
+    makefile_options['PHIPROF_PATH'] = "lib/phiprof"
+    makefile_options['ZOLTAN_PATH'] = "lib/zoltan"
+
+    makefile_options['LINKER_FLAGS'] += " -Llib/zoltan/lib"
+    makefile_options['LINKER_FLAGS'] += " -Llib/jemalloc/lib"
+    makefile_options['LINKER_FLAGS'] += " -Llib/phiprof/lib"
+    makefile_options['COMPILER_FLAGS'] += ' -I'+"lib/vectorclass"
     makefile_options['COMPILER_FLAGS'] += ' -I'+"lib/zoltan/include"
     makefile_options['COMPILER_FLAGS'] += ' -I'+"lib/fsgrid"
     makefile_options['COMPILER_FLAGS'] += ' -I'+"lib/dccrg"
     makefile_options['COMPILER_FLAGS'] += ' -I'+"lib/Eigen"
+
     for f in ["boost_program_options", "zoltan", "vlsv", "jemalloc", "phiprof"]:
         makefile_options['LIBRARY_FLAGS'] += ' -l'+f
-
-# Check dependencies
-if any(os.path.isfile(os.path.join(p, "vectorf512.h")) for p in args['include']):
-    if not any(os.path.isfile(os.path.join(p, "vector3d.h")) for p in args['include']):
-        raise SystemExit('### CONFIGURE ERROR: vector3d.h not found!')
 else:
-    raise SystemExit('### CONFIGURE ERROR: unknown vectorclass location!')
+    # Check dependencies
+    if any(os.path.isfile(os.path.join(p, "vectorf512.h")) for p in args['include']):
+        if not any(os.path.isfile(os.path.join(p, "vector3d.h")) for p in args['include']):
+            raise SystemExit('### CONFIGURE ERROR: vector3d.h not found!')
+    else:
+        raise SystemExit('### CONFIGURE ERROR: unknown vectorclass location!')
 
-if not os.path.isfile(os.path.join(args['fsgrid_path'], "fsgrid.hpp")):
-    raise SystemExit('### CONFIGURE ERROR: unknown fsgrid location!')
+    if not os.path.isfile(os.path.join(args['fsgrid_path'], "fsgrid.hpp")):
+        raise SystemExit('### CONFIGURE ERROR: unknown fsgrid location!')
 
-if not os.path.isfile(os.path.join(args['dccrg_path'], "dccrg.hpp")):
-    raise SystemExit('### CONFIGURE ERROR: unknown dccrg location!')
+    if not os.path.isfile(os.path.join(args['dccrg_path'], "dccrg.hpp")):
+        raise SystemExit('### CONFIGURE ERROR: unknown dccrg location!')
 
-if not os.path.isfile(os.path.join(args['boost_path'], "libboost_program_options.a")):
-    raise SystemExit('### CONFIGURE ERROR: unknown Boost location!')
+    if not os.path.isfile(os.path.join(args['boost_path'], "libboost_program_options.a")):
+        raise SystemExit('### CONFIGURE ERROR: unknown Boost location!')
 
-if not os.path.isfile(os.path.join(args['zoltan_path'], "libzoltan.a")):
-    raise SystemExit('### CONFIGURE ERROR: unknown Zoltan location!')
+    if not os.path.isfile(os.path.join(args['zoltan_path'], "libzoltan.a")):
+        raise SystemExit('### CONFIGURE ERROR: unknown Zoltan location!')
 
-if not os.path.isfile(os.path.join(args['vlsv_path'], "conv_mtx_vlsv")):
-    raise SystemExit('### CONFIGURE ERROR: vlsv not found or compiled!')
+    if not os.path.isfile(os.path.join(args['vlsv_path'], "conv_mtx_vlsv")):
+        raise SystemExit('### CONFIGURE ERROR: vlsv not found or compiled!')
 
-if args['jemalloc']:
-    if not os.path.isfile(os.path.join(args['jemalloc_path'], "libjemalloc.a")):
-        raise SystemExit('### CONFIGURE ERROR: unknown jemalloc location!')
+    if args['jemalloc']:
+        if not os.path.isfile(os.path.join(args['jemalloc_path'], "libjemalloc.a")):
+            raise SystemExit('### CONFIGURE ERROR: unknown jemalloc location!')
 
-if args['profile']:
-    if not os.path.isfile(os.path.join(args['phiprof_path'], "libphiprof.a")):
-        raise SystemExit('### CONFIGURE ERROR: unknown phiprof location!')
+    if args['profile']:
+        if not os.path.isfile(os.path.join(args['phiprof_path'], "libphiprof.a")):
+            raise SystemExit('### CONFIGURE ERROR: unknown phiprof location!')
 
 
 # --- Step 5. Create new files, finish up --------------------------------
