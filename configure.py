@@ -14,6 +14,7 @@ import glob
 import re
 import subprocess
 import os
+import distro
 
 # Set template and output filenames
 makefile_input = 'Makefile.in'
@@ -542,7 +543,6 @@ if args['boost_path']:
 
 # Install dependencies
 if args['install']:
-    # Boost is skipped as it is too large to install here
     if not os.path.isdir("lib"):
         subprocess.check_call(["mkdir", "lib"]) 
     if not os.path.isdir("lib/vectorclass"):
@@ -600,6 +600,17 @@ if args['install']:
 
         os.chdir("../..")
 
+    # Boost is skipped as it is too large to install here
+    if not os.path.isfile(os.path.join(args['boost_path'], "libboost_program_options.a")):
+        distname = distro.linux_distribution(full_distribution_name=False)[0]
+        print("""Boost not found: try to set the correct path, 
+        or install it manually as follows:""")
+        if  distname == 'ubuntu':
+            print('sudo apt update')
+            print('sudo apt install libboost-all-dev')
+        else:
+            print('search for how to install Boost on '+distname)
+
     for f in ["add-on", "eigen-3.2.8.tar.bz2","eigen-3.2.8",\
         "zoltan_distrib_v3.83.tar.gz", "Zoltan_v3.83", \
         "jemalloc-4.0.4", "jemalloc-4.0.4.tar.bz2"]:
@@ -648,6 +659,9 @@ else:
 
     if not os.path.isfile(os.path.join(args['vlsv_path'], "conv_mtx_vlsv")):
         raise SystemExit('### CONFIGURE ERROR: vlsv not found or compiled!')
+
+    if not os.path.isfile(os.path.join(args['boost_path'], "libboost_program_options.a")):
+        raise SystemExit('### CONFIGURE ERROR: unknown Boost location!')
 
     if args['jemalloc']:
         if not os.path.isfile(os.path.join(args['jemalloc_path'], "libjemalloc.a")):
