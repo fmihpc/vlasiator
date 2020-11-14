@@ -603,13 +603,14 @@ if args['install']:
     # Boost is skipped as it is too large to install here
     if not os.path.isfile(os.path.join(args['boost_path'], "libboost_program_options.a")):
         distname = distro.linux_distribution(full_distribution_name=False)[0]
-        print("""Boost not found: try to set the correct path, 
-        or install it manually as follows:""")
+        errmsghead = """Boost not found: try to set the correct path, 
+        or install it manually as follows:"""
         if  distname == 'ubuntu':
-            print('sudo apt update')
-            print('sudo apt install libboost-all-dev')
+            raise SystemExit(errmsghead+
+            '\n sudo apt update\n sudo apt install libboost-all-dev')
         else:
-            print('search for how to install Boost on '+distname)
+            raise SystemExit(errmsghead+
+            'search for how to install Boost on '+distname)
 
     for f in ["add-on", "eigen-3.2.8.tar.bz2","eigen-3.2.8",\
         "zoltan_distrib_v3.83.tar.gz", "Zoltan_v3.83", \
