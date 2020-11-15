@@ -14,7 +14,18 @@ import glob
 import re
 import subprocess
 import os
+import pkg_resources
+import sys
 import distro
+
+required = {'distro'}
+installed = {pkg.key for pkg in pkg_resources.working_set}
+missing = required - installed
+
+if missing:
+    python = sys.executable
+    subprocess.check_call([python, '-m', 'pip', 'install', *missing], \
+        stdout=subprocess.DEVNULL)
 
 # Set template and output filenames
 makefile_input = 'Makefile.in'
@@ -30,7 +41,7 @@ vlasiator_epilog = (
 )
 parser = argparse.ArgumentParser(description=vlasiator_description, epilog=vlasiator_epilog)
 
-# -amr
+# -install
 parser.add_argument('-install',
                     action='store_true',
                     default=False,
@@ -42,7 +53,7 @@ parser.add_argument(
     default='cartesian',
     choices=[
         'cartesian',
-        'gr_user'],
+        'user'],
     help='select coordinate system')
 
 # --nx=[value]
@@ -271,26 +282,23 @@ args = vars(parser.parse_args())
 # --- Step 2. Test for incompatible arguments ----------------------------
 
 
-# --- Step 3. Set definitions and Makefile options based on above argument
+# --- Step 3. Set Makefile options based on above argument
 
 # Prepare dictionaries of substitutions to be made
-definitions = {}
 makefile_options = {}
 makefile_options['LOADER_FLAGS'] = ''
 
 # --cxx=[name] argument
 if args['cxx'] == 'g++':
     # GCC is C++11 feature-complete since v4.8.1 (2013-05-31)
-    definitions['COMPILER_CHOICE'] = 'g++'
-    definitions['COMPILER_COMMAND'] = makefile_options['COMPILER_COMMAND'] = 'g++'
+    makefile_options['COMPILER_COMMAND'] = 'g++'
     makefile_options['PREPROCESSOR_FLAGS'] = ''
     makefile_options['COMPILER_FLAGS'] = '-O3 -std=c++11'
     makefile_options['LINKER_FLAGS'] = ''
     makefile_options['LIBRARY_FLAGS'] = ''
 if args['cxx'] == 'g++-simd':
     # GCC version >= 4.9, for OpenMP 4.0; version >= 6.1 for OpenMP 4.5 support
-    definitions['COMPILER_CHOICE'] = 'g++-simd'
-    definitions['COMPILER_COMMAND'] = makefile_options['COMPILER_COMMAND'] = 'g++'
+    makefile_options['COMPILER_COMMAND'] = 'g++'
     makefile_options['PREPROCESSOR_FLAGS'] = ''
     makefile_options['COMPILER_FLAGS'] = (
         '-O3 -std=c++11 -fopenmp-simd -fwhole-program -flto -ffast-math '
@@ -305,8 +313,7 @@ if args['cxx'] == 'g++-simd':
     makefile_options['LIBRARY_FLAGS'] = ''
 if args['cxx'] == 'icpc':
     # ICC is C++11 feature-complete since v15.0 (2014-08-26)
-    definitions['COMPILER_CHOICE'] = 'icpc'
-    definitions['COMPILER_COMMAND'] = makefile_options['COMPILER_COMMAND'] = 'icpc'
+    makefile_options['COMPILER_COMMAND'] = 'icpc'
     makefile_options['PREPROCESSOR_FLAGS'] = ''
     makefile_options['COMPILER_FLAGS'] = (
       '-O3 -std=c++11 -ipo -xhost -inline-forceinline -qopenmp-simd -qopt-prefetch=4 '
@@ -318,8 +325,7 @@ if args['cxx'] == 'icpc':
 if args['cxx'] == 'icpc-debug':
     # Disable IPO, forced inlining, and fast math. Enable vectorization reporting.
     # Useful for testing symmetry, SIMD-enabled functions and loops with OpenMP 4.5
-    definitions['COMPILER_CHOICE'] = 'icpc'
-    definitions['COMPILER_COMMAND'] = makefile_options['COMPILER_COMMAND'] = 'icpc'
+    makefile_options['COMPILER_COMMAND'] = 'icpc'
     makefile_options['PREPROCESSOR_FLAGS'] = ''
     makefile_options['COMPILER_FLAGS'] = (
       '-O3 -std=c++11 -xhost -qopenmp-simd -fp-model precise -qopt-prefetch=4 '
@@ -330,8 +336,7 @@ if args['cxx'] == 'icpc-debug':
 if args['cxx'] == 'icpc-phi':
     # Cross-compile for Intel Xeon Phi x200 KNL series (unique AVX-512ER and AVX-512FP)
     # -xMIC-AVX512: generate AVX-512F, AVX-512CD, AVX-512ER and AVX-512FP
-    definitions['COMPILER_CHOICE'] = 'icpc'
-    definitions['COMPILER_COMMAND'] = makefile_options['COMPILER_COMMAND'] = 'icpc'
+    makefile_options['COMPILER_COMMAND'] = 'icpc'
     makefile_options['PREPROCESSOR_FLAGS'] = ''
     makefile_options['COMPILER_FLAGS'] = (
       '-O3 -std=c++11 -ipo -xMIC-AVX512 -inline-forceinline -qopenmp-simd '
@@ -342,16 +347,14 @@ if args['cxx'] == 'icpc-phi':
 if args['cxx'] == 'cray':
     # Cray Compiling Environment 8.4 (2015-09-24) introduces C++11 feature completeness
     # (except "alignas"). v8.6 is C++14 feature-complete
-    definitions['COMPILER_CHOICE'] = 'cray'
-    definitions['COMPILER_COMMAND'] = makefile_options['COMPILER_COMMAND'] = 'CC'
+    makefile_options['COMPILER_COMMAND'] = 'CC'
     makefile_options['PREPROCESSOR_FLAGS'] = ''
     makefile_options['COMPILER_FLAGS'] = '-O3 -h std=c++11 -h aggress -h vector3 -hfp3'
     makefile_options['LINKER_FLAGS'] = '-hwp -hpl=obj/lib'
     makefile_options['LIBRARY_FLAGS'] = '-lm'
 if args['cxx'] == 'clang++':
     # Clang is C++11 feature-complete since v3.3 (2013-06-17)
-    definitions['COMPILER_CHOICE'] = 'clang++'
-    definitions['COMPILER_COMMAND'] = makefile_options['COMPILER_COMMAND'] = 'clang++'
+    makefile_options['COMPILER_COMMAND'] = 'clang++'
     makefile_options['PREPROCESSOR_FLAGS'] = ''
     makefile_options['COMPILER_FLAGS'] = '-O3 -std=c++11'
     makefile_options['LINKER_FLAGS'] = ''
@@ -359,16 +362,14 @@ if args['cxx'] == 'clang++':
 if args['cxx'] == 'clang++-simd':
     # LLVM/Clang version >= 3.9 for most of OpenMP 4.0 and 4.5 (still incomplete; no
     # offloading, target/declare simd directives). OpenMP 3.1 fully supported in LLVM 3.7
-    definitions['COMPILER_CHOICE'] = 'clang++-simd'
-    definitions['COMPILER_COMMAND'] = makefile_options['COMPILER_COMMAND'] = 'clang++'
+    makefile_options['COMPILER_COMMAND'] = 'clang++'
     makefile_options['PREPROCESSOR_FLAGS'] = ''
     makefile_options['COMPILER_FLAGS'] = '-O3 -std=c++11 -fopenmp-simd'
     makefile_options['LINKER_FLAGS'] = ''
     makefile_options['LIBRARY_FLAGS'] = ''
 if args['cxx'] == 'clang++-apple':
     # Apple LLVM/Clang: forked version of the open-source LLVM project bundled in macOS
-    definitions['COMPILER_CHOICE'] = 'clang++-apple'
-    definitions['COMPILER_COMMAND'] = makefile_options['COMPILER_COMMAND'] = 'clang++'
+    makefile_options['COMPILER_COMMAND'] = 'clang++'
     makefile_options['PREPROCESSOR_FLAGS'] = ''
     makefile_options['COMPILER_FLAGS'] = '-O3 -std=c++11'
     makefile_options['LINKER_FLAGS'] = ''
@@ -438,7 +439,6 @@ if args['debugfloat']:
 
 # -debug argument
 if args['debug']:
-    definitions['DEBUG_OPTION'] = 'DEBUG'
     # Completely replace the --cxx= sets of default compiler flags, disable optimization,
     # and emit debug symbols in the compiled binaries
     if (args['cxx'] == 'g++' or args['cxx'] == 'g++-simd'
@@ -452,25 +452,21 @@ if args['debug']:
         makefile_options['COMPILER_FLAGS'] = '-O0 -g -qlanglvl=extended0x'
     if args['cxx'] == 'icpc-phi':
         makefile_options['COMPILER_FLAGS'] = '-O0 --std=c++11 -g -xMIC-AVX512'
-else:
-    definitions['DEBUG_OPTION'] = 'NOT_DEBUG'
 
 # -mpi argument
 if args['mpi']:
-    definitions['MPI_OPTION'] = 'MPI_PARALLEL'
     if (args['cxx'] == 'g++' or args['cxx'] == 'icpc' or args['cxx'] == 'icpc-debug'
             or args['cxx'] == 'icpc-phi' or args['cxx'] == 'g++-simd'
             or args['cxx'] == 'clang++' or args['cxx'] == 'clang++-simd'
             or args['cxx'] == 'clang++-apple'):
-        definitions['COMPILER_COMMAND'] = makefile_options['COMPILER_COMMAND'] = 'mpicxx'
+        makefile_options['COMPILER_COMMAND'] = 'mpicxx'
     if args['cxx'] == 'cray':
         makefile_options['COMPILER_FLAGS'] += ' -h mpi1'
 else:
-    definitions['MPI_OPTION'] = 'NOT_MPI_PARALLEL'
+    raise SystemExit('### CONFIGURE ERROR: -mpi is required for compilation!')
 
 # -omp argument
 if args['omp']:
-    definitions['OPENMP_OPTION'] = 'OPENMP_PARALLEL'
     if (args['cxx'] == 'g++' or args['cxx'] == 'g++-simd' or args['cxx'] == 'clang++'
             or args['cxx'] == 'clang++-simd'):
         makefile_options['COMPILER_FLAGS'] += ' -fopenmp'
@@ -484,7 +480,6 @@ if args['omp']:
     if args['cxx'] == 'cray':
         makefile_options['COMPILER_FLAGS'] += ' -homp'
 else:
-    definitions['OPENMP_OPTION'] = 'NOT_OPENMP_PARALLEL'
     if args['cxx'] == 'cray':
         makefile_options['COMPILER_FLAGS'] += ' -hnoomp'
     if args['cxx'] == 'icpc' or args['cxx'] == 'icpc-debug' or args['cxx'] == 'icpc-phi':
@@ -507,11 +502,6 @@ for library_path in args['lib_path']:
 # --lib=[name] arguments
 for library_name in args['lib']:
     makefile_options['LIBRARY_FLAGS'] += ' -l'+library_name
-
-# Assemble all flags of any sort given to compiler
-definitions['COMPILER_FLAGS'] = ' '.join(
-    [makefile_options[opt+'_FLAGS'] for opt in
-     ['PREPROCESSOR', 'COMPILER', 'LINKER', 'LIBRARY']])
 
 makefile_options['DCCRG_PATH'] = args['dccrg_path']
 makefile_options['FSGRID_PATH'] = args['fsgrid_path']
