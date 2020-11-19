@@ -1,6 +1,7 @@
 # Template for Vlasiator Makefile
 # The 'configure.py' python script uses this template to create the actual Makefile
-# For some reason, cannot make with multi-processors due to out of memory allocation error.
+
+.SUFFIXES:            # Delete the default suffixes
 
 # Files for conditional compilation
 
@@ -65,8 +66,50 @@ OBJ_DIR := obj/
 OBJ_FILES := $(addprefix $(OBJ_DIR),$(notdir $(SRC_FILES:.cpp=.o)))
 SRC_PREFIX := src/
 SRC_DIRS := $(dir $(SRC_FILES))
-VPATH := $(SRC_DIRS)
+VPATH := $(SRC_DIRS):src/particles:src/tools
 
+# Tools section
+
+PTCL_PUSHER  := $(EXE_DIR)particle_post_pusher
+VLSV_EXTRACT := $(EXE_DIR)vlsvextract
+VLSV2SILO    := $(EXE_DIR)vlsv2silo
+VLSVDIFF     := $(EXE_DIR)vlsvdiff
+FLUXFUNC     := $(EXE_DIR)fluxfunction
+
+
+SRC_PTCL := \
+		src/version.cpp \
+		src/readparameters.cpp \
+		$(wildcard src/particles/*.cpp)
+
+SRC_PTCL := \
+		src/tools/vlsvextract.cpp
+
+SRC_VLSV2SILO := \
+		src/tools/vlsv2silo.cpp
+
+SRC_VLSVDIFF := \
+		src/tools/vlsvdiff.cpp \
+		src/tools/vlsvreaderinterface.cpp
+
+SRC_FLUXFUNC := \
+		src/version.cpp \
+		src/readparameters.cpp \
+		src/tools/fluxfunction.cpp \
+		particles/readfields.cpp \
+		particles/particleparameters.cpp \
+		particles/physconst.cpp \
+		particles/distribution.cpp
+
+OBJ_PTCL := $(addprefix $(OBJ_DIR),$(notdir $(SRC_PTCL:.cpp=.o)))
+
+OBJ_VLSV_EXTRACT := $(addprefix $(OBJ_DIR),$(notdir $(SRC_VLSV_EXTRACT:.cpp=.o)))
+
+OBJ_VLSV2SILO := $(addprefix $(OBJ_DIR),$(notdir $(SRC_VLSV2SILO:.cpp=.o)))
+
+OBJ_VLSVDIFF := $(addprefix $(OBJ_DIR),$(notdir $(SRC_VLSVDIFF:.cpp=.o)))
+
+OBJ_FLUXFUNC := $(addprefix $(OBJ_DIR),$(notdir $(SRC_FLUXFUNC:.cpp=.o)))
 
 # Generally useful targets
 
@@ -78,8 +121,18 @@ objs : dirs $(OBJ_FILES)
 
 dirs : $(EXE_DIR) $(OBJ_DIR)
 
-src/version.cpp:
+$(SRC_PREFIX)version.cpp:
 	./generate_version.sh "$(CXX)" "${CXXFLAGS}" "${FLAGS}" "${INC_MPI}" "${INC_DCCRG}" "${INC_FSGRID}" "${INC_ZOLTAN}" "${INC_BOOST}"
+
+particle : dirs $(PTCL_PUSHER)
+
+vlsvextract : dirs $(VLSV_EXTRACT)
+
+vlsv2silo : dirs $(VLSV2SILO)
+
+vlsvdiff : dirs $(VLSVDIFF)
+
+fluxfunction : dirs $(FLUXFUNC)
 
 # For debugging variables in Makefile, e.g. by "make print-GCOV_FILES"
 
@@ -91,15 +144,33 @@ $(EXE_DIR):
 $(OBJ_DIR):
 	mkdir -p $(OBJ_DIR)
 
+# Create objects from source files
+
+$(OBJ_DIR)%.o : %.cpp
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+
+$(OBJ_DIR)vlsvdiff.o : vlsvdiff.cpp
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -Isrc -c $< -o $@
+
 # Link objects into executable
 
 $(EXECUTABLE) : $(OBJ_FILES)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o $@ $(OBJ_FILES) $(LDFLAGS) $(LDLIBS)
 
-# Create objects from source files
+$(PTCL_PUSHER) : $(OBJ_PTCL)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o $@ $(OBJ_PTCL) $(LDFLAGS) $(LDLIBS)
 
-$(OBJ_DIR)%.o : %.cpp
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+$(VLSV_EXTRACT) : $(OBJ_VLSV_EXTRACT)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o $@ $(OBJ_VLSV_EXTRACT) $(LDFLAGS) $(LDLIBS)
+
+$(VLSV2SILO) : $(OBJ_VLSV2SILO)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o $@ $(OBJ_VLSV2SILO) $(LDFLAGS) $(LDLIBS)
+
+$(VLSVDIFF) : $(OBJ_VLSVDIFF)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o $@ $(OBJ_VLSVDIFF) $(LDFLAGS) $(LDLIBS)
+
+$(FLUXFUNC) : $(OBJ_FLUXFUNC)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o $@ $(OBJ_FLUXFUNC) $(LDFLAGS) $(LDLIBS)
 
 # Cleanup
 
