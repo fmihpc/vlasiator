@@ -16,16 +16,7 @@ import subprocess
 import os
 import pkg_resources
 import sys
-import distro
 
-required = {'distro'}
-installed = {pkg.key for pkg in pkg_resources.working_set}
-missing = required - installed
-
-if missing:
-    python = sys.executable
-    subprocess.check_call([python, '-m', 'pip', 'install', *missing], \
-        stdout=subprocess.DEVNULL)
 
 # Set template and output filenames
 makefile_input = 'Makefile.in'
@@ -162,32 +153,38 @@ parser.add_argument('-omp',
                     default=False,
                     help='enable parallelization with OpenMP')
 
-# --boost_path=[name]
+
+# --machine=[name]
+parser.add_argument('--machine',
+                    default='',
+                    help='choose machine name for specific setup')
+
+# --boost_path=[string]
 parser.add_argument('--boost_path',
                     default='/usr/lib/x86_64-linux-gnu',
                     help='path to Boost libraries')
 
-# --vlsv_path=[name]
+# --vlsv_path=[string]
 parser.add_argument('--vlsv_path',
                     default='',
                     help='path to VLSV library')
 
-# --vlsv_path=[name]
+# --vlsv_path=[string]
 parser.add_argument('--dccrg_path',
                     default='',
                     help='path to DCCRG library')
 
-# --phiprof_path=[name]
+# --phiprof_path=[string]
 parser.add_argument('--fsgrid_path',
                     default='',
                     help='path to fsgrid library')
 
-# --zoltan_path=[name]
+# --zoltan_path=[string]
 parser.add_argument('--zoltan_path',
                     default='',
                     help='path to Zoltan library')
 
-# --phiprof_path=[name]
+# --phiprof_path=[string]
 parser.add_argument('--phiprof_path',
                     default='',
                     help='path to phiprof library')
@@ -198,16 +195,22 @@ parser.add_argument('-jemalloc',
                     default=True,
                     help='enable Jemalloc memory allocator')
 
-# --jemalloc_path=[name]
+# --jemalloc_path=[string]
 parser.add_argument('--jemalloc_path',
                     default='',
                     help='path to jemalloc library')
 
-# -papi
+# -papi (WIP)
 parser.add_argument('-papi',
                     action='store_true',
                     default=False,
                     help='enable Papi memory profiler')
+
+# -silo (WIP)
+parser.add_argument('-silo',
+                    action='store_true',
+                    default=False,
+                    help='enable silo format converter')
 
 # The main choices for --cxx flag, using "ctype[-suffix]" formatting, where 
 # "ctype" is the major family/suite/group of compilers and "suffix" may 
@@ -281,25 +284,26 @@ args = vars(parser.parse_args())
 
 # --- Step 2. Test for incompatible arguments ----------------------------
 
+if args['install'] and args['machine']:
+    raise SystemExit('### CONFIGURE ERROR: does not support fresh installation with a preset machine makefile')
 
 # --- Step 3. Set Makefile options based on above argument
 
 # Prepare dictionaries of substitutions to be made
 makefile_options = {}
 makefile_options['LOADER_FLAGS'] = ''
+makefile_options['PREPROCESSOR_FLAGS'] = ''
+makefile_options['LINKER_FLAGS'] = ''
+makefile_options['LIBRARY_FLAGS'] = ''
 
 # --cxx=[name] argument
 if args['cxx'] == 'g++':
     # GCC is C++11 feature-complete since v4.8.1 (2013-05-31)
     makefile_options['COMPILER_COMMAND'] = 'g++'
-    makefile_options['PREPROCESSOR_FLAGS'] = ''
     makefile_options['COMPILER_FLAGS'] = '-O3 -std=c++11'
-    makefile_options['LINKER_FLAGS'] = ''
-    makefile_options['LIBRARY_FLAGS'] = ''
 if args['cxx'] == 'g++-simd':
     # GCC version >= 4.9, for OpenMP 4.0; version >= 6.1 for OpenMP 4.5 support
     makefile_options['COMPILER_COMMAND'] = 'g++'
-    makefile_options['PREPROCESSOR_FLAGS'] = ''
     makefile_options['COMPILER_FLAGS'] = (
         '-O3 -std=c++11 -fopenmp-simd -fwhole-program -flto -ffast-math '
         '-march=native -fprefetch-loop-arrays'
@@ -309,71 +313,50 @@ if args['cxx'] == 'g++-simd':
         # -mprefer-avx128
         # -m64 (default)
     )
-    makefile_options['LINKER_FLAGS'] = ''
-    makefile_options['LIBRARY_FLAGS'] = ''
 if args['cxx'] == 'icpc':
     # ICC is C++11 feature-complete since v15.0 (2014-08-26)
     makefile_options['COMPILER_COMMAND'] = 'icpc'
-    makefile_options['PREPROCESSOR_FLAGS'] = ''
     makefile_options['COMPILER_FLAGS'] = (
       '-O3 -std=c++11 -ipo -xhost -inline-forceinline -qopenmp-simd -qopt-prefetch=4 '
       '-qoverride-limits'  # -qopt-report-phase=ipo (does nothing without -ipo)
     )
     # -qopt-zmm-usage=high'  # typically harms multi-core performance on Skylake Xeon
-    makefile_options['LINKER_FLAGS'] = ''
-    makefile_options['LIBRARY_FLAGS'] = ''
 if args['cxx'] == 'icpc-debug':
     # Disable IPO, forced inlining, and fast math. Enable vectorization reporting.
     # Useful for testing symmetry, SIMD-enabled functions and loops with OpenMP 4.5
     makefile_options['COMPILER_COMMAND'] = 'icpc'
-    makefile_options['PREPROCESSOR_FLAGS'] = ''
     makefile_options['COMPILER_FLAGS'] = (
       '-O3 -std=c++11 -xhost -qopenmp-simd -fp-model precise -qopt-prefetch=4 '
       '-qopt-report=5 -qopt-report-phase=openmp,vec -g -qoverride-limits'
     )
-    makefile_options['LINKER_FLAGS'] = ''
-    makefile_options['LIBRARY_FLAGS'] = ''
 if args['cxx'] == 'icpc-phi':
     # Cross-compile for Intel Xeon Phi x200 KNL series (unique AVX-512ER and AVX-512FP)
     # -xMIC-AVX512: generate AVX-512F, AVX-512CD, AVX-512ER and AVX-512FP
     makefile_options['COMPILER_COMMAND'] = 'icpc'
-    makefile_options['PREPROCESSOR_FLAGS'] = ''
     makefile_options['COMPILER_FLAGS'] = (
       '-O3 -std=c++11 -ipo -xMIC-AVX512 -inline-forceinline -qopenmp-simd '
       '-qopt-prefetch=4 -qoverride-limits'
     )
-    makefile_options['LINKER_FLAGS'] = ''
-    makefile_options['LIBRARY_FLAGS'] = ''
 if args['cxx'] == 'cray':
     # Cray Compiling Environment 8.4 (2015-09-24) introduces C++11 feature completeness
     # (except "alignas"). v8.6 is C++14 feature-complete
     makefile_options['COMPILER_COMMAND'] = 'CC'
-    makefile_options['PREPROCESSOR_FLAGS'] = ''
     makefile_options['COMPILER_FLAGS'] = '-O3 -h std=c++11 -h aggress -h vector3 -hfp3'
     makefile_options['LINKER_FLAGS'] = '-hwp -hpl=obj/lib'
     makefile_options['LIBRARY_FLAGS'] = '-lm'
 if args['cxx'] == 'clang++':
     # Clang is C++11 feature-complete since v3.3 (2013-06-17)
     makefile_options['COMPILER_COMMAND'] = 'clang++'
-    makefile_options['PREPROCESSOR_FLAGS'] = ''
     makefile_options['COMPILER_FLAGS'] = '-O3 -std=c++11'
-    makefile_options['LINKER_FLAGS'] = ''
-    makefile_options['LIBRARY_FLAGS'] = ''
 if args['cxx'] == 'clang++-simd':
     # LLVM/Clang version >= 3.9 for most of OpenMP 4.0 and 4.5 (still incomplete; no
     # offloading, target/declare simd directives). OpenMP 3.1 fully supported in LLVM 3.7
     makefile_options['COMPILER_COMMAND'] = 'clang++'
-    makefile_options['PREPROCESSOR_FLAGS'] = ''
     makefile_options['COMPILER_FLAGS'] = '-O3 -std=c++11 -fopenmp-simd'
-    makefile_options['LINKER_FLAGS'] = ''
-    makefile_options['LIBRARY_FLAGS'] = ''
 if args['cxx'] == 'clang++-apple':
     # Apple LLVM/Clang: forked version of the open-source LLVM project bundled in macOS
     makefile_options['COMPILER_COMMAND'] = 'clang++'
-    makefile_options['PREPROCESSOR_FLAGS'] = ''
     makefile_options['COMPILER_FLAGS'] = '-O3 -std=c++11'
-    makefile_options['LINKER_FLAGS'] = ''
-    makefile_options['LIBRARY_FLAGS'] = ''
 
 # -float argument
 if args['float']:
@@ -487,49 +470,9 @@ else:
         #   3180: pragma omp not recognized
         makefile_options['COMPILER_FLAGS'] += ' -diag-disable 3180'
 
-# --cflag=[string] argument
+# --cflag=[string]
 if args['cflag'] is not None:
     makefile_options['COMPILER_FLAGS'] += ' '+args['cflag']
-
-# --include=[name] arguments
-for include_path in args['include']:
-    makefile_options['COMPILER_FLAGS'] += ' -I'+include_path
-
-# --lib_path=[name] arguments
-for library_path in args['lib_path']:
-    makefile_options['LINKER_FLAGS'] += ' -L'+library_path
-
-# --lib=[name] arguments
-for library_name in args['lib']:
-    makefile_options['LIBRARY_FLAGS'] += ' -l'+library_name
-
-makefile_options['DCCRG_PATH'] = args['dccrg_path']
-makefile_options['FSGRID_PATH'] = args['fsgrid_path']
-
-# Add include paths to header-only libraries
-if args['dccrg_path']:
-    makefile_options['COMPILER_FLAGS'] += ' -I'+args['dccrg_path']
-if args['fsgrid_path']:
-    makefile_options['COMPILER_FLAGS'] += ' -I'+args['fsgrid_path']
-
-makefile_options['PHIPROF_PATH'] = args['phiprof_path']
-makefile_options['BOOST_PATH'] = args['boost_path']
-makefile_options['ZOLTAN_PATH'] = args['zoltan_path']
-
-# Add lib paths
-if args['phiprof_path']:
-    makefile_options['LINKER_FLAGS'] += ' -L'+args['phiprof_path']
-if args['zoltan_path']:
-    makefile_options['LINKER_FLAGS'] += ' -L'+args['zoltan_path']
-if args['vlsv_path']:
-    makefile_options['LINKER_FLAGS'] += ' -L'+args['vlsv_path']
-if args['jemalloc_path']:
-    makefile_options['LINKER_FLAGS'] += ' -L'+args['jemalloc_path']
-if args['boost_path']:
-    makefile_options['LINKER_FLAGS'] += ' -L'+args['boost_path']
-
-
-# --- Step 4. Check dependencies -----------------------------------------
 
 # Install dependencies
 if args['install']:
@@ -577,6 +520,7 @@ if args['install']:
         "https://gitlab.com/libeigen/eigen/-/archive/3.2.8/eigen-3.2.8.tar.bz2"])
         subprocess.check_call(["tar", "-xf", "eigen-3.2.8.tar.bz2"])
         subprocess.check_call(["cp", "-r", "eigen-3.2.8/Eigen", "lib"])
+    if not os.path.isdir("lib/zoltan"):
         subprocess.check_call(["wget", \
         "http://cs.sandia.gov/Zoltan/Zoltan_Distributions/zoltan_distrib_v3.83.tar.gz"])
         subprocess.check_call(["tar", "-xf", "zoltan_distrib_v3.83.tar.gz"])
@@ -587,20 +531,7 @@ if args['install']:
         "--with-id-type=ullong"])
         subprocess.check_call(["make", "-j", "4"])
         subprocess.check_call(["make", "install"])
-
         os.chdir("../..")
-
-    # Boost is skipped as it is too large to install here
-    if not os.path.isfile(os.path.join(args['boost_path'], "libboost_program_options.a")):
-        distname = distro.linux_distribution(full_distribution_name=False)[0]
-        errmsghead = """Boost not found: try to set the correct path, 
-        or install it manually as follows:"""
-        if  distname == 'ubuntu':
-            raise SystemExit(errmsghead+
-            '\n sudo apt update\n sudo apt install libboost-all-dev')
-        else:
-            raise SystemExit(errmsghead+
-            'search for how to install Boost on '+distname)
 
     for f in ["add-on", "eigen-3.2.8.tar.bz2","eigen-3.2.8",\
         "zoltan_distrib_v3.83.tar.gz", "Zoltan_v3.83", \
@@ -608,15 +539,31 @@ if args['install']:
         subprocess.check_call(["rm", "-rf", f])
 
     # Create path names for generating version.cpp in Makefile
+    makefile_options['BOOST_PATH'] = args['boost_path']
     makefile_options['DCCRG_PATH'] = "lib/dccrg"
     makefile_options['FSGRID_PATH'] = "lib/fsgrid"
-    makefile_options['PHIPROF_PATH'] = "lib/phiprof"
-    makefile_options['ZOLTAN_PATH'] = "lib/zoltan"
+    makefile_options['PHIPROF_PATH'] = "lib/phiprof/lib"
+    makefile_options['ZOLTAN_PATH'] = "lib/zoltan/lib"
+    makefile_options['VECTORCLASS_PATH'] = "lib/vectorclass"
+    makefile_options['JEMALLOC_PATH'] = "lib/jemalloc/lib"
+    makefile_options['VLSV_PATH'] = "lib/vlsv"
 
-    makefile_options['LINKER_FLAGS'] += " -Llib/zoltan/lib"
-    makefile_options['LINKER_FLAGS'] += " -Llib/jemalloc/lib"
-    makefile_options['LINKER_FLAGS'] += " -Llib/phiprof/lib"
-    makefile_options['LINKER_FLAGS'] += " -Llib/vlsv"
+    print(makefile_options['FSGRID_PATH'])
+
+    # Boost is skipped as it is too large to install here
+    if not os.path.isfile(os.path.join(makefile_options['BOOST_PATH'], "libboost_program_options.a")):
+        errmsghead = """Boost not found: try to set the correct path, or """
+        if 'Ubuntu' in os.uname()[3]:
+            raise SystemExit(errmsghead+"install it manually as follows:"
+            '\n sudo apt update\n sudo apt install libboost-all-dev')
+        else:
+            raise SystemExit(errmsghead+
+            'search for how to install Boost!')
+
+    makefile_options['LINKER_FLAGS'] += " -L"+makefile_options['ZOLTAN_PATH']
+    makefile_options['LINKER_FLAGS'] += " -L"+makefile_options['JEMALLOC_PATH']
+    makefile_options['LINKER_FLAGS'] += " -L"+makefile_options['PHIPROF_PATH']
+    makefile_options['LINKER_FLAGS'] += " -L"+makefile_options['VLSV_PATH']
     makefile_options['COMPILER_FLAGS'] += ' -I'+"lib/vectorclass"
     makefile_options['COMPILER_FLAGS'] += ' -I'+"lib/zoltan/include"
     makefile_options['COMPILER_FLAGS'] += ' -I'+"lib/fsgrid"
@@ -629,38 +576,138 @@ if args['install']:
     for f in ["boost_program_options", "zoltan", "vlsv", "jemalloc", "phiprof"]:
         makefile_options['LIBRARY_FLAGS'] += ' -l'+f
 else:
-    # Check dependencies
-    if any(os.path.isfile(os.path.join(p, "vectorf512.h")) for p in args['include']):
-        if not any(os.path.isfile(os.path.join(p, "vector3d.h")) for p in args['include']):
-            raise SystemExit('### CONFIGURE ERROR: vector3d.h not found!')
-    else:
-        raise SystemExit('### CONFIGURE ERROR: unknown vectorclass location!')
+    # --include=[name]
+    for include_path in args['include']:
+        makefile_options['COMPILER_FLAGS'] += ' -I'+include_path
 
-    if not os.path.isfile(os.path.join(args['fsgrid_path'], "fsgrid.hpp")):
-        raise SystemExit('### CONFIGURE ERROR: unknown fsgrid location!')
+    # --lib_path=[name]
+    for library_path in args['lib_path']:
+        makefile_options['LINKER_FLAGS'] += ' -L'+library_path
 
-    if not os.path.isfile(os.path.join(args['dccrg_path'], "dccrg.hpp")):
-        raise SystemExit('### CONFIGURE ERROR: unknown dccrg location!')
+    # --lib=[name]
+    for library_name in args['lib']:
+        makefile_options['LIBRARY_FLAGS'] += ' -l'+library_name
 
-    if not os.path.isfile(os.path.join(args['boost_path'], "libboost_program_options.a")):
-        raise SystemExit('### CONFIGURE ERROR: unknown Boost location!')
+    makefile_options['DCCRG_PATH'] = args['dccrg_path']
+    makefile_options['FSGRID_PATH'] = args['fsgrid_path']
 
-    if not os.path.isfile(os.path.join(args['zoltan_path'], "libzoltan.a")):
-        raise SystemExit('### CONFIGURE ERROR: unknown Zoltan location!')
+    # Add include paths to header-only libraries
+    if args['dccrg_path']:
+        makefile_options['COMPILER_FLAGS'] += ' -I'+args['dccrg_path']
+    if args['fsgrid_path']:
+        makefile_options['COMPILER_FLAGS'] += ' -I'+args['fsgrid_path']
 
-    if not os.path.isfile(os.path.join(args['vlsv_path'], "conv_mtx_vlsv")):
-        raise SystemExit('### CONFIGURE ERROR: vlsv not found or compiled!')
+    makefile_options['PHIPROF_PATH'] = args['phiprof_path']
+    makefile_options['BOOST_PATH'] = args['boost_path']
+    makefile_options['ZOLTAN_PATH'] = args['zoltan_path']
+    makefile_options['JEMALLOC_PATH'] = args['jemalloc_path']
+    makefile_options['VLSV_PATH'] = args['vlsv_path']
 
-    if not os.path.isfile(os.path.join(args['boost_path'], "libboost_program_options.a")):
-        raise SystemExit('### CONFIGURE ERROR: unknown Boost location!')
+if args['machine']:
+    with open("MAKE/Makefile."+args['machine']) as f:
+        for line in f:
+            line = line.strip()
+            if "INC_DCCRG" in line:
+                print(line)
+                makefile_options['DCCRG_PATH'] = line.split(' = -I')[1]
+                makefile_options['COMPILER_FLAGS'] += ' -I'+makefile_options['DCCRG_PATH']
+            elif "INC_FSGRID" in line:
+                print(line)
+                makefile_options['FSGRID_PATH'] = line.split(' = -I')[1]
+                makefile_options['COMPILER_FLAGS'] += ' -I'+makefile_options['FSGRID_PATH']
+            elif "LIB_PROFILE" in line:
+                print(line)
+                lib_path = line.split(' = -L')[1].split(' ')
+                makefile_options['LIBRARY_FLAGS'] += ' '+lib_path[1]
+                makefile_options['PHIPROF_PATH'] = lib_path[0]
+            elif "LIB_ZOLTAN" in line:
+                print(line)
+                lib_path = line.split(' = -L')[1].split(' ')
+                makefile_options['LIBRARY_FLAGS'] += ' '+lib_path[1]
+                makefile_options['ZOLTAN_PATH'] = lib_path[0]
+            elif "LIB_VLSV" in line:
+                print(line)
+                lib_path = line.split(' = -L')[1].split(' ')
+                makefile_options['LIBRARY_FLAGS'] += ' '+lib_path[1]
+                makefile_options['VLSV_PATH'] = lib_path[0]
+            elif "LIB_JEMALLOC" in line:
+                print(line)
+                lib_path = line.split(' = -L')[1].split(' ')
+                makefile_options['LIBRARY_FLAGS'] += ' '+lib_path[1]
+                makefile_options['JEMALLOC_PATH'] = lib_path[0]
+            elif "INC_EIGEN" in line:
+                print(line)
+                makefile_options['EIGEN_PATH'] = line.split(' = -I')[1]
+                makefile_options['COMPILER_FLAGS'] += ' -I'+makefile_options['EIGEN_PATH']
+            elif "LIB_SILO" in line:
+                print(line)
+                makefile_options['SILO_PATH'] = line.split(' = -L')[1]  
+            elif "INC_VECTORCLASS" in line:
+                print(line)
+                makefile_options['VECTORCLASS_PATH'] = line.split(' = -I')[1]
+            elif "LIB_BOOST" in line:
+                print(line)
+                lib_path = line.split(' = -L')[1].split(' ')
+                makefile_options['LIBRARY_FLAGS'] += ' '+lib_path[1]
+                makefile_options['BOOST_PATH'] = lib_path[0]
+            elif "INC_BOOST" in line:
+                makefile_options['COMPILER_FLAGS'] += line.split(' =')[1]
+            elif "INC_JEMALLOC" in line:
+                makefile_options['COMPILER_FLAGS'] += line.split(' =')[1]
+            elif "INC_VLSV" in line:
+                makefile_options['COMPILER_FLAGS'] += line.split(' =')[1]
+            elif "INC_ZOLTAN" in line:
+                makefile_options['COMPILER_FLAGS'] += line.split(' =')[1]
+            elif "INC_PROFILE" in line:
+                makefile_options['COMPILER_FLAGS'] += line.split(' =')[1]
+            elif "INC_SILO" in line:
+                print('skip silo for now')
+                #makefile_options['COMPILER_FLAGS'] += line.split(' =')[1]
 
-    if args['jemalloc']:
-        if not os.path.isfile(os.path.join(args['jemalloc_path'], "libjemalloc.a")):
-            raise SystemExit('### CONFIGURE ERROR: unknown jemalloc location!')
+# Add lib paths
+if 'PHIPROF_PATH' in makefile_options:
+    makefile_options['LINKER_FLAGS'] += ' -L'+makefile_options['PHIPROF_PATH']
+if 'ZOLTAN_PATH' in makefile_options:
+    makefile_options['LINKER_FLAGS'] += ' -L'+makefile_options['ZOLTAN_PATH']
+if 'VLSV_PATH' in makefile_options:
+    makefile_options['LINKER_FLAGS'] += ' -L'+makefile_options['VLSV_PATH']
+if 'JEMALLOC_PATH' in makefile_options:
+    makefile_options['LINKER_FLAGS'] += ' -L'+makefile_options['JEMALLOC_PATH']
+if 'BOOST_PATH' in makefile_options:
+    makefile_options['LINKER_FLAGS'] += ' -L'+makefile_options['BOOST_PATH']
 
-    if args['profile']:
-        if not os.path.isfile(os.path.join(args['phiprof_path'], "libphiprof.a")):
-            raise SystemExit('### CONFIGURE ERROR: unknown phiprof location!')
+
+# --- Step 4. Check dependencies -----------------------------------------
+
+# Check dependencies
+if os.path.isfile(os.path.join(makefile_options['VECTORCLASS_PATH'], "vectorf512.h")):
+    if not os.path.isfile(os.path.join(makefile_options['VECTORCLASS_PATH'], "vector3d.h")):
+        raise SystemExit('### CONFIGURE ERROR: vector3d.h not found!')
+else:
+    raise SystemExit('### CONFIGURE ERROR: unknown vectorclass location!')
+
+if not os.path.isfile(os.path.join(makefile_options['FSGRID_PATH'], "fsgrid.hpp")):
+    raise SystemExit('### CONFIGURE ERROR: unknown fsgrid location!')
+
+if not os.path.isfile(os.path.join(makefile_options['DCCRG_PATH'], "dccrg.hpp")):
+    raise SystemExit('### CONFIGURE ERROR: unknown dccrg location!')
+
+if not os.path.isfile(os.path.join(makefile_options['ZOLTAN_PATH'], "libzoltan.a")):
+    raise SystemExit('### CONFIGURE ERROR: unknown Zoltan location!')
+
+if not os.path.isfile(os.path.join(makefile_options['VLSV_PATH'], "conv_mtx_vlsv")):
+    raise SystemExit('### CONFIGURE ERROR: vlsv not found or compiled!')
+
+if not os.path.isfile(os.path.join(makefile_options['BOOST_PATH'], "libboost_program_options.a")):
+    raise SystemExit('### CONFIGURE ERROR: unknown Boost location!')
+
+if args['jemalloc']:
+    if not os.path.isfile(os.path.join(makefile_options['JEMALLOC_PATH'], "libjemalloc.a")):
+        raise SystemExit('### CONFIGURE ERROR: unknown jemalloc location!')
+
+if args['profile']:
+    if not os.path.isfile(os.path.join(makefile_options['PHIPROF_PATH'], "libphiprof.a")):
+        raise SystemExit('### CONFIGURE ERROR: unknown phiprof location!')
 
 
 # --- Step 5. Create new files, finish up --------------------------------
@@ -684,6 +731,7 @@ with open(makefile_output, 'w') as current_file:
 # Finish with diagnostic output
 
 print('Your Vlasiator distribution has now been configured with the following options:')
+print('  Machine:                    ' + (args['machine'] if args['machine'] else 'user'))
 print('  Coordinate system:          ' + args['coord'])
 print('  Linker flags:               ' + makefile_options['LINKER_FLAGS'] + ' '
       + makefile_options['LIBRARY_FLAGS'])

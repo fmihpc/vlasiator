@@ -20,6 +20,10 @@ INC_FSGRID := @FSGRID_PATH@
 INC_ZOLTAN := @ZOLTAN_PATH@
 INC_BOOST := @BOOST_PATH@
 
+# Machine-specific flags from customized files
+
+
+
 # Preliminary definitions
 
 EXE_DIR := bin/
