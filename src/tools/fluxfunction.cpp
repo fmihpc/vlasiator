@@ -28,8 +28,8 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <string.h>
-#include "particles/field.h"
-#include "particles/readfields.h"
+#include "../particles/field.h"
+#include "../particles/readfields.h"
 
 using namespace std;
 

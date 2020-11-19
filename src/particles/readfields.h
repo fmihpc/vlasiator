@@ -22,7 +22,7 @@
  */
 
 #include "vlsv_reader.h"
-#include "vlsvreaderinterface.h"
+#include "../tools/vlsvreaderinterface.h"
 #include "field.h"
 #include <algorithm>
 #include <vector>
