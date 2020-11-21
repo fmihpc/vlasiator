@@ -21,7 +21,6 @@
  */
 
 #include <unordered_set>
-#include <vectorclass.h>
 
 #include "spatial_cell.hpp"
 #include "velocity_blocks.h"

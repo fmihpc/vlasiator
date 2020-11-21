@@ -132,8 +132,10 @@ setOfPencils buildPencilsWithNeighbors( dccrg::Dccrg<grid_data> &grid,
    // Maybe you could use physical coordinates here?
    if( startingRefLvl > path.size() ) {
       for ( uint i = path.size(); i < startingRefLvl; i++) {
-         auto parent = grid.get_parent(id);
-         auto children = grid.get_all_children(parent);
+         auto parent = grid.mapping.get_parent(id);
+
+	 std::array<uint64_t, 8> childrenarr = mpiGrid.mapping.get_all_children(parent);
+	 vector<CellID> children(childrenarr.begin(), childrenarr.end());
          auto it = std::find(children.begin(),children.end(),id);
          auto index = std::distance(children.begin(),it);
          auto index2 = index;

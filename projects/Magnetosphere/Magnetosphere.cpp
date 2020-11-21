@@ -77,6 +77,10 @@ namespace projects {
       RP::add("Magnetosphere.dipoleInflowBX","Inflow magnetic field Bx component to which the vector potential dipole converges. Default is none.", 0.0);
       RP::add("Magnetosphere.dipoleInflowBY","Inflow magnetic field By component to which the vector potential dipole converges. Default is none.", 0.0);
       RP::add("Magnetosphere.dipoleInflowBZ","Inflow magnetic field Bz component to which the vector potential dipole converges. Default is none.", 0.0);
+      //New Parameter for zeroing out derivativeNew Parameter for zeroing out derivativess
+      RP::add("Magnetosphere.zeroOutDerivativesX","Zero Out Perpendicular components", 1.0);
+      RP::add("Magnetosphere.zeroOutDerivativesY","Zero Out Perpendicular components", 1.0);
+      RP::add("Magnetosphere.zeroOutDerivativesZ","Zero Out Perpendicular components", 1.0);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
@@ -232,6 +236,20 @@ namespace projects {
          exit(1);
       }
 
+      if(!Readparameters::get("Magnetosphere.zeroOutDerivativesX", this->zeroOutComponents[0])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+     
+      if(!Readparameters::get("Magnetosphere.zeroOutDerivativesY", this->zeroOutComponents[1])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+     
+      if(!Readparameters::get("Magnetosphere.zeroOutDerivativesZ", this->zeroOutComponents[2])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
@@ -383,11 +401,11 @@ namespace projects {
                if (P::isRestart == false) {
                   bgFieldDipole.initialize(-8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );
                   setPerturbedField(bgFieldDipole, perBGrid);
-                  bgVectorDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, this->dipoleTiltPhi*3.14159/180., this->dipoleTiltTheta*3.14159/180., this->dipoleXFull, this->dipoleXZero, this->dipoleInflowB[0], this->dipoleInflowB[1], this->dipoleInflowB[2]);
+                  bgVectorDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, this->dipoleTiltPhi*M_PI/180., this->dipoleTiltTheta*M_PI/180., this->dipoleXFull, this->dipoleXZero, this->dipoleInflowB[0], this->dipoleInflowB[1], this->dipoleInflowB[2]);
                   setPerturbedField(bgVectorDipole, perBGrid, true);
                }
                SBC::ionosphereGrid.calculateFsgridCoupling(technicalGrid, bgVectorDipole,ionosphereRadius);
-               break;              
+               break;
             default:
                setBackgroundFieldToZero(BgBGrid);
       }
@@ -397,8 +415,11 @@ namespace projects {
       
 #pragma omp parallel
       {
+         bool doZeroOut;
          //Force field to zero in the perpendicular direction for 2D (1D) simulations. Otherwise we have unphysical components.
-         if(P::xcells_ini==1) {
+         doZeroOut = P::xcells_ini ==1 && this->zeroOutComponents[0]==1;
+      
+         if(doZeroOut) {
 #pragma omp for collapse(3)
             for (int x = 0; x < localSize[0]; ++x) {
                for (int y = 0; y < localSize[1]; ++y) {
@@ -418,28 +439,32 @@ namespace projects {
                }
             }
          }
-         if(P::ycells_ini==1) {
-            /*2D simulation in x and z. Set By and derivatives along Y, and derivatives of By to zero*/
-#pragma omp for collapse(3)
-            for (int x = 0; x < localSize[0]; ++x) {
-               for (int y = 0; y < localSize[1]; ++y) {
-                  for (int z = 0; z < localSize[2]; ++z) {
-                     std::array<Real, fsgrids::bgbfield::N_BGB>* cell = BgBGrid.get(x, y, z);
-                     cell->at(fsgrids::bgbfield::BGBY)=0.0;
-                     cell->at(fsgrids::bgbfield::BGBYVOL)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBxdy)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBzdy)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBydx)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBydz)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBXVOLdy)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBZVOLdy)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBYVOLdx)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBYVOLdz)=0.0;
-                  }
-               }
-            }
-         }
-         if(P::zcells_ini==1) {
+            
+          doZeroOut = P::ycells_ini ==1 && this->zeroOutComponents[1]==1;
+          if(doZeroOut) {
+             /*2D simulation in x and z. Set By and derivatives along Y, and derivatives of By to zero*/
+ #pragma omp for collapse(3)
+             for (int x = 0; x < localSize[0]; ++x) {
+                for (int y = 0; y < localSize[1]; ++y) {
+                   for (int z = 0; z < localSize[2]; ++z) {
+                      std::array<Real, fsgrids::bgbfield::N_BGB>* cell = BgBGrid.get(x, y, z);
+                      cell->at(fsgrids::bgbfield::BGBY)=0.0;
+                      cell->at(fsgrids::bgbfield::BGBYVOL)=0.0;
+                      cell->at(fsgrids::bgbfield::dBGBxdy)=0.0;
+                      cell->at(fsgrids::bgbfield::dBGBzdy)=0.0;
+                      cell->at(fsgrids::bgbfield::dBGBydx)=0.0;
+                      cell->at(fsgrids::bgbfield::dBGBydz)=0.0;
+                      cell->at(fsgrids::bgbfield::dBGBXVOLdy)=0.0;
+                      cell->at(fsgrids::bgbfield::dBGBZVOLdy)=0.0;
+                      cell->at(fsgrids::bgbfield::dBGBYVOLdx)=0.0;
+                      cell->at(fsgrids::bgbfield::dBGBYVOLdz)=0.0;
+                   }
+                }
+             }
+          }
+
+         doZeroOut = P::zcells_ini ==1 && this->zeroOutComponents[2]==1;
+         if(doZeroOut) {
 #pragma omp for collapse(3)
             for (int x = 0; x < localSize[0]; ++x) {
                for (int y = 0; y < localSize[1]; ++y) {
@@ -613,15 +638,16 @@ namespace projects {
      if(myRank == MASTER_RANK) std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
       
      // Leave boundary cells and a bit of safety margin
-     const int bw = 2* VLASOV_STENCIL_WIDTH;
-     const int bw2 = 2*(bw + VLASOV_STENCIL_WIDTH);
-     const int bw3 = 2*(bw2 + VLASOV_STENCIL_WIDTH);
-     const int bw4 = 2*(bw3 + VLASOV_STENCIL_WIDTH);
+     const int bw = 2* (globalflags::AMRstencilWidth);
+     const int bw2 = 2*(bw + globalflags::AMRstencilWidth);
+     const int bw3 = 2*(bw2 + globalflags::AMRstencilWidth);
+     const int bw4 = 2*(bw3 + globalflags::AMRstencilWidth);
 
      // Calculate regions for refinement
      if (P::amrMaxSpatialRefLevel > 0) {
 
 	// L1 refinement.
+//#pragma omp parallel for collapse(3)
 	for (uint i = bw; i < P::xcells_ini-bw; ++i) {
 	   for (uint j = bw; j < P::ycells_ini-bw; ++j) {
 	      for (uint k = bw; k < P::zcells_ini-bw; ++k) {
@@ -656,6 +682,7 @@ namespace projects {
      if (P::amrMaxSpatialRefLevel > 1) {
 	
 	// L2 refinement.
+//#pragma omp parallel for collapse(3)
 	for (uint i = bw2; i < 2*P::xcells_ini-bw2; ++i) {
 	   for (uint j = bw2; j < 2*P::ycells_ini-bw2; ++j) {
 	      for (uint k = bw2; k < 2*P::zcells_ini-bw2; ++k) {
@@ -691,6 +718,7 @@ namespace projects {
      
      if (P::amrMaxSpatialRefLevel > 2) {
 	// L3 refinement.
+//#pragma omp parallel for collapse(3)
 	   for (uint i = bw3; i < 4*P::xcells_ini-bw3; ++i) {
 	      for (uint j = bw3; j < 4*P::ycells_ini-bw3; ++j) {
 		 for (uint k = bw3; k < 4*P::zcells_ini-bw3; ++k) {
@@ -742,6 +770,7 @@ namespace projects {
 
      if (P::amrMaxSpatialRefLevel > 3) {
 	// L4 refinement.
+//#pragma omp parallel for collapse(3)
 	   for (uint i = bw4; i < 8*P::xcells_ini-bw4; ++i) {
 	      for (uint j = bw4; j < 8*P::ycells_ini-bw4; ++j) {
 		 for (uint k = bw4; k < 8*P::zcells_ini-bw4; ++k) {

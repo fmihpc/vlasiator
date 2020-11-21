@@ -6,14 +6,21 @@ LNK = mpicxx
 #Options: 
 # AVX:      VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
 # AVX512:   VEC8D_AGNER, VEC16F_AGNER
-# Fallback: VEC4D_FALLBACK, VEC4F_FALLBACK, VEC8F_FALLBACK
+# Fallback: VEC4D_FALLBACK, VEC4F_FALLBACK, VEC8F_FALLBACK, VEC8D_FALLBACK
 
 ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
 #Single-precision        
-        VECTORCLASS = VEC8F_AGNER
+	VECTORCLASS = VEC8F_AGNER
+	INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/vectorclass-version1
+#	VECTORCLASS = VEC8F_FALLBACK
+#	INC_VECTORCLASS = -I$(HOME)/vlasiator/vlasovsolver
 else
 #Double-precision
-        VECTORCLASS = VEC8D_AGNER
+	VECTORCLASS = VEC4D_AGNER
+	INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/vectorclass-version1
+#	VECTORCLASS = VEC4D_FALLBACK
+#	VECTORCLASS = VEC8D_FALLBACK
+#	INC_VECTORCLASS = -I$(HOME)/vlasiator/vlasovsolver
 endif
 
 FLAGS = 
@@ -38,7 +45,7 @@ LIB_MPI = -lgomp
 
 BOOST_VERSION = 
 MPI_BRAND = mpt
-MPI_VERSION = 2.22
+MPI_VERSION = 2.23
 ZOLTAN_VERSION = 
 SILO_VERSION = 
 JEMALLOC_VERSION = 5.2.1
@@ -58,11 +65,11 @@ CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
 #compiled libraries
 
-INC_BOOST = -I$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/boost/include
-LIB_BOOST = -L$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/boost/lib -lboost_program_options
+LIB_BOOST= -L/opt/hlrs/spack/rev-004_2020-06-17/boost/1.70.0-gcc-9.2.0-ohuvjbhm/lib -lboost_program_options
+INC_BOOST=-L/opt/hlrs/spack/rev-004_2020-06-17/boost/1.70.0-gcc-9.2.0-ohuvjbhm/include
 
-INC_ZOLTAN = -I$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/zoltan/include
-LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/zoltan/lib -lzoltan
+INC_ZOLTAN = -I/opt/hlrs/spack/rev-004_2020-06-17/trilinos/12.14.1-gcc-9.2.0-jp6yigfc/include
+LIB_ZOLTAN = -L/opt/hlrs/spack/rev-004_2020-06-17/trilinos/12.14.1-gcc-9.2.0-jp6yigfc/lib -lzoltan
 
 INC_JEMALLOC = -I$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/jemalloc/include
 LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/jemalloc/lib -ljemalloc
@@ -73,15 +80,14 @@ LIB_VLSV = -L$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAN
 LIB_PROFILE = -L$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof/lib -lphiprof
 INC_PROFILE = -I$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof/include
 
-INC_PAPI = -I/opt/hlrs/spack/rev-003_2020-03-03/papi/5.7.0-gcc-9.2.0-ie2ujpf4/include
-LIB_PAPI = -L/opt/hlrs/spack/rev-003_2020-03-03/papi/5.7.0-gcc-9.2.0-ie2ujpf4/lib -lpapi
+INC_PAPI = -I/opt/hlrs/spack/rev-004_2020-06-17/papi/c048e224f-gcc-9.2.0-hxfnx7kt/include
+LIB_PAPI = -L/opt/hlrs/spack/rev-004_2020-06-17/papi/c048e224f-gcc-9.2.0-hxfnx7kt/lib -lpapi
 
 #header libraries
 
 INC_EIGEN = -I$(LIBRARY_PREFIX)/
 INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg/
 INC_FSGRID = -I$(LIBRARY_PREFIX)/fsgrid/
-INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/vectorclass-version1
 
 
 

@@ -10,9 +10,11 @@
 
 ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
 #Single-precision        
+        INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/Codes/vectorclass/version1
 	VECTORCLASS = VEC4F_FALLBACK
 else
 #Double-precision
+        INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/Codes/vectorclass/version1
 	VECTORCLASS = VEC4D_FALLBACK
 endif
 
@@ -24,22 +26,6 @@ CMP = mpic++
 LNK = mpic++
 
 PAPI_FLAG =
-
-#======== Vectorization ==========
-#Set vector backend type for vlasov solvers, sets precision and length. 
-#NOTE this has to have the same precision as the distribution function define (DISTRIBUTION_FP_PRECISION)
-#Options: 
-# AVX:	    VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
-# AVX512:   VEC8D_AGNER, VEC16F_AGNER
-# Fallback: VEC4D_FALLBACK, VEC4F_FALLBACK, VEC8F_FALLBACK
-
-ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
-#Single-precision        
-	VECTORCLASS = VEC8F_AGNER
-else
-#Double-precision
-	VECTORCLASS = VEC4D_AGNER
-endif
 
 FLAGS =
 #CXXFLAGS = -I $(HOME)/include  -L $(HOME)/lib -g  -funroll-loops -std=c++0x -fopenmp -W -Wall -pedantic -Wno-unused -fabi-version=0 -mavx
@@ -65,7 +51,7 @@ LIB_VLSV = -L$(LIBRARY_PREFIX)/Development/vlsv -lvlsv
 INC_SILO = -I$(LIBRARY_PREFIX)/include
 LIB_SILO = -L$(LIBRARY_PREFIX)/lib -lsilo
 
-INC_DCCRG = -I$(LIBRARY_PREFIX)/Codes/dccrg
+INC_DCCRG = -I$(LIBRARY_PREFIX)/Development/dccrg
 
 INC_FSGRID = -I$(LIBRARY_PREFIX)/Development/fsgrid
 
