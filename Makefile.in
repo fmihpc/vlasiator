@@ -16,14 +16,45 @@ LDFLAGS := @LINKER_FLAGS@
 LDLIBS := @LIBRARY_FLAGS@
 
 INC_MPI := @MPI_PATH@
-INC_DCCRG := @DCCRG_PATH@
-INC_FSGRID := @FSGRID_PATH@
-INC_ZOLTAN := @ZOLTAN_PATH@
-INC_BOOST := @BOOST_PATH@
 
-# Machine-specific flags from customized files
+INC_DCCRG := -I@INC_DCCRG@
 
+INC_FSGRID := -I@INC_FSGRID@
 
+INC_BOOST := -I@INC_BOOST@
+LIB_BOOST := -L@BOOST_PATH@ -lboost_program_options
+
+INC_ZOLTAN := -I@INC_ZOLTAN@
+LIB_ZOLTAN = -L@ZOLTAN_PATH@ -lzoltan
+
+INC_VLSV := -I@INC_VLSV@
+LIB_VLSV := -L@VLSV_PATH@ -lvlsv
+
+INC_SILO := -I@INC_SILO@
+LIB_SILO := -L@SILO_PATH@ -lsilo
+
+INC_JEMALLOC := -I@INC_JEMALLOC@
+LIB_JEMALLOC := -L@JEMALLOC_PATH@ -ljemalloc
+
+INC_PROFILE := -I@INC_PHIPROF@
+LIB_PROFILE := -L@PHIPROF_PATH@ -lphiprof
+
+INC_EIGEN := -I@INC_EIGEN@
+
+# Collect all the include paths
+INC_PATH = $(INC_DCCRG)
+INC_PATH += $(INC_FSGRID)
+INC_PATH += $(INC_ZOLTAN)
+INC_PATH += $(INC_VLSV)
+INC_PATH += $(INC_JEMALLOC)
+INC_PATH += $(INC_PROFILE)
+INC_PATH += $(INC_EIGEN)
+ifneq ($(INC_BOOST), " -I")
+	INC_PATH += $(INC_BOOST)
+endif
+ifneq ($(INC_SILO), " -I")
+	INC_PATH += $(INC_BOOST)
+endif
 
 # Preliminary definitions
 
@@ -147,30 +178,30 @@ $(OBJ_DIR):
 # Create objects from source files
 
 $(OBJ_DIR)%.o : %.cpp
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INC_PATH) -c $< -o $@
 
 $(OBJ_DIR)vlsvdiff.o : vlsvdiff.cpp
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -Isrc -c $< -o $@
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INC_PATH) -Isrc -c $< -o $@
 
 # Link objects into executable
 
 $(EXECUTABLE) : $(OBJ_FILES)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o $@ $(OBJ_FILES) $(LDFLAGS) $(LDLIBS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INC_PATH) -o $@ $(OBJ_FILES) $(LDFLAGS) $(LDLIBS)
 
 $(PTCL_PUSHER) : $(OBJ_PTCL)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o $@ $(OBJ_PTCL) $(LDFLAGS) $(LDLIBS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INC_PATH) -o $@ $(OBJ_PTCL) $(LDFLAGS) $(LDLIBS)
 
 $(VLSV_EXTRACT) : $(OBJ_VLSV_EXTRACT)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o $@ $(OBJ_VLSV_EXTRACT) $(LDFLAGS) $(LDLIBS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INC_PATH) -o $@ $(OBJ_VLSV_EXTRACT) $(LDFLAGS) $(LDLIBS)
 
 $(VLSV2SILO) : $(OBJ_VLSV2SILO)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o $@ $(OBJ_VLSV2SILO) $(LDFLAGS) $(LDLIBS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INC_PATH) -o $@ $(OBJ_VLSV2SILO) $(LDFLAGS) $(LDLIBS)
 
 $(VLSVDIFF) : $(OBJ_VLSVDIFF)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o $@ $(OBJ_VLSVDIFF) $(LDFLAGS) $(LDLIBS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INC_PATH) -o $@ $(OBJ_VLSVDIFF) $(LDFLAGS) $(LDLIBS)
 
 $(FLUXFUNC) : $(OBJ_FLUXFUNC)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o $@ $(OBJ_FLUXFUNC) $(LDFLAGS) $(LDLIBS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INC_PATH) -o $@ $(OBJ_FLUXFUNC) $(LDFLAGS) $(LDLIBS)
 
 # Cleanup
 

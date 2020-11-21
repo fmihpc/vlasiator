@@ -16,6 +16,7 @@ import subprocess
 import os
 import pkg_resources
 import sys
+import warnings
 
 
 # Set template and output filenames
@@ -37,6 +38,11 @@ parser.add_argument('-install',
                     action='store_true',
                     default=False,
                     help='install all the dependencies')
+
+# --save=[name]
+parser.add_argument('--save',
+                    default='',
+                    help='save library paths into a customized Makefile')
 
 # --coord=[name]
 parser.add_argument(
@@ -286,6 +292,9 @@ args = vars(parser.parse_args())
 
 if args['install'] and args['machine']:
     raise SystemExit('### CONFIGURE ERROR: does not support fresh installation with a preset machine makefile')
+
+if args['save'] and args['machine']:
+    warnings.warn("Overwrite specified makefile...")
 
 # --- Step 3. Set Makefile options based on above argument
 
@@ -540,15 +549,13 @@ if args['install']:
 
     # Create path names for generating version.cpp in Makefile
     makefile_options['BOOST_PATH'] = args['boost_path']
-    makefile_options['DCCRG_PATH'] = "lib/dccrg"
-    makefile_options['FSGRID_PATH'] = "lib/fsgrid"
+    makefile_options['INC_DCCRG'] = "lib/dccrg"
+    makefile_options['INC_FSGRID'] = "lib/fsgrid"
     makefile_options['PHIPROF_PATH'] = "lib/phiprof/lib"
     makefile_options['ZOLTAN_PATH'] = "lib/zoltan/lib"
     makefile_options['VECTORCLASS_PATH'] = "lib/vectorclass"
     makefile_options['JEMALLOC_PATH'] = "lib/jemalloc/lib"
     makefile_options['VLSV_PATH'] = "lib/vlsv"
-
-    print(makefile_options['FSGRID_PATH'])
 
     # Boost is skipped as it is too large to install here
     if not os.path.isfile(os.path.join(makefile_options['BOOST_PATH'], "libboost_program_options.a")):
@@ -560,18 +567,20 @@ if args['install']:
             raise SystemExit(errmsghead+
             'search for how to install Boost!')
 
+
+    makefile_options['INC_BOOST']       = ""
+    makefile_options['INC_ZOLTAN']      = "lib/zoltan/include"
+    makefile_options['INC_VLSV']        = "lib/vlsv"
+    makefile_options['INC_SILO']        = ""
+    makefile_options['INC_JEMALLOC']    = "lib/jemalloc/include/jemalloc"
+    makefile_options['INC_PHIPROF']     = "lib/phiprof/include"
+    makefile_options['INC_EIGEN']       = "lib"
+    makefile_options['INC_VECTORCLASS'] = "lib/vectorclass"
+
     makefile_options['LINKER_FLAGS'] += " -L"+makefile_options['ZOLTAN_PATH']
     makefile_options['LINKER_FLAGS'] += " -L"+makefile_options['JEMALLOC_PATH']
     makefile_options['LINKER_FLAGS'] += " -L"+makefile_options['PHIPROF_PATH']
     makefile_options['LINKER_FLAGS'] += " -L"+makefile_options['VLSV_PATH']
-    makefile_options['COMPILER_FLAGS'] += ' -I'+"lib/vectorclass"
-    makefile_options['COMPILER_FLAGS'] += ' -I'+"lib/zoltan/include"
-    makefile_options['COMPILER_FLAGS'] += ' -I'+"lib/fsgrid"
-    makefile_options['COMPILER_FLAGS'] += ' -I'+"lib/dccrg"
-    makefile_options['COMPILER_FLAGS'] += ' -I'+"lib" # Eigen
-    makefile_options['COMPILER_FLAGS'] += ' -I'+"lib/phiprof/include"
-    makefile_options['COMPILER_FLAGS'] += ' -I'+"lib/vlsv"
-    makefile_options['COMPILER_FLAGS'] += ' -I'+"lib/jemalloc/include/jemalloc"
 
     for f in ["boost_program_options", "zoltan", "vlsv", "jemalloc", "phiprof"]:
         makefile_options['LIBRARY_FLAGS'] += ' -l'+f
@@ -588,8 +597,8 @@ else:
     for library_name in args['lib']:
         makefile_options['LIBRARY_FLAGS'] += ' -l'+library_name
 
-    makefile_options['DCCRG_PATH'] = args['dccrg_path']
-    makefile_options['FSGRID_PATH'] = args['fsgrid_path']
+    makefile_options['INC_DCCRG'] = args['dccrg_path']
+    makefile_options['INC_FSGRID'] = args['fsgrid_path']
 
     # Add include paths to header-only libraries
     if args['dccrg_path']:
@@ -597,53 +606,46 @@ else:
     if args['fsgrid_path']:
         makefile_options['COMPILER_FLAGS'] += ' -I'+args['fsgrid_path']
 
-    makefile_options['PHIPROF_PATH'] = args['phiprof_path']
-    makefile_options['BOOST_PATH'] = args['boost_path']
-    makefile_options['ZOLTAN_PATH'] = args['zoltan_path']
+    makefile_options['PHIPROF_PATH']  = args['phiprof_path']
+    makefile_options['BOOST_PATH']    = args['boost_path']
+    makefile_options['ZOLTAN_PATH']   = args['zoltan_path']
     makefile_options['JEMALLOC_PATH'] = args['jemalloc_path']
-    makefile_options['VLSV_PATH'] = args['vlsv_path']
+    makefile_options['VLSV_PATH']     = args['vlsv_path']
 
 if args['machine']:
     with open("MAKE/Makefile."+args['machine']) as f:
         for line in f:
             line = line.strip()
+            if line.startswith("CXXFLAGS"):
+                makefile_options['COMPILER_FLAGS'] = line.split(' = ')[1]
             if "INC_DCCRG" in line:
-                print(line)
-                makefile_options['DCCRG_PATH'] = line.split(' = -I')[1]
-                makefile_options['COMPILER_FLAGS'] += ' -I'+makefile_options['DCCRG_PATH']
+                makefile_options['INC_DCCRG'] = line.split(' = -I')[1]
+                #makefile_options['COMPILER_FLAGS'] += ' -I'+makefile_options['INC_DCCRG']
             elif "INC_FSGRID" in line:
-                print(line)
-                makefile_options['FSGRID_PATH'] = line.split(' = -I')[1]
-                makefile_options['COMPILER_FLAGS'] += ' -I'+makefile_options['FSGRID_PATH']
+                makefile_options['INC_FSGRID'] = line.split(' = -I')[1]
+                #makefile_options['COMPILER_FLAGS'] += ' -I'+makefile_options['INC_FSGRID']
             elif "LIB_PROFILE" in line:
-                print(line)
                 lib_path = line.split(' = -L')[1].split(' ')
                 makefile_options['LIBRARY_FLAGS'] += ' '+lib_path[1]
                 makefile_options['PHIPROF_PATH'] = lib_path[0]
             elif "LIB_ZOLTAN" in line:
-                print(line)
                 lib_path = line.split(' = -L')[1].split(' ')
                 makefile_options['LIBRARY_FLAGS'] += ' '+lib_path[1]
                 makefile_options['ZOLTAN_PATH'] = lib_path[0]
             elif "LIB_VLSV" in line:
-                print(line)
                 lib_path = line.split(' = -L')[1].split(' ')
                 makefile_options['LIBRARY_FLAGS'] += ' '+lib_path[1]
                 makefile_options['VLSV_PATH'] = lib_path[0]
             elif "LIB_JEMALLOC" in line:
-                print(line)
                 lib_path = line.split(' = -L')[1].split(' ')
                 makefile_options['LIBRARY_FLAGS'] += ' '+lib_path[1]
                 makefile_options['JEMALLOC_PATH'] = lib_path[0]
             elif "INC_EIGEN" in line:
-                print(line)
-                makefile_options['EIGEN_PATH'] = line.split(' = -I')[1]
-                makefile_options['COMPILER_FLAGS'] += ' -I'+makefile_options['EIGEN_PATH']
+                makefile_options['INC_EIGEN'] = line.split(' = -I')[1]
+                #makefile_options['COMPILER_FLAGS'] += ' -I'+makefile_options['EIGEN_PATH']
             elif "LIB_SILO" in line:
-                print(line)
                 makefile_options['SILO_PATH'] = line.split(' = -L')[1]  
             elif "INC_VECTORCLASS" in line:
-                print(line)
                 makefile_options['VECTORCLASS_PATH'] = line.split(' = -I')[1]
             elif "LIB_BOOST" in line:
                 print(line)
@@ -651,15 +653,20 @@ if args['machine']:
                 makefile_options['LIBRARY_FLAGS'] += ' '+lib_path[1]
                 makefile_options['BOOST_PATH'] = lib_path[0]
             elif "INC_BOOST" in line:
-                makefile_options['COMPILER_FLAGS'] += line.split(' =')[1]
+                makefile_options['INC_BOOST'] = line.split(' = -I')[1]
+                #makefile_options['COMPILER_FLAGS'] += line.split(' =')[1]
             elif "INC_JEMALLOC" in line:
-                makefile_options['COMPILER_FLAGS'] += line.split(' =')[1]
+                makefile_options['INC_JEMALLOC'] = line.split(' = -I')[1]
+                #makefile_options['COMPILER_FLAGS'] += line.split(' =')[1]
             elif "INC_VLSV" in line:
-                makefile_options['COMPILER_FLAGS'] += line.split(' =')[1]
+                makefile_options['INC_VLSV'] = line.split(' = -I')[1]
+                #makefile_options['COMPILER_FLAGS'] += line.split(' =')[1]
             elif "INC_ZOLTAN" in line:
-                makefile_options['COMPILER_FLAGS'] += line.split(' =')[1]
+                makefile_options['INC_ZOLTAN'] = line.split(' = -I')[1]
+                #makefile_options['COMPILER_FLAGS'] += line.split(' =')[1]
             elif "INC_PROFILE" in line:
-                makefile_options['COMPILER_FLAGS'] += line.split(' =')[1]
+                makefile_options['INC_PHIPROF'] = line.split(' = -I')[1]
+                #makefile_options['COMPILER_FLAGS'] += line.split(' =')[1]
             elif "INC_SILO" in line:
                 print('skip silo for now')
                 #makefile_options['COMPILER_FLAGS'] += line.split(' =')[1]
@@ -686,10 +693,10 @@ if os.path.isfile(os.path.join(makefile_options['VECTORCLASS_PATH'], "vectorf512
 else:
     raise SystemExit('### CONFIGURE ERROR: unknown vectorclass location!')
 
-if not os.path.isfile(os.path.join(makefile_options['FSGRID_PATH'], "fsgrid.hpp")):
+if not os.path.isfile(os.path.join(makefile_options['INC_FSGRID'], "fsgrid.hpp")):
     raise SystemExit('### CONFIGURE ERROR: unknown fsgrid location!')
 
-if not os.path.isfile(os.path.join(makefile_options['DCCRG_PATH'], "dccrg.hpp")):
+if not os.path.isfile(os.path.join(makefile_options['INC_DCCRG'], "dccrg.hpp")):
     raise SystemExit('### CONFIGURE ERROR: unknown dccrg location!')
 
 if not os.path.isfile(os.path.join(makefile_options['ZOLTAN_PATH'], "libzoltan.a")):
@@ -711,6 +718,26 @@ if args['profile']:
 
 
 # --- Step 5. Create new files, finish up --------------------------------
+
+if args['save']:
+    with open('MAKE/newfile', 'w') as f:
+        f.write('test...')
+        #makefile_options['PHIPROF_PATH']
+        #makefile_options['BOOST_PATH']
+        #makefile_options['ZOLTAN_PATH']
+        #makefile_options['JEMALLOC_PATH']
+        #makefile_options['VLSV_PATH']
+        #makefile_options['INC_FSGRID']
+        #makefile_options['INC_DCCRG']
+        #
+        #makefile_options['INC_BOOST']      
+        #makefile_options['INC_ZOLTAN']     
+        #makefile_options['INC_VLSV']       
+        #makefile_options['INC_SILO']       
+        #makefile_options['INC_JEMALLOC']   
+        #makefile_options['INC_PHIPROF']    
+        #makefile_options['INC_EIGEN']      
+        #makefile_options['INC_VECTORCLASS'] 
 
 # Read templates
 with open(makefile_input, 'r') as current_file:
