@@ -561,27 +561,6 @@ namespace SBC {
       }
    }
 
-   /* Calculate the field aligned potential drop between ionosphere and magnetosphere
-    * along the fieldline of the given node */
-   Real SphericalTriGrid::getDeltaPhi(int nodeindex) {
-
-      Real ne = nodes[nodeindex].parameters[ionosphereParameters::RHOM] / physicalconstants::MASS_PROTON;
-      Real fac = nodes[nodeindex].parameters[ionosphereParameters::SOURCE];
-      Real electronTemp = nodes[nodeindex].parameters[ionosphereParameters::PRESSURE] /
-         (ion_electron_T_ratio * physicalconstants::K_B * ne);
-      Real deltaPhi = physicalconstants::K_B * electronTemp / physicalconstants::CHARGE
-         * ((fac / (physicalconstants::CHARGE * ne))
-         * sqrt(2. * M_PI * physicalconstants::MASS_ELECTRON / (physicalconstants::K_B * electronTemp)) - 1.);
-
-      // A positive value means an upward current (i.e. electron precipitation).
-      // A negative value quickly gets neutralized from the atmosphere.
-      if(deltaPhi < 0 || isnan(deltaPhi)) {
-         deltaPhi = 0;
-      }
-
-      return deltaPhi;
-   }
-
    /* Look up the free electron production rate in the ionosphere, given the atmospheric height index,
     * particle energy after the ionospheric potential drop and inflowing distribution temperature */
    Real SphericalTriGrid::lookupProductionValue(int heightindex, Real energy_keV, Real temperature_keV) {
@@ -631,6 +610,26 @@ namespace SBC {
 
    }
 
+   /* Estimate the magnetospheric electron precipitation energy flux (in W/m^2) from
+    * mass density, electron temperature and potential difference.
+    *
+    * TODO: This is the coarse MHD estimate, lacking a better approximation. Should this
+    * instead use the precipitation data reducer?
+    */
+   void SphericalTriGrid::calculatePrecipitation() {
+
+      for(uint n=0; n<nodes.size(); n++) {
+         Real ne = nodes[n].electronDensity();
+         Real electronEnergy = nodes[n].electronTemperature() * physicalconstants::K_B;
+         Real potential = nodes[n].deltaPhi();
+
+         nodes[n].parameters[ionosphereParameters::PRECIP] = (ne / sqrt(2. * M_PI * physicalconstants::MASS_ELECTRON * electronEnergy))
+            * (2. * electronEnergy * electronEnergy + 2 * physicalconstants::CHARGE * potential * electronEnergy
+                  + (physicalconstants::CHARGE * potential)*(physicalconstants::CHARGE * potential));
+
+      }
+   }
+
    /* Calculate the conductivity tensor for every grid node, based on the
     * given F10.7 photospheric flux as a solar activity proxy.
     *
@@ -638,8 +637,7 @@ namespace SBC {
     */
    void SphericalTriGrid::calculateConductivityTensor(const Real F10_7, const Real recombAlpha, const Real backgroundIonisation) {
 
-
-      //precipitation()
+      calculatePrecipitation();
 
       //Calculate height-integrated conductivities and 3D electron density
       // TODO: effdt > 0?
@@ -651,15 +649,14 @@ namespace SBC {
 
          for(int h=1; h<numAtmosphereLevels; h++) { // Note this loop counts from 1
             // Calculate production rate
-            Real energy_keV = max(getDeltaPhi(n)/1000., productionMinAccEnergy);
+            Real energy_keV = max(nodes[n].deltaPhi()/1000., productionMinAccEnergy);
 
-            Real ne = nodes[n].parameters[ionosphereParameters::RHOM] / physicalconstants::MASS_PROTON;
-            Real electronTemp = nodes[n].parameters[ionosphereParameters::PRESSURE] /
-               (ion_electron_T_ratio * physicalconstants::K_B * ne);
+            Real ne = nodes[n].electronDensity();
+            Real electronTemp = nodes[n].electronTemperature();
             Real temperature_keV = (physicalconstants::K_B / physicalconstants::CHARGE) / 1000. * electronTemp;
             if(isnan(energy_keV) || isnan(temperature_keV)) {
                logFile << "(ionosphere) NaN encountered in conductivity calculation: " << endl
-                  << "   `-> DeltaPhi     = " << getDeltaPhi(n)/1000. << " keV" << endl
+                  << "   `-> DeltaPhi     = " << nodes[n].deltaPhi()/1000. << " keV" << endl
                   << "   `-> energy_keV   = " << energy_keV << endl
                   << "   `-> ne           = " << ne << " m^-3" << endl
                   << "   `-> electronTemp = " << electronTemp << " K" << endl << write;
@@ -989,11 +986,12 @@ namespace SBC {
 
                  Real coupling = abs(xoffset - (cell[0]-fsc[0])) * abs(yoffset - (cell[1]-fsc[1])) * abs(zoffset - (cell[2]-fsc[2]));
                  if(coupling < 0. || coupling > 1.) {
-                   logFile << "Noot noot!" << endl << write;
+                   logFile << "Ionosphere warning: node << " << n << " has coupling value " << coupling <<
+                      ", which is outside [0,1] at line " << __LINE__ << "!" << endl << write;
                  }
 
                  if(technicalGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-                    rhoInput[n] += coupling * momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::RHOM);
+                    rhoInput[n] += coupling * momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::RHOQ) / physicalconstants::CHARGE;
                     pressureInput[n] += coupling * (
                           momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_11) +
                           momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_22) +
@@ -1021,12 +1019,12 @@ namespace SBC {
         if(rhoSum[n] == 0 || pressureSum[n] == 0) {
            // Node couples nowhere. Assume some default values.
            nodes[n].parameters[ionosphereParameters::SOURCE] = 0;
-           nodes[n].parameters[ionosphereParameters::RHOM] = 1e6 * physicalconstants::MASS_PROTON;
+           nodes[n].parameters[ionosphereParameters::RHON] = 1e6; // TODO: shouldn't this be density 0?
            nodes[n].parameters[ionosphereParameters::PRESSURE] = 2.76131e-10; // This pressure value results in an electron temp of 5e6 K
         } else {
            // Store as the node's parameter values.
            nodes[n].parameters[ionosphereParameters::SOURCE] = FACsum[n];
-           nodes[n].parameters[ionosphereParameters::RHOM] = rhoSum[n];
+           nodes[n].parameters[ionosphereParameters::RHON] = rhoSum[n];
            nodes[n].parameters[ionosphereParameters::PRESSURE] = pressureSum[n];
         }
      }

@@ -384,7 +384,7 @@ enum ionosphereParameters {
   SIGMAP,   /*!< Scalar Pedersen conductivity */
   SIGMAH,   /*!< Scalar Hall conductivity */
   PRECIP,   /*!< Precipitation */
-  RHOM,     /*!< Downmapped magnetospheric plasma density */
+  RHON,     /*!< Downmapped magnetospheric plasma number density */
   PRESSURE, /*!< Downmapped scalar pressure */
   //BX1,       
   //BY1,

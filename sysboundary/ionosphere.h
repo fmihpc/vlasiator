@@ -76,7 +76,34 @@ namespace SBC {
 
          std::array<Real, N_IONOSPHERE_PARAMETERS> parameters = {0}; // Parameters carried by the node, see common.h
          std::array<Real,3> fsgridCellCoupling = {0,0,0}; // Where (in fsgrid cell coordinate space) does this fieldline map?
+
+         // Some calculation helpers
+         Real electronDensity() { // Electron Density
+            return parameters[ionosphereParameters::RHON];
+         }
+         Real electronTemperature() { // Electron Temperature
+            return parameters[ionosphereParameters::PRESSURE] /
+               (ion_electron_T_ratio * physicalconstants::K_B * electronDensity());
+         }
+         Real deltaPhi() { // Field aligned potential drop between i'spherer and m'sphere
+
+            if(electronDensity() == 0) {
+               return 0;
+            }
+
+            Real retval = physicalconstants::K_B * electronTemperature() / physicalconstants::CHARGE
+               * ((parameters[ionosphereParameters::SOURCE] / (physicalconstants::CHARGE * electronDensity()))
+               * sqrt(2. * M_PI * physicalconstants::MASS_ELECTRON / (physicalconstants::K_B * electronTemperature())) - 1.);
+            // A positive value means an upward current (i.e. electron precipitation).
+            // A negative value quickly gets neutralized from the atmosphere.
+            //if(retval < 0 || isnan(retval)) {
+            //   retval = 0;
+            //}
+            return retval;
+         }
+
       };
+
       std::vector<Node> nodes;
 
       // Atmospheric height layers that are being integrated over
@@ -118,6 +145,7 @@ namespace SBC {
       void initializeSphericalFibonacci(int n); // Initialize grid as a spherical fibonacci lattice
       int32_t findElementNeighbour(uint32_t e, int n1, int n2);
       void subdivideElement(uint32_t e);  // Subdivide mesh within element e
+      void calculatePrecipitation(); // Estimate precipitation flux
       void calculateConductivityTensor(const Real F10_7, const Real recombAlpha, const Real backgroundIonisation); // Update sigma tensor
       void calculateFsgridCoupling(FsGrid< fsgrids::technical, 2> & technicalGrid, FieldFunction& dipole, Real radius);     // Link each element to fsgrid cells for coupling
 
@@ -154,9 +182,6 @@ namespace SBC {
          
          return 0.5 * sqrt( area[0]*area[0] + area[1]*area[1] + area[2]*area[2] );
       }
-
-      // Calculate potential drop between ionosphere and magnetospher
-      Real getDeltaPhi(int nodeindex);
 
       // Returns the projected surface area of one element, mapped up along the magnetic field to
       // the simulation boundary. If one of the nodes maps nowhere, returns 0.
