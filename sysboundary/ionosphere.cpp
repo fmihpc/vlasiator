@@ -952,6 +952,7 @@ namespace SBC {
    void SphericalTriGrid::calculateFsgridCoupling( FsGrid< fsgrids::technical, 2> & technicalGrid, FieldFunction& dipole, Real couplingRadius) {
 
       phiprof::start("ionosphere-calculateCoupling");
+      logFile << "(ionosphere) Starting FsGrid coupling" << endl << write;
       // Pick an initial stepsize
       Real stepSize = min(100e3, technicalGrid.DX / 2.); 
 
@@ -987,7 +988,7 @@ namespace SBC {
                   break;
                }
 
-               // Not inside the local domain, skip and continue.
+               // Not inside the local fsgrid domain, skip and continue.
                if(fsgridCell[0] == -1) {
                   continue;
                }
@@ -1015,12 +1016,17 @@ namespace SBC {
             }
          }
       }
+      logFile << "(ionosphere) FsGrid coupling done." << endl << write;
 
       // Now generate the subcommunicator to solve the ionosphere only on those ranks that actually couple
       // to simulation cells
       if(isCouplingToCells) {
         MPI_Comm_split(MPI_COMM_WORLD, 1, technicalGrid.getRank(), &communicator);
         rank = MPI_Comm_rank(communicator, &rank);
+	int size = MPI_Comm_size(communicator, &size);
+	if(rank == 0) {
+		cerr << "(ionosphere) Ionosphere Subcommunicator has size " << size << ", rank 0 corresponds to global rank " << technicalGrid.getRank() << endl;
+	}
       } else {
         MPI_Comm_split(MPI_COMM_WORLD, MPI_UNDEFINED, 0, &communicator); // All other ranks are staying out of the communicator.
         rank = -1;
@@ -1035,6 +1041,8 @@ namespace SBC {
        FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2> & BgBGrid,
        FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsGrid,
        FsGrid< fsgrids::technical, 2> & technicalGrid) {
+
+     logFile << "(ionosphere) mapping data into ionosphere" << endl << write;
 
      // Tasks that don't have anything to couple to can skip this process outright.
      if(!isCouplingToCells) {
@@ -1198,6 +1206,7 @@ namespace SBC {
         // Scale density and pressure by area ratio
         //rhoInput[n] *= upmappedArea / area;
         //pressureInput[n] *= upmappedArea / area;
+	logFile << "(ionosphere) mapping done." << endl << write;
      }
 
      // Allreduce on the ionosphere communicator
@@ -1473,7 +1482,8 @@ namespace SBC {
        return;
      }
      phiprof::start("ionosphere-solve");
-
+     logFile << "(ionosphere) starting solve" << endl << write;
+ 
      initSolver(false);
 
      int rank;
@@ -1588,6 +1598,7 @@ namespace SBC {
          //  cerr << "Solved ionosphere potential after " << iteration << " iterations." << endl;
          //}
          phiprof::stop("ionosphere-solve");
+	 logFile << "(ionosphere) solve succesful" << endl << write;
          return;
        }
 
@@ -1600,6 +1611,7 @@ namespace SBC {
          N.parameters[ionosphereParameters::SOLUTION] = N.parameters[ionosphereParameters::BEST_SOLUTION];
        }
      }
+     logFile << "(ionosphere) solve unsuccesful" << endl << write;
      phiprof::stop("ionosphere-solve");
    }
 
@@ -1776,6 +1788,7 @@ namespace SBC {
       getParameters();
       isThisDynamic = false;
 
+      logFile << "(ionosphere) initializing with shape " << baseShape << endl << write;
       if(baseShape == "icosahedron") {
          ionosphereGrid.initializeIcosahedron();
       } else if(baseShape == "tetrahedron") {

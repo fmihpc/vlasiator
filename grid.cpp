@@ -216,6 +216,7 @@ void initializeGrids(
    
       //initial state for sys-boundary cells, will skip those not set to be reapplied at restart
       phiprof::start("Apply system boundary conditions state");
+      logFile << " - sysboundary application... " << endl << write;
       if (sysBoundaries.applyInitialState(mpiGrid, perBGrid, project) == false) {
          cerr << " (MAIN) ERROR: System boundary conditions initial state was not applied correctly." << endl;
          exit(1);
@@ -223,6 +224,7 @@ void initializeGrids(
       phiprof::stop("Apply system boundary conditions state");
    }
 
+   logFile << " - map refinement to fsgrid... " << endl << write;
   if (P::amrMaxSpatialRefLevel>0) {
     // Map Refinement Level to FsGrid
     phiprof::start("Map Refinement Level to FsGrid");
@@ -319,11 +321,13 @@ void initializeGrids(
    }
    
    //Balance load before we transfer all data below
+   logFile << " - balanceLoad... " << endl << write;
    balanceLoad(mpiGrid, sysBoundaries);
    
    phiprof::initializeTimer("Fetch Neighbour data","MPI");
    phiprof::start("Fetch Neighbour data");
    // update complete cell spatial data for full stencil (
+   logFile << " - neighbour transfer... " << endl << write;
    SpatialCell::set_mpi_transfer_type(Transfer::ALL_SPATIAL_DATA);
    mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
    
@@ -353,6 +357,7 @@ void initializeGrids(
    phiprof::stop("setProjectBField");
    
    phiprof::start("Finish fsgrid setup");
+   logFile << " - finish fsgrid setup... " << endl << write;
    feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid,technicalGrid, false);
    if(!P::isRestart) {
       // WARNING this means moments and dt2 moments are the same here at t=0, which is a feature so far.
@@ -364,6 +369,7 @@ void initializeGrids(
    momentsDt2Grid.updateGhostCells();
    phiprof::stop("Finish fsgrid setup");
    
+   logFile << " - Grid initialization done. " << endl << write;
    phiprof::stop("Set initial state");
 }
 
