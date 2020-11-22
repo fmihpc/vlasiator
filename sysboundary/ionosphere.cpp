@@ -1020,10 +1020,12 @@ namespace SBC {
 
       // Now generate the subcommunicator to solve the ionosphere only on those ranks that actually couple
       // to simulation cells
+      MPI_Barrier(MPI_COMM_WORLD);
       if(isCouplingToCells) {
+	int size;
         MPI_Comm_split(MPI_COMM_WORLD, 1, technicalGrid.getRank(), &communicator);
-        rank = MPI_Comm_rank(communicator, &rank);
-	int size = MPI_Comm_size(communicator, &size);
+        MPI_Comm_rank(communicator, &rank);
+	MPI_Comm_size(communicator, &size);
 	if(rank == 0) {
 		cerr << "(ionosphere) Ionosphere Subcommunicator has size " << size << ", rank 0 corresponds to global rank " << technicalGrid.getRank() << endl;
 	}
