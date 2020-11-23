@@ -680,12 +680,13 @@ static bool _readCellParamsVariable(
    attribs.push_back(make_pair("mesh","SpatialGrid"));
    
    if (file.getArrayInfo("VARIABLE",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
-      logFile << "(RESTART)  ERROR: Failed to read " << endl << write;
+      logFile << "(RESTART)  ERROR: Failed to read " << variableName << ": getArrayInfo failed." << endl << write;
       return false;
    }
 
    if(vectorSize!=expectedVectorSize){
-      logFile << "(RESTART)  vectorsize wrong " << endl << write;
+      logFile << "(RESTART)  vectorsize wrong for " << variableName <<
+       ": expected " << expectedVectorSize << ", got " << vectorSize << endl << write;
       return false;
    }
    
@@ -736,7 +737,7 @@ bool readCellParamsVariable(
    attribs.push_back(make_pair("mesh","SpatialGrid"));
    
    if (file.getArrayInfo("VARIABLE",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
-      logFile << "(RESTART)  ERROR: Failed to read " << endl << write;
+      logFile << "(RESTART)  ERROR: Failed to read " << variableName << endl << write;
       return false;
    }
 
@@ -1151,21 +1152,25 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 
    //todo, check file datatype, and do not just use double
    phiprof::start("readCellParameters");
-   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"moments",CellParams::RHOM,5,mpiGrid); }
-   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"moments_dt2",CellParams::RHOM_DT2,5,mpiGrid); }
-   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"moments_r",CellParams::RHOM_R,5,mpiGrid); }
-   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"moments_v",CellParams::RHOM_V,5,mpiGrid); }
+   
+   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"moments",CellParams::RHOM,6,mpiGrid); }
+   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"moments_dt2",CellParams::RHOM_DT2,6,mpiGrid); }
+   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"moments_r",CellParams::RHOM_R,6,mpiGrid); }
+   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"moments_v",CellParams::RHOM_V,6,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"pressure",CellParams::P_11,3,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"pressure_dt2",CellParams::P_11_DT2,3,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"pressure_r",CellParams::P_11_R,3,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"pressure_v",CellParams::P_11_V,3,mpiGrid); }
-   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"EJE",CellParams::EXJE,3,mpiGrid); }
-   success=true; // Do not fail on lack of EJE values (in case reading in older non-electron run)
+   if(success && P::ResolvePlasmaPeriod) {
+      success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"EJE",CellParams::EXJE,3,mpiGrid);
+   }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"LB_weight",CellParams::LBWEIGHTCOUNTER,1,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"max_v_dt",CellParams::MAXVDT,1,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"max_r_dt",CellParams::MAXRDT,1,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"max_fields_dt",CellParams::MAXFDT,1,mpiGrid); }
 // Backround B has to be set, there are also the derivatives that should be written/read if we wanted to only read in background field
+   exitOnError(success,"(RESTART) Failure reading spatial cell restart variables",MPI_COMM_WORLD);
+
    phiprof::stop("readCellParameters");
 
    phiprof::start("readBlockData");

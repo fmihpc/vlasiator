@@ -511,16 +511,12 @@ int main(int argn,char* args[]) {
    phiprof::start("compute-dt");
    // Run Vlasov solver once with zero dt to initialize
    // per-cell dt limits and moments.
-   calculateSpatialTranslation(mpiGrid,0.0);
-   calculateAcceleration(mpiGrid,0.0);
-   /* 
    if (P::isRestart == false) {
       // Run Vlasov solver once with zero dt to initialize
       // per-cell dt limits. In restarts, we read the dt from file.
       calculateSpatialTranslation(mpiGrid,0.0);
       calculateAcceleration(mpiGrid,0.0);      
    }
-   */
    phiprof::stop("compute-dt");
 
    // Save restart data
@@ -968,8 +964,6 @@ int main(int argn,char* args[]) {
 
 	phiprof::start("getFieldsFromFsGrid");
 	// Copy results back from fsgrid.
-	volGrid.updateGhostCells();
-	technicalGrid.updateGhostCells();
 	getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, dMomentsGrid, technicalGrid, mpiGrid, cells);
 	phiprof::stop("getFieldsFromFsGrid");
       }
