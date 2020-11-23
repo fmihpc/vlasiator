@@ -1035,7 +1035,7 @@ namespace SBC {
         MPI_Comm_split(MPI_COMM_WORLD, MPI_UNDEFINED, 0, &communicator); // All other ranks are staying out of the communicator.
         rank = -1;
       }
-      MPI_Allreduce(&isIonoRank, &totalIonoRanks, 1, MPI_INT, MPI_SUM, communicator);
+      MPI_Allreduce(&isIonoRank, &totalIonoRanks, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
       logFile << "(ionosphere) Total of " << totalIonoRanks << " participating in ionospheer calculation." << endl << write;
       phiprof::stop("ionosphere-calculateCoupling");
    }
