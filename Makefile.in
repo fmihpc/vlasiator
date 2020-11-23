@@ -49,7 +49,9 @@ INC_PATH += $(INC_ZOLTAN)
 INC_PATH += $(INC_VLSV)
 INC_PATH += $(INC_JEMALLOC)
 INC_PATH += $(INC_PROFILE)
-INC_PATH += $(INC_EIGEN)
+ifneq ($(INC_EIGEN), -I)
+	INC_PATH += $(INC_EIGEN)
+endif
 ifneq ($(INC_BOOST), -I)
 	INC_PATH += $(INC_BOOST)
 endif
@@ -66,7 +68,6 @@ LDFLAGS += $(LIB_BOOST)
 ifneq ($(LIB_SILO), -L)
 	LDFLAGS += $(LIB_SILO)
 endif
-
 
 
 # Preliminary definitions
@@ -168,6 +169,8 @@ dirs : $(EXE_DIR) $(OBJ_DIR)
 $(SRC_PREFIX)version.cpp:
 	./generate_version.sh "$(CXX)" "${CXXFLAGS}" "${FLAGS}" "${INC_MPI}" "${INC_DCCRG}" "${INC_FSGRID}" "${INC_ZOLTAN}" "${INC_BOOST}"
 
+testpackage: all
+
 particle : dirs $(PTCL_PUSHER)
 
 vlsvextract : dirs $(VLSV_EXTRACT)
@@ -229,4 +232,4 @@ data:
 	rm -rf phiprof*txt restart*vlsv grid*vlsv diagnostic.txt logfile.txt src/version.cpp
 c: clean
 cleantools:
-	rm -rf vlsv2silo_${FP_PRECISION} vlsvextract_${FP_PRECISION}  vlsvdiff_${FP_PRECISION} 
+	rm -rf $(EXE_DIR)vlsv2silo* $(EXE_DIR)vlsvextract*  $(EXE_DIR)vlsvdiff* 
