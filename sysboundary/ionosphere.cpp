@@ -952,7 +952,7 @@ namespace SBC {
    void SphericalTriGrid::calculateFsgridCoupling( FsGrid< fsgrids::technical, 2> & technicalGrid, FieldFunction& dipole, Real couplingRadius) {
 
       phiprof::start("ionosphere-calculateCoupling");
-      logFile << "(ionosphere) Starting FsGrid coupling" << endl << write;
+      logFile << "(ionosphere) Starting FsGrid coupling of " << nodes.size() << " nodes." << endl << write;
       // Pick an initial stepsize
       Real stepSize = min(100e3, technicalGrid.DX / 2.); 
 
@@ -1016,23 +1016,27 @@ namespace SBC {
             }
          }
       }
-      logFile << "(ionosphere) FsGrid coupling done." << endl << write;
+      logFile << "(ionosphere) FsGrid coupling done. Generating subcommunicator." << endl << write;
 
       // Now generate the subcommunicator to solve the ionosphere only on those ranks that actually couple
       // to simulation cells
-      MPI_Barrier(MPI_COMM_WORLD);
+      int totalIonoRanks=0;
+      int isIonoRank=0;
       if(isCouplingToCells) {
-	int size;
+        int size;
         MPI_Comm_split(MPI_COMM_WORLD, 1, technicalGrid.getRank(), &communicator);
         MPI_Comm_rank(communicator, &rank);
-	MPI_Comm_size(communicator, &size);
-	if(rank == 0) {
-		cerr << "(ionosphere) Ionosphere Subcommunicator has size " << size << ", rank 0 corresponds to global rank " << technicalGrid.getRank() << endl;
-	}
+        MPI_Comm_size(communicator, &size);
+        if(rank == 0) {
+          cerr << "(ionosphere) Ionosphere Subcommunicator has size " << size << ", rank 0 corresponds to global rank " << technicalGrid.getRank() << endl;
+        }
+        isIonoRank=1;
       } else {
         MPI_Comm_split(MPI_COMM_WORLD, MPI_UNDEFINED, 0, &communicator); // All other ranks are staying out of the communicator.
         rank = -1;
       }
+      MPI_Allreduce(&isIonoRank, &totalIonoRanks, 1, MPI_INT, MPI_SUM, communicator);
+      logFile << "(ionosphere) Total of " << totalIonoRanks << " participating in ionospheer calculation." << endl << write;
       phiprof::stop("ionosphere-calculateCoupling");
    }
 
@@ -1134,7 +1138,7 @@ namespace SBC {
         area /= 3.;
         upmappedArea /= 3.;
 
-		  //// Map down FAC based on magnetosphere rotB
+        //// Map down FAC based on magnetosphere rotB
         //std::array<int,3> fsc;
         std::array<Real,3> cell = nodes[n].fsgridCellCoupling;
         for(int c=0; c<3; c++) {
@@ -1208,7 +1212,7 @@ namespace SBC {
         // Scale density and pressure by area ratio
         //rhoInput[n] *= upmappedArea / area;
         //pressureInput[n] *= upmappedArea / area;
-	logFile << "(ionosphere) mapping done." << endl << write;
+        logFile << "(ionosphere) mapping done." << endl << write;
      }
 
      // Allreduce on the ionosphere communicator
@@ -1600,7 +1604,7 @@ namespace SBC {
          //  cerr << "Solved ionosphere potential after " << iteration << " iterations." << endl;
          //}
          phiprof::stop("ionosphere-solve");
-	 logFile << "(ionosphere) solve succesful" << endl << write;
+         logFile << "(ionosphere) solve succesful" << endl << write;
          return;
        }
 
