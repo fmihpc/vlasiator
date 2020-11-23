@@ -916,6 +916,7 @@ template<unsigned long int N> bool readFsGridVariable(
          // Read into buffer
          std::vector<Real> buffer(thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N);
 
+         phiprof::start("readArray");
          if(!convertFloatType) {
             // TODO: Should these be multireads instead? And/or can this be parallelized?
             if(file.readArray("VARIABLE",attribs, fileOffset, thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2], (char*)buffer.data()) == false) {
