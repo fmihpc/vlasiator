@@ -404,7 +404,7 @@ namespace projects {
                   bgVectorDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, this->dipoleTiltPhi*M_PI/180., this->dipoleTiltTheta*M_PI/180., this->dipoleXFull, this->dipoleXZero, this->dipoleInflowB[0], this->dipoleInflowB[1], this->dipoleInflowB[2]);
                   setPerturbedField(bgVectorDipole, perBGrid, true);
                }
-               SBC::ionosphereGrid.calculateFsgridCoupling(technicalGrid, bgVectorDipole,ionosphereRadius);
+               SBC::ionosphereGrid.calculateFsgridCoupling(technicalGrid, bgFieldDipole,ionosphereRadius);
                break;
             default:
                setBackgroundFieldToZero(BgBGrid);
