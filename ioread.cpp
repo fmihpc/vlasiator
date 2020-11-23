@@ -790,7 +790,6 @@ template<unsigned long int N> bool readFsGridVariable(
    attribs.push_back(make_pair("name",variableName));
    attribs.push_back(make_pair("mesh","fsgrid"));
 
-   logFile << "     `-> Getting Array Info.." << endl << write;
    if (file.getArrayInfo("VARIABLE",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
       logFile << "(RESTART)  ERROR: Failed to read " << endl << write;
       return false;
@@ -812,9 +811,7 @@ template<unsigned long int N> bool readFsGridVariable(
    // Determine our tasks storage size
    size_t storageSize = localSize[0]*localSize[1]*localSize[2];
 
-   logFile << "     `-> Reading on " << size << " ranks, dataset was written on " << numWritingRanks << "..." << endl << write;
    if(size == numWritingRanks) {
-      logFile << "     `-> Easy case. Sluping!" << endl << write;
       // Easy case: same number of tasks => slurp it in.
       //
       std::array<int,3> decomposition;
@@ -866,7 +863,6 @@ template<unsigned long int N> bool readFsGridVariable(
       
    } else {
 
-      logFile << "     `-> Difficult case. Mapping!" << endl << write;
       // More difficult case: different number of tasks.
       // In this case, our own fsgrid domain overlaps (potentially many) domains in the file.
       // We read the whole source rank into a temporary buffer, and transfer the overlapping
@@ -893,9 +889,6 @@ template<unsigned long int N> bool readFsGridVariable(
       // Iterate through tasks and find their overlap with our domain.
       size_t fileOffset = 0;
       for(int task = 0; task < numWritingRanks; task++) {
-	 if(!(task % 10)) {
-		 logFile << "     `-> Reading data of task " << task << "..." << endl << write;
-	 }
          std::array<int32_t,3> thatTasksSize;
          std::array<int32_t,3> thatTasksStart;
          thatTasksSize[0] = targetGrid.calcLocalSize(globalSize[0], fileDecomposition[0], task/fileDecomposition[2]/fileDecomposition[1]);
@@ -1225,9 +1218,7 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       exitOnError(false, "(RESTART) FSGrid writing rank number not found in restart file", MPI_COMM_WORLD);
    }
    
-   logFile << "   `->fg_PERB " << endl << write;
    if(success) { success = readFsGridVariable(file, "fg_PERB", fsgridInputRanks, perBGrid); }
-   logFile << "   `->fg_E " << endl << write;
    if(success) { success = readFsGridVariable(file, "fg_E", fsgridInputRanks, EGrid); }
    exitOnError(success,"(RESTART) Failure reading fsgrid restart variables",MPI_COMM_WORLD);
    phiprof::stop("readFsGrid");
