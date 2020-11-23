@@ -482,7 +482,6 @@ int main(int argn,char* args[]) {
 
    // Run the field solver once with zero dt. This will initialize
    // Fieldsolver dt limits, and also calculate volumetric B-fields.
-   logFile << " - Run FS to determine dt..." << endl << write;
    propagateFields(
 		   perBGrid,
 		   perBDt2Grid,
@@ -581,7 +580,6 @@ int main(int argn,char* args[]) {
    }
    
    phiprof::stop("Initialization");
-   logFile << " - Entering Mainloop!" << endl << write;
 
    // ***********************************
    // ***** INITIALIZATION COMPLETE *****
