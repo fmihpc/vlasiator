@@ -3,10 +3,6 @@
 
 .SUFFIXES:            # Delete the default suffixes
 
-# Files for conditional compilation
-
-PROBLEM_FILE = @PROBLEM_FILE@
-
 # General compiler specifications
 
 CXX := @COMPILER_COMMAND@
@@ -14,7 +10,7 @@ CPPFLAGS := @PREPROCESSOR_FLAGS@
 CXXFLAGS := @COMPILER_FLAGS@
 LDFLAGS := 
 LDLIBS := @LIBRARY_FLAGS@
-INC_MPI := @MPI_PATH@
+INC_PATH :=
 
 INC_DCCRG := -I@INC_DCCRG@
 
@@ -43,12 +39,24 @@ LIB_PROFILE := -L@PROFILE_PATH@
 INC_EIGEN := -I@INC_EIGEN@
 
 # Collect all the include paths
-INC_PATH = $(INC_DCCRG)
-INC_PATH += $(INC_FSGRID)
-INC_PATH += $(INC_ZOLTAN)
-INC_PATH += $(INC_VLSV)
-INC_PATH += $(INC_JEMALLOC)
-INC_PATH += $(INC_PROFILE)
+ifneq ($(INC_DCCRG), -I)
+	INC_PATH += $(INC_DCCRG)
+endif
+ifneq ($(INC_FSGRID), -I)
+	INC_PATH += $(INC_FSGRID)
+endif
+ifneq ($(INC_ZOLTAN), -I)
+	INC_PATH += $(INC_ZOLTAN)
+endif
+ifneq ($(INC_VLSV), -I)
+	INC_PATH += $(INC_VLSV)
+endif
+ifneq ($(INC_JEMALLOC), -I)
+	INC_PATH += $(INC_JEMALLOC)
+endif
+ifneq ($(INC_PROFILE), -I)
+	INC_PATH += $(INC_PROFILE)
+endif
 ifneq ($(INC_EIGEN), -I)
 	INC_PATH += $(INC_EIGEN)
 endif

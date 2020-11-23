@@ -192,6 +192,11 @@ parser.add_argument('--fsgrid_path',
                     default='',
                     help='path to fsgrid library')
 
+# --vectorclass_path=[string]
+parser.add_argument('--vectorclass_path',
+                    default='',
+                    help='path to vectorclass library')
+
 # --zoltan_path=[string]
 parser.add_argument('--zoltan_path',
                     default='',
@@ -605,15 +610,16 @@ else:
     for library_name in args['lib']:
         makefile_options['LIBRARY_FLAGS'] += ' -l'+library_name
 
-    makefile_options['PROFILE_PATH']  = args['profile_path']
-    makefile_options['BOOST_PATH']    = args['boost_path']
-    makefile_options['ZOLTAN_PATH']   = args['zoltan_path']
-    makefile_options['JEMALLOC_PATH'] = args['jemalloc_path']
-    makefile_options['VLSV_PATH']     = args['vlsv_path']
-    makefile_options['SILO_PATH']     = args['silo_path']
+    makefile_options['PROFILE_PATH']    = args['profile_path']
+    makefile_options['BOOST_PATH']      = args['boost_path']
+    makefile_options['ZOLTAN_PATH']     = args['zoltan_path']
+    makefile_options['JEMALLOC_PATH']   = args['jemalloc_path']
+    makefile_options['VLSV_PATH']       = args['vlsv_path']
+    makefile_options['SILO_PATH']       = args['silo_path']
 
-    makefile_options['INC_DCCRG']     = args['dccrg_path']
-    makefile_options['INC_FSGRID']    = args['fsgrid_path']
+    makefile_options['INC_DCCRG']       = args['dccrg_path']
+    makefile_options['INC_FSGRID']      = args['fsgrid_path']
+    makefile_options['INC_VECTORCLASS'] = args['vectorclass_path']
     makefile_options['INC_BOOST']       = ""
     makefile_options['INC_ZOLTAN']      = ""
     makefile_options['INC_VLSV']        = ""
@@ -621,8 +627,6 @@ else:
     makefile_options['INC_JEMALLOC']    = ""
     makefile_options['INC_PROFILE']     = ""
     makefile_options['INC_EIGEN']       = ""
-    makefile_options['INC_VECTORCLASS'] = ""
-
 
 if args['machine']:
     with open("MAKE/Makefile."+args['machine']) as f:
@@ -763,7 +767,7 @@ if args['save']:
             f.write('INC_PROFILE = -I'+makefile_options['INC_PROFILE']+'\n')
             f.write('PROFILE_PATH = -L'+makefile_options['PROFILE_PATH']+'\n\n')
 
-            f.write('INC_EIGEN = -I'+makefile_options['INC_EIGEN']+'\n')
+            f.write('INC_EIGEN = -I'+makefile_options['INC_EIGEN']+'\n\n')
 
             f.write('INC_SILO = -I'+makefile_options['INC_SILO']+'\n')
             f.write('SILO_PATH = -L'+makefile_options['SILO_PATH']+'\n\n')
