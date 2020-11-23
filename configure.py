@@ -17,6 +17,7 @@ import os
 import pkg_resources
 import sys
 import warnings
+import fileinput
 
 
 # Set template and output filenames
@@ -39,10 +40,16 @@ parser.add_argument('-install',
                     default=False,
                     help='install all the dependencies')
 
-# --save=[name]
-parser.add_argument('--save',
-                    default='',
+# -save
+parser.add_argument('-save',
+                    action='store_true',
+                    default=False,
                     help='save library paths into a customized Makefile')
+
+# --save_machine=[name]
+parser.add_argument('--save_machine',
+                    default='new',
+                    help='customized Makefile name')
 
 # --coord=[name]
 parser.add_argument(
@@ -175,12 +182,12 @@ parser.add_argument('--vlsv_path',
                     default='',
                     help='path to VLSV library')
 
-# --vlsv_path=[string]
+# --dccrg_path=[string]
 parser.add_argument('--dccrg_path',
                     default='',
                     help='path to DCCRG library')
 
-# --phiprof_path=[string]
+# --fsgrid_path=[string]
 parser.add_argument('--fsgrid_path',
                     default='',
                     help='path to fsgrid library')
@@ -190,10 +197,10 @@ parser.add_argument('--zoltan_path',
                     default='',
                     help='path to Zoltan library')
 
-# --phiprof_path=[string]
-parser.add_argument('--phiprof_path',
+# --profile_path=[string]
+parser.add_argument('--profile_path',
                     default='',
-                    help='path to phiprof library')
+                    help='path to profile library')
 
 # -jemalloc
 parser.add_argument('-jemalloc',
@@ -212,11 +219,16 @@ parser.add_argument('-papi',
                     default=False,
                     help='enable Papi memory profiler')
 
-# -silo (WIP)
+# -silo
 parser.add_argument('-silo',
                     action='store_true',
                     default=False,
                     help='enable silo format converter')
+
+# --silo_path=[string]
+parser.add_argument('--silo_path',
+                    default='',
+                    help='path to silo library')
 
 # The main choices for --cxx flag, using "ctype[-suffix]" formatting, where 
 # "ctype" is the major family/suite/group of compilers and "suffix" may 
@@ -293,8 +305,9 @@ args = vars(parser.parse_args())
 if args['install'] and args['machine']:
     raise SystemExit('### CONFIGURE ERROR: does not support fresh installation with a preset machine makefile')
 
-if args['save'] and args['machine']:
-    warnings.warn("Overwrite specified makefile...")
+if args['save'] and args['save_machine'] == args['machine']:
+    warnings.warn("Overwrite existings MAKE/Makefile."+args['machine']+"...")
+
 
 # --- Step 3. Set Makefile options based on above argument
 
@@ -551,11 +564,12 @@ if args['install']:
     makefile_options['BOOST_PATH'] = args['boost_path']
     makefile_options['INC_DCCRG'] = "lib/dccrg"
     makefile_options['INC_FSGRID'] = "lib/fsgrid"
-    makefile_options['PHIPROF_PATH'] = "lib/phiprof/lib"
+    makefile_options['PROFILE_PATH'] = "lib/phiprof/lib"
     makefile_options['ZOLTAN_PATH'] = "lib/zoltan/lib"
-    makefile_options['VECTORCLASS_PATH'] = "lib/vectorclass"
+    makefile_options['INC_VECTORCLASS'] = "lib/vectorclass"
     makefile_options['JEMALLOC_PATH'] = "lib/jemalloc/lib"
     makefile_options['VLSV_PATH'] = "lib/vlsv"
+    makefile_options['SILO_PATH'] = ""
 
     # Boost is skipped as it is too large to install here
     if not os.path.isfile(os.path.join(makefile_options['BOOST_PATH'], "libboost_program_options.a")):
@@ -567,20 +581,14 @@ if args['install']:
             raise SystemExit(errmsghead+
             'search for how to install Boost!')
 
-
     makefile_options['INC_BOOST']       = ""
     makefile_options['INC_ZOLTAN']      = "lib/zoltan/include"
     makefile_options['INC_VLSV']        = "lib/vlsv"
     makefile_options['INC_SILO']        = ""
     makefile_options['INC_JEMALLOC']    = "lib/jemalloc/include/jemalloc"
-    makefile_options['INC_PHIPROF']     = "lib/phiprof/include"
+    makefile_options['INC_PROFILE']     = "lib/phiprof/include"
     makefile_options['INC_EIGEN']       = "lib"
     makefile_options['INC_VECTORCLASS'] = "lib/vectorclass"
-
-    makefile_options['LINKER_FLAGS'] += " -L"+makefile_options['ZOLTAN_PATH']
-    makefile_options['LINKER_FLAGS'] += " -L"+makefile_options['JEMALLOC_PATH']
-    makefile_options['LINKER_FLAGS'] += " -L"+makefile_options['PHIPROF_PATH']
-    makefile_options['LINKER_FLAGS'] += " -L"+makefile_options['VLSV_PATH']
 
     for f in ["boost_program_options", "zoltan", "vlsv", "jemalloc", "phiprof"]:
         makefile_options['LIBRARY_FLAGS'] += ' -l'+f
@@ -597,20 +605,24 @@ else:
     for library_name in args['lib']:
         makefile_options['LIBRARY_FLAGS'] += ' -l'+library_name
 
-    makefile_options['INC_DCCRG'] = args['dccrg_path']
-    makefile_options['INC_FSGRID'] = args['fsgrid_path']
-
-    # Add include paths to header-only libraries
-    if args['dccrg_path']:
-        makefile_options['COMPILER_FLAGS'] += ' -I'+args['dccrg_path']
-    if args['fsgrid_path']:
-        makefile_options['COMPILER_FLAGS'] += ' -I'+args['fsgrid_path']
-
-    makefile_options['PHIPROF_PATH']  = args['phiprof_path']
+    makefile_options['PROFILE_PATH']  = args['profile_path']
     makefile_options['BOOST_PATH']    = args['boost_path']
     makefile_options['ZOLTAN_PATH']   = args['zoltan_path']
     makefile_options['JEMALLOC_PATH'] = args['jemalloc_path']
     makefile_options['VLSV_PATH']     = args['vlsv_path']
+    makefile_options['SILO_PATH']     = args['silo_path']
+
+    makefile_options['INC_DCCRG']     = args['dccrg_path']
+    makefile_options['INC_FSGRID']    = args['fsgrid_path']
+    makefile_options['INC_BOOST']       = ""
+    makefile_options['INC_ZOLTAN']      = ""
+    makefile_options['INC_VLSV']        = ""
+    makefile_options['INC_SILO']        = ""
+    makefile_options['INC_JEMALLOC']    = ""
+    makefile_options['INC_PROFILE']     = ""
+    makefile_options['INC_EIGEN']       = ""
+    makefile_options['INC_VECTORCLASS'] = ""
+
 
 if args['machine']:
     with open("MAKE/Makefile."+args['machine']) as f:
@@ -618,77 +630,59 @@ if args['machine']:
             line = line.strip()
             if line.startswith("CXXFLAGS"):
                 makefile_options['COMPILER_FLAGS'] = line.split(' = ')[1]
-            if "INC_DCCRG" in line:
+            elif line.startswith("LDFLAGS"):
+                makefile_options['LINKER_FLAGS'] = line.split(' ')[1]
+            elif line.startswith("LIBFLAGS"):
+                makefile_options['LIBRARY_FLAGS'] = line.split(' ')[1]
+            if line.startswith("INC_DCCRG"):
                 makefile_options['INC_DCCRG'] = line.split(' = -I')[1]
-                #makefile_options['COMPILER_FLAGS'] += ' -I'+makefile_options['INC_DCCRG']
-            elif "INC_FSGRID" in line:
+            elif line.startswith("INC_FSGRID"):
                 makefile_options['INC_FSGRID'] = line.split(' = -I')[1]
-                #makefile_options['COMPILER_FLAGS'] += ' -I'+makefile_options['INC_FSGRID']
-            elif "LIB_PROFILE" in line:
+            elif line.startswith("LIB_PROFILE"):
                 lib_path = line.split(' = -L')[1].split(' ')
                 makefile_options['LIBRARY_FLAGS'] += ' '+lib_path[1]
-                makefile_options['PHIPROF_PATH'] = lib_path[0]
-            elif "LIB_ZOLTAN" in line:
+                makefile_options['PROFILE_PATH'] = lib_path[0]
+            elif line.startswith("LIB_ZOLTAN"):
                 lib_path = line.split(' = -L')[1].split(' ')
                 makefile_options['LIBRARY_FLAGS'] += ' '+lib_path[1]
                 makefile_options['ZOLTAN_PATH'] = lib_path[0]
-            elif "LIB_VLSV" in line:
+            elif line.startswith("LIB_VLSV"):
                 lib_path = line.split(' = -L')[1].split(' ')
                 makefile_options['LIBRARY_FLAGS'] += ' '+lib_path[1]
                 makefile_options['VLSV_PATH'] = lib_path[0]
-            elif "LIB_JEMALLOC" in line:
+            elif line.startswith("LIB_JEMALLOC"):
                 lib_path = line.split(' = -L')[1].split(' ')
                 makefile_options['LIBRARY_FLAGS'] += ' '+lib_path[1]
                 makefile_options['JEMALLOC_PATH'] = lib_path[0]
-            elif "INC_EIGEN" in line:
-                makefile_options['INC_EIGEN'] = line.split(' = -I')[1]
-                #makefile_options['COMPILER_FLAGS'] += ' -I'+makefile_options['EIGEN_PATH']
-            elif "LIB_SILO" in line:
-                makefile_options['SILO_PATH'] = line.split(' = -L')[1]  
-            elif "INC_VECTORCLASS" in line:
-                makefile_options['VECTORCLASS_PATH'] = line.split(' = -I')[1]
-            elif "LIB_BOOST" in line:
-                print(line)
+            elif line.startswith("INC_EIGEN"):
+                makefile_options['INC_EIGEN'] = line.split(' = -I')[1]  
+            elif line.startswith("INC_VECTORCLASS"):
+                makefile_options['INC_VECTORCLASS'] = line.split(' = -I')[1]
+            elif line.startswith("LIB_BOOST"):
                 lib_path = line.split(' = -L')[1].split(' ')
                 makefile_options['LIBRARY_FLAGS'] += ' '+lib_path[1]
                 makefile_options['BOOST_PATH'] = lib_path[0]
-            elif "INC_BOOST" in line:
+            elif line.startswith("INC_BOOST"):
                 makefile_options['INC_BOOST'] = line.split(' = -I')[1]
-                #makefile_options['COMPILER_FLAGS'] += line.split(' =')[1]
-            elif "INC_JEMALLOC" in line:
+            elif line.startswith("INC_JEMALLOC"):
                 makefile_options['INC_JEMALLOC'] = line.split(' = -I')[1]
-                #makefile_options['COMPILER_FLAGS'] += line.split(' =')[1]
-            elif "INC_VLSV" in line:
+            elif line.startswith("INC_VLSV"):
                 makefile_options['INC_VLSV'] = line.split(' = -I')[1]
-                #makefile_options['COMPILER_FLAGS'] += line.split(' =')[1]
-            elif "INC_ZOLTAN" in line:
+            elif line.startswith("INC_ZOLTAN"):
                 makefile_options['INC_ZOLTAN'] = line.split(' = -I')[1]
-                #makefile_options['COMPILER_FLAGS'] += line.split(' =')[1]
-            elif "INC_PROFILE" in line:
-                makefile_options['INC_PHIPROF'] = line.split(' = -I')[1]
-                #makefile_options['COMPILER_FLAGS'] += line.split(' =')[1]
-            elif "INC_SILO" in line:
-                print('skip silo for now')
-                #makefile_options['COMPILER_FLAGS'] += line.split(' =')[1]
-
-# Add lib paths
-if 'PHIPROF_PATH' in makefile_options:
-    makefile_options['LINKER_FLAGS'] += ' -L'+makefile_options['PHIPROF_PATH']
-if 'ZOLTAN_PATH' in makefile_options:
-    makefile_options['LINKER_FLAGS'] += ' -L'+makefile_options['ZOLTAN_PATH']
-if 'VLSV_PATH' in makefile_options:
-    makefile_options['LINKER_FLAGS'] += ' -L'+makefile_options['VLSV_PATH']
-if 'JEMALLOC_PATH' in makefile_options:
-    makefile_options['LINKER_FLAGS'] += ' -L'+makefile_options['JEMALLOC_PATH']
-if 'BOOST_PATH' in makefile_options:
-    makefile_options['LINKER_FLAGS'] += ' -L'+makefile_options['BOOST_PATH']
+            elif line.startswith("INC_PROFILE"):
+                makefile_options['INC_PROFILE'] = line.split(' = -I')[1]
+            elif line.startswith("LIB_SILO"):
+                makefile_options['SILO_PATH'] = line.split(' = -L')[1]
+            elif line.startswith("INC_SILO"):
+                makefile_options['INC_SILO'] = line.split(' = -I')[1]
 
 
 # --- Step 4. Check dependencies -----------------------------------------
 
 # Check dependencies
-if os.path.isfile(os.path.join(makefile_options['VECTORCLASS_PATH'], "vectorf512.h")):
-    if not os.path.isfile(os.path.join(makefile_options['VECTORCLASS_PATH'], "vector3d.h")):
+if os.path.isfile(os.path.join(makefile_options['INC_VECTORCLASS'], "vectorf512.h")):
+    if not os.path.isfile(os.path.join(makefile_options['INC_VECTORCLASS'], "vector3d.h")):
         raise SystemExit('### CONFIGURE ERROR: vector3d.h not found!')
 else:
     raise SystemExit('### CONFIGURE ERROR: unknown vectorclass location!')
@@ -713,55 +707,88 @@ if args['jemalloc']:
         raise SystemExit('### CONFIGURE ERROR: unknown jemalloc location!')
 
 if args['profile']:
-    if not os.path.isfile(os.path.join(makefile_options['PHIPROF_PATH'], "libphiprof.a")):
+    if not os.path.isfile(os.path.join(makefile_options['PROFILE_PATH'], "libphiprof.a")):
         raise SystemExit('### CONFIGURE ERROR: unknown phiprof location!')
 
 
 # --- Step 5. Create new files, finish up --------------------------------
 
 if args['save']:
-    with open('MAKE/newfile', 'w') as f:
-        f.write('test...')
-        #makefile_options['PHIPROF_PATH']
-        #makefile_options['BOOST_PATH']
-        #makefile_options['ZOLTAN_PATH']
-        #makefile_options['JEMALLOC_PATH']
-        #makefile_options['VLSV_PATH']
-        #makefile_options['INC_FSGRID']
-        #makefile_options['INC_DCCRG']
-        #
-        #makefile_options['INC_BOOST']      
-        #makefile_options['INC_ZOLTAN']     
-        #makefile_options['INC_VLSV']       
-        #makefile_options['INC_SILO']       
-        #makefile_options['INC_JEMALLOC']   
-        #makefile_options['INC_PHIPROF']    
-        #makefile_options['INC_EIGEN']      
-        #makefile_options['INC_VECTORCLASS'] 
+    makefile_name = 'MAKE/Makefile.'+args['save_machine']
+    print('Saving the library paths and compiler flags in '+ makefile_name+'...')
+    if os.path.isfile(makefile_name):
+        for line in fileinput.input(files=makefile_name, inplace=True):
+            isfind = False
+            for key, val in makefile_options.items():
+                if line.startswith(key):
+                    isfind = True
+                    if key.startswith('INC'):
+                        print(key+' = -I'+val)
+                    elif 'PATH' in key:
+                        print(key+' = -L'+val)
+            if line.startswith('CXXFLAGS'):
+                print('CXXFLAGS = '+makefile_options['COMPILER_FLAGS'])
+            elif line.startswith('LDFLAGS'):
+                print('LDFLAGS = '+makefile_options['LINKER_FLAGS'])
+            elif line.startswith('LDLIBS'):
+                print('LDLIBS = '+makefile_options['LIBRARY_FLAGS'])
+            elif not isfind:
+                print(line, end='')
 
-# Read templates
-with open(makefile_input, 'r') as current_file:
-    makefile_template = current_file.read()
+    else:
+        with open(makefile_name, 'w') as f:
+            f.write('CXXFLAGS = '+makefile_options['COMPILER_FLAGS']+'\n')
+            f.write('LDFLAGS = '+makefile_options['LINKER_FLAGS']+'\n')
+            f.write('LDLIBS = '+makefile_options['LIBRARY_FLAGS']+'\n\n')
 
-# Make substitutions
-for key, val in makefile_options.items():
-    makefile_template = re.sub(r'@{0}@'.format(key), val, makefile_template)
+            f.write('#======== Libraries ===========\n\n')
+            f.write('INC_BOOST = -I'+makefile_options['INC_BOOST']+'\n')
+            f.write('BOOST_PATH = -L'+makefile_options['BOOST_PATH']+'\n\n')
 
-# Redirect field solver folder
-if args['amr']:
-    makefile_template = re.sub('vlasovsolver', 'vlasovsolver_amr', makefile_template)
+            f.write('INC_ZOLTAN = -I'+makefile_options['INC_ZOLTAN']+'\n')
+            f.write('ZOLTAN_PATH = -L'+makefile_options['ZOLTAN_PATH']+'\n\n')
 
-# Write output files
-with open(makefile_output, 'w') as current_file:
-    current_file.write(makefile_template)
+            f.write('INC_VLSV = -I'+makefile_options['INC_VLSV']+'\n')
+            f.write('VLSV_PATH = -L'+makefile_options['VLSV_PATH']+'\n\n')
+
+            f.write('INC_VECTORCLASS = -I'+makefile_options['INC_VECTORCLASS']+'\n\n')
+
+            f.write('INC_DCCRG = -I'+makefile_options['INC_DCCRG']+'\n\n')
+
+            f.write('INC_FSGRID = -I'+makefile_options['INC_FSGRID']+'\n\n')
+
+            f.write('INC_JEMALLOC = -I'+makefile_options['INC_JEMALLOC']+'\n')
+            f.write('JEMALLOC_PATH = -L'+makefile_options['JEMALLOC_PATH']+'\n\n')
+
+            f.write('INC_PROFILE = -I'+makefile_options['INC_PROFILE']+'\n')
+            f.write('PROFILE_PATH = -L'+makefile_options['PROFILE_PATH']+'\n\n')
+
+            f.write('INC_EIGEN = -I'+makefile_options['INC_EIGEN']+'\n')
+
+            f.write('INC_SILO = -I'+makefile_options['INC_SILO']+'\n')
+            f.write('SILO_PATH = -L'+makefile_options['SILO_PATH']+'\n\n')
+else:
+    # Read templates
+    with open(makefile_input, 'r') as current_file:
+        makefile_template = current_file.read()
+
+    # Make substitutions
+    for key, val in makefile_options.items():
+        makefile_template = re.sub(r'@{0}@'.format(key), val, makefile_template)
+
+    # Redirect field solver folder
+    if args['amr']:
+        makefile_template = re.sub('vlasovsolver', 'vlasovsolver_amr', makefile_template)
+
+    # Write output files
+    with open(makefile_output, 'w') as current_file:
+        current_file.write(makefile_template)
 
 # Finish with diagnostic output
 
 print('Your Vlasiator distribution has now been configured with the following options:')
-print('  Machine:                    ' + (args['machine'] if args['machine'] else 'user'))
+print('  Machine:                    ' + (args['machine'] if args['machine'] else 'new'))
 print('  Coordinate system:          ' + args['coord'])
-print('  Linker flags:               ' + makefile_options['LINKER_FLAGS'] + ' '
-      + makefile_options['LIBRARY_FLAGS'])
 print('  Floating-point precision:   ' + ('single' if args['float'] else 'double'))
 print('  Distribution precision:     ' + ('single' if args['distfloat'] else 'double'))
 print('  Block size:                 ' + str(args['nx']) + ' ' \
@@ -778,4 +805,4 @@ print('  Memory tracker:             ' + ('ON' if args['papi'] else 'OFF'))
 print('  Debug flags:                ' + ('ON' if args['debug'] else 'OFF'))
 print('  Compiler:                   ' + args['cxx'])
 print('  Compilation command:        ' + makefile_options['COMPILER_COMMAND'] + ' '
-      + makefile_options['PREPROCESSOR_FLAGS'] + ' ' + makefile_options['COMPILER_FLAGS'])
+      + makefile_options['COMPILER_FLAGS'])
