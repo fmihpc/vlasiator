@@ -136,8 +136,9 @@ namespace SBC {
       std::array< std::array< std::array< Real, productionNumTemperatures >, productionNumAccEnergies >, numAtmosphereLevels > productionTable;
       Real lookupProductionValue(int heightindex, Real energy_keV, Real temperature_keV);
 
-      MPI_Comm communicator;             // The communicator internally used to solve
-      int rank = -1;
+      MPI_Comm communicator;              // The communicator internally used to solve
+      int rank = -1;                      // Own rank in the ionosphere communicator
+      int writingRank;                    // Rank in the MPI_COMM_WORLD communicator that does ionosphere I/O
       bool isCouplingToCells;             // True for any rank that actually couples to the outer simulation
 
       void readAtmosphericModelFile(const char* filename);
