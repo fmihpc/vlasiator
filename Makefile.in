@@ -168,28 +168,26 @@ OBJ_FLUXFUNC := $(addprefix $(OBJ_DIR),$(notdir $(SRC_FLUXFUNC:.cpp=.o)))
 
 # Generally useful targets
 
-.PHONY : all dirs clean
+.PHONY : all clean
 
-all : dirs $(EXECUTABLE)
+all : $(EXECUTABLE)
 
-objs : dirs $(OBJ_FILES)
-
-dirs : $(OBJ_DIR)
+objs : $(OBJ_FILES)
 
 $(SRC_PREFIX)version.cpp:
 	./generate_version.sh "$(CXX)" "${CXXFLAGS}" "${FLAGS}" "${INC_MPI}" "${INC_DCCRG}" "${INC_FSGRID}" "${INC_ZOLTAN}" "${INC_BOOST}"
 
 testpackage: all
 
-particle : dirs $(PTCL_PUSHER)
+particle : $(PTCL_PUSHER)
 
-vlsvextract : dirs $(VLSV_EXTRACT)
+vlsvextract : $(VLSV_EXTRACT)
 
-vlsv2silo : dirs $(VLSV2SILO)
+vlsv2silo : $(VLSV2SILO)
 
-vlsvdiff : dirs $(VLSVDIFF)
+vlsvdiff : $(VLSVDIFF)
 
-fluxfunction : dirs $(FLUXFUNC)
+fluxfunction : $(FLUXFUNC)
 
 # For debugging variables in Makefile, e.g. by "make print-GCOV_FILES"
 
@@ -200,10 +198,10 @@ $(OBJ_DIR):
 
 # Create objects from source files
 
-$(OBJ_DIR)%.o : %.cpp
+$(OBJ_DIR)%.o : %.cpp | $(OBJ_DIR)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INC_PATH) -c $< -o $@
 
-$(OBJ_DIR)vlsvdiff.o : vlsvdiff.cpp
+$(OBJ_DIR)vlsvdiff.o : vlsvdiff.cpp | $(OBJ_DIR)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INC_PATH) -Isrc -c $< -o $@
 
 # Link objects into executable
