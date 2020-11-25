@@ -166,6 +166,7 @@ OBJ_VLSVDIFF := $(addprefix $(OBJ_DIR),$(notdir $(SRC_VLSVDIFF:.cpp=.o)))
 
 OBJ_FLUXFUNC := $(addprefix $(OBJ_DIR),$(notdir $(SRC_FLUXFUNC:.cpp=.o)))
 
+
 # Generally useful targets
 
 .PHONY : all clean
@@ -179,21 +180,6 @@ $(SRC_PREFIX)version.cpp:
 	./generate_version.sh "$(CXX)" "${CXXFLAGS}" "${FLAGS}" "${INC_MPI}" "${INC_DCCRG}" "${INC_FSGRID}" "${INC_ZOLTAN}" "${INC_BOOST}"
 
 testpackage: all
-
-particle : $(PTCL_PUSHER)
-	@echo "Particle pusher has been successfully built."
-
-vlsvextract : $(VLSV_EXTRACT)
-	@echo "vlsvextract has been successfully built."
-
-vlsv2silo : $(VLSV2SILO)
-	@echo "vlsv2silo has been successfully built."
-
-vlsvdiff : $(VLSVDIFF)
-	@echo "vlsvdiff has been successfully built."
-
-fluxfunction : $(FLUXFUNC)
-	@echo "fluxfunction has been successfully built."
 
 # For debugging variables in Makefile, e.g. by "make print-GCOV_FILES"
 
@@ -217,18 +203,23 @@ $(EXECUTABLE) : $(OBJ_FILES)
 
 $(PTCL_PUSHER) : $(OBJ_PTCL)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INC_PATH) -o $@ $(OBJ_PTCL) $(LDFLAGS) $(LDLIBS)
+	@echo "Particle pusher has been successfully built."
 
 $(VLSV_EXTRACT) : $(OBJ_VLSV_EXTRACT)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INC_PATH) -o $@ $(OBJ_VLSV_EXTRACT) $(LDFLAGS) $(LDLIBS)
+	@echo "vlsvextract has been successfully built."
 
 $(VLSV2SILO) : $(OBJ_VLSV2SILO)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INC_PATH) -o $@ $(OBJ_VLSV2SILO) $(LDFLAGS) $(LDLIBS)
+	@echo "vlsv2silo has been successfully built."
 
 $(VLSVDIFF) : $(OBJ_VLSVDIFF)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INC_PATH) -o $@ $(OBJ_VLSVDIFF) $(LDFLAGS) $(LDLIBS)
+	@echo "vlsvdiff has been successfully built."
 
 $(FLUXFUNC) : $(OBJ_FLUXFUNC)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INC_PATH) -o $@ $(OBJ_FLUXFUNC) $(LDFLAGS) $(LDLIBS)
+	@echo "fluxfunction has been successfully built."
 
 # Cleanup
 
