@@ -63,6 +63,9 @@ endif
 ifneq ($(INC_BOOST), -I)
 	INC_PATH += $(INC_BOOST)
 endif
+ifneq ($(INC_VECTORCLASS), -I)
+	INC_PATH += $(INC_VECTORCLASS)
+endif
 ifneq ($(INC_SILO), -I)
 	INC_PATH += $(INC_BOOST)
 endif
@@ -80,8 +83,7 @@ endif
 
 # Preliminary definitions
 
-EXE_DIR := bin/
-EXECUTABLE := $(EXE_DIR)vlasiator
+EXECUTABLE := vlasiator
 SRC_FILES := \
 		 src/version.cpp \
 		 $(wildcard src/*.cpp) \
@@ -123,11 +125,11 @@ VPATH := $(SRC_DIRS):src/particles:src/tools
 
 # Tools section
 
-PTCL_PUSHER  := $(EXE_DIR)particle_post_pusher
-VLSV_EXTRACT := $(EXE_DIR)vlsvextract
-VLSV2SILO    := $(EXE_DIR)vlsv2silo
-VLSVDIFF     := $(EXE_DIR)vlsvdiff
-FLUXFUNC     := $(EXE_DIR)fluxfunction
+PTCL_PUSHER  := particle_post_pusher
+VLSV_EXTRACT := vlsvextract
+VLSV2SILO    := vlsv2silo
+VLSVDIFF     := vlsvdiff
+FLUXFUNC     := fluxfunction
 
 
 SRC_PTCL := \
@@ -135,7 +137,7 @@ SRC_PTCL := \
 		src/readparameters.cpp \
 		$(wildcard src/particles/*.cpp)
 
-SRC_PTCL := \
+SRC_VLSVEXTRACT := \
 		src/tools/vlsvextract.cpp
 
 SRC_VLSV2SILO := \
@@ -172,7 +174,7 @@ all : dirs $(EXECUTABLE)
 
 objs : dirs $(OBJ_FILES)
 
-dirs : $(EXE_DIR) $(OBJ_DIR)
+dirs : $(OBJ_DIR)
 
 $(SRC_PREFIX)version.cpp:
 	./generate_version.sh "$(CXX)" "${CXXFLAGS}" "${FLAGS}" "${INC_MPI}" "${INC_DCCRG}" "${INC_FSGRID}" "${INC_ZOLTAN}" "${INC_BOOST}"
@@ -192,9 +194,6 @@ fluxfunction : dirs $(FLUXFUNC)
 # For debugging variables in Makefile, e.g. by "make print-GCOV_FILES"
 
 print-%  : ; @echo $* = $($*)
-
-$(EXE_DIR):
-	mkdir -p $(EXE_DIR)
 
 $(OBJ_DIR):
 	mkdir -p $(OBJ_DIR)
@@ -231,7 +230,7 @@ $(FLUXFUNC) : $(OBJ_FLUXFUNC)
 
 clean : data
 	rm -rf $(OBJ_DIR)
-	rm -rf $(EXE_DIR)
+	rm -f $(EXECUTABLE)
 	rm -rf *~ */*~ */*/*~ ${EXECUTABLE} particle_post_pusher check_projects_compil_logs check_projects_cfg_logs
 
 allclean: clean cleantools
@@ -240,4 +239,4 @@ data:
 	rm -rf phiprof*txt restart*vlsv grid*vlsv diagnostic.txt logfile.txt src/version.cpp
 c: clean
 cleantools:
-	rm -rf $(EXE_DIR)vlsv2silo* $(EXE_DIR)vlsvextract*  $(EXE_DIR)vlsvdiff* 
+	rm -rf vlsv2silo* vlsvextract* vlsvdiff* 
