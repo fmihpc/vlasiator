@@ -86,7 +86,7 @@ endif
 EXECUTABLE := vlasiator
 SRC_FILES := \
 		 src/version.cpp \
-		 $(wildcard src/*.cpp) \
+		 $(filter-out src/version.cpp, $(wildcard src/*.cpp)) \
 	     $(wildcard src/backgroundfield/*.cpp) \
 	     $(wildcard src/fieldsolver/*.cpp) \
 		 $(wildcard src/vlasovsolver/*.cpp) \
