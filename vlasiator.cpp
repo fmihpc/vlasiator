@@ -766,7 +766,7 @@ int main(int argn,char* args[]) {
                   BgBGrid,
                   volGrid,
                   technicalGrid,
-                  outputReducer,"restart",(uint)P::t, P::restartStripeFactor) == false ) {
+                  outputReducer,"restart",(uint)P::t) == false ) {
             logFile << "(IO): ERROR Failed to write restart!" << endl << writeVerbose;
             cerr << "FAILED TO WRITE RESTART" << endl;
          }

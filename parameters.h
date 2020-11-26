@@ -84,6 +84,7 @@ struct Parameters {
    static uint exitAfterRestarts;           /*!< Exit after this many restarts*/
    static uint64_t vlsvBufferSize;          /*!< Buffer size in bytes passed to VLSV writer. */
    static int restartStripeFactor;          /*!< stripe_factor for restart writing*/
+   static int bulkStripeFactor;          /*!< stripe_factor for bulk and initial grid writing*/
    static std::string restartWritePath;          /*!< Path to the location where restart files should be written. Defaults to the local directory, also if the specified destination is not writeable. */
    
    static uint transmit;

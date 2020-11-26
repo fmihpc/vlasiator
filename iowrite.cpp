@@ -1074,7 +1074,8 @@ bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       FsGrid< fsgrids::technical, 2>& technicalGrid,
                DataReducer* dataReducer,
                const uint& index,
-               const bool writeGhosts ) {
+               const bool writeGhosts,
+   ) {
    double allStart = MPI_Wtime();
    bool success = true;
    int myRank;
@@ -1099,7 +1100,6 @@ bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const int masterProcessId = 0;
 
    MPI_Info MPIinfo;
-   
    if (P::systemWriteHints.size() == 0) {
       MPIinfo = MPI_INFO_NULL;
    } else {
@@ -1111,6 +1111,16 @@ bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       {
          MPI_Info_set(MPIinfo, it->first.c_str(), it->second.c_str());
       }
+   }
+   const int strpe = P::bulkStripeFactor;
+   if (stripe == 0 || stripe < -1){
+      MPIinfo = MPI_INFO_NULL;
+   } else {
+      char stripeChar[6];
+      sprintf(stripeChar,"%d",stripe);
+      /* no. of I/O devices to be used for file striping */
+      char factor[] = "striping_factor";
+      MPI_Info_set(MPIinfo, factor, stripeChar);
    }
 
    phiprof::start("open");
@@ -1243,8 +1253,7 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       FsGrid< fsgrids::technical, 2>& technicalGrid,
                   DataReducer& dataReducer,
                   const string& name,
-                  const uint& fileIndex,
-                  const int& stripe) {
+                  const uint& fileIndex) {
    // Writes a restart
    double allStart = MPI_Wtime();
    bool success = true;
@@ -1283,7 +1292,8 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    //Open the file with vlsvWriter:
    Writer vlsvWriter;
    const int masterProcessId = 0;
-   MPI_Info MPIinfo; 
+   MPI_Info MPIinfo;
+   const int stripe = P::restartStripeFactor;
    if (stripe == 0 || stripe < -1){
       MPIinfo = MPI_INFO_NULL;
    } else {
