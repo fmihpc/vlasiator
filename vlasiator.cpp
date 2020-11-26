@@ -682,6 +682,7 @@ int main(int argn,char* args[]) {
       // write system, loop through write classes
       for (uint i = 0; i < P::systemWriteTimeInterval.size(); i++) {
          if (P::systemWriteTimeInterval[i] >= 0.0 &&
+             P::tstep > P::tstep_min &&
              P::t >= P::systemWrites[i] * P::systemWriteTimeInterval[i] - DT_EPSILON) {
             
             phiprof::start("write-system");
