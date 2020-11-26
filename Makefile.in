@@ -125,11 +125,11 @@ VPATH := $(SRC_DIRS):src/particles:src/tools
 
 # Tools section
 
-PTCL_PUSHER  := particle_post_pusher
-VLSV_EXTRACT := vlsvextract
-VLSV2SILO    := vlsv2silo
-VLSVDIFF     := vlsvdiff
-FLUXFUNC     := fluxfunction
+PTCL_PUSHER := particle_post_pusher
+VLSVEXTRACT := @VLSVEXTRACT@
+VLSV2SILO   := @VLSV2SILO@
+VLSVDIFF    := @VLSVDIFF@
+FLUXFUNC    := fluxfunction
 
 
 SRC_PTCL := \
@@ -158,7 +158,7 @@ SRC_FLUXFUNC := \
 
 OBJ_PTCL := $(addprefix $(OBJ_DIR),$(notdir $(SRC_PTCL:.cpp=.o)))
 
-OBJ_VLSV_EXTRACT := $(addprefix $(OBJ_DIR),$(notdir $(SRC_VLSV_EXTRACT:.cpp=.o)))
+OBJ_VLSVEXTRACT := $(addprefix $(OBJ_DIR),$(notdir $(SRC_VLSVEXTRACT:.cpp=.o)))
 
 OBJ_VLSV2SILO := $(addprefix $(OBJ_DIR),$(notdir $(SRC_VLSV2SILO:.cpp=.o)))
 
@@ -179,7 +179,13 @@ objs : $(OBJ_FILES)
 $(SRC_PREFIX)version.cpp:
 	./generate_version.sh "$(CXX)" "${CXXFLAGS}" "${FLAGS}" "${INC_MPI}" "${INC_DCCRG}" "${INC_FSGRID}" "${INC_ZOLTAN}" "${INC_BOOST}"
 
-testpackage: all
+testpackage : all
+
+vlsvdiff : $(VLSVDIFF)
+
+vlsvextract : $(VLSVEXTRACT)
+
+vlsv2silo : $(VLSV2SILO)
 
 # For debugging variables in Makefile, e.g. by "make print-GCOV_FILES"
 
@@ -205,8 +211,8 @@ $(PTCL_PUSHER) : $(OBJ_PTCL)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INC_PATH) -o $@ $(OBJ_PTCL) $(LDFLAGS) $(LDLIBS)
 	@echo "Particle pusher has been successfully built."
 
-$(VLSV_EXTRACT) : $(OBJ_VLSV_EXTRACT)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INC_PATH) -o $@ $(OBJ_VLSV_EXTRACT) $(LDFLAGS) $(LDLIBS)
+$(VLSVEXTRACT) : $(OBJ_VLSVEXTRACT)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INC_PATH) -o $@ $(OBJ_VLSVEXTRACT) $(LDFLAGS) $(LDLIBS)
 	@echo "vlsvextract has been successfully built."
 
 $(VLSV2SILO) : $(OBJ_VLSV2SILO)

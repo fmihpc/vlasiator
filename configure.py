@@ -387,9 +387,14 @@ if args['cxx'] == 'clang++-apple':
 
 # -float argument
 if args['float']:
-    makefile_options['PREPROCESSOR_FLAGS'] += ' -DSP'
+    precision = 'SP'
 else:
-    makefile_options['PREPROCESSOR_FLAGS'] += ' -DDP'
+    precision = 'DP'
+
+makefile_options['PREPROCESSOR_FLAGS'] += ' -D'+precision
+
+for key in ('vlsvdiff','vlsvextract','vlsv2silo'):
+    makefile_options[key.upper()] = key+'_'+precision
 
 # Distribution function precision
 if args['distfloat']:
