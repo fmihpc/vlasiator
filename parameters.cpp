@@ -142,7 +142,7 @@ Real P::bailout_max_memory = 1073741824.;
 uint P::amrMaxVelocityRefLevel = 0;
 Realf P::amrRefineLimit = 1.0;
 Realf P::amrCoarsenLimit = 0.5;
-string P::amrVelRefCriterion = "";
+string P::amrVelRefCriterion = string("");
 int P::amrMaxSpatialRefLevel = 0;
 int P::amrBoxHalfWidthX = 1;
 int P::amrBoxHalfWidthY = 1;
@@ -317,7 +317,7 @@ bool Parameters::addParameters(){
    Readparameters::add("AMR.box_center_x","x coordinate of the center of the box that is refined (for testing)",0.0);
    Readparameters::add("AMR.box_center_y","y coordinate of the center of the box that is refined (for testing)",0.0);
    Readparameters::add("AMR.box_center_z","z coordinate of the center of the box that is refined (for testing)",0.0);
-   Readparameters::addComposing("AMR.filterpasses", std::string()+"AMR filter passes for each individual refinement level");
+   Readparameters::addComposing("AMR.filterpasses", std::string("AMR filter passes for each individual refinement level"));
    return true;
 }
 
