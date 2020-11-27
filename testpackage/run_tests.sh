@@ -27,8 +27,8 @@ revision=$( $run_command $bin --version | gawk '{if(flag==1) {print $1;flag=0}if
 
 if [ $create_verification_files == 1 ]
 then
-    #if we create the references, then let's simply run in the reference dir and turn off tests below. Revision is 
-    #automatically obtained from the --version output.
+    # If we create the references, then let's simply run in the reference dir and turn off tests below. Revision is 
+    # automatically obtained from the --version output.
     reference_revision=${revision}${solveropts}
     echo "Computing reference results into ${reference_dir}/${reference_revision}"
 fi
@@ -137,25 +137,25 @@ do
         do
             if [ "${variables[$i]}" == "fg_e" ] || [ "${variables[$i]}" == "fg_b" ]
             then
-                diffinfo = $($run_command_tools vlsvdiff_DP --meshname=fsgrid ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables[$i]} ${indices[$i]})
+                diffinfo=$($run_command_tools $bindiff --meshname=fsgrid ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables[$i]} ${indices[$i]})
                 relativeValue=$(echo "$diffinfo" | grep "The relative 0-distance between both datasets" | gawk '{print $8}' )
                 absoluteValue=$(echo "$diffinfo" | grep "The absolute 0-distance between both datasets" | gawk '{print $8}' )
-                #print the results      
+                # Print the results      
                 echo "${variables[$i]}_${indices[$i]}                $absoluteValue                 $relativeValue    "
             
             elif [ ! "${variables[$i]}" == "proton" ]
             then
-                diffinfo = $($run_command_tools vlsvdiff_DP ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables[$i]} ${indices[$i]})
+                diffinfo=$($run_command_tools $bindiff ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables[$i]} ${indices[$i]})
                 relativeValue=$(echo "$diffinfo" | grep "The relative 0-distance between both datasets" | gawk '{print $8}'  )
                 absoluteValue=$(echo "$diffinfo" | grep "The absolute 0-distance between both datasets" | gawk '{print $8}'  )
-                #print the results      
+                # Print the results      
                 echo "${variables[$i]}_${indices[$i]}                $absoluteValue                 $relativeValue    "
             elif [ "${variables[$i]}" == "proton" ]
             then
                 echo "--------------------------------------------------------------------------------------------" 
                 echo "   Distribution function diff                                                               "
                 echo "--------------------------------------------------------------------------------------------" 
-                $run_command_tools vlsvdiff_DP ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} proton 0
+                $run_command_tools $bindiff ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} proton 0
             fi 
         done # loop over variables
 
