@@ -682,8 +682,12 @@ int main(int argn,char* args[]) {
       // write system, loop through write classes
       for (uint i = 0; i < P::systemWriteTimeInterval.size(); i++) {
          if (P::systemWriteTimeInterval[i] >= 0.0 &&
-             P::tstep > P::tstep_min &&
              P::t >= P::systemWrites[i] * P::systemWriteTimeInterval[i] - DT_EPSILON) {
+            // If we have only just restarted, the bulk file should already exist.
+            if (P::tstep == P::tstep_min) {
+               P::systemWrites[i]++;
+               continue;
+            }
             
             phiprof::start("write-system");
             logFile << "(IO): Writing spatial cell and reduced system data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
